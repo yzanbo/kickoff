@@ -18,6 +18,7 @@ import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { Runner } from "@/features/chat/core/runner";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
+import { MIGRATIONS } from "@/app/core/migrations";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform } from "./testEnv";
 
 export { tick, until } from "@/foundation/core/testing/until";
@@ -34,7 +35,7 @@ export type BeforeStart = (store: Store, project: Project) => unknown;
 
 /** メモリの DB の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
 function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string): { k: KernelWithStore; project: Project } {
-  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:" });
+  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:", migrations: MIGRATIONS });
   const repo = path.join(tempDir(), "repo");
   fs.mkdirSync(repo);
   return { k, project: k.store.projects.create({ name: "p", repo_path: repo, provider: "claude" }) };

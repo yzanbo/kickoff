@@ -613,7 +613,6 @@
       "feature-worker:database:src/features/database/worker/main.ts -> src/foundation/core/platform/macos/shell.ts",
       "feature-worker:database:src/features/database/worker/shell.ts -> src/foundation/core/platform/types.ts",
       "feature-worker:database:src/features/database/worker/tunnel.ts -> src/features/database/core/sshArgs.ts",
-      "foundation-core:src/foundation/core/db/providerSwitchCommit.test.ts -> src/shared/ai/chatOptions.ts",
       "foundation-core:src/foundation/core/db/store.ts -> src/features/chat/core/db/agentSessions.ts",
       "foundation-core:src/foundation/core/db/store.ts -> src/features/chat/core/db/chatProviderHandoffs.ts",
       "foundation-core:src/foundation/core/db/store.ts -> src/features/chat/core/db/chatProviderSessions.ts",
@@ -795,7 +794,6 @@
       "shared-order:ai:src/shared/ai/chatOptions.ts -> src/shared/chat/types.ts",
       "shared-order:chat:src/shared/chat/chatIndex.test.ts -> src/shared/visuals/aiVisual.ts",
       "shared-order:chat:src/shared/chat/chatIndex.ts -> src/shared/visuals/aiVisual.ts",
-      "shared-order:chat:src/shared/chat/state.test.ts -> src/foundation/core/db/store.ts",
       "shared-order:chat:src/shared/chat/testing/chatScenarios.ts -> src/shared/visuals/aiVisual.ts",
       "shared-order:chat:src/shared/chat/toolText.test.ts -> src/shared/guard/aiSandboxDiagnostics.ts",
       "shared-order:chat:src/shared/chat/toolText.test.ts -> src/shared/notifications/tools.ts",
@@ -812,7 +810,6 @@
       "shared-order:chat:src/shared/chat/types.ts -> src/shared/github/types.ts",
       "shared-order:docker:src/shared/docker/types.ts -> src/shared/database/types.ts",
       "shared-order:git:src/shared/git/types.ts -> src/shared/worktrees/envTypes.ts",
-      "shared-order:projects:src/shared/projects/colors.test.ts -> src/foundation/core/db/store.ts",
       "shared-order:projects:src/shared/projects/types.ts -> src/shared/chat/types.ts",
       "shared-order:settings:src/shared/settings/types.ts -> src/shared/chat/types.ts",
       "shared-order:settings:src/shared/settings/types.ts -> src/shared/voice/types.ts"
@@ -2606,7 +2603,7 @@
       "siblings:src/foundation/ui:code,hooks,lib,theme",
       "siblings:src/foundation/ui:kit,markdown",
       "siblings:src/shared:ai,chat,database,foundation,git,github,groups,notifications,projects,settings,snippets,visuals,voice,workplaceMove,worktrees",
-      "siblings:src:app,features,foundation,shared"
+      "siblings:src:app,features,foundation"
     ],
     "size": {
       "src/app/renderer/styles/board/board-columns.css": 303,
@@ -2672,7 +2669,6 @@
       "src/features/trash/core/routes/server.trash.test.ts": 442,
       "src/features/trash/core/service.ts": 362,
       "src/features/worktrees/core/finish.ts": 404,
-      "src/foundation/core/db/schema.ts": 596,
       "src/foundation/desktop/app/coreProcess.ts": 343,
       "src/foundation/ui/kit/dialogs.tsx": 319,
       "src/foundation/ui/storage/storageKeys.ts": 568,

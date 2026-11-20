@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { buildSystemPrompt, CHAT_POLICY } from "./system";
 import { toAllowedTools } from "@/features/ai/core/providers/claude/policy";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const p = store.projects.create({ name: "a", description: "ノートアプリ", repo_path: "/tmp/a", provider: "claude" });
   return store.projects.update(p.id, { reference_paths: references });
 }

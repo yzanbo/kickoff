@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { switchAfterCompact } from "./sessionSwitch";
 
 function setup() {
-  const store = new Store(":memory:", () => {});
+  const store = testStore(":memory:", () => {});
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "長い", provider: "claude", status: "completed" });
   store.chats.update(chat.id, { session_id: "old" });

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import path from "node:path";
 
@@ -22,13 +22,13 @@ test("AI 切り替えの引き継ぎ内容と送信状態は、チャット・�
 
 test("アプリを再起動しても送信中の状態を失わない", () => {
   const file = path.join(tempDir(), "db.sqlite");
-  const store = new Store(file);
+  const store = testStore(file);
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
   const event = store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex" });
   store.chatProviderHandoffs.save({ chatId: chat.id, eventId: event.id, provider: "codex", context: "文脈", state: "sending", error: null, lastEventId: null, queueWasPaused: false });
   store.close();
-  const reopened = new Store(file);
+  const reopened = testStore(file);
   assert.equal(reopened.chatProviderHandoffs.get(chat.id)?.state, "sending");
   assert.equal(reopened.chatProviderHandoffs.get(chat.id)?.context, "文脈");
   assert.equal(reopened.chatProviderHandoffs.recoverInterrupted(), 1);

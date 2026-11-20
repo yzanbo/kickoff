@@ -24,9 +24,9 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## DB（`db/`）
 
-- スキーマは `db/schema.ts` の `MIGRATIONS` の末尾に足して変える（既存の要素は書き換えない）。版ごとに 1 つのトランザクション。
+- スキーマは機能の `core/schema.ts`。版は `@/app/core/migrations.ts` の末尾に足す（既存は書き換えない）。版ごとに 1 つのトランザクション。
 - 表はすべて STRICT。真偽値は `CHECK (x IN (0, 1))`、JSON は `json_valid` と `json_type`。値の一覧は CHECK にしない。「ない」は NULL で、空文字を入れない列は `CHECK (x <> '')`。
-- 版は `application_id`（'KICK'）と `user_version`（200 ＋ 版）。`inspectSchema` で、ほかのアプリ・新しすぎる版ならデータに触らずに（WAL にする前に）例外。
+- 版は `application_id`（'KICK'）と `user_version`（300 ＋ 版）。`inspectSchema` で、ほかのアプリ・新しすぎる版は触らずに（WAL にする前に）例外。
 - 読み書きは `Store`（`db/store.ts`）の表ごとの店（各機能の `core/db/<表>.ts` の `createXxxStore(db, onChange)`）を通し、ルートで SQL を書かない。変える操作は `onChange` で知らせる（秘密の値は知らせない）。
 - 行と型の変換は店の `toChat` などに集める（真偽値は `db/common.ts` の `bit()`）。変えられる列は `CHAT_COLUMNS` などの 1 つの一覧を、型と `updateRow` の両方に使う。
 - `chats.active_at`（一覧の並び順）を進めるのは `status` を変える更新だけ（未読・固定・並び・名前・アーカイブ・移動・復旧では進めない）。

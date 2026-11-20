@@ -6,7 +6,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { realPathLoose } from "@/foundation/core/system/paths";
-import { DB_FILE } from "@/foundation/core/db/open";
+import { DB_FILE } from "@/foundation/core/db/db";
 
 /** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result）。読めない DB は飛ばす */
 export type SessionsUsedElsewhere = (ids: string[]) => Set<string>;

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { DB_FILE } from "@/foundation/core/db/open";
+import { APPLICATION_ID, DB_FILE, USER_VERSION_BASE } from "@/foundation/core/db/db";
 
 /** 写さないもの（起動中の印・作り直せるキャッシュ。データベースは下で別に写す） */
 const SKIP = new Set([
@@ -23,7 +23,8 @@ const SKIP = new Set([
 
 /**
  * 開発の保存先がまだなければ、本番のデータ（プロジェクト・チャット・画面の設定など）を一度だけ写す。
- * 写したあとは別々のデータになる。データベースは、本番のアプリが動いていても崩れないよう VACUUM INTO で写し、別の本体にする（becomeAnotherHost）
+ * 写したあとは別々のデータになる。データベースは、本番のアプリが動いていても崩れないよう VACUUM INTO で写し、別の本体にする（becomeAnotherHost）。
+ * 本番のデータベースがいまの系統（user_version が 300 ＋ 版）でなければ写さない（開けないため。開発版は空のデータベースから作る）
  */
 export function seedDevData(prodDir: string, devDir: string): boolean {
   if (fs.existsSync(devDir) || !fs.existsSync(prodDir)) return false;
@@ -32,14 +33,24 @@ export function seedDevData(prodDir: string, devDir: string): boolean {
   if (fs.existsSync(prodDb)) {
     const devDb = path.join(devDir, DB_FILE);
     const db = new DatabaseSync(prodDb, { readOnly: true });
+    let copied = false;
     try {
-      db.exec(`VACUUM INTO '${devDb.replaceAll("'", "''")}'`);
+      if (isCurrentLine(db)) {
+        db.exec(`VACUUM INTO '${devDb.replaceAll("'", "''")}'`);
+        copied = true;
+      }
     } finally {
       db.close();
     }
-    becomeAnotherHost(devDb);
+    if (copied) becomeAnotherHost(devDb);
   }
   return true;
+}
+
+/** いまの系統の DB か（印が 'KICK' で user_version が 300 より大きい。版が新しすぎるかは開くときに調べる） */
+function isCurrentLine(db: DatabaseSync): boolean {
+  const pragma = (name: string) => Object.values(db.prepare(`PRAGMA ${name}`).get() as Record<string, number>)[0];
+  return pragma("application_id") === APPLICATION_ID && pragma("user_version") > USER_VERSION_BASE;
 }
 
 /**

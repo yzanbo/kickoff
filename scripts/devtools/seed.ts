@@ -11,8 +11,9 @@ import { parseArgs } from "node:util";
 import type { ChatEventData } from "@shared/chat/chatEvent";
 import type { QueuedMessage } from "@shared/chat/types";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import { DB_FILE } from "../../src/foundation/core/db/open.js";
+import { DB_FILE, openDb } from "../../src/foundation/core/db/db.js";
 import { Store } from "../../src/foundation/core/db/store.js";
+import { MIGRATIONS } from "../../src/app/core/migrations.js";
 import type { NewChat } from "../../src/foundation/core/db/types.js";
 
 const { values } = parseArgs({ options: { root: { type: "string" }, data: { type: "string" }, now: { type: "string" } } });
@@ -90,7 +91,8 @@ sample.exec(`
 sample.close();
 
 // --- Kickoff の DB
-const store = new Store(path.join(dataDir, DB_FILE));
+// 新しいスキーマの空の DB に入れる（置き場所は毎回作り直すので、前の版の DB は残らない）
+const store = new Store(openDb(path.join(dataDir, DB_FILE), MIGRATIONS));
 const { db } = store;
 db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });

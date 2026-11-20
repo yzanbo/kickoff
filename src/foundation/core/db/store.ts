@@ -12,7 +12,6 @@ import { createDeviceStore } from "@/features/devices/core/db/devices";
 import { createEventStore } from "@/features/chat/core/db/events";
 import { createGroupStore } from "@/features/groups/core/db/groups";
 import { createLogRevisions, type LogRevisions } from "@/features/chat/core/db/logRevisions";
-import { openDatabase } from "./open";
 import { createPrNoticeStore } from "@/features/github/core/db/prNotices";
 import { createCiNoticeStore } from "@/features/github/core/db/ciNotices";
 import { createProjectStore } from "@/features/projects/core/db/projects";
@@ -70,11 +69,12 @@ export class Store {
   /** 記録を足す以外の形で変えた知らせ（巻き戻し・セッションの付け替え・チャットの削除。コアの索引の覚えを捨てる合図） */
   readonly logRevisions: LogRevisions = createLogRevisions();
 
+  /** db は版をそろえて開いたもの（openDb。組み立てが全部の機能の版を渡す） */
   constructor(
-    private readonly file: string,
+    db: DatabaseSync,
     private readonly onChange: Notify = () => {},
   ) {
-    this.db = openDatabase(file);
+    this.db = db;
     this.databaseId = readDatabaseId(this.db);
     this.settings = createSettingsStore(this.db, onChange);
     this.secrets = createSecretStore(this.db);
@@ -234,7 +234,7 @@ export class Store {
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
   stats(): DatabaseStats {
-    return databaseStats(this.db, this.file);
+    return databaseStats(this.db, this.db.location());
   }
 
   close() {

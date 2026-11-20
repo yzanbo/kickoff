@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "./store";
+import type { Store } from "@/foundation/core/db/store";
+import { testStore } from "./testing/testStore";
 
 function setup() {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
   const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) =>

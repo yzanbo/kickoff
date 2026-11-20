@@ -4,6 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import { test } from "vitest";
 import type { CoreFeature, FeatureName } from "@/foundation/core/feature";
+import { BASE_SCHEMA_V1 } from "@/foundation/core/db/baseSchema";
 import { createKernel } from "@/foundation/core/kernel";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { afterTest } from "@/foundation/core/testing/afterTest";
@@ -15,7 +16,7 @@ const platform = { appDataRoot: "/apps" } as HostPlatform;
 /** 呼ばれた順を order に書く偽の機能と土台 */
 function fixture() {
   const order: string[] = [];
-  const k = createKernel({ dataDir: tempDir(), port: 0, platform });
+  const k = createKernel({ dataDir: tempDir(), port: 0, platform, migrations: [{ version: 1, sql: BASE_SCHEMA_V1 }] });
   k.exec.stopAllStreams = () => void order.push("streams");
   const feature = (name: FeatureName, stopPhase?: "first"): CoreFeature => ({
     name,

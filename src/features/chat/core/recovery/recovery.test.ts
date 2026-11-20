@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Bus } from "@/foundation/core/bus";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import { ChatRuntimes } from "@/features/chat/core/runtime";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
@@ -16,7 +16,7 @@ const RESET = "2026-11-04T10:30:00.000Z";
 /** 送ったら作業中にし（Runner の send と同じ）、終わりは finish で知らせる */
 function setup({ usage }: { usage?: () => Promise<PlanUsage> } = {}) {
   const bus = new Bus();
-  const store = new Store(":memory:", (e) => bus.publish(e));
+  const store = testStore(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
   const runtimes = new ChatRuntimes({ store, bus, onEditsChanged: () => {} });
   const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });

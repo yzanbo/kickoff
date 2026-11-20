@@ -31,7 +31,17 @@ function baselineKey(violation) {
   return violation.key.slice(violation.kind.length + 1);
 }
 
-/** いまの違反と基準線を比べる。added は新しい違反、stale は直ったのに基準線に残る鍵、grown は値が増えた違反、shrunk は値が減った違反（通す） */
+/** 循環の鍵（決まり:親:フォルダ,…）のフォルダが、基準線の同じ決まりと親の鍵のフォルダに含まれれば、その基準線の鍵（輪から抜けたフォルダがあるだけ = 減った） */
+function widerCycle(key, baseKeys) {
+  const at = key.lastIndexOf(":");
+  const members = key.slice(at + 1).split(",");
+  return baseKeys.find((b) => b.slice(0, b.lastIndexOf(":") + 1) === key.slice(0, at + 1) && members.every((m) => b.slice(b.lastIndexOf(":") + 1).split(",").includes(m)));
+}
+
+/**
+ * いまの違反と基準線を比べる。added は新しい違反、stale は直ったのに基準線に残る鍵、grown は値が増えた違反、shrunk は値が減った違反（通す）。
+ * 循環の輪からフォルダが抜けて鍵が変わったものは shrunk（from・to は鍵。前の鍵は stale に出るので --write-baseline で書き直す）
+ */
 export function compareWithBaseline(violations, baseline) {
   const base = baseline?.violations ?? {};
   const added = [];
@@ -46,7 +56,11 @@ export function compareWithBaseline(violations, baseline) {
       if (from === undefined) added.push(v);
       else if (v.value > from) grown.push({ key: v.key, from, to: v.value });
       else if (v.value < from) shrunk.push({ key: v.key, from, to: v.value });
-    } else if (!(base[v.kind] ?? []).includes(key)) added.push(v);
+    } else if (!(base[v.kind] ?? []).includes(key)) {
+      const wider = v.kind === "cycle" ? widerCycle(key, base.cycle ?? []) : undefined;
+      if (wider) shrunk.push({ key: v.key, from: wider, to: key });
+      else added.push(v);
+    }
   }
   const stale = [];
   for (const kind of KINDS) {

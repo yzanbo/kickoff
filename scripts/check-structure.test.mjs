@@ -204,6 +204,15 @@ test("基準線と比べる: 新しい違反・直ったのに残る・増えた
   assert.deepEqual(result.shrunk, [{ key: "size:less.ts", from: 450, to: 420 }]);
 });
 
+test("基準線と比べる: 循環の輪からフォルダが抜けただけなら減った（通す）。フォルダが増えた・別の親の輪は新しい", () => {
+  const cyc = (key) => ({ kind: "cycle", key: `cycle:${key}` });
+  const baseline = { version: 1, violations: { cycle: ["siblings:src:app,features,foundation,shared", "siblings:src/a:x,y"] } };
+  const result = compareWithBaseline([cyc("siblings:src:app,features,foundation"), cyc("siblings:src/a:x,y,z"), cyc("siblings:src/b:x,y")], baseline);
+  assert.deepEqual(result.shrunk, [{ key: "cycle:siblings:src:app,features,foundation", from: "siblings:src:app,features,foundation,shared", to: "siblings:src:app,features,foundation" }]);
+  assert.deepEqual(keys(result.added), ["cycle:siblings:src/a:x,y,z", "cycle:siblings:src/b:x,y"]);
+  assert.deepEqual(result.stale, ["cycle:siblings:src:app,features,foundation,shared", "cycle:siblings:src/a:x,y"]);
+});
+
 test("基準線と比べる: 基準線がなければ、いまの違反が全部新しい", () => {
   const result = compareWithBaseline([imp("r:a -> b")], { version: 1, violations: {} });
   assert.equal(result.added.length, 1);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ProviderId } from "@shared/settings/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
@@ -8,7 +8,7 @@ import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore, until } from "@/app/core/testing/testCore";
 
 test("AI を替えたチャットのセッションは、その時点の AI ごとに集める", () => {
-  const store = new Store(":memory:", () => {});
+  const store = testStore(":memory:", () => {});
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "codex", title: "切り替え", status: "completed" });
   store.events.add(chat.id, { type: "init", session_id: "claude-1" });
@@ -33,7 +33,7 @@ test("コンテキスト消去時は、別の AI に戻しても古いセッシ�
 });
 
 test("使っていない会話記録を消す: ほかの Kickoff（製品版と開発版）のチャットが使っているものは残す", async () => {
-  const store = new Store(":memory:", () => {});
+  const store = testStore(":memory:", () => {});
   const asked: string[][] = [];
   const provider = { discardSessions: async (ids: string[]) => (asked.push(ids), ids.length) } as unknown as AgentProvider;
   const providers = { claude: provider } as Record<ProviderId, AgentProvider>;

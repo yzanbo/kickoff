@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { DEVICE_ACCESSES, type Device, type DeviceAccess, type DevicePush } from "@shared/devices/types";
-import { NOW } from "@/foundation/core/db/schema";
+import { NOW } from "@/foundation/core/db/db";
 import { hashToken } from "@/features/devices/core/token";
 
 /** 最後に使った時刻を書き直す間隔（API を呼ぶたびに書かない） */

@@ -2,7 +2,7 @@
 // 列の名前は宣言からだけ SQL に入れ、値は必ず ? で渡す。prepare した文は SQL の文字ごとに覚える
 import type { DatabaseSync, SQLInputValue, SQLOutputValue, StatementSync } from "node:sqlite";
 import { NotFound } from "@/foundation/core/errors";
-import { NOW } from "./schema";
+import { NOW } from "./db";
 
 type Kind = "int" | "real" | "text" | "bool" | "json" | "time";
 

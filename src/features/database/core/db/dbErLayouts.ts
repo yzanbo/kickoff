@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { DbErPositions } from "@shared/database/types";
-import { NOW } from "@/foundation/core/db/schema";
+import { NOW } from "@/foundation/core/db/db";
 
 /**
  * ER 図で動かしたテーブルの位置（db_er_layouts の表。接続と場所（DB・スキーマ）ごとに 1 行）。

@@ -4,6 +4,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { seedDevData } from "./devData";
+import { APPLICATION_ID } from "@/foundation/core/db/db";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("seedDevData: 開発の保存先がなければ、本番のデータを一度だけ写す（起動中の印・キャッシュは写さない）", () => {
@@ -21,6 +22,7 @@ test("seedDevData: 開発の保存先がなければ、本番のデータを一�
   db.exec("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL); INSERT INTO meta VALUES ('database_id', 'prod-id');");
   db.exec("CREATE TABLE devices (id INTEGER PRIMARY KEY, name TEXT, token_hash TEXT); INSERT INTO devices (name, token_hash) VALUES ('Pixel', 'h');");
   db.exec("CREATE TABLE agent_sessions (session_id TEXT PRIMARY KEY); INSERT INTO agent_sessions VALUES ('s-prod');");
+  db.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 301;`);
 
   assert.equal(seedDevData(prod, dev), true);
   assert.equal(fs.readFileSync(path.join(dev, "Local Storage", "leveldb"), "utf8"), "settings");
@@ -49,4 +51,18 @@ test("seedDevData: 本番のデータがなければ何もしない", () => {
   const root = tempDir();
   assert.equal(seedDevData(path.join(root, "Kickoff"), path.join(root, "Kickoff Dev")), false);
   assert.ok(!fs.existsSync(path.join(root, "Kickoff Dev")));
+});
+
+test("seedDevData: 本番のデータベースが前の系統（200 ＋ 版）なら、データベースだけ写さない（開発版は空から作る）", () => {
+  const root = tempDir();
+  const prod = path.join(root, "Kickoff");
+  const dev = path.join(root, "Kickoff Dev");
+  fs.mkdirSync(prod);
+  fs.writeFileSync(path.join(prod, "token"), "x".repeat(32));
+  const db = new DatabaseSync(path.join(prod, "kickoff.db"));
+  db.exec(`CREATE TABLE projects (name TEXT); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 238;`);
+  db.close();
+  assert.equal(seedDevData(prod, dev), true);
+  assert.ok(fs.existsSync(path.join(dev, "token")));
+  assert.ok(!fs.existsSync(path.join(dev, "kickoff.db")));
 });

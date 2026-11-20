@@ -2,7 +2,7 @@ import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { normalizePrep, prepConfirmKey } from "@shared/database/dbPrep";
 import { DB_ENVIRONMENT_DEFAULTS, type DbConnection, type DbPrep, type DbSsh, type DbSsl } from "@shared/database/types";
 import type { DbConnectionPatch, NewDbConnectionBody } from "@shared/foundation/apiTypes";
-import { NOW } from "@/foundation/core/db/schema";
+import { NOW } from "@/foundation/core/db/db";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import type { DbSecretKey } from "@/foundation/core/settings/settings";
 

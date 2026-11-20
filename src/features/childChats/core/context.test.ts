@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import { chatContextNote, chatContextOf } from "./context";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 function setup() {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const project = store.projects.create({ name: "a", repo_path: "/tmp/a", provider: "claude" });
   const chat = (title: string, parent: { id: number; eventId?: number } | null = null) =>
     store.chats.create({

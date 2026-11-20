@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import { collectSubagents } from "@shared/chat/subagents";
 import { endInterruptedTurns, stoppedSubagentsNotice } from "./interruptedTurnEnd";
 
 function setup() {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = (title: string, status: "running" | "cancelled") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null });
   const say = (chatId: number, text: string) => store.events.add(chatId, { type: "user", text, message_uuid: crypto.randomUUID() });

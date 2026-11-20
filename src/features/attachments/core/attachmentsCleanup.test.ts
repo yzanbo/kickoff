@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { UNUSED_UPLOAD_KEEP_MS, sweepUnusedUploads } from "./attachmentsCleanup";
 import { UploadStore } from "./uploads";
 
 test("送らなかった添付: 保存してから 30 日たち、記録（ゴミ箱のチャットも）・送信待ちのどれも使っていないものだけを消す", async () => {
-  const store = new Store(":memory:", () => {});
+  const store = testStore(":memory:", () => {});
   const uploads = new UploadStore(tempDir());
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });

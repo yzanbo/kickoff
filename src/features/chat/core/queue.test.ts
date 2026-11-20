@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ChatQueue } from "./queue";
-import { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 
 function setup() {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
   return { store, chat };

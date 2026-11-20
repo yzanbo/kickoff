@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import type { ListeningSocket, ProcessProbe, ProcessRow } from "@/foundation/core/platform/types";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
@@ -18,7 +18,7 @@ const CORE = 101;
 
 function setup() {
   const repo = tempDir({ real: true });
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   afterTest(() => store.close());
   const project = store.projects.create({ name: "p", repo_path: repo, provider: "claude" });
   const rows: ProcessRow[] = [

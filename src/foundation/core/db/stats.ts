@@ -17,7 +17,8 @@ export interface DatabaseStats {
 
 const mb = (bytes: number) => Math.round((bytes / 1048576) * 10) / 10;
 
-function fileMB(file: string): number {
+function fileMB(file: string | null): number {
+  if (!file) return 0;
   try {
     return mb(fs.statSync(file).size);
   } catch {
@@ -25,8 +26,8 @@ function fileMB(file: string): number {
   }
 }
 
-/** DB（file はそのファイル。メモリの DB なら大きさは 0）の大きさと、チャット・記録の数 */
-export function databaseStats(db: DatabaseSync, file: string): DatabaseStats {
+/** DB（file はそのファイル。メモリの DB は null で、大きさは 0）の大きさと、チャット・記録の数 */
+export function databaseStats(db: DatabaseSync, file: string | null): DatabaseStats {
   const count = (table: string) => Number((db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n);
   const busiestChats = db
     .prepare(
@@ -36,5 +37,5 @@ export function databaseStats(db: DatabaseSync, file: string): DatabaseStats {
     )
     .all()
     .map((r) => ({ id: Number(r.id), events: Number(r.events), title: String(r.title), status: String(r.status) }));
-  return { dbMB: fileMB(file), walMB: fileMB(`${file}-wal`), chats: count("chats"), events: count("chat_events"), busiestChats };
+  return { dbMB: fileMB(file), walMB: fileMB(file && `${file}-wal`), chats: count("chats"), events: count("chat_events"), busiestChats };
 }

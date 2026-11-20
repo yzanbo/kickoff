@@ -60,7 +60,7 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/foundation/core/db/schema.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
+データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（300 ＋ 版）で持つ（`src/foundation/core/db/db.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
 
 開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/foundation/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 

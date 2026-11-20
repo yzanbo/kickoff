@@ -9,7 +9,7 @@ import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import { providerFeatures } from "@/features/ai/core/providers/features";
 import { claudeAuthEnv } from "@/features/ai/core/providers/claude/env";
-import { Store } from "@/foundation/core/db/store";
+import { testStore } from "@/app/core/testing/testStore";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
@@ -40,7 +40,7 @@ test("AI の一覧: 5 つの AI と、できること・ログインの仕方・
 });
 
 test("API キー: 暗号化して置き、設定が API キーのときだけ開いて渡す", async () => {
-  const store = new Store(":memory:");
+  const store = testStore(":memory:");
   const vault = new ProviderKeyVault(store, reverseCipher);
   await vault.set("claude", "  sk-ant-1  ");
   assert.equal(store.secrets.get("provider_api_key:claude"), "safe:v1:1-tna-ks");
