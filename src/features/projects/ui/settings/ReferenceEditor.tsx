@@ -2,7 +2,7 @@ import { FileText, Folder, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
 import type { Project, ProjectReference } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { splitPath } from "@/foundation/ui/lib/format";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -14,10 +14,11 @@ import { PathParts } from "@/foundation/ui/kit/PathParts";
  */
 export function ReferenceEditor({ project }: { project: Project }) {
   const [typed, setTyped] = useState("");
-  const { saving, error, run } = useSave();
+  const { busy, error, run } = useAction<"save">();
+  const saving = busy !== null;
   const refs = project.reference_paths;
 
-  const save = (next: Pick<ProjectReference, "path">[]) => run(() => api.updateProject(project.id, { reference_paths: next }));
+  const save = (next: Pick<ProjectReference, "path">[]) => run("save", () => api.updateProject(project.id, { reference_paths: next }), { done: "保存しました" });
 
   const add = async (paths: string[]) => {
     const fresh = paths.map((p) => p.trim()).filter((p) => p && !refs.some((r) => r.path === p));

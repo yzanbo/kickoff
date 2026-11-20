@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 
 /**
@@ -13,7 +13,7 @@ export function useSettingsDraft() {
   // 下書きの元（開いたときの設定。保存したら、保存した内容）
   const [base, setBase] = useState<AppSettings>();
   const [draft, setDraft] = useState<AppSettings>();
-  const save = useSave();
+  const save = useAction<"save">();
 
   useEffect(() => {
     if (settings && !base) {

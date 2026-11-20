@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
 import { NoteOverlapNotice } from "./NoteOverlapNotice";
@@ -27,7 +27,7 @@ export function NoteFolderField({
   overlapExcept?: number;
 }) {
   const [typed, setTyped] = useState(value ?? "");
-  const save = useSave();
+  const save = useAction<"save">();
   // ほかで変わったら（保存したあとの知らせ・ほかのウィンドウ）、入力欄もそろえる
   useEffect(() => setTyped(value ?? ""), [value]);
   const next = typed.trim() || null;
@@ -51,15 +51,15 @@ export function NoteFolderField({
       </div>
       {overlapExcept !== undefined && <NoteOverlapNotice dir={typed.trim() || fallback} except={overlapExcept} />}
       <div className="note-folder-actions">
-        <button className="btn btn-primary btn-sm" disabled={next === value || save.saving} onClick={() => void save.run(() => onSave(next))}>
-          {save.saving ? "保存中…" : "保存"}
+        <button className="btn btn-primary btn-sm" disabled={next === value || save.busy !== null} onClick={() => void save.run("save", () => onSave(next), { done: "保存しました" })}>
+          {save.busy !== null ? "保存中…" : "保存"}
         </button>
         {value !== null && (
-          <button className="btn btn-sm" disabled={save.saving} onClick={() => void save.run(() => onSave(null))}>
+          <button className="btn btn-sm" disabled={save.busy !== null} onClick={() => void save.run("save", () => onSave(null), { done: "保存しました" })}>
             既定に戻す
           </button>
         )}
-        {save.message && !save.error && <span className="muted small">{save.message.text}</span>}
+        {save.result && !save.error && <span className="muted small">{save.result.text}</span>}
       </div>
       <ErrorText message={save.error} />
     </Field>

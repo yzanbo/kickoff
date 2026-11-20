@@ -5,7 +5,7 @@ import type { Project } from "@shared/projects/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { Field } from "@/foundation/ui/kit/Field";
 import { SaveActions } from "@/foundation/ui/kit/SaveActions";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
@@ -20,7 +20,7 @@ export function BasicInfo({ project }: { project: Project }) {
   // 概要のないは null（欄は空。空で保存するとコアが null にそろえる）
   const pick = (p: Project) => ({ name: p.name, description: p.description ?? "" });
   const [draft, setDraft] = useState(() => pick(project));
-  const save = useSave();
+  const save = useAction<"save">();
   // 別の画面で変わったときは追従する
   useEffect(() => setDraft(pick(project)), [project]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(pick(project));

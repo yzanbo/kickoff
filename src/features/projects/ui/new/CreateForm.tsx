@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/foundation/ui/api";
-import { useSubmit } from "@/foundation/ui/hooks/useSubmit";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -39,7 +39,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   const [parentReal, setParentReal] = useState<string>();
   // ノートの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
   const [noteDir, setNoteDir] = useState<string | null>(null);
-  const { submitting, error, submit } = useSubmit();
+  const { busy, error, run } = useAction<"submit">();
+  const submitting = busy !== null;
 
   // フォルダ名を手で変えるまでは、名前から自動で提案する
   useEffect(() => {
@@ -74,7 +75,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...noteDirBody(folderName, noteDir) })));
+    void run("submit", async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...noteDirBody(folderName, noteDir) })), { keepBusy: true });
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;

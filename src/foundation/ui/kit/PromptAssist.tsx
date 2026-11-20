@@ -1,10 +1,10 @@
-import { useRef, useState, type RefObject } from "react";
-import { errorMessage } from "@shared/foundation/errors";
+import { useState, type RefObject } from "react";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ErrorText } from "./ErrorText";
 import { Field } from "./Field";
 
-/** 入力のダイアログに添える、文から入力の案を作ってもらう欄（ワークツリーのブランチ名など。promptDialog の assist） */
+/** 入力のダイアログに添える、文から入力の案を作ってもらう欄（ワークツリーのブランチ名など。ask の prompt の assist） */
 export interface PromptAssistOptions {
   /** 文の欄の名前（「やりたいこと」など） */
   label: string;
@@ -32,30 +32,18 @@ export function PromptAssist({
   textRef?: RefObject<HTMLTextAreaElement | null>;
 }) {
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
   const [options, setOptions] = useState<string[]>([]);
-  // 作っている途中で書き直して押し直したら、前の答えは捨てる
-  const seq = useRef(0);
+  // 作っている間は押せない（ボタン・⌘Enter とも）
+  const action = useAction<"suggest">();
+  const busy = action.busy !== null;
 
-  const run = async () => {
+  const run = () => {
     if (!text.trim() || busy) return;
-    const mine = ++seq.current;
-    setBusy(true);
-    setError(undefined);
-    await assist
-      .suggest(text.trim())
-      .then((next) => {
-        if (mine !== seq.current) return;
-        setOptions(next);
-        if (!value.trim() && next[0]) onPick(next[0]);
-      })
-      .catch((e: unknown) => {
-        if (mine === seq.current) setError(errorMessage(e));
-      })
-      .finally(() => {
-        if (mine === seq.current) setBusy(false);
-      });
+    void action.run("suggest", async () => {
+      const next = await assist.suggest(text.trim());
+      setOptions(next);
+      if (!value.trim() && next[0]) onPick(next[0]);
+    });
   };
 
   return (
@@ -71,13 +59,13 @@ export function PromptAssist({
           onKeyDown={(e) => {
             if (e.key === "Enter" && e.metaKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              void run();
+              run();
             }
           }}
         />
       </Field>
       <div className="prompt-assist-row">
-        <button type="button" className="btn btn-sm" disabled={!text.trim() || busy} onClick={() => void run()}>
+        <button type="button" className="btn btn-sm" disabled={!text.trim() || busy} onClick={run}>
           {busy ? "考えています…" : assist.buttonLabel}
         </button>
       </div>
@@ -96,7 +84,7 @@ export function PromptAssist({
           ))}
         </div>
       )}
-      <ErrorText message={error} />
+      <ErrorText message={action.error} />
     </div>
   );
 }

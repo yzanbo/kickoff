@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { providersStore } from "@/features/ai/ui/stores/providers";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
@@ -28,7 +28,7 @@ export function ProviderAuthSettings({ providers }: { providers: ProviderStatus[
 
 function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
   const settings = useAppSettings().data;
-  const save = useSave();
+  const save = useAction<"save">();
   const [key, setKey] = useState("");
   const keyOnly = API_KEY_ONLY_PROVIDERS.has(p.id);
   // API キーでだけ動く AI は、いつも API キーとして見せる（キーを置いたときに設定も API キーにする）
@@ -36,17 +36,17 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
   // 設定は AI ごとの一覧を丸ごと送る（ほかの AI の選択を消さない）
   const writeMode = async (next: ProviderAuthMode) => settingsStore.set(await api.updateSettings({ provider_auth: { ...(settings?.provider_auth ?? {}), [p.id]: next } }));
   const setMode = (next: ProviderAuthMode) =>
-    save.run(async () => {
+    save.run("save", async () => {
       await writeMode(next);
       await providersStore.reload();
-    });
+    }, { done: "保存しました" });
   const storeKey = (value: string | null) =>
-    save.run(async () => {
+    save.run("save", async () => {
       await api.saveProviderApiKey(p.id, value);
       if (keyOnly && value && p.auth_mode !== "api_key") await writeMode("api_key");
       setKey("");
       await providersStore.reload();
-    });
+    }, { done: "保存しました" });
   return (
     <div className="provider-auth-row">
       <div className="provider-auth-head">
@@ -75,18 +75,18 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
             placeholder={p.has_api_key ? "保存済み（置き換えるときだけ入れる）" : "API キー"}
             onChange={(e) => setKey(e.target.value)}
           />
-          <button type="button" className="btn" disabled={!key.trim() || save.saving} onClick={() => void storeKey(key)}>
-            {save.saving ? "保存中…" : "キーを保存"}
+          <button type="button" className="btn" disabled={!key.trim() || save.busy !== null} onClick={() => void storeKey(key)}>
+            {save.busy !== null ? "保存中…" : "キーを保存"}
           </button>
           {p.has_api_key && (
-            <button type="button" className="btn btn-danger-text" disabled={save.saving} onClick={() => void storeKey(null)}>
+            <button type="button" className="btn btn-danger-text" disabled={save.busy !== null} onClick={() => void storeKey(null)}>
               消す
             </button>
           )}
         </div>
       )}
       {mode === "api_key" && !p.has_api_key && <p className="muted small">API キーを置くまで、この AI のチャットは動きません。</p>}
-      <ResultMessage result={save.message} />
+      <ResultMessage result={save.result} />
     </div>
   );
 }

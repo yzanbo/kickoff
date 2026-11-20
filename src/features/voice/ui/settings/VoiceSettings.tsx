@@ -2,7 +2,7 @@ import { Mic } from "lucide-react";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { VOICE_LANGUAGES, VOICE_PROVIDERS, type VoiceStatus } from "@shared/voice/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useVoiceStatus } from "@/features/voice/ui/stores/voice";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
@@ -22,20 +22,20 @@ import { VoiceSpeechSettings } from "./VoiceSpeechSettings";
 export function VoiceSettings() {
   const { draft, setDraft, saveFields } = useSettingsDraft();
   const voice = useVoiceStatus();
-  const save = useSave();
+  const save = useAction<"save">();
   if (!draft) return null;
   /** 変えた項目をすぐ保存する（下書きにも入れて、保存の応答を待たずに画面をそろえる） */
   const apply = (patch: Partial<AppSettings>) => {
     setDraft({ ...draft, ...patch });
-    void save.run(() => saveFields(patch));
+    void save.run("save", () => saveFields(patch), { done: "保存しました" });
   };
   return (
     <section className="section voice-settings">
       <div className="voice-settings-head">
         <h2>音声入力</h2>
         <span className="voice-settings-saved small">
-          <ResultMessage result={save.message} />
-          {!save.message && <span className="muted">変えるとすぐ保存されます</span>}
+          <ResultMessage result={save.result} />
+          {!save.result && <span className="muted">変えるとすぐ保存されます</span>}
         </span>
       </div>
       <VoiceHero status={voice.data} enabled={draft.voice_enabled} onToggle={(on) => apply({ voice_enabled: on })} />

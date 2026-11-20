@@ -76,9 +76,9 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
           />
           <div className="context-pre-compact-actions">
             <p className="context-sub">{when}</p>
-            <ResultMessage result={current.save.message} />
-            <button type="button" className="btn btn-sm btn-primary" disabled={!current.dirty || current.save.saving} onClick={() => void current.save.run(current.submit)}>
-              {current.save.saving ? "保存中…" : "保存"}
+            <ResultMessage result={current.save.result} />
+            <button type="button" className="btn btn-sm btn-primary" disabled={!current.dirty || current.save.busy !== null} onClick={() => void current.save.run("save", current.submit, { done: "保存しました" })}>
+              {current.save.busy !== null ? "保存中…" : "保存"}
             </button>
           </div>
         </div>

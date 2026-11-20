@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { voiceStatusStore } from "@/features/voice/ui/stores/voice";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
@@ -12,13 +12,13 @@ import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
  */
 export function OpenAiKeyField({ saved, label }: { saved: boolean | undefined; label?: ReactNode }) {
   const [key, setKey] = useState("");
-  const save = useSave();
+  const save = useAction<"save">();
   const store = (value: string) =>
-    save.run(async () => {
+    save.run("save", async () => {
       await api.saveOpenAiKey(value);
       setKey("");
       await voiceStatusStore.reload();
-    });
+    }, { done: "保存しました" });
   return (
     <Field
       as="div"
@@ -34,16 +34,16 @@ export function OpenAiKeyField({ saved, label }: { saved: boolean | undefined; l
           placeholder={saved ? "置き換えるときだけ入れる" : "sk-…"}
           onChange={(e) => setKey(e.target.value)}
         />
-        <button type="button" className="btn" disabled={!key.trim() || save.saving} onClick={() => void store(key)}>
-          {save.saving ? "保存中…" : "キーを保存"}
+        <button type="button" className="btn" disabled={!key.trim() || save.busy !== null} onClick={() => void store(key)}>
+          {save.busy !== null ? "保存中…" : "キーを保存"}
         </button>
         {saved && (
-          <button type="button" className="btn btn-danger-text" disabled={save.saving} onClick={() => void store("")}>
+          <button type="button" className="btn btn-danger-text" disabled={save.busy !== null} onClick={() => void store("")}>
             消す
           </button>
         )}
       </div>
-      <ResultMessage result={save.message} />
+      <ResultMessage result={save.result} />
     </Field>
   );
 }

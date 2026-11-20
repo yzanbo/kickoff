@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { FolderInspection } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
-import { useSubmit } from "@/foundation/ui/hooks/useSubmit";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -23,7 +23,8 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [initGit, setInitGit] = useState(false);
   // ノートの保存先を手で決めた場所（null なら取り込むフォルダの名前から自動）
   const [noteDir, setNoteDir] = useState<string | null>(null);
-  const { submitting, error, setError, submit } = useSubmit();
+  const { busy, error, setError, run } = useAction<"submit">();
+  const submitting = busy !== null;
 
   // フォルダが決まったら中身を点検する（入力中は少し待つ）
   useEffect(() => {
@@ -60,7 +61,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const importProject = (e: FormEvent) => {
     e.preventDefault();
     if (!inspection) return;
-    void submit(async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit, ...noteDirBody(noteBase, noteDir) })));
+    void run("submit", async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit, ...noteDirBody(noteBase, noteDir) })), { keepBusy: true });
   };
 
   return (

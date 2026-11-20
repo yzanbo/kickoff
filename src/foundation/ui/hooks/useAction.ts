@@ -15,7 +15,7 @@ interface RunOptions {
  * ボタンなどの操作の、実行中と結果（失敗の文・成功の文）。部品ごとに 1 つ。
  * run(name, action) で包むと、終わるまで busy にその名前を立て（押せなくする・「〜中…」を出す）、失敗したら error に文を入れる。成功したかを返す。
  * guard(action) は busy を立てずに、失敗だけを受け止める（行の操作・裏での取り直しなど。成功したら前の失敗の文を消す）。
- * 保存のボタン（「保存しました」）は useSave、送れたら閉じるフォームは useSubmit（どちらもこれを包んだもの）
+ * 保存のボタンは run("save", fn, { done: "保存しました" })（SaveActions）、送れたら閉じるフォームは run("submit", fn, { keepBusy: true })
  */
 export function useAction<Name extends string = string>() {
   const [busy, setBusy] = useState<Name | null>(null);

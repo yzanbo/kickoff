@@ -6,7 +6,7 @@ import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type EffortLevel, ty
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
 import { useModels } from "@/features/ai/ui/stores/providers";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { modelDisplayName } from "@/features/ai/ui/options/models";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions, providerDefaultModelLabel } from "@/features/ai/ui/options/AiOptions";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -25,7 +25,7 @@ export function AiDefaults({ project, provider, app }: { project: Project; provi
   const models = useModels(provider);
   const saved = projectPatchOf(project, provider);
   const [draft, setDraft] = useState<ChatOptionsPatch>(saved);
-  const save = useSave();
+  const save = useAction<"save">();
   const savedKey = JSON.stringify(saved);
   // 保存した値が変わったら（ほかの窓・AI を替えた）下書きを取り直す
   useEffect(() => setDraft(JSON.parse(savedKey) as ChatOptionsPatch), [savedKey]);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { COMPACT_PROMPT_FIELDS, compactPromptFor, type CompactPromptKind } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
-import { useSave } from "@/foundation/ui/hooks/useSave";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { savedCompactPrompt } from "./compactPromptKinds";
@@ -17,7 +17,7 @@ export function useCompactPrompt(kind: CompactPromptKind, projectId: number | nu
   const { projectsById } = useProjects();
   const { text: saved, enabled } = savedCompactPrompt(kind, settings, projectId === null ? undefined : projectsById.get(projectId), projectId);
   const [draft, setDraft] = useState(saved ?? "");
-  const save = useSave();
+  const save = useAction<"save">();
   useEffect(() => setDraft(saved ?? ""), [saved]);
   const next = draft.trim() || null;
   const fields = COMPACT_PROMPT_FIELDS[kind];
@@ -27,7 +27,7 @@ export function useCompactPrompt(kind: CompactPromptKind, projectId: number | nu
     settingsStore.set(await api.updateSettings(patch));
   };
   const submit = () => update({ [fields.text]: next });
-  const setEnabled = (value: boolean) => void save.run(() => update({ [fields.enabled]: value }));
+  const setEnabled = (value: boolean) => void save.run("save", () => update({ [fields.enabled]: value }), { done: "保存しました" });
 
   return { saved, enabled, setEnabled, draft, setDraft, dirty: next !== saved, save, submit };
 }
