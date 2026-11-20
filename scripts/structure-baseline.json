@@ -642,7 +642,6 @@
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/features/browser/ui/panel/openBrowserTab.ts",
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/features/settings/ui/stores/settings.ts",
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/shared/remoteImages/linkWarnings.ts",
-      "foundation-ui:src/foundation/ui/kit/ArchivedFold.tsx -> src/shared/chat/types.ts",
       "foundation-ui:src/foundation/ui/kit/ToolStatusIcon.tsx -> src/features/conversation/ui/tools/toolStatus.ts",
       "foundation-ui:src/foundation/ui/kit/list/treeModel.ts -> src/shared/git/types.ts",
       "foundation-ui:src/foundation/ui/lib/viewDetails.ts -> src/shared/userView/types.ts",

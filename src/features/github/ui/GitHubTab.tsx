@@ -6,7 +6,7 @@ import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/ty
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
+import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useWhenVisible } from "@/foundation/ui/hooks/useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -70,7 +70,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const list = useGitHubList(projectId, filter, true);
   const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
   const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.listWidth, min: 260, keep: 360 });
-  const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
+  const { ref: root, narrow } = useNarrowerThan<HTMLDivElement>(width.size + DETAIL_MIN_WIDTH);
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);

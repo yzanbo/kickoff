@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { useChatSelection } from "@/features/chatList/ui/selection/chatSelection";
-import { FoldHead } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { ProjectSlides } from "./ProjectSlides";
 import { ProjectStack } from "./ProjectStack";
 import { SelectionBar } from "@/features/chatList/ui/selection/SelectionBar";
@@ -46,7 +46,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   /** 縦並びの、しまったプロジェクトのまとまりの見出し（サイドバーのアーカイブ済みのチャットと同じ形） */
   const toggleArchived = () => setShowArchived(!showArchived);
   const archivedHead = archived.length > 0 && !waitingOnly && (
-    <FoldHead look="row" className="archived-projects-head" icon={Archive} open={showArchived} onToggle={toggleArchived} label="アーカイブしたプロジェクト" count={archived.length} />
+    <FoldHead look={FOLD_ROW} className="archived-projects-head" icon={Archive} open={showArchived} onToggle={toggleArchived} label="アーカイブしたプロジェクト" count={archived.length} />
   );
 
   /** タグで絞り込んで、合うプロジェクトがひとつもないとき（要対応より先に知らせる） */

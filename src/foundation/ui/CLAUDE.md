@@ -53,7 +53,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
 - アプリのショートカットは `commands/`（`commands.item`）。判定 `matchKey` は Mac で ⌘ だけ（⌃ は入力欄で使う）。
 - 選ぶ: ↑↓ ←→ は `useRovingList`、木は `useTree` ＋ `TreeView`、タブは `kit/tabs/`、複数選択は `useMultiSelect`。
-- 大きさ: つまみは `useDragSize`、狭いときに 1 つずつ出すのは `useNarrowSplit`、覆う右の欄は `useCoverableWidth`。
+- 大きさ: つまみは `useDragSize`、一覧＋詳細は `kit/layout/useListDetail`、狭いかは `useNarrowerThan`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。付いていくスクロールは `useFollowScroll`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
 - 文書の保存は `document/useDocument`（⌘⇧S・離れる前の確かめは `registerUnsaved`）。

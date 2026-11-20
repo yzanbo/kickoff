@@ -44,8 +44,8 @@ export function createPipeline(remarkPlugins: PluggableList, rehypePlugins: Plug
   return { id: nextId++, toHast: toHast as unknown as MarkdownPipeline["toHast"], rehype: rehype as unknown as MarkdownPipeline["rehype"] };
 }
 
-/** 数式の部品（useMathPlugins の値） */
-interface MathPlugins {
+/** 数式の部品（remark-math・rehype-katex と KaTeX の CSS・フォント。useMathPlugins の値） */
+export interface MathPlugins {
   remark: PluggableList;
   rehype: PluggableList;
 }

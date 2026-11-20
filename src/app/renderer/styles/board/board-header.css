@@ -82,13 +82,13 @@
   padding: 3px 7px;
 }
 
-.board-tools.icon-only .chat-search.board-search {
+.board-tools.icon-only .search-field.board-search {
   width: 160px;
 }
 
 @container (max-width: 680px) {
   /* アイコンだけのときの幅（.board-tools.icon-only）にも勝つよう、同じ強さで後ろに書く */
-  .board-header .board-tools .chat-search.board-search {
+  .board-header .board-tools .search-field.board-search {
     width: 120px;
   }
 
@@ -142,7 +142,7 @@
   }
 
   /* 検索欄は絞り込みの後ろで、残りの幅いっぱい（入らなければ 1 段を占める） */
-  .board-header .board-tools .chat-search.board-search {
+  .board-header .board-tools .search-field.board-search {
     order: 4;
     flex: 1 1 160px;
     width: auto;

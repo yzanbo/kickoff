@@ -6,7 +6,7 @@ import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/conversation/ui/storage";
-import { FoldSection } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_ROW, FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -76,7 +76,7 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
             ))}
             {list.stale.length > 0 && (
               <FoldSection
-                look="row"
+                look={FOLD_ROW}
                 icon={CircleDashed}
                 label="前の作業から残っているもの"
                 count={list.stale.length}
@@ -93,7 +93,7 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
             )}
             {historyCount > 0 && (
               <FoldSection
-                look="row"
+                look={FOLD_ROW}
                 icon={ListChecks}
                 label="これまでの ToDo"
                 count={list.history.length}

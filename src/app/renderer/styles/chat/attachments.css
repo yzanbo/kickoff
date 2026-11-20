@@ -239,7 +239,7 @@
 }
 
 /* チャット欄の「ほかのチャットを参照」の一覧（ChatContextButton。枠は .chip-popover） */
-.chat-context-popover .chat-search {
+.chat-context-popover .search-field {
   margin: 4px 0 6px;
 }
 

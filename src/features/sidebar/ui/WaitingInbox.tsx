@@ -2,7 +2,8 @@ import { Inbox } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
 import { alert } from "@/foundation/ui/kit/ask";
-import { FoldSection } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_ROW, FoldSection } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_SECTION } from "./foldLooks";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
@@ -82,7 +83,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
   return (
     <div className={`waiting-inbox ${variant}`}>
       {variant === "top" ? (
-        <FoldSection look="row" icon={Inbox} title="要対応（回答待ち・エラー・未読）" open={topFold.open} onToggle={topFold.toggle} label="要対応" count={total}>
+        <FoldSection look={FOLD_ROW} icon={Inbox} title="要対応（回答待ち・エラー・未読）" open={topFold.open} onToggle={topFold.toggle} label="要対応" count={total}>
           {body}
         </FoldSection>
       ) : (
@@ -113,7 +114,7 @@ function InboxGroup({ section, renderRow }: { section: InboxSection; renderRow: 
     </>
   );
   return (
-    <FoldSection look="section" open={fold.open} onToggle={fold.toggle} label={label} count={section.chats.length}>
+    <FoldSection look={FOLD_SECTION} open={fold.open} onToggle={fold.toggle} label={label} count={section.chats.length}>
       <ul className="chat-rows">{section.chats.map(renderRow)}</ul>
     </FoldSection>
   );
@@ -129,7 +130,7 @@ function InboxProjectGroup({ project, chats, renderRow }: { project: { id: numbe
     </>
   );
   return (
-    <FoldSection look="section" open={fold.open} onToggle={fold.toggle} label={label} count={chats.length}>
+    <FoldSection look={FOLD_SECTION} open={fold.open} onToggle={fold.toggle} label={label} count={chats.length}>
       <ul className="chat-rows">{chats.map(renderRow)}</ul>
     </FoldSection>
   );

@@ -4,6 +4,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
+import { ZOOM_STEP } from "@/foundation/ui/kit/imageViewer/imageZoom";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { cachedMermaid, mermaidBoxHeight, rememberMermaidHeight, renderMermaid } from "./renderMermaid";
@@ -14,8 +15,7 @@ const FIT_CSS = ":host > svg { display: block; max-width: 100%; height: auto; ma
 const SIZED_CSS = ":host > svg { display: block; width: var(--diagram-w); max-width: none !important; height: auto; margin-inline: auto; }";
 /** 全画面の枠の外側の余白（ダイアログの余白・見出し・枠の内側の余白） */
 const FULLSCREEN_MARGIN = { x: 96, y: 160 };
-/** 拡大・縮小の 1 回の倍率と、枠に合わせた大きさからの上限・下限 */
-const ZOOM_STEP = 1.25;
+/** 拡大・縮小の、枠に合わせた大きさからの上限・下限（1 回の倍率は画像を大きく見るときと同じ ZOOM_STEP） */
 const ZOOM_LIMIT = 4;
 
 /** 図の元の大きさ（viewBox から） */

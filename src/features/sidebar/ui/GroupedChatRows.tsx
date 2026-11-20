@@ -10,6 +10,7 @@ import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgress
 import { cx } from "@/foundation/ui/lib/cx";
 import { WORKPLACE_KIND_LABELS } from "@/foundation/ui/workplace/workplace";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_SECTION } from "./foldLooks";
 import type { MouseEvent } from "react";
 import { huedHeadProps } from "./bucketColor";
 import { BucketChatRows } from "./BucketChatRows";
@@ -40,7 +41,7 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
   );
   return (
     <FoldSection
-      look="section"
+      look={FOLD_SECTION}
       title={bucket.title}
       open={fold.open}
       onToggle={fold.toggle}

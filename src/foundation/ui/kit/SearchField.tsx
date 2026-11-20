@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
 import { IconButton } from "./IconButton";
 
-/** チャットを名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
+/** 一覧を名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
 export function SearchField({
   value,
   onChange,
@@ -27,7 +27,7 @@ export function SearchField({
   children?: ReactNode;
 }) {
   return (
-    <div className={cx("chat-search", className)}>
+    <div className={cx("search-field", className)}>
       <Search size={13} className="muted" aria-hidden />
       <input
         type="text"
@@ -45,7 +45,7 @@ export function SearchField({
         }}
       />
       {value && (
-        <IconButton icon={X} size={12} className="chat-search-clear" label="検索を解除" keys="Esc" onClick={() => onChange("")} />
+        <IconButton icon={X} size={12} className="search-field-clear" label="検索を解除" keys="Esc" onClick={() => onChange("")} />
       )}
       {children}
     </div>

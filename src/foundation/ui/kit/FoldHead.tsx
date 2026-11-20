@@ -2,21 +2,23 @@ import type { LucideIcon } from "lucide-react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Collapse } from "./Collapse";
-import { GroupToggle } from "@/foundation/ui/kit/layout/FoldToggle";
+import { FoldToggle } from "@/foundation/ui/kit/layout/FoldToggle";
 
-/**
- * 見出しの見た目（クラスの組）。row = サイドバーの控えめなまとまり（固定・アーカイブ済み・グループなし・しまったプロジェクト）/
- * group = 自分で作ったグループ / section = 並べ方のまとまり（状態・作業場所）/ lane = ボードの段。
- * wrap は FoldSection の入れ物。件数は、row・group では名前の後ろ、section・lane では名前のボタンの中
- */
-const LOOKS = {
-  row: { wrap: "row-section", head: "custom-group-head ungrouped", name: "custom-group-name ungrouped-name", count: "custom-group-count", countInName: false },
-  group: { wrap: "custom-group", head: "custom-group-head", name: "custom-group-name", count: "custom-group-count", countInName: false },
-  section: { wrap: "status-group", head: "status-group-head", name: "status-group-name", count: "status-group-count", countInName: true },
-  lane: { wrap: "board-lane", head: "board-lane-head", name: "board-lane-name", count: "board-lane-count", countInName: true },
-} as const;
+/** 見出しの見た目（クラスの組・件数の置き場所）。控えめなまとまりは FOLD_ROW、ほかの組は持ち主の機能が持つ（サイドバーのグループ・ボードの段） */
+export interface FoldLook {
+  /** FoldSection の入れ物 */
+  wrap: string;
+  head: string;
+  name: string;
+  count: string;
+  /** 件数を名前のボタンの中に置く（既定は名前の後ろ） */
+  countInName?: boolean;
+  /** 添えるアイコンの大きさの既定 */
+  iconSize?: number;
+}
 
-type FoldLook = keyof typeof LOOKS;
+/** 控えめなまとまり（サイドバーの固定・アーカイブ済み・グループなし・しまったプロジェクト、一覧のいちばん下の「アーカイブ済み」・ToDo の残り） */
+export const FOLD_ROW: FoldLook = { wrap: "row-section", head: "custom-group-head ungrouped", name: "custom-group-name ungrouped-name", count: "custom-group-count", iconSize: 12 };
 
 export interface FoldHeadProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   look: FoldLook;
@@ -36,17 +38,16 @@ export interface FoldHeadProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
 }
 
 /**
- * 開閉できるまとまりの見出しの土台: 開閉の矢印（GroupToggle）・
+ * 開閉できるまとまりの見出しの土台: 開閉の矢印（FoldToggle）・
  * 名前（押しても開閉）・件数・右の操作。見た目は look で選ぶ。ほかの props（ドロップ先・ドラッグ・右クリック・title など）は見出しの要素に付ける。
  * 開閉の記憶は hooks/useFold
  */
-export function FoldHead({ look, open, onToggle, icon, iconSize: givenIconSize, label, count, name, actions, className, ...rest }: FoldHeadProps) {
-  const iconSize = givenIconSize ?? (look === "row" ? 12 : undefined);
-  const l = LOOKS[look];
+export function FoldHead({ look: l, open, onToggle, icon, iconSize: givenIconSize, label, count, name, actions, className, ...rest }: FoldHeadProps) {
+  const iconSize = givenIconSize ?? l.iconSize;
   const countText = count !== undefined && <span className={l.count}>{count}</span>;
   return (
     <div className={cx(l.head, className)} {...rest}>
-      <GroupToggle open={open} onToggle={onToggle} icon={icon} iconSize={iconSize} />
+      <FoldToggle open={open} onToggle={onToggle} icon={icon} iconSize={iconSize} />
       {name ?? (
         <button type="button" className={l.name} aria-expanded={open} onClick={onToggle}>
           {label}
@@ -65,7 +66,7 @@ export function FoldHead({ look, open, onToggle, icon, iconSize: givenIconSize, 
  */
 export function FoldSection({ indent = true, wrapClassName, children, ...head }: FoldHeadProps & { indent?: boolean; wrapClassName?: string; children: ReactNode }) {
   return (
-    <div className={cx(LOOKS[head.look].wrap, wrapClassName)}>
+    <div className={cx(head.look.wrap, wrapClassName)}>
       <FoldHead {...head} />
       <Collapse open={head.open} indent={indent}>
         {children}

@@ -1,11 +1,10 @@
 import { Archive } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/chat/types";
 import { useFold } from "@/foundation/ui/hooks/useFold";
-import { FoldSection } from "./FoldHead";
+import { FOLD_ROW, FoldSection } from "./FoldHead";
 
 /** 未アーカイブとアーカイブ済みに分ける（並びはそのまま） */
-export function splitArchived<T extends Pick<Chat, "archived_at">>(list: readonly T[]): [T[], T[]] {
+export function splitArchived<T extends { archived_at: string | null }>(list: readonly T[]): [T[], T[]] {
   return [list.filter((chat) => !chat.archived_at), list.filter((chat) => chat.archived_at)];
 }
 
@@ -34,7 +33,7 @@ export function ArchivedFold({
   const fold = useFold(place, foldKey, { defaultOpen: false });
   if (count === 0) return null;
   return (
-    <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={count} open={fold.open} onToggle={fold.toggle} indent={indent} wrapClassName={className}>
+    <FoldSection look={FOLD_ROW} icon={Archive} label="アーカイブ済み" count={count} open={fold.open} onToggle={fold.toggle} indent={indent} wrapClassName={className}>
       {bodyClassName ? <div className={bodyClassName}>{children}</div> : children}
     </FoldSection>
   );

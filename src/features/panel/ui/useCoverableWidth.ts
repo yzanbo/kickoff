@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Setting } from "@/foundation/ui/storage";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
 import { useOptionalSetting } from "@/foundation/ui/hooks/useSetting";
 
 /** 横幅いっぱいの切り替えで、欄の幅が動いている時間（tokens.css の --panel-motion-duration（0.24s）に少し足す） */
@@ -78,11 +79,9 @@ export function useCoverableWidth({ width: widthSetting, maximized: maximizedSet
 
   useEffect(() => {
     if (!body) return;
-    // 初めの幅はすぐ測る（ResizeObserver の最初の知らせは次の描画まで来ない。開き終えたときの幅をすぐ決めるため）
+    // 初めの幅はすぐ測る（大きさの知らせの最初は次の描画まで来ない。開き終えたときの幅をすぐ決めるため）
     setWhole(body.clientWidth);
-    const observer = new ResizeObserver(() => setWhole(body.clientWidth));
-    observer.observe(body);
-    return () => observer.disconnect();
+    return observeSize(body, () => setWhole(body.clientWidth));
   }, [body]);
 
   const rules = { gap, minRest };

@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type SyntheticEvent } from "react";
+import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
 import { canPan, clampView, fitView, panBy, zoomTo, ZOOM_STEP, type Size, type View } from "./imageZoom";
 
 /** ピンチ・Ctrl ＋ ホイールの 1 回で動かす量の上限（ホイールの 1 目盛りで倍率が跳ばないように） */
@@ -30,9 +31,7 @@ export function useImageZoom() {
     if (!el) return;
     const measure = () => setStage({ width: el.clientWidth, height: el.clientHeight });
     measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+    return observeSize(el, measure);
   }, []);
 
   const size = natural ?? ZERO;

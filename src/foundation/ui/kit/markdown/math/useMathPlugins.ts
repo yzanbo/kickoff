@@ -1,15 +1,7 @@
 import { useEffect } from "react";
-import type { Options } from "react-markdown";
 import { createCell, useCell } from "@/foundation/ui/store";
+import type { MathPlugins } from "@/foundation/ui/kit/markdown/markdownProcessor";
 import { remarkMathGuard } from "./remarkMathGuard";
-
-type PluggableList = NonNullable<Options["remarkPlugins"]>;
-
-/** 数式の部品（remark-math・rehype-katex と KaTeX の CSS・フォント） */
-export interface MathPlugins {
-  remark: PluggableList;
-  rehype: PluggableList;
-}
 
 // KaTeX は大きいので、数式が出てきたときに初めて読み込む（読み込んだら、すべての Markdown で使う）
 const plugins = createCell<MathPlugins | null>(null);

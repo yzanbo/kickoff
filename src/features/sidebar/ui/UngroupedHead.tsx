@@ -1,7 +1,7 @@
 import { SquarePen } from "lucide-react";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { FoldHead } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
@@ -33,7 +33,7 @@ export function UngroupedHead({
 }) {
   return (
     <FoldHead
-      look="row"
+      look={FOLD_ROW}
       className={huedHeadProps(hue).className}
       style={huedHeadProps(hue).style}
       draggable

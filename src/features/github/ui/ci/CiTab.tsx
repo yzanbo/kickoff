@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
+import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "@/features/github/ui/storage";
@@ -65,7 +65,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
     if (e.failure.project_id === projectId) list.reload();
   });
   const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.ciListWidth, min: 260, keep: 360 });
-  const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
+  const { ref: root, narrow } = useNarrowerThan<HTMLDivElement>(width.size + DETAIL_MIN_WIDTH);
   const open = useCallback((run: CiRun) => setSelectedText(ciSelectedText(run.id)), [setSelectedText]);
   const watched = useMemo(() => new Set([...(data?.workplace_branches ?? []), ...(data?.default_branch ? [data.default_branch] : [])]), [data]);
   // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）

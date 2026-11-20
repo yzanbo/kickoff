@@ -27,7 +27,7 @@ import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
 import { DraftRow, DraftRows } from "./DraftRows";
-import { FoldSection } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_ROW, FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { stateCounts } from "@/features/chat/ui/state/chatState";
 import { UngroupedHead } from "./UngroupedHead";
 import { ArchivedBucketFold, useSidebarArchiveDrops } from "./ArchivedBucketFold";
@@ -321,7 +321,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         )}
         {/* 要対応の「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
         {waitingTop.length > 0 && (
-          <FoldSection look="row" icon={Inbox} label="要対応" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
+          <FoldSection look={FOLD_ROW} icon={Inbox} label="要対応" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
             <RowBudgetScope value={budgets.waiting}>
               <ChatRowList chats={waitingTop} renderRow={(chat) => renderChatRow(chat, false, false)} />
             </RowBudgetScope>
@@ -332,7 +332,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* 固定したチャットと、ピン留めした下書き（下書きはチャットの上。数には下書きも入れる） */}
         {(pinned || list.pinnedDrafts.length > 0) && (
           <FoldSection
-            look="row"
+            look={FOLD_ROW}
             wrapClassName="pinned"
             icon={Pin}
             label="固定"
@@ -370,7 +370,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           <div className={cx("archive-drop", archiveDrop.over && (archiveDrop.blocked ? "drop-blocked" : "drop-target"))} {...archiveDrop.props}>
           <RowBudgetScope value={budgets.archived}>
           <FoldSection
-            look="row"
+            look={FOLD_ROW}
             icon={Archive}
             label="アーカイブ済み"
             count={archived.chats.length}

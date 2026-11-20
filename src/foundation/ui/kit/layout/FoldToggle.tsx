@@ -6,10 +6,10 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
  * サイドバーのまとまり（自分で作ったグループ・グループなし・固定・アーカイブ済み・並べ方のまとまり）の開閉のボタン。
  * 開閉は矢印だけのボタンにする（アイコンはボタンの外に添える。名前より左を押したときは、どこでも開閉だけ: pressedLeftOfName）
  */
-export function GroupToggle({ open, onToggle, icon: Icon, iconSize = 13 }: { open: boolean; onToggle: () => void; icon?: LucideIcon; iconSize?: number }) {
+export function FoldToggle({ open, onToggle, icon: Icon, iconSize = 13 }: { open: boolean; onToggle: () => void; icon?: LucideIcon; iconSize?: number }) {
   return (
     <>
-      <IconButton type="button" icon={open ? ChevronDown : ChevronRight} size={12} className="custom-group-toggle" label={open ? "閉じる" : "開く"} aria-expanded={open} onClick={onToggle} />
+      <IconButton type="button" icon={open ? ChevronDown : ChevronRight} size={12} className="fold-toggle" label={open ? "閉じる" : "開く"} aria-expanded={open} onClick={onToggle} />
       {Icon && <Icon size={iconSize} className="custom-group-icon" aria-hidden />}
     </>
   );

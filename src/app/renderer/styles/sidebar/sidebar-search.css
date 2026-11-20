@@ -1,6 +1,6 @@
 /* ==== 検索欄（サイドバー・カンバンの見出し）と行の先頭の状態の印 ==== */
 
-.chat-search {
+.search-field {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -12,11 +12,11 @@
   background: var(--bg);
 }
 
-.chat-search:focus-within {
+.search-field:focus-within {
   border-color: var(--border-strong);
 }
 
-.chat-search input[type="text"] {
+.search-field input[type="text"] {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -27,12 +27,12 @@
   background: transparent;
 }
 
-.chat-search input[type="text"]:focus {
+.search-field input[type="text"]:focus {
   outline: none;
 }
 
 /* 検索欄の右端の小さなボタン（IconButton。後ろの .icon-button に勝つよう重ねて書く） */
-.icon-button.chat-search-clear {
+.icon-button.search-field-clear {
   display: grid;
   place-items: center;
   width: 18px;
@@ -63,13 +63,13 @@
   background: var(--bg-hover);
 }
 
-.icon-button.chat-search-clear:hover {
+.icon-button.search-field-clear:hover {
   color: var(--text);
   background: var(--bg-hover);
 }
 
 /* カンバンの見出しの検索欄 */
-.chat-search.board-search {
+.search-field.board-search {
   width: 200px;
   margin: 0;
 }

@@ -1,5 +1,6 @@
 import type { MermaidConfig } from "mermaid";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
+import { parseColor } from "./labelContrast";
 
 /** 図に使える文字数・線の数の上限（超えたら図にせず、コードのまま出す） */
 const MAX_TEXT_SIZE = 20_000;
@@ -21,18 +22,10 @@ const PALETTE_VARS = [
   "--muted",
 ];
 
-function parseHex(color: string): [number, number, number] | null {
-  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
-  if (!m) return null;
-  const hex = m[1].length === 3 ? [...m[1]].map((c) => c + c).join("") : m[1];
-  const n = parseInt(hex, 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-/** 2 つの色（#rgb・#rrggbb）を混ぜる。weight は a の割合（読めない色なら a のまま） */
+/** 2 つの色（#rgb・#rrggbb・rgb()）を混ぜる。weight は a の割合（読めない色なら a のまま） */
 function mixColor(a: string, b: string, weight: number): string {
-  const pa = parseHex(a);
-  const pb = parseHex(b);
+  const pa = parseColor(a)?.rgb;
+  const pb = parseColor(b)?.rgb;
   if (!pa || !pb) return a;
   return `#${pa.map((v, i) => Math.round(v * weight + pb[i] * (1 - weight)).toString(16).padStart(2, "0")).join("")}`;
 }

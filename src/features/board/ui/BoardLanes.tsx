@@ -15,7 +15,7 @@ import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
 import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
-import { FoldHead } from "@/foundation/ui/kit/FoldHead";
+import { FoldHead, type FoldLook } from "@/foundation/ui/kit/FoldHead";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
@@ -45,6 +45,9 @@ const LANE_ICONS: Record<BoardLane | "none", LucideIcon> = {
   worktree: GitBranch,
   project: FolderGit2,
 };
+
+/** 段の見出しの見た目（FoldHead の look。件数は名前のボタンの中） */
+const FOLD_LANE: FoldLook = { wrap: "board-lane", head: "board-lane-head", name: "board-lane-name", count: "board-lane-count", countInName: true };
 
 /**
  * ボードのツールバーの段の分け方の切り替え（「分けない / グループ / 作業場所 / プロジェクト」のボタンの組。ボード・リストで共通）。
@@ -173,7 +176,7 @@ export function BoardLanes({
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
             <FoldHead
               {...headProps?.(lane)}
-              look="lane"
+              look={FOLD_LANE}
               open={open}
               onToggle={() => folds.set(lane.key, !open)}
               onClick={(e) => {

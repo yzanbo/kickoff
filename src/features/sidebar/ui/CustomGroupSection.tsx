@@ -11,6 +11,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { FoldHead } from "@/foundation/ui/kit/FoldHead";
+import { FOLD_GROUP } from "./foldLooks";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { GroupSectionProps } from "./useGroupSections";
 import { huedHeadProps } from "./bucketColor";
@@ -62,7 +63,7 @@ export function CustomGroupSection({
     <div className={cx("custom-group", dropClass)} {...dropProps}>
       {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する。名前の編集中は、ほかの操作を隠す（押し直して編集が始まり直さないように） */}
       <FoldHead
-        look="group"
+        look={FOLD_GROUP}
         className={huedHeadProps(hue).className}
         style={huedHeadProps(hue).style}
         draggable={!renaming}

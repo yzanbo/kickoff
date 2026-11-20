@@ -101,8 +101,8 @@
   color: var(--muted);
 }
 
-/* サイドバーの開閉の矢印（GroupToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
-.icon-button.custom-group-toggle {
+/* サイドバーの開閉の矢印（FoldToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
+.icon-button.fold-toggle {
   display: grid;
   flex: none;
   place-items: center;
@@ -126,8 +126,8 @@
   cursor: pointer;
 }
 
-.icon-button.custom-group-toggle:hover,
-:where(:root:not([data-modality="pointer"])) .icon-button.custom-group-toggle:focus-visible {
+.icon-button.fold-toggle:hover,
+:where(:root:not([data-modality="pointer"])) .icon-button.fold-toggle:focus-visible {
   color: var(--text);
   background: transparent;
 }
