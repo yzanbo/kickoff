@@ -1,10 +1,10 @@
 // 定型文の操作（作る・変える・並べ替える・消す）。応答はすぐ店に入れ、知らせを待たずに画面をそろえる
 import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
-import { api } from "@/foundation/ui/api";
 import { reduceSnippets, snippetsStore } from "@/features/snippets/ui/stores/snippets";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { reduceBy } from "@/foundation/ui/store";
+import { snippetsApi } from "./api";
 
 /** 範囲の札（共通 / プロジェクトの名前。プロジェクトの画面の中ではそのプロジェクトを「このプロジェクト」と呼ぶ） */
 export function scopeLabel(snippet: Pick<Snippet, "project_id">, projectName: (id: number) => string | undefined, here?: number | null): string {
@@ -14,19 +14,19 @@ export function scopeLabel(snippet: Pick<Snippet, "project_id">, projectName: (i
 }
 
 export async function createSnippet(body: NewSnippetBody): Promise<Snippet> {
-  const snippet = await api.createSnippet(body);
+  const snippet = await snippetsApi("POST /api/snippets", { body });
   snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet", snippet }));
   return snippet;
 }
 
 export async function updateSnippet(id: number, patch: SnippetPatch): Promise<Snippet> {
-  const snippet = await api.updateSnippet(id, patch);
+  const snippet = await snippetsApi("PATCH /api/snippets/:snippetId", { params: { snippetId: id }, body: patch });
   snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet", snippet }));
   return snippet;
 }
 
 export async function reorderSnippets(ids: number[]) {
-  snippetsStore.set(await api.reorderSnippets(ids));
+  snippetsStore.set(await snippetsApi("PUT /api/snippets/order", { body: { ids } }));
 }
 
 /** 確かめてから消す（消したら true） */
@@ -38,7 +38,7 @@ export async function confirmDeleteSnippet(snippet: Snippet): Promise<boolean> {
     danger: true,
   });
   if (!ok) return false;
-  await api.deleteSnippet(snippet.id);
+  await snippetsApi("DELETE /api/snippets/:snippetId", { params: { snippetId: snippet.id } });
   snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet_deleted", id: snippet.id }));
   return true;
 }

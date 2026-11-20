@@ -4,9 +4,9 @@ import { useMemo } from "react";
 import type { Snippet } from "@shared/snippets/types";
 import type { ReduceTable } from "@/foundation/ui/store";
 import { bySnippetPosition, snippetsFor } from "@shared/snippets/snippets";
-import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
+import { snippetsApi } from "@/features/snippets/ui/api";
 
 /** 読み込み中の空の一覧（描くたびに作らない。書き換えない） */
 const NO_SNIPPETS: Snippet[] = Object.freeze([]) as unknown as Snippet[];
@@ -20,7 +20,7 @@ export const reduceSnippets: ReduceTable<Snippet[]> = {
 
 /** 操作の応答（作った・変えた定型文、並べ替えたあとの一覧）は set / update で入れ、知らせを待たずに画面をそろえる */
 export const snippetsStore = createStore<Snippet[]>({
-  load: () => api.snippets(),
+  load: () => snippetsApi("GET /api/snippets"),
   reduce: reduceSnippets,
 });
 

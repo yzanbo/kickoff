@@ -5,6 +5,7 @@
 | ファイル | 中身 |
 |---|---|
 | `ui/stores/snippets.ts`・`snippetActions.ts` | 店（すべてを 1 つで読む）・作る / 直す / 並べ替える / 消す |
+| `ui/api.ts` | 呼び手 `client(snippetContract)`（画面を取り決めに乗せ替えた見本） |
 | `ui/SnippetManager`・`SnippetForm` | 管理（帯のダイアログ・設定・プロジェクトの設定で同じ部品） |
 | `core/routes.ts`・`schemas.ts` | 受け口（取り決め `@shared/snippets/contract.ts` の見本。プロジェクトは `projects.api.require`） |
 
