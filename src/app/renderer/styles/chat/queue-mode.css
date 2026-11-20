@@ -48,7 +48,7 @@
 .busy-controls.held-tell .queue-mode button[data-value="tell"],
 .busy-controls.held-queue .queue-mode button[data-value="queue"],
 /* 送信待ちの書き直す欄でも、⌘ を押している間は ⌘Enter で使われる「保存していま送る」を同じ青で光らせる（QueuedEditor） */
-.icon-button.queued-editor-send.held {
+.queued-editor-send.held {
   color: var(--info);
   background: color-mix(in srgb, var(--info) 22%, transparent);
   box-shadow: inset 0 0 0 1px var(--info);

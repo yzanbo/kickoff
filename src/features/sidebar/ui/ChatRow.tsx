@@ -165,8 +165,9 @@ export function ChatRow({
       {/* 乗せたとき・メニューを開いている間だけ出す「…」（時刻の上に重ねる）。行の中のリンクと分けて置く */}
       <span className={cx("chat-row-actions", menuOpen && "open")}>
         <IconButton
+          size="sm"
           icon={Ellipsis}
-          size={14}
+          iconSize={14}
           label="メニュー"
           title="メニュー（右クリックでも開く）"
           className="chat-row-more"

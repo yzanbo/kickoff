@@ -29,7 +29,8 @@ export function SqlHistoryButton({ connection, onPick }: { connection: DbConnect
       <button
         ref={anchor}
         type="button"
-        className="btn btn-sm"
+        className="btn"
+        data-size="sm"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         data-tip="この接続で流した SQL（AI が流したものも）を探して入力欄に入れる"

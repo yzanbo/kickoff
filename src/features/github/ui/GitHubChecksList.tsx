@@ -51,7 +51,7 @@ export function GitHubChecksList({ projectId, checks }: { projectId: number; che
             </span>
           )}
           {c.run_id !== null && (
-            <IconButton icon={ScrollText} size={13} className="github-check-log" label="ログを開く" title="CI のタブでこの実行のログを開く" onClick={() => openCiRun(projectId, c.run_id!, c.job_id)} />
+            <IconButton icon={ScrollText} iconSize={13} className="github-check-log" label="ログを開く" title="CI のタブでこの実行のログを開く" onClick={() => openCiRun(projectId, c.run_id!, c.job_id)} />
           )}
           {c.url && <a className="github-check-link" href={c.url} target="_blank" rel="noreferrer" aria-label="GitHub で詳細を見る" data-tip="GitHub で詳細を見る">
             <ExternalLink size={13} aria-hidden />

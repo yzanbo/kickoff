@@ -160,11 +160,11 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
           })}
         </span>
         <span className="docker-logs-tools">
-          <IconButton icon={TriangleAlert} label="エラー・警告だけ出す" aria-pressed={problemsOnly} className={cx(problemsOnly && "active")} onClick={() => setProblemsOnly((v) => !v)} />
-          <IconButton icon={Clock} label="行の頭に時刻を出す" aria-pressed={showTime} className={cx(showTime && "active")} onClick={() => setShowTime(!showTime)} />
-          <IconButton icon={WrapText} label="長い行を折り返す" aria-pressed={wrap} className={cx(wrap && "active")} onClick={() => setWrap(!wrap)} />
-          <IconButton icon={Search} label="ログの中を探す" keys="⌘F" aria-pressed={find.open} className={cx(find.open && "active")} onClick={() => (find.open ? find.close() : find.show())} />
-          <CloseButton label="ログを閉じる" size={15} onClick={onClose} />
+          <IconButton icon={TriangleAlert} label="エラー・警告だけ出す" aria-pressed={problemsOnly} active={problemsOnly} onClick={() => setProblemsOnly((v) => !v)} />
+          <IconButton icon={Clock} label="行の頭に時刻を出す" aria-pressed={showTime} active={showTime} onClick={() => setShowTime(!showTime)} />
+          <IconButton icon={WrapText} label="長い行を折り返す" aria-pressed={wrap} active={wrap} onClick={() => setWrap(!wrap)} />
+          <IconButton icon={Search} label="ログの中を探す" keys="⌘F" aria-pressed={find.open} active={find.open} onClick={() => (find.open ? find.close() : find.show())} />
+          <CloseButton label="ログを閉じる" iconSize={15} onClick={onClose} />
         </span>
       </div>
       {find.open && (
@@ -197,7 +197,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
         onKeyDown={menu.handlers.onKeyDown}
       >
         {canReadBefore && shown.length > 0 && (
-          <button type="button" className="btn btn-sm docker-logs-more" disabled={logs.readingBefore} onClick={() => void logs.readBefore(containers)}>
+          <button type="button" className="btn docker-logs-more" data-size="sm" disabled={logs.readingBefore} onClick={() => void logs.readBefore(containers)}>
             {logs.readingBefore ? "読み込み中…" : "さらに前を読む"}
           </button>
         )}
@@ -222,7 +222,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
         ))}
       </div>
       {!following && (
-        <button type="button" className="btn btn-sm docker-logs-latest" onClick={toLatest}>
+        <button type="button" className="btn docker-logs-latest" data-size="sm" onClick={toLatest}>
           最新へ <ArrowDown size={12} aria-hidden />
           {newCount > 0 && `（新しい行 ${newCount}）`}
         </button>

@@ -104,8 +104,8 @@ export function NoteQuickChat({
         </span>
         {/* 右端: 会話を開く（欄の「チャット表示のみ」と逆向きの矢印）・非表示にする（欄の × と同じ） */}
         <span className="note-quick-actions">
-          <IconButton icon={Maximize2} size={13} label="会話を開く" title="ノートのチャットの欄を開く（これまでのやり取りを見る）" onClick={onOpenChat} />
-          <CloseButton size={14} label="非表示にする" title="ノートのチャットを非表示にし、ノートだけを広く見る（見出しの吹き出しのボタンで開く・▾ で戻せる）" onClick={onHide} />
+          <IconButton size="sm" icon={Maximize2} iconSize={13} label="会話を開く" title="ノートのチャットの欄を開く（これまでのやり取りを見る）" onClick={onOpenChat} />
+          <CloseButton size="sm" iconSize={14} label="非表示にする" title="ノートのチャットを非表示にし、ノートだけを広く見る（見出しの吹き出しのボタンで開く・▾ で戻せる）" onClick={onHide} />
         </span>
       </div>
       {/* チャットができたら選択（モデルなど）をそのチャットのものから始め直す */}

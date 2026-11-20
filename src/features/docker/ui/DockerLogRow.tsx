@@ -74,7 +74,8 @@ export const DockerLogRow = memo(function DockerLogRow({ row, index, label, hue,
       {level === "error" && (
         <button
           type="button"
-          className="btn btn-sm docker-log-ask"
+          className="btn docker-log-ask"
+          data-size="sm"
           data-tip="この行と前後 20 行をチャットの入力欄に足す（送るのは自分で）"
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {

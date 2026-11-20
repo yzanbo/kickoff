@@ -54,7 +54,7 @@ export function UngroupedHead({
       count={count}
       actions={
         <>
-          <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openTarget({ kind: "newChat", projectId: projectId })} />
+          <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} iconSize={13} className="custom-group-add" onClick={() => openTarget({ kind: "newChat", projectId: projectId })} />
           {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
           <span className="group-menu-spacer" aria-hidden />
         </>

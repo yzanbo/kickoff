@@ -174,7 +174,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
         <section className="pr-notice-section">
           <h3 className="pr-notice-label">ワークツリー</h3>
           <Segmented<PrWorktreeAction>
-            className="segmented pr-notice-choice"
+            className="pr-notice-choice"
             label="ワークツリーをどうするか"
             value={worktreeAction}
             options={PR_WORKTREE_ACTIONS.map((a) => ({ value: a, label: PR_WORKTREE_ACTION_LABELS[a] }))}
@@ -192,7 +192,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
           <section className="pr-notice-section">
             <h3 className="pr-notice-label">このワークツリーのチャット {chats.length} 件（子チャットも）</h3>
             <Segmented<PrChatAction>
-              className="segmented pr-notice-choice"
+              className="pr-notice-choice"
               label="このワークツリーのチャットをどうするか"
               value={chatAction}
               options={PR_CHAT_ACTIONS.map((a) => ({ value: a, label: PR_CHAT_ACTION_LABELS[a] }))}

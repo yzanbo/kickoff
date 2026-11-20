@@ -46,9 +46,9 @@ type DiagramZoom = ReturnType<typeof useDiagramZoom>;
 function ZoomButtons({ zoom }: { zoom: DiagramZoom }) {
   return (
     <>
-      <IconButton icon={ZoomIn} label="拡大" size={14} onClick={zoom.zoomIn} />
-      <IconButton icon={ZoomOut} label="縮小" size={14} onClick={zoom.zoomOut} />
-      <IconButton icon={SquareDashed} label="元の大きさに戻す" size={14} disabled={zoom.width === undefined} onClick={zoom.reset} />
+      <IconButton icon={ZoomIn} label="拡大" iconSize={14} onClick={zoom.zoomIn} />
+      <IconButton icon={ZoomOut} label="縮小" iconSize={14} onClick={zoom.zoomOut} />
+      <IconButton icon={SquareDashed} label="元の大きさに戻す" iconSize={14} disabled={zoom.width === undefined} onClick={zoom.reset} />
     </>
   );
 }
@@ -115,8 +115,8 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
       {/* 図の上の行に右寄せで並べる（拡大・縮小・元の大きさ・ソース・全画面） */}
       <div className="mermaid-tools">
         {!showSource && <ZoomButtons zoom={zoom} />}
-        <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />
-        {!showSource && <IconButton icon={Maximize2} label="全画面で表示" size={14} onClick={() => setFullscreen(true)} />}
+        <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} iconSize={14} onClick={() => setShowSource(!showSource)} />
+        {!showSource && <IconButton icon={Maximize2} label="全画面で表示" iconSize={14} onClick={() => setFullscreen(true)} />}
       </div>
       {showSource ? (
         <pre className="mermaid-source">

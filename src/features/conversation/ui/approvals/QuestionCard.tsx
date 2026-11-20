@@ -108,7 +108,8 @@ export function QuestionCard({ approval }: { approval: Approval }) {
         </button>
         {!folded && questions.length > 1 && (
           <Segmented<QuestionLayout>
-            className="segmented question-layout"
+            size="sm"
+            className="question-layout"
             label="質問の出し方"
             value={layout}
             onChange={setLayout}

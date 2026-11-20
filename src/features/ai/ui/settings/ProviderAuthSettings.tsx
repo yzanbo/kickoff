@@ -54,7 +54,6 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
         {!p.implemented && <span className="badge">{PLANNED_BADGE}</span>}
         {mode === "api_key" && <span className="badge provider-pay-badge">{PAY_PER_USE_LABEL}</span>}
         <Segmented<ProviderAuthMode>
-          className="segmented"
           label={`${p.label} のログインの仕方`}
           value={mode}
           options={PROVIDER_AUTH_MODES.map((m) => ({

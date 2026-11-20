@@ -236,7 +236,8 @@ function HandBackMenu({ handBack }: { handBack: HandBack }) {
     <>
       <button
         type="button"
-        className="btn btn-sm btn-primary child-chat-hand-back"
+        className="btn btn-primary child-chat-hand-back"
+        data-size="sm"
         disabled={!handBack.request && !handBack.quote}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}

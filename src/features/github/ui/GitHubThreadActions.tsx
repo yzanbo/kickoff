@@ -37,20 +37,20 @@ export function GitHubThreadActions({ thread }: { thread: GitHubReviewThread }) 
       <div className="github-thread-buttons">
         {!thread.can_reply ? null : writing ? (
           <>
-            <button type="button" className="btn btn-sm" disabled={busy} onClick={() => setWriting(false)}>
+            <button type="button" className="btn" data-size="sm" disabled={busy} onClick={() => setWriting(false)}>
               やめる
             </button>
-            <button type="button" className="btn btn-sm btn-primary" disabled={!text.trim() || busy} onClick={send}>
+            <button type="button" className="btn btn-primary" data-size="sm" disabled={!text.trim() || busy} onClick={send}>
               {action.busy === "reply" ? "送っています…" : "返信する"}
             </button>
           </>
         ) : (
-          <button type="button" className="btn btn-sm" onClick={() => setWriting(true)}>
+          <button type="button" className="btn" data-size="sm" onClick={() => setWriting(true)}>
             返信
           </button>
         )}
         {thread.can_resolve && (
-          <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void action.run("resolve", () => actions.resolve(thread, !thread.resolved))}>
+          <button type="button" className="btn" data-size="sm" disabled={busy} onClick={() => void action.run("resolve", () => actions.resolve(thread, !thread.resolved))}>
             {action.busy === "resolve" ? "変えています…" : thread.resolved ? "解決を戻す" : "解決済みにする"}
           </button>
         )}

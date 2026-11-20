@@ -51,14 +51,15 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
     <div className="side-file" onContextMenu={codeMenu.onContextMenu}>
       <div className="side-file-bar bar">
         {changed && (
-          <button type="button" className="btn btn-sm" title="このファイルのコミットしていない変更を、右の欄の「変更」で見ます" onClick={() => links?.openChanges(path)}>
+          <button type="button" className="btn" data-size="sm" title="このファイルのコミットしていない変更を、右の欄の「変更」で見ます" onClick={() => links?.openChanges(path)}>
             <FileDiff size={13} aria-hidden /> 差分を見る
           </button>
         )}
         <span className="spacer" />
         <button
           type="button"
-          className="btn btn-sm"
+          className="btn"
+          data-size="sm"
           onClick={() => (links ? links.openInEditor(ref) : open({ kind: "file", projectId, ...ref, worktree }))}
         >
           <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く

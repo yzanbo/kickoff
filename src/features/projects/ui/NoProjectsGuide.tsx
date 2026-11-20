@@ -14,7 +14,7 @@ export function NoProjectsGuide({ onClose }: { onClose: () => void }) {
   const { archived } = useVisibleProjects();
   return (
     <dialog ref={dialogRef} className="dialog floating no-projects-guide" tabIndex={-1} aria-label="チャットはプロジェクトの中で始めます" onClose={onClose} {...dialog.backdropProps}>
-      <CloseButton title="閉じる（Esc）" size={16} className="no-projects-guide-close" onClick={dialog.close} />
+      <CloseButton title="閉じる（Esc）" iconSize={16} className="no-projects-guide-close" onClick={dialog.close} />
       <NoProjectsWelcome archived={archived.length} forNewChat onPick={dialog.close} />
     </dialog>
   );

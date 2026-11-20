@@ -45,7 +45,7 @@ export function SearchField({
         }}
       />
       {value && (
-        <IconButton icon={X} size={12} className="search-field-clear" label="検索を解除" keys="Esc" onClick={() => onChange("")} />
+        <IconButton icon={X} iconSize={12} className="search-field-clear" label="検索を解除" keys="Esc" onClick={() => onChange("")} />
       )}
       {children}
     </div>

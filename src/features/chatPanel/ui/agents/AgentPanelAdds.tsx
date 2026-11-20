@@ -30,12 +30,12 @@ export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; 
   return (
     <span className="panel-bar-buttons panel-tab-adds">
       <span className="panel-split-button">
-        <IconButton icon={MessageSquarePlus} label="新しい子チャット" size={14} onClick={onNewChild} />
+        <IconButton icon={MessageSquarePlus} label="新しい子チャット" iconSize={14} onClick={onNewChild} />
         <IconButton
           icon={ChevronDown}
           label="右の欄に開く"
           title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・ノート・DB から選んで、右の欄に開く"
-          size={12}
+          iconSize={12}
           className="panel-open-with agent-panel-adds-more"
           aria-haspopup="menu"
           aria-expanded={menu.isOpen}

@@ -34,7 +34,8 @@ export function PopoutDockButton({ route }: { route: PopoutRoute }) {
   return (
     <button
       type="button"
-      className="btn btn-sm"
+      className="btn"
+      data-size="sm"
       title={tip}
       onClick={() => {
         // チャット欄は状態ごとメインのウィンドウに戻す（開いて戻す）

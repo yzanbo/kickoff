@@ -89,13 +89,13 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
                     <IconButton
                       type="button"
                       icon={ChevronsUpDown}
-                      size={14}
+                      iconSize={14}
                       label="フォルダをすべて開く"
                       disabled={allOpen}
                       onClick={() => setOpenList([...new Set([...openList, ...dirs])])}
                     />
                     {/* ノートのタブの「フォルダをすべて閉じる」と同じく、ノートのタブの木だけにあるフォルダ（ノートの入っていないもの）も閉じる */}
-                    <IconButton type="button" icon={ChevronsDownUp} size={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
+                    <IconButton type="button" icon={ChevronsDownUp} iconSize={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
                   </span>
                 )}
               </div>

@@ -49,11 +49,11 @@ export function ErPicker({ names, initial, onPick, onAll }: { names: string[]; i
       {over && <p className="small db-er-picker-over">一度に描けるのは {DB_ER_MAX} 個までです。</p>}
       <div className="db-er-picker-actions">
         {onAll && (
-          <button type="button" className="btn btn-sm" onClick={onAll}>
+          <button type="button" className="btn" data-size="sm" onClick={onAll}>
             すべて描く
           </button>
         )}
-        <button type="button" className="btn btn-sm btn-primary" disabled={picked.size === 0 || over} onClick={() => onPick(names.filter((n) => picked.has(n)))}>
+        <button type="button" className="btn btn-primary" data-size="sm" disabled={picked.size === 0 || over} onClick={() => onPick(names.filter((n) => picked.has(n)))}>
           選んだ {picked.size.toLocaleString()} 個を描く
         </button>
       </div>

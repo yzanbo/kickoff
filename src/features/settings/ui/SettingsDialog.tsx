@@ -114,7 +114,6 @@ function DisplaySettings() {
       <div className="form">
         <Field label="テーマ">
           <Segmented<Theme>
-            className="segmented theme-switch"
             label="テーマ"
             value={theme}
             onChange={setTheme}
@@ -127,7 +126,6 @@ function DisplaySettings() {
         </Field>
         <Field label="チャット欄" help="コンパクトにすると、チャット欄の文字・余白・下のボタンを小さくして、縦の幅を抑えます。">
           <Segmented<"normal" | "compact">
-            className="segmented theme-switch"
             label="チャット欄の大きさ"
             value={compactComposer ? "compact" : "normal"}
             onChange={(v) => setCompactComposer(v === "compact")}
@@ -139,7 +137,6 @@ function DisplaySettings() {
         </Field>
         <Field label="会話の文字の大きさ" help="会話（自分の発言・AI の返答・ツール・サブエージェントのカード・動き）の文字だけを大きく・小さくします。見出し・入力欄・メニューの文字はそのままです。チャットの見出しの行のボタンと、タブの列の「表示」でも切り替えられます。">
           <Segmented<ChatFontSize>
-            className="segmented theme-switch"
             label="会話の文字の大きさ"
             value={fontSize}
             onChange={setFontSize}
@@ -148,7 +145,6 @@ function DisplaySettings() {
         </Field>
         <Field label="会話の横幅" help="広げると、パネルの大きさはそのままで、発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルが狭いときは変わりません）。チャットの見出しの行のボタンでも切り替えられます。">
           <Segmented<"normal" | "wide">
-            className="segmented theme-switch"
             label="会話の横幅"
             value={wideChat ? "wide" : "normal"}
             onChange={(v) => setWideChat(v === "wide")}
@@ -163,7 +159,6 @@ function DisplaySettings() {
           help="チャットのパネルの上の、開いているチャットのタブと、表示・新しいタブ・分けるボタンが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（チャットは左のサイドバー・ボードから切り替えます）。会話の何もないところ・チャットの見出しの右クリックでも切り替えられます。"
         >
           <Segmented<"show" | "hide">
-            className="segmented theme-switch"
             label="チャットのタブの列"
             value={tabRowHidden ? "hide" : "show"}
             onChange={(v) => setTabRowHidden(v === "hide")}
@@ -178,7 +173,6 @@ function DisplaySettings() {
           help="タブの列の左の、チャットのまとめ方・並び順・タブに出す項目などを選ぶボタン（調整のアイコン）です。すべてのパネル（チャット・下のパネル・右サイドバーなど）で共通です。隠しても、タブの列の何もないところの右クリックで同じメニューを開けます。そのメニューの「「表示」ボタンを出す」でも切り替えられます。"
         >
           <Segmented<"show" | "hide">
-            className="segmented theme-switch"
             label="タブの列の「表示」ボタン"
             value={viewButtonHidden ? "hide" : "show"}
             onChange={(v) => setViewButtonHidden(v === "hide")}
@@ -193,7 +187,6 @@ function DisplaySettings() {
           help="チャットの上の、プロジェクト・ブランチのバッジ、会話 / 動きの切り替え、検索欄、ターン数などが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（動きを見ている間とアーカイブ済みのチャットでは出し、検索は ⌘F でチャットの右上に出ます）。⌥⌘T でも切り替えられ、出す項目はチャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で 1 つずつ選べます。"
         >
           <Segmented<"show" | "hide">
-            className="segmented theme-switch"
             label="チャットの見出し"
             value={headerHidden ? "hide" : "show"}
             onChange={(v) => setHeaderHidden(v === "hide")}
@@ -205,7 +198,6 @@ function DisplaySettings() {
         </Field>
         <Field label="見出しのバッジ" help="チャットの見出しのグループ・作業場所のバッジを、それぞれの色（タブの列のまとまりと同じ色）で表示するかです。色なしにすると、灰色の枠と文字だけになります。見出し・会話の何もないところの右クリックでも切り替えられます。">
           <Segmented<"color" | "plain">
-            className="segmented theme-switch"
             label="見出しのバッジ"
             value={badgeColors ? "color" : "plain"}
             onChange={(v) => setBadgeColors(v === "color")}
@@ -217,7 +209,6 @@ function DisplaySettings() {
         </Field>
         <Field label="上に貼り付ける指示" help="上にスクロールして自分の指示が見えなくなったとき、読んでいる返答の元の指示をチャットの上端に貼り付けて出します。">
           <Segmented<"show" | "hide">
-            className="segmented theme-switch"
             label="上に貼り付ける指示"
             value={stickyHidden ? "hide" : "show"}
             onChange={(v) => setStickyHidden(v === "hide")}
@@ -233,7 +224,6 @@ function DisplaySettings() {
           help="サブエージェントのカードの見出し・動きの行・「サブエージェント N 件」の一覧・裏の作業の一覧を押したときの開き方です。流れの中は、チャットの流れの中でカードを開きます。右の欄は、チャットの画面の右に、チャットと同じような画面で開きます（右の欄の中で上下・左右に分けて並べられ、幅はつまみのドラッグで変えられます）。別ウィンドウは、サブエージェントごとに新しいウィンドウで開きます。ほかの開き方は、一覧の行のボタンやカードのボタンでいつでも選べます。「サブエージェント N 件」の一覧の上でも変えられます。"
         >
           <Segmented<"inline" | "side" | "window">
-            className="segmented theme-switch"
             label="サブエージェントを開く場所"
             value={subagentOpenIn}
             onChange={setSubagentOpenIn}
@@ -264,7 +254,6 @@ function DisplaySettings() {
           help="プロジェクトの画面のいちばん上の、名前・設定・状態ごとの数・作業中と待ちのチャットの一覧のボタンが並ぶ行です。「寄せたときだけ表示」は、マウスを画面の上端に寄せると画面の上に重ねて出し、ふだんは縦の幅を取りません。表示のとき以外は、右上のサイドバー・ターミナル・右サイドバーの開閉のボタンも一緒に隠します（⌘B・⌘J・⌥⌘B はそのまま使えます）。見出しの右クリックでも切り替えられます。"
         >
           <Segmented<ProjectHeaderMode>
-            className="segmented theme-switch"
             label="プロジェクトの見出しの出し方"
             value={projectHeaderMode}
             onChange={setProjectHeaderMode}
@@ -273,7 +262,6 @@ function DisplaySettings() {
         </Field>
         <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・ファイルなどのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
           <Segmented<ProjectTabsLayout>
-            className="segmented theme-switch"
             label="プロジェクトのタブの置き方"
             value={tabsLayout}
             onChange={setTabsLayout}
@@ -288,7 +276,6 @@ function DisplaySettings() {
           help="チャットタブで開くと、ボードと分けた「チャット」タブにチャットを横幅いっぱいに出し、ボードのカードを押すとそのタブへ移ります。ボードの右で開くと、ボードを見ながら右のパネルでチャットを開きます。どちらも同じタブなので、切り替えても開いているチャットはそのままです。"
         >
           <Segmented<ChatPlacement>
-            className="segmented theme-switch"
             label="チャットを開く場所"
             value={chatPlacement}
             onChange={setChatPlacement}
@@ -303,7 +290,6 @@ function DisplaySettings() {
           help="画面のいちばん下の、設定・接続・ブランチ・使用状況が並ぶ帯です。「寄せたときだけ表示」は、マウスを画面の下端に寄せると画面の上に重ねて出し、ふだんは縦の幅を取りません。非表示にしても、設定は ⌘, で開けます。帯の右クリックでも切り替えられます。"
         >
           <Segmented<FooterMode>
-            className="segmented theme-switch"
             label="下の帯の出し方"
             value={footerMode}
             onChange={setFooterMode}
@@ -320,7 +306,6 @@ function OpenPlaceField({ label, help, value, onChange }: { label: string; help:
   return (
     <Field label={label} help={help}>
       <Segmented<"side" | "window">
-        className="segmented theme-switch"
         label={label}
         value={value}
         onChange={onChange}

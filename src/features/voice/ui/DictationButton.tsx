@@ -49,10 +49,11 @@ function RecordingControls({ dictation, startedAt }: { dictation: Dictation; sta
   return (
     <span ref={ref} className="dictation-recording">
       <IconButton
+        size="lg"
         icon={Mic}
         label="録音を止めて文字起こし"
         title={`録音を止めて、文字起こしした文を入れる（${DICTATION_SHORTCUT}）。送信ボタン・Enter なら入れてそのまま送る`}
-        size={16}
+        iconSize={16}
         className="attach-button dictation-button recording"
         type="button"
         {...pressHandlers(dictation)}
@@ -65,7 +66,7 @@ function RecordingControls({ dictation, startedAt }: { dictation: Dictation; sta
         <i />
       </span>
       <RecordingTime startedAt={startedAt} />
-      <CloseButton label="録音をやめる（Esc）" size={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
+      <CloseButton size="sm" label="録音をやめる（Esc）" iconSize={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
     </span>
   );
 }
@@ -105,7 +106,7 @@ export function DictationButton({ dictation }: { dictation: Dictation }) {
     <span className="dictation-control" onContextMenu={menu.open}>
       <DictationState dictation={dictation} />
       {dictation.state.kind !== "recording" && dictation.state.kind !== "transcribing" && (
-        <IconButton icon={ChevronDown} label="音声入力の設定" title="音声入力の設定（使うマイク・話す言語）" size={12} className={cx("dictation-more", menu.isOpen && "open")} type="button" onClick={menu.toggle} />
+        <IconButton icon={ChevronDown} label="音声入力の設定" title="音声入力の設定（使うマイク・話す言語）" iconSize={12} className={cx("dictation-more", menu.isOpen && "open")} type="button" onClick={menu.toggle} />
       )}
       {menu.element}
     </span>
@@ -121,12 +122,13 @@ function DictationState({ dictation }: { dictation: Dictation }) {
       <span className="dictation-status" role="status">
         <span className="spinner" aria-hidden />
         文字起こし中…
-        <CloseButton label="文字起こしをやめる" size={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
+        <CloseButton size="sm" label="文字起こしをやめる" iconSize={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
       </span>
     );
   }
   return (
     <IconButton
+      size="lg"
       icon={Mic}
       label={ready ? "音声入力" : "音声入力の設定を開く"}
       title={
@@ -134,7 +136,7 @@ function DictationState({ dictation }: { dictation: Dictation }) {
           ? `音声入力（${DICTATION_SHORTCUT}）。1 回押して話し始め、話し終わったらもう一度押してください。押したまま話して、離しても入ります。右クリックでマイクと言語を選べます`
           : "音声入力の準備ができていません。押すと設定の「音声入力」を開きます"
       }
-      size={16}
+      iconSize={16}
       className={cx("attach-button dictation-button", !ready && "unready")}
       type="button"
       disabled={state.kind === "starting"}
@@ -155,7 +157,7 @@ export function DictationError({ dictation }: { dictation: Dictation }) {
           もう一度
         </button>
       )}
-      <CloseButton label="閉じる" size={13} type="button" onClick={dictation.dismiss} />
+      <CloseButton label="閉じる" iconSize={13} type="button" onClick={dictation.dismiss} />
     </div>
   );
 }

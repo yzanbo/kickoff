@@ -17,7 +17,8 @@ export function SortMenuButton({ sort, onSort, allProjects }: { sort: ChatSort; 
     <>
       <button
         type="button"
-        className="btn btn-sm board-sort-button"
+        className="btn board-sort-button"
+        data-size="sm"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         aria-label={`並び順: ${CHAT_SORT_LABELS[sort.key]}（${sort.dir === "asc" ? "昇順" : "降順"}）`}

@@ -74,12 +74,12 @@ export function CiRunDetailView({
           {data && detail.loading && <span className="github-updating muted small">更新中…</span>}
           <span className="github-detail-spacer" />
           {run && run.state === "failure" && (
-            <button type="button" className="btn btn-sm" disabled={action.busy !== null} onClick={() => rerun(true)} data-tip="落ちたジョブ（と、それに頼るジョブ）だけを GitHub でやり直す">
+            <button type="button" className="btn" data-size="sm" disabled={action.busy !== null} onClick={() => rerun(true)} data-tip="落ちたジョブ（と、それに頼るジョブ）だけを GitHub でやり直す">
               <RotateCcw size={13} aria-hidden /> {action.busy === "failed" ? "頼んでいます…" : "失敗したジョブをやり直す"}
             </button>
           )}
           {run && run.state !== "pending" && (
-            <button type="button" className="btn btn-sm" disabled={action.busy !== null} onClick={() => rerun(false)} data-tip="この実行のすべてのジョブを GitHub でやり直す">
+            <button type="button" className="btn" data-size="sm" disabled={action.busy !== null} onClick={() => rerun(false)} data-tip="この実行のすべてのジョブを GitHub でやり直す">
               <RotateCcw size={13} aria-hidden /> {action.busy === "all" ? "頼んでいます…" : "すべてやり直す"}
             </button>
           )}

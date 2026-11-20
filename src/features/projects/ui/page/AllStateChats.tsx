@@ -52,7 +52,7 @@ export function AllStateChats({ project, waiting }: { project: Pick<Project, "id
           onClose={popover.close}
           header={
             <Segmented
-              className="segmented state-chats-scope"
+              className="state-chats-scope"
               label="どのプロジェクトのチャットを出すか"
               value={scope}
               onChange={setScope}

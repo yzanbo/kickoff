@@ -87,7 +87,7 @@ export function SnippetBar({
         <div className="snippet-bar-tools">
           <IconButton
             icon={Settings}
-            size={14}
+            iconSize={14}
             label="定型文を管理"
             title="定型文を管理（足す・直す・並べ替える）"
             className="snippet-bar-tool"

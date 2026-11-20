@@ -1,5 +1,4 @@
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
-import { cx } from "@/foundation/ui/lib/cx";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 
 /** ボードの見出し（「ボード／リスト」の右）に置く、パネルの開閉ボタン。閉じていて開いたタブがあれば数を出す */
@@ -7,7 +6,8 @@ export function PanelToggle({ panel }: { panel: PanelController }) {
   const { panelOpen, tabs } = panel;
   return (
     <button
-      className={cx("icon-button panel-toggle", panelOpen && "active")}
+      className="icon-button panel-toggle"
+      data-active={panelOpen || undefined}
       title={panelOpen ? "右側のパネルを閉じる（Esc）" : "右側のパネルを開く"}
       aria-label={panelOpen ? "右側のパネルを閉じる" : "右側のパネルを開く"}
       aria-pressed={panelOpen}

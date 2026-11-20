@@ -57,7 +57,8 @@ function TrashMarkRow({ mark, active, rel }: { mark: TrashMark; active: boolean;
         state.kind !== "gone" && (
           <button
             type="button"
-            className="btn btn-sm"
+            className="btn"
+            data-size="sm"
             disabled={busy !== null}
             onClick={() => void run("restore", async () => (await restoreFromTrash({ id: mark.id, label })) && setState({ kind: "restored" }))}
           >

@@ -89,8 +89,6 @@
 
 .db-filter-actions .btn,
 .db-table-foot .btn {
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
 }
 

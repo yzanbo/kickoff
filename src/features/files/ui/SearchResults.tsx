@@ -60,8 +60,8 @@ export function SearchResults({ search, replacer, collapsed, onToggleFile, selec
                 <PathParts path={file.path} nameClass="change-name" dirClass="change-dir" />
               </button>
               <span className="code-search-actions">
-                {preview && <IconButton icon={ReplaceAll} size={13} label="このファイルですべて置換" disabled={replacer.busy} onClick={() => replacer.replaceFile(file)} />}
-                <IconButton icon={X} size={13} label="結果から外す" onClick={() => search.dismiss(file.path)} />
+                {preview && <IconButton size="xs" icon={ReplaceAll} iconSize={13} label="このファイルですべて置換" disabled={replacer.busy} onClick={() => replacer.replaceFile(file)} />}
+                <IconButton size="xs" icon={X} iconSize={13} label="結果から外す" onClick={() => search.dismiss(file.path)} />
               </span>
               <span className="change-count">{file.matches.length}</span>
             </div>
@@ -96,8 +96,8 @@ export function SearchResults({ search, replacer, collapsed, onToggleFile, selec
                             )}
                       </button>
                       <span className="code-search-actions">
-                        {preview && <IconButton icon={Replace} size={13} label="この行を置換" disabled={replacer.busy} onClick={() => replacer.replaceLine(file, match.line)} />}
-                        <IconButton icon={X} size={13} label="結果から外す" onClick={() => search.dismiss(file.path, match.line)} />
+                        {preview && <IconButton size="xs" icon={Replace} iconSize={13} label="この行を置換" disabled={replacer.busy} onClick={() => replacer.replaceLine(file, match.line)} />}
+                        <IconButton size="xs" icon={X} iconSize={13} label="結果から外す" onClick={() => search.dismiss(file.path, match.line)} />
                       </span>
                     </li>
                   );

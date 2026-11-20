@@ -47,12 +47,11 @@
   cursor: default;
 }
 
+/* 余白・文字は小さいボタン（data-size="sm"）のまま */
 .queued-head-btn {
   flex: none;
   gap: 4px;
   height: 20px;
-  padding: 0 8px;
-  font-size: var(--fs-11);
   /* 行の高さを文字の大きさにそろえる（既定の行の高さはボタンの内側より高く、文字が上に寄って見えるため） */
   line-height: 1;
 }
@@ -69,19 +68,12 @@
   background: color-mix(in srgb, var(--warn) 14%, transparent);
 }
 
-/* 「ここまで送ったら止めます」の印を置く: 線と同じ注意の色（押せないときは薄く） */
-.queued-head-btn.queued-add-stop {
-  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
-  color: var(--warn);
-  background: transparent;
+/* 「ここまで送ったら止めます」の印を置く: 線と同じ注意の色の枠のボタン（押せないときは薄く） */
+.queued-add-stop {
+  --btn-tone: var(--warn);
 }
 
-.queued-head-btn.queued-add-stop:hover:not(:disabled) {
-  border-color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-}
-
-.queued-head-btn.queued-add-stop:disabled {
+.queued-add-stop:disabled {
   opacity: 0.45;
 }
 
@@ -99,27 +91,15 @@
   --queued-tone-line: var(--info);
 }
 
-/* 会話の圧縮・コンテキストの消去の行を足す: 足す行と同じ色（queued.css の --queued-tone） */
-.queued-head-btn.queued-add-action {
-  border-color: color-mix(in srgb, var(--queued-tone-line) 45%, transparent);
-  color: var(--queued-tone);
-  background: transparent;
+/* 会話の圧縮・コンテキストの消去の行を足す: 足す行と同じ色の枠のボタン（queued.css の --queued-tone） */
+.queued-add-action {
+  --btn-tone: var(--queued-tone);
+  --btn-line: var(--queued-tone-line);
 }
 
-.queued-head-btn.queued-add-action:hover {
-  border-color: var(--queued-tone-line);
-  background: color-mix(in srgb, var(--queued-tone-line) 12%, transparent);
-}
-
-.queued-head-btn.queued-remove {
-  border-color: color-mix(in srgb, var(--ng) 55%, transparent);
-  color: var(--ng);
-  background: transparent;
-}
-
-.queued-head-btn.queued-remove:hover:not(:disabled) {
-  border-color: var(--ng);
-  background: color-mix(in srgb, var(--ng) 12%, transparent);
+.queued-remove {
+  --btn-tone: var(--ng);
+  --btn-edge: 55%;
 }
 
 /*

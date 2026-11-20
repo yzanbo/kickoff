@@ -54,7 +54,7 @@ export function GitHubReviewBar({
           {count > 0 ? `行のコメント ${count} 件をためています（まだ送っていません）` : "差分の行を右クリックすると、レビューの行のコメントを書けます"}
         </span>
         <span className="github-detail-spacer" />
-        <button type="button" className="btn btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <button type="button" className="btn" data-size="sm" aria-expanded={open} onClick={() => setOpen(!open)}>
           {open ? "閉じる" : "レビューを書く"}
         </button>
       </div>
@@ -64,7 +64,7 @@ export function GitHubReviewBar({
           <ErrorText message={action.error} />
           <div className="github-comment-actions">
             {GITHUB_REVIEW_EVENTS.map((e) => (
-              <button key={e} type="button" className={e === "approve" ? "btn btn-sm btn-primary" : "btn btn-sm"} disabled={action.busy !== null} onClick={() => send(e)}>
+              <button key={e} type="button" className={e === "approve" ? "btn btn-primary" : "btn"} data-size="sm" disabled={action.busy !== null} onClick={() => send(e)}>
                 {action.busy === e ? "送っています…" : `${GITHUB_REVIEW_EVENT_LABELS[e]}で送る`}
               </button>
             ))}
@@ -84,10 +84,10 @@ export function ReviewCommentEditor({ target, onSave, onCancel }: { target: Revi
       <span className="muted small">{targetLabel(target)}へのコメント</span>
       <GitHubMarkdownField value={text} onChange={setText} label="行のコメント" placeholder="この行へのコメント（Markdown。⌘Enter でためる）" onSubmit={save} autoFocus minRows={2} />
       <div className="github-comment-actions">
-        <button type="button" className="btn btn-sm" onClick={onCancel}>
+        <button type="button" className="btn" data-size="sm" onClick={onCancel}>
           やめる
         </button>
-        <button type="button" className="btn btn-sm btn-primary" disabled={!text.trim()} onClick={save}>
+        <button type="button" className="btn btn-primary" data-size="sm" disabled={!text.trim()} onClick={save}>
           レビューにためる
         </button>
       </div>

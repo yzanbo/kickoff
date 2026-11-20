@@ -96,7 +96,7 @@ export function DockerTab({ projectId }: { projectId: number }) {
 /** エンジンが入っていない・動いていないときの案内 */
 function EngineDown({ list, onOpen, onRetry }: { list: DockerList; onOpen: () => void; onRetry: () => void }) {
   const retry = (
-    <button type="button" className="btn btn-sm" onClick={onRetry}>
+    <button type="button" className="btn" data-size="sm" onClick={onRetry}>
       もう一度確かめる
     </button>
   );
@@ -115,7 +115,7 @@ function EngineDown({ list, onOpen, onRetry }: { list: DockerList; onOpen: () =>
       actions={
         <>
           {starter?.kind === "open" && (
-            <button type="button" className="btn btn-sm btn-primary" onClick={onOpen}>
+            <button type="button" className="btn btn-primary" data-size="sm" onClick={onOpen}>
               {starter.label}
             </button>
           )}

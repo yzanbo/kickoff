@@ -41,7 +41,7 @@ export function ConnectionNoteField({
             </option>
           ))}
         </select>
-        <button type="button" className="btn btn-sm" onClick={() => void createDbNoteFile(projectId, from, "この接続").then((path) => path && onChange(path))}>
+        <button type="button" className="btn" data-size="sm" onClick={() => void createDbNoteFile(projectId, from, "この接続").then((path) => path && onChange(path))}>
           新しく作る…
         </button>
       </div>

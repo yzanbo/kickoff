@@ -35,7 +35,8 @@ export function RestartResumeBanner({ chatId, resume, standalone = false }: { ch
           <button
             key={a}
             type="button"
-            className={cx("btn btn-sm", a === primary && "btn-primary")}
+            className={cx("btn", a === primary && "btn-primary")}
+            data-size="sm"
             disabled={action.busy !== null}
             title={resumeChoiceTip(a, resume.queued)}
             onClick={() => answer(a)}

@@ -147,7 +147,7 @@ function DeviceList({ devices, busy, onRevoke, onAccess }: DeviceListProps) {
               {d.has_push && "・通知あり"}
             </span>
           </div>
-          <Segmented<DeviceAccess> className="segmented theme-switch" label={`「${d.name}」ができること`} value={d.access} options={ACCESS_OPTIONS} onChange={(access) => onAccess(d, access)} />
+          <Segmented<DeviceAccess> label={`「${d.name}」ができること`} value={d.access} options={ACCESS_OPTIONS} onChange={(access) => onAccess(d, access)} />
           <button type="button" className="btn btn-danger" disabled={busy} onClick={() => onRevoke(d)}>
             取り消す
           </button>

@@ -47,11 +47,6 @@
   margin-left: auto;
 }
 
-.visual-card-tools .icon-button {
-  width: 22px;
-  height: 22px;
-}
-
 /* 閉じた枠（iframe）。高さは中から知らせた中身の高さ（上限を超えたら枠の中でスクロール） */
 .visual-frame {
   display: block;

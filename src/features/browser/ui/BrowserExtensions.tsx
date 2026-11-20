@@ -62,10 +62,10 @@ export function BrowserExtensions() {
                     {name}
                     <span className="ext-description muted small">{description}</span>
                   </span>
-                  <button className="btn btn-sm" disabled={busy !== null} onClick={() => void run(`install:${key}`, () => api.install(key), `${name} を追加しました`)}>
+                  <button className="btn" data-size="sm" disabled={busy !== null} onClick={() => void run(`install:${key}`, () => api.install(key), `${name} を追加しました`)}>
                     <Download size={13} aria-hidden /> {busy === `install:${key}` ? "取得中…" : "ウェブストアから取得"}
                   </button>
-                  <button className="btn btn-sm" disabled={busy !== null} onClick={() => void run(`import:${key}`, () => api.importFromChrome(key), `Chrome の ${name} を取り込みました`)}>
+                  <button className="btn" data-size="sm" disabled={busy !== null} onClick={() => void run(`import:${key}`, () => api.importFromChrome(key), `Chrome の ${name} を取り込みました`)}>
                     {busy === `import:${key}` ? "取り込み中…" : "Chrome から取り込む"}
                   </button>
                 </li>
@@ -97,7 +97,7 @@ function AddedExtension({ ext, busy, onRemove }: { ext: BrowserExtensionInfo; bu
         {ext.error && <span className="ext-error small">読み込めませんでした: {ext.error}</span>}
       </span>
       <span className="badge">{SOURCE_LABELS[ext.source]}</span>
-      <button className="btn btn-sm" disabled={busy !== null} title={detach ? "一覧から外します（フォルダは消しません）" : "拡張機能のファイルごと消します"} onClick={() => onRemove(detach)}>
+      <button className="btn" data-size="sm" disabled={busy !== null} title={detach ? "一覧から外します（フォルダは消しません）" : "拡張機能のファイルごと消します"} onClick={() => onRemove(detach)}>
         <RemoveIcon size={13} aria-hidden /> {removing ? (detach ? "外しています…" : "削除中…") : detach ? "外す" : "削除"}
       </button>
     </li>

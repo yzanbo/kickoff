@@ -279,10 +279,10 @@
 
 /*
  * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。乗せたときは外して灰の地（.icon-button:hover）に任せる。
- * ⌘ を押している間の青（queue-mode.css の .queued-editor-send.held）は 3 つのクラスで上書きする
+ * ⌘ を押している間の青（queue-mode.css の .queued-editor-send.held）は 2 つのクラスで上書きする
  */
-.icon-button.queued-editor-ok:where(:not(:hover)),
-.icon-button.queued-editor-send:where(:not(:hover)) {
+.queued-editor-ok:where(:not(:hover)),
+.queued-editor-send:where(:not(:hover)) {
   color: var(--accent-bright);
 }
 
@@ -305,8 +305,8 @@
 }
 
 /* 起動したときの再開の確かめ（RestartResumeDialog）: チャットごとのカードに、見出し・送信待ちの 1 行（開くと止まったところ・止まったサブエージェントと送信待ちのすべて）・選ぶ切り替え */
-.dialog.app-dialog.restart-resume-dialog {
-  width: min(640px, calc(100vw - 32px));
+.restart-resume-dialog {
+  --dialog-w: 640px;
 }
 
 .restart-resume-dialog .app-dialog-body {

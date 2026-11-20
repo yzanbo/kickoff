@@ -40,7 +40,7 @@ export function CiTab({ projectId }: { projectId: number }) {
           icon={Workflow}
           title={conn.repo ? `${conn.repo} の CI を見られません` : "GitHub のリポジトリにつながっていません"}
           actions={
-            <button type="button" className="btn btn-sm" onClick={connection.reload}>
+            <button type="button" className="btn" data-size="sm" onClick={connection.reload}>
               もう一度確かめる
             </button>
           }
@@ -82,7 +82,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}
             </a>
-            <IconButton icon={ExternalLink} size={13} label="GitHub Actions のページを開く" onClick={() => window.open(actionsUrl, "_blank", "noopener")} />
+            <IconButton icon={ExternalLink} iconSize={13} label="GitHub Actions のページを開く" onClick={() => window.open(actionsUrl, "_blank", "noopener")} />
             {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
             {!narrow && (
               <>

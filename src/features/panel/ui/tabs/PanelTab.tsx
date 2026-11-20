@@ -143,7 +143,7 @@ export function PanelTab({
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
       {!editor && (
-        <CloseButton label={closeLabel ?? `${label} のタブを閉じる`} size={12} className={cx("panel-tab-close", dirty && "dirty")} onClick={onClose} />
+        <CloseButton label={closeLabel ?? `${label} のタブを閉じる`} iconSize={12} className={cx("panel-tab-close", dirty && "dirty")} onClick={onClose} />
       )}
     </div>
   );

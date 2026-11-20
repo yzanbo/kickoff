@@ -35,13 +35,13 @@ export function PanelTabAdds({
   /** アイコン ＋ ▾ の組（▾ はデスクトップアプリだけ） */
   const split = (kind: OpenWithKind, icon: { icon: LucideIcon; label: string; title: string } & ButtonHTMLAttributes<HTMLButtonElement>, caret: { label: string; title: string }) => (
     <span className="panel-split-button">
-      <IconButton size={14} {...icon} />
+      <IconButton iconSize={14} {...icon} />
       {window.kickoff && (
         <IconButton
           icon={ChevronDown}
           label={caret.label}
           title={caret.title}
-          size={12}
+          iconSize={12}
           className={`panel-open-with panel-open-with-${kind}`}
           aria-haspopup="menu"
           aria-expanded={openWithShown === kind}
@@ -52,7 +52,7 @@ export function PanelTabAdds({
   );
   return (
     <span className="panel-bar-buttons panel-tab-adds">
-      {panel.kinds.has("chat") && <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />}
+      {panel.kinds.has("chat") && <IconButton icon={SquarePen} label="新しいチャット" iconSize={14} onClick={onNewChat} />}
       {panel.kinds.has("browser") &&
         split(
           "browser",

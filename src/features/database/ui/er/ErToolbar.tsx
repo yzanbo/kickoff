@@ -72,13 +72,13 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
           <span className="db-er-focus-name" title={`${tab.focus} のまわりだけ見ています`}>
             まわり: {tab.focus}
           </span>
-          <Segmented value={String(tab.depth)} options={DEPTHS} onChange={(v) => onChange({ depth: Number(v) })} label="まわりの段の数" className="segmented db-er-segmented" />
-          <button type="button" className="btn btn-sm" onClick={() => onChange({ focus: null })} data-tip="まわりの絞り込みをやめて全体を見る">
+          <Segmented value={String(tab.depth)} options={DEPTHS} onChange={(v) => onChange({ depth: Number(v) })} label="まわりの段の数" className="db-er-segmented" />
+          <button type="button" className="btn" data-size="sm" onClick={() => onChange({ focus: null })} data-tip="まわりの絞り込みをやめて全体を見る">
             <X size={12} aria-hidden /> 全体
           </button>
         </span>
       )}
-      <Segmented value={er.detail} options={DETAILS} onChange={er.setDetail} label="表示の細かさ" className="segmented db-er-segmented" />
+      <Segmented value={er.detail} options={DETAILS} onChange={er.setDetail} label="表示の細かさ" className="db-er-segmented" />
       <label className="db-er-check small" data-tip="外部キーの制約がなくても「<テーブル名の単数>_id」の列を、そのテーブルの id への関係として点線で描く">
         <input type="checkbox" checked={er.inferred} onChange={(e) => er.setInferred(e.target.checked)} /> 推測の関係
       </label>
@@ -87,17 +87,17 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
         {er.shown.length.toLocaleString()} / {names.length.toLocaleString()} 個
       </span>
       {names.length > 0 && (
-        <button ref={pickAnchor} type="button" className="btn btn-sm" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-tip="描くテーブルを選ぶ">
+        <button ref={pickAnchor} type="button" className="btn" data-size="sm" aria-expanded={picking} onClick={() => setPicking((v) => !v)} data-tip="描くテーブルを選ぶ">
           <ListChecks size={13} aria-hidden /> テーブルを選ぶ
         </button>
       )}
-      <button type="button" className="btn btn-sm" onClick={() => void er.relayout()} data-tip="動かした位置を忘れて、自動で並べ直す">
+      <button type="button" className="btn" data-size="sm" onClick={() => void er.relayout()} data-tip="動かした位置を忘れて、自動で並べ直す">
         <LayoutGrid size={13} aria-hidden /> 自動で並べ直す
       </button>
-      <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void copy()} data-tip="見えているテーブルを Mermaid の erDiagram の文でコピー">
+      <button type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} onClick={() => void copy()} data-tip="見えているテーブルを Mermaid の erDiagram の文でコピー">
         <Clipboard size={13} aria-hidden /> {copied ? "コピーしました" : "Mermaid でコピー"}
       </button>
-      <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void exportNote()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのノートに書き出す">
+      <button type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} onClick={() => void exportNote()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのノートに書き出す">
         <FileText size={13} aria-hidden /> ノートに書き出す
       </button>
       <ErImageButton er={er} name={title} />

@@ -294,7 +294,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       {textMenu.element}
       <div ref={barRef} className={cx("composer-bar", barClass)} onContextMenu={textMenu.onBarContextMenu}>
         <div className="composer-tools">
-          <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
+          <AttachButton size="lg" iconSize={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
           {providerChip}
           {options && <ChatOptionsBar state={options} />}

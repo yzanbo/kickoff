@@ -113,11 +113,11 @@ export function TrashRowActions({ item }: { item: TrashItem }) {
   const { busy, run } = useAction();
   return (
     <>
-      <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void run("restore", () => restoreFromTrash(item))}>
+      <button type="button" className="btn" data-size="sm" disabled={busy !== null} onClick={() => void run("restore", () => restoreFromTrash(item))}>
         <RotateCcw size={14} aria-hidden />
         元に戻す
       </button>
-      <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void run("purge", () => purgeFromTrash(item))}>
+      <button type="button" className="btn" data-size="sm" disabled={busy !== null} onClick={() => void run("purge", () => purgeFromTrash(item))}>
         <Trash2 size={14} aria-hidden />
         完全に消す
       </button>
@@ -130,7 +130,7 @@ export function EmptyTrashButton({ items, label, title }: { items: readonly Tras
   const { busy, run } = useAction();
   if (items.length === 0) return null;
   return (
-    <button type="button" className="btn btn-danger btn-sm trash-empty" disabled={busy !== null} onClick={() => void run("empty", () => emptyTrash(items, title))}>
+    <button type="button" className="btn btn-danger trash-empty" data-size="sm" disabled={busy !== null} onClick={() => void run("empty", () => emptyTrash(items, title))}>
       <Trash2 size={14} aria-hidden />
       {label}
     </button>

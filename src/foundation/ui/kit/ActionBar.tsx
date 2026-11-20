@@ -21,7 +21,7 @@ export function ActionBar({ specs, className, label }: { specs: readonly ActionS
   return (
     <div className={cx("action-bar", className)} role="toolbar" aria-label={label}>
       {specs.map((spec) => (
-        <button key={spec.id} type="button" className={cx("btn btn-sm", spec.danger && "btn-danger")} disabled={Boolean(spec.disabled)} title={reasonOf(spec)} onClick={spec.run}>
+        <button key={spec.id} type="button" className={cx("btn", spec.danger && "btn-danger")} data-size="sm" disabled={Boolean(spec.disabled)} title={reasonOf(spec)} onClick={spec.run}>
           {spec.icon && <spec.icon size={13} aria-hidden />} {spec.label}
         </button>
       ))}

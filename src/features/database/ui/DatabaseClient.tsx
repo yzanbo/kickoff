@@ -230,7 +230,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
                     {t.kind === "table" && <UnsavedMark flagKey={unsavedKey(place, t.key)} />}
                   </button>
-                  <CloseButton label="タブを閉じる" size={12} className="db-tab-close" onClick={() => void closeTab(t)} />
+                  <CloseButton size="xs" label="タブを閉じる" iconSize={12} className="db-tab-close" onClick={() => void closeTab(t)} />
                 </div>
               );
             })}

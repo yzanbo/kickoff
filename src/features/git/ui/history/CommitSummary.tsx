@@ -87,7 +87,7 @@ export function CommitSummary({
       <span className="commit-summary-label commit-summary-side">SHA</span>
       <span className="commit-summary-sha">
         <span className="mono">{commit.hash}</span>
-        <CopyButton label="SHA をコピー" text={commit.hash} size={12} />
+        <CopyButton label="SHA をコピー" text={commit.hash} iconSize={12} />
         {githubUrl && (
           <button type="button" className="icon-button commit-github" title="GitHub でこのコミットを開く" aria-label="GitHub でこのコミットを開く" onClick={() => window.open(githubUrl)}>
             <GitHubMark size={13} />

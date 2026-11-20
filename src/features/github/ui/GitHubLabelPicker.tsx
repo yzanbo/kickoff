@@ -43,7 +43,8 @@ export function GitHubLabelPicker({
     <>
       <button
         type="button"
-        className={`github-label-picker github-picker-${kind} btn btn-sm`}
+        className={`github-label-picker github-picker-${kind} btn`}
+        data-size="sm"
         disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}

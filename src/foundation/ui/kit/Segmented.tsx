@@ -21,20 +21,18 @@ export interface SegmentOption<T extends string> {
   disabled?: boolean;
 }
 
-/** look ごとのクラス（見た目は styles の .theme-switch・.view-toggle） */
-const LOOK_CLASS = { switch: "segmented theme-switch", toggle: "view-toggle" } as const;
-
 /**
- * 選択肢から 1 つを選ぶボタンの組（ボード／リスト、テーマ、並べ方など）。
- * 見た目は look（switch = 設定の切り替え・toggle = 見出しの表示の切り替え）か className で決め（どちらもなければ segmented）、
- * 選んでいるボタンには active が付く。←→ で隣を選ぶ（端では回り込む）
+ * 選択肢から 1 つを選ぶボタンの組（ボード／リスト、テーマ、並べ方など）。見た目は .segmented（size="sm" は一覧の上などに置く小さい組）、
+ * look="toggle" は見出しの表示の切り替え（.view-toggle）、look={null} は className だけで決める。選んでいるボタンには active が付く。
+ * ←→ で隣を選ぶ（端では回り込む）
  */
 export function Segmented<T extends string>({
   value,
   options,
   onChange,
   label,
-  look,
+  look = "segmented",
+  size,
   className,
   iconSize = 13,
 }: {
@@ -43,15 +41,16 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
   /** 組の名前（読み上げ用） */
   label: string;
-  look?: keyof typeof LOOK_CLASS;
-  /** 足すクラス（look がなければ、これだけで見た目を決める） */
+  look?: "segmented" | "toggle" | null;
+  size?: "sm";
+  /** 足すクラス */
   className?: string;
   iconSize?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const roving = useRovingList({ mode: "focus", ref, orientation: "horizontal", onMove: (button) => button.dataset.value !== value && onChange(button.dataset.value as T) });
   return (
-    <div ref={ref} className={look ? cx(LOOK_CLASS[look], className) : (className ?? "segmented")} role="radiogroup" aria-label={label} onKeyDown={roving.onKeyDown}>
+    <div ref={ref} className={cx(look === "toggle" ? "view-toggle" : look, className)} data-size={size} role="radiogroup" aria-label={label} onKeyDown={roving.onKeyDown}>
       {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, keys, badge, disabled }) => (
         <button
           key={v}

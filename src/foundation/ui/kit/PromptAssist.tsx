@@ -65,7 +65,7 @@ export function PromptAssist({
         />
       </Field>
       <div className="prompt-assist-row">
-        <button type="button" className="btn btn-sm" disabled={!text.trim() || busy} onClick={run}>
+        <button type="button" className="btn" data-size="sm" disabled={!text.trim() || busy} onClick={run}>
           {busy ? "考えています…" : assist.buttonLabel}
         </button>
       </div>

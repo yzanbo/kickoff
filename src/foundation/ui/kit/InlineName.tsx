@@ -86,17 +86,18 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
     )}
     {suffix && <span className="inline-name-suffix">{suffix}</span>}
     <IconButton
+      size="sm"
       icon={Check}
       label="決定"
       title="決定（Enter）"
-      size={13}
+      iconSize={13}
       className="inline-name-ok"
       type="button"
       disabled={Boolean(error)}
       onMouseDown={keepFocus}
       onClick={() => finish(true)}
     />
-    <IconButton icon={X} label="取り消し" title="取り消し（Esc）" size={13} type="button" onMouseDown={keepFocus} onClick={() => finish(false)} />
+    <IconButton size="sm" icon={X} label="取り消し" title="取り消し（Esc）" iconSize={13} type="button" onMouseDown={keepFocus} onClick={() => finish(false)} />
     </span>
   );
 }

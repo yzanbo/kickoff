@@ -19,10 +19,10 @@ export function TableEditBar({ state, connection, onAddRow, onImportCsv }: { sta
       <div className="db-edit-bar bar small">
         {isTable && (
           <>
-            <button type="button" className="btn btn-sm" disabled={!writable} onClick={onAddRow} data-tip="下に新しい行を足す（入れない列は DB の既定値）">
+            <button type="button" className="btn" data-size="sm" disabled={!writable} onClick={onAddRow} data-tip="下に新しい行を足す（入れない列は DB の既定値）">
               <Plus size={12} aria-hidden /> 行を足す
             </button>
-            <button type="button" className="btn btn-sm" disabled={!writable} onClick={onImportCsv} data-tip="CSV・TSV の行を、足す行として読み込む（保存するまで DB は変えません）">
+            <button type="button" className="btn" data-size="sm" disabled={!writable} onClick={onImportCsv} data-tip="CSV・TSV の行を、足す行として読み込む（保存するまで DB は変えません）">
               <FileUp size={12} aria-hidden /> CSV を取り込む…
             </button>
           </>
@@ -37,7 +37,8 @@ export function TableEditBar({ state, connection, onAddRow, onImportCsv }: { sta
             <span className="db-sql-readonly tag">読み取り専用</span>
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn"
+              data-size="sm"
               onClick={() => void write.start()}
               data-tip="このタブだけ読み取り専用を外し、セルを書き換えられるようにする（環境の名前を入れて確かめます。接続の設定は変えません）"
             >
@@ -49,10 +50,10 @@ export function TableEditBar({ state, connection, onAddRow, onImportCsv }: { sta
         {parts.length > 0 && (
           <>
             <span className="db-edit-count">保存していない変更: {parts.join("・")}</span>
-            <button type="button" className="btn btn-sm" disabled={saving} onClick={() => void state.discard()} data-tip="保存していない変更をすべて捨てる">
+            <button type="button" className="btn" data-size="sm" disabled={saving} onClick={() => void state.discard()} data-tip="保存していない変更をすべて捨てる">
               <Undo2 size={12} aria-hidden /> 取り消す
             </button>
-            <button type="button" className="btn btn-sm btn-primary" disabled={saving} onClick={() => void state.save()} data-tip="流す SQL を見せて確かめてから、まとめて保存する" data-tip-keys="⌘S">
+            <button type="button" className="btn btn-primary" data-size="sm" disabled={saving} onClick={() => void state.save()} data-tip="流す SQL を見せて確かめてから、まとめて保存する" data-tip-keys="⌘S">
               <Save size={12} aria-hidden /> {saving ? "保存中…" : "保存"}
             </button>
           </>

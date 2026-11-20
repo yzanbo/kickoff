@@ -35,8 +35,8 @@
 }
 
 /* 確認のダイアログ */
-.dialog.app-dialog.pr-notice-dialog {
-  width: min(560px, calc(100vw - 32px));
+.pr-notice-dialog {
+  --dialog-w: 560px;
 }
 
 .pr-notice-title {

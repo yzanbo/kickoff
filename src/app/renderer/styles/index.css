@@ -12,6 +12,9 @@
 @import "./ui/types/bar.css" layer(ui);
 @import "./ui/types/tag.css" layer(ui);
 @import "./ui/types/pill.css" layer(ui);
+@import "./ui/types/button.css" layer(ui);
+@import "./ui/types/segmented.css" layer(ui);
+@import "./ui/types/switch.css" layer(ui);
 @import "./ui/popover.css" layer(ui);
 @import "./ui/progressive.css" layer(ui);
 @import "./ui/status.css" layer(ui);

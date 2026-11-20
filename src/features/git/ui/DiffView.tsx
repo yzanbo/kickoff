@@ -94,7 +94,7 @@ export function DiffView({
         </span>
         <span className="spacer" />
         {onEdit && (
-          <button className="btn btn-sm" title="いまのファイルを編集する" onClick={onEdit}>
+          <button className="btn" data-size="sm" title="いまのファイルを編集する" onClick={onEdit}>
             <Pencil size={13} aria-hidden /> 編集
           </button>
         )}

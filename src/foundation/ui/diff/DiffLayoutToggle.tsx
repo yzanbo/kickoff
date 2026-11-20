@@ -12,7 +12,7 @@ export function DiffLayoutToggle() {
   const [layout, setLayout] = useSetting(uiStorage.settings.diffLayout);
   return (
     <Segmented
-      className="view-toggle"
+      look="toggle"
       label="差分の表示のしかた"
       value={layout}
       onChange={setLayout}

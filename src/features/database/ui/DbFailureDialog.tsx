@@ -123,15 +123,15 @@ export function DbFailureDialog({
             <span className="db-failure-note-tools">
               {c.note_path ? (
                 <>
-                  <button type="button" className="btn btn-sm" disabled={!note.data} onClick={() => void appendFix()} data-tip="つながったら、何をしたら直ったかを手順ノートに 1 行足す">
+                  <button type="button" className="btn" data-size="sm" disabled={!note.data} onClick={() => void appendFix()} data-tip="つながったら、何をしたら直ったかを手順ノートに 1 行足す">
                     <NotebookPen size={13} aria-hidden /> 直し方を追記…
                   </button>
-                  <button type="button" className="btn btn-sm" onClick={then(onNote)}>
+                  <button type="button" className="btn" data-size="sm" onClick={then(onNote)}>
                     開く
                   </button>
                 </>
               ) : (
-                <button type="button" className="btn btn-sm" onClick={then(onNote)}>
+                <button type="button" className="btn" data-size="sm" onClick={then(onNote)}>
                   手順ノートを作る…
                 </button>
               )}

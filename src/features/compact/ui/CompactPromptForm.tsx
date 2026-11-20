@@ -31,7 +31,6 @@ export function CompactPromptForm({ kind, projectId }: { kind: CompactPromptKind
       <div className="form">
         <Field as="div" label="送る" help="オフにすると、書いた文は残したまま送りません。">
           <Segmented<"on" | "off">
-            className="segmented"
             label={`${label}を送る`}
             value={enabled ? "on" : "off"}
             options={COMPACT_PROMPT_SWITCH}

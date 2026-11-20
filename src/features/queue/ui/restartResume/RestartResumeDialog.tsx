@@ -185,7 +185,7 @@ function RestartResumeCard({
       {open && <RestartResumeDetails resume={r} />}
       <div className="restart-resume-foot">
         <Segmented<RestartResumeChoice>
-          className="segmented restart-resume-choice"
+          className="restart-resume-choice"
           label={`${title} をどうするか`}
           value={choice}
           options={options.map((c) => ({ value: c, label: resumeChoiceLabel(c, r.queued), tip: resumeChoiceTip(c, r.queued) }))}

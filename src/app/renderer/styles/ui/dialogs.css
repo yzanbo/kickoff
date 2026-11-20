@@ -16,8 +16,11 @@ dialog[open] {
   color: var(--text);
 }
 
+/* 幅は --dialog-w（Dialog の size か、使う所のクラスで入れる）。狭いウィンドウでは左右に 16px ずつ空ける */
+@property --dialog-w { syntax: "*"; inherits: false; }
+
 .dialog {
-  width: min(560px, calc(100vw - 32px));
+  width: min(var(--dialog-w, 560px), calc(100vw - 32px));
 }
 
 /* 左に項目の一覧・右に内容のダイアログ（アプリの設定・プロジェクトの編集） */

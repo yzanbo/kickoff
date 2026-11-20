@@ -15,5 +15,5 @@ export function ListRail({ label, onShow }: { label: string; onShow: () => void 
 
 /** 一覧を隠すボタン（一覧の見出しの右端に置く。アイコンの大きさは見出しのほかのボタンに合わせる） */
 export function ListHideButton({ label, onHide, size }: { label: string; onHide: () => void; size?: number }) {
-  return <IconButton icon={PanelLeftClose} size={size} label={label} onClick={onHide} />;
+  return <IconButton icon={PanelLeftClose} iconSize={size} label={label} onClick={onHide} />;
 }

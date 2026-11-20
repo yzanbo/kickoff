@@ -78,7 +78,7 @@ export function BackgroundTasks({
             )}
             {entry && <ActivityNote entry={entry} />}
             {task.kind === "command" && <TaskOutputLine taskId={task.task_id} />}
-            <IconButton icon={Square} label={`「${task.description}」を止める`} title="この作業だけを止める（チャットは止めない）" size={12} onClick={() => void stop(task)} />
+            <IconButton icon={Square} label={`「${task.description}」を止める`} title="この作業だけを止める（チャットは止めない）" iconSize={12} onClick={() => void stop(task)} />
           </li>
         );
       })}

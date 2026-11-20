@@ -71,7 +71,7 @@
   align-items: center;
 }
 
-.docker-logs-tools .icon-button.active {
+.docker-logs-tools [data-active] {
   color: var(--accent-fg);
 }
 

@@ -20,7 +20,8 @@ export function CreatedChatToolDetail({ text, result }: { text: string; result: 
         <div className="tool-actions">
           <button
             type="button"
-            className="btn btn-sm"
+            className="btn"
+            data-size="sm"
             disabled={!chat}
             title={chat ? `${kind}「${chatTitle(chat.title)}」を開く` : "チャットが見つかりません（消されたか、まだ一覧に届いていません）"}
             onClick={() => chat && openChatOrChild(chat)}

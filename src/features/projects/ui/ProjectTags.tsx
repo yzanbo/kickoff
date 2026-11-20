@@ -14,7 +14,7 @@ export function ProjectTags({ tags, className, onRemove }: { tags: readonly stri
         <span key={tag} className="project-tag tag" data-look="outline" title={onRemove ? undefined : `タグ: ${tag}`}>
           <span className="project-tag-name">{tag}</span>
           {onRemove && (
-            <IconButton type="button" icon={X} size={11} className="project-tag-remove" label={`タグ「${tag}」を外す`} title="外す" onClick={() => onRemove(tag)} />
+            <IconButton type="button" icon={X} iconSize={11} className="project-tag-remove" label={`タグ「${tag}」を外す`} title="外す" onClick={() => onRemove(tag)} />
           )}
         </span>
       ))}

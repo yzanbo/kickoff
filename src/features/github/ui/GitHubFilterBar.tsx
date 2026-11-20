@@ -104,7 +104,7 @@ export function GitHubFilterBar({
     <div className="github-filter-bar bar">
       <div className="github-filter-row">
         <Segmented
-          className="segmented github-kind-switch"
+          className="github-kind-switch"
           label="issue と PR の切り替え"
           value={filter.kind}
           onChange={onKind}

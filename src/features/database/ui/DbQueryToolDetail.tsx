@@ -29,7 +29,8 @@ export function DbQueryToolDetail({ chatId, sql, connectionName, result, highlig
         <div className="tool-actions">
           <button
             type="button"
-            className="btn btn-sm"
+            className="btn"
+            data-size="sm"
             disabled={!connection}
             title={connection ? `「${connection.name}」の新しい SQL のタブで、この SQL を開く（右の欄の DB）` : "どの接続で流した SQL か分かりません（接続の名前が変わったか、消えました）"}
             onClick={() => connection && openSqlFromChat(chat, connection, sql)}

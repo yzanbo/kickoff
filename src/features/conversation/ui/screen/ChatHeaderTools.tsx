@@ -25,7 +25,7 @@ export function ChatHeaderTools({ find }: { find: ReactNode }) {
   const tools: Record<"showing" | "textWidth" | "fontSize" | "sticky" | "find", ReactNode> = {
     showing: (shows("showing") || showing === "activity") && (
         <Segmented<ChatShowing>
-          className="chat-show-toggle"
+          look={null} className="chat-show-toggle"
           label="会話と動き"
           value={showing}
           onChange={(next) => show(next)}

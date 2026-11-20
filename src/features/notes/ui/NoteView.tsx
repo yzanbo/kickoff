@@ -238,7 +238,7 @@ export function NoteView({
           <IconButton icon={Save} label="保存" keys="⌘S" disabled={(doc.state === "saved" && !titleChanged) || doc.state === "saving"} onClick={saveNow} />
         )}
         <Segmented
-          className="view-toggle"
+          look="toggle"
           label="ノートの表示"
           value={view}
           onChange={setView}
@@ -261,10 +261,10 @@ export function NoteView({
       {doc.state === "conflict" && (
         <div className="file-changed-notice" role="status">
           開いたあとで、ほかでこのノートが変わりました（チャットからの追記・ほかのアプリなど）。
-          <button className="btn btn-sm" onClick={() => void doc.reload()}>
+          <button className="btn" data-size="sm" onClick={() => void doc.reload()}>
             読み直す（書いたものは捨てる）
           </button>
-          <button className="btn btn-sm" onClick={doc.overwrite}>
+          <button className="btn" data-size="sm" onClick={doc.overwrite}>
             書いたもので上書き
           </button>
         </div>

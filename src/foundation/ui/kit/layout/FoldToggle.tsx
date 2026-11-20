@@ -9,7 +9,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 export function FoldToggle({ open, onToggle, icon: Icon, iconSize = 13 }: { open: boolean; onToggle: () => void; icon?: LucideIcon; iconSize?: number }) {
   return (
     <>
-      <IconButton type="button" icon={open ? ChevronDown : ChevronRight} size={12} className="fold-toggle" label={open ? "閉じる" : "開く"} aria-expanded={open} onClick={onToggle} />
+      <IconButton type="button" icon={open ? ChevronDown : ChevronRight} iconSize={12} className="fold-toggle" label={open ? "閉じる" : "開く"} aria-expanded={open} onClick={onToggle} />
       {Icon && <Icon size={iconSize} className="custom-group-icon" aria-hidden />}
     </>
   );

@@ -37,17 +37,12 @@
   flex: none;
 }
 
-/* 一覧の上なので、ふつうの切り替えより小さく。文字は折り返さない */
-.open-place-switch {
-  padding: 2px;
-}
-
+/* 一覧の上なので小さい組（size="sm"）。文字は折り返さない */
 .open-place-switch button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   padding: 2px 8px;
-  font-size: var(--fs-12);
   white-space: nowrap;
 }

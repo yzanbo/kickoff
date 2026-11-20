@@ -26,7 +26,7 @@ export function OpenAsSqlButton({ connection, tab, filter, sort }: { connection:
     client.openSql(connection, `${sql};`);
   };
   return (
-    <button type="button" className="btn btn-sm" onClick={open} data-tip="いまの絞り込み・並べ替えのまま、データを読む SQL を新しい SQL のタブで開く">
+    <button type="button" className="btn" data-size="sm" onClick={open} data-tip="いまの絞り込み・並べ替えのまま、データを読む SQL を新しい SQL のタブで開く">
       <SquareTerminal size={13} aria-hidden /> SQL で開く
     </button>
   );
@@ -71,7 +71,7 @@ export function AskAiButton({ connection, path, tables, label = "AI に聞く" }
     await startDbChat(client.projectId, text, `DB「${tables.length > 3 ? `${tables.slice(0, 3).join("・")} ほか ${tables.length - 3} 個` : tables.join("・")}」について`).catch(fail);
   };
   return (
-    <button type="button" className="btn btn-sm" disabled={hidden || tables.length === 0} onClick={() => void ask()} data-tip={hidden ? AI_HIDDEN_TIP : "聞きたいことを書いて、新しいチャットか選んだチャットで AI に聞く（すぐ送る）"}>
+    <button type="button" className="btn" data-size="sm" disabled={hidden || tables.length === 0} onClick={() => void ask()} data-tip={hidden ? AI_HIDDEN_TIP : "聞きたいことを書いて、新しいチャットか選んだチャットで AI に聞く（すぐ送る）"}>
       <Sparkles size={13} aria-hidden /> {label}
     </button>
   );
@@ -102,7 +102,7 @@ export function SqlAssistButton({ connection, editor }: { connection: DbConnecti
     editor.current?.append(sql);
   };
   return (
-    <button type="button" className="btn btn-sm" disabled={hidden || busy} onClick={() => void run()} data-tip={hidden ? AI_HIDDEN_TIP : "やりたいことを書くと、AI が SQL を書いて入力欄に足す"}>
+    <button type="button" className="btn" data-size="sm" disabled={hidden || busy} onClick={() => void run()} data-tip={hidden ? AI_HIDDEN_TIP : "やりたいことを書くと、AI が SQL を書いて入力欄に足す"}>
       <Sparkles size={13} aria-hidden /> {busy ? "AI が書いています…" : "AI に頼む"}
     </button>
   );

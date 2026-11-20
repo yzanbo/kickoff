@@ -166,7 +166,8 @@ function TodoHistory({ groups, events, onJump }: { groups: TodoGroup[]; events: 
               {prompt && pane && (
                 <IconButton
                   icon={MessageSquare}
-                  size={13}
+                  iconSize={13}
+                  size="sm"
                   className="todo-group-jump"
                   label="この指示へ移る"
                   onClick={() => {

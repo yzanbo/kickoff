@@ -18,7 +18,7 @@ export function ChoiceField<T extends string>({
 }) {
   return (
     <Field label={label} help={help} as="div">
-      <Segmented look="switch" label={label} value={value} options={options} onChange={onChange} />
+      <Segmented label={label} value={value} options={options} onChange={onChange} />
     </Field>
   );
 }

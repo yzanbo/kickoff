@@ -55,13 +55,13 @@ export function OperationBanner({ status, git, action }: { status: Extract<GitSt
               <span className="operation-conflict-path" title={c.path}>
                 {c.path}
               </span>
-              <button className="btn btn-sm" title={`${sides.ours}を使う`} onClick={() => void resolve(c.path, "ours")}>
+              <button className="btn" data-size="sm" title={`${sides.ours}を使う`} onClick={() => void resolve(c.path, "ours")}>
                 こちら
               </button>
-              <button className="btn btn-sm" title={`${sides.theirs}を使う`} onClick={() => void resolve(c.path, "theirs")}>
+              <button className="btn" data-size="sm" title={`${sides.theirs}を使う`} onClick={() => void resolve(c.path, "theirs")}>
                 取り込む側
               </button>
-              <button className="btn btn-sm" title="いまの中身（印の行を直したもの）で解決済みにする" onClick={() => void resolve(c.path, "mark")}>
+              <button className="btn" data-size="sm" title="いまの中身（印の行を直したもの）で解決済みにする" onClick={() => void resolve(c.path, "mark")}>
                 解決済み
               </button>
             </li>
@@ -69,16 +69,17 @@ export function OperationBanner({ status, git, action }: { status: Extract<GitSt
         </ul>
       )}
       <div className="operation-banner-actions">
-        <button className="btn btn-sm" onClick={() => void operate("abort")}>
+        <button className="btn" data-size="sm" onClick={() => void operate("abort")}>
           取りやめる
         </button>
         {canSkip && (
-          <button className="btn btn-sm" title="ぶつかったコミットを飛ばして、残りを続けます" onClick={() => void operate("skip")}>
+          <button className="btn" data-size="sm" title="ぶつかったコミットを飛ばして、残りを続けます" onClick={() => void operate("skip")}>
             スキップ
           </button>
         )}
         <button
-          className="btn btn-sm btn-primary"
+          className="btn btn-primary"
+          data-size="sm"
           disabled={conflicts.length > 0}
           title={conflicts.length > 0 ? "衝突しているファイルを解決済みにしてから" : undefined}
           onClick={() => void operate("continue")}

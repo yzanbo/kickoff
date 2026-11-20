@@ -85,7 +85,7 @@ export function NoteChipTree(props: Props) {
               <IconButton
                 type="button"
                 icon={AddToChat}
-                size={13}
+                iconSize={13}
                 label="このチャットに追加"
                 title="ノートを開かずに、押した時点の中身をこのチャットの入力欄に札で足します"
                 className="open-place-button note-chip-attach"

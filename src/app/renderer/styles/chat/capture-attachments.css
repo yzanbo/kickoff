@@ -25,7 +25,7 @@
 .dialog.app-dialog.capture-viewer {
   display: grid;
   gap: 8px;
-  width: min(760px, calc(100vw - 48px));
+  --dialog-w: 760px;
   max-height: calc(100vh - 64px);
   padding: 14px 16px;
 }

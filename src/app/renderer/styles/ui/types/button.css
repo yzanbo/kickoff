@@ -1,0 +1,172 @@
+/*
+ * ボタン（.btn・.btn-primary・.btn-danger・.btn-danger-text）とアイコンだけのボタン（.icon-button。IconButton・CloseButton・RefreshButton）と文字のボタン（.link-button）。
+ * 大きさは data-size（.btn は "sm"、.icon-button は "xs" 20px・"sm" 22px・"lg" 28px。既定は 26px）、押している印は data-active（IconButton の active）。
+ * 色の枠のボタンは data-look="outline" と --btn-tone（文字の色）・--btn-line（枠と乗せたときの地の色。既定は --btn-tone）・--btn-edge（枠の濃さ。既定 45%）。
+ * 並べた行が地と枠を変えるときは、行に --btn-bg・--btn-border・--btn-hover-bg・--btn-hover-border を入れる（この 4 つは受け継ぐ）
+ */
+@property --btn-tone { syntax: "*"; inherits: false; }
+@property --btn-line { syntax: "*"; inherits: false; }
+@property --btn-edge { syntax: "*"; inherits: false; }
+
+/* 余白 0 はブラウザの既定（左右 6px）を消すため（狭めたボタンでアイコンが右へずれていた） */
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button[data-size="xs"] {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-button[data-size="sm"] {
+  width: 22px;
+  height: 22px;
+}
+
+.icon-button[data-size="lg"] {
+  width: 28px;
+  height: 28px;
+}
+
+.icon-button:hover,
+.icon-button[data-active] {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 押せないときは薄くする（取得中で回っている更新ボタンはそのまま） */
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-button:disabled:hover {
+  color: var(--muted);
+  background: transparent;
+}
+
+.icon-button[aria-busy="true"] {
+  opacity: 1;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--btn-border, var(--border));
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--fs-13);
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--btn-bg, var(--bg-elev));
+  cursor: pointer;
+}
+
+.btn[data-size="sm"] {
+  padding: 3px 9px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--btn-hover-border, var(--border-strong));
+  background: var(--btn-hover-bg, var(--bg-hover));
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn[data-look="outline"] {
+  border-color: color-mix(in srgb, var(--btn-line, var(--btn-tone)) var(--btn-edge, 45%), transparent);
+  color: var(--btn-tone);
+  background: transparent;
+}
+
+.btn[data-look="outline"]:hover:not(:disabled) {
+  border-color: var(--btn-line, var(--btn-tone));
+  background: color-mix(in srgb, var(--btn-line, var(--btn-tone)) 12%, transparent);
+}
+
+.btn-primary {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 88%, black);
+}
+
+.btn-danger {
+  border-color: var(--ng);
+  color: #fff;
+  background: var(--ng);
+}
+
+/* 乗せたときも赤い地のまま少し暗くする（緑の主ボタンと同じ。.btn の乗せたときの灰色の地にしない） */
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 88%, black);
+}
+
+.btn-danger-text {
+  border-color: transparent;
+  color: var(--ng);
+  background: transparent;
+}
+
+/* ボタンと ▾ の 2 つで 1 つ（SplitButton ほか）: 間の角を落とす */
+.split-button {
+  display: inline-flex;
+}
+
+.split-button > :first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.split-button > :last-child {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--text);
+}
+
+.link-button.accent {
+  color: var(--accent);
+}
+
+/*
+ * 文の中の押せる名前（裏の作業の名前・ツールの行のファイル名など）に乗せたとき: 下線は使わず、地の色で示す（このアプリは、押せることを下線で示さない。
+ * 行・カードと同じく背景のハイライトにそろえる）。地は文字の外へ少しはみ出させる（box-shadow。余白を足すと並びがずれるため）
+ */
+.link-button.hover-bg:hover {
+  border-radius: 3px;
+  background: var(--bg-hover);
+  box-shadow: 0 0 0 2px var(--bg-hover);
+}

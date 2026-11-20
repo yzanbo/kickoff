@@ -58,7 +58,8 @@ export function ProjectHeader({
       {/* しまった（アーカイブした）プロジェクト: サイドバーに出ないので、ここから戻せるようにする */}
       {project.archived_at && (
         <button
-          className="btn btn-sm"
+          className="btn"
+          data-size="sm"
           title="アーカイブから戻す（サイドバー・全プロジェクトの画面に出す）"
           onClick={() => void confirmRestoreProject(project)}
         >

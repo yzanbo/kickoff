@@ -1,5 +1,4 @@
 import { CodeXml, Eye, Image, WrapText } from "lucide-react";
-import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import type { PagePreviewKind } from "./filePreview";
 
@@ -8,7 +7,7 @@ export function WrapToggle({ wrap, onChange }: { wrap: boolean; onChange: (wrap:
   return (
     <IconButton
       icon={WrapText}
-      className={cx(wrap && "active")}
+      active={wrap}
       aria-pressed={wrap}
       label={wrap ? "折り返さない" : "折り返す"}
       title={wrap ? "折り返さない（横幅に入らない行は横にスクロールする）" : "折り返す（横幅に入らない行を次の行へ続ける）"}
@@ -23,7 +22,8 @@ export function PreviewToggle({ kind, showCode, onClick }: { kind: PagePreviewKi
   const name = kind === "svg" ? "SVG" : kind === "html" ? "HTML" : "Markdown";
   return (
     <button
-      className="btn btn-sm"
+      className="btn"
+      data-size="sm"
       aria-pressed={showCode}
       title={showCode ? (kind === "svg" ? "画像として表示します" : "書式を付けて表示します（スクリプトは動かさず、リンクは中で開きません）") : `${name} のコードを表示・編集します`}
       onClick={onClick}

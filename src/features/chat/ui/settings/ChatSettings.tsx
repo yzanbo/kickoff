@@ -81,7 +81,6 @@ export function ChatSettings() {
           help="チャットのタブの × に効きます（選んだらすぐ反映）。毎回聞くときは、表示だけ消す・アーカイブ・削除から選び、「次からはこれにする」でここを変えられます。削除は取り消せないので、既定にしても毎回確かめます。"
         >
           <Segmented<ChatCloseAction>
-            className="segmented theme-switch"
             label="チャットの ✕ を押したとき"
             value={closeAction}
             onChange={setCloseAction}
@@ -93,7 +92,6 @@ export function ChatSettings() {
           help="同じ作業場所（本体・ワークツリー）でほかのチャットが作業中のときに、新しいチャットを送ったときの扱いです（選んだらすぐ反映）。毎回聞くときは確かめのダイアログを出し、「次からはこれにする」でここを変えられます。新しいワークツリーで始めるときは、ブランチ名を聞いてから作ります。"
         >
           <Segmented<BusyWorkplaceAction>
-            className="segmented theme-switch"
             label="ほかのチャットが作業中の作業場所で、新しいチャットを始めるとき"
             value={busyAction}
             onChange={setBusyAction}

@@ -26,8 +26,6 @@
 }
 
 .db-sql-toolbar .btn {
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
 }
 
@@ -125,9 +123,7 @@
 }
 
 .db-write-band .btn {
-  display: inline-flex;
   flex: none;
-  align-items: center;
   gap: 4px;
 }
 
@@ -285,7 +281,7 @@
 
 /* 接続のダイアログ */
 .db-connection-dialog {
-  width: min(560px, 94vw);
+  --dialog-w: 560px;
 }
 
 /* 種類・環境の切り替えの名前を折り返さない */
@@ -366,7 +362,7 @@
 
 /* 踏み台のサーバーの鍵を確かめるダイアログ */
 .db-ssh-key-dialog {
-  width: min(520px, 94vw);
+  --dialog-w: 520px;
 }
 
 .db-ssh-key-list {
@@ -398,7 +394,7 @@
 
 /* ほかのプロジェクトの接続を写すダイアログ */
 .db-copy-dialog {
-  width: min(520px, 94vw);
+  --dialog-w: 520px;
 }
 
 .db-copy-list {

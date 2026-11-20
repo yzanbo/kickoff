@@ -35,20 +35,21 @@ export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat
   return (
     <span className={cx("handoff-split", prominent && "prominent")} data-turn={turnEventId}>
       {prominent ? (
-        <button type="button" className="btn btn-sm btn-primary handoff-main" {...tipProps(tip)} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))}>
+        <button type="button" className="btn btn-primary handoff-main" data-size="sm" {...tipProps(tip)} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))}>
           <Inbox size={13} aria-hidden />
           親チャットに追加
         </button>
       ) : (
-        <IconButton icon={Inbox} label="親チャットに追加" title={tip} size={13} type="button" className="turn-action handoff-main" onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))} />
+        <IconButton size="sm" icon={Inbox} label="親チャットに追加" title={tip} iconSize={13} type="button" className="turn-action handoff-main" onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))} />
       )}
       <IconButton
+        size="sm"
         icon={ChevronDown}
         label="親チャットへの渡し方を選ぶ"
         title="親チャットへの渡し方を、今回だけ選ぶ"
-        size={12}
+        iconSize={12}
         type="button"
-        className={cx("handoff-more", prominent ? "btn btn-sm btn-primary" : "turn-action")}
+        className={cx("handoff-more", prominent ? "btn btn-primary" : "turn-action")}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         onClick={(e) => {

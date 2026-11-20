@@ -205,7 +205,7 @@ export function QueuedMessages({
         {!collapsed && (overflowing || expanded) && (
           <button
             type="button"
-            className="btn btn-sm queued-head-btn"
+            className="btn queued-head-btn" data-size="sm"
             aria-label={expanded ? "縮めて表示" : "すべて表示"}
             aria-expanded={expanded}
             title={expanded ? "決めた高さに縮め、中でスクロールさせる" : `送信待ちの ${messages.length} 件をすべて表示する（中でスクロールさせない）`}

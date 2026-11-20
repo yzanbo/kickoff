@@ -26,7 +26,8 @@ export function SendAllMenu({
     <>
       <button
         type="button"
-        className="btn btn-sm btn-primary queued-head-btn send-all-button"
+        className="btn btn-primary queued-head-btn send-all-button"
+        data-size="sm"
         aria-label="すべて送る"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}

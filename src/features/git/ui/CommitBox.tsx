@@ -29,7 +29,7 @@ export function CommitBox({ status, actions }: { status: Extract<GitStatus, { re
           }
         }}
       />
-      <div className="commit-split">
+      <div className="commit-split split-button">
         <button className="btn btn-primary commit-button" disabled={Boolean(busy) || !canCommit} onClick={() => void commit()}>
           <Check size={16} aria-hidden /> {busy === "commit" ? "コミット中…" : "コミット"}
         </button>

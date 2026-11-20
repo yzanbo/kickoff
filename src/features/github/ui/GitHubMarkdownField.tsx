@@ -41,7 +41,7 @@ export function GitHubMarkdownField({
   return (
     <div className="github-md-field">
       <Segmented
-        className="segmented github-md-mode"
+        className="github-md-mode"
         label={`${label}の表示`}
         value={mode}
         onChange={setMode}

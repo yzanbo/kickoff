@@ -95,7 +95,7 @@ export function DockerServiceRow({
           ))}
         </span>
         <span className="docker-service-actions">
-          <button type="button" className="btn btn-sm" disabled={busy || blocked !== null} title={blocked ?? undefined} onClick={() => run(primary.action)}>
+          <button type="button" className="btn" data-size="sm" disabled={busy || blocked !== null} title={blocked ?? undefined} onClick={() => run(primary.action)}>
             {primary.label}
           </button>
           {s.running > 0 && <IconButton icon={RotateCcw} label="再起動" disabled={busy} onClick={() => run("restart")} />}
@@ -115,7 +115,7 @@ export function DockerServiceRow({
             ))}
           </span>
           {stopOthers && (
-            <button type="button" className="btn btn-sm" disabled={busy} data-tip={stopOthers.tip} onClick={() => send("stop_others_and_start")}>
+            <button type="button" className="btn" data-size="sm" disabled={busy} data-tip={stopOthers.tip} onClick={() => send("stop_others_and_start")}>
               {stopOthers.label}
             </button>
           )}
@@ -127,7 +127,7 @@ export function DockerServiceRow({
           <span className="docker-silent-text">
             {unpublished.map((p) => `:${p}`).join("・")} を Mac に出していません。ポートの取り合いで起動に失敗したコンテナは、あとで起動してもポートを出さないまま動きます
           </span>
-          <button type="button" className="btn btn-sm" disabled={busy} data-tip={`${s.name} のコンテナを作り直して起動します（ボリュームのデータは残ります）`} onClick={() => run("recreate")}>
+          <button type="button" className="btn" data-size="sm" disabled={busy} data-tip={`${s.name} のコンテナを作り直して起動します（ボリュームのデータは残ります）`} onClick={() => run("recreate")}>
             作り直す
           </button>
         </div>
@@ -136,11 +136,11 @@ export function DockerServiceRow({
         <div key={`${x.container}:${x.port}:${x.pid}`} className="docker-silent small">
           <TriangleAlert size={13} aria-hidden />
           <span className="docker-silent-text">{silentText(x)}</span>
-          <button type="button" className="btn btn-sm" disabled={busy} data-tip={`Docker の ${s.name} を止めます（データは残ります）`} onClick={() => send("stop_container", { container: x.container })}>
+          <button type="button" className="btn" data-size="sm" disabled={busy} data-tip={`Docker の ${s.name} を止めます（データは残ります）`} onClick={() => send("stop_container", { container: x.container })}>
             Docker の外の {x.process} を使う
           </button>
           {x.brew_service && (
-            <button type="button" className="btn btn-sm" data-tip={`Homebrew のサービス ${x.brew_service} を止めます（確かめてから）`} onClick={() => void chooseDockerSide(projectId, s.name, x.port, x.brew_service!)}>
+            <button type="button" className="btn" data-size="sm" data-tip={`Homebrew のサービス ${x.brew_service} を止めます（確かめてから）`} onClick={() => void chooseDockerSide(projectId, s.name, x.port, x.brew_service!)}>
               Docker の {s.name} を使う
             </button>
           )}
@@ -218,11 +218,11 @@ function OneoffRow({ c, busy, onStop, onLogs }: { c: DockerContainer; busy: bool
       <span className="docker-oneoff-name">{c.name}</span>
       <span className="muted">{c.status}</span>
       {running && (
-        <button type="button" className="btn btn-sm" disabled={busy} onClick={onStop}>
+        <button type="button" className="btn" data-size="sm" disabled={busy} onClick={onStop}>
           停止
         </button>
       )}
-      <button type="button" className="btn btn-sm" onClick={onLogs}>
+      <button type="button" className="btn" data-size="sm" onClick={onLogs}>
         ログ
       </button>
       {menu.menu && (

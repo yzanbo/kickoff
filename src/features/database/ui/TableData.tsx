@@ -171,7 +171,7 @@ export function TableData({
           {shown.toLocaleString()} 行を表示{filtered && "（絞り込み中）"}
         </span>
         {result?.truncated && (
-          <button type="button" className="btn btn-sm" disabled={data.loading} onClick={data.more}>
+          <button type="button" className="btn" data-size="sm" disabled={data.loading} onClick={data.more}>
             {data.loading ? "読み込み中…" : "さらに 100 行読む"}
           </button>
         )}
@@ -193,8 +193,8 @@ export function TableData({
         <code className="db-table-sql" title={sql}>
           {sql}
         </code>
-        <CopyButton label="流す SQL をコピー" size={12} text={sql} />
-        <button type="button" className={cx("btn btn-sm", showDetail && "active")} aria-pressed={showDetail} onClick={() => setShowDetail((v) => !v)} data-tip="選んだセルの行を右に縦に並べる">
+        <CopyButton label="流す SQL をコピー" iconSize={12} text={sql} />
+        <button type="button" className={cx("btn", showDetail && "active")} data-size="sm" aria-pressed={showDetail} onClick={() => setShowDetail((v) => !v)} data-tip="選んだセルの行を右に縦に並べる">
           <PanelRight size={12} aria-hidden /> 行の詳細
         </button>
         <RowsExport fileName={tab.name} count={shown} columns={result?.columns ?? []} rows={exportRowsOf} />

@@ -20,7 +20,7 @@ export function DiagnosticsIndicator() {
       <div className="diagnostics-body">
         <DiagnosticsMessage state={state} />
       </div>
-      {(state.state === "done" || state.state === "error") && <CloseButton label="閉じる" size={14} onClick={() => setState(null)} />}
+      {(state.state === "done" || state.state === "error") && <CloseButton label="閉じる" iconSize={14} onClick={() => setState(null)} />}
     </div>
   );
 }

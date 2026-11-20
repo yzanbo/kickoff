@@ -165,11 +165,6 @@
   gap: 1px;
 }
 
-.code-search-actions .icon-button {
-  width: 20px;
-  height: 20px;
-}
-
 .code-search-row:hover .code-search-actions,
 .code-search-row:focus-within .code-search-actions,
 .code-search-row.selected .code-search-actions,

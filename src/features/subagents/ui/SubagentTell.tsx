@@ -79,7 +79,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
     <>
       <div className="inherit-choice subagent-ask-choice">
         <Segmented<AskMode>
-          className="segmented inherit-choice-switch"
+          className="inherit-choice-switch"
           label="サブエージェントへの送り先"
           value={child ? "child" : "relay"}
           options={[
@@ -131,7 +131,7 @@ export function SubagentTellBox({ entry, view, onClose }: { entry: SubagentEntry
         <span className="subagent-tell-title">
           「<strong>{entry.description}</strong>」に伝える・聞く
         </span>
-        <CloseButton label="やめる（Esc。書きかけの文は残ります）" size={13} type="button" onClick={onClose} />
+        <CloseButton label="やめる（Esc。書きかけの文は残ります）" iconSize={13} type="button" onClick={onClose} />
       </div>
       <SubagentTellComposer entry={entry} view={view} autoFocus onSent={onClose} />
     </div>

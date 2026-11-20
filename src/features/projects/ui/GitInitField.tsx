@@ -40,7 +40,7 @@ export function GitInitField({
   return (
     <Field as="div" label="git の管理" help={help}>
       <Segmented<Choice>
-        className="segmented git-init-choice"
+        className="git-init-choice"
         label="git の管理"
         value={value ? "on" : "off"}
         onChange={(next) => onChange(next === "on")}

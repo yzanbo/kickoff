@@ -71,7 +71,7 @@ export function CsvImportDialog({
         <h2 className="app-dialog-title">{table} に CSV を取り込む</h2>
         <p className="muted small">読み込んだ行は、足す行として表に並びます。中身を確かめてから「保存」で DB に入れます。入れない列は DB の既定値になります。</p>
         <div className="db-csv-source">
-          <button type="button" className="btn btn-sm" onClick={() => file.current?.click()}>
+          <button type="button" className="btn" data-size="sm" onClick={() => file.current?.click()}>
             <FileUp size={12} aria-hidden /> ファイルを選ぶ…
           </button>
           <span className="small muted">{source ?? "か、下に貼り付け"}</span>

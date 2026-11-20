@@ -28,7 +28,7 @@ function RailTab({
   return (
     <IconButton
       icon={icon}
-      size={14}
+      iconSize={14}
       role="tab"
       aria-selected={active}
       className={cx("tab side-rail-item", active && "active", className)}
@@ -84,8 +84,8 @@ export function SideRail({ projectId, open, held = false, inWindow = false }: { 
       {!inWindow && canPopout() && (
         <IconButton
           icon={AppWindow}
-          size={14}
-          className={cx("side-rail-popout", held && "active")}
+          iconSize={14}
+          className="side-rail-popout" active={held}
           label={held ? "別ウィンドウの右サイドバーを前に出す" : "右サイドバーを別ウィンドウで開く"}
           title={held ? "別ウィンドウの右サイドバーを前に出す（右サイドバーは別ウィンドウに移しています）" : "右サイドバーを別ウィンドウで開く（アイコンの列と中身をまとめて移す）"}
           aria-pressed={held}

@@ -133,11 +133,6 @@ button.chat-row {
   pointer-events: auto;
 }
 
-.chat-row-actions .icon-button {
-  width: 22px;
-  height: 22px;
-}
-
 .chat-row-item:hover .chat-row-time,
 .chat-row-item:has(.chat-row-actions:focus-within) .chat-row-time,
 .chat-row-item:has(.chat-row-actions.open) .chat-row-time {

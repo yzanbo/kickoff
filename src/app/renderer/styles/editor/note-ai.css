@@ -1,8 +1,8 @@
 /* ==== ノートの AI のフォルダの整理案のダイアログ（NotePlanDialog。ノートのチャットの欄は note-chat.css） ==== */
 
 /* ノートのタブの「AI でフォルダを整理」のダイアログ（整理案のチェックの一覧。多ければ中でスクロール） */
-.dialog.app-dialog.note-plan-dialog {
-  width: min(640px, calc(100vw - 48px));
+.note-plan-dialog {
+  --dialog-w: 640px;
 }
 
 .note-plan-list {

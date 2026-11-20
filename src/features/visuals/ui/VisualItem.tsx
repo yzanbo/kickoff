@@ -171,10 +171,10 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
         <span className="visual-card-kind tag" data-look="outline">{VISUAL_KIND_LABELS[visual.kind]}</span>
         {visual.updatedBy.length > 0 && <span className="visual-card-note">描き直し {visual.updatedBy.length} 回</span>}
         <span className="visual-card-tools">
-          {framed && <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />}
-          <CopyButton text={visual.code} label="ソースをコピー" size={14} />
-          {framed && !showSource && <IconButton icon={Maximize2} label="全画面で表示" size={14} onClick={() => setFullscreen(true)} />}
-          {pane && <IconButton icon={StickyNote} label={visual.kind === "mermaid" ? "ノートに保存（Markdown）" : "ノートに保存（HTML。スクリプトは動きません）"} size={14} onClick={save} />}
+          {framed && <IconButton size="sm" icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} iconSize={14} onClick={() => setShowSource(!showSource)} />}
+          <CopyButton size="sm" text={visual.code} label="ソースをコピー" iconSize={14} />
+          {framed && !showSource && <IconButton size="sm" icon={Maximize2} label="全画面で表示" iconSize={14} onClick={() => setFullscreen(true)} />}
+          {pane && <IconButton size="sm" icon={StickyNote} label={visual.kind === "mermaid" ? "ノートに保存（Markdown）" : "ノートに保存（HTML。スクリプトは動きません）"} iconSize={14} onClick={save} />}
         </span>
       </div>
       {frameKind === null ? (

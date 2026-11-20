@@ -265,7 +265,7 @@ function ChangeSection({
           />
           確認済み
         </label>
-        <IconButton icon={SquareArrowOutUpRight} size={13} label="ファイルタブで開く" onClick={openInEditor} />
+        <IconButton icon={SquareArrowOutUpRight} iconSize={13} label="ファイルタブで開く" onClick={openInEditor} />
       </div>
       {open && <DiffView projectId={projectId} file={file} staged={staged} version={version} bare source={source} />}
     </section>

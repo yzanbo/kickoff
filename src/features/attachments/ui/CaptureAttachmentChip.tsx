@@ -77,7 +77,7 @@ function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment;
         <span className="capture-viewer-title">
           {ATTACHMENT_SOURCE_LABELS[attachment.source.type]}「{attachment.source.label}」
         </span>
-        <CloseButton label="閉じる" onClick={() => dialog.close()} size={16} />
+        <CloseButton label="閉じる" onClick={() => dialog.close()} iconSize={16} />
       </div>
       <p className="small muted capture-viewer-note">{captureTitle(attachment, formatDayTime).split("\n").slice(1).join(" / ")}</p>
       {text.loading && <p className="small muted">読み込み中…</p>}

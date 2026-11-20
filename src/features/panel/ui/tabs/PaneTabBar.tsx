@@ -253,11 +253,11 @@ export function PaneTabBar({
       <span className="panel-bar-buttons panel-pane-tools">
         {!SURFACES[panel.surface].noSplitButtons && (
           <>
-            <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
-            <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
+            <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" iconSize={14} onClick={() => splitTo("row")} />
+            <IconButton icon={Rows2} label="下に分ける" iconSize={14} onClick={() => splitTo("column")} />
           </>
         )}
-        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={closePane} />}
+        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" iconSize={15} onClick={closePane} />}
         {endControls}
       </span>
     </div>

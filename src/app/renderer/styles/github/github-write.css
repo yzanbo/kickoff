@@ -59,21 +59,10 @@
   gap: 6px;
 }
 
-/* ボタンと ▾ を 1 つに見せる組（閉じ方を選ぶ） */
-.github-split-button {
-  display: inline-flex;
-}
-
-.github-split-button > .btn:first-child {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.github-split-button > .github-split-toggle {
+/* ボタンと ▾ を 1 つに見せる組（閉じ方を選ぶ。.split-button）の ▾ */
+.github-split-toggle {
   padding-inline: 4px;
   border-left: none;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
 }
 
 /* ラベル・担当の札・PR の操作 */
@@ -90,14 +79,12 @@
 }
 
 .github-pull-actions .btn {
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
 }
 
 /* 新しい issue */
-.dialog.github-new-issue {
-  width: min(720px, 92vw);
+.github-new-issue {
+  --dialog-w: 720px;
 }
 
 .github-new-issue-pickers {
@@ -133,8 +120,8 @@
 }
 
 /* マージの確認 */
-.dialog.github-merge {
-  width: min(560px, 92vw);
+.github-merge {
+  --dialog-w: 560px;
 }
 
 .github-merge-warnings {

@@ -55,7 +55,7 @@ export function OrphanSessions() {
         Claude Code の記録も同じ形で入っているので、自動では消しません。選んだものだけをゴミ箱に入れます（これから Kickoff が作る会話記録は、使われなくなったら自動でゴミ箱に入ります）。
       </p>
       <div className="orphan-sessions-head">
-        <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void search()}>
+        <button type="button" className="btn" data-size="sm" disabled={busy !== null} onClick={() => void search()}>
           <Search size={14} aria-hidden />
           {busy === "search" ? "探しています…" : list ? "探し直す" : "探す"}
         </button>
@@ -75,7 +75,7 @@ export function OrphanSessions() {
                 Kickoff の問い合わせの記録を選ぶ（{asks.length} 件・{formatSize(asks.reduce((sum, s) => sum + s.size, 0))}）
               </button>
             )}
-            <button type="button" className="btn btn-danger btn-sm" disabled={picked.size === 0 || busy !== null} onClick={() => void trash()}>
+            <button type="button" className="btn btn-danger" data-size="sm" disabled={picked.size === 0 || busy !== null} onClick={() => void trash()}>
               選んだ {picked.size} 件{picked.size > 0 ? `（${formatSize(pickedSize)}）` : ""}をゴミ箱に入れる
             </button>
           </>

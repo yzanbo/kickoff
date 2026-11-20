@@ -88,7 +88,7 @@ export function WorkspaceHead({
         {/* 開閉の矢印（ほかの開閉の矢印と同じ灰色。押すと、選んでいてもいなくても開閉だけする） */}
         <IconButton
           icon={collapsed ? ChevronRight : ChevronDown}
-          size={15}
+          iconSize={15}
           className="workspace-toggle"
           aria-expanded={!collapsed}
           label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
@@ -122,7 +122,7 @@ export function WorkspaceHead({
           // いつも出し、固定しているか見た目で分かるようにする（固定: プロジェクトの色で塗る / していない: 薄い灰の線）
           <IconButton
             icon={Pin}
-            size={13}
+            iconSize={13}
             className={cx("workspace-pin", project.pinned && "pinned")}
             iconClassName={project.pinned ? "pin-filled" : undefined}
             label={project.pinned ? `${project.name} の固定をやめる` : `${project.name} を上に固定`}
@@ -133,12 +133,12 @@ export function WorkspaceHead({
         )}
         <HeadCounts counts={counts} filter={stateFilter} onFilter={onStateFilter} />
         {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（下書き・作業中・回答待ち・未読） */}
-        <ActiveChatsButton project={project} size={14} className="workspace-active-chats" />
+        <ActiveChatsButton project={project} iconSize={14} className="workspace-active-chats" />
         <IconButton
           icon={SquarePen}
           label={`${project.name} の新しいチャット`}
           title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
-          size={15}
+          iconSize={15}
           className="workspace-new-chat"
           aria-haspopup={groups.length > 0 ? "menu" : undefined}
           aria-expanded={groups.length > 0 ? pickMenu.isOpen : undefined}

@@ -188,14 +188,14 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       <div ref={heightPaneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar bar">
           <SqlConnectionPill connection={connection} tabKey={tab.key} disabled={running || write.on} />
-          <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
+          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
             <Play size={13} aria-hidden /> 流す
           </button>
-          <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(true)} data-tip="すべての文を順に流す（失敗した文で止める）" data-tip-keys="⇧⌘↵">
+          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => void execute(true)} data-tip="すべての文を順に流す（失敗した文で止める）" data-tip-keys="⇧⌘↵">
             <PlayCircle size={13} aria-hidden /> すべて流す
           </button>
           {running && (
-            <button type="button" className="btn btn-sm btn-danger" onClick={stop}>
+            <button type="button" className="btn btn-danger" data-size="sm" onClick={stop}>
               <Square size={12} aria-hidden /> 止める
             </button>
           )}
@@ -211,7 +211,8 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
               <span className="db-sql-readonly tag small">読み取り専用</span>
               <button
                 type="button"
-                className="btn btn-sm"
+                className="btn"
+                data-size="sm"
                 disabled={running || pending}
                 onClick={() => void write.start()}
                 data-tip={pending ? "コミットか取り消しのあとに外せます" : "このタブだけ読み取り専用を外す（環境の名前を入れて確かめます。接続の設定は変えません）"}
@@ -223,10 +224,10 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
           {pending && (
             <span className="db-sql-pending small">
               コミットしていない変更があります
-              <button type="button" className="btn btn-sm btn-primary" disabled={finishing || running} onClick={() => void finish("commit")}>
+              <button type="button" className="btn btn-primary" data-size="sm" disabled={finishing || running} onClick={() => void finish("commit")}>
                 コミット
               </button>
-              <button type="button" className="btn btn-sm" disabled={finishing || running} onClick={() => void finish("rollback")}>
+              <button type="button" className="btn" data-size="sm" disabled={finishing || running} onClick={() => void finish("rollback")}>
                 取り消す
               </button>
             </span>

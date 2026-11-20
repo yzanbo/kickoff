@@ -68,14 +68,15 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
       {child && turnHandoff && data.status === "completed" && <AddToParentButton chat={child} turnEventId={event.id} prominent={turnHandoff.requested} />}
       {turnHandoffs && <HandoffMarks handoffs={turnHandoffs} />}
       {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
-      {turnText && <CopyButton copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
+      {turnText && <CopyButton size="sm" copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
       {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}
       {data.message_id && data.status === "completed" && !busy && (
         <IconButton
+          size="sm"
           icon={GitBranch}
           label="ここから分岐"
           title={forkBlock ?? "ここから分岐（この時点までの会話で新しいチャットを始める。ファイルの変更は戻さない）"}
-          size={13}
+          iconSize={13}
           type="button"
           className="turn-action"
           disabled={forkBlock !== null}
@@ -89,6 +90,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
       )}
       {child && (
         <IconButton
+          size="sm"
           icon={ClipboardPenLine}
           label="親への依頼文を作ってもらう"
           title={
@@ -96,7 +98,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
               ? "親への依頼文を作ってもらう（作業中なので、いまの作業に伝えます。返答は「親チャットに追加」でそのまま親に渡せます）"
               : "親への依頼文を作ってもらう（この子チャットの AI に、親チャットの AI へ渡す依頼文だけを書くよう頼みます。返答は「親チャットに追加」でそのまま親に渡せます）"
           }
-          size={13}
+          iconSize={13}
           type="button"
           className="turn-action"
           onClick={() => void requestHandoff(child)}

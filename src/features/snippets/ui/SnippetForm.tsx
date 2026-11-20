@@ -72,7 +72,6 @@ export function SnippetForm({
       <Field as="div" label="使う範囲">
         {scopes.length <= 3 ? (
           <Segmented
-            className="segmented theme-switch"
             label="使う範囲"
             value={scope}
             onChange={setScope}

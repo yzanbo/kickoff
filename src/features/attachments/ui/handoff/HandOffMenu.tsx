@@ -39,7 +39,8 @@ export function HandOffButton({
     <>
       <button
         type="button"
-        className={cx("btn hand-off-button", small && "btn-sm", className)}
+        className={cx("btn hand-off-button", className)}
+        data-size={small ? "sm" : undefined}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         data-tip={`${item.what}を、押した時点の中身の札にしてチャットの入力欄に入れる（送るのは自分で）`}

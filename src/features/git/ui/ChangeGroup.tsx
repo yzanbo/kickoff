@@ -77,11 +77,11 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
   // 行・フォルダ・まとまりの操作（paths はその中のファイル）
   const buttons = (paths: string[], scope: string) =>
     staged ? (
-      <IconButton icon={Minus} label={`${scope}のステージを取り消す`} size={14} onClick={() => void run("unstage", paths)} />
+      <IconButton icon={Minus} label={`${scope}のステージを取り消す`} iconSize={14} onClick={() => void run("unstage", paths)} />
     ) : (
       <>
-        <IconButton icon={Undo2} label={`${scope}の変更を元に戻す`} size={14} onClick={() => void run("discard", paths)} />
-        <IconButton icon={Plus} label={`${scope}をステージする`} size={14} onClick={() => void run("stage", paths)} />
+        <IconButton icon={Undo2} label={`${scope}の変更を元に戻す`} iconSize={14} onClick={() => void run("discard", paths)} />
+        <IconButton icon={Plus} label={`${scope}をステージする`} iconSize={14} onClick={() => void run("stage", paths)} />
       </>
     );
   const pathsUnder = (node: TreeNode) => (node.dir ? files.filter((f) => f.path.startsWith(node.path + "/")).map((f) => f.path) : [node.path]);

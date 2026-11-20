@@ -24,7 +24,7 @@ export function OpenPlaceButtons({ places, onOpen }: { places: readonly OpenPlac
           key={place}
           type="button"
           icon={OPEN_PLACES[place].icon}
-          size={13}
+          iconSize={13}
           label={OPEN_PLACES[place].label}
           className="open-place-button"
           onClick={(e) => {
@@ -43,7 +43,8 @@ export function DefaultOpenPlace<T extends OpenPlace>({ places, value, onChange 
     <div className="open-place-default">
       <span className="open-place-default-label">行を押したとき</span>
       <Segmented<T>
-        className="segmented open-place-switch"
+        size="sm"
+        className="open-place-switch"
         label="行を押したときの開き方"
         value={value}
         onChange={onChange}

@@ -75,6 +75,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
           {canPopout() && (
             <IconButton
               icon={AppWindow}
+              size="xs"
               className="titlebar-toggle sidebar-popout-button"
               label="サイドバーを別ウィンドウで開く"
               title="サイドバーを別ウィンドウに移す（このウィンドウのサイドバーは閉じる。別ウィンドウの「左の欄に戻す」で戻せる）"
@@ -84,7 +85,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
               }}
             />
           )}
-          <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
+          <IconButton icon={PanelLeftClose} size="xs" className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
         </div>
       )}
       <div className="nav-rows">
@@ -112,6 +113,6 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
 export function SidebarOpenButton({ sidebar }: { sidebar: SidebarController }) {
   if (sidebar.open) return null;
   return (
-    <IconButton icon={PanelLeftOpen} className="titlebar-toggle fixed" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
+    <IconButton icon={PanelLeftOpen} size="xs" className="titlebar-toggle fixed" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
   );
 }

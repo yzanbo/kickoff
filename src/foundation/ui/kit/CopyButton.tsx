@@ -1,6 +1,6 @@
 import { Check, Copy } from "lucide-react";
 import { useCopied } from "./useCopied";
-import { IconButton } from "./IconButton";
+import { IconButton, type IconButtonSize } from "./IconButton";
 
 /**
  * クリップボードにコピーするボタン（コピーしたら、しばらくチェックの印にする。失敗はお知らせ）。
@@ -9,14 +9,16 @@ import { IconButton } from "./IconButton";
 export function CopyButton({
   label,
   className,
-  size = 13,
+  size,
+  iconSize = 13,
   ...source
-}: { label: string; className?: string; size?: number } & ({ text: string } | { copy: () => Promise<void> })) {
+}: { label: string; className?: string; size?: IconButtonSize; iconSize?: number } & ({ text: string } | { copy: () => Promise<void> })) {
   const { copied, copy } = useCopied();
   return (
     <IconButton
       icon={copied ? Check : Copy}
       label={copied ? "コピーしました" : label}
+      iconSize={iconSize}
       size={size}
       type="button"
       className={className}

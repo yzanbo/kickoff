@@ -20,7 +20,7 @@ export function FindOptionButtons({ options, onToggle, size = 15 }: { options: F
           icon={ICONS[name]}
           label={FIND_OPTION_LABELS[name].label}
           keys={FIND_OPTION_LABELS[name].keys}
-          size={size}
+          iconSize={size}
           className={cx("find-option", options[name] && "on")}
           aria-pressed={options[name]}
           // 押しても入力欄のピントを外さない（打ちながら切り替える）

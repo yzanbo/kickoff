@@ -217,7 +217,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
         </span>
         <span className="spacer" />
         {canOpenExternal() && (
-          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${worktree ?? repoPath}/${path}`, line })}>
+          <button className="btn" data-size="sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${worktree ?? repoPath}/${path}`, line })}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}
@@ -225,13 +225,13 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
         {(svg || pageKind) && <PreviewToggle kind={pageKind ?? "svg"} showCode={showCode} onClick={toggleCode} />}
         {base && diffing && (
           <>
-            <IconButton icon={ArrowUp} size={14} label="前の変更へ" onClick={() => goToDiff.current?.("previous")} />
-            <IconButton icon={ArrowDown} size={14} label="次の変更へ" onClick={() => goToDiff.current?.("next")} />
+            <IconButton icon={ArrowUp} iconSize={14} label="前の変更へ" onClick={() => goToDiff.current?.("previous")} />
+            <IconButton icon={ArrowDown} iconSize={14} label="次の変更へ" onClick={() => goToDiff.current?.("next")} />
             <DiffLayoutToggle />
           </>
         )}
         {base && (
-          <button className="btn btn-sm btn-primary" disabled={!dirty || saving.busy !== null} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
+          <button className="btn btn-primary" data-size="sm" disabled={!dirty || saving.busy !== null} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
             <Save size={13} aria-hidden /> {saving.busy ? "保存中…" : "保存"}
           </button>
         )}
@@ -239,7 +239,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
       {changedOnDisk && dirty && (
         <div className="file-changed-notice" role="status">
           開いたあとで、ほかでこのファイルが変わりました。
-          <button className="btn btn-sm" onClick={() => void reloadFromDisk()}>
+          <button className="btn" data-size="sm" onClick={() => void reloadFromDisk()}>
             読み直す
           </button>
         </div>

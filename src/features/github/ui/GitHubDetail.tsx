@@ -117,7 +117,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
             )}
             {isPull(data) && (
               <Segmented
-                className="segmented github-pr-views"
+                className="github-pr-views"
                 label="PR の中身の切り替え"
                 value={view}
                 onChange={setView}

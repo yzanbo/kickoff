@@ -91,12 +91,12 @@ export function ChangesPane({
           </span>
         )}
         <span className="spacer" />
-        <IconButton icon={Check} size={16} label="コミット" keys="⌘Enter" disabled={Boolean(commitActions.busy) || !commitActions.canCommit} onClick={() => void commitActions.commit()} />
-        <RefreshButton size={16} label="変更を取り直す（リモートの情報も取ってくる）" busy={git.loading} onClick={() => void git.fetchRemote()} />
-        <IconButton icon={changesTree ? List : ListTree} size={16} label={changesTree ? "一覧で表示" : "ツリーで表示"} onClick={() => setChangesTree(!changesTree)} />
+        <IconButton icon={Check} iconSize={16} label="コミット" keys="⌘Enter" disabled={Boolean(commitActions.busy) || !commitActions.canCommit} onClick={() => void commitActions.commit()} />
+        <RefreshButton iconSize={16} label="変更を取り直す（リモートの情報も取ってくる）" busy={git.loading} onClick={() => void git.fetchRemote()} />
+        <IconButton icon={changesTree ? List : ListTree} iconSize={16} label={changesTree ? "一覧で表示" : "ツリーで表示"} onClick={() => setChangesTree(!changesTree)} />
         <IconButton
           icon={Ellipsis}
-          size={16}
+          iconSize={16}
           className="changes-more"
           label="その他の操作"
           aria-haspopup="menu"

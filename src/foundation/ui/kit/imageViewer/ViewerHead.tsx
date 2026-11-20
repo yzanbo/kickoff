@@ -10,7 +10,7 @@ export function ViewerHead({ name, children, onClose }: { name: string; children
       </span>
       {children}
       <span className="image-viewer-close">
-        <CloseButton title="閉じる（Esc）" size={16} onClick={onClose} />
+        <CloseButton title="閉じる（Esc）" iconSize={16} onClick={onClose} />
       </span>
     </div>
   );

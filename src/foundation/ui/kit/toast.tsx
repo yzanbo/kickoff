@@ -58,7 +58,8 @@ export function ToastHost() {
           {t.action && (
             <button
               type="button"
-              className="btn btn-sm toast-action"
+              className="btn toast-action"
+              data-size="sm"
               onClick={() => {
                 dismiss(t.id);
                 t.action?.run();

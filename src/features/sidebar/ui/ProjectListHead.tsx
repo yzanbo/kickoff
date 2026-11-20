@@ -71,7 +71,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
           label={fold.allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
           title={fold.allCollapsed ? "すべてのプロジェクトと中のまとまりを開く" : "すべてのプロジェクトと中のまとまりを閉じる"}
-          size={14}
+          iconSize={14}
           className="sidebar-view-icon"
           onClick={() => fold.set(!fold.allCollapsed)}
         />
@@ -80,8 +80,8 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           icon={SlidersHorizontal}
           label="見え方を調整"
           title="プロジェクト・チャット・要対応の見え方を細かく変える（変えたものはビューに上書き・今のビューを新規保存できる）"
-          size={14}
-          className={cx("sidebar-view-icon", tunerOpen && "active")}
+          iconSize={14}
+          className="sidebar-view-icon" active={tunerOpen}
           aria-expanded={tunerOpen}
           onClick={() => setTunerOpen(!tunerOpen)}
         />
@@ -189,8 +189,9 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
         <IconButton
           icon={ChevronDown}
           label={`ほかのビュー（${hidden.length} 件）`}
-          size={14}
-          className={cx("sidebar-view-icon sidebar-view-more", more.isOpen && "active", hidden.some((id) => id === views.active?.id) && "has-active")}
+          iconSize={14}
+          active={more.isOpen}
+          className={cx("sidebar-view-icon sidebar-view-more", hidden.some((id) => id === views.active?.id) && "has-active")}
           aria-expanded={more.isOpen}
           onClick={(e) => more.toggle(e, undefined)}
           // タブをドラッグして重ねると、いちばん後ろへ落とせる。重ねたまま待つとメニューを開き、その中の好きな位置へ落とせる

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { cx } from "@/foundation/ui/lib/cx";
 import { isSubmitKey } from "@/foundation/ui/lib/keys";
 import { setAskHost, type AskRequest } from "./ask";
 import { finishAsk, nextAskId, pushAsk } from "./askQueue";
@@ -93,7 +92,8 @@ function RequestDialog({ req, onDone }: { req: AskRequest; onDone: () => void })
     <Dialog
       dialogRef={ref}
       title={req.title}
-      className={cx(req.kind === "choice" && "app-dialog-choice", req.kind === "prompt" && req.assist && "app-dialog-assist")}
+      // 選択肢（ボタンが 3 つ以上並ぶ）と、案を作ってもらう欄のある入力（案が並ぶ）は広げる
+      size={req.kind === "choice" || (req.kind === "prompt" && req.assist) ? 520 : undefined}
       onClose={() => finish(false)}
       onSubmit={() => finish(true)}
       actions={actions}

@@ -112,7 +112,7 @@ export function CustomGroupSection({
                 icon={SquarePen}
                 label={`${group.name} に新しいチャット`}
                 title={`「${group.name}」に新しいチャット`}
-                size={13}
+                iconSize={13}
                 className="custom-group-add"
                 onClick={() => openTarget({ kind: "newChat", projectId: projectId, groupId: group.id })}
               />

@@ -6,8 +6,8 @@ import type { useNavigationHistory } from "./useNavigationHistory";
 export function NavigationButtons({ navigation }: { navigation: ReturnType<typeof useNavigationHistory> }) {
   return (
     <div className="navigation-buttons" role="group" aria-label="画面の移動">
-      <IconButton icon={ArrowLeft} size={16} label="前の画面に戻る" keys="⌘[" disabled={!navigation.canGoBack} onClick={navigation.goBack} />
-      <IconButton icon={ArrowRight} size={16} label="次の画面に進む" keys="⌘]" disabled={!navigation.canGoForward} onClick={navigation.goForward} />
+      <IconButton icon={ArrowLeft} iconSize={16} label="前の画面に戻る" keys="⌘[" disabled={!navigation.canGoBack} onClick={navigation.goBack} />
+      <IconButton icon={ArrowRight} iconSize={16} label="次の画面に進む" keys="⌘]" disabled={!navigation.canGoForward} onClick={navigation.goForward} />
     </div>
   );
 }

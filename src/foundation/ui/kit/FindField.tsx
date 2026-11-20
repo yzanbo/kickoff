@@ -119,7 +119,7 @@ export function FindField({
         <IconButton
           type="button"
           icon={replace.open ? ChevronDown : ChevronRight}
-          size={14}
+          iconSize={14}
           label={replace.open ? "置き換えを閉じる" : "置き換えを開く"}
           className="find-box-toggle"
           aria-expanded={replace.open}
@@ -147,9 +147,9 @@ export function FindField({
             <span className={cx("find-box-count", invalid && "invalid")} aria-live="polite">
               {count}
             </span>
-            <IconButton type="button" icon={ChevronUp} size={13} label="前へ" keys="⇧Enter" disabled={!canStep} onMouseDown={(e) => e.preventDefault()} onClick={() => onStep(-1)} />
-            <IconButton type="button" icon={ChevronDown} size={13} label="次へ" keys="Enter" disabled={!canStep} onMouseDown={(e) => e.preventDefault()} onClick={() => onStep(1)} />
-            <CloseButton type="button" size={13} label={closeLabel} keys="Esc" onClick={onClose} />
+            <IconButton type="button" icon={ChevronUp} iconSize={13} label="前へ" keys="⇧Enter" disabled={!canStep} onMouseDown={(e) => e.preventDefault()} onClick={() => onStep(-1)} />
+            <IconButton type="button" icon={ChevronDown} iconSize={13} label="次へ" keys="Enter" disabled={!canStep} onMouseDown={(e) => e.preventDefault()} onClick={() => onStep(1)} />
+            <CloseButton type="button" iconSize={13} label={closeLabel} keys="Esc" onClick={onClose} />
           </span>,
         )}
         {replace?.open &&
@@ -157,8 +157,8 @@ export function FindField({
             <Replace size={13} className="find-box-icon" aria-hidden />,
             <input type="text" value={replace.value} placeholder="置き換え" aria-label="置き換える文" onChange={(e) => replace.onChange(e.target.value)} onKeyDown={(e) => keyDown(e, "replace")} />,
             <span className="find-box-controls">
-              <IconButton type="button" icon={Replace} size={13} label="置き換える" keys="Enter" disabled={!replace.canReplace} onMouseDown={(e) => e.preventDefault()} onClick={replace.onReplace} />
-              <IconButton type="button" icon={ReplaceAll} size={13} label="すべて置き換える" keys="⌘Enter" disabled={!replace.canReplace} onMouseDown={(e) => e.preventDefault()} onClick={replace.onReplaceAll} />
+              <IconButton type="button" icon={Replace} iconSize={13} label="置き換える" keys="Enter" disabled={!replace.canReplace} onMouseDown={(e) => e.preventDefault()} onClick={replace.onReplace} />
+              <IconButton type="button" icon={ReplaceAll} iconSize={13} label="すべて置き換える" keys="⌘Enter" disabled={!replace.canReplace} onMouseDown={(e) => e.preventDefault()} onClick={replace.onReplaceAll} />
             </span>,
           )}
       </div>

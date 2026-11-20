@@ -56,7 +56,7 @@ const FOLD_LANE: FoldLook = { wrap: "board-lane", head: "board-lane-head", name:
 export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
   return (
     <Segmented<BoardLane | "none">
-      className="view-toggle"
+      look="toggle"
       label="段（スイムレーン）の分け方"
       value={value}
       onChange={onChange}

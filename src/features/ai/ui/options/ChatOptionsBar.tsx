@@ -239,7 +239,7 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         <IconButton
           type="button"
           icon={Zap}
-          size={15}
+          iconSize={15}
           className={`fast-toggle ${fastMode ? "on" : ""}`}
           aria-pressed={fastMode}
           label="ファストモード"

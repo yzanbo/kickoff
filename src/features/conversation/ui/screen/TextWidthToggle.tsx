@@ -1,6 +1,5 @@
 import { createLucideIcon, MoveHorizontal } from "lucide-react";
 import { useEffect, useState, type RefObject } from "react";
-import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_WIDE } from "@/foundation/ui/storage/storageKeys";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -45,12 +44,12 @@ export function TextWidthToggle({ panel }: { panel: RefObject<HTMLElement | null
   return (
     <IconButton
       icon={wide ? MoveHorizontalIn : MoveHorizontal}
-      size={14}
+      iconSize={14}
       label={label}
       title={roomy ? label : "パネルが狭いため変わりません"}
       aria-pressed={wide}
       disabled={!roomy}
-      className={cx(wide && "active")}
+      active={wide}
       onClick={() => setWide(!wide)}
     />
   );

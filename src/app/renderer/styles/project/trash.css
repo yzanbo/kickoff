@@ -99,8 +99,6 @@
 .trash-row > .btn,
 .trash-empty {
   flex: none;
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
 }
 

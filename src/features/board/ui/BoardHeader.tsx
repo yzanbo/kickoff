@@ -68,7 +68,7 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
         {/* 表示: 左に ボード / リスト、続けて列の分け方・段の分け方・並び順 */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
-            className="view-toggle"
+            look="toggle"
             label="表示の切り替え"
             value={view}
             onChange={onView}
@@ -103,7 +103,7 @@ function BoardSearch({ query, onChange }: { query: string; onChange: (query: str
   return (
     <SearchField className="board-search" value={query} onChange={onChange} placeholder="チャット名で検索（⌘F）" label="このボードのチャットを名前で検索">
       {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
-      <IconButton icon={TextSearch} size={13} className="chat-search-content" label="チャットの中の文言を検索" onClick={openContentSearch} />
+      <IconButton icon={TextSearch} iconSize={13} size="xs" className="chat-search-content" label="チャットの中の文言を検索" onClick={openContentSearch} />
     </SearchField>
   );
 }

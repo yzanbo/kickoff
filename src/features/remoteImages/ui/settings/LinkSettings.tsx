@@ -29,7 +29,6 @@ export function LinkSettings() {
       <div className="form">
         <Field label="外部リンクを開く場所" help="返答などの外部リンクを押したときの開き先です。⌘ を押しながら押すと、もう一方で開きます。Kickoff のブラウザは、見ているプロジェクトのチャット欄に新しいタブで開きます（プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ）。">
           <Segmented<LinkOpenTarget>
-            className="segmented theme-switch"
             label="外部リンクを開く場所"
             value={settings.link_open_in}
             onChange={(next) => save({ link_open_in: next })}
@@ -48,7 +47,7 @@ export function LinkSettings() {
               {domains.map((domain) => (
                 <li key={domain}>
                   <span className="trusted-domain">{domain}</span>
-                  <CloseButton label={`${domain} を一覧から外す（次から確かめる）`} type="button" size={14} onClick={() => save({ trusted_link_domains: domains.filter((d) => d !== domain) })} />
+                  <CloseButton label={`${domain} を一覧から外す（次から確かめる）`} type="button" iconSize={14} onClick={() => save({ trusted_link_domains: domains.filter((d) => d !== domain) })} />
                 </li>
               ))}
             </ul>

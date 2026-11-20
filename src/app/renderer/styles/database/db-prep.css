@@ -48,7 +48,7 @@
 }
 
 .db-prep-dialog {
-  width: min(620px, 94vw);
+  --dialog-w: 620px;
 }
 
 .db-prep-group {

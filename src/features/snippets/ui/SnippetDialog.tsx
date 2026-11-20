@@ -15,7 +15,7 @@ export function SnippetDialog({ projectId, initialEditing, onClose }: { projectI
       <div className="app-dialog-body">
         <div className="snippet-dialog-head">
           <h2 className="app-dialog-title">定型文</h2>
-          <CloseButton title="閉じる（Esc）" size={16} onClick={dialog.close} />
+          <CloseButton title="閉じる（Esc）" iconSize={16} onClick={dialog.close} />
         </div>
         <SnippetManager projectId={projectId} initialEditing={initialEditing} />
         <div className="snippet-dialog-foot">

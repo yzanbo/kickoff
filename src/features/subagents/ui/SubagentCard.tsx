@@ -97,6 +97,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
         <div className="subagent-card-head" role="button" tabIndex={0} aria-expanded={open} onKeyDown={onKeyDown}>
           {pane ? (
             <IconButton
+              size="xs"
               icon={ChevronRight}
               label={open ? "流れの中で閉じる" : "流れの中で開く"}
               className="subagent-card-chevron"

@@ -15,7 +15,7 @@ export function PopoverHeader({
   return (
     <div className="popover-head">
       <span className="popover-title">{title}</span>
-      {refresh && <RefreshButton label={refresh.label} title={refresh.title} size={13} busy={refresh.busy} onClick={refresh.onClick} />}
+      {refresh && <RefreshButton label={refresh.label} title={refresh.title} iconSize={13} busy={refresh.busy} onClick={refresh.onClick} />}
       <CloseButton title="閉じる（Esc）" onClick={onClose} />
     </div>
   );

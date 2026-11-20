@@ -15,11 +15,11 @@
 
 ## 書き方
 - 既存のクラスを使い、同じ宣言のブロックを増やさない。1 行で省略する 3 点（`overflow` `text-overflow` `white-space`）は各規則に書いてよい。
-- 札・ピル・カード・浮く窓・色の帯・見出しの帯は `ui/types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
+- 札・ピル・カード・浮く窓・帯・見出しの帯・ボタン・切り替えは `ui/types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
 - 効かない指定を書かない（足したら計算後のスタイルで確かめる）。
-- 大きさを決めたボタンには必ず `padding: 0` を書き、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`。大きさは className で `width` / `height` だけ上書きする。
+- 大きさを決めたボタンには必ず `padding: 0` を書き、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`（大きさは `size`、ほかは className で `width` / `height` だけ。`.icon-button.x` と重ねない）。
 - 色の地のボタン（`.btn-primary`・`.btn-danger`）は、乗せても同じ色の地で少し暗くする（それぞれに `:hover:not(:disabled)`）。
-- ダイアログの下の地のないボタンは `--bg-hover` の地と見える枠（`ui/app-dialogs.css`）。2 つを 1 つに見せる組は、乗せたときの地を外側に付ける（`.panel-split-button`）。
+- ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側。`.panel-split-button`）。
 - 使わなくなったクラスは消す。名前を組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、`.pr-chip` の状態、一番下へのボタンの状態）。
 - 新しいクラス名は `styles/` 全体と組み立てるクラスを検索してから付け、1 語は避けて領域の頭を付ける。
 - 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。アクセントの色の文字は `--accent-fg`。

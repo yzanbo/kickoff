@@ -73,8 +73,9 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
               <>
                 {!m.post_compact && editing?.id !== m.id && (
                   <IconButton
+                    size="sm"
                     icon={Pencil}
-                    size={13}
+                    iconSize={13}
                     label="書き直す"
                     title={editing ? "ほかの指示を書き直しています（保存するか、やめてから）" : "チャット欄で書き直す（画像の添付・定型文も使えます。保存しても送る順はそのまま。書き直している間は送らずに待ちます）"}
                     className="message-action"
@@ -83,8 +84,9 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
                   />
                 )}
                 <IconButton
+                  size="sm"
                   icon={Trash2}
-                  size={13}
+                  iconSize={13}
                   label="送らずに消す"
                   title={m.post_compact ? "今回の圧縮では、圧縮後指示を送らない（設定の圧縮後指示はそのまま）" : "この指示を送らずに消す（圧縮中に誤って送ったとき）"}
                   className="message-action"

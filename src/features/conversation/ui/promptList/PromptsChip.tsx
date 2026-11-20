@@ -178,7 +178,7 @@ function PromptRows({
             {p.text && (
               <IconButton
                 icon={CornerDownLeft}
-                size={13}
+                iconSize={13}
                 label="入力欄に入れる"
                 title="この文を入力欄に入れる（そのまま・少し直して送り直せる）"
                 onClick={() => onReuse(p)}

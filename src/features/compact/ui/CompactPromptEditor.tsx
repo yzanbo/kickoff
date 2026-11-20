@@ -49,7 +49,8 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
         <div className="context-pre-compact-body card">
           <div className="context-pre-compact-head">
             <Segmented
-              className="segmented context-pre-compact-scope"
+              size="sm"
+              className="context-pre-compact-scope"
               label={`${label}の範囲`}
               value={scope}
               onChange={setScope}
@@ -59,7 +60,8 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
               ]}
             />
             <Segmented<"on" | "off">
-              className="segmented context-pre-compact-switch"
+              size="sm"
+              className="context-pre-compact-switch"
               label={scope === "common" ? `すべてのプロジェクトの${label}を送る` : `「${projectName}」の${label}を送る`}
               value={current.enabled ? "on" : "off"}
               options={COMPACT_PROMPT_SWITCH}
@@ -77,7 +79,7 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
           <div className="context-pre-compact-actions">
             <p className="context-sub">{when}</p>
             <ResultMessage result={current.save.result} />
-            <button type="button" className="btn btn-sm btn-primary" disabled={!current.dirty || current.save.busy !== null} onClick={() => void current.save.run("save", current.submit, { done: "保存しました" })}>
+            <button type="button" className="btn btn-primary" data-size="sm" disabled={!current.dirty || current.save.busy !== null} onClick={() => void current.save.run("save", current.submit, { done: "保存しました" })}>
               {current.save.busy !== null ? "保存中…" : "保存"}
             </button>
           </div>

@@ -14,7 +14,7 @@ export function GroupCreateToolButton({ projectId }: { projectId: number }) {
     if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
   return (
-    <button className="btn btn-sm" onClick={() => void create()}>
+    <button className="btn" data-size="sm" onClick={() => void create()}>
       <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
     </button>
   );

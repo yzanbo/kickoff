@@ -13,7 +13,7 @@ export function TagFilterNotice({ filter }: { filter: ProjectTagFilter }) {
     <span className="tag-filter-notice" title={`タグで絞り込み中: ${names}（サイドバーの見出しの「タグ」で選び直せます）`}>
       <Tag size={12} aria-hidden />
       <span className="tag-filter-notice-text">{names}</span>
-      <CloseButton label="タグの絞り込みを外す" size={12} onClick={filter.clear} />
+      <CloseButton size="xs" label="タグの絞り込みを外す" iconSize={12} onClick={filter.clear} />
     </span>
   );
 }

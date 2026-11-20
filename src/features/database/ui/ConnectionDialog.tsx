@@ -158,7 +158,7 @@ export function ConnectionDialog({
         )}
         <Field label="環境" as="div" help="環境ごとに色を付け、本番は初めから読み取り専用にします">
           <Segmented
-            className="segmented db-environment-choice"
+            className="db-environment-choice"
             label="環境"
             value={form.environment}
             options={DB_ENVIRONMENTS.map((v) => ({ value: v, label: DB_ENVIRONMENT_LABELS[v] }))}
@@ -223,7 +223,7 @@ export function ConnectionDialog({
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, form.engine === "sqlite" ? null : form.ssl)}</p>
         )}
         {test && test !== "testing" && !test.ok && test.code === DB_SSH_UNKNOWN_HOST && (
-          <button type="button" className="btn btn-sm db-ssh-key-button" onClick={() => setHostKey(bodyOf(form, editing).ssh ?? null)}>
+          <button type="button" className="btn db-ssh-key-button" data-size="sm" onClick={() => setHostKey(bodyOf(form, editing).ssh ?? null)}>
             サーバーの鍵を確かめる…
           </button>
         )}

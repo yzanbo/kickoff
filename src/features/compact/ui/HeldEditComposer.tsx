@@ -76,7 +76,7 @@ export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; e
               <span className="held-edit-title">
                 {gone ? "この指示はもう送られました。保存すると、書いた文をチャット欄に移します" : `預かった指示（${edit.position} 件目）を書き直しています。保存しても送る順はそのままです`}
               </span>
-              <button type="button" className="btn btn-sm" onClick={cancel}>
+              <button type="button" className="btn" data-size="sm" onClick={cancel}>
                 やめる
               </button>
             </div>

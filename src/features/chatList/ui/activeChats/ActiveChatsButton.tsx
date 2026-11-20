@@ -12,11 +12,11 @@ export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
  * ⌘⇧A の一覧を、そのプロジェクトに絞り込んだところから開くボタン（サイドバーのプロジェクトのカード。アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
  * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは features/project/page/AllStateChats
  */
-export function ActiveChatsButton({ project, size, className }: { project: Pick<Project, "id" | "name">; size?: number; className?: string }) {
+export function ActiveChatsButton({ project, iconSize, className }: { project: Pick<Project, "id" | "name">; iconSize?: number; className?: string }) {
   return (
     <IconButton
       icon={Activity}
-      size={size}
+      iconSize={iconSize}
       className={className}
       label={`${project.name} の${ACTIVE_CHATS_LABEL}`}
       title={`${ACTIVE_CHATS_LABEL}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`}

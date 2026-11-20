@@ -21,32 +21,32 @@ export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { side
     <div className={cx("layout-toggles", reveal === "hover" && "auto-hide")} role="group" aria-label="レイアウト">
       <IconButton
         icon={sidebar.open ? PanelLeftClose : PanelLeftOpen}
-        size={15}
+        iconSize={15}
         label={sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}
         title={`${sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}（⌘B）`}
         aria-pressed={sidebar.open}
-        className={sidebar.open ? "active" : undefined}
+        active={sidebar.open}
         onClick={sidebar.onToggle}
       />
       {bottom && (
         <IconButton
           icon={bottom.open ? PanelBottomClose : PanelBottomOpen}
-          size={15}
+          iconSize={15}
           label={bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}
           title={`${bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}（⌃\` / ⌘J）`}
           aria-pressed={bottom.open}
-          className={bottom.open ? "active" : undefined}
+          active={bottom.open}
           onClick={bottom.onToggle}
         />
       )}
       {chat && (
         <IconButton
           icon={chat.open ? PanelRightClose : PanelRightOpen}
-          size={15}
+          iconSize={15}
           label={chat.open ? "右サイドバーを閉じる" : "右サイドバーを開く"}
           title={`${chat.open ? "右サイドバーを閉じる" : "右サイドバーを開く"}（⌥⌘B）`}
           aria-pressed={chat.open}
-          className={chat.open ? "active" : undefined}
+          active={chat.open}
           onClick={chat.onToggle}
         />
       )}

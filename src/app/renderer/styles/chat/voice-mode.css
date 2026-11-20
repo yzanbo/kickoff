@@ -5,8 +5,8 @@
 }
 
 /* 音声モードの間は、波形のボタンをアクセントの色で塗る */
-.voice-mode-button.active,
-.voice-mode-button.active:hover {
+.voice-mode-button[data-active],
+.voice-mode-button[data-active]:hover {
   color: #fff;
   background: var(--accent);
 }

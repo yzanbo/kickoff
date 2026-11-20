@@ -85,11 +85,6 @@
   margin-right: 2px;
 }
 
-.dictation-cancel {
-  width: 22px;
-  height: 22px;
-}
-
 /* 失敗の文と「もう一度」（入力欄の下。.composer-error と同じ余白） */
 .dictation-error {
   display: flex;

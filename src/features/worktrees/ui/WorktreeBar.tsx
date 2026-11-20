@@ -120,18 +120,18 @@ export function WorktreeBar({
           <span className={cx("pr-chip tag", value.state.toLowerCase())} data-look="outline" title={value.title}>
             <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.is_draft ? "下書き" : PR_STATE_LABELS[value.state]}
           </span>
-          <button className="btn btn-sm" onClick={() => window.open(value.url)}>
+          <button className="btn" data-size="sm" onClick={() => window.open(value.url)}>
             <ExternalLink size={12} aria-hidden /> PR を開く
           </button>
           {value.state === "MERGED" && (
-            <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => void finish()}>
+            <button className="btn btn-primary" data-size="sm" disabled={busy} onClick={() => void finish()}>
               <Sparkles size={12} aria-hidden /> {action.busy === "finish" ? "片付け中…" : "片付ける"}
             </button>
           )}
         </>
       ) : (
         value === null && (
-          <button className="btn btn-sm" disabled={busy} title="まだプッシュしていなければ、先にプッシュします" onClick={() => void create()}>
+          <button className="btn" data-size="sm" disabled={busy} title="まだプッシュしていなければ、先にプッシュします" onClick={() => void create()}>
             <GitPullRequestArrow size={12} aria-hidden /> {action.busy === "create" ? "PR を作っています…" : "PR を作る"}
           </button>
         )
@@ -139,7 +139,8 @@ export function WorktreeBar({
       {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={pr.loading} onClick={pr.reload} />}
       {env?.app_url && (
         <button
-          className="btn btn-sm"
+          className="btn"
+          data-size="sm"
           data-tip={`${appAddress(env)} を右サイドバーのブラウザで開く（開発サーバーは、このワークツリーのターミナルで起動すると PORT=${env.band} で動きます）`}
           onClick={() => openSideBrowser(projectId, env.app_url!)}
         >
@@ -147,17 +148,18 @@ export function WorktreeBar({
         </button>
       )}
       {env?.blocked && (
-        <button className="btn btn-sm worktree-env-warn" onClick={() => void alert("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
+        <button className="btn worktree-env-warn" data-size="sm" onClick={() => void alert("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
           <TriangleAlert size={12} aria-hidden /> ポートを分けられません
         </button>
       )}
       {env && env.issues.length > 0 && (
-        <button className="btn btn-sm worktree-env-warn" onClick={() => void alert("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
+        <button className="btn worktree-env-warn" data-size="sm" onClick={() => void alert("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
           <TriangleAlert size={12} aria-hidden /> 整えきれていない所 {env.issues.length} 件
         </button>
       )}
       <button
-        className="btn btn-sm"
+        className="btn"
+        data-size="sm"
         disabled={busy}
         data-tip={
           env

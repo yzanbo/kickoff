@@ -84,7 +84,7 @@ export function TagFilterRow() {
           ),
         )}
         {pill(UNTAGGED)}
-        {filter.active && <IconButton icon={X} size={12} label="タグの絞り込みを外す" className="tag-filter-clear" onClick={filter.clear} />}
+        {filter.active && <IconButton size="xs" icon={X} iconSize={12} label="タグの絞り込みを外す" className="tag-filter-clear" onClick={filter.clear} />}
       </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label={`タグ「${menu.menu.value}」`} onClose={menu.close}>

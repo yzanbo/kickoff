@@ -113,7 +113,7 @@ function ArchiveCleanup() {
           <span className="muted">
             {count === null ? "数えています…" : count === 0 ? "当てはまるチャットはありません" : `${count} 件${size ? `（会話の記録 ${formatSize(size)}）` : ""}`}
           </span>
-          <button type="button" className="btn btn-danger btn-sm" disabled={!count || busy !== null} onClick={() => void clean()}>
+          <button type="button" className="btn btn-danger" data-size="sm" disabled={!count || busy !== null} onClick={() => void clean()}>
             ゴミ箱に入れる
           </button>
         </div>

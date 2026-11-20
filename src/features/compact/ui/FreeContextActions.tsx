@@ -96,7 +96,8 @@ export function FreeContextActions({
         </span>
         <button
           type="button"
-          className="btn btn-sm"
+          className="btn"
+          data-size="sm"
           title={`予約を取り消します（送信待ちの「${QUEUE_ACTION_LOOKS[reservedAction].button}」の行を消します）`}
           onClick={() => void action.run("cancel", () => api.removeQueued(chat.id, reserved.id))}
         >

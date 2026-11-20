@@ -67,7 +67,7 @@ export function RunResult({
         {hasRows && <span>{r.rows.length.toLocaleString()} 行</span>}
         {r.truncated && <span className="db-sql-truncated">続きがあります</span>}
         {r.truncated && canMore && (
-          <button type="button" className="btn btn-sm" disabled={loadingMore} onClick={onMore}>
+          <button type="button" className="btn" data-size="sm" disabled={loadingMore} onClick={onMore}>
             {loadingMore ? "読み込み中…" : `さらに ${DB_SQL_MAX_ROWS.toLocaleString()} 行読む`}
           </button>
         )}

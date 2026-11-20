@@ -75,8 +75,8 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlig
           </button>
           {pickable && (
             <span className="activity-open-actions">
-              <IconButton icon={MessageSquare} size={13} label="会話の流れの中で見る" onClick={() => onPick(row, "inline")} />
-              <IconButton icon={PanelRight} size={13} label="右の欄で開く" onClick={() => onPick(row, "side")} />
+              <IconButton icon={MessageSquare} iconSize={13} label="会話の流れの中で見る" onClick={() => onPick(row, "inline")} />
+              <IconButton icon={PanelRight} iconSize={13} label="右の欄で開く" onClick={() => onPick(row, "side")} />
             </span>
           )}
         </div>

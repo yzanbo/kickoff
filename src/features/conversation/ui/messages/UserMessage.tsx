@@ -161,7 +161,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
             サブエージェントの報告 {handover} 件を添えました
           </span>
         )}
-        {text && <CopyButton text={text} label="メッセージをコピー" className="message-action" />}
+        {text && <CopyButton size="sm" text={text} label="メッセージをコピー" className="message-action" />}
         <UserMessageActions resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} canEdit={pane !== null} rewindBlock={rewindBlock} />
       </div>
       {/* 子チャットから渡した依頼（「親チャットに追加」）の出どころ。押すとその子チャットを開く */}
@@ -202,8 +202,9 @@ function UserMessageActions({ resend, onEdit, restoreFiles, canEdit, rewindBlock
     <>
       {resend && (
         <IconButton
+          size="sm"
           icon={RotateCcw}
-          size={13}
+          iconSize={13}
           label="もう一度送る"
           title={
             busy
@@ -216,8 +217,9 @@ function UserMessageActions({ resend, onEdit, restoreFiles, canEdit, rewindBlock
       )}
       {canEdit && (
         <IconButton
+          size="sm"
           icon={Pencil}
-          size={13}
+          iconSize={13}
           label="書き直して送り直す"
           title={rewindBlock ?? (busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）")}
           className="message-action"
@@ -227,8 +229,9 @@ function UserMessageActions({ resend, onEdit, restoreFiles, canEdit, rewindBlock
       )}
       {restoreFiles && (
         <IconButton
+          size="sm"
           icon={History}
-          size={13}
+          iconSize={13}
           label="ファイルをこの発言の前に戻す"
           title={busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
           className="message-action"

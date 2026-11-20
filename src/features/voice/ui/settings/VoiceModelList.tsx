@@ -60,7 +60,7 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
               {m.downloaded ? (
                 <>
                   <span className="success small">ダウンロード済み（{formatModelSize(m.size_mb)}）</span>
-                  <button type="button" className="btn btn-sm btn-danger-text" onClick={() => void remove(m)}>
+                  <button type="button" className="btn btn-danger-text" data-size="sm" onClick={() => void remove(m)}>
                     削除
                   </button>
                 </>
@@ -72,14 +72,14 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
                     </span>
                   </span>
                   <span className="small">{percent === null ? "ダウンロード中…" : `${percent}%`}</span>
-                  <button type="button" className="btn btn-sm" onClick={() => void remove(m)}>
+                  <button type="button" className="btn" data-size="sm" onClick={() => void remove(m)}>
                     やめる
                   </button>
                 </>
               ) : (
                 <>
                   {m.download?.error && <ErrorText message={m.download.error} />}
-                  <button type="button" className={cx("btn btn-sm", m.id === selected && "btn-primary")} onClick={() => void download(m)}>
+                  <button type="button" className={cx("btn", m.id === selected && "btn-primary")} data-size="sm" onClick={() => void download(m)}>
                     {m.download?.error ? "もう一度ダウンロード" : `ダウンロード（${formatModelSize(m.size_mb)}）`}
                   </button>
                   {m.id === selected && !m.download?.error && <span className="voice-model-hint small">使うにはダウンロードしてください</span>}

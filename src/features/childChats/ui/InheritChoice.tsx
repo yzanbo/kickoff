@@ -29,7 +29,7 @@ export function InheritChoice({ inherit, onChange, parentLabel, onOpen, opening 
   return (
     <div className="inherit-choice">
       <Segmented<InheritValue>
-        className="segmented inherit-choice-switch"
+        className="inherit-choice-switch"
         label="子チャットの始め方"
         value={inherit ? "inherit" : "fresh"}
         options={[
@@ -42,7 +42,8 @@ export function InheritChoice({ inherit, onChange, parentLabel, onOpen, opening 
       {onOpen && inherit && (
         <button
           type="button"
-          className="btn btn-sm inherit-choice-open"
+          className="btn inherit-choice-open"
+          data-size="sm"
           disabled={opening}
           data-tip={`聞くことを書かずに、${parentLabel}の会話を引き継いだ子チャットを開きます（聞くことは開いてから書けます）`}
           onClick={onOpen}

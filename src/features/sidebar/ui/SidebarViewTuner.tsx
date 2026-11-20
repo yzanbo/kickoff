@@ -172,7 +172,8 @@ function TunerActions({ views }: { views: SidebarViews }) {
         <>
           <button
             type="button"
-            className="btn btn-sm"
+            className="btn"
+            data-size="sm"
             disabled={same}
             title={!target ? "選んでいるビューがありません" : same ? "いまの見え方と同じです" : `ビュー「${target.name}」をいまの見え方で上書きする`}
             onClick={() => target && views.overwrite(target.id)}
@@ -181,7 +182,8 @@ function TunerActions({ views }: { views: SidebarViews }) {
           </button>
           <button
             type="button"
-            className="btn btn-sm"
+            className="btn"
+            data-size="sm"
             disabled={Boolean(duplicate)}
             title={duplicate ? sameViewExistsText(duplicate.name) : "いまの見え方に名前を付けて、ビューのタブに足す"}
             onClick={() => setNaming(true)}
@@ -191,7 +193,7 @@ function TunerActions({ views }: { views: SidebarViews }) {
           {duplicate && <p className="sidebar-view-same muted small">{sameViewExistsText(duplicate.name)}</p>}
         </>
       )}
-      <button type="button" className="btn btn-sm sidebar-view-manage" title="設定の画面で、ビューの並べ替え・名前と中身の変更・削除をする" onClick={() => openSettings("sidebar")}>
+      <button type="button" className="btn sidebar-view-manage" data-size="sm" title="設定の画面で、ビューの並べ替え・名前と中身の変更・削除をする" onClick={() => openSettings("sidebar")}>
         <Settings size={13} aria-hidden /> ビューを管理
       </button>
     </div>

@@ -135,11 +135,6 @@
   --pill-bg: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.tag-filter-clear {
-  width: 20px;
-  height: 20px;
-}
-
 /* 全プロジェクトの画面・⌘⇧A の、タグで絞り込んでいる印（押すと外す） */
 .tag-filter-notice {
   display: inline-flex;
@@ -163,8 +158,6 @@
 }
 
 .tag-filter-notice .icon-button {
-  width: 20px;
-  height: 20px;
   color: inherit;
 }
 

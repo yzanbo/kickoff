@@ -221,7 +221,7 @@ export function GitHubPullChanges({
         onSent={onChanged}
         lead={
           !layout.narrow && (
-            <IconButton icon={PanelLeft} size={14} label={treeHidden ? "ファイルの木を出す" : "ファイルの木を閉じる"} aria-pressed={!treeHidden} onClick={() => setTreeHidden(!treeHidden)} />
+            <IconButton icon={PanelLeft} iconSize={14} label={treeHidden ? "ファイルの木を出す" : "ファイルの木を閉じる"} aria-pressed={!treeHidden} onClick={() => setTreeHidden(!treeHidden)} />
           )
         }
       />

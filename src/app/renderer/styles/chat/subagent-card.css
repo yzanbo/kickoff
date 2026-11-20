@@ -80,8 +80,6 @@
 /* 左の ＞（流れの中での開閉。見出しの何もないところとは別に押せる） */
 .subagent-card-chevron {
   flex: none;
-  width: 20px;
-  height: 20px;
 }
 
 .subagent-card-head.static {

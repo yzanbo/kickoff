@@ -94,7 +94,7 @@ export function PanelViewButton({ view }: { view: PanelViewMenu }) {
     <IconButton
       type="button"
       icon={SlidersHorizontal}
-      size={15}
+      iconSize={15}
       className={cx("panel-control", view.buttonClass)}
       label={label}
       title={`${label}: チャットのまとめ方と並び順・タブに出す項目・アーカイブ済みなど（タブの列の何もないところの右クリックでも開きます）`}

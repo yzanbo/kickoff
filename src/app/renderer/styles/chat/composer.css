@@ -175,8 +175,6 @@
 }
 
 .attach-button {
-  width: 28px;
-  height: 28px;
   border-radius: 50%;
 }
 
@@ -276,16 +274,16 @@
   margin-left: 6px;
 }
 
-.composer-actions .icon-button.send-more {
+.composer-actions .send-more {
   width: 18px;
   height: 28px;
 }
 
-.composer.compact .composer-actions .icon-button.send-more {
+.composer.compact .composer-actions .send-more {
   height: 24px;
 }
 
-.composer-actions .icon-button.send-more[aria-expanded="true"] {
+.composer-actions .send-more[aria-expanded="true"] {
   color: var(--text);
   background: var(--bg-hover);
 }

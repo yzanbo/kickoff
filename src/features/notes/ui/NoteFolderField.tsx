@@ -51,11 +51,11 @@ export function NoteFolderField({
       </div>
       {overlapExcept !== undefined && <NoteOverlapNotice dir={typed.trim() || fallback} except={overlapExcept} />}
       <div className="note-folder-actions">
-        <button className="btn btn-primary btn-sm" disabled={next === value || save.busy !== null} onClick={() => void save.run("save", () => onSave(next), { done: "保存しました" })}>
+        <button className="btn btn-primary" data-size="sm" disabled={next === value || save.busy !== null} onClick={() => void save.run("save", () => onSave(next), { done: "保存しました" })}>
           {save.busy !== null ? "保存中…" : "保存"}
         </button>
         {value !== null && (
-          <button className="btn btn-sm" disabled={save.busy !== null} onClick={() => void save.run("save", () => onSave(null), { done: "保存しました" })}>
+          <button className="btn" data-size="sm" disabled={save.busy !== null} onClick={() => void save.run("save", () => onSave(null), { done: "保存しました" })}>
             既定に戻す
           </button>
         )}

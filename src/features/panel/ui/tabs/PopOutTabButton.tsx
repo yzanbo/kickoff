@@ -10,5 +10,5 @@ import { useTabPage } from "./tabPageContext";
 export function PopOutTabButton() {
   const popOut = useTabPage()?.popOut;
   if (!popOut) return null;
-  return <IconButton type="button" icon={AppWindow} size={14} className="tab-popout-button" label="別ウィンドウで開く" onClick={popOut} />;
+  return <IconButton type="button" icon={AppWindow} iconSize={14} className="tab-popout-button" label="別ウィンドウで開く" onClick={popOut} />;
 }

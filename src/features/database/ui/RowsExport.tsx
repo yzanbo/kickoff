@@ -31,10 +31,10 @@ export function RowsExport({ fileName, count, columns, rows }: { fileName: strin
   const open = menu.menu;
   return (
     <>
-      <button type="button" className="btn btn-sm" disabled={count === 0} onClick={(e) => menu.toggle(e, "download")} aria-haspopup="menu" data-tip="読み込んだ行をファイルに書き出す">
+      <button type="button" className="btn" data-size="sm" disabled={count === 0} onClick={(e) => menu.toggle(e, "download")} aria-haspopup="menu" data-tip="読み込んだ行をファイルに書き出す">
         <Download size={12} aria-hidden /> 書き出す
       </button>
-      <button type="button" className="btn btn-sm" disabled={count === 0} onClick={(e) => menu.toggle(e, "copy")} aria-haspopup="menu" data-tip="読み込んだ行をクリップボードに写す（TSV なら表計算に貼れる）">
+      <button type="button" className="btn" data-size="sm" disabled={count === 0} onClick={(e) => menu.toggle(e, "copy")} aria-haspopup="menu" data-tip="読み込んだ行をクリップボードに写す（TSV なら表計算に貼れる）">
         <Copy size={12} aria-hidden /> {copied ? "コピーしました" : "コピー"}
       </button>
       {open && (

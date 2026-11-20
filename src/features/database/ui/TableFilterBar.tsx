@@ -53,7 +53,7 @@ export function TableFilterBar({ columns, applied, onApply }: { columns: string[
 
   return (
     <div className="db-filter-bar bar">
-      <Segmented className="segmented db-filter-mode" label="絞り込みの書き方" value={mode} options={MODES} onChange={setMode} />
+      <Segmented className="db-filter-mode" label="絞り込みの書き方" value={mode} options={MODES} onChange={setMode} />
       {mode === "where" ? (
         <label className="db-filter-where">
           <span className="db-filter-where-head">WHERE</span>
@@ -78,7 +78,7 @@ export function TableFilterBar({ columns, applied, onApply }: { columns: string[
                 ))}
               </select>
               {filterNeedsValue(r.op) && <input type="text" value={r.value} placeholder="値" spellCheck={false} onChange={(e) => update(i, { value: e.target.value })} onKeyDown={onKey} aria-label="値" />}
-              {rows.length > 1 && <IconButton icon={X} size={12} label="この条件を外す" onClick={() => setRows((rs) => rs.filter((_, n) => n !== i))} />}
+              {rows.length > 1 && <IconButton icon={X} iconSize={12} label="この条件を外す" onClick={() => setRows((rs) => rs.filter((_, n) => n !== i))} />}
             </div>
           ))}
           <button type="button" className="link-button small" onClick={() => setRows((rs) => [...rs, blank(columns[0] ?? "")])}>
@@ -87,11 +87,11 @@ export function TableFilterBar({ columns, applied, onApply }: { columns: string[
         </div>
       )}
       <span className="db-filter-actions">
-        <button type="button" className="btn btn-sm btn-primary" onClick={apply} data-tip="この絞り込みで取り直す" data-tip-keys="Enter">
+        <button type="button" className="btn btn-primary" data-size="sm" onClick={apply} data-tip="この絞り込みで取り直す" data-tip-keys="Enter">
           <Filter size={12} aria-hidden /> 絞る
         </button>
         {active && (
-          <button type="button" className="btn btn-sm" onClick={() => onApply(null)}>
+          <button type="button" className="btn" data-size="sm" onClick={() => onApply(null)}>
             絞り込みを外す
           </button>
         )}

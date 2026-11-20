@@ -43,7 +43,7 @@ export function TabbedDialog<K extends string>({
     <dialog ref={dialogRef} className="dialog floating tabbed-dialog" tabIndex={-1} onClose={onClose} {...dialog.backdropProps}>
       <header className="tabbed-dialog-head">
         <h2>{title}</h2>
-        <CloseButton title="閉じる（Esc）" size={16} onClick={dialog.close} />
+        <CloseButton title="閉じる（Esc）" iconSize={16} onClick={dialog.close} />
       </header>
       <div className="tabbed-dialog-body">
         <nav className="tabbed-dialog-nav" {...tabs.listProps}>

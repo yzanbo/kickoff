@@ -105,12 +105,12 @@ export function QueuedEditor({
           />
           <div className="queued-editor-actions">
             <DictationButton dictation={dictation} />
-            <AttachButton size={13} onFiles={files.addFiles} />
+            <AttachButton iconSize={13} onFiles={files.addFiles} />
             <IconButton
               icon={Check}
               label="保存"
               title={files.uploading ? "アップロードが終わるまでお待ちください" : ready ? "保存して送る（Enter）" : "保存（Enter）"}
-              size={13}
+              iconSize={13}
               className="queued-editor-ok"
               disabled={files.uploading}
               // 録音中なら、止めて起こした文を入れてから保存する
@@ -120,12 +120,12 @@ export function QueuedEditor({
               icon={SendHorizontal}
               label={sendLabel}
               title={files.uploading ? "アップロードが終わるまでお待ちください" : `${sendLabel}（⌘Enter）`}
-              size={13}
+              iconSize={13}
               className={cx("queued-editor-send", keys.heldMeta && "held")}
               disabled={files.uploading}
               onClick={() => submit({ meta: true })}
             />
-            <IconButton icon={X} label="やめる" title={ready ? "やめる（Esc。元の文のまま送ります）" : "やめる（Esc）"} size={13} onClick={onCancel} />
+            <IconButton icon={X} label="やめる" title={ready ? "やめる（Esc。元の文のまま送ります）" : "やめる（Esc）"} iconSize={13} onClick={onCancel} />
           </div>
         </div>
         <DictationError dictation={dictation} />

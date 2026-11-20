@@ -49,7 +49,7 @@ export function GitHubTab({ projectId }: { projectId: number }) {
           icon={GitPullRequest}
           title={conn.repo ? `${conn.repo} を見られません` : "GitHub のリポジトリにつながっていません"}
           actions={
-            <button type="button" className="btn btn-sm" onClick={connection.reload}>
+            <button type="button" className="btn" data-size="sm" onClick={connection.reload}>
               もう一度確かめる
             </button>
           }
@@ -101,7 +101,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}
             </a>
-            <IconButton icon={ExternalLink} size={13} label="この一覧を GitHub で開く" onClick={() => window.open(githubListUrl(host, repo, filter), "_blank", "noopener")} />
+            <IconButton icon={ExternalLink} iconSize={13} label="この一覧を GitHub で開く" onClick={() => window.open(githubListUrl(host, repo, filter), "_blank", "noopener")} />
             {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
             {!narrow && (
               <>
@@ -139,7 +139,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             ))}
             {/* 下まで送ったら続きを読む（見えたら読む。押しても読める） */}
             {page?.cursor && (
-              <button ref={moreRef} type="button" className="btn btn-sm github-more" disabled={list.loadingMore} onClick={list.loadMore}>
+              <button ref={moreRef} type="button" className="btn github-more" data-size="sm" disabled={list.loadingMore} onClick={list.loadMore}>
                 {list.loadingMore ? "読み込み中…" : `続きを読む（${page.items.length} / ${page.total.toLocaleString()} 件）`}
               </button>
             )}

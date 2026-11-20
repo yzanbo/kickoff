@@ -51,18 +51,18 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
           </button>
         </div>
         <div className="selection-bar-actions">
-          <button className="btn btn-sm" onClick={actions.archive}>
+          <button className="btn" data-size="sm" onClick={actions.archive}>
             {allArchived ? <ArchiveRestore size={13} /> : <Archive size={13} />} {allArchived ? "戻す" : "アーカイブ"}
           </button>
           {moveGroups && (
-            <button className="btn btn-sm selection-bar-move" onClick={moveMenu.toggle}>
+            <button className="btn selection-bar-move" data-size="sm" onClick={moveMenu.toggle}>
               <FolderInput size={13} /> 移動
             </button>
           )}
-          <button className="btn btn-sm" onClick={actions.seen} disabled={!unread} title={unread ? "未読の印を消す" : "未読のチャットはありません"}>
+          <button className="btn" data-size="sm" onClick={actions.seen} disabled={!unread} title={unread ? "未読の印を消す" : "未読のチャットはありません"}>
             <MailOpen size={13} /> 既読
           </button>
-          <button className="btn btn-sm selection-bar-delete" onClick={actions.remove}>
+          <button className="btn selection-bar-delete" data-size="sm" onClick={actions.remove}>
             <Trash2 size={13} /> 削除
           </button>
         </div>

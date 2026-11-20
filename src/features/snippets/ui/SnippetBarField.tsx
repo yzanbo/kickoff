@@ -15,7 +15,6 @@ export function SnippetBarField() {
       help="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます。表示しなくても、定型文は設定の「定型文」で足す・直すことができます。タブの列の「表示」と、帯の右クリックでも切り替えられます。"
     >
       <Segmented<"show" | "hide">
-        className="segmented theme-switch"
         label="定型文の帯"
         value={hidden ? "hide" : "show"}
         onChange={(v) => setHidden(v === "hide")}

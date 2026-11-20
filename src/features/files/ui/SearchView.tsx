@@ -1,6 +1,5 @@
 import { CaseSensitive, CaseUpper, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Ellipsis, EyeOff, ListX, Regex, ReplaceAll, WholeWord } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { cx } from "@/foundation/ui/lib/cx";
 import { hasModifiers, isComposing, isKey } from "@/foundation/ui/lib/keys";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -23,7 +22,7 @@ interface Props {
 
 /** オン・オフの切り替えのアイコンのボタン（入力欄の右） */
 function Toggle({ icon, label, on, onClick }: { icon: typeof CaseSensitive; label: string; on: boolean; onClick: () => void }) {
-  return <IconButton icon={icon} label={label} size={15} className={cx("code-search-toggle", on && "active")} aria-pressed={on} onClick={onClick} />;
+  return <IconButton icon={icon} label={label} iconSize={15} className="code-search-toggle" active={on} aria-pressed={on} onClick={onClick} />;
 }
 
 /**
@@ -67,18 +66,18 @@ export function SearchView({ search, replacer, selected, onSelect, onHideList }:
         <RefreshButton label="もう一度探す" busy={search.loading} disabled={!search.query} onClick={search.rerun} />
         <IconButton
           icon={allCollapsed ? ChevronsUpDown : ChevronsDownUp}
-          size={14}
+          iconSize={14}
           label={allCollapsed ? "すべて開く" : "すべて閉じる"}
           disabled={search.files.length === 0}
           onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(search.files.map((f) => f.path)))}
         />
-        <IconButton icon={ListX} size={14} label="検索の結果を消す" disabled={!search.query} onClick={search.clear} />
+        <IconButton icon={ListX} iconSize={14} label="検索の結果を消す" disabled={!search.query} onClick={search.clear} />
         <ListHideButton size={14} label="検索を隠す" onHide={onHideList} />
       </header>
       <div className="code-search-form">
         <IconButton
           icon={search.showReplace ? ChevronDown : ChevronRight}
-          size={14}
+          iconSize={14}
           label={search.showReplace ? "置換を隠す" : "置換を表示"}
           className="code-search-replace-toggle"
           aria-expanded={search.showReplace}
@@ -115,7 +114,7 @@ export function SearchView({ search, replacer, selected, onSelect, onHideList }:
                 }}
               />
               <Toggle icon={CaseUpper} label="大文字と小文字を保持する（FOO → BAR・Foo → Bar）" on={search.preserveCase} onClick={() => search.setPreserveCase(!search.preserveCase)} />
-              <IconButton icon={ReplaceAll} size={15} label="すべて置換" keys="⌘Enter" className="code-search-toggle" disabled={!canReplace} onClick={replacer.replaceAll} />
+              <IconButton icon={ReplaceAll} iconSize={15} label="すべて置換" keys="⌘Enter" className="code-search-toggle" disabled={!canReplace} onClick={replacer.replaceAll} />
             </div>
           )}
         </div>
@@ -123,9 +122,9 @@ export function SearchView({ search, replacer, selected, onSelect, onHideList }:
       <div className="code-search-details-toggle">
         <IconButton
           icon={Ellipsis}
-          size={14}
+          iconSize={14}
           label="検索の詳細を切り替える（含める・除外するファイル）"
-          className={cx(search.showDetails && "active")}
+          active={search.showDetails}
           aria-expanded={search.showDetails}
           onClick={() => search.setShowDetails(!search.showDetails)}
         />

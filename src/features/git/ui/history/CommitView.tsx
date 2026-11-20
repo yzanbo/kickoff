@@ -82,7 +82,7 @@ export function CommitView({
           {commit.subject}
         </span>
         <Segmented
-          className="view-toggle"
+          look="toggle"
           label="コミットの詳細の表示"
           value={tab}
           onChange={setTab}
@@ -114,7 +114,7 @@ export function CommitView({
             <div className="commit-files-head">
               <span className="muted small">{detail ? `${files.length} 個のファイル` : "読み込み中…"}</span>
               <span className="spacer" />
-              <IconButton icon={list ? ListTree : List} label={list ? "ツリーで表示" : "一覧で表示"} size={14} onClick={() => setList(!list)} />
+              <IconButton icon={list ? ListTree : List} label={list ? "ツリーで表示" : "一覧で表示"} iconSize={14} onClick={() => setList(!list)} />
             </div>
             {/* 見出し（ファイルの数と表示の切り替え）は止めたまま、一覧だけを流す */}
             <div className="commit-files-body">

@@ -54,8 +54,6 @@
 }
 
 .message-meta .message-action {
-  width: 22px;
-  height: 22px;
   color: var(--extra-muted);
 }
 

@@ -92,8 +92,8 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
             ) : (
               <li key={s.id} className="snippet-manager-row" onDoubleClick={() => setEditing(s.id)}>
                 <div className="snippet-manager-moves">
-                  <IconButton icon={ArrowUp} size={13} label="1 つ上へ" disabled={i === 0} onClick={() => move(s.id, -1)} />
-                  <IconButton icon={ArrowDown} size={13} label="1 つ下へ" disabled={i === shown.length - 1} onClick={() => move(s.id, 1)} />
+                  <IconButton icon={ArrowUp} iconSize={13} label="1 つ上へ" disabled={i === 0} onClick={() => move(s.id, -1)} />
+                  <IconButton icon={ArrowDown} iconSize={13} label="1 つ下へ" disabled={i === shown.length - 1} onClick={() => move(s.id, 1)} />
                 </div>
                 <div className="snippet-manager-body">
                   <div className="snippet-manager-title">
@@ -103,8 +103,8 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
                   <p className="snippet-manager-text">{s.text}</p>
                 </div>
                 <div className="snippet-manager-actions">
-                  <IconButton icon={Pencil} size={13} label="編集" title="編集（ダブルクリックでも）" onClick={() => setEditing(s.id)} />
-                  <IconButton icon={Trash2} size={13} label="削除" onClick={() => void confirmDeleteSnippet(s).catch(reportFailure("削除できませんでした"))} />
+                  <IconButton icon={Pencil} iconSize={13} label="編集" title="編集（ダブルクリックでも）" onClick={() => setEditing(s.id)} />
+                  <IconButton icon={Trash2} iconSize={13} label="削除" onClick={() => void confirmDeleteSnippet(s).catch(reportFailure("削除できませんでした"))} />
                 </div>
               </li>
             ),

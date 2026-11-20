@@ -30,7 +30,8 @@ export function CardFieldsButton({ allProjects }: { allProjects: boolean }) {
     <>
       <button
         type="button"
-        className="btn btn-sm board-fields-button"
+        className="btn board-fields-button"
+        data-size="sm"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         aria-label="表示項目（カード・リストの行に出す項目）"

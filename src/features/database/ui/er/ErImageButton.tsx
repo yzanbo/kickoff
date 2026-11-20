@@ -105,7 +105,7 @@ export function ErImageButton({ er, name }: { er: ErDiagramState; name: string }
 
   return (
     <>
-      <button ref={button} type="button" className="btn btn-sm" disabled={er.shown.length === 0} aria-haspopup="menu" onClick={(e) => menu.toggle(e, undefined)} data-tip="見えているテーブルを、いまの位置のまま画像で保存する">
+      <button ref={button} type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} aria-haspopup="menu" onClick={(e) => menu.toggle(e, undefined)} data-tip="見えているテーブルを、いまの位置のまま画像で保存する">
         <ImageDown size={13} aria-hidden /> 画像で保存
       </button>
       {menu.menu && (

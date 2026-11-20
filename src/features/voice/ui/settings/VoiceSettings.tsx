@@ -79,7 +79,7 @@ function VoiceHero({ status, enabled, onToggle }: { status: VoiceStatus | undefi
       <div className="voice-hero-body">
         <label className="voice-hero-title">
           <span>チャット欄で音声入力を使う</span>
-          <input type="checkbox" role="switch" className="voice-switch" checked={enabled} onChange={(e) => onToggle(e.target.checked)} />
+          <input type="checkbox" role="switch" className="switch" checked={enabled} onChange={(e) => onToggle(e.target.checked)} />
         </label>
         <p className="voice-hero-state">
           <StatusDot tone={tone} />

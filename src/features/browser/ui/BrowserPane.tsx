@@ -142,12 +142,12 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
   return (
     <div ref={paneRef} className="browser-pane" onContextMenu={textMenu.onContextMenu}>
       <form className="browser-toolbar bar" onSubmit={go}>
-        <IconButton icon={ArrowLeft} label="戻る" size={15} type="button" disabled={!nav.back} onClick={() => ref.current?.goBack()} />
-        <IconButton icon={ArrowRight} label="進む" size={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
+        <IconButton icon={ArrowLeft} label="戻る" iconSize={15} type="button" disabled={!nav.back} onClick={() => ref.current?.goBack()} />
+        <IconButton icon={ArrowRight} label="進む" iconSize={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
         <IconButton
           type="button"
           icon={loading ? X : RefreshCw}
-          size={loading ? 15 : 14}
+          iconSize={loading ? 15 : 14}
           label={loading ? "読み込みを止める" : "再読み込み"}
           onClick={() => (loading ? ref.current?.stop() : ref.current?.reload())}
         />
@@ -169,16 +169,16 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
             icon={Wrench}
             label={devtoolsShown ? "開発者ツールを閉じる" : "開発者ツールを開く"}
             title={devtoolsShown ? "開発者ツールを閉じる" : `開発者ツールを開く（${DEVTOOLS_DOCK_LABELS[devtools.dock]}）`}
-            size={14}
+            iconSize={14}
             type="button"
             aria-pressed={devtoolsShown}
-            className={devtoolsShown ? "active" : undefined}
+            active={devtoolsShown}
             onClick={devtools.toggle}
           />
           <IconButton
             icon={ChevronDown}
             label="開発者ツールの場所"
-            size={12}
+            iconSize={12}
             type="button"
             className="browser-devtools-dock"
             aria-haspopup="menu"

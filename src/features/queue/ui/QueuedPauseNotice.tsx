@@ -16,7 +16,7 @@ export function QueuedPauseNotice({ chatId, compact }: { chatId: number; compact
       <span className="queued-pause-text" title="この作業のあいだに送信待ちに入れた指示は、自動で送らずに止めておきます（答えを見てから次を決めるとき）">
         この作業が終わったら一時停止します
       </span>
-      <IconButton icon={X} label="一時停止をやめる" size={13} onClick={() => void api.setQueueStops(chatId, []).catch(failed)} />
+      <IconButton icon={X} label="一時停止をやめる" iconSize={13} onClick={() => void api.setQueueStops(chatId, []).catch(failed)} />
     </div>
   );
 }

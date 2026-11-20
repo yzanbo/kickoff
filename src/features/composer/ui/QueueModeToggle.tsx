@@ -40,7 +40,7 @@ export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; valu
       options={busy ? BUSY_OPTIONS : IDLE_OPTIONS}
       onChange={onChange}
       label={busy ? "作業中に Enter で送ったときの扱い" : "送信待ちがあるときに Enter で送ったときの扱い"}
-      className="view-toggle queue-mode"
+      look="toggle" className="queue-mode"
     />
   );
 }

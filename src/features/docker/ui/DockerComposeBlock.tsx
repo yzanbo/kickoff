@@ -82,7 +82,7 @@ export function DockerComposeBlock({
               {DOCKER_ACTION_BUSY_LABELS[compose.operation!.action]}
               {compose.operation!.service && ` ${compose.operation!.service}`}
               {compose.operation!.cancellable && (
-                <button type="button" className="btn btn-sm" onClick={() => send("cancel")}>
+                <button type="button" className="btn" data-size="sm" onClick={() => send("cancel")}>
                   中止
                 </button>
               )}
@@ -90,19 +90,19 @@ export function DockerComposeBlock({
           ) : (
             <>
               {compose.config_changed && (
-                <button type="button" className="btn btn-sm" onClick={() => void guarded("recreate")} data-tip="設定が変わっています">
+                <button type="button" className="btn" data-size="sm" onClick={() => void guarded("recreate")} data-tip="設定が変わっています">
                   作り直して起動
                 </button>
               )}
-              <button type="button" className="btn btn-sm" disabled={compose.start_blocked !== null} title={compose.start_blocked ?? undefined} onClick={() => send("start_all")}>
+              <button type="button" className="btn" data-size="sm" disabled={compose.start_blocked !== null} title={compose.start_blocked ?? undefined} onClick={() => send("start_all")}>
                 すべて起動
               </button>
-              <button type="button" className="btn btn-sm" disabled={!anyRunning} onClick={() => send("stop_all")}>
+              <button type="button" className="btn" data-size="sm" disabled={!anyRunning} onClick={() => send("stop_all")}>
                 すべて停止
               </button>
             </>
           )}
-          <button type="button" className="btn btn-sm" data-tip={compose.created ? "すべてのサービスのログを、時刻の順に一覧の下に出す" : "すべてのサービスのログを一覧の下に出す（まだ起動していません。起動したら流れ始めます）"} onClick={() => onLogs(null)}>
+          <button type="button" className="btn" data-size="sm" data-tip={compose.created ? "すべてのサービスのログを、時刻の順に一覧の下に出す" : "すべてのサービスのログを一覧の下に出す（まだ起動していません。起動したら流れ始めます）"} onClick={() => onLogs(null)}>
             <ScrollText size={13} aria-hidden /> ログ
           </button>
           <IconButton icon={Ellipsis} label="compose の操作" className="docker-compose-more" onClick={(e) => menu.toggle(e)} />
@@ -129,14 +129,15 @@ export function DockerComposeBlock({
             <span>{DOCKER_ACTION_BUSY_LABELS[failure.action].replace(/中…$/, "")}できませんでした{failure.service ? `（${failure.service}）` : ""}</span>
             <button
               type="button"
-              className="btn btn-sm"
+              className="btn"
+              data-size="sm"
               onClick={() =>
                 panelActions(panelKey("bottom", projectId)).openTerminal({ cwd: failure.cwd, label: compose.file ?? "compose", projectId, command: failure.command, title: "docker compose" })
               }
             >
               ターミナルで流し直す
             </button>
-            <CloseButton label="閉じる" size={14} onClick={() => send("dismiss")} />
+            <CloseButton label="閉じる" iconSize={14} onClick={() => send("dismiss")} />
           </div>
           {conflicts && conflicts.rest.length > 0 && (
             <div className="docker-conflicts">
@@ -144,7 +145,7 @@ export function DockerComposeBlock({
                 <div key={`${c.container_id}:${c.port}`}>{conflictText(c)}</div>
               ))}
               {conflicts.rows.length === 0 && (
-                <button type="button" className="btn btn-sm" disabled={busy} data-tip={stopOthersTip} onClick={() => send("stop_others_and_start")}>
+                <button type="button" className="btn" data-size="sm" disabled={busy} data-tip={stopOthersTip} onClick={() => send("stop_others_and_start")}>
                   {stopOthers}
                 </button>
               )}

@@ -35,6 +35,7 @@ function stateText(voice: VoiceMode): string {
 export function VoiceModeButton({ voice }: { voice: VoiceMode }) {
   return (
     <IconButton
+      size="lg"
       icon={AudioLines}
       label={voice.active ? "音声モードを終了" : "音声モード"}
       title={
@@ -44,8 +45,9 @@ export function VoiceModeButton({ voice }: { voice: VoiceMode }) {
             ? "音声モード（話し終わったら送るか入力欄に入れ、AI の返答の文章を読み上げます。AI の作業中も聞き続け、読み上げ中に話すと止まります）"
             : "音声入力の準備ができていません。押すと設定の「音声入力」を開きます"
       }
-      size={16}
-      className={cx("attach-button voice-mode-button", voice.active && "active", !voice.ready && "unready")}
+      iconSize={16}
+      active={voice.active}
+        className={cx("attach-button voice-mode-button", !voice.ready && "unready")}
       type="button"
       aria-pressed={voice.active}
       onClick={voice.active ? voice.stop : voice.start}
@@ -84,7 +86,7 @@ export function VoiceModePanel({ voice, queueToggle }: { voice: VoiceMode; queue
           {voice.error && (
             <span className="voice-mode-error">
               <ErrorText message={voice.error} />
-              <CloseButton label="閉じる" size={13} type="button" onClick={voice.dismissError} />
+              <CloseButton label="閉じる" iconSize={13} type="button" onClick={voice.dismissError} />
             </span>
           )}
         </div>
@@ -109,7 +111,7 @@ export function VoiceModePanel({ voice, queueToggle }: { voice: VoiceMode; queue
       </div>
       <div className="voice-mode-options">
         <span className="voice-mode-option-label">話し終わったら</span>
-        <Segmented<VoiceDelivery> value={voice.delivery} options={DELIVERY_OPTIONS} onChange={voice.setDelivery} label="話し終わったときの扱い" className="view-toggle queue-mode voice-mode-delivery" />
+        <Segmented<VoiceDelivery> value={voice.delivery} options={DELIVERY_OPTIONS} onChange={voice.setDelivery} label="話し終わったときの扱い" look="toggle" className="queue-mode voice-mode-delivery" />
         {!fill && queueToggle && (
           <>
             <span className="voice-mode-option-label">作業中は</span>

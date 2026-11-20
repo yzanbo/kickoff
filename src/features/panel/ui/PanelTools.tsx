@@ -21,7 +21,7 @@ export interface PanelFrame {
 export function PanelCloseButton({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { closeButton } = SURFACES[panel.surface];
   if (!closeButton || frame?.fixed) return null;
-  return <IconButton type="button" icon={closeButton.icon} size={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />;
+  return <IconButton type="button" icon={closeButton.icon} iconSize={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />;
 }
 
 /**
@@ -43,7 +43,7 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
         <IconButton
           type="button"
           icon={state.on ? FoldHorizontal : UnfoldHorizontal}
-          size={15}
+          iconSize={15}
           className="panel-control"
           label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
           title={state.on ? `元の幅に戻す${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}` : "横幅いっぱいに広げる"}

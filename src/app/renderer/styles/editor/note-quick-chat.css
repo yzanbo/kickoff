@@ -189,11 +189,6 @@
   gap: 2px;
 }
 
-.note-quick-actions .icon-button {
-  width: 22px;
-  height: 22px;
-}
-
 .note-quick-actions .icon-button:first-child {
   color: var(--accent-fg);
 }

@@ -86,15 +86,15 @@
 }
 
 /* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
-.icon-button.workspace-toggle {
+.workspace-toggle {
   display: grid;
   flex: none;
   width: 20px;
   height: 24px;
 }
 
-.icon-button.workspace-toggle:hover,
-:where(:root:not([data-modality="pointer"])) .icon-button.workspace-toggle:focus-visible {
+.workspace-toggle:hover,
+:where(:root:not([data-modality="pointer"])) .workspace-toggle:focus-visible {
   color: var(--text);
   background: transparent;
 }

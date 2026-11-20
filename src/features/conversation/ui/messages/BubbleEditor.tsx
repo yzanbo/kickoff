@@ -43,10 +43,10 @@ export function BubbleEditor({
       />
       <ErrorText message={action.error} />
       <div className="bubble-editor-actions">
-        <button type="button" className="btn btn-sm" disabled={sending} onClick={onCancel}>
+        <button type="button" className="btn" data-size="sm" disabled={sending} onClick={onCancel}>
           やめる
         </button>
-        <button type="button" className="btn btn-sm btn-primary" disabled={sending || !text.trim()} onClick={() => void send()}>
+        <button type="button" className="btn btn-primary" data-size="sm" disabled={sending || !text.trim()} onClick={() => void send()}>
           {sending ? "送信中…" : "送り直す"}
         </button>
       </div>

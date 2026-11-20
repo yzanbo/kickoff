@@ -12,7 +12,7 @@ export function ArchiveAllButton({ chats }: { chats: Chat[] }) {
   return (
     <IconButton
       icon={Archive}
-      size={13}
+      iconSize={13}
       label="既読をすべてアーカイブ"
       title={`既読の ${targets.length} 件をすべてアーカイブ`}
       onClick={async () => {

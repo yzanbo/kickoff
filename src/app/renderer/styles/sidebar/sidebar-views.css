@@ -181,19 +181,14 @@
 }
 
 /* ▾・すべて閉じる / 開く・⚙（小さなアイコンのボタン） */
-.icon-button.sidebar-view-icon {
+.sidebar-view-icon {
   flex: none;
   width: 24px;
   height: 24px;
 }
 
-.icon-button.sidebar-view-icon.active {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
 /* 隠れたタブの中に、いまの見え方のビューがあるとき（▾ をアクセントの色に） */
-.icon-button.sidebar-view-more.has-active {
+.sidebar-view-more.has-active {
   color: var(--accent-fg);
 }
 

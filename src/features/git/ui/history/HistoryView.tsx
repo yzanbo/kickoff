@@ -90,8 +90,8 @@ function FolderButtons({ path }: { path: string }) {
   if (!canOpenExternal()) return null;
   return (
     <>
-      <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void openExternal({ kind: "path", path })} />
-      <IconButton icon={ExternalLink} label="VS Code で開く" size={14} onClick={() => void openExternal({ kind: "vscode", path })} />
+      <IconButton icon={FolderOpen} label="Finder で開く" iconSize={14} onClick={() => void openExternal({ kind: "path", path })} />
+      <IconButton icon={ExternalLink} label="VS Code で開く" iconSize={14} onClick={() => void openExternal({ kind: "vscode", path })} />
     </>
   );
 }
@@ -180,7 +180,7 @@ export function HistorySidebar({
           title="ワークツリー"
           count={groups.worktrees.length}
           always
-          action={<IconButton icon={Plus} label="ワークツリーを作る" size={14} onClick={() => void worktreeActions.createWorktree()} />}
+          action={<IconButton icon={Plus} label="ワークツリーを作る" iconSize={14} onClick={() => void worktreeActions.createWorktree()} />}
         >
           {groups.worktrees.map(({ worktree: w, branch }) => (
             <RefItem
@@ -205,7 +205,7 @@ export function HistorySidebar({
               actions={
                 <>
                   <FolderButtons path={w.path} />
-                  <IconButton icon={Trash2} label="ワークツリーを消す" size={14} onClick={() => void worktreeActions.removeWorktree(w)} />
+                  <IconButton icon={Trash2} label="ワークツリーを消す" iconSize={14} onClick={() => void worktreeActions.removeWorktree(w)} />
                 </>
               }
             />

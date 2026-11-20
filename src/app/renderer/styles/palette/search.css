@@ -69,7 +69,7 @@ mark {
 }
 
 /* 検索の欄の探し方の切り替え（「Aa」「ab」「.*」。VS Code と同じ。ui/FindOptionButtons）。入れているときは枠とアクセントの色で示す */
-.icon-button.find-option.on {
+.find-option.on {
   color: var(--accent-fg);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bright) 55%, transparent);

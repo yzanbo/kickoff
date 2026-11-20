@@ -25,7 +25,7 @@ export function HandoffFromChip({ from, onRemove }: { from: HandoffFrom; onRemov
         <MessagesSquare size={12} aria-hidden />
         <span className="handoff-from-text">子チャット「{from.title}」から</span>
       </button>
-      {onRemove && <CloseButton label="出どころの札を外す" title="出どころの札を外す（入力欄の文はそのまま。送った発言に「子チャットから」と付けない）" size={11} className="handoff-from-remove" onClick={onRemove} />}
+      {onRemove && <CloseButton label="出どころの札を外す" title="出どころの札を外す（入力欄の文はそのまま。送った発言に「子チャットから」と付けない）" iconSize={11} className="handoff-from-remove" onClick={onRemove} />}
     </span>
   );
 }

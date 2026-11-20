@@ -17,10 +17,10 @@ export function DocumentConflictBar({
   return (
     <div className="file-changed-notice" role="status">
       {children}
-      <button className="btn btn-sm" onClick={onReload}>
+      <button className="btn" data-size="sm" onClick={onReload}>
         読み直す（書いたものは捨てる）
       </button>
-      <button className="btn btn-sm" onClick={onOverwrite}>
+      <button className="btn" data-size="sm" onClick={onOverwrite}>
         書いたもので上書き
       </button>
     </div>

@@ -30,13 +30,14 @@ export function QueuedSelectionActions({
   return (
     <div className="queued-head-tools">
       <span className="queued-head-group queued-head-moves" role="group" aria-label={`選んだ ${n} 件の並べ替え`}>
-        <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "top").catch(failed)} />
-        <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "bottom").catch(failed)} />
+        <IconButton icon={ArrowUpToLine} iconSize={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "top").catch(failed)} />
+        <IconButton icon={ArrowDownToLine} iconSize={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "bottom").catch(failed)} />
       </span>
       <span className="queued-head-group" role="group" aria-label={`選んだ ${n} 件への操作`}>
         <button
           type="button"
-          className="btn btn-sm queued-head-btn"
+          className="btn queued-head-btn"
+          data-size="sm"
           aria-label={`選んだ ${n} 件を書き直す`}
           title={`選んだ ${n} 件の書き直す欄をまとめて開く（1 件ずつ保存・やめるができる）`}
           onClick={onEditSelected}
@@ -48,7 +49,8 @@ export function QueuedSelectionActions({
         {n > 1 && (
           <button
             type="button"
-            className="btn btn-sm queued-head-btn"
+            className="btn queued-head-btn"
+            data-size="sm"
             aria-label={`選んだ ${n} 件を 1 つにまとめる`}
             title={`選んだ ${n} 件を、送らずに 1 つの指示にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）`}
             onClick={() => void api.mergeQueued(chatId, selected).then(done, failed)}
@@ -59,7 +61,8 @@ export function QueuedSelectionActions({
         )}
         <button
           type="button"
-          className="btn btn-sm btn-primary queued-head-btn"
+          className="btn btn-primary queued-head-btn"
+          data-size="sm"
           aria-label={`選んだ ${n} 件をまとめて送る`}
           title={`選んだ ${n} 件を 1 つにまとめて、すぐ送る${stopping}`}
           onClick={() => void api.sendAllQueued(chatId, selected).then(done, failed)}
@@ -69,7 +72,9 @@ export function QueuedSelectionActions({
         </button>
         <button
           type="button"
-          className="btn btn-sm queued-head-btn queued-remove"
+          className="btn queued-head-btn queued-remove"
+          data-size="sm"
+          data-look="outline"
           aria-label={`選んだ ${n} 件を消す`}
           title={`選んだ ${n} 件を消す（確かめてから）`}
           onClick={() =>
@@ -83,7 +88,7 @@ export function QueuedSelectionActions({
           <Trash2 size={12} aria-hidden />
           <span className="queued-head-label">消す</span>
         </button>
-        <IconButton icon={X} size={13} label="選ぶのをやめる" title="選ぶのをやめる（Esc）" onClick={onClearSelection} />
+        <IconButton icon={X} iconSize={13} label="選ぶのをやめる" title="選ぶのをやめる（Esc）" onClick={onClearSelection} />
       </span>
     </div>
   );

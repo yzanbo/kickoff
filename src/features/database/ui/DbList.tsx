@@ -52,10 +52,10 @@ export function DbList({
       {loaded && connections.length === 0 ? (
         <div className="db-list-empty small muted">
           <p>まだ接続がありません。</p>
-          <button type="button" className="btn btn-sm" onClick={onAdd}>
+          <button type="button" className="btn" data-size="sm" onClick={onAdd}>
             接続を追加
           </button>
-          <button type="button" className="btn btn-sm" onClick={onImport}>
+          <button type="button" className="btn" data-size="sm" onClick={onImport}>
             プロジェクトから取り込む
           </button>
         </div>

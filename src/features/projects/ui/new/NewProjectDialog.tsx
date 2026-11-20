@@ -29,7 +29,6 @@ export function NewProjectDialog({ defaultParentDir, initialName, initialMode = 
       <div className="dialog-body">
         <h2>新しいプロジェクト</h2>
         <Segmented<Mode>
-          className="segmented"
           label="作り方"
           value={mode}
           onChange={setMode}

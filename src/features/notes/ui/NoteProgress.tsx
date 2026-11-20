@@ -15,7 +15,7 @@ export function NoteProgress() {
       <span className="note-progress-text">{state.text}</span>
       {state.kind === "done" && (
         <>
-          <button className="btn btn-sm" onClick={state.open}>
+          <button className="btn" data-size="sm" onClick={state.open}>
             開く
           </button>
           <CloseButton onClick={dismissNoteProgress} />

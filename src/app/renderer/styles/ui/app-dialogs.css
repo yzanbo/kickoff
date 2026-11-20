@@ -2,14 +2,8 @@
 
 /* アプリ全体の確認・入力のダイアログ（OS 標準の confirm / prompt の代わり） */
 .dialog.app-dialog {
-  width: min(420px, calc(100vw - 32px));
+  --dialog-w: 420px;
   animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* 選択肢のダイアログ（choiceDialog）は、ボタンが 3 つ以上並ぶので広げる。案を作ってもらう欄のある入力（assist）も、案が並ぶので広げる */
-.dialog.app-dialog.app-dialog-choice,
-.dialog.app-dialog.app-dialog-assist {
-  width: min(520px, calc(100vw - 32px));
 }
 
 @keyframes dialog-in {
@@ -92,16 +86,13 @@
 
 /*
  * ダイアログの下の行の、色の地のないボタン（キャンセル・「このまま送る」などの選択肢）。ふつうの .btn の地（--bg-elev）はダイアログの地と同じで、
- * 枠もほぼ見えず、ピントの枠が付いたキャンセルの隣で沈んで見えるので、一段明るい地と見える枠にする
+ * 枠もほぼ見えず、ピントの枠が付いたキャンセルの隣で沈んで見えるので、一段明るい地と見える枠にする（色の地のボタンは自分の色のまま）
  */
-.dialog .dialog-actions .btn:not(.btn-primary, .btn-danger) {
-  border-color: color-mix(in srgb, var(--text) 16%, transparent);
-  background: var(--bg-hover);
-}
-
-.dialog .dialog-actions .btn:not(.btn-primary, .btn-danger):hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--text) 26%, transparent);
-  background: color-mix(in srgb, var(--bg-hover) 50%, var(--bg-active));
+.dialog .dialog-actions {
+  --btn-border: color-mix(in srgb, var(--text) 16%, transparent);
+  --btn-bg: var(--bg-hover);
+  --btn-hover-border: color-mix(in srgb, var(--text) 26%, transparent);
+  --btn-hover-bg: color-mix(in srgb, var(--bg-hover) 50%, var(--bg-active));
 }
 
 /* 左に寄せる行（設定の保存のボタンと結果の文。SaveActions） */

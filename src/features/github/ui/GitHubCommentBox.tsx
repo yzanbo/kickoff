@@ -48,25 +48,25 @@ export function GitHubCommentBox({ projectId, detail, onChanged }: { projectId: 
       <div className="github-comment-actions">
         {canClose &&
           (isPr ? (
-            <button type="button" className="btn btn-sm" disabled={busy} onClick={() => close("completed")}>
+            <button type="button" className="btn" data-size="sm" disabled={busy} onClick={() => close("completed")}>
               {action.busy === "close" ? "閉じています…" : closeLabel}
             </button>
           ) : (
-            <span className="github-split-button">
-              <button type="button" className="btn btn-sm" disabled={busy} data-tip="完了として閉じる" onClick={() => close("completed")}>
+            <span className="split-button">
+              <button type="button" className="btn" data-size="sm" disabled={busy} data-tip="完了として閉じる" onClick={() => close("completed")}>
                 {action.busy === "close" ? "閉じています…" : closeLabel}
               </button>
-              <button type="button" className="btn btn-sm github-split-toggle" disabled={busy} aria-label="閉じ方を選ぶ" aria-haspopup="menu" onClick={(e) => reasons.toggle(e, null)}>
+              <button type="button" className="btn github-split-toggle" data-size="sm" disabled={busy} aria-label="閉じ方を選ぶ" aria-haspopup="menu" onClick={(e) => reasons.toggle(e, null)}>
                 <ChevronDown size={13} aria-hidden />
               </button>
             </span>
           ))}
         {canReopen && (
-          <button type="button" className="btn btn-sm" disabled={busy} onClick={reopen}>
+          <button type="button" className="btn" data-size="sm" disabled={busy} onClick={reopen}>
             {action.busy === "reopen" ? "開き直しています…" : hasText ? "コメントして開き直す" : `${what}を開き直す`}
           </button>
         )}
-        <button type="button" className="btn btn-sm btn-primary" disabled={!hasText || busy} onClick={comment}>
+        <button type="button" className="btn btn-primary" data-size="sm" disabled={!hasText || busy} onClick={comment}>
           {action.busy === "comment" ? "送っています…" : "コメント"}
         </button>
       </div>

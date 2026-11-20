@@ -31,28 +31,20 @@
   outline: none;
 }
 
-/* 検索欄の右端の小さなボタン（IconButton の大きさを変えるので .icon-button と重ねて書く） */
-.icon-button.search-field-clear {
+/* 検索欄の右端の小さなボタン（.chat-search-content は IconButton の size="xs"） */
+.search-field-clear {
   display: grid;
   width: 18px;
   height: 18px;
 }
 
-.icon-button.chat-search-content {
+.chat-search-content {
   display: grid;
-  width: 20px;
-  height: 20px;
   color: var(--extra-muted);
 }
 
-.icon-button.chat-search-content:hover {
+.chat-search-content:hover {
   color: var(--text);
-  background: var(--bg-hover);
-}
-
-.icon-button.search-field-clear:hover {
-  color: var(--text);
-  background: var(--bg-hover);
 }
 
 /* カンバンの見出しの検索欄 */

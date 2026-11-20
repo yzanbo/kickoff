@@ -99,14 +99,14 @@ export function StickyPrompt({
         開閉は 1 行に収まるときも場所を取ったまま押せなくし、出し入れで文の位置を動かさない
       */}
       <span className="sticky-prompt-nav">
-        <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />
-        <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" size={14} disabled={!onNext} onClick={onNext} />
+        <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" iconSize={14} disabled={!onPrev} onClick={onPrev} />
+        <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" iconSize={14} disabled={!onNext} onClick={onNext} />
         <IconButton
           icon={expanded ? ChevronUp : ChevronDown}
           label={expanded ? "1 行にたたむ" : "指示の全文を表示"}
           title={expanded || canExpand ? undefined : "指示は 1 行に収まっています"}
           aria-expanded={expanded}
-          size={14}
+          iconSize={14}
           disabled={!expanded && !canExpand}
           onClick={() => setExpanded(!expanded)}
         />

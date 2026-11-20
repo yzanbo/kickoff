@@ -12,7 +12,7 @@ export function DbWriteBand({ connection, what, blocked, onRevert }: { connectio
       <span className="db-write-text">
         書き込めます（{DB_ENVIRONMENT_LABELS[connection.environment]}）。{what}たびに確かめます。10 分何もしなければ読み取り専用に戻ります
       </span>
-      <button type="button" className="btn btn-sm" disabled={blocked !== null} onClick={onRevert} data-tip={blocked ?? "このタブを読み取り専用に戻す"}>
+      <button type="button" className="btn" data-size="sm" disabled={blocked !== null} onClick={onRevert} data-tip={blocked ?? "このタブを読み取り専用に戻す"}>
         <Lock size={12} aria-hidden /> 読み取り専用に戻す
       </button>
     </div>

@@ -280,18 +280,8 @@
   min-width: 0;
 }
 
-.context-pre-compact-scope,
-.context-pre-compact-switch {
-  padding: 2px;
-}
-
 .context-pre-compact-switch {
   flex: none;
-}
-
-.context-pre-compact-switch button {
-  padding: 2px 10px;
-  font-size: var(--fs-12);
 }
 
 /*
@@ -306,9 +296,7 @@
 
 .context-pre-compact-scope button {
   min-width: 0;
-  padding: 2px 10px;
   overflow: hidden;
-  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

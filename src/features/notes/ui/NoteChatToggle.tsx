@@ -56,7 +56,7 @@ export function NoteChatToggle({
         icon={ChevronDown}
         label="ノートのチャットの見え方"
         title="会話を開く・チャット表示のみ・非表示から選ぶ"
-        size={12}
+        iconSize={12}
         className="panel-open-with note-chat-show"
         aria-haspopup="menu"
         aria-expanded={Boolean(menu.menu)}

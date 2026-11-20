@@ -13,12 +13,12 @@ export function GitHubPullActions({ projectId, detail, onChanged }: { projectId:
   return (
     <span className="github-pull-actions">
       {open && (
-        <button type="button" className="btn btn-sm" data-tip="PR のブランチを手元に取り出す（新しいワークツリー / 本体を選ぶ）" onClick={() => void checkoutPull(projectId, detail, running)}>
+        <button type="button" className="btn" data-size="sm" data-tip="PR のブランチを手元に取り出す（新しいワークツリー / 本体を選ぶ）" onClick={() => void checkoutPull(projectId, detail, running)}>
           <GitBranch size={13} aria-hidden /> チェックアウト
         </button>
       )}
       {open && detail.can_merge && (
-        <button type="button" className="btn btn-sm btn-primary" onClick={() => openMergeDialog(projectId, detail, onChanged)}>
+        <button type="button" className="btn btn-primary" data-size="sm" onClick={() => openMergeDialog(projectId, detail, onChanged)}>
           <GitMerge size={13} aria-hidden /> マージ…
         </button>
       )}

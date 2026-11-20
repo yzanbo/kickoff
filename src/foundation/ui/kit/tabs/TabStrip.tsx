@@ -39,7 +39,7 @@ export function TabStrip<K extends string>({
               {label}
               {badge}
             </button>
-            {closable && onClose && <CloseButton size={12} className="tab-strip-close" onClick={() => onClose(key)} />}
+            {closable && onClose && <CloseButton iconSize={12} className="tab-strip-close" onClick={() => onClose(key)} />}
           </span>
         );
       })}

@@ -80,7 +80,7 @@ export function ImageViewer({
           nav={
             many && (
               <span className="image-viewer-tools">
-                <IconButton icon={ChevronLeft} label="前の画像" title="前の画像（←）" size={16} disabled={current === 0} onClick={() => go(-1)} />
+                <IconButton icon={ChevronLeft} label="前の画像" title="前の画像（←）" iconSize={16} disabled={current === 0} onClick={() => go(-1)} />
                 <span className="image-viewer-count" aria-label={`${list.length} 枚中 ${current + 1} 枚目`}>
                   {current + 1} / {list.length}
                 </span>
@@ -88,7 +88,7 @@ export function ImageViewer({
                   icon={ChevronRight}
                   label="次の画像"
                   title="次の画像（→）"
-                  size={16}
+                  iconSize={16}
                   disabled={current === list.length - 1}
                   onClick={() => go(1)}
                 />

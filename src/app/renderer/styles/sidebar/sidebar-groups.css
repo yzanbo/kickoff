@@ -102,7 +102,7 @@
 }
 
 /* サイドバーの開閉の矢印（FoldToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
-.icon-button.fold-toggle {
+.fold-toggle {
   display: grid;
   flex: none;
   width: 18px;
@@ -120,8 +120,8 @@
   cursor: pointer;
 }
 
-.icon-button.fold-toggle:hover,
-:where(:root:not([data-modality="pointer"])) .icon-button.fold-toggle:focus-visible {
+.fold-toggle:hover,
+:where(:root:not([data-modality="pointer"])) .fold-toggle:focus-visible {
   color: var(--text);
   background: transparent;
 }

@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useOverlayOpen } from "./overlayCount";
@@ -11,6 +11,7 @@ export function Dialog({
   title,
   label,
   className,
+  size,
   closeOnBackdrop = true,
   focusSelf = false,
   dialogRef,
@@ -24,6 +25,8 @@ export function Dialog({
   label?: string;
   /** "dialog app-dialog" に足すクラス */
   className?: string;
+  /** 幅（px。省けば 420px。狭いウィンドウでは左右に 16px ずつ空けて縮む） */
+  size?: number;
   closeOnBackdrop?: boolean;
   /** 開いた直後にダイアログそのものにピントを置く（最初のボタンに枠が出ないように） */
   focusSelf?: boolean;
@@ -47,6 +50,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className={cx("dialog floating app-dialog", className)}
+      style={size === undefined ? undefined : ({ "--dialog-w": `${size}px` } as CSSProperties)}
       aria-label={label}
       onClose={onClose}
       {...backdropProps}

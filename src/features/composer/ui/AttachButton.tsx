@@ -1,6 +1,6 @@
 import { Paperclip } from "lucide-react";
 import { useRef } from "react";
-import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { IconButton, type IconButtonSize } from "@/foundation/ui/kit/IconButton";
 
 /**
  * 📎 のボタン（押すとファイルを選ぶ。チャット欄・送信待ちの書き直し・質問の「その他」で共通）。
@@ -10,12 +10,14 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 export function AttachButton({
   onFiles,
   onOpen,
-  size = 14,
+  size,
+  iconSize = 14,
   className,
 }: {
   onFiles: (files: FileList) => void;
   onOpen?: () => void;
-  size?: number;
+  size?: IconButtonSize;
+  iconSize?: number;
   className?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +27,7 @@ export function AttachButton({
         icon={Paperclip}
         label="ファイルを添付"
         title="ファイルを添付（貼り付け・ドラッグ＆ドロップでも）"
+        iconSize={iconSize}
         size={size}
         className={className}
         type="button"

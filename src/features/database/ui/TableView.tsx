@@ -79,7 +79,7 @@ export function TableView({
           {label}
         </span>
         <span className="db-view-kind">{DB_OBJECT_KIND_LABELS[tab.object]}</span>
-        <Segmented className="segmented db-view-switch" label="表示" value={view} options={client.narrow ? ICON_VIEWS : VIEWS} onChange={setView} />
+        <Segmented className="db-view-switch" label="表示" value={view} options={client.narrow ? ICON_VIEWS : VIEWS} onChange={setView} />
         <span className="db-view-actions">
           <AskAiButton connection={connection} path={tab.path} tables={[tab.name]} />
           <OpenAsSqlButton connection={connection} tab={tab} filter={data.filter} sort={data.sort} />

@@ -50,8 +50,8 @@ export function SidebarViewSettings() {
             {views.views.map((view, i) => (
               <li key={view.id} className={cx("snippet-manager-row sidebar-view-setting", editing === view.id && "editing")}>
                 <div className="snippet-manager-moves">
-                  <IconButton icon={ArrowUp} size={13} label="1 つ上へ" disabled={i === 0} onClick={() => views.move(view.id, views.views[i - 1].id, "before")} />
-                  <IconButton icon={ArrowDown} size={13} label="1 つ下へ" disabled={i === views.views.length - 1} onClick={() => views.move(view.id, views.views[i + 1].id, "after")} />
+                  <IconButton icon={ArrowUp} iconSize={13} label="1 つ上へ" disabled={i === 0} onClick={() => views.move(view.id, views.views[i - 1].id, "before")} />
+                  <IconButton icon={ArrowDown} iconSize={13} label="1 つ下へ" disabled={i === views.views.length - 1} onClick={() => views.move(view.id, views.views[i + 1].id, "after")} />
                 </div>
                 <div className="snippet-manager-body">
                   <div className="snippet-manager-title">
@@ -76,14 +76,14 @@ export function SidebarViewSettings() {
                   {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="snippet-manager-text">{describeState(view.state)}</p>}
                 </div>
                 <div className="snippet-manager-actions">
-                  <IconButton icon={Pencil} size={13} label="名前を変更" title="名前を変更（名前のダブルクリックでも）" onClick={() => setRenaming(view.id)} />
+                  <IconButton icon={Pencil} iconSize={13} label="名前を変更" title="名前を変更（名前のダブルクリックでも）" onClick={() => setRenaming(view.id)} />
                   <IconButton
                     icon={editing === view.id ? Check : SlidersHorizontal}
-                    size={13}
+                    iconSize={13}
                     label={editing === view.id ? "中身の変更を閉じる" : "中身を変更"}
                     onClick={() => setEditing(editing === view.id ? null : view.id)}
                   />
-                  <IconButton icon={Trash2} size={13} label="削除" onClick={() => void remove(view)} />
+                  <IconButton icon={Trash2} iconSize={13} label="削除" onClick={() => void remove(view)} />
                 </div>
               </li>
             ))}
@@ -113,11 +113,10 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
   return (
     <div className="form sidebar-view-form">
       <Field as="div" label="プロジェクトの並べ方">
-        <Segmented className="segmented theme-switch" label="プロジェクトの並べ方" value={s.layout} onChange={(layout) => set({ layout })} options={LAYOUTS.map((l) => ({ value: l, label: LAYOUT_META[l].short }))} />
+        <Segmented label="プロジェクトの並べ方" value={s.layout} onChange={(layout) => set({ layout })} options={LAYOUTS.map((l) => ({ value: l, label: LAYOUT_META[l].short }))} />
       </Field>
       <Field as="div" label="プロジェクトの並び順">
         <Segmented
-          className="segmented theme-switch"
           label="プロジェクトの並び順"
           value={s.projectOrder}
           onChange={(projectOrder) => set({ projectOrder })}
@@ -129,7 +128,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
       </Field>
       <Field as="div" label="プロジェクトのカード">
         <Segmented
-          className="segmented theme-switch"
           label="プロジェクトのカード"
           value={onOff(s.projectCompact)}
           onChange={(v) => set({ projectCompact: v === "on" })}
@@ -141,7 +139,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
       </Field>
       <Field as="div" label="しまったプロジェクト">
         <Segmented
-          className="segmented theme-switch"
           label="しまったプロジェクト"
           value={onOff(s.showArchivedProjects)}
           onChange={(v) => set({ showArchivedProjects: v === "on" })}
@@ -152,14 +149,13 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
         />
       </Field>
       <Field as="div" label="チャットのまとめ方">
-        <Segmented className="segmented theme-switch" label="チャットのまとめ方" value={s.grouping} onChange={(grouping) => set({ grouping })} options={CHAT_GROUPINGS.map((g) => ({ value: g, label: GROUPING_META[g].short }))} />
+        <Segmented label="チャットのまとめ方" value={s.grouping} onChange={(grouping) => set({ grouping })} options={CHAT_GROUPINGS.map((g) => ({ value: g, label: GROUPING_META[g].short }))} />
       </Field>
       <Field as="div" label="チャットの並び順">
-        <Segmented className="segmented theme-switch" label="チャットの並び順" value={s.chatOrder} onChange={(chatOrder) => set({ chatOrder })} options={CHAT_ORDERS.map((o) => ({ value: o, label: ORDER_META[o].short }))} />
+        <Segmented label="チャットの並び順" value={s.chatOrder} onChange={(chatOrder) => set({ chatOrder })} options={CHAT_ORDERS.map((o) => ({ value: o, label: ORDER_META[o].short }))} />
       </Field>
       <Field as="div" label="チャットの行">
         <Segmented
-          className="segmented theme-switch"
           label="チャットの行"
           value={onOff(s.chatCompact)}
           onChange={(v) => set({ chatCompact: v === "on" })}
@@ -171,7 +167,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
       </Field>
       <Field as="div" label="アーカイブ済みのチャット">
         <Segmented
-          className="segmented theme-switch"
           label="アーカイブ済みのチャット"
           value={onOff(s.showArchivedChats)}
           onChange={(v) => set({ showArchivedChats: v === "on" })}
@@ -183,7 +178,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
       </Field>
       <Field as="div" label="要対応">
         <Segmented
-          className="segmented theme-switch"
           label="要対応"
           value={onOff(s.waitingOn)}
           onChange={(v) => set({ waitingOn: v === "on" })}
@@ -197,7 +191,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
         <>
           <Field as="div" label="要対応の出し方">
             <Segmented
-              className="segmented theme-switch"
               label="要対応の出し方"
               value={scope}
               onChange={(next) => set({ waitingView: waitingViewOf(next, order) })}
@@ -207,7 +200,6 @@ function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews
           {canChooseOrder(scope) && (
             <Field as="div" label="要対応の並べ方">
               <Segmented
-                className="segmented theme-switch"
                 label="要対応の並べ方"
                 value={order}
                 onChange={(next) => set({ waitingView: waitingViewOf(scope, next) })}

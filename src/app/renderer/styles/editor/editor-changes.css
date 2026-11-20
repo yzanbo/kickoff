@@ -227,8 +227,6 @@
 .commit-split .commit-button {
   flex: 1;
   min-width: 0;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
 }
 
 .commit-more {
@@ -237,6 +235,4 @@
   height: 26px;
   padding: 0;
   border-left-color: color-mix(in srgb, var(--accent-text) 30%, transparent);
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
 }

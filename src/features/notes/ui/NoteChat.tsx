@@ -78,7 +78,7 @@ export function NoteChat({
         <span className="note-chat-title">ノートのチャット</span>
         <span className="spacer" />
         <Segmented<NoteChatPlace>
-          className="view-toggle"
+          look="toggle"
           label="ノートのチャットの置き場所"
           value={place}
           onChange={onPlaceChange}
@@ -88,8 +88,8 @@ export function NoteChat({
           ]}
         />
         {/* チャット表示のみ（会話を畳んで、ノートの下の入力欄だけにする）・非表示にする（欄も入力欄も出さない） */}
-        <IconButton icon={Minimize2} size={14} label="チャット表示のみ" title="会話の欄を閉じて、ノートの下にチャットの入力欄だけを出す（続けて頼める）" onClick={onQuickOnly} />
-        <CloseButton size={15} label="非表示にする" title="ノートのチャットを非表示にし、ノートだけを広く見る（見出しの吹き出しのボタンで開く・▾ で戻せる）" onClick={onHide} />
+        <IconButton icon={Minimize2} iconSize={14} label="チャット表示のみ" title="会話の欄を閉じて、ノートの下にチャットの入力欄だけを出す（続けて頼める）" onClick={onQuickOnly} />
+        <CloseButton iconSize={15} label="非表示にする" title="ノートのチャットを非表示にし、ノートだけを広く見る（見出しの吹き出しのボタンで開く・▾ で戻せる）" onClick={onHide} />
       </header>
       <div className="note-chat-body">
         {chatId === undefined ? (

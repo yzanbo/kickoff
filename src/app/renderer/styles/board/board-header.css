@@ -78,7 +78,7 @@
   display: none;
 }
 
-.board-tools.icon-only .btn-sm {
+.board-tools.icon-only .btn[data-size="sm"] {
   padding: 3px 7px;
 }
 
@@ -113,7 +113,7 @@
     display: none;
   }
 
-  .board-header .btn-sm {
+  .board-header .btn[data-size="sm"] {
     padding: 3px 7px;
   }
 
@@ -161,12 +161,6 @@
   background-position: right 8px center;
   background-size: 12px;
   font-size: var(--fs-12);
-}
-
-.btn-sm {
-  padding: 3px 9px;
-  font-size: var(--fs-12);
-  font-weight: 600;
 }
 
 .board-error,

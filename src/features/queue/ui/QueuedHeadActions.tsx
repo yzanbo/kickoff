@@ -58,7 +58,8 @@ function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) 
   return (
     <button
       type="button"
-      className={cx("btn btn-sm queued-head-btn queued-mode", paused && "paused")}
+      className={cx("btn queued-head-btn queued-mode", paused && "paused")}
+      data-size="sm"
       aria-pressed={paused}
       aria-label={paused ? "止めています（押すと、自動で送るに戻す）" : "自動で送ります（押すと、送らずに止めておく）"}
       title={
@@ -84,7 +85,9 @@ function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => 
   return (
     <button
       type="button"
-      className="btn btn-sm queued-head-btn queued-add-stop"
+      className="btn queued-head-btn queued-add-stop"
+      data-size="sm"
+      data-look="outline"
       aria-label="一時停止をいちばん上に挟む"
       title="自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます（押すたびに 1 本ずつ重なります）。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
       onClick={() => void api.setQueueStops(chatId, [0, ...stops]).then(onAdded, failed)}
@@ -105,7 +108,9 @@ function QueuedActionButton({ action, onAdded }: { action: QueueAction; onAdded:
   return (
     <button
       type="button"
-      className={cx("btn btn-sm queued-head-btn queued-add-action", look.tone)}
+      className={cx("btn queued-head-btn queued-add-action", look.tone)}
+      data-size="sm"
+      data-look="outline"
       aria-label={`${look.button}の行をいちばん下に足す`}
       title={look.addTitle}
       onClick={() => void api.queueAction(chatId, action).then(onAdded, failed)}
@@ -122,7 +127,9 @@ function QueuedRemoveAllButton({ count }: { count: number }) {
   return (
     <button
       type="button"
-      className="btn btn-sm queued-head-btn queued-remove"
+      className="btn queued-head-btn queued-remove"
+      data-size="sm"
+      data-look="outline"
       aria-label="すべて消す"
       title={`送信待ちの ${count} 件をすべて消す（確かめてから）`}
       onClick={() =>

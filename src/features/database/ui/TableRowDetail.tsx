@@ -41,7 +41,7 @@ export function TableRowDetail({
     <aside className="db-row-detail" aria-label="行の詳細">
       <div className="db-row-detail-head bar">
         <span className="db-row-detail-title">{index + 1} 行目</span>
-        <CloseButton label="行の詳細を閉じる" size={14} onClick={onClose} />
+        <CloseButton label="行の詳細を閉じる" iconSize={14} onClick={onClose} />
       </div>
       <dl className="db-row-detail-list">
         {columns.map((c, i) => {
@@ -56,7 +56,7 @@ export function TableRowDetail({
                 {pk.has(c.name) ? <KeyRound size={11} className="db-tree-pk" aria-hidden /> : fks.has(c.name) ? <Link size={11} aria-hidden /> : null}
                 <span className="db-row-detail-name">{c.name}</span>
                 {c.type && <span className="db-row-detail-type">{c.type}</span>}
-                {shown.kind !== "null" && shown.kind !== "binary" && shown.kind !== "long" && <CopyButton label={`${c.name} の値をコピー`} size={11} text={String(row[i])} className="db-row-detail-copy" />}
+                {shown.kind !== "null" && shown.kind !== "binary" && shown.kind !== "long" && <CopyButton label={`${c.name} の値をコピー`} iconSize={11} text={String(row[i])} className="db-row-detail-copy" />}
               </dt>
               <dd>
                 <pre className={cx("db-row-detail-value", `kind-${shown.kind}`)}>{shown.text}</pre>

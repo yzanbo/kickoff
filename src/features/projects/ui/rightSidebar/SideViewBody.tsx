@@ -34,7 +34,7 @@ export function SideViewBody({ projectId, view, frame }: { projectId: number; vi
         {maximize && (
           <IconButton
             icon={maximize.on ? FoldHorizontal : UnfoldHorizontal}
-            size={15}
+            iconSize={15}
             className="panel-control"
             label={maximize.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
             aria-pressed={maximize.on}

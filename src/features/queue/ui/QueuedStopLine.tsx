@@ -70,13 +70,13 @@ export function QueuedStopLine({
         <span className="queued-stop-rule" aria-hidden />
         {/* 行と同じ 2 つのまとまり・同じ列に置く: 並べ替え（↑↓）｜ 操作（書き直す・送るの位置は空けて、外すを消すの列に） */}
         <span className="queued-row-moves">
-          <IconButton icon={ArrowUp} label="一時停止を 1 つ上へ移動" size={13} disabled={at === 0} onClick={() => onMove(at - 1)} />
-          <IconButton icon={ArrowDown} label="一時停止を 1 つ下へ移動" size={13} disabled={at >= count} onClick={() => onMove(at + 1)} />
+          <IconButton icon={ArrowUp} label="一時停止を 1 つ上へ移動" iconSize={13} disabled={at === 0} onClick={() => onMove(at - 1)} />
+          <IconButton icon={ArrowDown} label="一時停止を 1 つ下へ移動" iconSize={13} disabled={at >= count} onClick={() => onMove(at + 1)} />
         </span>
         <span className="queued-row-actions">
           <span className="queued-stop-space" aria-hidden />
           <span className="queued-stop-space" aria-hidden />
-          <IconButton icon={X} label="この一時停止を外す" size={13} onClick={onRemove} />
+          <IconButton icon={X} label="この一時停止を外す" iconSize={13} onClick={onRemove} />
         </span>
       </div>
       {menu.menu && (

@@ -1,7 +1,7 @@
 /* ==== ウィンドウの左上の操作（サイドバーの開閉・画面移動） ==== */
 
-/* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置）。IconButton の大きさを変えるので .icon-button と重ねて書く */
-.icon-button.titlebar-toggle {
+/* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置。IconButton の size="xs"） */
+.titlebar-toggle {
   /*
    * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
    * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
@@ -10,8 +10,6 @@
   top: 12px;
   left: 76px;
   z-index: var(--z-chrome);
-  width: 20px;
-  height: 20px;
   -webkit-app-region: no-drag;
 }
 
@@ -19,13 +17,13 @@
   position: fixed;
 }
 
-.icon-button.titlebar-toggle:hover {
+.titlebar-toggle:hover {
   color: var(--text);
   background: var(--bg-elev);
 }
 
 /* 信号機ボタンに合わせて線を少し細くする */
-.icon-button.titlebar-toggle svg {
+.titlebar-toggle svg {
   stroke-width: 1.75;
 }
 

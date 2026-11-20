@@ -154,15 +154,15 @@ function PortRow({
           {originText(p)}
         </span>
         <span className="ports-actions">
-          <button type="button" className="btn btn-sm" onClick={() => open(p.ports[0])}>
+          <button type="button" className="btn" data-size="sm" onClick={() => open(p.ports[0])}>
             開く
           </button>
           {stopState === "stuck" ? (
-            <button type="button" className="btn btn-sm btn-danger" data-tip="すぐに止めます（SIGKILL）。保存していないものは消えます" onClick={() => onStop(p, true, name)}>
+            <button type="button" className="btn btn-danger" data-size="sm" data-tip="すぐに止めます（SIGKILL）。保存していないものは消えます" onClick={() => onStop(p, true, name)}>
               強制終了
             </button>
           ) : (
-            <button type="button" className="btn btn-sm" disabled={stopState === "stopping"} onClick={() => onStop(p, false, name)}>
+            <button type="button" className="btn" data-size="sm" disabled={stopState === "stopping"} onClick={() => onStop(p, false, name)}>
               {stopState === "stopping" ? "止めています…" : "止める"}
             </button>
           )}

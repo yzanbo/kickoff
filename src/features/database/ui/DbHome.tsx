@@ -37,7 +37,7 @@ export function DbHome({
       <div className="db-home-head">
         <h2 className="db-home-title">このプロジェクトの DB</h2>
         <span className="small muted">{connections.length} つの接続</span>
-        <button type="button" className="btn btn-sm" onClick={onAdd}>
+        <button type="button" className="btn" data-size="sm" onClick={onAdd}>
           <Plus size={13} aria-hidden /> 接続を足す
         </button>
       </div>
@@ -119,7 +119,7 @@ function Candidate({ projectId, candidate: c }: { projectId: number; candidate: 
         </span>
         <ErrorText message={error} />
       </span>
-      <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void add()} title={`「${c.name}」として${DB_ENVIRONMENT_LABELS[c.environment]}の接続に足す`}>
+      <button type="button" className="btn" data-size="sm" disabled={busy} onClick={() => void add()} title={`「${c.name}」として${DB_ENVIRONMENT_LABELS[c.environment]}の接続に足す`}>
         <Plus size={13} aria-hidden /> 足す
       </button>
     </li>
