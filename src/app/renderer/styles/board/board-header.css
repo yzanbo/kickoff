@@ -141,9 +141,9 @@
     margin-top: -6px;
   }
 
-  .board-header [aria-label="表示"] > :not(.view-toggle),
-  .board-header [aria-label="整える"] > *,
-  .board-header [aria-label="探す・絞り込む"] > * {
+  .board-header [data-part="view"] > :not(.view-toggle),
+  .board-header [data-part="arrange"] > *,
+  .board-header [data-part="find"] > * {
     order: 3;
   }
 

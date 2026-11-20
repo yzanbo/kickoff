@@ -58,6 +58,11 @@
   opacity: 1;
 }
 
+/* 取得中の更新ボタン（RefreshButton）のアイコンを回す */
+.icon-button .spin {
+  animation: spin 0.9s linear infinite;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

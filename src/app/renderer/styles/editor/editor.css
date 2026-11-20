@@ -9,6 +9,12 @@
   border-radius: var(--radius);
 }
 
+/* 一覧の幅を変えている間は、文字を選んだり差分の側が反応したりしないようにする */
+.changes.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 .changes-list {
   display: flex;
   flex: none;

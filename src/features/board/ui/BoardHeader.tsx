@@ -61,12 +61,12 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div ref={fitRef} className={cx("board-tools", fit.compact && "icon-only")}>
         {organize && (
-          <div className="board-tool-group" role="group" aria-label="整える">
+          <div className="board-tool-group" role="group" aria-label="整える" data-part="arrange">
             {organize}
           </div>
         )}
         {/* 表示: 左に ボード / リスト、続けて列の分け方・段の分け方・並び順 */}
-        <div className="board-tool-group" role="group" aria-label="表示">
+        <div className="board-tool-group" role="group" aria-label="表示" data-part="view">
           <Segmented
             look="toggle"
             label="表示の切り替え"
@@ -82,7 +82,7 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
           {viewOptions}
           {sortTools}
         </div>
-        <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
+        <div className="board-tool-group" role="group" aria-label="探す・絞り込む" data-part="find">
           <BoardSearch query={query} onChange={onQuery} />
           {filters}
         </div>

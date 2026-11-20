@@ -52,11 +52,6 @@
   background: color-mix(in srgb, var(--ng) 10%, transparent);
 }
 
-.workspace-dot.chat-drop-blocked {
-  outline: 2px dashed var(--ng);
-  outline-offset: 2px;
-}
-
 .drop-blocked-hint {
   position: fixed;
   z-index: var(--z-drag-hint);

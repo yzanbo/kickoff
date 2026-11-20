@@ -105,13 +105,6 @@
   background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
 }
 
-/* ドラッグ中は、文字を選んだり差分の側が反応したりしないようにする */
-.changes.resizing,
-.commit-changes.resizing {
-  cursor: col-resize;
-  user-select: none;
-}
-
 /* 画面の上端まで広げた欄は、タブをこの共通の操作行の下に置く */
 .panel-window-titlebar {
   flex: none;

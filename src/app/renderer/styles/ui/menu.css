@@ -147,10 +147,6 @@
   background: var(--border-strong);
 }
 
-.conn-list .mono {
-  font-family: var(--mono);
-}
-
 /* マウスを乗せたときの説明（HoverTip。popover で top layer に出すので、ダイアログの上にも出る。位置は画面が style で与える） */
 .hover-tip {
   position: fixed;

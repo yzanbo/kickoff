@@ -211,3 +211,9 @@
   outline: 2px dashed var(--accent);
   outline-offset: 2px;
 }
+
+/* 落とせない丸（ほかの落とし先と同じ赤い点線。ui/drag-ghost.css の .chat-drop-blocked の枠を丸の外に） */
+.workspace-dot.chat-drop-blocked {
+  outline: 2px dashed var(--ng);
+  outline-offset: 2px;
+}

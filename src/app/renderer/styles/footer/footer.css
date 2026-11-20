@@ -138,6 +138,10 @@
   margin: 0;
 }
 
+.conn-list .mono {
+  font-family: var(--mono);
+}
+
 .conn-tool {
   display: flex;
   align-items: center;
@@ -320,9 +324,5 @@
 
 .usage-overage[data-state="on"] .usage-overage-label {
   color: var(--warn);
-}
-
-.icon-button .spin {
-  animation: spin 0.9s linear infinite;
 }
 

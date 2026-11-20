@@ -142,6 +142,12 @@
   min-height: 0;
 }
 
+/* ファイルの一覧の幅を変えている間は、文字を選んだり差分の側が反応したりしないようにする */
+.commit-changes.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
 /* 上の見出し（ファイルの数と表示の切り替え）はいつも出し、その下の一覧（.commit-files-body）だけを流す */
 .commit-files {
   display: flex;
