@@ -1,4 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useFloating } from "@/foundation/ui/hooks/useFloating";
 import { cx } from "@/foundation/ui/lib/cx";
 
 /**
@@ -49,8 +51,8 @@ export function useSubmenu() {
 }
 
 /**
- * 項目の横に開く子のメニュー（useSubmenu の anchor の横）。右に入らなければメニューの左に出し、下にはみ出すなら上へ寄せる
- * （自分の大きさが変わったら置き直す）。メニューの中の要素なので、外側のクリックでメニューごと閉じる。
+ * 項目の横に開く子のメニュー（useSubmenu の anchor の横）。メニューの右に、入らなければ左に出し、下にはみ出すなら上へ寄せる
+ * （useFloating。自分の大きさが変わったら置き直す）。top layer に出すが、要素はメニューの中に置くので、外側のクリックでメニューごと閉じる。
  * ↑↓ はこの中だけで動き（data-menu-scope）、項目の上の ← で閉じて開いた項目に戻る（onBack）
  */
 export function MenuFlyout({
@@ -67,29 +69,17 @@ export function MenuFlyout({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // 位置が決まるまでは見せない（visibility: hidden にすると中の欄にピントを置けないので、透明にする）
-  const [style, setStyle] = useState<CSSProperties>({ opacity: 0 });
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const place = () => {
-      const item = anchor.getBoundingClientRect();
-      const menu = anchor.closest(".menu")?.getBoundingClientRect() ?? item;
-      const { offsetWidth: width, offsetHeight: height } = el;
-      const left = menu.right + 4 + width <= window.innerWidth ? menu.right + 4 : Math.max(8, menu.left - 4 - width);
-      const top = Math.max(8, Math.min(item.top - 6, window.innerHeight - height - 8));
-      setStyle({ left, top });
-    };
-    place();
-    const observer = new ResizeObserver(place);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [anchor]);
+  useFloating(ref, () => {
+    const item = anchor.getBoundingClientRect();
+    const menu = anchor.closest(".menu")?.getBoundingClientRect() ?? item;
+    // 横はメニューの外側、縦は項目の 6px 上（子のメニューの最初の項目が、開いた項目と同じ高さに並ぶ）にそろえる
+    return { anchor: { left: menu.left, right: menu.right, top: item.top - 6, bottom: item.bottom }, side: "right", gap: 4 };
+  });
   return (
     <div
       ref={ref}
+      popover="manual"
       className={cx("menu menu-flyout", className)}
-      style={style}
       role="menu"
       aria-label={label}
       data-menu-scope
@@ -105,5 +95,23 @@ export function MenuFlyout({
     >
       {children}
     </div>
+  );
+}
+
+/** 横に子のメニューを開く項目（useSubmenu ＋ MenuFlyout。乗せる・押す・→ で開き、← で戻る） */
+export function MenuSub({ label, icon, menuLabel, className, children }: { label: ReactNode; icon?: ReactNode; menuLabel: string; className?: string; children: ReactNode }) {
+  const sub = useSubmenu();
+  return (
+    <>
+      <button {...sub.trigger}>
+        {icon} {label}
+        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+      </button>
+      {sub.anchor && (
+        <MenuFlyout anchor={sub.anchor} label={menuLabel} className={className} onBack={sub.back}>
+          {children}
+        </MenuFlyout>
+      )}
+    </>
   );
 }

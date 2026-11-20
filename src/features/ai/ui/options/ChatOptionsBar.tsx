@@ -10,8 +10,8 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { NO_MODELS, useModelsState } from "@/features/ai/ui/stores/providers";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { effortsFor, fallbackModel, fastSupportOf, groupModels, modelDisplayName, permissionChoices, withDefaults } from "./models";
+import { OptionChoice } from "./OptionChoice";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
-import { OptionMenu } from "@/foundation/ui/kit/OptionMenu";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 
@@ -183,31 +183,32 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
 
   return (
     <div className="chat-options">
-      <OptionMenu
+      <OptionChoice
         value={model ?? ""}
         display={modelDisplayName(models, model)}
         icon={<ProviderIcon provider={provider} />}
-        ariaLabel="モデル"
+        label="モデル"
         title={modelBlock ?? current?.description ?? "モデル"}
         disabled={disabled || modelBlock !== null}
         className="model-menu"
+        menuClassName="model-menu-choices"
         groups={groupModels(models).map((g) => ({
           label: g.family,
-          items: g.items.map((i) => ({ value: i.value, label: `${g.family} ${i.version}`, description: i.description })),
+          choices: g.items.map((i) => ({ value: i.value, label: `${g.family} ${i.version}`, description: i.description })),
         }))}
         onChange={(v) => setModel(v || null)}
       />
-      <OptionMenu<EffortLevel | "">
+      <OptionChoice<EffortLevel | "">
         value={effort ?? ""}
         icon={<Brain size={15} />}
-        ariaLabel="推論の深さ"
+        label="推論の深さ"
         // 狭いときはアイコンだけになるので、いまの値も説明に出す
         title={`推論の深さ（effort）: ${effortLabel(effort, effortDefault)}`}
         disabled={disabled}
         groups={[
           {
             label: "推論の深さ",
-            items: [
+            choices: [
               { value: "", label: effortDefaultLabel(effortDefault), description: effortDefaultDescription(effortDefault, provider) },
               ...efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })),
             ],
@@ -215,16 +216,16 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         ]}
         onChange={(v) => setEffort(v || null)}
       />
-      <OptionMenu
+      <OptionChoice
         value={permission}
         icon={<Shield size={15} />}
-        ariaLabel="権限モード"
+        label="権限モード"
         title={`権限モード: ${PERMISSION_LABELS[permission]}（入力欄で Shift+Tab を押すと順に切り替わる）`}
         disabled={disabled}
         groups={[
           {
             label: "権限モード",
-            items: permissionChoices(current).map((p) => ({
+            choices: permissionChoices(current).map((p) => ({
               value: p,
               label: PERMISSION_LABELS[p],
               description: PERMISSION_HINTS[p],

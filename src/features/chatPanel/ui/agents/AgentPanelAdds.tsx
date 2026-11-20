@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, ChevronRight, Container, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
+import { Bot, ChevronDown, Container, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { openChildChat } from "@/features/chat/ui/open/openChat";
@@ -15,7 +15,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { subagentsSettings } from "@/features/subagents/ui";
 import { useChildChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
+import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 
@@ -63,10 +63,6 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const children = (useChildChats().get(chatId) ?? []).filter((c) => c.archived_at === null);
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない
   const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));
-  const childMenu = useSubmenu();
-  const agentMenu = useSubmenu();
-  const noteMenu = useSubmenu();
-  const dbMenu = useSubmenu();
   if (!chat) return null;
   const worktree = chat.worktree_path ?? undefined;
   // 欄に 1 つだけ開くもの（GitHub・CI・Docker・ゴミ箱）の開く先
@@ -89,7 +85,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
         <MessageSquarePlus size={14} /> 新しい子チャット
       </MenuItem>
       <div className="menu-separator" role="separator" />
-      <SubmenuItem submenu={childMenu} icon={MessagesSquare} label="子チャット" empty={children.length === 0 ? "子チャットはありません" : null}>
+      <SubmenuItem icon={MessagesSquare} label="子チャット" empty={children.length === 0 ? "子チャットはありません" : null}>
         {children.map((c) => (
           <MenuItem key={c.id} title={chatTitle(c.title)} onSelect={() => openChildChat(c, "side")}>
             {chatTitle(c.title)}
@@ -97,7 +93,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
         ))}
       </SubmenuItem>
       {pane && (
-        <SubmenuItem submenu={agentMenu} icon={Bot} label="サブエージェント" empty={subagents.length === 0 ? "サブエージェントはいません" : null}>
+        <SubmenuItem icon={Bot} label="サブエージェント" empty={subagents.length === 0 ? "サブエージェントはいません" : null}>
           {subagents.map(({ entry, depth }) => (
             <MenuItem
               key={entry.key}
@@ -123,12 +119,12 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
       </MenuItem>
       {projectView("history")}
       <div className="menu-separator" role="separator" />
-      <SubmenuItem submenu={noteMenu} icon={StickyNote} label="ノート" empty={null}>
+      <SubmenuItem icon={StickyNote} label="ノート" empty={null}>
         <RecentNoteItems projectId={chat.project_id} onPick={(path) => panel.openNote({ chatId: chat.id, projectId: chat.project_id, path })} />
       </SubmenuItem>
       {/* DB はこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける） */}
       {window.kickoff && (
-        <SubmenuItem submenu={dbMenu} icon={Database} label="DB" empty={null}>
+        <SubmenuItem icon={Database} label="DB" empty={null}>
           <DbMenuItems
             projectId={chat.project_id}
             place={`chat-${chat.id}`}
@@ -159,13 +155,11 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
 
 /** 横に一覧を開く項目（一覧が空なら押せない項目にして、理由を説明に出す） */
 function SubmenuItem({
-  submenu,
   icon: Icon,
   label,
   empty,
   children,
 }: {
-  submenu: ReturnType<typeof useSubmenu>;
   icon: LucideIcon;
   label: string;
   /** 一覧が空のときの説明（空でなければ null） */
@@ -180,16 +174,8 @@ function SubmenuItem({
     );
   }
   return (
-    <>
-      <button {...submenu.trigger}>
-        <Icon size={14} /> {label}
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-      </button>
-      {submenu.anchor && (
-        <MenuFlyout anchor={submenu.anchor} label={label} onBack={submenu.back}>
-          {children}
-        </MenuFlyout>
-      )}
-    </>
+    <MenuSub icon={<Icon size={14} />} label={label} menuLabel={label}>
+      {children}
+    </MenuSub>
   );
 }

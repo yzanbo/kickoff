@@ -65,8 +65,8 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - アイコンだけのボタンは `IconButton` / `CloseButton` / `RefreshButton`（`label` が名前と説明）。`<button className="icon-button">` を手で書かない。
 - マウスを乗せたときの説明は `data-tip`（`data-tip-title`・`data-tip-keys`・`data-tip-side`）。App の `HoverTip` が出す。title と重ねない。
 - 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。
-- メニューは `PopupMenu` ＋ `MenuItem`（子は `useSubmenu` ＋ `MenuFlyout`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
-- ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`、チャット欄は `OptionMenu`。
+- メニューは `PopupMenu` ＋ `MenuItem`（選択肢は `checked`、子は `MenuSub`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
+- ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`。
 - ダイアログは `kit/dialogs.tsx`（確認・入力・選択と、チェックを添える形）。モーダルは `useModalDialog`、ボタンの行は `DialogActions`。
 - フォームは `Field`・`CheckField`・`SearchField`・`InlineName`・`CommitInput`、失敗の文は `ErrorText`、結果は `ResultMessage`。
 - 左の一覧は `kit/ListRail.tsx` で開閉し、どれも隠せるようにする。

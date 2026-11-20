@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { createContext, useContext, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -59,12 +60,14 @@ const MenuCloseContext = createContext<() => void>(() => {});
 
 /**
  * メニューの 1 項目。押すと、メニューを閉じてから onSelect を行う（閉じるのは PopupMenu から受け取る）。
- * role は選択肢なら menuitemradio / menuitemcheckbox（checked を付ける）。danger は削除などの赤い項目。
+ * 選択肢は checked（1 つ選ぶ組なら radio も）を付けると、役割（menuitemcheckbox / menuitemradio）と選んでいる印（右端の ✓）を付ける。
+ * role を書いた項目は印を描かない（印を自分で描く項目。持ち主の段で checked だけに移す）。danger は削除などの赤い項目。
  * keepOpen はメニューを閉じない（子のメニューのチェックを続けて切り替えるとき）。disabled は押せない項目（理由は title に）
  */
 export function MenuItem({
-  role = "menuitem",
+  role,
   checked,
+  radio,
   danger,
   className,
   title,
@@ -76,6 +79,7 @@ export function MenuItem({
 }: {
   role?: "menuitem" | "menuitemradio" | "menuitemcheckbox";
   checked?: boolean;
+  radio?: boolean;
   danger?: boolean;
   className?: string;
   title?: string;
@@ -87,10 +91,11 @@ export function MenuItem({
   children: ReactNode;
 }) {
   const close = useContext(MenuCloseContext);
+  const mark = role === undefined && checked !== undefined;
   return (
     <button
       {...buttonProps}
-      role={role}
+      role={role ?? (mark ? (radio ? "menuitemradio" : "menuitemcheckbox") : "menuitem")}
       aria-checked={checked}
       className={cx(className, danger && "danger") || undefined}
       title={title}
@@ -101,6 +106,7 @@ export function MenuItem({
       }}
     >
       {children}
+      {mark && checked && <Check size={14} aria-hidden />}
     </button>
   );
 }

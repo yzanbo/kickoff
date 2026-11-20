@@ -1,5 +1,6 @@
 import { useEffectEvent, useLayoutEffect, useRef, type RefObject } from "react";
 import { placeFloating, type Placement } from "@/foundation/ui/lib/floating";
+import { observeSize } from "./useSizeObserver";
 
 /** 置いた位置を決めた値（同じなら置き直さない） */
 function keyOf(at: Placement, width: number, height: number): string {
@@ -37,8 +38,7 @@ export function useFloating(ref: RefObject<HTMLElement | null>, place: () => Pla
     };
     apply.current();
     const run = () => apply.current();
-    const observer = new ResizeObserver(run);
-    observer.observe(el);
+    const unobserve = observeSize(el, run);
     window.addEventListener("resize", run);
     let frame = 0;
     const loop = () => {
@@ -47,7 +47,7 @@ export function useFloating(ref: RefObject<HTMLElement | null>, place: () => Pla
     };
     if (track) frame = requestAnimationFrame(loop);
     return () => {
-      observer.disconnect();
+      unobserve();
       window.removeEventListener("resize", run);
       cancelAnimationFrame(frame);
       apply.current = () => {};

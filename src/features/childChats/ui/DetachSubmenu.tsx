@@ -1,7 +1,7 @@
-import { ChevronRight, CornerLeftUp, Unplug } from "lucide-react";
+import { CornerLeftUp, Unplug } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
+import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { detachChild, raiseTargets } from "./detachChild";
 
@@ -11,30 +11,21 @@ import { detachChild, raiseTargets } from "./detachChild";
  * 子チャットの画面の上の帯（ChildChatBar）。親の発言の下の札には出さない
  */
 export function DetachSubmenu({ chat, onClose, onError }: { chat: Chat; onClose: () => void; onError: (message: string) => void }) {
-  const sub = useSubmenu();
   const ancestors = raiseTargets(chat);
   const run = (parentId: number | null) => {
     onClose();
     void detachChild(chat, { parentId }).catch((e: unknown) => onError(errorMessage(e)));
   };
   return (
-    <>
-      <button {...sub.trigger}>
-        <Unplug size={14} /> 親から外す
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+    <MenuSub icon={<Unplug size={14} />} label="親から外す" menuLabel="親から外す">
+      <button role="menuitem" autoFocus onClick={() => run(null)}>
+        <Unplug size={14} aria-hidden /> 親のないチャットにする…
       </button>
-      {sub.anchor && (
-        <MenuFlyout anchor={sub.anchor} label="親から外す" onBack={sub.back}>
-          <button role="menuitem" autoFocus onClick={() => run(null)}>
-            <Unplug size={14} aria-hidden /> 親のないチャットにする…
-          </button>
-          {ancestors.map((a) => (
-            <button key={a.id} role="menuitem" onClick={() => run(a.id)}>
-              <CornerLeftUp size={14} aria-hidden /> 「{chatTitle(a.title)}」の子にする…
-            </button>
-          ))}
-        </MenuFlyout>
-      )}
-    </>
+      {ancestors.map((a) => (
+        <button key={a.id} role="menuitem" onClick={() => run(a.id)}>
+          <CornerLeftUp size={14} aria-hidden /> 「{chatTitle(a.title)}」の子にする…
+        </button>
+      ))}
+    </MenuSub>
   );
 }

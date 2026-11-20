@@ -1,4 +1,28 @@
-/* ==== メニューの項目の右に添える札 ==== */
+/* ==== メニューの項目の名前・説明と、右に添える札 ==== */
+
+/* 選択肢の名前（ChoiceMenu。広がって ✓ を右端へ押す）と、名前の下の説明（チャット欄のモデルなど） */
+.menu-item-label,
+.menu-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-item-label,
+.menu-item-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-item-text {
+  display: grid;
+  gap: 1px;
+}
+
+.menu-item-desc {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 /*
  * 「新しいチャット」の項目の右に添える、始めるグループ・作業場所の札（NewChatItem。パネルのタブの名前の後ろの札と同じ「薄い地に色の文字」の丸い札。

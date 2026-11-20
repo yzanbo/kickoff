@@ -42,3 +42,21 @@ test("placeFloating: 上にも下にも入らなければ、広い方に出し�
   // 上の方が広い
   assert.deepEqual(placeFloating({ anchor: button(300, 600) }, tall, viewport), { left: 300, top: 8 });
 });
+
+test("placeFloating: right / left は横に出し（入らなければ反対側）、align で上端・下端・真ん中をそろえる", () => {
+  const item = button(300, 100, 200, 30);
+  // 右（子のメニュー）: 上端をそろえる
+  assert.deepEqual(placeFloating({ anchor: item, side: "right" }, menu, viewport), { left: 504, top: 100 });
+  // 右に入らなければ左
+  assert.deepEqual(placeFloating({ anchor: button(700, 100, 200, 30), side: "right" }, menu, viewport), { left: 496, top: 100 });
+  // 左（右端の縦の列の説明）: 縦の真ん中
+  assert.deepEqual(placeFloating({ anchor: item, side: "left", align: "center", gap: 8 }, { width: 100, height: 40 }, viewport), { left: 192, top: 95 });
+  // 下の端に入らなければ上へ寄せる
+  assert.deepEqual(placeFloating({ anchor: button(300, 700, 200, 30), side: "right" }, menu, viewport), { left: 504, top: 492 });
+});
+
+test("placeFloating: 上下に出すときの center は横の真ん中（説明）", () => {
+  assert.deepEqual(placeFloating({ anchor: button(300, 400, 80, 24), side: "above", align: "center", gap: 8 }, { width: 120, height: 30 }, viewport), { left: 280, top: 362 });
+  // 画面の左の端では寄せる
+  assert.deepEqual(placeFloating({ anchor: button(0, 400, 40, 24), side: "above", align: "center", gap: 8 }, { width: 120, height: 30 }, viewport), { left: 8, top: 362 });
+});

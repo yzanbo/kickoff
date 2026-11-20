@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { placeFloating } from "@/foundation/ui/lib/floating";
 
 /** 乗せてから出すまで（OS の title は 1 秒以上待つので、それより早く） */
 const SHOW_DELAY_MS = 350;
@@ -73,7 +74,7 @@ export function HoverTip() {
   useWindowEvent("scroll", hide, true, true);
   useWindowEvent("blur", hide);
 
-  // 出したら大きさを測って、ボタンの上（入らなければ下）の真ん中に置き、画面の中に収める
+  // 出したら大きさを測って、ボタンの上（入らなければ下）の真ん中に置き、画面の中に収める（data-tip-side があれば横の、縦の真ん中）
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -83,16 +84,7 @@ export function HoverTip() {
     }
     if (!el.matches(":popover-open")) el.showPopover();
     const { width, height } = el.getBoundingClientRect();
-    const a = tip.anchor;
-    if (tip.side) {
-      // 要素の右（右端の縦の列は左）の、縦の真ん中にそろえる（入らなければ画面の中に寄せる）
-      el.style.top = `${Math.max(MARGIN, Math.min(window.innerHeight - height - MARGIN, a.top + a.height / 2 - height / 2))}px`;
-      el.style.left = tip.side === "right" ? `${Math.min(window.innerWidth - width - MARGIN, a.right + MARGIN)}px` : `${Math.max(MARGIN, a.left - width - MARGIN)}px`;
-      return;
-    }
-    const above = a.top - height - MARGIN;
-    const top = above >= MARGIN ? above : Math.min(window.innerHeight - height - MARGIN, a.bottom + MARGIN);
-    const left = Math.max(MARGIN, Math.min(window.innerWidth - width - MARGIN, a.left + a.width / 2 - width / 2));
+    const { left, top } = placeFloating({ anchor: tip.anchor, side: tip.side ?? "above", align: "center", gap: MARGIN }, { width, height }, { width: window.innerWidth, height: window.innerHeight }, MARGIN);
     el.style.top = `${top}px`;
     el.style.left = `${left}px`;
   }, [tip]);
