@@ -1,5 +1,5 @@
 import { ClipboardPenLine, GitBranch } from "lucide-react";
-import type { ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { WORKPLACE_FORK_LOCKED } from "@shared/workplaceMove/workplaceMoves";
 import { PROVIDER_FORK_LOCKED } from "@shared/providerSwitch/providerSwitch";
 import { cx } from "@/foundation/ui/lib/cx";

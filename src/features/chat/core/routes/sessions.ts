@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import os from "node:os";
 import { z } from "zod";
-import type { ArchiveCleanupBody, OrphanSessionsTrashBody } from "@shared/types";
+import type { ArchiveCleanupBody, OrphanSessionsTrashBody } from "@shared/trash/types";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { realPathLoose } from "@/foundation/core/system/paths";

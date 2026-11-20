@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useWorktreeEnv } from "./worktreesStore";
 import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";

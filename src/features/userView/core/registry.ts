@@ -1,6 +1,6 @@
 // 利用者が見ているもの: この Mac の画面のウィンドウごとの最後の知らせと、チャットごとの「最後の発言を送ったときの様子」を
 // メモリに覚える（保存しない）。AI の get_user_view が、どのウィンドウを読むかを決めて取り出す
-import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView, type UserViewBody } from "@shared/types";
+import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView, type UserViewBody } from "@shared/userView/types";
 
 /** 知らせの古さの上限（画面は見ている間 USER_VIEW_REPORT_MS ごとに知らせ直す。これより古ければ、そのウィンドウは閉じたとみなす） */
 const STALE_MS = USER_VIEW_REPORT_MS * 3;

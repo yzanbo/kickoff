@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { DEVICE_ACCESSES, type DevicePush, type DeviceUpdateBody, type PairingApproveBody, type PairingClaimBody } from "@shared/types";
+import { DEVICE_ACCESSES, type DevicePush, type DeviceUpdateBody, type PairingApproveBody, type PairingClaimBody } from "@shared/devices/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { callerOf } from "@/foundation/core/http/caller";
 import { DEVICE_NAME_MAX, type PairingCenter } from "@/features/devices/core/pairing";

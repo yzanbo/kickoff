@@ -1,6 +1,6 @@
 import { Columns3, Search } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
-import type { DbConnection, DbObjectPath } from "@shared/types";
+import type { DbConnection, DbObjectPath } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

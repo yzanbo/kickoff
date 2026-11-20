@@ -1,4 +1,4 @@
-import type { ChatLive } from "@shared/types";
+import type { ChatLive } from "@shared/chat/chatLive";
 
 /**
  * 「いま」をコアが預かる間（awaiting = 圧縮前指示を送ってから圧縮が始まるまで。圧縮前指示の作業中 / compacting = 会話の圧縮中 /

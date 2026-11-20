@@ -1,6 +1,6 @@
 import { GitMerge, GitPullRequestClosed } from "lucide-react";
 import type { KeyboardEvent, MouseEvent } from "react";
-import type { WorktreePrNotice } from "@shared/types";
+import type { WorktreePrNotice } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
 import { useWorktreePrLookup } from "./prNoticeStore";

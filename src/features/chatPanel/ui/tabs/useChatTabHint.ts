@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";

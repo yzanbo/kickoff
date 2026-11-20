@@ -7,7 +7,7 @@ import { Store } from "@/foundation/core/db/store";
 import { ChatRuntimes } from "@/features/chat/core/runtime";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { tick, until } from "@/app/core/testing/testCore";
 

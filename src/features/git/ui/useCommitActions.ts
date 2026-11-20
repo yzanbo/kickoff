@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GitStatus } from "@shared/types";
+import type { GitStatus } from "@shared/git/types";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
 import type { GitStatusController } from "./useGitStatus";

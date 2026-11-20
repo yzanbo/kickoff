@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { ServiceUsage, UsageWindow } from "@shared/types";
+import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
 import { defineFetcher, dollars, fetchJsonOr, isExpired, isoFromDate, jwtClaims, jwtExpiry, usageResult, usageWindow } from "./common";
 
 const result = usageResult({ id: "cursor", label: "Cursor" });

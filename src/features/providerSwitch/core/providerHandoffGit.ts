@@ -1,4 +1,4 @@
-import type { GitStatus } from "@shared/types";
+import type { GitStatus } from "@shared/git/types";
 import { gitStatus } from "@/features/git/core/index";
 
 /** Git の状態も資料として渡す。変更内容そのものは含めず、巨大な一覧は件数を添えて切る。 */

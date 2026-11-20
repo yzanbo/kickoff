@@ -1,7 +1,7 @@
 // 連携先の GitHub のリポジトリの決め方（remote の URL の読み方・自動で選ぶ順・fork のときの head の持ち主。純粋な関数）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { GitHubRemote } from "@shared/types";
+import type { GitHubRemote } from "@shared/git/types";
 import { autoGitHubRemote, parseGitHubRemotes, parseGitHubUrl, pickGitHubTarget } from "./githubTarget";
 import { githubHostEnv, parseGhAccounts } from "./githubAccount";
 import { repoArgs } from "./github";

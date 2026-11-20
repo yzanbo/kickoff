@@ -1,5 +1,5 @@
 // AI の Docker の守りが見る Docker の様子（docker ps・compose の組の名前・ボリューム）。どれも 3 秒で打ち切り、答えなければ通す側に倒す
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { judgeDockerCommand, type DockerGuard, type DockerGuardFacts } from "@/features/docker/core/guard/dockerGuard";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { PS_FORMAT, parseComposeConfig, parsePs } from "./parse";

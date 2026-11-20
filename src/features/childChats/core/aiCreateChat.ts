@@ -12,7 +12,9 @@ import {
 } from "@shared/chat/aiCreateChat";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Chat, Project, ProviderId } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { Store } from "@/foundation/core/db/store";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { addWorktree, isGitWorkTree, newWorktreeProblem } from "@/features/git/core/index";

@@ -1,5 +1,5 @@
 import { useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import type { PromptList } from "./promptHistory";

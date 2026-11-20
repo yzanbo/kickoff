@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, Inbox } from "lucide-react";
-import { HANDOFF_VIA_LABELS, HANDOFF_VIAS, type Chat, type HandoffVia } from "@shared/types";
+import { HANDOFF_VIA_LABELS, HANDOFF_VIAS, type HandoffVia } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
 import { HANDOFF_AFTER_LABELS, HANDOFF_AFTERS, handoffAfterFor, type HandoffAfter } from "@shared/chat/handoff";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

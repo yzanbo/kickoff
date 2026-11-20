@@ -1,7 +1,9 @@
 import { MessageSquarePlus, MessagesSquare, OctagonPause } from "lucide-react";
 import { useEffect, useMemo, type MutableRefObject } from "react";
 import { createPortal } from "react-dom";
-import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Attachment, Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/foundation/ui/api";
 import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";

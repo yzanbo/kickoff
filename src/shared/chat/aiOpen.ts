@@ -1,5 +1,5 @@
 // チャットの AI がノート・家系のチャットを開くツール（kickoff_chat の open_note・open_chat）の、コアと画面で共有する名前と、記録の行に出す文
-import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/types";
+import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/chat/openView";
 
 /** ノートを開くツールの名前 */
 export const AI_OPEN_NOTE_TOOL = "mcp__kickoff_chat__open_note";

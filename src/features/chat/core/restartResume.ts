@@ -1,6 +1,7 @@
 // 起動したときの再開の確かめに添える「止まったところ」（最後の自分の指示・メインエージェントの最後の返答・最後に動かしたツール）と、止まったサブエージェント
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { ChatEvent, RestartResumeMoment, RestartResumeSubagent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { RestartResumeMoment, RestartResumeSubagent } from "@shared/chat/chatLive";
 
 /** 返答の頭だけを見せる長さ（文字） */
 const REPLY_MAX = 600;

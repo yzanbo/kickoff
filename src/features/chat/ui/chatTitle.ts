@@ -1,4 +1,4 @@
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 
 /** チャットの名前（まだ付いていなければ「Untitled Chat」） */
 export function chatTitle(title: string | null | undefined): string {

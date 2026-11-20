@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { ServiceUsage } from "@shared/types";
+import type { ServiceUsage } from "@shared/ai/types";
 import { USAGE_REFRESH_MS } from "@shared/ai/usageRefresh";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";

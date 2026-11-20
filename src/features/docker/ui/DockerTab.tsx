@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { Container, ShieldCheck } from "lucide-react";
-import type { DockerList } from "@shared/types";
+import type { DockerList } from "@shared/docker/types";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import { DOCKER_LOG_HEIGHT } from "@/foundation/ui/storage/storageKeys";

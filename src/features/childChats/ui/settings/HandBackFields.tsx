@@ -1,4 +1,4 @@
-import { HANDOFF_VIA_SHORT, HANDOFF_VIAS, type HandoffVia } from "@shared/types";
+import { HANDOFF_VIA_SHORT, HANDOFF_VIAS, type HandoffVia } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { HANDOFF_AFTER, HANDOFF_VIA } from "@/foundation/ui/storage/storageKeys";
 import { HANDOFF_AFTER_LABELS, HANDOFF_AFTERS, type HandoffAfter } from "@shared/chat/handoff";

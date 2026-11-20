@@ -3,7 +3,7 @@ import { useState } from "react";
 import { dbAskPrompt } from "@shared/database/dbAsk";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { qualifiedTable, quoteName } from "@shared/database/dbEdit";
-import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/types";
+import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { useChats, useKnownChat } from "@/features/chat/ui/store/knownChats";

@@ -1,4 +1,5 @@
-import type { Attachment, Project, Chat } from "@shared/types";
+import type { Attachment, Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { sidebarOrder } from "@/features/projects/ui/projectOrder";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 

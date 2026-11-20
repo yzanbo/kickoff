@@ -1,4 +1,4 @@
-import { DB_OBJECT_KIND_LABELS, type DbConnection } from "@shared/types";
+import { DB_OBJECT_KIND_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";

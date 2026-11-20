@@ -1,5 +1,5 @@
 import { spansIn, type FindPattern } from "@/foundation/ui/lib/textFind";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 
 /** チャットの中の検索で見つけた 1 か所（どの発言の、その中の何番目か） */
 export interface ChatFindMatch {

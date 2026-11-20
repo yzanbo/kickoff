@@ -1,4 +1,4 @@
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { EDIT_TOOLS } from "@/features/conversation/ui/timeline/timelineItems";
 import { describeTool } from "@shared/chat/toolText";
 import { baseName } from "@/foundation/ui/lib/format";

@@ -1,6 +1,6 @@
 import { GitBranch } from "lucide-react";
 import { useEffect } from "react";
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";

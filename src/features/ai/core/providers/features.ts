@@ -1,5 +1,5 @@
 // プロバイダーができること（任意の機能を持つかから決める。画面は持たないものを押せない形にする）
-import type { ProviderFeature } from "@shared/types";
+import type { ProviderFeature } from "@shared/ai/types";
 import type { AgentProvider } from "./types";
 
 /** 任意の機能を持つかから、できることを並べる（PROVIDER_FEATURES の順） */

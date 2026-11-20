@@ -1,4 +1,4 @@
-import type { CiFailedLog, CiJobLog, CiRunDetail, CiRunList, CiRunWorktree } from "@shared/types";
+import type { CiFailedLog, CiJobLog, CiRunDetail, CiRunList, CiRunWorktree } from "@shared/github/ciTypes";
 import { request } from "@/foundation/ui/api/http";
 
 /** CI の結果（GitHub Actions の実行・ログ・やり直し。コアの routes/ci.ts）。中身はいつも GitHub に聞き直したもの */

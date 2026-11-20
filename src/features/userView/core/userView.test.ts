@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/userView/tools";
-import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView } from "@shared/types";
+import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView } from "@shared/userView/types";
 import { userViewText, type UserViewTextInput } from "./format";
 import { UserViewRegistry } from "./registry";
 

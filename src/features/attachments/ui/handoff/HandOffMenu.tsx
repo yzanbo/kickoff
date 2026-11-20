@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, MessageSquarePlus, SquarePen } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { AddToChat } from "@/foundation/ui/kit/icons";

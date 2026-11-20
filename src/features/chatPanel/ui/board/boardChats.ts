@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { openChat, openNewChat } from "@/foundation/ui/navigation/router";
 import { usePanelDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui/surfaces";

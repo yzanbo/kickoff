@@ -1,4 +1,4 @@
-import { COMMAND_OUTPUT_LINES } from "@shared/types";
+import { COMMAND_OUTPUT_LINES } from "@shared/chat/chatEvent";
 import { cleanTerminalText, tailLines } from "@/features/ai/core/providers/claude/commandOutput";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import type { SessionEvent } from "./sdk";

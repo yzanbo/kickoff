@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MouseEvent } from "react";
-import type { GitCommit } from "@shared/types";
+import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { rowLanes, type GraphRow } from "./commitGraph";

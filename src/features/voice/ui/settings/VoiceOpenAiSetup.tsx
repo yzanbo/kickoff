@@ -1,4 +1,5 @@
-import { OPENAI_TRANSCRIBE_MODELS, type AppSettings, type VoiceStatus } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
+import { OPENAI_TRANSCRIBE_MODELS, type VoiceStatus } from "@shared/voice/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { Field } from "@/foundation/ui/kit/Field";

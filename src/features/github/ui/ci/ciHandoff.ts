@@ -1,6 +1,7 @@
 // CI の「AI に渡す」: 渡すもの（落ちたステップのログの札と一言）と、「（ブランチ名）で直す」（そのブランチの作業場所のチャットの入力欄に入れる）。
 // 送るのは自分で。ほかの渡し先（新しいチャット・このチャット・子チャット・ほかのチャット）は共通の「AI に渡す」（features/chat/handoff）
-import type { Attachment, CiRun } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
+import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { currentChats } from "@/features/chat/ui/store/knownChats";

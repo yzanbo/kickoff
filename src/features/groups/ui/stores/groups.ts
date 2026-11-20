@@ -1,7 +1,7 @@
 // プロジェクトごとのグループの一覧（サイドバー・プロジェクトの画面・タブの列・チャットの見出し・新しいチャットで共通）。
 // 使い始めたときにプロジェクトごとに 1 回読み、作る・名前を変える・並べ替える・消すはサーバーの知らせで直す。並びはサイドバーと同じ（position → id）
 import { useMemo } from "react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";

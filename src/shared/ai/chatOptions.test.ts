@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PROVIDER_BASE_CHAT_OPTIONS, resolveChatOptions } from "./chatOptions";
-import { DEFAULT_SETTINGS } from "@shared/types";
+import { DEFAULT_SETTINGS } from "@shared/settings/types";
 
 test("チャットの選択: アプリの既定の上に、プロジェクトの既定 → 送るときの指定の順で、書いてある項目だけを重ねる", () => {
   const settings = { ...DEFAULT_SETTINGS, chat_defaults: { model: "opus", effort: "high" as const, permission_mode: "default" as const, fast_mode: true } };

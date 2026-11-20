@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import { createdChatIdOf } from "@shared/chat/aiCreateChat";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";

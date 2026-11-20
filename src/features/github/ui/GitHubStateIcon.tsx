@@ -1,5 +1,5 @@
 import { CircleCheck, CircleDot, CircleSlash, GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft, type LucideIcon } from "lucide-react";
-import type { GitHubItem } from "@shared/types";
+import type { GitHubItem } from "@shared/github/types";
 
 /** issue・PR の状態の印の種類（色は CSS の .github-state-<tone>） */
 function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft">): { icon: LucideIcon; tone: "open" | "done" | "skipped" | "merged" | "closed" | "draft"; label: string } {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProgressiveRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { ProgressiveSpacer } from "@/foundation/ui/kit/ProgressiveRows";

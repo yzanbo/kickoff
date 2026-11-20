@@ -1,4 +1,4 @@
-import type { DockerEngineStarter } from "@shared/types";
+import type { DockerEngineStarter } from "@shared/docker/types";
 
 /** Docker のエンジンが止まっているときの起こし方（ボタンで開くアプリ・コピーするコマンド。macOS は macosEngine.ts） */
 export interface DockerEngineStarters {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
-import { DEFAULT_SETTINGS } from "@shared/types";
+import { DEFAULT_SETTINGS } from "@shared/settings/types";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 
 vi.mock("@/features/ai/ui/stores/providers", () => ({

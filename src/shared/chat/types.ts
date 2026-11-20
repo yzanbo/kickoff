@@ -1,9 +1,6 @@
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 import type { MessageMarks } from "./chatEvent";
 import type { GitHubKind } from "@shared/github/types";
-// 束ねの @shared/types から読めるように、ここからも出す（束ねを解いたら消す）
-export type { ChatGroup } from "@shared/groups/types";
-export * from "./openView";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */

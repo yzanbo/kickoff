@@ -1,5 +1,6 @@
 import { memo, useState, type ReactNode } from "react";
-import type { Chat, Project } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";

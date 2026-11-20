@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { currentProjects } from "@/features/projects/ui/stores/projects";

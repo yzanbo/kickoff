@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import type { ProviderUpdate } from "@shared/types";
+import type { ProviderUpdate } from "@shared/ai/types";
 import { CODEX_INSTALL_SOURCE_LABELS, CODEX_LATEST_URLS, CODEX_UPDATE_COMMANDS, codexInstallSource, codexLatestOf, isNewer, type CodexInstallSource } from "@shared/ai/cliUpdates";
 import { fetchJson, USER_AGENT } from "@/features/ai/core/usage/services/common";
 

@@ -1,6 +1,6 @@
 // 画面のタブの中身のうち、部品だけが知っているもの（エディタのカーソルと選んでいる範囲・ノートで選んでいる文）を、
 // 利用者が見ているものの知らせ（app/userViewReport.ts。AI の get_user_view）が読むための置き場。開いている部品が置き、閉じたら外す
-import type { UserViewSelection } from "@shared/types";
+import type { UserViewSelection } from "@shared/userView/types";
 
 /** エディタのカーソルの行と選んでいる範囲（選んでいなければ null） */
 export interface EditorCursor {

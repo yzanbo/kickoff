@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { navigate, openChat, type ReopenRoute } from "@/foundation/ui/navigation/router";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { useBoardFocus } from "./useBoardFocus";

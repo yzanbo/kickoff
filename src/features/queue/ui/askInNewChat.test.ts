@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Attachment, QueuedMessage } from "@shared/types";
+import type { Attachment, QueuedMessage } from "@shared/chat/types";
 import { makeAttachment } from "@shared/foundation/testing/factories";
 import { seedOf } from "./askInNewChat";
 

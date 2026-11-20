@@ -1,5 +1,5 @@
 // SQL のタブの文ごとの結果（表・変えた行の数・失敗・止めた・続きがあれば「さらに読む」）
-import { DB_SQL_MAX_ROWS, type DbQueryResult } from "@shared/types";
+import { DB_SQL_MAX_ROWS, type DbQueryResult } from "@shared/database/types";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DataGrid } from "./DataGrid";
 import { durationLabel } from "./dbFormat";

@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
 import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
-import type { Chat, GitHubItem, GitHubKind, GitHubListFilter } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";

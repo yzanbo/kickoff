@@ -1,6 +1,6 @@
 import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
-import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/types";
-import { DOCKER_ACTION_BUSY_LABELS } from "@shared/types";
+import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/docker/types";
+import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";
 import { openProjectFile } from "@/foundation/ui/navigation/router";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";

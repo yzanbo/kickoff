@@ -1,4 +1,4 @@
-import { LINK_OPEN_TARGET_LABELS, LINK_OPEN_TARGETS, type AppSettings, type LinkOpenTarget } from "@shared/types";
+import { LINK_OPEN_TARGET_LABELS, LINK_OPEN_TARGETS, type AppSettings, type LinkOpenTarget } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

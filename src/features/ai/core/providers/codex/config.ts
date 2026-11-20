@@ -1,4 +1,4 @@
-import type { EffortLevel } from "@shared/types";
+import type { EffortLevel } from "@shared/settings/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { HOOK_TOKEN_ENV, HOOK_URL_ENV, hookConfig } from "./hooks";

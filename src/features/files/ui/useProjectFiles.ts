@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ProjectFiles } from "@shared/types";
+import type { ProjectFiles } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { buildTree } from "@/foundation/ui/kit/list/treeModel";

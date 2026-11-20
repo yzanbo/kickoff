@@ -1,4 +1,4 @@
-import type { AgentState, BoardColumn } from "@shared/types";
+import type { AgentState, BoardColumn } from "@shared/chat/types";
 
 /** カンバンの列の色（状態の点の色と同じ。完了は控えめ） */
 export const COLUMN_TONE: Record<BoardColumn, string> = {

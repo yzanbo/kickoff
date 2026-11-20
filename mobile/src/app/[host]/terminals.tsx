@@ -2,7 +2,7 @@
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import type { TerminalTab } from "@shared/types";
+import type { TerminalTab } from "@shared/terminal/types";
 import { useHostState } from "../../state/useHostState";
 import { Button } from "../../ui/Button";
 import { colors, ui } from "../../ui/theme";

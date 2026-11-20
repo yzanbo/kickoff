@@ -1,7 +1,7 @@
 import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote } from "lucide-react";
 import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useLatestAnswer } from "@/features/chat/ui/store/useChatStore";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";

@@ -1,5 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { BackgroundState } from "@shared/types";
+import type { BackgroundState } from "@shared/chat/chatLive";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** すぐには閉じないとき（足した発言・裏の作業の終わりの知らせで、次の返答が始まりうる）に、始まるのを待つ時間 */

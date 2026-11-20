@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
+import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import type { WorktreeEnvSetupBody, WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreeRemovalInfo } from "@/features/git/core/index";
 import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
 import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";

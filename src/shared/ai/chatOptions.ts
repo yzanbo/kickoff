@@ -1,5 +1,7 @@
 // チャットの選択（モデル・推論の深さ・権限モード・ファストモード）の決め方（コアと画面で共通。Node 依存を持ち込まないこと）
-import type { AppSettings, ChatOptions, ChatOptionsPatch, Project, ProviderId } from "@shared/types";
+import type { ChatOptions, ChatOptionsPatch } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
+import type { AppSettings, ProviderId } from "@shared/settings/types";
 
 /**
  * Claude Code 以外の AI の、アプリの既定の初め。

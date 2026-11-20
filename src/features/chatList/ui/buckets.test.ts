@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { makeChat, makeGroup, makeProject, makeWorktree } from "@shared/foundation/testing/factories";
 import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/ui/state/chatState";

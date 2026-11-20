@@ -5,7 +5,7 @@ import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import type { ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { configChoices, launchEnv, modeFor, promptBlocks, sessionRequest } from "./config";
 import { answerPermission } from "./permissions";
 import { ACP_PROTOCOL_VERSION, type ContentBlock, type InitializeResponse, type RequestPermissionRequest, type SessionNotification, type SessionResponse, type StopReason } from "./protocol";

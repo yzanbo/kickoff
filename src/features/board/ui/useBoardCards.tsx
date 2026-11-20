@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type DragEvent } from "react";
-import type { Chat, FeedItem } from "@shared/types";
+import type { Chat, FeedItem } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { cx } from "@/foundation/ui/lib/cx";
 import { startChatDrag } from "@/features/groups/ui/groups";

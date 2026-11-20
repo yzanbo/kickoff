@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ViewingBody } from "@shared/types";
+import type { ViewingBody } from "@shared/devices/types";
 import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";
 import type { ViewingRegistry } from "@/features/notifications/core/viewing";

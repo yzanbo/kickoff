@@ -2,7 +2,7 @@
 // 切れたら少しずつ間を空けてつなぎ直す。アプリを裏に回したら止め（Android は裏で通信を止める）、表に戻ったらつなぎ直す
 // （抜けた分は、画面が ?after= で取り直す = つながったときの onOpen）。話が通じない・取り消された・別の本体なら、つなぎ直さずに止める
 import { fetch as expoFetch } from "expo/fetch";
-import type { ServerHello } from "@shared/types";
+import type { ServerHello } from "@shared/foundation/server";
 import type { BusEvent } from "@shared/foundation/contract";
 import { authHeaders, HostClient } from "../lib/client";
 import { failureStateOf, helloStateOf, isFinal, type SessionState } from "../lib/connection";

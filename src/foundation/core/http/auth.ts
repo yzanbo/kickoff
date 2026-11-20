@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono, MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, MOBILE_OFF_MESSAGE } from "@shared/types";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, MOBILE_OFF_MESSAGE } from "@shared/devices/types";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { setCaller, type Caller } from "./caller";
 import type { DeviceMayUse } from "./deviceAccess";

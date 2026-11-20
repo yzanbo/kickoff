@@ -1,4 +1,6 @@
-import type { AgentState, Approval, ChatEvent } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { AgentState } from "@shared/chat/types";
 import type { SubagentEntry } from "./subagents";
 
 /**

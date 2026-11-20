@@ -1,7 +1,7 @@
 // ノートの AI の、AI に送る文と答えの読み方（純粋関数）: フォルダの整理案（案を返すだけで、ノートは動かさない。動かすかは画面で決める）と、
 // 既存のノートにチャットの文を取り込んだまとめ直し
 import path from "node:path";
-import type { NoteEntry, NotePlan, NotePlanMove } from "@shared/types";
+import type { NoteEntry, NotePlan, NotePlanMove } from "@shared/notes/types";
 
 /** 整理案を作るときに見せるノートの数・1 つのノートの書き出しの長さ・整理案の数の上限 */
 const MAX_PLAN_FILES = 300;

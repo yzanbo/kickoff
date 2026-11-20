@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
-import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerServiceInfo, DockerSilentConflict } from "@shared/types";
-import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/types";
+import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerServiceInfo, DockerSilentConflict } from "@shared/docker/types";
+import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/docker/types";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";

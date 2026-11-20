@@ -1,6 +1,6 @@
 // チャットの AI が返答の中に描く図（kickoff_chat の visual_guide・show_visual・update_visual）の、コア・画面・スマホで共有する名前・形・決まり。
 // 図は記録のツールの呼び出し（入力に中身）と結果（図の ID）から組み立てるので、DB に別の表は持たない
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 
 /** 図の書き方の説明を読むツールの名前 */
 export const AI_VISUAL_GUIDE_TOOL = "mcp__kickoff_chat__visual_guide";

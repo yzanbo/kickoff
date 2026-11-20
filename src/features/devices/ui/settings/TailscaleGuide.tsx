@@ -1,4 +1,4 @@
-import type { TailscaleStatus } from "@shared/types";
+import type { TailscaleStatus } from "@shared/devices/tailscale";
 import { CommandLine } from "@/foundation/ui/kit/CommandLine";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";

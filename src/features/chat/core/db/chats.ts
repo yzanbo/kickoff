@@ -1,5 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
-import { DEFAULT_SETTINGS, type AppSettings, type Chat, type ChatStatus, type GitHubLink } from "@shared/types";
+import type { Chat, ChatStatus } from "@shared/chat/types";
+import type { GitHubLink } from "@shared/foundation/apiTypes";
+import { DEFAULT_SETTINGS, type AppSettings } from "@shared/settings/types";
 import { bit, updateRow, type Notify, type Row } from "@/foundation/core/db/common";
 import type { NewChat } from "@/foundation/core/db/types";
 import { rememberChatSession } from "./agentSessions";

@@ -1,6 +1,6 @@
 import { Plus, Settings } from "lucide-react";
 import { useState, type MouseEvent, type MutableRefObject } from "react";
-import type { Snippet } from "@shared/types";
+import type { Snippet } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { SNIPPET_BAR_HIDDEN } from "@/foundation/ui/storage/storageKeys";

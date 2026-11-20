@@ -1,7 +1,8 @@
 // AI に伝える「このチャット」の文脈: 自分の名前と ID、子チャットなら親までの系譜と、親の会話のどこで聞いたか、子チャットがあればその一覧（孫も）。
 // AI からは Kickoff のチャットが見えない（分かるのは Claude Code のセッションだけ）ので、「親チャットはどれ？」「子チャットはどれ？」に答えられるように渡す
 import { childDepthLabel } from "@shared/childChats/childDepth";
-import type { Chat, ChatEvent, ChatStatus } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Chat, ChatStatus } from "@shared/chat/types";
 import type { Store } from "@/foundation/core/db/store";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 

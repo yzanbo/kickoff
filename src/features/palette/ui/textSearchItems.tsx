@@ -1,7 +1,8 @@
 import { Bot, FileCode2, StickyNote, User } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { noteKindOf } from "@shared/notes/kinds";
-import type { NoteSearchHit, SearchHit } from "@shared/types";
+import type { SearchHit } from "@shared/chat/types";
+import type { NoteSearchHit } from "@shared/notes/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { baseName } from "@/features/notes/ui/notePaths";
 import type { PaletteItem } from "./paletteItem";

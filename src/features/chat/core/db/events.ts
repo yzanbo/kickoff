@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
-import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type ChatEventDataOf, type FeedItem, type SearchHit } from "@shared/types";
+import type { ChatEvent, ChatEventData, ChatEventDataOf } from "@shared/chat/chatEvent";
+import { FEED_TEXT_LIMIT, type Chat, type FeedItem, type SearchHit } from "@shared/chat/types";
 import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "@/foundation/core/db/common";
 import type { LogRevisions } from "./logRevisions";

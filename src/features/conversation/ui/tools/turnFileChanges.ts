@@ -1,5 +1,5 @@
 // 1 回の作業（ターン）で変えたファイルの数え方（ターンの変更カード。純粋関数）
-import type { ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { lineCounts, lineDiff } from "@/foundation/ui/lib/lineDiff";
 
 /** ターンで変えたファイル 1 つ */

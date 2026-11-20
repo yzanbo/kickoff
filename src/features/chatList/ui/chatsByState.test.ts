@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/foundation/testing/factories";
 import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { chatsByState } from "./StateChatsPopover";

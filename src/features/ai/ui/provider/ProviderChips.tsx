@@ -1,6 +1,8 @@
 import { Bot } from "lucide-react";
 import { useState, type CSSProperties } from "react";
-import { PERMISSION_LABELS, PROVIDER_IDS, type Chat, type ProviderId, type ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { Chat } from "@shared/chat/types";
+import { PERMISSION_LABELS, PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { turnsApi } from "@/features/chat/ui/api/turns";

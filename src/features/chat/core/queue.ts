@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { moveToSlot, normalizeStops, remapStops, removeStopOnce, type QueueSlot } from "@shared/chat/queueStops";
 import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
 import type { SavedQueue } from "@/features/chat/core/db/queues";
-import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch, QueueState, MessageMarks } from "@shared/types";
+import type { MessageMarks } from "@shared/chat/chatEvent";
+import type { QueueState } from "@shared/chat/chatLive";
+import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch } from "@shared/chat/types";
 
 /** 送信待ちの保存先（Store の queues。省けば保存しない） */
 export interface QueuePersistence {

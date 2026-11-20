@@ -1,7 +1,7 @@
 // kickoff_chat のプロジェクトに足す・変えるツール（add_snippet・move_note）。中身は core/chat/aiProject.ts、ここは引数の形と使い方だけ
 import { defineTool as tool } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
-import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/types";
+import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/snippets/types";
 import type { AiProjectTools } from "./aiProject";
 import { run } from "@/foundation/core/aiTools/chatToolResult";
 

@@ -3,7 +3,7 @@
 // チャットの実行が終わったときに調べた）は数だけなので、受けたら覚えた一覧を読み直す（一覧はコマンドの全文を含むので SSE に載せない）。
 // Mac のアプリの中だけで使う（口はこの Mac からだけ。スマホの画面ではボタンも出さない）
 import { useSyncExternalStore } from "react";
-import type { PortProcess } from "@shared/types";
+import type { PortProcess } from "@shared/ports/types";
 import { api } from "@/foundation/ui/api";
 import { subscribeServerEvent } from "@/foundation/ui/api/events";
 import { createStore } from "@/foundation/ui/store/createStore";

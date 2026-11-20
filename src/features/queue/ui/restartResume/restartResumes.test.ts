@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatLive, RestartResume } from "@shared/types";
+import type { ChatLive, RestartResume } from "@shared/chat/chatLive";
 import { makeChatLive } from "@shared/foundation/testing/factories";
 import { autoOpenRestartResumes, reduceRestartResumes } from "./restartResumes";
 

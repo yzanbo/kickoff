@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { STICKY_PROMPT_EXPANDED } from "@/foundation/ui/storage/storageKeys";

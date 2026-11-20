@@ -1,5 +1,7 @@
 import { Check } from "lucide-react";
-import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { Project } from "@shared/projects/types";
+import { PROVIDER_IDS, type AppSettings, type ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";

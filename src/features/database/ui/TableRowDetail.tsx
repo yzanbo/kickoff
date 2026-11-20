@@ -1,5 +1,5 @@
 import { ArrowUpRight, CornerDownLeft, KeyRound, Link } from "lucide-react";
-import type { DbColumnInfo, DbTableDetail, DbValue } from "@shared/types";
+import type { DbColumnInfo, DbTableDetail, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";

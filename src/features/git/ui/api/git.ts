@@ -1,19 +1,4 @@
-import type {
-  GitBlame,
-  GitBranchAction,
-  GitBranchActionResult,
-  GitCommitDetail,
-  GitConflictResolution,
-  GitDiff,
-  GitFileChange,
-  GitLog,
-  GitMergePreview,
-  GitOperationAction,
-  GitOriginal,
-  GitRefs,
-  GitStatus,
-  PullRequestInfo,
-} from "@shared/types";
+import type { GitBlame, GitBranchAction, GitBranchActionResult, GitCommitDetail, GitConflictResolution, GitDiff, GitFileChange, GitLog, GitMergePreview, GitOperationAction, GitOriginal, GitRefs, GitStatus, PullRequestInfo } from "@shared/git/types";
 import { request } from "@/foundation/ui/api/http";
 import { workdirPath, type GitTarget } from "@/foundation/ui/api/workdir";
 

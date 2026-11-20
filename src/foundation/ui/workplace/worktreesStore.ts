@@ -3,7 +3,8 @@
 // 表示している間は 30 秒ごと・ウィンドウに戻ったときにも取り直す（届くまでは前の一覧を出す）。
 // ワークツリーを作る・消す API はそのあとの一覧を返すので、それを set で入れる（作った・片付けたあとは invalidate ですぐ取り直す）
 import { useMemo } from "react";
-import type { GitWorktree, WorktreeEnv } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
+import type { WorktreeEnv } from "@shared/worktrees/envTypes";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useKeyedStores } from "@/foundation/ui/store/useStore";

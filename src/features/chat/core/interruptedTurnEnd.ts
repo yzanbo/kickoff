@@ -1,5 +1,5 @@
 import { unfinishedSubagents } from "@shared/chat/subagents";
-import type { ChatEventDataOf } from "@shared/types";
+import type { ChatEventDataOf } from "@shared/chat/chatEvent";
 import type { Store } from "@/foundation/core/db/store";
 
 /**

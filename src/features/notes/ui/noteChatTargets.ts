@@ -1,6 +1,6 @@
 // ノートの本文の右クリック・本文で選んだときの上のボタン・見出しのボタンから、ノートを足す先のチャット（開いたチャット・ノートのチャット）と、選んだ文で始める新しいチャット
 import type { MutableRefObject } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { lineLocation } from "@/foundation/ui/lib/pathCopy";
 import { alertDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 import { knownChat } from "@/features/chat/ui/store/knownChats";

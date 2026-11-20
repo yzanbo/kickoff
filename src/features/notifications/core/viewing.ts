@@ -1,6 +1,6 @@
 // いまだれが何を見ているか（呼び主ごと。この Mac の画面・端末が PUT /api/viewing で知らせる）。
 // 通知は、その知らせを見ていない呼び主にだけ送る（この Mac で見ていても、見ていないスマホにはプッシュする）
-import { VIEWING_TTL_MS, type ViewingBody } from "@shared/types";
+import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
 import type { Caller } from "@/foundation/core/http/caller";
 
 /** 見ている人（この Mac の画面か、端末の ID） */

@@ -1,4 +1,4 @@
-import type { CodexCredits } from "@shared/types";
+import type { CodexCredits } from "@shared/ai/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { CreditsNote } from "@/features/ai/core/providers/types";
 

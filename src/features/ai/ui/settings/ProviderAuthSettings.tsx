@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode, type ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useSave } from "@/foundation/ui/hooks/useSave";
 import { providersStore } from "@/features/ai/ui/stores/providers";

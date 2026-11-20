@@ -1,6 +1,6 @@
 import { FileText, Folder, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
-import type { Project, ProjectReference } from "@shared/types";
+import type { Project, ProjectReference } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useSave } from "@/foundation/ui/hooks/useSave";
 import { splitPath } from "@/foundation/ui/lib/format";

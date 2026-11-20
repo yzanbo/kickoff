@@ -1,7 +1,7 @@
 // ポートを使っているプロセス（Kickoff のプロジェクトのフォルダで動いていて、TCP のポートを待っているもの）を調べる・止める。
 // 待っているソケット・プロセスの表・作業フォルダは OS の口（HostPlatform）から受け取り、テストでは probe を差し替える
 import path from "node:path";
-import type { PortProcess } from "@shared/types";
+import type { PortProcess } from "@shared/ports/types";
 import type { Store } from "@/foundation/core/db/store";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { Conflict, NotFound } from "@/foundation/core/errors";

@@ -1,5 +1,5 @@
 import { Network, SquareTerminal, StickyNote } from "lucide-react";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import type { DbClientTab } from "@/features/database/ui/client/dbClientTabs";
 import { TabObjectIcon } from "./DbTreeObjects";
 import { objectPathLabel } from "./dbFormat";

@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { GitHubRemote } from "@shared/types";
+import type { GitHubRemote } from "@shared/git/types";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { checkoutPullMain, checkoutPullWorktree, pullCheckoutOf } from "./pullWorktree";

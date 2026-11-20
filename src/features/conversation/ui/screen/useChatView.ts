@@ -1,5 +1,7 @@
 import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Chat, ChatLive, Project } from "@shared/types";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { chatLog, useChatDetailView, useChatLog, useChatSubagents, useChatSubagentsView } from "@/features/chat/ui/store/useChatStore";
 import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";

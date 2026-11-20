@@ -1,5 +1,5 @@
 // テーブルのデータの補助（セルの値で絞る・外部キーで移る条件・行の詳細の値の整え方・CSV / TSV / JSON の書き出し）。React に依らない
-import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbTableDetail, type DbValue } from "@shared/types";
+import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbTableDetail, type DbValue } from "@shared/database/types";
 import { dbImageType, isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { EMPTY_TEXT_LABEL } from "./dbFormat";
 

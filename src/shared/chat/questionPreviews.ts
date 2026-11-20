@@ -1,5 +1,5 @@
 // AI からの質問（AskUserQuestion）の選択肢の図（preview）の扱い（コア・画面の両方で使う。Node 依存を持ち込まないこと）
-import type { Question } from "@shared/types";
+import type { Question } from "@shared/chat/approvalTypes";
 
 /** 複数選んだ選択肢の図をつなぐ区切り */
 const PREVIEW_JOIN = "\n\n";

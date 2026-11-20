@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LogIn } from "lucide-react";
-import type { ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";

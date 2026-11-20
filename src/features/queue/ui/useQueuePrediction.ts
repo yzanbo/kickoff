@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 
 /** サーバーの応答が来なくても、先回りの並びをやめるまでの時間（失敗の知らせが届かないときの保険） */
 const PREDICTION_MS = 3000;

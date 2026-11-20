@@ -1,7 +1,7 @@
 // 作業ツリーの状態（git status）・いまのブランチ・リモートの一覧・参照（HEAD・ブランチ）があるか
 import fs from "node:fs";
 import path from "node:path";
-import type { GitChangeKind, GitFileChange, GitOperation, GitStatus } from "@shared/types";
+import type { GitChangeKind, GitFileChange, GitOperation, GitStatus } from "@shared/git/types";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { timed } from "@/foundation/core/system/stallWatch";
 

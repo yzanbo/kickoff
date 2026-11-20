@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type NewSnippetBody } from "@shared/types";
+import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type NewSnippetBody } from "@shared/snippets/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { consumeKey, isCancelKey, isKey } from "@/foundation/ui/lib/keys";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

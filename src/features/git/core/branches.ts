@@ -1,5 +1,5 @@
 // ブランチ・タグの操作（履歴の左の一覧・コミットの札の右クリック）と、途中で止まったマージ・リベースの扱い
-import type { GitBranchAction, GitConflictResolution, GitMergePreview, GitOperationAction } from "@shared/types";
+import type { GitBranchAction, GitConflictResolution, GitMergePreview, GitOperationAction } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { gitOperation, gitStatus, hasRef } from "./status";

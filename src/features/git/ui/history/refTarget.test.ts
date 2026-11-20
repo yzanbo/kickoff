@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { GitRefs } from "@shared/types";
+import type { GitRefs } from "@shared/git/types";
 import { refTargetOf } from "./refTarget";
 
 const refs: GitRefs = {

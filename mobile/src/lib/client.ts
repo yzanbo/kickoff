@@ -1,22 +1,13 @@
 // 1 つの本体（Mac の Kickoff）への API。端末のトークンを Authorization: Bearer で送り、版の見出しで自分の API の版を伝える。
 // 失敗は ApiError（状態と印 code。mobile_off・device_read_only・client_too_old など）で投げ、画面が文を出し分ける
-import type {
-  Approval,
-  ApprovalDecision,
-  Chat,
-  ChatDetail,
-  ChatDetailQuery,
-  Device,
-  DevicePush,
-  Project,
-  QueueState,
-  SendMessageBody,
-  ServerStatus,
-  TellResult,
-  TerminalCreated,
-  TerminalTab,
-  ViewingBody,
-} from "@shared/types";
+import type { Approval, ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { QueueState } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
+import type { Device, DevicePush, ViewingBody } from "@shared/devices/types";
+import type { ChatDetail, ChatDetailQuery, SendMessageBody, TellResult } from "@shared/foundation/apiTypes";
+import type { ServerStatus } from "@shared/foundation/server";
+import type { Project } from "@shared/projects/types";
+import type { TerminalCreated, TerminalTab } from "@shared/terminal/types";
 import { API_VERSION_HEADER } from "@shared/foundation/api/version";
 import { APP_API_VERSION } from "./version";
 

@@ -1,4 +1,4 @@
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
 
 /**
  * 会話を引き継げる、いちばん近い作業の終わり（end より前。省けば最後まで）。巻き戻し・子チャットの起点。

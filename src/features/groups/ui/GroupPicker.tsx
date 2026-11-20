@@ -1,5 +1,5 @@
 import { Folder } from "lucide-react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
 

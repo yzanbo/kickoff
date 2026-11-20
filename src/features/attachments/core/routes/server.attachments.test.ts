@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { CaptureAttachment, NoteAttachment, NoteList } from "@shared/types";
+import type { CaptureAttachment, NoteAttachment } from "@shared/chat/types";
+import type { NoteList } from "@shared/notes/types";
 import { MAX_UPLOAD_BYTES } from "@/features/attachments/core/uploads";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
 

@@ -4,7 +4,8 @@
 // どれも利用者がいつでも戻せるので、聞かずに行う（権限モード・Auto mode によらず承認カードを出さない）
 import path from "node:path";
 import type { AddSnippetInput, MoveNoteInput } from "@shared/chat/aiProject";
-import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/snippets/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { NoteService } from "@/features/notes/core/notes";
 import { notePathIn } from "./aiOpen";

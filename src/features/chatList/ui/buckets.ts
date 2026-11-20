@@ -18,7 +18,10 @@
  * - アーカイブ済みを各まとまりの中に入れる（archived: "nested"）ときは、いちばん外の段のまとまりの archived に、そのまとまりのアーカイブ済み
  *   （キーは "p3/g5/archived"）を入れる。アーカイブ済みだけのまとまり（消えたワークツリーなど）も、そのために作る
  */
-import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup, type GitWorktree, type Project } from "@shared/types";
+import { BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
+import type { GitWorktree } from "@shared/git/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { stateCounts, type ApprovalIndex, type StateCounts } from "@/features/chat/ui/state/chatState";
 import { compareWorkplaces, type ChatWorkplace } from "@/foundation/ui/workplace/workplace";
 import { byActive } from "@/features/chat/ui/store/knownChats";

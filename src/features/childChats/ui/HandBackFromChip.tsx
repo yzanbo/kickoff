@@ -1,5 +1,5 @@
 import { MessagesSquare } from "lucide-react";
-import type { HandoffFrom } from "@shared/types";
+import type { HandoffFrom } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";

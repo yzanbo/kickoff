@@ -1,5 +1,7 @@
 // チャットのやり取りの記録（Markdown。別のチャットに添付ファイルとして渡して AI が Read で読む・右クリックの「全部のやり取りをコピー」。Node 依存なし）
-import { UNTITLED_CHAT_TITLE, type Project, type Chat, type ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { workdirOf } from "./workdir";
 
 /** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */

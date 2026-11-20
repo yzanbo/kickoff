@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { pickProjectHue } from "@shared/projects/colors";
 import { normalizeTags } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { bit, updateRow, type Notify, type Row } from "@/foundation/core/db/common";
 import type { NewProject } from "@/foundation/core/db/types";
 

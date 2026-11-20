@@ -1,5 +1,5 @@
 // 送信待ちの、指示の代わりに挟む行（会話の圧縮・コンテキストの消去）の見分け
-import type { QueueAction, QueuedMessage } from "@shared/types";
+import type { QueueAction, QueuedMessage } from "@shared/chat/types";
 
 /** 指示の代わりに挟む行ならその種類（ふつうの指示なら null） */
 export function queueActionOf(m: QueuedMessage): QueueAction | null {

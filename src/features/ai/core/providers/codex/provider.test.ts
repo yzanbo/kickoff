@@ -1,7 +1,7 @@
 // Codex のプロバイダーを偽の app-server で確かめる（本物の codex・アカウントは使わない）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeCodexServer, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";

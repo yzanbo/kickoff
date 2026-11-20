@@ -1,6 +1,7 @@
 // チャットの AI の、画面で使う純粋な決まり:
 // 選べるか（対応予定は選べない）・その AI にない機能の理由・API キーで動かすか（使った分の支払い）
-import { PROVIDER_LABELS, providerFeatureMissing, type ProviderFeature, type ProviderId, type ProviderStatus } from "@shared/types";
+import { providerFeatureMissing, type ProviderFeature, type ProviderStatus } from "@shared/ai/types";
+import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 
 /** API キーで動かす AI に添える印（設定・チャットの AI の札） */
 export const PAY_PER_USE_LABEL = "使った分の支払い";

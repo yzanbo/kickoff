@@ -2,7 +2,7 @@ import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useEffect, useEffectEvent, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { readSetting, subscribeSetting, writeSetting, type Setting } from "@/foundation/ui/storage/settings";

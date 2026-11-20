@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { collectSubagents } from "@shared/chat/subagents";
 import { relayMessage, relayedText } from "@shared/chat/prompts";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";

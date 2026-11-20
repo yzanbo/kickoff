@@ -1,7 +1,7 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { Eye, KeyRound, Link, Table2 } from "lucide-react";
 import { memo } from "react";
-import type { DbErTable } from "@shared/types";
+import type { DbErTable } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 
 /** 箱に渡すもの（columns は出す列。keyColumns は線をつなぐ列（左右に見えない取っ手を置く）） */

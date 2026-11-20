@@ -1,6 +1,6 @@
 import { Copy, Network, Pencil, Play, PlugZap, SquareTerminal, StickyNote, Trash2, Unplug } from "lucide-react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { dbConnectionsStore, useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";

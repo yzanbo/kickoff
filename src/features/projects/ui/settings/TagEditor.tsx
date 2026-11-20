@@ -1,7 +1,7 @@
 import { Plus, Tag } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey, isComposing } from "@/foundation/ui/lib/keys";

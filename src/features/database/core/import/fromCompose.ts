@@ -1,4 +1,4 @@
-import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/types";
+import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { interpolate } from "./envFile";
 import { candidateName, type FoundDb } from "./found";
 

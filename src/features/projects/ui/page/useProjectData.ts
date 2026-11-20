@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Project, Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { groupsStore, NO_GROUPS } from "@/features/groups/ui/stores/groups";
 import { useProjects } from "@/features/projects/ui/stores/projects";

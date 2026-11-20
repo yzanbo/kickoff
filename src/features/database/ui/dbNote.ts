@@ -1,7 +1,8 @@
 import { DB_NOTE_DIR, dbNoteTemplate, suggestDbNoteName } from "@shared/database/dbFailure";
 import { errorMessage } from "@shared/foundation/errors";
 import { safeNoteName } from "@shared/notes/names";
-import type { DbConnection, NoteEntry } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import type { NoteEntry } from "@shared/notes/types";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";

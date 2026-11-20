@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { RETRY_PROMPT } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

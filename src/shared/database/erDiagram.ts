@@ -1,5 +1,5 @@
 // ER 図の決まり（純粋な関数。画面の図と Mermaid の書き出しで共通）: テーブルの形・関係（外部キーと、制約のない関係の推測）・多さ・まわりの絞り込み
-import type { DbErTable, DbObjectPath, DbTableDetail } from "../types";
+import type { DbErTable, DbObjectPath, DbTableDetail } from "@shared/database/types";
 
 /** ER 図の配置を覚える場所のキー（DB とスキーマ。SQLite などで両方なければ main） */
 export function erPlace(path: DbObjectPath): string {

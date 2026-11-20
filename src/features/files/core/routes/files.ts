@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "@/features/git/core/index";
 import type { Store } from "@/foundation/core/db/store";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { ProjectReplaceBody } from "@shared/types";
+import type { ProjectReplaceBody } from "@shared/git/types";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";

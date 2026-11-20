@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
 import { openNewChat } from "@/foundation/ui/navigation/router";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/groups/ui/groups";

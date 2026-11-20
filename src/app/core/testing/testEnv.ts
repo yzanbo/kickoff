@@ -1,5 +1,7 @@
 // テストの外の世界の偽物（ネットワーク・外部コマンド・OS に出ない）と、それを本物と同じ組み立てに渡す CoreEnv。テストからだけ使う
-import { PROVIDER_IDS, type DevicePush, type GitHubAccount, type GitHubRemote, type ProviderId } from "@shared/types";
+import type { DevicePush } from "@shared/devices/types";
+import type { GitHubAccount, GitHubRemote } from "@shared/git/types";
+import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { parseCwds, parseLsof } from "@/foundation/core/platform/macos/listening";
 import { parsePs } from "@/foundation/core/platform/macos/processes";

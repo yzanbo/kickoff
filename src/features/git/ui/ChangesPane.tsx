@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Check, ChevronsDownUp, ChevronsUpDown, Ellipsis, GitBranch, List, ListTree, Minus, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import type { GitStatus } from "@shared/types";
+import type { GitStatus } from "@shared/git/types";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHANGES_TREE } from "@/foundation/ui/storage/storageKeys";

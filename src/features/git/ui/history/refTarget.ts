@@ -1,4 +1,4 @@
-import type { GitRefs } from "@shared/types";
+import type { GitRefs } from "@shared/git/types";
 
 /**
  * 右クリックしたブランチ・タグ（branch = 手元のブランチ / remote = リモートのブランチ "origin/main" / tag = タグ）。

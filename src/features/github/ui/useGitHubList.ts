@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubItem, GitHubItemPage, GitHubListFilter } from "@shared/types";
+import type { GitHubItem, GitHubItemPage, GitHubListFilter } from "@shared/github/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";

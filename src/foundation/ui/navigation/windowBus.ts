@@ -1,5 +1,6 @@
 // ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）
-import type { Attachment, GitHubLink } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
+import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
 import type { SplitDir } from "@/features/panel/ui/layout/paneTree";
 import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";

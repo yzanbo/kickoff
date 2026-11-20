@@ -1,5 +1,5 @@
 // ゴミ箱の一覧の文（純粋な関数）
-import type { TrashKind } from "@shared/types";
+import type { TrashKind } from "@shared/trash/types";
 
 /** 消えるまでの残り（「あと 2 日 5 時間」「あと 3 時間」「あと 12 分」） */
 export function remainingText(expiresAt: string, now = Date.now()): string {

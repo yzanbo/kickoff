@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/foundation/ui/lib/hiddenItems";
 import { contextRatio } from "./chatSort";
 

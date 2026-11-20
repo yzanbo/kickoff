@@ -1,4 +1,4 @@
-import { CHAT_TAIL_TURNS } from "@shared/types";
+import { CHAT_TAIL_TURNS } from "@shared/foundation/apiTypes";
 import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
 import { streamingEffectOf } from "@shared/chat/streamingRules";

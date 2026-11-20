@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
-import type { TrashItem } from "@shared/types";
+import type { TrashItem } from "@shared/trash/types";
 import type { TrashMark } from "@shared/trash/marks";
 import { api, ApiError } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";

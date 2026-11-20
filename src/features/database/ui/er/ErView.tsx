@@ -3,7 +3,7 @@ import "@xyflow/react/dist/style.css";
 import { Background, ConnectionMode, Controls, MiniMap, ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Edge, type NodeMouseHandler, type OnNodeDrag } from "@xyflow/react";
 import { Network } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { DB_ER_AUTO_MAX, type DbConnection, type DbErPositions } from "@shared/types";
+import { DB_ER_AUTO_MAX, type DbConnection, type DbErPositions } from "@shared/database/types";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";

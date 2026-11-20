@@ -1,6 +1,6 @@
 // この Mac の Tailscale の様子を調べる（設定の「スマホ連携」の Tailscale Serve の案内）。
 // コマンドの場所だけが OS ごとに違う（OS の口の tailscaleCli）。答えの JSON の読み方は OS に依らない純粋な関数
-import type { TailscaleStatus } from "@shared/types";
+import type { TailscaleStatus } from "@shared/devices/tailscale";
 import { errorMessage } from "@shared/foundation/errors";
 import { APP_ENVS } from "@/foundation/core/system/appEnv";
 import { runCommand } from "@/foundation/core/system/exec";

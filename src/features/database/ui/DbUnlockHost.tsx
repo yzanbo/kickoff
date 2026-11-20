@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbConnection, DbEnteredPasswordsBody } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import type { DbEnteredPasswordsBody } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { setDbUnlock } from "@/features/database/ui/api/databases";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

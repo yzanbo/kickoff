@@ -1,39 +1,6 @@
-import type {
-  CopyDbConnectionBody,
-  DbConnection,
-  DbConnectionPatch,
-  DbConnectionTestBody,
-  DbConnectionTestResult,
-  DbDatabases,
-  DbDefinition,
-  DbConnectedIds,
-  DbSqlAssistBody,
-  DbSqlAssistResult,
-  DbDisconnectResult,
-  DbEditsBody,
-  DbEditsResult,
-  DbEnteredPasswordsBody,
-  DbErPositions,
-  DbErSchema,
-  DbFullRow,
-  DbFullRowBody,
-  DbImportBody,
-  DbImportCandidate,
-  DbObject,
-  DbObjectPath,
-  DbPrepRun,
-  DbPrepState,
-  DbQueryHistoryEntry,
-  DbQueryResult,
-  DbRowFilter,
-  DbRowsBody,
-  DbSqlBody,
-  DbSsh,
-  DbSshHostKey,
-  DbTableDetail,
-  NewDbConnectionBody,
-} from "@shared/types";
-import { DB_PASSWORD_LOCKED } from "@shared/types";
+import type { DbConnection, DbDatabases, DbDefinition, DbErPositions, DbErSchema, DbImportCandidate, DbObject, DbObjectPath, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbRowFilter, DbSsh, DbSshHostKey, DbTableDetail } from "@shared/database/types";
+import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbConnectionTestResult, DbConnectedIds, DbSqlAssistBody, DbSqlAssistResult, DbDisconnectResult, DbEditsBody, DbEditsResult, DbEnteredPasswordsBody, DbFullRow, DbFullRowBody, DbImportBody, DbRowsBody, DbSqlBody, NewDbConnectionBody } from "@shared/foundation/apiTypes";
+import { DB_PASSWORD_LOCKED } from "@shared/database/types";
 import { ApiError, request, withQuery } from "@/foundation/ui/api/http";
 
 /** 補完に使う、スキーマの中のテーブルと列の名前 */

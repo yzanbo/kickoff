@@ -1,4 +1,4 @@
-import type { GitDiff, GitFileChange, GitStatus } from "@shared/types";
+import type { GitDiff, GitFileChange, GitStatus } from "@shared/git/types";
 
 /**
  * Git の状態から、そのファイルのコミットしていない変更（差分に出すもの）を探す。競合 → ステージされていない変更 → ステージされている変更の順に見る

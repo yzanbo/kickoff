@@ -8,7 +8,7 @@ import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServ
 import { readIndexHtml } from "@/foundation/core/http/static";
 import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import type { ServerHello } from "@shared/types";
+import type { ServerHello } from "@shared/foundation/server";
 import { makeEvent } from "@shared/foundation/testing/factories";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 

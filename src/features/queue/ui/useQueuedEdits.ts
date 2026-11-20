@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
-import type { Attachment, QueuedMessage } from "@shared/types";
+import type { Attachment, QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 

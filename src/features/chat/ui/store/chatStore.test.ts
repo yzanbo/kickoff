@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { CHAT_TAIL_TURNS, type Chat, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
+import { CHAT_TAIL_TURNS, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery } from "@shared/foundation/apiTypes";
 import { busEvent, makeChat, makeEvent } from "@shared/foundation/testing/factories";
 import { settle } from "@shared/foundation/testing/async";
 import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CODEX_CREDIT_STATE_HINTS, codexCreditStateOf, OVERAGE_STATE_HINTS, overageStateOf, type OverageState } from "@shared/ai/overage";
-import type { CodexCredits, PlanUsage } from "@shared/types";
+import type { CodexCredits, PlanUsage } from "@shared/ai/types";
 import { showToast } from "@/foundation/ui/kit/toast";
 
 /** 帯の札の横に出す短い文（オフ・不明は出さない。課金されないか分からないだけなので、詳細で伝える） */

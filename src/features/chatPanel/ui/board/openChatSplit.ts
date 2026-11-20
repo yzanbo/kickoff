@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
 import { panelActions } from "@/features/panel/ui/state/panelActions";

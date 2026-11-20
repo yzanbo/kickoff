@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
 import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";

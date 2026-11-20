@@ -1,5 +1,6 @@
 // カンバンとステータス表示の決め方（コア・画面の両方で使う。Node 依存を持ち込まないこと）
-import type { AgentState, BoardColumn, Chat, ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { AgentState, BoardColumn, Chat } from "@shared/chat/types";
 
 /**
  * チャットのエージェントの状態。優先順位:

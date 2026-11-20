@@ -1,4 +1,5 @@
-import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type ModelOption, type ProviderId } from "@shared/types";
+import type { ModelOption } from "@shared/chat/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 
 /** モデルの選択肢（ファミリーごと・新しい順）。一覧にない値が選ばれていれば、その値も出す */

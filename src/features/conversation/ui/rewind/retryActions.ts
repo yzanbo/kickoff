@@ -1,5 +1,6 @@
 // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）の判定（純粋関数）
-import { EFFORT_LEVELS, type EffortLevel, type ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { promptBefore, promptListOf } from "@/features/conversation/ui/promptList/promptHistory";
 
 /** 直す操作を出す失敗の作業: いちばん新しい作業の終わりが失敗で、そのあと発言していないもの（その作業の終わりの記録と、元の自分の発言） */

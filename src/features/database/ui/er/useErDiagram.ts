@@ -1,6 +1,6 @@
 // ER 図のタブの状態と操作: 構造と覚えた位置を読み、絞り込み（名前・まわりの段・表示の細かさ・推測の関係）を当て、足りない位置を自動で並べる
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbConnection, type DbErPositions, type DbErSchema } from "@shared/types";
+import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbConnection, type DbErPositions, type DbErSchema } from "@shared/database/types";
 import { erNeighborhood, erPlace, erRelations } from "@shared/database/erDiagram";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";

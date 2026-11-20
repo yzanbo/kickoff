@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CaptureAttachment, NoteAttachment } from "@shared/types";
+import type { CaptureAttachment, NoteAttachment } from "@shared/chat/types";
 import { appendNote, captureLine, formatTakenAt, noteSnapshotLine } from "./attachmentNotes";
 
 const capture = (patch: Partial<CaptureAttachment> = {}): CaptureAttachment => ({

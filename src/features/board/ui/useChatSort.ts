@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { BOARD_SORT } from "@/foundation/ui/storage/storageKeys";

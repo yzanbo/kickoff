@@ -1,6 +1,6 @@
 import { Folder } from "lucide-react";
 import type { CSSProperties } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useGroup } from "@/features/groups/ui/stores/groups";
 
 /**

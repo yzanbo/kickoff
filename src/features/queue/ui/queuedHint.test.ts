@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { relayMessage } from "@shared/chat/prompts";
 import { nextQueuedText, queuedHint, reservedAction } from "./queuedHint";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 
 const base = { paused: false, busy: true, collapsed: false, stopIndex: -1 };
 

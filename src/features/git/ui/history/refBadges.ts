@@ -1,4 +1,4 @@
-import type { GitRefs } from "@shared/types";
+import type { GitRefs } from "@shared/git/types";
 import { refTargetOf, type RefTarget } from "./refTarget";
 
 /** 札に添えるリモート（name = remote の名前・branch = リモートのブランチ "origin/main"。github = GitHub を指す remote。GitHub のマークを出す。そうでなければ雲のマーク） */

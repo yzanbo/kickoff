@@ -1,7 +1,7 @@
 // チャットの AI が読むだけのツールの中身（同じプロジェクトのチャットの一覧・会話・使用枠。ほかのプロジェクトは読めない）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
 import { createAiChatReadTools, usageText } from "./aiChatRead";

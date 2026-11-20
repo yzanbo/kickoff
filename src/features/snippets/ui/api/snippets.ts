@@ -1,4 +1,4 @@
-import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/types";
+import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/snippets/types";
 import { request } from "@/foundation/ui/api/http";
 
 /** 定型文（取り決めは @shared/snippets/contract.ts）。一覧はすべて（プロジェクトごとに絞るのは画面）。並べ替えは、並べたあとのすべての定型文が返る */

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/types";
+import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
 import { defaultWorktreeAction, prNoticeMarkLabel, prNoticeTitle, prNoticeWarnings, rootChatIds } from "./prNoticePlan";
 
 const notice = (state: "MERGED" | "CLOSED"): WorktreePrNotice => ({

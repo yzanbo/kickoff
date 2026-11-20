@@ -1,5 +1,5 @@
 // PR のチェックの所要時間（純粋関数）
-import type { GitHubCheck } from "@shared/types";
+import type { GitHubCheck } from "@shared/github/types";
 import { formatElapsed } from "@/foundation/ui/lib/time";
 
 /** 所要時間（終わったものは始まりから終わりまで、動いているものは今までに「〜」を添える。時刻がない・おかしければ null） */

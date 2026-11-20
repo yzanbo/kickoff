@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { makeEvent } from "@shared/foundation/testing/factories";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { collectVisuals } from "@shared/visuals/aiVisual";

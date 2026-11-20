@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import WebSocket from "ws";
-import type { TerminalCreated, TerminalServerMessage, TerminalTab } from "@shared/types";
+import type { TerminalCreated, TerminalServerMessage, TerminalTab } from "@shared/terminal/types";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 import { until } from "@/app/core/testing/testCore";
 import { AUTH, setup } from "@/app/core/testing/testServer";

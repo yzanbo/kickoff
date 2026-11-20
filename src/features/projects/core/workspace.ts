@@ -4,7 +4,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { hasRef } from "@/features/git/core/status";
 import { expandHome } from "@/foundation/core/system/paths";
-import type { FolderInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/projects/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 
 const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();

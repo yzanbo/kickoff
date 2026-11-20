@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { matchesTags } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { SIDEBAR_PROJECT_ORDER } from "@/foundation/ui/storage/storageKeys";
 import { useChatsValue } from "@/features/chat/ui/store/knownChats";

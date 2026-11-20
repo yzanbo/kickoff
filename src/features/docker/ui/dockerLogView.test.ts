@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerCompose, DockerLogSource } from "@shared/types";
+import type { DockerCompose, DockerLogSource } from "@shared/docker/types";
 import { aroundRow, chipOf, fillTs, logChips, logLevelOf, logQuote, mergeRows, normTs, prettyJson, separatorText, type LogContainerInfo, type LogRow } from "./dockerLogView";
 
 const line = (id: number, ts: string, text = `l${id}`, container = "c1"): LogRow => ({ id, kind: "line", container, ts, text });

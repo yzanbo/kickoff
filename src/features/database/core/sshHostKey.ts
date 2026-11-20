@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { DbSsh, DbSshHostKey } from "@shared/types";
+import type { DbSsh, DbSshHostKey } from "@shared/database/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { runCommand } from "@/foundation/core/system/exec";
 import { knownHostsName, parseKeyscan, parseSshConfigDump, parseSshConfigHosts, sshFingerprint, sshTargetArgs } from "./sshArgs";

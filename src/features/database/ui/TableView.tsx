@@ -1,6 +1,6 @@
 import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
-import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
+import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { cx } from "@/foundation/ui/lib/cx";

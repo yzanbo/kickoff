@@ -1,6 +1,8 @@
 import { Archive, Folder, Inbox, Pin, SquarePen } from "lucide-react";
 import { Fragment, memo, useMemo, useState } from "react";
-import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
+import { BOARD_COLUMN_LABELS, type Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { cx } from "@/foundation/ui/lib/cx";

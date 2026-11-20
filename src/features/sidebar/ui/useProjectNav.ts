@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Project, Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

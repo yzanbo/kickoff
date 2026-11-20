@@ -1,7 +1,7 @@
 // 作業場所を移した区切りより前の行:
 // その行のファイルのチップ・変更カード・「差分を見る」・ツールの行・読んだ画像を、その発言のときの作業場所から開く
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { ProjectFiles } from "@shared/types";
+import type { ProjectFiles } from "@shared/git/types";
 import { workplaceGoneText, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";

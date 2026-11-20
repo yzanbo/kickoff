@@ -1,5 +1,5 @@
 import { AppWindow, Columns2, PanelRight, Rows2 } from "lucide-react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

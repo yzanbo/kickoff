@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ServiceUsage } from "@shared/types";
+import type { ServiceUsage } from "@shared/ai/types";
 import { ServiceUsageDetails } from "./ServiceUsageDetails";
 
 const service = (patch: Partial<ServiceUsage> = {}): ServiceUsage => ({

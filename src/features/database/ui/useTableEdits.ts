@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { editKeyColumns, editStatements } from "@shared/database/dbEdit";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDetail } from "@shared/types";
+import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDetail } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";

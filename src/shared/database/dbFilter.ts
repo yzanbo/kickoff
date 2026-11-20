@@ -1,5 +1,5 @@
 // テーブルのデータの絞り込み（条件・WHERE の文）を SQL の WHERE 句にする（純粋な関数。ドライバと画面の「流す SQL」の見せ方で共通）
-import type { DbFilter, DbFilterOp, DbRowFilter } from "../types";
+import type { DbFilter, DbFilterOp, DbRowFilter } from "@shared/database/types";
 
 /** DB の種類ごとの書き方 */
 export interface FilterDialect {

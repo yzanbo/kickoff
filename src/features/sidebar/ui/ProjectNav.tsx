@@ -1,6 +1,7 @@
 import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { useChatSelection } from "@/features/chatList/ui/selection/chatSelection";
 import { FoldHead } from "@/foundation/ui/kit/FoldHead";

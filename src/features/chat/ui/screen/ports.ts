@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type RefObject } from "react";
-import type { Attachment, ChatEvent, EffortLevel } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Attachment } from "@shared/chat/types";
+import type { EffortLevel } from "@shared/settings/types";
 import type { ValueCell } from "@/foundation/ui/store/valueCell";
 import type { ComposerFill } from "@/features/composer/ui/composerHandle";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";

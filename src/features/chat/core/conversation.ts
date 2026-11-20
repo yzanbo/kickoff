@@ -1,6 +1,6 @@
 // AI がほかのチャットの会話を読むツール（read_chat）の純粋な関数: 記録をやり取り（自分の発言 1 つと、次の発言までの AI の答えの文）に分け、
 // 読む範囲を選んで AI に返す文にする。ツールの中身・サブエージェントの文・思考は省き、ツールは数だけを添える
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 
 /** 1 回分のやり取り（index は 1 から。会話の初めからの番号） */
 export interface ConversationTurn {

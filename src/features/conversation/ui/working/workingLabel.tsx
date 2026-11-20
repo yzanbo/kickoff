@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import type { Chat, ChatEvent, ChatLive, CompactTrigger } from "@shared/types";
+import type { ChatEvent, CompactTrigger } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "@/features/chat/ui/state/stall";
 import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundLabel";

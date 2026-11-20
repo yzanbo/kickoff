@@ -7,7 +7,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { expandPrepCommand, type DbPrepVars } from "@shared/database/dbPrep";
-import { DB_SSH_UNKNOWN_HOST, type DbSsh } from "@shared/types";
+import { DB_SSH_UNKNOWN_HOST, type DbSsh } from "@shared/database/types";
 import { isChangedHostKey, isUnknownHostKey, sshTargetArgs } from "@/features/database/core/sshArgs";
 import { killTree, spawnShell } from "./shell";
 import { spawnTracked } from "./children";

@@ -1,5 +1,5 @@
 import { Activity } from "lucide-react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openActiveChats } from "./openActiveChats";

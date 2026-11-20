@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, Bot } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
-import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
+import type { ModelOption, Chat } from "@shared/chat/types";
+import { EFFORT_LABELS, type EffortLevel } from "@shared/settings/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentState } from "@shared/chat/subagentState";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";

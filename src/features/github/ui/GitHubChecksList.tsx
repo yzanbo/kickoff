@@ -1,5 +1,5 @@
 import { Check, CircleDashed, CircleMinus, ExternalLink, ScrollText, X, type LucideIcon } from "lucide-react";
-import type { GitHubCheck } from "@shared/types";
+import type { GitHubCheck } from "@shared/github/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { checkDuration } from "./githubChecks";

@@ -1,4 +1,4 @@
-import { COMMAND_OUTPUT_LINES } from "@shared/types";
+import { COMMAND_OUTPUT_LINES } from "@shared/chat/chatEvent";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { cleanTerminalText, tailLines } from "@/features/ai/core/providers/claude/commandOutput";
 import type { FileUpdateChange, JsonValue, ThreadItem, ThreadTokenUsage } from "./protocol";

@@ -1,5 +1,6 @@
 import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/ai/chatOptions";
-import { PROVIDER_LABELS, type ChatOptions, type EffortLevel, type OtherProviderId, type PermissionMode } from "@shared/types";
+import type { ChatOptions } from "@shared/chat/types";
+import { PROVIDER_LABELS, type EffortLevel, type OtherProviderId, type PermissionMode } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions, providerDefaultModelLabel } from "@/features/ai/ui/options/AiOptions";

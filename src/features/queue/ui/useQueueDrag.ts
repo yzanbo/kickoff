@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { moveStopOnce, moveToSlot } from "@shared/chat/queueStops";
 import { api } from "@/foundation/ui/api";
 

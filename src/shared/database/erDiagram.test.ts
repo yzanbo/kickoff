@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbErTable, DbForeignKey, DbTableDetail } from "../types";
+import type { DbErTable, DbForeignKey, DbTableDetail } from "@shared/database/types";
 import { erMermaid, erNeighborhood, erRelations, erTableOf } from "./erDiagram";
 
 const col = (name: string, opts: { pk?: boolean; nullable?: boolean; type?: string } = {}) => ({

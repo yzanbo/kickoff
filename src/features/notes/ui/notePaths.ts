@@ -1,7 +1,7 @@
 // ノートのタブの木と、パスの補助（純粋な関数。パスはノートのフォルダからの相対で、区切りは /）
 import { noteExtensionOf, noteKindOf, type NoteKind } from "@shared/notes/kinds";
 import { uniqueNoteName } from "@shared/notes/names";
-import type { NoteEntry } from "@shared/types";
+import type { NoteEntry } from "@shared/notes/types";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
 
 /** フォルダを先に、名前の順（大文字・小文字を区別しない。数は数として比べる。エディタの木と同じ） */

@@ -1,4 +1,4 @@
-import type { ChatStatus } from "@shared/types";
+import type { ChatStatus } from "@shared/chat/types";
 
 export const CHAT_STATUS_LABELS: Record<ChatStatus, string> = {
   running: "作業中",

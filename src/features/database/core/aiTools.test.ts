@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
-import type { NewDbConnectionBody } from "@shared/types";
+import type { NewDbConnectionBody } from "@shared/foundation/apiTypes";
 import { setup } from "@/app/core/testing/testServer";
 import { DbWorkerClient } from "./client";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";

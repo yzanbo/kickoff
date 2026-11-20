@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
-import type { VoiceStatus } from "@shared/types";
+import type { VoiceStatus } from "@shared/voice/types";
 import type { BusEvent } from "@shared/foundation/contract";
 
 /** 音声を multipart で送る */

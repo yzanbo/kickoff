@@ -11,7 +11,7 @@ import { handOffToParent } from "@/features/childChats/core/handoff";
 import { startSubagentChildChat } from "@/features/childChats/core/subagentChild";
 import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";
-import type { TellResult } from "@shared/types";
+import type { TellResult } from "@shared/foundation/apiTypes";
 import { marksOf } from "@shared/chat/handoff";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import { providerSwitchPreview } from "@/features/providerSwitch/core/providerSwitchPreview";

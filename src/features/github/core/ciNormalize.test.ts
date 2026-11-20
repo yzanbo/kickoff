@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CiRun } from "@shared/types";
+import type { CiRun } from "@shared/github/ciTypes";
 import { ciStateOf, failuresToNotify, parseRunLog, stepLogsOf, stripAnsi, toCiJob, toCiRun, toExternalChecks } from "./ciNormalize";
 
 test("ciStateOf: 終わっていなければ実行中、終わっていれば conclusion から（時間切れ・起動の失敗も落ちた）", () => {

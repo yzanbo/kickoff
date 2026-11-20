@@ -1,6 +1,6 @@
 import { Check, Cloud, Tag } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
-import type { GitRefs } from "@shared/types";
+import type { GitRefs } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { GitHubMark } from "@/features/git/ui/GitHubMark";
 import { refBadgesOf, type BadgeRemote } from "./refBadges";

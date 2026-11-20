@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Square, Volume2 } from "lucide-react";
-import { OPENAI_TTS_VOICES, VOICE_TTS_PROVIDERS, type AppSettings, type VoiceStatus } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
+import { OPENAI_TTS_VOICES, VOICE_TTS_PROVIDERS, type VoiceStatus } from "@shared/voice/types";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

@@ -1,4 +1,5 @@
-import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode, type ProviderId } from "@shared/types";
+import type { ChatOptions, ModelOption } from "@shared/chat/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku", "astra", "sol", "terra", "luna"];

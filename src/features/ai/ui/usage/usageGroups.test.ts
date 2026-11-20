@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ServiceUsage } from "@shared/types";
+import type { ServiceUsage } from "@shared/ai/types";
 import { makeProviderStatus } from "@shared/foundation/testing/factories";
 import { usageGroups } from "./usageGroups";
 

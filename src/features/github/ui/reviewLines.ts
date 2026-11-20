@@ -1,5 +1,5 @@
 // PR の差分のどの行にレビューのコメントを付けるか（右クリックした行・選んだ行の範囲を、差分の表の data- から読む）
-import type { GitHubReviewDraftComment } from "@shared/types";
+import type { GitHubReviewDraftComment } from "@shared/github/types";
 import type { DiffLine } from "@/foundation/ui/diff/diffModel";
 
 /** コメントを付ける所（start_line があれば start_line〜line の範囲） */

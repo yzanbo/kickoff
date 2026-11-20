@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDbConnections } from "@/features/database/ui/client/connectionsStore";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

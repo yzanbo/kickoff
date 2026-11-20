@@ -1,5 +1,5 @@
 // 履歴（git log・コミットの詳細と差分・ブランチやタグの一覧）
-import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs } from "@shared/types";
+import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs } from "@shared/git/types";
 import { toGitDiff } from "./changes";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { assertInside } from "@/features/files/core/files";

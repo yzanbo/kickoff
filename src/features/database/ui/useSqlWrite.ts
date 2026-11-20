@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { writeConfirmation, type SqlStatement } from "@shared/database/sqlStatements";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { alertDialog, confirmDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
 
 /** 「書き込む」を何もしないまま放っておいたら、読み取り専用に戻すまでの時間 */

@@ -1,4 +1,4 @@
-import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_LABELS } from "@shared/types";
+import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_LABELS } from "@shared/settings/types";
 import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "@/features/ai/core/providers/acp/provider";
 
 /** API キーでないときに動かさない理由（Antigravity のログインをほかのアプリから使うのは利用規約で禁じられている） */

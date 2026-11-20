@@ -1,6 +1,6 @@
 // 作業場所を移したら、そのチャットの右の欄の作業場所付きのタブ（変更・ファイル・プロジェクトの画面・DB）を新しい作業場所に付け替える。
 // 書きかけのファイルのタブだけは付け替えずに残し、そう知らせる
-import type { WorkplaceRef } from "@shared/types";
+import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { isFileTabDirty } from "@/features/files/ui/fileTabs";

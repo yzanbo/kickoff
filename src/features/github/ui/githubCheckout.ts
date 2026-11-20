@@ -1,6 +1,6 @@
 // PR のチェックアウト: 取るたびに新しいワークツリー / 本体を選び（既定の印は付けない）、本体ならまだコミットしていない変更と
 // 本体で作業中のチャットを確認で知らせる。fork の PR も取れる（コアが pr-N に取ってくる）。取ったら、その作業場所で新しいチャットを始めるボタンを出す
-import type { GitHubPullDetail } from "@shared/types";
+import type { GitHubPullDetail } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";

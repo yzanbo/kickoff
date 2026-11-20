@@ -1,7 +1,7 @@
 // API のテスト: 定型文（作る・変える・範囲の切り替え・並べ替え・消す・プロジェクトを消したとき）（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Snippet } from "@shared/types";
+import type { Snippet } from "@shared/snippets/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";

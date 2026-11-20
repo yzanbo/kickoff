@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Trash2 } from "lucide-react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { archivedProjects, sidebarOrder } from "@/features/projects/ui/projectOrder";
 import { projectHueStyle } from "@/features/projects/ui/projectColor";
 import { useProjects } from "@/features/projects/ui/stores/projects";

@@ -1,5 +1,5 @@
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
-import type { BackgroundState, BackgroundTask } from "@shared/types";
+import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 
 /** 種類ごとの呼び名 */
 const KIND_LABELS: Record<BackgroundTask["kind"], string> = { agent: "サブエージェント", command: "コマンド", other: "作業" };

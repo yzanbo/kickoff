@@ -1,8 +1,8 @@
 // Docker タブのコア: 一覧（エンジンの様子・compose の見出し・ほかのプロジェクトの数）・操作（compose ごとに 1 つずつ・［中止］・失敗を残す）・docker events（見ている画面があるときだけ）。DB は使わない
 import fs from "node:fs";
 import path from "node:path";
-import type { DockerAction, DockerActionBody, DockerFailure, DockerList, DockerLogLine, DockerLogSource, DockerOperation, Project } from "@shared/types";
-import { DOCKER_SHARED_PROJECT } from "@shared/types";
+import { type DockerAction, type DockerActionBody, type DockerFailure, type DockerList, type DockerLogLine, type DockerLogSource, type DockerOperation, DOCKER_SHARED_PROJECT } from "@shared/docker/types";
+import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
 import { workplacesOf, type Workplace } from "@/foundation/core/workplace/worktrees";

@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { moveDroppedChatToProject } from "@/features/chat/ui/chatActions";
 import { useChatDropTargets } from "@/features/groups/ui/groups";
 import { knownChat } from "@/features/chat/ui/store/knownChats";

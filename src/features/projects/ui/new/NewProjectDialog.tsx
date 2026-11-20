@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { CreateForm } from "./CreateForm";

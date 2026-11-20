@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
-import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/database/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { ApiError } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";

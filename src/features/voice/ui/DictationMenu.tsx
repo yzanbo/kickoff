@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from "react";
 import { Check, Settings } from "lucide-react";
-import { VOICE_LANGUAGES } from "@shared/types";
+import { VOICE_LANGUAGES } from "@shared/voice/types";
 import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { VOICE_MIC_DEVICE } from "@/foundation/ui/storage/storageKeys";

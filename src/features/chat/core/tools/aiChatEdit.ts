@@ -6,7 +6,7 @@
 // 固定・グループ・親から外すは家系の中だけ。読み書きは店（store.chats・store.groups）を通し、変えたら店の知らせで画面に届く
 import type { UpdateChatInput } from "@shared/chat/aiChatEdit";
 import { errorMessage } from "@shared/foundation/errors";
-import { CHAT_TITLE_MAX, type Chat } from "@shared/types";
+import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
 import type { Store } from "@/foundation/core/db/store";
 import { familyOrder, familyRelation } from "@shared/chat/family";
 import { detachChat } from "@/features/childChats/core/detach";

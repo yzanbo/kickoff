@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { Store } from "@/foundation/core/db/store";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore, until } from "@/app/core/testing/testCore";

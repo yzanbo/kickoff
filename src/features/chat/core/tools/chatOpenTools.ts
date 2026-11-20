@@ -1,7 +1,7 @@
 // kickoff_chat の画面に頼むツール（open_note・open_chat・open_file・open_diff・open_sql・add_draft）。中身は core/chat/aiOpen.ts、ここは引数の形と使い方だけ
 import { defineTool as tool } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
-import { OPEN_PLACES } from "@shared/types";
+import { OPEN_PLACES } from "@shared/chat/openView";
 import type { AiOpenTools } from "./aiOpen";
 import { run } from "@/foundation/core/aiTools/chatToolResult";
 

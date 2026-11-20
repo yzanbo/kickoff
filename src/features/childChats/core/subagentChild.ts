@@ -1,6 +1,7 @@
 // サブエージェントについて子チャットで聞く: サブエージェントの会話の記録を添付にして、そのチャットの子チャットで聞く
 // （メインエージェントにもサブエージェント本人にも伝わらず、記録を読んだ別の AI がサブエージェントの続きとして答える）
-import { UNTITLED_CHAT_TITLE, type Attachment, type Chat, type ChatOptionsPatch, type ProviderId } from "@shared/types";
+import { UNTITLED_CHAT_TITLE, type Attachment, type Chat, type ChatOptionsPatch } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { collectSubagents } from "@shared/chat/subagents";
 import { subagentAskMessage } from "@shared/chat/prompts";
 import type { Store } from "@/foundation/core/db/store";

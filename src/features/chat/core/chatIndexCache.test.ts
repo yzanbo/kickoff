@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import type { ChatEvent, ChatEventData } from "@shared/types";
+import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { indexOfEvents, type IndexContext } from "@shared/chat/chatIndex";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { Store } from "@/foundation/core/db/store";

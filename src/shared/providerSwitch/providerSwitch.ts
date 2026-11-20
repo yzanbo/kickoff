@@ -1,4 +1,5 @@
-import type { ChatEvent, ChatEventDataOf, ProviderId } from "@shared/types";
+import type { ChatEvent, ChatEventDataOf } from "@shared/chat/chatEvent";
+import type { ProviderId } from "@shared/settings/types";
 
 export type ProviderBoundary = { id: number; from: ProviderId; to: ProviderId };
 

@@ -1,5 +1,6 @@
 // ワークツリーの PR の知らせの確認で選ぶもの（ワークツリー・チャットの扱い）と、確認に出す注意（純粋な関数）
-import type { Chat, WorktreePrNotice, WorktreeRemovalInfo } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
 
 /** ワークツリーの扱い（both = ワークツリーとブランチを消す / worktree = ワークツリーだけ消す / keep = 残す。名前は削除の確認と同じ） */
 export const PR_WORKTREE_ACTIONS = ["both", "worktree", "keep"] as const;

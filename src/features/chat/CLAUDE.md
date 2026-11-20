@@ -42,7 +42,7 @@
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る形は `@shared/types` の `ChatLive`。詳細の `live` と SSE の `chat_live` を同じ形にし、変わるたびに丸ごと配る。保存しない。
+- 画面に配る形は `ChatLive`。詳細の `live` と SSE の `chat_live` を同じ形にし、変わるたびに丸ごと配る。保存しない。
 - 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
 
 ## 送信待ち（`core/queue.ts`・`core/runnerQueue.ts`）

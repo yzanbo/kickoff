@@ -1,5 +1,5 @@
 // AI のつなぎ込みの機能のコアの入口（ほかの機能はここだけを読む）
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";

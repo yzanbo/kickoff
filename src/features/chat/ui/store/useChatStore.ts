@@ -1,5 +1,5 @@
 import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { WorkplaceBoundary } from "@shared/workplaceMove/workplaceMoves";
 import { api } from "@/foundation/ui/api";
 import { subscribeServerEvent, subscribeServerOpen } from "@/foundation/ui/api/events";

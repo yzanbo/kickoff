@@ -1,6 +1,6 @@
 // 起動したときの再開の確かめ（前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット。答えるまでコアは続けず・送らない）。
 // アプリを開いたときに 1 回読み、答えた・送信待ちが変わった・チャットを消したはサーバーの知らせで直す（確かめを待つチャットは起動したときにしかできない）
-import type { RestartResume } from "@shared/types";
+import type { RestartResume } from "@shared/chat/chatLive";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";

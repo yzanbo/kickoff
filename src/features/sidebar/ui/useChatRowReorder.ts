@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { draggingChat } from "@/features/groups/ui/groups";
 import { detachChild } from "@/features/childChats/ui/detachChild";

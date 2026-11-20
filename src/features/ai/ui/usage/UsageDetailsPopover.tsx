@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { PlanUsage, ProviderStatus } from "@shared/types";
+import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
 import { providerLabel } from "@/features/ai/ui/provider/providerChoice";
 import { PlanUsageDetails } from "./PlanUsageDetails";
 import { ServiceUsageDetails } from "./ServiceUsageDetails";

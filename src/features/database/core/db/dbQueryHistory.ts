@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { DB_HISTORY_MAX, type DbQueryHistoryEntry, type DbQueryRanBy } from "@shared/types";
+import { DB_HISTORY_MAX, type DbQueryHistoryEntry, type DbQueryRanBy } from "@shared/database/types";
 
 /** 履歴に足す 1 件（id・時刻は表が決める） */
 export interface NewDbQueryHistory {

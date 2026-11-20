@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AppSettings } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useSave } from "@/foundation/ui/hooks/useSave";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";

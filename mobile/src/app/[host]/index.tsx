@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { AGENT_STATE_LABELS, type AgentState } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState } from "@shared/chat/types";
 import { chatSections } from "../../lib/hostState";
 import { useHosts } from "../../state/hosts";
 import { useHostState } from "../../state/useHostState";

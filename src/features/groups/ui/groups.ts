@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from "react";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { confirmDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
 import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";

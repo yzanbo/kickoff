@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { DbEngine } from "@shared/types";
+import type { DbEngine } from "@shared/database/types";
 import { fromUrl, type FoundDb } from "./found";
 
 /** Prisma の provider → 種類（sqlserver・mongodb などは扱わない） */

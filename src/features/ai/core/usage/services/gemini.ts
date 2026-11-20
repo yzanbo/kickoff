@@ -1,6 +1,6 @@
 import os from "node:os";
 import path from "node:path";
-import type { ServiceUsage, UsageWindow } from "@shared/types";
+import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
 import { defineFetcher, emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "./common";
 import { geminiOAuthClient } from "./geminiClient";
 

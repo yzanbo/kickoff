@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /** 同じチャットで各 AI に戻したときの再開先と、引き継ぎ済みの記録の位置 */
 export interface ChatProviderSession {

@@ -1,4 +1,4 @@
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatClock } from "@/foundation/ui/lib/time";
 

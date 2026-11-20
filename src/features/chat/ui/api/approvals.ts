@@ -1,4 +1,4 @@
-import type { Approval, ApprovalDecision } from "@shared/types";
+import type { Approval, ApprovalDecision } from "@shared/chat/approvalTypes";
 import { request } from "@/foundation/ui/api/http";
 
 /** 回答待ち: ツールの承認依頼・AI からの質問・再開するかの確かめ（コアの routes/approvals.ts） */

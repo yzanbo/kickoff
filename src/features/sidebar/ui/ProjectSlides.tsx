@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ProjectListHead } from "./ProjectListHead";
 import { stateCounts } from "@/features/chat/ui/state/chatState";

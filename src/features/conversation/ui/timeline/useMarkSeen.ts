@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { isUnreadEvent } from "@shared/chat/state";
-import type { Chat, ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
 

@@ -1,4 +1,7 @@
-import type { FolderInspection, ImportProjectBody, NewProjectBody, Project, ProjectGitHub, ProjectPatch, ProjectRepoPathBody, TrashedResult } from "@shared/types";
+import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
+import type { ProjectGitHub } from "@shared/git/types";
+import type { FolderInspection, Project } from "@shared/projects/types";
+import type { TrashedResult } from "@shared/trash/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** プロジェクト（作成・取り込み・変更・フォルダの変更・git の管理を始める・並び順・ゴミ箱へ入れる）と、取り込む前のフォルダの点検（コアの routes/projects.ts） */

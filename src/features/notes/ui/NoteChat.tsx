@@ -1,6 +1,6 @@
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
 import { useImperativeHandle, useRef, useState, type MutableRefObject } from "react";
-import type { Attachment, ChatOptions } from "@shared/types";
+import type { Attachment, ChatOptions } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";

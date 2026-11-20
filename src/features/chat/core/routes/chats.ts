@@ -13,7 +13,9 @@ import { chatTranscript } from "@/features/chat/core/transcript";
 import { detachChat } from "@/features/childChats/core/detach";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 import { planUserWorkplaceMove, workplaceMoveCheck } from "@/features/workplaceMove/core/workplaceUserMove";
-import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type GitWorktree, type WorkplaceMoveBody } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type WorkplaceMoveBody } from "@shared/foundation/apiTypes";
+import type { GitWorktree } from "@shared/git/types";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
 /**

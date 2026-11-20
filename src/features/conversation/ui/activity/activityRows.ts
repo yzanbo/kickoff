@@ -1,5 +1,5 @@
 // 動き（メインとすべてのサブエージェントの動きを、1 本の時系列に並べる表示）の行の組み立て。純粋な関数
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { relayedText } from "@shared/chat/prompts";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";

@@ -1,6 +1,6 @@
 // プロジェクトごとのノートの一覧（フォルダとファイル）。ノートのタブ・「ノートに追加」の追記先で共通に読む。
 // 変わったら知らせ（notes）で取り直す（Finder・ほかのアプリでの変更も、コアがフォルダを見張って知らせる）。見張れなかったときのために、ウィンドウに戻ったとき・30 秒たって使ったときにも取り直す
-import type { NoteList } from "@shared/types";
+import type { NoteList } from "@shared/notes/types";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";

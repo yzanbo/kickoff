@@ -1,5 +1,5 @@
 import { projectNoteFolder } from "@shared/notes/names";
-import type { NewProjectNoteDir } from "@shared/types";
+import type { NewProjectNoteDir } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useProjects } from "@/features/projects/ui/stores/projects";

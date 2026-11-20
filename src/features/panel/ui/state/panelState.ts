@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { singlePane, type PaneLayout } from "@/features/panel/ui/layout/paneTree";
 import { addTabBehind, closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/ui/layout/paneLayout";

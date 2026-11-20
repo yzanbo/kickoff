@@ -1,4 +1,8 @@
-import type { EffortDefault, GitHubStatus, ModelOption, ProviderId, ProviderLoginStart, ProviderStatus, SlashCommandOption } from "@shared/types";
+import type { ProviderStatus, SlashCommandOption } from "@shared/ai/types";
+import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import type { ProviderLoginStart } from "@shared/foundation/apiTypes";
+import type { GitHubStatus } from "@shared/foundation/server";
+import type { ProviderId } from "@shared/settings/types";
 import { request } from "@/foundation/ui/api/http";
 import { workdirPath, type GitTarget } from "@/foundation/ui/api/workdir";
 

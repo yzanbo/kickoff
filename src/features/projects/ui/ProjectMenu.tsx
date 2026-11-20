@@ -17,7 +17,7 @@ import {
 import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { alertDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useOrderedTags } from "./projectTagFilter";

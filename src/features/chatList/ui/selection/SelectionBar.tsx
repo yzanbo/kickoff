@@ -1,5 +1,6 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
 import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/ui/chatActions";

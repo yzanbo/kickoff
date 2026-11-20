@@ -3,16 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import {
-  DEVICE_FORBIDDEN,
-  DEVICE_READ_ONLY,
-  MOBILE_OFF,
-  type Device,
-  type PairingClaimResult,
-  type PairingPollResult,
-  type PairingState,
-  type TailscaleStatus,
-} from "@shared/types";
+import type { TailscaleStatus } from "@shared/devices/tailscale";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/devices/types";
 import { deviceRoutes, LEGACY_DEVICE_ROUTES, LEGACY_READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
 import { matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";

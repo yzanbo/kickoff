@@ -1,5 +1,5 @@
 // AI の API キー: キーチェーンの鍵で暗号化して secrets に置く。画面・API・SSE には出さず、置いたかだけを返す
-import type { ProviderAuthMode, ProviderId } from "@shared/types";
+import type { ProviderAuthMode, ProviderId } from "@shared/settings/types";
 import type { Store } from "@/foundation/core/db/store";
 import { openSecret, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { bit } from "@/foundation/core/db/common";
 
 /** 保存した送信待ちの列（チャットごと） */

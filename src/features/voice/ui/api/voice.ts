@@ -1,4 +1,5 @@
-import type { SecretSaved, Transcription, VoiceStatus } from "@shared/types";
+import type { SecretSaved, Transcription } from "@shared/foundation/apiTypes";
+import type { VoiceStatus } from "@shared/voice/types";
 import { postForBlob, postForm, request } from "@/foundation/ui/api/http";
 
 /** 音声入力（文字起こし・読み上げ・準備の状態・この Mac のモデル・OpenAI の API キー。コアの routes/voice.ts） */

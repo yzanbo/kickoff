@@ -2,7 +2,8 @@
 // 消す前に確かめ（コミットしていない変更・取り込み済みか）、失うものがあれば Git の控え（refs/kickoff/trash/…）に入れて Kickoff のゴミ箱に 3 日残し、
 // ワークツリー・ブランチ・ポートの帯・Docker の組（そのワークツリーだけのもの）・PR の知らせを片付け、そこで作業していたチャットを本体に戻す。ワークツリー自身のチャットから頼まれたら、そのチャットの作業が終わってから消す（予約）
 import path from "node:path";
-import type { GitWorktree, Project } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
+import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
 import type { Runner } from "@/features/chat/core/runner";

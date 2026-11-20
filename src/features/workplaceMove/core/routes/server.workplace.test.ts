@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { WorkplaceMoveCheck } from "@shared/types";
+import type { WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 

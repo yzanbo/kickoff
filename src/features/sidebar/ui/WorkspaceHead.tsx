@@ -1,6 +1,7 @@
 import { ArchiveRestore, ChevronDown, ChevronRight, Pin, SquarePen } from "lucide-react";
 import type { DragEvent } from "react";
-import type { Project, ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { changeProject, confirmRestoreProject } from "@/features/projects/ui/projectOrder";
 import { href, navigate, openNewChat } from "@/foundation/ui/navigation/router";

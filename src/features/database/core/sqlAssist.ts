@@ -1,6 +1,6 @@
 // SQL のタブの「AI に頼む」: 頼みの文とスキーマのテーブル・列の名前から、1 回だけ AI に SQL を書いてもらう頼み方と答えの読み方（中身の値は渡さない）
-import type { DbEngine } from "@shared/types";
-import { DB_ENGINE_LABELS } from "@shared/types";
+import type { DbEngine } from "@shared/database/types";
+import { DB_ENGINE_LABELS } from "@shared/database/types";
 import type { DbOutlineTable } from "@shared/database/workerProtocol";
 
 /** 頼みに入れるテーブルと列の名前の上限（文字数。超えたら後ろのテーブルを省く） */

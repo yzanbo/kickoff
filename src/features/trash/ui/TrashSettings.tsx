@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FolderGit2 } from "lucide-react";
-import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupDays, type TrashItem } from "@shared/types";
+import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupDays, type TrashItem } from "@shared/trash/types";
 import { formatSize } from "@shared/attachments/truncate";
 import { api } from "@/foundation/ui/api";
 import { useTrashedProjects, useUnassignedTrash } from "@/features/trash/ui/stores/trash";

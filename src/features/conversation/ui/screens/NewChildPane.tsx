@@ -1,6 +1,7 @@
 import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { PROVIDER_LABELS, type Attachment, type Chat, type ProviderId } from "@shared/types";
+import type { Attachment, Chat } from "@shared/chat/types";
+import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
 import { Composer } from "@/features/composer/ui/Composer";

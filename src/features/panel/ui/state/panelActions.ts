@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import type { PaneLayout, SplitDir, SplitSide } from "@/features/panel/ui/layout/paneTree";
 import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/ui/layout/paneLayout";

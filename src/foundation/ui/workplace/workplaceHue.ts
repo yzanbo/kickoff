@@ -1,5 +1,5 @@
 import { workplaceDefaultHue } from "@shared/projects/colors";
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import type { ChatWorkplace } from "./workplace";
 
 /**

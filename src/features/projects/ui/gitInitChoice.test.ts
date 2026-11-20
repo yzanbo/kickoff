@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { FolderInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/projects/types";
 import { gitInitChoice, gitManagedNote } from "./gitInitChoice";
 
 const folder = (patch: Partial<FolderInspection> = {}): FolderInspection => ({

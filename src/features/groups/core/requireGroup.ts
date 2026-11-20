@@ -1,4 +1,4 @@
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 
 /** グループ。なければ 404、ほかのプロジェクトのものなら 400（チャットを入れられるのは同じプロジェクトのグループだけ） */

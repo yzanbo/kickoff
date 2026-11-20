@@ -1,6 +1,6 @@
 import { Bot, History } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import type { DbConnection, DbQueryHistoryEntry } from "@shared/types";
+import type { DbConnection, DbQueryHistoryEntry } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { formatFullStamp, shortRelativeTime } from "@/foundation/ui/lib/time";

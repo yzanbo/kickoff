@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Question } from "@shared/types";
+import type { Question } from "@shared/chat/approvalTypes";
 import { chosenPreviews, hasPreviews } from "./questionPreviews";
 
 const q = (question: string, options: { label: string; preview?: string }[], multiSelect = false): Question => ({

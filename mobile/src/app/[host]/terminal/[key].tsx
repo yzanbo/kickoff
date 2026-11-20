@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
-import type { TerminalClientMessage, TerminalServerMessage } from "@shared/types";
+import type { TerminalClientMessage, TerminalServerMessage } from "@shared/terminal/types";
 import { authHeaders } from "../../../lib/client";
 import { useHostState } from "../../../state/useHostState";
 import { terminalPageHtml, type TerminalPageMessage } from "../../../terminal/terminalPage";

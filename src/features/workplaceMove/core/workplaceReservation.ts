@@ -3,7 +3,8 @@
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { randomUUID } from "node:crypto";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Chat, QueuedMessage, WorkplaceMoveBody } from "@shared/types";
+import type { Chat, QueuedMessage } from "@shared/chat/types";
+import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
 import type { Store } from "@/foundation/core/db/store";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";

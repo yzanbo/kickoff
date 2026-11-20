@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, CircleDashed, CircleDot, EyeOff, ListChecks, ListTodo, MessageSquare } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { useFold } from "@/foundation/ui/hooks/useFold";

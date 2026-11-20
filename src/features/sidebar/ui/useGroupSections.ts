@@ -1,5 +1,7 @@
 import { useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
-import type { Chat, ChatGroup, Project } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { moveDroppedChatToProject } from "@/features/chat/ui/chatActions";
 import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";

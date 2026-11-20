@@ -4,7 +4,7 @@ import path from "node:path";
 import { workplaceText } from "@shared/foundation/workplace";
 import { relativeApiPath } from "@/foundation/core/system/paths";
 import type { Workplace } from "@/foundation/core/workplace/worktrees";
-import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerServiceInfo, DockerShare } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerServiceInfo, DockerShare } from "@shared/docker/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse";
 
 /** compose のファイル 1 つ分の読み取り（見つけたファイルと、作ったコンテナのラベルにあるファイル） */

@@ -1,4 +1,4 @@
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
 import { modelDisplayName } from "./models";
 

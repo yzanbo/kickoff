@@ -1,6 +1,6 @@
 import { ChevronDown, Copy } from "lucide-react";
 import { useCallback, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
-import type { DockerCompose } from "@shared/types";
+import type { DockerCompose } from "@shared/docker/types";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

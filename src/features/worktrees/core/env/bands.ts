@@ -1,5 +1,5 @@
 // ポートの帯（ワークツリーごとに 100 個ずつの番号のまとまり）の選び方と、帯の中の番号の並べ方（純粋な関数）
-import { WORKTREE_BAND_FIRST, WORKTREE_BAND_LAST, WORKTREE_BAND_SIZE, type WorktreePortSlot } from "@shared/types";
+import { WORKTREE_BAND_FIRST, WORKTREE_BAND_LAST, WORKTREE_BAND_SIZE, type WorktreePortSlot } from "@shared/worktrees/envTypes";
 
 /** 番号が入る帯の先頭 */
 export const bandOf = (port: number) => Math.floor(port / WORKTREE_BAND_SIZE) * WORKTREE_BAND_SIZE;

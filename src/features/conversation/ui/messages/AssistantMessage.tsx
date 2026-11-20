@@ -1,4 +1,5 @@
-import { PROVIDER_LABELS, type ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
+import { PROVIDER_LABELS } from "@shared/settings/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { useMessageMenu } from "./useMessageMenu";

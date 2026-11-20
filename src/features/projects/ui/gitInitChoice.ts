@@ -1,4 +1,4 @@
-import type { FolderInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/projects/types";
 import { GIT_FEATURES } from "./GitInitNotice";
 
 /** git の管理を始めるかのチェックの文（label）、ボタンの組の短い名前（on = 始める / off = 始めない）と、選んだ方ごとの説明（help） */

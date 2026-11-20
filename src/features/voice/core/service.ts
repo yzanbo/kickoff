@@ -1,5 +1,6 @@
 import type { Store } from "@/foundation/core/db/store";
-import type { SecretSaved, VoiceStatus } from "@shared/types";
+import type { SecretSaved } from "@shared/foundation/apiTypes";
+import type { VoiceStatus } from "@shared/voice/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { ModelDownloads } from "./downloads";
 import { transcribeLocal } from "./local";

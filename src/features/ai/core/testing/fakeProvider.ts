@@ -1,5 +1,7 @@
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "@/features/ai/core/providers/types";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, ModelOption, ProviderCliStatus, SlashCommandOption } from "@shared/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
+import type { ModelOption } from "@shared/chat/types";
 
 /** テスト用の偽のプロバイダーの土台（いつもログイン済み）。run の振る舞いはテストごとに決める。テストからだけ使う */
 export abstract class FakeProviderBase implements AgentProvider {

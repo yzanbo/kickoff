@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { DbPrepKind, DbPrepRun } from "@shared/types";
+import type { DbPrepKind, DbPrepRun } from "@shared/database/types";
 
 /** 接続ごとに残す準備の記録の数 */
 const PREP_RUNS_MAX = 200;

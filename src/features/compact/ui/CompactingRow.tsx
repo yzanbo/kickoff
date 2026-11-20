@@ -1,5 +1,6 @@
 import { Shrink } from "lucide-react";
-import type { ChatEventOf, CompactingState, CompactTrigger } from "@shared/types";
+import type { ChatEventOf, CompactTrigger } from "@shared/chat/chatEvent";
+import type { CompactingState } from "@shared/chat/chatLive";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { formatFullStamp, formatStamp, formatStampRangeWithRunTime } from "@/foundation/ui/lib/time";
 import { Elapsed } from "@/features/chat/ui/parts/Elapsed";

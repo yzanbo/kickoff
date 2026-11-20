@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";

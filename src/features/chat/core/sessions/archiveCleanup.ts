@@ -1,6 +1,8 @@
 // アーカイブ済みのチャットの整理。
 // アーカイブしたチャットは自動では消さず、日数を選んだら、それより動いていないものをまとめて Kickoff のゴミ箱へ入れる（3 日は戻せる）
-import type { ArchiveCleanupPreview, ArchiveCleanupResult, Chat, ProviderId } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
+import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions } from "./sessionCleanup";

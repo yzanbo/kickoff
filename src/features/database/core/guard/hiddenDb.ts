@@ -1,5 +1,5 @@
 import path from "node:path";
-import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/types";
+import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */

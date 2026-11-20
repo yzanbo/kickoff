@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Hono } from "hono";
 import { upgradeWebSocket } from "@hono/node-server";
 import { z } from "zod";
-import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage, TerminalTab } from "@shared/types";
+import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage, TerminalTab } from "@shared/terminal/types";
 import { callerOf, type Caller } from "@/foundation/core/http/caller";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";

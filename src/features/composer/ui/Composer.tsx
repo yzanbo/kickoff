@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useInsertionEffect, useLayoutEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import type { GitTarget } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useOptionalSetting, useSetting } from "@/foundation/ui/hooks/useSetting";

@@ -1,5 +1,5 @@
 import { FileUp, Plus, Save, Undo2 } from "lucide-react";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import type { TableEditsState } from "./useTableEdits";
 

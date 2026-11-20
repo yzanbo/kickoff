@@ -1,5 +1,6 @@
 import { normalizePrep } from "@shared/database/dbPrep";
-import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode, type NewDbConnectionBody, type DbConnectionTestResult } from "@shared/types";
+import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode } from "@shared/database/types";
+import type { NewDbConnectionBody, DbConnectionTestResult } from "@shared/foundation/apiTypes";
 
 // 接続の登録・編集のダイアログ（ConnectionDialog）の入力欄の値と、送る形への直し方
 

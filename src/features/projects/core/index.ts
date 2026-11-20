@@ -1,6 +1,6 @@
 // プロジェクトの機能のコアの入口（ほかの機能はここだけを読む）
 import type { Project } from "@shared/projects/types";
-import type { ProjectGitHub } from "@shared/types";
+import type { ProjectGitHub } from "@shared/git/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import { requireProject } from "@/foundation/core/http/lookups";
 import type { KernelWithStore } from "@/foundation/core/kernel";

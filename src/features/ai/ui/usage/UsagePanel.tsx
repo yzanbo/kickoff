@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import type { ServiceUsage } from "@shared/types";
+import type { ServiceUsage } from "@shared/ai/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { formatClock } from "@/foundation/ui/lib/time";

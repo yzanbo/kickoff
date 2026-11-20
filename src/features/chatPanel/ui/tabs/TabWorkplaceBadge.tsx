@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useChatWorkplace } from "@/foundation/ui/workplace/useWorkplace";
 import { WORKPLACE_SHORT_LABELS, type WorkplaceChat } from "@/foundation/ui/workplace/workplace";

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /** ready = 次の指示に添える、blocked = 準備失敗、sending = 送信開始、uncertain = 受信されたか不明。 */
 type HandoffState = "ready" | "blocked" | "sending" | "uncertain";

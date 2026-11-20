@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
-import { GITHUB_MERGE_METHOD_LABELS, type GitHubMergeMethod, type GitHubPullDetail } from "@shared/types";
+import { GITHUB_MERGE_METHOD_LABELS, type GitHubMergeMethod, type GitHubPullDetail } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

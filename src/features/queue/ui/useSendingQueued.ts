@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { isQueueAction } from "@shared/chat/queueActions";
 import { removedHere } from "@/features/queue/ui/api/queueRemovals";
 

@@ -1,7 +1,8 @@
 // どのチャットも使っていない会話記録の一覧と片付け。
 // Kickoff が覚えていない会話記録は、ターミナルで直接使った Claude Code の記録と見分けられないので自動では消さず、
 // 日付・大きさ・最初の発言の一覧を出して、利用者が選んだものだけを Kickoff のゴミ箱（3 日）へ入れる
-import type { OrphanSession, ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
+import type { OrphanSession } from "@shared/trash/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { AgentProvider, SessionFileInfo } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";

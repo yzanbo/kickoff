@@ -1,4 +1,4 @@
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { deniedWithWords, type GuardVerdict } from "@/features/guard/core/guard/judgeTool";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams } from "./types";
 

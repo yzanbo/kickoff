@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { codexCreditSpendText, codexCreditStateOf, extraUsageSpendText, formatMinorAmount, overageStateOf } from "./overage";
-import type { CodexCredits, ExtraUsage } from "@shared/types";
+import type { CodexCredits, ExtraUsage } from "@shared/ai/types";
 
 const extra = (patch: Partial<ExtraUsage> = {}): ExtraUsage => ({ enabled: true, utilization: null, used_credits: null, monthly_limit: null, currency: "USD", ...patch });
 const note = (in_use: boolean) => ({ in_use, observed_at: "2026-11-18T00:00:00Z" });

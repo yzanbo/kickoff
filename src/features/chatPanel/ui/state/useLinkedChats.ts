@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { PANEL_SHOW_ARCHIVED } from "@/foundation/ui/storage/storageKeys";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";

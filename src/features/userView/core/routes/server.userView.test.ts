@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/userView/tools";
-import type { UserView } from "@shared/types";
+import type { UserView } from "@shared/userView/types";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
 import { setup, until } from "@/app/core/testing/testServer";
 

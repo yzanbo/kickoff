@@ -2,7 +2,7 @@
 import { RangeSetBuilder, type EditorState, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { splitStatements, statementAt } from "@shared/database/sqlStatements";
-import type { DbEngine } from "@shared/types";
+import type { DbEngine } from "@shared/database/types";
 
 /** これより長い文は飾らない（カーソルを動かすたびに文に分けるため） */
 const MARK_MAX_CHARS = 200_000;

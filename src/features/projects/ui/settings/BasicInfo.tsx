@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { PROJECT_HUES } from "@shared/projects/colors";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";

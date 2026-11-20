@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 
 /** プロジェクトごとの、右サイドバーのコードの画面が見ている作業場所と、そのとき付いていったチャット（とその作業場所） */

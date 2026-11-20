@@ -1,7 +1,7 @@
 import { List, ListTree } from "lucide-react";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";
-import type { GitCommit, GitFileChange, GitRefs } from "@shared/types";
+import type { GitCommit, GitFileChange, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";

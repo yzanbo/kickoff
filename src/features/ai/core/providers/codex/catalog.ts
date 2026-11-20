@@ -1,4 +1,6 @@
-import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel, type ModelOption, type PlanUsage, type UsageWindow } from "@shared/types";
+import type { PlanUsage, UsageWindow } from "@shared/ai/types";
+import type { ModelOption } from "@shared/chat/types";
+import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel } from "@shared/settings/types";
 import { creditBalanceOf, limitReachedOf } from "@/features/ai/core/usage/codexCredits";
 import type { AskModel, CreditsNote } from "@/features/ai/core/providers/types";
 import type { CodexModel, RateLimitSnapshot, RateLimitWindow, RateLimitsResponse } from "./protocol";

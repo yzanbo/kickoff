@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { PortStopBody, PortStopResult } from "@shared/types";
+import type { PortStopBody, PortStopResult } from "@shared/ports/types";
 import type { PortWatch } from "@/features/ports/core/watch";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 

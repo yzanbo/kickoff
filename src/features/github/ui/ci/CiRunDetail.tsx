@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, ExternalLink, GitPullRequest, RotateCcw } from "lucide-react";
-import { CI_STATE_LABELS, type CiJob } from "@shared/types";
+import { CI_STATE_LABELS, type CiJob } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";

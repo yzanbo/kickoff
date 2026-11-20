@@ -1,7 +1,7 @@
 import { Play, RotateCcw, ShieldAlert, Square } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/types";
+import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerContainer, DockerServiceInfo } from "@shared/types";
+import type { DockerContainer, DockerServiceInfo } from "@shared/docker/types";
 import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing";
 import type { Workplace } from "@/foundation/core/workplace/worktrees";
 import type { ComposeConfig, RawContainer } from "./parse";

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
 import { runCommand, stderrOf } from "@/foundation/core/system/exec";
-import { CJK_CHAR } from "@shared/types";
+import { CJK_CHAR } from "@shared/voice/types";
 import type { AudioInput, LocalOptions } from "./types";
 import { Invalid } from "@/foundation/core/errors";
 

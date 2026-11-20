@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpRight, KeyRound } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
-import type { DbColumnInfo, DbSort, DbValue } from "@shared/types";
+import type { DbColumnInfo, DbSort, DbValue } from "@shared/database/types";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey, isComposing, isKey, isSubmitKey } from "@/foundation/ui/lib/keys";

@@ -1,5 +1,5 @@
 // チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」で共通）
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";

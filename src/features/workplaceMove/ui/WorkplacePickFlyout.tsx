@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
 import { useWorkplaceChoices } from "./WorkplaceMoveChip";

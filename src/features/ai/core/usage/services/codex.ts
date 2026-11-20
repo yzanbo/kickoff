@@ -1,6 +1,6 @@
 import os from "node:os";
 import path from "node:path";
-import type { CodexCredits, ServiceUsage } from "@shared/types";
+import type { CodexCredits, ServiceUsage } from "@shared/ai/types";
 import { creditBalanceOf } from "@/features/ai/core/usage/codexCredits";
 import { defineFetcher, emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "./common";
 

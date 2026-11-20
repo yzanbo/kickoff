@@ -1,6 +1,6 @@
 // つないだ本体（Mac・Windows の Kickoff）の一覧。本体の ID で分け、手元に持つものは本体ごとに分ける（同じ番号のチャットでも別の本体なら別もの）。
 // 置き場所は端末の安全な保管庫（SecureStore = Android の Keystore）。保管庫は差し替えられる形にしてテストする
-import type { DeviceAccess } from "@shared/types";
+import type { DeviceAccess } from "@shared/devices/types";
 
 /** つないだ本体 1 つ（トークンは別のキーに置く） */
 export interface HostRecord {

@@ -1,6 +1,6 @@
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { WorktreePrNotice } from "@shared/types";
+import type { WorktreePrNotice } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";

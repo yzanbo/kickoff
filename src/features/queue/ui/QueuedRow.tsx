@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, GripVertical, Pencil, SendHorizontal, Trash2 } from "lucide-react";
 import type { DragEvent, MouseEvent } from "react";
-import { QUEUE_ACTIONS, QUEUE_ACTION_LABELS, type QueueAction, type QueuedMessage } from "@shared/types";
+import { QUEUE_ACTIONS, QUEUE_ACTION_LABELS, type QueueAction, type QueuedMessage } from "@shared/chat/types";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { relayOf } from "@shared/chat/prompts";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

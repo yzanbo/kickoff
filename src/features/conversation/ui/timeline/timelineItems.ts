@@ -1,5 +1,5 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { isSubagentTool } from "@shared/chat/subagents";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";

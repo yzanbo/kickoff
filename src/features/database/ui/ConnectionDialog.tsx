@@ -1,24 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { parseDbUrl } from "@shared/database/dbUrl";
-import {
-  DB_AI_ACCESSES,
-  DB_AI_ACCESS_LABELS,
-  DB_DEFAULT_PORTS,
-  DB_ENVIRONMENTS,
-  DB_ENVIRONMENT_DEFAULTS,
-  DB_ENVIRONMENT_LABELS,
-  DB_SSH_UNKNOWN_HOST,
-  DB_WRITE_CHECKS,
-  DB_WRITE_CHECK_LABELS,
-  type DbAiAccess,
-  type DbConnection,
-  type DbConnectionTestResult,
-  type DbEngine,
-  type DbEnvironment,
-  type DbSsh,
-  type DbWriteCheck,
-} from "@shared/types";
+import { DB_AI_ACCESSES, DB_AI_ACCESS_LABELS, DB_DEFAULT_PORTS, DB_ENVIRONMENTS, DB_ENVIRONMENT_DEFAULTS, DB_ENVIRONMENT_LABELS, DB_SSH_UNKNOWN_HOST, DB_WRITE_CHECKS, DB_WRITE_CHECK_LABELS, type DbAiAccess, type DbConnection, type DbEngine, type DbEnvironment, type DbSsh, type DbWriteCheck } from "@shared/database/types";
+import type { DbConnectionTestResult } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";

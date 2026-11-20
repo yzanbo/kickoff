@@ -2,7 +2,10 @@ import { errorMessage } from "@shared/foundation/errors";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import type { ChatRuntimes } from "./runtime";
 import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
-import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult, type MessageMarks } from "@shared/types";
+import type { MessageMarks } from "@shared/chat/chatEvent";
+import type { QueueState } from "@shared/chat/chatLive";
+import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch } from "@shared/chat/types";
+import type { TellResult } from "@shared/foundation/apiTypes";
 import { marksOf } from "@shared/chat/handoff";
 
 /**

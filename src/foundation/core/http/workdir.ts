@@ -1,7 +1,7 @@
 // Git・ファイル・検索の操作先（作業場所）: ?worktree= のワークツリー、なければプロジェクトの本体。ルートでは lookups の withWorkdir で使う
 import fs from "node:fs";
 import { findWorktree } from "@/features/git/core/index";
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 
 /**

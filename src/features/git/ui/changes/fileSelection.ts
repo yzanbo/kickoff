@@ -1,4 +1,4 @@
-import type { GitFileChange, GitStatus } from "@shared/types";
+import type { GitFileChange, GitStatus } from "@shared/git/types";
 
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。

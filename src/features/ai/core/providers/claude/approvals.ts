@@ -1,5 +1,5 @@
 import type { CanUseTool, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { ApprovalRequest, ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { SANDBOX_NETWORK_TOOL } from "./sandbox";
 

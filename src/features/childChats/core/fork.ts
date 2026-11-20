@@ -1,6 +1,8 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { Store } from "@/foundation/core/db/store";
-import { providerFeatureMissing, type ProviderId, type Chat } from "@shared/types";
+import { providerFeatureMissing } from "@shared/ai/types";
+import type { Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { isBeforeWorkplaceMove, WORKPLACE_FORK_LOCKED } from "@shared/workplaceMove/workplaceMoves";
 import { isBeforeProviderSwitch, PROVIDER_FORK_LOCKED } from "@shared/providerSwitch/providerSwitch";

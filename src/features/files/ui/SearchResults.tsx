@@ -1,6 +1,6 @@
 import { Copy, Replace, ReplaceAll, X } from "lucide-react";
 import { useMemo, type MouseEvent } from "react";
-import type { SearchMatch } from "@shared/types";
+import type { SearchMatch } from "@shared/git/types";
 import { searchPattern, splitMatches, splitReplacements } from "@shared/foundation/search/searchMatch";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";

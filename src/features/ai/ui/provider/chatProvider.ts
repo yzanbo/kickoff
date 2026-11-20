@@ -2,7 +2,8 @@
 // チャットの画面（ChatView）・送る前の新しいチャット・新しい子チャットが ChatProviderContext に AI を入れ、中の部品は useFeatureBlock で理由を読む。
 // AI の状態の店（providersStore）は使い始めるたびに取り直すので、読み込みを頼むのは入れる側の 1 か所（useProviderStatus の load）だけにし、中の部品は頼まずに読む
 import { createContext, useContext, useSyncExternalStore } from "react";
-import type { ProviderFeature, ProviderId, ProviderStatus } from "@shared/types";
+import type { ProviderFeature, ProviderStatus } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { featureBlock, statusOf } from "./providerChoice";
 import { nextForegroundChat, type ForegroundChat } from "./foregroundChat";

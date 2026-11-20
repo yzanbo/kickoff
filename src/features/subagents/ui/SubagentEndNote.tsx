@@ -1,4 +1,4 @@
-import type { ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";

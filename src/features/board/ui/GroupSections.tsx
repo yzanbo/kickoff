@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import type { NewChatTarget } from "@/features/panel/ui/usePanel";

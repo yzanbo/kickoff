@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { initialOf, projectHue } from "@/features/projects/ui/projectColor";
 import type { StateCounts } from "@/features/chat/ui/state/chatState";

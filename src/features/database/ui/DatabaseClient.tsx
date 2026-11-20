@@ -1,6 +1,6 @@
 import { PanelLeftOpen } from "lucide-react";
 import { lazy, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import type { DbConnection, DbImportCandidate } from "@shared/types";
+import type { DbConnection, DbImportCandidate } from "@shared/database/types";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";

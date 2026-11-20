@@ -1,5 +1,5 @@
 import { DB_PREP_PLACEHOLDERS, DB_PREP_PLACEHOLDER_LABELS, usesMyIp } from "@shared/database/dbPrep";
-import { DB_MY_IP_URL } from "@shared/types";
+import { DB_MY_IP_URL } from "@shared/database/types";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import type { ConnectionForm } from "./connectionForm";
 

@@ -1,4 +1,5 @@
-import type { ModelOption, ProviderId } from "@shared/types";
+import type { ModelOption } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider } from "./types";
 
 /** モデルの一覧を覚えておく時間（取るのに 1 秒ほどかかるので 1 時間はとっておく。空の結果は覚えない） */

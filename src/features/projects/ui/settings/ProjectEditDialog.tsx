@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { PROJECT_SETTINGS_SECTIONS, ProjectSettings, type ProjectSettingsSection } from "./ProjectSettings";
 import { TabbedDialog } from "@/foundation/ui/kit/TabbedDialog";
 

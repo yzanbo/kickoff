@@ -1,5 +1,5 @@
 import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
-import { EFFORT_LABELS } from "@shared/types";
+import { EFFORT_LABELS } from "@shared/settings/types";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

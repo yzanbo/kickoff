@@ -1,4 +1,4 @@
-import type { ChatImageHost } from "@shared/types";
+import type { ChatImageHost } from "@shared/chat/types";
 import { request, requestBlob, withQuery } from "@/foundation/ui/api/http";
 
 /** チャット欄の外の画像（表示を許可したホストと、許可したホストの画像）。コアの routes/chatImages.ts */

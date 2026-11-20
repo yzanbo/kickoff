@@ -1,5 +1,5 @@
 // サブエージェントの入れ子（親子）。流れの中のカード・ピルの一覧・カードへ移るときに使う
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentEntry } from "@shared/chat/subagents";
 
 /** サブエージェントの木（行のキーで引く・子を引く。子は起動した順） */

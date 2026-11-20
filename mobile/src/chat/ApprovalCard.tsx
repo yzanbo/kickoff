@@ -1,7 +1,7 @@
 // 回答待ちのカード（ツールの承認・AI からの質問・再開の確かめ）。見るだけの端末では答えられない
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import type { Approval, ApprovalDecision, Question } from "@shared/types";
+import type { Approval, ApprovalDecision, Question } from "@shared/chat/approvalTypes";
 import { toolSummary } from "../lib/timeline";
 import { Button } from "../ui/Button";
 import { colors, ui } from "../ui/theme";

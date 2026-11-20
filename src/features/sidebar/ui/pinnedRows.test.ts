@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/foundation/testing/factories";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ChatRow } from "./ChatRow";

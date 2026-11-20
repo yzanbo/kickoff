@@ -1,5 +1,5 @@
 // PR のマージ・チェックアウトの確認で出す注意と、マージの方式の決め方（純粋な関数）
-import type { GitHubMergeMethod, GitHubPullDetail } from "@shared/types";
+import type { GitHubMergeMethod, GitHubPullDetail } from "@shared/github/types";
 
 /** 確認の中で目立たせる注意（danger = マージできない見込みが高い・取り返しにくい / warn = 確かめてほしい） */
 export interface MergeWarning {

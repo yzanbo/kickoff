@@ -20,7 +20,12 @@ import type { DbAiTools } from "@/features/database/core/aiTools";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { ChatPolicy } from "@/features/chat/core/prompt/system";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderCliStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
+import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { ApprovalDecision, ApprovalKind, RememberScope } from "@shared/chat/approvalTypes";
+import type { ChatEventData, CommandOutput, SubagentInfo } from "@shared/chat/chatEvent";
+import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
+import type { ModelOption } from "@shared/chat/types";
+import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 
 /**
  * エージェント実行基盤の抽象化。

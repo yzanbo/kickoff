@@ -1,6 +1,6 @@
 // 音声モードの読み上げ（OpenAI の読み上げの API。この Mac の声は画面が直接使うので、コアは OpenAI だけ）
 import { errorMessage } from "@shared/foundation/errors";
-import { OPENAI_TTS_MODEL } from "@shared/types";
+import { OPENAI_TTS_MODEL } from "@shared/voice/types";
 import { openAiFailure, openAiUrl } from "./openai";
 import { Invalid } from "@/foundation/core/errors";
 

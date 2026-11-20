@@ -1,5 +1,5 @@
 // AI に内蔵ターミナルの出力を読ませる口（中身はコアの TerminalSessions = sessions.ts）。読むだけで、コマンドの起動・停止・キーの入力は口に入れない
-import type { TerminalTab } from "@shared/types";
+import type { TerminalTab } from "@shared/terminal/types";
 
 /** AI から見えるターミナルのタブ（key はタブのキー = 裏のシェルのキー。API の形と同じ） */
 export type TerminalTabInfo = TerminalTab;

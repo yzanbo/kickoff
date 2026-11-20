@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { DEFAULT_SETTINGS, type AppSettings, type ProviderId } from "@shared/types";
+import { DEFAULT_SETTINGS, type AppSettings, type ProviderId } from "@shared/settings/types";
 import type { Notify } from "@/foundation/core/db/common";
 
 /** 秘密の値の名前（secrets の表） */

@@ -1,6 +1,6 @@
 import { MessagesSquare } from "lucide-react";
 import type { ReactNode } from "react";
-import { AGENT_STATE_LABELS, type Chat } from "@shared/types";
+import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { CHILD_STATE_MARKS, childStateCounts } from "@/features/childChats/ui/childChats";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";

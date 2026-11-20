@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { formatSize, truncateText } from "@shared/attachments/truncate";
 import { redactSecrets } from "@shared/foundation/secrets/redact";
-import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, NoteAttachment } from "@shared/types";
+import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, NoteAttachment } from "@shared/chat/types";
 import { Invalid } from "@/foundation/core/errors";
 
 /** 1 ファイルあたりの上限 */

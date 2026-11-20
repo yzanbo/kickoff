@@ -1,5 +1,5 @@
 // GitHub タブの一覧で、取り直して新しくなった行を見分ける（新しくなった行は少しの間だけ色を付ける）
-import type { GitHubItem } from "@shared/types";
+import type { GitHubItem } from "@shared/github/types";
 
 /** 新しくなった行に色を付けておく長さ（ミリ秒。CSS の github-item-fresh の長さと同じ） */
 export const GITHUB_FRESH_MS = 4000;

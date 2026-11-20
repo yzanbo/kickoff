@@ -1,5 +1,5 @@
 import type { DragEvent, KeyboardEvent, MouseEvent } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { isOpenKey, isRenameKey } from "@/foundation/ui/lib/keys";

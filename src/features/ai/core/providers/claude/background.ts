@@ -1,5 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { BackgroundState, BackgroundTask } from "@shared/types";
+import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 
 /** 覚えておく、作業 ID と起動した呼び出しの ID の組の数 */
 const MAX_CALLS = 200;

@@ -7,7 +7,7 @@ import { Composer } from "../../../chat/Composer";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
-import { PROVIDER_LABELS } from "@shared/types";
+import { PROVIDER_LABELS } from "@shared/settings/types";
 import { restrictionNotice } from "@shared/chat/restrictionNotice";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";

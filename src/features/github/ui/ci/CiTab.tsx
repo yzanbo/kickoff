@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { ExternalLink, Workflow } from "lucide-react";
 import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
-import type { CiRun } from "@shared/types";
+import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";

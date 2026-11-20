@@ -1,4 +1,5 @@
-import { QUEUE_ACTION_LABELS, type QueuedMessage, type QueueState } from "@shared/types";
+import type { QueueState } from "@shared/chat/chatLive";
+import { QUEUE_ACTION_LABELS, type QueuedMessage } from "@shared/chat/types";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { relayOf } from "@shared/chat/prompts";
 

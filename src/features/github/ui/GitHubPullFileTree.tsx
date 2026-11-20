@@ -1,6 +1,6 @@
 // PR の「変更」の左のファイルの木（変更タブ・履歴の詳細と同じ FileTree と印。押すとそのファイルの差分へ移る）
 import { useMemo, useState } from "react";
-import type { GitHubPullFile } from "@shared/types";
+import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { GITHUB_FILES_WIDTH } from "@/foundation/ui/storage/storageKeys";
 import { FileTree } from "@/features/files/ui/FileTree";

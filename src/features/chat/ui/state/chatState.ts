@@ -1,5 +1,6 @@
 import { agentStateOf, boardColumnOf } from "@shared/chat/state";
-import type { AgentState, Approval, Chat } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { AgentState, Chat } from "@shared/chat/types";
 
 /** 回答待ちの依頼があるチャットの ID（approvals を 1 回なめて作り、チャットごとの判定に使う） */
 export type ApprovalIndex = ReadonlySet<number>;

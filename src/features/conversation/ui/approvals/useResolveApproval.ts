@@ -1,4 +1,4 @@
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { api } from "@/foundation/ui/api";
 import { useSubmit } from "@/foundation/ui/hooks/useSubmit";
 

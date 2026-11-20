@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { NewSnippetBody, Snippet } from "@shared/types";
+import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
 import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets";
 import { useAllSnippets } from "@/features/snippets/ui/stores/snippets";
 import { useProjects } from "@/features/projects/ui/stores/projects";

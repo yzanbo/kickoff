@@ -1,6 +1,6 @@
 // 静かなぶつかり（Docker の外のプロセスが同じポートで待っている）を調べる口と、Homebrew のサービスを止める口。
 // 待っているソケット（OS の口）・brew は外のコマンドなので、テストでは probe を差し替える
-import type { DockerSilentConflict } from "@shared/types";
+import type { DockerSilentConflict } from "@shared/docker/types";
 import type { ListeningSocket } from "@/foundation/core/platform/types";
 import { findExecutable, runCommand, searchDirs } from "@/foundation/core/system/exec";
 import { brewServicePids, silentConflictsOf } from "./portConflict";

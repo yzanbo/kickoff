@@ -1,5 +1,6 @@
 import { Activity, useEffect, useEffectEvent } from "react";
-import type { Chat, Project } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { ChatImagesProvider } from "@/features/remoteImages/ui/ChatImage";
 import { useFileLinks } from "@/features/files/ui/links/useFileLinks";

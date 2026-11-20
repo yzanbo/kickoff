@@ -2,7 +2,7 @@
 // チャットの 1 回の実行が終わったとき（2 秒待って 1 回。続けて終わったらまとめる）。調べたら SSE の ports_changed で数だけを配る
 // （一覧はコマンドの全文を含むので SSE に載せない。この Mac の画面が覚えた一覧 latest を読む）。
 // 実行が終わったあとに調べて、前に調べたときになかった pid があれば、その数を fresh に入れる（画面が下の帯のボタンに点を付ける）
-import type { PortProcess } from "@shared/types";
+import type { PortProcess } from "@shared/ports/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { PortProcessService } from "./service";
 

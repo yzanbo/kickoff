@@ -1,4 +1,8 @@
-import type { Chat, FileContent, NoteAttachment, NoteChatBody, NoteDefaults, NoteDirUsers, NoteFromChatBody, NoteList, NotePlan, NoteRef, NoteSearchResult, SavedFile, TrashedResult } from "@shared/types";
+import type { Chat, NoteAttachment } from "@shared/chat/types";
+import type { NoteChatBody, NoteFromChatBody, SavedFile } from "@shared/foundation/apiTypes";
+import type { FileContent } from "@shared/git/types";
+import type { NoteDefaults, NoteDirUsers, NoteList, NotePlan, NoteRef, NoteSearchResult } from "@shared/notes/types";
+import type { TrashedResult } from "@shared/trash/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** プロジェクトのノート（保存先はプロジェクトの外。パスはノートのフォルダからの相対。コアの routes/notes.ts） */

@@ -1,6 +1,6 @@
 import { Pin } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";

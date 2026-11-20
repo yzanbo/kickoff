@@ -1,6 +1,6 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { removeTagFrom, renameTagIn } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { PROJECT_TAG_FILTER, PROJECT_TAG_ORDER } from "@/foundation/ui/storage/storageKeys";

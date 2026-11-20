@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatEventType } from "@shared/types";
+import type { ChatEventType } from "@shared/chat/chatEvent";
 import { busEvent, makeChat, makeEvent, type EventInput } from "@shared/foundation/testing/factories";
 import { streamingAppendOf, streamingEffectOf } from "./streamingRules";
 

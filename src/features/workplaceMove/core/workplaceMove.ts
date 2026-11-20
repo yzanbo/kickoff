@@ -2,7 +2,9 @@
 // （ワークツリーを片付けた・別のプロジェクトへ移した・プロジェクトのフォルダを変えた）も同じここを通す:
 // 会話を新しいセッションに写し、古い会話記録をゴミ箱へ入れ、作業場所とブランチを書き替え、区切り workplace_moved を置く
 import { errorMessage } from "@shared/foundation/errors";
-import { UNTITLED_CHAT_TITLE, type Chat, type ChatEventDataOf, type ProviderId, type WorkplaceMoveReason, type WorkplaceRef } from "@shared/types";
+import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
 import type { Store } from "@/foundation/core/db/store";
 import { currentBranch } from "@/features/git/core/index";

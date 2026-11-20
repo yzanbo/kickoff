@@ -1,4 +1,4 @@
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { selectIndexIds, slimIndexEvent, type ChatEventMeta, type IndexContext, type IndexKeep } from "@shared/chat/chatIndex";
 import type { Store } from "@/foundation/core/db/store";
 

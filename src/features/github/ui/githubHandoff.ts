@@ -1,6 +1,7 @@
 // GitHub の PR の「レビューコメントで直す」: PR のブランチのワークツリーで作業するチャットの入力欄に、一言とレビューコメントの札を入れる。
 // 送るのは自分で。ほかの渡し先（新しいチャット・このチャット・子チャット・ほかのチャット）は共通の「AI に渡す」（features/chat/handoff）
-import type { GitHubLink, GitHubPullDetail, GitHubReviewThread } from "@shared/types";
+import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { currentChats } from "@/features/chat/ui/store/knownChats";

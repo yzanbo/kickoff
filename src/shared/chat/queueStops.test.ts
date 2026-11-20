@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { moveStopOnce, moveToSlot, normalizeStops, remapStops, removeStopOnce } from "./queueStops";
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 
 const m = (id: string) => ({ id }) as QueuedMessage;
 const [a, b, c, d] = ["a", "b", "c", "d"].map(m);

@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import { collectVisuals, type ChatVisual } from "@shared/visuals/aiVisual";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 
 /** チャットの描いた図（記録から組み立てたもの）。流れの図の項目が読む */
 export interface ChatVisuals {

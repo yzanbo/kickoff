@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbQueryResult } from "@shared/types";
+import type { DbQueryResult } from "@shared/database/types";
 import { envSentence, runOutcome, runTabLabel } from "./sqlResultLabels";
 
 const result = (over: Partial<DbQueryResult>): DbQueryResult => ({ columns: [], rows: [], truncated: false, affected: null, duration_ms: 4.2, in_transaction: false, ...over });

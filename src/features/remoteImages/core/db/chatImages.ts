@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { ChatImageHost } from "@shared/types";
+import type { ChatImageHost } from "@shared/chat/types";
 
 /** 取ってきた画像の覚え書き（中身はファイル。core/remoteImages/service.ts） */
 export interface CachedImage {

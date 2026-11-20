@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerCompose, DockerContainer, DockerServiceInfo } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerServiceInfo } from "@shared/docker/types";
 import { planDockerAction, startedServices } from "./actions";
 
 const ctr = (id: string, state: DockerContainer["state"] = "running"): DockerContainer => ({ id, name: id, image: "img", state, status: "", exit_code: null, health: null, ports: [], number: 1 });

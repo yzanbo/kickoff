@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
-import type { NotePlan } from "@shared/types";
+import type { NotePlan } from "@shared/notes/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";

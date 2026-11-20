@@ -1,4 +1,4 @@
-import type { UsageWindow } from "@shared/types";
+import type { UsageWindow } from "@shared/ai/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatReset, resetInShort } from "@/foundation/ui/lib/time";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";

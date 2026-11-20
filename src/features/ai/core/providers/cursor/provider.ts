@@ -1,4 +1,4 @@
-import { PROVIDER_LABELS } from "@shared/types";
+import { PROVIDER_LABELS } from "@shared/settings/types";
 import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "@/features/ai/core/providers/acp/provider";
 import { cursorExtension } from "./extensions";
 

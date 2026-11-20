@@ -1,6 +1,6 @@
 // Docker タブの「DB で開く」から取り込みの画面を開いたとき、その DB の案を選んだ形で並べる（純粋な関数）
 import { sameLocalServer } from "@shared/database/dbServer";
-import type { DbImportCandidate } from "@shared/types";
+import type { DbImportCandidate } from "@shared/database/types";
 
 /**
  * プロジェクトから見つけた案に、Docker タブの案を入れる: 同じ DB（この Mac の中の同じサーバー・同じ DB の名前）の案があればその位置で置き換え、

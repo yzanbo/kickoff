@@ -1,6 +1,6 @@
 // 中身の見出しの札: PR のマージできるか（衝突・保護ルール）と承認の数、issue を閉じる PR
 import { Check, CircleDashed, TriangleAlert } from "lucide-react";
-import { GITHUB_MERGE_STATE_LABELS, type GitHubLinkedPull, type GitHubMergeState, type GitHubPullDetail } from "@shared/types";
+import { GITHUB_MERGE_STATE_LABELS, type GitHubLinkedPull, type GitHubMergeState, type GitHubPullDetail } from "@shared/github/types";
 import { GitHubStateIcon } from "./GitHubStateIcon";
 import { selectGitHubItem } from "./GitHubLinkChip";
 

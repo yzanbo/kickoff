@@ -1,5 +1,5 @@
 import { ChevronRight, CornerLeftUp, Unplug } from "lucide-react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { chatTitle } from "@/features/chat/ui/chatTitle";

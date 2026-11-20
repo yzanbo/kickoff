@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useWorktreeEnv, useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";

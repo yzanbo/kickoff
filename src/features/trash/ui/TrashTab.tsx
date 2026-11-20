@@ -1,5 +1,5 @@
 import { Bot, File, Folder, FolderGit2, GitBranch, History, MessageSquare, RotateCcw, Trash2, User } from "lucide-react";
-import type { TrashItem } from "@shared/types";
+import type { TrashItem } from "@shared/trash/types";
 import { formatSize } from "@shared/attachments/truncate";
 import { useProjectTrash } from "@/features/trash/ui/stores/trash";
 import { useProjects } from "@/features/projects/ui/stores/projects";

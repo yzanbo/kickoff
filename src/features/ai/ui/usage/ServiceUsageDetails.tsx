@@ -1,4 +1,4 @@
-import type { ServiceUsage } from "@shared/types";
+import type { ServiceUsage } from "@shared/ai/types";
 import { formatClock } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CodexCreditsDetails } from "./CodexCreditsDetails";

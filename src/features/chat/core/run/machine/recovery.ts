@@ -3,7 +3,7 @@ import type { StoppedAgent, TurnOutcome } from "@/features/chat/core/turn";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import { exhaustedResetOf } from "@/features/ai/core/providers/shared/usageLimit";
 import { resumePrompt, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import type { RecoveryState } from "./recoveryState";
 
 /** 止まった理由（承認と同じ回答待ちの種類 ApprovalKind・ツール名にも、この名前を使う） */

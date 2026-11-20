@@ -1,4 +1,4 @@
-import type { SlashCommandOption } from "@shared/types";
+import type { SlashCommandOption } from "@shared/ai/types";
 
 /** 候補の種類: / はコマンド（文の先頭だけ）、@ はファイル */
 export type SuggestKind = "slash" | "file";

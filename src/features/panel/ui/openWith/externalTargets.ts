@@ -1,5 +1,5 @@
 // パネルのタブの列からブラウザ・ターミナルを開くときの、開く先の決め方（useOpenWithMenu が使う。どれも押したペインで見せている表示中のタブから決める）
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { baseName } from "@/foundation/ui/lib/format";
 import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 

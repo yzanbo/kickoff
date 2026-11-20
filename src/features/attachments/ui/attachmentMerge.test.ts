@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AttachmentSourceType } from "@shared/types";
+import type { AttachmentSourceType } from "@shared/chat/types";
 import { makeAttachment } from "@shared/foundation/testing/factories";
 import { mergeAttachments } from "./attachmentMerge";
 

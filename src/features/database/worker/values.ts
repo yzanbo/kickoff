@@ -1,6 +1,6 @@
 // DB から読んだ値を、JSON で送れるセルの値（DbValue）にする（どの種類のドライバでも同じ形にする）
 import { dbImageType } from "@shared/database/dbValue";
-import { DB_IMAGE_PREVIEW_BYTES, DB_VALUE_HEAD_CHARS, type DbValue } from "@shared/types";
+import { DB_IMAGE_PREVIEW_BYTES, DB_VALUE_HEAD_CHARS, type DbValue } from "@shared/database/types";
 
 const HEAD_BYTES = 16;
 

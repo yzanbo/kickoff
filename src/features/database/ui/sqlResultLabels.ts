@@ -1,5 +1,5 @@
 // SQL のタブの結果の言葉: 結果のタブの名前・メッセージの行・下の帯の環境の一文
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { durationLabel } from "./dbFormat";
 import type { StatementRun } from "./SqlRunResult";
 

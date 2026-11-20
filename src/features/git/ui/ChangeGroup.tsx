@@ -1,6 +1,6 @@
 import { Minus, Plus, Undo2 } from "lucide-react";
 import { useMemo } from "react";
-import type { GitFileChange } from "@shared/types";
+import type { GitFileChange } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { isRenameKey } from "@/foundation/ui/lib/keys";

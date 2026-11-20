@@ -1,4 +1,4 @@
-import type { AttachmentSourceType } from "@shared/types";
+import type { AttachmentSourceType } from "@shared/chat/types";
 
 /** capture の添付の出どころの名前（札の説明と、AI への見出しで同じものを使う） */
 export const ATTACHMENT_SOURCE_LABELS: Record<AttachmentSourceType, string> = {

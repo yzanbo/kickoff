@@ -1,4 +1,6 @@
-import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel, type ModelOption, type PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
+import type { ModelOption } from "@shared/chat/types";
+import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel } from "@shared/settings/types";
 import type { AskModel } from "@/features/ai/core/providers/types";
 import type { CopilotQuotaSnapshot, ModelInfo } from "./sdk";
 

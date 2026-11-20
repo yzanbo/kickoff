@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /** Kickoff が作ったセッションの覚え（表 agent_sessions。v28） */
 export interface AgentSessionRow {

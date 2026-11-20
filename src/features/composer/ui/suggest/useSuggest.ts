@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
-import type { SlashCommandOption } from "@shared/types";
+import type { SlashCommandOption } from "@shared/ai/types";
 import { api, type GitTarget } from "@/foundation/ui/api";
 import { stepIndex } from "@/foundation/ui/hooks/useListNavigation";
 import { isComposing } from "@/foundation/ui/lib/keys";

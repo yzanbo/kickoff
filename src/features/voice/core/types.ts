@@ -1,5 +1,5 @@
 // 文字起こしの部品どうしで使う型（画面と共有する型は types/voice.ts）
-import type { VoiceStatus } from "@shared/types";
+import type { VoiceStatus } from "@shared/voice/types";
 import type { SpeechOptions } from "./speech";
 
 /** OS の音声認識の様子（画面に出す形） */

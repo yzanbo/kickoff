@@ -1,6 +1,6 @@
 import { MessageSquare } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { cx } from "@/foundation/ui/lib/cx";

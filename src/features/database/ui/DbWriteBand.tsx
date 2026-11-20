@@ -1,5 +1,5 @@
 import { Lock, TriangleAlert } from "lucide-react";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 
 /**
  * 「書き込む」の間の上の赤い帯（SQL のタブ・テーブルのタブ）。what: 何をするたびに確かめるか（「流す」「保存する」）。

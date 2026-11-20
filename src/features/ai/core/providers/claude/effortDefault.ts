@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { EFFORT_LEVELS, type EffortDefault, type EffortLevel } from "@shared/types";
+import type { EffortDefault } from "@shared/chat/types";
+import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 
 /** 設定ファイルの中身のうち、推論の深さにかかわるところ */
 interface EffortSettings {

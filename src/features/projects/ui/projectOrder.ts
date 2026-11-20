@@ -1,4 +1,5 @@
-import type { Chat, Project } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import type { SettingValue } from "@/foundation/ui/storage/settings";
 import type { SIDEBAR_PROJECT_ORDER } from "@/foundation/ui/storage/storageKeys";

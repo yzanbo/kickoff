@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test, vi } from "vitest";
-import { PROVIDER_IDS, TRASH_KEEP_MS } from "@shared/types";
+import { PROVIDER_IDS } from "@shared/settings/types";
+import { TRASH_KEEP_MS } from "@shared/trash/types";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 

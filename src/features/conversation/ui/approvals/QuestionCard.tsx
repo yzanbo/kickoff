@@ -1,7 +1,8 @@
 import { Check, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { hasPreviews } from "@shared/chat/questionPreviews";
-import type { Approval, Attachment, Question } from "@shared/types";
+import type { Approval, Question } from "@shared/chat/approvalTypes";
+import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { SettingValue } from "@/foundation/ui/storage/settings";

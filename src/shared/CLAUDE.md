@@ -10,7 +10,7 @@
 
 ## フォルダ
 <!-- 行き先: 消す（地図だけ。database/ の行は src/features/database/、devices/ の行は src/features/devices/） -->
-- `types/`: API・SSE・DB の形（入口は `index.ts`。`api.ts` の本文と応答の型に、コアの zod が `satisfies` で合わせる）。
+- 型は持ち主のファイルから名指しで読む（束ねはない）。本文と応答の型は `foundation/apiTypes.ts`（コアの zod が `satisfies` で合わせる）。
 - `chat/`: チャットの決まり（下の節）と、AI のツールの名前・引数・記録の行の文（`ai*.ts`）。
 - 機能ごと: `project/`・`note/`・`snippet/`・`search/`・`database/`・`attachment/`・`secrets/`・`markdown/`・`links/`・`files/`・`docker/`・`github/`・`api/`（版の互換）・`devices/`・`theme/`・`ipc/`。同じものを使う側は各ファイルの頭のコメント。
 - `testing/`: テストからだけ使う補助（`factories.ts`・`chatScenarios.ts`・`fakeScheduler.ts`・`async.ts`）。

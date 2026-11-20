@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "./chatTitle";
 
 /**

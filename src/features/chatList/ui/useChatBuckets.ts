@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";

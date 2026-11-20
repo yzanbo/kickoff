@@ -6,7 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { TerminalServerMessage, TerminalTabMeta } from "@shared/types";
+import type { TerminalServerMessage, TerminalTabMeta } from "@shared/terminal/types";
 import { api } from "@/foundation/ui/api";
 import { terminalSocketUrl } from "@/features/terminal/ui/api/terminals";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";

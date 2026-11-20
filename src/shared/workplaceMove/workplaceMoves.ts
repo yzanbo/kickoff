@@ -1,6 +1,6 @@
 // 作業場所を移した区切り（記録の workplace_moved）の決まり。
 // コア（巻き戻し・分岐・起点・AI への知らせ）と画面（区切りの 1 行・ボタン・ファイルのチップ）とスマホで同じものを使う
-import type { ChatEvent, ChatEventDataOf, ChatEventOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/types";
+import type { ChatEvent, ChatEventDataOf, ChatEventOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
 
 type MoveData = ChatEventDataOf<"workplace_moved">;
 

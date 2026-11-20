@@ -1,4 +1,4 @@
-import type { DockerActionBody, DockerBrewStopBody, DockerDbTarget, DockerList, DockerLogLine } from "@shared/types";
+import type { DockerActionBody, DockerBrewStopBody, DockerDbTarget, DockerList, DockerLogLine } from "@shared/docker/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** Docker タブ（プロジェクトの compose の一覧・操作。コアの routes/docker.ts。この Mac のアプリの中だけ） */

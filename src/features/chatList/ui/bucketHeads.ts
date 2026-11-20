@@ -1,7 +1,7 @@
 // どのまとまりに入るか（まとまりのキーと見出し。決まりと形は buckets.ts の先頭）。チャット・下書き・作業場所から見出しを作る。
 // bucketChats が使い、パネルのタブのまとまり（useTabClusters）もタブの中身からこれで決める
 import { boardColumnOf } from "@shared/chat/state";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
 import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";

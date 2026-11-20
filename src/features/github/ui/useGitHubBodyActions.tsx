@@ -1,7 +1,7 @@
 import { useMemo, type MouseEvent } from "react";
 import { Copy } from "lucide-react";
 import { GITHUB_DEFAULT_HOST, githubHostOfUrl } from "@shared/foundation/codeHost";
-import type { GitHubIssueDetail } from "@shared/types";
+import type { GitHubIssueDetail } from "@shared/github/types";
 import { selectionToMarkdown } from "@/foundation/ui/kit/markdown/selectionMarkdown";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

@@ -1,5 +1,5 @@
 import { Inbox } from "lucide-react";
-import { HANDOFF_VIA_MARKS, type ChatEventOf } from "@shared/types";
+import { HANDOFF_VIA_MARKS, type ChatEventOf } from "@shared/chat/chatEvent";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
 

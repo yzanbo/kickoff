@@ -1,6 +1,6 @@
 import { ArrowUpRight, ChevronRight, History, OctagonPause } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import type { RestartResume, RestartResumeAction } from "@shared/types";
+import type { RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
 import { api } from "@/foundation/ui/api";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

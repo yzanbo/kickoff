@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { VoiceStatus } from "@shared/types";
+import type { VoiceStatus } from "@shared/voice/types";
 import { runCommand } from "@/foundation/core/system/exec";
 import { Invalid } from "@/foundation/core/errors";
 import { audioExtension, commandFailure } from "./local";

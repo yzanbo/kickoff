@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

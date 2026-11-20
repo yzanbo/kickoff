@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
-import type { AgentState, Approval, Chat } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { AgentState, Chat } from "@shared/chat/types";
 import { approvalIndex, chatStateOf, type ApprovalIndex } from "./chatState";
 
 /** 回答待ちの依頼の一覧から 1 回だけ作る、チャットの状態の引き当て（App が依頼の一覧を受け取るたびに作り直す） */

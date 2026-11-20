@@ -1,7 +1,7 @@
 import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, Server, StickyNote, Table2 } from "lucide-react";
 import { useState } from "react";
 import { isCheckDue, localToday } from "@shared/database/dbPrep";
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";

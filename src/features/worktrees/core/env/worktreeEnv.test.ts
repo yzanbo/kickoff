@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { worktreeSlotLabel, type WorktreePortSlot } from "@shared/types";
+import { worktreeSlotLabel, type WorktreePortSlot } from "@shared/worktrees/envTypes";
 import { assignSlots, bandOf, pickBand } from "./bands";
 import { composePortsOf, overrideYaml, portSpec } from "./composeOverride";
 import { commentOutKeys, rewriteEnvPorts, withKickoffBlock, withoutKickoffBlock } from "./envRewrite";

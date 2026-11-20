@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 import { quitConfirmText } from "./quitConfirm";
 
 test("終了してよいかの文: 件数を見出しに、名前を 5 件まで並べ（名前がなければ既定の名前）、残りは数だけ", () => {

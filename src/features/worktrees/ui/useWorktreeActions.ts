@@ -1,4 +1,4 @@
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { promptDialog } from "@/foundation/ui/kit/dialogs";
 import { baseName } from "@/foundation/ui/lib/format";

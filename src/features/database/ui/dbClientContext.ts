@@ -1,6 +1,6 @@
 // DB クライアントの中の部品（木・テーブルのタブ・SQL のタブ）に、置き場所・作業場所・タブの開き方を渡す口
 import { createContext, useContext } from "react";
-import type { DbConnection, DbObjectKind, DbObjectPath, DbRowFilter } from "@shared/types";
+import type { DbConnection, DbObjectKind, DbObjectPath, DbRowFilter } from "@shared/database/types";
 
 export interface DbClientActions {
   projectId: number;

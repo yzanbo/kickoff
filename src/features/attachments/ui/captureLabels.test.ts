@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CaptureAttachment } from "@shared/types";
+import type { CaptureAttachment } from "@shared/chat/types";
 import { captureSubline, captureTitle } from "./captureLabels";
 
 const capture: CaptureAttachment = {

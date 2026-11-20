@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import { test } from "vitest";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { evaluateHiddenDbAccess } from "./hiddenDb";
 import { hiddenDbTargets } from "@/features/database/core/hiddenTargets";
 

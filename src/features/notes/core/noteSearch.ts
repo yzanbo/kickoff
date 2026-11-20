@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { noteExtensionOf } from "@shared/notes/kinds";
-import type { NoteSearchHit, NoteSearchResult } from "@shared/types";
+import type { NoteSearchHit, NoteSearchResult } from "@shared/notes/types";
 
 /** 返す数の上限・1 つのノートから返す数の上限・読むノートの大きさの上限（バイト）・行の文の長さの上限 */
 const MAX_HITS = 100;

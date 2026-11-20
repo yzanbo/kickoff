@@ -1,5 +1,5 @@
 // 行ごとの変更の記録（git blame。エディタのいまの行の右に、いつ誰が変えたかを出す）
-import type { GitBlame, GitBlameCommit } from "@shared/types";
+import type { GitBlame, GitBlameCommit } from "@shared/git/types";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { assertInside } from "@/features/files/core/files";
 import { timed } from "@/foundation/core/system/stallWatch";

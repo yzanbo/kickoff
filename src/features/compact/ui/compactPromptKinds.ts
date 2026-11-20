@@ -1,6 +1,8 @@
 import { ListRestart, Shrink, type LucideIcon } from "lucide-react";
 import { COMPACT_PROMPT_FIELDS, type CompactPromptKind } from "@shared/chat/prompts";
-import type { AppSettings, ChatEventDataOf, Project } from "@shared/types";
+import type { ChatEventDataOf } from "@shared/chat/chatEvent";
+import type { Project } from "@shared/projects/types";
+import type { AppSettings } from "@shared/settings/types";
 import type { SegmentOption } from "@/foundation/ui/kit/Segmented";
 
 /** 種類ごとの見た目と言葉（設定の欄・チャット欄のメーターの詳細・会話の札・指示の帯・指示の履歴で同じものを使う） */

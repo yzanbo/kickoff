@@ -1,7 +1,7 @@
 // Codex の PreToolUse フックの判定（preToolUse.ts）と、砂場から出る承認の頼み（approvals.ts）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { PLAN_MODE_DECLINED } from "@/features/ai/core/providers/guardedApproval";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";

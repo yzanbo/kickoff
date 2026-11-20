@@ -1,5 +1,5 @@
 import { extraUsageSpendText, OVERAGE_STATE_HINTS, OVERAGE_STATE_LABELS, overageStateOf } from "@shared/ai/overage";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 
 /** プランの使用枠の詳細の中の、超過分（追加の使用枠）の様子と、この請求期間の超過分の額 */
 export function OverageDetails({ usage }: { usage: PlanUsage }) {

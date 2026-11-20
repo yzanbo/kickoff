@@ -1,5 +1,5 @@
 // 左の木のピン留め（接続ごとに、よく見るテーブル・ビューを接続のすぐ下に並べる）。React に依らない
-import type { DbObjectPath } from "@shared/types";
+import type { DbObjectPath } from "@shared/database/types";
 
 /** ピン留めしたテーブル・ビュー */
 export interface DbPin {

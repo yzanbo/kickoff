@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { addChats } from "@/features/chat/ui/store/knownChats";
 import { flattenBucketChats, type BucketBy } from "./buckets";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { aiQueryConnection } from "./aiQuery";
 
 const conn = (id: number, name: string, ai_access: DbConnection["ai_access"]) => ({ id, name, ai_access }) as DbConnection;

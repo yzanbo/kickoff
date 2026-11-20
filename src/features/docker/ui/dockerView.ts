@@ -1,6 +1,6 @@
 // Docker タブの表示の文（純粋な関数。テストは dockerView.test.ts）
-import type { DockerCompose, DockerContainer, DockerFailure, DockerPortConflict, DockerServiceInfo, DockerShare, DockerSilentConflict } from "@shared/types";
-import { DOCKER_MARK_LABELS } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerFailure, DockerPortConflict, DockerServiceInfo, DockerShare, DockerSilentConflict } from "@shared/docker/types";
+import { DOCKER_MARK_LABELS } from "@shared/docker/types";
 import { workplaceText } from "@shared/foundation/workplace";
 
 /** サービスの行の印の文字（● ○ ✕ ◌ ⏸ ◇） */

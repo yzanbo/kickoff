@@ -1,4 +1,6 @@
-import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/types";
+import type { Chat, FeedItem, SearchHit } from "@shared/chat/types";
+import type { ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, NewChatBody, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { TrashedResult } from "@shared/trash/types";
 import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
 import { request, withQuery } from "@/foundation/ui/api/http";
 

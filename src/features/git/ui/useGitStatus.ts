@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/types";
+import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useServerEvent } from "@/foundation/ui/api/events";

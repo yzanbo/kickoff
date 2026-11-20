@@ -1,5 +1,5 @@
 // ワークツリーの実行環境（ポートの帯・組の名前）の画面の文。札の説明・WorktreeBar・消す確認で同じ言葉にする
-import { worktreeSlotLabel, type WorktreeEnv } from "@shared/types";
+import { worktreeSlotLabel, type WorktreeEnv } from "@shared/worktrees/envTypes";
 
 /** 消すときに一緒に消せる組の名前（Kickoff が割り当てたものだけ。本体と同じ組の名前のままなら空 = 選ばせない） */
 const removableComposeNames = (env: WorktreeEnv | null): string[] => env?.compose_names.map((n) => n.name) ?? [];

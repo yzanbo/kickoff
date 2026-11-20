@@ -1,6 +1,6 @@
 // 子チャットを親から外す（親のないチャットにする・自分の先祖の子に上げる）。メニュー（「親から外す ▸」）とサイドバーのドラッグで共通の確かめと後始末
 // 付け替え（ほかのチャットの下へ）はしない
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { knownChat } from "@/features/chat/ui/store/knownChats";

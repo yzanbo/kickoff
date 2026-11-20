@@ -1,7 +1,9 @@
 // 利用者が画面からチャットの作業場所を移す: 移す前の確かめの中身と、
 // 移す先の決め方（本体・いまあるワークツリー・新しいワークツリー）・変更を持っていく・移せないとき
 import fs from "node:fs";
-import type { Chat, Project, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { Project } from "@shared/projects/types";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "@/foundation/core/workplace/carry";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { addWorktree, findWorktree, isGitWorkTree, newWorktreeProblem, removeWorktree, worktreePathFor } from "@/features/git/core/index";

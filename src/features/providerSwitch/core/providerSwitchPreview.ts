@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
-import type { ProviderId, ProviderSwitchPreview } from "@shared/types";
+import type { ProviderSwitchPreview } from "@shared/providerSwitch/types";
+import type { ProviderId } from "@shared/settings/types";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import type { Store } from "@/foundation/core/db/store";
 import { Conflict, NotFound } from "@/foundation/core/errors";

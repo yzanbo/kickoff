@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import type { ServiceUsage, UsageServiceId, UsageWindow } from "@shared/types";
+import type { ServiceUsage, UsageServiceId, UsageWindow } from "@shared/ai/types";
 
 /** 各サービスへの問い合わせの待ち時間 */
 const TIMEOUT_MS = 15_000;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbColumnInfo, DbValue } from "@shared/types";
+import type { DbColumnInfo, DbValue } from "@shared/database/types";
 import { addInserts, buildEdits, displayRows, editableText, editCounts, NO_EDITS, removeInsert, revertCell, rowKey, setCell, setInsertCell, toggleDelete } from "./tableEdits";
 
 const cols: DbColumnInfo[] = [

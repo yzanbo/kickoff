@@ -1,5 +1,5 @@
 import { useContext, useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { TabVisibleContext } from "@/features/panel/ui/tabs/tabPageContext";
 import { noteForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { cx } from "@/foundation/ui/lib/cx";

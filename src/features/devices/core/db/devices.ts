@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { DEVICE_ACCESSES, type Device, type DeviceAccess, type DevicePush } from "@shared/types";
+import { DEVICE_ACCESSES, type Device, type DeviceAccess, type DevicePush } from "@shared/devices/types";
 import { NOW } from "@/foundation/core/db/schema";
 import { hashToken } from "@/features/devices/core/token";
 

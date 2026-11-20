@@ -1,5 +1,5 @@
 // CI の結果（GitHub Actions の REST の応答・gh run view のログ）を画面の形にする（純粋な関数。テストは ciNormalize.test.ts）
-import type { CiExternalCheck, CiJob, CiRun, CiState, CiStepLog } from "@shared/types";
+import type { CiExternalCheck, CiJob, CiRun, CiState, CiStepLog } from "@shared/github/ciTypes";
 
 // GitHub の答えは形が決まらないので、読むところだけ any で受ける
 type Raw = any;

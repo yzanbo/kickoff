@@ -1,5 +1,6 @@
-import type { Chat, HandoffBody, HandoffResult } from "@shared/types";
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { HandoffBody, HandoffResult } from "@shared/foundation/apiTypes";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 import { lastReplyOfTurn } from "@shared/chat/handoff";
 import type { Store } from "@/foundation/core/db/store";
 import type { Runner } from "@/features/chat/core/runner";

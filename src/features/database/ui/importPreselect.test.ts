@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbImportCandidate } from "@shared/types";
+import type { DbImportCandidate } from "@shared/database/types";
 import { withPreselect } from "./importPreselect";
 
 const candidate = (key: string, patch: Partial<DbImportCandidate> = {}): DbImportCandidate => ({

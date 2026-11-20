@@ -1,4 +1,4 @@
-import type { ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
 import { CommandLine } from "@/foundation/ui/kit/CommandLine";
 
 /**

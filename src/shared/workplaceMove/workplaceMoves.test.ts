@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { WorkplaceRef } from "@shared/types";
+import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { eventSequence } from "@shared/foundation/testing/factories";
 import {
   isBeforeWorkplaceMove,

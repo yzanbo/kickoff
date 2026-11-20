@@ -2,7 +2,8 @@
 // 案の作り方は DB クライアントの「プロジェクトからの取り込み」と同じ（candidatesFromCompose）で、compose に聞いた設定（変数を埋めたもの）から読む
 import path from "node:path";
 import { sameLocalServer } from "@shared/database/dbServer";
-import { DOCKER_DB_NO_PORT, type DbConnection, type DockerCompose } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import { DOCKER_DB_NO_PORT, type DockerCompose } from "@shared/docker/types";
 import { candidatesFromCompose } from "./fromCompose";
 import { candidateName, type FoundDb } from "./found";
 

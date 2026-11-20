@@ -1,6 +1,6 @@
 // Docker タブのログの画面の流れ: compose のコンテナごとの docker logs（時刻付き）を 1 本の SSE にまとめる。
 // 開いたときは最新の 500 行、動いているものは流れ続け、止まった・起動し直した・作り直されたら区切りを知らせる。ログは保存しない
-import type { DockerLogEvent, DockerLogLine, DockerLogSource } from "@shared/types";
+import type { DockerLogEvent, DockerLogLine, DockerLogSource } from "@shared/docker/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { StreamedCommand } from "@/foundation/core/system/stream";
 import type { DockerCli } from "./cli";

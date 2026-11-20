@@ -1,5 +1,5 @@
 // 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
-import type { GitDiff, GitOriginal } from "@shared/types";
+import type { GitDiff, GitOriginal } from "@shared/git/types";
 import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
 import { assertInside, MAX_FILE_BYTES } from "@/features/files/core/files";
 import { gitPrefix, gitStatus, hasRef, listRemotes } from "./status";

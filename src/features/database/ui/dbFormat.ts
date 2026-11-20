@@ -1,5 +1,5 @@
 // DB クライアントの表示の補助（セルの文・接続の行の説明・列の並べ替えの切り替え）。React に依らない
-import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@shared/types";
+import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { formatBytes } from "@/foundation/ui/lib/format";
 

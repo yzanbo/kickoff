@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Check, ChevronDown, UploadCloud } from "lucide-react";
-import type { GitStatus } from "@shared/types";
+import type { GitStatus } from "@shared/git/types";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { isKey } from "@/foundation/ui/lib/keys";

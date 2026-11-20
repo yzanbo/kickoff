@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import { panelActions } from "@/features/panel/ui/state/panelActions";

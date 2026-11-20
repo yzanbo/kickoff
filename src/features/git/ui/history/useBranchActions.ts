@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { GitBranchAction, GitBranchActionResult, GitOperation, GitRefs } from "@shared/types";
-import { GIT_OPERATION_LABELS } from "@shared/types";
+import type { GitBranchAction, GitBranchActionResult, GitOperation, GitRefs } from "@shared/git/types";
+import { GIT_OPERATION_LABELS } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";

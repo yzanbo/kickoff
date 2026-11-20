@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import type { PlanUsage, ProviderStatus } from "@shared/types";
+import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
 import { useForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { providerLabel, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { FIVE_HOUR_IDLE, type usePlanUsage } from "./usage";

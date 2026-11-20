@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { QueueSendMode } from "./composerKeys";
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatEvent, ChatEventType } from "@shared/types";
+import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
 import { makeEvent, type EventInput } from "@shared/foundation/testing/factories";
 import { DEFAULT_FIND_OPTIONS, findPattern } from "@/foundation/ui/lib/textFind";
 import { findMatches as findMatchesOf } from "./chatFindMatches";

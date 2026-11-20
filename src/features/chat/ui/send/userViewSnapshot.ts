@@ -1,6 +1,6 @@
 // 送る指示に添える「送った時点の画面の様子」（AI の get_user_view）。
 // 様子を集めるのは画面全体（app/userViewReport.ts）なので、API の関数からはここを通して読む（api は app・features を import しない）
-import type { UserView } from "@shared/types";
+import type { UserView } from "@shared/userView/types";
 
 let provider: (() => UserView | null) | null = null;
 

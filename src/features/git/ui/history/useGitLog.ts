@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { GitCommit, GitLog, GitRefs } from "@shared/types";
+import type { GitCommit, GitLog, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { useWorktrees, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";

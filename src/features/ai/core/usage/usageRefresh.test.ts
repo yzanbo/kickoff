@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { Bus } from "@/foundation/core/bus";
 import type { AgentProvider } from "@/features/ai/core/providers/index";
 import { CodexCreditsWatch } from "./codexCredits";

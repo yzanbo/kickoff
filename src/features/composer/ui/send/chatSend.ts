@@ -1,4 +1,6 @@
-import type { Attachment, BackgroundState, MessageMarks } from "@shared/types";
+import type { MessageMarks } from "@shared/chat/chatEvent";
+import type { BackgroundState } from "@shared/chat/chatLive";
+import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { composerHandoff } from "@/foundation/ui/storage/storageKeys";

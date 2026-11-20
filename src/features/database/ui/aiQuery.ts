@@ -1,5 +1,5 @@
 // チャットの AI の db_query（kickoff_db）の入力を、DB クライアントの接続に結び付ける。React に依らない
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 
 /** db_query の結果の文の頭「接続「名前」の結果。」（core/databases/aiFormat.ts）から、流した接続の名前を読む */
 function nameFromResult(result: string | undefined): string | undefined {

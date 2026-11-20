@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useWorktrees } from "./worktreesStore";
 import { branchName, workplaceOf, type ChatWorkplace, type WorkplaceChat } from "./workplace";
 import { workplaceHue } from "./workplaceHue";

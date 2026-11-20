@@ -1,7 +1,7 @@
 // 本体とのつながりの様子と、その決め方（純粋な関数でテストする = connection.test.ts）。
 // アプリと本体は別々に更新されるので、話が通じない・つなぐ先が違うときは、つなぎ直しを繰り返さずに理由を出して止める（壊れずに断る）
-import type { ServerHello } from "@shared/types";
-import { MOBILE_OFF } from "@shared/types";
+import type { ServerHello } from "@shared/foundation/server";
+import { MOBILE_OFF } from "@shared/devices/types";
 import type { ApiMismatch } from "@shared/foundation/api/version";
 import { hostMismatch } from "./version";
 

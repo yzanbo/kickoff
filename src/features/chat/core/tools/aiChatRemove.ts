@@ -4,7 +4,7 @@
 // ただし、作業中なのがツールを呼んだチャット自身だけ（自分・自分の祖先を頼まれた）なら、その作業が終わってから行う（予約。送信待ちは止めておく）
 import type { RemoveChatInput } from "@shared/chat/aiChatRemove";
 import { errorMessage } from "@shared/foundation/errors";
-import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/types";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/foundation/core/db/store";
 import type { TrashService } from "@/features/trash/core/service";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { FolderInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/projects/types";
 import { href } from "@/foundation/ui/navigation/router";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { folderOverlapLines, folderOverlaps } from "@/features/projects/ui/folderOverlaps";

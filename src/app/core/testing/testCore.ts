@@ -2,7 +2,7 @@
 // 実行の受付（Runner）だけを組む setupCore（実行のテスト）。どちらもメモリの DB とプロジェクト 1 つ。テストからだけ使う
 import fs from "node:fs";
 import path from "node:path";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { systemClock } from "@/foundation/core/clock";
 import type { Store } from "@/foundation/core/db/store";
 import { BrowserLogin } from "@/foundation/core/http/auth";

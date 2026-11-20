@@ -1,6 +1,7 @@
 import { Folder, SquarePen } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { openNewChat } from "@/foundation/ui/navigation/router";

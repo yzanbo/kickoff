@@ -1,5 +1,5 @@
 import { GitBranch } from "lucide-react";
-import type { WorkplaceMoveReservation } from "@shared/types";
+import type { WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

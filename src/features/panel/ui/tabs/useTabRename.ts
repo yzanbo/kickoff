@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
-import { CHAT_TITLE_MAX } from "@shared/types";
+import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { setDraftTitle } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { PanelTab } from "./panelTypes";
 

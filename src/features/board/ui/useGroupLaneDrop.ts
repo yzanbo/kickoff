@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { useGroupDrop } from "@/features/groups/ui/groups";

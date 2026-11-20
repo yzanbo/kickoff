@@ -1,21 +1,6 @@
-// GitHub の GraphQL・REST の答えを、GitHub タブの API の形（@shared/types の GitHub…）にする（どれも純粋な関数）
-import type {
-  GitHubCheck,
-  GitHubChecksState,
-  GitHubItem,
-  GitHubItemState,
-  GitHubLabel,
-  GitHubLinkedPull,
-  GitHubMergeMethod,
-  GitHubMergeState,
-  GitHubPullFile,
-  GitHubReviewDecision,
-  GitHubReviewThread,
-  GitHubTimelineEntry,
-  GitHubUser,
-  GitHubViewerAbilities,
-} from "@shared/types";
-import { GITHUB_MERGE_STATES } from "@shared/types";
+// GitHub の GraphQL・REST の答えを、GitHub タブの API の形（@shared/github/types の GitHub…）にする（どれも純粋な関数）
+import type { GitHubCheck, GitHubChecksState, GitHubItem, GitHubItemState, GitHubLabel, GitHubLinkedPull, GitHubMergeMethod, GitHubMergeState, GitHubPullFile, GitHubReviewDecision, GitHubReviewThread, GitHubTimelineEntry, GitHubUser, GitHubViewerAbilities } from "@shared/github/types";
+import { GITHUB_MERGE_STATES } from "@shared/github/types";
 
 /** GitHub の答え（形は 1 つずつ確かめながら読む） */
 type Raw = any;

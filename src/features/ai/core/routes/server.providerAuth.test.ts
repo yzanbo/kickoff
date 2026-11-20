@@ -1,7 +1,9 @@
 // AI の一覧・できること・ログインの仕方と API キー・チャットごとの AI
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { PROVIDER_IDS, type Chat, type ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { Chat } from "@shared/chat/types";
+import { PROVIDER_IDS } from "@shared/settings/types";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";

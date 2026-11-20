@@ -1,4 +1,5 @@
-import type { ProviderId, ProviderCliStatus } from "@shared/types";
+import type { ProviderCliStatus } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider, ProviderTurnResult } from "./types";
 import { runCommand } from "@/foundation/core/system/exec";
 

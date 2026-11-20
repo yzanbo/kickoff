@@ -5,7 +5,7 @@ import { Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Device from "expo-device";
-import type { PairingClaimResult } from "@shared/types";
+import type { PairingClaimResult } from "@shared/devices/types";
 import { HostClient } from "../lib/client";
 import { hostNameOf } from "../lib/hosts";
 import { claimPairing, normalizeHostUrl, parsePairingLink, pollPairing, type PairingTarget } from "../lib/pairing";

@@ -1,4 +1,4 @@
-import type { ServiceUsage, UsageWindow } from "@shared/types";
+import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
 import { nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
 import { defineFetcher, fetchJsonOr, isoFromDate, USER_AGENT, usageResult, usageWindow } from "./common";
 

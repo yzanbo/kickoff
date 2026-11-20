@@ -1,5 +1,6 @@
 import { busyWithUnread } from "@shared/chat/state";
-import type { AgentState, Chat, ProviderId } from "@shared/types";
+import type { AgentState, Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { ModelName } from "@/features/ai/ui/options/ModelName";

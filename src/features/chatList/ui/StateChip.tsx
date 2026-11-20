@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
-import type { AgentState, Chat } from "@shared/types";
+import type { AgentState, Chat } from "@shared/chat/types";
 import { STATE_TONE } from "@/features/chat/ui/state/tones";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";

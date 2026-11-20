@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DockerLogEvent, DockerLogLine, DockerLogSource } from "@shared/types";
+import type { DockerLogEvent, DockerLogLine, DockerLogSource } from "@shared/docker/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { fillTs, LOG_ROW_LIMIT, mergeRows, normTs, type LogRow } from "./dockerLogView";

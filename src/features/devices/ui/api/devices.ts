@@ -1,4 +1,6 @@
-import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, TailscaleStatus, ViewingBody, UserViewBody } from "@shared/types";
+import type { TailscaleStatus } from "@shared/devices/tailscale";
+import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, ViewingBody } from "@shared/devices/types";
+import type { UserViewBody } from "@shared/userView/types";
 import { request } from "@/foundation/ui/api/http";
 
 /** スマホ連携の端末とペアリング（コアの routes/devices.ts。この Mac の画面だけが使う口） */

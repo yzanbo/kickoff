@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { DbConnection, DbImportCandidate } from "@shared/types";
+import type { DbConnection, DbImportCandidate } from "@shared/database/types";
 import { expandHome } from "@/foundation/core/system/paths";
 import { parseEnvFile } from "./envFile";
 import { candidatesFromCompose, type ComposeHosts } from "./fromCompose";

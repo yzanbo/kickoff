@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 
 /**

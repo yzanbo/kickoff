@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";

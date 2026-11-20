@@ -1,5 +1,5 @@
 // 送信待ちの指示を、子チャットで聞く（右クリックのメニュー。会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の「子チャットを作ったとき」で開く）
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { useChatPane } from "@/features/chat/ui/screen/ports";

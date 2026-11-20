@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import type { BackgroundTask } from "@shared/types";
+import type { BackgroundTask } from "@shared/chat/chatLive";
 import { eventSequence } from "@shared/foundation/testing/factories";
 import { backgroundCallTarget } from "./backgroundTarget";
 

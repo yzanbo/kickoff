@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
-import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type DockerDbTarget } from "@shared/types";
+import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type DockerDbTarget } from "@shared/docker/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { Bus } from "@/foundation/core/bus";
 import type { DockerService } from "@/features/docker/core/service";

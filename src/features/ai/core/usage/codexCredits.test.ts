@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CodexCredits } from "@shared/types";
+import type { CodexCredits } from "@shared/ai/types";
 import { Bus } from "@/foundation/core/bus";
 import { CodexCreditsWatch } from "./codexCredits";
 

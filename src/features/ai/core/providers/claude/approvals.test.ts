@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { CanUseTool, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { createCanUseTool } from "./approvals";
 import type { ApprovalRequest } from "@/features/ai/core/providers/types";
 

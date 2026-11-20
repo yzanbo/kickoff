@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
-import { BOARD_COLUMNS, type Chat } from "@shared/types";
+import { BOARD_COLUMNS, type Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { cx } from "@/foundation/ui/lib/cx";

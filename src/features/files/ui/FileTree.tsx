@@ -1,5 +1,5 @@
 import type { CSSProperties, DragEvent, MouseEvent, ReactNode } from "react";
-import type { GitChangeKind } from "@shared/types";
+import type { GitChangeKind } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { Chevron } from "@/foundation/ui/kit/Chevron";

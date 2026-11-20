@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { MessageSquare } from "lucide-react";
 import { busyWithUnread } from "@shared/chat/state";
-import { AGENT_STATE_LABELS, type AgentState, type Chat, type FeedItem } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState, type Chat, type FeedItem } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";

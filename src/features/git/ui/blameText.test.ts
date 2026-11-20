@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { GitBlame, GitBlameCommit } from "@shared/types";
+import type { GitBlame, GitBlameCommit } from "@shared/git/types";
 import { blameAt, blameHover, blameLabel } from "./blameText";
 
 const now = Date.parse("2026-11-10T12:00:00Z");

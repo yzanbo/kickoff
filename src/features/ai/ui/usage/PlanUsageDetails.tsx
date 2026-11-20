@@ -1,4 +1,4 @@
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { OverageDetails } from "./OverageDetails";
 import { FIVE_HOUR_IDLE, usageUnavailableText } from "./usage";
 import { UsageFetchedNote } from "./UsageFetchedNote";

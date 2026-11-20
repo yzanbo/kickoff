@@ -1,5 +1,5 @@
 // 埋め込みブラウザのタブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を札にする
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { webUrlOf } from "@shared/remoteImages/linkWarnings";
 import { api } from "@/foundation/ui/api";
 import { showToast } from "@/foundation/ui/kit/toast";

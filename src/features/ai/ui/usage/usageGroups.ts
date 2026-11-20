@@ -1,4 +1,5 @@
-import type { ProviderId, ProviderStatus, ServiceUsage } from "@shared/types";
+import type { ProviderStatus, ServiceUsage } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import { paysPerUse, statusOf } from "@/features/ai/ui/provider/providerChoice";
 
 /**

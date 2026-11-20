@@ -1,7 +1,7 @@
 import { Lock, Plus, Sparkles, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/types";
+import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { cx } from "@/foundation/ui/lib/cx";

@@ -1,7 +1,7 @@
 // サブエージェントの手順に使う記録だけを選ぶ（流れの中のカード・右の欄の画面）。
 // カードごとに読み込んだ記録の全体をたどらないよう、記録の配列ごとに 1 回だけ索引（流れ = parent ごとの位置）を作り、
 // カードはそのサブエージェントの流れの分と、どの流れの項目にも要る分だけを ID の順に取り出して groupEvents に渡す
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { relayedText } from "@shared/chat/prompts";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";

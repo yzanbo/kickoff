@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { DEVICE_ACCESS_LABELS } from "@shared/types";
+import { DEVICE_ACCESS_LABELS } from "@shared/devices/types";
 import type { HostRecord } from "../lib/hosts";
 import { useHosts, useHostSession } from "../state/hosts";
 import { Button } from "../ui/Button";

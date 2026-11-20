@@ -3,7 +3,9 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Store } from "@/foundation/core/db/store";
-import type { Chat, ChatGroup, Project } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
+import type { Project } from "@shared/projects/types";
 import { NotFound } from "@/foundation/core/errors";
 import type { ProjectScopes } from "@/foundation/core/workplace/kit";
 import { idParam, queryOf } from "./input";

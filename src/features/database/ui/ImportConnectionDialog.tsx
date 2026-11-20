@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbConnection, type DbEnvironment, type DbImportCandidate } from "@shared/types";
+import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbConnection, type DbEnvironment, type DbImportCandidate } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

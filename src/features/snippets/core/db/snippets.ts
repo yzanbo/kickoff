@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/types";
+import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/snippets/types";
 import { NOW } from "@/foundation/core/db/schema";
 import { updateRow, type Notify } from "@/foundation/core/db/common";
 

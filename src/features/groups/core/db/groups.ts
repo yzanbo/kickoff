@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { pickProjectHue } from "@shared/projects/colors";
 import type { Notify } from "@/foundation/core/db/common";
 

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import { DOCKER_DB_NO_PORT, type DbConnection, type DockerDbTarget, type DockerList } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import { DOCKER_DB_NO_PORT, type DockerDbTarget, type DockerList } from "@shared/docker/types";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setup } from "@/app/core/testing/testServer";
 

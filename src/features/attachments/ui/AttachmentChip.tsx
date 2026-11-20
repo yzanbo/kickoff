@@ -1,5 +1,5 @@
 import { StickyNote } from "lucide-react";
-import type { Attachment, NoteAttachment } from "@shared/types";
+import type { Attachment, NoteAttachment } from "@shared/chat/types";
 import { attachmentUrl } from "@/foundation/ui/api";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";

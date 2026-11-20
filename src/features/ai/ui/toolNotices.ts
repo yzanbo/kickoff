@@ -1,5 +1,6 @@
 // 下の帯の、AI・ツールの CLI が使えないときの札（Claude Code・gh。ふだんは出さない）。React に依らない
-import type { GitHubStatus, ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { GitHubStatus } from "@shared/foundation/server";
 
 export interface ToolNotice {
   key: "claude" | "github";

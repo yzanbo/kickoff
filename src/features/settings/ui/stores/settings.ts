@@ -1,5 +1,5 @@
 // アプリの設定（すべての画面で 1 つ）。初めて使うときに読み、変わったらサーバーの知らせ（settings）で置き換える
-import type { AppSettings } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";

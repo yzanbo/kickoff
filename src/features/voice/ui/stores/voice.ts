@@ -1,6 +1,6 @@
 // 音声入力の準備の状態（アプリ全体で 1 つ。チャット欄のマイクのボタンと設定の「音声入力」で共有する）。
 // 設定が変わったら取り直し、モデルのダウンロードの進み具合はその場で直す（終わったら取り直して、準備の状態も直す）
-import type { VoiceStatus } from "@shared/types";
+import type { VoiceStatus } from "@shared/voice/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";

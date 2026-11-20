@@ -1,6 +1,6 @@
 import { Check, ChevronRight, FileCheck2, SquareArrowOutUpRight } from "lucide-react";
 import { useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import type { GitFileChange } from "@shared/types";
+import type { GitFileChange } from "@shared/git/types";
 import { openProjectFile } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { sideViewedFiles } from "@/foundation/ui/storage/storageKeys";

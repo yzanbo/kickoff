@@ -1,6 +1,7 @@
 // チャットの作業場所を移す（見出しの札・右クリックの「作業場所を変更」から）:
 // 移す先で作業中のチャットがあれば新しいチャットと同じ設定に従い、移す前の確かめ（残る変更 / 持っていく・動いているもの）を出して移す
-import type { Chat, WorkplaceMoveCheck } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { currentChats } from "@/features/chat/ui/store/knownChats";

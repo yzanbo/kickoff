@@ -1,4 +1,4 @@
-import { AGENT_STATE_LABELS, type AgentState } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentDetail, type SubagentState } from "@shared/chat/subagentState";
 

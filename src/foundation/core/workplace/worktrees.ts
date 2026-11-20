@@ -1,7 +1,7 @@
 // ワークツリー（同じリポジトリの別のブランチを、隣のフォルダに取り出す）
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { GitWorktree, WorktreeRemovalInfo } from "@shared/types";
+import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
 import { prepareWorktree } from "./worktreeSetup";
 import { gitOutput } from "./exec";
 import { gitPrefix, hasRef, listRemotes } from "@/features/git/core/status";

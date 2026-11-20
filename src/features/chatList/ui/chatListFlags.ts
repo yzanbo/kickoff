@@ -2,7 +2,7 @@ import { boardColumnOf } from "@shared/chat/state";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { chatStateOf, type ApprovalIndex } from "@/features/chat/ui/state/chatState";
 import { SIDEBAR_COMPACT, SIDEBAR_PROJECT_COMPACT, SIDEBAR_SHOW_ARCHIVED } from "@/foundation/ui/storage/storageKeys";
-import type { AgentState, Chat } from "@shared/types";
+import type { AgentState, Chat } from "@shared/chat/types";
 
 /** チャットを 1 行で出すか（初めは 1 行） */
 export const useCompactRows = () => useSetting(SIDEBAR_COMPACT);

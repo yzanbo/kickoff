@@ -3,7 +3,7 @@ import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";

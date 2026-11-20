@@ -1,5 +1,5 @@
 import { Bot, FileText, GitPullRequest, Library, MessageSquareQuote, Shrink, Trash2 } from "lucide-react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import type { DialogSection } from "@/foundation/ui/kit/TabbedDialog";
 import { CompactPromptSettings } from "@/features/compact/ui/CompactPromptSettings";

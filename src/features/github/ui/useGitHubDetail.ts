@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubIssueDetail, GitHubKind, GitHubPullDetail } from "@shared/types";
+import type { GitHubIssueDetail, GitHubKind, GitHubPullDetail } from "@shared/github/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useGitHubRefresh } from "./useGitHubRefresh";

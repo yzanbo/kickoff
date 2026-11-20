@@ -3,7 +3,7 @@
 // 結果の 1 行目は記録の行に出す文（userViewSummaryLine）
 import path from "node:path";
 import { userViewSummaryLine } from "@shared/userView/tools";
-import type { UserView, UserViewSelection, UserViewTab } from "@shared/types";
+import type { UserView, UserViewSelection, UserViewTab } from "@shared/userView/types";
 import type { SeenView } from "./registry";
 
 export interface UserViewTextInput {

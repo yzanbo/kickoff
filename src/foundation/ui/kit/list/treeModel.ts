@@ -1,4 +1,4 @@
-import type { GitChangeKind, GitFileChange, GitStatus, ProjectFiles } from "@shared/types";
+import type { GitChangeKind, GitFileChange, GitStatus, ProjectFiles } from "@shared/git/types";
 
 /** エクスプローラーの 1 行（フォルダかファイル） */
 export interface TreeNode {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatOptions, ModelOption } from "@shared/types";
+import type { ChatOptions, ModelOption } from "@shared/chat/types";
 import { fallbackModel, fastSupportOf, groupModels, modelDisplayName, splitModelLabel, withDefaults } from "./models";
 
 const m = (value: string, label: string): ModelOption => ({ value, label, description: "", efforts: [], supports_auto_mode: true, supports_fast_mode: false });

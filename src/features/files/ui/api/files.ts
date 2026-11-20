@@ -1,4 +1,6 @@
-import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile, TrashedResult } from "@shared/types";
+import type { RenamedFile, SavedFile } from "@shared/foundation/apiTypes";
+import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types";
+import type { TrashedResult } from "@shared/trash/types";
 import { request, requestBlob } from "@/foundation/ui/api/http";
 import { workdirPath, type GitTarget } from "@/foundation/ui/api/workdir";
 

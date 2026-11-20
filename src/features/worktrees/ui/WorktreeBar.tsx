@@ -1,5 +1,5 @@
 import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
-import type { PullRequestInfo } from "@shared/types";
+import type { PullRequestInfo } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { alertDialog, confirmDialog, confirmWithChecks } from "@/foundation/ui/kit/dialogs";

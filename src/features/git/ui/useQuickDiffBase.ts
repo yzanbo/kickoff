@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import type { GitFileChange, GitStatus } from "@shared/types";
+import type { GitFileChange, GitStatus } from "@shared/git/types";
 import { api, type GitTarget } from "@/foundation/ui/api";
 
 /**

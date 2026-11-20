@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { WorktreeEnv } from "@shared/types";
+import type { WorktreeEnv } from "@shared/worktrees/envTypes";
 
 /** 覚えたワークツリーの実行環境（API の形に、持ち主のプロジェクトと作業するフォルダを足したもの） */
 export interface StoredWorktreeEnv extends Omit<WorktreeEnv, "app_url"> {

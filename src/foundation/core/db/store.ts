@@ -24,7 +24,9 @@ import { createTrashStore } from "@/features/trash/core/db/trash";
 import { createAgentSessionStore } from "@/features/chat/core/db/agentSessions";
 import { createWorktreeEnvStore } from "@/features/worktrees/core/db/worktreeEnvs";
 import { createWorktreeColorStore } from "@/features/worktrees/core/db/worktreeColors";
-import type { Attachment, Chat, ChatEventOf, ChatOptions, ProviderId } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
+import type { Attachment, Chat, ChatOptions } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /**
  * SQLite の永続化層。表ごとの店（store.chats.get など）をまとめて持つ。変更系の操作は onChange で知らせる

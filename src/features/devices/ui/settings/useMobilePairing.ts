@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Device, DeviceAccess, PairingState } from "@shared/types";
+import type { Device, DeviceAccess, PairingState } from "@shared/devices/types";
 import { pairingLink } from "@shared/devices/pairing";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";

@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
 import { makeProviderStatus } from "@shared/foundation/testing/factories";
 import { canBrowserLogin } from "./ProviderLoginButton";
 

@@ -1,6 +1,6 @@
 // ゴミ箱の機能のコアの入口（ほかの機能はここだけを読む）
 import path from "node:path";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { trashRoutes } from "./routes/trash";

@@ -1,4 +1,4 @@
-import type { TerminalOpenBody, TerminalOpened, TerminalOwnerBody } from "@shared/types";
+import type { TerminalOpenBody, TerminalOpened, TerminalOwnerBody } from "@shared/terminal/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /**

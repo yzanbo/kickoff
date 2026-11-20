@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { Folder, SquarePen } from "lucide-react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";

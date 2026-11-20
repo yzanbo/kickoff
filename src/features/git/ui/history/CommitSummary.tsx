@@ -1,5 +1,5 @@
 import type { CSSProperties, MouseEvent } from "react";
-import type { GitCommit, GitCommitDetail, GitFileChange, GitRefs } from "@shared/types";
+import type { GitCommit, GitCommitDetail, GitFileChange, GitRefs } from "@shared/git/types";
 import { baseName } from "@/foundation/ui/lib/format";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { GitHubMark } from "@/features/git/ui/GitHubMark";

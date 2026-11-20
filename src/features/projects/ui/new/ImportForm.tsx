@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import type { FolderInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSubmit } from "@/foundation/ui/hooks/useSubmit";

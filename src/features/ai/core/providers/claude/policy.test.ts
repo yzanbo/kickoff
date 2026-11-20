@@ -5,7 +5,7 @@ import { test } from "vitest";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks } from "./policy";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 const signal = new AbortController().signal;

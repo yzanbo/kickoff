@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CiJob, CiRun } from "@shared/types";
+import type { CiJob, CiRun } from "@shared/github/ciTypes";
 import { ciCaptureName, ciFailedDocument, ciLinkOf, ciLogLine, ciSelectedText, hasPending, jobToOpen, parseCiSelected, stepsWithLogs, stepToOpen } from "./ciView";
 
 const run = (patch: Partial<CiRun> = {}): CiRun => ({

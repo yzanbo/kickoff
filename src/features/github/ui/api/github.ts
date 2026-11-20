@@ -1,24 +1,6 @@
-import type {
-  Chat,
-  GitHubCheckoutPlace,
-  GitHubConnection,
-  GitHubCreatedIssue,
-  GitHubIssueDetail,
-  GitHubItemPage,
-  GitHubKind,
-  GitHubLabel,
-  GitHubLink,
-  GitHubListFilter,
-  GitHubMergeBody,
-  GitHubMergeResult,
-  GitHubNewIssueBody,
-  GitHubPullDetail,
-  GitHubPullFiles,
-  GitHubPullWorktree,
-  GitHubRepoMeta,
-  GitHubReviewBody,
-  GitHubStateBody,
-} from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { GitHubCreatedIssue, GitHubLink, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
+import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta } from "@shared/github/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** GitHub タブ（連携先のリポジトリの issue・PR を読む。コアの routes/github.ts）。中身はいつも GitHub に聞き直したもの */

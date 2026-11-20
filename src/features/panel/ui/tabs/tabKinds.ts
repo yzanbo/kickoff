@@ -1,6 +1,6 @@
 import { Bot, Container, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
 import { draftDisplayTitle } from "@/features/composer/ui/drafts/draftTitle";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";

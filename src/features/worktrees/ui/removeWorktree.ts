@@ -1,4 +1,4 @@
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { choiceDialog, choiceDialogWithChecks, confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { worktreeEnvOf, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";

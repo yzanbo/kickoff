@@ -1,7 +1,8 @@
 // 子チャット: チャットの寄り道の質問を、親に紐づいた別のチャットで聞く（親の作業を止めずに並行して動く。何往復でも会話でき、
 // 結果は自分で選んで親に渡す）。親の会話を引き継ぐなら、親のいちばん新しい「最後まで終わった作業」の時点から会話を写して始める。
 // 聞くことがなければ（文も添付もない）、会話を写した子チャットを作るだけで動かさない（開いてから書いて送る）
-import type { Attachment, Chat, ChatOptionsPatch, ProviderId } from "@shared/types";
+import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { AiChatRelation } from "@shared/chat/aiCreateChat";
 import type { Store } from "@/foundation/core/db/store";

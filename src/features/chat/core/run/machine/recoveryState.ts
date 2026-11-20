@@ -1,4 +1,4 @@
-import type { ReconnectState } from "@shared/types";
+import type { ReconnectState } from "@shared/chat/chatLive";
 import { MAX_AUTO_RESUMES, type RecoveryRule, type WaitFor } from "./recovery";
 
 /** 再開の条件を待っているところ（待つ条件と、満たしたあとに再開するか・聞くか） */

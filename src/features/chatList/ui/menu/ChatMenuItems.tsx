@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, GitBranch, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { confirmDeleteChat, confirmMoveChatToProject, toggleArchiveChat, togglePinChat } from "@/features/chat/ui/chatActions";

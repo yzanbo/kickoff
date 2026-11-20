@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Clock, Search, TriangleAlert, WrapText } from "lucide-react";
-import type { DockerCompose } from "@shared/types";
+import type { DockerCompose } from "@shared/docker/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { DOCKER_LOG_TIMESTAMPS, DOCKER_LOG_WRAP } from "@/foundation/ui/storage/storageKeys";

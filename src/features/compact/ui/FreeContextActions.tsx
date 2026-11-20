@@ -1,5 +1,6 @@
 import { Hourglass, X } from "lucide-react";
-import type { Chat, CompactingState, QueueAction, QueuedMessage } from "@shared/types";
+import type { CompactingState } from "@shared/chat/chatLive";
+import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";

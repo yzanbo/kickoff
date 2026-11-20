@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from "react";
-import type { Project, Chat, ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

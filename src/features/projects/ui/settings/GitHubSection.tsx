@@ -1,4 +1,5 @@
-import type { Project, ProjectPatch } from "@shared/types";
+import type { ProjectPatch } from "@shared/foundation/apiTypes";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";

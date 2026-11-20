@@ -1,6 +1,6 @@
 import { Archive } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { FoldSection } from "./FoldHead";
 

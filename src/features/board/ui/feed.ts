@@ -1,4 +1,5 @@
-import { FEED_TEXT_LIMIT, type ChatEvent, type FeedItem } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { FEED_TEXT_LIMIT, type FeedItem } from "@shared/chat/types";
 
 // フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答 1 件。読み込みは useFeed、ここは純粋な関数
 

@@ -1,5 +1,7 @@
 // GitHub の issue・PR を AI に渡すもの（入力欄に入れる一言と、押した時点の中身の札にする Markdown。送るのは自分で）
-import type { AttachmentSource, GitHubIssueDetail, GitHubLink, GitHubPullDetail, GitHubReviewThread, GitHubUser } from "@shared/types";
+import type { AttachmentSource } from "@shared/chat/types";
+import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { GitHubIssueDetail, GitHubPullDetail, GitHubReviewThread, GitHubUser } from "@shared/github/types";
 import { quoteComment } from "@/features/chat/ui/quote";
 
 const KIND_NAMES = { issue: "issue", pr: "PR" } as const;

@@ -1,5 +1,5 @@
 // ［AI で整える］のチャットの名前と最初の指示。手順で直せなかった所を、Git で管理していないファイルだけで AI に直してもらう
-import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeEnv } from "@shared/types";
+import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeEnv } from "@shared/worktrees/envTypes";
 import { KICKOFF_BLOCK_END, KICKOFF_BLOCK_START } from "./envRewrite";
 import { OVERRIDE_FILE } from "./files";
 

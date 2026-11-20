@@ -1,7 +1,7 @@
 // GitHub Copilot のプロバイダーを偽の SDK のクライアントで確かめる（本物のランタイム・アカウントは使わない）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeCopilotClient, type FakeCopilotSession } from "@/features/ai/core/testing/fakeCopilotClient";
 import { until } from "@/app/core/testing/testCore";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";

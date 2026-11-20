@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { editStatements } from "@shared/database/dbEdit";
-import type { DbEngine, DbObjectPath, DbQueryResult, DbRowEdit } from "@shared/types";
+import type { DbEngine, DbObjectPath, DbQueryResult, DbRowEdit } from "@shared/database/types";
 import type { DbTarget, WorkerMethod, WorkerMethods } from "@shared/database/workerProtocol";
 import { createWorkerHandler } from "./handler";
 

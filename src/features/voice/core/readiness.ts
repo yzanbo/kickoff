@@ -1,4 +1,4 @@
-import type { AppSettings } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
 import { findWhisperModel } from "./models";
 import { macosUnreadyReason, type MacosSpeech } from "./macos";
 import { INSTALL_HINT, type VoiceTools } from "./tools";

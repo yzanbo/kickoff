@@ -1,5 +1,7 @@
 // 店に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める。コアの中だけで使う）
-import type { ChatOptionsPatch, ChatStatus, GitHubKind, ProviderId } from "@shared/types";
+import type { ChatOptionsPatch, ChatStatus } from "@shared/chat/types";
+import type { GitHubKind } from "@shared/github/types";
+import type { ProviderId } from "@shared/settings/types";
 
 export interface NewProject {
   name: string;

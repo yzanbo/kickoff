@@ -1,4 +1,4 @@
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BusEvent } from "@shared/foundation/contract";
 
 /**

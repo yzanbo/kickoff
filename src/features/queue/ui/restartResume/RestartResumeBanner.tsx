@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import type { RestartResumeAction, RestartResumeState } from "@shared/types";
+import type { RestartResumeAction, RestartResumeState } from "@shared/chat/chatLive";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";

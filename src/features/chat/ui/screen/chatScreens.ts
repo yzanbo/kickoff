@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { subscribeWindowMessages, type WindowMessage } from "@/foundation/ui/navigation/windowBus";
 import type { ChatPaneActions } from "./ports";
 

@@ -4,7 +4,8 @@ import type { TurnControl } from "@/features/ai/core/providers/types";
 import { ChatQueue, type QueuePersistence } from "./queue";
 import { QueueEdits } from "./queueEdits";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "@/features/chat/core/run/machine/recoveryState";
-import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
+import type { QueuedMessage } from "@shared/chat/types";
 
 /** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {

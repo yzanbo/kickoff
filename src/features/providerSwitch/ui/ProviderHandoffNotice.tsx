@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ProviderHandoffStatus } from "@shared/types";
+import type { ProviderHandoffStatus } from "@shared/providerSwitch/types";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 

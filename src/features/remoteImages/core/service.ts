@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
-import type { Chat, ChatImageHost } from "@shared/types";
+import type { Chat, ChatImageHost } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { remoteImageOf } from "@shared/remoteImages/remoteImages";
 import type { Store } from "@/foundation/core/db/store";

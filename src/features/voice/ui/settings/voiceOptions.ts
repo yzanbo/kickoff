@@ -1,5 +1,5 @@
 // 設定の「音声入力」に出す、文字起こしの方法と OpenAI のモデルの説明（無料か・料金の目安）
-import type { OPENAI_TRANSCRIBE_MODELS, VoiceProvider, VoiceTtsProvider } from "@shared/types";
+import type { OPENAI_TRANSCRIBE_MODELS, VoiceProvider, VoiceTtsProvider } from "@shared/voice/types";
 
 /** 方法のカードに出すもの（名前・料金の札・ひとこと・良いところ・気を付けるところ） */
 export interface ProviderInfo {

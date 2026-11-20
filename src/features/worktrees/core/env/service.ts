@@ -3,7 +3,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type GitWorktree, type Project, type WorktreeComposeName, type WorktreeEnv } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
+import type { Project } from "@shared/projects/types";
+import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeComposeName, type WorktreeEnv } from "@shared/worktrees/envTypes";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredWorktreeEnv } from "@/features/worktrees/core/db/worktreeEnvs";
 import { findComposeFiles, upFilesFor } from "@/features/docker/core/compose";

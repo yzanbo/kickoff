@@ -1,4 +1,4 @@
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { request } from "@/foundation/ui/api/http";
 
 /** チャットのグループ（コアの routes/groups.ts）。並べ替えは、並べたあとのそのプロジェクトのグループの一覧が返る */

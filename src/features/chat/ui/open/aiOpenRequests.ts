@@ -1,4 +1,4 @@
-import type { ChatDraftRequest, OpenViewRequest } from "@shared/types";
+import type { ChatDraftRequest, OpenViewRequest } from "@shared/chat/openView";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";

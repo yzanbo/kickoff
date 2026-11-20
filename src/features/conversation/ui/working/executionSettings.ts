@@ -1,4 +1,6 @@
-import type { Chat, ChatEvent, ProviderId } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 
 export interface WorkingExecutionOptions {
   provider: ProviderId;

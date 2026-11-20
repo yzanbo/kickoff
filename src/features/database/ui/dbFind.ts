@@ -1,5 +1,5 @@
 // 「テーブル・列を探す」（⌘⇧O）の候補の並べ方。React に依らない
-import type { DbEngine, DbObject, DbObjectPath } from "@shared/types";
+import type { DbEngine, DbObject, DbObjectPath } from "@shared/database/types";
 
 /** 探す元: 1 つの接続の 1 つの場所のテーブル・ビュー（objects）と、その列の名前（columns。テーブルの名前ごと） */
 export interface DbFindSource {

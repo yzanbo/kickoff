@@ -1,6 +1,6 @@
 import { GitBranch, Pin } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { newChatPlaceOf, type BucketHead, type ChatBucket } from "@/features/chatList/ui/buckets";
 import { openNewChat } from "@/foundation/ui/navigation/router";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";

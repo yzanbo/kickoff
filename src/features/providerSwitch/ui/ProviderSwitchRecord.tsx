@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { ChatEventOf, ProviderHandoffStatus } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
+import type { ProviderHandoffStatus } from "@shared/providerSwitch/types";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 

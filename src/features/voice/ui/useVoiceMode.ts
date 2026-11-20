@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
-import { DEFAULT_SETTINGS } from "@shared/types";
+import { DEFAULT_SETTINGS } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

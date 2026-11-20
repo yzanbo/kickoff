@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import type { OrphanSession } from "@shared/types";
+import type { OrphanSession } from "@shared/trash/types";
 import { formatSize } from "@shared/attachments/truncate";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";

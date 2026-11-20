@@ -1,6 +1,6 @@
 // プロジェクトの連携先の GitHub のリポジトリ（git の remote から決める。fork なら元のリポジトリ（upstream）を先に選ぶ）
 import { GITHUB_DEFAULT_HOST, normalizeGitHubHost } from "@shared/foundation/codeHost";
-import type { GitHubRemote } from "@shared/types";
+import type { GitHubRemote } from "@shared/git/types";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 
 /**

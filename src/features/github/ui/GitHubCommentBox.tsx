@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { GITHUB_CLOSE_REASONS, GITHUB_CLOSE_REASON_LABELS, type GitHubCloseReason, type GitHubIssueDetail } from "@shared/types";
+import { GITHUB_CLOSE_REASONS, GITHUB_CLOSE_REASON_LABELS, type GitHubCloseReason, type GitHubIssueDetail } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

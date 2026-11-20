@@ -8,7 +8,10 @@ import { startChildChat } from "@/features/childChats/core/children";
 import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "@/features/workplaceMove/core/workplaceMove";
 import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "@/features/workplaceMove/core/workplaceReservation";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
+import type { CompactTrigger, MessageMarks } from "@shared/chat/chatEvent";
+import type { ChatLive, RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
+import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
+import type { TellResult } from "@shared/foundation/apiTypes";
 import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume";
 import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
@@ -19,7 +22,7 @@ import { isClearCommand } from "@shared/chat/queueActions";
 import { marksOf } from "@shared/chat/handoff";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /**
  * エージェントの実行を管理する。

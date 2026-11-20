@@ -3,7 +3,7 @@
 // （git は gh を認証の補助（credential helper）にしていれば、プッシュ・プルもそのアカウントになる）
 import { AsyncLocalStorage } from "node:async_hooks";
 import { GITHUB_DEFAULT_HOST, isDefaultGitHubHost, normalizeGitHubHost } from "@shared/foundation/codeHost";
-import type { GitHubAccount } from "@shared/types";
+import type { GitHubAccount } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
 import { nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
 import { ttlCache } from "@/foundation/core/system/ttlCache";

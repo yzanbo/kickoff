@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { boardColumnOf } from "@shared/chat/state";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import type { CountedColumn } from "@/features/chat/ui/state/chatState";

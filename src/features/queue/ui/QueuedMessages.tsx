@@ -1,6 +1,6 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizontal } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
-import type { ChatLive, QueueState } from "@shared/types";
+import type { ChatLive, QueueState } from "@shared/chat/chatLive";
 import { isQueueAction } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
 import { QueuedHeadTools } from "./QueuedHeadActions";

@@ -1,6 +1,7 @@
 import { noteKindOf } from "@shared/notes/kinds";
 import { TRASH_COMMAND } from "@/features/guard/core/guard/deleteGuard";
-import type { LinkOpenTarget, Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
+import type { LinkOpenTarget } from "@shared/settings/types";
 
 /**
  * チャットのエージェントの権限ポリシー（プロバイダー非依存。どのチャットも同じ）。

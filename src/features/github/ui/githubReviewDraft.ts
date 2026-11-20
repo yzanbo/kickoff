@@ -1,5 +1,5 @@
 // PR のレビューの書きかけ（ためた行のコメントと本文）の形と読み直し（画面の保存。lib/storageKeys の githubReviewDraft）
-import type { GitHubReviewDraftComment } from "@shared/types";
+import type { GitHubReviewDraftComment } from "@shared/github/types";
 
 export interface GitHubReviewDraft {
   body: string;

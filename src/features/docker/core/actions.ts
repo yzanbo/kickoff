@@ -1,7 +1,7 @@
 // Docker タブの操作を docker のコマンドの並びにする（純粋な関数）。
 // compose のファイルを要るのは up だけ: サービスの行はコンテナの ID、compose の停止・片付けは -p で、ファイルのないフォルダ（/）で流す
 import path from "node:path";
-import type { DockerAction, DockerCompose, DockerFailure } from "@shared/types";
+import type { DockerAction, DockerCompose, DockerFailure } from "@shared/docker/types";
 import { Invalid } from "@/foundation/core/errors";
 
 /** 流す 1 つのコマンド（docker の引数・フォルダ・つないだまま受け取るか） */

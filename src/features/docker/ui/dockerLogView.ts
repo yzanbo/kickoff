@@ -1,5 +1,5 @@
 // Docker のログの画面の純粋な関数: 行の並べ方（時刻の順に混ぜる・上限）・札・エラーと警告の見分け・JSON の整え・区切りの文・AI に渡す文
-import type { DockerCompose, DockerLogSource } from "@shared/types";
+import type { DockerCompose, DockerLogSource } from "@shared/docker/types";
 import { stripAnsi } from "@/foundation/ui/ansi/ansi";
 import { workplaceText } from "@shared/foundation/workplace";
 

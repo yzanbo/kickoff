@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { CommandOutput } from "@shared/types";
+import type { CommandOutput } from "@shared/chat/chatEvent";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
 import { cleanTerminalText, createCommandOutputWatcher, findOutputFile, tailLines } from "./commandOutput";

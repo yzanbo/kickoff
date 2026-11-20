@@ -1,4 +1,4 @@
-import type { PortProcess, PortStopBody, PortStopResult } from "@shared/types";
+import type { PortProcess, PortStopBody, PortStopResult } from "@shared/ports/types";
 import { request } from "@/foundation/ui/api/http";
 
 /** ポートを使っているプロセス（コアの routes/ports.ts。この Mac のアプリの中だけ） */

@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef } from "react";
 import { isReadOnlyStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_SESSION_IDLE_MS, type DbConnection } from "@shared/types";
+import { DB_SESSION_IDLE_MS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { DbSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { useDbClient } from "./dbClientContext";

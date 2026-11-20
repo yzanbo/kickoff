@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
-import type { GitFileChange, GitStatus } from "@shared/types";
+import type { GitFileChange, GitStatus } from "@shared/git/types";
 import { api, ApiError } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerSavable } from "@/foundation/ui/lib/saveAll";

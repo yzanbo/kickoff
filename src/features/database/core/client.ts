@@ -2,7 +2,7 @@
 // ワーカーが落ちても、待っている頼みを失敗にするだけで、次の頼みで起動し直す（コアは落ちない）
 import { fork } from "node:child_process";
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbEngine } from "@shared/types";
+import type { DbEngine } from "@shared/database/types";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
 

@@ -1,13 +1,6 @@
 // GitHub タブの一覧の絞り込み（issue と PR で別々に覚え、いま見ている種類も覚える。保存は storageKeys の githubFilters）。
 // 形の確かめを純粋関数で持つ（React に依らない）
-import {
-  GITHUB_KINDS,
-  GITHUB_MINE_FILTERS,
-  GITHUB_SORTS,
-  GITHUB_STATE_FILTERS,
-  type GitHubKind,
-  type GitHubListFilter,
-} from "@shared/types";
+import { GITHUB_KINDS, GITHUB_MINE_FILTERS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubKind, type GitHubListFilter } from "@shared/github/types";
 import { defaultGitHubFilter } from "@shared/github/searchQuery";
 
 /** プロジェクトごとに覚える絞り込み */

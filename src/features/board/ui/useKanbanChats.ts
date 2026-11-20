@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { archiveMatches, type ArchiveFilter } from "./archiveFilter";
 
 /** 絞り込みの値（useKanbanFilters の一部。matches は名前の検索） */

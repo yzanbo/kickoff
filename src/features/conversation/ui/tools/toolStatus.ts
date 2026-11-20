@@ -1,5 +1,5 @@
 // ツールの呼び出しの状態（流れのツールの 1 件・まとまりの見出しの左に出すアイコンの決め方）
-import type { BackgroundState } from "@shared/types";
+import type { BackgroundState } from "@shared/chat/chatLive";
 import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
 
 /** running = 実行中 / done = 完了 / failed = 失敗 / stopped = 結果が届かないまま終わった（中断） */

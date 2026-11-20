@@ -1,5 +1,5 @@
 import { CODEX_CREDIT_STATE_HINTS, CODEX_CREDIT_STATE_LABELS, codexCreditSpendText, codexCreditStateOf } from "@shared/ai/overage";
-import type { CodexCredits } from "@shared/types";
+import type { CodexCredits } from "@shared/ai/types";
 import { formatClock } from "@/foundation/ui/lib/time";
 
 /** Codex の使用状況の詳細の中の、クレジットの様子と、減った分（いつから） */

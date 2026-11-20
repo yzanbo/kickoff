@@ -1,5 +1,5 @@
 // 起動したときの再開の確かめで選ぶもの（ダイアログとチャットの中の帯で共通）
-import { restartResumeActionLabel, type RestartResume, type RestartResumeAction } from "@shared/types";
+import { restartResumeActionLabel, type RestartResume, type RestartResumeAction } from "@shared/chat/chatLive";
 
 /** ダイアログで選ぶもの: 答え（送る / 続ける / 止めておく）と、決めずに残す「あとで」 */
 export type RestartResumeChoice = RestartResumeAction | "later";

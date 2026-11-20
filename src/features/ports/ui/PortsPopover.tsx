@@ -1,6 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { TriangleAlert } from "lucide-react";
-import { PORT_ORIGIN_HINTS, type PortProcess } from "@shared/types";
+import { PORT_ORIGIN_HINTS, type PortProcess } from "@shared/ports/types";
 import { workplaceText } from "@shared/foundation/workplace";
 import { api } from "@/foundation/ui/api";
 import { navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";

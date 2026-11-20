@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import type { NoteEntry } from "@shared/types";
+import type { NoteEntry } from "@shared/notes/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";

@@ -1,7 +1,7 @@
 // GitHub の書き込みのダイアログ（新しい issue・マージ）を開く頼み。App と別ウィンドウに 1 つずつ置く GitHubDialogHost が描く
 // （ノート・チャットの発言の右クリックの「issue にする」のように、GitHub タブの外からも開けるように）
 import { useSyncExternalStore } from "react";
-import type { GitHubPullDetail } from "@shared/types";
+import type { GitHubPullDetail } from "@shared/github/types";
 
 export type GitHubDialogRequest =
   /** 新しい issue（body は初めに入れておく本文。ノート・チャットの「issue にする」は選んだ文か全体） */

@@ -1,4 +1,4 @@
-import type { ArchiveCleanupPreview, ArchiveCleanupResult, OrphanSession, TrashItem, TrashPurgeResult, TrashRestoreResult } from "@shared/types";
+import type { ArchiveCleanupPreview, ArchiveCleanupResult, OrphanSession, TrashItem, TrashPurgeResult, TrashRestoreResult } from "@shared/trash/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** Kickoff のゴミ箱（コアの http/routes/trash.ts） */

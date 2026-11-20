@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import { TRASH_KEEP_MS } from "@shared/types";
+import { TRASH_KEEP_MS } from "@shared/trash/types";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";

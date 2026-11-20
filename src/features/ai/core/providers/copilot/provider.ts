@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
-import type { ModelOption, PlanUsage, ProviderCliStatus } from "@shared/types";
+import type { PlanUsage, ProviderCliStatus } from "@shared/ai/types";
+import type { ModelOption } from "@shared/chat/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";

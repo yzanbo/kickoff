@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { parseCodexUsage } from "./codex";
 import { jwtClaims } from "./common";
 import { parseCopilotUsage } from "./copilot";

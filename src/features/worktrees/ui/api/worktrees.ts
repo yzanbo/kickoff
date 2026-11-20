@@ -1,4 +1,5 @@
-import type { BranchSuggestions, GitWorktree, WorktreeEnvSetupResult, WorktreePrNotice, WorktreeRemovalInfo } from "@shared/types";
+import type { BranchSuggestions, GitWorktree, WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
+import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** プロジェクトのワークツリー（一覧・作る・消す。コアの routes/worktrees.ts）。作る・消すと、そのあとの一覧が返る */

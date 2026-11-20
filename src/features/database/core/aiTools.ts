@@ -1,7 +1,8 @@
 // チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、MCP のツールは mcp/dbTools.ts が組み立てる。
 // 接続は呼ぶたびに店から引き直す（作業の途中で利用者が許可を変えたら、次の呼び出しから効く）
 import { hasConnectCommands } from "@shared/database/dbPrep";
-import type { DbConnection, Project } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import type { Project } from "@shared/projects/types";
 import { Invalid } from "@/foundation/core/errors";
 import type { Store } from "@/foundation/core/db/store";
 import { formatAiConnections, formatAiObjects, formatAiQueryResult, formatAiTable } from "./aiFormat";

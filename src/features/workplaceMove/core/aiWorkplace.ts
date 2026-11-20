@@ -3,7 +3,7 @@
 // 承認は、コミットしていない変更を持っていくときだけファイルの一覧を見せて聞く（覚えない・Auto mode でも聞く）
 import fs from "node:fs";
 import path from "node:path";
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import type { AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
 import type { Store } from "@/foundation/core/db/store";
 import { carryFiles } from "@/foundation/core/workplace/carry";

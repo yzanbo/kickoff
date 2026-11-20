@@ -1,5 +1,5 @@
 import { errorMessage } from "@shared/foundation/errors";
-import type { PlanUsage, ServiceUsage } from "@shared/types";
+import type { PlanUsage, ServiceUsage } from "@shared/ai/types";
 import { USAGE_REFRESH_MS } from "@shared/ai/usageRefresh";
 import { limitReachedOf, type CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";

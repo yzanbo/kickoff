@@ -1,4 +1,9 @@
-import type { Attachment, Chat, ChatEventOf, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, ProviderHandoffStatus, ProviderId, ProviderSwitchPreview, ProviderSwitchResult, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
+import type { FileRewindResult } from "@shared/ai/types";
+import type { ChatEventOf, HandoffVia, MessageMarks } from "@shared/chat/chatEvent";
+import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
+import type { ChildChatBody, HandoffBody, HandoffResult, SendMessageBody, SubagentChildBody, TellResult } from "@shared/foundation/apiTypes";
+import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "@shared/providerSwitch/types";
+import type { ProviderId } from "@shared/settings/types";
 import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
 import { request } from "@/foundation/ui/api/http";
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { DOCKER_DB_NO_PORT, type DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
+import { DOCKER_DB_NO_PORT } from "@shared/docker/types";
 import { dockerDbCandidate, dockerDbKey, parseDockerDbKey, sameServerConnection } from "./dockerTarget";
 
 const doc = (db: Record<string, unknown>) => ({ name: "app", services: { db, redis: { image: "redis:7" } } });

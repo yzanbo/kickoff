@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Approval } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
 import { makeChat, makeProject } from "@shared/foundation/testing/factories";
 import { applyHostEvent, chatSections, emptyHostState } from "./hostState";
 

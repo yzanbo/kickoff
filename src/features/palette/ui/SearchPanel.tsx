@@ -1,6 +1,6 @@
 import { Bot, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import type { SearchHit } from "@shared/types";
+import type { SearchHit } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";

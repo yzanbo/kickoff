@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { waitingChats } from "@/features/chatList/ui/chatListFlags";

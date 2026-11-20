@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { WorktreePrNotice } from "@shared/types";
+import type { WorktreePrNotice } from "@shared/git/types";
 import { reduceWorktreePrs } from "./prNoticeStore";
 
 const notice = (project_id: number, number: number): WorktreePrNotice => ({

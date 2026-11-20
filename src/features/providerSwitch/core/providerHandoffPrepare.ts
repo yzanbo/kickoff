@@ -1,4 +1,5 @@
-import type { Attachment, ChatEvent, FileAttachment } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { Attachment, FileAttachment } from "@shared/chat/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { selectProviderHandoff } from "./providerHandoffSelection";
 

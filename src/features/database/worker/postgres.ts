@@ -4,7 +4,7 @@ import pg from "pg";
 import Cursor from "pg-cursor";
 import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
 import type { DbOutlineTable, DbTarget } from "@shared/database/workerProtocol";
 import type { DbColumns, DbDriver } from "./driver";
 

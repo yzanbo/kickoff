@@ -1,5 +1,5 @@
 // CSV・TSV の取り込み: 文を行とセルに分け、テーブルの列に当てて、足す行にする。React に依らない
-import type { DbEditValue } from "@shared/types";
+import type { DbEditValue } from "@shared/database/types";
 
 export const CSV_DELIMITERS = [",", "\t", ";"] as const;
 export type CsvDelimiter = (typeof CSV_DELIMITERS)[number];

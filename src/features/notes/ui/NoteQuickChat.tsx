@@ -1,6 +1,6 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { AgentState, Attachment, Chat } from "@shared/types";
+import type { AgentState, Attachment, Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";

@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { CommandError, nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
-import type { GitHubStatus, PullRequestInfo } from "@shared/types";
+import type { GitHubStatus } from "@shared/foundation/server";
+import type { PullRequestInfo } from "@shared/git/types";
 import { isDefaultGitHubHost } from "@shared/foundation/codeHost";
 import { Invalid } from "@/foundation/core/errors";
 import { githubEnv } from "./githubAccount";

@@ -3,7 +3,7 @@
 // 届ける知らせの種類は、機能の SSE の表の access から組み立てが作る = ServeHooks.deviceMaySee）
 import { TrieRouter } from "hono/router/trie-router";
 import type { Method } from "@shared/foundation/contract";
-import type { DeviceAccess } from "@shared/types";
+import type { DeviceAccess } from "@shared/devices/types";
 import { routeTable, type Mountable } from "./mount";
 
 /** まだ取り決めに乗せていない口のうち、端末に開くもの（メソッドとパス。Hono のルートと同じ書き方。機能を取り決めに乗せたら、その行を消す） */

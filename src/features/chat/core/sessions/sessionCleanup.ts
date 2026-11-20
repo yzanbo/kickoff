@@ -1,7 +1,8 @@
 // チャットを消したとき、そのチャットが使ったエージェントの会話記録（Claude Code のセッションのファイル）もゴミ箱へ移す。
 // 消したチャットの記録に出てくるセッション（動かし始めの init・作業の終わり・いまのセッション。途中の消去・巻き戻しで増えたものも）のうち、
 // 残ったチャットがどれも使っていないものだけ（分岐したチャットは元の記録を写して持つので、元のチャットのセッションも使っている）
-import type { Chat, ProviderId } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/foundation/core/db/store";
 import type { AgentProvider } from "@/features/ai/core/providers/types";

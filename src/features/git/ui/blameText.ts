@@ -1,4 +1,4 @@
-import type { GitBlame, GitBlameCommit } from "@shared/types";
+import type { GitBlame, GitBlameCommit } from "@shared/git/types";
 import { agoText, formatFullDateTime } from "@/foundation/ui/lib/time";
 
 /**

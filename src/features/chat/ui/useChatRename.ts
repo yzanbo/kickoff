@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { errorMessage } from "@shared/foundation/errors";

@@ -1,6 +1,7 @@
 import { autoPreCompactMessage, compactPromptFor } from "@shared/chat/prompts";
 import { randomUUID } from "node:crypto";
-import type { Chat, Project, QueuedMessage } from "@shared/types";
+import type { Chat, QueuedMessage } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 

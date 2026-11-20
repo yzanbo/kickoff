@@ -1,5 +1,5 @@
 // MySQL / MariaDB のストアドルーチン（関数・プロシージャ。木の段と、開いたタブの定義）。mysql.ts から問い合わせの口を受けて使う
-import type { DbDefinition, DbObject } from "@shared/types";
+import type { DbDefinition, DbObject } from "@shared/database/types";
 
 type Row = Record<string, unknown>;
 type Query = (sql: string, values?: unknown[]) => Promise<Row[]>;

@@ -1,6 +1,6 @@
 // Kickoff のゴミ箱。プロジェクトごとの一覧（プロジェクトの「ゴミ箱」タブ）と、ゴミ箱のプロジェクト・どのプロジェクトにも出ないもの（設定の「ゴミ箱と整理」）。
 // 入れた・戻した・消えたら知らせ（trash）で取り直す。期限（3 日）で消えたものも片付けの知らせで届く
-import type { TrashItem } from "@shared/types";
+import type { TrashItem } from "@shared/trash/types";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";

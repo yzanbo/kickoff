@@ -1,5 +1,5 @@
 import { ArrowUpRight, Ban, Copy, Filter, FilterX, RotateCcw, Trash2, Undo2, X } from "lucide-react";
-import type { DbFilter, DbQueryResult, DbTableDetail } from "@shared/types";
+import type { DbFilter, DbQueryResult, DbTableDetail } from "@shared/database/types";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import type { RowLink } from "./TableData";

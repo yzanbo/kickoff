@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { DB_SSH_UNKNOWN_HOST } from "@shared/types";
+import { DB_SSH_UNKNOWN_HOST } from "@shared/database/types";
 import { isChangedHostKey, isUnknownHostKey, knownHostsName, parseKeyscan, parseSshConfigDump, parseSshConfigHosts, sshFingerprint, sshTargetArgs } from "./sshArgs";
 import { tunnelError } from "@/features/database/worker/tunnel";
 

@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { useAction } from "@/foundation/ui/hooks/useAction";

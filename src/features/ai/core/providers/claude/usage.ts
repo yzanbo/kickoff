@@ -2,7 +2,7 @@ import type { SDKControlGetUsageResponse, SDKRateLimitInfo } from "@anthropic-ai
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { ExtraUsage, PlanUsage, UsageWindow } from "@shared/types";
+import type { ExtraUsage, PlanUsage, UsageWindow } from "@shared/ai/types";
 
 /** Claude Code の設定ファイル（ログインしているアカウントの情報が入る。CLAUDE_CONFIG_DIR があればその中） */
 const claudeConfigPath = (): string => join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json");

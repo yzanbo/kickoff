@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { PANEL_TAB_GROUP_COLORS, panelTabGrouping } from "@/foundation/ui/storage/storageKeys";

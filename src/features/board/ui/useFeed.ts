@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { FeedItem } from "@shared/types";
+import type { FeedItem } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { subscribeServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { feedItemOf, upsertFeedItems } from "./feed";

@@ -1,7 +1,7 @@
 import { FileUp } from "lucide-react";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_EDITS_MAX, type DbEditValue } from "@shared/types";
+import { DB_EDITS_MAX, type DbEditValue } from "@shared/database/types";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

@@ -1,7 +1,7 @@
 import type { Bus } from "@/foundation/core/bus";
 import { errorMessage } from "@shared/foundation/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/index";
-import type { OverageNote, PlanUsage } from "@shared/types";
+import type { OverageNote, PlanUsage } from "@shared/ai/types";
 import { USAGE_REFRESH_MS } from "@shared/ai/usageRefresh";
 
 /** 連続した再取得をまとめる最短間隔 */

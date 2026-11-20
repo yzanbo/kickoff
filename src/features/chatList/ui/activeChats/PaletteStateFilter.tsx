@@ -1,4 +1,4 @@
-import { BOARD_COLUMN_LABELS } from "@shared/types";
+import { BOARD_COLUMN_LABELS } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { COUNTED_COLUMNS } from "@/features/chat/ui/state/chatState";
 import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/ui/state/tones";

@@ -1,5 +1,5 @@
 // GitHub と CI の機能のコアの入口（ほかの機能はここだけを読む）
-import type { GitHubAccount } from "@shared/types";
+import type { GitHubAccount } from "@shared/git/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";

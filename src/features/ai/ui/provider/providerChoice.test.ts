@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ProviderStatus } from "@shared/types";
+import type { ProviderStatus } from "@shared/ai/types";
 import { makeProviderStatus } from "@shared/foundation/testing/factories";
 import { featureBlock, paysPerUse, providerChipName, providerPickBlock, providerSwitchBlock } from "./providerChoice";
 

@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { draftAnchor, type DraftTabSpot } from "@/features/chatList/ui/manualOrder";
 import { draftTabSpot, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { subscribePanels } from "@/features/panel/ui/state/panelStore";

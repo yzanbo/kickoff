@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ModelOption } from "@shared/types";
+import type { ModelOption } from "@shared/chat/types";
 import { knownModel, providerModels } from "./modelCatalog";
 import type { AgentProvider } from "./types";
 

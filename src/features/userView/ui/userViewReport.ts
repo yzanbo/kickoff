@@ -2,7 +2,7 @@
 // 見ているものが変わったら（欄のタブ・画面・選んでいる範囲・押したもの。少しまとめて）と、見ている間は USER_VIEW_REPORT_MS ごとに知らせ直し、
 // 窓を閉じる・読み込み直すときは「閉じた」を知らせる。送る指示にも、送った時点の様子を添える（lib/userViewSnapshot）
 import { useEffect } from "react";
-import { USER_VIEW_REPORT_MS, type UserView } from "@shared/types";
+import { USER_VIEW_REPORT_MS, type UserView } from "@shared/userView/types";
 import { api } from "@/foundation/ui/api";
 import { subscribeServerOpen } from "@/foundation/ui/api/events";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";

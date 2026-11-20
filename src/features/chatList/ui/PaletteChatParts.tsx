@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";

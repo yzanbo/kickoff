@@ -1,5 +1,6 @@
 // PR の変更したファイルを、変更タブと同じファイルの木の印にする（純粋関数）
-import type { GitChangeKind, GitFileChange, GitHubPullFile } from "@shared/types";
+import type { GitChangeKind, GitFileChange } from "@shared/git/types";
+import type { GitHubPullFile } from "@shared/github/types";
 
 /** GitHub の変わり方（status）→ 木の印（変更タブと同じ記号。名前の変更・コピー・ほかは M） */
 export function pullFileKind(status: string): GitChangeKind {

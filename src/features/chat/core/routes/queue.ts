@@ -5,7 +5,9 @@ import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { rememberSentView } from "@/features/userView/core/routes/userView";
 import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
-import { QUEUE_ACTIONS, RESTART_RESUME_ACTIONS, type QueueAddResult, type QueueMergeResult, type RestartResumeBody } from "@shared/types";
+import { RESTART_RESUME_ACTIONS } from "@shared/chat/chatLive";
+import { QUEUE_ACTIONS } from "@shared/chat/types";
+import type { QueueAddResult, QueueMergeResult, RestartResumeBody } from "@shared/foundation/apiTypes";
 import { marksOf } from "@shared/chat/handoff";
 
 /**

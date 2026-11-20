@@ -1,6 +1,6 @@
 import { ChevronRight, Eraser, FolderInput } from "lucide-react";
 import { memo, type CSSProperties } from "react";
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { ProviderSwitchRecord } from "@/features/providerSwitch/ui/ProviderSwitchRecord";
 import { formatElapsed, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";

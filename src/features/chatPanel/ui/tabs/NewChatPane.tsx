@@ -1,6 +1,7 @@
 import { SquarePen } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type MutableRefObject } from "react";
-import type { Attachment, Chat, ProviderId } from "@shared/types";
+import type { Attachment, Chat } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { Composer } from "@/features/composer/ui/Composer";

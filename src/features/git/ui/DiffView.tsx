@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
 import { Fragment, useMemo, type ReactNode } from "react";
-import type { GitDiff, GitFileChange } from "@shared/types";
+import type { GitDiff, GitFileChange } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { CodeToken } from "@/foundation/ui/code/highlight";

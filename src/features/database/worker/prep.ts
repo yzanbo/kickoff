@@ -2,7 +2,7 @@
 // 切るときに後片付けのコマンドを流す。パスワードを取るコマンドは、つなぐたびに流して出力をパスワードにする（出力は見せない）
 import { expandPrepCommand, usesMyIp, type DbPrepVars } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_MY_IP_URL, type DbPrepKind, type DbPrepState } from "@shared/types";
+import { DB_MY_IP_URL, type DbPrepKind, type DbPrepState } from "@shared/database/types";
 import type { DbTargetCommands, WorkerEvent } from "@shared/database/workerProtocol";
 import { fetchMyIp, runShell, type ShellRun } from "./shell";
 

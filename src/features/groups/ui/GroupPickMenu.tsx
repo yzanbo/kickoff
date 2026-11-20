@@ -1,5 +1,5 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";

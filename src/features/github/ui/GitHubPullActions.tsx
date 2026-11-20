@@ -1,5 +1,5 @@
 import { GitBranch, GitMerge } from "lucide-react";
-import type { GitHubPullDetail } from "@shared/types";
+import type { GitHubPullDetail } from "@shared/github/types";
 import { checkoutPull, useMainRunningChats } from "./githubCheckout";
 import { openMergeDialog } from "./githubDialogs";
 

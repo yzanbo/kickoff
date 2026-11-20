@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 
 // プロジェクトごとの色（色相）。プロジェクトの一覧を読み込むたびに入れる（DB に覚えた色。作ったときにほかと被らない色を選んでいる）
 const hues = new Map<number, number>();

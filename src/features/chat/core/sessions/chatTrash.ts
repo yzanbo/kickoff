@@ -4,7 +4,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { UNTITLED_CHAT_TITLE, type Chat, type Project, type ProviderId } from "@shared/types";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";

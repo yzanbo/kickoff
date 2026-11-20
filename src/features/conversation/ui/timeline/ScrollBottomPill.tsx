@@ -1,7 +1,9 @@
 import { ArrowDown } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CHAT_STATUS_LABELS } from "@/features/chat/ui/chatStatus";
 import { lastResultIdOf } from "@/features/conversation/ui/working/workingLabel";

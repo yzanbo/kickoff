@@ -1,5 +1,6 @@
 import { CircleDot, GitPullRequest } from "lucide-react";
-import type { Chat, GitHubLink } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { GitHubLink } from "@shared/foundation/apiTypes";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { githubFilters, githubSelected } from "@/foundation/ui/storage/storageKeys";

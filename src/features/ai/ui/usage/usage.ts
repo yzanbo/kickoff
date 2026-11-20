@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { PlanUsage, UsageWindow } from "@shared/types";
+import type { PlanUsage, UsageWindow } from "@shared/ai/types";
 import { api } from "@/foundation/ui/api";
 import { usageStore } from "@/features/ai/ui/stores/usage";
 import { useStore } from "@/foundation/ui/store/useStore";

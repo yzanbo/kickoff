@@ -1,5 +1,9 @@
 // 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）
-import type { Approval, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
+import type { ChatDetail } from "@shared/foundation/apiTypes";
 import type { BusEvent } from "@shared/foundation/contract";
 import { deleteFrom, EMPTY_RANGE, rangeFromDetail, type LogRange } from "./chatLog";
 

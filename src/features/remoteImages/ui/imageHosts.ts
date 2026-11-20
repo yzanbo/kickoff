@@ -1,6 +1,6 @@
 // チャットで外の画像の表示を許可したホスト（チャットごと。コアの DB に覚え、変わったら知らせ chat_image_hosts で入れ替える）
 import { useMemo } from "react";
-import type { ChatImageHost } from "@shared/types";
+import type { ChatImageHost } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";

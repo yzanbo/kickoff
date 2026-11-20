@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { attachmentUrl } from "@/foundation/ui/api";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { AttachmentChip, isPreviewable, viewerImagesOf } from "./AttachmentChip";

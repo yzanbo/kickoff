@@ -1,4 +1,5 @@
-import type { PlanUsage, ProviderId, ProviderStatus } from "@shared/types";
+import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { PAY_PER_USE_LABEL, providerChipName, providerLabel } from "@/features/ai/ui/provider/providerChoice";
 import { planLabel } from "./usage";

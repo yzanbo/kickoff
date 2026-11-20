@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Trash2 } from "lucide-react";
-import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraftComment, type GitHubReviewEvent } from "@shared/types";
+import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraftComment, type GitHubReviewEvent } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

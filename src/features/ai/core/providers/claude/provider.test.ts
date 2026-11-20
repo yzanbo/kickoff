@@ -1,7 +1,8 @@
 // Claude のプロバイダーの実行（run）を偽の SDK で確かめる（本物の Claude Code・アカウントは使わない）
 import { test, vi } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision, ApiRetryInfo } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApiRetryInfo } from "@shared/chat/chatLive";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";

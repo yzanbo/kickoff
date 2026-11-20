@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { COMMAND_OUTPUT_LINES, type CommandOutput } from "@shared/types";
+import { COMMAND_OUTPUT_LINES, type CommandOutput } from "@shared/chat/chatEvent";
 
 /*
  * 実行中のコマンドの出力を、終わる前から画面に届ける。

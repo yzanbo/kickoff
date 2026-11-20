@@ -1,7 +1,7 @@
 // 送るときに AI へ書き添える、添付の見出し（種類・出どころ・取った時刻・パス。中身は書かず、Read ツールで読んでもらう）
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
 import { formatSize } from "@shared/attachments/truncate";
-import type { CaptureAttachment, NoteAttachment } from "@shared/types";
+import type { CaptureAttachment, NoteAttachment } from "@shared/chat/types";
 
 /** ノートの写しの見出し（読むのは写し。頼まれたら元のノートを書き換える） */
 export const NOTE_SNAPSHOT_HEADING = "添付したノート（付けたときの中身の写しです。Read ツールで読めます。頼まれたら、元のノートのファイルを直接書き換えてかまいません）";

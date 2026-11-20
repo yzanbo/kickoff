@@ -1,5 +1,5 @@
 // AI へ送る定型文（送るとチャットに自分の発言として残る）。コアの再開の段取りと、画面の操作（再試行・サブエージェントへの指示）で共有する。Node 依存なし
-import type { AppSettings } from "@shared/types";
+import type { AppSettings } from "@shared/settings/types";
 
 // ---- 止まったあとの再開（コアの chat/recovery/rules.ts が送る） ----
 

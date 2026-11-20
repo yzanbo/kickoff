@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbSsh } from "@shared/types";
+import type { DbSsh } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

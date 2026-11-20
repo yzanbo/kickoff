@@ -1,6 +1,7 @@
 // 子チャット・ノートを、設定の開き方（右の欄 / 別ウィンドウ）で開く。右の欄は、いちばん上の親のチャットの画面の右の欄（孫・ひ孫も同じ欄に並べる）。
 // 子チャットから親へ（聞いた位置を見る・答えを入力欄に入れる）もここ。別ウィンドウからは、メインのウィンドウに知らせてここを呼ぶ（App）
-import type { Chat, HandoffFrom } from "@shared/types";
+import type { HandoffFrom } from "@shared/chat/chatEvent";
+import type { Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";

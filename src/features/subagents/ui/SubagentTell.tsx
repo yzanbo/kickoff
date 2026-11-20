@@ -1,6 +1,6 @@
 import { Reply } from "lucide-react";
 import { useRef, type KeyboardEvent } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";

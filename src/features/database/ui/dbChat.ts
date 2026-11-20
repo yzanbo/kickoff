@@ -1,5 +1,5 @@
 // DB クライアントの「AI に聞く」で、チャットに聞く（新しいチャットを作って送る / いまあるチャットに送る。別ウィンドウの中なら、開くのはメインのウィンドウ）
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";

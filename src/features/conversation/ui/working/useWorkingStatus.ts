@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import type { Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { streamingLastAt } from "@/features/chat/ui/store/useChatStore";

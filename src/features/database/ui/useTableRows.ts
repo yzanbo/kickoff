@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbConnection, DbQueryResult, DbRowFilter, DbSort, DbValue } from "@shared/types";
+import type { DbConnection, DbQueryResult, DbRowFilter, DbSort, DbValue } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";

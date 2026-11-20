@@ -1,6 +1,6 @@
 import { Archive } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { toggleArchiveChat } from "@/features/chat/ui/chatActions";

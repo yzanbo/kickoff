@@ -2,7 +2,7 @@
 // サブエージェント（待つ形・裏・入れ子・SendMessage で再開・fork の仮の結果・通信で止まった・出力の上限・報告が届かない・SubagentHandback・
 // チャット欄から伝えた指示）・ToDo（TodoWrite の書き直し・TaskCreate / TaskUpdate・セッションの切り替え・コンテキストの消去）・図・質問への回答・
 // 圧縮前指示を混ぜる。Node・DOM に依存しない。テストからだけ使う
-import type { ChatEvent, ChatEventType } from "@shared/types";
+import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
 import { makeEvent, type EventInput } from "@shared/foundation/testing/factories";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, visualIdLine } from "@shared/visuals/aiVisual";
 import { relayMessage } from "@shared/chat/prompts";

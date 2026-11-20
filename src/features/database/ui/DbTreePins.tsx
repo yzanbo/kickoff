@@ -1,5 +1,5 @@
 import { Pin } from "lucide-react";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { dbTreePins } from "@/foundation/ui/storage/storageKeys";
 import { useDbClient } from "./dbClientContext";

@@ -1,6 +1,6 @@
 import { busyWithUnread } from "@shared/chat/state";
 import { subagentState } from "@shared/chat/subagentState";
-import type { AgentState } from "@shared/types";
+import type { AgentState } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { useChatSubagents } from "@/features/chat/ui/store/useChatStore";

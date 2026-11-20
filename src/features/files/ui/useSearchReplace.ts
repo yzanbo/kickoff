@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/types";
+import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/git/types";
 import { api, ApiError } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";

@@ -1,5 +1,5 @@
 // 子チャット（チャットの寄り道の質問を、親に紐づいた別のチャットで聞く）の親へ渡す文・いちばん上の親（純粋な部分。開き方は openChild.ts）
-import type { Attachment, Chat } from "@shared/types";
+import type { Attachment, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 
 /** 子チャットで聞くときに渡すもの（どのチャットの、どの記録から、どの文を。openAskChild） */

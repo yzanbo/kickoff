@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import type { GitCommit } from "@shared/types";
+import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { CHANGES_LIST_WIDTH } from "@/foundation/ui/storage/storageKeys";

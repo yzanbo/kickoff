@@ -1,5 +1,5 @@
 import { Smartphone } from "lucide-react";
-import { DEVICE_ACCESS_HELP, DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/types";
+import { DEVICE_ACCESS_HELP, DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/devices/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { formatPairingCode } from "@shared/devices/pairing";
 import { api } from "@/foundation/ui/api";

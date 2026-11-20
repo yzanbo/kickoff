@@ -1,6 +1,6 @@
 import { Inbox } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
-import { AGENT_STATE_LABELS, type Chat } from "@shared/types";
+import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { useFold } from "@/foundation/ui/hooks/useFold";

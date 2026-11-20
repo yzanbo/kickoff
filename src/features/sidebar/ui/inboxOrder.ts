@@ -1,5 +1,6 @@
 // 要対応のチャットを、状態順（プロジェクトをまたいで急ぐもの順）・プロジェクト別に並べる（要対応の表示の並べ方）
-import type { AgentState, Approval, Chat } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { AgentState, Chat } from "@shared/chat/types";
 
 /** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読 */
 const INBOX_STATES = ["needs_input", "failed", "unread"] as const satisfies readonly AgentState[];

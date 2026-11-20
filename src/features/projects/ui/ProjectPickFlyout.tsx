@@ -1,6 +1,6 @@
 import { Check, Plus } from "lucide-react";
 import { useState } from "react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
 import { sidebarOrder } from "./projectOrder";

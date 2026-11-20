@@ -2,7 +2,7 @@ import { PanelRight } from "lucide-react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbRowFilter, type DbTableDetail } from "@shared/types";
+import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbRowFilter, type DbTableDetail } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";

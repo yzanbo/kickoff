@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashKind, type TrashRestoreResult } from "@shared/types";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashKind, type TrashRestoreResult } from "@shared/trash/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { NewTrashItem, StoredTrashItem } from "@/features/trash/core/db/trash";
 import { Conflict, NotFound } from "@/foundation/core/errors";

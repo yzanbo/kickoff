@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { VIEWING_TTL_MS, type ViewingBody } from "@shared/types";
+import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
 import { api } from "@/foundation/ui/api";
 import { subscribeServerOpen } from "@/foundation/ui/api/events";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";

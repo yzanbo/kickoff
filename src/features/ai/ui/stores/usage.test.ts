@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 import { publishServerEvent } from "@/foundation/ui/api/events";
 import { usageStore } from "./usage";
 

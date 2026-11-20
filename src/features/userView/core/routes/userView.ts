@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import type { UserView, UserViewBody } from "@shared/types";
+import type { UserView, UserViewBody } from "@shared/userView/types";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
 import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";

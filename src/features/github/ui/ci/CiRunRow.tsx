@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { ExternalLink } from "lucide-react";
-import type { CiExternalCheck, CiRun } from "@shared/types";
+import type { CiExternalCheck, CiRun } from "@shared/github/ciTypes";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { CiStateIcon } from "./CiStateIcon";

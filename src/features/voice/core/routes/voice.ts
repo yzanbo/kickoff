@@ -5,7 +5,8 @@ import { findWhisperModel } from "@/features/voice/core/models";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { voiceLanguage } from "@/foundation/core/http/schemas";
-import { SPEECH_TEXT_MAX, type Transcription } from "@shared/types";
+import type { Transcription } from "@shared/foundation/apiTypes";
+import { SPEECH_TEXT_MAX } from "@shared/voice/types";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;

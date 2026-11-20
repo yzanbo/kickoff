@@ -1,7 +1,7 @@
 // DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
 import { erTableOf } from "@shared/database/erDiagram";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/types";
+import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/database/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { DbDriver } from "./driver";
 import { openSqlite, testSqlite } from "./sqlite";

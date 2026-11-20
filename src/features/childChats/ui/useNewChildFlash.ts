@@ -1,6 +1,6 @@
 // 子チャットが新しく作られたことを、入力欄の上の「子チャット n 件」の札を少しの間光らせて知らせる
 import { useEffect, useRef, useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 
 /** 画面を描いたときに、この間に作られた子だけ光らせる（画面を開き直したときに、前からある子で光らせない） */
 const FRESH_MS = 10_000;

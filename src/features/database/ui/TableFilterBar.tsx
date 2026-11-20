@@ -1,6 +1,6 @@
 import { Filter, Plus, X } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
-import { DB_FILTER_OP_LABELS, DB_FILTER_OPS, type DbFilter, type DbFilterOp, type DbRowFilter } from "@shared/types";
+import { DB_FILTER_OP_LABELS, DB_FILTER_OPS, type DbFilter, type DbFilterOp, type DbRowFilter } from "@shared/database/types";
 import { activeFilters, filterNeedsValue } from "@shared/database/dbFilter";
 import { isSubmitKey } from "@/foundation/ui/lib/keys";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

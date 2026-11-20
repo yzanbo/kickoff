@@ -1,4 +1,4 @@
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 
 /**
  * 外から入力欄に文を入れる（append: 書いている文の後ろに空行を挟んで足す。なければ置き換える。

@@ -1,5 +1,5 @@
 // ポートを使っているプロセスの窓の文（純粋な関数）
-import { PORT_ORIGIN_LABELS, type PortBandNote, type PortProcess } from "@shared/types";
+import { PORT_ORIGIN_LABELS, type PortBandNote, type PortProcess } from "@shared/ports/types";
 
 /** 動いている時間（「30 秒」「12 分」「2 時間」「3 日」。分からなければ空） */
 export function uptimeText(seconds: number | null): string {

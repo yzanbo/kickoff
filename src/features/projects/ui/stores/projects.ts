@@ -1,6 +1,6 @@
 // プロジェクトの一覧（すべて。しまったものも含む。並びはサーバーと同じ position → id）。
 // アプリを開いたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。部品は useProjects で読む（props で中継しない）
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";

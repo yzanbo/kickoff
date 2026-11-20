@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DockerActionBody, DockerList } from "@shared/types";
-import { DOCKER_SHARED_PROJECT } from "@shared/types";
+import type { DockerActionBody, DockerList } from "@shared/docker/types";
+import { DOCKER_SHARED_PROJECT } from "@shared/docker/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";

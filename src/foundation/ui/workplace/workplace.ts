@@ -1,4 +1,5 @@
-import type { GitWorktree, Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { GitWorktree } from "@shared/git/types";
 import { baseName } from "@/foundation/ui/lib/format";
 
 /** ワークツリーのブランチ名（ブランチから外れていれば "HEAD a1b2c3d"） */

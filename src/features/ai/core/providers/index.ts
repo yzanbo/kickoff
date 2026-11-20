@@ -4,7 +4,7 @@ import { CopilotProvider } from "@/features/ai/core/providers/copilot/provider";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { geminiProvider } from "@/features/ai/core/providers/gemini/provider";
 import type { ProviderAuth } from "./keys";
-import { PROVIDER_LABELS, type ProviderId } from "@shared/types";
+import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";
 import { PlannedProvider } from "./planned";
 import type { AgentProvider } from "./types";

@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, type KeyboardEvent, type MutableRefObject } from "react";
 import { Pencil } from "lucide-react";
-import type { Attachment, Chat } from "@shared/types";
+import type { Attachment, Chat } from "@shared/chat/types";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";

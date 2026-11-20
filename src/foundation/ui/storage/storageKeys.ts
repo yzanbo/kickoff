@@ -7,7 +7,9 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/foundation/ipc";
-import { GITHUB_MERGE_METHODS, HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
+import { HANDOFF_VIAS, type HandoffFrom } from "@shared/chat/chatEvent";
+import type { Attachment } from "@shared/chat/types";
+import { GITHUB_MERGE_METHODS } from "@shared/github/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { THEME_CHOICES } from "@shared/foundation/theme/backgrounds";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./settings";

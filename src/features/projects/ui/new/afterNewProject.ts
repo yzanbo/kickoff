@@ -1,5 +1,5 @@
 // 新しいプロジェクトを作ったあとの処理（App の新しいプロジェクトのダイアログが、頼まれた after のとおりに行う）
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { openNewChat } from "@/foundation/ui/navigation/router";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

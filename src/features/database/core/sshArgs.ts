@@ -2,7 +2,7 @@
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import type { DbSsh } from "@shared/types";
+import type { DbSsh } from "@shared/database/types";
 
 /** つなぐ先の引数（ポート・ユーザー・鍵のファイル・ホスト。省いたものは ~/.ssh/config と ssh の既定） */
 export function sshTargetArgs(ssh: DbSsh): string[] {

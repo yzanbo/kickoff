@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { attachmentsSchema } from "@/foundation/core/http/schemas";
 import { optionalId } from "@/foundation/core/http/zodParts";

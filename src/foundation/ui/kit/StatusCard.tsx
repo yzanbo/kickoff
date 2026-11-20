@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { GitHubStatus } from "@shared/types";
+import type { GitHubStatus } from "@shared/foundation/server";
 import { StatusDot, toneOf } from "./StatusDot";
 
 interface Props {

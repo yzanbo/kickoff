@@ -1,6 +1,6 @@
 import { CircleAlert } from "lucide-react";
-import type { AgentState } from "@shared/types";
-import { AGENT_STATE_LABELS } from "@shared/types";
+import type { AgentState } from "@shared/chat/types";
+import { AGENT_STATE_LABELS } from "@shared/chat/types";
 
 /**
  * 行の先頭に置く状態の印。

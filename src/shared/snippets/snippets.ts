@@ -1,5 +1,5 @@
 // 定型文の決まり（コアと画面で共通の純粋な関数）
-import type { Snippet } from "@shared/types";
+import type { Snippet } from "@shared/snippets/types";
 
 /** 名前を省いたときに見せる本文の 1 行目の長さ */
 const FALLBACK_LABEL_CHARS = 24;

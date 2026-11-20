@@ -1,5 +1,7 @@
 // 子チャットから親チャットへの依頼文の受け渡し（画面の側）: 子チャットの AI に依頼文を書いてもらう・作業の最後の返答を親チャットに渡す
-import { UNTITLED_CHAT_TITLE, type Chat, type HandoffResult, type HandoffVia } from "@shared/types";
+import type { HandoffVia } from "@shared/chat/chatEvent";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { HandoffResult } from "@shared/foundation/apiTypes";
 import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@shared/chat/handoff";
 import { api } from "@/foundation/ui/api";
 import { alertDialog, promptDialog, reportFailure } from "@/foundation/ui/kit/dialogs";

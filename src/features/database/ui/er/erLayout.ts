@@ -1,7 +1,7 @@
 // ER 図の箱の大きさの見積もりと、自動の並べ方（elkjs の layered。並べる計算は Web Worker で動かし、画面を止めない）
 import ELK from "elkjs/lib/elk-api";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
-import type { DbErPositions, DbErTable } from "@shared/types";
+import type { DbErPositions, DbErTable } from "@shared/database/types";
 import type { ErRelation } from "@shared/database/erDiagram";
 import { ER_HEAD_HEIGHT, ER_PAD, ER_ROW_HEIGHT } from "./erBox";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Activity } from "lucide-react";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateChatsPopover";

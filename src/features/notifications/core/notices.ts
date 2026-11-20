@@ -1,6 +1,8 @@
 // 通知の中身（純粋な関数）: チャットの完了・失敗・回答待ち・AI からの知らせと CI の失敗を、この Mac の通知の文と、スマホのプッシュの短い文にする。
 // スマホのプッシュには会話の中身を載せない（チャットの名前と状態・本体の ID とチャットの ID だけ。押したら本体から読む）
-import { UNTITLED_CHAT_TITLE, type Approval, type Chat, type CiFailure } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { CiFailure } from "@shared/github/ciTypes";
 
 /** 押したときに開くもの */
 export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };

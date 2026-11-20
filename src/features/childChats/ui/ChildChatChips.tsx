@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
-import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/chat/types";
 import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { cx } from "@/foundation/ui/lib/cx";

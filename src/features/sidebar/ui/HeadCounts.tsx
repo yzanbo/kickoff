@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { BOARD_COLUMN_LABELS } from "@shared/types";
+import { BOARD_COLUMN_LABELS } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
 import { COUNTED_COLUMNS, type CountedColumn, type StateCounts } from "@/features/chat/ui/state/chatState";

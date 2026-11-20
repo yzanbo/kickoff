@@ -9,7 +9,7 @@ import { setupCore, until } from "@/app/core/testing/testCore";
 import { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import { judgeFileWrite } from "@/features/guard/core/guard/writeScope";
 import { UploadStore } from "@/features/attachments/core/uploads";
-import type { CompactingState } from "@shared/types";
+import type { CompactingState } from "@shared/chat/chatLive";
 import type { BrowserControl } from "@shared/browser/control";
 
 /** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */

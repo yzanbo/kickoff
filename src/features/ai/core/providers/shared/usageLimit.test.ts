@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PlanUsage, UsageWindow } from "@shared/types";
+import type { PlanUsage, UsageWindow } from "@shared/ai/types";
 import { exhaustedResetOf, isUsageLimitError, resetTimeOf } from "./usageLimit";
 
 test("使用枠の上限: 失敗の文の見分けと、枠が戻る時刻（秒・ミリ秒）", () => {

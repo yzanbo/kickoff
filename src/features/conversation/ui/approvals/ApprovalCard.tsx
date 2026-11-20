@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { REMEMBER_SCOPE_LABELS, type Approval } from "@shared/types";
+import { REMEMBER_SCOPE_LABELS, type Approval } from "@shared/chat/approvalTypes";
 import { describeApprovalInput } from "@shared/chat/toolText";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";

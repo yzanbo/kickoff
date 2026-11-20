@@ -2,7 +2,7 @@
 // Claude Code は圧縮しても古いやり取りを消さず、同じファイルに書き足し続ける（1.7GB のものがあった）。AI が読むのは最後の要約から後ろだけなので、
 // 圧縮した作業が終わったら、直近 3 区切りだけを写した新しいセッションに乗り換え、古い記録は Kickoff のゴミ箱（3 日）へ入れる。
 // 画面に出る会話（DB の記録）はすべて残る。残した区切りより前の発言へは、巻き戻し・「ファイルを戻す」ができなくなる
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 

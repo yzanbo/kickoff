@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { choiceDialogWithRemember, reportFailure } from "@/foundation/ui/kit/dialogs";

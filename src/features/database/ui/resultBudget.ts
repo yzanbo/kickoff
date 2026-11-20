@@ -1,7 +1,7 @@
 // 裏のタブ（いま見ていない DB クライアントのタブ）が持つ結果の量。合わせて DB_BACKGROUND_RESULT_BYTES を超えたら、
 // 裏に回った時刻の古いタブから結果を捨て（evict）、そのタブに戻ったら取り直す（タブごとの部品が受ける）
 import { useEffect, useEffectEvent } from "react";
-import type { DbValue } from "@shared/types";
+import type { DbValue } from "@shared/database/types";
 
 /** 裏のタブの結果を合わせてこれだけ持つ（50MB ほど） */
 const DB_BACKGROUND_RESULT_BYTES = 50 * 1024 * 1024;

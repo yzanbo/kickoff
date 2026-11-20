@@ -1,6 +1,6 @@
 // SQL のタブごとの、トランザクションの途中か（タブの列の「コミットしていない」印と、SQL のタブの帯で共通に読む）。画面の中だけ（ウィンドウを閉じれば消える。DB 側は閉じたら取り消す）
 import { errorMessage } from "@shared/foundation/errors";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { alertDialog, choiceDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { createTabFlags } from "./tabFlags";

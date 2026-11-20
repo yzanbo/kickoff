@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { TRASH_KEEP_MS, TRASH_KINDS, type TrashItem, type TrashKind } from "@shared/types";
+import { TRASH_KEEP_MS, TRASH_KINDS, type TrashItem, type TrashKind } from "@shared/trash/types";
 import { bit, type Notify } from "@/foundation/core/db/common";
 
 interface TrashRow {

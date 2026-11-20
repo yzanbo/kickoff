@@ -1,4 +1,4 @@
-import { DB_ENGINE_LABELS, DB_ENGINES, DB_SSL_MODE_LABELS, type DbEngine, type DbSslMode } from "@shared/types";
+import { DB_ENGINE_LABELS, DB_ENGINES, DB_SSL_MODE_LABELS, type DbEngine, type DbSslMode } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import type { ConnectionForm } from "./connectionForm";

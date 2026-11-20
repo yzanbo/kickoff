@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
 import { bucketMark } from "@/features/chatList/ui/StateChip";

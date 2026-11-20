@@ -1,11 +1,5 @@
-import {
-  CHAT_TAIL_MAX_BYTES,
-  CHAT_TAIL_TURNS,
-  CHAT_TURN_MAX_BYTES,
-  CHAT_TURN_MAX_EVENTS,
-  type ChatEvent,
-  type ChatEventPage,
-} from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { CHAT_TAIL_MAX_BYTES, CHAT_TAIL_TURNS, CHAT_TURN_MAX_BYTES, CHAT_TURN_MAX_EVENTS, type ChatEventPage } from "@shared/foundation/apiTypes";
 import type { IndexContext } from "@shared/chat/chatIndex";
 import type { Store } from "@/foundation/core/db/store";
 import { indexCacheOf } from "./chatIndexCache";

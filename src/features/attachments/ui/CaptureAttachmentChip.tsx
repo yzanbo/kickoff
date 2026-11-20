@@ -1,7 +1,7 @@
 import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TextSelect, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
-import type { AttachmentSourceType, CaptureAttachment } from "@shared/types";
+import type { AttachmentSourceType, CaptureAttachment } from "@shared/chat/types";
 import { api, attachmentUrl } from "@/foundation/ui/api";
 import { useAsync } from "@/foundation/ui/hooks/useAsync";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

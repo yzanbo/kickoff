@@ -1,7 +1,7 @@
 import { Eraser, Shrink, type LucideIcon } from "lucide-react";
-import type { QueueAction } from "@shared/types";
+import type { QueueAction } from "@shared/chat/types";
 
-/** 送信待ちに挟む行（会話の圧縮・コンテキストの消去）の見た目と文言。行の文は @shared/types の QUEUE_ACTION_LABELS */
+/** 送信待ちに挟む行（会話の圧縮・コンテキストの消去）の見た目と文言。行の文は @shared/chat/types の QUEUE_ACTION_LABELS */
 export interface QueueActionLook {
   icon: LucideIcon;
   /** 色を決める class（行の文・見出しのボタン） */

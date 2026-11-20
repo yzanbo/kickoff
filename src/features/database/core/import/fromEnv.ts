@@ -1,4 +1,4 @@
-import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/types";
+import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { fromParsed, fromUrl, type FoundDb } from "./found";
 
 /** 接続の URL を入れる名前（DATABASE_URL・POSTGRES_URL・DB_DSN・PRIMARY_DATABASE_URL・Prisma の DIRECT_URL など） */

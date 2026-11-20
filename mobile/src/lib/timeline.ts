@@ -1,6 +1,7 @@
 // スマホのチャットの画面に出す行（縦 1 列。メインエージェントの発言・ツールの 1 行・終わり。サブエージェントの中身は出さない）。
 // 記録（ChatEvent）を持ち、本体の知らせ（chat_event・chat_events_deleted・chat_delta）でその場で直す。純粋な関数でテストする
-import type { ChatEvent, ProviderId, TurnEndStatus } from "@shared/types";
+import type { ChatEvent, TurnEndStatus } from "@shared/chat/chatEvent";
+import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/visuals/aiVisual";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";

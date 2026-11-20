@@ -1,5 +1,5 @@
 // 音声入力の補助（純粋関数）: 起こした文を入力欄に入れる位置と、マイクの失敗の文
-import { CJK_CHAR } from "@shared/types";
+import { CJK_CHAR } from "@shared/voice/types";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** a の終わりと b の始まりの間に入れる空白（どちらかが空白・改行・空なら何も入れない。日本語どうしも詰める） */

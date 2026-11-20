@@ -2,7 +2,7 @@ import { ChevronRight, ClipboardPenLine, GitBranch, History, Inbox, MessageSquar
 import { useRef, useState } from "react";
 import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 import { flushSync } from "react-dom";
-import type { ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
 import { WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/workplaceMove/workplaceMoves";

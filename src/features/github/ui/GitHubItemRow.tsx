@@ -1,6 +1,7 @@
 import { memo, type CSSProperties } from "react";
 import { Check, CircleDashed, MessageSquare, MessagesSquare, X } from "lucide-react";
-import type { Chat, GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
 import { openChat } from "@/foundation/ui/navigation/router";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";

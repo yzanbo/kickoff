@@ -1,4 +1,4 @@
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { useMultiSelect } from "@/foundation/ui/hooks/useMultiSelect";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isCancelKey } from "@/foundation/ui/lib/keys";

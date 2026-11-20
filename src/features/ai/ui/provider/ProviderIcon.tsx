@@ -1,5 +1,5 @@
 import { Bot, MousePointer2, Sparkles, SquareTerminal, type LucideIcon } from "lucide-react";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 
 /** Claude のほかの AI のアイコン（プロジェクトの設定の AI のカード・チャット欄のモデルの欄で同じもの） */

@@ -1,7 +1,7 @@
 // プロジェクトを Kickoff のゴミ箱に入れる・戻す・本当に消す。
 // ゴミ箱にある間はプロジェクトの行（チャット・DB の接続・定型文・設定など、プロジェクトに付くもの）を丸ごと残し、ふだんの読み取りから外すだけ。
 // 中のチャットはプロジェクトの行と一緒に入れ（chats.trashed_with）、戻すと一緒に戻る。3 日たったら、チャットの分を片付けてからプロジェクトの行を消す
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { purgeChatsOf, restoreChatsOf, type ChatPurgeDeps } from "@/features/chat/core/sessions/chatTrash";

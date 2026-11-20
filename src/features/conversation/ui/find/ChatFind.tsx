@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternal
 import { cx } from "@/foundation/ui/lib/cx";
 import { consumeKey, isKey } from "@/foundation/ui/lib/keys";
 import { findPattern, spansIn, type FindPattern } from "@/foundation/ui/lib/textFind";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";

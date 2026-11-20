@@ -1,6 +1,6 @@
 import { Activity } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";

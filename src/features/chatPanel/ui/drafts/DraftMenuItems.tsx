@@ -11,7 +11,7 @@ import { askNewGroupName } from "@/features/groups/ui/groups";
 import { ProjectPickFlyout } from "@/features/projects/ui/ProjectPickFlyout";
 import { openNewProject } from "@/features/projects/ui/new/openNewProject";
 import { discardDraft, moveDraftToProject, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft, type PanelDraft } from "./panelDrafts";
-import { CHAT_TITLE_MAX } from "@shared/types";
+import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
 

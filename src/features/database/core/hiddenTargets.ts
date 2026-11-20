@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/database/types";
 import { expandHome } from "@/foundation/core/system/paths";
 import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
 

@@ -1,4 +1,4 @@
-import { AI_CREATE_CHAT_MODE_LABELS, AI_CREATE_CHAT_MODES, type AiCreateChatMode } from "@shared/types";
+import { AI_CREATE_CHAT_MODE_LABELS, AI_CREATE_CHAT_MODES, type AiCreateChatMode } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";

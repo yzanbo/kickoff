@@ -6,7 +6,7 @@ import { Prec } from "@codemirror/state";
 import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import type { MutableRefObject } from "react";
-import type { DbEngine } from "@shared/types";
+import type { DbEngine } from "@shared/database/types";
 import { useCodeMirror } from "@/foundation/ui/hooks/useCodeMirror";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { runTargetMark } from "./sqlRunMark";

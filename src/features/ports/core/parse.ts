@@ -1,7 +1,8 @@
 // ポートを使っているプロセスの純粋な関数: 自分と祖先・Helper、起動元、コマンドの短縮、作業場所への振り分け、帯の添え書き
 import path from "node:path";
 import type { ProcessRow } from "@/foundation/core/platform/types";
-import { WORKTREE_BAND_FIRST, WORKTREE_BAND_LAST, WORKTREE_BAND_SIZE, type PortBandNote, type PortOrigin, type WorktreePortSlot } from "@shared/types";
+import type { PortBandNote, PortOrigin } from "@shared/ports/types";
+import { WORKTREE_BAND_FIRST, WORKTREE_BAND_LAST, WORKTREE_BAND_SIZE, type WorktreePortSlot } from "@shared/worktrees/envTypes";
 
 /** 自分（Kickoff）とその祖先の pid（一覧に出さず、止めさせない。製品版の中で開発版が動いているときの製品版も祖先） */
 export function selfAndAncestors(self: number, table: ReadonlyMap<number, ProcessRow>): Set<number> {

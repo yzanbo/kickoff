@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 import { Store } from "@/foundation/core/db/store";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { SESSION_SWEEP_GRACE_MS, sessionLabel, sweepUnusedSessions } from "./sessionTrash";

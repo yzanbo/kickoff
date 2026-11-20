@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import type { ProjectSearchQuery, ProjectSearchResult } from "@shared/types";
+import type { ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

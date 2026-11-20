@@ -1,4 +1,4 @@
-import type { ChatEvent, ChatEventType } from "@shared/types";
+import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";
 
 /*

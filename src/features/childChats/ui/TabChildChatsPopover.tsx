@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { shortRelativeTime } from "@/foundation/ui/lib/time";
 import { useChildChats } from "@/features/chat/ui/store/knownChats";

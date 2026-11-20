@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
-import type { ChatLive, CompactingState } from "@shared/types";
+import type { ChatLive, CompactingState } from "@shared/chat/chatLive";
 import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { openNewChat } from "@/foundation/ui/navigation/router";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";

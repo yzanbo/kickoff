@@ -1,5 +1,5 @@
 // チャットの ToDo（エージェントが TodoWrite / TaskCreate・TaskUpdate で付けた作業の一覧）
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 
 export type TodoStatus = "pending" | "in_progress" | "completed";
 

@@ -1,7 +1,7 @@
 // Expo Push（Android のアプリへのプッシュ）。本体は端末のプッシュ用 ID 宛てに Expo の API を直接呼ぶだけで、秘密の鍵を持たない
 // （Expo の「アクセストークン必須」は使わない。本体ごとに秘密を配ることになるため）。
 // 文は短く（チャット名と状態）、会話の中身は載せない（Expo と Google のサーバーを通るため）。押したら本体の ID とチャットの ID で開く
-import type { DevicePush } from "@shared/types";
+import type { DevicePush } from "@shared/devices/types";
 import type { PushMessage, PushResult, PushSender } from "@/features/notifications/core/center";
 
 /** Expo Push の送り先 */

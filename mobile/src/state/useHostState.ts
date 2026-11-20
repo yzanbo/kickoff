@@ -1,6 +1,6 @@
 // 1 つの本体の一覧の様子（プロジェクト・チャット・回答待ち・この端末のできること）。つながるたびに読み直し、知らせで直す
 import { useEffect, useState } from "react";
-import type { DeviceAccess } from "@shared/types";
+import type { DeviceAccess } from "@shared/devices/types";
 import { applyHostEvent, emptyHostState, type HostState } from "../lib/hostState";
 import { useHosts, useHostSession } from "./hosts";
 

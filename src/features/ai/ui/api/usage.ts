@@ -1,4 +1,4 @@
-import type { PlanUsage, ServiceUsage } from "@shared/types";
+import type { PlanUsage, ServiceUsage } from "@shared/ai/types";
 import { request } from "@/foundation/ui/api/http";
 
 /** プランの使用枠（5 時間・週）と、設定の「使用状況」のサービスごとの使用状況（コアの routes/usage.ts） */

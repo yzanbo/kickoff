@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { TrashItem, TrashPurgeBody, TrashRestoreBody } from "@shared/types";
+import type { TrashItem, TrashPurgeBody, TrashRestoreBody } from "@shared/trash/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { TrashService } from "@/features/trash/core/service";

@@ -1,7 +1,9 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { Runner } from "./runner";
 import type { Store } from "@/foundation/core/db/store";
-import { providerFeatureMissing, type FileRewindResult, type ProviderId, type Chat, type ChatOptionsPatch } from "@shared/types";
+import { providerFeatureMissing, type FileRewindResult } from "@shared/ai/types";
+import type { Chat, ChatOptionsPatch } from "@shared/chat/types";
+import type { ProviderId } from "@shared/settings/types";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { resumePointBefore, sessionAt } from "./sessionPoints";
 import { isBeforeWorkplaceMove, WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/workplaceMove/workplaceMoves";

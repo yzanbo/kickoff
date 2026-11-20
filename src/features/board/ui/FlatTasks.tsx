@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftCards } from "./DraftCards";

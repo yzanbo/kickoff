@@ -3,7 +3,7 @@ import * as monaco from "./monacoEditor";
 import type { EditorCursor } from "@/foundation/ui/lib/viewDetails";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { GitBlame } from "@shared/types";
+import type { GitBlame } from "@shared/git/types";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";

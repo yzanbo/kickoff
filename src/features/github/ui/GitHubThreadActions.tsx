@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import type { GitHubReviewThread } from "@shared/types";
+import type { GitHubReviewThread } from "@shared/github/types";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";

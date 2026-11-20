@@ -1,7 +1,7 @@
 // 「AI に渡す」で取ったもの（capture の添付）の札に出す文（純粋関数）
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
 import { formatSize } from "@shared/attachments/truncate";
-import type { CaptureAttachment } from "@shared/types";
+import type { CaptureAttachment } from "@shared/chat/types";
 
 /** 札の 2 行目（出どころの種類と取った時刻、伏せた・切ったときはその印。clock は時刻の書き方） */
 export function captureSubline(a: CaptureAttachment, clock: (iso: string) => string): string {

@@ -7,7 +7,7 @@ import { Poller } from "./poller";
 import { canReachApi } from "./reachability";
 import { reconnectRule, usageLimitRule, type RecoveryPlan, type RecoveryReason, type RecoveryRule } from "@/features/chat/core/run/machine/recovery";
 import type { RecoveryWait } from "@/features/chat/core/run/machine/recoveryState";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage } from "@shared/ai/types";
 
 /** つながったかを確かめる間隔 */
 const ONLINE_CHECK_MS = 15_000;

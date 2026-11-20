@@ -1,4 +1,4 @@
-import type { CodexCredits, ExtraUsage, PlanUsage } from "@shared/types";
+import type { CodexCredits, ExtraUsage, PlanUsage } from "@shared/ai/types";
 
 /**
  * プランの上限を超えたあとの支払いの様子（Claude は追加の使用枠、Codex はクレジット）。

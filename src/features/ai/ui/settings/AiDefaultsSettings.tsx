@@ -1,4 +1,4 @@
-import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/types";
+import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 import { useModels, useProviders } from "@/features/ai/ui/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";

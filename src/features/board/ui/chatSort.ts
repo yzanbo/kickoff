@@ -1,4 +1,4 @@
-import type { AgentState, Chat } from "@shared/types";
+import type { AgentState, Chat } from "@shared/chat/types";
 import { byActive } from "@/features/chat/ui/store/knownChats";
 
 // ボードのチャットの並び順（ツールバーの「並び順」で選び、ボード・リストの列・まとまりの中を同じ順に並べる）。

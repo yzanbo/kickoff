@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ALL_PROJECTS_BOARD_LANES, BOARD_ARCHIVE_FILTER, PROJECT_BOARD_LANES } from "@/foundation/ui/storage/storageKeys";

@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Check, SendHorizontal, X } from "lucide-react";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { AttachButton } from "@/features/composer/ui/AttachButton";

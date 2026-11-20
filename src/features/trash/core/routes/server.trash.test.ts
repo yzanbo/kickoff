@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashItem } from "@shared/types";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashItem } from "@shared/trash/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";

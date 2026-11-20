@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import type { PanelController } from "@/features/panel/ui/usePanel";

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { collectTags, matchesTags, orderTags, UNTAGGED } from "@shared/projects/tags";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { moveView } from "@/foundation/ui/lib/namedViews";

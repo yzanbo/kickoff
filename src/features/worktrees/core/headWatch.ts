@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { GitWorktree } from "@shared/types";
+import type { GitWorktree } from "@shared/git/types";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 
 /** 続けて変わったら（git の書き換えは HEAD.lock を作ってから名前を変える）まとめて 1 回知らせる */

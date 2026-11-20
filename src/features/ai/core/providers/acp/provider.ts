@@ -1,5 +1,6 @@
 import os from "node:os";
-import type { ProviderId, ProviderCliStatus } from "@shared/types";
+import type { ProviderCliStatus } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";

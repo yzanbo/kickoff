@@ -1,6 +1,6 @@
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
-import type { ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

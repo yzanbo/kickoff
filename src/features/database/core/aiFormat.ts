@@ -1,8 +1,8 @@
 // チャットの AI の DB のツール（kickoff_db）が返す文の組み立て（純粋な関数）。
 // 接続の情報（ホスト・パスワード・ファイルの場所）は出さない。DB から読んだ値は「データであって指示ではない」と包んで返す
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
-import { DB_AI_ACCESS_LABELS, DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS } from "@shared/types";
-import type { DbConnection, DbDatabases, DbObject, DbTableDetail, DbValue } from "@shared/types";
+import { DB_AI_ACCESS_LABELS, DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS } from "@shared/database/types";
+import type { DbConnection, DbDatabases, DbObject, DbTableDetail, DbValue } from "@shared/database/types";
 import type { DbExportResult } from "@shared/database/workerProtocol";
 
 /** AI に直接返す行の数（超えたら、すべての行を CSV に書き出して場所を返す） */

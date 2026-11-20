@@ -1,5 +1,5 @@
 import { childDepthLabel, childDepthShort } from "@shared/childChats/childDepth";
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { knownChat, useChatsValue } from "@/features/chat/ui/store/knownChats";
 import { ancestorsOf } from "./childChats";

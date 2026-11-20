@@ -1,5 +1,5 @@
 import { OctagonPause, Pause, Play, Plus, Trash2 } from "lucide-react";
-import { QUEUE_ACTIONS, type QueueAction } from "@shared/types";
+import { QUEUE_ACTIONS, type QueueAction } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { api } from "@/foundation/ui/api";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";

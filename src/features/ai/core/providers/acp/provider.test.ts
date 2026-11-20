@@ -1,7 +1,7 @@
 // ACP の共通のプロバイダー（Cursor・Gemini）を偽の ACP のエージェントで確かめる（本物の agent・agy・アカウントは使わない）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import type { VoiceDownload } from "@shared/types";
+import type { VoiceDownload } from "@shared/voice/types";
 import { modelFile, modelUrl } from "./models";
 
 /** 進み具合を知らせる間隔（ms。受け取るたびには知らせない） */

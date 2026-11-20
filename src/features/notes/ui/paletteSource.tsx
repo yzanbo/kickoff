@@ -1,6 +1,6 @@
 import { FileCode2, StickyNote } from "lucide-react";
 import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";
-import type { Project } from "@shared/types";
+import type { Project } from "@shared/projects/types";
 import { useMemo } from "react";
 import { notesStore } from "@/features/notes/ui/stores/notes";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";

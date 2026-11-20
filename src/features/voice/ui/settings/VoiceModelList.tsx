@@ -1,4 +1,4 @@
-import type { VoiceModelInfo } from "@shared/types";
+import type { VoiceModelInfo } from "@shared/voice/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";

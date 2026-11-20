@@ -1,4 +1,4 @@
-import type { Chat } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
 import type { SettingValue } from "@/foundation/ui/storage/settings";
 import type { BOARD_ARCHIVE_FILTER } from "@/foundation/ui/storage/storageKeys";
 

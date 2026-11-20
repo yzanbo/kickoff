@@ -1,4 +1,4 @@
-import type { ProviderId } from "@shared/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /** 最後に表に出したチャット。下書きも画面ごとに別の key を持つ。 */
 export interface ForegroundChat {

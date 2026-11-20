@@ -1,5 +1,6 @@
 // チャットの AI が流した SQL（db_query）・用意した SQL（open_sql）を、そのチャットの右の欄の DB クライアントの新しい SQL のタブで開く
-import type { Chat, DbConnection } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { DbConnection } from "@shared/database/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { openInRootSide } from "@/features/chat/ui/open/openChat";

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { ChevronDown, ChevronRight, GitCommitHorizontal } from "lucide-react";
-import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/types";
+import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/github/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { agoText, formatFullStamp } from "@/foundation/ui/lib/time";
 import { GitHubHtml } from "./GitHubHtml";

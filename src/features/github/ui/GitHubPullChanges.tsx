@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
-import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/types";
+import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";

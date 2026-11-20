@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { DockerList, DockerLogEvent } from "@shared/types";
+import type { DockerList, DockerLogEvent } from "@shared/docker/types";
 import { DockerLogSession } from "@/features/docker/core/logs";
 import { psOutput } from "@/foundation/core/testing/fakeDocker";
 import { setup } from "@/app/core/testing/testServer";

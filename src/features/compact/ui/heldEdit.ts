@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { Attachment } from "@shared/types";
+import type { Attachment } from "@shared/chat/types";
 import { setKeepAlive } from "@/features/chat/ui/screen/keepAlive";
 
 /** 入力欄で書き直している預かった指示（チャットごとに 1 つ。画面の中だけで持ち、保存しない） */

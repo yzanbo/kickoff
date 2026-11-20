@@ -4,7 +4,8 @@ import { commitStaged, discardPaths, fetchRemote, gitBlame, gitCommitDetail, git
 import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "@/features/git/core/branches";
 import { createPullRequest, pullRequestFor } from "@/features/github/core/github";
 import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
-import type { GitBranchAction, GitBranchActionResult, Project } from "@shared/types";
+import type { GitBranchAction, GitBranchActionResult } from "@shared/git/types";
+import type { Project } from "@shared/projects/types";
 import type { Store } from "@/foundation/core/db/store";
 import { Invalid } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";

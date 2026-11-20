@@ -1,4 +1,4 @@
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage } from "@shared/chat/types";
 import { relayOf } from "@shared/chat/prompts";
 import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
 

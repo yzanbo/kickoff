@@ -1,5 +1,5 @@
 // 巻き戻しの確かめ（会話だけ・ファイルだけ・両方）。ファイルを戻すのは Claude Code のファイルのチェックポイント（コアの rewind-files）
-import type { FileRewindResult } from "@shared/types";
+import type { FileRewindResult } from "@shared/ai/types";
 import { api } from "@/foundation/ui/api";
 import { alertDialog, choiceDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 

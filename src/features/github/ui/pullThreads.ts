@@ -1,4 +1,4 @@
-import type { GitHubReviewThread } from "@shared/types";
+import type { GitHubReviewThread } from "@shared/github/types";
 import type { DiffLine } from "@/foundation/ui/diff/diffModel";
 
 /** 1 つのファイルのスレッドを、差分のどの行の下に出すかで分けたもの */

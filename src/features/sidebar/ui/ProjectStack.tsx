@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat } from "@shared/chat/types";
+import type { ChatGroup } from "@shared/groups/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { ProjectListHead } from "./ProjectListHead";

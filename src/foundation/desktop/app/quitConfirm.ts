@@ -1,5 +1,5 @@
 // 作業中のチャットがあるときに、終了してよいかを聞くダイアログの文
-import { UNTITLED_CHAT_TITLE } from "@shared/types";
+import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 
 /** ダイアログに名前を並べるチャットの数（超えた分は「ほか n 件」） */
 const LISTED_CHATS = 5;

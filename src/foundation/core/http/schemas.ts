@@ -1,8 +1,13 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "@/foundation/core/system/paths";
-import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
+import type { Attachment, AttachmentSource, ChatOptionsPatch } from "@shared/chat/types";
+import type { ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/foundation/apiTypes";
+import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
+import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
+import { GITHUB_KINDS } from "@shared/github/types";
+import { EFFORT_LEVELS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
+import { USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/userView/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { branchName, folderPath, repoPath } from "./zodParts";
 

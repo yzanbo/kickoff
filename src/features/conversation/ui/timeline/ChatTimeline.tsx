@@ -1,5 +1,8 @@
 import { useLayoutEffect } from "react";
-import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { Approval } from "@shared/chat/approvalTypes";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ChatLive } from "@shared/chat/chatLive";
+import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
 import type { ChatLogView } from "@/features/chat/ui/store/chatStore";

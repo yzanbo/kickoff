@@ -1,5 +1,5 @@
 import { Check, CircleDashed, CircleMinus, X, type LucideIcon } from "lucide-react";
-import { CI_STATE_LABELS, type CiState } from "@shared/types";
+import { CI_STATE_LABELS, type CiState } from "@shared/github/ciTypes";
 
 /** 状態ごとの印と色（色は GitHub の PR のチェックと同じ github-checks-*） */
 const LOOKS: Record<CiState, { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral" }> = {

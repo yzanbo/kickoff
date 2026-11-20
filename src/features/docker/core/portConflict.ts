@@ -1,6 +1,6 @@
 // ポートの取り合いの純粋な関数: up の失敗の文からぶつかったポート・Docker 同士の相手・静かなぶつかり（lsof）・Homebrew のサービス
 import { workplaceText } from "@shared/foundation/workplace";
-import type { DockerPortConflict, DockerSilentConflict } from "@shared/types";
+import type { DockerPortConflict, DockerSilentConflict } from "@shared/docker/types";
 import type { RawContainer } from "./parse";
 import { parsePorts } from "./parse";
 import type { ListeningSocket } from "@/foundation/core/platform/types";

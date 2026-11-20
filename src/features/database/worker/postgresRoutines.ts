@@ -1,5 +1,5 @@
 // PostgreSQL の関数・列挙型（木の段と、開いたタブの定義）。postgres.ts から問い合わせの口を受けて使う
-import type { DbDefinition, DbObject } from "@shared/types";
+import type { DbDefinition, DbObject } from "@shared/database/types";
 import { quoteIdent } from "./values";
 
 type Row = Record<string, unknown>;
