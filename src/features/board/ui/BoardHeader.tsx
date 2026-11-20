@@ -1,6 +1,6 @@
 import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
-import { openContentSearch } from "@/features/chat/ui/chatSearch";
+import { openContentSearch } from "@/features/palette/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { SettingValue } from "@/foundation/ui/storage";
 import { storage } from "./storage";

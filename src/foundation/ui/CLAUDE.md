@@ -8,18 +8,18 @@
 |---|---|
 | `kit/`・`hooks/`・`lib/` | ドメインを知らない部品・hooks・React に依存しない補助 |
 | `store/`・`api/`・`storage/` | 店の仕組み・サーバーとのやり取り・表示の設定の保存（下の節） |
-| `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / アプリの殻の土台 |
+| `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / 殻の口 `points.ts` |
 | `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
-App・起動・ショートカット・下の帯は `src/app/renderer/`、機能の画面は `src/features/<機能>/ui/`。
+App・起動・ショートカット・下の帯は `src/app/renderer/`。
 
 - 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。土台は機能を読まない。
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
-- 複数のファイルになる機能は `src/features/<機能>/` にまとめる。どの機能にも属さないものだけを土台に置く。
+- どの機能にも属さないものだけを土台に置く。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「描く部品」に分ける（`usePanel` ＋ `Panel`）。props の束も hook から返してよい。
 - 画面（`Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。
 
-## データ（`store/` と全体の context）
+## データ（`store/`）
 
 - サーバーのデータは店に 1 つずつ持つ。部品ごとに取り直さない・props で 3 段以上中継しない。
 - 店は `createStore` / `createKeyedStore`、外の 1 つの値は `createCell`・知らせ `createSignal`・登録表 `createRegistry`・操る物 `useController`。閉じた所は `active: false`。
@@ -141,9 +141,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 
 ## アプリの殻（`shell/`・`@/app/renderer/`）
 
-- 全体表示中の共通ヘッダー `MaximizedHeader`（`shell/WindowHeaderContent.tsx`）は、元の画面の名前の行を、既存の 40px の操作行へ移す（複製しない・新しい行を足さない）。
+- アプリのダイアログは `openAppDialog`（種類は持ち主が `AppDialogMap` に足す。別ウィンドウからはメインで開く）。
+- 全体表示中の共通ヘッダー `MaximizedHeader`（`shell/WindowHeaderContent.tsx`）は、元の画面の名前の行を既存の 40px の操作行へ移す（複製しない・行を足さない）。
 - 下の帯の高さは起動直後の骨組みの `.boot-footer` と同じにする（変えたら `@/app/renderer/bootScript.test.ts` を通す）。接続が切れた札は、つながらないまま少し経ってから出す（`useConnectionNotice`。一瞬の切断でちらつかせない）。
-
-## 外部リンク（`external/linkOpen.ts`）
-
-- Markdown の外部リンクは開く前に確かめる（`openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。
+- Markdown の外部リンクは開く前に確かめる（`external/linkOpen.ts` の `openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。

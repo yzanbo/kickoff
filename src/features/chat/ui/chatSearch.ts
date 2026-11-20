@@ -14,9 +14,3 @@ export function useChatSearch(query: string) {
   const matches = useCallback((chat: Chat) => !lower || chatTitle(chat.title).toLowerCase().includes(lower), [lower]);
   return useMemo(() => ({ keyword, matches }), [keyword, matches]);
 }
-
-/** チャットの中の文言の全文検索のパネルを開く */
-export const OPEN_CONTENT_SEARCH_EVENT = "kickoff:open-content-search";
-export function openContentSearch() {
-  window.dispatchEvent(new Event(OPEN_CONTENT_SEARCH_EVENT));
-}

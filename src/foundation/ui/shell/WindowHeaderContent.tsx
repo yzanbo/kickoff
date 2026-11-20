@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useMediaQuery } from "@/foundation/ui/kit/layout/useMediaQuery";
 
 const HeaderHost = createContext<{
   host: HTMLElement | null;
@@ -11,14 +12,7 @@ const HeaderHost = createContext<{
 export function MaximizedHeader({ active, children }: { active: boolean; children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   // 右サイドバーを出さない縦 1 列では、見出しも元の画面の中に置く
-  const [desktop] = useState(() => matchMedia("(min-width: 721px)"));
-  const wide = useSyncExternalStore(
-    (listener) => {
-      desktop.addEventListener("change", listener);
-      return () => desktop.removeEventListener("change", listener);
-    },
-    () => desktop.matches,
-  );
+  const wide = useMediaQuery("(min-width: 721px)");
   const shown = active && wide;
   return (
     <HeaderHost.Provider value={{ host, setHost, shown }}>

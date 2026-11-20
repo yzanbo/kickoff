@@ -1,27 +1,24 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useState } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useServerConnection } from "@/foundation/ui/api/serverConnection";
 import { useApprovals } from "@/features/chat/ui/store/approvals";
 import { addProject, useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
-import { OPEN_CONTENT_SEARCH_EVENT } from "@/features/chat/ui/chatSearch";
 import { AppFooter } from "@/app/renderer/shell/footer/AppFooter";
 import { BottomPanel } from "@/features/terminal/ui/bottom/BottomPanel";
 import { useBottomPanel } from "@/features/terminal/ui/bottom/useBottomPanel";
 import { ActiveChatsPalette } from "@/features/chatList/ui/activeChats/ActiveChatsPalette";
-import { OPEN_ACTIVE_CHATS_EVENT, type ActiveChatsRequest } from "@/features/chatList/ui/activeChats/openActiveChats";
 import { CommandPalette } from "@/features/palette/ui/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
 import { useProjectHeaderMode } from "@/features/projects/ui/page/headerMode";
 import { SearchPanel } from "@/features/palette/ui/SearchPanel";
 import { NewProjectDialog } from "@/features/projects/ui/new/NewProjectDialog";
-import { OPEN_NEW_PROJECT_EVENT, OPEN_NO_PROJECTS_GUIDE_EVENT, type NewProjectRequest } from "@/features/projects/ui/new/openNewProject";
 import { NoProjectsGuide } from "@/features/projects/ui/NoProjectsGuide";
 import { runAfterNewProject } from "@/features/projects/ui/new/afterNewProject";
 import { ProjectChat } from "@/features/projects/ui/rightSidebar/RightSidebar";
 import { useProjectChat } from "@/features/projects/ui/rightSidebar/useRightSidebar";
 import { SideRail } from "@/features/projects/ui/rightSidebar/SideRail";
-import { SettingsDialog, type SettingsSection } from "@/features/settings/ui/SettingsDialog";
+import { SettingsDialog } from "@/features/settings/ui/SettingsDialog";
 import { CoreStatusBand } from "@/features/diagnostics/ui/CoreStatusBand";
 import { DiagnosticsIndicator } from "@/features/diagnostics/ui/DiagnosticsIndicator";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
@@ -30,7 +27,6 @@ import { ToastHost } from "@/foundation/ui/kit/toast";
 import { GitHubDialogHost } from "@/features/github/ui/GitHubDialogHost";
 import { RestartResumeHost } from "@/features/queue/ui/restartResume/RestartResumeDialog";
 import { PrNoticeHost } from "@/features/github/ui/prNotice/PrNoticeDialog";
-import { OPEN_SETTINGS_EVENT } from "@/features/settings/ui/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/ui/Sidebar";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
 import { requestCodeSearchFocus } from "@/features/files/ui/codeSearchFocus";
@@ -40,7 +36,6 @@ import { DialogHost } from "@/foundation/ui/kit/dialogs";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/ui/DbUnlockHost";
 import { DropHintHost } from "@/foundation/ui/kit/DropHint";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useNotificationTargets, useViewingReport } from "@/features/notifications/ui/notifications";
 import { useUserViewReport } from "@/features/userView/ui/userViewReport";
 import { chatIdsOf, collectUserView } from "@/features/userView/ui/userViewCollect";
@@ -53,12 +48,12 @@ import { ProjectPage } from "@/features/projects/ui/page/ProjectPage";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
 import { receiveMainWindowMessages } from "./mainWindowMessages";
-import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "@/foundation/ui/navigation/popoutNavigation";
 import { usePopoutHosts } from "./popoutHosts";
 import { boardTabOf, useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 import { useNavigationHistory } from "@/foundation/ui/navigation/useNavigationHistory";
 import { NavigationButtons } from "@/foundation/ui/navigation/NavigationButtons";
 import { MaximizedHeader, MaximizedHeaderBar } from "@/foundation/ui/shell/WindowHeaderContent";
+import { onAppDialogRequested, type AppDialogMap, type AppDialogRequest } from "@/foundation/ui/shell/points";
 import { createNavigationHistory } from "@/foundation/ui/navigation/navigationHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { usePlanUsage } from "@/features/ai/ui/usage/usage";
@@ -66,6 +61,13 @@ import { setProjectHues } from "@/features/projects/ui/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
 import { ChatStatesContext, indexApprovals } from "@/features/chat/ui/state/chatStates";
+
+/** 開いているダイアログから、その種類を外したもの */
+function withoutDialog(open: Partial<AppDialogMap>, id: keyof AppDialogMap): Partial<AppDialogMap> {
+  const next = { ...open };
+  delete next[id];
+  return next;
+}
 
 export function App() {
   // 最初の描き終わり（起動の時刻の記録。いちばん外の部品なので、中の部品の layout effect のあと）
@@ -102,16 +104,12 @@ export function App() {
   // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える
   useWorkplaceMoveTabs();
   const sidebar = useSidebar();
-  // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
-  const [creating, setCreating] = useState<NewProjectRequest | null>(null);
-  // プロジェクトがないのに新しいチャットを始めようとしたときの案内（チャットはプロジェクトの中で始めることを説明して、作るよう誘う）
-  const [noProjectsGuide, setNoProjectsGuide] = useState(false);
-  const [palette, setPalette] = useState(false);
-  // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧（null = 閉じている。プロジェクトのボタンから開いたときは、そのプロジェクトで絞り込む）
-  const [activeChats, setActiveChats] = useState<ActiveChatsRequest | null>(null);
-  const [searching, setSearching] = useState(false);
-  // 設定のダイアログ（開いている項目。null なら閉じている）
-  const [settings, setSettings] = useState<SettingsSection | null>(null);
+  // 開いているアプリのダイアログ（種類ごとに開くときに渡したもの。ないものは閉じている）: 新しいプロジェクト（名前の初めの値・作ったあとの処理）・
+  // プロジェクトがないときの案内・⌘K・⌘⇧A（プロジェクトのボタンから開いたときは、そのプロジェクトで絞り込む）・全文検索・設定（開いている項目）
+  const [dialogs, setDialogs] = useState<Partial<AppDialogMap>>({});
+  const showDialog = ({ id, detail }: AppDialogRequest) => setDialogs((open) => ({ ...open, [id]: detail }));
+  const closeDialog = (id: keyof AppDialogMap) => setDialogs((open) => withoutDialog(open, id));
+  const { newProject: creating, settings, activeChats } = dialogs;
   // URL のプロジェクト。もうないとわかったもの（消した・URL の番号が違う）は、ないものとする
   // （チャット欄・下のパネル・下の帯に出さず、そのプロジェクトのワークツリー・グループなどを読みに行かない）
   const routeProject = routeProjectId(route) ?? undefined;
@@ -142,13 +140,13 @@ export function App() {
     const target = projectId ?? fallbackProject;
     if (target) openTarget({ kind: "newChat", projectId: target });
     // いきなり新しいプロジェクトのダイアログを開かず、チャットはプロジェクトの中で始めることを説明してから作るよう誘う
-    else setNoProjectsGuide(true);
+    else showDialog({ id: "noProjectsGuide", detail: null });
   };
 
   /** ⌘⇧F: 開いている（なければサイドバーで選んでいる）プロジェクトの検索タブへ移り、検索の欄にピントを置く */
   const openCodeSearch = () => {
     const target = projectId ?? fallbackProject;
-    if (target === undefined) return setNoProjectsGuide(true);
+    if (target === undefined) return showDialog({ id: "noProjectsGuide", detail: null });
     openTarget({ kind: "projectView", projectId: target, view: "search" });
     requestCodeSearchFocus();
   };
@@ -157,23 +155,15 @@ export function App() {
   useApplyChatFontSize();
   useAppShortcuts({
     toggleSidebar: sidebar.toggle,
-    openPalette: () => setPalette(true),
+    openPalette: () => showDialog({ id: "commandPalette", detail: null }),
     openCodeSearch,
     newChat: startNewChat,
-    openSettings: () => setSettings("usage"),
-    openActiveChats: () => setActiveChats({}),
+    openSettings: () => showDialog({ id: "settings", detail: "usage" }),
+    openActiveChats: () => showDialog({ id: "activeChats", detail: {} }),
   });
-  // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
-  useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
-  // 部品から設定をその項目で開く（チャット欄のマイクから「音声入力」など。開いていれば、その項目に切り替える）
-  useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
-  useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
-  // プロジェクトのボタン・右クリックから、そのプロジェクトで絞り込んだ ⌘⇧A の一覧を開く
-  useWindowEvent(OPEN_ACTIVE_CHATS_EVENT, (e) => setActiveChats((e as CustomEvent<ActiveChatsRequest>).detail));
-  useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
-  // サイドバーの別ウィンドウの「新しいチャット」「検索」（別ウィンドウで起きたものは app/popoutNavigation.ts が渡してくる）
-  useWindowEvent(START_NEW_CHAT_EVENT, startNewChat);
-  useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, () => setPalette(true));
+  // 部品・別ウィンドウから開くダイアログ（openAppDialog。設定は開いていればその項目に切り替える）と、サイドバーの別ウィンドウの「新しいチャット」
+  const onDialogRequested = useEffectEvent((request: AppDialogRequest) => (request.id === "newChat" ? startNewChat() : showDialog(request)));
+  useEffect(() => onAppDialogRequested(onDialogRequested), []);
   // 別ウィンドウからの「ファイルタブで開く」・ノート・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
   useEffect(() => receiveMainWindowMessages(), []);
 
@@ -188,8 +178,8 @@ export function App() {
           sidebar={sidebar}
           onNewChat={startNewChat}
           newChatProject={projectId ?? fallbackProject}
-          onSearch={() => setPalette(true)}
-          onNewProject={() => setCreating({})}
+          onSearch={() => showDialog({ id: "commandPalette", detail: null })}
+          onNewProject={() => showDialog({ id: "newProject", detail: {} })}
         />
         {/* 画面と、その下のパネル（ターミナル） */}
         <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
@@ -214,22 +204,22 @@ export function App() {
         {/* 右端のアイコンの列（右サイドバーを閉じていても・別ウィンドウへ移していても置く） */}
         {chat.projectId !== undefined && <SideRail projectId={chat.projectId} open={chat.open} held={sideHeld} />}
         <MaximizedHeaderBar />
-        <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />
+        <AppFooter onOpenSettings={(section) => showDialog({ id: "settings", detail: section })} connection={connection} planUsage={planUsage} projectId={projectId} />
         {creating && (
           <NewProjectDialog
             defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}
             initialName={creating.name}
             initialMode={creating.mode}
-            onClose={() => setCreating(null)}
+            onClose={() => closeDialog("newProject")}
             onCreated={(project) => {
-              setCreating(null);
+              closeDialog("newProject");
               addProject(project);
               runAfterNewProject(creating.after, project);
             }}
           />
         )}
-        {noProjectsGuide && <NoProjectsGuide onClose={() => setNoProjectsGuide(false)} />}
-        {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
+        {dialogs.noProjectsGuide !== undefined && <NoProjectsGuide onClose={() => closeDialog("noProjectsGuide")} />}
+        {settings && <SettingsDialog key={settings} initial={settings} onClose={() => closeDialog("settings")} />}
         {/* 性能の記録の様子（メニューの「ヘルプ」・設定の「診断」から始まる） */}
         <DiagnosticsIndicator />
         {/* Kickoff のコア（別のプロセス）が落ちた・応答しないときの帯（メインプロセスが知らせる） */}
@@ -260,13 +250,13 @@ export function App() {
         <DbUnlockHost />
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
         <DropHintHost />
-        {palette && <CommandPalette onClose={() => setPalette(false)} />}
-        {activeChats && <ActiveChatsPalette initialProject={activeChats.projectId} onClose={() => setActiveChats(null)} />}
-        {searching && (
+        {dialogs.commandPalette !== undefined && <CommandPalette onClose={() => closeDialog("commandPalette")} />}
+        {activeChats && <ActiveChatsPalette initialProject={activeChats.projectId} onClose={() => closeDialog("activeChats")} />}
+        {dialogs.contentSearch !== undefined && (
           <SearchPanel
             chatId={route.name === "chat" ? route.chatId : undefined}
             projectId={projectId}
-            onClose={() => setSearching(false)}
+            onClose={() => closeDialog("contentSearch")}
           />
         )}
         </MaximizedHeader>
