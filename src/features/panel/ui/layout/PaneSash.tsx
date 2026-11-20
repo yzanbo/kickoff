@@ -1,5 +1,5 @@
 import type { CSSProperties, RefObject } from "react";
-import { startPointerDrag } from "@/foundation/ui/hooks/useDragSize";
+import { startPointerDrag } from "@/foundation/ui/kit/drag/useDragSize";
 import { resizeAt, type FracRect, type Sash } from "./paneGeometry";
 import type { PaneNode } from "./paneTree";
 

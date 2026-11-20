@@ -10,7 +10,7 @@ import { Popover } from "@/foundation/ui/kit/Popover";
 import { anchorPlacement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useViewTabDrag } from "@/foundation/ui/kit/useViewTabDrag";
+import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { sameSidebarViewState, type SidebarView } from "./sidebarViews";
 import { SidebarViewTuner, type TunerProps } from "./SidebarViewTuner";
 import { TagFilterRow } from "./TagFilterRow";
@@ -97,6 +97,9 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   );
 }
 
+/** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
+const VIEW_DRAG_TYPE = "application/x-kickoff-sidebar-view";
+
 /**
  * ビューのタブ。1 行に並べ、入らないタブは折り返した先を隠して ▾ のメニューに出す（実際に折り返したかで決める）。
  * いまの見え方に合うタブを選択中に、合うものがなければ最後に選んだタブを「変えている」印（点線の枠）で見せる
@@ -107,7 +110,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
   const [renaming, setRenaming] = useState<string>();
   const menu = useContextMenu<SidebarView>();
   const more = useContextMenu({ align: "end" });
-  const drag = useViewTabDrag(views.views, views.move, "sidebar-view");
+  const drag = useReorder({ keys: views.views.map((v) => v.id), type: VIEW_DRAG_TYPE, onMove: views.move });
 
   // 折り返して 2 行目より下に行ったタブ（隠れる）を数える。幅・タブが変わるたびに測り直す
   useLayoutEffect(() => {
@@ -155,13 +158,12 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
               data-view-id={view.id}
               aria-selected={views.active?.id === view.id}
               tabIndex={hidden.includes(view.id) ? -1 : undefined}
-              {...drag.tabProps(view.id)}
+              {...drag.itemProps(view.id)}
               className={cx(
                 "sidebar-view-tab",
                 views.active?.id === view.id && "active",
                 !views.active && views.selected?.id === view.id && "modified",
                 hidden.includes(view.id) && "overflowed",
-                drag.tabClass(view.id),
               )}
               title={
                 !views.active && views.selected?.id === view.id
@@ -188,7 +190,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
           icon={ChevronDown}
           label={`ほかのビュー（${hidden.length} 件）`}
           size={14}
-          className={cx("sidebar-view-icon sidebar-view-more", more.isOpen && "active", hidden.some((id) => id === views.active?.id) && "has-active", drag.endClass)}
+          className={cx("sidebar-view-icon sidebar-view-more", more.isOpen && "active", hidden.some((id) => id === views.active?.id) && "has-active")}
           aria-expanded={more.isOpen}
           onClick={(e) => more.toggle(e, undefined)}
           // タブをドラッグして重ねると、いちばん後ろへ落とせる。重ねたまま待つとメニューを開き、その中の好きな位置へ落とせる
@@ -204,11 +206,10 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
                 key={view.id}
                 role="menuitemradio"
                 checked={views.active?.id === view.id}
-                className={drag.tabClass(view.id)}
                 onSelect={() => views.apply(view)}
                 // ドラッグで並べ替える（メニューの中の上下の半分で前後を決める。タブの行へも落とせる）。右クリックはタブと同じメニュー（▾ のメニューは閉じて、その位置に開く）
                 buttonProps={{
-                  ...drag.tabProps(view.id, "y"),
+                  ...drag.itemProps(view.id, "y"),
                   onContextMenu: (e) => {
                     menu.open(e, view);
                     more.close();

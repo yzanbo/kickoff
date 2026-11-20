@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { panelSettings } from "@/features/panel/ui";
 import { panelActions } from "@/features/panel/ui/state/panelActions";

@@ -97,14 +97,14 @@
   visibility: hidden;
 }
 
-/* タブの並べ替え（ドラッグ。useViewTabDrag）: 落とす先のタブの前か後ろに縦の線、動かしているタブは薄く */
-.sidebar-view-tab.sidebar-view-drop-before,
-.sidebar-view-tab.sidebar-view-drop-after {
+/* タブの並べ替え（ドラッグ。useReorder）: 落とす先のタブの前か後ろに縦の線、動かしているタブは薄く */
+.sidebar-view-tab[data-drop="before"],
+.sidebar-view-tab[data-drop="after"] {
   position: relative;
 }
 
-.sidebar-view-tab.sidebar-view-drop-before::after,
-.sidebar-view-tab.sidebar-view-drop-after::after {
+.sidebar-view-tab[data-drop="before"]::after,
+.sidebar-view-tab[data-drop="after"]::after {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -115,15 +115,15 @@
   pointer-events: none;
 }
 
-.sidebar-view-tab.sidebar-view-drop-before::after {
+.sidebar-view-tab[data-drop="before"]::after {
   left: -3px;
 }
 
-.sidebar-view-tab.sidebar-view-drop-after::after {
+.sidebar-view-tab[data-drop="after"]::after {
   right: -3px;
 }
 
-.sidebar-view-tab.sidebar-view-dragging {
+.sidebar-view-tab[data-drag-source] {
   opacity: var(--drag-source-opacity);
 }
 
@@ -131,13 +131,13 @@
  * 「ほかのビュー」の ▾ のメニューの項目もドラッグで並べ替える（縦に並ぶので、落とす先の線は項目の上か下に横に引く）。
  * タブをドラッグして ▾ に重ねると、いちばん後ろへ落とせる印に枠を付ける（重ねたまま待つとメニューが開く）
  */
-.menu button.sidebar-view-drop-before,
-.menu button.sidebar-view-drop-after {
+.menu button[data-drop="before"],
+.menu button[data-drop="after"] {
   position: relative;
 }
 
-.menu button.sidebar-view-drop-before::after,
-.menu button.sidebar-view-drop-after::after {
+.menu button[data-drop="before"]::after,
+.menu button[data-drop="after"]::after {
   position: absolute;
   right: 4px;
   left: 4px;
@@ -148,19 +148,19 @@
   pointer-events: none;
 }
 
-.menu button.sidebar-view-drop-before::after {
+.menu button[data-drop="before"]::after {
   top: -1px;
 }
 
-.menu button.sidebar-view-drop-after::after {
+.menu button[data-drop="after"]::after {
   bottom: -1px;
 }
 
-.menu button.sidebar-view-dragging {
+.menu button[data-drag-source] {
   opacity: var(--drag-source-opacity);
 }
 
-.sidebar-view-more.sidebar-view-drop-end {
+.sidebar-view-more[data-drop="end"] {
   box-shadow: inset 0 0 0 2px var(--accent-bright);
 }
 

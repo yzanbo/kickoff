@@ -3,7 +3,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import type { CommitBusy } from "@/features/git/ui/useCommitActions";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { open } from "@/foundation/ui/navigation/open";
 import { navigate, type FileTarget } from "@/foundation/ui/navigation/router";
 import { storage } from "./storage";

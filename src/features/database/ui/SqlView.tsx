@@ -6,7 +6,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { DbSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";

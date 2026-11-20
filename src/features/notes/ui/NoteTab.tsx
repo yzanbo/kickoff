@@ -7,7 +7,7 @@ import { isCancelKey } from "@/foundation/ui/lib/keys";
 import { readSetting } from "@/foundation/ui/storage";
 import { filesSettings } from "@/features/files/ui";
 import { storage } from "./storage";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useMultiSelect } from "@/foundation/ui/hooks/useMultiSelect";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { notesStore, useNoteList } from "@/features/notes/ui/stores/notes";

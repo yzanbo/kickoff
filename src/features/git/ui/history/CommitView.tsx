@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/git/ui/storage";
 import { formatDayTime } from "@/foundation/ui/lib/time";

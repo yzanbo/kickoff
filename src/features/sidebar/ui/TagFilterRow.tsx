@@ -10,7 +10,10 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useViewTabDrag } from "@/foundation/ui/kit/useViewTabDrag";
+import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
+
+/** ドラッグで運ぶタグの種類（ほかのドラッグと見分ける） */
+const TAG_DRAG_TYPE = "application/x-kickoff-project-tag";
 
 /**
  * 見出しの 3 行目「タグ」: 使っているタグを小さなボタンで並べ、押すたびにそのタグでの絞り込みを付け外しする（複数選べ、選んだタグのどれかが付いているプロジェクトを出す。「タグなし」も選べる）。
@@ -24,11 +27,7 @@ export function TagFilterRow() {
   const { projects } = useProjects();
   const [renaming, setRenaming] = useState<string>();
   const menu = useContextMenu<string>();
-  const drag = useViewTabDrag(
-    filter.tags.map((t) => ({ id: t, name: t, state: null })),
-    filter.move,
-    "tag-filter-pill",
-  );
+  const drag = useReorder({ keys: filter.tags, type: TAG_DRAG_TYPE, onMove: filter.move });
   if (filter.tags.length === 0) return null;
 
   const pill = (tag: string) => {
@@ -38,7 +37,7 @@ export function TagFilterRow() {
       <button
         key={tag || "untagged"}
         type="button"
-        className={cx("tag-filter-pill", on && "on", !real && "untagged", real && drag.tabClass(tag))}
+        className={cx("tag-filter-pill", on && "on", !real && "untagged")}
         aria-pressed={on}
         title={
           on
@@ -47,7 +46,7 @@ export function TagFilterRow() {
         }
         onClick={() => filter.toggle(tag)}
         {...(real && {
-          ...drag.tabProps(tag),
+          ...drag.itemProps(tag),
           onContextMenu: (e) => menu.open(e, tag),
           onKeyDown: (e) => {
             // Enter で名前を変える（押すのは Space）

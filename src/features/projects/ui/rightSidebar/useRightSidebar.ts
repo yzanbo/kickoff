@@ -1,5 +1,5 @@
 import { openPopout } from "@/foundation/ui/navigation/popout";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";

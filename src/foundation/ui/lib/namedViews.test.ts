@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { addView, isNoopViewMove, moveView, removeView, renameView, replaceViewState, viewNameTaken, type NamedView } from "./namedViews";
+import { addView, moveView, removeView, renameView, replaceViewState, viewNameTaken, type NamedView } from "./namedViews";
 
 type View = NamedView<{ n: number }>;
 const view = (id: string, n = 0): View => ({ id, name: `v${id}`, state: { n } });
@@ -34,11 +34,3 @@ test("moveView: target の前・後ろへ動かし、ないビューならその
   assert.deepEqual(ids(moveView(views, "a", "x", "after")), ["a", "b", "c", "d"]);
 });
 
-test("isNoopViewMove: 自分の上・すぐ前の後ろ・すぐ後ろの前は並びが変わらない", () => {
-  const views = ["a", "b", "c"].map((id) => view(id));
-  assert.equal(isNoopViewMove(views, "b", "b", "before"), true);
-  assert.equal(isNoopViewMove(views, "b", "a", "after"), true);
-  assert.equal(isNoopViewMove(views, "b", "c", "before"), true);
-  assert.equal(isNoopViewMove(views, "b", "a", "before"), false);
-  assert.equal(isNoopViewMove(views, "b", "c", "after"), false);
-});

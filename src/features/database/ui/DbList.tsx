@@ -1,7 +1,7 @@
 import { Copy, FolderInput, PanelLeftClose, Plus, Search } from "lucide-react";
 import type { DbConnection } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import type { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

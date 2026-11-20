@@ -1,6 +1,6 @@
 import type { WebviewTag } from "electron";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { SettingValue } from "@/foundation/ui/storage";
 import { storage } from "./storage";

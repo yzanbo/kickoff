@@ -7,10 +7,13 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { sameViewExistsText, viewNameTaken } from "@/foundation/ui/lib/namedViews";
-import { useViewTabDrag } from "@/foundation/ui/kit/useViewTabDrag";
+import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
 import { sameViewState, type SavedView } from "./savedViews";
 import { useRememberedView } from "./useRememberedView";
 import { useSavedViews } from "./useSavedViews";
+
+/** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
+const VIEW_DRAG_TYPE = "application/x-kickoff-board-view";
 
 /**
  * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・
@@ -24,7 +27,7 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
   // ボードを開いたときに、そのボードで最後に見ていた見え方（初めは最初のビュー）に戻す
   useRememberedView(saved, projectId === undefined);
   const menu = useContextMenu<SavedView>();
-  const drag = useViewTabDrag(saved.views, saved.move, "board-view");
+  const drag = useReorder({ keys: saved.views.map((v) => v.id), type: VIEW_DRAG_TYPE, onMove: saved.move });
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string>();
   // いまの見え方と同じビュー（あれば新しく作らない）
@@ -55,8 +58,8 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
             type="button"
             role="tab"
             aria-selected={saved.active?.id === view.id}
-            {...drag.tabProps(view.id)}
-            className={cx("board-view-tab", saved.active?.id === view.id && "active", drag.tabClass(view.id))}
+            {...drag.itemProps(view.id)}
+            className={cx("board-view-tab", saved.active?.id === view.id && "active")}
             title="押すとこのビューの表示にする（ダブルクリック・Enter で名前の変更。ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
             onClick={() => saved.apply(view.state)}
             onContextMenu={(e) => menu.open(e, view)}

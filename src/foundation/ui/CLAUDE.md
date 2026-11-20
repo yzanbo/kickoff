@@ -73,7 +73,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 1 つを選ぶ組は `Segmented`（欄は `ChoiceField`）。
 - 開閉は `FoldHead` / `FoldSection`・`Chevron`・`Collapse`・`useFold`。いちばん下の「アーカイブ済み n」は `ArchivedFold`。
 - 中身のないまとまりは開いても閉じても同じ高さにする（空の入れ物を置かないか `:empty` で隠す）。
-- ドラッグできる物は、どれも `dragstart` で `kit/dragGhost.ts` の `startDragGhost` を呼ぶ（例外はパネルのタブ）。ビューのタブは `useViewTabDrag`。
+- ドラッグできる物は、どれも `dragstart` で `kit/dragGhost.ts` の `startDragGhost` を呼ぶ（例外はパネルのタブ）。並べ替えは `kit/drag/useReorder`。
 - ドラッグ中の見た目を変える state は `startDragGhost` の `after` で変える（`dragstart` の中で描き直すと、ドラッグが取り消される）。
 - ドラッグ中の端のスクロールは `lib/dragAutoScroll.ts` がすべてのドラッグに効かせるので、部品ごとに書かない。
 - 状態の点は `StatusDot`（`<span>` で手書きしない）、札は `ToneChip`。

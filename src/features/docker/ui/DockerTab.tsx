@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { Container, ShieldCheck } from "lucide-react";
 import type { DockerList } from "@shared/docker/types";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";

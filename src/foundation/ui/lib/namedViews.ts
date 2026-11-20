@@ -1,6 +1,8 @@
 // 名前を付けた見え方（ビュー）の一覧の操作（純粋な関数）。ボードの保存したビュー（features/board/savedViews.ts）とサイドバーのビュー
 // （features/sidebar/sidebarViews.ts）で共通。見え方そのものの形・比べ方は、それぞれの側に置く
 
+import { moveInList, type DropSide } from "./moveInList";
+
 /** 名前を付けた見え方 1 つ（state はビューの種類ごとの形） */
 export interface NamedView<S = unknown> {
   id: string;
@@ -29,15 +31,10 @@ export const replaceViewState = <V extends NamedView>(views: readonly V[], id: s
 
 export const removeView = <V extends NamedView>(views: readonly V[], id: string): V[] => views.filter((v) => v.id !== id);
 
-/** ビュー moved を target の前（before）・後ろ（after）へ動かした一覧（どちらかがなければそのまま） */
-export function moveView<V extends NamedView>(views: readonly V[], moved: string, target: string, side: "before" | "after"): V[] {
-  const item = views.find((v) => v.id === moved);
-  if (!item || moved === target || !views.some((v) => v.id === target)) return [...views];
-  const rest = views.filter((v) => v.id !== moved);
-  rest.splice(rest.findIndex((v) => v.id === target) + (side === "after" ? 1 : 0), 0, item);
-  return rest;
+/** ビュー moved を target の前（before）・後ろ（after）へ動かした一覧（どちらかがない・並びが変わらなければそのまま） */
+export function moveView<V extends NamedView>(views: readonly V[], moved: string, target: string, side: DropSide): V[] {
+  const byId = (id: string) => views.find((v) => v.id === id);
+  const item = byId(moved);
+  const to = byId(target);
+  return (item && to && moveInList(views, item, to, side)) || [...views];
 }
-
-/** 動かしても並びが変わらないか（自分の上・すぐ前の後ろ・すぐ後ろの前。落とす先にせず線を出さない） */
-export const isNoopViewMove = <V extends NamedView>(views: readonly V[], moved: string, target: string, side: "before" | "after"): boolean =>
-  moveView(views, moved, target, side).every((v, i) => v.id === views[i]?.id);

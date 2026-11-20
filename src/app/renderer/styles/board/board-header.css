@@ -258,13 +258,13 @@
 }
 
 /* ビューのタブの並べ替え（ドラッグ。useSavedViewDrag）: 落とす先のタブの前か後ろの 2px の隙間に縦の線、動かしているタブは薄く */
-.board-view-tab.board-view-drop-before,
-.board-view-tab.board-view-drop-after {
+.board-view-tab[data-drop="before"],
+.board-view-tab[data-drop="after"] {
   position: relative;
 }
 
-.board-view-tab.board-view-drop-before::after,
-.board-view-tab.board-view-drop-after::after {
+.board-view-tab[data-drop="before"]::after,
+.board-view-tab[data-drop="after"]::after {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -275,15 +275,15 @@
   pointer-events: none;
 }
 
-.board-view-tab.board-view-drop-before::after {
+.board-view-tab[data-drop="before"]::after {
   left: -3px;
 }
 
-.board-view-tab.board-view-drop-after::after {
+.board-view-tab[data-drop="after"]::after {
   right: -3px;
 }
 
-.board-view-tab.board-view-dragging {
+.board-view-tab[data-drag-source] {
   opacity: var(--drag-source-opacity);
 }
 

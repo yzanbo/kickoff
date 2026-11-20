@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import type { Setting } from "@/foundation/ui/storage";
-import { useSetting } from "./useSetting";
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
 
 /** ドラッグの向き（x = 左右に動かして幅 / y = 上下に動かして高さ） */
 export type DragAxis = "x" | "y";

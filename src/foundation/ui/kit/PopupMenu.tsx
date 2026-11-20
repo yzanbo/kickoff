@@ -87,7 +87,7 @@ export function MenuItem({
   disabled?: boolean;
   onSelect: () => void;
   /** ボタンに足す属性（ドラッグで並べ替える項目の draggable・ドラッグの知らせ・data- など） */
-  buttonProps?: ButtonHTMLAttributes<HTMLButtonElement> & Record<`data-${string}`, string>;
+  buttonProps?: ButtonHTMLAttributes<HTMLButtonElement> & Record<`data-${string}`, string | undefined>;
   children: ReactNode;
 }) {
   const close = useContext(MenuCloseContext);

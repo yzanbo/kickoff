@@ -22,7 +22,7 @@ import { nextQueuedText, queuedHint } from "./queuedHint";
 import { queueFailed as failed } from "./queueFailed";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";

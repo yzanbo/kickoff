@@ -6,7 +6,7 @@ import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { registerNoteSelection } from "@/foundation/ui/lib/viewDetails";
 import { isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
 import { storage } from "./storage";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useNoteList } from "@/features/notes/ui/stores/notes";

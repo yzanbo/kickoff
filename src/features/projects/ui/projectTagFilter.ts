@@ -3,7 +3,7 @@ import { collectTags, matchesTags, orderTags, UNTAGGED } from "@shared/projects/
 import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { moveView } from "@/foundation/ui/lib/namedViews";
+import { moveInList } from "@/foundation/ui/lib/moveInList";
 import { storage } from "./storage";
 
 export type ProjectTagFilter = ReturnType<typeof useProjectTagFilter>;
@@ -37,7 +37,7 @@ export function useProjectTagFilter() {
     tags,
     /** タグ moved を target の前・後ろへ動かす（ドラッグ。並べた順として覚える） */
     move: (moved: string, target: string, side: "before" | "after") =>
-      setOrder(moveView(tags.map((t) => ({ id: t, name: t, state: null })), moved, target, side).map((v) => v.id)),
+      setOrder(moveInList(tags, moved, target, side) ?? [...tags]),
     /** 選んでいるタグ（UNTAGGED はタグなし） */
     selected,
     /** 絞り込んでいるか */

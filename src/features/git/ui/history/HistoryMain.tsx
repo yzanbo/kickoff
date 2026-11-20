@@ -1,7 +1,7 @@
 import { useRef, type MouseEvent } from "react";
 import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { storage } from "@/features/git/ui/storage";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { CommitTable } from "./CommitTable";

@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
+import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { filesSettings } from "@/features/files/ui";
 import { WorktreePicker } from "@/foundation/ui/workplace/WorktreePicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
