@@ -67,7 +67,8 @@
   color: hsl(var(--ws-hue, 150) 55% 38%);
 }
 
-.row-section.pinned .bucket-hued .custom-group-icon {
+.row-section.pinned .bucket-hued .custom-group-icon,
+:root[data-theme="light"] .row-section.pinned .bucket-hued .custom-group-icon {
   color: var(--group-color);
 }
 
@@ -154,7 +155,8 @@
   content: "";
 }
 
-.workspace-dot.add {
+.workspace-dot.add,
+:root[data-theme="light"] .workspace-dot.add {
   color: var(--muted);
   background: transparent;
   border: 1px dashed var(--border-strong);
