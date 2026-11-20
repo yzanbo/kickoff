@@ -6,7 +6,7 @@ import { createPullRequest, pullRequestFor } from "@/features/github/core/github
 import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
 import type { GitBranchAction, GitBranchActionResult } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";

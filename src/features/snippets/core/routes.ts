@@ -1,11 +1,11 @@
 // 定型文の受け口（取り決めは @shared/snippets/contract.ts）
 import { snippetContract } from "@shared/snippets/contract";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { SnippetStore } from "./db/snippets";
 import { idParam, implement } from "@/foundation/core/http/implement";
 import { newSnippetSchema, snippetOrderSchema, snippetPatchSchema } from "./schemas";
 
-export function snippetRoutes(d: { snippets: Store["snippets"]; projects: { require(id: number): Project } }) {
+export function snippetRoutes(d: { snippets: SnippetStore; projects: { require(id: number): Project } }) {
   return implement(snippetContract, {
     context: { snippetId: idParam((id) => d.snippets.get(id), "定型文が見つかりません") },
     "GET /api/snippets": { run: () => d.snippets.list() },

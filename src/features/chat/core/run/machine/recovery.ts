@@ -1,4 +1,4 @@
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { StoppedAgent, TurnOutcome } from "@/features/chat/core/turn";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import { exhaustedResetOf } from "@/features/ai/core/providers/shared/usageLimit";

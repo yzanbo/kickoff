@@ -2,7 +2,7 @@
 // 添付は入力欄に付けた時点で uploads/ に保存し、入力欄の下書きは画面の中（localStorage）にあるので、コアはまだ下書きで使っているかを確かめられない。
 // どこからも使われていない添付（会話の記録（ゴミ箱のチャットも）・送信待ちのどれも ID を指していないもの）は、付けてから 30 日たったら消す。
 // 利用者が「消した」ものではないので、ゴミ箱には入れない
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { UploadStore } from "./uploads";
 
 /** 付けてから消すまで（金曜に書きかけて週明けに続けても消えないよう、ゴミ箱の 3 日より長く） */

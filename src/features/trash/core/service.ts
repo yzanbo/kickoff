@@ -38,7 +38,6 @@ export interface TrashServiceDeps {
   now?: () => number;
 }
 
-
 /**
  * Kickoff のゴミ箱。消したものを置き場（データのフォルダの trash/<id>/item/<名前>）に移して 3 日取っておき、
  * 元の場所に戻せる。期限の来たものは、起動したときと 1 時間ごとの片付けで本当に消す（閉じていた間の分は次の起動で。利用者は待たずに完全に消すこともできる `purgeNow`）。容量の上限は持たない（3 日で必ず消えるため）。
@@ -56,9 +55,9 @@ export class TrashService {
 
   constructor(private readonly deps: TrashServiceDeps) {}
 
-  get dir(): string {
-    return this.deps.dir;
-  }
+  /** 覚え書きの店（chat がチャットの行の中身を書く）と置き場 */
+  get items(): TrashStore { return this.deps.items; }
+  get dir(): string { return this.deps.dir; }
 
   private now(): number {
     return this.deps.now?.() ?? Date.now();

@@ -1,6 +1,6 @@
 import { unfinishedSubagents } from "@shared/chat/subagents";
 import type { ChatEventDataOf } from "@shared/chat/chatEvent";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 
 /**
  * 作業の終わりとともに止まったサブエージェントのお知らせ（Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。

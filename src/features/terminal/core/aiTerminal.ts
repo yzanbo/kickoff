@@ -3,7 +3,7 @@
 // （権限モード・Auto mode によらず承認カードを出さない）。コマンドの起動・停止・キーの入力はしない
 import { READ_TERMINAL_DEFAULT_LINES, READ_TERMINAL_MAX_LINES, type ReadTerminalInput } from "@shared/terminal/aiTerminal";
 import { redactSecrets } from "@shared/foundation/secrets/redact";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { TerminalControl, TerminalTabInfo } from "./control";
 
 /** ターミナルを読むツールの中身（AI に返す文。読めなければ理由の文で throw） */

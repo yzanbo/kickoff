@@ -1,6 +1,6 @@
 // DB クライアントの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
@@ -19,7 +19,7 @@ export interface DatabaseDeps {
   /** SQL の案を AI に聞く */
   ai: AiApi;
   /** チャットを本当に消したら、AI の SQL の結果の CSV も消す・履歴にチャットの名前を添える */
-  chat: Pick<ChatApi, "onChatsPurged" | "titlesOf">;
+  chat: Pick<ChatApi, "onChatsPurged" | "titlesOf" | "store">;
   /** Docker タブの「DB で開く」の案 */
   docker: DockerService;
   /** ワークツリーを消したら、その DB から作った接続を片付ける */
@@ -38,10 +38,10 @@ export interface DatabaseEnv {
 }
 
 /** DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる。パスワードはキーチェーンの鍵で暗号化） */
-export function createDatabase(k: KernelWithStore, deps: DatabaseDeps, env: DatabaseEnv): CoreFeature<DatabaseService> {
+export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv): CoreFeature<DatabaseService> {
   const { bus } = k;
   const stores = createDatabaseStores(k.db, (e) => bus.publish(e), k.secrets, deps.chat.titlesOf);
-  const store = { ...stores, projects: k.store.projects, chats: k.store.chats, groups: k.store.groups };
+  const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
   const vault = new DbSecretVault(k, env.secretCipher);
   const databases = new DatabaseService({ store, client: new DbWorkerClient(env.worker), vault, dataDir: k.paths.dataDir, appDataRoot: k.paths.appDataRoot, exportRoot: env.exportRoot, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す

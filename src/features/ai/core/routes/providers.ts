@@ -4,7 +4,7 @@ import { claudeEffortDefault } from "@/features/ai/core/providers/claude/effortD
 import { githubStatus } from "@/features/github/core/github";
 import type { Bus } from "@/foundation/core/bus";
 import type { Kernel } from "@/foundation/core/kernel";
-import type { Store } from "@/foundation/core/db/store";
+import type { ProjectStore } from "@/features/projects/core/index";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import type { SlashCommandOption } from "@shared/ai/types";
@@ -20,7 +20,7 @@ import type { ProviderLogin } from "@/features/ai/core/providers/types";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** 外部 CLI（Claude などのプロバイダー・gh）の状態、チャット欄のモデルの一覧・/ のコマンド・既定の推論の深さ */
-export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: { store: Pick<Kernel, "settings"> & Pick<Store, "projects" | "chats" | "groups">; providers: Record<ProviderId, AgentProvider>; providerKeys: ProviderKeyVault; bus: Bus }) {
+export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: { store: Pick<Kernel, "settings"> & { projects: ProjectStore }; providers: Record<ProviderId, AgentProvider>; providerKeys: ProviderKeyVault; bus: Bus }) {
   const { withWorkdir } = lookups(store);
 
   // AI のブラウザでのログイン。AI ごとに 1 つだけ持ち（メモリだけ）、始め直したら前のものはやめる。

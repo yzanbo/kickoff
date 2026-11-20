@@ -47,7 +47,7 @@ import { trashCommandEnv, type TrashCommand } from "@/features/trash/core/comman
 import { bashSandboxFor, type BashSandbox, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch";
 import { stoppedSubagentsNotice } from "./interruptedTurnEnd";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
 import type { Question } from "@shared/chat/approvalTypes";
 import type { CompactTrigger } from "@shared/chat/chatEvent";

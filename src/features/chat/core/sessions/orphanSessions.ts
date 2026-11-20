@@ -3,7 +3,7 @@
 // 日付・大きさ・最初の発言の一覧を出して、利用者が選んだものだけを Kickoff のゴミ箱（3 日）へ入れる
 import type { ProviderId } from "@shared/settings/types";
 import type { OrphanSession } from "@shared/trash/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider, SessionFileInfo } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
 import type { TrashService } from "@/features/trash/core/service";

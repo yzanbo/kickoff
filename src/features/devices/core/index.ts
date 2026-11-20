@@ -1,8 +1,9 @@
 // スマホ連携の機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import { deviceAuth } from "./auth";
+import { createDeviceStore, type DeviceStore } from "./db/devices";
 import { PairingCenter } from "./pairing";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices";
 
@@ -14,6 +15,8 @@ export interface DevicesEnv {
 }
 
 export interface DevicesApi {
+  /** つないだ端末の店（通知のプッシュ・ターミナルの端末の権限が読む） */
+  store: DeviceStore;
   /** 端末のトークンを呼び主にする（土台の認証が使う） */
   auth: DeviceAuth;
   /** スマホ連携がオンか */
@@ -23,15 +26,14 @@ export interface DevicesApi {
 }
 
 /** スマホ連携（ペアリング・端末・Tailscale の案内）。まだトークンを持たない端末の口は認証の外 */
-export function createDevices(k: KernelWithStore, env: DevicesEnv): CoreFeature<DevicesApi> {
-  // 端末の店は店の束が作ったもの（P3-4l で束をなくすまで、ほかの機能も束から読む）
-  const devices = k.store.devices;
+export function createDevices(k: Kernel, env: DevicesEnv): CoreFeature<DevicesApi> {
+  const devices = createDeviceStore(k.db);
   const pairing = new PairingCenter({ devices, settings: k.settings, hostId: k.paths.databaseId, publish: (e) => k.bus.publish(e), now: env.pairingNow });
   // ポート 0（テスト。待ち受けない）なら、頼みの URL のポート
   const listen = k.paths.port ? { host: k.paths.host, port: k.paths.port } : undefined;
   return {
     name: "devices",
-    api: { auth: deviceAuth({ devices, settings: k.settings }), mobileEnabled: () => k.settings.get().remote_enabled, pairing },
+    api: { store: devices, auth: deviceAuth({ devices, settings: k.settings }), mobileEnabled: () => k.settings.get().remote_enabled, pairing },
     routes: [
       { access: "public", legacy: (app) => pairingClaimRoutes(app, { pairing }) },
       { legacy: (app) => deviceRoutes(app, { pairing, devices, bus: k.bus, tailscaleCli: env.tailscaleCli, listen }) },

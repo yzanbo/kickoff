@@ -2,8 +2,9 @@
 import type { ProviderId } from "@shared/settings/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import type { AgentProvider } from "./providers/types";
 import { ProviderKeyVault, type ProviderAuth } from "./providers/keys";
 import { CodexCreditsWatch } from "./usage/codexCredits";
@@ -36,7 +37,7 @@ export interface AiApi {
 }
 
 /** AI のつなぎ込み（プロバイダー・API キー・使用状況。使用枠の見張りは待ち受けのあとに始める） */
-export function createAi(k: KernelWithStore, env: AiEnv): CoreFeature<AiApi> {
+export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv): CoreFeature<AiApi> {
   const keys = new ProviderKeyVault(k, env.secretCipher);
   const providers = env.providers((id) => keys.authFor(id));
   // 使用枠（下の帯・超過分の知らせ）は Claude のプランから取得する（ほかの AI は serviceUsage）
@@ -46,7 +47,7 @@ export function createAi(k: KernelWithStore, env: AiEnv): CoreFeature<AiApi> {
   return {
     name: "ai",
     api: { providers, keys, usage, serviceUsage, codexCredits },
-    routes: [{ legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: k.store.projects, chats: k.store.chats, groups: k.store.groups }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage, serviceUsage })) }],
+    routes: [{ legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage, serviceUsage })) }],
     start: () => usage.start(),
     stop: () => usage.stop(),
   };

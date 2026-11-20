@@ -1,5 +1,5 @@
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 
 /** 自動のアーカイブを確かめる間隔 */
 const CHECK_MS = 60 * 60_000;

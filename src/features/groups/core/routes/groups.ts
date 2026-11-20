@@ -1,12 +1,13 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { Store } from "@/foundation/core/db/store";
+import type { ProjectStore } from "@/features/projects/core/index";
+import type { GroupStore } from "@/features/groups/core/db/groups";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { groupName } from "@/foundation/core/http/schemas";
 
 /** チャットのグループ（変えたら、変えたあとのグループ。並べ替えはそのプロジェクトのグループの一覧。削除は 204） */
-export function groupRoutes(app: Hono, { store }: { store: Pick<Store, "projects" | "chats" | "groups"> }) {
+export function groupRoutes(app: Hono, { store }: { store: { projects: ProjectStore; groups: GroupStore } }) {
   const { withProject, withGroup } = lookups(store);
 
   app.get("/api/projects/:id/groups", withProject, (c) => c.json(store.groups.list(c.var.project.id)));

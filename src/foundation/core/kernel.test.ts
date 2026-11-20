@@ -7,6 +7,7 @@ import { reportChildProcess, type ChildProcessNote } from "@/foundation/core/sys
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { BASE_SCHEMA_V1 } from "./db/baseSchema";
+import { readDatabaseId } from "./db/db";
 import { closeKernel, createKernel } from "./kernel";
 
 const platform = { appDataRoot: "/apps" } as HostPlatform;
@@ -20,9 +21,9 @@ test("Kernel: 保存先を作って DB を開き、閉じると DB と子プロ�
   const clock = manualClock();
   const k = createKernel({ dataDir, port: 4999, platform, clock, onChildProcess: (n) => notes.push(n), migrations });
   assert.ok(fs.existsSync(path.join(dataDir, "kickoff.db")));
-  assert.deepEqual(k.paths, { dataDir, port: 4999, host: "127.0.0.1", staticDir: null, appDataRoot: "/apps", databaseId: k.store.databaseId });
+  assert.deepEqual(k.paths, { dataDir, port: 4999, host: "127.0.0.1", staticDir: null, appDataRoot: "/apps", databaseId: readDatabaseId(k.db) });
   assert.equal(k.clock, clock);
-  assert.equal(k.settings, k.store.settings);
+  assert.equal(k.secrets.get("openai_transcribe_key"), null);
   reportChildProcess(note);
   assert.deepEqual(notes, [note]);
   closeKernel(k);

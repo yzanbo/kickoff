@@ -1,10 +1,10 @@
 // ノートの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { AiApi } from "@/features/ai/core/index";
 import type { AttachmentsApi } from "@/features/attachments/core/index";
-import { trashNoteChats, trashNoteChatsOnImport, type Runner } from "@/features/chat/core/index";
+import { trashNoteChats, trashNoteChatsOnImport, type Runner, type Store } from "@/features/chat/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { NoteService } from "./notes";
 import { noteRoutes } from "./routes/notes";
@@ -16,7 +16,7 @@ export interface NotesDeps {
   /** ノートの案を AI に聞く */
   ai: AiApi;
   /** ノートのチャット */
-  chat: { runner: Runner };
+  chat: { runner: Runner; store: Store };
   /** ノートの写しを添付にし、ツールの結果の画像はノートのフォルダからも読む */
   attachments: AttachmentsApi;
   /** DB の接続の手順ノートを付け替える（ノートの名前を変えた・動かしたとき。database はあとに作るので組み立てが渡す） */
@@ -24,9 +24,10 @@ export interface NotesDeps {
 }
 
 /** プロジェクトのノート（保存先はプロジェクトの外。外での変更の見張りは止めるときに閉じる） */
-export function createNotes(k: KernelWithStore, deps: NotesDeps, env: { defaultDir: string }): CoreFeature<NoteService> {
-  const { store, bus } = k;
+export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: string }): CoreFeature<NoteService> {
+  const { bus } = k;
   const { trash, chat } = deps;
+  const { store } = chat;
   const notes = new NoteService({
     store: { projects: store.projects, settings: store.settings, chats: store.chats, dbConnections: { remapNotePath: deps.remapDbNotes } },
     defaultDir: env.defaultDir,

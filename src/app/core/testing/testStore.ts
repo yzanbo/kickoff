@@ -1,29 +1,57 @@
-// テストの店の束: 全部の機能の表を v1 で作った DB（既定はメモリ）。テストと決まったデータの道具からだけ使う
+// テストの店: 全部の機能の表を v1 で作った DB（既定はメモリ）に、chat の店の束と機能の店を開いたもの。テストと決まったデータの道具からだけ使う
+import type { DatabaseSync } from "node:sqlite";
 import { openDb } from "@/foundation/core/db/db";
 import type { Notify } from "@/foundation/core/db/common";
-import { Store } from "@/foundation/core/db/store";
+import { openBaseStores, type BaseStores } from "@/foundation/core/db/store";
 import { chatTitlesOf } from "@/features/chat/core/db/chatTitles";
+import type { Store } from "@/features/chat/core/index";
+import { createChatStores } from "@/features/chat/core/stores";
 import { createDatabaseStores } from "@/features/database/core/index";
+import { createDeviceStore } from "@/features/devices/core/db/devices";
 import { createGitHubStores } from "@/features/github/core/index";
+import { createGroupStore } from "@/features/groups/core/db/groups";
+import { createProjectStore } from "@/features/projects/core/db/projects";
 import { createChatImageStore } from "@/features/remoteImages/core/db/chatImages";
+import { createSnippetStore, type SnippetStore } from "@/features/snippets/core/db/snippets";
+import { createTrashStore } from "@/features/trash/core/db/trash";
 import { createWorktreeStores } from "@/features/worktrees/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
 
-/** 機能が自分で作る店（DB クライアント・GitHub・ワークツリー・外の画像）を、同じ DB に開き直したもの（店は DB のほかに状態を持たない） */
-function featureStores(store: Store, onChange: Notify) {
-  const { db } = store;
-  return { ...createDatabaseStores(db, onChange, store.secrets, chatTitlesOf(db)), ...createGitHubStores(db), ...createWorktreeStores(db), chatImages: createChatImageStore(db) };
+/** chat の束にない店（土台の DB の ID・秘密の値と、端末・DB クライアント・GitHub・ワークツリー・外の画像の店）。店は DB のほかに状態を持たない */
+function extraStores(db: DatabaseSync, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {
+  return {
+    databaseId: base.databaseId,
+    secrets: base.secrets,
+    devices: createDeviceStore(db),
+    ...createDatabaseStores(db, onChange, base.secrets, chatTitlesOf(db)),
+    ...createGitHubStores(db),
+    ...createWorktreeStores(db),
+    chatImages: createChatImageStore(db),
+    close: () => db.close(),
+  };
 }
 
-/** テストが表を直に見る・データを入れる店（店の束と、機能が自分で作る店） */
-export type TestStores = Store & ReturnType<typeof featureStores>;
+/** テストが表を直に見る・データを入れる店（chat の店の束と、ほかの機能の店） */
+export type TestStores = Store & { snippets: SnippetStore } & ReturnType<typeof extraStores>;
 
-/** 店の束に、機能が自分で作る店を足す */
-export function withFeatureStores(store: Store, onChange: Notify = () => {}): TestStores {
-  return Object.assign(store, featureStores(store, onChange));
+/** chat の店の束（組み立てた chat のもの）に、ほかの機能の店を足す */
+export function withFeatureStores(store: Store, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify = () => {}): TestStores {
+  return Object.assign(store as Store & { snippets: SnippetStore }, extraStores(store.db, base, onChange));
+}
+
+/** 開いた DB に全部の店を開く（土台の設定・秘密の値は渡したもの、省けばここで開く） */
+export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, base: BaseStores = openBaseStores(db, onChange)): TestStores {
+  const projects = createProjectStore(db, onChange);
+  const chat = createChatStores(db, onChange, base.settings);
+  const groups = createGroupStore(db, onChange, {
+    idsIn: (group) => chat.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
+    getChat: chat.chats.get,
+  });
+  const store: Store = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds) };
+  return withFeatureStores(store, base, onChange);
 }
 
 /** file を省くとメモリの DB。ファイルを渡すと、開き直したときも同じ版で開く */
 export function testStore(file = ":memory:", onChange?: Notify): TestStores {
-  return withFeatureStores(new Store(openDb(file, MIGRATIONS), onChange), onChange);
+  return openTestStores(openDb(file, MIGRATIONS), onChange);
 }

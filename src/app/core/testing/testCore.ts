@@ -5,7 +5,7 @@ import path from "node:path";
 import type { Project } from "@shared/projects/types";
 import { systemClock } from "@/foundation/core/clock";
 import { BrowserLogin } from "@/foundation/core/http/auth";
-import { createKernel, type KernelWithStore } from "@/foundation/core/kernel";
+import { createKernel, type Kernel } from "@/foundation/core/kernel";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { appOf, stopFeatures } from "@/foundation/core/serve";
 import { afterTest } from "@/foundation/core/testing/afterTest";
@@ -19,7 +19,7 @@ import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { MIGRATIONS } from "@/app/core/migrations";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform } from "./testEnv";
-import { withFeatureStores, type TestStores } from "./testStore";
+import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
 
 export { tick, until } from "@/foundation/core/testing/until";
 
@@ -34,9 +34,10 @@ export const AUTH = { authorization: `Bearer ${TOKEN}` };
 export type BeforeStart = (store: TestStores, project: Project) => unknown;
 
 /** メモリの DB の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
-function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string): { k: KernelWithStore; store: TestStores; project: Project } {
+function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string): { k: Kernel; store: TestStores; project: Project } {
   const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:", migrations: MIGRATIONS });
-  const store = withFeatureStores(k.store, (e) => k.bus.publish(e));
+  // 組み立てる前（前回のデータを入れる・実行だけのテスト）の店。土台の設定・秘密の値は Kernel のもの
+  const store = openTestStores(k.db, (e) => k.bus.publish(e), { databaseId: k.paths.databaseId, settings: k.settings, secrets: k.secrets });
   const repo = path.join(tempDir(), "repo");
   fs.mkdirSync(repo);
   return { k, store, project: store.projects.create({ name: "p", repo_path: repo, provider: "claude" }) };
@@ -68,7 +69,8 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
   const { trash, ai, uploads, userViews, devices, chat, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
   // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
   const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
-  const parts = { store, bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
+  // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）
+  const parts = { store: withFeatureStores(chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)), bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
   const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
   return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }

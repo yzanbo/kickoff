@@ -6,7 +6,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { DB_FILE, openDb, type Migration } from "@/foundation/core/db/db";
-import { openBaseStores, Store, type BaseStores } from "@/foundation/core/db/store";
+import { openBaseStores, type BaseStores } from "@/foundation/core/db/store";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { setChildProcessReporter, type ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { runCommand } from "@/foundation/core/system/exec";
@@ -56,11 +56,6 @@ export interface Kernel {
   readonly workplace: WorkplaceKit;
 }
 
-/** 表ごとの店の束も持つ仮の形（店は DB の土台を作り直すときに機能へ移す） */
-export interface KernelWithStore extends Kernel {
-  readonly store: Store;
-}
-
 export interface KernelOptions {
   dataDir: string;
   port: number;
@@ -87,15 +82,14 @@ const consoleLog: Log = {
 const reporting = new WeakSet<Kernel>();
 
 /** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる（版は opts.migrations）→ 土台の店（設定・秘密の値・DB の ID） */
-export function createKernel(opts: KernelOptions): KernelWithStore {
+export function createKernel(opts: KernelOptions): Kernel {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const db = openDb(opts.dbFile ?? path.join(opts.dataDir, DB_FILE), opts.migrations);
   const publish = bus.publish.bind(bus);
   const base = openBaseStores(db, publish);
-  const store = new Store(db, publish, base);
-  const k: KernelWithStore = {
+  const k: Kernel = {
     clock: opts.clock ?? systemClock,
     bus,
     db,
@@ -106,7 +100,6 @@ export function createKernel(opts: KernelOptions): KernelWithStore {
     secrets: base.secrets,
     log: consoleLog,
     workplace: createWorkplaceKit(),
-    store,
   };
   if (opts.onChildProcess) reporting.add(k);
   return k;

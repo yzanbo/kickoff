@@ -2,7 +2,7 @@ import { autoPreCompactMessage, compactPromptFor } from "@shared/chat/prompts";
 import { randomUUID } from "node:crypto";
 import type { Chat, QueuedMessage } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 
 /** そのプロジェクトで送る圧縮前指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */

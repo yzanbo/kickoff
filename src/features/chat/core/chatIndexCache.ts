@@ -1,6 +1,6 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { selectIndexIds, slimIndexEvent, type ChatEventMeta, type IndexContext, type IndexKeep } from "@shared/chat/chatIndex";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 
 /** 索引を覚えておくチャットの数（最後に読んだ順。記録の多いチャットは軽い形だけで数 MB になるので、少しだけ） */
 const INDEX_CACHE_CHATS = 6;

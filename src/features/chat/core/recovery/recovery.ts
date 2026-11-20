@@ -1,6 +1,6 @@
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { ChatRuntime, ChatRuntimes } from "@/features/chat/core/runtime";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { Poller } from "./poller";

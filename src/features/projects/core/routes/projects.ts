@@ -3,7 +3,9 @@ import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
-import type { Store } from "@/foundation/core/db/store";
+import type { DatabaseSync } from "node:sqlite";
+import type { Kernel } from "@/foundation/core/kernel";
+import type { ProjectStore } from "@/features/projects/core/db/projects";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ProjectGitHub } from "@shared/git/types";
 import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
@@ -103,7 +105,7 @@ export interface ProjectRouteHooks {
 }
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: Pick<Store, "db" | "settings" | "projects" | "chats" | "groups">; trashBin: TrashApi; hooks: ProjectRouteHooks }) {
+export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: { db: DatabaseSync; settings: Kernel["settings"]; projects: ProjectStore }; trashBin: TrashApi; hooks: ProjectRouteHooks }) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;

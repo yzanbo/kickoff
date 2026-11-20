@@ -1,5 +1,5 @@
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { TurnControl } from "@/features/ai/core/providers/types";
 import { ChatQueue, type QueuePersistence } from "./queue";
 import { QueueEdits } from "./queueEdits";

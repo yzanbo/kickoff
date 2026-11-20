@@ -2,7 +2,7 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { GitHubCheckoutBody, GitHubCommentBody, GitHubLabelsBody, GitHubMergeBody, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadReplyBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
 import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERGE_METHODS, GITHUB_MINE_FILTERS, GITHUB_REVIEW_EVENTS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubListFilter } from "@shared/github/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import type { GitHubService } from "@/features/github/core/service";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";

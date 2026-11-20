@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Chat, QueuedMessage } from "@shared/chat/types";
 import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";

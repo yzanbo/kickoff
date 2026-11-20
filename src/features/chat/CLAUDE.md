@@ -103,7 +103,7 @@
 - `GET /api/chats/:id` の `tail_turns` はほかのクエリと一緒に使えない（400）。一部分の `GET …/events` は `ChatEventsQuery` の 5 つの形だけ。どちらもパソコンの画面だけ。
 - 記録の ID は使い回さない。`after` の記録が巻き戻しで消えていれば `after_missing`（画面はすべて読み直す）。
 - ターンの頭は `result` の直後で、自分の発言で数えない（作業中に伝えた発言で切ると、作業の終わりに付けるものが欠ける）。
-- 索引は覆う索引の軽い形から `@shared/chat/chatIndex` の `selectIndexIds` で選ぶ（SQL に書き直さない）。覚え（`core/chatIndexCache.ts`）は巻き戻し・付け替え・削除で `Store.logRevisions` を受けて捨てる。
+- 索引は覆う索引の軽い形から `@shared/chat/chatIndex` の `selectIndexIds` で選ぶ（SQL に書き直さない）。覚え（`core/chatIndexCache.ts`）は巻き戻し・付け替え・削除で `store.logRevisions` を受けて捨てる。
 - 詳細には書きかけの返答 `streaming_text` を入れる。あとに届く `chat_delta` は `offset` で、詳細に入っている分を捨てる。
 
 ## 操作・名前・メニュー（`ui/`）

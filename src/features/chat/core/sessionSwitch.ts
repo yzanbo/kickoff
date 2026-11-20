@@ -3,7 +3,7 @@
 // 圧縮した作業が終わったら、直近 3 区切りだけを写した新しいセッションに乗り換え、古い記録は Kickoff のゴミ箱（3 日）へ入れる。
 // 画面に出る会話（DB の記録）はすべて残る。残した区切りより前の発言へは、巻き戻し・「ファイルを戻す」ができなくなる
 import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
 /** 古い記録をゴミ箱へ入れる口（ほかの Kickoff が使っていれば入れない。index.ts が作る） */

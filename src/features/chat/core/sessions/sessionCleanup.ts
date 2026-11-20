@@ -4,7 +4,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
 /** 消すチャットが使ったセッション（プロバイダーごと）と、動かした作業フォルダの候補。チャットを消す前に集める */

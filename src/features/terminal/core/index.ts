@@ -1,10 +1,11 @@
 // ターミナルの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
+import type { ChatApi } from "@/features/chat/core/index";
 import { TerminalSessions, type SpawnTerminal } from "./sessions";
 import type { TerminalShell } from "./shell";
-import { terminalRoutes } from "./routes/terminals";
+import { terminalRoutes, type TerminalDevices } from "./routes/terminals";
 
 export type { TerminalSessions } from "./sessions";
 
@@ -18,7 +19,7 @@ export interface TerminalEnv {
 }
 
 /** 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ） */
-export function createTerminal(k: KernelWithStore, deps: { worktrees: WorktreesApi }, env: TerminalEnv): CoreFeature<TerminalSessions> {
+export function createTerminal(k: Kernel, deps: { worktrees: WorktreesApi; chat: Pick<ChatApi, "store">; devices: TerminalDevices }, env: TerminalEnv): CoreFeature<TerminalSessions> {
   const terminals = new TerminalSessions({ shell: env.shell, env: env.env, envOf: (cwd) => deps.worktrees.envs.envFor(cwd), spawn: env.spawn });
-  return { name: "terminal", api: terminals, routes: [{ legacy: (app) => terminalRoutes(app, { store: k.store, terminals, bus: k.bus }) }], stop: () => terminals.closeAll() };
+  return { name: "terminal", api: terminals, routes: [{ legacy: (app) => terminalRoutes(app, { store: { ...deps.chat.store, devices: deps.devices }, terminals, bus: k.bus }) }], stop: () => terminals.closeAll() };
 }

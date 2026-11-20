@@ -1,9 +1,10 @@
 // GitHub と CI の機能のコアの入口（ほかの機能はここだけを読む）
 import type { GitHubAccount } from "@shared/git/types";
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { ProjectsApi } from "@/features/projects/core/index";
+import type { ChatApi } from "@/features/chat/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { CiService } from "./ci";
 import { listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
@@ -40,10 +41,10 @@ export interface GitHubApi {
 const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_remote", "pr_watch", "ci_watch", "archived"]);
 
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
-export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi; projects: ProjectsApi }, env: GitHubEnv): CoreFeature<GitHubApi> {
+export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { bus } = k;
   const stores = createGitHubStores(k.db);
-  const store = { ...stores, projects: k.store.projects, chats: k.store.chats, groups: k.store.groups };
+  const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
   // プロジェクトの頼み（ルート）の中の gh・git は、そのプロジェクトで選んだ GitHub のアカウントで動かす
   k.workplace.projectScopes.add((project, run) => runAsGitHubAccount(project.github_account, run));
   // PR のブランチのワークツリーを作ったら、実行環境を整える

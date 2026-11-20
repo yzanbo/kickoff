@@ -5,7 +5,7 @@ import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { AiChatRelation } from "@shared/chat/aiCreateChat";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { CHILD_FORK_KEEP, type AgentProvider } from "@/features/ai/core/providers/types";
 import type { Runner } from "@/features/chat/core/runner";

@@ -2,7 +2,7 @@
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
@@ -26,8 +26,11 @@ import { sessionRoutes } from "./routes/sessions";
 import { turnRoutes } from "./routes/turns";
 import { databaseStats } from "./db/stats";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
+import { createChatStores, type Store } from "./stores";
+import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { Runner } from "./runner";
+export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
@@ -39,6 +42,9 @@ const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
 export interface ChatDeps {
   trash: TrashApi;
   projects: ProjectsApi;
+  groups: GroupsApi;
+  /** 定型文に足す（AI の add_snippet。上の snippets の店を組み立てが渡す） */
+  snippets: Store["snippets"];
   ai: AiApi;
   /** 添付の置き場（attachments の口） */
   uploads: NonNullable<ExecutionDeps["uploads"]>;
@@ -75,6 +81,8 @@ export interface ChatUpper {
 }
 
 export interface ChatApi {
+  /** chat の店の束（仮の形。上の機能がチャット・記録を読む） */
+  store: Store;
   runner: Runner;
   approvals: ApprovalCenter;
   /** いまの書きかけの返答（チャットの詳細の streaming_text） */
@@ -95,8 +103,14 @@ export interface ChatApi {
 }
 
 /** チャットの実行（受付 Runner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
-export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
-  const { bus, store } = k;
+export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
+  const { bus } = k;
+  const store: Store = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
+  // グループを消したら、中のチャットをグループなしに戻して知らせる
+  deps.groups.useMembers({
+    idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
+    getChat: store.chats.get,
+  });
   const { trash: trashBin, uploads, userViews } = deps;
   const { providers, keys: providerKeys, usage, codexCredits } = deps.ai;
   const deltas = chatDeltaStage(k.clock);
@@ -156,6 +170,7 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
     // エージェントを先に止める（通知のあと・流れ続けている外部コマンドとほかの機能より前）
     stopPhase: "first",
     api: {
+      store,
       runner,
       approvals,
       streamingText: deltas.streamingText,
@@ -196,7 +211,7 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
 }
 
 /** プロジェクトの口に、チャットの分を登録する（作業中か・本体のフォルダを変えたら作業場所を移す・ゴミ箱に入れたら作業中の状態を捨てる） */
-function registerProjectHooks(projects: ProjectsApi, store: KernelWithStore["store"], runner: Runner): void {
+function registerProjectHooks(projects: ProjectsApi, store: Store, runner: Runner): void {
   projects.addBusyCheck((projectId) => store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id)));
   projects.afterRepoMove(async (project, moves) => {
     const chats = store.chats.list({ projectId: project.id, includeArchived: true });

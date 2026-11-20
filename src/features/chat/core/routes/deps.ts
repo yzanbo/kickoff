@@ -1,6 +1,6 @@
 // チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書くか ExecutionDeps から引く）
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";

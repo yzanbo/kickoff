@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { CiRerunBody } from "@shared/github/ciTypes";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { CiService } from "@/features/github/core/ci";
 import { idParam, jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";

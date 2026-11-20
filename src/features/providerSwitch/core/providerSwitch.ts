@@ -2,7 +2,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";
 import { providerHandoffGit } from "./providerHandoffGit";

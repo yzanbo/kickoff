@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { GitWorktree } from "@shared/git/types";
 import type { AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
 import { listWorktrees, newWorktreeProblem } from "@/features/git/core/index";
 import type { TerminalControl } from "@/features/terminal/core/control";

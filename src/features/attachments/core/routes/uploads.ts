@@ -2,7 +2,7 @@ import fs from "node:fs";
 import nodePath from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { TOOL_IMAGE_MTIME_HEADER } from "@shared/attachments/toolImage";
 import type { CaptureBody } from "@shared/foundation/apiTypes";

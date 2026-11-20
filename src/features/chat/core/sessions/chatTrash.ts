@@ -8,7 +8,7 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";

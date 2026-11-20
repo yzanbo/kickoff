@@ -7,7 +7,7 @@ import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
 import type { Runner } from "@/features/chat/core/runner";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
 import { gitOutput } from "@/foundation/core/workplace/exec";

@@ -2,7 +2,7 @@
 // 付け替え（別の子チャット・関係のないチャットの下へ置く）はしない。子チャットの AI が覚えているのは元の親（と先祖）の会話なので、
 // 先祖の下までなら「親チャットに渡す」の中身と渡し先の文脈がずれにくい
 import type { Chat } from "@shared/chat/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { requireGroupOf } from "@/features/groups/core/index";
 import { lineageOf } from "@/features/chat/core/tools/aiChatEdit";

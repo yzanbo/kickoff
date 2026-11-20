@@ -5,7 +5,7 @@ import { LIST_PROJECT_CHATS_MAX, READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS, t
 import { extraUsageSpendText, OVERAGE_STATE_HINTS, OVERAGE_STATE_LABELS, overageStateOf } from "@shared/ai/overage";
 import type { PlanUsage, UsageWindow } from "@shared/ai/types";
 import type { Chat } from "@shared/chat/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { familyOf } from "./aiChatEdit";
 import { conversationTurns, formatConversation } from "@/features/chat/core/conversation";

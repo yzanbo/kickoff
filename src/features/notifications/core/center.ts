@@ -4,11 +4,19 @@ import type { ChatStatus } from "@shared/chat/types";
 import type { DevicePush } from "@shared/devices/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
+import type { Kernel } from "@/foundation/core/kernel";
 import { aiNotice, approvalNotice, chatNotice, ciNotice, type Notice } from "./notices";
 import type { Viewer, ViewingRegistry } from "./viewing";
 
 /** この Mac の通知を出す口（Mac のアプリのメインプロセス。単体のコアにはない） */
+/** プッシュを送る端末（devices の店。通知より上の機能なので形だけで受ける） */
+export interface PushTargets {
+  list(): { id: number; has_push: boolean }[];
+  push(id: number): DevicePush | null;
+  setPush(id: number, push: DevicePush | null): unknown;
+}
+
 export type DesktopNotify = (notice: Notice) => void;
 
 /** プッシュで送る中身（短い文と、本体の ID・押したときに開くもの。会話の中身は載せない） */
@@ -29,7 +37,7 @@ export interface PushSender {
 
 interface CenterOptions {
   bus: Bus;
-  store: Pick<Store, "chats" | "projects" | "settings" | "databaseId" | "devices">;
+  store: Pick<Store, "chats" | "projects"> & { settings: Kernel["settings"]; databaseId: string; devices: PushTargets };
   viewing: ViewingRegistry;
   desktop?: DesktopNotify;
   push?: PushSender;

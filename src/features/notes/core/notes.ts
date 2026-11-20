@@ -11,7 +11,7 @@ import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { assertInside, readProjectFile, writeProjectFile } from "@/features/git/core/index";
 import { asInvalid, Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";

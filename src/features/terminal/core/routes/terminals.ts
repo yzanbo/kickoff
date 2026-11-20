@@ -8,7 +8,7 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { requireWorktree } from "@/foundation/core/http/workdir";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
 
@@ -39,7 +39,12 @@ const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host
  * シェルはコアの TerminalSessions で動く。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */
-export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<Store, "settings" | "devices" | "projects" | "chats" | "groups">; terminals: TerminalSessions; bus: Bus }) {
+/** つないだ端末（devices の店。ターミナルより上の機能なので形だけで受ける。名前と、打てるか） */
+export interface TerminalDevices {
+  get(id: number): { name: string; access: string } | null;
+}
+
+export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<Store, "settings" | "projects" | "chats" | "groups"> & { devices: TerminalDevices }; terminals: TerminalSessions; bus: Bus }) {
   const { withProject } = lookups(store);
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）

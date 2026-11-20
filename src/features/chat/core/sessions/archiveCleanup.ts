@@ -3,7 +3,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions } from "./sessionCleanup";
 import { trashChat, type ChatTrashDeps } from "./chatTrash";

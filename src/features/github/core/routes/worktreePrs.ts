@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import { NotFound } from "@/foundation/core/errors";
 import { lookups } from "@/foundation/core/http/lookups";

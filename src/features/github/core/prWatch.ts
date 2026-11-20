@@ -3,7 +3,7 @@
 import type { GitWorktree, WorktreePrNotice } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { GitHubStores } from "./db/stores";
 import type { BranchPullRequest } from "./github";
 import { runAsGitHubAccount } from "./githubAccount";

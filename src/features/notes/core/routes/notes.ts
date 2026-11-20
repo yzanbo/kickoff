@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { NoteAiPlanBody, NoteCreateBody, NoteFromChatBody, NoteMoveBody, NoteWriteBody } from "@shared/foundation/apiTypes";
 import type { NoteDefaults, NoteDirUsers } from "@shared/notes/types";
 import { MAX_NOTE_SOURCE_CHARS } from "@/features/notes/core/notes";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { Runner } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";

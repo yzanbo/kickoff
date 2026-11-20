@@ -17,6 +17,7 @@ export interface NewProject {
 /** プロジェクトの変えられる項目（番号・並び・作った時刻は変えない。並びは reorder） */
 export type ProjectPatch = Partial<Omit<Project, "id" | "position" | "created_at">>;
 
+export type ProjectStore = ReturnType<typeof createProjectStore>;
 
 /**
  * プロジェクト（projects の表。色・並び順・固定・アーカイブもここ）。Kickoff のゴミ箱に入れたプロジェクト（trashed_at がある）は

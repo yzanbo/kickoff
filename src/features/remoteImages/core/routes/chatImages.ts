@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { RemoteImageService } from "@/features/remoteImages/core/service";
 import { lookups } from "@/foundation/core/http/lookups";
 import { jsonBody } from "@/foundation/core/http/input";

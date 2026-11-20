@@ -1,10 +1,11 @@
 // Docker の機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { DockerCli } from "./cli";
 import type { DockerEngineStarters } from "./engine";
 import type { PortProbe } from "./ports";
 import { DockerService } from "./service";
+import type { ChatApi } from "@/features/chat/core/index";
 import { dockerRoutes, type DockerRouteDeps } from "./routes/docker";
 
 export type { DockerService } from "./service";
@@ -19,8 +20,8 @@ export interface DockerEnv {
 }
 
 /** Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く） */
-export function createDocker(k: KernelWithStore, deps: Pick<DockerRouteDeps, "dbConnectionsOf">, env: DockerEnv): CoreFeature<DockerService> {
+export function createDocker(k: Kernel, deps: Pick<DockerRouteDeps, "dbConnectionsOf"> & { chat: Pick<ChatApi, "store"> }, env: DockerEnv): CoreFeature<DockerService> {
   const docker = new DockerService(k.bus, { listeningSockets: k.platform.listeningSockets, dockerEngine: env.engine }, env.cli);
   if (env.portProbe) docker.ports.probe = env.portProbe;
-  return { name: "docker", api: docker, routes: [{ legacy: (app) => dockerRoutes(app, { store: k.store, docker, bus: k.bus, ...deps }) }], stop: () => docker.close() };
+  return { name: "docker", api: docker, routes: [{ legacy: (app) => dockerRoutes(app, { store: deps.chat.store, docker, bus: k.bus, dbConnectionsOf: deps.dbConnectionsOf }) }], stop: () => docker.close() };
 }

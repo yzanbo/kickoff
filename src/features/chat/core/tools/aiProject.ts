@@ -6,7 +6,7 @@ import path from "node:path";
 import type { AddSnippetInput, MoveNoteInput } from "@shared/chat/aiProject";
 import type { Chat } from "@shared/chat/types";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/snippets/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { NoteService } from "@/features/notes/core/notes";
 import { notePathIn } from "./aiOpen";
 

@@ -4,6 +4,8 @@ import type { Notify } from "@/foundation/core/db/common";
 import { snippetsTable } from "@/features/snippets/core/schema";
 
 
+export type SnippetStore = ReturnType<typeof createSnippetStore>;
+
 /**
  * 定型文（snippets の表）。一覧は 1 つで、1 件ずつ使える範囲（共通 = project_id が null / そのプロジェクトだけ）を持つ。
  * 並び順 position はすべての定型文で 1 つの並び（新しいものは最後）。

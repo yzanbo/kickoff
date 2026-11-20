@@ -2,7 +2,7 @@
 // チャットの削除・巻き戻しなどで使われなくなった記録の漏れを拾う。
 // 前からある会話記録（覚えていないもの）は、ターミナルで直接使った Claude Code の記録と見分けられないので触らない（利用者が選ぶ一覧 orphanSessions.ts から片付ける）
 import type { ProviderId } from "@shared/settings/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
 import type { TrashService } from "@/features/trash/core/service";

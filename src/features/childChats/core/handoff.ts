@@ -2,7 +2,7 @@ import type { Chat } from "@shared/chat/types";
 import type { HandoffBody, HandoffResult } from "@shared/foundation/apiTypes";
 import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 import { lastReplyOfTurn } from "@shared/chat/handoff";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { Runner } from "@/features/chat/core/runner";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 

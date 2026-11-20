@@ -6,7 +6,7 @@ import type { RemoveChatInput } from "@shared/chat/aiChatRemove";
 import { errorMessage } from "@shared/foundation/errors";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import type { TrashService } from "@/features/trash/core/service";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 import type { Runner } from "@/features/chat/core/runner";

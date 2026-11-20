@@ -15,7 +15,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { addWorktree, isGitWorkTree, newWorktreeProblem } from "@/features/git/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";

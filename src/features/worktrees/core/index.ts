@@ -1,10 +1,10 @@
 // ワークツリーの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
-import type { KernelWithStore } from "@/foundation/core/kernel";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { Runner } from "@/features/chat/core/index";
+import type { Runner, Store } from "@/features/chat/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
@@ -21,7 +21,7 @@ export interface WorktreesDeps {
   ai: AiApi;
   docker: DockerService;
   /** 作業中か・送信待ち・作業場所を移す */
-  chat: { runner: Runner };
+  chat: { runner: Runner; store: Store };
 }
 
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr" | "retryMs">;
@@ -38,10 +38,10 @@ export interface WorktreesApi {
 }
 
 /** ワークツリー（作る・一覧・実行環境・後始末と、ブランチの切り替え・ワークツリーの足し引きの見張り） */
-export function createWorktrees(k: KernelWithStore, deps: WorktreesDeps, env: WorktreesEnv): CoreFeature<WorktreesApi> {
+export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEnv): CoreFeature<WorktreesApi> {
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる）
   const stores = createWorktreeStores(k.db);
-  const { projects, chats, events, trash, groups } = k.store;
+  const { projects, chats, events, trash, groups } = deps.chat.store;
   const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
   const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, ...env });

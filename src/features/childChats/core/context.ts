@@ -3,7 +3,7 @@
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat, ChatStatus } from "@shared/chat/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 /** 系譜の 1 つ（親・祖先のチャット） */

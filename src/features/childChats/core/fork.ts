@@ -1,5 +1,5 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { providerFeatureMissing } from "@shared/ai/types";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";

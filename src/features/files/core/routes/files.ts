@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "@/features/git/core/index";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ProjectReplaceBody } from "@shared/git/types";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";

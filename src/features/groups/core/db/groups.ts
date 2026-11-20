@@ -12,6 +12,7 @@ export interface GroupMembers {
   getChat(id: number): Chat | undefined;
 }
 
+export type GroupStore = ReturnType<typeof createGroupStore>;
 
 /** チャットを自分でまとめるグループ（chat_groups の表。プロジェクトごと） */
 export function createGroupStore(db: DatabaseSync, onChange: Notify, members: GroupMembers) {

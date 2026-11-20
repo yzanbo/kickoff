@@ -10,7 +10,7 @@ import { OPEN_PLACE_LABELS, type OpenPlace } from "@shared/chat/openView";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/system/paths";
 import { familyOf, lineageOf } from "./aiChatEdit";
 import { workdirOf } from "@/features/chat/core/workdir";

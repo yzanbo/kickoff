@@ -4,7 +4,7 @@ import { UNTITLED_CHAT_TITLE, type Attachment, type Chat, type ChatOptionsPatch 
 import type { ProviderId } from "@shared/settings/types";
 import { collectSubagents } from "@shared/chat/subagents";
 import { subagentAskMessage } from "@shared/chat/prompts";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { Runner } from "@/features/chat/core/runner";

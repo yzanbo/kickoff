@@ -5,7 +5,7 @@ import type { WorktreeEnvSetupBody, WorktreeEnvSetupResult } from "@shared/workt
 import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreeRemovalInfo } from "@/features/git/core/index";
 import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
 import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";

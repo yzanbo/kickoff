@@ -3,7 +3,7 @@
 // ここは確かめて図の ID を返すだけ。何も変えないので聞かずに使わせる
 import { randomBytes } from "node:crypto";
 import { VISUAL_CODE_MAX, VISUAL_KINDS, VISUAL_TITLE_MAX, isVisualId, visualIdLine, type ShowVisualInput, type UpdateVisualInput, type VisualGuideTopic } from "@shared/visuals/aiVisual";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 import { visualGuide } from "./visualGuide";
 
 /** 図のツールの中身（AI に返す文。描けなければ理由の文で throw） */

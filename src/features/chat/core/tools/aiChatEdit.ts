@@ -7,7 +7,7 @@
 import type { UpdateChatInput } from "@shared/chat/aiChatEdit";
 import { errorMessage } from "@shared/foundation/errors";
 import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/stores";
 import { familyOrder, familyRelation } from "@shared/chat/family";
 import { detachChat } from "@/features/childChats/core/detach";
 

@@ -27,7 +27,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - スキーマは機能の `core/schema.ts`。版は `@/app/core/migrations.ts` の末尾に足す（既存は書き換えない）。版ごとに 1 つのトランザクション。
 - 表はすべて STRICT。真偽値は `CHECK (x IN (0, 1))`、JSON は `json_valid` と `json_type`。値の一覧は CHECK にしない。「ない」は NULL で、空文字を入れない列は `CHECK (x <> '')`。
 - 版は `application_id`（'KICK'）と `user_version`（300 ＋ 版）。`inspectSchema` で、ほかのアプリ・新しすぎる版は触らずに（WAL にする前に）例外。
-- 読み書きは表ごとの店（各機能の `core/db/<表>.ts`。束 `Store` か機能の `createX` が作る）を通し、ルートで SQL を書かない。変える操作は `onChange` で知らせる（秘密の値は知らせない）。
+- 読み書きは表ごとの店（機能の `createX` が作る `core/db/<表>.ts`。chat は `chat.api.store`）を通し、ルートで SQL を書かない。変える操作は `onChange` で知らせる（秘密の値は知らせない）。
 - 行と型の変換は、表の列の宣言（`db/table.ts` の `table()`。機能の `core/schema.ts`）か、まだ乗せていない店の `toChat`・`CHAT_COLUMNS` などに集める。
 - `chats.active_at`（一覧の並び順）を進めるのは `status` を変える更新だけ（未読・固定・並び・名前・アーカイブ・移動・復旧では進めない）。
 - ゴミ箱にあるチャットは `store.chats` の読み取り（`get`・一覧・子孫・検索・フィードなど）から外す。読み取りを足したらゴミ箱のものを外す。会話記録を残すか（`sessionInUse`）はゴミ箱のものも数える。

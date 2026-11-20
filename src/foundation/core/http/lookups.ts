@@ -15,9 +15,18 @@ interface Finder<T> {
 /** 引き当てるプロジェクト（使う欄だけ） */
 type LookupProject = ScopedProject & { repo_path: string };
 
+/** プロジェクトの店の形（上の機能の店を形だけで受けるルート） */
+export type ProjectFinder = Finder<LookupProject>;
+
 const found = <T>(value: T | undefined, what: string): T => {
   if (value === undefined) throw new NotFound(`${what}が見つかりません`);
   return value;
+};
+
+/** 引き当てに使う店（ルートに渡していなければ組み立ての誤り） */
+const need = <T>(finder: Finder<T> | undefined, what: string): Finder<T> => {
+  if (!finder) throw new Error(`${what}の店を lookups に渡していません`);
+  return finder;
 };
 
 export function requireProject<P>(store: { projects: Finder<P> }, id: number): P {
@@ -42,10 +51,10 @@ function inProjectScopes(c: Context, project: ScopedProject, next: () => Promise
 }
 
 /**
- * :id のプロジェクト・チャット・グループを c.var に入れるミドルウェア。
+ * :id のプロジェクト・チャット・グループを c.var に入れるミドルウェア（チャット・グループの店は、それを引くルートだけが渡す）。
  * プロジェクトの操作の中の gh・git は、登録された包みの中で動かす（そのプロジェクトで選んだ GitHub のアカウント）
  */
-export function lookups<P extends LookupProject, C, G>(store: { projects: Finder<P>; chats: Finder<C>; groups: Finder<G> }) {
+export function lookups<P extends LookupProject, C = never, G = never>(store: { projects: Finder<P>; chats?: Finder<C>; groups?: Finder<G> }) {
   return {
     withProject: createMiddleware<{ Variables: { project: P } }>(async (c, next) => {
       const project = requireProject(store, idParam(c));
@@ -63,11 +72,11 @@ export function lookups<P extends LookupProject, C, G>(store: { projects: Finder
       await inProjectScopes(c, project, next);
     }),
     withChat: createMiddleware<{ Variables: { chat: C } }>(async (c, next) => {
-      c.set("chat", found(store.chats.get(idParam(c)), "チャット"));
+      c.set("chat", found(need(store.chats, "チャット").get(idParam(c)), "チャット"));
       await next();
     }),
     withGroup: createMiddleware<{ Variables: { group: G } }>(async (c, next) => {
-      c.set("group", found(store.groups.get(idParam(c)), "グループ"));
+      c.set("group", found(need(store.groups, "グループ").get(idParam(c)), "グループ"));
       await next();
     }),
   };

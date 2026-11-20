@@ -3,7 +3,7 @@
 // （そのチャットを見ている人には送らない・この Mac の通知は設定のとおり・スマホのプッシュには本文を載せない）。ここは確かめて、記録に残して、バスに知らせるだけ
 import { AI_NOTIFY_MESSAGE_MAX, AI_NOTIFY_PER_TURN, aiNoticeLine } from "@shared/notifications/tools";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/foundation/core/db/store";
+import type { Store } from "@/features/chat/core/index";
 
 /** 利用者に知らせるツールの中身（知らせたら AI に返す文。できなければ理由の文で throw） */
 export interface AiNotifyTools {

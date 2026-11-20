@@ -8,7 +8,7 @@ import type { Core, CoreOptions } from "./types";
 
 /** Kickoff のコア（DB・エージェント実行・HTTP API）を起動する: 土台を開く → 機能を組み立てる → 待ち受けて機能を始める。Electron にもヘッドレスにも依存しない */
 export async function startCore(opts: CoreOptions): Promise<Core> {
-  // 土台（保存先・Bus・DB）。店の束は機能へ分けるまで Kernel から受ける
+  // 土台（保存先・Bus・DB）
   const k = createKernel({ dataDir: opts.dataDir, port: opts.port, host: opts.host, staticDir: opts.staticDir, platform: opts.platform, onChildProcess: opts.onChildProcess, migrations: MIGRATIONS });
   opts.onStage?.("dbOpened");
   const env = realEnv(opts);
