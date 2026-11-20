@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAll, Search } from "lucide-react";
 import type { KeyboardEvent, PointerEvent, ReactNode, Ref } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
+import { consumeKey, isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
 import type { FindOptionName, FindOptions } from "@/foundation/ui/lib/textFind";
 import { FindOptionButtons, handleFindOptionKey } from "./FindOptionButtons";
 import { CloseButton, IconButton } from "./IconButton";
@@ -86,9 +86,7 @@ export function FindField({
   const escape = (e: KeyboardEvent<HTMLInputElement>) => {
     if (onEscape) return onEscape(e);
     // パネル・右の欄を閉じる Esc に渡さない
-    e.preventDefault();
-    e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
+    consumeKey(e, { immediate: true });
     onClose();
   };
   const keyDown = (e: KeyboardEvent<HTMLInputElement>, field: "search" | "replace") => {

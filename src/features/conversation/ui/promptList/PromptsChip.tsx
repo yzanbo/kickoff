@@ -2,7 +2,7 @@ import { CornerDownLeft, Eraser, History, MessageCircleQuestion } from "lucide-r
 import { useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
@@ -58,7 +58,7 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
     close();
     pane.jumpTo(p.id);
   };
-  const nav = useListNavigation(items, reuse);
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: reuse });
   // 開いた・絞り込んだら、いちばん新しい（下の）指示を選ぶ
   const selectNewest = useEffectEvent(() => nav.setIndex(items.length - 1));
   useLayoutEffect(() => {

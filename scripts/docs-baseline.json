@@ -54,15 +54,15 @@
       "brokenRefs": 0
     },
     "src/foundation/ui/CLAUDE.md": {
-      "bytes": 17130,
-      "ancestors": 27321,
+      "bytes": 17129,
+      "ancestors": 27320,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 6888,
-      "ancestors": 34209,
+      "ancestors": 34208,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -90,7 +90,6 @@
     "src/features/projects/ui/page/ProjectPage.tsx": 1,
     "src/features/projects/ui/stores/projects.ts": 1,
     "src/features/voice/ui/recorder.ts": 1,
-    "src/foundation/ui/hooks/useListNavigation.ts": 1,
     "src/foundation/ui/lib/progressive.ts": 2,
     "src/foundation/ui/lib/textFind.ts": 1,
     "src/foundation/ui/lib/time.ts": 3,

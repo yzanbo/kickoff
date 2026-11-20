@@ -10,7 +10,7 @@ import { api } from "@/foundation/ui/api";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -99,7 +99,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (item.run) item.run();
     else if (item.route) navigate(item.route);
   }
-  const nav = useListNavigation(items, go);
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, targetKey]);
 
   const placeholder = `${TARGETS.filter((t) => targets.includes(t.value))
@@ -109,7 +109,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     <dialog ref={dialogRef} className="palette" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" />
-        <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} />
+        <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
         {searching && <span className="spinner" aria-label="検索中" />}
       </div>
       {/* 探す対象（複数選べる。押すたびに付け外し。⌘⇧A のプロジェクトの絞り込みと同じピル） */}
@@ -135,7 +135,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       <ul className="palette-list" role="listbox">
         {items.length === 0 && !searching && <li className="palette-empty">見つかりません</li>}
         {items.map((item, i) => (
-          <li key={item.key} role="option" aria-selected={i === nav.index}>
+          <li key={item.key} role="option" {...nav.optionProps(i)}>
             <button className={cx("palette-item", i === nav.index && "active")} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
               {item.icon}
               <span className="palette-label">{item.label}</span>

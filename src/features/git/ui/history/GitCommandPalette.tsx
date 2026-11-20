@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import type { HistoryOps } from "./useHistoryOps";
 
@@ -74,7 +74,7 @@ export function GitCommandPalette({ anchor, ops, onClose }: { anchor: RefObject<
     onClose();
     void c.run();
   };
-  const nav = useListNavigation(commands, pick);
+  const nav = useRovingList({ mode: "activeDescendant", keys: commands, onPick: pick });
   const { setIndex } = nav;
   // 絞り込みを変えたら、いちばん上を選び直す
   useEffect(() => setIndex(0), [query, setIndex]);
@@ -92,11 +92,12 @@ export function GitCommandPalette({ anchor, ops, onClose }: { anchor: RefObject<
           aria-label="Git の操作を探す"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={nav.onKeyDown}
+          aria-activedescendant={nav.activeId}
         />
       </label>
       <ul className="git-palette-list" role="listbox" aria-label="Git の操作">
         {commands.map((c, i) => (
-          <li key={c.id} role="option" aria-selected={i === nav.index} aria-disabled={c.blocked ? true : undefined}>
+          <li key={c.id} role="option" {...nav.optionProps(i)} aria-disabled={c.blocked ? true : undefined}>
             <button
               type="button"
               className={cx("git-palette-item", i === nav.index && "active")}

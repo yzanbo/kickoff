@@ -5,7 +5,7 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -126,7 +126,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
     if (item.kind === "draft") openDraft(item.draft);
     else openChatOrChild(item.chat);
   }
-  const nav = useListNavigation(items, go);
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, selected, showArchived, shownStates]);
   // 入力欄の Tab / Shift+Tab でプロジェクトの絞り込みを順に切り替える（ほかのキーは一覧の ↑↓・Enter）
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -155,6 +155,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
           aria-label="作業中・待ちのチャットを絞り込む"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
+          aria-activedescendant={nav.activeId}
         />
         <TagFilterNotice filter={tagFilter} />
       </div>
@@ -178,7 +179,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
             {g.items.map((item) => {
               const i = items.indexOf(item);
               return (
-                <li key={item.key} role="option" aria-selected={i === nav.index}>
+                <li key={item.key} role="option" {...nav.optionProps(i)}>
                   <button
                     className={`palette-item ${i === nav.index ? "active" : ""}`}
                     onMouseEnter={() => nav.setIndex(i)}

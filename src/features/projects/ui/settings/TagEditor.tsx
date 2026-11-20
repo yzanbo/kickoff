@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
 import { errorMessage } from "@shared/foundation/errors";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -73,7 +73,7 @@ export function TagEditor({ project }: { project: Project }) {
     const isNew = query !== "" && !known.includes(query) && !tags.includes(query);
     return [...(isNew ? [{ value: query, isNew: true }] : []), ...known.map((value) => ({ value, isNew: false }))];
   }, [open, query, projects, tags]);
-  const nav = useListNavigation(items, (item) => void add(item ? item.value : text));
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: (item) => void add(item ? item.value : text) });
   useEffect(() => nav.setIndex(0), [query, open]);
 
   const onChange = (value: string) => {
@@ -125,6 +125,7 @@ export function TagEditor({ project }: { project: Project }) {
             aria-autocomplete="list"
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={onKeyDown}
+            aria-activedescendant={nav.activeId}
             onBlur={() => setOpen(false)}
           />
           {items.length > 0 && (
@@ -134,7 +135,7 @@ export function TagEditor({ project }: { project: Project }) {
                   key={`${item.isNew}:${item.value}`}
                   type="button"
                   role="option"
-                  aria-selected={i === nav.index}
+                  {...nav.optionProps(i)}
                   className={cx("tag-suggest-item", i === nav.index && "active")}
                   // 押しても入力欄からピントを外さない（外すと候補が閉じる）
                   onMouseDown={(e) => e.preventDefault()}

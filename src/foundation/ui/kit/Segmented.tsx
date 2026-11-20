@@ -1,5 +1,7 @@
 import type { LucideIcon } from "lucide-react";
+import { useRef } from "react";
 import { tipProps } from "./HoverTip";
+import { useRovingList } from "./list/useRovingList";
 
 export interface SegmentOption<T extends string> {
   value: T;
@@ -20,7 +22,7 @@ export interface SegmentOption<T extends string> {
 
 /**
  * 選択肢から 1 つを選ぶボタンの組（ボード／リスト、テーマ、並べ方など）。
- * 見た目は className（segmented・view-toggle など）で決め、選んでいるボタンには active が付く
+ * 見た目は className（segmented・view-toggle など）で決め、選んでいるボタンには active が付く。←→ で隣を選ぶ（端では回り込む）
  */
 export function Segmented<T extends string>({
   value,
@@ -38,8 +40,10 @@ export function Segmented<T extends string>({
   className: string;
   iconSize?: number;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const roving = useRovingList({ mode: "focus", ref, orientation: "horizontal", onMove: (button) => button.dataset.value !== value && onChange(button.dataset.value as T) });
   return (
-    <div className={className} role="radiogroup" aria-label={label}>
+    <div ref={ref} className={className} role="radiogroup" aria-label={label} onKeyDown={roving.onKeyDown}>
       {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, keys, badge, disabled }) => (
         <button
           key={v}

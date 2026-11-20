@@ -1,6 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
-import { stepIndex } from "@/foundation/ui/hooks/useListNavigation";
+import { stepIndex } from "./list/useRovingList";
 import { Popover } from "./Popover";
 
 interface OptionItem<T extends string> {

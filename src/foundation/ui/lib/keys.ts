@@ -65,10 +65,17 @@ export function isCancelKey(e: KeyInput): boolean {
   return isKey(e, "Escape");
 }
 
-/** このキーをここで使い切る（既定の動きにも、パネルを閉じる Esc などのほかの受け手にも渡さない） */
-export function consumeKey(e: { preventDefault(): void; stopPropagation(): void }): void {
+/**
+ * このキーをここで使い切る（既定の動きにも、パネルを閉じる Esc などのほかの受け手にも渡さない）。
+ * immediate: React の知らせなら、元の知らせの同じ所の受け手（window で聞くパネルの Esc など）にも渡さない
+ */
+export function consumeKey(
+  e: { preventDefault(): void; stopPropagation(): void; nativeEvent?: { stopImmediatePropagation(): void } },
+  { immediate = false }: { immediate?: boolean } = {},
+): void {
   e.preventDefault();
   e.stopPropagation();
+  if (immediate) e.nativeEvent?.stopImmediatePropagation();
 }
 
 /**

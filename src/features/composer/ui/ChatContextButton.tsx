@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -41,7 +41,7 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
     setOpen(false);
     setQuery("");
   };
-  const nav = useListNavigation(items, pick);
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: pick });
 
   return (
     <span className="chip-wrap">

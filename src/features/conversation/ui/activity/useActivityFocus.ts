@@ -1,5 +1,5 @@
 import { useEffectEvent, useLayoutEffect, useMemo, useState, type RefObject } from "react";
-import { stepIndex } from "@/foundation/ui/hooks/useListNavigation";
+import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 import { useChatPaneState } from "@/features/chat/ui/screen/ports";
 import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentScope, focusedRowIndexes, type ActivityRow } from "./activityRows";

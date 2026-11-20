@@ -21,7 +21,7 @@ export function SearchField({
   label: string;
   className?: string;
   autoFocus?: boolean;
-  /** 候補の ↑↓・Enter（useListNavigation の onKeyDown）。Esc で文を消すのは欄が先に扱う */
+  /** 候補の ↑↓・Enter（useRovingList の onKeyDown）。Esc で文を消すのは欄が先に扱う */
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
   /** 欄の右端に置くもの（全文検索を開くボタンなど） */
   children?: ReactNode;

@@ -2,7 +2,7 @@ import { Columns3, Search } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import type { DbConnection, DbObjectPath } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { DbClientTab } from "@/features/database/ui/client/dbClientTabs";
@@ -82,7 +82,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
     dialog.close();
     client.openTable(c, item.path, item.table, item.kind);
   };
-  const nav = useListNavigation(items, go);
+  const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, loaded]);
   useEffect(() => {
     dialogRef.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
@@ -95,7 +95,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
     <dialog ref={dialogRef} className="palette" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" aria-hidden />
-        <input autoFocus value={query} placeholder="テーブル・列の名前（「表.列」で列を絞る）" aria-label="テーブル・列の名前" onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} />
+        <input autoFocus value={query} placeholder="テーブル・列の名前（「表.列」で列を絞る）" aria-label="テーブル・列の名前" onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
       </div>
       <ul className="palette-list" role="listbox">
         {!loaded ? (
@@ -106,7 +106,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
           items.length === 0 && <li className="palette-empty">見つかりません</li>
         )}
         {items.map((item, i) => (
-          <li key={item.key} role="option" aria-selected={i === nav.index}>
+          <li key={item.key} role="option" {...nav.optionProps(i)}>
             <button type="button" className={`palette-item ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
               {item.column ? <Columns3 size={13} className="muted" aria-hidden /> : <TabObjectIcon object={item.kind} />}
               <span className="palette-label">

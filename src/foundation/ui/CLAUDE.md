@@ -52,7 +52,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 知らせは `reportFailure`（失敗のお知らせ）・`showToast`（済んだ操作）・`showDropHint`（落とせない理由）。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
 - アプリのショートカットは `commands/`（`commands.item`）。判定 `matchKey` は Mac で ⌘ だけ（⌃ は入力欄で使う）。
-- 選ぶ: ↑↓ は `stepIndex` / `useListNavigation`、複数選択は `useMultiSelect`。
+- 選ぶ: ↑↓ ←→ は `useRovingList`（`kit/list/`）、複数選択は `useMultiSelect`。
 - 大きさ: つまみは `useDragSize`、狭いときに 1 つずつ出すのは `useNarrowSplit`、覆う右の欄は `useCoverableWidth`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。付いていくスクロールは `useFollowScroll`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
@@ -66,7 +66,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - マウスを乗せたときの説明は `data-tip`（`data-tip-title`・`data-tip-keys`・`data-tip-side`）。App の `HoverTip` が出す。title と重ねない。
 - 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。
 - メニューは `PopupMenu` ＋ `MenuItem`（子は `useSubmenu` ＋ `MenuFlyout`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
-- `useMenuKeys` は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`、チャット欄は `OptionMenu`。
+- ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`、チャット欄は `OptionMenu`。
 - ダイアログは `kit/dialogs.tsx`（確認・入力・選択と、チェックを添える形）。モーダルは `useModalDialog`、ボタンの行は `DialogActions`。
 - フォームは `Field`・`CheckField`・`SearchField`・`InlineName`・`CommitInput`、失敗の文は `ErrorText`、結果は `ResultMessage`。
 - 左の一覧の開閉は `kit/ListRail.tsx`。左の一覧がある画面は、どれも隠せるようにする。

@@ -7,7 +7,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { sidebarOrder } from "@/features/projects/ui/projectOrder";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
+import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { relativeTime } from "@/foundation/ui/lib/time";
@@ -42,7 +42,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const { ref: dialogRef, ...dialog } = useModalDialog();
 
-  const nav = useListNavigation(hits, open);
+  const nav = useRovingList({ mode: "activeDescendant", keys: hits, onPick: open });
 
   // 入力が止まったら検索する
   useEffect(() => {
@@ -87,6 +87,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
           placeholder="チャットの中の文言を検索"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => cycleScope(e) || nav.onKeyDown(e)}
+          aria-activedescendant={nav.activeId}
         />
         {loading && <span className="spinner" aria-label="検索中" />}
       </div>
@@ -118,7 +119,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
       <ul className="palette-list" role="listbox">
         {query.trim() && !loading && hits.length === 0 && <li className="palette-empty">見つかりません</li>}
         {hits.map((hit, i) => (
-          <li key={hit.event_id} role="option" aria-selected={i === nav.index}>
+          <li key={hit.event_id} role="option" {...nav.optionProps(i)}>
             <button className={`search-hit ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => open(hit)}>
               <div className="search-hit-head">
                 {hit.type === "user" ? <User size={13} aria-label="自分" /> : <Bot size={13} aria-label="AI" />}
