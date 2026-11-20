@@ -1,13 +1,8 @@
-/* ==== ノートの編集欄（CodeMirror）の上書き。CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く ==== */
+/* ==== ノートの編集欄（CodeMirror）の上書き。CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く（共通の見た目は code/codemirrorTheme.ts） ==== */
 
 .md-editor .cm-editor {
-  height: 100%;
   color: var(--text);
   background: transparent;
-}
-
-.md-editor .cm-editor.cm-focused {
-  outline: none;
 }
 
 .md-editor .cm-scroller {
@@ -20,7 +15,6 @@
 .md-editor .cm-content {
   max-width: 820px;
   padding: 16px 24px 40vh;
-  caret-color: var(--text);
 }
 
 .md-editor .cm-cursor {

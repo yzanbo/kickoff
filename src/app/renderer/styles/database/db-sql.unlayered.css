@@ -1,4 +1,4 @@
-/* ==== SQL の編集欄（CodeMirror）の上書き。CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く ==== */
+/* ==== SQL の編集欄（CodeMirror）の上書き。CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く（共通の見た目は code/codemirrorTheme.ts） ==== */
 
 /* ⌘↵ で流れる文（カーソルのある文・選んだ範囲）の行の左の緑の線 */
 .db-sql-editor .cm-run-target {
@@ -6,7 +6,6 @@
 }
 
 .db-sql-editor .cm-editor {
-  height: 100%;
   font-size: var(--fs-13);
 }
 
@@ -17,15 +16,10 @@
 
 .db-sql-editor .cm-content {
   padding: 8px 0;
-  caret-color: var(--text);
 }
 
 .db-sql-editor .cm-line {
   padding: 0 var(--gutter);
-}
-
-.db-sql-editor .cm-editor.cm-focused {
-  outline: none;
 }
 
 .db-sql-editor .cm-placeholder {
