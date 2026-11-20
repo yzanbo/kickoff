@@ -1,8 +1,9 @@
-// 作業ツリーの状態（git status）・いまのブランチ・リモートの一覧・参照（HEAD・ブランチ）があるか
+// 作業ツリーの状態（git status）と途中の操作（参照・ブランチ・remote の読み取りは @/foundation/core/workplace/reads）
 import fs from "node:fs";
 import path from "node:path";
 import type { GitChangeKind, GitFileChange, GitOperation, GitStatus } from "@shared/git/types";
 import { gitOutput } from "@/foundation/core/workplace/exec";
+import { gitPrefix, listRemotes } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
 
 const KINDS = new Set<GitChangeKind>(["M", "A", "D", "R", "C", "T"]);
@@ -52,26 +53,6 @@ export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> 
     }
   }
   return status;
-}
-
-/** フォルダが Git で管理されているか（作業ツリーの中か。フォルダがない・Git でなければ false） */
-export function isGitWorkTree(repo: string): Promise<boolean> {
-  return gitOutput(repo, ["rev-parse", "--is-inside-work-tree"]).then(
-    (out) => out.trim() === "true",
-    () => false,
-  );
-}
-
-/**
- * フォルダがリポジトリの一番上から見てどこにあるか（「app/web」の形。一番上なら空。Git でなければ null）。
- * プロジェクトのフォルダはリポジトリの中のフォルダでもよく、そのときは Git の操作をこの中だけに絞る
- */
-export async function gitPrefix(dir: string): Promise<string | null> {
-  try {
-    return (await gitOutput(dir, ["rev-parse", "--show-prefix"])).trim().replace(/\/$/, "");
-  } catch {
-    return null;
-  }
 }
 
 /** git status の変更を、リポジトリの中のフォルダ（prefix）の中だけにし、パスをそのフォルダから見た形にする（外から名前を変えたものは、足したものにする） */
@@ -130,27 +111,4 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     has_origin: remotes.includes("origin"),
     operation,
   };
-}
-
-/** リモートの名前の一覧（origin など。なければ空） */
-export async function listRemotes(repo: string): Promise<string[]> {
-  return (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
-}
-
-/** その参照（HEAD・refs/heads/<ブランチ> など）があるか。HEAD がなければ、まだコミットがない */
-export function hasRef(repo: string, ref: string): Promise<boolean> {
-  return gitOutput(repo, ["rev-parse", "--verify", "-q", ref]).then(
-    () => true,
-    () => false,
-  );
-}
-
-/** いまのブランチ名（ブランチから外れている・Git でないフォルダなら空） */
-export async function currentBranch(dir: string): Promise<string> {
-  try {
-    const name = (await gitOutput(dir, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
-    return name === "HEAD" ? "" : name;
-  } catch {
-    return "";
-  }
 }

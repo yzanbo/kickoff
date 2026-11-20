@@ -7,7 +7,7 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
 import type { Store } from "@/features/chat/core/index";
-import { currentBranch } from "@/features/git/core/index";
+import { currentBranch } from "@/foundation/core/workplace/reads";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { resumePointBefore } from "@/features/chat/core/sessionPoints";

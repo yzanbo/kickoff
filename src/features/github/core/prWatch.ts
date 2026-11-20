@@ -8,7 +8,7 @@ import type { GitHubStores } from "./db/stores";
 import type { BranchPullRequest } from "./github";
 import { runAsGitHubAccount } from "./githubAccount";
 import { resolveGitHubTarget, type GitHubTarget } from "./githubTarget";
-import { isGitWorkTree } from "@/features/git/core/status";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 
 /** 見張る間隔（5 分。ほかに、画面の窓に戻ったときも取り直す） */
 const PR_WATCH_INTERVAL_MS = 5 * 60_000;

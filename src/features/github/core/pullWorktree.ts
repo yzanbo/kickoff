@@ -2,7 +2,8 @@
 import type { GitHubRemote, GitWorktree } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import { hasRef } from "@/features/git/core/status";
+import { hasRef } from "@/foundation/core/workplace/reads";
+import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { addWorktree, listWorktrees } from "@/foundation/core/workplace/worktrees";
 
 /** 取り出す PR（head_repo は元のブランチのあるリポジトリの「持ち主/名前」。消された fork なら null） */
@@ -34,13 +35,13 @@ export function pullCheckoutOf(pr: PullHead, remotes: GitHubRemote[]): PullCheck
 /**
  * PR のブランチのワークツリー（本体も含む）を返す。そのブランチを取り出している作業場所があればそれを、
  * なければブランチを用意して（手元になければ取ってくる。あれば手元のものをそのまま使い、書き換えない）ワークツリーを作る。
- * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）。onCreated は新しく作ったときに呼ぶ（addWorktree と同じ）
+ * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）。取ってくるのは remoteGit（Kernel.workplace.git）。onCreated は新しく作ったときに呼ぶ（addWorktree と同じ）
  */
-export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree> {
+export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, remoteGit: RemoteGit, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree> {
   const { branch } = pullCheckoutOf(pr, remotes);
   const found = (await listWorktrees(repo)).find((w) => w.branch === branch && !w.prunable);
   if (found) return found;
-  await ensurePullBranch(repo, pr, remotes, targetRemote);
+  await ensurePullBranch(repo, pr, remotes, targetRemote, remoteGit);
   const list = await addWorktree(repo, branch, onCreated);
   const made = list.find((w) => w.branch === branch);
   if (!made) throw new Error(`ワークツリーを作れませんでした: ${branch}`);
@@ -48,14 +49,14 @@ export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: 
 }
 
 /** PR の手元のブランチを用意する（手元になければ取ってくる。あれば手元のものをそのまま使い、書き換えない）。ブランチの名前を返す */
-async function ensurePullBranch(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string): Promise<string> {
+async function ensurePullBranch(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, remoteGit: RemoteGit): Promise<string> {
   const { branch, remote } = pullCheckoutOf(pr, remotes);
   if (await hasRef(repo, `refs/heads/${branch}`)) return branch;
   if (remote) {
-    await gitOutput(repo, ["fetch", remote, `+refs/heads/${pr.head_ref}:refs/remotes/${remote}/${pr.head_ref}`]);
+    await remoteGit(repo).run(["fetch", remote, `+refs/heads/${pr.head_ref}:refs/remotes/${remote}/${pr.head_ref}`]);
     await gitOutput(repo, ["branch", "--track", branch, `${remote}/${pr.head_ref}`]);
   } else {
-    await gitOutput(repo, ["fetch", targetRemote, `refs/pull/${pr.number}/head:refs/heads/${branch}`]);
+    await remoteGit(repo).run(["fetch", targetRemote, `refs/pull/${pr.number}/head:refs/heads/${branch}`]);
   }
   return branch;
 }
@@ -65,12 +66,12 @@ async function ensurePullBranch(repo: string, pr: PullHead, remotes: GitHubRemot
  * ほかのワークツリーで取り出しているブランチは本体に取り出せないので 400。まだコミットしていない変更は git switch がそのまま持っていく
  * （ぶつかるなら git が断る。画面が前に確かめる）。取り出したブランチの名前を返す
  */
-export async function checkoutPullMain(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string): Promise<string> {
+export async function checkoutPullMain(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, remoteGit: RemoteGit): Promise<string> {
   const { branch } = pullCheckoutOf(pr, remotes);
   const holder = (await listWorktrees(repo)).find((w) => w.branch === branch && !w.prunable);
   if (holder?.main) return branch;
   if (holder) throw new Invalid(`ブランチ ${branch} はワークツリー（${holder.path}）で取り出しているので、本体には取り出せません。そのワークツリーで作業してください`);
-  await ensurePullBranch(repo, pr, remotes, targetRemote);
+  await ensurePullBranch(repo, pr, remotes, targetRemote, remoteGit);
   await gitOutput(repo, ["switch", "-q", branch]);
   return branch;
 }

@@ -4,7 +4,7 @@ import path from "node:path";
 import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
 import { prepareWorktree } from "./worktreeSetup";
 import { gitOutput } from "./exec";
-import { gitPrefix, hasRef, listRemotes } from "@/features/git/core/status";
+import { gitPrefix, hasRef, listRemotes } from "./reads";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { timed } from "@/foundation/core/system/stallWatch";

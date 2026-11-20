@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import { hasRef } from "@/features/git/core/status";
+import { hasRef } from "@/foundation/core/workplace/reads";
 import { expandHome } from "@/foundation/core/system/paths";
 import type { FolderInspection } from "@shared/projects/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";

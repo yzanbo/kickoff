@@ -44,7 +44,7 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   const { projects, chats, events, trash, groups } = deps.chat.store;
   const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, ...env });
+  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
   let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   const headWatch = new HeadWatch((project_id) => k.bus.publish({ type: "worktrees_changed", project_id }));
   return {

@@ -10,9 +10,10 @@ import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";
 import { imageFileType, isIcnsFile } from "@shared/files/imageFiles";
 import { errorMessage } from "@shared/foundation/errors";
 import { Invalid, NotFound } from "@/foundation/core/errors";
+import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { runAsGitHubAccount } from "./githubAccount";
 import { readGitHubRemotes, resolveGitHubTarget, type GitHubTarget } from "./githubTarget";
-import { isGitWorkTree } from "@/features/git/core/status";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { checkoutPullMain, checkoutPullWorktree } from "./pullWorktree";
 import { ttlCache } from "@/foundation/core/system/ttlCache";
 import { ghApi, type GitHubApi, type GitHubContext } from "./ghApi";
@@ -52,15 +53,13 @@ interface GitHubServiceOptions {
 }
 
 export class GitHubService {
-  private readonly opts: GitHubServiceOptions;
   private readonly lists = new Map<string, CachedPage>();
   private readonly metas = ttlCache<string, GitHubRepoMeta>(5 * 60_000);
   /** 最後に取った中身（キーはプロジェクト・アカウント・選んだ remote・種類・番号） */
   private readonly details = new Map<string, { detail: GitHubIssueDetail | GitHubPullDetail; at: number }>();
 
-  constructor(opts: GitHubServiceOptions = {}) {
-    this.opts = opts;
-  }
+  /** remoteGit は PR のブランチを取ってくる git（Kernel.workplace.git。CI のタブの「（ブランチ名）で直す」も使う） */
+  constructor(private readonly opts: GitHubServiceOptions, readonly remoteGit: RemoteGit) {}
 
   /** ワークツリーを新しく作ったときに呼ぶもの（CI のタブの「（ブランチ名）で直す」も同じ） */
   worktreeCreated(project: Project): ((worktree: GitWorktree) => Promise<void>) | undefined {
@@ -252,8 +251,8 @@ export class GitHubService {
       const target = remotes.find((r) => r.repo.toLowerCase() === repo.toLowerCase());
       if (!target) throw new Invalid(`連携先（${repo}）の remote が見つかりません`);
       const pr = { number, head_ref: head.ref, head_repo: typeof head.repo?.full_name === "string" ? head.repo.full_name : null };
-      if (place === "main") return { worktree_path: null, branch: await checkoutPullMain(project.repo_path, pr, remotes, target.name) };
-      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name, this.worktreeCreated(project));
+      if (place === "main") return { worktree_path: null, branch: await checkoutPullMain(project.repo_path, pr, remotes, target.name, this.remoteGit) };
+      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name, this.remoteGit, this.worktreeCreated(project));
       return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? head.ref };
     });
   }

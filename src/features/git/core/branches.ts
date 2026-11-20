@@ -2,7 +2,10 @@
 import type { GitBranchAction, GitConflictResolution, GitMergePreview, GitOperationAction } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import { gitOperation, gitStatus, hasRef } from "./status";
+import { git, type Git } from "@/foundation/core/workplace/git";
+import type { RemoteGit } from "@/foundation/core/workplace/kit";
+import { hasRef } from "@/foundation/core/workplace/reads";
+import { gitOperation, gitStatus } from "./status";
 
 /** ネットワークを使う操作（プッシュ・プル・フェッチ）の待ち時間 */
 const NETWORK_TIMEOUT = 120_000;
@@ -11,9 +14,9 @@ const NETWORK_TIMEOUT = 120_000;
  * 衝突で止まることのある操作（マージ・リベース・プル・続ける）を、エディタを開かずに動かす（コミットのメッセージは git が用意したもの）。
  * 失敗しても衝突したファイルがあれば、止まったとしてそのファイルを返す（衝突でない失敗は、git の説明のまま投げる）
  */
-async function runStoppable(repo: string, args: string[]): Promise<{ conflicts: string[] }> {
+async function runStoppable(repo: string, args: string[], run: Git = git(repo, { timeout: NETWORK_TIMEOUT })): Promise<{ conflicts: string[] }> {
   try {
-    await gitOutput(repo, args, [], NETWORK_TIMEOUT, { GIT_EDITOR: "true" });
+    await run.run(args, { env: { GIT_EDITOR: "true" } });
   } catch (e) {
     const conflicts = await conflictedFiles(repo);
     if (conflicts.length === 0) throw e;
@@ -92,9 +95,10 @@ export async function mergePreview(repo: string, branch: string): Promise<GitMer
   return { up_to_date: false, fast_forward: false, conflicts };
 }
 
-/** ブランチ・タグの操作を 1 つ行う。衝突して止まったら、衝突したファイルを返す（止まっていなければ空） */
-export async function runBranchAction(repo: string, a: GitBranchAction): Promise<{ conflicts: string[] }> {
+/** ブランチ・タグの操作を 1 つ行う。衝突して止まったら、衝突したファイルを返す（止まっていなければ空）。remote に触る操作は remoteGit で */
+export async function runBranchAction(repo: string, a: GitBranchAction, remoteGit: RemoteGit): Promise<{ conflicts: string[] }> {
   const done = { conflicts: [] as string[] };
+  const net = remoteGit(repo, { timeout: NETWORK_TIMEOUT });
   switch (a.action) {
     case "checkout":
       await gitOutput(repo, ["switch", "-q", assertRefName(a.branch)]);
@@ -122,10 +126,10 @@ export async function runBranchAction(repo: string, a: GitBranchAction): Promise
       if ((await headBranch(repo)) === a.branch) {
         await assertNoOperation(repo);
         // 分かれていればマージする（衝突したら止まり、変更タブで解いてもらう）
-        return runStoppable(repo, ["pull", "-q", "--no-rebase", "--no-edit", remote, branch]);
+        return runStoppable(repo, ["pull", "-q", "--no-rebase", "--no-edit", remote, branch], net);
       }
       // いまのブランチでなければ、取ってきて早送りだけする（分かれていれば git が断る）
-      await gitOutput(repo, ["fetch", "-q", remote, `${branch}:${a.branch}`], [], NETWORK_TIMEOUT);
+      await net.run(["fetch", "-q", remote, `${branch}:${a.branch}`]);
       return done;
     }
     case "push":
@@ -133,11 +137,11 @@ export async function runBranchAction(repo: string, a: GitBranchAction): Promise
       const upstream = await upstreamOf(repo, assertRefName(a.branch));
       if (upstream) {
         const { remote, branch } = await splitRemoteBranch(repo, upstream);
-        await gitOutput(repo, ["push", "-q", remote, `${a.branch}:${branch}`], [], NETWORK_TIMEOUT);
+        await net.run(["push", "-q", remote, `${a.branch}:${branch}`]);
       } else {
         const remotes = (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
         if (!remotes.includes("origin")) throw new Invalid("プッシュ先のリモート（origin）がありません");
-        await gitOutput(repo, ["push", "-q", "-u", "origin", a.branch], [], NETWORK_TIMEOUT);
+        await net.run(["push", "-q", "-u", "origin", a.branch]);
       }
       return done;
     }
@@ -156,7 +160,7 @@ export async function runBranchAction(repo: string, a: GitBranchAction): Promise
       if (await hasRef(repo, `refs/tags/${a.name}`)) throw new Invalid(`同じ名前のタグがあります: ${a.name}`);
       const message = a.message?.trim();
       await gitOutput(repo, message ? ["tag", "-a", a.name, "-m", message, assertRefName(a.at)] : ["tag", a.name, assertRefName(a.at)]);
-      if (a.push) await gitOutput(repo, ["push", "-q", "origin", `refs/tags/${a.name}`], [], NETWORK_TIMEOUT);
+      if (a.push) await net.run(["push", "-q", "origin", `refs/tags/${a.name}`]);
       return done;
     }
     case "set_upstream":
@@ -175,21 +179,21 @@ export async function runBranchAction(repo: string, a: GitBranchAction): Promise
       await gitOutput(repo, ["branch", a.force ? "-D" : "-d", a.branch]);
       if (upstream) {
         const { remote, branch } = await splitRemoteBranch(repo, upstream);
-        await gitOutput(repo, ["push", "-q", remote, "--delete", branch], [], NETWORK_TIMEOUT);
+        await net.run(["push", "-q", remote, "--delete", branch]);
       }
       return done;
     }
     case "delete_remote_branch": {
       const { remote, branch } = await splitRemoteBranch(repo, assertRefName(a.remote_branch));
-      await gitOutput(repo, ["push", "-q", remote, "--delete", branch], [], NETWORK_TIMEOUT);
+      await net.run(["push", "-q", remote, "--delete", branch]);
       return done;
     }
     case "push_tag":
-      await gitOutput(repo, ["push", "-q", "origin", `refs/tags/${assertRefName(a.name)}`], [], NETWORK_TIMEOUT);
+      await net.run(["push", "-q", "origin", `refs/tags/${assertRefName(a.name)}`]);
       return done;
     case "delete_tag":
       await gitOutput(repo, ["tag", "-d", assertRefName(a.name)]);
-      if (a.remote) await gitOutput(repo, ["push", "-q", "origin", "--delete", `refs/tags/${a.name}`], [], NETWORK_TIMEOUT);
+      if (a.remote) await net.run(["push", "-q", "origin", "--delete", `refs/tags/${a.name}`]);
       return done;
     case "stash_save": {
       // 退避するものがなくても git は成功で返すので、退避の数が増えたかで確かめる

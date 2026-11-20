@@ -7,7 +7,7 @@ import type { GitWorktree } from "@shared/git/types";
 import type { AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
 import type { Store } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
-import { listWorktrees, newWorktreeProblem } from "@/features/git/core/index";
+import { listWorktrees, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import { workdirOf } from "@/features/chat/core/workdir";

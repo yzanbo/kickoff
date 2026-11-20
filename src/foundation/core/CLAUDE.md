@@ -50,7 +50,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 ## 外部コマンドとパス（`system/`）
 
 - 外部コマンドは `system/exec.ts` の `runCommand`（失敗の `CommandError` はそのまま投げれば 400）。`execFileAsync` を直接使わない。流れ続けるものだけ `system/stream.ts` の `streamCommand`（閉じるときに `stopAllStreams`）。
-- git・gh は `nonInteractiveEnv()` で、聞かれたら待たずに失敗させる。git は `workplace/exec.ts` の `gitOutput` だけを通す。
+- git・gh は聞かれても待たない（`nonInteractiveEnv()`）。git は `workplace/git.ts`（remote に触るなら `k.workplace.git`）。
 - OS ごとに違うコマンド・パスは使う所に散らさず、`platform/` の `HostPlatform` に口を足して `platform/macos/` に書く（テストは口ごと偽物に）。
 - ログインシェルの PATH の読み直しは裏で流し、待つのは外部コマンドを起こす所だけ（`shellPathSettled()`）。HTTP・DB・画面は待たない。実行ファイルは `findExecutable(names, searchDirs())`。
 - API・SSE・DB に出す相対パスの区切りはいつも「/」（`system/paths.ts` の `toApiPath`）。包含・`~`・リンクの解決も `system/paths.ts`。

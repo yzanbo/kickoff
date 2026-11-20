@@ -8,6 +8,7 @@ import type { GitBranchAction, GitBranchActionResult } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import type { Store } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
+import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { branchName, flag, repoPath } from "@/foundation/core/http/zodParts";
@@ -66,7 +67,7 @@ const branchActionSchema = z.discriminatedUnion("action", [
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
  * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
  */
-export function gitRoutes(app: Hono, { store }: { store: Pick<Store, "projects" | "chats" | "groups"> }) {
+export function gitRoutes(app: Hono, { store, remoteGit }: { store: Pick<Store, "projects" | "chats" | "groups">; remoteGit: RemoteGit }) {
   const { withWorkdir } = lookups(store);
 
   app.get("/api/projects/:id/git/status", withWorkdir, async (c) => c.json(await gitStatus(c.var.workdir)));
@@ -106,7 +107,7 @@ export function gitRoutes(app: Hono, { store }: { store: Pick<Store, "projects" 
     return gitAction(c, dir, () => commitStaged(dir, message, amend));
   });
 
-  app.post("/api/projects/:id/git/push", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pushBranch(c.var.workdir)));
+  app.post("/api/projects/:id/git/push", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pushBranch(c.var.workdir, remoteGit)));
 
   // 履歴（読むだけ）
   app.get("/api/projects/:id/git/refs", withWorkdir, async (c) => c.json(await gitRefs(c.var.workdir)));
@@ -126,16 +127,16 @@ export function gitRoutes(app: Hono, { store }: { store: Pick<Store, "projects" 
   });
 
   // フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない）
-  app.post("/api/projects/:id/git/fetch", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => fetchRemote(c.var.workdir)));
+  app.post("/api/projects/:id/git/fetch", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => fetchRemote(c.var.workdir, remoteGit)));
 
   // プル（早送りで最新にする）
-  app.post("/api/projects/:id/git/pull", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pullBranch(c.var.workdir)));
+  app.post("/api/projects/:id/git/pull", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pullBranch(c.var.workdir, remoteGit)));
 
   // ブランチ・タグの操作（チェックアウト・プッシュ・マージなど）。終わったら状態と、衝突して止まったら衝突したファイルを返す
   app.post("/api/projects/:id/git/branch-action", withWorkdir, async (c) => {
     const body = branchActionSchema.parse(await jsonBody(c));
     const dir = c.var.workdir;
-    const { conflicts } = await runBranchAction(dir, body);
+    const { conflicts } = await runBranchAction(dir, body, remoteGit);
     const result: GitBranchActionResult = { status: await gitStatus(dir), conflicts };
     // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
     if (body.action === "push_pr") {
@@ -179,7 +180,7 @@ export function gitRoutes(app: Hono, { store }: { store: Pick<Store, "projects" 
     const dir = c.var.workdir;
     const status = await gitStatus(dir);
     if (!status.repo || !status.branch) throw new Invalid("PR にするブランチがありません");
-    if (!status.upstream || status.ahead > 0) await pushBranch(dir);
+    if (!status.upstream || status.ahead > 0) await pushBranch(dir, remoteGit);
     const target = await resolveGitHubTarget(dir, c.var.project.github_remote);
     return c.json(await createPullRequest(dir, status.branch, target, closingIssues(store, c.var.project, dir, target)), 201);
   });

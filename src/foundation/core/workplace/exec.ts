@@ -1,15 +1,12 @@
-// git の実行（ほかの git/ のモジュールはここを通す）
-import { nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
-import { githubEnvForGit } from "@/features/github/core/githubAccount";
+// git の実行の前の形（gitOutput。使う所は git(cwd).… に替えていく）
+import { git } from "./git";
+
+export { nulList } from "./git";
 
 /**
- * git を実行して標準出力をそのまま返す。失敗したら CommandError（git の説明を文にする）。okCodes の終了コードは失敗にしない
- * （git diff --no-index は差があると 1 で終わる）。パスワードなどを聞かれても答えられないので、待たずに失敗させる。env は足す環境変数。
- * プロジェクトで GitHub のアカウントを選んでいれば、そのトークンも渡す（gh を認証の補助にしていれば、プッシュ・プルもそのアカウントになる）
+ * git を実行して標準出力をそのまま返す（git(cwd, { timeout }).run の薄い包み）。失敗したら CommandError。okCodes の終了コードは失敗にしない。
+ * env は足す環境変数。remote に触る操作（fetch・push・pull・ls-remote）は Kernel.workplace.git を使う（GitHub のアカウントのトークンを足す）
  */
-export async function gitOutput(cwd: string, args: string[], okCodes: number[] = [], timeout = 30_000, env: NodeJS.ProcessEnv = {}): Promise<string> {
-  return runCommand("git", args, { cwd, timeout, env: { ...nonInteractiveEnv(), ...(await githubEnvForGit()), ...env }, okCodes });
+export function gitOutput(cwd: string, args: string[], okCodes: number[] = [], timeout = 30_000, env: NodeJS.ProcessEnv = {}): Promise<string> {
+  return git(cwd, { timeout }).run(args, { okCodes, env });
 }
-
-/** NUL 区切りの出力（-z）を配列にする */
-export const nulList = (out: string) => out.split("\0").filter(Boolean);

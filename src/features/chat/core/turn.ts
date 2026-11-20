@@ -20,7 +20,7 @@ import { chosenPreviews } from "@shared/chat/questionPreviews";
 import { isUnreadEvent } from "@shared/chat/state";
 import type { Bus } from "@/foundation/core/bus";
 import { errorMessage } from "@shared/foundation/errors";
-import { currentBranch } from "@/features/git/core/index";
+import { currentBranch } from "@/foundation/core/workplace/reads";
 import { isInside, realPathOrSelf } from "@/foundation/core/system/paths";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { buildSystemPrompt, CHAT_POLICY } from "@/features/chat/core/prompt/system";

@@ -4,7 +4,8 @@ import { toGitDiff } from "./changes";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { assertInside } from "@/features/files/core/files";
 import { readGitHubRemotes } from "@/features/github/core/githubTarget";
-import { gitPrefix, hasRef, kindOf, parseAheadBehind } from "./status";
+import { gitPrefix, hasRef } from "@/foundation/core/workplace/reads";
+import { kindOf, parseAheadBehind } from "./status";
 import { Invalid } from "@/foundation/core/errors";
 import { timed } from "@/foundation/core/system/stallWatch";
 

@@ -7,7 +7,11 @@ import { test } from "vitest";
 import type { GitHubRemote } from "@shared/git/types";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { git } from "@/foundation/core/workplace/git";
 import { checkoutPullMain, checkoutPullWorktree, pullCheckoutOf } from "./pullWorktree";
+
+/** 手元の remote なので、足す環境変数のない git で取ってくる */
+const remoteGit = (cwd: string) => git(cwd);
 
 const remote = (name: string, repo: string, url = ""): GitHubRemote => ({ name, host: "github.com", repo, url });
 
@@ -44,25 +48,25 @@ test("ワークツリー: 同じリポジトリの PR は元のブランチを�
   const { local, theirs, git } = setupRemote();
   const remotes = [remote("origin", "acme/app")];
 
-  const same = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin");
+  const same = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin", remoteGit);
   assert.equal(same.branch, "fix");
   assert.equal(same.main, false);
   assert.equal(fs.readFileSync(path.join(same.path, "a.txt"), "utf8"), "fixed\n");
   assert.equal(git("rev-parse", "--abbrev-ref", "fix@{upstream}").trim(), "origin/fix");
 
-  const fork = await checkoutPullWorktree(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin");
+  const fork = await checkoutPullWorktree(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin", remoteGit);
   assert.equal(fork.branch, "pr-9");
   assert.equal(git("rev-parse", "pr-9").trim(), theirs);
   assert.ok(fs.existsSync(path.join(fork.path, "b.txt")));
 
-  const again = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin");
+  const again = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin", remoteGit);
   assert.equal(again.path, same.path);
 });
 
 test("ワークツリー: そのブランチを本体で取り出していれば本体を返す（作らない）", async () => {
   const { local, git } = setupRemote();
   git("checkout", "-q", "fix");
-  const found = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, [remote("origin", "acme/app")], "origin");
+  const found = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, [remote("origin", "acme/app")], "origin", remoteGit);
   assert.equal(found.main, true);
 });
 
@@ -70,13 +74,13 @@ test("本体に取り出す: 本体のブランチを PR のブランチ（ほ�
   const { local, theirs, git } = setupRemote();
   const remotes = [remote("origin", "acme/app")];
 
-  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin"), "pr-9");
+  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin", remoteGit), "pr-9");
   assert.equal(git("rev-parse", "--abbrev-ref", "HEAD").trim(), "pr-9");
   assert.equal(git("rev-parse", "HEAD").trim(), theirs);
   // もう本体で取り出していれば、そのまま
-  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin"), "pr-9");
+  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin", remoteGit), "pr-9");
 
-  await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin");
-  await assert.rejects(checkoutPullMain(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin"), /ワークツリー.*本体には取り出せません/);
+  await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin", remoteGit);
+  await assert.rejects(checkoutPullMain(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin", remoteGit), /ワークツリー.*本体には取り出せません/);
   assert.equal(git("rev-parse", "--abbrev-ref", "HEAD").trim(), "pr-9");
 });

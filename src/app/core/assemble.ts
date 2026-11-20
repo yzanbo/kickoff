@@ -80,7 +80,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const visuals = createVisuals();
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
   const files = createFiles({ trash: trash.api, chat: chat.api });
-  const git = createGit({ chat: chat.api });
+  const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });

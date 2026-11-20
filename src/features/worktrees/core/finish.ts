@@ -12,10 +12,10 @@ import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { mergedPullRequestOf, type MergedPullRequest } from "@/features/github/core/github";
-import { runAsGitHubAccount } from "@/features/github/core/githubAccount";
 import { resolveGitHubTarget } from "@/features/github/core/githubTarget";
-import { addWorktree, findWorktree, isGitWorkTree, listWorktrees, removeWorktree } from "@/features/git/core/index";
-import { hasRef } from "@/features/git/core/status";
+import { addWorktree, findWorktree, listWorktrees, removeWorktree } from "@/foundation/core/workplace/worktrees";
+import { hasRef, isGitWorkTree } from "@/foundation/core/workplace/reads";
+import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import type { TrashService } from "@/features/trash/core/service";
@@ -69,6 +69,7 @@ export interface WorktreeFinisherDeps {
   runner: Runner;
   worktreeEnvs: WorktreeEnvService;
   trashBin: TrashService;
+  workplace: Pick<WorkplaceKit, "git" | "projectScopes">;
   /** ブランチのマージ済みの PR（GitHub で取り込んだかの見分け。テストでは差し替える。省けば gh に聞く） */
   mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
   /** 予約した後始末を、頼んだチャットの作業が終わるのを待って確かめ直す間隔（テストで縮める） */
@@ -76,8 +77,7 @@ export interface WorktreeFinisherDeps {
 }
 
 /** 祖先か（a が b に含まれるか。どちらかがなければ false） */
-const isAncestor = (repo: string, a: string, b: string) =>
-  gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(() => true, () => false);
+const isAncestor = (repo: string, a: string, b: string) => gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(() => true, () => false);
 
 /** ブランチのマージ済みの PR を gh に聞く（GitHub の remote がない・聞けなければ null） */
 async function askMergedPr(project: Project, branch: string): Promise<MergedPullRequest | null> {
@@ -175,9 +175,9 @@ export class WorktreeFinisher {
   private async deleteRemote(repo: string, upstream: { remote: string; branch: string }): Promise<FinishOutcome["remote"]> {
     const name = `${upstream.remote}/${upstream.branch}`;
     try {
-      const listed = await gitOutput(repo, ["ls-remote", "--heads", upstream.remote, upstream.branch], [], 60_000);
+      const listed = await this.deps.workplace.git(repo, { timeout: 60_000 }).run(["ls-remote", "--heads", upstream.remote, upstream.branch]);
       if (!listed.trim()) return null;
-      await gitOutput(repo, ["push", upstream.remote, "--delete", upstream.branch], [], 60_000);
+      await this.deps.workplace.git(repo, { timeout: 60_000 }).run(["push", upstream.remote, "--delete", upstream.branch]);
       return { name, error: null };
     } catch (e) {
       return { name, error: errorMessage(e).split("\n")[0] };
@@ -190,7 +190,7 @@ export class WorktreeFinisher {
    * （同じリポジトリのほかのプロジェクトのものも）を本体に戻してお知らせを残し、ポートの帯・Docker の組・DB の接続の結び付き・PR の知らせを片付ける
    */
   async remove(project: Project, folder: string, opts: FinishOptions): Promise<FinishResult> {
-    return runAsGitHubAccount(project.github_account, () => this.removeAs(project, folder, opts));
+    return this.deps.workplace.projectScopes.run(project, () => this.removeAs(project, folder, opts));
   }
 
   private async removeAs(project: Project, folder: string, opts: FinishOptions): Promise<FinishResult> {
@@ -284,7 +284,7 @@ export class WorktreeFinisher {
       const own = list.find((w) => w.path === chat.worktree_path);
       if (!own) throw new Error("このチャットのワークツリーが見つかりません（もう消えたかもしれません）");
       if (named && named.path !== own.path) throw new Error("ほかのワークツリーのチャットからは消せません。消せるのは、このチャットのワークツリーだけです（本体のチャットからなら、どのワークツリーでも消せます）");
-      const facts = await runAsGitHubAccount(project.github_account, () => this.inspect(project, own, list));
+      const facts = await this.deps.workplace.projectScopes.run(project, () => this.inspect(project, own, list));
       this.reserved.set(chatId, { projectId: project.id, folder: own.path });
       const others = this.usersOf(own, list).flatMap((u) => store.chats.inWorktree(u.projectId, u.path)).some((c) => c.id !== chatId && this.deps.runner.isBusy(c.id));
       return [

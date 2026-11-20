@@ -8,7 +8,7 @@ import type { GitHubStores } from "./db/stores";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { checkoutPullWorktree } from "./pullWorktree";
 import { readGitHubRemotes } from "./githubTarget";
-import { isGitWorkTree } from "@/features/git/core/status";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { ttlCache } from "@/foundation/core/system/ttlCache";
 import type { GitHubContext } from "./ghApi";
@@ -158,7 +158,7 @@ export class CiService {
       const headRepo = typeof raw?.head_repository?.full_name === "string" ? raw.head_repository.full_name : ctx.repo;
       const pr = Number(raw?.pull_requests?.[0]?.number ?? 0);
       if (!remotes.some((r) => r.repo.toLowerCase() === headRepo.toLowerCase()) && !pr) throw new Invalid(`ブランチ ${branch} は手元にない fork（${headRepo}）のもので、PR もないので取り出せません`);
-      const worktree = await checkoutPullWorktree(project.repo_path, { number: pr, head_ref: branch, head_repo: headRepo }, remotes, target.name, this.github.worktreeCreated(project));
+      const worktree = await checkoutPullWorktree(project.repo_path, { number: pr, head_ref: branch, head_repo: headRepo }, remotes, target.name, this.github.remoteGit, this.github.worktreeCreated(project));
       return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? branch };
     });
   }

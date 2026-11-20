@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { parseCommit, parseGitStatus, parseNameStatus, parseWorktrees, toGitDiff } from "./index";
+import { parseWorktrees } from "@/foundation/core/workplace/worktrees";
+import { parseCommit, parseGitStatus, parseNameStatus, toGitDiff } from "./index";
 import { parseAheadBehind, scopeChanges } from "./status";
 
 test("git status（porcelain v1 -z）を、ステージ済み・未ステージ・競合に分けて読む", () => {

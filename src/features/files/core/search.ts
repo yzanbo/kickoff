@@ -7,7 +7,7 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { hashOf, MAX_FILE_BYTES, resolveInside } from "./files";
 import { plainSearchExcludes } from "@/foundation/core/workplace/plainFolder";
-import { isGitWorkTree } from "@/features/git/core/status";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
 
 /** 検索で返す行の上限・1 ファイルあたりの上限・1 行の長さの上限 */

@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import { addWorktree, worktreePathFor } from "@/features/git/core/index";
+import { addWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";

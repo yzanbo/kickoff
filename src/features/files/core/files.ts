@@ -10,7 +10,7 @@ import type { FileContent, ProjectFiles } from "@shared/git/types";
 import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
 import { largestIcnsPng } from "./icns";
 import { plainLsFiles } from "@/foundation/core/workplace/plainFolder";
-import { isGitWorkTree } from "@/features/git/core/status";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
 
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */

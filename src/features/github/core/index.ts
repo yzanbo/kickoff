@@ -7,7 +7,7 @@ import type { ProjectsApi } from "@/features/projects/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { CiService } from "./ci";
-import { listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
+import { githubEnvForGit, listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
 import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "./githubTarget";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
@@ -47,8 +47,10 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
   // プロジェクトの頼み（ルート）の中の gh・git は、そのプロジェクトで選んだ GitHub のアカウントで動かす
   k.workplace.projectScopes.add((project, run) => runAsGitHubAccount(project.github_account, run));
+  // remote に触る git（Kernel.workplace.git）に、そのプロジェクトのアカウントのトークンを足す（取れなくても手元の操作は止めない）
+  k.workplace.gitEnv.register(() => githubEnvForGit());
   // PR のブランチのワークツリーを作ったら、実行環境を整える
-  const github = new GitHubService({ ...env.service, onWorktreeCreated: (project, worktree) => deps.worktrees.envs.prepare(project, worktree) });
+  const github = new GitHubService({ ...env.service, onWorktreeCreated: (project, worktree) => deps.worktrees.envs.prepare(project, worktree) }, k.workplace.git);
   const ci = new CiService(github, env.ci);
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）。
   // CI の失敗の見張りも相乗りする（ワークツリーのないプロジェクトでも。落ちたら SSE の ci_failed）

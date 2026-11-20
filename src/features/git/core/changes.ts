@@ -2,8 +2,13 @@
 import type { GitDiff, GitOriginal } from "@shared/git/types";
 import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
 import { assertInside, MAX_FILE_BYTES } from "@/features/files/core/files";
-import { gitPrefix, gitStatus, hasRef, listRemotes } from "./status";
+import { gitPrefix, hasRef, listRemotes } from "@/foundation/core/workplace/reads";
+import { gitStatus } from "./status";
 import { Conflict, Invalid } from "@/foundation/core/errors";
+import type { RemoteGit } from "@/foundation/core/workplace/kit";
+
+/** ネットワークを使う操作（プッシュ・プル・フェッチ）の待ち時間 */
+const NETWORK_TIMEOUT = 120_000;
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
@@ -110,24 +115,24 @@ export async function commitStaged(repo: string, message: string, amend = false)
  * いまのブランチをプッシュする。追いかけているリモートのブランチがなければ、origin に同じ名前で公開する
  * （VS Code の「ブランチの発行」と同じ）。認証は利用者の git の設定（SSH・キーチェーン）に任せる
  */
-export async function pushBranch(repo: string): Promise<void> {
+export async function pushBranch(repo: string, remoteGit: RemoteGit): Promise<void> {
   const status = await gitStatus(repo);
   if (!status.repo || !status.branch) throw new Invalid("プッシュするブランチがありません");
   if (status.upstream) {
-    await gitOutput(repo, ["push", "-q"], [], 120_000);
+    await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["push", "-q"]);
     return;
   }
   if (!status.has_origin) throw new Invalid("プッシュ先のリモート（origin）がありません");
-  await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
+  await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["push", "-q", "-u", "origin", status.branch]);
 }
 
 /** リモートの変更を取ってきて、いまのブランチを早送りで最新にする（手元の変更とぶつかるときは失敗する） */
-export async function pullBranch(repo: string): Promise<void> {
-  await gitOutput(repo, ["pull", "--ff-only", "-q"], [], 120_000);
+export async function pullBranch(repo: string, remoteGit: RemoteGit): Promise<void> {
+  await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["pull", "--ff-only", "-q"]);
 }
 
 /** リモートの情報を取ってくる（作業中のファイルは変えない。遅れている数を出すのに使う。origin がなければ何もしない） */
-export async function fetchRemote(repo: string): Promise<void> {
+export async function fetchRemote(repo: string, remoteGit: RemoteGit): Promise<void> {
   if ((await listRemotes(repo)).length === 0) return;
-  await gitOutput(repo, ["fetch", "-q", "--prune"], [], 120_000);
+  await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["fetch", "-q", "--prune"]);
 }

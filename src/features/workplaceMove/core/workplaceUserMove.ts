@@ -6,7 +6,8 @@ import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/a
 import type { Project } from "@shared/projects/types";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "@/foundation/core/workplace/carry";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import { addWorktree, findWorktree, isGitWorkTree, newWorktreeProblem, removeWorktree, worktreePathFor } from "@/features/git/core/index";
+import { isGitWorkTree } from "@/foundation/core/workplace/reads";
+import { addWorktree, findWorktree, newWorktreeProblem, removeWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { isInside } from "@/foundation/core/system/paths";
 import type { TerminalControl } from "@/features/terminal/core/control";
