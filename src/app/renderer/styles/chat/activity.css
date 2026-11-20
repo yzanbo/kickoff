@@ -316,6 +316,7 @@
 }
 
 /* ライトでは、点の色を地に負けない濃さに */
-:root[data-theme="light"] .activity-chip .agent-dot {
+:root[data-theme="light"] .activity-chip .agent-dot,
+:root[data-theme="light"] .activity-focus-bar .agent-dot {
   background: hsl(var(--agent-hue, 25) 55% 42%);
 }
