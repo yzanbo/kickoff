@@ -1,6 +1,7 @@
 // ワークツリーの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
+import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
@@ -46,7 +47,12 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
   const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
   let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
-  const headWatch = new HeadWatch((project_id) => k.bus.publish({ type: "worktrees_changed", project_id }));
+  // ブランチを替えた・ワークツリーを足した消したら、一覧の覚えを捨ててから知らせる（画面が取り直す）
+  const headWatch = new HeadWatch((project_id) => {
+    const project = projects.get(project_id);
+    if (project) forgetWorktrees(project.repo_path);
+    k.bus.publish({ type: "worktrees_changed", project_id });
+  });
   return {
     name: "worktrees",
     api: { envs, finisher, stores, useDbConnections: (fn) => void (connectionsIn = fn) },

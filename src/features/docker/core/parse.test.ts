@@ -4,7 +4,6 @@ import {
   composeFilesFromEnv,
   parseLogLine,
   dbKindOf,
-  deepestWorkplace,
   isAltComposeName,
   overrideNamesFor,
   parseComposeConfig,
@@ -99,14 +98,6 @@ test("serviceMark: 一時停止 → 起動中 → unhealthy → 動いている 
   assert.equal(serviceMark([c("exited", 0), c("exited", 1)]), "failed");
   assert.equal(serviceMark([c("created")]), "created");
   assert.equal(serviceMark([c("exited", 0)]), "stopped");
-});
-
-test("deepestWorkplace: いちばん深い作業場所。末尾の / や似た名前のフォルダで間違えない", () => {
-  const wps = [{ path: "/r/app" }, { path: "/r/app/.wt/feat" }, { path: "/r/app-2" }];
-  assert.equal(deepestWorkplace("/r/app/sub", wps)?.path, "/r/app");
-  assert.equal(deepestWorkplace("/r/app/.wt/feat", wps)?.path, "/r/app/.wt/feat");
-  assert.equal(deepestWorkplace("/r/app-2/x", wps)?.path, "/r/app-2");
-  assert.equal(deepestWorkplace("/r/application", wps), undefined);
 });
 
 test("isAltComposeName / overrideNamesFor: 別名は出し、override は出さない。override は決まった名前にだけ重ねる", () => {

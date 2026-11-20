@@ -7,7 +7,7 @@ import type { ProjectReplaceBody } from "@shared/git/types";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
-import { requireWorktree } from "@/foundation/core/http/workdir";
+import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import { Invalid } from "@/foundation/core/errors";
 import { flag, repoPath } from "@/foundation/core/http/zodParts";
 
@@ -66,7 +66,7 @@ export function filesRoutes(app: Hono, { store, trashBin }: { store: Pick<Store,
     } catch {
       throw new Invalid("作業場所の指定が正しくありません");
     }
-    const workdir = place === "-" ? c.var.project.repo_path : ((await requireWorktree(c.var.project.repo_path, place))?.path ?? c.var.project.repo_path);
+    const workdir = place === "-" ? c.var.project.repo_path : await resolveWorkdir(c.var.project.repo_path, place);
     const file = repoPath.parse(decodeSegments(match[2]));
     return assetResponse(c, file, await readProjectAsset(workdir, file));
   });

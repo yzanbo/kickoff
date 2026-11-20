@@ -153,16 +153,6 @@ export function serviceMark(containers: { state: DockerContainerState; exitCode:
   return "stopped";
 }
 
-/** フォルダ dir を、いちばん深く含む作業場所（パスはどちらも realpath でそろえたもの。なければ undefined） */
-export function deepestWorkplace<T extends { path: string }>(dir: string, workplaces: readonly T[]): T | undefined {
-  let best: T | undefined;
-  for (const w of workplaces) {
-    const inside = dir === w.path || dir.startsWith(w.path.endsWith("/") ? w.path : `${w.path}/`);
-    if (inside && (!best || w.path.length > best.path.length)) best = w;
-  }
-  return best;
-}
-
 /** 決まった名前の compose のファイル（override を重ねる・2 段下まで探すのはこの 4 つだけ） */
 export const STANDARD_COMPOSE_NAMES = ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"] as const;
 

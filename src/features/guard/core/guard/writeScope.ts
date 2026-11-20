@@ -4,8 +4,7 @@
 import os from "node:os";
 import path from "node:path";
 import { workplaceText } from "@shared/foundation/workplace";
-import { deepestWorkplace } from "@/features/docker/core/parse";
-import type { Workplace } from "@/foundation/core/workplace/worktrees";
+import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/worktrees";
 import { isInside } from "@/foundation/core/system/paths";
 
 /** 判定に使う様子（パスはどれも実体のパス = realpath） */

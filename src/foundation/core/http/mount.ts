@@ -9,7 +9,7 @@ import { callerOf } from "./caller";
 import { fileResponse, type FileReply } from "./fileReply";
 import type { ImplementedRoutes, MountEntry, Param, SseHandler, WsHandler } from "./implement";
 import { jsonBody } from "./input";
-import { requireWorktree } from "./workdir";
+import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 
 /** まだ取り決めに乗せていない受け口（Hono に直に登録する関数。access が public なら認証の外に登録する） */
 export interface LegacyRoutes {
@@ -75,7 +75,7 @@ function register(app: Hono, entry: MountEntry, context: Readonly<Record<string,
       const { around } = param;
       if (around) arounds.push((run) => around(value, run));
     }
-    const workdir = entry.spec.workdir ? await workdirOf(ctx.projectId as { repo_path: string }, c.req.query("worktree") || undefined) : undefined;
+    const workdir = entry.spec.workdir ? await resolveWorkdir((ctx.projectId as { repo_path: string }).repo_path, c.req.query("worktree") || undefined) : undefined;
     Object.defineProperties(ctx, {
       caller: { get: () => callerOf(c) },
       workdir: {
@@ -93,11 +93,6 @@ function register(app: Hono, entry: MountEntry, context: Readonly<Record<string,
     // 引数の包み（プロジェクトの GitHub のアカウントなど）を、パスの順に外から当てる
     return arounds.reduceRight<() => Promise<Response>>((inner, around) => () => around(inner), handle)();
   });
-}
-
-/** ?worktree= の作業場所（なければプロジェクトの本体） */
-async function workdirOf(project: { repo_path: string }, worktree: string | undefined): Promise<string> {
-  return (await requireWorktree(project.repo_path, worktree))?.path ?? project.repo_path;
 }
 
 /** 本文: json は JSON（空なら {}・読めなければ 400）を zod で、form は multipart をそのまま（中の検査は受け口） */

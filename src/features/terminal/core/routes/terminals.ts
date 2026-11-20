@@ -7,7 +7,7 @@ import { callerOf, type Caller } from "@/foundation/core/http/caller";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
-import { requireWorktree } from "@/foundation/core/http/workdir";
+import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import type { Store } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
@@ -58,7 +58,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pi
   app.post("/api/projects/:id/terminals", withProject, async (c) => {
     const body = createSchema.parse(await jsonBody(c));
     const project = c.var.project;
-    const cwd = (await requireWorktree(project.repo_path, body.worktree_path ?? undefined))?.path ?? project.repo_path;
+    const cwd = await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
     const key = `api:${randomUUID()}`;
     const caller = callerOf(c);
     const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;

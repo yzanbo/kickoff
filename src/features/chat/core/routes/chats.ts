@@ -1,11 +1,10 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import { addWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
+import { addWorktree, requireWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
-import { requireWorktree } from "@/foundation/core/http/workdir";
 import { rememberSentView } from "@/features/userView/core/routes/userView";
 import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
 import { branchName, flag, optionalId } from "@/foundation/core/http/zodParts";

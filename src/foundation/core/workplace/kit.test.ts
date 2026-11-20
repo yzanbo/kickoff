@@ -14,3 +14,11 @@ test("Kernel.workplace.git は登録した環境変数を足し、手元の git(
   // 登録がなければ何も足さない（ほかの Kernel の登録は混ざらない）
   assert.equal(await createWorkplaceKit().git(dir).maybe(["config", "kickoff.token"]), "");
 });
+
+test("作る人: 登録がなければ Conflict、登録すればそれを返す", async () => {
+  const kit = createWorkplaceKit();
+  assert.throws(() => kit.creator(), /ワークツリーは作れません/);
+  const creator = { createWorktree: async () => ({ folder: "/r/app-worktrees/feat" }) };
+  kit.provideCreator(creator);
+  assert.equal(kit.creator(), creator);
+});

@@ -196,7 +196,7 @@ export class WorktreeFinisher {
   private async removeAs(project: Project, folder: string, opts: FinishOptions): Promise<FinishResult> {
     const { store, trashBin, worktreeEnvs } = this.deps;
     const repo = project.repo_path;
-    const list = await listWorktrees(repo);
+    const list = await listWorktrees(repo, { fresh: true });
     const target = list.find((w) => w.path === folder);
     const users = target ? this.usersOf(target, list) : [{ projectId: project.id, path: folder }];
     if (this.busyIn(users)) throw new Conflict("このワークツリーで作業中のチャットがあります。終わってから消してください");

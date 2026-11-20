@@ -1,4 +1,5 @@
-// ワークツリー（同じリポジトリの別のブランチを、隣のフォルダに取り出す）
+// ワークツリー（同じリポジトリの別のブランチを、隣のフォルダに取り出す）と、作業場所の一覧・解決
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
@@ -8,6 +9,7 @@ import { gitPrefix, hasRef, listRemotes } from "./reads";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { timed } from "@/foundation/core/system/stallWatch";
+import { ttlCache } from "@/foundation/core/system/ttlCache";
 
 /**
  * `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体）。
@@ -34,10 +36,26 @@ export function parseWorktrees(out: string, prefix = ""): GitWorktree[] {
     });
 }
 
-/** ワークツリーの一覧（repo はプロジェクトのフォルダ。リポジトリの中のフォルダなら、各ワークツリーの中の同じ位置を path にする） */
-export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
-  const [out, prefix] = await Promise.all([gitOutput(repo, ["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
-  return readWorktrees(out, prefix ?? "");
+/** ワークツリーの一覧の覚え（repo ごとに 1 秒。?worktree= の頼みのたびに git worktree list を流さない。作った・消した・HEAD が変わったら forgetWorktrees） */
+const worktreeLists = ttlCache<string, GitWorktree[]>({ ms: 1000, max: 64 });
+
+/**
+ * ワークツリーの一覧（repo はプロジェクトのフォルダ。リポジトリの中のフォルダなら、各ワークツリーの中の同じ位置を path にする）。
+ * 1 秒覚える。fresh なら覚えを捨てて取り直す（消す・消す前の確かめなど、いまの形で決めるとき）
+ */
+export async function listWorktrees(repo: string, { fresh = false } = {}): Promise<GitWorktree[]> {
+  if (fresh) forgetWorktrees(repo);
+  const list = await worktreeLists.getOrLoad(repo, async () => {
+    const [out, prefix] = await Promise.all([gitOutput(repo, ["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
+    return readWorktrees(out, prefix ?? "");
+  });
+  // 覚えた一覧を使う所が書き換えないよう、写しを返す
+  return list.map((w) => ({ ...w }));
+}
+
+/** 一覧の覚えを捨てる（ワークツリーを作った・消した・HEAD が変わったとき。worktrees の機能も呼ぶ） */
+export function forgetWorktrees(repo: string): void {
+  worktreeLists.invalidate(repo);
 }
 
 /** 出力を読む（同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
@@ -69,6 +87,38 @@ export async function findWorktree(repo: string, folder: string): Promise<GitWor
   return (await listWorktrees(repo)).find((w) => w.path === folder);
 }
 
+/** フォルダ dir を、いちばん深く含む作業場所（パスはどちらも realpath でそろえたもの。なければ undefined） */
+export function deepestWorkplace<T extends { path: string }>(dir: string, workplaces: readonly T[]): T | undefined {
+  let best: T | undefined;
+  for (const w of workplaces) {
+    const inside = dir === w.path || dir.startsWith(w.path.endsWith("/") ? w.path : `${w.path}/`);
+    if (inside && (!best || w.path.length > best.path.length)) best = w;
+  }
+  return best;
+}
+
+/**
+ * 作業場所の指定（?worktree= のワークツリーのフォルダ）を、このプロジェクトのワークツリーとして解決する。指定がなければ null（本体）。
+ * このプロジェクトのワークツリーでなければ 400、フォルダが消えていれば（アプリの外で消された）404。
+ * プロジェクトのフォルダがリポジトリの中のフォルダで、ワークツリーのブランチにそのフォルダがなければ（ブランチを切り替えたなど）、それも 404
+ */
+export async function requireWorktree(repo: string, worktree: string | undefined): Promise<GitWorktree | null> {
+  if (!worktree) return null;
+  const found = await findWorktree(repo, worktree);
+  if (!found) throw new Invalid("このプロジェクトのワークツリーではありません");
+  // 覚えた一覧のあとでフォルダが消されたもの（git なら prunable）も同じに断る
+  if (found.prunable || !existsSync(found.root)) throw new NotFound("作業場所のフォルダが見つかりません（ワークツリーが消された可能性があります）");
+  if (found.path !== found.root && !existsSync(found.path)) {
+    throw new NotFound(`ワークツリー（${found.branch ?? found.root}）に、プロジェクトフォルダがありません（そのブランチにフォルダがまだコミットされていない可能性があります）`);
+  }
+  return found;
+}
+
+/** 操作するフォルダ（?worktree= があればそのワークツリー、なければ本体の repo） */
+export async function resolveWorkdir(repo: string, worktree: string | undefined): Promise<string> {
+  return (await requireWorktree(repo, worktree))?.path ?? repo;
+}
+
 /** リポジトリの一番上のフォルダ（実体のパス） */
 const repoTop = async (repo: string) => fs.realpath((await gitOutput(repo, ["rev-parse", "--show-toplevel"])).trim());
 
@@ -97,7 +147,7 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
     throw new Invalid("ブランチの名前に使えない文字があります");
   });
   const [target, prefix] = await Promise.all([worktreeRootFor(repo, branch), gitPrefix(repo)]);
-  const existing = (await listWorktrees(repo)).find((w) => w.root === target);
+  const existing = (await listWorktrees(repo, { fresh: true })).find((w) => w.root === target);
   if (existing && existing.branch === branch && !existing.prunable) return listWorktrees(repo);
   if (await fs.stat(target).catch(() => null)) throw new Conflict(`フォルダがすでにあります: ${target}`);
   const exists = await hasRef(repo, `refs/heads/${branch}`);
@@ -112,6 +162,7 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
     }
   }
   await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target, ...(base ? [base] : [])]);
+  forgetWorktrees(repo);
   const top = await repoTop(repo);
   if (prefix) await prepareWorktree(path.join(top, prefix), path.join(target, prefix));
   await prepareWorktree(top, target);
@@ -152,12 +203,14 @@ export async function worktreeMoves(oldRepo: string, newRepo: string): Promise<M
     const next = sameRepo ? after.find((n) => n.root === w.root) : undefined;
     moves.set(w.path, next && !next.prunable && (await fs.stat(next.path).catch(() => null))?.isDirectory() ? next.path : null);
   }
+  forgetWorktrees(oldRepo);
+  forgetWorktrees(newRepo);
   return moves;
 }
 
 /** ワークツリーを消す前の確かめ（コミットしていない変更の数・どのリモートにもないコミットの数・プッシュしたことがあるか） */
 export async function worktreeRemovalInfo(repo: string, target: string): Promise<Omit<WorktreeRemovalInfo, "db_connections">> {
-  const worktree = await findWorktree(repo, target);
+  const worktree = (await listWorktrees(repo, { fresh: true })).find((w) => w.path === target);
   if (!worktree) throw new NotFound("ワークツリーが見つかりません");
   const ok = (p: Promise<string>) => p.then((out) => out, () => "");
   // ワークツリーは一番上ごと消えるので、変更も一番上から数える
@@ -185,11 +238,12 @@ export async function worktreeRemovalInfo(repo: string, target: string): Promise
  * PR がマージされたあとの片付けもこれ: GitHub で squash などでマージすると、手元では「マージ済み」にならないため）
  */
 export async function removeWorktree(repo: string, target: string, { force = false, deleteBranch = false } = {}): Promise<GitWorktree[]> {
-  const worktree = await findWorktree(repo, target);
+  const worktree = (await listWorktrees(repo, { fresh: true })).find((w) => w.path === target);
   if (!worktree) throw new NotFound("ワークツリーが見つかりません");
   if (worktree.main) throw new Invalid("本体のフォルダは消せません");
   if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
   else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), worktree.root]);
+  forgetWorktrees(repo);
   if (deleteBranch && worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
   return listWorktrees(repo);
 }

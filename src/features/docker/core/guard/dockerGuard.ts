@@ -2,8 +2,7 @@
 // まとめて止める・消すコマンドを見分け、流す前に承認カードで聞く文を返す（聞くのはプロバイダーのフック。権限モードに関係なく、Auto mode でも聞く）
 import path from "node:path";
 import type { RawContainer } from "@/features/docker/core/parse";
-import { deepestWorkplace } from "@/features/docker/core/parse";
-import type { Workplace } from "@/foundation/core/workplace/worktrees";
+import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/worktrees";
 import { workplaceText } from "@shared/foundation/workplace";
 import { isInside } from "@/foundation/core/system/paths";
 import { dockerIntents, type ComposeSub, type ContainerVerb, type DockerIntent } from "./dockerCommand";

@@ -11,7 +11,7 @@ import type { DockerService } from "@/features/docker/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
-import { requireWorktree } from "@/foundation/core/http/workdir";
+import { requireWorktree } from "@/foundation/core/workplace/worktrees";
 import { scanProjectDbs, toImportCandidates } from "@/features/database/core/import/index";
 import { parseDockerDbKey } from "@/features/database/core/import/dockerTarget";
 import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "@/features/database/core/sshHostKey";

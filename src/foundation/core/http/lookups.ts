@@ -4,8 +4,8 @@ import type { Context, MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import { NotFound } from "@/foundation/core/errors";
 import type { ProjectScopes, ScopedProject } from "@/foundation/core/workplace/kit";
+import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import { idParam, queryOf } from "./input";
-import { requireWorktree } from "./workdir";
 
 /** 番号で引く店（なければ undefined）。プロジェクト・チャット・グループの店は機能の持ち物なので、形だけで受ける */
 interface Finder<T> {
@@ -68,7 +68,7 @@ export function lookups<P extends LookupProject, C = never, G = never>(store: { 
     withWorkdir: createMiddleware<{ Variables: { project: P; workdir: string } }>(async (c, next) => {
       const project = requireProject(store, idParam(c));
       c.set("project", project);
-      c.set("workdir", (await requireWorktree(project.repo_path, queryOf(c, "worktree")))?.path ?? project.repo_path);
+      c.set("workdir", await resolveWorkdir(project.repo_path, queryOf(c, "worktree")));
       await inProjectScopes(c, project, next);
     }),
     withChat: createMiddleware<{ Variables: { chat: C } }>(async (c, next) => {
