@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isFocusRingKey, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
+import { consumeKey, hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isFocusRingKey, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
 
 const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
 
@@ -68,4 +68,18 @@ test("isFocusRingKey: 修飾キーだけ・⌘ / ⌃ / ⌥ のショートカッ
   assert.equal(isFocusRingKey(key("Tab", { shiftKey: true })), true);
   assert.equal(isFocusRingKey(key("ArrowDown")), true);
   assert.equal(isFocusRingKey(key("A", { shiftKey: true })), true);
+});
+
+test("consumeKey: 既定の動き（<dialog> の Esc など）とほかの受け手を止め、immediate なら元の知らせの同じ所の受け手も止める", () => {
+  const calls: string[] = [];
+  const event = () => ({
+    preventDefault: () => calls.push("default"),
+    stopPropagation: () => calls.push("propagation"),
+    nativeEvent: { stopImmediatePropagation: () => calls.push("immediate") },
+  });
+  consumeKey(event());
+  assert.deepEqual(calls, ["default", "propagation"]);
+  calls.length = 0;
+  consumeKey(event(), { immediate: true });
+  assert.deepEqual(calls, ["default", "propagation", "immediate"]);
 });

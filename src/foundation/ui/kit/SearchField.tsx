@@ -1,7 +1,7 @@
 import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { isCancelKey } from "@/foundation/ui/lib/keys";
+import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
 import { IconButton } from "./IconButton";
 
 /** チャットを名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
@@ -38,8 +38,8 @@ export function SearchField({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (isCancelKey(e) && value) {
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
+            // 文を消すだけにする（同じ Esc で <dialog> まで閉じないように）
+            consumeKey(e, { immediate: true });
             onChange("");
           } else onKeyDown?.(e);
         }}

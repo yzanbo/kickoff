@@ -1,6 +1,6 @@
 import { Check, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
+import { consumeKey, isCancelKey, isComposing } from "@/foundation/ui/lib/keys";
 import { IconButton } from "./IconButton";
 
 interface Props {
@@ -70,9 +70,8 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
         // 日本語入力の変換確定の Enter では決定しない
         if (e.key === "Enter" && !isComposing(e)) finish(true);
         else if (isCancelKey(e)) {
-          // 取り消しだけにする（同じ Esc で右のパネルまで閉じないように）
-          e.stopPropagation();
-          e.nativeEvent.stopImmediatePropagation();
+          // 取り消しだけにする（同じ Esc で右のパネル・設定などの <dialog> まで閉じないように）
+          consumeKey(e, { immediate: true });
           finish(false);
         }
       }}
