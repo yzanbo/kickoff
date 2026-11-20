@@ -5,6 +5,7 @@ import type { ChatGroup } from "@shared/groups/types";
 import { confirmDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
 import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { showDropHint } from "@/foundation/ui/kit/DropHint";
@@ -12,10 +13,7 @@ import { showDropHint } from "@/foundation/ui/kit/DropHint";
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 const CHAT_DRAG_TYPE = "application/x-kickoff-run";
 
-/**
- * いまドラッグしているチャットの ID（ドラッグの間だけ。dragover ではデータを読めないので、落とす前に受けるかを決めるのに使う:
- * アーカイブ済みの落とし先はアーカイブしていないチャットだけ、戻す落とし先はアーカイブ済みだけを受ける）
- */
+/** いまドラッグしているチャットの ID（ドラッグの間だけ。dragover ではデータを読めないので、落とす前に受けるかを決める: アーカイブ済みの落とし先はアーカイブしていないチャットだけ、戻す落とし先はアーカイブ済みだけを受ける） */
 let draggingChatId: number | undefined;
 if (typeof window !== "undefined") {
   const clear = () => (draggingChatId = undefined);
@@ -26,13 +24,16 @@ if (typeof window !== "undefined") {
 /** いまドラッグしているチャットの ID（ドラッグの間だけ。dragover で受けるかを決める。チャットの手動の並べ替えなど） */
 export const draggingChat = (): number | undefined => draggingChatId;
 
+/** ドラッグの絵（startDragGhost）を出し、次の回にまだ描いていない一覧の行もすべて描く（落とす先は並んだ行・カードの位置で決める） */
+const startRowDrag = (e: DragEvent, after?: () => void) => startDragGhost(e, { after: () => (ensureAllRows(), after?.()) });
+
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
 export function startChatDrag(e: DragEvent, chatId: number, after?: () => void) {
   draggingChatId = chatId;
   e.dataTransfer.setData(CHAT_DRAG_TYPE, String(chatId));
   e.dataTransfer.effectAllowed = "move";
   // 半透明の写しがカーソルに付いて動く（下の入る位置の線・落とし先の枠が透ける）。ドラッグ中の見た目の state は次の回（after）
-  startDragGhost(e, { after });
+  startRowDrag(e, after);
 }
 
 /** ドラッグ中のものがチャットか */
@@ -47,7 +48,7 @@ const DRAFT_DRAG_TYPE = "application/x-kickoff-draft";
 export function startDraftDrag(e: DragEvent, draft: DraftRef) {
   e.dataTransfer.setData(DRAFT_DRAG_TYPE, JSON.stringify({ panel: draft.panel, key: draft.key }));
   e.dataTransfer.effectAllowed = "move";
-  startDragGhost(e);
+  startRowDrag(e);
 }
 
 /** ドロップされた下書き（下書きでなければ undefined） */
@@ -156,8 +157,7 @@ export function useChatDropTargets<K>(onDrop: (chatId: number, key: K) => void, 
 }
 
 /**
- * ドラッグでの並べ替え（グループ・プロジェクトで共通）。
- * 動かしているものを薄くし、入る位置に線を出す（後ろへ動かすときは相手の後ろ、前へは前）。
+ * ドラッグでの並べ替え（グループ・プロジェクトで共通）。動かしているものを薄くし、入る位置に線を出す（後ろへ動かすときは相手の後ろ、前へは前）。
  */
 export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dragType: string = GROUP_DRAG_TYPE) {
   const [dragging, setDragging] = useState<number>();
@@ -176,7 +176,7 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
         e.dataTransfer.setData(dragType, String(id));
         e.dataTransfer.effectAllowed = "move";
         // 動かしているまとまりを薄くする（group-dragging）のは次の回（dragstart の中で描き直すと、ドラッグが取り消されることがある）
-        startDragGhost(e, { after: () => setDragging(id) });
+        startRowDrag(e, () => setDragging(id));
       },
       onDragEnd: end,
     }),

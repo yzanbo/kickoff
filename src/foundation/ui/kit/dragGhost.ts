@@ -1,5 +1,4 @@
 import type { DragEvent } from "react";
-import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 
 /**
  * 透明な 4 × 4 px の PNG。1 px だと Retina（2 倍）の画面では 0.5 pt になり、OS に渡すときに 0 × 0 に切り捨てられて「絵なし」とみなされ、
@@ -37,7 +36,7 @@ interface DragGhostOptions {
   count?: number;
   /**
    * ドラッグ中の見た目を変える state（動かしているものの印・覆い）は、ここで変える。dragstart の中で描き直すと、
-   * ドラッグが取り消されることがあるので、次の回に回す
+   * ドラッグが取り消されることがあるので、次の回に回す（段階に分けて描く一覧の行の位置で落とす先を決めるなら、ここで ensureAllRows）
    */
   after?: () => void;
 }
@@ -104,8 +103,6 @@ export function startDragGhost(e: DragEvent<Element>, { source, count = 1, after
   setTimeout(() => {
     // すぐに落とした（end が先に済んだ）ときは印を付けない
     if (ghost.isConnected) el.setAttribute(SOURCE_ATTR, "");
-    // 落とす先は並んだ行・カードの位置で決めるので、開いた直後でまだ描いていない一覧があればすべて描く（dragstart の中では描き直さない）
-    ensureAllRows();
     after?.();
   }, 0);
 }

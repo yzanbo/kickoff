@@ -52,6 +52,7 @@ export function GroupSections({
   const budgets = useRowBudgets(
     ordered.map((b) => splitArchived(b.chats)[0].length),
     list,
+    boardWidth,
   );
   return ordered.map((bucket, i) => {
     const g = bucket.group ?? null;
@@ -109,4 +110,13 @@ function StateParts({ parts, render }: { parts: readonly ChatBucket<PanelDraft>[
       </RowBudgetScope>
     );
   });
+}
+
+/**
+ * 横に並ぶ列に使える幅の見込み（描く前なので列の入れ物はまだない。窓の幅から、先に描いてある左のサイドバー・縦の列の右端までを引く）。
+ * 最初の描画で行の上限を配るときだけ読む
+ */
+function boardWidth(): number {
+  const left = document.querySelector(".sidebar")?.getBoundingClientRect().right ?? 0;
+  return window.innerWidth - left;
 }

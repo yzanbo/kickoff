@@ -45,20 +45,11 @@ export function useProgressivePage(key: string, hidden = false): number {
 /**
  * まとまり（counts はまとまりごとの行の数。閉じているものは 0）に、いまの上限を配る。縦に並ぶ（stacked）なら上から順に分け、
  * 横に並ぶ（カンバンの列。どれも上から見える）なら、窓の幅に入りうる左の列にそれぞれ同じ上限、横にはみ出して見えない列は 0
- * （最初の描画のあと、上限なしですべて描く）
+ * （最初の描画のあと、上限なしですべて描く）。columnsWidth は横に並ぶ列に使える幅の見込み（上限なしのときは読まない。既定は窓の幅）
  */
-export function useRowBudgets(counts: readonly number[], stacked = true): number[] {
+export function useRowBudgets(counts: readonly number[], stacked = true, columnsWidth: () => number = () => window.innerWidth): number[] {
   const budget = useContext(RowBudget);
-  return stacked ? allocateRows(counts, budget) : allocateColumns(counts.length, budget, Number.isFinite(budget) ? columnsInView(boardWidth()) : counts.length);
-}
-
-/**
- * 横に並ぶ列に使える幅の見込み（描く前なので列の入れ物はまだない。窓の幅から、先に描いてある左のサイドバー・縦の列の右端までを引く）。
- * 上限なしのとき（最初の描画のあと）は読まない
- */
-function boardWidth(): number {
-  const left = document.querySelector(".sidebar")?.getBoundingClientRect().right ?? 0;
-  return window.innerWidth - left;
+  return stacked ? allocateRows(counts, budget) : allocateColumns(counts.length, budget, Number.isFinite(budget) ? columnsInView(columnsWidth()) : counts.length);
 }
 
 /** 行を描く一覧: いまの上限の数だけ頭から（収まれば同じ配列のまま）と、省いた行の数（ui/ProgressiveRows.tsx の ProgressiveSpacer で場所を取る） */
