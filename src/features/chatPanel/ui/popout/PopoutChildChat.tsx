@@ -7,7 +7,7 @@ import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { SideScope } from "@/features/conversation/ui/SideScope";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 
 /**
  * 子チャットの別ウィンドウ: ふつうのチャットの画面（ChatView）に、上の帯（親を見る・親チャットに渡す・右の欄に戻す）を足す。

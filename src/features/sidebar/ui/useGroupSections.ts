@@ -7,7 +7,7 @@ import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
 import { detachBlockReason, detachChild } from "@/features/childChats/ui/detachChild";
 import { errorMessage } from "@shared/foundation/errors";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -77,7 +77,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
     // 同じプロジェクトの子チャットは、確かめてから親から外し、落としたグループへ入れる（No Group ならグループなし）
     onChildChat: (chat, groupId) =>
       void detachChild(chat, { parentId: null, groupId, groupName: groups.find((g) => g.id === groupId)?.name ?? NO_GROUP_LABEL }).catch((e: unknown) =>
-        alertDialog("親から外せませんでした", errorMessage(e)),
+        alert("親から外せませんでした", errorMessage(e)),
       ),
     // 作業中の子チャットは外せないので、落とせないことを見せる
     childBlockedBy: detachBlockReason,

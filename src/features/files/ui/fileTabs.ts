@@ -4,7 +4,7 @@ import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { baseName } from "@/foundation/ui/lib/format";
-import { choiceDialog } from "@/foundation/ui/kit/dialogs";
+import { choose } from "@/foundation/ui/kit/ask";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { beginExternalTabDrag, endExternalTabDrag, EXTERNAL_TAB_MIME } from "@/features/panel/ui/layout/externalTabDrag";
 import { useCallback, useSyncExternalStore, type DragEvent } from "react";
@@ -90,14 +90,14 @@ export function registerFileTabSaver(panelKey: string, tabKey: string, save: () 
  */
 async function confirmLeave(panelKey: string, tab: FileTab, action: "開く" | "閉じる"): Promise<boolean> {
   if (!isDirty(panelKey, tab.key)) return true;
-  const picked = await choiceDialog({
+  const picked = await choose({
     title: `「${baseName(tab.path)}」への変更を保存しますか？`,
     message: action === "開く" ? "このタブで別のファイルを開きます。保存しないと、変更は消えます。" : "保存しないと、変更は消えます。",
     choices: [
       { value: "discard", label: "保存しない" },
       { value: "save", label: "保存", primary: true },
     ],
-  });
+  }).then((r) => r?.value ?? null);
   if (picked === null) return false;
   if (picked === "save") return (await savers.get(dirtyId(panelKey, tab.key))?.()) ?? false;
   setFileTabDirty(panelKey, tab.key, false);

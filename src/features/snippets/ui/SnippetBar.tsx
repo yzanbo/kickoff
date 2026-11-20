@@ -6,7 +6,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjectSnippets } from "@/features/snippets/ui/stores/snippets";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

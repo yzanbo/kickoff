@@ -1,7 +1,7 @@
 import type { VoiceModelInfo } from "@shared/voice/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { voiceStatusStore } from "@/features/voice/ui/stores/voice";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -35,7 +35,7 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
   const download = (m: VoiceModelInfo) => action.guard(async () => voiceStatusStore.set(await api.downloadVoiceModel(m.id)));
   const remove = async (m: VoiceModelInfo) => {
     const downloading = Boolean(m.download && !m.download.error);
-    if (!downloading && !(await confirmDialog({ title: `モデル（${m.label}）を削除しますか？`, message: "使うときは、もう一度ダウンロードします。", confirmLabel: "削除", danger: true }))) return;
+    if (!downloading && !(await confirm({ title: `モデル（${m.label}）を削除しますか？`, message: "使うときは、もう一度ダウンロードします。", confirmLabel: "削除", danger: true }))) return;
     await action.guard(async () => voiceStatusStore.set(await api.deleteVoiceModel(m.id)));
   };
 

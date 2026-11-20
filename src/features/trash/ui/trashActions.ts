@@ -2,7 +2,7 @@
 // 会話の中の kickoff-trash の行・ゴミ箱のプロジェクト・ファイル / ノート / チャット / プロジェクトを消したあとの知らせで共通に使う
 import { TRASH_RESTORE_EXISTS, type TrashKind } from "@shared/trash/types";
 import { api, ApiError } from "@/foundation/ui/api";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { purgeMessage } from "./trashText";
 
@@ -13,7 +13,7 @@ export async function restoreFromTrash(item: { id: string; label: string }): Pro
   try {
     const result = await api.restoreTrash(item.id).catch(async (e: unknown) => {
       if (!(e instanceof ApiError) || e.code !== TRASH_RESTORE_EXISTS) throw e;
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `元の場所に「${item.label}」があります`,
         message: "上書きせずに、「名前 2」のような別の名前で戻しますか？",
         confirmLabel: "別の名前で戻す",
@@ -36,7 +36,7 @@ export function showTrashedToast(trashId: string, label: string) {
 
 /** 3 日を待たずに 1 件を完全に消す（確かめてから。消したら知らせて true。やめた・失敗したら false。失敗はお知らせ） */
 export async function purgeFromTrash(item: { id: string; label: string; kind: TrashKind }): Promise<boolean> {
-  const ok = await confirmDialog({ title: `「${item.label}」を完全に消しますか？`, message: purgeMessage([item.kind]), confirmLabel: "完全に消す", danger: true });
+  const ok = await confirm({ title: `「${item.label}」を完全に消しますか？`, message: purgeMessage([item.kind]), confirmLabel: "完全に消す", danger: true });
   if (!ok) return false;
   try {
     await api.purgeTrash(item.id);
@@ -54,7 +54,7 @@ export async function purgeFromTrash(item: { id: string; label: string; kind: Tr
  */
 export async function emptyTrash(items: readonly { id: string; kind: TrashKind }[], title: string): Promise<boolean> {
   if (items.length === 0) return false;
-  const ok = await confirmDialog({ title, message: purgeMessage(items.map((i) => i.kind)), confirmLabel: "完全に消す", danger: true });
+  const ok = await confirm({ title, message: purgeMessage(items.map((i) => i.kind)), confirmLabel: "完全に消す", danger: true });
   if (!ok) return false;
   try {
     const { purged } = await api.purgeTrashItems(items.map((i) => i.id));

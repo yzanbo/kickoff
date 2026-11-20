@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { choiceDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { choose, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { mainCheckoutNotes } from "./githubMerge";
 import { linkOf } from "./githubPrompt";
@@ -13,21 +13,21 @@ import { linkOf } from "./githubPrompt";
 /** チェックアウトの流れ（running は本体で作業中のチャットの名前。呼ぶ側がチャットの店から渡す） */
 export async function checkoutPull(projectId: number, detail: GitHubPullDetail, running: string[]) {
   const n = detail.item.number;
-  const place = await choiceDialog({
+  const place = await choose({
     title: `PR #${n} のブランチをどこに取り出しますか？`,
     message: `ブランチ ${detail.item.head_ref} を取り出して、手元で動かして確かめられるようにします。新しいワークツリーなら、本体の作業はそのままです。`,
     choices: [
       { value: "worktree", label: "新しいワークツリー" },
       { value: "main", label: "本体" },
     ],
-  });
+  }).then((r) => r?.value ?? null);
   if (!place) return;
   if (place === "main") {
     const status = await api.gitStatus(projectId).catch(() => null);
     const changes = status?.repo ? new Set([...status.staged, ...status.unstaged, ...status.conflicts].map((f) => f.path)).size : 0;
     const notes = mainCheckoutNotes(changes, running);
     if (notes.length > 0) {
-      const ok = await confirmDialog({ title: "本体のブランチを切り替えますか？", message: ["本体のブランチを PR のブランチに切り替えます。", "", "注意:", ...notes].join("\n"), confirmLabel: "切り替える" });
+      const ok = await confirm({ title: "本体のブランチを切り替えますか？", message: ["本体のブランチを PR のブランチに切り替えます。", "", "注意:", ...notes].join("\n"), confirmLabel: "切り替える" });
       if (!ok) return;
     }
   }
@@ -38,11 +38,11 @@ export async function checkoutPull(projectId: number, detail: GitHubPullDetail, 
   if (!result) return;
   worktreesStore.invalidate(projectId);
   const where = result.worktree_path ? `ワークツリー（${result.worktree_path}）` : "本体";
-  const start = await choiceDialog({
+  const start = await choose({
     title: "PR のブランチを取り出しました",
     message: `ブランチ ${result.branch} を${where}に取り出しました。`,
     choices: [{ value: "chat", label: "ここで新しいチャット", primary: true }],
-  });
+  }).then((r) => r?.value ?? null);
   if (start) openSeededChat(projectId, result.worktree_path ? { kind: "existing", path: result.worktree_path } : { kind: "main" }, { text: "", link: linkOf(detail) });
 }
 

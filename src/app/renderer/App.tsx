@@ -32,7 +32,7 @@ import { useFallbackProject } from "@/features/projects/ui/currentProject";
 import { requestCodeSearchFocus } from "@/features/files/ui/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/ui/useSidebar";
 import { terminalTargets } from "@/features/panel/ui/usePanel";
-import { DialogHost } from "@/foundation/ui/kit/dialogs";
+import { AskHost } from "@/foundation/ui/kit/AskHost";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/ui/DbUnlockHost";
 import { DropHintHost } from "@/foundation/ui/kit/DropHint";
@@ -248,7 +248,7 @@ export function App() {
           chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
           reveal={showsProjectPage ? projectHeaderMode : "show"}
         />
-        <DialogHost />
+        <AskHost />
         {/* 保存した DB のパスワードをキーチェーンで開けなかったときに、その場で聞く */}
         <DbUnlockHost />
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}

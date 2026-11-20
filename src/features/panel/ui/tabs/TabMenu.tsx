@@ -1,6 +1,6 @@
 import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Pencil, Rows2, SquarePen, Undo2, X } from "lucide-react";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { ChatMenuItems } from "@/features/chatList/ui/menu/ChatMenuItems";
 import { DraftMenuItems } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { draftOfPanelTab } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -138,7 +138,7 @@ export function TabMenu({
           chat={chat}
           onRename={onRename}
           onClose={onClose}
-          onError={(m) => void alertDialog("操作できませんでした", m)}
+          onError={(m) => void alert("操作できませんでした", m)}
           onNewChat={panel.kinds.has("chat") ? (place) => startNew(place) : undefined}
           before={
             <>

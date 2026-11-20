@@ -2,7 +2,7 @@
 import type { Attachment, QueuedMessage } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 
 /** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示・GitHub の issue から始めるとき） */

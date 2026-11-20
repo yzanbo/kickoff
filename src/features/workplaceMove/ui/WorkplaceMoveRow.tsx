@@ -2,7 +2,7 @@ import { GitBranch } from "lucide-react";
 import type { WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
 import { api } from "@/foundation/ui/api";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 
 /**
  * AI が作業場所を移す予約の行（流れのいちばん下。作業中の様子の workplace_move）:

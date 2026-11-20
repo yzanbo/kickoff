@@ -5,7 +5,7 @@ import { formatSize } from "@shared/attachments/truncate";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 
@@ -32,7 +32,7 @@ export function OrphanSessions() {
     });
   const trash = () =>
     run("trash", async () => {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `会話記録 ${picked.size} 件（${formatSize(pickedSize)}）をゴミ箱に入れますか？`,
         message: "3 日はゴミ箱から戻せ、3 日たつと本当に消えます。ターミナルで直接使った Claude Code の記録も一覧に出るので、続けたいものは選ばないでください。",
         confirmLabel: "ゴミ箱に入れる",

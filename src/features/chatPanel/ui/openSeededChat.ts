@@ -4,7 +4,7 @@ import type { GitHubLink } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { choiceDialog } from "@/foundation/ui/kit/dialogs";
+import { choose } from "@/foundation/ui/kit/ask";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { openDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui/surfaces";
@@ -13,7 +13,7 @@ import { askNewWorktreeBranch, type Workplace } from "@/foundation/ui/workplace/
 /** 作業場所を選ぶ（新しいワークツリー / 本体 / いまあるワークツリー）。やめたら null。branch は新しいワークツリーの名前の案 */
 export async function chooseWorkplace(projectId: number, branch: string): Promise<Workplace | null> {
   const worktrees = (await api.gitWorktrees(projectId).catch(() => [])).filter((w) => !w.main && !w.prunable && w.branch);
-  const picked = await choiceDialog({
+  const picked = await choose({
     title: "どこで作業しますか",
     message: "ほかのチャットと並行して進めるなら、新しいワークツリーがおすすめです（ファイルがぶつかりません）。",
     choices: [
@@ -21,17 +21,17 @@ export async function chooseWorkplace(projectId: number, branch: string): Promis
       { value: "main", label: "本体" },
       ...(worktrees.length > 0 ? [{ value: "existing", label: "いまあるワークツリー…" }] : []),
     ],
-  });
+  }).then((r) => r?.value ?? null);
   if (picked === "main") return { kind: "main" };
   if (picked === "new") {
     const name = await askNewWorktreeBranch(projectId, branch);
     return name ? { kind: "new", branch: name } : null;
   }
   if (picked !== "existing") return null;
-  const path = await choiceDialog({
+  const path = await choose({
     title: "どのワークツリーで作業しますか",
     choices: worktrees.map((w) => ({ value: w.path, label: w.branch ?? w.path })),
-  });
+  }).then((r) => r?.value ?? null);
   return path ? { kind: "existing", path } : null;
 }
 

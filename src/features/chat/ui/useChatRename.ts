@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** 名前を変えられなかったときの既定の知らせ方（お知らせのダイアログ） */
-const alertRenameFailure = (message: string) => void alertDialog("名前を変更できませんでした", message);
+const alertRenameFailure = (message: string) => void alert("名前を変更できませんでした", message);
 
 /** チャットの名前をその場で変える（右クリックメニューの「名前を変更」から。ダイアログは出さない）。onError を省くとお知らせで出す */
 export function useChatRename(onError: (message: string) => void = alertRenameFailure) {

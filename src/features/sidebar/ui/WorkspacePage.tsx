@@ -4,7 +4,7 @@ import { BOARD_COLUMN_LABELS, type Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useChatDragging } from "@/features/groups/ui/groups";
 import { useChatRename } from "@/features/chat/ui/useChatRename";
@@ -149,7 +149,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const rowReorder = useChatRowReorder(project.id, chats, !collapsed);
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
-  const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
+  const rename = useChatRename((m) => void alert("名前を変更できませんでした", m));
   // まとまり（グループ別のグループ・No Group、作業場所別の作業場所）の中の行で隠す札（見出しと同じことを言うため）
   const bucketChip = showGroups ? "group" : list.grouping === "worktree" ? "worktree" : undefined;
   // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「要対応」のまとまりでは出さない）
@@ -407,7 +407,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           onOpenPanel={(chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id })}
           onRename={rename.start}
           onClose={rowMenu.close}
-          onError={(m) => void alertDialog("操作できませんでした", m)}
+          onError={(m) => void alert("操作できませんでした", m)}
           ignore=".chat-row-more"
         />
       )}

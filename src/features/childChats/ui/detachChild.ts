@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { allPanels, dispatchPanel } from "@/features/panel/ui/state/panelStore";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
@@ -34,7 +34,7 @@ export const detachBlockReason = (chat: Pick<Chat, "status">): string | null =>
 export async function detachChild(chat: Chat, to: DetachTo): Promise<Chat | null> {
   const blocked = detachBlockReason(knownChat(chat.id) ?? chat);
   if (blocked) {
-    await alertDialog("親から外せません", blocked);
+    await alert("親から外せません", blocked);
     return null;
   }
   const parent = chat.parent_chat_id === null ? undefined : knownChat(chat.parent_chat_id);
@@ -44,7 +44,7 @@ export async function detachChild(chat: Chat, to: DetachTo): Promise<Chat | null
     to.parentId === null
       ? `親のないチャットにして、サイドバーの${to.groupName ? `「${to.groupName}」` : "一覧"}に並べます。`
       : `「${chatTitle(raiseTo?.title ?? "")}」の子チャットにします。`;
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `「${chatTitle(chat.title)}」を${parentName}から外しますか？`,
     message: `${where}\n親の発言の下の札は消え、${parentName}の下へは戻せません。会話はそのまま続けられ、この下の子チャット（孫など）も一緒についていきます。`,
     confirmLabel: to.parentId === null ? "親から外す" : "子にする",

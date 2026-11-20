@@ -10,7 +10,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { confirmRemoveWorktree } from "@/features/worktrees/ui/removeWorktree";
 import { mergeWarnings, pickMergeMethod } from "./githubMerge";
 

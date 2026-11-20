@@ -1,7 +1,7 @@
 // 巻き戻しの確かめ（会話だけ・ファイルだけ・両方）。ファイルを戻すのは Claude Code のファイルのチェックポイント（コアの rewind-files）
 import type { FileRewindResult } from "@shared/ai/types";
 import { api } from "@/foundation/ui/api";
-import { alertDialog, choiceDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, choose, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 
 /**
  * 戻すと変わるファイル（「2 個のファイル（README.md、a.ts。戻すと +3 −12 行）」。名前は多ければ頭の 8 個。
@@ -29,17 +29,17 @@ export async function confirmRewindSend(chatId: number, eventId: number): Promis
   const files = await preview(chatId, eventId);
   const title = "この発言から書き直して送り直しますか？";
   if (files && (files.files_changed?.length ?? 0) > 0) {
-    const choice = await choiceDialog({
+    const choice = await choose({
       title,
       message: `この発言から後ろのやり取りは消えます。この発言のあとに AI が変えた ${describe(files)}も、この発言を送る前の状態に戻せます。${NOT_RESTORED}`,
       choices: [
         { value: "chat", label: "会話だけ戻して送り直す", primary: true },
         { value: "files", label: "ファイルも戻して送り直す" },
       ],
-    });
+    }).then((r) => r?.value ?? null);
     return choice === null ? null : { restoreFiles: choice === "files" };
   }
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title,
     message: files
       ? "この発言から後ろのやり取りは消えます（この発言のあとに AI が変えたファイルはありません）。"
@@ -59,10 +59,10 @@ export async function restoreFilesBefore(chatId: number, eventId: number): Promi
     return fail(e);
   }
   if ((files.files_changed?.length ?? 0) === 0) {
-    await alertDialog("戻すファイルはありません", "この発言を送ったあとに、AI が編集のツールで変えたファイルはありません。");
+    await alert("戻すファイルはありません", "この発言を送ったあとに、AI が編集のツールで変えたファイルはありません。");
     return;
   }
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: "ファイルを、この発言を送る前の状態に戻しますか？",
     message: `${describe(files)}を戻します。会話はそのままです。${NOT_RESTORED}戻したあとで元に戻すことはできません。`,
     confirmLabel: "ファイルを戻す",

@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { openSettings } from "@/features/settings/ui/openSettings";

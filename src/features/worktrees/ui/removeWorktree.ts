@@ -1,6 +1,6 @@
 import type { GitWorktree } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { choiceDialog, choiceDialogWithChecks, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { choose, confirm } from "@/foundation/ui/kit/ask";
 import { worktreeEnvOf, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { removalChecks } from "./worktreeEnvText";
 
@@ -35,13 +35,13 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
   const title = `ワークツリー「${label}」を消しますか？`;
   const { checks, read } = removalChecks(worktreeEnvOf(projectId, worktree.path), info.db_connections);
   const picked = checks.length
-    ? await choiceDialogWithChecks({ title, message, choices, checks })
-    : await choiceDialog({ title, message, choices }).then((value) => value && { value, checked: [] });
+    ? await choose({ title, message, choices, checks })
+    : await choose({ title, message, choices }).then((r) => r?.value ?? null).then((value) => value && { value, checked: [] });
   if (!picked) return null;
   const choice = picked.value;
   const deleteBranch = choice === "both";
   if (deleteBranch && info.only_here > 0) {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `ブランチ「${info.branch}」も消しますか？`,
       message: `このブランチにしかないコミットが ${info.only_here} 件あります。ブランチを消すと、これらのコミットは元に戻せません。`,
       confirmLabel: "コミットごと消す",

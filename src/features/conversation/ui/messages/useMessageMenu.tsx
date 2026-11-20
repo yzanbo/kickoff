@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode } from "react";
 import { api } from "@/foundation/ui/api";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyRich } from "@/foundation/ui/lib/richCopy";

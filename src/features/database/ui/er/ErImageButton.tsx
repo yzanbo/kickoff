@@ -3,7 +3,7 @@ import { ImageDown } from "lucide-react";
 import { useRef } from "react";
 import { safeNoteName } from "@shared/notes/names";
 import { downloadBlob, downloadText } from "@/foundation/ui/lib/download";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { ErNode } from "./ErTableNode";

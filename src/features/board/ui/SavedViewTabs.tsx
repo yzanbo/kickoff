@@ -2,7 +2,7 @@ import { Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -32,7 +32,7 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
   /** 同じ一覧の同じ名前は付けられない（名前を変えるときはそのビュー自身を除く） */
   const nameError = (exceptId?: string) => (name: string) => (viewNameTaken(saved.views, name, exceptId) ? `「${name}」というビューはもうあります` : null);
   const remove = async (view: SavedView) => {
-    if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "表示の設定はいまのまま残ります。", confirmLabel: "削除", danger: true })) saved.remove(view.id);
+    if (await confirm({ title: `ビュー「${view.name}」を削除しますか？`, message: "表示の設定はいまのまま残ります。", confirmLabel: "削除", danger: true })) saved.remove(view.id);
   };
   return (
     <div className="board-views" role="tablist" aria-label="保存したビュー">

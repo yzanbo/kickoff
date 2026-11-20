@@ -5,7 +5,7 @@ import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets
 import { useAllSnippets } from "@/features/snippets/ui/stores/snippets";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { cx } from "@/foundation/ui/lib/cx";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { confirmDeleteSnippet, createSnippet, reorderSnippets, scopeLabel, updateSnippet } from "./snippetActions";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { GitStatus } from "@shared/git/types";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import type { GitStatusController } from "./useGitStatus";
 
 /** コミットの欄の操作（実行中は、ほかの操作のボタンも押せなくする） */
@@ -34,7 +34,7 @@ export function useCommitActions({ status, git, action }: { status: Extract<GitS
     const stageAll = !amend && status.staged.length === 0;
     if (
       stageAll &&
-      !(await confirmDialog({
+      !(await confirm({
         title: "ステージした変更がありません",
         message: "すべての変更をステージしてコミットしますか？",
         confirmLabel: "すべてステージしてコミット",
@@ -46,7 +46,7 @@ export function useCommitActions({ status, git, action }: { status: Extract<GitS
       amend &&
       status.upstream &&
       status.ahead === 0 &&
-      !(await confirmDialog({
+      !(await confirm({
         title: "プッシュ済みのコミットを修正しますか？",
         message: "直前のコミットはもうリモートにあります。書き直すと手元とリモートが分かれ、ふつうのプッシュでは送れなくなります。",
         confirmLabel: "修正する",

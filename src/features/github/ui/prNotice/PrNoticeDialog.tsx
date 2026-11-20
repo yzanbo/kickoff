@@ -11,7 +11,7 @@ import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
 import { useWorktreeEnv, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
@@ -137,7 +137,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
     });
     if (!ok) return;
     dialog.close();
-    if (pullError) void alertDialog("本体を最新にできませんでした", pullError);
+    if (pullError) void alert("本体を最新にできませんでした", pullError);
   };
 
   return (

@@ -3,7 +3,7 @@ import { api } from "@/foundation/ui/api";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { currentProjects } from "@/features/projects/ui/stores/projects";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { alertDialog, confirmDialog, confirmWithCheck, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
 import { gitInitChoice } from "./gitInitChoice";
 
@@ -25,14 +25,14 @@ export async function changeProjectFolder(project: Project): Promise<void> {
   if (!picked) return;
   try {
     const info = await api.inspectWorkspace(picked);
-    if (!info.exists || !info.is_directory) return void (await alertDialog("フォルダが見つかりません", info.path));
+    if (!info.exists || !info.is_directory) return void (await alert("フォルダが見つかりません", info.path));
     const target = info.path;
     // 登録済みかはコアが実体のパスで比べる（/tmp → /private/tmp など、登録したパスがシンボリックリンクを含んでいても見分ける）
     const owner = info.registered_project_id ?? null;
-    if (owner === project.id) return void (await alertDialog("いまと同じフォルダです", target));
+    if (owner === project.id) return void (await alert("いまと同じフォルダです", target));
     if (owner !== null) {
       const name = currentProjects().find((p) => p.id === owner)?.name ?? "ほか";
-      return void (await alertDialog("ほかのプロジェクトのフォルダです", `${target}\n\nこのフォルダは「${name}」のプロジェクトフォルダです。同じフォルダを 2 つのプロジェクトで使うことはできません。`));
+      return void (await alert("ほかのプロジェクトのフォルダです", `${target}\n\nこのフォルダは「${name}」のプロジェクトフォルダです。同じフォルダを 2 つのプロジェクトで使うことはできません。`));
     }
     // ほかのプロジェクトのフォルダの中・中にある（変えられるので、確かめの頭で知らせる）
     const overlaps = folderOverlapLines(folderOverlaps(target, currentProjects(), project.id), "warn").map((line) => `⚠ ${line.text}`);
@@ -53,17 +53,17 @@ export async function changeProjectFolder(project: Project): Promise<void> {
     // git の管理を始めるかは、取り込みと同じチェックで選ぶ（初めはオフ。もうコミットのあるリポジトリの一番上なら出さない）
     const choice = gitInitChoice(info);
     const decided = choice
-      ? await confirmWithCheck({
+      ? await confirm({
           title,
           message,
           confirmLabel: "変更",
-          check: {
+          checks: [{
             label: choice.label,
             // 中のフォルダで別のリポジトリにすると、同じワークツリーの中では続けられない
             help: (checked) => choice.help(checked) + (checked && inner && worktrees.count > 0 && worktrees.sameRepo ? ` ${WORKTREE_MAIN(worktrees.count)}` : ""),
-          },
-        })
-      : (await confirmDialog({ title, message, confirmLabel: "変更" }))
+          }],
+        }).then((r) => r && { checked: r.checked[0] })
+      : (await confirm({ title, message, confirmLabel: "変更" }))
         ? { checked: false }
         : null;
     if (decided === null) return;

@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react";
 import { api } from "@/foundation/ui/api";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";

@@ -1,6 +1,6 @@
 import type { GitWorktree } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { promptDialog } from "@/foundation/ui/kit/dialogs";
+import { prompt } from "@/foundation/ui/kit/ask";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
@@ -16,13 +16,13 @@ export function useWorktreeActions(projectId: number, log: GitLogController) {
 
   // ワークツリーを作る（ブランチの名前を聞く。なければいまのコミットから作る）
   const createWorktree = async () => {
-    const branch = await promptDialog({
+    const branch = await prompt({
       title: "ワークツリーを作る",
       message: `いまのコミットから新しいブランチを作り、リポジトリの隣の「${repoName}-worktrees」フォルダに取り出します。いまあるブランチの名前なら、そのブランチを取り出します。`,
       label: "ブランチの名前",
       placeholder: "例: feature/login",
       confirmLabel: "作る",
-    });
+    }).then((r) => r?.value ?? null);
     if (!branch) return;
     await worktreeError.guard(async () => {
       worktreesStore.set(projectId, await api.addWorktree(projectId, branch));

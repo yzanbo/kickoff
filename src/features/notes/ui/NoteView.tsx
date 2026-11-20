@@ -13,7 +13,7 @@ import { useNoteList } from "@/features/notes/ui/stores/notes";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { AddToChat } from "@/foundation/ui/kit/icons";
-import { alertDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, reportFailure } from "@/foundation/ui/kit/ask";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
@@ -158,7 +158,7 @@ export function NoteView({
   // HTML のノートのページで、ノートのフォルダの中へのリンクを押した
   const openLink = (to: string) => {
     const entry = list.data?.entries.find((e) => e.path === to);
-    if (!entry) void alertDialog("リンク先が見つかりません", `ノートのフォルダに「${to}」がありません。`);
+    if (!entry) void alert("リンク先が見つかりません", `ノートのフォルダに「${to}」がありません。`);
     else if (!entry.dir && noteExtensionOf(to)) {
       if (to !== path) onOpenNote(to);
     } else if (window.kickoff) void window.kickoff.externalApps.revealPath(`${dir}/${to}`);

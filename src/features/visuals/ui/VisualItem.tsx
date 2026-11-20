@@ -9,7 +9,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";

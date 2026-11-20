@@ -1,6 +1,6 @@
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
-import { reportFailure } from "./dialogs";
+import { reportFailure } from "./ask";
 import { IconButton } from "./IconButton";
 
 /** コピーしたことを見せておく時間 */

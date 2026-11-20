@@ -1,7 +1,7 @@
 import { Inbox } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -45,7 +45,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
   const total = [...sections, ...byProject].reduce((n, s) => n + s.chats.length, 0);
   // 行の右クリックのメニューと、名前をその場で変える（プロジェクトの一覧の行と同じ）
   const rowMenu = useContextMenu<Chat>();
-  const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
+  const rename = useChatRename((m) => void alert("名前を変更できませんでした", m));
   const topFold = useFold("sidebar", "waiting:top");
 
   const renderRow = (chat: Chat) => (
@@ -95,7 +95,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
           onOpenPanel={(chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id })}
           onRename={rename.start}
           onClose={rowMenu.close}
-          onError={(m) => void alertDialog("操作できませんでした", m)}
+          onError={(m) => void alert("操作できませんでした", m)}
           ignore=".chat-row-more"
         />
       )}

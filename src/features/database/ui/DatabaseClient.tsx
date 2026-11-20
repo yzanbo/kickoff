@@ -28,7 +28,7 @@ import { useDbConnections } from "@/features/database/ui/client/connectionsStore
 import { SideNote } from "@/features/notes/ui/SideNote";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { ConnectionMenu } from "./ConnectionMenu";
@@ -161,7 +161,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す。テーブルのタブは保存していない変更があれば捨てるか聞く） */
   const closeTab = async (tab: DbClientTab) => {
     if (tab.kind === "table" && unsavedTables.has(unsavedKey(place, tab.key))) {
-      const ok = await confirmDialog({ title: "保存していない変更があります", message: `「${tab.name}」の変更を保存せずに閉じますか？変更は捨てます。`, confirmLabel: "捨てて閉じる", danger: true });
+      const ok = await confirm({ title: "保存していない変更があります", message: `「${tab.name}」の変更を保存せずに閉じますか？変更は捨てます。`, confirmLabel: "捨てて閉じる", danger: true });
       if (!ok) return;
     }
     if (tab.kind === "sql") {

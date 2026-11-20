@@ -18,7 +18,7 @@ import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
-import { alertDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, prompt } from "@/foundation/ui/kit/ask";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useOrderedTags } from "./projectTagFilter";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
@@ -74,15 +74,15 @@ export function useProjectMenu(projects: Project[]) {
 
 /** 新しいタグの名前を聞いて付ける（やめたら何もしない。上限を超えるならお知らせ） */
 async function addNewTag(project: Project) {
-  if (project.tags.length >= MAX_TAGS) return alertDialog("タグを足せません", `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
-  const name = await promptDialog({
+  if (project.tags.length >= MAX_TAGS) return alert("タグを足せません", `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
+  const name = await prompt({
     title: `「${project.name}」に新しいタグを付ける`,
     label: "タグの名前",
     placeholder: "例: 仕事・プライベート・クライアント A",
     confirmLabel: "付ける",
-  });
+  }).then((r) => r?.value ?? null);
   if (!name) return;
-  if (name.length > MAX_TAG_LENGTH) return alertDialog("タグを付けられません", `タグは ${MAX_TAG_LENGTH} 文字までです。`);
+  if (name.length > MAX_TAG_LENGTH) return alert("タグを付けられません", `タグは ${MAX_TAG_LENGTH} 文字までです。`);
   changeProject(project.id, { tags: normalizeTags([...project.tags, name]) });
 }
 

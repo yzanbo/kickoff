@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/git/types";
 import { api, ApiError } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
-import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
 import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHits";
 import type { ChangesSelection } from "./useFileTabs";
@@ -36,12 +36,12 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
     if (!result || files.length === 0 || busy) return;
     const open = selection.dirtyPaths().find((p) => files.some((f) => f.path === p));
     if (open) {
-      void alertDialog("保存していない変更があります", `「${baseName(open)}」を保存してから置換してください。`);
+      void alert("保存していない変更があります", `「${baseName(open)}」を保存してから置換してください。`);
       return;
     }
     if (scope === "all") {
       const counts = resultCounts(files);
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: "すべて置換しますか？",
         message: `${counts.files} 個のファイルの ${counts.lines} 行で、見つかった部分を「${search.replace}」に置換します。${result.value.truncated ? "（結果が多いため、表示している分だけを置換します）" : ""}`,
         confirmLabel: "すべて置換",
@@ -80,7 +80,7 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
     setLast(null);
     search.rerun();
     void git.refresh();
-    if (kept.length > 0) void alertDialog("戻せなかったファイルがあります", `置換したあとで変わったため、次のファイルは戻していません: ${kept.join("、")}`);
+    if (kept.length > 0) void alert("戻せなかったファイルがあります", `置換したあとで変わったため、次のファイルは戻していません: ${kept.join("、")}`);
   };
 
   return {

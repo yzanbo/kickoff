@@ -4,7 +4,7 @@ import type { Attachment, Chat } from "@shared/chat/types";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
 import { Composer } from "@/features/composer/ui/Composer";
 import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
@@ -41,7 +41,7 @@ export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; e
   const moveToComposer = async (text: string, attachments: Attachment[]) => {
     endHeldEdit(chat.id);
     composer.current?.fill(text, { append: true, attachments });
-    await alertDialog("この指示はもう送られていました", "書き直した文と添付は、チャット欄に移しました。");
+    await alert("この指示はもう送られていました", "書き直した文と添付は、チャット欄に移しました。");
   };
   const save = async (text: string, attachments: Attachment[]) => {
     if (gone) return moveToComposer(text, attachments);

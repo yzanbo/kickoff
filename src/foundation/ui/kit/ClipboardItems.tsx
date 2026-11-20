@@ -1,5 +1,5 @@
 import { lineLocation, textWithPath } from "@/foundation/ui/lib/pathCopy";
-import { reportFailure } from "./dialogs";
+import { reportFailure } from "./ask";
 import { MenuItem } from "./PopupMenu";
 
 export const copyClipboardText = (text: string) => navigator.clipboard.writeText(text).catch(reportFailure("コピーできませんでした"));

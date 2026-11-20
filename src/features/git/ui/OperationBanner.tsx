@@ -2,7 +2,7 @@ import { TriangleAlert } from "lucide-react";
 import type { GitConflictResolution, GitOperation, GitOperationAction, GitStatus } from "@shared/git/types";
 import { GIT_OPERATION_LABELS } from "@shared/git/types";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import type { CommitBusy } from "./useCommitActions";
 import type { GitStatusController } from "./useGitStatus";
 
@@ -28,10 +28,10 @@ export function OperationBanner({ status, git, action }: { status: Extract<GitSt
 
   const operate = (how: GitOperationAction) =>
     action.guard(async () => {
-      if (how === "abort" && !(await confirmDialog({ title: `${label}を取りやめる`, message: `${label}の前の状態に戻します。解いた中身も元に戻ります。`, confirmLabel: "取りやめる", danger: true }))) return;
+      if (how === "abort" && !(await confirm({ title: `${label}を取りやめる`, message: `${label}の前の状態に戻します。解いた中身も元に戻ります。`, confirmLabel: "取りやめる", danger: true }))) return;
       const next = await git.operate(how);
       // 続けた先（リベースの次のコミットなど）でまた衝突した
-      if (next.length > 0) await alertDialog(`${label}の続きでも衝突しました（${next.length} 件）`, "衝突したファイルを解決済みにしてから、もう一度「続ける」を押してください。");
+      if (next.length > 0) await alert(`${label}の続きでも衝突しました（${next.length} 件）`, "衝突したファイルを解決済みにしてから、もう一度「続ける」を押してください。");
     });
   const resolve = (path: string, how: GitConflictResolution) => action.guard(() => git.resolve(path, how));
 

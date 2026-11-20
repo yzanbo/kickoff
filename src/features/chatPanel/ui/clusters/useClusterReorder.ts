@@ -1,7 +1,7 @@
 import type { DragEvent } from "react";
 import { api } from "@/foundation/ui/api";
 import { useReorder } from "@/features/groups/ui/groups";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { TabCluster } from "./tabClusters";
 
 /** 並べ替えられるまとまり（自分で作ったグループ。グループなし・作業場所・その他は動かさない） */

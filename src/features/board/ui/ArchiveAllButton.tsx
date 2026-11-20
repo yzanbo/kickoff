@@ -1,7 +1,7 @@
 import { Archive } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 
@@ -16,7 +16,7 @@ export function ArchiveAllButton({ chats }: { chats: Chat[] }) {
       label="既読をすべてアーカイブ"
       title={`既読の ${targets.length} 件をすべてアーカイブ`}
       onClick={async () => {
-        const ok = await confirmDialog({
+        const ok = await confirm({
           title: `既読の ${targets.length} 件をアーカイブしますか？`,
           message: "一覧から隠れます。会話の記録は残り、あとから戻せます。",
           confirmLabel: "すべてアーカイブ",
@@ -25,7 +25,7 @@ export function ArchiveAllButton({ chats }: { chats: Chat[] }) {
         try {
           await Promise.all(targets.map((r) => api.archiveChat(r.id)));
         } catch (e) {
-          await alertDialog("アーカイブできませんでした", errorMessage(e));
+          await alert("アーカイブできませんでした", errorMessage(e));
         }
       }}
     />

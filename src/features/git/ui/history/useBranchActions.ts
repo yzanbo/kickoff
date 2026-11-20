@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { alertDialog, choiceDialog, confirmDialog, confirmWithCheck, promptDialog, promptWithCheck } from "@/foundation/ui/kit/dialogs";
+import { alert, choose, confirm, prompt } from "@/foundation/ui/kit/ask";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
@@ -45,16 +45,16 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   /** 衝突して止まったとき: 変更タブで解くか、取りやめて元に戻すかを選んでもらう */
   const handleConflicts = async (conflicts: string[], operation: GitOperation) => {
     const label = GIT_OPERATION_LABELS[operation];
-    const picked = await choiceDialog({
+    const picked = await choose({
       title: `${label}で衝突しました（${conflicts.length} 件）`,
       message: `${fileList(conflicts)}\n\n変更タブで衝突したファイルを直し（こちらの版・取り込む側の版を選ぶこともできます）、解決済みにしてから「続ける」を押してください。取りやめると、${label}の前の状態に戻ります。`,
       choices: [
         { value: "abort", label: "取りやめる" },
         { value: "resolve", label: "変更タブで解決する", primary: true },
       ],
-    });
+    }).then((r) => r?.value ?? null);
     if (picked === "abort") {
-      await git.operate("abort").catch((e: unknown) => alertDialog("取りやめられませんでした", errorMessage(e)));
+      await git.operate("abort").catch((e: unknown) => alert("取りやめられませんでした", errorMessage(e)));
       log.refresh();
     } else if (picked === "resolve") {
       navigate({ name: "project", id: projectId, tab: "changes" });
@@ -68,7 +68,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   const run = async (name: string, body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult | null> => {
     setBusy(name);
     const result = await sendAction(body, operation).catch(async (e: unknown) => {
-      await alertDialog(`${name}できませんでした`, errorMessage(e));
+      await alert(`${name}できませんでした`, errorMessage(e));
       return null;
     });
     setBusy(null);
@@ -91,18 +91,18 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   /** マージ・リベースの前に見込みを見せて確かめる（取り込むものがなければ知らせるだけ） */
   const confirmMerge = async (kind: "merge" | "rebase", other: string): Promise<boolean> => {
     if (!current) {
-      await alertDialog("ブランチから外れています", "マージ・リベースは、ブランチをチェックアウトしてから行ってください。");
+      await alert("ブランチから外れています", "マージ・リベースは、ブランチをチェックアウトしてから行ってください。");
       return false;
     }
     let preview;
     try {
       preview = await api.gitMergePreview(target, other);
     } catch (e) {
-      await alertDialog("見込みを調べられませんでした", errorMessage(e));
+      await alert("見込みを調べられませんでした", errorMessage(e));
       return false;
     }
     if (preview.up_to_date) {
-      await alertDialog("取り込むものはありません", `「${current}」には「${other}」のコミットがすべて入っています。`);
+      await alert("取り込むものはありません", `「${current}」には「${other}」のコミットがすべて入っています。`);
       return false;
     }
     const outlook = preview.fast_forward
@@ -111,7 +111,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
         ? `衝突しそうなファイルがあります（${preview.conflicts.length} 件）:\n${fileList(preview.conflicts)}\n\n進めると衝突したところで止まり、変更タブで解いてから続けます（取りやめることもできます）。`
         : "衝突せずにできる見込みです。";
     const title = kind === "merge" ? `「${current}」に「${other}」をマージ` : `「${current}」を「${other}」の上にリベース`;
-    return confirmDialog({ title, message: [outlook, ...filesWarning()].join("\n\n"), confirmLabel: kind === "merge" ? "マージ" : "リベース" });
+    return confirm({ title, message: [outlook, ...filesWarning()].join("\n\n"), confirmLabel: kind === "merge" ? "マージ" : "リベース" }).then((r) => r !== null);
   };
 
   const branchOf = (name: string) => refs?.branches.find((b) => b.name === name);
@@ -123,7 +123,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     worktreesStore.invalidate(projectId);
     log.refresh();
     const made = list.find((w) => w.branch === branch);
-    if (made && (await confirmDialog({ title: "ワークツリーを作りました", message: made.path, confirmLabel: "この作業場所に切り替える" }))) onWorktreeChange(made.path);
+    if (made && (await confirm({ title: "ワークツリーを作りました", message: made.path, confirmLabel: "この作業場所に切り替える" }))) onWorktreeChange(made.path);
   };
 
   /** ブランチを消す（マージしていなければ確かめ直して強制で消す。やめたら何もしない。失敗は投げる） */
@@ -132,7 +132,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     const result = await request(false).catch(async (e: unknown) => {
       // マージしていないコミットがあると -d では消せないので、消えてもよいか確かめ直す
       if (!/not fully merged/.test(errorMessage(e))) throw e;
-      const force = await confirmDialog({
+      const force = await confirm({
         title: `「${branch}」はマージしていません`,
         message: "ほかのブランチに入っていないコミットがあります。消すと、そのコミットはたどれなくなります。",
         confirmLabel: "それでも削除",
@@ -157,7 +157,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     /** 手元のブランチをチェックアウト（ファイルが入れ替わるときの注意があれば確かめる） */
     checkout: async (branch: string) => {
       const warnings = filesWarning();
-      if (warnings.length > 0 && !(await confirmDialog({ title: `「${branch}」をチェックアウト`, message: warnings.join("\n\n"), confirmLabel: "チェックアウト" }))) return;
+      if (warnings.length > 0 && !(await confirm({ title: `「${branch}」をチェックアウト`, message: warnings.join("\n\n"), confirmLabel: "チェックアウト" }))) return;
       await run("チェックアウト", { action: "checkout", branch });
     },
     /** リモートのブランチをチェックアウト（追いかける手元のブランチを作る。もう追いかけているブランチがあれば、それをチェックアウト） */
@@ -166,22 +166,22 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
       if (tracking) {
         if (tracking.current) return;
         const warnings = filesWarning();
-        if (warnings.length > 0 && !(await confirmDialog({ title: `「${tracking.name}」をチェックアウト`, message: warnings.join("\n\n"), confirmLabel: "チェックアウト" }))) return;
+        if (warnings.length > 0 && !(await confirm({ title: `「${tracking.name}」をチェックアウト`, message: warnings.join("\n\n"), confirmLabel: "チェックアウト" }))) return;
         await run("チェックアウト", { action: "checkout", branch: tracking.name });
         return;
       }
-      const name = await promptDialog({
+      const name = await prompt({
         title: `「${remoteBranch}」をチェックアウト`,
         message: [`「${remoteBranch}」を追いかける手元のブランチを作って、チェックアウトします。`, ...filesWarning()].join("\n\n"),
         label: "手元のブランチの名前",
         initial: remoteBranch.slice(remote.length + 1),
         confirmLabel: "チェックアウト",
-      });
+      }).then((r) => r?.value ?? null);
       if (name) await run("チェックアウト", { action: "checkout_remote", remote_branch: remoteBranch, name });
     },
     /** タグ・コミットをチェックアウト（ブランチから外れる） */
     checkoutDetached: async (ref: string) => {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `「${ref}」をチェックアウト`,
         message: ["ブランチから外れた状態（detached HEAD）になります。ここでコミットするなら、先に新しいブランチを作ってください。", ...filesWarning()].join("\n\n"),
         confirmLabel: "チェックアウト",
@@ -191,18 +191,18 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     /** ブランチをワークツリーとして取り出す（作ったら、見ている作業場所をそこへ切り替えるか聞く） */
     checkoutAsWorktree: async (branch: string) => {
       setBusy("ワークツリーの作成");
-      await addBranchWorktree(branch).catch((e: unknown) => alertDialog("ワークツリーを作れませんでした", errorMessage(e)));
+      await addBranchWorktree(branch).catch((e: unknown) => alert("ワークツリーを作れませんでした", errorMessage(e)));
       setBusy(null);
     },
     fastForward: (branch: string) => run("早送り", { action: "fast_forward", branch }),
     pull: async (branch: string) => {
       // いまのブランチは分かれていればマージになるので、作業中のチャットがあれば確かめる
-      if (branch === current && busyChats > 0 && !(await confirmDialog({ title: `「${branch}」をプル`, message: filesWarning().join("\n\n"), confirmLabel: "プル" }))) return;
+      if (branch === current && busyChats > 0 && !(await confirm({ title: `「${branch}」をプル`, message: filesWarning().join("\n\n"), confirmLabel: "プル" }))) return;
       await run("プル", { action: "pull", branch }, "merge");
     },
     push: async (branch: string) => {
       const upstream = branchOf(branch)?.upstream;
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `「${branch}」をプッシュ`,
         message: upstream ? `「${upstream}」へプッシュします。` : "まだリモートにないので、origin に同じ名前で公開し、追いかけるようにします。",
         confirmLabel: "プッシュ",
@@ -210,10 +210,10 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
       if (ok) await run("プッシュ", { action: "push", branch });
     },
     pushAndCreatePr: async (branch: string) => {
-      const ok = await confirmDialog({ title: `「${branch}」をプッシュして PR を作る`, message: "プッシュしてから、GitHub に PR を作ります（タイトルと本文はコミットから）。", confirmLabel: "PR を作る" });
+      const ok = await confirm({ title: `「${branch}」をプッシュして PR を作る`, message: "プッシュしてから、GitHub に PR を作ります（タイトルと本文はコミットから）。", confirmLabel: "PR を作る" });
       if (!ok) return;
       const result = await run("PR の作成", { action: "push_pr", branch });
-      if (result?.pr) await alertDialog(`PR #${result.pr.number} を作りました`, `${result.pr.title}\n${result.pr.url}`);
+      if (result?.pr) await alert(`PR #${result.pr.number} を作りました`, `${result.pr.title}\n${result.pr.url}`);
     },
     merge: async (source: string) => {
       if (await confirmMerge("merge", source)) await run("マージ", { action: "merge", branch: source }, "merge");
@@ -223,55 +223,55 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     },
     /** 新しいブランチ（from から。作ったらチェックアウトするかも選ぶ） */
     createBranch: async (from: string, fromLabel = from) => {
-      const picked = await promptWithCheck({
+      const picked = await prompt({
         title: "新しいブランチ",
         message: `「${fromLabel}」から作ります。`,
         label: "ブランチの名前",
         placeholder: "例: feature/login",
         confirmLabel: "作る",
-        check: { label: "作ったらチェックアウトする", initial: busyChats === 0, help: (on) => (on && busyChats > 0 ? filesWarning()[0] : "") },
-      });
+        checks: [{ label: "作ったらチェックアウトする", initial: busyChats === 0, help: (on) => (on && busyChats > 0 ? filesWarning()[0] : "") }],
+      }).then((r) => r && { value: r.value, checked: r.checked[0] });
       if (picked) await run("ブランチの作成", { action: "create_branch", name: picked.value, from, checkout: picked.checked });
     },
     /** 新しいタグ（at に付ける。注釈つきのタグで、メッセージはタグの名前。origin にもプッシュするかも選ぶ） */
     createTag: async (at: string, atLabel = at) => {
-      const picked = await promptWithCheck({
+      const picked = await prompt({
         title: "新しいタグ",
         message: `「${atLabel}」に付けます。`,
         label: "タグの名前",
         placeholder: "例: v1.0.0",
         confirmLabel: "作る",
-        check: { label: "origin にもプッシュする", initial: false },
-      });
+        checks: [{ label: "origin にもプッシュする", initial: false }],
+      }).then((r) => r && { value: r.value, checked: r.checked[0] });
       if (picked) await run("タグの作成", { action: "create_tag", name: picked.value, at, message: picked.value, push: picked.checked });
     },
     setUpstream: (branch: string, upstream: string | null) => run("追跡の設定", { action: "set_upstream", branch, upstream }),
     rename: async (branch: string) => {
-      const name = await promptDialog({ title: `「${branch}」の名前を変更`, label: "新しい名前", initial: branch, confirmLabel: "変更" });
+      const name = await prompt({ title: `「${branch}」の名前を変更`, label: "新しい名前", initial: branch, confirmLabel: "変更" }).then((r) => r?.value ?? null);
       if (name && name !== branch) await run("名前の変更", { action: "rename_branch", branch, name });
     },
     /** ブランチを消す（リモートのブランチも消すかを選ぶ。マージしていなければ、強制で消すか確かめ直す） */
     deleteBranch: async (branch: string) => {
       const upstream = branchOf(branch)?.upstream;
       const picked = upstream
-        ? await confirmWithCheck({ title: `「${branch}」を削除`, message: "手元のブランチを消します。", confirmLabel: "削除", danger: true, check: { label: `リモートのブランチ「${upstream}」も消す`, initial: false } })
-        : (await confirmDialog({ title: `「${branch}」を削除`, message: "手元のブランチを消します。", confirmLabel: "削除", danger: true }))
+        ? await confirm({ title: `「${branch}」を削除`, message: "手元のブランチを消します。", confirmLabel: "削除", danger: true, checks: [{ label: `リモートのブランチ「${upstream}」も消す`, initial: false }] }).then((r) => r && { checked: r.checked[0] })
+        : (await confirm({ title: `「${branch}」を削除`, message: "手元のブランチを消します。", confirmLabel: "削除", danger: true }))
           ? { checked: false }
           : null;
       if (!picked) return;
       setBusy("ブランチの削除");
-      await deleteLocalBranch(branch, picked.checked).catch((e: unknown) => alertDialog("削除できませんでした", errorMessage(e)));
+      await deleteLocalBranch(branch, picked.checked).catch((e: unknown) => alert("削除できませんでした", errorMessage(e)));
       setBusy(null);
     },
     deleteRemoteBranch: async (remoteBranch: string) => {
-      const ok = await confirmDialog({ title: `リモートのブランチ「${remoteBranch}」を削除`, message: "リモートからブランチを消します（ほかの人の手元のブランチは残ります）。", confirmLabel: "削除", danger: true });
+      const ok = await confirm({ title: `リモートのブランチ「${remoteBranch}」を削除`, message: "リモートからブランチを消します（ほかの人の手元のブランチは残ります）。", confirmLabel: "削除", danger: true });
       if (ok) await run("リモートのブランチの削除", { action: "delete_remote_branch", remote_branch: remoteBranch });
     },
     pushTag: async (name: string) => {
-      if (await confirmDialog({ title: `タグ「${name}」をプッシュ`, message: "origin へプッシュします。", confirmLabel: "プッシュ" })) await run("タグのプッシュ", { action: "push_tag", name });
+      if (await confirm({ title: `タグ「${name}」をプッシュ`, message: "origin へプッシュします。", confirmLabel: "プッシュ" })) await run("タグのプッシュ", { action: "push_tag", name });
     },
     deleteTag: async (name: string) => {
-      const picked = await confirmWithCheck({ title: `タグ「${name}」を削除`, message: "手元のタグを消します。", confirmLabel: "削除", danger: true, check: { label: "origin のタグも消す", initial: false } });
+      const picked = await confirm({ title: `タグ「${name}」を削除`, message: "手元のタグを消します。", confirmLabel: "削除", danger: true, checks: [{ label: "origin のタグも消す", initial: false }] }).then((r) => r && { checked: r.checked[0] });
       if (picked) await run("タグの削除", { action: "delete_tag", name, remote: picked.checked });
     },
     copyName: (name: string) => void navigator.clipboard.writeText(name),

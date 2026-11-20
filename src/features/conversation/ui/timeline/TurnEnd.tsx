@@ -7,7 +7,7 @@ import { formatClock, formatElapsed } from "@/foundation/ui/lib/time";
 import { copyRich } from "@/foundation/ui/lib/richCopy";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";

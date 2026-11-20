@@ -16,7 +16,7 @@ import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
 import { InheritChoice } from "@/features/childChats/ui/InheritChoice";

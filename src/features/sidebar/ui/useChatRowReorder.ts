@@ -5,7 +5,7 @@ import { draggingChat } from "@/features/groups/ui/groups";
 import { detachChild } from "@/features/childChats/ui/detachChild";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { childRowDrop } from "./childRowDrop";
 import { useManualChatReorder, useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
@@ -20,7 +20,7 @@ export interface RowReorderProps {
 type Side = "before" | "after" | "into";
 
 /** 外すのに失敗したとき（作業中になった・消えたなど） */
-const reportDetach = (e: unknown) => void alertDialog("親から外せませんでした", errorMessage(e));
+const reportDetach = (e: unknown) => void alert("親から外せませんでした", errorMessage(e));
 
 /**
  * サイドバーのチャットの行をドラッグで並べ替える（同じまとまり（グループ・作業場所・固定・アーカイブ済み）の中だけ）。

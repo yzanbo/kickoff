@@ -15,7 +15,7 @@ import { openEditorFind } from "@/foundation/ui/code/editorFind";
 import { NoteProgress } from "@/features/notes/ui/NoteProgress";
 import { ToastHost } from "@/foundation/ui/kit/toast";
 import { CoreStatusBand } from "@/features/diagnostics/ui/CoreStatusBand";
-import { DialogHost } from "@/foundation/ui/kit/dialogs";
+import { AskHost } from "@/foundation/ui/kit/AskHost";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/ui/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
@@ -139,7 +139,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         {/* GitHub の新しい issue・マージの確認（GitHub タブとノート・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         <DbUnlockHost />
-        <DialogHost />
+        <AskHost />
       </ChatStatesContext.Provider>
     </>
   );

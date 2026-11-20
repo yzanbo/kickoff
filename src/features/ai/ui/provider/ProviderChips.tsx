@@ -6,7 +6,7 @@ import { PERMISSION_LABELS, PROVIDER_IDS, type ProviderId } from "@shared/settin
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { turnsApi } from "@/features/chat/ui/api/turns";
-import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { PAY_PER_USE_LABEL, paysPerUse, providerChipName, providerLabel, providerPickBlock, providerSwitchBlock, statusOf } from "./providerChoice";
 
 /** AI の札の色（グループの札と同じ形に、AI ごとの色 --group-hue） */
@@ -17,7 +17,7 @@ const payNote = (status: ProviderStatus | undefined) => (paysPerUse(status) ? `�
 
 async function switchWithConfirmation(chatId: number, target: "claude" | "codex", label: string): Promise<void> {
   const preview = await turnsApi.providerSwitchPreview(chatId, target);
-  const ok = await confirmDialog({ title: `${label} に切り替えますか？`, confirmLabel: "切り替える", message: [
+  const ok = await confirm({ title: `${label} に切り替えますか？`, confirmLabel: "切り替える", message: [
     `${label} の権限モード: ${PERMISSION_LABELS[preview.options.permission_mode]}`,
     preview.queued_ids.length ? `送信待ちの ${preview.queued_ids.length} 件は、切り替え後の ${label} に送ります。` : "",
     preview.busy_child_ids.length ? `同じ作業場所で子チャット ${preview.busy_child_ids.length} 件が作業中です。子チャットはそのまま続きます。` : "",
@@ -26,7 +26,7 @@ async function switchWithConfirmation(chatId: number, target: "claude" | "codex"
   ].filter(Boolean).join("\n") });
   if (!ok) return;
   const result = await turnsApi.switchProvider(chatId, target, preview.confirmation);
-  if (result.warning) await alertDialog("AI を切り替えました", result.warning);
+  if (result.warning) await alert("AI を切り替えました", result.warning);
 }
 
 /**

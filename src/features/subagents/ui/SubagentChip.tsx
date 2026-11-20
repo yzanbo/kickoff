@@ -4,7 +4,7 @@ import type { ModelOption, Chat } from "@shared/chat/types";
 import { EFFORT_LABELS, type EffortLevel } from "@shared/settings/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentState } from "@shared/chat/subagentState";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -85,7 +85,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
 
   // アーカイブ・戻すは、どこから押しても必ず確かめる（チャットのアーカイブと同じ）
   const archive = async (keys: string[]) => {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: keys.length === 1 ? "このサブエージェントをアーカイブしますか？" : `完了した ${keys.length} 件のサブエージェントをアーカイブしますか？`,
       message: "一覧から隠れます。いちばん下の「アーカイブ済み」を開くと出し、戻せます。",
       confirmLabel: "アーカイブ",
@@ -93,7 +93,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
     if (ok) saveArchived([...new Set([...archived, ...keys])]);
   };
   const restore = async (key: string) => {
-    const ok = await confirmDialog({ title: "このサブエージェントを一覧に戻しますか？", message: "アーカイブから戻し、一覧に、また出るようになります。", confirmLabel: "戻す" });
+    const ok = await confirm({ title: "このサブエージェントを一覧に戻しますか？", message: "アーカイブから戻し、一覧に、また出るようになります。", confirmLabel: "戻す" });
     if (!ok) return;
     saveArchived(archivedKeys.filter((k) => k !== key));
   };

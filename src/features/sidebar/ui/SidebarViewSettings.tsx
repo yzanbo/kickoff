@@ -3,7 +3,7 @@ import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { viewNameTaken } from "@/foundation/ui/lib/namedViews";
 import { CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { Field } from "@/foundation/ui/kit/Field";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
@@ -28,7 +28,7 @@ export function SidebarViewSettings() {
     setEditing(view.id);
   };
   const remove = async (view: SidebarView) => {
-    if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
+    if (await confirm({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
   };
   return (
     <section className="section">

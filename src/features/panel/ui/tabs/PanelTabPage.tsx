@@ -28,7 +28,7 @@ import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { projectOfPanel } from "@/features/panel/ui/surfaces";
 import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 import { api } from "@/foundation/ui/api";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { PanelTab, PanelPageOps } from "@/features/panel/ui/usePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む

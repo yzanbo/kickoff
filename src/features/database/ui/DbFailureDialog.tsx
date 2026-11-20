@@ -9,7 +9,7 @@ import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
-import { promptDialog } from "@/foundation/ui/kit/dialogs";
+import { prompt } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
@@ -43,13 +43,13 @@ function failureItem(projectId: number, c: DbConnection, error: string): HandOff
 
 /** 手順ノートの「つながらないときの直し方」に 1 行足す（直し方を聞いて、いまの中身に足して保存。開いたあとでほかで変わっていれば 409）。足したら true */
 async function appendFixToNote(projectId: number, path: string, error: string): Promise<boolean> {
-  const fix = await promptDialog({
+  const fix = await prompt({
     title: "手順ノートに直し方を追記",
     message: `何をしたらつながったかを、手順ノート「${path}」の「つながらないときの直し方」に、日付と失敗の種類を添えて 1 行で足します。次につながらないとき、この案内に出ます。`,
     label: "直し方",
     placeholder: "例: VPN をつなぎ直した / いまの IP をセキュリティグループに足した",
     confirmLabel: "追記する",
-  });
+  }).then((r) => r?.value ?? null);
   if (!fix?.trim()) return false;
   const now = await api.note(projectId, path);
   await api.saveNote(projectId, path, appendDbNoteFix(now.content, dbNoteFixEntry(localToday(), error, fix)), now.hash);

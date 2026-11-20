@@ -5,7 +5,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { useServerEvent } from "@/foundation/ui/api/events";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 
 /** 「見ています」を送る間隔（コアは 45 秒届かなければ docker events を止める） */
 const WATCH_INTERVAL_MS = 20_000;
@@ -81,7 +81,7 @@ export function useDocker(projectId: number) {
         show(await api.dockerAction(projectId, body));
       } catch (e) {
         if (e instanceof ApiError && e.code === DOCKER_SHARED_PROJECT) {
-          const ok = await confirmDialog({ title: "同じ組の名前です", message: e.message, confirmLabel: "起動する" });
+          const ok = await confirm({ title: "同じ組の名前です", message: e.message, confirmLabel: "起動する" });
           if (ok) show(await api.dockerAction(projectId, { ...body, confirm_shared: true }).catch(reportFailure("起動できませんでした")));
           return;
         }

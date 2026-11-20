@@ -4,7 +4,7 @@ import type { DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { dbConnectionsStore, useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useDbClient } from "./dbClientContext";
 import { requestDbClient } from "./dbClientRequests";
@@ -18,7 +18,7 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
   /** 「ER 図」: つないでいる DB（PostgreSQL は public のスキーマ）で開く */
   const openEr = async () => {
     const dbs = await api.dbDatabases(client.projectId, c.id, client.worktreeOf(c.id)).catch(async (e: unknown) => {
-      await alertDialog("ER 図を開けませんでした", errorMessage(e));
+      await alert("ER 図を開けませんでした", errorMessage(e));
       return null;
     });
     if (dbs) client.openEr(c, { database: dbs.current ?? dbs.databases[0] ?? null, schema: dbs.has_schemas ? "public" : null }, null);
@@ -37,12 +37,12 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
       dbConnectionsStore.invalidate(client.projectId);
       client.editConnection(copied);
     } catch (e) {
-      await alertDialog("接続を写せませんでした", errorMessage(e));
+      await alert("接続を写せませんでした", errorMessage(e));
     }
   };
 
   const remove = async () => {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `接続「${c.name}」を消しますか？`,
       message: "保存したパスワードも消えます。DB の中身には触りません。",
       confirmLabel: "消す",
@@ -53,7 +53,7 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
       await api.deleteDbConnection(client.projectId, c.id);
       dbConnectionsStore.invalidate(client.projectId);
     } catch (e) {
-      await alertDialog("接続を消せませんでした", errorMessage(e));
+      await alert("接続を消せませんでした", errorMessage(e));
     }
   };
 

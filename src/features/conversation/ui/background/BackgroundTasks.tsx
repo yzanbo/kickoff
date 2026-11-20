@@ -3,7 +3,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ActivityNote } from "@/features/subagents/ui/SubagentChip";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
@@ -36,7 +36,7 @@ export function BackgroundTasks({
   const stop = async (task: BackgroundTask) => {
     if (
       task.kind === "agent" &&
-      !(await confirmDialog({
+      !(await confirm({
         title: `サブエージェント「${task.description}」を止めます`,
         message: "止めると、このサブエージェントの報告は届きません。ほかの作業とチャットは止まりません。",
         confirmLabel: "止める",

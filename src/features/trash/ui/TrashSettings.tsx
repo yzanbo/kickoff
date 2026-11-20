@@ -9,7 +9,7 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { remainingText } from "./trashText";
@@ -84,7 +84,7 @@ function ArchiveCleanup() {
   const clean = () =>
     run("clean", async () => {
       if (!count) return;
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `アーカイブ済みのチャット ${count} 件をゴミ箱に入れますか？`,
         message: `${ARCHIVE_CLEANUP_DAYS_LABELS[days]}より前から動いていないものです（子チャットも一緒に）。3 日はそれぞれのプロジェクトの「ゴミ箱」から戻せ、3 日たつと会話の記録ごと本当に消えます。`,
         confirmLabel: "ゴミ箱に入れる",

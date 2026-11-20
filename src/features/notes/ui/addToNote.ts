@@ -4,7 +4,7 @@
 import { useSyncExternalStore } from "react";
 import { api } from "@/foundation/ui/api";
 import { notesStore } from "@/features/notes/ui/stores/notes";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { baseName } from "./notePaths";
 import { openNoteFromChat } from "./openNoteFrom";
 

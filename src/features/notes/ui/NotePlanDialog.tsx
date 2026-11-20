@@ -5,7 +5,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 
@@ -50,7 +50,7 @@ export function NotePlanDialog({
     const result = await onApply(plan.moves.filter((_, i) => chosen.has(i)));
     setBusy(false);
     dialog.close();
-    if (result.failed.length > 0) await alertDialog(`${result.failed.length} 件は動かせませんでした`, result.failed.join("\n"));
+    if (result.failed.length > 0) await alert(`${result.failed.length} 件は動かせませんでした`, result.failed.join("\n"));
   };
 
   const toggle = (i: number) => {

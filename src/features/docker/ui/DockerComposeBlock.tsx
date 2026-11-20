@@ -5,7 +5,7 @@ import { open } from "@/foundation/ui/navigation/open";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -18,17 +18,17 @@ export type DockerAct = (body: DockerActionBody) => Promise<void>;
 async function confirmed(compose: DockerCompose, action: "down" | "recreate"): Promise<boolean> {
   const scaled = compose.services.some((s) => s.containers.length > 1);
   if (action === "down")
-    return confirmDialog({
+    return confirm({
       title: "片付けますか？",
       message: "コンテナとネットワークを消します（使い捨てのコンテナも消します）。ボリューム（DB のデータ）は残ります。",
       confirmLabel: "片付ける",
       danger: true,
-    });
-  return confirmDialog({
+    }).then((r) => r !== null);
+  return confirm({
     title: "作り直して起動しますか？",
     message: `新しい設定でコンテナを作り直します。データ（ボリューム）は残ります。${scaled ? "数を増やしたサービスは 1 つに戻ります。" : ""}`,
     confirmLabel: "作り直して起動",
-  });
+  }).then((r) => r !== null);
 }
 
 /**

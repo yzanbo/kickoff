@@ -6,7 +6,7 @@ import type { NoteEntry } from "@shared/notes/types";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
-import { alertDialog, confirmDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, prompt } from "@/foundation/ui/kit/ask";
 
 // 接続の手順ノート: ノートのフォルダの DB/ の下のノートを、つなぎ方（経路）ごとに 1 つ作り、いくつもの接続で使う
 
@@ -25,13 +25,13 @@ export async function createConnectionNote(projectId: number, c: DbConnection): 
  */
 export async function createDbNoteFile(projectId: number, c: Pick<DbConnection, "engine" | "environment" | "host">, target: string): Promise<string | null> {
   const name = (
-    await promptDialog({
+    await prompt({
       title: "手順ノートを作る",
       message: `つなぐ前にやること・つながらないときの直し方を残すノートです。ノートのフォルダの「${DB_NOTE_DIR}/」の下に作ります。つなぎ方（経路）ごとに 1 つにすると、同じ道を通るほかの接続でも使えます。`,
       label: "ノートの名前",
       initial: suggestDbNoteName(c),
       confirmLabel: "作る",
-    })
+    }).then((r) => r?.value ?? null)
   )?.trim();
   if (!name) return null;
   const path = `${DB_NOTE_DIR}/${safeNoteName(name)}.md`;
@@ -39,10 +39,10 @@ export async function createDbNoteFile(projectId: number, c: Pick<DbConnection, 
     await api.createNote(projectId, path, { content: dbNoteTemplate(name, new Date().toLocaleDateString("sv-SE")) });
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 409)) {
-      await alertDialog("手順ノートを作れませんでした", errorMessage(e));
+      await alert("手順ノートを作れませんでした", errorMessage(e));
       return null;
     }
-    const use = await confirmDialog({ title: "同じ名前のノートがあります", message: `「${path}」を${target}の手順ノートにしますか？`, confirmLabel: "このノートを使う" });
+    const use = await confirm({ title: "同じ名前のノートがあります", message: `「${path}」を${target}の手順ノートにしますか？`, confirmLabel: "このノートを使う" });
     if (!use) return null;
   }
   return path;
@@ -55,7 +55,7 @@ async function linkConnectionNote(projectId: number, c: DbConnection, path: stri
     dbConnectionsStore.invalidate(projectId);
     return path;
   } catch (e) {
-    await alertDialog("手順ノートを結べませんでした", errorMessage(e));
+    await alert("手順ノートを結べませんでした", errorMessage(e));
     return null;
   }
 }

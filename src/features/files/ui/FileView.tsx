@@ -6,7 +6,7 @@ import { api, ApiError } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerSavable } from "@/foundation/ui/lib/saveAll";
 import { registerEditorCursor, type EditorCursor } from "@/foundation/ui/lib/viewDetails";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
@@ -169,7 +169,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
           saved = await write(base.hash);
         } catch (e) {
           if (!(e instanceof ApiError && e.status === 409)) throw e;
-          const overwrite = await confirmDialog({
+          const overwrite = await confirm({
             title: "ほかでファイルが変わっています",
             message: "開いたあとで、エージェントなどがこのファイルを変えました。上書きすると、その変更は消えます。",
             confirmLabel: "上書きする",
@@ -194,7 +194,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
 
   // ほかで変わった中身を読み直して、編集をやり直す（自分の変更は捨てる）
   const reloadFromDisk = async () => {
-    if (dirty && !(await confirmDialog({ title: "保存していない変更を捨てて読み直しますか？", confirmLabel: "読み直す", danger: true }))) return;
+    if (dirty && !(await confirm({ title: "保存していない変更を捨てて読み直しますか？", confirmLabel: "読み直す", danger: true }))) return;
     if (!current?.file) return;
     setBase({ key, content: current.file.content, hash: current.file.hash });
     setEditorKey((n) => n + 1);

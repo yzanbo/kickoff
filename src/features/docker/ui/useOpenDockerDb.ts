@@ -5,7 +5,7 @@ import type { DockerCompose, DockerServiceInfo } from "@shared/docker/types";
 import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { requestDbClient } from "@/features/database/ui/dbClientRequests";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 
 export function useOpenDockerDb(projectId: number, compose: DockerCompose, service: DockerServiceInfo, start: () => void) {
@@ -30,7 +30,7 @@ export function useOpenDockerDb(projectId: number, compose: DockerCompose, servi
 
   const request = async () => {
     if (service.running > 0) return void open();
-    const ok = await confirmDialog({ title: `${service.name} が動いていません。起動しますか`, message: "起動して、動き出したら DB タブで開きます。", confirmLabel: "起動して開く" });
+    const ok = await confirm({ title: `${service.name} が動いていません。起動しますか`, message: "起動して、動き出したら DB タブで開きます。", confirmLabel: "起動して開く" });
     if (!ok) return;
     failureAtStart.current = compose.failure?.at ?? null;
     sawOperation.current = false;

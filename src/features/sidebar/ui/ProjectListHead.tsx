@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import { cx } from "@/foundation/ui/lib/cx";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { viewNameTaken } from "@/foundation/ui/lib/namedViews";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { Popover } from "@/foundation/ui/kit/Popover";
@@ -127,7 +127,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
   }, [views.views, renaming]);
 
   const remove = async (view: SidebarView) => {
-    if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
+    if (await confirm({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
   };
 
   return (

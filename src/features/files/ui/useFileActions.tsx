@@ -6,7 +6,7 @@ import { showToast } from "@/foundation/ui/kit/toast";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Placement } from "@/foundation/ui/lib/floating";
-import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
@@ -96,7 +96,7 @@ export function useFileActions(
   const start = (path: string) => {
     const unsaved = selection.dirtyUnder(path);
     if (unsaved) {
-      void alertDialog("保存していない変更があります", `「${baseName(unsaved)}」を保存してから、名前を変えてください。`);
+      void alert("保存していない変更があります", `「${baseName(unsaved)}」を保存してから、名前を変えてください。`);
       return;
     }
     setCreating(null);
@@ -138,7 +138,7 @@ export function useFileActions(
 
   const trash = async (path: string, dir: boolean) => {
     const unsaved = selection.dirtyUnder(path) !== null;
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: dir ? `フォルダー「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
       message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
@@ -160,7 +160,7 @@ export function useFileActions(
     const names = targets.slice(0, 10).map((n) => `・${baseName(n.path)}${n.dir ? "（フォルダー）" : ""}`);
     if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
     const unsaved = targets.some((n) => selection.dirtyUnder(n.path) !== null);
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
       message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダーの中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
@@ -178,7 +178,7 @@ export function useFileActions(
     }
     void git.refresh();
     if (failed.length < targets.length) showToast(`${targets.length - failed.length} 件をゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
-    if (failed.length > 0) await alertDialog("ゴミ箱に入れられなかったものがあります", failed.join("\n"));
+    if (failed.length > 0) await alert("ゴミ箱に入れられなかったものがあります", failed.join("\n"));
   };
 
   /** 変更の一覧で選んだもののステージ・取り消し・元に戻す（元に戻すは確かめてから） */

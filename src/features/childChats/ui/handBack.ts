@@ -4,7 +4,7 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { HandoffResult } from "@shared/foundation/apiTypes";
 import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@shared/chat/handoff";
 import { api } from "@/foundation/ui/api";
-import { alertDialog, promptDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
 import { handBackToParent } from "@/features/chat/ui/open/openChat";
@@ -15,7 +15,7 @@ import { handBackToParent } from "@/features/chat/ui/open/openChat";
  * 作業していなければすぐ送り、作業中なら止めずにいまのやり取りに伝える（チャット欄の「いま」と同じ api.tellChat）
  */
 export async function requestHandoff(chat: Pick<Chat, "id" | "title">) {
-  const extra = await promptDialog({
+  const extra = await prompt({
     title: "依頼文を作ってもらう",
     message: "この子チャットの AI に、親チャットの AI へ渡す依頼文を書いてもらいます。書き方の注文があれば添えてください（空のままでも頼めます）。",
     label: "追加の指示（任意）",
@@ -23,7 +23,7 @@ export async function requestHandoff(chat: Pick<Chat, "id" | "title">) {
     confirmLabel: "頼む",
     optional: true,
     multiline: true,
-  });
+  }).then((r) => r?.value ?? null);
   if (extra === null) return;
   await api.tellChat(chat.id, handoffRequestPrompt(chat.title ?? "", extra), {}, [], false, { handoff_request: true }).catch(reportFailure("依頼文を頼めませんでした"));
 }
@@ -54,7 +54,7 @@ export async function handOffTurn(child: Chat, turnEventId: number, via: Handoff
 async function afterHandoff(child: Chat, after: HandoffAfter) {
   if (after === "keep" || (after === "archive" && child.archived_at)) return;
   if (child.status === "running") {
-    await alertDialog(`子チャットが作業中なので、${after === "archive" ? "アーカイブ" : "削除"}しませんでした`, "作業が終わってから、子チャットの一覧・右クリックのメニューで片付けられます。");
+    await alert(`子チャットが作業中なので、${after === "archive" ? "アーカイブ" : "削除"}しませんでした`, "作業が終わってから、子チャットの一覧・右クリックのメニューで片付けられます。");
     return;
   }
   if (after === "archive") await toggleArchiveChat(child);

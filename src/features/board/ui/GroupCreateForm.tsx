@@ -2,7 +2,7 @@ import { Folder, FolderPlus } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { askNewGroupName } from "@/features/groups/ui/groups";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { InlineName } from "@/foundation/ui/kit/InlineName";

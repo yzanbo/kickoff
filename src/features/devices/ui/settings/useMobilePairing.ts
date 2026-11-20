@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 
 /** QR の画像（data: の PNG）を作る。qrcode は使うときだけ読み込む */
 const qrDataUrl = (text: string) => import("qrcode").then(({ toDataURL }) => toDataURL(text, { margin: 1, width: 360, errorCorrectionLevel: "M" }));
@@ -55,7 +55,7 @@ export function useMobilePairing() {
     setAccess: (device: Device, access: DeviceAccess) => action.run("access", () => api.setDeviceAccess(device.id, access)),
     deny: (id: string) => action.run("deny", async () => set(await api.denyPairing(id))),
     revoke: async (device: Device) => {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `「${device.name}」を取り消しますか？`,
         message: "この端末は、もうこの Mac の Kickoff につなげなくなります。もう一度使うときは、つなぎ直してください。",
         confirmLabel: "取り消す",

@@ -6,7 +6,7 @@ import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
@@ -58,7 +58,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
     const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
     const path = `${name}.md`;
     await api.createNote(client.projectId, path, { content });
-    if (await confirmDialog({ title: "ノートに書き出しました", message: `ノート「${path}」に Mermaid の ER 図を書き出しました。ノートのタブで開きますか？`, confirmLabel: "開く" })) {
+    if (await confirm({ title: "ノートに書き出しました", message: `ノート「${path}」に Mermaid の ER 図を書き出しました。ノートのタブで開きますか？`, confirmLabel: "開く" })) {
       open({ kind: "note", projectId: client.projectId, path: path });
     }
   };

@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { addToChat } from "@/features/composer/ui/addToChat";
 import { captureNameOf, reviewDocument, reviewFixText, sourceOf } from "./githubPrompt";

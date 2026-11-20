@@ -1,7 +1,7 @@
 import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { activityOf } from "@/features/chat/ui/state/stall";
 import { isSubagentHalted } from "@/features/subagents/ui/model/subagentList";
@@ -77,7 +77,7 @@ export function SubagentActions({
   };
   const retry = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `「${entry.description}」をやり直しますか？`,
       message: "同じ依頼で、新しいサブエージェントを最初から動かします（前の回の続きはしません）。途中まで進めた作業を続けるなら「再開」を使ってください。",
       confirmLabel: "やり直す",
@@ -104,7 +104,7 @@ export function SubagentActions({
 function StopStalled({ chatId, entry, agentId, className }: { chatId: number; entry: SubagentEntry; agentId: string; className?: string }) {
   const stop = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `サブエージェント「${entry.description}」を止めます`,
       message: "長く動きがありません。止めると、このサブエージェントの報告は届きません。止めたあとは「再開」で続きから、「やり直す」で最初から戻せます。ほかの作業とチャットは止まりません。",
       confirmLabel: "止める",

@@ -3,7 +3,7 @@ import { useCallback, useState, type MouseEvent, type ReactNode, type RefObject 
 import type { DockerCompose } from "@shared/docker/types";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

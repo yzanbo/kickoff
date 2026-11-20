@@ -2,7 +2,7 @@ import { LINK_OPEN_TARGET_LABELS, LINK_OPEN_TARGETS, type LinkOpenTarget } from 
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { Field } from "@/foundation/ui/kit/Field";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";

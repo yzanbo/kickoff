@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { writeSetting } from "@/foundation/ui/storage";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
@@ -30,7 +30,7 @@ function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "dele
  */
 export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archived_at">): Promise<boolean> {
   const name = chatTitle(chat.title);
-  const ok = await confirmDialog(
+  const ok = await confirm(
     chat.archived_at
       ? { title: `チャット「${name}」をアーカイブから戻しますか？`, message: `一覧に、また出るようになります。${childNote(chat, "restore")}`, confirmLabel: "戻す" }
       : {
@@ -38,7 +38,7 @@ export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archi
           message: `一覧から隠れます。会話の記録は残ります。${childNote(chat, "archive")}サイドバーの「チャット」の行の「アーカイブ」を「表示」にすると出せ、右クリックのメニューから戻せます。`,
           confirmLabel: "アーカイブ",
         },
-  );
+  ).then((r) => r !== null);
   if (ok) await api.archiveChat(chat.id, !chat.archived_at);
   return ok;
 }
@@ -59,12 +59,12 @@ export async function deleteChat(chatId: number, label?: string) {
 
 /** 確かめてから、チャットを削除する（やめたら false） */
 export async function confirmDeleteChat(chat: Pick<Chat, "id" | "title">): Promise<boolean> {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `チャット「${chatTitle(chat.title)}」を削除しますか？`,
     message: `Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（3 日たつと会話の記録・添付ごと消えます）。${childNote(chat, "delete")}残しておきたいときはアーカイブを使ってください。`,
     confirmLabel: "削除",
     danger: true,
-  });
+  }).then((r) => r !== null);
   if (ok) await deleteChat(chat.id, chatTitle(chat.title));
   return ok;
 }
@@ -79,14 +79,14 @@ async function eachChat(chats: Chat[], action: string, fn: (chat: Chat) => Promi
       failures.push(`「${chatTitle(chat.title)}」: ${errorMessage(e)}`);
     }
   }
-  if (failures.length > 0) await alertDialog(`${failures.length} 件は${action}できませんでした`, failures.slice(0, 5).join("\n"));
+  if (failures.length > 0) await alert(`${failures.length} 件は${action}できませんでした`, failures.slice(0, 5).join("\n"));
 }
 
 /** 確かめてから、まとめてアーカイブする（どれもアーカイブ済みなら、まとめて戻す。やめたら false） */
 export async function confirmArchiveChats(chats: Chat[]): Promise<boolean> {
   const restore = chats.every((r) => r.archived_at);
   const targets = restore ? chats : chats.filter((r) => !r.archived_at);
-  const ok = await confirmDialog(
+  const ok = await confirm(
     restore
       ? {
           title: `${targets.length} 件のチャットをアーカイブから戻しますか？`,
@@ -98,19 +98,19 @@ export async function confirmArchiveChats(chats: Chat[]): Promise<boolean> {
           message: "一覧から隠れます。会話の記録は残ります。子チャット（孫も）も一緒にアーカイブします。作業中のチャットはアーカイブできません。",
           confirmLabel: "アーカイブ",
         },
-  );
+  ).then((r) => r !== null);
   if (ok) await eachChat(targets, restore ? "戻す" : "アーカイブ", (r) => api.archiveChat(r.id, !restore));
   return ok;
 }
 
 /** 確かめてから、まとめて削除する（やめたら false） */
 export async function confirmDeleteChats(chats: Chat[]): Promise<boolean> {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `${chats.length} 件のチャットを削除しますか？`,
     message: "Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（3 日たつと会話の記録・添付ごと消えます）。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
     confirmLabel: "削除",
     danger: true,
-  });
+  }).then((r) => r !== null);
   if (ok) {
     await eachChat(chats, "削除", (r) => deleteChat(r.id));
     showToast(`${chats.length} 件のチャットをゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
@@ -137,7 +137,7 @@ export async function confirmMoveChatToProject(
 ): Promise<boolean> {
   const lost = [chat.group_id !== null && "グループ", chat.worktree_path && "作業場所（ワークツリー）"].filter(Boolean).join("・");
   const children = knownDescendantCount(chat.id);
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
     message: [
       "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。会話はそのまま続けられます。",
@@ -158,4 +158,4 @@ export async function confirmMoveChatToProject(
 
 /** confirmMoveChatToProject の、失敗をお知らせで出す形（ドラッグで落としたときなど、待つ人がいないとき） */
 export const moveDroppedChatToProject = (chat: Chat, project: { id: number; name: string }, group?: { id: number; name: string }) =>
-  void confirmMoveChatToProject(chat, project, { group }).catch((e: unknown) => alertDialog("チャットを移せませんでした", errorMessage(e)));
+  void confirmMoveChatToProject(chat, project, { group }).catch((e: unknown) => alert("チャットを移せませんでした", errorMessage(e)));

@@ -4,7 +4,7 @@ import { webUrlOf } from "@shared/remoteImages/linkWarnings";
 import { googleSearch } from "@/foundation/ui/lib/url";
 import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
 import { ClipboardItems, copyClipboardText } from "@/foundation/ui/kit/ClipboardItems";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { browserSelectionItem } from "./browserHandOff";

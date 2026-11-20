@@ -11,7 +11,7 @@ import { isPanelMounted } from "@/features/panel/ui/state/panelStore";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { cx } from "@/foundation/ui/lib/cx";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -59,7 +59,7 @@ export function PortsPopover({ anchor, onClose }: Props) {
 
   const stop = async (p: PortProcess, force: boolean, projectName: string) => {
     if (!force) {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: `${stopTargetText(p, projectName)}を止めます`,
         message: "終わるよう合図を送ります（SIGTERM）。止まらなければ、強制終了できます。",
         confirmLabel: "止める",

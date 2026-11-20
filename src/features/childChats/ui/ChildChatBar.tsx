@@ -12,7 +12,7 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { knownChat, useChatsValue, useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { ancestorsOf, handBackText } from "./childChats";
 import { handBackToParent, revealInParent } from "@/features/chat/ui/open/openChat";
 import { requestHandoff } from "./handBack";
@@ -170,7 +170,7 @@ function ChildBarFrame({
       <PopOutTabButton />
       {detachMenu.menu && self && (
         <PopupMenu at={detachMenu.menu.at} label="子チャットの操作" onClose={detachMenu.close}>
-          <DetachSubmenu chat={self} onClose={detachMenu.close} onError={(message) => void alertDialog("親から外せませんでした", message)} />
+          <DetachSubmenu chat={self} onClose={detachMenu.close} onError={(message) => void alert("親から外せませんでした", message)} />
         </PopupMenu>
       )}
     </div>

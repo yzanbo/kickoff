@@ -7,7 +7,7 @@ import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFil
 import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { useChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { promptDialog, promptWithSelect, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { useDbClient } from "./dbClientContext";
@@ -48,7 +48,7 @@ export function AskAiButton({ connection, path, tables, label = "AI に聞く" }
   const ask = async () => {
     const place = objectPathLabel(path) || "既定の場所";
     const targets = [...(mainChat && mainChat.archived_at === null ? [mainChat] : []), ...chats.filter((c) => c.id !== mainChat?.id && c.archived_at === null).slice(0, ASK_CHAT_CHOICES)];
-    const answer = await promptWithSelect({
+    const answer = await prompt({
       title: tables.length === 1 ? `「${tables[0]}」について AI に聞く` : `選んだ ${tables.length} 個のテーブルについて AI に聞く`,
       message: `AI はこの接続（${connection.name}）の構造と中身を、DB のツールで読んでから答えます${connection.ai_access === "ask" ? "（SQL を流す前に承認を聞きます）" : ""}。決めたらすぐ送ります（作業中のチャットなら送信待ちに入れます）。`,
       label: "聞きたいこと",
@@ -83,13 +83,13 @@ export function SqlAssistButton({ connection, editor }: { connection: DbConnecti
   const [busy, setBusy] = useState(false);
   const hidden = connection.ai_access === "none";
   const run = async () => {
-    const request = await promptDialog({
+    const request = await prompt({
       title: "AI に SQL を書いてもらう",
       message: "テーブルと列の名前（中身の値は渡しません）と、いまの SQL を AI に渡します。書いてもらった SQL は入力欄の終わりに足します（流すのは確かめてから）。",
       label: "頼みたいこと",
       placeholder: "例: 先週の注文を店ごとに数えて、多い順に",
       confirmLabel: "頼む",
-    });
+    }).then((r) => r?.value ?? null);
     if (!request?.trim()) return;
     setBusy(true);
     await askAi(request).catch((e: unknown) => void reportFailure("AI に頼めませんでした")(e));

@@ -6,7 +6,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { alertDialog, confirmDialog, confirmWithCheck } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
@@ -67,18 +67,18 @@ export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: s
   try {
     check = await api.workplaceCheck(chat.id);
   } catch (e) {
-    return alertDialog("作業場所を変えられませんでした", errorMessage(e));
+    return alert("作業場所を変えられませんでした", errorMessage(e));
   }
-  if (check.blocked) return alertDialog("作業場所を変えられません", check.blocked);
+  if (check.blocked) return alert("作業場所を変えられません", check.blocked);
   if (place.kind === "existing" && check.reserved.includes(place.path)) {
-    return alertDialog("このワークツリーには移せません", "片付けを予約しているワークツリーです。片付けが済むと、そこのチャットは本体に戻ります。");
+    return alert("このワークツリーには移せません", "片付けを予約しているワークツリーです。片付けが済むと、そこのチャットは本体に戻ります。");
   }
   const title = `作業場所を ${placeName(place, label)} に移しますか`;
   const lines = checkLines(check);
   let carry = false;
   if (place.kind === "new" && check.changes.length > 0) {
     // 新しいワークツリーはいまのコミットから作るので、変更を持っていっても衝突しない
-    const picked = await confirmWithCheck({
+    const picked = await confirm({
       title,
       message: [
         `元の作業場所にコミットしていない変更が ${check.changes.length} ファイルあります。`,
@@ -87,13 +87,13 @@ export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: s
         ...lines,
       ].join("\n\n"),
       confirmLabel: "移す",
-      check: { label: "コミットしていない変更も持っていく", initial: false },
-    });
+      checks: [{ label: "コミットしていない変更も持っていく", initial: false }],
+    }).then((r) => r && { checked: r.checked[0] });
     if (!picked) return;
     carry = picked.checked;
   } else {
     const changes = check.changes.length > 0 ? [`元の作業場所に、コミットしていない変更が ${check.changes.length} ファイル残ります（持っていけるのは新しいワークツリーへ移すときだけ）。`] : [];
-    if (!(await confirmDialog({ title, message: [...changes, ...lines].join("\n\n"), confirmLabel: "移す" }))) return;
+    if (!(await confirm({ title, message: [...changes, ...lines].join("\n\n"), confirmLabel: "移す" }))) return;
   }
   try {
     await api.moveWorkplace(chat.id, {
@@ -105,6 +105,6 @@ export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: s
     if (place.kind === "new") worktreesStore.invalidate(chat.project_id);
     showToast(`作業場所を ${placeName(place, label)} に移しました`);
   } catch (e) {
-    await alertDialog("作業場所を変えられませんでした", errorMessage(e));
+    await alert("作業場所を変えられませんでした", errorMessage(e));
   }
 }

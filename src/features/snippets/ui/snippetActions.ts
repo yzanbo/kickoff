@@ -2,7 +2,7 @@
 import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
 import { reduceSnippets, snippetsStore } from "@/features/snippets/ui/stores/snippets";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { reduceBy } from "@/foundation/ui/store";
 import { snippetsApi } from "./api";
 
@@ -31,7 +31,7 @@ export async function reorderSnippets(ids: number[]) {
 
 /** 確かめてから消す（消したら true） */
 export async function confirmDeleteSnippet(snippet: Snippet): Promise<boolean> {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `定型文「${snippetLabel(snippet)}」を削除しますか？`,
     message: snippet.project_id === null ? "共通の定型文なので、すべてのプロジェクトの帯から消えます。" : undefined,
     confirmLabel: "削除",

@@ -4,7 +4,7 @@ import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type Ext
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { storage as externalStorage } from "./storage";
 
 /** 外部のターミナルの表示名 */

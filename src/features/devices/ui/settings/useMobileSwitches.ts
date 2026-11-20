@@ -3,7 +3,7 @@ import type { LoginItemState } from "@shared/foundation/ipc";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 
 /** バッテリーの様子（Chromium の Battery Status API。型は lib.dom にないので、使う所だけ書く） */
 type BatteryManager = EventTarget & { charging: boolean };
@@ -47,7 +47,7 @@ export function useMobileSwitches() {
   const setMobile = async (on: boolean) => {
     const ok = await action.run("mobile", async () => settingsStore.set(await api.updateSettings({ remote_enabled: on })));
     if (!ok || !on || !loginItem?.available || loginItem.openAtLogin) return;
-    const also = await confirmDialog({
+    const also = await confirm({
       title: "ログイン時に Kickoff を起動しますか？",
       message: "オフのままだと、Mac を再起動したあとは Kickoff を開くまでスマホから届きません。オンにすると、ログインしたときに窓を出さずに裏で起動します。",
       confirmLabel: "オンにする",

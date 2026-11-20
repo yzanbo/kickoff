@@ -5,7 +5,7 @@ import { queueActionOf } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { useAction } from "@/foundation/ui/hooks/useAction";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 
@@ -66,7 +66,7 @@ export function FreeContextActions({
   const run = async (kind: QueueAction) => {
     onStart();
     if (kind === "clear" && !running) {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: "コンテキストを消去しますか？",
         message: "これまでの会話を AI に引き継がず、次の指示から新しい会話で始めます。このチャットの記録は残り、流れに区切りが入ります。",
         confirmLabel: "消去",

@@ -2,7 +2,7 @@
 import type { Project } from "@shared/projects/types";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { confirmMoveChatToProject } from "@/features/chat/ui/chatActions";
 import { moveDraftToProject } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { NewProjectAfter } from "./openNewProject";

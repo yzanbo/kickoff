@@ -3,7 +3,7 @@ import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import type { SettingValue } from "@/foundation/ui/storage";
 import type { storage } from "./storage";
-import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** サイドバーのプロジェクトの並べ方: 手動（ドラッグで並べ替えた順）/ 最近動いた順 */
@@ -34,11 +34,11 @@ export const archivedProjects = (projects: Project[]) => projects.filter((p) => 
 
 /** 上に固定する・やめる、しまう・戻す、タグを付け外す（右クリックのメニュー・見出しのピン・戻すボタンで共通。失敗はお知らせのダイアログで出す） */
 export const changeProject = (id: number, patch: { pinned?: boolean; archived?: boolean; tags?: string[] }) =>
-  void api.updateProject(id, patch).catch((e: unknown) => alertDialog("変更できませんでした", errorMessage(e)));
+  void api.updateProject(id, patch).catch((e: unknown) => alert("変更できませんでした", errorMessage(e)));
 
 /** 確かめてから、プロジェクトをアーカイブから戻す（やめたら何もしない） */
 export async function confirmRestoreProject(project: Pick<Project, "id" | "name">) {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `プロジェクト「${project.name}」をアーカイブから戻しますか？`,
     message: "サイドバー・プロジェクトの切り替え・全プロジェクトの画面に、また出るようになります。",
     confirmLabel: "戻す",
@@ -48,7 +48,7 @@ export async function confirmRestoreProject(project: Pick<Project, "id" | "name"
 
 /** 確かめてから、プロジェクトをアーカイブする（やめたら何もしない） */
 export async function confirmArchiveProject(project: Pick<Project, "id" | "name">) {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `プロジェクト「${project.name}」をアーカイブしますか？`,
     message:
       "サイドバー・プロジェクトの切り替え・全プロジェクトの画面に出なくなります。チャットや記録は消えません。サイドバーの「プロジェクト」の行の「アーカイブ」を「表示する」にすると出せ、右クリックのメニューから戻せます。",

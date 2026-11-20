@@ -1,6 +1,6 @@
 import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
 import { storage } from "@/features/chat/ui/storage";
-import { choiceDialogWithRemember } from "@/foundation/ui/kit/dialogs";
+import { choose } from "@/foundation/ui/kit/ask";
 
 /** ほかのチャットが作業中の作業場所へ新しいチャットを送るときの扱い（ask = 毎回聞く / here = このまま送る / worktree = 新しいワークツリーで始める） */
 export const BUSY_WORKPLACE_ACTIONS = storage.settings.busyWorkplaceAction.choices;
@@ -19,7 +19,7 @@ export const BUSY_WORKPLACE_ACTION_LABELS: Record<BusyWorkplaceAction, string> =
 export async function chooseBusyWorkplaceAction(): Promise<Exclude<BusyWorkplaceAction, "ask"> | null> {
   const action = readSetting(storage.settings.busyWorkplaceAction);
   if (action !== "ask") return action;
-  const picked = await choiceDialogWithRemember({
+  const picked = await choose({
     title: "この作業場所では、ほかのチャットが作業中です",
     message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",
     choices: [

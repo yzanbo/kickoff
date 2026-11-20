@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { registerSavable } from "@/foundation/ui/lib/saveAll";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { useDbClient } from "./dbClientContext";
 import { unsavedKey, unsavedTables } from "./tabFlags";
 import { buildEdits, editCounts, NO_EDITS, type TableEdits } from "./tableEdits";
@@ -53,7 +53,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     const ok =
       !write.on && connection.write_check === "env_name"
         ? await confirmByEnvName(connection, title, message, "保存")
-        : await confirmDialog({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
+        : await confirm({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
     if (!ok) return false;
     setSaving(true);
     await api.saveDbEdits(client.projectId, connection.id, { path: tab.path, table: tab.name, edits: list, write: write.on }, worktree);
@@ -90,7 +90,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
   /** 変更をすべて捨てる（確かめてから） */
   const discard = async () => {
     if (!dirty) return;
-    const ok = await confirmDialog({ title: "保存していない変更を取り消しますか？", message: `${counts.total.toLocaleString()} 件の変更を捨てます。`, confirmLabel: "取り消す", danger: true });
+    const ok = await confirm({ title: "保存していない変更を取り消しますか？", message: `${counts.total.toLocaleString()} 件の変更を捨てます。`, confirmLabel: "取り消す", danger: true });
     if (!ok) return;
     latest.current = NO_EDITS;
     setEdits(NO_EDITS);

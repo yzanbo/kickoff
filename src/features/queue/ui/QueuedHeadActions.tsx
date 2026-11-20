@@ -2,7 +2,7 @@ import { OctagonPause, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { QUEUE_ACTIONS, type QueueAction } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { queueFailed as failed } from "./queueFailed";
 import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui/queueActionLooks";
@@ -126,7 +126,7 @@ function QueuedRemoveAllButton({ count }: { count: number }) {
       aria-label="すべて消す"
       title={`送信待ちの ${count} 件をすべて消す（確かめてから）`}
       onClick={() =>
-        void confirmDialog({
+        void confirm({
           title: `送信待ちの ${count} 件をすべて消しますか？`,
           message: "消した指示は送られません。元に戻せません。",
           confirmLabel: "すべて消す",

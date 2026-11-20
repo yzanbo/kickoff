@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from "react";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyImage, downloadImage } from "./imageFile";

@@ -1,6 +1,6 @@
 // まだ保存していないノートを離れるときの確かめ（別のノートへ移る・右の欄のノートのタブを閉じる）。
 // 開いているノート（useNoteDocument）が自分の様子と操作をここに知らせ、離れる側が confirmLeaveNote で聞く
-import { choiceDialog } from "@/foundation/ui/kit/dialogs";
+import { choose } from "@/foundation/ui/kit/ask";
 import { baseName, isUnder } from "./notePaths";
 
 interface NoteGuard {
@@ -35,14 +35,14 @@ export async function confirmLeaveNote(projectId: number, path: string | null | 
   if (!path) return true;
   const dirty = [...(guards.get(`${projectId}:${path}`) ?? [])].filter((g) => g.dirty());
   if (dirty.length === 0) return true;
-  const picked = await choiceDialog({
+  const picked = await choose({
     title: `ノート「${baseName(path)}」はまだ保存していません`,
     message: "保存してから移りますか？　保存しないと、書いたものは消えます。",
     choices: [
       { value: "discard", label: "保存しない" },
       { value: "save", label: "保存", primary: true },
     ],
-  });
+  }).then((r) => r?.value ?? null);
   if (picked === null) return false;
   if (picked === "discard") {
     dirty.forEach((g) => g.discard());

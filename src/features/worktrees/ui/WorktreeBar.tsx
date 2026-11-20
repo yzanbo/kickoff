@@ -2,7 +2,7 @@ import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Tra
 import type { PullRequestInfo } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { alertDialog, confirmDialog, confirmWithChecks } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -82,14 +82,14 @@ export function WorktreeBar({
     // Kickoff が組の名前を割り当てたワークツリーならコンテナとデータも、このワークツリーの DB から作った接続があればそれも消すかを一緒に選ぶ
     const info = await api.worktreeRemovalInfo(projectId, worktree).catch(() => null);
     const { checks, read } = removalChecks(env, info?.db_connections ?? []);
-    const answer = checks.length ? await confirmWithChecks({ ...confirm, checks }) : (await confirmDialog(confirm)) && { checked: [] };
+    const answer = checks.length ? await askConfirm({ ...confirm, checks }) : (await askConfirm(confirm)) && { checked: [] };
     if (!answer) return;
     await action.run("finish", async () => {
       // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）
       await api.removeWorktree(projectId, worktree, { deleteBranch: true, ...read(answer.checked) });
       worktreesStore.invalidate(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
-      await runGitOperation(projectId, () => api.gitPull(projectId)).catch((e: unknown) => void alertDialog("本体を最新にできませんでした", errorMessage(e)));
+      await runGitOperation(projectId, () => api.gitPull(projectId)).catch((e: unknown) => void alert("本体を最新にできませんでした", errorMessage(e)));
       onFinished();
     });
   };
@@ -147,12 +147,12 @@ export function WorktreeBar({
         </button>
       )}
       {env?.blocked && (
-        <button className="btn btn-sm worktree-env-warn" onClick={() => void alertDialog("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
+        <button className="btn btn-sm worktree-env-warn" onClick={() => void alert("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
           <TriangleAlert size={12} aria-hidden /> ポートを分けられません
         </button>
       )}
       {env && env.issues.length > 0 && (
-        <button className="btn btn-sm worktree-env-warn" onClick={() => void alertDialog("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
+        <button className="btn btn-sm worktree-env-warn" onClick={() => void alert("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
           <TriangleAlert size={12} aria-hidden /> 整えきれていない所 {env.issues.length} 件
         </button>
       )}

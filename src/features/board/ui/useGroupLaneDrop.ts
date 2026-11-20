@@ -5,7 +5,7 @@ import { useGroupDrop } from "@/features/groups/ui/groups";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { useGroups } from "@/features/groups/ui/stores/groups";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 
 type Lane = ChatBucket<PanelDraft>;
 

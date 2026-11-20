@@ -11,7 +11,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import type { DbSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { alertDialog } from "@/foundation/ui/kit/dialogs";
+import { alert } from "@/foundation/ui/kit/ask";
 import { SqlAssistButton } from "./DbAiButtons";
 import { SqlConnectionPill } from "./SqlConnectionPill";
 import { useDbClient } from "./dbClientContext";
@@ -165,7 +165,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
     await request.then(
       // 何かした（10 分を数え直す）に数えない。時間が来てトランザクションの終わりを待っていたら、ここで読み取り専用に戻す
       (st) => setSqlPending(tab.key, st.in_transaction),
-      (e: unknown) => alertDialog(failTitle, errorMessage(e)),
+      (e: unknown) => alert(failTitle, errorMessage(e)),
     );
     setFinishing(false);
   };

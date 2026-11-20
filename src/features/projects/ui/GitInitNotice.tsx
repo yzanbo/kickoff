@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 
 /** git の管理を始めたときに増えること（確かめの文・案内で共通） */
@@ -12,7 +12,7 @@ export const GIT_FEATURES = "ワークツリー（チャットごとの作業場
  * 始めたら true（呼ぶ側で Git の状態を取り直す）
  */
 export async function startProjectGit(projectId: number): Promise<boolean> {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: "git の管理を始めますか？",
     message: `プロジェクトフォルダを git のリポジトリとして初期化し、いまあるファイルをすべて最初のコミットにします。\n秘密の情報（.env など）があれば、先に .gitignore に書いてください。\n始めると、${GIT_FEATURES}が使えます。`,
     confirmLabel: "git の管理を始める",

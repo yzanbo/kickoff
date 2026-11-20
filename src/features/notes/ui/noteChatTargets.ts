@@ -2,7 +2,7 @@
 import type { MutableRefObject } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { lineLocation } from "@/foundation/ui/lib/pathCopy";
-import { alertDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { attachNoteToChat } from "./attachNote";
@@ -40,7 +40,7 @@ export function useNoteChatTargets({
 }): NoteChatTargets {
   const savedForAttach = async () => {
     if (await save()) return true;
-    void alertDialog("チャットに追加できませんでした", "ノートを保存できなかったので、追加しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから追加してください）。");
+    void alert("チャットに追加できませんでした", "ノートを保存できなかったので、追加しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから追加してください）。");
     return false;
   };
   const quoteOf = (selection: string, lines: Parameters<typeof lineLocation>[1]) => noteQuote(lineLocation(file, lines), selection);

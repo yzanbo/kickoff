@@ -4,7 +4,7 @@ import type { Attachment, Chat } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { openAskChild } from "@/features/chat/ui/open/openChat";
 import { addToChat } from "@/features/composer/ui/addToChat";

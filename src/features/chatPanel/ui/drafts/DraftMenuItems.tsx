@@ -2,7 +2,7 @@ import { ChevronRight, Columns2, Folder, FolderInput, PanelRight, Pencil, Pin, R
 import type { ReactNode } from "react";
 import { api } from "@/foundation/ui/api";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";

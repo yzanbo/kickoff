@@ -25,7 +25,7 @@ import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversat
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { NoteChip } from "@/features/notes/ui/NoteChip";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";

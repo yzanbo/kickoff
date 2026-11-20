@@ -1,6 +1,6 @@
 import { ArrowDownToLine, ArrowUpToLine, Merge, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { queueFailed as failed } from "./queueFailed";
@@ -73,7 +73,7 @@ export function QueuedSelectionActions({
           aria-label={`選んだ ${n} 件を消す`}
           title={`選んだ ${n} 件を消す（確かめてから）`}
           onClick={() =>
-            void confirmDialog({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(
+            void confirm({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(
               async (ok) => {
                 if (ok) await api.removeQueuedMany(chatId, selected).then(done, failed);
               },

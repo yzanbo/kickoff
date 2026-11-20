@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
-import { choiceDialogWithRemember, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { choose, reportFailure } from "@/foundation/ui/kit/ask";
 import { confirmDeleteChat, deleteChat, toggleArchiveChat } from "./chatActions";
 import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
 import { storage } from "./storage";
@@ -32,7 +32,7 @@ export async function closeChatWithChoice(
   let confirmed = false;
   if (action === "ask") {
     const archived = Boolean(chat.archived_at);
-    const picked = await choiceDialogWithRemember({
+    const picked = await choose({
       title: `チャット「${chatTitle(chat.title)}」を閉じます`,
       message: "表示だけ消すと、チャットはサイドバーやボードに残ります。アーカイブすると一覧から隠れ（会話の記録は残ります）、削除すると会話の記録も消えます（Claude Code の会話記録はゴミ箱へ移します）。",
       choices: [

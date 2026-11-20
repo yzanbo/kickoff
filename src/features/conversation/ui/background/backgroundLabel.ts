@@ -1,4 +1,4 @@
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 
 /** 種類ごとの呼び名 */
@@ -41,10 +41,10 @@ export function confirmStopAgents(background: BackgroundState | null, runningAge
   const what = [agents > 0 ? `サブエージェント ${agents} 件` : null, counted.commands > 0 ? `コマンド ${counted.commands} 件` : null].filter(Boolean).join("・");
   return !what
     ? Promise.resolve(true)
-    : confirmDialog({
+    : confirm({
         title: `裏で動いている${what}も止まります`,
         message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「あとで」で送ってください。`,
         confirmLabel: `${action}`,
         danger: true,
-      });
+      }).then((r) => r !== null);
 }

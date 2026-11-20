@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { writeConfirmation, type SqlStatement } from "@shared/database/sqlStatements";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
-import { alertDialog, confirmDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, prompt } from "@/foundation/ui/kit/ask";
 
 /** 「書き込む」を何もしないまま放っておいたら、読み取り専用に戻すまでの時間 */
 const SQL_WRITE_IDLE_MS = 10 * 60_000;
@@ -21,10 +21,10 @@ const previewOf = (statements: SqlStatement[]) => clipSql(statements.map((s, i) 
  */
 export async function confirmByEnvName(connection: DbConnection, title: string, message: string, confirmLabel: string): Promise<boolean> {
   const env = DB_ENVIRONMENT_LABELS[connection.environment];
-  const typed = await promptDialog({ title, message, label: `確かめのため、環境の名前「${env}」を入れてください`, placeholder: env, confirmLabel });
+  const typed = await prompt({ title, message, label: `確かめのため、環境の名前「${env}」を入れてください`, placeholder: env, confirmLabel }).then((r) => r?.value ?? null);
   if (typed === null) return false;
   if (typed === env) return true;
-  await alertDialog("環境の名前が違います", `「${env}」と入れてください。流していません。`);
+  await alert("環境の名前が違います", `「${env}」と入れてください。流していません。`);
   return false;
 }
 
@@ -63,15 +63,15 @@ export function useSqlWrite(connection: DbConnection, pending: boolean) {
   }, [on]);
 
   const start = async () => {
-    const typed = await promptDialog({
+    const typed = await prompt({
       title: `「${connection.name}」に書き込む`,
       message: `このタブだけ読み取り専用を外します（接続の設定は変えません）。外している間は、流す・保存するたびに SQL を見せて確かめます。\n10 分何もしないか、タブを閉じると読み取り専用に戻ります。`,
       label: `確かめのため、環境の名前「${env}」を入れてください`,
       placeholder: env,
       confirmLabel: "書き込む",
-    });
+    }).then((r) => r?.value ?? null);
     if (typed === null) return;
-    if (typed !== env) return alertDialog("環境の名前が違います", `「${env}」と入れてください。読み取り専用のままにしました。`);
+    if (typed !== env) return alert("環境の名前が違います", `「${env}」と入れてください。読み取り専用のままにしました。`);
     setExpired(false);
     setOn(true);
   };
@@ -87,14 +87,14 @@ export function useSqlWrite(connection: DbConnection, pending: boolean) {
    */
   const confirmRun = async (statements: SqlStatement[]): Promise<boolean> => {
     const title = `「${connection.name}」（${env}）に流しますか？`;
-    if (on) return confirmDialog({ title, message: previewOf(statements), confirmLabel: "流す", danger: true });
+    if (on) return confirm({ title, message: previewOf(statements), confirmLabel: "流す", danger: true }).then((r) => r !== null);
     if (connection.read_only) return true;
     const need = writeConfirmation(connection.write_check, statements.map((s) => s.text), connection.engine);
     if (need.kind === "none") return true;
     const dangers = need.dangers.map((d) => `・${statements.length > 1 ? `${d.index}. ` : ""}${d.reason}`).join("\n");
     const message = `${dangers ? `危険な文があります:\n${dangers}\n\n` : ""}${previewOf(statements)}`;
     if (need.kind === "env_name") return confirmByEnvName(connection, title, message, "流す");
-    return confirmDialog({ title, message, confirmLabel: "流す", danger: need.dangers.length > 0 });
+    return confirm({ title, message, confirmLabel: "流す", danger: need.dangers.length > 0 }).then((r) => r !== null);
   };
 
   return { on, start, revert, touch, confirmRun };

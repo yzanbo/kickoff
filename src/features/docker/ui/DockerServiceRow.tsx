@@ -9,7 +9,7 @@ import { panelKey } from "@/features/panel/ui/surfaces";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { api } from "@/foundation/ui/api";
-import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -193,7 +193,7 @@ export function DockerServiceRow({
 
 /** 静かなぶつかりの［Docker の db を使う］: 確かめてから相手の Homebrew のサービスを止め、戻し方を知らせる */
 async function chooseDockerSide(projectId: number, service: string, port: number, brew: string) {
-  const ok = await confirmDialog({
+  const ok = await confirm({
     title: `${brew} を止めますか？`,
     message: `Homebrew のサービスです。ほかのプロジェクトも使っていることがあります。止めると localhost:${port} への接続は Docker の ${service} に届きます。戻すときは brew services start ${brew} を流します。`,
     confirmLabel: "止める",

@@ -4,7 +4,7 @@ import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shar
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
 import { settingsStore } from "@/features/settings/ui/stores/settings";
-import { confirmDialog, confirmWithCheck, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 
 const TITLE = "外部リンクを開く";
@@ -24,8 +24,8 @@ async function confirmOpen(href: string, text: string, settings: AppSettings): P
   const warned = linkWarnings(href, text).length > 0;
   if (!warned && domain !== null && settings.trusted_link_domains.includes(domain)) return true;
   const message = linkConfirmMessage(href, text);
-  if (warned || domain === null) return confirmDialog({ title: TITLE, message, confirmLabel: "開く" });
-  const answer = await confirmWithCheck({ title: TITLE, message, confirmLabel: "開く", check: { label: `${domain} へのリンクは今後確認しない` } });
+  if (warned || domain === null) return confirm({ title: TITLE, message, confirmLabel: "開く" }).then((r) => r !== null);
+  const answer = await confirm({ title: TITLE, message, confirmLabel: "開く", checks: [{ label: `${domain} へのリンクは今後確認しない` }] }).then((r) => r && { checked: r.checked[0] });
   if (!answer) return false;
   if (answer.checked) {
     void api

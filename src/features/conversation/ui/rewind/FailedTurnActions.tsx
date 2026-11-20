@@ -1,6 +1,6 @@
 import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
 import { EFFORT_LABELS } from "@shared/settings/types";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

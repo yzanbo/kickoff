@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
-import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
@@ -50,12 +50,12 @@ interface Props {
 /** 元に戻す前に確かめる（取り消せないので） */
 export async function confirmDiscard(paths: string[]): Promise<boolean> {
   const name = baseName(paths[0]);
-  return confirmDialog({
+  return confirm({
     title: paths.length === 1 ? `「${name}」の変更を元に戻しますか？` : `${paths.length} 個のファイルの変更を元に戻しますか？`,
     message: "この操作は取り消せません。まだ Git に追加していない新しいファイルは消えます。",
     confirmLabel: "元に戻す",
     danger: true,
-  });
+  }).then((r) => r !== null);
 }
 
 /**

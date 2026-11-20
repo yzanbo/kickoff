@@ -8,7 +8,7 @@ import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { useChatDropTarget } from "@/features/groups/ui/groups";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { isForeignChat } from "./projectChatDrop";
 import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
 import { ChatRowList } from "./ChatRowList";

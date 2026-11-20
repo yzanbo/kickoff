@@ -2,7 +2,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import type { DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { alertDialog, choiceDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { alert, choose, confirm } from "@/foundation/ui/kit/ask";
 import { createTabFlags } from "./tabFlags";
 
 const pending = createTabFlags();
@@ -20,20 +20,20 @@ export const useSqlPending = (key: string): boolean => pending.useFlag(key);
 export async function finishSession(projectId: number, c: DbConnection, session: string, title = "コミットしていない変更があります"): Promise<boolean> {
   const { in_transaction } = await api.dbSessionState(projectId, c.id, session).catch(() => ({ in_transaction: false }));
   if (in_transaction) {
-    const choice = await choiceDialog({
+    const choice = await choose({
       title,
       message: `「${c.name}」で流した変更をコミットしますか？「取り消す」を選ぶと、変更は捨てます。`,
       choices: [
         { value: "commit", label: "コミット", primary: true },
         { value: "rollback", label: "取り消す" },
       ],
-    });
+    }).then((r) => r?.value ?? null);
     // やめたら閉じない
     if (choice === null) return false;
     try {
       if (choice === "commit") await api.commitDbSession(projectId, c.id, session);
     } catch (e) {
-      await alertDialog("コミットできませんでした", errorMessage(e));
+      await alert("コミットできませんでした", errorMessage(e));
       return false;
     }
   }
@@ -50,7 +50,7 @@ export async function disconnectConnection(projectId: number, c: DbConnection): 
   try {
     let result = await api.disconnectDb(projectId, c.id, false);
     if (!result.disconnected) {
-      const ok = await confirmDialog({
+      const ok = await confirm({
         title: "コミットしていない SQL のタブがあります",
         message: `「${c.name}」の SQL のタブ ${result.pending_sessions.length} 個に、コミットしていない変更があります。取り消して切りますか？（コミットするなら、先にそのタブでコミットしてください）`,
         confirmLabel: "取り消して切る",
@@ -61,6 +61,6 @@ export async function disconnectConnection(projectId: number, c: DbConnection): 
     }
     for (const session of result.pending_sessions) setSqlPending(session, false);
   } catch (e) {
-    await alertDialog("接続を切れませんでした", errorMessage(e));
+    await alert("接続を切れませんでした", errorMessage(e));
   }
 }

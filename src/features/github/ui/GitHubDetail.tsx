@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
-import { reportFailure } from "@/foundation/ui/kit/dialogs";
+import { reportFailure } from "@/foundation/ui/kit/ask";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { GitHubBodyContext, GitHubHtml } from "./GitHubHtml";

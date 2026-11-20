@@ -3,7 +3,7 @@ import { datedNoteName, safeNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { notesStore } from "@/features/notes/ui/stores/notes";
-import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
+import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./notePaths";
@@ -88,7 +88,7 @@ export function useNoteActions(
     if (pathTaken(entries(), to, path)) {
       const where = parentOf(to) ? `「${parentOf(to)}」に` : "";
       const hint = noteExtensionOf(to) ? "拡張子が違うノート（Markdown と HTML）なら、同じ名前でも作れます。" : "";
-      await alertDialog("同じ名前があります", `${where}「${baseName(to)}」がもうあります。別の名前にしてください。${hint}`);
+      await alert("同じ名前があります", `${where}「${baseName(to)}」がもうあります。別の名前にしてください。${hint}`);
       return "taken";
     }
     if (!(await beforeChange(path))) return "done";
@@ -107,7 +107,7 @@ export function useNoteActions(
   };
 
   const trash = async (path: string, dir: boolean) => {
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
       message: dir ? "中のノートもすべてゴミ箱に入ります。Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。" : "Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。",
       confirmLabel: "ゴミ箱に入れる",
@@ -144,7 +144,7 @@ export function useNoteActions(
 
   /** 失敗したものを最後にまとめて知らせる（まとめて動かす・ゴミ箱に入れる） */
   const reportMany = async (title: string, failed: readonly string[]) => {
-    if (failed.length > 0) await alertDialog(title, failed.join("\n"));
+    if (failed.length > 0) await alert(title, failed.join("\n"));
   };
 
   /**
@@ -186,7 +186,7 @@ export function useNoteActions(
     }
     const names = targets.slice(0, 10).map((n) => `・${baseName(n.path)}${n.dir ? "（フォルダ）" : ""}`);
     if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
-    const ok = await confirmDialog({
+    const ok = await confirm({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
       message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のノートもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
       confirmLabel: "ゴミ箱に入れる",

@@ -1,6 +1,6 @@
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { api } from "@/foundation/ui/api";
-import { promptDialog } from "@/foundation/ui/kit/dialogs";
+import { prompt } from "@/foundation/ui/kit/ask";
 import { useWorktrees } from "./worktreesStore";
 import { workplaceHue } from "./workplaceHue";
 import { worktreeLabel } from "./WorktreePicker";
@@ -19,7 +19,7 @@ const NEW = "__new__";
  * やりたいことを書いて「AI で提案」を押すと、ブランチ名の案を AI に作ってもらえる
  */
 export function askNewWorktreeBranch(projectId: number, initial?: string): Promise<string | null> {
-  return promptDialog({
+  return prompt({
     title: "新しいワークツリーで始める",
     initial,
     message: "いまのコミットから新しいブランチを作り、別のフォルダで作業します。ほかのチャットと並行して進めても、ファイルがぶつかりません（本体の node_modules も写すので、すぐ動かせます）。",
@@ -32,7 +32,7 @@ export function askNewWorktreeBranch(projectId: number, initial?: string): Promi
       buttonLabel: "AI で提案",
       suggest: (summary) => api.suggestBranches(projectId, summary).then((r) => r.branches),
     },
-  });
+  }).then((r) => r?.value ?? null);
 }
 
 /**

@@ -67,7 +67,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。
 - メニューは `PopupMenu` ＋ `MenuItem`（選択肢は `checked`、子は `MenuSub`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
 - ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`。
-- ダイアログは `kit/dialogs.tsx`（確認・入力・選択と、チェックを添える形）。モーダルは `useModalDialog`、ボタンの行は `DialogActions`。
+- 確認・入力・選ぶは `kit/ask.ts`（`confirm`・`prompt`・`choose`・`alert`）。骨組みは `Dialog`、ボタンの行は `DialogActions`。
 - フォームは `Field`・`CheckField`・`SearchField`・`InlineName`・`CommitInput`、失敗の文は `ErrorText`、結果は `ResultMessage`。
 - 左の一覧は `kit/ListRail.tsx` で開閉し、どれも隠せるようにする。
 - 空の画面は `EmptyState`。文 1 行で済ませず、なぜ空かと次にできることを出す。
