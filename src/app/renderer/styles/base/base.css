@@ -21,7 +21,7 @@ h1 {
 
 h2 {
   margin-bottom: 10px;
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 .muted {
@@ -29,7 +29,7 @@ h2 {
 }
 
 .small {
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .error {
@@ -49,7 +49,7 @@ kbd {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--muted);
 }
 

@@ -44,12 +44,12 @@
   align-items: center;
   gap: 5px;
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--fs-11);
   white-space: nowrap;
 }
 
 .feed-card-state .tone-chip {
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .feed-card-head .card-time {

@@ -42,12 +42,15 @@
   --state-failed: color-mix(in srgb, var(--dot-failed) 78%, var(--text));
   --state-running: color-mix(in srgb, var(--dot-running) 78%, var(--text));
   --state-unread: color-mix(in srgb, var(--dot-unread) 78%, var(--text));
-  /* 色分けの色（Mermaid の図・コミットの線・ワークツリーの印などで使う） */
-  --sec-requirements: #3987e5;
-  --sec-schedule: #9085e9;
-  --sec-implementation: #d95926;
-  --sec-testing: #199e70;
-  --sec-deployment: #d55181;
+  /* 色分けの色（Mermaid の図・コミットの線・Docker のログ・PR の札などで使う） */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #9085e9;
+  --chart-5: #d55181;
+  /* AI の色（設定の AI の一覧の印） */
+  --ai-claude: #d97757;
+  --ai-gemini: #5c9bf6;
   /* 子チャットの深さの色（子 = 青・孫 = 桃・ひ孫より深い = 黄緑）。右の欄のタブの札と下線・子チャットの上の帯の呼び名で同じ */
   --child-depth-1: hsl(200 70% 62%);
   --child-depth-2: hsl(330 65% 72%);
@@ -77,11 +80,35 @@
   --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239fa8a8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   /* 真ん中の画面（ボード・エディタ）に残す最小の幅。右のチャット欄を広げても、ここまでは残す */
   --main-min-w: 320px;
+  /* チャットの流れの列の幅（上の帯の中身もこの幅にそろえる） */
+  --chat-column: 820px;
+  /* 文字の大きさ（10〜15px。16px 以上の見出しと半端な値は直に書く） */
+  --fs-10: 10px; --fs-11: 11px; --fs-12: 12px; --fs-13: 13px; --fs-14: 14px; --fs-15: 15px;
+  /*
+   * 会話の文字の大きさ（会話の入れ物の倍率 --chat-scale つき。chat.css）。var() は宣言した要素で解けるので、
+   * ここ（倍率 1）のほかに、倍率を入れる入れ物でも同じ宣言で解き直す
+   */
+  --chat-fs-10: calc(10px * var(--chat-scale, 1)); --chat-fs-11: calc(11px * var(--chat-scale, 1));
+  --chat-fs-12: calc(12px * var(--chat-scale, 1)); --chat-fs-13: calc(13px * var(--chat-scale, 1));
+  --chat-fs-14: calc(14px * var(--chat-scale, 1)); --chat-fs-15: calc(15px * var(--chat-scale, 1));
+  /* 重なりの順（10 以上と下へ潜らせる -1 は名前で書く。部品の中の重なり 1〜9 は数のまま） */
+  --z-hidden: -1;
+  --z-overlay: 10; /* 図の道具の帯・タグの候補 */
+  --z-floating: 20; /* 最大表示の見出し・入力欄の候補・その場の名前の欄 */
+  --z-sticky-head: 25; /* プロジェクトの画面の見出し */
+  --z-chrome: 30; /* 開閉ボタン・戻る進む・格子の上の物 */
+  --z-raised-bar: 40; /* 選んだ文の帯・下の帯・スマホのメニュー */
+  --z-menu: 50; /* メニュー・ノートの浮く知らせ */
+  --z-toast: 60;
+  --z-band: 900; /* 診断の印 */
+  --z-alert: 950; /* コアの帯 */
+  --z-drag: 1000; /* ドラッグの写し */
+  --z-drag-hint: 1001; /* 落とせない理由 */
   --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   /* 本文の字（等幅の中に本文を戻すとき。GitHub の差分の行の下のスレッド） */
   --sans: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.55;
   color: var(--text);
   background: var(--bg);
@@ -113,11 +140,11 @@
   --dot-failed: #e4312b;
   --dot-running: #1276c6;
   --dot-unread: #0c9d49;
-  --sec-requirements: #2a78d6;
-  --sec-schedule: #6250d6;
-  --sec-implementation: #eb6834;
-  --sec-testing: #1baf7a;
-  --sec-deployment: #e87ba4;
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #6250d6;
+  --chart-5: #e87ba4;
   --child-depth-1: hsl(205 70% 40%);
   --child-depth-2: hsl(330 55% 45%);
   --child-depth-3: hsl(100 50% 30%);
@@ -137,6 +164,11 @@
  *   --note-chat-w ノートの会話の欄の幅・--note-chat-h 下に置くときの高さ（%）と --note-chat-h-num（同じ値の数）・--note-quick-h ノートの下の入力欄の高さ（NoteView.tsx・useBottomChatMotion.ts）
  *   --docker-log-h Docker タブのログの画面の高さ（タブの高さに対する %。DockerTab.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）
+ *   --guide-depth ファイル・ノートの木の縦の線の段（FileTree.tsx・NoteTree.tsx）
+ *   --db-grid-cols DB の表の列の幅の並び（DataGrid.tsx）
+ *   --label-color GitHub のラベルの色（GitHubItemRow.tsx）
+ *   --note-find-right ノートの検索欄の右のずれ（会話の欄の幅。NoteView.tsx）
+ *   --row-est    流れの行の高さの見積もり（useRowWindow.ts。@property で宣言。timeline-row.css）
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
  *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・PanelTab.tsx（ピン留めしたチャットのタブのピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
@@ -149,7 +181,7 @@
  *   --progressive-omitted 段階に分けて描く一覧でまだ描いていない行の数（ui/ProgressiveRows.tsx。行の見積もり --progressive-row は一覧ごとの CSS で決める）
  *   --voice-level 音声モードの丸の広がり（マイクの音量 0〜1。VoiceModePanel.tsx）・--mic-level 音声入力の録音中の音量（0〜1。DictationButton.tsx の useMicLevel。初めの値は dictation.css）
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
- *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
+ *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --chart-*）
  *   terminalTheme.ts・CodeEditor.tsx（--bg --text --mono）
  *   chat/visuals/visualTheme.ts（--bg --bg-elev --text --muted --border-strong --accent-fg --accent-text --ng --info --warn --child-depth-2 --child-depth-3 --mono --radius。AI が描いた図の --vis-* に渡す）
  */

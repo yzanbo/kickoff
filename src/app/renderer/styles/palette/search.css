@@ -16,7 +16,7 @@
 /* いま開いているプロジェクトに添える「このプロジェクト」（名前の補足として小さく） */
 .palette-project-note {
   flex: none;
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--extra-muted);
 }
 
@@ -48,7 +48,7 @@
 .search-hit-title {
   flex: 1;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -56,7 +56,7 @@
 }
 
 .search-hit-snippet {
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.5;
   color: var(--muted);
 }

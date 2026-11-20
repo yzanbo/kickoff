@@ -57,7 +57,7 @@
   border-radius: var(--radius);
   background: var(--bg-elev);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
   text-align: left;
   cursor: pointer;
@@ -89,7 +89,7 @@
   align-items: center;
   gap: 2px;
   color: var(--warn);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .chat-image-urls {
@@ -101,7 +101,7 @@
   border-radius: var(--radius-sm);
   background: none;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
 }
 
@@ -118,7 +118,7 @@
   align-items: center;
   gap: 2px 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .chat-image-host {
@@ -151,7 +151,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   overflow-wrap: anywhere;
   user-select: text;
 }
@@ -180,7 +180,7 @@
   border-radius: var(--radius-sm);
   background: none;
   color: var(--ng);
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
 }
 
@@ -198,7 +198,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--ng);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .chat-image-error-url {
@@ -240,7 +240,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   overflow-wrap: anywhere;
 }
 

@@ -25,7 +25,7 @@
 
 .activity-time {
   overflow: hidden;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   line-height: calc(26px * var(--chat-scale, 1));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

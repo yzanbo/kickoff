@@ -3,13 +3,13 @@
 /* メニューの中の見出し（新しいチャットの作成先・タブの列の＋のターミナル） */
 .menu-label {
   padding: 6px 10px 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
 /* メニュー全体の題名（「チャット画面表示」。下の組の見出し .menu-label より一段上に見えるよう、本文の色の太字にする） */
 .menu-label.menu-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--text);
 }
@@ -36,7 +36,7 @@
 .menu {
   position: fixed;
   inset: 0 auto auto 0;
-  z-index: 50;
+  z-index: var(--z-menu);
   display: grid;
   min-width: 200px;
   margin: 0;
@@ -58,7 +58,7 @@
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-align: left;
   color: var(--text);
   background: transparent;
@@ -107,7 +107,7 @@
 /* 子のメニューを開く項目の右に添える、いまの様子（「表示するグループ」の「2 件を隠し中」など） */
 .menu .menu-submenu-note {
   margin-left: auto;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--extra-muted);
 }
 
@@ -126,7 +126,7 @@
   border: none;
   border-bottom: 1px solid var(--border-strong);
   border-radius: 0;
-  font-size: 13px;
+  font-size: var(--fs-13);
   background: transparent;
 }
 
@@ -160,7 +160,7 @@
   .board-body.with-panel .board-panel {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: var(--z-raised-bar);
     margin: 0;
   }
 
@@ -194,7 +194,7 @@
   padding: 6px 9px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-elev);

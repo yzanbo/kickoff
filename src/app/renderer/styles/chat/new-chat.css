@@ -16,7 +16,7 @@
 }
 
 .new-chat-group .pill-select {
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 /* ピルの中に置く選択欄（枠と背景はピルに任せる） */

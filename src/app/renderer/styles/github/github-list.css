@@ -98,7 +98,7 @@
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-12);
   cursor: pointer;
 }
 
@@ -167,7 +167,7 @@
   border-radius: 999px;
   background: var(--bg);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 17px;
   color: var(--accent-fg);
   cursor: pointer;
@@ -244,7 +244,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 6px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.35;
 }
 
@@ -259,7 +259,7 @@
   align-items: center;
   gap: 2px 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .github-item-comments {
@@ -280,7 +280,7 @@
 
 .github-state-done,
 .github-state-merged {
-  color: var(--sec-schedule);
+  color: var(--chart-4);
 }
 
 .github-state-draft {
@@ -311,7 +311,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--label-color, #888) 18%, transparent);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   white-space: nowrap;
 }

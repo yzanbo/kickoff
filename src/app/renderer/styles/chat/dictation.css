@@ -70,14 +70,14 @@
 
 .dictation-time {
   min-width: 32px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-variant-numeric: tabular-nums;
   color: var(--ng);
 }
 
 .dictation-status {
   padding: 0 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 

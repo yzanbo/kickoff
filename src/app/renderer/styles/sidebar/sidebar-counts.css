@@ -16,7 +16,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 700;
   color: var(--tone);
   background: color-mix(in srgb, var(--tone) 16%, transparent);
@@ -57,7 +57,7 @@
 
 .workspace-empty-text {
   margin: 4px 4px 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.6;
   color: var(--muted);
 }
@@ -73,7 +73,7 @@
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
   background: transparent;
   cursor: pointer;

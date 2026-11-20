@@ -40,7 +40,7 @@
 }
 
 .docker-logs-title {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -59,7 +59,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: transparent;
-  font-size: 11px;
+  font-size: var(--fs-11);
   cursor: pointer;
 }
 
@@ -108,7 +108,7 @@
   overflow: auto;
   padding: 4px 0 8px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 18px;
 }
 
@@ -201,7 +201,7 @@
   height: 18px;
   padding: 0 8px;
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .docker-log-row:hover .docker-log-ask {
@@ -242,11 +242,11 @@
 }
 
 /* サービスの色（札・行の頭の名前）。区別できればよいので、図・線の色分けの色を使う */
-.docker-log-c0 { --log-hue: var(--sec-requirements); }
-.docker-log-c1 { --log-hue: var(--sec-testing); }
-.docker-log-c2 { --log-hue: var(--sec-implementation); }
-.docker-log-c3 { --log-hue: var(--sec-schedule); }
-.docker-log-c4 { --log-hue: var(--sec-deployment); }
+.docker-log-c0 { --log-hue: var(--chart-1); }
+.docker-log-c1 { --log-hue: var(--chart-3); }
+.docker-log-c2 { --log-hue: var(--chart-2); }
+.docker-log-c3 { --log-hue: var(--chart-4); }
+.docker-log-c4 { --log-hue: var(--chart-5); }
 .docker-log-c5 { --log-hue: var(--child-depth-1); }
 .docker-log-c6 { --log-hue: var(--child-depth-3); }
 .docker-log-c7 { --log-hue: var(--warn); }

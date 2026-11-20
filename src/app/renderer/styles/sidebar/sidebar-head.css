@@ -41,7 +41,7 @@
   align-items: center;
   gap: 2px;
   width: 62px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   color: var(--muted);
 }
@@ -94,14 +94,14 @@
 }
 
 .head-chip-label {
-  font-size: 10px;
+  font-size: var(--fs-10);
   color: var(--extra-muted);
 }
 
 /* 取りうる値を同じ場所に重ね、いまの値だけを見せる（幅はいちばん長い値で固定） */
 .head-chip-value {
   display: grid;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   white-space: nowrap;
 }

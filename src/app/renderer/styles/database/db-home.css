@@ -28,7 +28,7 @@
 
 .db-home-title {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 .db-home-head .btn {
@@ -128,7 +128,7 @@
   background: var(--bg-hover);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
 }

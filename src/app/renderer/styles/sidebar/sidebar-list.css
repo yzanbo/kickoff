@@ -99,7 +99,7 @@
   align-items: center;
   gap: 6px;
   margin: 6px var(--gutter) 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--muted);
 }
@@ -166,7 +166,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   color: hsl(var(--ws-hue) 60% 72%);
   background: hsl(var(--ws-hue) 35% 22%);

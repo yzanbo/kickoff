@@ -17,7 +17,7 @@
   padding: 0 10px 0 6px;
   border: none;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-align: left;
   color: var(--text);
   background: transparent;
@@ -58,7 +58,7 @@
   border: 1px solid color-mix(in srgb, var(--ref-color) 70%, transparent);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--ref-color) 32%, transparent);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   line-height: 16px;
   color: var(--text);
@@ -115,7 +115,7 @@
   padding: 8px;
   border: none;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -147,7 +147,7 @@
   min-height: 0;
   padding: 14px 18px 12px 10px;
   overflow-y: auto;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .commit-summary-side {
@@ -156,7 +156,7 @@
 }
 
 .commit-summary-label {
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 20px;
@@ -189,7 +189,7 @@
 }
 
 .commit-author-name {
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 .commit-summary-refs,
@@ -212,7 +212,7 @@
 }
 
 .commit-summary-parents .link-button {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--info);
 }
 
@@ -236,7 +236,7 @@
 
 .commit-subject {
   margin: 0 0 10px;
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 700;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -245,7 +245,7 @@
 .commit-body {
   margin: 0;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -303,7 +303,7 @@
   border-radius: 3px;
   background: var(--warn);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 700;
   color: var(--bg);
 }
@@ -375,7 +375,7 @@
 .history-date {
   flex: none;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);

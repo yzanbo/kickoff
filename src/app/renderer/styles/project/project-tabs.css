@@ -68,7 +68,7 @@
 /* エディタのタブの変更のあるファイルの数は、灰色だと目立たないので、チャットの状態の色（青・緑・オレンジ）と被らない紫の地に白い字にする */
 .tab .change-count {
   color: #fff;
-  background: var(--sec-schedule);
+  background: var(--chart-4);
 }
 
 /*

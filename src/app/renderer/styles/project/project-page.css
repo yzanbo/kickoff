@@ -88,7 +88,7 @@
   top: 0;
   right: 0;
   left: 0;
-  z-index: 25;
+  z-index: var(--z-sticky-head);
   padding: 6px 100px 6px var(--page-x);
   border-bottom: 1px solid var(--border);
   background: var(--bg);
@@ -176,7 +176,7 @@
 /* 画面の見出しの名前（隣の歯車・戻る / 進む・右上の開閉のボタンと高さがそろうよう、h1 の既定より小さくする） */
 .project-title-row h1 {
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.3;
 }
 

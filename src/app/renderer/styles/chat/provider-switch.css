@@ -2,7 +2,7 @@
    その下の「引き継ぎ内容を確認」は区切りの文の真下に置き、開いた中身は会話の横幅いっぱいの枠にする */
 .provider-switch-details {
   margin: 0 0 10px;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   color: var(--muted);
 }
 
@@ -44,7 +44,7 @@
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--info) 12%, var(--bg));
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .provider-handoff-notice .btn {

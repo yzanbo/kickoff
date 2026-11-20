@@ -14,7 +14,7 @@
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-14);
   color: var(--muted);
   background: transparent;
   cursor: pointer;

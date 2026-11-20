@@ -89,7 +89,7 @@
   align-items: stretch;
   align-self: stretch;
   max-width: 160px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
@@ -185,7 +185,7 @@ button.panel-tab-cluster-name[aria-expanded="true"],
 
 /* 札から開く一覧（top layer に出すので、タブの列に切り取られない）。札の太字などを受け継がない */
 .cluster-chats-popover {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 400;
   color: var(--text);
 }

@@ -3,7 +3,7 @@
   position: fixed;
   top: 8px;
   left: var(--app-navigation-left);
-  z-index: 30;
+  z-index: var(--z-chrome);
   display: flex;
   gap: 2px;
   -webkit-app-region: no-drag;

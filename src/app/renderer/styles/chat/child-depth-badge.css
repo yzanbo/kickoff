@@ -9,7 +9,7 @@
   align-self: center;
   padding: 0 6px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
   color: var(--child-color);

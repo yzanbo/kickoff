@@ -32,13 +32,13 @@
 
 .empty-state-text {
   max-width: 480px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.7;
 }
 
 .empty-state-note {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .empty-state-actions {
@@ -88,12 +88,12 @@
 .empty-state-step-body {
   display: grid;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.6;
 }
 
 .empty-state-step-body strong {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text);
 }
 
@@ -110,7 +110,7 @@
 
 .empty-state-list-head {
   margin: 0 8px 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .empty-state-project {
@@ -130,14 +130,14 @@
 
 .empty-state-project-name {
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .empty-state-project-path {
   min-width: 0;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
@@ -145,7 +145,7 @@
 
 .empty-state-more {
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 

@@ -8,7 +8,7 @@
   top: 0;
   right: 0;
   left: var(--sidebar-shown);
-  z-index: 20;
+  z-index: var(--z-floating);
   height: 40px;
   margin: 0;
   /* 名前の行（24px）の真ん中を、ふだんと同じく左上の戻る・進むの真ん中（21px）にそろえる */

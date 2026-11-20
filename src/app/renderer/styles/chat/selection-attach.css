@@ -3,7 +3,7 @@
 .selection-attach {
   position: fixed;
   display: flex;
-  z-index: 40;
+  z-index: var(--z-raised-bar);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg-elev);
@@ -16,7 +16,7 @@
   gap: 5px;
   padding: 4px 10px;
   border: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   white-space: nowrap;
 }
 

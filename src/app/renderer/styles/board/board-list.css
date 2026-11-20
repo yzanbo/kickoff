@@ -108,7 +108,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-align: left;
   color: var(--muted);
   background: var(--bg-elev);
@@ -124,7 +124,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 /* 全プロジェクトのボードでは、どのプロジェクトの下書きかを右端のバッジで示す（長い名前は省く） */
@@ -136,7 +136,7 @@
 .draft-card-text {
   display: -webkit-box;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -89,7 +89,7 @@
 
 .snippet-manager-name {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,7 +100,7 @@
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.6;
   color: var(--muted);
   white-space: pre-wrap;
@@ -136,7 +136,7 @@
   max-height: 320px;
   resize: vertical;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.6;
   field-sizing: content;
 }

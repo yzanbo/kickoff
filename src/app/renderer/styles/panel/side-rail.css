@@ -80,7 +80,7 @@
 .side-browser[hidden]:has(.panel-tab-page.agent-browsing) {
   position: absolute;
   inset: 40px 0 0;
-  z-index: -1;
+  z-index: var(--z-hidden);
   display: flex;
   opacity: 0;
   pointer-events: none;
@@ -111,7 +111,7 @@
 
 .side-view-title {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   white-space: nowrap;
   text-overflow: ellipsis;
 }

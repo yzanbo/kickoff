@@ -80,7 +80,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -113,7 +113,7 @@
   border-bottom: 1px solid var(--border);
   background: var(--bg);
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1.55;
   white-space: normal;
 }

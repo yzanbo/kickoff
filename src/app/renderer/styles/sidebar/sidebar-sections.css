@@ -8,7 +8,7 @@
   height: var(--row-tight);
   margin-top: 4px;
   padding: 0 8px 0 2px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--text);
 }

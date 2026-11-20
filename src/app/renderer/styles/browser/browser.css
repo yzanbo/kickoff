@@ -35,7 +35,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--text);
   background: var(--bg-elev);
 }
@@ -56,7 +56,7 @@
 .browser-error {
   margin: 0;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--ng);
   border-bottom: 1px solid var(--border);
 }
@@ -151,7 +151,7 @@
 .panel-tab-page.agent-browsing[hidden] {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: var(--z-hidden);
   display: block;
   opacity: 0;
   pointer-events: none;
@@ -164,7 +164,7 @@
  * 負の margin で列の幅は 0 のまま右端に重ね、欄は隠したまま（visibility。タブの列のドラッグ領域を残さない）で、ページだけを透明で見せる
  */
 .project-chat:not(.open):has(.panel-tab-page.agent-browsing) {
-  z-index: -1;
+  z-index: var(--z-hidden);
   width: var(--chat-shown);
   /* 左の枠の 1px も含めて打ち消す（真ん中の画面の幅を変えない） */
   margin-left: calc(-1px - var(--chat-shown));

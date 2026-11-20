@@ -12,7 +12,7 @@
   padding: 1px 9px;
   border: 1px solid color-mix(in srgb, var(--head-color) 45%, transparent);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   white-space: nowrap;
   color: color-mix(in srgb, var(--head-color) 78%, var(--text));

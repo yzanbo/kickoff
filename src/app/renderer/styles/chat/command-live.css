@@ -48,7 +48,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--extra-muted);

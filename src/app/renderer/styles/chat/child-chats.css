@@ -26,7 +26,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   background: var(--bg-elev);
   cursor: pointer;
@@ -192,7 +192,7 @@
   flex: none;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
 }
 
@@ -240,7 +240,7 @@
   flex: none;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
@@ -261,7 +261,7 @@
   padding: 0 8px 0 4px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--text);
   background: var(--bg-elev);
   cursor: pointer;
@@ -318,7 +318,7 @@
 input[type="text"]:is(.child-chat-title-input, .chat-header-title-input) {
   height: 22px;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 @container child-chat-bar (max-width: 560px) {
@@ -355,7 +355,7 @@ input[type="text"]:is(.child-chat-title-input, .chat-header-title-input) {
 
 .segmented.inherit-choice-switch button {
   padding: 3px 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .inherit-choice-help {

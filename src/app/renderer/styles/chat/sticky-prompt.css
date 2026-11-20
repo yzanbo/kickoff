@@ -11,7 +11,7 @@
   align-items: flex-start;
   gap: 4px;
   /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる。縦は詰めて、流れに場所を回す */
-  padding: 3px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
+  padding: 3px max(var(--gutter), calc((100% - var(--chat-column)) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--border);
   /* 地は画面と同じ（色を付けず、下の線だけで流れと分ける） */
   background: var(--bg);
@@ -33,7 +33,7 @@
   /* 文の 1 行目の並びにそろえる（文の枠の 1px ＋ 文 13px と見出し 11px の行の高さの差） */
   padding-top: 3px;
   margin-right: 4px;
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   font-weight: 600;
   color: var(--muted);
 }
@@ -44,7 +44,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: calc(13px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-13);
   line-height: 1.5;
 }
 
@@ -63,7 +63,7 @@
   align-self: flex-start;
   gap: 4px;
   padding-top: 3px;
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   white-space: nowrap;
   color: var(--muted);
 }
@@ -76,7 +76,7 @@
 
 .sticky-answer-question {
   display: block;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   color: var(--muted);
 }
 

@@ -25,14 +25,14 @@ input[type="text"].inline-name {
   min-width: 0;
   height: 22px;
   padding: 0 6px;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 /* 入力欄のすぐ右に添える文（ノートの拡張子など。名前には含めない） */
 .inline-name-suffix {
   flex: none;
   margin-right: 2px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
 }
 
@@ -50,13 +50,13 @@ input[type="text"].inline-name[aria-invalid="true"]:focus {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  z-index: 20;
+  z-index: var(--z-floating);
   padding: 3px 8px;
   border: 1px solid var(--ng);
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
   color: var(--ng);
-  font-size: 12px;
+  font-size: var(--fs-12);
   white-space: nowrap;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }

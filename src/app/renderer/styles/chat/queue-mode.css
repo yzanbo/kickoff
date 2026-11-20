@@ -27,7 +27,7 @@
   min-width: 0;
   padding: 0 10px 0 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   white-space: nowrap;
   color: var(--extra-muted);
 }
@@ -63,7 +63,7 @@
 
 .composer.compact .view-toggle.queue-mode button {
   padding: 0 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 /* 推論の深さ・権限モードをアイコンだけにしても下の行が 1 行に入らないとき（useComposerBarFit の 2 段目）は文字を隠し、アイコンだけにする（説明はマウスを乗せたときに出る） */

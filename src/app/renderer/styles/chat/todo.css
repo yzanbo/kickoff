@@ -12,7 +12,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .todo-icon {
@@ -37,7 +37,7 @@
 /* 下に閉じたまとまりがあるときの「いまの作業」の小見出し */
 .todo-section-label {
   padding: 4px 10px 2px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--muted);
 }
@@ -72,7 +72,7 @@
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   text-align: left;
   color: var(--muted);
   background: transparent;
@@ -102,14 +102,14 @@
 
 .todo-group-count {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
 
 .todo-group-time {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
@@ -152,5 +152,5 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }

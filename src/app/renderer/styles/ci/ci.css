@@ -24,7 +24,7 @@
   padding: 0 4px;
   border-radius: var(--radius-sm);
   background: var(--bg-hover);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 /* 作業場所のブランチ・既定のブランチ（落ちたら知らせる）はアクセントの色 */
@@ -78,7 +78,7 @@
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 20px;
 }
 
@@ -193,7 +193,7 @@
 
 .ci-step-toggle {
   padding: 5px 8px 5px 24px;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .ci-step-name {
@@ -216,7 +216,7 @@
   padding: 4px 0;
   background: var(--bg);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.5;
 }
 

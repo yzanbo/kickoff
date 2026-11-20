@@ -63,7 +63,7 @@
 
 .reference-name {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -72,7 +72,7 @@
 .reference-dir {
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -157,7 +157,7 @@
 }
 
 .provider-claude {
-  color: #d97757;
+  color: var(--ai-claude);
 }
 
 .provider-codex {
@@ -165,12 +165,12 @@
 }
 
 .provider-gemini {
-  color: #5c9bf6;
+  color: var(--ai-gemini);
 }
 
 .provider-name {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
 }
 
@@ -182,20 +182,20 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
 .provider-account {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ai-defaults h3 {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 /* プロジェクトの見出しの設定の歯車（左下のアプリの設定と同じ大きさ） */

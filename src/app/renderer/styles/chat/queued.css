@@ -82,7 +82,7 @@
   margin: 2px 0;
   /* つまみを行のつまみと同じ位置にそろえる（.queued-row の左の詰め物と同じ） */
   padding-left: 6px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--warn);
 }
 
@@ -172,7 +172,7 @@
   flex: none;
   min-width: 16px;
   margin-right: 4px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--muted);
   text-align: right;
@@ -220,7 +220,7 @@
   cursor: text;
   min-width: 0;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -232,7 +232,7 @@
   padding: 0 6px;
   border-radius: 999px;
   background: var(--bg-hover);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 16px;
   color: var(--muted);
   white-space: nowrap;
@@ -296,7 +296,7 @@
   min-width: 0;
   max-height: 40vh;
   padding: 4px 6px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   resize: none;
   field-sizing: content;
 }
@@ -358,7 +358,7 @@
 .restart-resume-title {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--fs-14);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -436,7 +436,7 @@
 
 .restart-resume-section-title {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--muted);
@@ -476,7 +476,7 @@
 
 .restart-resume-moment.tool {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   -webkit-line-clamp: 2;
 }
 
@@ -552,7 +552,7 @@
 
 .segmented.restart-resume-choice button {
   padding: 3px 12px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .restart-resume-open {

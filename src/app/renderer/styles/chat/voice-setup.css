@@ -22,7 +22,7 @@
   height: 22px;
   border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--muted);
 }
@@ -75,7 +75,7 @@
 
 .voice-tool-name {
   flex: none;
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 .voice-tool .muted {
@@ -124,7 +124,7 @@
   display: flex;
   gap: 12px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -180,7 +180,7 @@
 }
 
 .voice-advanced summary {
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
   cursor: pointer;
 }
@@ -205,7 +205,7 @@
 .voice-speech-field {
   display: grid;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 

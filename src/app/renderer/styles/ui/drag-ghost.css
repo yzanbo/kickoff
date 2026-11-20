@@ -8,7 +8,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: var(--z-drag);
   opacity: var(--drag-ghost-opacity);
   pointer-events: none;
 }
@@ -34,7 +34,7 @@
   right: -8px;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--accent-text);
   background: var(--accent);
@@ -68,13 +68,13 @@
 
 .drop-blocked-hint {
   position: fixed;
-  z-index: 1001;
+  z-index: var(--z-drag-hint);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
   border-radius: var(--radius);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   white-space: nowrap;
   color: #fff;

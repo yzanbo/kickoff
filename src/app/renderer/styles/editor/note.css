@@ -16,7 +16,7 @@
   flex: none;
   max-width: 45%;
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--extra-muted);
@@ -35,7 +35,7 @@
 /* 囲みは一覧の左右の端から少し離して描く（行の中身は動かさない） */
 :is(.tree-item, .note-chip-item).drop-target::before {
   position: absolute;
-  z-index: -1;
+  z-index: var(--z-hidden);
   inset: 0 4px;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -136,7 +136,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 600;
   text-overflow: ellipsis;
   color: inherit;
@@ -153,7 +153,7 @@
 .note-title-ext {
   flex: none;
   margin-left: -12px;
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 600;
   color: var(--muted);
 }
@@ -162,7 +162,7 @@
   flex: none;
   max-width: 40%;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--extra-muted);
@@ -170,7 +170,7 @@
 
 .note-save-state {
   flex: none;
-  font-size: 12px;
+  font-size: var(--fs-12);
   white-space: nowrap;
   color: var(--muted);
 }
@@ -204,14 +204,14 @@
   position: fixed;
   bottom: 56px;
   left: 50%;
-  z-index: 50;
+  z-index: var(--z-menu);
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text);
   background: var(--bg-elev);
   box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
@@ -235,7 +235,7 @@
   margin-left: auto;
   padding-left: 12px;
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--fs-11);
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--extra-muted);
@@ -279,7 +279,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-align: left;
   color: var(--text);
   background: none;

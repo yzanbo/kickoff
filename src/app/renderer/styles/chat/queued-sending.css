@@ -24,7 +24,7 @@
 .queued-sending-label {
   flex: none;
   padding-inline: 6px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
   white-space: nowrap;
 }

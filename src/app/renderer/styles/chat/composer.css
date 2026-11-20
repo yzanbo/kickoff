@@ -17,7 +17,7 @@
   right: 0;
   bottom: calc(100% + 6px);
   left: 0;
-  z-index: 20;
+  z-index: var(--z-floating);
   display: grid;
   max-height: 320px;
   padding: 4px;
@@ -30,14 +30,14 @@
 
 .suggest-head {
   padding: 4px 8px 2px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
 .suggest-empty {
   margin: 0;
   padding: 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -50,7 +50,7 @@
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   text-align: left;
   color: var(--text);
   background: transparent;
@@ -69,20 +69,20 @@
 .suggest-name {
   flex: none;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .suggest-hint {
   flex: none;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--extra-muted);
 }
 
 .suggest-desc {
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fs-12);
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--muted);
@@ -101,7 +101,7 @@
   min-height: 42px;
   max-height: 240px;
   padding: 12px 14px 2px;
-  font-size: 14px;
+  font-size: var(--fs-14);
   border: none;
   border-radius: var(--radius) var(--radius) 0 0;
   background: transparent;
@@ -190,7 +190,7 @@
 /* 作業中に Esc を 1 回押したとき: もう一度押すと中断する、と中断ボタンの横に出す（composerKeys.ts） */
 .composer-stop-hint {
   align-self: center;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--warn);
   white-space: nowrap;
 }
@@ -211,7 +211,7 @@
 .composer.compact textarea {
   min-height: 32px;
   padding: 7px 12px 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
@@ -224,7 +224,7 @@
   gap: 4px;
   height: 24px;
   padding: 0 6px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .composer.compact .option-button svg,

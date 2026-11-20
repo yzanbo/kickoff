@@ -79,7 +79,7 @@
 
 .workspace-sub {
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -107,7 +107,7 @@
 
 .workspace-name {
   overflow: hidden;
-  font-size: 15px;
+  font-size: var(--fs-15);
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;

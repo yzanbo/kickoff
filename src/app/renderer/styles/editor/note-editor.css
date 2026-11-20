@@ -36,7 +36,7 @@
 /* そのまま表示: 記号も同じ幅の文字で */
 .md-editor.source .cm-scroller {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
 /* Markdown 表示: 見出し */
@@ -144,7 +144,7 @@
 }
 
 .md-editor .cm-md-mermaid.failed {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--ng);
 }
 

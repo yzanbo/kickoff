@@ -36,7 +36,7 @@
 
 .question-preview-label {
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--fs-11);
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--muted);
@@ -49,7 +49,7 @@
   margin: 0;
   overflow: auto;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   /* 罫線の図の縦の線がつながるよう、行の間を詰める */
   line-height: 1.2;
   white-space: pre;
@@ -57,7 +57,7 @@
 
 /* 「質問への回答」の「選んだ図」（初めはたたむ） */
 .question-answer-preview summary {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   cursor: pointer;
 }

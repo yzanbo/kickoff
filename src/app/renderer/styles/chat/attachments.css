@@ -99,7 +99,7 @@
 
 .attachment-name {
   overflow: hidden;
-  font-size: calc(13px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-13);
   font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -107,7 +107,7 @@
 
 .attachment-sub {
   overflow: hidden;
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--muted);
@@ -212,7 +212,7 @@
   max-width: 140px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   color: var(--muted);
   background: var(--bg-hover);
 }
@@ -234,7 +234,7 @@
 .attach-peek button.attach-peek-file {
   border: none;
   font: inherit;
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   cursor: pointer;
 }
 
@@ -272,7 +272,7 @@
 .chat-context-title {
   max-width: 100%;
   overflow: hidden;
-  font-size: calc(13px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-13);
   white-space: nowrap;
   text-overflow: ellipsis;
 }

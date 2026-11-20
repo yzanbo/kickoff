@@ -82,7 +82,7 @@
   height: var(--row-tight);
   padding: 0 4px 0 2px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
   transition: background 0.12s;
 }
@@ -164,7 +164,7 @@
 
 .custom-group-count {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 

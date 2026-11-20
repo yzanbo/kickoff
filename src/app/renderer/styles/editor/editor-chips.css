@@ -6,7 +6,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .changes-bar:empty {
@@ -28,7 +28,7 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--chip-color) 50%, transparent);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -59,7 +59,7 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--group-color) 50%, transparent);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -179,7 +179,7 @@
   padding: 1px 8px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 /* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
@@ -189,8 +189,8 @@
 }
 
 .pr-chip.merged {
-  border-color: color-mix(in srgb, var(--sec-schedule) 60%, transparent);
-  color: var(--sec-schedule);
+  border-color: color-mix(in srgb, var(--chart-4) 60%, transparent);
+  color: var(--chart-4);
 }
 
 .pr-chip.closed {
@@ -203,7 +203,7 @@
   flex: 0 1 auto;
   min-width: 0;
   max-width: 110px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   line-height: 14px;
 }
 

@@ -23,12 +23,12 @@
 }
 
 .queued-messages.compact .queued-head {
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .queued-messages.compact .queued-text,
 .queued-messages.compact .queued-editor {
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .queued-messages.compact .icon-button {
@@ -61,7 +61,7 @@
   gap: 4px;
   height: 22px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 /* 列の右端に置いた一番下へ戻るボタンも、ピルと同じ高さに（列の高さを変えない） */

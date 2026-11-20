@@ -9,7 +9,7 @@
   height: 24px;
   padding: 0 12px;
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--fs-12);
   background: var(--bg-sidebar);
 }
 
@@ -22,7 +22,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 40;
+  z-index: var(--z-raised-bar);
   opacity: 0;
   transform: translateY(calc(100% - 4px));
   transition:
@@ -110,7 +110,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
 }
 
@@ -123,7 +123,7 @@
   grid-template-columns: auto 1fr;
   gap: 4px 12px;
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .conn-list dt {
@@ -139,7 +139,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .conn-tool-name {
@@ -169,7 +169,7 @@
   padding: 0 7px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   color: var(--accent-bright);
 }
@@ -227,7 +227,7 @@
   height: 16px;
   padding: 0 5px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   line-height: 1;
   color: var(--accent-bright);
@@ -256,7 +256,7 @@
   padding: 0 5px;
   border: 1px solid currentcolor;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 600;
   line-height: 1;
   color: var(--warn);

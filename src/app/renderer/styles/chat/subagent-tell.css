@@ -14,7 +14,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .subagent-tell-head > svg {

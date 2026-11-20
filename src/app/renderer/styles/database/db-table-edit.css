@@ -41,7 +41,7 @@
   background: var(--bg-elev);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 18px;
   white-space: pre-wrap;
   resize: none;
@@ -109,7 +109,7 @@
   min-height: 96px;
   max-height: 200px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   resize: vertical;
 }
 

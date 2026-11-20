@@ -46,7 +46,7 @@
 }
 
 .column-head .tone-chip-label {
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 700;
 }
 
@@ -160,7 +160,7 @@
   padding: 0;
   border: none;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 600;
   text-align: left;
   color: var(--text);
@@ -194,7 +194,7 @@
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -213,7 +213,7 @@
 
 .board-lane-extra,
 .board-lane-count {
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 400;
   color: var(--muted);
 }

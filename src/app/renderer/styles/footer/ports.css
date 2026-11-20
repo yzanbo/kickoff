@@ -58,7 +58,7 @@
   grid-template-columns: auto minmax(60px, 1fr) auto auto auto auto auto;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .ports-ports {
@@ -74,7 +74,7 @@
   background: transparent;
   color: var(--accent-fg);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   cursor: pointer;
 }
@@ -102,12 +102,12 @@
   padding: 0 5px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .ports-uptime,
 .ports-origin {
-  font-size: 11px;
+  font-size: var(--fs-11);
   white-space: nowrap;
 }
 
@@ -134,7 +134,7 @@
   margin: 0;
   padding-left: 6px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .ports-note.is-warn {

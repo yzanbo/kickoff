@@ -68,7 +68,7 @@
 
 .db-list-title {
   flex: 1;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   color: var(--muted);
 }
@@ -111,7 +111,7 @@
   border: none;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -167,7 +167,7 @@
 
 .db-tree-note {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--extra-muted);
 }
 
@@ -178,7 +178,7 @@
 
 .db-tree-leaf,
 .db-tree-group {
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 /* 名前を先に見せ、残りの幅に型などを右寄せで（足りなければ型の方を省く） */
@@ -206,7 +206,7 @@
   align-items: center;
   gap: 2px 8px;
   padding: 3px 8px 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -306,7 +306,7 @@
   border: none;
   background: transparent;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: inherit;
   cursor: pointer;
 }

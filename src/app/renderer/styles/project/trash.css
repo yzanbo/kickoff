@@ -27,7 +27,7 @@
 
 .trash-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-15);
 }
 
 .trash-list {
@@ -80,7 +80,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 .trash-row-meta {
   display: flex;
@@ -177,6 +177,6 @@
   padding: 0 6px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }

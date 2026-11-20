@@ -14,7 +14,7 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   color: var(--muted);
   cursor: pointer;
 }
@@ -35,7 +35,7 @@
 .handoff-request-extra {
   margin-top: 4px;
   padding-left: 18px;
-  font-size: calc(13px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-13);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -89,7 +89,7 @@
   gap: 4px;
   padding: 0 7px;
   border-radius: 999px;
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   line-height: 18px;
   color: var(--muted);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -119,7 +119,7 @@
   border: 0;
   border-radius: 999px;
   font: inherit;
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 20px;
   color: inherit;
   background: none;
@@ -162,7 +162,7 @@
 }
 
 .message-handoff-from .handoff-from-open {
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
 }
 
 /* 送信待ちの行（文の前。長い名前は詰める） */

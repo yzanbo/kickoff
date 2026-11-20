@@ -62,7 +62,7 @@
 }
 
 .meter-foot {
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .meter-status {

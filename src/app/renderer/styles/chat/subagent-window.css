@@ -61,7 +61,7 @@
 
 .subagent-window-toggle {
   justify-self: end;
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
 }
 
 /* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--agent-hue は SubagentChip・回答待ちのカードの ApprovalFrom が入れる） */

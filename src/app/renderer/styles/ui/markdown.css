@@ -23,7 +23,7 @@
 }
 
 .markdown h3 {
-  font-size: calc(14px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-14);
 }
 
 .markdown p,
@@ -74,7 +74,7 @@
 
 .code-block-lang {
   font-family: var(--mono);
-  font-size: calc(11px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-11);
   color: var(--muted);
 }
 
@@ -125,7 +125,7 @@
 
 .markdown table {
   border-collapse: collapse;
-  font-size: calc(13px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-13);
 }
 
 /* 列は細くなりすぎない幅を保ち、収まらない表は外枠（.markdown-table）の中で横にスクロールさせる */

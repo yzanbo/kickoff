@@ -34,7 +34,7 @@
 
 .usage-service-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .usage-service-account {
@@ -87,7 +87,7 @@
 
 .status-detail {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
 }
 
@@ -95,7 +95,7 @@
 /* 設定の「接続」の AI のログインの仕方（`ProviderAuthSettings`: AI ごとにサブスク / API キーの切り替えと API キーの欄） */
 .provider-auth h3 {
   margin: 16px 0 4px;
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .provider-auth-row {

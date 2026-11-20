@@ -1,10 +1,10 @@
 /*
  * ワークツリーの PR の知らせ（features/worktree/prNotice）。
  * 印 .pr-notice-mark: 作業場所の札の後ろ・作業場所の切り替えの横・履歴のワークツリーの一覧に出す「マージ済み」「閉じた」。
- * 色は PR の札（.pr-chip）と同じ（マージ済み = --sec-schedule、閉じた = --ng）。押すと片付けの確認を開く
+ * 色は PR の札（.pr-chip）と同じ（マージ済み = --chart-4、閉じた = --ng）。押すと片付けの確認を開く
  */
 .pr-notice-mark {
-  --pr-notice-color: var(--sec-schedule);
+  --pr-notice-color: var(--chart-4);
 
   display: inline-flex;
   flex: none;
@@ -15,7 +15,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pr-notice-color) 12%, transparent);
   color: var(--pr-notice-color);
-  font-size: 11px;
+  font-size: var(--fs-11);
   line-height: 17px;
   white-space: nowrap;
   cursor: pointer;
@@ -48,7 +48,7 @@
 }
 
 .pr-notice-title.merged svg {
-  color: var(--sec-schedule);
+  color: var(--chart-4);
 }
 
 .pr-notice-title.closed svg {
@@ -78,7 +78,7 @@
 
 .pr-notice-label {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
 }
 

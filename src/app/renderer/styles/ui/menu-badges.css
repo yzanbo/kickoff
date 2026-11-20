@@ -20,7 +20,7 @@
 }
 
 .menu-item-desc {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
@@ -43,7 +43,7 @@
   overflow: hidden;
   padding: 0 6px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
   white-space: nowrap;

@@ -3,7 +3,7 @@
   position: fixed;
   bottom: 56px;
   left: 50%;
-  z-index: 60;
+  z-index: var(--z-toast);
   display: grid;
   justify-items: center;
   gap: 6px;
@@ -19,7 +19,7 @@
   padding: 6px 8px 6px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--text);
   background: var(--bg-elev);
   box-shadow: 0 8px 24px rgb(0 0 0 / 35%);

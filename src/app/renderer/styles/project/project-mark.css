@@ -23,7 +23,7 @@
 .project-mark.md {
   width: 20px;
   height: 20px;
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 :root[data-theme="light"] .project-mark {

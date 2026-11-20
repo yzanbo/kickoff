@@ -5,7 +5,7 @@
 ## ファイルと順
 - `index.css` には `@import` 以外を書かない。1 ファイル 300 行以内。並びは `index.css` が持つ（ここに写さない）。
 - 順を変えるとカスケードの勝ち負けが変わる。先頭は `base/tokens`（変数。末尾に画面のコードが与える変数の一覧）→ `base/base`（小さな共有クラス。後ろの部品に負ける前提）。
-- 汎用の部品は、それを使う画面より前に置く。上書きする側は後ろ（`chat/visuals` は `ui/markdown` の後ろ）。
+- 汎用の部品は、それを使う画面より前に置く。上書きする側は後ろ。
 
 ## 置き場所
 - 規則はその機能のファイルに書く（部品が `src/features/<機能>/` にあるなら同じ領域のサブフォルダ）。複数の画面で使う部品は `ui/buttons-forms.css` か `ui/menu.css`。
@@ -19,12 +19,12 @@
 - 色の地のボタン（`.btn-primary`・`.btn-danger`）は、乗せても同じ色の地で少し暗くする（`.btn:hover` に負けないよう、それぞれに `:hover:not(:disabled)`）。
 - ダイアログの下の地のないボタンは `--bg-hover` の地と見える枠（`ui/app-dialogs.css`）。2 つを 1 つに見せる組は、乗せたときの地を外側に付ける（`.panel-split-button`）。
 - 使わなくなったクラスは消す。名前を組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、`.pr-chip` の状態、一番下へのボタンの状態）。
-- 新しいクラス名は `styles/` 全体と組み立てるクラスを検索してから付ける。1 語の名前は避け、領域の頭を付ける（`.rail` がサイドバーの `.workspaces.rail` に当たった）。
+- 新しいクラス名は `styles/` 全体と組み立てるクラスを検索してから付ける。1 語の名前は避け、領域の頭を付ける。
 - 状態の色: 印は `--dot-*`、状態の文字は `--state-*`。チャット・子チャット・サブエージェントで同じ変数を使い、`--ok` / `--ng` / `--warn` を状態の文に使わない。アクセントの色の文字は `--accent-fg`。
 - 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
 - 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中だけはボタンの文字の色）。
 - `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（`@/foundation/ui/lib/inputModality.ts`。マウスで操作している間は枠を出さない）。
-- 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾に書く。`getComputedStyle` で読まれる変数（Mermaid・ターミナル・エディタ）は、名前を変えたら読む側も直す。
+- 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾に書く。文字の大きさ 10〜15px は `--fs-N`（会話は `--chat-fs-N`）、z-index の 10 以上は `--z-*`。`getComputedStyle` で読まれる変数（Mermaid・ターミナル・エディタ）は、名前を変えたら読む側も直す。
 - プロジェクトの札の色は `project/project-mark.css` 1 か所（`src/features/projects/CLAUDE.md`）。
 
 ## 大きさと余白

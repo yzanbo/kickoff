@@ -43,7 +43,7 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 700;
   color: #fff;
   background: var(--accent);
@@ -57,7 +57,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   white-space: nowrap;
   color: var(--text);
   background: var(--bg-elev);
@@ -191,7 +191,7 @@ select:focus {
 }
 
 .field-help {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -238,7 +238,7 @@ select:focus {
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-13);
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -259,7 +259,7 @@ select:focus {
 .badge {
   padding: 1px 7px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--fs-11);
   font-weight: 500;
   color: var(--muted);
   background: var(--bg-hover);
@@ -273,7 +273,7 @@ select:focus {
   border: 1px solid var(--border);
   border-radius: 999px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--fs-12);
   background: var(--bg-elev);
 }
 

@@ -17,7 +17,7 @@
   min-height: 28px;
   padding: 0 4px 0 12px;
   border-bottom: 1px solid var(--border);
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
 }
 
 .visual-card-title {
@@ -75,14 +75,14 @@
   padding: 12px 14px;
   overflow: auto;
   font-family: var(--mono);
-  font-size: calc(12px * var(--chat-scale, 1));
+  font-size: var(--chat-fs-12);
   white-space: pre;
 }
 
 .visual-card-error {
   padding: 6px 12px;
   border-top: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .visual-failed .visual-card-error {

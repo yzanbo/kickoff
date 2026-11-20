@@ -41,7 +41,7 @@
   align-items: center;
   gap: 2px;
   margin-right: 1px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--extra-muted);
   white-space: nowrap;
   cursor: default;
@@ -52,7 +52,7 @@
   gap: 4px;
   height: 20px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: var(--fs-11);
   /* 行の高さを文字の大きさにそろえる（既定の行の高さはボタンの内側より高く、文字が上に寄って見えるため） */
   line-height: 1;
 }
@@ -144,7 +144,7 @@
   padding: 1px 6px 1px 2px;
   border: none;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-align: left;
   background: transparent;
   cursor: pointer;
@@ -268,7 +268,7 @@
 }
 
 .send-all-note {
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--muted);
 }
 
@@ -279,7 +279,7 @@
   align-items: center;
   padding: 3px 6px 3px 12px;
   color: var(--warn);
-  font-size: 11px;
+  font-size: var(--fs-11);
 }
 
 .queued-pause-text {

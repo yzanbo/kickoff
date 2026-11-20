@@ -18,7 +18,7 @@
   gap: 8px;
   padding: 6px var(--gutter);
   border-bottom: 1px solid var(--border);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 /* 狭い欄では帯を折り返す（文字の途中では折り返さない） */
@@ -70,7 +70,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   text-align: left;
   color: var(--text);
   background: none;
@@ -142,7 +142,7 @@
   flex: none;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   cursor: pointer;
 }
@@ -157,7 +157,7 @@
 
 .side-change-changed {
   flex: none;
-  font-size: 11px;
+  font-size: var(--fs-11);
   color: var(--warn);
   white-space: nowrap;
 }
