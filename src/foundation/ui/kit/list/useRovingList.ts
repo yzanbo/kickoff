@@ -43,7 +43,8 @@ export interface ActiveDescendantList {
 /** 項目にピントを移す（メニュー・Segmented）。項目は入れ物の中の要素から拾う */
 export interface FocusOptions {
   mode: "focus";
-  ref: RefObject<HTMLElement | null>;
+  /** 入れ物（省けば keydown を受けた要素。global・focusSelf では渡す） */
+  ref?: RefObject<HTMLElement | null>;
   orientation?: RovingOrientation;
   /** 動ける項目（既定: 入れ物の中の押せるボタン）。from はいまピントのある要素 */
   items?(root: HTMLElement, from: Element | null): HTMLElement[];
@@ -98,8 +99,8 @@ function useFocusList(o: FocusOptions | null): FocusList {
     root.setAttribute("tabindex", "-1");
     root.focus({ preventScroll: true });
   }, [ref, focusSelf]);
-  const move = (e: { key: string; preventDefault(): void }) => {
-    const root = o?.ref.current;
+  const move = (e: { key: string; currentTarget: EventTarget | null; preventDefault(): void }) => {
+    const root = o?.ref ? o.ref.current : e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
     const step = o ? rovingStep(e.key, o.orientation) : null;
     if (!o || !root || step === null) return;
     e.preventDefault();

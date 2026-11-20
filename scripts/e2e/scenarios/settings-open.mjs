@@ -17,9 +17,9 @@ export default {
   },
   async act(ctx) {
     await ctx.press(",", { meta: true });
-    ctx.state.firstSection = await ctx.waitFor(`${DIALOG} && [...${DIALOG}.querySelectorAll("nav[aria-label='設定の項目'] button[aria-current='true']")].map((b) => b.textContent.trim())[0]`, "設定のダイアログが開く");
+    ctx.state.firstSection = await ctx.waitFor(`${DIALOG} && [...${DIALOG}.querySelectorAll("nav[aria-label='設定の項目'] button[aria-selected='true']")].map((b) => b.textContent.trim())[0]`, "設定のダイアログが開く");
     await ctx.eval(`(${item("表示")}.click(), 1)`);
-    ctx.state.switched = await ctx.waitFor(`${item("表示")}?.getAttribute("aria-current") === "true" && [...${DIALOG}.querySelectorAll("section h2, section h3")].map((h) => h.textContent.trim()).includes("表示")`, "「表示」の節に切り替わる");
+    ctx.state.switched = await ctx.waitFor(`${item("表示")}?.getAttribute("aria-selected") === "true" && [...${DIALOG}.querySelectorAll("section h2, section h3")].map((h) => h.textContent.trim()).includes("表示")`, "「表示」の節に切り替わる");
     await ctx.press("Escape");
     ctx.state.closed = await ctx.waitFor(`!(${DIALOG})`, "Esc で設定のダイアログが閉じる");
     ctx.state.focusBack = await ctx.eval(`document.activeElement?.classList.contains("footer-settings") ?? false`);

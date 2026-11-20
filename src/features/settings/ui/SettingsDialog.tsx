@@ -55,7 +55,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
 /** アプリの設定（左下の歯車・⌘, から開く。プロジェクトの編集と同じ形のダイアログ） */
 export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection; onClose: () => void }) {
   return (
-    <TabbedDialog title="設定" sections={SETTINGS_SECTIONS} initial={initial} onClose={onClose}>
+    <TabbedDialog title="設定" label="設定の項目" sections={SETTINGS_SECTIONS} initial={initial} onClose={onClose}>
       {(section) => (
         <>
           {section === "usage" && <UsageSettings />}

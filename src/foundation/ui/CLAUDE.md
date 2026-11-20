@@ -16,7 +16,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。土台は機能を読まない。
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
 - どの機能にも属さないものだけを土台に置く。
-- 大きな部品は「状態と操作の hook（`useXxx`）」と「描く部品」に分ける（`usePanel` ＋ `Panel`）。props の束も hook から返してよい。
+- 大きな部品の「状態と操作の hook」は props の束も返してよい（`usePanel` ＋ `Panel`）。
 - 画面（`Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。
 
 ## データ（`store/`）
@@ -52,7 +52,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 知らせは `reportFailure`（失敗のお知らせ）・`showToast`（済んだ操作）・`showDropHint`（落とせない理由）。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
 - アプリのショートカットは `commands/`（`commands.item`）。判定 `matchKey` は Mac で ⌘ だけ（⌃ は入力欄で使う）。
-- 選ぶ: ↑↓ ←→ は `useRovingList`、木は `useTree` ＋ `TreeView`、複数選択は `useMultiSelect`。
+- 選ぶ: ↑↓ ←→ は `useRovingList`、木は `useTree` ＋ `TreeView`、タブは `kit/tabs/`、複数選択は `useMultiSelect`。
 - 大きさ: つまみは `useDragSize`、狭いときに 1 つずつ出すのは `useNarrowSplit`、覆う右の欄は `useCoverableWidth`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。付いていくスクロールは `useFollowScroll`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
