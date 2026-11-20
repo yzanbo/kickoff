@@ -252,19 +252,25 @@ test("プロジェクトを削除するとゴミ箱に入り、3 日たって本
   assert.deepEqual([...provider.discarded[0].sessionIds].sort(), ["fork-1", "s1"]);
 });
 
-test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と、Claude Code のほかの AI の既定（設定・プロジェクト）を保存し、新しいチャットに当てる（メモの仕様書「0028」の 9 節）", async () => {
+test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と、AI ごとの既定（設定・プロジェクト）を保存し、新しいチャットに当てる（メモの仕様書「0028」の 9 節）。プロジェクトの説明の空は null", async () => {
   const { call, project, runner, store } = setup();
   const codex = { model: null, effort: "low", permission_mode: "auto", fast_mode: false };
   const saved = await call("PUT", "/api/settings", { default_provider: "codex", provider_chat_defaults: { codex } });
   assert.equal(saved.status, 200);
   assert.equal(saved.body.default_provider, "codex");
-  assert.deepEqual(saved.body.provider_chat_defaults, { codex });
-  // Claude Code の分は chat_defaults に持つので、ここには入れられない
+  assert.deepEqual(saved.body.provider_chat_defaults.codex, codex);
+  // 送らなかった AI の分は変えない
+  assert.deepEqual(saved.body.provider_chat_defaults.claude, { model: "opus", effort: null, permission_mode: "default", fast_mode: false });
+  // Claude Code は既定のモデルを null（その AI の既定）にできない（アプリ・プロジェクトとも）
   assert.equal((await call("PUT", "/api/settings", { provider_chat_defaults: { claude: codex } })).status, 400);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { provider_chat_defaults: { claude: { model: null } } })).status, 400);
   // 新しいプロジェクトは、設定の AI で作る
-  const created = await call("POST", "/api/projects", { name: "新しい", parent_dir: tempDir(), folder_name: "new-p" });
+  const created = await call("POST", "/api/projects", { name: "新しい", description: "", parent_dir: tempDir(), folder_name: "new-p" });
   assert.equal(created.body.provider, "codex");
   assert.deepEqual(created.body.provider_chat_defaults, {});
+  assert.equal(created.body.description, null);
+  assert.equal((await call("PATCH", `/api/projects/${created.body.id}`, { description: "概要" })).body.description, "概要");
+  assert.equal((await call("PATCH", `/api/projects/${created.body.id}`, { description: "" })).body.description, null);
 
   // プロジェクトの既定は書いた項目だけ重ねる
   const patched = await call("PATCH", `/api/projects/${project.id}`, { provider_chat_defaults: { codex: { effort: "high" } } });

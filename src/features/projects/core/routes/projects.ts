@@ -15,7 +15,7 @@ import { Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { idsBody } from "@/foundation/core/http/zodParts";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, projectDescription, projectName, providerChatDefaultsSchema } from "@/foundation/core/http/schemas";
+import { ABSOLUTE_FOLDER, isAbsoluteFolder, compactPrompt, projectDescription, projectName, projectProviderDefaultsSchema } from "@/foundation/core/http/schemas";
 import { PROJECT_HUES } from "@shared/projects/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
 import { projectNoteFolder } from "@shared/notes/names";
@@ -31,7 +31,7 @@ const noteDirFields = {
 const newProjectSchema = z.object({
   ...noteDirFields,
   name: projectName,
-  description: projectDescription.default(""),
+  description: projectDescription.default(null),
   parent_dir: z.string().trim().min(1),
   folder_name: z.string().trim().min(1).max(100),
   provider: z.enum(PROVIDER_IDS).optional(),
@@ -42,7 +42,7 @@ const importProjectSchema = z.object({
   ...noteDirFields,
   path: z.string().trim().min(1),
   name: projectName,
-  description: projectDescription.default(""),
+  description: projectDescription.default(null),
   init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
 }) satisfies z.ZodType<ImportProjectBody>;
@@ -70,10 +70,8 @@ const projectPatchSchema = z
     archived: z.boolean(),
     // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
     reference_paths: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
-    // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
-    chat_defaults: chatDefaultsSchema.partial().strict(),
-    // Claude Code のほかの AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
-    provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema.partial().strict()),
+    // AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
+    provider_chat_defaults: projectProviderDefaultsSchema,
     // ノートのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
     note_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）

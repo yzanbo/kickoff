@@ -18,9 +18,11 @@ export function AiDefaultsSettings() {
   const statuses = useProviders().data;
   if (!draft) return null;
   const others = OTHER_PROVIDER_IDS.filter((id) => statusOf(statuses, id)?.implemented);
-  const defaults = draft.chat_defaults;
-  /** 既定の選択の 1 項目を変える（保存するまでは下書き） */
-  const setDefault = (patch: Partial<typeof defaults>) => setDraft({ ...draft, chat_defaults: { ...defaults, ...patch } });
+  const defaults = draft.provider_chat_defaults.claude;
+  /** AI の既定を変える（保存するまでは下書き） */
+  const setDefaults = (provider: ProviderId, next: typeof defaults) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [provider]: next } });
+  /** Claude Code の既定の選択の 1 項目を変える */
+  const setDefault = (patch: Partial<typeof defaults>) => setDefaults("claude", { ...defaults, ...patch });
   const currentModel = models.find((m) => m.value === defaults.model);
   return (
     <section className="section ai-defaults-settings">
@@ -106,7 +108,7 @@ export function AiDefaultsSettings() {
           key={id}
           provider={id}
           value={draft.provider_chat_defaults[id]}
-          onChange={(next) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [id]: next } })}
+          onChange={(next) => setDefaults(id, next)}
         />
       ))}
       </div>
@@ -132,7 +134,7 @@ export function AiDefaultsSettings() {
       <SaveActions
         save={save}
         disabled={!dirty}
-        onSave={() => saveFields({ default_provider: draft.default_provider, chat_defaults: defaults, provider_chat_defaults: draft.provider_chat_defaults, sandbox_enabled_by_default: draft.sandbox_enabled_by_default, edit_scope_enabled_by_default: draft.edit_scope_enabled_by_default })}
+        onSave={() => saveFields({ default_provider: draft.default_provider, provider_chat_defaults: draft.provider_chat_defaults, sandbox_enabled_by_default: draft.sandbox_enabled_by_default, edit_scope_enabled_by_default: draft.edit_scope_enabled_by_default })}
       />
     </section>
   );

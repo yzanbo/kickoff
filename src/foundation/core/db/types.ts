@@ -5,7 +5,7 @@ import type { ProviderId } from "@shared/settings/types";
 
 export interface NewProject {
   name: string;
-  description?: string;
+  description?: string | null;
   repo_path: string;
   provider: ProviderId;
 }

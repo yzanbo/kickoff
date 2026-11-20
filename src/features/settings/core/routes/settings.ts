@@ -2,11 +2,11 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { Kernel } from "@/foundation/core/kernel";
 import { WHISPER_MODEL_IDS } from "@/features/voice/core/models";
-import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, type AppSettings } from "@shared/settings/types";
+import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, type SettingsPatch } from "@shared/settings/types";
 import { OPENAI_TTS_VOICES, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN } from "@shared/voice/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/compact/autoCompact";
 import { jsonBody } from "@/foundation/core/http/input";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, providerChatDefaultsSchema, voiceLanguage } from "@/foundation/core/http/schemas";
+import { ABSOLUTE_FOLDER, isAbsoluteFolder, compactPrompt, providerDefaultsSchema, voiceLanguage } from "@/foundation/core/http/schemas";
 
 const settingsSchema = z
   .object({
@@ -18,10 +18,8 @@ const settingsSchema = z
     desktop_notifications: z.boolean(),
     dock_badge: z.boolean(),
     projects_dir: z.string().min(1).max(500),
-    // 送った内容で置き換える（4 つとも送る）
-    chat_defaults: chatDefaultsSchema,
-    // Claude Code のほかの AI ごとの既定（送った内容で置き換える。AI ごとに 4 つとも送る）
-    provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema),
+    // AI ごとの既定（送った AI の分だけを置き換える。AI ごとに 4 つとも送る）
+    provider_chat_defaults: providerDefaultsSchema,
     sandbox_enabled_by_default: z.boolean(),
     edit_scope_enabled_by_default: z.boolean(),
     auto_archive_days: z.number().int().min(1).max(365).nullable(),
@@ -57,7 +55,7 @@ const settingsSchema = z
       .transform((list) => [...new Set(list)]),
   })
   .partial()
-  .strict() satisfies z.ZodType<Partial<AppSettings>>;
+  .strict() satisfies z.ZodType<SettingsPatch>;
 
 /** アプリ全体の設定（設定ダイアログ。送った項目だけを変える） */
 export function settingsRoutes(app: Hono, { settings }: { settings: Kernel["settings"] }) {

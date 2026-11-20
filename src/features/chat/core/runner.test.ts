@@ -28,7 +28,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
   assert.equal(provider.calls[0].model, "sonnet");
   assert.equal(provider.calls[0].effort, "low");
   // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
-  assert.equal(store.settings.get().chat_defaults.model, "opus");
+  assert.equal(store.settings.get().provider_chat_defaults.claude.model, "opus");
 
   await runner.send(chat.id, "続き", { permission_mode: "plan" });
   await until(() => store.chats.get(chat.id)?.num_turns === 2);
@@ -42,7 +42,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
 
 test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
-  store.settings.update({ chat_defaults: { model: "fable", effort: "high", permission_mode: "auto", fast_mode: true } });
+  store.settings.update({ provider_chat_defaults: { claude: { model: "fable", effort: "high", permission_mode: "auto", fast_mode: true } } });
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.chats.get(chat.id)?.status === "completed");
   const call = provider.calls[0];

@@ -17,7 +17,8 @@ import { NoteFolderField } from "@/features/notes/ui/NoteFolderField";
 import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project }: { project: Project }) {
-  const pick = (p: Project) => ({ name: p.name, description: p.description });
+  // 概要のないは null（欄は空。空で保存するとコアが null にそろえる）
+  const pick = (p: Project) => ({ name: p.name, description: p.description ?? "" });
   const [draft, setDraft] = useState(() => pick(project));
   const save = useSave();
   // 別の画面で変わったときは追従する

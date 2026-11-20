@@ -16,9 +16,8 @@ const INHERIT = "__inherit__";
 /** 「その AI の既定のモデル」（null）を表す select の値（Claude Code のほかの AI だけ） */
 const PROVIDER_DEFAULT = "";
 
-/** このプロジェクトのその AI の既定（Claude Code は chat_defaults、ほかの AI は provider_chat_defaults） */
-const projectPatchOf = (project: Project, provider: ProviderId): ChatOptionsPatch =>
-  (provider === "claude" ? project.chat_defaults : project.provider_chat_defaults[provider]) ?? {};
+/** このプロジェクトのその AI の既定 */
+const projectPatchOf = (project: Project, provider: ProviderId): ChatOptionsPatch => project.provider_chat_defaults[provider] ?? {};
 
 /** プロジェクトの設定の「AI」: このプロジェクトの AI（provider）の新しいチャットの既定。書いていない項目はアプリの設定のその AI の既定に従う */
 export function AiDefaults({ project, provider, app }: { project: Project; provider: ProviderId; app: AppSettings | undefined }) {
@@ -51,10 +50,7 @@ export function AiDefaults({ project, provider, app }: { project: Project; provi
   const appEffort = appDefaults ? (appDefaults.effort ? EFFORT_LABELS[appDefaults.effort] : EFFORT_UNSET_LABEL) : "…";
   const appPermission = appDefaults ? PERMISSION_LABELS[appDefaults.permission_mode] : "…";
 
-  const onSave = () =>
-    provider === "claude"
-      ? api.updateProject(project.id, { chat_defaults: draft })
-      : api.updateProject(project.id, { provider_chat_defaults: { ...project.provider_chat_defaults, [provider]: draft } });
+  const onSave = () => api.updateProject(project.id, { provider_chat_defaults: { ...project.provider_chat_defaults, [provider]: draft } });
 
   return (
     <div className="ai-defaults">

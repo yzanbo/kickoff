@@ -12,10 +12,10 @@ import type { ProviderId } from "@shared/settings/types";
 
 // ---- 本文（画面が送る形。コアは zod の形をこの型に合わせる） ----
 
-/** 新しいプロジェクト（POST /api/projects）。description は README の「アイデア」にも書く。provider を省けば設定の既定 */
+/** 新しいプロジェクト（POST /api/projects）。description は README の「アイデア」にも書く（空・null はなし）。provider を省けば設定の既定 */
 export type NewProjectBody = {
   name: string;
-  description?: string;
+  description?: string | null;
   parent_dir: string;
   folder_name: string;
   provider?: ProviderId;
@@ -36,16 +36,16 @@ export interface NewProjectNoteDir {
 export type ImportProjectBody = {
   path: string;
   name: string;
-  description?: string;
+  description?: string | null;
   init_git?: boolean;
   provider?: ProviderId;
 } & NewProjectNoteDir;
 
 /**
- * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。
+ * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・provider_chat_defaults・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "provider_chat_defaults" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "provider_chat_defaults" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };

@@ -25,7 +25,7 @@ interface NewWorkspace {
   folderName: string;
   name: string;
   /** プロジェクトの説明（README の「アイデア」に書く） */
-  description: string;
+  description: string | null;
   /** git リポジトリとして初期化するか（省くと初期化する。しなければ README だけを置く） */
   initGit?: boolean;
 }
@@ -48,7 +48,7 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   if (existing && existing.length > 0) throw new Conflict(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
 
   await fs.mkdir(repo, { recursive: true });
-  const idea = input.description.trim();
+  const idea = input.description?.trim() ?? "";
   const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
   if (input.initGit === false) {
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");

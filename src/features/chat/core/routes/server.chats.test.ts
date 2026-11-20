@@ -657,7 +657,7 @@ test("チャットの詳細に書きかけの返答（SSE で流した途中の�
 
 test("Claude Code 以外の AI のチャット: Claude Code の既定（モデル・深さ・権限）を当てず、その AI の一覧にないモデルは外して動かす（メモの仕様書「0028」の G1・G2）", async () => {
   const { call, project, runner, provider, store } = setup();
-  store.settings.update({ chat_defaults: { model: "opus", effort: "high", permission_mode: "auto", fast_mode: false } });
+  store.settings.update({ provider_chat_defaults: { claude: { model: "opus", effort: "high", permission_mode: "auto", fast_mode: false } } });
   const plain = await call("POST", `/api/projects/${project.id}/chats`, { text: "1", provider: "codex" });
   assert.equal(plain.status, 201);
   assert.deepEqual([plain.body.provider, plain.body.model, plain.body.effort, plain.body.permission_mode], ["codex", null, null, "default"]);

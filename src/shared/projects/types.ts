@@ -1,16 +1,15 @@
 import type { ChatOptionsPatch } from "@shared/chat/types";
-import type { OtherProviderId, ProviderId } from "@shared/settings/types";
+import type { ProviderId } from "@shared/settings/types";
 
 export interface Project {
   id: number;
   name: string;
-  description: string;
+  /** 概要（ないは null。チャットのシステムプロンプトに入れる） */
+  description: string | null;
   repo_path: string;
   provider: ProviderId;
-  /** このプロジェクトの Claude Code のチャットの既定（書いていない項目はアプリ全体の設定に従う） */
-  chat_defaults: ChatOptionsPatch;
-  /** このプロジェクトの Claude Code のほかの AI のチャットの既定（AI ごと。書いていない項目はアプリ全体のその AI の既定に従う） */
-  provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptionsPatch>>;
+  /** このプロジェクトの AI ごとのチャットの既定（書いていない項目はアプリ全体のその AI の既定に従う） */
+  provider_chat_defaults: Partial<Record<ProviderId, ChatOptionsPatch>>;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
   reference_paths: ProjectReference[];
   /** サイドバーでの並び順（小さいほど前） */

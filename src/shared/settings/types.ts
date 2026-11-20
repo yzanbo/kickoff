@@ -67,10 +67,8 @@ export interface AppSettings {
   default_provider: ProviderId;
   /** AI ごとのログインの仕方（書いていない AI はサブスク。API キーそのものは secrets に暗号化して置き、ここには出さない） */
   provider_auth: Partial<Record<ProviderId, ProviderAuthMode>>;
-  /** 新しい Claude Code のチャットの既定の選択（推論の深さの null は指定しない＝モデルの既定） */
-  chat_defaults: ChatOptions;
-  /** Claude Code のほかの AI の新しいチャットの既定の選択（書いていない AI は、モデル・深さはその AI の既定・毎回確認。モデルの null はその AI の既定） */
-  provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptions>>;
+  /** AI ごとの新しいチャットの既定の選択（推論の深さの null は指定しない＝モデルの既定。Claude Code のほかの AI はモデルの null もその AI の既定） */
+  provider_chat_defaults: Record<ProviderId, ChatOptions>;
   /** 新しいチャットでコマンドの砂場を使う既定（既存のチャットは変えない） */
   sandbox_enabled_by_default: boolean;
   /** 新しいチャットで Kickoff の編集先の制限を使う既定（既存のチャットは変えない） */
@@ -132,11 +130,22 @@ export interface AppSettings {
   trusted_link_domains: string[];
 }
 
+/** 設定の変更（PUT /api/settings。送った項目だけを変える。provider_chat_defaults は送った AI の分だけを丸ごと置き換える） */
+export type SettingsPatch = Partial<Omit<AppSettings, "provider_chat_defaults">> & { provider_chat_defaults?: Partial<AppSettings["provider_chat_defaults"]> };
+
+/** Claude Code のほかの AI の既定の初め（モデル・推論の深さはその AI の既定に任せ、権限モードは毎回確認） */
+export const PROVIDER_BASE_CHAT_OPTIONS: ChatOptions = { model: null, effort: null, permission_mode: "default", fast_mode: false };
+
 export const DEFAULT_SETTINGS: AppSettings = {
   default_provider: "claude",
   provider_auth: {},
-  chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
-  provider_chat_defaults: {},
+  provider_chat_defaults: {
+    claude: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
+    codex: PROVIDER_BASE_CHAT_OPTIONS,
+    copilot: PROVIDER_BASE_CHAT_OPTIONS,
+    cursor: PROVIDER_BASE_CHAT_OPTIONS,
+    gemini: PROVIDER_BASE_CHAT_OPTIONS,
+  },
   sandbox_enabled_by_default: true,
   edit_scope_enabled_by_default: true,
   remote_enabled: false,

@@ -6,7 +6,7 @@ import type { ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody,
 import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
 import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
 import { GITHUB_KINDS } from "@shared/github/types";
-import { EFFORT_LEVELS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/userView/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { branchName, folderPath, repoPath } from "./zodParts";
@@ -29,9 +29,13 @@ export const compactPrompt = z.string().trim().min(1).max(COMPACT_PROMPT_MAX).nu
 
 export const groupName = z.string().trim().min(1).max(60);
 
-/** プロジェクトの名前と説明（作成・取り込み・編集で同じ） */
+/** プロジェクトの名前と説明（作成・取り込み・編集で同じ。説明の空は null にそろえる） */
 export const projectName = z.string().trim().min(1).max(100);
-export const projectDescription = z.string().max(10_000);
+export const projectDescription = z
+  .string()
+  .max(10_000)
+  .nullable()
+  .transform((s) => s || null);
 
 /** 音声入力の言語（"auto" か、ISO 639-1 などの言語コード） */
 export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の指定が正しくありません");
@@ -54,19 +58,21 @@ export const chatOptionsSchema = z
   .partial()
   .default({}) satisfies z.ZodType<ChatOptionsPatch>;
 
-/** チャットの選択の既定（アプリの設定はすべての項目、プロジェクトは書いた項目だけ。既定のモデルは空にしない） */
-export const chatDefaultsSchema = z.object({
-  model: z.string().min(1).max(100),
+/** チャットの選択の既定の 1 つ（モデルの null はその AI の既定） */
+const chatOptionsDefaults = z.object({
+  model: z.string().min(1).max(100).nullable(),
   effort: z.enum(EFFORT_LEVELS).nullable(),
   permission_mode: z.enum(PERMISSION_MODES),
   fast_mode: z.boolean(),
 });
+/** Claude Code はその AI の既定のモデルを持たないので、モデルを null にしない */
+const claudeModelChosen = (defaults: Partial<Record<string, { model?: string | null }>>) => defaults.claude?.model !== null;
+const CLAUDE_MODEL = "Claude Code の既定のモデルを選んでください";
 
-/** Claude Code のほかの AI のチャットの既定（モデルの null はその AI の既定） */
-export const providerChatDefaultsSchema = chatDefaultsSchema.extend({ model: z.string().min(1).max(100).nullable() });
-
-/** Claude Code のほかの AI ごとの既定（AI の ID → 選択） */
-export const otherProviderRecord = <T extends z.ZodType>(value: T) => z.partialRecord(z.enum(OTHER_PROVIDER_IDS), value);
+/** AI ごとのチャットの既定（AI の ID → 選択）。アプリの設定は AI ごとに項目をすべて送る */
+export const providerDefaultsSchema = z.partialRecord(z.enum(PROVIDER_IDS), chatOptionsDefaults).refine(claudeModelChosen, CLAUDE_MODEL);
+/** プロジェクトの AI ごとのチャットの既定（書いた項目だけ。書いていない項目はアプリのその AI の既定に従う） */
+export const projectProviderDefaultsSchema = z.partialRecord(z.enum(PROVIDER_IDS), chatOptionsDefaults.partial().strict()).refine(claudeModelChosen, CLAUDE_MODEL);
 
 /** ノートのフォルダからの相対パス（外・隠しファイルは指せない） */
 export const notePathSchema = z

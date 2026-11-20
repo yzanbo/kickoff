@@ -63,10 +63,9 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
   return {
     id,
     name: `プロジェクト${id}`,
-    description: "",
+    description: null,
     repo_path: `/repo/p${id}`,
     provider: "claude",
-    chat_defaults: {},
     provider_chat_defaults: {},
     reference_paths: [],
     position: id,

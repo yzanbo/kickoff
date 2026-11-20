@@ -1,4 +1,3 @@
-import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/ai/chatOptions";
 import type { ChatOptions } from "@shared/chat/types";
 import { PROVIDER_LABELS, type EffortLevel, type OtherProviderId, type PermissionMode } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
@@ -10,9 +9,8 @@ import { CheckField, Field } from "@/foundation/ui/kit/Field";
  * 設定の「AI の既定」の、Claude Code のほかの AI の新しいチャットの既定。
  * モデルは「その AI の既定」（null）か一覧のもの。ファストモードは、その AI のモデルのどれかが対応しているときだけ出す（Codex は持たない）
  */
-export function ProviderDefaultsFields({ provider, value, onChange }: { provider: OtherProviderId; value: ChatOptions | undefined; onChange: (next: ChatOptions) => void }) {
+export function ProviderDefaultsFields({ provider, value: defaults, onChange }: { provider: OtherProviderId; value: ChatOptions; onChange: (next: ChatOptions) => void }) {
   const models = useModels(provider);
-  const defaults = value ?? PROVIDER_BASE_CHAT_OPTIONS;
   const set = (patch: Partial<ChatOptions>) => onChange({ ...defaults, ...patch });
   const currentModel = defaults.model === null ? models.find((m) => m.is_default) : models.find((m) => m.value === defaults.model);
   const hasFast = models.some((m) => m.supports_fast_mode);

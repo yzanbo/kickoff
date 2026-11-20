@@ -3,12 +3,6 @@
   "auto_archive_days": "null",
   "auto_compact_pct": "null",
   "auto_resume_on_reconnect": "boolean",
-  "chat_defaults": {
-    "effort": "null",
-    "fast_mode": "boolean",
-    "model": "string",
-    "permission_mode": "string"
-  },
   "default_provider": "string",
   "desktop_notifications": "boolean",
   "dock_badge": "boolean",
@@ -22,7 +16,38 @@
   "pre_compact_prompt": "null",
   "projects_dir": "string",
   "provider_auth": {},
-  "provider_chat_defaults": {},
+  "provider_chat_defaults": {
+    "claude": {
+      "effort": "null",
+      "fast_mode": "boolean",
+      "model": "string",
+      "permission_mode": "string"
+    },
+    "codex": {
+      "effort": "null",
+      "fast_mode": "boolean",
+      "model": "null",
+      "permission_mode": "string"
+    },
+    "copilot": {
+      "effort": "null",
+      "fast_mode": "boolean",
+      "model": "null",
+      "permission_mode": "string"
+    },
+    "cursor": {
+      "effort": "null",
+      "fast_mode": "boolean",
+      "model": "null",
+      "permission_mode": "string"
+    },
+    "gemini": {
+      "effort": "null",
+      "fast_mode": "boolean",
+      "model": "null",
+      "permission_mode": "string"
+    }
+  },
   "remote_enabled": "boolean",
   "sandbox_enabled_by_default": "boolean",
   "trusted_link_domains": [],

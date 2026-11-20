@@ -31,7 +31,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 行と型の変換は店の `toChat` などに集める（真偽値は `db/common.ts` の `bit()`）。変えられる列は `CHAT_COLUMNS` などの 1 つの一覧を、型と `updateRow` の両方に使う。
 - `chats.active_at`（一覧の並び順）を進めるのは `status` を変える更新だけ（未読・固定・並び・名前・アーカイブ・移動・復旧では進めない）。
 - ゴミ箱にあるチャットは `store.chats` の読み取り（`get`・一覧・子孫・検索・フィードなど）から外す。読み取りを足したらゴミ箱のものを外す。会話記録を残すか（`sessionInUse`）はゴミ箱のものも数える。
-- 設定は `store.settings.get` が `DEFAULT_SETTINGS` とまぜる（知らないキーは返さない）。`update` は送ったキーだけを変え、キーの中（`chat_defaults` など）は丸ごと置き換える。
+- 設定は `store.settings.get` が `DEFAULT_SETTINGS` とまぜる（知らないキーは捨てる）。`update` は送ったキーだけ変え、中は丸ごと替える（`provider_chat_defaults` は AI ごと）。
 - 秘密の値は `secrets` の表に置き、設定・SSE・応答には保存したかだけを出す。
 - `meta` の `database_id` は DB を作ったときの ID（画面が ID 入りの保存を捨てる目印・スマホが本体を見分ける目印）。メインは SQL を流さない（DB の様子は `db/stats.ts`）。
 

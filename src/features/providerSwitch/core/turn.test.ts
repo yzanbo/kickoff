@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/ai/chatOptions";
+import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore, until } from "@/app/core/testing/testCore";
 import { UploadStore } from "@/features/attachments/core/uploads";

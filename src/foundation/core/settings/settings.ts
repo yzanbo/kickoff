@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { DEFAULT_SETTINGS, type AppSettings, type ProviderId } from "@shared/settings/types";
+import { DEFAULT_SETTINGS, PROVIDER_IDS, type AppSettings, type ProviderId, type SettingsPatch } from "@shared/settings/types";
 import type { Notify } from "@/foundation/core/db/common";
 
 /** 秘密の値の名前（secrets の表） */
@@ -15,14 +15,17 @@ export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
     const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
     // 知らないキーは返さない
     const stored = Object.fromEntries(rows.filter((r) => r.key in DEFAULT_SETTINGS).map((r) => [r.key, JSON.parse(r.value)])) as Partial<AppSettings>;
-    return { ...DEFAULT_SETTINGS, ...stored, chat_defaults: { ...DEFAULT_SETTINGS.chat_defaults, ...stored.chat_defaults } };
+    // AI ごとの既定は、AI ごとに既定の上へ重ねる（書いていない AI・項目は既定）
+    const chatDefaults = Object.fromEntries(PROVIDER_IDS.map((id) => [id, { ...DEFAULT_SETTINGS.provider_chat_defaults[id], ...stored.provider_chat_defaults?.[id] }]));
+    return { ...DEFAULT_SETTINGS, ...stored, provider_chat_defaults: chatDefaults as AppSettings["provider_chat_defaults"] };
   };
   return {
     get,
-    /** 送った項目だけを変える（chat_defaults は丸ごと置き換える） */
-    update(patch: Partial<AppSettings>): AppSettings {
+    /** 送った項目だけを変える（キーの中は丸ごと置き換える。provider_chat_defaults は送った AI の分だけ） */
+    update(patch: SettingsPatch): AppSettings {
       const stmt = db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
-      for (const [key, value] of Object.entries(patch)) {
+      const merged = patch.provider_chat_defaults ? { ...patch, provider_chat_defaults: { ...get().provider_chat_defaults, ...patch.provider_chat_defaults } } : patch;
+      for (const [key, value] of Object.entries(merged)) {
         if (value !== undefined) stmt.run(key, JSON.stringify(value));
       }
       const settings = get();

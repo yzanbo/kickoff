@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/ai/chatOptions";
+import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
 import { testStore } from "./testing/testStore";
 
 function setup() {

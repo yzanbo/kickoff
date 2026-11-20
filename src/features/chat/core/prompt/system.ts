@@ -70,7 +70,8 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     // 利用者は会話の途中でプロジェクトフォルダ・作業フォルダ（本体 / ワークツリー）・ノートフォルダを変えられる。この指示は送るたびに作り直すので、ここがいまの場所
     `- プロジェクトフォルダ・作業フォルダ・ノートフォルダは、利用者が会話の途中で変えることがあります。ここに書いた場所がいまの場所です。前の会話に出てきたパスと違っていたら、こちらを使ってください。`,
   ];
-  if (project.description.trim()) lines.push(`- 概要:\n${indent(project.description.trim())}`);
+  const description = project.description?.trim();
+  if (description) lines.push(`- 概要:\n${indent(description)}`);
 
   lines.push(
     ``,

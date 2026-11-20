@@ -2,21 +2,20 @@ import { NOW } from "@/foundation/core/db/db";
 
 /**
  * プロジェクト（v1）。position は 1 始まり。note_folder は親フォルダの下のノートのフォルダ名（初めてノートを使ったときに決める）、
- * note_dir はこのプロジェクトだけ別の場所にするときの絶対パス（どちらも仮の置き場所で、notes の表へ移す）。chat_defaults は Claude Code の既定、provider_chat_defaults はほかの AI の既定
- * （AI ごとの選択の一部）。圧縮前指示・圧縮後指示は設定の共通の指示のあとにつなぐ（オフでも文は残す）。
+ * note_dir はこのプロジェクトだけ別の場所にするときの絶対パス（どちらも仮の置き場所で、notes の表へ移す）。provider_chat_defaults は AI ごとのチャットの既定
+ * （AI の ID → 選択の一部。仮の置き場所で、ai の表へ移す）。description のないは NULL。圧縮前指示・圧縮後指示は設定の共通の指示のあとにつなぐ（オフでも文は残す）。
  * github_account・github_remote は null なら gh で有効なアカウント・自動の remote。trashed_at はゴミ箱に入れた時刻（店の中だけ）
  */
 export const PROJECTS_SCHEMA_V1 = `
 CREATE TABLE projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL CHECK (name <> ''),
-  description TEXT NOT NULL DEFAULT '',
+  description TEXT CHECK (description <> ''),
   repo_path TEXT NOT NULL UNIQUE,
   provider TEXT NOT NULL,
   hue INTEGER NOT NULL CHECK (hue BETWEEN 0 AND 359),
   tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags) AND json_type(tags) = 'array'),
   reference_paths TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(reference_paths) AND json_type(reference_paths) = 'array'),
-  chat_defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(chat_defaults) AND json_type(chat_defaults) = 'object'),
   provider_chat_defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(provider_chat_defaults) AND json_type(provider_chat_defaults) = 'object'),
   note_folder TEXT CHECK (note_folder <> ''),
   note_dir TEXT CHECK (note_dir <> ''),

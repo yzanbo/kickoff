@@ -140,11 +140,12 @@ test("グループ: 作成順に並び、作る・名前を変える・並べ替
   assert.deepEqual(events.map((e) => e.type), ["chat", "group_deleted"]);
 });
 
-test("プロジェクトの既定は JSON で保存され、壊れていなければそのまま読める", () => {
+test("プロジェクトの既定は AI ごとに JSON で保存され、壊れていなければそのまま読める。説明のないは null", () => {
   const { store, project } = setup();
-  assert.deepEqual(project.chat_defaults, {});
-  const updated = store.projects.update(project.id, { chat_defaults: { model: "haiku", effort: null } });
-  assert.deepEqual(updated.chat_defaults, { model: "haiku", effort: null });
+  assert.deepEqual([project.provider_chat_defaults, project.description], [{}, null]);
+  const updated = store.projects.update(project.id, { provider_chat_defaults: { claude: { model: "haiku", effort: null }, codex: { model: null } } });
+  assert.deepEqual(updated.provider_chat_defaults, { claude: { model: "haiku", effort: null }, codex: { model: null } });
+  assert.throws(() => store.db.exec(`UPDATE projects SET description = '' WHERE id = ${project.id}`), /CHECK constraint failed/);
 });
 
 test("プロジェクトの並び順: 作った順に付き、並べ替えられる", () => {
@@ -222,12 +223,12 @@ test("プロジェクトの既定・参照資料は JSON で保存され、そ�
     { path: "/tmp/notes.md", kind: "file" as const },
   ];
   const updated = store.projects.update(project.id, {
-    chat_defaults: { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true },
+    provider_chat_defaults: { claude: { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true } },
     reference_paths: references,
     pinned: true,
     hue: 222,
   });
-  assert.deepEqual(updated.chat_defaults, { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true });
+  assert.deepEqual(updated.provider_chat_defaults, { claude: { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true } });
   assert.deepEqual(updated.reference_paths, references);
   assert.equal(updated.pinned, true);
   assert.equal(updated.hue, 222);
@@ -273,7 +274,7 @@ test("スキーマの守り: 同じフォルダの重複登録・ほかのプロ
   // プロジェクトを移すときはグループも外すので通る
   assert.equal(store.chats.move(chat.id, other.id).project_id, other.id);
   assert.throws(() => store.db.exec(`UPDATE projects SET tags = '{}' WHERE id = ${project.id}`), /CHECK constraint failed/);
-  assert.throws(() => store.db.exec(`UPDATE projects SET chat_defaults = '[]' WHERE id = ${project.id}`), /CHECK constraint failed/);
+  assert.throws(() => store.db.exec(`UPDATE projects SET provider_chat_defaults = '[]' WHERE id = ${project.id}`), /CHECK constraint failed/);
   assert.throws(() => store.db.exec(`UPDATE chats SET worktree_path = '' WHERE id = ${chat.id}`), /CHECK constraint failed/);
 });
 
@@ -289,11 +290,13 @@ test("秘密の値は設定とは別の表に置き、設定の一覧には出�
   assert.notEqual(testStore(":memory:").databaseId, store.databaseId);
 });
 
-test("設定: 既定とマージし、チャットの選択の既定は項目が欠けても既定で埋める", () => {
+test("設定: 既定とマージし、AI ごとのチャットの選択の既定は AI・項目が欠けても既定で埋める。変えるのは送った AI の分だけ", () => {
   const { store } = setup();
-  assert.deepEqual(store.settings.get().chat_defaults, { model: "opus", effort: null, permission_mode: "default", fast_mode: false });
-  store.db.prepare("INSERT INTO settings (key, value) VALUES ('chat_defaults', ?)").run(JSON.stringify({ model: "sonnet" }));
-  assert.deepEqual(store.settings.get().chat_defaults, { model: "sonnet", effort: null, permission_mode: "default", fast_mode: false });
+  store.db.prepare("INSERT INTO settings (key, value) VALUES ('provider_chat_defaults', ?)").run(JSON.stringify({ claude: { model: "sonnet" } }));
+  const { claude, codex } = store.settings.get().provider_chat_defaults;
+  assert.deepEqual([claude, codex], [{ model: "sonnet", effort: null, permission_mode: "default", fast_mode: false }, { model: null, effort: null, permission_mode: "default", fast_mode: false }]);
+  const saved = store.settings.update({ provider_chat_defaults: { codex: { ...codex, model: "gpt-6-luna" } } }).provider_chat_defaults;
+  assert.deepEqual([saved.claude.model, saved.codex.model], ["sonnet", "gpt-6-luna"]);
   assert.equal(store.settings.update({ auto_archive_days: 7 }).auto_archive_days, 7);
 });
 
