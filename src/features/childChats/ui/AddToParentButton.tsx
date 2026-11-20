@@ -5,8 +5,8 @@ import type { Chat } from "@shared/chat/types";
 import { HANDOFF_AFTER_LABELS, HANDOFF_AFTERS, handoffAfterFor, type HandoffAfter } from "@shared/chat/handoff";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { readSetting } from "@/foundation/ui/storage/settings";
-import { HANDOFF_AFTER, HANDOFF_VIA } from "@/foundation/ui/storage/storageKeys";
+import { readSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -22,12 +22,12 @@ const VIA_HINTS: Record<HandoffVia, string> = {
 
 /**
  * 子チャットの作業の終わりの行の「親チャットに追加 ▾」: その作業の最後の返答を、そのまま（引用・見出しなし）直接の親チャットに渡す。
- * 押すと設定の渡し方（HANDOFF_VIA）と渡したあと（HANDOFF_AFTER）で渡し、▾ で今回だけ別の渡し方・渡したあとを選ぶ（渡したあとを先に選び、渡し方を押すと渡す）。
+ * 押すと設定の渡し方（storage.settings.handBackVia）と渡したあと（storage.settings.handBackAfter）で渡し、▾ で今回だけ別の渡し方・渡したあとを選ぶ（渡したあとを先に選び、渡し方を押すと渡す）。
  * 依頼文の頼みに答えた作業（prominent）では文字のボタンで目立たせ、ほかの作業ではアイコンだけ
  */
 export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat; turnEventId: number; prominent: boolean }) {
   const menu = useContextMenu({ align: "start" });
-  const [defaultVia] = useSetting(HANDOFF_VIA);
+  const [defaultVia] = useSetting(storage.settings.handBackVia);
   // ▾ のメニューで選んだ、今回だけの渡したあと（開くたびに設定の値から）
   const [after, setAfter] = useState<HandoffAfter>("keep");
   const run = (via: HandoffVia, afterThis: HandoffAfter) => void handOffTurn(chat, turnEventId, via, afterThis);
@@ -35,12 +35,12 @@ export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat
   return (
     <span className={cx("handoff-split", prominent && "prominent")} data-turn={turnEventId}>
       {prominent ? (
-        <button type="button" className="btn btn-sm btn-primary handoff-main" {...tipProps(tip)} onClick={() => run(defaultVia, readSetting(HANDOFF_AFTER))}>
+        <button type="button" className="btn btn-sm btn-primary handoff-main" {...tipProps(tip)} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))}>
           <Inbox size={13} aria-hidden />
           親チャットに追加
         </button>
       ) : (
-        <IconButton icon={Inbox} label="親チャットに追加" title={tip} size={13} type="button" className="turn-action handoff-main" onClick={() => run(defaultVia, readSetting(HANDOFF_AFTER))} />
+        <IconButton icon={Inbox} label="親チャットに追加" title={tip} size={13} type="button" className="turn-action handoff-main" onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))} />
       )}
       <IconButton
         icon={ChevronDown}
@@ -52,7 +52,7 @@ export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         onClick={(e) => {
-          if (!menu.isOpen) setAfter(readSetting(HANDOFF_AFTER));
+          if (!menu.isOpen) setAfter(readSetting(storage.settings.handBackAfter));
           menu.toggle(e);
         }}
       />

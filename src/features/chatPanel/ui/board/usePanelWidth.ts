@@ -1,5 +1,5 @@
 import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
-import { PANEL_MAXIMIZED, PANEL_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { panelSettings } from "@/features/panel/ui";
 
 const MIN_PANEL_WIDTH = 360;
 /** ボードとパネルの間隔（side-panel.css の .board-body.with-panel の gap） */
@@ -18,8 +18,8 @@ const MIN_BOARD_WIDTH = 200;
  */
 export function usePanelWidth({ maximizable }: { maximizable: boolean }) {
   return useCoverableWidth({
-    width: PANEL_WIDTH,
-    maximized: PANEL_MAXIMIZED,
+    width: panelSettings.width,
+    maximized: panelSettings.maximized,
     maximizable,
     min: MIN_PANEL_WIDTH,
     gap: PANEL_GAP,

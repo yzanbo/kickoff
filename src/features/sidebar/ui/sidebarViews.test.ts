@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { SIDEBAR_SAVED_VIEWS } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { activeSidebarView, newSidebarViewName, parseSidebarViews, parseSidebarViewState, sameSidebarViewState, type SidebarView, type SidebarViewState } from "./sidebarViews";
 
 const base: SidebarViewState = {
@@ -44,7 +44,7 @@ test("newSidebarViewName: 同じ名前のない番号", () => {
 });
 
 test("初めのビュー: 標準・コンパクト・要対応の順で、どれも読め、利用者が示した形", () => {
-  const views = parseSidebarViews(SIDEBAR_SAVED_VIEWS.initial);
+  const views = parseSidebarViews(storage.settings.savedViews.initial);
   assert.deepEqual(views.map((v) => v.name), ["標準", "コンパクト", "要対応"]);
   const [standard, compact, waiting] = views;
   assert.deepEqual(standard.state, { ...base, layout: "rail", showArchivedChats: true, waitingOn: true });

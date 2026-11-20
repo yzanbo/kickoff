@@ -3,7 +3,7 @@ import { beforeEach, test, vi } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
 import { publishServerEvent } from "@/foundation/ui/api/events";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { NEW_CHAT_DRAFTS, projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { activeTabOf } from "@/features/panel/ui/layout/paneTree";
 import { readBrowserSession } from "@/features/browser/ui/panel/browserSession";

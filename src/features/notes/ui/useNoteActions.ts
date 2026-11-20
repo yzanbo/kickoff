@@ -4,8 +4,8 @@ import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { notesStore } from "@/features/notes/ui/stores/notes";
 import { alertDialog, confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { noteOpenFolders, noteSelected } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./notePaths";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
@@ -215,9 +215,9 @@ export function useNoteActions(
  * （ノートのタブと入力欄の上の「ノート」の木で共通。どちらも同じ覚えを読む）。まとめて動かすと続けて呼ばれるので、いま覚えている値から付け替える（前の付け替えを上書きしないように）
  */
 export function followMovedNote(projectId: number, from: string, to: string) {
-  const selected = readSetting(noteSelected(projectId));
-  if (selected) writeSetting(noteSelected(projectId), remapPath(selected, from, to));
-  writeSetting(noteOpenFolders(projectId), [...new Set([...remapPaths(readSetting(noteOpenFolders(projectId)), from, to), ...ancestorsOf(to)])]);
+  const selected = readSetting(storage.settings.selected(projectId));
+  if (selected) writeSetting(storage.settings.selected(projectId), remapPath(selected, from, to));
+  writeSetting(storage.settings.openFolders(projectId), [...new Set([...remapPaths(readSetting(storage.settings.openFolders(projectId)), from, to), ...ancestorsOf(to)])]);
   // ノートのタブの右で開いているタブも付け替える
   remapNoteTabs(projectId, from, to);
 }

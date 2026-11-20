@@ -1,15 +1,15 @@
 import { useMemo } from "react";
-import { FIND_CASE, FIND_REGEX, FIND_WHOLE_WORD } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { storage as uiStorage } from "./storage";
+import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage";
 import type { FindOptionName, FindOptions } from "@/foundation/ui/lib/textFind";
 import { useSetting } from "./useSetting";
 
 /** 探し方ごとの保存先（どの検索の欄でも同じ値） */
-const SETTINGS = { caseSensitive: FIND_CASE, wholeWord: FIND_WHOLE_WORD, regex: FIND_REGEX } as const;
+const SETTINGS = { caseSensitive: uiStorage.settings.findCase, wholeWord: uiStorage.settings.findWholeWord, regex: uiStorage.settings.findRegex } as const;
 
 /** いまの探し方（React の外。ノートのエディタの検索・Monaco の検索の欄に渡す） */
 export function readFindOptions(): FindOptions {
-  return { caseSensitive: readSetting(FIND_CASE), wholeWord: readSetting(FIND_WHOLE_WORD), regex: readSetting(FIND_REGEX) };
+  return { caseSensitive: readSetting(uiStorage.settings.findCase), wholeWord: readSetting(uiStorage.settings.findWholeWord), regex: readSetting(uiStorage.settings.findRegex) };
 }
 
 /** 探し方を書き換える（React の外。Monaco の検索の欄で切り替えたとき） */
@@ -28,9 +28,9 @@ export function subscribeFindOptions(listener: () => void): () => void {
  * どの検索の欄でも同じ値を覚え、ほかの欄・ウィンドウで切り替えてもそろう
  */
 export function useFindOptions(): { options: FindOptions; toggle: (name: FindOptionName) => void } {
-  const [caseSensitive, setCase] = useSetting(FIND_CASE);
-  const [wholeWord, setWholeWord] = useSetting(FIND_WHOLE_WORD);
-  const [regex, setRegex] = useSetting(FIND_REGEX);
+  const [caseSensitive, setCase] = useSetting(uiStorage.settings.findCase);
+  const [wholeWord, setWholeWord] = useSetting(uiStorage.settings.findWholeWord);
+  const [regex, setRegex] = useSetting(uiStorage.settings.findRegex);
   const options = useMemo(() => ({ caseSensitive, wholeWord, regex }), [caseSensitive, wholeWord, regex]);
   const toggle = (name: FindOptionName) => {
     if (name === "caseSensitive") setCase(!caseSensitive);

@@ -1,5 +1,5 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_PROJECT_ORDER } from "@/foundation/ui/storage/storageKeys";
+import { projectsSettings } from "@/features/projects/ui";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useProjectReorder } from "@/features/sidebar/ui/useProjectReorder";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
@@ -14,7 +14,7 @@ type Lane = ChatBucket<PanelDraft>;
  */
 export function useProjectLaneReorder(enabled: boolean) {
   const { active } = useVisibleProjects();
-  const [order, setOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
+  const [order, setOrder] = useSetting(projectsSettings.listOrder);
   const reorder = useProjectReorder({
     ids: active.map((p) => p.id),
     isArchived: () => false,

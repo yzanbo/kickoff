@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHAT_HEADER_ORDER } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { isNoopHeaderMove, moveHeaderItem, orderedHeaderSections, type ChatHeaderItem } from "./chatHeaderItems";
 
@@ -10,12 +10,12 @@ const ITEM_DRAG_TYPE = "application/x-kickoff-chat-header-item";
 type Side = "before" | "after";
 
 /**
- * 「見出しに出す項目」のメニューの並べ替え（ドラッグ）。区切り線で分けたまとまりの中だけで動かし、並びは CHAT_HEADER_ORDER に覚える
+ * 「見出しに出す項目」のメニューの並べ替え（ドラッグ）。区切り線で分けたまとまりの中だけで動かし、並びは storage.settings.headerOrder に覚える
  * （見出しの行もこの順に出す）。上下の半分で前に入るか後ろに入るかを決め、落としても並びが変わらない所（すぐ前の後ろ半分・すぐ後ろの前半分・
  * ほかのまとまり）には線を出さず落とせない。押せばいままでどおり表示・非表示を切り替える
  */
 export function useHeaderItemDrag() {
-  const [saved, setSaved] = useSetting(CHAT_HEADER_ORDER);
+  const [saved, setSaved] = useSetting(storage.settings.headerOrder);
   const [dragging, setDragging] = useState<ChatHeaderItem | null>(null);
   const [drop, setDrop] = useState<{ item: ChatHeaderItem; side: Side } | null>(null);
   const end = () => {

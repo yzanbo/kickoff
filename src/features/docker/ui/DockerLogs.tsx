@@ -3,7 +3,7 @@ import { ArrowDown, Clock, Search, TriangleAlert, WrapText } from "lucide-react"
 import type { DockerCompose } from "@shared/docker/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
-import { DOCKER_LOG_TIMESTAMPS, DOCKER_LOG_WRAP } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
@@ -46,8 +46,8 @@ export interface DockerLogsRequest {
  */
 export function DockerLogs({ projectId, compose, request, onClose }: { projectId: number; compose: DockerCompose; request: DockerLogsRequest; onClose: () => void }) {
   const logs = useDockerLogs(projectId, compose.key);
-  const [showTime, setShowTime] = useSetting(DOCKER_LOG_TIMESTAMPS);
-  const [wrap, setWrap] = useSetting(DOCKER_LOG_WRAP);
+  const [showTime, setShowTime] = useSetting(storage.settings.logTimestamps);
+  const [wrap, setWrap] = useSetting(storage.settings.logWrap);
   const [problemsOnly, setProblemsOnly] = useState(false);
   const [matchesOnly, setMatchesOnly] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());

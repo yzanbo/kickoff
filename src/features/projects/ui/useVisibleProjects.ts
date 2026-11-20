@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { matchesTags } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_PROJECT_ORDER } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useChatsValue } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";
@@ -18,7 +18,7 @@ import { useProjectTagFilter } from "./projectTagFilter";
 export function useVisibleProjects() {
   const { projects } = useProjects();
   const tagFilter = useProjectTagFilter();
-  const [order] = useSetting(SIDEBAR_PROJECT_ORDER);
+  const [order] = useSetting(storage.settings.listOrder);
   const recentIds = useChatsValue(
     (chats) =>
       recentOrder(projects, chats)

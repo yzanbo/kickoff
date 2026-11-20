@@ -8,7 +8,8 @@ import { ClusterShortItem } from "@/features/chatPanel/ui/clusters/ClusterShortI
 import { useTabGrouping } from "@/features/chatPanel/ui/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/chatPanel/ui/clusters/HiddenGroupItems";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_OVERFLOW, PANEL_TAB_TWO_LINE } from "@/foundation/ui/storage/storageKeys";
+import { panelSettings } from "@/features/panel/ui";
+import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
@@ -19,7 +20,7 @@ export const hasTabDisplayItems = (panel: PanelController) => panel.kinds.has("c
 
 const separator = <div className="menu-separator" role="separator" />;
 
-const TAB_OVERFLOWS = PANEL_TAB_OVERFLOW.choices;
+const TAB_OVERFLOWS = panelSettings.tabOverflow.choices;
 const TAB_OVERFLOW_LABELS: Record<(typeof TAB_OVERFLOWS)[number], string> = { shrink: "タブを細くして収める", scroll: "横にスクロールする" };
 const TAB_OVERFLOW_TIPS: Record<(typeof TAB_OVERFLOWS)[number], string> = {
   shrink: "タブが増えたら、タブを細くしてタブの列に収めます（名前を省き、狭くなったらアイコンだけに）",
@@ -36,12 +37,12 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
   // チャットの並び順はサイドバーと共通の 1 つの設定（一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
   const { order, setOrder } = useChatLayout();
   // タブに出す項目（隠した項目だけを覚える）
-  const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
+  const [tabHidden, setTabHidden] = useSetting(panelSettings.tabHidden);
   const hiddenFields = hiddenTabFields(tabHidden);
   // タブを 2 行にするか（サイドバーのチャットの行とは別の、タブだけの設定）
-  const [twoLine, setTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
+  const [twoLine, setTwoLine] = useSetting(panelSettings.tabTwoLine);
   // タブが増えて入らないとき、細くして収めるか横にスクロールするか（すべてのパネルで共通）
-  const [overflow, setOverflow] = useSetting(PANEL_TAB_OVERFLOW);
+  const [overflow, setOverflow] = useSetting(panelSettings.tabOverflow);
   const showChat = panel.kinds.has("chat");
 
   const section = (title: string, items: ReactNode) => (

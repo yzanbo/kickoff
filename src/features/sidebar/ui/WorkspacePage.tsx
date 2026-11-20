@@ -38,7 +38,7 @@ import { useProjectChatDrops } from "./projectChatDrop";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_WAITING_ONLY } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { inboxSections, waitingSince } from "./inboxOrder";
 import { waitingAxes } from "./waitingAxes";
 import { useWaitingView } from "./waitingView";
@@ -95,7 +95,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const rowBudget = useProgressivePage(`${grouping}/${order}/${collapsed ? 1 : 0}/${showArchivedChats ? 1 : 0}/${chats.length > 0 ? 1 : 0}`, hidden);
   // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
   // 検索・状態で絞っている間は出さない
-  const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
+  const [waitingOn] = useSetting(storage.settings.waitingOnly);
   const [waitingView] = useWaitingView();
   const showWaitingTop = waitingOn && waitingAxes(waitingView).scope === "project" && !keyword && !stateFilter;
   const waitingTop = useMemo(

@@ -1,8 +1,9 @@
 import { Archive, ArchiveX, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Plus, Rows2, Rows3, Rows4, Save, Settings, ToggleLeft, ToggleRight, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import type { ProjectOrder } from "@/features/projects/ui/projectOrder";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
-import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/foundation/ui/storage/storageKeys";
+import type { SettingValue } from "@/foundation/ui/storage";
+import { chatListSettings } from "@/features/chatList/ui";
+import type { storage } from "./storage";
 import { sameViewExistsText, viewNameTaken } from "@/foundation/ui/lib/namedViews";
 import { CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
@@ -17,7 +18,7 @@ import { canChooseOrder, WAITING_SCOPES, waitingAxes, waitingViewOf, type Waitin
 import { WAITING_ORDER_META, WAITING_SCOPE_META } from "./waitingView";
 
 /** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
-export type NavLayout = SettingValue<typeof SIDEBAR_LAYOUT>;
+export type NavLayout = SettingValue<typeof storage.settings.layout>;
 
 export const LAYOUT_META: Record<NavLayout, { icon: LucideIcon; short: string; label: string }> = {
   stack: { icon: Rows3, short: "縦並び", label: "縦並び（すべてのプロジェクトを上から並べる）" },
@@ -110,7 +111,7 @@ export function SidebarViewTuner({ layout, onLayout, order, onOrder, archivedCou
             title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
             menu={{ title: "チャットのまとめ方", choices: CHAT_GROUPINGS, meta: GROUPING_META, current: grouping, onPick: setGrouping }}
             // グループ別・作業場所別の見出しの色（色付き / 色なし。見出しの右クリックにも同じ項目）。選んでもメニューは閉じない
-            extra={<BucketColorItem setting={SIDEBAR_BUCKET_COLORS} keepOpen />}
+            extra={<BucketColorItem setting={chatListSettings.bucketColors} keepOpen />}
           />
           {/* 3 つ（最近順・状態順・手動）なのでメニューから選ぶ。最近順・状態順でも、チャットの行をドラッグで並べ替えると手動になる */}
           <HeadMenu

@@ -1,7 +1,8 @@
 import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { PANEL_TAB_GROUP_COLORS, panelTabGrouping } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chatPanel/ui/storage";
+import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
 import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { chatHead, draftHead, groupHeads, workplaceHead } from "@/features/chatList/ui/bucketHeads";
@@ -12,7 +13,7 @@ import { specOf, type ClusterResolver } from "@/features/panel/ui/tabs/tabKinds"
 import type { PanelController } from "@/features/panel/ui/usePanel";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
-export const useTabGrouping = (surface: PanelSurface) => useSetting(panelTabGrouping(surface));
+export const useTabGrouping = (surface: PanelSurface) => useSetting(storage.settings.tabGrouping(surface));
 
 /** 固定・アーカイブ済みの札の説明（サイドバーの同じまとまりと同じものだと分かるように） */
 const TITLES: Partial<Record<BucketHead["kind"], string>> = {

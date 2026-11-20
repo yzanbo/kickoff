@@ -20,7 +20,7 @@
 - まとまりのキーはプロジェクトを根にした道のりの形（`p3/g5/status:read`）。開閉の記憶・React の key・タブのまとまりにそのまま使う。
 - 状態ごとの数は `@/features/chat/ui/state/chatState.ts` の `stateCounts` だけで数える（`bucketChats` の `counts`・`chatsByState` も）。
 - 状態の札の印はサイドバーの行と同じ `StatusSlot`（`bucketMark`）。
-- 開閉は `FOLDS` 1 つに `<場所>:<キー>` で覚え、`@/foundation/ui/hooks/useFold.ts` を通す。
+- 開閉は `ui:fold` 1 つに `<場所>:<キー>` で覚え、`@/foundation/ui/hooks/useFold.ts` を通す。
 - まとめ方の選択肢と文言はサイドバーとタブの列で共通（`CHAT_GROUPINGS`）、覚えるのは別々。まとめ方・並び順はすべてのプロジェクトに効く 1 つの設定。
 - 手動の並びはプロジェクトの中の 1 本（`Chat.position`）。どの並び順でも落とすと見えている並びのまま保存し、手動に切り替える。
 - 行の一覧は `ChatRowList` で描く（`ul.chat-rows` に手で `.map` を書かない）。

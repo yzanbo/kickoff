@@ -35,7 +35,7 @@
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（キー・名前・後始末・`popout` など）は、種類で分岐させず `TAB_KINDS` から引く。中身は `PanelTabPage` の `PAGES`。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
 - 種類を足すときは、作る関数・`panelActions` の `open…`・`@/foundation/ui/navigation/popout.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
-- ほかにも `@/features/chatPanel/ui/agents/AgentPanelAdds.tsx`・`@/features/workplaceMove/ui/repointTabs.ts`・`layout/tabTransfer.ts`・`@/foundation/ui/storage/storageKeys.ts` の保存の型・`PaneTab.tsx` の名指しを見る。
+- ほかにも `@/features/chatPanel/ui/agents/AgentPanelAdds.tsx`・`@/features/workplaceMove/ui/repointTabs.ts`・`layout/tabTransfer.ts`・`ui/popoutWindowTab.ts` の保存の型・`PaneTab.tsx` の名指しを見る。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 右クリックの `TabMenu` はサイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`。状態の印はどの種類も `useTabAgentState`（店から読む）。
 - タブに出す項目（`tabFields.ts`）は隠したものだけを覚える。まとまりの札に出る項目はタブに出さない（`groupedTabField`。保存した選び方は変えない）。

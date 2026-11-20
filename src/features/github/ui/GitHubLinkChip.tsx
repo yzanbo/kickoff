@@ -2,13 +2,14 @@ import { CircleDot, GitPullRequest } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import { navigate } from "@/foundation/ui/navigation/router";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { githubFilters, githubSelected } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
+import { githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { isSideViewShown, showSideView } from "@/features/projects/ui/rightSidebar/sideView";
 
 /** GitHub タブで開いているものをその issue・PR にする（一覧を issue｜PR のその種類にし、中身にそれを出す。プロジェクトのタブと右の欄で同じ値） */
 export function selectGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
-  writeSetting(githubFilters(projectId), { ...readSetting(githubFilters(projectId)), kind: link.kind });
+  writeSetting(storage.settings.filters(projectId), { ...readSetting(storage.settings.filters(projectId)), kind: link.kind });
   writeSetting(githubSelected(projectId), `${link.kind}:${link.number}`);
 }
 

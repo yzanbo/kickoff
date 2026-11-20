@@ -2,8 +2,8 @@ import { errorMessage } from "@shared/foundation/errors";
 import { removeTagFrom, renameTagIn } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { PROJECT_TAG_FILTER, PROJECT_TAG_ORDER } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
 
 /** そのタグが付いているプロジェクト（しまったものも） */
@@ -24,7 +24,7 @@ async function retag(projects: readonly Project[], change: (tags: readonly strin
 
 /** 覚えている絞り込み・並びのタグの名前を置き換える（to が null なら外す。重なれば 1 つにまとめる） */
 function replaceStored(from: string, to: string | null) {
-  for (const setting of [PROJECT_TAG_FILTER, PROJECT_TAG_ORDER]) {
+  for (const setting of [storage.settings.tagFilter, storage.settings.tagOrder]) {
     const list = readSetting(setting);
     if (!list.includes(from)) continue;
     const next = list.flatMap((t) => (t === from ? (to === null ? [] : [to]) : [t]));

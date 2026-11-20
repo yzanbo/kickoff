@@ -1,4 +1,4 @@
-// PR のレビューの書きかけ（ためた行のコメントと本文）の形と読み直し（画面の保存。lib/storageKeys の githubReviewDraft）
+// PR のレビューの書きかけ（ためた行のコメントと本文）の形と読み直し（画面の保存。storage.ts の reviewDraft）
 import type { GitHubReviewDraftComment } from "@shared/github/types";
 
 export interface GitHubReviewDraft {

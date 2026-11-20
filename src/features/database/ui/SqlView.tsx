@@ -9,8 +9,8 @@ import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { DbSqlTab } from "@/features/database/ui/client/dbClientTabs";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { DB_SQL_EDITOR_HEIGHT, dbSqlDraft } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { SqlAssistButton } from "./DbAiButtons";
 import { SqlConnectionPill } from "./SqlConnectionPill";
@@ -35,7 +35,7 @@ const DRAFT_DELAY = 400;
 export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection: DbConnection; active: boolean }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
-  const draftKey = dbSqlDraft(`${client.place}:${tab.key}`);
+  const draftKey = storage.settings.sqlDraft(`${client.place}:${tab.key}`);
   const editor = useRef<SqlEditorHandle | null>(null);
   const initial = useMemo(() => readSetting(draftKey), [draftKey]);
   const draftTimer = useRef<number | undefined>(undefined);
@@ -46,7 +46,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const pending = useSqlPending(tab.key);
   const [finishing, setFinishing] = useState(false);
   const write = useSqlWrite(connection, pending);
-  const { paneRef: heightPaneRef, ...height } = useDragSize<HTMLDivElement>({ setting: DB_SQL_EDITOR_HEIGHT, axis: "y", unit: "%", min: 15, max: 85 });
+  const { paneRef: heightPaneRef, ...height } = useDragSize<HTMLDivElement>({ setting: storage.settings.sqlEditorHeight, axis: "y", unit: "%", min: 15, max: 85 });
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
   const outline = useQuery(["SqlView.outline", connection.id, worktree], () => api.dbOutline(client.projectId, connection.id, { database: connection.database, schema: null }, worktree), { keepPrevious: true });

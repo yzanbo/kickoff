@@ -21,8 +21,9 @@ import {
   updateErTab,
   type DbClientTab,
 } from "@/features/database/ui/client/dbClientTabs";
-import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft, dbTreeOpen } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { storage } from "./storage";
+import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { useDbConnections } from "@/features/database/ui/client/connectionsStore";
 import { SideNote } from "@/features/notes/ui/SideNote";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
@@ -56,16 +57,15 @@ const NARROW_WIDTH = 720;
 
 /**
  * DB クライアント（左に接続の一覧と木、右にタブ（テーブル・SQL））。プロジェクトの「DB」タブ・チャットの右の欄・別ウィンドウで同じものを使い、
- * 開いているタブと木の開き具合は place ごとに覚える。worktree: SQLite のファイルを開く作業場所（null なら本体）。
- * 狭い所では左の一覧を隠し（左上のボタンで重ねて出す）、タブの上にパンくずを出す
+ * 開いているタブと木の開き具合は place ごとに覚える。worktree: SQLite のファイルを開く作業場所（null なら本体）。狭い所では左の一覧を隠し（左上のボタンで重ねて出す）、タブの上にパンくずを出す
  */
 export function DatabaseClient({ projectId, place, worktree }: { projectId: number; place: string; worktree: string | null }) {
   const connections = useDbConnections(projectId);
   const list = connections.data ?? [];
   const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
   const [state, setState] = useSetting(dbClientTabs(place));
-  const [hidden, setHidden] = useSetting(DB_LIST_HIDDEN);
-  const [treeOpen, setTreeOpen] = useSetting(dbTreeOpen(place));
+  const [hidden, setHidden] = useSetting(storage.settings.listHidden);
+  const [treeOpen, setTreeOpen] = useSetting(storage.settings.treeOpen(place));
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
   // 取り込みの画面（Docker タブの「DB で開く」からは、その DB の案を選んだ形で）
@@ -75,7 +75,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
   const menu = useContextMenu<DbConnection>();
-  const width = useDragSize({ setting: DB_LIST_WIDTH, min: 180, keep: 320 });
+  const width = useDragSize({ setting: storage.settings.listWidth, min: 180, keep: 320 });
   const root = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
   const [overlay, setOverlay] = useState(false);
@@ -90,7 +90,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   /** 接続を選ぶ（木で開いて一覧を出す） */
   const focusConnection = (connectionId: number) => {
     const key = `c:${connectionId}`;
-    const open = readSetting(dbTreeOpen(place));
+    const open = readSetting(storage.settings.treeOpen(place));
     if (!open.includes(key)) setTreeOpen([...open, key]);
     // 描いたばかり（預けた頼み）だと narrow がまだ測れていないので、その場で幅を測る
     if ((root.current?.clientWidth ?? Infinity) < NARROW_WIDTH) setOverlay(true);
@@ -128,7 +128,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     openSql: (c, sql) => {
       const next = openNewSqlTab(state, c.id);
       // SQL のタブは開いたときに書きかけを読むので、先に書いておく
-      if (sql && next.active) writeSetting(dbSqlDraft(`${place}:${next.active}`), sql);
+      if (sql && next.active) writeSetting(storage.settings.sqlDraft(`${place}:${next.active}`), sql);
       setState(next);
       setOverlay(false);
     },
@@ -170,7 +170,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         const ok = await finishSession(projectId, c, tab.key);
         if (!ok) return;
       }
-      writeSetting(dbSqlDraft(`${place}:${tab.key}`), "");
+      writeSetting(storage.settings.sqlDraft(`${place}:${tab.key}`), "");
     }
     setState(closeDbTab(state, tab.key));
   };

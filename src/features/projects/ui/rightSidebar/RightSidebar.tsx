@@ -4,7 +4,7 @@ import { Panel } from "@/features/panel/ui/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { sideView } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/projects/ui/storage";
 import type { ProjectChatController } from "./useRightSidebar";
 import { SideViewBody } from "./SideViewBody";
 
@@ -46,7 +46,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
  * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
  */
 export function SideBody({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
-  const [view] = useSetting(sideView(projectId));
+  const [view] = useSetting(storage.settings.sideView(projectId));
   return (
     <>
       <div className="side-browser" hidden={view !== "browser"}>

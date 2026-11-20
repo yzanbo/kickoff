@@ -1,7 +1,7 @@
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_BUCKET_COLORS } from "@/foundation/ui/storage/storageKeys";
+import { chatListSettings } from "@/features/chatList/ui";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
 import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
 import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
@@ -13,14 +13,14 @@ export const huedHeadProps = (hue: number | null): { className?: string; style?:
   hue === null ? {} : { className: "bucket-hued", style: { "--group-hue": hue } as CSSProperties };
 
 /**
- * サイドバーの 1 つのプロジェクトのまとまりの色（SIDEBAR_BUCKET_COLORS。初めは付ける）。色はタブの列のまとまりと同じ（bucketHues.ts）。
+ * サイドバーの 1 つのプロジェクトのまとまりの色（chatListSettings.bucketColors。初めは付ける）。色はタブの列のまとまりと同じ（bucketHues.ts）。
  * - hueOf: 見出しの色（色を付けない・まとめないなら null）
  * - onContextMenu: 色を付けない見出し（No Group・固定・アーカイブ済み・作業場所）の右クリックで「まとまりを色付きで表示」のメニューを開く
  *   （lead を渡すと、その項目を上に置いて区切り線で分ける。No Group の「新しいチャット」。
  *   まとめないときは undefined。自分で作ったグループの見出しは、グループのメニューの下に同じ項目を足す menuItem）
  */
 export function useSidebarBucketColors(grouping: ChatGrouping, projectId: number) {
-  const [on] = useSetting(SIDEBAR_BUCKET_COLORS);
+  const [on] = useSetting(chatListSettings.bucketColors);
   const ids = useMemo(() => [projectId], [projectId]);
   const hueOf = useBucketHueOf(grouping, ids, on);
   const menu = useContextMenu<ReactNode>();
@@ -33,7 +33,7 @@ export function useSidebarBucketColors(grouping: ChatGrouping, projectId: number
           menu.open(e, lead);
         }
       : undefined,
-    menuItem: grouped ? <BucketColorItem setting={SIDEBAR_BUCKET_COLORS} /> : undefined,
+    menuItem: grouped ? <BucketColorItem setting={chatListSettings.bucketColors} /> : undefined,
     menuElement: menu.menu && (
       <PopupMenu at={menu.menu.at} label="まとまりの表示" onClose={menu.close}>
         {menu.menu.value && (
@@ -42,7 +42,7 @@ export function useSidebarBucketColors(grouping: ChatGrouping, projectId: number
             <div className="menu-separator" role="separator" />
           </>
         )}
-        <BucketColorItem setting={SIDEBAR_BUCKET_COLORS} />
+        <BucketColorItem setting={chatListSettings.bucketColors} />
       </PopupMenu>
     ),
   };

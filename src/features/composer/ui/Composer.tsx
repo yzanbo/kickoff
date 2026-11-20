@@ -4,7 +4,7 @@ import type { Attachment } from "@shared/chat/types";
 import type { GitTarget } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useOptionalSetting, useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { Setting } from "@/foundation/ui/storage/settings";
+import type { Setting } from "@/foundation/ui/storage";
 import { useHeldMeta } from "@/foundation/ui/hooks/useHeldMeta";
 import { consumeKey, hasModifiers, isCancelKey } from "@/foundation/ui/lib/keys";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";

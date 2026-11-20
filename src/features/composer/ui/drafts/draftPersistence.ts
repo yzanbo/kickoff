@@ -1,4 +1,4 @@
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { NEW_CHAT_DRAFTS } from "@/foundation/ui/storage/storageKeys";
 import { panelKey, parsePanelKey } from "@/features/panel/ui/surfaces";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";

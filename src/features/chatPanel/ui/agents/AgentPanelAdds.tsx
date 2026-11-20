@@ -12,7 +12,7 @@ import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/ui/tabs/
 import { PROJECT_VIEW_ICONS } from "@/features/projects/ui/views/ProjectViewTabLead";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { subagentsArchived } from "@/foundation/ui/storage/storageKeys";
+import { subagentsSettings } from "@/features/subagents/ui";
 import { useChildChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
@@ -59,7 +59,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const pane = useOptionalChatPane();
   // チャットの店の取り出し口を直接読む（会話の欄が配る context は、右の欄の外にある）
   const { tree } = useChatSubagents(chatId);
-  const [archivedKeys] = useSetting(subagentsArchived(chatId));
+  const [archivedKeys] = useSetting(subagentsSettings.archived(chatId));
   const children = (useChildChats().get(chatId) ?? []).filter((c) => c.archived_at === null);
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない
   const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));

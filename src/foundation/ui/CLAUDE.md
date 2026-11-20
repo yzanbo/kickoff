@@ -29,13 +29,13 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 - 回答待ちは App が 1 回引き当てて `useChatStates()` で配る（部品で `api.approvals()` を呼ばない）。
 - いまのルートは `useRoute()`。前回の画面は `main.tsx` が App を描く前に `restoreLastRoute` で開く（一度きりの指定は `lastingRoute` で外す）。
 
-## 表示の設定の保存（`storage/settings.ts`・`storage/storageKeys.ts`）
+## 表示の設定の保存（`storage/`）
 
-- localStorage / sessionStorage に残すものは `storage/storageKeys.ts` でだけ宣言する。宣言していない `kickoff:` のキーは起動したときに消える。
-- 読み書きは `useSetting` / `useOptionalSetting`、React の外は `readSetting` / `writeSetting`。部品にキーの文字列を書かない・直接読み書きしない。
-- キー名と保存する値は変えない（利用者の表示の好みを残すため）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする。
-- ID をキーか値に含むものは `ids: true`（`prepareStorage` が、DB を作り直していれば App を描く前に捨てる）。
-- localStorage は別ウィンドウと共有（sessionStorage はウィンドウごと）。まとまりの開閉は `FOLDS` 1 つ（`src/features/chatList/CLAUDE.md`）。
+- 残すものは `src/features/<機能>/ui/storage.ts`（土台は `storage/`・`hooks/`・`external/`）で `defineSettings(機能のフォルダ名, {…})`。キーは `kickoff:<機能>:<名前の kebab>`、ほかの機能は持ち主の ui/index.ts の `<機能>Settings` で読む。
+- 片付けは `@/app/renderer/storage.ts` が集めた群の外の `kickoff:` のキーを消す（残りは `storage/storageKeys.ts`）。
+- 読み書きは `useSetting`、React の外は `readSetting` / `writeSetting`。部品にキーの文字列を書かない・直接読み書きしない。
+- 値の形を変えるときは、読む側（`public/boot.js` など）を同じコミットで直す（保存した値は引き継がない）。
+- ID を含むものは `ids: true`（DB を作り直していれば `prepareStorage` が捨てる）。localStorage は別ウィンドウと共有。開閉は `ui:fold` 1 つ。
 
 ## API（`api/`）
 
@@ -107,7 +107,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 
 測った数は `docs/architecture.md` の「決めたこと（測った数）」。
 
-- 起動直後の骨組み `public/boot.js` は、保存の読み方を `storage/storageKeys.ts`・`theme/theme.ts`・`@/features/sidebar/ui/useSidebar.ts` と同じにする。
+- 起動直後の骨組み `public/boot.js` は、保存の読み方を `storage/storage.ts`・`theme/theme.ts`・`@/features/sidebar/ui/storage.ts` と同じにする。
 - それらの読み方・骨組みの色と高さ（`styles/`）を変えたら `boot.js` も直す（`@/app/renderer/bootScript.test.ts` が確かめる。テストは `public/` に置かない）。
 - 裏のタブのチャットの会話の欄は `Activity` の hidden で止める（`@/features/conversation/ui/screen/ChatScreen.tsx`）。
 - 隠すと effect の片付けが、表に戻すと effect が流れ直す。流れ直して困るものは描いている間に決めるか店に置き、隠しても続ける仕事は殻に置く。

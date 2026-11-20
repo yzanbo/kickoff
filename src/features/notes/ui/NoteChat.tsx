@@ -24,7 +24,7 @@ export interface NoteChatHandle {
   add: (text: string, attachments?: Attachment[]) => void;
 }
 
-/** 欄の置き場所（本文の右 / 下。lib/storageKeys.ts の NOTE_CHAT_PLACE） */
+/** 欄の置き場所（本文の右 / 下。storage.ts の chatPlace） */
 export type NoteChatPlace = "right" | "bottom";
 
 /**

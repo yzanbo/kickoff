@@ -43,8 +43,8 @@ export const SCREENS = [
     title: "サイドバーのまとめ方（作業場所別）",
     hash: (f) => `#/projects/${f.projects.alpha}`,
     pre: `${STORAGE_IMPORTS}
-      for (let i = 0; i < 100 && !s.readSetting(k.SIDEBAR_VIEW_SELECTED); i++) await new Promise((r) => setTimeout(r, 50));
-      s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "worktree");`,
+      for (let i = 0; i < 100 && !s.readSetting(k.sidebar.viewSelected); i++) await new Promise((r) => setTimeout(r, 50));
+      s.writeSetting(k.chatList.sections, "worktree");`,
   },
   { name: "beta-board", title: "git なしのプロジェクト", hash: (f) => `#/projects/${f.projects.beta}` },
 ];
@@ -72,7 +72,7 @@ async function settledSemantic(page, { quietMs = 1000, timeoutMs = 20000 } = {})
 
 /** 1 つの画面を 1 つのテーマで開いて記録する */
 async function takeScreen(page, screen, theme, fixture, { name }) {
-  await resetPage(page, { local: { "kickoff:theme": theme }, hash: screen.hash(fixture), clearSession: true });
+  await resetPage(page, { local: { "kickoff:shell:theme": theme }, hash: screen.hash(fixture), clearSession: true });
   if (screen.pre) await page.evaluate(`(async () => { ${screen.pre} })()`);
   for (const key of screen.keys ?? []) await press(page, key, { meta: true });
   const semantic = await settledSemantic(page);

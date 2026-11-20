@@ -1,7 +1,7 @@
 import { api } from "@/foundation/ui/api";
 import { assertGroups, forgetIdSettings, pruneUndeclared, type StorageGroup } from "./groups";
 import { readSetting, writeSetting } from "./settings";
-import { DATABASE_ID } from "./storageKeys";
+import { storage as shellStorage } from "./storage";
 
 /** /api/status の答えを待つ時間（つながらないときに、画面を出すのを待たせすぎない） */
 const STATUS_TIMEOUT_MS = 3000;
@@ -12,9 +12,9 @@ const STATUS_TIMEOUT_MS = 3000;
  * 別のものを指してしまうため。捨てたら true
  */
 export function adoptDatabase(groups: readonly StorageGroup[], databaseId: string): boolean {
-  if (readSetting(DATABASE_ID) === databaseId) return false;
+  if (readSetting(shellStorage.settings.databaseId) === databaseId) return false;
   forgetIdSettings(groups);
-  writeSetting(DATABASE_ID, databaseId);
+  writeSetting(shellStorage.settings.databaseId, databaseId);
   return true;
 }
 

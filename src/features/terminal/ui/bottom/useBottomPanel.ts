@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { BOTTOM_PANEL_HEIGHT } from "@/foundation/ui/storage/storageKeys";
+import { panelSettings } from "@/features/panel/ui";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { usePanelOpen } from "@/features/panel/ui/state/panelStore";
 import { panelKey, type PanelScope } from "@/features/panel/ui/surfaces";
@@ -27,7 +27,7 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   const [maximized, setMaximized] = useState(false);
   // 上の端をドラッグして高さを変える（いま見えている高さから。最大化していればやめる。ダブルクリックで元の高さ）
   const resize = useDragSize({
-    setting: BOTTOM_PANEL_HEIGHT,
+    setting: panelSettings.bottomHeight,
     axis: "y",
     edge: "start",
     min: MIN_HEIGHT,

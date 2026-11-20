@@ -13,7 +13,7 @@ import { openNewChat } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/groups/ui/groups";
 import { ungroupedPosition } from "@/features/groups/ui/groupOrder";
-import { groupBoardUngroupedAt } from "@/foundation/ui/storage/storageKeys";
+import { groupsSettings } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -35,7 +35,7 @@ export interface GroupSectionProps {
  * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（新しいチャット・名前を変更・削除）・名前の変更中のグループ・
  * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、ほかのプロジェクトのチャットは確かめてこのプロジェクトへ移してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
  * 「No Group」もグループと同じく見出しのドラッグでグループの間へ並べ替え、位置（ungroupedAt。前にあるグループの数）を
- * 全プロジェクトのボードのグループの列と同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
+ * 全プロジェクトのボードのグループの列と同じ設定（groupsSettings.ungroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
  * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
  */
 export function useGroupSections({ project, groups, chats, menuExtra }: { project: Project; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {
@@ -51,7 +51,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
     onDelete: (g) => void removeGroup(g),
     extra: menuExtra,
   });
-  const [savedUngroupedAt, setUngroupedAt] = useSetting(groupBoardUngroupedAt(projectId));
+  const [savedUngroupedAt, setUngroupedAt] = useSetting(groupsSettings.ungroupedAt(projectId));
   const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, true);
   // グループの並びは DB、「No Group」の位置は画面に覚える（変わった方だけ書く）
   const { reorder, over, blocked, dropProps } = useGroupDrop({

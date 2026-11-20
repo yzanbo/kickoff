@@ -1,5 +1,5 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { BUSY_WORKPLACE_ACTION, CHAT_CLOSE_ACTION } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chat/ui/storage";
 import { CHAT_CLOSE_ACTION_LABELS, CHAT_CLOSE_ACTIONS, type ChatCloseAction } from "@/features/chat/ui/closeChat";
 import { BUSY_WORKPLACE_ACTION_LABELS, BUSY_WORKPLACE_ACTIONS, type BusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
@@ -23,9 +23,9 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
-  const [closeAction, setCloseAction] = useSetting(CHAT_CLOSE_ACTION);
+  const [closeAction, setCloseAction] = useSetting(storage.settings.closeAction);
   // ほかのチャットが作業中の作業場所へ新しいチャットを送るとき（これもこの Mac の画面の設定なので、選んだらすぐ反映する）
-  const [busyAction, setBusyAction] = useSetting(BUSY_WORKPLACE_ACTION);
+  const [busyAction, setBusyAction] = useSetting(storage.settings.busyWorkplaceAction);
   if (!draft) return null;
   return (
     <section className="section">

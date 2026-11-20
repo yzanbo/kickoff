@@ -2,7 +2,8 @@ import { memo, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHAT_TAB_ROW_HIDDEN, PANEL_TAB_OVERFLOW, PANEL_TAB_TWO_LINE } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/ui/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/ui/tabs/PaneTabBar";
@@ -42,10 +43,10 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
   // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別
-  const [tabTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
+  const [tabTwoLine] = useSetting(storage.settings.tabTwoLine);
   const twoLine = tabTwoLine && panel.kinds.has("chat");
   // タブが入らないとき、細くして収めるか横にスクロールするか（チャットを出す欄だけ。「表示」のメニューの「タブが増えたとき」）
-  const [tabOverflow] = useSetting(PANEL_TAB_OVERFLOW);
+  const [tabOverflow] = useSetting(storage.settings.tabOverflow);
   const scrollTabs = tabOverflow === "scroll" && panel.kinds.has("chat");
   // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
   const ownRef = useRef<HTMLElement>(null);

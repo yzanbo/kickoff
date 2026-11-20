@@ -1,8 +1,8 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
-import { readSetting, subscribeSetting, writeSetting, type Setting } from "@/foundation/ui/storage/settings";
+import { readSetting, subscribeSetting, writeSetting, type Setting } from "@/foundation/ui/storage";
 
 /**
- * 保存する表示の設定（lib/storageKeys.ts で宣言したもの）を読み書きする。同じ設定を読む部品どうしで値がそろい
+ * 保存する表示の設定（機能の ui/storage.ts で宣言したもの）を読み書きする。同じ設定を読む部品どうしで値がそろい
  * （分割したペインの 2 つのチャットなど）、React の外で書き換えても描き直す。set は参照が変わらない（memo した部品に渡せる）
  */
 export function useSetting<T>(setting: Setting<T>): readonly [T, (value: T) => void] {

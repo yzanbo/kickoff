@@ -17,7 +17,7 @@
 
 ### 作業中の送り方（いま / あとで）
 
-- 作業中の扱いは `QUEUE_MODE`（`tell` = いま / `queue` = あとで）とキー（⌘Enter / ⌘⇧Enter。`sendModeOf`）。作業していなくて送信待ちが残るときは「すぐ送る / ためておく」にする（`queueWhileIdle`）。
+- 作業中の扱いは `composer:queue-mode`（`tell` = いま / `queue` = あとで）とキー（⌘Enter / ⌘⇧Enter。`sendModeOf`）。作業していなくて送信待ちが残るときは「すぐ送る / ためておく」にする（`queueWhileIdle`）。
 - 「いま」は `api.tellChat`。伝えられないとき（`tells_closed`）と圧縮を待つ間（`awaiting_compact`・`compacting`・`compacted_turn`）はコアが預かり（`after_compact`）、作業の終わりに送信待ちより先に送る。
 - 圧縮後指示は送信待ちに入らない。預かった指示の書き直しは `@/features/compact/ui/HeldEditComposer.tsx`（状態は `@/features/compact/ui/heldEdit.ts`）。
 - 書き直している間は `api.setAfterCompactEditing` を `EDIT_HOLD_TTL_MS` の 1/4 ごとに知らせ直す（送信待ちと同じ）。保存の前に送られたら、書いた文をふつうのチャット欄に移す。

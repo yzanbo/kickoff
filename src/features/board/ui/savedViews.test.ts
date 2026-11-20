@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ALL_PROJECTS_SAVED_VIEWS, PROJECT_SAVED_VIEWS } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { activeView, parseSavedViews, parseViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
@@ -48,7 +48,7 @@ test("sameViewState: 表示項目は順によらず比べ、持たないビュ�
 });
 
 test("プロジェクトのボードの初めのビュー: グループボード・状態ボード・グループリストの順で、どれも読める", () => {
-  const views = parseSavedViews(PROJECT_SAVED_VIEWS.initial);
+  const views = parseSavedViews(storage.settings.views.initial);
   assert.deepEqual(
     views.map((v) => v.name),
     ["グループボード", "状態ボード", "グループリスト"],
@@ -62,11 +62,11 @@ test("プロジェクトのボードの初めのビュー: グループボード
     ],
   );
   // すべて消したら [] を覚え、初めのビューに戻さない
-  assert.equal(PROJECT_SAVED_VIEWS.encode([]), "[]");
+  assert.equal(storage.settings.views.encode([]), "[]");
 });
 
 test("全プロジェクトのボードの初めのビュー: プロジェクト別グループボード・プロジェクト別リストの順で、どれも読める", () => {
-  const views = parseSavedViews(ALL_PROJECTS_SAVED_VIEWS.initial);
+  const views = parseSavedViews(storage.settings.viewsAll.initial);
   assert.deepEqual(
     views.map((v) => [v.name, v.state.view, v.state.columns, v.state.lanes]),
     [
@@ -74,5 +74,5 @@ test("全プロジェクトのボードの初めのビュー: プロジェクト
       ["プロジェクト別リスト", "list", "none", "project"],
     ],
   );
-  assert.equal(ALL_PROJECTS_SAVED_VIEWS.encode([]), "[]");
+  assert.equal(storage.settings.viewsAll.encode([]), "[]");
 });

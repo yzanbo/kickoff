@@ -3,7 +3,7 @@ import { Container, ShieldCheck } from "lucide-react";
 import type { DockerList } from "@shared/docker/types";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
-import { DOCKER_LOG_HEIGHT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -31,7 +31,7 @@ export function DockerTab({ projectId }: { projectId: number }) {
   const openLogs = (compose: string, chips: string[] | null) => setLogs({ compose, chips, nonce: Date.now() });
   const tabRef = useRef<HTMLDivElement>(null);
   const logPane = useRef<HTMLDivElement>(null);
-  const height = useDragSize({ setting: DOCKER_LOG_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--docker-log-h", pane: logPane, target: () => tabRef.current });
+  const height = useDragSize({ setting: storage.settings.logHeight, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--docker-log-h", pane: logPane, target: () => tabRef.current });
   // ログを開いた compose（なくなった・エンジンが止まったら出さない）
   const logCompose = logs && list?.engine === "ok" ? list.composes.find((c) => c.key === logs.compose) : undefined;
   const refresh = () => {

@@ -2,13 +2,13 @@ import type { WebviewTag } from "electron";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
-import { BROWSER_DEVTOOLS_DOCK, BROWSER_DEVTOOLS_HEIGHT, BROWSER_DEVTOOLS_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import type { SettingValue } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { useDockedDevtools } from "./useDockedDevtools";
 
 /** 開発者ツールを出す場所: 右・下（ブラウザのタブの中）・別のウィンドウ */
-export const DEVTOOLS_DOCKS = BROWSER_DEVTOOLS_DOCK.choices;
-export type DevtoolsDock = SettingValue<typeof BROWSER_DEVTOOLS_DOCK>;
+export const DEVTOOLS_DOCKS = storage.settings.devtoolsDock.choices;
+export type DevtoolsDock = SettingValue<typeof storage.settings.devtoolsDock>;
 
 export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
   right: "右に表示",
@@ -35,15 +35,15 @@ function webContentsIdOf(view: WebviewTag | null | undefined): number | undefine
  * 前に出していたものはメインプロセスが閉じる。右と下の入れ替えは開き直さず、同じ枠の並べ方だけを変える（重ねた表示は枠に付いていく）
  */
 export function useDevtools(viewRef: RefObject<WebviewTag | null>, visible: boolean) {
-  const [dock, setDock] = useSetting(BROWSER_DEVTOOLS_DOCK);
+  const [dock, setDock] = useSetting(storage.settings.devtoolsDock);
   // いま出している場所（null は閉じている）。右・下は開くたびに新しく開く（embedKey）
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
   const inspectOnOpen = useRef<Point | null>(null);
   // 右に出すときの幅（左端のつまみ）と、下に出すときの高さ（上端のつまみ）。右と下で同じ入れ物（paneRef）を使う
   const paneRef = useRef<HTMLDivElement>(null);
-  const width = useDragSize({ setting: BROWSER_DEVTOOLS_WIDTH, edge: "start", min: 260, keep: 240, pane: paneRef });
-  const height = useDragSize({ setting: BROWSER_DEVTOOLS_HEIGHT, axis: "y", edge: "start", min: MIN_HEIGHT, keep: 120, pane: paneRef });
+  const width = useDragSize({ setting: storage.settings.devtoolsWidth, edge: "start", min: 260, keep: 240, pane: paneRef });
+  const height = useDragSize({ setting: storage.settings.devtoolsHeight, axis: "y", edge: "start", min: MIN_HEIGHT, keep: 120, pane: paneRef });
   const embedded = shown === "right" || shown === "bottom";
   const resizing = width.resizing || height.resizing;
 

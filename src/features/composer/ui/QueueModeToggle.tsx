@@ -1,6 +1,6 @@
 import { ListPlus, MessageSquarePlus } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { QUEUE_MODE } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { Segmented, type SegmentOption } from "@/foundation/ui/kit/Segmented";
 import type { QueueSendMode } from "./composerKeys";
 
@@ -30,7 +30,7 @@ const IDLE_OPTIONS: SegmentOption<QueueSendMode>[] = [
 ];
 
 /** 作業中・送信待ちがあるときに送ったときの扱い（いま / あとで。どのチャットでも同じで、分割したペインのチャット欄どうしでもそろう。初めは「いま」） */
-export const useQueueMode = () => useSetting(QUEUE_MODE);
+export const useQueueMode = () => useSetting(storage.settings.queueMode);
 
 /** チャット欄の送り方の切り替え（あとで / いま。作業中と、送信待ちを止めているときで説明だけ変える） */
 export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; value: QueueSendMode; onChange: (mode: QueueSendMode) => void }) {

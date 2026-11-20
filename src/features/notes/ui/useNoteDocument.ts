@@ -5,8 +5,8 @@ import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { errorMessage } from "@shared/foundation/errors";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { noteDraft } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { storage } from "./storage";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { safeNoteName } from "@shared/notes/names";
 import { notesStore } from "@/features/notes/ui/stores/notes";
 import { registerNoteGuard } from "./noteGuards";
@@ -32,7 +32,7 @@ export type NoteSaveState = "saved" | "dirty" | "saving" | "conflict" | "error";
 
 /**
  * 開いているノート 1 つの読み込みと保存。保存は ⌘S（と保存のボタン）だけで、書いている間は保存しない（Obsidian と同じ ⌘S）。
- * まだ保存していない書きかけは、ノートを離れても・アプリを閉じても失わないよう noteDraft に残し、開き直したら「未保存」のまま戻す。
+ * まだ保存していない書きかけは、ノートを離れても・アプリを閉じても失わないよう storage.settings.draft に残し、開き直したら「未保存」のまま戻す。
  * 別のノートへ移る・右の欄のタブを閉じるときは、noteGuards で保存するかを聞く。
  * 保存は開いたときの指紋と比べ、ほかで（チャットからの追記・Finder・ほかのアプリで）変わっていれば保存せずに conflict にする。
  * このノートが変わった知らせ（Kickoff の中でも、Finder・ほかのアプリでも）が届いたら、書きかけでなければ読み直す（書きかけなら conflict にして選んでもらう）。
@@ -63,7 +63,7 @@ export function useNoteDocument(projectId: number, path: string) {
   const writeDraft = useCallback((b: NoteBase) => {
     clearTimeout(draftTimer.current);
     const body = text.current;
-    writeSetting(noteDraft(b.key), body === null || body === b.content ? null : { text: body, hash: b.hash });
+    writeSetting(storage.settings.draft(b.key), body === null || body === b.content ? null : { text: body, hash: b.hash });
   }, []);
 
   /** 中身を入れ直す（読み込んだ・読み直した）。書きかけは捨てる */
@@ -80,10 +80,10 @@ export function useNoteDocument(projectId: number, path: string) {
   // 読み込んだら、そこから書き始める（まだ保存していない書きかけがあれば、それを未保存のまま戻す。開いたあとでほかで変わっていれば conflict）
   const startLoaded = useEffectEvent((f: FileContent) => {
     const b = { key, projectId, path, content: f.content, hash: f.hash };
-    const draft = readSetting(noteDraft(key));
+    const draft = readSetting(storage.settings.draft(key));
     if (draft && draft.text !== f.content) startFrom(b, draft.text, draft.hash === f.hash ? "dirty" : "conflict");
     else {
-      writeSetting(noteDraft(key), null);
+      writeSetting(storage.settings.draft(key), null);
       startFrom(b, f.content, "saved");
     }
   });
@@ -151,8 +151,8 @@ export function useNoteDocument(projectId: number, path: string) {
     await api.moveNote(b.projectId, b.path, to);
     clearTimeout(draftTimer.current);
     const body = text.current;
-    writeSetting(noteDraft(b.key), null);
-    if (body !== null && body !== b.content) writeSetting(noteDraft(`${b.projectId}:${to}`), { text: body, hash: b.hash });
+    writeSetting(storage.settings.draft(b.key), null);
+    if (body !== null && body !== b.content) writeSetting(storage.settings.draft(`${b.projectId}:${to}`), { text: body, hash: b.hash });
     // 閉じるときに、前の名前で書きかけを残さない
     current.current = { base: null };
     notesStore.invalidate(b.projectId);
@@ -163,7 +163,7 @@ export function useNoteDocument(projectId: number, path: string) {
   const reload = useCallback(async () => {
     clearTimeout(draftTimer.current);
     const fresh = await api.note(projectId, path);
-    writeSetting(noteDraft(key), null);
+    writeSetting(storage.settings.draft(key), null);
     startFrom({ key, projectId, path, content: fresh.content, hash: fresh.hash }, fresh.content, "saved");
   }, [projectId, path, key, startFrom]);
 
@@ -190,7 +190,7 @@ export function useNoteDocument(projectId: number, path: string) {
           // 書いたものを保存したものに戻す（閉じるときに、捨てた書きかけをまた残さないように）
           const b = current.current.base;
           if (b?.key === key) text.current = b.content;
-          writeSetting(noteDraft(key), null);
+          writeSetting(storage.settings.draft(key), null);
         },
         flush: () => {
           const b = current.current.base;

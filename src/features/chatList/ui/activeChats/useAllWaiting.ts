@@ -5,7 +5,7 @@ import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { waitingChats } from "@/features/chatList/ui/chatListFlags";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/foundation/ui/storage/storageKeys";
+import { paletteSettings } from "@/features/palette/ui";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 
 /** ボタンの右上に重ねる要対応の数（回答待ち・未読。urgent = 回答待ちがあるか。色を回答待ちのオレンジにする） */
@@ -21,7 +21,7 @@ export interface WaitingBadge {
 export function useAllProjectChats(): Chat[] {
   const chats = useChatsWithChildren();
   const { visible, archived } = useVisibleProjects();
-  const [showArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
+  const [showArchived] = useSetting(paletteSettings.activeShowArchivedProjects);
   return useMemo(() => {
     const allowed = new Set((showArchived ? [...visible, ...archived] : visible).map((p) => p.id));
     return chats.filter((chat) => allowed.has(chat.project_id));

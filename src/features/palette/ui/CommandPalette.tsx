@@ -15,7 +15,7 @@ import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate } from "@/foundation/ui/navigation/router";
-import { COMMAND_PALETTE_TARGETS } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import type { PaletteItem as Item } from "./paletteItem";
 import { noteTextItem, messageItem, useDebouncedSearch } from "./textSearchItems";
 import { usePaletteNotes } from "@/features/notes/ui/paletteSource";
@@ -45,7 +45,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { stateOf } = useChatStates();
   const { ref: dialogRef, ...dialog } = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
-  const [stored, setStored] = useSetting(COMMAND_PALETTE_TARGETS);
+  const [stored, setStored] = useSetting(storage.settings.targets);
   // 保存した値が変わったときだけ作り直す（下の一覧は、探す対象が変わったときだけ作り直す）
   const targets = useMemo(() => {
     const valid = stored.filter(isTarget);

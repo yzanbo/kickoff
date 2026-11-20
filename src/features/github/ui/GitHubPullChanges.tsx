@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { GITHUB_FILES_TREE_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -174,7 +174,7 @@ export function GitHubPullChanges({
   const [composing, setComposing] = useState<ReviewTarget | null>(null);
   const menu = useContextMenu<{ target: ReviewTarget; copy: string }>();
   // 左のファイルの木（閉じたかは覚える。狭い欄では出さない）と、木で押したファイル
-  const [treeHidden, setTreeHidden] = useSetting(GITHUB_FILES_TREE_HIDDEN);
+  const [treeHidden, setTreeHidden] = useSetting(storage.settings.filesTreeHidden);
   const { ref: layoutRef, ...layout } = useNarrowerThan<HTMLDivElement>(TREE_MIN_WIDTH);
   const main = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { onServerEvent } from "@/foundation/ui/api/events";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { draftScope, panelKey, parsePanelKey, SURFACES } from "@/features/panel/ui/surfaces";
 import { specOf } from "@/features/panel/ui/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";

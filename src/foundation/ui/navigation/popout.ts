@@ -31,7 +31,7 @@ export type PopoutRoute =
   | { kind: "browser"; panel: string; key: string; url: string; title: string; projectId: number | null }
   /**
    * チャットのパネルのチャット（いちばん上の親）・送る前の新しいチャットのタブ（panel は移す元の欄、key はタブのキー。chatId がなければ新しいチャットで、
-   * 中身（書きかけの文・添付など）は localStorage の POPOUT_TAB_HANDOFF で渡す）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
+   * 中身（書きかけの文・添付など）は localStorage の panel:popout-tab-handoff で渡す）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
    * （features/popout/tabWindow.ts）
    */
   | { kind: "chats"; panel: string; key: string; chatId?: number; projectId: number }

@@ -1,13 +1,13 @@
 // CI のタブで開く実行（PR のチェックの「ログを開く」・CI の失敗の通知から）
 import { navigate } from "@/foundation/ui/navigation/router";
-import { writeSetting } from "@/foundation/ui/storage/settings";
-import { ciSelected } from "@/foundation/ui/storage/storageKeys";
+import { writeSetting } from "@/foundation/ui/storage";
+import { storage } from "@/features/github/ui/storage";
 import { ciSelectedText } from "./ciView";
 import { isSideViewShown, showSideView } from "@/features/projects/ui/rightSidebar/sideView";
 
 /** CI のタブで開いている実行をそれにする（jobId を渡すと、そのジョブを開く） */
 function selectCiRun(projectId: number, runId: number, jobId: number | null = null) {
-  writeSetting(ciSelected(projectId), ciSelectedText(runId, jobId));
+  writeSetting(storage.settings.ciSelected(projectId), ciSelectedText(runId, jobId));
 }
 
 /** プロジェクトの CI のタブへ移って、その実行（とジョブ）を開く */

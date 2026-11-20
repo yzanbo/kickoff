@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { sideView } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/projects/ui/storage";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { TAB_GROUPS } from "@/features/projects/ui/page/ProjectTabs";
@@ -50,7 +50,7 @@ function RailTab({
  */
 export function SideRail({ projectId, open, held = false, inWindow = false }: { projectId: number; open: boolean; held?: boolean; inWindow?: boolean }) {
   const order = useProjectTabOrder(RAIL_GROUPS, true, TAB_GROUPS);
-  const [view] = useSetting(sideView(projectId));
+  const [view] = useSetting(storage.settings.sideView(projectId));
   const shown = open || held || inWindow;
   const pick = (next: SideView) => {
     if (inWindow) return showSideView(projectId, next);

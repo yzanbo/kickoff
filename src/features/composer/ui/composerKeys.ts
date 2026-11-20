@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { consumeKey, isCancelKey, isComposing, isKey, type KeyInput } from "@/foundation/ui/lib/keys";
 import { permissionChoices } from "@/features/ai/ui/options/models";
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
-import type { QUEUE_MODE } from "@/foundation/ui/storage/storageKeys";
+import type { SettingValue } from "@/foundation/ui/storage";
+import type { storage } from "./storage";
 
 /** 作業中に送るときの扱い（tell = 伝える（止めずに、いまのやり取りに足す）/ queue = ためておく（終わったら送る）） */
-export type QueueSendMode = SettingValue<typeof QUEUE_MODE>;
+export type QueueSendMode = SettingValue<typeof storage.settings.queueMode>;
 
 /** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
 export const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);

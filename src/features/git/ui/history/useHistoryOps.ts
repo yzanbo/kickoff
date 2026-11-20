@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { HISTORY_LIST_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/git/ui/storage";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useExternalTerminal } from "@/foundation/ui/external/externalApps";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
@@ -31,7 +31,7 @@ export function useHistoryOps({
   stash: StashActions;
   worktreeActions: WorktreeActions;
 }) {
-  const [listHidden, setListHidden] = useSetting(HISTORY_LIST_HIDDEN);
+  const [listHidden, setListHidden] = useSetting(storage.settings.historyListHidden);
   const [fetching, setFetching] = useState(false);
   const { projectsById } = useProjects();
   const terminal = useExternalTerminal();

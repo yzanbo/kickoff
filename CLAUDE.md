@@ -40,7 +40,7 @@
 
 - DB のスキーマは機能の `core/schema.ts`。表はすべて STRICT、真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x) AND json_type(x) = …)`。値の一覧は CHECK にしない（増やすたびに表を作り直すため）。
 - 版は `PRAGMA application_id`（'KICK'）と `user_version`（300 ＋ 版）。変えるときは `src/app/core/migrations.ts` の末尾に足す（既存は書き換えない）。読み書きは表ごとの店（`store.chats.get` など）を通す。
-- 画面の保存（localStorage など）は `src/foundation/ui/storage/storageKeys.ts` で宣言し、`useSetting` / `readSetting` で読み書きする（部品から直接読み書きしない）。宣言していないキーは起動時に消える。ID を含むものは `ids` を付ける（DB を作り直したら捨てる）。
+- 画面の保存（localStorage など）は `src/features/<機能>/ui/storage.ts` で宣言し、`useSetting` / `readSetting` で読み書きする（部品から直接読み書きしない）。宣言していないキーは起動時に消える。ID を含むものは `ids` を付ける（DB を作り直したら捨てる）。
 - 秘密の値（API キーなど）は `secrets` の表に置き、設定・SSE・API の応答に出さない（保存したかだけを返す）。
 
 ## 製品版の Kickoff で Kickoff を作るとき

@@ -4,7 +4,7 @@ import type { Project } from "@shared/projects/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { moveView } from "@/foundation/ui/lib/namedViews";
-import { PROJECT_TAG_FILTER, PROJECT_TAG_ORDER } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 
 export type ProjectTagFilter = ReturnType<typeof useProjectTagFilter>;
 
@@ -17,7 +17,7 @@ export const tagLabel = (tag: string) => (tag === UNTAGGED ? "タグなし" : ta
  */
 export function useOrderedTags(): { tags: string[]; setOrder: (order: string[]) => void } {
   const { projects } = useProjects();
-  const [order, setOrder] = useSetting(PROJECT_TAG_ORDER);
+  const [order, setOrder] = useSetting(storage.settings.tagOrder);
   const tags = useMemo(() => orderTags(collectTags(projects), order), [projects, order]);
   return { tags, setOrder };
 }
@@ -29,7 +29,7 @@ export function useOrderedTags(): { tags: string[]; setOrder: (order: string[]) 
  */
 export function useProjectTagFilter() {
   const { tags, setOrder } = useOrderedTags();
-  const [stored, setStored] = useSetting(PROJECT_TAG_FILTER);
+  const [stored, setStored] = useSetting(storage.settings.tagFilter);
   const selected = useMemo(() => stored.filter((t) => t === UNTAGGED || tags.includes(t)), [stored, tags]);
   const active = selected.length > 0;
   return {

@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { STICKY_PROMPT_EXPANDED } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -65,7 +65,7 @@ export function StickyPrompt({
   onPrev?: () => void;
   onNext?: () => void;
 }) {
-  const [expanded, setExpanded] = useSetting(STICKY_PROMPT_EXPANDED);
+  const [expanded, setExpanded] = useSetting(storage.settings.stickyPromptExpanded);
   const menu = useContextMenu();
   const textRef = useRef<HTMLSpanElement>(null);
   // 1 行に収まらないか（収まるなら開閉の矢印を押せなくする）。欄の幅が変わったら測り直す

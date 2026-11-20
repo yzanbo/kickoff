@@ -5,8 +5,8 @@ import type { Approval, Question } from "@shared/chat/approvalTypes";
 import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
-import { QUESTION_LAYOUT } from "@/foundation/ui/storage/storageKeys";
+import type { SettingValue } from "@/foundation/ui/storage";
+import { storage } from "@/features/conversation/ui/storage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { QuestionOtherField, type OtherFiles } from "./QuestionOtherField";
@@ -16,7 +16,7 @@ const OTHER = "__other__";
 const SKIP_MESSAGE = "ユーザーはこの質問をスキップしました。推測できる範囲で進めてください。";
 
 /** 質問がいくつもあるときの出し方: 1 問ずつ進める/ すべて並べる */
-type QuestionLayout = SettingValue<typeof QUESTION_LAYOUT>;
+type QuestionLayout = SettingValue<typeof storage.settings.questionLayout>;
 
 /**
  * AI からの質問（AskUserQuestion）。選択肢と「その他」（複数行・画像などの添付）で答える。
@@ -27,7 +27,7 @@ type QuestionLayout = SettingValue<typeof QUESTION_LAYOUT>;
 export function QuestionCard({ approval }: { approval: Approval }) {
   const questions = (approval.input.questions as Question[] | undefined) ?? [];
   const { sending, error, resolve } = useResolve(approval.id);
-  const [layout, setLayout] = useSetting(QUESTION_LAYOUT);
+  const [layout, setLayout] = useSetting(storage.settings.questionLayout);
   const stepped = layout === "steps" && questions.length > 1;
   const [step, setStep] = useState(0);
   const current = Math.min(step, questions.length - 1);

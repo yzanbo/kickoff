@@ -5,7 +5,7 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import type { CommitBusy } from "@/features/git/ui/useCommitActions";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { navigate, openProjectFile, type FileTarget } from "@/foundation/ui/navigation/router";
-import { CHANGES_LIST_HIDDEN, CHANGES_LIST_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListRail } from "@/foundation/ui/kit/ListRail";
 import { peekCodeSearchFocus, subscribeCodeSearchFocus } from "./codeSearchFocus";
@@ -99,9 +99,9 @@ export function EditorTab({
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）
   const replacer = useSearchReplace(projectId, { search, selection, git });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: storage.settings.listWidth, min: 200, keep: 320 });
   // 左の一覧を隠しているか（3 つのタブで共通。隠している間は左端の細い帯 ListRail に戻すボタン）
-  const [listHidden, setListHidden] = useSetting(CHANGES_LIST_HIDDEN);
+  const [listHidden, setListHidden] = useSetting(storage.settings.changesListHidden);
   const hideList = () => setListHidden(true);
   // ⌘⇧F（検索の欄にピントを置く頼み）が来たら、隠していた一覧を出す（検索の欄は一覧の中にあるため。頼みは出した SearchView が受け取る）
   const showListForSearch = useEffectEvent(() => {

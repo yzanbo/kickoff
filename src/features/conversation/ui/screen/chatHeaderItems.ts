@@ -2,7 +2,7 @@ import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/foundation
 
 /**
  * チャットの見出しの行に出す項目（チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
- * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
+ * 覚えるのは隠した項目だけ（conversation:header-hidden）なので、項目を増やしても初めは表示になる
  */
 export const CHAT_HEADER_ITEMS = ["project", "group", "worktree", "title", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;
 export type ChatHeaderItem = (typeof CHAT_HEADER_ITEMS)[number];
@@ -29,7 +29,7 @@ export const CHAT_HEADER_ITEM_NOTES: Partial<Record<ChatHeaderItem, string>> = {
   title: "親のないチャットだけに出します（子チャットは上の帯に名前があります）。隠しても、タブのダブルクリックで名前を変えられます",
 };
 
-/** メニューのまとまり（見出しの行の左から。まとまりの中の順は初めの並びで、ドラッグで並べ替えたら CHAT_HEADER_ORDER に覚える） */
+/** メニューのまとまり（見出しの行の左から。まとまりの中の順は初めの並びで、ドラッグで並べ替えたら conversation:header-order に覚える） */
 const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly ChatHeaderItem[] }[] = [
   { title: "バッジ", items: ["project", "group", "worktree"] },
   { title: "名前", items: ["title"] },
@@ -51,7 +51,7 @@ export const toggleHeaderItem = (saved: readonly string[], item: ChatHeaderItem)
 const DEFAULT_ORDER: readonly ChatHeaderItem[] = CHAT_HEADER_SECTIONS.flatMap((s) => s.items);
 
 /**
- * 覚えた並び（CHAT_HEADER_ORDER）で並べた、メニューのまとまり。並べ替えはまとまりの中だけなので、まとまりの順は変えない
+ * 覚えた並び（conversation:header-order）で並べた、メニューのまとまり。並べ替えはまとまりの中だけなので、まとまりの順は変えない
  * （覚えていない項目・新しく足した項目は、初めの順のまま後ろへ。知らない名前は見ない）
  */
 export function orderedHeaderSections(saved: readonly string[]): { title: string; items: ChatHeaderItem[] }[] {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Setting } from "@/foundation/ui/storage/settings";
+import type { Setting } from "@/foundation/ui/storage";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useOptionalSetting } from "@/foundation/ui/hooks/useSetting";
 

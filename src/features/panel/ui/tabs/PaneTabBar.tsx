@@ -20,7 +20,8 @@ import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/ui/surfaces";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
 import { ClusterShortItem } from "@/features/chatPanel/ui/clusters/ClusterShortItem";
-import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/panel/ui/storage";
+import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { tabFieldShown, type TabField } from "@/features/chatPanel/ui/tabs/tabFields";
 import { ArchivedChatsItem } from "@/features/chatPanel/ui/tabs/ArchivedChatsItem";
@@ -118,7 +119,7 @@ export function PaneTabBar({
     return group && { name: group.name, hue: group.hue };
   };
   // タブに出す項目（表示のメニューで選んだもの。まとめ方の項目はまとまりの札に出るので出さない）
-  const [hiddenTabFields] = useSetting(PANEL_TAB_HIDDEN);
+  const [hiddenTabFields] = useSetting(storage.settings.tabHidden);
   const showField = (field: TabField) => tabFieldShown(field, hiddenTabFields, strip.grouping);
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {

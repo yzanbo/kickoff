@@ -1,7 +1,7 @@
 import { Pin } from "lucide-react";
 import type { DbConnection } from "@shared/database/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { dbTreePins } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useDbClient } from "./dbClientContext";
 import { objectPathLabel } from "./dbFormat";
 import { pinsOf } from "./dbPins";
@@ -10,7 +10,7 @@ import { TreeRow, type TreeOpen } from "./DbTreeRow";
 /** 接続のすぐ下に並べる、ピン留めしたテーブル・ビュー（押すと仮のタブ・ダブルクリックで固定。右クリックはテーブルのメニュー） */
 export function PinnedObjects({ connection: c, tree }: { connection: DbConnection; tree: TreeOpen }) {
   const client = useDbClient();
-  const [ids] = useSetting(dbTreePins(String(client.projectId)));
+  const [ids] = useSetting(storage.settings.pins(String(client.projectId)));
   const pins = pinsOf(ids, c.id);
   // 場所（DB・スキーマ）は、ピンの場所が 2 つ以上あるときだけ添える（SQLite の main だけなどは出さない）
   const manyPlaces = new Set(pins.map((p) => objectPathLabel(p.path))).size > 1;

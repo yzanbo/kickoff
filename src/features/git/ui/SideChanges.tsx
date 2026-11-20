@@ -3,7 +3,7 @@ import { useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, us
 import type { GitFileChange } from "@shared/git/types";
 import { openProjectFile } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
-import { sideViewedFiles } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
@@ -64,7 +64,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
       return next;
     });
   // 確認済みにしたファイル（パス → 確認したときの差分の指紋。作業場所ごとに覚える。もう変更のないファイルの印は外す）
-  const [viewed, setViewed] = useSetting(sideViewedFiles(`${projectId}:${worktree ?? ""}`));
+  const [viewed, setViewed] = useSetting(storage.settings.sideViewed(`${projectId}:${worktree ?? ""}`));
   useEffect(() => {
     if (!git.status) return;
     const next = pruneViewed(viewed, files.map((f) => f.file.path));

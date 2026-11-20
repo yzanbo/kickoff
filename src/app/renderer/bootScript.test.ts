@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import { test } from "vitest";
 import { THEME_BACKGROUNDS } from "@shared/foundation/theme/backgrounds";
+import { storage as shellStorage } from "@/foundation/ui/storage/storage";
+import { storage as sidebarStorage } from "@/features/sidebar/ui/storage";
 
 // 起動直後の骨組み（public/boot.js と index.html の <style>）。
 // public/ の中身は Vite がそのまま out/renderer に写すので、テストはここに置く
@@ -13,6 +15,16 @@ const indexHtml = read("./index.html");
 const tokensCss = read("./styles/base/tokens.css");
 const mobileCss = read("./styles/base/mobile.css");
 const footerCss = read("./styles/footer/footer.css");
+
+/** boot.js が文字で読む 4 つのキー（宣言と同じ） */
+const THEME = shellStorage.settings.theme.key;
+const SIDEBAR = sidebarStorage.settings.open.key;
+const WIDTH = sidebarStorage.settings.width.key;
+const FOOTER = shellStorage.settings.footerMode.key;
+
+test("boot.js は宣言と同じキーを読む（テーマ・サイドバーの開閉と幅・下の帯の出し方）", () => {
+  for (const key of [THEME, SIDEBAR, WIDTH, FOOTER]) assert.ok(bootScript.includes(`localStorage.getItem("${key}")`), key);
+});
 
 interface Run {
   stored?: Record<string, string>;
@@ -41,29 +53,29 @@ function runBoot({ stored = {}, osDark = false, hash = "", broken = false }: Run
 }
 
 test("テーマ: light・dark・system（OS に合わせる）・未保存と知らない値はダーク（app/theme.ts と同じ）", () => {
-  assert.equal(runBoot({ stored: { "kickoff:theme": "light" } }).theme, "light");
-  assert.equal(runBoot({ stored: { "kickoff:theme": "dark" }, osDark: false }).theme, "dark");
-  assert.equal(runBoot({ stored: { "kickoff:theme": "system" }, osDark: true }).theme, "dark");
-  assert.equal(runBoot({ stored: { "kickoff:theme": "system" }, osDark: false }).theme, "light");
+  assert.equal(runBoot({ stored: { [THEME]: "light" } }).theme, "light");
+  assert.equal(runBoot({ stored: { [THEME]: "dark" }, osDark: false }).theme, "dark");
+  assert.equal(runBoot({ stored: { [THEME]: "system" }, osDark: true }).theme, "dark");
+  assert.equal(runBoot({ stored: { [THEME]: "system" }, osDark: false }).theme, "light");
   assert.equal(runBoot({}).theme, "dark");
-  assert.equal(runBoot({ stored: { "kickoff:theme": "sepia" } }).theme, "dark");
+  assert.equal(runBoot({ stored: { [THEME]: "sepia" } }).theme, "dark");
 });
 
 test("骨組みの形: サイドバーを開いていれば sidebar、閉じていれば main、別ウィンドウは plain", () => {
   assert.equal(runBoot({}).shell, "sidebar");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar": "1" } }).shell, "sidebar");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar": "0" } }).shell, "main");
+  assert.equal(runBoot({ stored: { [SIDEBAR]: "1" } }).shell, "sidebar");
+  assert.equal(runBoot({ stored: { [SIDEBAR]: "0" } }).shell, "main");
   assert.equal(runBoot({ hash: "#/popout/chat?id=3" }).shell, "plain");
   assert.equal(runBoot({ hash: "#/projects/1" }).shell, "sidebar");
 });
 
 test("サイドバーの幅: 未保存・壊れた値は 294、範囲の外は 200〜480 に丸める（useSidebar.ts と同じ）", () => {
   assert.equal(runBoot({}).width, "294px");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar-width": "abc" } }).width, "294px");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar-width": "320" } }).width, "320px");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar-width": "120" } }).width, "200px");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar-width": "900" } }).width, "480px");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar-width": "300.6" } }).width, "301px");
+  assert.equal(runBoot({ stored: { [WIDTH]: "abc" } }).width, "294px");
+  assert.equal(runBoot({ stored: { [WIDTH]: "320" } }).width, "320px");
+  assert.equal(runBoot({ stored: { [WIDTH]: "120" } }).width, "200px");
+  assert.equal(runBoot({ stored: { [WIDTH]: "900" } }).width, "480px");
+  assert.equal(runBoot({ stored: { [WIDTH]: "300.6" } }).width, "301px");
 });
 
 test("localStorage が読めなくても投げない（既定の骨組みのまま）", () => {
@@ -100,9 +112,9 @@ test("上の帯（信号機ボタンの行）は描かない: 本物の画面で
 
 test("下の帯の出し方: show・hover・hide をそのまま、未保存と知らない値は show（footerMode.ts の既定と同じ）", () => {
   assert.equal(runBoot({}).footer, "show");
-  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "hover" } }).footer, "hover");
-  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "hide" } }).footer, "hide");
-  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "big" } }).footer, "show");
+  assert.equal(runBoot({ stored: { [FOOTER]: "hover" } }).footer, "hover");
+  assert.equal(runBoot({ stored: { [FOOTER]: "hide" } }).footer, "hide");
+  assert.equal(runBoot({ stored: { [FOOTER]: "big" } }).footer, "show");
 });
 
 test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {

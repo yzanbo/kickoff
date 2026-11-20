@@ -9,7 +9,7 @@ import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
-import { CI_LIST_WIDTH, CI_LIST_HIDDEN, ciSelected } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/github/ui/storage";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ListHideButton, ListRail } from "@/foundation/ui/kit/ListRail";
@@ -54,7 +54,7 @@ export function CiTab({ projectId }: { projectId: number }) {
 }
 
 function CiBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
-  const [selectedText, setSelectedText] = useSetting(ciSelected(projectId));
+  const [selectedText, setSelectedText] = useSetting(storage.settings.ciSelected(projectId));
   const selected = parseCiSelected(selectedText);
   const list = useQuery(["CiTab.list", projectId], () => api.ciRuns(projectId), { keepPrevious: true });
   const data = list.data;
@@ -64,12 +64,12 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   useServerEvent("ci_failed", (e) => {
     if (e.failure.project_id === projectId) list.reload();
   });
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: CI_LIST_WIDTH, min: 260, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.ciListWidth, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
   const open = useCallback((run: CiRun) => setSelectedText(ciSelectedText(run.id)), [setSelectedText]);
   const watched = useMemo(() => new Set([...(data?.workplace_branches ?? []), ...(data?.default_branch ? [data.default_branch] : [])]), [data]);
   // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
-  const [listHidden, setListHidden] = useSetting(CI_LIST_HIDDEN);
+  const [listHidden, setListHidden] = useSetting(storage.settings.ciListHidden);
   const showList = narrow ? !selected : !listHidden;
   const showDetail = !narrow || selected;
   const actionsUrl = `${githubRepoUrl(host, repo)}/actions`;

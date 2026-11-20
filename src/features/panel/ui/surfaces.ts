@@ -1,6 +1,6 @@
 import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
 import type { Route } from "@/foundation/ui/navigation/router";
-import { readSetting, type SettingFamily } from "@/foundation/ui/storage/settings";
+import { readSetting, type SettingFamily } from "@/foundation/ui/storage";
 import { CHAT_PLACEMENT, projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 
 /**

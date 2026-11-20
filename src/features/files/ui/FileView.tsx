@@ -11,12 +11,12 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { DIFF_LAYOUT, EDITOR_PAGE_PREVIEW, EDITOR_WORD_WRAP } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
-import { DiffLayoutToggle } from "@/foundation/ui/diff/DiffLayoutToggle";
+import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
 import { pagePreviewKind } from "./filePreview";
 import { PreviewToggle, WrapToggle } from "./FileViewButtons";
@@ -67,7 +67,7 @@ interface EditBase {
  * バイナリ・大きすぎて途中までのファイルは、読むだけの表で出す。
  * 画像（png・jpg・gif・webp・ico・icns など）はプレビュー（ImagePreview）で出す。SVG・Markdown・HTML はプレビューとコードを見出しのボタンで切り替える
  * （SVG は初めはプレビュー、Markdown・HTML は最後に選んだ方。検索の行・差分・新しいファイルから来たときはコード。書きかけの中身もプレビューに出す）。
- * 横幅に入らない行を折り返すかは、見出しのボタン・エディタの中の ⌥Z で切り替える（EDITOR_WORD_WRAP）。
+ * 横幅に入らない行を折り返すかは、見出しのボタン・エディタの中の ⌥Z で切り替える（storage.ts の wordWrap）。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
 export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
@@ -86,7 +86,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   const cursor = useRef<(() => EditorCursor | null) | null>(null);
   useEffect(() => registerEditorCursor(projectId, path, () => cursor.current?.() ?? null), [projectId, path]);
   const goToDiff = useRef<((target: "next" | "previous") => void) | null>(null);
-  const [layout] = useSetting(DIFF_LAYOUT);
+  const layout = useDiffLayout();
   // 右の欄・別ウィンドウでは、右クリックをチャットに足すメニューに任せる
   const inSide = useMainChat() !== null;
   // 差分の元の中身は開いたときに一度だけ読む（保存して差分がなくなっても、比べる相手はそのまま）。
@@ -113,8 +113,8 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   const raster = imageFileType(path) !== null && !isSvgFile(path);
   const svg = isSvgFile(path);
   const pageKind = pagePreviewKind(path);
-  const [pagePreview, setPagePreview] = useSetting(EDITOR_PAGE_PREVIEW);
-  const [wrap, setWrap] = useSetting(EDITOR_WORD_WRAP);
+  const [pagePreview, setPagePreview] = useSetting(storage.settings.pagePreview);
+  const [wrap, setWrap] = useSetting(storage.settings.wordWrap);
   const [showCode, setShowCode] = useState(() => line !== undefined || Boolean(diffBase) || autoFocus || (pageKind !== null && !pagePreview));
   const [codeMounted, setCodeMounted] = useState(showCode);
   // プレビューに切り替えたときの、書きかけの中身（保存していなければ、これをプレビューに出す）

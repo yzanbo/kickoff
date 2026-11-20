@@ -3,7 +3,7 @@ import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { errorMessage } from "@shared/foundation/errors";
-import { writeSetting } from "@/foundation/ui/storage/settings";
+import { writeSetting } from "@/foundation/ui/storage";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
 import { knownDescendantCount } from "@/features/chat/ui/store/knownChats";
 import { openChat, parse } from "@/foundation/ui/navigation/router";

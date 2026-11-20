@@ -1,6 +1,8 @@
 import { Check, ChevronRight, GripVertical } from "lucide-react";
 import { Fragment, type ComponentProps, type ReactNode } from "react";
-import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_HIDDEN, CHAT_HEADER_ORDER, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
+import { snippetsSettings } from "@/features/snippets/ui";
+import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -21,14 +23,14 @@ import { ChatFontSizeItems } from "./ChatFontSizeButton";
 
 /** 見出しの行のどの項目を出すか（どのチャットでも同じ。チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で選ぶ） */
 export function useChatHeaderItems() {
-  const [saved] = useSetting(CHAT_HEADER_HIDDEN);
+  const [saved] = useSetting(storage.settings.headerHidden);
   const hidden = hiddenHeaderItems(saved);
   return (item: ChatHeaderItem) => !hidden.has(item);
 }
 
 /** 見出しの行の項目を、覚えた並び（「見出しに出す項目」のドラッグで並べ替えたもの）にする */
 export function useChatHeaderOrder() {
-  const [order] = useSetting(CHAT_HEADER_ORDER);
+  const [order] = useSetting(storage.settings.headerOrder);
   return <T extends ChatHeaderItem>(items: readonly T[]) => sortHeaderItems(order, items);
 }
 
@@ -78,10 +80,10 @@ function CheckItem({
 export function ChatDisplayItems() {
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
-  const [saved, setSaved] = useSetting(CHAT_HEADER_HIDDEN);
+  const [saved, setSaved] = useSetting(storage.settings.headerHidden);
   const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  const [snippetBarHidden, setSnippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  const [snippetBarHidden, setSnippetBarHidden] = useSetting(snippetsSettings.barHidden);
   const [wide, setWide] = useWideText();
   const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
   const items = useSubmenu();
@@ -169,10 +171,10 @@ export function ChatDisplayItems() {
           <div className="menu-separator" role="separator" />
           <MenuItem
             keepOpen
-            disabled={sameHiddenItems(saved, CHAT_HEADER_HIDDEN.initial) && isDefaultHeaderOrder(drag.order)}
+            disabled={sameHiddenItems(saved, storage.settings.headerHidden.initial) && isDefaultHeaderOrder(drag.order)}
             title="見出しに出す項目を、初めの選び方と並びに戻します"
             onSelect={() => {
-              setSaved([...CHAT_HEADER_HIDDEN.initial]);
+              setSaved([...storage.settings.headerHidden.initial]);
               drag.resetOrder();
             }}
           >

@@ -4,8 +4,9 @@ import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
-import { readSetting } from "@/foundation/ui/storage/settings";
-import { CHANGES_LIST_WIDTH, NOTE_LIST_HIDDEN, noteOpenFolders, noteSelected } from "@/foundation/ui/storage/storageKeys";
+import { readSetting } from "@/foundation/ui/storage";
+import { filesSettings } from "@/features/files/ui";
+import { storage } from "./storage";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useMultiSelect } from "@/foundation/ui/hooks/useMultiSelect";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -38,11 +39,10 @@ const FIXED_FRAME: PanelFrame = { fixed: true };
 const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
- * プロジェクトの「ノート」タブ（左にノートのフォルダの木、右に開いたノート）。左の一覧は隠せる（NOTE_LIST_HIDDEN。隠している間は左端の細い帯 ListRail に「一覧を表示」）。ノートはプロジェクトの外（設定の親フォルダの下の、
+ * プロジェクトの「ノート」タブ（左にノートのフォルダの木、右に開いたノート）。左の一覧は隠せる（listHidden。隠している間は左端の細い帯 ListRail に「一覧を表示」）。ノートはプロジェクトの外（設定の親フォルダの下の、
  * プロジェクトごとのフォルダ）の Markdown。openNote は URL の ?note= で来たノート（チャットの「ノートに追加」・⌘K から。開いたら URL から外す）、openNoteLine はそのノートで移る行（⌘K の「ノート内の文言」）。
  * 右は開いたノートをタブで並べるパネル（notes。チャットのパネルと同じく、タブのドラッグで上下・左右に分けられる）。一覧のノートを押すと、ピントのあるペインで表示中のノートを入れ替え、
- * 右クリックの「新しいタブで開く」で新しいタブに開く（openNoteInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のノート。⌘ / Shift ＋クリックでいくつも選べ（useMultiSelect）、
- * まとめてドラッグで動かす・右クリックで開く・パスをコピー・ゴミ箱に入れる。最後に表示したノートは noteSelected に覚え、次に開いたときに開き直す
+ * 右クリックの「新しいタブで開く」で新しいタブに開く（openNoteInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のノート。⌘ / Shift ＋クリックでいくつも選べ（useMultiSelect）、まとめてドラッグで動かす・右クリックで開く・パスをコピー・ゴミ箱に入れる。最後に表示したノートは storage.ts の selected に覚え、次に開いたときに開き直す
  */
 export function NoteTab({
   projectId,
@@ -75,14 +75,14 @@ export function NoteTab({
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [selected]);
   const highlighted = picked ?? selected;
-  const [remembered, setRemembered] = useSetting(noteSelected(projectId));
-  const [openList, setOpenList] = useSetting(noteOpenFolders(projectId));
+  const [remembered, setRemembered] = useSetting(storage.settings.selected(projectId));
+  const [openList, setOpenList] = useSetting(storage.settings.openFolders(projectId));
   const open = useMemo(() => new Set(openList), [openList]);
   const [query, setQuery] = useState("");
   const menu = useContextMenu<NoteMenuTarget>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
-  const [listHidden, setListHidden] = useSetting(NOTE_LIST_HIDDEN);
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: filesSettings.listWidth, min: 200, keep: 320 });
+  const [listHidden, setListHidden] = useSetting(storage.settings.listHidden);
   // ドラッグを重ねている落とす先のフォルダ（"" は直下 = 一覧ごと示す。null は重ねていない）
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   // 一覧の行で名前を変えているノート・フォルダ（新しく作ったとき・ダブルクリック・右クリックの「名前を変更」）
@@ -158,7 +158,7 @@ export function NoteTab({
     onTrashed: (path) => {
       closeNoteTabsUnder(projectId, path);
       // まとめてゴミ箱に入れると続けて呼ばれるので、いま覚えている値から外す
-      setOpenList(readSetting(noteOpenFolders(projectId)).filter((p) => !isUnder(p, path)));
+      setOpenList(readSetting(storage.settings.openFolders(projectId)).filter((p) => !isUnder(p, path)));
     },
   });
 

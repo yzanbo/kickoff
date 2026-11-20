@@ -1,7 +1,7 @@
 import { Check, SlidersHorizontal } from "lucide-react";
 import { Fragment, useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { BOARD_CARD_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { CARD_FIELD_LABELS, cardFieldSections, hiddenCardFields, sameHiddenCardFields, toggleCardField, type CardField } from "./cardFields";
@@ -9,9 +9,9 @@ import { CARD_FIELD_LABELS, cardFieldSections, hiddenCardFields, sameHiddenCardF
 /** カードに項目を出すか（すべてのボードで共通。ツールバーの「表示項目」で選ぶ） */
 export type ShowCardField = (field: CardField) => boolean;
 
-/** カード・リストの行・フィードのカードに出す項目（BOARD_CARD_HIDDEN に隠した項目を覚える） */
+/** カード・リストの行・フィードのカードに出す項目（storage.settings.cardHidden に隠した項目を覚える） */
 export function useCardFields(): ShowCardField {
-  const [saved] = useSetting(BOARD_CARD_HIDDEN);
+  const [saved] = useSetting(storage.settings.cardHidden);
   return useMemo(() => {
     const hidden = hiddenCardFields(saved);
     return (field: CardField) => !hidden.has(field);
@@ -23,7 +23,7 @@ export function useCardFields(): ShowCardField {
  * チェックのメニューで 1 つずつ出す・隠す（押してもメニューは閉じない）。いちばん下の「既定に戻す」で初めの選び方に戻す
  */
 export function CardFieldsButton({ allProjects }: { allProjects: boolean }) {
-  const [saved, setSaved] = useSetting(BOARD_CARD_HIDDEN);
+  const [saved, setSaved] = useSetting(storage.settings.cardHidden);
   const menu = useContextMenu();
   const hidden = hiddenCardFields(saved);
   return (
@@ -59,9 +59,9 @@ export function CardFieldsButton({ allProjects }: { allProjects: boolean }) {
           <div className="menu-separator" role="separator" />
           <MenuItem
             keepOpen
-            disabled={sameHiddenCardFields(saved, BOARD_CARD_HIDDEN.initial)}
+            disabled={sameHiddenCardFields(saved, storage.settings.cardHidden.initial)}
             title="表示項目を初めの選び方に戻します"
-            onSelect={() => setSaved([...BOARD_CARD_HIDDEN.initial])}
+            onSelect={() => setSaved([...storage.settings.cardHidden.initial])}
           >
             <span className="project-switch-item">既定に戻す</span>
           </MenuItem>

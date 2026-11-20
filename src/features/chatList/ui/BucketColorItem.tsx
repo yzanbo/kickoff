@@ -1,10 +1,10 @@
 import { Check } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { Setting } from "@/foundation/ui/storage/settings";
+import type { Setting } from "@/foundation/ui/storage";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 
 /**
- * メニューの「まとまりを色付きで表示」（グループ別・作業場所別のまとまりに色を付けるか。サイドバーは SIDEBAR_BUCKET_COLORS、
+ * メニューの「まとまりを色付きで表示」（グループ別・作業場所別のまとまりに色を付けるか。サイドバーは chatList:bucket-colors、
  * タブの列は PANEL_TAB_GROUP_COLORS）。まとめ方のメニュー・まとまりの見出しや札の右クリックで同じ項目を出す。色はどちらも bucketHues.ts で同じ
  */
 export function BucketColorItem({ setting, keepOpen = false }: { setting: Setting<boolean>; keepOpen?: boolean }) {

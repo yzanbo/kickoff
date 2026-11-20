@@ -1,10 +1,10 @@
 import { ArrowUpToLine, FolderTree, FolderUp, ListFilter, ListTree, type LucideIcon } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_WAITING_VIEW } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import type { WaitingOrder, WaitingScope, WaitingView } from "./waitingAxes";
 
 // 保存する値の一覧が、2 つの軸で扱う表示（waitingAxes.ts）と食い違わないことを型で確かめる
-const _views: readonly WaitingView[] = SIDEBAR_WAITING_VIEW.choices;
+const _views: readonly WaitingView[] = storage.settings.waitingView.choices;
 void _views;
 
 /** 名前とアイコン（見出しの「要対応」の行の出し方・並べ方） */
@@ -33,4 +33,4 @@ export const WAITING_ORDER_META: Record<WaitingOrder, AxisMeta> = {
 };
 
 /** 要対応がオンのときの表示（どの部品から読んでもそろう） */
-export const useWaitingView = () => useSetting(SIDEBAR_WAITING_VIEW);
+export const useWaitingView = () => useSetting(storage.settings.waitingView);

@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { activeTabOf, leavesOf, singlePane, type PaneLayout } from "@/features/panel/ui/layout/paneTree";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
-import { projectBrowserSession } from "@/foundation/ui/storage/storageKeys";
+import { chatPanelSettings } from "@/features/chatPanel/ui";
 import { readBrowserSession, writeBrowserSession } from "./browserSession";
 
 const { local } = installMemoryStorage();
@@ -37,11 +37,11 @@ test("ブラウザの復元: 新しい空のタブを残し、資格情報や読
   ];
   writeBrowserSession(1, { tabs, layout: singlePane(tabs.map((t) => t.key), null) });
   assert.deepEqual(readBrowserSession(1)?.tabs.map((t) => [t.url, t.title]), [["about:blank", ""], ["about:blank", ""], ["about:blank", ""]]);
-  assert.doesNotMatch(local.getItem(projectBrowserSession(1).key) ?? "", /user:pass|blob:https/);
+  assert.doesNotMatch(local.getItem(chatPanelSettings.projectBrowserSession(1).key) ?? "", /user:pass|blob:https/);
 });
 
 test("ブラウザの復元: 壊れた配置・重複キー・開けない URL は安全に読み飛ばす", () => {
-  local.setItem(projectBrowserSession(1).key, JSON.stringify({
+  local.setItem(chatPanelSettings.projectBrowserSession(1).key, JSON.stringify({
     tabs: [first, { ...first, url: "https://example.test/duplicate" }, { ...second, url: "file:///example.html" }, null],
     layout: { root: { type: "split", dir: "row", children: [], sizes: [] }, focused: "missing" },
   }));

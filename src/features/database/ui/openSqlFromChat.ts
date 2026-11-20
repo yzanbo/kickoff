@@ -6,8 +6,9 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { openInRootSide } from "@/features/chat/ui/open/openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { openNewSqlTab } from "@/features/database/ui/client/dbClientTabs";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { dbClientTabs, dbSqlDraft } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
+import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 
 /**
@@ -19,7 +20,7 @@ export function openSqlFromChat(chat: Pick<Chat, "id" | "project_id" | "parent_c
   const place = `chat-${root.id}`;
   const next = openNewSqlTab(readSetting(dbClientTabs(place)), connection.id);
   // SQL のタブは開いたときに書きかけを読むので、先に書いておく
-  if (next.active) writeSetting(dbSqlDraft(`${place}:${next.active}`), sql);
+  if (next.active) writeSetting(storage.settings.sqlDraft(`${place}:${next.active}`), sql);
   writeSetting(dbClientTabs(place), next);
   const target = { chatId: root.id, projectId: chat.project_id, ...(chat.worktree_path ? { worktree: chat.worktree_path } : {}) };
   if (parsePopout(location.hash) !== undefined) return postToMainWindow({ type: "dockPopout", route: { kind: "database", ...target } });

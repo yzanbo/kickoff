@@ -8,7 +8,7 @@ import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
 import { isWaitingState, useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SIDEBAR_WAITING_ONLY } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useWaitingView } from "./waitingView";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
@@ -51,7 +51,7 @@ export function useWorkspaceRows({
   const { grouping, order } = useChatLayout();
   // 要対応（回答待ち・未読）だけを出すか（一覧の上の見出しの「要対応」の行で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
   // 「上にまとめる」では一覧はすべてを出し、待っているものは上のまとまりに出す）
-  const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
+  const [waitingOn] = useSetting(storage.settings.waitingOnly);
   const [waitingView] = useWaitingView();
   const waitingOnly = waitingOn && waitingView === "filter";
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ）

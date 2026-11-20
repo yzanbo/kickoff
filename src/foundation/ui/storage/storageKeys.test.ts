@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import { fileURLToPath } from "node:url";
-import { DATABASE_ID, chatAttachmentsDraft, chatDraft, FOLDS, NEW_CHAT_DRAFTS, THEME } from "./storageKeys";
+import { storage as shellStorage } from "./storage";
+import { chatAttachmentsDraft, chatDraft, NEW_CHAT_DRAFTS } from "./storageKeys";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 /** 画面のソースの根（画面の土台・組み立て・各機能の ui） */
@@ -24,12 +25,12 @@ function sources(dir: string): string[] {
   });
 }
 
-test("保存するものは storageKeys.ts でだけ宣言する（ほかで宣言すると、起動したときの片付けに渡す群に入らず、キーが消える）", () => {
-  const outside = roots.flatMap(sources).filter((file) => {
-    if (/storage[\\/](storageKeys|settings|groups)\.ts$/.test(file)) return false;
-    return /\bdefineSetting(Family)?\(/.test(fs.readFileSync(file, "utf8"));
-  });
-  assert.deepEqual(outside.map((f) => path.relative(repo, f)), []);
+test("保存は機能・土台の storage.ts の defineSettings で宣言する（ほかで宣言すると、起動したときの片付けに渡す群に入らず、キーが消える）", () => {
+  const files = roots.flatMap(sources);
+  const single = files.filter((file) => !/storage[\\/](storageKeys|settings|groups)\.ts$/.test(file) && /\bdefineSetting(Family)?\(/.test(fs.readFileSync(file, "utf8")));
+  assert.deepEqual(single.map((f) => path.relative(repo, f)), []);
+  const groups = files.filter((file) => !/[\\/](storage|groups)\.ts$/.test(file) && /\bdefineSettings\(/.test(fs.readFileSync(file, "utf8")));
+  assert.deepEqual(groups.map((f) => path.relative(repo, f)), []);
 });
 
 test("localStorage・sessionStorage は storage/settings.ts の外で直接読み書きしない（値がそろわなくなる）", () => {
@@ -45,10 +46,10 @@ test("localStorage・sessionStorage は storage/settings.ts の外で直接読�
 test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
   assert.equal(chatDraft(1).ids, true);
   assert.equal(chatAttachmentsDraft(1).ids, true);
-  assert.equal(FOLDS.ids, true);
   assert.equal(NEW_CHAT_DRAFTS.ids, true);
-  assert.equal(THEME.ids, false);
-  assert.equal(DATABASE_ID.ids, false);
+  assert.equal(shellStorage.settings.lastRoute.ids, true);
+  assert.equal(shellStorage.settings.theme.ids, false);
+  assert.equal(shellStorage.settings.databaseId.ids, false);
 });
 
 test("送る前の添付: 形の合う添付だけを読み、空なら保存しない", () => {

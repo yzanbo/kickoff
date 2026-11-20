@@ -5,7 +5,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
-import { EXTERNAL_BROWSER, EXTERNAL_TERMINAL } from "@/foundation/ui/storage/storageKeys";
+import { storage as externalStorage } from "./storage";
 
 /** 外部のターミナルの表示名 */
 export const terminalLabel = (id: ExternalTerminalId) => EXTERNAL_TERMINALS.find((t) => t.id === id)?.label ?? id;
@@ -29,7 +29,7 @@ function choicesOf<T extends string>(all: readonly { id: T }[], installed: T[] |
  * 開けなければお知らせで出す
  */
 export function useExternalTerminal() {
-  const [terminal, setTerminal] = useSetting(EXTERNAL_TERMINAL);
+  const [terminal, setTerminal] = useSetting(externalStorage.settings.terminal);
   const installed = useStore(installedTerminals);
   const open = (dir: string, app: ExternalTerminalId = terminal) =>
     void window.kickoff?.externalApps.openTerminal(dir, app).catch(reportFailure("ターミナルを開けませんでした"));
@@ -48,7 +48,7 @@ export function useExternalTerminal() {
  * url がなければ空の新しいタブ。開けなければお知らせで出す
  */
 export function useExternalBrowser() {
-  const [browser, setBrowser] = useSetting(EXTERNAL_BROWSER);
+  const [browser, setBrowser] = useSetting(externalStorage.settings.browser);
   const installed = useStore(installedBrowsers);
   const open = (url?: string, app: ExternalBrowserId = browser) =>
     void window.kickoff?.externalApps.openBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));

@@ -1,31 +1,33 @@
 import type { NamedView } from "@/foundation/ui/lib/namedViews";
-import { SIDEBAR_CHAT_ORDER, SIDEBAR_CHAT_SECTIONS, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_WAITING_VIEW } from "@/foundation/ui/storage/storageKeys";
+import { chatListSettings } from "@/features/chatList/ui";
+import { storage } from "./storage";
+import { projectsSettings } from "@/features/projects/ui";
 
 // サイドバーのビュー（プロジェクト一覧の上の見出しの見え方の組に名前を付けたもの）。
 // 読み書きは useSidebarViews、ここは形・読み方・比べ方（純粋な関数）。一覧の操作は lib/namedViews.ts
 
 /** ビューに入れる見え方（見出しの 3 行のボタンの値。それぞれの設定と 1 対 1） */
 export type SidebarViewState = {
-  /** プロジェクトの並べ方（SIDEBAR_LAYOUT） */
-  layout: (typeof SIDEBAR_LAYOUT.choices)[number];
-  /** プロジェクトの並び順（SIDEBAR_PROJECT_ORDER） */
-  projectOrder: (typeof SIDEBAR_PROJECT_ORDER.choices)[number];
-  /** プロジェクトのカードを 1 行に（SIDEBAR_PROJECT_COMPACT） */
+  /** プロジェクトの並べ方（storage.settings.layout） */
+  layout: (typeof storage.settings.layout.choices)[number];
+  /** プロジェクトの並び順（projectsSettings.listOrder） */
+  projectOrder: (typeof projectsSettings.listOrder.choices)[number];
+  /** プロジェクトのカードを 1 行に（chatList:project-compact） */
   projectCompact: boolean;
-  /** しまったプロジェクトを出す（SIDEBAR_SHOW_ARCHIVED_PROJECTS） */
+  /** しまったプロジェクトを出す（sidebar:show-archived-projects） */
   showArchivedProjects: boolean;
-  /** チャットのまとめ方（SIDEBAR_CHAT_SECTIONS） */
-  grouping: (typeof SIDEBAR_CHAT_SECTIONS.choices)[number];
-  /** チャットの並び順（SIDEBAR_CHAT_ORDER） */
-  chatOrder: (typeof SIDEBAR_CHAT_ORDER.choices)[number];
-  /** チャットの行を 1 行に（SIDEBAR_COMPACT） */
+  /** チャットのまとめ方（chatListSettings.sections） */
+  grouping: (typeof chatListSettings.sections.choices)[number];
+  /** チャットの並び順（chatListSettings.order） */
+  chatOrder: (typeof chatListSettings.order.choices)[number];
+  /** チャットの行を 1 行に（chatList:compact） */
   chatCompact: boolean;
-  /** アーカイブ済みのチャットを出す（SIDEBAR_SHOW_ARCHIVED） */
+  /** アーカイブ済みのチャットを出す（chatList:show-archived） */
   showArchivedChats: boolean;
-  /** 要対応のオン / オフ（SIDEBAR_WAITING_ONLY） */
+  /** 要対応のオン / オフ（sidebar:waiting-only） */
   waitingOn: boolean;
-  /** 要対応がオンのときの出し方 × 並べ方（SIDEBAR_WAITING_VIEW） */
-  waitingView: (typeof SIDEBAR_WAITING_VIEW.choices)[number];
+  /** 要対応がオンのときの出し方 × 並べ方（storage.settings.waitingView） */
+  waitingView: (typeof storage.settings.waitingView.choices)[number];
 };
 
 export type SidebarView = NamedView<SidebarViewState>;
@@ -38,16 +40,16 @@ export function parseSidebarViewState(value: unknown): SidebarViewState | undefi
   if (typeof value !== "object" || value === null) return undefined;
   const v = value as Record<string, unknown>;
   if (
-    !oneOf(SIDEBAR_LAYOUT.choices, v.layout) ||
-    !oneOf(SIDEBAR_PROJECT_ORDER.choices, v.projectOrder) ||
+    !oneOf(storage.settings.layout.choices, v.layout) ||
+    !oneOf(projectsSettings.listOrder.choices, v.projectOrder) ||
     !isBool(v.projectCompact) ||
     !isBool(v.showArchivedProjects) ||
-    !oneOf(SIDEBAR_CHAT_SECTIONS.choices, v.grouping) ||
-    !oneOf(SIDEBAR_CHAT_ORDER.choices, v.chatOrder) ||
+    !oneOf(chatListSettings.sections.choices, v.grouping) ||
+    !oneOf(chatListSettings.order.choices, v.chatOrder) ||
     !isBool(v.chatCompact) ||
     !isBool(v.showArchivedChats) ||
     !isBool(v.waitingOn) ||
-    !oneOf(SIDEBAR_WAITING_VIEW.choices, v.waitingView)
+    !oneOf(storage.settings.waitingView.choices, v.waitingView)
   ) {
     return undefined;
   }

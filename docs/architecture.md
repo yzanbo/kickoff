@@ -72,7 +72,7 @@
 | 未読 / 既読 | `unread` / `read` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） |
 | 右サイドバー（画面の右端の欄。右端のアイコンの列で、ブラウザとプロジェクトのタブと同じ画面（ノート・ファイル・検索・変更・履歴・DB・Docker・GitHub・CI・ゴミ箱）を切り替える。コードでは「チャット欄」`side`。チャットのパネルはチャットだけ・下のパネルはターミナルだけ） | `surface: "side"`（`useProjectChat` ＋ `ProjectChat`） |
-| 右サイドバーの中身（右端のアイコンの列で選ぶもの。プロジェクトごと） | `SideView`（`browser` か、プロジェクトのタブの名前。設定 `sideView`・`src/features/projects/ui/rightSidebar/sideView.ts`）・右端の列 `SideRail`・中身 `SideBody` / `SideViewBody` |
+| 右サイドバーの中身（右端のアイコンの列で選ぶもの。プロジェクトごと） | `SideView`（`browser` か、プロジェクトのタブの名前。設定 `projects:side-view`・`src/features/projects/ui/rightSidebar/sideView.ts`）・右端の列 `SideRail`・中身 `SideBody` / `SideViewBody` |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` |
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル |
 | ノート（プロジェクトの「ノート」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のノート = HTML と CSS で書くページ。描いた見た目で見る）） | ノートのフォルダ（設定 `notes_dir` の下の、プロジェクトの `note_folder`。別の場所なら `note_dir`）・`NoteService`（`src/features/notes/core/`）・`NoteTab`（`src/features/notes/ui/`） |

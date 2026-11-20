@@ -36,7 +36,7 @@
 
 - 見出しはウィンドウのドラッグ領域にしない（右クリックが画面に届かなくなる）。
 - 表示のメニューは `ChatDisplayItems` 1 つ（見出し・指示の帯・会話の何もないところの右クリック）。見出しの外にも置くのは、隠した見出しを戻せるようにするため。
-- 見出しの項目は `chatHeaderItems.ts`。覚えるのは隠した項目 `CHAT_HEADER_HIDDEN` と並び `CHAT_HEADER_ORDER` だけ（空の一覧も覚え、初めの値に戻さない）。
+- 見出しの項目は `chatHeaderItems.ts`。覚えるのは隠した項目 `headerHidden` と並び `headerOrder` だけ（空の一覧も覚え、初めの値に戻さない）。
 - 会話に出る部品の CSS で文字の大きさ・行の高さを足すときは `calc(… * var(--chat-scale, 1))` にする（会話の文字の大きさの倍率）。
 - 送る前のチャット（`NewChatPane`・`NewChildPane`）も同じ枠 `DraftChatPage` で描き、見出しとチャット欄をそろえる。
 

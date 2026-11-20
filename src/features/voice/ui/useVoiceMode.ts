@@ -5,7 +5,7 @@ import { voiceSettings } from "@shared/voice/settings";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { VOICE_MODE_DELIVERY } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { useVoiceStatus, voiceStatusStore } from "@/features/voice/ui/stores/voice";
 import { openSettings } from "@/features/settings/ui/openSettings";
@@ -21,7 +21,7 @@ type LevelListener = (level: number) => void;
 export type VoiceDelivery = "send" | "fill";
 
 /**
- * 音声モード（チャット欄の波形のボタン）: 聞いて、話し終わったら起こした文をすぐ送るかチャット欄に入れ（VOICE_MODE_DELIVERY）、
+ * 音声モード（チャット欄の波形のボタン）: 聞いて、話し終わったら起こした文をすぐ送るかチャット欄に入れ（storage.settings.modeDelivery）、
  * 届いた返答の文章を読み上げる（voiceSession.ts）。replies はこのチャットのメインエージェントの返答、busy は作業中か、
  * send は起こした文を送る口（作業中なら、いま / あとでの送り方で）、fill はチャット欄に入れる口。
  * チャット欄から送ったら noteSent を呼ぶ（止めていた読み上げを戻す）。
@@ -50,7 +50,7 @@ export function useVoiceMode({
   const [error, setError] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
-  const [delivery, setDelivery] = useSetting(VOICE_MODE_DELIVERY);
+  const [delivery, setDelivery] = useSetting(storage.settings.modeDelivery);
   const session = useRef<VoiceSession | null>(null);
   const levelListeners = useRef(new Set<LevelListener>());
   const latest = useLatest({ replies, busy, send, fill, settings, delivery });

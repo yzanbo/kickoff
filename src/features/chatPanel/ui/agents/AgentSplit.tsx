@@ -2,7 +2,7 @@ import { useImperativeHandle, useMemo, type MutableRefObject, type ReactNode } f
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
-import { SUBAGENT_PANEL_MAXIMIZED, SUBAGENT_PANEL_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chatPanel/ui/storage";
 import type { SidePanelHandle } from "@/features/conversation/ui/screen/useChatPaneActions";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
@@ -24,7 +24,7 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
  * 右の欄は、ボードの右のパネルと同じタブの入れ物（Panel の agents。タブ・上下左右の分割・タブのドラッグ・境目は通常のパネルと同じ）を入れ子にしたもの。
  * 幅は左端のつまみのドラッグで変えて覚え（アプリ全体）、メインが狭すぎる幅まで広げる・メインの残りが狭いときは、右の欄でメインを覆う
  * （覆っている間、メインは隠すが描いたまま残す）。タブの列の左端に「横幅いっぱいに広げる ⇔ 元の幅に戻す」のボタン（ボードの右のパネルと同じ。
- * 横幅いっぱいにしているかはアプリ全体で覚える SUBAGENT_PANEL_MAXIMIZED）。
+ * 横幅いっぱいにしているかはアプリ全体で覚える storage.settings.agentPanelMaximized）。
  * 一度サブエージェントを開いたら、閉じても右の欄の中身は残す（入力中の文・読んでいた位置を保つ。閉じ終えたら隠す）。
  * パネルの外（PanelHostContext がない）では右の欄を置かない。
  * 右の欄の中（どのタブでも）は、このチャットを「メインのチャット」とする（MainChatContext。右クリックの「メインのチャット」の組と、選んだときの「チャットに追加」）。
@@ -36,8 +36,8 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
   const chatId = typeof scope === "number" ? scope : null;
   const panel = usePanel({ surface: "agents", scope, newChat: undefined, terminals: NO_TERMINALS });
   const { bodyRef: widthBodyRef, ...width } = useCoverableWidth({
-    width: SUBAGENT_PANEL_WIDTH,
-    maximized: SUBAGENT_PANEL_MAXIMIZED,
+    width: storage.settings.agentPanelWidth,
+    maximized: storage.settings.agentPanelMaximized,
     min: MIN_AGENT_PANEL_WIDTH,
     gap: 0,
     minRest: MIN_MAIN_WIDTH,

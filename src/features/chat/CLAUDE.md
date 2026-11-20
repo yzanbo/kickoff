@@ -113,4 +113,4 @@
 - 名前はその場で `useChatRename` ＋ `ChatTitleInput` で変える（ダイアログを使わない）。上限は `CHAT_TITLE_MAX`（コアの検証と共通）。
 - 右クリックの項目は `ChatMenuItems` 1 つ（サイドバー・ボード・タブで同じ並び）。下書きは `DraftMenuItems` で、同じ並び・文・アイコンにする。
 - 「新しいチャット」の作成先の札は `useNewChatPlace` ＋ `NewChatPlaceBadges`。まとまりからの作成先は `@/features/chatList/ui/buckets.ts` の `newChatPlaceOf`。
-- ✕ は `closeChatWithChoice`（既定は `CHAT_CLOSE_ACTION`）。Esc・タブの「閉じる」は聞かずに閉じる。
+- ✕ は `closeChatWithChoice`（既定は `chat:close-action`）。Esc・タブの「閉じる」は聞かずに閉じる。

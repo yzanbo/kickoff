@@ -1,19 +1,10 @@
 import { useSyncExternalStore } from "react";
-import type { Setting } from "@/foundation/ui/storage/settings";
-import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import {
-  PANEL_HIDDEN_GROUPS,
-  PANEL_HIDE_EMPTY_GROUPS,
-  PANEL_SHOW_ARCHIVED,
-  PANEL_TAB_CLUSTER_SHORT,
-  PANEL_TAB_GROUP_COLORS,
-  PANEL_TAB_HIDDEN,
-  PANEL_TAB_OVERFLOW,
-  PANEL_TAB_TWO_LINE,
-  PANEL_VIEW_BUTTON_HIDDEN,
-  SIDEBAR_CHAT_ORDER,
-  panelTabGrouping,
-} from "@/foundation/ui/storage/storageKeys";
+import type { Setting } from "@/foundation/ui/storage";
+import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "@/features/chatPanel/ui/storage";
+import { panelSettings } from "@/features/panel/ui";
+import { chatListSettings } from "@/features/chatList/ui";
+import { PANEL_TAB_GROUP_COLORS, PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { PanelSurface } from "@/features/panel/ui/surfaces";
 
@@ -22,15 +13,15 @@ import type { PanelSurface } from "@/features/panel/ui/surfaces";
  * チャットの画面の表示（タブの列・見出し・指示の帯など）はこのメニューから外したので戻さない（チャットの見出しの右クリック・設定の「表示」で選ぶ）
  */
 const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
-  SIDEBAR_CHAT_ORDER,
-  PANEL_SHOW_ARCHIVED,
-  PANEL_HIDDEN_GROUPS,
-  PANEL_HIDE_EMPTY_GROUPS,
-  PANEL_TAB_CLUSTER_SHORT,
+  chatListSettings.order,
+  storage.settings.showArchived,
+  storage.settings.hiddenGroups,
+  storage.settings.hideEmptyGroups,
+  storage.settings.clusterShort,
   PANEL_TAB_GROUP_COLORS,
-  PANEL_TAB_HIDDEN,
-  PANEL_TAB_TWO_LINE,
-  PANEL_TAB_OVERFLOW,
+  panelSettings.tabHidden,
+  panelSettings.tabTwoLine,
+  panelSettings.tabOverflow,
 ] as Setting<unknown>[];
 
 /** 初めの値と同じか（保存する形で比べる。一覧の順も含めて同じ形で保存するので、そのまま比べてよい） */
@@ -50,7 +41,7 @@ const chatViewAtInitial = () => CHAT_VIEW_SETTINGS.every((s) => atInitial(s, rea
  * changed は初めと違う選び方があるか（なければ押せない）
  */
 export function usePanelViewReset(surface: PanelSurface, chat: boolean) {
-  const groupingSetting = panelTabGrouping(surface);
+  const groupingSetting = storage.settings.tabGrouping(surface);
   const [grouping] = useSetting(groupingSetting);
   // 「表示」ボタンを出すか（どの欄のメニューにも出すので、チャットを出さない欄でも戻す）
   const [buttonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);

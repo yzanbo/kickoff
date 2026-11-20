@@ -4,8 +4,8 @@
 // パネルのブラウザ・ターミナルのタブは元の欄に開き直す（ターミナルはシェルの持ち主をこのウィンドウにしてから。別ウィンドウが閉じてもシェルを止めさせない）
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { navigate, openChat, openNote } from "@/foundation/ui/navigation/router";
-import { writeSetting } from "@/foundation/ui/storage/settings";
-import { SIDEBAR_OPEN } from "@/foundation/ui/storage/storageKeys";
+import { writeSetting } from "@/foundation/ui/storage";
+import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { openChildSide, openInRootSide } from "@/features/chat/ui/open/openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
@@ -51,7 +51,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       return;
     }
     case "sidebar":
-      writeSetting(SIDEBAR_OPEN, true);
+      writeSetting(sidebarSettings.open, true);
       return;
     case "chat": {
       const chat = knownChat(route.chatId);

@@ -6,7 +6,7 @@ import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { DbClientTab } from "@/features/database/ui/client/dbClientTabs";
-import { dbTreeOpen } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";
 import { useDbClient } from "./dbClientContext";
 import { findDbItems, openTreePaths, type DbFindItem, type DbFindSource } from "./dbFind";
@@ -24,7 +24,7 @@ const MAX_PLACES = 10;
 export function DbFindPalette({ connections, activeTab, onClose }: { connections: DbConnection[]; activeTab: DbClientTab | null; onClose: () => void }) {
   const client = useDbClient();
   const { ref: dialogRef, ...dialog } = useModalDialog();
-  const [treeOpen] = useSetting(dbTreeOpen(client.place));
+  const [treeOpen] = useSetting(storage.settings.treeOpen(client.place));
   const connected = useDbConnectedIds(client.projectId).data;
   const [query, setQuery] = useState("");
   const [loaded, setLoaded] = useState<{ sources: DbFindSource[]; failed: number } | null>(null);

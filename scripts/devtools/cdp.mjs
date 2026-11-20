@@ -13,8 +13,9 @@ export function rendererModule(file) {
   return `/@fs${path.join(REPO, file)}`;
 }
 
-/** 画面で保存の補助（s）・保存のキー（k）・開閉（f）を読む文 */
-export const STORAGE_IMPORTS = `const s = await import("${rendererModule("src/foundation/ui/storage/settings.ts")}"); const k = await import("${rendererModule("src/foundation/ui/storage/storageKeys.ts")}"); const f = await import("${rendererModule("src/foundation/ui/hooks/useFold.ts")}");`;
+/** 画面で保存の補助（s）・保存のキー（k.sidebar・k.chatList・k.board = 機能の ui/storage.ts の settings）・開閉（f）を読む文 */
+const settingsOf = (feature) => `(await import("${rendererModule(`src/features/${feature}/ui/storage.ts`)}")).storage.settings`;
+export const STORAGE_IMPORTS = `const s = await import("${rendererModule("src/foundation/ui/storage/settings.ts")}"); const k = { sidebar: ${settingsOf("sidebar")}, chatList: ${settingsOf("chatList")}, board: ${settingsOf("board")} }; const f = await import("${rendererModule("src/foundation/ui/hooks/useFold.ts")}");`;
 
 /** 開発版の既定の保存先（npm run dev のとき） */
 const DEV_DATA_DIR = path.join(os.homedir(), "Library/Application Support/Kickoff Dev");

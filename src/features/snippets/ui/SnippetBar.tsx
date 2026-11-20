@@ -3,7 +3,7 @@ import { useState, type MouseEvent, type MutableRefObject } from "react";
 import type { Snippet } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SNIPPET_BAR_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjectSnippets } from "@/features/snippets/ui/stores/snippets";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
@@ -38,7 +38,7 @@ export function SnippetBar({
   onSend: (text: string) => Promise<void>;
 }) {
   const snippets = useProjectSnippets(projectId);
-  const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   const { ref: scrollerRef, ...scroller } = useHorizontalScroller(snippets);
   const menu = useContextMenu<Snippet | null>();
   // 管理のダイアログ（開いていなければ false。開いた直後に編集する行・新しく作るなら "new"）
@@ -116,7 +116,7 @@ export function SnippetBar({
  * 入力欄の右クリックの「定型文の帯を表示 / 隠す」（帯を隠していても、入力欄から戻せるように。帯の右クリック・タブの列の「表示」と同じ設定）
  */
 export function SnippetBarToggleItem() {
-  const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   return (
     <MenuItem title="どのチャットでも同じです（設定の「表示」・タブの列の「表示」でも切り替えられます）" onSelect={() => setHidden(!hidden)}>
       {hidden ? "定型文の帯を表示" : "定型文の帯を隠す"}

@@ -1,26 +1,37 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
+import { defineSettings, family, single } from "./groups";
 import { installMemoryStorage } from "./memoryStorage";
-import { readSetting } from "./settings";
-import { storage } from "./legacyKeys";
-import { DATABASE_ID } from "./storageKeys";
+import { choice, optionalFlag, readSetting, record } from "./settings";
+import { storage as legacyKeys } from "./legacyKeys";
+import { storage as shellStorage } from "./storage";
+import { chatDraft, NEW_CHAT_DRAFTS } from "./storageKeys";
 import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
-const GROUPS = [storage];
+
+// このファイルだけの群（まとまりの開閉・アプリを閉じるまで覚える ID を含むもの・ID を含まないもの）
+const extra = defineSettings("tPrepare", {
+  fold: family(optionalFlag(), { ids: true }),
+  lastHashes: single(record(), { ids: true, session: true }),
+  queueMode: choice(["queue", "tell"], "tell"),
+});
+const GROUPS = [shellStorage, legacyKeys, extra];
+const DATABASE_ID = shellStorage.settings.databaseId;
+const fold = extra.settings.fold;
 
 /** ID を含むもの（まとまりの開閉・下書き・書きかけの文・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
 function rememberSome() {
-  local.setItem("kickoff:fold:sidebar:p1/g3", "0");
-  local.setItem("kickoff:new-chat-drafts", JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new", projectId: 1 }] }));
-  local.setItem("kickoff:chat-draft:7", "書きかけ");
-  local.setItem("kickoff:fold:panel:p1/g2", "0");
-  session.setItem("kickoff:last-hash-by-project", JSON.stringify({ 1: "#/projects/1" }));
-  local.setItem("kickoff:theme", "light");
-  local.setItem("kickoff:queue-mode", "queue");
+  local.setItem(fold("sidebar:p1/g3").key, "0");
+  local.setItem(NEW_CHAT_DRAFTS.key, JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new", projectId: 1 }] }));
+  local.setItem(chatDraft(7).key, "書きかけ");
+  local.setItem(fold("panel:p1/g2").key, "0");
+  session.setItem(extra.settings.lastHashes.key, JSON.stringify({ 1: "#/projects/1" }));
+  local.setItem(shellStorage.settings.theme.key, "light");
+  local.setItem(extra.settings.queueMode.key, "queue");
 }
 
-const ID_KEYS = ["kickoff:fold:sidebar:p1/g3", "kickoff:new-chat-drafts", "kickoff:chat-draft:7", "kickoff:fold:panel:p1/g2"];
+const ID_KEYS = [fold("sidebar:p1/g3").key, NEW_CHAT_DRAFTS.key, chatDraft(7).key, fold("panel:p1/g2").key];
 
 /** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
 function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {
@@ -35,9 +46,9 @@ test("adoptDatabase: 覚えている DB の ID と違えば（初めての起動
   rememberSome();
   assert.equal(adoptDatabase(GROUPS, "db-1"), true);
   for (const key of ID_KEYS) assert.equal(local.getItem(key), null, key);
-  assert.equal(session.getItem("kickoff:last-hash-by-project"), null);
-  assert.equal(local.getItem("kickoff:theme"), "light");
-  assert.equal(local.getItem("kickoff:queue-mode"), "queue");
+  assert.equal(session.getItem(extra.settings.lastHashes.key), null);
+  assert.equal(local.getItem(shellStorage.settings.theme.key), "light");
+  assert.equal(local.getItem(extra.settings.queueMode.key), "queue");
   assert.equal(readSetting(DATABASE_ID), "db-1");
 
   rememberSome();
@@ -58,7 +69,7 @@ test("prepareStorage: 宣言していない古いキーを消し、/api/status �
   assert.equal(local.getItem("kickoff:sidebar-grouping"), null);
   assert.equal(local.getItem("kickoff:panel-tab-grouping"), null);
   for (const key of ID_KEYS) assert.equal(local.getItem(key), null, key);
-  assert.equal(local.getItem("kickoff:theme"), "light");
+  assert.equal(local.getItem(shellStorage.settings.theme.key), "light");
   assert.equal(readSetting(DATABASE_ID), "db-new");
 });
 
@@ -81,9 +92,9 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   serveStatus("db-new", new Promise<void>((resolve) => (answer = resolve)));
   await prepareStorage(GROUPS, { timeoutMs: 5 });
   // まだ届いていないので、捨てていない
-  assert.notEqual(local.getItem("kickoff:chat-draft:7"), null);
+  assert.notEqual(local.getItem(chatDraft(7).key), null);
   answer();
   for (let i = 0; i < 500 && reloaded === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
-  assert.equal(local.getItem("kickoff:chat-draft:7"), null);
+  assert.equal(local.getItem(chatDraft(7).key), null);
   assert.equal(reloaded, 1);
 });

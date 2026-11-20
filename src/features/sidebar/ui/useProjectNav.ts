@@ -9,8 +9,9 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHOW_ARCHIVED_PROJECTS, SIDEBAR_WAITING_ONLY } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
+import { projectsSettings } from "@/features/projects/ui";
 import { projectKey } from "@/features/chatList/ui/bucketHeads";
 import { loadCurrentProject, saveCurrentProject } from "@/features/projects/ui/currentProject";
 import { useProjectMenu } from "@/features/projects/ui/ProjectMenu";
@@ -30,15 +31,15 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const { projects } = useProjects();
   const { pending } = useChatStates();
   // 横スライド / 縦並び
-  const [layout, changeLayout] = useSetting(SIDEBAR_LAYOUT);
+  const [layout, changeLayout] = useSetting(storage.settings.layout);
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
-  const [showArchived, setShowArchived] = useSetting(SIDEBAR_SHOW_ARCHIVED_PROJECTS);
+  const [showArchived, setShowArchived] = useSetting(storage.settings.showArchivedProjects);
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順 / 最近動いた順）と、タグでの絞り込み（見出しの「タグ」。
   // 合わないプロジェクトは、固定・しまったものも含めて出さない）。sorted は絞り込む前のしまっていないもの
-  const [projectOrder, setProjectOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
+  const [projectOrder, setProjectOrder] = useSetting(projectsSettings.listOrder);
   const { active: sorted, visible, archived, tagFilter } = useVisibleProjects();
   // 要対応だけを出すときは、要対応のチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
-  const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
+  const [waitingOnly, setWaitingOnly] = useSetting(storage.settings.waitingOnly);
   // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
   const [waitingView, setWaitingView] = useWaitingView();
   const filterByWaiting = waitingOnly && waitingView === "filter";
@@ -91,13 +92,13 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
     if (route.name === "newChat") return;
     // URL ではなく画面から作る（サイドバーの別ウィンドウの URL は別ウィンドウの行き先で、画面はメインのウィンドウのもの）
-    writeSetting(SIDEBAR_LAST_HASHES, { ...readSetting(SIDEBAR_LAST_HASHES), [routeProject]: href(route) });
+    writeSetting(storage.settings.lastHashByProject, { ...readSetting(storage.settings.lastHashByProject), [routeProject]: href(route) });
   }, [route, routeProject]);
 
   /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */
   const showProject = (id: number) => {
     if (layout === "stack" || routeProject === id) return;
-    const hash = readSetting(SIDEBAR_LAST_HASHES)[id];
+    const hash = readSetting(storage.settings.lastHashByProject)[id];
     if (hash) location.hash = hash;
     else navigate({ name: "project", id, tab: "board" });
   };

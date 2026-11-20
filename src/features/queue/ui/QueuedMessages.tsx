@@ -24,15 +24,15 @@ import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { COMPOSER_COMPACT, QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
 const MIN_LIST_HEIGHT = 36;
 
 /**
- * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
- * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めずに、いまのやり取りに伝える）ができる。
+ * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めずに、いまのやり取りに伝える）ができる。
  * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（上端のつまみのドラッグで高さを変えられ、見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。
@@ -74,11 +74,11 @@ export function QueuedMessages({
   const { messages, stops } = view;
   // 送った指示は、チャット欄の発言か預かりの吹き出しに出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
   const sending = useSendingQueued(chatId, queue.messages, sentShown);
-  const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
+  const [collapsed, setCollapsed] = useSetting(storage.settings.collapsed);
   // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）
   const [compact] = useSetting(COMPOSER_COMPACT);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
-  const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
+  const [expanded, setExpanded] = useSetting(storage.settings.expanded);
   const listRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
   /**
@@ -86,7 +86,7 @@ export function QueuedMessages({
    * ダブルクリックで元の高さ）。ドラッグ中は描き直さず、style だけ書き換える。高さを決めたら、すべて表示はやめる（決めた高さで中をスクロールさせる）
    */
   const resize = useDragSize({
-    setting: QUEUE_HEIGHT,
+    setting: storage.settings.height,
     axis: "y",
     edge: "start",
     min: MIN_LIST_HEIGHT,

@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { GITHUB_FILES_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { FileTree } from "@/features/files/ui/FileTree";
 import { buildTree, folderPaths, kindMaps } from "@/foundation/ui/kit/list/treeModel";
 import { pullFileChanges } from "./pullFiles";
@@ -15,7 +15,7 @@ export function GitHubPullFileTree({ files, selected, onSelect }: { files: GitHu
   // 閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
   const open = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: GITHUB_FILES_WIDTH, min: 160, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.filesWidth, min: 160, keep: 360 });
 
   return (
     <>

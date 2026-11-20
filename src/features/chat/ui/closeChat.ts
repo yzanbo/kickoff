@@ -3,12 +3,12 @@ import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { choiceDialogWithRemember, reportFailure } from "@/foundation/ui/kit/dialogs";
 import { confirmDeleteChat, deleteChat, toggleArchiveChat } from "./chatActions";
-import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage/settings";
-import { CHAT_CLOSE_ACTION } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
-export const CHAT_CLOSE_ACTIONS = CHAT_CLOSE_ACTION.choices;
-export type ChatCloseAction = SettingValue<typeof CHAT_CLOSE_ACTION>;
+export const CHAT_CLOSE_ACTIONS = storage.settings.closeAction.choices;
+export type ChatCloseAction = SettingValue<typeof storage.settings.closeAction>;
 
 export const CHAT_CLOSE_ACTION_LABELS: Record<ChatCloseAction, string> = {
   ask: "毎回聞く",
@@ -28,7 +28,7 @@ export async function closeChatWithChoice(
   close: (action: Exclude<ChatCloseAction, "ask">) => void,
 ) {
   // いまの既定（設定の「チャット」で変える。未保存なら毎回聞く）
-  let action = readSetting(CHAT_CLOSE_ACTION);
+  let action = readSetting(storage.settings.closeAction);
   let confirmed = false;
   if (action === "ask") {
     const archived = Boolean(chat.archived_at);
@@ -46,7 +46,7 @@ export async function closeChatWithChoice(
     action = picked.value;
     // 選んだ時点で確かめたことにする（削除をもう一度聞かない）
     confirmed = true;
-    if (picked.remember) writeSetting(CHAT_CLOSE_ACTION, picked.value);
+    if (picked.remember) writeSetting(storage.settings.closeAction, picked.value);
   }
   try {
     if (action === "archive") {

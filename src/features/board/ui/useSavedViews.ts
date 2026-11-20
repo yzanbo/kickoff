@@ -1,13 +1,7 @@
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import {
-  ALL_PROJECTS_FEED,
-  ALL_PROJECTS_SAVED_VIEWS,
-  BOARD_ARCHIVE_FILTER,
-  BOARD_CARD_HIDDEN,
-  BOARD_SORT,
-  PROJECT_SAVED_VIEWS,
-} from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { chatListSettings } from "@/features/chatList/ui";
 import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardView } from "./BoardHeader";
 import { hiddenCardFields } from "./cardFields";
@@ -23,17 +17,17 @@ import { useKanbanLanes } from "./useKanbanFilters";
  */
 export function useSavedViews(projectId?: number) {
   const allProjects = projectId === undefined;
-  const [stored, setStored] = useSetting(allProjects ? ALL_PROJECTS_SAVED_VIEWS : PROJECT_SAVED_VIEWS);
+  const [stored, setStored] = useSetting(allProjects ? storage.settings.viewsAll : storage.settings.views);
   const views = useMemo(() => parseSavedViews(stored), [stored]);
 
   const { view, split, setView, setSplit } = useBoardView();
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   const [columns, setColumns] = useBoardColumns(allProjects);
-  const [rawSort, setSort] = useSetting(BOARD_SORT);
-  const [archive, setArchive] = useSetting(BOARD_ARCHIVE_FILTER);
-  const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
+  const [rawSort, setSort] = useSetting(storage.settings.sort);
+  const [archive, setArchive] = useSetting(chatListSettings.archiveFilter);
+  const [feed, setFeed] = useSetting(storage.settings.feedAll);
   const [byState, setByState] = useGroupsByState();
-  const [cardHidden, setCardHidden] = useSetting(BOARD_CARD_HIDDEN);
+  const [cardHidden, setCardHidden] = useSetting(storage.settings.cardHidden);
 
   const current: BoardViewState = {
     view: allProjects && feed ? "feed" : view,

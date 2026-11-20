@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { githubMergeMethod } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
@@ -23,7 +23,7 @@ import { mergeWarnings, pickMergeMethod } from "./githubMerge";
  */
 export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectId: number; detail: GitHubPullDetail; onMerged: () => void; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
-  const [remembered, setRemembered] = useSetting(githubMergeMethod(projectId));
+  const [remembered, setRemembered] = useSetting(storage.settings.mergeMethod(projectId));
   const [method, setMethod] = useState<GitHubMergeMethod | null>(() => pickMergeMethod(remembered, detail.merge_methods));
   const action = useAction();
   const { projectsById } = useProjects();

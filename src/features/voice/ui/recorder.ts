@@ -1,5 +1,5 @@
-import { readSetting } from "@/foundation/ui/storage/settings";
-import { VOICE_MIC_DEVICE } from "@/foundation/ui/storage/storageKeys";
+import { readSetting } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 
 /** 録音中の音声（止めると録った音声の区切りの一覧、やめると捨てる。release なら、どちらでもマイクを放す） */
 export interface Recording {
@@ -31,7 +31,7 @@ const LEVEL_INTERVAL_MS = 50;
  */
 export async function openMic(): Promise<MediaStream> {
   const base = { echoCancellation: true, noiseSuppression: true };
-  const deviceId = readSetting(VOICE_MIC_DEVICE);
+  const deviceId = readSetting(storage.settings.micDevice);
   if (deviceId) {
     try {
       return await navigator.mediaDevices.getUserMedia({ audio: { ...base, deviceId: { exact: deviceId } } });

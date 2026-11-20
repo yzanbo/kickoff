@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { BOARD_SORT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { groupNameIn, useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { chatComparator, DEFAULT_CHAT_SORT, parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
@@ -14,7 +14,7 @@ const NO_IDS: readonly number[] = Object.freeze([]);
  * （useChatBuckets の sort に渡す。列・まとまりの中がこの順になる）。projectIds はグループ名で並べるときにグループを読むプロジェクト
  */
 export function useChatSort(projectIds: readonly number[]) {
-  const [stored, setStored] = useSetting(BOARD_SORT);
+  const [stored, setStored] = useSetting(storage.settings.sort);
   const sort: ChatSort = parseChatSort(stored) ?? DEFAULT_CHAT_SORT;
   const { projectName } = useProjects();
   const { stateOf } = useChatStates();

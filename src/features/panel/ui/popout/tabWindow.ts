@@ -5,8 +5,9 @@
 // 最後のタブを閉じた・移したら、ウィンドウごと閉じる。読み込み直しても同じタブを開き直す（sessionStorage はウィンドウごと）
 import { popoutKey, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow, subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { POPOUT_WINDOW_TABS, type PopoutWindowTab } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage } from "@/features/panel/ui/storage";
+import type { PopoutWindowTab } from "@/features/panel/ui/popoutWindowTab";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelStateOf, setPanelOwnership, subscribePanels } from "@/features/panel/ui/state/panelStore";
 import { panelKey, windowScope } from "@/features/panel/ui/surfaces";
@@ -61,7 +62,7 @@ export function startTabWindow(route: TabWindowRoute): void {
   if (started === panel) return;
   started = panel;
   setPanelOwnership((key) => key === panel);
-  const saved = readSetting(POPOUT_WINDOW_TABS);
+  const saved = readSetting(storage.settings.popoutWindowTabs);
   const tabs = saved.length > 0 ? saved.map(toPanelTab) : [firstTab(route)];
   const actions = panelActions(panel);
   for (const t of tabs) actions.openPanelTab(t);
@@ -70,7 +71,7 @@ export function startTabWindow(route: TabWindowRoute): void {
   let had = true;
   subscribePanels(() => {
     const now = currentTabs(panel);
-    writeSetting(POPOUT_WINDOW_TABS, now);
+    writeSetting(storage.settings.popoutWindowTabs, now);
     if (had && now.length === 0) closeSelf();
     had = now.length > 0;
   });

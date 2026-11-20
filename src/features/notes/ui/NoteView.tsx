@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { registerSavable } from "@/foundation/ui/lib/saveAll";
 import { registerNoteSelection } from "@/foundation/ui/lib/viewDetails";
 import { isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
-import { NOTE_CHAT_HEIGHT, NOTE_CHAT_OPEN, NOTE_CHAT_PLACE, NOTE_CHAT_WIDTH, NOTE_QUICK_CHAT_HIDDEN, NOTE_VIEW } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -68,7 +68,7 @@ const SAVE_LABELS: Record<NoteSaveState, string> = {
  * HTML のノートのページのリンクがノートのフォルダの中を指すとき、ノートなら onOpenNote（開いている側が同じ場所で開く）、フォルダ・ノートでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
  * ノート全体（選んでいれば、その部分の引用）をそのチャットの入力欄に追加する（ノート全体は押した時点の写しの札）。本文で文を選ぶと、上のボタン（開いたチャット・ノートのチャット。ノートのタブではノートのチャットだけ）ですぐ引用を足せる。
- * ノートのチャットの欄を閉じている間は、下にこのノートを AI に直してもらう入力欄（NoteQuickChat）を出す（隠すこともできる。NOTE_QUICK_CHAT_HIDDEN）
+ * ノートのチャットの欄を閉じている間は、下にこのノートを AI に直してもらう入力欄（NoteQuickChat）を出す（隠すこともできる。storage.settings.quickChatHidden）
  */
 export function NoteView({
   projectId,
@@ -94,9 +94,9 @@ export function NoteView({
   const editor = useRef<NoteEditorHandle | null>(null);
   const chat = useRef<NoteChatHandle | null>(null);
   const pageHandle = useRef<HtmlNotePageHandle | null>(null);
-  const [chatOpen, setChatOpen] = useSetting(NOTE_CHAT_OPEN);
+  const [chatOpen, setChatOpen] = useSetting(storage.settings.chatOpen);
   // 欄を閉じている間、下の入力欄も隠す（ノートだけを広く見る。見出しの吹き出しの ▾・入力欄の「隠す」）
-  const [quickHidden, setQuickHidden] = useSetting(NOTE_QUICK_CHAT_HIDDEN);
+  const [quickHidden, setQuickHidden] = useSetting(storage.settings.quickChatHidden);
   const quickFolded = chatOpen || quickHidden;
   // 欄を閉じている間は、ノートのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）と送信待ちを下の入力欄の上に描く
   // （会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
@@ -127,10 +127,10 @@ export function NoteView({
   const viewRef = useRef<HTMLDivElement>(null);
   const find = usePageFind(viewRef, { native: openEditorFind, placeholder: "このノートを検索", className: "page-find" });
   const chatPane = useRef<HTMLDivElement>(null);
-  const chatWidth = useDragSize({ setting: NOTE_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--note-chat-w", pane: chatPane, target: () => body.current });
+  const chatWidth = useDragSize({ setting: storage.settings.chatWidth, edge: "start", min: 280, keep: 280, write: "--note-chat-w", pane: chatPane, target: () => body.current });
   // 本文の下に置くとき（見出しで選ぶ）は、高さを本文と欄を合わせた高さの % で覚える（つまみは上下）
-  const [chatPlace, setChatPlace] = useSetting(NOTE_CHAT_PLACE);
-  const chatHeight = useDragSize({ setting: NOTE_CHAT_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--note-chat-h", pane: chatPane, target: () => body.current });
+  const [chatPlace, setChatPlace] = useSetting(storage.settings.chatPlace);
+  const chatHeight = useDragSize({ setting: storage.settings.chatHeight, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--note-chat-h", pane: chatPane, target: () => body.current });
   const chatSize = chatPlace === "bottom" ? chatHeight : chatWidth;
   // 下に置いたときの開け閉めは、入力欄を下に止めたまま会話の部分だけを伸び縮みさせる（ノートの下の入力欄の高さを測る）
   const { quickRef: motionQuickRef, ...motion } = useBottomChatMotion(chatOpen, chatPlace === "bottom");
@@ -163,7 +163,7 @@ export function NoteView({
       if (to !== path) onOpenNote(to);
     } else if (window.kickoff) void window.kickoff.externalApps.revealPath(`${dir}/${to}`);
   };
-  const [view, setView] = useSetting(NOTE_VIEW);
+  const [view, setView] = useSetting(storage.settings.view);
   const kind = noteKindOf(path);
   // HTML のノートをページで見ているか（ページの中身は、いま書いてあるもの。表示を切り替えた・読み直したときに描き直す）
   const page = kind === "html" && view === "preview";

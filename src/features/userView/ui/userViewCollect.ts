@@ -2,7 +2,7 @@
 // 見ているプロジェクト・プロジェクトのタブ・画面に出ている欄（パネル）のペインごとの前のタブ・チャットの画面の右の欄に開いているもの。
 // タブの中身のうち部品だけが知っているもの（エディタのカーソルと選んでいる範囲・ノートで選んでいる文）は lib/viewDetails から読む
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewPane, type UserViewTab } from "@shared/userView/types";
-import { readSetting } from "@/foundation/ui/storage/settings";
+import { readSetting } from "@/foundation/ui/storage";
 import { dbClientTabs, githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";

@@ -5,9 +5,9 @@ import { stateCounts } from "@/features/chat/ui/state/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/StateCornerCounts";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { NO_CHATS, useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
+import type { SettingValue } from "@/foundation/ui/storage";
 import { href, type ProjectTab } from "@/foundation/ui/navigation/router";
-import { PROJECT_TAB_ORDER, PROJECT_TABS_LAYOUT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/projects/ui/storage";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -17,13 +17,13 @@ import { applyTabOrder } from "./tabOrder";
 import { useMemo } from "react";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
-export type ProjectTabsLayout = SettingValue<typeof PROJECT_TABS_LAYOUT>;
+export type ProjectTabsLayout = SettingValue<typeof storage.settings.tabsLayout>;
 /** 置き方の名前（設定の「表示」と、タブの右クリックのメニューで共通） */
 export const PROJECT_TABS_LAYOUT_LABELS: Record<ProjectTabsLayout, string> = { top: "上に横並び", side: "左に縦並び（アイコン）" };
 
 /** タブの置き方（設定の「表示」で選ぶ。どのプロジェクトでも同じ。初めは左に縦並び（選んだことがなければ、入れたばかりでも縦並び）） */
 export function useProjectTabsLayout() {
-  return useSetting(PROJECT_TABS_LAYOUT);
+  return useSetting(storage.settings.tabsLayout);
 }
 
 /** タブの数を取り直している最中か（ボード = チャットの一覧・変更 = Git の状態。数の代わりに更新中の印を出す） */
@@ -83,7 +83,7 @@ export const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
 
 /** 並べ替えた順のタブ（まとまりをほどいて 1 列に。右サイドバーの見出しの名前） */
 export function useOrderedProjectTabs(): TabSpec[] {
-  const [saved] = useSetting(PROJECT_TAB_ORDER);
+  const [saved] = useSetting(storage.settings.tabOrder);
   return useMemo(() => applyTabOrder(TAB_GROUPS, saved).flatMap((g) => g.tabs), [saved]);
 }
 
@@ -183,7 +183,7 @@ export function ProjectTabs({
         <ChoiceMenu
           at={menu.menu.at}
           title="タブの置き方"
-          values={PROJECT_TABS_LAYOUT.choices}
+          values={storage.settings.tabsLayout.choices}
           labels={PROJECT_TABS_LAYOUT_LABELS}
           value={layout}
           onPick={setLayout}

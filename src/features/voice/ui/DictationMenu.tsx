@@ -3,7 +3,7 @@ import { Check, Settings } from "lucide-react";
 import { VOICE_LANGUAGES } from "@shared/voice/types";
 import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { VOICE_MIC_DEVICE } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -21,7 +21,7 @@ const OPENER = ".dictation-more";
 export function useDictationMenu() {
   const menu = useContextMenu({ align: "start", side: "above" });
   const [mics, setMics] = useState<{ id: string; label: string }[]>([]);
-  const [device, setDevice] = useSetting(VOICE_MIC_DEVICE);
+  const [device, setDevice] = useSetting(storage.settings.micDevice);
   const settings = useAppSettings().data;
   const show = (open: () => void) => {
     open();

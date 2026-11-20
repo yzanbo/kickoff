@@ -22,7 +22,7 @@ import { PaletteChatChips, PaletteProjectMark } from "@/features/chatList/ui/Pal
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { busyWithUnread } from "@shared/chat/state";
 import { hiddenItemsOf, toggleHiddenItem } from "@/foundation/ui/lib/hiddenItems";
-import { ACTIVE_CHATS_HIDDEN_STATES, ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/foundation/ui/storage/storageKeys";
+import { paletteSettings } from "@/features/palette/ui";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
 import { ACTIVE_STATE_LABELS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } from "./PaletteStateFilter";
 
@@ -53,9 +53,9 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   const { ref: dialogRef, ...dialog } = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
-  const [showArchived, setShowArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
+  const [showArchived, setShowArchived] = useSetting(paletteSettings.activeShowArchivedProjects);
   // 並べる状態（隠したものだけを覚える。すべて隠した値が残っていても、すべて出す）
-  const [hiddenStates, setHiddenStates] = useSetting(ACTIVE_CHATS_HIDDEN_STATES);
+  const [hiddenStates, setHiddenStates] = useSetting(paletteSettings.activeHiddenStates);
   const shownStates = useMemo(() => {
     const hidden = hiddenItemsOf(ACTIVE_STATES, hiddenStates);
     return new Set<ActiveState>(hidden.size === ACTIVE_STATES.length ? ACTIVE_STATES : ACTIVE_STATES.filter((s) => !hidden.has(s)));

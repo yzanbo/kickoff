@@ -14,7 +14,7 @@ import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/St
 import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { clusterInitial, type TabCluster } from "./tabClusters";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PANEL_TAB_CLUSTER_SHORT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chatPanel/ui/storage";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
 import { newChatPlaceOf } from "@/features/chatList/ui/buckets";
@@ -111,7 +111,7 @@ export function TabClusterHead({
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
   // 「まとまりの名前を省略」のときは頭の 1 文字だけ（名前は乗せたときの説明に出る。まとめないときの「チャット」の札は省かない）
-  const [shortSetting] = useSetting(PANEL_TAB_CLUSTER_SHORT);
+  const [shortSetting] = useSetting(storage.settings.clusterShort);
   const short = shortSetting && !all;
   const nameText = <span className="panel-tab-cluster-text">{short ? clusterInitial(cluster) : cluster.label}</span>;
   return (

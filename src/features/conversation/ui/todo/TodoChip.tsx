@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { todoHidden } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
@@ -38,7 +38,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
  */
 export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent[] }) {
   const list = useMemo(() => collectTodoList(events), [events]);
-  const [hidden, setHidden] = useSetting(todoHidden(chatId));
+  const [hidden, setHidden] = useSetting(storage.settings.todoHidden(chatId));
   const popover = usePopover();
   const staleFold = useFold("composer", "todo-stale", { defaultOpen: false });
   const historyFold = useFold("composer", "todo-history", { defaultOpen: false });

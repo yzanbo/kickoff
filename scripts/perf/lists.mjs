@@ -110,20 +110,20 @@ const imports = STORAGE_IMPORTS;
 function scenarios(projectId, count) {
   const sidebarOpen = (grouping) => ({
     name: `サイドバー: プロジェクトの一覧を開く（${grouping}）`,
-    setup: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/notes";`,
+    setup: `${imports} s.writeSetting(k.chatList.sections, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/notes";`,
     action: `${imports} f.foldAll("sidebar", false);`,
     count: ROWS(projectId),
   });
   const sidebarSwitch = (from, to) => ({
     name: `サイドバー: まとめ方を切り替える（${from} → ${to}）`,
-    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${from}"); location.hash = "#/projects/${projectId}/notes";`,
-    action: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${to}");`,
+    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.chatList.sections, "${from}"); location.hash = "#/projects/${projectId}/notes";`,
+    action: `${imports} s.writeSetting(k.chatList.sections, "${to}");`,
     count: ROWS(projectId),
   });
   const board = (name, view, columns, hash) => ({
     name,
     // 先にボードを閉じる（開いたボードは見え方を覚え直すので、開いたまま書くと戻される）
-    setup: `${imports} location.hash = "#/projects/${projectId}/notes"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}); s.writeSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}, { ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/notes";`,
+    setup: `${imports} location.hash = "#/projects/${projectId}/notes"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.board.${hash === "#/" ? "lastViewAll" : "lastView"}); s.writeSetting(k.board.${hash === "#/" ? "lastViewAll" : "lastView"}, { ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/notes";`,
     action: `location.hash = "${hash}";`,
     count: CARDS,
   });
@@ -157,7 +157,7 @@ export async function measureLists({ count = 1000, projectId = 21, groups = 8, r
         await page.send("Profiler.enable");
         if (count > 0) ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups }) }));
         // 要対応だけ・アーカイブ済みを隠す（測るチャットがすべて並ぶように）
-        await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
+        await page.evaluate(`(localStorage.setItem("kickoff:sidebar:waiting-only", "0"), 1)`);
         await reload(page);
         await sleep(1500);
         for (const sc of scenarios(projectId, count)) {

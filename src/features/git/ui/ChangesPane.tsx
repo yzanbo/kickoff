@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { GitStatus } from "@shared/git/types";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHANGES_TREE } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { ListHideButton } from "@/foundation/ui/kit/ListRail";
@@ -48,7 +48,7 @@ export function ChangesPane({
   onHideList: () => void;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
-  const [changesTree, setChangesTree] = useSetting(CHANGES_TREE);
+  const [changesTree, setChangesTree] = useSetting(storage.settings.changesTree);
   // 「ステージされている変更」「変更」の開閉（見出しの「すべて開く / すべて閉じる」でまとめて変えるため、ここで持つ）
   const commitActions = useCommitActions({ status, git, action });
   const moreMenu = useContextMenu({ align: "end" });

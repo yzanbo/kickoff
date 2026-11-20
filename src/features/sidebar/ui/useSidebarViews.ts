@@ -1,20 +1,9 @@
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { addView, moveView, removeView, renameView, replaceViewState } from "@/foundation/ui/lib/namedViews";
-import {
-  SIDEBAR_CHAT_ORDER,
-  SIDEBAR_CHAT_SECTIONS,
-  SIDEBAR_COMPACT,
-  SIDEBAR_LAYOUT,
-  SIDEBAR_PROJECT_COMPACT,
-  SIDEBAR_PROJECT_ORDER,
-  SIDEBAR_SAVED_VIEWS,
-  SIDEBAR_SHOW_ARCHIVED,
-  SIDEBAR_SHOW_ARCHIVED_PROJECTS,
-  SIDEBAR_VIEW_SELECTED,
-  SIDEBAR_WAITING_ONLY,
-  SIDEBAR_WAITING_VIEW,
-} from "@/foundation/ui/storage/storageKeys";
+import { chatListSettings } from "@/features/chatList/ui";
+import { storage } from "./storage";
+import { projectsSettings } from "@/features/projects/ui";
 import { activeSidebarView, parseSidebarViews, type SidebarView, type SidebarViewState } from "./sidebarViews";
 
 /**
@@ -23,20 +12,20 @@ import { activeSidebarView, parseSidebarViews, type SidebarView, type SidebarVie
  * selected は最後に選んだビュー（⚙ の窓の「上書き」の先。いまの見え方に合うビューがあれば、そちらを選んでいるものとみなす）
  */
 export function useSidebarViews() {
-  const [stored, setStored] = useSetting(SIDEBAR_SAVED_VIEWS);
+  const [stored, setStored] = useSetting(storage.settings.savedViews);
   const views = useMemo(() => parseSidebarViews(stored), [stored]);
-  const [selectedId, setSelectedId] = useSetting(SIDEBAR_VIEW_SELECTED);
+  const [selectedId, setSelectedId] = useSetting(storage.settings.viewSelected);
 
-  const [layout, setLayout] = useSetting(SIDEBAR_LAYOUT);
-  const [projectOrder, setProjectOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
-  const [projectCompact, setProjectCompact] = useSetting(SIDEBAR_PROJECT_COMPACT);
-  const [showArchivedProjects, setShowArchivedProjects] = useSetting(SIDEBAR_SHOW_ARCHIVED_PROJECTS);
-  const [grouping, setGrouping] = useSetting(SIDEBAR_CHAT_SECTIONS);
-  const [chatOrder, setChatOrder] = useSetting(SIDEBAR_CHAT_ORDER);
-  const [chatCompact, setChatCompact] = useSetting(SIDEBAR_COMPACT);
-  const [showArchivedChats, setShowArchivedChats] = useSetting(SIDEBAR_SHOW_ARCHIVED);
-  const [waitingOn, setWaitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
-  const [waitingView, setWaitingView] = useSetting(SIDEBAR_WAITING_VIEW);
+  const [layout, setLayout] = useSetting(storage.settings.layout);
+  const [projectOrder, setProjectOrder] = useSetting(projectsSettings.listOrder);
+  const [projectCompact, setProjectCompact] = useSetting(chatListSettings.projectCompact);
+  const [showArchivedProjects, setShowArchivedProjects] = useSetting(storage.settings.showArchivedProjects);
+  const [grouping, setGrouping] = useSetting(chatListSettings.sections);
+  const [chatOrder, setChatOrder] = useSetting(chatListSettings.order);
+  const [chatCompact, setChatCompact] = useSetting(chatListSettings.compact);
+  const [showArchivedChats, setShowArchivedChats] = useSetting(chatListSettings.showArchived);
+  const [waitingOn, setWaitingOn] = useSetting(storage.settings.waitingOnly);
+  const [waitingView, setWaitingView] = useSetting(storage.settings.waitingView);
 
   const current: SidebarViewState = {
     layout,

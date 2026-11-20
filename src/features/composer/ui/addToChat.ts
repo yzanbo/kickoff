@@ -2,7 +2,7 @@
 import type { Attachment } from "@shared/chat/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { showToast } from "@/foundation/ui/kit/toast";

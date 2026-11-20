@@ -3,7 +3,7 @@ import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/foundation
 import { contextRatio } from "./chatSort";
 
 // ボードのカード・リストの行・フィードのカードに出す項目（ツールバーの「表示項目」で、項目ごとに出す・隠すを選ぶ）。
-// 覚えるのは隠した項目だけ（BOARD_CARD_HIDDEN）。名前（チャット名）とアーカイブ済みの札はいつも出す
+// 覚えるのは隠した項目だけ（board:card-hidden）。名前（チャット名）とアーカイブ済みの札はいつも出す
 
 export const CARD_FIELDS = ["state", "project", "group", "worktree", "model", "pending", "turns", "cost", "context", "active", "created"] as const;
 export type CardField = (typeof CARD_FIELDS)[number];

@@ -6,7 +6,7 @@ import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 
 /**
  * 読むだけのファイルの中身の表（大きすぎて途中までのファイル。FileView が編集の部品の代わりに出す）。
- * 開いた行（line）を真ん中に出す。wrap なら横幅に入らない行を折り返す（編集の部品と同じ設定 EDITOR_WORD_WRAP）
+ * 開いた行（line）を真ん中に出す。wrap なら横幅に入らない行を折り返す（編集の部品と同じ設定 files:word-wrap）
  */
 export function ReadOnlyCode({ path, content, line, wrap }: { path: string; content: string; line?: number; wrap: boolean }) {
   const lines = useMemo(() => content.replace(/\n$/, "").split("\n"), [content]);

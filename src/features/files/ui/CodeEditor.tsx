@@ -7,7 +7,7 @@ import type { GitBlame } from "@shared/git/types";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { EDITOR_WORD_WRAP } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
 import { registerCodeSelection } from "@/foundation/ui/code/codeSelection";
 import { quickDiffDecorations, readSelection } from "./codeEditorParts";
@@ -106,7 +106,7 @@ export default function CodeEditor({
   const refreshBlame = useRef<(() => void) | null>(null);
   const theme = useAppliedTheme();
   // 横幅に入らない行を折り返すか（ファイルの見出しのボタンと、エディタの中の ⌥Z で切り替える。どのファイルでも共通）
-  const [wrap, setWrap] = useSetting(EDITOR_WORD_WRAP);
+  const [wrap, setWrap] = useSetting(storage.settings.wordWrap);
   const wrapRef = useLatest({ wrap, setWrap });
   // ⌘F の検索の欄に渡すエディタ（作ったら入れる。差分の編集では右の編集する側）
   // （入れ物の要素も一緒に持つ。描く中で hostRef を読まない）

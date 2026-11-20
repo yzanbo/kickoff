@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import type { Setting } from "@/foundation/ui/storage/settings";
+import type { Setting } from "@/foundation/ui/storage";
 import { useSetting } from "./useSetting";
 
 /** ドラッグの向き（x = 左右に動かして幅 / y = 上下に動かして高さ） */
@@ -35,7 +35,7 @@ export function draggedSize(start: number, moved: number, { edge, min, max }: { 
 type SizeProperty = "width" | "height" | "maxHeight" | "flexBasis" | `--${string}`;
 
 interface DragSizeOptions<E extends HTMLElement> {
-  /** 覚える設定（lib/storageKeys.ts。ダブルクリックでその初めの値に戻す） */
+  /** 覚える設定（機能の ui/storage.ts の宣言。ダブルクリックでその初めの値に戻す） */
   setting: Setting<number>;
   /** 既定は x（幅） */
   axis?: DragAxis;

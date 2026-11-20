@@ -5,5 +5,5 @@ import { storage as legacyKeys } from "@/foundation/ui/storage/legacyKeys";
 
 const modules = import.meta.glob<StorageGroup>(["../../features/*/ui/storage.ts", "../../foundation/ui/*/storage.ts"], { eager: true, import: "storage" });
 
-// storageKeys.ts の仮の群（legacyKeys.ts）は、0018 の P4-2b で機能ごとの storage.ts に配るまで（knip が glob の先を読まないので直に読む）
+// storageKeys.ts の残りの仮の群（legacyKeys.ts）は、持ち主の storage.ts へ移すまで（knip が glob の先を読まないので直に読む）
 export const STORAGE_GROUPS: readonly StorageGroup[] = [...Object.values(modules), legacyKeys];

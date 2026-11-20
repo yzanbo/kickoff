@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { CHANGES_LIST_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { filesSettings } from "@/features/files/ui";
 import { WorktreePicker } from "@/foundation/ui/workplace/WorktreePicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { HistoryMain } from "./HistoryMain";
@@ -45,7 +45,7 @@ export function HistoryTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。ファイルタブの一覧と同じ幅を覚える）
-  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: filesSettings.listWidth, min: 200, keep: 320 });
   // ブランチ・タグの右クリック（左の一覧とコミットの札で同じメニュー）
   const branchActions = useBranchActions(projectId, log, git, onWorktreeChange);
   const refMenu = useContextMenu<RefTarget>();

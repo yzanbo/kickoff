@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";
-import { dbTreeOpen, dbTreePins } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -24,13 +24,13 @@ import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeMenuTarget, type Tr
  */
 export function DbTree({ connections, onConnectionMenu }: { connections: DbConnection[]; onConnectionMenu: (e: React.MouseEvent, connection: DbConnection) => void }) {
   const client = useDbClient();
-  const [openList, setOpenList] = useSetting(dbTreeOpen(client.place));
+  const [openList, setOpenList] = useSetting(storage.settings.treeOpen(client.place));
   const isOpen = (key: string) => openList.includes(key);
   const toggle = (key: string) => setOpenList(isOpen(key) ? openList.filter((k) => k !== key) : [...openList, key]);
   const menu = useContextMenu<TreeMenuTarget>();
   const target = menu.menu?.value;
   const connected = useDbConnectedIds(client.projectId).data;
-  const [pins, setPins] = useSetting(dbTreePins(String(client.projectId)));
+  const [pins, setPins] = useSetting(storage.settings.pins(String(client.projectId)));
   const pin = target?.table && (target.table.kind === "table" || target.table.kind === "view") ? { connection_id: target.connection.id, path: target.path, name: target.table.name, kind: target.table.kind } : null;
   const pinned = pin !== null && isPinned(pins, pin);
   return (

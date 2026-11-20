@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { LAST_ROUTE } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { storage as shellStorage } from "@/foundation/ui/storage/storage";
 
 // プロジェクトの画面のタブ（設定はタブでなく、プロジェクト名の横の「編集」から開く。ファイル・検索・変更（ソース管理）は開いたファイルを共有する）
 const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "notes", "db", "github", "docker", "ci", "trash"] as const;
@@ -96,7 +96,7 @@ export function useHashRoute(onChange?: (route: Route, replace: boolean) => void
     setRoute(next);
   });
   // 最後に見ていた画面を覚える（次に起動したときに開く。restoreLastRoute）
-  useEffect(() => writeSetting(LAST_ROUTE, href(lastingRoute(route))), [route]);
+  useEffect(() => writeSetting(shellStorage.settings.lastRoute, href(lastingRoute(route))), [route]);
   return route;
 }
 
@@ -113,7 +113,7 @@ export function lastingRoute(route: Route): Route {
  */
 export function restoreLastRoute() {
   if (location.hash.replace(/^#/, "") !== "") return;
-  const last = readSetting(LAST_ROUTE);
+  const last = readSetting(shellStorage.settings.lastRoute);
   if (last) history.replaceState(null, "", last);
 }
 

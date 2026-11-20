@@ -2,7 +2,7 @@ import { openPopout } from "@/foundation/ui/navigation/popout";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PROJECT_CHAT_MAXIMIZED, PROJECT_CHAT_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/projects/ui/storage";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { usePanelOpen } from "@/features/panel/ui/state/panelStore";
 import { panelKey } from "@/features/panel/ui/surfaces";
@@ -21,9 +21,9 @@ export function useProjectChat(projectId: number | undefined, { inWindow = false
   // 別ウィンドウへ移している間は、開いているものとして見せる（開閉の操作はそのウィンドウを前に出す）
   const open = usePanelOpen(key) || inWindow;
   // 幅（左端のつまみのドラッグ。真ん中に 480px は残す）
-  const width = useDragSize({ setting: PROJECT_CHAT_WIDTH, edge: "start", min: 320, keep: 480, write: "--chat-w" });
+  const width = useDragSize({ setting: storage.settings.projectChatWidth, edge: "start", min: 320, keep: 480, write: "--chat-w" });
   // 横幅いっぱい（左のサイドバーの右から画面の右端まで。真ん中の画面を覆う）
-  const [maximized, setMaximized] = useSetting(PROJECT_CHAT_MAXIMIZED);
+  const [maximized, setMaximized] = useSetting(storage.settings.projectChatMaximized);
 
   /** 開閉（タブがなくても、開くだけ） */
   const toggle = () => {

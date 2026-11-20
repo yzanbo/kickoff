@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PANEL_HIDDEN_GROUPS, PANEL_HIDE_EMPTY_GROUPS } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chatPanel/ui/storage";
 
 /**
- * タブの列（グループ別）で隠すグループ: 自分で作ったグループを 1 つずつ隠す（PANEL_HIDDEN_GROUPS）と、
- * チャットもタブもないグループの札を隠す（PANEL_HIDE_EMPTY_GROUPS）。どちらもすべてのパネル・ペインで共通。
+ * タブの列（グループ別）で隠すグループ: 自分で作ったグループを 1 つずつ隠す（storage.settings.hiddenGroups）と、
+ * チャットもタブもないグループの札を隠す（storage.settings.hideEmptyGroups）。どちらもすべてのパネル・ペインで共通。
  * グループなし（No Group）・固定・アーカイブ済みは隠せない
  */
 export function useHiddenTabGroups() {
-  const [ids, setIds] = useSetting(PANEL_HIDDEN_GROUPS);
-  const [hideEmpty, setHideEmpty] = useSetting(PANEL_HIDE_EMPTY_GROUPS);
+  const [ids, setIds] = useSetting(storage.settings.hiddenGroups);
+  const [hideEmpty, setHideEmpty] = useSetting(storage.settings.hideEmptyGroups);
   const hidden = useMemo(() => new Set(ids.map(Number)), [ids]);
   return {
     /** 隠しているグループの ID */

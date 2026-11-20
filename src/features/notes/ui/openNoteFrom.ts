@@ -5,7 +5,7 @@ import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/p
 import { openNote } from "@/foundation/ui/navigation/router";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
-import { readSetting } from "@/foundation/ui/storage/settings";
+import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "@/features/chat/ui/open/openChat";
 import { panelActions } from "@/features/panel/ui/state/panelActions";

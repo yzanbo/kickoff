@@ -4,7 +4,7 @@ import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraf
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { githubReviewDraft } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { EMPTY_REVIEW_DRAFT } from "./githubReviewDraft";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -14,7 +14,7 @@ import { targetLabel, type ReviewTarget } from "./reviewLines";
 
 /** PR のレビューの書きかけ（ためた行のコメントと本文。プロジェクトと PR ごとに画面の保存へ。アプリを閉じても残り、送ったら消える） */
 export function useReviewDraft(projectId: number, number: number) {
-  return useSetting(githubReviewDraft(`${projectId}:${number}`));
+  return useSetting(storage.settings.reviewDraft(`${projectId}:${number}`));
 }
 
 /**

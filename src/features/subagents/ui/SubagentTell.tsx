@@ -5,7 +5,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { isCancelKey, isComposing, consumeKey } from "@/foundation/ui/lib/keys";
-import { SUBAGENT_ASK_MODE, subagentTellDraft } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
@@ -31,21 +31,21 @@ const ASK_MODE_HELP: Record<AskMode, string> = {
 };
 
 /**
- * そのサブエージェントへの入力欄（右の欄の画面のいちばん下・流れの中のカードの「伝える」で共通）。上の切り替えで送り先を選ぶ（最後に選んだ方を覚える SUBAGENT_ASK_MODE）:
+ * そのサブエージェントへの入力欄（右の欄の画面のいちばん下・流れの中のカードの「伝える」で共通）。上の切り替えで送り先を選ぶ（最後に選んだ方を覚える storage.settings.askMode）:
  * - メインエージェント経由で伝える: Kickoff から直接は送れないので、メインエージェントに  SendMessage でそのまま渡してもらう（メインエージェントが作業中なら止めずに伝え、
  *   作業中でなければすぐ送る。どちらも tell の API が決める）。送った文は、そのサブエージェントの流れに自分の発言として出る。
  *   終わったサブエージェントに伝えると、終わったところから再開する（案内に出す）。
  * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
  *   メインエージェントにもサブエージェント本人にも伝わらず、メインエージェントが作業中でもすぐ送る。作った子チャットは設定の「子チャットを作ったとき」で開く。
- * 書きかけの文はサブエージェントごとに残す（subagentTellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す。
+ * 書きかけの文はサブエージェントごとに残す（storage.settings.tellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す。
  * 入力欄はチャット欄と同じ形にそろえ、効くものだけを出す: 定型文の帯・ほかのチャットの参照はどちらでも。伝えるときは、メインエージェントの作業中に いま / あとで
- * （チャット欄と同じ QUEUE_MODE。あとで = メインのチャットの送信待ちに伝える文を入れる）。子チャットで聞くときは、モデル・深さ・権限・ファスト（作る子チャットに効かせる。
+ * （チャット欄と同じ composer:queue-mode。あとで = メインのチャットの送信待ちに伝える文を入れる）。子チャットで聞くときは、モデル・深さ・権限・ファスト（作る子チャットに効かせる。
  * 初めは設定どおりの既定）。伝えるときのモデルなど（サブエージェントのモデルはメインエージェントが起動したときに決まり、変えられない）とコンテキストのメーター
  * （サブエージェントごとの使用率は Claude Code が知らせない）は出さない
  */
 export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry: SubagentEntry; view: SubagentsView; autoFocus?: boolean; onSent?: () => void }) {
   const { agentId, description } = entry;
-  const [mode, setMode] = useSetting(SUBAGENT_ASK_MODE);
+  const [mode, setMode] = useSetting(storage.settings.askMode);
   const logBlock = useFeatureBlock("subagent_log");
   const [queueMode, setQueueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
@@ -107,7 +107,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         chatContext={{ projectId: view.projectId, exclude: view.chatId }}
         handleRef={composer}
         suggestTarget={{ projectId: view.projectId, worktree: view.worktree ?? undefined }}
-        draft={subagentTellDraft(`${view.chatId}:${entry.key}`)}
+        draft={storage.settings.tellDraft(`${view.chatId}:${entry.key}`)}
       />
     </>
   );

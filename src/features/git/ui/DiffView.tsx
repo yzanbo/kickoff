@@ -8,11 +8,9 @@ import { languageOf } from "@/foundation/ui/code/languages";
 import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
-import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { DIFF_LAYOUT } from "@/foundation/ui/storage/storageKeys";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { DiffLayoutToggle } from "@/foundation/ui/diff/DiffLayoutToggle";
+import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { parseDiff, toSplitRows, type DiffLine } from "@/foundation/ui/diff/diffModel";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
 
@@ -73,7 +71,7 @@ export function DiffView({
   /** 読み込み済みの差分（useFileDiff。外で読んでいるときは、ここでは読まない） */
   source?: LoadedDiff;
 }) {
-  const [layout] = useSetting(DIFF_LAYOUT);
+  const layout = useDiffLayout();
   // 左右に並べる設定でも、2 つ並べると読めない狭い欄（チャットの画面の右の欄など）では 1 列で出す（設定は変えない）
   const { ref, narrow } = useNarrowerThan<HTMLDivElement>(SPLIT_MIN_WIDTH);
   const shown = layout === "split" && narrow ? "unified" : layout;

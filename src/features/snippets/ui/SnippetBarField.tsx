@@ -1,5 +1,5 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SNIPPET_BAR_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 
@@ -8,7 +8,7 @@ import { Segmented } from "@/foundation/ui/kit/Segmented";
  * チャットの見出しの右クリックの「チャット画面表示」→「定型文の帯」・帯の右クリックの「定型文の帯を隠す」と同じ設定）
  */
 export function SnippetBarField() {
-  const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   return (
     <Field
       label="定型文の帯"

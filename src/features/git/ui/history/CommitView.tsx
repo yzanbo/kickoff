@@ -8,7 +8,7 @@ import { baseName } from "@/foundation/ui/lib/format";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { COMMIT_FILES_LIST, COMMIT_FILES_WIDTH } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/git/ui/storage";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -57,9 +57,9 @@ export function CommitView({
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木）
-  const [list, setList] = useSetting(COMMIT_FILES_LIST);
+  const [list, setList] = useSetting(storage.settings.commitFilesTree);
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
-  const { paneRef: filesPaneRef, ...filesPane } = useDragSize({ setting: COMMIT_FILES_WIDTH, min: 160, keep: 320 });
+  const { paneRef: filesPaneRef, ...filesPane } = useDragSize({ setting: storage.settings.commitFilesWidth, min: 160, keep: 320 });
 
   // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
   useEffect(() => setFile(detail?.files[0]), [detail]);

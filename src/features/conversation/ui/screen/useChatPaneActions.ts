@@ -4,7 +4,7 @@ import { chatLog } from "@/features/chat/ui/store/useChatStore";
 import type { ChatLogView } from "@/features/chat/ui/store/chatStore";
 import { api } from "@/foundation/ui/api";
 import { createCell } from "@/foundation/ui/store";
-import { readSetting } from "@/foundation/ui/storage/settings";
+import { readSetting } from "@/foundation/ui/storage";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";

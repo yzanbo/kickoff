@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { NEW_CHAT_DRAFTS } from "@/foundation/ui/storage/storageKeys";
 import { writeDrafts } from "@/features/composer/ui/drafts/draftPersistence";
 import { isSidePanel, terminalKeysOf } from "./panelHandOff";

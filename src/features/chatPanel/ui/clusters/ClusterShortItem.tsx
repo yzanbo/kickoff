@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PANEL_TAB_CLUSTER_SHORT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chatPanel/ui/storage";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 
 /**
@@ -8,7 +8,7 @@ import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
  * 「表示」のメニューの「チャットのまとめ方」の下（keepOpen で閉じずに）と、札の右クリックに置く
  */
 export function ClusterShortItem({ keepOpen = false }: { keepOpen?: boolean }) {
-  const [on, setOn] = useSetting(PANEL_TAB_CLUSTER_SHORT);
+  const [on, setOn] = useSetting(storage.settings.clusterShort);
   return (
     <MenuItem
       role="menuitemcheckbox"

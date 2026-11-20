@@ -1,6 +1,6 @@
 import { webUrlOf } from "@shared/remoteImages/linkWarnings";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
-import { projectBrowserSession } from "@/foundation/ui/storage/storageKeys";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { chatPanelSettings } from "@/features/chatPanel/ui";
 import { normalizeUrl } from "@/foundation/ui/lib/url";
 import { reconcileLayout } from "@/features/panel/ui/layout/paneLayout";
 import { singlePane, type PaneLayout, type PaneNode } from "@/features/panel/ui/layout/paneTree";
@@ -45,7 +45,7 @@ function parsePane(value: unknown, ids: Set<string>, depth = 0): PaneNode | null
 
 /** 形の違うタブは捨て、配置だけ壊れていれば 1 つのペインに戻す */
 export function readBrowserSession(projectId: number): BrowserSession | null {
-  const saved = readSetting(projectBrowserSession(projectId));
+  const saved = readSetting(chatPanelSettings.projectBrowserSession(projectId));
   if (!Array.isArray(saved.tabs)) return null;
   const tabs = new Map<string, BrowserTab>();
   for (const value of saved.tabs) {
@@ -73,5 +73,5 @@ export function writeBrowserSession(projectId: number, state: Pick<PanelState, "
     const url = restorableUrl(tab.current ?? normalizeUrl(tab.url)) ?? "about:blank";
     return [{ kind: "browser", key: tab.key, url, title: url === "about:blank" ? "" : tab.title }];
   });
-  writeSetting(projectBrowserSession(projectId), state && tabs?.length ? { tabs, layout: state.layout } : {});
+  writeSetting(chatPanelSettings.projectBrowserSession(projectId), state && tabs?.length ? { tabs, layout: state.layout } : {});
 }

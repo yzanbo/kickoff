@@ -75,7 +75,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
     if (runPageFind()) e.preventDefault();
   });
   return (
-    // URL は別ウィンドウの行き先なので、画面の URL として購読しない（useHashRoute は見ている画面を LAST_ROUTE に覚えるので、
+    // URL は別ウィンドウの行き先なので、画面の URL として購読しない（useHashRoute は見ている画面を shell:last-route に覚えるので、
     // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされる）。useRoute() は初めの値（全プロジェクト）
     <>
       <ChatStatesContext.Provider value={chatStates}>

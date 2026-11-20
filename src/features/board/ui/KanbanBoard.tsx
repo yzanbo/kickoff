@@ -25,7 +25,7 @@ import { SavedViewTabs } from "./SavedViewTabs";
 import { FeedList } from "./FeedList";
 import { useFeed } from "./useFeed";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { ALL_PROJECTS_FEED } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { useKanbanChats } from "./useKanbanChats";
@@ -128,7 +128,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
   // 全プロジェクトのボードだけ、フィード（チャットごとの最新の返答を新しい順に）で見られる（ボード・リストとは別に覚える）
-  const [feedOn, setFeed] = useSetting(ALL_PROJECTS_FEED);
+  const [feedOn, setFeed] = useSetting(storage.settings.feedAll);
   const feed = allProjects && feedOn;
   const feedData = useFeed(feed);
   // 列の分け方（状態 / グループの列 / 分けない。全プロジェクトとプロジェクトのボードで別に覚える）

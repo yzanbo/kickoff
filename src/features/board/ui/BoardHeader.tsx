@@ -2,8 +2,8 @@ import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { SettingValue } from "@/foundation/ui/storage/settings";
-import { BOARD_SPLIT, BOARD_VIEW } from "@/foundation/ui/storage/storageKeys";
+import type { SettingValue } from "@/foundation/ui/storage";
+import { storage } from "./storage";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { PanelToggle } from "@/features/chatPanel/ui/board/PanelToggle";
@@ -13,15 +13,15 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useWrapCompact } from "@/foundation/ui/hooks/useOverflowCompact";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
-export type BoardView = SettingValue<typeof BOARD_VIEW>;
+export type BoardView = SettingValue<typeof storage.settings.view>;
 
 /**
  * 表示の種類と、段（スイムレーン）に分けるか（プロジェクトのボード・全プロジェクトのボードで共通。全プロジェクトのボードで列の分け方を切り替えてもそのまま）。
  * 段の分け方（グループ・作業場所・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
  */
 export function useBoardView() {
-  const [view, setView] = useSetting(BOARD_VIEW);
-  const [split, setSplit] = useSetting(BOARD_SPLIT);
+  const [view, setView] = useSetting(storage.settings.view);
+  const [split, setSplit] = useSetting(storage.settings.split);
   return { view, split, setView, setSplit };
 }
 

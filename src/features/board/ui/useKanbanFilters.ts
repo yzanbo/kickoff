@@ -2,14 +2,15 @@ import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { ALL_PROJECTS_BOARD_LANES, BOARD_ARCHIVE_FILTER, PROJECT_BOARD_LANES } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { chatListSettings } from "@/features/chatList/ui";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { useWorktreesOf } from "@/foundation/ui/workplace/worktreesStore";
 import type { BoardLane } from "./BoardLanes";
 
 /** カンバンの絞り込み（アーカイブ（覚えておく）・作業場所・名前の検索） */
 export function useKanbanFilters() {
-  const [archive, setArchive] = useSetting(BOARD_ARCHIVE_FILTER);
+  const [archive, setArchive] = useSetting(chatListSettings.archiveFilter);
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktree, setWorktree] = useState("all");
   const [query, setQuery] = useState("");
@@ -39,7 +40,7 @@ const KANBAN_LANES: BoardLane[] = ["group", "project", "worktree"];
  */
 export function useKanbanLanes(allProjects: boolean) {
   const options = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const setting = allProjects ? ALL_PROJECTS_BOARD_LANES : PROJECT_BOARD_LANES;
+  const setting = allProjects ? storage.settings.lanesAll : storage.settings.lanes;
   const [choice, setLanes] = useSetting(setting);
   const lanes: BoardLane = options.includes(choice) ? choice : setting.initial;
   return { lanes, options, setLanes };

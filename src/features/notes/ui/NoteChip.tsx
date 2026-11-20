@@ -4,7 +4,8 @@ import { canPopout } from "@/foundation/ui/navigation/popout";
 import { openNote } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { NOTE_OPEN_IN, noteOpenFolders } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useNoteList } from "@/features/notes/ui/stores/notes";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -25,7 +26,7 @@ import { followMovedNote, useNoteActions } from "./useNoteActions";
  * 入力欄の上の「ノート」（指示の履歴・子チャットと同じピルの列）。押すとノートのフォルダの木（ノートのタブと同じ並び・同じ開いているフォルダ。
  * ノートの入っていないフォルダは出さない）を出し、ノートの行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
  * 行の右のボタンで、ノートを開かずにこのチャットの入力欄に追加する（押した時点の写しの札。一覧は閉じず、続けていくつも足せる）・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられ、
- * 右端の「フォルダをすべて開く / すべて閉じる」で木のフォルダをまとめて開閉する。開閉はプロジェクトごとに 1 つ（noteOpenFolders）なので、
+ * 右端の「フォルダをすべて開く / すべて閉じる」で木のフォルダをまとめて開閉する。開閉はプロジェクトごとに 1 つ（storage.settings.openFolders）なので、
  * 同じプロジェクトのどのチャットのピルでも、ノートのタブの木でも同じになる
  * 行をドラッグしてフォルダ（一覧の空いている所なら直下）へ落とすと動かす（ノートのタブの木と同じ）。
  * プロジェクトにノートがなければ出さない。
@@ -41,7 +42,7 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
   const [openIn, setOpenIn] = useSetting(NOTE_OPEN_IN);
   const tree = useMemo(() => buildNoteFileTree(list.data?.entries ?? []), [list.data]);
   // 開いているフォルダは、ノートのタブの木と同じものを覚える（どちらで開け閉めしても、もう一方も同じになる）
-  const [openList, setOpenList] = useSetting(noteOpenFolders(projectId));
+  const [openList, setOpenList] = useSetting(storage.settings.openFolders(projectId));
   const openFolders = useMemo(() => new Set(openList), [openList]);
   // ドラッグを重ねている落とす先のフォルダ（"" は直下 = 一覧ごと示す。null は重ねていない）
   const [dropTarget, setDropTarget] = useState<string | null>(null);

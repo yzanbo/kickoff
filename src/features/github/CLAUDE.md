@@ -19,7 +19,7 @@
 
 - この Mac のアプリの中だけ（`window.kickoff`）。ブラウザ・スマホではタブも右の欄の項目も出さない（CI も同じ）。GitHub・CI の口は端末に開かない。
 - 中身は DB に持たない（一覧は ETag で聞き直す）。書いたらそのプロジェクトの覚えを捨てる。本文の画像は連携先のリポジトリの中だけを取る。
-- 絞り込みと開いているものはプロジェクトごとに覚え、タブと右の欄で同じ値（`githubFilters`・`githubSelected`）。
+- 絞り込みと開いているものはプロジェクトごとに覚え、タブと右の欄で同じ値（`github:filters`・`githubSelected`）。
 - AI に渡すのは入力欄に入れるだけ。札は外から来た中身（`api.capture`）。選んだ文は引用にして札にしない。
 - 書くボタンは GitHub が許すときだけ出す（`viewer`・`can_*`）。マージはいつも確認し、見ていた `head_sha` で頼む。
 - ダイアログは `githubDialogs.ts` で頼み、App と別ウィンドウに 1 つずつの `GitHubDialogHost` が描く。

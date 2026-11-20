@@ -1,5 +1,5 @@
 // テーマの選び方と、テーマごとの画面の地の色。
-// 画面の設定（renderer の lib/storageKeys.ts の THEME）と、窓の地の色（メインプロセスの app/appearance.ts。画面を読み込む前・大きさを変えている間に見える色）で同じものを使う
+// 画面の設定（画面の保存の shell:theme）と、窓の地の色（メインプロセスの app/appearance.ts。画面を読み込む前・大きさを変えている間に見える色）で同じものを使う
 
 /** テーマの選び方（system は OS のダーク・ライトに合わせる） */
 export const THEME_CHOICES = ["dark", "light", "system"] as const;

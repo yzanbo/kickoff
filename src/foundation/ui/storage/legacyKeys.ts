@@ -1,5 +1,5 @@
-// storageKeys.ts の宣言をまとめて包む仮の群（起動の片付けが宣言済みとみなすのは、渡した群だけ。@/app/renderer/storage.ts が集める）。
-// キーは前の名前のまま。0018 の P4-2b で、機能ごとの ui/storage.ts の defineSettings に配り、このファイルと storageKeys.ts を消す
+// storageKeys.ts（まだ機能へ配っていない残りの宣言）をまとめて包む仮の群（起動の片付けが宣言済みとみなすのは、渡した群だけ。
+// @/app/renderer/storage.ts が集める）。キーは前の名前のまま。残りを読み手を直す段で持ち主の ui/storage.ts へ移したら、このファイルと storageKeys.ts を消す
 import type { StorageGroup } from "./groups";
 import * as keys from "./storageKeys";
 

@@ -3,7 +3,7 @@ import type { ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types"
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SEARCH_HISTORY } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
 
@@ -30,7 +30,7 @@ export function useProjectSearch(projectId: number) {
   const [dismissed, setDismissed] = useState<DismissedResults>(new Set());
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useSetting(SEARCH_HISTORY);
+  const [history, setHistory] = useSetting(storage.settings.searchHistory);
   // 履歴をたどっている位置（-1 = 打っている文字）。打ったら戻す
   const historyIndex = useRef(-1);
   const latest = useRef(0);

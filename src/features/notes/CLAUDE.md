@@ -17,7 +17,7 @@
 ## 決まり
 
 - パスはノートのフォルダからの相対で、操作はファイルと同じ `folderFiles`（外・「.」で始まる名前を断る。指紋で 409）。変えたら SSE の `notes`。
-- 保存は ⌘S（と ⌘⇧S）だけ。書きかけは `noteDraft` に残す（タブを移っても・閉じても失わない）。
+- 保存は ⌘S（と ⌘⇧S）だけ。書きかけは `notes:draft` に残す（タブを移っても・閉じても失わない）。
 - 離れる・名前を変える・動かす・ゴミ箱に入れる前に `noteGuards.ts` の `confirmLeaveNote` で聞く（開いているノートは `registerNoteGuard` で知らせる）。
 - ノートのチャットに送る前・ノートを添付する前に書きかけを保存し、保存できなければ送らない・足さない。
 - ノートのフォルダは、どのチャットでも実行のときに書ける場所に足し、システムプロンプトで伝える（`buildTurnParams`）。AI にパスを渡すときは区切りが分かる形にする。
@@ -35,5 +35,5 @@
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう、窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ `chatDraft` を使う。欄は閉じても描いたまま置く（書きかけを残す）。
-- 開いているフォルダ `noteOpenFolders` はノートのタブと入力欄の上の `NoteChipTree` で共通。ドラッグの決まりも `noteDrag.ts` で共通。
+- 開いているフォルダ `openFolders` はノートのタブと入力欄の上の `NoteChipTree` で共通。ドラッグの決まりも `noteDrag.ts` で共通。
 - テストは `core/routes/server.notes.test.ts`（`noteFake`）。

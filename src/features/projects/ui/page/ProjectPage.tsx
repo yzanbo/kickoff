@@ -20,7 +20,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
 import type { FileTarget, ProjectTab, ReopenRoute } from "@/foundation/ui/navigation/router";
-import { editorWorktree } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/projects/ui/storage";
 import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
@@ -59,7 +59,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ファイル・検索・変更・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
-  const [storedWorktree, storeWorktree] = useSetting(editorWorktree(id));
+  const [storedWorktree, storeWorktree] = useSetting(storage.settings.workplace(id));
   const worktree = storedWorktree || undefined;
   const setWorktree = (path: string | undefined) => storeWorktree(path ?? "");
   // ファイル・検索・変更のタブ（同じ部品 EditorTab を、左の一覧の表示だけ変えて出す。行き来しても開いたファイルは共有）

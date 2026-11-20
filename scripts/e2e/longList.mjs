@@ -33,9 +33,9 @@ export const sidebarCheckExpr = (projectId, check) => `(async () => {
   ${STORAGE_IMPORTS}
   const rows = () => ${sidebarRows(projectId)};
   // 初めて開いたときに当たるビュー「標準」が当たってから、要対応をオフにする（偽のチャットがすべてプロジェクトの一覧に並ぶように）
-  ${until("s.readSetting(k.SIDEBAR_VIEW_SELECTED)", "サイドバーのビューが当たる")}
-  s.writeSetting(k.SIDEBAR_WAITING_ONLY, false);
-  s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "group");
+  ${until("s.readSetting(k.sidebar.viewSelected)", "サイドバーのビューが当たる")}
+  s.writeSetting(k.sidebar.waitingOnly, false);
+  s.writeSetting(k.chatList.sections, "group");
   f.foldAll("sidebar", true);
   ${until("rows().length === 0", "サイドバーの一覧が閉じる")}
   // 閉じた見え方を描き終えたと画面が覚えるまで（描いたあとの rAF 2 回と transition）待つ。覚える前に開くと、

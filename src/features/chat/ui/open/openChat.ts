@@ -6,7 +6,7 @@ import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/p
 import { openChat } from "@/foundation/ui/navigation/router";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { appendBlock } from "@/features/chat/ui/quote";

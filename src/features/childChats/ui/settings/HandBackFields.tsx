@@ -1,13 +1,13 @@
 import { HANDOFF_VIA_SHORT, HANDOFF_VIAS, type HandoffVia } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { HANDOFF_AFTER, HANDOFF_VIA } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/childChats/ui/storage";
 import { HANDOFF_AFTER_LABELS, HANDOFF_AFTERS, type HandoffAfter } from "@shared/chat/handoff";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 
 /** 設定の「表示」の「親チャットに追加するとき」（子チャットの作業の終わりの行の「親チャットに追加」を押したときの渡し方。入力欄 / 今すぐ送る / 送信待ち） */
 export function HandoffViaField() {
-  const [value, setValue] = useSetting(HANDOFF_VIA);
+  const [value, setValue] = useSetting(storage.settings.handBackVia);
   return (
     <Field
       label="親チャットに追加するとき"
@@ -26,7 +26,7 @@ export function HandoffViaField() {
 
 /** 設定の「表示」の「親チャットに追加したあと」（渡したあとの子チャット。そのまま / アーカイブ / 削除） */
 export function HandoffAfterField() {
-  const [value, setValue] = useSetting(HANDOFF_AFTER);
+  const [value, setValue] = useSetting(storage.settings.handBackAfter);
   return (
     <Field
       label="親チャットに追加したあと"

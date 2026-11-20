@@ -2,7 +2,7 @@ import { focusChatComposer } from "@/features/composer/ui/composerKeys";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { hasAppModifier } from "@/foundation/ui/lib/keys";
 import { saveAll } from "@/foundation/ui/lib/saveAll";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { CHAT_HEADER_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
 

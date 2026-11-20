@@ -2,7 +2,7 @@ import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { BackgroundState } from "@shared/chat/chatLive";
 import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
-import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
+import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
 import { queueModeTexts, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import type { QueueSendMode } from "@/features/composer/ui/composerKeys";

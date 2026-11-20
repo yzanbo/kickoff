@@ -10,7 +10,8 @@ import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useWhenVisible } from "@/foundation/ui/hooks/useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
-import { GITHUB_LIST_WIDTH, GITHUB_LIST_HIDDEN, githubFilters, githubSelected } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
+import { githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -62,13 +63,13 @@ export function GitHubTab({ projectId }: { projectId: number }) {
 }
 
 function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
-  const [filters, setFilters] = useSetting(githubFilters(projectId));
+  const [filters, setFilters] = useSetting(storage.settings.filters(projectId));
   const [selectedText, setSelectedText] = useSetting(githubSelected(projectId));
   const selected = parseSelected(selectedText);
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter, true);
   const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.listWidth, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
@@ -87,7 +88,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
     return map;
   }, [chats, repo]);
   // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
-  const [listHidden, setListHidden] = useSetting(GITHUB_LIST_HIDDEN);
+  const [listHidden, setListHidden] = useSetting(storage.settings.listHidden);
   const showList = narrow ? !selected : !listHidden;
   const showDetail = !narrow || selected;
 
