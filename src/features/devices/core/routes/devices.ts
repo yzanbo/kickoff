@@ -5,7 +5,7 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { callerOf } from "@/foundation/core/http/caller";
 import { DEVICE_NAME_MAX, type PairingCenter } from "@/features/devices/core/pairing";
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/foundation/core/db/store";
+import type { DeviceStore } from "@/features/devices/core/db/devices";
 import { idParam, jsonBody } from "@/foundation/core/http/input";
 import { tailscaleStatus } from "@/features/devices/core/tailscale";
 
@@ -27,13 +27,13 @@ const updateSchema = z.object({ access: accessSchema }) satisfies z.ZodType<Devi
  */
 export function deviceRoutes(
   app: Hono,
-  { pairing, store, bus, tailscaleCli, listen }: { pairing: PairingCenter; store: Store; bus: Bus; tailscaleCli: () => string | null; listen?: { host: string; port: number } },
+  { pairing, devices, bus, tailscaleCli, listen }: { pairing: PairingCenter; devices: DeviceStore; bus: Bus; tailscaleCli: () => string | null; listen?: { host: string; port: number } },
 ) {
   // 端末が自分（名前・できること）を読む（この Mac の画面は端末ではないので 400）
   app.get("/api/devices/self", (c) => {
     const caller = callerOf(c);
     if (caller.kind !== "device") throw new Invalid("つないだ端末から読む口です");
-    const device = store.devices.get(caller.deviceId);
+    const device = devices.get(caller.deviceId);
     if (!device) throw new NotFound("端末が見つかりません");
     return c.json(device);
   });
@@ -42,7 +42,7 @@ export function deviceRoutes(
     const caller = callerOf(c);
     if (caller.kind !== "device") throw new Invalid("プッシュの宛先は、つないだ端末が自分で登録します");
     const { push } = pushBodySchema.parse(await jsonBody(c));
-    store.devices.setPush(caller.deviceId, push);
+    devices.setPush(caller.deviceId, push);
     return c.body(null, 204);
   });
 
@@ -56,13 +56,13 @@ export function deviceRoutes(
     return c.json(pairing.approve(c.req.param("id"), access));
   });
   app.post("/api/pairing/requests/:id/deny", (c) => c.json(pairing.deny(c.req.param("id"))));
-  app.get("/api/devices", (c) => c.json(store.devices.list()));
+  app.get("/api/devices", (c) => c.json(devices.list()));
   // この Mac の Tailscale の様子（入っているか・つながっているか・この本体のポートへの Serve の URL・始めるコマンド）
   app.get("/api/tailscale", async (c) => c.json(await tailscaleStatus(tailscaleCli(), listen?.port ?? Number(new URL(c.req.url).port || 80))));
   // できることを変える（次の頼みから効く）
   app.patch("/api/devices/:id", async (c) => {
     const { access } = updateSchema.parse(await jsonBody(c));
-    const device = store.devices.setAccess(idParam(c), access);
+    const device = devices.setAccess(idParam(c), access);
     if (!device) throw new NotFound("端末が見つかりません");
     bus.publish({ type: "devices" });
     return c.json(device);

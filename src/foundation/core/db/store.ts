@@ -104,10 +104,13 @@ export class Store {
     this.chats = createChatStore(this.db, onChange, this.logRevisions, this.settings.get);
     this.chatProviderSessions = createChatProviderSessionStore(this.db);
     this.chatProviderHandoffs = createChatProviderHandoffStore(this.db);
-    this.groups = createGroupStore(this.db, onChange, this.chats.get);
+    this.groups = createGroupStore(this.db, onChange, {
+      idsIn: (group) => this.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
+      getChat: this.chats.get,
+    });
     this.events = createEventStore(this.db, onChange, this.chats.get, this.logRevisions);
     this.queues = createQueueStore(this.db);
-    this.snippets = createSnippetStore(this.db, onChange);
+    this.snippets = createSnippetStore(this.db, onChange, this.projects.trashedIds);
     this.prNotices = createPrNoticeStore(this.db);
     this.chatImages = createChatImageStore(this.db);
     this.ciNotices = createCiNoticeStore(this.db);

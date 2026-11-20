@@ -1,8 +1,9 @@
 // 端末のトークンを呼び主にする口（土台の認証 DeviceAuth の実装）。端末は devices の店（トークンは hash で引く）、スマホ連携のオンは設定
-import type { Store } from "@/foundation/core/db/store";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
+import type { Kernel } from "@/foundation/core/kernel";
+import type { DeviceStore } from "./db/devices";
 
-export function deviceAuth(store: Pick<Store, "devices" | "settings">): DeviceAuth {
+export function deviceAuth(store: { devices: DeviceStore; settings: Kernel["settings"] }): DeviceAuth {
   return {
     authenticate: (token) => {
       const device = store.devices.byToken(token);

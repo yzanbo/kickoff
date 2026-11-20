@@ -1,129 +1,64 @@
 import type { DatabaseSync } from "node:sqlite";
+import type { Notify } from "@/foundation/core/db/common";
 import { pickProjectHue } from "@shared/projects/colors";
 import { normalizeTags } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
-import { bit, updateRow, type Notify, type Row } from "@/foundation/core/db/common";
-import type { NewProject } from "@/foundation/core/db/types";
+import type { ProviderId } from "@shared/settings/types";
+import { projectsTable } from "@/features/projects/core/schema";
 
-/** プロジェクトの変えられる列（型と UPDATE の対象をここ 1 つで決める） */
-const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "provider_chat_defaults", "reference_paths", "note_folder", "note_dir", "pre_compact_prompt", "post_compact_prompt", "pre_compact_enabled", "post_compact_enabled", "github_account", "github_remote", "pr_watch", "ci_watch"] as const satisfies readonly (keyof Project)[];
-
-/** プロジェクトの変えられる項目 */
-export type ProjectPatch = Partial<Pick<Project, (typeof PROJECT_COLUMNS)[number]>>;
-
-/** DB の行（JSON の列は文字列、真偽値は 0 / 1） */
-type ProjectRow = Omit<Project, "pinned" | "tags" | "provider_chat_defaults" | "reference_paths" | "pre_compact_enabled" | "post_compact_enabled" | "pr_watch" | "ci_watch"> & {
-  pinned: number;
-  pr_watch: number;
-  ci_watch: number;
-  pre_compact_enabled: number;
-  post_compact_enabled: number;
-  tags: string;
-  provider_chat_defaults: string;
-  reference_paths: string;
-  /** ゴミ箱に入れた時刻（店の中だけで使い、Project には出さない） */
-  trashed_at: string | null;
-};
-
-/** DB の行をアプリの型にする（JSON の列の形は CHECK で守ってある） */
-function toProject(row: unknown): Project {
-  const { trashed_at: _trashedAt, ...r } = row as ProjectRow;
-  return {
-    ...r,
-    pinned: r.pinned === 1,
-    pre_compact_enabled: r.pre_compact_enabled === 1,
-    post_compact_enabled: r.post_compact_enabled === 1,
-    pr_watch: r.pr_watch === 1,
-    ci_watch: r.ci_watch === 1,
-    tags: JSON.parse(r.tags),
-    provider_chat_defaults: JSON.parse(r.provider_chat_defaults),
-    reference_paths: JSON.parse(r.reference_paths),
-  };
+/** 作るときの入力（ほかの項目は表の既定） */
+export interface NewProject {
+  name: string;
+  description?: string | null;
+  repo_path: string;
+  provider: ProviderId;
 }
 
-/** 変える項目を DB の列の値にする */
-function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, pr_watch, ci_watch, tags, provider_chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
-  return {
-    ...rest,
-    pinned: bit(pinned),
-    pre_compact_enabled: bit(pre_compact_enabled),
-    post_compact_enabled: bit(post_compact_enabled),
-    pr_watch: bit(pr_watch),
-    ci_watch: bit(ci_watch),
-    tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
-    provider_chat_defaults: provider_chat_defaults === undefined ? undefined : JSON.stringify(provider_chat_defaults),
-    reference_paths: reference_paths === undefined ? undefined : JSON.stringify(reference_paths),
-  } as Row;
-}
+/** プロジェクトの変えられる項目（番号・並び・作った時刻は変えない。並びは reorder） */
+export type ProjectPatch = Partial<Omit<Project, "id" | "position" | "created_at">>;
+
 
 /**
  * プロジェクト（projects の表。色・並び順・固定・アーカイブもここ）。Kickoff のゴミ箱に入れたプロジェクト（trashed_at がある）は
- * get・一覧から外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashed / setTrashed だけ
+ * get・一覧から外す（消したのと同じに見せる）。ゴミ箱から扱うのは findByPath・trashed・trashedIds・setTrashed だけ
  */
 export function createProjectStore(db: DatabaseSync, onChange: Notify) {
-  const get = (id: number): Project | undefined => {
-    const row = db.prepare("SELECT * FROM projects WHERE id = ? AND trashed_at IS NULL").get(id);
-    return row ? toProject(row) : undefined;
-  };
-  const list = (): Project[] => db.prepare("SELECT * FROM projects WHERE trashed_at IS NULL ORDER BY position, id").all().map(toProject);
+  const rows = projectsTable.on(db, (change) =>
+    onChange(change.kind === "upsert" ? { type: "project", project: change.row } : { type: "project_deleted", id: Number(change.id) }),
+  );
+  const trashed = (): Project[] => rows.raw.list("trashed_at IS NOT NULL").sort((a, b) => a.id - b.id);
   return {
-    get,
+    get: (id: number): Project | undefined => rows.get(id),
     /** すべて（サイドバーの並び順） */
-    list,
-    findByPath(repoPath: string): Project | undefined {
-      const row = db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath);
-      return row ? toProject(row) : undefined;
-    },
+    list: (): Project[] => rows.list(),
+    /** そのフォルダのプロジェクト（ゴミ箱のものも） */
+    findByPath: (repoPath: string): Project | undefined => rows.raw.list("repo_path = ?", [repoPath])[0],
     create(input: NewProject): Project {
-      const { lastInsertRowid } = db
-        .prepare(
-          `INSERT INTO projects (name, description, repo_path, provider, position, hue)
-           VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?)`,
-        )
-        .run(
-          input.name,
-          input.description || null,
-          input.repo_path,
-          input.provider,
-          // ほかのプロジェクト（しまったものも含む）と被らない色
-          pickProjectHue((db.prepare("SELECT hue FROM projects").all() as { hue: number }[]).map((r) => r.hue)),
-        );
-      const project = get(Number(lastInsertRowid))!;
-      onChange({ type: "project", project });
-      return project;
+      // ほかのプロジェクト（しまったもの・ゴミ箱のものも含む）と被らない色。並びは最後
+      const hue = pickProjectHue(rows.raw.list().map((p) => p.hue));
+      return rows.insert({ name: input.name, description: input.description || null, repo_path: input.repo_path, provider: input.provider, hue });
     },
     update(id: number, patch: ProjectPatch): Project {
-      updateRow(db, "projects", id, toProjectRow(patch), PROJECT_COLUMNS);
-      const project = get(id)!;
-      onChange({ type: "project", project });
-      return project;
+      return rows.update(id, patch.tags === undefined ? patch : { ...patch, tags: normalizeTags(patch.tags) });
     },
-    /** サイドバーでのプロジェクトの並び順を ids の順にする（並べたあとの一覧を返す） */
-    reorder(ids: number[]): Project[] {
-      const stmt = db.prepare("UPDATE projects SET position = ? WHERE id = ?");
-      ids.forEach((id, i) => stmt.run(i + 1, id));
-      for (const id of ids) {
-        const project = get(id);
-        if (project) onChange({ type: "project", project });
-      }
-      return list();
-    },
+    /** サイドバーでのプロジェクトの並び順を ids の順にする（書いていないものは後ろに続ける。並べたあとの一覧を返す） */
+    reorder: (ids: number[]): Project[] => rows.reorder(ids),
     /** ゴミ箱にあるプロジェクト（同じフォルダをもう一度登録しようとしたときに知らせる・本当に消す） */
-    trashed(): Project[] {
-      return db.prepare("SELECT * FROM projects WHERE trashed_at IS NOT NULL ORDER BY id").all().map(toProject);
-    },
+    trashed,
+    /** ゴミ箱にあるプロジェクトの番号（そのプロジェクトだけの定型文などを外す） */
+    trashedIds: (): Set<number> => new Set(trashed().map((p) => p.id)),
     /** ゴミ箱に入れる（at）・戻す（null）。入れたら消したのと同じに、戻したらプロジェクトとして知らせる */
     setTrashed(id: number, at: string | null): void {
       db.prepare("UPDATE projects SET trashed_at = ? WHERE id = ?").run(at, id);
       if (at !== null) onChange({ type: "project_deleted", id });
       else {
-        const project = get(id);
+        const project = rows.get(id);
         if (project) onChange({ type: "project", project });
       }
     },
+    /** 消す（消した知らせは、なかったときも出す） */
     delete(id: number) {
-      db.prepare("DELETE FROM projects WHERE id = ?").run(id);
-      onChange({ type: "project_deleted", id });
+      if (!rows.remove(id)) onChange({ type: "project_deleted", id });
     },
   };
 }

@@ -24,15 +24,17 @@ export interface DevicesApi {
 
 /** スマホ連携（ペアリング・端末・Tailscale の案内）。まだトークンを持たない端末の口は認証の外 */
 export function createDevices(k: KernelWithStore, env: DevicesEnv): CoreFeature<DevicesApi> {
-  const pairing = new PairingCenter({ store: k.store, publish: (e) => k.bus.publish(e), now: env.pairingNow });
+  // 端末の店は店の束が作ったもの（P3-4l で束をなくすまで、ほかの機能も束から読む）
+  const devices = k.store.devices;
+  const pairing = new PairingCenter({ devices, settings: k.settings, hostId: k.paths.databaseId, publish: (e) => k.bus.publish(e), now: env.pairingNow });
   // ポート 0（テスト。待ち受けない）なら、頼みの URL のポート
   const listen = k.paths.port ? { host: k.paths.host, port: k.paths.port } : undefined;
   return {
     name: "devices",
-    api: { auth: deviceAuth(k.store), mobileEnabled: () => k.settings.get().remote_enabled, pairing },
+    api: { auth: deviceAuth({ devices, settings: k.settings }), mobileEnabled: () => k.settings.get().remote_enabled, pairing },
     routes: [
       { access: "public", legacy: (app) => pairingClaimRoutes(app, { pairing }) },
-      { legacy: (app) => deviceRoutes(app, { pairing, store: k.store, bus: k.bus, tailscaleCli: env.tailscaleCli, listen }) },
+      { legacy: (app) => deviceRoutes(app, { pairing, devices, bus: k.bus, tailscaleCli: env.tailscaleCli, listen }) },
     ],
   };
 }

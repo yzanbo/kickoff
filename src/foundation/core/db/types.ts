@@ -3,13 +3,6 @@ import type { ChatOptionsPatch, ChatStatus } from "@shared/chat/types";
 import type { GitHubKind } from "@shared/github/types";
 import type { ProviderId } from "@shared/settings/types";
 
-export interface NewProject {
-  name: string;
-  description?: string | null;
-  repo_path: string;
-  provider: ProviderId;
-}
-
 /** 選択（モデル・深さ・権限・ファスト）は省けば、指定しない・毎回確認・使わない */
 export interface NewChat extends ChatOptionsPatch {
   project_id: number;

@@ -1,4 +1,7 @@
+import type { Project, ProjectReference } from "@shared/projects/types";
+import type { ProviderId } from "@shared/settings/types";
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
 
 /**
  * プロジェクト（v1）。position は 1 始まり。note_folder は親フォルダの下のノートのフォルダ名（初めてノートを使ったときに決める）、
@@ -34,3 +37,35 @@ CREATE TABLE projects (
   created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
 `;
+
+/** projects の表の列（行の型は Project。ゴミ箱に入れたもの = trashed_at がある行は既定で隠す。並びは 1 始まり） */
+export const projectsTable = table(
+  "projects",
+  {
+    id: col.int(),
+    name: col.text(),
+    description: col.text().nullable(),
+    repo_path: col.text(),
+    provider: col.text<ProviderId>(),
+    hue: col.int(),
+    tags: col.json<string[]>(),
+    reference_paths: col.json<ProjectReference[]>(),
+    provider_chat_defaults: col.json<Project["provider_chat_defaults"]>(),
+    note_folder: col.text().nullable(),
+    note_dir: col.text().nullable(),
+    pre_compact_prompt: col.text().nullable(),
+    pre_compact_enabled: col.bool(),
+    post_compact_prompt: col.text().nullable(),
+    post_compact_enabled: col.bool(),
+    github_account: col.text().nullable(),
+    github_remote: col.text().nullable(),
+    pr_watch: col.bool(),
+    ci_watch: col.bool(),
+    position: col.int(),
+    pinned: col.bool(),
+    archived_at: col.time().nullable(),
+    trashed_at: col.time().nullable().hidden(),
+    created_at: col.time(),
+  },
+  { hide: { column: "trashed_at" }, order: "position, id", position: { column: "position", base: 1 } },
+);

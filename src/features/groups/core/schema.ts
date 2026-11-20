@@ -1,4 +1,5 @@
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
 
 /** チャットのグループ（v1）。プロジェクトごとの並び（position は 0 始まり） */
 export const GROUPS_SCHEMA_V1 = `
@@ -12,3 +13,10 @@ CREATE TABLE chat_groups (
 ) STRICT;
 CREATE INDEX idx_chat_groups_project ON chat_groups(project_id, position);
 `;
+
+/** chat_groups の表の列（行の型は ChatGroup。並びはプロジェクトごとに 0 始まり） */
+export const chatGroupsTable = table(
+  "chat_groups",
+  { id: col.int(), project_id: col.int(), name: col.text(), hue: col.int(), position: col.int(), created_at: col.time() },
+  { order: "position, id", position: { column: "position", base: 0, group: "project_id" } },
+);

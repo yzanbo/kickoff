@@ -1,9 +1,10 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
-// 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は store.devices に hash で残る
+// 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は devices の店に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { MOBILE_OFF, MOBILE_OFF_MESSAGE, PAIRING_CODE_TTL_MS, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/devices/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/foundation/core/db/store";
+import type { Kernel } from "@/foundation/core/kernel";
+import type { DeviceStore } from "./db/devices";
 import { hashToken } from "./token";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 
@@ -24,7 +25,11 @@ interface PendingRequest extends PairingRequest {
 }
 
 interface PairingOptions {
-  store: Store;
+  devices: DeviceStore;
+  /** スマホ連携のオン・端末がつなぐ先の URL */
+  settings: Kernel["settings"];
+  /** 本体の ID（スマホが本体を見分ける目印） */
+  hostId: string;
   publish: (event: BusEvent) => void;
   /** 時計（テストで進める） */
   now?: () => number;
@@ -35,12 +40,16 @@ const sameHash = (a: string, b: string) => a.length === b.length && timingSafeEq
 export class PairingCenter {
   private code: { value: string; expiresAt: number; wrong: number } | null = null;
   private readonly requests = new Map<string, PendingRequest>();
-  private readonly store: Store;
+  private readonly devices: DeviceStore;
+  private readonly settings: Kernel["settings"];
+  private readonly hostId: string;
   private readonly publish: (event: BusEvent) => void;
   private readonly now: () => number;
 
-  constructor({ store, publish, now = Date.now }: PairingOptions) {
-    this.store = store;
+  constructor({ devices, settings, hostId, publish, now = Date.now }: PairingOptions) {
+    this.devices = devices;
+    this.settings = settings;
+    this.hostId = hostId;
     this.publish = publish;
     this.now = now;
   }
@@ -52,8 +61,8 @@ export class PairingCenter {
     return {
       code: this.code?.value ?? null,
       expires_at: this.code ? new Date(this.code.expiresAt).toISOString() : null,
-      url: this.store.settings.get().mobile_url,
-      host_id: this.store.databaseId,
+      url: this.settings.get().mobile_url,
+      host_id: this.hostId,
       request: pending && { id: pending.id, name: pending.name, created_at: pending.created_at },
     };
   }
@@ -101,14 +110,14 @@ export class PairingCenter {
     };
     this.requests.set(request.id, request);
     this.changed();
-    return { request_id: request.id, secret, host_id: this.store.databaseId };
+    return { request_id: request.id, secret, host_id: this.hostId };
   }
 
   /** Mac の画面で「つなぐ」を押した: 端末を作り、トークンを結果を聞かれるまで預かる。番号は使い終える */
   approve(id: string, access: DeviceAccess = "full"): PairingState {
     const request = this.pendingRequest(id);
     const token = randomBytes(32).toString("base64url");
-    const device = this.store.devices.create(request.name, token, access);
+    const device = this.devices.create(request.name, token, access);
     Object.assign(request, { status: "approved", token, deviceId: device.id, expiresAt: this.now() + PAIRING_CODE_TTL_MS });
     this.code = null;
     this.publish({ type: "devices" });
@@ -129,18 +138,18 @@ export class PairingCenter {
     if (request.status === "pending") return { status: "pending" };
     this.requests.delete(id);
     if (request.status === "denied") return { status: "denied" };
-    return { status: "approved", token: request.token!, device_id: request.deviceId!, host_id: this.store.databaseId };
+    return { status: "approved", token: request.token!, device_id: request.deviceId!, host_id: this.hostId };
   }
 
   /** 端末を取り消す（そのトークンはすぐ使えなくなる） */
   revoke(deviceId: number): void {
-    if (!this.store.devices.remove(deviceId)) throw new NotFound("端末が見つかりません");
+    if (!this.devices.remove(deviceId)) throw new NotFound("端末が見つかりません");
     this.publish({ type: "devices" });
   }
 
   /** スマホ連携がオンか（オフなら 409。端末の登録を受け付けない） */
   private requireMobile(): void {
-    if (!this.store.settings.get().remote_enabled) throw new Conflict(MOBILE_OFF_MESSAGE, MOBILE_OFF);
+    if (!this.settings.get().remote_enabled) throw new Conflict(MOBILE_OFF_MESSAGE, MOBILE_OFF);
   }
 
   private pendingRequest(id: string): PendingRequest {
@@ -157,7 +166,7 @@ export class PairingCenter {
     for (const [id, r] of this.requests) {
       if (r.expiresAt > now) continue;
       this.requests.delete(id);
-      if (r.status === "approved" && r.deviceId !== null && this.store.devices.remove(r.deviceId)) this.publish({ type: "devices" });
+      if (r.status === "approved" && r.deviceId !== null && this.devices.remove(r.deviceId)) this.publish({ type: "devices" });
     }
   }
 
