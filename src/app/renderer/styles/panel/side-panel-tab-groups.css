@@ -137,16 +137,16 @@
 }
 
 /* 角に数がある側は、文字に重ならないよう札の余白を広げる（左上・左下 = 名前の左、右上 = いちばん右の区切り） */
-.panel-tab-cluster-pill:has(.corner-count.running, .corner-count.needs-input) .panel-tab-cluster-name {
+.panel-tab-cluster-pill:has(.corner-count[data-state="running"], .corner-count[data-state="needs-input"]) .panel-tab-cluster-name {
   padding-left: 15px;
 }
 
-.panel-tab-cluster-pill:has(.corner-count.unread):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
+.panel-tab-cluster-pill:has(.corner-count[data-state="unread"]):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
   padding-right: 15px;
 }
 
 /* 右の「‹」は細いので、右上の数の丸と重なる分だけ右を空ける（丸の幅まるごとは空けない） */
-.panel-tab-cluster-pill:has(.corner-count.unread) .panel-tab-cluster-fold {
+.panel-tab-cluster-pill:has(.corner-count[data-state="unread"]) .panel-tab-cluster-fold {
   padding-right: 8px;
 }
 

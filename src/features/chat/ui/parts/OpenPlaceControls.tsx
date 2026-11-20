@@ -37,10 +37,10 @@ export function OpenPlaceButtons({ places, onOpen }: { places: readonly OpenPlac
   );
 }
 
-/** 一覧の上の「行を押したとき」の既定の開き方（設定の「表示」と同じ設定を変える） */
-export function DefaultOpenPlace<T extends OpenPlace>({ places, value, onChange }: { places: readonly T[]; value: T; onChange: (place: T) => void }) {
+/** 一覧の上の「行を押したとき」の既定の開き方（設定の「表示」と同じ設定を変える）。inline: ほかの物と 1 行に並べる（余白と線は行が持つ） */
+export function DefaultOpenPlace<T extends OpenPlace>({ places, value, onChange, inline = false }: { places: readonly T[]; value: T; onChange: (place: T) => void; inline?: boolean }) {
   return (
-    <div className="open-place-default">
+    <div className="open-place-default" data-variant={inline ? "inline" : undefined}>
       <span className="open-place-default-label">行を押したとき</span>
       <Segmented<T>
         size="sm"

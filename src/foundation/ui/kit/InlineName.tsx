@@ -15,6 +15,8 @@ interface Props {
   selectFrom?: number;
   /** 書いた名前を使えないときの理由（使えるなら null）。理由があれば欄の下に出し、Enter・✓ では決めない（フォーカスを外すと取り消し） */
   validate?: (name: string) => string | null;
+  /** 横に決定・取り消しのボタンを出すか（既定は出す。狭い木の行は出さず、Enter・ピントを外すで決め、Esc でやめる。Finder と同じ） */
+  buttons?: boolean;
   onSubmit: (name: string) => void;
   onCancel: () => void;
 }
@@ -24,7 +26,7 @@ interface Props {
  * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）。
  * validate があれば書くたびに確かめ、使えない名前なら理由を欄の下に出して決めさせない（同じ名前のビューなど）
  */
-export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, selectFrom = 0, validate, onSubmit, onCancel }: Props) {
+export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, selectFrom = 0, validate, buttons = true, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initial);
   // 元の名前のまま・空は決めても何も変えない（取り消しと同じ）ので確かめない
   const trimmed = value.trim();
@@ -85,19 +87,23 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
       </span>
     )}
     {suffix && <span className="inline-name-suffix">{suffix}</span>}
-    <IconButton
-      size="sm"
-      icon={Check}
-      label="決定"
-      title="決定（Enter）"
-      iconSize={13}
-      className="inline-name-ok"
-      type="button"
-      disabled={Boolean(error)}
-      onMouseDown={keepFocus}
-      onClick={() => finish(true)}
-    />
-    <IconButton size="sm" icon={X} label="取り消し" title="取り消し（Esc）" iconSize={13} type="button" onMouseDown={keepFocus} onClick={() => finish(false)} />
+    {buttons && (
+      <>
+        <IconButton
+          size="sm"
+          icon={Check}
+          label="決定"
+          title="決定（Enter）"
+          iconSize={13}
+          className="inline-name-ok"
+          type="button"
+          disabled={Boolean(error)}
+          onMouseDown={keepFocus}
+          onClick={() => finish(true)}
+        />
+        <IconButton size="sm" icon={X} label="取り消し" title="取り消し（Esc）" iconSize={13} type="button" onMouseDown={keepFocus} onClick={() => finish(false)} />
+      </>
+    )}
     </span>
   );
 }

@@ -169,6 +169,15 @@
   width: 100%;
 }
 
+/* ファイル・ノートの木の行は、入力欄を行の高さに収める（狭いので決定・取り消しのボタンは出さない。InlineName の buttons） */
+.tree-row.renaming {
+  padding-block: 1px;
+}
+
+.tree-row.renaming input[type="text"].inline-name {
+  padding-inline: 4px;
+}
+
 /* 検索の結果から開いた行 */
 .diff-table .line-focus {
   background: color-mix(in srgb, var(--warn) 18%, transparent);

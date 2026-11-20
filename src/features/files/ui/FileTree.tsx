@@ -72,6 +72,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
             <InlineName
               className="tree-rename"
               maxLength={255}
+              buttons={false}
               placeholder={creating.dir ? "フォルダー名" : "ファイル名"}
               validate={(name) => newEntryNameError(nodes, name)}
               onSubmit={create.submit}
@@ -105,6 +106,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
                 <InlineName
                   className="tree-rename"
                   maxLength={255}
+                  buttons={false}
                   initial={node.name}
                   validate={siblingNameError(nodes, node.path)}
                   onSubmit={(name) => rename.submit(node.path, name)}

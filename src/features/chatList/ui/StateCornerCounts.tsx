@@ -2,7 +2,7 @@ import { BOARD_COLUMN_LABELS } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { StateCounts } from "@/features/chat/ui/state/chatState";
 
-/** 角に出す順（左上 = 作業中・右上 = 未読・左下 = 回答待ち）と、class 名 */
+/** 角に出す順（左上 = 作業中・右上 = 未読・左下 = 回答待ち）と、data-state の値（ui/status.css） */
 const CORNERS = [
   ["running", "running"],
   ["unread", "unread"],
@@ -28,7 +28,7 @@ export function StateCornerCounts({ counts, inline = false }: { counts: StateCou
   return (
     <span className={cx("corner-counts", inline && "inline")}>
       {shown.map(([c, cls]) => (
-        <span key={c} className={`corner-count ${cls}`} aria-label={`${BOARD_COLUMN_LABELS[c]} ${counts[c]} 件`}>
+        <span key={c} className="corner-count" data-state={cls} aria-label={`${BOARD_COLUMN_LABELS[c]} ${counts[c]} 件`}>
           {counts[c]}
         </span>
       ))}

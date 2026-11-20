@@ -1,8 +1,15 @@
 /* ==== ノートの会話の欄（本文の右か下を見出しで選ぶ。幅で勝手に入れ替えない。NoteChat） ==== */
 
-/* 本文と会話を左右に並べる（狭くても下へ回さない。下は見出しの切り替えで利用者が選ぶ） */
+/* 本文と会話を左右に並べる（狭くても下へ回さない。下は見出しの切り替えで利用者が選ぶ）。ページの ⌘F（.page-find）はこの右上に浮かせる */
 .note-view {
+  position: relative;
   container: note-view / inline-size;
+}
+
+/* 右にノートのチャットを開いているときは、⌘F を本文の右上に出す（チャットの欄の見出しを隠さない。幅は NoteView が --note-find-right に入れる） */
+.note-view > .pane-find.page-find {
+  right: calc(var(--note-find-right, 0px) + 12px);
+  width: min(320px, calc(100% - var(--note-find-right, 0px) - 24px));
 }
 
 .note-body.with-chat {

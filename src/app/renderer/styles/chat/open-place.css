@@ -32,6 +32,12 @@
   flex: none;
 }
 
+/* ほかの物と 1 行に並べるとき（ノートの一覧の上の行。余白と線は行が持つ。DefaultOpenPlace の inline） */
+.open-place-default[data-variant="inline"] {
+  padding: 0;
+  border-bottom: none;
+}
+
 /* 一覧の上なので小さい組（size="sm"）。文字は折り返さない */
 .open-place-switch button {
   display: inline-flex;

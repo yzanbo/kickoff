@@ -95,6 +95,7 @@ export function NoteTree(props: Props) {
                   selectFrom={node.dir ? 0 : noteDatePrefixLength(renamingName)}
                   suffix={node.dir ? undefined : (noteExtensionOf(node.path) ?? undefined)}
                   maxLength={200}
+                  buttons={false}
                   className="note-rename"
                   onSubmit={(name) => onRename(node, name)}
                   onCancel={onRenameEnd}

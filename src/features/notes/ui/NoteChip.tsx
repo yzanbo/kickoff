@@ -83,7 +83,7 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
         <>
             {(places.length > 1 || dirs.length > 0) && (
               <div className="note-chip-head">
-                {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+                {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} inline />}
                 {dirs.length > 0 && (
                   <span className="note-chip-folds">
                     <IconButton
