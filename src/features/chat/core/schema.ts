@@ -2,7 +2,7 @@ import { NOW } from "@/foundation/core/db/db";
 
 /**
  * チャット（v1）。
- * - chats: 子チャットは parent_chat_id（親を消すと子孫も消える）と parent_event_id（親の会話のどの記録から聞いたか）。memo_path はノートのチャットのノート
+ * - chats: 子チャットは parent_chat_id（親を消すと子孫も消える）と parent_event_id（親の会話のどの記録から聞いたか）。note_path はノートのチャットのノート
  *   （ノートのフォルダからの相対）。github_* は結び付いた issue・PR（3 つがそろって NULL か、そろって値があるかは店で守る）。untracked_only は Git で管理していない
  *   ファイルだけを書けるチャット。resume_pending は前回の終了で作業の途中で止まった印、ai_generation は AI が作った世代（どちらも店の中だけ）。
  *   archived_with_parent は親と一緒にアーカイブした印、trashed_with は一緒にゴミ箱に入れた行（trash_items.id）。position は手動の並び（null = まだ並べていない）
@@ -19,7 +19,7 @@ CREATE TABLE chats (
   group_id INTEGER REFERENCES chat_groups(id) ON DELETE SET NULL,
   parent_chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
   parent_event_id INTEGER CHECK (parent_event_id > 0),
-  memo_path TEXT CHECK (memo_path <> ''),
+  note_path TEXT CHECK (note_path <> ''),
   github_repo TEXT CHECK (github_repo <> ''),
   github_number INTEGER CHECK (github_number > 0),
   github_kind TEXT CHECK (github_kind <> ''),
@@ -60,7 +60,7 @@ CREATE INDEX idx_chats_worktree ON chats(project_id, worktree_path) WHERE worktr
 CREATE INDEX idx_chats_group ON chats(group_id) WHERE group_id IS NOT NULL;
 CREATE INDEX idx_chats_running ON chats(status) WHERE status = 'running';
 CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
-CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;
+CREATE INDEX idx_chats_note ON chats(project_id, note_path) WHERE note_path IS NOT NULL;
 CREATE INDEX idx_chats_trashed_with ON chats(trashed_with) WHERE trashed_with IS NOT NULL;
 CREATE INDEX idx_chats_resume_pending ON chats(resume_pending) WHERE resume_pending = 1;
 CREATE TRIGGER chats_group_project_insert BEFORE INSERT ON chats

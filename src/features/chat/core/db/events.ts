@@ -346,7 +346,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
              WHERE x.chat_id = c.id AND x.type = 'text' AND json_extract(x.data, '$.parent') IS NULL
              ORDER BY x.id DESC LIMIT 1
            )
-           WHERE c.parent_chat_id IS NULL AND c.memo_path IS NULL AND c.trashed_at IS NULL
+           WHERE c.parent_chat_id IS NULL AND c.note_path IS NULL AND c.trashed_at IS NULL
            ORDER BY e.id DESC LIMIT ?`,
         )
         .all(Math.min(limit, 500)) as unknown as (FeedItem & { text: string | null })[];

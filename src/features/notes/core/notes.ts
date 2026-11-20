@@ -73,7 +73,7 @@ export class NoteService {
     const root = this.rootDir();
     return this.opts.store.projects.list().filter((p) => {
       if (p.id === except) return false;
-      const own = p.note_path ? expandHome(p.note_path) : p.note_folder ? path.join(root, p.note_folder) : null;
+      const own = p.note_dir ? expandHome(p.note_dir) : p.note_folder ? path.join(root, p.note_folder) : null;
       return own !== null && realPathLoose(path.resolve(own)) === target;
     });
   }
@@ -88,7 +88,7 @@ export class NoteService {
    * フォルダ名をまだ決めていなければ、プロジェクト名から決めて覚える（ほかのプロジェクトのフォルダ名とは重ねない）
    */
   dirOf(project: Project): string {
-    if (project.note_path) return expandHome(project.note_path);
+    if (project.note_dir) return expandHome(project.note_dir);
     let folder = project.note_folder;
     if (!folder) {
       // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに、2 つのプロジェクトが同じノートのフォルダを指さないように）
@@ -133,7 +133,7 @@ export class NoteService {
     const seen = new Set<string>();
     const sources: { projectId: number; dir: string; files: string[] }[] = [];
     for (const project of this.opts.store.projects.list()) {
-      if (project.archived_at || (!project.note_path && !project.note_folder)) continue;
+      if (project.archived_at || (!project.note_dir && !project.note_folder)) continue;
       const real = realPathLoose(this.dirOf(project));
       if (seen.has(real)) continue;
       seen.add(real);

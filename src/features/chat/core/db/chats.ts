@@ -41,7 +41,7 @@ const CHAT_COLUMNS = [
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
 /** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation・resume_pending は店の中だけで使い、Chat には出さない） */
-type ChatRow = Omit<Chat, "note_path" | "fast_mode" | "unread" | "pinned" | "untracked_only" | "sandbox_enabled" | "edit_scope_enabled"> & { memo_path: string | null } & {
+type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only" | "sandbox_enabled" | "edit_scope_enabled"> & {
   fast_mode: number;
   unread: number;
   pinned: number;
@@ -57,8 +57,8 @@ type ChatRow = Omit<Chat, "note_path" | "fast_mode" | "unread" | "pinned" | "unt
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
-  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, resume_pending: _resume, memo_path, ...r } = row as ChatRow;
-  return { ...r, note_path: memo_path, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1, sandbox_enabled: r.sandbox_enabled === 1, edit_scope_enabled: r.edit_scope_enabled === 1 };
+  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, resume_pending: _resume, ...r } = row as ChatRow;
+  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1, sandbox_enabled: r.sandbox_enabled === 1, edit_scope_enabled: r.edit_scope_enabled === 1 };
 }
 
 /** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
@@ -136,7 +136,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
 
   const noteChats = (projectId: number, notePath: string): Chat[] =>
     db
-      .prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
+      .prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
       .all(projectId, notePath, notePath, notePath)
       .map(toChat);
 
@@ -160,7 +160,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
       const defaults = settings();
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind, ai_generation, sandbox_enabled, edit_scope_enabled)
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, note_path, untracked_only, github_repo, github_number, github_kind, ai_generation, sandbox_enabled, edit_scope_enabled)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
@@ -222,7 +222,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
     remapNotePath(projectId: number, from: string, to: string) {
       for (const chat of noteChats(projectId, from)) {
         const next = chat.note_path === from ? to : `${to}${chat.note_path!.slice(from.length)}`;
-        db.prepare("UPDATE chats SET memo_path = ? WHERE id = ?").run(next, chat.id);
+        db.prepare("UPDATE chats SET note_path = ? WHERE id = ?").run(next, chat.id);
         onChange({ type: "chat", chat: get(chat.id)! });
       }
     },

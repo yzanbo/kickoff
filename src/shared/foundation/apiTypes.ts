@@ -25,11 +25,11 @@ export type NewProjectBody = {
 
 /**
  * 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）。
- * note_folder: 設定のノートの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ note_path: このプロジェクトだけ別の場所（絶対パス。note_folder より優先）
+ * note_folder: 設定のノートの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ note_dir: このプロジェクトだけ別の場所（絶対パス。note_folder より優先）
  */
 export interface NewProjectNoteDir {
   note_folder?: string;
-  note_path?: string;
+  note_dir?: string;
 }
 
 /** 既存のフォルダを取り込む（POST /api/projects/import）。init_git なら Git のリポジトリにしてから取り込む */
@@ -45,7 +45,7 @@ export type ImportProjectBody = {
  * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "provider_chat_defaults" | "note_path" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "provider_chat_defaults" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };

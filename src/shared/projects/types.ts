@@ -26,7 +26,7 @@ export interface Project {
   /** ノートの親フォルダの下の、このプロジェクトのフォルダ名（初めてノートを使ったときに、プロジェクト名から決めて覚える。名前を変えてもノートを見失わない） */
   note_folder: string | null;
   /** ノートのフォルダを、このプロジェクトだけ別の場所にする（絶対パス。null なら親フォルダ / note_folder） */
-  note_path: string | null;
+  note_dir: string | null;
   /** このプロジェクトの圧縮前指示（会話を圧縮する前に AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */
   pre_compact_prompt: string | null;
   /** このプロジェクトの圧縮後指示（会話を圧縮したあとに AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */

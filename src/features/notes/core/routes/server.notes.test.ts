@@ -37,7 +37,7 @@ test("ノートの保存先: 既定は親フォルダの下のプロジェクト
   await call("PUT", "/api/settings", { notes_dir: root });
   assert.equal(((await call("GET", `/api/projects/${project.id}/notes`)).body as NoteList).dir, path.join(root, project.name));
   const own = tempDir();
-  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { note_path: own })).body.note_path, own);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { note_dir: own })).body.note_dir, own);
   assert.equal(((await call("GET", `/api/projects/${project.id}/notes`)).body as NoteList).dir, own);
 
   // そのフォルダをノートのフォルダにしているプロジェクト（自分を除く・決めていないプロジェクトは数えない・~ も解く）
@@ -47,7 +47,7 @@ test("ノートの保存先: 既定は親フォルダの下のプロジェクト
   assert.deepEqual(await users(own, project.id), []);
   assert.deepEqual(await users(path.join(root, `${project.name}-2`)), [other.id]);
   assert.deepEqual(await users(path.join(root, "まだない")), []);
-  await call("PATCH", `/api/projects/${spaced.id}`, { note_path: own });
+  await call("PATCH", `/api/projects/${spaced.id}`, { note_dir: own });
   assert.deepEqual(await users(own, project.id), [spaced.id]);
   assert.equal((await call("GET", "/api/notes/users")).status, 400);
 });

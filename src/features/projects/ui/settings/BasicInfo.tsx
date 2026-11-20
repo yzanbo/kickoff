@@ -57,9 +57,9 @@ function NoteDirRow({ project }: { project: Project }) {
     <NoteFolderField
       label="ノートフォルダ"
       help="「ノート」タブのノートを置くフォルダです。ふだんはアプリの設定の「ノート」で決めた親フォルダの下の、このプロジェクトの名前のフォルダで、書く・選ぶとこのプロジェクトだけ別の場所（チームで共有しているフォルダなど）にできます。変えても、いまあるノートは動かしません。プロジェクトフォルダを変えても変わりません。チャットで「ノート」「ノートフォルダ」と言えば、AI はここのことだと分かります。"
-      value={project.note_path}
-      fallback={project.note_path ? "" : (dir ?? "")}
-      onSave={(next) => api.updateProject(project.id, { note_path: next })}
+      value={project.note_dir}
+      fallback={project.note_dir ? "" : (dir ?? "")}
+      onSave={(next) => api.updateProject(project.id, { note_dir: next })}
       overlapExcept={project.id}
     />
   );

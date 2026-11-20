@@ -8,11 +8,11 @@ import { Field } from "@/foundation/ui/kit/Field";
 import { NoteOverlapNotice } from "@/features/notes/ui/NoteOverlapNotice";
 
 /**
- * 新しいプロジェクト・取り込むプロジェクトのノートの保存先を送る形。手で決めた場所（custom）があれば別の場所（note_path）、
+ * 新しいプロジェクト・取り込むプロジェクトのノートの保存先を送る形。手で決めた場所（custom）があれば別の場所（note_dir）、
  * なければ base（フォルダ名）から設定の親フォルダの下の名前（note_folder。コアが重ならない名前にする）。base がまだなければ送らない（初めてノートを使ったときに決める）
  */
 export function noteDirBody(base: string, custom: string | null): NewProjectNoteDir {
-  if (custom?.trim()) return { note_path: custom.trim() };
+  if (custom?.trim()) return { note_dir: custom.trim() };
   return base.trim() ? { note_folder: base.trim() } : {};
 }
 

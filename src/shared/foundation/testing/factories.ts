@@ -75,7 +75,7 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
     hue: 0,
     tags: [],
     note_folder: null,
-    note_path: null,
+    note_dir: null,
     pre_compact_prompt: null,
     post_compact_prompt: null,
     pre_compact_enabled: true,

@@ -3,7 +3,7 @@ import { NOW } from "@/foundation/core/db/db";
 /**
  * DB クライアント（v1）。接続はプロジェクトごとの並び。パスワードは secrets の db_connection:<id>:password・ai_password・ssh_password に置き、
  * 接続を消したら（プロジェクトごとの削除も）トリガーで消す。worktree_path は Docker タブの「DB で開く」で作った接続のワークツリー、
- * memo_path は手順のノート（ノートのフォルダからの相対）、prep は準備のコマンド・prep_confirmed は確かめた中身の写し、write_check は書き込む前の確かめ。
+ * note_path は手順のノート（ノートのフォルダからの相対）、prep は準備のコマンド・prep_confirmed は確かめた中身の写し、write_check は書き込む前の確かめ。
  * 履歴（ran_by は user / ai）と準備の記録は接続ごとに新しいものだけ残す。ER 図の位置は接続と場所（DB・スキーマ）ごと
  */
 export const DATABASE_SCHEMA_V1 = `
@@ -23,7 +23,7 @@ CREATE TABLE db_connections (
   ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object'),
   prep TEXT CHECK (json_valid(prep) AND json_type(prep) = 'object'),
   prep_confirmed TEXT CHECK (prep_confirmed <> ''),
-  memo_path TEXT CHECK (memo_path <> ''),
+  note_path TEXT CHECK (note_path <> ''),
   ai_access TEXT NOT NULL,
   ai_username TEXT CHECK (ai_username <> ''),
   read_only INTEGER NOT NULL CHECK (read_only IN (0, 1)),

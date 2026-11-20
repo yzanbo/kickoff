@@ -6,10 +6,10 @@ import { NOW } from "@/foundation/core/db/db";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import type { DbSecretKey } from "@/foundation/core/settings/settings";
 
-/** 変えられる列（パスワードは秘密の値なので別）。DB の列の名前（memo_path は型の note_path。作り直しのスキーマ v1 で note_path にそろえる） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "memo_path", "ssh", "prep", "check_on", "check_note"] as const;
+/** 変えられる列（パスワードは秘密の値なので別） */
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "note_path", "ssh", "prep", "check_on", "check_note"] as const;
 
-type Row = Omit<DbConnection, "note_path" | "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
+type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
   ssl: string | null;
   ssh: string | null;
   prep: string | null;
@@ -18,7 +18,6 @@ type Row = Omit<DbConnection, "note_path" | "ssl" | "ssh" | "prep" | "prep_confi
   has_password: number;
   has_ai_password: number;
   has_ssh_password: number;
-  memo_path: string | null;
 };
 
 const SELECT = `SELECT c.*,
@@ -27,11 +26,10 @@ const SELECT = `SELECT c.*,
   EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ssh_password') AS has_ssh_password
   FROM db_connections AS c`;
 
-const toConnection = ({ memo_path, ...row }: Row): DbConnection => {
+const toConnection = (row: Row): DbConnection => {
   const prep = row.prep ? (JSON.parse(row.prep) as DbPrep) : null;
   return {
     ...row,
-    note_path: memo_path,
     ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
     ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
     prep,
@@ -82,7 +80,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     write_check: body.write_check,
     ai_access: body.ai_access,
     ai_username: body.ai_username,
-    memo_path: body.note_path,
+    note_path: body.note_path,
     ssh: body.ssh === undefined ? undefined : body.ssh === null ? null : JSON.stringify(body.ssh),
     prep: body.prep === undefined ? undefined : prepText(body.prep),
     check_on: body.check_on,
@@ -105,7 +103,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const row = toRow({ ...body, write_check: body.write_check ?? DB_ENVIRONMENT_DEFAULTS[body.environment].write_check });
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position, worktree_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, note_path, ssh, prep, check_on, check_note, position, worktree_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next, worktreePath);
       const id = Number(lastInsertRowid);
@@ -151,11 +149,11 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     /** ノートの名前を変えた・動かしたとき、それを手順ノートにしている接続の note_path を付け替える（フォルダなら中のノートのものも） */
     remapNotePath(projectId: number, from: string, to: string) {
       const rows = db
-        .prepare("SELECT id, memo_path FROM db_connections WHERE project_id = ? AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/')")
-        .all(projectId, from, from, from) as { id: number; memo_path: string }[];
+        .prepare("SELECT id, note_path FROM db_connections WHERE project_id = ? AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/')")
+        .all(projectId, from, from, from) as { id: number; note_path: string }[];
       if (rows.length === 0) return;
-      const stmt = db.prepare("UPDATE db_connections SET memo_path = ? WHERE id = ?");
-      for (const r of rows) stmt.run(r.memo_path === from ? to : `${to}${r.memo_path.slice(from.length)}`, r.id);
+      const stmt = db.prepare("UPDATE db_connections SET note_path = ? WHERE id = ?");
+      for (const r of rows) stmt.run(r.note_path === from ? to : `${to}${r.note_path.slice(from.length)}`, r.id);
       notify(projectId);
     },
     /** そのワークツリー（作業するフォルダ）の DB から作った接続（全プロジェクト） */

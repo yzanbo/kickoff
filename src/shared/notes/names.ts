@@ -41,11 +41,11 @@ export function uniqueNoteName(base: string, taken: Iterable<string>): string {
 }
 
 /**
- * プロジェクトのノートのフォルダ名（設定の親フォルダの下）。base を使える名前にし、ほかのプロジェクト（except 以外で、別の場所 note_path を指していないもの）の
+ * プロジェクトのノートのフォルダ名（設定の親フォルダの下）。base を使える名前にし、ほかのプロジェクト（except 以外で、別の場所 note_dir を指していないもの）の
  * フォルダ名と重なれば「名前-2」。コアが初めてノートを使ったとき・新しいプロジェクトで決める名前と、画面の新しいプロジェクトのダイアログの見込みで同じ結果にする
  */
-export function projectNoteFolder(base: string, projects: readonly { id: number; note_folder: string | null; note_path: string | null }[], except?: number): string {
-  const taken = projects.filter((p) => p.id !== except && !p.note_path).flatMap((p) => (p.note_folder ? [p.note_folder] : []));
+export function projectNoteFolder(base: string, projects: readonly { id: number; note_folder: string | null; note_dir: string | null }[], except?: number): string {
+  const taken = projects.filter((p) => p.id !== except && !p.note_dir).flatMap((p) => (p.note_folder ? [p.note_folder] : []));
   return uniqueNoteName(safeNoteName(base), taken);
 }
 

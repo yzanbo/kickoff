@@ -34,7 +34,7 @@ export function createNotes(k: KernelWithStore, deps: NotesDeps, env: { defaultD
     trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner: chat.runner }, projectId, notePath, itemId),
   });
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
-  trash.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
+  trash.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_dir || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
   // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
   trash.addImportHook((item) => trashNoteChatsOnImport({ store, runner: chat.runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
   deps.attachments.addImageDir((p) => notes.dirOf(p));

@@ -33,9 +33,9 @@ test("chatNoteName: 同じチャットのノートの次の番号", () => {
 
 test("projectNoteFolder: 使える名前にし、ほかのプロジェクト（別の場所を指すもの・自分を除く）のフォルダ名と重なれば「名前-2」", () => {
   const projects = [
-    { id: 1, note_folder: "app", note_path: null },
-    { id: 2, note_folder: "App-2", note_path: "/elsewhere" },
-    { id: 3, note_folder: null, note_path: null },
+    { id: 1, note_folder: "app", note_dir: null },
+    { id: 2, note_folder: "App-2", note_dir: "/elsewhere" },
+    { id: 3, note_folder: null, note_dir: null },
   ];
   assert.equal(projectNoteFolder("a/b", projects), "a-b");
   assert.equal(projectNoteFolder("app", projects), "app-2");

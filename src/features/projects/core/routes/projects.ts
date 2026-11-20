@@ -24,7 +24,7 @@ import { trashedProjectAt, trashProject } from "@/features/projects/core/trash";
 // 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）
 const noteDirFields = {
   note_folder: z.string().trim().min(1).max(200).optional(),
-  note_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).optional(),
+  note_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).optional(),
 };
 
 // 新しいプロジェクト（description は README の「アイデア」にも書く）
@@ -75,7 +75,7 @@ const projectPatchSchema = z
     // Claude Code のほかの AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
     provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema.partial().strict()),
     // ノートのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
-    note_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
+    note_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）
     pre_compact_prompt: compactPrompt,
     post_compact_prompt: compactPrompt,
@@ -127,11 +127,11 @@ export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: St
     return store.projects.list().find(same);
   };
   /**
-   * 作ったプロジェクトにノートのフォルダを決める（画面の新しいプロジェクトのダイアログの「ノートの保存先」）。note_path（別の場所）が先、
+   * 作ったプロジェクトにノートのフォルダを決める（画面の新しいプロジェクトのダイアログの「ノートの保存先」）。note_dir（別の場所）が先、
    * なければ note_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ、初めてノートを使ったときに決める
    */
-  const withNoteDir = (project: Project, input: { note_folder?: string; note_path?: string }): Project => {
-    if (input.note_path) return store.projects.update(project.id, { note_path: input.note_path });
+  const withNoteDir = (project: Project, input: { note_folder?: string; note_dir?: string }): Project => {
+    if (input.note_dir) return store.projects.update(project.id, { note_dir: input.note_dir });
     if (!input.note_folder) return project;
     // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに同じノートのフォルダを指さないように）
     return store.projects.update(project.id, { note_folder: projectNoteFolder(input.note_folder, [...store.projects.list(), ...store.projects.trashed()], project.id) });

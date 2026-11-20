@@ -102,21 +102,21 @@ test("新しいプロジェクト: フォルダを Git のリポジトリとし�
   assert.equal(fs.existsSync(path.join(empty, "README.md")), false);
 });
 
-test("新しいプロジェクト・取り込みのノートの保存先: note_folder は使える名前にして重なれば「名前-2」、note_path は別の場所、省けば決めない", async () => {
+test("新しいプロジェクト・取り込みのノートの保存先: note_folder は使える名前にして重なれば「名前-2」、note_dir は別の場所、省けば決めない", async () => {
   const { call, store } = setup();
   const parent = tempDir();
   const first = (await call("POST", "/api/projects", { name: "A", parent_dir: parent, folder_name: "a", note_folder: "ノート/a" })).body;
-  assert.deepEqual([first.note_folder, first.note_path], ["ノート-a", null]);
+  assert.deepEqual([first.note_folder, first.note_dir], ["ノート-a", null]);
   const folder = tempDir();
   const imported = (await call("POST", "/api/projects/import", { path: folder, name: "B", note_folder: "ノート-a" })).body;
   assert.equal(imported.note_folder, "ノート-a-2");
   const noteDir = tempDir();
-  const elsewhere = (await call("POST", "/api/projects", { name: "C", parent_dir: parent, folder_name: "c", note_folder: "x", note_path: noteDir })).body;
-  assert.deepEqual([elsewhere.note_folder, elsewhere.note_path], [null, noteDir]);
+  const elsewhere = (await call("POST", "/api/projects", { name: "C", parent_dir: parent, folder_name: "c", note_folder: "x", note_dir: noteDir })).body;
+  assert.deepEqual([elsewhere.note_folder, elsewhere.note_dir], [null, noteDir]);
   const plain = (await call("POST", "/api/projects", { name: "D", parent_dir: parent, folder_name: "d" })).body;
-  assert.deepEqual([plain.note_folder, plain.note_path], [null, null]);
+  assert.deepEqual([plain.note_folder, plain.note_dir], [null, null]);
   // 別の場所は絶対パスだけ
-  assert.equal((await call("POST", "/api/projects", { name: "E", parent_dir: parent, folder_name: "e", note_path: "rel/dir" })).status, 400);
+  assert.equal((await call("POST", "/api/projects", { name: "E", parent_dir: parent, folder_name: "e", note_dir: "rel/dir" })).status, 400);
   assert.equal(store.projects.list().length, 5);
 });
 

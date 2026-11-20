@@ -98,8 +98,8 @@ db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });
 const beta = store.projects.create({ name: "beta", repo_path: betaDir, provider: "claude" });
 // ノートのフォルダはプロジェクトごとに保存先の中へ（既定の ~/Documents の下を使わない）
-store.projects.update(alpha.id, { note_path: notesDir });
-store.projects.update(beta.id, { note_path: path.join(dir, "beta-notes") });
+store.projects.update(alpha.id, { note_dir: notesDir });
+store.projects.update(beta.id, { note_dir: path.join(dir, "beta-notes") });
 const research = store.groups.create(alpha.id, "調べもの");
 const fixes = store.groups.create(alpha.id, "直しもの");
 

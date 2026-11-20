@@ -80,7 +80,7 @@ export function trashNoteChatsOnImport(
   item: StoredTrashItem,
 ): void {
   const project = item.project_id !== null ? deps.store.projects.get(item.project_id) : null;
-  if (!project || !item.origin || !(project.note_path || project.note_folder)) return;
+  if (!project || !item.origin || !(project.note_dir || project.note_folder)) return;
   // kickoff-trash は元の場所をリンクを解いた形で書くので、ノートのフォルダもリンクを解いて比べる
   const dir = realPathLoose(deps.noteDirOf(project));
   if (!isInside(dir, item.origin) || item.origin === dir) return;
