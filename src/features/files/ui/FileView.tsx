@@ -26,6 +26,7 @@ import { ReadOnlyCode } from "./ReadOnlyCode";
 import { changeOf } from "@/features/git/ui/diff/sideFile";
 import { useGitBlame } from "@/features/git/ui/useGitBlame";
 import { useQuickDiffBase } from "@/features/git/ui/useQuickDiffBase";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 // 編集の部品（Monaco）は大きいので、ファイルの中身を初めて開いたときに読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -215,8 +216,8 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
           {saving.result?.text ?? (dirty ? "● 未保存" : [line !== undefined && `${line} 行目`, gitStatus?.repo && (change ? "変更あり" : "変更なし")].filter(Boolean).join("・"))}
         </span>
         <span className="spacer" />
-        {window.kickoff && (
-          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.externalApps.openInVSCode(`${worktree ?? repoPath}/${path}`, line)}>
+        {canOpenExternal() && (
+          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${worktree ?? repoPath}/${path}`, line })}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}

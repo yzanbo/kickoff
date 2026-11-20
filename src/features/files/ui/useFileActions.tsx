@@ -15,6 +15,7 @@ import type { PickedEntry } from "./FileTree";
 import { joinTreePath, parentPath, topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
 import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 右クリックした行（null は木の下の空いている所。staged は変更の一覧のどちらのまとまりか。many は選んだいくつかの行の 1 つを右クリックしたときの、選んでいるものすべて） */
 type MenuTarget = { path: string; dir: boolean; ignored: boolean; staged?: boolean; many: PickedEntry[] | null } | null;
@@ -49,8 +50,7 @@ export interface FileCreate {
  *   VS Code と同じく、名前を書いてから作る（その場所に名前の欄を出す。Esc ならやめて何も残さない。Git の作業場所に仮の名前のファイルを残さないため）。
  *   フォルダーの行ならその中、ファイルの行ならその入ったフォルダー、空いている所ならいちばん外側。「a/b.ts」と書けば途中のフォルダーも作る。
  *   作ったらファイルは開き、上のフォルダーを開く（onReveal）。
- * - ゴミ箱に入れる（ファイルタブだけ）: 確かめてから。開いていたファイルは閉じる（保存していない変更も捨てる。確かめの文で伝える）
- * - 新しいタブで開く（ファイルの行。⌘クリックは複数選択に使うので右クリックから）
+ * - ゴミ箱に入れる（ファイルタブだけ）: 確かめてから。開いていたファイルは閉じる（保存していない変更も捨てる。確かめの文で伝える）。新しいタブで開く（ファイルの行。⌘クリックは複数選択に使うので右クリックから）
  * - ⌘ / Shift ＋クリックで選んだ行の 1 つを右クリックしたら、選んでいるものすべてに効く組（新しいタブで開く・ステージ / ステージの取り消し / 元に戻す（変更の一覧）・
  *   パスのコピー（1 行に 1 つ）・ゴミ箱（1 回だけ確かめる。ファイルタブだけ））
  */
@@ -90,7 +90,7 @@ export function useFileActions(
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<FileCreate["creating"]>(null);
   const menu = useContextMenu<MenuTarget>();
-  const native = window.kickoff?.externalApps;
+  const outside = canOpenExternal();
   const absolute = (path: string) => (path ? `${root}/${path}` : root);
 
   const start = (path: string) => {
@@ -231,8 +231,8 @@ export function useFileActions(
           <div className="menu-separator" role="separator" />
         </>
       )}
-      {native && (
-        <MenuItem onSelect={() => void native.revealPath(absolute(value?.path ?? ""))}>
+      {outside && (
+        <MenuItem onSelect={() => void openExternal({ kind: "reveal", path: absolute(value?.path ?? "") })}>
           <FolderOpen size={14} aria-hidden /> Finder で表示
         </MenuItem>
       )}
@@ -241,7 +241,7 @@ export function useFileActions(
           <FolderSearch size={14} aria-hidden /> フォルダー内を検索
         </MenuItem>
       )}
-      {(native || value?.dir) && <div className="menu-separator" role="separator" />}
+      {(outside || value?.dir) && <div className="menu-separator" role="separator" />}
       <MenuItem title="フルパスをコピーします" onSelect={() => void navigator.clipboard.writeText(absolute(value?.path ?? ""))}>
         <Copy size={14} aria-hidden /> パスをコピー
       </MenuItem>

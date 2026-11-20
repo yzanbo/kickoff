@@ -30,6 +30,7 @@ import { subscribeNoteReveal, takeNoteReveal } from "./noteReveal";
 import { useNoteDocument, type NoteSaveState } from "./useNoteDocument";
 import { useBottomChatMotion } from "./useBottomChatMotion";
 import { useNoteEditMenu } from "./useNoteEditMenu";
+import { openExternal } from "@/foundation/ui/external/native";
 
 // 編集の部品（CodeMirror）は大きいので、ノートを開いたときに初めて読み込む
 const NoteEditor = lazy(() => import("./NoteEditor"));
@@ -98,8 +99,7 @@ export function NoteView({
   // 欄を閉じている間、下の入力欄も隠す（ノートだけを広く見る。見出しの吹き出しの ▾・入力欄の「隠す」）
   const [quickHidden, setQuickHidden] = useSetting(storage.settings.quickChatHidden);
   const quickFolded = chatOpen || quickHidden;
-  // 欄を閉じている間は、ノートのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）と送信待ちを下の入力欄の上に描く
-  // （会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
+  // 欄を閉じている間は、ノートのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）と送信待ちを下の入力欄の上に描く（会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
   const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
   const [queueHost, setQueueHost] = useState<HTMLDivElement | null>(null);
   const [queued, setQueued] = useState(false);
@@ -161,7 +161,7 @@ export function NoteView({
     if (!entry) void alert("リンク先が見つかりません", `ノートのフォルダに「${to}」がありません。`);
     else if (!entry.dir && noteExtensionOf(to)) {
       if (to !== path) onOpenNote(to);
-    } else if (window.kickoff) void window.kickoff.externalApps.revealPath(`${dir}/${to}`);
+    } else void openExternal({ kind: "reveal", path: `${dir}/${to}` });
   };
   const [view, setView] = useSetting(storage.settings.view);
   const kind = noteKindOf(path);

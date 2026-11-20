@@ -5,6 +5,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";
 import type { NoteLines } from "./noteAttachment";
 import type { NoteEditorHandle } from "./NoteEditor";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /**
  * 開いたときの様子: text = 選んでいた文、lines = 選んでいた行（本文の編集の部品のときだけ。ほかは null）、insert = 書ける所なら選んでいた範囲を置き換える関数（null なら書けない。
@@ -132,10 +133,10 @@ export function useNoteEditMenu(
           </>
         )}
         {/* Finder で表示（ノートのタブでは一覧の右クリックにもある） */}
-        {window.kickoff && (
+        {canOpenExternal() && (
           <>
             <div className="menu-separator" role="separator" />
-            <MenuItem onSelect={() => void window.kickoff?.externalApps.revealPath(file)}>Finder で表示</MenuItem>
+            <MenuItem onSelect={() => void openExternal({ kind: "reveal", path: file })}>Finder で表示</MenuItem>
           </>
         )}
       </PopupMenu>

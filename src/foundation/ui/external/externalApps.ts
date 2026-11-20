@@ -5,6 +5,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
+import { installedBrowsers as listBrowsers, installedTerminals as listTerminals, openExternal } from "./native";
 import { storage as externalStorage } from "./storage";
 
 /** 外部のターミナルの表示名 */
@@ -14,8 +15,8 @@ const browserLabel = (id: ExternalBrowserId) => EXTERNAL_BROWSERS.find((b) => b.
 const appName = (list: readonly { id: string; app: string }[], id: string) => list.find((a) => a.id === id)?.app ?? id;
 
 // この Mac に入っているアプリ（アプリ全体で 1 回だけ調べる。調べられなければ、次に使うときに調べ直す。デスクトップアプリでなければ既定のものだけ）
-const installedTerminals = createStore({ load: async (): Promise<ExternalTerminalId[]> => (await window.kickoff?.externalApps.terminals()) ?? ["terminal"] });
-const installedBrowsers = createStore({ load: async (): Promise<ExternalBrowserId[]> => (await window.kickoff?.externalApps.browsers()) ?? ["chrome"] });
+const installedTerminals = createStore({ load: async (): Promise<ExternalTerminalId[]> => (await listTerminals()) ?? ["terminal"] });
+const installedBrowsers = createStore({ load: async (): Promise<ExternalBrowserId[]> => (await listBrowsers()) ?? ["chrome"] });
 
 /** 一覧のうち、入っているもの（選んでいるものは、入っていなくても出す。missing で見分ける） */
 function choicesOf<T extends string>(all: readonly { id: T }[], installed: T[] | undefined, current: T, label: (id: T) => string) {
@@ -32,7 +33,7 @@ export function useExternalTerminal() {
   const [terminal, setTerminal] = useSetting(externalStorage.settings.terminal);
   const installed = useStore(installedTerminals);
   const open = (dir: string, app: ExternalTerminalId = terminal) =>
-    void window.kickoff?.externalApps.openTerminal(dir, app).catch(reportFailure("ターミナルを開けませんでした"));
+    void openExternal({ kind: "terminal", dir, app }).catch(reportFailure("ターミナルを開けませんでした"));
   return {
     terminal,
     setTerminal,
@@ -51,7 +52,7 @@ export function useExternalBrowser() {
   const [browser, setBrowser] = useSetting(externalStorage.settings.browser);
   const installed = useStore(installedBrowsers);
   const open = (url?: string, app: ExternalBrowserId = browser) =>
-    void window.kickoff?.externalApps.openBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));
+    void openExternal({ kind: "browser", url, app }).catch(reportFailure("ブラウザを開けませんでした"));
   return {
     browser,
     setBrowser,

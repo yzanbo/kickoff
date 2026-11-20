@@ -8,6 +8,7 @@ import type { WorktreeActions } from "@/features/worktrees/ui/useWorktreeActions
 import type { BranchActions } from "./useBranchActions";
 import type { GitLogController } from "./useGitLog";
 import type { StashActions } from "./useStashActions";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /**
  * 履歴タブの上の帯と Git の操作の窓で共有する操作（一覧の開閉・フェッチ・プル・プッシュ・退避・ブランチ・外で開く）。
@@ -82,9 +83,9 @@ export function useHistoryOps({
     merge: branch.merge,
     rebase: branch.rebase,
     /** 見ている作業場所を外のアプリで開く（Mac のアプリだけ） */
-    canOpenOutside: Boolean(window.kickoff && folder),
-    openFinder: () => folder && void window.kickoff?.externalApps.openPath(folder),
-    openVSCode: () => folder && void window.kickoff?.externalApps.openInVSCode(folder),
+    canOpenOutside: canOpenExternal() && Boolean(folder),
+    openFinder: () => folder && void openExternal({ kind: "path", path: folder }),
+    openVSCode: () => folder && void openExternal({ kind: "vscode", path: folder }),
     openTerminal: () => folder && terminal.open(folder),
     terminalLabel: terminal.label,
   };

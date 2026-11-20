@@ -7,6 +7,7 @@ import { splitPath } from "@/foundation/ui/lib/format";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /**
  * 参照資料の一覧と追加・削除（AI がいつでも読めるフォルダ・ファイル）。
@@ -48,12 +49,12 @@ export function ReferenceEditor({ project }: { project: Project }) {
                 <span className="reference-text" title={r.path}>
                   <PathParts path={r.path} nameClass="reference-name" dirClass="reference-dir" suffix={r.kind === "folder" ? "/" : undefined} />
                 </span>
-                {window.kickoff && (
+                {canOpenExternal() && (
                   <IconButton
                     icon={FolderOpen}
                     label={`${name} を Finder で開く`}
                     title="Finder で開く"
-                    onClick={() => void window.kickoff?.externalApps.openPath(r.path)}
+                    onClick={() => void openExternal({ kind: "path", path: r.path })}
                   />
                 )}
                 <IconButton

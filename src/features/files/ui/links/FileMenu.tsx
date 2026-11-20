@@ -3,6 +3,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import type { FileLinks } from "./fileLinkContext";
 import type { FileRef } from "./fileRefs";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /**
  * チャットの中のファイルの右クリックのメニュー（返答のチップ・ターンの変更カードの行・ツールの行・右の欄の変更のファイルの見出しで共通）:
@@ -10,7 +11,6 @@ import type { FileRef } from "./fileRefs";
  */
 export function FileMenu({ at, file, links, onClose }: { at: Placement; file: FileRef; links: FileLinks; onClose: () => void }) {
   const absolute = `${links.index.root}/${file.path}`;
-  const native = window.kickoff?.externalApps;
   return (
     <PopupMenu at={at} label={file.path} onClose={onClose}>
       <div className="menu-label">{file.path}</div>
@@ -22,16 +22,16 @@ export function FileMenu({ at, file, links, onClose }: { at: Placement; file: Fi
       <MenuItem onSelect={() => links.openInEditor(file)}>
         <SquareArrowOutUpRight size={14} /> ファイルタブで開く
       </MenuItem>
-      {native && (
+      {canOpenExternal() && (
         <>
           <div className="menu-separator" role="separator" />
-          <MenuItem onSelect={() => void native.openInVSCode(absolute, file.line)}>
+          <MenuItem onSelect={() => void openExternal({ kind: "vscode", path: absolute, line: file.line })}>
             <ExternalLink size={14} /> VS Code で開く
           </MenuItem>
-          <MenuItem onSelect={() => void native.openPath(absolute)}>
+          <MenuItem onSelect={() => void openExternal({ kind: "path", path: absolute })}>
             <AppWindow size={14} /> 既定のアプリで開く
           </MenuItem>
-          <MenuItem onSelect={() => void native.revealPath(absolute)}>
+          <MenuItem onSelect={() => void openExternal({ kind: "reveal", path: absolute })}>
             <FolderSearch size={14} /> Finder で表示
           </MenuItem>
         </>

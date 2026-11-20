@@ -5,6 +5,7 @@ import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import type { BranchActions } from "./useBranchActions";
 import type { RefTarget } from "./refTarget";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 const Separator = () => <div className="menu-separator" role="separator" />;
 
@@ -51,10 +52,10 @@ function WorktreeItems({ tree, viewing, onShow, onRemove }: { tree: GitWorktree;
       <MenuItem disabled={viewing || tree.prunable} title={viewing ? "いま見ている作業場所です" : tree.prunable ? "フォルダがなくなっています" : tree.path} onSelect={onShow}>
         この作業場所を見る
       </MenuItem>
-      {window.kickoff && (
+      {canOpenExternal() && (
         <>
-          <MenuItem onSelect={() => void window.kickoff?.externalApps.openPath(tree.path)}>Finder で開く</MenuItem>
-          <MenuItem onSelect={() => void window.kickoff?.externalApps.openInVSCode(tree.path)}>VS Code で開く</MenuItem>
+          <MenuItem onSelect={() => void openExternal({ kind: "path", path: tree.path })}>Finder で開く</MenuItem>
+          <MenuItem onSelect={() => void openExternal({ kind: "vscode", path: tree.path })}>VS Code で開く</MenuItem>
         </>
       )}
       <MenuItem danger onSelect={onRemove}>

@@ -28,6 +28,7 @@ import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDi
 import type { ProjectSettingsSection } from "@/features/projects/ui/settings/ProjectSettings";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 開いた場所によって使える操作（見出しのカードから開いたときだけ渡す） */
 export interface ProjectMenuExtras {
@@ -114,7 +115,7 @@ function ProjectMenu({
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openTarget({ kind: "newChat", projectId: project.id }))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
       {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openActiveChats({ projectId: project.id }))}
-      {window.kickoff && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void window.kickoff?.externalApps.openPath(project.repo_path))}
+      {canOpenExternal() && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void openExternal({ kind: "path", path: project.repo_path }))}
 
       <div className="menu-separator" role="separator" />
       <div className="menu-label">整理</div>

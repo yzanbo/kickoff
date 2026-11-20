@@ -33,6 +33,7 @@ import { closeNoteTabsUnder, notePanelKey, openNoteInPanel } from "./notePanel";
 import { requestNoteReveal } from "./noteReveal";
 import { NotePlanDialog } from "./NotePlanDialog";
 import { followMovedNote, useNoteActions } from "./useNoteActions";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 右の欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
 const FIXED_FRAME: PanelFrame = { fixed: true };
@@ -108,8 +109,7 @@ export function NoteTab({
     openFolders(ancestorsOf(path));
   };
 
-  // 最後に表示したノートを覚え、タブがないまま開いたら（アプリを開き直したとき）そのノートを開き直す
-  // （覚え直すのは表示したノートが変わったときだけ。開き直すのは一覧が届いたときだけ）
+  // 最後に表示したノートを覚え、タブがないまま開いたら（アプリを開き直したとき）そのノートを開き直す（覚え直すのは表示したノートが変わったときだけ。開き直すのは一覧が届いたときだけ）
   const rememberShown = useEffectEvent((path: string) => {
     if (path !== remembered) setRemembered(path);
   });
@@ -180,7 +180,7 @@ export function NoteTab({
     if (!highlighted) return "";
     return entries?.find((e) => e.path === highlighted)?.dir ? highlighted : parentOf(highlighted);
   };
-  const reveal = (path: string) => window.kickoff?.externalApps.revealPath(path ? `${dir}/${path}` : dir);
+  const reveal = (path: string) => openExternal({ kind: "reveal", path: path ? `${dir}/${path}` : dir });
 
   // 行を押した: ⌘ / Shift なら選ぶだけ（まだ何も選んでいなければ、いま選んでいる行も入れる）。ふつうのクリックは選んだものを外し、ノートは開き、フォルダは開閉して選ぶ
   const rowClick = (path: string, isDir: boolean, e: MouseEvent) => {
@@ -310,7 +310,7 @@ export function NoteTab({
                   <button className="btn" onClick={() => void actions.createNote("", "html")}>
                     <FileCode2 size={14} aria-hidden /> 新しい HTML ノート
                   </button>
-                  {window.kickoff && list.data.exists && (
+                  {canOpenExternal() && list.data.exists && (
                     <button className="btn" onClick={() => void reveal("")}>
                       <FolderOpen size={14} aria-hidden /> Finder で開く
                     </button>
@@ -334,7 +334,7 @@ export function NoteTab({
           onClose={menu.close}
           onCreate={(node, kind) => void (kind === "folder" ? actions.createFolder(folderForNew(node)) : actions.createNote(folderForNew(node), kind))}
           onRename={startRename}
-          onReveal={window.kickoff ? (path) => void reveal(path) : null}
+          onReveal={canOpenExternal() ? (path) => void reveal(path) : null}
           onOpenInNewTabs={(paths) => void openInNewTabs(paths)}
           onTrash={(nodes) => {
             multi.clear();

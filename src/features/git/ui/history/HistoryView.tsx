@@ -13,6 +13,7 @@ import type { RefTarget } from "./refTarget";
 import { groupBranches } from "./refGroups";
 import type { WorktreeActions } from "@/features/worktrees/ui/useWorktreeActions";
 import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";
+import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 追いかけているリモートとの進み・遅れ（どちらもなければ出さない） */
 function SyncNote({ branch }: { branch?: GitRefs["branches"][number] }) {
@@ -86,11 +87,11 @@ function RemoteGroup({
 
 /** 作業場所のフォルダを Finder・VS Code で開くボタン（Mac のアプリだけ） */
 function FolderButtons({ path }: { path: string }) {
-  if (!window.kickoff) return null;
+  if (!canOpenExternal()) return null;
   return (
     <>
-      <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void window.kickoff?.externalApps.openPath(path)} />
-      <IconButton icon={ExternalLink} label="VS Code で開く" size={14} onClick={() => void window.kickoff?.externalApps.openInVSCode(path)} />
+      <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void openExternal({ kind: "path", path })} />
+      <IconButton icon={ExternalLink} label="VS Code で開く" size={14} onClick={() => void openExternal({ kind: "vscode", path })} />
     </>
   );
 }
