@@ -2,6 +2,7 @@ import { createKernel } from "@/foundation/core/kernel";
 import { serveCore } from "@/foundation/core/serve";
 import { assembleCore } from "./assemble";
 import { MIGRATIONS } from "./migrations";
+import { ALL_SETTINGS } from "@/app/shared/settings";
 import { prepareCore } from "./prepare";
 import { realEnv } from "./realEnv";
 import type { Core, CoreOptions } from "./types";
@@ -9,7 +10,7 @@ import type { Core, CoreOptions } from "./types";
 /** Kickoff のコア（DB・エージェント実行・HTTP API）を起動する: 土台を開く → 機能を組み立てる → 待ち受けて機能を始める。Electron にもヘッドレスにも依存しない */
 export async function startCore(opts: CoreOptions): Promise<Core> {
   // 土台（保存先・Bus・DB）
-  const k = createKernel({ dataDir: opts.dataDir, port: opts.port, host: opts.host, staticDir: opts.staticDir, platform: opts.platform, onChildProcess: opts.onChildProcess, migrations: MIGRATIONS });
+  const k = createKernel({ dataDir: opts.dataDir, port: opts.port, host: opts.host, staticDir: opts.staticDir, platform: opts.platform, onChildProcess: opts.onChildProcess, migrations: MIGRATIONS, settings: ALL_SETTINGS });
   opts.onStage?.("dbOpened");
   const env = realEnv(opts);
   const assembled = assembleCore(k, env, await prepareCore(k, env));

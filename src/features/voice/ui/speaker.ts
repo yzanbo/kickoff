@@ -1,5 +1,5 @@
 // 音声モードの読み上げ（この Mac の声 = Web Speech の speechSynthesis / OpenAI の声 = コアの /api/speech の mp3 を再生）
-import type { AppSettings } from "@shared/settings/types";
+import type { AppSettings } from "@shared/foundation/contract/settings";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { speakableText, splitSpeech } from "./speechText";

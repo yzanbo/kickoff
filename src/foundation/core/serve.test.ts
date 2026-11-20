@@ -16,7 +16,7 @@ const platform = { appDataRoot: "/apps" } as HostPlatform;
 /** 呼ばれた順を order に書く偽の機能と土台 */
 function fixture() {
   const order: string[] = [];
-  const k = createKernel({ dataDir: tempDir(), port: 0, platform, migrations: [{ version: 1, sql: BASE_SCHEMA_V1 }] });
+  const k = createKernel({ dataDir: tempDir(), port: 0, platform, migrations: [{ version: 1, sql: BASE_SCHEMA_V1 }], settings: {} });
   k.exec.stopAllStreams = () => void order.push("streams");
   const feature = (name: FeatureName, stopPhase?: "first"): CoreFeature => ({
     name,

@@ -20,7 +20,8 @@
     "scripts/**/*.ts",
     "electron.vite.config.ts",
     "vitest.config.ts",
-    "src/shared/*/events.ts"
+    "src/shared/*/events.ts",
+    "src/app/shared/settings.ts"
   ],
   "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**", "src/foundation/desktop/preload/**", "src/app/desktop/preload.ts"]
 }

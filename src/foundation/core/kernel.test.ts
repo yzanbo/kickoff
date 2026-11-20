@@ -19,7 +19,7 @@ test("Kernel: 保存先を作って DB を開き、閉じると DB と子プロ�
   const dataDir = path.join(tempDir(), "Kickoff Test");
   const notes: ChildProcessNote[] = [];
   const clock = manualClock();
-  const k = createKernel({ dataDir, port: 4999, platform, clock, onChildProcess: (n) => notes.push(n), migrations });
+  const k = createKernel({ dataDir, port: 4999, platform, clock, onChildProcess: (n) => notes.push(n), migrations, settings: {} });
   assert.ok(fs.existsSync(path.join(dataDir, "kickoff.db")));
   assert.deepEqual(k.paths, { dataDir, port: 4999, host: "127.0.0.1", staticDir: null, appDataRoot: "/apps", databaseId: readDatabaseId(k.db) });
   assert.equal(k.clock, clock);
@@ -30,7 +30,7 @@ test("Kernel: 保存先を作って DB を開き、閉じると DB と子プロ�
   reportChildProcess(note);
   assert.equal(notes.length, 1);
   assert.throws(() => k.db.prepare("SELECT 1").get());
-  const again = createKernel({ dataDir, port: 4999, platform, migrations });
+  const again = createKernel({ dataDir, port: 4999, platform, migrations, settings: {} });
   assert.equal(again.paths.databaseId, k.paths.databaseId);
   closeKernel(again);
 });

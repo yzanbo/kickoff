@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
-import { DEFAULT_SETTINGS } from "@shared/settings/types";
+import { defaultsOf } from "@shared/foundation/contract/settings";
+import { voiceSettings } from "@shared/voice/settings";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -83,7 +84,7 @@ export function useVoiceMode({
         s.noteSent();
       },
       transcribe: async (audio) => (await api.transcribe(audio)).text,
-      speakerSettings: () => latest.current.settings ?? DEFAULT_SETTINGS,
+      speakerSettings: () => latest.current.settings ?? defaultsOf(voiceSettings),
       onState: setState,
       onHeard: setHeard,
       onError: setError,

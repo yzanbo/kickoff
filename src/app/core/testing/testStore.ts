@@ -1,8 +1,11 @@
 // テストの店: 全部の機能の表を v1 で作った DB（既定はメモリ）に、chat の店の束と機能の店を開いたもの。テストと決まったデータの道具からだけ使う
 import type { DatabaseSync } from "node:sqlite";
-import { openDb } from "@/foundation/core/db/db";
 import type { Notify } from "@/foundation/core/db/common";
-import { openBaseStores, type BaseStores } from "@/foundation/core/db/store";
+import { openDb, readDatabaseId } from "@/foundation/core/db/db";
+import type { Kernel } from "@/foundation/core/kernel";
+import { createSecretStore } from "@/foundation/core/settings/secretStore";
+import { openAppSettings } from "@/foundation/core/settings/settingsStore";
+import { ALL_SETTINGS } from "@/app/shared/settings";
 import { chatTitlesOf } from "@/features/chat/core/db/chatTitles";
 import type { Store } from "@/features/chat/core/index";
 import { createChatStores } from "@/features/chat/core/stores";
@@ -16,6 +19,14 @@ import { createSnippetStore, type SnippetStore } from "@/features/snippets/core/
 import { createTrashStore } from "@/features/trash/core/db/trash";
 import { createWorktreeStores } from "@/features/worktrees/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
+
+/** 土台の店（設定・秘密の値・DB の ID） */
+type BaseStores = Pick<Kernel, "settings" | "secrets"> & { databaseId: string };
+
+/** 土台の店を開く（Kernel がないとき。設定は全部の機能の表） */
+function openBaseStores(db: DatabaseSync, onChange: Notify): BaseStores {
+  return { databaseId: readDatabaseId(db), settings: openAppSettings(db, ALL_SETTINGS, (settings) => onChange({ type: "settings", settings })), secrets: createSecretStore(db) };
+}
 
 /** chat の束にない店（土台の DB の ID・秘密の値と、端末・DB クライアント・GitHub・ワークツリー・外の画像の店）。店は DB のほかに状態を持たない */
 function extraStores(db: DatabaseSync, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {

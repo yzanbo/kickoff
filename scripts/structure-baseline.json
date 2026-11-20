@@ -175,9 +175,6 @@
       "feature-core:projects:src/features/projects/core/routes/projects.ts -> src/shared/notes/names.ts",
       "feature-core:providerSwitch:src/features/providerSwitch/core/providerHandoffGit.ts -> src/features/git/core/index.ts",
       "feature-core:providerSwitch:src/features/providerSwitch/core/providerHandoffGit.ts -> src/shared/git/types.ts",
-      "feature-core:settings:src/features/settings/core/routes/settings.ts -> src/features/voice/core/models.ts",
-      "feature-core:settings:src/features/settings/core/routes/settings.ts -> src/shared/compact/autoCompact.ts",
-      "feature-core:settings:src/features/settings/core/routes/settings.ts -> src/shared/voice/types.ts",
       "feature-core:trash:src/features/trash/core/command.ts -> src/features/guard/core/guard/deleteGuard.ts",
       "feature-core:trash:src/features/trash/core/index.ts -> src/shared/projects/types.ts",
       "feature-core:workplaceMove:src/features/workplaceMove/core/aiWorkplace.ts -> src/features/terminal/core/control.ts",
@@ -569,8 +566,6 @@
       "feature-worker:database:src/features/database/worker/main.ts -> src/foundation/core/platform/macos/shell.ts",
       "feature-worker:database:src/features/database/worker/shell.ts -> src/foundation/core/platform/types.ts",
       "feature-worker:database:src/features/database/worker/tunnel.ts -> src/features/database/core/sshArgs.ts",
-      "foundation-core:src/foundation/core/db/store.ts -> src/features/database/core/db/dbConnections.ts",
-      "foundation-core:src/foundation/core/db/store.ts -> src/shared/settings/types.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/chat/types.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/github/types.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/settings/types.ts",
@@ -653,7 +648,6 @@
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/features/browser/ui/panel/openBrowserTab.ts",
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/features/settings/ui/stores/settings.ts",
       "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/shared/remoteImages/linkWarnings.ts",
-      "foundation-ui:src/foundation/ui/external/linkOpen.ts -> src/shared/settings/types.ts",
       "foundation-ui:src/foundation/ui/kit/ArchivedFold.tsx -> src/shared/chat/types.ts",
       "foundation-ui:src/foundation/ui/kit/ToolStatusIcon.tsx -> src/features/conversation/ui/tools/toolStatus.ts",
       "foundation-ui:src/foundation/ui/kit/list/treeModel.ts -> src/shared/git/types.ts",
@@ -736,8 +730,7 @@
       "shared-order:docker:src/shared/docker/types.ts -> src/shared/database/types.ts",
       "shared-order:git:src/shared/git/types.ts -> src/shared/worktrees/envTypes.ts",
       "shared-order:projects:src/shared/projects/types.ts -> src/shared/chat/types.ts",
-      "shared-order:settings:src/shared/settings/types.ts -> src/shared/chat/types.ts",
-      "shared-order:settings:src/shared/settings/types.ts -> src/shared/voice/types.ts"
+      "shared-order:settings:src/shared/settings/types.ts -> src/shared/chat/types.ts"
     ],
     "public": [
       "feature-entry:src/features/ai/core/providers/acp/permissions.ts -> src/features/guard/core/guard/judgeTool.ts",
@@ -2079,7 +2072,6 @@
       "feature-entry:src/features/remoteImages/ui/ChatImage.tsx -> src/features/attachments/ui/useAttachmentViewer.tsx",
       "feature-entry:src/features/remoteImages/ui/ChatImage.tsx -> src/features/chat/ui/screen/pastWorkplace.tsx",
       "feature-entry:src/features/remoteImages/ui/settings/LinkSettings.tsx -> src/features/settings/ui/stores/settings.ts",
-      "feature-entry:src/features/settings/core/routes/settings.ts -> src/features/voice/core/models.ts",
       "feature-entry:src/features/settings/ui/SettingsDialog.tsx -> src/features/ai/ui/settings/AiDefaultsSettings.tsx",
       "feature-entry:src/features/settings/ui/SettingsDialog.tsx -> src/features/ai/ui/settings/ConnectionSettings.tsx",
       "feature-entry:src/features/settings/ui/SettingsDialog.tsx -> src/features/ai/ui/usage/UsagePanel.tsx",
@@ -2366,7 +2358,6 @@
       "feature-entry:src/features/worktrees/ui/WorktreeBar.tsx -> src/features/github/ui/prNotice/PrNoticeDialog.tsx",
       "feature-entry:src/features/worktrees/ui/WorktreeBar.tsx -> src/features/github/ui/prNotice/prNoticeStore.ts",
       "feature-entry:src/features/worktrees/ui/useWorktreeActions.ts -> src/features/git/ui/history/useGitLog.ts",
-      "feature-entry:src/foundation/core/db/store.ts -> src/features/database/core/db/dbConnections.ts",
       "feature-entry:src/foundation/core/host/protocol.ts -> src/features/notifications/core/notices.ts",
       "feature-entry:src/foundation/core/platform/macos/macos.test.ts -> src/features/docker/core/macosEngine.ts",
       "feature-entry:src/foundation/core/testing/fakeClaudeSdk.ts -> src/features/ai/core/providers/claude/sdk.ts",
@@ -2465,7 +2456,7 @@
       "siblings:src/foundation/desktop:app,diagnostics,ipc,notifications,platform,terminal",
       "siblings:src/foundation/ui:code,hooks,lib,theme",
       "siblings:src/foundation/ui:kit,markdown",
-      "siblings:src/shared:ai,chat,database,foundation,git,github,groups,notifications,projects,settings,snippets,visuals,voice,workplaceMove,worktrees",
+      "siblings:src/shared:ai,chat,database,foundation,git,github,groups,notifications,projects,settings,snippets,visuals,workplaceMove,worktrees",
       "siblings:src:app,features,foundation"
     ],
     "size": {

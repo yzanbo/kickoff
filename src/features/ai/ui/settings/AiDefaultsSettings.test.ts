@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
-import { DEFAULT_SETTINGS } from "@shared/settings/types";
+import { defaultsOf } from "@shared/foundation/contract/settings";
+import { aiSettings } from "@shared/ai/settings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 
 vi.mock("@/features/ai/ui/stores/providers", () => ({
@@ -11,7 +12,7 @@ vi.mock("@/features/ai/ui/stores/providers", () => ({
 }));
 
 vi.mock("@/features/settings/ui/useSettingsDraft", () => ({
-  useSettingsDraft: () => ({ draft: DEFAULT_SETTINGS, setDraft: () => {}, dirty: false, save: {}, saveFields: () => {} }),
+  useSettingsDraft: () => ({ draft: defaultsOf(aiSettings), setDraft: () => {}, dirty: false, save: {}, saveFields: () => {} }),
 }));
 
 test("AI の既定は適用範囲と AI ごとの設定を区別して表示する", () => {

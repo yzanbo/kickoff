@@ -1,5 +1,6 @@
-// 設定の店（settings の表。キーごとに JSON で持ち、既定と混ぜて返す）。何の設定かは知らない（既定の表は作る側が渡す）
+// 設定の店（settings の表。キーごとに JSON で持ち、既定と混ぜて返す）。何の設定かは知らない（設定の表は組み立てが渡す）
 import type { DatabaseSync } from "node:sqlite";
+import { defaultsOf, entriesOf, type AppSettings, type SettingsPatch, type SettingTable } from "@shared/foundation/contract/settings";
 
 export interface SettingsStore<T, P> {
   /** 既定 ＋ 保存した値（知らないキーは返さない） */
@@ -47,4 +48,9 @@ export function createSettingsStore<T extends object, P extends { [K in keyof T]
       return settings;
     },
   };
+}
+
+/** アプリ全体の設定の店（table は組み立てが渡す全部の機能の表 ALL_SETTINGS。AppSettings の形も同じ表から足すので、既定はその形になる） */
+export function openAppSettings(db: Pick<DatabaseSync, "prepare">, table: SettingTable, notify: (settings: AppSettings) => void): SettingsStore<AppSettings, SettingsPatch> {
+  return createSettingsStore<AppSettings, SettingsPatch>(db, defaultsOf(table) as AppSettings, notify, entriesOf(table) as (keyof AppSettings & string)[]);
 }

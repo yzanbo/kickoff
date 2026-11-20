@@ -5,8 +5,10 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
-import { DB_FILE, openDb, type Migration } from "@/foundation/core/db/db";
-import { openBaseStores, type BaseStores } from "@/foundation/core/db/store";
+import { DB_FILE, openDb, readDatabaseId, type Migration } from "@/foundation/core/db/db";
+import { createSecretStore, type SecretStore } from "@/foundation/core/settings/secretStore";
+import { openAppSettings, type SettingsStore } from "@/foundation/core/settings/settingsStore";
+import type { AppSettings, SettingsPatch, SettingTable } from "@shared/foundation/contract/settings";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { setChildProcessReporter, type ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { runCommand } from "@/foundation/core/system/exec";
@@ -49,8 +51,10 @@ export interface Kernel {
   /** 機能に依らない OS の口（機能だけが使う値は組み立てが機能へ渡す） */
   readonly platform: HostPlatform;
   readonly paths: CorePaths;
-  readonly settings: BaseStores["settings"];
-  readonly secrets: BaseStores["secrets"];
+  /** アプリ全体の設定（既定 ＋ 保存した値。知らないキーは返さない） */
+  readonly settings: SettingsStore<AppSettings, SettingsPatch>;
+  /** 秘密の値（API キー・DB のパスワードなど。名前の形は使う機能が決める。設定・SSE・API の応答には出さない） */
+  readonly secrets: SecretStore<string>;
   readonly log: Log;
   /** 作業場所の登録先（上の機能が登録する口。workplace/kit.ts） */
   readonly workplace: WorkplaceKit;
@@ -70,6 +74,8 @@ export interface KernelOptions {
   dbFile?: string;
   /** スキーマの版（組み立てが全部の機能の版を並べて渡す。@/app/core/migrations.ts） */
   migrations: readonly Migration[];
+  /** 設定の表（組み立てが全部の機能の表を束ねて渡す。@/app/shared/settings.ts の ALL_SETTINGS） */
+  settings: SettingTable;
 }
 
 const consoleLog: Log = {
@@ -81,23 +87,22 @@ const consoleLog: Log = {
 /** 子プロセスの知らせを渡した Kernel（閉じるときにその知らせを外す） */
 const reporting = new WeakSet<Kernel>();
 
-/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる（版は opts.migrations）→ 土台の店（設定・秘密の値・DB の ID） */
+/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる（版は opts.migrations）→ 土台の店（設定（表は opts.settings）・秘密の値・DB の ID） */
 export function createKernel(opts: KernelOptions): Kernel {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const db = openDb(opts.dbFile ?? path.join(opts.dataDir, DB_FILE), opts.migrations);
-  const publish = bus.publish.bind(bus);
-  const base = openBaseStores(db, publish);
+  const databaseId = readDatabaseId(db);
   const k: Kernel = {
     clock: opts.clock ?? systemClock,
     bus,
     db,
     exec: { run: runCommand, stream: streamCommand, stopAllStreams },
     platform: opts.platform,
-    paths: { dataDir: opts.dataDir, port: opts.port, host: opts.host ?? "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: opts.platform.appDataRoot, databaseId: base.databaseId },
-    settings: base.settings,
-    secrets: base.secrets,
+    paths: { dataDir: opts.dataDir, port: opts.port, host: opts.host ?? "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: opts.platform.appDataRoot, databaseId },
+    settings: openAppSettings(db, opts.settings, (settings) => bus.publish({ type: "settings", settings })),
+    secrets: createSecretStore(db),
     log: consoleLog,
     workplace: createWorkplaceKit(),
   };

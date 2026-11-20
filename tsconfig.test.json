@@ -11,6 +11,7 @@
     "src/foundation/ui/storage/memoryStorage.ts",
     "src/app/renderer/global.d.ts",
     "vitest.setup.ts",
-    "src/shared/*/events.ts"
+    "src/shared/*/events.ts",
+    "src/app/shared/settings.ts"
   ]
 }

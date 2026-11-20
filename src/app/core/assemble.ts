@@ -30,6 +30,7 @@ import { deviceEventTypes } from "@shared/foundation/contract";
 import { ALL_EVENT_TABLES } from "@/app/shared/contracts";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
+import { SETTING_SCHEMAS } from "./settings";
 
 /** 並べた機能と、起動したコアの口（Core）・テストに出すもの */
 export interface AppAssembly extends AssembledCore {
@@ -60,7 +61,7 @@ const deviceTypes = deviceEventTypes(ALL_EVENT_TABLES);
 
 /** 機能を作って並べる（待つものは prepareCore で先に済ませる。テストの偽物は何も待たない） */
 export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = { relay: null }): AppAssembly {
-  const settings = createSettings(k);
+  const settings = createSettings(k, { schemas: SETTING_SCHEMAS });
   // 下の機能があとで作る上の機能の店を読む所は、呼ばれたときに引く関数を渡す（仮の口。作る順は止める順も決めるので変えない）
   const trash = createTrash(k, { projects: () => projects.api.store }, env.trash);
   const projects = createProjects(k, { trash: trash.api });

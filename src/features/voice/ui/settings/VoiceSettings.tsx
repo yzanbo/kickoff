@@ -1,5 +1,5 @@
 import { Mic } from "lucide-react";
-import type { AppSettings } from "@shared/settings/types";
+import type { AppSettings } from "@shared/foundation/contract/settings";
 import { VOICE_LANGUAGES, VOICE_PROVIDERS, type VoiceStatus } from "@shared/voice/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSave } from "@/foundation/ui/hooks/useSave";

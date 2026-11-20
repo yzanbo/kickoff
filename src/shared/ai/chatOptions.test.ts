@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { resolveChatOptions } from "./chatOptions";
-import { DEFAULT_SETTINGS, PROVIDER_BASE_CHAT_OPTIONS, type AppSettings } from "@shared/settings/types";
+import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
+import { defaultsOf, type AppSettings } from "@shared/foundation/contract/settings";
+import { aiSettings } from "./settings";
+
+/** AI の設定の既定 */
+const DEFAULTS = defaultsOf(aiSettings);
 
 /** その AI のアプリの既定だけを変えた設定 */
-const withDefaults = (defaults: Partial<AppSettings["provider_chat_defaults"]>) => ({ ...DEFAULT_SETTINGS, provider_chat_defaults: { ...DEFAULT_SETTINGS.provider_chat_defaults, ...defaults } });
+const withDefaults = (defaults: Partial<AppSettings["provider_chat_defaults"]>) => ({ ...DEFAULTS, provider_chat_defaults: { ...DEFAULTS.provider_chat_defaults, ...defaults } });
 
 test("チャットの選択: アプリの既定の上に、プロジェクトの既定 → 送るときの指定の順で、書いてある項目だけを重ねる", () => {
   const settings = withDefaults({ claude: { model: "opus", effort: "high", permission_mode: "default", fast_mode: true } });
@@ -26,7 +31,7 @@ test("チャットの選択: アプリの既定の上に、プロジェクトの
 });
 
 test("どこでも決めていなければ、推論の深さは指定せず、権限モードは毎回確認", () => {
-  assert.deepEqual(resolveChatOptions(DEFAULT_SETTINGS, "claude"), { model: "opus", effort: null, permission_mode: "default", fast_mode: false });
+  assert.deepEqual(resolveChatOptions(DEFAULTS, "claude"), { model: "opus", effort: null, permission_mode: "default", fast_mode: false });
 });
 
 test("Claude Code 以外の AI には、Claude Code の既定（モデルの名前など）を重ねない（メモの仕様書「0028」の G2）", () => {

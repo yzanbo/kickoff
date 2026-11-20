@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Chat, ChatStatus } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
-import { DEFAULT_SETTINGS, type AppSettings } from "@shared/settings/types";
+import type { AppSettings } from "@shared/foundation/contract/settings";
 import { bit, updateRow, type Notify, type Row } from "@/foundation/core/db/common";
 import type { NewChat } from "@/foundation/core/db/types";
 import { rememberChatSession } from "./agentSessions";
@@ -69,7 +69,7 @@ function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
  * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、
  * get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
  */
-export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: LogRevisions, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default"> = () => DEFAULT_SETTINGS) {
+export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: LogRevisions | undefined, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default">) {
   const get = (id: number): Chat | undefined => {
     const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toChat(row) : undefined;

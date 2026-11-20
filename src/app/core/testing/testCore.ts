@@ -24,6 +24,7 @@ import { Runner } from "@/features/chat/core/runner";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { MIGRATIONS } from "@/app/core/migrations";
+import { ALL_SETTINGS } from "@/app/shared/settings";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform } from "./testEnv";
 import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
 
@@ -41,7 +42,7 @@ export type BeforeStart = (store: TestStores, project: Project) => unknown;
 
 /** メモリの DB の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
 function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string): { k: Kernel; store: TestStores; project: Project } {
-  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:", migrations: MIGRATIONS });
+  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:", migrations: MIGRATIONS, settings: ALL_SETTINGS });
   // 組み立てる前（前回のデータを入れる・実行だけのテスト）の店。土台の設定・秘密の値は Kernel のもの
   const store = openTestStores(k.db, (e) => k.bus.publish(e), { databaseId: k.paths.databaseId, settings: k.settings, secrets: k.secrets });
   const repo = path.join(tempDir(), "repo");
