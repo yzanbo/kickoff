@@ -8,7 +8,7 @@ import { appDataDir } from "@/foundation/core/system/appEnv";
 import { realPathLoose } from "@/foundation/core/system/paths";
 import { DB_FILE } from "@/foundation/core/db/db";
 
-/** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result）。読めない DB は飛ばす */
+/** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result）。読めない DB があれば、すべて使っている扱い */
 export type SessionsUsedElsewhere = (ids: string[]) => Set<string>;
 
 /** 自分の保存先（dataDir）でない製品版・開発版の保存先の DB を調べる口を作る */
@@ -27,7 +27,10 @@ export function siblingSessionCheck(dataDir: string, appDataRoot: string): Sessi
   };
 }
 
-/** 1 つの DB で使われている ID（読むだけで開く。開けなければ空） */
+/**
+ * 1 つの DB で使われている ID（読むだけで開く）。開けない・表や列が違う（相手の版が違う）ときは、すべて使っている扱いにする
+ * （使っていない扱いにすると、相手のチャットが使う会話記録を片付けてしまうため）
+ */
 function usedIn(file: string, ids: string[]): string[] {
   let db: DatabaseSync | null = null;
   try {
@@ -43,7 +46,7 @@ function usedIn(file: string, ids: string[]): string[] {
       .all(...ids, ...ids, ...ids) as { sid: string }[];
     return rows.map((r) => r.sid);
   } catch {
-    return [];
+    return ids;
   } finally {
     db?.close();
   }

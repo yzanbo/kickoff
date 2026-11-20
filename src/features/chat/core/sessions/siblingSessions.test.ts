@@ -27,3 +27,12 @@ test("ほかの Kickoff の DB が使っているセッションだけを返す�
   // 製品版から見ると、開発版の DB はないので空（自分の DB は見ない）
   assert.equal(siblingSessionCheck(prod, root)(["s-chat"]).size, 0);
 });
+
+test("ほかの Kickoff の DB が読めない（版が違って表がない・壊れている）ときは、すべて使っている扱い（会話記録を片付けない）", () => {
+  const root = tempDir();
+  const prod = appDataDir(root, "production");
+  const dev = appDataDir(root, "development");
+  fs.mkdirSync(prod, { recursive: true });
+  fs.writeFileSync(path.join(prod, DB_FILE), "Kickoff のデータベースではない");
+  assert.deepEqual([...siblingSessionCheck(dev, root)(["s1", "s2"])].sort(), ["s1", "s2"]);
+});
