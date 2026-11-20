@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent } from "react";
 import type { ServerEventMap } from "@shared/foundation/contract";
+import { createSignal } from "@shared/foundation/signal";
 
 /** SSE の種類（各機能の src/shared/<機能>/events.ts が ServerEventMap に足したもの） */
 export type ServerEventType = keyof ServerEventMap & string;
@@ -45,12 +46,12 @@ export function useServerEvent<E extends ServerEventType>(type: E | readonly E[]
 
 // ---- つながったとき ----
 
-// 店の仕組み（store/）がこの口を読むので、ここは store の createSignal を読めない（兄弟のフォルダを循環させない）
-const openListeners = new Set<() => void>();
+/** つながった知らせ（店の仕組み store/ がこの口を読むので、知らせは共有の土台の createSignal から作る） */
+const opened = createSignal();
 
 /** サーバーとの SSE がつながったことを知らせる（serverConnection.ts が、初めてつながったとき・つなぎ直したときに呼ぶ） */
 export function publishServerOpen() {
-  for (const listener of [...openListeners]) listener();
+  opened.emit();
 }
 
 /**
@@ -58,6 +59,5 @@ export function publishServerOpen() {
  * やめるときは返り値を呼ぶ
  */
 export function onServerOpen(listener: () => void): () => void {
-  openListeners.add(listener);
-  return () => void openListeners.delete(listener);
+  return opened.subscribe(listener);
 }

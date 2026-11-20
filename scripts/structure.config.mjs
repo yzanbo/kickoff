@@ -180,8 +180,6 @@ export default {
       files: ["renderer"],
       allow: [
         "src/foundation/ui/store/**",
-        // SSE の配り（店が読むので store を読めない）
-        "src/foundation/ui/api/events.ts",
         // まだ乗せ替えていない機能の手書きの店（持ち主の段で乗せ替えて、ここから外す。分冊 04 の P4-1b の表）
         ...["ai/ui/provider/chatProvider.ts", "browser/ui/agentBrowsing.ts", "compact/ui/heldEdit.ts", "database/ui/tabFlags.ts", "files/ui/fileTabs.ts", "files/ui/links/fileIndexStore.ts", "github/ui/githubDialogs.ts", "notes/ui/addToNote.ts", "panel/ui/layout/externalTabDrag.ts", "panel/ui/state/panelStore.ts", "ports/ui/portsStore.ts", "projects/ui/rightSidebar/sideOpenRequests.ts", "projects/ui/rightSidebar/useSideWorktree.ts", "sidebar/ui/ProjectListHead.tsx"].map((f) => `src/features/${f}`),
       ],
