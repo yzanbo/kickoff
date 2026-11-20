@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { isSubmitKey } from "@/foundation/ui/lib/keys";
+import { finishAsk, nextAskId, pushAsk } from "./askQueue";
 import { DialogActions } from "./DialogActions";
 import { CheckField } from "./Field";
 import { PromptAssist, type PromptAssistOptions } from "./PromptAssist";
@@ -75,6 +76,7 @@ type Request =
   | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean[], selected: string) => void } & PromptOptions)
   | ({ kind: "choice"; resolve: (value: string | null, remember: boolean, checked: boolean[]) => void } & ChoiceOptions);
 
+/** 依頼を出す（ダイアログを置いていなければ undefined） */
 let show: ((req: Request) => void) | undefined;
 
 /** 確認のダイアログ。実行を選べば true */
@@ -158,16 +160,30 @@ export function choiceDialogWithRemember<T extends string>(
   });
 }
 
-/** App に 1 つだけ置く（ダイアログを表示する場所） */
+/** App に 1 つだけ置く（ダイアログを表示する場所）。開いている間に来た依頼は順番に待たせ、閉じたら次を出す */
 export function DialogHost() {
-  const [req, setReq] = useState<Request | null>(null);
-  const [value, setValue] = useState("");
-  // 「次からはこれにする」のチェック
+  const [queue, setQueue] = useState<readonly { id: number; req: Request }[]>([]);
+  useEffect(() => {
+    show = (req) => {
+      const item = { id: nextAskId(), req };
+      setQueue((q) => pushAsk(q, item));
+    };
+    return () => {
+      show = undefined;
+    };
+  }, []);
+  const head = queue[0];
+  // 依頼ごとに作り直し、入力・チェックの状態を初めの値から始める
+  return head ? <RequestDialog key={head.id} req={head.req} onDone={() => setQueue((q) => finishAsk(q, head))} /> : null;
+}
+
+/** 1 つの依頼のダイアログ */
+function RequestDialog({ req, onDone }: { req: Request; onDone: () => void }) {
+  const [value, setValue] = useState(req.kind === "prompt" ? (req.initial ?? "") : "");
+  // 「次からはこれにする」（初めは外す）・添えるチェック（checks の順）・入力に添える一覧で選んでいるもの
   const [remember, setRemember] = useState(false);
-  // 確認・入力・選ぶダイアログに添えるチェックの状態（checks の順）
-  const [checked, setChecked] = useState<boolean[]>([]);
-  // 入力に添える一覧で選んでいるもの
-  const [selected, setSelected] = useState("");
+  const [checked, setChecked] = useState<boolean[]>(() => (req.checks ?? []).map((c) => Boolean(c.initial)));
+  const [selected, setSelected] = useState(req.kind === "prompt" ? (req.select?.initial ?? "") : "");
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -175,21 +191,6 @@ export function DialogHost() {
   const assistRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    show = (next) => {
-      setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
-      setSelected(next.kind === "prompt" ? (next.select?.initial ?? "") : "");
-      // 「次からはこれにする」は初めは外し、添えるチェックは初めの状態に
-      setRemember(false);
-      setChecked((next.checks ?? []).map((c) => Boolean(c.initial)));
-      setReq(next);
-    };
-    return () => {
-      show = undefined;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!req) return;
     ref.current?.showModal();
     // 入力ならその欄に、確認ならキャンセルにピントを置く（Enter で誤って実行しない）
     if (req.kind === "prompt" && req.assist) {
@@ -208,15 +209,13 @@ export function DialogHost() {
   }, [req]);
 
   const finish = (ok: boolean, choice?: string) => {
-    if (!req) return;
     if (req.kind === "confirm") req.resolve(ok, checked);
     else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember, checked);
     else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, checked, selected);
-    setReq(null);
     ref.current?.close();
+    onDone();
   };
 
-  if (!req) return null;
   const confirmLabel = req.kind === "choice" ? "" : (req.confirmLabel ?? (req.kind === "prompt" ? "保存" : "OK"));
   const danger = req.kind === "confirm" && req.danger;
 
