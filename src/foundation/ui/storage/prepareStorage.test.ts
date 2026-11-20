@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { installMemoryStorage } from "./memoryStorage";
 import { readSetting } from "./settings";
+import { storage } from "./legacyKeys";
 import { DATABASE_ID } from "./storageKeys";
 import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
+const GROUPS = [storage];
 
 /** ID を含むもの（まとまりの開閉・下書き・書きかけの文・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
 function rememberSome() {
@@ -31,7 +33,7 @@ function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.re
 
 test("adoptDatabase: 覚えている DB の ID と違えば（初めての起動も）ID を含む表示の設定を捨て、新しい ID を覚える。同じなら何もしない", () => {
   rememberSome();
-  assert.equal(adoptDatabase("db-1"), true);
+  assert.equal(adoptDatabase(GROUPS, "db-1"), true);
   for (const key of ID_KEYS) assert.equal(local.getItem(key), null, key);
   assert.equal(session.getItem("kickoff:last-hash-by-project"), null);
   assert.equal(local.getItem("kickoff:theme"), "light");
@@ -39,10 +41,10 @@ test("adoptDatabase: 覚えている DB の ID と違えば（初めての起動
   assert.equal(readSetting(DATABASE_ID), "db-1");
 
   rememberSome();
-  assert.equal(adoptDatabase("db-1"), false);
+  assert.equal(adoptDatabase(GROUPS, "db-1"), false);
   for (const key of ID_KEYS) assert.notEqual(local.getItem(key), null, key);
 
-  assert.equal(adoptDatabase("db-2"), true);
+  assert.equal(adoptDatabase(GROUPS, "db-2"), true);
   for (const key of ID_KEYS) assert.equal(local.getItem(key), null, key);
 });
 
@@ -52,7 +54,7 @@ test("prepareStorage: 宣言していない古いキーを消し、/api/status �
   local.setItem("kickoff:panel-tab-grouping", "group");
   local.setItem(DATABASE_ID.key, "db-old");
   serveStatus("db-new");
-  await prepareStorage();
+  await prepareStorage(GROUPS);
   assert.equal(local.getItem("kickoff:sidebar-grouping"), null);
   assert.equal(local.getItem("kickoff:panel-tab-grouping"), null);
   for (const key of ID_KEYS) assert.equal(local.getItem(key), null, key);
@@ -64,7 +66,7 @@ test("prepareStorage: つながらなければ、ID を含むものは捨てな�
   rememberSome();
   local.setItem("kickoff:sidebar-grouping", "status");
   serveStatus(null);
-  await prepareStorage();
+  await prepareStorage(GROUPS);
   assert.equal(local.getItem("kickoff:sidebar-grouping"), null);
   for (const key of ID_KEYS) assert.notEqual(local.getItem(key), null, key);
 });
@@ -77,7 +79,7 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   // 答えを返す時はテストが決める（決め打ちの時間で遅らせると、負荷が高いときに待つ長さの前後が入れ替わる）
   let answer = () => {};
   serveStatus("db-new", new Promise<void>((resolve) => (answer = resolve)));
-  await prepareStorage(5);
+  await prepareStorage(GROUPS, { timeoutMs: 5 });
   // まだ届いていないので、捨てていない
   assert.notEqual(local.getItem("kickoff:chat-draft:7"), null);
   answer();

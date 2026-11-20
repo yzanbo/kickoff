@@ -24,9 +24,9 @@ function sources(dir: string): string[] {
   });
 }
 
-test("保存するものは storageKeys.ts でだけ宣言する（ほかで宣言すると、起動したときの片付けがその宣言を知らずにキーを消す）", () => {
+test("保存するものは storageKeys.ts でだけ宣言する（ほかで宣言すると、起動したときの片付けに渡す群に入らず、キーが消える）", () => {
   const outside = roots.flatMap(sources).filter((file) => {
-    if (file.endsWith(path.join("storage", "storageKeys.ts")) || file.endsWith(path.join("storage", "settings.ts"))) return false;
+    if (/storage[\\/](storageKeys|settings|groups)\.ts$/.test(file)) return false;
     return /\bdefineSetting(Family)?\(/.test(fs.readFileSync(file, "utf8"));
   });
   assert.deepEqual(outside.map((f) => path.relative(repo, f)), []);

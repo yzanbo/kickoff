@@ -2,6 +2,7 @@ import { bootMark, expectInteractive, startMemoryReports } from "@/foundation/ui
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { prepareStorage } from "@/foundation/ui/storage/prepareStorage";
+import { STORAGE_GROUPS } from "./storage";
 import { startInputModality } from "@/foundation/ui/lib/inputModality";
 import { startDragAutoScroll } from "@/foundation/ui/lib/dragAutoScroll";
 import { startTheme } from "@/foundation/ui/theme/theme";
@@ -23,9 +24,9 @@ startInputModality();
 // テーマは先に出す（ID を含まないので、表示の設定を整えるのを待たない。待つ間に違う色で光らないように）
 startTheme();
 
-// 保存した表示の設定を整えてから（DB を作り直していれば、ID を含むものを捨ててから）、画面の部品を読み込んで描く
+// 保存した表示の設定を整えてから（全部の機能の群に宣言していないキーを消し、DB を作り直していれば ID を含むものを捨ててから）、画面の部品を読み込んで描く
 // （App は動的に読み込む: 部品の中には、読み込んだときに保存した値を読むもの（下書きのタブなど）があるため）
-void prepareStorage()
+void prepareStorage(STORAGE_GROUPS)
   .catch((e: unknown) => console.error("[storage] 表示の設定を整えられませんでした", e))
   .then(async () => {
     bootMark("storageReady");

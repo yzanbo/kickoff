@@ -1,5 +1,5 @@
-// 画面の表示の設定（開閉・切り替え・幅・書きかけの文など）を localStorage / sessionStorage に保存する仕組み。
-// 保存するものは lib/storageKeys.ts でだけ宣言し（キー・値の形・初めの値・ID を含むか）、読み書きはすべてここを通す。
+// 画面の表示の設定（開閉・切り替え・幅・書きかけの文など）を localStorage / sessionStorage に保存する仕組み（値の形・読み書き・知らせ）。
+// 保存するものは群（groups.ts の defineSettings）で宣言し（キー・値の形・初めの値・ID を含むか）、読み書きはすべてここを通す。
 // 同じ設定を読むものどうし（部品も、React の外も）で値がそろう（書いたら、その設定を見ているものすべてに知らせる）。
 // React からは hooks/useSetting.ts の useSetting で読む（ID ごとの設定は useSetting(family(id))）
 
@@ -38,7 +38,7 @@ export interface SettingFamily<T, S = Shape<T>> {
   readonly ids: boolean;
 }
 
-interface SettingOptions {
+export interface SettingOptions {
   /** ID を含む（DB を作り直したら捨てる） */
   ids?: boolean;
   /** アプリを閉じるまで覚える（sessionStorage） */
@@ -49,7 +49,7 @@ interface SettingOptions {
 export type SettingValue<S> = S extends Shape<infer T> ? T : never;
 
 /** Kickoff の保存するキーの頭（これで始まるキーは、宣言していなければ起動したときに消す） */
-const KEY_PREFIX = "kickoff:";
+export const KEY_PREFIX = "kickoff:";
 
 // ---- 値の形 ----
 
@@ -114,38 +114,28 @@ export function json<T>(parse: (value: unknown) => T | undefined, initial: T, em
   };
 }
 
-// ---- 宣言 ----
+// ---- 宣言（純粋。どこにも登録しない。宣言済みとみなすのは、起動の片付けに渡した群だけ = groups.ts） ----
 
-const singles = new Map<string, Setting<unknown>>();
-const families: SettingFamily<unknown>[] = [];
 const idOf = (area: Area, key: string) => `${area}\n${key}`;
 
-/** キーが kickoff: で始まり、ほかの宣言と重ならないか（1 つのキーがどの宣言のものか、1 通りに決まるように） */
-function assertFree(area: Area, key: string, isPrefix: boolean) {
-  const sameArea = families.filter((f) => f.area === area);
-  const clash = isPrefix
-    ? sameArea.some((f) => key.startsWith(f.prefix) || f.prefix.startsWith(key)) || [...singles.values()].some((s) => s.area === area && s.key.startsWith(key))
-    : singles.has(idOf(area, key)) || sameArea.some((f) => key.startsWith(f.prefix));
-  if (!key.startsWith(KEY_PREFIX) || clash) throw new Error(`保存のキーが kickoff: で始まらないか、ほかの宣言と重なっています: ${key}`);
+function assertPrefixed(key: string) {
+  if (!key.startsWith(KEY_PREFIX)) throw new Error(`保存のキーが kickoff: で始まりません: ${key}`);
 }
 
-/** 保存する設定を宣言する（lib/storageKeys.ts からだけ使う。宣言していない kickoff: のキーは、起動したときに消える） */
+/** 設定を 1 つ作る（群の defineSettings の中で使う） */
 export function defineSetting<S extends Shape<unknown>>(key: string, shape: S, options: SettingOptions = {}): S & Setting<SettingValue<S>> {
-  const area: Area = options.session ? "session" : "local";
-  assertFree(area, key, false);
-  const setting = { ...shape, key, area, ids: options.ids ?? false } as S & Setting<SettingValue<S>>;
-  singles.set(idOf(area, key), setting as Setting<unknown>);
-  return setting;
+  assertPrefixed(key);
+  return { ...shape, key, area: options.session ? "session" : "local", ids: options.ids ?? false } as S & Setting<SettingValue<S>>;
 }
 
-/** ID ごとの設定を宣言する（キーは prefix ＋ ID。prefix は ":" で終える。ほかは defineSetting と同じ） */
+/** ID ごとの設定を作る（キーは prefix ＋ ID。prefix は ":" で終える。ほかは defineSetting と同じ） */
 export function defineSettingFamily<S extends Shape<unknown>>(prefix: string, shape: S, options: SettingOptions = {}): SettingFamily<SettingValue<S>, S> {
-  const area: Area = options.session ? "session" : "local";
+  assertPrefixed(prefix);
   if (!prefix.endsWith(":")) throw new Error(`ID ごとの設定のキーの頭は ":" で終えてください: ${prefix}`);
-  assertFree(area, prefix, true);
+  const area: Area = options.session ? "session" : "local";
   const ids = options.ids ?? false;
   const members = new Map<string, S & Setting<SettingValue<S>>>();
-  const family = Object.assign(
+  return Object.assign(
     (id: string | number) => {
       const key = `${prefix}${id}`;
       let member = members.get(key);
@@ -157,8 +147,6 @@ export function defineSettingFamily<S extends Shape<unknown>>(prefix: string, sh
     },
     { prefix, shape, area, ids },
   );
-  families.push(family as unknown as SettingFamily<unknown>);
-  return family;
 }
 
 // ---- 読み書き ----
@@ -213,6 +201,14 @@ export function writeSetting<T>(setting: Setting<T>, value: T): void {
 const keyListeners = new Map<string, Set<() => void>>();
 const familyListeners = new Map<string, Set<() => void>>();
 const familyVersions = new Map<string, number>();
+/** 購読・版を読まれた仲間（書いたキーがどの仲間のものかを、宣言の登録なしに引くため） */
+const watchedFamilies = new Map<string, { area: Area; prefix: string }>();
+
+function watch(family: SettingFamily<unknown>): string {
+  const id = idOf(family.area, family.prefix);
+  if (!watchedFamilies.has(id)) watchedFamilies.set(id, { area: family.area, prefix: family.prefix });
+  return id;
+}
 
 function listen(map: Map<string, Set<() => void>>, id: string, listener: () => void): () => void {
   let set = map.get(id);
@@ -223,9 +219,8 @@ function listen(map: Map<string, Set<() => void>>, id: string, listener: () => v
 
 function notify(area: Area, key: string) {
   for (const listener of [...(keyListeners.get(idOf(area, key)) ?? [])]) listener();
-  for (const family of families) {
-    if (family.area !== area || !key.startsWith(family.prefix)) continue;
-    const id = idOf(area, family.prefix);
+  for (const [id, watched] of watchedFamilies) {
+    if (watched.area !== area || !key.startsWith(watched.prefix)) continue;
     familyVersions.set(id, (familyVersions.get(id) ?? 0) + 1);
     for (const listener of [...(familyListeners.get(id) ?? [])]) listener();
   }
@@ -256,12 +251,12 @@ export function subscribeSetting(setting: Setting<unknown>, listener: () => void
 
 /** その仲間（ID ごとの設定）のどれかが書き換わったら listener を呼ぶ */
 export function subscribeFamily(family: SettingFamily<unknown>, listener: () => void): () => void {
-  return listen(familyListeners, idOf(family.area, family.prefix), listener);
+  return listen(familyListeners, watch(family), listener);
 }
 
 /** 仲間のどれかが書き換わるたびに増える数（useSyncExternalStore で描き直すため） */
 export function familyVersion(family: SettingFamily<unknown>): number {
-  return familyVersions.get(idOf(family.area, family.prefix)) ?? 0;
+  return familyVersions.get(watch(family)) ?? 0;
 }
 
 // ---- 一覧と片付け ----
@@ -283,14 +278,8 @@ export function storedIds(family: SettingFamily<unknown>): string[] {
     .map((k) => k.slice(family.prefix.length));
 }
 
-/** 宣言した設定か（ids なら、ID を含むものだけ） */
-function declared(area: Area, key: string, onlyIds: boolean): boolean {
-  const single = singles.get(idOf(area, key));
-  if (single) return !onlyIds || single.ids;
-  return families.some((f) => f.area === area && key.startsWith(f.prefix) && (!onlyIds || f.ids));
-}
-
-function removeWhere(test: (area: Area, key: string) => boolean): string[] {
+/** 保存したキーのうち test に合うものを、どちらの保存先からも消して知らせる（起動の片付け = groups.ts）。消したキーを返す */
+export function removeStored(test: (area: Area, key: string) => boolean): string[] {
   const removed: string[] = [];
   for (const area of ["local", "session"] as const) {
     for (const key of storedKeys(area).filter((k) => test(area, k))) {
@@ -305,14 +294,4 @@ function removeWhere(test: (area: Area, key: string) => boolean): string[] {
     }
   }
   return removed;
-}
-
-/** 宣言していない kickoff: のキー（なくした機能の古いキーなど）を消す（起動したときに 1 回）。消したキーを返す */
-export function pruneUndeclared(): string[] {
-  return removeWhere((area, key) => !declared(area, key, false));
-}
-
-/** ID を含む設定（ids を付けて宣言したもの）をすべて消す（DB を作り直したとき）。消したキーを返す */
-export function forgetIdSettings(): string[] {
-  return removeWhere((area, key) => declared(area, key, true));
 }

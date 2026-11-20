@@ -7,11 +7,9 @@ import {
   defineSettingFamily,
   familyVersion,
   flag,
-  forgetIdSettings,
   list,
   number,
   optionalFlag,
-  pruneUndeclared,
   readSetting,
   record,
   storedIds,
@@ -23,7 +21,7 @@ import {
 
 const { local, session } = installMemoryStorage();
 
-// このファイルだけの宣言（宣言は起動のたびに 1 回。テストごとに作り直さない）
+// このファイルだけの宣言（純粋なので、どこにも登録されない）
 const OPEN = defineSetting("kickoff:t-open", flag(true));
 const COMPACT = defineSetting("kickoff:t-compact", flag());
 const MODE = defineSetting("kickoff:t-mode", choice(["queue", "tell"], "tell"));
@@ -31,7 +29,6 @@ const WIDTH = defineSetting("kickoff:t-width", number(300));
 const DRAFT = defineSetting("kickoff:t-draft", text());
 const TAGS = defineSetting("kickoff:t-tags", list());
 const HASHES = defineSetting("kickoff:t-hashes", record((v): v is string => typeof v === "string"), { session: true, ids: true });
-const CURRENT = defineSetting("kickoff:t-current", number(0), { ids: true });
 const groupClosed = defineSettingFamily("kickoff:t-group-closed:", flag(), { ids: true });
 const surfaceMode = defineSettingFamily("kickoff:t-surface:", choice(["none", "group"], "none"));
 const folds = defineSettingFamily("kickoff:t-fold:", optionalFlag());
@@ -133,47 +130,10 @@ test("ID ごとの設定: キーは頭 ＋ ID。同じ ID なら同じ設定で�
   stop();
 });
 
-test("宣言: kickoff: で始まらないキー・同じキー・ほかの宣言の頭に入るキーは宣言できない（どのキーがどの宣言のものか、1 通りに決まる）", () => {
+test("宣言: キーは kickoff: で始め、ID ごとの頭は \":\" で終える（重なりは群を渡す片付けが確かめる = groups.test.ts）", () => {
   assert.throws(() => defineSetting("other:key", flag()));
-  assert.throws(() => defineSetting("kickoff:t-open", flag()));
-  assert.throws(() => defineSetting("kickoff:t-group-closed:9", flag()));
-  assert.throws(() => defineSettingFamily("kickoff:t-group-closed:x:", flag()));
-  // すべての kickoff: のキーを含んでしまう頭・":" で終わらない頭
-  assert.throws(() => defineSettingFamily("kickoff:", flag()));
+  assert.throws(() => defineSettingFamily("other:", flag()));
   assert.throws(() => defineSettingFamily("kickoff:t-no-colon", flag()));
-  // ほかの頭の手前までの名前のキー・別の保存先（sessionStorage）の同じキーはよい
-  assert.doesNotThrow(() => defineSetting("kickoff:t-group", flag()));
-  assert.doesNotThrow(() => defineSetting("kickoff:t-open", flag(), { session: true }));
-});
-
-test("片付け: 宣言していない kickoff: のキーを消す（宣言したもの・ほかのアプリのキーは残す。保存先も宣言と合わなければ消す）", () => {
-  local.setItem("kickoff:t-compact", "1");
-  local.setItem("kickoff:t-group-closed:3", "1");
-  local.setItem("kickoff:sidebar-grouping", "status");
-  local.setItem("kickoff:t-hashes", "{}");
-  local.setItem("other-app:theme", "dark");
-  session.setItem("kickoff:t-hashes", '{"1":"#/"}');
-  session.setItem("kickoff:old", "x");
-  assert.deepEqual(pruneUndeclared().sort(), ["kickoff:old", "kickoff:sidebar-grouping", "kickoff:t-hashes"]);
-  assert.equal(local.getItem("kickoff:t-compact"), "1");
-  assert.equal(local.getItem("kickoff:t-group-closed:3"), "1");
-  assert.equal(local.getItem("other-app:theme"), "dark");
-  assert.equal(session.getItem("kickoff:t-hashes"), '{"1":"#/"}');
-  assert.equal(local.getItem("kickoff:t-hashes"), null);
-});
-
-test("片付け: ID を含む設定（ids を付けて宣言したもの）だけを、どちらの保存先からも消し、読み直すと初めの値", () => {
-  writeSetting(CURRENT, 12);
-  writeSetting(groupClosed(4), true);
-  writeSetting(HASHES, { 12: "#/projects/12" });
-  writeSetting(COMPACT, true);
-  let notified = 0;
-  const stop = subscribeSetting(CURRENT, () => notified++);
-  assert.deepEqual(forgetIdSettings().sort(), ["kickoff:t-current", "kickoff:t-group-closed:4", "kickoff:t-hashes"]);
-  assert.equal(readSetting(CURRENT), 0);
-  assert.equal(readSetting(groupClosed(4)), false);
-  assert.deepEqual(readSetting(HASHES), {});
-  assert.equal(readSetting(COMPACT), true);
-  assert.equal(notified, 1);
-  stop();
+  // 同じキーをもう一度作っても投げない（作るだけで登録しない）
+  assert.equal(defineSetting("kickoff:t-open", flag()).key, OPEN.key);
 });
