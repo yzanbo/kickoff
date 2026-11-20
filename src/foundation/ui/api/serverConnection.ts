@@ -1,19 +1,17 @@
-import { useEffect, useEffectEvent, useState } from "react";
-import type { BusEvent } from "@shared/foundation/contract";
-import { publishServerOpen } from "./events";
+import { useEffect, useState } from "react";
+import { publishServerEvent, publishServerOpen, type AnyServerEvent } from "./events";
 
 export type ConnectionState = "connecting" | "open" | "closed";
 
 /**
- * サーバーとつなぎ（SSE の /api/events）、届いたイベントを onEvent に渡す（App で 1 回だけ使う。各画面へは events.ts の publishServerEvent で配る）。
+ * サーバーとつなぎ（SSE の /api/events）、届いたイベントを events.ts の publishServerEvent で種類ごとに配る（殻の App・PopoutApp で 1 回だけ使う）。
  * 切れたら EventSource が自動でつなぎ直し、つなぎ直されない切断（認証の失敗など）は 5 秒ごとにこちらで張り直す。
  * つながるたびに publishServerOpen で知らせる（店 stores/ が、失敗した値と、つながる前・切れている間に読んだ値を取り直す）。
  * state は接続の状態、since は最後につながった時刻
  */
-export function useServerConnection(onEvent: (event: BusEvent) => void): { state: ConnectionState; since: number | null } {
+export function useServerConnection(): { state: ConnectionState; since: number | null } {
   const [state, setState] = useState<ConnectionState>("connecting");
   const [since, setSince] = useState<number | null>(null);
-  const handler = useEffectEvent(onEvent);
 
   useEffect(() => {
     let source: EventSource | undefined;
@@ -34,7 +32,7 @@ export function useServerConnection(onEvent: (event: BusEvent) => void): { state
       };
       source.onmessage = (e) => {
         try {
-          handler(JSON.parse(e.data) as BusEvent);
+          publishServerEvent(JSON.parse(e.data) as AnyServerEvent);
         } catch {
           // 不正なイベントは無視
         }

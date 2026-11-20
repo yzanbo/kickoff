@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
-import { publishServerEvent } from "@/foundation/ui/api/events";
-import { useServerConnection } from "@/foundation/ui/api/useServerConnection";
+import { useServerConnection } from "@/foundation/ui/api/serverConnection";
 import { useApprovals } from "@/features/chat/ui/store/approvals";
 import { addProject, useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
@@ -76,7 +75,7 @@ export function App() {
   const route = useHashRoute((next, replace) => routeHistory.record(next, replace));
   const planUsage = usePlanUsage();
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
-  const connection = useServerConnection(publishServerEvent);
+  const connection = useServerConnection();
   // アプリ全体で使うデータ（プロジェクト・回答待ち・設定）は店から読む（要る部品も、props で中継せずに店から読む）
   const { projects, missing: missingProject, loaded: projectsLoaded } = useProjects();
   const approvals = useApprovals();

@@ -10,7 +10,7 @@ type Listener = (event: AnyServerEvent) => void;
 /** 種類ごとの受け手（同じ種類の受け手は登録の順に呼ぶ） */
 const listeners = new Map<string, Set<Listener>>();
 
-/** App が受け取ったサーバーイベント（useServerConnection）を、その種類を購読している受け手に配る */
+/** 殻が受け取ったサーバーイベント（serverConnection.ts）を、その種類を購読している受け手に配る */
 export function publishServerEvent(event: AnyServerEvent) {
   const set = listeners.get(event.type);
   if (!set) return;
@@ -48,7 +48,7 @@ export function useServerEvent<E extends ServerEventType>(type: E | readonly E[]
 // 店の仕組み（store/）がこの口を読むので、ここは store の createSignal を読めない（兄弟のフォルダを循環させない）
 const openListeners = new Set<() => void>();
 
-/** サーバーとの SSE がつながったことを知らせる（useServerConnection が、初めてつながったとき・つなぎ直したときに呼ぶ） */
+/** サーバーとの SSE がつながったことを知らせる（serverConnection.ts が、初めてつながったとき・つなぎ直したときに呼ぶ） */
 export function publishServerOpen() {
   for (const listener of [...openListeners]) listener();
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ConnectionState } from "@/foundation/ui/api/useServerConnection";
+import type { ConnectionState } from "@/foundation/ui/api/serverConnection";
 
 /** つながらないまま、これだけ経ったら札を出す（起動の直後・一瞬の切断で毎回ちらつかないように） */
 const NOTICE_DELAY_MS = 2000;

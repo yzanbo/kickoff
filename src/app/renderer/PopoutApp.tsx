@@ -2,8 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useUserViewReport } from "@/features/userView/ui/userViewReport";
 import { collectPopoutView, popoutChatIds } from "@/features/userView/ui/userViewCollect";
-import { publishServerEvent } from "@/foundation/ui/api/events";
-import { useServerConnection } from "@/foundation/ui/api/useServerConnection";
+import { useServerConnection } from "@/foundation/ui/api/serverConnection";
 import { useApprovals } from "@/features/chat/ui/store/approvals";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
@@ -49,7 +48,7 @@ const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", 
 export function PopoutApp({ route }: { route: PopoutRoute }) {
   // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
   useLayoutEffect(() => bootMark("firstCommit"), []);
-  useServerConnection(publishServerEvent);
+  useServerConnection();
   const { projects } = useProjects();
   setProjectHues(projects);
   const approvals = useApprovals();

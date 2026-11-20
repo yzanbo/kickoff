@@ -3,7 +3,7 @@ import { useOnline } from "@/foundation/ui/hooks/useOnline";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import type { usePlanUsage } from "@/features/ai/ui/usage/usage";
 import { FooterUsage } from "@/features/ai/ui/usage/FooterUsage";
-import type { ConnectionState } from "@/foundation/ui/api/useServerConnection";
+import type { ConnectionState } from "@/foundation/ui/api/serverConnection";
 import { href } from "@/foundation/ui/navigation/router";
 import { useMainBranch } from "@/foundation/ui/workplace/useWorkplace";
 import type { SettingsSection } from "@/features/settings/ui/SettingsDialog";

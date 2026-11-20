@@ -1,13 +1,13 @@
 # 画面の土台（`src/foundation/ui`）
 
-画面全体の決まり（置き場所・データ・保存・API・共有部品・表示・性能）。機能ごとは `src/features/<機能>/CLAUDE.md`、CSS は `styles/CLAUDE.md`。
+画面全体の決まり。機能ごとは `src/features/<機能>/CLAUDE.md`、CSS は `styles/CLAUDE.md`。
 
 ## フォルダと依存の向き
 
 | フォルダ | 役割 |
 |---|---|
-| `kit/`・`hooks/`・`lib/` | ドメインを知らない部品・hooks・React に依存しない補助（時刻 `time.ts`・キー `keys.ts`・色付けなど） |
-| `store/`・`api/`・`storage/` | 店の仕組み（下の「データ」）・サーバーとのやり取り（下の「API」）・表示の設定の保存 |
+| `kit/`・`hooks/`・`lib/` | ドメインを知らない部品・hooks・React に依存しない補助 |
+| `store/`・`api/`・`storage/` | 店の仕組み・サーバーとのやり取り・表示の設定の保存（下の節） |
 | `navigation/`・`shell/` | ルーター `router.ts`・別ウィンドウ `popout.ts`・ウィンドウの間の知らせ `windowBus.ts`・移動の履歴 / アプリの殻の土台 |
 | `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
@@ -39,9 +39,9 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 
 ## API（`api/`）
 
-- 通信の土台は `api/http.ts` だけ。資源ごとの関数は各機能の `ui/api/<資源>.ts`（コアの `core/routes/<資源>.ts` と対応）に書き、`api/index.ts` で 1 つにまとめる。
-- 名前が重なると後のもので上書きされるので、重ならないことを `index.test.ts` で確かめる。型は機能の取り決めから。
-- SSE は App が 1 回つなぎ、`api/events.ts` が種類ごとに配る（`useServerEvent`・`onServerEvent`）。
+- 機能の `ui/api.ts` に `export const xApi = client(xContract)`（409 のやり直しは `onError`）。呼ぶのは `xApi("PATCH /api/x/:xId", { params, query, body }, 選択肢)`。
+- 手書きの `api.xxx`（`ui/api/<資源>.ts`）の乗せ替え: ① `ui/api.ts` ② 呼ぶ所を上の形に（位置の引数は本文へ）③ 送る前の副作用（`withUserView` など）は呼ぶ側へ ④ 資源のファイルを消し `api/index.ts` から外す。
+- SSE は殻が `useServerConnection`（`api/serverConnection.ts`）で 1 回つなぎ、`api/events.ts` が種類ごとに配る（`useServerEvent`・`onServerEvent`）。
 
 ## hooks と補助
 
