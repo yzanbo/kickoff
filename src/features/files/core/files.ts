@@ -1,31 +1,33 @@
-// リポジトリの中のファイル（一覧・読む・保存・作る・名前の変更・ゴミ箱）。パスはリポジトリの外を指さないか必ず確かめる
-import { createHash } from "node:crypto";
+// リポジトリの中のファイル（一覧・読む・保存・作る・名前の変更・ゴミ箱）。操作は土台の folderFiles（ノートと同じ口）で、パスはリポジトリの外を指さないか必ず確かめる
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isInside, relativeApiPath } from "@/foundation/core/system/paths";
-import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
+import { Invalid } from "@/foundation/core/errors";
+import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
 import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/imageFiles";
-import type { RenamedFile, SavedFile } from "@shared/foundation/apiTypes";
-import type { FileContent, ProjectFiles } from "@shared/git/types";
+import type { FileContent, RenamedFile, SavedFile } from "@shared/foundation/fileTypes";
+import type { ProjectFiles } from "@shared/git/types";
 import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
 import { largestIcnsPng } from "./icns";
 import { plainLsFiles } from "@/foundation/core/workplace/plainFolder";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
 
+export { hashOf, MAX_FILE_BYTES } from "@/foundation/core/files/folderFiles";
+
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
 /** 空のフォルダを探すときに読むフォルダの数の上限 */
 const MAX_DIR_READS = 5000;
-/** ファイルの中身を返す上限（バイト） */
-export const MAX_FILE_BYTES = 1_000_000;
+
+/** ページのプレビュー（HTML のファイル）が読むファイルの上限 */
+const MAX_ASSET_BYTES = 30 * 1024 * 1024;
+
+/** リポジトリ（作業場所）の中のファイルの操作 */
+const repoFiles = (repo: string): FolderFiles => folderFiles(repo, { outsideMessage: "リポジトリの外のファイルです", maxAssetBytes: MAX_ASSET_BYTES });
 
 /** リポジトリの中のパスか（外のファイルを読ませない）。リポジトリの中の絶対パスを返す */
-export async function assertInside(repo: string, file: string): Promise<string> {
-  const root = await fs.realpath(repo);
-  const target = path.resolve(root, file);
-  if (path.isAbsolute(file) || target === root || !isInside(root, target)) throw new Invalid("リポジトリの外のファイルです");
-  return target;
+export function assertInside(repo: string, file: string): Promise<string> {
+  return repoFiles(repo).inside(file);
 }
 
 /**
@@ -89,58 +91,26 @@ async function emptyDirs(repo: string, files: string[], ignored: string[]): Prom
  * 途中のフォルダもなければ作る（"a/b.ts" と書けば a の中に作る）。「.」「..」の段・リポジトリの外は 400、同じ名前のものがあれば 409
  */
 export async function createProjectFile(repo: string, file: string, dir: boolean): Promise<RenamedFile> {
-  const parts = file.split("/");
-  if (parts.some((p) => !p.trim() || p === "." || p === ".." || /[\\\0]/.test(p))) throw new Invalid("その名前は使えません");
-  const target = await assertInside(repo, file);
-  if (await fs.lstat(target).catch(() => null)) throw new Conflict(`「${parts.at(-1)}」はもうあります`);
-  // いまある途中のフォルダが、リンクで外を指していないか（作ったものがリポジトリの外に出ないように）
-  const root = await fs.realpath(repo);
-  let existing = path.dirname(target);
-  while (!(await fs.lstat(existing).catch(() => null))) existing = path.dirname(existing);
-  const real = await fs.realpath(existing);
-  if (!isInside(root, real)) throw new Invalid("リポジトリの外のファイルです");
-  await fs.mkdir(path.dirname(target), { recursive: true });
-  if (dir) await fs.mkdir(target);
-  else await fs.writeFile(target, "", { flag: "wx" });
+  await repoFiles(repo).create(file, { dir });
   return { path: file };
 }
 
 /** ファイル・フォルダをゴミ箱へ入れる（ファイルタブの右クリックの「ゴミ箱に入れる」。入れ方は trash に任せる。ないものは 404） */
-export async function trashProjectFile<T>(repo: string, file: string, trash: (target: string) => Promise<T>): Promise<T> {
-  const target = await assertInside(repo, file);
-  await fs.lstat(target).catch((e: unknown) => {
-    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
-    throw e;
-  });
-  return trash(target);
+export function trashProjectFile<T>(repo: string, file: string, trash: (target: string) => Promise<T>): Promise<T> {
+  return repoFiles(repo).trash(file, trash);
 }
 
-/** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */
-export const hashOf = (data: Buffer) => createHash("sha1").update(data).digest("hex");
-
 /** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない。なければ 404） */
-export async function resolveInside(repo: string, file: string): Promise<string> {
-  const real = await fs.realpath(await assertInside(repo, file)).catch((e: unknown) => {
-    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
-    throw e;
-  });
-  await assertInside(repo, path.relative(await fs.realpath(repo), real));
-  return real;
+export function resolveInside(repo: string, file: string): Promise<string> {
+  return repoFiles(repo).resolve(file);
 }
 
 /**
  * ファイルを保存する（いまあるファイルだけ）。baseHash は開いたときの指紋で、いまの中身と違えば上書きせずに
  * 409 にする（開いたあとで、ほかで（エージェントなどが）変えていた。エージェントの作業を消さないため）。null なら確かめずに上書きする
  */
-export async function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
-  const real = await resolveInside(repo, file);
-  if (!(await fs.stat(real)).isFile()) throw new Invalid("ファイルではありません");
-  if (baseHash !== null && hashOf(await fs.readFile(real)) !== baseHash) {
-    throw new Conflict("開いたあとで、ほかでファイルが変わりました");
-  }
-  const data = Buffer.from(content, "utf8");
-  await fs.writeFile(real, data);
-  return { hash: hashOf(data) };
+export function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
+  return repoFiles(repo).write(file, content, baseHash);
 }
 
 /**
@@ -149,51 +119,17 @@ export async function writeProjectFile(repo: string, file: string, content: stri
  * リポジトリの外を指すシンボリックリンクの先は動かさない（リンクそのものの名前を変える）
  */
 export async function renameProjectFile(repo: string, file: string, name: string): Promise<RenamedFile> {
-  const trimmed = name.trim();
-  if (!trimmed || trimmed === "." || trimmed === ".." || /[/\\\0]/.test(trimmed)) throw new Invalid("その名前は使えません");
-  const from = await assertInside(repo, file);
-  await fs.lstat(from).catch((e: unknown) => {
-    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
-    throw e;
-  });
-  const to = path.join(path.dirname(from), trimmed);
-  if (to === from) return { path: file };
-  // 大文字・小文字だけを変えるとき（macOS では同じファイルとみなされる）は、同じものがあるとは言わない
-  const existing = await fs.lstat(to).catch(() => null);
-  if (existing && to.toLowerCase() !== from.toLowerCase()) throw new Conflict(`「${trimmed}」はもうあります`);
-  await fs.rename(from, to);
-  const root = await fs.realpath(repo);
-  return { path: relativeApiPath(root, to) };
+  return { path: await repoFiles(repo).rename(file, name) };
 }
 
 /** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */
-export async function readProjectFile(repo: string, file: string): Promise<FileContent> {
-  const real = await resolveInside(repo, file);
-  const stat = await fs.stat(real);
-  if (!stat.isFile()) throw new Invalid("ファイルではありません");
-  const handle = await fs.open(real, "r");
-  try {
-    const buffer = Buffer.alloc(Math.min(stat.size, MAX_FILE_BYTES));
-    await handle.read(buffer, 0, buffer.length, 0);
-    // 先頭に NUL があればバイナリとみなす（git と同じ考え方）
-    const binary = buffer.subarray(0, 8000).includes(0);
-    const truncated = stat.size > MAX_FILE_BYTES;
-    return { content: binary ? "" : buffer.toString("utf8"), hash: binary || truncated ? "" : hashOf(buffer), binary, truncated };
-  } finally {
-    await handle.close();
-  }
+export function readProjectFile(repo: string, file: string): Promise<FileContent> {
+  return repoFiles(repo).read(file);
 }
 
-/** ページのプレビュー（HTML のファイル）が読むファイルの上限 */
-const MAX_ASSET_BYTES = 30 * 1024 * 1024;
-
 /** 作業場所のファイルの中身をそのまま読む（HTML のファイルのプレビューと、そのページが相対パスで読む CSS・画像。作業場所の外は断る） */
-export async function readProjectAsset(repo: string, file: string): Promise<Buffer> {
-  const real = await resolveInside(repo, file);
-  const stat = await fs.stat(real);
-  if (!stat.isFile()) throw new Invalid("ファイルではありません");
-  if (stat.size > MAX_ASSET_BYTES) throw new Invalid(`ファイルが大きすぎます（上限 ${MAX_ASSET_BYTES / 1024 / 1024} MB）`);
-  return fs.readFile(real);
+export function readProjectAsset(repo: string, file: string): Promise<Buffer> {
+  return repoFiles(repo).asset(file);
 }
 
 /**

@@ -1,6 +1,6 @@
 import type { Chat, NoteAttachment } from "@shared/chat/types";
-import type { NoteChatBody, NoteFromChatBody, SavedFile } from "@shared/foundation/apiTypes";
-import type { FileContent } from "@shared/git/types";
+import type { NoteChatBody, NoteFromChatBody } from "@shared/foundation/apiTypes";
+import type { FileContent, SavedFile } from "@shared/foundation/fileTypes";
 import type { NoteDefaults, NoteDirUsers, NoteList, NotePlan, NoteRef, NoteSearchResult } from "@shared/notes/types";
 import type { TrashedResult } from "@shared/trash/types";
 import { request, withQuery } from "@/foundation/ui/api/http";

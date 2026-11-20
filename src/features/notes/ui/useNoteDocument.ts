@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import type { FileContent } from "@shared/git/types";
+import type { FileContent } from "@shared/foundation/fileTypes";
 import { api, ApiError } from "@/foundation/ui/api";
 import { subscribeServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { errorMessage } from "@shared/foundation/errors";

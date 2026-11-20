@@ -2582,7 +2582,7 @@
       "src/features/git/core/routes/server.git.test.ts": 470,
       "src/features/github/core/service.ts": 341,
       "src/features/groups/ui/groups.ts": 355,
-      "src/features/notes/core/notes.ts": 343,
+      "src/features/notes/core/notes.ts": 322,
       "src/features/notes/ui/NoteTab.tsx": 348,
       "src/features/notes/ui/NoteView.tsx": 365,
       "src/features/panel/ui/tabs/tabKinds.ts": 423,
@@ -2599,7 +2599,7 @@
       "src/shared/chat/subagents.ts": 311,
       "src/shared/chat/toolText.ts": 342,
       "src/shared/database/sqlStatements.ts": 318,
-      "src/shared/foundation/apiTypes.ts": 624
+      "src/shared/foundation/apiTypes.ts": 614
     },
     "native": [
       "src/app/renderer/popoutHosts.ts",

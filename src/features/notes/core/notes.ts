@@ -1,20 +1,19 @@
-// プロジェクトのノート（保存先はプロジェクトの外。設定の notes_dir（なければ既定）の下の、プロジェクトごとのフォルダの Markdown）。パスはノートのフォルダからの相対で受け、フォルダの外を指さないか必ず確かめる（中身の読み書きはエディタのファイルと同じ readProjectFile / writeProjectFile）
+// プロジェクトのノート（保存先はプロジェクトの外。設定の notes_dir（なければ既定）の下の、プロジェクトごとのフォルダの Markdown）。パスはノートのフォルダからの相対で受け、フォルダの外を指さないか必ず確かめる（ファイルの操作はエディタのファイルと同じ土台の folderFiles）
 import fs from "node:fs/promises";
 import path from "node:path";
 import { noteKindOf } from "@shared/notes/kinds";
 import { chatNoteName, projectNoteFolder } from "@shared/notes/names";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
-import type { SavedFile } from "@shared/foundation/apiTypes";
-import type { FileContent } from "@shared/git/types";
+import type { FileContent, SavedFile } from "@shared/foundation/fileTypes";
 import { NOTE_EXTENSION, type NoteEntry, type NoteList, type NotePlan, type NoteSearchResult, type NoteRef } from "@shared/notes/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
 import type { Store } from "@/features/chat/core/index";
-import { assertInside, readProjectFile, writeProjectFile } from "@/features/git/core/index";
 import { asInvalid, Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
+import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
 import { expandHome, realPathLoose } from "@/foundation/core/system/paths";
 import { noteMergePrompt, notePlanPrompt, parseMergedNote, parseNotePlan, type PlanFile } from "./noteAi";
 import { searchNoteTexts } from "./noteSearch";
@@ -25,6 +24,9 @@ const MAX_ENTRIES = 5000;
 
 /** HTML のノートが読むファイル（CSS・画像・フォント）の大きさの上限（バイト） */
 const MAX_ASSET_BYTES = 50 * 1024 * 1024;
+
+/** ノートのフォルダの中のファイルの操作（「.」で始まる名前は扱わない） */
+const noteFiles = (dir: string): FolderFiles => folderFiles(dir, { outsideMessage: "ノートのフォルダの外のファイルです", maxAssetBytes: MAX_ASSET_BYTES, rejectDotNames: true });
 
 /** チャットから作るノートの元の文の上限（文字） */
 export const MAX_NOTE_SOURCE_CHARS = 200_000;
@@ -147,33 +149,25 @@ export class NoteService {
   async read(project: Project, file: string): Promise<FileContent> {
     const dir = await this.existingDir(project);
     this.watcher.watch(project.id, dir);
-    return readProjectFile(dir, file);
+    return noteFiles(dir).read(file);
   }
 
   /** ノートのフォルダのファイルの中身そのもの（HTML のノートが相対パスで読む CSS・画像など。なければ 404・大きすぎれば 400） */
   async asset(project: Project, file: string): Promise<Buffer> {
-    const dir = await this.existingDir(project);
-    const target = await assertInside(dir, file);
     // リンクをたどった先も、ノートのフォルダの中だけにする
-    const real = await fs.realpath(target).catch(() => null);
-    if (!real) throw new NotFound(`ファイルが見つかりません: ${file}`);
-    if (!isWithin(await fs.realpath(dir), real)) throw new Invalid("ノートのフォルダの外のファイルです");
-    const stat = await fs.stat(real);
-    if (!stat.isFile()) throw new NotFound(`ファイルが見つかりません: ${file}`);
-    if (stat.size > MAX_ASSET_BYTES) throw new Invalid("大きすぎるので読み込みません");
-    return fs.readFile(real);
+    return noteFiles(await this.existingDir(project)).asset(file);
   }
 
   /** ノートを保存する（開いたときの指紋 baseHash といまの中身が違えば 409。null なら上書き） */
   async write(project: Project, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
-    const saved = await writeProjectFile(await this.existingDir(project), file, content, baseHash);
+    const saved = await noteFiles(await this.existingDir(project)).write(file, content, baseHash);
     this.changed(project, file);
     return saved;
   }
 
   /** 新しいノート・フォルダを作る（同じ名前があれば 409。途中のフォルダも作る） */
   async create(project: Project, file: string, kind: { dir: boolean; content?: string }): Promise<NoteRef> {
-    const target = await this.pathIn(project, file, true);
+    const target = await this.pathIn(project, file);
     if (await exists(target)) throw new Conflict("同じ名前のノート・フォルダがあります");
     if (kind.dir) {
       await fs.mkdir(target, { recursive: true });
@@ -187,14 +181,7 @@ export class NoteService {
 
   /** 名前を変える・ほかのフォルダへ動かす（行き先に同じ名前があれば 409） */
   async move(project: Project, from: string, to: string): Promise<NoteRef> {
-    const source = await this.pathIn(project, from);
-    const target = await this.pathIn(project, to);
-    if (!(await exists(source))) throw new NotFound(`ノートが見つかりません: ${from}`);
-    if (isWithin(source, target)) throw new Invalid("フォルダを、その中へは動かせません");
-    // 大文字・小文字だけを変えるときは、同じファイルを指すので行き先があっても動かす
-    if (source.toLowerCase() !== target.toLowerCase() && (await exists(target))) throw new Conflict("行き先に同じ名前のノート・フォルダがあります");
-    await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.rename(source, target);
+    await noteFiles(await this.existingDir(project)).move(from, to);
     // ノートのチャットも新しい名前へ付け替える（フォルダなら中のノートのものも）
     this.opts.store.chats.remapNotePath(project.id, from, to);
     // DB の接続の手順ノートも付け替える
@@ -205,9 +192,8 @@ export class NoteService {
 
   /** Kickoff のゴミ箱へ入れる（3 日は元に戻せる）。入れたゴミ箱の ID を返す（画面の「元に戻す」） */
   async trash(project: Project, file: string): Promise<string> {
-    const target = await this.pathIn(project, file);
-    if (!(await exists(target))) throw new NotFound(`ノートが見つかりません: ${file}`);
-    const item = await this.opts.trashBin.putPath(target, { projectId: project.id, details: { note: file } });
+    const files = noteFiles(await this.existingDir(project));
+    const item = await files.trash(file, (target) => this.opts.trashBin.putPath(target, { projectId: project.id, details: { note: file } }));
     // ノートのチャットもノートと一緒にゴミ箱へ（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える。作業中のものはそのまま）
     this.opts.trashNoteChats?.(project.id, file, item.id);
     this.changed(project, null);
@@ -288,14 +274,13 @@ export class NoteService {
 
   /**
    * ノートのフォルダの中の絶対パス（外を指せば 400。フォルダそのものも指せない）。
-   * 隠しファイル（「.」で始まる名前）は扱わない。create ならフォルダがなければ作る
+   * 隠しファイル（「.」で始まる名前）は扱わない。フォルダがなければ作る
    */
-  private async pathIn(project: Project, file: string, create = false): Promise<string> {
+  private async pathIn(project: Project, file: string): Promise<string> {
     if (file.split("/").some((part) => part.startsWith("."))) throw new Invalid("「.」で始まる名前は使えません");
     const dir = this.dirOf(project);
-    if (create) await fs.mkdir(dir, { recursive: true });
-    else if (!(await isDirectory(dir))) throw new NotFound("ノートのフォルダがありません");
-    return assertInside(dir, file);
+    await fs.mkdir(dir, { recursive: true });
+    return noteFiles(dir).inside(file);
   }
 
   private changed(project: Project, file: string | null) {
@@ -307,12 +292,6 @@ export class NoteService {
 function parentOf(file: string): string {
   const i = file.lastIndexOf("/");
   return i < 0 ? "" : file.slice(0, i);
-}
-
-/** target が dir の中か（dir 自身は含まない） */
-function isWithin(dir: string, target: string): boolean {
-  const rel = path.relative(dir, target);
-  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
 async function exists(file: string): Promise<boolean> {
