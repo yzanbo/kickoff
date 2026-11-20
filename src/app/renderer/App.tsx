@@ -50,12 +50,12 @@ import { useAiOpenRequests } from "@/features/chat/ui/open/aiOpenRequests";
 import { useWorkplaceMoveTabs } from "@/features/workplaceMove/ui/repointTabs";
 import { AllProjectsPage } from "@/features/board/ui/AllProjectsPage";
 import { ProjectPage } from "@/features/projects/ui/page/ProjectPage";
-import { boardTabOf, openNewChat, openProjectSearch, parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
+import { openNewChat, openProjectSearch, parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "@/foundation/ui/navigation/popoutNavigation";
 import { usePopoutHosts } from "./popoutHosts";
 import { subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
-import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
+import { boardTabOf, useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 import { useNavigationHistory } from "@/foundation/ui/navigation/useNavigationHistory";
 import { NavigationButtons } from "@/foundation/ui/navigation/NavigationButtons";
 import { MaximizedHeader, MaximizedHeaderBar } from "@/foundation/ui/shell/WindowHeaderContent";
@@ -114,7 +114,7 @@ export function App() {
   const [settings, setSettings] = useState<SettingsSection | null>(null);
   // URL のプロジェクト。もうないとわかったもの（消した・URL の番号が違う）は、ないものとする
   // （チャット欄・下のパネル・下の帯に出さず、そのプロジェクトのワークツリー・グループなどを読みに行かない）
-  const routeProject = routeProjectId(route);
+  const routeProject = routeProjectId(route) ?? undefined;
   const projectId = missingProject(routeProject) ? undefined : routeProject;
   // URL にプロジェクトがない画面（全プロジェクト）で使うプロジェクト: サイドバーで最後に選んでいたもの（もうなければ先頭）。
   // ⌘N の新しいチャットの作成先と、チャット欄の持ち主（全プロジェクトのボードの「新規」も同じ）

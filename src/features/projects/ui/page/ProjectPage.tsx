@@ -19,14 +19,14 @@ import { useBusyBadge } from "@/foundation/ui/hooks/useBusyBadge";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
-import type { FileTarget, ProjectTab, ReopenRoute } from "@/foundation/ui/navigation/router";
+import type { FileTarget, ProjectViewId, ReopenRoute } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
 import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
 interface ProjectPageProps {
   id: number;
-  tab: ProjectTab;
+  tab: ProjectViewId;
   /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
   /** ファイルタブで開くファイル（チャットの返答のファイルのチップから） */
@@ -55,7 +55,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
   const [placement] = useChatPlacement();
   // DB・GitHub・Docker のタブはこの Mac のアプリの中だけ（ブラウザ・スマホから開いたらボード）
   const macOnly = routeTab === "db" || routeTab === "github" || routeTab === "docker" || routeTab === "ci";
-  const tab: ProjectTab = (routeTab === "chats" && placement === "together") || (macOnly && !window.kickoff) ? "board" : routeTab;
+  const tab: ProjectViewId = (routeTab === "chats" && placement === "together") || (macOnly && !window.kickoff) ? "board" : routeTab;
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ファイル・検索・変更・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）

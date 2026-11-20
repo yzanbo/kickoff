@@ -13,7 +13,7 @@ import { parsePanelKey, type PanelSurface } from "@/features/panel/ui/surfaces";
 import { PROJECT_VIEW_LABELS, type PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { terminalTitle } from "@/features/panel/ui/tabs/tabKinds";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import type { ProjectTab, Route } from "@/foundation/ui/navigation/router";
+import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 
 /** 欄の呼び名（AI に返す文の「どこのペインか」） */
 const AREA_LABELS: Record<PanelSurface, string> = {
@@ -28,7 +28,7 @@ const AREA_LABELS: Record<PanelSurface, string> = {
 };
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */
-const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
+const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {
   board: "ボード",
   chats: "チャット",
   files: "ファイル",
@@ -104,13 +104,6 @@ function describeTab(tab: PanelTab): UserViewTab {
   }
 }
 
-/** 見ているプロジェクト（全プロジェクトの画面なら null） */
-function projectOfRoute(route: Route): number | null {
-  if (route.name === "project") return route.id;
-  if (route.name === "chat" || route.name === "newChat") return route.projectId;
-  return null;
-}
-
 /** プロジェクトのタブのペイン（チャットのタブはパネルのペインで出すので省く。ファイル・ノートの中身はファイル・ノートのタブのペインで出す） */
 function projectTabPane(route: Route): UserViewPane | null {
   if (route.name !== "project" || route.tab === "chats") return null;
@@ -142,7 +135,7 @@ export function collectUserView(route: Route): UserView {
   const main = projectTabPane(route);
   if (main) panes.push(main);
   panelPanes(panes, side);
-  return { project_id: projectOfRoute(route), panes, side };
+  return { project_id: routeProjectId(route), panes, side };
 }
 
 /** 別ウィンドウで見ているもの（ウィンドウの中身と、その中の右の欄） */

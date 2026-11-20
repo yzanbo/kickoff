@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createNavigationHistory } from "./navigationHistory";
-import type { Route } from "./router";
+import { configureRouter, type Route } from "./router";
+
+// 同じ画面かは URL（href）で比べる（本物の設定は app/renderer/registry.ts が入れる）
+configureRouter({ projectViews: ["board", "files", "notes"], defaultView: "board" });
 
 const all: Route = { name: "allProjects" };
 const board: Route = { name: "project", id: 1, tab: "board" };

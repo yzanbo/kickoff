@@ -5,7 +5,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import { confirmRestoreProject } from "@/features/projects/ui/projectOrder";
-import type { ProjectTab } from "@/foundation/ui/navigation/router";
+import type { ProjectViewId } from "@/foundation/ui/navigation/router";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
@@ -30,7 +30,7 @@ export function ProjectHeader({
   onEdit,
 }: {
   data: ProjectData;
-  tab: ProjectTab;
+  tab: ProjectViewId;
   changeCount: number;
   refreshing: TabRefreshing;
   onEdit: () => void;

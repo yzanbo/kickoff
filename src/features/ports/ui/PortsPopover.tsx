@@ -25,7 +25,7 @@ type StopState = "stopping" | "stuck";
  * プロジェクトの右サイドバー（チャット欄）のブラウザで開く（ほかのプロジェクトなら、そのプロジェクトへ移って欄ができてから。
  * 右サイドバーを別ウィンドウへ移しているときは、そのウィンドウに頼むので待たない）
  */
-async function openInPanel(projectId: number, url: string, current: number | undefined) {
+async function openInPanel(projectId: number, url: string, current: number | null) {
   const key = panelKey("side", projectId);
   if (current !== projectId) {
     navigate({ name: "project", id: projectId, tab: "board" });

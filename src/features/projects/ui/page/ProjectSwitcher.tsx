@@ -3,7 +3,7 @@ import type { Project } from "@shared/projects/types";
 import { archivedProjects, sidebarOrder } from "@/features/projects/ui/projectOrder";
 import { projectHueStyle } from "@/features/projects/ui/projectColor";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { navigate, type ProjectTab } from "@/foundation/ui/navigation/router";
+import { navigate, type ProjectViewId } from "@/foundation/ui/navigation/router";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -20,7 +20,7 @@ const ALL_PROJECTS = "全プロジェクト";
  * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。
  * ゴミ箱に入れたプロジェクトがあれば、いちばん下に設定の「ゴミ箱と整理」（戻す口）への 1 行を出す。プロジェクトがなければ押せない
  */
-export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
+export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectViewId }) {
   const { projects } = useProjects();
   const menu = useContextMenu();
   const trashed = useTrashedProjects(menu.isOpen).data?.length ?? 0;

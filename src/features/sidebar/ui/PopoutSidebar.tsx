@@ -22,7 +22,7 @@ export function PopoutSidebar() {
   const fallbackProject = useFallbackProject();
   const routeProject = routeProjectId(route);
   // ⌘N と同じ作成先（メインのウィンドウで開いているプロジェクト、なければサイドバーで選んでいるもの）
-  const newChatProject = routeProject !== undefined && !missing(routeProject) ? routeProject : fallbackProject;
+  const newChatProject = routeProject !== null && !missing(routeProject) ? routeProject : fallbackProject;
   return (
     <RouteContext.Provider value={route}>
       <Sidebar

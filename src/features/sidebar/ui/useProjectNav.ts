@@ -83,12 +83,12 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // 開いた画面のプロジェクトにサイドバーも合わせる
   const routeProject = routeProjectId(route);
   useEffect(() => {
-    if (routeProject !== undefined) setCurrentId(routeProject);
+    if (routeProject !== null) setCurrentId(routeProject);
   }, [routeProject]);
 
   // プロジェクトごとに、最後に見ていた画面（URL）を覚えておく（横スライドで戻ってきたときに開く。アプリを閉じるまで）
   useEffect(() => {
-    if (routeProject === undefined) return;
+    if (routeProject === null) return;
     // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
     if (route.name === "newChat") return;
     // URL ではなく画面から作る（サイドバーの別ウィンドウの URL は別ウィンドウの行き先で、画面はメインのウィンドウのもの）

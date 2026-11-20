@@ -2,10 +2,27 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage as shellStorage } from "@/foundation/ui/storage/storage";
+import { createSignal } from "@/foundation/ui/store";
 
-// プロジェクトの画面のタブ（設定はタブでなく、プロジェクト名の横の「編集」から開く。ファイル・検索・変更（ソース管理）は開いたファイルを共有する）
-const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "notes", "db", "github", "docker", "ci", "trash"] as const;
-export type ProjectTab = (typeof PROJECT_TABS)[number];
+/** プロジェクトの画面（タブ）の ID。知っている ID は app/renderer/registry.ts が configureRouter で入れる */
+export type ProjectViewId = string;
+
+interface RouterConfig {
+  projectViews: readonly ProjectViewId[];
+  /** タブのない URL（#/projects/1）と、知らないタブで開く画面 */
+  defaultView: ProjectViewId;
+}
+let config: RouterConfig | null = null;
+
+/** 知っているプロジェクトの画面の ID を入れる（app/renderer/registry.ts が URL を読む前に 1 回。知らない tab は既定の画面） */
+export function configureRouter(next: RouterConfig) {
+  config = next;
+}
+
+function routerConfig(): RouterConfig {
+  if (!config) throw new Error("ルーターの設定（configureRouter）の前に URL を読んだ");
+  return config;
+}
 
 /** ファイルタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
 export interface FileTarget {
@@ -21,7 +38,7 @@ export type Route =
    * file: ファイルタブで開くファイル（開いたら URL から外す）。note: ノートのタブで開くノート（ノートのフォルダからの相対パス。開いたら URL から外す）。
    * noteLine: そのノートで移る行（⌘K の「ノート内の文言」から。URL は ?line=）
    */
-  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; note?: string; noteLine?: number }
+  | { name: "project"; id: number; tab: ProjectViewId; file?: FileTarget; note?: string; noteLine?: number }
   /** group・worktree: 始めるグループ・作業場所のワークツリーのフォルダ（チャットの右クリックの「新しいチャット」。同じグループ・作業場所で始める） */
   | { name: "newChat"; projectId: number; group?: number; worktree?: string }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
@@ -52,10 +69,11 @@ export function parse(hash: string): Route {
 
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
   if (project) {
-    const named = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
+    const { projectViews, defaultView } = routerConfig();
+    const named = projectViews.includes(project[2] ?? "") ? project[2]! : defaultView;
     // 開くファイルはファイルタブでだけ読む
     const file = named === "files" ? parseFileTarget(params) : undefined;
-    const tab: ProjectTab = file ? "files" : named;
+    const tab = file ? "files" : named;
     const note = tab === "notes" ? params.get("note") : null;
     const noteLine = Number(params.get("line"));
     return {
@@ -125,7 +143,7 @@ export const useRoute = () => useContext(RouteContext);
 export function href(route: Route): string {
   switch (route.name) {
     case "project":
-      if (route.tab === "board") return `#/projects/${route.id}`;
+      if (route.tab === routerConfig().defaultView) return `#/projects/${route.id}`;
       if (route.tab === "files") return `#/projects/${route.id}/files${route.file ? fileQuery(route.file) : ""}`;
       if (route.tab === "notes")
         return `#/projects/${route.id}/notes${route.note ? `?${new URLSearchParams({ note: route.note, ...(route.noteLine ? { line: String(route.noteLine) } : {}) })}` : ""}`;
@@ -148,7 +166,7 @@ export interface RouteChangeEvent extends HashChangeEvent {
 
 export function navigate(route: Route, options: { replace?: boolean } = {}) {
   if (location.hash === href(route) && (route.name === "chat" || route.name === "newChat")) {
-    window.dispatchEvent(new CustomEvent<ReopenRoute>(REOPEN_EVENT, { detail: route }));
+    reopened.emit(route);
     return;
   }
   if (options.replace) {
@@ -162,17 +180,12 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
   }
 }
 
+export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
 /**
  * チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（単体の画面はない）。
- * 同じものを開き直したときは URL が変わらないので、このイベントでパネルに知らせる
+ * 同じものを開き直したときは URL が変わらないので、この知らせでパネルに知らせる
  */
-export const REOPEN_EVENT = "kickoff:reopen";
-export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
-
-/** チャット・新しいチャットの URL で出すプロジェクトのタブ。チャットをボードと分けている（placement が separate）ときは「チャット」タブ、ほかはボード */
-export function boardTabOf(placement: "separate" | "together"): ProjectTab {
-  return placement === "separate" ? "chats" : "board";
-}
+export const reopened = createSignal<ReopenRoute>();
 
 /** チャットを開く（プロジェクトのボードへ移り、右側のパネルで開く） */
 export function openChat(projectId: number, chatId: number, focus?: number, options: { replace?: boolean } = {}) {
@@ -213,9 +226,9 @@ export function openNote(projectId: number, path?: string) {
   navigate({ name: "project", id: projectId, tab: "notes", ...(path ? { note: path } : {}) });
 }
 
-/** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */
-export function routeProjectId(route: Route): number | undefined {
+/** 画面がどのプロジェクトに属するか（サイドバーの強調表示・⌘N・AI に見せる画面。全プロジェクトの画面なら null） */
+export function routeProjectId(route: Route): number | null {
   if (route.name === "project") return route.id;
   if (route.name === "newChat" || route.name === "chat") return route.projectId;
-  return undefined;
+  return null;
 }

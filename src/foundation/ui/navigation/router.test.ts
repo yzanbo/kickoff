@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import { boardTabOf, href, lastingRoute, navigate, parse, routeProjectId, type Route, type RouteChangeEvent } from "./router";
+import { configureRouter, href, lastingRoute, navigate, parse, reopened, routeProjectId, type Route, type RouteChangeEvent } from "./router";
+
+// 知っているプロジェクトの画面（本物は app/renderer/registry.ts が入れる）
+configureRouter({ projectViews: ["board", "chats", "files", "search", "changes", "history", "notes"], defaultView: "board" });
 
 test("parse: ハッシュを画面に読む（タブなしはボード、知らないタブはボード、知らない形は全プロジェクト）", () => {
   assert.deepEqual(parse(""), { name: "allProjects" });
@@ -66,16 +69,11 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
   assert.equal(href({ name: "newChat", projectId: 2 }), "#/projects/2/new");
 });
 
-test("routeProjectId: プロジェクトの画面・新しいチャット・チャットはそのプロジェクト、全プロジェクトは undefined", () => {
+test("routeProjectId: プロジェクトの画面・新しいチャット・チャットはそのプロジェクト、全プロジェクトは null", () => {
   assert.equal(routeProjectId({ name: "project", id: 4, tab: "board" }), 4);
   assert.equal(routeProjectId({ name: "newChat", projectId: 5 }), 5);
   assert.equal(routeProjectId({ name: "chat", projectId: 6, chatId: 1 }), 6);
-  assert.equal(routeProjectId({ name: "allProjects" }), undefined);
-});
-
-test("boardTabOf: チャット・新しいチャットの URL では、チャットをボードと分けていれば「チャット」タブ、ほかはボード", () => {
-  assert.equal(boardTabOf("together"), "board");
-  assert.equal(boardTabOf("separate"), "chats");
+  assert.equal(routeProjectId({ name: "allProjects" }), null);
 });
 
 test("lastingRoute: 起動したときに開く画面として覚えるのは、一度きりの指定（開くファイル・ノート・強調する発言）を外した形", () => {
@@ -110,4 +108,16 @@ test("navigate: replace は画面の履歴も置き換える通知を添え、�
   navigate({ name: "project", id: 3, tab: "notes" });
   assert.equal(location.hash, "#/projects/3/notes");
   assert.equal(replacements.length, 1);
+});
+
+test("navigate: 同じチャット・新しいチャットを開き直したら（URL が変わらない）reopened で知らせ、ほかの画面は知らせない", () => {
+  const location = { hash: "#/projects/3/chats/9" };
+  vi.stubGlobal("location", location);
+  const got: Route[] = [];
+  const off = reopened.subscribe((route) => got.push(route));
+  navigate({ name: "chat", projectId: 3, chatId: 9 });
+  location.hash = "#/projects/3";
+  navigate({ name: "project", id: 3, tab: "board" });
+  off();
+  assert.deepEqual(got, [{ name: "chat", projectId: 3, chatId: 9 }]);
 });

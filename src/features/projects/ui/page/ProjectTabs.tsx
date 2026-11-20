@@ -6,7 +6,7 @@ import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/St
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { NO_CHATS, useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
 import type { SettingValue } from "@/foundation/ui/storage";
-import { href, type ProjectTab } from "@/foundation/ui/navigation/router";
+import { href, type ProjectViewId } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -34,7 +34,7 @@ export interface TabRefreshing {
 
 /** タブの列に出すタブ 1 つ */
 export interface TabSpec {
-  tab: ProjectTab;
+  tab: ProjectViewId;
   label: string;
   icon: LucideIcon;
   /** 乗せたときの名前（札より長く言うとき。DB の「DB クライアント」） */
@@ -101,7 +101,7 @@ export function ProjectTabs({
   vertical = false,
 }: {
   projectId: number;
-  tab: ProjectTab;
+  tab: ProjectViewId;
   changeCount: number;
   refreshing: TabRefreshing;
   vertical?: boolean;
@@ -116,7 +116,7 @@ export function ProjectTabs({
   const counts = stateCounts(useChatsWithChildrenByProject()[projectId] ?? NO_CHATS, pending);
   const countsText = stateCountsSummary(counts);
   // チャットの数を添えるタブ（チャットをボードと分けるならチャットのタブ、分けないならボード。チャットを開く所に付ける）
-  const chatsTab: ProjectTab = placement === "separate" ? "chats" : "board";
+  const chatsTab: ProjectViewId = placement === "separate" ? "chats" : "board";
   return (
     <nav
       className={cx("tabs", vertical && "project-side-tabs")}
@@ -141,7 +141,7 @@ export function ProjectTabs({
             )}
             {shown.map(({ tab: t, label, icon: Icon, tip }) => {
               const selected = tab === t;
-              const target: ProjectTab = t;
+              const target: ProjectViewId = t;
               // 数はチャットのタブ（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
               const count = t === chatsTab ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
               const countLabel = t === chatsTab ? countsText : `変更のあるファイル ${count} 件`;

@@ -1,10 +1,9 @@
 import { useEffect, useEffectEvent } from "react";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { navigate, REOPEN_EVENT, type ReopenRoute } from "@/foundation/ui/navigation/router";
+import { navigate, reopened, type ReopenRoute } from "@/foundation/ui/navigation/router";
 
 /**
  * サイドバー・検索などから開いたチャット・新しいチャット（URL）を、プロジェクトのボードの右側のパネルで開く。
- * URL が変わらない開き直し（閉じたパネルで同じチャットを押したときなど）も、イベントで受け取って開く。
+ * URL が変わらない開き直し（閉じたパネルで同じチャットを押したときなど）も、知らせ（reopened）で受け取って開く。
  * 新しいチャットは開いたら URL からボード（tab。開いたボード・チャットタブ）に戻す（新しいチャットは押すたびに増えるので、ボードを開き直したときにもう 1 つ開かないように）
  */
 export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: ReopenRoute) => void, tab: "board" | "chats") {
@@ -22,5 +21,6 @@ export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: Reo
     openFocus();
   }, [focusKey]);
 
-  useWindowEvent(REOPEN_EVENT, (e) => open((e as CustomEvent<ReopenRoute>).detail));
+  const onReopen = useEffectEvent(open);
+  useEffect(() => reopened.subscribe((route) => onReopen(route)), []);
 }

@@ -37,7 +37,7 @@ export function usePopoutHosts(route: Route): { sideHeld: boolean } {
         void takeSidePanelsBack(m.panels).finally(() => {
           // 「チャット欄に戻す」はいまのプロジェクトの欄を開き、✕ は閉じたまま戻す（別ウィンドウではいつも開いていたので、どの欄も閉じる）
           for (const [key] of m.panels) panelActions(key).setOpen(false);
-          if (m.open && projectId !== undefined) panelActions(panelKey("side", projectId)).setOpen(true);
+          if (m.open && projectId !== null) panelActions(panelKey("side", projectId)).setOpen(true);
           setSide(0);
           postWindowMessage({ type: "docked", key: popoutKey({ kind: "side" }) });
         });

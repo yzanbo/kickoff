@@ -75,7 +75,7 @@ export function PopoutSideChat() {
   const { missing } = useProjects();
   const fallbackProject = useFallbackProject();
   const routeProject = routeProjectId(route);
-  const projectId = routeProject !== undefined && !missing(routeProject) ? routeProject : fallbackProject;
+  const projectId = routeProject !== null && !missing(routeProject) ? routeProject : fallbackProject;
   // このウィンドウでは欄をいつも開いておく（閉じるボタン・右上の開閉はない）
   useEffect(() => {
     if (ready && projectId !== undefined) panelActions(panelKey("side", projectId)).setOpen(true);
