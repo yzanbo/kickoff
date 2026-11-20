@@ -6,7 +6,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { DB_FILE, openDb, type Migration } from "@/foundation/core/db/db";
-import { Store } from "@/foundation/core/db/store";
+import { openBaseStores, Store, type BaseStores } from "@/foundation/core/db/store";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { setChildProcessReporter, type ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { runCommand } from "@/foundation/core/system/exec";
@@ -49,8 +49,8 @@ export interface Kernel {
   /** 機能に依らない OS の口（機能だけが使う値は組み立てが機能へ渡す） */
   readonly platform: HostPlatform;
   readonly paths: CorePaths;
-  readonly settings: Store["settings"];
-  readonly secrets: Store["secrets"];
+  readonly settings: BaseStores["settings"];
+  readonly secrets: BaseStores["secrets"];
   readonly log: Log;
   /** 作業場所の登録先（上の機能が登録する口。workplace/kit.ts） */
   readonly workplace: WorkplaceKit;
@@ -86,21 +86,24 @@ const consoleLog: Log = {
 /** 子プロセスの知らせを渡した Kernel（閉じるときにその知らせを外す） */
 const reporting = new WeakSet<Kernel>();
 
-/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる（版は opts.migrations） */
+/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる（版は opts.migrations）→ 土台の店（設定・秘密の値・DB の ID） */
 export function createKernel(opts: KernelOptions): KernelWithStore {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
-  const store = new Store(openDb(opts.dbFile ?? path.join(opts.dataDir, DB_FILE), opts.migrations), (e) => bus.publish(e));
+  const db = openDb(opts.dbFile ?? path.join(opts.dataDir, DB_FILE), opts.migrations);
+  const publish = bus.publish.bind(bus);
+  const base = openBaseStores(db, publish);
+  const store = new Store(db, publish, base);
   const k: KernelWithStore = {
     clock: opts.clock ?? systemClock,
     bus,
-    db: store.db,
+    db,
     exec: { run: runCommand, stream: streamCommand, stopAllStreams },
     platform: opts.platform,
-    paths: { dataDir: opts.dataDir, port: opts.port, host: opts.host ?? "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: opts.platform.appDataRoot, databaseId: store.databaseId },
-    settings: store.settings,
-    secrets: store.secrets,
+    paths: { dataDir: opts.dataDir, port: opts.port, host: opts.host ?? "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: opts.platform.appDataRoot, databaseId: base.databaseId },
+    settings: base.settings,
+    secrets: base.secrets,
     log: consoleLog,
     workplace: createWorkplaceKit(),
     store,

@@ -60,6 +60,11 @@ function migrate(db: DatabaseSync, migrations: readonly Migration[], from: numbe
   }
 }
 
+/** DB を作ったときに決めた ID（meta の表。画面が覚えている ID 入りの表示の状態を、DB を作り直したら捨てる目印） */
+export function readDatabaseId(db: Pick<DatabaseSync, "prepare">): string {
+  return (db.prepare("SELECT value FROM meta WHERE key = 'database_id'").get() as { value: string }).value;
+}
+
 /**
  * Kickoff のデータベースを開く: 何のデータベースかを触る前に調べる（違えば例外）→ WAL・外部キー → 版をそろえる → 詰まりの見張りの名前付け
  */

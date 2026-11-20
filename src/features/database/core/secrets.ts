@@ -3,8 +3,7 @@
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
 import type { Store } from "@/foundation/core/db/store";
-import type { DbSecretKey } from "@/foundation/core/settings/settings";
-import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey } from "@/features/database/core/db/dbConnections";
+import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey, type DbSecretKey } from "@/features/database/core/db/dbConnections";
 import { Conflict } from "@/foundation/core/errors";
 import { openSecret, SEALED, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 

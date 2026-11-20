@@ -4,7 +4,6 @@ import { DB_ENVIRONMENT_DEFAULTS, type DbConnection, type DbPrep, type DbSsh, ty
 import type { DbConnectionPatch, NewDbConnectionBody } from "@shared/foundation/apiTypes";
 import { NOW } from "@/foundation/core/db/db";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
-import type { DbSecretKey } from "@/foundation/core/settings/settings";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
 const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "note_path", "ssh", "prep", "check_on", "check_note"] as const;
@@ -47,6 +46,9 @@ function prepText(prep: DbPrep | null): string | null {
   const normalized = normalizePrep(prep);
   return normalized ? JSON.stringify(normalized) : null;
 }
+
+/** DB の接続のパスワードの秘密の値の名前（接続を消したら、表のトリガーで消える） */
+export type DbSecretKey = `db_connection:${number}:password` | `db_connection:${number}:ai_password` | `db_connection:${number}:ssh_password`;
 
 /** 接続のパスワードの秘密の値の名前 */
 export const dbPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:password`;

@@ -13,7 +13,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 | `workplace/` | 作業場所（git の実行・ワークツリー・持っていく変更 `carry.ts`・Git でないフォルダ） |
 | `platform/` | OS ごとに違う処理の口 `HostPlatform`（機能だけの値は `@/app/core/platform.ts`）と macOS の中身（`macos/`）。DB ワーカーは `ShellPlatform` |
 | `system/` | 外部コマンド・パス・`ttlCache.ts`・名前と保存先とポート `appEnv.ts`・開発版のデータの写し `devData.ts`・詰まりの見張り `stallWatch.ts` |
-| `settings/`・`shell/`・`testing/` | 設定・Bash の文の区切り `shellWords.ts`・テストの補助 |
+| `settings/`・`shell/`・`testing/` | 設定・秘密の値・Bash の文の区切り `shellWords.ts`・テストの補助 |
 
 - 機能は `feature.ts` の `CoreFeature`（`@/app/core/assemble.ts` が並べる）。`serve.ts` が待ち受けて `start` を作った順に呼び、止める順（`stopPhase: "first"` → 流れ続けている外部コマンド → 残りを作った順の逆 → `bus.flush` → HTTP → DB）も決める。
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
@@ -31,7 +31,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 行と型の変換は店の `toChat` などに集める（真偽値は `db/common.ts` の `bit()`）。変えられる列は `CHAT_COLUMNS` などの 1 つの一覧を、型と `updateRow` の両方に使う。
 - `chats.active_at`（一覧の並び順）を進めるのは `status` を変える更新だけ（未読・固定・並び・名前・アーカイブ・移動・復旧では進めない）。
 - ゴミ箱にあるチャットは `store.chats` の読み取り（`get`・一覧・子孫・検索・フィードなど）から外す。読み取りを足したらゴミ箱のものを外す。会話記録を残すか（`sessionInUse`）はゴミ箱のものも数える。
-- 設定は `store.settings.get` が `DEFAULT_SETTINGS` とまぜる（知らないキーは捨てる）。`update` は送ったキーだけ変え、中は丸ごと替える（`provider_chat_defaults` は AI ごと）。
+- 設定は `k.settings.get` が既定とまぜる（知らないキーは捨てる）。`update` は送ったキーだけ変え、中は丸ごと替える（`provider_chat_defaults` は AI ごと）。
 - 秘密の値は `secrets` の表に置き、設定・SSE・応答には保存したかだけを出す。
 - `meta` の `database_id` は DB を作ったときの ID（画面が ID 入りの保存を捨てる目印・スマホが本体を見分ける目印）。メインは SQL を流さない（DB の様子は `db/stats.ts`）。
 

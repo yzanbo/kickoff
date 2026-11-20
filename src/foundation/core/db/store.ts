@@ -4,7 +4,7 @@ import { createChatProviderSessionStore } from "@/features/chat/core/db/chatProv
 import { createChatProviderHandoffStore, handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import { createChatImageStore } from "@/features/remoteImages/core/db/chatImages";
 import type { Notify } from "./common";
-import { createDbConnectionStore } from "@/features/database/core/db/dbConnections";
+import { createDbConnectionStore, type DbSecretKey } from "@/features/database/core/db/dbConnections";
 import { createDbErLayoutStore } from "@/features/database/core/db/dbErLayouts";
 import { createDbQueryHistoryStore } from "@/features/database/core/db/dbQueryHistory";
 import { createDbPrepRunStore } from "@/features/database/core/db/dbPrepRuns";
@@ -16,7 +16,9 @@ import { createPrNoticeStore } from "@/features/github/core/db/prNotices";
 import { createCiNoticeStore } from "@/features/github/core/db/ciNotices";
 import { createProjectStore } from "@/features/projects/core/db/projects";
 import { createQueueStore } from "@/features/chat/core/db/queues";
-import { createSecretStore, createSettingsStore, readDatabaseId } from "@/foundation/core/settings/settings";
+import { createSecretStore, type SecretStore } from "@/foundation/core/settings/secretStore";
+import { createSettingsStore, type SettingsStore } from "@/foundation/core/settings/settingsStore";
+import { readDatabaseId } from "./db";
 import { createSnippetStore } from "@/features/snippets/core/db/snippets";
 import { databaseStats, type DatabaseStats } from "./stats";
 import { createTrashStore } from "@/features/trash/core/db/trash";
@@ -25,7 +27,26 @@ import { createWorktreeEnvStore } from "@/features/worktrees/core/db/worktreeEnv
 import { createWorktreeColorStore } from "@/features/worktrees/core/db/worktreeColors";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { Attachment, Chat, ChatOptions } from "@shared/chat/types";
-import type { ProviderId } from "@shared/settings/types";
+import { DEFAULT_SETTINGS, type AppSettings, type ProviderId, type SettingsPatch } from "@shared/settings/types";
+
+/** 秘密の値の名前（secrets の表）: 音声入力の OpenAI のキー・DB の接続のパスワード（接続を消したら表のトリガーで消える）・AI の API キー */
+export type SecretKey = "openai_transcribe_key" | DbSecretKey | `provider_api_key:${ProviderId}`;
+
+/** 土台の店（設定・秘密の値・DB の ID）。Kernel が作り、店の束はそれを指す（設定の宣言を機能ごとにするまで、既定と鍵の形はここで決める） */
+export interface BaseStores {
+  readonly databaseId: string;
+  readonly settings: SettingsStore<AppSettings, SettingsPatch>;
+  readonly secrets: SecretStore<SecretKey>;
+}
+
+/** 土台の店を開く（設定は DEFAULT_SETTINGS と混ぜ、AI ごとの既定は AI ごとに重ねる） */
+export function openBaseStores(db: DatabaseSync, onChange: Notify): BaseStores {
+  return {
+    databaseId: readDatabaseId(db),
+    settings: createSettingsStore<AppSettings, SettingsPatch>(db, DEFAULT_SETTINGS, (settings) => onChange({ type: "settings", settings }), ["provider_chat_defaults"]),
+    secrets: createSecretStore<SecretKey>(db),
+  };
+}
 
 /**
  * SQLite の永続化層。表ごとの店（store.chats.get など）をまとめて持つ。変更系の操作は onChange で知らせる
@@ -35,8 +56,8 @@ export class Store {
   readonly db: DatabaseSync;
   /** この DB を作ったときに決めた ID（meta の表）。スマホ連携の本体の ID（スマホが複数の本体を切り替える目印）も兼ねる */
   readonly databaseId: string;
-  readonly settings;
-  readonly secrets;
+  readonly settings: BaseStores["settings"];
+  readonly secrets: BaseStores["secrets"];
   readonly projects;
   readonly groups;
   readonly chats;
@@ -69,15 +90,16 @@ export class Store {
   /** 記録を足す以外の形で変えた知らせ（巻き戻し・セッションの付け替え・チャットの削除。コアの索引の覚えを捨てる合図） */
   readonly logRevisions: LogRevisions = createLogRevisions();
 
-  /** db は版をそろえて開いたもの（openDb。組み立てが全部の機能の版を渡す） */
+  /** db は版をそろえて開いたもの（openDb。組み立てが全部の機能の版を渡す）。土台の店は Kernel が開いたものを受ける（省けばここで開く） */
   constructor(
     db: DatabaseSync,
     private readonly onChange: Notify = () => {},
+    base: BaseStores = openBaseStores(db, onChange),
   ) {
     this.db = db;
-    this.databaseId = readDatabaseId(this.db);
-    this.settings = createSettingsStore(this.db, onChange);
-    this.secrets = createSecretStore(this.db);
+    this.databaseId = base.databaseId;
+    this.settings = base.settings;
+    this.secrets = base.secrets;
     this.projects = createProjectStore(this.db, onChange);
     this.chats = createChatStore(this.db, onChange, this.logRevisions, this.settings.get);
     this.chatProviderSessions = createChatProviderSessionStore(this.db);
