@@ -1,5 +1,5 @@
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui/stores/providers";
 import { ServerInfoRows } from "@/features/devices/ui/ServerInfo";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -18,7 +18,7 @@ export function ConnectionSettings() {
   const providers = useProviders();
   const github = useGitHubStatus();
   const planned = usePlannedProviders();
-  const server = useAsync(() => api.status(), []);
+  const server = useQuery("ConnectionSettings.server", () => api.status());
   return (
     <section className="section">
       <div className="section-head">
@@ -46,7 +46,7 @@ export function ConnectionSettings() {
                 <ServerInfoRows server={server.data} />
               </dl>
             ) : (
-              (server.error ?? "確認中…")
+              (errorText(server.error) ?? "確認中…")
             )
           }
         />

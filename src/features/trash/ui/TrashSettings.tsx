@@ -4,7 +4,7 @@ import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupD
 import { formatSize } from "@shared/attachments/truncate";
 import { api } from "@/foundation/ui/api";
 import { useTrashedProjects, useUnassignedTrash } from "@/features/trash/ui/stores/trash";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -77,7 +77,7 @@ function TrashedProjectRow({ item }: { item: TrashItem }) {
 
 function ArchiveCleanup() {
   const [days, setDays] = useState<ArchiveCleanupDays>(30);
-  const preview = useAsync(() => api.archiveCleanupPreview(days), [days]);
+  const preview = useQuery(["TrashSettings.preview", days], () => api.archiveCleanupPreview(days), { keepPrevious: true });
   const { busy, error, run } = useAction();
   const count = preview.data?.days === days ? preview.data.count : null;
   const size = preview.data?.days === days ? preview.data.size : null;
@@ -117,7 +117,7 @@ function ArchiveCleanup() {
             ゴミ箱に入れる
           </button>
         </div>
-        <ErrorText message={preview.error ?? error} />
+        <ErrorText message={errorText(preview.error) ?? error} />
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Tag, UserRound } from "lucide-react";
 import { api } from "@/foundation/ui/api";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 
@@ -28,7 +28,7 @@ export function GitHubLabelPicker({
   disabled?: boolean;
 }) {
   const menu = useContextMenu<null>();
-  const meta = useKeyedAsync(String(projectId), () => api.githubMeta(projectId));
+  const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
   const [picked, setPicked] = useState<string[]>(selected);
   const open = menu.menu !== null;
   const close = () => {

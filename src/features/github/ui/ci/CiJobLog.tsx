@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { CiJob, CiStep, CiStepLog } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -59,8 +59,8 @@ function IconLink({ url, label }: { url: string; label: string }) {
 
 /** ジョブのログ（ステップごと）。まだ出ていない（動いている）ときは、その旨と GitHub へのリンク */
 function CiJobLogBody({ projectId, runId, job, focus }: { projectId: number; runId: number; job: CiJob; focus: boolean }) {
-  const log = useAsync(() => api.ciJobLog(projectId, runId, job.id), [projectId, runId, job.id]);
-  if (log.error) return <ErrorText message={log.error} />;
+  const log = useQuery(["CiJobLog.log", projectId, runId, job.id], () => api.ciJobLog(projectId, runId, job.id), { keepPrevious: true });
+  if (log.error) return <ErrorText message={errorText(log.error)} />;
   if (!log.data) return <p className="muted small ci-log-note">ログを読み込み中…</p>;
   const failed = stepToOpen(job);
   // ログがまだ出ていない（動いている）ときも、ステップの進み具合は出す

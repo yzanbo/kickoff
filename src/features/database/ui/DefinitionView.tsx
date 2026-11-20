@@ -1,6 +1,6 @@
 import { DB_OBJECT_KIND_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -13,7 +13,7 @@ import { objectPathLabel } from "./dbFormat";
 export function DefinitionView({ tab, connection }: { tab: DbTableTab & { object: "function" | "enum" }; connection: DbConnection }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
-  const def = useAsync(() => api.dbDefinition(client.projectId, connection.id, tab.path, tab.object, tab.name, worktree), [connection.id, tab.key, worktree]);
+  const def = useQuery(["DefinitionView.def", connection.id, tab.key, worktree], () => api.dbDefinition(client.projectId, connection.id, tab.path, tab.object, tab.name, worktree), { keepPrevious: true });
   const label = objectPathLabel(tab.path, tab.name);
   const d = def.data;
   const rows: [string, string][] = d
@@ -33,7 +33,7 @@ export function DefinitionView({ tab, connection }: { tab: DbTableTab & { object
         <span className="db-sql-spacer" />
         <RefreshButton label="取り直す" busy={def.loading} onClick={def.reload} />
       </div>
-      <ErrorText message={def.error} />
+      <ErrorText message={errorText(def.error)} />
       {d && (
         <div className="db-detail">
           <table className="db-detail-table db-info-table">

@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from "r
 import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
 import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { GITHUB_FILES_TREE_HIDDEN } from "@/foundation/ui/storage/storageKeys";
@@ -157,7 +157,7 @@ export function GitHubPullChanges({
   headSha: string | null;
   onChanged: () => void;
 }) {
-  const loaded = useKeyedAsync(`${projectId}:${number}`, () => api.githubPullFiles(projectId, number), { deps: [version] });
+  const loaded = useQuery(`${projectId}:${number}`, () => api.githubPullFiles(projectId, number), { deps: [version] });
   // 開閉は「既定から変えたファイル」だけ覚える（既定はファイルの数で決まる）
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const toggle = useCallback(
@@ -199,7 +199,7 @@ export function GitHubPullChanges({
     menu.open(e, { target, copy: selection && !selection.isCollapsed ? selection.toString() : "" });
   };
 
-  if (loaded.error) return <ErrorText message={loaded.error} />;
+  if (loaded.error) return <ErrorText message={errorText(loaded.error)} />;
   const data = loaded.data;
   if (!data) return <p className="muted small github-detail-loading">読み込み中…</p>;
   if (data.files.length === 0) return <p className="muted small">この PR には変更したファイルがありません。</p>;

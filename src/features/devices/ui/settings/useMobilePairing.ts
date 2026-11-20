@@ -4,7 +4,7 @@ import { pairingLink } from "@shared/devices/pairing";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
 
 /** QR の画像（data: の PNG）を作る。qrcode は使うときだけ読み込む */
@@ -29,8 +29,8 @@ function useQrImage(text: string | null): string | null {
  * 様子はサーバーの知らせ（pairing / devices）でその場で直す
  */
 export function useMobilePairing() {
-  const pairing = useAsync(() => api.pairingState());
-  const devices = useAsync(() => api.devices());
+  const pairing = useQuery("useMobilePairing.pairing", () => api.pairingState());
+  const devices = useQuery("useMobilePairing.devices", () => api.devices());
   const action = useAction<"start" | "cancel" | "approve" | "deny" | "revoke" | "access">();
   const state = pairing.data;
 

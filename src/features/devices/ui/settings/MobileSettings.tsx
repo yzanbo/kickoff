@@ -3,7 +3,7 @@ import { DEVICE_ACCESS_HELP, DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device,
 import { errorMessage } from "@shared/foundation/errors";
 import { formatPairingCode } from "@shared/devices/pairing";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { agoText, formatDayTime } from "@/foundation/ui/lib/time";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
@@ -21,7 +21,7 @@ export function MobileSettings() {
   const settings = useAppSettings().data;
   const pairing = useMobilePairing();
   const switches = useMobileSwitches();
-  const tailscale = useAsync(() => api.tailscaleStatus());
+  const tailscale = useQuery("MobileSettings.tailscale", () => api.tailscaleStatus());
   if (!settings) return null;
   const off = !settings.remote_enabled;
   const saveUrl = (url: string | null) =>
@@ -37,7 +37,7 @@ export function MobileSettings() {
       </p>
       <MobileSwitches switches={switches} />
       <h3>家の外からつなぐ（Tailscale Serve）</h3>
-      <TailscaleGuide status={tailscale.data ?? null} loading={tailscale.loading} error={tailscale.error} mobileUrl={settings.mobile_url} onRecheck={tailscale.reload} onUseUrl={saveUrl} />
+      <TailscaleGuide status={tailscale.data ?? null} loading={tailscale.loading} error={errorText(tailscale.error)} mobileUrl={settings.mobile_url} onRecheck={tailscale.reload} onUseUrl={saveUrl} />
       <div className="form">
         <Field label="つなぐ先の URL" help="スマホから、この Mac の Kickoff に届く URL（Tailscale Serve の https://<Mac の名前>.ts.net など）。QR に入れます。空なら QR を出さず、番号だけを出します。">
           <CommitInput type="url" value={settings.mobile_url ?? ""} placeholder="https://mac.example.ts.net" onCommit={(v) => saveUrl(v || null)} />

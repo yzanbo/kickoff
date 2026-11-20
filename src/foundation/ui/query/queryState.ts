@@ -1,4 +1,5 @@
 // useQuery の中の様子と、その移り方（純粋。React を描かずにテストする）
+import { errorMessage } from "@shared/foundation/errors";
 
 /** 取得の様子（key は届いた値・失敗がどのキーのものか。fetching は取りに行っているキー） */
 export interface QueryState<T> {
@@ -52,3 +53,6 @@ export function replaceData<T>(state: QueryState<T>, key: string | null, next: T
 
 /** 失敗を Error にする（ApiError はそのまま。code で分けられる） */
 export const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
+
+/** 失敗の文（失敗していなければ undefined。部品に出すときに使う） */
+export const errorText = (error: Error | undefined): string | undefined => (error ? errorMessage(error) : undefined);

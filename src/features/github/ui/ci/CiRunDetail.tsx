@@ -3,7 +3,7 @@ import { ArrowLeft, ExternalLink, GitPullRequest, RotateCcw } from "lucide-react
 import { CI_STATE_LABELS, type CiJob } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { formatDayTime, formatElapsed, relativeTime } from "@/foundation/ui/lib/time";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -44,7 +44,7 @@ export function CiRunDetailView({
   onChanged: () => void;
   onBack?: () => void;
 }) {
-  const detail = useAsync(() => api.ciRun(projectId, runId), [projectId, runId]);
+  const detail = useQuery(["CiRunDetail.detail", projectId, runId], () => api.ciRun(projectId, runId), { keepPrevious: true });
   const data = detail.data;
   const run = data?.run;
   useGitHubRefresh(detail.reload, true, run?.state === "pending" ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS);
@@ -116,7 +116,7 @@ export function CiRunDetailView({
         )}
         <ErrorText message={action.error} />
       </header>
-      <ErrorText message={detail.error} />
+      <ErrorText message={errorText(detail.error)} />
       {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
       {data && (
         <div className="ci-jobs">

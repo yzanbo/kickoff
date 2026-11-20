@@ -1,5 +1,5 @@
 import { Activity, FolderOpen } from "lucide-react";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { DiagnosticsPath } from "@/features/diagnostics/ui/DiagnosticsPath";
 import { overviewLines } from "@/features/diagnostics/ui/overviewLines";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -11,9 +11,9 @@ import { Field } from "@/foundation/ui/kit/Field";
 export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
   const available = Boolean(window.kickoff);
   // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
-  const folders = useAsync(async () => (await window.kickoff?.diagnostics.folders()) ?? null);
+  const folders = useQuery("DiagnosticsSettings.folders", async () => (await window.kickoff?.diagnostics.folders()) ?? null);
   // いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻）
-  const overview = useAsync(async () => (await window.kickoff?.diagnostics.overview()) ?? null);
+  const overview = useQuery("DiagnosticsSettings.overview", async () => (await window.kickoff?.diagnostics.overview()) ?? null);
   return (
     <section className="section">
       <h2>診断</h2>

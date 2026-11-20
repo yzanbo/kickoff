@@ -5,7 +5,7 @@ import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
@@ -83,7 +83,7 @@ export function DbFailureDialog({
   const { ref: dialogRef, ...dialog } = useModalDialog();
   // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
   useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
-  const note = useAsync(() => (c.note_path ? api.note(projectId, c.note_path) : Promise.resolve(null)), [projectId, c.note_path]);
+  const note = useQuery(["DbFailureDialog.note", projectId, c.note_path], () => (c.note_path ? api.note(projectId, c.note_path) : Promise.resolve(null)), { keepPrevious: true });
   const then = (run: () => void) => () => {
     dialog.close();
     run();

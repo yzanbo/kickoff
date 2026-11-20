@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
@@ -38,7 +38,7 @@ export function DbPrepDialog({
   const [state, setState] = useState<DbPrepState | null>(null);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const runs = useAsync(() => api.dbPrepRuns(projectId, c.id), [projectId, c.id, state?.finished_at]);
+  const runs = useQuery(["DbPrepDialog.runs", projectId, c.id, state?.finished_at], () => api.dbPrepRuns(projectId, c.id), { keepPrevious: true });
   const prep = c.prep;
   const hasPrepare = (prep?.prepare.length ?? 0) > 0;
   const running = state?.running ?? false;

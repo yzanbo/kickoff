@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -19,10 +19,7 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
   const { ref: dialogRef, ...dialog } = useModalDialog();
   const { projects } = useProjects();
   const others = projects.filter((p) => p.id !== projectId && !p.archived_at);
-  const lists = useAsync(
-    () => Promise.all(others.map(async (p) => ({ project: p, connections: await api.dbConnections(p.id).catch(() => [] as DbConnection[]) }))),
-    [others.map((p) => p.id).join(",")],
-  );
+  const lists = useQuery(["CopyConnectionDialog.lists", others.map((p) => p.id).join(",")], () => Promise.all(others.map(async (p) => ({ project: p, connections: await api.dbConnections(p.id).catch(() => [] as DbConnection[]) }))), { keepPrevious: true });
   const [picked, setPicked] = useState<number | null>(null);
   const [withPassword, setWithPassword] = useState(false);
   const [error, setError] = useState<string>();

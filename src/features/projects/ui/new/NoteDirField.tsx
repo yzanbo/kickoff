@@ -1,7 +1,7 @@
 import { projectNoteFolder } from "@shared/notes/names";
 import type { NewProjectNoteDir } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -64,7 +64,7 @@ export function NoteDirField({ base, custom, onCustom }: { base: string; custom:
 /** 自動で決まるノートのフォルダ（base がなければ undefined。親フォルダが分かるまでも undefined） */
 function useAutoNoteDir(base: string): string | undefined {
   const settings = useAppSettings().data;
-  const defaults = useAsync(() => api.noteDefaults());
+  const defaults = useQuery("NoteDirField.defaults", () => api.noteDefaults());
   const { projects } = useProjects();
   const root = settings?.notes_dir ?? defaults.data?.default_dir;
   if (!root || !base.trim()) return undefined;

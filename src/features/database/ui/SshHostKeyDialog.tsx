@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import type { DbSsh } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -13,7 +13,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
  */
 export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { projectId: number; ssh: DbSsh; onAccepted: () => void; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
-  const scan = useAsync(() => api.dbSshHostKey(projectId, ssh), [projectId, ssh.host, ssh.port, ssh.user, ssh.identity_file]);
+  const scan = useQuery(["SshHostKeyDialog.scan", projectId, ssh.host, ssh.port, ssh.user, ssh.identity_file], () => api.dbSshHostKey(projectId, ssh), { keepPrevious: true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -54,7 +54,7 @@ export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { proj
           ~/.ssh/known_hosts に足し、次からはターミナルの ssh でも確かめずにつながります。
         </p>
         {scan.loading && <p className="small muted">サーバーの鍵を読んでいます…</p>}
-        <ErrorText message={scan.error} />
+        <ErrorText message={errorText(scan.error)} />
         {scan.data && (
           <>
             <p className="small muted">known_hosts の名前: {scan.data.host}</p>

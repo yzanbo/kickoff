@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { EMPTY_QUERY, queryView, replaceData, settleData, settleError, startFetch, type QueryState } from "./queryState";
+import { EMPTY_QUERY, errorText, queryView, replaceData, settleData, settleError, startFetch, type QueryState } from "./queryState";
 
 const settled = <T>(key: string, data: T): QueryState<T> => settleData(startFetch(EMPTY_QUERY as QueryState<T>, key), key, data);
 const view = <T>(state: QueryState<T>, key: string | null, keepPrevious = false) => queryView(state, key, { enabled: true, keepPrevious });
@@ -45,4 +45,9 @@ test("replaceData: 関数はいまのキーの値があるときだけ当て、�
   assert.equal(replaceData(state, "b", (prev) => [...prev, 2]), state);
   assert.equal(replaceData(EMPTY_QUERY as QueryState<number[]>, "a", (prev) => prev).data, undefined);
   assert.deepEqual(replaceData(EMPTY_QUERY as QueryState<number[]>, "a", [3]).data, [3]);
+});
+
+test("errorText: 失敗の文（失敗していなければ undefined）", () => {
+  assert.equal(errorText(new Error("読めません")), "読めません");
+  assert.equal(errorText(undefined), undefined);
 });

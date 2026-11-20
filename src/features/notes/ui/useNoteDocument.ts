@@ -3,7 +3,7 @@ import type { FileContent } from "@shared/foundation/fileTypes";
 import { api, ApiError } from "@/foundation/ui/api";
 import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { errorMessage } from "@shared/foundation/errors";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { noteDraft } from "@/foundation/ui/storage/storageKeys";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
@@ -40,7 +40,7 @@ export type NoteSaveState = "saved" | "dirty" | "saving" | "conflict" | "error";
  */
 export function useNoteDocument(projectId: number, path: string) {
   const key = `${projectId}:${path}`;
-  const loaded = useKeyedAsync<FileContent>(key, () => api.note(projectId, path));
+  const loaded = useQuery<FileContent>(key, () => api.note(projectId, path));
   // 開いたとき（保存したとき）の中身と指紋（どのノートのものかも持つ。保存している間に別のノートへ移っても、前のノートへ保存できるように）
   const [base, setBase] = useState<NoteBase | null>(null);
   // 書き始めの中身（編集の部品を作るときに渡す）と、部品を作り直す番号（読み直したとき、中身を入れ直す）
@@ -225,7 +225,7 @@ export function useNoteDocument(projectId: number, path: string) {
 
   return {
     file,
-    loadError: loaded.error,
+    loadError: errorText(loaded.error),
     /** 書き始めの中身（読み込むまでは null） */
     initial: base?.key === key ? initial : null,
     revision,

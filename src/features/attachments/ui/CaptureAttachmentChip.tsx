@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/chat/types";
 import { api, attachmentUrl } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
@@ -68,7 +68,7 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
 function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const image = isImage(attachment);
-  const text = useAsync(() => (image ? Promise.resolve("") : api.attachmentText(attachment)), [attachment.id]);
+  const text = useQuery(["CaptureAttachmentChip.text", attachment.id], () => (image ? Promise.resolve("") : api.attachmentText(attachment)), { keepPrevious: true });
   const Icon = SOURCE_ICONS[attachment.source.type];
   return (
     <dialog ref={dialogRef} className="dialog app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
@@ -81,7 +81,7 @@ function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment;
       </div>
       <p className="small muted capture-viewer-note">{captureTitle(attachment, formatDayTime).split("\n").slice(1).join(" / ")}</p>
       {text.loading && <p className="small muted">読み込み中…</p>}
-      <ErrorText message={text.error} />
+      <ErrorText message={errorText(text.error)} />
       {image ? (
         <img className="capture-viewer-image" src={attachmentUrl(attachment)} alt={attachment.source.label} />
       ) : (

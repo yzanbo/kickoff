@@ -4,7 +4,7 @@ import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
 import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -29,9 +29,9 @@ export const CI_PENDING_REFRESH_MS = 15_000;
  * 連携先・アカウントは GitHub タブと同じ（プロジェクトの設定の「GitHub」）。使えなければ理由と直し方を出す
  */
 export function CiTab({ projectId }: { projectId: number }) {
-  const connection = useAsync(() => api.githubConnection(projectId), [projectId]);
+  const connection = useQuery(["CiTab.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
   const conn = connection.data;
-  if (connection.error) return <div className="github-tab"><ErrorText message={connection.error} /></div>;
+  if (connection.error) return <div className="github-tab"><ErrorText message={errorText(connection.error)} /></div>;
   if (!conn) return <div className="github-tab muted small github-tab-loading">確認中…</div>;
   if (conn.reason)
     return (
@@ -56,7 +56,7 @@ export function CiTab({ projectId }: { projectId: number }) {
 function CiBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
   const [selectedText, setSelectedText] = useSetting(ciSelected(projectId));
   const selected = parseCiSelected(selectedText);
-  const list = useAsync(() => api.ciRuns(projectId), [projectId]);
+  const list = useQuery(["CiTab.list", projectId], () => api.ciRuns(projectId), { keepPrevious: true });
   const data = list.data;
   const pending = hasPending(data);
   useGitHubRefresh(list.reload, true, pending ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS);
@@ -98,7 +98,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
               <RefreshButton label="GitHub から取り直す" busy={list.loading} onClick={list.reload} />
             </div>
           </div>
-          <ErrorText message={list.error} />
+          <ErrorText message={errorText(list.error)} />
           <div className={cx("github-items", list.loading && data && "stale")} aria-busy={list.loading || undefined}>
             {list.loading && data && <div className="github-updating-bar muted small">更新中…</div>}
             {!data && !list.error && <p className="muted small github-items-note">読み込み中…</p>}

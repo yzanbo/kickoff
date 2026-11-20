@@ -2,7 +2,7 @@ import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { formatBytes } from "@/foundation/ui/lib/format";
@@ -52,7 +52,7 @@ export function TableView({
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
   const [view, setView] = useState<View>("data");
-  const detail = useAsync(() => api.dbTable(client.projectId, connection.id, tab.path, tab.name, worktree), [connection.id, tab.key, worktree]);
+  const detail = useQuery(["TableView.detail", connection.id, tab.key, worktree], () => api.dbTable(client.projectId, connection.id, tab.path, tab.name, worktree), { keepPrevious: true });
   const data = useTableRows(tab, connection, worktree);
   const edit = useTableEdits(tab, connection, detail.data, worktree, data.reload);
   // 保存していない変更があるタブの結果は捨てない（変更は読んだ行に重ねて見せるため）
@@ -93,7 +93,7 @@ export function TableView({
           }}
         />
       </div>
-      <ErrorText message={detail.error} />
+      <ErrorText message={errorText(detail.error)} />
       {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} edit={edit} onFilter={onFilter} />}
       {view === "structure" && detail.data && <TableStructure detail={detail.data} />}
       {view === "relations" && detail.data && <TableRelations detail={detail.data} />}

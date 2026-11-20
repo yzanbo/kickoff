@@ -2,7 +2,7 @@ import type { ProjectPatch } from "@shared/foundation/apiTypes";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 
@@ -16,7 +16,7 @@ const AUTO = "";
  */
 export function GitHubSection({ project }: { project: Project }) {
   // 保存したら、自動の連携先を見せ直すため取り直す
-  const github = useAsync(() => api.projectGitHub(project.id), [project.id, project.github_remote, project.github_account]);
+  const github = useQuery(["GitHubSection.github", project.id, project.github_remote, project.github_account], () => api.projectGitHub(project.id), { keepPrevious: true });
   const { error, guard } = useAction();
   const save = (patch: ProjectPatch) => guard(() => api.updateProject(project.id, patch));
   const data = github.data;
@@ -32,7 +32,7 @@ export function GitHubSection({ project }: { project: Project }) {
         このプロジェクトで使う GitHub のアカウントと連携先のリポジトリです。PR の作成・状態の表示・ワークツリーの PR の見張りと、Kickoff と AI が動かす gh・git（プッシュ・プル）に使います。
       </p>
       {github.loading && !data && <p className="muted small">確認中…</p>}
-      <ErrorText message={github.error} />
+      <ErrorText message={errorText(github.error)} />
       {data && (
         <>
           <Field

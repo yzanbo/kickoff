@@ -4,9 +4,8 @@ import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
 import type { Chat } from "@shared/chat/types";
 import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { useNarrowSplit } from "@/foundation/ui/hooks/useNarrowSplit";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useWhenVisible } from "@/foundation/ui/hooks/useWhenVisible";
@@ -38,9 +37,9 @@ function parseSelected(text: string): { kind: GitHubKind; number: number } | nul
  * 連携先・アカウントはプロジェクトの設定の「GitHub」のとおり。使えなければ（remote がない・gh がない・ログインしていない）理由と直し方を出す
  */
 export function GitHubTab({ projectId }: { projectId: number }) {
-  const connection = useAsync(() => api.githubConnection(projectId), [projectId]);
+  const connection = useQuery(["GitHubTab.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
   const conn = connection.data;
-  if (connection.error) return <div className="github-tab"><ErrorText message={connection.error} /></div>;
+  if (connection.error) return <div className="github-tab"><ErrorText message={errorText(connection.error)} /></div>;
   if (!conn) return <div className="github-tab muted small github-tab-loading">確認中…</div>;
   if (conn.reason)
     return (
@@ -68,7 +67,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const selected = parseSelected(selectedText);
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter, true);
-  const meta = useKeyedAsync(String(projectId), () => api.githubMeta(projectId));
+  const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
   const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
 
@@ -129,7 +128,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
               })
             }
           />
-          <ErrorText message={list.error ?? meta.error ?? undefined} />
+          <ErrorText message={list.error ?? errorText(meta.error)} />
           <div className={cx("github-items", list.loading && page && "stale")} aria-busy={list.loading || undefined}>
             {list.loading && page && <div className="github-updating-bar muted small">更新中…</div>}
             {!page && !list.error && <p className="muted small github-items-note">読み込み中…</p>}

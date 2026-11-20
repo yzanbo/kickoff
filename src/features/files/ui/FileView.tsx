@@ -8,7 +8,7 @@ import { registerSavable } from "@/foundation/ui/lib/saveAll";
 import { registerEditorCursor, type EditorCursor } from "@/foundation/ui/lib/viewDetails";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { DIFF_LAYOUT, EDITOR_PAGE_PREVIEW, EDITOR_WORD_WRAP } from "@/foundation/ui/storage/storageKeys";
@@ -75,7 +75,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
   // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
-  const loaded = useKeyedAsync(key, () => api.projectFile(target, path), { deps: [version] });
+  const loaded = useQuery(key, () => api.projectFile(target, path), { deps: [version] });
   const [stored, setBase] = useState<EditBase | null>(null);
   const [dirty, setDirty] = useState(false);
   // 保存している間と、その結果（保存しました・失敗の理由）
@@ -128,7 +128,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     setShowCode(!showCode);
   };
 
-  const current = loaded.loaded ? { file: loaded.data, error: loaded.error } : undefined;
+  const current = loaded.loaded ? { file: loaded.data, error: errorText(loaded.error) } : undefined;
   const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
   // 編集の始まり: 読み込んだ中身（作業場所が変わったら、その作業場所の中身から始め直す）
   const base: EditBase | null = stored?.key === key ? stored : editable && current?.file ? { key, content: current.file.content, hash: current.file.hash } : null;

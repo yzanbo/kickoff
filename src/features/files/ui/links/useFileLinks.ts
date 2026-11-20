@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ProjectFiles } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { openProjectFile } from "@/foundation/ui/navigation/router";
 import { changeOf } from "@/features/git/ui/diff/sideFile";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
@@ -42,7 +42,7 @@ export function useFileLinks(
   const chatId = chat.id;
   const worktree = chat.worktree_path || undefined;
   const root = worktree ?? repoPath;
-  const { data } = useKeyedAsync(`${projectId}:${worktree ?? ""}`, () => api.projectFiles({ projectId, worktree }), {
+  const { data } = useQuery(`${projectId}:${worktree ?? ""}`, () => api.projectFiles({ projectId, worktree }), {
     deps: [chat.status],
     same: sameFiles,
   });

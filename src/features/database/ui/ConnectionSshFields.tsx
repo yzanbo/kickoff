@@ -1,5 +1,5 @@
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import type { ConnectionForm } from "./connectionForm";
 
@@ -19,7 +19,7 @@ export function ConnectionSshFields({
   hasPassword: boolean;
   set: <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => void;
 }) {
-  const hosts = useAsync(() => (form.ssh_on ? api.dbSshHosts(projectId) : Promise.resolve([])), [projectId, form.ssh_on]);
+  const hosts = useQuery(["ConnectionSshFields.hosts", projectId, form.ssh_on], () => (form.ssh_on ? api.dbSshHosts(projectId) : Promise.resolve([])), { keepPrevious: true });
   return (
     <>
       <CheckField

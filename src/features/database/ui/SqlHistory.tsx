@@ -2,7 +2,7 @@ import { Bot, History } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { DbConnection, DbQueryHistoryEntry } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { formatFullStamp, shortRelativeTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Popover } from "@/foundation/ui/kit/Popover";
@@ -54,7 +54,7 @@ export function SqlHistoryButton({ connection, onPick }: { connection: DbConnect
 function SqlHistoryList({ connection, onPick }: { connection: DbConnection; onPick: (sql: string) => void }) {
   const client = useDbClient();
   const [query, setQuery] = useState("");
-  const history = useAsync(() => api.dbHistory(client.projectId, connection.id), [client.projectId, connection.id]);
+  const history = useQuery(["SqlHistory.history", client.projectId, connection.id], () => api.dbHistory(client.projectId, connection.id), { keepPrevious: true });
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const list = history.data ?? [];
@@ -64,7 +64,7 @@ function SqlHistoryList({ connection, onPick }: { connection: DbConnection; onPi
   return (
     <div className="db-sql-history-body">
       <SearchField value={query} onChange={setQuery} placeholder="SQL・チャットの名前で絞り込む" label="履歴を絞り込む" autoFocus />
-      <ErrorText message={history.error} />
+      <ErrorText message={errorText(history.error)} />
       {history.loading && !history.data && <p className="small muted">読み込み中…</p>}
       {history.data && shown.length === 0 && <p className="small muted">{query.trim() ? "当てはまる SQL はありません。" : "まだ SQL を流していません。"}</p>}
       <ul className="db-sql-history-list">

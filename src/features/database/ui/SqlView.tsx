@@ -5,7 +5,7 @@ import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } 
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { DbSqlTab } from "@/features/database/ui/client/dbClientTabs";
@@ -49,10 +49,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const { paneRef: heightPaneRef, ...height } = useDragSize<HTMLDivElement>({ setting: DB_SQL_EDITOR_HEIGHT, axis: "y", unit: "%", min: 15, max: 85 });
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
-  const outline = useAsync(
-    () => api.dbOutline(client.projectId, connection.id, { database: connection.database, schema: null }, worktree),
-    [connection.id, worktree],
-  );
+  const outline = useQuery(["SqlView.outline", connection.id, worktree], () => api.dbOutline(client.projectId, connection.id, { database: connection.database, schema: null }, worktree), { keepPrevious: true });
   const schema = useMemo<SQLNamespace | undefined>(
     () => (outline.data ? Object.fromEntries(outline.data.map((t) => [t.name, t.columns])) : undefined),
     [outline.data],

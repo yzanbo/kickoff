@@ -3,7 +3,7 @@ import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { dbConnectionsStore, useDbConnectedIds } from "@/features/database/ui/client/connectionsStore";
@@ -30,7 +30,7 @@ export function DbHome({
 }) {
   const connected = useDbConnectedIds(projectId).data;
   // 登録が変わったら探し直す（足した候補を消す）
-  const found = useAsync(() => api.dbImportCandidates(projectId), [projectId, connections.length]);
+  const found = useQuery(["DbHome.found", projectId, connections.length], () => api.dbImportCandidates(projectId), { keepPrevious: true });
   const candidates = (found.data ?? []).filter((c) => c.existing_id === null);
   return (
     <div className="db-home">

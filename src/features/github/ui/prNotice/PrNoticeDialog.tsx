@@ -4,7 +4,7 @@ import type { WorktreePrNotice } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
@@ -92,7 +92,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
   const { projectName } = useProjects();
   const chats = useChatsWithChildren().filter((c) => c.project_id === projectId && c.worktree_path === notice.worktree);
   const running = chats.filter((c) => c.status === "running").length;
-  const info = useAsync(() => api.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), [projectId, notice.worktree]);
+  const info = useQuery(["PrNoticeDialog.info", projectId, notice.worktree], () => api.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), { keepPrevious: true });
   const [worktreeAction, setWorktreeAction] = useState<PrWorktreeAction>(defaultWorktreeAction(notice));
   const [chatAction, setChatAction] = useState<PrChatAction>("archive");
   // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すか（初めは消す）

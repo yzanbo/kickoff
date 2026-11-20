@@ -5,9 +5,8 @@ import type { GitCommit, GitFileChange, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { COMMIT_FILES_LIST, COMMIT_FILES_WIDTH } from "@/foundation/ui/storage/storageKeys";
 import { formatDayTime } from "@/foundation/ui/lib/time";
@@ -51,10 +50,10 @@ export function CommitView({
 }) {
   const { target, key: at } = useGitTarget(projectId);
   // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
-  const loaded = useKeyedAsync(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
+  const loaded = useQuery(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
   const detail = loaded.data;
   // 連携先が GitHub なら、SHA の横にこのコミットの GitHub のページを開くボタンを出す（プロジェクトごとに 1 回聞く）
-  const github = useAsync(() => api.projectGitHub(projectId).catch(() => null), [projectId]);
+  const github = useQuery(["CommitView.github", projectId], () => api.projectGitHub(projectId).catch(() => null), { keepPrevious: true });
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木）
@@ -93,7 +92,7 @@ export function CommitView({
           ]}
         />
       </header>
-      <ErrorText message={loaded.error} className="code-search-message" />
+      <ErrorText message={errorText(loaded.error)} className="code-search-message" />
       {tab === "commit" ? (
         <CommitSummary
           commit={commit}

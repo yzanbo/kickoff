@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GitCommit, GitLog, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWorktrees, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
 import { layoutGraph } from "./commitGraph";
@@ -18,9 +18,9 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [reload, setReload] = useState(0);
   // ブランチ・リモート・タグ・stash（左の一覧）。取れなくても履歴は出す
-  const refs = useKeyedAsync(at, () => api.gitRefs(target), { active, deps: [version, reload], same: sameJson });
+  const refs = useQuery(at, () => api.gitRefs(target), { enabled: active, deps: [version, reload], same: sameJson });
   // 読み込んだところまで（初めは 1 ページ）を読み直す。先頭のページが同じなら描き直さない（読み込んだ続きも残す）
-  const log = useKeyedAsync(at, () => api.gitLog(target), { active, deps: [version, reload], same: sameFirstPage });
+  const log = useQuery(at, () => api.gitLog(target), { enabled: active, deps: [version, reload], same: sameFirstPage });
   // ワークツリー（プロジェクトで共通の一覧。作る・消すと取り直される）。見ている間は、古くなっていれば取り直す
   const worktrees = useWorktrees(projectId);
   useEffect(() => {
@@ -39,7 +39,7 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   // 失敗したときは空の一覧（読み込み中とは区別する）
   const commits = log.data?.commits ?? (log.error ? NO_COMMITS : undefined);
   const graph = useMemo(() => layoutGraph(commits ?? NO_COMMITS), [commits]);
-  return { worktrees, refs: refs.data, commits, more: Boolean(log.data?.more), error: log.error, graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
+  return { worktrees, refs: refs.data, commits, more: Boolean(log.data?.more), error: errorText(log.error), graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
 }
 
 const sameJson = (a: GitRefs, b: GitRefs) => JSON.stringify(a) === JSON.stringify(b);

@@ -6,7 +6,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import type { CodeToken } from "@/foundation/ui/code/highlight";
 import { languageOf } from "@/foundation/ui/code/languages";
 import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
-import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { DIFF_LAYOUT } from "@/foundation/ui/storage/storageKeys";
@@ -39,8 +39,8 @@ export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined 
 export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
-  const loaded = useKeyedAsync(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version], active });
-  return loaded.loaded ? { diff: loaded.data, error: loaded.error } : undefined;
+  const loaded = useQuery(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version], enabled: active });
+  return loaded.loaded ? { diff: loaded.data, error: errorText(loaded.error) } : undefined;
 }
 
 /** これより狭いときは、左右に並べる設定でも 1 列で出す */

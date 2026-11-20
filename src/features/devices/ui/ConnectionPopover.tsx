@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui/stores/providers";
 import type { ConnectionState } from "@/foundation/ui/api/useServerConnection";
 import { accountLine } from "@/features/ai/ui/usage/usage";
@@ -38,7 +38,7 @@ const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…"
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
 export function ConnectionPopover({ anchor, state, since, onClose, onOpenSettings }: Props) {
   // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）。プロバイダー・GitHub は店から（開くたびに確かめ直す）
-  const status = useAsync(() => api.status(), [state]);
+  const status = useQuery(["ConnectionPopover.status", state], () => api.status(), { keepPrevious: true });
   const providerState = useProviders();
   const githubState = useGitHubStatus();
   const shownState = useRef(state);
@@ -57,7 +57,7 @@ export function ConnectionPopover({ anchor, state, since, onClose, onOpenSetting
   const providers = providerState.data;
   const github = githubState.data;
   const loading = status.loading || providerState.loading || githubState.loading;
-  const error = status.error ?? providerState.error ?? githubState.error;
+  const error = errorText(status.error) ?? providerState.error ?? githubState.error;
 
   const claude = providers?.find((p) => p.id === "claude");
   const codex = providers?.find((p) => p.id === "codex");

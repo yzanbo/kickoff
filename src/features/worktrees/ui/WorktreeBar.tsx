@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { alertDialog, confirmDialog, confirmWithChecks } from "@/foundation/ui/kit/dialogs";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -48,14 +48,15 @@ export function WorktreeBar({
   const status = git.status?.repo ? git.status : undefined;
 
   // PR の状態は GitHub に聞くので、開いたとき・ウィンドウに戻ったとき・押したときだけ取り直す（null は PR がまだない）
-  const pr = useAsync<PullRequestInfo | null>(
+  const pr = useQuery<PullRequestInfo | null>(
+    ["WorktreeBar.pr", projectId, worktree],
     () =>
       api.pullRequest(target).catch((e: unknown) => {
         // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
         worktreesStore.invalidate(projectId);
         throw e;
       }),
-    [projectId, worktree],
+    { keepPrevious: true },
   );
   useWindowEvent("focus", pr.reload);
   // PR を作る・片付ける・消すの実行中と失敗（PR の状態を取り直している間も押せなくする。届いた状態で作った PR を上書きしないため）
@@ -168,7 +169,7 @@ export function WorktreeBar({
         <WandSparkles size={12} aria-hidden /> {action.busy === "setup" ? "準備中…" : "AI で整える"}
       </button>
       <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={busy} onClick={() => void remove()} />
-      <ErrorText message={action.error ?? pr.error} />
+      <ErrorText message={action.error ?? errorText(pr.error)} />
     </div>
   );
 }

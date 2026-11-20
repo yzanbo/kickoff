@@ -1,12 +1,12 @@
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { useQuery } from "@/foundation/ui/query";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { NoteFolderField } from "@/features/notes/ui/NoteFolderField";
 
 /** 設定: ノートの保存先（親フォルダ。この下にプロジェクトごとのフォルダを作る） */
 export function NoteSettings() {
   const settings = useAppSettings().data;
-  const defaults = useAsync(() => api.noteDefaults());
+  const defaults = useQuery("NoteSettings.defaults", () => api.noteDefaults());
   if (!settings) return null;
   return (
     <section className="section">

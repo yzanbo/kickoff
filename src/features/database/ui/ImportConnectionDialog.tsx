@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useMemo, useState, type FormEvent } from "re
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbConnection, type DbEnvironment, type DbImportCandidate } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
-import { useAsync } from "@/foundation/ui/hooks/useAsync";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { cx } from "@/foundation/ui/lib/cx";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
@@ -35,7 +35,7 @@ export function ImportConnectionDialog({
   onClose: () => void;
 }) {
   const { ref: dialogRef, ...dialog } = useModalDialog();
-  const found = useAsync(() => api.dbImportCandidates(projectId), [projectId]);
+  const found = useQuery(["ImportConnectionDialog.found", projectId], () => api.dbImportCandidates(projectId), { keepPrevious: true });
   const [picks, setPicks] = useState<Record<string, ImportChoice>>({});
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
@@ -78,7 +78,7 @@ export function ImportConnectionDialog({
         <h2 className="app-dialog-title">プロジェクトから取り込む</h2>
         <p className="muted small">.env の DATABASE_URL など・docker compose の DB のサービス・Prisma の設定・SQLite のファイルから見つけた接続です。パスワードはそのまま取り込みます（画面には出しません）。</p>
         {found.loading && <p className="muted small">探しています…</p>}
-        <ErrorText message={found.error} />
+        <ErrorText message={errorText(found.error)} />
         {found.data && list.length === 0 && <p className="db-import-empty small">見つかりませんでした。「接続を追加」から登録してください。</p>}
         <div className="db-import-list">
           {list.map((c) => (
