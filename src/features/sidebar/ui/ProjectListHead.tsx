@@ -160,7 +160,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
               tabIndex={hidden.includes(view.id) ? -1 : undefined}
               {...drag.itemProps(view.id)}
               className={cx(
-                "sidebar-view-tab",
+                "sidebar-view-tab view-tab",
                 views.active?.id === view.id && "active",
                 !views.active && views.selected?.id === view.id && "modified",
                 hidden.includes(view.id) && "overflowed",

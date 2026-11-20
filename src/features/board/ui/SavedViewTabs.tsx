@@ -59,7 +59,7 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
             role="tab"
             aria-selected={saved.active?.id === view.id}
             {...drag.itemProps(view.id)}
-            className={cx("board-view-tab", saved.active?.id === view.id && "active")}
+            className={cx("board-view-tab view-tab", saved.active?.id === view.id && "active")}
             title="押すとこのビューの表示にする（ダブルクリック・Enter で名前の変更。ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
             onClick={() => saved.apply(view.state)}
             onContextMenu={(e) => menu.open(e, view)}

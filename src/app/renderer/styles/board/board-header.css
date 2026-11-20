@@ -177,7 +177,11 @@
   padding: 0 0 6px;
 }
 
-.board-view-tab,
+/* ビューのタブの形は ui/types/view-tab.css */
+.board-view-tab {
+  --view-tab-pad: 0 10px;
+}
+
 .board-view-add {
   display: inline-flex;
   align-items: center;
@@ -193,7 +197,6 @@
   cursor: pointer;
 }
 
-.board-view-tab:hover,
 .board-view-add:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text);
@@ -211,27 +214,6 @@
   color: var(--muted);
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.board-view-tab.active {
-  border-color: var(--border-strong);
-  background: var(--bg-elev);
-  color: var(--text);
-  font-weight: 600;
-}
-
-/* ビューのタブの並べ替え（ドラッグ。useReorder）: 落とす先のタブの前か後ろの 2px の隙間に縦の線（ui/state.css）、動かしているタブは薄く */
-.board-view-tab {
-  --drop-offset: -3px;
-  --drop-inset: 0;
-  --drop-radius: 1px;
-  --drop-glow: none;
-  --drop-anim: none;
-  --drop-z: auto;
-}
-
-.board-view-tab[data-drop] {
-  position: relative;
 }
 
 .board-view-add {

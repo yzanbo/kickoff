@@ -21,6 +21,7 @@
 @import "./ui/types/empty.css" layer(ui);
 @import "./ui/types/count.css" layer(ui);
 @import "./ui/types/state-colors.css" layer(ui);
+@import "./ui/types/view-tab.css" layer(ui);
 @import "./ui/popover.css" layer(ui);
 @import "./ui/progressive.css" layer(ui);
 @import "./ui/status.css" layer(ui);
