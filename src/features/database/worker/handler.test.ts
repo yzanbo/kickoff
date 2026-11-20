@@ -8,7 +8,9 @@ import type { DbTarget, WorkerRequest } from "@shared/database/workerProtocol";
 import { macosShell } from "@/foundation/core/platform/macos/shell";
 import { createWorkerHandler } from "./handler";
 import { setShellPlatform } from "./shell";
-import "@/foundation/core/testing/quietShell";
+import { quietShell } from "@/foundation/core/testing/quietShell";
+
+quietShell();
 
 // 準備のコマンドはこの Mac のシェルで流す（ワーカーの入口が決めるものを、テストでも決める）
 setShellPlatform(macosShell);

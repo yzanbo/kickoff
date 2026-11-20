@@ -13,7 +13,9 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { until } from "@/app/core/testing/testCore";
 import { appDataDir } from "@/foundation/core/system/appEnv";
-import "@/foundation/core/testing/quietShell";
+import { quietShell } from "@/foundation/core/testing/quietShell";
+
+quietShell();
 
 /** プロジェクトのフォルダに SQLite のファイルを作る（users と、users を指す posts） */
 function makeSqlite(dir: string, name = "app.db") {
@@ -35,10 +37,8 @@ const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBo
   name: "ローカルの DB",
   engine: "sqlite",
   environment: "local",
-  host: null,
-  port: null,
-  database: null,
-  username: null,
+  // つなぎ先は SQLite のファイルだけ
+  host: null, port: null, database: null, username: null,
   file_path: "app.db",
   ssl: null,
   read_only: false,

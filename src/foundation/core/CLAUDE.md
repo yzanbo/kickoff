@@ -32,7 +32,6 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `chats.active_at`（一覧の並び順）を進めるのは `status` を変える更新だけ（未読・固定・並び・名前・アーカイブ・移動・復旧では進めない）。
 - ゴミ箱にあるチャットは `store.chats` の読み取り（`get`・一覧・子孫・検索・フィードなど）から外す。読み取りを足したらゴミ箱のものを外す。会話記録を残すか（`sessionInUse`）はゴミ箱のものも数える。
 - 設定は `k.settings.get` が既定とまぜる（知らないキーは捨てる）。`update` は送ったキーだけ変え、中は丸ごと替える（`provider_chat_defaults` は AI ごと）。
-- 秘密の値は `secrets` の表に置き、設定・SSE・応答には保存したかだけを出す。
 - `meta` の `database_id` は DB を作ったときの ID（画面が ID 入りの保存を捨てる目印・スマホが本体を見分ける目印）。メインは SQL を流さない（DB の様子は chat の `stats()`）。
 
 ## HTTP（`http/`）
@@ -72,4 +71,4 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - API のルートを変えたら、その機能の `core/routes/server.<領域>.test.ts` に足す（認証・SSE・配信は `@/app/core/server.test.ts`、端末は `server.devices.test.ts`）。
 - 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup()`（偽物は `testEnv.ts`）、`Runner` は `testCore.ts` の `setupCore` と `ScriptedProvider`（`@/features/ai/core/testing/fakeProvider.ts`）。前回のデータは `beforeStart`。
 - 条件は `testing/until.ts` の `until(cond)` で待つ（2 秒。遅れうるものは `until(cond, ms)`）。決め打ちの時間で待ってから比べない。時計は `testing/manualClock.ts`。
-- ログインシェルを流すテストは `testing/quietShell.ts` を読み込む。一時フォルダは `testing/tempDir.ts`、Git は `testing/gitRepo.ts`、データは `@shared/foundation/testing/factories`。
+- ログインシェルを流すテストは頭で `quietShell()`（`testing/quietShell.ts`）を呼ぶ。一時フォルダは `testing/tempDir.ts`、Git は `testing/gitRepo.ts`、データは `@shared/foundation/testing/factories`。

@@ -9,7 +9,9 @@ import { until } from "@/app/core/testing/testCore";
 import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client";
 import { devWorkerEntry } from "./entry";
 import type { DbTarget } from "@shared/database/workerProtocol";
-import "@/foundation/core/testing/quietShell";
+import { quietShell } from "@/foundation/core/testing/quietShell";
+
+quietShell();
 
 function sqliteTarget(readOnly = false): DbTarget {
   const file = path.join(tempDir(), "t.db");

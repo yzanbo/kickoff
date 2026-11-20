@@ -50,19 +50,21 @@ test("HEAD の見張り: 本体・ワークツリーのブランチ切り替え�
   const events: BusEvent[] = [];
   ctx.bus.subscribe((e) => events.push(e));
   const changed = () => events.filter((e) => e.type === "worktrees_changed" && e.project_id === ctx.project.id).length;
+  // OS のフォルダの見張りの知らせは、負荷が高いと 2 秒を超えて遅れる（2.8 秒かかって落ちた）ので長く待つ
+  const changedSince = (before: number) => until(() => changed() > before, 10_000);
   await list(ctx);
   git("switch", "-q", "-c", "other");
-  await until(() => changed() > 0);
+  await changedSince(0);
   let before = changed();
   git("worktree", "add", "-q", "-b", "feat/w", wt);
-  await until(() => changed() > before);
+  await changedSince(before);
   assert.equal((await list(ctx)).find((w) => w.path === wt)?.branch, "feat/w");
   before = changed();
   gitIn(wt)("switch", "-q", "-c", "feat/w2");
-  await until(() => changed() > before);
+  await changedSince(before);
   assert.equal((await list(ctx)).find((w) => w.path === wt)?.branch, "feat/w2");
   before = changed();
   git("worktree", "remove", wt);
-  await until(() => changed() > before);
+  await changedSince(before);
   assert.equal((await list(ctx)).some((w) => w.path === wt), false);
 });

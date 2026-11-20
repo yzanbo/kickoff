@@ -143,12 +143,13 @@ test("ノート: Kickoff の外（Finder・ほかのアプリ）での変更も�
   const noteEvents = () => events.filter((e): e is Extract<BusEvent, { type: "notes" }> => e.type === "notes" && e.project_id === project.id);
   fs.writeFileSync(path.join(list.dir, ".隠し.md"), "x");
   // 作ったときの変更の知らせが遅れて届くと、外からの変更とまとめて「どれか分からない」（path null）や作ったファイルの知らせになる。
-  // そのときは書き直して、もう一度待つ（決め打ちで待ってから見ると、負荷が高いときに遅れた知らせが待つ長さを超えて混ざった）
+  // そのときは書き直して、もう一度待つ（決め打ちで待ってから見ると、負荷が高いときに遅れた知らせが待つ長さを超えて混ざった）。
+  // 見張り始めた直後の変更は OS が知らせないことがあるので、待ちきれなくても書き直す（前は 1 回目で失敗にしていた）
   const seen = () => noteEvents().some((e) => e.path === "外から.md");
   for (let i = 0; i < 5 && !seen(); i++) {
     const before = noteEvents().length;
     fs.writeFileSync(path.join(list.dir, "外から.md"), `# 外から ${i}\n`);
-    await until(() => noteEvents().length > before, 10_000);
+    await until(() => noteEvents().length > before, 5000).catch(() => undefined);
   }
   assert.ok(seen());
   assert.ok(!events.some((e) => e.type === "notes" && e.path === ".隠し.md"));
