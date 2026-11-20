@@ -1,9 +1,8 @@
 // kickoff_chat の利用者に知らせるツール（notify_user）。中身は core/chat/aiNotify.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { AI_NOTIFY_MESSAGE_MAX, AI_NOTIFY_PER_TURN } from "@shared/notifications/tools";
 import type { AiNotifyTools } from "./aiNotify";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 利用者に知らせるツールの使い方（MCP の instructions として AI に渡す） */
 export const NOTIFY_INSTRUCTIONS = [
@@ -12,13 +11,14 @@ export const NOTIFY_INSTRUCTIONS = [
 ];
 
 /** 利用者に知らせるツール（聞かずに送る） */
-export function notifyTools(notify: AiNotifyTools) {
+export function notifyTools(notify: AiNotifyTools): AiToolDef[] {
   return [
-    tool(
-      "notify_user",
-      `利用者に短い知らせを送る（長い作業の途中の区切り・あとで見てほしい判断。${AI_NOTIFY_MESSAGE_MAX} 文字まで・1 回の作業で ${AI_NOTIFY_PER_TURN} 回まで）`,
-      { message: z.string().min(1).max(500).describe(`知らせる短い文（${AI_NOTIFY_MESSAGE_MAX} 文字まで）`) },
-      run((args) => notify.notify(args)),
-    ),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "notify_user",
+      description: `利用者に短い知らせを送る（長い作業の途中の区切り・あとで見てほしい判断。${AI_NOTIFY_MESSAGE_MAX} 文字まで・1 回の作業で ${AI_NOTIFY_PER_TURN} 回まで）`,
+      input: { message: z.string().min(1).max(500).describe(`知らせる短い文（${AI_NOTIFY_MESSAGE_MAX} 文字まで）`) },
+      run: (args) => notify.notify(args),
+    }),
   ];
 }

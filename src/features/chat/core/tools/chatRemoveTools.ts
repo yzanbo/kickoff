@@ -1,8 +1,7 @@
 // kickoff_chat のチャットをアーカイブする・消すツール（archive_chat・delete_chat）。中身は core/chat/aiChatRemove.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import type { AiChatRemoveTools } from "./aiChatRemove";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** チャットをアーカイブする・消すツールの使い方（MCP の instructions として AI に渡す） */
 export const REMOVE_INSTRUCTIONS = [
@@ -12,20 +11,22 @@ export const REMOVE_INSTRUCTIONS = [
 ];
 
 /** チャットをアーカイブする・消すツール（カードなし） */
-export function removeTools(remove: AiChatRemoveTools) {
+export function removeTools(remove: AiChatRemoveTools): AiToolDef[] {
   const chatId = z.number().int().describe("アーカイブする・消すチャットの ID（必須。このチャット自身でも書く）");
   return [
-    tool(
-      "archive_chat",
-      "同じプロジェクトのチャットを子チャットごとアーカイブする（利用者が頼んだときだけ。このチャット自身なら作業の終わりに行う予約）",
-      { chat_id: chatId },
-      run(async (args) => remove.archive(args)),
-    ),
-    tool(
-      "delete_chat",
-      "同じプロジェクトのチャットを子チャットごと Kickoff のゴミ箱に入れる（3 日間は戻せる。利用者が頼んだときだけ。このチャット自身なら作業の終わりに行う予約）",
-      { chat_id: chatId },
-      run(async (args) => remove.remove(args)),
-    ),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "archive_chat",
+      description: "同じプロジェクトのチャットを子チャットごとアーカイブする（利用者が頼んだときだけ。このチャット自身なら作業の終わりに行う予約）",
+      input: { chat_id: chatId },
+      run: async (args) => remove.archive(args),
+    }),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "delete_chat",
+      description: "同じプロジェクトのチャットを子チャットごと Kickoff のゴミ箱に入れる（3 日間は戻せる。利用者が頼んだときだけ。このチャット自身なら作業の終わりに行う予約）",
+      input: { chat_id: chatId },
+      run: async (args) => remove.remove(args),
+    }),
   ];
 }

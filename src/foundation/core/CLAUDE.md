@@ -57,12 +57,12 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 ## AI の操作ツール（`aiTools/`）
 
 - AI に Kickoff を操作させるツール（`kickoff_browser`・`kickoff_db`・`kickoff_chat`）は、どの CLI からもつなげるコアの 1 つの MCP サーバーで出す。
-- 定義は `aiTools/tool.ts` の `defineTool`。ここは引数の形・失敗の文・承認の聞き方だけで、中身は各機能の `core/` の `ai…`（`src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）・`@/features/database/core/aiTools.ts`・`@/features/browser/core/`。結果の形は `aiTools/chatToolResult.ts`。
-- 実行ごとに `@/features/chat/core/tools/turnTools.ts` がサーバーを作って `McpToolHost`（`aiTools/host.ts`）に登録し、終わったら（失敗でも）鍵を捨てる。
+- 定義は `aiTools/tool.ts` の `defineAiTool`（投げた失敗は理由の文の結果）で、機能が組 `AiToolGroup`（`order` の順）にまとめる。中身は各機能の `core/` の `ai…`（`src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- 実行ごとに `aiTools/registry.ts` の `AiToolRegistry` が組を開いてサーバーにし、`McpToolHost`（`aiTools/host.ts`）に登録して、終わったら（失敗でも）鍵を捨てる。
 - 口は `/mcp/<名前>`（`/api/*` の認証の外）で、実行ごとの鍵だけを受ける（違えば見分けさせずに 401）。鍵は環境変数で渡さない（AI が Bash で読めないように）。
-- `autoAllow` には、承認と断りをツールの中で行うものと読むだけのものだけを入れる（名前は `mcp__kickoff_chat__` の頭を外す）。
-- 権限モード・Auto mode によらず聞くもの（承認の要る `db_query`・「毎回聞く」の `create_chat`）は、ツールの中で `requestApproval`。
-- 使い方とデータを信頼しないことは `instructions` で渡す。ツールを足したら `ChatTools`・`instructions`・`autoAllow`・`@/features/chat/core/tools/turnTools.test.ts` も直す。
+- `autoAllow` は `auto` のツール（承認と断りをツールの中で行うもの・読むだけのもの）。
+- 権限モード・Auto mode によらず聞くもの（承認の要る `db_query`・「毎回聞く」の `create_chat`）は、ツールの中で `turn.ask`。
+- 使い方とデータを信頼しないことは組の `instructions` で渡す。
 
 ## テスト
 

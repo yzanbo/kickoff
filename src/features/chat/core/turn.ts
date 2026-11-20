@@ -240,7 +240,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
       let tools: ReturnType<McpToolHost["open"]> | null = null;
       try {
-        tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
+        tools = deps.toolHost?.open(turnToolServers(params, { chat, workdir: cwd, callbacks, signal })) ?? null;
         if (handoff) {
           if (claimedHandoffEventId === handoff.eventId) {
             const current = store.chatProviderHandoffs.get(chatId);

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { setup } from "@/app/core/testing/testServer";
-import { defineTool, type ToolServer } from "@/foundation/core/aiTools/tool";
+import type { ToolServer } from "@/foundation/core/aiTools/tool";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 
 /** 文を返すだけのツールを 1 つ持つサーバー */
@@ -14,7 +14,7 @@ function echoServer(name = "kickoff_test"): ToolServer {
     name,
     instructions: "テスト用のツール",
     autoAllow: ["echo"],
-    tools: [defineTool("echo", "文をそのまま返す", { text: z.string() }, async ({ text }) => ({ content: [{ type: "text", text: `echo:${text}` }] }))],
+    tools: [{ name: "echo", description: "文をそのまま返す", shape: { text: z.string() }, handler: async ({ text }) => ({ content: [{ type: "text", text: `echo:${String(text)}` }] }) }],
   };
 }
 
@@ -96,10 +96,15 @@ test("MCP: 承認を待つツールは答えが出るまで返らない（待ち
     instructions: "",
     autoAllow: [],
     tools: [
-      defineTool("wait", "答えが出るまで待つ", {}, async () => {
-        await gate;
-        return { content: [{ type: "text", text: "done" }] };
-      }),
+      {
+        name: "wait",
+        description: "答えが出るまで待つ",
+        shape: {},
+        handler: async () => {
+          await gate;
+          return { content: [{ type: "text", text: "done" }] };
+        },
+      },
     ],
   };
   const session = mcpTools.open([server]);

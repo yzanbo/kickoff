@@ -1,9 +1,8 @@
 // kickoff_chat の図のツール（visual_guide・show_visual・update_visual）。中身は core/chat/aiVisual.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { VISUAL_CODE_MAX, VISUAL_GUIDE_TOPICS, VISUAL_KINDS, VISUAL_TITLE_MAX } from "@shared/visuals/aiVisual";
 import type { AiVisualTools } from "./aiVisual";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 図のツールの使い方（MCP の instructions として AI に渡す） */
 export const VISUAL_INSTRUCTIONS = [
@@ -14,27 +13,30 @@ export const VISUAL_INSTRUCTIONS = [
 ];
 
 /** 図のツール（聞かずに使う） */
-export function visualTools(visual: AiVisualTools) {
+export function visualTools(visual: AiVisualTools): AiToolDef[] {
   const title = z.string().max(VISUAL_TITLE_MAX).optional().describe("図の題名（枠の上に出す。短く）");
   const code = z.string().min(1).max(VISUAL_CODE_MAX).describe("図の中身の全体（SVG は <svg …>、HTML は <style>・<script> を含むページか断片、Mermaid は図の文）");
   return [
-    tool(
-      "visual_guide",
-      "図の書き方の説明（テーマの色の変数・高さ・使える CDN・種類ごとの書き方）を読む。このチャットで初めて図を描く前に読む",
-      { topics: z.array(z.enum(VISUAL_GUIDE_TOPICS)).optional().describe("読む種類（diagram = 構造の図 / chart = グラフ / mockup = 画面のラフ / interactive = 動く部品 / math = 数式）。省くと全部") },
-      run((args) => visual.guide(args.topics ?? [])),
-    ),
-    tool(
-      "show_visual",
-      "返答の中（呼んだ位置）に図を描く（SVG・HTML・Mermaid）。返った visual_id で描き直せる",
-      { kind: z.enum(VISUAL_KINDS).describe("svg / html / mermaid"), code, title },
-      run((args) => visual.show(args)),
-    ),
-    tool(
-      "update_visual",
-      "このチャットで前に描いた図を、元の位置で描き直す（中身の全体を渡す）",
-      { visual_id: z.string().describe("show_visual が返した visual_id"), code, title },
-      run((args) => visual.update(args)),
-    ),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "visual_guide",
+      description: "図の書き方の説明（テーマの色の変数・高さ・使える CDN・種類ごとの書き方）を読む。このチャットで初めて図を描く前に読む",
+      input: { topics: z.array(z.enum(VISUAL_GUIDE_TOPICS)).optional().describe("読む種類（diagram = 構造の図 / chart = グラフ / mockup = 画面のラフ / interactive = 動く部品 / math = 数式）。省くと全部") },
+      run: (args) => visual.guide(args.topics ?? []),
+    }),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "show_visual",
+      description: "返答の中（呼んだ位置）に図を描く（SVG・HTML・Mermaid）。返った visual_id で描き直せる",
+      input: { kind: z.enum(VISUAL_KINDS).describe("svg / html / mermaid"), code, title },
+      run: (args) => visual.show(args),
+    }),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "update_visual",
+      description: "このチャットで前に描いた図を、元の位置で描き直す（中身の全体を渡す）",
+      input: { visual_id: z.string().describe("show_visual が返した visual_id"), code, title },
+      run: (args) => visual.update(args),
+    }),
   ];
 }

@@ -1,7 +1,6 @@
 // kickoff_chat の利用者が見ているものを読むツール（get_user_view）。中身は core/chat/aiUserView.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import type { AiUserViewTools } from "./aiUserView";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 利用者が見ているものを読むツールの使い方（MCP の instructions として AI に渡す） */
 export const USER_VIEW_INSTRUCTIONS = [
@@ -10,6 +9,6 @@ export const USER_VIEW_INSTRUCTIONS = [
 ];
 
 /** 利用者が見ているものを読むツール（聞かずに返す） */
-export function userViewTools(userView: AiUserViewTools) {
-  return [tool("get_user_view", "利用者がいま Kickoff の画面で見ているもの（ペインごとの前のタブ・選んでいる範囲など）と、最後の発言を送ったときの様子を読む", {}, run(() => userView.read()))];
+export function userViewTools(userView: AiUserViewTools): AiToolDef[] {
+  return [defineAiTool({ server: "kickoff_chat", name: "get_user_view", description: "利用者がいま Kickoff の画面で見ているもの（ペインごとの前のタブ・選んでいる範囲など）と、最後の発言を送ったときの様子を読む", input: {}, run: () => userView.read() })];
 }

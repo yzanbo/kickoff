@@ -1,9 +1,8 @@
 // kickoff_chat の読むだけのツール（list_project_chats・read_chat・get_usage）。中身は core/chat/aiChatRead.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS } from "@shared/chat/aiRead";
 import type { AiChatReadTools } from "./aiChatRead";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 読むだけのツールの使い方（MCP の instructions として AI に渡す） */
 export const READ_INSTRUCTIONS = [
@@ -16,31 +15,22 @@ export const READ_INSTRUCTIONS = [
 ];
 
 /** 読むだけのツール（聞かずに返す） */
-export function readTools(read: AiChatReadTools) {
+export function readTools(read: AiChatReadTools): AiToolDef[] {
   return [
-    tool(
-      "list_project_chats",
-      "このプロジェクトのチャットの一覧（ID・名前・状態・未読・関係・最後に動いた時刻）",
-      {},
-      run(() => read.listProjectChats()),
-    ),
-    tool(
-      "read_chat",
-      "同じプロジェクトのチャットの会話を、最後から数回分読む（自分の発言と AI の答えの文だけ）",
-      {
+    defineAiTool({ server: "kickoff_chat", name: "list_project_chats", description: "このプロジェクトのチャットの一覧（ID・名前・状態・未読・関係・最後に動いた時刻）", input: {}, run: () => read.listProjectChats() }),
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "read_chat",
+      description: "同じプロジェクトのチャットの会話を、最後から数回分読む（自分の発言と AI の答えの文だけ）",
+      input: {
         chat_id: z.number().int().describe("読むチャットの ID（list_project_chats で確かめる）"),
         turns: z.number().int().min(1).max(READ_CHAT_MAX_TURNS).optional().describe(`読むやり取りの数（省くと ${READ_CHAT_DEFAULT_TURNS}）`),
         before: z.number().int().min(1).optional().describe("この番号のやり取りより前を読む（返した文の「前を読むには before: n」）。省くと最後から"),
         event_id: z.number().int().min(1).optional().describe("特定の発言を分割して読むときの記録 ID。turns・before と併用しない"),
         offset: z.number().int().min(0).optional().describe("event_id の発言の読み始めの文字位置。前回の next_offset を指定"),
       },
-      run((args) => read.readChatWithAttachments(args)),
-    ),
-    tool(
-      "get_usage",
-      "Claude のプランの使用枠（5 時間・週）の使った割合とリセットの時刻",
-      {},
-      run(() => read.usage()),
-    ),
+      run: (args) => read.readChatWithAttachments(args),
+    }),
+    defineAiTool({ server: "kickoff_chat", name: "get_usage", description: "Claude のプランの使用枠（5 時間・週）の使った割合とリセットの時刻", input: {}, run: () => read.usage() }),
   ];
 }

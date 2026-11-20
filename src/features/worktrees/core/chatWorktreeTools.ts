@@ -1,8 +1,7 @@
 // kickoff_chat のワークツリーを片付けるツール（finish_worktree）。中身は core/worktrees/finish.ts、ここは引数の形と使い方だけ
-import { defineTool as tool } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import type { AiWorktreeTools } from "./aiWorktree";
-import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** ワークツリーを片付けるツールの使い方（MCP の instructions として AI に渡す） */
 export const WORKTREE_INSTRUCTIONS = [
@@ -14,15 +13,16 @@ export const WORKTREE_INSTRUCTIONS = [
 ];
 
 /** ワークツリーを片付けるツール（カードなし） */
-export function worktreeTools(worktree: AiWorktreeTools) {
+export function worktreeTools(worktree: AiWorktreeTools): AiToolDef[] {
   return [
-    tool(
-      "finish_worktree",
-      "ワークツリーを片付ける（利用者が頼んだときだけ。失うものは控えに入れ、3 日間はゴミ箱から戻せる。自分のワークツリーなら作業の終わりに消す予約）",
-      {
+    defineAiTool({
+      server: "kickoff_chat",
+      name: "finish_worktree",
+      description: "ワークツリーを片付ける（利用者が頼んだときだけ。失うものは控えに入れ、3 日間はゴミ箱から戻せる。自分のワークツリーなら作業の終わりに消す予約）",
+      input: {
         worktree: z.string().min(1).optional().describe("消すワークツリー（ブランチの名前かフォルダ）。ワークツリー自身のチャットからは省く（自分のワークツリー）"),
       },
-      run((args) => worktree.finish(args)),
-    ),
+      run: (args) => worktree.finish(args),
+    }),
   ];
 }
