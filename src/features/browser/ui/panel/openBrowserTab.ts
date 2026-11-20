@@ -10,7 +10,7 @@ import { isSidePanel, sidePanelsHandedOut } from "@/features/panel/ui/state/pane
 /** その欄にブラウザのタブを開く（チャット欄を別ウィンドウへ移していれば、そのウィンドウで） */
 export function openBrowserTab(panel: string, url: string): void {
   showSideBrowser(panel);
-  if (isSidePanel(panel) && sidePanelsHandedOut()) return postWindowMessage({ type: "sideOpenBrowser", panel, url });
+  if (isSidePanel(panel) && sidePanelsHandedOut()) return postWindowMessage("sideOpenBrowser", { panel, url });
   panelActions(panel).openBrowser(url);
 }
 

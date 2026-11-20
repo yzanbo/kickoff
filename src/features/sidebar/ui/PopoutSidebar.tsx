@@ -17,7 +17,7 @@ import { useMainWindowRoute } from "@/foundation/ui/navigation/useMainWindowRout
 export function PopoutSidebar() {
   // 開いている間、パネルの状態の写しを受け取る（メインのウィンドウは sidebarWindow を見て送る）
   useEffect(() => followMainPanels(), []);
-  const route = useMainWindowRoute((open) => postWindowMessage({ type: "sidebarWindow", open }));
+  const route = useMainWindowRoute((open) => postWindowMessage("sidebarWindow", { open }));
   const { missing } = useProjects();
   const fallbackProject = useFallbackProject();
   const routeProject = routeProjectId(route);

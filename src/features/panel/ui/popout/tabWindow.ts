@@ -4,7 +4,7 @@
 // 元の欄・ほかのウィンドウのタブの列に落とせばそこへ移る（features/panel/layout/tabTransfer.ts）。
 // 最後のタブを閉じた・移したら、ウィンドウごと閉じる。読み込み直しても同じタブを開き直す（sessionStorage はウィンドウごと）
 import { popoutKey, type PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow, subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
+import { onWindowMessage, postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/panel/ui/storage";
 import type { PopoutWindowTab } from "@/features/panel/ui/popoutWindowTab";
@@ -95,10 +95,10 @@ export function returnTabWindow(route: TabWindowRoute): void {
   if (!last) return closeSelf();
   const key = popoutKey(last);
   const timer = setTimeout(closeSelf, RETURN_WAIT_MS);
-  subscribeWindowMessages((m) => {
-    if (m.type !== "docked" || m.key !== key) return;
+  onWindowMessage("docked", (m) => {
+    if (m.key !== key) return;
     clearTimeout(timer);
     closeSelf();
   });
-  for (const r of routes) postToMainWindow({ type: "dockPopout", route: r });
+  for (const r of routes) postToMainWindow("dockPopout", { route: r });
 }

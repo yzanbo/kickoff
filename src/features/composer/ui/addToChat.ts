@@ -19,7 +19,7 @@ import { chatPaneOf, setMissingFill } from "@/features/chat/ui/screen/chatScreen
 export function addToChat(chatId: number, text: string, attachments?: Attachment[]) {
   const pane = chatPaneOf(chatId);
   if (pane) return pane.fillComposer(text, { append: true, attachments });
-  if (parsePopout(location.hash)) return postToMainWindow({ type: "fillComposer", chatId, text, attachments });
+  if (parsePopout(location.hash)) return postToMainWindow("fillComposer", { chatId, text, attachments });
   addToChatDraft(chatId, text, attachments);
 }
 

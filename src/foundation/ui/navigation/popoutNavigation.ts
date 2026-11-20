@@ -8,7 +8,16 @@ import { OPEN_SETTINGS_EVENT } from "@/features/settings/ui/openSettings";
 import { open } from "./open";
 import { parsePopout, popoutPath, type PopoutRoute } from "./popout";
 import { navigate, parse } from "./router";
-import { postToMainWindow, type WindowMessage } from "./windowBus";
+import { onWindowMessage, postToMainWindow } from "./windowBus";
+
+declare module "./windowBus" {
+  interface WindowMessageMap {
+    /** メインのウィンドウでその画面（URL のハッシュ）を開く（別ウィンドウの中のリンク・サイドバーの行） */
+    navigate: { hash: string };
+    /** メインのウィンドウの App が受けるダイアログ・一覧を開く（別ウィンドウの中から開いた設定・⌘⇧A・新しいプロジェクトなど。FORWARDED_APP_EVENTS） */
+    appEvent: { name: string; detail: unknown };
+  }
+}
 
 /** 新しいチャットを始める（⌘N と同じ。App が受け取る。サイドバーの別ウィンドウの「新しいチャット」から） */
 export const START_NEW_CHAT_EVENT = "kickoff:start-new-chat";
@@ -46,9 +55,9 @@ export function usePopoutForwarding(route: PopoutRoute) {
     const next = forwardedNavigation(location.hash, e.oldURL ? new URL(e.oldURL).hash : "", route);
     if (!next) return;
     history.replaceState(null, "", next.restore);
-    postToMainWindow({ type: "navigate", hash: next.hash });
+    postToMainWindow("navigate", { hash: next.hash });
   });
-  const forward = (e: Event) => postToMainWindow({ type: "appEvent", name: e.type, detail: e instanceof CustomEvent ? (e.detail ?? null) : null });
+  const forward = (e: Event) => postToMainWindow("appEvent", { name: e.type, detail: e instanceof CustomEvent ? (e.detail ?? null) : null });
   useWindowEvent(OPEN_SETTINGS_EVENT, forward);
   useWindowEvent(OPEN_ACTIVE_CHATS_EVENT, forward);
   useWindowEvent(OPEN_NEW_PROJECT_EVENT, forward);
@@ -58,19 +67,16 @@ export function usePopoutForwarding(route: PopoutRoute) {
   useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, forward);
 }
 
-/** メインのウィンドウ: 別ウィンドウから渡された行き先・画面を開き、イベントを起こし直す（App が受け取る）。受け取った知らせなら true */
-export function handleForwarded(m: WindowMessage): boolean {
-  if (m.type === "open") {
-    open(m.target, m.options);
-    return true;
-  }
-  if (m.type === "navigate") {
-    navigate(parse(m.hash));
-    return true;
-  }
-  if (m.type === "appEvent") {
-    if (FORWARDED_APP_EVENTS.includes(m.name)) window.dispatchEvent(new CustomEvent(m.name, { detail: m.detail }));
-    return true;
-  }
-  return false;
+/** メインのウィンドウ: 別ウィンドウから渡された行き先・画面を開き、イベントを起こし直す（App が受け取る）。やめるときは返り値を呼ぶ */
+export function receiveForwarded(): () => void {
+  const offs = [
+    onWindowMessage("open", (m) => void open(m.target, m.options)),
+    onWindowMessage("navigate", (m) => navigate(parse(m.hash))),
+    onWindowMessage("appEvent", (m) => {
+      if (FORWARDED_APP_EVENTS.includes(m.name)) window.dispatchEvent(new CustomEvent(m.name, { detail: m.detail }));
+    }),
+  ];
+  return () => {
+    for (const off of offs) off();
+  };
 }

@@ -2,6 +2,7 @@
 import { storage } from "./storage";
 
 export type { TerminalTarget } from "./tabs/panelTypes";
+export type { SplitDir } from "./layout/paneTree";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const panelSettings = {

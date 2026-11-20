@@ -3,6 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
+import { open } from "@/foundation/ui/navigation/open";
 import { addChat } from "@/features/chat/ui/store/knownChats";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
@@ -11,7 +12,8 @@ import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 /** チャットを開く（別ウィンドウの中なら、メインのウィンドウに頼む） */
 function openDbChat(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {
   if (parsePopout(location.hash) === undefined) return openChatOrChild(chat);
-  postToMainWindow(chat.parent_chat_id !== null ? { type: "openChild", chatId: chat.id } : { type: "openChat", projectId: chat.project_id, chatId: chat.id });
+  if (chat.parent_chat_id !== null) postToMainWindow("openChild", { chatId: chat.id });
+  else open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }, { surface: "page" });
 }
 
 /** 新しいチャットに text を送って作り、そのチャットを開く */

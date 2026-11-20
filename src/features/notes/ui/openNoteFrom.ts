@@ -29,7 +29,7 @@ export function openNoteFromChat({
   // place を渡すと設定によらずその場所に（入力欄の上のノートの一覧の行のボタン）
   if ((place ?? readSetting(NOTE_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "note", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — ノート`);
   if (chatId === null && draftSide !== null) return panelActions(panelKey("agents", draftSide)).openNote({ chatId: null, projectId, path });
-  if (parsePopout(location.hash)) return postToMainWindow({ type: "openNote", projectId, path, chatId });
+  if (parsePopout(location.hash)) return postToMainWindow("openNote", { projectId, path, chatId });
   // ノートのチャット（ノートのタブの中で開いたもの）からは、ノートのタブで開く（ノートのチャットは右の欄を持たない）
   const from = chatId !== null && !knownChat(chatId)?.note_path ? chatId : null;
   if (from !== null && openInRootSide(from, (rootId, side) => side.openNote({ chatId: rootId, projectId, path }))) return;
@@ -38,6 +38,6 @@ export function openNoteFromChat({
 
 /** ノートのタブでそのノートを開く（DB クライアントの手順ノートのタブの「ノートのタブで開く」。別ウィンドウの中からはメインのウィンドウに頼む） */
 export function openInNoteTab(projectId: number, path: string) {
-  if (parsePopout(location.hash)) return postToMainWindow({ type: "openNote", projectId, path, chatId: null });
+  if (parsePopout(location.hash)) return postToMainWindow("openNote", { projectId, path, chatId: null });
   openTarget({ kind: "note", projectId: projectId, path: path });
 }

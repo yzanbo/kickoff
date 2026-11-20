@@ -73,7 +73,7 @@
 ## 別ウィンドウ（`popout/`・`@/foundation/ui/navigation/popout.ts`・`@/app/renderer/PopoutApp.tsx`）
 
 - 行き先は `#/popout/<種類>`（種類の表は `@/app/renderer/popout/contributes.ts`）。`PopoutApp` は App の一部だけを描き、URL を画面として購読しない。
-- メインの画面・ダイアログを動かす操作は `@/foundation/ui/navigation/windowBus.ts` でメインに頼む（中身はウィンドウをまたげる値だけ）。
+- メインの画面・ダイアログを動かす操作は `@/foundation/ui/navigation/windowBus.ts` でメインに頼む（種類は持ち主の機能の `windowMessages.ts` が足す。中身はウィンドウをまたげる値だけ）。
 - サイドバーのウィンドウの店はメインの写し（`panelMirror.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
 - 子チャットのウィンドウの ✕ はメインプロセスが止めて聞く（`beforeunload` では止められない。`@/foundation/desktop/app/popouts.ts`）。
 

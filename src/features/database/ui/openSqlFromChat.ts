@@ -23,6 +23,6 @@ export function openSqlFromChat(chat: Pick<Chat, "id" | "project_id" | "parent_c
   if (next.active) writeSetting(storage.settings.sqlDraft(`${place}:${next.active}`), sql);
   writeSetting(dbClientTabs(place), next);
   const target = { chatId: root.id, projectId: chat.project_id, ...(chat.worktree_path ? { worktree: chat.worktree_path } : {}) };
-  if (parsePopout(location.hash) !== undefined) return postToMainWindow({ type: "dockPopout", route: { kind: "database", ...target } });
+  if (parsePopout(location.hash) !== undefined) return postToMainWindow("dockPopout", { route: { kind: "database", ...target } });
   openInRootSide(chat.id, (_rootId, side) => side.openDatabase(target));
 }

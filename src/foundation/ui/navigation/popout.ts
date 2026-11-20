@@ -28,6 +28,17 @@ export interface PopoutKind<K extends PopoutKindId = PopoutKindId> {
   /** 同じウィンドウかを見るときに外す項目（変更の移るファイルなど） */
   keyIgnores?: readonly (keyof PopoutParamsMap[K] & string)[];
 }
+declare module "./windowBus" {
+  interface WindowMessageMap {
+    /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄（チャット欄・パネルのタブは元の欄）で開き直す（「右の欄に戻す」。開き直したら docked） */
+    dockPopout: { route: PopoutRoute };
+    /** dockPopout で開き直し終えた（key は popoutKey。別ウィンドウはこれを待ってから閉じる。ターミナルの持ち主をメインのウィンドウに移してから閉じるため） */
+    docked: { key: string };
+    /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
+    popoutFocus: { key: string; focus: string };
+  }
+}
+
 /** 別ウィンドウの種類（key は kind。表は app/renderer/popout/contributes.ts が出す） */
 export const popoutKinds = definePoint<{ [K in PopoutKindId]: PopoutKind<K> }[PopoutKindId]>("popoutKinds", { key: (k) => k.kind });
 
@@ -145,6 +156,6 @@ export function popoutKey(route: PopoutRoute): string {
  */
 export function openPopout(route: PopoutRoute, title: string, at: { x: number; y: number } | null = null) {
   void window.kickoff?.windows.openPopout(popoutPath(route), title, at).then(() => {
-    if (route.kind === "changes" && route.focus) postWindowMessage({ type: "popoutFocus", key: popoutKey(route), focus: route.focus });
+    if (route.kind === "changes" && route.focus) postWindowMessage("popoutFocus", { key: popoutKey(route), focus: route.focus });
   });
 }

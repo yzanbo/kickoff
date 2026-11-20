@@ -52,10 +52,9 @@ import { AllProjectsPage } from "@/features/board/ui/AllProjectsPage";
 import { ProjectPage } from "@/features/projects/ui/page/ProjectPage";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
-import { handleMainWindowMessage } from "./mainWindowMessages";
+import { receiveMainWindowMessages } from "./mainWindowMessages";
 import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "@/foundation/ui/navigation/popoutNavigation";
 import { usePopoutHosts } from "./popoutHosts";
-import { subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
 import { boardTabOf, useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 import { useNavigationHistory } from "@/foundation/ui/navigation/useNavigationHistory";
 import { NavigationButtons } from "@/foundation/ui/navigation/NavigationButtons";
@@ -176,7 +175,7 @@ export function App() {
   useWindowEvent(START_NEW_CHAT_EVENT, startNewChat);
   useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, () => setPalette(true));
   // 別ウィンドウからの「ファイルタブで開く」・ノート・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
-  useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
+  useEffect(() => receiveMainWindowMessages(), []);
 
   return (
     <RouteContext.Provider value={route}>

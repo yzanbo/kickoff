@@ -29,7 +29,7 @@ export function handSidePanelsOut(holding: boolean): void {
   handedOut = true;
   setPanelOwnership((key) => !isSidePanel(key));
   const taken = takePanels(isSidePanel);
-  if (!holding) postWindowMessage({ type: "sidePanels", panels: taken });
+  if (!holding) postWindowMessage("sidePanels", { panels: taken });
 }
 
 /** メインのウィンドウ: 別ウィンドウが閉じた（戻さずに）。チャット欄をまたこのウィンドウで持つ */

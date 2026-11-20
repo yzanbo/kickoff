@@ -40,7 +40,7 @@ function TabWindowPanel({ route }: { route: TabWindowRoute }) {
     newChat: undefined,
     terminals: NO_TERMINALS,
     // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
-    onCreated: (chat) => postWindowMessage({ type: "tabMovedOut", panel: panelKey("board", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
+    onCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("board", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
   });
   return <Panel panel={panel} />;
 }
@@ -59,7 +59,7 @@ export function PopoutTerminal({ route }: { route: TerminalRoute }) {
           visible
           focused
           // ⌘ を押しながら押した URL は、そのプロジェクトの右サイドバー（チャット欄）のブラウザのタブで開く（メインのウィンドウに頼む）
-          onOpenUrl={(url) => postToMainWindow({ type: "panelOp", op: { op: "openBrowser", panel: panelKey("side", route.projectId), url } })}
+          onOpenUrl={(url) => postToMainWindow("panelOp", { op: "openBrowser", panel: panelKey("side", route.projectId), url })}
           projectId={route.projectId}
         />
       </Suspense>

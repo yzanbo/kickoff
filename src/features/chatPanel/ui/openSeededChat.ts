@@ -42,7 +42,7 @@ export async function chooseWorkplace(projectId: number, branch: string): Promis
  */
 export function openSeededChat(projectId: number, place: Workplace, seed: { text: string; attachments?: Attachment[]; link?: GitHubLink | null }) {
   if (parsePopout(location.hash)) {
-    postToMainWindow({ type: "openSeededChat", projectId, place, text: seed.text, attachments: seed.attachments ?? [], link: seed.link ?? null });
+    postToMainWindow("openSeededChat", { projectId, place, text: seed.text, attachments: seed.attachments ?? [], link: seed.link ?? null });
     return;
   }
   const panel = panelKey("board", projectId);

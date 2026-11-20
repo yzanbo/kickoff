@@ -2,7 +2,7 @@
 // タブの列に落とすと戻り、元の欄のタブを別ウィンドウのタブの列に落とすとそこへ移る。webview はウィンドウをまたげないので、ブラウザは移した先でいまのページを開き直す。
 // 落とした側がタブを開き、元の欄（ほかのウィンドウなら知らせ tabMovedOut で）は後始末なしで閉じる（チャットはサイドバーとの連動で足し直されないよう、表示だけ消したことにする）
 import { useEffect } from "react";
-import { postWindowMessage, subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
+import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelStateOf, subscribePanels } from "@/features/panel/ui/state/panelStore";
 import type { PanelKind } from "@/features/panel/ui/surfaces";
@@ -77,7 +77,7 @@ export function takeMovingTab(panel: string, moving: MovingTab): string {
   const { tab } = moving;
   panelActions(panel).openPanelTab(tab);
   if (moving.panel !== panel && panelStateOf(moving.panel).tabs.some((t) => t.key === tab.key)) closeMoved(moving.panel, tab.key, tab.kind);
-  else postWindowMessage({ type: "tabMovedOut", panel: moving.panel, key: tab.key, kind: tab.kind });
+  else postWindowMessage("tabMovedOut", { panel: moving.panel, key: tab.key, kind: tab.kind });
   return tab.key;
 }
 
@@ -93,8 +93,8 @@ export function useMovedOutTabs(panel: string): void {
       closeMoved(panel, key, kind);
       return true;
     };
-    const offMessages = subscribeWindowMessages((m) => {
-      if (m.type !== "tabMovedOut" || m.panel !== panel) return;
+    const offMessages = onWindowMessage("tabMovedOut", (m) => {
+      if (m.panel !== panel) return;
       if (!closeIfPresent(m.key, m.kind)) waiting.set(m.key, m.kind);
     });
     const offPanels = subscribePanels(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { popoutKey } from "@/foundation/ui/navigation/popout";
 import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router";
-import { postToMainWindow, postWindowMessage, subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
+import { onWindowMessage, postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { adoptSidePanels, isSidePanel, ownSidePanelsOnly } from "@/features/panel/ui/state/panelHandOff";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
@@ -31,13 +31,13 @@ export function returnSideWindow(open: boolean) {
   const panels = [...allPanels()].filter(([key]) => isSidePanel(key));
   const key = popoutKey({ kind: "side" });
   const timer = setTimeout(closeSelf, RETURN_WAIT_MS);
-  subscribeWindowMessages((m) => {
-    if (m.type !== "docked" || m.key !== key) return;
+  onWindowMessage("docked", (m) => {
+    if (m.key !== key) return;
     clearTimeout(timer);
     closeSelf();
   });
   holding = false;
-  (open ? postToMainWindow : postWindowMessage)({ type: "returnSidePanels", panels, open });
+  (open ? postToMainWindow : postWindowMessage)("returnSidePanels", { panels, open });
 }
 
 /**
@@ -53,11 +53,13 @@ export function PopoutSideChat() {
     ownSidePanelsOnly();
     // 届かなければ、空のまま描く（あとから届いたら受け取る）
     const timer = setTimeout(() => setReady(true), ADOPT_WAIT_MS);
-    const off = subscribeWindowMessages((m) => {
-      // メインのウィンドウから頼まれたブラウザのタブ（このウィンドウがチャット欄を持っている間）
-      if (m.type === "sideOpenBrowser" && isSidePanel(m.panel)) return void panelActions(m.panel).openBrowser(m.url);
+    // メインのウィンドウから頼まれたブラウザのタブ（このウィンドウがチャット欄を持っている間）
+    const offBrowser = onWindowMessage("sideOpenBrowser", (m) => {
+      if (isSidePanel(m.panel)) panelActions(m.panel).openBrowser(m.url);
+    });
+    const offPanels = onWindowMessage("sidePanels", (m) => {
       // 受け取るのは 1 回だけ（同じ知らせが重ねて届いても、受け取ったあとのタブを消さない）
-      if (m.type !== "sidePanels" || holding) return;
+      if (holding) return;
       clearTimeout(timer);
       holding = true;
       adoptSidePanels(m.panels);
@@ -65,10 +67,11 @@ export function PopoutSideChat() {
     });
     return () => {
       clearTimeout(timer);
-      off();
+      offBrowser();
+      offPanels();
     };
   }, []);
-  const route = useMainWindowRoute((open) => postWindowMessage({ type: "sideWindow", open, holding }));
+  const route = useMainWindowRoute((open) => postWindowMessage("sideWindow", { open, holding }));
   // ✕・⌘W（メインプロセスが閉じるのを止めて知らせる）: チャット欄をメインのウィンドウに戻してから閉じる
   const onCloseRequested = useEffectEvent(() => returnSideWindow(false));
   useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);

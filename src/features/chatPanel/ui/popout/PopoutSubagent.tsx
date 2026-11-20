@@ -41,7 +41,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
       const entry = viewRef.current.subagentsView?.tree.byKey.get(key);
       openPopout({ kind: "subagent", chatId: chat.id, agentKey: key }, `${entry?.description ?? "サブエージェント"} — サブエージェント`);
     };
-    const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow({ type: "reveal", chatId: chat.id, eventId, agent });
+    const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow("reveal", { chatId: chat.id, eventId, agent });
     return {
       ...base,
       openSubagentSide: (key) => openScreen(key),
@@ -49,8 +49,8 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
       openSubagent: (key) => openScreen(key),
       revealSubagent: (key, inside) => reveal(inside, key),
       revealInConversation: reveal,
-      focusActivity: (key) => postToMainWindow({ type: "showActivity", chatId: chat.id, agent: key }),
-      fillComposer: (text) => postToMainWindow({ type: "fillComposer", chatId: chat.id, text }),
+      focusActivity: (key) => postToMainWindow("showActivity", { chatId: chat.id, agent: key }),
+      fillComposer: (text) => postToMainWindow("fillComposer", { chatId: chat.id, text }),
     };
     // チャットの画面の操作はチャットごとに 1 回だけ作る（shell.pane と同じ）
   }, [shell.pane, chat.id, viewRef]);

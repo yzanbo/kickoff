@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
-import type { WindowMessage } from "@/foundation/ui/navigation/windowBus";
+import type { WindowMessageMap } from "@/foundation/ui/navigation/windowBus";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { panelActions } from "./panelActions";
@@ -25,7 +25,7 @@ function becomeReplica() {
 test("メインのウィンドウ: いまのパネルの写しを送り、変わったらまとめて送り直す", () => {
   vi.useFakeTimers();
   onTestFinished(() => void vi.useRealTimers());
-  const sent: WindowMessage[] = [];
+  const sent: WindowMessageMap["mainPanels"][] = [];
   const stop = sendPanelsWhileChanging((m) => sent.push(m));
   onTestFinished(stop);
   assert.equal(sent.length, 1);
@@ -38,7 +38,6 @@ test("メインのウィンドウ: いまのパネルの写しを送り、変わ
   vi.advanceTimersByTime(100);
   assert.equal(sent.length, 2);
   const last = sent[1];
-  assert.ok(last.type === "mainPanels");
   assert.equal(last.panels.find(([k]) => k === key)?.[1].tabs.length, 1);
   // やめたら送らない
   stop();

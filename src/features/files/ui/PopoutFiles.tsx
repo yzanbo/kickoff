@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { openPopout, popoutKey, type PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow, subscribeWindowMessages } from "@/foundation/ui/navigation/windowBus";
+import { onWindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { SideChanges } from "@/features/git/ui/SideChanges";
@@ -29,7 +30,7 @@ export function popoutFileLinks(base: ChatFileLinks, { chatId, projectId, worktr
     ...base,
     side: false,
     openChanges,
-    openInEditor: (ref) => postToMainWindow({ type: "openProjectFile", projectId, file: { ...ref, ...(worktree ? { worktree } : {}) } }),
+    openInEditor: (ref) => openTarget({ kind: "file", projectId, ...ref, ...(worktree ? { worktree } : {}) }, { surface: "page" }),
     open: (ref) => openFileRef(ref, at, { file: openFile, changes: openChanges }),
   };
 }
@@ -47,8 +48,8 @@ export function PopoutFiles({ route }: { route: FilesRoute }) {
   const [focus, setFocus] = useState({ path: route.kind === "changes" ? route.focus : undefined, at: Date.now() });
   useEffect(
     () =>
-      subscribeWindowMessages((m) => {
-        if (m.type === "popoutFocus" && m.key === popoutKey(route)) setFocus({ path: m.focus, at: Date.now() });
+      onWindowMessage("popoutFocus", (m) => {
+        if (m.key === popoutKey(route)) setFocus({ path: m.focus, at: Date.now() });
       }),
     [route],
   );

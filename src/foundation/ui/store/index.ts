@@ -2,6 +2,7 @@
 export { createCell, useCell } from "./cell";
 export type { Cell } from "./cell";
 export { createSignal } from "@shared/foundation/signal";
+export type { Signal } from "@shared/foundation/signal";
 export { createRegistry } from "./registry";
 export { createKeyedSelector, createSelector } from "./selector";
 export { reduceBy } from "./storeTypes";

@@ -1,104 +1,48 @@
-// ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）
-import type { Attachment } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
-import type { Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
-import type { SplitDir } from "@/features/panel/ui/layout/paneTree";
-import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import type { PanelState } from "@/features/panel/ui/state/panelState";
-import type { OpenOptions, OpenTarget } from "./open";
-import type { PopoutRoute } from "./popout";
-import type { FileTarget } from "./router";
+// ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）。
+// 知らせの種類と中身は、持ち主（機能の ui/windowMessages.ts・土台は使うファイル）が declare module で WindowMessageMap に足す
+import { createSignal, type Signal } from "@/foundation/ui/store";
 
-export type WindowMessage =
-  /** メインのウィンドウのそのチャットのチャット欄の後ろに足す（別ウィンドウの差分の行・返答へのコメント・ノートの添付） */
-  | { type: "fillComposer"; chatId: number; text: string; attachments?: Attachment[] }
-  /** メインのウィンドウのそのチャットの会話のその場所へ移る（agent があれば、そのサブエージェントを設定の開き方で開いてその中へ） */
-  | { type: "reveal"; chatId: number; eventId?: number; agent: string | null }
-  /** メインのウィンドウのそのチャットの「動き」を、そのサブエージェントに絞って開く */
-  | { type: "showActivity"; chatId: number; agent: string }
-  /** メインのウィンドウでファイルタブのファイルを開く */
-  | { type: "openProjectFile"; projectId: number; file: FileTarget }
-  /** メインのウィンドウでそのノートを開く（chatId があればそのチャットの右の欄、なければノートのタブ。別ウィンドウの返答から「ノートに追加」したとき） */
-  | { type: "openNote"; projectId: number; path: string; chatId: number | null }
-  /** メインのウィンドウでチャットを開く（別ウィンドウの DB クライアントの「AI に聞く」で作ったチャット・聞いたチャット） */
-  | { type: "openChat"; projectId: number; chatId: number }
-  /** メインのウィンドウのプロジェクトのチャットのパネルに、文と添付を入れた新しいチャットのタブを開く（別ウィンドウの「AI に渡す」の「新しいチャットで始める」。openSeededChat） */
-  | { type: "openSeededChat"; projectId: number; place: Workplace; text: string; attachments: Attachment[]; link: GitHubLink | null }
-  /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
-  | { type: "openChild"; chatId: number }
-  /** メインのウィンドウで、そのチャットの新しい子チャットのタブを開く（別ウィンドウの「新しい子チャットで聞く」「子チャットを作成」。openAskChild） */
-  | { type: "askChild"; parentId: number; eventId: number | null; quote: string; text?: string; attachments?: Attachment[] }
-  /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄（チャット欄・パネルのタブは元の欄）で開き直す（別ウィンドウの「右の欄に戻す」。開き直したら docked） */
-  | { type: "dockPopout"; route: PopoutRoute }
-  /** dockPopout で開き直し終えた（key は popoutKey。別ウィンドウはこれを待ってから閉じる。ターミナルの持ち主をメインのウィンドウに移してから閉じるため） */
-  | { type: "docked"; key: string }
-  /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */
-  | { type: "childToParent"; childId: number; action: "reveal" | "handBack"; text?: string }
-  /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
-  | { type: "popoutFocus"; key: string; focus: string }
-  /** メインのウィンドウでその行き先を開く（別ウィンドウで真ん中の画面・右の欄を頼まれた open。open.ts） */
-  | { type: "open"; target: OpenTarget; options: OpenOptions }
-  /** メインのウィンドウでその画面（URL のハッシュ）を開く（別ウィンドウの中のリンク・サイドバーの行。app/popoutNavigation.ts） */
-  | { type: "navigate"; hash: string }
-  /** メインのウィンドウの App が受けるダイアログ・一覧を開く（別ウィンドウの中から開いた設定・⌘⇧A・新しいプロジェクトなど。app/popoutNavigation.ts の FORWARDED_APP_EVENTS） */
-  | { type: "appEvent"; name: string; detail: unknown }
-  /** サイドバーの別ウィンドウを開いた / 閉じた（開いている間、メインのウィンドウは画面とパネルの状態を写して送る） */
-  | { type: "sidebarWindow"; open: boolean }
-  /** メインのウィンドウが起動した（読み込み直した）。サイドバーの別ウィンドウは sidebarWindow を送り直す */
-  | { type: "mainWindowReady" }
-  /** メインのウィンドウのいまの画面（サイドバーの別ウィンドウが、開いているチャット・プロジェクトを強調するのに使う） */
-  | { type: "mainRoute"; hash: string }
-  /** メインのウィンドウのパネルの状態の写し（サイドバーの別ウィンドウの下書きの行・子チャットの行の「開いている」見た目） */
-  | { type: "mainPanels"; panels: [string, PanelState][] }
-  /**
-   * チャット欄の別ウィンドウを開いた / 閉じた（開いたら、メインのウィンドウはチャット欄の状態を取り出して sidePanels で渡し、自分のチャット欄を隠す。
-   * holding: 別ウィンドウがもう状態を持っている（メインのウィンドウを読み込み直したとき。渡さずに、メインのウィンドウに戻した下書きの写しを捨てる））
-   */
-  | { type: "sideWindow"; open: boolean; holding: boolean }
-  /** メインのウィンドウから渡したチャット欄の状態（すべてのプロジェクトの分。タブの後始末はしていない） */
-  | { type: "sidePanels"; panels: [string, PanelState][] }
-  /** メインのウィンドウから、チャット欄の別ウィンドウにブラウザのタブを開くよう頼む（ターミナルの ⌘ クリック・ポート・Docker などの「ブラウザで開く」） */
-  | { type: "sideOpenBrowser"; panel: string; url: string }
-  /** タブ（ブラウザ・チャット）をほかのウィンドウへドラッグで移した（元の欄はそのタブを後始末なしで閉じる。features/panel/layout/tabTransfer.ts） */
-  | { type: "tabMovedOut"; panel: string; key: string; kind: "browser" | "chat" | "new" }
-  /** チャット欄の別ウィンドウから戻すチャット欄の状態（open: メインのウィンドウのチャット欄を開くか。戻し終えたら docked） */
-  | { type: "returnSidePanels"; panels: [string, PanelState][]; open: boolean }
-  /** サイドバーの別ウィンドウからの、メインのウィンドウのパネルを変える操作（下書き・チャットを分けて開く） */
-  | { type: "panelOp"; op: PanelOp };
+/** 機能が足していく知らせの表（キーが種類、値が中身。中身はウィンドウをまたげる値だけ） */
+export interface WindowMessageMap {}
+type WindowMessageType = keyof WindowMessageMap & string;
 
-/** 別ウィンドウ（サイドバーなど）から頼む、メインのウィンドウのパネルを変える操作（app/mainWindowMessages.ts が受ける） */
-export type PanelOp =
-  | { op: "openDraft"; draft: DraftRef }
-  | { op: "openDraftSplit"; draft: DraftRef; dir: SplitDir }
-  | { op: "setDraftTitle"; draft: DraftRef; title: string }
-  | { op: "moveDraftToProject"; draft: DraftRef; projectId: number }
-  | { op: "setDraftGroup"; draft: DraftRef; group: number | undefined; groupName: string | undefined }
-  | { op: "togglePinDraft"; draft: DraftRef; pinned: boolean }
-  | { op: "discardDraft"; draft: DraftRef }
-  | { op: "openChatSplit"; chat: { id: number; project_id: number }; dir: SplitDir }
-  /** その欄にブラウザのタブを開く（別ウィンドウのターミナルで ⌘ を押しながら押した URL） */
-  | { op: "openBrowser"; panel: string; url: string };
+/** 知らせを運ぶ口（BroadcastChannel と同じ形。テストは偽物を渡す） */
+interface WindowChannel {
+  postMessage(message: unknown): void;
+  addEventListener(type: "message", listener: (e: MessageEvent<{ type: string; payload: unknown }>) => void): void;
+}
+
+/** 送る口と受ける口を作る（送る形は { type, payload }。届いたら種類ごとの知らせに配る。channel がなければ送らず届かない） */
+export function createWindowBus(channel: WindowChannel | undefined) {
+  const signals = new Map<string, Signal<unknown>>();
+  channel?.addEventListener("message", (e) => signals.get(e.data.type)?.emit(e.data.payload));
+  return {
+    post<K extends WindowMessageType>(type: K, payload: WindowMessageMap[K]): void {
+      channel?.postMessage({ type, payload });
+    },
+    on<K extends WindowMessageType>(type: K, handler: (payload: WindowMessageMap[K]) => void): () => void {
+      let signal = signals.get(type);
+      if (!signal) signals.set(type, (signal = createSignal<unknown>()));
+      return signal.subscribe(handler as (payload: unknown) => void);
+    },
+  };
+}
 
 // 画面（ブラウザ）の中だけで作る（テストの Node で作ると、開いたままで終わらなくなる）
-const channel = typeof window === "undefined" || typeof BroadcastChannel === "undefined" ? undefined : new BroadcastChannel("kickoff-windows");
-const listeners = new Set<(message: WindowMessage) => void>();
-channel?.addEventListener("message", (e: MessageEvent<WindowMessage>) => {
-  for (const listener of [...listeners]) listener(e.data);
-});
+const bus = createWindowBus(typeof window === "undefined" || typeof BroadcastChannel === "undefined" ? undefined : new BroadcastChannel("kickoff-windows"));
 
 /** ほかのウィンドウに知らせる（自分のウィンドウには届かない） */
-export function postWindowMessage(message: WindowMessage) {
-  channel?.postMessage(message);
+export function postWindowMessage<K extends WindowMessageType>(type: K, payload: WindowMessageMap[K]): void {
+  bus.post(type, payload);
 }
 
 /** メインのウィンドウに知らせて、前に出す（別ウィンドウから、メインの会話・チャット欄・ファイルタブを動かすとき） */
-export function postToMainWindow(message: WindowMessage) {
-  postWindowMessage(message);
+export function postToMainWindow<K extends WindowMessageType>(type: K, payload: WindowMessageMap[K]): void {
+  bus.post(type, payload);
   void window.kickoff?.windows.focusMain();
 }
 
-/** ほかのウィンドウからの知らせを受け取る（やめるときは返り値を呼ぶ） */
-export function subscribeWindowMessages(listener: (message: WindowMessage) => void): () => void {
-  listeners.add(listener);
-  return () => void listeners.delete(listener);
+/** ほかのウィンドウからのその種類の知らせを受け取る（やめるときは返り値を呼ぶ） */
+export function onWindowMessage<K extends WindowMessageType>(type: K, handler: (payload: WindowMessageMap[K]) => void): () => void {
+  return bus.on(type, handler);
 }

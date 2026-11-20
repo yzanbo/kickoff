@@ -27,16 +27,23 @@ export interface OpenTargetHandler<K extends OpenKind = OpenKind> {
   open(target: { kind: K } & OpenTargetMap[K], options: OpenOptions): boolean;
 }
 
+declare module "./windowBus" {
+  interface WindowMessageMap {
+    /** メインのウィンドウでその行き先を開く（別ウィンドウで真ん中の画面・右の欄を頼まれた open） */
+    open: { target: OpenTarget; options: OpenOptions };
+  }
+}
+
 /** 行き先の受け手（key は kind） */
 export const openTargets = definePoint<OpenTargetHandler>("openTargets", { key: (h) => h.kind });
 
 /**
  * 行き先を開く。別ウィンドウで真ん中の画面・右の欄（surface が page・side）を頼まれたら、メインのウィンドウへ送って開く
- * （受けるのは popoutNavigation.ts の handleForwarded）。受け手がなければ、開発中は投げ、製品では知らせを残して何もしない
+ * （受けるのは popoutNavigation.ts の receiveForwarded）。受け手がなければ、開発中は投げ、製品では知らせを残して何もしない
  */
 export function open(target: OpenTarget, options: OpenOptions = {}): boolean {
   if ((options.surface === "page" || options.surface === "side") && isPopoutWindow()) {
-    postToMainWindow({ type: "open", target, options });
+    postToMainWindow("open", { target, options });
     return true;
   }
   const handler = openTargets.items().find((h) => h.kind === target.kind);

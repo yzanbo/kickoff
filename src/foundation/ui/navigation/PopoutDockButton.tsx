@@ -1,6 +1,6 @@
 import { PanelLeft, PanelRight } from "lucide-react";
 import { parsePopout, popoutKey, type PopoutRoute } from "./popout";
-import { postToMainWindow, subscribeWindowMessages } from "./windowBus";
+import { onWindowMessage, postToMainWindow } from "./windowBus";
 import { flushNoteDrafts } from "@/features/notes/ui/noteGuards";
 import { parsePanelKey } from "@/features/panel/ui/surfaces";
 import { returnSideWindow } from "@/features/projects/ui/rightSidebar/PopoutRightSidebar";
@@ -46,12 +46,12 @@ export function PopoutDockButton({ route }: { route: PopoutRoute }) {
         const current = parsePopout(location.hash) ?? route;
         const key = popoutKey(current);
         const timer = setTimeout(closeSelf, DOCK_WAIT_MS);
-        subscribeWindowMessages((m) => {
-          if (m.type !== "docked" || m.key !== key) return;
+        onWindowMessage("docked", (m) => {
+          if (m.key !== key) return;
           clearTimeout(timer);
           closeSelf();
         });
-        postToMainWindow({ type: "dockPopout", route: current });
+        postToMainWindow("dockPopout", { route: current });
       }}
     >
       {left ? <PanelLeft size={13} aria-hidden /> : <PanelRight size={13} aria-hidden />} {label}

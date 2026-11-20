@@ -52,7 +52,7 @@ export function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
 export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, place?: "side" | "window") {
   // place を渡すと設定によらずその場所に（入力欄の上の子チャットの一覧の行のボタン）
   if ((place ?? readSetting(CHILD_CHAT_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
-  if (inPopout()) return postToMainWindow({ type: "openChild", chatId: chat.id });
+  if (inPopout()) return postToMainWindow("openChild", { chatId: chat.id });
   openChildSide(chat);
 }
 
@@ -88,7 +88,7 @@ export function openCreatedChild(child: Chat, opts: { always?: boolean } = {}) {
  * 送る前は設定によらず右の欄で書き、作ったあとは設定の「子チャットを作ったとき」に従う（タブの follow）。別ウィンドウからはメインのウィンドウに頼む
  */
 export function openAskChild({ parentId, eventId, quote, text, attachments }: AskChildTarget) {
-  if (inPopout()) return postToMainWindow({ type: "askChild", parentId, eventId, quote, text, attachments });
+  if (inPopout()) return postToMainWindow("askChild", { parentId, eventId, quote, text, attachments });
   const parent = knownChat(parentId);
   if (!parent) return;
   openInRootSide(parentId, (rootId, side) =>
@@ -114,7 +114,7 @@ function showChatView(chat: Chat) {
 /** 子チャットの親の、聞いた発言を見せる（メインのウィンドウで。別ウィンドウからはメインに頼む） */
 export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">) {
   if (child.parent_chat_id === null) return;
-  if (inPopout()) return postToMainWindow({ type: "childToParent", childId: child.id, action: "reveal" });
+  if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "reveal" });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;
   showChatView(parent);
@@ -130,7 +130,7 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
 export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string, from?: HandoffFrom) {
   if (child.parent_chat_id === null) return;
   if (from) writeSetting(composerHandoff(child.parent_chat_id), from);
-  if (inPopout()) return postToMainWindow({ type: "childToParent", childId: child.id, action: "handBack", text });
+  if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;
   const pane = chatPaneOf(parent.id);
