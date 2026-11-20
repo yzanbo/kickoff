@@ -94,6 +94,20 @@ test("ノート: 作る・一覧・読む・保存（ほかで変わっていれ
   assert.ok(noteEvents.every((e) => e.project_id === project.id));
 });
 
+test("ノート: 作る・動かす先の途中のフォルダが、リンクで外を指していれば 400（外にファイルを作らない）", async () => {
+  const { call, project } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/notes`, { path: "a.md", content: "a" });
+  const { dir } = (await call("GET", `${base}/notes`)).body as NoteList;
+  const outside = tempDir();
+  fs.symlinkSync(outside, path.join(dir, "外へ"));
+  assert.equal((await call("POST", `${base}/notes`, { path: "外へ/b.md" })).status, 400);
+  assert.equal((await call("POST", `${base}/notes`, { path: "外へ/中/b.md" })).status, 400);
+  assert.equal((await call("POST", `${base}/notes/move`, { from: "a.md", to: "外へ/a.md" })).status, 400);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.ok(fs.existsSync(path.join(dir, "a.md")));
+});
+
 test("ノート: 監視からの外部変更を知らせ、隠しファイルは知らせない", async () => {
   const watcher = new EventEmitter() as fs.FSWatcher;
   watcher.close = () => {};

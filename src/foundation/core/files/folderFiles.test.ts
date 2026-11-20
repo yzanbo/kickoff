@@ -87,6 +87,15 @@ test("動かす: 途中のフォルダも作る・その中へは動かさない
   await assert.rejects(files.move("none.md", "z.md"), /ファイルが見つかりません: none.md/);
 });
 
+test("動かす: 行き先の途中のフォルダのリンクが外を指せば断る（外へ動かさない）", async () => {
+  const { root, outside, files } = setup();
+  fs.symlinkSync(outside, path.join(root, "out"));
+  await assert.rejects(files.move("a.md", "out/a.md"), new RegExp(OUTSIDE));
+  await assert.rejects(files.move("a.md", "out/d/a.md"), new RegExp(OUTSIDE));
+  assert.deepEqual(fs.readdirSync(outside), ["secret.txt"]);
+  assert.ok(fs.existsSync(path.join(root, "a.md")));
+});
+
 test("asset: 上限を超えたら断る・ゴミ箱へは put に任せ、なければ NotFound", async () => {
   const { root, files } = setup({ maxAssetBytes: 4 });
   fs.writeFileSync(path.join(root, "big.css"), "12345");

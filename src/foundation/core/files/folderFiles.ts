@@ -32,7 +32,7 @@ export interface FolderFiles {
   create(rel: string, kind: { dir: boolean; content?: string }): Promise<void>;
   /** 同じフォルダの中で名前を変える（大文字・小文字だけの変更は許す）。変えたあとの相対パスを返す */
   rename(rel: string, name: string): Promise<string>;
-  /** ほかのフォルダへ動かす（フォルダをその中へは動かさない。行き先に同じ名前があれば Conflict。大文字・小文字だけなら動かす） */
+  /** ほかのフォルダへ動かす（フォルダをその中へは動かさない。行き先に同じ名前があれば Conflict。大文字・小文字だけなら動かす。行き先の途中のフォルダのリンクが外を指せば Invalid） */
   move(from: string, to: string): Promise<void>;
   /** 中身をそのまま（実体も中・上限まで。ファイルでなければ NotFound） */
   asset(rel: string): Promise<Buffer>;
@@ -151,6 +151,7 @@ export function folderFiles(root: string, opts: FolderFilesOptions): FolderFiles
       if (toRel !== fromRel && isUnder(toRel, fromRel)) throw new Invalid("フォルダを、その中へは動かせません");
       // 大文字・小文字だけを変えるときは、同じファイルを指すので行き先があっても動かす
       if (source.toLowerCase() !== target.toLowerCase() && (await lstatOrNull(target))) throw new Conflict(`行き先に同じ名前の「${baseName(to)}」があります`);
+      await assertParentsInside(target);
       await fs.mkdir(path.dirname(target), { recursive: true });
       await fs.rename(source, target);
     },

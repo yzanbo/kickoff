@@ -11,7 +11,7 @@ import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
 import type { Store } from "@/features/chat/core/index";
-import { asInvalid, Conflict, Invalid, NotFound } from "@/foundation/core/errors";
+import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
 import { expandHome, realPathLoose } from "@/foundation/core/system/paths";
@@ -165,16 +165,12 @@ export class NoteService {
     return saved;
   }
 
-  /** 新しいノート・フォルダを作る（同じ名前があれば 409。途中のフォルダも作る） */
+  /** 新しいノート・フォルダを作る（同じ名前があれば 409。途中のフォルダも作る。いまある途中のフォルダのリンクが外を指せば 400） */
   async create(project: Project, file: string, kind: { dir: boolean; content?: string }): Promise<NoteRef> {
-    const target = await this.pathIn(project, file);
-    if (await exists(target)) throw new Conflict("同じ名前のノート・フォルダがあります");
-    if (kind.dir) {
-      await fs.mkdir(target, { recursive: true });
-    } else {
-      await fs.mkdir(path.dirname(target), { recursive: true });
-      await fs.writeFile(target, kind.content ?? "", { flag: "wx" });
-    }
+    // ノートのフォルダがまだなければ作る
+    const dir = this.dirOf(project);
+    await fs.mkdir(dir, { recursive: true });
+    await noteFiles(dir).create(file, kind);
     this.changed(project, file);
     return { path: file };
   }
@@ -272,17 +268,6 @@ export class NoteService {
     return dir;
   }
 
-  /**
-   * ノートのフォルダの中の絶対パス（外を指せば 400。フォルダそのものも指せない）。
-   * 隠しファイル（「.」で始まる名前）は扱わない。フォルダがなければ作る
-   */
-  private async pathIn(project: Project, file: string): Promise<string> {
-    if (file.split("/").some((part) => part.startsWith("."))) throw new Invalid("「.」で始まる名前は使えません");
-    const dir = this.dirOf(project);
-    await fs.mkdir(dir, { recursive: true });
-    return noteFiles(dir).inside(file);
-  }
-
   private changed(project: Project, file: string | null) {
     this.opts.publish({ type: "notes", project_id: project.id, path: file });
   }
@@ -292,13 +277,6 @@ export class NoteService {
 function parentOf(file: string): string {
   const i = file.lastIndexOf("/");
   return i < 0 ? "" : file.slice(0, i);
-}
-
-async function exists(file: string): Promise<boolean> {
-  return fs.lstat(file).then(
-    () => true,
-    () => false,
-  );
 }
 
 async function isDirectory(dir: string): Promise<boolean> {
