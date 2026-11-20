@@ -47,23 +47,24 @@
 /*
  * 中身は右のパネル・右端のチャット欄と同じタブ（.board-panel.as-sidebar.in-footer）。右端のチャット欄と違い、
  * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（project-chat.css より詳細度を上げる）。
- * チャットのタブの中の右の欄（.agent-panel）のタブの列には効かせない（project-chat.css と同じく :not(:where(.agent-panel *))）
+ * 欄の根の自分のタブの列だけに当てる（project-chat.css と同じく子セレクタ。間の段は :where()）
  */
 .bottom-panel .board-panel.in-footer {
   min-height: 0;
 }
 
-.bottom-panel .board-panel.in-footer .panel-tabs:not(:where(.agent-panel *)) {
+.bottom-panel .board-panel.in-footer > .panel-tabs,
+.bottom-panel .board-panel.in-footer > :where(.split-view) > :where(.split-pane) > .panel-tabs {
   min-height: 0;
   padding-right: var(--gutter);
   -webkit-app-region: no-drag;
 }
 
-.bottom-panel .board-panel.in-footer .split-view:not(:where(.agent-panel *)) {
+.bottom-panel .board-panel.in-footer > .split-view {
   --split-tabs-h: 37px;
 }
 
-.bottom-panel .board-panel.in-footer .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
+.bottom-panel .board-panel.in-footer > :where(.split-view) > .split-pane.top-right > .panel-tabs {
   padding-right: var(--gutter);
 }
 

@@ -42,6 +42,8 @@
  */
 .agent-panel {
   --pane-shown: calc(var(--agents-shown, calc(100% + 1px)) - 1px);
+  /* タブの列の地は画面と同じ（外側のパネルの暗い帯にしない。side-panel-tab-sheet.css） */
+  --panel-tabs-bg: transparent;
 
   position: relative;
   display: flex;

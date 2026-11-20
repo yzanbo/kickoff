@@ -43,7 +43,7 @@
 ## Electron のドラッグ領域
 - ドラッグ領域（`.page-header` `.sidebar-header`・欄のタブの列）の中で操作するものには `-webkit-app-region: no-drag`（JS のクリックでは再現しないので計算後のスタイルで確かめる）。
 - ドラッグ領域は `overflow: hidden` で切られない（閉じても大きさを残す欄は `.slide-pane` で隠す）。
-- 入れ子の右の欄（`.agent-panel`）のタブの列はドラッグ領域にしない（外側の規則から `:not(:where(.agent-panel *))` で外す）。
+- 入れ子の右の欄（`.agent-panel`）のタブの列はドラッグ領域にしない（外側の規則は子セレクタで自分の列に）。
 - ドラッグ領域は後に書いた要素が勝つので、閉じたサイドバーの開くボタン・左上の画面移動・右上の開閉は DOM の最後に置く。全体表示中の見出し（`base/maximized-header.css`）はドラッグ領域より後、固定のボタンより前。
 - 外側のクリックで閉じるものが開いている間は、`<html data-dismissable>` でドラッグ領域を止める（`base/layout.css`）。
 - 左上の画面移動（`base/navigation.css`）はサイドバー・パネルの中に置かず固定し、空きは `.layout` の `--app-navigation-left` / `--app-titlebar-left-end` でそろえる。

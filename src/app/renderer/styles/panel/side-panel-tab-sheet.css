@@ -19,9 +19,9 @@
   box-shadow: inset 0 -1px 0 var(--border);
 }
 
-/* 暗い地は外側のパネルだけ（右の欄のタブの列は画面と同じ地のまま） */
-.panel-tabs:not(:where(.agent-panel *)) {
-  background: var(--tab-strip-bg);
+/* 暗い地は外側のパネルだけ（右の欄のタブの列は画面と同じ地のまま。agent-panel.css が --panel-tabs-bg を入れる） */
+.panel-tabs {
+  background: var(--panel-tabs-bg, var(--tab-strip-bg));
 }
 
 /*

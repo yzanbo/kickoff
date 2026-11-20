@@ -65,7 +65,7 @@
 - 右サイドバー（`ProjectChat`）と下のパネル（`BottomPanel`）は閉じても要素を残す（書きかけ・シェルをなくさない）。
 - 右サイドバーのブラウザは、ほかの中身を見ている間も隠して置く（中身は `SideRail` で選ぶ）。
 - 右の欄（`AgentSplit`）はチャットのタブの中の入れ子のパネルで、`PanelHostContext` で受ける（理由は `panelHost.ts`）。パネルの外では置かない。
-- キーはピントのあるいちばん内側の欄だけが受け取る（`focusedPanelKey`・`focusInNestedPanel`）。外側の欄の CSS は `:not(:where(.agent-panel *))` で内側に効かせない。
+- キーはピントのあるいちばん内側の欄だけが受け取る（`focusedPanelKey`・`focusInNestedPanel`）。外側の欄の CSS は子セレクタで内側に効かせない。
 - 右の欄の ⌘F（`AgentPanelFind`）はエディタ・子チャットの検索に任せる。親のチャットの画面のキーは右の欄の中で受け取らない（`isChatTarget`）。
 - 右サイドバーと最大表示の下のパネルの上の行は `.panel-window-titlebar` にそろえ、信号機・戻る / 進むと重ねない。
 - 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（`src/foundation/ui/styles/CLAUDE.md`）。
