@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 /** 要素の大きさ（枠を含む。ResizeObserver の borderBoxSize） */
 export interface ElementSize {
@@ -101,5 +101,5 @@ export function useSizeObserver<E extends Element>(listener: SizeListener): (el:
   useLayoutEffect(() => {
     latest.current = listener;
   });
-  return useCallback((el: E | null) => (el ? observeSize(el, (size, target) => latest.current(size, target)) : undefined), []);
+  return (el: E | null) => (el ? observeSize(el, (size, target) => latest.current(size, target)) : undefined);
 }

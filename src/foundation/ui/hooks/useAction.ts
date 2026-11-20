@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** 操作の結果の文（成功・失敗） */
@@ -20,7 +20,7 @@ interface RunOptions {
 export function useAction<Name extends string = string>() {
   const [busy, setBusy] = useState<Name | null>(null);
   const [result, setResult] = useState<ResultText>();
-  const setError = useCallback((text: string | undefined) => setResult(text === undefined ? undefined : { kind: "error", text }), []);
+  const setError = (text: string | undefined) => setResult(text === undefined ? undefined : { kind: "error", text });
 
   const run = async (name: Name, action: () => Promise<unknown>, { done, keepBusy = false }: RunOptions = {}): Promise<boolean> => {
     setBusy(name);

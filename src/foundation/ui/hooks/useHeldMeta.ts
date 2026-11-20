@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { heldMetaOf, type HeldMeta, type KeyInput } from "@/foundation/ui/lib/keys";
 import { useWindowEvent } from "./useWindowEvent";
 
@@ -8,8 +8,8 @@ import { useWindowEvent } from "./useWindowEvent";
  */
 export function useHeldMeta(): { held: HeldMeta; track: (e: KeyInput) => void; clear: () => void } {
   const [held, setHeld] = useState<HeldMeta>(null);
-  const track = useCallback((e: KeyInput) => setHeld(heldMetaOf(e)), []);
-  const clear = useCallback(() => setHeld(null), []);
+  const track = (e: KeyInput) => setHeld(heldMetaOf(e));
+  const clear = () => setHeld(null);
   useWindowEvent("keyup", (e) => {
     if (!e.metaKey) setHeld(null);
   });

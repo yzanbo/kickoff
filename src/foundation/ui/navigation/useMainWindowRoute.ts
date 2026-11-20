@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { parse, type Route } from "./router";
 import { onWindowMessage } from "./windowBus";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
@@ -33,5 +33,5 @@ export function useMainWindowRoute(announce: (open: boolean) => void): Route {
   // ウィンドウを閉じた・読み込み直した（閉じたと知らせるのはここだけ。effect の片付けはウィンドウを閉じても流れず、
   // 開発時の StrictMode では描いた直後にも流れて「閉じた → 開いた」が届き、チャット欄を渡し直すことになる）
   useWindowEvent("pagehide", () => latest.current(false));
-  return useMemo(() => parse(hash), [hash]);
+  return parse(hash);
 }

@@ -48,6 +48,7 @@ const same = <T,>(value: T) => value;
 export function useCell<T>(cell: Cell<T>): T;
 export function useCell<T, S>(cell: Cell<T>, select: (value: T) => S, equals?: (a: S, b: S) => boolean): S;
 export function useCell<T, S>(cell: Cell<T>, select?: (value: T) => S, equals?: (a: S, b: S) => boolean): T | S {
+  // 残す: 選んだ値を覚える読み取り（getSnapshot。作り直すと覚えを捨て、select が新しい物を返すと毎回別の値になる）
   const read = useMemo(() => cellReader<T, T | S>(cell, select ?? same, equals as (a: T | S, b: T | S) => boolean), [cell, select, equals]);
   return useSyncExternalStore(cell.subscribe, read, read);
 }

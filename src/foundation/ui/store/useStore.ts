@@ -1,5 +1,5 @@
 // 店（createStore.ts・keyedStore.ts。形は storeTypes.ts）を React から読む hooks。描いている間はその値を購読し、使っている間は読み込みを頼む（retain）
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { EMPTY_STATE, type KeyedStore, type Store, type StoreState } from "./storeTypes";
 
 interface UseOptions {
@@ -38,7 +38,7 @@ const noSubscribe = () => () => {};
 
 /** key ごとの店の、1 つの key の様子（key が undefined なら何も読まない） */
 export function useKeyedStore<K extends string | number, T>(store: KeyedStore<K, T>, key: K | undefined, { active = true }: UseOptions = {}): StoreState<T> {
-  const subscribe = useCallback((listener: () => void) => (key === undefined ? noSubscribe() : store.subscribe(key, listener)), [store, key]);
+  const subscribe = (listener: () => void) => (key === undefined ? noSubscribe() : store.subscribe(key, listener));
   const state = useSyncExternalStore(subscribe, () => (key === undefined ? EMPTY_STATE : store.get(key)));
   useEffect(() => (active && key !== undefined ? store.retain(key) : undefined), [store, key, active]);
   return shown(state, active && key !== undefined, store.loads);
@@ -62,15 +62,12 @@ function statesReader<K extends string | number, T>(store: KeyedStore<K, T>, key
 export function useKeyedStores<K extends string | number, T>(store: KeyedStore<K, T>, keys: readonly K[], { active = true }: UseOptions = {}): (key: K) => StoreState<T> {
   // 渡す配列は描くたびに作られることがあるので、key の組を文字にして、組が変わったときだけ数え直す（JSON なので数の key は数のまま戻る）
   const id = JSON.stringify([...new Set(keys)].sort());
-  const unique = useMemo(() => JSON.parse(id) as K[], [id]);
-  const subscribe = useCallback(
-    (listener: () => void) => {
-      const offs = unique.map((key) => store.subscribe(key, listener));
-      return () => offs.forEach((off) => off());
-    },
-    [store, unique],
-  );
-  // 渡した key の様子の組（どれかが変わったときだけ別のものになる）
+  const unique = JSON.parse(id) as K[];
+  const subscribe = (listener: () => void) => {
+    const offs = unique.map((key) => store.subscribe(key, listener));
+    return () => offs.forEach((off) => off());
+  };
+  // 残す: 渡した key の様子の組を覚える読み取り（getSnapshot。作り直すと前の組を忘れ、同じ様子でも別の配列を返す）
   const getStates = useMemo(() => statesReader(store, unique), [store, unique]);
   const states = useSyncExternalStore(subscribe, getStates);
   useEffect(() => {
@@ -79,8 +76,6 @@ export function useKeyedStores<K extends string | number, T>(store: KeyedStore<K
     return () => releases.forEach((release) => release());
   }, [store, unique, active]);
   // 渡した key の様子が変わるたびに（states）新しい関数にする。渡した key は描いた時点の様子を、ほかの key は店のいまの値を返す
-  return useMemo(() => {
-    const byKey = new Map(unique.map((key, i) => [key, states[i]]));
-    return (key: K) => byKey.get(key) ?? store.get(key);
-  }, [store, unique, states]);
+  const byKey = new Map(unique.map((key, i) => [key, states[i]]));
+  return (key: K) => byKey.get(key) ?? store.get(key);
 }

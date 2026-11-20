@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { readSetting, storedIds, subscribeFamily, writeSetting, type SettingFamily } from "@/foundation/ui/storage";
 import { storage as uiStorage } from "./storage";
 import { useSetting } from "./useSetting";
@@ -50,7 +50,7 @@ export function useFolds(place: string, keys: readonly string[]) {
   const snapshot = useSyncExternalStore(subscribeFolds, () => JSON.stringify(keys.map((key) => [key, read(place, key)])));
   // 描画で読む値を購読した snapshot から作る。保存先を直接読むだけでは、React Compiler が isOpen と描画を使い回してしまう。
   const values = new Map<string, boolean | null>(JSON.parse(snapshot));
-  const set = useCallback((key: string, open: boolean) => writeSetting(uiStorage.settings.fold(foldId(place, key)), open), [place]);
+  const set = (key: string, open: boolean) => writeSetting(uiStorage.settings.fold(foldId(place, key)), open);
   const isOpen = (key: string, defaultOpen = true) => values.get(key) ?? defaultOpen;
   useFoldAll(place, (collapsed) => keys.forEach((key) => set(key, !collapsed)));
   return { isOpen, set, toggle: (key: string, defaultOpen = true) => set(key, !isOpen(key, defaultOpen)) };

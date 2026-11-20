@@ -1,4 +1,4 @@
-import { useCallback, useEffectEvent, useRef, useState, type ComponentProps, type HTMLAttributes, type ReactNode, type RefObject } from "react";
+import { useEffectEvent, useRef, useState, type ComponentProps, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/foundation/ui/lib/cx";
 import { anchorPlacement, type FloatingAlign, type FloatingSide } from "@/foundation/ui/lib/floating";
@@ -88,7 +88,7 @@ export function Popover({
 export function usePopover<E extends HTMLElement = HTMLButtonElement>() {
   const [open, setOpen] = useState(false);
   const anchor = useRef<E>(null);
-  const close = useCallback(() => setOpen(false), []);
-  const toggle = useCallback(() => setOpen((o) => !o), []);
+  const close = () => setOpen(false);
+  const toggle = () => setOpen((o) => !o);
   return { open, setOpen, anchor, close, toggle };
 }

@@ -1,4 +1,4 @@
-import { createContext, Fragment, memo, useContext, useMemo, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
+import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";
 import { splitTail } from "@/foundation/ui/markdown/streaming/streamReveal";
@@ -122,7 +122,7 @@ const codeBlock: Components["pre"] = function CodeBlock({ node, ...props }) {
 function CodeBlockBody({ block, streaming, pre }: { block: { language: string; text: string }; streaming: boolean; pre: ComponentProps<"pre"> }) {
   const [nearRef, near] = useNearViewport<HTMLDivElement>({ enabled: !streaming });
   const lang = streaming || !block.text ? undefined : fenceLanguage(block.language);
-  const lines = useMemo(() => block.text.split("\n"), [block.text]);
+  const lines = block.text.split("\n");
   const tokens = useHighlight(lines, lang, near);
   return (
     <div className="code-block" ref={nearRef}>
@@ -186,24 +186,25 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
  * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）。
- * 文は空行で区切ったブロック（`lib/markdownBlocks.ts`）に分け、ブロックごとに memo する。書いている途中は伸びる最後のブロックだけを解析し直し、
+ * 文は空行で区切ったブロック（`streaming/markdownBlocks.ts`）に分け、ブロックごとに memo する。書いている途中は伸びる最後のブロックだけを解析し直し、
  * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`）
  */
+// 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
 export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
 
 function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);
   const images = useContext(MarkdownImagesContext);
   // 画像の描き方を差し込まれているときだけ、文に書かれた画像の src を拾って配る（「host から画像を n 件表示」の数）
-  const sources = useMemo(() => (images ? imageSourcesIn(children) : NO_SOURCES), [images, children]);
+  const sources = images ? imageSourcesIn(children) : NO_SOURCES;
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
   const pipeline = pipelineOf(links?.remarkPlugin, withMath ? math : null);
   // 書いている途中は、前の文の続きなら増えた行だけ読む読み取りを持つ
   const [splitter] = useState(createBlockSplitter);
-  const text = useMemo(() => (withMath ? convertTexDelimiters(children) : children), [children, withMath]);
-  const { blocks, openFence } = useMemo(() => (streaming ? splitter.split(text) : { blocks: splitBlocks(text), openFence: null }), [text, streaming, splitter]);
+  const text = withMath ? convertTexDelimiters(children) : children;
+  const { blocks, openFence } = streaming ? splitter.split(text) : { blocks: splitBlocks(text), openFence: null };
   const tails = splitTail(
     blocks.map((b) => b.length),
     tail,
@@ -230,6 +231,7 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
 }
 
 /** 1 つのブロック。文・処理の組・薄く出す段が同じなら描き直さない。薄く出す段がなければ、描いた要素を覚えから引く */
+// 残す: tail を中身で比べる（React Compiler は比べ方を渡す memo を作れない）
 const MarkdownBlock = memo(
   function MarkdownBlock({ pipeline, text, tail }: { pipeline: MarkdownPipeline; text: string; tail: readonly number[] | undefined }) {
     return tail ? renderMarkdown(pipeline, text, COMPONENTS, tail) : blockCache.render(pipeline, text, COMPONENTS);

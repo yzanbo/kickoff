@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import type { GitTarget } from "@/foundation/ui/api";
 import { workplaceKey, type WorkplaceRef } from "./workplace";
 
@@ -14,7 +14,7 @@ export function useWorkplace(projectId: number, worktree?: string | null): Workp
   // 既定の引数で hook を呼ばない
   const fromContext = useContext(WorkplaceContext);
   const path = worktree === undefined ? (fromContext?.worktree ?? null) : worktree;
-  return useMemo(() => ({ projectId, worktree: path }), [projectId, path]);
+  return { projectId, worktree: path };
 }
 
 /**
@@ -23,8 +23,6 @@ export function useWorkplace(projectId: number, worktree?: string | null): Workp
  */
 export function useGitTarget(projectId: number, worktreeArg?: string) {
   const ref = useWorkplace(projectId, worktreeArg);
-  return useMemo(() => {
-    const worktree = ref.worktree ?? undefined;
-    return { target: { projectId: ref.projectId, worktree } as GitTarget, key: workplaceKey(ref), worktree };
-  }, [ref]);
+  const worktree = ref.worktree ?? undefined;
+  return { target: { projectId: ref.projectId, worktree } as GitTarget, key: workplaceKey(ref), worktree };
 }

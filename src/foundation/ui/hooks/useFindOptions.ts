@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { storage as uiStorage } from "./storage";
 import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage";
 import type { FindOptionName, FindOptions } from "@/foundation/ui/lib/textFind";
@@ -31,7 +30,7 @@ export function useFindOptions(): { options: FindOptions; toggle: (name: FindOpt
   const [caseSensitive, setCase] = useSetting(uiStorage.settings.findCase);
   const [wholeWord, setWholeWord] = useSetting(uiStorage.settings.findWholeWord);
   const [regex, setRegex] = useSetting(uiStorage.settings.findRegex);
-  const options = useMemo(() => ({ caseSensitive, wholeWord, regex }), [caseSensitive, wholeWord, regex]);
+  const options = { caseSensitive, wholeWord, regex };
   const toggle = (name: FindOptionName) => {
     if (name === "caseSensitive") setCase(!caseSensitive);
     else if (name === "wholeWord") setWholeWord(!wholeWord);

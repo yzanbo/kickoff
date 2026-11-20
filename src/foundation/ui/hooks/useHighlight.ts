@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { highlightLines, peekHighlight, type CodeToken } from "@/foundation/ui/code/highlight";
 import { useAppliedTheme } from "./useAppliedTheme";
 
@@ -11,8 +11,8 @@ import { useAppliedTheme } from "./useAppliedTheme";
  */
 export function useHighlight(lines: string[], lang: string | undefined, near?: boolean): CodeToken[][] | undefined {
   const theme = useAppliedTheme();
-  const code = useMemo(() => lines.join("\n"), [lines]);
-  const peeked = useMemo(() => peekHighlight(code, lang, theme), [code, lang, theme]);
+  const code = lines.join("\n");
+  const peeked = peekHighlight(code, lang, theme);
   const [state, setState] = useState<{ code: string; lang: string | undefined; theme: string; tokens: CodeToken[][] | null }>();
   const waiting = near === false;
   const known = peeked !== undefined;

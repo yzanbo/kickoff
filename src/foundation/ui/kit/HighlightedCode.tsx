@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { Fragment } from "react";
 import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
 import { CodeLine } from "./CodeLine";
 
@@ -8,7 +8,7 @@ import { CodeLine } from "./CodeLine";
  * undefined なら色を付けない（閉じている欄など、見えるまで色付けを始めないときにも使う）
  */
 export function HighlightedCode({ code, lang }: { code: string; lang: string | undefined }) {
-  const lines = useMemo(() => code.split("\n"), [code]);
+  const lines = code.split("\n");
   const tokens = useHighlight(lines, lang);
   return (
     <>

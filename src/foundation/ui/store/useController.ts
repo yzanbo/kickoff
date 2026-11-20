@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useState, useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useState, useSyncExternalStore } from "react";
 
 /** 部品で使う操る物（状態を持ち、変わったら知らせる。外したら dispose で後片付けする） */
 export interface Controller<S> {
@@ -44,7 +44,7 @@ export function useController<C extends Controller<unknown>>(factory: () => C, d
     return () => disposeEntry(current);
   }, [current]);
   const { controller } = current;
-  const subscribe = useCallback((listener: () => void) => controller.subscribe(listener), [controller]);
-  const get = useCallback(() => controller.get() as ReturnType<C["get"]>, [controller]);
+  const subscribe = (listener: () => void) => controller.subscribe(listener);
+  const get = () => controller.get() as ReturnType<C["get"]>;
   return [useSyncExternalStore(subscribe, get, get), controller];
 }

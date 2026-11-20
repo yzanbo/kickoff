@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 /**
  * 要素が画面（スクロールする枠の見えている所）の手前まで来たかを見張る、共有の IntersectionObserver。
@@ -81,19 +81,16 @@ export function useNearViewport<E extends Element>({ margin = NEAR_MARGIN_PX, en
 ] {
   const [near, setNear] = useState(false);
   const watching = enabled && !near;
-  const ref = useCallback(
-    (el: E | null) => {
-      if (!el || !watching) return undefined;
-      let stop: (() => void) | null = null;
-      stop = watchViewport(el, margin, (n) => {
-        if (!n) return;
-        setNear(true);
-        stop?.();
-        stop = null;
-      });
-      return () => stop?.();
-    },
-    [margin, watching],
-  );
+  const ref = (el: E | null) => {
+    if (!el || !watching) return undefined;
+    let stop: (() => void) | null = null;
+    stop = watchViewport(el, margin, (n) => {
+      if (!n) return;
+      setNear(true);
+      stop?.();
+      stop = null;
+    });
+    return () => stop?.();
+  };
   return [ref, near];
 }

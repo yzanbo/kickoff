@@ -2,7 +2,6 @@
 // ブランチは Kickoff の外でも変わるので、コアの HEAD の見張りの知らせ（worktrees_changed）ですぐ取り直す。見張りが漏れたときの備えに、
 // 表示している間は 30 秒ごと・ウィンドウに戻ったときにも取り直す（届くまでは前の一覧を出す）。
 // ワークツリーを作る・消す API はそのあとの一覧を返すので、それを set で入れる（作った・片付けたあとは invalidate ですぐ取り直す）
-import { useMemo } from "react";
 import type { GitWorktree } from "@shared/git/types";
 import type { WorktreeEnv } from "@shared/worktrees/envTypes";
 import { api } from "@/foundation/ui/api";
@@ -37,5 +36,5 @@ export function useWorktreeEnv(projectId: number, path: string | null): Worktree
 /** いくつかのプロジェクトのワークツリーの一覧を引く関数（読み込み中は undefined。どれかが変わると新しい関数になる） */
 export function useWorktreesOf(projectIds: readonly number[]): (projectId: number) => GitWorktree[] | undefined {
   const get = useKeyedStores(worktreesStore, projectIds);
-  return useMemo(() => (projectId: number) => get(projectId).data, [get]);
+  return (projectId: number) => get(projectId).data;
 }
