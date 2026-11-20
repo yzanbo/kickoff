@@ -14,13 +14,12 @@
   overflow: visible;
 }
 
-/* プロジェクトの並べ替え: 動かしているものは薄く、入る位置に線を出す */
-.workspace-dot.group-dragging,
-.stack-item.group-dragging {
-  opacity: var(--drag-source-opacity);
-}
-
+/* プロジェクトの並べ替え（動かしているものは薄く、入る位置に線。ui/state.css）: 縦並びはまとまりの境目の線 */
 .stack-item {
+  --drop-offset: 0;
+  --drop-inset: 10px;
+  --drop-anim: none;
+
   position: relative;
 }
 
@@ -29,68 +28,6 @@
   margin-top: 6px;
   padding-top: 10px;
   border-top: 1px solid var(--border-strong);
-}
-
-.workspace-dot.drop-before::before,
-.workspace-dot.drop-after::after,
-.stack-item.drop-before::before,
-.stack-item.drop-after::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  border-radius: 2px;
-  background: var(--accent-bright);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
-  pointer-events: none;
-}
-
-.workspace-dot.drop-before::before,
-.workspace-dot.drop-after::after {
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-}
-
-.workspace-dot.drop-before::before {
-  left: -5px;
-}
-
-.workspace-dot.drop-after::after {
-  right: -5px;
-}
-
-/* 縦スライド（丸を縦に並べる）では、入る位置の線を丸の上・下の横線にする */
-.workspaces.rail .workspace-dot.drop-before::before,
-.workspaces.rail .workspace-dot.drop-after::after {
-  top: auto;
-  bottom: auto;
-  right: 2px;
-  left: 2px;
-  width: auto;
-  height: 2px;
-}
-
-.workspaces.rail .workspace-dot.drop-before::before {
-  top: -5px;
-}
-
-.workspaces.rail .workspace-dot.drop-after::after {
-  bottom: -5px;
-}
-
-.stack-item.drop-before::before,
-.stack-item.drop-after::after {
-  right: 10px;
-  left: 10px;
-  height: 2px;
-}
-
-.stack-item.drop-before::before {
-  top: 0;
-}
-
-.stack-item.drop-after::after {
-  bottom: 0;
 }
 
 /* 縦並びで、固定したプロジェクトと残りを分ける見出し（固定したものがあるときだけ） */
@@ -151,13 +88,20 @@
 
 /* 横スライドの下の丸: しまったプロジェクトは点線で薄く */
 .workspace-dot.archived {
+  --drag-source-opacity: 0.45;
+
   border-style: dashed;
   border-color: var(--border-strong);
   opacity: 0.45;
 }
 
+/* 並べ替えの線（ui/state.css）は丸の間の隙間に（横スライドは縦の線・縦スライドは横の線。向きは部品が付ける） */
 .workspace-dot {
   --ws-hue: 20;
+  --drop-offset: -5px;
+  --drop-inset: 2px;
+  --drop-anim: none;
+
   position: relative;
   display: grid;
   place-items: center;
@@ -182,11 +126,16 @@
   background: hsl(var(--ws-hue) 55% 90%);
 }
 
+/* 乗せた・選んでいる丸は、動かしている間も薄くしない */
 .workspace-dot:hover {
+  --drag-source-opacity: 1;
+
   opacity: 1;
 }
 
 .workspace-dot.active {
+  --drag-source-opacity: 1;
+
   border-color: hsl(var(--ws-hue) 60% 60%);
   opacity: 1;
   transform: scale(1.08);

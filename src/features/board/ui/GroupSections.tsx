@@ -75,10 +75,10 @@ export function GroupSections({
         className={cx(
           list ? "list-group" : "board-column",
           dropClass(g?.id ?? null),
-          reorder.classFor(g?.id ?? UNGROUPED_SORT_ID),
           g === null && "ungrouped",
         )}
         data-group-id={g?.id}
+        {...reorder.attrsFor(g?.id ?? UNGROUPED_SORT_ID, list ? "y" : "x")}
         {...dropProps(g?.id ?? null)}
       >
         {/* 数は送る前の新しいチャット（下書き。New Chat）も 1 つと数える（サイドバーのグループの見出しと同じ） */}

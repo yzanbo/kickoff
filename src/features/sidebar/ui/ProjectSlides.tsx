@@ -40,6 +40,7 @@ export function ProjectSlides({
   const switcher = (
     <div className="workspace-switcher" {...swipe.stripHandlers}>
       <WorkspaceDots
+        axis={rail ? "y" : "x"}
         projects={ordered}
         index={index}
         countsOf={(id) => stateCounts(counted[id] ?? NO_CHATS, pending)}

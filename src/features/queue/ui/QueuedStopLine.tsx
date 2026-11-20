@@ -1,8 +1,8 @@
 import { ArrowDown, ArrowUp, GripVertical, OctagonPause, X } from "lucide-react";
 import type { DragEvent } from "react";
-import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 
@@ -42,7 +42,8 @@ export function QueuedStopLine({
   return (
     <>
       <div
-        className={cx("queued-stop-line", dragging && "dragging", dropMark && `drop-${dropMark}`)}
+        className="queued-stop-line"
+        {...dragAttrs(dropMark, { source: dragging })}
         role="note"
         onDragOver={onDragOver}
         onDrop={onDrop}

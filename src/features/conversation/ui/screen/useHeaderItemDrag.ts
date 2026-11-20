@@ -2,6 +2,7 @@ import { useState, type DragEvent } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/conversation/ui/storage";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { isNoopHeaderMove, moveHeaderItem, orderedHeaderSections, type ChatHeaderItem } from "./chatHeaderItems";
 
 /** ドラッグで運ぶ項目の種類（ほかのドラッグと見分ける） */
@@ -40,7 +41,7 @@ export function useHeaderItemDrag() {
     itemProps: (item: ChatHeaderItem) => ({
       draggable: true,
       "data-header-item": item,
-      className: drop?.item === item ? `menu-drop-${drop.side}` : dragging === item ? "menu-dragging" : undefined,
+      ...dragAttrs(drop?.item === item && drop.side, { source: drop?.item !== item && dragging === item }),
       onDragStart: (e: DragEvent<HTMLButtonElement>) => {
         e.dataTransfer.setData(ITEM_DRAG_TYPE, item);
         e.dataTransfer.effectAllowed = "move";

@@ -53,7 +53,7 @@ export function ProjectStack({
           {hasPinned && i === firstUnpinned && <div className="project-section-label">プロジェクト</div>}
           {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
           {i === visible.length && archivedHead}
-          <div className={cx("stack-item", reorder.classFor(p.id))} {...reorder.dropProps(p.id)}>
+          <div className="stack-item" {...reorder.attrsFor(p.id)} {...reorder.dropProps(p.id)}>
             <WorkspacePage
               project={p}
               chats={chats[p.id] ?? NO_CHATS}

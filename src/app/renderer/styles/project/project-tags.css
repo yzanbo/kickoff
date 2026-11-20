@@ -178,34 +178,19 @@
   padding-top: 4px;
 }
 
-/* タグのドラッグでの並べ替え（ビューのタブと同じく、入る位置に縦の線・動かしているタグは薄く） */
-.tag-filter-pill[data-drop="before"],
-.tag-filter-pill[data-drop="after"] {
+/* タグのドラッグでの並べ替え（ビューのタブと同じく、入る位置に縦の線（ui/state.css）・動かしているタグは薄く） */
+.tag-filter-pill {
+  --drop-offset: -4px;
+  --drop-inset: 0;
+  --drop-radius: 1px;
+  --drop-glow: none;
+  --drop-anim: none;
+  --drop-z: auto;
+}
+
+.tag-filter-pill[data-drop] {
   position: relative;
   overflow: visible;
-}
-
-.tag-filter-pill[data-drop="before"]::after,
-.tag-filter-pill[data-drop="after"]::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--accent-bright);
-  content: "";
-}
-
-.tag-filter-pill[data-drop="before"]::after {
-  left: -4px;
-}
-
-.tag-filter-pill[data-drop="after"]::after {
-  right: -4px;
-}
-
-.tag-filter-pill[data-drag-source] {
-  opacity: var(--drag-source-opacity);
 }
 
 /* その場で名前を変える欄（タグの代わりに置く） */

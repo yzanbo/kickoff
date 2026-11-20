@@ -18,6 +18,7 @@ export function WorkspaceDots({
   countsOf,
   isArchived,
   reorder,
+  axis,
   onGo,
   onMenu,
   onNewProject,
@@ -31,6 +32,8 @@ export function WorkspaceDots({
   isArchived: (id: number) => boolean;
   /** ドラッグでの並べ替え（最近動いた順・しまったものは並べ替えない） */
   reorder: ProjectReorder;
+  /** 丸の並ぶ向き（横スライドは x・縦スライドは y。入る位置の線の向き） */
+  axis: "x" | "y";
   onGo: (index: number) => void;
   /** 右クリック（プロジェクトのメニューを開く） */
   onMenu: (e: MouseEvent, project: Project) => void;
@@ -74,8 +77,9 @@ export function WorkspaceDots({
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id), chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
+            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
             style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
+            {...reorder.attrsFor(p.id, axis)}
             title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}
             onContextMenu={(e) => onMenu(e, p)}

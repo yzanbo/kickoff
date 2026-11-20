@@ -42,7 +42,7 @@ export function useClusterReorder(clusters: TabCluster[] | null) {
         },
       };
     },
-    /** まとまりの枠に付けるクラス（動かしている途中は薄く・入る位置の線） */
-    classFor: (c: TabCluster) => (isCustomGroup(c) ? reorder.classFor(c.group.id) : ""),
+    /** まとまりの枠に付ける属性（動かしている途中は薄く・入る位置の縦の線） */
+    attrsFor: (c: TabCluster) => (isCustomGroup(c) ? reorder.attrsFor(c.group.id, "x") : {}),
   };
 }

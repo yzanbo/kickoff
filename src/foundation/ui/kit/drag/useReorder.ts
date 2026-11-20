@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { isNoopMove, type DropSide } from "@/foundation/ui/lib/moveInList";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import { dragAttrs } from "./dragAttrs";
 
 /** 前後を決める向き（x = 横に並んだ物の左右の半分 / y = 縦に並んだ物（メニューの項目など）の上下の半分） */
 type Axis = "x" | "y";
@@ -24,7 +25,7 @@ export interface ReorderOptions<K> {
 /**
  * ドラッグで並べ替える（ビューのタブ・タグなど）。物の左右の半分（縦なら上下の半分）で前に入るか後ろに入るかを決め、
  * 落としても並びが変わらない所（自分の上・すぐ前の後ろ・すぐ後ろの前）には線を出さず落とせない。
- * 入る位置は物の data-drop（before / after）、動かしている物は data-drag-source、endProps を付けた物（入りきらない物を入れた ▾）は data-drop="end"
+ * 入る位置は物の data-drop（before / after。横に並ぶ物は data-drop-axis="x"）、動かしている物は data-drag-source、endProps を付けた物（入りきらない物を入れた ▾）は data-drop="end"
  */
 export function useReorder<K>({ keys, type, axis = "x", onMove, springMs = SPRING_MS }: ReorderOptions<K>) {
   const [dragging, setDragging] = useState<K | null>(null);
@@ -67,8 +68,7 @@ export function useReorder<K>({ keys, type, axis = "x", onMove, springMs = SPRIN
     /** 並べ替える物に付ける（つかんで動かす・落とす先）。along はこの物の前後を決める向き */
     itemProps: (key: K, along: Axis = axis) => ({
       draggable: true as const,
-      "data-drop": drop !== null && Object.is(drop.key, key) ? drop.side : undefined,
-      "data-drag-source": dragging !== null && Object.is(dragging, key) ? "" : undefined,
+      ...dragAttrs(drop !== null && Object.is(drop.key, key) && drop.side, { source: dragging !== null && Object.is(dragging, key), axis: along }),
       onDragStart: (e: DragEvent<HTMLElement>) => {
         e.dataTransfer.setData(type, String(key));
         e.dataTransfer.effectAllowed = "move";

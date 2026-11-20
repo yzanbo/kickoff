@@ -61,7 +61,7 @@ export function ChatRow({
   after?: ReactNode;
   /** 押したときの開き方（省けばプロジェクトのチャットのパネルで開く。子チャットは別ウィンドウ） */
   onOpen?: () => void;
-  /** ドラッグでの手動の並べ替えの落とし先（入る位置の線のクラスと、行に付ける dragover / drop。useChatRowReorder） */
+  /** ドラッグでの手動の並べ替えの落とし先（入る位置の線の属性と、行に付ける dragover / drop。useChatRowReorder） */
   reorder?: RowReorderProps;
   /** 2 行目で隠す札（グループ別・作業場所別のまとまりの中では、見出しと同じことを言う札を出さない） */
   hideChip?: "group" | "worktree";
@@ -95,7 +95,7 @@ export function ChatRow({
     else onMenu(at);
   };
   return (
-    <li className={cx("chat-row-item", reorder?.className)} {...reorder?.handlers}>
+    <li className="chat-row-item" {...reorder?.attrs} {...reorder?.handlers}>
       <a
         className={cx(
           "chat-row",

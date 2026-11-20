@@ -49,7 +49,8 @@ export function NoteChipTree(props: Props) {
             <li key={node.path} role="treeitem" aria-expanded={isOpen} className={cx("note-chip-item", isDropTarget && "drop-target")}>
               <button
                 type="button"
-                className={cx("note-chip-row tree-indent", "note-chip-dir", isDraggingNote(node.path) && "dragging")}
+                className="note-chip-row tree-indent note-chip-dir"
+                data-drag-source={isDraggingNote(node.path) ? "" : undefined}
                 style={style}
                 title={node.path}
                 onClick={() => onToggle(node.path)}
@@ -71,7 +72,8 @@ export function NoteChipTree(props: Props) {
             <div
               role="button"
               tabIndex={0}
-              className={cx("note-chip-row tree-indent", isDraggingNote(node.path) && "dragging")}
+              className="note-chip-row tree-indent"
+              data-drag-source={isDraggingNote(node.path) ? "" : undefined}
               style={style}
               title={node.path}
               onClick={() => onOpen(node.path)}

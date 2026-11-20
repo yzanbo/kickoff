@@ -122,6 +122,8 @@
 
 /* .gitignore で無視しているもの（node_modules など） */
 .tree-row.ignored {
+  --drag-source-opacity: 0.5;
+
   opacity: 0.5;
 }
 

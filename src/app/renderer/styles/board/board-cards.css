@@ -77,11 +77,6 @@
   background: var(--bg-hover);
 }
 
-.board-card.dragging,
-.list-row.dragging {
-  opacity: var(--drag-source-opacity);
-}
-
 /* カードの名前の行: 左に状態の印（サイドバーの行と同じ StatusSlot）、右に名前（2 行まで） */
 .card-title-row {
   display: flex;
@@ -146,10 +141,12 @@
   margin-top: 4px;
 }
 
-/* アーカイブしたチャット（表示しているときだけ、薄く出す） */
+/* アーカイブしたチャット（表示しているときだけ、薄く出す。動かしている間も同じ濃さ） */
 .board-card.archived,
 .list-row.archived,
 .chat-row.archived {
+  --drag-source-opacity: 0.55;
+
   opacity: 0.55;
 }
 

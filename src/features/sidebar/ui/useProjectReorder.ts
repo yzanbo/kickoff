@@ -23,8 +23,8 @@ export function useProjectReorder({ ids, isArchived, onManual }: { ids: number[]
     draggable,
     /** つかむところに付ける（並べ替えられないものは undefined） */
     handle: (id: number) => (draggable(id) ? reorder.handle(id) : undefined),
-    /** 動かしている途中・入る位置の線のクラス */
-    classFor: (id: number) => (draggable(id) ? reorder.classFor(id) : ""),
+    /** 動かしている途中・入る位置の線の属性（axis は並ぶ向き） */
+    attrsFor: (id: number, axis?: "x" | "y") => (draggable(id) ? reorder.attrsFor(id, axis) : {}),
     /** 並べ替えのドロップ先にする */
     dropProps: (id: number): Partial<Record<"onDragOver" | "onDragLeave" | "onDrop", (e: DragEvent) => void>> =>
       !draggable(id)

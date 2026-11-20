@@ -129,7 +129,8 @@ export function ProjectTabs({
         return (
           <div
             key={group.key}
-            className={cx("project-tab-group", shown.length > 1 && "boxed", order.groupClass(group))}
+            className={cx("project-tab-group", shown.length > 1 && "boxed")}
+            {...order.groupAttrs(group)}
             aria-label={group.label}
             {...order.groupProps(group)}
           >
@@ -153,7 +154,8 @@ export function ProjectTabs({
                   aria-label={vertical ? `${tip ?? label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
                   title={!vertical && t === chatsTab && count > 0 ? countLabel : !vertical ? tip : undefined}
                   {...(vertical && { "data-tip-title": tip ?? label, "data-tip": count > 0 ? countLabel : "", "data-tip-side": "right" })}
-                  className={cx("tab", selected && "active", order.tabClass(t))}
+                  className={cx("tab", selected && "active")}
+                  {...order.tabAttrs(t)}
                   href={href({ name: "project", id: projectId, tab: target })}
                   {...order.tabProps(group, t)}
                 >

@@ -7,6 +7,7 @@ import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { showDropHint } from "@/foundation/ui/kit/DropHint";
 
@@ -156,9 +157,7 @@ export function useChatDropTargets<K>(onDrop: (chatId: number, key: K) => void, 
   };
 }
 
-/**
- * ドラッグでの並べ替え（グループ・プロジェクトで共通）。動かしているものを薄くし、入る位置に線を出す（後ろへ動かすときは相手の後ろ、前へは前）。
- */
+/** ドラッグでの並べ替え（グループ・プロジェクトで共通）。動かしているものを薄くし、入る位置に線を出す（後ろへ動かすときは相手の後ろ、前へは前） */
 export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dragType: string = GROUP_DRAG_TYPE) {
   const [dragging, setDragging] = useState<number>();
   const [target, setTarget] = useState<{ id: number; side: "before" | "after" }>();
@@ -175,7 +174,7 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
       onDragStart: (e: DragEvent) => {
         e.dataTransfer.setData(dragType, String(id));
         e.dataTransfer.effectAllowed = "move";
-        // 動かしているまとまりを薄くする（group-dragging）のは次の回（dragstart の中で描き直すと、ドラッグが取り消されることがある）
+        // 動かしているまとまりを薄くする（data-drag-source）のは次の回（dragstart の中で描き直すと、ドラッグが取り消されることがある）
         startRowDrag(e, () => setDragging(id));
       },
       onDragEnd: end,
@@ -213,8 +212,8 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
       }
       return true;
     },
-    /** 並べ替える要素に付けるクラス: 動かしている途中 / 入る位置の線 */
-    classFor: (id: number) => `${dragging === id ? "group-dragging" : ""} ${target?.id === id ? `drop-${target.side}` : ""}`,
+    /** 並べ替える要素に付ける属性: 動かしている途中（薄く）/ 入る位置の線（axis は並ぶ向き。横に並ぶなら "x"） */
+    attrsFor: (id: number, axis?: "x" | "y") => dragAttrs(target?.id === id && target.side, { source: dragging === id, axis }),
   };
 }
 

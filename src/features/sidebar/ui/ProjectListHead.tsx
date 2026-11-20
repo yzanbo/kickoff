@@ -199,7 +199,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
         />
       )}
       {more.menu && (
-        <PopupMenu at={more.menu.at} label="ほかのビュー" ignore=".sidebar-view-more" onClose={more.close}>
+        <PopupMenu at={more.menu.at} className="sidebar-view-menu" label="ほかのビュー" ignore=".sidebar-view-more" onClose={more.close}>
           {views.views
             .filter((v) => hidden.includes(v.id))
             .map((view) => (

@@ -25,7 +25,7 @@ export function useProjectLaneReorder(enabled: boolean) {
   return {
     laneProps: (lane: Lane) => {
       const id = idOf(lane);
-      return id === undefined ? {} : { ...reorder.dropProps(id), className: reorder.classFor(id) };
+      return id === undefined ? {} : { ...reorder.dropProps(id), ...reorder.attrsFor(id) };
     },
     headProps: (lane: Lane) => {
       const id = idOf(lane);

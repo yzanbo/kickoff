@@ -3,6 +3,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
 import { applyTabOrder, flatTabOrder, isNoopDrop, mergeSubsetOrder, orderAfterDrop, type DropSide, type TabDragging, type TabDropTarget, type TabGroup } from "./tabOrder";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 
 /** ドラッグで運ぶタブの種類（ほかのドラッグと見分ける） */
 const TAB_DRAG_TYPE = "application/x-kickoff-project-tab";
@@ -17,6 +18,8 @@ const TAB_DRAG_TYPE = "application/x-kickoff-project-tab";
  * all: defs がプロジェクトのタブの一部のとき（右サイドバーの右端の列。ボード・チャットがない）の全体のまとまり。落としたら全体の並びに戻して覚える（mergeSubsetOrder）
  */
 export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup<T>>(defs: readonly G[], vertical: boolean, all?: readonly TabGroup<{ tab: string }>[]) {
+  // 線の向き（横に並ぶタブは縦の線）
+  const axis = vertical ? "y" : "x";
   const [saved, setSaved] = useSetting(storage.settings.tabOrder);
   const groups = useMemo(() => applyTabOrder(defs, saved), [defs, saved]);
   const save = (next: string[]) => setSaved(all ? mergeSubsetOrder(flatTabOrder(applyTabOrder(all, saved)), next) : next);
@@ -96,15 +99,18 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
         end();
       },
     }),
-    /** 動かしているタブ・まとまりは薄く、落とす先には前・後ろの線（CSS の tab-drop-before / tab-drop-after） */
-    // ほかのまとまりの上にいる間は、まとまりごと動かすので、動かしているまとまり全体を薄くする
-    tabClass: (tab: string) =>
-      drop?.kind === "tab" && drop.key === tab ? `tab-drop-${drop.side}` : dragging?.tab === tab && drop?.kind !== "group" ? "tab-dragging" : undefined,
-    groupClass: (group: G) =>
-      drop?.kind === "group" && drop.key === group.key
-        ? `tab-drop-${drop.side}`
-        : dragging?.group === group.key && (drop?.kind === "group" || dragging.tab === null || group.tabs.length === 1)
-          ? "tab-dragging"
-          : undefined,
+    /**
+     * 動かしているタブ・まとまりは薄く（data-drag-source）、落とす先には前・後ろの線（data-drop。線はどちらも ::after に引く。縦のタブの
+     * 選んでいる印が ::before のため）。ほかのまとまりの上にいる間は、まとまりごと動かすので、動かしているまとまり全体を薄くする
+     */
+    tabAttrs: (tab: string) => {
+      const side = drop?.kind === "tab" && drop.key === tab && drop.side;
+      return dragAttrs(side, { source: !side && dragging?.tab === tab && drop?.kind !== "group", axis, line: "after" });
+    },
+    groupAttrs: (group: G) => {
+      const side = drop?.kind === "group" && drop.key === group.key && drop.side;
+      const source = !side && dragging?.group === group.key && (drop?.kind === "group" || dragging.tab === null || group.tabs.length === 1);
+      return dragAttrs(side, { source, axis, line: "after" });
+    },
   };
 }

@@ -23,6 +23,7 @@ import { queueFailed as failed } from "./queueFailed";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
@@ -273,13 +274,9 @@ export function QueuedMessages({
                   moveTo: (to) => void api.moveQueuedMany(chatId, selected, to).catch(failed),
                   remove: () => void api.removeQueuedMany(chatId, selected).then(clearSelection, failed),
                 }}
-                className={cx(
-                  "queued-row",
-                  selected.includes(m.id) && "selected",
-                  (dnd.drag?.id === m.id || dnd.drag?.ids?.includes(m.id)) && "dragging",
-                  // 入る位置の線（動かしても変わらないところには出さない）
-                  dnd.rowMark(i) && `drop-${dnd.rowMark(i)}`,
-                )}
+                className={cx("queued-row", selected.includes(m.id) && "selected")}
+                // 入る位置の線（動かしても変わらないところには出さない）
+                dragState={dragAttrs(dnd.rowMark(i), { source: dnd.drag?.id === m.id || dnd.drag?.ids?.includes(m.id) })}
                 actions={{
                   edit: () => edit.start([m]),
                   toggleStop: () => toggleStop(m.id, i),

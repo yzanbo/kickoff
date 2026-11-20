@@ -62,7 +62,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
       },
       onDragStart: drag
         ? (e: DragEvent) => {
-            // 薄く出す（dragging）のは、ドラッグの絵を写したあと
+            // 薄く出す（data-drag-source）のは、ドラッグの絵を写したあと
             startChatDrag(e, chat.id, () => setDragChat(chat.id));
           }
         : undefined,
@@ -71,8 +71,9 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     }),
     title: openTitle?.(chat),
     style: style?.(chat),
+    "data-drag-source": dragChat === chat.id ? "" : undefined,
   });
-  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel?.isShowing(chat.id) && "selected", selection?.has(chat.id) && "multi-selected");
+  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), panel?.isShowing(chat.id) && "selected", selection?.has(chat.id) && "multi-selected");
   return {
     cardProps,
     cardClass,

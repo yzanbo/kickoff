@@ -8,12 +8,13 @@ import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { alert } from "@/foundation/ui/kit/ask";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { childRowDrop } from "./childRowDrop";
+import { dragAttrs, type DragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { useManualChatReorder, useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
 
 /** 行（ChatRow）に付ける、手動の並べ替えの落とし先 */
 export interface RowReorderProps {
-  /** 入る位置の線（drop-before / drop-after）・子にする行の枠（drop-into） */
-  className?: string;
+  /** 入る位置の線（data-drop="before" / "after"）・子にする行の枠（"into"） */
+  attrs: DragAttrs;
   handlers: { onDragOver: (e: DragEvent) => void; onDragLeave: (e: DragEvent) => void; onDrop: (e: DragEvent) => void };
 }
 
@@ -92,11 +93,11 @@ export function useChatRowReorder(projectId: number, chats: readonly Chat[], ena
   return (chat: Chat): RowReorderProps | undefined => {
     const id = chat.id;
     const child = childHandlers(chat);
-    const className = target?.id === id ? `drop-${target.side}` : undefined;
+    const attrs = dragAttrs(target?.id === id && target.side);
     // 子チャットの行は並べ替えない（親から外す落とし先だけ）
-    if (chat.parent_chat_id !== null || !order.scope.has(id)) return { className, handlers: child };
+    if (chat.parent_chat_id !== null || !order.scope.has(id)) return { attrs, handlers: child };
     return {
-      className,
+      attrs,
       handlers: {
         onDragOver: (e) => {
           if (childDrop(chat)?.kind) return child.onDragOver(e);

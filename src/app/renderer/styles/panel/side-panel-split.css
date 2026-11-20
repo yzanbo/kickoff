@@ -116,10 +116,6 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-.panel-tab.split-dragging {
-  opacity: var(--drag-source-opacity);
-}
-
 /* ドラッグ中だけ中身の上に置く透明の覆い（分けていなければ中身いっぱい） */
 .panel-content:has(> .split-drop-cover) {
   position: relative;

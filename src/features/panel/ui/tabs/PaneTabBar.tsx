@@ -26,6 +26,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { tabFieldShown, type TabField } from "@/features/chatPanel/ui/tabs/tabFields";
 import { ArchivedChatsItem } from "@/features/chatPanel/ui/tabs/ArchivedChatsItem";
 import { AgentPanelAdds } from "@/features/chatPanel/ui/agents/AgentPanelAdds";
+import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 
 /**
  * パネルの 1 つのペインのタブの列。左にタブの列の道具（controls。左上のペインだけ）、タブ、
@@ -139,9 +140,8 @@ export function PaneTabBar({
           // 印: index 番目の前。まとまりの境目で前のまとまりの最後に入れるとき（after）・いちばん後ろは、前のタブの後ろに付ける
           insertAt && !insertAt.after && insertAt.index === i && "split-insert-before",
           insertAt && (insertAt.after || insertAt.index === display.length) && i === insertAt.index - 1 && "split-insert-after",
-          drag.dragging === t.key && "split-dragging",
         )}
-        extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
+        extra={{ ...drag.tabProps(t.key), ...dragAttrs(null, { source: drag.dragging === t.key }), onContextMenu: (e) => onMenu(t.key, e) }}
         rename={rename}
       />
     );
@@ -192,9 +192,10 @@ export function PaneTabBar({
             return (
               <div
                 key={c.key}
-                className={cx("panel-tab-group", hue === null && "plain", collapsed && "collapsed", strip.reorder.classFor(c), tabDrop.classFor(c))}
+                className={cx("panel-tab-group", hue === null && "plain", collapsed && "collapsed", tabDrop.classFor(c))}
                 // --cluster-tabs: 見せているタブの数（まとまりをどこまで細くできるかを CSS で決める）
                 style={{ ...(hue === null ? {} : { "--group-hue": hue }), "--cluster-tabs": shown.length } as CSSProperties}
+                {...strip.reorder.attrsFor(c)}
                 {...joinDropHandlers(strip.reorder.dropProps(c), tabDrop.dropProps(c))}
               >
                 <TabClusterHead

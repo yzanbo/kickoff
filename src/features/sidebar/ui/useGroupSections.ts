@@ -89,16 +89,16 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
       renaming: renaming === group.id,
       onRenameStart: () => setRenaming(group.id),
       onRenameEnd: () => setRenaming(undefined),
-      dropClass: cx(over === group.id && (blocked ? "drop-blocked" : "drop-target"), reorder.classFor(group.id)),
-      dropProps: dropProps(group.id),
+      dropClass: cx(over === group.id && (blocked ? "drop-blocked" : "drop-target")),
+      dropProps: { ...dropProps(group.id), ...reorder.attrsFor(group.id) },
       dragProps: reorder.handle(group.id),
     }),
     /** グループの並びの中の「No Group」の位置（前にあるグループの数） */
     ungroupedAt,
     /** 「No Group」のまとまり（見出しと中身を包む要素）: ドロップ先（チャットをグループから外す・並べ替えの位置）と、見出しのドラッグ */
     ungrouped: {
-      className: cx("custom-group", over === "none" && (blocked ? "drop-blocked" : "drop-target"), reorder.classFor(UNGROUPED_SORT_ID)),
-      dropProps: dropProps(null),
+      className: cx("custom-group", over === "none" && (blocked ? "drop-blocked" : "drop-target")),
+      dropProps: { ...dropProps(null), ...reorder.attrsFor(UNGROUPED_SORT_ID) },
       dragProps: reorder.handle(UNGROUPED_SORT_ID),
     },
     /** 開いているメニュー（プロジェクトの要素の中に描く） */

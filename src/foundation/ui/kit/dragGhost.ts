@@ -23,11 +23,12 @@ function blankImage(): HTMLImageElement {
   return blank;
 }
 
-/** 動かしている物の印（styles/ui/drag-ghost.css で薄くする。React が触らない属性なので、ドラッグ中に描き直されても消えない） */
+/** 動かしている物の印（styles/ui/state.css で薄くする。React が付けない物にも付き、ドラッグ中に描き直されても消えない） */
 const SOURCE_ATTR = "data-drag-source";
 
-/** 写しから外す、その場の様子のクラス（動かしている・選んでいる・落とす位置の印） */
-const TRANSIENT_CLASSES = ["dragging", "selected", "drop-before", "drop-after", "drop-target"];
+/** 写しから外す、その場の様子のクラス（選んでいる・落とし先の印）と属性（動かしている・入る位置の線。state.css と合わせる） */
+const TRANSIENT_CLASSES = ["selected", "drop-target"];
+const TRANSIENT_ATTRS = [SOURCE_ATTR, "data-drop", "data-drop-axis", "data-drop-line"];
 
 interface DragGhostOptions {
   /** 写して薄くする物（初めは e.currentTarget。つまみだけをドラッグできる行は、行を渡す） */
@@ -115,7 +116,7 @@ export function startDragGhost(e: DragEvent<Element>, { source, count = 1, after
 function cloneInPlace(el: HTMLElement, rect: DOMRect): { root: HTMLElement; clone: HTMLElement } {
   const clone = el.cloneNode(true) as HTMLElement;
   clone.removeAttribute("id");
-  clone.removeAttribute(SOURCE_ATTR);
+  for (const attr of TRANSIENT_ATTRS) clone.removeAttribute(attr);
   clone.classList.remove(...TRANSIENT_CLASSES);
   for (const node of clone.querySelectorAll("[id]")) node.removeAttribute("id");
   // 並べ方（flex・grid・sticky・位置の指定）から外れても、もとと同じ大きさで描く

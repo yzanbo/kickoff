@@ -102,7 +102,8 @@ export function NoteTree(props: Props) {
               </div>
             ) : (
               <button
-                className={cx("list-item tree-row tree-indent", selected && "selected", isDraggingNote(node.path) && "dragging")}
+                className={cx("list-item tree-row tree-indent", selected && "selected")}
+                data-drag-source={isDraggingNote(node.path) ? "" : undefined}
                 style={style}
                 title={node.path}
                 {...rowProps(node)}

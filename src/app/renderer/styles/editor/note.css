@@ -60,11 +60,6 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
-/* 運んでいる行は薄くする（どれを動かしているか分かるように） */
-:is(.tree-row, .note-chip-row).dragging {
-  opacity: var(--drag-source-opacity);
-}
-
 /* 一覧の行で名前を変えている間（行は押せる見た目にせず、入力欄を行の高さに収める） */
 .tree-row.renaming {
   padding-block: 1px;

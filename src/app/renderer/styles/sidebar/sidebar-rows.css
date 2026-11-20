@@ -82,32 +82,10 @@ button.chat-row {
   position: relative;
 }
 
-/* チャットの行のドラッグでの並べ替え（手動の並び）: 入る位置に線（グループの並べ替えの線と同じ見た目） */
-.chat-row-item.drop-before::before,
-.chat-row-item.drop-after::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  z-index: 2;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--accent-bright);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
-  pointer-events: none;
-  animation: drop-line-in 0.12s ease-out;
-}
-
-.chat-row-item.drop-before::before {
-  top: -1px;
-}
-
-.chat-row-item.drop-after::after {
-  bottom: -1px;
-}
+/* チャットの行のドラッグでの並べ替え（手動の並び）の入る位置の線は ui/state.css の既定の形（data-drop） */
 
 /* 子チャットの行を先祖の行に重ねたとき（その子に上げる）: 行（子の行を除いた自分の行）を点線の枠で囲む（グループの落とし先と同じ見た目） */
-.chat-row-item.drop-into > .chat-row {
+.chat-row-item[data-drop="into"] > .chat-row {
   outline: 1px dashed var(--accent);
   outline-offset: -1px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);

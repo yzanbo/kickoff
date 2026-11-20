@@ -40,15 +40,6 @@
   background: var(--accent);
 }
 
-/* 動かしている物（startDragGhost がドラッグの間だけ付ける）。まとまりごと薄くしている中（グループの並べ替え）では重ねて薄くしない */
-[data-drag-source] {
-  opacity: var(--drag-source-opacity);
-}
-
-.group-dragging [data-drag-source] {
-  opacity: 1;
-}
-
 /*
  * 落とせない落とし先（作業中のチャットをほかのプロジェクト・「アーカイブ済み」へ重ねたときなど）: 赤い点線の枠と、
  * カーソルの横の理由の札（ui/DropHint.tsx。ドラッグの絵より上に出す）

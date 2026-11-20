@@ -97,67 +97,26 @@
   visibility: hidden;
 }
 
-/* タブの並べ替え（ドラッグ。useReorder）: 落とす先のタブの前か後ろに縦の線、動かしているタブは薄く */
-.sidebar-view-tab[data-drop="before"],
-.sidebar-view-tab[data-drop="after"] {
+/* タブの並べ替え（ドラッグ。useReorder）: 落とす先のタブの前か後ろの隙間に縦の線（ui/state.css）、動かしているタブは薄く */
+.sidebar-view-tab {
+  --drop-offset: -3px;
+  --drop-inset: 0;
+  --drop-radius: 1px;
+  --drop-glow: none;
+  --drop-anim: none;
+  --drop-z: auto;
+}
+
+.sidebar-view-tab[data-drop] {
   position: relative;
-}
-
-.sidebar-view-tab[data-drop="before"]::after,
-.sidebar-view-tab[data-drop="after"]::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--accent-bright);
-  content: "";
-  pointer-events: none;
-}
-
-.sidebar-view-tab[data-drop="before"]::after {
-  left: -3px;
-}
-
-.sidebar-view-tab[data-drop="after"]::after {
-  right: -3px;
-}
-
-.sidebar-view-tab[data-drag-source] {
-  opacity: var(--drag-source-opacity);
 }
 
 /*
- * 「ほかのビュー」の ▾ のメニューの項目もドラッグで並べ替える（縦に並ぶので、落とす先の線は項目の上か下に横に引く）。
+ * 「ほかのビュー」の ▾ のメニューの項目もドラッグで並べ替える（縦に並ぶので、落とす先の線は項目の上か下に横に引く。形は ui/menu.css）。
  * タブをドラッグして ▾ に重ねると、いちばん後ろへ落とせる印に枠を付ける（重ねたまま待つとメニューが開く）
  */
-.menu button[data-drop="before"],
-.menu button[data-drop="after"] {
-  position: relative;
-}
-
-.menu button[data-drop="before"]::after,
-.menu button[data-drop="after"]::after {
-  position: absolute;
-  right: 4px;
-  left: 4px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--accent-bright);
-  content: "";
-  pointer-events: none;
-}
-
-.menu button[data-drop="before"]::after {
-  top: -1px;
-}
-
-.menu button[data-drop="after"]::after {
-  bottom: -1px;
-}
-
-.menu button[data-drag-source] {
-  opacity: var(--drag-source-opacity);
+.sidebar-view-menu button {
+  --drop-inset: 4px;
 }
 
 .sidebar-view-more[data-drop="end"] {

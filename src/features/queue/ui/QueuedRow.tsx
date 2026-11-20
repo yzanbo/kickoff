@@ -7,6 +7,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
+import type { DragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui/queueActionLooks";
 import { cx } from "@/foundation/ui/lib/cx";
 import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
@@ -54,6 +55,7 @@ export function QueuedRow({
   onSelect,
   groupActions,
   className,
+  dragState,
   actions,
   onDragStart,
   onDragEnd,
@@ -82,6 +84,8 @@ export function QueuedRow({
   /** 選んだもの全体への操作（右クリックのメニュー） */
   groupActions: { edit: () => void; sendTogether: () => void; merge: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
   className: string;
+  /** 動かしている行・入る位置の線の属性（dragAttrs） */
+  dragState: DragAttrs;
   actions: QueuedRowActions;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -99,6 +103,7 @@ export function QueuedRow({
     <>
     <div
       className={className}
+      {...dragState}
       onDragOver={onDragOver}
       onDrop={onDrop}
       // Shift ＋クリックで範囲を選ぶときに、文の選択が伸びないようにする

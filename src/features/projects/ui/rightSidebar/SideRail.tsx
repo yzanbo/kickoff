@@ -69,14 +69,14 @@ export function SideRail({ projectId, open, held = false, inWindow = false }: { 
           <RailTab label="ブラウザ" icon={Globe} {...tabState("browser")} />
         </div>
         {order.groups.map((group) => (
-          <div key={group.key} className={cx("project-tab-group", group.tabs.length > 1 && "boxed", order.groupClass(group))} aria-label={group.label} {...order.groupProps(group)}>
+          <div key={group.key} className={cx("project-tab-group", group.tabs.length > 1 && "boxed")} {...order.groupAttrs(group)} aria-label={group.label} {...order.groupProps(group)}>
             {group.tabs.length > 1 && (
               <span className="project-tab-group-handle side-rail-handle" title={`ドラッグで「${group.label}」のまとまりごと動かす`} {...order.groupHandleProps(group)}>
                 <GripHorizontal size={12} aria-hidden />
               </span>
             )}
             {group.tabs.map((t) => (
-              <RailTab key={t.tab} label={t.label} icon={t.icon} className={order.tabClass(t.tab)} {...tabState(t.tab)} {...order.tabProps(group, t.tab)} />
+              <RailTab key={t.tab} label={t.label} icon={t.icon} {...order.tabAttrs(t.tab)} {...tabState(t.tab)} {...order.tabProps(group, t.tab)} />
             ))}
           </div>
         ))}

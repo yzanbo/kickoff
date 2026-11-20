@@ -181,3 +181,4 @@
 @import "./panel/project-chat.css" layer(feature);
 @import "./panel/side-rail.css" layer(feature);
 @import "./panel/agent-panel.css" layer(feature);
+@import "./ui/state.css" layer(state);

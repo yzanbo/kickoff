@@ -220,34 +220,18 @@
   font-weight: 600;
 }
 
-/* ビューのタブの並べ替え（ドラッグ。useSavedViewDrag）: 落とす先のタブの前か後ろの 2px の隙間に縦の線、動かしているタブは薄く */
-.board-view-tab[data-drop="before"],
-.board-view-tab[data-drop="after"] {
+/* ビューのタブの並べ替え（ドラッグ。useReorder）: 落とす先のタブの前か後ろの 2px の隙間に縦の線（ui/state.css）、動かしているタブは薄く */
+.board-view-tab {
+  --drop-offset: -3px;
+  --drop-inset: 0;
+  --drop-radius: 1px;
+  --drop-glow: none;
+  --drop-anim: none;
+  --drop-z: auto;
+}
+
+.board-view-tab[data-drop] {
   position: relative;
-}
-
-.board-view-tab[data-drop="before"]::after,
-.board-view-tab[data-drop="after"]::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--accent-bright);
-  content: "";
-  pointer-events: none;
-}
-
-.board-view-tab[data-drop="before"]::after {
-  left: -3px;
-}
-
-.board-view-tab[data-drop="after"]::after {
-  right: -3px;
-}
-
-.board-view-tab[data-drag-source] {
-  opacity: var(--drag-source-opacity);
 }
 
 .board-view-add {
