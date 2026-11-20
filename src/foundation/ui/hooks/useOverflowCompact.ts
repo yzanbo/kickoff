@@ -48,6 +48,8 @@ export function useOverflowCompact<T extends HTMLElement>(resetKey: unknown, sla
     const el = ref.current;
     if (!el) return;
     const check = () => {
+      // 隠れている間（display: none で幅 0）は測らない（入らないと見て詰め、表に戻ったときに戻し直すことになる）
+      if (el.clientWidth === 0) return;
       if (!compact) {
         const width = maxContentWidth(el) + slack;
         if (width > el.clientWidth) {
