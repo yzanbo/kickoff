@@ -4,7 +4,6 @@ import { hasConnectCommands } from "@shared/database/dbPrep";
 import type { DbConnection } from "@shared/database/types";
 import type { Project } from "@shared/projects/types";
 import { Invalid } from "@/foundation/core/errors";
-import type { Store } from "@/foundation/core/db/store";
 import { formatAiConnections, formatAiObjects, formatAiQueryResult, formatAiTable } from "./aiFormat";
 import { assertAiSql, type DatabaseService } from "./service";
 import { DbPasswordLocked } from "./secrets";
@@ -40,16 +39,15 @@ async function askUserIfLocked<T>(run: () => Promise<T>): Promise<T> {
 }
 
 /** プロジェクトに AI に見せる接続があるか（なければツールを出さない） */
-export function hasAiConnections(store: Store, projectId: number): boolean {
-  return store.dbConnections.list(projectId).some((c) => c.ai_access !== "none");
+export function hasAiConnections(databases: DatabaseService, projectId: number): boolean {
+  return databases.stores.dbConnections.list(projectId).some((c) => c.ai_access !== "none");
 }
 
 /**
  * 1 回の実行に渡す DB のツールの中身。workdir はチャットの作業場所（SQLite のファイルをワークツリーの中から開く。null なら本体）
  */
-export function createDbAiTools(deps: { store: Store; databases: DatabaseService }, { project, workdir, chatId }: { project: Project; workdir: string | null; chatId: number }): DbAiTools {
-  const { store, databases } = deps;
-  const visible = () => store.dbConnections.list(project.id).filter((c) => c.ai_access !== "none");
+export function createDbAiTools(databases: DatabaseService, { project, workdir, chatId }: { project: Project; workdir: string | null; chatId: number }): DbAiTools {
+  const visible = () => databases.stores.dbConnections.list(project.id).filter((c) => c.ai_access !== "none");
 
   /** 名前で接続を引く（1 つしかなければ省いてよい。見せない接続は名前を出さずに断る） */
   const resolve = (name: string | undefined): DbConnection => {

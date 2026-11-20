@@ -1,4 +1,5 @@
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
 
 /**
  * GitHub（v1）。github_ci_notices は CI の失敗を知らせた実行（同じ実行を起動のたびに知らせ直さない）、
@@ -18,3 +19,6 @@ CREATE TABLE worktree_pr_dismissals (
   PRIMARY KEY (project_id, pr_number)
 ) STRICT;
 `;
+
+/** CI の失敗を知らせた実行（主キーはプロジェクトと実行の 2 列） */
+export const githubCiNoticesTable = table("github_ci_notices", { project_id: col.int(), run_id: col.int(), notified_at: col.time() }, { key: "run_id", order: "run_id DESC" });

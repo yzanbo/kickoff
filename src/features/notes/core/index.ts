@@ -19,6 +19,8 @@ export interface NotesDeps {
   chat: { runner: Runner };
   /** ノートの写しを添付にし、ツールの結果の画像はノートのフォルダからも読む */
   attachments: AttachmentsApi;
+  /** DB の接続の手順ノートを付け替える（ノートの名前を変えた・動かしたとき。database はあとに作るので組み立てが渡す） */
+  remapDbNotes: (projectId: number, from: string, to: string) => void;
 }
 
 /** プロジェクトのノート（保存先はプロジェクトの外。外での変更の見張りは止めるときに閉じる） */
@@ -26,7 +28,7 @@ export function createNotes(k: KernelWithStore, deps: NotesDeps, env: { defaultD
   const { store, bus } = k;
   const { trash, chat } = deps;
   const notes = new NoteService({
-    store,
+    store: { projects: store.projects, settings: store.settings, chats: store.chats, dbConnections: { remapNotePath: deps.remapDbNotes } },
     defaultDir: env.defaultDir,
     providers: deps.ai.providers,
     publish: (e) => bus.publish(e),

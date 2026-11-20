@@ -1,6 +1,6 @@
 // AI の API キー: キーチェーンの鍵で暗号化して secrets に置く。画面・API・SSE には出さず、置いたかだけを返す
 import type { ProviderAuthMode, ProviderId } from "@shared/settings/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { Kernel } from "@/foundation/core/kernel";
 import { openSecret, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 
 /** 1 回の実行のログインの仕方（API キーのときは、開いたキー。開けなければ null） */
@@ -11,7 +11,7 @@ export interface ProviderAuth {
 
 export class ProviderKeyVault {
   constructor(
-    private readonly store: Store,
+    private readonly store: Pick<Kernel, "settings" | "secrets">,
     private readonly cipher: SecretCipher | null,
   ) {}
 

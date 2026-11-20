@@ -24,7 +24,15 @@ const actionBody = z.object({
 const brewStopBody = z.object({ name: z.string().regex(/^[\w@.+-]{1,200}$/) }) satisfies z.ZodType<DockerBrewStopBody>;
 
 /** Docker タブ（端末には開かない = http/deviceAccess.ts。スマホの画面にはタブを出さない） */
-export function dockerRoutes(app: Hono, { store, docker, bus }: { store: Store; docker: DockerService; bus: Bus }) {
+export interface DockerRouteDeps {
+  store: Pick<Store, "projects" | "chats" | "groups">;
+  docker: DockerService;
+  bus: Bus;
+  /** プロジェクトの DB の接続（「DB で開く」で同じ DB の接続を探す。組み立てが database の店を渡す） */
+  dbConnectionsOf: (projectId: number) => Parameters<typeof toImportCandidates>[1];
+}
+
+export function dockerRoutes(app: Hono, { store, docker, bus, dbConnectionsOf }: DockerRouteDeps) {
   const { withProject } = lookups(store);
 
   // 一覧（?refresh=1 は覚えた compose の設定を捨てて取り直す ［↻］）
@@ -80,7 +88,7 @@ export function dockerRoutes(app: Hono, { store, docker, bus }: { store: Store; 
     const service = z.string().min(1).max(200).parse(queryOf(c, "service"));
     const result = await docker.dbCandidate(project, compose, service);
     if ("blocked" in result) return c.json({ connection_id: null, candidate: null, blocked: result.blocked } satisfies DockerDbTarget);
-    const connections = store.dbConnections.list(project.id);
+    const connections = dbConnectionsOf(project.id);
     const same = sameServerConnection(connections, result.found);
     const candidate = same ? null : (toImportCandidates([result.found], connections, project.repo_path)[0] ?? null);
     return c.json({ connection_id: same?.id ?? null, candidate, blocked: null } satisfies DockerDbTarget);

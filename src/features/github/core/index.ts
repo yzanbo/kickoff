@@ -13,6 +13,7 @@ import { GitHubService } from "./service";
 import { ciRoutes } from "./routes/ci";
 import { githubRoutes } from "./routes/github";
 import { worktreePrRoutes } from "./routes/worktreePrs";
+import { createGitHubStores } from "./db/stores";
 
 export type { WorktreePrWatch } from "./prWatch";
 
@@ -28,6 +29,8 @@ export interface GitHubEnv {
   accounts?: () => Promise<GitHubAccount[]>;
 }
 
+export { createGitHubStores } from "./db/stores";
+
 export interface GitHubApi {
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
@@ -38,7 +41,9 @@ const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_re
 
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
 export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi; projects: ProjectsApi }, env: GitHubEnv): CoreFeature<GitHubApi> {
-  const { store, bus } = k;
+  const { bus } = k;
+  const stores = createGitHubStores(k.db);
+  const store = { ...stores, projects: k.store.projects, chats: k.store.chats, groups: k.store.groups };
   // プロジェクトの頼み（ルート）の中の gh・git は、そのプロジェクトで選んだ GitHub のアカウントで動かす
   k.workplace.projectScopes.add((project, run) => runAsGitHubAccount(project.github_account, run));
   // PR のブランチのワークツリーを作ったら、実行環境を整える
@@ -52,7 +57,7 @@ export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi
     listWorktrees,
     ...env.prWatch,
     alsoCheck: async (project) => {
-      for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
+      for (const failure of await ci.watch(project, stores)) bus.publish({ type: "ci_failed", failure });
     },
   });
   // ワークツリーを消した・戻したら、その PR の知らせ・印を作り直す（GitHub には聞き直さない）

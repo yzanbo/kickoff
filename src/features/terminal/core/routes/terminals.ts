@@ -39,7 +39,7 @@ const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host
  * シェルはコアの TerminalSessions で動く。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */
-export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Store; terminals: TerminalSessions; bus: Bus }) {
+export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<Store, "settings" | "devices" | "projects" | "chats" | "groups">; terminals: TerminalSessions; bus: Bus }) {
   const { withProject } = lookups(store);
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）

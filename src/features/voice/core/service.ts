@@ -1,4 +1,4 @@
-import type { Store } from "@/foundation/core/db/store";
+import type { Kernel } from "@/foundation/core/kernel";
 import type { SecretSaved } from "@shared/foundation/apiTypes";
 import type { VoiceStatus } from "@shared/voice/types";
 import type { BusEvent } from "@shared/foundation/contract";
@@ -14,7 +14,7 @@ import { Invalid } from "@/foundation/core/errors";
 import type { OsSpeech } from "./types";
 
 interface VoiceServiceOptions {
-  store: Store;
+  store: Pick<Kernel, "settings" | "secrets">;
   /** モデルの保存先（アプリの保存先の models/） */
   modelsDir: string;
   /** モデルのダウンロードの進み具合を画面へ配る */
@@ -29,7 +29,7 @@ interface VoiceServiceOptions {
 
 /** 音声入力の文字起こし（設定の provider で、この Mac の whisper-cli・macOS の音声認識・OpenAI に振り分ける）と、モデルの管理 */
 export class VoiceService {
-  private readonly store: Store;
+  private readonly store: Pick<Kernel, "settings" | "secrets">;
   private readonly modelsDir: string;
   private readonly engines: TranscribeEngines;
   private readonly findTools: () => Promise<VoiceTools>;

@@ -24,6 +24,8 @@ import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
 import { sessionRoutes } from "./routes/sessions";
 import { turnRoutes } from "./routes/turns";
+import { databaseStats } from "./db/stats";
+import type { DatabaseStats } from "@shared/chat/databaseStats";
 
 export type { Runner } from "./runner";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
@@ -86,6 +88,10 @@ export interface ChatApi {
   attach(upper: ChatUpper): void;
   /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
   onChatsPurged(fn: (chatIds: number[]) => void | Promise<void>): void;
+  /** チャットの名前をまとめて引く（ゴミ箱のチャットも。もうないチャットは入れない） */
+  titlesOf(ids: readonly number[]): Map<number, string>;
+  /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
+  stats(): DatabaseStats;
 }
 
 /** チャットの実行（受付 Runner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
@@ -130,7 +136,8 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
   registerChatTrash(trashBin, purgeDeps);
   registerProjectTrash(trashBin, purgeDeps);
   // ゴミ箱が読むチャット（消したチャットの名前・AI の kickoff-trash で入れたものを出すプロジェクト）
-  trashBin.useChats({ titlesOf: chatTitlesOf(k.db), projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
+  const titlesOf = chatTitlesOf(k.db);
+  trashBin.useChats({ titlesOf, projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
   registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs });
@@ -161,6 +168,8 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
         runner.attach({ ...rest, notes, noteDirOf: (project) => notes.dirOf(project) });
       },
       onChatsPurged: (fn) => void purged.push(fn),
+      titlesOf,
+      stats: () => databaseStats(k.db, k.db.location()),
     },
     routes: [
       {

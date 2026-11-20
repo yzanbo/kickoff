@@ -6,7 +6,7 @@ import { setup, until } from "@/app/core/testing/testServer";
 test("引き継ぎの状態を返し、古い区切りや未確認の再送を断る", async () => {
   const { call, store, project, provider } = setup();
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "会話の資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  const switched = store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "会話の資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
   store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex");
   store.chatProviderHandoffs.markUncertain(chat.id, switched.event.id, "受信不明");
   const state = await call("GET", `/api/chats/${chat.id}/provider-handoff`);
@@ -29,7 +29,7 @@ test("引き継ぎの状態を返し、古い区切りや未確認の再送を�
 test("準備に失敗した引き継ぎは同じ区切りで再試行できる", async () => {
   const { call, store, project } = setup();
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "Git の状態だけ", state: "blocked", error: "準備に失敗", attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  const switched = store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "Git の状態だけ", state: "blocked", error: "準備に失敗", attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/retry`, { event_id: switched.event.id + 1 })).status, 409);
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/retry`, { event_id: switched.event.id })).status, 200);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "ready");

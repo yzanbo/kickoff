@@ -11,7 +11,7 @@ export interface ChatProviderSession {
 
 /**
  * 離れた AI のセッションの覚え（chat_provider_sessions。providerSwitch の表）。いまの AI のセッションは chats.session_id だけが持ち、
- * ここには行を置かない（切り替えるときに離れる AI の分を書き、戻る AI の分を読んで消す。Store.commitProviderSwitch）
+ * ここには行を置かない（切り替えるときに離れる AI の分を書き、戻る AI の分を読んで消す。store.providerSwitch.commit）
  */
 export function createChatProviderSessionStore(db: DatabaseSync) {
   return {

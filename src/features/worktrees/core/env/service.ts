@@ -6,7 +6,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { GitWorktree } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeComposeName, type WorktreeEnv } from "@shared/worktrees/envTypes";
-import type { Store } from "@/foundation/core/db/store";
+import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { StoredWorktreeEnv } from "@/features/worktrees/core/db/worktreeEnvs";
 import { findComposeFiles, upFilesFor } from "@/features/docker/core/compose";
 import { STANDARD_COMPOSE_NAMES } from "@/features/docker/core/parse";
@@ -37,7 +37,7 @@ function toApiEnv(env: StoredWorktreeEnv): WorktreeEnv {
 
 export class WorktreeEnvService {
   constructor(
-    private readonly store: Store,
+    private readonly store: Pick<WorktreeStores, "worktreeEnvs">,
     private readonly docker: DockerService,
   ) {}
 

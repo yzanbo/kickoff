@@ -29,7 +29,7 @@ export interface PushSender {
 
 interface CenterOptions {
   bus: Bus;
-  store: Store;
+  store: Pick<Store, "chats" | "projects" | "settings" | "databaseId" | "devices">;
   viewing: ViewingRegistry;
   desktop?: DesktopNotify;
   push?: PushSender;

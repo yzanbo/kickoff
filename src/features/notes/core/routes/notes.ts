@@ -39,7 +39,7 @@ const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satis
  * プロジェクトのノート（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・ノートのチャットを始める・AI のフォルダの整理案（動かさない））。
  * 保存先はプロジェクトの外（設定の notes_dir の下の、プロジェクトごとのフォルダ）。パスはノートのフォルダからの相対
  */
-export function noteRoutes(app: Hono, { store, notes, runner, uploads }: { store: Store; notes: NoteService; runner: Runner; uploads: UploadStore }) {
+export function noteRoutes(app: Hono, { store, notes, runner, uploads }: { store: Pick<Store, "projects" | "chats" | "groups">; notes: NoteService; runner: Runner; uploads: UploadStore }) {
   const { withProject } = lookups(store);
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所

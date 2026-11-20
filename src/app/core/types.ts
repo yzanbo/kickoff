@@ -1,6 +1,6 @@
 // コアの起動の値（CoreOptions）と、起動したコアの口（Core）。startCore と、コアのプロセスの入口（hostRun.ts）が読む
 import type { Bus } from "@/foundation/core/bus";
-import type { DatabaseStats } from "@/foundation/core/db/stats";
+import type { DatabaseStats } from "@shared/chat/databaseStats";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";

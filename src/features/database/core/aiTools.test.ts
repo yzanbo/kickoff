@@ -38,22 +38,22 @@ function prepare() {
   `);
   db.close();
   const chat = ctx.store.chats.create({ project_id: ctx.project.id, provider: "claude", title: "c", status: "completed" });
-  const tools = createDbAiTools({ store: ctx.store, databases: ctx.databases }, { project: ctx.project, workdir: null, chatId: chat.id });
+  const tools = createDbAiTools(ctx.databases, { project: ctx.project, workdir: null, chatId: chat.id });
   return { ...ctx, tools };
 }
 
 const allow: DbAiApprove = async () => null;
 
 test("AI の DB のツール: 見せない接続は一覧に出さず名前でも使えない。1 つだけなら名前を省ける", async () => {
-  const { store, project, tools } = prepare();
-  assert.equal(hasAiConnections(store, project.id), false);
+  const { store, project, tools, databases } = prepare();
+  assert.equal(hasAiConnections(databases, project.id), false);
   store.dbConnections.create(project.id, sqliteBody({ name: "本番", ai_access: "none" }));
-  assert.equal(hasAiConnections(store, project.id), false);
+  assert.equal(hasAiConnections(databases, project.id), false);
   assert.match(tools.connections(), /AI に見せる DB の接続がありません/);
   await assert.rejects(tools.objects({ connection: "本番" }), /AI に見せる接続はありません/);
 
   store.dbConnections.create(project.id, sqliteBody());
-  assert.equal(hasAiConnections(store, project.id), true);
+  assert.equal(hasAiConnections(databases, project.id), true);
   const list = tools.connections();
   assert.match(list, /開発/);
   assert.ok(!list.includes("本番") && !list.includes("app.db"));
@@ -105,7 +105,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
   }) as typeof client.request;
   const databases = new DatabaseService({ store, client, vault: new DbSecretVault(store, null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  const tools = createDbAiTools({ store, databases }, { project, workdir: null, chatId: chat.id });
+  const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const c = store.dbConnections.create(project.id, { ...sqliteBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });
   await tools.query({ sql: "select 1" }, allow);
   await tools.query({ sql: "select 2" }, allow);
@@ -147,7 +147,7 @@ test("AI の DB のツール: 保存したパスワードをキーチェーン�
   const secretCipher = { encrypt: async (plain: string) => plain, decrypt: async () => Promise.reject(new Error("User denied")) };
   const { store, project, databases } = setup({ secretCipher });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  const tools = createDbAiTools({ store, databases }, { project, workdir: null, chatId: chat.id });
+  const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
   store.dbConnections.create(project.id, body);
   await assert.rejects(tools.objects({}), /「本番」の保存したパスワードを読めませんでした.*利用者に DB タブから接続し直してもらってください/);
@@ -161,7 +161,7 @@ test("AI の DB のツール: 100 行を超えたら、すべての行を CSV �
   for (let i = 0; i < 298; i++) insert.run(`u${i}`);
   db.close();
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c2", status: "completed" });
-  const tools = createDbAiTools({ store, databases }, { project, workdir: null, chatId: chat.id });
+  const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const c = store.dbConnections.create(project.id, sqliteBody());
   const text = await tools.query({ sql: "select id, name from users order by id" }, allow);
   assert.match(text, /全 300 行のうち頭の 100 行/);

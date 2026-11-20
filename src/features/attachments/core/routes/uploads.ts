@@ -33,7 +33,7 @@ const captureSchema = z
   .refine((b) => b.image_base64 === undefined || CAPTURE_IMAGE_TYPES.includes(b.mime), "画像の形式が対応していません") satisfies z.ZodType<CaptureBody>;
 
 /** 添付ファイル（受け取り・画面での表示）と、ツールの結果の画像の表示 */
-export function uploadRoutes(app: Hono, { uploads, store, imageDirs }: { uploads: UploadStore; store: Store; imageDirs: readonly ((project: Project) => string)[] }) {
+export function uploadRoutes(app: Hono, { uploads, store, imageDirs }: { uploads: UploadStore; store: Pick<Store, "projects" | "chats" | "groups" | "events">; imageDirs: readonly ((project: Project) => string)[] }) {
   const { withChat } = lookups(store);
 
   // 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて、AI に読ませる）

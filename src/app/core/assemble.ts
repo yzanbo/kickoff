@@ -80,14 +80,15 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
   const files = createFiles(k, { trash: trash.api });
   const git = createGit(k);
-  const docker = createDocker(k, { engine: env.platformParts.dockerEngine, ...env.docker });
+  // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
+  const docker = createDocker(k, { dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
   const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api }, env.github);
-  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api }, env.notes);
+  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser({ control: env.browser });
-  const ports = createPorts(k, { selfPid: env.hostPid, ...env.ports });
+  const ports = createPorts(k, { worktrees: worktrees.api }, { selfPid: env.hostPid, ...env.ports });
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）
   const terminals = terminal.api;
   chat.api.attach({

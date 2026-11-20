@@ -24,7 +24,7 @@ function setup() {
   fs.writeFileSync(path.join(noteDir, "機能の仕様", "図.html"), "<h1>図</h1>");
   fs.writeFileSync(path.join(noteDir, "画像.png"), "");
   const published: BusEvent[] = [];
-  const toolsOf = (chatId: number) => createAiOpenTools({ store, publish: (e) => published.push(e), noteDirOf: () => noteDir }, chatId);
+  const toolsOf = (chatId: number) => createAiOpenTools({ store, publish: (e) => published.push(e), noteDirOf: () => noteDir, dbConnectionsOf: (id) => store.dbConnections.list(id) }, chatId);
   return { ctx, root, child, grandchild, other, noteDir, published, toolsOf };
 }
 

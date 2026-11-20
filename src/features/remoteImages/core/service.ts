@@ -6,7 +6,7 @@ import path from "node:path";
 import type { Chat, ChatImageHost } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { remoteImageOf } from "@shared/remoteImages/remoteImages";
-import type { Store } from "@/foundation/core/db/store";
+import type { createChatImageStore } from "./db/chatImages";
 import { Invalid } from "@/foundation/core/errors";
 import { fetchRemoteImage, type FetchedImage, type ImageFetcher } from "./fetchImage";
 
@@ -18,7 +18,8 @@ const FETCH_TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 3;
 
 export interface RemoteImageServiceOptions {
-  store: Store;
+  /** 自分の表の店（表示を許可したホストと、取ってきた画像の覚え） */
+  store: { chatImages: ReturnType<typeof createChatImageStore> };
   /** 覚えた画像の置き場（データのフォルダの image-cache） */
   dir: string;
   publish: (e: BusEvent) => void;
@@ -33,7 +34,7 @@ const keyOf = (url: string) => createHash("sha256").update(url).digest("hex");
 
 export class RemoteImageService {
   readonly dir: string;
-  private readonly store: Store;
+  private readonly store: RemoteImageServiceOptions["store"];
   private readonly publish: (e: BusEvent) => void;
   private readonly fetcher: ImageFetcher;
   private readonly maxCacheBytes: number;

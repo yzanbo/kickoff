@@ -3,6 +3,7 @@
 import path from "node:path";
 import type { PortProcess } from "@shared/ports/types";
 import type { Store } from "@/foundation/core/db/store";
+import type { WorktreeStores } from "@/features/worktrees/core/index";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import type { ProcessProbe, ProcessRow } from "@/foundation/core/platform/types";
@@ -14,7 +15,7 @@ const STOP_WAIT_MS = 5_000;
 const STOP_POLL_MS = 200;
 
 interface Options {
-  store: Store;
+  store: Pick<Store, "projects"> & Pick<WorktreeStores, "worktreeEnvs">;
   probe: ProcessProbe;
   /** 自分（Kickoff）の pid。自分と祖先は一覧に出さず、止めさせない */
   selfPid?: number;
@@ -26,7 +27,7 @@ interface Options {
 
 export class PortProcessService {
   probe: ProcessProbe;
-  private readonly store: Store;
+  private readonly store: Options["store"];
   private readonly selfPid: number;
   private readonly selfBundle: string | null;
   private readonly stopWaitMs: number;

@@ -19,7 +19,7 @@ const toApi = ({ details: _details, ...item }: StoredTrashItem): TrashItem => it
  * Kickoff のゴミ箱。一覧はプロジェクトごと（AI が kickoff-trash で入れたばかりのものも取り込んでから返す）、
  * 元に戻すは戻した場所（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら別の名前で戻す）。3 日で消えるのを待たずに、1 件・まとめて完全に消せる
  */
-export function trashRoutes(app: Hono, { store, items, trashBin }: { store: Store; items: TrashStore; trashBin: TrashService }) {
+export function trashRoutes(app: Hono, { store, items, trashBin }: { store: Pick<Store, "projects" | "chats" | "groups">; items: TrashStore; trashBin: TrashService }) {
   const { withProject } = lookups(store);
 
   app.get("/api/projects/:id/trash", withProject, async (c) => c.json((await trashBin.list(c.var.project.id)).map(toApi)));

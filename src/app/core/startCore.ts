@@ -21,7 +21,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     token: served.token,
     localUrl,
     bus: k.bus,
-    databaseStats: () => k.store.stats(),
+    databaseStats: () => assembled.apis.chat.stats(),
     runningChats: assembled.runningChats,
     awakeNeeds: assembled.awakeNeeds,
     browserLoginUrl: () => `${localUrl}/login?code=${served.browserLogin.issue()}`,

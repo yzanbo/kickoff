@@ -30,7 +30,7 @@ const MAX_ASSET_BYTES = 50 * 1024 * 1024;
 export const MAX_NOTE_SOURCE_CHARS = 200_000;
 
 interface NoteServiceOptions {
-  store: Store;
+  store: Pick<Store, "projects" | "settings" | "chats"> & { dbConnections: { remapNotePath(projectId: number, from: string, to: string): void } };
   /** 設定の notes_dir が null のときの親フォルダ（製品版と開発版で別） */
   defaultDir: string;
   providers: Record<ProviderId, AgentProvider>;

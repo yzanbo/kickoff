@@ -140,9 +140,10 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
           read_only: false,
           ai_access: "allow",
         });
+        // DB のツールを出すかは database の店の接続で決める（ツールの中身は呼ばない）
+        core.runner.attach({ databases: { stores: core.store } as unknown as DatabaseService });
         return startPlain(core);
       },
-      { databases: unused<DatabaseService>("databases") },
     ),
 };
 

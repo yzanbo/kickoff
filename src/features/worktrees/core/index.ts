@@ -9,9 +9,11 @@ import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
 import { worktreeRoutes } from "./routes/worktrees";
+import { createWorktreeStores, type WorktreeStores } from "./db/stores";
 
 export type { WorktreeEnvService } from "./env/service";
 export type { WorktreeFinisher } from "./finish";
+export { createWorktreeStores, type WorktreeStores } from "./db/stores";
 
 export interface WorktreesDeps {
   trash: TrashApi;
@@ -29,19 +31,26 @@ export interface WorktreesApi {
   envs: WorktreeEnvService;
   /** 後始末（画面の「消す」と AI の finish_worktree） */
   finisher: WorktreeFinisher;
+  /** 表の店（実行環境と色。ポートの帯の持ち主を ports が読む） */
+  stores: WorktreeStores;
+  /** ワークツリーの DB から作った接続を引く口（database が登録する。消す確認の「この接続も消す」） */
+  useDbConnections(fn: (folder: string) => { id: number; name: string }[]): void;
 }
 
 /** ワークツリー（作る・一覧・実行環境・後始末と、ブランチの切り替え・ワークツリーの足し引きの見張り） */
 export function createWorktrees(k: KernelWithStore, deps: WorktreesDeps, env: WorktreesEnv): CoreFeature<WorktreesApi> {
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる）
-  const envs = new WorktreeEnvService(k.store, deps.docker);
+  const stores = createWorktreeStores(k.db);
+  const { projects, chats, events, trash, groups } = k.store;
+  const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: k.store, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, ...env });
+  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, ...env });
+  let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   const headWatch = new HeadWatch((project_id) => k.bus.publish({ type: "worktrees_changed", project_id }));
   return {
     name: "worktrees",
-    api: { envs, finisher },
-    routes: [{ legacy: (app) => worktreeRoutes(app, { store: k.store, runner: deps.chat.runner, providers: deps.ai.providers, worktreeEnvs: envs, worktreeFinisher: finisher, headWatch }) }],
+    api: { envs, finisher, stores, useDbConnections: (fn) => void (connectionsIn = fn) },
+    routes: [{ legacy: (app) => worktreeRoutes(app, { store: { ...stores, projects, chats, groups }, connectionsIn: (folder) => connectionsIn(folder), runner: deps.chat.runner, providers: deps.ai.providers, worktreeEnvs: envs, worktreeFinisher: finisher, headWatch }) }],
     stop: () => {
       finisher.close();
       headWatch.close();

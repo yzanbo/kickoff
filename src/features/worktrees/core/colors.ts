@@ -1,13 +1,13 @@
 import type { GitWorktree } from "@shared/git/types";
 import { pickProjectHue, workplaceDefaultHue } from "@shared/projects/colors";
-import type { Store } from "@/foundation/core/db/store";
+import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 
 /**
  * ワークツリーの一覧に作業場所の色（hue）を付ける（一覧を返す API はすべてこれを通す）。本体はいつもプロジェクトから決まる色。
  * ワークツリーは覚えた色（worktrees の hue）を使い、まだなければ（Kickoff で作った直後・Kickoff の外で作ったものを初めて見たとき）ここで決めて覚える:
  * フォルダから決まる好みの色が、本体といまあるワークツリーの色と被らなければそれ、被ればいちばん使われていない色（10 色を使い切ったら被ってよい）
  */
-export function attachWorktreeHues(store: Pick<Store, "worktreeColors">, projectId: number, list: GitWorktree[]): GitWorktree[] {
+export function attachWorktreeHues(store: Pick<WorktreeStores, "worktreeColors">, projectId: number, list: GitWorktree[]): GitWorktree[] {
   const known = store.worktreeColors.of(projectId);
   const mainHue = workplaceDefaultHue(projectId, "");
   const used = [mainHue, ...list.filter((w) => !w.main && !w.prunable && known.has(w.path)).map((w) => known.get(w.path)!)];

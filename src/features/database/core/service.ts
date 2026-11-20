@@ -11,7 +11,7 @@ import type { DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEdits
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/foundation/core/db/store";
+import type { DatabaseStores } from "./db/stores";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
@@ -43,11 +43,10 @@ const commandsOf = (connectionId: number, c: Pick<DbConnection, "host" | "port" 
   vars: prepVarsOf(c),
 });
 
-/** 作業場所（null なら本体） */
-type Workdir = string | null;
+type Workdir = string | null; // 作業場所（null なら本体）
 
 interface Options {
-  store: Store;
+  store: DatabaseStores & { chats: { get(id: number): unknown } }; // 自分の表の店と、CSV の片付けで消したチャットかを見る chat の店
   client: DbWorkerClient;
   /** パスワードの暗号化・復号（キーチェーンで開けなければ、その場で入れた値をメモリに持つ） */
   vault: DbSecretVault;
@@ -92,6 +91,7 @@ function timeoutMessage(minutes: number | null | undefined) {
 }
 
 export class DatabaseService {
+  readonly stores: DatabaseStores; // 表の店（チャットの実行が AI に見せる接続を読む）
   /** パスワードの暗号化・復号（ルートが保存する前に seal する） */
   readonly vault: DbSecretVault;
   /** AI の SQL の結果を書き出す CSV の置き場所 */
@@ -103,7 +103,7 @@ export class DatabaseService {
   private readonly openCounts = new Map<number, number>();
 
   constructor(private readonly opts: Options) {
-    this.vault = opts.vault;
+    [this.stores, this.vault] = [opts.store, opts.vault];
     this.exportRoot = opts.exportRoot ?? aiExportRoot(opts.dataDir);
     // ワーカーが流したコマンドの結果を準備の記録に残す（消した接続のものは残さない）
     opts.client.onEvent = (event) => {

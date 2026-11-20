@@ -2,7 +2,6 @@
 // AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため。
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
-import type { Store } from "@/foundation/core/db/store";
 import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey, type DbSecretKey } from "@/features/database/core/db/dbConnections";
 import { Conflict } from "@/foundation/core/errors";
 import { openSecret, SEALED, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
@@ -35,7 +34,7 @@ export class DbSecretVault {
   private readonly entered = new Map<number, PasswordFields>();
 
   constructor(
-    private readonly store: Store,
+    private readonly store: { secrets: { get(key: DbSecretKey): string | null } },
     private readonly cipher: SecretCipher | null,
   ) {}
 

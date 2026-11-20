@@ -6,7 +6,7 @@ import { lookups } from "@/foundation/core/http/lookups";
 import { groupName } from "@/foundation/core/http/schemas";
 
 /** チャットのグループ（変えたら、変えたあとのグループ。並べ替えはそのプロジェクトのグループの一覧。削除は 204） */
-export function groupRoutes(app: Hono, { store }: { store: Store }) {
+export function groupRoutes(app: Hono, { store }: { store: Pick<Store, "projects" | "chats" | "groups"> }) {
   const { withProject, withGroup } = lookups(store);
 
   app.get("/api/projects/:id/groups", withProject, (c) => c.json(store.groups.list(c.var.project.id)));

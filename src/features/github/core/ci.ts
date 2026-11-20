@@ -4,7 +4,7 @@
 import type { GitHubRemote, GitWorktree } from "@shared/git/types";
 import type { CiFailedLog, CiFailure, CiJobLog, CiRun, CiRunDetail, CiRunList, CiRunWorktree } from "@shared/github/ciTypes";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/foundation/core/db/store";
+import type { GitHubStores } from "./db/stores";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { checkoutPullWorktree } from "./pullWorktree";
 import { readGitHubRemotes } from "./githubTarget";
@@ -167,7 +167,7 @@ export class CiService {
    * 失敗の見張り（WorktreePrWatch の 5 分ごと・窓に戻ったときに相乗り）: 作業場所でいま取り出しているブランチと既定のブランチの、
    * ワークフローごとの最新の実行が落ちていて、まだ知らせていないものを覚えて返す（見張らない設定・Git でない・GitHub でなければ空）
    */
-  async watch(project: Project, store: Store): Promise<CiFailure[]> {
+  async watch(project: Project, store: Pick<GitHubStores, "ciNotices">): Promise<CiFailure[]> {
     if (!project.ci_watch || project.archived_at !== null) return [];
     const workplaces = await this.workplaceBranches(project);
     if (workplaces.length === 0) return [];

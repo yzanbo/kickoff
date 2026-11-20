@@ -157,7 +157,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: Store; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<Store, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */

@@ -251,7 +251,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         const first = await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
         if (!handoff || !first.resumeSessionMissing || first.status !== "failed" || !chat.session_id || first.sessionId !== chat.session_id || signal.aborted) return first;
         // 「再開要求の段階で履歴がない」と確定した場合は、まだ利用者の指示は送られていない。
-        if (!store.markProviderSessionMissing(chatId, handoff.eventId, chat.provider, chat.session_id)) throw new Error("AI のセッション状態が変わったため再開を中止しました");
+        if (!store.providerSwitch.markSessionMissing(chatId, handoff.eventId, chat.provider, chat.session_id)) throw new Error("AI のセッション状態が変わったため再開を中止しました");
         handoffClaimed = false;
         store.events.add(chatId, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
         if (!deps.uploads) throw new Error("添付の保存先がないため、会話の引き継ぎを準備できません");
@@ -275,7 +275,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     if (handoff) {
       if (handoffClaimed && result.status === "completed" && result.sessionId) {
         const last = store.events.recent(chatId, 1)[0];
-        if (!last || last.type !== "result" || !store.completeProviderHandoff(chatId, handoff.eventId, handoff.provider, result.sessionId)) {
+        if (!last || last.type !== "result" || !store.providerSwitch.complete(chatId, handoff.eventId, handoff.provider, result.sessionId)) {
           store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, "AI の引き継ぎ完了を確認できませんでした");
         }
       } else if (handoffClaimed) {
@@ -396,8 +396,8 @@ function buildTurnParams(
         },
     browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
     database:
-      deps.databases && hasAiConnections(deps.store, project.id)
-        ? createDbAiTools({ store: deps.store, databases: deps.databases }, { project, workdir: chat.worktree_path, chatId: chat.id })
+      deps.databases && hasAiConnections(deps.databases, project.id)
+        ? createDbAiTools(deps.databases, { project, workdir: chat.worktree_path, chatId: chat.id })
         : null,
     // チャット（子・兄弟・親のないチャット）を作るツール（設定で止めていない・AI が作った世代の上限に達していないときだけ。1 回の作業で数を数えるので作業ごとに作る）
     createChat:
@@ -407,7 +407,7 @@ function buildTurnParams(
     // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
     chatEdit: createAiChatEditTools(deps.store, chat.id, deps.isBusy ?? (() => false)),
     // このプロジェクトのノート・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
-    open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), noteDirOf: deps.noteDirOf }, chat.id) : null,
+    open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), noteDirOf: deps.noteDirOf, dbConnectionsOf: (id) => deps.databases?.stores.dbConnections.list(id) ?? [] }, chat.id) : null,
     // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
     chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chat.id),
     // このプロジェクトの定型文に足す・ノートの名前を変える／移すツール（どのチャットにも）
@@ -429,7 +429,7 @@ function buildTurnParams(
       ? createAiWorkplaceTools({ store: deps.store, reservations: deps.workplaceMoves, isBusy: deps.isBusy ?? (() => false), worktreeFinisher: deps.worktreeFinisher, terminals: deps.terminals }, chat.id)
       : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
-    hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
+    hiddenDb: hiddenDbTargets(deps.databases?.stores.dbConnections.list(project.id) ?? [], [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
     dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
     // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）

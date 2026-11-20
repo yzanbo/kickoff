@@ -6,6 +6,7 @@ import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreeRemovalInfo
 import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
 import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";
 import type { Store } from "@/foundation/core/db/store";
+import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
@@ -21,7 +22,9 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
 
 /** 受け口が使うもの */
 interface WorktreeRouteDeps {
-  store: Store;
+  store: Pick<WorktreeStores, "worktreeColors"> & Pick<Store, "projects" | "chats" | "groups">;
+  /** ワークツリーの DB から作った接続（database が登録する。名前だけ） */
+  connectionsIn: (folder: string) => { id: number; name: string }[];
   runner: Runner;
   providers: AiApi["providers"];
   worktreeEnvs: WorktreeEnvService;
@@ -33,7 +36,7 @@ interface WorktreeRouteDeps {
  * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: WorktreeRouteDeps) {
+export function worktreeRoutes(app: Hono, { store, connectionsIn, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: WorktreeRouteDeps) {
   const { withProject } = lookups(store);
   /** 画面に返す一覧（ワークツリーの実行環境と作業場所の色を付ける） */
   const present = (projectId: number, list: GitWorktree[]) => attachWorktreeHues(store, projectId, worktreeEnvs.attach(projectId, list));
@@ -94,7 +97,7 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     const { path: folder } = z.object({ path: folderPath }).parse({ path: c.req.query("path") });
     const info = await worktreeRemovalInfo(c.var.project.repo_path, folder);
     // このワークツリーの DB から作った接続（消す確認の「この接続も消す」。名前だけ）
-    const connections = store.dbConnections.ofWorktree(folder).map((conn) => ({ id: conn.id, name: conn.name }));
+    const connections = connectionsIn(folder);
     return c.json({ ...info, db_connections: connections } satisfies WorktreeRemovalInfo);
   });
 

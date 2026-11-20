@@ -300,25 +300,6 @@ test("設定: 既定とマージし、AI ごとのチャットの選択の既定
   assert.equal(store.settings.update({ auto_archive_days: 7 }).auto_archive_days, 7);
 });
 
-test("診断の集計: チャットと記録の数、記録の多いチャット（多い順）。メモリの DB ならファイルの大きさは 0", () => {
-  const { store, project } = setup();
-  const chat = (title: string) => store.chats.create({ project_id: project.id, provider: "claude", title, status: "completed", model: null });
-  const quiet = chat("静か");
-  const busy = chat("長い");
-  store.events.add(quiet.id, { type: "notice", message: "a" });
-  for (const message of ["a", "b", "c"]) store.events.add(busy.id, { type: "notice", message });
-  assert.deepEqual(store.stats(), {
-    dbMB: 0,
-    walMB: 0,
-    chats: 2,
-    events: 4,
-    busiestChats: [
-      { id: busy.id, events: 3, title: "長い", status: "completed" },
-      { id: quiet.id, events: 1, title: "静か", status: "completed" },
-    ],
-  });
-});
-
 test("子チャットのアーカイブ: 親をしまうと子孫も一緒に、戻すと一緒にしまったものだけ戻す。子だけをしまう・戻すときは親に触らない", () => {
   const { store, project } = setup();
   const parent = mkChat(store, project.id, "親");

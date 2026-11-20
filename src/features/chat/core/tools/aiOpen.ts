@@ -36,6 +36,8 @@ export interface AiOpenDeps {
   publish: (event: BusEvent) => void;
   /** プロジェクトのノートのフォルダ（なければノートは開けない） */
   noteDirOf?: (project: Project) => string;
+  /** プロジェクトの DB の接続（database の店。なければ open_sql で選べる接続はない） */
+  dbConnectionsOf?: (projectId: number) => { id: number; name: string; ai_access: string }[];
 }
 
 /** 文の中の名前（空なら「名前なし」） */
@@ -77,7 +79,7 @@ function workPathIn(dir: string, given: string): string {
 /**
  * chatId のチャットの AI に渡す、ノート・家系のチャットなどを開く・下書きを入れるツールの中身。家系・ノート・接続は呼ぶたびに引き直す
  */
-export function createAiOpenTools({ store, publish, noteDirOf }: AiOpenDeps, chatId: number): AiOpenTools {
+export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }: AiOpenDeps, chatId: number): AiOpenTools {
   const requireSelf = (): Chat => {
     const chat = store.chats.get(chatId);
     if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
@@ -144,7 +146,7 @@ export function createAiOpenTools({ store, publish, noteDirOf }: AiOpenDeps, cha
       if (!sql) throw new Error("sql が空です");
       if (sql.length > SQL_MAX) throw new Error(`sql は ${SQL_MAX} 文字までです`);
       // 「AI に見せない」接続は選ばせない（名前も出さない）
-      const shown = store.dbConnections.list(self.project_id).filter((c) => c.ai_access !== "none");
+      const shown = (dbConnectionsOf?.(self.project_id) ?? []).filter((c) => c.ai_access !== "none");
       const name = input.connection?.trim();
       const hit = name ? (shown.find((c) => c.name === name) ?? shown.find((c) => c.name.toLowerCase() === name.toLowerCase())) : shown.length === 1 ? shown[0] : undefined;
       if (!hit) {

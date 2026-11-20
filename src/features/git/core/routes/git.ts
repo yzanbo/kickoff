@@ -23,7 +23,7 @@ async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
 /**
  * PR を作るとき閉じる issue: この作業場所（本体なら worktree_path が null）で作業している、アーカイブしていないチャットが結び付いた、連携先の issue の番号
  */
-function closingIssues(store: Store, project: Project, dir: string, target: GitHubTarget | null): number[] {
+function closingIssues(store: Pick<Store, "chats">, project: Project, dir: string, target: GitHubTarget | null): number[] {
   if (!target) return [];
   const worktree = dir === project.repo_path ? null : dir;
   return store.chats
@@ -66,7 +66,7 @@ const branchActionSchema = z.discriminatedUnion("action", [
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
  * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
  */
-export function gitRoutes(app: Hono, { store }: { store: Store }) {
+export function gitRoutes(app: Hono, { store }: { store: Pick<Store, "projects" | "chats" | "groups"> }) {
   const { withWorkdir } = lookups(store);
 
   app.get("/api/projects/:id/git/status", withWorkdir, async (c) => c.json(await gitStatus(c.var.workdir)));

@@ -64,7 +64,7 @@ interface Inspection extends FinishFacts {
 }
 
 export interface WorktreeFinisherDeps {
-  store: Store;
+  store: Pick<import("@/features/worktrees/core/db/stores").WorktreeStores, "worktreeEnvs"> & Pick<Store, "projects" | "chats" | "events" | "trash">;
   bus: Bus;
   runner: Runner;
   worktreeEnvs: WorktreeEnvService;

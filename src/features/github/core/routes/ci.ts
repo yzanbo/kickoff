@@ -12,7 +12,7 @@ const rerunBody = z.object({ failed: z.boolean() }) satisfies z.ZodType<CiRerunB
  * CI の結果（core/github/ci.ts）: 実行の一覧（外の CI の成否も）・実行の中身・ジョブのログ・失敗したステップのログ・
  * やり直し・「（ブランチ名）で直す」の作業場所。GitHub タブと同じく、この Mac からの頼みだけ受ける（gh はプロジェクトで選んだアカウントで動かす）
  */
-export function ciRoutes(app: Hono, { store, ci }: { store: Store; ci: CiService }) {
+export function ciRoutes(app: Hono, { store, ci }: { store: Pick<Store, "projects" | "chats" | "groups">; ci: CiService }) {
   const { withProject } = lookups(store);
 
   app.get("/api/projects/:id/ci/runs", withProject, async (c) => c.json(await ci.list(c.var.project)));

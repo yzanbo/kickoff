@@ -1,4 +1,6 @@
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
+import type { WorktreeComposeName, WorktreePortSlot } from "@shared/worktrees/envTypes";
 
 /**
  * ワークツリー（v1）。作業するフォルダ（GitWorktree の path）ごとに 1 行で、色と実行環境を持つ。
@@ -23,3 +25,23 @@ CREATE TABLE worktrees (
 ) STRICT;
 CREATE INDEX idx_worktrees_project ON worktrees(project_id);
 `;
+
+/** ワークツリー（作業するフォルダごとに 1 行。色 hue と実行環境 env_。実行環境があるのは env_created_at のある行） */
+export const worktreesTable = table(
+  "worktrees",
+  {
+    path: col.text(),
+    project_id: col.int(),
+    hue: col.int().nullable(),
+    env_band: col.int().nullable(),
+    env_host: col.text().nullable(),
+    env_slots: col.json<WorktreePortSlot[]>(),
+    env_compose_names: col.json<WorktreeComposeName[]>(),
+    env_rewritten: col.json<string[]>(),
+    env_issues: col.json<string[]>(),
+    env_blocked: col.text().nullable(),
+    env_created_at: col.time().nullable(),
+    created_at: col.time(),
+  },
+  { key: "path" },
+);

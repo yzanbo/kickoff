@@ -9,7 +9,7 @@ import { lookups } from "@/foundation/core/http/lookups";
  * ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられた。core/git/prWatch.ts）。
  * 一覧・窓に戻ったときの取り直し・確認を閉じた（同じ PR では確認を出し直さない）
  */
-export function worktreePrRoutes(app: Hono, { store, prWatch }: { store: Store; prWatch: WorktreePrWatch }) {
+export function worktreePrRoutes(app: Hono, { store, prWatch }: { store: Pick<Store, "projects" | "chats" | "groups">; prWatch: WorktreePrWatch }) {
   const { withProject } = lookups(store);
 
   app.get("/api/worktree-prs", (c) => c.json(prWatch.list()));

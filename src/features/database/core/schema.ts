@@ -1,4 +1,6 @@
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
+import type { DbPrepKind, DbQueryRanBy } from "@shared/database/types";
 
 /**
  * DB クライアント（v1）。接続はプロジェクトごとの並び。パスワードは secrets の db_connection:<id>:password・ai_password・ssh_password に置き、
@@ -68,3 +70,27 @@ CREATE TABLE db_prep_runs (
 ) STRICT;
 CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
 `;
+
+/** SQL の履歴（ran_by は user / ai。chat_id はチャットを消したら null） */
+export const dbQueryHistoryTable = table(
+  "db_query_history",
+  {
+    id: col.int(),
+    connection_id: col.int(),
+    sql: col.text(),
+    ran_by: col.text<DbQueryRanBy>(),
+    chat_id: col.int().nullable(),
+    duration_ms: col.int().nullable(),
+    row_count: col.int().nullable(),
+    error: col.text().nullable(),
+    ran_at: col.time(),
+  },
+  { order: "id DESC" },
+);
+
+/** 準備の記録（いつ・どのコマンド・成功 / 失敗だけ） */
+export const dbPrepRunsTable = table(
+  "db_prep_runs",
+  { id: col.int(), connection_id: col.int(), kind: col.text<DbPrepKind>(), command: col.text(), ok: col.bool(), ran_at: col.time() },
+  { order: "id DESC" },
+);

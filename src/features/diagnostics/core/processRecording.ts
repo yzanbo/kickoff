@@ -2,7 +2,7 @@ import inspector from "node:inspector";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
-import type { DatabaseStats } from "@/foundation/core/db/stats";
+import type { DatabaseStats } from "@shared/chat/databaseStats";
 import { sseDataOf } from "@/foundation/core/http/sseData";
 import { startCpuProfile, topSelfTime, type CpuProfile } from "@/foundation/core/system/cpuProfile";
 
