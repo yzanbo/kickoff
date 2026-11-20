@@ -6,7 +6,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 | フォルダ | 中身 |
 |---|---|
-| `kernel.ts`・`bus.ts`・`errors.ts`・`clock.ts` | 土台の束 `Kernel`（`createKernel`）・変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型・時計 `Clock`（時間に頼る処理はこれを受け、`setTimeout`・`Date.now()` を直に書かない） |
+| `kernel.ts`・`bus.ts`・`errors.ts`・`clock.ts`・`undo.ts` | 土台の束 `Kernel`（`createKernel`）・変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型・時計 `Clock`（時間に頼る処理はこれを受け、`setTimeout`・`Date.now()` を直に書かない）・戻す手順 `Undo` |
 | `host/` | メインとの `parentPort` 1 本の RPC（`rpc.ts`。形は `protocol.ts`）。メインにしかない口は `@/app/core/hostRemote.ts` |
 | `db/`・`http/` | SQLite（`node:sqlite`）/ Hono の API・認証・SSE・画面の配信 |
 | `aiTools/` | AI の操作ツールを出す MCP サーバー |
@@ -18,7 +18,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 機能は `feature.ts` の `CoreFeature`（`@/app/core/assemble.ts` が並べる）。`serve.ts` が待ち受けて `start` を作った順に呼び、止める順（`stopPhase: "first"` → 流れ続けている外部コマンド → 残りを作った順の逆 → `bus.flush` → HTTP → DB）も決める。
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
 - `chat_delta` はほかの知らせより必ず先に流す（`@/features/chat/core/deltaStage.ts`）。知らせはすべて `Bus` を通し、`Bus` を通さずに SSE へ書かない（どの購読者から見ても順が同じ）。
-- 子のプロセス（エージェントの CLI・DB ワーカーの子・診断の `log`）を起こしたら `system/childProcesses.ts` の `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。
+- 子のプロセス（エージェントの CLI など）を起こしたら `system/childProcesses.ts` の `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。
 - 眠らせない理由（`@/app/core/hostRun.ts` の `awake`）は作業中は一定の間隔でも読み直す（理由は `AWAKE_RECHECK_MS`）。コアのプロセスの決まりは `src/foundation/desktop/CLAUDE.md` の「コアのプロセス」。
 - 重い同期の処理は `stallWatch.ts` の `timed` / `noteSync` で名前を付ける（詰まりの記録に出る）。製品版と開発版は `APP_ENVS` の別の保存先とポートで同時に動く。
 

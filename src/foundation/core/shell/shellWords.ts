@@ -1,4 +1,4 @@
-// Bash の文をコマンドの並びに分ける（AI の守りが、Docker の操作・ファイルを消すコマンドを見つけるのに使う）。
+// Bash の文をコマンドの並びに分ける（AI の守りが、Docker の操作・ファイルを消すコマンドを見つけるのに使う）。sh -c の中は scanCommands で下りる。
 // うっかりを防ぐためのもので、eval・スクリプトのファイルなど、わざと避ける書き方までは見抜けない
 import path from "node:path";
 
@@ -140,4 +140,19 @@ export function shellScriptOf(words: Word[]): string | null {
   if (!words[0] || !SHELLS.has(path.basename(words[0].text))) return null;
   const at = words.findIndex((w) => w.text === "-c" || /^-[a-z]*c$/.test(w.text));
   return at > 0 ? (words[at + 1]?.text ?? null) : null;
+}
+
+/**
+ * 文の各コマンド（splitCommands の 1 つずつ）に visit を当て、最初に返った値（null・undefined でないもの）を返す。
+ * sh -c '…' / bash -c "…" の中の文にも depth 段まで下りる（見つからなければ null）
+ */
+export function scanCommands<T>(command: string, visit: (segment: Word[]) => T | null | undefined, depth = 3): T | null {
+  for (const segment of splitCommands(command)) {
+    const found = visit(segment);
+    if (found !== null && found !== undefined) return found;
+    const script = depth > 0 ? shellScriptOf(commandWords(segment).words) : null;
+    const inner = script === null ? null : scanCommands(script, visit, depth - 1);
+    if (inner !== null) return inner;
+  }
+  return null;
 }
