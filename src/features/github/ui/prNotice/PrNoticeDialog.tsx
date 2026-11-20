@@ -158,7 +158,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
           void submit();
         }}
       >
-        <h2 className={`app-dialog-title pr-notice-title ${merged ? "merged" : "closed"}`}>
+        <h2 className="app-dialog-title pr-notice-title" data-pr-state={merged ? "merged" : "closed"}>
           <Icon size={16} aria-hidden /> {prNoticeTitle(notice)}
         </h2>
         <p className="app-dialog-message">

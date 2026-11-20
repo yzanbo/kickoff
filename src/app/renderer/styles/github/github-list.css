@@ -267,25 +267,9 @@
 }
 
 /* 状態の印（issue: 開いている = 緑・完了 = 紫・やらない = 灰 / PR: 開いている = 緑・下書き = 灰・マージ = 紫・閉じた = 赤） */
-.github-state-open {
-  color: var(--ok);
-}
-
-.github-state-done,
-.github-state-merged {
-  color: var(--chart-4);
-}
-
-.github-state-draft {
-  color: var(--muted);
-}
-
-.github-state-skipped {
-  color: var(--muted);
-}
-
-.github-state-closed {
-  color: var(--ng);
+.github-state,
+.github-state-chip {
+  color: var(--pr-color);
 }
 
 /* ラベル（GitHub の色を薄い地と点に） */
@@ -310,20 +294,8 @@
 }
 
 /* CI とレビュー */
-.github-checks-success {
-  color: var(--ok);
-}
-
-.github-checks-failure {
-  color: var(--ng);
-}
-
-.github-checks-pending {
-  color: var(--warn);
-}
-
-.github-checks-neutral {
-  color: var(--muted);
+.github-checks {
+  color: var(--ci-color);
 }
 
 .github-review-approved {

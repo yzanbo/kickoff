@@ -17,16 +17,16 @@
 - 同じ宣言のブロックを増やさない（省略の `overflow` `text-overflow` `white-space` は各規則に書いてよい）。
 - 札・ピル・カード・浮く窓・帯・ボタン・切り替え・行・木・開閉・空の文ほかは `ui/types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
 - 並べ替えの線と動かしている物は `dragAttrs`（`data-drop`・`data-drag-source`。形は `--drop-*`）。
-- 効かない指定を書かない（計算後のスタイルで確かめる）。
-- 大きさを決めたボタンには必ず `padding: 0` を書き、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`（大きさは `size`、ほかは className で `width` / `height` だけ。`.icon-button.x` と重ねない）。
+- 効かない指定を書かない（計算後の値で確かめる）。
+- 大きさを決めたボタンは `padding: 0` にし、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`（大きさは `size`、ほかは className で `width` / `height` だけ。`.icon-button.x` と重ねない）。
 - 色の地のボタン（`.btn-primary`・`.btn-danger`）は乗せると同じ色で少し暗く（それぞれに `:hover:not(:disabled)`）。
 - ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側。`.panel-split-button`）。
-- 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、`.pr-chip` の状態、一番下へのボタンの状態）。
+- 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、一番下へのボタンの状態）。
 - 新しいクラス名は `styles/` と組み立てるクラスを探し、領域の頭を付ける（1 語は避ける）。
-- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。プロジェクトの札の色は `project-mark.css`。アクセントの色の文字は `--accent-fg`。
+- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。Git・PR・CI は属性（`ui/types/state-colors.css`）。プロジェクトの札の色は `project-mark.css`。アクセントの色の文字は `--accent-fg`。
 - 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
 - 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中はボタンの文字の色）。
-- `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（マウスの操作中は枠を出さない。`@/foundation/ui/lib/inputModality.ts`）。
+- `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（マウスの操作中は枠を出さない。`inputModality.ts`）。
 - 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾に書く。文字の大きさ 10〜15px は `--fs-N`（会話は `--chat-fs-N`）、z-index の 10 以上は `--z-*`、影は `--shadow-1〜3`、色相は `hsl(var(--hue) var(--hue-fg))`。`getComputedStyle` で読む変数は名を変えたら読む側も直す。
 
 ## 大きさと余白

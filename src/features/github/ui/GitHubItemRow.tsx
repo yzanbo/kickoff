@@ -29,7 +29,7 @@ const CHECKS_ICON = { success: Check, failure: X, pending: CircleDashed };
 function GitHubChecksMark({ state }: { state: GitHubChecksState | null }) {
   if (!state) return null;
   const Icon = CHECKS_ICON[state];
-  return <Icon size={13} className={`github-checks github-checks-${state}`} aria-label={CHECKS_TEXT[state]} data-tip={CHECKS_TEXT[state]} />;
+  return <Icon size={13} className="github-checks" data-ci={state} aria-label={CHECKS_TEXT[state]} data-tip={CHECKS_TEXT[state]} />;
 }
 
 export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { approved: "承認済み", changes_requested: "変更の依頼あり", review_required: "レビュー待ち" };

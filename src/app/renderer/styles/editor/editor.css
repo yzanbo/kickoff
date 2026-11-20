@@ -161,34 +161,10 @@
   font-weight: 700;
 }
 
-/*
- * 状態の色（VS Code と同じ: 変更 = 黄、追加・未追跡 = 緑、削除・競合 = 赤、名前の変更 = 青）。
- * 変更の一覧では記号、エクスプローラーでは変更のあるファイル・フォルダの名前と記号に付ける
- */
+/* 変更の種類の色（ui/types/state-colors.css の --kind-color）。変更の一覧では記号、エクスプローラーでは変更のあるファイル・フォルダの名前と記号に付ける */
 .change-kind,
 .tree-row[data-kind] {
-  color: var(--warn);
-}
-
-.change-kind[data-kind="A"],
-.change-kind[data-kind="U"],
-.tree-row[data-kind="A"],
-.tree-row[data-kind="U"] {
-  color: var(--ok);
-}
-
-.change-kind[data-kind="D"],
-.change-kind[data-kind="!"],
-.tree-row[data-kind="D"],
-.tree-row[data-kind="!"] {
-  color: var(--ng);
-}
-
-.change-kind[data-kind="R"],
-.change-kind[data-kind="C"],
-.tree-row[data-kind="R"],
-.tree-row[data-kind="C"] {
-  color: var(--info);
+  color: var(--kind-color);
 }
 
 .changes-diff,

@@ -13,7 +13,7 @@ import { openGitHubItem } from "@/features/github/ui/GitHubLinkChip";
 import { GITHUB_REFRESH_MS, useGitHubRefresh } from "@/features/github/ui/useGitHubRefresh";
 import { CiHandoffMenu } from "./CiHandoffMenu";
 import { CiJobSection } from "./CiJobLog";
-import { CiStateIcon } from "./CiStateIcon";
+import { CiStateIcon, ciTone } from "./CiStateIcon";
 import { CI_PENDING_REFRESH_MS } from "./CiTab";
 import { jobToOpen, runName } from "./ciView";
 
@@ -92,7 +92,7 @@ export function CiRunDetailView({
           <>
             <h2 className="github-detail-title">{run.title}</h2>
             <div className="github-detail-meta">
-              <span className={`ci-state-chip tag ci-state-chip-${run.state}`} data-look="outline">
+              <span className="ci-state-chip tag" data-look="outline" data-ci={ciTone(run.state)}>
                 <CiStateIcon state={run.state} size={13} /> {CI_STATE_LABELS[run.state]}
               </span>
               <span className="small">

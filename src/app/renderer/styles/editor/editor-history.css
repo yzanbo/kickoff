@@ -273,26 +273,11 @@
   width: 16px;
   height: 16px;
   border-radius: 3px;
-  background: var(--warn);
+  background: var(--kind-color);
   font-family: var(--mono);
   font-size: var(--fs-11);
   font-weight: 700;
   color: var(--bg);
-}
-
-.change-badge[data-kind="A"],
-.change-badge[data-kind="U"] {
-  background: var(--ok);
-}
-
-.change-badge[data-kind="D"],
-.change-badge[data-kind="!"] {
-  background: var(--ng);
-}
-
-.change-badge[data-kind="R"],
-.change-badge[data-kind="C"] {
-  background: var(--info);
 }
 
 /* 履歴の表の列（件名・作者・コミットの番号・日時） */

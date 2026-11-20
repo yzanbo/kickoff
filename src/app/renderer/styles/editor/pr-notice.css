@@ -1,30 +1,24 @@
 /*
  * ワークツリーの PR の知らせ（features/worktree/prNotice）。
  * 印 .pr-notice-mark: 作業場所の札の後ろ・作業場所の切り替えの横・履歴のワークツリーの一覧に出す「マージ済み」「閉じた」。
- * 色は PR の札（.pr-chip）と同じ（マージ済み = --chart-4、閉じた = --ng）。押すと片付けの確認を開く
+ * 色は PR の札（.pr-chip）と同じ data-pr-state の --pr-color（マージ済み = 紫、閉じた = 赤）。押すと片付けの確認を開く
  */
 .pr-notice-mark {
-  --pr-notice-color: var(--chart-4);
-
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 3px;
-  --tag-color: var(--pr-notice-color);
+  --tag-color: var(--pr-color);
   --tag-edge: 60%;
-  --tag-bg: color-mix(in srgb, var(--pr-notice-color) 12%, transparent);
+  --tag-bg: color-mix(in srgb, var(--pr-color) 12%, transparent);
   font-size: var(--fs-11);
   line-height: 17px;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.pr-notice-mark.closed {
-  --pr-notice-color: var(--ng);
-}
-
 .pr-notice-mark:hover {
-  --tag-bg: color-mix(in srgb, var(--pr-notice-color) 24%, transparent);
+  --tag-bg: color-mix(in srgb, var(--pr-color) 24%, transparent);
 }
 
 /* アイコンだけ（サイドバーのチャットの行） */
@@ -45,12 +39,8 @@
   gap: 6px;
 }
 
-.pr-notice-title.merged svg {
-  color: var(--chart-4);
-}
-
-.pr-notice-title.closed svg {
-  color: var(--ng);
+.pr-notice-title svg {
+  color: var(--pr-color);
 }
 
 .pr-notice-link {

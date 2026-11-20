@@ -1,7 +1,6 @@
 import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
 import type { PullRequestInfo } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { cx } from "@/foundation/ui/lib/cx";
 import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -117,7 +116,7 @@ export function WorktreeBar({
         <span className="muted">プッシュ先（origin）がないので、PR は作れません</span>
       ) : value ? (
         <>
-          <span className={cx("pr-chip tag", value.state.toLowerCase())} data-look="outline" title={value.title}>
+          <span className="pr-chip tag" data-look="outline" data-pr-state={value.state.toLowerCase()} title={value.title}>
             <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.is_draft ? "下書き" : PR_STATE_LABELS[value.state]}
           </span>
           <button className="btn" data-size="sm" onClick={() => window.open(value.url)}>

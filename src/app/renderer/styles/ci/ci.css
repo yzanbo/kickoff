@@ -82,19 +82,9 @@
   line-height: 20px;
 }
 
-.ci-state-chip-failure {
-  border-color: color-mix(in srgb, var(--ng) 50%, transparent);
-  background: color-mix(in srgb, var(--ng) 10%, transparent);
-}
-
-.ci-state-chip-success {
-  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
-  background: color-mix(in srgb, var(--ok) 10%, transparent);
-}
-
-.ci-state-chip-pending {
-  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
+.ci-state-chip:not([data-ci="neutral"]) {
+  border-color: color-mix(in srgb, var(--ci-color) 50%, transparent);
+  background: color-mix(in srgb, var(--ci-color) 10%, transparent);
 }
 
 .ci-pull-link {

@@ -39,7 +39,7 @@ export function GitHubChecksList({ projectId, checks }: { projectId: number; che
     <ul className="github-checks-list">
       {rows.map(({ c, s }, i) => (
         <li key={`${c.workflow ?? ""}/${c.name}/${i}`} className="github-check">
-          <s.icon size={14} className={`github-checks github-checks-${s.tone}`} aria-label={s.label} data-tip={s.label} />
+          <s.icon size={14} className="github-checks" data-ci={s.tone} aria-label={s.label} data-tip={s.label} />
           <span className="github-check-name">
             {c.workflow && <span className="muted">{c.workflow} / </span>}
             {c.name}

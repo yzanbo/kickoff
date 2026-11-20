@@ -169,19 +169,9 @@
 }
 
 /* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
-.pr-chip.open {
-  --tag-border: color-mix(in srgb, var(--ok) 60%, transparent);
-  --tag-fg: var(--ok);
-}
-
-.pr-chip.merged {
-  --tag-border: color-mix(in srgb, var(--chart-4) 60%, transparent);
-  --tag-fg: var(--chart-4);
-}
-
-.pr-chip.closed {
-  --tag-border: color-mix(in srgb, var(--ng) 60%, transparent);
-  --tag-fg: var(--ng);
+.pr-chip[data-pr-state] {
+  --tag-border: color-mix(in srgb, var(--pr-color) 60%, transparent);
+  --tag-fg: var(--pr-color);
 }
 
 /* サイドバーのチャットの行では、作業場所の印とグループの札を小さく（狭ければ、それぞれ名前を省いて 1 行に収める） */
