@@ -2627,7 +2627,7 @@
       "src/app/renderer/styles/sidebar/sidebar-rows.css": 362,
       "src/features/ai/core/providers/claude/provider.ts": 467,
       "src/features/browser/desktop/agentBrowser.ts": 329,
-      "src/features/chat/core/db/chats.ts": 372,
+      "src/features/chat/core/db/chats.ts": 370,
       "src/features/chat/core/queue.ts": 333,
       "src/features/chat/core/routes/server.chats.test.ts": 681,
       "src/features/chat/core/routes/server.queue.test.ts": 548,

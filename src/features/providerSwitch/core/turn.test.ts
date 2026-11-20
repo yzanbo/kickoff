@@ -13,15 +13,15 @@ function switched(provider: ScriptedProvider, state: "ready" | "blocked" = "read
   return { ...ctx, chatId: chat.id };
 }
 
-test("切り替え後の最初の指示に会話を添え、完了後は再開位置を保存して保留を外す", async () => {
+test("切り替え後の最初の指示に会話を添え、完了後は保留を外す（いまの AI のセッションは chats.session_id）", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "codex-1", lastMessageId: "answer", result: "完了" }));
   const { store, runner, chatId } = switched(provider);
   await runner.send(chatId, "続けて");
   await until(() => !runner.isBusy(chatId) && provider.calls.length === 1);
   assert.match(provider.calls[0].turnContext ?? "", /引き継ぐ会話/);
   assert.equal(store.chatProviderHandoffs.get(chatId), undefined);
-  assert.equal(store.chatProviderSessions.get(chatId, "codex")?.session_id, "codex-1");
-  assert.ok(store.chatProviderSessions.get(chatId, "codex")?.last_event_id);
+  assert.equal(store.chats.get(chatId)?.session_id, "codex-1");
+  assert.equal(store.chatProviderSessions.get(chatId, "codex"), undefined);
   await runner.send(chatId, "もう一度");
   await until(() => !runner.isBusy(chatId) && provider.calls.length === 2);
   assert.doesNotMatch(provider.calls[1].turnContext ?? "", /引き継ぐ会話/);
@@ -113,7 +113,7 @@ test("以前のセッションが存在しないと確定した場合だけ、�
   assert.equal(provider.calls[0].promptId, provider.calls[1].promptId);
   assert.equal(store.events.list(chat.id).filter((event) => event.type === "user" && event.data.text === "続けて").length, 1);
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
-  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.session_id, "new-session");
+  assert.equal(store.chats.get(chat.id)?.session_id, "new-session");
   assert.ok(store.events.list(chat.id).some((event) => event.type === "notice" && event.data.message.includes("見つからなかった")));
 });
 

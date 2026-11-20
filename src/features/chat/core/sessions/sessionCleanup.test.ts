@@ -26,7 +26,7 @@ test("コンテキスト消去時は、別の AI に戻しても古いセッシ�
   const chat = await runner.start({ projectId: project.id, prompt: "質問" });
   await until(() => !runner.isBusy(chat.id));
   store.chatProviderSessions.save(chat.id, "codex", "codex-1", null);
-  assert.equal(store.chatProviderSessions.list(chat.id).length, 2);
+  assert.equal(store.chatProviderSessions.list(chat.id).length, 1);
   runner.clearContext(chat.id);
   assert.deepEqual(store.chatProviderSessions.list(chat.id), []);
   assert.equal(store.chats.get(chat.id)?.session_id, null);

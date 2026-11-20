@@ -9,8 +9,8 @@ import { NOW } from "@/foundation/core/db/db";
  * - chat_events: 自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、全文検索の索引 chat_event_search
  *   （trigram で部分一致）はビュー chat_event_texts を中身にしてトリガーで追従させる。idx_chat_events_meta は記録の軽い形と大きさを data を解かずに読む覆う索引
  *   （式は店の SQL と同じに書く）
+ * - session_id: いまの AI（provider）のセッションの正（離れた AI のセッションは providerSwitch の chat_provider_sessions）
  * - agent_sessions: Kickoff が作ったセッションの覚え（チャットを消しても残す。使われなくなったら会話記録をゴミ箱へ）
- * - chat_provider_sessions・chat_provider_handoffs: AI を切り替えたときの AI ごとのセッションと引き継ぎ済みの位置・次の指示までの引き継ぎ
  */
 export const CHAT_SCHEMA_V1 = `
 CREATE TABLE chats (
@@ -113,22 +113,5 @@ CREATE TABLE agent_sessions (
   project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
   cwd TEXT NOT NULL CHECK (cwd <> ''),
   created_at TEXT NOT NULL DEFAULT (${NOW})
-) STRICT;
-CREATE TABLE chat_provider_sessions (
-  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL CHECK (provider <> ''),
-  session_id TEXT NOT NULL CHECK (session_id <> ''),
-  last_event_id INTEGER,
-  PRIMARY KEY (chat_id, provider)
-) STRICT;
-CREATE TABLE chat_provider_handoffs (
-  chat_id INTEGER PRIMARY KEY REFERENCES chats(id) ON DELETE CASCADE,
-  event_id INTEGER NOT NULL REFERENCES chat_events(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL CHECK (provider <> ''),
-  context TEXT NOT NULL,
-  state TEXT NOT NULL CHECK (state IN ('ready', 'blocked', 'sending', 'uncertain')),
-  error TEXT,
-  last_event_id INTEGER,
-  queue_was_paused INTEGER NOT NULL DEFAULT 0 CHECK (queue_was_paused IN (0, 1))
 ) STRICT;
 `;

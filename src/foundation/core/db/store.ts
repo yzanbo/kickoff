@@ -133,8 +133,10 @@ export class Store {
       // 送る前に替え直したので、前の区切りの資料は渡していない印を付ける（引き継ぎ内容の表示で区別する）
       supersededEventId = superseded?.eventId ?? null;
       if (superseded) this.db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'superseded') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(superseded.eventId, current.id);
+      // いまの AI のセッションは chats.session_id だけが持つ: 離れる AI の分を覚えに書き、戻る AI の分は覚えから読んで消す
       if (current.session_id) this.chatProviderSessions.save(current.id, current.provider, current.session_id, input.currentLastEventId);
       const targetSession = this.chatProviderSessions.get(current.id, input.target);
+      if (targetSession) this.chatProviderSessions.remove(current.id, input.target);
       const inserted = this.db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
         current.id,
         JSON.stringify({ from: current.provider, to: input.target, handoff_context: input.context, handoff_status: input.state, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}), ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}) }),
@@ -161,8 +163,8 @@ export class Store {
     return { chat, event };
   }
 
-  /** 引き継ぎを使った作業が完了したら、再開位置の更新と保留の解除をまとめて行う。 */
-  completeProviderHandoff(chatId: number, eventId: number, provider: ProviderId, sessionId: string, lastEventId: number): boolean {
+  /** 引き継ぎを使った作業が完了したら、区切りの印と保留の解除をまとめて行う（再開位置はその作業の result。いまの AI のセッションは chats.session_id）。 */
+  completeProviderHandoff(chatId: number, eventId: number, provider: ProviderId, sessionId: string): boolean {
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const current = this.chats.get(chatId);
@@ -171,7 +173,6 @@ export class Store {
         this.db.exec("ROLLBACK");
         return false;
       }
-      this.chatProviderSessions.save(chatId, provider, sessionId, lastEventId);
       this.db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'delivered') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(eventId, chatId);
       if (!this.chatProviderHandoffs.complete(chatId, eventId)) throw new Error("AI の引き継ぎ状態が変わりました");
       this.db.exec("COMMIT");
@@ -193,7 +194,6 @@ export class Store {
         return false;
       }
       this.db.prepare("UPDATE chats SET session_id = NULL WHERE id = ?").run(chatId);
-      this.chatProviderSessions.remove(chatId, provider);
       this.chatProviderHandoffs.save({ ...pending, state: "blocked", error: "以前のセッションが見つからないため、会話の資料を作り直します", lastEventId: null });
       this.db.exec("COMMIT");
     } catch (error) {

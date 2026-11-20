@@ -21,19 +21,18 @@ test("AI ごとのセッションと引き継ぎ位置をチャットごとに�
   assert.throws(() => store.chatProviderSessions.save(chat.id, "claude", "", null));
 });
 
-test("現在のセッションの更新と消去を保存先に反映し、他の AI の再開先は保護する", () => {
+test("いまの AI のセッションは chats.session_id だけに持ち、変えても消しても離れた AI の覚えは変えない（離れた AI のセッションは使っている扱い）", () => {
   const { store, project } = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" })));
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
   store.chats.update(chat.id, { session_id: "claude-1" });
-  store.chatProviderSessions.save(chat.id, "claude", "claude-1", 42);
   store.chatProviderSessions.save(chat.id, "codex", "codex-1", 50);
-  store.chats.update(chat.id, { session_id: "claude-1" });
-  assert.equal(store.chatProviderSessions.get(chat.id, "claude")?.last_event_id, 42);
   store.chats.update(chat.id, { session_id: "claude-2" });
-  assert.equal(store.chatProviderSessions.get(chat.id, "claude")?.last_event_id, null);
+  assert.equal(store.chatProviderSessions.get(chat.id, "claude"), undefined);
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.last_event_id, 50);
   assert.equal(store.events.sessionInUse("codex-1"), true);
   assert.equal(store.events.usedSessionIds().has("codex-1"), true);
   store.chats.update(chat.id, { session_id: null });
-  assert.equal(store.chatProviderSessions.get(chat.id, "claude"), undefined);
   assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.session_id, "codex-1");
+  // 引き継ぎ済みの位置は記録の ID（1 から）
+  assert.throws(() => store.chatProviderSessions.save(chat.id, "codex", "codex-1", 0), /CHECK/);
 });

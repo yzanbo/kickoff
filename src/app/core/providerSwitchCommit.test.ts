@@ -21,7 +21,9 @@ test("AI の変更・履歴の区切り・次回送信用の引き継ぎを一�
   assert.equal(result.chat.sandbox_enabled, false);
   assert.equal(result.chat.edit_scope_enabled, true);
   assert.deepEqual(result.event.data, { from: "claude", to: "codex", handoff_context: "引き継ぎ", handoff_status: "ready" });
+  // 離れた Claude の分は覚えに書き、戻った Codex の分は chats.session_id に移して覚えから消す
   assert.equal(store.chatProviderSessions.get(chat.id, "claude")?.last_event_id, 9);
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex"), undefined);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.eventId, result.event.id);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.queueWasPaused, true);
   store.close();
@@ -52,24 +54,26 @@ test("引き継ぎの保存に失敗したら、セッション・区切り・AI
   assert.throws(() => store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "x", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: 99, queueWasPaused: false }), /test failure/);
   assert.equal(store.chats.get(chat.id)?.provider, "claude");
   assert.equal(store.chats.get(chat.id)?.session_id, "claude-session");
-  assert.equal(store.chatProviderSessions.get(chat.id, "claude")?.last_event_id, null);
+  assert.equal(store.chatProviderSessions.get(chat.id, "claude"), undefined);
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.session_id, "codex-session");
   assert.deepEqual(store.events.list(chat.id), []);
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
   store.close();
 });
 
-test("引き継ぎの完了と、AI の再開位置の更新は同時に行う", () => {
+test("引き継ぎの完了は、区切りの印と保留の解除を同時に行う（いまの AI のセッションは chats.session_id だけに持つ）", () => {
   const { store, chat } = setup();
   const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "x", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
   assert.equal(store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex"), true);
-  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "wrong", 20), false);
+  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "wrong"), false);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
-  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "codex-session", 20), true);
+  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "codex-session"), true);
   const event = store.events.get(switched.event.id);
   assert.equal(event?.type === "provider_switched" && event.data.handoff_status, "delivered");
   assert.equal(event?.type === "provider_switched" && event.data.handoff_context, "x");
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
-  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.last_event_id, 20);
+  assert.equal(store.chats.get(chat.id)?.session_id, "codex-session");
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex"), undefined);
   store.close();
 });
 
@@ -101,7 +105,6 @@ test("消失したセッションの切り離しに失敗したら再開先と�
   store.db.exec("CREATE TRIGGER fail_missing BEFORE UPDATE ON chat_provider_handoffs BEGIN SELECT RAISE(ABORT, 'test failure'); END");
   assert.throws(() => store.markProviderSessionMissing(chat.id, switched.event.id, "codex", "codex-session"), /test failure/);
   assert.equal(store.chats.get(chat.id)?.session_id, "codex-session");
-  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.session_id, "codex-session");
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.lastEventId, 4);
   store.close();

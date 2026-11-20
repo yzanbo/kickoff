@@ -275,7 +275,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     if (handoff) {
       if (handoffClaimed && result.status === "completed" && result.sessionId) {
         const last = store.events.recent(chatId, 1)[0];
-        if (!last || last.type !== "result" || !store.completeProviderHandoff(chatId, handoff.eventId, handoff.provider, result.sessionId, last.id)) {
+        if (!last || last.type !== "result" || !store.completeProviderHandoff(chatId, handoff.eventId, handoff.provider, result.sessionId)) {
           store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, "AI の引き継ぎ完了を確認できませんでした");
         }
       } else if (handoffClaimed) {

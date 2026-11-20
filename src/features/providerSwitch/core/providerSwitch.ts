@@ -36,7 +36,9 @@ export async function prepareAndCommitProviderSwitch(
   const previousTarget = store.chatProviderSessions.get(chat.id, input.target);
   const lastSwitch = events.findLastIndex((e) => e.type === "provider_switched");
   const lastCompleted = events.slice(lastSwitch + 1).findLast((e) => e.type === "result" && e.data.status === "completed" && e.data.session_id === chat.session_id);
-  const oldCursor = store.chatProviderSessions.get(chat.id, chat.provider)?.last_event_id ?? null;
+  // いまの AI がまだ引き継ぎを受けていなければ、切り替えたときの位置（引き継ぎの保留が持つ）
+  const pending = store.chatProviderHandoffs.get(chat.id);
+  const oldCursor = pending?.provider === chat.provider ? pending.lastEventId : null;
   const currentLastEventId = lastCompleted?.id ?? oldCursor;
   let prepared: Awaited<ReturnType<typeof prepareProviderHandoff>> | null = null;
   let preparationError: string | null = null;
