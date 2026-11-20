@@ -12,7 +12,7 @@ import { chatPaneOf } from "@/features/chat/ui/screen/chatScreens";
 import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
-import { openChat, openProjectFile } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 
 /** 系譜のうち、まだ読み込んでいないチャットを一覧に入れる（親をたどって、いちばん上の親の右の欄に開けるように） */
 function learnLineage(lineage: OpenViewRequest["lineage"]) {
@@ -37,7 +37,7 @@ function openWorkFile(request: Extract<OpenViewRequest, { kind: "file" | "diff" 
       : side.openChanges({ chatId: rootId, ...target, ...(request.path ? { focus: request.path } : {}) }),
   );
   // 右の欄を置けない（親が分からない）ときはファイルタブ
-  if (!opened && request.kind === "file") openProjectFile(request.project_id, { path: request.path, ...(request.line ? { line: request.line } : {}), ...(request.worktree ? { worktree: request.worktree } : {}) });
+  if (!opened && request.kind === "file") open({ kind: "file", projectId: request.project_id, path: request.path, line: request.line ?? undefined, worktree: request.worktree });
 }
 
 /** AI の頼み（open_view）を、画面のいまの開き方で開く */
@@ -55,7 +55,7 @@ function openRequested(request: OpenViewRequest) {
   // SQL は、頼んだチャットの右の欄の DB クライアントの新しい SQL のタブ（ツールの行の「SQL のタブで開く」と同じ）
   if (request.kind === "sql") return openSqlFromChat(target, { id: request.connection_id }, request.sql);
   if (target.parent_chat_id !== null) openChildChat(target, request.place ?? undefined);
-  else openChat(target.project_id, target.id);
+  else open({ kind: "chat", projectId: target.project_id, chatId: target.id });
 }
 
 /**

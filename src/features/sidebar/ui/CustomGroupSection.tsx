@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -113,7 +113,7 @@ export function CustomGroupSection({
                 title={`「${group.name}」に新しいチャット`}
                 size={13}
                 className="custom-group-add"
-                onClick={() => openNewChat(projectId, { group: group.id })}
+                onClick={() => openTarget({ kind: "newChat", projectId: projectId, groupId: group.id })}
               />
               {menu.button(group)}
             </>

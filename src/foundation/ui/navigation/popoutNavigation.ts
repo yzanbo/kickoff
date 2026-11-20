@@ -5,6 +5,7 @@ import { OPEN_CONTENT_SEARCH_EVENT } from "@/features/chat/ui/chatSearch";
 import { OPEN_ACTIVE_CHATS_EVENT } from "@/features/chatList/ui/activeChats/openActiveChats";
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NO_PROJECTS_GUIDE_EVENT } from "@/features/projects/ui/new/openNewProject";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/ui/openSettings";
+import { open } from "./open";
 import { parsePopout, popoutPath, type PopoutRoute } from "./popout";
 import { navigate, parse } from "./router";
 import { postToMainWindow, type WindowMessage } from "./windowBus";
@@ -57,8 +58,12 @@ export function usePopoutForwarding(route: PopoutRoute) {
   useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, forward);
 }
 
-/** メインのウィンドウ: 別ウィンドウから渡された画面を開き、イベントを起こし直す（App が受け取る）。受け取った知らせなら true */
+/** メインのウィンドウ: 別ウィンドウから渡された行き先・画面を開き、イベントを起こし直す（App が受け取る）。受け取った知らせなら true */
 export function handleForwarded(m: WindowMessage): boolean {
+  if (m.type === "open") {
+    open(m.target, m.options);
+    return true;
+  }
   if (m.type === "navigate") {
     navigate(parse(m.hash));
     return true;

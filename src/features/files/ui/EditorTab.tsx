@@ -4,7 +4,8 @@ import { baseName } from "@/foundation/ui/lib/format";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import type { CommitBusy } from "@/features/git/ui/useCommitActions";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
-import { navigate, openProjectFile, type FileTarget } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
+import { navigate, type FileTarget } from "@/foundation/ui/navigation/router";
 import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListRail } from "@/foundation/ui/kit/ListRail";
@@ -93,7 +94,7 @@ export function EditorTab({
     },
     // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
     openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection({ path, staged }, groupsOf(git.status)), true),
-    openInFilesTab: (path) => openProjectFile(projectId, { path, ...(worktree ? { worktree } : {}) }),
+    openInFilesTab: (path) => open({ kind: "file", projectId, path, worktree }),
     gitRun: (action, paths) => void gitAction.guard(() => git.act(action, paths)),
   });
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）

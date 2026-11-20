@@ -3,7 +3,7 @@
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
@@ -41,6 +41,6 @@ export async function fixReviewComments(projectId: number, detail: GitHubPullDet
     return;
   }
   addToChat(chat.id, text, [attachment]);
-  openChat(chat.project_id, chat.id);
+  open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
   if (chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }

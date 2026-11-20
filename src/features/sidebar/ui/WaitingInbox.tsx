@@ -5,7 +5,8 @@ import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { openChat, useRoute } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { useRoute } from "@/foundation/ui/navigation/router";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { ChatMenu } from "@/features/chatList/ui/menu/ChatMenu";
 import { STATE_TONE } from "@/features/chat/ui/state/tones";
@@ -91,7 +92,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
         <ChatMenu
           at={rowMenu.menu.at}
           chat={rowMenu.menu.value}
-          onOpenPanel={(chat) => openChat(chat.project_id, chat.id)}
+          onOpenPanel={(chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id })}
           onRename={rename.start}
           onClose={rowMenu.close}
           onError={(m) => void alertDialog("操作できませんでした", m)}

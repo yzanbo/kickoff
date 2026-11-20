@@ -1,7 +1,7 @@
 import { ChevronRight, Columns2, Folder, FolderInput, PanelRight, Pencil, Pin, Rows2, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { api } from "@/foundation/ui/api";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
@@ -16,7 +16,7 @@ import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
 
 /** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
-const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree });
+const openNewChatAt = (place: NewChatPlace) => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree });
 
 /**
  * 送る前の新しいチャット（下書き）の右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのタブで共通）。

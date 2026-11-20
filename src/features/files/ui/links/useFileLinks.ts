@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { ProjectFiles } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
-import { openProjectFile } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { changeOf } from "@/features/git/ui/diff/sideFile";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
@@ -69,7 +69,7 @@ export function fileLinksFor({
   side: boolean;
 }): ChatFileLinks {
   const place = { projectId, ...(worktree ? { worktree } : {}) };
-  const openInEditor = (ref: FileRef) => openProjectFile(projectId, { ...ref, ...(worktree ? { worktree } : {}) });
+  const openInEditor = (ref: FileRef) => open({ kind: "file", projectId, ...ref, worktree });
   const actions = () => panelActions(panelKey("agents", chatId));
   const openChanges = (focus?: string) => {
     if (!side) return focus ? openInEditor({ path: focus }) : undefined;

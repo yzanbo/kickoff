@@ -9,7 +9,7 @@ import { detachBlockReason, detachChild } from "@/features/childChats/ui/detachC
 import { errorMessage } from "@shared/foundation/errors";
 import { alertDialog } from "@/foundation/ui/kit/dialogs";
 import { api } from "@/foundation/ui/api";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/groups/ui/groups";
 import { ungroupedPosition } from "@/features/groups/ui/groupOrder";
@@ -46,7 +46,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
   };
   // グループの「…」メニュー（右クリックでも開く）
   const menu = useGroupMenu({
-    onNewChat: (g) => openNewChat(projectId, { group: g.id }),
+    onNewChat: (g) => open({ kind: "newChat", projectId: projectId, groupId: g.id }),
     onRename: (g) => setRenaming(g.id),
     onDelete: (g) => void removeGroup(g),
     extra: menuExtra,

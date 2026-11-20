@@ -4,7 +4,7 @@ import { DB_ER_AUTO_MAX, type DbConnection } from "@shared/database/types";
 import { erMermaid, erPlace } from "@shared/database/erDiagram";
 import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
-import { openNote } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";
 import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -59,7 +59,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
     const path = `${name}.md`;
     await api.createNote(client.projectId, path, { content });
     if (await confirmDialog({ title: "ノートに書き出しました", message: `ノート「${path}」に Mermaid の ER 図を書き出しました。ノートのタブで開きますか？`, confirmLabel: "開く" })) {
-      openNote(client.projectId, path);
+      open({ kind: "note", projectId: client.projectId, path: path });
     }
   };
   const exportNote = () => writeNote().catch((e: unknown) => void reportFailure("ノートに書き出せませんでした")(e));

@@ -1,5 +1,5 @@
 import { SquarePen } from "lucide-react";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { FoldHead } from "@/foundation/ui/kit/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
@@ -44,7 +44,7 @@ export function UngroupedHead({
           onContextMenu(
             e,
             // どこで始めるか（「No Group」と作業場所の札「本体」）を添える（チャットの右クリックと同じ NewChatItem）
-            <NewChatItem place={{ projectId }} sameAs="" onSelect={() => openNewChat(projectId)} />,
+            <NewChatItem place={{ projectId }} sameAs="" onSelect={() => openTarget({ kind: "newChat", projectId: projectId })} />,
           ))
       }
       {...dragProps}
@@ -54,7 +54,7 @@ export function UngroupedHead({
       count={count}
       actions={
         <>
-          <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openNewChat(projectId)} />
+          <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openTarget({ kind: "newChat", projectId: projectId })} />
           {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
           <span className="group-menu-spacer" aria-hidden />
         </>

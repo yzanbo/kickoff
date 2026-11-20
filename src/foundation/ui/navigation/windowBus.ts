@@ -5,6 +5,7 @@ import type { Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
 import type { SplitDir } from "@/features/panel/ui/layout/paneTree";
 import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { PanelState } from "@/features/panel/ui/state/panelState";
+import type { OpenOptions, OpenTarget } from "./open";
 import type { PopoutRoute } from "./popout";
 import type { FileTarget } from "./router";
 
@@ -35,6 +36,8 @@ export type WindowMessage =
   | { type: "childToParent"; childId: number; action: "reveal" | "handBack"; text?: string }
   /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
   | { type: "popoutFocus"; key: string; focus: string }
+  /** メインのウィンドウでその行き先を開く（別ウィンドウで真ん中の画面・右の欄を頼まれた open。open.ts） */
+  | { type: "open"; target: OpenTarget; options: OpenOptions }
   /** メインのウィンドウでその画面（URL のハッシュ）を開く（別ウィンドウの中のリンク・サイドバーの行。app/popoutNavigation.ts） */
   | { type: "navigate"; hash: string }
   /** メインのウィンドウの App が受けるダイアログ・一覧を開く（別ウィンドウの中から開いた設定・⌘⇧A・新しいプロジェクトなど。app/popoutNavigation.ts の FORWARDED_APP_EVENTS） */

@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { forwardPanelOp } from "@/features/panel/ui/state/panelMirror";
@@ -19,5 +19,5 @@ export function openChatSplit(chat: Pick<Chat, "id" | "project_id">, dir: SplitD
   actions.open(chat);
   const pane = paneOfTab(panelStateOf(key).layout, chatKey(chat.id));
   if (pane) actions.splitPane(pane.id, dir, "after", chatKey(chat.id));
-  openChat(chat.project_id, chat.id);
+  open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }

@@ -9,7 +9,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { storage } from "./storage";
 import { WORKPLACE_KIND_LABELS } from "@/foundation/ui/workplace/workplace";
 import { newChatPlaceOf, type ChatBucket, type DraftTarget } from "@/features/chatList/ui/buckets";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -212,7 +212,7 @@ export function BoardLanes({
             sameAs=""
             onSelect={() => {
               const target = laneMenu.menu?.value.place;
-              if (target) openNewChat(target.projectId, { group: target.group, worktree: target.worktree });
+              if (target) openTarget({ kind: "newChat", projectId: target.projectId, groupId: target.group, worktree: target.worktree });
             }}
           />
         </PopupMenu>

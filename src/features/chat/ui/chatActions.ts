@@ -6,7 +6,8 @@ import { errorMessage } from "@shared/foundation/errors";
 import { writeSetting } from "@/foundation/ui/storage";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
 import { knownDescendantCount } from "@/features/chat/ui/store/knownChats";
-import { openChat, parse } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
+import { parse } from "@/foundation/ui/navigation/router";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 
@@ -151,7 +152,7 @@ export async function confirmMoveChatToProject(
   await api.moveChat(chat.id, project.id);
   if (group) await api.setChatGroup(chat.id, group.id);
   const route = parse(window.location.hash);
-  if (route.name === "chat" && route.chatId === chat.id) openChat(project.id, chat.id);
+  if (route.name === "chat" && route.chatId === chat.id) open({ kind: "chat", projectId: project.id, chatId: chat.id });
   return true;
 }
 

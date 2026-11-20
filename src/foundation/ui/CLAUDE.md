@@ -8,7 +8,7 @@
 |---|---|
 | `kit/`・`hooks/`・`lib/` | ドメインを知らない部品・hooks・React に依存しない補助 |
 | `store/`・`api/`・`storage/` | 店の仕組み・サーバーとのやり取り・表示の設定の保存（下の節） |
-| `navigation/`・`shell/` | ルーター `router.ts`・別ウィンドウ `popout.ts`・ウィンドウの間の知らせ `windowBus.ts`・移動の履歴 / アプリの殻の土台 |
+| `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / アプリの殻の土台 |
 | `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
 App・起動・ショートカット・下の帯は `src/app/renderer/`、機能の画面は `src/features/<機能>/ui/`。
@@ -17,7 +17,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
 - 複数のファイルになる機能は `src/features/<機能>/` にまとめる。どの機能にも属さないものだけを土台に置く。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「描く部品」に分ける（`usePanel` ＋ `Panel`）。props の束も hook から返してよい。
-- 画面（ルート。`navigation/router.ts` の `Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。
+- 画面（`Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。
 
 ## データ（`store/` と全体の context）
 

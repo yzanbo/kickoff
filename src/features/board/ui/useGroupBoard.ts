@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/groups/ui/groups";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { groupsSettings } from "@/features/groups/ui";
@@ -34,7 +34,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));
   };
   // グループの「…」メニュー（右クリックでも開く）
-  const groupMenu = useGroupMenu({ onNewChat: (g) => openNewChat(projectId, { group: g.id }), onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
+  const groupMenu = useGroupMenu({ onNewChat: (g) => open({ kind: "newChat", projectId: projectId, groupId: g.id }), onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
   // グループの並びの中の「No Group」の位置（覚えていなければ、ボードは先頭・リストはいちばん下）
   const [savedUngroupedAt, setUngroupedAt] = useSetting(groupsSettings.ungroupedAt(projectId));
   // 覚えていなければ、ボードは先頭・リストはいちばん下

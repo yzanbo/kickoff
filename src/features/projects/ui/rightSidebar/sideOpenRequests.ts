@@ -1,11 +1,12 @@
 // ほかの場所から右サイドバーで開くよう頼まれたファイル・ノート（右サイドバーがその中身を見せているときだけ）。
 // 中身の部品が受け取って開いたら片付ける（同じ頼みで開き直さない）
 import { useSyncExternalStore } from "react";
-import { setSideOpener, type SideOpenTarget } from "@/foundation/ui/navigation/router";
+import type { FileTarget } from "@/foundation/ui/navigation/router";
 import { sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
 import { isSideViewShown } from "./sideView";
 
-export type SideOpenRequest = SideOpenTarget;
+/** 右サイドバーで開くよう頼まれたもの（ファイル・ノート） */
+export type SideOpenRequest = { kind: "file"; file: FileTarget } | { kind: "note"; path: string; line?: number };
 
 const requests = new Map<number, SideOpenRequest>();
 const listeners = new Set<() => void>();
@@ -32,10 +33,12 @@ export function useSideOpenRequest<K extends SideOpenRequest["kind"]>(projectId:
   return request?.kind === kind ? (request as Extract<SideOpenRequest, { kind: K }>) : undefined;
 }
 
-// ファイル・ノートを開く口（openProjectFile・openNote）が、右サイドバーがファイル・ノートを見せていればここへ頼む。
-// 頼みはこのウィンドウの中だけに置くので、右サイドバーを別ウィンドウへ移しているときは、真ん中のタブで開く
-setSideOpener((projectId, target) => {
+/**
+ * ファイル・ノートを開く行き先（files・notes の openTargets）が、右サイドバーがファイル・ノートを見せていればここへ頼む（頼んだら true）。
+ * 頼みはこのウィンドウの中だけに置くので、右サイドバーを別ウィンドウへ移しているときは、真ん中のタブで開く
+ */
+export function trySideOpen(projectId: number, target: SideOpenRequest): boolean {
   if (sidePanelsHandedOut() || !isSideViewShown(projectId, target.kind === "file" ? "files" : "notes")) return false;
   requestSideOpen(projectId, target);
   return true;
-});
+}

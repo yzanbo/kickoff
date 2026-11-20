@@ -6,7 +6,8 @@ import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
-import { openChat, openNote, type Route } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { type Route } from "@/foundation/ui/navigation/router";
 
 /**
  * 通知（チャットの完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める（src/features/notifications/core/center.ts。だれも見ていなければ、
@@ -65,7 +66,7 @@ async function openNotifiedChat(projectId: number, chatId: number) {
     (d) => d.chat,
     () => null,
   );
-  if (!chat) return openChat(projectId, chatId);
-  if (chat.note_path !== null) return openNote(chat.project_id, chat.note_path);
+  if (!chat) return openTarget({ kind: "chat", projectId: projectId, chatId: chatId });
+  if (chat.note_path !== null) return openTarget({ kind: "note", projectId: chat.project_id, path: chat.note_path });
   openChatOrChild(chat);
 }

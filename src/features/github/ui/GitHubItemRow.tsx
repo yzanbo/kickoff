@@ -2,7 +2,7 @@ import { memo, type CSSProperties } from "react";
 import { Check, CircleDashed, MessageSquare, MessagesSquare, X } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import type { GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { agoText } from "@/foundation/ui/lib/time";
@@ -82,7 +82,7 @@ export const GitHubItemRow = memo(function GitHubItemRow({
         type="button"
         className="github-item-chats"
         data-tip={`結び付いたチャット: ${chats.map((c) => chatTitle(c.title)).join("、")}（押すと「${chatTitle(chats[0].title)}」を開く）`}
-        onClick={() => openChat(chats[0].project_id, chats[0].id)}
+        onClick={() => open({ kind: "chat", projectId: chats[0].project_id, chatId: chats[0].id })}
       >
         <MessagesSquare size={12} aria-hidden />
         {chats.length > 1 ? chats.length : "チャット"}

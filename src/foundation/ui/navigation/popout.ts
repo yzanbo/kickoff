@@ -175,6 +175,9 @@ function parseEnv(text: string | null): Record<string, string> | undefined {
 /** 別ウィンドウを開けるか（Mac のアプリのときだけ） */
 export const canPopout = (): boolean => Boolean(globalThis.window?.kickoff?.windows);
 
+/** 別ウィンドウの中か（真ん中の画面・右の欄を開く頼みはメインのウィンドウへ送る） */
+export const isPopoutWindow = (): boolean => globalThis.location !== undefined && parsePopout(location.hash) !== undefined;
+
 /** サイドバーの別ウィンドウの中か（下書き・パネルの状態はメインのウィンドウのものを写して読み、変えるのはメインに頼む） */
 export const isSidebarWindow = (): boolean => globalThis.location !== undefined && parsePopout(location.hash)?.kind === "sidebar";
 

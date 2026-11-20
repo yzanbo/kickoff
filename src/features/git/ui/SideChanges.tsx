@@ -1,7 +1,7 @@
 import { Check, ChevronRight, FileCheck2, SquareArrowOutUpRight } from "lucide-react";
 import { useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { GitFileChange } from "@shared/git/types";
-import { openProjectFile } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -233,7 +233,7 @@ function ChangeSection({
   // 消えたら（コミットした・元に戻した）数から外す
   useEffect(() => () => onChangedSince(file.path, false), [file.path, onChangedSince]);
   const links = useContext(FileLinkContext);
-  const openInEditor = () => (links ? links.openInEditor({ path: file.path }) : openProjectFile(projectId, { path: file.path, ...(worktree ? { worktree } : {}) }));
+  const openInEditor = () => (links ? links.openInEditor({ path: file.path }) : openTarget({ kind: "file", projectId, path: file.path, worktree }));
   return (
     // data-quote-path: 差分の行を選んでチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
     <section className="side-change" data-change-path={file.path} data-quote-path={file.path}>

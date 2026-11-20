@@ -18,7 +18,7 @@ import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
 import { addChat } from "@/features/chat/ui/store/knownChats";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { openPrNotice } from "@/features/github/ui/prNotice/PrNoticeDialog";
 
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
@@ -100,7 +100,7 @@ export function WorktreeBar({
       const { chat, worktrees } = await api.setupWorktreeEnv(projectId, worktree);
       worktreesStore.set(projectId, worktrees);
       addChat(chat);
-      openChat(projectId, chat.id);
+      open({ kind: "chat", projectId: projectId, chatId: chat.id });
     });
 
   // ワークツリーを消す（変更・プッシュしていないコミットを知らせ、ブランチも消すかを選んでもらう）

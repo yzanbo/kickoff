@@ -1,6 +1,6 @@
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
 import { useContext, useEffect } from "react";
-import { openProjectFile } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
 import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
@@ -59,7 +59,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
         <button
           type="button"
           className="btn btn-sm"
-          onClick={() => (links ? links.openInEditor(ref) : openProjectFile(projectId, { ...ref, ...(worktree ? { worktree } : {}) }))}
+          onClick={() => (links ? links.openInEditor(ref) : open({ kind: "file", projectId, ...ref, worktree }))}
         >
           <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く
         </button>

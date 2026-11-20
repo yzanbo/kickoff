@@ -3,7 +3,8 @@
 // ノートは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければノートのタブ）。サイドバーはこのウィンドウのサイドバーを開く。
 // パネルのブラウザ・ターミナルのタブは元の欄に開き直す（ターミナルはシェルの持ち主をこのウィンドウにしてから。別ウィンドウが閉じてもシェルを止めさせない）
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { navigate, openChat, openNote } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
@@ -38,7 +39,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       return;
     case "chats": {
       // チャットのパネルで開く（移すときに「表示だけ消した」ことにしたのを、開くことで戻す）
-      if (route.chatId !== undefined) return openChat(route.projectId, route.chatId);
+      if (route.chatId !== undefined) return void openTarget({ kind: "chat", projectId: route.projectId, chatId: route.chatId });
       // 送る前の新しいチャット: 別ウィンドウが渡した中身（書きかけの文・添付）のまま、チャットのパネルに開き直す
       const draft = takeHandedTab(route.key);
       if (draft) reopenInPanel(panelKey("board", route.projectId), draft);
@@ -85,7 +86,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
           .map((id) => knownChat(id))
           .find((c) => c?.project_id === route.projectId);
       const root = shown && rootChatOf(shown, knownChat);
-      if (!root || !openInRootSide(root.id, (rootId, side) => side.openNote({ chatId: rootId, projectId: route.projectId, path: route.path }))) openNote(route.projectId, route.path);
+      if (!root || !openInRootSide(root.id, (rootId, side) => side.openNote({ chatId: rootId, projectId: route.projectId, path: route.path }))) openTarget({ kind: "note", projectId: route.projectId, path: route.path });
       return;
     }
   }

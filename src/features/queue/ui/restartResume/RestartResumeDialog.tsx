@@ -2,7 +2,7 @@ import { ArrowUpRight, ChevronRight, History, OctagonPause } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
 import { api } from "@/foundation/ui/api";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -100,7 +100,7 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
               onChoose={(c) => setChoices((prev) => ({ ...prev, [r.chat_id]: c }))}
               onOpenChat={() => {
                 dialog.close();
-                openChat(r.project_id, r.chat_id);
+                openTarget({ kind: "chat", projectId: r.project_id, chatId: r.chat_id });
               }}
             />
           ))}

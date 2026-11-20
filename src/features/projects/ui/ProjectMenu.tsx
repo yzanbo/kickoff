@@ -21,7 +21,7 @@ import type { Project } from "@shared/projects/types";
 import { alertDialog, promptDialog } from "@/foundation/ui/kit/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useOrderedTags } from "./projectTagFilter";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { ACTIVE_CHATS_LABEL } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
 import { openActiveChats } from "@/features/chatList/ui/activeChats/openActiveChats";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
@@ -111,7 +111,7 @@ function ProjectMenu({
   return (
     <PopupMenu at={at} label={`${project.name} のメニュー`} onClose={onClose}>
       <div className="menu-label">このプロジェクト</div>
-      {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
+      {item("new", <SquarePen size={14} />, "新しいチャット", () => openTarget({ kind: "newChat", projectId: project.id }))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
       {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openActiveChats({ projectId: project.id }))}
       {window.kickoff && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void window.kickoff?.externalApps.openPath(project.repo_path))}

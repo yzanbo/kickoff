@@ -11,7 +11,7 @@ import { openBrowserTab } from "@/features/browser/ui/panel/openBrowserTab";
 import { discardDraft, moveDraftToProject, openDraft, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { handleForwarded } from "@/foundation/ui/navigation/popoutNavigation";
 import { popoutKey } from "@/foundation/ui/navigation/popout";
-import { openChat, openProjectFile } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postWindowMessage, type PanelOp, type WindowMessage } from "@/foundation/ui/navigation/windowBus";
 
 /** サイドバーの別ウィンドウから頼まれた、このウィンドウのパネルを変える操作 */
@@ -30,8 +30,8 @@ function runPanelOp(o: PanelOp) {
 export function handleMainWindowMessage(m: WindowMessage) {
   if (handleForwarded(m)) return;
   if (m.type === "panelOp") runPanelOp(m.op);
-  else if (m.type === "openProjectFile") openProjectFile(m.projectId, m.file);
-  else if (m.type === "openChat") openChat(m.projectId, m.chatId);
+  else if (m.type === "openProjectFile") openTarget({ kind: "file", projectId: m.projectId, ...m.file });
+  else if (m.type === "openChat") openTarget({ kind: "chat", projectId: m.projectId, chatId: m.chatId });
   else if (m.type === "openNote") openNoteFromChat(m);
   else if (m.type === "dockPopout") {
     const { route } = m;

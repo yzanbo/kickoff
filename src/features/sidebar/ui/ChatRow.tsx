@@ -8,7 +8,8 @@ import { isOpenKey, isRenameKey } from "@/foundation/ui/lib/keys";
 import { anchorPlacement, type Placement } from "@/foundation/ui/lib/floating";
 import { startChatDrag } from "@/features/groups/ui/groups";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
-import { href, openChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { href } from "@/foundation/ui/navigation/router";
 import { formatDayTime, shortRelativeTime } from "@/foundation/ui/lib/time";
 import { workingFor } from "@/features/chat/ui/currentWork";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
@@ -87,7 +88,7 @@ export function ChatRow({
     );
   }
   // 開く（開いているチャットをもう一度押したときも、閉じたパネルを開き直す）
-  const open = () => (onOpen ? onOpen() : openChat(chat.project_id, chat.id));
+  const open = () => (onOpen ? onOpen() : openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id }));
   // 選んでいるチャットのメニューなら、まとめて操作するメニュー
   const openMenuAt = (at: Placement) => {
     if (selection && selected && selection.ids.size > 1) selection.openMenu(at);

@@ -54,15 +54,15 @@
       "brokenRefs": 0
     },
     "src/foundation/ui/CLAUDE.md": {
-      "bytes": 17189,
-      "ancestors": 27380,
+      "bytes": 17169,
+      "ancestors": 27360,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 6888,
-      "ancestors": 34268,
+      "ancestors": 34248,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

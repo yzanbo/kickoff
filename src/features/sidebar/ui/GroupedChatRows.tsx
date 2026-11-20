@@ -2,7 +2,7 @@ import { GitBranch, Pin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { newChatPlaceOf, type BucketHead, type ChatBucket } from "@/features/chatList/ui/buckets";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
 import { useFold, useFolds } from "@/foundation/ui/hooks/useFold";
@@ -54,7 +54,7 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
           const place = newChatPlaceOf(bucket);
           onContextMenu(
             e,
-            place && <NewChatItem place={place} branch={bucket.place?.name ?? null} sameAs="" onSelect={() => openNewChat(place.projectId, { group: place.group, worktree: place.worktree })} />,
+            place && <NewChatItem place={place} branch={bucket.place?.name ?? null} sameAs="" onSelect={() => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree })} />,
           );
         })
       }

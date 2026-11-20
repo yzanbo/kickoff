@@ -1,7 +1,7 @@
 import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
 import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";
-import { openProjectFile } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
@@ -55,7 +55,7 @@ export function DockerComposeBlock({
   const guarded = async (action: "down" | "recreate") => {
     if (await confirmed(compose, action)) send(action);
   };
-  const openFile = () => compose.file && openProjectFile(projectId, { path: compose.file, ...(compose.worktree_path ? { worktree: compose.worktree_path } : {}) });
+  const openFile = () => compose.file && open({ kind: "file", projectId, path: compose.file, worktree: compose.worktree_path });
   const anyRunning = compose.services.some((s) => s.running > 0 || s.oneoffs.some((c) => c.state === "running"));
   const failure = compose.failure;
   // ポートの取り合いの相手は、ぶつかったサービスの行に出す（［相手を止めて起動］は最初の行に 1 つだけ。どの行にも当たらない相手は失敗の中に）

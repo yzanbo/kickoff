@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { openChat, openNewChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { usePanelDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import type { NewChatTarget, PanelController } from "@/features/panel/ui/usePanel";
@@ -38,7 +38,7 @@ export function useChatsTabLinks(projectId: number): BoardChats {
   const drafts = usePanelDrafts([panelKey("board", projectId), panelKey("side", projectId)]);
   return {
     drafts,
-    open: (chat) => openChat(chat.project_id, chat.id),
-    openNew: (target) => openNewChat(target.projectId, { group: target.group, worktree: target.worktree }),
+    open: (chat) => open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }),
+    openNew: (target) => open({ kind: "newChat", projectId: target.projectId, groupId: target.group, worktree: target.worktree }),
   };
 }

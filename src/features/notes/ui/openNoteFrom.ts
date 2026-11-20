@@ -2,7 +2,7 @@
 // 別ウィンドウ。送る前の新しいチャット（draftSide）なら、その下書きのタブの右の欄。チャットが分からない・ノートのチャットならノートのタブ。
 // 別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
-import { openNote } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { readSetting } from "@/foundation/ui/storage";
@@ -33,11 +33,11 @@ export function openNoteFromChat({
   // ノートのチャット（ノートのタブの中で開いたもの）からは、ノートのタブで開く（ノートのチャットは右の欄を持たない）
   const from = chatId !== null && !knownChat(chatId)?.note_path ? chatId : null;
   if (from !== null && openInRootSide(from, (rootId, side) => side.openNote({ chatId: rootId, projectId, path }))) return;
-  openNote(projectId, path);
+  openTarget({ kind: "note", projectId: projectId, path: path });
 }
 
 /** ノートのタブでそのノートを開く（DB クライアントの手順ノートのタブの「ノートのタブで開く」。別ウィンドウの中からはメインのウィンドウに頼む） */
 export function openInNoteTab(projectId: number, path: string) {
   if (parsePopout(location.hash)) return postToMainWindow({ type: "openNote", projectId, path, chatId: null });
-  openNote(projectId, path);
+  openTarget({ kind: "note", projectId: projectId, path: path });
 }

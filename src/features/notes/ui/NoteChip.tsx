@@ -1,7 +1,7 @@
 import { ChevronsDownUp, ChevronsUpDown, StickyNote } from "lucide-react";
 import { useMemo, useState } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
-import { openNote } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
@@ -124,7 +124,7 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
               className="note-chip-row more"
               onClick={() => {
                 popover.close();
-                openNote(projectId);
+                openTarget({ kind: "projectView", projectId: projectId, view: "notes" });
               }}
             >
               ノートのタブを開く

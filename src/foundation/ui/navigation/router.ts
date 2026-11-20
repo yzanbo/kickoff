@@ -187,45 +187,6 @@ export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>
  */
 export const reopened = createSignal<ReopenRoute>();
 
-/** チャットを開く（プロジェクトのボードへ移り、右側のパネルで開く） */
-export function openChat(projectId: number, chatId: number, focus?: number, options: { replace?: boolean } = {}) {
-  navigate({ name: "chat", projectId, chatId, ...(focus ? { focus } : {}) }, options);
-}
-
-/** 新しいチャットを始める（プロジェクトのボードへ移り、右側のパネルで始める。group・worktree: 始めるグループ・作業場所） */
-export function openNewChat(projectId: number, target: { group?: number; worktree?: string } = {}) {
-  navigate({ name: "newChat", projectId, ...target });
-}
-
-/** プロジェクトのファイルタブで、ファイルを開く（行があればその行へ移る） */
-export function openProjectFile(projectId: number, file: FileTarget) {
-  if (sideOpener?.(projectId, { kind: "file", file })) return;
-  navigate({ name: "project", id: projectId, tab: "files", file });
-}
-
-/** 右サイドバーで開くよう頼まれたもの（ファイル・ノート） */
-export type SideOpenTarget = { kind: "file"; file: FileTarget } | { kind: "note"; path: string; line?: number };
-
-/**
- * 右サイドバーで開く口（右サイドバーがその中身を見せているときだけ開いて true を返す）。
- * 右サイドバーの部品（features/panel/projectChat/sideOpenRequests.ts）が置く（ルーターは画面の部品を import しないため）
- */
-let sideOpener: ((projectId: number, target: SideOpenTarget) => boolean) | null = null;
-export const setSideOpener = (opener: typeof sideOpener) => {
-  sideOpener = opener;
-};
-
-/** プロジェクトの検索タブを開く（⌘⇧F） */
-export function openProjectSearch(projectId: number) {
-  navigate({ name: "project", id: projectId, tab: "search" });
-}
-
-/** ノートのタブでそのノートを開く（path を省くとノートのタブへ移るだけ。開いているチャットは右のパネルに残る） */
-export function openNote(projectId: number, path?: string) {
-  if (path && sideOpener?.(projectId, { kind: "note", path })) return;
-  navigate({ name: "project", id: projectId, tab: "notes", ...(path ? { note: path } : {}) });
-}
-
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示・⌘N・AI に見せる画面。全プロジェクトの画面なら null） */
 export function routeProjectId(route: Route): number | null {
   if (route.name === "project") return route.id;

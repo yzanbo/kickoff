@@ -16,11 +16,11 @@ import { askNewGroupName } from "@/features/groups/ui/groups";
 import { openAskChild } from "@/features/chat/ui/open/openChat";
 import { DetachSubmenu } from "@/features/childChats/ui/DetachSubmenu";
 import { manageImageHosts } from "@/features/remoteImages/ui/manageImageHosts";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
 
 /** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
-const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree });
+const openNewChatAt = (place: NewChatPlace) => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree });
 
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:

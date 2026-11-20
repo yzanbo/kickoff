@@ -6,7 +6,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { formatClock, formatElapsed } from "@/foundation/ui/lib/time";
 import { copyRich } from "@/foundation/ui/lib/richCopy";
 import { api } from "@/foundation/ui/api";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -82,7 +82,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
           onClick={() =>
             void api
               .forkChat(event.chat_id, event.id)
-              .then((chat) => openChat(chat.project_id, chat.id))
+              .then((chat) => open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }))
               .catch(reportFailure("分岐できませんでした"))
           }
         />

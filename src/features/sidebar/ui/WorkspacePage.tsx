@@ -11,7 +11,8 @@ import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { useFold, useFolds } from "@/foundation/ui/hooks/useFold";
 import { projectHue } from "@/features/projects/ui/projectColor";
 import { archivedKey, groupKey, pinnedKey } from "@/features/chatList/ui/bucketHeads";
-import { openNewChat, openChat, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { ChatMenu } from "@/features/chatList/ui/menu/ChatMenu";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
@@ -93,8 +94,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 一覧を開いた直後（まとめ方・並び順・開閉・アーカイブ済みを出すか・チャットが届いたかが変わったとき）は画面に入る数の行だけを描き、
   // 最初の描画のあとに残りを描く（見えていない裏のページは初めは描かない）
   const rowBudget = useProgressivePage(`${grouping}/${order}/${collapsed ? 1 : 0}/${showArchivedChats ? 1 : 0}/${chats.length > 0 ? 1 : 0}`, hidden);
-  // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
-  // 検索・状態で絞っている間は出さない
+  // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す。検索・状態で絞っている間は出さない）
   const [waitingOn] = useSetting(storage.settings.waitingOnly);
   const [waitingView] = useWaitingView();
   const showWaitingTop = waitingOn && waitingAxes(waitingView).scope === "project" && !keyword && !stateFilter;
@@ -240,7 +240,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       (visibleCount === 0 && mainDraftCount === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
         mainDraftCount === 0 &&
         !mainArchived ? (
-        <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
+        <button className="chat-row ghost" onClick={() => openTarget({ kind: "newChat", projectId: project.id })}>
           <SquarePen size={13} /> 最初のチャットを始める
         </button>
       ) : mainRows.length === 0 && mainDraftCount === 0 && !mainArchived ? null : (
@@ -404,7 +404,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         <ChatMenu
           at={rowMenu.menu.at}
           chat={rowMenu.menu.value}
-          onOpenPanel={(chat) => openChat(chat.project_id, chat.id)}
+          onOpenPanel={(chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id })}
           onRename={rename.start}
           onClose={rowMenu.close}
           onError={(m) => void alertDialog("操作できませんでした", m)}

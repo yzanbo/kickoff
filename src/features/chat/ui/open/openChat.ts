@@ -3,7 +3,7 @@
 import type { HandoffFrom } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
@@ -24,7 +24,7 @@ function showRoot(chatId: number): Chat | undefined {
   if (!chat) return undefined;
   const root = rootChatOf(chat, knownChat);
   if (root.parent_chat_id !== null) return undefined;
-  if (!isChatPaneShown(root.id)) openChat(root.project_id, root.id);
+  if (!isChatPaneShown(root.id)) openTarget({ kind: "chat", projectId: root.project_id, chatId: root.id });
   return root;
 }
 
@@ -42,7 +42,7 @@ export function openInRootSide(chatId: number, open: (rootId: number, side: Retu
 /** 子チャットを右の欄で開く（いちばん上の親の右の欄のタブ。親が分からなければ、ふつうのチャットと同じくチャットのパネルで） */
 export function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
   const opened = openInRootSide(chat.id, (rootId, side) => side.openChild({ chatId: rootId, childId: chat.id, projectId: chat.project_id, title: chat.title }));
-  if (!opened) openChat(chat.project_id, chat.id);
+  if (!opened) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
 /**
@@ -59,7 +59,7 @@ export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, p
 /** チャットを開く（子チャットなら設定の開き方で、いちばん上のチャットならチャットのパネルで。要対応・⌘⇧A など子チャットも並ぶ一覧から） */
 export function openChatOrChild(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {
   if (chat.parent_chat_id !== null) openChildChat(chat);
-  else openChat(chat.project_id, chat.id);
+  else openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
 /**
@@ -108,7 +108,7 @@ export function openAskChild({ parentId, eventId, quote, text, attachments }: As
 /** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */
 function showChatView(chat: Chat) {
   if (chat.parent_chat_id !== null) openChildSide(chat);
-  else if (!isChatPaneShown(chat.id)) openChat(chat.project_id, chat.id);
+  else if (!isChatPaneShown(chat.id)) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
 /** 子チャットの親の、聞いた発言を見せる（メインのウィンドウで。別ウィンドウからはメインに頼む） */

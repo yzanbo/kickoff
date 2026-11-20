@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import type { Chat } from "@shared/chat/types";
-import { navigate, openChat, type ReopenRoute } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { navigate, type ReopenRoute } from "@/foundation/ui/navigation/router";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { useBoardFocus } from "./useBoardFocus";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -14,7 +15,7 @@ import { terminalTargets, usePanel } from "@/features/panel/ui/usePanel";
 import { usePanelWidth } from "./usePanelWidth";
 
 /** チャットを URL にする（サイドバーで強調され、戻る・進むで行き来できる） */
-const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openChat(chat.project_id, chat.id);
+const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 
 /**
  * プロジェクトのチャットのパネル（ボードの右のパネル・ボードと分けた「チャット」タブで共通。どちらも kanban:<プロジェクト> の同じパネルなので、
@@ -29,7 +30,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
     scope: projectId,
     holdEsc,
     // 新しいチャットを送ったら、そのチャットを URL にする
-    onCreated: (chat) => openChat(chat.project_id, chat.id, undefined, { replace: true }),
+    onCreated: (chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id }, { replace: true }),
     newChat: { projectId },
     terminals: terminalTargets(all, projectId),
   });

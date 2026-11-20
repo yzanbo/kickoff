@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
-import { openNewChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
 import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useGroups } from "@/features/groups/ui/stores/groups";
@@ -49,7 +49,7 @@ export function ProjectGroupColumns({
         projectId={projectId}
         buckets={buckets}
         board={board}
-        onNewChat={(target) => openNewChat(target.projectId, target.group === undefined ? {} : { group: target.group })}
+        onNewChat={(target) => open({ kind: "newChat", projectId: target.projectId, groupId: target.group })}
         render={render}
         foldPlace={foldPlace}
         list={list}

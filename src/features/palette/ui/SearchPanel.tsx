@@ -9,7 +9,7 @@ import { sidebarOrder } from "@/features/projects/ui/projectOrder";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useListNavigation } from "@/foundation/ui/hooks/useListNavigation";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { relativeTime } from "@/foundation/ui/lib/time";
 
 /** 探す範囲: いまのチャット・すべて・プロジェクト（ID） */
@@ -69,7 +69,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
   function open(hit: SearchHit | undefined) {
     if (!hit) return;
     dialog.close();
-    openChat(hit.project_id, hit.chat_id, hit.event_id);
+    openTarget({ kind: "chat", projectId: hit.project_id, chatId: hit.chat_id, focus: hit.event_id });
   }
 
   return (

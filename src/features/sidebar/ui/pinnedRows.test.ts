@@ -15,7 +15,7 @@ vi.mock("@/features/groups/ui/groups", () => ({ startChatDrag: () => {}, startDr
 vi.mock("@/features/groups/ui/GroupChip", () => ({ GroupChip: () => null }));
 vi.mock("@/foundation/ui/workplace/WorktreeChip", () => ({ WorktreeChip: () => null }));
 vi.mock("@/features/chat/ui/currentWorkStore", () => ({ useChatActivity: () => null }));
-vi.mock("@/foundation/ui/navigation/router", () => ({ href: () => "#chat", openChat: () => {}, useRoute: () => ({ name: "project", id: 1, tab: "chats" }) }));
+vi.mock("@/foundation/ui/navigation/router", () => ({ href: () => "#chat", useRoute: () => ({ name: "project", id: 1, tab: "chats" }) }));
 vi.mock("@/features/projects/ui/page/chatPlacement", () => ({ useChatPlacement: () => ["separate"] }));
 vi.mock("@/features/chatPanel/ui/drafts/DraftMenuItems", () => ({ DraftMenuItems: () => null, DraftSplitItems: () => null, DraftTitleInput: () => null }));
 vi.mock("@/features/chatPanel/ui/drafts/panelDrafts", () => ({ draftTitleOf: () => "New Chat", openDraft: () => {}, useAllDrafts: () => [] }));

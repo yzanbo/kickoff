@@ -4,7 +4,8 @@ import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { changeProject, confirmRestoreProject } from "@/features/projects/ui/projectOrder";
-import { href, navigate, openNewChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
+import { href, navigate } from "@/foundation/ui/navigation/router";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { GroupPickMenu } from "@/features/groups/ui/GroupPickMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -143,7 +144,7 @@ export function WorkspaceHead({
           aria-expanded={groups.length > 0 ? pickMenu.isOpen : undefined}
           onClick={(e) => {
             // グループがあれば、どこに作るかを選んでもらう（開いているときに押したら閉じる）
-            if (groups.length === 0) return openNewChat(project.id);
+            if (groups.length === 0) return open({ kind: "newChat", projectId: project.id });
             pickMenu.toggle(e);
           }}
         />
@@ -153,7 +154,7 @@ export function WorkspaceHead({
           at={pickMenu.menu.at}
           groups={groups}
           ignore=".workspace-new-chat"
-          onPick={(group) => openNewChat(project.id, group ? { group } : {})}
+          onPick={(group) => open({ kind: "newChat", projectId: project.id, groupId: group })}
           onClose={pickMenu.close}
         />
       )}

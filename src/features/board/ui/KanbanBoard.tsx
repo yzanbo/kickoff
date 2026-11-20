@@ -4,7 +4,8 @@ import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { openChat, type ReopenRoute } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
+import type { ReopenRoute } from "@/foundation/ui/navigation/router";
 import { useBoardPanel } from "@/features/chatPanel/ui/board/useBoardPanel";
 import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/chatPanel/ui/board/boardChats";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
@@ -92,7 +93,7 @@ export function AllProjectsKanban() {
   return (
     <KanbanView
       menu={menu}
-      onOpen={(chat) => openChat(chat.project_id, chat.id)}
+      onOpen={(chat) => open({ kind: "chat", projectId: chat.project_id, chatId: chat.id })}
       drafts={drafts}
     />
   );
@@ -110,10 +111,7 @@ interface ViewProps {
   drafts: readonly PanelDraft[];
 }
 
-/**
- * チャットのカンバン（プロジェクト・全プロジェクトで共通の中身）。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
- * カードの点はより細かい状態（順番待ち・エラーなど）
- */
+/** チャットのカンバン（プロジェクト・全プロジェクトで共通の中身）。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。カードの点はより細かい状態（順番待ち・エラーなど） */
 function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: ViewProps) {
   const allProjects = projectId === undefined;
   // 全プロジェクトのボードに出すプロジェクト: しまった（アーカイブした）ものを除いたサイドバーの並び。サイドバーの「タグ」で絞り込んでいれば、合うものだけ

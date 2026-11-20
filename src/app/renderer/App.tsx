@@ -50,7 +50,8 @@ import { useAiOpenRequests } from "@/features/chat/ui/open/aiOpenRequests";
 import { useWorkplaceMoveTabs } from "@/features/workplaceMove/ui/repointTabs";
 import { AllProjectsPage } from "@/features/board/ui/AllProjectsPage";
 import { ProjectPage } from "@/features/projects/ui/page/ProjectPage";
-import { openNewChat, openProjectSearch, parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { parse, RouteContext, routeProjectId, useHashRoute } from "@/foundation/ui/navigation/router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "@/foundation/ui/navigation/popoutNavigation";
 import { usePopoutHosts } from "./popoutHosts";
@@ -140,7 +141,7 @@ export function App() {
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
   const startNewChat = () => {
     const target = projectId ?? fallbackProject;
-    if (target) openNewChat(target);
+    if (target) openTarget({ kind: "newChat", projectId: target });
     // いきなり新しいプロジェクトのダイアログを開かず、チャットはプロジェクトの中で始めることを説明してから作るよう誘う
     else setNoProjectsGuide(true);
   };
@@ -149,7 +150,7 @@ export function App() {
   const openCodeSearch = () => {
     const target = projectId ?? fallbackProject;
     if (target === undefined) return setNoProjectsGuide(true);
-    openProjectSearch(target);
+    openTarget({ kind: "projectView", projectId: target, view: "search" });
     requestCodeSearchFocus();
   };
 

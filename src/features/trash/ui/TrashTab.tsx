@@ -3,7 +3,7 @@ import type { TrashItem } from "@shared/trash/types";
 import { formatSize } from "@shared/attachments/truncate";
 import { useProjectTrash } from "@/features/trash/ui/stores/trash";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
@@ -81,7 +81,7 @@ export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: strin
         </div>
         <div className="trash-row-meta muted small">
           {item.by_chat_id !== null && item.project_id !== null ? (
-            <button type="button" className="link-button hover-bg trash-row-by" onClick={() => openChat(item.project_id!, item.by_chat_id!)} title="消したチャットを開く">
+            <button type="button" className="link-button hover-bg trash-row-by" onClick={() => open({ kind: "chat", projectId: item.project_id!, chatId: item.by_chat_id! })} title="消したチャットを開く">
               <Bot size={12} aria-hidden />
               {item.by_chat_title ?? "チャット"} の AI
             </button>

@@ -2,7 +2,7 @@
 // 付け替え（ほかのチャットの下へ）はしない
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
-import { openChat } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { alertDialog, confirmDialog } from "@/foundation/ui/kit/dialogs";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
@@ -65,5 +65,5 @@ function reopenDetached(chat: Chat) {
     if (tabs.some((t) => isTabVisible(state.layout, t.key))) shown = true;
     dispatchPanel(key, { type: "close", keys: tabs.map((t) => t.key), dismiss: false });
   }
-  if (shown) openChat(chat.project_id, chat.id);
+  if (shown) open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
