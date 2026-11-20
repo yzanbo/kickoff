@@ -22,7 +22,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 ## データ（`store/` と全体の context）
 
 - サーバーのデータは店に 1 つずつ持つ。部品ごとに取り直さない・props で 3 段以上中継しない。
-- 店は `createStore` / `createKeyedStore` で作る（考え方は `store/createStore.ts` の先頭）。閉じているポップオーバーなどは `active: false` で読み込みを頼まない。
+- 店は `createStore` / `createKeyedStore`、外の 1 つの値は `createCell`・知らせ `createSignal`・登録表 `createRegistry`（Set を手で持たない）。閉じた所は `active: false`。
 - プロジェクトの名前は `useProjects()` の `projectName(id)`（`projects.find(…)` を書かない）。領域だけのデータは、その領域で店を作ってよい。
 - 開いているチャットの中身はチャットの店（`src/features/conversation/CLAUDE.md` の「1 つのチャットの画面」）。部品は要る口だけを読む。
 - 操作の応答で届いた値は `set` / `update` で入れ、知らせを待たずに画面をそろえる（`addProject`・`addChat`）。

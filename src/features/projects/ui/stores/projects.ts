@@ -3,6 +3,7 @@
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
+import { createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -54,16 +55,8 @@ export function indexProjects(projects: Project[], loaded = true, error?: string
 }
 
 const NO_PROJECTS: Project[] = [];
-// 一覧（と読めなかった理由）が変わったときだけ引き当てを作り直す（読む部品ごとに作らない）
-let last: { list: Project[] | undefined; error: string | undefined; index: ProjectsIndex } | undefined;
-
-/** 一覧と読めなかった理由の引き当て（同じ入力なら、どの部品から呼んでも同じ物） */
-function projectsIndexOf(data: Project[] | undefined, error: string | undefined): ProjectsIndex {
-  if (last && last.list === data && last.error === error) return last.index;
-  const index = indexProjects(data ?? NO_PROJECTS, data !== undefined, error);
-  last = { list: data, error, index };
-  return index;
-}
+/** 一覧と読めなかった理由の引き当て（一覧と理由が変わったときだけ作り直す。同じ入力なら、どの部品から呼んでも同じ物） */
+const projectsIndexOf = createSelector<[Project[] | undefined, string | undefined], ProjectsIndex>((data, error) => indexProjects(data ?? NO_PROJECTS, data !== undefined, error));
 
 /** プロジェクトの一覧と名前の引き当て */
 export function useProjects(): ProjectsIndex {

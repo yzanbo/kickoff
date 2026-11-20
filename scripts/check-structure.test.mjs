@@ -317,8 +317,10 @@ test("CSS のクラスの持ち主: いちばん長い頭の持ち主だけ。�
   assert.deepEqual(keys(checkCssClasses(sources, config)), ["css:src/chat/a.css:chat-list-row", "css:src/chat/a.css:btn", "css:src/ui/c.css:chat-row"]);
 });
 
-test("禁じる書き方: 呼び出し・参照・引数なしの new を数える。コメント・文字・allow・テストは数えない", () => {
+test("禁じる書き方: 呼び出し・参照・引数なしの new・型の引数の合う new を数える。コメント・文字・allow・テストは数えない", () => {
   const code = [
+    "const l = new Set<() => void>();",
+    "const m = new Set<string>();",
     "const a = Date.now();",
     "const b = new Date();",
     "const c = new Date(a);",
@@ -333,12 +335,12 @@ test("禁じる書き方: 呼び出し・参照・引数なしの new を数え�
     ["src/core/clock.ts", code],
     ["src/core/a.test.ts", code],
   ]);
-  const forbid = [{ call: "setTimeout" }, { member: "Date.now" }, { new: "Date", args: 0 }];
+  const forbid = [{ call: "setTimeout" }, { member: "Date.now" }, { new: "Date", args: 0 }, { new: "Set", typeArgs: "() => void" }];
   const config = { tests: ["**/*.test.ts"], patterns: [{ name: "no-raw-clock", files: ["src/core/**"], allow: ["src/core/clock.ts"], forbid, message: "時計は k.clock を通す" }] };
   const found = checkPatterns(sources, config);
   assert.deepEqual(
     found.map((v) => [v.key, v.value]),
-    [["pattern:no-raw-clock:src/core/a.ts", 4]],
+    [["pattern:no-raw-clock:src/core/a.ts", 5]],
   );
 });
 

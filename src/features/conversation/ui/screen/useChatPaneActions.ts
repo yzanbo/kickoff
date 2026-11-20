@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import { chatLog } from "@/features/chat/ui/store/useChatStore";
 import type { ChatLogView } from "@/features/chat/ui/store/chatStore";
 import { api } from "@/foundation/ui/api";
-import { createValueCell } from "@/foundation/ui/store/valueCell";
+import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage/settings";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
@@ -89,7 +89,7 @@ export function useChatPaneActions({
   const scroll = useTimelineScrollHandle(!focus);
   const [pane] = useState<ChatPaneActions>(() => {
     const now = () => latest.current!;
-    const state = createValueCell<ChatPaneState>({
+    const state = createCell<ChatPaneState>({
       retry: null,
       showing: "conversation",
       activityFilter: { kind: "all" },
@@ -260,7 +260,7 @@ export function useChatPaneActions({
       // 作成先は、いまのチャットのプロジェクト・グループ（移したあとも、いまのもの）
       askInNewChat: onOpenNew && ((seed) => now().onOpenNew?.({ projectId: now().chat.project_id, group: now().chat.group_id ?? undefined }, seed)),
       state,
-      drawn: createValueCell(0),
+      drawn: createCell(0),
     };
     return actions;
   });

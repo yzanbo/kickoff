@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useSyncExternalStore, type RefObj
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Attachment } from "@shared/chat/types";
 import type { EffortLevel } from "@shared/settings/types";
-import type { ValueCell } from "@/foundation/ui/store/valueCell";
+import type { Cell } from "@/foundation/ui/store";
 import type { ComposerFill } from "@/features/composer/ui/composerHandle";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import type { FailedTurn } from "@/features/conversation/ui/rewind/retryActions";
@@ -124,9 +124,9 @@ export interface ChatPaneActions {
   /** 新しいチャットのタブに文と添付を入れて開く（作成先はこのチャットのプロジェクト・グループ。パネルの外では undefined） */
   readonly askInNewChat?: (seed: NewChatSeed) => void;
   /** 変わる様子 */
-  readonly state: ValueCell<ChatPaneState>;
+  readonly state: Cell<ChatPaneState>;
   /** 流れの窓が描く行を変えて描き終えた回数（チャットの中の検索が、見出しを通さずに購読して印を付け直す） */
-  readonly drawn: ValueCell<number>;
+  readonly drawn: Cell<number>;
 }
 
 /** 1 つのチャットの画面の操作（ChatView が配る。チャットの画面の外では null） */

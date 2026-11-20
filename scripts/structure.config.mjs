@@ -170,6 +170,20 @@ export default {
       forbid: [{ call: "setTimeout" }, { call: "setInterval" }, { member: "Date.now" }, { new: "Date", args: 0 }],
       message: "setTimeout・setInterval・Date.now()・new Date() を直に書かない（Clock を受けて clock.setTimeout・clock.now()・clock.iso() に）",
     },
+    // 画面の店は店の家族（createCell・createSignal・createRegistry・createStore）で書く。知らせの受け手の Set を手で持たない
+    {
+      name: "ui-store-family",
+      files: ["renderer"],
+      allow: [
+        "src/foundation/ui/store/**",
+        // SSE の配り（店が読むので store を読めない）
+        "src/foundation/ui/api/events.ts",
+        // まだ乗せ替えていない機能の手書きの店（持ち主の段で乗せ替えて、ここから外す。分冊 04 の P4-1b の表）
+        ...["ai/ui/provider/chatProvider.ts", "browser/ui/agentBrowsing.ts", "compact/ui/heldEdit.ts", "database/ui/tabFlags.ts", "files/ui/fileTabs.ts", "files/ui/links/fileIndexStore.ts", "github/ui/githubDialogs.ts", "notes/ui/addToNote.ts", "panel/ui/layout/externalTabDrag.ts", "panel/ui/state/panelStore.ts", "ports/ui/portsStore.ts", "projects/ui/rightSidebar/sideOpenRequests.ts", "projects/ui/rightSidebar/useSideWorktree.ts", "sidebar/ui/ProjectListHead.tsx"].map((f) => `src/features/${f}`),
+      ],
+      forbid: [{ new: "Set", typeArgs: "() => void" }],
+      message: "知らせの受け手の Set を手で持たない（@/foundation/ui/store の createCell・createSignal・createRegistry か、店 createStore を使う）",
+    },
   ],
   placement: [
     { name: "feature-root-no-code", deny: ["src/features/*/*.{ts,tsx,css}"], message: "機能の直下にコードを置かない（core・ui・desktop・worker の下へ。直下はどの tsconfig にも入らない）" },

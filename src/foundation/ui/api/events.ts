@@ -55,6 +55,7 @@ export function useServerEvent<E extends ServerEventType>(type: E | readonly E[]
 
 // ---- つながったとき ----
 
+// 店の仕組み（store/）がこの口を読むので、ここは store の createSignal を読めない（兄弟のフォルダを循環させない）
 const openListeners = new Set<() => void>();
 
 /** サーバーとの SSE がつながったことを知らせる（useServerConnection が、初めてつながったとき・つなぎ直したときに呼ぶ） */

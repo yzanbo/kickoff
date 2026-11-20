@@ -95,8 +95,11 @@ function memberName(node) {
 }
 
 const argsMatch = (item, node) => item.args === undefined || node.arguments.length === item.args;
+/** 型の引数の文字（空白は 1 つにそろえる。`new Set<() => void>()` の `() => void`） */
+const typeArgsOf = (node, source) => (node.typeArguments ? source.slice(node.typeArguments.start + 1, node.typeArguments.end - 1).replace(/\s+/g, " ").trim() : null);
+const typeArgsMatch = (item, node, source) => item.typeArgs === undefined || typeArgsOf(node, source) === item.typeArgs;
 
-/** 禁じる書き方が出る回数（forbid の call は関数の呼び出し、member は `a.b` の参照、new は new。args を書けば引数の数も合うものだけ） */
+/** 禁じる書き方が出る回数（forbid の call は関数の呼び出し、member は `a.b` の参照、new は new。args を書けば引数の数、typeArgs を書けば型の引数も合うものだけ） */
 export function countForbidden(file, source, forbid) {
   let count = 0;
   new Visitor({
@@ -105,7 +108,7 @@ export function countForbidden(file, source, forbid) {
       count += forbid.filter((f) => f.call === node.callee.name && argsMatch(f, node)).length;
     },
     NewExpression(node) {
-      count += forbid.filter((f) => f.new !== undefined && f.new === memberName(node.callee) && argsMatch(f, node)).length;
+      count += forbid.filter((f) => f.new !== undefined && f.new === memberName(node.callee) && argsMatch(f, node) && typeArgsMatch(f, node, source)).length;
     },
     MemberExpression(node) {
       const name = memberName(node);

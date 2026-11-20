@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
+import { createKeyedSelector, createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStoreStatus } from "@/foundation/ui/store/useStore";
 
@@ -61,18 +62,14 @@ export function selectChats(active: readonly Chat[] | undefined, archived: reado
 const sameItems = <T>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 // 見え方（プロジェクト × アーカイブ済みを含めるか）ごとの、直前の結果
-const views = new Map<string, { active: Chat[] | undefined; archived: Chat[] | undefined; chats: Chat[] }>();
+const views = createKeyedSelector((_key: string, active: Chat[] | undefined, old: Chat[] | undefined, projectId: number | undefined, prev: Chat[] | undefined) => {
+  const next = selectChats(active, old, projectId);
+  return prev && sameItems(prev, next) ? prev : next;
+});
 
 function chatsView(projectId: number | undefined, archived: boolean): Chat[] {
   const key = `${projectId ?? "all"}:${archived ? "with-archived" : "active"}`;
-  const active = activeChats.get().data;
-  const old = archived ? archivedChats.get().data : undefined;
-  const hit = views.get(key);
-  if (hit && hit.active === active && hit.archived === old) return hit.chats;
-  const next = selectChats(active, old, projectId);
-  const chats = hit && sameItems(hit.chats, next) ? hit.chats : next;
-  views.set(key, { active, archived: old, chats });
-  return chats;
+  return views.get(key, activeChats.get().data, archived ? archivedChats.get().data : undefined, projectId);
 }
 
 function subscribeChats(listener: () => void) {
@@ -167,16 +164,9 @@ export function chatsByProject(chats: readonly Chat[], prev?: ChatsByProject): C
   return same ? prev : next;
 }
 
-const byProjectViews = new Map<boolean, { chats: Chat[]; byProject: ChatsByProject }>();
+const byProjectViews = createKeyedSelector((_archived: boolean, chats: Chat[], prev: ChatsByProject | undefined) => chatsByProject(chats, prev));
 
-function byProjectView(archived: boolean): ChatsByProject {
-  const chats = chatsView(undefined, archived);
-  const hit = byProjectViews.get(archived);
-  if (hit?.chats === chats) return hit.byProject;
-  const byProject = chatsByProject(chats, hit?.byProject);
-  byProjectViews.set(archived, { chats, byProject });
-  return byProject;
-}
+const byProjectView = (archived: boolean): ChatsByProject => byProjectViews.get(archived, chatsView(undefined, archived));
 
 /** 子チャットを親ごとに（親の ID → 子。最後に動いた順。アーカイブ済みは archived のときだけ） */
 export function childChatsOf(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined): ReadonlyMap<number, Chat[]> {
@@ -188,17 +178,9 @@ export function childChatsOf(active: readonly Chat[] | undefined, archived: read
   return map;
 }
 
-const childViews = new Map<boolean, { active: Chat[] | undefined; archived: Chat[] | undefined; map: ReadonlyMap<number, Chat[]> }>();
+const childViews = createKeyedSelector<boolean, [Chat[] | undefined, Chat[] | undefined], ReadonlyMap<number, Chat[]>>((_archived, active, old) => childChatsOf(active, old));
 
-function childView(archived: boolean): ReadonlyMap<number, Chat[]> {
-  const active = activeChats.get().data;
-  const old = archived ? archivedChats.get().data : undefined;
-  const hit = childViews.get(archived);
-  if (hit && hit.active === active && hit.archived === old) return hit.map;
-  const map = childChatsOf(active, old);
-  childViews.set(archived, { active, archived: old, map });
-  return map;
-}
+const childView = (archived: boolean): ReadonlyMap<number, Chat[]> => childViews.get(archived, activeChats.get().data, archived ? archivedChats.get().data : undefined);
 
 /** 読み込んだ一覧にある子孫（子・孫…）（archived: アーカイブ済みの一覧も見る。読み込んでいなければ入れない） */
 export function knownDescendants(id: number, { archived = false }: { archived?: boolean } = {}): Chat[] {
@@ -237,17 +219,14 @@ export function useChatsByProject({ archived = false }: { archived?: boolean } =
 }
 
 // アーカイブしていないチャットを子チャットも入れて（ノートのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため
-const withChildrenCache: { active: Chat[] | undefined; chats: Chat[]; byProject: ChatsByProject } = { active: undefined, chats: NO_CHATS, byProject: {} };
-
-function withChildrenView(): { chats: Chat[]; byProject: ChatsByProject } {
-  const active = activeChats.get().data;
-  if (withChildrenCache.active === active) return withChildrenCache;
+const withChildren = createSelector((active: Chat[] | undefined, prev: { chats: Chat[]; byProject: ChatsByProject } | undefined) => {
   const next = (active ?? []).filter((r) => r.note_path === null);
-  const chats = sameItems(withChildrenCache.chats, next) ? withChildrenCache.chats : next.length > 0 ? next : NO_CHATS;
-  const byProject = chats === withChildrenCache.chats ? withChildrenCache.byProject : chatsByProject(chats, withChildrenCache.byProject);
-  Object.assign(withChildrenCache, { active, chats, byProject });
-  return withChildrenCache;
-}
+  const chats = sameItems(prev?.chats ?? NO_CHATS, next) ? (prev?.chats ?? NO_CHATS) : next.length > 0 ? next : NO_CHATS;
+  const byProject = prev && chats === prev.chats ? prev.byProject : chatsByProject(chats, prev?.byProject);
+  return { chats, byProject };
+});
+
+const withChildrenView = () => withChildren(activeChats.get().data);
 
 /**
  * アーカイブしていないチャットを、子チャット（孫・ひ孫も）も入れて最後に動いた順に（ノートのチャットは入れない）。

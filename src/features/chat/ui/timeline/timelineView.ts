@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { createLruMap, type LruMap } from "@/foundation/ui/lib/lruMap";
-import { createValueCell, type ValueCell } from "@/foundation/ui/store/valueCell";
+import { createCell, type Cell } from "@/foundation/ui/store";
 
 /**
  * 流れの見え方（記録ではなく、チャットの画面の見え方。チャットの店 chatStore には入れない）。
@@ -13,7 +13,7 @@ export interface TimelineView {
    * "um:<記録 ID>" 長い発言のもっと見る・"hr:<記録 ID>" 親への依頼文の全文・"rp:<キー>" 報告の全文・
    * "sa:<キー>" サブエージェントのカード・"sf:<キー>" カードの高さの制限を外した）。変えたときだけ新しい Set にする
    */
-  readonly open: ValueCell<ReadonlySet<string>>;
+  readonly open: Cell<ReadonlySet<string>>;
   /** 測った高さ（行のキー → px。行の包み .timeline-row の、重ねた余白を除いた高さ。描くのを省いている間の大きさは入れない） */
   readonly sizes: LruMap<string, number>;
   /** 見積もりの種類ごとの補正（測った高さ ÷ 見積もりの移動平均。初めは 1） */
@@ -36,7 +36,7 @@ export function createTimelineViews(limit: number) {
     view(chatId: number): TimelineView {
       let v = views.get(chatId);
       if (!v) {
-        v = { open: createValueCell<ReadonlySet<string>>(new Set()), sizes: createLruMap(SIZES_PER_CHAT), correction: new Map(), position: null };
+        v = { open: createCell<ReadonlySet<string>>(new Set()), sizes: createLruMap(SIZES_PER_CHAT), correction: new Map(), position: null };
         views.set(chatId, v);
       }
       return v;
