@@ -10,6 +10,19 @@ export type TrashKind = (typeof TRASH_KINDS)[number];
 /** ゴミ箱に入れてから本当に消すまで（3 日。AI の rm も画面から消したものも同じ） */
 export const TRASH_KEEP_MS = 3 * 24 * 60 * 60 * 1000;
 
+/**
+ * 種類ごとの覚え書き（店の中だけ。画面には出さない）。ほかの種類（ワークツリーの控えの印など）は、登録した機能が自分の形で読み書きする
+ */
+export interface TrashDetails {
+  /** 一緒に入れたチャット（チャット） */
+  chat_ids?: number[];
+  /** ノートのフォルダからのパス（ノートと、一緒に入れたノートのチャット） */
+  note?: string;
+  /** 一緒に入れたもの（会話記録と同じ名前のフォルダなど）の元の場所（サービスが付ける。戻すときは元の場所へ戻す） */
+  companions?: string[];
+  [key: string]: unknown;
+}
+
 /** ゴミ箱に入れたもの（trash_items の表） */
 export interface TrashItem {
   /** ID（置き場のフォルダ名。AI の kickoff-trash が付けたものもそのまま使う） */

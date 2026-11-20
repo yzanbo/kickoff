@@ -18,13 +18,14 @@ export interface TrashEnv {
 
 /** Kickoff のゴミ箱（置き場は保存先の trash/。片付けは待ち受けのあとに始める） */
 export function createTrash(k: KernelWithStore, env: TrashEnv): CoreFeature<TrashApi> {
-  const trashBin = new TrashService({ store: k.store, dir: path.join(k.paths.dataDir, "trash"), now: env.now });
+  // 覚え書きの店は店の束が作ったもの（P3-4l で束をなくすまで、ほかの機能も束から読む）
+  const trashBin = new TrashService({ items: k.store.trash, dir: path.join(k.paths.dataDir, "trash"), now: env.now });
   const first = env.projectOfPath;
   if (first) trashBin.addOriginResolver((origin) => first(origin, k.store.projects.list()));
   return {
     name: "trash",
     api: trashBin,
-    routes: [{ legacy: (app) => trashRoutes(app, { store: k.store, trashBin }) }],
+    routes: [{ legacy: (app) => trashRoutes(app, { store: k.store, items: k.store.trash, trashBin }) }],
     start: () => trashBin.start(),
     stop: () => trashBin.close(),
   };

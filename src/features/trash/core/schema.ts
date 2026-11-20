@@ -1,6 +1,10 @@
+import type { TrashDetails } from "@shared/trash/types";
+import { col, table } from "@/foundation/core/db/table";
+
 /**
  * Kickoff のゴミ箱（v1）。中身のファイルは保存先の trash/<id>/ に置き、ここには元の場所・だれが消したかなどを持つ。id は置き場のフォルダ名（uuid）。
- * kind（file / chat / project / session）は CHECK にしない。chat_id はゴミ箱に入れたチャット（FK なし）。trashed_at は片付けと同じ時計で入れる側が付ける（既定を持たない）
+ * kind（file / chat / project / session / worktree）は CHECK にしない。chat_id はゴミ箱に入れたチャット、by_chat_id は消したチャット（どちらも FK なし。
+ * 名前はチャットの機能が登録した口で引く）。trashed_at は片付けと同じ時計で入れる側が付ける（既定を持たない）
  */
 export const TRASH_SCHEMA_V1 = `
 CREATE TABLE trash_items (
@@ -12,10 +16,29 @@ CREATE TABLE trash_items (
   is_dir INTEGER NOT NULL DEFAULT 0 CHECK (is_dir IN (0, 1)),
   size INTEGER CHECK (size IS NULL OR size >= 0),
   chat_id INTEGER,
-  by_chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,
+  by_chat_id INTEGER,
   details TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(details) AND json_type(details) = 'object'),
   trashed_at TEXT NOT NULL
 ) STRICT;
 CREATE INDEX idx_trash_items_project ON trash_items(project_id, trashed_at);
 CREATE INDEX idx_trash_items_trashed ON trash_items(trashed_at);
 `;
+
+/** trash_items の表の列（kind は知らない値もそのまま読み、店がファイルとして扱う） */
+export const trashItemsTable = table(
+  "trash_items",
+  {
+    id: col.text(),
+    project_id: col.int().nullable(),
+    kind: col.text(),
+    label: col.text(),
+    origin: col.text().nullable(),
+    is_dir: col.bool(),
+    size: col.int().nullable(),
+    chat_id: col.int().nullable(),
+    by_chat_id: col.int().nullable(),
+    details: col.json<TrashDetails>(),
+    trashed_at: col.time(),
+  },
+  { order: "trashed_at DESC, id" },
+);

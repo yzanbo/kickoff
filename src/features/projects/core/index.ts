@@ -8,8 +8,6 @@ import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashApi } from "@/features/trash/core/index";
 import { projectRoutes, type ProjectRouteHooks } from "./routes/projects";
 
-export { registerProjectTrash } from "./trash";
-
 export interface ProjectsDeps {
   trash: TrashApi;
 }
@@ -26,8 +24,8 @@ export interface ProjectsApi {
   afterRepoMove(fn: ProjectRouteHooks["afterRepoMove"]): void;
   /** GitHub の連携の様子（github が登録。設定の「GitHub」） */
   provideGitHub(fn: (project: Project) => Promise<ProjectGitHub>): void;
-  /** プロジェクトと一緒にゴミ箱に入れたチャット（chat が登録: 作業中の状態を捨てる） */
-  onChatsTrashed(fn: ProjectRouteHooks["chatsTrashed"]): void;
+  /** プロジェクトをゴミ箱に入れたとき（chat が登録: 中のチャットを同じ行で入れ、作業中の状態を捨てる） */
+  onTrashed(fn: ProjectRouteHooks["trashed"]): void;
 }
 
 /** プロジェクト（AI の kickoff-trash で入れたものは、元の場所を含む本体のフォルダのプロジェクトのゴミ箱に出す） */
@@ -36,7 +34,7 @@ export function createProjects(k: KernelWithStore, deps: ProjectsDeps): CoreFeat
   const busyChecks: ProjectRouteHooks["isBusy"][] = [];
   const updated: ProjectRouteHooks["afterUpdate"][] = [];
   const repoMoved: ProjectRouteHooks["afterRepoMove"][] = [];
-  const chatsTrashed: ProjectRouteHooks["chatsTrashed"][] = [];
+  const trashed: ProjectRouteHooks["trashed"][] = [];
   let github: ((project: Project) => Promise<ProjectGitHub>) | null = null;
   const hooks: ProjectRouteHooks = {
     isBusy: (projectId) => busyChecks.some((check) => check(projectId)),
@@ -50,8 +48,8 @@ export function createProjects(k: KernelWithStore, deps: ProjectsDeps): CoreFeat
       if (!github) throw new Error("GitHub の連携の様子を出す機能（github）が登録していません");
       return github(project);
     },
-    chatsTrashed: (ids) => {
-      for (const fn of chatsTrashed) fn(ids);
+    trashed: (project, trashId, at) => {
+      for (const fn of trashed) fn(project, trashId, at);
     },
   };
   return {
@@ -62,7 +60,7 @@ export function createProjects(k: KernelWithStore, deps: ProjectsDeps): CoreFeat
       afterUpdate: (fn) => void updated.push(fn),
       afterRepoMove: (fn) => void repoMoved.push(fn),
       provideGitHub: (fn) => void (github = fn),
-      onChatsTrashed: (fn) => void chatsTrashed.push(fn),
+      onTrashed: (fn) => void trashed.push(fn),
     },
     routes: [{ legacy: (app) => projectRoutes(app, { store: k.store, trashBin: deps.trash, hooks }) }],
   };

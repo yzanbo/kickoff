@@ -4,14 +4,16 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import type { AiApi } from "@/features/ai/core/index";
-import { registerProjectTrash, type ProjectsApi } from "@/features/projects/core/index";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { ApprovalCenter } from "./approvals";
 import { startAutoArchive } from "./autoArchive";
+import { chatTitlesOf } from "./db/chatTitles";
 import { chatDeltaStage } from "./deltaStage";
 import { endInterruptedTurns } from "./interruptedTurnEnd";
 import { Runner } from "./runner";
 import { registerChatTrash, type ChatPurgeDeps } from "./sessions/chatTrash";
+import { registerProjectTrash } from "./sessions/projectTrash";
 import { sweepUnusedSessions } from "./sessions/sessionTrash";
 import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
@@ -127,6 +129,8 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
   };
   registerChatTrash(trashBin, purgeDeps);
   registerProjectTrash(trashBin, purgeDeps);
+  // ゴミ箱が読むチャット（消したチャットの名前・AI の kickoff-trash で入れたものを出すプロジェクト）
+  trashBin.useChats({ titlesOf: chatTitlesOf(k.db), projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
   registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs });
@@ -196,7 +200,11 @@ function registerProjectHooks(projects: ProjectsApi, store: KernelWithStore["sto
     const used = new Set(chats.flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
     for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
   });
-  projects.onChatsTrashed((ids) => {
+  // プロジェクトをゴミ箱に入れたら、中のチャット（アーカイブ・子孫も）を同じ行で入れる（戻すと一緒に戻る）
+  projects.onTrashed((project, trashId, at) => {
+    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
+    const ids = [...new Set(chats.flatMap((chat) => [chat.id, ...store.chats.descendants(chat.id).map((c) => c.id)]))];
+    store.chats.trash(ids, trashId, at);
     for (const id of ids) runner.forget(id);
   });
 }

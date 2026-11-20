@@ -1,23 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
-import { TRASH_KEEP_MS, TRASH_KINDS, type TrashItem, type TrashKind } from "@shared/trash/types";
-import { bit, type Notify } from "@/foundation/core/db/common";
+import { TRASH_KEEP_MS, TRASH_KINDS, type TrashDetails, type TrashItem, type TrashKind } from "@shared/trash/types";
+import type { Notify } from "@/foundation/core/db/common";
+import type { RowOf } from "@/foundation/core/db/table";
+import { trashItemsTable } from "@/features/trash/core/schema";
 
-interface TrashRow {
-  id: string;
-  project_id: number | null;
-  kind: string;
-  label: string;
-  origin: string | null;
-  is_dir: number;
-  size: number | null;
-  chat_id: number | null;
-  by_chat_id: number | null;
-  by_chat_title: string | null;
-  details: string;
-  trashed_at: string;
-}
-
-/** ゴミ箱に入れるときの中身（id は置き場のフォルダ名。trashed_at を省けばいま） */
+/** ゴミ箱に入れるときの中身（id は置き場のフォルダ名。trashed_at は片付けと同じ時計で入れる側が付ける） */
 export interface NewTrashItem {
   id: string;
   project_id: number | null;
@@ -27,103 +14,95 @@ export interface NewTrashItem {
   is_dir?: boolean;
   chat_id?: number | null;
   by_chat_id?: number | null;
-  details?: Record<string, unknown>;
-  trashed_at?: string;
+  details?: TrashDetails;
+  trashed_at: string;
 }
 
 /** 店の中だけで使う形（種類ごとの覚え書き details も持つ） */
-export type StoredTrashItem = TrashItem & { details: Record<string, unknown> };
+export type StoredTrashItem = TrashItem & { details: TrashDetails };
 
-const SELECT = "SELECT t.*, c.title AS by_chat_title FROM trash_items t LEFT JOIN chats c ON c.id = t.by_chat_id";
+/** チャットの名前（ゴミ箱のチャットも。もうないチャットは入れない） */
+type ChatTitles = (ids: readonly number[]) => Map<number, string>;
+
+/** ゴミ箱が読むチャット（チャットは上の機能なので、chat が TrashService.useChats で登録する） */
+export interface TrashChats {
+  /** 消したチャットの名前（登録するまでは分からない = null） */
+  titlesOf: ChatTitles;
+  /** チャットのプロジェクト（ゴミ箱のもの・もうないものは null。AI の kickoff-trash で入れたものを出すゴミ箱） */
+  projectOf(chatId: number): number | null;
+}
+
+export type TrashStore = ReturnType<typeof createTrashStore>;
 
 /** 知らない種類（あとの版で足したものなど）はファイルとして読む */
 const kindOf = (value: string): TrashKind => ((TRASH_KINDS as readonly string[]).includes(value) ? (value as TrashKind) : "file");
 
-const toItem = (r: TrashRow): StoredTrashItem => ({
-  id: r.id,
-  project_id: r.project_id,
-  kind: kindOf(r.kind),
-  label: r.label,
-  origin: r.origin,
-  is_dir: r.is_dir === 1,
-  size: r.size,
-  chat_id: r.chat_id,
-  by_chat_id: r.by_chat_id,
-  by_chat_title: r.by_chat_title,
-  trashed_at: r.trashed_at,
-  expires_at: new Date(Date.parse(r.trashed_at) + TRASH_KEEP_MS).toISOString(),
-  details: JSON.parse(r.details) as Record<string, unknown>,
-});
-
 /** Kickoff のゴミ箱（trash_items の表）。中身のファイルは trash/TrashService が置き場に置き、ここは覚え書きだけ */
 export function createTrashStore(db: DatabaseSync, onChange: Notify) {
-  const get = (id: string): StoredTrashItem | null => {
-    const r = db.prepare(`${SELECT} WHERE t.id = ?`).get(id) as TrashRow | undefined;
-    return r ? toItem(r) : null;
+  const rows = trashItemsTable.on(db);
+  let chatTitles: ChatTitles | null = null;
+  /** 行をゴミ箱の形にする（消したチャットの名前を引く。もうないチャットは、消したチャットも null） */
+  const toItems = (list: RowOf<typeof trashItemsTable.columns>[]): StoredTrashItem[] => {
+    const byChat = list.flatMap((r) => (r.by_chat_id === null ? [] : [r.by_chat_id]));
+    const titles = chatTitles && byChat.length > 0 ? chatTitles(byChat) : null;
+    return list.map((r) => {
+      const title = r.by_chat_id === null ? null : (titles?.get(r.by_chat_id) ?? null);
+      return {
+        ...r,
+        kind: kindOf(r.kind),
+        by_chat_id: titles && title === null ? null : r.by_chat_id,
+        by_chat_title: title,
+        expires_at: new Date(Date.parse(r.trashed_at) + TRASH_KEEP_MS).toISOString(),
+      };
+    });
   };
+  const get = (id: string): StoredTrashItem | null => {
+    const r = rows.get(id);
+    return r ? toItems([r])[0] : null;
+  };
+  const changed = (projectId: number | null) => onChange({ type: "trash", project_id: projectId });
   return {
     get,
+    /** 消したチャットの名前の引き方（chat が登録する） */
+    useChatTitles(fn: ChatTitles): void {
+      chatTitles = fn;
+    },
     /** プロジェクトのゴミ箱（新しい順） */
-    list(projectId: number): StoredTrashItem[] {
-      return (db.prepare(`${SELECT} WHERE t.project_id = ? ORDER BY t.trashed_at DESC, t.id`).all(projectId) as unknown as TrashRow[]).map(toItem);
-    },
+    list: (projectId: number): StoredTrashItem[] => toItems(rows.list("project_id = ?", [projectId])),
     /** どのプロジェクトにも出ないもの（プロジェクトの外の会話記録など。設定の「ゴミ箱と整理」に出す） */
-    unassigned(): StoredTrashItem[] {
-      return (db.prepare(`${SELECT} WHERE t.project_id IS NULL ORDER BY t.trashed_at DESC, t.id`).all() as unknown as TrashRow[]).map(toItem);
-    },
+    unassigned: (): StoredTrashItem[] => toItems(rows.list("project_id IS NULL")),
     /** その種類のものすべて（ゴミ箱のプロジェクトの一覧。新しい順） */
-    ofKind(kind: TrashKind): StoredTrashItem[] {
-      return (db.prepare(`${SELECT} WHERE t.kind = ? ORDER BY t.trashed_at DESC, t.id`).all(kind) as unknown as TrashRow[]).map(toItem);
-    },
+    ofKind: (kind: TrashKind): StoredTrashItem[] => toItems(rows.list("kind = ?", [kind])),
     /** すべて（置き場の片付けで、覚え書きのないフォルダを見分けるのに使う） */
-    all(): StoredTrashItem[] {
-      return (db.prepare(`${SELECT} ORDER BY t.trashed_at`).all() as unknown as TrashRow[]).map(toItem);
-    },
+    all: (): StoredTrashItem[] => toItems(rows.list()),
     /** 入れた時刻が before より前のもの（本当に消すもの） */
-    expiredBefore(before: string): StoredTrashItem[] {
-      return (db.prepare(`${SELECT} WHERE t.trashed_at < ? ORDER BY t.trashed_at`).all(before) as unknown as TrashRow[]).map(toItem);
-    },
+    expiredBefore: (before: string): StoredTrashItem[] => toItems(rows.list("trashed_at < ?", [before])),
     /** ゴミ箱に入れたチャットの行（チャットを指すもの） */
     ofChat(chatId: number): StoredTrashItem | null {
-      const r = db.prepare(`${SELECT} WHERE t.kind = 'chat' AND t.chat_id = ?`).get(chatId) as TrashRow | undefined;
-      return r ? toItem(r) : null;
+      const r = rows.one("kind = 'chat' AND chat_id = ?", [chatId]);
+      return r ? toItems([r])[0] : null;
     },
     add(item: NewTrashItem): StoredTrashItem {
-      db.prepare(
-        `INSERT INTO trash_items (id, project_id, kind, label, origin, is_dir, chat_id, by_chat_id, details, trashed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, strftime('%Y-%m-%dT%H:%M:%fZ','now')))`,
-      ).run(
-        item.id,
-        item.project_id,
-        item.kind,
-        item.label,
-        item.origin ?? null,
-        bit(item.is_dir ?? false),
-        item.chat_id ?? null,
-        item.by_chat_id ?? null,
-        JSON.stringify(item.details ?? {}),
-        item.trashed_at ?? null,
-      );
-      onChange({ type: "trash", project_id: item.project_id });
+      rows.insert({ ...item, origin: item.origin ?? null, is_dir: item.is_dir ?? false, details: item.details ?? {} });
+      changed(item.project_id);
       return get(item.id)!;
     },
     /** 大きさを書く（数え終わったとき。知らせも出す） */
     setSize(id: string, size: number): void {
-      const item = get(id);
+      const item = rows.get(id);
       if (!item) return;
-      db.prepare("UPDATE trash_items SET size = ? WHERE id = ?").run(size, id);
-      onChange({ type: "trash", project_id: item.project_id });
+      rows.update(id, { size });
+      changed(item.project_id);
     },
     /** 種類ごとの覚え書きを書き直す（AI が入れたノートに、ノートのフォルダからのパスを足すなど） */
-    setDetails(id: string, details: Record<string, unknown>): void {
-      db.prepare("UPDATE trash_items SET details = ? WHERE id = ?").run(JSON.stringify(details), id);
+    setDetails(id: string, details: TrashDetails): void {
+      if (rows.get(id)) rows.update(id, { details });
     },
     /** 行を消す（戻した・本当に消した） */
     remove(id: string): void {
-      const item = get(id);
-      if (!item) return;
-      db.prepare("DELETE FROM trash_items WHERE id = ?").run(id);
-      onChange({ type: "trash", project_id: item.project_id });
+      const item = rows.get(id);
+      if (!item || !rows.remove(id)) return;
+      changed(item.project_id);
     },
   };
 }

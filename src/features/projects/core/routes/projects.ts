@@ -98,8 +98,8 @@ export interface ProjectRouteHooks {
   afterRepoMove(before: Project, moves: ReadonlyMap<string, string | null>): Promise<void>;
   /** GitHub の連携の様子（github が登録） */
   github(project: Project): Promise<ProjectGitHub>;
-  /** プロジェクトと一緒にゴミ箱に入れたチャット（chat が登録: 作業中の状態を捨てる） */
-  chatsTrashed(chatIds: number[]): void;
+  /** プロジェクトをゴミ箱に入れたとき（chat が登録: 中のチャットを同じ行 trashId で入れ、作業中の状態を捨てる） */
+  trashed(project: Project, trashId: string, at: string): void;
 }
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
@@ -120,7 +120,7 @@ export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: St
   const projectAt = (realPath: string, except?: number) => {
     const same = (p: Project) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath);
     // 同じフォルダのプロジェクトがゴミ箱にあれば、新しく登録せず戻してもらう（フォルダは 1 つのプロジェクトにだけ登録できる）
-    const trashed = trashedProjectAt(store, same);
+    const trashed = trashedProjectAt(store.projects, same);
     if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（3 日で消えます）。設定の「ゴミ箱と整理」から戻してください`);
     return store.projects.list().find(same);
   };
@@ -229,7 +229,7 @@ export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: St
   app.delete("/api/projects/:id", withProject, (c) => {
     const { project } = c.var;
     requireNoBusyChat(project.id, "プロジェクトを削除できません");
-    const item = trashProject({ store, trashBin, chatsTrashed: hooks.chatsTrashed }, project);
+    const item = trashProject({ projects: store.projects, trashBin, trashed: hooks.trashed }, project);
     return c.json({ trash_id: item.id });
   });
 }

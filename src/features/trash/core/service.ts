@@ -2,18 +2,16 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashKind, type TrashRestoreResult } from "@shared/trash/types";
-import type { Store } from "@/foundation/core/db/store";
-import type { NewTrashItem, StoredTrashItem } from "@/features/trash/core/db/trash";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashDetails, type TrashKind, type TrashRestoreResult } from "@shared/trash/types";
+import type { NewTrashItem, StoredTrashItem, TrashChats, TrashStore } from "@/features/trash/core/db/trash";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import { isTrashId, restoreName } from "./names";
+import { exists, measure, move, readText } from "./trashFiles";
 
 /** 片付け（期限の来たものを本当に消す・AI が kickoff-trash で入れたものを覚える）を流す間隔 */
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 /** AI の kickoff-trash が途中で止まった（中身のない）置き場のフォルダを消すまで */
 const STALE_INBOX_MS = 60 * 60 * 1000;
-/** 大きさを数えるときに見るファイルの数の上限（node_modules などで時間をかけすぎない） */
-const MEASURE_MAX_ENTRIES = 500_000;
 
 /** 置き場のフォルダの中で、中身を置くフォルダの名前 */
 const TRASH_ITEM_DIR = "item";
@@ -33,44 +31,13 @@ export interface TrashKindHandler {
 }
 
 export interface TrashServiceDeps {
-  store: Store;
+  items: TrashStore;
   /** 置き場（データのフォルダの trash/） */
   dir: string;
   /** いまの時刻（テストで差し替える） */
   now?: () => number;
 }
 
-/** 移す（同じディスクなら名前の変更、別のディスクなら写してから消す） */
-async function move(from: string, to: string): Promise<void> {
-  try {
-    await fs.rename(from, to);
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "EXDEV") throw e;
-    await fs.cp(from, to, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true, errorOnExist: true, force: false });
-    await fs.rm(from, { recursive: true, force: true });
-  }
-}
-
-const exists = (p: string) => fs.lstat(p).then(() => true, () => false);
-
-/** フォルダの中身を足した大きさ（リンクはたどらない。数えすぎたら null） */
-async function measure(target: string): Promise<number | null> {
-  let total = 0;
-  let seen = 0;
-  const stack = [target];
-  while (stack.length > 0) {
-    const p = stack.pop()!;
-    const st = await fs.lstat(p).catch(() => null);
-    if (!st) continue;
-    if (++seen > MEASURE_MAX_ENTRIES) return null;
-    // フォルダそのものの大きさ（項目の表）は数えない（中のファイルの大きさの合計にする）
-    if (!st.isDirectory()) total += st.size;
-    if (st.isDirectory()) for (const name of await fs.readdir(p).catch(() => [] as string[])) stack.push(path.join(p, name));
-  }
-  return total;
-}
-
-const readText = (p: string) => fs.readFile(p, "utf8").then((s) => s.trim(), () => null);
 
 /**
  * Kickoff のゴミ箱。消したものを置き場（データのフォルダの trash/<id>/item/<名前>）に移して 3 日取っておき、
@@ -124,10 +91,17 @@ export class TrashService {
     this.handlers.set(kind, handler);
   }
 
+  /** 読むチャットの口（chat が useChats で登録する。登録するまでは、AI の kickoff-trash で入れたもののチャットは分からない扱い） */
+  private chats: TrashChats | null = null;
+  useChats(chats: TrashChats): void {
+    this.chats = chats;
+    this.deps.items.useChatTitles(chats.titlesOf);
+  }
+
   /** ファイル・フォルダを置き場へ移して覚える（なければ 404） */
   async putPath(
     target: string,
-    opts: { projectId: number | null; byChatId?: number | null; details?: Record<string, unknown>; label?: string; kind?: TrashKind; companions?: string[] },
+    opts: { projectId: number | null; byChatId?: number | null; details?: TrashDetails; label?: string; kind?: TrashKind; companions?: string[] },
   ): Promise<StoredTrashItem> {
     const abs = path.resolve(target);
     const st = await fs.lstat(abs).catch(() => null);
@@ -150,7 +124,7 @@ export class TrashService {
       await fs.mkdir(dir, { recursive: true });
       if (await move(abs2, path.join(dir, path.basename(abs2))).then(() => true, () => false)) companions.push(abs2);
     }
-    const item = this.deps.store.trash.add({
+    const item = this.deps.items.add({
       id,
       project_id: opts.projectId,
       kind: opts.kind ?? "file",
@@ -166,8 +140,8 @@ export class TrashService {
   }
 
   /** 置き場にファイルを置かないもの（チャット・プロジェクト）を覚える */
-  addRecord(item: Omit<NewTrashItem, "id">): StoredTrashItem {
-    return this.deps.store.trash.add({ ...item, id: randomUUID(), trashed_at: item.trashed_at ?? this.stamp() });
+  addRecord(item: Omit<NewTrashItem, "id" | "trashed_at"> & { trashed_at?: string }): StoredTrashItem {
+    return this.deps.items.add({ ...item, id: randomUUID(), trashed_at: item.trashed_at ?? this.stamp() });
   }
 
   /**
@@ -181,7 +155,7 @@ export class TrashService {
   /** 中身の大きさを待たずに数えて書く */
   private measureLater(id: string): void {
     void Promise.all([measure(path.join(this.deps.dir, id, TRASH_ITEM_DIR)), measure(path.join(this.deps.dir, id, TRASH_COMPANION_DIR))]).then(([size, extra]) => {
-      if (size !== null) this.deps.store.trash.setSize(id, size + (extra ?? 0));
+      if (size !== null) this.deps.items.setSize(id, size + (extra ?? 0));
     });
   }
 
@@ -200,7 +174,7 @@ export class TrashService {
     const names = await fs.readdir(this.deps.dir).catch(() => [] as string[]);
     let imported = 0;
     for (const id of names) {
-      if (!isTrashId(id) || this.deps.store.trash.get(id)) continue;
+      if (!isTrashId(id) || this.deps.items.get(id)) continue;
       const folder = path.join(this.deps.dir, id);
       const origin = await readText(path.join(folder, "origin"));
       const stored = await this.storedPath(id);
@@ -211,14 +185,14 @@ export class TrashService {
       }
       const chatText = await readText(path.join(folder, "chat"));
       const chatId = chatText && /^\d+$/.test(chatText) ? Number(chatText) : null;
-      const chat = chatId !== null ? this.deps.store.chats.get(chatId) : null;
-      const byChatId = chat ? chat.id : null;
+      const chatProject = chatId !== null ? (this.chats?.projectOf(chatId) ?? null) : null;
+      const byChatId = chatProject !== null ? chatId : null;
       const at = await readText(path.join(folder, "at"));
       const st = await fs.lstat(stored).catch(() => null);
       const trashedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date(this.now()).toISOString();
-      const added = this.deps.store.trash.add({
+      const added = this.deps.items.add({
         id,
-        project_id: chat ? chat.project_id : this.projectOf(origin),
+        project_id: chatProject ?? this.projectOf(origin),
         kind: "file",
         label: path.basename(origin),
         origin,
@@ -236,7 +210,7 @@ export class TrashService {
   /** プロジェクトのゴミ箱（AI が入れたばかりのものも取り込んでから） */
   async list(projectId: number): Promise<StoredTrashItem[]> {
     await this.importInbox().catch(() => 0);
-    return this.deps.store.trash.list(projectId);
+    return this.deps.items.list(projectId);
   }
 
   /**
@@ -245,13 +219,13 @@ export class TrashService {
    */
   async restore(id: string, opts: { rename?: boolean } = {}): Promise<TrashRestoreResult> {
     // AI が kickoff-trash で入れたばかりで、まだ取り込んでいないもの（会話の中の「戻す」）も戻せるように
-    if (!this.deps.store.trash.get(id)) await this.importInbox().catch(() => 0);
-    const item = this.deps.store.trash.get(id);
+    if (!this.deps.items.get(id)) await this.importInbox().catch(() => 0);
+    const item = this.deps.items.get(id);
     if (!item) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
     const handler = this.handlers.get(item.kind);
     if (item.origin === null) {
       await handler?.restore?.(item, null);
-      this.deps.store.trash.remove(id);
+      this.deps.items.remove(id);
       return { path: null };
     }
     const stored = await this.storedPath(id);
@@ -267,15 +241,14 @@ export class TrashService {
     await move(stored, target);
     await this.restoreCompanions(item);
     await fs.rm(path.join(this.deps.dir, id), { recursive: true, force: true });
-    this.deps.store.trash.remove(id);
+    this.deps.items.remove(id);
     await handler?.restore?.(item, target);
     return { path: target };
   }
 
   /** 一緒に入れたものを元の場所へ戻す（元の場所にもう何かあれば戻さない = 消える） */
   private async restoreCompanions(item: StoredTrashItem): Promise<void> {
-    const companions = Array.isArray(item.details.companions) ? (item.details.companions as unknown[]).filter((c): c is string => typeof c === "string") : [];
-    for (const [i, origin] of companions.entries()) {
+    for (const [i, origin] of (item.details.companions ?? []).entries()) {
       const from = path.join(this.deps.dir, item.id, TRASH_COMPANION_DIR, String(i), path.basename(origin));
       if (!(await exists(from)) || (await exists(origin))) continue;
       await fs.mkdir(path.dirname(origin), { recursive: true });
@@ -293,7 +266,7 @@ export class TrashService {
     try {
       await this.handlers.get(item.kind)?.purge?.(item);
       await fs.rm(path.join(this.deps.dir, item.id), { recursive: true, force: true });
-      this.deps.store.trash.remove(item.id);
+      this.deps.items.remove(item.id);
     } finally {
       this.purging.delete(item.id);
     }
@@ -307,11 +280,11 @@ export class TrashService {
     let purged = 0;
     let failure: unknown = null;
     for (const id of new Set(ids)) {
-      const item = this.deps.store.trash.get(id);
+      const item = this.deps.items.get(id);
       if (!item) continue;
       try {
         await this.purge(item);
-        if (!this.deps.store.trash.get(id)) purged++;
+        if (!this.deps.items.get(id)) purged++;
       } catch (e) {
         failure ??= e;
       }
@@ -338,7 +311,7 @@ export class TrashService {
         await this.importInbox();
         for (const step of this.sweepSteps) await step().catch((e: unknown) => console.warn(`[trash] 片付けの途中で失敗しました: ${errorMessage(e)}`));
         const before = new Date(this.now() - TRASH_KEEP_MS).toISOString();
-        for (const item of this.deps.store.trash.expiredBefore(before)) {
+        for (const item of this.deps.items.expiredBefore(before)) {
           await this.purge(item).catch((e: unknown) => console.warn(`[trash] ${item.label} を消せませんでした: ${errorMessage(e)}`));
         }
       } finally {
