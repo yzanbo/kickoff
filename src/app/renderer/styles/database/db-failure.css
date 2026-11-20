@@ -38,9 +38,8 @@
 .db-failure-env {
   margin-left: 8px;
   padding: 1px 6px;
-  border: 1px solid var(--db-env);
-  border-radius: 999px;
-  color: var(--db-env);
+  --tag-color: var(--db-env);
+  --tag-border: var(--db-env);
   font-size: var(--fs-11);
   font-weight: 500;
   vertical-align: middle;

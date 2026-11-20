@@ -108,11 +108,8 @@
 
 /* 見出し: 題名とフォルダ・保存の様子・書く / 読む・Finder */
 .note-head {
-  display: flex;
-  align-items: center;
   gap: 10px;
   padding: 6px var(--gutter) 6px 16px;
-  border-bottom: 1px solid var(--border);
 }
 
 .note-head-title {
@@ -209,12 +206,9 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  --floating-radius: 999px;
   font-size: var(--fs-13);
   color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
   transform: translateX(-50%);
 }
 

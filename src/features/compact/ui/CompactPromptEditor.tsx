@@ -46,7 +46,7 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
         <Chevron open={fold.open} />
       </button>
       {fold.open && (
-        <div className="context-pre-compact-body">
+        <div className="context-pre-compact-body card">
           <div className="context-pre-compact-head">
             <Segmented
               className="segmented context-pre-compact-scope"

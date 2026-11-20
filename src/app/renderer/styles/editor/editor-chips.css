@@ -24,15 +24,12 @@
   align-items: center;
   gap: 3px;
   max-width: 160px;
-  padding: 0 6px;
+  --tag-color: var(--chip-color);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--chip-color) 50%, transparent);
-  border-radius: 999px;
   font-size: var(--fs-11);
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--chip-color);
 }
 
 :root[data-theme="light"] .worktree-chip {
@@ -55,15 +52,12 @@
   gap: 3px;
   min-width: 0;
   max-width: 160px;
-  padding: 0 6px;
+  --tag-color: var(--group-color);
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--group-color) 50%, transparent);
-  border-radius: 999px;
   font-size: var(--fs-11);
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--group-color);
 }
 
 :root[data-theme="light"] .chat-group-chip {
@@ -177,25 +171,25 @@
   align-items: center;
   gap: 4px;
   padding: 1px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  --tag-border: var(--border-strong);
+  --tag-fg: currentcolor;
   font-size: var(--fs-12);
 }
 
 /* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
 .pr-chip.open {
-  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
-  color: var(--ok);
+  --tag-border: color-mix(in srgb, var(--ok) 60%, transparent);
+  --tag-fg: var(--ok);
 }
 
 .pr-chip.merged {
-  border-color: color-mix(in srgb, var(--chart-4) 60%, transparent);
-  color: var(--chart-4);
+  --tag-border: color-mix(in srgb, var(--chart-4) 60%, transparent);
+  --tag-fg: var(--chart-4);
 }
 
 .pr-chip.closed {
-  border-color: color-mix(in srgb, var(--ng) 60%, transparent);
-  color: var(--ng);
+  --tag-border: color-mix(in srgb, var(--ng) 60%, transparent);
+  --tag-fg: var(--ng);
 }
 
 /* サイドバーのチャットの行では、作業場所の印とグループの札を小さく（狭ければ、それぞれ名前を省いて 1 行に収める） */

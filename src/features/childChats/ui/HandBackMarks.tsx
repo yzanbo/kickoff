@@ -10,7 +10,7 @@ import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
 export function HandoffMarks({ handoffs }: { handoffs: readonly ChatEventOf<"handoff">[] }) {
   useTicker(60_000);
   return handoffs.map((h) => (
-    <span key={h.id} className="handoff-mark" title={`${formatFullDateTime(h.created_at)} に親チャットに渡しました`}>
+    <span key={h.id} className="handoff-mark tag" title={`${formatFullDateTime(h.created_at)} に親チャットに渡しました`}>
       <Inbox size={11} aria-hidden />
       渡しました · {HANDOFF_VIA_MARKS[h.data.via]} · {relativeTime(h.created_at)}
     </span>

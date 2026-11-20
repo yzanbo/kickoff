@@ -64,7 +64,7 @@ export function NotePlanDialog({
   const hasMoves = moves.length > 0;
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog note-plan-dialog" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog note-plan-dialog" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

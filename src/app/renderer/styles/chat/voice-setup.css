@@ -94,13 +94,10 @@
   display: grid;
   gap: 4px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
 }
 
 .voice-model.selected {
-  border-color: var(--accent);
+  --card-tone: var(--accent);
 }
 
 .voice-model-head {

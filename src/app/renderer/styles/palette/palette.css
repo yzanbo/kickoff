@@ -6,11 +6,8 @@
 }
 
 .palette-input {
-  display: flex;
-  align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
 }
 
 .palette-input input {
@@ -125,11 +122,9 @@
 
 /* ⌘⇧A のプロジェクトでの絞り込み（入力欄の下の行。多ければ折り返す）と、右端のアーカイブ済みのプロジェクトの切り替え */
 .palette-filters {
-  display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
 }
 
 .palette-projects {
@@ -148,26 +143,22 @@
   max-width: 180px;
   height: 24px;
   padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   font: inherit;
   font-size: var(--fs-12);
-  color: var(--muted);
-  background: transparent;
   cursor: pointer;
 }
 
 .palette-project:hover,
 .palette-archived-toggle:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-hover);
 }
 
 .palette-project.active,
 .palette-archived-toggle.active {
-  border-color: var(--accent);
-  color: var(--text);
-  background: var(--bg-active);
+  --pill-border: var(--accent);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-active);
 }
 
 .palette-project.archived .palette-project-name {

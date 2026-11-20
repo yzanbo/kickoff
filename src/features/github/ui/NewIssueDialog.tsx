@@ -49,7 +49,7 @@ export function NewIssueDialog({ projectId, initialBody, onCreated, onClose }: {
     ));
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog github-new-issue" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog github-new-issue" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

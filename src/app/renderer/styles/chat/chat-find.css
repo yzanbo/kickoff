@@ -124,23 +124,23 @@
 }
 
 /*
- * 見出しに出さないとき（見出しの行・項目を隠した）の検索欄（floating）: チャットの右上（見出しのすぐ下）に、ページの検索の欄と同じ高さで浮かせ、下の会話は動かさない。
+ * 見出しに出さないとき（見出しの行・項目を隠した）の検索欄（.detached）: チャットの右上（見出しのすぐ下）に、ページの検索の欄と同じ高さで浮かせ、下の会話は動かさない。
  * ⌘F でピントが入っている・文が残っている間だけ出し、ふだんはピントを受けられるよう、display: none にせず場所を取らずに見えなくする
  * （詳細度で上の @container の規則に勝つ）
  */
-.chat-find.floating {
+.chat-find.detached {
   position: absolute;
   top: calc(100% + 6px);
   right: var(--gutter);
   z-index: 5;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-1);
 }
 
-.chat-find.floating .find-box-row {
+.chat-find.detached .find-box-row {
   height: 28px;
 }
 
-.chat-find.floating:not(:focus-within, .active) {
+.chat-find.detached:not(:focus-within, .active) {
   width: 1px;
   height: 1px;
   padding: 0;
@@ -166,7 +166,7 @@
   top: 42px;
   right: 12px;
   width: min(400px, calc(100% - 24px));
-  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-1);
 }
 
 ::highlight(pane-find) {

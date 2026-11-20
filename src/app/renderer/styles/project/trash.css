@@ -174,9 +174,6 @@
 .orphan-session-tag {
   display: inline-block;
   margin-right: 6px;
-  padding: 0 6px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  --tag-border: var(--border);
   font-size: var(--fs-11);
-  color: var(--muted);
 }

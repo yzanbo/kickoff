@@ -42,7 +42,7 @@ export function NoteListHead({
   const foldIcon = folds.anyOpen ? ChevronsDownUp : ChevronsUpDown;
   const foldLabel = folds.anyOpen ? "フォルダをすべて閉じる" : "フォルダをすべて開く";
   return (
-    <header ref={fitRef} className={cx("changes-head", "note-list-head", fit.compact && "compact")}>
+    <header ref={fitRef} className={cx("changes-head bar", "note-list-head", fit.compact && "compact")}>
       {!fit.compact && (
         <span className="changes-branch" title={dir}>
           ノート

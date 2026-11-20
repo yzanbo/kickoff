@@ -44,7 +44,7 @@ export function ChildActivityMark({ chatId, moving, always }: { chatId: number; 
     <>
       <span
         ref={popoverAnchor}
-        className={`tab-child-activity state-${busy ? state : "idle"}`}
+        className={`tab-child-activity tag state-${busy ? state : "idle"}`}
         title={`${label}。押すと子チャットを一覧する`}
         aria-label={`${label}。子チャットを一覧する`}
         role="button"

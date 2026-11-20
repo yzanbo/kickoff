@@ -98,55 +98,39 @@
   color: var(--accent-fg);
 }
 
-/* 指示の履歴の行の「圧縮前指示」「圧縮後指示」の札（圧縮の行と同じ枠・薄い地・文字の色の丸い札） */
-.compact-prompt-tag {
-  display: inline-flex;
-  flex: none;
-  align-self: center;
-  align-items: center;
-  gap: 3px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: var(--chat-fs-10);
-  font-weight: 600;
-  line-height: 16px;
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
-}
-
-/* 指示の履歴の行の「質問への回答」の札（圧縮前指示の札と同じ形。色は吹き出しの「質問への回答」の札と同じ控えめな灰色） */
-.question-answer-tag {
-  display: inline-flex;
-  flex: none;
-  align-self: center;
-  align-items: center;
-  gap: 3px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: var(--chat-fs-10);
-  font-weight: 600;
-  line-height: 16px;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--text) 6%, transparent);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
-}
-
-/* 指示の履歴の行の「コンテキスト消去」の札（質問への回答の札と同じ形。色は会話の流れの消去の境目の行と同じ --info） */
+/*
+ * 指示の履歴の行の札（ui/Tag の内側の線の札。同じ形で色だけ違う）: 「圧縮前指示」「圧縮後指示」は圧縮の行と同じアクセントの色、
+ * 「質問への回答」は吹き出しの「質問への回答」の札と同じ控えめな灰色、「コンテキスト消去」は会話の流れの消去の境目の行と同じ --info
+ */
+.compact-prompt-tag,
+.question-answer-tag,
 .context-cleared-tag {
   display: inline-flex;
   flex: none;
   align-self: center;
   align-items: center;
   gap: 3px;
-  padding: 0 6px;
-  border-radius: 999px;
   font-size: var(--chat-fs-10);
   font-weight: 600;
   line-height: 16px;
-  color: var(--info);
-  background: color-mix(in srgb, var(--info) 10%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 45%, transparent);
+}
+
+.compact-prompt-tag {
+  --tag-color: var(--accent);
+  --tag-fg: var(--accent-fg);
+  --tag-tint: 10%;
+}
+
+.question-answer-tag {
+  --tag-color: var(--text);
+  --tag-fg: var(--muted);
+  --tag-tint: 6%;
+  --tag-ring: var(--border-strong);
+}
+
+.context-cleared-tag {
+  --tag-color: var(--info);
+  --tag-tint: 10%;
 }
 
 /* 吹き出しの中の書き直しの欄 */
@@ -266,35 +250,12 @@
    作業場所を移した区切り（workplace_moved）も同じ形で、色だけアクセントにする */
 .context-cleared-divider,
 .workplace-moved-divider {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin: 6px 0;
   font-size: var(--chat-fs-11);
-  color: var(--info);
-}
-
-.context-cleared-divider::before,
-.context-cleared-divider::after,
-.workplace-moved-divider::before,
-.workplace-moved-divider::after {
-  flex: 1;
-  border-top: 1px dashed color-mix(in srgb, var(--info) 55%, transparent);
-  content: "";
-}
-
-.context-cleared-divider svg,
-.workplace-moved-divider svg {
-  flex: none;
 }
 
 .workplace-moved-divider {
-  color: var(--accent-fg);
-}
-
-.workplace-moved-divider::before,
-.workplace-moved-divider::after {
-  border-top-color: color-mix(in srgb, var(--accent-fg) 55%, transparent);
+  --divider-tone: var(--accent-fg);
 }
 
 .workplace-moved-divider span {

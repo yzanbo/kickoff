@@ -68,7 +68,7 @@ export function CiRunDetailView({
 
   return (
     <section className="github-detail ci-detail" aria-busy={detail.loading || undefined}>
-      <header className="github-detail-head">
+      <header className="github-detail-head bar">
         <div className="github-detail-tools">
           {onBack && <IconButton icon={ArrowLeft} label="一覧へ戻る" onClick={onBack} />}
           {data && detail.loading && <span className="github-updating muted small">更新中…</span>}
@@ -92,7 +92,7 @@ export function CiRunDetailView({
           <>
             <h2 className="github-detail-title">{run.title}</h2>
             <div className="github-detail-meta">
-              <span className={`ci-state-chip ci-state-chip-${run.state}`}>
+              <span className={`ci-state-chip tag ci-state-chip-${run.state}`} data-look="outline">
                 <CiStateIcon state={run.state} size={13} /> {CI_STATE_LABELS[run.state]}
               </span>
               <span className="small">

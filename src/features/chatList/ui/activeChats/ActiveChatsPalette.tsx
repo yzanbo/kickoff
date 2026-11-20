@@ -143,8 +143,8 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   }, [nav.index, dialogRef]);
 
   return (
-    <dialog ref={dialogRef} className="palette" aria-label="作業中・待ちのチャット" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input">
+    <dialog ref={dialogRef} className="palette floating" aria-label="作業中・待ちのチャット" onClose={onClose} {...dialog.backdropProps}>
+      <div className="palette-input bar">
         <Activity size={16} className="muted" aria-hidden />
         <input
           autoFocus

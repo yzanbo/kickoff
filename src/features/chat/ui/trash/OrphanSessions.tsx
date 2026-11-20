@@ -90,7 +90,7 @@ export function OrphanSessions() {
                 <input type="checkbox" checked={picked.has(s.session_id)} onChange={() => toggle(s.session_id)} />
                 <span className="orphan-session-main">
                   <span className="orphan-session-prompt">
-                    {s.kickoff_ask && <span className="orphan-session-tag">Kickoff の問い合わせ</span>}
+                    {s.kickoff_ask && <span className="orphan-session-tag tag" data-look="outline">Kickoff の問い合わせ</span>}
                     {s.first_prompt ?? "（最初の発言なし）"}
                   </span>
                   <span className="muted small orphan-session-meta">

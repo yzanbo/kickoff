@@ -229,12 +229,9 @@
 /* サブエージェントに「あとで」伝える指示の宛先の札（QueuedRow。AI への前置きは隠し、宛先をここで示す） */
 .queued-relay-tag {
   flex: none;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--bg-hover);
+  --tag-bg: var(--bg-hover);
   font-size: var(--fs-11);
   line-height: 16px;
-  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -336,9 +333,8 @@
   display: grid;
   gap: 6px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
+  --card-radius: var(--radius-sm);
+  --card-bg: var(--bg);
   transition: opacity 0.15s;
 }
 
@@ -577,9 +573,7 @@
   align-items: center;
   gap: 6px 10px;
   padding: 7px 12px;
-  border-bottom: 1px solid var(--border);
   font-size: 12.5px;
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
 
 .restart-resume-banner-icon {
@@ -606,8 +600,8 @@
 /* 送信待ちのないチャットの帯（作業の途中で止まったことだけを聞く）: 入力欄の上に、独り立ちの枠で置く */
 .restart-resume-banner.standalone {
   margin-bottom: 6px;
-  border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--border));
-  border-radius: var(--radius);
+  --notice-edge: 35%;
+  --notice-radius: var(--radius);
 }
 
 /* 下の帯の入口（決めていない再開）。注意の色 */

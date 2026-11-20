@@ -155,7 +155,7 @@ export function QueuedRow({
           {/* 子チャットから渡した依頼（「親チャットに追加」の送信待ち）の出どころ */}
           {m.handoff_from && <HandoffFromChip from={m.handoff_from} />}
           {/* サブエージェントに「あとで」伝える指示は、AI への前置きを隠して宛先の札と本文だけ */}
-          {relay && <span className="queued-relay-tag">伝える → {relay.name}</span>}
+          {relay && <span className="queued-relay-tag tag">伝える → {relay.name}</span>}
           <span className="queued-text" title={relay ? relay.text : m.text}>
             {(relay ? relay.text : m.text) || m.attachments.map((a) => a.name).join("、")}
           </span>

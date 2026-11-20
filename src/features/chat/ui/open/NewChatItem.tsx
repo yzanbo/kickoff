@@ -33,11 +33,11 @@ export function useNewChatPlace(place: NewChatPlace, branch: string | null = nul
 export function NewChatPlaceBadges({ place }: { place: ReturnType<typeof useNewChatPlace> }) {
   return (
     <span className="menu-place-badges" aria-hidden>
-      <span className="menu-place-badge" style={hueStyle(place.groupHue)}>
+      <span className="menu-place-badge tag" style={hueStyle(place.groupHue)}>
         {place.groupName}
       </span>
       {place.where && (
-        <span className="menu-place-badge" style={hueStyle(place.workplaceHue)}>
+        <span className="menu-place-badge tag" style={hueStyle(place.workplaceHue)}>
           {place.where}
         </span>
       )}

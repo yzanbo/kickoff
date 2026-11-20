@@ -1,9 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { StatusDot } from "./StatusDot";
+import { Tag } from "./Tag";
 
 /**
- * 状態・まとまりの札（色の点・名前・件数を、その色の文字・枠・薄い地の丸い札に入れる。styles/ui/tone-chip.css）。
+ * 状態・まとまりの札（色の点・名前・件数を、その色の文字・枠・薄い地の丸い札に入れる。枠の札 Tag の上に、styles/ui/tone-chip.css）。
  * tone はその色（COLUMN_TONE・STATE_TONE・bucketTone など。なければ灰）、dot で色の点を付ける。グループの色にするなら className に group-hued と
  * style に --group-hue を渡す。onLabelDoubleClick は名前のダブルクリック（グループの名前を変える）
  */
@@ -27,13 +28,13 @@ export function ToneChip({
   onLabelDoubleClick?: () => void;
 }) {
   return (
-    <span className={cx("tone-chip", className)} style={tone ? ({ "--head-color": tone, ...style } as CSSProperties) : style}>
+    <Tag look="outline" className={cx("tone-chip", className)} style={tone ? ({ "--head-color": tone, ...style } as CSSProperties) : style}>
       {dot && tone && <StatusDot color={tone} />}
       {icon}
       <span className="tone-chip-label" onDoubleClick={onLabelDoubleClick}>
         {label}
       </span>
       {count !== undefined && <span className="tone-chip-count">{count}</span>}
-    </span>
+    </Tag>
   );
 }

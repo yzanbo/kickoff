@@ -72,7 +72,7 @@ function VoiceHero({ status, enabled, onToggle }: { status: VoiceStatus | undefi
   const tone = status === undefined ? "pending" : status.ready ? "ok" : enabled ? "ng" : "na";
   const state = status === undefined ? "確認中…" : status.ready ? "使えます" : enabled ? "準備が必要です" : "オフ";
   return (
-    <div className={cx("voice-hero", status?.ready && "ready")}>
+    <div className={cx("voice-hero card", status?.ready && "ready")}>
       <span className="voice-hero-icon" aria-hidden>
         <Mic size={18} />
       </span>

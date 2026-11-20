@@ -74,7 +74,7 @@ function SqlHistoryList({ connection, onPick }: { connection: DbConnection; onPi
               <code className="db-sql-history-sql">{e.sql}</code>
               <span className="db-sql-history-meta small">
                 {e.ran_by === "ai" && (
-                  <span className="db-sql-history-ai" data-tip={e.chat_title !== null ? `チャット「${chatTitle(e.chat_title)}」の AI が流しました` : "チャットの AI が流しました（チャットは消えています）"}>
+                  <span className="db-sql-history-ai tag" data-tip={e.chat_title !== null ? `チャット「${chatTitle(e.chat_title)}」の AI が流しました` : "チャットの AI が流しました（チャットは消えています）"}>
                     <Bot size={11} aria-hidden /> AI{e.chat_title !== null && ` · ${chatTitle(e.chat_title)}`}
                   </span>
                 )}

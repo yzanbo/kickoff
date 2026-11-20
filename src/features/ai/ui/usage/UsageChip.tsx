@@ -23,7 +23,7 @@ export function groupChipText(group: UsageGroup, usage: PlanUsage | undefined, s
 /** AI の札（アイコン ＋ 文。Claude と Codex は色でも分ける） */
 export function UsageChip({ provider, text }: { provider: ProviderId; text: string }) {
   return (
-    <span className="footer-usage-chip" data-provider={provider}>
+    <span className="footer-usage-chip tag" data-provider={provider}>
       <ProviderIcon provider={provider} size={12} />
       {text}
     </span>

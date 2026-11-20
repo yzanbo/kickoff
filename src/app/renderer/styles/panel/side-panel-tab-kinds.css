@@ -40,13 +40,11 @@
 /* 名前の前の種類の札（まとまりの頭の札と同じ、薄い地に色の文字の丸い札。名前より先に省かない） */
 .panel-tab-label .panel-tab-kind {
   flex: none;
-  padding: 0 6px;
-  border-radius: 999px;
+  --tag-color: var(--tab-color);
+  --tag-tint: 18%;
   font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
-  color: var(--tab-color);
-  background: color-mix(in srgb, var(--tab-color) 18%, transparent);
 }
 
 /* 未読のタブの名前の色（.panel-tab.unread .panel-tab-label span）に札の色を上書きさせない */
@@ -68,12 +66,10 @@
   height: 16px;
   padding: 0 5px;
   overflow: visible;
-  border-radius: 999px;
+  --tag-color: var(--activity-color);
   font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
-  color: var(--activity-color);
-  background: color-mix(in srgb, var(--activity-color) 16%, transparent);
 }
 
 /* 押すと子チャットの一覧を開く（ChildActivityMark → TabChildChatsPopover）。乗せたら地を濃くして押せると分かるように */
@@ -83,7 +79,7 @@
 
 .panel-tab-label .tab-child-activity[role="button"]:hover,
 .panel-tab-label .tab-child-activity[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--activity-color) 30%, transparent);
+  --tag-tint: 30%;
 }
 
 .panel-tab-label .tab-child-activity.state-needs_input {
@@ -93,8 +89,7 @@
 /* 動いている子孫がないときは、子チャットがあることだけを薄く（色の札にせず、名前より控えめな文字の色で。タブに出す項目の「子チャット」） */
 .panel-tab-label .tab-child-activity.state-idle {
   --activity-color: var(--muted);
-
-  background: none;
+  --tag-bg: none;
   padding: 0 2px;
   font-weight: 500;
 }

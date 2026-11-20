@@ -3,10 +3,7 @@
 .approval-card {
   display: grid;
   gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  --card-tone: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 
 .approval-card p {
@@ -37,16 +34,14 @@
   flex-shrink: 0;
   white-space: nowrap;
   padding: 1px 8px;
-  border-radius: 999px;
+  --tag-color: var(--accent);
   font-size: var(--chat-fs-12);
   font-weight: 600;
-  color: #fff;
-  background: var(--accent);
 }
 
 /* 質問のバッジ（質問の欄の .question と名前を分ける。重なると .question の padding: 0 でバッジの余白が消える） */
 .approval-badge.question-badge {
-  background: var(--info);
+  --tag-color: var(--info);
 }
 
 .approval-title {
@@ -149,11 +144,8 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
-  border-radius: var(--radius-sm);
   font-size: var(--chat-fs-13);
   color: var(--text);
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
 
 .reconnect-row svg {
@@ -168,11 +160,10 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  border-radius: var(--radius-sm);
+  --notice-tone: var(--accent);
+  --notice-tint: 8%;
   font-size: var(--chat-fs-13);
   color: var(--text);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .workplace-move-row svg {
@@ -182,5 +173,5 @@
 
 /* 再開するかを聞くカードのバッジ */
 .approval-badge.reconnect-badge {
-  background: var(--warn);
+  --tag-color: var(--warn);
 }

@@ -90,7 +90,7 @@ export function HoverTip() {
   }, [tip]);
 
   return (
-    <div ref={ref} popover="manual" className="hover-tip" role="tooltip">
+    <div ref={ref} popover="manual" className="hover-tip floating" role="tooltip">
       {(tip?.title || tip?.keys) && (
         <span className="hover-tip-head">
           {tip.title && <strong className="hover-tip-title">{tip.title}</strong>}

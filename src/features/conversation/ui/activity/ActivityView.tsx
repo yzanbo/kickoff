@@ -258,7 +258,7 @@ function Filters({
       type="button"
       role="radio"
       aria-checked={active}
-      className={cx("activity-chip", active && "active")}
+      className={cx("activity-chip pill", active && "active")}
       title={extra.title}
       style={agentHueStyle(extra.hue)}
       onClick={() => onChange(next)}

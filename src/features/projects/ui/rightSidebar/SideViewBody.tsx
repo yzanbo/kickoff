@@ -30,7 +30,7 @@ export function SideViewBody({ projectId, view, frame }: { projectId: number; vi
   const maximize = frame?.maximize;
   return (
     <div className="side-view">
-      <div className="side-view-head">
+      <div className="side-view-head bar">
         {maximize && (
           <IconButton
             icon={maximize.on ? FoldHorizontal : UnfoldHorizontal}

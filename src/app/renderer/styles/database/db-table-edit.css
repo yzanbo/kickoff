@@ -2,13 +2,10 @@
 
 /* 編集の帯（行を足す・CSV・保存していない変更の数・取り消す・保存） */
 .db-edit-bar {
-  display: flex;
   flex: none;
   flex-wrap: wrap;
-  align-items: center;
   gap: 4px 8px;
   padding: 4px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .db-edit-bar .btn {
@@ -45,7 +42,7 @@
   white-space: pre-wrap;
   resize: none;
   field-sizing: content;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-1);
 }
 
 /* 書き換えたセル（保存していない） */

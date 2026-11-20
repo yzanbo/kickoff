@@ -33,23 +33,21 @@
   position: relative;
   min-width: 0;
   max-width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  padding: 0;
 }
 
 /* 実行中は、回る印と同じ作業中の色で枠を染める */
 .subagent-card.running {
-  border-color: color-mix(in srgb, var(--dot-running) 45%, var(--border));
+  --card-tone: color-mix(in srgb, var(--dot-running) 45%, var(--border));
 }
 
 /* 入れ子のカードは地の色を交互にして、どこまでが 1 つかを分かりやすくする */
 .subagent-card .subagent-card {
-  background: var(--bg);
+  --card-bg: var(--bg);
 }
 
 .subagent-card .subagent-card .subagent-card {
-  background: var(--bg-elev);
+  --card-bg: var(--bg-elev);
 }
 
 .subagent-card-head {
@@ -152,11 +150,9 @@
 
 .subagent-card-label {
   flex: none;
-  padding: 0 6px;
-  border-radius: 999px;
+  --tag-fg: var(--text);
+  --tag-bg: var(--bg-hover);
   font-size: var(--chat-fs-11);
-  color: var(--text);
-  background: var(--bg-hover);
 }
 
 .subagent-card-activity {
@@ -271,9 +267,7 @@
 
 .subagent-result {
   padding: 12px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  --card-tone: var(--border-strong);
 }
 
 /* 報告の見出しの行: 左に「起動したエージェントへの報告」、右に全文の切り替え（長いときだけ） */

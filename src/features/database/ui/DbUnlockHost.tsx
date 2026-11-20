@@ -81,7 +81,7 @@ function UnlockDialog({ request, onFinish }: { request: UnlockRequest; onFinish:
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-unlock-dialog" aria-label="DB のパスワード" onClose={() => onFinish(entered)}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-unlock-dialog" aria-label="DB のパスワード" onClose={() => onFinish(entered)}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">{connection ? `「${connection.name}」に接続` : "DB に接続"}</h2>
         <p className="app-dialog-message">保存したパスワードを読めませんでした（キーチェーンで許可されませんでした）。</p>

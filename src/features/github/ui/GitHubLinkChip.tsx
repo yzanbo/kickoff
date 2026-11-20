@@ -32,7 +32,8 @@ export function GitHubLinkChip({ chat }: { chat: Pick<Chat, "project_id" | "gith
   return (
     <button
       type="button"
-      className="github-link-chip"
+      className="github-link-chip tag"
+      data-look="outline"
       data-tip={`GitHub の${kind === "pr" ? " PR" : " issue"} ${chat.github_repo ?? ""}#${number} と結び付いています（押すと GitHub タブで開く）`}
       onClick={(e) => {
         // カードを押したことにしない（チャットを開かずに GitHub タブへ）

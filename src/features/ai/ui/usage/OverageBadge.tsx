@@ -14,7 +14,7 @@ const CODEX_BADGE: Partial<Record<OverageState, string>> = { in_use: "クレジ�
 function Badge({ state, text, hint }: { state: OverageState; text: string | undefined; hint: string }) {
   if (!text) return null;
   return (
-    <span className="footer-usage-overage" data-state={state} title={hint}>
+    <span className="footer-usage-overage tag" data-look="outline" data-state={state} title={hint}>
       {text}
     </span>
   );

@@ -5,14 +5,12 @@
   align-items: center;
   gap: 4px;
   padding: 1px 4px 1px 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: var(--muted);
+  --pill-border: var(--border-strong);
 }
 
 .new-chat-group.has-group {
-  border-color: color-mix(in srgb, var(--accent-bright) 50%, transparent);
-  color: var(--accent-bright);
+  --pill-border: color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  --pill-fg: var(--accent-bright);
 }
 
 .new-chat-group .pill-select {

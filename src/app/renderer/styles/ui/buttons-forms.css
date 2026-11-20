@@ -265,18 +265,6 @@ select:focus {
   background: var(--bg-hover);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px 2px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: var(--fs-12);
-  background: var(--bg-elev);
-}
-
 .chip-remove {
   display: grid;
   place-items: center;

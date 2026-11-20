@@ -75,7 +75,7 @@ export function PanelTab({
 }) {
   const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={projectHueStyle(pinnedIn)} aria-label="ピン留め" />;
   const groupBadge = group && (
-    <span className="panel-tab-group-name" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
+    <span className="panel-tab-group-name tag" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
       {group.name}
     </span>
   );
@@ -121,7 +121,7 @@ export function PanelTab({
             // 2 行: 上に種類の札と名前、下にグループ・作業場所の札
             <span className="panel-tab-lines">
               <span className="panel-tab-line">
-                {badge && <span className="panel-tab-kind">{badge.text}</span>}
+                {badge && <span className="panel-tab-kind tag">{badge.text}</span>}
                 <span>{label}</span>
                 {after}
               </span>
@@ -132,7 +132,7 @@ export function PanelTab({
             </span>
           ) : (
             <>
-              {badge && <span className="panel-tab-kind">{badge.text}</span>}
+              {badge && <span className="panel-tab-kind tag">{badge.text}</span>}
               <span>{label}</span>
               {after}
               {groupBadge}

@@ -42,7 +42,7 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-copy-dialog" aria-label="ほかのプロジェクトの接続を写す" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-copy-dialog" aria-label="ほかのプロジェクトの接続を写す" onClose={onClose}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">ほかのプロジェクトの接続を写す</h2>
         {lists.loading && <p className="muted small">読み込み中…</p>}

@@ -63,7 +63,7 @@ function ServiceBlock({ service: s, planned }: { service: ServiceUsage; planned:
         <StatusDot tone={toneOf(s.status === "ok" ? true : s.status === "error" ? false : null)} />
         <h3>{s.label}</h3>
         {planned && <span className="badge">{PLANNED_BADGE}</span>}
-        {s.plan && <span className="plan-chip">{planLabel(s.plan)}</span>}
+        {s.plan && <span className="plan-chip tag" data-look="outline">{planLabel(s.plan)}</span>}
         {s.account && <span className="muted small usage-service-account">{s.account}</span>}
         {s.status === "ok" && <span className="muted small usage-service-time">{formatClock(s.fetched_at)} 時点</span>}
       </div>

@@ -138,16 +138,14 @@
   height: 26px;
   padding: 0 10px;
   font-size: var(--fs-12);
-  color: var(--text);
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-elev);
   /* ボタンは既定のカーソルが矢印なので、ほかのボタン（.btn・.icon-button）と同じく指の形にする */
   cursor: pointer;
 }
 
 .voice-mode-action:hover {
-  background: var(--bg-hover);
+  --pill-bg: var(--bg-hover);
 }
 
 .voice-mode-end {

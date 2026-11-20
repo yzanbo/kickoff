@@ -22,7 +22,8 @@ export function PrNoticeMark({ notice, iconOnly = false }: { notice: WorktreePrN
     <span
       role="button"
       tabIndex={0}
-      className={cx("pr-notice-mark", notice.pr.state === "MERGED" ? "merged" : "closed", iconOnly && "icon-only")}
+      data-look="outline"
+      className={cx("pr-notice-mark tag", notice.pr.state === "MERGED" ? "merged" : "closed", iconOnly && "icon-only")}
       aria-label={`${prNoticeTitle(notice)}（押すと片付けの確認を開きます）`}
       {...tipProps(`${prNoticeTitle(notice)}（押すと、ワークツリーとチャットを片付ける確認を開きます）`)}
       onClick={open}

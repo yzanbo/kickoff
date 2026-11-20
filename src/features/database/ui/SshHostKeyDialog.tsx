@@ -39,7 +39,7 @@ export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { proj
   return (
     <dialog
       ref={dialogRef}
-      className="dialog app-dialog db-ssh-key-dialog"
+      className="dialog floating app-dialog db-ssh-key-dialog"
       aria-label="踏み台のサーバーの鍵を確かめる"
       // 接続のダイアログの中に開くので、閉じた知らせを外のダイアログに伝えない（React は close を部品の木で親へ伝え、親のダイアログも閉じてしまう）
       onClose={(e) => {

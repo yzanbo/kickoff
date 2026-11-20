@@ -175,7 +175,7 @@ export function ChatTimeline({
         </PopupMenu>
       )}
       {jumping !== null && (
-        <div className="timeline-jumping" role="status">
+        <div className="timeline-jumping pill" role="status">
           <span className="spinner" aria-hidden />
           読み込み中…
         </div>

@@ -31,7 +31,7 @@ export function AiDefaultsSettings() {
         <p>新しいプロジェクトとチャットで、はじめに使う AI の設定です。</p>
         <p className="ai-defaults-scope">プロジェクトごとに設定を変えられます。チャット欄での変更は、そのチャットだけに適用されます。</p>
       </div>
-      <div className="ai-defaults-project">
+      <div className="ai-defaults-project card">
         <div className="ai-defaults-project-copy">
           <h3>新しいプロジェクト</h3>
           <p>新しく作成・取り込みするプロジェクトに適用します。</p>
@@ -60,7 +60,7 @@ export function AiDefaultsSettings() {
         <p>AI ごとに、チャットを始めるときの設定を決めます。</p>
       </div>
       <div className="ai-defaults-cards">
-      <section className="ai-defaults-card" aria-labelledby="ai-defaults-claude-title">
+      <section className="ai-defaults-card card" aria-labelledby="ai-defaults-claude-title">
         <div className="ai-defaults-card-head">
           <span className="ai-defaults-card-icon"><ProviderIcon provider="claude" size={18} /></span>
           <div><h3 id="ai-defaults-claude-title">{PROVIDER_LABELS.claude}</h3><p>Claude Code のチャットに適用</p></div>

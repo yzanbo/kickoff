@@ -141,7 +141,7 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
 
   return (
     <div ref={paneRef} className="browser-pane" onContextMenu={textMenu.onContextMenu}>
-      <form className="browser-toolbar" onSubmit={go}>
+      <form className="browser-toolbar bar" onSubmit={go}>
         <IconButton icon={ArrowLeft} label="戻る" size={15} type="button" disabled={!nav.back} onClick={() => ref.current?.goBack()} />
         <IconButton icon={ArrowRight} label="進む" size={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
         <IconButton

@@ -25,13 +25,8 @@
 }
 
 .db-er-toolbar {
-  display: flex;
   flex: none;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .db-er-toolbar .btn {

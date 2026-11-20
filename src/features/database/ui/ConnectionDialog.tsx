@@ -102,7 +102,7 @@ export function ConnectionDialog({
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-connection-dialog" aria-label={editing ? "DB の接続を編集" : "DB の接続を追加"} onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-connection-dialog" aria-label={editing ? "DB の接続を編集" : "DB の接続を追加"} onClose={onClose}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">{editing ? "DB の接続を編集" : "DB の接続を追加"}</h2>
         {!editing && (

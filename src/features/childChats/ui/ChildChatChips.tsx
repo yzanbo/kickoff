@@ -36,7 +36,7 @@ function ChildChip({ chat }: { chat: Chat }) {
   const state = stateOf(chat);
   const kind = chat.parent_chat_id === null ? "チャット" : "子チャット";
   return (
-    <button type="button" className={cx("child-chat-chip", `child-${state}`)} title={`${kind}「${chatTitle(chat.title)}」を開く`} onClick={() => openChatOrChild(chat)}>
+    <button type="button" className={cx("child-chat-chip pill", `child-${state}`)} title={`${kind}「${chatTitle(chat.title)}」を開く`} onClick={() => openChatOrChild(chat)}>
       <MessagesSquare size={12} aria-hidden />
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">

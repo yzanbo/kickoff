@@ -117,7 +117,7 @@ export function useDockerLogMenu({
     element: (
       <>
         {anchor && !shown && (
-          <div className="selection-attach" style={{ left: anchor.x, top: anchor.y }}>
+          <div className="selection-attach floating" style={{ left: anchor.x, top: anchor.y }}>
             <button
               type="button"
               className="btn selection-attach-button"

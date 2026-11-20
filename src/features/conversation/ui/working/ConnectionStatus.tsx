@@ -3,6 +3,7 @@ import type { ApiRetryInfo, ReconnectState } from "@shared/chat/chatLive";
 import { api } from "@/foundation/ui/api";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { reportFailure } from "@/foundation/ui/kit/ask";
+import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** 再試行中の文（「接続が切れています。再試行 3/10・あと 8 秒」）。残りの秒数を数える */
 export function RetryLabel({ retry, agents = 0 }: { retry: ApiRetryInfo; agents?: number }) {
@@ -34,7 +35,7 @@ function reconnectLabel(reconnect: ReconnectState): string {
  */
 export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect: ReconnectState }) {
   return (
-    <div className="reconnect-row" role="status">
+    <Notice look="boxed" className="reconnect-row" role="status">
       <WifiOff size={14} aria-hidden />
       <span>{reconnectLabel(reconnect)}</span>
       <button
@@ -45,6 +46,6 @@ export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect:
       >
         自動で再開しない
       </button>
-    </div>
+    </Notice>
   );
 }

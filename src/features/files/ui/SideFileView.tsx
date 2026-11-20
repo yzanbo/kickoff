@@ -49,7 +49,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const codeMenu = useCodeQuoteMenu(worktree ?? (repoPath || undefined));
   return (
     <div className="side-file" onContextMenu={codeMenu.onContextMenu}>
-      <div className="side-file-bar">
+      <div className="side-file-bar bar">
         {changed && (
           <button type="button" className="btn btn-sm" title="このファイルのコミットしていない変更を、右の欄の「変更」で見ます" onClick={() => links?.openChanges(path)}>
             <FileDiff size={13} aria-hidden /> 差分を見る

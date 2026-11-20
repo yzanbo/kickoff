@@ -14,23 +14,21 @@
   height: 18px;
   padding: 0 5px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  --tag-color: var(--tone);
   font: inherit;
   font-size: var(--fs-11);
   font-weight: 700;
-  color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 16%, transparent);
   cursor: pointer;
 }
 
 .head-count:hover {
-  background: color-mix(in srgb, var(--tone) 26%, transparent);
+  --tag-tint: 26%;
 }
 
 /* 押して、その状態だけに絞っているとき */
 .head-count.active {
   border-color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 30%, transparent);
+  --tag-tint: 30%;
 }
 
 .head-count-dot {

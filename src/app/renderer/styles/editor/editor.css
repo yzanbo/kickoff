@@ -30,12 +30,8 @@
 }
 
 .changes-head {
-  display: flex;
   flex: none;
-  align-items: center;
-  gap: 6px;
   padding: 6px 6px 6px 12px;
-  border-bottom: 1px solid var(--border);
   font-size: var(--fs-12);
   color: var(--muted);
 }
@@ -221,11 +217,8 @@
 }
 
 .diff-head {
-  display: flex;
-  align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
   font-size: var(--fs-12);
 }
 

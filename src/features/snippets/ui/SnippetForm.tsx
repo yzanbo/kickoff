@@ -62,7 +62,7 @@ export function SnippetForm({
     }
   };
   return (
-    <div className="snippet-form" onKeyDown={onKeyDown}>
+    <div className="snippet-form card" onKeyDown={onKeyDown}>
       <Field label="名前（省略できます）" help="帯のボタンに出す短い名前です。省くと本文の 1 行目を出します。">
         <input type="text" value={label} maxLength={SNIPPET_LABEL_MAX} placeholder="例: テストを流す" onChange={(e) => setLabel(e.target.value)} />
       </Field>

@@ -55,7 +55,8 @@ export function ChipPicker<T extends string>({
     <>
       <button
         type="button"
-        className={cx(className, "chip-picker", empty && "is-empty")}
+        className={cx("tag", className, "chip-picker", empty && "is-empty")}
+        data-look="outline"
         style={hue === undefined ? undefined : ({ "--group-hue": hue } as CSSProperties)}
         data-chip-picker={id}
         data-tip={inactive ?? tip}

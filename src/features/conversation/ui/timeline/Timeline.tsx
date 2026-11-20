@@ -249,7 +249,7 @@ function EventItem({
     case "context_cleared":
       // 送信待ちの「コンテキストを消去」で、ここから新しい会話にした境目（上の会話は AI に引き継いでいない）
       return (
-        <div className="context-cleared-divider" id={`ev-${event.id}`} role="separator" aria-label="コンテキストを消去しました">
+        <div className="context-cleared-divider divider-label" id={`ev-${event.id}`} role="separator" aria-label="コンテキストを消去しました">
           <Eraser size={12} aria-hidden />
           <span>コンテキストを消去しました（ここから新しい会話）</span>
         </div>
@@ -259,7 +259,7 @@ function EventItem({
     case "workplace_moved":
       // 作業場所を移した区切り。これより上の発言は巻き戻せず、分岐の起点にもできない
       return (
-        <div className="workplace-moved-divider" id={`ev-${event.id}`} role="separator" aria-label="作業場所を移しました">
+        <div className="workplace-moved-divider divider-label" id={`ev-${event.id}`} role="separator" aria-label="作業場所を移しました">
           <FolderInput size={12} aria-hidden />
           <span>{workplaceMoveLine(event.data)}</span>
         </div>

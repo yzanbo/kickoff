@@ -16,11 +16,9 @@
 }
 
 .github-detail-head {
-  display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: normal;
   padding: 6px 16px 10px;
-  border-bottom: 1px solid var(--border);
 }
 
 .github-detail-tools {
@@ -58,8 +56,8 @@
   gap: 4px;
   height: 22px;
   padding: 0 9px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
+  --tag-border: currentcolor;
+  --tag-fg: currentcolor;
   font-size: var(--fs-12);
   font-weight: 600;
 }
@@ -125,21 +123,17 @@
   flex: none;
   align-items: center;
   gap: 3px;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: none;
+  --tag-border: var(--border-strong);
   font: inherit;
   font-size: var(--fs-11);
   line-height: 17px;
   white-space: nowrap;
-  color: var(--muted);
   cursor: pointer;
 }
 
 .github-link-chip:hover {
-  border-color: var(--accent);
-  color: var(--text);
+  --tag-border: var(--accent);
+  --tag-fg: var(--text);
 }
 
 /* PR のマージできるか（衝突・保護ルール）と承認の数、issue を閉じる PR（GitHubDetailBadges） */
@@ -178,14 +172,11 @@
   gap: 3px;
   height: 20px;
   padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
+  --pill-fg: currentcolor;
   font: inherit;
   cursor: pointer;
 }
 
 .github-linked-pull:hover {
-  background: var(--bg-hover);
+  --pill-bg: var(--bg-hover);
 }

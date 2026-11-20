@@ -9,13 +9,6 @@
   margin: 12px 0;
 }
 
-.card {
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-}
-
 /* 設定の「使用状況」のサービスごとのまとまり（名前・プラン・アカウントの行と、枠のカード） */
 .usage-service {
   padding: 14px 0 6px;

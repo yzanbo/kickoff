@@ -237,7 +237,7 @@ export function SelectionAttachBox({
   const extraNode = extra?.(shown.picked, { hold: setHeld, done: finish });
   const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * (shown.targets.length + (extraNode ? 1 : 0)));
   return (
-    <div ref={boxRef} className="selection-attach" style={{ left: at.x, top: at.y }}>
+    <div ref={boxRef} className="selection-attach floating" style={{ left: at.x, top: at.y }}>
       {shown.targets.map((target) => (
         <SelectionTargetButton key={target.label} target={target} picked={shown.picked} controls={{ hold: setHeld, done: finish }} />
       ))}

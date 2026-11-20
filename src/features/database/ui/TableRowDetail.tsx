@@ -39,7 +39,7 @@ export function TableRowDetail({
 
   return (
     <aside className="db-row-detail" aria-label="行の詳細">
-      <div className="db-row-detail-head">
+      <div className="db-row-detail-head bar">
         <span className="db-row-detail-title">{index + 1} 行目</span>
         <CloseButton label="行の詳細を閉じる" size={14} onClick={onClose} />
       </div>

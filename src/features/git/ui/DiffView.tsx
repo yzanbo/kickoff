@@ -84,7 +84,7 @@ export function DiffView({
   return (
     <div ref={ref} className="diff-view">
       {!bare && (
-      <header className="diff-head">
+      <header className="diff-head bar">
         <span className="diff-path" title={file.path}>
           {file.old_path && <span className="muted">{file.old_path} → </span>}
           {file.path}

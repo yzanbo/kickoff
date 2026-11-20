@@ -4,10 +4,6 @@
 .pairing-code,
 .pairing-request {
   margin: 8px 0 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
 }
 
 .pairing-start p {
@@ -54,7 +50,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border-color: var(--warn);
+  --card-tone: var(--warn);
 }
 
 .pairing-request-text {

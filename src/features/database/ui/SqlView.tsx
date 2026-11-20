@@ -186,7 +186,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
         />
       )}
       <div ref={heightPaneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
-        <div className="db-sql-toolbar">
+        <div className="db-sql-toolbar bar">
           <SqlConnectionPill connection={connection} tabKey={tab.key} disabled={running || write.on} />
           <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
             <Play size={13} aria-hidden /> 流す
@@ -202,13 +202,13 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
           <SqlHistoryButton connection={connection} onPick={(sql) => editor.current?.append(sql)} />
           <SqlAssistButton connection={connection} editor={editor} />
           <span className="db-sql-spacer" />
-          <span className={cx("db-sql-env small", `db-env-${connection.environment}`)}>
+          <span className={cx("db-sql-env tag small", `db-env-${connection.environment}`)}>
             <span className="db-env-dot" aria-hidden />
             {DB_ENVIRONMENT_LABELS[connection.environment]}
           </span>
           {connection.read_only && !write.on && (
             <>
-              <span className="db-sql-readonly small">読み取り専用</span>
+              <span className="db-sql-readonly tag small">読み取り専用</span>
               <button
                 type="button"
                 className="btn btn-sm"
@@ -245,7 +245,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       <div className="pane-resizer db-sql-resizer" {...height.handle} />
       <div className="db-sql-results">
         {runs.length > 0 && (
-          <div className="db-result-tabs" role="tablist">
+          <div className="db-result-tabs bar" role="tablist">
             {runs.map((r, i) => (
               <button
                 key={i}

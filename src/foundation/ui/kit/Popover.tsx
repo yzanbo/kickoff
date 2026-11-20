@@ -75,7 +75,7 @@ export function Popover({
     { track: true },
   );
   const box = (
-    <div ref={ref} popover="manual" role="dialog" aria-label={label} className={cx("popover", className)} {...rest}>
+    <div ref={ref} popover="manual" role="dialog" aria-label={label} className={cx("popover floating", className)} {...rest}>
       {title !== undefined && <PopoverHeader title={title} refresh={refresh} onClose={onClose} />}
       {children}
     </div>

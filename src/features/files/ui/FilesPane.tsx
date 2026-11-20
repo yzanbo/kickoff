@@ -69,7 +69,7 @@ export function FilesPane({
   };
   return (
     <>
-      <header className="changes-head">
+      <header className="changes-head bar">
         <span className="changes-branch" title={rootName}>
           {rootName}
         </span>

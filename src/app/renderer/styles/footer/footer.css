@@ -171,15 +171,15 @@
 
 .plan-chip {
   padding: 0 7px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  --tag-color: var(--accent-bright);
+  --tag-border: var(--border-strong);
+  --tag-radius: var(--radius-sm);
   font-size: var(--fs-11);
   font-weight: 600;
-  color: var(--accent-bright);
 }
 
 :root[data-theme="light"] .plan-chip {
-  color: var(--accent);
+  --tag-color: var(--accent);
 }
 
 /* 下の帯の右の使用状況（AI ごとのボタンを区切り線で並べ、押すとその AI の詳細）。2 つ並べるためバーを短くし、リセットまでの時間は説明に出す */
@@ -227,22 +227,22 @@
   gap: 4px;
   height: 16px;
   padding: 0 5px;
-  border-radius: var(--radius-sm);
+  --tag-radius: var(--radius-sm);
+  --tag-color: var(--accent-bright);
+  --tag-tint: 12%;
   font-size: var(--fs-11);
   font-weight: 600;
   line-height: 1;
-  color: var(--accent-bright);
-  background: color-mix(in srgb, var(--accent-bright) 12%, transparent);
 }
 
 .footer-usage-chip[data-provider="claude"] {
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  --tag-color: var(--warn);
+  --tag-tint: 14%;
 }
 
 .footer-usage-chip[data-provider="codex"] {
-  color: var(--info);
-  background: color-mix(in srgb, var(--info) 14%, transparent);
+  --tag-color: var(--info);
+  --tag-tint: 14%;
 }
 
 /* Claude の札の横の、超過分（追加の使用枠）の印。いま超過分で動いていれば赤く塗り（意図せず課金していないかを一目で）、
@@ -253,17 +253,17 @@
   align-items: center;
   height: 16px;
   padding: 0 5px;
-  border: 1px solid currentcolor;
-  border-radius: var(--radius-sm);
+  --tag-border: currentcolor;
+  --tag-radius: var(--radius-sm);
+  --tag-color: var(--warn);
   font-size: var(--fs-11);
   font-weight: 600;
   line-height: 1;
-  color: var(--warn);
 }
 
 .footer-usage-overage[data-state="in_use"] {
-  color: var(--ng);
-  background: color-mix(in srgb, var(--ng) 16%, transparent);
+  --tag-color: var(--ng);
+  --tag-bg: color-mix(in srgb, var(--ng) 16%, transparent);
 }
 
 /* 帯の中のメーターは短く細く（AI を 2 つ並べても入るように） */

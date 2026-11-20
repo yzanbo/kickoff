@@ -25,7 +25,7 @@ export function NewProjectDialog({ defaultParentDir, initialName, initialMode = 
   const { ref, close } = useModalDialog({ closeOnBackdrop: false });
 
   return (
-    <dialog ref={ref} className="dialog" onClose={onClose}>
+    <dialog ref={ref} className="dialog floating" onClose={onClose}>
       <div className="dialog-body">
         <h2>新しいプロジェクト</h2>
         <Segmented<Mode>

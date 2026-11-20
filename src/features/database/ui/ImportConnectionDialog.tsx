@@ -73,7 +73,7 @@ export function ImportConnectionDialog({
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-import-dialog" aria-label="プロジェクトから取り込む" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-import-dialog" aria-label="プロジェクトから取り込む" onClose={onClose}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">プロジェクトから取り込む</h2>
         <p className="muted small">.env の DATABASE_URL など・docker compose の DB のサービス・Prisma の設定・SQLite のファイルから見つけた接続です。パスワードはそのまま取り込みます（画面には出しません）。</p>

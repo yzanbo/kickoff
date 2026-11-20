@@ -117,7 +117,7 @@ export function WorktreeBar({
         <span className="muted">プッシュ先（origin）がないので、PR は作れません</span>
       ) : value ? (
         <>
-          <span className={cx("pr-chip", value.state.toLowerCase())} title={value.title}>
+          <span className={cx("pr-chip tag", value.state.toLowerCase())} data-look="outline" title={value.title}>
             <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.is_draft ? "下書き" : PR_STATE_LABELS[value.state]}
           </span>
           <button className="btn btn-sm" onClick={() => window.open(value.url)}>

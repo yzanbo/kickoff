@@ -23,18 +23,15 @@
   gap: 6px;
   max-width: 100%;
   padding: 3px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  --pill-bg: var(--bg-elev);
   font: inherit;
   font-size: var(--fs-12);
-  color: var(--muted);
-  background: var(--bg-elev);
   cursor: pointer;
 }
 
 .child-chat-chip:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
+  --pill-fg: var(--text);
+  --pill-border: var(--border-strong);
 }
 
 .child-chat-chip-title {
@@ -66,7 +63,7 @@
 }
 
 .child-chat-chip.child-unread {
-  border-color: color-mix(in srgb, var(--state-unread) 60%, var(--border));
+  --pill-border: color-mix(in srgb, var(--state-unread) 60%, var(--border));
 }
 
 .child-chat-chip.child-unread .child-chat-chip-state {
@@ -191,25 +188,21 @@
 .child-chat-bar-label {
   flex: none;
   padding: 1px 8px;
-  border-radius: 999px;
   font-size: var(--fs-11);
   font-weight: 600;
 }
 
 /* 深さの呼び名の色（子・孫・ひ孫より深い。右の欄のタブの札と同じ --child-depth-<n>） */
 .child-chat-bar-label.child-depth-1 {
-  color: var(--child-depth-1);
-  background: color-mix(in srgb, var(--child-depth-1) 16%, transparent);
+  --tag-color: var(--child-depth-1);
 }
 
 .child-chat-bar-label.child-depth-2 {
-  color: var(--child-depth-2);
-  background: color-mix(in srgb, var(--child-depth-2) 16%, transparent);
+  --tag-color: var(--child-depth-2);
 }
 
 .child-chat-bar-label.child-depth-3 {
-  color: var(--child-depth-3);
-  background: color-mix(in srgb, var(--child-depth-3) 16%, transparent);
+  --tag-color: var(--child-depth-3);
 }
 
 /* 子チャットの名前（親のないチャットの見出しの行の名前 .chat-header-title も同じ見せ方） */
@@ -259,17 +252,15 @@
   max-width: 16em;
   height: 22px;
   padding: 0 8px 0 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-elev);
   font-size: var(--fs-12);
-  color: var(--text);
-  background: var(--bg-elev);
   cursor: pointer;
 }
 
 .child-chat-crumb:hover {
-  border-color: var(--divider-strong);
-  background: var(--bg-hover);
+  --pill-border: var(--divider-strong);
+  --pill-bg: var(--bg-hover);
 }
 
 .child-chat-crumb .status-slot {

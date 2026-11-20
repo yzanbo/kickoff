@@ -71,7 +71,7 @@ export function SidebarViewSettings() {
                         {view.name}
                       </span>
                     )}
-                    {views.active?.id === view.id && <span className="snippet-scope common">表示中</span>}
+                    {views.active?.id === view.id && <span className="snippet-scope tag common" data-look="outline">表示中</span>}
                   </div>
                   {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="snippet-manager-text">{describeState(view.state)}</p>}
                 </div>

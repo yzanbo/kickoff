@@ -16,7 +16,7 @@ export function TableEditBar({ state, connection, onAddRow, onImportCsv }: { sta
   ].filter(Boolean);
   return (
     <>
-      <div className="db-edit-bar small">
+      <div className="db-edit-bar bar small">
         {isTable && (
           <>
             <button type="button" className="btn btn-sm" disabled={!writable} onClick={onAddRow} data-tip="下に新しい行を足す（入れない列は DB の既定値）">
@@ -34,7 +34,7 @@ export function TableEditBar({ state, connection, onAddRow, onImportCsv }: { sta
         )}
         {isTable && connection.read_only && !write.on && (
           <>
-            <span className="db-sql-readonly">読み取り専用</span>
+            <span className="db-sql-readonly tag">読み取り専用</span>
             <button
               type="button"
               className="btn btn-sm"

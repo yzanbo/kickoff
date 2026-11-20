@@ -79,7 +79,7 @@ export function MenuFlyout({
     <div
       ref={ref}
       popover="manual"
-      className={cx("menu menu-flyout", className)}
+      className={cx("menu floating menu-flyout", className)}
       role="menu"
       aria-label={label}
       data-menu-scope

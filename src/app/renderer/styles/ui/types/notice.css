@@ -1,0 +1,46 @@
+/*
+ * 色の帯（知らせ・注意の薄い色の地。ui/Notice）: 色は --notice-tone（既定は --warn）、地の濃さは --notice-tint（既定 10%）、
+ * 地を混ぜる相手は --notice-base（既定は透明）。data-look="band" は欄の上に敷く帯（下に区切りの線）、"boxed" は色の枠と角の箱
+ * （枠の濃さは --notice-edge（既定 45%）と混ぜる相手 --notice-edge-base（既定は --border）、角は --notice-radius（既定は小））。
+ * 余白・並べ方は使う所のクラスで決める。変数は受け継がない
+ */
+@property --notice-tone { syntax: "*"; inherits: false; }
+@property --notice-tint { syntax: "*"; inherits: false; }
+@property --notice-base { syntax: "*"; inherits: false; }
+@property --notice-edge { syntax: "*"; inherits: false; }
+@property --notice-edge-base { syntax: "*"; inherits: false; }
+@property --notice-radius { syntax: "*"; inherits: false; }
+
+.notice {
+  background: color-mix(in srgb, var(--notice-tone, var(--warn)) var(--notice-tint, 10%), var(--notice-base, transparent));
+}
+
+.notice[data-look="band"] {
+  border-bottom: 1px solid var(--border);
+}
+
+.notice[data-look="boxed"] {
+  border: 1px solid color-mix(in srgb, var(--notice-tone, var(--warn)) var(--notice-edge, 45%), var(--notice-edge-base, var(--border)));
+  border-radius: var(--notice-radius, var(--radius-sm));
+}
+
+/* 文を挟む区切りの線（両側に破線を引いた知らせの行）: 色は --divider-tone（既定は --info。両側の線の ::before・::after が読むので受け継ぐ変数のまま）。
+   大きさ・余白は使う所のクラスで決める */
+
+.divider-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--divider-tone, var(--info));
+}
+
+.divider-label::before,
+.divider-label::after {
+  flex: 1;
+  border-top: 1px dashed color-mix(in srgb, var(--divider-tone, var(--info)) 55%, transparent);
+  content: "";
+}
+
+.divider-label svg {
+  flex: none;
+}

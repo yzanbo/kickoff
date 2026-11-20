@@ -75,7 +75,7 @@ export function PromptAssist({
             <button
               key={option}
               type="button"
-              className={cx("prompt-assist-option", option === value.trim() && "is-picked")}
+              className={cx("prompt-assist-option pill", option === value.trim() && "is-picked")}
               title="押すと、この名前を入れる"
               onClick={() => onPick(option)}
             >

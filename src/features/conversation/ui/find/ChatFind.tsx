@@ -167,7 +167,7 @@ export function ChatFind({
         setQuery("");
         focusComposer();
       }}
-      className={cx("chat-find", query && "active", floating && "floating")}
+      className={cx("chat-find", query && "active", floating && "detached")}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest("button, input")) return;
         e.preventDefault();

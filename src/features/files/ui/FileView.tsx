@@ -205,7 +205,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
 
   return (
     <div className="diff-view">
-      <header className="diff-head">
+      <header className="diff-head bar">
         <span className="diff-path" title={path}>
           {path}
         </span>

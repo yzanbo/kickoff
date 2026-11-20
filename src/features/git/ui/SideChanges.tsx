@@ -120,7 +120,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   }
   return (
     <div className="side-changes">
-      <header className="side-changes-head">
+      <header className="side-changes-head bar">
         <span className="side-changes-count">{git.status ? `${files.length} 個のファイルを変更` : "読み込み中…"}</span>
         {files.length > 0 && (
           <span className="muted small" title="見出しの「確認済み」で、確認したファイルを畳めます（あとで変わると知らせます）">

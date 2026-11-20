@@ -1,0 +1,36 @@
+/*
+ * 札（状態・種類・名前の小さな丸い印。ui/Tag・ToneChip）: 色は --tag-color（既定は --muted）。ふだんは色の文字と薄い地（濃さ --tag-tint。既定 16%）、
+ * 文字だけ・地だけを変えるなら --tag-fg・--tag-bg。data-look="outline" は色の枠（濃さ --tag-edge。既定 50%。枠の色そのものは --tag-border）で地なし、
+ * "ring" は大きさを変えない内側の線（色は --tag-ring）、"solid" は白い文字の塗り。角は --tag-radius（既定はピル）、余白は --tag-pad（既定 0 6px）。
+ * 文字の大きさ・行の高さ・並べ方は使う所のクラスで決める。変数は受け継がない（札の中の物に移らない）
+ */
+@property --tag-color { syntax: "*"; inherits: false; }
+@property --tag-fg { syntax: "*"; inherits: false; }
+@property --tag-bg { syntax: "*"; inherits: false; }
+@property --tag-tint { syntax: "*"; inherits: false; }
+@property --tag-edge { syntax: "*"; inherits: false; }
+@property --tag-border { syntax: "*"; inherits: false; }
+@property --tag-ring { syntax: "*"; inherits: false; }
+@property --tag-radius { syntax: "*"; inherits: false; }
+@property --tag-pad { syntax: "*"; inherits: false; }
+
+.tag {
+  padding: var(--tag-pad, 0 6px);
+  border-radius: var(--tag-radius, 999px);
+  color: var(--tag-fg, var(--tag-color, var(--muted)));
+  background: var(--tag-bg, color-mix(in srgb, var(--tag-color, var(--muted)) var(--tag-tint, 16%), transparent));
+}
+
+.tag[data-look="outline"] {
+  border: 1px solid var(--tag-border, color-mix(in srgb, var(--tag-color, var(--muted)) var(--tag-edge, 50%), transparent));
+  background: var(--tag-bg, none);
+}
+
+.tag[data-look="ring"] {
+  box-shadow: inset 0 0 0 1px var(--tag-ring, color-mix(in srgb, var(--tag-color, var(--muted)) 45%, transparent));
+}
+
+.tag[data-look="solid"] {
+  color: #fff;
+  background: var(--tag-color, var(--accent));
+}

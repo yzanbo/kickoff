@@ -82,7 +82,8 @@ export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
   if (supported) return <ChipPicker className="chat-group-chip chat-provider-chip" hue={PROVIDER_HUES[provider]} icon={Bot} name={providerChipName(provider, status)} tip="このチャットの AI を切り替える" menuTitle="使う AI" values={["claude", "codex"] as const} labels={labels} value={provider} disabled={disabled} inactive={chat.archived_at ? "アーカイブ済みのチャットは切り替えられません" : busy ? "作業が終わってから切り替えてください" : switching ? "切り替え中です" : null} onPick={(target) => void change(target)} />;
   return (
     <span
-      className="chat-group-chip chat-provider-chip"
+      className="chat-group-chip tag chat-provider-chip"
+      data-look="outline"
       style={{ "--group-hue": PROVIDER_HUES[provider] } as CSSProperties}
       data-tip={`このチャットの AI: ${providerLabel(provider, status)}（この AI の切り替えには未対応です）${payNote(status)}`}
     >

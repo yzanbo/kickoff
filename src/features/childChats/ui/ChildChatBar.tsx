@@ -124,7 +124,7 @@ function ChildBarFrame({
           </span>
           {shown.length === 0 ? (
             // 親が読み込んだ一覧にない（アーカイブ済みなど）: 名前は出さずに開くだけ
-            <button type="button" className="child-chat-crumb" data-tip="親のチャットの、聞いた位置を見る" onClick={() => reveal(null, parentId)}>
+            <button type="button" className="child-chat-crumb pill" data-tip="親のチャットの、聞いた位置を見る" onClick={() => reveal(null, parentId)}>
               親のチャット
             </button>
           ) : (
@@ -149,7 +149,7 @@ function ChildBarFrame({
         </nav>
       )}
       {/* 深さで呼び名と色を変える（子・孫・ひ孫） */}
-      <span className={`child-chat-bar-label child-depth-${Math.min(depth, 3)}`}>{childDepthLabel(depth)}</span>
+      <span className={`child-chat-bar-label tag child-depth-${Math.min(depth, 3)}`}>{childDepthLabel(depth)}</span>
       {self && selfEditor ? (
         <span className="child-chat-bar-title editing">
           <ChatTitleInput chat={self} editor={selfEditor} className="child-chat-title-input" />
@@ -195,7 +195,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
   const editor: ChatTitleEditor | undefined = rename.editorFor(parent);
   if (editor) {
     return (
-      <span className="child-chat-crumb editing">
+      <span className="child-chat-crumb pill editing">
         <StatusSlot state={stateOf(parent)} />
         <ChatTitleInput chat={parent} editor={editor} className="child-chat-title-input" />
       </span>
@@ -204,7 +204,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
   return (
     <button
       type="button"
-      className="child-chat-crumb"
+      className="child-chat-crumb pill"
       data-tip={`親のチャット「${name}」の、聞いた位置を見る（ダブルクリックで名前を変更）`}
       onClick={(e) => {
         cancelReveal();

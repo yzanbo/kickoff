@@ -19,7 +19,7 @@ const TEXT_DELAY_MS = 500;
 /** 絞り込みの札（押すと下にメニュー。既定から変えていれば色を付ける） */
 function FilterChip({ label, active, onOpen }: { label: string; active: boolean; onOpen: (e: MouseEvent<HTMLButtonElement>) => void }) {
   return (
-    <button type="button" className={cx("github-filter-chip", active && "active")} onClick={onOpen}>
+    <button type="button" className={cx("github-filter-chip pill", active && "active")} onClick={onOpen}>
       <span>{label}</span>
       <ChevronDown size={12} aria-hidden />
     </button>
@@ -101,7 +101,7 @@ export function GitHubFilterBar({
   );
 
   return (
-    <div className="github-filter-bar">
+    <div className="github-filter-bar bar">
       <div className="github-filter-row">
         <Segmented
           className="segmented github-kind-switch"
@@ -130,7 +130,7 @@ export function GitHubFilterBar({
         <FilterChip label={chipLabel("マイルストーン", filter.milestones, (v) => v)} active={filter.milestones.length > 0} onOpen={open("milestones")} />
         <FilterChip label={GITHUB_SORT_LABELS[filter.sort]} active={filter.sort !== "updated"} onOpen={open("sort")} />
         {activeFilterCount(filter) > 0 && (
-          <button type="button" className="github-filter-clear" onClick={() => onChange({ ...defaultGitHubFilter(filter.kind), sort: filter.sort })}>
+          <button type="button" className="github-filter-clear pill" onClick={() => onChange({ ...defaultGitHubFilter(filter.kind), sort: filter.sort })}>
             <X size={12} aria-hidden />
             絞り込みを外す
           </button>

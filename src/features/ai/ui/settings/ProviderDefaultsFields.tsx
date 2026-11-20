@@ -15,7 +15,7 @@ export function ProviderDefaultsFields({ provider, value: defaults, onChange }: 
   const currentModel = defaults.model === null ? models.find((m) => m.is_default) : models.find((m) => m.value === defaults.model);
   const hasFast = models.some((m) => m.supports_fast_mode);
   return (
-    <section className="ai-defaults-card" aria-labelledby={`ai-defaults-${provider}-title`}>
+    <section className="ai-defaults-card card" aria-labelledby={`ai-defaults-${provider}-title`}>
       <div className="ai-defaults-card-head">
         <span className="ai-defaults-card-icon"><ProviderIcon provider={provider} size={18} /></span>
         <div><h3 id={`ai-defaults-${provider}-title`}>{PROVIDER_LABELS[provider]}</h3><p>{PROVIDER_LABELS[provider]} のチャットに適用</p></div>

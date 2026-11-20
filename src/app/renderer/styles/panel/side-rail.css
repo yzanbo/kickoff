@@ -102,13 +102,9 @@
 
 /* 見出しの行（ブラウザのタブの列と同じ高さ。ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける） */
 .side-view-head {
-  display: flex;
   flex: none;
-  gap: 6px;
-  align-items: center;
   min-height: 40px;
   padding: 0 100px 0 var(--gutter);
-  border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
 

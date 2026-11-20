@@ -150,13 +150,9 @@ button.db-grid-col:hover {
 }
 
 .db-view-head {
-  display: flex;
   flex: none;
   flex-wrap: wrap;
-  align-items: center;
   gap: 6px 10px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .db-view-title {

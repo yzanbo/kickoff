@@ -7,13 +7,11 @@
 
   flex: none;
   align-self: center;
-  padding: 0 6px;
-  border-radius: 999px;
+  --tag-color: var(--child-color);
+  --tag-tint: 18%;
   font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
-  color: var(--child-color);
-  background: color-mix(in srgb, var(--child-color) 18%, transparent);
 }
 
 .child-depth-badge.child-depth-mark-2 {

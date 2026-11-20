@@ -34,7 +34,7 @@ export function GitHubLinkedPulls({ projectId, pulls }: { projectId: number; pul
     <span className="github-linked-pulls small">
       <span className="muted">結び付いた PR:</span>
       {pulls.map((p) => (
-        <button key={p.number} type="button" className="github-linked-pull" onClick={() => selectGitHubItem(projectId, { kind: "pr", number: p.number })} data-tip={p.title}>
+        <button key={p.number} type="button" className="github-linked-pull pill" onClick={() => selectGitHubItem(projectId, { kind: "pr", number: p.number })} data-tip={p.title}>
           <GitHubStateIcon item={{ kind: "pr", state: p.state, state_reason: null, is_draft: p.is_draft }} size={13} />#{p.number}
         </button>
       ))}

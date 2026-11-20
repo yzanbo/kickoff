@@ -157,10 +157,10 @@
 
 .archived-chip {
   padding: 1px 6px;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
+  --tag-border: var(--border-strong);
+  border-style: dashed;
+  --tag-radius: var(--radius-sm);
   font-size: var(--fs-10);
-  color: var(--muted);
 }
 
 /* プロジェクトのバッジ（ProjectChip）。印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地（地と枠の色は project-mark.css で共通） */

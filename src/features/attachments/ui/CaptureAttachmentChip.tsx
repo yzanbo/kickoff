@@ -71,7 +71,7 @@ function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment;
   const text = useQuery(["CaptureAttachmentChip.text", attachment.id], () => (image ? Promise.resolve("") : api.attachmentText(attachment)), { keepPrevious: true });
   const Icon = SOURCE_ICONS[attachment.source.type];
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
       <div className="capture-viewer-head">
         <Icon size={16} aria-hidden />
         <span className="capture-viewer-title">

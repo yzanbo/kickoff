@@ -58,5 +58,5 @@ input[type="text"].inline-name[aria-invalid="true"]:focus {
   color: var(--ng);
   font-size: var(--fs-12);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  box-shadow: var(--shadow-1);
 }

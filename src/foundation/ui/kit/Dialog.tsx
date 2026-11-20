@@ -46,7 +46,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={cx("dialog app-dialog", className)}
+      className={cx("dialog floating app-dialog", className)}
       aria-label={label}
       onClose={onClose}
       {...backdropProps}

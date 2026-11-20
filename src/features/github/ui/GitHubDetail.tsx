@@ -65,7 +65,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
 
   return (
     <section className="github-detail" aria-busy={detail.loading || undefined}>
-      <header className="github-detail-head">
+      <header className="github-detail-head bar">
         <div className="github-detail-tools">
           {onBack && <IconButton icon={ArrowLeft} label="一覧へ戻る" onClick={onBack} />}
           {data && detail.loading && <span className="github-updating muted small">更新中…</span>}

@@ -12,12 +12,8 @@
 /* 上の帯（件数・表示のしかた・取り直し / 差分を見る・エディタタブで開く） */
 .side-changes-head,
 .side-file-bar {
-  display: flex;
   flex: none;
-  align-items: center;
   gap: 8px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
   font-size: var(--fs-12);
 }
 

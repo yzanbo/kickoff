@@ -91,7 +91,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
               </>
             )}
           </div>
-          <div className="github-filter-bar">
+          <div className="github-filter-bar bar">
             <div className="github-filter-row">
               <span className="small">GitHub Actions の実行</span>
               <span className="github-filter-count muted small">{data ? `${data.runs.length} 件` : ""}</span>

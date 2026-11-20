@@ -25,12 +25,12 @@ export function VoiceOpenAiSetup({ status, draft, apply }: { status: VoiceStatus
           </p>
           <OpenAiKeyField saved={status?.openai.key_saved} label={null} />
         </VoiceStep>
-        <VoiceStep n={2} done={Boolean(model.trim())} title="モデルを選ぶ" badge={<span className="voice-price paid">有料（使った分だけ）</span>}>
+        <VoiceStep n={2} done={Boolean(model.trim())} title="モデルを選ぶ" badge={<span className="voice-price tag paid">有料（使った分だけ）</span>}>
           <div className="voice-models" role="radiogroup" aria-label="OpenAI のモデル">
             {OPENAI_TRANSCRIBE_MODELS.map((m) => {
               const info = OPENAI_MODEL_INFO[m];
               return (
-                <label key={m} className={cx("voice-model", m === model && "selected")}>
+                <label key={m} className={cx("voice-model card", m === model && "selected")}>
                   <span className="voice-model-head">
                     <input type="radio" name="voice-openai-model" checked={m === model} onChange={() => apply({ voice_openai_model: m })} />
                     <span className="voice-model-name">{m}</span>

@@ -75,11 +75,11 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
   return (
     <dialog
       ref={dialogRef}
-      className="palette search-panel"
+      className="palette floating search-panel"
       onClose={onClose}
       {...dialog.backdropProps}
     >
-      <div className="palette-input">
+      <div className="palette-input bar">
         <Search size={16} className="muted" />
         <input
           autoFocus
@@ -102,7 +102,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
                 type="button"
                 role="radio"
                 aria-checked={scope === value}
-                className={cx("palette-project", scope === value && "active")}
+                className={cx("palette-project pill", scope === value && "active")}
                 title={project === projectId ? `${name}（このプロジェクト）` : name}
                 onClick={() => setScope(value)}
               >

@@ -9,24 +9,20 @@
  */
 .subagent-kind {
   flex: none;
-  padding: 0 6px;
-  border-radius: 999px;
+  --tag-color: var(--agent-color);
   font-size: var(--chat-fs-11);
   font-weight: 600;
   line-height: calc(18px * var(--chat-scale, 1));
   white-space: nowrap;
-  color: var(--agent-color);
-  background: color-mix(in srgb, var(--agent-color) 16%, transparent);
 }
 
 /* 右の欄で表示している、流れの中のカードの印（見出しの名前の後ろ。アクセントの色の控えめな札） */
 .subagent-card-side {
-  padding: 0 6px;
-  border-radius: 999px;
   font-size: var(--chat-fs-11);
   line-height: calc(18px * var(--chat-scale, 1));
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  --tag-color: var(--accent);
+  --tag-fg: var(--accent-fg);
+  --tag-tint: 14%;
 }
 
 /* 入れ子（サブエージェントの中で起動したもの）の札は頭に「↳」 */
@@ -47,14 +43,10 @@
   gap: 5px;
   height: 18px;
   padding: 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   font: inherit;
   font-size: var(--chat-fs-11);
   line-height: 1;
   white-space: nowrap;
-  color: var(--muted);
-  background: transparent;
 }
 
 button.subagent-children {
@@ -62,8 +54,8 @@ button.subagent-children {
 }
 
 button.subagent-children:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-hover);
 }
 
 .subagent-children-dots {

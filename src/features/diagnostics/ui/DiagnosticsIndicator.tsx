@@ -15,7 +15,7 @@ export function DiagnosticsIndicator() {
   useEffect(() => window.kickoff?.diagnostics.onState(setState), []);
   if (!state) return null;
   return (
-    <div className={`diagnostics-indicator ${state.state}`} role="status">
+    <div className={`diagnostics-indicator floating ${state.state}`} role="status">
       <Activity size={14} aria-hidden className="diagnostics-icon" />
       <div className="diagnostics-body">
         <DiagnosticsMessage state={state} />

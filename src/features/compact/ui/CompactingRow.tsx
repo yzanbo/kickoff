@@ -5,6 +5,7 @@ import { formatTokens } from "@/foundation/ui/lib/format";
 import { formatFullStamp, formatStamp, formatStampRangeWithRunTime } from "@/foundation/ui/lib/time";
 import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
 import { compactingLabel } from "@/features/conversation/ui/working/workingLabel";
+import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** なぜ作業が止まって見えるか（自動の圧縮は利用者が始めたものではないので、きっかけと、終われば作業が続くことを添える） */
 const COMPACTING_NOTES: Record<CompactTrigger, string> = {
@@ -30,7 +31,7 @@ const COMPACTED_NOTES: Record<CompactTrigger, string> = {
 export function CompactingRow({ compacting }: { compacting: CompactingState }) {
   const { since, trigger } = compacting;
   return (
-    <div className="working compacting" role="status">
+    <Notice look="boxed" className="working compacting" role="status">
       <Shrink className="compacting-icon" size={16} aria-hidden />
       <div className="compacting-title">
         {compactingLabel(trigger)}
@@ -44,7 +45,7 @@ export function CompactingRow({ compacting }: { compacting: CompactingState }) {
         </span>
       </div>
       <div className="compacting-note">{COMPACTING_NOTES[trigger]}</div>
-    </div>
+    </Notice>
   );
 }
 
@@ -59,7 +60,7 @@ export function CompactedRow({ event }: { event: ChatEventOf<"compact"> }) {
   const start = duration_ms !== undefined ? new Date(Date.parse(end) - duration_ms).toISOString() : null;
   const tokens = post_tokens !== undefined ? `${formatTokens(pre_tokens)} → ${formatTokens(post_tokens)} トークン` : `要約前 ${formatTokens(pre_tokens)} トークン`;
   return (
-    <div className="compacting compacted" id={`ev-${event.id}`}>
+    <Notice look="boxed" className="compacting compacted" id={`ev-${event.id}`}>
       <Shrink className="compacting-icon" size={16} aria-hidden />
       <div className="compacting-title">
         {COMPACTED_TITLES[trigger]}
@@ -70,6 +71,6 @@ export function CompactedRow({ event }: { event: ChatEventOf<"compact"> }) {
       <div className="compacting-note">
         {COMPACTED_NOTES[trigger]}（{tokens}）
       </div>
-    </div>
+    </Notice>
   );
 }

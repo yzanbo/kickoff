@@ -54,7 +54,7 @@ export function ComposerChip({
 }) {
   return (
     <div ref={ref} className="chip-wrap">
-      <button ref={popoverAnchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
+      <button ref={popoverAnchor} type="button" className={cx("composer-chip pill", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
         {chip}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>

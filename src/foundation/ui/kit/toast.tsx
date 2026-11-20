@@ -52,7 +52,7 @@ export function ToastHost() {
   return (
     <div className="toast-stack" role="status" aria-live="polite">
       {list.map((t) => (
-        <div key={t.id} className="toast">
+        <div key={t.id} className="toast floating">
           {t.busy && <span className="spinner small" aria-hidden />}
           <span className="toast-text">{t.message}</span>
           {t.action && (

@@ -17,7 +17,7 @@ export function CoreStatusBand() {
   const core = window.kickoff?.core;
   const act = (fn: (() => Promise<void>) | undefined) => () => void fn?.().catch((e: unknown) => setError(errorMessage(e)));
   return (
-    <div className={`core-status-band core-${state}`} role="alert">
+    <div className={`core-status-band floating core-${state}`} role="alert">
       {state === "restarting" && <span className="spinner" aria-hidden />}
       <strong>{label}</strong>
       {error && <span className="core-status-error">{error}</span>}

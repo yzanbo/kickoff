@@ -2,12 +2,9 @@
 
 /* 絞り込みの帯（条件 / WHERE を書く） */
 .db-filter-bar {
-  display: flex;
   flex: none;
   align-items: flex-start;
   gap: 8px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .db-filter-mode {
@@ -141,11 +138,9 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  display: flex;
-  align-items: center;
+  gap: normal;
   justify-content: space-between;
   padding: 4px var(--gutter);
-  border-bottom: 1px solid var(--border);
   background: var(--bg-elev);
 }
 

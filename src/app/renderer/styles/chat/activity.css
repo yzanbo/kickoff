@@ -83,26 +83,22 @@
   height: 24px;
   padding: 0 10px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   font: inherit;
   font-size: var(--chat-fs-12);
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--muted);
-  background: transparent;
   cursor: pointer;
 }
 
 .activity-chip:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-hover);
 }
 
 .activity-chip.active {
-  border-color: var(--border-strong);
-  color: var(--text);
-  background: var(--bg-active);
+  --pill-border: var(--border-strong);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-active);
 }
 
 .activity-chip .agent-dot {
@@ -126,9 +122,9 @@
   align-items: center;
   gap: 6px;
   padding: 4px max(var(--gutter), calc((100% - var(--chat-column)) / 2 + var(--gutter)));
-  border-bottom: 1px solid var(--border);
+  --notice-tone: var(--accent);
+  --notice-tint: 8%;
   font-size: var(--chat-fs-12);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .chat-page.wide .activity-focus-bar {

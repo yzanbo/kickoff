@@ -37,7 +37,7 @@ export function TagFilterRow() {
       <button
         key={tag || "untagged"}
         type="button"
-        className={cx("tag-filter-pill", on && "on", !real && "untagged")}
+        className={cx("tag-filter-pill pill", on && "on", !real && "untagged")}
         aria-pressed={on}
         title={
           on

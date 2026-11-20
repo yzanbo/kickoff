@@ -30,12 +30,9 @@
 
 .visual-card-kind {
   flex: none;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  --tag-border: var(--border-strong);
   font-family: var(--mono);
   font-size: calc(10.5px * var(--chat-scale, 1));
-  color: var(--muted);
 }
 
 .visual-card-note {

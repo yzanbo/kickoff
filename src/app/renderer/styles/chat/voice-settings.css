@@ -20,14 +20,10 @@
 .voice-hero {
   display: flex;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
 }
 
 .voice-hero.ready {
-  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+  --card-tone: color-mix(in srgb, var(--ok) 55%, var(--border));
 }
 
 .voice-hero-icon {
@@ -122,18 +118,15 @@
   align-content: start;
   gap: 6px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
   cursor: pointer;
 }
 
 .voice-provider:hover {
-  border-color: var(--border-strong, var(--muted));
+  --card-tone: var(--border-strong, var(--muted));
 }
 
 .voice-provider.selected {
-  border-color: var(--accent);
+  --card-tone: var(--accent);
   box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
@@ -182,20 +175,17 @@
 .voice-price {
   flex: none;
   padding: 1px 8px;
-  border-radius: 999px;
   font-size: var(--fs-11);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .voice-price.free {
-  color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  --tag-color: var(--ok);
 }
 
 .voice-price.paid {
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  --tag-color: var(--warn);
 }
 
 .voice-language {

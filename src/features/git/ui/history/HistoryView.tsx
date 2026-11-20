@@ -148,7 +148,7 @@ export function HistorySidebar({
 
   return (
     <>
-      <header className="changes-head">
+      <header className="changes-head bar">
         <span className="changes-branch">履歴</span>
         {busy && <span className="muted small">{busy}中…</span>}
         <span className="spacer" />

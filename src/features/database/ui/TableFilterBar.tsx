@@ -52,7 +52,7 @@ export function TableFilterBar({ columns, applied, onApply }: { columns: string[
   const active = Boolean(applied);
 
   return (
-    <div className="db-filter-bar">
+    <div className="db-filter-bar bar">
       <Segmented className="segmented db-filter-mode" label="絞り込みの書き方" value={mode} options={MODES} onChange={setMode} />
       {mode === "where" ? (
         <label className="db-filter-where">

@@ -93,7 +93,7 @@ export function QuestionCard({ approval }: { approval: Approval }) {
   const [folded, setFolded] = useState(false);
   return (
     // 押すとカードにピントを置き、キーの 1〜9 で選べるようにする
-    <div className={cx("approval-card question-card", !stepped && questions.length > 1 && "all")} tabIndex={-1} onKeyDown={onKeyDown}>
+    <div className={cx("approval-card card question-card", !stepped && questions.length > 1 && "all")} tabIndex={-1} onKeyDown={onKeyDown}>
       <div className="approval-head">
         <button
           type="button"
@@ -103,7 +103,7 @@ export function QuestionCard({ approval }: { approval: Approval }) {
           onClick={() => setFolded(!folded)}
         >
           {folded ? <ChevronRight size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
-          <span className="approval-badge question-badge">AI からの質問</span>
+          <span className="approval-badge tag question-badge" data-look="solid">AI からの質問</span>
           {folded && <span className="question-folded-text">{questions[current]?.question}{questions.length > 1 ? `（${current + 1} / ${questions.length}）` : ""}</span>}
         </button>
         {!folded && questions.length > 1 && (
@@ -128,7 +128,7 @@ export function QuestionCard({ approval }: { approval: Approval }) {
               type="button"
               role="tab"
               aria-selected={i === current}
-              className={cx("question-step", i === current && "active", answered(q) && "done")}
+              className={cx("question-step pill", i === current && "active", answered(q) && "done")}
               title={q.question}
               onClick={() => setStep(i)}
             >
@@ -212,7 +212,7 @@ export function QuestionCard({ approval }: { approval: Approval }) {
             </div>
             {shown && (
               // 選択肢の図（等幅の文字のまま。罫線の図・コードの見本が多いため）
-              <figure className="question-preview">
+              <figure className="question-preview card">
                 <figcaption className="question-preview-label">{shown.label}</figcaption>
                 <pre className="question-preview-body">{shown.preview}</pre>
               </figure>

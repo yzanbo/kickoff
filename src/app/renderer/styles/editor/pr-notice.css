@@ -10,11 +10,9 @@
   flex: none;
   align-items: center;
   gap: 3px;
-  padding: 0 6px;
-  border: 1px solid color-mix(in srgb, var(--pr-notice-color) 60%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--pr-notice-color) 12%, transparent);
-  color: var(--pr-notice-color);
+  --tag-color: var(--pr-notice-color);
+  --tag-edge: 60%;
+  --tag-bg: color-mix(in srgb, var(--pr-notice-color) 12%, transparent);
   font-size: var(--fs-11);
   line-height: 17px;
   white-space: nowrap;
@@ -26,14 +24,14 @@
 }
 
 .pr-notice-mark:hover {
-  background: color-mix(in srgb, var(--pr-notice-color) 24%, transparent);
+  --tag-bg: color-mix(in srgb, var(--pr-notice-color) 24%, transparent);
 }
 
 /* アイコンだけ（サイドバーのチャットの行） */
 .pr-notice-mark.icon-only {
   justify-content: center;
   width: 19px;
-  padding: 0;
+  --tag-pad: 0;
 }
 
 /* 確認のダイアログ */

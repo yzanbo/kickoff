@@ -43,11 +43,7 @@
   padding: 4px;
   max-height: calc(100vh - 16px);
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
   color: inherit;
-  background: var(--bg-elev);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
 }
 
 .menu button {
@@ -162,13 +158,11 @@
   max-width: 280px;
   margin: 0;
   padding: 6px 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  --floating-radius: var(--radius);
+  --floating-shadow: var(--shadow-1);
   font-size: var(--fs-12);
   line-height: 1.5;
   color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
   pointer-events: none;
 }
 

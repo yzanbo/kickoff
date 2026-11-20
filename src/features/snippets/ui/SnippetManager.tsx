@@ -98,7 +98,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
                 <div className="snippet-manager-body">
                   <div className="snippet-manager-title">
                     <span className="snippet-manager-name">{snippetLabel(s)}</span>
-                    <span className={cx("snippet-scope", s.project_id === null && "common")}>{scopeLabel(s, nameOf, projectId)}</span>
+                    <span className={cx("snippet-scope tag", s.project_id === null && "common")} data-look="outline">{scopeLabel(s, nameOf, projectId)}</span>
                   </div>
                   <p className="snippet-manager-text">{s.text}</p>
                 </div>

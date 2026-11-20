@@ -129,7 +129,7 @@ export function TagEditor({ project }: { project: Project }) {
             onBlur={() => setOpen(false)}
           />
           {items.length > 0 && (
-            <div className="tag-suggest" role="listbox" aria-label="タグの候補">
+            <div className="tag-suggest floating" role="listbox" aria-label="タグの候補">
               {items.map((item, i) => (
                 <button
                   key={`${item.isNew}:${item.value}`}

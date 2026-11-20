@@ -157,15 +157,15 @@ function PromptRows({
           <div key={p.id} ref={index === active ? activeRef : undefined} className={cx("prompt-row", index === active && "active")} onMouseEnter={() => onHover(index)}>
             <button type="button" className="prompt-jump" title={rowTitle(p)} onClick={() => onJump(p)}>
               <span className="prompt-index">{numbers.get(p.id)}</span>
-              {p.compactKind && <CompactPromptMark kind={p.compactKind} className="compact-prompt-tag" size={11} />}
+              {p.compactKind && <CompactPromptMark kind={p.compactKind} className="compact-prompt-tag tag" look="ring" size={11} />}
               {p.answers && (
-                <span className="question-answer-tag">
+                <span className="question-answer-tag tag" data-look="ring">
                   <MessageCircleQuestion size={11} aria-hidden />
                   質問への回答
                 </span>
               )}
               {p.cleared && (
-                <span className="context-cleared-tag">
+                <span className="context-cleared-tag tag" data-look="ring">
                   <Eraser size={11} aria-hidden />
                   {CLEARED_TAG}
                 </span>

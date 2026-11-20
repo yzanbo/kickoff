@@ -101,10 +101,10 @@ export function DbFailureDialog({
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-failure-dialog" aria-label="つながらないときの案内" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-failure-dialog" aria-label="つながらないときの案内" onClose={onClose}>
       <div className="app-dialog-body">
         <h2 className="app-dialog-title">
-          「{c.name}」につながりません<span className={`db-failure-env db-env-${c.environment}`}>{DB_ENVIRONMENT_LABELS[c.environment]}</span>
+          「{c.name}」につながりません<span className={`db-failure-env tag db-env-${c.environment}`} data-look="outline">{DB_ENVIRONMENT_LABELS[c.environment]}</span>
         </h2>
         <pre className="db-failure-error">{error}</pre>
         <DbFailureHelp error={error} />

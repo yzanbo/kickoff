@@ -22,7 +22,7 @@ export function ChildDepthMark({ chat }: { chat: Pick<Chat, "id" | "parent_chat_
   });
   const label = childDepthLabel(depth);
   return (
-    <span className={`child-depth-badge child-depth-mark-${Math.min(depth, 3)}`} data-tip={parentTitle ? `「${parentTitle}」の${label}` : label}>
+    <span className={`child-depth-badge tag child-depth-mark-${Math.min(depth, 3)}`} data-tip={parentTitle ? `「${parentTitle}」の${label}` : label}>
       {childDepthShort(depth)}
     </span>
   );

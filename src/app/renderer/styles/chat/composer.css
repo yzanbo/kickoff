@@ -18,10 +18,7 @@
   max-height: 320px;
   padding: 4px;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  --floating-radius: var(--radius);
 }
 
 .suggest-head {

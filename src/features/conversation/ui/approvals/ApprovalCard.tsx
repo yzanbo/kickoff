@@ -51,9 +51,9 @@ function ReconnectCard({ approval }: { approval: Approval }) {
   const { sending, error, resolve } = useResolve(approval.id);
   const usage = approval.kind === "usage_limit";
   return (
-    <div className="approval-card">
+    <div className="approval-card card">
       <div className="approval-head">
-        <span className="approval-badge reconnect-badge">{usage ? "使用枠" : "再開の確認"}</span>
+        <span className="approval-badge tag reconnect-badge" data-look="solid">{usage ? "使用枠" : "再開の確認"}</span>
         <span className="approval-title">{approval.title}</span>
       </div>
       {approval.description && <p className="muted small">{approval.description}</p>}
@@ -83,9 +83,9 @@ function PermissionCard({ approval }: { approval: Approval }) {
   const dbSql = approval.tool_name === DB_QUERY_TOOL && typeof approval.input.sql === "string" ? approval.input.sql : null;
 
   return (
-    <div className="approval-card">
+    <div className="approval-card card">
       <div className="approval-head">
-        <span className="approval-badge">承認待ち</span>
+        <span className="approval-badge tag" data-look="solid">承認待ち</span>
         <span className="approval-title">{approval.title ?? `${approval.tool_name} の実行`}</span>
       </div>
       {description && <p className="muted small">{description}</p>}

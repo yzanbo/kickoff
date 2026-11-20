@@ -14,7 +14,7 @@ export function GitHubLabels({ labels }: { labels: GitHubLabel[] }) {
   return (
     <span className="github-labels">
       {labels.map((l) => (
-        <span key={l.name} className="github-label" style={{ "--label-color": `#${l.color}` } as CSSProperties}>
+        <span key={l.name} className="github-label tag" data-look="outline" style={{ "--label-color": `#${l.color}` } as CSSProperties}>
           {l.name}
         </span>
       ))}
@@ -80,7 +80,8 @@ export const GitHubItemRow = memo(function GitHubItemRow({
     {chats && chats.length > 0 && (
       <button
         type="button"
-        className="github-item-chats"
+        className="github-item-chats tag"
+        data-look="outline"
         data-tip={`結び付いたチャット: ${chats.map((c) => chatTitle(c.title)).join("、")}（押すと「${chatTitle(chats[0].title)}」を開く）`}
         onClick={() => open({ kind: "chat", projectId: chats[0].project_id, chatId: chats[0].id })}
       >

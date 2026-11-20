@@ -65,7 +65,7 @@ export function SnippetBar({
             <button
               key={s.id}
               type="button"
-              className="snippet-chip"
+              className="snippet-chip pill"
               data-tip={tipOf(s.text)}
               data-tip-title={`${snippetLabel(s)}（押すと入力欄に入れる・⌘クリックで送る）`}
               onClick={(e) => onChipClick(e, s)}
@@ -78,7 +78,7 @@ export function SnippetBar({
             </button>
           ))}
           {snippets.length === 0 && (
-            <button type="button" className="snippet-chip snippet-chip-add" onClick={() => setManaging("new")}>
+            <button type="button" className="snippet-chip pill snippet-chip-add" onClick={() => setManaging("new")}>
               <Plus size={12} aria-hidden />
               定型文を追加
             </button>

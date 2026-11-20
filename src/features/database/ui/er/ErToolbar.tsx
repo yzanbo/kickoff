@@ -65,7 +65,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const exportNote = () => writeNote().catch((e: unknown) => void reportFailure("ノートに書き出せませんでした")(e));
 
   return (
-    <div className="db-er-toolbar">
+    <div className="db-er-toolbar bar">
       <SearchField value={er.query} onChange={er.setQuery} placeholder="テーブルの名前" label="テーブルを名前で絞り込む" className="db-er-search" />
       {tab.focus && (
         <span className="db-er-focus">

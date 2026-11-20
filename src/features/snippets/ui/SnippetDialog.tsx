@@ -11,7 +11,7 @@ export function SnippetDialog({ projectId, initialEditing, onClose }: { projectI
   // 書きかけのフォームを、背景を押して消さない
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog snippet-dialog" aria-label="定型文" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog snippet-dialog" aria-label="定型文" onClose={onClose}>
       <div className="app-dialog-body">
         <div className="snippet-dialog-head">
           <h2 className="app-dialog-title">定型文</h2>

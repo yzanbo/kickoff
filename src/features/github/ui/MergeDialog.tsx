@@ -45,7 +45,7 @@ export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectI
     );
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog github-merge" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog github-merge" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

@@ -35,9 +35,9 @@ export function PaletteProjectFilter({
   onToggleArchived: () => void;
 }) {
   return (
-    <div className="palette-filters">
+    <div className="palette-filters bar">
       <div className="palette-projects" role="radiogroup" aria-label="プロジェクトで絞り込む（Tab / Shift+Tab で切り替え）">
-        <button type="button" role="radio" aria-checked={value === "all"} className={cx("palette-project", value === "all" && "active")} onClick={() => onChange("all")}>
+        <button type="button" role="radio" aria-checked={value === "all"} className={cx("palette-project pill", value === "all" && "active")} onClick={() => onChange("all")}>
           すべて
           <span className="palette-project-count">{total}</span>
         </button>
@@ -47,7 +47,7 @@ export function PaletteProjectFilter({
             type="button"
             role="radio"
             aria-checked={value === p.id}
-            className={cx("palette-project", value === p.id && "active", p.archived && "archived")}
+            className={cx("palette-project pill", value === p.id && "active", p.archived && "archived")}
             title={p.archived ? `${p.name}（アーカイブ済み）` : p.name}
             onClick={() => onChange(p.id)}
           >
@@ -60,7 +60,7 @@ export function PaletteProjectFilter({
       {archivedCount > 0 && (
         <button
           type="button"
-          className={cx("palette-archived-toggle", showArchived && "active")}
+          className={cx("palette-archived-toggle pill", showArchived && "active")}
           aria-pressed={showArchived}
           title={showArchived ? "アーカイブ済みのプロジェクトのチャットを隠す" : `アーカイブ済みのプロジェクト（${archivedCount} 件）のチャットも出す`}
           onClick={onToggleArchived}

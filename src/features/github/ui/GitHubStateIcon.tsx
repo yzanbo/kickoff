@@ -25,7 +25,7 @@ export function GitHubStateIcon({ item, size = 15 }: { item: Pick<GitHubItem, "k
 export function GitHubStateChip({ item }: { item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft"> }) {
   const { icon: Icon, tone, label } = githubStateOf(item);
   return (
-    <span className={`github-state-chip github-state-${tone}`}>
+    <span className={`github-state-chip tag github-state-${tone}`} data-look="outline">
       <Icon size={14} aria-hidden />
       {label}
     </span>

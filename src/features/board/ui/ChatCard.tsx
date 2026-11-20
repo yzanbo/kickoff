@@ -35,7 +35,7 @@ export function CardBadges({ chat, projectName, show }: Pick<Props, "chat" | "pr
       {show("group") && <GroupChip chat={chat} />}
       {show("worktree") && <WorktreeChip chat={chat} />}
       <GitHubLinkChip chat={chat} />
-      {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
+      {chat.archived_at && <span className="archived-chip tag" data-look="outline">アーカイブ済み</span>}
     </>
   );
 }

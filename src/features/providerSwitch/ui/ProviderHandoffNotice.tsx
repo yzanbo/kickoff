@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ProviderHandoffStatus } from "@shared/providerSwitch/types";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { alert as askAlert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
+import { Notice } from "@/foundation/ui/kit/Notice";
 
 async function retryHandoff(chatId: number, handoff: ProviderHandoffStatus, refresh: () => Promise<void>): Promise<void> {
   try {
@@ -33,8 +34,8 @@ export function ProviderHandoffNotice({ chatId, visible }: { chatId: number; vis
     setWorking(true);
     void retryHandoff(chatId, handoff, refresh).finally(() => setWorking(false));
   };
-  return <div className="provider-handoff-notice" role="alert">
+  return <Notice look="band" className="provider-handoff-notice" role="alert">
     <div><strong>{uncertain ? "AI が指示を受け取ったか確認できません" : "AI への引き継ぎを準備できませんでした"}</strong><br />{handoff.error ?? "確認するまで次の指示は送られません。"}</div>
     <button type="button" className="btn" disabled={working} onClick={() => void retry()}>{working ? "準備中…" : uncertain ? "確認して再送" : "再試行"}</button>
-  </div>;
+  </Notice>;
 }

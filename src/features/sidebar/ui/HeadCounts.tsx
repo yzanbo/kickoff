@@ -21,7 +21,7 @@ export function HeadCounts({ counts, filter, onFilter }: { counts: StateCounts; 
           <button
             key={c}
             type="button"
-            className={cx("head-count", `head-count-${c}`, on && "active")}
+            className={cx("head-count tag", `head-count-${c}`, on && "active")}
             style={{ "--tone": COLUMN_TONE[c] } as CSSProperties}
             title={on ? `${label}（押すと、すべてのチャットに戻す）` : `${label}（押すと、${BOARD_COLUMN_LABELS[c]}のチャットだけを出す）`}
             aria-label={label}

@@ -54,14 +54,14 @@
   gap: 3px;
   max-width: 220px;
   margin-right: 5px;
-  padding: 0 6px;
-  border: 1px solid color-mix(in srgb, var(--ref-color) 70%, transparent);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--ref-color) 32%, transparent);
+  --tag-color: var(--ref-color);
+  --tag-edge: 70%;
+  --tag-bg: color-mix(in srgb, var(--ref-color) 32%, transparent);
+  --tag-fg: var(--text);
+  --tag-radius: var(--radius-sm);
   font-size: var(--fs-11);
   font-weight: 600;
   line-height: 16px;
-  color: var(--text);
   vertical-align: 1px;
 }
 
@@ -75,14 +75,14 @@
 }
 
 .ref-badge.head {
-  background: color-mix(in srgb, var(--ref-color) 58%, transparent);
-  border-color: var(--ref-color);
+  --tag-bg: color-mix(in srgb, var(--ref-color) 58%, transparent);
+  --tag-border: var(--ref-color);
   font-weight: 700;
 }
 
 .ref-badge.remote {
-  background: color-mix(in srgb, var(--ref-color) 14%, transparent);
-  border-color: color-mix(in srgb, var(--ref-color) 45%, transparent);
+  --tag-bg: color-mix(in srgb, var(--ref-color) 14%, transparent);
+  --tag-edge: 45%;
   font-weight: 500;
 }
 
@@ -100,12 +100,12 @@
 }
 
 .ref-badge-group > .ref-badge.remote {
-  padding: 0 4px;
+  --tag-pad: 0 4px;
 }
 
-.ref-badge.tag {
-  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
-  background: color-mix(in srgb, var(--warn) 14%, transparent);
+.ref-badge.git-tag {
+  --tag-border: color-mix(in srgb, var(--warn) 60%, transparent);
+  --tag-bg: color-mix(in srgb, var(--warn) 14%, transparent);
   font-weight: 500;
 }
 

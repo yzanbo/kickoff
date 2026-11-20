@@ -47,7 +47,7 @@ export function VoiceLocalSetup({
           </div>
           <ErrorText message={voice.error} />
         </VoiceStep>
-        <VoiceStep n={2} done={chosen ? chosen.downloaded : undefined} title="モデルを選んでダウンロード" badge={<span className="voice-price free">どれも無料</span>}>
+        <VoiceStep n={2} done={chosen ? chosen.downloaded : undefined} title="モデルを選んでダウンロード" badge={<span className="voice-price tag free">どれも無料</span>}>
           <p className="field-help">大きいモデルほど正確で、少し遅くなります。迷ったら「おすすめ」を。</p>
           <VoiceModelList models={tools?.models} selected={model} onSelect={onModel} />
         </VoiceStep>

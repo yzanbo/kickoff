@@ -88,7 +88,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   return (
     <div
       id={`ev-${call.use.id}`}
-      className={cx("subagent-card", running && "running", open && "open", depth >= FLAT_DEPTH && "flat")}
+      className={cx("subagent-card card", running && "running", open && "open", depth >= FLAT_DEPTH && "flat")}
       data-depth={depth}
       style={agentHueStyle(view.hues.get(key))}
     >
@@ -124,7 +124,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
             <span className="subagent-card-name">{entry.description}</span>
             <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
             <SubagentStatusText entry={entry} />
-            {inSide && <span className="subagent-card-side">右の欄で表示中</span>}
+            {inSide && <span className="subagent-card-side tag">右の欄で表示中</span>}
           </span>
           <SubagentTime entry={entry} />
         </div>
@@ -189,7 +189,7 @@ export const SubagentCard = memo(SubagentCardView, (a, b) => a.call.use === b.ca
 function PlainCard({ call }: { call: ToolCall }) {
   const input = call.use.data.input as { description?: string } | undefined;
   return (
-    <div id={`ev-${call.use.id}`} className="subagent-card">
+    <div id={`ev-${call.use.id}`} className="subagent-card card">
       <div className="subagent-card-head static">
         <span className="subagent-icon">
           <ClaudeMark size={14} />

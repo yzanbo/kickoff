@@ -6,6 +6,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { restartResumesStore } from "./restartResumes";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { defaultResumeChoice, resumeActionsFor, resumeChoiceLabel, resumeChoiceTip } from "./restartResumeChoices";
+import { Notice } from "@/foundation/ui/kit/Notice";
 
 /**
  * 起動したときの再開の確かめを待っている間の帯と、その場で決めるボタン。送信待ちがあれば送信待ちの上（決めるまで送らない。
@@ -17,7 +18,7 @@ export function RestartResumeBanner({ chatId, resume, standalone = false }: { ch
     void action.run(a, async () => restartResumesStore.set(await api.resolveRestartResumes([{ chat_id: chatId, action: a }])));
   const primary = defaultResumeChoice(resume);
   return (
-    <div className={cx("restart-resume-banner", standalone && "standalone")} role="status">
+    <Notice look={standalone ? "boxed" : "band"} className={cx("restart-resume-banner", standalone && "standalone")} role="status">
       <History size={14} className="restart-resume-banner-icon" aria-hidden />
       <span className="restart-resume-banner-text">
         {resume.queued ? (
@@ -44,6 +45,6 @@ export function RestartResumeBanner({ chatId, resume, standalone = false }: { ch
         ))}
       </span>
       <ErrorText message={action.error} />
-    </div>
+    </Notice>
   );
 }

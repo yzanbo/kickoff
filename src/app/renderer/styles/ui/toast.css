@@ -17,12 +17,10 @@
   gap: 6px;
   max-width: min(560px, calc(100vw - 48px));
   padding: 6px 8px 6px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  --floating-radius: 999px;
+  --floating-shadow: var(--shadow-1);
   font-size: var(--fs-13);
   color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
   pointer-events: auto;
   animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
 }

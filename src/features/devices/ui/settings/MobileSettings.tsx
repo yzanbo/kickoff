@@ -69,7 +69,7 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
   useTicker(1000);
   if (state.request) {
     return (
-      <div className="pairing-request">
+      <div className="pairing-request card">
         <Smartphone size={18} aria-hidden />
         <div className="pairing-request-text">
           <strong>「{state.request.name}」をつなぎますか？</strong>
@@ -91,7 +91,7 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
   }
   if (!state.code || !state.expires_at) {
     return (
-      <div className="pairing-start">
+      <div className="pairing-start card">
         <p className="muted small">押すと、5 分だけ使える番号（と、つなぐ先の URL があれば QR）を出します。スマホのアプリで読むと、この画面で確かめてからつなぎます。</p>
         <button type="button" className="btn" disabled={busy} onClick={onStart}>
           端末をつなぐ
@@ -101,7 +101,7 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
   }
   const left = Math.max(0, Math.round((Date.parse(state.expires_at) - Date.now()) / 1000));
   return (
-    <div className="pairing-code">
+    <div className="pairing-code card">
       {link ? qr ? <img className="pairing-qr" src={qr} alt="ペアリングの QR" /> : <div className="pairing-qr" aria-hidden /> : null}
       <div className="pairing-code-text">
         <span className="muted small">番号</span>

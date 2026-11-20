@@ -40,7 +40,7 @@ export function DbList({
 }) {
   return (
     <aside ref={widthPaneRef} className={cx("db-list", narrow && "overlay")} style={narrow ? undefined : { width: width.size }}>
-      <div className="db-list-head">
+      <div className="db-list-head bar">
         <span className="db-list-title">接続</span>
         <IconButton icon={Search} label="テーブル・列を探す（⌘⇧O）" onClick={onFind} disabled={connections.length === 0} />
         <IconButton icon={Plus} label="接続を追加" onClick={onAdd} />

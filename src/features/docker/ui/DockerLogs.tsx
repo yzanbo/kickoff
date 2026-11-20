@@ -139,7 +139,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
 
   return (
     <section ref={rootRef} className="docker-logs" aria-label="ログ" tabIndex={-1}>
-      <div className="docker-logs-head">
+      <div className="docker-logs-head bar">
         <span className="docker-logs-title">ログ: {title}</span>
         <span className="docker-log-chips">
           {chips.map((chip, i) => {
@@ -148,7 +148,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
               <button
                 key={chip}
                 type="button"
-                className={cx("docker-log-chip", `docker-log-c${i % HUES}`, absent && "is-absent")}
+                className={cx("docker-log-chip pill", `docker-log-c${i % HUES}`, absent && "is-absent")}
                 aria-pressed={isPicked(chip)}
                 data-tip={absent ? "まだ起動していません（起動したら流れ始めます）" : "押すと出す・隠す"}
                 onClick={() => setPicked(new Set(chips.filter((c) => (c === chip ? !isPicked(c) : isPicked(c)))))}
@@ -168,7 +168,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
         </span>
       </div>
       {find.open && (
-        <div className="docker-logs-find">
+        <div className="docker-logs-find bar">
           <FindField
             inputRef={findInput}
             value={find.query}

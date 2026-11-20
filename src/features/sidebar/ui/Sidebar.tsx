@@ -112,6 +112,6 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
 export function SidebarOpenButton({ sidebar }: { sidebar: SidebarController }) {
   if (sidebar.open) return null;
   return (
-    <IconButton icon={PanelLeftOpen} className="titlebar-toggle floating" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
+    <IconButton icon={PanelLeftOpen} className="titlebar-toggle fixed" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
   );
 }

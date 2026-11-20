@@ -23,7 +23,7 @@ const TONES: Record<ActiveState, string> = { draft: DRAFT_TONE, running: COLUMN_
  */
 export function PaletteStateFilter({ shown, counts, onToggle }: { shown: ReadonlySet<ActiveState>; counts: Record<ActiveState, number>; onToggle: (state: ActiveState) => void }) {
   return (
-    <div className="palette-filters palette-state-filters">
+    <div className="palette-filters bar palette-state-filters">
       <div className="palette-projects" role="group" aria-label="状態で絞り込む">
         {ACTIVE_STATES.map((state) => {
           const on = shown.has(state);
@@ -33,7 +33,7 @@ export function PaletteStateFilter({ shown, counts, onToggle }: { shown: Readonl
               key={state}
               type="button"
               aria-pressed={on}
-              className={cx("palette-project", on && "active")}
+              className={cx("palette-project pill", on && "active")}
               title={on ? (shown.size > 1 ? `${label}を一覧から外す` : "状態は 1 つ以上選びます") : `${label}も一覧に出す`}
               onClick={() => onToggle(state)}
             >

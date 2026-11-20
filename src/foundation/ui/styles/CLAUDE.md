@@ -1,6 +1,6 @@
 # CSS の決まり
 
-画面の CSS（`src/app/renderer/styles/`。下のパスはそこから）。領域ごとのサブフォルダのファイルを `index.css` の `@import` で 1 つにつなぐ。
+画面の CSS（`src/app/renderer/styles/`。下のパスはそこから）。領域ごとのフォルダのファイルを `index.css` の `@import` でつなぐ。
 
 ## 層と順
 - `index.css` は先頭の `@layer …;` と `@import … layer(…)` だけ。1 ファイル 300 行以内。
@@ -15,17 +15,18 @@
 
 ## 書き方
 - 既存のクラスを使い、同じ宣言のブロックを増やさない。1 行で省略する 3 点（`overflow` `text-overflow` `white-space`）は各規則に書いてよい。
+- 札・ピル・カード・浮く窓・色の帯・見出しの帯は `ui/types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
 - 効かない指定を書かない（足したら計算後のスタイルで確かめる）。
-- 大きさを決めたボタンには必ず `padding: 0` を書き、中身は `place-items: center` で真ん中に置く（`margin` の負の値・`top` で合わせない）。アイコンだけなら `IconButton`。大きさは className で `width` / `height` だけ上書きする。
+- 大きさを決めたボタンには必ず `padding: 0` を書き、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`。大きさは className で `width` / `height` だけ上書きする。
 - 色の地のボタン（`.btn-primary`・`.btn-danger`）は、乗せても同じ色の地で少し暗くする（それぞれに `:hover:not(:disabled)`）。
 - ダイアログの下の地のないボタンは `--bg-hover` の地と見える枠（`ui/app-dialogs.css`）。2 つを 1 つに見せる組は、乗せたときの地を外側に付ける（`.panel-split-button`）。
 - 使わなくなったクラスは消す。名前を組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、`.pr-chip` の状態、一番下へのボタンの状態）。
-- 新しいクラス名は `styles/` 全体と組み立てるクラスを検索してから付ける。1 語の名前は避け、領域の頭を付ける。
-- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`。チャット・子チャット・サブエージェントで同じ変数を使い、`--ok` / `--ng` / `--warn` を状態の文に使わない。アクセントの色の文字は `--accent-fg`。
+- 新しいクラス名は `styles/` 全体と組み立てるクラスを検索してから付け、1 語は避けて領域の頭を付ける。
+- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。アクセントの色の文字は `--accent-fg`。
 - 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
 - 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中だけはボタンの文字の色）。
 - `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（`@/foundation/ui/lib/inputModality.ts`。マウスで操作している間は枠を出さない）。
-- 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾に書く。文字の大きさ 10〜15px は `--fs-N`（会話は `--chat-fs-N`）、z-index の 10 以上は `--z-*`。`getComputedStyle` で読まれる変数（Mermaid・ターミナル・エディタ）は、名前を変えたら読む側も直す。
+- 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾に書く。文字の大きさ 10〜15px は `--fs-N`（会話は `--chat-fs-N`）、z-index の 10 以上は `--z-*`、影は `--shadow-1〜3`。`getComputedStyle` で読む変数は名前を変えたら読む側も直す。
 - プロジェクトの札の色は `project/project-mark.css` 1 か所。
 
 ## 大きさと余白
@@ -40,7 +41,7 @@
 - 内側は外側より丸くしない（枠に沿わせる角は `calc(var(--radius) - 1px)`）。1〜5px の飾りと 16px 以下の小さな印だけは直に書いてよい。
 
 ## Electron のドラッグ領域
-- ドラッグ領域（`.page-header` `.sidebar-header`・欄のタブの列）の中で操作するものには `-webkit-app-region: no-drag`（ないと押してもドラッグになる。JS のクリックでは再現しないので計算後のスタイルで確かめる）。
+- ドラッグ領域（`.page-header` `.sidebar-header`・欄のタブの列）の中で操作するものには `-webkit-app-region: no-drag`（JS のクリックでは再現しないので計算後のスタイルで確かめる）。
 - ドラッグ領域は `overflow: hidden` で切られない。閉じても大きさを残す欄は、閉じ終えたら `visibility: hidden`（開くときはすぐ見せる）。
 - 入れ子の右の欄（`.agent-panel`）のタブの列はドラッグ領域にしない（外側の規則から `:not(:where(.agent-panel *))` で外す）。
 - ドラッグ領域は後に書いた要素が勝つので、閉じたサイドバーの開くボタン・左上の画面移動・右上の開閉は DOM の最後に置く。全体表示中の見出し（`base/maximized-header.css`）はドラッグ領域より後、固定のボタンより前。

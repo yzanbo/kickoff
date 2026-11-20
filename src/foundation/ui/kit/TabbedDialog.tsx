@@ -40,7 +40,7 @@ export function TabbedDialog<K extends string>({
   const [section, setSection] = useState<K>(initial ?? sections[0].key);
   const tabs = useTabs<K>({ keys: sections.map((s) => s.key), value: section, onChange: setSection, orientation: "vertical", label });
   return (
-    <dialog ref={dialogRef} className="dialog tabbed-dialog" tabIndex={-1} onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="dialog floating tabbed-dialog" tabIndex={-1} onClose={onClose} {...dialog.backdropProps}>
       <header className="tabbed-dialog-head">
         <h2>{title}</h2>
         <CloseButton title="閉じる（Esc）" size={16} onClick={dialog.close} />

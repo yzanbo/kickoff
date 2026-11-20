@@ -143,7 +143,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
   return (
     <dialog
       ref={dialogRef}
-      className="dialog app-dialog pr-notice-dialog"
+      className="dialog floating app-dialog pr-notice-dialog"
       aria-label={prNoticeTitle(notice)}
       onClose={() => {
         // 片付けずに閉じたら、同じ PR では確認を出し直さない（印から開き直せる。片付けて知らせが消えていれば何もしない）

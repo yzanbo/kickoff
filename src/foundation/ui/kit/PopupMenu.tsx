@@ -36,7 +36,7 @@ export function PopupMenu({ at, className, label, escape = "stop", ignore, onClo
   useFloating(ref, () => at);
   return createPortal(
     <MenuCloseContext.Provider value={onClose}>
-      <div ref={ref} popover="manual" className={cx("menu", className)} role="menu" aria-label={label}>
+      <div ref={ref} popover="manual" className={cx("menu floating", className)} role="menu" aria-label={label}>
         {children}
       </div>
     </MenuCloseContext.Provider>,

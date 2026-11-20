@@ -75,7 +75,7 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog restart-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog restart-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {
@@ -154,7 +154,7 @@ function RestartResumeCard({
   const title = chatTitle(r.title);
   const options: RestartResumeChoice[] = [...resumeActionsFor(r), "later"];
   return (
-    <li className={cx("restart-resume-row", choice === "later" && "later")}>
+    <li className={cx("restart-resume-row card", choice === "later" && "later")}>
       <div className="restart-resume-head">
         {project && <ProjectMark project={project} />}
         <span className="restart-resume-title" title={project ? `${project.name} / ${title}` : title}>

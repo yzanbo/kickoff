@@ -73,7 +73,7 @@ export function ChangesPane({
   };
   return (
     <>
-      <header className="changes-head">
+      <header className="changes-head bar">
         <GitBranch size={14} aria-hidden />
         <span className="changes-branch" title="いまのブランチ">
           {status.branch ?? "（ブランチなし）"}

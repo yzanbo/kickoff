@@ -65,7 +65,7 @@ export function useTerminalSelectionMenu({ projectId, cwd, term, screen }: { pro
     element: (
       <>
         {anchor && !shown && (
-          <div className="selection-attach terminal-selection-attach" style={{ left: anchor.x, top: anchor.y }}>
+          <div className="selection-attach floating terminal-selection-attach" style={{ left: anchor.x, top: anchor.y }}>
             <button
               type="button"
               className="btn selection-attach-button"

@@ -39,7 +39,7 @@ const MAX_CHILD_ROWS = 3;
 export function SubagentKind({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
   const parent = entry.parentKey === undefined ? undefined : view.tree.byKey.get(entry.parentKey);
   return (
-    <span className={cx("subagent-kind", parent && "nested")} title={parent ? `「${parent.description}」の中で起動したサブエージェント` : "メインエージェントが起動したサブエージェント"}>
+    <span className={cx("subagent-kind tag", parent && "nested")} title={parent ? `「${parent.description}」の中で起動したサブエージェント` : "メインエージェントが起動したサブエージェント"}>
       {parent && <CornerDownRight size={11} aria-hidden />}
       <span className="subagent-kind-text">サブエージェント</span>
     </span>
@@ -67,7 +67,7 @@ export function SubagentChildren({ entry, view, onOpen }: { entry: SubagentEntry
   );
   if (!onOpen) {
     return (
-      <span className="subagent-children" title={title}>
+      <span className="subagent-children pill" title={title}>
         {body}
       </span>
     );
@@ -75,7 +75,7 @@ export function SubagentChildren({ entry, view, onOpen }: { entry: SubagentEntry
   return (
     <button
       type="button"
-      className="subagent-children"
+      className="subagent-children pill"
       title={title}
       // カードの見出し（押すと開く）の中にあるので、見出しの操作と重ねない
       onClick={(e) => {
@@ -168,7 +168,7 @@ export function NowLine({ entry, view, rel }: { entry: SubagentEntry; view: Suba
   const note = activityText(activity, entry.pendingTool);
   return (
     <span className="subagent-card-what">
-      <span className="subagent-card-label">いま</span>
+      <span className="subagent-card-label tag">いま</span>
       <span className="subagent-card-activity" title={rel(what)}>
         {rel(what)}
       </span>
@@ -244,7 +244,7 @@ export function SubagentReport({ entry, view, limited = false }: { entry: Subage
   if (!report) return null;
   const clamped = limited && long && !full;
   return (
-    <div className="subagent-result">
+    <div className="subagent-result card">
       <div className="subagent-result-head">
         <div className="subagent-label">起動したエージェントへの報告</div>
         {limited && long && (

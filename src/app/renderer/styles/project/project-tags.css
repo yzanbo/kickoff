@@ -14,13 +14,10 @@
   align-items: center;
   gap: 2px;
   max-width: 100%;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  --tag-border: var(--border-strong);
+  --tag-bg: var(--bg-elev);
   font-size: var(--fs-10);
   line-height: 16px;
-  color: var(--muted);
-  background: var(--bg-elev);
 }
 
 .project-tag-name {
@@ -53,7 +50,7 @@
 .tag-editor .project-tag {
   font-size: var(--fs-12);
   line-height: 20px;
-  color: var(--text);
+  --tag-fg: var(--text);
 }
 
 .tag-editor-input {
@@ -70,10 +67,7 @@
   max-height: 220px;
   padding: 4px;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+  --floating-radius: var(--radius);
 }
 
 .tag-suggest-item {
@@ -118,20 +112,16 @@
   max-width: 100%;
   padding: 1px 8px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   font: inherit;
   font-size: var(--fs-11);
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--muted);
-  background: transparent;
   cursor: pointer;
 }
 
 .tag-filter-pill:hover {
-  color: var(--text);
-  background: var(--bg-hover);
+  --pill-fg: var(--text);
+  --pill-bg: var(--bg-hover);
 }
 
 .tag-filter-pill.untagged {
@@ -140,9 +130,9 @@
 
 /* 選んでいるタグ: アクセントの色で塗る（絞り込んでいることがひと目で分かる） */
 .tag-filter-pill.on {
-  border-color: var(--accent);
-  color: var(--accent-bright);
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  --pill-border: var(--accent);
+  --pill-fg: var(--accent-bright);
+  --pill-bg: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .tag-filter-clear {

@@ -23,7 +23,7 @@
 
 /*
  * 見出しの行（36px）。いつもパネルのタブの列の下にあり、ウィンドウの上端ではないので、ウィンドウのドラッグ領域にしない
- * （ドラッグ領域では右クリックが画面に届かない）。浮かせた検索欄（.chat-find.floating）の置き場所の基準にする
+ * （ドラッグ領域では右クリックが画面に届かない）。浮かせた検索欄（.chat-find.detached）の置き場所の基準にする
  */
 .chat-header {
   position: relative;
@@ -134,11 +134,8 @@
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-elev);
+  --pill-bg: var(--bg-elev);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
-  color: var(--muted);
   font-size: var(--fs-12);
   transform: translateX(-50%);
   pointer-events: none;

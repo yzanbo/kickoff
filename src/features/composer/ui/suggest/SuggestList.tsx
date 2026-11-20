@@ -8,7 +8,7 @@ export function SuggestList({ suggest }: { suggest: SuggestController }) {
   if (!suggest.open) return null;
   const { items, index, kind } = suggest;
   return (
-    <div className="suggest-list" role="listbox" aria-label={kind === "slash" ? "コマンドの候補" : "ファイルの候補"}>
+    <div className="suggest-list floating" role="listbox" aria-label={kind === "slash" ? "コマンドの候補" : "ファイルの候補"}>
       <div className="suggest-head">{kind === "slash" ? "コマンド" : "ファイル"}</div>
       {suggest.loading ? (
         <p className="suggest-empty">読み込み中…</p>

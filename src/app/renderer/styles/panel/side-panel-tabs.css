@@ -123,13 +123,11 @@
 
   flex: none;
   max-width: 50%;
-  padding: 0 6px;
-  border-radius: 999px;
+  --tag-color: var(--group-color);
+  --tag-tint: 18%;
   font-size: var(--fs-10);
   font-weight: 600;
   line-height: 16px;
-  color: var(--group-color);
-  background: color-mix(in srgb, var(--group-color) 18%, transparent);
 }
 
 .panel-tab-label .panel-tab-group-name[style] {

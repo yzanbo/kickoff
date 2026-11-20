@@ -23,7 +23,8 @@ export function SqlConnectionPill({ connection: c, tabKey, disabled }: { connect
     <>
       <button
         type="button"
-        className={cx("db-sql-pill small", `db-env-${c.environment}`)}
+        className={cx("db-sql-pill tag small", `db-env-${c.environment}`)}
+        data-look="outline"
         disabled={disabled}
         onClick={(e) => menu.toggle(e, null)}
         data-tip={disabled ? "流し終わってから替えられます" : "このタブで流す接続を替える"}

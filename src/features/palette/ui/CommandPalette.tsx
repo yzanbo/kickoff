@@ -106,14 +106,14 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     .map((t) => t.label)
     .join("・")}を検索`;
   return (
-    <dialog ref={dialogRef} className="palette" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input">
+    <dialog ref={dialogRef} className="palette floating" onClose={onClose} {...dialog.backdropProps}>
+      <div className="palette-input bar">
         <Search size={16} className="muted" />
         <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
         {searching && <span className="spinner" aria-label="検索中" />}
       </div>
       {/* 探す対象（複数選べる。押すたびに付け外し。⌘⇧A のプロジェクトの絞り込みと同じピル） */}
-      <div className="palette-filters">
+      <div className="palette-filters bar">
         <div className="palette-projects" role="group" aria-label="探す対象">
           {TARGETS.map((t) => {
             const on = targets.includes(t.value);
@@ -122,7 +122,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                 key={t.value}
                 type="button"
                 aria-pressed={on}
-                className={cx("palette-project", on && "active")}
+                className={cx("palette-project pill", on && "active")}
                 title={on ? (targets.length > 1 ? `${t.label}を探す対象から外す` : "探す対象は 1 つ以上選びます") : `${t.label}も探す`}
                 onClick={() => toggleTarget(t.value)}
               >

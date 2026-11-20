@@ -61,7 +61,7 @@ export function SearchView({ search, replacer, selected, onSelect, onHideList }:
 
   return (
     <>
-      <header className="changes-head">
+      <header className="changes-head bar">
         <span className="changes-branch">検索</span>
         <span className="spacer" />
         <RefreshButton label="もう一度探す" busy={search.loading} disabled={!search.query} onClick={search.rerun} />

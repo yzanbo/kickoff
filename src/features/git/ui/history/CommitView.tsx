@@ -72,7 +72,7 @@ export function CommitView({
 
   return (
     <div className="commit-view">
-      <header className="commit-line">
+      <header className="commit-line bar">
         <span className="commit-author" title={commit.email}>
           {commit.author}
         </span>

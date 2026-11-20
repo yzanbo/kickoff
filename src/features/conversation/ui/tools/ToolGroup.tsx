@@ -68,7 +68,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
       }
     >
       {() => (
-        <div className="tool-calls">
+        <div className="tool-calls card">
           {tools.map((t) => (
             <ToolItem key={t.use.id} call={t} rel={rel} running={isRunning(t)} />
           ))}

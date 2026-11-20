@@ -92,8 +92,8 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
   const manyPlaces = (loaded?.sources.length ?? 0) > 1;
 
   return (
-    <dialog ref={dialogRef} className="palette" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input">
+    <dialog ref={dialogRef} className="palette floating" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
+      <div className="palette-input bar">
         <Search size={16} className="muted" aria-hidden />
         <input autoFocus value={query} placeholder="テーブル・列の名前（「表.列」で列を絞る）" aria-label="テーブル・列の名前" onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
       </div>

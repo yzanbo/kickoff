@@ -25,7 +25,7 @@ export function DefinitionView({ tab, connection }: { tab: DbTableTab & { object
     : [];
   return (
     <div className="db-table-view">
-      <div className="db-view-head">
+      <div className="db-view-head bar">
         <span className="db-view-title" title={label}>
           {label}
         </span>

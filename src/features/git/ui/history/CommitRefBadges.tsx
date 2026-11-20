@@ -39,7 +39,8 @@ export function RefBadges({ refs, known, color, onMenu }: { refs: string[]; know
         const badge = (
           <span
             key={ref}
-            className={cx("ref-badge", head && "head", target.kind === "tag" && "tag", remoteOnly && "remote")}
+            data-look="outline"
+            className={cx("ref-badge tag", head && "head", target.kind === "tag" && "git-tag", remoteOnly && "remote")}
             style={style}
             title={`${ref}（右クリックでメニュー）`}
             onContextMenu={menuHandler(onMenu, target)}
@@ -56,7 +57,8 @@ export function RefBadges({ refs, known, color, onMenu }: { refs: string[]; know
             {remotes.map((r) => (
               <span
                 key={r.branch}
-                className="ref-badge remote"
+                className="ref-badge tag remote"
+                data-look="outline"
                 style={style}
                 title={`${r.branch}（右クリックでメニュー）`}
                 aria-label={r.branch}

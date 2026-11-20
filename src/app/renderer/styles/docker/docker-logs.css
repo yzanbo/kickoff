@@ -31,12 +31,7 @@
 }
 
 .docker-logs-head {
-  display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .docker-logs-title {
@@ -55,17 +50,14 @@
 
 .docker-log-chip {
   padding: 1px 8px;
-  border: 1px solid color-mix(in srgb, var(--log-hue) 45%, transparent);
-  border-radius: 999px;
-  color: var(--muted);
-  background: transparent;
+  --pill-border: color-mix(in srgb, var(--log-hue) 45%, transparent);
   font-size: var(--fs-11);
   cursor: pointer;
 }
 
 .docker-log-chip[aria-pressed="true"] {
-  color: var(--text);
-  background: color-mix(in srgb, var(--log-hue) 22%, transparent);
+  --pill-fg: var(--text);
+  --pill-bg: color-mix(in srgb, var(--log-hue) 22%, transparent);
 }
 
 .docker-log-chip.is-absent {
@@ -84,11 +76,8 @@
 }
 
 .docker-logs-find {
-  display: flex;
   gap: 8px;
-  align-items: center;
   padding: 4px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .docker-logs-find .find-box {

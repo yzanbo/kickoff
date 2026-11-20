@@ -16,7 +16,7 @@ export function TabWorkplaceBadge({ chat }: { chat: WorkplaceChat & Pick<Chat, "
   if (!place.name) return null;
   const main = place.kind === "main";
   return (
-    <span className={cx("panel-tab-group-name panel-tab-workplace", main ? "main" : "worktree")} style={{ "--group-hue": hue } as CSSProperties} title={place.title}>
+    <span className={cx("panel-tab-group-name tag panel-tab-workplace", main ? "main" : "worktree")} style={{ "--group-hue": hue } as CSSProperties} title={place.title}>
       <span className="panel-tab-workplace-kind">{WORKPLACE_SHORT_LABELS[place.kind]}</span>
       <span className="panel-tab-workplace-sep"> | </span>
       <span className="panel-tab-workplace-branch">{place.name}</span>

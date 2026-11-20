@@ -15,7 +15,7 @@
   -webkit-app-region: no-drag;
 }
 
-.titlebar-toggle.floating {
+.titlebar-toggle.fixed {
   position: fixed;
 }
 
@@ -45,17 +45,17 @@
 }
 
 /* サイドバーが閉じている間の開くボタンは、画面移動の右に置く */
-.layout .titlebar-toggle.floating {
+.layout .titlebar-toggle.fixed {
   left: calc(var(--app-navigation-left) + 60px);
 }
 
 @media (max-width: 720px) {
-  .titlebar-toggle.floating {
+  .titlebar-toggle.fixed {
     top: max(8px, env(safe-area-inset-top));
     left: 8px;
   }
 
-  .layout .titlebar-toggle.floating {
+  .layout .titlebar-toggle.fixed {
     left: 8px;
   }
 

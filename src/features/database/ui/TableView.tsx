@@ -74,7 +74,7 @@ export function TableView({
       }}
     >
       {edit.write.on && <DbWriteBand connection={connection} what="保存する" blocked={edit.saving ? "保存し終わってから戻せます" : null} onRevert={edit.write.revert} />}
-      <div className="db-view-head">
+      <div className="db-view-head bar">
         <span className="db-view-title" title={label}>
           {label}
         </span>

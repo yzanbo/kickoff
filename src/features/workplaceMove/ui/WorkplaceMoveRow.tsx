@@ -3,6 +3,7 @@ import type { WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
+import { Notice } from "@/foundation/ui/kit/Notice";
 
 /**
  * AI が作業場所を移す予約の行（流れのいちばん下。作業中の様子の workplace_move）:
@@ -10,7 +11,7 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
  */
 export function WorkplaceMoveRow({ chatId, reservation }: { chatId: number; reservation: WorkplaceMoveReservation }) {
   return (
-    <div className="workplace-move-row" role="status">
+    <Notice look="boxed" className="workplace-move-row" role="status">
       <GitBranch size={14} aria-hidden />
       <span>{workplaceMoveReservationText(reservation)}</span>
       <button
@@ -21,6 +22,6 @@ export function WorkplaceMoveRow({ chatId, reservation }: { chatId: number; rese
       >
         移らない
       </button>
-    </div>
+    </Notice>
   );
 }

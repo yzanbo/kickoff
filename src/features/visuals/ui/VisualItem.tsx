@@ -168,7 +168,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
     <div className="visual-card" id={`ev-${eventId}`} data-keep-row={touched ? "" : undefined}>
       <div className="visual-card-head">
         <span className="visual-card-title">{title}</span>
-        <span className="visual-card-kind">{VISUAL_KIND_LABELS[visual.kind]}</span>
+        <span className="visual-card-kind tag" data-look="outline">{VISUAL_KIND_LABELS[visual.kind]}</span>
         {visual.updatedBy.length > 0 && <span className="visual-card-note">描き直し {visual.updatedBy.length} 回</span>}
         <span className="visual-card-tools">
           {framed && <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />}

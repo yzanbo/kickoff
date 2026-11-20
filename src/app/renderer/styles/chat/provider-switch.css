@@ -42,8 +42,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--info) 12%, var(--bg));
+  --notice-tone: var(--info);
+  --notice-tint: 12%;
+  --notice-base: var(--bg);
   font-size: var(--fs-12);
 }
 

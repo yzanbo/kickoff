@@ -10,7 +10,7 @@ export function NoteProgress() {
   const state = useNoteProgress();
   if (!state) return null;
   return (
-    <div className="note-progress" role="status">
+    <div className="note-progress floating" role="status">
       {state.kind === "busy" ? <span className="spinner" aria-hidden /> : <Check size={14} className="note-progress-done" aria-hidden />}
       <span className="note-progress-text">{state.text}</span>
       {state.kind === "done" && (

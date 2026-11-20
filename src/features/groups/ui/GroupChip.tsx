@@ -11,7 +11,7 @@ export function GroupChip({ chat }: { chat: Pick<Chat, "project_id" | "group_id"
   const group = useGroup(chat.project_id, chat.group_id);
   if (!group) return null;
   return (
-    <span className="chat-group-chip" style={{ "--group-hue": group.hue } as CSSProperties} title={`グループ「${group.name}」のチャット`}>
+    <span className="chat-group-chip tag" data-look="outline" style={{ "--group-hue": group.hue } as CSSProperties} title={`グループ「${group.name}」のチャット`}>
       <Folder size={11} aria-hidden />
       <span className="chip-name">{group.name}</span>
     </span>

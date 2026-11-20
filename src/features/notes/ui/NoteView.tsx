@@ -186,7 +186,7 @@ export function NoteView({
       style={chatOpen && chatPlace !== "bottom" ? ({ "--note-find-right": `${chatWidth.size}px` } as CSSProperties) : undefined}
     >
       {find}
-      <header className="note-head">
+      <header className="note-head bar">
         <div className="note-head-title">
           <input
             className="note-title"

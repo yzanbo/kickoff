@@ -149,23 +149,19 @@
   max-width: 200px;
   height: 24px;
   padding: 0 10px 0 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
   font: inherit;
   font-size: var(--chat-fs-12);
-  color: var(--muted);
-  background: transparent;
   cursor: pointer;
 }
 
 .question-step:hover {
-  color: var(--text);
+  --pill-fg: var(--text);
 }
 
 .question-step.active {
-  border-color: var(--info);
-  color: var(--text);
-  background: color-mix(in srgb, var(--info) 10%, transparent);
+  --pill-border: var(--info);
+  --pill-fg: var(--text);
+  --pill-bg: color-mix(in srgb, var(--info) 10%, transparent);
 }
 
 .question-step.done svg {

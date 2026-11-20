@@ -106,7 +106,7 @@ export function DbPrepDialog({
     : [];
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog db-prep-dialog" aria-label="つなぐ前の準備" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog floating app-dialog db-prep-dialog" aria-label="つなぐ前の準備" onClose={onClose}>
       <div className="app-dialog-body">
         <h2 className="app-dialog-title">「{c.name}」のつなぐ前の準備</h2>
         {groups.length === 0 && <p className="small muted">この接続には準備のコマンドがありません。接続の編集の「つなぐ前にコマンドを流す」で登録できます。</p>}

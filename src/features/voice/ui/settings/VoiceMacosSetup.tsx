@@ -21,7 +21,7 @@ export function VoiceMacosSetup({ voice, language }: { voice: { data: VoiceStatu
   return (
     <Field as="div" label="macOS の音声認識の準備">
       <ol className="voice-steps">
-        <VoiceStep n={1} done={usable} title="この Mac で使えるかを確かめる" badge={<span className="voice-price free">入れるものはありません</span>}>
+        <VoiceStep n={1} done={usable} title="この Mac で使えるかを確かめる" badge={<span className="voice-price tag free">入れるものはありません</span>}>
           {usable && <p className="field-help">この Mac で使えます。</p>}
           {usable === false && (
             <p className="field-help">

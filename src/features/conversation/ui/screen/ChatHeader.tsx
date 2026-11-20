@@ -80,7 +80,7 @@ export function ChatHeader({
           <GitHubLinkChip chat={chat} />
         </span>
         {title && <ChatHeaderTitle chat={chat} />}
-        {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
+        {chat.archived_at && <span className="archived-chip tag" data-look="outline">アーカイブ済み</span>}
         <span className="spacer" />
         {/* 道具（右に寄せ、名前・バッジと分ける。アーカイブのボタンは置かない（タブ・サイドバーの行の右クリックから、確かめてからアーカイブする）） */}
         <span className="chat-tools">

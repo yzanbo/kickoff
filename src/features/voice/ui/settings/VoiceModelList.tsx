@@ -45,7 +45,7 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
         const percent = percentOf(m);
         const downloading = Boolean(m.download && !m.download.error);
         return (
-          <div key={m.id} className={cx("voice-model", m.id === selected && "selected")}>
+          <div key={m.id} className={cx("voice-model card", m.id === selected && "selected")}>
             <label className="voice-model-head">
               <input type="radio" name="voice-model" checked={m.id === selected} onChange={() => onSelect(m.id)} />
               <span className="voice-model-name">{m.label}</span>

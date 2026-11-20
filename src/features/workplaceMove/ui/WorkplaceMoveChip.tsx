@@ -55,7 +55,8 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
   return (
     <>
       <ChipPicker
-        className={place.kind === "missing" ? "worktree-chip is-gone" : "worktree-chip"}
+        className={place.kind === "missing" ? "worktree-chip tag is-gone" : "worktree-chip tag"}
+        data-look="outline"
         hue={hue}
         kind={WORKPLACE_SHORT_LABELS[place.kind]}
         name={place.name}

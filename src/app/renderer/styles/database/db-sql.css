@@ -21,13 +21,8 @@
 }
 
 .db-sql-toolbar {
-  display: flex;
   flex: none;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 .db-sql-toolbar .btn {
@@ -42,9 +37,8 @@
 
 .db-sql-readonly {
   padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--info) 14%, transparent);
-  color: var(--info);
+  --tag-color: var(--info);
+  --tag-tint: 14%;
 }
 
 /* 接続の環境の札（環境の色の点と名前） */
@@ -55,16 +49,15 @@
   gap: 5px;
   max-width: 280px;
   padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--db-env) 45%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--db-env) 10%, transparent);
-  color: var(--text);
+  --tag-border: color-mix(in srgb, var(--db-env) 45%, var(--border));
+  --tag-bg: color-mix(in srgb, var(--db-env) 10%, transparent);
+  --tag-fg: var(--text);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .db-sql-pill:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--db-env) 18%, transparent);
+  --tag-bg: color-mix(in srgb, var(--db-env) 18%, transparent);
 }
 
 .db-sql-pill:disabled {
@@ -93,9 +86,9 @@
   align-items: center;
   gap: 5px;
   padding: 1px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--db-env) 14%, transparent);
-  color: color-mix(in srgb, var(--db-env) 70%, var(--text));
+  --tag-color: var(--db-env);
+  --tag-tint: 14%;
+  --tag-fg: color-mix(in srgb, var(--db-env) 70%, var(--text));
   white-space: nowrap;
 }
 
@@ -173,12 +166,11 @@
 }
 
 .db-result-tabs {
-  display: flex;
   flex: none;
+  align-items: normal;
   gap: 2px;
   padding: 4px var(--gutter);
   overflow-x: auto;
-  border-bottom: 1px solid var(--border);
 }
 
 .db-result-tab {
@@ -504,11 +496,9 @@
   align-items: center;
   gap: 3px;
   max-width: 260px;
-  padding: 0 6px;
+  --tag-color: var(--accent);
+  --tag-fg: var(--accent-fg);
   overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent-fg);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

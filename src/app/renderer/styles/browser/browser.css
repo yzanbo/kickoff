@@ -8,12 +8,8 @@
 }
 
 .browser-toolbar {
-  display: flex;
   flex: none;
-  align-items: center;
   gap: 2px;
-  padding: 6px var(--gutter);
-  border-bottom: 1px solid var(--border);
 }
 
 /* ページ内検索はアドレス欄と分けて、ページの文字に重ねない */

@@ -11,11 +11,9 @@ dialog[open] {
 .dialog,
 .palette {
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  --floating-border: var(--border);
+  --floating-shadow: var(--shadow-3);
   color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 40%);
 }
 
 .dialog {
@@ -149,10 +147,8 @@ dialog[open] {
   grid-template-columns: minmax(0, 1fr) minmax(190px, 1fr);
   gap: 18px 28px;
   align-items: start;
-  padding: 18px 20px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  --card-pad: 18px 20px;
+  --card-tone: var(--border-strong);
 }
 .ai-defaults-project-copy h3, .ai-defaults-heading h3, .ai-defaults-card-head h3 {
   margin: 0 0 3px;
@@ -164,10 +160,8 @@ dialog[open] {
 .ai-defaults-cards { display: grid; gap: 12px; }
 .ai-defaults-card {
   min-width: 0;
-  padding: 18px 20px 20px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  --card-pad: 18px 20px 20px;
+  --card-tone: var(--border-strong);
 }
 .ai-defaults-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .ai-defaults-card-icon {
