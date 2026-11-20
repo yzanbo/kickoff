@@ -15,10 +15,11 @@ export function checkImports(graph, config) {
     const from = expandLayers(rule.from, layers);
     const allow = rule.allow && expandLayers(rule.allow, layers);
     const deny = rule.deny && expandLayers(rule.deny, layers);
+    const except = expandLayers(rule.except ?? [], layers);
     for (const [file, edges] of graph) {
-      if (!matchesAny(file, from) || skipsTest(file, rule, config)) continue;
+      if (!matchesAny(file, from) || matchesAny(file, except) || skipsTest(file, rule, config)) continue;
       for (const edge of edges) {
-        if (edge.typeOnly && rule.typeOnlyAllowed) continue;
+        if ((edge.typeOnly && rule.typeOnlyAllowed) || (edge.dynamic && rule.dynamicAllowed)) continue;
         const bad = edge.path
           ? (allow && !matchesAny(edge.path, allow)) || (deny && matchesAny(edge.path, deny))
           : (rule.allowModules && !matchesAny(edge.module, rule.allowModules)) || (rule.denyModules && matchesAny(edge.module, rule.denyModules));

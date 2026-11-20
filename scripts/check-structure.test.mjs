@@ -85,17 +85,19 @@ test("行き先を解く: 拡張子・index・別名・? の後ろ・パッケ�
   assert.deepEqual(resolveSpecifier(from, "./made.generated", ctx), { module: "src/core/made.generated" });
 });
 
-test("グラフ: 同じ行き先は 1 本にまとめ、値も読むなら型だけにしない", () => {
+test("グラフ: 同じ行き先は 1 本にまとめ、値も読むなら型だけに・静的にも読むなら動的にしない", () => {
   const sources = new Map([
-    ["src/a.ts", 'import type { X } from "./b";\nimport { y } from "./b.js";\nimport type { Z } from "./c";'],
+    ["src/a.ts", 'import type { X } from "./b";\nimport { y } from "./b.js";\nimport type { Z } from "./c";\nconst D = () => import("./d");\nconst B = () => import("./b");'],
     ["src/b.ts", ""],
     ["src/c.ts", ""],
+    ["src/d.tsx", ""],
     ["src/s.css", ".a {}"],
   ]);
   const graph = buildGraph(sources, { aliases: {} });
   assert.deepEqual(graph.get("src/a.ts"), [
-    { path: "src/b.ts", typeOnly: false },
-    { path: "src/c.ts", typeOnly: true },
+    { path: "src/b.ts", typeOnly: false, dynamic: false },
+    { path: "src/c.ts", typeOnly: true, dynamic: false },
+    { path: "src/d.tsx", typeOnly: false, dynamic: true },
   ]);
   assert.equal(graph.has("src/s.css"), false);
 });
@@ -148,6 +150,22 @@ test("import の向き: tests を書かなければテストも見る", () => {
     checkImports(graph, config).map((v) => v.key),
     ["import:x:src/shared/s.test.ts -> src/core/a.ts"],
   );
+});
+
+test("import の向き: except のファイルは見ない。dynamicAllowed なら動的な import だけの先は見逃す", () => {
+  const graph = graphOf([
+    ["src/renderer/registry.ts", ["src/renderer/f/contributes.ts"]],
+    ["src/renderer/app.ts", ["src/renderer/f/contributes.ts"]],
+    ["src/renderer/f/contributes.ts", [{ path: "src/renderer/f/Tab.tsx", typeOnly: false, dynamic: true }, "src/renderer/f/Other.tsx", { path: "src/renderer/f/Props.tsx", typeOnly: true }]],
+  ]);
+  const config = {
+    ...layerConfig,
+    imports: [
+      { name: "reader", from: ["renderer"], except: ["src/renderer/registry.ts"], deny: ["src/renderer/*/contributes.ts"], message: "registry だけ" },
+      { name: "static", from: ["src/renderer/*/contributes.ts"], typeOnlyAllowed: true, dynamicAllowed: true, deny: ["**/*.tsx"], message: "部品は動的に" },
+    ],
+  };
+  assert.deepEqual(checkImports(graph, config).map((v) => v.key), ["import:reader:src/renderer/app.ts -> src/renderer/f/contributes.ts", "import:static:src/renderer/f/contributes.ts -> src/renderer/f/Other.tsx"]);
 });
 
 test("import の向き: pureLocal なら、読んでよいファイルがパッケージ（allowModules の外）を読むのも違反", () => {

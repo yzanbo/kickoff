@@ -129,7 +129,7 @@ export function resolveSpecifier(from, specifier, ctx) {
 
 /**
  * import のグラフ（読む側のファイル → 行き先の並び）。sources はコードのファイルの中身、files は行き先を探す全部のファイル。
- * 同じ行き先を 2 回読むときは 1 本にまとめ、どちらかが値も読むなら typeOnly にしない
+ * 同じ行き先を 2 回読むときは 1 本にまとめ、どちらかが値も読むなら typeOnly に、どちらかが静的に読むなら dynamic にしない
  */
 export function buildGraph(sources, config, files = new Set(sources.keys())) {
   const ctx = { aliases: config.aliases ?? {}, files };
@@ -141,7 +141,7 @@ export function buildGraph(sources, config, files = new Set(sources.keys())) {
       const resolved = resolveSpecifier(file, imp.specifier, ctx);
       const id = resolved.path ?? `module:${resolved.module}`;
       const prev = edges.get(id);
-      edges.set(id, { ...resolved, typeOnly: prev ? prev.typeOnly && imp.typeOnly : imp.typeOnly });
+      edges.set(id, { ...resolved, typeOnly: prev ? prev.typeOnly && imp.typeOnly : imp.typeOnly, dynamic: prev ? prev.dynamic && imp.dynamic : imp.dynamic });
     }
     graph.set(file, [...edges.values()]);
   }

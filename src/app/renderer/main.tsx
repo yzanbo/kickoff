@@ -30,6 +30,9 @@ void prepareStorage(STORAGE_GROUPS)
   .catch((e: unknown) => console.error("[storage] 表示の設定を整えられませんでした", e))
   .then(async () => {
     bootMark("storageReady");
+    // 拡張点に全部の機能の項目を入れる（別ウィンドウの種類の解析と、App が読む保存の読み戻しより前。機能のモジュールは片付けのあとに読む）
+    const { installRegistry } = await import("./registry");
+    installRegistry();
     const root = createRoot(document.getElementById("root")!);
     // 別ウィンドウ（右の欄の変更・ファイル・サブエージェント）は、メインの App ではなく、その中身だけの画面を描く
     const { parsePopout } = await import("@/foundation/ui/navigation/popout");

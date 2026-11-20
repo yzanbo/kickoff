@@ -14,7 +14,7 @@
 App・起動・ショートカット・下の帯は `src/app/renderer/`、機能の画面は `src/features/<機能>/ui/`。
 
 - 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。土台は機能を読まない。
-- import は同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐものは `@shared/…`。`../` でたどらない。
+- 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
 - 複数のファイルになる機能は `src/features/<機能>/` にまとめる。どの機能にも属さないものだけを土台に置く。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「描く部品」に分ける（`usePanel` ＋ `Panel`）。props の束も hook から返してよい。
 - 画面（ルート。`navigation/router.ts` の `Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。

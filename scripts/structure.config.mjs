@@ -20,8 +20,10 @@
  * @typedef {Object} ImportRule
  * @property {string} name               決まりの名前（違反の鍵と、出す文に使う）
  * @property {string[]} from             決まりを当てるファイル（層の名前か glob）
+ * @property {string[]} [except]         from のうち決まりを当てないファイル（層か glob）
  * @property {"include"|"exclude"} [tests] テストのファイルを含めるか（既定 include）
  * @property {boolean} [typeOnlyAllowed] 型だけの import は見逃すか（既定 false）
+ * @property {boolean} [dynamicAllowed]  動的な import（`import("…")` だけで読む先）は見逃すか（既定 false）
  * @property {string[]} [allow]          読んでよい先（層か glob）。書けば、これ以外のリポジトリの中のファイルは違反
  * @property {string[]} [deny]           読んではいけない先（層か glob）
  * @property {string[]} [allowModules]   読んでよいパッケージ（glob。"node:*" など）。書けば、これ以外のパッケージは違反
@@ -96,6 +98,8 @@ const coreAllow = (f) => [...sharedUpTo(f), "src/foundation/core/**", `src/featu
 /** 機能 f のコアのテスト（テストは組み立てたコア src/app/core/testing と、自分の別プロセスの中身を読んでよい） */
 const coreTests = (f) => [`src/features/${f}/core/**/*.test.{ts,tsx}`, `src/features/${f}/core/**/*.dbtest.ts`, `src/features/${f}/core/**/testing/**`, `src/features/${f}/testing/**`];
 const RENDERER = ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/renderer/**"];
+/** 拡張点への登録（機能の ui/contributes.ts と、殻がまとめて出すもの） */
+const CONTRIBUTES = ["src/features/*/ui/contributes.ts", "src/app/renderer/**/contributes.ts"];
 
 /** 機能ごとの import の向き（コア・画面・メイン・別プロセス） */
 const featureImports = FEATURES.flatMap((f) => [
@@ -141,6 +145,9 @@ export default {
     ...featureImports,
     // 土台の保存の宣言（shell・ui・external の群）
     ...["storage", "hooks", "external"].map((d) => ({ name: `ui-storage:foundation/${d}`, from: [`src/foundation/ui/${d}/storage.ts`], allow: ["src/shared/**", `src/foundation/ui/${d}/*.ts`, "src/foundation/ui/storage/index.ts"], allowModules: [], pureLocal: true, message: "土台の保存の宣言（storage.ts）は、@/foundation/ui/storage・@shared・同じフォルダの純粋な .ts だけを読む" })),
+    // 拡張点への登録は組み立ての表だけが読み、登録の表は部品を静的に読まない（起動の片付けのあと・最初の描画の前に読むので軽く保つ）
+    { name: "ui-contributes-reader", from: ["renderer"], except: ["src/app/renderer/registry.ts"], tests: "exclude", deny: CONTRIBUTES, message: "contributes.ts を読むのは app/renderer/registry.ts だけ（入れた項目は 点.items() で読む）" },
+    { name: "ui-contributes-static", from: CONTRIBUTES, typeOnlyAllowed: true, dynamicAllowed: true, deny: ["**/*.tsx"], allowModules: [], message: "contributes.ts が静的に読むのは型・純粋な関数・拡張点・lazyPart だけ（部品は lazyPart(() => import(\"./X\")) で包む）" },
     // 組み立て（ここだけが全部の機能を知る）とスマホ
     { name: "app-shared", from: ["src/app/shared/**"], allow: ["src/shared/**", "src/app/shared/**"], message: "app/shared は純粋な束ねだけ" },
     { name: "app-core", from: ["src/app/core/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/features/*/{core,testing}/**", "src/app/shared/**", "src/app/core/**"], message: "app/core はコアのプロセスのものだけを読む" },
