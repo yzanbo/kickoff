@@ -34,7 +34,7 @@
 - `content-visibility: auto` は、外へはみ出す飾りを持つ要素でなく内側の要素に当てる。`contain-intrinsic-size` は余白と枠を引いた中身の高さを書く。
 - 欄の左右と真ん中の画面の中身のまわりは `--gutter`（一部だけ狭く・広くしない）。プロジェクトの画面はタブで幅を変えない。
 - 狭いときの並べ方は `@media` でなく `@container`（真ん中の幅はウィンドウより欄の幅で変わる）。
-- 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease`。開閉で大きさが動く欄は、中身を開いたときの大きさのまま置いて切り取る。
+- 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease`。開閉で大きさが動く欄は `.slide-pane`（`--pane-shown`。中身は `.slide-pane-inner`）。
 
 ### 角丸
 - `base/tokens.css` の 3 段とピル・丸だけを使い、数を直に書かない: 小 `--radius-sm` = 押す物と行、中 `--radius` = 面、大 `--radius-lg` = 浮く窓と大きなアイコンのタイル、ピル `999px`・丸 `50%`（高さの半分を px で書かない）。

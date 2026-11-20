@@ -23,7 +23,8 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
   return (
     <aside
       ref={widthPaneRef}
-      className={cx("project-chat", chat.open && "open", maximized && "maximized", width.resizing && "resizing")}
+      className={cx("project-chat slide-pane", chat.open && "open", maximized && "maximized", width.resizing && "resizing")}
+      data-axis="x"
       // 開閉は幅の動きで見せる（中身は開いたときの幅のまま。動いている間に中身の並びが崩れないように）
       style={{ "--chat-w": `${width.size}px` } as CSSProperties}
       inert={!chat.open}
@@ -31,7 +32,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       aria-label="右サイドバー"
     >
       <div className="pane-resizer project-chat-resizer" aria-label="右サイドバーの幅を変える" {...width.handle} />
-      <div className="project-chat-inner">
+      <div className="project-chat-inner slide-pane-inner">
         {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行 */}
         <div className="panel-window-titlebar" aria-hidden />
         <SideBody projectId={projectId} frame={frame} />

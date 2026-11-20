@@ -1,0 +1,58 @@
+/*
+ * 開閉で大きさが動く欄（.slide-pane。data-axis="x" は幅、"y" は高さ）: 閉じているときは 0、開く（.open）と --pane-shown まで動き、境目の線を出す。
+ * 閉じ終えたら中身を隠す（visibility は閉じる動きのあとに切り替え、開くときはすぐ見せる。はみ出した中身のドラッグ領域・押せる所を残さない）。
+ * 中身（.slide-pane-inner）は開いたときの大きさのまま。大きさを変えている間（.resizing）は動かさない
+ */
+.slide-pane {
+  overflow: hidden;
+  visibility: hidden;
+  transition:
+    var(--pane-prop, width) var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration),
+    visibility 0s linear var(--panel-motion-duration);
+}
+
+.slide-pane.open {
+  visibility: visible;
+  transition:
+    var(--pane-prop, width) var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration),
+    visibility 0s;
+}
+
+.slide-pane.resizing {
+  user-select: none;
+  transition: none;
+}
+
+.slide-pane[data-axis="x"] {
+  width: 0;
+  min-width: 0;
+  border-left: 1px solid transparent;
+}
+
+.slide-pane[data-axis="x"].open {
+  width: var(--pane-shown);
+  border-left-color: var(--border);
+}
+
+.slide-pane[data-axis="x"] > .slide-pane-inner {
+  width: var(--pane-shown);
+}
+
+.slide-pane[data-axis="y"] {
+  --pane-prop: height;
+
+  height: 0;
+  min-height: 0;
+  border-top: 1px solid transparent;
+}
+
+.slide-pane[data-axis="y"].open {
+  height: var(--pane-shown);
+  border-top-color: var(--border);
+}
+
+.slide-pane[data-axis="y"] > .slide-pane-inner {
+  height: var(--pane-shown);
+}

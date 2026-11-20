@@ -1,12 +1,12 @@
 /* ==== プロジェクトのチャット欄（画面の右端。どのタブでも開ける） ==== */
 
-/* 閉じているときは幅 0。開くと、幅が --chat-w まで動く（中身は右端に寄せ、右から出てくるように見せる） */
+/* 開閉の動きは ui/types/slide-pane.css（幅が --chat-w まで動く。中身は右端に寄せ、右から出てくるように見せる） */
 .project-chat {
   /*
    * 見せる幅: 覚えた幅（--chat-w）のまま、真ん中の画面を --main-min-w だけ残すところまで（ウィンドウを狭めた・サイドバーを開いたときも）。
    * 欄そのものは 320px より狭くしない
    */
-  --chat-shown: min(var(--chat-w), max(320px, calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px) - var(--main-min-w))));
+  --pane-shown: min(var(--chat-w), max(320px, calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px) - var(--main-min-w))));
   grid-column: 3;
   grid-row: 1;
   position: relative;
@@ -14,31 +14,7 @@
   flex: none;
   flex-direction: column;
   align-items: flex-end;
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
-  border-left: 1px solid transparent;
   background: var(--bg);
-  /*
-   * 閉じ終えたら中身を隠す（visibility は閉じる動きのあとに切り替え、開くときはすぐ見せる）。
-   * 閉じても中身は開いたときの幅のまま左へはみ出して残り、見た目は切り取られても、タブの列（ウィンドウのドラッグ領域）は
-   * 切り取られずにボードの上に残った。そこにあるボードの右のパネルのタブ・見出しのボタンを押してもウィンドウのドラッグになり、カーソルも矢印になった
-   */
-  visibility: hidden;
-  transition:
-    width var(--panel-motion-duration) var(--panel-motion-ease),
-    border-color var(--panel-motion-duration),
-    visibility 0s linear var(--panel-motion-duration);
-}
-
-.project-chat.open {
-  width: var(--chat-shown);
-  border-left-color: var(--border);
-  visibility: visible;
-  transition:
-    width var(--panel-motion-duration) var(--panel-motion-ease),
-    border-color var(--panel-motion-duration),
-    visibility 0s;
 }
 
 /*
@@ -46,24 +22,17 @@
  * 幅は同じ動きでなめらかに変える。左端のつまみは使わない
  */
 .project-chat.maximized {
-  --chat-shown: calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px));
+  --pane-shown: calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px));
 }
 
 .project-chat.maximized .project-chat-resizer {
   display: none;
 }
 
-.project-chat.resizing {
-  user-select: none;
-  transition: none;
-}
-
-/* 中身は開いたときの幅のまま（動いている間に並びが崩れないように） */
 .project-chat-inner {
   display: flex;
   flex: 1;
   flex-direction: column;
-  width: var(--chat-shown);
   min-height: 0;
 }
 

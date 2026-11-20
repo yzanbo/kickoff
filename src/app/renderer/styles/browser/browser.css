@@ -161,9 +161,9 @@
  */
 .project-chat:not(.open):has(.panel-tab-page.agent-browsing) {
   z-index: var(--z-hidden);
-  width: var(--chat-shown);
+  width: var(--pane-shown);
   /* 左の枠の 1px も含めて打ち消す（真ん中の画面の幅を変えない） */
-  margin-left: calc(-1px - var(--chat-shown));
+  margin-left: calc(-1px - var(--pane-shown));
   pointer-events: none;
   transition: none;
 }
