@@ -1,0 +1,29 @@
+/* ==== パネル・右の欄・ノートに置くチャットの画面（.chat-panel。ChatColumn・DraftChatPage・SubagentScreen・NoteChat） ==== */
+
+/* 余白を詰め、長いタイトルや本文で置き場所の幅を広げない */
+.chat-panel {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+}
+
+.chat-panel .chat-title-row,
+.chat-panel .chat-sub {
+  min-width: 0;
+}
+
+.chat-panel .bubble.user {
+  overflow-wrap: anywhere;
+}
+
+.chat-panel .composer-tools {
+  min-width: 0;
+}
+
+.chat-panel .timeline-inner {
+  padding: 16px var(--gutter) 20px;
+}
+
+.chat-panel .chat-composer {
+  padding: 4px var(--gutter) var(--gutter);
+}

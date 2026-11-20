@@ -93,7 +93,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const showDetail = !narrow || selected;
 
   return (
-    <div ref={root} className={cx("github-tab github-browser", narrow && "narrow")}>
+    <div ref={root} className={cx("github-tab github-browser tool-frame", narrow && "narrow")}>
       {showList && (
         <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
           {/* リポジトリの名前は GitHub のリポジトリのページへ、右の印はいまの絞り込みの一覧を GitHub で開く（外のブラウザ） */}

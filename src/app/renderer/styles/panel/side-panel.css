@@ -1,35 +1,4 @@
-/* ==== ボードの右のパネル（カードを開く。タブ・パネルの見出し）。開くとカンバンが狭くなる ==== */
-
-.board-body {
-  display: grid;
-  flex: 1;
-  grid-template-columns: minmax(0, 1fr) 0px;
-  gap: 0;
-  min-height: 0;
-  /*
-   * 横を切り取らない（overflow-x: clip を付けると、ボードのツールバーの右端の開閉ボタンのバッジが切れることがある）。
-   * 閉じたパネルは幅 0 の列にあり、中身はパネル自身の枠で切り取るので、横にはみ出さない
-   */
-  transition:
-    grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease),
-    gap var(--panel-motion-duration) var(--panel-motion-ease);
-}
-
-.board-body.with-panel {
-  /* パネルはカンバンを覆うところまで広げられる（間隔の分だけ引く） */
-  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 12px));
-  gap: 12px;
-}
-
-/*
- * パネルがボードを覆う（横幅いっぱい・ボードが狭すぎる）ときは、見えないボードとの間隔も消す（左に余白が二重に残らないように）。
- * 列の指定はふだんと同じ形（残り・パネルの幅）のまま、パネルの幅だけを 100% にする。形を変える（0px 100%）と、ブラウザが 2 つの間を
- * なめらかにつなげず、横幅いっぱいの切り替えでパネルの左端が先に飛んでから右端が伸びていた（右端を動かさず左端だけを伸び縮みさせる）
- */
-.board-body.with-panel.panel-full {
-  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), 100%);
-  gap: 0;
-}
+/* ==== ボードの右のパネル（カードを開く。タブ・パネルの見出し）。開くとカンバンが狭くなる（並べる格子 .board-body は board/board.css） ==== */
 
 /* パネルを開いたが、タブがひとつもないとき */
 .panel-empty {
@@ -68,18 +37,6 @@
 .board-body.resizing .board-panel {
   transition: none;
   user-select: none;
-}
-
-.board-main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
-.board-main > .board-columns,
-.board-main > .board-list {
-  flex: 1;
 }
 
 /* タブの入れ物（Panel の根。ボードの右のパネル・チャットタブ・ノート・ファイル・右サイドバー・下のパネル・別ウィンドウ） */
@@ -126,34 +83,6 @@
   width: auto;
 }
 
-/* パネル内のチャットは余白を詰め、長いタイトルや本文でパネルの幅を広げない */
-.chat-panel {
-  grid-template-columns: minmax(0, 1fr);
-  width: 100%;
-  min-width: 0;
-}
-
-.chat-panel .chat-title-row,
-.chat-panel .chat-sub {
-  min-width: 0;
-}
-
-.chat-panel .bubble.user {
-  overflow-wrap: anywhere;
-}
-
-.chat-panel .composer-tools {
-  min-width: 0;
-}
-
-.chat-panel .timeline-inner {
-  padding: 16px var(--gutter) 20px;
-}
-
-.chat-panel .chat-composer {
-  padding: 4px var(--gutter) var(--gutter);
-}
-
 /* 左端の幅を変えるつまみ。上に貼り付く自分の指示（z-index 2）より上に置き、乗せたときの線を隠さない */
 .panel-resizer {
   position: absolute;
@@ -176,10 +105,6 @@
 
 /* 幅 720px 以下の画面では、パネルを全面に重ねる */
 @media (max-width: 720px) {
-  .board-body.with-panel {
-    grid-template-columns: minmax(0, 1fr) 0px;
-  }
-
   .board-body.with-panel .board-panel {
     position: fixed;
     inset: 0;

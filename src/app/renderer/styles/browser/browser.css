@@ -135,44 +135,6 @@
 }
 
 
-/*
- * AI が操作しているブラウザのタブ（.agent-browsing。features/browser/agentBrowsing.ts）。
- * 表に出ていないタブも、見えない形で欄いっぱいに並べる（大きさがないとページを撮れず、位置で押せないため）。
- * 透明にして後ろに置き、押せないようにする（見ているタブの操作を邪魔しない）
- */
-.panel-content:has(> .panel-tab-page.agent-browsing[hidden]) {
-  position: relative;
-}
-
-.panel-tab-page.agent-browsing[hidden] {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-hidden);
-  display: block;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/*
- * 閉じたチャット欄（幅 0・隠している）は、AI が中のタブを操作している間だけ、開いたときと同じ幅・高さ・タブの列で並べる
- * （ページの大きさを、利用者が欄を開いたときに見る大きさとそろえる。AI が撮る画面と利用者の画面が同じになるように。
- * タブのページだけをウィンドウの高さいっぱいに置くと、タブの列の分だけ縦長に撮れる）。
- * 負の margin で列の幅は 0 のまま右端に重ね、欄は隠したまま（visibility。タブの列のドラッグ領域を残さない）で、ページだけを透明で見せる
- */
-.project-chat:not(.open):has(.panel-tab-page.agent-browsing) {
-  z-index: var(--z-hidden);
-  width: var(--pane-shown);
-  /* 左の枠の 1px も含めて打ち消す（真ん中の画面の幅を変えない） */
-  margin-left: calc(-1px - var(--pane-shown));
-  pointer-events: none;
-  transition: none;
-}
-
-.project-chat:not(.open) .panel-tab-page.agent-browsing {
-  visibility: visible;
-  opacity: 0;
-}
-
 /* タブの「AI 操作中」の印（ロボット。ゆっくり明滅させる） */
 .agent-browsing-mark {
   display: inline-flex;

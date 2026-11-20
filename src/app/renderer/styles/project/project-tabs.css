@@ -214,3 +214,36 @@
 .project-side-tabs .project-tab-group {
   --drop-offset: -7px;
 }
+
+/* 見出しの下の本体（左に縦並びのタブを置く設定のときは、その右）。ボード・エディタはこの中で縦に伸ばす */
+.project-main {
+  display: flex;
+  flex: 1;
+  gap: var(--gutter);
+  min-height: 0;
+}
+
+.project-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.project-content > .board {
+  flex: 1;
+  min-height: 0;
+}
+
+/*
+ * タブの中身の枠は、画面の種類で決める: 左に一覧・右に中身の「道具の画面」は枠で囲み、上から下へ読む「ページの画面」（ボード・Docker・ゴミ箱）は囲まない。
+ * 道具の画面のうち、チャット（chats-tab.css）とファイル・検索・変更・履歴・ノート（editor.css の .changes）はそれぞれの規則で囲む。
+ * DB・GitHub・CI は部品の根が .tool-frame を付け、ここで囲む（右の欄・別ウィンドウにも置く部品なので、プロジェクトのタブの中のときだけ。
+ * GitHub・CI はつながっていないときの案内には付けない）
+ */
+.project-content > .tool-frame {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

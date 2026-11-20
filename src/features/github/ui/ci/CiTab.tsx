@@ -75,7 +75,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   const actionsUrl = `${githubRepoUrl(host, repo)}/actions`;
 
   return (
-    <div ref={root} className={cx("github-tab github-browser ci-tab", narrow && "narrow")}>
+    <div ref={root} className={cx("github-tab github-browser ci-tab tool-frame", narrow && "narrow")}>
       {showList && (
         <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
           <div className="github-list-repo small">

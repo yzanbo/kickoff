@@ -16,6 +16,24 @@
   height: 100%;
 }
 
+/*
+ * AI が操作しているブラウザのタブ（.agent-browsing。PanelTabPage が features/browser/agentBrowsing.ts の状態で付ける）。
+ * 表に出ていないタブも、見えない形で欄いっぱいに並べる（大きさがないとページを撮れず、位置で押せないため）。
+ * 透明にして後ろに置き、押せないようにする（見ているタブの操作を邪魔しない）
+ */
+.panel-content:has(> .panel-tab-page.agent-browsing[hidden]) {
+  position: relative;
+}
+
+.panel-tab-page.agent-browsing[hidden] {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-hidden);
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* タブの列のボタンのまとまり（タブのすぐ右の新しいタブ・右端のペインの分割） */
 .panel-bar-buttons {
   display: flex;

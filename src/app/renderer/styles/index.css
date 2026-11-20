@@ -115,6 +115,7 @@
 @import "./chat/visuals.css" layer(feature);
 @import "./chat/chat-images.css" layer(feature);
 @import "./chat/open-place.css" layer(feature);
+@import "./chat/chat-panel.css" layer(feature);
 @import "./footer/usage-meter.css" layer(feature);
 @import "./footer/footer.css" layer(feature);
 @import "./footer/ports.css" layer(feature);

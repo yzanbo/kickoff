@@ -184,7 +184,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     <DbClientContext.Provider value={actions}>
       <div
         ref={root}
-        className={cx("db-client", narrow && "narrow")}
+        className={cx("db-client tool-frame", narrow && "narrow")}
         // ⌘⇧O: テーブル・列を探す（ピントがこの DB クライアントの中にあるとき）
         onKeyDown={(e) => {
           if (hasAppModifier(e) && e.shiftKey && !e.altKey && e.code === "KeyO" && list.length > 0) {
