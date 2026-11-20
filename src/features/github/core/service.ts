@@ -54,7 +54,7 @@ interface GitHubServiceOptions {
 
 export class GitHubService {
   private readonly lists = new Map<string, CachedPage>();
-  private readonly metas = ttlCache<string, GitHubRepoMeta>(5 * 60_000);
+  private readonly metas = ttlCache<string, GitHubRepoMeta>({ ms: 5 * 60_000 });
   /** 最後に取った中身（キーはプロジェクト・アカウント・選んだ remote・種類・番号） */
   private readonly details = new Map<string, { detail: GitHubIssueDetail | GitHubPullDetail; at: number }>();
 

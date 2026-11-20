@@ -17,7 +17,7 @@ export function runAsGitHubAccount<T>(account: string | null, fn: () => T): T {
 }
 
 /** トークンを覚える間（gh に毎回聞かない。ログインし直しても 5 分で新しいものになる。キーは「ホスト 改行 アカウント」） */
-const tokens = ttlCache<string, string>(5 * 60_000);
+const tokens = ttlCache<string, string>({ ms: 5 * 60_000 });
 
 /** アカウントのトークン（gh auth token --hostname --user。gh にそのアカウントがなければ 400） */
 async function tokenOf(account: string, host: string): Promise<string> {

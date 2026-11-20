@@ -96,7 +96,7 @@ export function providerRoutes(app: Hono, { store, providers, providerKeys, bus 
   app.get("/api/projects/:id/effort-default", withWorkdir, async (c) => c.json(await claudeEffortDefault(c.req.query("model") || null, c.var.workdir)));
 
   // チャット欄の / で出すコマンド（作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）
-  const commandCache = ttlCache<string, SlashCommandOption[]>(5 * 60_000);
+  const commandCache = ttlCache<string, SlashCommandOption[]>({ ms: 5 * 60_000 });
   app.get("/api/projects/:id/commands", withWorkdir, async (c) => {
     const { project, workdir: cwd } = c.var;
     const key = `${project.provider}:${cwd}`;

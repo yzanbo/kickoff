@@ -6,6 +6,7 @@ import type { Hono, MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, MOBILE_OFF_MESSAGE } from "@shared/devices/types";
 import { systemClock, type Clock } from "@/foundation/core/clock";
+import { ttlCache, type TtlCache } from "@/foundation/core/system/ttlCache";
 import { setCaller, type Caller } from "./caller";
 import type { DeviceMayUse } from "./deviceAccess";
 
@@ -73,23 +74,22 @@ const LOGIN_TTL_MS = 5 * 60_000;
  * URL に本体のトークンは入れず、使い捨ての番号と引き換えに本体のトークンの Cookie を置く（Mac のアプリの画面は Cookie を最初から持つので使わない）
  */
 export class BrowserLogin {
-  private readonly codes = new Map<string, number>();
+  private readonly codes: TtlCache<string, true>;
 
-  constructor(private readonly clock: Pick<Clock, "now"> = systemClock) {}
+  constructor(clock: Pick<Clock, "now"> = systemClock) {
+    this.codes = ttlCache<string, true>({ ms: LOGIN_TTL_MS, clock });
+  }
 
   /** 新しい番号を出す（一度だけ・5 分） */
   issue(): string {
     const code = randomBytes(24).toString("base64url");
-    this.codes.set(code, this.clock.now() + LOGIN_TTL_MS);
+    this.codes.set(code, true);
     return code;
   }
 
   /** 番号を使う（使えたか。使ったら消す） */
   consume(code: string): boolean {
-    const until = this.codes.get(code);
-    this.codes.delete(code);
-    for (const [c, t] of this.codes) if (t <= this.clock.now()) this.codes.delete(c);
-    return until !== undefined && until > this.clock.now();
+    return this.codes.take(code) === true;
   }
 }
 

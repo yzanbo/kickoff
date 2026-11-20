@@ -33,7 +33,7 @@ interface CiServiceOptions {
 
 export class CiService {
   /** 既定のブランチ（リポジトリごとに 10 分覚える） */
-  private readonly defaults = ttlCache<string, string | null>(10 * 60_000);
+  private readonly defaults = ttlCache<string, string | null>({ ms: 10 * 60_000 });
 
   constructor(
     private readonly github: GitHubService,

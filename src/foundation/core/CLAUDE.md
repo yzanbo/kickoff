@@ -13,7 +13,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 | `workplace/`・`files/` | 作業場所（git・ワークツリー・`carry.ts`・Git でないフォルダ）・ファイルの操作 `folderFiles` |
 | `platform/` | OS ごとに違う処理の口 `HostPlatform`（機能だけの値は `@/app/core/platform.ts`）と macOS の中身（`macos/`）。DB ワーカーは `ShellPlatform` |
 | `system/` | 外部コマンド・パス・`ttlCache.ts`・名前と保存先とポート `appEnv.ts`・開発版のデータの写し `devData.ts`・詰まりの見張り `stallWatch.ts` |
-| `settings/`・`shell/`・`testing/` | 設定・秘密の値・Bash の文の区切り `shellWords.ts`・テストの補助 |
+| `settings/`・`shell/`・`watch/`・`testing/` | 設定・秘密の値・Bash の文の区切り `shellWords.ts`・見張り（`Poller`・`Lease`）・テストの補助 |
 
 - 機能は `feature.ts` の `CoreFeature`（`@/app/core/assemble.ts` が並べる）。`serve.ts` が待ち受けて `start` を作った順に呼び、止める順（`stopPhase: "first"` → 流れ続けている外部コマンド → 残りを作った順の逆 → `bus.flush` → HTTP → DB）も決める。
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
@@ -51,8 +51,8 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 - 外部コマンドは `system/exec.ts` の `runCommand`（失敗の `CommandError` はそのまま投げれば 400）。`execFileAsync` を直接使わない。流れ続けるものだけ `system/stream.ts` の `streamCommand`（閉じるときに `stopAllStreams`）。
 - git・gh は聞かれても待たない（`nonInteractiveEnv()`）。git は `workplace/git.ts`（remote に触るなら `k.workplace.git`）。
-- OS ごとに違うコマンド・パスは使う所に散らさず、`platform/` の `HostPlatform` に口を足して `platform/macos/` に書く（テストは口ごと偽物に）。
-- ログインシェルの PATH の読み直しは裏で流し、待つのは外部コマンドを起こす所だけ（`shellPathSettled()`）。HTTP・DB・画面は待たない。実行ファイルは `findExecutable(names, searchDirs())`。
+- OS ごとに違うコマンド・パスは `platform/` の `HostPlatform` に口を足して `platform/macos/` に書く（テストは口ごと偽物に）。
+- ログインシェルの PATH の読み直しは裏で流し、待つのは外部コマンドを起こす所だけ（`shellPathSettled()`）。実行ファイルは `findExecutable(names, searchDirs())`。
 - API・SSE・DB に出す相対パスの区切りはいつも「/」（`system/paths.ts` の `toApiPath`）。包含・`~`・リンクの解決も `system/paths.ts`。
 
 ## AI の操作ツール（`aiTools/`）

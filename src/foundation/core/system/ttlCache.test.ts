@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { ttlCache } from "./ttlCache";
 
 test("ttlCache: 覚えた値は期限まで返し、過ぎたら返さない。キーごとに別", () => {
   // 時計を差し替える（本当の時計で待つと、負荷が高いときに期限の前後がずれる）
   let clock = 1_000;
-  const cache = ttlCache<string, number>(30, { now: () => clock });
+  const cache = ttlCache<string, number>({ ms: 30, clock: { now: () => clock } });
   assert.equal(cache.get("a"), undefined);
   cache.set("a", 1);
   cache.set("b", 2);
@@ -48,4 +49,21 @@ test("ttlCache の max: 超えたら古い順に捨てる（覚え直したも�
   assert.equal(cache.get("b"), undefined);
   assert.equal(cache.get("a"), 3);
   assert.equal(cache.get("c"), 4);
+});
+
+test("ttlCache の take・delete・clear: 取ったら消す（期限が切れていれば undefined）", async () => {
+  const clock = manualClock();
+  const cache = ttlCache<string, true>({ ms: 5 * 60_000, clock });
+  cache.set("a", true);
+  cache.set("b", true);
+  cache.set("c", true);
+  assert.equal(cache.take("a"), true);
+  assert.equal(cache.take("a"), undefined);
+  cache.delete("b");
+  assert.equal(cache.get("b"), undefined);
+  await clock.advance(5 * 60_000);
+  assert.equal(cache.take("c"), undefined);
+  cache.set("d", true);
+  cache.clear();
+  assert.equal(cache.get("d"), undefined);
 });
