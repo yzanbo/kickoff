@@ -51,8 +51,8 @@
 }
 
 /* チャットの行の左の状態の印（サイドバーの行と同じ StatusSlot）。作業中のまま未読の緑の点の縁は、一覧の地の色 */
-.palette-item .status-unread-badge {
-  border-color: var(--bg-elev);
+.palette-item {
+  --slot-ring: var(--bg-elev);
 }
 
 .palette-label {

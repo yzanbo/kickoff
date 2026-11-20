@@ -50,17 +50,17 @@
   margin-left: -3px;
 }
 
-.composer-chip .status-unread-badge {
-  border-color: var(--bg-elev);
+.composer-chip {
+  --slot-ring: var(--bg-elev);
 }
 
 .composer-chip .status-slot svg {
   stroke: var(--bg-elev);
 }
 
-.composer-chip:hover .status-unread-badge,
-.composer-chip.open .status-unread-badge {
-  border-color: var(--bg-hover);
+.composer-chip:hover,
+.composer-chip.open {
+  --slot-ring: var(--bg-hover);
 }
 
 .chip-running {

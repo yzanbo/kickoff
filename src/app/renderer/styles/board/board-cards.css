@@ -95,12 +95,12 @@
   height: 18px;
 }
 
-.board-card .status-unread-badge {
-  border-color: var(--bg-elev);
+.board-card {
+  --slot-ring: var(--bg-elev);
 }
 
-.board-card:hover .status-unread-badge {
-  border-color: var(--bg-hover);
+.board-card:hover {
+  --slot-ring: var(--bg-hover);
 }
 
 .card-title {
