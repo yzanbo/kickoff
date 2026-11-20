@@ -5,22 +5,29 @@ import { useSetting } from "./useSetting";
 /** ドラッグの向き（x = 左右に動かして幅 / y = 上下に動かして高さ） */
 export type DragAxis = "x" | "y";
 
+/** ドラッグを終える知らせ（離した・取り消された（OS の操作・窓が後ろに回ったなど）・捕まえたポインターを失った） */
+const DRAG_ENDS = ["pointerup", "pointercancel", "lostpointercapture"] as const;
+
 /**
  * つまみ（区切り線）のドラッグ。つまみがポインターを捕まえるので、指がつまみの外に出ても追従する。
- * move には、その向きのポインターの位置（clientX / clientY）が届く
+ * move には、その向きのポインターの位置（clientX / clientY）が届く。end は終えたときに 1 回だけ呼ぶ（離したあとの lostpointercapture では呼ばない）
  */
-export function startPointerDrag(e: ReactPointerEvent<HTMLElement>, axis: DragAxis, { move, end }: { move: (client: number) => void; end: () => void }) {
+export function startPointerDrag(
+  e: Pick<ReactPointerEvent<HTMLElement>, "preventDefault" | "currentTarget" | "pointerId">,
+  axis: DragAxis,
+  { move, end }: { move: (client: number) => void; end: () => void },
+) {
   e.preventDefault();
   const handle = e.currentTarget;
   handle.setPointerCapture(e.pointerId);
   const onMove = (ev: PointerEvent) => move(axis === "x" ? ev.clientX : ev.clientY);
-  const onUp = () => {
+  const onEnd = () => {
     handle.removeEventListener("pointermove", onMove);
-    handle.removeEventListener("pointerup", onUp);
+    for (const type of DRAG_ENDS) handle.removeEventListener(type, onEnd);
     end();
   };
   handle.addEventListener("pointermove", onMove);
-  handle.addEventListener("pointerup", onUp);
+  for (const type of DRAG_ENDS) handle.addEventListener(type, onEnd);
 }
 
 /**
