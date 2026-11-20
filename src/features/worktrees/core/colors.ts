@@ -4,7 +4,7 @@ import type { Store } from "@/foundation/core/db/store";
 
 /**
  * ワークツリーの一覧に作業場所の色（hue）を付ける（一覧を返す API はすべてこれを通す）。本体はいつもプロジェクトから決まる色。
- * ワークツリーは覚えた色（worktree_colors）を使い、まだなければ（Kickoff で作った直後・Kickoff の外で作ったものを初めて見たとき）ここで決めて覚える:
+ * ワークツリーは覚えた色（worktrees の hue）を使い、まだなければ（Kickoff で作った直後・Kickoff の外で作ったものを初めて見たとき）ここで決めて覚える:
  * フォルダから決まる好みの色が、本体といまあるワークツリーの色と被らなければそれ、被ればいちばん使われていない色（10 色を使い切ったら被ってよい）
  */
 export function attachWorktreeHues(store: Pick<Store, "worktreeColors">, projectId: number, list: GitWorktree[]): GitWorktree[] {

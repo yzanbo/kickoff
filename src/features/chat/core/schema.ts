@@ -3,12 +3,12 @@ import { NOW } from "@/foundation/core/db/db";
 /**
  * チャット（v1）。
  * - chats: 子チャットは parent_chat_id（親を消すと子孫も消える）と parent_event_id（親の会話のどの記録から聞いたか）。note_path はノートのチャットのノート
- *   （ノートのフォルダからの相対）。github_* は結び付いた issue・PR（3 つがそろって NULL か、そろって値があるかは店で守る）。untracked_only は Git で管理していない
+ *   （ノートのフォルダからの相対）。github_* は結び付いた issue・PR（3 つがそろって NULL か、そろって値がある。表の CHECK）。untracked_only は Git で管理していない
  *   ファイルだけを書けるチャット。resume_pending は前回の終了で作業の途中で止まった印、ai_generation は AI が作った世代（どちらも店の中だけ）。
  *   archived_with_parent は親と一緒にアーカイブした印、trashed_with は一緒にゴミ箱に入れた行（trash_items.id）。position は手動の並び（null = まだ並べていない）
  * - chat_events: 自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、全文検索の索引 chat_event_search
  *   （trigram で部分一致）はビュー chat_event_texts を中身にしてトリガーで追従させる。idx_chat_events_meta は記録の軽い形と大きさを data を解かずに読む覆う索引
- *   （式は店の SQL と同じに書く）
+ *   （式は店の SQL と同じに書く。チャットごとの読み取りはこれか主キーで引くので (chat_id, id) だけの索引は作らない。eventIndex.test.ts）
  * - session_id: いまの AI（provider）のセッションの正（離れた AI のセッションは providerSwitch の chat_provider_sessions）
  * - agent_sessions: Kickoff が作ったセッションの覚え（チャットを消しても残す。使われなくなったら会話記録をゴミ箱へ）
  */
@@ -34,7 +34,7 @@ CREATE TABLE chats (
   untracked_only INTEGER NOT NULL DEFAULT 0 CHECK (untracked_only IN (0, 1)),
   worktree_path TEXT CHECK (worktree_path <> ''),
   branch TEXT CHECK (branch <> ''),
-  finished_worktree_branch TEXT,
+  finished_worktree_branch TEXT CHECK (finished_worktree_branch <> ''),
   status TEXT NOT NULL,
   session_id TEXT,
   error TEXT,
@@ -53,7 +53,8 @@ CREATE TABLE chats (
   trashed_at TEXT,
   trashed_with TEXT CHECK (trashed_with <> ''),
   created_at TEXT NOT NULL DEFAULT (${NOW}),
-  active_at TEXT NOT NULL DEFAULT (${NOW})
+  active_at TEXT NOT NULL DEFAULT (${NOW}),
+  CHECK ((github_repo IS NULL) = (github_number IS NULL) AND (github_repo IS NULL) = (github_kind IS NULL))
 ) STRICT;
 CREATE INDEX idx_chats_project ON chats(project_id, archived_at, active_at);
 CREATE INDEX idx_chats_worktree ON chats(project_id, worktree_path) WHERE worktree_path IS NOT NULL;
@@ -83,7 +84,6 @@ CREATE TABLE chat_events (
     CASE WHEN type = 'user' OR (type = 'text' AND json_extract(data, '$.parent') IS NULL) THEN json_extract(data, '$.text') END
   ) VIRTUAL
 ) STRICT;
-CREATE INDEX idx_chat_events_chat ON chat_events(chat_id, id);
 CREATE INDEX idx_chat_events_meta ON chat_events(
   chat_id, id, type,
   json_extract(data, '$.id'), json_extract(data, '$.name'), json_extract(data, '$.parent'), json_extract(data, '$.tool_use_id'),

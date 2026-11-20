@@ -4,7 +4,7 @@ import { NOW } from "@/foundation/core/db/db";
  * DB クライアント（v1）。接続はプロジェクトごとの並び。パスワードは secrets の db_connection:<id>:password・ai_password・ssh_password に置き、
  * 接続を消したら（プロジェクトごとの削除も）トリガーで消す。worktree_path は Docker タブの「DB で開く」で作った接続のワークツリー、
  * note_path は手順のノート（ノートのフォルダからの相対）、prep は準備のコマンド・prep_confirmed は確かめた中身の写し、write_check は書き込む前の確かめ。
- * 履歴（ran_by は user / ai）と準備の記録は接続ごとに新しいものだけ残す。ER 図の位置は接続と場所（DB・スキーマ）ごと
+ * 履歴（ran_by は user / ai）と準備の記録は接続ごとに新しいものだけ残す。ER 図の位置は接続と DB の場所 scope（DB・スキーマ。API では place）ごと
  */
 export const DATABASE_SCHEMA_V1 = `
 CREATE TABLE db_connections (
@@ -53,10 +53,10 @@ CREATE TABLE db_query_history (
 CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, id);
 CREATE TABLE db_er_layouts (
   connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
-  place TEXT NOT NULL CHECK (place <> ''),
+  scope TEXT NOT NULL CHECK (scope <> ''),
   positions TEXT NOT NULL CHECK (json_valid(positions) AND json_type(positions) = 'object'),
   updated_at TEXT NOT NULL DEFAULT (${NOW}),
-  PRIMARY KEY (connection_id, place)
+  PRIMARY KEY (connection_id, scope)
 ) STRICT;
 CREATE TABLE db_prep_runs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
