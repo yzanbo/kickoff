@@ -72,7 +72,7 @@ export function NoteChat({
     },
   }));
   return (
-    <aside className="note-chat" aria-label="ノートのチャット">
+    <aside className="note-chat slide-pane-inner" aria-label="ノートのチャット">
       <header className="note-chat-head bar">
         <MessageSquare size={14} aria-hidden />
         <span className="note-chat-title">ノートのチャット</span>

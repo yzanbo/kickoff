@@ -6,8 +6,6 @@
 }
 
 .note-body.with-chat {
-  /* 見せる幅: 覚えた幅（--note-chat-w。つまみで変える）のまま、本文を 280px 残すところまで（260px より狭くはしない） */
-  --note-chat-shown: max(260px, min(var(--note-chat-w), 100cqw - 280px));
   flex-direction: row;
 }
 
@@ -16,45 +14,36 @@
 }
 
 /*
- * 会話の欄の入れ物。閉じても描いたまま置き、開け閉めは幅をほかの欄と同じ動きでスライドさせる（中身は開いたときの幅のまま置いて
- * 切り取るので、動いている間に並べ直さない）。閉じ終えたら見えなくする（ピントも入らない。NoteView が inert を付ける）
+ * 会話の欄の入れ物。閉じても描いたまま置き、開け閉めは flex-basis をほかの欄と同じ動きでスライドさせる（ui/types/slide-pane.css。
+ * 中身は開いたときの幅のまま置いて切り取るので、動いている間に並べ直さない。つまみで変えている間は動かさない）。
+ * 閉じ終えたら見えなくする（ピントも入らない。NoteView が inert を付ける）。
+ * 見せる幅: 覚えた幅（--note-chat-w。つまみで変える）のまま、本文を 280px 残すところまで（260px より狭くはしない）
  */
 .note-chat-slot {
+  --pane-shown: max(260px, min(var(--note-chat-w), 100cqw - 280px));
+  --pane-motion: flex-basis var(--panel-motion-duration) var(--panel-motion-ease),;
+
   display: flex;
   flex: 0 0 0;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  visibility: hidden;
-  transition:
-    flex-basis var(--panel-motion-duration) var(--panel-motion-ease),
-    visibility 0s linear var(--panel-motion-duration);
 }
 
-.note-body.chat-open .note-chat-slot {
-  flex-basis: var(--note-chat-shown);
-  visibility: visible;
-  transition: flex-basis var(--panel-motion-duration) var(--panel-motion-ease);
-}
-
-/* つまみで幅を変えている間は、指に遅れないよう動かさない */
-.note-body.resizing .note-chat-slot {
-  transition: none;
+.note-chat-slot.open {
+  flex-basis: var(--pane-shown);
 }
 
 .note-chat {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: var(--note-chat-shown);
   min-height: 0;
   border-left: 1px solid var(--border);
   background: var(--bg-elev);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .note-chat-slot,
-  .note-body.chat-open .note-chat-slot {
+  .note-chat-slot {
     transition: none;
   }
 }

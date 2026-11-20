@@ -101,6 +101,11 @@ export interface SurfaceRules {
    * 外側の欄の規則（.board-panel の幅・開閉の動き・opacity など）が効かないようにする
    */
   rootClass?: string;
+  /**
+   * 開閉で幅が動く欄か（.slide-pane。幅は並べる要素の格子の列が決め、中身は開き終えたときの幅のまま切り取り、閉じ終えたら隠す）。
+   * ボードの右のパネルとチャットの右の欄。画面そのものとして置くとき（frame.fixed。チャットタブ）は動かさない
+   */
+  slide?: boolean;
 }
 
 export const SURFACES: Record<PanelSurface, SurfaceRules> = {
@@ -115,6 +120,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     maximize: "width",
     hideableTabs: true,
     emptyHint: "カードを押すと、ここにチャットが開きます。",
+    slide: true,
   },
   side: {
     memoryPrefix: "side",
@@ -156,6 +162,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     noTabAdds: true,
     newChild: true,
     rootClass: "agent-panel",
+    slide: true,
   },
   // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 features/popout/tabWindow.ts）
   window: {

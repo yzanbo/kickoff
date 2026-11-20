@@ -36,24 +36,20 @@
 
 /*
  * 右の欄の根（パネルの根。外側の欄の .board-panel の規則が効かないよう別の名前）。メインとの境目に左の 1 本線。
- * 閉じたら閉じ終えてから隠す（右の欄の中身を開いたときの幅のまま置いて切り取るので、閉じた後もはみ出した中身が押せる場所に残らないように）
+ * 開閉は ui/types/slide-pane.css（幅は .chat-split の格子の列。閉じたら閉じ終えてから隠す）。
+ * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--agents-shown から左の線の分を引く）のまま左端にそろえて置き、
+ * 右の欄の枠で切り取る（右から滑り込んでくる）
  */
 .agent-panel {
+  --pane-shown: calc(var(--agents-shown, calc(100% + 1px)) - 1px);
+
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
   border-left: 1px solid var(--border);
   background: var(--bg);
-  visibility: hidden;
-  transition: visibility 0s linear var(--panel-motion-duration);
-}
-
-.chat-split.with-agents > .agent-panel {
-  visibility: visible;
-  transition: visibility 0s;
 }
 
 /* メインを覆っているときは、境目の線を消す */
@@ -61,15 +57,7 @@
   border-left-color: transparent;
 }
 
-/*
- * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--agents-shown から左の線の分を引く）のまま左端にそろえて置き、
- * 右の欄の枠で切り取る（右から滑り込んでくる）。幅をドラッグしている間・覆う / 並べるを切り替えている間は、枠に合わせる
- */
-.agent-panel > .panel-tabs,
-.agent-panel > .panel-content {
-  width: calc(var(--agents-shown, calc(100% + 1px)) - 1px);
-}
-
+/* 幅をドラッグしている間・覆う / 並べるを切り替えている間は、タブの列と中身を枠に合わせる */
 .chat-split.resizing > .agent-panel > .panel-tabs,
 .chat-split.resizing > .agent-panel > .panel-content,
 .chat-split.stretching > .agent-panel > .panel-tabs,

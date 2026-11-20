@@ -64,6 +64,8 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const homeId = homePane(layout).id;
   // 閉じるボタンをタブの列の右端に置く欄（サブエージェントの欄）は、右上のペインにだけ置く
   const closeAtRight = SURFACES[panel.surface].closeButton?.at === "right";
+  // 開閉で幅が動く欄（ui/types/slide-pane.css。画面そのものとして置くときは動かさない）
+  const slide = rules.slide === true && !frame?.fixed;
   const topRightId = topRightPane(layout.root).id;
   const { panes, sashes } = layoutRects(layout.root);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
@@ -117,6 +119,8 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
       home={!split || pane.id === homeId}
       inert={!panelOpen}
+      // 分けていないときのタブの列は、開閉で幅が動く欄の中身（開き終えたときの幅のまま）
+      className={slide && !split ? "slide-pane-inner" : undefined}
       controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} view={view} /> : undefined}
       endControls={closeAtRight && pane.id === topRightId ? <PanelCloseButton panel={panel} frame={frame} /> : undefined}
       drag={drag}
@@ -164,10 +168,17 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
 
   return (
     <PanelHostContext.Provider value={Panel}>
-    <aside ref={asideRef} className={cx(rules.rootClass ?? "board-panel", rules.className, tabsHidden && "tabs-hidden")} aria-hidden={!panelOpen} data-panel-key={panel.key}>
+    <aside
+      ref={asideRef}
+      className={cx(rules.rootClass ?? "board-panel", rules.className, slide && "slide-pane", slide && panelOpen && "open", tabsHidden && "tabs-hidden")}
+      data-axis={slide ? "x" : undefined}
+      data-size={slide ? "outer" : undefined}
+      aria-hidden={!panelOpen}
+      data-panel-key={panel.key}
+    >
       {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
       {!split && !tabsHidden && bar(leaves[0])}
-      <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing", twoLine && "tabs-two-line")} inert={!panelOpen}>
+      <div ref={contentRef} className={cx("panel-content", slide && "slide-pane-inner", split && "split-view", resizing && "resizing", twoLine && "tabs-two-line")} inert={!panelOpen}>
         {!split && leaves[0].tabs.length === 0 && empty(leaves[0])}
         {split &&
           panes.map(({ id, rect }) => {

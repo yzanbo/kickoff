@@ -82,6 +82,7 @@
   flex: 1;
 }
 
+/* タブの入れ物（Panel の根。ボードの右のパネル・チャットタブ・ノート・ファイル・右サイドバー・下のパネル・別ウィンドウ） */
 .board-panel {
   position: relative;
   display: flex;
@@ -89,32 +90,28 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  /*
-   * 外枠は付けず、ボードとの境目に左の 1 本線だけを引く（チャットはなるべく広く使いたいので、
-   * 枠と、その外の画面の右・下の余白の分も中身に回す）
-   */
-  border-left: 1px solid transparent;
   background: var(--bg);
-  opacity: 0;
-  transition:
-    opacity var(--panel-motion-duration) ease,
-    border-color var(--panel-motion-duration);
-}
-
-/* 開いたパネルは、画面の右・下の余白（.page の --gutter）まで伸ばして端に付ける（閉じているときは伸ばさない。幅 0 の見えない箱が余白を押さえないように） */
-.board-body.with-panel .board-panel {
-  margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--gutter)) 0;
-  border-left-color: var(--border);
-  opacity: 1;
 }
 
 /*
+ * ボードの右のパネル（SURFACES の slide。開閉は ui/types/slide-pane.css で、幅は .board-body の格子の列）。閉じると透明にし、閉じ終えたら隠す。
+ * 外枠は付けず、ボードとの境目に左の 1 本線だけを引く（チャットはなるべく広く使いたいので、枠と、その外の画面の右・下の余白の分も中身に回す）。
  * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--panel-shown に、右の余白まで伸ばした分を足し、左の線の分を引く）のまま左端にそろえて置き、
  * パネルの枠で右側を切り取る。列が左へ広がるのに合わせて、中身が右から左へ滑り込んでくる（閉じるときは右へ抜けていく）
  */
-.board-panel:not(.as-sidebar) > .panel-tabs,
-.board-panel:not(.as-sidebar) > .panel-content {
-  width: calc(var(--panel-shown, calc(100% - var(--gutter) + 1px)) + var(--gutter) - 1px);
+.board-panel.slide-pane {
+  --pane-shown: calc(var(--panel-shown, calc(100% - var(--gutter) + 1px)) + var(--gutter) - 1px);
+  --pane-motion: opacity var(--panel-motion-duration) ease, border-color var(--panel-motion-duration),;
+
+  border-left: 1px solid transparent;
+  opacity: 0;
+}
+
+/* 開いたパネルは、画面の右・下の余白（.page の --gutter）まで伸ばして端に付ける（閉じているときは伸ばさない。幅 0 の見えない箱が余白を押さえないように） */
+.board-panel.slide-pane.open {
+  margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--gutter)) 0;
+  border-left-color: var(--border);
+  opacity: 1;
 }
 
 /*

@@ -34,7 +34,7 @@
 - `content-visibility: auto` は、外へはみ出す飾りを持つ要素でなく内側の要素に当てる。`contain-intrinsic-size` は余白と枠を引いた中身の高さを書く。
 - 欄の左右と真ん中の画面の中身のまわりは `--gutter`（一部だけ狭く・広くしない）。プロジェクトの画面はタブで幅を変えない。
 - 狭いときの並べ方は `@media` でなく `@container`（真ん中の幅はウィンドウより欄の幅で変わる）。
-- 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease`。開閉で大きさが動く欄は `.slide-pane`（`--pane-shown`。中身は `.slide-pane-inner`）。
+- 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease`。開閉で大きさが動く欄は `.slide-pane`（`--pane-shown`・中身 `.slide-pane-inner`・大きさが外なら `data-size="outer"`）。
 
 ### 角丸
 - `base/tokens.css` の 3 段とピル・丸だけを使い、数を直に書かない: 小 `--radius-sm` = 押す物と行、中 `--radius` = 面、大 `--radius-lg` = 浮く窓と大きなアイコンのタイル、ピル `999px`・丸 `50%`（高さの半分を px で書かない）。
@@ -42,7 +42,7 @@
 
 ## Electron のドラッグ領域
 - ドラッグ領域（`.page-header` `.sidebar-header`・欄のタブの列）の中で操作するものには `-webkit-app-region: no-drag`（JS のクリックでは再現しないので計算後のスタイルで確かめる）。
-- ドラッグ領域は `overflow: hidden` で切られない。閉じても大きさを残す欄は、閉じ終えたら `visibility: hidden`（開くときはすぐ見せる）。
+- ドラッグ領域は `overflow: hidden` で切られない（閉じても大きさを残す欄は `.slide-pane` で隠す）。
 - 入れ子の右の欄（`.agent-panel`）のタブの列はドラッグ領域にしない（外側の規則から `:not(:where(.agent-panel *))` で外す）。
 - ドラッグ領域は後に書いた要素が勝つので、閉じたサイドバーの開くボタン・左上の画面移動・右上の開閉は DOM の最後に置く。全体表示中の見出し（`base/maximized-header.css`）はドラッグ領域より後、固定のボタンより前。
 - 外側のクリックで閉じるものが開いている間は、`<html data-dismissable>` でドラッグ領域を止める（`base/layout.css`）。

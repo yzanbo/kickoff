@@ -11,14 +11,7 @@
   border-radius: var(--radius);
 }
 
-/* ボードの右のパネルの開閉の動き（幅 0 の列から滑り込む・閉じたら透明）を使わず、いつも見せる */
+/* ボードの右のパネルと同じパネルを、開閉の動きなしでいつも見せる */
 .chats-tab > .board-panel {
   flex: 1;
-  border-left: 0;
-  opacity: 1;
-}
-
-.chats-tab > .board-panel > .panel-tabs,
-.chats-tab > .board-panel > .panel-content {
-  width: auto;
 }

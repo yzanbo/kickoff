@@ -45,6 +45,7 @@ export function PaneTabBar({
   scrollTabs,
   home,
   inert,
+  className,
   controls,
   endControls,
   drag,
@@ -73,6 +74,8 @@ export function PaneTabBar({
    */
   home: boolean;
   inert?: boolean;
+  /** タブの列に足すクラス（開閉で幅が動く欄の中身 slide-pane-inner） */
+  className?: string;
   controls?: ReactNode;
   /** タブの列の右端（分ける・ペインを閉じるの後ろ）に置くもの（右上のペインだけ） */
   endControls?: ReactNode;
@@ -148,7 +151,7 @@ export function PaneTabBar({
   };
   return (
     <div
-      className={cx("panel-tabs", insertAt !== null && pane.tabs.length === 0 && "split-insert-bar")}
+      className={cx("panel-tabs", className, insertAt !== null && pane.tabs.length === 0 && "split-insert-bar")}
       role="tablist"
       inert={inert}
       onPointerDown={() => panel.focusPane(pane.id)}

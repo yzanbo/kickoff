@@ -314,7 +314,7 @@ export function NoteView({
                 {...chatSize.handle}
               />
             )}
-            <div ref={chatPane} className="note-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
+            <div ref={chatPane} className={cx("note-chat-slot slide-pane", chatOpen && "open", chatSize.resizing && "resizing")} data-size="outer" data-axis={chatPlace === "bottom" ? undefined : "x"} aria-hidden={!chatOpen} inert={!chatOpen}>
               <NoteChat
                 projectId={projectId}
                 path={path}
