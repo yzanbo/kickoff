@@ -25,10 +25,10 @@ function coreDown(status = 0): ApiError {
   return new ApiError(status, message, CORE_DOWN);
 }
 
-/** fetch（つながらなければ coreDown。止めた頼み（AbortError）はそのまま投げる） */
-async function send(url: string, init: RequestInit): Promise<Response> {
+/** fetch（つながらなければ coreDown。止めた頼み（AbortError）はそのまま投げる）。send・failure・bodyOf は同じフォルダの client.ts も使う */
+export async function send(url: string, init: RequestInit, fetchImpl: typeof fetch = fetch): Promise<Response> {
   try {
-    return await fetch(url, init);
+    return await fetchImpl(url, init);
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") throw e;
     throw coreDown();
@@ -52,7 +52,7 @@ export function withQuery(path: string, query: Query): string {
 }
 
 /** 失敗の応答を ApiError にする（サーバーは { error: 文 } で返す。本文が読めなければ状態コードだけ） */
-async function failure(res: Response): Promise<ApiError> {
+export async function failure(res: Response): Promise<ApiError> {
   const data = (await res.json().catch(() => null)) as { error?: unknown; code?: unknown } | null;
   // コアは失敗をいつも JSON で返すので、JSON でない 5xx はコアの手前（開発時の Vite の転送）がつなげなかったもの
   if (!data) return res.status >= 500 ? coreDown(res.status) : new ApiError(res.status, `HTTP ${res.status}`);
@@ -60,7 +60,7 @@ async function failure(res: Response): Promise<ApiError> {
 }
 
 /** 応答の本文（返すもののない応答（204）は undefined） */
-async function bodyOf<T>(res: Response): Promise<T> {
+export async function bodyOf<T>(res: Response): Promise<T> {
   if (!res.ok) throw await failure(res);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

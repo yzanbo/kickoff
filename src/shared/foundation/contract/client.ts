@@ -10,13 +10,13 @@ export interface SendRequest {
 }
 
 /** 入力の引数（入力のないルートは省ける。中身がすべて省けるなら入力も省ける） */
-type ArgsOf<I, O> = [I] extends [undefined] ? [input?: undefined, options?: O] : {} extends I ? [input?: I, options?: O] : [input: I, options?: O];
+export type ClientArgs<I, O> = [I] extends [undefined] ? [input?: undefined, options?: O] : {} extends I ? [input?: I, options?: O] : [input: I, options?: O];
 
 type Input = { params?: Record<string, string | number>; query?: Record<string, unknown>; body?: unknown };
 
 /** 取り決めから型付きの呼び手を作る（送り方 send は呼ぶ側が決める） */
 export function createClient<C extends Contract, O = undefined>(contract: C, send: (req: SendRequest, options: O | undefined) => Promise<unknown>) {
-  return <K extends RouteKey<C>>(key: K, ...args: ArgsOf<RouteInput<C, K>, O>): Promise<RouteOutput<C, K>> => {
+  return <K extends RouteKey<C>>(key: K, ...args: ClientArgs<RouteInput<C, K>, O>): Promise<RouteOutput<C, K>> => {
     const [input, options] = args as [Input | undefined, O | undefined];
     const spec = contract[key];
     if (!spec) throw new Error(`取り決めにないルートです: ${key}`);
