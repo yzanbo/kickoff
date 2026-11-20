@@ -56,7 +56,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 大きさ: つまみは `useDragSize`、狭いときに 1 つずつ出すのは `useNarrowSplit`、覆う右の欄は `useCoverableWidth`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。付いていくスクロールは `useFollowScroll`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
-- ⌘⇧S（すべて保存）は、開いている文書が `lib/saveAll.ts` の `registerSavable` で知らせる。
+- 文書の保存は `document/useDocument`（⌘⇧S・離れる前の確かめは `registerUnsaved`）。
 - 例外の文は `errorMessage`、class 名は `cx`、トークン数は `formatTokens`、パスは `splitPath` ＋ `PathParts`。
 - 時刻は `lib/time.ts`（部品で `toLocaleTimeString` などを直に呼ばない）。時間で変わる表示は `useTicker`。
 

@@ -10,7 +10,7 @@ import { runPageFind } from "@/foundation/ui/kit/pageFind";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { saveAll } from "@/foundation/ui/lib/saveAll";
+import { saveAll } from "@/foundation/ui/document/unsaved";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
 import { NoteProgress } from "@/features/notes/ui/NoteProgress";
 import { ToastHost } from "@/foundation/ui/kit/toast";

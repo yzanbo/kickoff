@@ -4,7 +4,8 @@ import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
 import type { GitFileChange, GitStatus } from "@shared/git/types";
 import { api, ApiError } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { registerSavable } from "@/foundation/ui/lib/saveAll";
+import { registerUnsaved } from "@/foundation/ui/document/unsaved";
+import { baseName } from "@/foundation/ui/lib/format";
 import { registerEditorCursor, type EditorCursor } from "@/foundation/ui/lib/viewDetails";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -146,15 +147,9 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     onDirtyChange?.(next);
   };
 
-  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。lib/saveAll）
-  const savable = useLatest({
-    dirty,
-    saveCurrent: async () => {
-      const value = getValue.current?.();
-      return value !== undefined && Boolean(await save(value));
-    },
-  });
-  useEffect(() => registerSavable({ dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), []);
+  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。未保存の登録簿 document/unsaved）
+  const savable = useLatest({ dirty, saveCurrent: async () => (getValue.current ? Boolean(await save(getValue.current())) : false) });
+  useEffect(() => registerUnsaved({ key, surface: "files", title: baseName(path), dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), [key, path]);
   useEffect(() => registerSave?.(() => savable.current.saveCurrent()), [registerSave]);
 
   // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す

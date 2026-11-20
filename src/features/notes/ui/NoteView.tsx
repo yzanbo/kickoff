@@ -2,7 +2,7 @@ import { CodeXml, Eye, Save, StickyNote } from "lucide-react";
 import { noteExtensionOf, noteKindOf, type NoteKind } from "@shared/notes/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { registerSavable } from "@/foundation/ui/lib/saveAll";
+import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { registerNoteSelection } from "@/foundation/ui/lib/viewDetails";
 import { isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
 import { storage } from "./storage";
@@ -25,7 +25,7 @@ import { NoteQuickChat } from "./NoteQuickChat";
 import { NoteChatToggle } from "./NoteChatToggle";
 import { useNoteChatTargets } from "./noteChatTargets";
 import { NoteSelectionAttach } from "./NoteSelectionAttach";
-import { noteTitle, parentOf } from "./notePaths";
+import { baseName, noteTitle, parentOf } from "./notePaths";
 import { subscribeNoteReveal, takeNoteReveal } from "./noteReveal";
 import { useNoteDocument, type NoteSaveState } from "./useNoteDocument";
 import { useBottomChatMotion } from "./useBottomChatMotion";
@@ -172,9 +172,9 @@ export function NoteView({
   const extension = noteExtensionOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
-  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。lib/saveAll）
+  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。未保存の登録簿 document/unsaved）
   const savable = useLatest({ unsaved, saveDoc });
-  useEffect(() => registerSavable({ dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), []);
+  useEffect(() => registerUnsaved({ key: `${projectId}:${path}`, surface: "notes", title: baseName(path), dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), [projectId, path]);
   // 選んでいる文（利用者が見ているものの知らせが読む。AI の get_user_view）
   useEffect(() => registerNoteSelection(projectId, path, () => editor.current?.selectedText() ?? ""), [projectId, path]);
 

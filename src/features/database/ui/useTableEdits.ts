@@ -5,7 +5,7 @@ import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDet
 import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { registerSavable } from "@/foundation/ui/lib/saveAll";
+import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useDbClient } from "./dbClientContext";
 import { unsavedKey, unsavedTables } from "./tabFlags";
@@ -99,7 +99,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
 
   // ⌘⇧S のすべて保存にも知らせる
   const saveRef = useLatest(save);
-  useEffect(() => registerSavable({ dirty: () => editCounts(latest.current).total > 0, save: () => saveRef.current() }), []);
+  useEffect(() => registerUnsaved({ key: tab.key, surface: "database", title: tab.name, dirty: () => editCounts(latest.current).total > 0, save: () => saveRef.current() }), [tab.key, tab.name]);
 
   const isTable = detail?.kind === "table";
   return {

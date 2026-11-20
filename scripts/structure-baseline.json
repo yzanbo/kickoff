@@ -2473,7 +2473,6 @@
       "src/features/database/worker/mysql.ts": 406,
       "src/features/database/worker/postgres.ts": 426,
       "src/features/docker/core/service.ts": 304,
-      "src/features/files/ui/FileView.tsx": 304,
       "src/features/files/ui/useFileActions.tsx": 341,
       "src/features/git/core/routes/server.git.test.ts": 470,
       "src/features/github/core/service.ts": 341,
