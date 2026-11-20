@@ -1,5 +1,5 @@
 /*
- * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--group-hue。clusterHues が同じ列のまとまりどうしで被らないように選ぶ）を、
+ * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--hue。clusterHues が同じ列のまとまりどうしで被らないように選ぶ）を、
  * 頭の札と、中のタブの色（--tab-color。表示中のタブの下線。右の欄のノート・サブ・子のタブと同じ見せ方。side-panel-tab-kinds.css）に使い、
  * まとまりどうしは間隔で分ける。「その他」（.plain）は色を付けない。
  */
@@ -13,8 +13,8 @@
   flex: 0 1 auto;
   min-width: calc(var(--cluster-tabs, 0) * 38px + 80px);
   gap: 2px;
-  /* まとまりの色（札の文字・地、中のタブの線と枠）。ライトは地に負けない濃さ */
-  --group-color: hsl(var(--group-hue) 60% 68%);
+  /* まとまりの色（札の文字・地、中のタブの線と枠）。ライトはトークンで地に負けない濃さ */
+  --group-color: hsl(var(--hue) var(--hue-fg-group));
   /* 頭の札の地 */
   --group-tint: color-mix(in srgb, var(--group-color) 18%, transparent);
 }
@@ -22,10 +22,6 @@
 /* 「その他」（色なし）の札は控えめな地 */
 .panel-tab-group.plain {
   --group-tint: var(--bg-elev);
-}
-
-:root[data-theme="light"] .panel-tab-group {
-  --group-color: hsl(var(--group-hue) 55% 38%);
 }
 
 /* まとまりの中のタブは、まとまりの色を自分の色にする（「その他」は付けない） */

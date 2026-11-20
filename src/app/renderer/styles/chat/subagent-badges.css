@@ -68,11 +68,7 @@ button.subagent-children:hover {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: hsl(var(--agent-hue, 25) 60% 65%);
-}
-
-:root[data-theme="light"] .subagent-child-dot {
-  background: hsl(var(--agent-hue, 25) 55% 42%);
+  background: hsl(var(--hue, 25) var(--hue-fg));
 }
 
 .subagent-child-dot.running {
@@ -97,15 +93,11 @@ button.subagent-children:hover {
 }
 
 .subagent-child-rows > li {
-  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  --agent-color: hsl(var(--hue, 25) var(--hue-fg));
 
   position: relative;
   min-width: 0;
   padding-left: 16px;
-}
-
-:root[data-theme="light"] .subagent-child-rows > li {
-  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
 }
 
 /* 木の枝（上から曲がって行に入る。「ほか n 件」の行には引かない） */

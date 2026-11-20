@@ -77,15 +77,11 @@
   flex: none;
 }
 
-/* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」・プロジェクトの見出しのピンとそろえ、まっすぐのピンをプロジェクトの色で塗る。色は要素の --ws-hue） */
+/* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」・プロジェクトの見出しのピンとそろえ、まっすぐのピンをプロジェクトの色で塗る。色は要素の --hue） */
 .panel-tab-label > .panel-tab-pin {
   margin-right: -1px;
-  color: hsl(var(--ws-hue, 150) 60% 65%);
+  color: hsl(var(--hue, 150) var(--hue-fg-pin));
   fill: currentColor;
-}
-
-:root[data-theme="light"] .panel-tab-label > .panel-tab-pin {
-  color: hsl(var(--ws-hue, 150) 55% 38%);
 }
 
 /* キーボードのピントは外の枠ではなくタブの地で示す（枠の上下が切り取られ、両側に縦線だけが出ていた） */
@@ -131,11 +127,7 @@
 }
 
 .panel-tab-label .panel-tab-group-name[style] {
-  --group-color: hsl(var(--group-hue) 60% 68%);
-}
-
-:root[data-theme="light"] .panel-tab-label .panel-tab-group-name[style] {
-  --group-color: hsl(var(--group-hue) 55% 38%);
+  --group-color: hsl(var(--hue) var(--hue-fg-group));
 }
 
 /*

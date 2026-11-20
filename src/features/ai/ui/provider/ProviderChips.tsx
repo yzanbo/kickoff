@@ -9,7 +9,7 @@ import { turnsApi } from "@/features/chat/ui/api/turns";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { PAY_PER_USE_LABEL, paysPerUse, providerChipName, providerLabel, providerPickBlock, providerSwitchBlock, statusOf } from "./providerChoice";
 
-/** AI の札の色（グループの札と同じ形に、AI ごとの色 --group-hue） */
+/** AI の札の色（グループの札と同じ形に、AI ごとの色 --hue） */
 const PROVIDER_HUES: Record<ProviderId, number> = { claude: 20, codex: 160, copilot: 280, cursor: 210, gemini: 45 };
 
 /** 札に乗せたときの説明の後ろ（API キーで動かすなら、使った分の支払いであることを添える） */
@@ -84,7 +84,7 @@ export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
     <span
       className="chat-group-chip tag chat-provider-chip"
       data-look="outline"
-      style={{ "--group-hue": PROVIDER_HUES[provider] } as CSSProperties}
+      style={{ "--hue": PROVIDER_HUES[provider] } as CSSProperties}
       data-tip={`このチャットの AI: ${providerLabel(provider, status)}（この AI の切り替えには未対応です）${payNote(status)}`}
     >
       <Bot size={11} aria-hidden />

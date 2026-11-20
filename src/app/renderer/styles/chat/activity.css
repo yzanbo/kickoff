@@ -106,7 +106,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: hsl(var(--agent-hue, 25) 60% 65%);
+  background: hsl(var(--hue, 25) var(--hue-fg));
 }
 
 .activity-running {
@@ -136,7 +136,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: hsl(var(--agent-hue, 25) 60% 65%);
+  background: hsl(var(--hue, 25) var(--hue-fg));
 }
 
 .activity-focus-name {
@@ -313,10 +313,4 @@
   flex: none;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
-}
-
-/* ライトでは、点の色を地に負けない濃さに */
-:root[data-theme="light"] .activity-chip .agent-dot,
-:root[data-theme="light"] .activity-focus-bar .agent-dot {
-  background: hsl(var(--agent-hue, 25) 55% 42%);
 }

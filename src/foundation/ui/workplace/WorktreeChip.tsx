@@ -23,7 +23,7 @@ export function WorktreeChip({ chat, markIconOnly }: { chat: WorkplaceChat & Pic
       <span
         className={cx("worktree-chip tag", place.kind === "missing" && "is-gone")}
         data-look="outline"
-        style={{ "--group-hue": hue } as CSSProperties}
+        style={{ "--hue": hue } as CSSProperties}
         title={[place.title, ...decorLines].join("\n")}
       >
         <span className="chip-kind">{WORKPLACE_SHORT_LABELS[place.kind]}</span>

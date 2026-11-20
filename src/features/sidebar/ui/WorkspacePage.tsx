@@ -282,7 +282,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {...projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
       inert={hidden}
-      style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}
+      style={{ "--hue": `${projectHue(project.id)}` } as React.CSSProperties}
     >
       <WorkspaceHead
         project={project}

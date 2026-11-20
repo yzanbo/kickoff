@@ -13,7 +13,7 @@ export interface NewChatPlace {
   worktree?: string;
 }
 
-const hueStyle = (hue: number | null | undefined) => (hue === null || hue === undefined ? undefined : ({ "--group-hue": hue } as CSSProperties));
+const hueStyle = (hue: number | null | undefined) => (hue === null || hue === undefined ? undefined : ({ "--hue": hue } as CSSProperties));
 
 /** 新しいチャットを始める先の札と説明に使う値（グループの名前と色・作業場所の短い札と色・作業場所の説明） */
 export function useNewChatPlace(place: NewChatPlace, branch: string | null = null) {

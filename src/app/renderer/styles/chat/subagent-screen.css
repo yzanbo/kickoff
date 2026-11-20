@@ -3,16 +3,12 @@
  * そのサブエージェントに伝える入力欄。見出しの左に、そのサブエージェントの色の帯（カードの帯と同じ色） ====
  */
 .subagent-screen {
-  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  --agent-color: hsl(var(--hue, 25) var(--hue-fg));
 
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
   min-width: 0;
-}
-
-:root[data-theme="light"] .subagent-screen {
-  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
 }
 
 .subagent-screen.missing {

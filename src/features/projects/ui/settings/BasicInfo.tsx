@@ -80,7 +80,7 @@ function ColorField({ project }: { project: Project }) {
             aria-checked={project.hue === hue}
             aria-label={`色 ${hue}°`}
             className="color-swatch"
-            style={{ "--ws-hue": `${hue}` } as CSSProperties}
+            style={{ "--hue": `${hue}` } as CSSProperties}
             onClick={() => choose(hue)}
           />
         ))}

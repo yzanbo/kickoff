@@ -91,14 +91,10 @@
 
 /*
  * 「まとまりを色付きで表示」のときの見出し（グループ別 = 自分で作ったグループ・No Group・固定・アーカイブ済み、作業場所別 = 作業場所・固定・アーカイブ済み）:
- * 見出しのアイコン（フォルダ・ブランチ・ピン・アーカイブ）と名前を、タブの列のまとまりと同じ色（--group-hue。bucketHues.ts）にする。濃さはタブのまとまりの札と同じ
+ * 見出しのアイコン（フォルダ・ブランチ・ピン・アーカイブ）と名前を、タブの列のまとまりと同じ色（--hue。bucketHues.ts）にする。濃さはタブのまとまりの札と同じ
  */
 .bucket-hued {
-  --group-color: hsl(var(--group-hue) 60% 68%);
-}
-
-:root[data-theme="light"] .bucket-hued {
-  --group-color: hsl(var(--group-hue) 55% 38%);
+  --group-color: hsl(var(--hue) var(--hue-fg-group));
 }
 
 .bucket-hued .custom-group-icon,

@@ -111,7 +111,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         role="button"
         tabIndex={0}
         className={cx("subagent-row tree-indent", isArchived && "archived")}
-        style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--agent-hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
+        style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
         onClick={() => openRow(s.key)}
         onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
       >

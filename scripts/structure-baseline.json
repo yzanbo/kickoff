@@ -2415,7 +2415,7 @@
       "siblings:src:app,features,foundation"
     ],
     "size": {
-      "src/app/renderer/styles/chat/activity.css": 321,
+      "src/app/renderer/styles/chat/activity.css": 316,
       "src/app/renderer/styles/chat/chat.css": 354,
       "src/app/renderer/styles/chat/child-chats.css": 359,
       "src/app/renderer/styles/chat/composer.css": 309,

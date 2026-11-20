@@ -18,7 +18,7 @@ function avatarHue(email: string) {
 /** 作者の丸い印（名前の頭文字。外の画像は取りに行かない） */
 function AuthorAvatar({ name, email }: { name: string; email: string }) {
   return (
-    <span className="commit-avatar" style={{ "--avatar-hue": avatarHue(email) } as CSSProperties} aria-hidden>
+    <span className="commit-avatar" style={{ "--hue": avatarHue(email) } as CSSProperties} aria-hidden>
       {[...name.trim()][0]?.toUpperCase() ?? "?"}
     </span>
   );

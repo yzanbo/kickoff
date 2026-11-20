@@ -59,16 +59,11 @@
 
 /* チャットの「固定」のまとまり: ピンをプロジェクトの色で塗って、ほかのまとまりより目立たせる（「まとまりを色付きで表示」のときは、まとまりの色で塗る） */
 .row-section.pinned .custom-group-icon {
-  color: hsl(var(--ws-hue, 150) 60% 65%);
+  color: hsl(var(--hue, 150) var(--hue-fg-pin));
   fill: currentColor;
 }
 
-:root[data-theme="light"] .row-section.pinned .custom-group-icon {
-  color: hsl(var(--ws-hue, 150) 55% 38%);
-}
-
-.row-section.pinned .bucket-hued .custom-group-icon,
-:root[data-theme="light"] .row-section.pinned .bucket-hued .custom-group-icon {
+.row-section.pinned .bucket-hued .custom-group-icon {
   color: var(--group-color);
 }
 
@@ -98,7 +93,7 @@
 
 /* 並べ替えの線（ui/state.css）は丸の間の隙間に（横スライドは縦の線・縦スライドは横の線。向きは部品が付ける） */
 .workspace-dot {
-  --ws-hue: 20;
+  --hue: 20;
   --drop-offset: -5px;
   --drop-inset: 2px;
   --drop-anim: none;
@@ -113,18 +108,13 @@
   font: inherit;
   font-size: var(--fs-12);
   font-weight: 700;
-  color: hsl(var(--ws-hue) 60% 72%);
-  background: hsl(var(--ws-hue) 35% 22%);
+  color: hsl(var(--hue) var(--hue-mark-fg));
+  background: hsl(var(--hue) var(--hue-mark-bg));
   cursor: pointer;
   opacity: 0.7;
   transition:
     opacity 0.15s,
     transform 0.15s;
-}
-
-:root[data-theme="light"] .workspace-dot {
-  color: hsl(var(--ws-hue) 55% 32%);
-  background: hsl(var(--ws-hue) 55% 90%);
 }
 
 /* 乗せた・選んでいる丸は、動かしている間も薄くしない */
@@ -137,7 +127,7 @@
 .workspace-dot.active {
   --drag-source-opacity: 1;
 
-  border-color: hsl(var(--ws-hue) 60% 60%);
+  border-color: hsl(var(--hue) 60% 60%);
   opacity: 1;
   transform: scale(1.08);
 }
@@ -150,13 +140,12 @@
   width: 8px;
   height: 2px;
   border-radius: 1px;
-  background: hsl(var(--ws-hue) 60% 60%);
+  background: hsl(var(--hue) 60% 60%);
   transform: translateX(-50%);
   content: "";
 }
 
-.workspace-dot.add,
-:root[data-theme="light"] .workspace-dot.add {
+.workspace-dot.add {
   color: var(--muted);
   background: transparent;
   border: 1px dashed var(--border-strong);

@@ -75,7 +75,7 @@ export function PanelTab({
 }) {
   const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={projectHueStyle(pinnedIn)} aria-label="ピン留め" />;
   const groupBadge = group && (
-    <span className="panel-tab-group-name tag" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
+    <span className="panel-tab-group-name tag" style={group.hue === null ? undefined : ({ "--hue": group.hue } as CSSProperties)}>
       {group.name}
     </span>
   );

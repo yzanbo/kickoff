@@ -78,7 +78,7 @@ export function WorkspaceDots({
             role="tab"
             aria-selected={i === index}
             className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
-            style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
+            style={{ "--hue": `${projectHue(p.id)}` } as CSSProperties}
             {...reorder.attrsFor(p.id, axis)}
             title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}

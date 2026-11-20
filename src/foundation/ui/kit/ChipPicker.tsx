@@ -5,7 +5,7 @@ import { ChoiceMenu } from "./ChoiceMenu";
 import { useContextMenu } from "./useContextMenu";
 
 /**
- * 選べる札: 見た目は札（className で札の形と色。hue は札の色 --group-hue）のまま、名前の右に ▾ を付け、押すと下に 1 つ選ぶメニュー（ChoiceMenu）を開く。
+ * 選べる札: 見た目は札（className で札の形と色。hue は札の色 --hue）のまま、名前の右に ▾ を付け、押すと下に 1 つ選ぶメニュー（ChoiceMenu）を開く。
  * 新しいチャットの見出しの作成先のグループ・作業場所（チャットの見出しのグループの札・ブランチの印と同じ形で、選べることだけを ▾ で示す）。
  * empty は「選んでいない」（グループなしなど）で、色を付けず控えめに出す。
  * kind は名前の前に出す種類（作業場所の「本体」「WT」など。あれば印の代わりに出し、名前は区切りの後ろの補足になる）
@@ -57,7 +57,7 @@ export function ChipPicker<T extends string>({
         type="button"
         className={cx("tag", className, "chip-picker", empty && "is-empty")}
         data-look="outline"
-        style={hue === undefined ? undefined : ({ "--group-hue": hue } as CSSProperties)}
+        style={hue === undefined ? undefined : ({ "--hue": hue } as CSSProperties)}
         data-chip-picker={id}
         data-tip={inactive ?? tip}
         aria-haspopup="menu"

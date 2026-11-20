@@ -37,7 +37,7 @@ export function GroupColumnHead({ group, count, board, onNewChat }: { group: Cha
       ) : (
         <ToneChip
           className="group-hued"
-          style={{ "--group-hue": group.hue } as CSSProperties}
+          style={{ "--hue": group.hue } as CSSProperties}
           icon={<Folder size={13} aria-hidden />}
           label={group.name}
           count={count}

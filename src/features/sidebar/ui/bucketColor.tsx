@@ -8,9 +8,9 @@ import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 
-/** まとまりの見出しに付ける色（色相が null なら何も付けない）。`.bucket-hued` が `--group-hue` から見出しのアイコンと名前の色を決める（sidebar-sections.css） */
+/** まとまりの見出しに付ける色（色相が null なら何も付けない）。`.bucket-hued` が `--hue` から見出しのアイコンと名前の色を決める（sidebar-sections.css） */
 export const huedHeadProps = (hue: number | null): { className?: string; style?: CSSProperties } =>
-  hue === null ? {} : { className: "bucket-hued", style: { "--group-hue": hue } as CSSProperties };
+  hue === null ? {} : { className: "bucket-hued", style: { "--hue": hue } as CSSProperties };
 
 /**
  * サイドバーの 1 つのプロジェクトのまとまりの色（chatListSettings.bucketColors。初めは付ける）。色はタブの列のまとまりと同じ（bucketHues.ts）。

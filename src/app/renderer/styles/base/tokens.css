@@ -51,6 +51,17 @@
   /* AI の色（設定の AI の一覧の印） */
   --ai-claude: #d97757;
   --ai-gemini: #5c9bf6;
+  /*
+   * 色相から作る色の「彩度 明るさ」（使う所は hsl(var(--hue) var(--hue-fg)) と書く。--hue は部品が style で入れる色相）。
+   * ライトは地に負けない濃さ。段は今の値のまま（そろえるならここで）
+   */
+  --hue-fg: 60% 65%; /* サブエージェントの印・線 */
+  --hue-fg-group: 60% 68%; /* グループ・作業場所の札と見出し */
+  --hue-fg-pin: 60% 65%; /* 固定のピン */
+  --hue-fg-head: 60% 68%; /* ボードの列の見出しのグループの札 */
+  --hue-mark-fg: 60% 72%; --hue-mark-bg: 35% 22%; /* プロジェクトの印・横スライドの丸 */
+  --hue-tint: 25% 13%; --hue-tint-hover: 28% 16%; /* 薄い地（プロジェクトの札・段の見出し） */
+  --hue-edge: 30% 24%; --hue-edge-hover: 40% 34%; /* 薄い地の枠 */
   /* 子チャットの深さの色（子 = 青・孫 = 桃・ひ孫より深い = 黄緑）。右の欄のタブの札と下線・子チャットの上の帯の呼び名で同じ */
   --child-depth-1: hsl(200 70% 62%);
   --child-depth-2: hsl(330 65% 72%);
@@ -152,6 +163,9 @@
   --child-depth-1: hsl(205 70% 40%);
   --child-depth-2: hsl(330 55% 45%);
   --child-depth-3: hsl(100 50% 30%);
+  --hue-fg: 55% 42%; --hue-fg-group: 55% 38%; --hue-fg-pin: 55% 38%; --hue-fg-head: 55% 42%;
+  --hue-mark-fg: 55% 32%; --hue-mark-bg: 55% 90%;
+  --hue-tint: 50% 96%; --hue-tint-hover: 55% 93%; --hue-edge: 40% 82%; --hue-edge-hover: 45% 70%;
 }
 
 * {
@@ -174,11 +188,10 @@
  *   --note-find-right ノートの検索欄の右のずれ（会話の欄の幅。NoteView.tsx）
  *   --row-est    流れの行の高さの見積もり（useRowWindow.ts。@property で宣言。timeline-row.css）
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
- *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・PanelTab.tsx（ピン留めしたチャットのタブのピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）
+ *   --hue        色相（プロジェクト projectHueStyle・WorkspaceDots・BasicInfo、グループ / 作業場所 bucketColor・WorktreeChip・PanelTab ほか、サブエージェント agentHueStyle、コミットの人 CommitSummary）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
- *   --group-hue  右のパネルのタブのまとまりの色相（サイドバーの「まとまりを色付きで表示」の見出し .bucket-hued も。bucketColor.tsx）・--cluster-tabs そのまとまりで見せているタブの数（PaneTabBar.tsx）。グループの札（PanelTab.tsx・ChatHeader.tsx）・ブランチの印（WorktreeChip.tsx）の色相にも使う
+ *   --cluster-tabs パネルのタブのまとまりで見せているタブの数（PaneTabBar.tsx）
  *   --img-w --img-h --img-x --img-y  画像を大きく見るときの画像の大きさと、中央からのずれ（imageViewer/useImageZoom.ts）
- *   --agent-hue  サブエージェントの色相（起動した順。subagents/agentHues.ts の agentHueStyle・SubagentChip.tsx）
  *   --timeline-h チャットの流れの見えている高さ（ChatTimeline.tsx。サブエージェントのカードの窓の高さに使う）
  *   --activity-time-w 動きの時刻の欄の幅（ActivityView.tsx。別の日の行があれば日付の入る幅）
  *   --chat-font-scale 会話の文字の大きさの倍率（<html> に。chat/chatFontSize.ts。会話の入れ物で --chat-scale にして使う。chat.css）

@@ -114,11 +114,7 @@
 }
 
 .workspace-head .workspace-pin.pinned {
-  color: hsl(var(--ws-hue, 150) 60% 65%);
-}
-
-:root[data-theme="light"] .workspace-head .workspace-pin.pinned {
-  color: hsl(var(--ws-hue, 150) 55% 38%);
+  color: hsl(var(--hue, 150) var(--hue-fg-pin));
 }
 
 .workspace-pin .pin-filled {

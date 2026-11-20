@@ -88,8 +88,8 @@
   cursor: grab;
 }
 
-/* 段の見出し: 薄い色の地を横幅いっぱいに敷いた角丸の帯。プロジェクトの段（.lane-project）の地は project-mark.css の札と共通（--ws-hue）、
-   グループ・作業場所の段（.lane-hued）はまとまりの色（--group-hue）の同じ濃さの地とアイコン、色のない段（.lane-plain）は灰色の地。
+/* 段の見出し: 薄い色の地を横幅いっぱいに敷いた角丸の帯。プロジェクトの段（.lane-project）の地は project-mark.css の札と共通（--hue）、
+   グループ・作業場所の段（.lane-hued）はまとまりの色（--hue）の同じ濃さの地とアイコン、色のない段（.lane-plain）は灰色の地。
    上に残るとき、角の外に下の中身が透けないよう、外側を画面の地で塗る */
 .board-lane-head {
   position: sticky;
@@ -109,21 +109,12 @@
 }
 
 .board-lane-head.lane-hued {
-  --group-color: hsl(var(--group-hue) 60% 68%);
-  background: hsl(var(--group-hue) 25% 13%);
+  --group-color: hsl(var(--hue) var(--hue-fg-group));
+  background: hsl(var(--hue) var(--hue-tint));
 }
 
 .board-lane-head.lane-hued:hover {
-  background: hsl(var(--group-hue) 28% 16%);
-}
-
-:root[data-theme="light"] .board-lane-head.lane-hued {
-  --group-color: hsl(var(--group-hue) 55% 38%);
-  background: hsl(var(--group-hue) 50% 96%);
-}
-
-:root[data-theme="light"] .board-lane-head.lane-hued:hover {
-  background: hsl(var(--group-hue) 55% 93%);
+  background: hsl(var(--hue) var(--hue-tint-hover));
 }
 
 .board-lane-head.lane-hued .board-lane-name > svg {

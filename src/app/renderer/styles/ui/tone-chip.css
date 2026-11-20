@@ -20,11 +20,7 @@
 }
 
 .tone-chip.group-hued {
-  --head-color: hsl(var(--group-hue) 60% 68%);
-}
-
-:root[data-theme="light"] .tone-chip.group-hued {
-  --head-color: hsl(var(--group-hue) 55% 42%);
+  --head-color: hsl(var(--hue) var(--hue-fg-head));
 }
 
 .tone-chip .status-dot {

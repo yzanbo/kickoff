@@ -1,16 +1,12 @@
 /* ==== サブエージェントの色・メインからの枝分かれの線・カードの手順の窓 ==== */
 
 /*
- * そのサブエージェントの色（--agent-hue は起動した順に決まる色相。subagents/agentHues.ts）。カードの左の端の細い帯・開いた中身の縦線・
+ * そのサブエージェントの色（--hue は起動した順に決まる色相。subagents/agentHues.ts）。カードの左の端の細い帯・開いた中身の縦線・
  * 目次の点・動きの線で同じ色にする
  */
 .subagent-card {
-  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  --agent-color: hsl(var(--hue, 25) var(--hue-fg));
   box-shadow: inset 3px 0 0 var(--agent-color);
-}
-
-:root[data-theme="light"] .subagent-card {
-  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
 }
 
 /* メインの流れのカードは少し右へ寄せ、上から曲がって入る線で、メインから枝分かれした配下だと見せる（線はそのサブエージェントの色） */
@@ -64,7 +60,7 @@
   font-size: var(--chat-fs-12);
 }
 
-/* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--agent-hue は SubagentChip・回答待ちのカードの ApprovalFrom が入れる） */
+/* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--hue は SubagentChip・回答待ちのカードの ApprovalFrom が入れる） */
 .subagent-row .agent-dot,
 .approval-from .agent-dot {
   display: inline-block;
@@ -72,13 +68,9 @@
   height: 8px;
   border-radius: 50%;
   vertical-align: 1px;
-  background: hsl(var(--agent-hue, 25) 60% 65%);
+  background: hsl(var(--hue, 25) var(--hue-fg));
 }
 
 .subagent-row .agent-dot {
   margin-right: 6px;
-}
-
-:root[data-theme="light"] :is(.subagent-row, .approval-from) .agent-dot {
-  background: hsl(var(--agent-hue, 25) 55% 42%);
 }

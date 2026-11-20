@@ -103,8 +103,8 @@ function laneGrouping(lanes: readonly ChatBucket<PanelDraft>[]): ChatGrouping {
 }
 
 /**
- * 段の見出しの地の色（サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷く）。プロジェクトの段はプロジェクトの色（--ws-hue。
- * 地は project-mark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--group-hue。bucketHues.ts）。色のない段は灰色の地
+ * 段の見出しの地の色（サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷く）。プロジェクトの段はプロジェクトの色（--hue。
+ * 地は project-mark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--hue。bucketHues.ts）。色のない段は灰色の地
  */
 function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucket<PanelDraft>) => { className: string; style?: CSSProperties } {
   const projectIds = [...new Set(lanes.flatMap((l) => (l.projectId === undefined ? [] : [l.projectId])))];
@@ -112,7 +112,7 @@ function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucke
   return (lane) => {
     if (lane.kind === "project" && lane.projectId !== undefined) return { className: "lane-project", style: projectHueStyle(lane.projectId) };
     const hue = hueOf(lane);
-    return hue === null ? { className: "lane-plain" } : { className: "lane-hued", style: { "--group-hue": hue } as CSSProperties };
+    return hue === null ? { className: "lane-plain" } : { className: "lane-hued", style: { "--hue": hue } as CSSProperties };
   };
 }
 

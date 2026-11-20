@@ -40,6 +40,6 @@ export function agentHues(entries: readonly Pick<SubagentEntry, "key" | "parentK
   return hues;
 }
 
-/** サブエージェントの色を要素に渡す style（CSS の --agent-hue。色そのものはテーマに合わせて CSS が決める） */
+/** サブエージェントの色を要素に渡す style（CSS の --hue。色そのものはテーマに合わせて CSS が決める） */
 export const agentHueStyle = (hue: number | undefined): CSSProperties | undefined =>
-  hue === undefined ? undefined : ({ "--agent-hue": `${hue}` } as CSSProperties);
+  hue === undefined ? undefined : ({ "--hue": `${hue}` } as CSSProperties);

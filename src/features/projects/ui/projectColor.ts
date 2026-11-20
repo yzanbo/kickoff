@@ -14,9 +14,9 @@ export function projectHue(id: number): number {
   return hues.get(id) ?? (id * 67) % 360;
 }
 
-/** プロジェクトの色を要素に渡す style（CSS の --ws-hue。印・札の地・横スライドの丸で使う） */
+/** プロジェクトの色を要素に渡す style（CSS の --hue。印・札の地・横スライドの丸で使う） */
 export function projectHueStyle(id: number): CSSProperties {
-  return { "--ws-hue": `${projectHue(id)}` } as CSSProperties;
+  return { "--hue": `${projectHue(id)}` } as CSSProperties;
 }
 
 /** プロジェクト名の頭文字（アイコン用） */

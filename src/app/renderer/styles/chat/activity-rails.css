@@ -2,11 +2,11 @@
 
 /*
  * 1 行: 時刻・線・中身（誰が・何を・かかった時間）。線は行の高さいっぱいに引き（広げたツールの行も通す）、節は 1 行目の高さの真ん中（--node-y）。
- * 色は持ち主のサブエージェントの色（--agent-hue。カードの帯・目次の点と同じ）、メインは灰色
+ * 色は持ち主のサブエージェントの色（--hue。カードの帯・目次の点と同じ）、メインは灰色
  */
 .activity-row {
   --node-y: 13px;
-  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  --agent-color: hsl(var(--hue, 25) var(--hue-fg));
   display: grid;
   grid-template-columns: calc(var(--activity-time-w, 62px) * var(--chat-scale, 1)) auto minmax(0, 1fr);
   column-gap: 6px;
@@ -41,7 +41,7 @@
 }
 
 .activity-rails > * {
-  --rail-color: hsl(var(--agent-hue, 25) 60% 65%);
+  --rail-color: hsl(var(--hue, 25) var(--hue-fg));
 }
 
 .activity-rails > .main {
@@ -132,18 +132,4 @@
 
 .activity-row.running .activity-rail-node {
   animation: pulse-dim 1.4s ease-in-out infinite;
-}
-
-/* ライトでは、色を地に負けない濃さに */
-:root[data-theme="light"] .activity-row {
-  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
-}
-
-:root[data-theme="light"] .activity-rails > * {
-  --rail-color: hsl(var(--agent-hue, 25) 55% 42%);
-}
-
-/* メインの線はライトでも灰色（上の規則より詳しく指定して勝たせる。行の --agent-hue を受け継がない） */
-:root[data-theme="light"] .activity-rails > .main {
-  --rail-color: color-mix(in srgb, var(--muted) 55%, transparent);
 }
