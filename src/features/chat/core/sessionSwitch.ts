@@ -20,7 +20,7 @@ export async function switchAfterCompact(
   since: number,
 ): Promise<string | null> {
   const { store, provider } = deps;
-  if (!provider.trimSession || !store.events.list(chatId).some((e) => e.id > since && e.type === "compact")) return null;
+  if (!provider.trimSession || !store.events.exists(chatId, { after: since, type: "compact" })) return null;
   const chat = store.chats.get(chatId);
   const old = chat?.session_id;
   if (!chat || !old) return null;

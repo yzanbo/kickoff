@@ -87,7 +87,7 @@ export async function retryProviderHandoffPreparation(
   if (!chat || chat.archived_at || !pending || pending.state !== "blocked" || pending.provider !== chat.provider) throw new Error("再試行できる AI の引き継ぎがありません");
   const project = store.projects.get(chat.project_id);
   if (!project) throw new Error("プロジェクトが見つかりません");
-  const events = store.events.list(chatId).filter((event) => event.id < pending.eventId);
+  const events = store.events.list(chatId, { before: pending.eventId });
   const prepared = await prepareProviderHandoff(uploads, chatId, events, pending.lastEventId ?? 0);
   try {
     const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project)).catch(() => ({ context: "作業場所の Git の状態を取得できませんでした。", warning: "Git の状態を取得できませんでした" }));

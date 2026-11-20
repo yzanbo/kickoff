@@ -42,6 +42,13 @@ function readStatements() {
   e.pendingWorkplaceMove(chat.id);
   e.workplaceMoves(chat.id);
   e.uploadIdsIn([chat.id, other.id]);
+  e.list(chat.id, { after: a, types: ["user"], limit: 1 });
+  e.list(chat.id, { before: b, desc: true });
+  e.list(chat.id, { types: ["tool_use"], light: true, mainOnly: true });
+  e.latestId(chat.id);
+  e.latestId(chat.id, { type: ["result", "error"], mainText: true, before: b });
+  e.exists(chat.id, { after: a, type: "compact" });
+  e.latestResult(chat.id, { withSession: true, before: b });
   store.db.prepare = prepare;
   const statements = [...new Set(seen)].filter((sql) => /^\s*SELECT/i.test(sql) && /\bchat_events\b/.test(sql) && /\bchat_id\b/.test(sql));
   return { store, statements };

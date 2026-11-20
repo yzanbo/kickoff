@@ -113,7 +113,7 @@ export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: 
  */
 export function nameOnFirstMessage(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
   const chat = deps.store.chats.get(chatId);
-  if (!chat || chat.title !== "" || deps.store.events.list(chatId).some((e) => e.type === "user")) return;
+  if (!chat || chat.title !== "" || deps.store.events.exists(chatId, { type: "user" })) return;
   const titleText = text.trim() || attachments.map((a) => a.name).join("、");
   deps.store.chats.update(chatId, { title: firstLine(titleText) });
   void autoTitle(deps, chatId, titleText);

@@ -185,7 +185,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const branch = await currentBranch(cwd);
     store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
-    const since = store.events.list(chatId).at(-1)?.id ?? 0;
+    const since = store.events.latestId(chatId) ?? 0;
     // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）
     const preCompactText = compact ? null : preCompactPromptOf(store, project);
     // 圧縮したら（手で・自動のどちらも）、預かった指示より先に送る圧縮後指示

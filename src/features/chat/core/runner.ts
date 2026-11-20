@@ -197,7 +197,7 @@ export class Runner extends RunnerQueue {
     let recovered = false;
     let claimed = false;
     try {
-      const attempt = store.events.list(chatId).find((event) => event.id > pending.eventId && event.type === "user");
+      const attempt = store.events.list(chatId, { after: pending.eventId, types: ["user"], limit: 1 })[0];
       const prompt = attempt?.type === "user" ? (await followupPrompt(this.deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
       const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
         if (!runtime.preparing || !runtime.switchingProvider || runtime.turn) throw new Conflict("チャットの状態が変わったため、再試行できません");
