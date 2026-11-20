@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
+import { onServerEvent } from "@/foundation/ui/api/events";
 import { createKeyedSelector, createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStoreStatus } from "@/foundation/ui/store/useStore";
@@ -67,10 +68,17 @@ const views = createKeyedSelector((_key: string, active: Chat[] | undefined, old
   return prev && sameItems(prev, next) ? prev : next;
 });
 
+const viewKey = (projectId: number | undefined, archived: boolean) => `${projectId ?? "all"}:${archived ? "with-archived" : "active"}`;
+
 function chatsView(projectId: number | undefined, archived: boolean): Chat[] {
-  const key = `${projectId ?? "all"}:${archived ? "with-archived" : "active"}`;
-  return views.get(key, activeChats.get().data, archived ? archivedChats.get().data : undefined, projectId);
+  return views.get(viewKey(projectId, archived), activeChats.get().data, archived ? archivedChats.get().data : undefined, projectId);
 }
+
+// 消したプロジェクトの見え方は捨てる（覚え続けない）
+onServerEvent("project_deleted", (e) => {
+  views.forget(viewKey(e.id, false));
+  views.forget(viewKey(e.id, true));
+});
 
 function subscribeChats(listener: () => void) {
   const a = activeChats.subscribe(listener);
