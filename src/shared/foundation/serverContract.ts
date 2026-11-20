@@ -1,6 +1,5 @@
 // 土台の口の取り決め（接続の状態と、知らせの流れ）。受け口は src/foundation/core/http/serverRoutes.ts
-import { route, sse, type Contract } from "./contract";
-import type { BusEvent } from "./events";
+import { route, sse, type BusEvent, type Contract } from "./contract";
 import type { ServerStatus } from "./server";
 
 export const serverContract = {

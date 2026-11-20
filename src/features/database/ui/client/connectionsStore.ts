@@ -1,6 +1,7 @@
 // プロジェクトごとの DB の接続の一覧（DB タブ・右の欄・別ウィンドウの DB クライアントで共通）。変わったら知らせ（db_connections。中身は載らない）で取り直す。
 // 接続の一覧はこの Mac からだけ読める（スマホの画面では読まない。active: false）
-import type { BusEvent, DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";

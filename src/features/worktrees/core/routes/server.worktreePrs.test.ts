@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { execFileSync } from "node:child_process";
-import type { BusEvent, GitWorktree, Project, ProjectGitHub, WorktreePrNotice } from "@shared/types";
+import type { GitWorktree, Project, ProjectGitHub, WorktreePrNotice } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { setup } from "@/app/core/testing/testServer";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 

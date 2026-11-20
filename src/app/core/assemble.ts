@@ -26,6 +26,8 @@ import { createRemoteImages, type RemoteImageService } from "@/features/remoteIm
 import { createNotes, type NoteService } from "@/features/notes/core/index";
 import { createDatabase, type DatabaseService } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
+import { deviceEventTypes } from "@shared/foundation/contract";
+import { ALL_EVENT_TABLES } from "@/app/shared/contracts";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
 
@@ -52,6 +54,9 @@ export interface AppAssembly extends AssembledCore {
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   terminals: TerminalSessions;
 }
+
+/** 端末の SSE に届ける知らせの種類（機能の表の access） */
+const deviceTypes = deviceEventTypes(ALL_EVENT_TABLES);
 
 /** 機能を作って並べる（待つものは prepareCore で先に済ませる。テストの偽物は何も待たない） */
 export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePrepared = { relay: null }): AppAssembly {
@@ -100,6 +105,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
     features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports],
     hooks: {
       deviceAuth: devices.api.auth,
+      deviceMaySee: (event) => deviceTypes.has(event.type),
       status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: chat.api.mcpTools,
     },

@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
-import type { BusEvent, VoiceStatus } from "@shared/types";
+import type { VoiceStatus } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 /** 音声を multipart で送る */
 async function transcribe(app: ReturnType<typeof setup>["app"], fields: Record<string, string> = {}, bytes = new Uint8Array([1, 2, 3])) {

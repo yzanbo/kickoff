@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent, BusInput } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/foundation/contract";
 import { Bus, type BusStage } from "./bus";
 
 const event = (id: number): BusInput => ({ type: "project_deleted", id });

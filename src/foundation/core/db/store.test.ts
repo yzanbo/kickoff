@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { Store } from "./store";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 function setup() {
   const events: BusEvent[] = [];

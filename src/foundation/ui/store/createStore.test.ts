@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import type { BusEvent, ChatGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { fakeLoader } from "@shared/foundation/testing/async";
 import { busEvent, makeGroup } from "@shared/foundation/testing/factories";
 import { publishServerEvent, publishServerOpen } from "@/foundation/ui/api/events";

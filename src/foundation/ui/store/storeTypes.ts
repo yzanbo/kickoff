@@ -1,5 +1,5 @@
 // 店（stores/）の形: 部品が読む様子（StoreState）・作るときの指定・できること（KeyedStore / Store）
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 /** 店の値の様子（部品はこれを読む。中身が変わるたびに別のものになり、変わらなければ同じもの） */
 export interface StoreState<T> {

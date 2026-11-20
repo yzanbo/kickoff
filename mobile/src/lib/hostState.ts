@@ -1,5 +1,6 @@
 // 1 つの本体の一覧の様子（プロジェクト・チャット・回答待ち）。つながったときに読み、本体の知らせでその場で直す。純粋な関数でテストする
-import type { Approval, BusEvent, Chat, Project } from "@shared/types";
+import type { Approval, Chat, Project } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { agentStateOf } from "@shared/chat/state";
 import type { AgentState } from "@shared/types";
 

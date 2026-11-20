@@ -1,11 +1,11 @@
-// API のテスト: Kickoff のゴミ箱（入れる・一覧・元に戻す・同じ名前があるとき・AI の kickoff-trash が置いたものの取り込み・3 日で消える・待たずに完全に消す）
-// （共通の準備は testing/testServer.ts）
+// API のテスト: Kickoff のゴミ箱（入れる・一覧・元に戻す・同じ名前があるとき・AI の kickoff-trash が置いたものの取り込み・3 日で消える・待たずに完全に消す）（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type BusEvent, type TrashItem } from "@shared/types";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashItem } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { installTrashCommand, trashCommandEnv } from "@/features/trash/core/command";

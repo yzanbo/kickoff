@@ -1,8 +1,9 @@
-// 端末（スマホ）から使える口と、届ける知らせ。既定は「この Mac だけ」で、取り決めの access と、まだ取り決めに乗せていない口の表（下の 2 つ）に
-// 書いたものだけを端末に開く（新しい口・知らせの種類は、書き足すまで端末からは使えない。開いた口の一覧は test-records/core/device-routes.txt の記録）
+// 端末（スマホ）から使える口。既定は「この Mac だけ」で、取り決めの access と、まだ取り決めに乗せていない口の表（下の 2 つ）に
+// 書いたものだけを端末に開く（新しい口は、書き足すまで端末からは使えない。開いた口の一覧は test-records/core/device-routes.txt の記録。
+// 届ける知らせの種類は、機能の SSE の表の access から組み立てが作る = ServeHooks.deviceMaySee）
 import { TrieRouter } from "hono/router/trie-router";
 import type { Method } from "@shared/foundation/contract";
-import type { BusEvent, DeviceAccess } from "@shared/types";
+import type { DeviceAccess } from "@shared/types";
 import { routeTable, type Mountable } from "./mount";
 
 /** まだ取り決めに乗せていない口のうち、端末に開くもの（メソッドとパス。Hono のルートと同じ書き方。機能を取り決めに乗せたら、その行を消す） */
@@ -132,25 +133,3 @@ export function deviceAccess(routes: readonly Mountable[]): DeviceMayUse {
     return "read_only";
   };
 }
-
-/** 端末に届ける知らせの種類（開いた口の中身が変わったもの。この Mac の画面への頼み・閉じた口の知らせは届けない） */
-const DEVICE_EVENT_TYPES = new Set<BusEvent["type"]>([
-  "project",
-  "project_deleted",
-  "group",
-  "group_deleted",
-  "chat",
-  "chat_deleted",
-  "chat_event",
-  "chat_events_deleted",
-  "chat_delta",
-  "chat_subagent",
-  "chat_command_output",
-  "chat_live",
-  "approval",
-  "approval_resolved",
-  "notes",
-]);
-
-/** 端末に届けてよい知らせか */
-export const deviceMaySee = (event: BusEvent): boolean => DEVICE_EVENT_TYPES.has(event.type);

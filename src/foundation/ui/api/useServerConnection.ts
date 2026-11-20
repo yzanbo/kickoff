@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { publishServerOpen } from "./events";
 
 export type ConnectionState = "connecting" | "open" | "closed";

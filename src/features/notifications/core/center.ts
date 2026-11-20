@@ -1,6 +1,7 @@
 // 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ち・AI からの知らせ（notify_user）と CI の失敗を見つけ、それを見ていない人にだけ送る:
 // この Mac の通知（メインプロセスが startCore({ notify }) で渡す口）と、つないだ端末のプッシュ（PushSender。中身はあとで足す。CI の失敗は送らない）
-import type { BusEvent, ChatStatus, DevicePush } from "@shared/types";
+import type { ChatStatus, DevicePush } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/foundation/core/db/store";
 import { aiNotice, approvalNotice, chatNotice, ciNotice, type Notice } from "./notices";

@@ -1,7 +1,8 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
 // 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は store.devices に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { MOBILE_OFF, MOBILE_OFF_MESSAGE, PAIRING_CODE_TTL_MS, type BusEvent, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
+import { MOBILE_OFF, MOBILE_OFF_MESSAGE, PAIRING_CODE_TTL_MS, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/foundation/core/db/store";
 import { hashToken } from "./token";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";

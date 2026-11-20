@@ -1,6 +1,7 @@
 // ワークツリーの PR の見張り: ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたことに気づいて、画面に知らせる。
 // 前に「開いている」のを見たかは問わず、いまの状態で決める（Kickoff を閉じている間・この機能を入れる前にマージされたものも、ワークツリーが残っていれば知らせる）
-import type { BusEvent, GitWorktree, Project, WorktreePrNotice } from "@shared/types";
+import type { GitWorktree, Project, WorktreePrNotice } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/foundation/core/db/store";
 import type { BranchPullRequest } from "./github";
 import { runAsGitHubAccount } from "./githubAccount";

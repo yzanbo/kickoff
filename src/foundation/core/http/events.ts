@@ -1,18 +1,18 @@
 // リアルタイム配信（SSE。GET /api/events）: Bus の知らせを流す。つないだらすぐ hello、25 秒ごとに ping
 import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 import type { ServerHello } from "@shared/foundation/server";
+import type { ServeHooks } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import type { Caller } from "./caller";
-import type { DeviceAuth } from "./auth";
-import { deviceMaySee } from "./deviceAccess";
 import type { SseHandler } from "./implement";
 import { sseDataOf } from "./sseData";
 
 const PING_MS = 25_000;
 
 /** 呼び主への知らせの流れ（端末には開いた口の知らせだけを届け、取り消した・スマホ連携をオフにしたらそこで切る） */
-export function eventStream(k: Pick<Kernel, "bus" | "clock" | "paths">, version: string, deviceAuth: DeviceAuth | undefined, caller: Caller): SseHandler {
+export function eventStream(k: Pick<Kernel, "bus" | "clock" | "paths">, version: string, hooks: Pick<ServeHooks, "deviceAuth" | "deviceMaySee">, caller: Caller): SseHandler {
+  const { deviceAuth, deviceMaySee } = hooks;
   return async (stream) => {
     // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく。こちらから切るときも同じ待ちを終える
     let finish = () => {};

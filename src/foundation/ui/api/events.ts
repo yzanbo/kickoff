@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent } from "react";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 type Listener = (event: BusEvent) => void;
 const listeners = new Set<Listener>();

@@ -160,3 +160,7 @@ export interface FileRewindResult {
   insertions?: number;
   deletions?: number;
 }
+
+/** ブラウザでのログインの終わり方（SSE の provider_login） */
+const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
+export type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];

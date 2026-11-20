@@ -1,4 +1,4 @@
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 /** 知らせごとの SSE の data（JSON の文）。同じ知らせを、窓・スマホ・診断の数だけ文字にし直さない */
 const dataByEvent = new WeakMap<BusEvent, string>();

@@ -1,5 +1,5 @@
 // チャットの店の、書いている途中の返答の当て方（chatStore.ts が使う）
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { streamingAppendOf, streamingEffectOf, type StreamingEffect } from "@shared/chat/streamingRules";
 import { STREAM_FLUSH_MS, type ChatStoreDeps, type Entry } from "./chatStoreTypes";
 

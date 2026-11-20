@@ -28,6 +28,6 @@ export function serverRoutes(k: Pick<Kernel, "bus" | "clock" | "paths">, hooks: 
         min_client_api_version: MIN_CLIENT_API_VERSION,
       }),
     },
-    "GET /api/events": { run: ({ caller }) => eventStream(k, opts.version, hooks.deviceAuth, caller) },
+    "GET /api/events": { run: ({ caller }) => eventStream(k, opts.version, hooks, caller) },
   });
 }

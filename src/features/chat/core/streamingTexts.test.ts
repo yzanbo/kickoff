@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
-import type { BusInput } from "@shared/types";
+import type { BusInput } from "@shared/foundation/contract";
 import { StreamingTexts } from "./streamingTexts";
 
 const delta = (chat_id: number, text: string): BusInput => ({ type: "chat_delta", project_id: 1, chat_id, text });

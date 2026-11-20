@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
 import { tempDir } from "@/foundation/core/testing/tempDir";

@@ -1,6 +1,9 @@
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 import type { MessageMarks } from "./chatEvent";
 import type { GitHubKind } from "@shared/github/types";
+// 束ねの @shared/types から読めるように、ここからも出す（束ねを解いたら消す）
+export type { ChatGroup } from "@shared/groups/types";
+export * from "./openView";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
@@ -141,18 +144,6 @@ export interface Chat {
   created_at: string;
   /** 最後に動いた時刻（作った・送った・状態が変わったときに進む。一覧の並び順。印・固定・グループ・作業場所の変更では進めない） */
   active_at: string;
-}
-
-/** チャットを自分でまとめるグループ（プロジェクトごと） */
-export interface ChatGroup {
-  id: number;
-  project_id: number;
-  name: string;
-  /** 並び順（小さいほど上・左） */
-  position: number;
-  /** 色（色相。プロジェクトの色と同じ 10 色から、同じプロジェクトのほかのグループと被らない色を作ったときに選ぶ。右のパネルのタブのまとまりの色） */
-  hue: number;
-  created_at: string;
 }
 
 /** フィード（全プロジェクトの画面）の 1 件: チャットごとの、メインエージェントの最新の返答の初めの部分 */

@@ -2,7 +2,8 @@
 // どちらもサーバーの知らせ（chat / chat_deleted / project_deleted）で直し、並びはサーバーと同じく最後に動いた順。
 // 部品は useChats({ projectId?, archived? }) で読む（そのプロジェクト・アーカイブ済みを含めるかの見え方ごとに、中身が同じなら同じ配列を返す）
 import { useSyncExternalStore } from "react";
-import type { BusEvent, Chat } from "@shared/types";
+import type { Chat } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStoreStatus } from "@/foundation/ui/store/useStore";

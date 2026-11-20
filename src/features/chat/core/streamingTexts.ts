@@ -1,4 +1,4 @@
-import type { BusEvent, BusInput } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/foundation/contract";
 import { streamingEffectOf } from "@shared/chat/streamingRules";
 
 /**

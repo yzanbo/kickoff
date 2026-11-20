@@ -1,6 +1,6 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { NOW } from "./schema";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 // db/ の各表の店で共通に使う小さな部品（店をまとめるのは store.ts）
 

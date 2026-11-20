@@ -2,8 +2,9 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { matchRecord } from "@/foundation/core/testing/record";
+import { ALL_EVENT_TABLES } from "@/app/shared/contracts";
 
 /** SSE（Bus の知らせ）の種類のすべて（satisfies なので、種類を足したら型検査が足し忘れを教える） */
 const SSE_TYPES = {
@@ -50,6 +51,12 @@ const PENDING: readonly string[] = [];
 
 test("SSE の種類の記録（種類を機能へ配っても変わらない）", async () => {
   await matchRecord("core/sse-types.json", Object.keys(SSE_TYPES).sort());
+});
+
+test("SSE の種類の値の表（機能の events.ts）は、型の種類と同じものを 1 回ずつ持つ", () => {
+  const types = ALL_EVENT_TABLES.flatMap((table) => Object.keys(table));
+  assert.deepEqual([...types].sort(), Object.keys(SSE_TYPES).sort());
+  assert.equal(new Set(types).size, types.length);
 });
 
 test("SSE のどの種類も、コアのテストのどこかで名前が出る（まだのものは PENDING だけ）", () => {

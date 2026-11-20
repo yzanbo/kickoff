@@ -1,4 +1,5 @@
-import { CHAT_TAIL_TURNS, type BusEvent } from "@shared/types";
+import { CHAT_TAIL_TURNS } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
 import { streamingEffectOf } from "@shared/chat/streamingRules";
 import { detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
@@ -24,8 +25,7 @@ import {
   type Published,
 } from "./chatStoreTypes";
 
-export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHRINK_AFTER_MS } from "./chatStoreTypes";
-export type { ChatVisibility, ChatStoreDeps, ChatDetailView, ChatLogView, ChatProgressView } from "./chatStoreTypes";
+export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHRINK_AFTER_MS, type ChatVisibility, type ChatStoreDeps, type ChatDetailView, type ChatLogView, type ChatProgressView } from "./chatStoreTypes";
 
 /*
  * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・

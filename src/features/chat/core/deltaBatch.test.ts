@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent, BusInput } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/foundation/contract";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { Bus } from "@/foundation/core/bus";
 import { DeltaBatch } from "./deltaBatch";

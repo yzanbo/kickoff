@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import type { BusEvent, BusInput } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/foundation/contract";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 
 /**

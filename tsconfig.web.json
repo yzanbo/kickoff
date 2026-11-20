@@ -10,7 +10,8 @@
     "src/features/*/ui/**/*.ts",
     "src/features/*/ui/**/*.tsx",
     "src/app/renderer/**/*.ts",
-    "src/app/renderer/**/*.tsx"
+    "src/app/renderer/**/*.tsx",
+    "src/shared/*/events.ts"
   ],
   "exclude": ["**/*.test.ts", "src/**/testing/**", "src/foundation/ui/storage/memoryStorage.ts"]
 }

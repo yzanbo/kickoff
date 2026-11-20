@@ -1,4 +1,5 @@
-import type { BusEvent, ChatEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 
 /**
  * 書いている途中の返答（SSE の chat_delta）を消す、メインエージェントの記録の種類。

@@ -1,4 +1,4 @@
-import type { BusInput } from "@shared/types";
+import type { BusInput } from "@shared/foundation/contract";
 import type { BusStage } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
 import { DeltaBatch } from "./deltaBatch";

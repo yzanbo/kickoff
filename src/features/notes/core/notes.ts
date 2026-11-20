@@ -1,10 +1,10 @@
-// プロジェクトのノート（保存先はプロジェクトの外。設定の notes_dir（なければ既定）の下の、プロジェクトごとのフォルダの Markdown）。
-// パスはノートのフォルダからの相対で受け、フォルダの外を指さないか必ず確かめる（中身の読み書きはエディタのファイルと同じ readProjectFile / writeProjectFile）
+// プロジェクトのノート（保存先はプロジェクトの外。設定の notes_dir（なければ既定）の下の、プロジェクトごとのフォルダの Markdown）。パスはノートのフォルダからの相対で受け、フォルダの外を指さないか必ず確かめる（中身の読み書きはエディタのファイルと同じ readProjectFile / writeProjectFile）
 import fs from "node:fs/promises";
 import path from "node:path";
 import { noteKindOf } from "@shared/notes/kinds";
 import { chatNoteName, projectNoteFolder } from "@shared/notes/names";
-import { NOTE_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type NoteEntry, type NoteList, type NotePlan, type NoteSearchResult, type NoteRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import { NOTE_EXTENSION, UNTITLED_CHAT_TITLE, type Chat, type FileContent, type NoteEntry, type NoteList, type NotePlan, type NoteSearchResult, type NoteRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
 import type { Store } from "@/foundation/core/db/store";
 import { assertInside, readProjectFile, writeProjectFile } from "@/features/git/core/index";

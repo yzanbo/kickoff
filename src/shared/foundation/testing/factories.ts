@@ -1,24 +1,7 @@
 // テストのデータを作る関数（コアと画面のテストで共通。テストからだけ使う）。省いた項目は、それらしい既定値で埋める。
 // Node・DOM に依存しない
-import {
-  PROVIDER_FEATURES,
-  PROVIDER_LABELS,
-  type Attachment,
-  type BusEvent,
-  type Chat,
-  type ChatEventDataOf,
-  type ChatEventOf,
-  type ChatEventType,
-  type ChatGroup,
-  type ChatLive,
-  type GitHubPullDetail,
-  type GitHubReviewThread,
-  type GitWorktree,
-  type Project,
-  type ProviderId,
-  type ProviderStatus,
-  type Snippet,
-} from "@shared/types";
+import { PROVIDER_FEATURES, PROVIDER_LABELS, type Attachment, type Chat, type ChatEventDataOf, type ChatEventOf, type ChatEventType, type ChatGroup, type ChatLive, type GitHubPullDetail, type GitHubReviewThread, type GitWorktree, type Project, type ProviderId, type ProviderStatus, type Snippet } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { SubagentEntry } from "@shared/chat/subagents";
 
 /** 既定の時刻 */

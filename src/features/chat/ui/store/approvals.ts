@@ -1,6 +1,7 @@
 // 回答待ちの依頼（ツールの承認・AI からの質問・再開の確かめ。すべてのプロジェクト）。
 // アプリを開いたときに 1 回読み、届いた・答えたはサーバーの知らせで直す（チャットの状態は app/chatStatesContext.ts がこれから引く）
-import type { Approval, BusEvent } from "@shared/types";
+import type { Approval } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent } from "@shared/types";
+import type { Approval, Chat, ChatDetail, ChatEvent } from "@shared/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { busEvent, makeChat, makeChatLive, makeEvent } from "@shared/foundation/testing/factories";
 import { detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 import { EMPTY_RANGE } from "./chatLog";

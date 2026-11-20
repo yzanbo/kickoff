@@ -9,7 +9,6 @@ export * from "@shared/ai/types";
 export * from "@shared/providerSwitch/types";
 export * from "@shared/git/types";
 export * from "@shared/foundation/server";
-export * from "@shared/foundation/events";
 export * from "@shared/voice/types";
 export * from "@shared/notes/types";
 export * from "@shared/foundation/apiTypes";
