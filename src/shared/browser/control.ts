@@ -1,5 +1,6 @@
 // AI に操作させる埋め込みブラウザの口（コアは Electron に依存しないので、操作の中身はメインプロセスが渡す。
 // 単体のコア（npm run daemon）にはブラウザがないので、渡されなければ AI にブラウザのツールを出さない）
+import { methodNames } from "@shared/foundation/methodNames";
 
 /** AI から見えるブラウザのタブ（id は埋め込みブラウザの WebContents の ID） */
 export interface BrowserTabInfo {
@@ -64,3 +65,21 @@ export interface BrowserControl {
   /** AI がこのタブを操作した（画面のタブに「AI 操作中」の印を出す。しばらく操作がなければ消える） */
   touch(tabId: number): void;
 }
+
+/** コアのプロセスからメインへ写す操作の名前（RPC は "browser.<名前>"。touch は返事のない知らせ） */
+export const BROWSER_METHODS = methodNames<Omit<BrowserControl, "touch">>({
+  tabs: true,
+  open: true,
+  reveal: true,
+  navigate: true,
+  history: true,
+  read: true,
+  screenshot: true,
+  click: true,
+  type: true,
+  press: true,
+  scroll: true,
+  evaluate: true,
+  consoleLogs: true,
+});
+

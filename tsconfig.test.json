@@ -12,6 +12,7 @@
     "src/app/renderer/global.d.ts",
     "vitest.setup.ts",
     "src/shared/*/events.ts",
-    "src/app/shared/settings.ts"
+    "src/app/shared/settings.ts",
+    "src/app/core/hostRemote.ts"
   ]
 }

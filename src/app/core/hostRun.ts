@@ -10,7 +10,7 @@ import type { CorePlatformParts } from "./platform";
 import { waitForShellPath } from "@/foundation/core/system/exec";
 import { startProcessRecording } from "@/features/diagnostics/core/processRecording";
 import { startStallWatch, type StallRecord } from "@/foundation/core/system/stallWatch";
-import { rpcTimeoutOf, type AwakeNeeds, type CoreEvents, type CoreInit, type CoreMethods, type CoreToHost, type HostEvents, type HostMethods } from "@/foundation/core/host/protocol";
+import { RPC_TIMEOUTS, timeoutOf, type AwakeNeeds, type CoreEvents, type CoreInit, type CoreMethods, type CoreToHost, type HostEvents, type HostMethods } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
 import { createRpc } from "@/foundation/core/host/rpc";
 import { hostDbWorker, remoteBrowser, remoteCipher, remoteNotify } from "./hostRemote";
@@ -96,7 +96,7 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
     })());
 
   const rpc = createRpc<CoreMethods, HostMethods, CoreEvents, HostEvents>(parent, {
-    timeoutOf: rpcTimeoutOf,
+    timeoutOf: (method) => timeoutOf(RPC_TIMEOUTS, method),
     handlers: {
       // 答えを返してから終わる（答えより先にプロセスが消えると、メインは close の失敗として待ち切ってしまう）
       close: async () => void setImmediate(() => void closeAndExit()),

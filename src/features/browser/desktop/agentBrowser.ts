@@ -1,6 +1,7 @@
 import { nativeImage, webContents, type IpcMainEvent, type WebContents } from "electron";
 import type { BrowserHandOffCapture } from "@shared/foundation/ipc";
-import type { BrowserControl, BrowserTabInfo, HistoryAction, PageSnapshot, RevealRequest } from "@shared/browser/control";
+import { BROWSER_METHODS, type BrowserControl, type BrowserTabInfo, type HistoryAction, type PageSnapshot, type RevealRequest } from "@shared/browser/control";
+import { prefixedHandlers } from "@/foundation/core/host/protocol";
 import { appWindows } from "@/foundation/desktop/app/popouts";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { isOurWebview } from "./devtools";
@@ -168,11 +169,8 @@ export const agentBrowser: BrowserControl = {
     const result = await withTimeout(reply, 5000, "Kickoff の画面が応答しません").finally(() => pendingOpens.delete(requestId));
     if ("error" in result) throw new Error(result.error);
     const registered = [...entries.values()].find((e) => e.tabKey === result.tabKey);
-    const entry =
-      registered ??
-      (await withTimeout(new Promise<Entry>((resolve) => waiters.set(result.tabKey, resolve)), OPEN_TIMEOUT_MS, "タブを開きましたが、ページの準備が終わりませんでした").finally(() =>
-        waiters.delete(result.tabKey),
-      ));
+    const ready = () => withTimeout(new Promise<Entry>((resolve) => waiters.set(result.tabKey, resolve)), OPEN_TIMEOUT_MS, "タブを開きましたが、ページの準備が終わりませんでした");
+    const entry = registered ?? (await ready().finally(() => waiters.delete(result.tabKey)));
     await settle(entry.wc, 0);
     if (result.revealed) await settledLayout(entry.wc);
     return { tab: infoOf(entry), revealed: result.revealed };
@@ -187,9 +185,7 @@ export const agentBrowser: BrowserControl = {
     // タブのある画面が答える（ほかの画面は出さなかったと答える）
     const reply = new Promise<boolean>((resolve) => pendingReveals.set(requestId, gatherReplies<boolean>(wins.length, (shown) => shown, resolve)));
     for (const win of wins) sendEvent(win.webContents, "agentBrowser", "onRevealRequest", requestId, entry.tabKey, after);
-    const shown = await withTimeout(reply, REVEAL_TIMEOUT_MS, "Kickoff の画面が応答しません")
-      .catch(() => false)
-      .finally(() => pendingReveals.delete(requestId));
+    const shown = await withTimeout(reply, REVEAL_TIMEOUT_MS, "Kickoff の画面が応答しません").catch(() => false).finally(() => pendingReveals.delete(requestId));
     if (shown) await settledLayout(entry.wc);
     return shown;
   },
@@ -327,3 +323,6 @@ export const agentBrowserHandlers: IpcHandlers["agentBrowser"] = {
   revealed: (_e, requestId, shown) => pendingReveals.get(requestId)?.(shown),
   handOffCapture,
 };
+
+/** コアのプロセスから呼ばれる口（RPC の "browser.<名前>"。AI が操作した印 touch はコアからの知らせで受ける） */
+export const agentBrowserHostMethods = prefixedHandlers("browser", agentBrowser, BROWSER_METHODS);

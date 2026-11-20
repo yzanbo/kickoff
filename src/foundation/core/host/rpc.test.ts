@@ -5,7 +5,7 @@ import { afterTest } from "@/foundation/core/testing/afterTest";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { until } from "@/foundation/core/testing/until";
 import { nodeRpcPort } from "./ports";
-import { rpcTimeoutOf, type CoreMethods } from "./protocol";
+import { RPC_TIMEOUTS, timeoutOf, type CoreMethods } from "./protocol";
 import { createRpc } from "./rpc";
 
 interface A {
@@ -79,10 +79,10 @@ test("RPC: メインがコアに作業中のチャットを聞く runningChats �
   type Core = Pick<CoreMethods, "runningChats">;
   const { a, b } = channel();
   const clock = manualClock();
-  // メインプロセスの CoreProcess と同じ上限（rpcTimeoutOf）で呼ぶ。上限の長さも覚える
+  // メインプロセスの CoreProcess と同じ上限（RPC_TIMEOUTS）で呼ぶ。上限の長さも覚える
   const limits: number[] = [];
   const timers = { setTimeout: (fn: () => void, ms: number) => (limits.push(ms), clock.setTimeout(fn, ms)), clearTimeout: clock.clearTimeout };
-  const main = createRpc<Record<string, never>, Core, Record<string, never>, Record<string, never>>(a, { handlers: {}, clock: timers, timeoutOf: rpcTimeoutOf });
+  const main = createRpc<Record<string, never>, Core, Record<string, never>, Record<string, never>>(a, { handlers: {}, clock: timers, timeoutOf: (method) => timeoutOf(RPC_TIMEOUTS, method) });
   // コアの答え（呼ばれるたびに、答える関数を入れ替える）
   const core = { answer: null as ((chats: { id: number; title: string | null }[]) => void) | null };
   createRpc<Core, Record<string, never>, Record<string, never>, Record<string, never>>(b, { handlers: { runningChats: () => new Promise((r) => (core.answer = r)) } });

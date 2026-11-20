@@ -5,10 +5,9 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { CoreState } from "@shared/foundation/ipc";
 import type { AwakeNeeds, CoreEvents, CoreInit, CoreMethods, CoreReady, HostEvents, HostMethods, HostToCore, RecoveredReason } from "@/foundation/core/host/protocol";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
-import { rpcTimeoutOf } from "@/foundation/core/host/protocol";
+import { RPC_TIMEOUTS, timeoutOf } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
-import type { CoreRpc } from "@/app/core/hostRemote";
-import { createRpc } from "@/foundation/core/host/rpc";
+import { createRpc, type CoreRpc } from "@/foundation/core/host/rpc";
 import type { ProcessRow } from "@/foundation/core/platform/types";
 import { applyChildNote, childrenToStop, type CoreChildren } from "./coreChildren";
 import { restartDelay } from "./coreRestart";
@@ -147,7 +146,7 @@ export class CoreProcess {
     this.child = child;
     const port = childPort(child);
     const rpc = createRpc<HostMethods, CoreMethods, HostEvents, CoreEvents>(port, {
-      timeoutOf: rpcTimeoutOf,
+      timeoutOf: (method) => timeoutOf(RPC_TIMEOUTS, method),
       handlers: {
         ...this.opts.handlers,
         "dbWorker.spawn": async (env) => this.spawnDbWorker(child, env),

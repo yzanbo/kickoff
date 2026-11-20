@@ -3,7 +3,7 @@
 // （埋め込みブラウザの操作の失敗は「理由の文の Error」なので、AI に返る文は変わらない）
 import { errorMessage } from "@shared/foundation/errors";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
-import type { RpcMessage } from "./protocol";
+import type { CoreEvents, CoreMethods, HostEvents, HostMethods, RpcMessage } from "./protocol";
 import type { RpcPort } from "./ports";
 
 // 表の型（CoreMethods など）を受けるため、関数の形だけを any で受ける（引数の形は表ごとに違う）
@@ -20,6 +20,11 @@ export interface Rpc<Remote, LocalEvents, RemoteEvents> {
   /** 口を閉じたことにする（待っている呼び出しを reason で失敗にし、以後は送らない） */
   close(reason?: string): void;
 }
+
+/** コアの側の RPC（コア → メインを呼ぶ） */
+export type HostRpc = Rpc<HostMethods, CoreEvents, HostEvents>;
+/** メインの側の RPC（メイン → コアを呼ぶ） */
+export type CoreRpc = Rpc<CoreMethods, HostEvents, CoreEvents>;
 
 /** RpcMessage か（ほかの形 = init・ready・port などは持ち主が受ける） */
 function isRpcMessage(m: unknown): m is RpcMessage {

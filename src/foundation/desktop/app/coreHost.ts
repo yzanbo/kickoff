@@ -3,13 +3,15 @@
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import type { CoreState } from "@shared/foundation/ipc";
-import { agentBrowser } from "@/features/browser/desktop/agentBrowser";
+import { agentBrowser, agentBrowserHostMethods } from "@/features/browser/desktop/agentBrowser";
 import { recordCoreStall } from "@/foundation/desktop/diagnostics/stalls";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { sendEvent } from "@/foundation/desktop/ipc/register";
 import { notifyFromCore } from "@/foundation/desktop/notifications/notifications";
 import { hostPlatform } from "@/foundation/desktop/platform/index";
 import { COMPILE_CACHE_ARG } from "@/foundation/core/system/compileCache";
+import { prefixedHandlers } from "@/foundation/core/host/protocol";
+import { SECRET_METHODS } from "@/foundation/core/system/sealedSecret";
 import { prepareCoreCompileCache } from "./compileCache";
 import { CoreProcess, type HostHandlers } from "./coreProcess";
 import { CORE_FILE, DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER } from "./environment";
@@ -18,23 +20,7 @@ import { safeStorageCipher } from "./secretCipher";
 import { startupLog } from "./startupLog";
 
 /** コアから呼ばれるメインの口（埋め込みブラウザの操作と、DB のパスワード・API キーの暗号化） */
-const hostHandlers: HostHandlers = {
-  "browser.tabs": () => agentBrowser.tabs(),
-  "browser.open": (projectId, url, reveal) => agentBrowser.open(projectId, url, reveal),
-  "browser.reveal": (tabId, request) => agentBrowser.reveal(tabId, request),
-  "browser.navigate": (tabId, url) => agentBrowser.navigate(tabId, url),
-  "browser.history": (tabId, action) => agentBrowser.history(tabId, action),
-  "browser.read": (tabId) => agentBrowser.read(tabId),
-  "browser.screenshot": (tabId) => agentBrowser.screenshot(tabId),
-  "browser.click": (tabId, ref) => agentBrowser.click(tabId, ref),
-  "browser.type": (tabId, ref, text, submit) => agentBrowser.type(tabId, ref, text, submit),
-  "browser.press": (tabId, key) => agentBrowser.press(tabId, key),
-  "browser.scroll": (tabId, direction) => agentBrowser.scroll(tabId, direction),
-  "browser.evaluate": (tabId, script) => agentBrowser.evaluate(tabId, script),
-  "browser.consoleLogs": (tabId) => agentBrowser.consoleLogs(tabId),
-  "secret.encrypt": (plain) => safeStorageCipher.encrypt(plain),
-  "secret.decrypt": (sealed) => safeStorageCipher.decrypt(sealed),
-};
+const hostHandlers: HostHandlers = { ...agentBrowserHostMethods, ...prefixedHandlers("secret", safeStorageCipher, SECRET_METHODS) };
 
 /** 開いている画面（メインの窓・別ウィンドウ）すべてに、コアの様子を知らせる */
 function broadcastState(state: CoreState) {

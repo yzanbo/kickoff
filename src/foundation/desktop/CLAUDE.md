@@ -33,7 +33,7 @@ Electron のメインプロセスと preload（`preload/`）の土台。窓・OS
 - 通知の要否と文はコア（`src/features/notifications/CLAUDE.md`）。メインは知らせ `notify` で出すだけ。
 
 ## コアのプロセス（`app/coreProcess.ts`）
-- RPC の形は `@/foundation/core/host/protocol.ts` 1 か所。HTTP・SSE・WebSocket は画面からコアへ直接。
+- RPC の形は `@/foundation/core/host/protocol.ts`（機能の分は `@/app/core/hostRemote.ts` が declare module で足す）。写しは `prefixedClient`・`prefixedHandlers`、時間の上限は `RPC_TIMEOUTS`。HTTP・SSE・WebSocket は画面からコアへ直接。
 - 落ちたら残った子を止めてから作り直す（古い子が書いている間に再開すると食い違う）。
 - コンパイルキャッシュ（`app/compileCache.ts`）を `~/Library/Caches` に置かない（AI の砂場が書ける）。
 

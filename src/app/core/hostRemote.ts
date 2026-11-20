@@ -1,48 +1,37 @@
 // RPC の上に作る、メインプロセスにしかない口（コアのプロセスの中で startCore に渡す）: 埋め込みブラウザの操作・キーチェーンの鍵・
-// Mac の通知・DB ワーカー（作るのはメイン、話すのはコア。メインが作った MessagePort で直結する）
-import type { BrowserControl } from "@shared/browser/control";
+// Mac の通知・DB ワーカー（作るのはメイン、話すのはコア。メインが作った MessagePort で直結する）。
+// 機能の呼び出し・知らせの形は、下の declare module で土台の表（@/foundation/core/host/protocol.ts）に足す（メインも同じ形を読む）
+import { BROWSER_METHODS, type BrowserControl } from "@shared/browser/control";
 import type { WorkerChannel } from "@/features/database/core/client";
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { DesktopNotify } from "@/features/notifications/core/center";
-import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
+import type { Notice } from "@/features/notifications/core/notices";
+import { SECRET_METHODS, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 import { shellPathSettled } from "@/foundation/core/system/exec";
 import { errorMessage } from "@shared/foundation/errors";
-import type { CoreEvents, CoreMethods, HostEvents, HostMethods } from "@/foundation/core/host/protocol";
+import { prefixedClient, type Prefixed } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
-import type { Rpc } from "@/foundation/core/host/rpc";
+import type { HostRpc } from "@/foundation/core/host/rpc";
 
-/** コアの側の RPC（コア → メインを呼ぶ） */
-export type HostRpc = Rpc<HostMethods, CoreEvents, HostEvents>;
-/** CoreMethods を使うのはメインの側（型を 1 か所から引くため） */
-export type CoreRpc = Rpc<CoreMethods, HostEvents, CoreEvents>;
+declare module "@/foundation/core/host/protocol" {
+  /** メイン → コア: 診断の記録（10 秒）と、消えた画面のシェルを止める */
+  interface CoreFeatureMethods
+    extends Prefixed<"diagnostics", { start(): Promise<void>; stop(): Promise<CoreDiagnostics> }>,
+      Prefixed<"terminal", { closeOwnedBy(owner: string): Promise<void> }> {}
+  /** コア → メイン: 埋め込みブラウザの操作とキーチェーンの鍵 */
+  interface HostFeatureMethods extends Prefixed<"browser", Omit<BrowserControl, "touch">>, Prefixed<"secret", SecretCipher> {}
+  /** コア → メインの知らせ: Mac の通知と、AI が操作したタブの印 */
+  interface CoreFeatureEvents {
+    notify: Notice;
+    "browser.touch": number;
+  }
+}
 
 /** 埋め込みブラウザの操作をメインへ写す（失敗の文はそのまま AI に返る。touch は返事のない知らせ） */
-export function remoteBrowser(rpc: HostRpc): BrowserControl {
-  return {
-    tabs: () => rpc.call("browser.tabs"),
-    open: (projectId, url, reveal) => rpc.call("browser.open", projectId, url, reveal),
-    reveal: (tabId, request) => rpc.call("browser.reveal", tabId, request),
-    navigate: (tabId, url) => rpc.call("browser.navigate", tabId, url),
-    history: (tabId, action) => rpc.call("browser.history", tabId, action),
-    read: (tabId) => rpc.call("browser.read", tabId),
-    screenshot: (tabId) => rpc.call("browser.screenshot", tabId),
-    click: (tabId, ref) => rpc.call("browser.click", tabId, ref),
-    type: (tabId, ref, text, submit) => rpc.call("browser.type", tabId, ref, text, submit),
-    press: (tabId, key) => rpc.call("browser.press", tabId, key),
-    scroll: (tabId, direction) => rpc.call("browser.scroll", tabId, direction),
-    evaluate: (tabId, script) => rpc.call("browser.evaluate", tabId, script),
-    consoleLogs: (tabId) => rpc.call("browser.consoleLogs", tabId),
-    touch: (tabId) => rpc.emit("browser.touch", tabId),
-  };
-}
+export const remoteBrowser = (rpc: HostRpc): BrowserControl => prefixedClient<BrowserControl>(rpc, "browser", BROWSER_METHODS, { emit: ["touch"] });
 
 /** DB のパスワード・AI の API キーの暗号化（safeStorage はメインだけ。キーチェーンの許可の画面を待つので時間の上限なし） */
-export function remoteCipher(rpc: HostRpc): SecretCipher {
-  return {
-    encrypt: (plain) => rpc.call("secret.encrypt", plain),
-    decrypt: (sealed) => rpc.call("secret.decrypt", sealed),
-  };
-}
+export const remoteCipher = (rpc: HostRpc): SecretCipher => prefixedClient<SecretCipher>(rpc, "secret", SECRET_METHODS);
 
 /** Mac の通知（出すかはコアが決め、出すのはメイン。返事なし） */
 export function remoteNotify(rpc: HostRpc): DesktopNotify {
