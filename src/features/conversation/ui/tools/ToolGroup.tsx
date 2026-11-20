@@ -9,7 +9,7 @@ import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "@
 import { CallTime, GroupTime } from "./ToolTime";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
-import { ToolStatusIcon } from "@/foundation/ui/kit/ToolStatusIcon";
+import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { ReadResult, SearchResult, SearchTitle, ToolPath } from "./ToolResultCode";

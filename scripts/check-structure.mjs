@@ -4,16 +4,17 @@
 // node scripts/check-structure.mjs --list <種類>   … いまの違反を並べる
 // node scripts/check-structure.mjs --write-baseline [--allow-grow] … いまの違反で基準線を書き直す（増えるときは --allow-grow がなければ断る）
 // node scripts/check-structure.mjs --no-baseline   … 基準線を読まずに、いまの違反を全部出す（違反があれば終了コード 1）
+// 確かめるときは、1 つの機能だけが読む土台のファイルも警告として出す（落とさない。基準線に載せない）
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildGraph, expandLayers, isCodeFile, matchesAny } from "./structure/parse.mjs";
-import { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles } from "./structure/checks.mjs";
+import { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles, findSingleUse } from "./structure/checks.mjs";
 import { checkCssClasses, checkPatterns, checkSqlTables } from "./structure/content.mjs";
 
 export { buildGraph, expandLayers, globToRegExp, matchesAny, parseImports, resolveSpecifier } from "./structure/parse.mjs";
-export { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles } from "./structure/checks.mjs";
+export { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles, findSingleUse } from "./structure/checks.mjs";
 export { checkCssClasses, checkPatterns, checkSqlTables, countForbidden, cssClassesIn, sqlTablesIn } from "./structure/content.mjs";
 
 /** 違反の種類（基準線の並び順）。値を持つ種類は、基準線に { 鍵: 値 } で載せ、値が増えたら落とす */
@@ -89,10 +90,15 @@ export function countByKind(violations) {
 
 /** 読んだファイルの中身から、すべての種類の違反を出す（入出力をしない） */
 export function collectViolations({ sources, files, config }) {
+  return collect({ sources, files, config }).violations;
+}
+
+/** 違反と、警告（1 つの機能だけが読む土台のファイル） */
+function collect({ sources, files, config }) {
   const code = new Map([...sources].filter(([file]) => isCodeFile(file) && matchesAny(file, config.files ?? [])));
   const graph = buildGraph(code, config, files);
   const lineCounts = new Map([...sources].map(([file, text]) => [file, countLines(text)]));
-  return [
+  const violations = [
     ...checkImports(graph, config),
     ...checkPublicApi(graph, config),
     ...findSiblingCycles(graph, config),
@@ -103,6 +109,7 @@ export function collectViolations({ sources, files, config }) {
     ...checkPatterns(sources, config),
     ...checkPlacement([...files].sort(), config),
   ];
+  return { violations, singleUse: findSingleUse(graph, config) };
 }
 
 /** 検査が読むファイル（設定の各 files に合う、Git が知っているファイル） */
@@ -175,7 +182,7 @@ function writeBaseline(violations, baseline, file, allowGrow) {
 async function main(args) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const config = (await import("./structure.config.mjs")).default;
-  const violations = collectViolations({ ...readRepo(root, config), config });
+  const { violations, singleUse } = collect({ ...readRepo(root, config), config });
   const baselineFile = path.join(root, "scripts", "structure-baseline.json");
   const baseline = readBaseline(baselineFile);
   if (args.includes("--count")) {
@@ -189,6 +196,7 @@ async function main(args) {
     return 0;
   }
   if (args.includes("--write-baseline")) return writeBaseline(violations, baseline, baselineFile, args.includes("--allow-grow"));
+  for (const u of singleUse) console.warn(`警告: ${u.file} を読む機能は ${u.feature} だけ（土台は 2 つ以上の機能が使うもの。機能へ戻すか、残すなら structure.config.mjs の singleUse.keep へ）`);
   return check(violations, args.includes("--no-baseline") ? { version: 1, violations: {} } : baseline);
 }
 

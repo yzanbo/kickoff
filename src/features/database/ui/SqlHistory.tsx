@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import type { DbConnection, DbQueryHistoryEntry } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { formatFullStamp, shortRelativeTime } from "@/foundation/ui/lib/time";
+import { formatFullStamp, relativeTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
@@ -79,7 +79,7 @@ function SqlHistoryList({ connection, onPick }: { connection: DbConnection; onPi
                   </span>
                 )}
                 <span className="muted" data-tip={formatFullStamp(e.ran_at)}>
-                  {shortRelativeTime(e.ran_at)}
+                  {relativeTime(e.ran_at, { style: "short" })}
                 </span>
                 {e.error !== null ? <span className="db-sql-history-error">{e.error}</span> : <span className="muted">{resultText(e)}</span>}
               </span>

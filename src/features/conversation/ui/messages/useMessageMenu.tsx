@@ -3,7 +3,7 @@ import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { copyRich } from "@/foundation/ui/lib/richCopy";
+import { copyRich } from "@/features/conversation/ui/richCopy";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import { NoteMenuItems } from "@/features/notes/ui/NoteMenuItems";
 import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";

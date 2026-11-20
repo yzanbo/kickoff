@@ -1,7 +1,7 @@
 import { ChevronRight, MessageSquare, PanelRight } from "lucide-react";
 import { memo, type MouseEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { formatElapsed, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
+import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
 import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
 import { callDuration } from "@/features/conversation/ui/tools/toolTimes";
 import { describeTool } from "@shared/chat/toolText";
@@ -95,7 +95,7 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlig
                 >
                   <span className="activity-call-time">{formatStamp(call.use.created_at)}</span>
                   <span className="activity-text">{rel(describeTool(call.use.data.name, (call.use.data.input ?? {}) as Record<string, unknown>))}</span>
-                  <span className="activity-meta">{ms !== undefined ? formatElapsed(ms) : row.running ? <Elapsed since={call.use.created_at} /> : null}</span>
+                  <span className="activity-meta">{ms !== undefined ? formatDuration(ms) : row.running ? <Elapsed since={call.use.created_at} /> : null}</span>
                 </button>
               );
             })}
@@ -138,7 +138,7 @@ function Meta({ row }: { row: ActivityRow }) {
         <Elapsed since={row.at} />
       </span>
     );
-  return <span className="activity-meta">{row.durationMs !== undefined ? formatElapsed(row.durationMs) : null}</span>;
+  return <span className="activity-meta">{row.durationMs !== undefined ? formatDuration(row.durationMs) : null}</span>;
 }
 
 /** 線の欄（縦の線・起動で右へ分かれる線・節）。位置は列の番号から決め、色は持ち主の色（メインは灰色） */

@@ -10,7 +10,7 @@ import { startChatDrag } from "@/features/groups/ui/groups";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { href } from "@/foundation/ui/navigation/router";
-import { formatDayTime, shortRelativeTime } from "@/foundation/ui/lib/time";
+import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { workingFor } from "@/features/chat/ui/currentWork";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useChatActivity } from "@/features/chat/ui/currentWorkStore";
@@ -151,7 +151,7 @@ export function ChatRow({
               <RunningTime chat={chat} />
             ) : (
               <span className="chat-row-time" title={formatDayTime(chat.active_at)}>
-                {shortRelativeTime(chat.active_at)}
+                {relativeTime(chat.active_at, { style: "short" })}
               </span>
             )}
           </span>

@@ -46,34 +46,27 @@ export function resetDateFormats() {
   zoneCheckedAt = -Infinity;
 }
 
-/** 「たった今」「5分前」「3時間前」、1 日より前は日付 */
-export function relativeTime(iso: string): string {
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "たった今";
-  if (diff < 3600) return `${Math.floor(diff / 60)}分前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}時間前`;
-  return formatDate(new Date(iso), "monthDay");
-}
+/** 相対時刻の形 */
+export type RelativeStyle = "long" | "short" | "ago";
 
-/** どれだけ前か（VS Code の GitLens と同じ形: たった今・5分前・3時間前・5日前・2か月前・1年前。日付にしない） */
-export function agoText(iso: string, now = Date.now()): string {
+/**
+ * どれだけ前か。style の既定 long は「たった今」「5分前」「3時間前」、1 日より前は日付（11/1）。
+ * short は狭い所（サイドバーの行）向けに「今」「5分」「23時間」「3日」、7 日より前は日付（「前」は付けない）。
+ * ago は日付にしない（VS Code の GitLens と同じ形: たった今・5分前・3時間前・5日前・2か月前・1年前）
+ */
+export function relativeTime(iso: string, { style = "long", now = Date.now() }: { style?: RelativeStyle; now?: number } = {}): string {
   const diff = (now - new Date(iso).getTime()) / 1000;
+  const ago = style === "short" ? "" : "前";
+  if (diff < 60) return style === "short" ? "今" : "たった今";
+  if (diff < 3600) return `${Math.floor(diff / 60)}分${ago}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}時間${ago}`;
   const days = Math.floor(diff / 86400);
-  if (diff < 60) return "たった今";
-  if (diff < 3600) return `${Math.floor(diff / 60)}分前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}時間前`;
-  if (days < 30) return `${days}日前`;
-  if (days < 365) return `${Math.floor(days / 30)}か月前`;
-  return `${Math.floor(days / 365)}年前`;
-}
-
-/** 狭い所（サイドバーの行）向けの短い経過時間: 今・5分・23時間・3日、それより前は 11/1（「前」は付けない） */
-export function shortRelativeTime(iso: string): string {
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "今";
-  if (diff < 3600) return `${Math.floor(diff / 60)}分`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}時間`;
-  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}日`;
+  if (style === "ago") {
+    if (days < 30) return `${days}日前`;
+    if (days < 365) return `${Math.floor(days / 30)}か月前`;
+    return `${Math.floor(days / 365)}年前`;
+  }
+  if (style === "short" && days < 7) return `${days}日`;
   return formatDate(new Date(iso), "monthDay");
 }
 
@@ -138,13 +131,23 @@ export function formatFullDateTime(iso: string): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${formatClock(iso)}`;
 }
 
-/** かかった時間を短く（"8秒" / "1分23秒" / "1時間5分"）。作業中の経過時間・作業にかかった時間に使う */
-export function formatElapsed(ms: number): string {
+/**
+ * かかった時間。既定は短く、ちょうどのときは下の単位を付けない（"8秒" / "1分23秒" / "1分" / "1時間5分"。作業中の経過時間・作業にかかった時間）。
+ * full はいちばん大きい単位から下をすべて出す（"1分0秒" / "1時間2分5秒"。処理の実行時間）
+ */
+export function formatDuration(ms: number, { full = false }: { full?: boolean } = {}): string {
   const sec = Math.max(0, Math.floor(ms / 1000));
-  if (sec < 60) return `${sec}秒`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}分${sec % 60 ? `${sec % 60}秒` : ""}`;
-  return `${Math.floor(min / 60)}時間${min % 60 ? `${min % 60}分` : ""}`;
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (full) {
+    if (h > 0) return `${h}時間${m}分${s}秒`;
+    if (m > 0) return `${m}分${s}秒`;
+    return `${s}秒`;
+  }
+  if (h > 0) return `${h}時間${m ? `${m}分` : ""}`;
+  if (m > 0) return `${m}分${s ? `${s}秒` : ""}`;
+  return `${s}秒`;
 }
 
 /** 秒まで出す時刻（"08:34:12"） */
@@ -171,24 +174,13 @@ export function formatStampRange(start: string, end: string, now = new Date()): 
   return `${formatStamp(start, now)} – ${sameDay(from, to) ? clockWithSeconds(to) : `${shortDay(to, now)} ${clockWithSeconds(to)}`}`;
 }
 
-/** 実行時間（"8秒" / "1分0秒" / "1時間2分5秒"）。いちばん大きい単位から下はすべて出す（formatElapsed と違い、ちょうどでも下の単位を省かない） */
-export function formatRunTime(ms: number): string {
-  const sec = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  if (h > 0) return `${h}時間${m}分${s}秒`;
-  if (m > 0) return `${m}分${s}秒`;
-  return `${s}秒`;
-}
-
 /**
  * 出している開始と終了の時刻の差（秒より下を切り捨てた時刻どうしの差。"13:27:37 – 13:27:38" なら 1秒）。
  * 実際の長さ（0.6 秒など）を切り捨てると、時刻は 1 秒違うのに「0秒」と出て、並べた時刻と合わない
  */
 export function formatStampRunTime(start: string, end: string): string {
   const seconds = Math.floor(Date.parse(end) / 1000) - Math.floor(Date.parse(start) / 1000);
-  return formatRunTime(seconds * 1000);
+  return formatDuration(seconds * 1000, { full: true });
 }
 
 /**

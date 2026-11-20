@@ -1,6 +1,7 @@
 import { Tag } from "lucide-react";
 import { ProjectSwitcher } from "@/features/projects/ui/page/ProjectSwitcher";
-import { GitHubStatusCard, StatusCard } from "@/foundation/ui/kit/StatusCard";
+import { StatusCard } from "@/foundation/ui/kit/StatusCard";
+import { GitHubStatusCard } from "@/features/ai/ui";
 import { AllProjectsKanban } from "./KanbanBoard";
 import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";

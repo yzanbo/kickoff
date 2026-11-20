@@ -3,7 +3,7 @@ import { memo, type CSSProperties } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { ProviderSwitchRecord } from "@/features/providerSwitch/ui/ProviderSwitchRecord";
-import { formatElapsed, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
+import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import type { TimelineItem, TurnHandoff } from "./timelineItems";
 import { TurnEnd } from "./TurnEnd";
@@ -155,7 +155,7 @@ function Thinking({ event }: { event: ChatEventOf<"thinking"> }) {
   // 開閉は流れの見え方の店（画面を作り直しても開いたまま）
   const [open, setOpen] = useTimelineOpen(event.chat_id, `th:${event.id}`);
   const label =
-    durationMs === undefined ? "思考しました" : `${formatElapsed(durationMs)}${durationMs < 3_600_000 ? "間" : ""}思考しました`;
+    durationMs === undefined ? "思考しました" : `${formatDuration(durationMs)}${durationMs < 3_600_000 ? "間" : ""}思考しました`;
   const start = new Date(Date.parse(at) - (durationMs ?? 0)).toISOString();
   const time = (
     <span className="event-time" title={`開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(at)}`}>

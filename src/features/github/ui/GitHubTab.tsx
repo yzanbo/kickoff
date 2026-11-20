@@ -8,7 +8,7 @@ import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/hooks/useDragSize";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useWhenVisible } from "@/foundation/ui/hooks/useWhenVisible";
+import { useWhenVisible } from "./useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
 import { githubSelected } from "@/foundation/ui/storage/storageKeys";

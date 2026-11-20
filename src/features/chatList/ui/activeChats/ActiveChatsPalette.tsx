@@ -11,7 +11,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
-import { shortRelativeTime } from "@/foundation/ui/lib/time";
+import { relativeTime } from "@/foundation/ui/lib/time";
 import { DRAFT_TONE } from "@/features/chat/ui/state/tones";
 import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { openDraft, useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -207,7 +207,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                         <span className="palette-hint">
                           <PaletteProjectMark projectId={item.chat.project_id} />
                           <span className="palette-hint-text">
-                            {projectName(item.chat.project_id)} · {shortRelativeTime(item.chat.active_at)}
+                            {projectName(item.chat.project_id)} · {relativeTime(item.chat.active_at, { style: "short" })}
                           </span>
                         </span>
                       </>

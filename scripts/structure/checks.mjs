@@ -158,3 +158,31 @@ export function checkPlacement(files, config) {
   }
   return out;
 }
+
+/** 読み手の機能の名前（src/features/<機能>/ の下でなければ、機能でない読み手の印 "" ） */
+const featureOf = (file) => /^src\/features\/([^/]+)\//.exec(file)?.[1] ?? "";
+
+/**
+ * 1 つの機能だけが読む土台のファイル（警告。基準線に載せない）: テストでない読み手が 1 つの機能のファイルだけで、
+ * ほかの土台・組み立てが読まないもの。keep に合うものは外す。{ file, feature } の並びを返す
+ */
+export function findSingleUse(graph, config) {
+  const rule = config.singleUse;
+  if (!rule) return [];
+  const readers = new Map();
+  for (const [file, edges] of graph) {
+    if (matchesAny(file, config.tests ?? [])) continue;
+    for (const edge of edges) {
+      if (!edge.path || edge.path === file || !matchesAny(edge.path, rule.files) || matchesAny(edge.path, rule.keep ?? [])) continue;
+      const set = readers.get(edge.path) ?? new Set();
+      set.add(featureOf(file));
+      readers.set(edge.path, set);
+    }
+  }
+  const out = [];
+  for (const [file, set] of readers) {
+    const [only] = set;
+    if (set.size === 1 && only !== "") out.push({ file, feature: only });
+  }
+  return out.sort((a, b) => (a.file < b.file ? -1 : 1));
+}

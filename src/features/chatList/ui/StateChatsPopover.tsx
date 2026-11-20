@@ -7,7 +7,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/ui/state/chatState";
-import { shortRelativeTime } from "@/foundation/ui/lib/time";
+import { relativeTime } from "@/foundation/ui/lib/time";
 import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
@@ -86,7 +86,7 @@ export function StateChatsPopover({
               {chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
               <span className="state-chats-title">{chatTitle(chat.title)}</span>
               {showProject && <span className="state-chats-project muted">{projectName(chat.project_id)}</span>}
-              <span className="state-chats-time muted">{shortRelativeTime(chat.active_at)}</span>
+              <span className="state-chats-time muted">{relativeTime(chat.active_at, { style: "short" })}</span>
             </button>
           ))}
         </section>

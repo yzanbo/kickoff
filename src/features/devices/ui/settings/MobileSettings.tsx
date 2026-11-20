@@ -5,7 +5,7 @@ import { formatPairingCode } from "@shared/devices/pairing";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import { agoText, formatDayTime } from "@/foundation/ui/lib/time";
+import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -143,7 +143,7 @@ function DeviceList({ devices, busy, onRevoke, onAccess }: DeviceListProps) {
           <div className="device-row-text">
             <span>{d.name}</span>
             <span className="muted small">
-              つないだ: {formatDayTime(d.created_at)}・最後に使った: {d.last_used_at ? agoText(d.last_used_at) : "まだ"}
+              つないだ: {formatDayTime(d.created_at)}・最後に使った: {d.last_used_at ? relativeTime(d.last_used_at, { style: "ago" }) : "まだ"}
               {d.has_push && "・通知あり"}
             </span>
           </div>

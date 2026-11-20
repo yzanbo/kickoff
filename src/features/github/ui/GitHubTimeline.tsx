@@ -2,7 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { ChevronDown, ChevronRight, GitCommitHorizontal } from "lucide-react";
 import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/github/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { agoText, formatFullStamp } from "@/foundation/ui/lib/time";
+import { formatFullStamp, relativeTime } from "@/foundation/ui/lib/time";
 import { GitHubHtml } from "./GitHubHtml";
 import { GitHubThreadActions } from "./GitHubThreadActions";
 
@@ -21,7 +21,7 @@ export function GitHubTime({ iso }: { iso: string }) {
   if (!iso) return null;
   return (
     <time className="github-time muted" dateTime={iso} data-tip={formatFullStamp(iso)}>
-      {agoText(iso)}
+      {relativeTime(iso, { style: "ago" })}
     </time>
   );
 }

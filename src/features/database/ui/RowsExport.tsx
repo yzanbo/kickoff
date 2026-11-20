@@ -2,7 +2,7 @@
 import { Copy, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DbColumnInfo, DbValue } from "@shared/database/types";
-import { downloadText } from "@/foundation/ui/lib/download";
+import { downloadText } from "./download";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

@@ -1,7 +1,7 @@
 import { CircleDot, Folder } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { ToggleButtons } from "@/foundation/ui/kit/ToggleButtons";
+import { ToggleButtons } from "./ToggleButtons";
 
 /** グループの列の中を状態で小分けにするか（列の「状態」と「グループ」の両方オン = グループ×状態。全プロジェクト・プロジェクトのボードで共通） */
 export function useGroupsByState() {

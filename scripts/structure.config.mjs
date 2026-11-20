@@ -16,6 +16,7 @@
  * @property {CssRule} cssClasses        CSS のクラスの持ち主
  * @property {PatternRule[]} patterns     禁じる書き方
  * @property {PlacementRule[]} placement  置かないファイル
+ * @property {SingleUseRule} [singleUse]  1 つの機能だけが読む土台のファイル（警告だけ。基準線に載せない）
  *
  * @typedef {Object} ImportRule
  * @property {string} name               決まりの名前（違反の鍵と、出す文に使う）
@@ -70,6 +71,10 @@
  * @property {"include"|"exclude"} [tests] 既定 exclude
  * @property {{ call?: string, member?: string, new?: string, args?: number, typeArgs?: string, exportExcept?: string[] }[]} forbid  禁じる呼び出し（"setTimeout"・member "Date.now"・new "Date" と args 0 で引数なしだけ・member "app.get"・exportExcept で並べた名前のほかの export など）
  * @property {string} message
+ *
+ * @typedef {Object} SingleUseRule
+ * @property {string[]} files            見る土台のファイル
+ * @property {string[]} [keep]           1 つの機能だけが読んでも土台に残すファイル（理由をコメントに）
  *
  * @typedef {Object} PlacementRule
  * @property {string} name
@@ -205,4 +210,12 @@ export default {
     { name: "feature-root-no-code", deny: ["src/features/*/*.{ts,tsx,css}"], message: "機能の直下にコードを置かない（core・ui・desktop・worker の下へ。直下はどの tsconfig にも入らない）" },
     { name: "middle-no-claude-md", deny: ["src/features/CLAUDE.md", "src/foundation/CLAUDE.md", "src/shared/CLAUDE.md"], message: "中間の層に CLAUDE.md を置かない（祖先の CLAUDE.md は毎回読み込まれる）" },
   ],
+  // 土台に置くのは 2 つ以上の機能が使うもの。1 つの機能だけが読むなら、その機能へ戻す（警告だけ）
+  singleUse: {
+    files: ["src/foundation/ui/**"],
+    keep: [
+      "src/foundation/ui/hooks/useBusyBadge.ts", // 汎用の hook（分冊 04 の 2.10）
+      "src/foundation/ui/diff/**", // 差分の土台（git も使うようにするのは分冊 08 の P8-1）
+    ],
+  },
 };

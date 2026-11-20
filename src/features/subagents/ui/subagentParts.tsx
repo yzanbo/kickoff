@@ -5,7 +5,7 @@ import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { formatTokens } from "@/foundation/ui/lib/format";
-import { formatElapsed, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
+import { formatDuration, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
@@ -132,7 +132,7 @@ function childStateText(child: SubagentEntry, grandchildren: number, waiting: bo
   const parts =
     child.status === "running"
       ? [subagentStatusLabel(child, waiting), child.lastTool ? `いま: ${child.lastTool}` : null]
-      : [subagentStatusLabel(child, waiting), duration !== undefined ? formatElapsed(duration) : null];
+      : [subagentStatusLabel(child, waiting), duration !== undefined ? formatDuration(duration) : null];
   return [...parts, grandchildren > 0 ? `中に ${grandchildren} 件` : null].filter(Boolean).join(" · ");
 }
 
@@ -187,7 +187,7 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
     showsSubagentStatus(entry) ? null : "完了",
     entry.toolUses !== undefined ? `ツール ${entry.toolUses} 回` : null,
     entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null,
-    duration !== undefined ? formatElapsed(duration) : null,
+    duration !== undefined ? formatDuration(duration) : null,
     childCount > 0 ? `サブエージェント ${childCount} 件` : null,
   ].filter(Boolean);
   return <span className="subagent-card-what muted">{parts.join(" · ")}</span>;

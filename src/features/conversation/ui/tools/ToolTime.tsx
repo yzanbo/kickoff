@@ -1,4 +1,4 @@
-import { formatElapsed, formatFullStamp, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
+import { formatDuration, formatFullStamp, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
 import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
 import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
 import { callDuration, toolSpan } from "./toolTimes";
@@ -28,12 +28,12 @@ export function CallTime({ call, running }: { call: ToolCall; running: boolean }
   const duration = running ? undefined : callDuration(call);
   const title =
     duration !== undefined
-      ? `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(call.result!.created_at)}（${formatElapsed(duration)}）`
+      ? `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(call.result!.created_at)}（${formatDuration(duration)}）`
       : `開始 ${formatFullStamp(start)}${running ? "（実行中）" : "（結果は届いていません）"}`;
   return (
     <span className="tool-time" title={title}>
       {formatStamp(start)}
-      {duration !== undefined && ` · ${formatElapsed(duration)}`}
+      {duration !== undefined && ` · ${formatDuration(duration)}`}
       {duration === undefined && running && (
         <>
           {" · "}

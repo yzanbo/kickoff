@@ -5,7 +5,7 @@ import type { GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision }
 import { open } from "@/foundation/ui/navigation/open";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
-import { agoText } from "@/foundation/ui/lib/time";
+import { relativeTime } from "@/foundation/ui/lib/time";
 import { GitHubStateIcon } from "./GitHubStateIcon";
 
 /** ラベルの札（GitHub の色の点 ＋ 名前） */
@@ -64,7 +64,7 @@ export const GitHubItemRow = memo(function GitHubItemRow({
         <span className="github-item-meta">
           <span>#{item.number}</span>
           {item.author && <span>{item.author.login}</span>}
-          <span>更新 {agoText(item.updated_at)}</span>
+          <span>更新 {relativeTime(item.updated_at, { style: "ago" })}</span>
           {item.assignees.length > 0 && <span className="github-item-assignees">担当 {item.assignees.map((a) => a.login).join("、")}</span>}
           {item.review_decision && <span className={`github-review github-review-${item.review_decision}`}>{REVIEW_DECISION_LABELS[item.review_decision]}</span>}
           <GitHubChecksMark state={item.checks} />

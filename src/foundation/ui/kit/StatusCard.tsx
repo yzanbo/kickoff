@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { GitHubStatus } from "@shared/foundation/server";
 import { StatusDot, toneOf } from "./StatusDot";
 
 interface Props {
@@ -24,7 +23,3 @@ export function StatusCard({ title, ok, detail, badge }: Props) {
   );
 }
 
-/** GitHub CLI（gh）の状態 */
-export function GitHubStatusCard({ github }: { github: { loading: boolean; data?: GitHubStatus; error?: string } }) {
-  return <StatusCard title="GitHub CLI（gh）" ok={github.loading ? undefined : Boolean(github.data?.logged_in)} detail={github.error ?? github.data?.detail ?? "確認中…"} />;
-}

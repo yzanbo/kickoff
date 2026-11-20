@@ -3,6 +3,7 @@
  * - `createBlockScanner`: 書きかけの返答を少しずつ出す決まり（`markdownReveal.ts`）が、最後のブロックの頭と、開いたままのコードブロック・数式ブロックを知るのに使う
  * - `splitBlocks` / `createBlockSplitter`: Markdown の部品がブロックごとに memo して描くための分け方（下）
  * 空行でも分けないところ: コードブロック（``` / ~~~ の開きから閉じまで）と数式ブロック（$$ だけの行から $$ だけの行まで）の中
+ * 2 つは同じ読み進め方（`createLineReader`）で、行の決まりだけが違う（分ける側は HTML ブロック・字下げの続きも見る。そろえると書きかけの出し方が変わる）
  */
 
 /** 開いたままのコードブロック */
@@ -104,16 +105,19 @@ function tailOf(st: ScanState, partial: string, start: number): BlockTail {
   return tail;
 }
 
-/** 読み取りを作る（書きかけの返答 1 つごとに 1 つ。続きでない文が来たら初めから読み直す） */
-export function createBlockScanner(): BlockScanner {
-  // 読み終えた行（最後の改行まで）の文と、そこまでの様子
+/**
+ * 増えた行だけ読む仕組み（下の 2 つの読み取りが使う）。改行まで来た行を readLine に渡し、読み終えた文を覚える。
+ * 続きでない文が来たら初めから読み直す（restarted）。改行がまだの最後の行（pos から）は読まない（使う側が様子の写しに足す）
+ */
+function createLineReader<S>(initial: () => S, readLine: (st: S, line: string, start: number, next: number) => void) {
   let done = "";
-  let state = initialState();
+  let state = initial();
   return {
-    scan(text, end = text.length) {
-      if (end < done.length || !text.startsWith(done)) {
+    read(text: string, end = text.length): { state: S; pos: number; restarted: boolean } {
+      const restarted = end < done.length || !text.startsWith(done);
+      if (restarted) {
         done = "";
-        state = initialState();
+        state = initial();
       }
       let pos = done.length;
       const lastNewline = text.lastIndexOf("\n", end - 1);
@@ -125,6 +129,17 @@ export function createBlockScanner(): BlockScanner {
         }
         done = text.slice(0, pos);
       }
+      return { state, pos, restarted };
+    },
+  };
+}
+
+/** 読み取りを作る（書きかけの返答 1 つごとに 1 つ。続きでない文が来たら初めから読み直す） */
+export function createBlockScanner(): BlockScanner {
+  const lines = createLineReader(initialState, readLine);
+  return {
+    scan(text, end = text.length) {
+      const { state, pos } = lines.read(text, end);
       return tailOf(state, text.slice(pos, end), pos);
     },
   };
@@ -242,26 +257,12 @@ function trimmedEnd(text: string, start: number, end: number): number {
 
 /** 分ける読み取りを作る（書きかけの返答 1 つごとに 1 つ。続きでない文が来たら初めから読み直す） */
 export function createBlockSplitter(): BlockSplitter {
-  let done = "";
-  let state = initialSplit();
+  const lines = createLineReader(initialSplit, splitLine);
   let prev: { start: number; end: number; text: string }[] = [];
   return {
     split(text) {
-      if (!text.startsWith(done)) {
-        done = "";
-        state = initialSplit();
-        prev = [];
-      }
-      let pos = done.length;
-      const lastNewline = text.lastIndexOf("\n");
-      if (lastNewline >= pos) {
-        while (pos <= lastNewline) {
-          const nl = text.indexOf("\n", pos);
-          splitLine(state, text.slice(pos, nl), pos);
-          pos = nl + 1;
-        }
-        done = text.slice(0, pos);
-      }
+      const { state, pos, restarted } = lines.read(text);
+      if (restarted) prev = [];
       // 改行がまだの最後の行は、読んだ様子の写しに足す（次に読むときは改行まで来てから）
       const st = pos < text.length ? copySplit(state) : state;
       if (pos < text.length) splitLine(st, text.slice(pos), pos);

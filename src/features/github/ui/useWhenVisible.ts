@@ -1,6 +1,6 @@
 // 要素が画面（スクロールする入れ物の中）に見えたら呼ぶ（一覧を下まで送ったら続きを読む）
 import { useEffect, useEffectEvent, useState } from "react";
-import { watchViewport } from "./useNearViewport";
+import { watchViewport } from "@/foundation/ui/hooks/useNearViewport";
 
 /**
  * 返した ref を付けた要素が見えたら（margin だけ手前から）onVisible を呼ぶ。enabled が false の間は見ない。

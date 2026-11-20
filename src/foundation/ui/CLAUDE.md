@@ -46,7 +46,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 
 - window のイベントは `useWindowEvent`（effect の中で `addEventListener` しない。先に受け取るなら `capture`）。最新の値を読む ref は `useLatest`。
 - テーマは `useAppliedTheme`、窓の前後は `useWindowFocused`、ネットワークは `useOnline`。
-- 大きさの見張りは `useSizeObserver`、画面に入ったかは `useNearViewport` / `useWhenVisible`（要素ごとに Observer を作らない）。
+- 大きさの見張りは `useSizeObserver`、画面に入ったかは `useNearViewport`（要素ごとに Observer を作らない）。
 - 1 つの部品だけが読む値は `useQuery`（SSE で直す値は店）。実行中と失敗は `useAction`。
 - 知らせは `reportFailure`（失敗のお知らせ）・`showToast`（済んだ操作）・`showDropHint`（落とせない理由）。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
@@ -57,7 +57,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
 - 文書の保存は `document/useDocument`（⌘⇧S・離れる前の確かめは `registerUnsaved`）。
 - 例外の文は `errorMessage`、class 名は `cx`、トークン数は `formatTokens`、パスは `splitPath` ＋ `PathParts`。
-- 時刻は `lib/time.ts`（部品で `toLocaleTimeString` などを直に呼ばない）。時間で変わる表示は `useTicker`。
+- 時刻は `lib/time.ts`（相対は `relativeTime`、長さは `formatDuration`。`toLocaleTimeString` を直に呼ばない）。時間で変わる表示は `useTicker`。
 
 ## 共有部品（`kit/`。手書きしない）
 
@@ -70,7 +70,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - フォームは `Field`・`CheckField`・`SearchField`・`InlineName`・`CommitInput`、失敗の文は `ErrorText`、結果は `ResultMessage`。
 - 左の一覧は `kit/ListRail.tsx` で開閉し、どれも隠せるようにする。
 - 空の画面は `EmptyState`。文 1 行で済ませず、なぜ空かと次にできることを出す。
-- 1 つを選ぶ組は `Segmented`（欄は `ChoiceField`）、オン・オフの組は `ToggleButtons`。開くまで中身を作らない `<details>` は `LazyDetails`（閉じた中身を要素で渡さない）。
+- 1 つを選ぶ組は `Segmented`（欄は `ChoiceField`）。開くまで中身を作らない `<details>` は `LazyDetails`（閉じた中身を要素で渡さない）。
 - 開閉は `FoldHead` / `FoldSection`・`Chevron`・`Collapse`・`useFold`。いちばん下の「アーカイブ済み n」は `ArchivedFold`。
 - 中身のないまとまりは開いても閉じても同じ高さにする（空の入れ物を置かないか `:empty` で隠す）。
 - ドラッグできる物は、どれも `dragstart` で `kit/dragGhost.ts` の `startDragGhost` を呼ぶ（例外はパネルのタブ）。ビューのタブは `useViewTabDrag`。

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { agoText, formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, formatReset, relativeTime, resetDateFormats, resetInShort, shortRelativeTime, ZONE_CHECK_MS } from "./time";
+import { formatClock, formatDayTime, formatDuration, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatReset, relativeTime, resetDateFormats, resetInShort, ZONE_CHECK_MS } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -10,13 +10,13 @@ test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年
   assert.equal(formatDayTime(new Date(2025, 2, 1, 9, 0).toISOString(), now), "2025/3/1");
 });
 
-test("サイドバー向けの短い経過時間（「前」は付けない）", () => {
+test("relativeTime の short: サイドバー向けの短い経過時間（「前」は付けない）", () => {
   const ago = (s: number) => new Date(Date.now() - s * 1000).toISOString();
-  assert.equal(shortRelativeTime(ago(10)), "今");
-  assert.equal(shortRelativeTime(ago(5 * 60)), "5分");
-  assert.equal(shortRelativeTime(ago(23 * 3600)), "23時間");
-  assert.equal(shortRelativeTime(ago(3 * 86400)), "3日");
-  assert.match(shortRelativeTime(ago(10 * 86400)), /^\d{1,2}\/\d{1,2}$/);
+  assert.equal(relativeTime(ago(10), { style: "short" }), "今");
+  assert.equal(relativeTime(ago(5 * 60), { style: "short" }), "5分");
+  assert.equal(relativeTime(ago(23 * 3600), { style: "short" }), "23時間");
+  assert.equal(relativeTime(ago(3 * 86400), { style: "short" }), "3日");
+  assert.match(relativeTime(ago(10 * 86400), { style: "short" }), /^\d{1,2}\/\d{1,2}$/);
 });
 
 test("relativeTime: たった今・分前・時間前、1 日より前は日付", () => {
@@ -43,14 +43,14 @@ test("formatClock: 時刻だけ（2 桁）", () => {
   assert.equal(formatClock(new Date(2026, 0, 1, 9, 0).toISOString()), "09:00");
 });
 
-test("formatElapsed: 秒・分秒・時間分（ちょうどのときは下の単位を付けない）", () => {
-  assert.equal(formatElapsed(0), "0秒");
-  assert.equal(formatElapsed(8_900), "8秒");
-  assert.equal(formatElapsed(60_000), "1分");
-  assert.equal(formatElapsed(83_000), "1分23秒");
-  assert.equal(formatElapsed(3_600_000), "1時間");
-  assert.equal(formatElapsed(3_900_000), "1時間5分");
-  assert.equal(formatElapsed(-5), "0秒");
+test("formatDuration: 秒・分秒・時間分（ちょうどのときは下の単位を付けない）", () => {
+  assert.equal(formatDuration(0), "0秒");
+  assert.equal(formatDuration(8_900), "8秒");
+  assert.equal(formatDuration(60_000), "1分");
+  assert.equal(formatDuration(83_000), "1分23秒");
+  assert.equal(formatDuration(3_600_000), "1時間");
+  assert.equal(formatDuration(3_900_000), "1時間5分");
+  assert.equal(formatDuration(-5), "0秒");
 });
 
 test("発言の時刻: 今日は時刻、7 日以内は曜日と時刻、それより前は日付", () => {
@@ -80,14 +80,14 @@ test("処理の時間の範囲: 同じ日なら終わりは時刻だけ、日を
   assert.equal(formatStampRange(at(5, 8, 34, 12), at(5, 8, 34, 12), now), "08:34:12");
 });
 
-test("実行時間: いちばん大きい単位から下はすべて出す", () => {
-  assert.equal(formatRunTime(0), "0秒");
-  assert.equal(formatRunTime(8_900), "8秒");
-  assert.equal(formatRunTime(60_000), "1分0秒");
-  assert.equal(formatRunTime(148_000), "2分28秒");
-  assert.equal(formatRunTime(3_600_000), "1時間0分0秒");
-  assert.equal(formatRunTime(3_725_000), "1時間2分5秒");
-  assert.equal(formatRunTime(-5), "0秒");
+test("formatDuration の full: いちばん大きい単位から下はすべて出す", () => {
+  assert.equal(formatDuration(0, { full: true }), "0秒");
+  assert.equal(formatDuration(8_900, { full: true }), "8秒");
+  assert.equal(formatDuration(60_000, { full: true }), "1分0秒");
+  assert.equal(formatDuration(148_000, { full: true }), "2分28秒");
+  assert.equal(formatDuration(3_600_000, { full: true }), "1時間0分0秒");
+  assert.equal(formatDuration(3_725_000, { full: true }), "1時間2分5秒");
+  assert.equal(formatDuration(-5, { full: true }), "0秒");
 });
 
 test("終わった処理の範囲と実行時間: 時刻が 1 つだけのときは添えない", () => {
@@ -109,15 +109,15 @@ test("終わった処理の実行時間は、並べた開始と終了の時刻�
   assert.equal(formatStampRangeWithRunTime(at(37, 100), at(37, 900), now), "13:27:37");
 });
 
-test("agoText: GitLens と同じく、日付にせずに何日前・何か月前・何年前まで言う", () => {
+test("relativeTime の ago: GitLens と同じく、日付にせずに何日前・何か月前・何年前まで言う", () => {
   const now = Date.parse("2026-11-10T12:00:00Z");
   const ago = (sec: number) => new Date(now - sec * 1000).toISOString();
-  assert.equal(agoText(ago(10), now), "たった今");
-  assert.equal(agoText(ago(5 * 60), now), "5分前");
-  assert.equal(agoText(ago(3 * 3600), now), "3時間前");
-  assert.equal(agoText(ago(5 * 86400), now), "5日前");
-  assert.equal(agoText(ago(65 * 86400), now), "2か月前");
-  assert.equal(agoText(ago(800 * 86400), now), "2年前");
+  assert.equal(relativeTime(ago(10), { style: "ago", now }), "たった今");
+  assert.equal(relativeTime(ago(5 * 60), { style: "ago", now }), "5分前");
+  assert.equal(relativeTime(ago(3 * 3600), { style: "ago", now }), "3時間前");
+  assert.equal(relativeTime(ago(5 * 86400), { style: "ago", now }), "5日前");
+  assert.equal(relativeTime(ago(65 * 86400), { style: "ago", now }), "2か月前");
+  assert.equal(relativeTime(ago(800 * 86400), { style: "ago", now }), "2年前");
 });
 
 /** 1 年分を 259 分（37 分 × 7）おき（日・時・分がずれていく間隔。テストを軽くするため 37 分おきから広げた）と、月末・年末・0 時・12 時・23:59 の日時 */
@@ -143,11 +143,11 @@ function assertSameAsToLocale(dates: Date[]) {
 
 test("時刻の整形の作り置き: 書式ごとに、元の toLocale*String と同じ文字になる", () => {
   assertSameAsToLocale(sampleDates(2026));
-  // 1 日より前は月日（relativeTime・shortRelativeTime）
+  // 1 日より前は月日（relativeTime の long と short）
   for (const d of sampleDates(2025)) {
     const monthDay = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
     assert.equal(relativeTime(d.toISOString()), monthDay);
-    assert.equal(shortRelativeTime(d.toISOString()), monthDay);
+    assert.equal(relativeTime(d.toISOString(), { style: "short" }), monthDay);
   }
 });
 

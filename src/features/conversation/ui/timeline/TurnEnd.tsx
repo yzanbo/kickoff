@@ -3,8 +3,8 @@ import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { WORKPLACE_FORK_LOCKED } from "@shared/workplaceMove/workplaceMoves";
 import { PROVIDER_FORK_LOCKED } from "@shared/providerSwitch/providerSwitch";
 import { cx } from "@/foundation/ui/lib/cx";
-import { formatClock, formatElapsed } from "@/foundation/ui/lib/time";
-import { copyRich } from "@/foundation/ui/lib/richCopy";
+import { formatClock, formatDuration } from "@/foundation/ui/lib/time";
+import { copyRich } from "@/features/conversation/ui/richCopy";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
 import { reportFailure } from "@/foundation/ui/kit/ask";
@@ -59,7 +59,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
   const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
   const forkBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_FORK_LOCKED : beforeSwitch ? PROVIDER_FORK_LOCKED : null);
   const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
-  const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
+  const worked = turnStart && formatDuration(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;
   return (
     <div className={cx("turn-footer event-note", data.status === "failed" && "error")} id={`ev-${event.id}`}>

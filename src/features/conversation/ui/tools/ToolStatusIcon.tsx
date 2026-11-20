@@ -1,5 +1,5 @@
 import { Check, Minus, X } from "lucide-react";
-import { TOOL_STATUS_LABELS, type ToolStatus } from "@/features/conversation/ui/tools/toolStatus";
+import { TOOL_STATUS_LABELS, type ToolStatus } from "./toolStatus";
 
 /**
  * ツールの呼び出し・まとまりの状態のアイコン（行の左端）: 実行中 = 回る印 / 完了 = ✓ / 失敗 = ✕ / 中断 = −。

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { tipProps } from "./HoverTip";
+import { tipProps } from "@/foundation/ui/kit/HoverTip";
 
 export interface ToggleOption<K extends string> {
   key: K;

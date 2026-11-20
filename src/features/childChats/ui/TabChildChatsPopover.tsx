@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { shortRelativeTime } from "@/foundation/ui/lib/time";
+import { relativeTime } from "@/foundation/ui/lib/time";
 import { useChildChats } from "@/features/chat/ui/store/knownChats";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
@@ -40,7 +40,7 @@ export function TabChildChatsPopover({ chatId, anchor, onClose }: { chatId: numb
           <StatusSlot state={stateOf(chat)} unread={busyWithUnread(chat, stateOf(chat))} />
           {depth > 1 && <ChildDepthMark chat={chat} />}
           <span className="state-chats-title">{chatTitle(chat.title)}</span>
-          <span className="state-chats-time muted">{shortRelativeTime(chat.active_at)}</span>
+          <span className="state-chats-time muted">{relativeTime(chat.active_at, { style: "short" })}</span>
         </button>
       ))}
     </Popover>
