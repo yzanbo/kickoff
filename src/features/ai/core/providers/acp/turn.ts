@@ -136,7 +136,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
     stopper = createStopper(signal, { interrupt: () => rpc?.notify("session/cancel", { sessionId: id }), onForced: cancelled });
     // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す
     if (signal.aborted) return { status: "cancelled", sessionId: id };
-    state.manualCompact = params.prompt.trim() === "/compact";
+    state.manualCompact = params.compact;
     cb.control?.({ tell: (text) => (tells.push(text), true), stopTask: async () => {} });
     let prompt: ContentBlock[] = promptBlocks(params, { withSystemPrompt: fresh && !caps?.sessionCapabilities?.systemPrompt });
     let denialRounds = 0;

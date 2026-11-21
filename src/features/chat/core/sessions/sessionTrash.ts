@@ -45,8 +45,9 @@ export async function sweepUnusedSessions(deps: SessionSweepDeps): Promise<numbe
       continue;
     }
     const provider = deps.providers[row.provider];
-    if (!provider?.sessionInfo) continue;
-    const info = await provider.sessionInfo(row.session_id, [row.cwd]);
+    const sessionInfo = provider?.sessions?.info;
+    if (!sessionInfo) continue;
+    const info = await sessionInfo(row.session_id, [row.cwd]);
     if (info) {
       await deps.trashBin.putPath(info.file, { projectId: row.project_id, kind: "session", label: sessionLabel(info.firstPrompt), companions: [sessionCompanion(info.file)] });
       trashed++;

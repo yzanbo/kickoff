@@ -15,7 +15,7 @@ test("使われなくなったセッションの片付け: 覚えたもののう
   // いまのチャットは kept を使っている。gone と shared はどのチャットも使っていない
   const put: { file: string; label?: string; projectId: number | null }[] = [];
   const provider = {
-    sessionInfo: async (id: string) => ({ sessionId: id, file: `/claude/${id}.jsonl`, size: 1, modifiedAt: "", cwd: "/work/p", firstPrompt: "ログインを直して" }),
+    sessions: { info: async (id: string) => ({ sessionId: id, file: `/claude/${id}.jsonl`, size: 1, modifiedAt: "", cwd: "/work/p", firstPrompt: "ログインを直して" }) },
   } as unknown as AgentProvider;
   const deps = {
     store,

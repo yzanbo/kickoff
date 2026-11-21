@@ -84,11 +84,12 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
   // 会話を新しいセッションに写す（ファイルの控えが新しいセッションで始まり、移したあとの発言を正しく戻せるように）
   const old = chat.session_id;
   const provider = deps.providers[chat.provider];
-  if (old && provider.copySessionForMove) {
+  const copyForMove = provider.sessions?.copyForMove;
+  if (old && copyForMove) {
     let copied: { sessionId: string; previousFile: string } | null = null;
     let failure: string | null = null;
     try {
-      copied = await provider.copySessionForMove(old, fromDir);
+      copied = await copyForMove(old, fromDir);
       if (!copied) failure = "会話記録が見つかりません";
     } catch (e) {
       failure = errorMessage(e);

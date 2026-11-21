@@ -20,11 +20,12 @@ export async function switchAfterCompact(
   since: number,
 ): Promise<string | null> {
   const { store, provider } = deps;
-  if (!provider.trimSession || !store.events.exists(chatId, { after: since, type: "compact" })) return null;
+  const trim = provider.sessions?.trim;
+  if (!trim || !store.events.exists(chatId, { after: since, type: "compact" })) return null;
   const chat = store.chats.get(chatId);
   const old = chat?.session_id;
   if (!chat || !old) return null;
-  const trimmed = await provider.trimSession(old, cwd);
+  const trimmed = await trim(old, cwd);
   if (!trimmed) return null;
   store.events.remapSession(chatId, old, trimmed.sessionId);
   store.chats.update(chatId, { session_id: trimmed.sessionId });

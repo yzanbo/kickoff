@@ -259,10 +259,10 @@ test("1 回だけ聞く: ツールなしの一時のセッションで、light �
 test("手で圧縮: /compact は history.compact を呼び、要約の記録を残す。会話がなければ失敗", async () => {
   const fake = fakeCopilotClient();
   const rec = recorder();
-  const result = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact", resumeSessionId: "s-1" }), rec.cb, new AbortController().signal);
+  const result = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact", compact: true, resumeSessionId: "s-1" }), rec.cb, new AbortController().signal);
   assert.equal(result.status, "completed");
   assert.ok(rec.events.some((e) => e.type === "compact" && e.trigger === "manual"));
-  const none = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact" }), recorder().cb, new AbortController().signal);
+  const none = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact", compact: true }), recorder().cb, new AbortController().signal);
   assert.equal(none.status, "failed");
 });
 

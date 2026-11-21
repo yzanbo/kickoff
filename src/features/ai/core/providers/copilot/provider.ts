@@ -4,7 +4,6 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { PlanUsage, ProviderCliStatus } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
-import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { askModelOf, toModelOptions, toPlanUsage } from "./catalog";
 import { runtimeEnv } from "./config";
@@ -86,14 +85,6 @@ export class CopilotProvider implements AgentProvider {
 
   async usage(): Promise<PlanUsage> {
     return toPlanUsage(await this.withClient((c) => c.getQuota()));
-  }
-
-  async title(text: string): Promise<string> {
-    return cleanTitle(await this.ask(titlePrompt(text)));
-  }
-
-  async summarize(text: string): Promise<string> {
-    return this.ask(summarizePrompt(text));
   }
 
   /**

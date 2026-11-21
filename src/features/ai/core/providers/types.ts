@@ -9,7 +9,7 @@ import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption
 import type { ApprovalDecision, ApprovalKind, RememberScope } from "@shared/chat/approvalTypes";
 import type { ChatEventData, CommandOutput, SubagentInfo } from "@shared/chat/chatEvent";
 import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
-import type { ModelOption } from "@shared/chat/types";
+import type { EffortDefault, ModelOption } from "@shared/chat/types";
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 
 /**
@@ -36,12 +36,8 @@ export interface AgentProvider {
   models?(): Promise<ModelOption[]>;
   /** チャット欄の / で出すコマンド（cwd のプロジェクトのコマンド・スキルも含む） */
   commands?(cwd: string): Promise<SlashCommandOption[]>;
-  /** 最初のメッセージから短いチャット名を作る */
-  title?(text: string): Promise<string>;
-  /** あとで読み返すノートにするため、文を短くまとめる（チャットの文を「AI で要約してノートに追加」） */
-  summarize?(text: string): Promise<string>;
   /**
-   * ツールを使わずに 1 回だけ聞いて、答えの文を返す（ノートの AI の整理。チャットの記録には残さない）。
+   * ツールを使わずに 1 回だけ聞いて、答えの文を返す（チャットの名前・ノートの要約と AI の整理。チャットの記録には残さない。ask.ts）。
    * model: 軽い問い合わせは light（既定）、文を書き直すなど質が要るものは standard
    */
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
@@ -50,25 +46,8 @@ export interface AgentProvider {
    * keep は写す区切り（圧縮の印から次の印まで）の数: 同じ会話を続けるもの（分岐・巻き戻し）は既定の 3、子チャットは 1
    */
   fork?(sessionId: string, messageId: string, cwd: string, opts?: { keep?: number }): Promise<string>;
-  /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す。記録を持たなければ未実装） */
-  discardSessions?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
-  /**
-   * 長く続けたセッションを、終わりの直近の区切り（既定 3）だけにした新しいセッションにする（元のセッションは変えない）。
-   * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null。対応していなければ未実装
-   */
-  trimSession?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
-  /**
-   * 作業場所を移すとき、会話を新しいセッションに写す（直近の区切り、足りなければ丸ごと。
-   * 発言の ID は保つ。ファイルの控えは写さない。元のセッションは変えない）。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。
-   * 元の記録が見つからなければ null。写せないプロバイダーは未実装（そのセッションのまま移す）
-   */
-  copySessionForMove?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
-  /** セッションの記録のファイルの様子（cwds は動かした作業フォルダの候補。なければ null。Kickoff が作ったセッションの片付け） */
-  sessionInfo?(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null>;
-  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧。新しい順） */
-  listSessionFiles?(): Promise<SessionFileInfo[]>;
-  /** セッションの記録のファイルの大きさの合計（cwds は動かした作業フォルダの候補。アーカイブ済みのチャットの整理の見込み。記録を持たなければ未実装） */
-  sessionsSize?(sessionIds: string[], cwds: string[]): Promise<number>;
+  /** 会話記録のファイル（Claude Code だけ。持たない口は未実装） */
+  readonly sessions?: SessionStore;
   /**
    * サブエージェントの会話（依頼・発言・ツールと結果）を、記録から読む（「サブエージェントに子チャットで聞く」で添える。読めなければ空）。
    * sessionId はサブエージェントを動かした親のセッション、cwd はそのセッションを動かした作業フォルダ
@@ -81,6 +60,8 @@ export interface AgentProvider {
    * 開く URL と、終わりを待つ口・やめる口を返す。ブラウザでのログインを持たないプロバイダーは未実装
    */
   login?(): Promise<ProviderLogin>;
+  /** 推論の深さを指定しないとき（既定）に CLI が使う深さを設定から求める（読むだけ。対応していなければ未実装） */
+  effortDefault?(model: string | null, cwd: string): Promise<EffortDefault>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
 }
@@ -101,11 +82,22 @@ export type SubagentLogItem =
   | { kind: "assistant"; text: string }
   | { kind: "tool"; name: string; input: unknown; result: string | null; isError: boolean };
 
+/** 自動の圧縮の前に足す圧縮前指示（ProviderTurnParams.preCompact。文はどれも chat が作る） */
+export interface PreCompactRequest {
+  message: string;
+  contextWindow: number;
+  contextTokens: number | null;
+  nudge: string;
+  doneMark: string;
+}
+
 export interface ProviderTurnParams {
   cwd: string;
   prompt: string;
   /** 指示の ID（自分の発言の記録の message_uuid。ファイルをこの発言の時点に戻すときの目印） */
   promptId?: string;
+  /** 手で頼んだ圧縮（prompt は "/compact"。Claude Code はその文で、ほかの CLI はこの印で圧縮の口を呼ぶ） */
+  compact: boolean;
   /** プロバイダー既定のシステムプロンプトに追記する Kickoff の文脈 */
   systemPrompt: string;
   policy: ChatPolicy;
@@ -122,9 +114,10 @@ export interface ProviderTurnParams {
   autoCompactPct: number | null;
   /**
    * 上限に近づいて自動で圧縮する前に足す圧縮前指示（null なら足さない）。message: AI に送る文（前置き付き）・
-   * contextWindow: コンテキストウィンドウ（前の作業で分かったもの）・contextTokens: いまのコンテキストの大きさ（前の作業の終わりの値。分からなければ null）
+   * contextWindow: コンテキストウィンドウ（前の作業で分かったもの）・contextTokens: いまのコンテキストの大きさ（前の作業の終わりの値。分からなければ null）・
+   * nudge: 合図のあと裏の作業を待って止まったときに足す発言・doneMark: 済んだ合図の一文
    */
-  preCompact?: { message: string; contextWindow: number; contextTokens: number | null } | null;
+  preCompact?: PreCompactRequest | null;
   /**
    * 指示に添える文脈（このチャットの名前と親チャットなど。null・省略なら添えない）。Claude Code は続きのセッションでは
    * システムプロンプトを取り直さず（記録の prompt_snapshot を使い回す。分岐した子チャットは親のもの）、送るたびに変わる文脈が届かないため、
@@ -183,8 +176,8 @@ export interface ApprovalRequest {
   agentId?: string;
 }
 
-/** プロバイダーから Kickoff へ通知する実行中イベント（DB にはこの形のまま保存される） */
-type AgentEvent = Exclude<ChatEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
+/** プロバイダーから Kickoff へ通知する実行中イベント（実装が出す 8 種類。DB にはこの形のまま保存される。ほかの記録はコアが作る） */
+type AgentEvent = Extract<ChatEventData, { type: "init" | "text" | "thinking" | "tool_use" | "tool_result" | "subagent" | "compact" | "notice" }>;
 
 /** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
 export interface TurnControl {
@@ -238,7 +231,7 @@ export interface ProviderCallbacks {
   control?(control: TurnControl | null): void;
   /** 自動の圧縮の前に、圧縮前指示（ProviderTurnParams.preCompact）を足した（uuid: 足した発言の ID。記録はコアが残す） */
   preCompactSent?(uuid: string): void;
-  /** 圧縮前指示の合図のあと、裏の作業の終わりだけを待って止まったので、圧縮を走らせる発言（PRE_COMPACT_NUDGE）を足した（記録はコアが残す） */
+  /** 圧縮前指示の合図のあと、裏の作業の終わりだけを待って止まったので、圧縮を走らせる発言（preCompact.nudge）を足した（記録はコアが残す） */
   preCompactNudged?(uuid: string): void;
 }
 
@@ -264,6 +257,28 @@ export interface ProviderTurnResult {
 
 /** 子チャットが親の会話を写すときに残す区切りの数（最新の要約とそのあとのやり取りだけ） */
 export const CHILD_FORK_KEEP = 1;
+
+/** 会話記録のファイルの口（AgentProvider.sessions。どれも、記録を持たない・写せないプロバイダーは未実装） */
+export interface SessionStore {
+  /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す） */
+  discard?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
+  /**
+   * 長く続けたセッションを、終わりの直近の区切り（既定 3）だけにした新しいセッションにする（元のセッションは変えない）。
+   * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null
+   */
+  trim?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
+  /**
+   * 作業場所を移すとき、会話を新しいセッションに写す（直近の区切り、足りなければ丸ごと。発言の ID は保つ。ファイルの控えは写さない。
+   * 元のセッションは変えない）。新しいセッションの ID と、元の記録のファイルを返す。元の記録が見つからなければ null（写せなければそのセッションのまま移す）
+   */
+  copyForMove?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
+  /** セッションの記録のファイルの様子（cwds は動かした作業フォルダの候補。なければ null。Kickoff が作ったセッションの片付け） */
+  info?(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null>;
+  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧。新しい順） */
+  list?(): Promise<SessionFileInfo[]>;
+  /** セッションの記録のファイルの大きさの合計（cwds は動かした作業フォルダの候補。アーカイブ済みのチャットの整理の見込み） */
+  size?(sessionIds: string[], cwds: string[]): Promise<number>;
+}
 
 /** 会話記録のファイルの様子（Kickoff が作ったセッションの片付け・どのチャットも使っていない記録の一覧） */
 export interface SessionFileInfo {

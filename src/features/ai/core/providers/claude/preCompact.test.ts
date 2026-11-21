@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
+import { isPreCompactDone, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createPreCompactGate, replyText } from "./preCompact";
 
@@ -12,6 +12,8 @@ function setup(opts: { contextTokens?: number | null; push?: boolean } = {}) {
   const clock = manualClock();
   const gate = createPreCompactGate({
     message: "指示",
+    nudge: PRE_COMPACT_NUDGE,
+    doneMark: PRE_COMPACT_DONE,
     contextWindow: 200_000,
     contextTokens: opts.contextTokens === undefined ? 150_000 : opts.contextTokens,
     push: (text, uuid) => {
@@ -147,6 +149,8 @@ test("背中を押す: 足せなかった（入力が閉じている）ときは
   const nudged: string[] = [];
   const gate = createPreCompactGate({
     message: "指示",
+    nudge: PRE_COMPACT_NUDGE,
+    doneMark: PRE_COMPACT_DONE,
     contextWindow: 200_000,
     contextTokens: 150_000,
     push: () => open,
@@ -174,4 +178,8 @@ test("背中を押す: 合図以外の理由で通したとき（残りが少な
   assert.equal(gate.shouldBlock("auto", undefined), false);
   gate.noteWaiting(true);
   assert.equal(clock.pending, 0);
+});
+
+test("合図の見分けは、渡された doneMark を含むか（chat の isPreCompactDone と同じ式）", () => {
+  for (const text of [PRE_COMPACT_DONE, `はい。${PRE_COMPACT_DONE}`, "済ませました", ""]) assert.equal(text.includes(PRE_COMPACT_DONE), isPreCompactDone(text));
 });

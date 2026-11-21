@@ -55,7 +55,7 @@ export async function archiveCleanupPreview(deps: { store: Store; providers: Rec
   const sessions = collectChatSessions(deps.store, chats);
   let size: number | null = null;
   for (const [providerId, ids] of sessions.byProvider) {
-    const counted = await deps.providers[providerId]?.sessionsSize?.([...ids], sessions.cwds).catch(() => null);
+    const counted = await deps.providers[providerId]?.sessions?.size?.([...ids], sessions.cwds).catch(() => null);
     if (typeof counted === "number") size = (size ?? 0) + counted;
   }
   return { days, count: chats.length, size: chats.length === 0 ? 0 : size };

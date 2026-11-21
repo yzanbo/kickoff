@@ -124,7 +124,7 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
     cb.emit({ type: "text", text: "こんにちは" });
     return { status: "completed", sessionId: "s" };
   });
-  (provider as unknown as { title: (t: string) => Promise<string> }).title = async () => "挨拶";
+  Object.assign(provider, { ask: async () => "挨拶" }); // 名前は 1 回だけ聞く口（askTitle）で付けてもらう
   // バスの知らせの順（途中の文と、記録の text）
   const order: string[] = [];
   bus.subscribe((e) => {

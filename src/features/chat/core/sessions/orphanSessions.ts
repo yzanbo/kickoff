@@ -27,7 +27,7 @@ async function orphanFiles(deps: OrphanSessionDeps): Promise<(SessionFileInfo & 
   const files: (SessionFileInfo & { provider: ProviderId })[] = [];
   const seen = new Set<string>();
   for (const [providerId, provider] of Object.entries(deps.providers) as [ProviderId, AgentProvider][]) {
-    for (const info of (await provider.listSessionFiles?.()) ?? []) {
+    for (const info of (await provider.sessions?.list?.()) ?? []) {
       // 同じファイルを 2 回数えない（いくつものプロバイダーが同じ場所を読むとき）
       if (seen.has(info.file) || used.has(info.sessionId) || deps.store.agentSessions.has(info.sessionId)) continue;
       seen.add(info.file);

@@ -67,7 +67,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
   // フックで利用者が許した書く先（あとで同じファイルの変更の承認が来ても聞き直さない）
   const approvedWrites = new Set<string>();
   const guard = { params, self: deps.self };
-  const compactOnly = params.prompt.trim() === "/compact";
+  const compactOnly = params.compact;
 
   let finish!: (turn: Turn) => void;
   const done = new Promise<Turn>((resolve) => (finish = resolve));

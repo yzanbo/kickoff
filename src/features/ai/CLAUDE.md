@@ -4,14 +4,14 @@
 
 ## 抽象（`types.ts`）
 
-- `AgentProvider` は `status()`・`run(params, callbacks, signal)` と任意の機能（`usage`・`models`・`fork`・`login` など）。対応しない機能は持たない。
+- `AgentProvider` は `status()`・`run(params, callbacks, signal)` と任意の機能（`models`・`fork`・`login`・会話記録の `sessions` など）。名前・要約は `ask.ts`。対応しない機能は持たない。
 - できることは `features.ts` の `providerFeatures` が任意の機能の有無から作る（画面の押せない理由と、コアの断る文 `providerFeatureMissing` も同じ）。
 - 失敗は投げずに `ProviderTurnResult` で返し、止められたら `cancelled`。共通の小物は `shared/`（止める・失敗の印・名乗り・環境変数）。記録の `user` / `approval` / `result` などはコアが作り、プロバイダーは出さない。
 - AI を足すときは `index.ts` の `createProviders` と `PROVIDER_IDS`。確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。
 - チャットの AI は作るときに決め、途中では変えない。違う AI の子チャットは会話を引き継がない（セッションの形が違う）。
 - モデルの一覧は `modelCatalog.ts`（一覧にないモデルを外す `knownModel` も）。
 - API キーは `keys.ts` が `secrets` に暗号化して置き、応答・SSE に出さない（`has_api_key` だけ）。
-- キーを AI に読ませない: CLI のログインの口を使い、環境変数で渡すのは CLI が子プロセスから外せると確かめたものだけ。サブスクではアプリは資格情報を持たない。
+- キーを AI に読ませない: CLI のログインの口を使い、環境変数で渡すのは CLI が子プロセスから外せると確かめたものだけ。
 - AI の操作ツールはプロバイダーが作らず、`params.tools` を各 CLI の MCP の書き方に直すだけ。
 - MCP の鍵は JSON-RPC か標準入力の中で渡し、起動の引数・環境変数に載せない。API キーも起動の引数に載せない（`ps` で見える）。
 - 記録の名前と入力の形は Claude Code にそろえる（画面のツールの表示・変更カードが前提にする）。

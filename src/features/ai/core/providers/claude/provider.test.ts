@@ -16,6 +16,7 @@ export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTur
     cwd: "/w",
     prompt: "やって",
     promptId: "u-1",
+    compact: false,
     systemPrompt: "Kickoff の文脈",
     policy: { allowedCommands: [], web: true },
     resumeSessionId: null,
@@ -230,7 +231,7 @@ test("圧縮: 区切りの post_tokens を作業の終わりを待たずに cont
     q.finish();
   };
   const rec = recorder();
-  const result = await provider(fake).run(turnParams({ preCompact: { message: "まとめて", contextWindow: 200_000, contextTokens: null } }), rec.cb, signal());
+  const result = await provider(fake).run(turnParams({ preCompact: { message: "まとめて", contextWindow: 200_000, contextTokens: null, nudge: "続けて", doneMark: "済んだ" } }), rec.cb, signal());
   assert.deepEqual(rec.contexts, [20_000]);
   assert.ok(rec.events.some((e) => e.type === "compact"));
   assert.equal(result.context?.tokens, 20_000);

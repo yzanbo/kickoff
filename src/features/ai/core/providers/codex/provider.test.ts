@@ -288,7 +288,7 @@ test("分岐は thread/fork（ターンの ID まで）、手で圧縮は thread
     return {};
   });
   const rec = recorder();
-  const result = await provider.run(params({ prompt: "/compact", resumeSessionId: "thr-1" }), rec.cb, new AbortController().signal);
+  const result = await provider.run(params({ prompt: "/compact", compact: true, resumeSessionId: "thr-1" }), rec.cb, new AbortController().signal);
   assert.equal(result.status, "completed");
   assert.equal(rec.events.find((e) => e.type === "compact")?.trigger, "manual");
   assert.ok(!server.requests.some((r) => r.method === "turn/start"));

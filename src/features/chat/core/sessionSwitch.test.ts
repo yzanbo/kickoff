@@ -11,7 +11,7 @@ function setup() {
   store.chats.update(chat.id, { session_id: "old" });
   const trimmed: string[] = [];
   const provider = {
-    trimSession: async (sessionId: string) => (trimmed.push(sessionId), { sessionId: "new", previousFile: "/claude/old.jsonl" }),
+    sessions: { trim: async (sessionId: string) => (trimmed.push(sessionId), { sessionId: "new", previousFile: "/claude/old.jsonl" }) },
   } as unknown as AgentProvider;
   const trashed: { sessionId: string; file: string; label: string }[] = [];
   const trash = async (sessionId: string, file: string, ctx: { label: string }) => void trashed.push({ sessionId, file, label: ctx.label });

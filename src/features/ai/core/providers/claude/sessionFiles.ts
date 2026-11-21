@@ -7,7 +7,7 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import type { SessionFileInfo } from "@/features/ai/core/providers/types";
+import type { SessionFileInfo, SessionStore } from "@/features/ai/core/providers/types";
 import { claudeProjectsDir, isBoundary, isFileHistoryLine, projectDirName, SESSION_FILE } from "./internals";
 
 /**
@@ -272,3 +272,27 @@ export async function listSessionFiles(root = claudeProjectsDir()): Promise<Sess
   }
   return out.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
 }
+
+/** Claude Code の会話記録の口（ClaudeProvider.sessions。探して切り出し・写し・ゴミ箱へ・様子・一覧・大きさ） */
+export const claudeSessionStore: SessionStore = {
+  /** チャットを消したとき、そのセッションの記録をゴミ箱へ移す（見つからなければすべてのプロジェクトから探す） */
+  discard: (sessionIds, cwds, trash) => trashSessions(sessionIds, cwds, trash),
+  /** 長く続けたセッションを、終わりの直近 3 区切りだけの新しいセッションにする（切るものがなければ null） */
+  async trim(sessionId, cwd) {
+    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
+    if (!file) return null;
+    const trimmed = await trimToRecentSegments(file, sessionId);
+    return trimmed ? { sessionId: trimmed.sessionId, previousFile: file } : null;
+  },
+  /** 作業場所を移すとき、会話を新しいセッションに写す（元の記録が見つからなければ null） */
+  async copyForMove(sessionId, cwd) {
+    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
+    if (!file) return null;
+    const copied = await copyForWorkplaceMove(file, sessionId);
+    return { sessionId: copied.sessionId, previousFile: file };
+  },
+  info: (sessionId, cwds) => sessionFileInfo(sessionId, cwds),
+  list: () => listSessionFiles(),
+  /** 作業フォルダから決まる場所だけを見る（アーカイブ済みのチャットの整理の見込み） */
+  size: (sessionIds, cwds) => sessionFilesSize(sessionIds, cwds),
+};

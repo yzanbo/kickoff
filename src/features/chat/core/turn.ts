@@ -203,8 +203,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, noteDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
       : null;
 
-    // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
-    // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
+    // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える（中断済みの signal には abort の知らせが来ない）
     const result: ProviderTurnResult = signal.aborted ? { status: "cancelled", sessionId: chat.session_id } : await runProvider();
     async function runProvider(): Promise<ProviderTurnResult> {
       // ログインの仕方（API キーにしたのに置いていない・開けなければ、動かさずに分かる文で止める）
@@ -216,6 +215,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       const params: ProviderTurnParams = {
         ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
         model,
+        compact: compact || prompt.trim() === "/compact", // 手で頼んだ圧縮（送信待ちの圧縮の行・チャット欄に書いた /compact）
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
         auth,
@@ -354,7 +354,7 @@ function buildTurnParams(
   prompt: string,
   promptId?: string,
   note: string | null = null,
-): ProviderTurnParams {
+): Omit<ProviderTurnParams, "compact"> {
   // ノートのフォルダ（executeTurn がまだなければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
   // （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
   return {

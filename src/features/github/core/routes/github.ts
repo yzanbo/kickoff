@@ -5,6 +5,7 @@ import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERG
 import type { Store } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import type { GitHubService } from "@/features/github/core/service";
+import { githubStatus } from "@/features/github/core/github";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 
@@ -90,6 +91,8 @@ const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "
 export function githubRoutes(app: Hono, { store, github, prWatch }: { store: Pick<Store, "projects" | "chats" | "groups">; github: GitHubService; prWatch: WorktreePrWatch }) {
   const { withProject } = lookups(store);
 
+  // gh の状態（設定の「接続」。プロジェクトによらない）
+  app.get("/api/github", async (c) => c.json(await githubStatus()));
   app.get("/api/projects/:id/github/connection", withProject, async (c) => c.json(await github.connection(c.var.project)));
   app.get("/api/projects/:id/github/meta", withProject, async (c) => c.json(await github.meta(c.var.project)));
 

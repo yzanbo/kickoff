@@ -61,7 +61,7 @@ function sessionConfig(params: ProviderTurnParams, cb: ProviderCallbacks, signal
  */
 export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
   if (signal.aborted) return { status: "cancelled", sessionId: params.resumeSessionId };
-  const compactOnly = params.prompt.trim() === "/compact";
+  const compactOnly = params.compact;
   if (compactOnly && !params.resumeSessionId) return { status: "failed", sessionId: null, error: "まだ圧縮する会話がありません" };
   const state = createEventState();
   let client: CopilotClientLike | null = null;

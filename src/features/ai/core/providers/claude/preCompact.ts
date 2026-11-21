@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { HookCallbackMatcher } from "./wire";
-import { isPreCompactDone, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** 指示を足し始めるのに要る、コンテキストの残り（トークン。最後の応答のあとに届くツールの結果の分も見込む） */
@@ -18,6 +17,10 @@ const PRE_COMPACT_NUDGE_MS = 5000;
 export interface PreCompactGateOptions {
   /** AI に足す文（前置き付きの圧縮前指示） */
   message: string;
+  /** 合図のあとに止まったとき、背中を押す発言（chat が渡す。ai は圧縮前指示の文を知らない） */
+  nudge: string;
+  /** AI が指示を済ませた合図の一文（返答の文に含まれていたら済んだとみなす） */
+  doneMark: string;
   /** コンテキストウィンドウ */
   contextWindow: number;
   /** 実行を始めたときのコンテキストの大きさ（前の作業の終わりの値。分からなければ null） */
@@ -26,7 +29,7 @@ export interface PreCompactGateOptions {
   push(text: string, uuid: string): boolean;
   /** 足した（記録はコアが残す） */
   onSent(uuid: string): void;
-  /** 合図のあとに止まったので、背中を押す発言（PRE_COMPACT_NUDGE）を足した（記録はコアが残す） */
+  /** 合図のあとに止まったので、背中を押す発言（nudge）を足した（記録はコアが残す） */
   onNudged?(uuid: string): void;
   /** 足す発言の ID（テストで差し替える） */
   newId?: () => string;
@@ -38,7 +41,7 @@ export interface PreCompactGateOptions {
 /**
  * 上限に近づいて自動で圧縮する前に、圧縮前指示を足して済ませてもらう（Claude Code の PreCompact フックで圧縮を止める）。
  * Claude Code はツールの結果が返るたび（と指示を受けた直後）、送る前に自動の圧縮を決めてフックを呼ぶ。止めると圧縮せずに送る。
- * 1 回目に止めたときに指示を足し（足した発言は、その次の送信から AI が読む）、AI が合図の一文（PRE_COMPACT_DONE）を書くまで止め続ける。
+ * 1 回目に止めたときに指示を足し（足した発言は、その次の送信から AI が読む）、AI が合図の一文（doneMark）を書くまで止め続ける。
  * 次のときは止めずに通す: 手で頼んだ圧縮・サブエージェントの圧縮・コンテキストの残りが少ない・止める回数の上限・
  * 前に止めてから応答が来ないまま呼ばれた（送ったら上限を超えた = あふれたときの圧縮。止めると先へ進めない）。
  * 圧縮したら（区切り）、次に上限に近づいたときにまた足す。
@@ -66,7 +69,7 @@ export function createPreCompactGate(opts: PreCompactGateOptions) {
     timer = null;
     if (!signaled || nudged) return;
     const uuid = newId();
-    if (!opts.push(PRE_COMPACT_NUDGE, uuid)) return;
+    if (!opts.push(opts.nudge, uuid)) return;
     nudged = true;
     opts.onNudged?.(uuid);
   };
@@ -76,7 +79,7 @@ export function createPreCompactGate(opts: PreCompactGateOptions) {
     noteReply(replyTokens: number, text: string | null) {
       repliedSinceHook = true;
       tokens = replyTokens;
-      if (phase === "holding" && text !== null && isPreCompactDone(text)) {
+      if (phase === "holding" && text !== null && text.includes(opts.doneMark)) {
         phase = "passed";
         signaled = true;
       }

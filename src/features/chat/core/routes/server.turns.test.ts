@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
 import type { ChatLive, CompactingState } from "@shared/chat/chatLive";
-import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
+import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
   const { call, project, store, runner, provider } = setup();
@@ -204,7 +204,7 @@ test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキス
   provider.preCompactSentId = "pc-1";
   await call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" });
   await until(() => !runner.isBusy(chatId));
-  assert.deepEqual(provider.preCompacts[1], { message: autoPreCompactMessage("ノートを書いて"), contextWindow: 200_000, contextTokens: 120_000 });
+  assert.deepEqual(provider.preCompacts[1], { message: autoPreCompactMessage("ノートを書いて"), contextWindow: 200_000, contextTokens: 120_000, nudge: PRE_COMPACT_NUDGE, doneMark: PRE_COMPACT_DONE });
   const user = store.events.list(chatId).find((e) => e.type === "user" && e.data.pre_compact)!;
   assert.ok(user.type === "user");
   assert.deepEqual([user.data.text, user.data.message_uuid], ["ノートを書いて", "pc-1"]);

@@ -1,4 +1,6 @@
 // AI のつなぎ込みの機能のコアの入口（ほかの機能はここだけを読む）
+export { askSummary, askTitle, canAsk } from "./ask";
+export type { AgentProvider } from "./providers/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { Bus } from "@/foundation/core/bus";
 import type { CoreFeature } from "@/foundation/core/feature";

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "@/features/subagents/core/reports";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { knownModel } from "@/features/ai/core/providers/modelCatalog";
+import { askTitle, canAsk } from "@/features/ai/core/index";
 import type { ExecutionDeps } from "./turn";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -129,9 +130,9 @@ function firstLine(text: string): string {
 async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, text: string) {
   const chat = store.chats.get(chatId);
   const provider = chat ? providers[chat.provider] : undefined;
-  if (!chat || !provider?.title || !text.trim()) return;
+  if (!chat || !canAsk(provider) || !text.trim()) return;
   try {
-    const title = await provider.title(text);
+    const title = await askTitle(provider, text);
     const latest = store.chats.get(chatId);
     if (title && latest && latest.title === chat.title) store.chats.update(chatId, { title });
   } catch {

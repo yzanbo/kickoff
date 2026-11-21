@@ -1,7 +1,9 @@
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SessionStore, SubagentLogItem } from "@/features/ai/core/providers/types";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
 import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
-import type { ModelOption } from "@shared/chat/types";
+import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import { claudeEffortDefault } from "@/features/ai/core/providers/claude/effortDefault";
+import { summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 
 /** テスト用の偽のプロバイダーの土台（いつもログイン済み）。run の振る舞いはテストごとに決める。テストからだけ使う */
 export abstract class FakeProviderBase implements AgentProvider {
@@ -11,6 +13,11 @@ export abstract class FakeProviderBase implements AgentProvider {
 
   async status(): Promise<ProviderCliStatus> {
     return { id: this.id, label: this.label, implemented: true, installed: true, logged_in: true, detail: "" };
+  }
+
+  /** 推論の深さの既定は本物の Claude と同じに設定のファイルから読む（偽物は id が claude） */
+  effortDefault(model: string | null, cwd: string): Promise<EffortDefault> {
+    return claudeEffortDefault(model, cwd);
   }
 
   abstract run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
@@ -165,22 +172,23 @@ export class FakeProvider extends FakeProviderBase {
   /** 作業場所を移すときに写したセッション（元の会話・作業フォルダ）と、写せないときの失敗 */
   copies: [string, string][] = [];
   copyError: string | null = null;
-  async copySessionForMove(sessionId: string, cwd: string) {
-    this.copies.push([sessionId, cwd]);
-    if (this.copyError) throw new Error(this.copyError);
-    return { sessionId: `moved-${this.copies.length}`, previousFile: `/sessions/${sessionId}.jsonl` };
-  }
   /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧の元。テストで入れる） */
   sessionFiles: SessionFileInfo[] = [];
-  async listSessionFiles() {
-    return this.sessionFiles;
-  }
   /** チャットを消したときにゴミ箱へ移すよう頼まれたセッション（頼まれた順。cwds は作業フォルダの候補） */
   discarded: { sessionIds: string[]; cwds: string[] }[] = [];
-  async discardSessions(sessionIds: string[], cwds: string[]) {
-    this.discarded.push({ sessionIds, cwds });
-    return sessionIds.length;
-  }
+  /** 会話記録の口（写す・一覧・ゴミ箱へだけ。切り出し・様子・大きさは持たない） */
+  readonly sessions: SessionStore = {
+    copyForMove: async (sessionId, cwd) => {
+      this.copies.push([sessionId, cwd]);
+      if (this.copyError) throw new Error(this.copyError);
+      return { sessionId: `moved-${this.copies.length}`, previousFile: `/sessions/${sessionId}.jsonl` };
+    },
+    list: async () => this.sessionFiles,
+    discard: async (sessionIds, cwds) => {
+      this.discarded.push({ sessionIds, cwds });
+      return sessionIds.length;
+    },
+  };
   /** 次からの分岐を、返した関数を呼ぶまで返さない */
   holdFork(): () => void {
     let release = () => {};
@@ -200,16 +208,21 @@ export class FakeProvider extends FakeProviderBase {
     this.gate = new Promise((resolve) => (release = () => ((this.gate = null), resolve())));
     return release;
   }
-  /** 要約に渡した文（順に）。返すのは「要約: 」＋ 先頭の 10 文字 */
+  /** 要約に渡した文（askSummary の頼み。順に）。返すのは「要約: 」＋ 先頭の 10 文字 */
   summarized: string[] = [];
-  async summarize(text: string) {
-    this.summarized.push(text);
-    return `要約: ${text.slice(0, 10)}`;
-  }
-  /** 1 回だけ聞いた文とモデル（順に）。返すのは askReply（関数なら聞いた文から作る。なければ「答え: 」＋ 文の最後の行） */
+  /**
+   * 1 回だけ聞いた文とモデル（順に）。返すのは askReply（関数なら聞いた文から作る。なければ「答え: 」＋ 文の最後の行）。
+   * チャットの名前の頼み（askTitle）には答えず（偽物は名前を付けない）、要約の頼み（askSummary）は summarized に分けて覚える
+   */
   asked: { prompt: string; model: string | undefined }[] = [];
   askReply: string | ((prompt: string) => string) | null = null;
   async ask(prompt: string, options?: { model?: string }) {
+    if (prompt.startsWith(titlePrompt(""))) throw new Error("偽のプロバイダーは名前を付けません");
+    if (prompt.startsWith(summarizePrompt(""))) {
+      const text = prompt.slice(summarizePrompt("").length);
+      this.summarized.push(text);
+      return `要約: ${text.slice(0, 10)}`;
+    }
     this.asked.push({ prompt, model: options?.model });
     if (typeof this.askReply === "function") return this.askReply(prompt);
     return this.askReply ?? `答え: ${prompt.split("\n").at(-1)}`;

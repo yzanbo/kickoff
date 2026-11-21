@@ -4,11 +4,10 @@ import type { PlanUsage, ProviderCliStatus } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
-import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
-import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderLogin, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { askModelOf, toModelOptions, toPlanUsage } from "./catalog";
 import { appServerLaunch } from "./config";
-import { startChatgptLogin, type ChatgptLogin } from "./login";
+import { startChatgptLogin } from "./login";
 import type { AccountResponse, CodexModel, ModelListResponse, RateLimitsResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { withSession } from "./session";
@@ -110,14 +109,6 @@ export class CodexProvider implements AgentProvider {
     return toPlanUsage(await this.session((rpc) => rpc.request<RateLimitsResponse>("account/rateLimits/read", {})));
   }
 
-  async title(text: string): Promise<string> {
-    return cleanTitle(await this.ask(titlePrompt(text)));
-  }
-
-  async summarize(text: string): Promise<string> {
-    return this.ask(summarizePrompt(text));
-  }
-
   /**
    * ツールを使わずに 1 回だけ聞く: 一時フォルダで（作業場所の AGENTS.md などを読ませない）、一時のスレッド（ephemeral。記録を残さない）・読むだけの砂場・聞かない（never）で動かし、
    * 最後の返答の文を返す。モデルは一覧から段に当てる（catalog.ts の askModelOf）
@@ -160,7 +151,7 @@ export class CodexProvider implements AgentProvider {
   }
 
   /** ブラウザでのログインを始める（login.ts。Codex がログインを受けて ~/.codex に書く。設定の「接続」から） */
-  login(): Promise<ChatgptLogin> {
+  login(): Promise<ProviderLogin> {
     if (!this.spawn) return Promise.reject(new Error("codex CLI が見つかりません"));
     const { args, env } = appServerLaunch(this.baseEnv, {});
     return startChatgptLogin({ spawn: this.spawn, args, env, cwd: os.homedir() });

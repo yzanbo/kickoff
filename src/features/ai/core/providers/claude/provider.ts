@@ -2,7 +2,7 @@ import os from "node:os";
 import { bundledClaudeVersion, MCP_SERVERS_DELIVERY, overageInUseOf, planUsageOf, resolveClaudeExecutable, type Options, type Query, type SDKResultMessage, type SDKUserMessage } from "./wire";
 import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk";
 import { createBackgroundTracker } from "./background";
-import { copyForWorkplaceMove, findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles";
+import { claudeSessionStore, findSessionFile, removeSession, writeRecentSegments } from "./sessionFiles";
 import { createTurnOver } from "./turnOver";
 import { createCommandOutputWatcher } from "./commandOutput";
 import { createInputChannel } from "./input";
@@ -12,7 +12,7 @@ import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError, resetTimeOf } from "@/features/ai/core/providers/shared/usageLimit";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels";
 import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
-import type { ModelOption } from "@shared/chat/types";
+import type { EffortDefault, ModelOption } from "@shared/chat/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { createCanUseTool } from "./approvals";
 import { mcpServersOf, toolAllowList } from "./mcpServers";
@@ -24,13 +24,13 @@ import { subagentLogOf } from "./subagentLog";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { normalizeUsage, readPlanDisplayName } from "./usage";
-import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "@/features/ai/core/providers/types";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
 import { claudeSandboxOption } from "./sandbox";
-import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 import { confirmedClaudeMissingResume } from "./missingResume";
-import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
+import { CLEAR_COMMAND_DESCRIPTION } from "@shared/ai/commands";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
+import { claudeEffortDefault } from "./effortDefault";
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -39,6 +39,7 @@ export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
   readonly label = "Claude Code";
   readonly implemented = true;
+  readonly sessions = claudeSessionStore;
   private readonly sdk: ClaudeSdk;
   private readonly executable: string | undefined;
   private readonly self: SelfInfo | undefined;
@@ -365,40 +366,9 @@ export class ClaudeProvider implements AgentProvider {
     }
   }
 
-  /** チャットを消したとき、そのセッションの記録をゴミ箱へ移す（cwds は動かした作業フォルダの候補。見つからなければすべてのプロジェクトから探す） */
-  async discardSessions(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number> {
-    return trashSessions(sessionIds, cwds, trash);
-  }
-
-  /** 長く続けたセッションを、終わりの直近 3 区切りだけの新しいセッションにする（sessionFiles.ts の trimToRecentSegments。切るものがなければ null） */
-  async trimSession(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null> {
-    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
-    if (!file) return null;
-    const trimmed = await trimToRecentSegments(file, sessionId);
-    return trimmed ? { sessionId: trimmed.sessionId, previousFile: file } : null;
-  }
-
-  /** 作業場所を移すとき、会話を新しいセッションに写す（sessionFiles.ts の copyForWorkplaceMove。元の記録が見つからなければ null） */
-  async copySessionForMove(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null> {
-    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
-    if (!file) return null;
-    const copied = await copyForWorkplaceMove(file, sessionId);
-    return { sessionId: copied.sessionId, previousFile: file };
-  }
-
-  /** セッションの記録のファイルの様子（Kickoff が作ったセッションの片付け） */
-  async sessionInfo(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null> {
-    return sessionFileInfo(sessionId, cwds);
-  }
-
-  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧） */
-  async listSessionFiles(): Promise<SessionFileInfo[]> {
-    return listSessionFiles();
-  }
-
-  /** セッションの記録のファイルの大きさの合計（作業フォルダから決まる場所だけを見る。アーカイブ済みのチャットの整理の見込み） */
-  async sessionsSize(sessionIds: string[], cwds: string[]): Promise<number> {
-    return sessionFilesSize(sessionIds, cwds);
+  /** 推論の深さの既定（環境変数と Claude Code の設定ファイル。effortDefault.ts） */
+  effortDefault(model: string | null, cwd: string): Promise<EffortDefault> {
+    return claudeEffortDefault(model, cwd);
   }
 
   /** サブエージェントの会話を記録から読む（cwd のプロジェクトで見つからなければ、すべてのプロジェクトから探す。なければ空） */
@@ -421,14 +391,6 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
-  async title(text: string): Promise<string> {
-    return cleanTitle(await this.askOnce(titlePrompt(text)));
-  }
-
-  async summarize(text: string): Promise<string> {
-    return (await this.askOnce(summarizePrompt(text))).trim();
-  }
-
   async ask(prompt: string, options?: { model?: AskModel }): Promise<string> {
     return (await this.askOnce(prompt, options?.model)).trim();
   }

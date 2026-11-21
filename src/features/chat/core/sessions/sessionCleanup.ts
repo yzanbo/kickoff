@@ -53,9 +53,10 @@ export async function discardUnusedSessions(
     // ほかの Kickoff（製品版と開発版。同じ ~/.claude/projects に置き、開発版のデータは製品版から写す）のチャットが使っているものは残す
     const elsewhere = usedElsewhere(candidates);
     const unused = candidates.filter((id) => !elsewhere.has(id));
-    if (!provider?.discardSessions || unused.length === 0) continue;
+    const discard = provider?.sessions?.discard;
+    if (!discard || unused.length === 0) continue;
     try {
-      moved += await provider.discardSessions(unused, sessions.cwds, trash);
+      moved += await discard(unused, sessions.cwds, trash);
     } catch (e) {
       console.warn(`消したチャットの会話記録をゴミ箱へ移せませんでした: ${errorMessage(e)}`);
     }

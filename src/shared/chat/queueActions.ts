@@ -20,6 +20,3 @@ export function isQueueAction(m: QueuedMessage): boolean {
 export function isClearCommand(text: string, attachments: readonly unknown[] = []): boolean {
   return attachments.length === 0 && /^\/clear\s*$/.test(text.trim());
 }
-
-/** / の候補に出す /clear の説明（Kickoff での動き。Claude Code の説明を置き換える） */
-export const CLEAR_COMMAND_DESCRIPTION = "コンテキストを消去して、次の指示から新しい会話で始める（記録は残り、区切りの線が入る）";

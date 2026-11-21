@@ -3,7 +3,6 @@ import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable } from "@/foundation/core/system/exec";
-import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import type { ProviderAuth } from "@/features/ai/core/providers/keys";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -69,14 +68,6 @@ export class AcpProvider implements AgentProvider {
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
     if (!this.spawn) return Promise.resolve({ status: "failed", sessionId: params.resumeSessionId, error: this.spec.installHint });
     return runAcpTurn({ spawn: this.spawn, spec: this.spec, baseEnv: this.baseEnv, self: this.opts.self }, params, callbacks, signal);
-  }
-
-  async title(text: string): Promise<string> {
-    return cleanTitle(await this.ask(titlePrompt(text)));
-  }
-
-  async summarize(text: string): Promise<string> {
-    return this.ask(summarizePrompt(text));
   }
 
   /**

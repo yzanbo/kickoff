@@ -1,3 +1,4 @@
+import type { ProviderLogin } from "@/features/ai/core/providers/types";
 import type { LoginStartParams, LoginStartResponse } from "./protocol";
 import type { SessionOpts } from "./session";
 import { openSession } from "./session";
@@ -12,20 +13,11 @@ import { openSession } from "./session";
  * いまは取らない（承認が要る道なので、codex login と同じ道を使う）
  */
 
-export interface ChatgptLogin {
-  /** 利用者のブラウザで開く URL */
-  authUrl: string;
-  /** ログインの終わり（成功なら true。失敗なら理由で reject） */
-  completed: Promise<true>;
-  /** やめる（app-server を止める） */
-  cancel(): void;
-}
-
 /** ログインの終わりを待つ長さ（ブラウザでの操作の分） */
 const LOGIN_TIMEOUT_MS = 10 * 60_000;
 
 /** Sign in with ChatGPT を始める（ログインの URL と、終わりを待つ口を返す） */
-export async function startChatgptLogin(opts: Omit<SessionOpts, "onNotification" | "onClosed">): Promise<ChatgptLogin> {
+export async function startChatgptLogin(opts: Omit<SessionOpts, "onNotification" | "onClosed">): Promise<ProviderLogin> {
   let settle!: { resolve: (v: true) => void; reject: (e: Error) => void };
   const completed = new Promise<true>((resolve, reject) => (settle = { resolve, reject }));
   let loginId: string | null = null;

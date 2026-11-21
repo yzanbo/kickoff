@@ -35,7 +35,7 @@ test("コンテキスト消去時は、別の AI に戻しても古いセッシ�
 test("使っていない会話記録を消す: ほかの Kickoff（製品版と開発版）のチャットが使っているものは残す", async () => {
   const store = testStore(":memory:", () => {});
   const asked: string[][] = [];
-  const provider = { discardSessions: async (ids: string[]) => (asked.push(ids), ids.length) } as unknown as AgentProvider;
+  const provider = { sessions: { discard: async (ids: string[]) => (asked.push(ids), ids.length) } } as unknown as AgentProvider;
   const providers = { claude: provider } as Record<ProviderId, AgentProvider>;
   const sessions = { byProvider: new Map<ProviderId, Set<string>>([["claude", new Set(["mine", "shared"])]]), cwds: ["/work/p"] };
   const moved = await discardUnusedSessions(store, providers, sessions, async () => {}, (ids) => new Set(ids.filter((id) => id === "shared")));

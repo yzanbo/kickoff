@@ -1,4 +1,4 @@
-import { autoPreCompactMessage, compactPromptFor } from "@shared/chat/prompts";
+import { autoPreCompactMessage, compactPromptFor, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { randomUUID } from "node:crypto";
 import type { Chat, QueuedMessage } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
@@ -29,5 +29,5 @@ export function postCompactItem(text: string): QueuedMessage {
  */
 export function autoPreCompactParams(text: string | null, chat: Chat, sent: boolean): ProviderTurnParams["preCompact"] {
   if (!text || !chat.context_window || sent) return null;
-  return { message: autoPreCompactMessage(text), contextWindow: chat.context_window, contextTokens: chat.context_tokens };
+  return { message: autoPreCompactMessage(text), contextWindow: chat.context_window, contextTokens: chat.context_tokens, nudge: PRE_COMPACT_NUDGE, doneMark: PRE_COMPACT_DONE };
 }

@@ -12,7 +12,7 @@ import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
 import type { Store } from "@/features/chat/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
+import { askSummary, canAsk, type AgentProvider } from "@/features/ai/core/index";
 import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
 import { expandHome, realPathLoose } from "@/foundation/core/system/paths";
 import { noteMergePrompt, notePlanPrompt, parseMergedNote, parseNotePlan, type PlanFile } from "./noteAi";
@@ -255,8 +255,8 @@ export class NoteService {
   /** プロジェクトのプロバイダーで要約する（対応していなければ 400） */
   private async summarize(project: Project, text: string): Promise<string> {
     const provider = this.opts.providers[project.provider];
-    if (!provider?.summarize) throw new Invalid("このプロジェクトの AI は、要約に対応していません");
-    const summary = await provider.summarize(text).catch(asInvalid);
+    if (!canAsk(provider)) throw new Invalid("このプロジェクトの AI は、要約に対応していません");
+    const summary = await askSummary(provider, text).catch(asInvalid);
     if (!summary) throw new Invalid("要約できませんでした");
     return summary;
   }
