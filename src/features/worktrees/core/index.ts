@@ -5,12 +5,13 @@ import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { ChatRunPort, Store } from "@/features/chat/core/index";
+import type { ChatRunPort, Store, TurnContributor } from "@/features/chat/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
 import { worktreeRoutes } from "./routes/worktrees";
 import { createWorktreeStores, type WorktreeStores } from "./db/stores";
+import { worktreeToolGroup, worktreeTurnParts } from "./tools";
 
 export type { WorktreeEnvService } from "./env/service";
 export type { WorktreeFinisher } from "./finish";
@@ -21,8 +22,8 @@ export interface WorktreesDeps {
   /** ブランチの名前の案を AI に聞く */
   ai: AiApi;
   docker: DockerService;
-  /** 作業中か・送信待ち・作業場所を移す */
-  chat: { runner: ChatRunPort; store: Store };
+  /** 作業中か・送信待ち・作業場所を移す・実行に足すもの（PORT）を登録する */
+  chat: { runner: ChatRunPort; store: Store; addTurnContributor(c: TurnContributor): void };
 }
 
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr" | "retryMs">;
@@ -46,6 +47,8 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
   const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
+  // 作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す
+  deps.chat.addTurnContributor(worktreeTurnParts(envs));
   let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   // ブランチを替えた・ワークツリーを足した消したら、一覧の覚えを捨ててから知らせる（画面が取り直す）
   const headWatch = new HeadWatch((project_id) => {
@@ -56,6 +59,7 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   return {
     name: "worktrees",
     api: { envs, finisher, stores, useDbConnections: (fn) => void (connectionsIn = fn) },
+    aiTools: [worktreeToolGroup(finisher)],
     routes: [{ legacy: (app) => worktreeRoutes(app, { store: { ...stores, projects, chats, groups }, connectionsIn: (folder) => connectionsIn(folder), runner: deps.chat.runner, providers: deps.ai.providers, worktreeEnvs: envs, worktreeFinisher: finisher, headWatch }) }],
     stop: () => {
       finisher.close();

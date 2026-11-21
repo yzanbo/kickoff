@@ -18,7 +18,7 @@ import { sweepUnusedSessions } from "./sessions/sessionTrash";
 import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
-import type { ExecutionDeps } from "./turn";
+import type { ExecutionDeps, ShellUpperDeps } from "./turn";
 import type { TurnContributor } from "./run/turn/contributor";
 import type { ChatAttachments } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
@@ -76,8 +76,8 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 export interface ChatUpper {
   notes: NonNullable<ExecutionDeps["notes"]>;
   databases: NonNullable<ExecutionDeps["databases"]>;
-  worktreeEnvs: NonNullable<ExecutionDeps["worktreeEnvs"]>;
-  worktreeFinisher: NonNullable<ExecutionDeps["worktreeFinisher"]>;
+  worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
+  worktreeFinisher: NonNullable<ShellUpperDeps["worktreeFinisher"]>;
   terminals: NonNullable<ExecutionDeps["terminals"]>;
   browser: ExecutionDeps["browser"];
   bashSandbox: ExecutionDeps["bashSandbox"];

@@ -1,6 +1,5 @@
 // チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付（送る文の組み立て prompt/compose.ts）と届かなかった報告の書き添え
 import { randomUUID } from "node:crypto";
-import { undeliveredReports, withUndeliveredReports } from "@/features/subagents/core/reports";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { knownModel } from "@/features/ai/core/providers/modelCatalog";
 import { askTitle, canAsk } from "@/features/ai/core/index";
@@ -10,7 +9,8 @@ import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
-import { composePrompt } from "./prompt/compose";
+import { appendSections, composePrompt } from "./prompt/compose";
+import type { MessageNote, TurnContributor } from "./run/turn/contributor";
 
 export interface StartChatInput {
   projectId: number;
@@ -95,15 +95,26 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput, cre
 }
 
 /**
- * 続きの指示の下ごしらえ: 添付のパスと、親に届かなかったサブエージェントの報告を添える（前の作業が報告を受け取る前に
- * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
+ * 続きの指示の下ごしらえ: 添付のパスと、登録した contributor の添える文（親に届かなかったサブエージェントの報告など。前の作業が報告を受け取る前に
+ * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）を添える。handover は自分の発言の記録に足す
  */
 export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
-  const lost = undeliveredReports(deps.store.events.forSubagents(chatId));
   const chat = deps.store.chats.get(chatId);
   const project = (chat && deps.store.projects.get(chat.project_id)) ?? null;
-  const prompt = withUndeliveredReports(await promptWithAttachments(deps, project, text, attachments), lost);
-  return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
+  const notes = await messageNotes(deps.contributors ?? [], chatId, text);
+  const prompt = appendSections(await promptWithAttachments(deps, project, text, attachments), ...notes.map((n) => n.text)) ?? "";
+  const handover = notes.flatMap((n) => n.handover ?? []);
+  return { prompt, handover: handover.length ? { handover } : {} };
+}
+
+/** 送る・伝える指示の後ろに添える文（登録した contributor の messageNote を order の順に。ないものは除く） */
+async function messageNotes(contributors: readonly TurnContributor[], chatId: number, text: string): Promise<MessageNote[]> {
+  const notes: MessageNote[] = [];
+  for (const c of [...contributors].sort((a, b) => a.order - b.order)) {
+    const note = await c.messageNote?.(chatId, text);
+    if (note) notes.push(note);
+  }
+  return notes;
 }
 
 /**

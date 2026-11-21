@@ -9,19 +9,15 @@ import type { ApprovalCenter } from "./approvals";
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { DatabaseService } from "@/features/database/core/service";
 import type { ToolGateFactory, UsageMonitor } from "@/features/ai/core/index";
-import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
-import type { ChildChatInput } from "@/features/childChats/core/children";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { TrashCommand } from "@/features/trash/core/command";
 import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import type { SessionTrash } from "./sessionSwitch";
 import type { Store } from "@/features/chat/core/stores";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
-import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
@@ -34,8 +30,6 @@ import type { ChatAttachments } from "./ports";
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
 export { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 export { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
-export { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
-export { workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
 export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 export { bashSandboxFor, sandboxPromptLines } from "@/features/guard/core/sandbox/bashSandbox";
 export { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
@@ -62,10 +56,6 @@ export interface ExecutionDeps {
   terminals?: TerminalControl;
   /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
   databases?: DatabaseService;
-  /** チャットを作る（Runner が渡す。チャットの AI にチャット（子・兄弟・親のないチャット）を作るツールを出す。なければ出さない） */
-  startChat?: (from: Chat, input: ChildChatInput) => Promise<StartedChild>;
-  /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
-  worktreeEnvs?: WorktreeEnvService;
   /** 使用状況の見張り（AI の get_usage が読み、実行中の支払いの知らせを渡す。なければ get_usage は使えないと返し、知らせは見ない） */
   usage?: UsageMonitor;
   /** ノート（AI の move_note が名前を変える・移す。なければそのツールは使えないと返す） */
@@ -79,14 +69,10 @@ export interface ExecutionDeps {
   trashCommand?: TrashCommand;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
-  /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで attach が渡す。なければそのツールを出さない） */
-  worktreeFinisher?: WorktreeFinisher;
   /** 利用者が見ているもの（AI の get_user_view が読む。なければそのツールを出さない） */
   userViews?: UserViewRegistry;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
-  /** AI が作業場所を移す予約（Runner が渡す。なければ AI に move_workplace を出さない） */
-  workplaceMoves?: AiWorkplaceDeps["reservations"];
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
   /** 実行ごとの守りの門を作る口（guard が出す。なければ権限モードだけで答える門） */
@@ -99,6 +85,14 @@ export interface ExecutionDeps {
   providerKeys?: ProviderKeyVault;
   /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
   contributors?: TurnContributor[];
+}
+
+/** 殻が AI の予約した作業場所の移動（作業の終わり）とルートに使う上の機能の口（attach が渡す。1 回の実行は使わない。P5-5 で作業の終わりの予約と作業場所を作る口に替えたら消す） */
+export interface ShellUpperDeps {
+  /** ワークツリーの実行環境（移した先・作ったワークツリーにポートの帯を割り当てる） */
+  worktreeEnvs?: WorktreeEnvService;
+  /** ワークツリーの後始末（片付けを予約したワークツリーへは移さない） */
+  worktreeFinisher?: WorktreeFinisher;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */

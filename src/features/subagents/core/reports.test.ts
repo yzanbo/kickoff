@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { collectSubagents } from "@shared/chat/subagents";
 import { makeEvent } from "@shared/foundation/testing/factories";
-import { undeliveredReports, withUndeliveredReports } from "./reports";
+import { undeliveredReports, undeliveredReportsNote } from "./reports";
 
 // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった
 const lost = [
@@ -19,12 +19,11 @@ test("届かなかった報告: 次の指示の後ろに本文を添え、添え
     entries.map((s) => s.key),
     ["bg"],
   );
-  const prompt = withUndeliveredReports("次はテストを書いて", entries);
-  assert.ok(prompt.startsWith("次はテストを書いて\n"));
-  assert.match(prompt, /【届いていなかったサブエージェントの報告 1 件】/);
-  assert.match(prompt, /サブエージェント「調査」（ID: a1）の報告 ---\n見つけたのは 3 件$/);
-  // 添えるものがなければそのまま
-  assert.equal(withUndeliveredReports("そのまま", []), "そのまま");
+  const note = undeliveredReportsNote(entries) ?? "";
+  assert.ok(note.startsWith("【届いていなかったサブエージェントの報告 1 件】\n"));
+  assert.match(note, /サブエージェント「調査」（ID: a1）の報告 ---\n見つけたのは 3 件$/);
+  // 添えるものがなければ添えない
+  assert.equal(undeliveredReportsNote([]), null);
 
   // 自分の発言の handover に残したら、受け取ったことになり、次からは添えない
   const handed = [...lost, makeEvent(6, "user", { text: "次はテストを書いて", handover: ["bg"] })];
@@ -34,7 +33,7 @@ test("届かなかった報告: 次の指示の後ろに本文を添え、添え
 
 test("届かなかった報告: 長い報告は頭だけを添え、続きはサブエージェントに聞くよう頼む", () => {
   const long = lost.map((e) => (e.id === 4 ? makeEvent(4, "subagent", { task_id: "a1", tool_use_id: "bg", description: "", status: "completed", summary: "あ".repeat(7000) }) : e));
-  const prompt = withUndeliveredReports("続けて", undeliveredReports(long));
+  const prompt = undeliveredReportsNote(undeliveredReports(long)) ?? "";
   assert.ok(prompt.length < 6500);
   assert.match(prompt, /続きはサブエージェントに SendMessage で聞いてください/);
 });

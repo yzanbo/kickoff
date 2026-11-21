@@ -11,12 +11,16 @@ import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
 import { canCreateChat, chatDepth } from "./aiCreateChat";
+import { createChildChats } from "./index";
 
 /** すぐ終わる偽のプロバイダーで組み立て、実行に渡した AI の操作ツールを見張る */
 function setup() {
   const provider = new ScriptedProvider(async (params) => ({ status: "completed", sessionId: "s", turns: 1, result: params.prompt }));
   const host = new McpToolHost(() => "http://127.0.0.1:1");
   const core = setupCore(provider, { toolHost: host });
+  // 本物の組み立てと同じく、子チャットの機能が出す create_chat の組を実行に渡す
+  const childChats = createChildChats({ chat: { store: core.store, runner: core.runner, addTurnContributor: () => {} }, ai: { providers: core.providers }, worktreeEnvs: () => undefined });
+  core.runner.attach({ aiTools: childChats.aiTools ?? [] });
   return { ...core, tools: watchTools(core, host) };
 }
 type Ctx = ReturnType<typeof setup>;

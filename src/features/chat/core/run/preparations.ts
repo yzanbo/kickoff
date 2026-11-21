@@ -213,9 +213,9 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
 
   /** 作業の終わりに、AI が予約した作業場所の移動を行う */
   function moveThenContinue(chatId: number, plan: WorkplaceMovePlan) {
-    const { terminals, worktreeEnvs } = deps;
+    const { terminals, worktreeEnvs, worktreeFinisher } = deps;
     // 移すチャット自身は作業の終わりにすること（settling）の中で移すので、そのチャットは次の作業が始まったときだけ作業中に数える
     const isBusy = (id: number) => (id === chatId ? runs.get(id).run.phase.kind !== "settling" && shell.isBusy(id) : shell.isBusy(id));
-    return runReservedMove({ store, runtimes: runs, isBusy, moveWorkplace, worktreeFinisher: shell.turnDeps.worktreeFinisher, terminals, worktreeEnvs }, chatId, plan);
+    return runReservedMove({ store, runtimes: runs, isBusy, moveWorkplace, worktreeFinisher, terminals, worktreeEnvs }, chatId, plan);
   }
 }

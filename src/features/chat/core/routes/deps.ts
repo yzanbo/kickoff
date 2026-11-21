@@ -6,7 +6,7 @@ import type { TrashApi } from "@/features/trash/core/index";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatRunner } from "@/features/chat/core/run/runner";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
-import type { ExecutionDeps } from "@/features/chat/core/turn";
+import type { ExecutionDeps, ShellUpperDeps } from "@/features/chat/core/turn";
 
 export interface ChatRouteDeps {
   store: Store;
@@ -23,7 +23,7 @@ export interface ChatRouteDeps {
   sessionsElsewhere?: SessionsUsedElsewhere;
   trashBin: TrashApi;
   /** 作業場所の移動の確かめと、新しいワークツリーの実行環境 */
-  worktreeEnvs: NonNullable<ExecutionDeps["worktreeEnvs"]>;
+  worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
   /** 片付けを予約したワークツリー */
   worktreeFinisher: { reservedFolders(): Set<string> };
   terminals: NonNullable<ExecutionDeps["terminals"]>;

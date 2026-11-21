@@ -1,11 +1,11 @@
-import type { ExecutionDeps } from "@/features/chat/core/turn";
+import type { ExecutionDeps, ShellUpperDeps } from "@/features/chat/core/turn";
 import { RunShell } from "./shell";
 import { queueWindow } from "./queueWindow";
 import { preparations } from "./preparations";
 import { restartResumes } from "./restartResumes";
 import { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine/types";
-import { preCompactPromptOf, startChildChat, WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
+import { preCompactPromptOf, WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import type { StartChatInput } from "@/features/chat/core/input";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { systemClock, type Clock } from "@/foundation/core/clock";
@@ -15,7 +15,7 @@ import type { SendBody, SendResult } from "@shared/chat/send";
 import type { SendOpts } from "./queueWindow";
 
 /** 殻を組み立てるのに使うもの */
-export type RunnerDeps = ExecutionDeps & {
+export type RunnerDeps = ExecutionDeps & ShellUpperDeps & {
   usage: UsageMonitor;
   /** 時計（省けば本物。書き直しの持ち時間・行の時刻） */
   clock?: Clock;
@@ -70,18 +70,8 @@ export function createChatRunner(deps: RunnerDeps) {
   const workplaceMoves = new WorkplaceReservations(shell.runs);
   const prep = preparations(shell, workplaceMoves);
   const restart = restartResumes(shell);
-  // 1 回の実行に渡すもの（AI が自分の子チャットを作るツールのために、子チャットの作り方を足す）
-  shell.turnDeps = {
-    ...shell.deps,
-    isBusy: (chatId) => shell.isBusy(chatId),
-    startChat: async (parent, input) => {
-      const chat = await startChildChat({ store: deps.store, runner, providers: deps.providers }, parent, input);
-      // 親の会話を写し終えた・いま写している（写すのは作ったあとで待たずに進める。もう写し終えていることもあるので店から引き直す）
-      const { phase } = shell.runs.get(chat.id).run;
-      return { chat, inherited: (phase.kind === "preparing" && phase.why === "inherit") || (deps.store.chats.get(chat.id)?.session_id ?? null) !== null };
-    },
-    workplaceMoves: { reserve: (chatId, plan) => workplaceMoves.reserve(chatId, plan), cancel: (chatId) => workplaceMoves.cancel(chatId) !== null },
-  };
+  // 1 回の実行に渡すもの（AI の update_chat が作業中の子チャットを外すのを断るため、作業中かの口を足す）
+  shell.turnDeps = { ...shell.deps, isBusy: (chatId) => shell.isBusy(chatId) };
   shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
   deps.store.chatProviderHandoffs.recoverInterrupted();
@@ -101,9 +91,14 @@ export function createChatRunner(deps: RunnerDeps) {
     state: (chatId: number): ChatRunState | undefined => shell.runs.peek(chatId)?.run,
     onTurnStarted: (fn: (chatId: number) => void) => shell.onTurnStarted(fn),
     onTurnEnded: (fn: (chatId: number, outcome: TurnOutcome) => void) => shell.onTurnEnded(fn),
+    /** AI が作業場所を移す予約（作業が最後まで終わったら移す。workplaceMove の move_workplace が使う） */
+    workplaceMoves: {
+      reserve: (chatId: number, plan: WorkplaceMovePlan) => workplaceMoves.reserve(chatId, plan),
+      cancel: (chatId: number) => workplaceMoves.cancel(chatId) !== null,
+    },
 
     /** 上の機能の口（ノート・DB・Docker・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "worktreeEnvs" | "worktreeFinisher" | "terminals" | "browser" | "aiTools" | "bashSandbox" | "sandboxDiagnostics" | "toolGate">) {
+    attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "terminals" | "browser" | "aiTools" | "bashSandbox" | "sandboxDiagnostics" | "toolGate"> & ShellUpperDeps) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },

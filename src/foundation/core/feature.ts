@@ -9,7 +9,7 @@ import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 
 /** 機能の名前 */
 export type FeatureName =
-  | "settings" | "trash" | "projects" | "groups" | "ai" | "chat" | "guard" | "attachments" | "snippets" | "compact"
+  | "settings" | "trash" | "projects" | "groups" | "ai" | "chat" | "guard" | "attachments" | "snippets" | "compact" | "subagents"
   | "childChats" | "visuals" | "remoteImages" | "providerSwitch" | "workplaceMove" | "queue" | "userView" | "notifications"
   | "files" | "git" | "worktrees" | "github" | "docker" | "database" | "notes" | "terminal" | "browser" | "ports" | "voice"
   | "devices" | "diagnostics";

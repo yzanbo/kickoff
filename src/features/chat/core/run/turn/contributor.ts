@@ -49,8 +49,14 @@ export interface TurnContributor {
   name: string;
   order: number;
   contribute(ctx: TurnContext): TurnParts | null | Promise<TurnParts | null>;
-  /** 送る・伝える指示の後ろに添える文（届かなかったサブエージェントの報告。渡したら次からは返さない） */
-  messageNote?(chatId: number, text: string): Promise<string>;
+  /** 送る・伝える指示の後ろに添える文（届かなかったサブエージェントの報告。渡したら次からは返さない。なければ null） */
+  messageNote?(chatId: number, text: string): Promise<MessageNote | null>;
+}
+
+/** 指示の後ろに添える文と、自分の発言の記録に残す印（handover = 渡したサブエージェントの報告の行のキー） */
+export interface MessageNote {
+  text: string;
+  handover?: string[];
 }
 
 /** 作業の終わりの様子（afterTurn に渡す） */

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ExecutionDeps, TurnRequest } from "@/features/chat/core/turn";
+import type { ExecutionDeps, ShellUpperDeps, TurnRequest } from "@/features/chat/core/turn";
 import { executeTurn } from "./turn/execute";
 import { ChatRuns } from "./chatRuns";
 import type { ChatRun, TurnHandle } from "./chatRun";
@@ -21,7 +21,7 @@ import type { Chat } from "@shared/chat/types";
 import { busyPreCompactMessage } from "@shared/chat/prompts";
 
 /** 殻が受けるもの（1 回の実行に渡すもの・使用状況・時計・書き直しの持ち時間・出来事の記録の口） */
-export interface ShellDeps extends ExecutionDeps {
+export interface ShellDeps extends ExecutionDeps, ShellUpperDeps {
   usage: UsageMonitor;
   clock: Clock;
   editHoldTtlMs?: number;
@@ -55,7 +55,7 @@ export class RunShell {
   readonly runs: ChatRuns;
   /** 止まったあとの再開の段取り（runner.ts が殻を作ったあとで渡す） */
   recovery!: ChatRecovery;
-  /** 1 回の実行に渡すもの（runner.ts が子チャットの作り方・予約の口を足して渡す） */
+  /** 1 回の実行に渡すもの（runner.ts が作業中かの口を足して渡す） */
   turnDeps!: ExecutionDeps;
   /** アプリを終えるところ（待ちの列を送らない） */
   shuttingDown = false;

@@ -16,12 +16,9 @@ import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import {
   autoPreCompactParams,
   bashSandboxFor,
-  chatContextNote,
-  chatContextOf,
   githubEnvForGit,
   runAsGitHubAccount,
   sandboxPromptLines,
-  workplaceMoveContext,
   type ExecutionDeps,
   type ProviderTurnParams,
 } from "@/features/chat/core/turn";
@@ -113,8 +110,8 @@ export function toProviderParams(
 }
 
 /**
- * まだ機能へ分けていない組み立て（order 0）: 環境変数（ワークツリーの PORT → GitHub のアカウント）・Bash の砂場・ノートのフォルダ・
- * システムプロンプトの砂場・ブラウザ・図・ノートの節・添える文脈（家系・作業場所の移動の知らせ）・守りの門・圧縮前指示
+ * まだ機能へ分けていない組み立て（order 0）: 環境変数（GitHub のアカウント）・Bash の砂場・ノートのフォルダ・
+ * システムプロンプトの砂場・ブラウザ・図・ノートの節・守りの門・圧縮前指示
  */
 export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, preCompactText: string | null): TurnContributor {
   return {
@@ -122,11 +119,7 @@ export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, preCompac
     order: 0,
     async contribute({ chat, project, cwd, signal, requestApproval }) {
       // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
-      // 作業場所がポートの帯を持つワークツリーなら、開発サーバーの番号（PORT=帯+00）も渡す
-      const env = {
-        ...(deps.worktreeEnvs?.envFor(cwd) ?? {}),
-        ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}),
-      };
+      const env = project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {};
       // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
       const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
       // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
@@ -139,7 +132,6 @@ export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, preCompac
         env,
         readableDirs: noteDir ? [noteDir] : [],
         promptSections: legacySections(deps, chat, place),
-        turnContext: appendSections(null, chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id))),
         sandbox,
         sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
         preCompact: autoPreCompactParams(preCompactText, chat, preCompactSent(runtime.marks)) ?? null,

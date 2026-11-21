@@ -9,6 +9,9 @@ import { browserToolGroup } from "@/features/browser/core/browserTools";
 import { dbToolGroup } from "@/features/database/core/dbTools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { usageToolGroup } from "@/features/ai/core/tools";
+import { createChatToolGroup } from "@/features/childChats/core/tools";
+import { worktreeToolGroup } from "@/features/worktrees/core/tools";
+import { workplaceToolGroup } from "@/features/workplaceMove/core/tools";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import { UserViewRegistry } from "@/features/userView/core/registry";
@@ -64,7 +67,7 @@ async function describeTools(host: McpToolHost, endpoints: NonNullable<ProviderT
 
 /**
  * 本物の起動（startCore）と同じく、どのチャットにも出すツールの中身（ターミナル・利用者が見ているもの・砂場の診断・ワークツリーの後始末・
- * チャットの削除・使用枠・通知の組）を渡して組み立て、send で送った実行で AI に見せたものを返す（ブラウザ・DB は場合ごとに options と groups で足す）
+ * チャットの削除・使用枠・チャットを作る・作業場所を移す・通知の組）を渡して組み立て、send で送った実行で AI に見せたものを返す（ブラウザ・DB は場合ごとに options と groups で足す）
  */
 async function toolsSeenBy(send: (core: Core) => Promise<number>, options: RunnerOptions = {}, groups: (core: Core) => AiToolGroup[] = () => []): Promise<ListedServer[]> {
   const host = new McpToolHost(() => "http://127.0.0.1:1");
@@ -80,9 +83,18 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
     sandboxDiagnostics: { processes: async () => [], denials: async () => [] },
     ...options,
   });
+  const finisher = unused<WorktreeFinisher>("worktreeFinisher");
+  const { store, runner } = core;
   core.runner.attach({
-    worktreeFinisher: unused<WorktreeFinisher>("worktreeFinisher"),
-    aiTools: [usageToolGroup(core.usage), notifyToolGroup({ store: () => core.store, publish: (e) => core.bus.publish(e) }), ...groups(core)],
+    worktreeFinisher: finisher,
+    aiTools: [
+      usageToolGroup(core.usage),
+      createChatToolGroup({ store, startChat: unused("startChat"), worktreeEnvs: () => undefined }),
+      worktreeToolGroup(finisher),
+      workplaceToolGroup({ store, reservations: runner.workplaceMoves, isBusy: (id) => runner.isBusy(id), worktreeFinisher: () => finisher, terminals: () => terminals }),
+      notifyToolGroup({ store: () => core.store, publish: (e) => core.bus.publish(e) }),
+      ...groups(core),
+    ],
   });
   core.runner.useChatRemover(unused<ChatRemover>("chatRemover"));
   const chatId = await send(core);

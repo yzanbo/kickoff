@@ -2,7 +2,7 @@
 
 ## 地図
 
-- `core/`: 作る `children.ts`（`startChildChat`）・分岐 `fork.ts`・親から外す `detach.ts`・サブエージェントについて聞く `subagentChild.ts`・親に渡す `handoff.ts`・親子の文脈 `context.ts`（`chatContextNote`）・AI のツール `create_chat` の `aiCreateChat.ts`（AI のツールの決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- `core/`: 作る `children.ts`（`startChildChat`）・分岐 `fork.ts`・親から外す `detach.ts`・サブエージェントについて聞く `subagentChild.ts`・親に渡す `handoff.ts`・親子の文脈 `context.ts`（`chatContextNote`）・AI のツール `create_chat` の `aiCreateChat.ts`（組と家系の文脈の contributor は `tools.ts`。AI のツールの決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
 - `ui/`: 上の帯は `ChildBarFrame` 1 つ・タブの印 `ChildActivityMark`・親から外す `detachChild.ts`・親に渡す `handBack.ts`。右の欄の子チャット `SideChildChat` は `@/features/conversation/ui/screens/`。
 
 ## 決まり

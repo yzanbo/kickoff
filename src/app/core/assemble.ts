@@ -14,6 +14,9 @@ import { createVoice } from "@/features/voice/core/index";
 import { createDevices, type DevicesApi } from "@/features/devices/core/index";
 import { createChat, type ChatApi } from "@/features/chat/core/index";
 import { createGuard } from "@/features/guard/core/index";
+import { createSubagents } from "@/features/subagents/core/index";
+import { createChildChats } from "@/features/childChats/core/index";
+import { createWorkplaceMove } from "@/features/workplaceMove/core/index";
 import { createFiles } from "@/features/files/core/index";
 import { createGit } from "@/features/git/core/index";
 import { createDocker, type DockerService } from "@/features/docker/core/index";
@@ -79,8 +82,12 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const { runner } = chat.api;
   // ここからはチャットの上の機能
   const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });
+  const subagents = createSubagents({ chat: chat.api });
+  // ワークツリー・ターミナルはあとに作るので、呼ばれたときに引く
+  const childChats = createChildChats({ chat: chat.api, ai: ai.api, worktreeEnvs: () => worktrees.api.envs });
   const visuals = createVisuals();
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
+  const workplaceMove = createWorkplaceMove({ chat: chat.api, worktreeFinisher: () => worktrees.api.finisher, terminals: () => terminal.api });
   const files = createFiles({ trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
@@ -94,7 +101,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
-  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
+  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, subagents, childChats, visuals, remoteImages, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
   chat.api.attach({
