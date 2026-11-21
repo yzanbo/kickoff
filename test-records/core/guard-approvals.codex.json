@@ -1,0 +1,1886 @@
+{
+  "approvals": {
+    "コマンド npm test": {
+      "default": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "acceptForSession"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］コマンド「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "acceptForSession"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］コマンド「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「npm test」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        ]
+      }
+    },
+    "コマンド rm -rf dist": {
+      "default": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      }
+    },
+    "コマンド docker compose down": {
+      "default": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「docker compose down」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        ]
+      }
+    },
+    "変更 作業場所の中": {
+      "default": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | MultiEdit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"edits\":[{\"old_string\":\"\",\"new_string\":\"\"}]}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "acceptForSession"
+          },
+          "asked": [
+            "permission | MultiEdit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"edits\":[{\"old_string\":\"\",\"new_string\":\"\"}]}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | MultiEdit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"edits\":[{\"old_string\":\"\",\"new_string\":\"\"}]}"
+          ],
+          "notes": [
+            "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts）を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts）を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        ]
+      }
+    },
+    "変更 作業場所の外": {
+      "default": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "decision": "accept"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "decision": "decline"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      }
+    },
+    "変更 参照資料と中": {
+      "default": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts・<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts・<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts・<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（<TMP>/work/a.ts・<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      }
+    },
+    "変更 ファイルが分からない": {
+      "default": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（不明）を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（不明）を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（不明）を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］ファイルの変更（不明）を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      }
+    },
+    "変更 フックで許した書く先": {
+      "default": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/outside.txt"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/outside.txt"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/outside.txt"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/outside.txt"
+        ]
+      }
+    },
+    "書けるフォルダ 外": {
+      "default": {
+        "allow": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>"
+          ]
+        },
+        "deny": {
+          "out": {
+            "permissions": {},
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］書けるフォルダの追加（<TMP> 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>"
+          ]
+        },
+        "deny": {
+          "out": {
+            "permissions": {},
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］書けるフォルダの追加（<TMP> 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>"
+          ]
+        },
+        "deny": {
+          "out": {
+            "permissions": {},
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］書けるフォルダの追加（<TMP> 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "permissions": {
+              "fileSystem": {
+                "read": null,
+                "write": [
+                  "<TMP>"
+                ]
+              }
+            },
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}",
+            "permission | Write | {\"file_path\":\"<TMP>\",\"folders\":[\"<TMP>\"]}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>"
+          ]
+        },
+        "deny": {
+          "out": {
+            "permissions": {},
+            "scope": "turn"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP> | remember:chat | {\"file_path\":\"<TMP>\"}"
+          ],
+          "notes": [
+            "steer ［Kickoff］書けるフォルダの追加（<TMP> 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      }
+    },
+    "書けるフォルダ 参照資料": {
+      "default": {
+        "out": {
+          "permissions": {},
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］書けるフォルダの追加（<TMP>/ref）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "permissions": {},
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］書けるフォルダの追加（<TMP>/ref）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "auto": {
+        "out": {
+          "permissions": {},
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］書けるフォルダの追加（<TMP>/ref）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "plan": {
+        "out": {
+          "permissions": {},
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］書けるフォルダの追加（<TMP>/ref）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      }
+    },
+    "ネットワーク": {
+      "default": {
+        "out": {
+          "permissions": {
+            "network": {
+              "enabled": true
+            }
+          },
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "permissions": {
+            "network": {
+              "enabled": true
+            }
+          },
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "permissions": {
+            "network": {
+              "enabled": true
+            }
+          },
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "permissions": {
+            "network": {
+              "enabled": true
+            }
+          },
+          "scope": "turn"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "確かめ": {
+      "default": {
+        "allow": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "action": "decline",
+            "content": null,
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "action": "decline",
+            "content": null,
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "out": {
+          "action": "accept",
+          "content": {},
+          "_meta": null
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "action": "accept",
+            "content": {},
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "action": "decline",
+            "content": null,
+            "_meta": null
+          },
+          "asked": [
+            "permission | mcp__s | 使ってよいですか | {\"message\":\"使ってよいですか\"}"
+          ],
+          "notes": []
+        }
+      }
+    },
+    "古い形": {
+      "default": {
+        "out": {
+          "decision": "denied"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "denied"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "decision": "denied"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "decision": "denied"
+        },
+        "asked": [],
+        "notes": []
+      }
+    }
+  },
+  "sandboxed": {
+    "砂場 コマンド npm test": {
+      "default": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「npm test」を断りました: Kickoff の砂場の外ではコマンドを流せません（外で流すのは決まったコマンドだけです）。書ける場所（作業フォルダ・ノートフォルダ・一時フォルダなど）の外のファイルを変えるときは、ファイルの編集（apply_patch）を使ってください（Kickoff が利用者に確かめます）。利用者の設定を変えるコマンドは流さずに、利用者に示して自分のターミナルで流してもらってください"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「npm test」を断りました: Kickoff の砂場の外ではコマンドを流せません（外で流すのは決まったコマンドだけです）。書ける場所（作業フォルダ・ノートフォルダ・一時フォルダなど）の外のファイルを変えるときは、ファイルの編集（apply_patch）を使ってください（Kickoff が利用者に確かめます）。利用者の設定を変えるコマンドは流さずに、利用者に示して自分のターミナルで流してもらってください"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「npm test」を断りました: Kickoff の砂場の外ではコマンドを流せません（外で流すのは決まったコマンドだけです）。書ける場所（作業フォルダ・ノートフォルダ・一時フォルダなど）の外のファイルを変えるときは、ファイルの編集（apply_patch）を使ってください（Kickoff が利用者に確かめます）。利用者の設定を変えるコマンドは流さずに、利用者に示して自分のターミナルで流してもらってください"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「npm test」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        ]
+      }
+    },
+    "砂場 コマンド docker ps": {
+      "default": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "decision": "accept"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「docker ps」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        ]
+      }
+    },
+    "砂場 コマンド rm -rf dist": {
+      "default": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "auto": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "plan": {
+        "out": {
+          "decision": "decline"
+        },
+        "asked": [],
+        "notes": [
+          "steer ［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      }
+    }
+  },
+  "hooks": {
+    "Bash npm test": {
+      "default": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"npm test\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"npm test\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "auto": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      }
+    },
+    "Bash rm -rf dist": {
+      "default": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"rm -rf dist\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \\\"$KICKOFF_TRASH\\\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます\",\"is_error\":true}"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"rm -rf dist\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \\\"$KICKOFF_TRASH\\\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます\",\"is_error\":true}"
+        ]
+      },
+      "auto": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"rm -rf dist\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \\\"$KICKOFF_TRASH\\\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます\",\"is_error\":true}"
+        ]
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"rm -rf dist\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \\\"$KICKOFF_TRASH\\\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます\",\"is_error\":true}"
+        ]
+      }
+    },
+    "Bash docker compose down": {
+      "default": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"docker compose down\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"docker compose down\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"docker compose down\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"docker compose down\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      }
+    },
+    "Bash 自分のポート": {
+      "default": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"curl localhost:4317/api/status\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください\",\"is_error\":true}"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"curl localhost:4317/api/status\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください\",\"is_error\":true}"
+        ]
+      },
+      "auto": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"curl localhost:4317/api/status\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください\",\"is_error\":true}"
+        ]
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Bash\",\"input\":{\"command\":\"curl localhost:4317/api/status\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"「Kickoff」はこのチャットを動かしているアプリです。その API（ポート 4317）は叩けません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください\",\"is_error\":true}"
+        ]
+      }
+    },
+    "パッチ 中": {
+      "default": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/work/a.ts"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/work/a.ts"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "out": null,
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/work/a.ts"
+        ]
+      },
+      "auto": {
+        "out": null,
+        "asked": [],
+        "notes": [],
+        "approved": [
+          "<TMP>/work/a.ts"
+        ]
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください\",\"is_error\":true}"
+        ]
+      }
+    },
+    "パッチ 外": {
+      "default": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/outside.txt\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/outside.txt\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/outside.txt\"}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/outside.txt\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください\",\"is_error\":true}"
+        ]
+      }
+    },
+    "パッチ 参照資料": {
+      "default": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "参照資料（<TMP>/ref）は読むだけで、書き込めません"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/ref/a.md\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"参照資料（<TMP>/ref）は読むだけで、書き込めません\",\"is_error\":true}"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "参照資料（<TMP>/ref）は読むだけで、書き込めません"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/ref/a.md\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"参照資料（<TMP>/ref）は読むだけで、書き込めません\",\"is_error\":true}"
+        ]
+      },
+      "auto": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "参照資料（<TMP>/ref）は読むだけで、書き込めません"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/ref/a.md\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"参照資料（<TMP>/ref）は読むだけで、書き込めません\",\"is_error\":true}"
+        ]
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/ref/a.md\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください\",\"is_error\":true}"
+        ]
+      }
+    },
+    "パッチ 中と外": {
+      "default": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\",\"files\":[\"<TMP>/work/a.ts\",\"<TMP>/outside.txt\"]}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\",\"files\":[\"<TMP>/work/a.ts\",\"<TMP>/outside.txt\"]}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "always": {
+          "out": null,
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "approved": [
+            "<TMP>/outside.txt"
+          ],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\",\"files\":[\"<TMP>/work/a.ts\",\"<TMP>/outside.txt\"]}}",
+            "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）\",\"is_error\":true}"
+          ]
+        }
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"<TMP>/work/a.ts\",\"files\":[\"<TMP>/work/a.ts\",\"<TMP>/outside.txt\"]}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください\",\"is_error\":true}"
+        ]
+      }
+    },
+    "パッチ ファイルなし": {
+      "default": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"変えるファイルが分からないため、Kickoff の守りを当てられませんでした\",\"is_error\":true}"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"変えるファイルが分からないため、Kickoff の守りを当てられませんでした\",\"is_error\":true}"
+        ]
+      },
+      "auto": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"変えるファイルが分からないため、Kickoff の守りを当てられませんでした\",\"is_error\":true}"
+        ]
+      },
+      "plan": {
+        "out": {
+          "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "emit {\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"Write\",\"input\":{\"file_path\":\"\"}}",
+          "emit {\"type\":\"tool_result\",\"tool_use_id\":\"c1\",\"content\":\"計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください\",\"is_error\":true}"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,1954 @@
+{
+  "copilot": {
+    "shell npm test": {
+      "default": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-for-session"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-for-session"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「npm test」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "shell rm -rf dist": {
+      "default": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "shell docker compose down": {
+      "default": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］コマンド「docker compose down」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        }
+      }
+    },
+    "shell 砂場の外": {
+      "default": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「npm test」を断りました: Kickoff のチャットでは、砂場の外でコマンドを流せません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「npm test」を断りました: Kickoff のチャットでは、砂場の外でコマンドを流せません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「npm test」を断りました: Kickoff のチャットでは、砂場の外でコマンドを流せません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］コマンド「npm test」を断りました: Kickoff のチャットでは、砂場の外でコマンドを流せません"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "write 中（新しい中身）": {
+      "default": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"content\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-for-session"
+          },
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"content\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ファイルの変更（a.ts）を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Write | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"content\":\"x\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルの変更（a.ts）を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "write 外（差分）": {
+      "default": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ファイルの変更（<TMP>/outside.txt）を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        }
+      }
+    },
+    "write 参照資料": {
+      "default": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルの変更（<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルの変更（<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルの変更（<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルの変更（<TMP>/ref/a.md）を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "read 自分の保存先": {
+      "default": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルを読むの（<HOME>/Library/Application Support/Kickoff/kickoff.db）を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルを読むの（<HOME>/Library/Application Support/Kickoff/kickoff.db）を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルを読むの（<HOME>/Library/Application Support/Kickoff/kickoff.db）を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ファイルを読むの（<HOME>/Library/Application Support/Kickoff/kickoff.db）を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "read 中": {
+      "default": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "mcp 聞かないツール": {
+      "default": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "mcp 聞くツール": {
+      "default": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-for-session"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ツール「mcp__kickoff_chat__create_chat」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "kind": "approve-once"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "kind": "approve-for-session"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "kind": "reject",
+            "feedback": "［Kickoff］ツール「mcp__kickoff_chat__create_chat」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］ツール「mcp__kickoff_chat__create_chat」を断りました: 計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "url": {
+      "default": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "approve-once"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "知らない種類": {
+      "default": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］custom-tool は Kickoff のチャットでは使えません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］custom-tool は Kickoff のチャットでは使えません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］custom-tool は Kickoff のチャットでは使えません"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "kind": "reject",
+          "feedback": "［Kickoff］custom-tool は Kickoff のチャットでは使えません"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "フック rm -rf dist": {
+      "default": {
+        "out": {
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "［Kickoff］コマンド「rm -rf dist」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "フック docker compose down": {
+      "default": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      }
+    },
+    "フック npm test": {
+      "default": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": null,
+        "asked": [],
+        "notes": []
+      }
+    }
+  },
+  "acp": {
+    "execute npm test": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | remember:rule | {\"command\":\"npm test\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「npm test」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "execute rm -rf dist": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「execute」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「execute」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「execute」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「execute」を断りました: Kickoff では rm でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。代わりに kickoff-trash <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら \"$KICKOFF_TRASH\" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます"
+        ]
+      }
+    },
+    "execute docker compose down": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「execute」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「execute」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「execute」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Bash | ほかの作業場所の Docker を止めます | {\"command\":\"docker compose down\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「execute」を断りました: 利用者が拒否しました。自分の作業場所のものなら docker compose stop / down で止められます（利用者の言葉: 今はだめ）"
+          ]
+        }
+      }
+    },
+    "read 自分の保存先": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「read」を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「read」を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        ]
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「read」を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        ]
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「read」を断りました: 「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください"
+        ]
+      }
+    },
+    "read 中": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "edit 中": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Edit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"old_string\":\"a\",\"new_string\":\"b\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | Edit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"old_string\":\"a\",\"new_string\":\"b\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Edit | remember:rule | {\"file_path\":\"<TMP>/work/a.ts\",\"old_string\":\"a\",\"new_string\":\"b\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「edit」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "edit 外": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「edit」を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「edit」を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「edit」を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [],
+          "allowed": [
+            "<TMP>/outside.txt"
+          ]
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | Write | 作業場所の外のファイルに書き込もうとしています: <TMP>/outside.txt | remember:chat | {\"file_path\":\"<TMP>/outside.txt\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「edit」を断りました: 利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください（利用者の言葉: 今はだめ）"
+          ]
+        }
+      }
+    },
+    "delete 参照資料": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「delete」を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「delete」を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「delete」を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「delete」を断りました: 参照資料（<TMP>/ref）は読むだけで、書き込めません"
+        ]
+      }
+    },
+    "edit ファイルなし": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「edit」を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「edit」を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「edit」を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": [
+          "denied ［Kickoff］「edit」を断りました: 変えるファイルが分からないため、Kickoff の守りを当てられませんでした"
+        ]
+      }
+    },
+    "mcp 聞かないツール": {
+      "default": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "acceptEdits": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "mcp 聞くツール": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「mcp__kickoff_chat__create_chat」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | mcp__kickoff_chat__create_chat | remember:rule | {\"text\":\"x\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「mcp__kickoff_chat__create_chat」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    },
+    "知らない種類": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「何か」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o1"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o2"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "selected",
+              "optionId": "o3"
+            }
+          },
+          "asked": [
+            "permission | 何か | remember:rule | {\"description\":\"何か\"}"
+          ],
+          "notes": [
+            "denied ［Kickoff］「何か」を断りました: 利用者が拒否しました（利用者の言葉: 今はだめ）"
+          ]
+        }
+      },
+      "auto": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o1"
+          }
+        },
+        "asked": [],
+        "notes": []
+      },
+      "plan": {
+        "out": {
+          "outcome": {
+            "outcome": "selected",
+            "optionId": "o3"
+          }
+        },
+        "asked": [],
+        "notes": []
+      }
+    }
+  },
+  "cursor": {
+    "計画": {
+      "default": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "rejected",
+              "reason": "今はだめ"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        }
+      },
+      "acceptEdits": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "rejected",
+              "reason": "今はだめ"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        }
+      },
+      "auto": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "rejected",
+              "reason": "今はだめ"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        }
+      },
+      "plan": {
+        "allow": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "always": {
+          "out": {
+            "outcome": {
+              "outcome": "accepted"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        },
+        "deny": {
+          "out": {
+            "outcome": {
+              "outcome": "rejected",
+              "reason": "今はだめ"
+            }
+          },
+          "asked": [
+            "permission | ExitPlanMode | 計画「移す」を進めてよいですか | {\"plan\":\"1. 移す\"}"
+          ],
+          "notes": []
+        }
+      }
+    }
+  }
+}
