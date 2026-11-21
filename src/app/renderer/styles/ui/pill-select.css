@@ -1,0 +1,18 @@
+/* ==== ピルの中に置く選択欄（WorktreePicker の作業場所。枠と背景はピルに任せる） ==== */
+
+.pill-select {
+  width: auto;
+  /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
+  field-sizing: content;
+  padding: 0 16px 0 2px;
+  border: none;
+  color: inherit;
+  background-color: transparent;
+  background-position: right 2px center;
+  background-size: 11px;
+  cursor: pointer;
+}
+
+.pill-select:focus {
+  outline: none;
+}

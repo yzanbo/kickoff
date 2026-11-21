@@ -1,0 +1,58 @@
+/* ==== 準備の手順（左に番号の丸、済んだら緑の ✓。設定の音声入力の準備・スマホの Tailscale の案内） ==== */
+
+.voice-steps {
+  display: grid;
+  gap: 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voice-step {
+  display: flex;
+  gap: 10px;
+}
+
+.voice-step-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.voice-step.done .voice-step-mark {
+  border-color: transparent;
+  color: #fff;
+  background: var(--ok);
+}
+
+.voice-step-body {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.voice-step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  font-weight: 600;
+}
+
+.voice-step-body .field-help {
+  margin: 0;
+}
+
+.voice-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
