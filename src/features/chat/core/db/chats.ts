@@ -3,7 +3,9 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Chat, ChatStatus } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { bit, updateRow, type Notify, type Row } from "@/foundation/core/db/common";
+import type { SQLOutputValue } from "node:sqlite";
+import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
+import { chatsTable } from "@/features/chat/core/schema";
 import type { NewChat } from "@/foundation/core/db/types";
 import { rememberChatSession } from "./agentSessions";
 import type { LogRevisions } from "./logRevisions";
@@ -40,36 +42,13 @@ const CHAT_COLUMNS = [
 /** チャットの変えられる項目 */
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
-/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation・resume_pending は店の中だけで使い、Chat には出さない） */
-type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only" | "sandbox_enabled" | "edit_scope_enabled"> & {
-  fast_mode: number;
-  unread: number;
-  pinned: number;
-  untracked_only: number;
-  sandbox_enabled: number;
-  edit_scope_enabled: number;
-  archived_with_parent: number;
-  trashed_at: string | null;
-  trashed_with: string | null;
-  ai_generation: number;
-  resume_pending: number;
-};
-
-/** DB の行をアプリの型にする（真偽値の列を boolean に） */
-function toChat(row: unknown): Chat {
-  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, resume_pending: _resume, ...r } = row as ChatRow;
-  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1, sandbox_enabled: r.sandbox_enabled === 1, edit_scope_enabled: r.edit_scope_enabled === 1 };
-}
-
-/** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
-function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
-  return { ...rest, fast_mode: bit(fast_mode), unread: bit(unread) } as Row;
-}
-
 /**
  * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
  */
 export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: LogRevisions | undefined, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default">) {
+  // 行 ⇄ アプリの型は表の列の宣言（chatsTable）から（真偽値は 0 / 1。店の中だけの列は Chat に出さない）
+  const rows = chatsTable.on(db);
+  const toChat = (row: unknown): Chat => rows.fromRow(row as Record<string, SQLOutputValue>) satisfies Chat;
   const get = (id: number): Chat | undefined => {
     const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toChat(row) : undefined;
@@ -106,7 +85,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
     db.prepare(`UPDATE chats SET archived_at = ?, archived_with_parent = ?${archivedAt !== null ? ", resume_pending = 0" : ""} WHERE id = ?`).run(archivedAt, bit(withParent), id);
     onChange({ type: "chat", chat: get(id)! });
   };
-  const childRows = (id: number): ChatRow[] => db.prepare("SELECT * FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL ORDER BY id").all(id) as ChatRow[];
+  /** 子の行（親と一緒にアーカイブした印 archived_with_parent は店の中だけの列なので、Chat に直さずに読む） */
+  const childRows = (id: number) => db.prepare("SELECT id, archived_at, archived_with_parent FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL ORDER BY id").all(id) as { id: number; archived_at: string | null; archived_with_parent: number }[];
 
   /**
    * アーカイブする・戻す（子孫も）。しまうときは、まだしまっていない子孫に「親と一緒にしまった」印を付けて一緒にしまう
@@ -143,7 +123,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
     get,
     list(filter: ChatFilter = {}): Chat[] {
       const where: string[] = ["trashed_at IS NULL", ...(filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"])];
-      const params: Row = {};
+      const params: Record<string, string | number> = {};
       if (filter.projectId !== undefined) {
         where.push("project_id = $project_id");
         params.project_id = filter.projectId;
@@ -192,7 +172,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
      * （送った・作業が終わった。名前・未読・アーカイブなどの変更では進めない）
      */
     update(id: number, patch: ChatPatch): Chat {
-      updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, patch.status !== undefined);
+      updateRow(db, "chats", id, rows.toRow(patch), CHAT_COLUMNS, patch.status !== undefined);
       // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ）
       if (typeof patch.session_id === "string") rememberChatSession(db, id, patch.session_id);
       const chat = get(id)!;

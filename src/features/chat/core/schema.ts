@@ -1,4 +1,6 @@
+import type { Chat } from "@shared/chat/types";
 import { NOW } from "@/foundation/core/db/db";
+import { col, table } from "@/foundation/core/db/table";
 
 /**
  * チャット（v1）。
@@ -116,3 +118,54 @@ CREATE TABLE agent_sessions (
   created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
 `;
+
+/**
+ * chats の表の列（行の型は Chat。並びは DDL と同じ = 応答の項目の順）。ゴミ箱に入れた行（trashed_at）はふだん隠す。店の中だけの列は hidden。
+ * 最後に動いた時刻 active_at を進めるのは、状態（status）を変える更新だけ（db/chats.ts の update）
+ */
+export const chatsTable = table(
+  "chats",
+  {
+    id: col.int(),
+    project_id: col.int(),
+    group_id: col.int().nullable(),
+    parent_chat_id: col.int().nullable(),
+    parent_event_id: col.int().nullable(),
+    note_path: col.text().nullable(),
+    github_repo: col.text().nullable(),
+    github_number: col.int().nullable(),
+    github_kind: col.text<NonNullable<Chat["github_kind"]>>().nullable(),
+    title: col.text(),
+    provider: col.text<Chat["provider"]>(),
+    model: col.text().nullable(),
+    effort: col.text<NonNullable<Chat["effort"]>>().nullable(),
+    permission_mode: col.text<Chat["permission_mode"]>(),
+    fast_mode: col.bool(),
+    sandbox_enabled: col.bool(),
+    edit_scope_enabled: col.bool(),
+    untracked_only: col.bool(),
+    worktree_path: col.text().nullable(),
+    branch: col.text().nullable(),
+    finished_worktree_branch: col.text().nullable(),
+    status: col.text<Chat["status"]>(),
+    session_id: col.text().nullable(),
+    error: col.text().nullable(),
+    turn_started_at: col.time().nullable(),
+    unread: col.bool(),
+    resume_pending: col.bool().hidden(),
+    ai_generation: col.int().hidden(),
+    cost_usd: col.real(),
+    num_turns: col.int(),
+    context_tokens: col.int().nullable(),
+    context_window: col.int().nullable(),
+    pinned: col.bool(),
+    position: col.int().nullable(),
+    archived_at: col.time().nullable(),
+    archived_with_parent: col.bool().hidden(),
+    trashed_at: col.time().nullable().hidden(),
+    trashed_with: col.text().nullable().hidden(),
+    created_at: col.time(),
+    active_at: col.time(),
+  },
+  { hide: { column: "trashed_at" } },
+);
