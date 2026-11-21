@@ -43,6 +43,8 @@
 @import "./ui/menu-badges.css" layer(ui);
 @import "./ui/color-swatch.css" layer(ui);
 @import "./ui/drag-ghost.css" layer(ui);
+@import "./ui/status-slot.css" layer(ui);
+@import "./ui/collapse.css" layer(ui);
 @import "./sidebar/sidebar.css" layer(feature);
 @import "./sidebar/sidebar-rows.css" layer(feature);
 @import "./sidebar/sidebar-search.css" layer(feature);
