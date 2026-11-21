@@ -6,7 +6,7 @@
 // うっかりを防ぐもので、スクリプトのファイル・変数で名前を組み立てるなど、わざと避ける書き方までは見抜けない
 import path from "node:path";
 import { ASSIGNMENT, scanCommands, shellScriptOf, WRAPPERS, type Word } from "@/foundation/core/shell/shellWords";
-import type { DenyVerdict } from "@/features/guard/core/rules";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 
 const NAMES = new Set(["NODE_COMPILE_CACHE", "NODE_COMPILE_CACHE_PORTABLE"]);
 
@@ -80,4 +80,9 @@ export function evaluateCompileCacheEnv(toolName: string, input: Record<string, 
   if (!input.command.includes("NODE_COMPILE_CACHE")) return { kind: "pass" };
   const found = scan(input.command, 0);
   return found ? { kind: "deny", reason: compileCacheDeniedReason(found) } : { kind: "pass" };
+}
+
+/** NODE_COMPILE_CACHE を設定するコマンドの守り（Bash） */
+export function compileCacheRule(): GuardRule {
+  return { name: "compileCache", kind: "deny", sees: (call) => call.name === "Bash", check: (call) => evaluateCompileCacheEnv(call.name, call.input) };
 }

@@ -39,11 +39,11 @@ test("書く先: 参照資料は断り、作業場所の外は「このチャッ
   assert.equal(deniedWithWords("断りました", "今は"), "断りました（利用者の言葉: 今は）");
 });
 
-test("読む先: 見せない DB の SQLite のファイルは断り、ほかは通す（読むことはほかに絞らない）", () => {
+test("読む先: 見せない DB の SQLite のファイルは断り、ほかは通す（読むことはほかに絞らない）", async () => {
   const hiddenDb = [{ name: "本番", engine: "sqlite" as const, host: null, port: null, file: { names: ["/w/data/secret.db"], absolute: ["/w/data/secret.db"] } }];
   const ctx = { params: { cwd: "/w", hiddenDb } };
-  assert.equal(judgeReadPath(ctx, "/w/data/secret.db").kind, "deny");
-  assert.deepEqual(judgeReadPath(ctx, "/w/src/a.ts"), { kind: "pass" });
+  assert.equal((await judgeReadPath(ctx, "/w/data/secret.db")).kind, "deny");
+  assert.deepEqual(await judgeReadPath(ctx, "/w/src/a.ts"), { kind: "pass" });
 });
 
 test("相対パスは作業フォルダで、~ はホームで解いてから当てる（Codex の相対パスの書き込みで見せない DB・自分を守るが当たらなかった）", async () => {
@@ -53,7 +53,7 @@ test("相対パスは作業フォルダで、~ はホームで解いてから当
   const self = { pids: [1], dataDir: path.join(os.homedir(), "Library", "Application Support", "Kickoff"), port: 4317, appName: "Kickoff", guard: MACOS_SELF_GUARD };
   const ctx = { params: { cwd: work, hiddenDb }, self };
   assert.equal((await judgeWritePath(ctx, "data/secret.db")).kind, "deny");
-  assert.equal(judgeReadPath(ctx, "./data/../data/secret.db").kind, "deny");
-  assert.equal(judgeReadPath(ctx, "~/Library/Application Support/Kickoff/kickoff.db").kind, "deny");
+  assert.equal((await judgeReadPath(ctx, "./data/../data/secret.db")).kind, "deny");
+  assert.equal((await judgeReadPath(ctx, "~/Library/Application Support/Kickoff/kickoff.db")).kind, "deny");
   assert.deepEqual(await judgeWritePath(ctx, "data/other.db"), { kind: "pass" });
 });

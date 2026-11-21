@@ -4,7 +4,7 @@
 // 利用者が飛ばすと決めたときは、利用者が自分のターミナルで流す。読むだけ（git config --get core.hooksPath）は断らない。
 // うっかりを防ぐもので、スクリプトのファイル・環境変数の GIT_CONFIG_* など、わざと避ける書き方までは見抜けない
 import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
-import type { DenyVerdict } from "@/features/guard/core/rules";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 
 /** --no-verify でフックを飛ばせるサブコマンド */
 const VERIFY_SUBCOMMANDS = new Set(["commit", "push", "merge", "am"]);
@@ -83,4 +83,9 @@ export function evaluateGitHookBypass(toolName: string, input: Record<string, un
   if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
   const found = scanCommands(input.command, findInWords);
   return found ? { kind: "deny", reason: gitHookDeniedReason(found) } : { kind: "pass" };
+}
+
+/** git のフックを飛ばすコマンドの守り（Bash） */
+export function gitHookRule(): GuardRule {
+  return { name: "gitHook", kind: "deny", sees: (call) => call.name === "Bash", check: (call) => evaluateGitHookBypass(call.name, call.input) };
 }

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
-import type { DenyVerdict, GuardCall } from "@/features/guard/core/rules";
+import type { DenyVerdict, GuardCall, GuardRule } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /**
@@ -81,4 +81,16 @@ export async function evaluateUntrackedWrite(
   if (path.relative(root, target).split(path.sep).includes(".git")) return { kind: "deny", reason: "このチャットでは .git の中は書けません" };
   if (await tracked(root, target)) return { kind: "deny", reason: `${path.relative(root, target)} は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）` };
   return { kind: "pass" };
+}
+
+const writes = (name: string) => claudeToolOf(name)?.writes === true;
+
+/** 参照資料の守り（readOnly は作業場所の外にある参照資料の絶対パス。ファイルを書き換えるツール） */
+export function referenceRule(readOnly: string[]): GuardRule {
+  return { name: "reference", kind: "deny", sees: (call) => writes(call.name), check: (call) => evaluateReferenceWrite(call.cwd, readOnly, call.name, call.input) };
+}
+
+/** Git で管理していないファイルだけを書けるチャットの守り（ファイルを書き換えるツールと Bash の git） */
+export function untrackedRule(): GuardRule {
+  return { name: "untracked", kind: "deny", sees: (call) => call.name === "Bash" || writes(call.name), check: (call) => evaluateUntrackedWrite(call.cwd, call.name, call.input) };
 }

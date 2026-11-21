@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { RawContainer } from "@/features/docker/core/parse";
-import { judgeDockerCommand, type DockerGuardFacts } from "./dockerGuard";
+import { DOCKER_GUARD_DENIED, dockerRule, judgeDockerCommand, type DockerGuardFacts } from "./dockerGuard";
 
 const main = "/r/app";
 const wt = "/r/app-worktrees/feat-x";
@@ -110,4 +110,13 @@ test("judgeDockerCommand: 共有の組（同じ組の名前をほかの作業場
 test("judgeDockerCommand: Docker が答えない（ps が取れない）ときは、まとめてでなければ通す", async () => {
   const f = facts({ containers: async () => null, composeProject: async () => "app" });
   assert.equal(await judgeDockerCommand("docker stop app-db-1 && docker compose down", f), null);
+});
+
+test("dockerRule: Bash だけを見て、聞く文に断られたときの文を添える。判定に失敗したら通す", async () => {
+  const rule = dockerRule({ check: async (c) => (c.includes("down") ? { title: "止めます", description: "本体の db" } : null) });
+  const bash = (command: string) => ({ name: "Bash", input: { command }, cwd: "/w" });
+  assert.equal(rule.sees({ name: "Write", input: { file_path: "/w/a" }, cwd: "/w" }), false);
+  assert.deepEqual(await rule.check(bash("docker compose down")), { kind: "ask", title: "止めます", description: "本体の db", deniedReason: DOCKER_GUARD_DENIED });
+  assert.deepEqual(await rule.check(bash("docker ps")), { kind: "pass" });
+  assert.deepEqual(await dockerRule({ check: async () => Promise.reject(new Error("x")) }).check(bash("docker ps")), { kind: "pass" });
 });

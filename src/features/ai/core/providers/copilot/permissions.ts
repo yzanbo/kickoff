@@ -67,7 +67,7 @@ export function createPermissionHandler(deps: PermissionDeps): (req: PermissionR
         return write(deps, req);
       case "read": {
         // 読むことは絞らない（自分の保存先・見せない DB のファイルだけ断る）
-        const verdict = judgeReadPath(deps.guard, req.resolvedPath ?? req.path);
+        const verdict = await judgeReadPath(deps.guard, req.resolvedPath ?? req.path);
         return verdict.kind === "deny" ? toResult({ allow: false, reason: verdict.reason }, `ファイルを読むの（${req.path}）`) : { kind: "approve-once" };
       }
       case "mcp":

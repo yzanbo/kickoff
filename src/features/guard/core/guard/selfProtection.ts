@@ -4,7 +4,7 @@ import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { SelfGuardRules } from "@/features/guard/core/platformRules";
 import { isInside } from "@/foundation/core/system/paths";
 import { TRASH_COMMAND } from "./deleteGuard";
-import type { DenyVerdict } from "@/features/guard/core/rules";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /**
@@ -107,4 +107,14 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
     return { kind: "deny", reason: `${stop}。${self.guard.scripting.label} で操作しないでください` };
   }
   return { kind: "pass" };
+}
+
+/** 自分を守る守り（Bash とパスを取るファイルのツール） */
+export function selfRule(self: SelfInfo): GuardRule {
+  return {
+    name: "self",
+    kind: "deny",
+    sees: (call) => call.name === "Bash" || Boolean(claudeToolOf(call.name)?.pathKey),
+    check: (call) => evaluateSelfProtection(self, call.name, call.input),
+  };
 }

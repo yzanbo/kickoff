@@ -1,6 +1,6 @@
 import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
-import type { DenyVerdict } from "@/features/guard/core/index";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/index";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */
@@ -68,4 +68,14 @@ export function evaluateHiddenDbAccess(targets: HiddenDbTarget[], toolName: stri
   const command = normalizeCommand(input.command);
   const hit = targets.find((t) => mentionsHost(command, t) || mentionsFile(command, t));
   return hit ? deny(hit) : { kind: "pass" };
+}
+
+/** 見せない DB の守り（Bash とファイルを開くツール。探す Glob・Grep は見ない） */
+export function hiddenDbRule(targets: HiddenDbTarget[]): GuardRule {
+  return {
+    name: "hiddenDb",
+    kind: "deny",
+    sees: (call) => call.name === "Bash" || claudeToolOf(call.name)?.searches === false,
+    check: (call) => evaluateHiddenDbAccess(targets, call.name, call.input),
+  };
 }

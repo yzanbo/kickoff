@@ -52,7 +52,7 @@ async function decide(deps: PermissionDeps, call: ToolCall): Promise<ApprovalOut
   }
   if (call.kind && READ_KINDS.has(call.kind)) {
     for (const path of pathsOf(call)) {
-      const guarded = await guardOutcome(deps, judgeReadPath(deps.guard, path), shown.name, { file_path: path }, id);
+      const guarded = await guardOutcome(deps, await judgeReadPath(deps.guard, path), shown.name, { file_path: path }, id);
       if (guarded && !guarded.allow) return guarded;
     }
     return { allow: true };

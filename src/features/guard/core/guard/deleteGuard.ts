@@ -5,7 +5,7 @@
 // うっかりを防ぐもので、スクリプトのファイル・Python の os.remove など、わざと避ける書き方までは見抜けない
 import path from "node:path";
 import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
-import type { DenyVerdict } from "@/features/guard/core/rules";
+import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 
 /** Kickoff のゴミ箱に入れるコマンドの名前（PATH に入れて AI に渡す。trash/command.ts が置く） */
 export const TRASH_COMMAND = "kickoff-trash";
@@ -61,4 +61,9 @@ export function evaluateDeleteCommand(toolName: string, input: Record<string, un
   if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
   const found = scanCommands(input.command, findInWords);
   return found ? { kind: "deny", reason: deleteDeniedReason(found) } : { kind: "pass" };
+}
+
+/** ファイルを消すコマンドの守り（Bash） */
+export function deleteRule(): GuardRule {
+  return { name: "delete", kind: "deny", sees: (call) => call.name === "Bash", check: (call) => evaluateDeleteCommand(call.name, call.input) };
 }

@@ -6,7 +6,8 @@ import path from "node:path";
 import { workplaceText } from "@shared/foundation/workplace";
 import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/worktrees";
 import { isInside } from "@/foundation/core/system/paths";
-import type { GuardVerdict } from "@/features/guard/core/rules";
+import type { GuardCall, GuardRule, GuardVerdict } from "@/features/guard/core/rules";
+import { writeTargetOf } from "./scope";
 
 /** 判定に使う様子（パスはどれも実体のパス = realpath） */
 export interface WriteScopeFacts {
@@ -83,5 +84,22 @@ export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Pr
     description: `このチャットの作業場所（${shown(mine)}）とノートのフォルダの外です。Kickoff の AI の守りが、作業場所の外への書き込みを流す前に確かめています。`,
     deniedReason: WRITE_SCOPE_DENIED,
     rememberTarget: target,
+  };
+}
+
+/**
+ * 書き込み先の守り（ファイルを書き換えるツール）。allowed: 「このチャットでは許可」で許した書く先（実体のパス。聞かずに通す）。
+ * 断る守り（参照資料・自分の保存先・見せない DB）が断るものには、judgeCall が先に断るのでカードを出さない
+ */
+export function writeScopeRule(facts: WriteScopeFacts, allowed: ReadonlySet<string>): GuardRule {
+  const targetOf = (call: GuardCall) => writeTargetOf(call.cwd, call.name, call.input);
+  return {
+    name: "writeScope",
+    kind: "ask",
+    sees: (call) => targetOf(call) !== null,
+    check: (call) => {
+      const target = targetOf(call);
+      return target === null || allowed.has(target) ? PASS : judgeFileWrite(target, facts);
+    },
   };
 }

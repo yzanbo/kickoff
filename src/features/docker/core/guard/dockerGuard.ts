@@ -6,6 +6,7 @@ import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/wo
 import { workplaceText } from "@shared/foundation/workplace";
 import { isInside } from "@/foundation/core/system/paths";
 import { dockerIntents, type ComposeSub, type ContainerVerb, type DockerIntent } from "./dockerCommand";
+import type { GuardRule } from "@/features/guard/core/index";
 
 /** 承認カードに出す文（title = 何をしようとしているか・description = 補い） */
 export interface DockerAsk {
@@ -183,4 +184,17 @@ export async function judgeDockerCommand(command: string, facts: DockerGuardFact
   if (asks.length === 0) return null;
   const [title, ...rest] = [...new Set(asks)];
   return { title, description: [...rest, NOTE].join("\n") };
+}
+
+/** Docker の守り（Bash。ほかの作業場所・プロジェクトのものは聞く。判定に失敗したら（docker が答えないなど）通す = 守りはうっかりを防ぐもので、AI の作業を止めない） */
+export function dockerRule(guard: DockerGuard): GuardRule {
+  return {
+    name: "docker",
+    kind: "ask",
+    sees: (call) => call.name === "Bash" && typeof call.input.command === "string",
+    check: async (call) => {
+      const ask = await guard.check(call.input.command as string).catch(() => null);
+      return ask ? { kind: "ask", title: ask.title, description: ask.description, deniedReason: DOCKER_GUARD_DENIED } : { kind: "pass" };
+    },
+  };
 }

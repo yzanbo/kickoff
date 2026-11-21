@@ -4,13 +4,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { evaluateHiddenDbAccess, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
-import { evaluateCompileCacheEnv } from "@/features/guard/core/guard/compileCacheGuard";
-import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
-import { evaluateGitHookBypass } from "@/features/guard/core/guard/gitHookGuard";
+import { hiddenDbRule, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
+import { compileCacheRule } from "@/features/guard/core/guard/compileCacheGuard";
+import { deleteRule } from "@/features/guard/core/guard/deleteGuard";
+import { gitHookRule } from "@/features/guard/core/guard/gitHookGuard";
 import { judgeCommand, judgeReadPath, judgeWritePath } from "@/features/guard/core/guard/judgeTool";
-import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths } from "@/features/guard/core/guard/scope";
-import { evaluateSelfProtection, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
+import { referenceRule, resolveCallPaths, untrackedRule } from "@/features/guard/core/guard/scope";
+import { selfRule, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
@@ -146,22 +146,16 @@ function line(v: Verdict): string | null {
   return [kind, ...parts].join(" | ");
 }
 
-/** 守りごとの答え（pass の守りは省く。どれも pass なら空）。呼ぶ側と同じく、パスを作業フォルダで解いてから当てる */
+/** 守りごとの答え（pass の守りは省く。どれも pass なら空）。呼ぶ側と同じく、パスを作業フォルダで解いてから、見る呼び出しの守りだけを当てる */
 async function perGuard(w: World, tool: string, raw: Record<string, unknown>): Promise<Record<string, string>> {
-  const { input } = resolveCallPaths({ name: tool, input: raw, cwd: w.cwd });
-  const verdicts: Record<string, Verdict> = {
-    self: evaluateSelfProtection(self, tool, input),
-    reference: evaluateReferenceWrite(w.cwd, [w.ref], tool, input),
-    untracked: await evaluateUntrackedWrite(w.cwd, tool, input),
-    hiddenDb: evaluateHiddenDbAccess(w.hidden, tool, input),
-    delete: evaluateDeleteCommand(tool, input),
-    gitHook: evaluateGitHookBypass(tool, input),
-    compileCache: evaluateCompileCacheEnv(tool, input),
-  };
-  return Object.fromEntries(Object.entries(verdicts).flatMap(([name, v]) => {
-    const text = line(v);
-    return text === null ? [] : [[name, text]];
-  }));
+  const call = resolveCallPaths({ name: tool, input: raw, cwd: w.cwd });
+  const rules = [selfRule(self), referenceRule([w.ref]), untrackedRule(), hiddenDbRule(w.hidden), deleteRule(), gitHookRule(), compileCacheRule()];
+  const out: Record<string, string> = {};
+  for (const rule of rules) {
+    const text = rule.sees(call) ? line(await rule.check(call)) : null;
+    if (text !== null) out[rule.name] = text;
+  }
+  return out;
 }
 
 /** 記録の鍵（一時フォルダ・ホームのパスを伏せる。maskVolatile は値だけを伏せるので、鍵は先に伏せる） */
@@ -208,7 +202,7 @@ test("判定の組み合わせ（コマンド・書く先・読む先。聞い�
     for (const command of [...COMMANDS, "docker compose down", "docker ps"]) note(name, `command ${command}`, await judgeCommand(ctx, command));
     for (const [tool, input] of fileCalls(w)) {
       const p = (input.file_path ?? input.notebook_path ?? input.path) as string;
-      if (tool === "Read" || tool === "Glob" || tool === "Grep") note(name, `read ${p}`, judgeReadPath(ctx, p));
+      if (tool === "Read" || tool === "Glob" || tool === "Grep") note(name, `read ${p}`, await judgeReadPath(ctx, p));
       else note(name, `write ${p}`, await judgeWritePath(ctx, p));
     }
   }
