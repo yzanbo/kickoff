@@ -1,5 +1,5 @@
-// 1 回の実行の指定を組み立てる: 登録した contributor（TurnContributor）が出したものを order の順に集め（collectTurnParts）、プロバイダーに渡す形にする（toProviderParams）。
-// まだ機能へ分けていない組み立ては 1 つの contributor（legacyTurnParts）に入れてあり、P5-4 の単位ごとに各機能の contributor へ移す
+// 1 回の実行の指定を組み立てる: 登録した contributor（TurnContributor。チャット自身と上の機能）が出したものを order の順に集め（collectTurnParts）、
+// プロバイダーに渡す形にする（toProviderParams）。実行の組み立ては機能の名前を知らない
 import { joinSections } from "@/features/chat/core/prompt/sections";
 import { appendSections } from "@/features/chat/core/prompt/compose";
 import { permissionOnlyGate, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
@@ -101,9 +101,4 @@ export function toProviderParams(
     gate: parts.gate ?? permissionOnlyGate({ permissionMode: chat.permission_mode, cb: run.cb, signal: run.signal }),
     onAgentSpawned: parts.onAgentSpawned,
   };
-}
-
-/** まだ機能へ分けていない組み立て（order 0。もう何も出さない。P5-4i で消す） */
-export function legacyTurnParts(): TurnContributor {
-  return { name: "legacy", order: 0, contribute: () => null };
 }

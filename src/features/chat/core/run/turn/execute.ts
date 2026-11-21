@@ -19,7 +19,7 @@ import { recordEvent } from "@/features/chat/core/run/record";
 import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import type { PerTurn, TurnEndInfo, TurnRequest } from "./contributor";
-import { byOrder, collectTurnParts, legacyTurnParts, toProviderParams } from "./params";
+import { byOrder, collectTurnParts, toProviderParams } from "./params";
 import { chatTurnParts } from "./chatParts";
 import { callbacksFor } from "./providerEvents";
 import { applyResult } from "./result";
@@ -31,8 +31,8 @@ import { applyResult } from "./result";
 export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, request: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { chatId, prompt, promptId, compact = false, compactTrigger } = request;
   const { store, providers } = deps;
-  // 実行に足すもの（まだ機能へ分けていない組み立て・チャット自身・上の機能が登録したもの）
-  const contributors = [legacyTurnParts(), chatTurnParts(deps, runtime), ...(deps.contributors ?? [])];
+  // 実行に足すもの（チャット自身と、上の機能が登録したもの）
+  const contributors = [chatTurnParts(deps, runtime), ...(deps.contributors ?? [])];
   // 1 回の作業の値（contributor と AI のツールが同じ入れ物を使う）
   const values = new Map<string, unknown>();
   const perTurn: PerTurn = <T>(key: string, init: () => T): T => {
