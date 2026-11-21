@@ -28,6 +28,7 @@ import type { UploadStore } from "@/features/attachments/core/uploads";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
+import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
 
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
 export { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
@@ -94,6 +95,8 @@ export interface ExecutionDeps {
   aiTools?: readonly AiToolGroup[];
   /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
   providerKeys?: ProviderKeyVault;
+  /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
+  contributors?: TurnContributor[];
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */

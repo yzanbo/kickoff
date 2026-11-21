@@ -19,6 +19,7 @@ import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { ExecutionDeps } from "./turn";
+import type { TurnContributor } from "./run/turn/contributor";
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
@@ -31,6 +32,7 @@ import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { ChatRunLookup } from "./run/chatRun";
+export type { TurnContributor } from "./run/turn/contributor";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
@@ -98,6 +100,8 @@ export interface ChatApi {
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 上の機能の口を受ける（組み立ての最後に 1 回だけ。仮の口で、上の機能が実行に足すものを登録する形に替えたら消す） */
   attach(upper: ChatUpper): void;
+  /** 実行に足すもの（環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること）を登録する（上の機能が createX の中で呼ぶ。AI のツールは CoreFeature.aiTools） */
+  addTurnContributor(c: TurnContributor): void;
   /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
   onChatsPurged(fn: (chatIds: number[]) => void | Promise<void>): void;
   /** チャットの名前をまとめて引く（ゴミ箱のチャットも。もうないチャットは入れない） */
@@ -138,7 +142,9 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const mcpTools = new McpToolHost(() => mcpBaseUrl);
   // KICKOFF_RUN_TRACE=1 なら、実行の出来事・変わった項目・命令を 1 行ずつログに書く
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
-  const runner = createChatRunner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, interrupted: recovered, clock: k.clock, trace, ...timing });
+  // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
+  const contributors: TurnContributor[] = [];
+  const runner = createChatRunner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -188,6 +194,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
         const { remoteImages: _images, notes, ...rest } = given;
         runner.attach({ ...rest, notes, noteDirOf: (project) => notes.dirOf(project) });
       },
+      addTurnContributor: (c) => void contributors.push(c),
       onChatsPurged: (fn) => void purged.push(fn),
       titlesOf,
       stats: () => databaseStats(k.db, k.db.location()),

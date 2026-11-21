@@ -1,55 +1,187 @@
-// プロバイダーに渡す指定（作業場所・指示・権限・砂場）と、守りの門の材料を組み立てる（P5-4 で TurnContributor の登録に分ける）
+// 1 回の実行の指定を組み立てる: 登録した contributor（TurnContributor）が出したものを order の順に集め（collectTurnParts）、プロバイダーに渡す形にする（toProviderParams）。
+// まだ機能へ分けていない組み立ては 1 つの contributor（legacyTurnParts）に入れてあり、P5-4 の単位ごとに各機能の contributor へ移す
 import path from "node:path";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { buildSystemPrompt } from "@/features/chat/core/prompt/system";
-import type { GuardMaterials, SandboxPlan } from "@/features/ai/core/index";
+import { permissionOnlyGate, type GuardMaterials, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { readOnlyReferences, referenceDirectories } from "@/features/chat/core/turnFolders";
-import { chatContextNote, chatContextOf, joinContexts, sandboxPromptLines, workplaceMoveContext, type ExecutionDeps, type ProviderTurnParams } from "@/features/chat/core/turn";
+import { ensureDir, readOnlyReferences, referenceDirectories } from "@/features/chat/core/turnFolders";
+import { preCompactSent } from "@/features/chat/core/run/machine/marks";
+import type { ChatRun } from "@/features/chat/core/run/chatRun";
+import {
+  autoPreCompactParams,
+  bashSandboxFor,
+  chatContextNote,
+  chatContextOf,
+  githubEnvForGit,
+  joinContexts,
+  runAsGitHubAccount,
+  sandboxPromptLines,
+  trashCommandEnv,
+  workplaceMoveContext,
+  type ExecutionDeps,
+  type ProviderTurnParams,
+} from "@/features/chat/core/turn";
+import type { PromptSection, TurnContext, TurnContributor, TurnEndInfo, TurnParts } from "./contributor";
 
-/** プロバイダーに渡すもの（作業場所・指示・権限） */
-export function buildTurnParams(
-  deps: ExecutionDeps,
-  chat: Chat,
-  project: Project,
-  { cwd, noteDir, sandbox }: TurnPlace,
-  prompt: string,
-  promptId?: string,
-  note: string | null = null,
-): Omit<ProviderTurnParams, "compact" | "gate"> {
-  // ノートのフォルダ（executeTurn がまだなければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
-  // （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
+/** contributor が出したものを集めた答え */
+export interface CollectedParts {
+  env: Record<string, string>;
+  readableDirs: string[];
+  readOnlyDirs: string[];
+  writableDirs: string[];
+  systemPrompt: string;
+  turnContext: string | null;
+  gate: ToolGate | null;
+  sandbox: SandboxPlan | null;
+  sandboxOff: boolean;
+  preCompact: PreCompactRequest | null;
+  /** プロバイダーを動かすところを包む（先の order が外側。なければそのまま動かす） */
+  around(run: () => Promise<ProviderTurnResult>): Promise<ProviderTurnResult>;
+  onRecord: ((event: ChatEvent) => void)[];
+  afterTurn: ((end: TurnEndInfo) => Promise<void>)[];
+}
+
+/** 1 つだけが出せる欄（2 つ出たら実行を失敗で止める） */
+const SINGLE = ["gate", "sandbox", "sandboxOff", "preCompact"] as const satisfies readonly (keyof TurnParts)[];
+
+/**
+ * contributor を order の順（同じ order は登録の順）に呼んで集める: env は後が上書き、フォルダは重なりを除いてつなぐ、節は order で並べて 1 つの文に、
+ * 文脈はつなぐ、門・砂場・圧縮前指示は 1 つだけ、包みは外側から順に、記録と作業の終わりの口は全部
+ */
+export async function collectTurnParts(contributors: readonly TurnContributor[], ctx: TurnContext): Promise<CollectedParts> {
+  const given: { name: string; parts: TurnParts }[] = [];
+  for (const c of [...contributors].sort((a, b) => a.order - b.order)) {
+    const parts = await c.contribute(ctx);
+    if (parts) given.push({ name: c.name, parts });
+  }
+  const single = <K extends (typeof SINGLE)[number]>(key: K): TurnParts[K] | undefined => {
+    const from = given.filter((g) => g.parts[key] !== undefined);
+    if (from.length > 1) throw new Error(`実行の ${key} を ${from.map((g) => g.name).join(" と ")} が出しました（1 つの機能だけが出せます）`);
+    return from[0]?.parts[key];
+  };
+  const dirs = (key: "readableDirs" | "readOnlyDirs" | "writableDirs") => [...new Set(given.flatMap((g) => g.parts[key] ?? []))];
+  const arounds = given.flatMap((g) => (g.parts.around ? [g.parts.around] : []));
   return {
-    cwd,
-    prompt,
-    ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, noteDir ? { dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null } : undefined, {
-      trash: deps.trashCommand !== undefined,
-      sandboxLines: sandbox ? sandboxPromptLines(sandbox.unsandboxedCommands, chat.edit_scope_enabled || chat.untracked_only) : undefined,
-      editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
-      browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
-    }),
-    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
-    resumeSessionId: chat.session_id,
-    model: chat.model,
-    effort: chat.effort,
-    permissionMode: chat.permission_mode,
-    fastMode: chat.fast_mode,
-    autoCompactPct: deps.store.settings.get().auto_compact_pct,
-    // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
-    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(noteDir ? [noteDir] : [])],
-    sandbox,
-    sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
+    env: Object.assign({}, ...given.map((g) => g.parts.env ?? {})) as Record<string, string>,
+    readableDirs: dirs("readableDirs"),
+    readOnlyDirs: dirs("readOnlyDirs"),
+    writableDirs: dirs("writableDirs"),
+    systemPrompt: joinSections(given.flatMap((g) => g.parts.promptSections ?? [])),
+    turnContext: joinContexts(...given.map((g) => g.parts.turnContext ?? null)),
+    gate: single("gate") ?? null,
+    sandbox: single("sandbox") ?? null,
+    sandboxOff: single("sandboxOff") ?? false,
+    preCompact: single("preCompact") ?? null,
+    around: (run) => arounds.reduceRight<() => Promise<ProviderTurnResult>>((inner, wrap) => () => wrap(inner), run)(),
+    onRecord: given.flatMap((g) => (g.parts.onRecord ? [g.parts.onRecord] : [])),
+    afterTurn: given.flatMap((g) => (g.parts.afterTurn ? [g.parts.afterTurn] : [])),
   };
 }
 
+/** 節を order の順（同じ order は渡した順）に 1 つの文にする: 見出しの前に空行 1 つ、見出しが null の節は直前の節の続きの行 */
+function joinSections(sections: PromptSection[]): string {
+  const lines: string[] = [];
+  for (const s of sections.map((s, i) => ({ s, i })).sort((a, b) => a.s.order - b.s.order || a.i - b.i).map(({ s }) => s)) {
+    if (s.heading !== null) lines.push(...(lines.length ? [""] : []), s.heading);
+    lines.push(...s.lines);
+  }
+  return lines.join("\n");
+}
+
+/** プロバイダーに渡す指定（集めたものと、チャットの選択・送る指示から。門がなければ権限モードだけで答える門） */
+export function toProviderParams(
+  chat: Chat,
+  parts: CollectedParts,
+  run: { cwd: string; prompt: string; promptId?: string; model: string | null; compact: boolean; autoCompactPct: number | null; auth: NonNullable<ProviderTurnParams["auth"]>; cb: Pick<ProviderCallbacks, "requestApproval">; signal: AbortSignal },
+): ProviderTurnParams {
+  return {
+    cwd: run.cwd,
+    prompt: run.prompt,
+    ...(run.promptId ? { promptId: run.promptId } : {}),
+    systemPrompt: parts.systemPrompt,
+    turnContext: parts.turnContext,
+    resumeSessionId: chat.session_id,
+    model: run.model,
+    effort: chat.effort,
+    permissionMode: chat.permission_mode,
+    fastMode: chat.fast_mode,
+    autoCompactPct: run.autoCompactPct,
+    additionalDirectories: parts.readableDirs,
+    sandbox: parts.sandbox,
+    sandboxOff: parts.sandboxOff,
+    compact: run.compact,
+    preCompact: parts.preCompact,
+    env: parts.env,
+    auth: run.auth,
+    gate: parts.gate ?? permissionOnlyGate({ permissionMode: chat.permission_mode, cb: run.cb, signal: run.signal }),
+  };
+}
+
+/**
+ * まだ機能へ分けていない組み立て（order 0）: 環境変数（ワークツリーの PORT → GitHub のアカウント → kickoff-trash）・Bash の砂場・読めるフォルダ・
+ * システムプロンプト・添える文脈・守りの門・圧縮前指示。一度だけ添える知らせは手で圧縮する実行には添えず、取り出したら外す
+ */
+export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, { compact, preCompactText }: { compact: boolean; preCompactText: string | null }): TurnContributor {
+  return {
+    name: "legacy",
+    order: 0,
+    async contribute({ chat, project, cwd, signal, requestApproval }) {
+      // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
+      // 作業場所がポートの帯を持つワークツリーなら、開発サーバーの番号（PORT=帯+00）も渡す
+      // rm の代わりに Kickoff のゴミ箱へ入れる kickoff-trash を PATH に足す（どこで消しても、どのチャットが消したか分かるようにチャットの ID も）
+      const env = {
+        ...(deps.worktreeEnvs?.envFor(cwd) ?? {}),
+        ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}),
+        ...(deps.trashCommand ? trashCommandEnv(deps.trashCommand, chat.id) : {}),
+      };
+      // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
+      const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
+      // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
+      const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
+      const sandbox = useSandbox && deps.bashSandbox
+        ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, noteDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
+        : null;
+      const place: TurnPlace = { cwd, noteDir, sandbox };
+      const note = compact ? null : runtime.pendingNote;
+      if (!compact) runtime.pendingNote = null;
+      return {
+        env,
+        // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
+        readableDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(noteDir ? [noteDir] : [])],
+        promptSections: [{ order: 0, heading: null, lines: [systemPromptOf(deps, chat, project, place)] }],
+        turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
+        sandbox,
+        sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
+        preCompact: autoPreCompactParams(preCompactText, chat, preCompactSent(runtime.marks)) ?? null,
+        // 守りの門（この単位では chat が実行の材料から作る。守りの口がなければ toProviderParams が権限モードだけで答える門にする）
+        ...(deps.toolGate ? { gate: deps.toolGate(guardMaterialsOf(deps, chat, project, place, runtime.writeAllowed), { requestApproval }, signal) } : {}),
+      };
+    },
+  };
+}
+
+/**
+ * システムプロンプト: ノートのフォルダ（なければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
+ * （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
+ */
+function systemPromptOf(deps: ExecutionDeps, chat: Chat, project: Project, { cwd, noteDir, sandbox }: TurnPlace): string {
+  return buildSystemPrompt(project, cwd, noteDir ? { dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null } : undefined, {
+    trash: deps.trashCommand !== undefined,
+    sandboxLines: sandbox ? sandboxPromptLines(sandbox.unsandboxedCommands, chat.edit_scope_enabled || chat.untracked_only) : undefined,
+    editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
+    browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
+  });
+}
+
 /** 実行の場所（作業フォルダ・ノートのフォルダ・Bash の砂場） */
-export type TurnPlace = { cwd: string; noteDir: string | null; sandbox: SandboxPlan | null };
+type TurnPlace = { cwd: string; noteDir: string | null; sandbox: SandboxPlan | null };
 
 /** 守りの門の材料（プロバイダーには渡さず、門だけを渡す） */
-export function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { cwd, noteDir, sandbox }: TurnPlace, writeAllowed: Set<string>): GuardMaterials {
+function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { cwd, noteDir, sandbox }: TurnPlace, writeAllowed: Set<string>): GuardMaterials {
   return {
     cwd,
     permissionMode: chat.permission_mode,

@@ -5,6 +5,7 @@ import { isUnreadEvent } from "@shared/chat/state";
 import { systemClock } from "@/foundation/core/clock";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { Question } from "@shared/chat/approvalTypes";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
 import type { ExecutionDeps, ProviderCallbacks } from "@/features/chat/core/turn";
@@ -22,6 +23,8 @@ export function callbacksFor(
   compact: boolean,
   compactTrigger: CompactTrigger,
   { pre: preCompactText, post: postCompactText }: { pre: string | null; post: string | null },
+  /** AI が出した記録を足したとき（登録した contributor の onRecord） */
+  onRecord: (event: ChatEvent) => void = () => {},
 ): ProviderCallbacks {
   const chatId = chat.id;
   const projectId = chat.project_id;
@@ -77,6 +80,7 @@ export function callbacksFor(
       const saved = recordEvent(store, runtime, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
       // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（step の compacted）
       if (event.type === "compact") runtime.dispatch({ type: "compacted", post: postCompactText, compactRun: compact });
+      onRecord(saved);
       // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
       if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）

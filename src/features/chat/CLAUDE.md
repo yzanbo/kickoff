@@ -8,8 +8,8 @@
 |---|---|
 | `core/run/machine/`・`core/run/` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `ChatRunner` |
 | `core/run/chatRun.ts`・`chatRuns.ts` | チャットごとの作業中の状態 `ChatRun`（出す箱だけ保存する） |
-| `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`core/turn.ts` は `ExecutionDeps`・上の機能の口 |
-| `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
+| `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`core/turn.ts` は仮の口 |
+| `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し・届かなかった報告） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
@@ -33,10 +33,11 @@
 
 - 作業場所は `workdirOf`（null なら本体）。送るたびと作業の終わり（失敗でも）に、いまのブランチを `chats.branch` に覚える。
 - 動かし始める前に止められたら、プロバイダーを動かさずに中断で終える。
+- 上の機能は `addTurnContributor` で足し（ツールは `CoreFeature.aiTools`）、order の順に集める。門・砂場・圧縮前指示は 1 つだけ。
 - `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけ。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
 - 分岐の起点（`result` の `session_id`・`message_id`）は最後まで終わったときだけ残す。
 - 終わりにすることは `machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
-- 砂場の診断（`@/features/guard/core/sandboxDiagnostics.ts`）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
+- 砂場の診断（guard）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
 
 ## 作業中の様子（ChatLive）
 
@@ -79,7 +80,7 @@
 | `core/tools/aiProject.ts` | `add_snippet`・`move_note` |
 | `@/features/userView/core/aiUserView.ts` | `get_user_view` |
 
-ほかの機能のもの（`create_chat`・`notify_user`・`finish_worktree`・`move_workplace`・ターミナル・図）は各機能の `core/` にあり、下の決まりはどれにも当てる。
+ほかの機能のツールは各機能の `core/` にあり、下の決まりはどれにも当てる。
 
 - 中身は `create…Tools(deps, chatId)` で作り、`chatTools.ts` が作業ごとに開く。1 回の作業の上限（`AI_CHATS_PER_TURN` など）も中で数える。
 - 相手（家系・プロジェクト・タブ）と設定・世代・深さは呼ぶたびに引き直す。ほかのプロジェクトは断る。
