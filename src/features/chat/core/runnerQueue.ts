@@ -266,7 +266,7 @@ export abstract class RunnerQueue {
 
   /** 書き直している指示が変わった・外れた: 書き直しが終わるのを待っていたなら、いま送る（作業中なら、終わったときに送る） */
   protected editsChanged(chatId: number) {
-    if (!this.runtimes.get(chatId).waitingEdit || this.isBusy(chatId)) return;
+    if (!this.runtimes.get(chatId).state.waitingEdit || this.isBusy(chatId)) return;
     void this.sendNextQueued(chatId);
   }
 
@@ -276,7 +276,7 @@ export abstract class RunnerQueue {
    */
   protected answerRestartResume(chatId: number) {
     const runtime = this.runtimes.get(chatId);
-    const resume = runtime.resume;
+    const { resume } = runtime.state;
     if (resume) runtime.update({ resume: resume.interrupted ? { interrupted: true, queued: false } : null });
   }
 
@@ -289,7 +289,7 @@ export abstract class RunnerQueue {
     const runtime = this.runtimes.get(chatId);
     // 起動したときの再開の確かめで送信待ちを聞いている間は送らない（中身を見て直している途中に、線を外す・書き直しを終えるなどで送り始めないように）。
     // 送信待ちが空になったら、送信待ちについては聞かない（作業の途中で止まったことは聞き続ける）
-    if (runtime.resume?.queued) {
+    if (runtime.state.resume?.queued) {
       if (runtime.queue.list().length > 0) return;
       this.answerRestartResume(chatId);
     }

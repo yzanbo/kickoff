@@ -5,6 +5,7 @@ import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Bus } from "@/foundation/core/bus";
 import { testStore } from "@/app/core/testing/testStore";
 import { ChatRuntimes } from "@/features/chat/core/runtime";
+import { liveOf } from "@/features/chat/core/turnState";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { exhaustedResetOf, type ProviderUsage } from "@shared/ai/usage";
@@ -83,18 +84,18 @@ test("続けて別の理由で止まったら、前の段取りは新しい段�
   clock.now = Date.parse(RESET) + 120_000;
   finish(usageLimit(RESET));
   assert.equal(approvals.list({ chatId: chat.id }).length, 1);
-  assert.equal(runtime.live().reconnect, null);
+  assert.equal(liveOf(runtime).reconnect, null);
   // 聞いている間に（手で圧縮したときなど）通信の切断で止まった: 聞くのを取り下げ、つながるのを待つ
   finish(networkFailure);
   assert.equal(approvals.list({ chatId: chat.id }).length, 0);
-  assert.deepEqual(runtime.live().reconnect, { attempts: 0, max: 3, agents: [] });
+  assert.deepEqual(liveOf(runtime).reconnect, { attempts: 0, max: 3, agents: [] });
   // 取り下げた確かめの答え（中断）で、止めた送信待ちを忘れない。つながったら自動で再開する
   await tick();
   assert.equal(runtime.recovery.held, true);
   network.online = true;
   await until(() => sent.length === 1);
   assert.deepEqual(sent, [RESUME_PROMPT]);
-  assert.equal(runtime.live().reconnect, null);
+  assert.equal(liveOf(runtime).reconnect, null);
 });
 
 test("使用枠の上限: 枠の戻る時刻を調べている間に自分で送ったら、その段取りはやめる（あとから待ち始めない）", async () => {

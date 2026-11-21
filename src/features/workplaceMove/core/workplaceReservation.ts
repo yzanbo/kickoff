@@ -136,7 +136,7 @@ function placeContinuation(store: Store, runtime: ChatRuntime, chatId: number, t
     return;
   }
   const message: QueuedMessage = { id: randomUUID(), text, options: {}, attachments: [], created_at: new Date().toISOString(), workplace_continuation: true };
-  runtime.update({ afterCompact: [message, ...runtime.afterCompact] });
+  runtime.update({ afterCompact: [message, ...runtime.state.afterCompact] });
 }
 
 /** 送信待ちの先頭に続く、予約した圧縮・消去の行の数 */

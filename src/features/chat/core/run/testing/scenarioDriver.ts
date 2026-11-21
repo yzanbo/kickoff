@@ -141,12 +141,8 @@ export class Driver {
 
   /** いまの Runner が預かりを配っている途中か（画面に出ない段取りなので中を見る。作り直したら、ここだけ直す） */
   private delivering(alias: ChatAlias): boolean {
-    const { runtimes } = this.core.runner as unknown as {
-      runtimes: {
-        peek(id: number): { deliveringAfterCompact: boolean } | undefined;
-      };
-    };
-    return runtimes.peek(this.id(alias))?.deliveringAfterCompact ?? false;
+    const { runtimes } = this.core.runner as unknown as { runtimes: { peek(id: number): { state: { deliveringAfterCompact: boolean } } | undefined } };
+    return runtimes.peek(this.id(alias))?.state.deliveringAfterCompact ?? false;
   }
 
   async idleAll(): Promise<boolean> {

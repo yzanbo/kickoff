@@ -300,10 +300,6 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     store.chats.update(chatId, { status: "failed", error: message, unread: true }); // 失敗も、見るまでは未読にする
     store.events.add(chatId, { type: "error", message });
     return { status: "failed", network: false };
-  } finally {
-    // 再試行・裏の作業・圧縮中の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
-    runtime.control = null;
-    runtime.update({ retry: null, background: null, compacting: null, drawingVisual: false });
   }
 }
 
@@ -406,27 +402,22 @@ function callbacksFor(
     commandOutput: (output) => {
       bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
     },
-    retry: (retry) => runtime.update({ retry }),
+    retry: (retry) => runtime.patchTurn({ retry }),
     // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない）。
     // 圧縮中の「いま」は預かり、圧縮の実行の終わりで Runner が送る
-    control: (control) => {
-      runtime.control = compact ? null : control;
-    },
-    background: (background) => runtime.update({ background }),
+    control: (control) => runtime.patchTurn({ control: compact ? null : control }),
+    background: (background) => runtime.patchTurn({ background }),
     // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す
     // （下の帯の札は使用状況の知らせで赤くなる）
     spending: (note) => {
       const message = SPENDING_NOTICES[chat.provider];
       if (usage?.noteSpending(chat.provider, note) && message) store.events.add(chatId, { type: "notice", message });
     },
-    drawingVisual: (drawingVisual) => runtime.update({ drawingVisual }),
+    drawingVisual: (drawingVisual) => runtime.patchTurn({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
     // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで Runner が外す）
     compacting: (active) =>
-      runtime.update({
-        compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null,
-        ...(active ? { compactedTurn: true } : {}),
-      }),
+      runtime.patchTurn({ compaction: { running: active ? (runtime.compaction.running ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null, ...(active ? { done: true } : {}) } }),
     // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
     context: (tokens) => {
       if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
@@ -444,7 +435,7 @@ function callbacksFor(
       if (!preCompactText) return;
       runtime.preCompactSent = true;
       // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）
-      runtime.update({ awaitingCompact: true });
+      runtime.patchTurn({ compaction: { awaiting: true } });
       store.events.add(chatId, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
     },
     // 合図のあと裏の作業を待って止まっていたので、Kickoff が発言を足して圧縮を走らせた: 何が起きたかをお知らせに残す（足した文は AI 向けなので発言にしない）
@@ -457,16 +448,8 @@ function callbacksFor(
       }
       // 手で圧縮する実行の圧縮は、頼んだきっかけで残す（自動の圧縮の前の指示のあとに Runner が続けた圧縮は auto）
       const saved = store.events.add(chatId, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
-      // 圧縮した（記録を残してから）: 次に上限に近づいたら、また圧縮前指示を送る。圧縮後指示があれば、預かった指示の先頭に置く
-      // （圧縮が終わったら、それらより先に伝える。圧縮前指示のあとに送った指示は、必ず圧縮後指示のあとになる）。
-      // 手で圧縮する実行（compact）の終わりまでは預かったままにする（Runner が実行の終わりで外し、圧縮後指示から送る）
-      if (event.type === "compact") {
-        runtime.preCompactSent = false;
-        const post = postCompactText ? [postCompactItem(postCompactText)] : [];
-        runtime.update({ afterCompact: [...post, ...runtime.afterCompact], compactedTurn: true, ...(compact ? {} : { awaitingCompact: false }) });
-        // 圧縮中をもう外していた（知らせの順が前後した）ときは、ここで伝える
-        runtime.flushAfterCompact();
-      }
+      // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（ChatRuntime.compacted）
+      if (event.type === "compact") runtime.compacted(postCompactText ? postCompactItem(postCompactText) : null, compact);
       // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
       if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
