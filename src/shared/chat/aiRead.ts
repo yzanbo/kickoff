@@ -18,19 +18,6 @@ export const READ_CHAT_MAX_TURNS = 10;
 /** list_project_chats で返すチャットの数の上限（最後に動いた時刻の新しい順） */
 export const LIST_PROJECT_CHATS_MAX = 200;
 
-/**
- * read_chat の引数。turns: 読むやり取りの数（省くと READ_CHAT_DEFAULT_TURNS）。
- * before: このやり取りの番号より前を読む（返した文の「前を読むには before: n」。省くと最後から）
- */
-export interface ReadChatInput {
-  chat_id: number;
-  turns?: number;
-  before?: number;
-  /** 長い発言を読むときの記録 ID と文字位置。通常の会話一覧とは併用しない。 */
-  event_id?: number;
-  offset?: number;
-}
-
 /** 記録の行に出す文（「チャット 12（38 回目より前）」） */
 export function describeReadChat(input: Record<string, unknown>): string {
   const target = typeof input.chat_id === "number" ? `チャット ${input.chat_id}` : "";

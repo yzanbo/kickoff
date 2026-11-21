@@ -7,7 +7,9 @@ import type { BusEvent } from "@shared/foundation/contract";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { callDef } from "@/foundation/core/testing/toolCalls";
 import { createAiOpenTools, notePathIn } from "./aiOpen";
+import { chatOpenTools } from "./open";
 
 /** すぐ終わる偽のプロバイダーで組み立て、根 ─ 子 ─ 孫 と、別の家系の「よそ」・ノートのフォルダを用意する */
 function setup() {
@@ -25,7 +27,11 @@ function setup() {
   fs.writeFileSync(path.join(noteDir, "画像.png"), "");
   const published: BusEvent[] = [];
   const toolsOf = (chatId: number) => createAiOpenTools({ store, publish: (e) => published.push(e), noteDirOf: () => noteDir, dbConnectionsOf: (id) => store.dbConnections.list(id) }, chatId);
-  return { ctx, root, child, grandchild, other, noteDir, published, toolsOf };
+  const familyOf = (chatId: number) => {
+    const { openChat, addDraft } = chatOpenTools({ store, publish: (e) => published.push(e) }, chatId);
+    return { openChat: (args: Record<string, unknown>) => callDef(openChat, args), addDraft: (args: Record<string, unknown>) => callDef(addDraft, args) };
+  };
+  return { ctx, root, child, grandchild, other, noteDir, published, toolsOf, familyOf };
 }
 
 test("notePathIn: 相対・中の絶対パスはノートのフォルダからの相対パスに、外・フォルダそのもの・「.」で始まる名前は断る", () => {
@@ -68,10 +74,10 @@ test("open_note: ないノート・ノートでないファイル・外のファ
   assert.equal(published.length, 0);
 });
 
-test("open_chat: 家系のチャットは開くよう頼み（親チャットはチャットのパネル）、家系の外は断る", () => {
-  const { root, child, grandchild, other, published, toolsOf } = setup();
-  const tools = toolsOf(child.id);
-  assert.match(tools.openChat({ chat_id: grandchild.id, place: "side" }), /右の欄/);
+test("open_chat: 家系のチャットは開くよう頼み（親チャットはチャットのパネル）、家系の外は断る", async () => {
+  const { root, child, grandchild, other, published, familyOf } = setup();
+  const tools = familyOf(child.id);
+  assert.match(await tools.openChat({ chat_id: grandchild.id, place: "side" }), /右の欄/);
   const e = published[0];
   assert.ok(e.type === "open_view" && e.request.kind === "chat");
   assert.equal(e.request.place, "side");
@@ -79,8 +85,8 @@ test("open_chat: 家系のチャットは開くよう頼み（親チャットは
     e.request.lineage.map((c) => c.id),
     [root.id, child.id, grandchild.id],
   );
-  assert.match(tools.openChat({ chat_id: root.id, place: "window" }), /チャットのパネル/);
-  assert.throws(() => tools.openChat({ chat_id: other.id }), /家系（.*）にありません/);
+  assert.match(await tools.openChat({ chat_id: root.id, place: "window" }), /チャットのパネル/);
+  await assert.rejects(tools.openChat({ chat_id: other.id }), /家系（.*）にありません/);
   assert.equal(published.length, 2);
 });
 
@@ -123,18 +129,18 @@ test("open_sql: AI に見せる接続だけを選べ（1 つなら省ける）�
   assert.equal(published.length, 1);
 });
 
-test("add_draft: 家系のチャットに頼み、親チャットに入れるときだけ「子チャットから」の印。家系の外・アーカイブ済み・空は断る", () => {
-  const { ctx, root, child, grandchild, other, published, toolsOf } = setup();
-  const tools = toolsOf(child.id);
-  assert.match(tools.addDraft({ chat_id: root.id, text: " 調べた結果です " }), /チャット「根」（ID \d+・親）の入力欄に下書き/);
+test("add_draft: 家系のチャットに頼み、親チャットに入れるときだけ「子チャットから」の印。家系の外・アーカイブ済み・空は断る", async () => {
+  const { ctx, root, child, grandchild, other, published, familyOf } = setup();
+  const tools = familyOf(child.id);
+  assert.match(await tools.addDraft({ chat_id: root.id, text: " 調べた結果です " }), /チャット「根」（ID \d+・親）の入力欄に下書き/);
   const e = published[0];
   assert.ok(e.type === "chat_draft");
   assert.deepEqual([e.request.text, e.request.from, e.request.lineage.map((c) => c.id)], ["調べた結果です", { chat_id: child.id, title: "子" }, [root.id]]);
-  tools.addDraft({ chat_id: grandchild.id, text: "続けて" });
+  await tools.addDraft({ chat_id: grandchild.id, text: "続けて" });
   assert.ok(published[1].type === "chat_draft" && published[1].request.from === null);
-  assert.throws(() => tools.addDraft({ chat_id: other.id, text: "a" }), /家系（.*）にありません/);
-  assert.throws(() => tools.addDraft({ chat_id: root.id, text: "  " }), /空です/);
+  await assert.rejects(tools.addDraft({ chat_id: other.id, text: "a" }), /家系（.*）にありません/);
+  await assert.rejects(tools.addDraft({ chat_id: root.id, text: "  " }), /空です/);
   ctx.store.chats.archive(grandchild.id, true);
-  assert.throws(() => tools.addDraft({ chat_id: grandchild.id, text: "a" }), /アーカイブ済み/);
+  await assert.rejects(tools.addDraft({ chat_id: grandchild.id, text: "a" }), /アーカイブ済み/);
   assert.equal(published.length, 2);
 });

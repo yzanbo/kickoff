@@ -1,8 +1,9 @@
-// kickoff_chat の画面に頼むツール（open_note・open_chat・open_file・open_diff・open_sql・add_draft）。中身は core/chat/aiOpen.ts、ここは引数の形と使い方だけ
+// kickoff_chat の画面に頼むツール（open_note・open_chat・open_file・open_diff・open_sql・add_draft）の組（order 40）。open_note・open_file・open_diff・open_sql の中身は aiOpen.ts、
+// 家系のチャットの open_chat・add_draft は定義ごと open.ts（ほかも持ち主の機能へ移すまで、使い方の文とツールの並びはこの組のまま）
 import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
-import { OPEN_PLACES } from "@shared/chat/openView";
 import type { AiOpenTools } from "./aiOpen";
+import { openPlaceInput } from "./open";
 
 /** 画面に頼むツールの使い方（MCP の instructions として AI に渡す） */
 export const OPEN_INSTRUCTIONS = [
@@ -15,9 +16,9 @@ export const OPEN_INSTRUCTIONS = [
   "どれも開く・入れるだけで何も変えないので、聞かずに頼む。頼まれていないのに開かない・入れない。開けたかは返らない（画面に頼むだけ）。",
 ];
 
-/** 画面に頼むツール（聞かずに頼む） */
-export function openTools(open: AiOpenTools): AiToolDef[] {
-  const place = z.enum(OPEN_PLACES).optional().describe("side = 右の欄（いちばん上の親チャットの画面）/ window = 別ウィンドウ。利用者が場所を言わなければ省く");
+/** 画面に頼むツール（聞かずに頼む。家系のチャットの 2 つは chat の open.ts の定義を並びの中に置く） */
+export function openTools(open: AiOpenTools, family: { openChat: AiToolDef; addDraft: AiToolDef }): AiToolDef[] {
+  const place = openPlaceInput();
   return [
     defineAiTool({
       server: "kickoff_chat",
@@ -26,13 +27,7 @@ export function openTools(open: AiOpenTools): AiToolDef[] {
       input: { path: z.string().min(1).describe("ノートのフォルダからの相対パス（「機能の仕様/図.html」）か、ノートのフォルダの中の絶対パス"), place },
       run: (args) => open.openNote(args),
     }),
-    defineAiTool({
-      server: "kickoff_chat",
-      name: "open_chat",
-      description: "同じ家系のチャット（子チャット・孫チャット・親など）を Kickoff の画面に開く（開くだけ）",
-      input: { chat_id: z.number().int().describe("開くチャットの ID（分からなければ list_family_chats で確かめる）"), place },
-      run: (args) => open.openChat(args),
-    }),
+    family.openChat,
     defineAiTool({
       server: "kickoff_chat",
       name: "open_file",
@@ -61,15 +56,6 @@ export function openTools(open: AiOpenTools): AiToolDef[] {
       },
       run: (args) => open.openSql(args),
     }),
-    defineAiTool({
-      server: "kickoff_chat",
-      name: "add_draft",
-      description: "同じ家系のチャットの入力欄に下書きを入れる（書きかけの後ろに足す。送らない）",
-      input: {
-        chat_id: z.number().int().describe("入れる先のチャットの ID（分からなければ list_family_chats で確かめる）"),
-        text: z.string().min(1).describe("入れる文"),
-      },
-      run: (args) => open.addDraft(args),
-    }),
+    family.addDraft,
   ];
 }

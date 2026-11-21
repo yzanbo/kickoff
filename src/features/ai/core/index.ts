@@ -14,6 +14,7 @@ import { UsageMonitor, type UsageFetchers } from "./usage/monitor";
 import { realUsageFetchers } from "./providers/usageFetchers";
 import { providerRoutes } from "./routes/providers";
 import { usageRoutes } from "./routes/usage";
+import { usageToolGroup } from "./tools";
 
 export interface AiEnv {
   /** AI のつなぎ込み（本物は自分の情報と API キーを渡した各 AI。テストは偽のプロバイダー） */
@@ -43,6 +44,7 @@ export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv)
   return {
     name: "ai",
     api: { providers, keys, usage, provideGhToken: (fn) => (ghToken = fn) },
+    aiTools: [usageToolGroup(usage)],
     routes: [{ legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage })) }],
     start: () => usage.start(),
     stop: () => usage.stop(),

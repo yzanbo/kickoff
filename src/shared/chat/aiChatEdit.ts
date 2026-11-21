@@ -7,18 +7,6 @@ export const AI_LIST_FAMILY_TOOL = "mcp__kickoff_chat__list_family_chats";
 /** 同じ家系のチャットの名前・固定・グループを変えるツールの名前 */
 export const AI_UPDATE_CHAT_TOOL = "mcp__kickoff_chat__update_chat";
 
-/**
- * update_chat の引数（省いた項目は変えない。group_id は null のときだけグループから外す）。parent_id は子チャットを親から外す:
- * null なら親のないチャット（group_id を一緒に渡せばそのグループへ）、自分の先祖の ID ならその子に上げる
- */
-export interface UpdateChatInput {
-  chat_id: number;
-  title?: string;
-  pinned?: boolean;
-  group_id?: number | null;
-  parent_id?: number | null;
-}
-
 /** 引数から作る、変えたことの言葉（「名前を『…』に変えた」「固定した」「グループから外した」）。省いた項目は入れない */
 export function updateChatChanges(input: Record<string, unknown>): string[] {
   const changes: string[] = [];

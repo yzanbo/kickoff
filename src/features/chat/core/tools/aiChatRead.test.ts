@@ -1,10 +1,9 @@
-// チャットの AI が読むだけのツールの中身（同じプロジェクトのチャットの一覧・会話・使用枠。ほかのプロジェクトは読めない）
+// チャットの AI が読むだけのツールの中身（read.ts。同じプロジェクトのチャットの一覧・会話。ほかのプロジェクトは読めない）
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { PlanUsage } from "@shared/ai/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
-import { createAiChatReadTools, usageText } from "./aiChatRead";
+import { createAiChatReadTools } from "./read";
 import { UploadStore } from "@/features/attachments/core/uploads";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
@@ -87,7 +86,8 @@ test("read_chat: 添付のある発言は場所を後から読み、欠けた添
   const missing = { ...file, id: "00000000-0000-0000-0000-000000000000", name: "消えた.txt" };
   const event = ctx.store.events.add(ctx.other.id, { type: "user", text: "確認して", message_uuid: "u", attachments: [file, missing] });
   const outside = ctx.store.events.add(ctx.outside.id, { type: "user", text: "別", message_uuid: "v", attachments: [file] });
-  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals, uploads }, ctx.child.id);
+  const attachments = { locate: async (a: { id: string }) => (await uploads.resolve(a.id))?.path ?? null };
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals, attachments }, ctx.child.id);
   assert.match(tools.readChat({ chat_id: ctx.other.id }), new RegExp(`event_id に ${event.id}`));
   const result = JSON.parse(await tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: event.id }));
   assert.equal(result.attachments[0].path, (await uploads.resolve(file.id))?.path);
@@ -95,23 +95,4 @@ test("read_chat: 添付のある発言は場所を後から読み、欠けた添
   assert.doesNotMatch(JSON.stringify(result), /秘密の内容/);
   await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.outside.id, event_id: outside.id }), /このプロジェクトにありません/);
   await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
-});
-
-test("get_usage: 使った割合と残り・リセットの時刻（取れなければその理由）", async () => {
-  const usage: PlanUsage = {
-    provider: "claude",
-    provider_label: "Claude",
-    available: true,
-    plan: "Max",
-    five_hour: { key: "five_hour", label: "5 時間", utilization: 42.4, resets_at: "2026-11-13T15:00:00Z" },
-    seven_day: { key: "seven_day", label: "週", utilization: null, resets_at: null },
-    model_weekly: [],
-    fetched_at: "2026-11-13T12:00:00Z",
-  };
-  const text = usageText(usage);
-  assert.match(text, /5 時間: 42% 使用（残り 58%）・2026-11-13T15:00:00Z にリセット/);
-  assert.match(text, /週: まだ始まっていません/);
-  assert.match(usageText({ ...usage, available: false, error: "API キー" }), /取得できません（API キー）/);
-  const ctx = setup();
-  await assert.rejects(createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id).usage(), /使用枠を読む口がない/);
 });

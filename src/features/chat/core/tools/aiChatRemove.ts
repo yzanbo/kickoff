@@ -4,11 +4,11 @@
 // ただし、作業中なのがツールを呼んだチャット自身だけ（自分・自分の祖先を頼まれた）なら、その作業が終わってから行う（予約。送信待ちは止めておく）
 import type { ChatLive } from "@shared/chat/chatLive";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
-import type { RemoveChatInput } from "@shared/chat/aiChatRemove";
 import { errorMessage } from "@shared/foundation/errors";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
-import type { TrashService } from "@/features/trash/core/service";
+import type { TrashApi } from "@/features/trash/core/index";
+import { toolChat } from "./context";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 
 /** アーカイブか削除か */
@@ -27,7 +27,7 @@ export interface ChatRemoverDeps {
     onTurnEnded(fn: (chatId: number) => void): () => void;
     live(chatId: number): Pick<ChatLive, "phase">;
   };
-  trashBin: Pick<TrashService, "addRecord">;
+  trashBin: Pick<TrashApi, "addRecord">;
   /** 予約を、頼んだチャットの作業の後始末が済むのを待って確かめ直す間隔（テストで縮める） */
   retryMs?: number;
   /** 予約を確かめ直す時計（省けば本物） */
@@ -73,12 +73,9 @@ export class ChatRemover {
    */
   fromChat(chatId: number, action: RemoveAction, targetId: number): string {
     const { store, runner } = this.deps;
-    const self = store.chats.get(chatId);
-    if (!self) throw new Error("このチャットが見つかりません（消された可能性があります）");
-    const target = store.chats.get(targetId);
-    if (!target || target.project_id !== self.project_id) {
-      throw new Error(`チャット ID ${targetId} は、このプロジェクトにありません。list_project_chats・list_family_chats で ID を確かめてください`);
-    }
+    const { self: selfChat, chatInProject } = toolChat(store.chats, chatId);
+    const self = selfChat();
+    const target = chatInProject(self, targetId, "list_project_chats・list_family_chats で ID を確かめてください");
     const label = `チャット「${nameOf(target)}」（ID ${target.id}）`;
     if (action === "archive" && target.archived_at !== null) return `${label}は、もうアーカイブしてあります。`;
     const family = this.familyOf(action, target);
@@ -168,16 +165,3 @@ export class ChatRemover {
   }
 }
 
-/** アーカイブ・削除のツールの中身（できたら AI に返す文。できなければ理由の文で throw） */
-export interface AiChatRemoveTools {
-  archive(input: RemoveChatInput): string;
-  remove(input: RemoveChatInput): string;
-}
-
-/** chatId のチャットの AI に渡す、チャットをアーカイブする・消すツールの中身（どのチャットにも渡す） */
-export function createAiChatRemoveTools(remover: ChatRemover, chatId: number): AiChatRemoveTools {
-  return {
-    archive: ({ chat_id }) => remover.fromChat(chatId, "archive", chat_id),
-    remove: ({ chat_id }) => remover.fromChat(chatId, "delete", chat_id),
-  };
-}

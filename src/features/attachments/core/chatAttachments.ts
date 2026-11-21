@@ -10,6 +10,7 @@ import { withAttachmentNote, type UploadStore } from "./uploads";
 export function chatAttachmentsOf(uploads: UploadStore): ChatAttachments {
   return {
     dir: uploads.dir,
+    locate: async (attachment) => (await uploads.resolve(attachment.id))?.path ?? null,
     // ノートの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・ノートは書かない
     async promptNote(text, attachments, noteDir) {
       const files = [];

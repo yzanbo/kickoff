@@ -10,4 +10,6 @@ export interface ChatAttachments {
    * ファイル・ノート（写しと元のノートのパス。noteDir はプロジェクトのノートのフォルダ）・「AI に渡す」で取ったもの。見つからない添付は書かない
    */
   promptNote(text: string, attachments: Attachment[], noteDir: string | null): Promise<string>;
+  /** 添付のファイルの場所（見つからなければ null） */
+  locate(attachment: Attachment): Promise<string | null>;
 }

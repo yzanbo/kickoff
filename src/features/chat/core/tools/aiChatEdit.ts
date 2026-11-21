@@ -3,13 +3,41 @@
 // 名前・固定・グループは利用者がいつでも戻せるので、聞かずに変える（権限モード・Auto mode によらず承認カードを出さない）。親から外すのも聞かないが、
 // 戻せないので、ツールの説明で利用者に頼まれたときだけ使うよう伝える。
 // 家系の外のチャットは、同じプロジェクトなら名前だけ変えられる（別のチャットから【済】を付けるなど）。
-// 固定・グループ・親から外すは家系の中だけ。読み書きは店（store.chats・store.groups）を通し、変えたら店の知らせで画面に届く
-import type { UpdateChatInput } from "@shared/chat/aiChatEdit";
+// 固定・グループ・親から外すは家系の中だけ。読み書きは店（store.chats・store.groups）を通し、変えたら店の知らせで画面に届く。
+// ツールの定義（入力の形・説明・使い方）もここ（組は familyToolGroup。order 30）
+import { z } from "zod";
+import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { errorMessage } from "@shared/foundation/errors";
 import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import { familyOrder, familyRelation } from "@shared/chat/family";
 import { detachChat } from "@/features/childChats/core/detach";
+import { toolChat } from "./context";
+
+/** 名前・固定・グループを変えるツールの使い方（MCP の instructions として AI に渡す） */
+const FAMILY_INSTRUCTIONS = [
+  "list_family_chats は、このチャットと同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャット: 自分・親・祖父母・兄弟・子・孫など）の一覧（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧を返す。",
+  "update_chat は、同じ家系のチャットの名前（title）・固定（pinned）・グループ（group_id）を、利用者に聞かずに変える（利用者はいつでも戻せる）。名前（title）だけは、家系の外でも同じプロジェクトのチャットなら変えられる。chat_id は必ず書く（自分のチャットでも。自分の ID は指示に添えた文脈にある）。兄弟などの ID が分からなければ、先に list_family_chats（家系の外は list_project_chats）で確かめる。",
+  "省いた項目は変わらない。頼まれた項目だけを渡す。group_id: null はグループから外す。グループは作れず、選べるのは list_family_chats の groups だけ。子チャットはグループに入らない。家系の外のチャットは名前しか変えられない（固定・グループ・親から外すは断る）。",
+  "parent_id は子チャットを親から外す: null で親のないチャット（サイドバーの一覧・グループに並ぶチャット。group_id を一緒に渡せばそのグループへ）、自分の先祖（親の親より上）の ID でその子に上げる。ほかのチャットの下へは付け替えられない。外したら親の下へは戻せないので、利用者に「親から外して」「親のないチャットにして」などと頼まれたときだけ使う。作業中のチャットは外せない。",
+  "利用者が「タイトルに【済】を付けて」「このチャットを固定して」のように頼んだときに使う。頼まれていないのに名前などを変えない。",
+];
+
+/** update_chat の入力（省いた項目は変えない。group_id は null のときだけグループから外す） */
+const UPDATE_CHAT_INPUT = {
+  // 省いたら自分、にしない（書き忘れで黙って自分の名前が変わる）
+  chat_id: z.number().int().describe("変えるチャットの ID（必須。自分のチャットでも書く。分からなければ list_family_chats・list_project_chats で確かめる）"),
+  title: z.string().min(1).max(CHAT_TITLE_MAX).optional().describe("新しい名前（省くと変えない）"),
+  pinned: z.boolean().optional().describe("固定する（true）・外す（false）。省くと変えない"),
+  group_id: z.number().int().nullable().optional().describe("入れるグループの ID（list_family_chats の groups から）。null でグループから外す。省くと変えない"),
+  parent_id: z
+    .number()
+    .int()
+    .nullable()
+    .optional()
+    .describe("子チャットを親から外す: null で親のないチャットにする、自分の先祖の ID でその子に上げる。外したら戻せないので、利用者に頼まれたときだけ。省くと変えない"),
+};
+type UpdateChatInput = z.infer<z.ZodObject<typeof UPDATE_CHAT_INPUT>>;
 
 /** 名前・固定・グループを変えるツールの中身（AI に返す文。変えられなければ理由の文で throw） */
 export interface AiChatEditTools {
@@ -54,10 +82,7 @@ export function familyOf(store: Store, self: Chat) {
 
 /** 家系の外のチャットの名前を変える（同じプロジェクトのチャットの名前だけ。ほかの項目・ほかのプロジェクトは断る） */
 function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): string {
-  const target = store.chats.get(input.chat_id);
-  if (!target || target.project_id !== self.project_id) {
-    throw new Error(`チャット ID ${input.chat_id} は、このプロジェクトにありません。list_family_chats・list_project_chats で ID を確かめてください`);
-  }
+  const target = toolChat(store.chats, self.id).chatInProject(self, input.chat_id, "list_family_chats・list_project_chats で ID を確かめてください");
   if (input.pinned !== undefined || input.group_id !== undefined || input.parent_id !== undefined) {
     throw new Error(
       `チャット ID ${input.chat_id} は、このチャットの家系（いちばん上の親チャットから下にぶら下がるチャット）にありません。家系の外のチャットは名前（title）だけ変えられます（固定・グループ・親から外すは同じ家系のチャットだけ）`,
@@ -77,11 +102,7 @@ function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): 
  * （作業の途中で子チャットが増えた・消えたら次の呼び出しから効く）
  */
 export function createAiChatEditTools(store: Store, chatId: number, isBusy: (chatId: number) => boolean): AiChatEditTools {
-  const requireSelf = () => {
-    const chat = store.chats.get(chatId);
-    if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
-    return chat;
-  };
+  const requireSelf = toolChat(store.chats, chatId).self;
   const groupOf = (chat: Chat) => {
     const group = chat.group_id === null ? undefined : store.groups.get(chat.group_id);
     return group ? { id: group.id, name: group.name } : null;
@@ -167,6 +188,35 @@ export function createAiChatEditTools(store: Store, chatId: number, isBusy: (cha
       }
       const label = `チャット「${nameOf(title ?? target.title)}」（ID ${target.id}・${relationOf(target)}）`;
       return changes.length > 0 ? `${label}を変えました: ${changes.join("・")}。` : `${label}は、もともと頼まれた値だったので変えていません。`;
+    },
+  };
+}
+
+/** 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す） */
+export function familyToolGroup({ store, isBusy }: { store: Store; isBusy: (chatId: number) => boolean }): AiToolGroup {
+  return {
+    server: "kickoff_chat",
+    order: 30,
+    instructions: FAMILY_INSTRUCTIONS,
+    open: ({ chatId }) => {
+      const edit = createAiChatEditTools(store, chatId, isBusy);
+      return [
+        defineAiTool({
+          server: "kickoff_chat",
+          name: "list_family_chats",
+          description: "このチャットと同じ家系のチャット（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧",
+          input: {},
+          run: () => edit.listFamily(),
+        }),
+        defineAiTool({
+          server: "kickoff_chat",
+          name: "update_chat",
+          description:
+            "同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（家系の外でも同じプロジェクトなら名前だけ変えられる。聞かずに変える。省いた項目は変えない。親から外すのは利用者に頼まれたときだけ）",
+          input: UPDATE_CHAT_INPUT,
+          run: (args) => edit.update(args),
+        }),
+      ];
     },
   };
 }

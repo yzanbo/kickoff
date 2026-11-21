@@ -13,12 +13,6 @@ export interface OpenNoteInput {
   place?: OpenPlace;
 }
 
-/** open_chat の引数（place を省くと画面の設定の開き方。いちばん上の親チャットはチャットのパネルで開くので place は効かない） */
-export interface OpenChatInput {
-  chat_id: number;
-  place?: OpenPlace;
-}
-
 /** 引数の place の言葉（なければ null） */
 const placeLabel = (place: unknown): string | null => (OPEN_PLACES.includes(place as OpenPlace) ? OPEN_PLACE_LABELS[place as OpenPlace] : null);
 
@@ -65,12 +59,6 @@ export interface OpenDiffInput {
 export interface OpenSqlInput {
   sql: string;
   connection?: string;
-}
-
-/** add_draft の引数 */
-export interface AddDraftInput {
-  chat_id: number;
-  text: string;
 }
 
 /** 記録の行に出す文（「src/a.ts:12（別ウィンドウ）」） */

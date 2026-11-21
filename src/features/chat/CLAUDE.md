@@ -72,18 +72,17 @@
 - `restore_files` はファイルを分岐より先に戻す（`rewindChat` の JSDoc）。`rewindFiles` は dryRun で測ってから戻し、消去のあとなら前のセッション（`sessionAt`）で戻す。
 - 長いチャットの乗り換え（`switchAfterCompact`）は直近の区切りだけの新しいセッションに移り、`store.events.remapSession` で付け替える。失敗しても作業は止めない。
 
-## AI の操作ツールの中身（ai*.ts）
+## AI の操作ツールの中身（`core/tools/`）
 
 | ファイル | ツール（`kickoff_chat`） |
 |---|---|
-| `core/tools/aiChatEdit.ts`・`aiChatRead.ts`・`aiChatRemove.ts`・`aiOpen.ts` | 家系・読む・アーカイブと削除・開くと下書き |
-| `core/tools/aiProject.ts` | `add_snippet`・`move_note` |
-| `@/features/userView/core/aiUserView.ts` | `get_user_view` |
+| `aiChatEdit.ts`・`read.ts`・`remove.ts`・`open.ts` | 家系・読む・アーカイブと削除・開くと下書き |
+| `aiOpen.ts`・`aiProject.ts` | ノート・ファイル・差分・SQL を開く・`add_snippet`・`move_note`（移す前） |
 
 ほかの機能のツールは各機能の `core/` にあり、下の決まりはどれにも当てる。
 
-- 中身は `create…Tools(deps, chatId)` で作り、`chatTools.ts` が作業ごとに開く。1 回の作業の上限（`AI_CHATS_PER_TURN` など）も中で数える。
-- 相手（家系・プロジェクト・タブ）と設定・世代・深さは呼ぶたびに引き直す。ほかのプロジェクトは断る。
+- 組（`AiToolGroup`）は作業ごとに開き（並びは `chatTools.ts`）、1 回の作業の上限（`AI_CHATS_PER_TURN` など）も中で数える。
+- 相手と設定・世代・深さは呼ぶたびに引き直す（呼んだチャットは `context.ts` の `toolChat`）。ほかのプロジェクトは断る。
 - 承認を聞くのは `create_chat`（設定が `ask`）と、持っていく変更のある `move_workplace` だけ（ほかは戻せる・読むだけ。理由は各ファイルの頭）。
 - 自分を含む操作（自分のワークツリー・アーカイブ・作業場所）は予約して作業の終わりに行い、先に送信待ちを止める。予約はメモリだけ。
 - 先にすべて確かめてから変える。作業中の相手は断り、待たない。画面に頼むもの（`open_view`・`chat_draft`）は開けたかを待たない。

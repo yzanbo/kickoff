@@ -1,32 +1,28 @@
-// チャットの AI が、このプロジェクトのノート・同じ家系のチャット・作業場所のファイルと差分・SQL のタブを画面に開き、家系のチャットの入力欄に下書きを入れる
-// （kickoff_chat の open_note・open_chat・open_file・open_diff・open_sql・add_draft の中身。プロバイダーに依らない）。
+// チャットの AI が、このプロジェクトのノート・作業場所のファイルと差分・SQL のタブを画面に開く
+// （kickoff_chat の open_note・open_file・open_diff・open_sql の中身。プロバイダーに依らない。家系のチャットの open_chat・add_draft は open.ts）。
 // 開く・入れるだけで送る・流す・消すはしないので、聞かずに頼む（権限モード・Auto mode によらず承認カードを出さない）。コアは確かめてから SSE の
 // open_view・chat_draft で頼み、Mac のアプリのメインのウィンドウが、画面のいまの開き方（右の欄 / 別ウィンドウ）で開く（画面が開いたかは待たない）
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AddDraftInput, OpenChatInput, OpenDiffInput, OpenFileInput, OpenNoteInput, OpenSqlInput } from "@shared/chat/aiOpen";
+import type { OpenDiffInput, OpenFileInput, OpenNoteInput, OpenSqlInput } from "@shared/chat/aiOpen";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { OPEN_PLACE_LABELS, type OpenPlace } from "@shared/chat/openView";
-import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/features/chat/core/stores";
 import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/system/paths";
-import { familyOf, lineageOf } from "./aiChatEdit";
+import { lineageOf } from "./aiChatEdit";
 import { workdirOf } from "@/features/chat/core/workdir";
 
-/** ノート・家系のチャットを開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
+/** ノート・ファイル・差分・SQL を開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
 export interface AiOpenTools {
   openNote(input: OpenNoteInput): Promise<string>;
-  openChat(input: OpenChatInput): string;
   openFile(input: OpenFileInput): Promise<string>;
   openDiff(input: OpenDiffInput): string;
   openSql(input: OpenSqlInput): string;
-  addDraft(input: AddDraftInput): string;
 }
 
-/** 下書きの長さの上限（送る指示と同じ） */
-const DRAFT_MAX = 50_000;
 /** SQL の長さの上限 */
 const SQL_MAX = 100_000;
 
@@ -39,9 +35,6 @@ export interface AiOpenDeps {
   /** プロジェクトの DB の接続（database の店。なければ open_sql で選べる接続はない） */
   dbConnectionsOf?: (projectId: number) => { id: number; name: string; ai_access: string }[];
 }
-
-/** 文の中の名前（空なら「名前なし」） */
-const nameOf = (title: string) => title.trim() || "（名前なし）";
 
 /** 開く場所の言葉（省いたら設定の開き方） */
 const placeText = (place: OpenPlace | undefined, setting: string) => (place ? OPEN_PLACE_LABELS[place] : `設定の「${setting}」の場所`);
@@ -77,7 +70,7 @@ function workPathIn(dir: string, given: string): string {
 }
 
 /**
- * chatId のチャットの AI に渡す、ノート・家系のチャットなどを開く・下書きを入れるツールの中身。家系・ノート・接続は呼ぶたびに引き直す
+ * chatId のチャットの AI に渡す、ノート・ファイルなどを開くツールの中身。ノート・接続は呼ぶたびに引き直す
  */
 export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }: AiOpenDeps, chatId: number): AiOpenTools {
   const requireSelf = (): Chat => {
@@ -92,17 +85,6 @@ export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }
     if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
     return { self, project, dir: workdirOf(self, project) };
   };
-  /** 同じ家系のチャット（外なら理由の文で throw） */
-  const familyMember = (self: Chat, id: number, verb: string) => {
-    const { members, relationOf } = familyOf(store, self);
-    const target = members.find((c) => c.id === id);
-    if (!target) {
-      throw new Error(
-        `チャット ID ${id} は、このチャットの家系（いちばん上の親チャットから下にぶら下がるチャット）にありません。${verb}のは同じ家系のチャットだけです。list_family_chats で ID を確かめてください`,
-      );
-    }
-    return { target, label: `チャット「${nameOf(target.title)}」（ID ${target.id}・${relationOf(target)}）` };
-  };
   return {
     async openNote(input) {
       const self = requireSelf();
@@ -115,14 +97,6 @@ export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }
       if (!stat?.isFile()) throw new Error(`ノート ${rel} が見つかりません（ノートのフォルダ: ${dir}）`);
       publish({ type: "open_view", request: { kind: "note", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(store, self) } });
       return `ノート「${rel}」を${placeText(input.place, "チャットからノートを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
-    },
-    openChat(input) {
-      const self = requireSelf();
-      const { target, label } = familyMember(self, input.chat_id, "開ける");
-      publish({ type: "open_view", request: { kind: "chat", place: input.place ?? null, lineage: lineageOf(store, target) } });
-      // いちばん上の親チャットは右の欄・別ウィンドウに置けないので、チャットのパネルで開く
-      if (target.parent_chat_id === null) return `${label}を、チャットのパネルで開くよう画面に頼みました（いちばん上の親チャットは右の欄・別ウィンドウには開きません）。`;
-      return `${label}を${placeText(input.place, "子チャットを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
     },
     async openFile(input) {
       const { self, project, dir } = workplace();
@@ -156,18 +130,6 @@ export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }
       }
       publish({ type: "open_view", request: { kind: "sql", project_id: self.project_id, connection_id: hit.id, sql, lineage: lineageOf(store, self) } });
       return `接続「${hit.name}」の新しい SQL のタブに SQL を入れて開くよう、画面に頼みました（流していません。流すのは利用者です）。`;
-    },
-    addDraft(input) {
-      const self = requireSelf();
-      const text = input.text.trim();
-      if (!text) throw new Error("text が空です");
-      if (text.length > DRAFT_MAX) throw new Error(`text は ${DRAFT_MAX} 文字までです`);
-      const { target, label } = familyMember(self, input.chat_id, "下書きを入れられる");
-      if (target.archived_at) throw new Error(`${label}はアーカイブ済みなので、下書きを入れられません`);
-      // 親チャットに入れるなら「子チャットから渡した」の札も付ける（画面の「親チャットに渡す」と同じ）
-      const from = target.id === self.parent_chat_id ? { chat_id: self.id, title: self.title.trim() || UNTITLED_CHAT_TITLE } : null;
-      publish({ type: "chat_draft", request: { text, from, lineage: lineageOf(store, target) } });
-      return `${label}の入力欄に下書きを入れるよう、画面に頼みました（書きかけがあれば、その後ろに足します。送るのは利用者です）。`;
     },
   };
 }

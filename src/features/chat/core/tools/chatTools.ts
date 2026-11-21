@@ -1,13 +1,16 @@
-// kickoff_chat の組（チャットを AI が操作するツール）。ツールの定義は各機能の chat…Tools.ts、ここは組の並び（order）と中身の作り方、作る・名前を変えるツール。
-// 通知の notify_user（order 100）のように、機能が CoreFeature.aiTools で出す組もレジストリが同じ並びに入れる
+// kickoff_chat の組（チャットを AI が操作するツール）の並び（order）。chat のツールは定義ごと家系（aiChatEdit.ts）・開く（open.ts）・読む（read.ts）・消す（remove.ts）、
+// まだ持ち主の機能へ移していないもの（作る・ノート・ターミナル・図・ワークツリー・利用者の画面・作業場所）は各機能の chat…Tools.ts。
+// 通知の notify_user（order 100）・使用枠の get_usage（ai。order 50）のように、機能が CoreFeature.aiTools で出す組もレジストリが同じ並びに入れる（同じ order ならここの組が先）
 import { z } from "zod";
 import { defineAiTool, type AiToolDef, type AiToolGroup, type AiTurn } from "@/foundation/core/aiTools/tool";
 import { AI_CHAT_RELATION_LABELS, AI_CHAT_RELATIONS, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { PROVIDER_IDS, PROVIDER_LABELS } from "@shared/settings/types";
 import type { ExecutionDeps } from "@/features/chat/core/turn";
-import { createAiChatEditTools, type AiChatEditTools } from "./aiChatEdit";
-import { createAiChatReadTools } from "./aiChatRead";
+import { familyToolGroup } from "./aiChatEdit";
+import { readToolGroup } from "./read";
+import { removeToolGroup } from "./remove";
+import { chatOpenTools } from "./open";
 import { canCreateChat, createAiCreateChatTools, type AiCreateChatRequest, type AiCreateChatTools } from "@/features/childChats/core/aiCreateChat";
 import { createAiOpenTools } from "./aiOpen";
 import { createAiProjectTools } from "./aiProject";
@@ -15,16 +18,13 @@ import { createAiTerminalTools } from "@/features/terminal/core/aiTerminal";
 import { createAiVisualTools } from "@/features/visuals/core/aiVisual";
 import { createAiWorktreeTools } from "@/features/worktrees/core/aiWorktree";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
-import { createAiChatRemoveTools } from "./aiChatRemove";
 import { createAiWorkplaceTools } from "@/features/workplaceMove/core/aiWorkplace";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools";
-import { READ_INSTRUCTIONS, readTools } from "./chatReadTools";
 import { TERMINAL_INSTRUCTIONS, terminalTools } from "@/features/terminal/core/chatTerminalTools";
 import { VISUAL_INSTRUCTIONS, visualTools } from "@/features/visuals/core/chatVisualTools";
 import { WORKTREE_INSTRUCTIONS, worktreeTools } from "@/features/worktrees/core/chatWorktreeTools";
 import { USER_VIEW_INSTRUCTIONS, userViewTools } from "@/features/userView/core/chatUserViewTools";
-import { REMOVE_INSTRUCTIONS, removeTools } from "./chatRemoveTools";
 import { WORKPLACE_INSTRUCTIONS, workplaceTools } from "@/features/workplaceMove/core/chatWorkplaceTools";
 import { DIAGNOSTIC_INSTRUCTIONS, diagnosticTools } from "@/features/guard/core/chatDiagnosticTools";
 import type { AiSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
@@ -41,15 +41,6 @@ const CREATE_INSTRUCTIONS = [
   "inherit は、このチャットの会話を引き継ぐか（既定は child が引き継ぐ、sibling・root は引き継がない）。引き継げるのは、いまの作業より前に終わったところまで。引き継がないときや、いまの作業で分かったこと・頼む理由は text に書く。",
   "provider は、利用者が別の AI（Codex・Copilot・Cursor など）で頼んだときだけ渡す。違う AI には会話を引き継げないので、経緯と頼む理由は text に書く。",
   "利用者の設定によっては、作る前に利用者に承認を聞く。断られたら、同じ依頼で何度も頼まない。root で作ったチャットはこのチャットの家系の外なので、作ったあと open_chat では開けず、update_chat では名前だけ変えられる。",
-];
-
-/** 名前・固定・グループを変えるツールの使い方 */
-const EDIT_INSTRUCTIONS = [
-  "list_family_chats は、このチャットと同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャット: 自分・親・祖父母・兄弟・子・孫など）の一覧（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧を返す。",
-  "update_chat は、同じ家系のチャットの名前（title）・固定（pinned）・グループ（group_id）を、利用者に聞かずに変える（利用者はいつでも戻せる）。名前（title）だけは、家系の外でも同じプロジェクトのチャットなら変えられる。chat_id は必ず書く（自分のチャットでも。自分の ID は指示に添えた文脈にある）。兄弟などの ID が分からなければ、先に list_family_chats（家系の外は list_project_chats）で確かめる。",
-  "省いた項目は変わらない。頼まれた項目だけを渡す。group_id: null はグループから外す。グループは作れず、選べるのは list_family_chats の groups だけ。子チャットはグループに入らない。家系の外のチャットは名前しか変えられない（固定・グループ・親から外すは断る）。",
-  "parent_id は子チャットを親から外す: null で親のないチャット（サイドバーの一覧・グループに並ぶチャット。group_id を一緒に渡せばそのグループへ）、自分の先祖（親の親より上）の ID でその子に上げる。ほかのチャットの下へは付け替えられない。外したら親の下へは戻せないので、利用者に「親から外して」「親のないチャットにして」などと頼まれたときだけ使う。作業中のチャットは外せない。",
-  "利用者が「タイトルに【済】を付けて」「このチャットを固定して」のように頼んだときに使う。頼まれていないのに名前などを変えない。",
 ];
 
 /** 承認カードの見出しと説明（何を作るか・名前・作業場所・引き継ぐか） */
@@ -85,39 +76,6 @@ function createChatTool(createChat: AiCreateChatTools): AiToolDef {
   });
 }
 
-/** 家系のチャットの一覧と、名前・固定・グループを変えるツール（聞かずに変える） */
-function chatEditTools(chatEdit: AiChatEditTools): AiToolDef[] {
-  return [
-    defineAiTool({
-      server: "kickoff_chat",
-      name: "list_family_chats",
-      description: "このチャットと同じ家系のチャット（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧",
-      input: {},
-      run: () => chatEdit.listFamily(),
-    }),
-    defineAiTool({
-      server: "kickoff_chat",
-      name: "update_chat",
-      description:
-        "同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（家系の外でも同じプロジェクトなら名前だけ変えられる。聞かずに変える。省いた項目は変えない。親から外すのは利用者に頼まれたときだけ）",
-      input: {
-        // 省いたら自分、にしない（書き忘れで黙って自分の名前が変わる）
-        chat_id: z.number().int().describe("変えるチャットの ID（必須。自分のチャットでも書く。分からなければ list_family_chats・list_project_chats で確かめる）"),
-        title: z.string().min(1).max(CHAT_TITLE_MAX).optional().describe("新しい名前（省くと変えない）"),
-        pinned: z.boolean().optional().describe("固定する（true）・外す（false）。省くと変えない"),
-        group_id: z.number().int().nullable().optional().describe("入れるグループの ID（list_family_chats の groups から）。null でグループから外す。省くと変えない"),
-        parent_id: z
-          .number()
-          .int()
-          .nullable()
-          .optional()
-          .describe("子チャットを親から外す: null で親のないチャットにする、自分の先祖の ID でその子に上げる。外したら戻せないので、利用者に頼まれたときだけ。省くと変えない"),
-      },
-      run: (args) => chatEdit.update(args),
-    }),
-  ];
-}
-
 /** kickoff_chat の 1 つの組（open は作業ごとに中身を作り、出さないなら null） */
 const chatGroup = (order: number, instructions: readonly string[], open: (turn: AiTurn) => AiToolDef[] | null): AiToolGroup => ({ server: "kickoff_chat", order, instructions, open });
 
@@ -137,15 +95,16 @@ export function chatToolGroups(deps: ExecutionDeps, diagnostics: AiSandboxDiagno
       return [createChatTool(createAiCreateChatTools({ store, startChat: deps.startChat, worktreeEnvs: deps.worktreeEnvs }, chatId))];
     }),
     // 同じ家系のチャットの名前・固定・グループを変える（孫チャット・子チャットを作らせない設定のときも出す）
-    chatGroup(30, EDIT_INSTRUCTIONS, ({ chatId }) => chatEditTools(createAiChatEditTools(store, chatId, isBusy))),
+    familyToolGroup({ store, isBusy }),
     // このプロジェクトのノート・同じ家系のチャットを画面に開く（画面に頼む口（バス）があるときだけ）
     chatGroup(40, OPEN_INSTRUCTIONS, ({ chatId }) => {
       const { bus, noteDirOf, databases } = deps;
       if (!bus) return null;
-      return openTools(createAiOpenTools({ store, publish: (e) => bus.publish(e), noteDirOf, dbConnectionsOf: (id) => databases?.stores.dbConnections.list(id) ?? [] }, chatId));
+      const publish = (e: Parameters<typeof bus.publish>[0]) => bus.publish(e);
+      return openTools(createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf: (id) => databases?.stores.dbConnections.list(id) ?? [] }, chatId), chatOpenTools({ store, publish }, chatId));
     }),
-    // 同じプロジェクトのチャットの一覧・会話と使用枠を読む
-    chatGroup(50, READ_INSTRUCTIONS, ({ chatId }) => readTools(createAiChatReadTools({ store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chatId))),
+    // 同じプロジェクトのチャットの一覧・会話を読む（使用枠の get_usage は ai の組）
+    readToolGroup({ store, approvals: deps.approvals, attachments: deps.attachments }),
     // このプロジェクトの定型文に足す・ノートの名前を変える／移す
     chatGroup(60, PROJECT_INSTRUCTIONS, ({ chatId }) => projectTools(createAiProjectTools({ store, notes: deps.notes }, chatId))),
     // このプロジェクトの内蔵ターミナルの出力を読む（メインプロセスが口を渡したときだけ）
@@ -157,7 +116,7 @@ export function chatToolGroups(deps: ExecutionDeps, diagnostics: AiSandboxDiagno
     // 利用者が見ているものを読む（画面の知らせを覚える所があるときだけ）
     chatGroup(110, USER_VIEW_INSTRUCTIONS, ({ chatId }) => (deps.userViews ? userViewTools(createAiUserViewTools({ store, userViews: deps.userViews }, chatId)) : null)),
     // チャットをアーカイブする・消す（同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
-    chatGroup(120, REMOVE_INSTRUCTIONS, ({ chatId }) => (deps.chatRemover ? removeTools(createAiChatRemoveTools(deps.chatRemover, chatId)) : null)),
+    removeToolGroup(() => deps.chatRemover),
     // 自分のチャットの作業場所を移す予約・取り消し（移せないチャットからは理由の文で断る。Runner が予約の口を渡したときだけ）
     chatGroup(130, WORKPLACE_INSTRUCTIONS, ({ chatId }) => {
       if (!deps.workplaceMoves) return null;
