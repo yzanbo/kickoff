@@ -13,7 +13,7 @@ import { childChatTurnParts, createChatToolGroup } from "./tools";
 export { chatDetachPort } from "./detach";
 
 export interface ChildChatsDeps {
-  chat: Pick<ChatApi, "store" | "runner" | "addTurnContributor" | "provideDetach">;
+  chat: Pick<ChatApi, "store" | "runner" | "addTurnContributor" | "provideDetach" | "chatParam">;
   ai: Pick<AiApi, "providers">;
   /** 添付の置き場（サブエージェントについて聞くとき、その記録を添付にする） */
   uploads: UploadStore;
@@ -45,18 +45,16 @@ export function createChildChats(deps: ChildChatsDeps): CoreFeature<ChildChatsAp
     api: { onForked: (fn) => void forked.push(fn) },
     aiTools: [createChatToolGroup({ store, startChat, workplace: deps.workplace })],
     routes: [
-      {
-        legacy: (app) =>
-          childChatRoutes(app, {
-            store,
-            runner,
-            providers,
-            uploads: deps.uploads,
-            forked: async (from, to) => {
-              for (const fn of forked) await fn(from, to);
-            },
-          }),
-      },
+      childChatRoutes({
+        store,
+        runner,
+        providers,
+        uploads: deps.uploads,
+        chatParam: deps.chat.chatParam,
+        forked: async (from, to) => {
+          for (const fn of forked) await fn(from, to);
+        },
+      }),
     ],
   };
 }

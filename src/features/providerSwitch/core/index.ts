@@ -22,7 +22,7 @@ export function providerSwitchPort(store: SwitchStore, uploads: UploadStore): Pr
 }
 
 export interface ProviderSwitchDeps {
-  chat: Pick<ChatApi, "addTurnContributor" | "provideProviderSwitch" | "store" | "runner">;
+  chat: Pick<ChatApi, "addTurnContributor" | "provideProviderSwitch" | "store" | "runner" | "chatParam">;
   uploads: UploadStore;
   /** 引き継ぎの店と chat の口（組み立てが chat の前に createProviderHandoffs で作ったもの） */
   providerHandoffs: ReturnType<typeof createProviderHandoffs>;
@@ -36,5 +36,5 @@ export function createProviderSwitch(k: Kernel, deps: ProviderSwitchDeps): CoreF
   const store: SwitchStore = { ...chat, ...handoffStores, providerSwitch: createProviderSwitchStore(k.db, (e) => k.bus.publish(e), { ...chat, ...handoffStores }) };
   deps.chat.addTurnContributor(providerHandoffTurnParts({ store, uploads: deps.uploads }));
   deps.chat.provideProviderSwitch(providerSwitchPort(store, deps.uploads));
-  return { name: "providerSwitch", api: {}, routes: [{ legacy: (app) => providerSwitchRoutes(app, { store, runner }) }] };
+  return { name: "providerSwitch", api: {}, routes: [providerSwitchRoutes({ store, runner, chatParam: deps.chat.chatParam })] };
 }

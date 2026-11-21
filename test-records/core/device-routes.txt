@@ -1,8 +1,8 @@
+DELETE /api/chats/:chatId/workplace-move device
 DELETE /api/chats/:id/after-compact/:messageId device
 DELETE /api/chats/:id/queue device
 DELETE /api/chats/:id/queue/:queueId device
 DELETE /api/chats/:id/reconnect device
-DELETE /api/chats/:id/workplace-move device
 DELETE /api/projects/:id/note device
 DELETE /api/terminals/:key device
 GET /api/approvals device
@@ -31,12 +31,13 @@ PATCH /api/chats/:id device
 PATCH /api/chats/:id/after-compact/:messageId device
 PATCH /api/chats/:id/queue/:queueId device
 POST /api/approvals/:id device
+POST /api/chats/:chatId/children device
+POST /api/chats/:chatId/handoff device
+POST /api/chats/:chatId/subagents/:agentId/children device
 POST /api/chats/:id/background/:taskId/stop device
 POST /api/chats/:id/cancel device
-POST /api/chats/:id/children device
 POST /api/chats/:id/clear device
 POST /api/chats/:id/compact device
-POST /api/chats/:id/handoff device
 POST /api/chats/:id/messages device
 POST /api/chats/:id/queue device
 POST /api/chats/:id/queue/:queueId/move device
@@ -48,7 +49,6 @@ POST /api/chats/:id/queue/send device
 POST /api/chats/:id/queue/send-all device
 POST /api/chats/:id/queue/send-in-order device
 POST /api/chats/:id/seen deviceRead
-POST /api/chats/:id/subagents/:agentId/children device
 POST /api/chats/:id/tell device
 POST /api/chats/:id/unseen deviceRead
 POST /api/projects/:id/chats device

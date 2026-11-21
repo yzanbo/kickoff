@@ -2,6 +2,7 @@
 import type { Context } from "hono";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { callerOf } from "@/foundation/core/http/caller";
+import { idParam, type Param } from "@/foundation/core/http/implement";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { Kernel } from "@/foundation/core/kernel";
@@ -30,6 +31,7 @@ import { sessionRoutes } from "./routes/sessions";
 import { turnRoutes } from "./routes/turns";
 import { databaseStats } from "./db/stats";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
+import type { Chat } from "@shared/chat/types";
 import { createChatStores, type Store } from "./stores";
 import { descendantsOf } from "./family";
 import type { GroupsApi } from "@/features/groups/core/index";
@@ -109,6 +111,8 @@ export interface ChatApi {
   onUserSend(fn: (chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void): void;
   /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
   onChatsPurged(fn: (chatIds: number[]) => void | Promise<void>): void;
+  /** ルートの :chatId の引き当て（番号でなければ 400・なければ 404「チャットが見つかりません」。ゴミ箱のチャットは見えない） */
+  chatParam: Param<Chat>;
   /** チャットの名前をまとめて引く（ゴミ箱のチャットも。もうないチャットは入れない） */
   titlesOf(ids: readonly number[]): Map<number, string>;
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
@@ -203,6 +207,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       onUserSend: (fn) => void sendHooks.push(fn),
       onChatsPurged: (fn) => void purged.push(fn),
       titlesOf,
+      chatParam: idParam((id) => store.chats.get(id), "チャットが見つかりません"),
       stats: () => databaseStats(k.db, k.db.location()),
     },
     routes: [

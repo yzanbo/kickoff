@@ -7,7 +7,7 @@ import { deviceRoutes } from "@/foundation/core/http/deviceAccess";
  * 取り決めで意味のある名前にしたパスの引数の、前の名前（Hono のパターンの名前だけで URL は変わらないので、記録は前の名前で書く）。
  * 乗せ替えで引数の名前を付け替えたら、ここに 1 行足す（足さずに名前が変わると記録が落ちる）
  */
-const RENAMED_PARAMS: Readonly<Record<string, string>> = { snippetId: "id" };
+const RENAMED_PARAMS: Readonly<Record<string, string>> = { snippetId: "id", chatId: "id", projectId: "id" };
 
 const recorded = (path: string) => path.replace(/:([A-Za-z]+)/g, (whole, name: string) => (RENAMED_PARAMS[name] ? `:${RENAMED_PARAMS[name]}` : whole));
 

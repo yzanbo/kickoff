@@ -14,7 +14,7 @@ import { workplaceMoveTurnParts, workplaceToolGroup } from "./tools";
 export type { RunningTerminalsPort } from "./target";
 
 export interface WorkplaceMoveDeps {
-  chat: Pick<ChatApi, "store" | "runner" | "addTurnContributor" | "sessionTrash">;
+  chat: Pick<ChatApi, "store" | "runner" | "addTurnContributor" | "sessionTrash" | "chatParam">;
   ai: Pick<AiApi, "providers">;
   /** プロジェクトの本体のフォルダを変えたら、中のチャットの作業場所を移す */
   projects: Pick<ProjectsApi, "afterRepoMove">;
@@ -57,6 +57,6 @@ export function createWorkplaceMove(k: Kernel, deps: WorkplaceMoveDeps): CoreFea
     name: "workplaceMove",
     api: { move, provideRunningTerminals: (port) => void (running = port) },
     aiTools: [workplaceToolGroup({ store, reservations, isBusy: (chatId) => runner.isBusy(chatId), terminals })],
-    routes: [{ legacy: (app) => workplaceMoveRoutes(app, { store, runner, move, terminals, workplace }) }],
+    routes: [workplaceMoveRoutes({ store, runner, move, terminals, workplace, chatParam: deps.chat.chatParam })],
   };
 }

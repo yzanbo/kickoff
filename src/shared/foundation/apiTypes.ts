@@ -266,7 +266,7 @@ export interface NoteAiPlanBody {
 
 /** 子チャットで聞く（POST /api/chats/:id/children）。inherit なら親の会話を引き継ぐ。quote は親の会話から選んだ文、event_id は聞いた位置の記録 */
 export interface ChildChatBody {
-  text: string;
+  text?: string;
   quote?: string | null;
   inherit?: boolean;
   event_id?: number | null;
@@ -279,7 +279,7 @@ export interface ChildChatBody {
 
 /** サブエージェントに子チャットで聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */
 export interface SubagentChildBody {
-  text: string;
+  text?: string;
   options?: ChatOptionsPatch;
   attachments?: Attachment[];
 }
