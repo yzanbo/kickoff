@@ -9,6 +9,7 @@ import { createAgentSessionStore } from "./db/agentSessions";
 import { createChatProviderHandoffStore } from "./db/chatProviderHandoffs";
 import { createChatProviderSessionStore } from "./db/chatProviderSessions";
 import { createChatStore } from "./db/chats";
+import { readSubagentEvents } from "./db/subagentEvents";
 import { createEventStore } from "./db/events";
 import { createLogRevisions } from "./db/logRevisions";
 import { createQueueStore } from "./db/queues";
@@ -21,7 +22,7 @@ export function createChatStores(db: DatabaseSync, onChange: Notify, settings: P
   const chats = createChatStore(db, onChange, logRevisions, settings.get);
   const stores = {
     chats,
-    events: createEventStore(db, onChange, chats.get, logRevisions),
+    events: { ...createEventStore(db, onChange, chats.get, logRevisions), forSubagents: (chatId: number) => readSubagentEvents(db, chatId) },
     queues: createQueueStore(db),
     chatProviderSessions: createChatProviderSessionStore(db),
     chatProviderHandoffs: createChatProviderHandoffStore(db),

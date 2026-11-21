@@ -4,6 +4,7 @@ import { ChatQueue, type QueuePersistence } from "./queue";
 import { QueueEdits } from "./queueEdits";
 import { createRecoveryState, type RecoveryState } from "@/features/chat/core/run/machine/recoveryState";
 import type { Compaction, TurnKind } from "@/features/chat/core/run/machine/types";
+import { marksFrom, type TurnMarks } from "@/features/chat/core/run/machine/marks";
 import type { ChatLive, QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { emptyNext, liveOf, type NextTurn, type TurnPatch, type TurnState } from "./turnState";
 import type { QueuedMessage } from "@shared/chat/types";
@@ -37,10 +38,7 @@ interface LiveFields {
 export class ChatRuntime {
   /** 動かしている作業（作業中でなければ null） */
   turn: TurnState | null = null;
-  /**
-   * 送る準備をしている（send で作業中かを確かめてから、指示を組み立てて動かし始めるまで）。作業中として数える。
-   * 組み立ての間（await）に別の送信（送信待ちの自動送信と「いま」など）が割り込むと、同じチャットを 2 つ同時に動かし、片方の指示が会話から消えていた
-   */
+  /** 送る準備をしている（作業中かを確かめてから動かし始めるまで。作業中として数え、組み立ての間に別の送信が割り込んで同じチャットを 2 つ動かさない） */
   preparing = false;
   /** AI の交代の準備中。送信待ちを取り出したり「いま」を預けたりしない。 */
   switchingProvider = false;
@@ -49,8 +47,8 @@ export class ChatRuntime {
    * 次の実行の文脈か、次に伝える発言の頭に添えて外す。保存しない）
    */
   pendingNote: string | null = null;
-  /** 前の圧縮（またはコンテキストの消去）のあとで、もう圧縮前指示を送った（次の圧縮まで、自動の圧縮の前にもう足さない。保存しない） */
-  preCompactSent = false;
+  /** 記録から導く印（記録を足すたびに recordEvent が進める。もう圧縮前指示を送ったかは preCompactSent(marks)） */
+  marks: TurnMarks;
   /** AI の書き込み先の守りの承認カードで「このチャットでは許可」を選んだファイル（実体のパス。作業をまたいで持ち、保存しない = アプリを終えたら聞き直す） */
   readonly writeAllowed = new Set<string>();
   /** 預かった指示を送っている途中で、作業が送れない終わり方（通信の切断・使用枠の上限・アプリの終了）をした（送るのをやめて、残りを置く） */
@@ -72,8 +70,9 @@ export class ChatRuntime {
   constructor(
     readonly chatId: number,
     private readonly onChange: () => void,
-    opts: { persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onAfterCompactEditsChanged?: () => void; onCompactEnded?: () => void },
+    opts: { marks: TurnMarks; persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onAfterCompactEditsChanged?: () => void; onCompactEnded?: () => void },
   ) {
+    this.marks = opts.marks;
     this.onCompactEnded = opts.onCompactEnded ?? (() => {});
     this.queue = new ChatQueue(chatId, onChange, opts.persistence);
     this.edits = new QueueEdits(opts.onEditsChanged, opts.editTtlMs);
@@ -91,7 +90,7 @@ export class ChatRuntime {
   }
 
   /** いまの作業の印（作業していなければ、次の作業に持ち越す印） */
-  private get marks(): { closed: boolean; stopRequested: boolean; compaction: Compaction } {
+  private get flags(): { closed: boolean; stopRequested: boolean; compaction: Compaction } {
     const { turn } = this;
     return turn ? { closed: turn.tell === "closed", stopRequested: turn.stopRequested, compaction: turn.compaction } : this.next;
   }
@@ -104,18 +103,18 @@ export class ChatRuntime {
    * 預かった指示を書き直している間も（その指示より先に入らないように）、いまの作業に足せなくなったあと（closed。先に預かった指示より先に入らないように）も預かる
    */
   get holdsTells(): boolean {
-    const { closed, compaction } = this.marks;
+    const { closed, compaction } = this.flags;
     return this.compactPhase || compaction.done || this.fields.deliveringAfterCompact || this.editingAfterCompact || closed || this.fields.inheriting;
   }
 
   /** いまの作業に「いま」を足せなくなったか（作業の終わりまで預かる） */
   get tellsClosed(): boolean {
-    return this.marks.closed;
+    return this.flags.closed;
   }
 
   /** いまの作業（なければ次の作業）の圧縮の様子 */
   get compaction(): Compaction {
-    return this.marks.compaction;
+    return this.flags.compaction;
   }
 
   /** 預かった指示のどれかを、画面で書き直しているか（書き直しが終わるまで、その指示から後ろは送らない） */
@@ -125,7 +124,7 @@ export class ChatRuntime {
 
   /** 圧縮中か、圧縮前指示を送ってから圧縮が終わるまでか（外れたら、圧縮後指示を伝える） */
   get compactPhase(): boolean {
-    const { compaction } = this.marks;
+    const { compaction } = this.flags;
     return compaction.running !== null || compaction.awaiting;
   }
 
@@ -176,7 +175,6 @@ export class ChatRuntime {
    * 手で圧縮する実行（compactRun）の終わりまでは待つ間のままにする（Runner が実行の終わりで外し、圧縮後指示から送る）
    */
   compacted(post: QueuedMessage | null, compactRun: boolean) {
-    this.preCompactSent = false;
     this.apply(() => {
       this.fields = { ...this.fields, afterCompact: [...(post ? [post] : []), ...this.fields.afterCompact] };
       const turn = this.turn;
@@ -252,6 +250,7 @@ export class ChatRuntimes {
     let runtime = this.runtimes.get(chatId);
     if (!runtime) {
       runtime = new ChatRuntime(chatId, () => this.publish(chatId), {
+        marks: marksFrom(this.deps.store.events, chatId),
         persistence: this.deps.store.queues,
         editTtlMs: this.deps.editTtlMs,
         onEditsChanged: () => this.deps.onEditsChanged(chatId),

@@ -87,7 +87,7 @@ export function reconnectRule({ store }: { store: Store }): RecoveryRule {
  */
 function agentsToResume(store: Store, chatId: number, state: RecoveryState): StoppedAgent[] {
   if (state.agents.size === 0) return [];
-  const halted = new Set(networkStoppedSubagents(store.events.list(chatId), 0).map((s) => s.agentId));
+  const halted = new Set(networkStoppedSubagents(store.events.forSubagents(chatId), 0).map((s) => s.agentId));
   return [...state.agents].filter(([agentId]) => halted.has(agentId)).map(([agentId, description]) => ({ agentId, description }));
 }
 

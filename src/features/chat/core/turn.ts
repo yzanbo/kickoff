@@ -51,6 +51,8 @@ import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 import { providerCan } from "@shared/ai/providers";
+import { recordEvent } from "@/features/chat/core/run/record";
+import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -211,7 +213,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, prompt, promptId, compact ? null : takePendingNote(runtime)),
         model,
         compact: compact || prompt.trim() === "/compact", // 手で頼んだ圧縮（送信待ちの圧縮の行・チャット欄に書いた /compact）
-        preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
+        preCompact: autoPreCompactParams(preCompactText, chat, preCompactSent(runtime.marks)),
         env,
         auth,
       };
@@ -246,12 +248,12 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         // 「再開要求の段階で履歴がない」と確定した場合は、まだ利用者の指示は送られていない。
         if (!store.providerSwitch.markSessionMissing(chatId, handoff.eventId, chat.provider, chat.session_id)) throw new Error("AI のセッション状態が変わったため再開を中止しました");
         handoffClaimed = false;
-        store.events.add(chatId, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
+        recordEvent(store, runtime, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
         if (!deps.uploads) throw new Error("添付の保存先がないため、会話の引き継ぎを準備できません");
         // 再準備と送信中の印を同時に保存する。終了が割り込んでも、元の指示を飛ばして次へ進まない。
         const retry = await retryProviderHandoffPreparation({ store, uploads: deps.uploads, requireIdle: () => {} }, chatId, true);
         handoffClaimed = true;
-        if (retry.warning) store.events.add(chatId, { type: "notice", message: retry.warning });
+        if (retry.warning) recordEvent(store, runtime, { type: "notice", message: retry.warning });
         if (signal.aborted) throw new Error("新しいセッションの準備中に中断しました");
         const prepared = store.chatProviderHandoffs.get(chatId);
         if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
@@ -264,7 +266,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     }
     const network = result.status === "failed" && Boolean(result.network);
     await rememberEndBranch();
-    applyResult(store, chatId, result, compact, since, network);
+    applyResult(store, runtime, result, compact, since, network);
     if (handoff) {
       if (handoffClaimed && result.status === "completed" && result.sessionId) {
         const last = store.events.recent(chatId, 1)[0];
@@ -287,7 +289,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     }
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
     if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };
-    const stoppedAgents = networkStoppedSubagents(store.events.list(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
+    const stoppedAgents = networkStoppedSubagents(store.events.forSubagents(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
     return { status: result.status, network, stoppedAgents };
   } catch (e) {
     const message = errorMessage(e);
@@ -298,7 +300,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     }
     await rememberEndBranch();
     store.chats.update(chatId, { status: "failed", error: message, unread: true }); // 失敗も、見るまでは未読にする
-    store.events.add(chatId, { type: "error", message });
+    recordEvent(store, runtime, { type: "error", message });
     return { status: "failed", network: false };
   }
 }
@@ -403,15 +405,13 @@ function callbacksFor(
       bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
     },
     retry: (retry) => runtime.patchTurn({ retry }),
-    // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない）。
-    // 圧縮中の「いま」は預かり、圧縮の実行の終わりで Runner が送る
+    // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない。「いま」は実行の終わりで送る）
     control: (control) => runtime.patchTurn({ control: compact ? null : control }),
     background: (background) => runtime.patchTurn({ background }),
-    // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す
-    // （下の帯の札は使用状況の知らせで赤くなる）
+    // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す（下の帯の札も赤くなる）
     spending: (note) => {
       const message = SPENDING_NOTICES[chat.provider];
-      if (usage?.noteSpending(chat.provider, note) && message) store.events.add(chatId, { type: "notice", message });
+      if (usage?.noteSpending(chat.provider, note) && message) recordEvent(store, runtime, { type: "notice", message });
     },
     drawingVisual: (drawingVisual) => runtime.patchTurn({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
@@ -422,10 +422,9 @@ function callbacksFor(
     context: (tokens) => {
       if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
     },
-    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
-    // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
+    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は too_few_groups なども含み Claude Code も知らせない。本当にあふれたら作業が失敗として残る）
     compactFailed: (reason) => {
-      if (compactTrigger === "manual") store.events.add(chatId, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
+      if (compactTrigger === "manual") recordEvent(store, runtime, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
     },
     stream: (text) => {
       bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
@@ -433,21 +432,20 @@ function callbacksFor(
     // 自動の圧縮の前に圧縮前指示を足した: 札付きの自分の発言として残す（AI には前置きを付けて送っている）
     preCompactSent: (uuid) => {
       if (!preCompactText) return;
-      runtime.preCompactSent = true;
-      // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）
+      // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）。圧縮か消去まで、もう足さない（記録から導く preCompactSent）
       runtime.patchTurn({ compaction: { awaiting: true } });
-      store.events.add(chatId, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
+      recordEvent(store, runtime, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
     },
     // 合図のあと裏の作業を待って止まっていたので、Kickoff が発言を足して圧縮を走らせた: 何が起きたかをお知らせに残す（足した文は AI 向けなので発言にしない）
     preCompactNudged: () => {
-      store.events.add(chatId, { type: "notice", message: "圧縮前指示が済んだあと、AI が裏の作業の終わりを待って止まっていたので、会話の圧縮を始めるよう Kickoff が促しました" });
+      recordEvent(store, runtime, { type: "notice", message: "圧縮前指示が済んだあと、AI が裏の作業の終わりを待って止まっていたので、会話の圧縮を始めるよう Kickoff が促しました" });
     },
     emit: (event) => {
       if (event.type === "init" && event.session_id !== store.chats.get(chatId)?.session_id) {
         store.chats.update(chatId, { session_id: event.session_id });
       }
       // 手で圧縮する実行の圧縮は、頼んだきっかけで残す（自動の圧縮の前の指示のあとに Runner が続けた圧縮は auto）
-      const saved = store.events.add(chatId, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
+      const saved = recordEvent(store, runtime, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
       // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（ChatRuntime.compacted）
       if (event.type === "compact") runtime.compacted(postCompactText ? postCompactItem(postCompactText) : null, compact);
       // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
@@ -457,7 +455,7 @@ function callbacksFor(
     },
     requestApproval: async (req, approvalSignal) => {
       const { approval, decision } = approvals.request({ chatId, projectId }, req, approvalSignal);
-      store.events.add(chatId, {
+      recordEvent(store, runtime, {
         type: "approval",
         approval_id: approval.id,
         kind: approval.kind,
@@ -467,8 +465,9 @@ function callbacksFor(
       const answer = await decision;
       // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付・選んだ選択肢の図）も残す（画面は「質問への回答」の吹き出しで出す）
       const previews = answer.action === "answer" ? chosenPreviews((approval.input.questions as Question[] | undefined) ?? [], answer.plain ?? answer.answers) : undefined;
-      store.events.add(
-        chatId,
+      recordEvent(
+        store,
+        runtime,
         answer.action === "answer"
           ? {
               type: "approval_resolved",
@@ -487,7 +486,8 @@ function callbacksFor(
 }
 
 /** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
-function applyResult(store: Store, chatId: number, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
+function applyResult(store: Store, runtime: ChatRuntime, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
+  const { chatId } = runtime;
   const current = store.chats.get(chatId)!;
   store.chats.update(chatId, {
     status: result.status,
@@ -508,11 +508,11 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
   // この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
   // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。
   // 通信の切断のときは、つながってから再開する段取り（reconnect）が知らせる
-  const notice = compact || network ? null : stoppedSubagentsNotice(unfinishedSubagents(store.events.list(chatId), since).map((s) => s.description));
-  if (notice) store.events.add(chatId, { type: "notice", message: notice });
+  const notice = compact || network ? null : stoppedSubagentsNotice(unfinishedSubagents(store.events.forSubagents(chatId), since).map((s) => s.description));
+  if (notice) recordEvent(store, runtime, { type: "notice", message: notice });
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
   if (!compact || result.status !== "completed") {
-    store.events.add(chatId, {
+    recordEvent(store, runtime, {
       type: "result",
       status: result.status,
       text: result.status === "completed" ? result.result : result.error,

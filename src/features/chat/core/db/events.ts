@@ -102,6 +102,8 @@ interface LatestIdQuery {
   type?: ChatEventType | readonly ChatEventType[];
   /** メインエージェントの返答（parent のない text） */
   mainText?: boolean;
+  /** 圧縮前指示（札付きの自分の発言） */
+  preCompact?: true;
   before?: number;
 }
 
@@ -179,6 +181,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
     if (q.type !== undefined) either.push(typeIn(where, typeof q.type === "string" ? [q.type] : q.type));
     if (q.mainText) either.push(`(type = 'text' AND ${MAIN_ONLY})`);
     if (either.length > 0) where.conds.push(`(${either.join(" OR ")})`);
+    if (q.preCompact) where.conds.push("json_extract(data, '$.pre_compact') = 1");
     const row = db.prepare(`SELECT MAX(id) AS id FROM chat_events INDEXED BY idx_chat_events_meta WHERE ${where.conds.join(" AND ")}`).get(...where.params) as { id: number | null };
     return row.id;
   }

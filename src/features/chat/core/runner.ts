@@ -3,6 +3,8 @@ import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest, typ
 import { RunnerQueue, type SendOpts } from "./runnerQueue";
 import { ChatRuntimes, type ChatRuntime } from "./runtime";
 import { turnKindOf } from "./turnState";
+import { recordEvent } from "@/features/chat/core/run/record";
+import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import { ChatRecovery } from "@/features/chat/core/recovery/recovery";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input";
 import { startChildChat } from "@/features/childChats/core/children";
@@ -363,7 +365,7 @@ export class Runner extends RunnerQueue {
       try {
         sessionId = await prepare();
       } catch (e) {
-        if (store.chats.get(chatId)) store.events.add(chatId, { type: "notice", message: `親の会話を引き継げませんでした（${errorMessage(e)}）。会話を引き継がずに始めます` });
+        if (store.chats.get(chatId)) recordEvent(store, runtime, { type: "notice", message: `親の会話を引き継げませんでした（${errorMessage(e)}）。会話を引き継がずに始めます` });
       }
       runtime.preparing = false;
       const cancelled = runtime.next.stopRequested;
@@ -414,7 +416,7 @@ export class Runner extends RunnerQueue {
     const messageUuid = randomUUID();
     // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
     if (!postCompact) nameOnFirstMessage(this.deps, chat.id, text, attachments);
-    store.events.add(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
+    recordEvent(store, runtime, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.chats.update(chat.id, {
       status: "running",
@@ -481,7 +483,7 @@ export class Runner extends RunnerQueue {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
       this.forgetRecovery(chatId);
       this.forgetInterrupted(chatId);
-      store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
+      recordEvent(store, runtime, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
       if (chat.unread) store.chats.setUnread(chatId, false);
       if (pauseAfter) this.pauseAfterTurn(chatId);
       return "told";
@@ -694,7 +696,7 @@ export class Runner extends RunnerQueue {
       if (runtime.turn?.control?.tell(prompt, messageUuid)) {
         // 伝えた作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない）
         runtime.shiftHeld(true);
-        store.events.add(chatId, { type: "user", text: m.text, ...(m.attachments.length ? { attachments: m.attachments } : {}), ...handover, post_compact: true, message_uuid: messageUuid });
+        recordEvent(store, runtime, { type: "user", text: m.text, ...(m.attachments.length ? { attachments: m.attachments } : {}), ...handover, post_compact: true, message_uuid: messageUuid });
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -749,8 +751,8 @@ export class Runner extends RunnerQueue {
   cancelWorkplaceMove(chatId: number) {
     const plan = this.workplaceMoves.cancel(chatId);
     if (!plan) throw new Conflict("取り消す予約はありません（もう移したか、取り消しました）");
-    this.deps.store.events.add(chatId, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
     const runtime = this.runtimes.get(chatId);
+    recordEvent(this.deps.store, runtime, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
     const note = cancelledNote(plan);
     const told = this.isBusy(chatId) && !runtime.holdsTells && !runtime.tellsClosed && Boolean(runtime.turn?.control?.tell(note, randomUUID()));
     if (!told) runtime.pendingNote = note;
@@ -803,9 +805,8 @@ export class Runner extends RunnerQueue {
       return store.chats.get(chat.id)!;
     }
     const messageUuid = randomUUID();
-    store.events.add(chat.id, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
-    // この指示の作業の途中で自動の圧縮が来ても、もう足さない。圧縮が終わるまで「いま」は預かる
-    runtime.preCompactSent = true;
+    // この指示の作業の途中で自動の圧縮が来ても、もう足さない（記録から導く preCompactSent）。圧縮が終わるまで「いま」は預かる
+    recordEvent(store, runtime, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
     runtime.patchTurn({ compaction: { awaiting: true } });
     void this.execute({ chatId: chat.id, prompt: manualPreCompactMessage(text), promptId: messageUuid, thenCompact: true });
     return store.chats.get(chat.id)!;
@@ -817,12 +818,11 @@ export class Runner extends RunnerQueue {
    */
   private tellPreCompact(chat: Chat, runtime: ChatRuntime): boolean {
     const { store } = this.deps;
-    if (!chat.session_id || runtime.preCompactSent || runtime.holdsTells || runtime.compaction.afterTurn) return false;
+    if (!chat.session_id || preCompactSent(runtime.marks) || runtime.holdsTells || runtime.compaction.afterTurn) return false;
     const text = preCompactPromptOf(store, store.projects.get(chat.project_id)!);
     const messageUuid = randomUUID();
     if (!text || !runtime.turn?.control?.tell(busyPreCompactMessage(text), messageUuid)) return false;
-    store.events.add(chat.id, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
-    runtime.preCompactSent = true;
+    recordEvent(store, runtime, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
     runtime.patchTurn({ compaction: { awaiting: true, afterTurn: true } });
     return true;
   }
@@ -868,11 +868,10 @@ export class Runner extends RunnerQueue {
     const cleared = store.chats.update(chat.id, { session_id: null, context_tokens: null });
     // ほかの AI に戻しても、消去前の会話を再開しない。
     store.chatProviderSessions.removeAll(chat.id);
-    // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る
+    // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る（消去の記録から導く preCompactSent）
     const runtime = this.runtimes.get(chatId);
-    runtime.preCompactSent = false;
     runtime.patchTurn({ compaction: { awaiting: false, afterTurn: false } });
-    store.events.add(chat.id, { type: "context_cleared" });
+    recordEvent(store, runtime, { type: "context_cleared" });
     return cleared;
   }
 
@@ -977,7 +976,7 @@ export class Runner extends RunnerQueue {
       const move = this.workplaceMoves.take(item.chatId);
       if (move && finished && outcome.status === "completed") void this.moveThenContinue(item.chatId, move, next);
       else {
-        if (move && !this.shuttingDown) this.deps.store.events.add(item.chatId, { type: "notice", message: notMovedNotice(move) });
+        if (move && !this.shuttingDown) recordEvent(this.deps.store, runtime, { type: "notice", message: notMovedNotice(move) });
         next();
       }
     }

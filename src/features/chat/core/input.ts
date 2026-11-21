@@ -101,7 +101,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
  * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
  */
 export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
-  const lost = undeliveredReports(deps.store.events.list(chatId));
+  const lost = undeliveredReports(deps.store.events.forSubagents(chatId));
   const chat = deps.store.chats.get(chatId);
   const project = (chat && deps.store.projects.get(chat.project_id)) ?? null;
   const prompt = withUndeliveredReports(await promptWithAttachments(deps, project, text, attachments), lost);

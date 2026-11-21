@@ -4,6 +4,7 @@ import type { Store } from "@/features/chat/core/stores";
 import type { ChatRuntime, ChatRuntimes } from "@/features/chat/core/runtime";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { Poller } from "./poller";
+import { recordEvent } from "@/features/chat/core/run/record";
 import { canReachApi } from "./reachability";
 import { reconnectRule, usageLimitRule, type RecoveryPlan, type RecoveryReason, type RecoveryRule } from "@/features/chat/core/run/machine/recovery";
 import type { RecoveryWait } from "@/features/chat/core/run/machine/recoveryState";
@@ -141,7 +142,7 @@ export class ChatRecovery {
   /** 決まった段取りを進める（決めている間に自分で送った・また止まったなら、もうこの段取りではないのでやめる） */
   private follow(runtime: ChatRuntime, rule: RecoveryRule, plan: RecoveryPlan, version: number) {
     if (runtime.recovery.version !== version) return;
-    if (plan.notice) this.deps.store.events.add(runtime.chatId, { type: "notice", message: plan.notice });
+    if (plan.notice) recordEvent(this.deps.store, runtime, { type: "notice", message: plan.notice });
     if (plan.next.do === "ask") this.ask(runtime, rule);
     else if (plan.next.do === "wait") this.setWaiting(runtime, { rule, for: plan.next.for, then: plan.next.then });
   }
@@ -192,7 +193,7 @@ export class ChatRecovery {
     try {
       await send(chatId, rule.prompt({ chatId, state }));
     } catch (e) {
-      store.events.add(chatId, { type: "error", message: `${rule.resumeFailed}: ${errorMessage(e)}` });
+      recordEvent(store, runtime, { type: "error", message: `${rule.resumeFailed}: ${errorMessage(e)}` });
     } finally {
       state.resuming = false;
     }

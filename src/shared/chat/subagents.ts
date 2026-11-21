@@ -61,11 +61,11 @@ export function isOutputLimitError(message: string | null | undefined): boolean 
   return Boolean(message) && /max_output_tokens|output token maximum/i.test(message!);
 }
 
-const SUBAGENT_TOOLS = new Set(["Agent"]);
-
+/** サブエージェントを起動するツール（コアが記録を軽く読むときも、この名前の呼び出しは引数ごと読む） */
+export const SUBAGENT_TOOLS: readonly string[] = ["Agent"];
 /** サブエージェントを起動するツール（Agent）か */
 export function isSubagentTool(name: string): boolean {
-  return SUBAGENT_TOOLS.has(name);
+  return SUBAGENT_TOOLS.includes(name);
 }
 
 /**

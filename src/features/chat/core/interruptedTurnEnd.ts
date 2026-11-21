@@ -27,7 +27,7 @@ export function endInterruptedTurns(store: Store, chatIds: readonly number[]): n
     const lastResult = store.events.latestResultId(chatId);
     if (lastUser === null || (lastResult !== null && lastResult > lastUser)) continue;
     // その作業 = 前の作業の終わりより後（途中で伝えた発言のあとに始めたものも含める）
-    const notice = stoppedSubagentsNotice(unfinishedSubagents(store.events.list(chatId), lastResult ?? 0).map((s) => s.description));
+    const notice = stoppedSubagentsNotice(unfinishedSubagents(store.events.forSubagents(chatId), lastResult ?? 0).map((s) => s.description));
     if (notice) store.events.add(chatId, { type: "notice", message: notice });
     const end: ChatEventDataOf<"result"> = chat.status === "failed" ? { status: "failed", ...(chat.error ? { text: chat.error } : {}) } : { status: "cancelled" };
     store.events.add(chatId, { type: "result", ...end });
