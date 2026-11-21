@@ -1,9 +1,9 @@
 // チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付（送る文の組み立て prompt/compose.ts）と届かなかった報告の書き添え
 import { randomUUID } from "node:crypto";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
-import { knownModel } from "@/features/ai/core/providers/modelCatalog";
+import { knownModel } from "@/features/ai/core/index";
 import { askTitle, canAsk } from "@/features/ai/core/index";
-import type { ExecutionDeps } from "./turn";
+import type { RunnerDeps } from "@/features/chat/core/run/runner";
 import type { Attachment, ChatOptionsPatch } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { Project } from "@shared/projects/types";
@@ -53,7 +53,7 @@ export interface StartChatInput {
  * messageUuid は発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）。
  * created はチャットを作った直後に呼ぶ（このあとの下ごしらえの間も作業中に数えるため）
  */
-export async function createChat(deps: ExecutionDeps, input: StartChatInput, created?: (chatId: number) => void) {
+export async function createChat(deps: RunnerDeps, input: StartChatInput, created?: (chatId: number) => void) {
   const { store, providers } = deps;
   const project = store.projects.get(input.projectId);
   if (!project) throw new NotFound("プロジェクトが見つかりません");
@@ -98,7 +98,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput, cre
  * 続きの指示の下ごしらえ: 添付のパスと、登録した contributor の添える文（親に届かなかったサブエージェントの報告など。前の作業が報告を受け取る前に
  * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）を添える。handover は自分の発言の記録に足す
  */
-export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
+export async function followupPrompt(deps: RunnerDeps, chatId: number, text: string, attachments: Attachment[]) {
   const chat = deps.store.chats.get(chatId);
   const project = (chat && deps.store.projects.get(chat.project_id)) ?? null;
   const notes = await messageNotes(deps.contributors ?? [], chatId, text);
@@ -121,7 +121,7 @@ async function messageNotes(contributors: readonly TurnContributor[], chatId: nu
  * まだ名前も発言もないチャット（聞かずに開いた子チャット）に初めて送るとき、作るときと同じく、その文の 1 行目を名前にして AI にも名前を付けてもらう。
  * 名前を変えた・もう発言のあるチャットはそのまま
  */
-export function nameOnFirstMessage(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
+export function nameOnFirstMessage(deps: RunnerDeps, chatId: number, text: string, attachments: Attachment[]) {
   const chat = deps.store.chats.get(chatId);
   if (!chat || chat.title !== "" || deps.store.events.exists(chatId, { type: "user" })) return;
   const titleText = text.trim() || attachments.map((a) => a.name).join("、");
@@ -136,7 +136,7 @@ function firstLine(text: string): string {
 }
 
 /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
-async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, text: string) {
+async function autoTitle({ store, providers }: RunnerDeps, chatId: number, text: string) {
   const chat = store.chats.get(chatId);
   const provider = chat ? providers[chat.provider] : undefined;
   if (!chat || !canAsk(provider) || !text.trim()) return;
@@ -150,6 +150,6 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
 }
 
 /** 添付のパスを書き添えた、AI に渡す文（添付の口が書く。ノートの写しの元のノートは、プロジェクトのノートのフォルダから引く） */
-function promptWithAttachments({ attachments: port }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
+function promptWithAttachments({ attachments: port }: RunnerDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
   return composePrompt(port, project, text, attachments);
 }

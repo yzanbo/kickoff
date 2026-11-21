@@ -94,8 +94,9 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   const finisher = unused<WorktreeFinisher>("worktreeFinisher");
   const { store, runner } = core;
   const noteTools = { store, notes: unused<NoteService>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
-  core.runner.attach({
-    aiTools: [
+  core.runner.provide({
+    chatRemover: unused<ChatRemover>("chatRemover"),
+    aiTools: () => [
       diagnosticToolGroup,
       openNoteToolGroup(noteTools),
       moveNoteToolGroup(noteTools),
@@ -114,7 +115,6 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       ...groups(core),
     ],
   });
-  core.runner.useChatRemover(unused<ChatRemover>("chatRemover"));
   const chatId = await send(core);
   await until(() => seen.length === 1 && core.store.chats.get(chatId)?.status === "completed");
   return seen[0];

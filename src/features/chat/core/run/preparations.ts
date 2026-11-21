@@ -1,6 +1,6 @@
 // 殻の窓口のうち、作業を動かす前の長い準備（新しいチャット・親の会話を写す・AI の切り替えと引き継ぎ）と、AI が予約した移動の取り消し（作業場所の移動は workplaceMove が withIdleChat を呼ぶ）
 import { randomUUID } from "node:crypto";
-import type { TurnRequest } from "@/features/chat/core/turn";
+import type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
 import { recordEvent } from "@/features/chat/core/run/record";

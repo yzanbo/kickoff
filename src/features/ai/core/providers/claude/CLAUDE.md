@@ -20,7 +20,7 @@ Agent SDK の `query` で Claude Code を動かす。寄りかかっている所
 - 承認カードで聞くフックと MCP のツールの待ち時間は `APPROVAL_WAIT_S`（書かないと、答える前にカードが閉じて拒否になる）。
 - 裏の作業は `background_tasks_changed` の一覧で丸ごと置き換える。圧縮の区切りでは、要約の記録 `compact` を先に出してから圧縮中を外す（`messages.ts`）。
 - 使わせないツールは `KICKOFF_DISALLOWED_TOOLS`。ほかの AI に同じ働き（会話ごと作業場所を移す）のツールが足されたら、同じく外す。
-- 砂場のオフ（`sandboxOff`）を受けるのは表の `sandbox_off` の AI だけ（ほかは `@/features/chat/core/turn.ts` が断る）。
+- 砂場のオフ（`sandboxOff`）を受けるのは表の `sandbox_off` の AI だけ（ほかは `@/features/chat/core/run/turn/execute.ts` が断る）。
 
 ## 実行の外
 

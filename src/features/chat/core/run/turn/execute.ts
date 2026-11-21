@@ -14,7 +14,8 @@ import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
 import { resolveWorkdir } from "@/features/chat/core/turnFolders";
 import { CHAT_TOOLS_HEAD, chatToolGroups } from "@/features/chat/core/tools/chatTools";
 import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
-import { knownModel, type ExecutionDeps, type ProviderTurnParams, type ProviderTurnResult } from "@/features/chat/core/turn";
+import { knownModel, type ProviderTurnParams, type ProviderTurnResult } from "@/features/ai/core/index";
+import type { RunnerDeps } from "@/features/chat/core/run/runner";
 import { recordEvent } from "@/features/chat/core/run/record";
 import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
@@ -28,7 +29,7 @@ import { applyResult } from "./result";
  * 1 回の実行を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）は
  * チャットの run に書く（画面には殻が配る）。失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, request: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
+export async function executeTurn(deps: RunnerDeps, runtime: ChatRun, request: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { chatId, prompt, promptId, compact = false, compactTrigger } = request;
   const { store, providers } = deps;
   // 実行に足すもの（チャット自身と、上の機能が登録したもの）
@@ -120,7 +121,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, request
       let tools: ReturnType<McpToolHost["open"]> | null = null;
       try {
         // chat の組と、上の機能が出した組を、レジストリが order の順に並べて作業ごとに開く
-        const registry = new AiToolRegistry([...chatToolGroups(deps), ...(deps.aiTools ?? [])]);
+        const registry = new AiToolRegistry([...chatToolGroups(deps), ...(deps.aiTools?.() ?? [])]);
         tools = deps.toolHost?.open(registry.serversFor(aiTurnOf(chat, cwd, callbacks.requestApproval, signal, perTurn), { kickoff_chat: CHAT_TOOLS_HEAD })) ?? null;
         const endpoints = tools?.endpoints ?? [];
         // 登録した contributor の包み（診断の開け閉め・引き継ぎの印）の中でプロバイダーを動かす（包みが直した指定で動かし直すこともある）

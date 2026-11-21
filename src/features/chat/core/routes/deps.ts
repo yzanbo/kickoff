@@ -1,4 +1,4 @@
-// チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書くか ExecutionDeps から引く）
+// チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書く）
 import type { Context } from "hono";
 import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/features/chat/core/stores";

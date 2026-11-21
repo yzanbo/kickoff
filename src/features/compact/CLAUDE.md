@@ -2,7 +2,7 @@
 
 ## 地図
 
-- `core/preCompact.ts`: 自動の圧縮の前に足す圧縮前指示の contributor（`createCompact` が登録）。指示の文は `compactPromptFor`。手で圧縮する実行は `@/features/chat/core/turn.ts`（コメントに決まり）。
+- `core/preCompact.ts`: 自動の圧縮の前に足す圧縮前指示の contributor（`createCompact` が登録）。指示の文は `compactPromptFor`。手で圧縮する実行は `@/features/chat/core/run/turn/execute.ts`（コメントに決まり）。
 - `ui/`: 圧縮前指示・圧縮後指示の設定（`CompactPrompt*`・`useCompactPrompt.ts`）・圧縮中の行・預かった発言の書き直し（`heldEdit.ts`）。種類の名前とアイコンは `COMPACT_PROMPT_KINDS`、保存する項目は `@shared/chat/prompts` の `COMPACT_PROMPT_FIELDS`。
 
 ## 決まり

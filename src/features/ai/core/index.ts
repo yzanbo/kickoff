@@ -1,8 +1,10 @@
 // AI のつなぎ込みの機能のコアの入口（ほかの機能はここだけを読む）
 export { askSummary, askTitle, canAsk } from "./ask";
-export type { AgentProvider, ApprovalRequest, GateAsk, GateCall, GateOutcome, GuardMaterials, PreCompactRequest, ProviderCallbacks, ProviderTurnResult, SandboxPlan, ToolGate, ToolGateFactory } from "./providers/types";
+export type { AgentProvider, ApprovalRequest, GateAsk, GateCall, GateOutcome, GuardMaterials, PreCompactRequest, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SandboxPlan, ToolGate, ToolGateFactory } from "./providers/types";
 export { askApproval, declinedNote, isAllowed, modeVerdict, permissionOnlyGate, wordsOf } from "./permissionMode";
 export type { UsageMonitor } from "./usage/monitor";
+export type { ProviderKeyVault } from "./providers/keys";
+export { knownModel } from "./providers/modelCatalog";
 import type { ProviderId } from "@shared/settings/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";

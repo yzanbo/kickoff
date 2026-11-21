@@ -20,7 +20,7 @@ import { sweepUnusedSessions } from "./sessions/sessionTrash";
 import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
-import type { ExecutionDeps } from "./turn";
+import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { TurnContributor } from "./run/turn/contributor";
 import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
@@ -66,6 +66,8 @@ export interface ChatDeps {
   ai: AiApi;
   /** 添付の口（保存先・送る文と回答に添付のパスを書き添える・消したチャットの添付を消す。attachments が実装する） */
   attachments: ChatAttachments;
+  /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools。実行ごとに引く。組み立てが集める） */
+  aiTools: () => readonly AiToolGroup[];
 }
 
 export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "editHoldTtlMs"> {
@@ -77,12 +79,6 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
   trashCommandFile?: string;
   /** AI の操作ツールの MCP の URL の頭（http://127.0.0.1:<ポート>） */
   mcpBaseUrl: string;
-}
-
-/** チャットより上の機能の口（上の機能はチャットを使うのであとに作り、組み立ての最後に attach で渡す） */
-export interface ChatUpper {
-  /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */
-  aiTools: NonNullable<ExecutionDeps["aiTools"]>;
 }
 
 export interface ChatApi {
@@ -99,8 +95,6 @@ export interface ChatApi {
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（ほかの Kickoff が使っていれば入れない。作業場所を移すときも） */
   sessionTrash: SessionTrash;
-  /** 上の機能の口を受ける（組み立ての最後に 1 回だけ。仮の口で、上の機能が実行に足すものを登録する形に替えたら消す） */
-  attach(upper: ChatUpper): void;
   /** 子チャットを親から外す口を受ける（childChats が createChildChats の中で登録する。AI の update_chat の parent_id） */
   provideDetach(port: ChatDetachPort): void;
   /** AI の切り替えの準備と確定を受ける（providerSwitch が createProviderSwitch の中で登録する） */
@@ -153,7 +147,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, attachments, aiTools: deps.aiTools, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -176,7 +170,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, runner, trashBin });
-  runner.useChatRemover(chatRemover);
+  runner.provide({ chatRemover });
   // 送る指示を受けたときに聞く上の機能（userView が送った時点の画面の様子を覚える）
   const sendHooks: ((chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void)[] = [];
   const userSent = (c: Context, chatId: number, userView: unknown) => {
@@ -199,9 +193,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       chatRemover,
       sessionsElsewhere,
       sessionTrash,
-      attach: (given) => runner.attach(given),
-      provideDetach: (port) => runner.attach({ detach: port }),
-      provideProviderSwitch: (port) => runner.attach({ providerSwitch: port }),
+      provideDetach: (port) => runner.provide({ detach: port }),
+      provideProviderSwitch: (port) => runner.provide({ providerSwitch: port }),
       addTurnContributor: (c) => void contributors.push(c),
       onForget: (fn) => runner.onForget(fn),
       onUserSend: (fn) => void sendHooks.push(fn),

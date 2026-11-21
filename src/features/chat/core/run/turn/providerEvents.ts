@@ -9,7 +9,8 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import { DRAWING_TOOLS } from "@shared/chat/indexedTools";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
-import type { ExecutionDeps, ProviderCallbacks } from "@/features/chat/core/turn";
+import type { ProviderCallbacks } from "@/features/ai/core/index";
+import type { RunnerDeps } from "@/features/chat/core/run/runner";
 import { recordEvent } from "@/features/chat/core/run/record";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 
@@ -17,7 +18,7 @@ import type { ChatRun } from "@/features/chat/core/run/chatRun";
  * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は run に書き（殻が画面に配る）、イベントは記録、承認依頼は回答を待つ（待つ間は回答待ち）
  */
 export function callbacksFor(
-  { store, approvals, bus, usage, clock }: ExecutionDeps,
+  { store, approvals, bus, usage, clock }: RunnerDeps,
   runtime: ChatRun,
   chat: Chat,
   signal: AbortSignal,

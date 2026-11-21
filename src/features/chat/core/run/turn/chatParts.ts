@@ -5,11 +5,11 @@ import { trashCommandEnv } from "@/features/trash/core/index";
 import { projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "@/features/chat/core/prompt/system";
 import { switchAfterCompact } from "@/features/chat/core/sessionSwitch";
 import { readOnlyReferences, referenceDirectories } from "@/features/chat/core/turnFolders";
-import type { ExecutionDeps } from "@/features/chat/core/turn";
+import type { RunnerDeps } from "@/features/chat/core/run/runner";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import type { TurnContributor } from "./contributor";
 
-export function chatTurnParts(deps: ExecutionDeps, runtime: ChatRun): TurnContributor {
+export function chatTurnParts(deps: RunnerDeps, runtime: ChatRun): TurnContributor {
   return {
     name: "chat",
     order: 30,

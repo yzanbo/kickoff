@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { ExecutionDeps, TurnRequest } from "@/features/chat/core/turn";
+import type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
+import type { RunnerDeps } from "./runner";
 import { executeTurn } from "./turn/execute";
 import { ChatRuns } from "./chatRuns";
 import type { ChatRun, TurnHandle } from "./chatRun";
@@ -11,9 +12,7 @@ import type { ChatRunState, Effect, Env, RunEvent, TurnKind, TurnOutcome } from 
 import { recordEvent } from "@/features/chat/core/run/record";
 import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import type { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
-import type { UsageMonitor } from "@/features/ai/core/index";
 import type { Clock } from "@/foundation/core/clock";
-import type { Log } from "@/foundation/core/kernel";
 import { Conflict, Invalid, NotFound, type AppError } from "@/foundation/core/errors";
 import type { OutboxEnv } from "@shared/chat/outbox";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
@@ -21,15 +20,9 @@ import type { TellResult } from "@shared/foundation/apiTypes";
 import type { Chat } from "@shared/chat/types";
 import { busyPreCompactMessage } from "@shared/chat/prompts";
 
-/** 殻が受けるもの（1 回の実行に渡すもの・使用状況・時計・書き直しの持ち時間・出来事の記録の口） */
-export interface ShellDeps extends ExecutionDeps {
-  usage: UsageMonitor;
+/** 殻が受けるもの（殻を組み立てる runner.ts が時計を決めて渡す） */
+export interface ShellDeps extends RunnerDeps {
   clock: Clock;
-  editHoldTtlMs?: number;
-  /** 出来事・変わった項目・命令を 1 行ずつ書く口（KICKOFF_RUN_TRACE=1 のときだけ渡す） */
-  trace?: (line: string) => void;
-  /** 失敗したときに戻す手順の失敗を書く口（省けば console） */
-  log?: Pick<Log, "warn">;
 }
 
 /** 作業の終わりの予約（core/turnEnd.ts）と、プロジェクトの圧縮前指示（殻を組み立てる runner.ts が渡す） */
@@ -63,7 +56,7 @@ export class RunShell {
   /** 止まったあとの再開の段取り（runner.ts が殻を作ったあとで渡す） */
   recovery!: ChatRecovery;
   /** 1 回の実行に渡すもの（runner.ts が作業中かの口を足して渡す） */
-  turnDeps!: ExecutionDeps;
+  turnDeps!: RunnerDeps;
   /** アプリを終えるところ（待ちの列を送らない） */
   shuttingDown = false;
   /** 回している出来事の列（チャットごと） */

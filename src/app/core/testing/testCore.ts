@@ -114,7 +114,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const usage = offlineUsage();
   // 守りの門は本物と同じく guard が作る（自分を守る守りはテストでは付けない）。門の材料は実行ごとに覚える（gateMaterials）
   const gateMaterials: GuardMaterials[] = [];
-  const { bashSandbox, sandboxDiagnostics: diagnostics, toolGate: givenGate, contributors: given = [], aiTools: givenTools = [], uploads, ...rest } = runnerOptions;
+  const { bashSandbox, sandboxDiagnostics: diagnostics, toolGate: givenGate, contributors: given = [], aiTools: givenTools, uploads, ...rest } = runnerOptions;
   const factory = givenGate ?? toolGateFactory(undefined, []);
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
   // 本物の組み立てと同じく、守り・圧縮・AI の切り替えが実行に足すものと、砂場の診断のツールを登録する（ほかの上の機能はテストごとに contributors・aiTools で足す）
@@ -126,10 +126,10 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   ];
   // 添付の置き場を渡したら、本物と同じく送る文に添付のパスを書き添える口も作る
   const attachments = uploads ? chatAttachmentsOf(uploads) : undefined;
-  const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...rest, contributors, aiTools: [diagnosticToolGroup, ...givenTools] });
+  const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...rest, contributors, aiTools: () => [diagnosticToolGroup, ...(givenTools?.() ?? [])] });
   // 子チャットを親から外す口と、AI の切り替えの準備（添付の置き場があるとき）も本物と同じく登録する
   const detach = chatDetachPort(store, (chatId) => runner.isBusy(chatId));
-  runner.attach({ detach, ...(uploads ? { providerSwitch: providerSwitchPort(store, uploads) } : {}) });
+  runner.provide({ detach, ...(uploads ? { providerSwitch: providerSwitchPort(store, uploads) } : {}) });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials, detach };
 }
 

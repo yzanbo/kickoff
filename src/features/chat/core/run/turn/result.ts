@@ -2,7 +2,7 @@
 import { unfinishedSubagents } from "@shared/chat/subagents";
 import type { ChatEventData, ChatEventDataOf } from "@shared/chat/chatEvent";
 import type { Store } from "@/features/chat/core/stores";
-import type { ProviderTurnResult } from "@/features/chat/core/turn";
+import type { ProviderTurnResult } from "@/features/ai/core/index";
 import { recordEvent } from "@/features/chat/core/run/record";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 

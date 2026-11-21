@@ -79,7 +79,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, attachments: attachments.api.forChat }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
+  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, attachments: attachments.api.forChat, aiTools: () => features.flatMap((f) => f.aiTools ?? []) }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
   const { runner } = chat.api;
   // 利用者が見ているもの（並びは通知の前のまま。送ったときの様子をチャットの送る口から受けるので、チャットのあとに作る）
   const userView = createUserView({ chat: chat.api });
@@ -106,9 +106,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
   const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
-  // AI のツールの組を全部の機能から集めて、チャットの実行に渡す（仮の口。組み立てがレジストリを持つ形に替えたら消す）
   const terminals = terminal.api;
-  chat.api.attach({ aiTools: features.flatMap((f) => f.aiTools ?? []) });
   return {
     features,
     hooks: {

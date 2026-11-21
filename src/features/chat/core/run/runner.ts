@@ -1,4 +1,3 @@
-import type { ExecutionDeps } from "@/features/chat/core/turn";
 import { RunShell } from "./shell";
 import { queueWindow } from "./queueWindow";
 import { preparations } from "./preparations";
@@ -9,20 +8,59 @@ import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine
 import { TurnEndTasks, type TurnEndKind, type TurnEndTask } from "@/features/chat/core/turnEnd";
 import { recordEvent } from "./record";
 import type { StartChatInput } from "@/features/chat/core/input";
-import type { UsageMonitor } from "@/features/ai/core/index";
+import type { ApprovalCenter } from "@/features/chat/core/approvals";
+import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
+import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
+import type { Store } from "@/features/chat/core/stores";
+import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "@/features/chat/core/ports";
+import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
+import type { AgentProvider, ProviderKeyVault, UsageMonitor } from "@/features/ai/core/index";
+import type { TrashCommand } from "@/features/trash/core/index";
+import type { McpToolHost } from "@/foundation/core/aiTools/host";
+import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
+import type { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { Log } from "@/foundation/core/kernel";
 import type { ChatLive, PrepareReason, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
+import type { ProviderId } from "@shared/settings/types";
 import type { SendOpts } from "./queueWindow";
 import { compactPromptFor } from "@shared/chat/prompts";
 
-/** 殻を組み立てるのに使うもの */
-export type RunnerDeps = ExecutionDeps & {
-  usage: UsageMonitor;
-  /** 時計（省けば本物。書き直しの持ち時間・行の時刻） */
+/** 殻と 1 回の実行が使うもの（createChat が組む。上の機能の口は登録で受ける） */
+export interface RunnerDeps {
+  /** 時計（省けば本物。作業を始めた時刻・書き直しの持ち時間・行の時刻） */
   clock?: Clock;
+  store: Store;
+  approvals: ApprovalCenter;
+  providers: Record<ProviderId, AgentProvider>;
+  /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */
+  attachments?: ChatAttachments;
+  bus?: Bus;
+  /** 使用状況の見張り（実行中の支払いの知らせを渡す・使用枠が戻ったかを確かめる） */
+  usage: UsageMonitor;
+  /**
+   * AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れる。trash/command.ts）。あれば PATH などを渡す（rm・git clean などを断る守りは guard が付ける）。
+   * なければ（置けなかった・テスト）渡さない
+   */
+  trashCommand?: TrashCommand;
+  /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
+  sessionTrash?: SessionTrash;
+  /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。殻を作ったあとで provide が渡す。なければそのツールを出さない） */
+  chatRemover?: ChatRemover;
+  /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。なければツールを出さない（テスト）） */
+  toolHost?: Pick<McpToolHost, "open">;
+  /** 上の機能が出した AI のツールの組（実行ごとに引く。組み立てが全部の機能の CoreFeature.aiTools を集める。chat の組と同じ並びで出す） */
+  aiTools?: () => readonly AiToolGroup[];
+  /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
+  providerKeys?: ProviderKeyVault;
+  /** AI の切り替えの準備と確定（providerSwitch が chat.api.provideProviderSwitch で登録する。なければ切り替えられない） */
+  providerSwitch?: ProviderSwitchPort;
+  /** 子チャットを親から外す口（childChats が chat.api.provideDetach で登録する。なければ AI の update_chat は親から外せない） */
+  detach?: ChatDetachPort;
+  /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
+  contributors?: TurnContributor[];
   /** つながったかの確かめ方と間隔（テストで差し替える） */
   reconnect?: { check?: (url: string) => Promise<boolean>; intervalMs?: number };
   /** 使用枠が戻ったかを確かめる時計と間隔（テストで差し替える） */
@@ -35,7 +73,10 @@ export type RunnerDeps = ExecutionDeps & {
   trace?: (line: string) => void;
   /** 失敗したときに戻す手順の失敗を書く口（省けば console） */
   log?: Pick<Log, "warn">;
-};
+}
+
+/** 殻を作ったあとで受ける口（上の機能が登録するもの・殻を使うもの） */
+export type RunnerProvided = Pick<RunnerDeps, "aiTools" | "detach" | "providerSwitch" | "chatRemover">;
 
 /** ほかの機能に出す口（作業中か・作業中の様子・送る・送信待ちを止める・用意して確定する・作業の終わりの予約・作業の始まりと終わりの知らせ） */
 export interface ChatRunPort {
@@ -126,15 +167,13 @@ export function createChatRunner(deps: RunnerDeps) {
     reservedFolders: () => turnEnds.reservedFolders(),
     continuation: (chatId: number, text: string, afterFinish: boolean) => void shell.dispatch(chatId, { type: "continuation", text, afterFinish }),
 
-    /** 上の機能の口（AI のツールの組・親から外す・AI の切り替え）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach" | "providerSwitch">) {
-      Object.assign(shell.deps, upper);
-      Object.assign(shell.turnDeps, upper);
-    },
-
-    /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat の中身）を渡す。作業中か・送信待ちを止めるのに殻を使うので、殻を作ったあとで渡す */
-    useChatRemover(remover: NonNullable<ExecutionDeps["chatRemover"]>) {
-      shell.turnDeps.chatRemover = remover;
+    /**
+     * 殻を作ったあとで口を受ける（親から外す・AI の切り替えは上の機能が chat.api.provide… で登録する。アーカイブ・削除は殻を使うので殻のあとで作る。
+     * 受けるまでは、その操作を断る・AI にそのツールを出さない）
+     */
+    provide(given: RunnerProvided) {
+      Object.assign(shell.deps, given);
+      Object.assign(shell.turnDeps, given);
     },
 
     /** 止めるよう頼む（Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで、画面は停止ボタンを「停止中…」にする） */

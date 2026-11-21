@@ -5,7 +5,7 @@ import { appendSections } from "@/features/chat/core/prompt/compose";
 import { permissionOnlyGate, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
-import type { ProviderTurnParams } from "@/features/chat/core/turn";
+import type { ProviderTurnParams } from "@/features/ai/core/index";
 import type { TurnContext, TurnContributor, TurnParts, TurnRun, TurnRunPatch } from "./contributor";
 
 /** contributor が出したものを集めた答え */
