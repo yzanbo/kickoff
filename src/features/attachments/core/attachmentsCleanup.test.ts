@@ -16,7 +16,7 @@ test("送らなかった添付: 保存してから 30 日たち、記録（ゴ�
   const draft = await uploads.save({ name: "draft.png", type: "image/png", bytes: new Uint8Array([2]) });
   const queued = await uploads.save({ name: "queued.png", type: "image/png", bytes: new Uint8Array([3]) });
   store.events.add(chat.id, { type: "user", text: "見て", attachments: [sent] } as never);
-  store.queues.save({ chatId: chat.id, messages: [{ id: "q1", text: "あとで", attachments: [queued] }], paused: false, stops: [] } as never);
+  store.outbox.save(chat.id, { now: [], later: [{ id: "q1", text: "あとで", attachments: [queued] }], paused: false, stops: [] } as never);
   // 保存したばかりなら消さない
   assert.equal(await sweepUnusedUploads({ store, uploads }), 0);
   // ゴミ箱に入れたチャットの添付も残す

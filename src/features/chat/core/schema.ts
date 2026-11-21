@@ -101,9 +101,10 @@ CREATE TRIGGER chat_events_search_update AFTER UPDATE OF type, data ON chat_even
   INSERT INTO chat_event_search (chat_event_search, rowid, text) SELECT 'delete', old.id, old.text WHERE old.text IS NOT NULL;
   INSERT INTO chat_event_search (rowid, text) SELECT new.id, new.text WHERE new.text IS NOT NULL;
 END;
-CREATE TABLE chat_queues (
+CREATE TABLE chat_outbox (
   chat_id INTEGER PRIMARY KEY REFERENCES chats(id) ON DELETE CASCADE,
-  messages TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(messages) AND json_type(messages) = 'array'),
+  now TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(now) AND json_type(now) = 'array'),
+  later TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(later) AND json_type(later) = 'array'),
   stops TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(stops) AND json_type(stops) = 'array'),
   paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1))
 ) STRICT;

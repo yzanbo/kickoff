@@ -8,7 +8,7 @@
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 63300,
+      "bytes": 63665,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
@@ -26,43 +26,43 @@
       "brokenRefs": 0
     },
     "src/features/chat/CLAUDE.md": {
-      "bytes": 12934,
-      "ancestors": 23125,
+      "bytes": 12896,
+      "ancestors": 23084,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/features/conversation/CLAUDE.md": {
       "bytes": 15302,
-      "ancestors": 25493,
+      "ancestors": 25490,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/features/notes/CLAUDE.md": {
       "bytes": 4126,
-      "ancestors": 14317,
+      "ancestors": 14314,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/core/CLAUDE.md": {
       "bytes": 10877,
-      "ancestors": 21068,
+      "ancestors": 21065,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/CLAUDE.md": {
       "bytes": 16949,
-      "ancestors": 27140,
+      "ancestors": 27137,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 6576,
-      "ancestors": 33716,
+      "ancestors": 33713,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

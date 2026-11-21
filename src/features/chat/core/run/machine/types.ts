@@ -22,3 +22,6 @@ export interface Compaction {
   /** 圧縮したやり取りの途中（この間の「いま」は預かる） */
   done: boolean;
 }
+
+/** AI の切り替えの引き継ぎの門（DB の写し。null = 引き継ぎなし / ready = 送ってよい / blocked = 準備できていない / sending = 送っている途中 / uncertain = 受け取ったか分からない） */
+export type HandoffGate = null | "ready" | "blocked" | "sending" | "uncertain";

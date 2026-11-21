@@ -347,11 +347,11 @@ test("起動したときの再開の確かめ: 止めておくか・線は保ち
   const make = (title: string) => store.chats.create({ project_id: project.id, provider: "claude", title, status: "running", model: null });
   const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
   const [sendChat, continueChat, pauseChat, pausedChat, stoppedChat] = ["送る", "続ける", "止める", "止めていた", "線で待つ"].map(make);
-  store.queues.save({ chatId: sendChat.id, messages: [row("s1", "送る 1"), row("s2", "送る 2")], paused: false, stops: [1] });
-  store.queues.save({ chatId: continueChat.id, messages: [row("c1", "続けてから 1")], paused: false, stops: [] });
-  store.queues.save({ chatId: pauseChat.id, messages: [row("p1", "止める 1")], paused: false, stops: [] });
-  store.queues.save({ chatId: pausedChat.id, messages: [row("q1", "止めていた 1")], paused: true, stops: [] });
-  store.queues.save({ chatId: stoppedChat.id, messages: [row("t1", "線で待つ 1")], paused: false, stops: [0] });
+  store.outbox.save(sendChat.id, { now: [], later: [row("s1", "送る 1"), row("s2", "送る 2")], paused: false, stops: [1] });
+  store.outbox.save(continueChat.id, { now: [], later: [row("c1", "続けてから 1")], paused: false, stops: [] });
+  store.outbox.save(pauseChat.id, { now: [], later: [row("p1", "止める 1")], paused: false, stops: [] });
+  store.outbox.save(pausedChat.id, { now: [], later: [row("q1", "止めていた 1")], paused: true, stops: [] });
+  store.outbox.save(stoppedChat.id, { now: [], later: [row("t1", "線で待つ 1")], paused: false, stops: [0] });
   // アプリを終えて起動し直した: 作業中だったチャットは中断（続けるのチャットのほかは作業していなかったことにする）
   for (const c of [sendChat, pauseChat, pausedChat, stoppedChat]) store.chats.update(c.id, { status: "completed" });
   const interrupted = store.chats.recoverInterrupted("中断しました");
@@ -401,7 +401,7 @@ test("起動したときの再開の確かめ: 答えるまでは、線を外す
   store.events.add(chat.id, { type: "text", text: "直しています。" });
   store.events.add(chat.id, { type: "tool_use", id: "t1", name: "Bash", input: { command: "npm test" } });
   const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
-  store.queues.save({ chatId: chat.id, messages: [row("a", "次 1"), row("b", "次 2")], paused: false, stops: [1] });
+  store.outbox.save(chat.id, { now: [], later: [row("a", "次 1"), row("b", "次 2")], paused: false, stops: [1] });
   const interrupted = store.chats.recoverInterrupted("中断しました");
   const restarted = new Runner({ store, approvals, providers, usage, interrupted });
   const before = provider.calls.length;
@@ -508,7 +508,7 @@ test("起動したときの再開の確かめ: アーカイブしたら（子チ
   const child = make("子", parent.id);
   const kept = make("残す");
   const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" });
-  store.queues.save({ chatId: parent.id, messages: [row("a", "次")], paused: false, stops: [] });
+  store.outbox.save(parent.id, { now: [], later: [row("a", "次")], paused: false, stops: [] });
   const interrupted = store.chats.recoverInterrupted("中断しました");
   assert.deepEqual(interrupted, [parent.id, child.id, kept.id]);
   const restarted = new Runner({ store, approvals, providers, usage, interrupted });

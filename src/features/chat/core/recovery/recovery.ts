@@ -1,7 +1,9 @@
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/features/chat/core/stores";
-import type { ChatRuntime, ChatRuntimes } from "@/features/chat/core/runtime";
+import type { ChatRuntime } from "@/features/chat/core/runtime";
+import type { ChatRuntimes } from "@/features/chat/core/runtimes";
+import { setPaused } from "@shared/chat/outbox";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { Poller } from "./poller";
 import { recordEvent } from "@/features/chat/core/run/record";
@@ -83,7 +85,7 @@ export class ChatRecovery {
       return false;
     }
     // 最後まで終わった: 止めた送信待ちを戻す。止めた・ほかの理由で失敗した: 止めたまま（自分で戻せる）
-    if (state.held && outcome.status === "completed") runtime.queue.setPaused(false);
+    if (state.held && outcome.status === "completed") runtime.setOutbox(setPaused(runtime.outbox, false));
     state.held = false;
     return true;
   }
@@ -121,16 +123,16 @@ export class ChatRecovery {
 
   /** 止まった: 送信待ちを止めて、決まりの段取り（お知らせ・待つ・聞く）を始める（前の段取りは置き換える） */
   private stop(runtime: ChatRuntime, rule: RecoveryRule, outcome: TurnOutcome) {
-    const { chatId, queue, recovery: state } = runtime;
+    const { chatId, outbox, recovery: state } = runtime;
     if (!this.deps.store.chats.get(chatId)) return;
     const version = ++state.version;
     this.cancel(runtime);
     for (const a of outcome.stoppedAgents ?? []) state.agents.set(a.agentId, a.description);
     // 送信待ちを自分で止めていたか（こちらで止めたものは、どの理由で止めたものでも自分で止めたものではない）
-    const pausedByUser = queue.isPaused() && !state.held;
+    const pausedByUser = outbox.paused && !state.held;
     // 送信待ちは送らずに止めておく（止まったまま送ると、次々に失敗して消えるため）
-    if (queue.list().length > 0 && !queue.isPaused()) {
-      queue.setPaused(true);
+    if (outbox.later.length > 0 && !outbox.paused) {
+      runtime.setOutbox(setPaused(outbox, true));
       state.held = true;
     }
     // 段取りは、決まりがすぐ決められればその場で、調べものが要れば（枠の戻る時刻）調べてから進める

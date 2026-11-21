@@ -18,7 +18,7 @@
 
 ## 語彙と名前
 
-- 画面の言葉とコードの名前を 1 対 1 にする: チャット = `Chat`（表 `chats`・`chat_id`）、1 回の実行 = `TurnRequest`（結果 `TurnOutcome`）、記録 = `ChatEvent`、グループ = `ChatGroup`、送信待ち = `ChatQueue`（1 件は `QueuedMessage`）、作業中の様子 = `ChatLive`、未読 / 既読 = `unread` / `read`、チャットの選択 = `ChatOptions`、権限モード = `PermissionMode`、タブの入れ物 = `Panel`。新しい言葉は `docs/architecture.md` の「語彙」に足す。
+- 画面の言葉とコードの名前を 1 対 1 にする: チャット = `Chat`（表 `chats`・`chat_id`）、1 回の実行 = `TurnRequest`（結果 `TurnOutcome`）、記録 = `ChatEvent`、グループ = `ChatGroup`、送信待ち = `Outbox`（1 件は `QueuedMessage`）、作業中の様子 = `ChatLive`、未読 / 既読 = `unread` / `read`、チャットの選択 = `ChatOptions`、権限モード = `PermissionMode`、タブの入れ物 = `Panel`。新しい言葉は `docs/architecture.md` の「語彙」に足す。
 - HTTP API・SSE・DB に出る形は snake_case。コードの変数・関数・画面の中だけの型・IPC の形は camelCase。外のツールの形を写すもの（AskUserQuestion の `multiSelect` など）はそのまま。
 - 「ない」は `null`（空文字で「本体」「不明」を表さない）。
 - 値の一覧は `as const` の配列から型を作り、画面の文言は同じ場所の `…_LABELS` に置く。

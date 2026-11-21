@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `core/runner.ts`・`runnerQueue.ts` | 受付 `Runner`（API から呼ぶ窓口）と、送信待ちの操作の土台 `RunnerQueue` |
-| `core/runtime.ts` | チャットごとの作業中の状態 `ChatRuntime`（保存しない） |
+| `core/runtime.ts`・`runtimes.ts` | チャットごとの作業中の状態 `ChatRuntime`（出す箱だけ保存する） |
 | `core/turn.ts` | 1 回の実行 `executeTurn`・プロバイダーに渡すもの `buildTurnParams`・結果の反映 `applyResult` |
 | `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
@@ -45,14 +45,14 @@
 - 画面に配る形は `ChatLive`。詳細の `live` と SSE の `chat_live` を同じ形にし、変わるたびに丸ごと配る。保存しない。
 - 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
 
-## 送信待ち（`core/queue.ts`・`core/runnerQueue.ts`）
+## 送信待ち（`core/runnerQueue.ts`）
 
-- 列は `ChatQueue`。変わるたびに `chat_queues` に丸ごと書き、起動したら読み戻す（止めているか・一時停止の印も）。
+- 送信待ち `later` と預かり `now` は出す箱 `Outbox` 1 つ。操作は `@shared/chat/outbox`・`queueCommand` の純粋な関数で、変わるたびに `chat_outbox` に丸ごと書く。
 - 起動したときの再開の確かめ（`restartResume.ts`）を待つ間（`ChatRuntime.resume`）は送らない。
 - `sendNextQueued` は作業中なら取り出さない（取り出すと送れずに消える）。
-- 一時停止の印（`stops`）は列の位置で持ち、送った・消した・まとめた分だけ寄せる（`remapStops`）。並べ替えは `@shared/chat/queueStops` の `moveToSlot`（画面と同じ）。
+- 一時停止の印（`stops`）は列の位置で持つ（寄せ方・並べ替えは画面と同じ `@shared/chat/queueStops`）。
 - 指示の代わりに挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand` の JSDoc）。
-- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（圧縮の預かりも同じ `QueueEdits`）。
+- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも同じ `setEditing`）。
 - 応答はどれも変えたあとの `QueueState`。列にない指示は 404、送るものがないなどは 409。
 
 ## 止まったあとの再開（`core/recovery/`）

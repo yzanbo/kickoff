@@ -314,13 +314,13 @@
 | RUN-026 | 送信待ちを書き直す | queue | M |
 | RUN-027 | ドラッグで並べ替える | queue | M |
 | RUN-028 | 選んだ指示をまとめて送る・消す・1 つにまとめる | queue | M |
-| RUN-029 | 自動で送る / 止めています を切り替える | chat | T:queue |
+| RUN-029 | 自動で送る / 止めています を切り替える | chat | T:outbox |
 | RUN-030 | すべて送る（まとめて 1 件 / 1 件ずつ順に） | queue | M |
-| RUN-031 | 一時停止の印を挟む | chat | T:queue,E:queue-list |
+| RUN-031 | 一時停止の印を挟む | chat | T:outbox,E:queue-list |
 | RUN-032 | 質問として送る（答えのあと一時停止） | chat | M |
-| RUN-033 | 会話の圧縮・コンテキストの消去を挟む | chat | T:queue |
+| RUN-033 | 会話の圧縮・コンテキストの消去を挟む | chat | T:outbox |
 | RUN-034 | 新しいチャット・子チャットで聞く / 移す | queue | M |
-| RUN-035 | 再起動しても送信待ちを残す | chat | T:queue |
+| RUN-035 | 再起動しても送信待ちを残す | chat | T:outbox |
 | RUN-036 | 起動したときに、前回の終了で止まったチャットを確かめる（再開の確かめ） | queue | M |
 
 ### 圧縮と消去

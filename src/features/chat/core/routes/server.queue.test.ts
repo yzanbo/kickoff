@@ -498,7 +498,7 @@ test("起動したときの再開の確かめの API: 途中で止まったチ�
       ids.later = make("あとで", "running");
       ids.queued = make("送信待ち", "completed");
       store.events.add(ids.crashed, { type: "user", text: "調べて", message_uuid: randomUUID() });
-      store.queues.save({ chatId: ids.queued, messages: [{ id: "q1", text: "次", options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" }], paused: false, stops: [] });
+      store.outbox.save(ids.queued, { now: [], later: [{ id: "q1", text: "次", options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" }], paused: false, stops: [] });
       return store.chats.recoverInterrupted("アプリの終了により中断しました");
     },
   });

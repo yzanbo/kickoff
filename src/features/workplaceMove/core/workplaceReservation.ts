@@ -1,15 +1,15 @@
 // AI が作業場所を移す予約: AI の move_workplace は予約するだけで、
 // その作業が最後まで終わったら Kickoff が移し、続きの指示を送る。順番は「移す → 予約した圧縮・消去 → 続き（＋移動の知らせ）→ 預かった『いま』→ 送信待ち」。
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
-import { randomUUID } from "node:crypto";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Chat, QueuedMessage } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
+import { newMessage, placeContinuation as placeInOutbox } from "@shared/chat/outbox";
 import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
 import type { Store } from "@/features/chat/core/index";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import type { ChatRuntime, ChatRuntimes } from "@/features/chat/core/runtime";
+import { outboxEnv, type ChatRuntime, type RuntimeLookup } from "@/features/chat/core/runtime";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./workplaceMove";
 import { planUserWorkplaceMove, runningTerminals } from "./workplaceUserMove";
 import { workdirOf } from "@/features/chat/core/workdir";
@@ -27,7 +27,7 @@ export interface WorkplaceMovePlan {
 export class WorkplaceReservations {
   private readonly reserved = new Map<number, WorkplaceMovePlan>();
 
-  constructor(private readonly runtimes: ChatRuntimes) {}
+  constructor(private readonly runtimes: RuntimeLookup) {}
 
   /** 予約する（前の予約は置き換える） */
   reserve(chatId: number, plan: WorkplaceMovePlan) {
@@ -52,7 +52,7 @@ export class WorkplaceReservations {
 
 export interface WorkplaceMoveRunDeps {
   store: Store;
-  runtimes: ChatRuntimes;
+  runtimes: RuntimeLookup;
   isBusy: (chatId: number) => boolean;
   moveWorkplace: (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps) => Promise<Chat>;
   worktreeFinisher?: Pick<WorktreeFinisher, "hasReservation" | "afterReservation" | "reservedFolders">;
@@ -117,31 +117,9 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
   }
 }
 
-/**
- * 移したあとの続きの指示を置く: 送信待ちの先頭に予約した圧縮・消去があればそのあと、なければ預かった「いま」の前（作業の終わりに 1 件目として送り、
- * 残りの「いま」はその作業に伝える）。利用者が送信待ちを止めていれば、送らずに送信待ちの先頭に入れる。
- * 片付けを先にしたときは、片付けが止めた送信待ちは止めたまま、続きだけを送る
- */
+/** 移したあとの続きの指示を出す箱に置く（置き方は @shared/chat/outbox の placeContinuation。止めていて送らないときはお知らせを残す） */
 function placeContinuation(store: Store, runtime: ChatRuntime, chatId: number, text: string, afterFinish: boolean) {
-  const { queue } = runtime;
-  const actions = leadingActions(queue.list());
-  const stopped = queue.isPaused() || queue.stopPositions().some((p) => p <= actions);
-  if (!afterFinish && stopped) {
-    queue.insertAt(text, { workplace_continuation: true }, actions, true);
-    store.events.add(chatId, { type: "notice", message: "送信待ちを止めているので、AI が予約した続きの指示は送らずに送信待ちの先頭に入れました" });
-    return;
-  }
-  if (!afterFinish && actions > 0) {
-    queue.insertAt(text, { workplace_continuation: true }, actions, false);
-    return;
-  }
-  const message: QueuedMessage = { id: randomUUID(), text, options: {}, attachments: [], created_at: new Date().toISOString(), workplace_continuation: true };
-  runtime.update({ afterCompact: [message, ...runtime.state.afterCompact] });
-}
-
-/** 送信待ちの先頭に続く、予約した圧縮・消去の行の数 */
-function leadingActions(list: readonly QueuedMessage[]): number {
-  let n = 0;
-  while (n < list.length && (list[n].compact || list[n].clear)) n++;
-  return n;
+  const placed = placeInOutbox(runtime.outbox, newMessage(outboxEnv(), text, {}, [], { workplace_continuation: true }), afterFinish);
+  runtime.setOutbox(placed.box);
+  if (placed.stopped) store.events.add(chatId, { type: "notice", message: "送信待ちを止めているので、AI が予約した続きの指示は送らずに送信待ちの先頭に入れました" });
 }

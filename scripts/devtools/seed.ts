@@ -157,7 +157,7 @@ specs.forEach((spec, i) => {
 
 // 送信待ち 3 件（自動で送るのを止め、2 件目のあとに「ここまで」の線。止めてあるので、起動しても送らず、再開の確かめも出ない）
 const queued = (n: number, text: string): QueuedMessage => ({ id: `fixture-queue-${n}`, text, attachments: [], options: {}, created_at: ago((10 - n) * MINUTE) });
-store.queues.save({ chatId: chatIds.queued, messages: [queued(1, "次に一覧の並びを直してください"), queued(2, "そのあとテストを足してください"), queued(3, "最後に説明を書き直してください")], paused: true, stops: [2] });
+store.outbox.save(chatIds.queued, { now: [], later: [queued(1, "次に一覧の並びを直してください"), queued(2, "そのあとテストを足してください"), queued(3, "最後に説明を書き直してください")], paused: true, stops: [2] });
 
 // 定型文 3（共通 2・alpha だけ 1）
 const snippetIds = [

@@ -1,23 +1,27 @@
-import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/features/chat/core/stores";
-import { ChatQueue, type QueuePersistence } from "./queue";
-import { QueueEdits } from "./queueEdits";
+import { randomUUID } from "node:crypto";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { createRecoveryState, type RecoveryState } from "@/features/chat/core/run/machine/recoveryState";
 import type { Compaction, TurnKind } from "@/features/chat/core/run/machine/types";
-import { marksFrom, type TurnMarks } from "@/features/chat/core/run/machine/marks";
-import type { ChatLive, QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
+import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
+import type { QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { emptyNext, liveOf, type NextTurn, type TurnPatch, type TurnState } from "./turnState";
+import { restoreOutbox, EMPTY_OUTBOX, type Outbox, type OutboxEnv } from "@shared/chat/outbox";
+import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { QueuedMessage } from "@shared/chat/types";
 
-/** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery、作業ごとの様子は turn から組み立てる） */
+/** 出す箱の列（now = 預かり、later = 送信待ち） */
+export type Lane = "now" | "later";
+
+/** 出す箱に行を作るときの時刻と ID */
+export const outboxEnv = (): OutboxEnv => ({ now: systemClock.iso(), newId: randomUUID });
+
+/** チャットの作業中の状態を引く口（ChatRuntimes。ほかの機能は入れ物の中身を読まず、これだけを受ける） */
+export interface RuntimeLookup {
+  get(chatId: number): ChatRuntime;
+}
+
+/** ChatRuntime がそのまま持つ、画面に配る様子（出す箱は box、再接続待ちは recovery、作業ごとの様子は turn から組み立てる） */
 interface LiveFields {
-  /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
-  waitingEdit: boolean;
-  /**
-   * 圧縮後指示（post_compact。圧縮したら先頭に置き、圧縮が終わったらいまのやり取りに伝える）と、預かる間（holdsTells）に「いま」で送った指示
-   * （圧縮したやり取りが終わってから送る。ChatLive の after_compact）
-   */
-  afterCompact: QueuedMessage[];
   /** 圧縮が終わって、預かった「いま」を順に送っている途中（送り終えるまで、新しい「いま」も預かって後ろに足す。画面には配らない） */
   deliveringAfterCompact: boolean;
   /**
@@ -32,7 +36,7 @@ interface LiveFields {
 }
 
 /**
- * 1 つのチャットの作業中の状態（保存しない。送信待ちの列だけは queue が DB に書く）。Runner が ChatRuntimes でチャットごとに 1 つ持ち、
+ * 1 つのチャットの作業中の状態（保存しない。出す箱だけは変わるたびに DB に書く）。Runner が ChatRuntimes でチャットごとに 1 つ持ち、
  * 画面に配る形（ChatLive）はここから liveOf で作る。画面に配る様子が変わったら onChange（ChatRuntimes が chat_live で配る）
  */
 export class ChatRuntime {
@@ -55,28 +59,31 @@ export class ChatRuntime {
   parkAfterCompact = false;
   /** 作業していない間に立てて、次の作業に持ち越す印 */
   next: NextTurn = emptyNext();
-  /** 作業中に送った次の指示の待ちの列（送信待ち） */
-  readonly queue: ChatQueue;
-  /** 画面で書き直している送信待ちの指示（自動で送る次の指示なら、書き直しが終わるまで送らない） */
-  readonly edits: QueueEdits;
-  /** 画面で書き直している預かった指示（after_compact。送る順が来ても、書き直しが終わるまで送らない。決まりは送信待ちの edits と同じ） */
-  readonly afterCompactEdits: QueueEdits;
+  /** 出す箱（now = 預かり・圧縮後指示、later = 送信待ち。変えるのは setOutbox） */
+  private box: Outbox = EMPTY_OUTBOX;
+  /** 画面で書き直している行（列ごと。送る順が来ても、書き直しが終わるまでその行から後ろは送らない。知らせが持ち時間途絶えたら外す） */
+  private edits: Record<Lane, string[]> = { now: [], later: [] };
+  private editTimers: Partial<Record<Lane, TimerHandle>> = {};
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { waitingEdit: false, afterCompact: [], deliveringAfterCompact: false, inheriting: false, resume: null, workplaceMove: null };
-  /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
-  private readonly onCompactEnded: () => void;
+  private fields: LiveFields = { deliveringAfterCompact: false, inheriting: false, resume: null, workplaceMove: null };
 
   constructor(
     readonly chatId: number,
     private readonly onChange: () => void,
-    opts: { marks: TurnMarks; persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onAfterCompactEditsChanged?: () => void; onCompactEnded?: () => void },
+    private readonly opts: {
+      marks: TurnMarks;
+      /** 出す箱の保存先（省けば保存しない） */
+      save?: (box: Outbox) => void;
+      clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
+      editTtlMs?: number;
+      /** 書き直している行が変わった・外れた（wasWaiting: その前に送信待ちの次の書き直しを待っていたか） */
+      onEditingChanged: (lane: Lane, wasWaiting: boolean) => void;
+      /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
+      onCompactEnded?: () => void;
+    },
   ) {
     this.marks = opts.marks;
-    this.onCompactEnded = opts.onCompactEnded ?? (() => {});
-    this.queue = new ChatQueue(chatId, onChange, opts.persistence);
-    this.edits = new QueueEdits(opts.onEditsChanged, opts.editTtlMs);
-    this.afterCompactEdits = new QueueEdits(opts.onAfterCompactEditsChanged ?? (() => {}), opts.editTtlMs);
   }
 
   /** 画面に配る様子（読むだけ。変えるのは update） */
@@ -119,7 +126,53 @@ export class ChatRuntime {
 
   /** 預かった指示のどれかを、画面で書き直しているか（書き直しが終わるまで、その指示から後ろは送らない） */
   get editingAfterCompact(): boolean {
-    return this.fields.afterCompact.some((m) => this.afterCompactEdits.has(m.id));
+    return this.box.now.some((m) => this.edits.now.includes(m.id));
+  }
+
+  /** 送信待ちの次の指示を画面で書き直しているので、送らずに書き直しが終わるのを待っている（作業は終わり、送る準備ができている） */
+  get waitingEdit(): boolean {
+    const head = this.box.later[0];
+    return !this.busy && !this.fields.resume?.queued && head !== undefined && !this.box.paused && this.edits.later.includes(head.id);
+  }
+
+  /** 出す箱（読むだけ。変えるのは setOutbox） */
+  get outbox(): Readonly<Outbox> {
+    return this.box;
+  }
+
+  /** 出す箱を変える（変わったら保存して配る。silent なら配らない = すぐ取り出す行を画面に一瞬出さない） */
+  setOutbox(next: Outbox, { silent = false }: { silent?: boolean } = {}) {
+    if (next === this.box) return;
+    this.writeBox(next);
+    if (!silent) this.onChange();
+  }
+
+  /** 保存した箱を読み戻す（知らせない） */
+  restore(saved: Outbox) {
+    this.writeBox(restoreOutbox(saved));
+  }
+
+  private writeBox(next: Outbox) {
+    this.box = next;
+    this.opts.save?.(next);
+  }
+
+  /** その行を画面で書き直しているか */
+  isEditing(lane: Lane, id: string): boolean {
+    return this.edits[lane].includes(id);
+  }
+
+  /** 画面で書き直している行を丸ごと置き換える（空なら外す。その列にない行・圧縮後指示は数えない）。持ち時間はここから数え直す */
+  setEditing(lane: Lane, ids: string[]) {
+    ids = ids.filter((id) => this.box[lane].some((m) => m.id === id && !m.post_compact));
+    const wasWaiting = this.waitingEdit;
+    const clock = this.opts.clock ?? systemClock;
+    clock.clearTimeout(this.editTimers[lane]);
+    this.editTimers[lane] = ids.length > 0 ? clock.setTimeout(() => this.setEditing(lane, []), this.opts.editTtlMs ?? EDIT_HOLD_TTL_MS) : undefined;
+    this.apply(() => {
+      this.edits = { ...this.edits, [lane]: ids };
+    });
+    this.opts.onEditingChanged(lane, wasWaiting);
   }
 
   /** 圧縮中か、圧縮前指示を送ってから圧縮が終わるまでか（外れたら、圧縮後指示を伝える） */
@@ -130,7 +183,7 @@ export class ChatRuntime {
 
   /** もう圧縮が終わっているのに、伝えていない預かった指示があれば伝える（圧縮中を外したあとで、圧縮後指示を先頭に置いたときなど） */
   flushAfterCompact() {
-    if (!this.compactPhase && !this.fields.deliveringAfterCompact && this.fields.afterCompact.length > 0) this.onCompactEnded();
+    if (!this.compactPhase && !this.fields.deliveringAfterCompact && this.box.now.length > 0) this.opts.onCompactEnded?.();
   }
 
   /** 作業を始める（次の作業に持ち越した印を移す。手で圧縮する実行は、圧縮が終わるまで待つ間として始める） */
@@ -176,7 +229,7 @@ export class ChatRuntime {
    */
   compacted(post: QueuedMessage | null, compactRun: boolean) {
     this.apply(() => {
-      this.fields = { ...this.fields, afterCompact: [...(post ? [post] : []), ...this.fields.afterCompact] };
+      if (post) this.writeBox({ ...this.box, now: [post, ...this.box.now] });
       const turn = this.turn;
       const compaction = { ...this.compaction, done: true, ...(compactRun ? {} : { awaiting: false }) };
       if (turn) turn.compaction = compaction;
@@ -192,13 +245,19 @@ export class ChatRuntime {
     const before = JSON.stringify(liveOf(this));
     change();
     if (JSON.stringify(liveOf(this)) !== before) this.onChange();
-    if (phase && !this.compactPhase && !this.fields.deliveringAfterCompact) this.onCompactEnded();
+    if (phase && !this.compactPhase && !this.fields.deliveringAfterCompact) this.opts.onCompactEnded?.();
   }
 
   /** 預かりの先頭を外す（compacted: 圧縮後指示を伝えた・送るので、そのやり取りを圧縮したやり取りの途中にする） */
   shiftHeld(compacted = false) {
-    this.update({ afterCompact: this.fields.afterCompact.slice(1) });
+    this.setOutbox({ ...this.box, now: this.box.now.slice(1) });
     if (compacted) this.patchTurn({ compaction: { done: true } });
+  }
+
+  /** 起動したときの再開の確かめのうち、送信待ちを聞くのをやめる（送信待ちを自分で動かした・空になった。作業の途中で止まったことは聞き続ける） */
+  answerRestartResume() {
+    const { resume } = this.fields;
+    if (resume) this.update({ resume: resume.interrupted ? { interrupted: true, queued: false } : null });
   }
 
   /** 画面に配る様子を変える（変わったものがあれば、まとめて 1 回だけ知らせる） */
@@ -211,91 +270,13 @@ export class ChatRuntime {
 
   /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
   queueState(): QueueState {
-    return { ...this.queue.snapshot(), waiting_edit: this.fields.waitingEdit };
+    const { later, paused, stops } = this.box;
+    return { messages: later, paused, stops, waiting_edit: this.waitingEdit };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
   dispose() {
-    this.edits.dispose();
-    this.afterCompactEdits.dispose();
-  }
-}
-
-/**
- * チャットごとの作業中の状態（ChatRuntime）の入れ物。チャットの状態が変わったら、作業中の様子をまとめて chat_live で画面に配る。
- * 作るときに、保存した送信待ちの列を読み戻す（前回の作業はアプリの終了で中断しているので、指示のある列は止めておく）
- */
-export class ChatRuntimes {
-  private readonly runtimes = new Map<number, ChatRuntime>();
-
-  constructor(
-    private readonly deps: {
-      store: Store;
-      bus?: Bus;
-      /** 書き直している印の持ち時間（テストで差し替える） */
-      editTtlMs?: number;
-      /** 書き直している送信待ちの指示が変わった・外れた */
-      onEditsChanged: (chatId: number) => void;
-      /** 書き直している預かった指示が変わった・外れた */
-      onAfterCompactEditsChanged?: (chatId: number) => void;
-      /** 圧縮が終わった（圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる間が終わった） */
-      onCompactEnded?: (chatId: number) => void;
-    },
-  ) {
-    for (const saved of deps.store.queues.list()) this.get(saved.chatId).queue.restore(saved);
-  }
-
-  /** チャットの作業中の状態（まだなければ作る） */
-  get(chatId: number): ChatRuntime {
-    let runtime = this.runtimes.get(chatId);
-    if (!runtime) {
-      runtime = new ChatRuntime(chatId, () => this.publish(chatId), {
-        marks: marksFrom(this.deps.store.events, chatId),
-        persistence: this.deps.store.queues,
-        editTtlMs: this.deps.editTtlMs,
-        onEditsChanged: () => this.deps.onEditsChanged(chatId),
-        onAfterCompactEditsChanged: () => this.deps.onAfterCompactEditsChanged?.(chatId),
-        onCompactEnded: () => this.deps.onCompactEnded?.(chatId),
-      });
-      this.runtimes.set(chatId, runtime);
-    }
-    return runtime;
-  }
-
-  /** チャットの作業中の状態（まだなければ undefined。作らない） */
-  peek(chatId: number): ChatRuntime | undefined {
-    return this.runtimes.get(chatId);
-  }
-
-  /** 作業中か（まだ状態がなければ作業していない） */
-  isBusy(chatId: number): boolean {
-    return this.runtimes.get(chatId)?.busy ?? false;
-  }
-
-  /** 画面に配る作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */
-  live(chatId: number): ChatLive {
-    return liveOf(this.get(chatId));
-  }
-
-  /** 作業中の様子を画面に配り直す（チャットがもうなければ配らない） */
-  publish(chatId: number) {
-    const chat = this.deps.store.chats.get(chatId);
-    if (chat) this.deps.bus?.publish({ type: "chat_live", project_id: chat.project_id, chat_id: chatId, live: this.live(chatId) });
-  }
-
-  /** すべてのチャットの作業中の状態 */
-  all(): ChatRuntime[] {
-    return [...this.runtimes.values()];
-  }
-
-  /** 実行中のチャット（動かしているもの。送る準備の途中は数えない） */
-  running(): ChatRuntime[] {
-    return this.all().filter((r) => r.turn !== null);
-  }
-
-  /** チャットを消したとき（知らせない） */
-  forget(chatId: number) {
-    this.runtimes.get(chatId)?.dispose();
-    this.runtimes.delete(chatId);
+    const clock = this.opts.clock ?? systemClock;
+    for (const lane of ["now", "later"] as const) clock.clearTimeout(this.editTimers[lane]);
   }
 }

@@ -59,7 +59,7 @@ export function liveOf(runtime: ChatRuntime): ChatLive {
     compacting: compaction.running,
     stopping: turn ? turn.stopRequested : runtime.next.stopRequested,
     drawing_visual: turn?.drawingVisual ?? false,
-    after_compact: state.afterCompact,
+    after_compact: runtime.outbox.now,
     awaiting_compact: compaction.awaiting,
     compact_after_turn: compaction.afterTurn,
     compacted_turn: compaction.done,

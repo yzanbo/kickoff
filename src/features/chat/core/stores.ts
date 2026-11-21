@@ -12,7 +12,7 @@ import { createChatStore } from "./db/chats";
 import { readSubagentEvents } from "./db/subagentEvents";
 import { createEventStore } from "./db/events";
 import { createLogRevisions } from "./db/logRevisions";
-import { createQueueStore } from "./db/queues";
+import { createOutboxStore } from "./db/outbox";
 import { createProviderSwitchStore } from "./providerSwitchStore";
 
 /** チャットの表の店（チャット・記録・送信待ち・AI ごとのセッションと引き継ぎ・Kickoff が作ったセッション・記録を変えた知らせ・AI の切り替え） */
@@ -23,7 +23,7 @@ export function createChatStores(db: DatabaseSync, onChange: Notify, settings: P
   const stores = {
     chats,
     events: { ...createEventStore(db, onChange, chats.get, logRevisions), forSubagents: (chatId: number) => readSubagentEvents(db, chatId) },
-    queues: createQueueStore(db),
+    outbox: createOutboxStore(db),
     chatProviderSessions: createChatProviderSessionStore(db),
     chatProviderHandoffs: createChatProviderHandoffStore(db),
     /** Kickoff が作ったセッション（Claude Code の会話記録）の覚え（使われなくなったらゴミ箱へ） */

@@ -8,7 +8,7 @@
 ## 決まり
 
 - 圧縮の終わりは null・`compact_boundary`・作業の終わりだけで見る（`requesting` では外さない）。始めた時刻ときっかけは終わるまで変えない。
-- 手で圧縮する実行は発言・結果を残さず、回数・未読に数えず、作業中の操作を渡さない。作業中なら予約（`ChatQueue.reserve("compact")`）。
+- 手で圧縮する実行は発言・結果を残さず、回数・未読に数えず、作業中の操作を渡さない。作業中なら予約（`@shared/chat/outbox` の `reserve`）。
 - 圧縮前指示（共通 → プロジェクトの順）は先に 1 回の作業として送り、最後まで終わったら送信待ち・預かりより先に `/compact`（`compactNow`）。止めた・失敗したら圧縮しない。
 - 上限に近づいた自動の圧縮では、プロバイダーの PreCompact フックが足す（`ProviderTurnParams.preCompact`）。足したら札付きの発言として記録し、圧縮か消去の記録まで足さない（記録から導く `preCompactSent(marks)`）。
 - 圧縮前指示から圧縮のあとのやり取りが終わるまで（`awaitingCompact`・`compactedTurn`）、「いま」は預かる。

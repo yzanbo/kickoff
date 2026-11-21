@@ -317,13 +317,13 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       for (const { data } of rows) for (const m of data.matchAll(UUID_PATTERN)) ids.add(m[0]);
       return ids;
     },
-    /** その添付をどれかのチャットの記録（自分の発言・質問への回答）か送信待ちが使っているか（ゴミ箱にあるチャットも数える） */
+    /** その添付をどれかのチャットの記録（自分の発言・質問への回答）か送信待ち・預かりが使っているか（ゴミ箱にあるチャットも数える） */
     uploadInUse(uploadId: string): boolean {
       return (
         db
           .prepare(
             `SELECT 1 FROM chat_events WHERE type IN ('user', 'approval_resolved', 'provider_switched') AND instr(data, $id) > 0
-             UNION ALL SELECT 1 FROM chat_queues WHERE instr(messages, $id) > 0 LIMIT 1`,
+             UNION ALL SELECT 1 FROM chat_outbox WHERE instr(now, $id) > 0 OR instr(later, $id) > 0 LIMIT 1`,
           )
           .get({ id: uploadId }) !== undefined
       );
