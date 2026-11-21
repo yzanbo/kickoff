@@ -55,6 +55,7 @@
 @import "./ui/pill-select.css" layer(ui);
 @import "./ui/steps.css" layer(ui);
 @import "./ui/command-line.css" layer(ui);
+@import "./ui/fold-head.css" layer(ui);
 @import "./sidebar/sidebar.css" layer(feature);
 @import "./sidebar/sidebar-rows.css" layer(feature);
 @import "./sidebar/sidebar-search.css" layer(feature);

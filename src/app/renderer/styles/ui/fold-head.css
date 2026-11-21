@@ -1,0 +1,80 @@
+/* ==== 開閉の見出し（FoldHead の FOLD_ROW と、サイドバーの自分で作ったグループ FOLD_GROUP。開閉の矢印 FoldToggle・アイコン・名前・件数） ==== */
+
+.custom-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--row-tight);
+  padding: 0 4px 0 2px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
+  color: var(--muted);
+  transition: background 0.12s;
+}
+
+.custom-group-head.ungrouped {
+  border-radius: var(--radius-sm);
+}
+
+/* 「No Group」は自分で作ったグループより控えめに */
+.custom-group-name.ungrouped-name {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* サイドバーの開閉の矢印（FoldToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
+.fold-toggle {
+  display: grid;
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* 開閉のボタンの横に添えるアイコン（フォルダ・固定・アーカイブ） */
+.custom-group-icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.fold-toggle:hover,
+:where(:root:not([data-modality="pointer"])) .fold-toggle:focus-visible {
+  color: var(--text);
+  background: transparent;
+}
+
+.custom-group-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ホバーは下線ではなく、チャットの行と同じく行全体の背景で知らせる（表示する項目は変えない） */
+.custom-group-head:not(.editing):hover {
+  background: var(--bg-elev);
+}
+
+.custom-group-head:hover .custom-group-name {
+  color: var(--text);
+}
+
+.custom-group-head.active {
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.custom-group-count {
+  flex: none;
+  font-size: var(--fs-11);
+  color: var(--muted);
+}
