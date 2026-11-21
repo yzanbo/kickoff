@@ -1,5 +1,5 @@
 // コアの MCP サーバーの口（ProviderTurnParams.tools）を Claude Code の書き方にする
-import type { McpHttpServerConfig } from "@anthropic-ai/claude-agent-sdk";
+import type { McpHttpServerConfig } from "./wire";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 
 /** Claude Code の mcpServers（HTTP でつなぐ。鍵は見出しで渡す） */

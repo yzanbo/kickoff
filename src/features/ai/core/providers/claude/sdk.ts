@@ -1,5 +1,5 @@
 // Claude のプロバイダーの差し込み口（外の SDK の口を閉じる 1 ファイル。テストは偽の SDK を渡す）
-import { forkSession, getSubagentMessages, query } from "@anthropic-ai/claude-agent-sdk";
+import { forkSession, getSubagentMessages, query } from "./wire";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 
 /** ClaudeProvider が使う SDK の口（テストでは偽物を渡す） */

@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
-import path from "node:path";
 import type { EffortDefault } from "@shared/chat/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
+import { CLAUDE_ENV, claudeSettingsFiles } from "./internals";
 
 /** 設定ファイルの中身のうち、推論の深さにかかわるところ */
 interface EffortSettings {
@@ -27,14 +27,9 @@ async function readSettings(file: string): Promise<EffortSettings | undefined> {
  * どこにもなければ null（モデルの既定。Kickoff からは値が分からない）
  */
 export async function claudeEffortDefault(model: string | null, cwd: string, env: NodeJS.ProcessEnv = process.env, home = os.homedir()): Promise<EffortDefault> {
-  const fromEnv = asEffort(env.CLAUDE_CODE_EFFORT_LEVEL);
+  const fromEnv = asEffort(env[CLAUDE_ENV.effortLevel]);
   if (fromEnv) return { effort: fromEnv, source: "env" };
-  const sources = [
-    { file: path.join(cwd, ".claude", "settings.local.json"), source: "local" as const },
-    { file: path.join(cwd, ".claude", "settings.json"), source: "project" as const },
-    { file: path.join(home, ".claude", "settings.json"), source: "user" as const },
-  ];
-  for (const { file, source } of sources) {
+  for (const { file, source } of claudeSettingsFiles(cwd, home)) {
     const settings = await readSettings(file);
     if (!settings) continue;
     const effort = (model ? asEffort(settings.modelSettings?.[model]?.effortLevel) : undefined) ?? asEffort(settings.effortLevel);

@@ -1,7 +1,7 @@
 // ACP の形に直す純粋関数
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { configChoices, launchEnv, modeFor } from "./config";
+import { configChoices, acpEnv, modeFor } from "./config";
 import { optionFor } from "./permissions";
 import { callAsTools, mcpToolOf } from "./updates";
 
@@ -29,9 +29,9 @@ test("設定の項目: 選んだモデル・考える深さは、エージェン
 
 test("起動の環境変数: 鍵の変数は外し、API キーのときだけ決めた変数に入れる。Kickoff の変数（GH_TOKEN など）は重ねる", () => {
   const keys = { keyVars: ["CURSOR_API_KEY"], apiKeyVar: "CURSOR_API_KEY" };
-  assert.deepEqual(launchEnv({ PATH: "/bin", CURSOR_API_KEY: "old" }, { env: { GH_TOKEN: "g" } }, keys), { PATH: "/bin", GH_TOKEN: "g" });
-  assert.deepEqual(launchEnv({ PATH: "/bin" }, { auth: { mode: "api_key", apiKey: "k" } }, keys), { PATH: "/bin", CURSOR_API_KEY: "k" });
-  assert.deepEqual(launchEnv({}, { auth: { mode: "api_key", apiKey: null } }, keys), {});
+  assert.deepEqual(acpEnv({ PATH: "/bin", CURSOR_API_KEY: "old" }, { env: { GH_TOKEN: "g" } }, keys), { PATH: "/bin", GH_TOKEN: "g" });
+  assert.deepEqual(acpEnv({ PATH: "/bin" }, { auth: { mode: "api_key", apiKey: "k" } }, keys), { PATH: "/bin", CURSOR_API_KEY: "k" });
+  assert.deepEqual(acpEnv({}, { auth: { mode: "api_key", apiKey: null } }, keys), {});
 });
 
 test("権限の答えの選択肢: 種類で選ぶ（このセッションの間は allow_always を先に。断るときは reject_once）。合う選択肢がなければ断る側に倒す", () => {

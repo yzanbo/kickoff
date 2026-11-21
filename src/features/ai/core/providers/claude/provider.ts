@@ -1,5 +1,5 @@
 import os from "node:os";
-import type { Options, Query, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { bundledClaudeVersion, MCP_SERVERS_DELIVERY, overageInUseOf, planUsageOf, resolveClaudeExecutable, type Options, type Query, type SDKResultMessage, type SDKUserMessage } from "./wire";
 import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk";
 import { createBackgroundTracker } from "./background";
 import { copyForWorkplaceMove, findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles";
@@ -10,7 +10,6 @@ import { createPreCompactGate, preCompactHook, replyText } from "./preCompact";
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError, resetTimeOf } from "@/features/ai/core/providers/shared/usageLimit";
-import { autoCompactEnv } from "@shared/compact/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels";
 import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
@@ -18,12 +17,13 @@ import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { createCanUseTool } from "./approvals";
 import { mcpServersOf, toolAllowList } from "./mcpServers";
 import { agentSpawnNotes } from "./spawnNotes";
-import { agentEnv, bundledClaudeVersion, claudeAuthEnv, resolveClaudeExecutable } from "./env";
+import { agentEnv, claudeAuthEnv } from "./env";
+import { autoCompactEnv, type ClaudeAuthStatus } from "./internals";
 import { createMessageState, emitSdkMessage } from "./messages";
 import { subagentLogOf } from "./subagentLog";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
-import { normalizeUsage, overageInUseOf, readPlanDisplayName } from "./usage";
+import { normalizeUsage, readPlanDisplayName } from "./usage";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
 import { claudeSandboxOption } from "./sandbox";
@@ -57,7 +57,7 @@ export class ClaudeProvider implements AgentProvider {
     }
     try {
       const stdout = await runCommand(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
-      const info = JSON.parse(stdout) as { loggedIn?: boolean; authMethod?: string; email?: string; subscriptionType?: string };
+      const info = JSON.parse(stdout) as ClaudeAuthStatus;
       // プランは種類（Max の段階を区別しない "max"）より、アカウントの表示名（"Ultra"・"Max 20x" など）を出す
       const plan = info.subscriptionType ? ((await readPlanDisplayName()) ?? info.subscriptionType) : undefined;
       return {
@@ -82,7 +82,7 @@ export class ClaudeProvider implements AgentProvider {
    */
   async usage(): Promise<PlanUsage> {
     return this.withIdleSession(async (q) =>
-      normalizeUsage(await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }), await readPlanDisplayName()),
+      normalizeUsage(await planUsageOf(q), await readPlanDisplayName()),
     );
   }
 
@@ -214,7 +214,7 @@ export class ClaudeProvider implements AgentProvider {
           disallowedTools: KICKOFF_DISALLOWED_TOOLS,
           // AI の操作ツールの口は、鍵の見出しを Claude Code の起動の引数に載せないよう標準入力の initialize で渡す
           // （同梱の Claude Code は SDK と同じ版なので読める。決めずにおくと SDK が廃止予定の警告を出す）
-          ...(Object.keys(mcpServers).length > 0 ? { mcpServers, mcpServersDelivery: "initialize" as const } : {}),
+          ...(Object.keys(mcpServers).length > 0 ? { mcpServers, ...MCP_SERVERS_DELIVERY } : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,

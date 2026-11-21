@@ -1,3 +1,10 @@
+import { isNetworkError } from "@shared/ai/networkErrors";
+import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
+
+/** 承認カードの答えを待つ長さ（秒。7 日。フック・MCP のツールの待ち時間。答える前に閉じると拒否になるため長く） */
+export const APPROVAL_WAIT_S = 7 * 24 * 60 * 60;
+/** ツールなしで 1 回だけ聞くときに、答えを待つ長さ */
+export const ASK_TIMEOUT_MS = 120_000;
 /** 止めたあと、AI がいまの作業の終わりを返すまで待つ長さ（過ぎたら作業の終わりを待たずに中断で返す） */
 export const STOP_GRACE_MS = 5000;
 
@@ -25,4 +32,21 @@ export function createStopper(signal: AbortSignal, opts: { interrupt: () => void
       if (timer) clearTimeout(timer);
     },
   };
+}
+
+/** 待つ約束に時間の上限を付ける（過ぎたら message の失敗にする） */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(message)), ms)));
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * 失敗の文から、結果に添える印（使用枠の上限 usageLimit・通信の切断 network）を作る。hints は CLI が種類で知らせたもの。
+ * 使用枠の上限なら通信の切断にはしない（再開の決まりが違うため）
+ */
+export function failureFlags(message: string, hints: { usageLimit?: boolean; network?: boolean } = {}): { network?: true; usageLimit?: { resetsAt: null } } {
+  const usageLimit = Boolean(hints.usageLimit) || isUsageLimitError(message);
+  const network = !usageLimit && (Boolean(hints.network) || isNetworkError(message));
+  return { ...(network ? { network: true as const } : {}), ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}) };
 }

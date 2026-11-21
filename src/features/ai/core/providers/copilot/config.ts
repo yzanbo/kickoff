@@ -1,7 +1,9 @@
-import type { MCPServerConfig, ProviderConfig, SandboxConfig } from "@github/copilot-sdk";
+import type { MCPServerConfig, ProviderConfig, SandboxConfig } from "./sdk";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "@/features/ai/core/providers/keys";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { launchEnv } from "@/features/ai/core/providers/shared/process";
+import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 /**
  * 実行の指定を Copilot SDK の形にする（純粋関数）。利用者の Copilot の設定（~/.copilot）はそのまま読ませ（Claude Code の settingSources と同じ考え）、
@@ -9,7 +11,7 @@ import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
  */
 
 /** MCP のツールの待ち時間（ミリ秒。承認を待つツールのため長く。Claude Code の MCP_TOOL_TIMEOUT と同じ 7 日） */
-const COPILOT_MCP_TOOL_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
+const COPILOT_MCP_TOOL_TIMEOUT_MS = APPROVAL_WAIT_S * 1000;
 
 /**
  * Copilot のランタイムが自分のログインに使う環境変数。ランタイムの環境に入っていると、Copilot のログインの代わりにそれで動く
@@ -20,9 +22,7 @@ const COPILOT_AUTH_VARS = ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN", "
 
 /** ランタイム（と、そこから動く AI のコマンド）の環境変数 */
 export function runtimeEnv(base: Record<string, string | undefined>, extra: Record<string, string> | undefined): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = { ...base, ...(extra ?? {}) };
-  for (const name of COPILOT_AUTH_VARS) delete env[name];
-  return env;
+  return launchEnv(base, extra, { drop: COPILOT_AUTH_VARS });
 }
 
 /** AI の操作ツール（コアの MCP サーバー）を SDK の mcpServers にする。鍵は見出し（JSON-RPC の中で渡す）で、起動の引数・環境変数には載せない */

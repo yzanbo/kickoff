@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
-import type { SDKControlGetUsageResponse, SDKRateLimitInfo } from "@anthropic-ai/claude-agent-sdk";
-import { normalizeUsage, overageInUseOf, readPlanDisplayName } from "./usage";
+import type { SDKControlGetUsageResponse, SDKRateLimitInfo } from "./wire";
+import { normalizeUsage, readPlanDisplayName } from "./usage";
+import { overageInUseOf } from "./wire";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 const usage = (subscription_type: string | null) =>

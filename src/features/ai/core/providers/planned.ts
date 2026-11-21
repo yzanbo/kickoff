@@ -1,7 +1,7 @@
 import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider, ProviderTurnResult } from "./types";
-import { runCommand } from "@/foundation/core/system/exec";
+import { cliVersion } from "@/features/ai/core/providers/shared/process";
 
 /**
  * まだ Kickoff から使えない（対応予定の）プロバイダー。状態の表示のため、CLI が入っているかだけ確かめる。
@@ -18,7 +18,8 @@ export class PlannedProvider implements AgentProvider {
   ) {}
 
   async status(): Promise<ProviderCliStatus> {
-    const version = await cliVersion(this.command);
+    const found = await cliVersion(this.command);
+    const version = found === null ? null : found || "バージョン不明";
     return {
       id: this.id,
       label: this.label,
@@ -33,15 +34,5 @@ export class PlannedProvider implements AgentProvider {
 
   async run(): Promise<ProviderTurnResult> {
     return { status: "failed", sessionId: null, error: `${this.label} はまだ Kickoff から使えません` };
-  }
-}
-
-/** `<command> --version` の 1 行目（見つからなければ null） */
-async function cliVersion(command: string): Promise<string | null> {
-  try {
-    const stdout = await runCommand(command, ["--version"], { timeout: 5000 });
-    return stdout.trim().split("\n")[0]?.slice(0, 60) || "バージョン不明";
-  } catch {
-    return null;
   }
 }

@@ -15,11 +15,10 @@ import { withSession } from "./session";
 import { runCodexTurn } from "./turn";
 import { CodexUpdateCheck } from "./update";
 import { parseCodexVersion } from "@shared/ai/cliUpdates";
+import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 /** モデルの一覧を読む頁の上限（安全のため） */
 const MAX_MODEL_PAGES = 5;
-/** 1 回だけ聞くときの待ち時間 */
-const ASK_TIMEOUT_MS = 120_000;
 
 export interface CodexProviderOpts {
   self?: SelfInfo;
@@ -147,8 +146,7 @@ export class CodexProvider implements AgentProvider {
       async (rpc) => {
         const thread = await rpc.request<ThreadResponse>("thread/start", { model, cwd, ephemeral: true, approvalPolicy: "never", sandbox: "read-only" });
         await rpc.request("turn/start", { threadId: thread.thread.id, input: [{ type: "text", text: prompt, text_elements: [] }], effort });
-        const timer = setTimeout(() => finish({ id: "", status: "failed", error: { message: "Codex が時間内に答えませんでした", codexErrorInfo: null, additionalDetails: null } }), ASK_TIMEOUT_MS);
-        const turn = await done.finally(() => clearTimeout(timer));
+        const turn = await withTimeout(done, ASK_TIMEOUT_MS, "Codex が時間内に答えませんでした");
         if (turn.status !== "completed") throw new Error(turn.error?.message ?? "Codex が答えませんでした");
         return text.trim();
       },

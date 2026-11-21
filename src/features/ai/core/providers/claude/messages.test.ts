@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage } from "./wire";
 import type { ChatEventData } from "@shared/chat/chatEvent";
 import { createMessageState, emitSdkMessage } from "./messages";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";

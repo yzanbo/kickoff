@@ -6,7 +6,7 @@
 
 - `AgentProvider` は `status()`・`run(params, callbacks, signal)` と任意の機能（`usage`・`models`・`fork`・`login` など）。対応しない機能は持たない。
 - できることは `features.ts` の `providerFeatures` が任意の機能の有無から作る（画面の押せない理由と、コアの断る文 `providerFeatureMissing` も同じ）。
-- 失敗は投げずに `ProviderTurnResult` で返し、止められたら `cancelled`（止める合図は `shared/turnLifecycle.ts` の `createStopper`）。記録の `user` / `approval` / `result` などはコアが作り、プロバイダーは出さない。
+- 失敗は投げずに `ProviderTurnResult` で返し、止められたら `cancelled`。共通の小物は `shared/`（止める・失敗の印・名乗り・環境変数）。記録の `user` / `approval` / `result` などはコアが作り、プロバイダーは出さない。
 - AI を足すときは `index.ts` の `createProviders` と `PROVIDER_IDS`。確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。
 - チャットの AI は作るときに決め、途中では変えない。違う AI の子チャットは会話を引き継がない（セッションの形が違う）。
 - モデルの一覧は `modelCatalog.ts`（一覧にないモデルを外す `knownModel` も）。
@@ -14,25 +14,25 @@
 - キーを AI に読ませない: CLI のログインの口を使い、環境変数で渡すのは CLI が子プロセスから外せると確かめたものだけ。サブスクではアプリは資格情報を持たない。
 - AI の操作ツールはプロバイダーが作らず、`params.tools` を各 CLI の MCP の書き方に直すだけ。
 - MCP の鍵は JSON-RPC か標準入力の中で渡し、起動の引数・環境変数に載せない。API キーも起動の引数に載せない（`ps` で見える）。
-- 記録の名前と入力の形は Claude Code にそろえる（画面のツールの表示・変更カードがその名前を前提にする）。
+- 記録の名前と入力の形は Claude Code にそろえる（画面のツールの表示・変更カードが前提にする）。
 
 ## Claude（`claude/`）
 
 | ファイル | 役目 |
 |---|---|
 | `provider.ts` | `ClaudeProvider`（状態・使用枠・モデル・実行・分岐・ファイルを戻す・1 回だけ聞く） |
+| `wire.ts`・`internals.ts` | SDK を読む唯一の所（型にない欄・確かめた版 `TESTED_VERSION`）・Claude Code の内部の決まり（環境変数・場所） |
 | `sessionFiles.ts` | Claude Code の会話記録のファイル（探す・分岐と乗り換えの切り出し・ゴミ箱へ） |
 | `env.ts`・`policy.ts`・`sandbox.ts`・`preCompact.ts` | 環境変数・フック（文脈・守り）・Bash の砂場・圧縮前指示のフック |
 | `messages.ts`・`approvals.ts`・`input.ts`・`mcpServers.ts` | SDK のメッセージ → 記録・承認の頼み・ストリーミング入力・MCP の登録 |
 | `commandOutput.ts`・`background.ts`・`turnOver.ts`・`usage.ts` | 実行中のコマンドの出力・裏の作業・入力を閉じる時・使用枠 |
 
-- 会話記録の場所と形は Claude Code の内部の決まり。作業フォルダから決まる場所になければ、すべてのプロジェクトを探す（`findSessionFile`）。
+- 会話記録が作業フォルダから決まる場所になければ、すべてのプロジェクトを探す（`findSessionFile`）。
 - 分岐は、直近の区切りだけを切り出した一時のセッションを写す（`writeRecentSegments`。丸ごと写すと重い）。
 - 送るたびに変わる文脈はシステムプロンプトでなく `turnContextHook` で添える（続きのセッションはシステムプロンプトを使い回す）。
-- 承認カードで聞くフックと MCP のツールは待ち時間を長くする（書かないと、答える前にカードが閉じて拒否になる）。
+- 承認カードで聞くフックと MCP のツールの待ち時間は `APPROVAL_WAIT_S`（書かないと、答える前にカードが閉じて拒否になる）。
 - `askOnce` は空の一時フォルダで動かす（起動したフォルダの CLAUDE.md が答えに混ざる）。
 - 使わせないツールは `KICKOFF_DISALLOWED_TOOLS`。ほかの AI に同じ働き（会話ごと作業場所を移す）のツールが足されたら、同じく外す。
-- 使用枠の API は SDK の EXPERIMENTAL。形が変わったら `usage.ts` の `normalizeUsage` を直す。
 - 入力は、まだ渡していない発言があるうちは閉じない。裏の作業は `background_tasks_changed` の一覧で丸ごと置き換える。
 - 圧縮の区切りでは、要約の記録 `compact` を先に出してから圧縮中を外す（`messages.ts`）。
 
@@ -84,7 +84,7 @@
 ## 使用状況（`core/usage/`・`ui/usage/`）
 
 - Claude のプランの使用枠は `planUsage.ts` の `UsageMonitor`（メッセージを送らないので枠を使わない）。Codex のクレジットは `codexCredits.ts`。
-- サービスごと（`core/usage/services/`）は 1 ファイルずつ `defineFetcher` で作り、1 つが失敗・遅れても、ほかは出す（`services.test.ts`）。覚える時間は画面の取り直しと同じ `USAGE_REFRESH_MS`。
+- サービスごと（`core/usage/services/`）は 1 ファイルずつ `defineFetcher` で作り、1 つが失敗・遅れても、ほかは出す。覚える時間は `USAGE_REFRESH_MS`。
 - 各サービスのログイン情報は読むだけで更新しない（更新するとその CLI のログインが切れる）。名乗りは `USER_AGENT`（ほかのアプリのふりをしない）。
 - 画面の使用枠の店は App が 1 つ持つ。残り時間を進める時計は `UsageMeter` に置く（App に置くと全体が描き直る）。帯に並べる AI は `usageGroups.ts`。
 - 超過分・クレジットの言葉は `@shared/ai/overage`（AI の get_usage と同じ）。

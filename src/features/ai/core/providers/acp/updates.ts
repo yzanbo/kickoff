@@ -1,5 +1,6 @@
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
-import type { ContentBlock, ToolCall, ToolCallContent } from "./protocol";
+import { blockText, clipToolResult, setCompacting } from "@/features/ai/core/providers/shared/events";
+import type { ToolCall, ToolCallContent } from "./protocol";
 
 /**
  * ACP の session/update を Kickoff の記録（ChatEvent）にする。名前と入力の形は Claude Code にそろえる（Codex・Copilot と同じ決まり。
@@ -7,8 +8,6 @@ import type { ContentBlock, ToolCall, ToolCallContent } from "./protocol";
  * Edit（old_string / new_string）/ 消す = MultiEdit（deleted）、読む = Read、探す = Grep、取ってくる = WebFetch、
  * MCP のツール = mcp__<サーバー>__<ツール>（名前・題にコアの MCP サーバーの名前があれば）
  */
-
-const TOOL_RESULT_LIMIT = 4000;
 
 /** 1 回の実行の間だけ持つ変換の状態 */
 export interface UpdateState {
@@ -32,8 +31,6 @@ export interface UpdateState {
 
 export const createUpdateState = (mcpServers: string[]): UpdateState => ({ tools: new Map(), text: "", thought: "", lastText: "", usage: null, costUsd: undefined, compacting: false, manualCompact: false, mcpServers });
 
-const clip = (value: string) => (value.length > TOOL_RESULT_LIMIT ? `${value.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : value);
-const blockText = (c: ContentBlock) => (c.type === "text" && typeof c.text === "string" ? c.text : `[${c.type}]`);
 const record = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 
@@ -135,7 +132,7 @@ function toolUpdate(update: ToolCall, cb: ProviderCallbacks, state: UpdateState)
   if (entry.emitted && !entry.done && (call.status === "completed" || call.status === "failed")) {
     entry.done = true;
     const failed = call.status === "failed";
-    const content = clip(resultText(call)) || (failed ? "失敗しました" : "");
+    const content = clipToolResult(resultText(call)) || (failed ? "失敗しました" : "");
     for (const id of ids) cb.emit({ type: "tool_result", tool_use_id: id, content, is_error: failed });
   }
 }
@@ -145,14 +142,14 @@ export function sessionUpdate(update: Record<string, unknown> & { sessionUpdate:
   switch (update.sessionUpdate) {
     case "agent_message_chunk": {
       if (state.thought) flushText(cb, state);
-      const chunk = blockText(update.content as ContentBlock);
+      const chunk = blockText(update.content);
       state.text += chunk;
       cb.stream?.(chunk);
       return;
     }
     case "agent_thought_chunk":
       if (state.text) flushText(cb, state);
-      state.thought += blockText(update.content as ContentBlock);
+      state.thought += blockText(update.content);
       return;
     case "tool_call":
     case "tool_call_update":
@@ -169,18 +166,12 @@ export function sessionUpdate(update: Record<string, unknown> & { sessionUpdate:
     case "compaction_update": {
       const status = String(update.status);
       if (status === "in_progress") {
-        if (!state.compacting) {
-          state.compacting = true;
-          cb.compacting?.(true);
-        }
+        setCompacting(state, cb, true);
         return;
       }
       if (status === "completed") cb.emit({ type: "compact", trigger: state.manualCompact ? "manual" : "auto", pre_tokens: state.usage?.used ?? 0 });
       else if (status === "failed" && update.error) cb.compactFailed?.(String(update.error));
-      if (state.compacting) {
-        state.compacting = false;
-        cb.compacting?.(false);
-      }
+      setCompacting(state, cb, false);
       return;
     }
     case "notice": {

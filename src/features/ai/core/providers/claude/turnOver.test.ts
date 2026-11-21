@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage } from "./wire";
 import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createTurnOver } from "./turnOver";

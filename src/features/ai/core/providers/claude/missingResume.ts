@@ -1,4 +1,4 @@
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKResultMessage } from "./wire";
 
 /** SDK 2.1.311 の、初期化より前に対象の会話がないと報告する結果だけを消失と判定する。 */
 export function confirmedClaudeMissingResume(error: unknown, sessionId: string | null, final: SDKResultMessage | undefined, seenOtherMessage: boolean): boolean {

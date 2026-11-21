@@ -1,6 +1,6 @@
-import { COMMAND_OUTPUT_LINES } from "@shared/chat/chatEvent";
-import { cleanTerminalText, tailLines } from "@/features/ai/core/providers/claude/commandOutput";
+import { cleanTerminalText } from "@shared/foundation/text/terminal";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
+import { clipToolResult, createCommandOutputTail, setCompacting, type CommandOutputTail } from "@/features/ai/core/providers/shared/events";
 import type { SessionEvent } from "./sdk";
 
 /**
@@ -10,12 +10,10 @@ import type { SessionEvent } from "./sdk";
  * 読む = Read（file_path）、MCP のツール = mcp__<サーバー>__<ツール>。サブエージェントの中のもの（parentToolCallId）はまだ写さない
  */
 
-const TOOL_RESULT_LIMIT = 4000;
-
 /** 1 回の実行の間だけ持つ変換の状態 */
 export interface EventState {
   /** 実行中のコマンドの出力（届いた分） */
-  outputs: Map<string, string>;
+  outputs: CommandOutputTail;
   /** 最後のメインの返答の文 */
   lastText: string;
   /** 最後に記録に残る（ephemeral でない）イベントの ID（分岐の起点） */
@@ -27,9 +25,8 @@ export interface EventState {
   error: { message: string; type: string; code?: string } | null;
 }
 
-export const createEventState = (): EventState => ({ outputs: new Map(), lastText: "", lastEventId: null, usage: null, compacting: false, error: null });
+export const createEventState = (): EventState => ({ outputs: createCommandOutputTail(), lastText: "", lastEventId: null, usage: null, compacting: false, error: null });
 
-const clip = (text: string) => (text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text);
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
 
 /** ツールの呼び出しを Claude Code の名前と入力の形にする */
@@ -76,37 +73,29 @@ export function handleEvent(event: SessionEvent, cb: ProviderCallbacks, state: E
     }
     case "tool.shell_output": {
       const d = event.data;
-      const raw = (state.outputs.get(d.toolCallId) ?? "") + d.text;
-      state.outputs.set(d.toolCallId, raw.slice(-64_000));
-      cb.commandOutput?.({ tool_use_id: d.toolCallId, task_id: d.toolCallId, text: tailLines(cleanTerminalText(raw), COMMAND_OUTPUT_LINES) });
+      state.outputs.append(d.toolCallId, d.text, cb);
       return;
     }
     case "tool.execution_complete": {
       const d = event.data;
       if (d.parentToolCallId) return;
-      state.outputs.delete(d.toolCallId);
+      state.outputs.take(d.toolCallId);
       const content = d.success ? (d.result?.content ?? "") : (d.error?.message ?? d.result?.content ?? "失敗しました");
-      cb.emit({ type: "tool_result", tool_use_id: d.toolCallId, content: clip(cleanTerminalText(content)), is_error: !d.success });
+      cb.emit({ type: "tool_result", tool_use_id: d.toolCallId, content: clipToolResult(cleanTerminalText(content)), is_error: !d.success });
       return;
     }
     case "session.usage_info":
       state.usage = { tokens: event.data.currentTokens, window: event.data.tokenLimit };
       return;
     case "session.compaction_start":
-      if (!state.compacting) {
-        state.compacting = true;
-        cb.compacting?.(true);
-      }
+      setCompacting(state, cb, true);
       return;
     case "session.compaction_complete": {
       const d = event.data;
       // 要約の記録を先に残してから圧縮中を外す（Claude Code と同じ順。圧縮中に預かった「いま」が圧縮の下に並ぶ）
       if (d.success) cb.emit({ type: "compact", trigger: d.trigger === "manual" ? "manual" : "auto", pre_tokens: d.preCompactionTokens ?? state.usage?.tokens ?? 0 });
       else if (d.error || d.failureReason) cb.compactFailed?.(d.error ?? d.failureReason ?? "");
-      if (state.compacting) {
-        state.compacting = false;
-        cb.compacting?.(false);
-      }
+      setCompacting(state, cb, false);
       if (d.success && d.postCompactionTokens !== undefined) cb.context?.(d.postCompactionTokens);
       return;
     }

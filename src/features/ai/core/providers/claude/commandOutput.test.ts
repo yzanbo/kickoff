@@ -2,11 +2,11 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage } from "./wire";
 import type { CommandOutput } from "@shared/chat/chatEvent";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
-import { cleanTerminalText, createCommandOutputWatcher, findOutputFile, tailLines } from "./commandOutput";
+import { createCommandOutputWatcher, findOutputFile } from "./commandOutput";
 
 const sdk = (msg: Record<string, unknown>) => msg as unknown as SDKMessage;
 const started = (taskId: string, toolUseId: string, taskType = "local_bash") =>
@@ -20,21 +20,6 @@ function outputFile(root: string, taskId: string): string {
   fs.writeFileSync(file, "");
   return file;
 }
-
-test("端末向けの出力: 色の制御文字を除き、\\r で上書きした行は最後の状態だけにする", () => {
-  assert.equal(cleanTerminalText("\x1b[32mok\x1b[0m done"), "ok done");
-  assert.equal(cleanTerminalText("\x1b]0;title\x07text"), "text");
-  assert.equal(cleanTerminalText("10%\r50%\r100%\nnext"), "100%\nnext");
-  assert.equal(cleanTerminalText("progress 3/3\r\nend"), "progress 3/3\nend");
-  assert.equal(cleanTerminalText("bar\r"), "bar");
-  assert.equal(cleanTerminalText("a\x07b\tc"), "ab\tc");
-});
-
-test("最後の n 行（終わりの改行は数えない）", () => {
-  assert.equal(tailLines("1\n2\n3\n4\n", 2), "3\n4");
-  assert.equal(tailLines("only", 5), "only");
-  assert.equal(tailLines("", 3), "");
-});
 
 test("出力ファイルは、作業場所のフォルダ名によらずセッション ID と作業 ID で探す", () => {
   const root = tempDir();

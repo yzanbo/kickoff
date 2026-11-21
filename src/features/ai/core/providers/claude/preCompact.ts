@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { HookCallbackMatcher } from "@anthropic-ai/claude-agent-sdk";
+import type { HookCallbackMatcher } from "./wire";
 import { isPreCompactDone, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 

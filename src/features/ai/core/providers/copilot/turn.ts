@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
-import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
-import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { setCompacting } from "@/features/ai/core/providers/shared/events";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { byokProvider, copilotSandbox, mcpServersOf, runtimeEnv, turnPrompt } from "./config";
@@ -9,6 +9,7 @@ import { createEventState, handleEvent, type EventState } from "./events";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { createPermissionHandler, createPreToolUseHook, createUserInputHandler } from "./permissions";
 import type { CopilotClientFactory, CopilotClientLike, CopilotSessionLike, SessionConfig } from "./sdk";
+import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 
 export interface TurnDeps {
   clientFactory: CopilotClientFactory;
@@ -17,17 +18,14 @@ export interface TurnDeps {
   self?: SelfInfo;
 }
 
-/** 失敗の種類が使用枠の上限か（Copilot の errorType: rate_limit = 回数の上限・quota = プレミアムリクエストの枠） */
-const isLimit = (error: NonNullable<EventState["error"]>) => error.type === "rate_limit" || error.type === "quota" || isUsageLimitError(error.message);
-
 /** 手を空けたときの結果 */
 export function turnResult(state: EventState, sessionId: string, aborted: boolean): ProviderTurnResult {
   const context = state.usage ? { context: { tokens: state.usage.tokens, window: state.usage.window } } : {};
   if (aborted) return { status: "cancelled", sessionId, ...context };
   if (state.error) {
-    const usageLimit = isLimit(state.error);
-    const network = !usageLimit && isNetworkError(state.error.message);
-    return { status: "failed", sessionId, error: state.error.message, ...context, ...(network ? { network: true } : {}), ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}) };
+    // 失敗の種類が使用枠の上限か（Copilot の errorType: rate_limit = 回数の上限・quota = プレミアムリクエストの枠）
+    const limit = state.error.type === "rate_limit" || state.error.type === "quota";
+    return { status: "failed", sessionId, error: state.error.message, ...context, ...failureFlags(state.error.message, { usageLimit: limit }) };
   }
   return { status: "completed", sessionId, result: state.lastText, ...(state.lastEventId ? { lastMessageId: state.lastEventId } : {}), ...context };
 }
@@ -40,7 +38,7 @@ function sessionConfig(params: ProviderTurnParams, cb: ProviderCallbacks, signal
   const sandbox = copilotSandbox(params);
   const tools = params.tools ?? [];
   return {
-    clientName: "Kickoff",
+    clientName: CLIENT_INFO.title,
     workingDirectory: params.cwd,
     additionalDirectories: params.additionalDirectories,
     streaming: true,
@@ -98,10 +96,7 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
     if (signal.aborted) return { status: "cancelled", sessionId };
 
     if (compactOnly) {
-      if (!state.compacting) {
-        state.compacting = true;
-        cb.compacting?.(true);
-      }
+      setCompacting(state, cb, true);
       const before = state.usage?.tokens ?? 0;
       const res = await session.compact();
       // SDK が圧縮の知らせを出さなかったときだけ、ここで記録を残す

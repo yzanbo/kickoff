@@ -4,6 +4,9 @@
  * 版が上がって形が変わったら、生成し直して見比べ、ここを直す
  */
 
+/** 確かめた codex-cli の版（上の型を写した版） */
+export const TESTED_VERSION = "0.169.0";
+
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 /** 指示の 1 つ分（文だけを使う。画像などは添付のパスを文に書いて Read させるので使わない） */

@@ -2,17 +2,17 @@ import os from "node:os";
 import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
-import { findExecutable, runCommand } from "@/foundation/core/system/exec";
+import { findExecutable } from "@/foundation/core/system/exec";
 import { cleanTitle, summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import type { ProviderAuth } from "@/features/ai/core/providers/keys";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-import { launchEnv } from "./config";
+import { acpEnv } from "./config";
 import type { ContentBlock, RequestPermissionRequest, SessionNotification, SessionResponse } from "./protocol";
 import { openAgent, runAcpTurn, type AcpAgentSpec } from "./turn";
+import { cliVersion } from "@/features/ai/core/providers/shared/process";
+import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
 
-/** 1 回だけ聞くときの待ち時間 */
-const ASK_TIMEOUT_MS = 120_000;
 
 export interface AcpProviderOpts {
   self?: SelfInfo;
@@ -62,7 +62,7 @@ export class AcpProvider implements AgentProvider {
   async status(): Promise<ProviderCliStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.executable) return { ...base, installed: false, logged_in: false, detail: this.spec.installHint };
-    const version = this.opts.spawn ? null : await runCommand(this.executable, ["--version"], { timeout: 5000 }).then((s) => s.trim().split("\n")[0]?.slice(0, 60) ?? null, () => null);
+    const version = this.opts.spawn ? null : await cliVersion(this.executable);
     return { ...base, installed: true, logged_in: true, detail: `${this.spec.statusDetail}${version ? ` · ${version}` : ""}` };
   }
 
@@ -94,7 +94,7 @@ export class AcpProvider implements AgentProvider {
     const { rpc, init } = await openAgent(
       { spawn: this.spawn, spec: this.spec },
       {
-        env: launchEnv(this.baseEnv, auth, this.spec.keys),
+        env: acpEnv(this.baseEnv, auth, this.spec.keys),
         cwd,
         params: auth,
         onNotification: (method, raw) => {
@@ -115,9 +115,7 @@ export class AcpProvider implements AgentProvider {
       const session = await rpc.request<SessionResponse>("session/new", { cwd, mcpServers: [] });
       sessionId = session.sessionId ?? null;
       if (!sessionId) throw new Error(`${this.label} がセッションの ID を返しませんでした`);
-      let timer: NodeJS.Timeout | undefined;
-      const timeout = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(`${this.label} が時間内に答えませんでした`)), ASK_TIMEOUT_MS)));
-      await Promise.race([rpc.request("session/prompt", { sessionId, prompt: [{ type: "text", text: prompt }] }), timeout]).finally(() => clearTimeout(timer));
+      await withTimeout(rpc.request("session/prompt", { sessionId, prompt: [{ type: "text", text: prompt }] }), ASK_TIMEOUT_MS, `${this.label} が時間内に答えませんでした`);
       const caps = init.agentCapabilities?.sessionCapabilities;
       if (caps?.delete) await rpc.request("session/delete", { sessionId }).catch(() => {});
       else if (caps?.close) await rpc.request("session/close", { sessionId }).catch(() => {});

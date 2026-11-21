@@ -1,7 +1,6 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
-import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
-import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
@@ -40,15 +39,12 @@ export function turnResult(turn: Turn, threadId: string, usage: ThreadTokenUsage
   if (turn.status === "interrupted") return { status: "cancelled", sessionId: threadId, ...context };
   const error = turn.error ?? lastError;
   const message = error?.message ?? "Codex のターンが失敗しました";
-  const usageLimit = error?.codexErrorInfo === "usageLimitExceeded" || isUsageLimitError(message);
-  const network = !usageLimit && (isNetworkInfo(error?.codexErrorInfo ?? null) || isNetworkError(message));
   return {
     status: "failed",
     sessionId: threadId,
     error: error?.additionalDetails ? `${message}（${error.additionalDetails}）` : message,
     ...context,
-    ...(network ? { network: true } : {}),
-    ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}),
+    ...failureFlags(message, { usageLimit: error?.codexErrorInfo === "usageLimitExceeded", network: isNetworkInfo(error?.codexErrorInfo ?? null) }),
   };
 }
 

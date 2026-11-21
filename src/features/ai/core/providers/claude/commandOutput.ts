@@ -2,8 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { COMMAND_OUTPUT_LINES, type CommandOutput } from "@shared/chat/chatEvent";
+import type { SDKMessage } from "./wire";
+import type { CommandOutput } from "@shared/chat/chatEvent";
+import { outputTail } from "@/features/ai/core/providers/shared/events";
+import { commandOutputRoots } from "./internals";
 
 /*
  * 実行中のコマンドの出力を、終わる前から画面に届ける。
@@ -24,13 +26,6 @@ const KEEP_CHARS = 64 * 1024;
 /** 1 回に読む上限（これより多く増えていたら、終わりの分だけ読む） */
 const MAX_READ_BYTES = 256 * 1024;
 
-/** 出力ファイルを探す場所（Claude Code の一時フォルダの候補。CLAUDE_CODE_TMPDIR → /tmp → OS の一時フォルダ） */
-function defaultOutputRoots(): string[] {
-  const name = `claude-${process.getuid?.() ?? 0}`;
-  const bases = [process.env.CLAUDE_CODE_TMPDIR, "/tmp", os.tmpdir()].filter((d): d is string => Boolean(d));
-  return [...new Set(bases.map((d) => path.join(d, name)))];
-}
-
 /** コマンドの出力ファイルを探す（各場所の下の作業場所のフォルダごとに `<セッション ID>/tasks/<作業 ID>.output`）。なければ null */
 export function findOutputFile(roots: string[], sessionId: string, taskId: string): string | null {
   const tail = path.join(sessionId, "tasks", `${taskId}.output`);
@@ -47,33 +42,6 @@ export function findOutputFile(roots: string[], sessionId: string, taskId: strin
     }
   }
   return null;
-}
-
-/**
- * 端末向けの出力を、画面に出す文にする: 色などの制御文字を除き、\r で上書きした行（進み具合の表示）は最後の状態だけにする
- */
-export function cleanTerminalText(raw: string): string {
-  const stripped = raw
-    // OSC（題名・リンクなど）・CSI（色・カーソル）・そのほかの ESC の並び
-    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
-    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
-    .replace(/\x1b[@-Z\\-_]/g, "")
-    .replace(/\r\n/g, "\n");
-  return stripped
-    .split("\n")
-    .map((line) => {
-      if (!line.includes("\r")) return line;
-      // 上書きした行は、空でない最後の状態（行の終わりの \r だけなら、その前の状態）
-      const parts = line.split("\r").filter((p) => p !== "");
-      return parts.at(-1) ?? "";
-    })
-    .join("\n")
-    .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "");
-}
-
-/** 最後の n 行（終わりの改行は数えない） */
-export function tailLines(text: string, n: number): string {
-  return text.replace(/\n+$/, "").split("\n").slice(-n).join("\n");
 }
 
 interface Watch {
@@ -101,7 +69,7 @@ export interface CommandOutputWatcherOptions {
  * 始まり: task_started（local_bash）/ 終わり: task_notification・task_updated の終わりの状態（手前のコマンドも裏のコマンドも同じ）
  */
 export function createCommandOutputWatcher(emit: (output: CommandOutput) => void, opts: CommandOutputWatcherOptions = {}) {
-  const roots = opts.roots ?? defaultOutputRoots();
+  const roots = opts.roots ?? commandOutputRoots(os.tmpdir());
   const pollMs = opts.pollMs ?? POLL_MS;
   const findTimeoutMs = opts.findTimeoutMs ?? FIND_TIMEOUT_MS;
   const watches = new Map<string, Watch>();
@@ -136,7 +104,7 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
     } finally {
       await handle.close();
     }
-    const text = tailLines(cleanTerminalText(w.raw), COMMAND_OUTPUT_LINES);
+    const text = outputTail(w.raw);
     // 止めたあとに読み終えたものは知らせない
     if (text === w.sent || watches.get(taskId) !== w) return;
     w.sent = text;

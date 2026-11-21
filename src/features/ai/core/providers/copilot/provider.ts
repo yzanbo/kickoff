@@ -10,9 +10,9 @@ import { askModelOf, toModelOptions, toPlanUsage } from "./catalog";
 import { runtimeEnv } from "./config";
 import { sdkClientFactory, type CopilotClientFactory, type CopilotClientLike } from "./sdk";
 import { runCopilotTurn } from "./turn";
+import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
+import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
 
-/** 1 回だけ聞くときの待ち時間 */
-const ASK_TIMEOUT_MS = 120_000;
 
 export interface CopilotProviderOpts {
   self?: SelfInfo;
@@ -105,7 +105,7 @@ export class CopilotProvider implements AgentProvider {
     return this.withClient(async (client) => {
       const model = askModelOf(await client.listModels().catch(() => []), options?.model ?? "light");
       const session = await client.createSession({
-        clientName: "Kickoff",
+        clientName: CLIENT_INFO.title,
         workingDirectory: cwd,
         availableTools: [],
         enableSessionStore: false,
@@ -123,11 +123,10 @@ export class CopilotProvider implements AgentProvider {
           if (event.type === "session.idle") finish();
         });
         await session.send({ prompt });
-        const timer = setTimeout(() => {
-          error ??= "Copilot が時間内に答えませんでした";
-          finish();
-        }, ASK_TIMEOUT_MS);
-        await done.finally(() => clearTimeout(timer));
+        // 時間内に手が空かなければ、それまでの返答の文を返す（文がなければ失敗）
+        await withTimeout(done, ASK_TIMEOUT_MS, "Copilot が時間内に答えませんでした").catch((e: unknown) => {
+          error ??= errorMessage(e);
+        });
         if (!text && error) throw new Error(error);
         return text.trim();
       } finally {

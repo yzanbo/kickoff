@@ -1,4 +1,4 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage } from "./wire";
 import type { BackgroundState } from "@shared/chat/chatLive";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 

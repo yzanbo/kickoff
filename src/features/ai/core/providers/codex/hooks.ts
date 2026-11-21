@@ -1,4 +1,5 @@
 import type { JsonValue } from "./protocol";
+import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 /**
  * Codex の PreToolUse フック。シェルのコマンド（Bash）とファイルの変更（apply_patch）の前に、
@@ -16,7 +17,7 @@ export const HOOK_TOKEN_ENV = "KICKOFF_CODEX_HOOK_TOKEN";
 const HOOK_MATCHER = "^(Bash|apply_patch)$";
 
 /** フックの待ち時間（秒。承認カードの答えを待つため長く。Claude Code のフック・MCP の待ち時間と同じ 7 日） */
-const HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
+const HOOK_TIMEOUT_S = APPROVAL_WAIT_S;
 
 /** 口に問い合わせられなかったときに返す文（守りを当てられないので止める） */
 export const HOOK_UNREACHABLE = "Kickoff の守りに問い合わせられなかったので止めました。もう一度試すか、利用者に知らせてください";

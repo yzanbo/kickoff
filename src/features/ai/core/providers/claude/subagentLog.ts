@@ -1,5 +1,6 @@
 // Claude Code のサブエージェントの会話（getSubagentMessages のメッセージ）を、プロバイダーによらない形にそろえる
 import type { SubagentLogItem } from "@/features/ai/core/providers/types";
+import { contentText } from "@/features/ai/core/providers/shared/events";
 
 /** getSubagentMessages が返すメッセージのうち、ここで読むところ */
 export interface SubagentMessageLike {
@@ -11,13 +12,6 @@ type Block = { type?: string; text?: string; id?: string; name?: string; input?:
 
 /** Claude Code が足す注意書き（<system-reminder> など）を除いた文 */
 const withoutReminders = (text: string) => text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "").trim();
-
-/** ツールの結果の中身を文にする（画像などは印だけ） */
-function resultText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return (content as Block[]).map((b) => (b.type === "text" ? (b.text ?? "") : `[${b.type ?? "?"}]`)).join("\n");
-}
 
 /** メッセージの中身をブロックの並びにする（文だけのものは text のブロック 1 つ） */
 function blocksOf(message: unknown): Block[] {
@@ -46,7 +40,7 @@ export function subagentLogOf(messages: readonly SubagentMessageLike[]): Subagen
       } else if (b.type === "tool_result" && b.tool_use_id) {
         const tool = tools.get(b.tool_use_id);
         if (tool) {
-          tool.result = resultText(b.content);
+          tool.result = contentText(b.content);
           tool.isError = b.is_error === true;
         }
       }

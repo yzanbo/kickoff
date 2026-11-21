@@ -1,7 +1,5 @@
 import { StdioRpc, type StdioSpawn, type ServerRequestHandler } from "@/features/ai/core/providers/stdioRpc";
-
-/** Kickoff の名乗り（initialize の clientInfo） */
-const CLIENT_INFO = { name: "kickoff", title: "Kickoff", version: "0.1.0" };
+import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 
 export interface SessionOpts {
   spawn: StdioSpawn;

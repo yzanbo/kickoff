@@ -1,4 +1,4 @@
-import type { SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKUserMessage } from "./wire";
 
 type Uuid = NonNullable<SDKUserMessage["uuid"]>;
 

@@ -1,7 +1,7 @@
-import { COMMAND_OUTPUT_LINES } from "@shared/chat/chatEvent";
+import { cleanTerminalText } from "@shared/foundation/text/terminal";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
-import { cleanTerminalText, tailLines } from "@/features/ai/core/providers/claude/commandOutput";
-import type { FileUpdateChange, JsonValue, ThreadItem, ThreadTokenUsage } from "./protocol";
+import { clipToolResult, contentText, createCommandOutputTail, setCompacting, type CommandOutputTail } from "@/features/ai/core/providers/shared/events";
+import type { FileUpdateChange, ThreadItem, ThreadTokenUsage } from "./protocol";
 
 /**
  * Codex の会話の項目（ThreadItem）を Kickoff の記録（ChatEvent）にする。名前と入力の形は Claude Code と同じにそろえる
@@ -10,12 +10,10 @@ import type { FileUpdateChange, JsonValue, ThreadItem, ThreadTokenUsage } from "
  * MCP のツール = mcp__<サーバー>__<ツール>、Web の検索 = WebSearch
  */
 
-const TOOL_RESULT_LIMIT = 4000;
-
 /** 1 回の実行の間だけ持つ変換の状態 */
 export interface ItemState {
   /** コマンドの出力（実行中に届いた分） */
-  outputs: Map<string, string>;
+  outputs: CommandOutputTail;
   /** 最後のトークン数（圧縮の前の大きさ・結果のコンテキストの大きさ） */
   usage: ThreadTokenUsage | null;
   /** 圧縮中か */
@@ -26,9 +24,7 @@ export interface ItemState {
   preCompactTokens: number | null;
 }
 
-export const createItemState = (): ItemState => ({ outputs: new Map(), usage: null, compacting: false, manualCompact: false, preCompactTokens: null });
-
-const clip = (text: string) => (text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text);
+export const createItemState = (): ItemState => ({ outputs: createCommandOutputTail(), usage: null, compacting: false, manualCompact: false, preCompactTokens: null });
 
 /** 統一差分の塊ごとの置き換え（文脈の行は両方に、- は前だけ、+ は後ろだけ）。差分でなければ全体を足したものとみなす */
 export function diffEdits(diff: string): { old_string: string; new_string: string }[] {
@@ -60,13 +56,6 @@ export function changeAsTool(change: FileUpdateChange): { name: string; input: R
   return { name: "MultiEdit", input: { file_path: change.path, edits: diffEdits(change.diff), ...(change.kind.move_path ? { move_path: change.kind.move_path } : {}) } };
 }
 
-/** MCP の結果の中身を文にする（文はそのまま、ほかは種類だけ） */
-function mcpText(content: JsonValue[]): string {
-  return content
-    .map((c) => (c && typeof c === "object" && !Array.isArray(c) && c.type === "text" && typeof c.text === "string" ? c.text : `[${c && typeof c === "object" && !Array.isArray(c) ? String(c.type) : "?"}]`))
-    .join("\n");
-}
-
 /** 項目が始まった（ツールの呼び出しを記録する・圧縮中を立てる） */
 export function itemStarted(item: ThreadItem, cb: ProviderCallbacks, state: ItemState): void {
   switch (item.type) {
@@ -81,11 +70,8 @@ export function itemStarted(item: ThreadItem, cb: ProviderCallbacks, state: Item
       return;
     }
     case "contextCompaction":
-      if (!state.compacting) {
-        state.compacting = true;
-        state.preCompactTokens = state.usage?.last.totalTokens ?? null;
-        cb.compacting?.(true);
-      }
+      if (!state.compacting) state.preCompactTokens = state.usage?.last.totalTokens ?? null;
+      setCompacting(state, cb, true);
       return;
   }
 }
@@ -108,11 +94,11 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
     }
     case "commandExecution": {
       const it = item as Extract<ThreadItem, { type: "commandExecution" }>;
-      const output = it.aggregatedOutput ?? state.outputs.get(it.id) ?? "";
-      state.outputs.delete(it.id);
+      const streamed = state.outputs.take(it.id);
+      const output = it.aggregatedOutput ?? streamed ?? "";
       const failed = it.status === "failed" || it.status === "declined" || (it.exitCode !== null && it.exitCode !== 0);
       const declined = it.status === "declined" ? "（実行を断りました）" : "";
-      cb.emit({ type: "tool_result", tool_use_id: it.id, content: clip(`${cleanTerminalText(output)}${declined}`), is_error: failed });
+      cb.emit({ type: "tool_result", tool_use_id: it.id, content: clipToolResult(`${cleanTerminalText(output)}${declined}`), is_error: failed });
       return;
     }
     case "fileChange": {
@@ -129,8 +115,8 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
     }
     case "mcpToolCall": {
       const it = item as Extract<ThreadItem, { type: "mcpToolCall" }>;
-      const content = it.error ? it.error.message : mcpText(it.result?.content ?? []);
-      cb.emit({ type: "tool_result", tool_use_id: it.id, content: clip(content), is_error: Boolean(it.error) || it.status === "failed" });
+      const content = it.error ? it.error.message : contentText(it.result?.content ?? []);
+      cb.emit({ type: "tool_result", tool_use_id: it.id, content: clipToolResult(content), is_error: Boolean(it.error) || it.status === "failed" });
       return;
     }
     case "webSearch": {
@@ -146,10 +132,7 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
       const pre = state.preCompactTokens;
       state.preCompactTokens = null;
       cb.emit({ type: "compact", trigger: state.manualCompact ? "manual" : "auto", ...(pre !== null && pre !== now ? { pre_tokens: pre, post_tokens: now } : { pre_tokens: now }) });
-      if (state.compacting) {
-        state.compacting = false;
-        cb.compacting?.(false);
-      }
+      setCompacting(state, cb, false);
       return;
     }
   }
@@ -157,7 +140,5 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
 
 /** 実行中のコマンドの出力が増えた（最後の行を画面に流す。保存しない） */
 export function commandOutputDelta(itemId: string, delta: string, cb: ProviderCallbacks, state: ItemState): void {
-  const raw = (state.outputs.get(itemId) ?? "") + delta;
-  state.outputs.set(itemId, raw.slice(-64_000));
-  cb.commandOutput?.({ tool_use_id: itemId, task_id: itemId, text: tailLines(cleanTerminalText(raw), COMMAND_OUTPUT_LINES) });
+  state.outputs.append(itemId, delta, cb);
 }

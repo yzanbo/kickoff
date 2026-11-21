@@ -16,8 +16,3 @@ export function autoCompactThreshold(windowSize: number | null, pct: number): nu
   if (!windowSize || windowSize <= 0) return null;
   return Math.max(0, Math.min(Math.round((windowSize * pct) / 100), windowSize - AUTO_COMPACT_BUFFER));
 }
-
-/** 子の Claude Code に足す環境変数（決めていなければ何も足さない＝ Claude Code の既定） */
-export function autoCompactEnv(pct: number | null): Record<string, string> {
-  return pct === null ? {} : { CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: String(pct) };
-}

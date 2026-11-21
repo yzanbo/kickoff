@@ -1,6 +1,7 @@
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import type { AgentCapabilities, ContentBlock, McpServerHttp, SessionConfigOption, SessionMode, SessionRequestBase } from "./protocol";
+import { launchEnv } from "@/features/ai/core/providers/shared/process";
 
 /**
  * 実行の指定を ACP の形にする（純粋関数）。どの CLI でも同じ決まりで、違いはエージェントの初期化の答え（capabilities）で分ける
@@ -74,13 +75,11 @@ export function promptBlocks(params: Pick<ProviderTurnParams, "prompt" | "turnCo
  * 起動の環境変数: Kickoff の決めた変数（params.env）を重ね、鍵の環境変数（keyVars）は外してから、API キーのときだけ apiKeyVar に入れる
  * （サブスクで動かすときに、手元の鍵の環境変数で使った分の支払いにしない）
  */
-export function launchEnv(
+export function acpEnv(
   base: Record<string, string | undefined>,
   params: Pick<ProviderTurnParams, "env" | "auth">,
   keys: { keyVars: string[]; apiKeyVar: string | null },
 ): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = { ...base, ...(params.env ?? {}) };
-  for (const name of keys.keyVars) delete env[name];
-  if (keys.apiKeyVar && params.auth?.mode === "api_key" && params.auth.apiKey) env[keys.apiKeyVar] = params.auth.apiKey;
-  return env;
+  const apiKey = keys.apiKeyVar && params.auth?.mode === "api_key" && params.auth.apiKey ? { [keys.apiKeyVar]: params.auth.apiKey } : {};
+  return launchEnv(base, params.env, { drop: keys.keyVars, set: apiKey });
 }

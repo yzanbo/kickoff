@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } from "./wire";
 import type { ChatPolicy } from "@/features/chat/core/prompt/system";
 import { DOCKER_GUARD_DENIED, type DockerGuard } from "@/features/docker/core/guard/dockerGuard";
 import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
@@ -13,7 +13,8 @@ import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 import { bashOutputText, sandboxDeniedNote } from "@/features/guard/core/sandbox/sandboxDenied";
 import { realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
 import type { ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
-import { claudeProjectsDir } from "./sessionFiles";
+import { claudeProjectsDir } from "./internals";
+import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 type Decision = { decision: "deny"; reason: string } | { decision: "pass" };
 type Evaluate = (toolName: string, input: Record<string, unknown>) => Decision | Promise<Decision>;
@@ -22,7 +23,7 @@ type Evaluate = (toolName: string, input: Record<string, unknown>) => Decision |
  * 承認カードで聞く守り（Docker・書き込み先）のフックの待ち時間（秒）。Claude Code は待ち時間を書いていないフックに既定の待ち時間を当て、過ぎると止める知らせ（signal）を送るので、
  * 書かないと利用者が答える前に承認カードが閉じて「拒否」になる。利用者が答えるか、チャットを止めるまで待つよう長くする（タイマーの上限 24.8 日より短く）
  */
-const ASKING_GUARD_HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
+const ASKING_GUARD_HOOK_TIMEOUT_S = APPROVAL_WAIT_S;
 
 /** ツールの呼び出しを判定して断るフック（PreToolUse）。権限モードや許可ルールより先に毎回呼ばれる */
 function denyHook(evaluate: Evaluate): HookCallbackMatcher {

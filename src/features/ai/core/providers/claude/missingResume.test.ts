@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKResultMessage } from "./wire";
 import { confirmedClaudeMissingResume } from "./missingResume";
 
 test("Claude Code の会話消失は開始前の対象 ID の明示的な結果だけを認める", () => {

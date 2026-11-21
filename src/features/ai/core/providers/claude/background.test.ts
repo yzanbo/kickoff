@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage } from "./wire";
 import { createBackgroundTracker } from "./background";
 
 const changed = (tasks: object[]) => ({ type: "system", subtype: "background_tasks_changed", tasks }) as unknown as SDKMessage;

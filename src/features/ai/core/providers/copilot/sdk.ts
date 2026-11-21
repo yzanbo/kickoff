@@ -1,5 +1,6 @@
 import { noteRuntimeProcess } from "./runtimeProcess";
-import type { CopilotSession, GetAuthStatusResponse, ModelInfo, ResumeSessionConfig, SessionConfig, SessionEvent } from "@github/copilot-sdk";
+import type { CopilotSession, GetAuthStatusResponse, MCPServerConfig, ModelInfo, PermissionRequest, PermissionRequestResult, ProviderConfig, ResumeSessionConfig, SandboxConfig, SessionConfig, SessionEvent } from "@github/copilot-sdk";
+import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 
 /**
  * Copilot SDK（@github/copilot-sdk）のうち Kickoff が使う所だけの口。テストは偽物に差し替える（testing/fakeCopilotClient.ts）。
@@ -7,7 +8,7 @@ import type { CopilotSession, GetAuthStatusResponse, ModelInfo, ResumeSessionCon
  * SDK の本体は使うときにだけ読み込む（読み込むと Copilot のランタイムの準備まで走るので、コアの起動を遅くしない）
  */
 
-export type { SessionConfig, ResumeSessionConfig, SessionEvent, ModelInfo };
+export type { SessionConfig, ResumeSessionConfig, SessionEvent, ModelInfo, MCPServerConfig, ProviderConfig, SandboxConfig, PermissionRequest, PermissionRequestResult };
 
 /** 使うセッションの操作 */
 export interface CopilotSessionLike {
@@ -75,7 +76,7 @@ export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
   const ready = async () => {
     if (client) return client;
     const sdk = await import("@github/copilot-sdk");
-    client = new sdk.CopilotClient({ env, workingDirectory: cwd, useLoggedInUser: true, logLevel: "error", clientInfo: { applicationName: "Kickoff", applicationVersion: "0.1.0" } });
+    client = new sdk.CopilotClient({ env, workingDirectory: cwd, useLoggedInUser: true, logLevel: "error", clientInfo: { applicationName: CLIENT_INFO.title, applicationVersion: CLIENT_INFO.version } });
     return client;
   };
   return {

@@ -1,8 +1,10 @@
 import type { EffortLevel } from "@shared/settings/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { launchEnv } from "@/features/ai/core/providers/shared/process";
 import { HOOK_TOKEN_ENV, HOOK_URL_ENV, hookConfig } from "./hooks";
 import type { JsonValue, SandboxPolicy, TextInput, ThreadOverrides } from "./protocol";
+import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 /**
  * 実行の指定を Codex の app-server の形にする（純粋関数）。
@@ -10,7 +12,7 @@ import type { JsonValue, SandboxPolicy, TextInput, ThreadOverrides } from "./pro
  */
 
 /** MCP のツールの待ち時間（秒。承認を待つツールのため長く。Claude Code の MCP_TOOL_TIMEOUT と同じ 7 日） */
-export const CODEX_MCP_TOOL_TIMEOUT_S = 7 * 24 * 60 * 60;
+export const CODEX_MCP_TOOL_TIMEOUT_S = APPROVAL_WAIT_S;
 
 /** Kickoff の推論の深さ → Codex の reasoning effort（Codex に max はないので xhigh。null は指定しない） */
 export function codexEffort(effort: EffortLevel | null): string | null {
@@ -118,19 +120,12 @@ export function appServerLaunch(
   params: Pick<ProviderTurnParams, "env" | "auth">,
   hook?: { url: string; token: string },
 ): { args: string[]; env: Record<string, string | undefined> } {
-  const env: Record<string, string | undefined> = { ...base, ...(params.env ?? {}) };
-  for (const name of CODEX_KEY_VARS) delete env[name];
+  const apiKey = params.auth?.mode === "api_key" && params.auth.apiKey ? params.auth.apiKey : null;
   // フックの口（PreToolUse のフックが app-server の環境から読む。AI のコマンドからは外す = threadOverrides）
-  delete env[HOOK_URL_ENV];
-  delete env[HOOK_TOKEN_ENV];
-  if (hook) {
-    env[HOOK_URL_ENV] = hook.url;
-    env[HOOK_TOKEN_ENV] = hook.token;
-  }
-  const args = ["app-server"];
-  if (params.auth?.mode === "api_key" && params.auth.apiKey) {
-    env.CODEX_API_KEY = params.auth.apiKey;
-    args.push("-c", 'forced_login_method="api"');
-  }
+  const env = launchEnv(base, params.env, {
+    drop: [...CODEX_KEY_VARS, HOOK_URL_ENV, HOOK_TOKEN_ENV],
+    set: { ...(hook ? { [HOOK_URL_ENV]: hook.url, [HOOK_TOKEN_ENV]: hook.token } : {}), ...(apiKey ? { CODEX_API_KEY: apiKey } : {}) },
+  });
+  const args = apiKey ? ["app-server", "-c", 'forced_login_method="api"'] : ["app-server"];
   return { args, env };
 }

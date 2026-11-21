@@ -5,13 +5,10 @@ import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
 import { open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { SessionFileInfo } from "@/features/ai/core/providers/types";
-
-/** Claude Code が会話記録を置くフォルダ（CLAUDE_CONFIG_DIR があればその中） */
-export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string => join(env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
+import { claudeProjectsDir, isBoundary, isFileHistoryLine, projectDirName, SESSION_FILE } from "./internals";
 
 /**
  * 会話を写すとき残す区切り（圧縮の印から次の印まで）の数:
@@ -19,9 +16,6 @@ export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string 
  * 子チャットは 1（最新の要約とそのあとのやり取りだけ。寄り道に使い、AI が読むのも最新の区切りだけのため。呼ぶ側が providers/types.ts の CHILD_FORK_KEEP を渡す）
  */
 export const FORK_KEEP_SEGMENTS = 3;
-
-/** 作業フォルダから、記録を置くフォルダの名前（英数字以外を - に。長いものは Claude Code がハッシュを付けるので、見つからなければ全体を探す） */
-const projectDirName = (cwd: string) => cwd.replace(/[^a-zA-Z0-9]/g, "-");
 
 const exists = (path: string) => stat(path).then(
   (s) => s.isFile(),
@@ -67,8 +61,6 @@ async function* linesBackward(path: string, chunkSize = 4 << 20): AsyncGenerator
     await fh.close();
   }
 }
-
-const isBoundary = (line: string) => line.includes('"subtype":"compact_boundary"');
 
 /**
  * 分岐する位置（messageId の行）より手前で、直近 keep 個の区切りが始まる位置と、分岐する位置の行の終わり。
@@ -183,9 +175,6 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
   return { sessionId: newId, path: newPath, dropped: start };
 }
 
-/** ファイルの控えの行（Claude Code が編集の前のファイルを覚えた記録。ファイルを絶対パスで指す） */
-const isFileHistoryLine = (line: string) => line.includes('"type":"file-history-snapshot"') || line.includes('"type":"file-history-delta"');
-
 /**
  * 作業場所を移すとき、会話を新しい ID のセッションに写して同じフォルダに書く。
  * 終わりの直近 keep 個の区切り（圧縮の印から次の印まで）があればそこから、足りなければ丸ごと写す（短い会話なので小さい）。発言の ID は保つ
@@ -269,8 +258,6 @@ export async function sessionFileInfo(sessionId: string, cwds: string[], root = 
   const file = await findSessionFile(sessionId, cwds, root);
   return file ? infoOf(sessionId, file) : null;
 }
-
-const SESSION_FILE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/;
 
 /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧の元。新しい順） */
 export async function listSessionFiles(root = claudeProjectsDir()): Promise<SessionFileInfo[]> {

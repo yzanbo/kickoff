@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
+import type { HookInput } from "./wire";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks } from "./policy";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";

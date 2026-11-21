@@ -1,13 +1,12 @@
 import { errorMessage } from "@shared/foundation/errors";
-import { isNetworkError } from "@shared/ai/networkErrors";
-import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
-import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
+import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
 import type { ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import type { ProviderId } from "@shared/settings/types";
-import { configChoices, launchEnv, modeFor, promptBlocks, sessionRequest } from "./config";
+import { configChoices, acpEnv, modeFor, promptBlocks, sessionRequest } from "./config";
 import { answerPermission } from "./permissions";
 import { ACP_PROTOCOL_VERSION, type ContentBlock, type InitializeResponse, type RequestPermissionRequest, type SessionNotification, type SessionResponse, type StopReason } from "./protocol";
 import { createUpdateState, flushText, sessionUpdate } from "./updates";
@@ -39,7 +38,6 @@ export interface AcpTurnDeps {
   self?: SelfInfo;
 }
 
-const CLIENT_INFO = { name: "kickoff", title: "Kickoff", version: "0.1.0" };
 /** Kickoff はファイルの読み書き・端末をエージェントに貸さない（エージェントが自分のツールで行い、権限の頼みで守りを当てる） */
 const CLIENT_CAPABILITIES = { fs: { readTextFile: false, writeTextFile: false }, terminal: false };
 
@@ -111,7 +109,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
   let stopper: Stopper | null = null;
 
   try {
-    const opened = await openAgent(deps, { env: launchEnv(deps.baseEnv, params, deps.spec.keys), cwd: params.cwd, params, onNotification, onServerRequest, onClosed: (reason) => (closedReason = reason) });
+    const opened = await openAgent(deps, { env: acpEnv(deps.baseEnv, params, deps.spec.keys), cwd: params.cwd, params, onNotification, onServerRequest, onClosed: (reason) => (closedReason = reason) });
     rpc = opened.rpc;
     const caps = opened.init.agentCapabilities;
     const base = sessionRequest(params, caps);
@@ -159,14 +157,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
     return stopResult(stop, id, state);
   } catch (e) {
     const message = closedReason ?? errorMessage(e);
-    const usageLimit = isUsageLimitError(message);
-    return {
-      status: signal.aborted ? "cancelled" : "failed",
-      sessionId,
-      error: message,
-      ...(!usageLimit && isNetworkError(message) ? { network: true } : {}),
-      ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}),
-    };
+    return { status: signal.aborted ? "cancelled" : "failed", sessionId, error: message, ...failureFlags(message) };
   } finally {
     stopper?.dispose();
     cb.control?.(null);

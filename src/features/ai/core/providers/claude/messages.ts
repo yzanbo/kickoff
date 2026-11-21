@@ -1,8 +1,7 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { initEffort, type SDKMessage } from "./wire";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
-
-const TOOL_RESULT_LIMIT = 4000;
+import { clipToolResult, contentText, setCompacting } from "@/features/ai/core/providers/shared/events";
 
 /**
  * 1 回の実行の間だけ持つ、メッセージの変換の状態。
@@ -25,13 +24,6 @@ export interface MessageState {
 
 export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false, drawing: new Set() });
 
-/** 圧縮している最中かが変わったときだけ知らせる */
-function setCompacting(state: MessageState, cb: ProviderCallbacks, active: boolean) {
-  if (state.compacting === active) return;
-  state.compacting = active;
-  cb.compacting?.(active);
-}
-
 /** 次の思考のかかった時間（終わりの知らせより先に中身が届いたら、まだ終わっていない最初の思考の始まりから数える） */
 function takeThinkingDuration(state: MessageState, now: number): number | undefined {
   const done = state.durations.shift();
@@ -48,8 +40,7 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
   switch (msg.type) {
     case "system":
       if (msg.subtype === "init") {
-        // effort: 実際に使う推論の深さ（設定・モデルの既定を通したあとの値。CLI が知らせるときだけ）
-        const effort = (msg as { effort?: string | null }).effort;
+        const effort = initEffort(msg);
         cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode, ...(effort !== undefined ? { effort } : {}) });
         return msg.session_id;
       }
@@ -145,16 +136,10 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
       if (typeof content === "string") return undefined;
       for (const block of content) {
         if (block.type !== "tool_result") continue;
-        const text =
-          typeof block.content === "string"
-            ? block.content
-            : (block.content ?? [])
-                .map((c) => (c.type === "text" ? c.text : `[${c.type}]`))
-                .join("\n");
         cb.emit({
           type: "tool_result",
           tool_use_id: block.tool_use_id,
-          content: text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text,
+          content: clipToolResult(contentText(block.content)),
           is_error: Boolean(block.is_error),
           ...(msg.parent_tool_use_id ? { parent: msg.parent_tool_use_id } : {}),
         });

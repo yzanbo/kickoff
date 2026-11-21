@@ -179,12 +179,9 @@ export interface CommandOutput {
   tool_use_id: string;
   /** Claude Code の作業 ID（裏で動いている作業の一覧と結びつける） */
   task_id: string;
-  /** 出力の最後の行（COMMAND_OUTPUT_LINES 行まで） */
+  /** 出力の最後の行（プロバイダーが最後の 40 行に切る。providers/shared/events.ts） */
   text: string;
 }
-
-/** 実行中のコマンドの出力として画面に送る行数（最後の分） */
-export const COMMAND_OUTPUT_LINES = 40;
 
 export type ChatEventType = ChatEventData["type"];
 

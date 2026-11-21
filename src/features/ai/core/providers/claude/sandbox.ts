@@ -1,5 +1,5 @@
 // AI の Bash の砂場を Claude Code の砂場の設定（SDK の sandbox。macOS の Seatbelt）に直す（一覧はコアの chat/sandbox/bashSandbox.ts）
-import type { Options } from "@anthropic-ai/claude-agent-sdk";
+import type { Options } from "./wire";
 import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 
 /** Claude Code が中継の承認を聞くときのツールの名前（自分の中継を使うときだけ来る。ネットワークは絞らないので、聞かずに許す） */

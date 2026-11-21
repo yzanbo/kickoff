@@ -1,11 +1,7 @@
-import type { SDKControlGetUsageResponse, SDKRateLimitInfo } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKControlGetUsageResponse } from "./wire";
 import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { ExtraUsage, PlanUsage, UsageWindow } from "@shared/ai/types";
-
-/** Claude Code の設定ファイル（ログインしているアカウントの情報が入る。CLAUDE_CONFIG_DIR があればその中） */
-const claudeConfigPath = (): string => join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json");
+import { claudeConfigPath } from "./internals";
 
 /** プランの表示名として受け付ける形（Claude Code と同じ。英数字・空白・. + - で 40 文字まで） */
 const PLAN_DISPLAY_NAME = /^[\p{L}\p{N}](?:[\p{L}\p{N} .+-]{0,38}[\p{L}\p{N}+])?$/u;
@@ -61,12 +57,4 @@ function extraUsageOf(raw: RawExtraUsage): ExtraUsage {
     monthly_limit: raw.monthly_limit,
     currency: raw.currency ?? null,
   };
-}
-
-/**
- * 実行中の使用枠の知らせ（rate_limit_event）から、いま超過分（追加の使用枠。使った分の支払い）で動いているか。
- * 知らせに書いていなければ null（前の値のままにする）
- */
-export function overageInUseOf(info: SDKRateLimitInfo): boolean | null {
-  return info.isUsingOverage ?? info.overageInUse ?? null;
 }

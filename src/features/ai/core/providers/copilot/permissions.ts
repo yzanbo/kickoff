@@ -1,4 +1,4 @@
-import type { PermissionRequest, PermissionRequestResult, SessionConfig } from "@github/copilot-sdk";
+import type { PermissionRequest, PermissionRequestResult, SessionConfig } from "./sdk";
 import { judgeCommand, judgeReadPath, judgeWritePath, type GuardContext } from "@/features/guard/core/guard/judgeTool";
 import { askApproval, guardOutcome, modeOutcome, type ApprovalContext, type ApprovalOutcome } from "@/features/ai/core/providers/guardedApproval";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";

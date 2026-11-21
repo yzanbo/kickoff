@@ -1,4 +1,4 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { isAmbientTask, type SDKMessage } from "./wire";
 import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
 
 /** 覚えておく、作業 ID と起動した呼び出しの ID の組の数 */
@@ -44,7 +44,7 @@ export function createBackgroundTracker() {
     if (msg.type === "system" && msg.subtype === "background_tasks_changed") {
       const tasks = msg.tasks
         // 動きでないもの（見張りなど）は数えない
-        .filter((t) => !(t as { ambient?: boolean }).ambient)
+        .filter((t) => !isAmbientTask(t))
         .map((t): BackgroundTask =>
           withCall({
             task_id: t.task_id,
