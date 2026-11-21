@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { open, readdir, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { SessionFileInfo, SessionStore } from "@/features/ai/core/providers/types";
@@ -63,42 +63,61 @@ async function* linesBackward(path: string, chunkSize = 4 << 20): AsyncGenerator
 }
 
 /**
- * 分岐する位置（messageId の行）より手前で、直近 keep 個の区切りが始まる位置と、分岐する位置の行の終わり。
- * 位置が見つからない・手前の圧縮の印が keep 個に足りない（それより前も Claude Code が読む会話）ときは null
+ * 後ろから数えて keep 個目の区切り（圧縮の印）が始まる位置。before があれば、その発言（uuid が before の行）より手前で数え、
+ * その行の終わりも返す（その行より後ろの区切りは数えない）。行が見つからない・区切りが keep 個に足りなければ null
  */
-export async function recentSegmentsRange(path: string, messageId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ start: number; end: number } | null> {
-  const mark = `"uuid":"${messageId}"`;
-  let end: number | null = null;
+export async function segmentStart(path: string, keep: number, before?: string): Promise<{ start: number; end?: number } | null> {
+  const mark = before === undefined ? null : `"uuid":"${before}"`;
+  let end: number | undefined;
   let boundaries = 0;
   for await (const { line, offset } of linesBackward(path)) {
-    if (end === null) {
+    if (mark !== null && end === undefined) {
       if (line.includes(mark)) end = offset + Buffer.byteLength(line) + 1;
       continue;
     }
-    if (isBoundary(line) && ++boundaries === keep) return { start: offset, end };
+    if (isBoundary(line) && ++boundaries === keep) return end === undefined ? { start: offset } : { start: offset, end };
   }
   return null;
 }
 
 /**
- * 分岐する位置の手前の直近の区切りだけを、別の ID の一時のセッションとして同じフォルダに書く（ID は記録の sessionId の欄だけ置き換える）。
- * 切り出せなければ null（呼ぶ側は丸ごと写す）。一時のセッションは、写したあとで呼ぶ側が消す。
- * 切るのは SDK の forkSession で写す前の元（写したあとのファイルを切り詰めると、続きで Claude Code が会話を覚えていなかった）
+ * 記録の一部（start から end の手前まで。end がなければ終わりまで）を、新しい ID のセッションとして同じフォルダに流して書く
+ * （全部をメモリに持たない。ID は記録の sessionId の欄だけ置き換え、本文に出てくる ID は変えない）。
+ * dropFileHistory: ファイルの控えの行（file-history-snapshot・file-history-delta）を写さない。
+ * adoptSidecar: 同じ名前のフォルダ（サブエージェントの記録など）を新しいセッションの名前に移す（前のサブエージェントの会話を読めるように）
+ */
+export async function writeSlice(
+  path: string,
+  sessionId: string,
+  slice: { start: number; end?: number },
+  opts: { dropFileHistory?: boolean; adoptSidecar?: boolean } = {},
+): Promise<{ sessionId: string; path: string }> {
+  const newId = randomUUID();
+  const newPath = join(path, "..", `${newId}.jsonl`);
+  const out = createWriteStream(newPath, { flags: "wx", mode: 0o600 });
+  try {
+    // 読む範囲の end は終わりの位置を含むので 1 つ手前
+    const input = createReadStream(path, { start: slice.start, ...(slice.end !== undefined ? { end: slice.end - 1 } : {}) });
+    for await (const line of createInterface({ input, crlfDelay: Infinity })) {
+      if (!line || (opts.dropFileHistory && isFileHistoryLine(line))) continue;
+      if (!out.write(`${line.split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`)}\n`)) await once(out, "drain");
+    }
+  } finally {
+    await new Promise<void>((resolve, reject) => out.end((e?: Error | null) => (e ? reject(e) : resolve())));
+  }
+  const oldDir = path.replace(/\.jsonl$/, "");
+  if (opts.adoptSidecar && (await stat(oldDir).then((s) => s.isDirectory(), () => false))) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
+  return { sessionId: newId, path: newPath };
+}
+
+/**
+ * 分岐する位置（messageId の行）の手前の直近 keep 個の区切りだけを、別の ID の一時のセッションとして同じフォルダに書く。
+ * 切り出せなければ null（位置が見つからない・手前の区切りが足りない = それより前も Claude Code が読む会話。呼ぶ側は丸ごと写す）。
+ * 一時のセッションは、写したあとで呼ぶ側が消す。切るのは SDK の forkSession で写す前の元（写したあとのファイルを切り詰めると、続きで Claude Code が会話を覚えていなかった）
  */
 export async function writeRecentSegments(path: string, sessionId: string, messageId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string } | null> {
-  const range = await recentSegmentsRange(path, messageId, keep);
-  if (!range) return null;
-  const fh = await open(path, "r");
-  const buf = Buffer.alloc(range.end - range.start);
-  try {
-    await fh.read(buf, 0, buf.length, range.start);
-  } finally {
-    await fh.close();
-  }
-  const tmpId = randomUUID();
-  const tmpPath = join(path, "..", `${tmpId}.jsonl`);
-  await writeFile(tmpPath, buf.toString("utf8").split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${tmpId}"`), { flag: "wx", mode: 0o600 });
-  return { sessionId: tmpId, path: tmpPath };
+  const range = await segmentStart(path, keep, messageId);
+  return range?.end === undefined ? null : writeSlice(path, sessionId, range);
 }
 
 /** 一時のセッションを消す（記録と、Claude Code が作ることのある同じ名前のフォルダ） */
@@ -148,31 +167,9 @@ export async function sessionFilesSize(sessionIds: string[], cwds: string[], roo
  * 会話の中身は変わらない。区切りが keep 個に足りない（切るものがない）ときは null
  */
 export async function trimToRecentSegments(path: string, sessionId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string; dropped: number } | null> {
-  let start: number | null = null;
-  let boundaries = 0;
-  for await (const { line, offset } of linesBackward(path)) {
-    if (isBoundary(line) && ++boundaries === keep) {
-      start = offset;
-      break;
-    }
-  }
-  if (start === null || start === 0) return null;
-  const fh = await open(path, "r");
-  let buf: Buffer;
-  try {
-    const size = (await fh.stat()).size;
-    buf = Buffer.alloc(size - start);
-    await fh.read(buf, 0, buf.length, start);
-  } finally {
-    await fh.close();
-  }
-  const newId = randomUUID();
-  const newPath = join(path, "..", `${newId}.jsonl`);
-  await writeFile(newPath, buf.toString("utf8").split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`), { flag: "wx", mode: 0o600 });
-  // 同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す（乗り換えたあとも、前のサブエージェントの会話を読めるように。古い記録だけがゴミ箱へ行く）
-  const oldDir = path.replace(/\.jsonl$/, "");
-  if (await stat(oldDir).then((s) => s.isDirectory(), () => false)) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
-  return { sessionId: newId, path: newPath, dropped: start };
+  const segment = await segmentStart(path, keep);
+  if (!segment || segment.start === 0) return null;
+  return { ...(await writeSlice(path, sessionId, segment, { adoptSidecar: true })), dropped: segment.start };
 }
 
 /**
@@ -184,29 +181,7 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
  * 区切りより前の発言へは巻き戻せない決まりなので、控えは要らない。同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す
  */
 export async function copyForWorkplaceMove(path: string, sessionId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string }> {
-  let start = 0;
-  let boundaries = 0;
-  for await (const { line, offset } of linesBackward(path)) {
-    if (isBoundary(line) && ++boundaries === keep) {
-      start = offset;
-      break;
-    }
-  }
-  const newId = randomUUID();
-  const newPath = join(path, "..", `${newId}.jsonl`);
-  const out = createWriteStream(newPath, { flags: "wx", mode: 0o600 });
-  try {
-    const lines = createInterface({ input: createReadStream(path, { start }), crlfDelay: Infinity });
-    for await (const line of lines) {
-      if (!line || isFileHistoryLine(line)) continue;
-      if (!out.write(`${line.split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`)}\n`)) await once(out, "drain");
-    }
-  } finally {
-    await new Promise<void>((resolve, reject) => out.end((e?: Error | null) => (e ? reject(e) : resolve())));
-  }
-  const oldDir = path.replace(/\.jsonl$/, "");
-  if (await stat(oldDir).then((s) => s.isDirectory(), () => false)) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
-  return { sessionId: newId, path: newPath };
+  return writeSlice(path, sessionId, (await segmentStart(path, keep)) ?? { start: 0 }, { dropFileHistory: true, adoptSidecar: true });
 }
 
 /** 頭だけ読む大きさ（最初の発言と作業フォルダを探す。大きなファイルを全部読まない） */

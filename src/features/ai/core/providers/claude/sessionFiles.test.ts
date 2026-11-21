@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { copyForWorkplaceMove, findSessionFile, listSessionFiles, readSessionHead, recentSegmentsRange, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles";
+import { copyForWorkplaceMove, findSessionFile, FORK_KEEP_SEGMENTS, listSessionFiles, readSessionHead, segmentStart, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles";
 
 const SID = "11111111-1111-1111-1111-111111111111";
 const line = (o: object) => JSON.stringify({ sessionId: SID, ...o });
@@ -26,8 +26,8 @@ test("分岐する位置の手前で、直近 keep 個（既定 3・子チャッ
   const { path } = sessionFile(lines);
   const text = readFileSync(path, "utf8");
   const slice = async (keep?: number) => {
-    const range = await recentSegmentsRange(path, "f", keep);
-    assert.ok(range);
+    const range = await segmentStart(path, keep ?? FORK_KEEP_SEGMENTS, "f");
+    assert.ok(range?.end);
     return text.slice(range.start, range.end);
   };
   // 位置（f）より後ろの区切り（b4）は数えない。既定は手前の b3・b2・b1 の 3 つ → b1 から f まで
@@ -35,19 +35,23 @@ test("分岐する位置の手前で、直近 keep 個（既定 3・子チャッ
   assert.equal(await slice(2), [boundary("b2"), msg("d"), boundary("b3"), msg("e"), msg("f")].join("\n") + "\n");
   // 子チャット: 最後の要約とそのあとだけ
   assert.equal(await slice(1), [boundary("b3"), msg("e"), msg("f")].join("\n") + "\n");
+  // 位置を渡さなければ終わりから数える（終わりの位置は返さない）
+  const fromEnd = await segmentStart(path, 2);
+  assert.deepEqual(fromEnd && [text.slice(fromEnd.start, fromEnd.start + boundary("b3").length), fromEnd.end], [boundary("b3"), undefined]);
 });
 
 test("手前の区切りが足りない・位置が見つからないときは null（呼ぶ側は丸ごと写す）", async () => {
   const { path } = sessionFile([msg("a"), boundary("b1"), msg("c")]);
-  assert.equal(await recentSegmentsRange(path, "c"), null);
-  assert.equal(await recentSegmentsRange(path, "nothing"), null);
+  assert.equal(await segmentStart(path, FORK_KEEP_SEGMENTS, "c"), null);
+  assert.equal(await segmentStart(path, FORK_KEEP_SEGMENTS, "nothing"), null);
+  assert.equal(await segmentStart(path, 2), null);
 });
 
 test("大きなファイルでも、読む塊の境目にかかった行を正しく読む", async () => {
   const pad = "x".repeat(5 << 20);
   const lines = [msg("a", pad), boundary("b1"), msg("c", pad), boundary("b2"), msg("d", pad), msg("e")];
   const { path } = sessionFile(lines);
-  const range = await recentSegmentsRange(path, "e", 2);
+  const range = await segmentStart(path, 2, "e");
   assert.ok(range);
   assert.equal(readFileSync(path, "utf8").slice(range.start, range.start + boundary("b1").length), boundary("b1"));
 });
