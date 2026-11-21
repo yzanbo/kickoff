@@ -158,7 +158,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
     // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
     const branch = await currentBranch(cwd);
-    store.chats.update(chatId, { status: "running", turn_started_at: (deps.clock ?? systemClock).iso(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
+    store.chats.update(chatId, { turn_started_at: (deps.clock ?? systemClock).iso(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.latestId(chatId) ?? 0;
     // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）
@@ -283,7 +283,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
       else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, message);
     }
     await rememberEndBranch();
-    store.chats.update(chatId, { status: "failed", error: message, unread: true }); // 失敗も、見るまでは未読にする
+    store.chats.update(chatId, { error: message, unread: true }); // 失敗も、見るまでは未読にする（状態 failed は作業していないに戻ったときに殻が書く）
     recordEvent(store, runtime, { type: "error", message });
     return { status: "failed", network: false };
   }
@@ -472,8 +472,8 @@ function callbacksFor(
 function applyResult(store: Store, runtime: ChatRun, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
   const { chatId } = runtime;
   const current = store.chats.get(chatId)!;
+  // 状態（result.status）は、作業の終わりにすることが済んで作業していないに戻ったときに殻が書く（chats.status は段階の写し）
   store.chats.update(chatId, {
-    status: result.status,
     session_id: result.sessionId ?? current.session_id,
     cost_usd: current.cost_usd + (result.costUsd ?? 0),
     // 要約は会話の回数・最後の回答に数えない

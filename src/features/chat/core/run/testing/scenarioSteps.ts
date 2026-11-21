@@ -135,6 +135,7 @@ export async function providerStep(d: Driver, st: Extract<ScenarioStep, { provid
   const p = d.provider;
   if (st.provider === "tell") return void (p.tellOk = st.ok);
   if (st.provider === "tellLate") return void (p.tellLate = true);
+  if (st.provider === "trim") return p.holdTrim(st.hold);
   const alias = st.chat ?? "a";
   const run = await d.current(alias);
   if (st.provider === "tellReady") return p.openTell(run);

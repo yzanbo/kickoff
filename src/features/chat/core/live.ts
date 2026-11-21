@@ -21,7 +21,7 @@ export function liveOf(runtime: ChatRun): ChatLive {
     retry,
     reconnect: reconnectStateOf(s.gates.recovery),
     compacting: compaction.running,
-    stopping: p.kind === "idle" ? false : p.stopRequested,
+    stopping: p.kind !== "idle" && p.stopRequested,
     drawing_visual: drawingVisual,
     after_compact: s.outbox.now,
     awaiting_compact: compaction.awaiting,
@@ -45,7 +45,8 @@ export function liveOf(runtime: ChatRun): ChatLive {
 /** 作業の段階（作業していない / 送る準備 / 圧縮中 / 圧縮前指示から圧縮が終わるまで / 圧縮したやり取りの途中 / ふつうの作業）。重なったら前のものを出す */
 function phaseOf(s: ChatRunState): WorkPhase {
   const turn = turnOf(s);
-  if (!turn) return s.phase.kind === "preparing" ? "preparing" : "idle";
+  const { kind } = s.phase;
+  if (!turn) return kind === "preparing" || kind === "settling" ? kind : "idle";
   const { running, awaiting, done } = turn.compaction;
   return running ? "compacting" : awaiting ? "awaiting_compact" : done ? "compacted" : "running";
 }

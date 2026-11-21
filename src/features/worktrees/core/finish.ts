@@ -121,9 +121,8 @@ export class WorktreeFinisher {
   }
 
   /**
-   * そのワークツリーを作業場所にしているチャットの持ち主（プロジェクトと、そのプロジェクトから見た作業場所）。
-   * 同じリポジトリの中の別のフォルダを本体にしているプロジェクトも、同じワークツリーの中で作業していることがある（ブランチが同じなら使い回す）ので、
-   * リポジトリの一番上（本体の root）の下にあるプロジェクトをすべて見る
+   * そのワークツリーを作業場所にしているチャットの持ち主（プロジェクトと、そのプロジェクトから見た作業場所）。同じリポジトリの中の別のフォルダを本体にしている
+   * プロジェクトも、同じワークツリーの中で作業していることがある（ブランチが同じなら使い回す）ので、リポジトリの一番上（本体の root）の下にあるプロジェクトをすべて見る
    */
   private usersOf(worktree: GitWorktree, list: GitWorktree[]) {
     const top = list.find((w) => w.main)?.root;
@@ -135,9 +134,9 @@ export class WorktreeFinisher {
       .map((p) => ({ projectId: p.id, path: path.join(worktree.root, path.relative(top, p.real)) }));
   }
 
-  /** そのワークツリーで作業中のチャットがあるか */
-  private busyIn(users: { projectId: number; path: string }[]) {
-    return users.some((u) => this.deps.store.chats.inWorktree(u.projectId, u.path).some((r) => this.deps.runner.isBusy(r.id)));
+  /** そのワークツリーで作業中のチャットがあるか（settling: 作業の終わりにすること（この片付けを待つ予約した移動）の間は数えないチャット） */
+  private busyIn(users: { projectId: number; path: string }[], settling: number | null = null) {
+    return users.some((u) => this.deps.store.chats.inWorktree(u.projectId, u.path).some((r) => this.deps.runner.isBusy(r.id) && !(r.id === settling && this.deps.runner.live(r.id).phase === "settling")));
   }
 
   /** 消す前の確かめ（コミットしていない変更・取り込み済みか・取り込んでいないコミット）。断るためでなく、何を控えに入れたか・取り込み済みかを伝えるため */
@@ -197,7 +196,7 @@ export class WorktreeFinisher {
     const list = await listWorktrees(repo, { fresh: true });
     const target = list.find((w) => w.path === folder);
     const users = target ? this.usersOf(target, list) : [{ projectId: project.id, path: folder }];
-    if (this.busyIn(users)) throw new Conflict("このワークツリーで作業中のチャットがあります。終わってから消してください");
+    if (this.busyIn(users, opts.byChatId)) throw new Conflict("このワークツリーで作業中のチャットがあります。終わってから消してください");
     if (!target) throw new NotFound("ワークツリーが見つかりません");
     if (target.main) throw new Invalid("本体のフォルダは消せません");
     const facts = await this.inspect(project, target, list);
@@ -264,9 +263,9 @@ export class WorktreeFinisher {
   }
 
   /**
-   * AI の finish_worktree（利用者が頼んだときだけ。カードなし）。頼んだチャットが本体のチャットなら、指したワークツリー（同じプロジェクトのどれでも）を
-   * その場で消す（作業中のチャットがあれば断る）。ワークツリー自身のチャットなら、確かめだけをして予約し、このチャットの作業が終わってから消す。
-   * ほかのワークツリーのチャットからは消せない。AI に返す文を返す（できなければ理由の文で throw）
+   * AI の finish_worktree（利用者が頼んだときだけ。カードなし）。頼んだチャットが本体のチャットなら、指したワークツリー（同じプロジェクトのどれでも）をその場で消す
+   * （作業中のチャットがあれば断る）。ワークツリー自身のチャットなら、確かめだけをして予約し、このチャットの作業が終わってから消す。ほかのワークツリーのチャットからは消せない。
+   * AI に返す文を返す（できなければ理由の文で throw）
    */
   async finishFromChat(chatId: number, worktree: string | undefined): Promise<string> {
     const { store } = this.deps;
@@ -347,14 +346,15 @@ export class WorktreeFinisher {
         this.settled(chatId);
         continue;
       }
-      // 作業の終わりの知らせは、作業の後始末より先に届くので、作業中でなくなるまで待つ
-      if (runner.isBusy(chatId)) {
-        waiting = chat.status !== "running";
+      // 作業中でなくなるまで待つ（作業の終わりにすること settling の間は待たない = 予約した移動がこの片付けを待つ。送る準備の間は終わりの知らせが来ないので確かめ直す）
+      const phase = runner.live(chatId).phase;
+      if (phase !== "idle" && phase !== "settling") {
+        waiting ||= phase === "preparing";
         continue;
       }
       const list = await listWorktrees(project.repo_path).catch((): GitWorktree[] => []);
       const target = list.find((w) => w.path === r.folder);
-      if (target && this.busyIn(this.usersOf(target, list))) continue;
+      if (target && this.busyIn(this.usersOf(target, list), chatId)) continue;
       this.reserved.delete(chatId);
       try {
         const result = await this.remove(project, r.folder, { ...AI_FINISH, byChatId: chatId });

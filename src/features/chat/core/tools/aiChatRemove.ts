@@ -2,6 +2,7 @@
 // 使うのは利用者が頼んだときだけ（ツールの説明で伝える）。どちらも戻せる（アーカイブは画面から戻せ、削除は Kickoff のゴミ箱に 3 日）ので承認は聞かない。
 // 相手は同じプロジェクトのチャット（家系に依らない）で、子孫も一緒（画面のアーカイブ・削除と同じ）。作業中のチャットが含まれていれば断る。
 // ただし、作業中なのがツールを呼んだチャット自身だけ（自分・自分の祖先を頼まれた）なら、その作業が終わってから行う（予約。送信待ちは止めておく）
+import type { ChatLive } from "@shared/chat/chatLive";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { RemoveChatInput } from "@shared/chat/aiChatRemove";
 import { errorMessage } from "@shared/foundation/errors";
@@ -24,6 +25,7 @@ export interface ChatRemoverDeps {
     forget(chatId: number): void;
     setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
     onTurnEnded(fn: (chatId: number) => void): () => void;
+    live(chatId: number): Pick<ChatLive, "phase">;
   };
   trashBin: Pick<TrashService, "addRecord">;
   /** 予約を、頼んだチャットの作業の後始末が済むのを待って確かめ直す間隔（テストで縮める） */
@@ -136,9 +138,10 @@ export class ChatRemover {
         this.reserved.delete(chatId);
         continue;
       }
-      // 作業の終わりの知らせは、作業の後始末より先に届くので、作業中でなくなるまで待つ
+      // 作業の終わりの知らせは、作業の後始末より先に届くので、作業中でなくなるまで待つ（送る準備・作業の終わりにすることの間は終わりの知らせが来ないので、少し待って確かめ直す）
       if (runner.isBusy(chatId)) {
-        waiting ||= chat.status !== "running";
+        const { phase } = runner.live(chatId);
+        waiting ||= phase === "preparing" || phase === "settling";
         continue;
       }
       const rest: Reservation[] = [];

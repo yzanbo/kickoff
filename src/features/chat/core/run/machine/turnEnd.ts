@@ -14,7 +14,7 @@ export function canSendAfter(outcome: TurnOutcome): boolean {
  * 1. 引き継ぎを確かめるまでの AI の切り替えでなければ、止まったあとの再開の段取り（recovery.ts）。送ってよいのは、それに入らず、アプリを終えるところでもないとき
  * 2. 圧縮前指示の作業が最後まで終わって、まだ圧縮していなければ（圧縮前指示から圧縮が終わるまでの間が残っていれば）、続けて圧縮する（次の指示を送ると、
  *    その初めに圧縮されて、指示が圧縮より上に出るため）。手で頼んだ前の指示の作業の中で自動の圧縮が済んでいれば、もう圧縮しない。止めた・失敗したときは圧縮しない
- * 3. AI が予約した作業場所の移動: 最後まで終わったら、いつもの続きより先に移す（済んだら settled）。止めた・失敗したら移さずに予約を消す
+ * 3. AI が予約した作業場所の移動: 最後まで終わったら、いつもの続きより先に移す（その間は段階 settling = 作業中のまま。済んだら settled）。止めた・失敗したら移さずに予約を消す
  * 4. 続き（afterTurn）: 続けての圧縮 → 預かった「いま」（送信待ちより先）→ 送信待ちの次（止めた・失敗したときも送る）
  */
 export function onTurnEnded(s: ChatRunState, outcome: TurnOutcome, env: Env): Step {
@@ -28,7 +28,7 @@ export function onTurnEnded(s: ChatRunState, outcome: TurnOutcome, env: Env): St
   const effects: Effect[] = [{ do: "refresh_usage" }];
   const idle: ChatRunState = { ...s, phase: { kind: "idle" } };
   const state = handoff ? recoveryOnEnd(idle, outcome, env, effects) : idle;
-  if (env.hasTurnEndTasks && completed) return { state, effects: [...effects, { do: "run_turn_end_tasks", then }] };
+  if (env.hasTurnEndTasks && completed) return { state: { ...state, phase: { kind: "settling", then, stopRequested: false } }, effects: [...effects, { do: "run_turn_end_tasks" }] };
   if (env.hasTurnEndTasks) effects.push({ do: "drop_turn_end_tasks", notice: !env.shuttingDown });
   return { state: afterTurn(state, then, env, effects), effects };
 }

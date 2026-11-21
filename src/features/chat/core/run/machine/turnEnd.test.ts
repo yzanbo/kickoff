@@ -59,11 +59,12 @@ test("作業の終わり: 圧縮前指示の作業が最後まで終わって圧
 test("作業の終わりの順: 予約した作業場所の移動 → 続けての圧縮 → 預かり → 送信待ち（S16）。止めたら移さずに予約を消す", () => {
   const withTasks = { hasTurnEndTasks: true };
   const moving = end(ended({ turn: "pre_compact", compaction: { awaiting: true } }), completed, withTasks);
-  assert.deepEqual(moving.effects, [...head(completed), { do: "run_turn_end_tasks", then: { compact: "manual", send: true } }]);
-  assert.deepEqual(moving.state.phase, { kind: "idle" });
+  assert.deepEqual(moving.effects, [...head(completed), { do: "run_turn_end_tasks" }]);
+  // 移す間は作業中のまま（作業の終わりにすることが済むのを待つ段階。chats.status は済んでから書く = 6 章 A1）
+  assert.deepEqual(moving.state.phase, { kind: "settling", then: { compact: "manual", send: true }, stopRequested: false });
   // 移したあとに続きの指示（預かりの前）を置いたら、それから送る
   const effects: Effect[] = [];
-  const settled = afterTurn({ ...moving.state, outbox: { ...EMPTY_OUTBOX, now: [row("続き")] } }, { compact: null, send: true }, env, effects);
+  const settled = afterTurn({ ...moving.state, phase: { kind: "idle" }, outbox: { ...EMPTY_OUTBOX, now: [row("続き")] } }, { compact: null, send: true }, env, effects);
   assert.deepEqual([effects, settled.outbox.now], [[{ do: "start_turn", turn: "message", item: row("続き"), from: "held" }], []]);
   const cancelled: TurnOutcome = { status: "cancelled", network: false };
   assert.deepEqual(end(ended({ outbox: later("次") }), cancelled, withTasks).effects, [...head(cancelled), { do: "drop_turn_end_tasks", notice: true }, sendNext("次")]);

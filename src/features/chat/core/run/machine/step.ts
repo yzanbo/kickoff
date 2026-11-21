@@ -92,7 +92,7 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
       return ended.state;
     }
     case "settled":
-      return p.kind === "idle" ? afterTurn(s, e.then, env, effects) : s;
+      return p.kind === "settling" ? afterTurn({ ...s, phase: { kind: "idle" } }, p.then, env, effects) : s;
     case "continuation": {
       const placed = placeContinuation(s.outbox, newMessage(env, e.text, {}, [], { workplace_continuation: true }), e.afterFinish);
       if (placed.stopped) effects.push({ do: "record", kind: "notice", message: "送信待ちを止めているので、AI が予約した続きの指示は送らずに送信待ちの先頭に入れました" });

@@ -50,12 +50,14 @@ export interface StoppedAgent {
 
 /**
  * 作業の段階: 作業していない / 送る準備（理由。確かめてから動かし始めるまで・長い準備の間）/ 作業中（種類・「いま」を足す口・圧縮の様子・
- * 止めるよう頼んだか・足している途中の行）。作業の終わりにすること（予約した作業場所の移動）は、まだ段階にしない（殻が済んだら settled を渡す）
+ * 止めるよう頼んだか・足している途中の行）/ 作業の終わりにすること（予約した作業場所の移動）が済むのを待つ（then: 済んだら続けること。殻が済んだら settled を渡す）。
+ * 作業していない以外はどれも作業中に数える（chats.status は作業していないに戻ったときに結果を書く = 画面とコアが同じ時刻に「終わった」になる）
  */
 export type Phase =
   | { kind: "idle" }
   | { kind: "preparing"; why: PrepareReason; stopRequested: boolean }
-  | { kind: "turn"; id: string; turn: TurnKind; tell: TellGate; compaction: Compaction; stopRequested: boolean; telling: string | null; compactBy: CompactTrigger | null };
+  | { kind: "turn"; id: string; turn: TurnKind; tell: TellGate; compaction: Compaction; stopRequested: boolean; telling: string | null; compactBy: CompactTrigger | null }
+  | { kind: "settling"; then: AfterTurn; stopRequested: boolean };
 
 /** 作業中の段階 */
 export type TurnPhase = Extract<Phase, { kind: "turn" }>;
@@ -168,8 +170,8 @@ export type RunEvent =
   | { type: "compacted"; post: string | null; compactRun: boolean }
   | { type: "pre_compact_injected" }
   | { type: "turn_ended"; outcome: TurnOutcome }
-  /** 作業の終わりにすること（予約した作業場所の移動）が済んだ（then: 作業の終わりに決めた続き） */
-  | { type: "settled"; then: AfterTurn }
+  /** 作業の終わりにすること（予約した作業場所の移動）が済んだ（続きは段階 settling の then） */
+  | { type: "settled" }
   /** AI が予約した作業場所の移動のあとの続きの指示を置く（止めていれば送信待ちの頭） */
   | { type: "continuation"; text: string; afterFinish: boolean }
   /** 送信待ちの次を送る */
@@ -222,7 +224,7 @@ export type Effect =
   /** 起動したときの再開の確かめの印（chats.resume_pending）を変える */
   | { do: "resume_pending"; value: boolean }
   /** 作業の終わりにすることを行う（済んだら settled で続ける） */
-  | { do: "run_turn_end_tasks"; then: AfterTurn }
+  | { do: "run_turn_end_tasks" }
   /** 作業の終わりにすることの予約を消す（notice: 移さなかったお知らせを残す） */
   | { do: "drop_turn_end_tasks"; notice: boolean };
 

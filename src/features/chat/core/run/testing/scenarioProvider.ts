@@ -31,6 +31,10 @@ export class ScenarioProvider implements AgentProvider {
   tellOk = true;
   /** 次からの実行は、tellReady まで足す口を作らない */
   tellLate = false;
+  /** 会話記録の乗り換え（圧縮した作業の終わり）を止めている間の待ち */
+  private trimHold: { done: Promise<void>; release: () => void } | null = null;
+  /** 会話記録の口は乗り換えだけ（止めている間は返さない。乗り換えるものはない = null） */
+  readonly sessions = { trim: async () => (await this.trimHold?.done, null) };
   /** いま動いている実行の数と、その最大 */
   active = 0;
   maxActive = 0;
@@ -62,6 +66,18 @@ export class ScenarioProvider implements AgentProvider {
       else signal.addEventListener("abort", stop, { once: true });
       if (!this.tellLate) this.openTell(run);
     });
+  }
+
+  /** 会話記録の乗り換えを止めておく・進める */
+  holdTrim(hold: boolean) {
+    if (hold && !this.trimHold) {
+      let release!: () => void;
+      const done = new Promise<void>((resolve) => (release = resolve));
+      this.trimHold = { done, release };
+    } else if (!hold) {
+      this.trimHold?.release();
+      this.trimHold = null;
+    }
   }
 
   /** 足す口を作る（終わった実行・入力が閉じたときは足せない） */

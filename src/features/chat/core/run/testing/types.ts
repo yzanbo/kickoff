@@ -52,6 +52,8 @@ export type ScenarioStep =
   /** いま動いている実行（chat の最後の実行）に。tellReady = 足す口ができた / tellLate = 次からの実行は tellReady まで口を作らない */
   | { provider: "tellReady"; chat?: ChatAlias }
   | { provider: "tellLate" }
+  /** 圧縮した作業の終わりの会話記録の乗り換えを止めておく（hold）・進める（乗り換えるものはない = null） */
+  | { provider: "trim"; hold: boolean }
   /** 足せるか（入力が閉じたら false。次からの実行にも残る） */
   | { provider: "tell"; ok: boolean }
   | { provider: "compacting"; active: boolean; chat?: ChatAlias }

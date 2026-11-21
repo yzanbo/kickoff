@@ -14,7 +14,7 @@
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= `phase` が `idle` でない（送る準備も）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
+- 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
 - 状態は `ChatRun`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。作業の始まりと終わりは `onTurnStarted`・`onTurnEnded` で聞く。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
@@ -35,13 +35,13 @@
 - 動かし始める前に止められたら、プロバイダーを動かさずに中断で終える（`turn.ts` のコメント）。
 - `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけで保存しない。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
 - 分岐の起点（`result` の `session_id` / `message_id`）は最後まで終わったときだけ残す。
-- 終わりにすることは `core/run/machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
+- 終わりにすることは `machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
 - 砂場の診断（`@/features/guard/core/sandboxDiagnostics.ts`）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
 
 ## 作業中の様子（ChatLive）
 
 - 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後にも）。保存しない。
-- 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
+- `cancel` の `stopping` は、プロセスがサブエージェントごと終わるまで立てる。
 
 ## 送信待ち（`core/run/queueWindow.ts`・`requests.ts`）
 
@@ -61,7 +61,7 @@
 ## 未読・承認と質問（`core/approvals.ts`）
 
 - 未読の条件は `@shared/chat/state` の `isUnreadEvent`（`core/db/events.ts` の `latestUnreadId` が同じものを SQL で持つ。変えたら両方）。
-- 既読（`POST …/seen`）は、画面が見た `event_id` より新しい結果があれば消さない。画面は一番下まで見た記録の ID を `api.markSeen` に渡し、既読にするのは自分で見たときだけ（`@/features/conversation/ui/timeline/useMarkSeen.ts`。返答が届いただけでは消さない）。印の付け外しで並び順（最後に動いた時刻）を変えない。
+- 既読（`POST …/seen`）は、画面が見た `event_id` より新しい結果があれば消さない。画面は一番下まで見た記録の ID を `api.markSeen` に渡し、自分で見たときだけ既読にする（`@/features/conversation/ui/timeline/useMarkSeen.ts`）。印の付け外しで並び順を変えない。
 - 画面の状態は `chatStateOf`（`@shared/chat/state.ts` の `agentStateOf`）、色は `ui/state/tones.ts`。場所ごとに判定を書かない。
 - 回答待ちは `ApprovalCenter` が持ち、回答まで実行は待つ。止められたら拒否で返す（あとの回答は 409）。回答の添付のパスは `answersWithAttachments` が書き添える。
 

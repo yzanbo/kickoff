@@ -93,6 +93,11 @@ export class RunShell {
         const prev = run.run;
         const { state, effects } = step(prev, e, this.envOf(chatId, run));
         run.commit(state);
+        // chats.status は段階の写し: 作業していないに戻ったら、最後に終わった実行の結果を書く（命令の前に。命令が出す出来事は書いたあとの状態で決める）
+        if (prev.phase.kind !== "idle" && state.phase.kind === "idle" && run.endStatus !== null) {
+          this.deps.store.chats.update(chatId, { status: run.endStatus });
+          run.endStatus = null;
+        }
         this.trace(chatId, e, prev, state, effects);
         const started: Promise<void>[] = [];
         for (const effect of effects) this.runEffect(chatId, run, effect, started);
@@ -144,7 +149,8 @@ export class RunShell {
       preCompact: chat ? this.hooks.preCompactOf(chat.project_id) : null,
       preCompactSent: preCompactSent(run.marks),
       autoResumeOnReconnect: store.settings.get().auto_resume_on_reconnect,
-      chatFailed: chat?.status === "failed",
+      // 終わった実行の結果は、作業していないに戻るまで chats.status に書かないので、それを先に見る
+      chatFailed: (run.endStatus ?? chat?.status) === "failed",
     };
   }
 
@@ -184,6 +190,7 @@ export class RunShell {
     const run = this.runs.get(chatId);
     const handle: TurnHandle = { abort: new AbortController(), control: null };
     run.setHandle(handle);
+    if (this.deps.store.chats.get(chatId)?.status !== "running") this.deps.store.chats.update(chatId, { status: "running" });
     this.dispatch(chatId, { type: "turn_started", turn, compactBy, ...(pauseAfter ? { pauseAfter } : {}) });
     for (const fn of this.startedFns) fn(chatId);
     let outcome: TurnOutcome = { status: "failed", network: false };
@@ -191,6 +198,7 @@ export class RunShell {
       outcome = await executeTurn(this.turnDeps, run, item, handle.abort.signal);
     } finally {
       if (run.handle === handle) run.setHandle(null);
+      run.endStatus = outcome.status;
       for (const fn of this.endedFns) fn(chatId, outcome);
       this.dispatch(chatId, { type: "turn_ended", outcome });
     }

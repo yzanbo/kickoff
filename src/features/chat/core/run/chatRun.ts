@@ -1,7 +1,7 @@
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { ProviderCallbacks } from "@/features/ai/core/index";
 import { initialRunState } from "@/features/chat/core/run/machine/state";
-import type { ChatRunState, Lane, RunEvent } from "@/features/chat/core/run/machine/types";
+import type { ChatRunState, Lane, RunEvent, TurnOutcome } from "@/features/chat/core/run/machine/types";
 import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
 import type { ProviderHandoff, WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import type { Outbox } from "@shared/chat/outbox";
@@ -56,6 +56,8 @@ export class ChatRun {
   readonly writeAllowed = new Set<string>();
   /** AI が予約した作業場所の移動（ChatLive の workplace_move。中身は workplaceReservation.ts が持つ） */
   private moveShown: WorkplaceMoveReservation | null = null;
+  /** 最後に終わった実行の結果の状態（作業していないに戻ったときに chats.status へ書く。続けて次の作業を動かしたら、その作業の結果で置き換える） */
+  endStatus: TurnOutcome["status"] | null = null;
   /** 足している途中の行の番号（足す命令ごとに増やす。結果より先に次の命令が出たら、前の結果は捨てる） */
   tellSeq = 0;
   private state: ChatRunState;

@@ -6,6 +6,25 @@ const pre = { pre_compact_prompt: "ノートを書いて" };
 
 export const COMPACT_SCENARIOS: Scenario[] = [
   {
+    id: "S50",
+    behavior: 1,
+    name: "圧縮した作業の終わりの会話記録の乗り換えの間も作業中で、チャットの状態も作業中のまま（画面が送信待ちに入れる）。乗り換えが済んだら送る（6 章 A1）",
+    steps: [
+      start("はじめ"),
+      { provider: "trim", hold: true },
+      { provider: "compacted" },
+      end("completed"),
+      { await: { events: ["user", "compact", "result"] } },
+      { check: { busy: true, status: "running" } },
+      later("次"),
+      { check: { queue: ["次"] } },
+      { provider: "trim", hold: false },
+      { await: { runs: ["はじめ", "次"] } },
+      end("completed", "idle"),
+    ],
+    expect: { runs: ["はじめ", "次"], queue: [], status: "completed" },
+  },
+  {
     id: "S17",
     behavior: 14,
     name: "圧縮前指示: 手で圧縮すると、先に指示を札付きの発言として送り、その作業が最後まで終わってから /compact を送る",
