@@ -22,7 +22,7 @@ import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { TurnContributor } from "./run/turn/contributor";
-import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
+import type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
@@ -47,8 +47,8 @@ export { toolChat } from "./tools/context";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";
-export type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
-export type { Store } from "./stores";
+export type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "./ports";
+export type { ChatStores, Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
@@ -66,6 +66,8 @@ export interface ChatDeps {
   ai: AiApi;
   /** 添付の口（保存先・送る文と回答に添付のパスを書き添える・消したチャットの添付を消す。attachments が実装する） */
   attachments: ChatAttachments;
+  /** AI を替えたあとの引き継ぎの状態（providerSwitch の createProviderHandoffs。起動したときの確かめがこの中で走るので、組み立てが先に作って渡す） */
+  providerHandoff: ProviderHandoffPort;
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools。実行ごとに引く。組み立てが集める） */
   aiTools: () => readonly AiToolGroup[];
 }
@@ -147,7 +149,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, attachments, aiTools: deps.aiTools, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, attachments, aiTools: deps.aiTools, providerHandoff: deps.providerHandoff, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -156,6 +158,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     store,
     providers,
     attachments,
+    remembered: deps.providerHandoff.sessionsOf,
     sessionsElsewhere,
     // 1 つが失敗してもほかの後片付けは続ける
     onPurged: async (ids) => {
@@ -177,7 +180,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     const extras = { user_view: userView, fromHost: callerOf(c).kind === "host" };
     for (const fn of sendHooks) fn(chatId, extras);
   };
-  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, attachments, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
+  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, attachments, providerHandoff: deps.providerHandoff, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
   return {

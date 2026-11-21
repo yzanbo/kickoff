@@ -12,7 +12,7 @@ import type { ProviderId } from "@shared/settings/types";
 import { startChildChat } from "./children";
 import { detachChat } from "./detach";
 import { forkChat } from "./fork";
-import { handOffToParent } from "./handoff";
+import { handBackToParent } from "./handBack";
 import { startSubagentChildChat } from "./subagentChild";
 
 /** 子チャットを親から外す（parent_chat_id: null = 親なし / 先祖の ID = その子に。group_id は親なしにするときだけ） */
@@ -57,7 +57,7 @@ export function childChatRoutes(app: Hono, { store, runner, providers, uploads, 
   // queue = 親の送信待ちの最後に足す）。親のない・終わっていない作業・返答のない作業は 400、親がアーカイブ済みなら 409
   app.post("/api/chats/:id/handoff", withChat, async (c) => {
     const body = handoffSchema.parse(await jsonBody(c));
-    return c.json(await handOffToParent(deps, c.var.chat, body));
+    return c.json(await handBackToParent(deps, c.var.chat, body));
   });
 
   // サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）

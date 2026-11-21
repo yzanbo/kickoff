@@ -7,13 +7,16 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
+/** チャットが覚えている離れた AI のセッション（providerSwitch の ProviderHandoffPort.sessionsOf） */
+export type RememberedSessions = (chatId: number) => { session_id: string; provider: ProviderId }[];
+
 /** 消すチャットが使ったセッション（プロバイダーごと）と、動かした作業フォルダの候補。チャットを消す前に集める */
 export interface ChatSessions {
   byProvider: Map<ProviderId, Set<string>>;
   cwds: string[];
 }
 
-export function collectChatSessions(store: Store, chats: Chat[]): ChatSessions {
+export function collectChatSessions(store: Store, chats: Chat[], remembered: RememberedSessions = () => []): ChatSessions {
   const byProvider = new Map<ProviderId, Set<string>>();
   const cwds = new Set<string>();
   for (const chat of chats) {
@@ -30,7 +33,7 @@ export function collectChatSessions(store: Store, chats: Chat[]): ChatSessions {
       else if ((event.type === "init" || event.type === "result" || event.type === "workplace_moved") && event.data.session_id) add(event.data.session_id, provider);
     }
     if (chat.session_id) add(chat.session_id, chat.provider);
-    for (const session of store.chatProviderSessions.list(chat.id)) add(session.session_id, session.provider);
+    for (const session of remembered(chat.id)) add(session.session_id, session.provider);
     const project = store.projects.get(chat.project_id);
     if (chat.worktree_path) cwds.add(chat.worktree_path);
     if (project) cwds.add(project.repo_path);

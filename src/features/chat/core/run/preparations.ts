@@ -4,7 +4,6 @@ import type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
 import { recordEvent } from "@/features/chat/core/run/record";
-import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import { Conflict } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
 import { providerCan } from "@shared/ai/providers";
@@ -49,7 +48,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
     shell.requireChat(chatId);
     shell.requireIdle(chatId, "AI の引き継ぎの再試行");
     const { providerSwitch: port } = deps;
-    const pending = store.chatProviderHandoffs.get(chatId);
+    const pending = deps.providerHandoff?.pending(chatId);
     if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
     if (!port) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
     // 再試行できたら送信待ちの次を送る（記録した指示を送り直したら、その作業が段階を引き継ぐ）
@@ -72,8 +71,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
           return result;
         } catch (error) {
           // 再準備後の失敗でも、元の指示を飛ばして次の待ちを送らない。
-          if (claimed) store.chatProviderHandoffs.blockBeforeSend(chatId, pending.eventId, errorMessage(error));
-          else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
+          deps.providerHandoff?.failed(chatId, pending.eventId, errorMessage(error), claimed);
           throw error;
         }
       },
@@ -106,7 +104,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
       const chat = shell.requireChat(chatId);
       shell.requireIdle(chatId, "AI の切り替え");
       if (chat.provider !== expectedProvider || chat.provider === target || !providerCan(target, "switch") || !providerCan(chat.provider, "switch")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
-      const blocked = handoffBlocksSwitch(store.chatProviderHandoffs.get(chatId), chat.provider);
+      const blocked = deps.providerHandoff?.blocksSwitch(chatId, chat.provider) ?? null;
       if (blocked) throw new Conflict(blocked);
       const { providerSwitch: port } = deps;
       if (!port) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
@@ -138,7 +136,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
     async confirmResendProviderHandoff(chatId: number, eventId: number): Promise<{ warning: string | null }> {
       shell.requireChat(chatId);
       shell.requireIdle(chatId, "AI の引き継ぎの再送");
-      if (!store.chatProviderHandoffs.confirmResend(chatId, eventId)) throw new Conflict("AI の引き継ぎ状態が変わりました。確認し直してください");
+      if (!deps.providerHandoff?.confirmResend(chatId, eventId)) throw new Conflict("AI の引き継ぎ状態が変わりました。確認し直してください");
       return retryProviderHandoff(chatId);
     },
 

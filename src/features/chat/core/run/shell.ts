@@ -71,7 +71,7 @@ export class RunShell {
     readonly deps: ShellDeps,
     private readonly hooks: ShellHooks,
   ) {
-    this.runs = new ChatRuns({ store: deps.store, bus: deps.bus, clock: deps.clock, editTtlMs: deps.editHoldTtlMs, dispatch: (chatId, event) => this.dispatch(chatId, event) });
+    this.runs = new ChatRuns({ store: deps.store, providerHandoff: deps.providerHandoff, bus: deps.bus, clock: deps.clock, editTtlMs: deps.editHoldTtlMs, dispatch: (chatId, event) => this.dispatch(chatId, event) });
   }
 
   /**
@@ -141,15 +141,15 @@ export class RunShell {
   private envOf(chatId: number, run: ChatRun): Env {
     const { store } = this.deps;
     const chat = store.chats.get(chatId);
-    const pending = store.chatProviderHandoffs.get(chatId);
+    const pending = this.deps.providerHandoff?.pending(chatId);
     const switched = pending ? store.events.get(pending.eventId) : undefined;
     return {
       ...this.outboxEnv(),
       shuttingDown: this.shuttingDown,
       hasSession: Boolean(chat?.session_id),
       hasTurnEndTasks: this.hooks.hasTurnEndTasks(chatId),
-      handoff: run.handoff()?.state ?? null,
-      handoffQueued: switched?.type === "provider_switched" ? (switched.data.queued_ids ?? []) : [],
+      providerHandoff: run.handoff()?.state ?? null,
+      providerHandoffQueued: switched?.type === "provider_switched" ? (switched.data.queued_ids ?? []) : [],
       preCompact: chat ? this.hooks.preCompactOf(chat.project_id) : null,
       preCompactSent: preCompactSent(run.marks),
       autoResumeOnReconnect: store.settings.get().auto_resume_on_reconnect,
@@ -177,7 +177,7 @@ export class RunShell {
       // ほかの AI に戻しても、消去前の会話を再開しない。新しい会話: 次に上限に近づいたら、また圧縮前指示を送る（消去の記録から導く preCompactSent）
       this.dispatch(chatId, { type: "forget_recovery" });
       store.chats.update(chatId, { session_id: null, context_tokens: null });
-      store.chatProviderSessions.removeAll(chatId);
+      this.deps.providerHandoff?.cleared(chatId);
       recordEvent(store, run, { type: "context_cleared" });
     } else if (effect.do === "edit_timer") run.editTimer(effect.lane, effect.on, () => this.dispatch(chatId, { type: "edit_hold_expired", lane: effect.lane }));
     else if (effect.do === "record") {

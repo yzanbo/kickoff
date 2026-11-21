@@ -12,7 +12,7 @@ import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
 import type { Store } from "@/features/chat/core/stores";
-import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "@/features/chat/core/ports";
+import type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "@/features/chat/core/ports";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
 import type { AgentProvider, ProviderKeyVault, UsageMonitor } from "@/features/ai/core/index";
 import type { TrashCommand } from "@/features/trash/core/index";
@@ -57,6 +57,8 @@ export interface RunnerDeps {
   providerKeys?: ProviderKeyVault;
   /** AI の切り替えの準備と確定（providerSwitch が chat.api.provideProviderSwitch で登録する。なければ切り替えられない） */
   providerSwitch?: ProviderSwitchPort;
+  /** AI を替えたあとの引き継ぎの状態（providerSwitch が実装し、組み立てが渡す。なければ引き継ぎはないものとする） */
+  providerHandoff?: ProviderHandoffPort;
   /** 子チャットを親から外す口（childChats が chat.api.provideDetach で登録する。なければ AI の update_chat は親から外せない） */
   detach?: ChatDetachPort;
   /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
@@ -140,7 +142,7 @@ export function createChatRunner(deps: RunnerDeps) {
   shell.turnDeps = { ...shell.deps };
   shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
-  deps.store.chatProviderHandoffs.recoverInterrupted();
+  deps.providerHandoff?.onBoot();
   // 再起動しても送信待ちの列は残す（読み戻した列は止めておく）。作業の途中で止まった・自動で送るまま残ったチャットは、利用者に聞く
   restart.askOnBoot(deps.interrupted ?? []);
 

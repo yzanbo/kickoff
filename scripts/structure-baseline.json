@@ -1725,7 +1725,6 @@
       "feature-entry:src/features/providerSwitch/core/providerSwitch.test.ts -> src/features/attachments/core/uploads.ts",
       "feature-entry:src/features/providerSwitch/core/providerSwitch.ts -> src/features/attachments/core/uploads.ts",
       "feature-entry:src/features/providerSwitch/core/providerSwitch.ts -> src/features/chat/core/workdir.ts",
-      "feature-entry:src/features/providerSwitch/core/providerSwitchPreview.ts -> src/features/chat/core/db/chatProviderHandoffs.ts",
       "feature-entry:src/features/providerSwitch/core/providerSwitchPreview.ts -> src/features/chat/core/workdir.ts",
       "feature-entry:src/features/providerSwitch/core/turn.test.ts -> src/features/ai/core/testing/fakeProvider.ts",
       "feature-entry:src/features/providerSwitch/core/turn.test.ts -> src/features/attachments/core/uploads.ts",

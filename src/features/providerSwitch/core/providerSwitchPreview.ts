@@ -3,15 +3,15 @@ import path from "node:path";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { ProviderSwitchPreview } from "@shared/providerSwitch/types";
 import type { ProviderId } from "@shared/settings/types";
-import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
-import type { Store } from "@/features/chat/core/index";
+import { handoffBlocksSwitch } from "./db/handoffs";
+import type { SwitchStore } from "./store";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import type { ChatRunPort } from "@/features/chat/core/index";
 import { workdirOf } from "@/features/chat/core/workdir";
 import { providerCan } from "@shared/ai/providers";
 
 /** 確認画面と確定時で同じ条件を比較する。資料や API キーはトークンに含めない。 */
-export function providerSwitchPreview(store: Store, runner: ChatRunPort, chatId: number, target: ProviderId): ProviderSwitchPreview {
+export function providerSwitchPreview(store: SwitchStore, runner: ChatRunPort, chatId: number, target: ProviderId): ProviderSwitchPreview {
   const chat = store.chats.get(chatId);
   if (!chat) throw new NotFound("チャットが見つかりません");
   if (chat.archived_at || chat.provider === target || !providerCan(chat.provider, "switch") || !providerCan(target, "switch")) throw new Conflict("この AI には切り替えられません");

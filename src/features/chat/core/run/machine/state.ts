@@ -3,7 +3,7 @@ import { isQueueAction } from "@shared/chat/queueActions";
 import { EMPTY_OUTBOX, restoreOutbox, type Outbox } from "@shared/chat/outbox";
 import type { HoldReason } from "@shared/chat/chatLive";
 import type { QueuedMessage } from "@shared/chat/types";
-import type { ChatRunState, Compaction, HandoffGate, Phase, TurnKind, TurnPhase } from "./types";
+import type { ChatRunState, Compaction, ProviderHandoffGate, Phase, TurnKind, TurnPhase } from "./types";
 
 export const noCompaction = (): Compaction => ({ awaiting: false, afterTurn: false, running: null, done: false });
 
@@ -33,7 +33,7 @@ export function compactionAtStart(turn: TurnKind): Compaction {
  * 引き継ぎの門が通すか（row を省けば、送ること自体）: 門がなければ通す。圧縮・消去の行は引き継ぎが終わるまで通さない
  * （引き継ぐ前にセッションを操作しない）。指示は引き継ぎの準備ができていれば通す
  */
-export function handoffAllows(gate: HandoffGate, row?: QueuedMessage): boolean {
+export function providerHandoffAllows(gate: ProviderHandoffGate, row?: QueuedMessage): boolean {
   if (gate === null) return true;
   if (row && isQueueAction(row)) return false;
   return gate === "ready";

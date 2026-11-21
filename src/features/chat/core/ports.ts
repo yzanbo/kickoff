@@ -1,4 +1,5 @@
 // chat が宣言し、上の機能が実装する口（chat は上の機能を読まない。組み立てが渡す）
+import type { HandoffState } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
@@ -32,4 +33,34 @@ export interface ProviderSwitchPort {
   commit(input: { chatId: number; expectedProvider: ProviderId; target: ProviderId; queueWasPaused: boolean; queuedIds: string[] }, requireStable: () => void): Promise<{ chat: Chat; warning: string | null }>;
   /** 準備に失敗した引き継ぎを、切り替えた時点までの記録から組み直す（claim: 記録した指示を送り直す） */
   retry(chatId: number, claim: boolean, requireStable: () => void): Promise<{ warning: string | null }>;
+}
+
+/** AI を替えたあとの引き継ぎ（いまの引き継ぎだけ。資料は providerSwitch の contributor が添える） */
+export interface PendingProviderHandoff {
+  /** 切り替えた区切り（provider_switched）の記録 */
+  eventId: number;
+  /** 引き継ぐ先の AI */
+  provider: ProviderId;
+  state: HandoffState;
+}
+
+/**
+ * 引き継ぎの状態の口（providerSwitch が実装し、組み立てが chat を作るときに渡す。起動したときの確かめが chat を作る中で走るため）。
+ * 殻の決まりの門・作業中の様子・やり直し・消去・会話記録の片付けが読む
+ */
+export interface ProviderHandoffPort {
+  /** そのチャットのいまの引き継ぎ（なければ null） */
+  pending(chatId: number): PendingProviderHandoff | null;
+  /** AI を切り替えられない理由（引き継ぎの途中。切り替えてよければ null） */
+  blocksSwitch(chatId: number, current: ProviderId): string | null;
+  /** 引き継ぎのやり直しに失敗した（resend = 記録した指示を送り直していた。どちらも再試行を待つ） */
+  failed(chatId: number, eventId: number, error: string, resend: boolean): void;
+  /** 受信不明の引き継ぎを、利用者が承知して送り直す（状態が変わっていれば false） */
+  confirmResend(chatId: number, eventId: number): boolean;
+  /** 起動のとき: 送っている途中で終わった引き継ぎを受信不明にする */
+  onBoot(): void;
+  /** コンテキストを消去した: 離れた AI のセッションの覚えを捨てる（戻しても消去前の会話を再開しない） */
+  cleared(chatId: number): void;
+  /** そのチャットが覚えている離れた AI のセッション（会話記録の片付けで、使っているものとして数える） */
+  sessionsOf(chatId: number): { session_id: string; provider: ProviderId }[];
 }

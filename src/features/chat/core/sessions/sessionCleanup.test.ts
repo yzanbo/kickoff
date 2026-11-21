@@ -15,7 +15,7 @@ test("AI を替えたチャットのセッションは、その時点の AI ご�
   store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex" });
   store.events.add(chat.id, { type: "result", status: "completed", session_id: "codex-1" });
   store.chatProviderSessions.save(chat.id, "claude", "claude-2", null);
-  const collected = collectChatSessions(store, [chat]);
+  const collected = collectChatSessions(store, [chat], (id) => store.chatProviderSessions.list(id));
   assert.deepEqual([...collected.byProvider.get("claude")!].sort(), ["claude-1", "claude-2"]);
   assert.deepEqual([...collected.byProvider.get("codex")!], ["codex-1"]);
   store.close();

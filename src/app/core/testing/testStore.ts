@@ -18,6 +18,7 @@ import { createChatImageStore } from "@/features/remoteImages/core/db/chatImages
 import { createSnippetStore, type SnippetStore } from "@/features/snippets/core/db/snippets";
 import { createTrashStore } from "@/features/trash/core/db/trash";
 import { createWorktreeStores } from "@/features/worktrees/core/index";
+import { createProviderHandoffStores, createProviderSwitchStore } from "@/features/providerSwitch/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
 
 /** 土台の店（設定・秘密の値・DB の ID） */
@@ -28,9 +29,13 @@ function openBaseStores(db: DatabaseSync, onChange: Notify): BaseStores {
   return { databaseId: readDatabaseId(db), settings: openAppSettings(db, ALL_SETTINGS, (settings) => onChange({ type: "settings", settings })), secrets: createSecretStore(db) };
 }
 
-/** chat の束にない店（土台の DB の ID・秘密の値と、端末・DB クライアント・GitHub・ワークツリー・外の画像の店）。店は DB のほかに状態を持たない */
-function extraStores(db: DatabaseSync, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {
+/** chat の束にない店（土台の DB の ID・秘密の値と、AI の切り替え・端末・DB クライアント・GitHub・ワークツリー・外の画像の店）。店は DB のほかに状態を持たない */
+function extraStores(chat: Store, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {
+  const { db } = chat;
+  const handoffs = createProviderHandoffStores(db);
   return {
+    ...handoffs,
+    providerSwitch: createProviderSwitchStore(db, onChange, { ...chat, ...handoffs }),
     databaseId: base.databaseId,
     secrets: base.secrets,
     devices: createDeviceStore(db),
@@ -47,7 +52,7 @@ export type TestStores = Store & { snippets: SnippetStore } & ReturnType<typeof 
 
 /** chat の店の束（組み立てた chat のもの）に、ほかの機能の店を足す */
 export function withFeatureStores(store: Store, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify = () => {}): TestStores {
-  return Object.assign(store as Store & { snippets: SnippetStore }, extraStores(store.db, base, onChange));
+  return Object.assign(store as Store & { snippets: SnippetStore }, extraStores(store, base, onChange));
 }
 
 /** 開いた DB に全部の店を開く（土台の設定・秘密の値は渡したもの、省けばここで開く） */

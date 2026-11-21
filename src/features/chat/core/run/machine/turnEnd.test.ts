@@ -6,7 +6,7 @@ import { noCompaction } from "./state";
 import { afterTurn, onTurnEnded } from "./turnEnd";
 import type { ChatRunState, Compaction, Effect, Env, Gates, TurnKind, TurnOutcome } from "./types";
 
-const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "new", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
+const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "new", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, providerHandoff: null, providerHandoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
 const row = (text: string, extra: object = {}) => ({ ...newMessage(env, text, {}, []), id: text, ...extra });
 const later = (...texts: string[]): Outbox => ({ ...EMPTY_OUTBOX, later: texts.map((t) => row(t)) });
 const completed: TurnOutcome = { status: "completed", network: false };
@@ -36,8 +36,8 @@ test("作業の終わり: 通信の切断・使用枠の上限・アプリの終
   assert.deepEqual([cut.state.gates.recovery?.reason, cut.state.gates.recovery?.holds, cut.state.outbox.paused, cut.state.phase.kind], ["reconnect", true, false, "idle"]);
   assert.equal(end(ended({ outbox: later("次") }), usage).state.gates.recovery?.reason, "usage_limit");
   assert.deepEqual(end(ended({ outbox: later("次") }), completed, { shuttingDown: true }).effects, head(completed));
-  assert.deepEqual(end(ended({ outbox: later("次") }), completed, { handoff: "blocked" }).effects, [{ do: "refresh_usage" }]);
-  assert.deepEqual(end(ended({ outbox: later("次") }), completed, { handoff: "ready" }).effects, [...head(completed), sendNext("次")]);
+  assert.deepEqual(end(ended({ outbox: later("次") }), completed, { providerHandoff: "blocked" }).effects, [{ do: "refresh_usage" }]);
+  assert.deepEqual(end(ended({ outbox: later("次") }), completed, { providerHandoff: "ready" }).effects, [...head(completed), sendNext("次")]);
   // 門で止めた送信待ち: 最後まで終わったら外して送る。止めた・失敗したら外して利用者が止めたものにする
   assert.deepEqual(end(ended({ outbox: later("次"), gates: { recovery: gate } }), completed).effects.at(-1), sendNext("次"));
   const failed = end(ended({ outbox: later("次"), gates: { recovery: gate } }), { status: "failed", network: false });

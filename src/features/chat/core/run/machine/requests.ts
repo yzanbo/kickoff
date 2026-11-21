@@ -4,7 +4,7 @@ import { applyQueueCommand, isQueueReject, type QueueCommand } from "@shared/cha
 import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
 import type { QueueAction, QueuedMessage } from "@shared/chat/types";
 import { answerRestartQueue, deliverNow, NO_SESSION, pumpLater, resetHandoffQueue, startCompact, startItem } from "./outbox";
-import { handoffAllows, holdOf, isBusy, isSwitching, queuePaused, waitingEdit } from "./state";
+import { providerHandoffAllows, holdOf, isBusy, isSwitching, queuePaused, waitingEdit } from "./state";
 import type { ChatRunState, Effect, Env, Lane, RunEvent } from "./types";
 
 /** 断る（step は状態を変えずに返す） */
@@ -40,7 +40,7 @@ export function sendOf(s: ChatRunState, e: Extract<RunEvent, { type: "send" }>, 
 /** 作業していないときに送る（作業中なら 409。チャット欄の /clear は送らずにコンテキストを消去し、送信待ちの次を送る） */
 function sendIdle(s: ChatRunState, item: QueuedMessage, env: Env, effects: Effect[], pauseAfter: boolean): ChatRunState {
   if (isBusy(s)) return reject(s, effects, 409, "作業中のチャットは送信できません。終わってから（または中断してから）行ってください");
-  if (!handoffAllows(env.handoff)) return reject(s, effects, 409, HANDOFF_PENDING);
+  if (!providerHandoffAllows(env.providerHandoff)) return reject(s, effects, 409, HANDOFF_PENDING);
   s = resetHandoffQueue(s, env);
   effects.push({ do: "reply", result: "sent", id: null });
   if (!isClearCommand(item.text, item.attachments)) return startItem(s, item, "user", effects, pauseAfter);
@@ -105,7 +105,7 @@ export function editingOf(s: ChatRunState, lane: Lane, ids: string[], env: Env, 
 
 /** すぐ送る（1 件・まとめて・順に）。引き継ぎを確かめるまで・AI の交代の準備中は 409 */
 export function queueSendOf(s: ChatRunState, e: Extract<RunEvent, { type: "queue_send" }>, env: Env, effects: Effect[]): ChatRunState {
-  if (!handoffAllows(env.handoff) || isSwitching(s.phase)) return reject(s, effects, 409, HANDOFF_PENDING);
+  if (!providerHandoffAllows(env.providerHandoff) || isSwitching(s.phase)) return reject(s, effects, 409, HANDOFF_PENDING);
   if (e.mode === "in_order") {
     // 止めている・「ここまで」の印があっても最後まで送るよう、印を外して自動で送るに戻す
     if (s.outbox.later.length === 0) return reject(s, effects, 409, "送信待ちの指示がありません");
@@ -128,7 +128,7 @@ function sendQueuedNow(s: ChatRunState, id: string, env: Env, effects: Effect[])
   const found = s.outbox.later.find((m) => m.id === id);
   if (!found) return reject(s, effects, 404, MISSING);
   const action = queueActionOf(found);
-  if (action && !handoffAllows(env.handoff, found)) return reject(s, effects, 409, "AI の引き継ぎが終わるまで、この操作はできません");
+  if (action && !providerHandoffAllows(env.providerHandoff, found)) return reject(s, effects, 409, "AI の引き継ぎが終わるまで、この操作はできません");
   if (action && !isBusy(s) && !env.hasSession) return reject(s, effects, 409, NO_SESSION[action]);
   s = { ...s, outbox: takeLater(s.outbox, id)!.box };
   if (action === "compact") return compactOf(s, env, effects);
@@ -141,7 +141,7 @@ function sendQueuedNow(s: ChatRunState, id: string, env: Env, effects: Effect[])
  * 作業していなければ、圧縮前指示があれば先にその指示を送り、なければすぐ圧縮する（まだ会話がなければ 409）
  */
 export function compactOf(s: ChatRunState, env: Env, effects: Effect[]): ChatRunState {
-  if (env.handoff !== null) return reject(s, effects, 409, "AI の引き継ぎが終わるまで圧縮できません");
+  if (env.providerHandoff !== null) return reject(s, effects, 409, "AI の引き継ぎが終わるまで圧縮できません");
   const p = s.phase;
   if (p.kind === "turn" && p.tell === "open" && env.hasSession && env.preCompact && !env.preCompactSent && !p.compaction.afterTurn && holdOf(s) === null) {
     effects.push({ do: "tell_pre_compact", text: env.preCompact });
@@ -168,7 +168,7 @@ export function clearOf(s: ChatRunState, env: Env, effects: Effect[], pump: bool
 
 /** 作業していないときにコンテキストを消去する（引き継ぎが終わるまで・まだ会話がなければ 409） */
 function clearIdle(s: ChatRunState, env: Env, effects: Effect[]): ChatRunState {
-  if (env.handoff !== null) return reject(s, effects, 409, "AI の引き継ぎが終わるまでコンテキストを消去できません");
+  if (env.providerHandoff !== null) return reject(s, effects, 409, "AI の引き継ぎが終わるまでコンテキストを消去できません");
   if (!env.hasSession) return reject(s, effects, 409, NO_SESSION.clear);
   effects.push({ do: "clear_session" });
   return s;

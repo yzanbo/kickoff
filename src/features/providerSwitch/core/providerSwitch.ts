@@ -2,7 +2,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/features/chat/core/index";
+import type { SwitchStore } from "./store";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";
 import { providerHandoffGit } from "./providerHandoffGit";
@@ -10,7 +10,7 @@ import { workdirOf } from "@/features/chat/core/workdir";
 import { providerCan } from "@shared/ai/providers";
 
 export interface ProviderSwitchDeps {
-  store: Store;
+  store: SwitchStore;
   uploads: Pick<UploadStore, "save" | "resolve" | "remove">;
   /** 作業中や送信準備中なら例外にする。非同期の準備の前後で検査する。 */
   requireIdle: (chatId: number) => void;

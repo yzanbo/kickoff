@@ -1,7 +1,7 @@
 // 作業の終わりに次にすることを決める純粋な関数（命令は殻の Runner が実行する）
 import { deliverNow, parkNow, pumpLater, startCompact } from "./outbox";
 import { recoveryOnEnd } from "./recovery";
-import { handoffAllows } from "./state";
+import { providerHandoffAllows } from "./state";
 import type { AfterTurn, ChatRunState, Effect, Env, Step, TurnOutcome } from "./types";
 
 /** 止まったあとの再開の段取りに入らず、預かり・送信待ちを送ってよい終わり方か（通信の切断・使用枠の上限では送らない。送っても失敗して消えるため） */
@@ -19,7 +19,7 @@ export function canSendAfter(outcome: TurnOutcome): boolean {
  */
 export function onTurnEnded(s: ChatRunState, outcome: TurnOutcome, env: Env): Step {
   const ended = s.phase.kind === "turn" ? s.phase : null;
-  const handoff = handoffAllows(env.handoff);
+  const handoff = providerHandoffAllows(env.providerHandoff);
   const send = handoff && canSendAfter(outcome) && !env.shuttingDown;
   const completed = send && outcome.status === "completed";
   const compactNext = completed && ended !== null && ended.turn !== "compact" && ended.compaction.awaiting;

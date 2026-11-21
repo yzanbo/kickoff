@@ -6,16 +6,13 @@ import type { GroupStore } from "@/features/groups/core/index";
 import type { ProjectStore } from "@/features/projects/core/index";
 import type { TrashStore } from "@/features/trash/core/index";
 import { createAgentSessionStore } from "./db/agentSessions";
-import { createChatProviderHandoffStore } from "./db/chatProviderHandoffs";
-import { createChatProviderSessionStore } from "./db/chatProviderSessions";
 import { createChatStore } from "./db/chats";
 import { readSubagentEvents } from "./db/subagentEvents";
 import { createEventStore } from "./db/events";
 import { createLogRevisions } from "./db/logRevisions";
 import { createOutboxStore } from "./db/outbox";
-import { createProviderSwitchStore } from "./providerSwitchStore";
 
-/** チャットの表の店（チャット・記録・送信待ち・AI ごとのセッションと引き継ぎ・Kickoff が作ったセッション・記録を変えた知らせ・AI の切り替え） */
+/** チャットの表の店（チャット・記録・送信待ち・Kickoff が作ったセッション・記録を変えた知らせ） */
 export function createChatStores(db: DatabaseSync, onChange: Notify, settings: Pick<Kernel["settings"], "get">) {
   /** 記録を足す以外の形で変えた知らせ（巻き戻し・セッションの付け替え・チャットの削除。コアの索引の覚えを捨てる合図） */
   const logRevisions = createLogRevisions();
@@ -24,13 +21,11 @@ export function createChatStores(db: DatabaseSync, onChange: Notify, settings: P
     chats,
     events: { ...createEventStore(db, onChange, chats.get, logRevisions), forSubagents: (chatId: number) => readSubagentEvents(db, chatId) },
     outbox: createOutboxStore(db),
-    chatProviderSessions: createChatProviderSessionStore(db),
-    chatProviderHandoffs: createChatProviderHandoffStore(db),
     /** Kickoff が作ったセッション（Claude Code の会話記録）の覚え（使われなくなったらゴミ箱へ） */
     agentSessions: createAgentSessionStore(db),
     logRevisions,
   };
-  return { ...stores, providerSwitch: createProviderSwitchStore(db, onChange, stores) };
+  return stores;
 }
 
 export type ChatStores = ReturnType<typeof createChatStores>;

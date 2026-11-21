@@ -3,15 +3,17 @@
 // 作業の終わりに、届いたら引き継ぎを外し、送ったあとの失敗・中断は受信不明に、送る前に止まったら再試行待ちにする（集める前に失敗・中断したときも）
 import type { ProviderTurnResult } from "@/features/ai/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
-import { appendSections, type Store, type TurnContributor } from "@/features/chat/core/index";
+import { appendSections, type TurnContributor } from "@/features/chat/core/index";
+import type { SwitchStore } from "./store";
 import { errorMessage } from "@shared/foundation/errors";
+import { handoffAfterTurn } from "./providerHandoffs";
 import { retryProviderHandoffPreparation } from "./providerSwitch";
 
 /** この作業の引き継ぎ（始めたときの保留と、送信中の印を取ったか）を置く作業の値の鍵 */
 const HANDOFF_KEY = "providerSwitch.handoff";
-type HandoffTurn = { handoff: ReturnType<Store["chatProviderHandoffs"]["get"]>; claimed: boolean };
+type HandoffTurn = { handoff: ReturnType<SwitchStore["chatProviderHandoffs"]["get"]>; claimed: boolean };
 
-export function handoffTurnParts(d: { store: Store; uploads?: UploadStore }): TurnContributor {
+export function providerHandoffTurnParts(d: { store: SwitchStore; uploads?: UploadStore }): TurnContributor {
   const { store } = d;
   return {
     name: "providerSwitch",
@@ -51,24 +53,21 @@ export function handoffTurnParts(d: { store: Store; uploads?: UploadStore }): Tu
       // 集める前に失敗・中断したときは、始めたときの保留を読む（送信中の印はまだ取っていない）
       const { handoff, claimed } = perTurn<HandoffTurn>(HANDOFF_KEY, () => ({ handoff: store.chatProviderHandoffs.get(chatId), claimed: false }));
       if (!handoff) return;
-      if (claimed && status === "completed" && sessionId) {
+      const next = handoffAfterTurn({ sent: claimed, completed: status === "completed" && Boolean(sessionId), resend: request.claimedHandoffEventId === handoff.eventId });
+      if (next === "complete") {
         const last = store.events.recent(chatId, 1)[0];
         let delivered: boolean;
         try {
-          delivered = last?.type === "result" && store.providerSwitch.complete(chatId, handoff.eventId, handoff.provider, sessionId);
+          delivered = last?.type === "result" && store.providerSwitch.complete(chatId, handoff.eventId, handoff.provider, sessionId!);
         } catch (e) {
           // 引き継ぎを外せなかったら受信不明にして、その作業を失敗にする
           store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, errorMessage(e));
           throw e;
         }
         if (!delivered) store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, "AI の引き継ぎ完了を確認できませんでした");
-      } else if (claimed) {
-        store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, error ?? "AI が指示を受け取ったか確認できません");
-      } else {
-        const reason = error ?? "AI に引き継ぐ前に作業が止まりました";
-        if (request.claimedHandoffEventId === handoff.eventId) store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, reason);
-        else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, reason);
-      }
+      } else if (next === "uncertain") store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, error ?? "AI が指示を受け取ったか確認できません");
+      else if (next === "block_before_send") store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, error ?? "AI に引き継ぐ前に作業が止まりました");
+      else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, error ?? "AI に引き継ぐ前に作業が止まりました");
     },
   };
 }

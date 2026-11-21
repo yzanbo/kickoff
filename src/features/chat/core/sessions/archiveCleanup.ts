@@ -7,7 +7,7 @@ import type { ProviderId } from "@shared/settings/types";
 import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
 import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import { collectChatSessions } from "./sessionCleanup";
+import { collectChatSessions, type RememberedSessions } from "./sessionCleanup";
 import { trashChat, type ChatTrashDeps } from "./chatTrash";
 
 /**
@@ -36,9 +36,9 @@ export const cleanupBefore = (days: number, now = systemClock.now()): string => 
 const familiesOf = (store: Store, days: number, now?: number) => staleArchivedFamilies(store.chats.list({ includeArchived: true }), cleanupBefore(days, now));
 
 /** 整理の見込み（入れるチャットの数と、会話記録のファイルの大きさ。大きさを数えられるプロバイダーがなければ null） */
-export async function archiveCleanupPreview(deps: { store: Store; providers: Record<ProviderId, AgentProvider> }, days: number, now?: number): Promise<ArchiveCleanupPreview> {
+export async function archiveCleanupPreview(deps: { store: Store; providers: Record<ProviderId, AgentProvider>; remembered?: RememberedSessions }, days: number, now?: number): Promise<ArchiveCleanupPreview> {
   const chats = familiesOf(deps.store, days, now).flat();
-  const sessions = collectChatSessions(deps.store, chats);
+  const sessions = collectChatSessions(deps.store, chats, deps.remembered);
   let size: number | null = null;
   for (const [providerId, ids] of sessions.byProvider) {
     const counted = await deps.providers[providerId]?.sessions?.size?.([...ids], sessions.cwds).catch(() => null);

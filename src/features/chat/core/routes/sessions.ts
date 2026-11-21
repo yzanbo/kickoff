@@ -14,7 +14,7 @@ const cleanupSchema = z.object({ days }) satisfies z.ZodType<ArchiveCleanupBody>
 const orphanTrashSchema = z.object({ session_ids: z.array(z.string().uuid()).min(1).max(5000) }) satisfies z.ZodType<OrphanSessionsTrashBody>;
 
 /** 会話記録の片付け（設定の「ゴミ箱と整理」）: どのチャットも使っていない会話記録と、アーカイブ済みのチャットの整理 */
-export function sessionRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere }: Pick<ChatRouteDeps, "store" | "trashBin" | "runner" | "providers" | "sessionsElsewhere">) {
+export function sessionRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere, providerHandoff }: Pick<ChatRouteDeps, "store" | "trashBin" | "runner" | "providers" | "sessionsElsewhere" | "providerHandoff">) {
   // どのチャットも使っていない会話記録: 一覧と、選んだものをゴミ箱へ
   const orphanDeps: OrphanSessionDeps = {
     store,
@@ -32,7 +32,7 @@ export function sessionRoutes(app: Hono, { store, trashBin, runner, providers, s
   });
 
   // アーカイブ済みのチャットの整理: days 日より前から動いていないものの見込みと、まとめてゴミ箱へ入れる
-  app.get("/api/archive-cleanup", async (c) => c.json(await archiveCleanupPreview({ store, providers }, days.parse(queryOf(c, "days")))));
+  app.get("/api/archive-cleanup", async (c) => c.json(await archiveCleanupPreview({ store, providers, remembered: providerHandoff.sessionsOf }, days.parse(queryOf(c, "days")))));
   app.post("/api/archive-cleanup", async (c) => {
     const body = cleanupSchema.parse(await jsonBody(c));
     return c.json(runArchiveCleanup({ store, trashBin, runner }, body.days));

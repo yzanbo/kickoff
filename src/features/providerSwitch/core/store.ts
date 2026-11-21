@@ -1,25 +1,16 @@
-// AI の切り替えの保存（chats・chat_events・providerSwitch の 2 表を 1 つのトランザクションで書く）。
-// 仮に chat の中に置く（切り替えの表の持ち主 providerSwitch の店へ移すまで）
+// AI の切り替えの保存（chats・chat_events・providerSwitch の 2 表を 1 つのトランザクションで書く）
 import type { DatabaseSync } from "node:sqlite";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { Attachment, Chat, ChatOptions } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { Notify } from "@/foundation/core/db/common";
 import { tx } from "@/foundation/core/db/tx";
-import { handoffBlocksSwitch, type createChatProviderHandoffStore } from "./db/chatProviderHandoffs";
-import type { createChatProviderSessionStore } from "./db/chatProviderSessions";
-import type { createChatStore } from "./db/chats";
-import type { createEventStore } from "./db/events";
-import type { LogRevisions } from "./db/logRevisions";
+import type { ChatStores, Store } from "@/features/chat/core/index";
+import { handoffBlocksSwitch } from "./db/handoffs";
+import type { ProviderHandoffStores } from "./providerHandoffs";
 
-/** 切り替えが読み書きする chat の店 */
-interface ProviderSwitchDeps {
-  chats: ReturnType<typeof createChatStore>;
-  events: ReturnType<typeof createEventStore>;
-  chatProviderSessions: ReturnType<typeof createChatProviderSessionStore>;
-  chatProviderHandoffs: ReturnType<typeof createChatProviderHandoffStore>;
-  logRevisions: LogRevisions;
-}
+/** 切り替えが読み書きする店（chat の店と、引き継ぎ・離れた AI のセッションの店） */
+type ProviderSwitchDeps = Pick<ChatStores, "chats" | "events" | "logRevisions"> & ProviderHandoffStores;
 
 export interface ProviderSwitchInput {
   chatId: number;
@@ -150,3 +141,8 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
     },
   };
 }
+
+export type ProviderSwitchStore = ReturnType<typeof createProviderSwitchStore>;
+
+/** 切り替えの手順が読み書きする店（chat の店の束・引き継ぎの店・切り替えのトランザクション） */
+export type SwitchStore = Store & ProviderHandoffStores & { providerSwitch: ProviderSwitchStore };

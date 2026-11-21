@@ -29,7 +29,7 @@ export interface Compaction {
 }
 
 /** AI の切り替えの引き継ぎの門（DB の写し。null = 引き継ぎなし。状態は @shared/chat/chatLive の HandoffState） */
-export type HandoffGate = null | HandoffState;
+export type ProviderHandoffGate = null | HandoffState;
 
 /** 1 回の実行の終わり方（次に何をするかを決める） */
 export interface TurnOutcome {
@@ -118,9 +118,9 @@ export interface Env {
   /** 作業の終わりにすること（AI が予約した作業場所の移動）があるか */
   hasTurnEndTasks: boolean;
   /** AI の切り替えの引き継ぎの門 */
-  handoff: HandoffGate;
+  providerHandoff: ProviderHandoffGate;
   /** 引き継ぎで選択を戻す送信待ちの行（AI を切り替えた記録の queued_ids。なければ空） */
-  handoffQueued: readonly string[];
+  providerHandoffQueued: readonly string[];
   /** 圧縮前指示（設定・プロジェクト。なければ null） */
   preCompact: string | null;
   /** 前の圧縮・消去のあとで、もう圧縮前指示を送ったか（記録から導く） */

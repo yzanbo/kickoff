@@ -4,10 +4,11 @@ import { z } from "zod";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { Conflict, NotFound } from "@/foundation/core/errors";
-import type { ChatRunner, Store } from "@/features/chat/core/index";
+import type { ChatRunner } from "@/features/chat/core/index";
+import type { SwitchStore } from "./store";
 import { providerSwitchPreview } from "./providerSwitchPreview";
 
-export function providerSwitchRoutes(app: Hono, { store, runner }: { store: Store; runner: ChatRunner }) {
+export function providerSwitchRoutes(app: Hono, { store, runner }: { store: SwitchStore; runner: ChatRunner }) {
   const { withChat } = lookups(store);
 
   app.get("/api/chats/:id/provider-switch", withChat, (c) => {

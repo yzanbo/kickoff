@@ -4,7 +4,7 @@ import { addLater, moveOne, newMessage, resetOptions, takeNext, type Outbox, typ
 import { marksOf } from "@shared/chat/handoff";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { QueuedMessage } from "@shared/chat/types";
-import { compactPhase, handoffAllows, isBusy, queuePaused, waitingEdit } from "./state";
+import { compactPhase, providerHandoffAllows, isBusy, queuePaused, waitingEdit } from "./state";
 import type { ChatRunState, Effect, Env } from "./types";
 
 /** まだ会話がないので行えないとき */
@@ -31,8 +31,8 @@ export function parkNow(box: Outbox, env: OutboxEnv): Outbox {
 
 /** 引き継ぎで選択を戻す行の選択を戻す（AI を切り替えた記録の queued_ids） */
 export function resetHandoffQueue(s: ChatRunState, env: Env): ChatRunState {
-  if (env.handoff === null || env.handoffQueued.length === 0) return s;
-  const outbox = resetOptions(s.outbox, env.handoffQueued);
+  if (env.providerHandoff === null || env.providerHandoffQueued.length === 0) return s;
+  const outbox = resetOptions(s.outbox, env.providerHandoffQueued);
   return outbox === s.outbox ? s : { ...s, outbox };
 }
 
@@ -80,14 +80,14 @@ export function deliverNow(s: ChatRunState, effects: Effect[]): ChatRunState {
 export function pumpLater(s: ChatRunState, env: Env, effects: Effect[]): ChatRunState {
   let session = env.hasSession;
   for (;;) {
-    if (isBusy(s) || !handoffAllows(env.handoff)) return s;
+    if (isBusy(s) || !providerHandoffAllows(env.providerHandoff)) return s;
     s = resetHandoffQueue(s, env);
     if (s.gates.restart?.queued) {
       if (s.outbox.later.length > 0) return s;
       s = answerRestartQueue(s);
     }
     const head = s.outbox.later[0];
-    if ((head && !handoffAllows(env.handoff, head)) || waitingEdit(s) || queuePaused(s)) return s;
+    if ((head && !providerHandoffAllows(env.providerHandoff, head)) || waitingEdit(s) || queuePaused(s)) return s;
     const taken = takeNext(s.outbox);
     s = taken.box === s.outbox ? s : { ...s, outbox: taken.box };
     const next = taken.item;

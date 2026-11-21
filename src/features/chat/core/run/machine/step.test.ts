@@ -6,7 +6,7 @@ import { step } from "./step";
 import { initialRunState, noCompaction } from "./state";
 import type { ChatRunState, Effect, Env, RunEvent, TurnPhase } from "./types";
 
-const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "id", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
+const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "id", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, providerHandoff: null, providerHandoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
 let seq = 0;
 /** 出来事を順に渡す（ID は 1 から振る）。最後の状態と、すべての命令 */
 function run(s: ChatRunState, events: RunEvent[], e: Partial<Env> = {}): { s: ChatRunState; effects: Effect[] } {
@@ -34,7 +34,7 @@ test("送る（作業していない）: 送る準備に入って作業を動か
   assert.deepEqual(sent.s.phase, { kind: "preparing", why: "send", stopRequested: false });
   assert.equal((sent.effects[1] as Extract<Effect, { do: "start_turn" }>).pauseAfter, true);
   assert.deepEqual(run(sent.s, [{ type: "send", when: "idle", message: msg("2") }]).effects, [{ do: "reject", status: 409, message: "作業中のチャットは送信できません。終わってから（または中断してから）行ってください" }]);
-  assert.deepEqual(kinds(run(initialRunState(), [{ type: "send", when: "idle", message: msg("1") }], { handoff: "blocked" }).effects), ["reject"]);
+  assert.deepEqual(kinds(run(initialRunState(), [{ type: "send", when: "idle", message: msg("1") }], { providerHandoff: "blocked" }).effects), ["reject"]);
   const clear = run({ ...initialRunState(), outbox: { ...EMPTY_OUTBOX, later: [row("次")] } }, [{ type: "send", when: "idle", message: msg("/clear") }]);
   assert.deepEqual(kinds(clear.effects), ["reply:sent", "clear_session", "start:message:次:queue"]);
 });
@@ -92,7 +92,7 @@ test("圧縮を頼む: 作業中は圧縮前指示を足せれば足し（足せ
   assert.deepEqual(kinds(run(initialRunState(), [{ type: "compact" }], e).effects), ["start:pre_compact:ノートを書いて:user"]);
   assert.deepEqual(kinds(run(initialRunState(), [{ type: "compact" }]).effects), ["start:compact::user"]);
   assert.deepEqual(kinds(run(initialRunState(), [{ type: "compact" }], { hasSession: false }).effects), ["reject"]);
-  assert.deepEqual(kinds(run(initialRunState(), [{ type: "compact" }], { handoff: "ready" }).effects), ["reject"]);
+  assert.deepEqual(kinds(run(initialRunState(), [{ type: "compact" }], { providerHandoff: "ready" }).effects), ["reject"]);
 });
 
 test("送信待ち: 作業中は列に足し（質問として送ったらそのあとに線）、作業の終わりに頭から送る。線で待っていたのに線がなくなった・自動で送るに戻したら次を送る（S13・S31・S35）", () => {

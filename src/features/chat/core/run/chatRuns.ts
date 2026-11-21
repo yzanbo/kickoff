@@ -1,6 +1,7 @@
 import type { Bus, BusStage } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { Store } from "@/features/chat/core/stores";
+import type { ProviderHandoffPort } from "@/features/chat/core/ports";
 import { marksFrom } from "@/features/chat/core/run/machine/marks";
 import type { RunEvent } from "@/features/chat/core/run/machine/types";
 import type { ChatLive } from "@shared/chat/chatLive";
@@ -21,6 +22,8 @@ export class ChatRuns implements ChatRunLookup {
   constructor(
     private readonly deps: {
       store: Store;
+      /** AI を替えたあとの引き継ぎ（作業中の様子の provider_handoff。なければ引き継ぎはない） */
+      providerHandoff?: Pick<ProviderHandoffPort, "pending">;
       bus?: Bus;
       /** 書き直している印の持ち時間（テストで差し替える） */
       editTtlMs?: number;
@@ -59,7 +62,7 @@ export class ChatRuns implements ChatRunLookup {
         read: {
           status: () => this.deps.store.chats.get(chatId)?.status ?? "completed",
           handoff: () => {
-            const pending = this.deps.store.chatProviderHandoffs.get(chatId);
+            const pending = this.deps.providerHandoff?.pending(chatId);
             if (!pending) return null;
             const blocked = pending.state === "ready" && pending.provider !== this.deps.store.chats.get(chatId)?.provider;
             return { state: blocked ? "blocked" : pending.state, provider: pending.provider };

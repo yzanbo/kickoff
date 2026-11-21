@@ -9,7 +9,7 @@ import { MAX_AUTO_RESUMES, reconnectStateOf } from "./recovery";
 import type { ChatRunState, Effect, Env, RunEvent, TurnOutcome } from "./types";
 
 const RESET = "2026-11-04T10:30:00.000Z";
-const env: Env = { now: RESET, newId: () => "n", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: true };
+const env: Env = { now: RESET, newId: () => "n", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, providerHandoff: null, providerHandoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: true };
 const row = (text: string) => ({ ...newMessage(env, text, {}, []), id: text });
 /** 送信待ちに 1 件ある作業中の状態 */
 const working = (extra: Partial<ChatRunState> = {}): ChatRunState => ({ ...initialRunState(), outbox: { ...EMPTY_OUTBOX, later: [row("次")] }, phase: { kind: "turn", id: "t", turn: "message", tell: "open", compaction: { awaiting: false, afterTurn: false, running: null, done: false }, stopRequested: false, telling: null, compactBy: null }, ...extra });

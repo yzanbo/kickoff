@@ -15,7 +15,7 @@ import { createDevices, type DevicesApi } from "@/features/devices/core/index";
 import { createChat, type ChatApi } from "@/features/chat/core/index";
 import { createGuard } from "@/features/guard/core/index";
 import { createCompact } from "@/features/compact/core/index";
-import { createProviderSwitch } from "@/features/providerSwitch/core/index";
+import { createProviderHandoffs, createProviderSwitch } from "@/features/providerSwitch/core/index";
 import { createSubagents } from "@/features/subagents/core/index";
 import { createChildChats } from "@/features/childChats/core/index";
 import { createWorkplaceMove } from "@/features/workplaceMove/core/index";
@@ -79,7 +79,9 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, attachments: attachments.api.forChat, aiTools: () => features.flatMap((f) => f.aiTools ?? []) }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
+  // AI を替えたあとの引き継ぎ（providerSwitch の表。起動したときの確かめが chat を作る中で読むので、chat の前に作って両方に渡す）
+  const providerHandoffs = createProviderHandoffs(k.db);
+  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, attachments: attachments.api.forChat, providerHandoff: providerHandoffs.port, aiTools: () => features.flatMap((f) => f.aiTools ?? []) }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
   const { runner } = chat.api;
   // 利用者が見ているもの（並びは通知の前のまま。送ったときの様子をチャットの送る口から受けるので、チャットのあとに作る）
   const userView = createUserView({ chat: chat.api });
@@ -90,7 +92,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const childChats = createChildChats({ chat: chat.api, ai: ai.api, uploads: attachments.api.uploads, workplace: k.workplace });
   const visuals = createVisuals({ chat: chat.api });
   const remoteImages = createRemoteImages(k, { chat: chat.api, childChats: childChats.api }, env.remoteImages);
-  const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
+  const providerSwitch = createProviderSwitch(k, { chat: chat.api, uploads: attachments.api.uploads, providerHandoffs });
   const workplaceMove = createWorkplaceMove(k, { chat: chat.api, ai: ai.api, projects: projects.api });
   const files = createFiles(k, { trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
