@@ -3,6 +3,7 @@ import { z } from "zod";
 import { addWorktree, requireWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
+import { Invalid } from "@/foundation/core/errors";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
 import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
@@ -204,7 +205,11 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
   app.patch("/api/chats/:id", withChat, async (c) => {
     const { chat } = c.var;
     const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
-    if (group_id !== undefined && group_id !== null) requireGroupOf(store.groups, group_id, chat.project_id);
+    if (group_id !== undefined && group_id !== null) {
+      // グループに入るのは親のないチャットだけ（子チャットは親の下に並ぶ。AI の update_chat と同じ決まり）
+      if (chat.parent_chat_id !== null) throw new Invalid("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです）");
+      requireGroupOf(store.groups, group_id, chat.project_id);
+    }
     // 子チャット（子・孫…）も一緒にしまう（作業中のものがあればしまえない）。戻すときは、一緒にしまった子孫だけを戻す（store.chats.archive）
     if (archived) for (const c of [chat, ...store.chats.descendants(chat.id)]) if (c.archived_at === null) runner.requireIdle(c.id, "アーカイブ");
     if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);
