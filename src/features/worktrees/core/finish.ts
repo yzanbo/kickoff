@@ -5,8 +5,7 @@ import path from "node:path";
 import type { GitWorktree } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Bus } from "@/foundation/core/bus";
-import type { Runner } from "@/features/chat/core/runner";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import type { Store } from "@/features/chat/core/index";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
@@ -65,8 +64,7 @@ interface Inspection extends FinishFacts {
 
 export interface WorktreeFinisherDeps {
   store: Pick<import("@/features/worktrees/core/db/stores").WorktreeStores, "worktreeEnvs"> & Pick<Store, "projects" | "chats" | "events" | "trash">;
-  bus: Bus;
-  runner: Runner;
+  runner: ChatRunPort;
   worktreeEnvs: WorktreeEnvService;
   trashBin: TrashService;
   workplace: Pick<WorkplaceKit, "git" | "projectScopes">;
@@ -96,10 +94,10 @@ export class WorktreeFinisher {
   private readonly removed: ((folder: string, dropDbConnections: boolean) => void)[] = [];
 
   constructor(private readonly deps: WorktreeFinisherDeps) {
-    // 作業が終わったら（作業中でなくなった知らせ）予約を確かめる。予約したチャットなら、送信待ちを先に止める（ワークツリーで動くつもりで書いた指示が、本体で勝手に動かないように）
-    this.unsubscribe = deps.bus.subscribe((e) => {
-      if (e.type !== "chat" || e.chat.status === "running" || this.reserved.size === 0) return;
-      if (this.reserved.has(e.chat.id)) void deps.runner.setQueuePaused(e.chat.id, true);
+    // 1 回の実行が終わったら予約を確かめる。予約したチャットなら、送信待ちを先に止める（ワークツリーで動くつもりで書いた指示が、本体で勝手に動かないように）
+    this.unsubscribe = deps.runner.onTurnEnded((chatId) => {
+      if (this.reserved.size === 0) return;
+      if (this.reserved.has(chatId)) void deps.runner.setQueuePaused(chatId, true);
       this.schedule();
     });
     // ゴミ箱から戻す: 同じ名前でワークツリーを作り直し、ブランチと途中の変更を戻す。3 日たったら控えの参照を消す

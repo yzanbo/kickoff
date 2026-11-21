@@ -6,20 +6,20 @@
 
 | ファイル | 中身 |
 |---|---|
-| `core/run/machine/`・`core/runner*.ts` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `Runner` |
-| `core/runtime.ts`・`runtimes.ts` | チャットごとの作業中の状態 `ChatRuntime`（出す箱だけ保存する） |
+| `core/run/machine/`・`core/run/` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `ChatRunner` |
+| `core/run/chatRun.ts`・`chatRuns.ts` | チャットごとの作業中の状態 `ChatRun`（出す箱だけ保存する） |
 | `core/turn.ts` | 1 回の実行 `executeTurn`・プロバイダーに渡すもの `buildTurnParams`・結果の反映 `applyResult` |
 | `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= 段階 `phase` が作業中か送る準備（理由。確かめてから動かし始めるまで）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
-- 状態は `ChatRuntime`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。
+- 作業中（`isBusy`）= `phase` が `idle` でない（送る準備も）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
+- 状態は `ChatRun`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。作業の始まりと終わりは `onTurnStarted`・`onTurnEnded` で聞く。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
 - AI へ送る定型文（自分の発言として残る）は `@shared/chat/prompts` に置き、コアと画面で同じものを使う。
-- 終えるとき `Runner.shutdown` は止める前に作業中のチャットへ `chats.resume_pending` を付け、待たずに DB を閉じる。抜けた `result`（ターンの境目）は起動のとき `endInterruptedTurns` が足す。
+- 終えるとき `shutdown` は止める前に作業中のチャットに `chats.resume_pending` を付け、待たずに DB を閉じる。抜けた `result`（ターンの境目）は起動のとき `endInterruptedTurns` が足す。
 
 ## 送る・伝える
 
@@ -43,7 +43,7 @@
 - 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後にも）。保存しない。
 - 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
 
-## 送信待ち（`core/runnerQueue.ts`・`core/run/machine/requests.ts`）
+## 送信待ち（`core/run/queueWindow.ts`・`requests.ts`）
 
 - 送信待ち `later` と預かり `now` は出す箱 `Outbox` 1 つ。操作は `@shared/chat/outbox`・`queueCommand` の純粋な関数で、変わるたびに `chat_outbox` に丸ごと書く。
 - 起動したときの再開の確かめを待つ間（門 `gates.restart`）は送らない。`pumpLater` は作業中なら取り出さない。
@@ -52,7 +52,7 @@
 - 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも同じ）。
 - 応答はどれも変えたあとの `QueueState`。列にない指示は 404、送るものがないなどは 409。
 
-## 止まったあとの再開（`core/recovery/`）
+## 止まったあとの再開（`core/run/recovery/`）
 
 - 通信の切断・使用枠の上限・起動したときの確かめの決まりは `core/run/machine/recovery.ts` 1 つ。殻 `ChatRecovery` は見張り・カード・送るだけ。
 - 止まると送信待ちを門 `gates.recovery` で止め、再開の作業が最後まで終わったら戻す。自分で送ったらやめる。門は保存しない。
@@ -91,7 +91,7 @@
 ## ほかのチャットの記録・移動・削除・自動のアーカイブ
 
 - ほかのチャットの記録（`transcript.ts`）は、自分の発言・メインエージェントの返答・変えたファイル・失敗・中断だけ。
-- 別のプロジェクトへの移動は子孫ごと `Runner.moveWorkplace`（理由 `project_moved`）。
+- 別のプロジェクトへの移動は子孫ごと `moveWorkplace`（理由 `project_moved`）。
 - 削除はゴミ箱へ（`src/features/trash/CLAUDE.md`）。本当に消すとき、ほかのチャット・ほかの Kickoff が使っていない会話記録だけを消す（`core/sessions/sessionCleanup.ts`）。
 - 自動のアーカイブ（`autoArchive.ts`）は親のないチャットだけを見て、子孫も完了したまま日数がたてば子孫ごとしまう（未読・固定は除く）。
 

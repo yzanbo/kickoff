@@ -1,5 +1,5 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { Runner } from "./runner";
+import type { ChatRunner } from "@/features/chat/core/run/runner";
 import type { Store } from "@/features/chat/core/stores";
 import { providerFeatureMissing, type FileRewindResult } from "@shared/ai/types";
 import type { Chat, ChatOptionsPatch } from "@shared/chat/types";
@@ -18,7 +18,7 @@ import { isBeforeProviderSwitch, PROVIDER_FILES_LOCKED, PROVIDER_REWIND_LOCKED }
  * 作業中なら 409、巻き戻せない発言・プロバイダー・ファイルを戻せないなら 400
  */
 export async function rewindChat(
-  deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
+  deps: { store: Store; runner: ChatRunner; providers: Record<ProviderId, AgentProvider> },
   chat: Chat,
   input: { eventId: number; text: string; options: ChatOptionsPatch; cwd: string; restoreFiles?: boolean },
 ): Promise<Chat> {
@@ -74,7 +74,7 @@ function restoredSummary(r: FileRewindResult): string {
  * 作業中なら 409、戻せない発言・プロバイダーなら 400
  */
 export async function rewindFiles(
-  deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
+  deps: { store: Store; runner: ChatRunner; providers: Record<ProviderId, AgentProvider> },
   chat: Chat,
   input: { eventId: number; cwd: string; dryRun: boolean },
 ): Promise<FileRewindResult> {

@@ -69,6 +69,6 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - コアのテストの DB はメモリ（`dbFile: ":memory:"`）で、外のネットワーク・本物の AI は呼ばない。
 - 作ったもの（見張り・サーバー・子プロセス・DB ワーカー）は必ず止める（`setup()` の分は `afterTest` で機能の `stop`）。
 - API のルートを変えたら、その機能の `core/routes/server.<領域>.test.ts` に足す（認証・SSE・配信は `@/app/core/server.test.ts`、端末は `server.devices.test.ts`）。
-- 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup()`（偽物は `testEnv.ts`）、`Runner` は `testCore.ts` の `setupCore` と `ScriptedProvider`（`@/features/ai/core/testing/fakeProvider.ts`）。前回のデータは `beforeStart`。
+- 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup()`（偽物は `testEnv.ts`）、殻は `testCore.ts` の `setupCore` と `ScriptedProvider`（`@/features/ai/core/testing/fakeProvider.ts`）。前回のデータは `beforeStart`。
 - 条件は `testing/until.ts` の `until(cond)` で待つ（2 秒。遅れうるものは `until(cond, ms)`）。決め打ちの時間で待ってから比べない。時計は `testing/manualClock.ts`。
 - ログインシェルを流すテストは頭で `quietShell()`（`testing/quietShell.ts`）を呼ぶ。一時フォルダは `testing/tempDir.ts`、Git は `testing/gitRepo.ts`、データは `@shared/foundation/testing/factories`。

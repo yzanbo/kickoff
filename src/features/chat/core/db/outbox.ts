@@ -3,7 +3,7 @@ import type { QueuedMessage } from "@shared/chat/types";
 import type { Outbox } from "@shared/chat/outbox";
 import { bit } from "@/foundation/core/db/common";
 
-/** 出す箱の保存（chat_outbox の表。ChatRuntime が、変わるたびに丸ごと書く。画面への知らせは ChatRuntime が出す） */
+/** 出す箱の保存（chat_outbox の表。ChatRun が、変わるたびに丸ごと書く。画面への知らせは殻が出す） */
 export function createOutboxStore(db: DatabaseSync) {
   const fromRow = (row: { now: string; later: string; stops: string; paused: number }): Outbox => ({
     now: JSON.parse(row.now) as QueuedMessage[],

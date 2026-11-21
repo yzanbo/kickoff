@@ -5,7 +5,6 @@ import path from "node:path";
 import { test } from "vitest";
 import type { PortProcess } from "@shared/ports/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import { makeChat } from "@shared/foundation/testing/factories";
 import { setup, until } from "@/app/core/testing/testServer";
 
 const LSOF_HEAD = "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n";
@@ -84,9 +83,8 @@ test("チャットの実行が終わったら少し待って調べ、前にな�
   s.portsFake.cwds += `p2004\nn${fs.realpathSync(s.project.repo_path)}\n`;
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
-  const chat = makeChat(42, { project_id: s.project.id });
-  s.bus.publish({ type: "chat", chat: { ...chat, status: "running" } });
-  s.bus.publish({ type: "chat", chat: { ...chat, status: "completed" } });
+  // チャットの 1 回の実行が終わった（偽のプロバイダーはすぐ終わる）
+  await s.runner.start({ projectId: s.project.id, prompt: "サーバーを立てて" });
   await until(() => events.some((e) => e.type === "ports_changed"));
   assert.deepEqual(events.find((e) => e.type === "ports_changed"), { type: "ports_changed", count: 3, fresh: 1 });
   const list = (await s.call("GET", "/api/ports?cached=1")).body as { processes: PortProcess[] };

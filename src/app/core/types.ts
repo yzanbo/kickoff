@@ -8,6 +8,7 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
 import type { TerminalEnv, TerminalSessions } from "@/features/terminal/core/index";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import type { CorePlatformParts } from "./platform";
 import type { TrashEnv } from "@/features/trash/core/index";
 import type { AiEnv } from "@/features/ai/core/index";
@@ -68,8 +69,10 @@ export interface Core {
   browserLoginUrl(): string;
   /** 作業中のチャット（送る準備・親の会話を写している途中も。メインプロセスが、終了してよいかを聞くダイアログに名前を並べる） */
   runningChats(): { id: number; title: string | null }[];
-  /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
+  /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら turns の知らせか bus の settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
+  /** チャットの作業を動かし始めた・1 回の実行が終わった知らせ（chat の殻） */
+  turns: Pick<ChatRunPort, "onTurnStarted" | "onTurnEnded">;
   /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */
   terminals: TerminalSessions;
   close(): Promise<void>;

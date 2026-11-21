@@ -2,14 +2,13 @@
 // 使うのは利用者が頼んだときだけ（ツールの説明で伝える）。どちらも戻せる（アーカイブは画面から戻せ、削除は Kickoff のゴミ箱に 3 日）ので承認は聞かない。
 // 相手は同じプロジェクトのチャット（家系に依らない）で、子孫も一緒（画面のアーカイブ・削除と同じ）。作業中のチャットが含まれていれば断る。
 // ただし、作業中なのがツールを呼んだチャット自身だけ（自分・自分の祖先を頼まれた）なら、その作業が終わってから行う（予約。送信待ちは止めておく）
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { RemoveChatInput } from "@shared/chat/aiChatRemove";
 import { errorMessage } from "@shared/foundation/errors";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
-import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/features/chat/core/stores";
 import type { TrashService } from "@/features/trash/core/service";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
-import type { Runner } from "@/features/chat/core/runner";
 
 /** アーカイブか削除か */
 export type RemoveAction = "archive" | "delete";
@@ -18,11 +17,19 @@ const ACTION_LABELS: Record<RemoveAction, string> = { archive: "アーカイブ"
 
 export interface ChatRemoverDeps {
   store: Store;
-  bus: Pick<Bus, "subscribe">;
-  runner: Pick<Runner, "isBusy" | "requireIdle" | "forget" | "setQueuePaused">;
+  /** チャットの実行の殻（作業中か・送信待ちを止める・作業中の状態を捨てる・1 回の実行が終わった知らせ） */
+  runner: {
+    isBusy(chatId: number): boolean;
+    requireIdle(chatId: number, action: string): void;
+    forget(chatId: number): void;
+    setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
+    onTurnEnded(fn: (chatId: number) => void): () => void;
+  };
   trashBin: Pick<TrashService, "addRecord">;
   /** 予約を、頼んだチャットの作業の後始末が済むのを待って確かめ直す間隔（テストで縮める） */
   retryMs?: number;
+  /** 予約を確かめ直す時計（省けば本物） */
+  clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
 }
 
 /** 予約（頼んだチャットの作業が終わってから行う） */
@@ -41,20 +48,20 @@ export class ChatRemover {
   /** 予約（頼んだチャット → 予約の並び） */
   private readonly reserved = new Map<number, Reservation[]>();
   private readonly unsubscribe: () => void;
-  private timer: ReturnType<typeof setTimeout> | null = null;
+  private timer: TimerHandle | null = null;
 
   constructor(private readonly deps: ChatRemoverDeps) {
-    // 作業が終わったら（作業中でなくなった知らせ）予約を確かめる。予約したチャットなら、送信待ちを先に止める（アーカイブ・削除するつもりのチャットで次の指示が勝手に動かないように）
-    this.unsubscribe = deps.bus.subscribe((e) => {
-      if (e.type !== "chat" || e.chat.status === "running" || this.reserved.size === 0) return;
-      if (this.reserved.has(e.chat.id)) void deps.runner.setQueuePaused(e.chat.id, true);
+    // 1 回の実行が終わったら予約を確かめる。予約したチャットなら、送信待ちを先に止める（アーカイブ・削除するつもりのチャットで次の指示が勝手に動かないように）
+    this.unsubscribe = deps.runner.onTurnEnded((chatId) => {
+      if (this.reserved.size === 0) return;
+      if (this.reserved.has(chatId)) void deps.runner.setQueuePaused(chatId, true);
       this.schedule();
     });
   }
 
   close() {
     this.unsubscribe();
-    if (this.timer) clearTimeout(this.timer);
+    if (this.timer) (this.deps.clock ?? systemClock).clearTimeout(this.timer);
     this.timer = null;
   }
 
@@ -113,7 +120,7 @@ export class ChatRemover {
   /** 予約を確かめる（少し待ってから。頼んだチャットの作業の後始末が済むまで） */
   private schedule(delay = 0) {
     if (this.timer) return;
-    this.timer = setTimeout(() => {
+    this.timer = (this.deps.clock ?? systemClock).setTimeout(() => {
       this.timer = null;
       this.runReserved();
     }, delay);

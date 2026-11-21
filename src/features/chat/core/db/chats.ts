@@ -1,3 +1,4 @@
+import { systemClock } from "@/foundation/core/clock";
 import type { DatabaseSync } from "node:sqlite";
 import type { Chat, ChatStatus } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
@@ -66,8 +67,7 @@ function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
 }
 
 /**
- * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、
- * get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
+ * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
  */
 export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: LogRevisions | undefined, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default">) {
   const get = (id: number): Chat | undefined => {
@@ -113,7 +113,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
    * （子チャットだけで先にしまっていたものは、そのまま）。戻すときは、印のある子孫だけを戻し、子チャットだけでしまっていたもの（とその下）はしまったまま。
    * 子チャットだけをしまう・戻すときは、親には触らない。しまったままもう一度しまっても、しまった日時は変えない
    */
-  const archive = (id: number, archived: boolean, now = new Date()): Chat => {
+  const archive = (id: number, archived: boolean, now = new Date(systemClock.now())): Chat => {
     const chat = get(id)!;
     if (archived) {
       const at = chat.archived_at ?? now.toISOString();
@@ -228,7 +228,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
      * Kickoff のゴミ箱に入れる（ids のチャットに入れた時刻と一緒に入れたゴミ箱の行を書く。ふだんの読み取りから外れるので、消したのと同じに知らせる）。
      * 子孫も入れるなら呼ぶ側が ids に入れる
      */
-    trash(ids: number[], itemId: string, at = new Date().toISOString()): Chat[] {
+    trash(ids: number[], itemId: string, at = systemClock.iso()): Chat[] {
       const chats = ids.map(get).filter((c): c is Chat => c !== undefined);
       // ゴミ箱に入れたら、起動したときの再開の確かめでもう聞かない（戻しても聞かない）
       const stmt = db.prepare("UPDATE chats SET trashed_at = ?, trashed_with = ?, resume_pending = 0 WHERE id = ?");
@@ -324,7 +324,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
      * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（失敗・作業中・固定したものはしない）。
      * 子チャットは親と一緒にしまうので、見るのは親のないチャットだけ。しまっていない子孫も、どれも同じく完了したまま days 日たっていなければしまわない
      */
-    archiveStale(days: number, now = new Date()): number {
+    archiveStale(days: number, now = new Date(systemClock.now())): number {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();
       const stale = (c: Pick<Chat, "status" | "unread" | "active_at">) => (c.status === "completed" || c.status === "cancelled") && !c.unread && c.active_at < before;
       const rows = db

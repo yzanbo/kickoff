@@ -8,7 +8,7 @@ import type { AiChatRelation } from "@shared/chat/aiCreateChat";
 import type { Store } from "@/features/chat/core/index";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { CHILD_FORK_KEEP, type AgentProvider } from "@/features/ai/core/providers/types";
-import type { Runner } from "@/features/chat/core/runner";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import { resumePointBefore } from "@/features/chat/core/sessionPoints";
 import { workdirOf } from "@/features/chat/core/workdir";
 
@@ -62,7 +62,7 @@ function titleSourceOf(text: string): string {
  * ときは、選んだ文と質問だけで始め、そのことをお知らせに残す
  */
 export async function startChildChat(
-  deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
+  deps: { store: Store; runner: ChatRunPort; providers: Record<ProviderId, AgentProvider> },
   parent: Chat,
   input: ChildChatInput,
 ): Promise<Chat> {

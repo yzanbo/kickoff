@@ -4,7 +4,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { AiApi } from "@/features/ai/core/index";
 import type { AttachmentsApi } from "@/features/attachments/core/index";
-import { trashNoteChats, trashNoteChatsOnImport, type Runner, type Store } from "@/features/chat/core/index";
+import { trashNoteChats, trashNoteChatsOnImport, type ChatRunPort, type Store } from "@/features/chat/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { NoteService } from "./notes";
 import { noteRoutes } from "./routes/notes";
@@ -16,7 +16,7 @@ export interface NotesDeps {
   /** ノートの案を AI に聞く */
   ai: AiApi;
   /** ノートのチャット */
-  chat: { runner: Runner; store: Store };
+  chat: { runner: ChatRunPort; store: Store };
   /** ノートの写しを添付にし、ツールの結果の画像はノートのフォルダからも読む */
   attachments: AttachmentsApi;
   /** DB の接続の手順ノートを付け替える（ノートの名前を変えた・動かしたとき。database はあとに作るので組み立てが渡す） */

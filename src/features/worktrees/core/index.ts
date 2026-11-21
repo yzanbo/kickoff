@@ -5,7 +5,7 @@ import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { Runner, Store } from "@/features/chat/core/index";
+import type { ChatRunPort, Store } from "@/features/chat/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
@@ -22,7 +22,7 @@ export interface WorktreesDeps {
   ai: AiApi;
   docker: DockerService;
   /** 作業中か・送信待ち・作業場所を移す */
-  chat: { runner: Runner; store: Store };
+  chat: { runner: ChatRunPort; store: Store };
 }
 
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr" | "retryMs">;
@@ -45,7 +45,7 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   const { projects, chats, events, trash, groups } = deps.chat.store;
   const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
+  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
   let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   // ブランチを替えた・ワークツリーを足した消したら、一覧の覚えを捨ててから知らせる（画面が取り直す）
   const headWatch = new HeadWatch((project_id) => {

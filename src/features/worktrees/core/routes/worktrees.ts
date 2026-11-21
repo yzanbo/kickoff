@@ -12,7 +12,7 @@ import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import type { Runner } from "@/features/chat/core/index";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import type { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
@@ -27,7 +27,7 @@ interface WorktreeRouteDeps {
   store: Pick<WorktreeStores, "worktreeColors"> & Pick<Store, "projects" | "chats" | "groups">;
   /** ワークツリーの DB から作った接続（database が登録する。名前だけ） */
   connectionsIn: (folder: string) => { id: number; name: string }[];
-  runner: Runner;
+  runner: ChatRunPort;
   providers: AiApi["providers"];
   worktreeEnvs: WorktreeEnvService;
   worktreeFinisher: WorktreeFinisher;

@@ -11,7 +11,7 @@ import { startAutoArchive } from "./autoArchive";
 import { chatTitlesOf } from "./db/chatTitles";
 import { chatDeltaStage } from "./deltaStage";
 import { endInterruptedTurns } from "./interruptedTurnEnd";
-import { Runner } from "./runner";
+import { createChatRunner, type ChatRunner, type RunnerDeps } from "./run/runner";
 import { registerChatTrash, type ChatPurgeDeps } from "./sessions/chatTrash";
 import { registerProjectTrash } from "./sessions/projectTrash";
 import { sweepUnusedSessions } from "./sessions/sessionTrash";
@@ -29,7 +29,8 @@ import type { DatabaseStats } from "@shared/chat/databaseStats";
 import { createChatStores, type Store } from "./stores";
 import type { GroupsApi } from "@/features/groups/core/index";
 
-export type { Runner } from "./runner";
+export type { ChatRunner, ChatRunPort } from "./run/runner";
+export type { ChatRunLookup } from "./run/chatRun";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
@@ -52,7 +53,7 @@ export interface ChatDeps {
   userViews: NonNullable<ExecutionDeps["userViews"]>;
 }
 
-export interface ChatEnv extends Pick<NonNullable<ConstructorParameters<typeof Runner>[0]>, "reconnect" | "usageLimit" | "editHoldTtlMs"> {
+export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "editHoldTtlMs"> {
   /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
   recoveredReason?: RecoveredReason;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */
@@ -86,7 +87,7 @@ export interface ChatUpper {
 export interface ChatApi {
   /** chat の店の束（仮の形。上の機能がチャット・記録を読む） */
   store: Store;
-  runner: Runner;
+  runner: ChatRunner;
   approvals: ApprovalCenter;
   /** いまの書きかけの返答（チャットの詳細の streaming_text） */
   streamingText(chatId: number): string | null;
@@ -105,7 +106,7 @@ export interface ChatApi {
   stats(): DatabaseStats;
 }
 
-/** チャットの実行（受付 Runner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
+/** チャットの実行（殻 ChatRunner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
 export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
   const { bus } = k;
   const store: Store = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
@@ -123,7 +124,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   if (recovered.length > 0) k.log.info(`前回の終了で作業の途中で止まったチャットが ${recovered.length} 件あります（起動したときの再開の確かめで聞きます）`);
   // そのうち最後の作業に終わりの記録がないもの（終える・落ちるときに書けなかった）に、終わりの記録と止まったサブエージェントのお知らせを足す
   endInterruptedTurns(store, recovered);
-  const approvals = new ApprovalCenter(bus);
+  const approvals = new ApprovalCenter(bus, k.clock);
   // AI の rm の代わりの kickoff-trash（置けていなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = env.trashCommandFile ? { path: env.trashCommandFile, dir: trashBin.dir } : undefined;
   const { recoveredReason: _reason, sessionsElsewhere: elsewhere, trashCommandFile: _file, mcpBaseUrl, retryMs, ...timing } = env;
@@ -135,7 +136,9 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   };
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => mcpBaseUrl);
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
+  // KICKOFF_RUN_TRACE=1 なら、実行の出来事・変わった項目・命令を 1 行ずつログに書く
+  const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
+  const runner = createChatRunner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, interrupted: recovered, clock: k.clock, trace, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -157,7 +160,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   trashBin.useChats({ titlesOf, projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
   registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
-  const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs });
+  const chatRemover = new ChatRemover({ store, runner, trashBin, retryMs, clock: k.clock });
   runner.useChatRemover(chatRemover);
   // 上の機能の口（ルートは待ち受けの前に登録するので、それまでに attach で受ける）
   let upper: ChatUpper | null = null;
@@ -202,7 +205,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       },
     ],
     start: () => {
-      stopAutoArchive = startAutoArchive(store, bus);
+      stopAutoArchive = startAutoArchive(store, bus, k.clock);
     },
     stop: () => {
       // エージェント → 削除の予約・自動のアーカイブ（流れ続けている外部コマンドは、このあと土台が聞かずに止める）
@@ -214,7 +217,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
 }
 
 /** プロジェクトの口に、チャットの分を登録する（作業中か・本体のフォルダを変えたら作業場所を移す・ゴミ箱に入れたら作業中の状態を捨てる） */
-function registerProjectHooks(projects: ProjectsApi, store: Store, runner: Runner): void {
+function registerProjectHooks(projects: ProjectsApi, store: Store, runner: ChatRunner): void {
   projects.addBusyCheck((projectId) => store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id)));
   projects.afterRepoMove(async (project, moves) => {
     const chats = store.chats.list({ projectId: project.id, includeArchived: true });

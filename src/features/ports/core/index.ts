@@ -3,6 +3,7 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
+import type { ChatApi } from "@/features/chat/core/index";
 import { PortProcessService } from "./service";
 import { PortWatch } from "./watch";
 import { portsRoutes } from "./routes/ports";
@@ -19,8 +20,8 @@ export interface PortsEnv {
 }
 
 /** ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ） */
-export function createPorts(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi }, env: PortsEnv): CoreFeature<PortWatch> {
+export function createPorts(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: ChatApi }, env: PortsEnv): CoreFeature<PortWatch> {
   const service = new PortProcessService({ store: { projects: deps.projects.store, worktreeEnvs: deps.worktrees.stores.worktreeEnvs }, probe: k.platform, selfPid: env.selfPid, selfBundle: k.platform.appBundleOf(process.execPath), stopWaitMs: env.stopWaitMs });
-  const ports = new PortWatch(k.bus, service, env.afterTurnMs);
+  const ports = new PortWatch(k.bus, deps.chat.runner, service, env.afterTurnMs);
   return { name: "ports", api: ports, routes: [{ legacy: (app) => portsRoutes(app, { ports }) }], start: () => ports.start(), stop: () => ports.close() };
 }

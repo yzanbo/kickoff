@@ -25,6 +25,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     databaseStats: () => assembled.apis.chat.stats(),
     runningChats: assembled.runningChats,
     awakeNeeds: assembled.awakeNeeds,
+    turns: assembled.apis.chat.runner,
     browserLoginUrl: () => `${localUrl}/login?code=${served.browserLogin.issue()}`,
     terminals: assembled.terminals,
     // 止める順（機能 → 流れ続けている外部コマンド → … → ためた途中の返答 → HTTP → DB）は serveCore が決める

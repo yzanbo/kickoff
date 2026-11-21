@@ -1,5 +1,6 @@
 // アーカイブ済みのチャットの整理。
 // アーカイブしたチャットは自動では消さず、日数を選んだら、それより動いていないものをまとめて Kickoff のゴミ箱へ入れる（3 日は戻せる）
+import { systemClock } from "@/foundation/core/clock";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
@@ -45,7 +46,7 @@ export function staleArchivedFamilies(chats: Chat[], before: string): Chat[][] {
 }
 
 /** 日数から「それより前」の時刻 */
-export const cleanupBefore = (days: number, now = Date.now()): string => new Date(now - days * 86_400_000).toISOString();
+export const cleanupBefore = (days: number, now = systemClock.now()): string => new Date(now - days * 86_400_000).toISOString();
 
 const familiesOf = (store: Store, days: number, now?: number) => staleArchivedFamilies(store.chats.list({ includeArchived: true }), cleanupBefore(days, now));
 

@@ -5,8 +5,8 @@ import { isBusyPhase, type ChatLive, type PrepareReason } from "@shared/chat/cha
 import { compactionAtStart, holdOf, noCompaction } from "@/features/chat/core/run/machine/state";
 import type { TurnPhase } from "@/features/chat/core/run/machine/types";
 import { newMessage } from "@shared/chat/outbox";
-import type { ChatRuntime } from "./runtime";
-import { ChatRuntimes } from "./runtimes";
+import type { ChatRun } from "@/features/chat/core/run/chatRun";
+import { ChatRuns } from "@/features/chat/core/run/chatRuns";
 
 /** 作業中の様子のうち、段階と預かる理由に関わる新しい欄と古い欄 */
 const pick = (live: ChatLive) => ({
@@ -28,12 +28,12 @@ const env = { now: "2026-11-22T00:00:00.000Z", newId: () => "h1" };
 /** 作業中の段階を置く（指定のない欄はふつうの作業の始まり） */
 const turn =
   (patch: Partial<TurnPhase> = {}) =>
-  (r: ChatRuntime) =>
+  (r: ChatRun) =>
     r.commit({ ...r.run, phase: { kind: "turn", id: "t", turn: "message", tell: "opening", compaction: noCompaction(), stopRequested: false, telling: null, compactBy: null, ...patch } });
-const preparing = (why: PrepareReason) => (r: ChatRuntime) => r.commit({ ...r.run, phase: { kind: "preparing", why, stopRequested: false } });
+const preparing = (why: PrepareReason) => (r: ChatRun) => r.commit({ ...r.run, phase: { kind: "preparing", why, stopRequested: false } });
 
 /** 段階 × 預かる理由: 作業中の状態を作り、新しい欄と、同じ状態から作る古い欄を比べる */
-const CASES: { name: string; arrange: (r: ChatRuntime) => void; want: Partial<ReturnType<typeof pick>> }[] = [
+const CASES: { name: string; arrange: (r: ChatRun) => void; want: Partial<ReturnType<typeof pick>> }[] = [
   { name: "作業していない", arrange: () => {}, want: {} },
   { name: "送る準備", arrange: preparing("send"), want: { phase: "preparing", preparing_for: "send" } },
   { name: "親の会話を写している", arrange: preparing("inherit"), want: { phase: "preparing", preparing_for: "inherit", hold: "inherit", inheriting: true } },
@@ -71,7 +71,7 @@ for (const c of CASES) {
     const store = testStore(":memory:");
     const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
     const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
-    const runtimes = new ChatRuntimes({ store });
+    const runtimes = new ChatRuns({ store });
     const runtime = runtimes.get(chat.id);
     c.arrange(runtime);
     const live = runtimes.live(chat.id);

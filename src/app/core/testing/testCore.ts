@@ -19,7 +19,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/providers/types";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
-import { Runner } from "@/features/chat/core/runner";
+import { createChatRunner, type RunnerDeps } from "@/features/chat/core/run/runner";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { toolGateFactory } from "@/features/guard/core/gate";
@@ -76,17 +76,17 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, ai, uploads, userViews, devices, chat, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
+  const { trash, ai, uploads, userViews, devices, notifications, chat, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
   // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
   const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
   // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）
   const parts = { store: withFeatureStores(chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)), bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
   const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
-  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, notifications, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */
-type RunnerOptions = Omit<ConstructorParameters<typeof Runner>[0], "store" | "approvals" | "providers" | "usage" | "bus">;
+type RunnerOptions = Omit<RunnerDeps, "store" | "approvals" | "providers" | "usage" | "bus">;
 
 /** 偽のプロバイダー（どのプロバイダーとして呼ばれても同じもの）で、実行の受付だけを組み立てる */
 export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: RunnerOptions = {}, beforeStart?: (store: TestStores, project: Project) => number[]) {
@@ -103,7 +103,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const gateMaterials: GuardMaterials[] = [];
   const factory = runnerOptions.toolGate ?? toolGateFactory(undefined, []);
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
-  const runner = new Runner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
+  const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials };
 }
 

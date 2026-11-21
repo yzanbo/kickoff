@@ -2,6 +2,7 @@ import type { BrowserControl } from "@shared/browser/control";
 import { knownModel } from "@/features/ai/core/providers/modelCatalog";
 import { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 import { shellPathSettled } from "@/foundation/core/system/exec";
+import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
@@ -40,7 +41,7 @@ import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { PROVIDER_AUTH_MODE_LABELS, type ProviderId } from "@shared/settings/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
-import type { ChatRuntime } from "./runtime";
+import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import { ensureDir, readOnlyReferences, referenceDirectories, resolveWorkdir } from "./turnFolders";
 import { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
@@ -57,6 +58,8 @@ import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
+  /** 時計（作業を始めた時刻・圧縮を始めた時刻。省けば本物） */
+  clock?: Pick<Clock, "iso">;
   /** OS の拒否ログを安全に読み取る口（実行ごとに診断を作る） */
   sandboxDiagnostics?: import("@/features/guard/core/sandboxDiagnosticsPlatform").SandboxDiagnosticsPlatform;
   store: Store;
@@ -127,11 +130,10 @@ export interface TurnRequest {
 }
 
 /**
- * 1 回の実行を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
- * 作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）はチャットの runtime に書く（画面には runtime が配る）。
- * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
+ * 1 回の実行を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）は
+ * チャットの run に書く（画面には殻が配る）。失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger, claimedHandoffEventId }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
+export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatId, prompt, promptId, compact = false, compactTrigger, claimedHandoffEventId }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
   const handoff = store.chatProviderHandoffs.get(chatId);
   let handoffClaimed = false;
@@ -156,7 +158,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
     // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
     const branch = await currentBranch(cwd);
-    store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
+    store.chats.update(chatId, { status: "running", turn_started_at: (deps.clock ?? systemClock).iso(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.latestId(chatId) ?? 0;
     // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）
@@ -288,15 +290,14 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
 }
 
 /**
- * この実行の中の圧縮のきっかけ: 手で圧縮した（圧縮のボタン = compact、チャット欄から /compact を送った）なら manual、
- * ほかの指示の途中で起きた圧縮は、コンテキストが上限に近づいて Claude Code が自動で始めたもの
+ * この実行の中の圧縮のきっかけ: 手で圧縮した（圧縮のボタン = compact、チャット欄から /compact を送った）なら manual、ほかの指示の途中で起きた圧縮は、コンテキストが上限に近づいて Claude Code が自動で始めたもの
  */
 function compactTriggerOf(prompt: string, compact: boolean): CompactTrigger {
   return compact || /^\/compact(?:\s|$)/.test(prompt.trimStart()) ? "manual" : "auto";
 }
 
 /** 次に送るものに一度だけ添える知らせを取り出す（取り出したら外す。利用者が作業場所を移す予約を取り消したときなど） */
-export function takePendingNote(runtime: ChatRuntime): string | null {
+export function takePendingNote(runtime: ChatRun): string | null {
   const note = runtime.pendingNote;
   runtime.pendingNote = null;
   return note;
@@ -365,12 +366,11 @@ function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { c
 }
 
 /**
- * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
- * 承認依頼は回答を待つ（待つ間は回答待ち）
+ * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は run に書き（殻が画面に配る）、イベントは記録、承認依頼は回答を待つ（待つ間は回答待ち）
  */
 function callbacksFor(
-  { store, approvals, bus, usage }: ExecutionDeps,
-  runtime: ChatRuntime,
+  { store, approvals, bus, usage, clock }: ExecutionDeps,
+  runtime: ChatRun,
   chat: Chat,
   signal: AbortSignal,
   compact: boolean,
@@ -400,7 +400,7 @@ function callbacksFor(
     drawingVisual: (drawingVisual) => runtime.setDisplay({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
     // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで外れる）
-    compacting: (active) => runtime.dispatch({ type: "compacting", active, at: new Date().toISOString(), trigger: compactTrigger }),
+    compacting: (active) => runtime.dispatch({ type: "compacting", active, at: (clock ?? systemClock).iso(), trigger: compactTrigger }),
     // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
     context: (tokens) => {
       if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
@@ -469,7 +469,7 @@ function callbacksFor(
 }
 
 /** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
-function applyResult(store: Store, runtime: ChatRuntime, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
+function applyResult(store: Store, runtime: ChatRun, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
   const { chatId } = runtime;
   const current = store.chats.get(chatId)!;
   store.chats.update(chatId, {

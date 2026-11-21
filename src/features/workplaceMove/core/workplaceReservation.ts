@@ -8,7 +8,7 @@ import type { Store } from "@/features/chat/core/index";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import type { RuntimeLookup } from "@/features/chat/core/runtime";
+import type { ChatRunLookup } from "@/features/chat/core/index";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./workplaceMove";
 import { planUserWorkplaceMove, runningTerminals } from "./workplaceUserMove";
 import { workdirOf } from "@/features/chat/core/workdir";
@@ -26,7 +26,7 @@ export interface WorkplaceMovePlan {
 export class WorkplaceReservations {
   private readonly reserved = new Map<number, WorkplaceMovePlan>();
 
-  constructor(private readonly runtimes: RuntimeLookup) {}
+  constructor(private readonly runtimes: ChatRunLookup) {}
 
   /** 予約する（前の予約は置き換える） */
   reserve(chatId: number, plan: WorkplaceMovePlan) {
@@ -51,7 +51,7 @@ export class WorkplaceReservations {
 
 export interface WorkplaceMoveRunDeps {
   store: Store;
-  runtimes: RuntimeLookup;
+  runtimes: ChatRunLookup;
   isBusy: (chatId: number) => boolean;
   moveWorkplace: (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps) => Promise<Chat>;
   worktreeFinisher?: Pick<WorktreeFinisher, "hasReservation" | "afterReservation" | "reservedFolders">;

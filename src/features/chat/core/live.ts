@@ -4,10 +4,10 @@ import { holdOf, isBusy, noCompaction, queuePaused, turnOf, waitingEdit } from "
 import type { ChatRunState } from "@/features/chat/core/run/machine/types";
 import type { ChatLive, QueueState, WorkPhase } from "@shared/chat/chatLive";
 import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
-import type { ChatRuntime } from "./runtime";
+import type { ChatRun } from "@/features/chat/core/run/chatRun";
 
 /** 画面に配る形。古い欄（after_compact・awaiting_compact…）も同じ状態から作る */
-export function liveOf(runtime: ChatRuntime): ChatLive {
+export function liveOf(runtime: ChatRun): ChatLive {
   const s = runtime.run;
   const { phase: p } = s;
   const turn = turnOf(s);
@@ -51,7 +51,7 @@ function phaseOf(s: ChatRunState): WorkPhase {
 }
 
 /** 送信待ちの様子 */
-export function queueStateOf(runtime: ChatRuntime): QueueState {
+export function queueStateOf(runtime: ChatRun): QueueState {
   const s = runtime.run;
   const { later, stops, now } = s.outbox;
   const paused = queuePaused(s);
@@ -60,7 +60,7 @@ export function queueStateOf(runtime: ChatRuntime): QueueState {
 }
 
 /** 送信待ちの頭が待っている理由（送る順が来ていれば null） */
-function waitingOf(runtime: ChatRuntime, head: QueueState["messages"][number]): QueueState["waiting"] {
+function waitingOf(runtime: ChatRun, head: QueueState["messages"][number]): QueueState["waiting"] {
   const s = runtime.run;
   const handoff = runtime.handoff();
   if (isBusy(s)) return "busy";

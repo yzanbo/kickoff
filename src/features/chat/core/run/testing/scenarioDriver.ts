@@ -12,7 +12,6 @@ import { testFakes, type TestFakes } from "@/app/core/testing/testEnv";
 import { ScenarioProvider, type ScenarioRun } from "./scenarioProvider";
 import { actual, assertMatches, matches, preCompactLabel, promptLabel, rowLabel, type Observed, type PromptTexts } from "./scenarioObserve";
 import { providerStep, userStep } from "./scenarioSteps";
-import type { ChatRunState } from "@/features/chat/core/run/machine/types";
 import { SESSIONS, T0, type ChatAlias, type Scenario, type ScenarioExpect, type ScenarioSettings, type ScenarioStep, type Then } from "./types";
 
 
@@ -141,8 +140,7 @@ export class Driver {
 
   /** 預かりを配っている途中か（送る準備の途中・いまの作業に足している途中。画面に出ない段取りなので中を見る。作り直したら、ここだけ直す） */
   private delivering(alias: ChatAlias): boolean {
-    const { runtimes } = this.core.runner as unknown as { runtimes: { peek(id: number): { run: ChatRunState } | undefined } };
-    const phase = runtimes.peek(this.id(alias))?.run.phase;
+    const phase = this.core.runner.state(this.id(alias))?.phase;
     return phase?.kind === "preparing" || (phase?.kind === "turn" && phase.telling !== null);
   }
 

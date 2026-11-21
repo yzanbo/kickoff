@@ -167,8 +167,10 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
     rpc.emit("awake", next);
   };
   started.bus.subscribe((e) => {
-    if (e.type === "chat" || e.type === "settings") reportAwake();
+    if (e.type === "settings") reportAwake();
   });
+  started.turns.onTurnStarted(reportAwake);
+  started.turns.onTurnEnded(reportAwake);
 
   // コアのイベントループの詰まり（メインと同じ見張り。書き足すのはコア、最近の分はメインへも送って診断に入れる）
   if (deps.watchStalls) {

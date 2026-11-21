@@ -1,23 +1,19 @@
-import { randomUUID } from "node:crypto";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { ProviderCallbacks } from "@/features/ai/core/index";
 import { initialRunState } from "@/features/chat/core/run/machine/state";
 import type { ChatRunState, Lane, RunEvent } from "@/features/chat/core/run/machine/types";
 import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
 import type { ProviderHandoff, WorkplaceMoveReservation } from "@shared/chat/chatLive";
-import type { Outbox, OutboxEnv } from "@shared/chat/outbox";
+import type { Outbox } from "@shared/chat/outbox";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { ChatStatus } from "@shared/chat/types";
 
 export type { Lane };
 
-/** 出す箱に行を作るときの時刻と ID */
-export const outboxEnv = (): OutboxEnv => ({ now: systemClock.iso(), newId: randomUUID });
-
-/** チャットの作業中の状態を引く口（ChatRuntimes。ほかの機能は入れ物の中身を読まず、これだけを受ける） */
-export interface RuntimeLookup {
-  get(chatId: number): ChatRuntime;
+/** チャットの作業中の状態を引く口（ChatRuns。ほかの機能は入れ物の中身を読まず、これだけを受ける） */
+export interface ChatRunLookup {
+  get(chatId: number): ChatRun;
 }
 
 /** 作業中のチャットへの操作（プロバイダーが渡す） */
@@ -40,11 +36,11 @@ export interface TurnDisplay {
 export const EMPTY_DISPLAY: TurnDisplay = { background: null, retry: null, drawingVisual: false };
 
 /**
- * 1 つのチャットの作業中の状態（保存しない。出す箱だけは変わるたびに DB に書く）。Runner が ChatRuntimes でチャットごとに 1 つ持つ。
- * 移り変わる状態（run。再開の段取りの門も）は step（run/machine/step.ts）の答えだけで変わり（Runner の dispatch が commit で書く）、殻の持ち物（作業の取っ手・表示・
+ * 1 つのチャットの作業中の状態（保存しない。出す箱だけは変わるたびに DB に書く）。殻 ChatRunner が ChatRuns でチャットごとに 1 つ持つ。
+ * 移り変わる状態（run。再開の段取りの門も）は step（machine/step.ts）の答えだけで変わり（殻の dispatch が commit で書く）、殻の持ち物（作業の取っ手・表示・
  * 予約した移動）はここに直に持つ。画面に配る形（ChatLive）は live.ts の liveOf で作る
  */
-export class ChatRuntime {
+export class ChatRun {
   /** 動かしている作業の取っ手（作業中でなければ null） */
   handle: TurnHandle | null = null;
   /** 作業ごとの表示だけの値 */
@@ -76,7 +72,7 @@ export class ChatRuntime {
       save?: (box: Outbox) => void;
       clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
       editTtlMs?: number;
-      /** 出来事を渡す（Runner の dispatch。プロバイダーの知らせ・予約した移動から） */
+      /** 出来事を渡す（殻の dispatch。プロバイダーの知らせ・予約した移動から） */
       dispatch?: (event: RunEvent) => void;
       /** 店から読む、チャットの状態（chats.status）と引き継ぎの門（ChatLive の status・provider_handoff） */
       read?: { status(): ChatStatus; handoff(): ProviderHandoff | null };
@@ -86,7 +82,7 @@ export class ChatRuntime {
     this.state = initialRunState(opts.saved ?? null);
   }
 
-  /** 移り変わる状態（読むだけ。変えるのは Runner の dispatch） */
+  /** 移り変わる状態（読むだけ。変えるのは殻の dispatch） */
   get run(): ChatRunState {
     return this.state;
   }
@@ -97,7 +93,7 @@ export class ChatRuntime {
     this.state = next;
   }
 
-  /** 出来事を渡す（Runner の dispatch） */
+  /** 出来事を渡す（殻の dispatch） */
   dispatch(event: RunEvent) {
     this.opts.dispatch?.(event);
   }

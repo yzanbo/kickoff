@@ -1,4 +1,5 @@
 // 実行ごとの短い診断。明示的に始めた間だけ親子を調べ、両端を観測できた時間の拒否だけを返す
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { DiagnosticProcess, SandboxDenial, SandboxDiagnosticsPlatform, SandboxLogFailure } from "./sandboxDiagnosticsPlatform";
 
 const CAPTURE_MS = 120_000;
@@ -15,8 +16,8 @@ type Capture = {
   intervals: Interval[];
   controller: AbortController;
   pending: Promise<void> | null;
-  timer: ReturnType<typeof setTimeout> | null;
-  deadline: ReturnType<typeof setTimeout> | null;
+  timer: TimerHandle | null;
+  deadline: TimerHandle | null;
   failed: boolean;
   limited: boolean;
   entries: SandboxDenial[];
@@ -35,7 +36,14 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
   private capture: Capture | null = null;
   private phase: Phase = "idle";
 
-  constructor(private readonly platform: SandboxDiagnosticsPlatform, private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly platform: SandboxDiagnosticsPlatform,
+    private readonly clock: Pick<Clock, "now" | "setTimeout" | "clearTimeout"> = systemClock,
+  ) {}
+
+  private now(): number {
+    return this.clock.now();
+  }
 
   /** プロバイダーが自分で起動した CLI の PID だけ。AI の引数から登録しない */
   readonly onSpawn = (pid: number): void => {
@@ -70,8 +78,7 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
       this.disposeCapture();
       return this.result("unavailable", `OS の拒否ログの収集を開始できません（${c.logFailed ?? "cancelled"}）。権限・OS 設定は変更していません`);
     }
-    c.deadline = setTimeout(() => { this.stop(c); void c.stopLog?.(); }, Math.max(0, CAPTURE_MS - (this.now() - c.start)));
-    c.deadline.unref?.();
+    c.deadline = this.clock.setTimeout(() => { this.stop(c); void c.stopLog?.(); }, Math.max(0, CAPTURE_MS - (this.now() - c.start)));
     this.schedule(c);
     return this.result("capturing", "2 分以内にエラーを再現し、read_sandbox_denials で読み取ってください。読み取ると収集は終了します");
   }
@@ -127,10 +134,9 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
 
   private schedule(c: Capture): void {
     if (this.isClosed() || c.end !== null || c.failed) return;
-    c.timer = setTimeout(() => {
+    c.timer = this.clock.setTimeout(() => {
       c.pending = this.sample(c).finally(() => { c.pending = null; this.schedule(c); });
     }, 250);
-    c.timer.unref?.();
   }
 
   private async sample(c: Capture): Promise<void> {
@@ -173,8 +179,8 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
 
   private stop(c: Capture): void {
     c.end ??= Math.min(this.now(), c.start + CAPTURE_MS);
-    if (c.timer) clearTimeout(c.timer);
-    if (c.deadline) clearTimeout(c.deadline);
+    if (c.timer) this.clock.clearTimeout(c.timer);
+    if (c.deadline) this.clock.clearTimeout(c.deadline);
     c.timer = c.deadline = null;
   }
 

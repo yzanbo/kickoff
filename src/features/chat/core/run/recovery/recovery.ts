@@ -1,7 +1,7 @@
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/features/chat/core/stores";
-import type { ChatRuntimes } from "@/features/chat/core/runtimes";
+import type { ChatRuns } from "@/features/chat/core/run/chatRuns";
 import type { Effect, RunEvent, StoppedAgent, WaitFor } from "@/features/chat/core/run/machine/types";
 import { resumeFailedOf, USAGE_RESUME, type RecoveryReason } from "@/features/chat/core/run/machine/recovery";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
@@ -9,6 +9,7 @@ import { resumePrompt } from "@shared/chat/prompts";
 import { Poller } from "./poller";
 import { canReachApi } from "./reachability";
 import type { ProviderId } from "@shared/settings/types";
+import type { Clock } from "@/foundation/core/clock";
 import { PROVIDERS } from "@shared/ai/providers";
 
 /** つながったかを確かめる間隔 */
@@ -36,8 +37,10 @@ export class ChatRecovery {
     private readonly deps: {
       store: Store;
       approvals: ApprovalCenter;
-      runtimes: ChatRuntimes;
-      /** 出来事を渡す（Runner の dispatch） */
+      runs: ChatRuns;
+      /** 見張りの時計（枠の戻りを見る時刻も、usageLimit.now を渡さなければこれ） */
+      clock: Pick<Clock, "now" | "setTimeout" | "clearTimeout">;
+      /** 出来事を渡す（殻の dispatch） */
       dispatch: (chatId: number, event: RunEvent) => void;
       send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が枠の戻る時刻を知らせなかったときに使う） */
@@ -48,10 +51,11 @@ export class ChatRecovery {
       usageLimit?: { now?: () => number; checkMs?: number };
     },
   ) {
-    this.now = deps.usageLimit?.now ?? Date.now;
+    this.now = deps.usageLimit?.now ?? (() => deps.clock.now());
     const check = deps.reconnect?.check ?? canReachApi;
     this.online = new Poller({
       intervalMs: deps.reconnect?.intervalMs ?? ONLINE_CHECK_MS,
+      clock: deps.clock,
       active: () => this.waiting("online").length > 0,
       tick: async () => {
         // チャットの AI ごとに、その AI の先に届くかを確かめる（確かめている間に待ち始めたチャットも、いまつながっているので一緒に再開する）
@@ -61,7 +65,7 @@ export class ChatRecovery {
         }
       },
     });
-    this.clock = new Poller({ intervalMs: deps.usageLimit?.checkMs ?? CLOCK_CHECK_MS, active: () => this.waiting("clock").length > 0, tick: () => this.checkClock() });
+    this.clock = new Poller({ intervalMs: deps.usageLimit?.checkMs ?? CLOCK_CHECK_MS, clock: deps.clock, active: () => this.waiting("clock").length > 0, tick: () => this.checkClock() });
   }
 
   /** 命令を実行する */
@@ -146,7 +150,7 @@ export class ChatRecovery {
 
   /** その条件を待っているチャット */
   private waiting(kind: WaitFor["kind"]): number[] {
-    return this.deps.runtimes
+    return this.deps.runs
       .all()
       .filter((r) => {
         const step = r.run.gates.recovery?.step;

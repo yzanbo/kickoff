@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { SandboxDenial, SandboxLogFailure } from "./sandboxDiagnosticsPlatform";
 
 /** macOS の OS 発信の拒否だけ（AI が predicate を指定する口は作らない） */
@@ -14,6 +15,7 @@ export async function watchSandboxLog(
   entry: (entry: SandboxDenial) => void,
   failed: (reason: SandboxLogFailure) => void,
   spawnProcess: typeof spawn = spawn,
+  clock: Pick<Clock, "setTimeout" | "clearTimeout"> = systemClock,
 ): Promise<() => Promise<void>> {
   if (signal.aborted) throw new Error("診断は終了しました");
   const child = spawnProcess("/usr/bin/log", ["stream", "--style", "ndjson", "--type", "log", "--no-backtrace", "--level", "debug", "--timeout", "2m", "--predicate", SANDBOX_LOG_PREDICATE], { stdio: ["ignore", "pipe", "pipe"] });
@@ -22,16 +24,15 @@ export async function watchSandboxLog(
   let stopping = false;
   let closed = false;
   let bytes = 0;
-  let killTimer: ReturnType<typeof setTimeout> | null = null;
-  let startupTimer: ReturnType<typeof setTimeout> | null = null;
+  let killTimer: TimerHandle | null = null;
+  let startupTimer: TimerHandle | null = null;
   const lines = createInterface({ input: child.stdout });
   const stop = () => {
     if (stopping) return;
     stopping = true;
     if (closed) return;
     child.kill("SIGTERM");
-    killTimer = setTimeout(() => { if (!closed) child.kill("SIGKILL"); }, 1000);
-    killTimer.unref?.();
+    killTimer = clock.setTimeout(() => { if (!closed) child.kill("SIGKILL"); }, 1000);
   };
   const failure = (reason: SandboxLogFailure) => { if (!stopping) { failed(reason); stop(); } };
   // 標準エラーの本文をエージェントやアプリのログへ出さない
@@ -45,8 +46,8 @@ export async function watchSandboxLog(
     child.once("error", () => failure("spawn_failed"));
     child.once("close", () => {
       closed = true;
-      if (killTimer) clearTimeout(killTimer);
-      if (startupTimer) clearTimeout(startupTimer);
+      if (killTimer) clock.clearTimeout(killTimer);
+      if (startupTimer) clock.clearTimeout(startupTimer);
       if (!stopping) failed("process_exit");
       signal.removeEventListener("abort", stop);
       lines.close();
@@ -57,7 +58,7 @@ export async function watchSandboxLog(
   signal.addEventListener("abort", stop, { once: true });
   if (signal.aborted) stop();
   // 起動直後の「Cannot run while sandboxed」などを開始の失敗として拾う
-  await Promise.race([done, new Promise<void>((resolve) => { startupTimer = setTimeout(resolve, 200); startupTimer.unref?.(); })]);
+  await Promise.race([done, new Promise<void>((resolve) => { startupTimer = clock.setTimeout(resolve, 200); })]);
   if (closed || stopping) { await done; throw new Error("OS の拒否ログを読み取れません"); }
   return async () => {
     stop();

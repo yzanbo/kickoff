@@ -9,7 +9,7 @@ import { createSnippets } from "@/features/snippets/core/index";
 import { createAi, type AiApi } from "@/features/ai/core/index";
 import { createAttachments, type UploadStore } from "@/features/attachments/core/index";
 import { createUserView, type UserViewRegistry } from "@/features/userView/core/index";
-import { createNotifications } from "@/features/notifications/core/index";
+import { createNotifications, type NotificationsApi } from "@/features/notifications/core/index";
 import { createVoice } from "@/features/voice/core/index";
 import { createDevices, type DevicesApi } from "@/features/devices/core/index";
 import { createChat, type ChatApi } from "@/features/chat/core/index";
@@ -41,6 +41,7 @@ export interface AppAssembly extends AssembledCore {
     uploads: UploadStore;
     userViews: UserViewRegistry;
     devices: DevicesApi;
+    notifications: NotificationsApi;
     chat: ChatApi;
     docker: DockerService;
     worktrees: WorktreesApi;
@@ -90,7 +91,9 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser({ control: env.browser });
-  const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api }, { selfPid: env.hostPid, ...env.ports });
+  // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
+  chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
+  const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
   const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
@@ -113,7 +116,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
       status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: chat.api.mcpTools,
     },
-    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
+    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, notifications: notifications.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
     runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,

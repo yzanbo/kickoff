@@ -4,6 +4,7 @@
 // 実行が終わったあとに調べて、前に調べたときになかった pid があれば、その数を fresh に入れる（画面が下の帯のボタンに点を付ける）
 import type { PortProcess } from "@shared/ports/types";
 import type { Bus } from "@/foundation/core/bus";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import type { PortProcessService } from "./service";
 
 /** 実行が終わってから調べるまで（サーバーが待ち受けを始めるのを待つ） */
@@ -14,8 +15,6 @@ export class PortWatch {
   private known = new Set<number>();
   /** 最後に調べた一覧（まだ調べていなければ null） */
   private last: PortProcess[] | null = null;
-  /** 作業中のチャット（作業中 → それ以外で、実行が終わったとみなす） */
-  private readonly running = new Set<number>();
   private timer: ReturnType<typeof setTimeout> | null = null;
   private unsubscribe: (() => void) | null = null;
   /** 調べるのは 1 つずつ（重なった頼みは前のものが終わってから） */
@@ -23,16 +22,14 @@ export class PortWatch {
 
   constructor(
     private readonly bus: Bus,
+    /** チャットの 1 回の実行が終わった知らせ（chat の殻） */
+    private readonly turns: Pick<ChatRunPort, "onTurnEnded">,
     readonly service: PortProcessService,
     private readonly afterTurnMs = AFTER_TURN_MS,
   ) {}
 
   start(): void {
-    this.unsubscribe = this.bus.subscribe((e) => {
-      if (e.type !== "chat") return;
-      if (e.chat.status === "running") this.running.add(e.chat.id);
-      else if (this.running.delete(e.chat.id)) this.schedule();
-    });
+    this.unsubscribe = this.turns.onTurnEnded(() => this.schedule());
   }
 
   close(): void {

@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Bus } from "@/foundation/core/bus";
+import { systemClock } from "@/foundation/core/clock";
 import { testStore } from "@/app/core/testing/testStore";
 import { until } from "@/app/core/testing/testCore";
-import { ChatRuntimes } from "@/features/chat/core/runtimes";
+import { ChatRuns } from "@/features/chat/core/run/chatRuns";
 import type { RunEvent } from "@/features/chat/core/run/machine/types";
 import type { ProviderId } from "@shared/settings/types";
 import { ChatRecovery } from "./recovery";
@@ -15,9 +16,9 @@ test("通信の切断で止まったチャットのつながったかは、そ�
   const store = testStore(":memory:", (e) => bus.publish(e));
   const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
   const chatOf = (provider: ProviderId) => store.chats.create({ project_id: project.id, provider, title: provider, status: "failed", model: null });
-  const runtimes = new ChatRuntimes({ store, bus });
+  const runs = new ChatRuns({ store, bus });
   const waitOnline = (chatId: number) => {
-    const runtime = runtimes.get(chatId);
+    const runtime = runs.get(chatId);
     runtime.commit({ ...runtime.run, gates: { ...runtime.run.gates, recovery: { reason: "reconnect", holds: false, attempts: 0, agents: {}, step: { at: "wait", for: { kind: "online" }, then: "resume" } } } });
   };
   const [claude, codex] = [chatOf("claude"), chatOf("codex")];
@@ -28,7 +29,8 @@ test("通信の切断で止まったチャットのつながったかは、そ�
   const recovery = new ChatRecovery({
     store,
     approvals: new ApprovalCenter(bus),
-    runtimes,
+    runs,
+    clock: systemClock,
     dispatch: (chatId: number, event: RunEvent) => void (event.type === "online" && online.push(chatId)),
     send: async () => {},
     reconnect: { check: async (url) => (checked.add(url), url === "https://api.openai.com/"), intervalMs: 5 },

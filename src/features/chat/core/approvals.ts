@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Bus } from "@/foundation/core/bus";
+import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { ApprovalRequest } from "@/features/ai/core/providers/types";
 import type { Approval, ApprovalDecision } from "@shared/chat/approvalTypes";
 import { Conflict } from "@/foundation/core/errors";
@@ -16,7 +17,10 @@ interface Pending {
 export class ApprovalCenter {
   private readonly pending = new Map<string, Pending>();
 
-  constructor(private readonly bus: Bus) {}
+  constructor(
+    private readonly bus: Bus,
+    private readonly clock: Pick<Clock, "iso"> = systemClock,
+  ) {}
 
   list(filter: { projectId?: number; chatId?: number } = {}): Approval[] {
     return [...this.pending.values()]
@@ -42,7 +46,7 @@ export class ApprovalCenter {
       ...(req.rememberScope ? { remember_scope: req.rememberScope } : {}),
       ...(req.toolUseId ? { tool_use_id: req.toolUseId } : {}),
       ...(req.agentId ? { agent_id: req.agentId } : {}),
-      created_at: new Date().toISOString(),
+      created_at: this.clock.iso(),
     };
     const decision = new Promise<ApprovalDecision>((resolve) => {
       this.pending.set(approval.id, { approval, resolve });

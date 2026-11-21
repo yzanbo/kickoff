@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { test } from "vitest";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Bus } from "@/foundation/core/bus";
-import { Runner } from "@/features/chat/core/runner";
+import { createChatRunner } from "@/features/chat/core/run/runner";
 import { setup, until } from "@/app/core/testing/testServer";
 import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
@@ -75,7 +75,7 @@ test("待ちの列は再起動しても残る: 自動で送るのまま読み戻
   await call("POST", `/api/chats/${chatId}/queue`, { text: "2" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
   // アプリを終えて起動し直したことにして、同じデータベースで作り直す
-  const restarted = new Runner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
+  const restarted = createChatRunner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
   assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
   assert.equal(restarted.live(chatId).queue.paused, false);
   assert.deepEqual(

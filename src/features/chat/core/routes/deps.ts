@@ -4,7 +4,7 @@ import type { Store } from "@/features/chat/core/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
-import type { Runner } from "@/features/chat/core/runner";
+import type { ChatRunner } from "@/features/chat/core/run/runner";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
 import type { ExecutionDeps } from "@/features/chat/core/turn";
 
@@ -14,7 +14,7 @@ export interface ChatRouteDeps {
   /** いまの書きかけの返答（chat の段 chatDeltaStage が持つ。チャットの詳細の streaming_text） */
   streamingText(chatId: number): string | null;
   providers: AiApi["providers"];
-  runner: Runner;
+  runner: ChatRunner;
   approvals: ApprovalCenter;
   uploads: NonNullable<ExecutionDeps["uploads"]>;
   /** 利用者が見ているもの（チャットごとの送ったときの様子） */

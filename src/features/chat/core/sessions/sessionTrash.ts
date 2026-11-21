@@ -1,6 +1,7 @@
 // Kickoff が作ったセッション（Claude Code の会話記録）のうち、どのチャットからも使われなくなったものを Kickoff のゴミ箱（3 日）へ入れる。
 // チャットの削除・巻き戻しなどで使われなくなった記録の漏れを拾う。
 // 前からある会話記録（覚えていないもの）は、ターミナルで直接使った Claude Code の記録と見分けられないので触らない（利用者が選ぶ一覧 orphanSessions.ts から片付ける）
+import { systemClock } from "@/foundation/core/clock";
 import type { ProviderId } from "@shared/settings/types";
 import type { Store } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
@@ -32,7 +33,7 @@ export function sessionLabel(firstPrompt: string | null): string {
 /** 使われなくなったセッションの会話記録をゴミ箱へ入れて忘れる。入れた数を返す */
 export async function sweepUnusedSessions(deps: SessionSweepDeps): Promise<number> {
   const { store } = deps;
-  const before = new Date((deps.now?.() ?? Date.now()) - SESSION_SWEEP_GRACE_MS).toISOString();
+  const before = new Date((deps.now?.() ?? systemClock.now()) - SESSION_SWEEP_GRACE_MS).toISOString();
   const candidates = store.agentSessions.olderThan(before);
   if (candidates.length === 0) return 0;
   const used = store.events.usedSessionIds();

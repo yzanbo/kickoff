@@ -44,8 +44,6 @@ interface CenterOptions {
 }
 
 export class NotificationCenter {
-  /** チャットごとの直前の状態（作業中から終わった・失敗に変わったときだけ知らせる） */
-  private readonly last = new Map<number, ChatStatus>();
   private readonly unsubscribe: () => void;
 
   constructor(private readonly opts: CenterOptions) {
@@ -56,8 +54,17 @@ export class NotificationCenter {
     this.unsubscribe();
   }
 
+  /** チャットの 1 回の実行が終わった（組み立てが chat の殻の onTurnEnded から渡す）: 最後まで終わった・失敗したら知らせる */
+  turnEnded(chatId: number, status: ChatStatus): void {
+    const chat = this.opts.store.chats.get(chatId);
+    if (chat) this.deliver(chatNotice({ ...chat, status }, this.opts.store.projects.get(chat.project_id)?.name ?? "プロジェクト"));
+  }
+
   private onEvent(e: BusEvent): void {
-    const notice = this.noticeOf(e);
+    this.deliver(this.noticeOf(e));
+  }
+
+  private deliver(notice: Notice | null): void {
     if (!notice) return;
     // この Mac の通知は、この Mac の画面で見ていなければ（設定でオンのとき）
     if (this.opts.store.settings.get().desktop_notifications && !this.viewing("host", notice)) this.opts.desktop?.(notice);
@@ -73,16 +80,6 @@ export class NotificationCenter {
 
   private noticeOf(e: BusEvent): Notice | null {
     const projectName = (id: number) => this.opts.store.projects.get(id)?.name ?? "プロジェクト";
-    if (e.type === "chat") {
-      const prev = this.last.get(e.chat.id);
-      this.last.set(e.chat.id, e.chat.status);
-      if (prev !== "running" || e.chat.status === "running") return null;
-      return chatNotice(e.chat, projectName(e.chat.project_id));
-    }
-    if (e.type === "chat_deleted") {
-      this.last.delete(e.id);
-      return null;
-    }
     if (e.type === "approval") return approvalNotice(e.approval, this.opts.store.chats.get(e.approval.chat_id) ?? null, projectName(e.approval.project_id));
     if (e.type === "ci_failed") return ciNotice(e.failure, projectName(e.failure.project_id));
     if (e.type === "ai_notice") {

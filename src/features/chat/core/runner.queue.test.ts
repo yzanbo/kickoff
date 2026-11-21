@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { NotFound } from "@/foundation/core/errors";
-import { Runner } from "./runner";
+import { createChatRunner } from "@/features/chat/core/run/runner";
 import { gatedScript, ScriptedProvider, type Script } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore, tick, until } from "@/app/core/testing/testCore";
 
@@ -354,7 +354,7 @@ test("起動したときの再開の確かめ: 止めておくか・線は保ち
   // アプリを終えて起動し直した: 作業中だったチャットは中断（続けるのチャットのほかは作業していなかったことにする）
   for (const c of [sendChat, pauseChat, pausedChat, stoppedChat]) store.chats.update(c.id, { status: "completed" });
   const interrupted = store.chats.recoverInterrupted("中断しました");
-  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const restarted = createChatRunner({ store, approvals, providers, usage, interrupted });
   const before = provider.calls.length;
 
   // 止めていた列・先頭の上の線で待つ列は、終えたときのまま戻して聞かない
@@ -402,7 +402,7 @@ test("起動したときの再開の確かめ: 答えるまでは、線を外す
   const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
   store.outbox.save(chat.id, { now: [], later: [row("a", "次 1"), row("b", "次 2")], paused: false, stops: [1] });
   const interrupted = store.chats.recoverInterrupted("中断しました");
-  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const restarted = createChatRunner({ store, approvals, providers, usage, interrupted });
   const before = provider.calls.length;
 
   // 画面に配る様子にも、確かめを待っていることが出る
@@ -443,7 +443,7 @@ test("起動したときの再開の確かめ: アプリを終えるときに作
   const interrupted = store.chats.recoverInterrupted("中断しました");
   assert.deepEqual(interrupted, [continued.id, paused.id, later.id]);
 
-  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const restarted = createChatRunner({ store, approvals, providers, usage, interrupted });
   const before = provider.calls.length;
   assert.deepEqual(restarted.live(paused.id).restart_resume, { interrupted: true, queued: false });
   const resumes = restarted.restartResumes();
@@ -490,7 +490,7 @@ test("起動したときの再開の確かめ: 自分で送ったら作業を続
   const crashed = store.chats.create({ project_id: project.id, provider: "claude", title: "落ちた", status: "running", model: null });
   const interrupted = store.chats.recoverInterrupted("中断しました");
   assert.deepEqual(interrupted, [crashed.id]);
-  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const restarted = createChatRunner({ store, approvals, providers, usage, interrupted });
   assert.deepEqual(restarted.live(crashed.id).restart_resume, { interrupted: true, queued: false });
   await restarted.send(crashed.id, "続きを進めて");
   assert.equal(restarted.live(crashed.id).restart_resume, null);
@@ -510,7 +510,7 @@ test("起動したときの再開の確かめ: アーカイブしたら（子チ
   store.outbox.save(parent.id, { now: [], later: [row("a", "次")], paused: false, stops: [] });
   const interrupted = store.chats.recoverInterrupted("中断しました");
   assert.deepEqual(interrupted, [parent.id, child.id, kept.id]);
-  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const restarted = createChatRunner({ store, approvals, providers, usage, interrupted });
   assert.deepEqual(restarted.restartResumes().map((r) => r.chat_id), [parent.id, child.id, kept.id]);
 
   // 親をアーカイブする（子も一緒にしまわれる）: 一覧から外れ、作業中の様子からも確かめを待つ印が消える

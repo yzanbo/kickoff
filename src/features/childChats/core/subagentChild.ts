@@ -7,7 +7,7 @@ import { subagentAskMessage } from "@shared/chat/prompts";
 import type { Store } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { Runner } from "@/features/chat/core/runner";
+import type { ChatRunPort } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import { sessionOfSubagent, subagentLogFromEvents, subagentTranscript, subagentTranscriptFileName } from "@/features/subagents/core/subagentTranscript";
 import { workdirOf } from "@/features/chat/core/workdir";
@@ -26,7 +26,7 @@ export interface SubagentChildInput {
  * 会話は引き継がない（親の会話を写すと、子チャットの AI が自分をメインエージェントだと思って答えるため）
  */
 export async function startSubagentChildChat(
-  deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider>; uploads: UploadStore },
+  deps: { store: Store; runner: ChatRunPort; providers: Record<ProviderId, AgentProvider>; uploads: UploadStore },
   parent: Chat,
   input: SubagentChildInput,
 ): Promise<Chat> {

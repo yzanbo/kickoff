@@ -25,9 +25,10 @@ function withChat() {
   // 端末から見ているものを知らせるテストのため、スマホ連携をオンにする
   ctx.store.settings.update({ remote_enabled: true });
   const chat = ctx.store.chats.create({ project_id: ctx.project.id, provider: "claude", title: "調査", status: "running" });
+  // 1 回の実行が終わった（殻の onTurnEnded が通知に渡すのと同じ口）
   const finish = (status: "completed" | "failed" = "completed") => {
-    ctx.store.chats.update(chat.id, { status: "running" });
     ctx.store.chats.update(chat.id, { status, ...(status === "failed" ? { error: "落ちました" } : {}) });
+    ctx.notifications.turnEnded(chat.id, status);
   };
   return { ...ctx, chat, finish };
 }

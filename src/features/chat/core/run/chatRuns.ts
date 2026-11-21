@@ -1,19 +1,20 @@
 import type { Bus, BusStage } from "@/foundation/core/bus";
+import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { Store } from "@/features/chat/core/stores";
 import { marksFrom } from "@/features/chat/core/run/machine/marks";
 import type { RunEvent } from "@/features/chat/core/run/machine/types";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { ChatStatus } from "@shared/chat/types";
-import { ChatRuntime, type RuntimeLookup } from "./runtime";
-import { liveOf } from "./live";
+import { ChatRun, type ChatRunLookup } from "./chatRun";
+import { liveOf } from "@/features/chat/core/live";
 
 /**
- * チャットごとの作業中の状態（ChatRuntime）の入れ物。チャットの状態が変わったら、作業中の様子をまとめて chat_live で画面に配る。
+ * チャットごとの作業中の状態（ChatRun）の入れ物。チャットの状態が変わったら、作業中の様子をまとめて chat_live で画面に配る。
  * 作るたびに（起動したときだけでなく、ゴミ箱から戻したときも）、保存した出す箱を読み戻す（止めておくか・線は保存したまま。
- * 自動で送る列を起動してから送るかは、Runner が利用者に聞く）。chats.status が変わったら、chat の知らせのすぐあとに chat_live も配る
+ * 自動で送る列を起動してから送るかは、殻が利用者に聞く）。chats.status が変わったら、chat の知らせのすぐあとに chat_live も配る
  */
-export class ChatRuntimes implements RuntimeLookup {
-  private readonly runtimes = new Map<number, ChatRuntime>();
+export class ChatRuns implements ChatRunLookup {
+  private readonly runtimes = new Map<number, ChatRun>();
   /** 最後に配った作業中の様子の status（変わった chat の知らせのあとに配り直す） */
   private readonly sentStatus = new Map<number, ChatStatus>();
 
@@ -23,7 +24,9 @@ export class ChatRuntimes implements RuntimeLookup {
       bus?: Bus;
       /** 書き直している印の持ち時間（テストで差し替える） */
       editTtlMs?: number;
-      /** 出来事を渡す先（Runner の dispatch） */
+      /** 書き直しの持ち時間の時計（省けば本物） */
+      clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
+      /** 出来事を渡す先（殻の dispatch） */
       dispatch?: (chatId: number, event: RunEvent) => void;
     },
   ) {
@@ -43,13 +46,14 @@ export class ChatRuntimes implements RuntimeLookup {
   }
 
   /** チャットの作業中の状態（まだなければ作る） */
-  get(chatId: number): ChatRuntime {
+  get(chatId: number): ChatRun {
     let runtime = this.runtimes.get(chatId);
     if (!runtime) {
-      runtime = new ChatRuntime(chatId, () => this.publish(chatId), {
+      runtime = new ChatRun(chatId, () => this.publish(chatId), {
         marks: marksFrom(this.deps.store.events, chatId),
         saved: this.deps.store.outbox.get(chatId),
         save: (box) => this.deps.store.outbox.save(chatId, box),
+        clock: this.deps.clock ?? systemClock,
         editTtlMs: this.deps.editTtlMs,
         dispatch: (event) => this.deps.dispatch?.(chatId, event),
         read: {
@@ -68,7 +72,7 @@ export class ChatRuntimes implements RuntimeLookup {
   }
 
   /** チャットの作業中の状態（まだなければ undefined。作らない） */
-  peek(chatId: number): ChatRuntime | undefined {
+  peek(chatId: number): ChatRun | undefined {
     return this.runtimes.get(chatId);
   }
 
@@ -92,12 +96,12 @@ export class ChatRuntimes implements RuntimeLookup {
   }
 
   /** すべてのチャットの作業中の状態 */
-  all(): ChatRuntime[] {
+  all(): ChatRun[] {
     return [...this.runtimes.values()];
   }
 
   /** 実行中のチャット（動かしているもの。送る準備の途中は数えない） */
-  running(): ChatRuntime[] {
+  running(): ChatRun[] {
     return this.all().filter((r) => r.handle !== null);
   }
 
