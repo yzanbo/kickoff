@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
+import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import type { ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
@@ -11,8 +12,6 @@ import { answerPermission } from "./permissions";
 import { ACP_PROTOCOL_VERSION, type ContentBlock, type InitializeResponse, type RequestPermissionRequest, type SessionNotification, type SessionResponse, type StopReason } from "./protocol";
 import { createUpdateState, flushText, sessionUpdate } from "./updates";
 
-/** 止めたあと、エージェントが指示の終わりを返すまで待つ長さ（過ぎたらエージェントごと止める） */
-const CANCEL_GRACE_MS = 5000;
 /** 断った理由だけを伝え直す回数の上限（1 回の実行で。伝えるたびに AI が続けて断られ続けるのを防ぐ） */
 const MAX_DENIAL_FOLLOWUPS = 3;
 
@@ -108,10 +107,8 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
     if (handled) return handled;
     throw new Error(`Kickoff は ${method} に対応していません`);
   };
-  const onAbort = () => {
-    if (rpc && sessionId) rpc.notify("session/cancel", { sessionId });
-    setTimeout(cancelled, CANCEL_GRACE_MS).unref?.();
-  };
+  // 止めたら session/cancel。指示の終わりが返らなければ、待ったあとに中断で返す（エージェントごと止める）
+  let stopper: Stopper | null = null;
 
   try {
     const opened = await openAgent(deps, { env: launchEnv(deps.baseEnv, params, deps.spec.keys), cwd: params.cwd, params, onNotification, onServerRequest, onClosed: (reason) => (closedReason = reason) });
@@ -138,8 +135,8 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
     if (mode && mode !== session.modes?.currentModeId) await rpc.request("session/set_mode", { sessionId: id, modeId: mode });
     for (const choice of configChoices(session.configOptions ?? [], params)) await rpc.request("session/set_config_option", { sessionId: id, ...choice }).catch(() => {});
 
-    signal.addEventListener("abort", onAbort, { once: true });
-    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    stopper = createStopper(signal, { interrupt: () => rpc?.notify("session/cancel", { sessionId: id }), onForced: cancelled });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す
     if (signal.aborted) return { status: "cancelled", sessionId: id };
     state.manualCompact = params.prompt.trim() === "/compact";
     cb.control?.({ tell: (text) => (tells.push(text), true), stopTask: async () => {} });
@@ -171,7 +168,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
       ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}),
     };
   } finally {
-    signal.removeEventListener("abort", onAbort);
+    stopper?.dispose();
     cb.control?.(null);
     if (state.compacting) cb.compacting?.(false);
     rpc?.close();

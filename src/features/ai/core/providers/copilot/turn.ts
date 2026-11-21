@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
+import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { byokProvider, copilotSandbox, mcpServersOf, runtimeEnv, turnPrompt } from "./config";
@@ -8,9 +9,6 @@ import { createEventState, handleEvent, type EventState } from "./events";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { createPermissionHandler, createPreToolUseHook, createUserInputHandler } from "./permissions";
 import type { CopilotClientFactory, CopilotClientLike, CopilotSessionLike, SessionConfig } from "./sdk";
-
-/** 止めたあと、Copilot が手を空ける（session.idle）まで待つ長さ */
-const ABORT_GRACE_MS = 5000;
 
 export interface TurnDeps {
   clientFactory: CopilotClientFactory;
@@ -76,10 +74,8 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
   let finish!: (aborted: boolean) => void;
   const done = new Promise<boolean>((resolve) => (finish = resolve));
 
-  const onAbort = () => {
-    void session?.abort().catch(() => {});
-    setTimeout(() => finish(true), ABORT_GRACE_MS).unref?.();
-  };
+  // 止めたら abort。手が空かなければ（session.idle が来なければ）、待ったあとに中断で返す
+  let stopper: Stopper | null = null;
   try {
     client = deps.clientFactory({ env: runtimeEnv(deps.baseEnv, params.env), cwd: params.cwd });
     await client.start();
@@ -97,8 +93,8 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
       if (event.type === "session.idle" && started) finish(Boolean(event.data.aborted));
     });
     cb.emit({ type: "init", session_id: sessionId, ...(config.model ? { model: config.model } : {}), permission_mode: params.permissionMode, effort: params.effort });
-    signal.addEventListener("abort", onAbort, { once: true });
-    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    stopper = createStopper(signal, { interrupt: () => void session?.abort().catch(() => {}), onForced: () => finish(true) });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す
     if (signal.aborted) return { status: "cancelled", sessionId };
 
     if (compactOnly) {
@@ -130,7 +126,7 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
     const message = errorMessage(e);
     return { status: signal.aborted ? "cancelled" : "failed", sessionId, error: message, ...(isNetworkError(message) ? { network: true } : {}) };
   } finally {
-    signal.removeEventListener("abort", onAbort);
+    stopper?.dispose();
     cb.control?.(null);
     if (state.compacting) cb.compacting?.(false);
     await session?.disconnect().catch(() => {});

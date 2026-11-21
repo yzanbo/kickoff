@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
+import { createStopper, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
@@ -13,9 +14,6 @@ import type { CodexErrorInfo, RateLimitsUpdatedNotification, ThreadItem, ThreadR
 import { StdioRpcError, type StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { createPreToolUseHandler } from "./preToolUse";
 import { openSession } from "./session";
-
-/** 止めたあと、Codex がターンの終わりを返すまで待つ長さ（過ぎたら app-server ごと止める） */
-const INTERRUPT_GRACE_MS = 5000;
 
 /** app-server 0.169 の thread/resume が返す、対象 ID の履歴なしを示す応答だけを認める。 */
 export function confirmedMissingResume(error: unknown, sessionId: string | null): boolean {
@@ -150,10 +148,11 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     }
   };
 
-  const onAbort = () => {
+  // 止めたら turn/interrupt。終わりが返らなければ、待ったあとに中断で返す（app-server ごと止める）
+  const interrupt = () => {
     if (rpc && threadId && turnId) void rpc.request("turn/interrupt", { threadId, turnId }).catch(() => {});
-    setTimeout(() => finish({ id: turnId ?? "", status: "interrupted", error: null }), INTERRUPT_GRACE_MS).unref?.();
   };
+  let stopper: Stopper | null = null;
   try {
     // 守りを当てる PreToolUse のフックの口（hooks.ts）。URL と鍵は app-server の環境で渡す
     hook = await startHookServer(createPreToolUseHandler({ params, guard, cb, signal, approvedWrites }));
@@ -178,8 +177,8 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     // 守りのフックが効いていなければ動かさない（守りなしで砂場の中のコマンドが流れるため）
     await assertHookActive(rpc, threadId);
     cb.emit({ type: "init", session_id: threadId, model: opened.model, permission_mode: params.permissionMode, effort: codexEffort(params.effort) });
-    signal.addEventListener("abort", onAbort, { once: true });
-    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    stopper = createStopper(signal, { interrupt, onForced: () => finish({ id: turnId ?? "", status: "interrupted", error: null }) });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す
     if (signal.aborted) return { status: "cancelled", sessionId: threadId };
     if (compactOnly) {
       state.manualCompact = true;
@@ -204,7 +203,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     const message = errorMessage(e);
     return { status: signal.aborted ? "cancelled" : "failed", sessionId: threadId, error: message, ...(!signal.aborted && confirmedMissingResume(e, params.resumeSessionId) ? { resumeSessionMissing: true as const } : {}), ...(isNetworkError(message) ? { network: true } : {}) };
   } finally {
-    signal.removeEventListener("abort", onAbort);
+    stopper?.dispose();
     cb.control?.(null);
     if (state.compacting) cb.compacting?.(false);
     rpc?.close();
