@@ -32,10 +32,14 @@ export interface ShellDeps extends ExecutionDeps, ShellUpperDeps {
   log?: Pick<Log, "warn">;
 }
 
-/** 上の機能の力が要る命令（作業の終わりにすること）と、プロジェクトの圧縮前指示（殻を組み立てる runner.ts が渡す） */
+/** 作業の終わりの予約（core/turnEnd.ts）と、プロジェクトの圧縮前指示（殻を組み立てる runner.ts が渡す） */
 export interface ShellHooks {
   preCompactOf(projectId: number): string | null;
   turnEndTasks(chatId: number, run: ChatRun, effect: Extract<Effect, { do: "run_turn_end_tasks" | "drop_turn_end_tasks" }>): void;
+  /** 最後まで終わった作業でだけ行う予約があるか（あれば作業の終わりは段階 settling） */
+  hasTurnEndTasks(chatId: number): boolean;
+  /** チャットが作業していないに戻った（出来事を回し終えたあと。待っている予約をもう一度試す） */
+  becameIdle(chatId: number): void;
 }
 
 /** 出来事を回した答え（渡した出来事の命令と、それが始めた作業の準備。命令の実行が出した出来事のものは含まない） */
@@ -92,12 +96,14 @@ export class RunShell {
     const run = this.runs.get(chatId);
     const before = JSON.stringify(liveOf(run));
     let first: Dispatched | null = null;
+    let idled = false;
     try {
       for (let e = queue.shift(); e; e = queue.shift()) {
         const prev = run.run;
         const { state, effects } = step(prev, e, this.envOf(chatId, run));
         run.commit(state);
         // chats.status は段階の写し: 作業していないに戻ったら、最後に終わった実行の結果を書く（命令の前に。命令が出す出来事は書いたあとの状態で決める）
+        if (prev.phase.kind !== "idle" && state.phase.kind === "idle") idled = true;
         if (prev.phase.kind !== "idle" && state.phase.kind === "idle" && run.endStatus !== null) {
           this.deps.store.chats.update(chatId, { status: run.endStatus });
           run.endStatus = null;
@@ -112,6 +118,7 @@ export class RunShell {
     }
     this.settleTells(chatId, run);
     if (JSON.stringify(liveOf(run)) !== before) run.changed();
+    if (idled) this.hooks.becameIdle(chatId);
     return first!;
   }
 
@@ -147,7 +154,7 @@ export class RunShell {
       ...this.outboxEnv(),
       shuttingDown: this.shuttingDown,
       hasSession: Boolean(chat?.session_id),
-      hasTurnEndTasks: run.workplaceMove !== null,
+      hasTurnEndTasks: this.hooks.hasTurnEndTasks(chatId),
       handoff: run.handoff()?.state ?? null,
       handoffQueued: switched?.type === "provider_switched" ? (switched.data.queued_ids ?? []) : [],
       preCompact: chat ? this.hooks.preCompactOf(chat.project_id) : null,

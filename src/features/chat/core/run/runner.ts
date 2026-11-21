@@ -6,7 +6,9 @@ import { restartResumes } from "./restartResumes";
 import { withIdleChat, type IdleChat, type IdleChatOptions } from "./idle";
 import { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine/types";
-import { WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
+import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "@/features/chat/core/runner";
+import { TurnEndTasks, type TurnEndKind, type TurnEndTask } from "@/features/chat/core/turnEnd";
+import { recordEvent } from "./record";
 import type { StartChatInput } from "@/features/chat/core/input";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { systemClock, type Clock } from "@/foundation/core/clock";
@@ -48,6 +50,13 @@ export interface ChatRunPort {
   send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
   setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
   moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat>;
+  /** 作業の終わりに行う予約（turnEnd.ts） */
+  reserveAtTurnEnd(chatId: number, task: TurnEndTask): void;
+  cancelTurnEnd(chatId: number, kind: TurnEndKind): TurnEndTask | null;
+  hasTurnEnd(chatId: number, kind?: TurnEndKind): boolean;
+  reservedFolders(): Set<string>;
+  /** 予約した移動のあとの続きの指示を出す箱に置く（止めていて送らないときはお知らせを残す。@shared/chat/outbox の placeContinuation） */
+  continuation(chatId: number, text: string, afterFinish: boolean): void;
   forget(chatId: number): void;
   /** 作業を動かし始めた・1 回の実行が終わった（作業の終わりにすることより前。やめる関数を返す） */
   onTurnStarted(fn: (chatId: number) => void): () => void;
@@ -67,13 +76,22 @@ export function createChatRunner(deps: RunnerDeps) {
         const project = deps.store.projects.get(projectId);
         return project ? compactPromptFor("pre", deps.store.settings.get(), project) : null;
       },
-      turnEndTasks: (chatId, run, effect) => prep.turnEndTasks(chatId, run, effect),
+      turnEndTasks: (chatId, _run, effect) => (effect.do === "drop_turn_end_tasks" ? turnEnds.drop(chatId, effect.notice) : turnEnds.settle(chatId)),
+      hasTurnEndTasks: (chatId) => turnEnds.hasSettling(chatId),
+      becameIdle: () => turnEnds.retry(),
     },
   );
   const window = queueWindow(shell);
-  // AI が作業場所を移す予約（作業が最後まで終わったら移す）
-  const workplaceMoves = new WorkplaceReservations(shell.runs);
-  const prep = preparations(shell, workplaceMoves);
+  // 作業の終わりに行う予約（ワークツリーの片付け・作業場所の移動・アーカイブ・削除。予約するのは持ち主の機能）
+  const turnEnds = new TurnEndTasks({
+    runs: shell.runs,
+    dispatch: (chatId, event) => void shell.dispatch(chatId, event),
+    chatExists: (chatId) => deps.store.chats.get(chatId) !== undefined,
+    notice: (chatId, message) => recordEvent(deps.store, shell.runs.get(chatId), { type: "notice", message }),
+    log: deps.log,
+  });
+  shell.onTurnEnded((chatId) => turnEnds.turnEnded(chatId));
+  const prep = preparations(shell, turnEnds);
   const restart = restartResumes(shell);
   // チャットを消したときに聞く上の機能（守りの「このチャットでは許可」の覚えを捨てる）
   const forgetHooks: ((chatId: number) => void)[] = [];
@@ -100,11 +118,13 @@ export function createChatRunner(deps: RunnerDeps) {
     state: (chatId: number): ChatRunState | undefined => shell.runs.peek(chatId)?.run,
     onTurnStarted: (fn: (chatId: number) => void) => shell.onTurnStarted(fn),
     onTurnEnded: (fn: (chatId: number, outcome: TurnOutcome) => void) => shell.onTurnEnded(fn),
-    /** AI が作業場所を移す予約（作業が最後まで終わったら移す。workplaceMove の move_workplace が使う） */
-    workplaceMoves: {
-      reserve: (chatId: number, plan: WorkplaceMovePlan) => workplaceMoves.reserve(chatId, plan),
-      cancel: (chatId: number) => workplaceMoves.cancel(chatId) !== null,
-    },
+    /** 作業の終わりに行う予約（同じ予約は置き換える。作業していなければすぐ試す。turnEnd.ts） */
+    reserveAtTurnEnd: (chatId: number, task: TurnEndTask) => turnEnds.reserve(chatId, task),
+    cancelTurnEnd: (chatId: number, kind: TurnEndKind): TurnEndTask | null => turnEnds.cancel(chatId, kind),
+    hasTurnEnd: (chatId: number, kind?: TurnEndKind) => turnEnds.has(chatId, kind),
+    /** 予約で片付けるフォルダ（利用者・AI が作業場所を移す先にできない） */
+    reservedFolders: () => turnEnds.reservedFolders(),
+    continuation: (chatId: number, text: string, afterFinish: boolean) => void shell.dispatch(chatId, { type: "continuation", text, afterFinish }),
 
     /** 上の機能の口（ワークツリーの実行環境と後始末・内蔵ターミナル・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
     attach(upper: Pick<ExecutionDeps, "aiTools"> & ShellUpperDeps) {
@@ -125,6 +145,7 @@ export function createChatRunner(deps: RunnerDeps) {
     /** チャットを消したとき: 作業中の状態（送信待ちの列も）を捨て、再開の段取りもやめる */
     forget(chatId: number) {
       if (shell.runs.peek(chatId)) shell.dispatch(chatId, { type: "forget_recovery" });
+      turnEnds.forget(chatId);
       shell.forget(chatId);
       for (const fn of forgetHooks) fn(chatId);
     },

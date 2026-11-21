@@ -70,8 +70,6 @@ export interface WorktreeFinisherDeps {
   workplace: Pick<WorkplaceKit, "git" | "projectScopes">;
   /** ブランチのマージ済みの PR（GitHub で取り込んだかの見分け。テストでは差し替える。省けば gh に聞く） */
   mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
-  /** 予約した後始末を、頼んだチャットの作業が終わるのを待って確かめ直す間隔（テストで縮める） */
-  retryMs?: number;
 }
 
 /** 祖先か（a が b に含まれるか。どちらかがなければ false） */
@@ -84,22 +82,10 @@ async function askMergedPr(project: Project, branch: string): Promise<MergedPull
 }
 
 export class WorktreeFinisher {
-  /** 予約した後始末（頼んだチャット → プロジェクトとワークツリーのフォルダ） */
-  private readonly reserved = new Map<number, { projectId: number; folder: string }>();
-  /** 予約が済む（片付けた・片付けられなかった）のを待っているもの（AI の作業場所を移す予約が、片付けを先に待つ） */
-  private readonly waiters = new Map<number, (() => void)[]>();
-  private readonly unsubscribe: () => void;
-  private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly changed: (() => Promise<void>)[] = [];
   private readonly removed: ((folder: string, dropDbConnections: boolean) => void)[] = [];
 
   constructor(private readonly deps: WorktreeFinisherDeps) {
-    // 1 回の実行が終わったら予約を確かめる。予約したチャットなら、送信待ちを先に止める（ワークツリーで動くつもりで書いた指示が、本体で勝手に動かないように）
-    this.unsubscribe = deps.runner.onTurnEnded((chatId) => {
-      if (this.reserved.size === 0) return;
-      if (this.reserved.has(chatId)) void deps.runner.setQueuePaused(chatId, true);
-      this.schedule();
-    });
     // ゴミ箱から戻す: 同じ名前でワークツリーを作り直し、ブランチと途中の変更を戻す。3 日たったら控えの参照を消す
     deps.trashBin.register("worktree", { restore: (item) => this.restore(item), purge: (item) => this.purge(item) });
   }
@@ -112,12 +98,6 @@ export class WorktreeFinisher {
   /** ワークツリーを消したあとに呼ぶものを足す（上の機能が登録する。database がそのワークツリーの DB から作った接続を片付ける） */
   afterRemove(fn: (folder: string, dropDbConnections: boolean) => void) {
     this.removed.push(fn);
-  }
-
-  close() {
-    this.unsubscribe();
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = null;
   }
 
   /**
@@ -282,7 +262,8 @@ export class WorktreeFinisher {
       if (!own) throw new Error("このチャットのワークツリーが見つかりません（もう消えたかもしれません）");
       if (named && named.path !== own.path) throw new Error("ほかのワークツリーのチャットからは消せません。消せるのは、このチャットのワークツリーだけです（本体のチャットからなら、どのワークツリーでも消せます）");
       const facts = await this.deps.workplace.projectScopes.run(project, () => this.inspect(project, own, list));
-      this.reserved.set(chatId, { projectId: project.id, folder: own.path });
+      // 作業の終わりの予約（chat の入れ物。止めた・失敗した作業でも行い、行う前に送信待ちを止める = ワークツリーで動くつもりの指示が本体で勝手に動かないように）
+      this.deps.runner.reserveAtTurnEnd(chatId, { kind: "finish_worktree", order: 10, label: "ワークツリーの片付け", when: "any", pauseQueue: true, folder: own.path, run: () => this.runReserved(chatId, project.id, own.path) });
       const others = this.usersOf(own, list).flatMap((u) => store.chats.inWorktree(u.projectId, u.path)).some((c) => c.id !== chatId && this.deps.runner.isBusy(c.id));
       return [
         `予約しました。このチャットの作業が終わったら${others ? "（同じワークツリーで作業中のほかのチャットも終わるのを待ってから）" : ""}、Kickoff がこのワークツリーを片付けます。`,
@@ -302,71 +283,29 @@ export class WorktreeFinisher {
     }
   }
 
-  /** そのチャットが片付けを予約しているか */
-  hasReservation(chatId: number): boolean {
-    return this.reserved.has(chatId);
-  }
-
-  /** そのチャットの片付けの予約が済むまで待つ（予約がなければすぐ） */
-  afterReservation(chatId: number): Promise<void> {
-    if (!this.reserved.has(chatId)) return Promise.resolve();
-    return new Promise((resolve) => this.waiters.set(chatId, [...(this.waiters.get(chatId) ?? []), resolve]));
-  }
-
-  /** 予約が済んだ（待っているものに知らせる） */
-  private settled(chatId: number) {
-    const list = this.waiters.get(chatId) ?? [];
-    this.waiters.delete(chatId);
-    for (const resolve of list) resolve();
-  }
-
-  /** 片付けを予約したワークツリーのフォルダ（利用者が作業場所を移す先にできない） */
-  reservedFolders(): Set<string> {
-    return new Set([...this.reserved.values()].map((r) => r.folder));
-  }
-
-  /** 予約を確かめる（少し待ってから。頼んだチャットの作業の後始末が済むまで） */
-  private schedule(delay = 0) {
-    if (this.timer) return;
-    this.timer = setTimeout(() => {
-      this.timer = null;
-      void this.runReserved();
-    }, delay);
-  }
-
-  /** 予約した後始末のうち、頼んだチャットとそのワークツリーで作業中のチャットがなくなったものを消し、結果を頼んだチャットのお知らせに残す */
-  private async runReserved() {
+  /**
+   * 予約した後始末: 頼んだチャットとそのワークツリーで作業中のチャットがなくなったら消し、結果を頼んだチャットのお知らせに残す
+   * （作業の終わりにすること settling の間は待たない = 予約した移動がこの片付けのあとに続く。作業中なら wait）
+   */
+  private async runReserved(chatId: number, projectId: number, folder: string): Promise<"done" | "wait"> {
     const { store, runner } = this.deps;
-    let waiting = false;
-    for (const [chatId, r] of [...this.reserved]) {
-      const chat = store.chats.get(chatId);
-      const project = store.projects.get(r.projectId);
-      if (!chat || !project) {
-        this.reserved.delete(chatId);
-        this.settled(chatId);
-        continue;
-      }
-      // 作業中でなくなるまで待つ（作業の終わりにすること settling の間は待たない = 予約した移動がこの片付けを待つ。送る準備の間は終わりの知らせが来ないので確かめ直す）
-      const phase = runner.live(chatId).phase;
-      if (phase !== "idle" && phase !== "settling") {
-        waiting ||= phase === "preparing";
-        continue;
-      }
-      const list = await listWorktrees(project.repo_path).catch((): GitWorktree[] => []);
-      const target = list.find((w) => w.path === r.folder);
-      if (target && this.busyIn(this.usersOf(target, list), chatId)) continue;
-      this.reserved.delete(chatId);
-      try {
-        const result = await this.remove(project, r.folder, { ...AI_FINISH, byChatId: chatId });
-        // 予約したチャットが、待つ間によそへ作業場所を移していても予約は残す。そのことを結果に添える
-        const movedAway = chat.worktree_path !== r.folder;
-        store.events.add(chatId, { type: "notice", message: movedAway ? `${result.text}\n（このチャットは予約のあとで作業場所を移していたので、移した先のまま続きます）` : result.text });
-      } catch (e) {
-        store.events.add(chatId, { type: "notice", message: `ワークツリーを片付けられませんでした（${errorMessage(e)}）` });
-      }
-      this.settled(chatId);
+    const chat = store.chats.get(chatId);
+    const project = store.projects.get(projectId);
+    if (!chat || !project) return "done";
+    const phase = runner.live(chatId).phase;
+    if (phase !== "idle" && phase !== "settling") return "wait";
+    const list = await listWorktrees(project.repo_path).catch((): GitWorktree[] => []);
+    const target = list.find((w) => w.path === folder);
+    if (target && this.busyIn(this.usersOf(target, list), chatId)) return "wait";
+    try {
+      const result = await this.remove(project, folder, { ...AI_FINISH, byChatId: chatId });
+      // 予約したチャットが、待つ間によそへ作業場所を移していても予約は残す。そのことを結果に添える
+      const movedAway = chat.worktree_path !== folder;
+      store.events.add(chatId, { type: "notice", message: movedAway ? `${result.text}\n（このチャットは予約のあとで作業場所を移していたので、移した先のまま続きます）` : result.text });
+    } catch (e) {
+      store.events.add(chatId, { type: "notice", message: `ワークツリーを片付けられませんでした（${errorMessage(e)}）` });
     }
-    if (waiting) this.schedule(this.deps.retryMs ?? 100);
+    return "done";
   }
 
   /** ゴミ箱から戻す: 同じ名前のブランチ（なければ控えのブランチの先から作る）でワークツリーを作り直し、途中の変更を戻す */

@@ -79,7 +79,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, uploads: attachments.api.uploads, attachments: attachments.api.forChat }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
+  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, uploads: attachments.api.uploads, attachments: attachments.api.forChat }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
   const { runner } = chat.api;
   // 利用者が見ているもの（並びは通知の前のまま。送ったときの様子をチャットの送る口から受けるので、チャットのあとに作る）
   const userView = createUserView({ chat: chat.api });
@@ -92,12 +92,12 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const visuals = createVisuals({ chat: chat.api });
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
   const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
-  const workplaceMove = createWorkplaceMove({ chat: chat.api, worktreeFinisher: () => worktrees.api.finisher, terminals: () => terminal.api });
+  const workplaceMove = createWorkplaceMove({ chat: chat.api, terminals: () => terminal.api, worktreeEnvs: () => worktrees.api.envs });
   const files = createFiles(k, { trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, guard: guard.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
-  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
+  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, env.worktrees);
   const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
@@ -111,7 +111,6 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const terminals = terminal.api;
   chat.api.attach({
     worktreeEnvs: worktrees.api.envs,
-    worktreeFinisher: worktrees.api.finisher,
     terminals,
     remoteImages: remoteImages.api,
     aiTools: features.flatMap((f) => f.aiTools ?? []),

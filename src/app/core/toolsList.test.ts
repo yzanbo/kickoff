@@ -96,7 +96,6 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   const { store, runner } = core;
   const noteTools = { store, notes: unused<NoteService>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
   core.runner.attach({
-    worktreeFinisher: finisher,
     aiTools: [
       diagnosticToolGroup,
       openNoteToolGroup(noteTools),
@@ -109,7 +108,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), worktreeEnvs: () => undefined }),
       worktreeToolGroup(finisher),
-      workplaceToolGroup({ store, reservations: runner.workplaceMoves, isBusy: (id) => runner.isBusy(id), worktreeFinisher: () => finisher, terminals: () => terminals }),
+      workplaceToolGroup({ store, reservations: unused("reservations"), isBusy: (id) => runner.isBusy(id), terminals: () => terminals }),
       visualToolGroup(store),
       userViewToolGroup({ store, userViews: new UserViewRegistry() }),
       notifyToolGroup({ store: () => core.store, publish: (e) => core.bus.publish(e) }),

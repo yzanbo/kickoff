@@ -35,7 +35,7 @@ import { descendantsOf } from "./family";
 import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
-export type { ChatRunLookup } from "./run/chatRun";
+export type { TurnEndTask } from "./turnEnd";
 export type { TurnContributor } from "./run/turn/contributor";
 export type { PromptSection } from "./prompt/sections";
 export { appendSections } from "./prompt/compose";
@@ -79,14 +79,11 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
   trashCommandFile?: string;
   /** AI の操作ツールの MCP の URL の頭（http://127.0.0.1:<ポート>） */
   mcpBaseUrl: string;
-  /** 作業の終わりの予約の確かめ直しの間隔（省けば本物の間隔） */
-  retryMs?: number;
 }
 
 /** チャットより上の機能の口（上の機能はチャットを使うのであとに作り、組み立ての最後に attach で渡す） */
 export interface ChatUpper {
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
-  worktreeFinisher: NonNullable<ShellUpperDeps["worktreeFinisher"]>;
   terminals: NonNullable<ShellUpperDeps["terminals"]>;
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
@@ -143,7 +140,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const approvals = new ApprovalCenter(bus, k.clock);
   // AI の rm の代わりの kickoff-trash（置けていなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = env.trashCommandFile ? { path: env.trashCommandFile, dir: trashBin.dir } : undefined;
-  const { recoveredReason: _reason, sessionsElsewhere: elsewhere, trashCommandFile: _file, mcpBaseUrl, retryMs, ...timing } = env;
+  const { recoveredReason: _reason, sessionsElsewhere: elsewhere, trashCommandFile: _file, mcpBaseUrl, ...timing } = env;
   const sessionsElsewhere = elsewhere ?? undefined;
   // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ
   const sessionTrash: SessionTrash = async (sessionId, file, { projectId, label }) => {
@@ -178,7 +175,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   trashBin.useChats({ titlesOf, projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
   registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
-  const chatRemover = new ChatRemover({ store, runner, trashBin, retryMs, clock: k.clock });
+  const chatRemover = new ChatRemover({ store, runner, trashBin });
   runner.useChatRemover(chatRemover);
   // 送る指示を受けたときに聞く上の機能（userView が送った時点の画面の様子を覚える）
   const sendHooks: ((chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void)[] = [];
@@ -190,8 +187,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   let upper: ChatUpper | null = null;
   const routeDeps = () => {
     if (!upper) throw new Error("組み立ての最後に chat の attach を呼んでいません");
-    const { worktreeEnvs, worktreeFinisher, terminals, remoteImages } = upper;
-    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, worktreeFinisher, terminals, remoteImages };
+    const { worktreeEnvs, terminals, remoteImages } = upper;
+    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, terminals, remoteImages };
   };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
@@ -237,7 +234,6 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     stop: () => {
       // エージェント → 削除の予約・自動のアーカイブ（流れ続けている外部コマンドは、このあと土台が聞かずに止める）
       runner.shutdown();
-      chatRemover.close();
       stopAutoArchive?.();
     },
   };

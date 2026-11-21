@@ -18,10 +18,10 @@ const WORKPLACE_INSTRUCTIONS = [
 
 /**
  * 作業場所を移す予約・取り消しのツールの組（変更を持っていくときだけ利用者に聞く。覚えない）。移せないチャットからは理由の文で断る。
- * 後始末とターミナルは上の機能なので、呼ばれたときに引く
+ * ターミナルは上の機能なので、呼ばれたときに引く
  */
-export function workplaceToolGroup(deps: Omit<AiWorkplaceDeps, "worktreeFinisher" | "terminals"> & { worktreeFinisher: () => AiWorkplaceDeps["worktreeFinisher"]; terminals: () => AiWorkplaceDeps["terminals"] }): AiToolGroup {
-  return { server: "kickoff_chat", order: 130, instructions: WORKPLACE_INSTRUCTIONS, open: ({ chatId }) => workplaceTools(createAiWorkplaceTools({ ...deps, worktreeFinisher: deps.worktreeFinisher(), terminals: deps.terminals() }, chatId)) };
+export function workplaceToolGroup(deps: Omit<AiWorkplaceDeps, "terminals"> & { terminals: () => AiWorkplaceDeps["terminals"] }): AiToolGroup {
+  return { server: "kickoff_chat", order: 130, instructions: WORKPLACE_INSTRUCTIONS, open: ({ chatId }) => workplaceTools(createAiWorkplaceTools({ ...deps, terminals: deps.terminals() }, chatId)) };
 }
 
 /** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがあるときだけ。家系のあと・一度だけ添える知らせの前） */

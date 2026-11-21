@@ -95,8 +95,8 @@ export interface CoreEnv {
   mcpBaseUrl: string;
   /** 暗号化の口は secretCipher から渡す */
   ai: Omit<AiEnv, "secretCipher">;
-  /** 前の終わり方・置いた kickoff-trash・MCP の URL・確かめ直しの間隔は、ほかの欄から組み立てで渡す */
-  chat: Omit<ChatEnv, "recoveredReason" | "trashCommandFile" | "mcpBaseUrl" | "retryMs">;
+  /** 前の終わり方・置いた kickoff-trash・MCP の URL は、ほかの欄から組み立てで渡す */
+  chat: Omit<ChatEnv, "recoveredReason" | "trashCommandFile" | "mcpBaseUrl">;
 
   trash: TrashEnv & {
     /** AI の rm の代わりの kickoff-trash を bin/ に置くか */
@@ -117,10 +117,7 @@ export interface CoreEnv {
   terminal: Omit<TerminalEnv, "shell">;
   remoteImages: Pick<RemoteImageServiceOptions, "fetcher">;
   github: GitHubEnv;
-  /** 確かめ直しの間隔は retryMs */
-  worktrees: Omit<WorktreesEnv, "retryMs">;
-  /** 作業の終わりの予約の確かめ直しの間隔（ワークツリーの後始末・チャットの削除。省けば本物の間隔） */
-  retryMs?: number;
+  worktrees: WorktreesEnv;
   /** 暗号化の口は secretCipher から渡す */
   database: Omit<DatabaseEnv, "secretCipher">;
 

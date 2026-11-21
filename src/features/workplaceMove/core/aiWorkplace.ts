@@ -1,5 +1,5 @@
 // チャットの AI が自分のチャットの作業場所を移す（kickoff_chat の move_workplace・cancel_workplace_move の中身。プロバイダーに依らない）。
-// 確かめてから予約するだけで、移すのは作業が最後まで終わってから Runner（workplaceReservation.ts）。移せるのは自分のチャットだけ。
+// 確かめてから予約するだけで、移すのは作業が最後まで終わってから（reserve.ts）。移せるのは自分のチャットだけ。
 // 承認は、コミットしていない変更を持っていくときだけファイルの一覧を見せて聞く（覚えない・Auto mode でも聞く）
 import fs from "node:fs";
 import path from "node:path";
@@ -9,9 +9,8 @@ import type { Store } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
 import { listWorktrees, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { TerminalControl } from "@/features/terminal/core/control";
-import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import { workdirOf } from "@/features/chat/core/workdir";
-import type { WorkplaceMovePlan } from "./workplaceReservation";
+import type { WorkplaceMovePlan } from "./reserve";
 import { runningTerminals, workplaceMoveBlocked } from "./workplaceUserMove";
 
 interface AiWorkplaceMoveInput {
@@ -37,9 +36,9 @@ export interface AiWorkplaceTools {
 
 export interface AiWorkplaceDeps {
   store: Store;
-  reservations: { reserve(chatId: number, plan: WorkplaceMovePlan): void; cancel(chatId: number): boolean };
+  /** 移す予約と、片付けの予約（このチャットの片付けを予約しているか・片付けるフォルダ） */
+  reservations: { reserve(chatId: number, plan: WorkplaceMovePlan): void; cancel(chatId: number): boolean; finishing(chatId: number): boolean; reservedFolders(): Set<string> };
   isBusy: (chatId: number) => boolean;
-  worktreeFinisher?: Pick<WorktreeFinisher, "hasReservation" | "reservedFolders">;
   terminals?: Pick<TerminalControl, "list">;
 }
 
@@ -64,8 +63,8 @@ export function createAiWorkplaceTools(deps: AiWorkplaceDeps, chatId: number): A
       if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
       const blocked = await workplaceMoveBlocked(chat, project);
       if (blocked) throw new Error(blocked);
-      const finishing = deps.worktreeFinisher?.hasReservation(chatId) ?? false;
-      const reservedFolders = deps.worktreeFinisher?.reservedFolders() ?? new Set<string>();
+      const finishing = deps.reservations.finishing(chatId);
+      const reservedFolders = deps.reservations.reservedFolders();
       const dir = workdirOf(chat, project);
 
       let plan: WorkplaceMovePlan;

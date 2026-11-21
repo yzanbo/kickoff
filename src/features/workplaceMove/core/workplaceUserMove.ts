@@ -16,7 +16,7 @@ import { workdirOf } from "@/features/chat/core/workdir";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./workplaceMove";
 
 export interface WorkplaceUserMoveDeps {
-  /** 片付けを予約したワークツリー（WorktreeFinisher.reservedFolders） */
+  /** 片付けを予約したワークツリー（chat の作業の終わりの予約の reservedFolders） */
   reservedFolders: () => Set<string>;
   terminals?: Pick<TerminalControl, "list">;
   worktreeEnvs?: Pick<WorktreeEnvService, "prepare">;

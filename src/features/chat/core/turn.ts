@@ -2,7 +2,6 @@
 // 実行のファイルは上の機能を直に読まず、ここだけを読む（上の機能を読む辺をこのファイルに閉じ込める。P5-4 の TurnContributor で登録の形にしたら消す）
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
-import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { ApprovalCenter } from "./approvals";
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
@@ -62,8 +61,6 @@ export interface ExecutionDeps {
 export interface ShellUpperDeps {
   /** ワークツリーの実行環境（移した先・作ったワークツリーにポートの帯を割り当てる） */
   worktreeEnvs?: WorktreeEnvService;
-  /** ワークツリーの後始末（片付けを予約したワークツリーへは移さない） */
-  worktreeFinisher?: WorktreeFinisher;
   /** 内蔵ターミナルの読み取り（移す前に、その作業場所で動いているシェルを確かめる） */
   terminals?: TerminalControl;
 }

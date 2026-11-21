@@ -1,22 +1,21 @@
-// 殻の窓口のうち、作業を動かす前の長い準備（新しいチャット・親の会話を写す・AI の切り替えと引き継ぎ・作業場所の移動）と、作業の終わりにすること（AI が予約した移動）
+// 殻の窓口のうち、作業を動かす前の長い準備（新しいチャット・親の会話を写す・AI の切り替えと引き継ぎ・作業場所の移動）と、AI が予約した移動の取り消し
 import { randomUUID } from "node:crypto";
 import type { TurnRequest } from "@/features/chat/core/turn";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
-import type { Effect } from "@/features/chat/core/run/machine/types";
 import { recordEvent } from "@/features/chat/core/run/record";
-import { cancelledNote, moveChatWorkplace, notMovedNotice, prepareAndCommitProviderSwitch, retryProviderHandoffPreparation, runReservedMove, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps, type WorkplaceReservations } from "@/features/chat/core/runner";
+import { moveChatWorkplace, prepareAndCommitProviderSwitch, retryProviderHandoffPreparation, type WorkplaceMoveInput, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import { Conflict } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
 import { providerCan } from "@shared/ai/providers";
 import type { ProviderId } from "@shared/settings/types";
 import type { Chat } from "@shared/chat/types";
-import type { ChatRun } from "./chatRun";
 import type { RunShell } from "./shell";
 import { withIdleChat } from "./idle";
+import type { TurnEndTasks } from "@/features/chat/core/turnEnd";
 
-export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservations) {
+export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
   const { deps, runs } = shell;
   const { store } = deps;
 
@@ -175,25 +174,14 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
      * 知らせのためだけに動かさず、次に送るもの（新しい実行の文脈か、次に伝える発言の頭）に一度だけ添える
      */
     cancelWorkplaceMove(chatId: number) {
-      const plan = workplaceMoves.cancel(chatId);
-      if (!plan) throw new Conflict("取り消す予約はありません（もう移したか、取り消しました）");
+      const task = turnEnds.cancel(chatId, "move_workplace");
+      if (!task) throw new Conflict("取り消す予約はありません（もう移したか、取り消しました）");
       const run = runs.get(chatId);
-      recordEvent(store, run, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
-      const note = cancelledNote(plan);
+      recordEvent(store, run, { type: "notice", message: `AI が予約した「${task.label}へ移る」を取り消しました` });
+      const note = task.cancelled?.();
+      if (!note) return;
       const told = run.busy && holdOf(run.run) === null && Boolean(run.handle?.control?.tell(note, randomUUID()));
       if (!told) run.pendingNote = note;
-    },
-
-    /** 作業の終わりにすること: AI が予約した作業場所の移動を行う（済んだら、いつもの作業の終わりの続きを settled で決める）・予約を消す */
-    turnEndTasks(chatId: number, run: ChatRun, effect: Extract<Effect, { do: "run_turn_end_tasks" | "drop_turn_end_tasks" }>) {
-      const move = workplaceMoves.take(chatId);
-      if (effect.do === "drop_turn_end_tasks") {
-        if (move && effect.notice) recordEvent(store, run, { type: "notice", message: notMovedNotice(move) });
-        return;
-      }
-      const settled = () => shell.dispatch(chatId, { type: "settled" });
-      if (move) void moveThenContinue(chatId, move).then(settled);
-      else settled();
     },
 
     /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409） */
@@ -203,12 +191,4 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
       await control.stopTask(taskId);
     },
   };
-
-  /** 作業の終わりに、AI が予約した作業場所の移動を行う */
-  function moveThenContinue(chatId: number, plan: WorkplaceMovePlan) {
-    const { terminals, worktreeEnvs, worktreeFinisher } = deps;
-    // 移すチャット自身は作業の終わりにすること（settling）の中で移すので、そのチャットは次の作業が始まったときだけ作業中に数える
-    const isBusy = (id: number) => (id === chatId ? runs.get(id).run.phase.kind !== "settling" && shell.isBusy(id) : shell.isBusy(id));
-    return runReservedMove({ store, runtimes: runs, isBusy, moveWorkplace, worktreeFinisher, terminals, worktreeEnvs }, chatId, plan);
-  }
 }

@@ -26,7 +26,7 @@ export interface WorktreesDeps {
   chat: { runner: ChatRunPort; store: Store; addTurnContributor(c: TurnContributor): void };
 }
 
-export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr" | "retryMs">;
+export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr">;
 
 export interface WorktreesApi {
   /** 実行環境（ポートの帯・Docker の組の名前。チャットの AI とターミナルには PORT を渡す） */
@@ -62,7 +62,6 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
     aiTools: [worktreeToolGroup(finisher)],
     routes: [{ legacy: (app) => worktreeRoutes(app, { store: { ...stores, projects, chats, groups }, connectionsIn: (folder) => connectionsIn(folder), runner: deps.chat.runner, providers: deps.ai.providers, worktreeEnvs: envs, worktreeFinisher: finisher, headWatch }) }],
     stop: () => {
-      finisher.close();
       headWatch.close();
     },
   };

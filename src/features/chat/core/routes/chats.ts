@@ -71,7 +71,7 @@ const chatPatchSchema = z
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
 
-export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userSent, worktreeFinisher, terminals }: ChatRouteDeps) {
+export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userSent, terminals }: ChatRouteDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -253,7 +253,7 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
   });
 
   // 作業場所を移す（画面の見出しの札・右クリックの「作業場所を変更」）。子チャットは移さない
-  const moveDeps = { reservedFolders: () => worktreeFinisher.reservedFolders(), terminals, worktreeEnvs };
+  const moveDeps = { reservedFolders: () => runner.reservedFolders(), terminals, worktreeEnvs };
   // 移す前の確かめの中身（元の場所に残る変更・そこで動いているターミナル・移す先にできないワークツリー）
   app.get("/api/chats/:id/workplace", withChat, async (c) => {
     const { chat } = c.var;
