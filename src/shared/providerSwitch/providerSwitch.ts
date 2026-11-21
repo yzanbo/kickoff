@@ -1,5 +1,5 @@
 import type { ChatEvent, ChatEventDataOf } from "@shared/chat/chatEvent";
-import type { ProviderId } from "@shared/settings/types";
+import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 
 export type ProviderBoundary = { id: number; from: ProviderId; to: ProviderId };
 
@@ -26,7 +26,8 @@ export const PROVIDER_REWIND_LOCKED = "AI を切り替える前の発言なの�
 export const PROVIDER_FORK_LOCKED = "AI を切り替える前の地点なので分岐できません";
 export const PROVIDER_FILES_LOCKED = "AI を切り替える前の発言なので、ファイルは戻せません";
 
+/** AI の交代の区切りの文（名前は AI の名前の一覧。一覧にない ID はそのまま） */
 export function providerSwitchLine(data: ChatEventDataOf<"provider_switched">): string {
-  const name = (id: string) => id === "claude" ? "Claude Code" : id === "codex" ? "Codex" : id;
+  const name = (id: ProviderId) => PROVIDER_LABELS[id] ?? id;
   return `${name(data.from)} → ${name(data.to)} に切り替えました`;
 }

@@ -15,6 +15,12 @@ test("AI の切り替えを境に操作を制限し、切り替え元と先を�
   assert.equal(providerSwitchLine(switched.data), "Claude Code → Codex に切り替えました");
 });
 
+test("Copilot・Cursor・Gemini の交代の区切りも、ID でなく AI の名前で出す", () => {
+  const ev = eventSequence();
+  assert.equal(providerSwitchLine(ev("provider_switched", { from: "copilot", to: "gemini" }).data), "GitHub Copilot → Gemini（Antigravity） に切り替えました");
+  assert.equal(providerSwitchLine(ev("provider_switched", { from: "cursor", to: "claude" }).data), "Cursor → Claude Code に切り替えました");
+});
+
 test("旧チャットの返答は元の AI、複数回切り替えた返答はその時点の AI として表示する", () => {
   const ev = eventSequence();
   const old = ev("text", { text: "旧" });
