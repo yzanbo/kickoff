@@ -39,9 +39,9 @@ test("送る（作業していない）: 送る準備に入って作業を動か
   assert.deepEqual(kinds(clear.effects), ["reply:sent", "clear_session", "start:message:次:queue"]);
 });
 
-test("伝える: 口がまだなら足すところとして預かりの後ろに置き、口ができたら頭から 1 件ずつ足す。足せたら外し、足せなければ入力が閉じたとして以後の「いま」は預かる（S03・S04・S08）", () => {
+test("伝える: 口がまだなら預かりの後ろに置いてすぐ預かったと答え、口ができたら頭から 1 件ずつ足す。足せたら外し、足せなければ入力が閉じたとして以後の「いま」は預かる（S03・S04・S08）", () => {
   const opening = run(turn({ tell: "opening" }), [now("あ"), now("い")]);
-  assert.deepEqual([kinds(opening.effects), texts(opening.s, "now")], [["reply:pending", "reply:pending"], ["あ", "い"]]);
+  assert.deepEqual([kinds(opening.effects), texts(opening.s, "now")], [["reply:held", "reply:held"], ["あ", "い"]]);
   const ready = run(opening.s, [{ type: "tell_ready", ready: true }]);
   assert.deepEqual(kinds(ready.effects), ["tell:あ"]);
   const id = (text: string) => ready.s.outbox.now.find((m) => m.text === text)!.id;

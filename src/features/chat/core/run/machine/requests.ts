@@ -49,8 +49,8 @@ function sendIdle(s: ChatRunState, item: QueuedMessage, env: Env, effects: Effec
 }
 
 /**
- * 止めずに伝える: 作業していなければすぐ送る。作業中の /clear は終わったらすぐ消去する予約。ほかは預かりの後ろに足し、預かる理由がなければ
- * いまの作業に足すところ（口ができたら足す。足せなければ預かる）、あれば預かる（作業の終わりに送信待ちより先に送る）
+ * 止めずに伝える: 作業していなければすぐ送る。作業中の /clear は終わったらすぐ消去する予約。ほかは預かりの後ろに足し、口が開いていれば
+ * いまの作業に足す（足せなければ預かる）。預かる理由があるか口がまだなら預かったと答える（口ができたら足し、作業の終わりには送信待ちより先に送る）
  */
 function sendNow(s: ChatRunState, item: QueuedMessage, env: Env, effects: Effect[], pauseAfter: boolean): ChatRunState {
   if (!isBusy(s)) return sendIdle(s, item, env, effects, pauseAfter);
@@ -59,9 +59,11 @@ function sendNow(s: ChatRunState, item: QueuedMessage, env: Env, effects: Effect
     effects.push({ do: "reply", result: "queued", id: null });
     return reserveAction(s, "clear", env);
   }
-  const held = holdOf(s) !== null;
+  // 口が開いていれば足した結果を待って答える。預かる理由があるか、口がまだ（送る準備の間・口ができる前）なら、出す箱の now に入れた時点で預かったと答える
+  // （送った欄を待たせない。口ができたら足し、作業が終わったら新しい作業として送る）
+  const open = s.phase.kind === "turn" && s.phase.tell === "open" && holdOf(s) === null;
   const outbox = pauseAfter ? pauseAtHead(s.outbox) : s.outbox;
-  effects.push({ do: "reply", result: held ? "held" : "pending", id: item.id });
+  effects.push({ do: "reply", result: open ? "pending" : "held", id: item.id });
   return { ...s, outbox: { ...outbox, now: [...outbox.now, item] } };
 }
 

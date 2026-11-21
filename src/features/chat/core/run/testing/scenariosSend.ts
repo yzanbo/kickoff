@@ -10,7 +10,7 @@ export const SEND_SCENARIOS: Scenario[] = [
     id: "S01",
     behavior: 1,
     name: "送信待ちを送っている途中に「いま」で送っても、同じチャットを 2 つ同時に動かさず、どちらの指示も渡る",
-    steps: [start("1"), end("completed", "idle"), { parallel: [send("送信待ちの指示"), now("いまの指示", "told")] }, end("completed", "idle")],
+    steps: [start("1"), end("completed", "idle"), { parallel: [send("送信待ちの指示"), now("いまの指示", "held")] }, end("completed", "idle")],
     expect: { runs: ["1", "送信待ちの指示"], told: ["いまの指示"], users: ["1", "送信待ちの指示", "いまの指示"], concurrent: 1 },
   },
   {
@@ -87,7 +87,7 @@ export const SEND_SCENARIOS: Scenario[] = [
     id: "S08",
     behavior: 3,
     name: "動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで待って足す（預かったままにしない）",
-    steps: [{ provider: "tellLate" }, start("1"), { parallel: [now("すぐあと", "told"), [{ yield: 3 }, { provider: "tellReady" }]] }, { check: { held: [], live: { tells_closed: false } } }, end("completed", "idle")],
+    steps: [{ provider: "tellLate" }, start("1"), { parallel: [now("すぐあと", "held"), [{ yield: 3 }, { provider: "tellReady" }]] }, { await: { told: ["すぐあと"] } }, { check: { held: [], live: { tells_closed: false } } }, end("completed", "idle")],
     expect: { runs: ["1"], told: ["すぐあと"], users: ["1", "すぐあと"] },
   },
   {

@@ -167,7 +167,7 @@ test("足せなかった「いま」は預かった順に送る: 作業の終わ
   await until(() => !runner.isBusy(chat.id));
 });
 
-test("動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで待って足す（預かったままにしない）", async () => {
+test("動かし始めたばかりで足す口がまだないときの「いま」は、預かった時点ですぐ答え、口ができたら足す（預かったままにしない）", async () => {
   const told: string[] = [];
   let release: (() => void) | undefined;
   let openControl: (() => void) | undefined;
@@ -184,9 +184,9 @@ test("動かし始めたばかりで足す口がまだないときの「いま�
   );
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => openControl !== undefined);
-  const telling = runner.tell(chat.id, "すぐあと");
+  assert.equal(await runner.tell(chat.id, "すぐあと"), "held"); // 送った欄を待たせない（親の決め 2026-11-22）
   openControl!();
-  assert.equal(await telling, "told");
+  await until(() => told.length === 1);
   assert.deepEqual(told, ["すぐあと"]);
   assert.equal(runner.live(chat.id).tells_closed, false);
   assert.deepEqual(runner.live(chat.id).after_compact, []);
