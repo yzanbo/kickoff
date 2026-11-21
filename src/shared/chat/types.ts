@@ -19,6 +19,15 @@ export type ChatOptionsPatch = Partial<ChatOptions>;
 /** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・ノート・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
 export const UNTITLED_CHAT_TITLE = "Untitled Chat";
 
+/** 名前が空のチャットを、AI に返す文の中で呼ぶ名前（画面の名前とは分ける） */
+const UNTITLED_FOR_AI = "（名前なし）";
+
+/** 文の中のチャットの名前（前後の空白を除き、空なら ai は「（名前なし）」・ui は UNTITLED_CHAT_TITLE） */
+export function chatName(chat: string | { title: string }, audience: "ai" | "ui"): string {
+  const title = typeof chat === "string" ? chat : chat.title;
+  return title.trim() || (audience === "ai" ? UNTITLED_FOR_AI : UNTITLED_CHAT_TITLE);
+}
+
 /** チャットの名前の文字数の上限（コアの入力の検証・AI がチャットの名前を変えるツール・画面の名前の欄で共通） */
 export const CHAT_TITLE_MAX = 100;
 

@@ -10,7 +10,8 @@
 | `core/run/chatRun.ts`・`chatRuns.ts` | チャットごとの作業中の状態 `ChatRun`（出す箱だけ保存する） |
 | `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`core/turn.ts` は仮の口 |
 | `core/input.ts` | チャットの作成と続きの指示の準備（名前・添付 `ChatAttachments`・届かなかった報告） |
-| `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
+| `core/family.ts` | 家系のたどり方（ほかで書かない） |
+| `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の節） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
@@ -92,7 +93,7 @@
 
 - ほかのチャットの記録（`transcript.ts`）は、自分の発言・メインエージェントの返答・変えたファイル・失敗・中断だけ。
 - 別のプロジェクトへの移動は子孫ごと `moveWorkplace`（理由 `project_moved`）。
-- 削除はゴミ箱へ（`src/features/trash/CLAUDE.md`）。本当に消すとき、ほかで使っていない会話記録だけを消す（`core/sessions/sessionCleanup.ts`）。
+- 削除はゴミ箱へ（`src/features/trash/CLAUDE.md`）。本当に消すとき、ほかで使っていない会話記録だけを消す。
 - 自動のアーカイブ（`autoArchive.ts`）は親のないチャットを見て、子孫も完了のまま日数がたてば子孫ごとしまう（未読・固定は除く）。
 
 ## チャットの記録の読み方（`core/routes/chats.ts`・`core/chatLogQuery.ts`）

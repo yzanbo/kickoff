@@ -22,7 +22,7 @@ export function openDiffToolGroup(d: { store: Store; publish: (event: BusEvent) 
         run(input) {
           const { self, project, dir } = chatWorkplace(d.store, chatId);
           const rel = input.path?.trim() ? workPathIn(dir, input.path) : null;
-          d.publish({ type: "open_view", request: { kind: "diff", project_id: project.id, worktree: self.worktree_path, path: rel, place: input.place ?? null, lineage: lineageOf(d.store, self) } });
+          d.publish({ type: "open_view", request: { kind: "diff", project_id: project.id, worktree: self.worktree_path, path: rel, place: input.place ?? null, lineage: lineageOf(d.store.chats, self) } });
           return `コミットしていない変更${rel ? `（${rel} の位置）` : ""}を${input.place ? OPEN_PLACE_LABELS[input.place] : "右の欄"}で開くよう、画面に頼みました（開けたかは返りません）。`;
         },
       }),

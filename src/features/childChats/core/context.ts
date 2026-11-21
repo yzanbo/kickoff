@@ -2,8 +2,9 @@
 // AI からは Kickoff のチャットが見えない（分かるのは Claude Code のセッションだけ）ので、「親チャットはどれ？」「子チャットはどれ？」に答えられるように渡す
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { Chat, ChatStatus } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/index";
+import { familyOrder } from "@shared/chat/family";
+import { chatName, type Chat, type ChatStatus } from "@shared/chat/types";
+import { descendantsOf, lineageOf, type Store } from "@/features/chat/core/index";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 /** 系譜の 1 つ（親・祖先のチャット） */
@@ -39,7 +40,7 @@ export interface ChatContext {
   moreChildren: number;
 }
 
-/** 系譜をたどる深さの上限（親子が輪になっていても止まるように） */
+/** 子孫をたどる深さの上限（系譜と同じ） */
 const MAX_DEPTH = 20;
 /** 聞いた位置の書き出しの長さ */
 const EXCERPT_LENGTH = 160;
@@ -47,11 +48,6 @@ const EXCERPT_LENGTH = 160;
 const MAX_CHILDREN = 30;
 /** 子チャットの状態の呼び名（AI に伝える文） */
 const STATUS_TEXT: Record<ChatStatus, string> = { running: "作業中", completed: "終わった", failed: "失敗", cancelled: "止めた" };
-
-/** 名前（空なら「名前なし」） */
-function chatName(title: string): string {
-  return title.trim() || "（名前なし）";
-}
 
 /** 聞いた位置の記録の文の書き出し（1 行にして詰める。文のない記録は null） */
 function excerptOf(event: ChatEvent | null): string | null {
@@ -63,16 +59,9 @@ function excerptOf(event: ChatEvent | null): string | null {
 
 /** チャットの文脈（親の名前は送るたびに引き直すので、あとで名前を変えても次の指示から効く） */
 export function chatContextOf(store: Store, chat: Chat): ChatContext {
-  const ancestors: ChatLineageEntry[] = [];
-  const seen = new Set([chat.id]);
-  let parentId = chat.parent_chat_id;
-  while (parentId !== null && !seen.has(parentId) && ancestors.length < MAX_DEPTH) {
-    const parent = store.chats.get(parentId);
-    if (!parent) break;
-    seen.add(parent.id);
-    ancestors.unshift({ id: parent.id, title: parent.title, sessionId: parent.session_id });
-    parentId = parent.parent_chat_id;
-  }
+  const ancestors = lineageOf(store.chats, chat)
+    .slice(0, -1)
+    .map((parent): ChatLineageEntry => ({ id: parent.id, title: parent.title, sessionId: parent.session_id }));
   const all = childrenTree(store, chat);
   const children = all.slice(0, MAX_CHILDREN);
   return { id: chat.id, title: chat.title, ancestors, askedFrom: askedFromOf(store, chat), children, moreChildren: all.length - children.length };
@@ -86,29 +75,24 @@ function askedFromOf(store: Store, chat: Chat): string | null {
 
 /** 子孫を、作った順に、子のすぐ下にその子を並べた一覧にする（アーカイブ済みも含める） */
 function childrenTree(store: Store, chat: Chat): ChatChildEntry[] {
-  const byParent = new Map<number, Chat[]>();
-  for (const c of store.chats.descendants(chat.id)) {
-    if (c.parent_chat_id === null) continue;
-    byParent.set(c.parent_chat_id, [...(byParent.get(c.parent_chat_id) ?? []), c]);
-  }
+  const depths = new Map([[chat.id, 0]]);
   const out: ChatChildEntry[] = [];
-  const walk = (parentId: number, depth: number) => {
-    if (depth > MAX_DEPTH) return;
-    for (const c of (byParent.get(parentId) ?? []).sort((a, b) => a.id - b.id)) {
-      out.push({
-        id: c.id,
-        title: c.title,
-        sessionId: c.session_id,
-        depth,
-        parentId,
-        status: c.status,
-        archived: c.archived_at !== null,
-        askedFrom: askedFromOf(store, c),
-      });
-      walk(c.id, depth + 1);
-    }
-  };
-  walk(chat.id, 1);
+  for (const c of familyOrder(chat, descendantsOf(store.chats, chat.id)).slice(1)) {
+    if (c.parent_chat_id === null) continue;
+    const depth = (depths.get(c.parent_chat_id) ?? MAX_DEPTH) + 1;
+    depths.set(c.id, depth);
+    if (depth > MAX_DEPTH) continue;
+    out.push({
+      id: c.id,
+      title: c.title,
+      sessionId: c.session_id,
+      depth,
+      parentId: c.parent_chat_id,
+      status: c.status,
+      archived: c.archived_at !== null,
+      askedFrom: askedFromOf(store, c),
+    });
+  }
   return out;
 }
 
@@ -126,11 +110,11 @@ export function chatContextNote(chat: ChatContext): string | null {
   if (parent) {
     const session = parent.sessionId ? `、Claude Code のセッション ID: ${parent.sessionId}` : "";
     lines.push(
-      `- このチャット: 「${chatName(chat.title)}」（Kickoff のチャット ID: ${chat.id}）。親チャットから寄り道の質問をするために作った${childDepthLabel(depth)}です。`,
-      `- 親チャット: 「${chatName(parent.title)}」（Kickoff のチャット ID: ${parent.id}${session}${depth > 1 ? `。親チャットも${childDepthLabel(depth - 1)}です` : ""}）`,
+      `- このチャット: 「${chatName(chat.title, "ai")}」（Kickoff のチャット ID: ${chat.id}）。親チャットから寄り道の質問をするために作った${childDepthLabel(depth)}です。`,
+      `- 親チャット: 「${chatName(parent.title, "ai")}」（Kickoff のチャット ID: ${parent.id}${session}${depth > 1 ? `。親チャットも${childDepthLabel(depth - 1)}です` : ""}）`,
     );
     if (chat.ancestors.length > 1) {
-      lines.push(`- 親までの系譜（根から順に）: ${[...chat.ancestors.map((a) => `「${chatName(a.title)}」（ID: ${a.id}）`), "このチャット"].join(" › ")}`);
+      lines.push(`- 親までの系譜（根から順に）: ${[...chat.ancestors.map((a) => `「${chatName(a.title, "ai")}」（ID: ${a.id}）`), "このチャット"].join(" › ")}`);
     }
     if (chat.askedFrom) lines.push(`- 親チャットの会話のこの発言から聞きました: 「${chat.askedFrom}」`);
     lines.push(
@@ -139,7 +123,7 @@ export function chatContextNote(chat: ChatContext): string | null {
       `- ${HANDOFF_CONTEXT_RULE}`,
     );
   } else {
-    lines.push(`- このチャット: 「${chatName(chat.title)}」（Kickoff のチャット ID: ${chat.id}）。親のないチャットです。`);
+    lines.push(`- このチャット: 「${chatName(chat.title, "ai")}」（Kickoff のチャット ID: ${chat.id}）。親のないチャットです。`);
   }
   if (chat.children.length > 0) lines.push(...childrenLines(chat));
   return lines.join("\n");
@@ -157,7 +141,7 @@ function childrenLines(chat: ChatContext): string[] {
       `状態: ${STATUS_TEXT[c.status]}${c.archived ? "・アーカイブ済み" : ""}`,
     ];
     const asked = c.askedFrom ? `。${c.depth === 1 ? "このチャット" : "親"}の会話のこの発言から聞いた: 「${c.askedFrom}」` : "";
-    lines.push(`${"  ".repeat(c.depth)}- ${childDepthLabel(chat.ancestors.length + c.depth)}「${chatName(c.title)}」（${facts.join("、")}${asked}）`);
+    lines.push(`${"  ".repeat(c.depth)}- ${childDepthLabel(chat.ancestors.length + c.depth)}「${chatName(c.title, "ai")}」（${facts.join("、")}${asked}）`);
   }
   if (chat.moreChildren > 0) lines.push(`  - ほか ${chat.moreChildren} 件（多いので、作った順の初めから載せています）`);
   return lines;

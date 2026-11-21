@@ -10,7 +10,8 @@ import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
-import { canCreateChat, chatDepth } from "./aiCreateChat";
+import { canCreateChat } from "./aiCreateChat";
+import { depthOf } from "@/features/chat/core/index";
 import { createChildChats } from "./index";
 
 /** すぐ終わる偽のプロバイダーで組み立て、実行に渡した AI の操作ツールを見張る */
@@ -154,7 +155,7 @@ test("チャットを作るツール: 子チャットは孫チャットまで（
   const root = store.chats.create({ ...base, parent_chat_id: null });
   const child = store.chats.create({ ...base, parent_chat_id: root.id });
   const grandchild = store.chats.create({ ...base, parent_chat_id: child.id });
-  assert.deepEqual([root, child, grandchild].map((c) => chatDepth(store, c)), [0, 1, 2]);
+  assert.deepEqual([root, child, grandchild].map((c) => depthOf(store.chats, c)), [0, 1, 2]);
   // 深さではツールを止めない（孫も兄弟・親のないチャットは作れる）。止めるのは世代
   assert.deepEqual([root, child, grandchild].map((c) => canCreateChat(store, c)), [true, true, true]);
   const second = store.chats.create({ ...base, parent_chat_id: null, ai_generation: 2 });

@@ -1,6 +1,7 @@
 // アーカイブ済みのチャットの整理。
 // アーカイブしたチャットは自動では消さず、日数を選んだら、それより動いていないものをまとめて Kickoff のゴミ箱へ入れる（3 日は戻せる）
 import { systemClock } from "@/foundation/core/clock";
+import { familyOrder } from "@shared/chat/family";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { ArchiveCleanupPreview, ArchiveCleanupResult } from "@shared/trash/types";
@@ -15,22 +16,6 @@ import { trashChat, type ChatTrashDeps } from "./chatTrash";
  */
 export function staleArchivedFamilies(chats: Chat[], before: string): Chat[][] {
   const byId = new Map(chats.map((c) => [c.id, c]));
-  const children = new Map<number, Chat[]>();
-  for (const c of chats) {
-    if (c.parent_chat_id === null) continue;
-    const list = children.get(c.parent_chat_id) ?? [];
-    list.push(c);
-    children.set(c.parent_chat_id, list);
-  }
-  const familyOf = (root: Chat): Chat[] => {
-    const out: Chat[] = [];
-    const walk = (c: Chat) => {
-      out.push(c);
-      for (const child of children.get(c.id) ?? []) walk(child);
-    };
-    walk(root);
-    return out;
-  };
   const isStale = (c: Chat) => c.archived_at !== null && c.active_at < before;
   const families: Chat[][] = [];
   for (const c of chats) {
@@ -38,7 +23,7 @@ export function staleArchivedFamilies(chats: Chat[], before: string): Chat[][] {
     // 親もアーカイブ済みなら、親からの組に入る（親が整理の対象でなければ、この子も入れない）
     const parent = c.parent_chat_id !== null ? byId.get(c.parent_chat_id) : undefined;
     if (parent && parent.archived_at !== null) continue;
-    const family = familyOf(c);
+    const family = familyOrder(c, chats);
     if (family.some((m) => m.status === "running" || m.active_at >= before)) continue;
     families.push(family);
   }

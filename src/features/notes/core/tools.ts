@@ -62,7 +62,7 @@ export function openNoteToolGroup(d: NoteToolDeps): AiToolGroup {
           if (!noteExtensionOf(rel)) throw new Error(`${rel} はノート（.md・.markdown・.html・.htm）ではありません`);
           const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
           if (!stat?.isFile()) throw new Error(`ノート ${rel} が見つかりません（ノートのフォルダ: ${dir}）`);
-          d.publish({ type: "open_view", request: { kind: "note", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(d.store, self) } });
+          d.publish({ type: "open_view", request: { kind: "note", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(d.store.chats, self) } });
           return `ノート「${rel}」を${input.place ? OPEN_PLACE_LABELS[input.place] : "設定の「チャットからノートを開く場所」の場所"}で開くよう、画面に頼みました（開けたかは返りません）。`;
         },
       }),

@@ -1036,7 +1036,6 @@
       "feature-entry:src/features/childChats/core/children.ts -> src/features/ai/core/providers/types.ts",
       "feature-entry:src/features/childChats/core/children.ts -> src/features/chat/core/sessionPoints.ts",
       "feature-entry:src/features/childChats/core/children.ts -> src/features/chat/core/workdir.ts",
-      "feature-entry:src/features/childChats/core/detach.ts -> src/features/chat/core/tools/aiChatEdit.ts",
       "feature-entry:src/features/childChats/core/fork.ts -> src/features/ai/core/providers/types.ts",
       "feature-entry:src/features/childChats/core/subagentChild.ts -> src/features/ai/core/providers/types.ts",
       "feature-entry:src/features/childChats/core/subagentChild.ts -> src/features/attachments/core/uploads.ts",

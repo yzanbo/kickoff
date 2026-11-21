@@ -53,7 +53,7 @@ export function openFileToolGroup(d: { store: Store; publish: (event: BusEvent) 
           const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
           if (!stat?.isFile()) throw new Error(`ファイル ${rel} が見つかりません（作業場所: ${dir}）`);
           const line = input.line !== undefined && input.line >= 1 ? Math.trunc(input.line) : null;
-          d.publish({ type: "open_view", request: { kind: "file", project_id: project.id, worktree: self.worktree_path, path: rel, line, place: input.place ?? null, lineage: lineageOf(d.store, self) } });
+          d.publish({ type: "open_view", request: { kind: "file", project_id: project.id, worktree: self.worktree_path, path: rel, line, place: input.place ?? null, lineage: lineageOf(d.store.chats, self) } });
           return `ファイル「${rel}」${line ? `の ${line} 行目` : ""}を${input.place ? OPEN_PLACE_LABELS[input.place] : "右の欄"}で開くよう、画面に頼みました（開けたかは返りません）。`;
         },
       }),

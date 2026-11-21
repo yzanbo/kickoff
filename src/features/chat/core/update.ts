@@ -6,6 +6,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import type { Store } from "./stores";
+import { descendantsOf } from "./family";
 
 /** 変える項目（省いた項目は変えない。groupId は null のときグループから外す） */
 export interface ChatPatch {
@@ -105,7 +106,7 @@ export function archiveChatFamily(d: ChatUpdateDeps, chat: Chat): void {
 
 /** まだしまっていない自分と子孫が作業中でないか */
 function requireFamilyIdle(d: ChatUpdateDeps, chat: Chat): void {
-  for (const c of [chat, ...d.store.chats.descendants(chat.id)]) if (c.archived_at === null) d.requireIdle(c.id, "アーカイブ");
+  for (const c of [chat, ...descendantsOf(d.store.chats, chat.id)]) if (c.archived_at === null) d.requireIdle(c.id, "アーカイブ");
 }
 
 /** チャットを変える口で断る理由の応答（名前の空・長さは本文の確かめが先に 400 にする） */

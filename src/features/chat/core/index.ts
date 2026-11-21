@@ -31,6 +31,7 @@ import { turnRoutes } from "./routes/turns";
 import { databaseStats } from "./db/stats";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
 import { createChatStores, type Store } from "./stores";
+import { descendantsOf } from "./family";
 import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
@@ -40,7 +41,7 @@ export type { PromptSection } from "./prompt/sections";
 export { appendSections } from "./prompt/compose";
 export { readOnlyReferences } from "./turnFolders";
 export { preCompactSent } from "./run/machine/marks";
-export { lineageOf } from "./tools/aiChatEdit";
+export { depthOf, descendantsOf, lineageOf } from "./family";
 export { openPlaceInput } from "./tools/open";
 export { toolChat } from "./tools/context";
 export { workdirOf } from "./workdir";
@@ -257,7 +258,7 @@ function registerProjectHooks(projects: ProjectsApi, store: Store, runner: ChatR
   // プロジェクトをゴミ箱に入れたら、中のチャット（アーカイブ・子孫も）を同じ行で入れる（戻すと一緒に戻る）
   projects.onTrashed((project, trashId, at) => {
     const chats = store.chats.list({ projectId: project.id, includeArchived: true });
-    const ids = [...new Set(chats.flatMap((chat) => [chat.id, ...store.chats.descendants(chat.id).map((c) => c.id)]))];
+    const ids = [...new Set(chats.flatMap((chat) => [chat.id, ...descendantsOf(store.chats, chat.id).map((c) => c.id)]))];
     store.chats.trash(ids, trashId, at);
     for (const id of ids) runner.forget(id);
   });

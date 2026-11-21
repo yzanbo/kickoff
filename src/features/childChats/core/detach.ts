@@ -1,20 +1,16 @@
 // 子チャットを親から外す（親のないチャットにする・自分の先祖の子に上げる）。HTTP の口（POST /api/chats/:id/detach）と AI の update_chat で共通。
 // 付け替え（別の子チャット・関係のないチャットの下へ置く）はしない。子チャットの AI が覚えているのは元の親（と先祖）の会話なので、
 // 先祖の下までなら「親チャットに渡す」の中身と渡し先の文脈がずれにくい
-import type { Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/index";
+import { chatName, type Chat } from "@shared/chat/types";
+import { lineageOf, type Store } from "@/features/chat/core/index";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { requireGroupOf } from "@/features/groups/core/index";
-import { lineageOf } from "@/features/chat/core/tools/aiChatEdit";
 
 /** 外す先: parentId が null なら親のないチャット（groupId のグループへ。null・省略ならグループなし）、先祖の ID ならその子 */
 export interface DetachTarget {
   parentId: number | null;
   groupId?: number | null;
 }
-
-/** 文の中の名前（空なら「名前なし」） */
-const nameOf = (chat: Chat) => chat.title.trim() || "（名前なし）";
 
 /**
  * 子チャットを親から外す。断るもの: 親のないチャット・先祖でない ID（いまの親も。もうその子なので）・親なしでないときのグループ・
@@ -26,7 +22,7 @@ export function detachChat(store: Store, isBusy: (chatId: number) => boolean, ch
   if (chat.parent_chat_id === null) throw new Invalid("親のないチャットです（外せるのは子チャットだけです）");
   const parent = store.chats.get(chat.parent_chat_id);
   // 先祖（いちばん上の親から、親の親まで。自分といまの親は除く）
-  const ancestors = lineageOf(store, chat).slice(0, -2);
+  const ancestors = lineageOf(store.chats, chat).slice(0, -2);
   const to = target.parentId === null ? null : ancestors.find((a) => a.id === target.parentId);
   if (target.parentId !== null && !to) {
     throw new Invalid(
@@ -43,7 +39,7 @@ export function detachChat(store: Store, isBusy: (chatId: number) => boolean, ch
   if (isBusy(chat.id)) throw new Conflict("作業中のチャットは親から外せません。終わってから（または中断してから）行ってください");
 
   const detached = store.chats.detach(chat.id, to?.id ?? null, groupId);
-  const from = parent ? `「${nameOf(parent)}」` : "親チャット";
-  store.events.add(chat.id, { type: "notice", message: to ? `${from}から「${nameOf(to)}」の子にしました` : `${from}から外しました` });
+  const from = parent ? `「${chatName(parent, "ai")}」` : "親チャット";
+  store.events.add(chat.id, { type: "notice", message: to ? `${from}から「${chatName(to, "ai")}」の子にしました` : `${from}から外しました` });
   return detached;
 }

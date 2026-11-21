@@ -4,11 +4,11 @@
 import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { LIST_PROJECT_CHATS_MAX, READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS } from "@shared/chat/aiRead";
-import type { Chat } from "@shared/chat/types";
+import { chatName, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatAttachments } from "@/features/chat/core/ports";
-import { familyOf } from "./aiChatEdit";
+import { familyOf } from "@/features/chat/core/family";
 import { conversationTurns, formatConversation } from "@/features/chat/core/conversation";
 import { toolChat } from "./context";
 
@@ -45,9 +45,6 @@ export interface AiChatReadDeps {
   attachments?: Pick<ChatAttachments, "locate">;
 }
 
-/** 文の中の名前（空なら「名前なし」） */
-const nameOf = (title: string) => title.trim() || "（名前なし）";
-
 /** チャットの状態の言葉（回答待ち → 作業中 → 失敗 → 止めた → 終わった。画面の状態と同じ順） */
 function chatStateText(chat: Chat, waiting: boolean): string {
   if (waiting) return "回答待ち";
@@ -62,7 +59,7 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
   const { self: requireSelf, chatInProject } = toolChat(store.chats, chatId);
   /** 家系の中なら関係の呼び名、外なら「ほかの家系」 */
   const relations = (self: Chat) => {
-    const { members, relationOf } = familyOf(store, self);
+    const { members, relationOf } = familyOf(store.chats, self);
     const inFamily = new Set(members.map((m) => m.id));
     return (chat: Chat) => (inFamily.has(chat.id) ? relationOf(chat) : "ほかの家系");
   };
@@ -112,7 +109,7 @@ export function createAiChatReadTools({ store, approvals, attachments: files }: 
       }
       if (input.offset !== undefined) throw new Error("offset を指定するには event_id が必要です");
       const count = Math.min(Math.max(1, Math.trunc(input.turns ?? READ_CHAT_DEFAULT_TURNS)), READ_CHAT_MAX_TURNS);
-      const label = `チャット「${nameOf(target.title)}」（ID ${target.id}・${relations(self)(target)}・${chatStateText(target, approvals.list({ chatId: target.id }).length > 0)}${target.archived_at ? "・アーカイブ済み" : ""}）`;
+      const label = `チャット「${chatName(target, "ai")}」（ID ${target.id}・${relations(self)(target)}・${chatStateText(target, approvals.list({ chatId: target.id }).length > 0)}${target.archived_at ? "・アーカイブ済み" : ""}）`;
       return formatConversation(label, conversationTurns(store.events.conversation(target.id)), count, input.before);
     },
     async readChatWithAttachments(input) {

@@ -9,6 +9,7 @@ import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/features/chat/core/stores";
+import { descendantsOf } from "@/features/chat/core/family";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
@@ -37,7 +38,7 @@ export interface ChatPurgeDeps {
 
 /** 子孫も一緒にゴミ箱へ入れる（どれかが作業中なら 409）。入れたゴミ箱の行を返す */
 export function trashChat(deps: ChatTrashDeps, chat: Chat, opts: { byChatId?: number | null } = {}): StoredTrashItem {
-  const family = [chat, ...deps.store.chats.descendants(chat.id)];
+  const family = [chat, ...descendantsOf(deps.store.chats, chat.id)];
   for (const c of family) deps.runner.requireIdle(c.id, "削除");
   // 行を足して隠すまでを 1 つに（間で失敗すると、中身のないゴミ箱の行が残るため）
   const item = tx(deps.store.db, () => {
@@ -66,7 +67,7 @@ export function trashChat(deps: ChatTrashDeps, chat: Chat, opts: { byChatId?: nu
 export function trashNoteChats(deps: Omit<ChatTrashDeps, "trashBin">, projectId: number, notePath: string, itemId: string): number {
   const ids: number[] = [];
   for (const chat of deps.store.chats.noteChats(projectId, notePath)) {
-    const family = [chat, ...deps.store.chats.descendants(chat.id)];
+    const family = [chat, ...descendantsOf(deps.store.chats, chat.id)];
     if (family.some((c) => c.status === "running")) continue;
     ids.push(...family.map((c) => c.id));
   }

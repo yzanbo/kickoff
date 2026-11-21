@@ -15,7 +15,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
-import type { Store } from "@/features/chat/core/index";
+import { depthOf, type Store } from "@/features/chat/core/index";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { addWorktree, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
@@ -63,19 +63,6 @@ interface AiCreateChatInput {
 /** チャットを作るツールの中身（作れたら AI に返す文。作れなければ理由の文で throw） */
 export interface AiCreateChatTools {
   create(input: AiCreateChatInput, approve: (request: AiCreateChatRequest) => Promise<AiCreateChatDecision>): Promise<string>;
-}
-
-/** 根のチャットから何段目か（親のないチャット = 0。親子が輪になっていても止まる） */
-export function chatDepth(store: Store, chat: Chat): number {
-  const seen = new Set<number>([chat.id]);
-  let depth = 0;
-  let parentId = chat.parent_chat_id;
-  while (parentId !== null && !seen.has(parentId)) {
-    seen.add(parentId);
-    depth++;
-    parentId = store.chats.get(parentId)?.parent_chat_id ?? null;
-  }
-  return depth;
 }
 
 /**
@@ -152,7 +139,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       // 置き場所（親・グループ）を決める
       let parentChatId: number | null = null;
       if (relation === "child") {
-        if (chatDepth(store, self) >= AI_CHILD_CHAT_MAX_DEPTH) {
+        if (depthOf(store.chats, self) >= AI_CHILD_CHAT_MAX_DEPTH) {
           throw new Error(`AI が作れる子チャットは${childDepthLabel(AI_CHILD_CHAT_MAX_DEPTH)}までです。このチャットからは子チャットを作れません（兄弟チャット（relation: "sibling"）か親のないチャット（"root"）なら作れます）`);
         }
         parentChatId = self.id;

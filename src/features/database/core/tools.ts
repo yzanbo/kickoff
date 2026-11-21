@@ -132,7 +132,7 @@ export function openSqlToolGroup(d: { store: Store; dbConnectionsOf: (projectId:
             if (!name) throw new Error(`connection に接続の名前を渡してください（AI に見せる接続: ${shown.map((c) => c.name).join("、")}）。`);
             throw new Error(`「${name}」という AI に見せる接続はありません（AI に見せる接続: ${shown.map((c) => c.name).join("、")}。利用者が AI に見せないと決めた接続は選べません）。`);
           }
-          d.publish({ type: "open_view", request: { kind: "sql", project_id: self.project_id, connection_id: hit.id, sql, lineage: lineageOf(d.store, self) } });
+          d.publish({ type: "open_view", request: { kind: "sql", project_id: self.project_id, connection_id: hit.id, sql, lineage: lineageOf(d.store.chats, self) } });
           return `接続「${hit.name}」の新しい SQL のタブに SQL を入れて開くよう、画面に頼みました（流していません。流すのは利用者です）。`;
         },
       }),

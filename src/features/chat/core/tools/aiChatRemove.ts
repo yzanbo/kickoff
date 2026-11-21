@@ -5,10 +5,11 @@
 import type { ChatLive } from "@shared/chat/chatLive";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { errorMessage } from "@shared/foundation/errors";
-import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import { chatName, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import type { TrashApi } from "@/features/trash/core/index";
 import { toolChat } from "./context";
+import { descendantsOf } from "@/features/chat/core/family";
 import { archiveChatFamily } from "@/features/chat/core/update";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 
@@ -40,9 +41,6 @@ interface Reservation {
   action: RemoveAction;
   targetId: number;
 }
-
-/** 文の中の名前 */
-const nameOf = (chat: Chat) => chat.title.trim() || UNTITLED_CHAT_TITLE;
 
 /** 一緒に扱う子孫の数の添え書き */
 const withOthers = (count: number) => (count > 0 ? `（子チャットなど ${count} 件も一緒に）` : "");
@@ -77,13 +75,13 @@ export class ChatRemover {
     const { self: selfChat, chatInProject } = toolChat(store.chats, chatId);
     const self = selfChat();
     const target = chatInProject(self, targetId, "list_project_chats・list_family_chats で ID を確かめてください");
-    const label = `チャット「${nameOf(target)}」（ID ${target.id}）`;
+    const label = `チャット「${chatName(target, "ui")}」（ID ${target.id}）`;
     if (action === "archive" && target.archived_at !== null) return `${label}は、もうアーカイブしてあります。`;
     const family = this.familyOf(action, target);
     const busy = family.filter((c) => c.id !== chatId && runner.isBusy(c.id));
     if (busy.length > 0) {
       throw new Error(
-        `作業中のチャット（${busy.map((c) => `「${nameOf(c)}」`).join("・")}）が含まれているので${ACTION_LABELS[action]}できません（待たずに断りました）。作業が終わってから、もう一度頼んでください`,
+        `作業中のチャット（${busy.map((c) => `「${chatName(c, "ui")}」`).join("・")}）が含まれているので${ACTION_LABELS[action]}できません（待たずに断りました）。作業が終わってから、もう一度頼んでください`,
       );
     }
     if (!family.some((c) => c.id === chatId)) return this.perform(action, target, chatId);
@@ -99,7 +97,7 @@ export class ChatRemover {
 
   /** 一緒に扱うチャット（子孫も。アーカイブなら、もうアーカイブしてあるものは数えない） */
   private familyOf(action: RemoveAction, target: Chat): Chat[] {
-    const family = [target, ...this.deps.store.chats.descendants(target.id)];
+    const family = [target, ...descendantsOf(this.deps.store.chats, target.id)];
     return action === "archive" ? family.filter((c) => c.archived_at === null) : family;
   }
 
@@ -107,7 +105,7 @@ export class ChatRemover {
   private perform(action: RemoveAction, target: Chat, byChatId: number): string {
     const { store, runner, trashBin } = this.deps;
     const others = withOthers(this.familyOf(action, target).length - 1);
-    const label = `チャット「${nameOf(target)}」（ID ${target.id}）`;
+    const label = `チャット「${chatName(target, "ui")}」（ID ${target.id}）`;
     if (action === "archive") {
       // 子孫ごとしまう（作業中のものがあれば断る。決まりは PATCH /api/chats/:id と同じ update.ts）
       archiveChatFamily({ store, requireIdle: (id, why) => runner.requireIdle(id, why) }, target);

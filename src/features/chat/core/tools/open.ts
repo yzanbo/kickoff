@@ -4,17 +4,14 @@
 import { z } from "zod";
 import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/chat/openView";
-import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import { chatName, type Chat } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/features/chat/core/stores";
-import { familyOf, lineageOf } from "./aiChatEdit";
+import { familyOf, lineageOf } from "@/features/chat/core/family";
 import { toolChat } from "./context";
 
 /** 下書きの長さの上限（送る指示と同じ） */
 const DRAFT_MAX = 50_000;
-
-/** 文の中の名前（空なら「名前なし」） */
-const nameOf = (title: string) => title.trim() || "（名前なし）";
 
 /** 開く場所の言葉（省いたら設定の開き方） */
 const placeText = (place: OpenPlace | undefined, setting: string) => (place ? OPEN_PLACE_LABELS[place] : `設定の「${setting}」の場所`);
@@ -27,14 +24,14 @@ export function chatOpenTools({ store, publish }: { store: Store; publish: (even
   const { self: requireSelf } = toolChat(store.chats, chatId);
   /** 同じ家系のチャット（外なら理由の文で throw） */
   const familyMember = (self: Chat, id: number, verb: string) => {
-    const { members, relationOf } = familyOf(store, self);
+    const { members, relationOf } = familyOf(store.chats, self);
     const target = members.find((c) => c.id === id);
     if (!target) {
       throw new Error(
         `チャット ID ${id} は、このチャットの家系（いちばん上の親チャットから下にぶら下がるチャット）にありません。${verb}のは同じ家系のチャットだけです。list_family_chats で ID を確かめてください`,
       );
     }
-    return { target, label: `チャット「${nameOf(target.title)}」（ID ${target.id}・${relationOf(target)}）` };
+    return { target, label: `チャット「${chatName(target, "ai")}」（ID ${target.id}・${relationOf(target)}）` };
   };
   return {
     openChat: defineAiTool({
@@ -44,7 +41,7 @@ export function chatOpenTools({ store, publish }: { store: Store; publish: (even
       input: { chat_id: z.number().int().describe("開くチャットの ID（分からなければ list_family_chats で確かめる）"), place: openPlaceInput() },
       run: (input) => {
         const { target, label } = familyMember(requireSelf(), input.chat_id, "開ける");
-        publish({ type: "open_view", request: { kind: "chat", place: input.place ?? null, lineage: lineageOf(store, target) } });
+        publish({ type: "open_view", request: { kind: "chat", place: input.place ?? null, lineage: lineageOf(store.chats, target) } });
         // いちばん上の親チャットは右の欄・別ウィンドウに置けないので、チャットのパネルで開く
         if (target.parent_chat_id === null) return `${label}を、チャットのパネルで開くよう画面に頼みました（いちばん上の親チャットは右の欄・別ウィンドウには開きません）。`;
         return `${label}を${placeText(input.place, "子チャットを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
@@ -66,8 +63,8 @@ export function chatOpenTools({ store, publish }: { store: Store; publish: (even
         const { target, label } = familyMember(self, input.chat_id, "下書きを入れられる");
         if (target.archived_at) throw new Error(`${label}はアーカイブ済みなので、下書きを入れられません`);
         // 親チャットに入れるなら「子チャットから渡した」の札も付ける（画面の「親チャットに渡す」と同じ）
-        const from = target.id === self.parent_chat_id ? { chat_id: self.id, title: self.title.trim() || UNTITLED_CHAT_TITLE } : null;
-        publish({ type: "chat_draft", request: { text, from, lineage: lineageOf(store, target) } });
+        const from = target.id === self.parent_chat_id ? { chat_id: self.id, title: chatName(self, "ui") } : null;
+        publish({ type: "chat_draft", request: { text, from, lineage: lineageOf(store.chats, target) } });
         return `${label}の入力欄に下書きを入れるよう、画面に頼みました（書きかけがあれば、その後ろに足します。送るのは利用者です）。`;
       },
     }),

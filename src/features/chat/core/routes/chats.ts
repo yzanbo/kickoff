@@ -11,6 +11,7 @@ import { branchName, flag, optionalId } from "@/foundation/core/http/zodParts";
 import { chatTranscript } from "@/features/chat/core/transcript";
 import { detachChat } from "@/features/childChats/core/detach";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
+import { descendantsOf } from "@/features/chat/core/family";
 import { planUserWorkplaceMove, workplaceMoveCheck } from "@/features/workplaceMove/core/workplaceUserMove";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type WorkplaceMoveBody } from "@shared/foundation/apiTypes";
@@ -245,7 +246,7 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
     const target = requireProject(store, project_id);
     if (target.id === chat.project_id) return c.json(chat);
     // 子チャット（子・孫…）も一緒に移す
-    const family = store.chats.descendants(chat.id);
+    const family = descendantsOf(store.chats, chat.id);
     for (const c of [chat, ...family]) runner.requireIdle(c.id, "移動");
     for (const c of family) await runner.moveWorkplace(c.id, { worktreePath: null, projectId: target.id, reason: "project_moved" });
     return c.json(await runner.moveWorkplace(chat.id, { worktreePath: null, projectId: target.id, reason: "project_moved" }));
