@@ -6,7 +6,7 @@ import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
 import { evaluateGitHookBypass } from "@/features/guard/core/guard/gitHookGuard";
 import { evaluateCompileCacheEnv } from "@/features/guard/core/guard/compileCacheGuard";
 import { evaluateHiddenDbAccess } from "@/features/database/core/guard/hiddenDb";
-import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "@/features/guard/core/guard/scope";
+import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths, writeTargetOf } from "@/features/guard/core/guard/scope";
 import { evaluateSelfProtection, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { judgeFileWrite, WRITE_SCOPE_DENIED, type WriteScopeFacts, type WriteScopeParams } from "@/features/guard/core/guard/writeScope";
 import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
@@ -111,7 +111,7 @@ function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, den
       async (input: HookInput, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PreToolUse") return {};
         const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
-        const target = writeTargetOf(params.cwd, input.tool_name, toolInput);
+        const target = writeTargetOf(params.cwd, input.tool_name, resolveCallPaths({ name: input.tool_name, input: toolInput, cwd: params.cwd }).input);
         if (target === null) return {};
         if (scope.allowed.has(target)) return allowed;
         for (const evaluate of deniedElsewhere) if ((await evaluate(input.tool_name, toolInput)).kind === "deny") return {};
@@ -159,12 +159,14 @@ export function turnHooks(
   cb: Pick<ProviderCallbacks, "requestApproval">,
 ): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
   const readOnly = params.readOnlyPaths ?? [];
+  // 守りはパスを作業フォルダで解いた入力で見る（resolveCallPaths）
+  const at = (tool: string, input: Record<string, unknown>) => resolveCallPaths({ name: tool, input, cwd: params.cwd }).input;
   // ファイルのツールを断る守り（書き込み先の守りは、これらが断るものにはカードを出さない）
   const fileDenials: Evaluate[] = [
-    ...(self ? [(tool: string, input: Record<string, unknown>) => evaluateSelfProtection(self, tool, input)] : []),
-    ...(readOnly.length > 0 ? [(tool: string, input: Record<string, unknown>) => evaluateReferenceWrite(params.cwd, readOnly, tool, input)] : []),
-    ...(params.untrackedOnly ? [(tool: string, input: Record<string, unknown>) => evaluateUntrackedWrite(params.cwd, tool, input)] : []),
-    ...(params.hiddenDb?.length ? [(tool: string, input: Record<string, unknown>) => evaluateHiddenDbAccess(params.hiddenDb ?? [], tool, input)] : []),
+    ...(self ? [(tool: string, input: Record<string, unknown>) => evaluateSelfProtection(self, tool, at(tool, input))] : []),
+    ...(readOnly.length > 0 ? [(tool: string, input: Record<string, unknown>) => evaluateReferenceWrite(params.cwd, readOnly, tool, at(tool, input))] : []),
+    ...(params.untrackedOnly ? [(tool: string, input: Record<string, unknown>) => evaluateUntrackedWrite(params.cwd, tool, at(tool, input))] : []),
+    ...(params.hiddenDb?.length ? [(tool: string, input: Record<string, unknown>) => evaluateHiddenDbAccess(params.hiddenDb ?? [], tool, at(tool, input))] : []),
   ];
   const matchers = [
     ...fileDenials.map(denyHook),

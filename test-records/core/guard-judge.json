@@ -85,9 +85,9 @@
     "read <HOME>/Library/Application Support/Kickoff/logs": "deny | reason=「Kickoff」はこのチャットを動かしているアプリです。その保存先（<HOME>/Library/Application Support/Kickoff）は読み書きできません。Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください",
     "read <TMP>/work/data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
     "write <TMP>/work/data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
-    "read data/app.db": "pass",
+    "read data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
     "read <TMP>/work/data": "pass",
-    "write ~/notes.txt": "pass",
+    "write ~/notes.txt": "ask | title=作業場所の外のファイルに書き込もうとしています: ~/notes.txt | description=このチャットの作業場所（<TMP>/work）とノートのフォルダの外です。Kickoff の AI の守りが、作業場所の外への書き込みを流す前に確かめています。 | deniedReason=利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください | rememberTarget=<HOME>/notes.txt",
     "write (覚えたあと) outside.txt": "pass"
   },
   "untracked": {
@@ -176,9 +176,9 @@
     "read <HOME>/Library/Application Support/Kickoff/logs": "pass",
     "read <TMP>/work/data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
     "write <TMP>/work/data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
-    "read data/app.db": "pass",
+    "read data/app.db": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）",
     "read <TMP>/work/data": "pass",
-    "write ~/notes.txt": "pass"
+    "write ~/notes.txt": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
   },
   "bare": {
     "command npm test": "pass",

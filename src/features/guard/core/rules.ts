@@ -9,5 +9,12 @@ export type GuardVerdict =
   | { kind: "deny"; reason: string }
   | { kind: "ask"; title: string; description: string; deniedReason: string; rememberTarget?: string };
 
+/** 守りが見る呼び出し（Claude Code のツールの名前と入力の形。cwd はチャットの作業フォルダ） */
+export interface GuardCall {
+  name: string;
+  input: Record<string, unknown>;
+  cwd: string;
+}
+
 /** 断るだけの守りの判定（聞くことはない） */
 export type DenyVerdict = Exclude<GuardVerdict, { kind: "ask" }>;

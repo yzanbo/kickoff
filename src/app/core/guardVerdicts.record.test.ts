@@ -9,7 +9,7 @@ import { evaluateCompileCacheEnv } from "@/features/guard/core/guard/compileCach
 import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
 import { evaluateGitHookBypass } from "@/features/guard/core/guard/gitHookGuard";
 import { judgeCommand, judgeReadPath, judgeWritePath } from "@/features/guard/core/guard/judgeTool";
-import { evaluateReferenceWrite, evaluateUntrackedWrite } from "@/features/guard/core/guard/scope";
+import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths } from "@/features/guard/core/guard/scope";
 import { evaluateSelfProtection, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
@@ -146,8 +146,9 @@ function line(v: Verdict): string | null {
   return [kind, ...parts].join(" | ");
 }
 
-/** 守りごとの答え（pass の守りは省く。どれも pass なら空） */
-async function perGuard(w: World, tool: string, input: Record<string, unknown>): Promise<Record<string, string>> {
+/** 守りごとの答え（pass の守りは省く。どれも pass なら空）。呼ぶ側と同じく、パスを作業フォルダで解いてから当てる */
+async function perGuard(w: World, tool: string, raw: Record<string, unknown>): Promise<Record<string, string>> {
+  const { input } = resolveCallPaths({ name: tool, input: raw, cwd: w.cwd });
   const verdicts: Record<string, Verdict> = {
     self: evaluateSelfProtection(self, tool, input),
     reference: evaluateReferenceWrite(w.cwd, [w.ref], tool, input),

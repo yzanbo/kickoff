@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { SelfGuardRules } from "@/features/guard/core/platformRules";
-import { expandHome, isInside } from "@/foundation/core/system/paths";
+import { isInside } from "@/foundation/core/system/paths";
 import { TRASH_COMMAND } from "./deleteGuard";
 import type { DenyVerdict } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
@@ -74,14 +74,13 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
   const dev = self.appBundle ? "Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください" : "";
   const join = (...parts: string[]) => parts.filter(Boolean).join("。");
 
+  // ファイルのツールのパスは、作業フォルダで解いた絶対パス（scope.ts の resolveCallPaths）
   const key = claudeToolOf(toolName)?.pathKey;
-  if (key) {
-    const file = input[key];
+  const file = key ? input[key] : undefined;
+  if (typeof file === "string" && file) {
     // チャットの添付ファイル（保存先の uploads）は、Read で読むだけなら通す（画面は「Read ツールで読めます」と案内している）
-    const upload = toolName === "Read" && typeof file === "string" && isInside(path.join(self.dataDir, "uploads"), path.resolve(expandHome(file)));
-    if (!upload && typeof file === "string" && file && isInside(self.dataDir, expandHome(file))) {
-      return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
-    }
+    const upload = toolName === "Read" && isInside(path.join(self.dataDir, "uploads"), file);
+    if (!upload && isInside(self.dataDir, file)) return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
   }
   if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
 

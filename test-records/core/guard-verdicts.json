@@ -216,9 +216,13 @@
     "Edit {\"file_path\":\"<TMP>/work/data/app.db\"}": {
       "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
     },
-    "Read {\"file_path\":\"data/app.db\"}": {},
+    "Read {\"file_path\":\"data/app.db\"}": {
+      "hiddenDb": "deny | reason=DB の接続「SQLite」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）"
+    },
     "Grep {\"pattern\":\"x\",\"path\":\"<TMP>/work/data/app.db\"}": {},
     "Glob {\"pattern\":\"*.db\",\"path\":\"<TMP>/work/data\"}": {},
-    "Write {\"file_path\":\"~/notes.txt\"}": {}
+    "Write {\"file_path\":\"~/notes.txt\"}": {
+      "untracked": "deny | reason=このチャットは作業場所（<TMP>/work）の中の、Git で管理していないファイルだけを書けます"
+    }
   }
 }

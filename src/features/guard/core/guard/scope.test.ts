@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { evaluateReferenceWrite, evaluateUntrackedWrite } from "./scope";
+import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths } from "./scope";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
@@ -41,4 +42,15 @@ test("Git で管理していないファイルだけを書けるチャット: �
   assert.equal(await decide("Bash", { command: "git add compose.yaml && git commit -m x" }), "deny");
   assert.equal(await decide("Bash", { command: "cd sub; git -C .. checkout -- compose.yaml" }), "deny");
   assert.equal(await decide("Bash", { command: "git stash" }), "deny");
+});
+
+test("resolveCallPaths: ツールのパスの欄だけを作業フォルダ（~ はホーム）で解いた絶対パスにし、ほかの欄・パスのないツールは変えない", () => {
+  const call = (name: string, input: Record<string, unknown>) => resolveCallPaths({ name, input, cwd: "/w" }).input;
+  assert.deepEqual(call("Write", { file_path: "a/../b.ts", content: "x" }), { file_path: "/w/b.ts", content: "x" });
+  assert.deepEqual(call("NotebookEdit", { notebook_path: "n.ipynb" }), { notebook_path: "/w/n.ipynb" });
+  assert.deepEqual(call("Grep", { pattern: "x", path: "~/src" }), { pattern: "x", path: path.join(os.homedir(), "src") });
+  assert.deepEqual(call("Read", { file_path: "/abs/a.ts" }), { file_path: "/abs/a.ts" });
+  assert.deepEqual(call("Bash", { command: "cat a" }), { command: "cat a" });
+  assert.deepEqual(call("Read", { file_path: "" }), { file_path: "" });
+  assert.deepEqual(call("Unknown", { file_path: "a" }), { file_path: "a" });
 });

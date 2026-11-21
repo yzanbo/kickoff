@@ -1,11 +1,13 @@
 // 守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け）
 import { test } from "vitest";
 import assert from "node:assert/strict";
+import os from "node:os";
 import path from "node:path";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { deniedWithWords, judgeCommand, judgeReadPath, judgeWritePath } from "./judgeTool";
 import { DOCKER_GUARD_DENIED } from "@/features/docker/core/guard/dockerGuard";
 import { WRITE_SCOPE_DENIED } from "./writeScope";
+import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 
 test("コマンド: 消すコマンド・git のフックを飛ばすコマンド・NODE_COMPILE_CACHE を設定するコマンドは断り、ほかの作業場所の Docker は聞き、何もなければ通す", async () => {
   const params = { cwd: "/w", deleteGuard: true, dockerGuard: { check: async (c: string) => (c.includes("down") ? { title: "止めます", description: "本体の db" } : null) } };
@@ -42,4 +44,16 @@ test("読む先: 見せない DB の SQLite のファイルは断り、ほかは
   const ctx = { params: { cwd: "/w", hiddenDb } };
   assert.equal(judgeReadPath(ctx, "/w/data/secret.db").kind, "deny");
   assert.deepEqual(judgeReadPath(ctx, "/w/src/a.ts"), { kind: "pass" });
+});
+
+test("相対パスは作業フォルダで、~ はホームで解いてから当てる（Codex の相対パスの書き込みで見せない DB・自分を守るが当たらなかった）", async () => {
+  const work = tempDir({ real: true });
+  const secret = path.join(work, "data", "secret.db");
+  const hiddenDb = [{ name: "本番", engine: "sqlite" as const, host: null, port: null, file: { names: [secret], absolute: [secret] } }];
+  const self = { pids: [1], dataDir: path.join(os.homedir(), "Library", "Application Support", "Kickoff"), port: 4317, appName: "Kickoff", guard: MACOS_SELF_GUARD };
+  const ctx = { params: { cwd: work, hiddenDb }, self };
+  assert.equal((await judgeWritePath(ctx, "data/secret.db")).kind, "deny");
+  assert.equal(judgeReadPath(ctx, "./data/../data/secret.db").kind, "deny");
+  assert.equal(judgeReadPath(ctx, "~/Library/Application Support/Kickoff/kickoff.db").kind, "deny");
+  assert.deepEqual(await judgeWritePath(ctx, "data/other.db"), { kind: "pass" });
 });

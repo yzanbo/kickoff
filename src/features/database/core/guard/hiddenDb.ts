@@ -1,4 +1,3 @@
-import path from "node:path";
 import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
 import type { DenyVerdict } from "@/features/guard/core/index";
@@ -60,7 +59,8 @@ export function evaluateHiddenDbAccess(targets: HiddenDbTarget[], toolName: stri
   const tool = claudeToolOf(toolName);
   const key = tool && !tool.searches ? tool.pathKey : null;
   if (key && typeof input[key] === "string") {
-    const file = path.resolve(input[key]);
+    // パスは作業フォルダで解いた絶対パス（guard の resolveCallPaths）
+    const file = input[key];
     const hit = targets.find((t) => t.file?.absolute.includes(file));
     return hit ? deny(hit) : { kind: "pass" };
   }

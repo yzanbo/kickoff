@@ -1,13 +1,25 @@
 import path from "node:path";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import type { DenyVerdict } from "@/features/guard/core/rules";
+import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
+import type { DenyVerdict, GuardCall } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /**
  * 参照資料（読むだけのフォルダ・ファイル）を書き換えさせない仕組み（プロバイダー非依存）。
  * Claude はフック（PreToolUse）で、権限モードや許可ルールより先にこれで判定する
  */
+
+/**
+ * ツールの入力のパスの欄（@shared/ai/claudeTools の pathKey）を、チャットの作業フォルダで解いた絶対パスにそろえた呼び出し（~ も開く）。
+ * 守りはこの形を受けて自分では解かない（相対パスをコアのプロセスのフォルダで解かないように）。実体のパスにするのは書く先を比べる writeTargetOf だけ
+ * （自分の保存先・見せない DB の登録は字面の絶対パスで比べるため）
+ */
+export function resolveCallPaths(call: GuardCall): GuardCall {
+  const key = claudeToolOf(call.name)?.pathKey;
+  const value = key ? call.input[key] : undefined;
+  if (!key || typeof value !== "string" || value === "") return call;
+  return { ...call, input: { ...call.input, [key]: path.resolve(call.cwd, expandHome(value)) } };
+}
 
 /** ファイルを書き換えるツールなら、書く先の実体のパス（リンクを解き、まだないファイルはあるところまでの親を解いたもの）。ほかのツールは null */
 export function writeTargetOf(cwd: string, toolName: string, input: Record<string, unknown>): string | null {

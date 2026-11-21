@@ -5,7 +5,7 @@ import { evaluateDeleteCommand } from "./deleteGuard";
 import { DOCKER_GUARD_DENIED } from "@/features/docker/core/guard/dockerGuard";
 import { evaluateGitHookBypass } from "./gitHookGuard";
 import { evaluateHiddenDbAccess } from "@/features/database/core/guard/hiddenDb";
-import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "./scope";
+import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths, writeTargetOf } from "./scope";
 import { evaluateSelfProtection, type SelfInfo } from "./selfProtection";
 import { judgeFileWrite } from "./writeScope";
 import type { DenyVerdict, GuardVerdict } from "@/features/guard/core/rules";
@@ -48,7 +48,7 @@ export async function judgeCommand(ctx: GuardContext, command: string): Promise<
 /** ファイルを書く前の判定（自分を守る・参照資料・［AI で整える］・見せない DB は断り、書き込み先の守りはほかの作業場所を断り外を聞く） */
 export async function judgeWritePath(ctx: GuardContext, filePath: string): Promise<GuardVerdict> {
   const { params, self } = ctx;
-  const input = { file_path: filePath };
+  const { input } = resolveCallPaths({ name: "Write", input: { file_path: filePath }, cwd: params.cwd });
   const denied = firstDeny([
     ...(self ? [evaluateSelfProtection(self, "Write", input)] : []),
     ...(params.readOnlyPaths?.length ? [evaluateReferenceWrite(params.cwd, params.readOnlyPaths, "Write", input)] : []),
@@ -71,7 +71,7 @@ export async function judgeWritePath(ctx: GuardContext, filePath: string): Promi
 /** ファイルを読む前の判定（自分の保存先・見せない DB の SQLite のファイルは断る。読むことはほかに絞らない）。聞いてくる CLI（Copilot の read の承認）だけが使う */
 export function judgeReadPath(ctx: GuardContext, filePath: string): GuardVerdict {
   const { params, self } = ctx;
-  const input = { file_path: filePath };
+  const { input } = resolveCallPaths({ name: "Read", input: { file_path: filePath }, cwd: params.cwd });
   return (
     firstDeny([
       ...(self ? [evaluateSelfProtection(self, "Read", input)] : []),
