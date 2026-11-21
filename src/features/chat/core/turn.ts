@@ -29,14 +29,14 @@ import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
+import type { ChatAttachments } from "./ports";
 
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
 export { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 export { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
 export { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
-export { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
+export { workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
 export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-export { trashCommandEnv } from "@/features/trash/core/command";
 export { bashSandboxFor, sandboxPromptLines } from "@/features/guard/core/sandbox/bashSandbox";
 export { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 export { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
@@ -51,6 +51,8 @@ export interface ExecutionDeps {
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
   uploads?: UploadStore;
+  /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */
+  attachments?: ChatAttachments;
   bus?: Bus;
   /** プロジェクトのノートのフォルダ（ノートのチャットで、AI にノートを読み書きさせるため。なければノートのチャットでもノートのフォルダを足さない） */
   noteDirOf?: (project: Project) => string;

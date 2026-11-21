@@ -137,9 +137,3 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
 export function workplaceMoveContext(pending: ChatEventDataOf<"workplace_moved"> | null): string | null {
   return pending ? `Kickoff からの知らせ（利用者の発言ではありません）:\n${workplaceMoveNote(pending)}` : null;
 }
-
-/** 指示に添える文脈をつなぐ（どれもなければ null） */
-export function joinContexts(...parts: (string | null)[]): string | null {
-  const present = parts.filter((p): p is string => Boolean(p));
-  return present.length ? present.join("\n\n") : null;
-}

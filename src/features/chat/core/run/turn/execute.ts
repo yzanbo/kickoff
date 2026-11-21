@@ -10,16 +10,17 @@ import { PROVIDER_AUTH_MODE_LABELS } from "@shared/settings/types";
 import { providerCan } from "@shared/ai/providers";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
-import { switchAfterCompact } from "@/features/chat/core/sessionSwitch";
 import { resolveWorkdir } from "@/features/chat/core/turnFolders";
 import { CHAT_TOOLS_HEAD, chatToolGroups } from "@/features/chat/core/tools/chatTools";
 import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
-import { joinContexts, knownModel, postCompactPromptOf, preCompactPromptOf, retryProviderHandoffPreparation, TurnSandboxDiagnostics, type ExecutionDeps, type ProviderTurnParams, type ProviderTurnResult, type TurnRequest } from "@/features/chat/core/turn";
+import { knownModel, postCompactPromptOf, preCompactPromptOf, retryProviderHandoffPreparation, TurnSandboxDiagnostics, type ExecutionDeps, type ProviderTurnParams, type ProviderTurnResult, type TurnRequest } from "@/features/chat/core/turn";
 import { recordEvent } from "@/features/chat/core/run/record";
 import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 import type { TurnEndInfo } from "./contributor";
 import { collectTurnParts, legacyTurnParts, toProviderParams, type CollectedParts } from "./params";
+import { chatTurnParts } from "./chatParts";
+import { appendSections } from "@/features/chat/core/prompt/compose";
 import { callbacksFor } from "./providerEvents";
 import { applyResult } from "./result";
 
@@ -85,7 +86,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
       // 実行に足すもの（まだ機能へ分けていない組み立てと、上の機能が登録した contributor）を order の順に集める
       const phase = runtime.run.phase;
       const kind = phase.kind === "turn" ? phase.turn : compact ? "compact" : "message";
-      const parts = await collectTurnParts([legacyTurnParts(deps, runtime, { compact, preCompactText }), ...(deps.contributors ?? [])], { chat, project, cwd, kind, signal, requestApproval: callbacks.requestApproval });
+      const parts = await collectTurnParts([legacyTurnParts(deps, runtime, preCompactText), chatTurnParts(deps, runtime), ...(deps.contributors ?? [])], { chat, project, cwd, kind, signal, requestApproval: callbacks.requestApproval });
       recorded.push(...parts.onRecord);
       afterTurn = parts.afterTurn;
       const params: ProviderTurnParams = toProviderParams(chat, parts, {
@@ -102,7 +103,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
       const initialContext = params.turnContext ?? null;
       if (handoff) {
         if (compact || (handoff.state !== "ready" && !(handoff.state === "sending" && handoff.eventId === claimedHandoffEventId)) || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
-        params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
+        params.turnContext = appendSections(params.turnContext ?? null, handoff.context);
       }
       const diagnostics = deps.sandboxDiagnostics && providerCan(chat.provider, "sandbox_diagnostics") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
       params.onAgentSpawned = diagnostics?.onSpawn;
@@ -139,7 +140,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
           if (signal.aborted) throw new Error("新しいセッションの準備中に中断しました");
           const prepared = store.chatProviderHandoffs.get(chatId);
           if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
-          return await providers[chat.provider].run({ ...params, resumeSessionId: null, turnContext: joinContexts(initialContext, prepared.context), tools: endpoints }, callbacks, signal);
+          return await providers[chat.provider].run({ ...params, resumeSessionId: null, turnContext: appendSections(initialContext, prepared.context), tools: endpoints }, callbacks, signal);
         });
       } finally {
         signal.removeEventListener("abort", closeDiagnostics);
@@ -164,12 +165,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatI
         else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, reason);
       }
     }
-    // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
-    if (result.status === "completed") {
-      await switchAfterCompact({ store, provider: providers[chat.provider], trash: deps.sessionTrash }, chatId, cwd, since).catch((e: unknown) =>
-        console.warn(`[session] 会話記録を乗り換えられませんでした: ${errorMessage(e)}`),
-      );
-    }
+    // 作業の終わりにすること（圧縮した作業の会話記録の乗り換えなど。登録した contributor の afterTurn）
     await endTurn({ status: result.status, network });
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
     if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };

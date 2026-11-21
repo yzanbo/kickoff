@@ -1,20 +1,16 @@
-// チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付と届かなかった報告の書き添え
+// チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付（送る文の組み立て prompt/compose.ts）と届かなかった報告の書き添え
 import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "@/features/subagents/core/reports";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import { knownModel } from "@/features/ai/core/providers/modelCatalog";
 import { askTitle, canAsk } from "@/features/ai/core/index";
 import type { ExecutionDeps } from "./turn";
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { Attachment, ChatOptionsPatch } from "@shared/chat/types";
 import type { GitHubLink } from "@shared/foundation/apiTypes";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
-import { withAttachmentNote } from "@/features/attachments/core/uploads";
-import { appendNote, CAPTURE_HEADING, captureLine, NOTE_SNAPSHOT_HEADING, noteSnapshotLine } from "@/features/attachments/core/attachmentNotes";
 import { Invalid, NotFound } from "@/foundation/core/errors";
-import { isInside } from "@/foundation/core/system/paths";
+import { composePrompt } from "./prompt/compose";
 
 export interface StartChatInput {
   projectId: number;
@@ -142,32 +138,7 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
   }
 }
 
-/**
- * 添付のパスをメッセージに書き添える（エージェントは Read ツールで読む。中身は書かない）。種類ごとに見出しを分ける:
- * ファイル・ノート（写しと元のノートのパス）・「AI に渡す」で取ったもの（出どころ・時刻・外から来たか）。
- * ノートの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・ノートは書かない
- */
-async function promptWithAttachments({ uploads, noteDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
-  const noteDir = project && noteDirOf ? noteDirOf(project) : null;
-  const files = [];
-  const snapshots: string[] = [];
-  const captures: string[] = [];
-  for (const attachment of attachments) {
-    const resolved = await uploads?.resolve(attachment.id);
-    if (!resolved) continue;
-    const saved = (await uploads?.meta(attachment.id)) ?? null;
-    if (saved?.kind === "capture") captures.push(captureLine(resolved.path, saved));
-    else if (saved?.kind === "note") snapshots.push(noteSnapshotLine(resolved.path, saved, noteDir ? await noteFile(noteDir, saved.note) : null));
-    else files.push({ path: resolved.path, attachment });
-  }
-  let prompt = withAttachmentNote(text, files);
-  prompt = appendNote(prompt, NOTE_SNAPSHOT_HEADING, snapshots);
-  return appendNote(prompt, CAPTURE_HEADING, captures);
-}
-
-/** ノートのフォルダの中のファイルの絶対パス（外を指す・ないなら null） */
-async function noteFile(dir: string, note: string): Promise<string | null> {
-  const file = path.join(dir, note);
-  if (!isInside(dir, file) || file === dir) return null;
-  return (await fs.stat(file).then((s) => s.isFile(), () => false)) ? file : null;
+/** 添付のパスを書き添えた、AI に渡す文（添付の口が書く。ノートの写しの元のノートは、プロジェクトのノートのフォルダから引く） */
+function promptWithAttachments({ attachments: port, noteDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
+  return composePrompt(port, project && noteDirOf ? noteDirOf(project) : null, text, attachments);
 }

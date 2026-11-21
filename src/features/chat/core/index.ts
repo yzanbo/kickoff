@@ -20,6 +20,7 @@ import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { ExecutionDeps } from "./turn";
 import type { TurnContributor } from "./run/turn/contributor";
+import type { ChatAttachments } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
@@ -33,6 +34,7 @@ import type { GroupsApi } from "@/features/groups/core/index";
 export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { ChatRunLookup } from "./run/chatRun";
 export type { TurnContributor } from "./run/turn/contributor";
+export type { ChatAttachments } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
@@ -51,6 +53,8 @@ export interface ChatDeps {
   ai: AiApi;
   /** 添付の置き場（attachments の口） */
   uploads: NonNullable<ExecutionDeps["uploads"]>;
+  /** 送る文に添付のパスを書き添える口（attachments が実装する） */
+  attachments: ChatAttachments;
   /** 利用者が見ているもの（userView の口） */
   userViews: NonNullable<ExecutionDeps["userViews"]>;
 }
@@ -119,7 +123,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: store.chats.get,
   });
-  const { trash: trashBin, uploads, userViews } = deps;
+  const { trash: trashBin, uploads, userViews, attachments } = deps;
   const { providers, keys: providerKeys, usage } = deps.ai;
   const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
@@ -144,7 +148,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す

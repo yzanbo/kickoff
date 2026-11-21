@@ -20,6 +20,7 @@ import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { createChatRunner, type RunnerDeps } from "@/features/chat/core/run/runner";
+import { chatAttachmentsOf } from "@/features/attachments/core/index";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { toolGateFactory } from "@/features/guard/core/gate";
@@ -103,7 +104,9 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const gateMaterials: GuardMaterials[] = [];
   const factory = runnerOptions.toolGate ?? toolGateFactory(undefined, []);
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
-  const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
+  // 添付の置き場を渡したら、本物と同じく送る文に添付のパスを書き添える口も作る
+  const attachments = runnerOptions.uploads ? chatAttachmentsOf(runnerOptions.uploads) : undefined;
+  const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...runnerOptions, toolGate });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials };
 }
 

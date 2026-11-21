@@ -10,7 +10,7 @@ import { createTrashStore } from "./db/trash";
 /** ゴミ箱の口（入れる・種類の登録・片付けの段・元の場所の引き当て・取り込みのあと） */
 export type TrashApi = TrashService;
 export type { TrashStore } from "./db/trash";
-export { TRASH_COMMAND } from "./command";
+export { TRASH_COMMAND, trashCommandEnv } from "./command";
 
 export interface TrashDeps {
   /** プロジェクトの店（上の projects。組み立てがあとで作るので、呼ばれたときに引く。:id のプロジェクトとテストの前方一致） */

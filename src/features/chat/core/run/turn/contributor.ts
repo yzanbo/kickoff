@@ -5,6 +5,7 @@ import type { Chat, ChatStatus } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { PreCompactRequest, ProviderCallbacks, ProviderTurnResult, SandboxPlan, ToolGate } from "@/features/ai/core/index";
 import type { TurnKind } from "@/features/chat/core/run/machine/types";
+import type { PromptSection } from "@/features/chat/core/prompt/sections";
 
 /** 1 回の実行の文脈（contribute に渡す） */
 export interface TurnContext {
@@ -15,15 +16,6 @@ export interface TurnContext {
   kind: TurnKind;
   signal: AbortSignal;
   requestApproval: ProviderCallbacks["requestApproval"];
-}
-
-/** システムプロンプトの 1 つの節 */
-export interface PromptSection {
-  /** 並び（chat 100・200・210、guard 220、browser 300、visuals 400、notes 500、chat 600）。同じ order は登録の順 */
-  order: number;
-  /** 見出し（"## ブラウザ" など）。null なら直前の節の続きの行（「作業の進め方」に足すゴミ箱・砂場の行） */
-  heading: string | null;
-  lines: string[];
 }
 
 /** 1 つの contributor が 1 回の実行に足すもの（どれも省ける） */

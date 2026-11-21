@@ -9,7 +9,7 @@
 | `core/run/machine/`・`core/run/` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `ChatRunner` |
 | `core/run/chatRun.ts`・`chatRuns.ts` | チャットごとの作業中の状態 `ChatRun`（出す箱だけ保存する） |
 | `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`core/turn.ts` は仮の口 |
-| `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し・届かなかった報告） |
+| `core/input.ts` | チャットの作成と続きの指示の準備（名前・添付 `ChatAttachments`・届かなかった報告） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |

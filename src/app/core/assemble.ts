@@ -75,7 +75,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
+  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, uploads: attachments.api.uploads, attachments: attachments.api.forChat, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
   const { runner } = chat.api;
   // ここからはチャットの上の機能
   const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });

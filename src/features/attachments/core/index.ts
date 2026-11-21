@@ -8,8 +8,11 @@ import type { Store } from "@/features/chat/core/index";
 import { sweepUnusedUploads } from "./attachmentsCleanup";
 import { UploadStore } from "./uploads";
 import { uploadRoutes } from "./routes/uploads";
+import { chatAttachmentsOf } from "./chatAttachments";
+import type { ChatAttachments } from "@/features/chat/core/index";
 
 export type { UploadStore } from "./uploads";
+export { chatAttachmentsOf } from "./chatAttachments";
 
 export interface AttachmentsEnv {
   /** 添付の置き場所（省けば保存先の uploads/） */
@@ -18,6 +21,8 @@ export interface AttachmentsEnv {
 
 export interface AttachmentsApi {
   uploads: UploadStore;
+  /** チャットの添付の口（保存先・送る文に添付のパスを書き添える） */
+  forChat: ChatAttachments;
   /** ツールの結果の画像を読んでよいフォルダを足す（上の機能が登録する。notes がノートのフォルダを足す） */
   addImageDir(dirOf: (project: Project) => string): void;
 }
@@ -30,7 +35,7 @@ export function createAttachments(k: Kernel, deps: { trash: TrashApi; chatStore:
   const imageDirs: ((project: Project) => string)[] = [];
   return {
     name: "attachments",
-    api: { uploads, addImageDir: (dirOf) => void imageDirs.push(dirOf) },
+    api: { uploads, forChat: chatAttachmentsOf(uploads), addImageDir: (dirOf) => void imageDirs.push(dirOf) },
     routes: [{ legacy: (app) => uploadRoutes(app, { uploads, store: deps.chatStore(), imageDirs }) }],
   };
 }

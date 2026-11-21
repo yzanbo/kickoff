@@ -1,7 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { buildSystemPrompt } from "./system";
+import type { Project } from "@shared/projects/types";
+import type { LinkOpenTarget } from "@shared/settings/types";
+import { browserSection, noteSection, projectSection, referenceSection, sandboxSection, TRASH_SECTION, VISUAL_SECTION, WORK_SECTION } from "./system";
+import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
+
+/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節） */
+function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: string; file: string | null }, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
+  const references = referenceSection(p);
+  return joinSections([
+    projectSection(p, workdir, opts.editScopeEnabled),
+    WORK_SECTION,
+    ...(opts.trash ? [TRASH_SECTION] : []),
+    ...(opts.sandboxLines ? [sandboxSection(opts.sandboxLines)] : []),
+    ...(opts.browser ? [browserSection(opts.browser)] : []),
+    VISUAL_SECTION,
+    ...(note ? [noteSection(note)] : []),
+    ...(references ? [references] : []),
+  ]);
+}
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
   const store = testStore(":memory:");
