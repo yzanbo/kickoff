@@ -1,6 +1,7 @@
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { blockText, clipToolResult, setCompacting } from "@/features/ai/core/providers/shared/events";
 import type { ToolCall, ToolCallContent } from "./protocol";
+import { toolUse } from "@shared/ai/claudeTools";
 
 /**
  * ACP の session/update を Kickoff の記録（ChatEvent）にする。名前と入力の形は Claude Code にそろえる（Codex・Copilot と同じ決まり。
@@ -82,18 +83,18 @@ export function callAsTools(call: ToolCall, servers: string[]): { name: string; 
   const path = pathsOf(call)[0] ?? "";
   switch (call.kind) {
     case "execute":
-      return [{ name: "Bash", input: { command: commandOf(call) } }];
+      return [toolUse.bash(commandOf(call))];
     case "edit":
-      if (diffs.length === 0) return [{ name: "Edit", input: { file_path: path } }];
-      return diffs.map((d) => (d.oldText == null ? { name: "Write", input: { file_path: d.path, content: d.newText } } : { name: "Edit", input: { file_path: d.path, old_string: d.oldText, new_string: d.newText } }));
+      if (diffs.length === 0) return [toolUse.edit(path)];
+      return diffs.map((d) => (d.oldText == null ? toolUse.write(d.path, d.newText) : toolUse.edit(d.path, { old_string: d.oldText, new_string: d.newText })));
     case "delete":
-      return [{ name: "MultiEdit", input: { file_path: path, edits: [{ old_string: diffs[0]?.oldText ?? "", new_string: "" }], deleted: true } }];
+      return [toolUse.multiEdit(path, [{ old_string: diffs[0]?.oldText ?? "", new_string: "" }], { deleted: true })];
     case "read":
-      return [{ name: "Read", input: { file_path: path } }];
+      return [toolUse.read(path)];
     case "search":
-      return [{ name: "Grep", input: { pattern: str(record(call.rawInput).pattern) ?? str(record(call.rawInput).query) ?? call.title ?? "", ...(path ? { path } : {}) } }];
+      return [toolUse.grep(str(record(call.rawInput).pattern) ?? str(record(call.rawInput).query) ?? call.title ?? "", path || undefined)];
     case "fetch":
-      return [{ name: "WebFetch", input: { url: str(record(call.rawInput).url) ?? call.title ?? "" } }];
+      return [toolUse.webFetch(str(record(call.rawInput).url) ?? call.title ?? "")];
     default:
       return [{ name: call.name || call.title || "Tool", input: { ...record(call.rawInput), ...(call.title ? { description: call.title } : {}) } }];
   }

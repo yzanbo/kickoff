@@ -2,6 +2,7 @@ import { cleanTerminalText } from "@shared/foundation/text/terminal";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { clipToolResult, createCommandOutputTail, setCompacting, type CommandOutputTail } from "@/features/ai/core/providers/shared/events";
 import type { SessionEvent } from "./sdk";
+import { toolUse } from "@shared/ai/claudeTools";
 
 /**
  * Copilot SDK のセッションのイベントを Kickoff の記録（ChatEvent）にする。名前と入力の形は Claude Code と同じにそろえる
@@ -34,15 +35,15 @@ export function toolAsKickoff(toolName: string, args: unknown, mcp?: { server?: 
   const a = args && typeof args === "object" && !Array.isArray(args) ? (args as Record<string, unknown>) : {};
   if (mcp?.server && mcp.tool) return { name: `mcp__${mcp.server}__${mcp.tool}`, input: a };
   const command = str(a.command);
-  if (command !== null) return { name: "Bash", input: { command } };
+  if (command !== null) return toolUse.bash(command);
   const file = str(a.path) ?? str(a.file_path) ?? str(a.fileName);
   if (file !== null) {
     const content = str(a.file_text) ?? str(a.content);
-    if (content !== null) return { name: "Write", input: { file_path: file, content } };
+    if (content !== null) return toolUse.write(file, content);
     const oldText = str(a.old_str) ?? str(a.old_string);
     const newText = str(a.new_str) ?? str(a.new_string);
-    if (oldText !== null || newText !== null) return { name: "Edit", input: { file_path: file, old_string: oldText ?? "", new_string: newText ?? "" } };
-    if (/view|read/i.test(toolName)) return { name: "Read", input: { file_path: file } };
+    if (oldText !== null || newText !== null) return toolUse.edit(file, { old_string: oldText ?? "", new_string: newText ?? "" });
+    if (/view|read/i.test(toolName)) return toolUse.read(file);
   }
   return { name: toolName, input: a };
 }

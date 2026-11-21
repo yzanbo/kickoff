@@ -2,6 +2,7 @@ import { cleanTerminalText } from "@shared/foundation/text/terminal";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { clipToolResult, contentText, createCommandOutputTail, setCompacting, type CommandOutputTail } from "@/features/ai/core/providers/shared/events";
 import type { FileUpdateChange, ThreadItem, ThreadTokenUsage } from "./protocol";
+import { toolUse } from "@shared/ai/claudeTools";
 
 /**
  * Codex の会話の項目（ThreadItem）を Kickoff の記録（ChatEvent）にする。名前と入力の形は Claude Code と同じにそろえる
@@ -48,12 +49,12 @@ export function diffEdits(diff: string): { old_string: string; new_string: strin
 /** ファイルの変更 1 つを、Claude Code の編集のツールの呼び出しの形にする */
 export function changeAsTool(change: FileUpdateChange): { name: string; input: Record<string, unknown> } {
   if (change.kind.type === "add") {
-    return { name: "Write", input: { file_path: change.path, content: diffEdits(change.diff).map((e) => e.new_string).join("\n") } };
+    return toolUse.write(change.path, diffEdits(change.diff).map((e) => e.new_string).join("\n"));
   }
   if (change.kind.type === "delete") {
-    return { name: "MultiEdit", input: { file_path: change.path, edits: [{ old_string: diffEdits(change.diff).map((e) => e.old_string || e.new_string).join("\n"), new_string: "" }], deleted: true } };
+    return toolUse.multiEdit(change.path, [{ old_string: diffEdits(change.diff).map((e) => e.old_string || e.new_string).join("\n"), new_string: "" }], { deleted: true });
   }
-  return { name: "MultiEdit", input: { file_path: change.path, edits: diffEdits(change.diff), ...(change.kind.move_path ? { move_path: change.kind.move_path } : {}) } };
+  return toolUse.multiEdit(change.path, diffEdits(change.diff), change.kind.move_path ? { move_path: change.kind.move_path } : {});
 }
 
 /** 項目が始まった（ツールの呼び出しを記録する・圧縮中を立てる） */
@@ -61,7 +62,7 @@ export function itemStarted(item: ThreadItem, cb: ProviderCallbacks, state: Item
   switch (item.type) {
     case "commandExecution": {
       const it = item as Extract<ThreadItem, { type: "commandExecution" }>;
-      cb.emit({ type: "tool_use", id: it.id, name: "Bash", input: { command: it.command } });
+      cb.emit({ type: "tool_use", id: it.id, ...toolUse.bash(it.command) });
       return;
     }
     case "mcpToolCall": {
@@ -121,7 +122,7 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
     }
     case "webSearch": {
       const it = item as Extract<ThreadItem, { type: "webSearch" }>;
-      cb.emit({ type: "tool_use", id: it.id, name: "WebSearch", input: { query: it.query ?? "" } });
+      cb.emit({ type: "tool_use", id: it.id, ...toolUse.webSearch(it.query ?? "") });
       cb.emit({ type: "tool_result", tool_use_id: it.id, content: "", is_error: false });
       return;
     }
