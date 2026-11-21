@@ -29,7 +29,7 @@ import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { trashCommandEnv, type TrashCommand } from "@/features/trash/core/command";
-import { bashSandboxFor, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
+import { bashSandboxFor, sandboxPromptLines, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch";
 import { stoppedSubagentsNotice } from "./interruptedTurnEnd";
 import type { Store } from "@/features/chat/core/stores";
@@ -340,7 +340,7 @@ function buildTurnParams(
     ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd, noteDir ? { dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null } : undefined, {
       trash: deps.trashCommand !== undefined,
-      sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined,
+      sandboxLines: sandbox ? sandboxPromptLines(sandbox.unsandboxedCommands, chat.edit_scope_enabled || chat.untracked_only) : undefined,
       editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
       browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
     }),

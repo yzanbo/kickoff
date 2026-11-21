@@ -105,20 +105,8 @@ test("ノート: どのチャットでも「ノート」が「ノート」タブ
   assert.ok(!buildSystemPrompt(p).includes("## ノート"));
 });
 
-test("砂場: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える（砂場がないときは書かない）", () => {
+test("砂場: 砂場の行（guard が作る）は渡したときだけ、ゴミ箱の行のあとに入れる", () => {
   assert.doesNotMatch(buildSystemPrompt(project([])), /砂場/);
-  const prompt = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: ["brew install:*", "npm run dev:*", "pnpm dev:*"] } });
-  assert.match(prompt, /砂場の中で動き/);
-  assert.match(prompt, /Edit \/ Write を使って/);
-  assert.match(prompt, /git config --global/);
-  assert.match(prompt, /ssh などの直接の通信は通りません/);
-  // 外で流すコマンドは npm・npx・brew の形だけを見せる
-  assert.match(prompt, /`brew install`・`npm run dev`/);
-  assert.doesNotMatch(prompt, /pnpm dev/);
-  assert.match(prompt, /単独で流して/);
-  const unrestricted = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] }, editScopeEnabled: false });
-  assert.match(unrestricted, /編集先を確認する Kickoff の制限はオフ/);
-  assert.doesNotMatch(unrestricted, /Kickoff が利用者に確かめます/);
-  // 外で流すコマンドがなければ、その行は書かない
-  assert.doesNotMatch(buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] } }), /砂場の外で流れます/);
+  const prompt = buildSystemPrompt(project([]), "/tmp/a", undefined, { trash: true, sandboxLines: ["- 砂場の行 1", "- 砂場の行 2"] });
+  assert.ok(prompt.indexOf("- 砂場の行 1\n- 砂場の行 2") > prompt.indexOf("kickoff-trash"));
 });

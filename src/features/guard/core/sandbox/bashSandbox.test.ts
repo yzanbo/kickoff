@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, scriptRunCommands } from "./bashSandbox";
+import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, sandboxPromptLines, scriptRunCommands } from "./bashSandbox";
 
 const rules = (dirs: string[] = [], commands: string[] = []) => ({ tempDirs: [], writableDirs: async () => dirs, unsandboxedCommands: commands });
 
@@ -79,4 +79,21 @@ test("Electron を使う作業場所だけ、Electron を起動するスクリ�
   for (const c of ELECTRON_DIRECT_COMMANDS) assert.ok(commands.includes(c));
   // Git でないフォルダでも作れる（共有の .git はない）
   assert.ok(!(await bashSandboxFor(deps, { workdir: dir, noteDir: null, readOnlyDirs: [] })).writableDirs.some((d) => d.endsWith(`${path.sep}.git`)));
+});
+
+test("システムプロンプトの砂場の行: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える", () => {
+  const prompt = sandboxPromptLines(["brew install:*", "npm run dev:*", "pnpm dev:*"], true).join("\n");
+  assert.match(prompt, /砂場の中で動き/);
+  assert.match(prompt, /Edit \/ Write を使って/);
+  assert.match(prompt, /git config --global/);
+  assert.match(prompt, /ssh などの直接の通信は通りません/);
+  // 外で流すコマンドは npm・npx・brew の形だけを見せる
+  assert.match(prompt, /`brew install`・`npm run dev`/);
+  assert.doesNotMatch(prompt, /pnpm dev/);
+  assert.match(prompt, /単独で流して/);
+  const unrestricted = sandboxPromptLines([], false).join("\n");
+  assert.match(unrestricted, /編集先を確認する Kickoff の制限はオフ/);
+  assert.doesNotMatch(unrestricted, /Kickoff が利用者に確かめます/);
+  // 外で流すコマンドがなければ、その行は書かない
+  assert.doesNotMatch(sandboxPromptLines([], true).join("\n"), /砂場の外で流れます/);
 });

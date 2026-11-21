@@ -6,6 +6,8 @@ const PROCESS_LIMIT = 256;
 const ENTRY_LIMIT = 100;
 const LIMITATION = "診断開始後、この実行の子プロセスと確認できた期間だけが対象です。短命なプロセス・開始前・OS が保存しない記録は取れません。該当なしでも拒否がなかったとは断定できません。パスと未知のサービス名は非表示です。";
 type Interval = { pid: number; first: number; last: number };
+/** 診断の段（idle: 集めていない / starting: 始めている / capturing: 集めている（期限で止まっても読むまで） / reading: 読んでいる / closed: 実行が終わった） */
+type Phase = "idle" | "starting" | "capturing" | "reading" | "closed";
 type Capture = {
   start: number;
   end: number | null;
@@ -31,21 +33,19 @@ export interface AiSandboxDiagnostics {
 export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
   private readonly roots = new Map<number, number>();
   private capture: Capture | null = null;
-  private closed = false;
-  private reading = false;
-  private starting = false;
+  private phase: Phase = "idle";
 
   constructor(private readonly platform: SandboxDiagnosticsPlatform, private readonly now: () => number = Date.now) {}
 
   /** プロバイダーが自分で起動した CLI の PID だけ。AI の引数から登録しない */
   readonly onSpawn = (pid: number): void => {
-    if (!this.closed && Number.isSafeInteger(pid) && pid > 0) this.roots.set(pid, this.now());
+    if (this.phase !== "closed" && Number.isSafeInteger(pid) && pid > 0) this.roots.set(pid, this.now());
   };
 
   async start(): Promise<string> {
-    if (this.closed || this.reading || this.starting) return this.result("unavailable", "診断を開始できません");
-    this.starting = true;
-    try { return await this.startCapture(); } finally { this.starting = false; }
+    if (this.phase === "closed" || this.phase === "reading" || this.phase === "starting") return this.result("unavailable", "診断を開始できません");
+    this.phase = "starting";
+    try { return await this.startCapture(); } finally { this.settle("starting"); }
   }
 
   private async startCapture(): Promise<string> {
@@ -54,7 +54,7 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
     const c: Capture = { start: this.now(), end: null, active: new Map(), intervals: [], controller: new AbortController(), pending: null, timer: null, deadline: null, failed: false, limited: false, entries: [], stopLog: null, logFailed: null };
     this.capture = c;
     await this.sample(c);
-    if (this.closed || c.failed || !c.active.size) {
+    if (this.isClosed() || c.failed || !c.active.size) {
       this.disposeCapture();
       return this.result("unavailable", "実行プロセスの親子関係を取得できません");
     }
@@ -66,7 +66,7 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
         else c.limited = true;
       }, (reason) => { c.logFailed = reason; }) ?? null;
     } catch { c.logFailed ??= "spawn_failed"; }
-    if (this.closed || c.logFailed) {
+    if (this.isClosed() || c.logFailed) {
       this.disposeCapture();
       return this.result("unavailable", `OS の拒否ログの収集を開始できません（${c.logFailed ?? "cancelled"}）。権限・OS 設定は変更していません`);
     }
@@ -78,8 +78,8 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
 
   async read(): Promise<string> {
     const c = this.capture;
-    if (this.closed || this.reading || this.starting || !c) return this.result("unavailable", "先に start_sandbox_diagnostics で診断を開始してください");
-    this.reading = true;
+    if (this.phase !== "capturing" || !c) return this.result("unavailable", "先に start_sandbox_diagnostics で診断を開始してください");
+    this.phase = "reading";
     try {
       const expired = c.end !== null;
       this.stop(c);
@@ -87,7 +87,7 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
       if (!expired && !c.failed) await this.sample(c);
       await c.stopLog?.();
       if (c.logFailed && c.logFailed !== "output_limit") return this.result("unavailable", `OS の拒否ログの収集中に失敗しました（${c.logFailed}）。該当なしとは判断できません`);
-      if (c.failed || this.closed) return this.result("unavailable", "プロセスの追跡に失敗しました。OS ログは返しません");
+      if (c.failed || this.isClosed()) return this.result("unavailable", "プロセスの追跡に失敗しました。OS ログは返しません");
       const end = Math.min(c.end!, c.start + CAPTURE_MS);
       let entries: SandboxDenial[];
       try {
@@ -95,20 +95,30 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
       } catch {
         return this.result("unavailable", "OS の拒否ログを読み取れません（権限・OS の制約・時間切れ・形式の違いなど）。権限や OS 設定は変更していません");
       }
-      if (this.closed) return this.result("unavailable", "実行が終了しました");
+      if (this.isClosed()) return this.result("unavailable", "実行が終了しました");
       const ours = entries.filter((e) => e.timestamp >= c.start && e.timestamp <= end && c.intervals.some((i) => i.pid === e.pid && e.timestamp >= i.first && e.timestamp <= i.last));
       if (c.logFailed === "output_limit" && !ours.length) return this.result("unavailable", "OS ログが出力上限に達しました（output_limit）。該当なしとは判断できません");
       return JSON.stringify({ status: ours.length ? "ok" : "no_matching_entries", entries: ours.slice(0, ENTRY_LIMIT).map((e) => ({ ...e, timestamp: new Date(e.timestamp).toISOString() })), limited: c.limited || ours.length > ENTRY_LIMIT || c.logFailed === "output_limit", expired, limitation: LIMITATION });
     } finally {
-      this.reading = false;
       this.disposeCapture();
+      this.settle("reading");
     }
   }
 
   close(): void {
-    this.closed = true;
+    this.phase = "closed";
     this.disposeCapture();
     this.roots.clear();
+  }
+
+  /** 実行が終わったか（待っている間に close されたら、それより前の段に戻さない） */
+  private isClosed(): boolean {
+    return this.phase === "closed";
+  }
+
+  /** 始める・読むが終わったら、集めているか（capturing）・集めていないか（idle）に戻す（その間に close されていれば closed のまま） */
+  private settle(from: "starting" | "reading"): void {
+    if (this.phase === from) this.phase = this.capture ? "capturing" : "idle";
   }
 
   private result(status: string, reason: string): string {
@@ -116,7 +126,7 @@ export class TurnSandboxDiagnostics implements AiSandboxDiagnostics {
   }
 
   private schedule(c: Capture): void {
-    if (this.closed || c.end !== null || c.failed) return;
+    if (this.isClosed() || c.end !== null || c.failed) return;
     c.timer = setTimeout(() => {
       c.pending = this.sample(c).finally(() => { c.pending = null; this.schedule(c); });
     }, 250);
