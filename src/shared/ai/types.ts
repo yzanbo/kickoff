@@ -1,4 +1,5 @@
 import type { ProviderAuthMode, ProviderId } from "@shared/settings/types";
+import type { ProviderCapability } from "./providers";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
 export interface ProviderStatus {
@@ -12,6 +13,8 @@ export interface ProviderStatus {
   detail: string;
   /** その AI でできること（ないものは画面で押せない形にして理由を添える。コアの /api/providers が付ける） */
   features: ProviderFeature[];
+  /** できること（AI ごとの表 @shared/ai/providers。本物の実装でなければ空。コアの /api/providers が付ける。画面はまだ features を読む） */
+  capabilities?: ProviderCapability[];
   /** ログインの仕方（設定の provider_auth。コアの /api/providers が付ける） */
   auth_mode?: ProviderAuthMode;
   /** API キーを置いたか（キーそのものは出さない） */
@@ -23,8 +26,8 @@ export interface ProviderStatus {
   update?: ProviderUpdate | null;
 }
 
-/** 各 AI の CLI が返す状態（API の応答 ProviderStatus は、これにコアの /api/providers ができること features を足したもの） */
-export type ProviderCliStatus = Omit<ProviderStatus, "features">;
+/** 各 AI の CLI が返す状態（API の応答 ProviderStatus は、これにコアの /api/providers ができること features・capabilities を足したもの） */
+export type ProviderCliStatus = Omit<ProviderStatus, "features" | "capabilities">;
 
 /** 入れた CLI の新しい版と上げ方 */
 export interface ProviderUpdate {

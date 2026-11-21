@@ -7,6 +7,7 @@ import type { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";
 import { providerHandoffGit } from "./providerHandoffGit";
 import { workdirOf } from "@/features/chat/core/workdir";
+import { providerCan } from "@shared/ai/providers";
 
 export interface ProviderSwitchDeps {
   store: Store;
@@ -28,7 +29,7 @@ export async function prepareAndCommitProviderSwitch(
   deps.requireIdle(input.chatId);
   const chat = store.chats.get(input.chatId);
   if (!chat || chat.archived_at || chat.provider !== input.expectedProvider || chat.provider === input.target) throw new Error("チャットの状態が変わったため、AI を切り替えられません");
-  if ((chat.provider !== "claude" && chat.provider !== "codex") || (input.target !== "claude" && input.target !== "codex")) throw new Error("この AI の切り替えにはまだ対応していません");
+  if (!providerCan(chat.provider, "switch") || !providerCan(input.target, "switch")) throw new Error("この AI の切り替えにはまだ対応していません");
   const project = store.projects.get(chat.project_id);
   if (!project) throw new Error("プロジェクトが見つかりません");
   const events = store.events.list(chat.id);

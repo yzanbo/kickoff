@@ -23,6 +23,7 @@ import { marksOf } from "@shared/chat/handoff";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import type { ProviderId } from "@shared/settings/types";
+import { providerCan } from "@shared/ai/providers";
 
 /**
  * エージェントの実行を管理する。
@@ -149,7 +150,7 @@ export class Runner extends RunnerQueue {
   async switchProvider(chatId: number, expectedProvider: ProviderId, target: ProviderId, requireConfirmation?: () => void): Promise<{ chat: Chat; warning: string | null }> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "AI の切り替え");
-    if (chat.provider !== expectedProvider || chat.provider === target || (target !== "claude" && target !== "codex") || (chat.provider !== "claude" && chat.provider !== "codex")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
+    if (chat.provider !== expectedProvider || chat.provider === target || !providerCan(target, "switch") || !providerCan(chat.provider, "switch")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
     const blocked = handoffBlocksSwitch(this.deps.store.chatProviderHandoffs.get(chatId), chat.provider);
     if (blocked) throw new Conflict(blocked);
     const uploads = this.deps.uploads;
@@ -953,8 +954,7 @@ export class Runner extends RunnerQueue {
       // 切り替えた AI への引き継ぎが未確定なら、通常の自動再接続・送信待ちを進めない。
       const finished = this.handoffCanSend(item.chatId) && this.recovery.finished(item.chatId, outcome) && !this.shuttingDown;
       // 圧縮前指示の作業が最後まで終わって、まだ圧縮していなければ、続けて圧縮する（手で頼んだ圧縮の前の指示 = thenCompact、
-      // 自動の圧縮の前の指示で、作業の区切りまで圧縮が来なかったもの = awaitingCompact。次の指示を送ると、その初めに圧縮されて、指示が圧縮より上に出るため）。
-      // 止めた・失敗したときは圧縮しない
+      // 自動の圧縮の前の指示で、作業の区切りまで圧縮が来なかったもの = awaitingCompact。次の指示を送ると、その初めに圧縮されて、指示が圧縮より上に出るため）。止めた・失敗したときは圧縮しない
       const compactNext = finished && outcome.status === "completed" && !item.compact && (Boolean(item.thenCompact) || runtime.awaitingCompact);
       const manual = Boolean(item.thenCompact) || runtime.compactAfterTurn;
       // 止めるよう頼んでいたら、終わったので停止中を消す。続けて圧縮しないなら、「いま」を預かる間も終わる

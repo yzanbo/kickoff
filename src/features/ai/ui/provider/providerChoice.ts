@@ -2,6 +2,7 @@
 // 選べるか（対応予定は選べない）・その AI にない機能の理由・API キーで動かすか（使った分の支払い）
 import { providerFeatureMissing, type ProviderFeature, type ProviderStatus } from "@shared/ai/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /** API キーで動かす AI に添える印（設定・チャットの AI の札） */
 export const PAY_PER_USE_LABEL = "使った分の支払い";
@@ -46,8 +47,8 @@ export function featureBlock(status: ProviderStatus | undefined, feature: Provid
 /** API キーで動かすか（使った分の支払い。設定の provider_auth が api_key） */
 export const paysPerUse = (status: ProviderStatus | undefined): boolean => status?.auth_mode === "api_key";
 
-/** 札では短く出す AI の名前（チャット欄の下の行は狭いので「Claude Code」を「Claude」に。乗せたときの説明は正式な名前のまま） */
-const CHIP_SHORT_NAMES: Partial<Record<ProviderId, string>> = { claude: "Claude" };
-
-/** AI の札とそのメニューに出す名前（短い名前。API キーで動かすなら「· API キー」を添える） */
-export const providerChipName = (id: ProviderId, status: ProviderStatus | undefined): string => `${CHIP_SHORT_NAMES[id] ?? providerLabel(id, status)}${paysPerUse(status) ? " · API キー" : ""}`;
+/**
+ * AI の札とそのメニューに出す名前（表の短い名前。チャット欄の下の行は狭いので「Claude Code」を「Claude」に。乗せたときの説明は正式な名前のまま）。
+ * API キーで動かすなら「· API キー」を添える
+ */
+export const providerChipName = (id: ProviderId, status: ProviderStatus | undefined): string => `${PROVIDERS[id].short ?? providerLabel(id, status)}${paysPerUse(status) ? " · API キー" : ""}`;

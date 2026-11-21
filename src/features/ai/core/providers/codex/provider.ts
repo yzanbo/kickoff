@@ -15,6 +15,7 @@ import { runCodexTurn } from "./turn";
 import { CodexUpdateCheck } from "./update";
 import { parseCodexVersion } from "@shared/ai/cliUpdates";
 import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /** モデルの一覧を読む頁の上限（安全のため） */
 const MAX_MODEL_PAGES = 5;
@@ -59,7 +60,7 @@ export class CodexProvider implements AgentProvider {
 
   async status(): Promise<ProviderCliStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
-    if (!this.executable) return { ...base, installed: false, logged_in: false, detail: "codex CLI が見つかりません（brew install codex）" };
+    if (!this.executable) return { ...base, installed: false, logged_in: false, detail: PROVIDERS.codex.installHint };
     const executable = this.executable;
     const version = this.opts.spawn ? null : await runCommand(executable, ["--version"], { timeout: 5000 }).then(parseCodexVersion, () => null);
     // 新しい版は、ログインの様子と並べて聞く（聞けなくても状態は出す）
@@ -158,7 +159,7 @@ export class CodexProvider implements AgentProvider {
   }
 
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
-    if (!this.spawn) return Promise.resolve({ status: "failed", sessionId: params.resumeSessionId, error: "codex CLI が見つかりません（brew install codex）" });
+    if (!this.spawn) return Promise.resolve({ status: "failed", sessionId: params.resumeSessionId, error: PROVIDERS.codex.installHint });
     return runCodexTurn({ spawn: this.spawn, baseEnv: this.baseEnv, self: this.opts.self }, params, callbacks, signal);
   }
 }

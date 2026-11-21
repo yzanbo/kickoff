@@ -1,5 +1,6 @@
 import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_LABELS } from "@shared/settings/types";
 import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "@/features/ai/core/providers/acp/provider";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /** 確かめた Antigravity CLI（agy）の版（初期化の答え・authenticate の方法を確かめた版） */
 export const TESTED_VERSION = "1.5.9";
@@ -17,7 +18,7 @@ const GEMINI_SPEC: AcpProviderSpec = {
   id: "gemini",
   label: PROVIDER_LABELS.gemini,
   command: "agy",
-  installHint: "Antigravity CLI（agy）が見つかりません（brew install --cask antigravity-cli）",
+  installHint: PROVIDERS.gemini.installHint,
   statusDetail: "Gemini の API キーで動かします（設定の AI の欄で置く）",
   args: () => ["acp"],
   keys: { keyVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], apiKeyVar: "GEMINI_API_KEY" },

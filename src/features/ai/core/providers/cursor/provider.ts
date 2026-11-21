@@ -1,6 +1,7 @@
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "@/features/ai/core/providers/acp/provider";
 import { cursorExtension } from "./extensions";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /**
  * Cursor の CLI（`agent`）を ACP（`agent acp`）で動かす決まり（Cursor の説明「CLI ACP」に合わせた）。
@@ -12,7 +13,7 @@ const CURSOR_SPEC: AcpProviderSpec = {
   id: "cursor",
   label: PROVIDER_LABELS.cursor,
   command: "agent",
-  installHint: "Cursor の CLI（agent）が見つかりません（curl https://cursor.com/install -fsS | bash）",
+  installHint: PROVIDERS.cursor.installHint,
   statusDetail: "Cursor の CLI のログインで動かします（ログインはターミナルで `agent login`）",
   args: () => ["acp"],
   keys: { keyVars: ["CURSOR_API_KEY", "CURSOR_AUTH_TOKEN"], apiKeyVar: "CURSOR_API_KEY" },

@@ -7,7 +7,7 @@ import { PROVIDER_IDS } from "@shared/settings/types";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
-import { providerFeatures } from "@/features/ai/core/providers/features";
+import { providerFeatures } from "@/features/ai/core/capability";
 import { claudeAuthEnv } from "@/features/ai/core/providers/claude/env";
 import { testStore } from "@/app/core/testing/testStore";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";

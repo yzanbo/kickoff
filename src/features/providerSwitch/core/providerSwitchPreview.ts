@@ -8,12 +8,13 @@ import type { Store } from "@/features/chat/core/index";
 import { Conflict, NotFound } from "@/foundation/core/errors";
 import type { Runner } from "@/features/chat/core/runner";
 import { workdirOf } from "@/features/chat/core/workdir";
+import { providerCan } from "@shared/ai/providers";
 
 /** 確認画面と確定時で同じ条件を比較する。資料や API キーはトークンに含めない。 */
 export function providerSwitchPreview(store: Store, runner: Runner, chatId: number, target: ProviderId): ProviderSwitchPreview {
   const chat = store.chats.get(chatId);
   if (!chat) throw new NotFound("チャットが見つかりません");
-  if (chat.archived_at || chat.provider === target || (chat.provider !== "claude" && chat.provider !== "codex") || (target !== "claude" && target !== "codex")) throw new Conflict("この AI には切り替えられません");
+  if (chat.archived_at || chat.provider === target || !providerCan(chat.provider, "switch") || !providerCan(target, "switch")) throw new Conflict("この AI には切り替えられません");
   const blocked = handoffBlocksSwitch(store.chatProviderHandoffs.get(chatId), chat.provider);
   if (blocked) throw new Conflict(blocked);
   const project = store.projects.get(chat.project_id);

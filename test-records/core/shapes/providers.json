@@ -1,6 +1,9 @@
 [
   {
     "auth_mode": "string",
+    "capabilities": [
+      "string"
+    ],
     "detail": "string",
     "features": [
       "string"

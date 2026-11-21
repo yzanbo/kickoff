@@ -8,9 +8,9 @@ import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { PAY_PER_USE_LABEL, paysPerUse, providerChipName, providerLabel, providerPickBlock, providerSwitchBlock, statusOf } from "./providerChoice";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /** AI の札の色（グループの札と同じ形に、AI ごとの色 --hue） */
-const PROVIDER_HUES: Record<ProviderId, number> = { claude: 20, codex: 160, copilot: 280, cursor: 210, gemini: 45 };
 
 /** 札に乗せたときの説明の後ろ（API キーで動かすなら、使った分の支払いであることを添える） */
 const payNote = (status: ProviderStatus | undefined) => (paysPerUse(status) ? `。API キーで動かします（${PAY_PER_USE_LABEL}）` : "");
@@ -46,7 +46,7 @@ export function ProviderPicker({ value, onChange, tipPrefix = "この AI で始�
   return (
     <ChipPicker
       className="chat-group-chip chat-provider-chip"
-      hue={PROVIDER_HUES[value]}
+      hue={PROVIDERS[value].hue}
       icon={Bot}
       name={labels[value]}
       tip={`${tipPrefix}: ${providerLabel(value, current)}（押すと選び直す）${payNote(current)}`}
@@ -79,12 +79,12 @@ export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
     setSwitching(true);
     void switchWithConfirmation(chat.id, target, labels[target]).catch(reportFailure("AI を切り替えられませんでした")).finally(() => setSwitching(false));
   };
-  if (supported) return <ChipPicker className="chat-group-chip chat-provider-chip" hue={PROVIDER_HUES[provider]} icon={Bot} name={providerChipName(provider, status)} tip="このチャットの AI を切り替える" menuTitle="使う AI" values={["claude", "codex"] as const} labels={labels} value={provider} disabled={disabled} inactive={chat.archived_at ? "アーカイブ済みのチャットは切り替えられません" : busy ? "作業が終わってから切り替えてください" : switching ? "切り替え中です" : null} onPick={(target) => void change(target)} />;
+  if (supported) return <ChipPicker className="chat-group-chip chat-provider-chip" hue={PROVIDERS[provider].hue} icon={Bot} name={providerChipName(provider, status)} tip="このチャットの AI を切り替える" menuTitle="使う AI" values={["claude", "codex"] as const} labels={labels} value={provider} disabled={disabled} inactive={chat.archived_at ? "アーカイブ済みのチャットは切り替えられません" : busy ? "作業が終わってから切り替えてください" : switching ? "切り替え中です" : null} onPick={(target) => void change(target)} />;
   return (
     <span
       className="chat-group-chip tag chat-provider-chip"
       data-look="outline"
-      style={{ "--hue": PROVIDER_HUES[provider] } as CSSProperties}
+      style={{ "--hue": PROVIDERS[provider].hue } as CSSProperties}
       data-tip={`このチャットの AI: ${providerLabel(provider, status)}（この AI の切り替えには未対応です）${payNote(status)}`}
     >
       <Bot size={11} aria-hidden />

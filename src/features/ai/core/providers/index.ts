@@ -5,6 +5,7 @@ import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { geminiProvider } from "@/features/ai/core/providers/gemini/provider";
 import type { ProviderAuth } from "./keys";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
+import { PROVIDERS } from "@shared/ai/providers";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";
 import { PlannedProvider } from "./planned";
 import type { AgentProvider } from "./types";
@@ -29,9 +30,9 @@ export function createProviders(self?: SelfInfo, authFor?: (id: ProviderId) => P
   return {
     claude: new ClaudeProvider({ self }),
     codex: new CodexProvider({ self }),
-    copilot: experimental.has("copilot") ? new CopilotProvider({ self }) : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, "copilot"),
-    cursor: experimental.has("cursor") ? cursorProvider({ self, authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, "agent"),
+    copilot: experimental.has("copilot") ? new CopilotProvider({ self }) : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, PROVIDERS.copilot.cli),
+    cursor: experimental.has("cursor") ? cursorProvider({ self, authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, PROVIDERS.cursor.cli),
     // Gemini は Antigravity CLI を API キーで動かす（定額の枠では使えない）
-    gemini: experimental.has("gemini") ? geminiProvider({ self, authFor: authFor && (() => authFor("gemini")) }) : new PlannedProvider("gemini", PROVIDER_LABELS.gemini, "agy"),
+    gemini: experimental.has("gemini") ? geminiProvider({ self, authFor: authFor && (() => authFor("gemini")) }) : new PlannedProvider("gemini", PROVIDER_LABELS.gemini, PROVIDERS.gemini.cli),
   };
 }

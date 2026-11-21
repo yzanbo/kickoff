@@ -55,6 +55,7 @@ import { CHAT_TOOLS_HEAD, chatToolGroups } from "@/features/chat/core/tools/chat
 import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
+import { providerCan } from "@shared/ai/providers";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -198,7 +199,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
     // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
     const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
-    if (!useSandbox && chat.provider !== "claude" && chat.provider !== "codex") throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
+    if (!useSandbox && !providerCan(chat.provider, "sandbox_off")) throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
     const sandbox = useSandbox && deps.bashSandbox
       ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, noteDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
       : null;
@@ -226,7 +227,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
       }
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
-      const diagnostics = deps.sandboxDiagnostics && (chat.provider === "claude" || chat.provider === "codex") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
+      const diagnostics = deps.sandboxDiagnostics && providerCan(chat.provider, "sandbox_diagnostics") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
       params.onAgentSpawned = diagnostics?.onSpawn;
       const closeDiagnostics = () => diagnostics?.close();
       signal.addEventListener("abort", closeDiagnostics, { once: true });
@@ -300,8 +301,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, message);
     }
     await rememberEndBranch();
-    // 失敗も、見るまでは未読にする
-    store.chats.update(chatId, { status: "failed", error: message, unread: true });
+    store.chats.update(chatId, { status: "failed", error: message, unread: true }); // 失敗も、見るまでは未読にする
     store.events.add(chatId, { type: "error", message });
     return { status: "failed", network: false };
   } finally {

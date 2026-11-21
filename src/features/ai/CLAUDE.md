@@ -5,9 +5,9 @@
 ## 抽象（`types.ts`）
 
 - `AgentProvider` は `status()`・`run(params, callbacks, signal)` と任意の機能（`models`・`fork`・`login`・会話記録の `sessions` など）。名前・要約は `ask.ts`。対応しない機能は持たない。
-- できることは `features.ts` の `providerFeatures` が任意の機能の有無から作る（画面の押せない理由と、コアの断る文 `providerFeatureMissing` も同じ）。
+- AI ごとの名前・CLI・色・できることは `@shared/ai/providers` の `PROVIDERS` 1 つ（AI の名前で if を書かず `providerCan`・`hasCapability`）。前の形 `features` は `capability.ts` の `providerFeatures`。
 - 失敗は投げずに `ProviderTurnResult` で返し、止められたら `cancelled`。共通の小物は `shared/`（止める・失敗の印・名乗り・環境変数）。記録の `user` / `approval` / `result` などはコアが作り、プロバイダーは出さない。
-- AI を足すときは `index.ts` の `createProviders` と `PROVIDER_IDS`。確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。
+- AI を足すときは `index.ts` の `createProviders`・`PROVIDER_IDS`・`PROVIDERS`。確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。
 - チャットの AI は作るときに決め、途中では変えない。違う AI の子チャットは会話を引き継がない（セッションの形が違う）。
 - モデルの一覧は `modelCatalog.ts`（一覧にないモデルを外す `knownModel` も）。
 - API キーは `keys.ts` が `secrets` に暗号化して置き、応答・SSE に出さない（`has_api_key` だけ）。
@@ -71,7 +71,7 @@
 - 入力を閉じるのは、`session_state_changed` の `idle` で裏の作業がないとき（`turnOver.ts`）。返答の終わり（`result`）だけでは閉じない。
 - 指示の `promptId` を `uuid` で渡す（`enableFileCheckpointing` と合わせて、巻き戻しでその発言の時点に戻すため）。
 - 使用枠・モデル・/ のコマンド・ファイルを戻すは、送らないセッションで制御の API だけを呼ぶ（`withIdleSession`。枠を使わない）。
-- 砂場のオフ（`disableSandbox`）を受けるのは Claude と Codex だけ（ほかは `@/features/chat/core/turn.ts` が断る。足す AI はその判定も直す）。
+- 砂場のオフ（`disableSandbox`）を受けるのは表の `sandbox_off` の AI だけ（ほかは `@/features/chat/core/turn.ts` が断る）。
 
 ## チャットの AI の画面（`ui/provider/`）
 
