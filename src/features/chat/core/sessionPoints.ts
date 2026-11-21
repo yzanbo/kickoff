@@ -1,4 +1,7 @@
 import type { ChatEvent, ChatEventOf } from "@shared/chat/chatEvent";
+import { providerFeatureMissing } from "@shared/ai/types";
+import type { AgentProvider } from "@/features/ai/core/index";
+import { asInvalid, Invalid } from "@/foundation/core/errors";
 
 /**
  * 会話を引き継げる、いちばん近い作業の終わり（end より前。省けば最後まで）。巻き戻し・子チャットの起点。
@@ -29,4 +32,13 @@ export function sessionAt(events: ChatEvent[], index: number, current: string | 
     if (e.type === "init") return e.data.session_id;
   }
   return null;
+}
+
+/**
+ * 起点（最後まで終わった作業の終わり）から会話を新しいセッションに分岐し、新しいセッションの ID を返す（巻き戻し・分岐・子チャットの 3 か所）。
+ * 分岐できない AI・分岐に失敗したら 400
+ */
+export async function forkFrom(provider: AgentProvider, point: { session_id: string; message_id: string }, cwd: string, opts?: { keep?: number }): Promise<string> {
+  if (!provider.fork) throw new Invalid(providerFeatureMissing(provider.label, "fork"));
+  return provider.fork(point.session_id, point.message_id, cwd, opts).catch(asInvalid);
 }

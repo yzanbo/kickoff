@@ -3,13 +3,15 @@ import { RunShell } from "./shell";
 import { queueWindow } from "./queueWindow";
 import { preparations } from "./preparations";
 import { restartResumes } from "./restartResumes";
+import { withIdleChat, type IdleChat, type IdleChatOptions } from "./idle";
 import { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import type { StartChatInput } from "@/features/chat/core/input";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { systemClock, type Clock } from "@/foundation/core/clock";
-import type { ChatLive, QueueState } from "@shared/chat/chatLive";
+import type { Log } from "@/foundation/core/kernel";
+import type { ChatLive, PrepareReason, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
 import type { SendOpts } from "./queueWindow";
@@ -30,6 +32,8 @@ export type RunnerDeps = ExecutionDeps & ShellUpperDeps & {
   interrupted?: number[];
   /** 出来事・変わった項目・命令を 1 行ずつ書く口（KICKOFF_RUN_TRACE=1 のとき） */
   trace?: (line: string) => void;
+  /** 失敗したときに戻す手順の失敗を書く口（省けば console） */
+  log?: Pick<Log, "warn">;
 };
 
 /** ほかの機能に出す口（作業中か・作業中の様子・送る・送信待ちを止める・作業場所を移す・作業の始まりと終わりの知らせ） */
@@ -88,6 +92,8 @@ export function createChatRunner(deps: RunnerDeps) {
     resolveRestartResumes: restart.resolveRestartResumes,
     isBusy: (chatId: number) => shell.isBusy(chatId),
     requireIdle: (chatId: number, action: string) => shell.requireIdle(chatId, action),
+    /** 作業中でないと確かめてから準備の段階で用意して確定する（失敗なら戻す。idle.ts） */
+    withIdleChat: <T>(chatId: number, why: PrepareReason, action: string, fn: (h: IdleChat) => Promise<T>, opts?: IdleChatOptions) => withIdleChat(shell, chatId, why, action, fn, opts),
     /** 作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */
     live: (chatId: number): ChatLive => shell.runs.live(chatId),
     /** 移り変わる状態（読むだけ。網の筋書きが送る準備・足している途中かを見る） */

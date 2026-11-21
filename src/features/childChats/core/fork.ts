@@ -1,11 +1,9 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { Store } from "@/features/chat/core/index";
-import { providerFeatureMissing } from "@shared/ai/types";
+import { forkFrom, type Store } from "@/features/chat/core/index";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
-import { asInvalid, Invalid } from "@/foundation/core/errors";
-import { isBeforeWorkplaceMove, WORKPLACE_FORK_LOCKED } from "@shared/workplaceMove/workplaceMoves";
-import { isBeforeProviderSwitch, PROVIDER_FORK_LOCKED } from "@shared/providerSwitch/providerSwitch";
+import { Invalid } from "@/foundation/core/errors";
+import { lockedBefore } from "@shared/chat/boundaries";
 
 /**
  * チャットを、作業の終わり（result イベント）の時点から分岐する（「Fork chat from here」）。
@@ -17,14 +15,12 @@ export async function forkChat(deps: { store: Store; providers: Record<ProviderI
   const events = store.events.list(chat.id);
   const event = events.find((e) => e.id === eventId);
   const point = event?.type === "result" ? event.data : undefined;
-  // 作業場所を移した区切りより前の地点からは分岐できない（新しいチャットがどの作業場所で動くかが決まらない）
-  if (event && isBeforeWorkplaceMove(events, event.id)) throw new Invalid(WORKPLACE_FORK_LOCKED);
-  if (event && isBeforeProviderSwitch(events, event.id)) throw new Invalid(PROVIDER_FORK_LOCKED);
+  // 区切り（作業場所の移動・AI の切り替え）より前の地点からは分岐できない（新しいチャットがどの作業場所・AI で動くかが決まらない）
+  const locked = event ? lockedBefore(events, event.id, "fork") : null;
+  if (locked) throw new Invalid(locked);
   // 最後まで終わった作業の終わりからだけ分岐できる（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）
   if (point?.status !== "completed" || !point.session_id || !point.message_id) throw new Invalid("この時点からは分岐できません");
-  const provider = providers[chat.provider];
-  if (!provider.fork) throw new Invalid(providerFeatureMissing(provider.label, "fork"));
-  const sessionId = await provider.fork(point.session_id, point.message_id, cwd).catch(asInvalid);
+  const sessionId = await forkFrom(providers[chat.provider], { session_id: point.session_id, message_id: point.message_id }, cwd);
 
   const forked = store.chats.create({
     project_id: chat.project_id,

@@ -45,6 +45,8 @@ export { depthOf, descendantsOf, lineageOf } from "./family";
 export { openPlaceInput } from "./tools/open";
 export { toolChat } from "./tools/context";
 export { workdirOf } from "./workdir";
+export { forkFrom, resumePointBefore } from "./sessionPoints";
+export { replaceSession, type SessionTrash } from "./sessionSwitch";
 export type { ChatAttachments } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
@@ -154,7 +156,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す

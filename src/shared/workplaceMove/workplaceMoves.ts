@@ -36,11 +36,6 @@ export function latestWorkplaceMove(events: readonly ChatEvent[]): ChatEventOf<"
   return latest;
 }
 
-/** その記録より後に区切りがあるか（= 作業場所を移す前の記録。巻き戻し・分岐・ファイルを戻すができない） */
-export function isBeforeWorkplaceMove(events: readonly ChatEvent[], eventId: number): boolean {
-  return events.some((e) => e.type === "workplace_moved" && e.id > eventId);
-}
-
 /** 区切りの一覧から、その記録のときの作業場所（後ろにある最初の区切りの「移す前」。区切りが後ろになければいまの作業場所） */
 function workplaceAtBoundaries(boundaries: readonly WorkplaceBoundary[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
   for (const b of boundaries) if (b.id > eventId) return { ...b.from, moved: true };
@@ -52,14 +47,8 @@ export function workplaceAt(events: readonly ChatEvent[], eventId: number, curre
   return workplaceAtBoundaries(workplaceBoundaries(events), eventId, current);
 }
 
-/** 区切りより前の発言を巻き戻せないときの文 */
-export const WORKPLACE_REWIND_LOCKED = "作業場所を移す前の発言なので巻き戻せません（会話もファイルも）";
-/** 区切りより前の地点から分岐できないときの文 */
-export const WORKPLACE_FORK_LOCKED = "作業場所を移す前の地点なので分岐できません";
 /** 区切りより前の発言のファイル・画像を、そのときの作業場所がもうなくて開けないときの文 */
 export const workplaceGoneText = (label: string): string => `この発言のときの作業場所（${label}）はもうないので開けません`;
-/** 区切りより前の発言のファイルを戻せないときの文 */
-export const WORKPLACE_FILES_LOCKED = "作業場所を移す前の発言なので、ファイルは戻せません";
 
 /** パスの最後の名前 */
 const baseName = (p: string) => p.replace(/\/+$/, "").split("/").pop() || p;

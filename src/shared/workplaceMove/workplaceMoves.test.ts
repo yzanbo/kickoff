@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
+import { boundaryAfter } from "@shared/chat/boundaries";
 import { test } from "vitest";
 import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { eventSequence } from "@shared/foundation/testing/factories";
 import {
-  isBeforeWorkplaceMove,
   latestWorkplaceMove,
   workplaceAt,
   workplaceBoundaries,
@@ -31,13 +31,13 @@ function twoMoves() {
 
 test("区切りより前の記録だけが「移す前」で、区切りそのものと後ろは違う", () => {
   const { events, u1, r1, m1, u2, m2, u3 } = twoMoves();
-  assert.equal(isBeforeWorkplaceMove(events, u1.id), true);
-  assert.equal(isBeforeWorkplaceMove(events, r1.id), true);
+  assert.equal(boundaryAfter(events, u1.id), "workplace_moved");
+  assert.equal(boundaryAfter(events, r1.id), "workplace_moved");
   // いちばん新しい区切りで決める（A での発言も、B へ移したあとは移す前）
-  assert.equal(isBeforeWorkplaceMove(events, u2.id), true);
-  assert.equal(isBeforeWorkplaceMove(events, m2.id), false);
-  assert.equal(isBeforeWorkplaceMove(events, u3.id), false);
-  assert.equal(isBeforeWorkplaceMove([u1, r1], u1.id), false);
+  assert.equal(boundaryAfter(events, u2.id), "workplace_moved");
+  assert.equal(boundaryAfter(events, m2.id), null);
+  assert.equal(boundaryAfter(events, u3.id), null);
+  assert.equal(boundaryAfter([u1, r1], u1.id), null);
   assert.equal(latestWorkplaceMove(events)?.id, m2.id);
   assert.equal(m1.type, "workplace_moved");
 });

@@ -14,9 +14,7 @@ import type { ProviderId } from "@shared/settings/types";
 import type { Chat } from "@shared/chat/types";
 import type { ChatRun } from "./chatRun";
 import type { RunShell } from "./shell";
-
-/** AI の切り替えで確かめる送信待ちの形（確かめている間に変わったら確定しない） */
-const queueSnapshot = (run: ChatRun) => ({ messages: run.outbox.later, paused: queuePaused(run.run), stops: run.outbox.stops });
+import { withIdleChat } from "./idle";
 
 export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservations) {
   const { deps, runs } = shell;
@@ -53,26 +51,24 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
    * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（送る準備 move_workplace）、その間の「いま」は預かって、
    * 利用者が移したなら済んでから送る。止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
    */
-  const moveWorkplace = async (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> => {
+  const moveWorkplace = (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> =>
     // AI の予約は作業の終わりに殻が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
-    if (input.reason === "user") shell.requireIdle(chatId, "作業場所の変更");
-    shell.dispatch(chatId, { type: "begin", why: "move_workplace" });
-    try {
-      shell.dispatch(chatId, { type: "forget_recovery" });
-      // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
-      const prepared = { ...input, ...(await steps?.before?.()) };
-      try {
+    withIdleChat(
+      shell,
+      chatId,
+      "move_workplace",
+      "作業場所の変更",
+      async ({ undo }) => {
+        shell.dispatch(chatId, { type: "forget_recovery" });
+        // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
+        const prepared = { ...input, ...(await steps?.before?.()) };
+        undo.add(() => steps?.undo?.());
         const chat = await moveChatWorkplace({ store, providers: deps.providers, sessionTrash: deps.sessionTrash }, chatId, prepared);
         await steps?.after?.();
         return chat;
-      } catch (e) {
-        await steps?.undo?.().catch(() => {});
-        throw e;
-      }
-    } finally {
-      shell.dispatch(chatId, { type: "prepared", ...(input.reason === "user" ? { next: "deliver" as const } : {}) });
-    }
-  };
+      },
+      { check: input.reason === "user", next: () => (input.reason === "user" ? "deliver" : undefined) },
+    );
 
   /** 送信前の引き継ぎ失敗をやり直す。すでに記録した指示は同じ発言として再開する。 */
   const retryProviderHandoff = async (chatId: number): Promise<{ warning: string | null }> => {
@@ -82,34 +78,33 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
     const pending = store.chatProviderHandoffs.get(chatId);
     if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
     if (!uploads) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
-    const run = runs.get(chatId);
-    shell.dispatch(chatId, { type: "begin", why: "handoff_retry" });
-    let started = false;
-    let recovered = false;
-    let claimed = false;
-    try {
-      const attempt = store.events.list(chatId, { after: pending.eventId, types: ["user"], limit: 1 })[0];
-      const prompt = attempt?.type === "user" ? (await followupPrompt(deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
-      const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
-        const { phase } = run.run;
-        if (phase.kind !== "preparing" || phase.why !== "handoff_retry") throw new Conflict("チャットの状態が変わったため、再試行できません");
-      } }, chatId, attempt?.type === "user");
-      claimed = attempt?.type === "user";
-      if (attempt?.type === "user" && prompt !== null) {
-        store.chats.update(chatId, { status: "running", error: null, unread: false });
-        started = true;
-        void shell.execute(chatId, { chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId }, "message", null);
-      }
-      recovered = true;
-      return result;
-    } catch (error) {
-      // 再準備後の失敗でも、元の指示を飛ばして次の待ちを送らない。
-      if (claimed) store.chatProviderHandoffs.blockBeforeSend(chatId, pending.eventId, errorMessage(error));
-      else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
-      throw error;
-    } finally {
-      if (!started) shell.dispatch(chatId, { type: "prepared", ...(recovered ? { next: "send_next" as const } : {}) });
-    }
+    // 再試行できたら送信待ちの次を送る（記録した指示を送り直したら、その作業が段階を引き継ぐ）
+    return withIdleChat(
+      shell,
+      chatId,
+      "handoff_retry",
+      "AI の引き継ぎの再試行",
+      async ({ still }) => {
+        let claimed = false;
+        try {
+          const attempt = store.events.list(chatId, { after: pending.eventId, types: ["user"], limit: 1 })[0];
+          const prompt = attempt?.type === "user" ? (await followupPrompt(deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
+          const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: still }, chatId, attempt?.type === "user");
+          claimed = attempt?.type === "user";
+          if (attempt?.type === "user" && prompt !== null) {
+            store.chats.update(chatId, { status: "running", error: null, unread: false });
+            void shell.execute(chatId, { chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId }, "message", null);
+          }
+          return result;
+        } catch (error) {
+          // 再準備後の失敗でも、元の指示を飛ばして次の待ちを送らない。
+          if (claimed) store.chatProviderHandoffs.blockBeforeSend(chatId, pending.eventId, errorMessage(error));
+          else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
+          throw error;
+        }
+      },
+      { check: false, conflict: "チャットの状態が変わったため、再試行できません", next: (ok) => (ok ? "send_next" : undefined) },
+    );
   };
 
   return {
@@ -143,29 +138,27 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
       const uploads = deps.uploads;
       if (!uploads) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
       const run = runs.get(chatId);
-      const initialQueue = queueSnapshot(run);
-      const initialSignature = JSON.stringify(initialQueue);
-      shell.dispatch(chatId, { type: "begin", why: "switch_provider" });
-      let switched = false;
-      try {
-        const provider = deps.providers[target];
-        const status = await provider.status();
-        const auth = await deps.providerKeys?.authFor(target);
-        if (!provider.implemented || !status.implemented || !status.installed) throw new Conflict("切り替え先の AI が利用できません");
-        if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
-        const requireStable = () => {
-          const { phase } = run.run;
-          if (phase.kind !== "preparing" || phase.why !== "switch_provider" || JSON.stringify(queueSnapshot(run)) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
-          requireConfirmation?.();
-        };
-        const result = await prepareAndCommitProviderSwitch({ store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused: initialQueue.paused, queuedIds: initialQueue.messages.map((message) => message.id) });
-        switched = true;
-        return result;
-      } finally {
-        shell.dispatch(chatId, { type: "prepared", ...(switched ? { next: "send_next" as const } : {}) });
-        // 切り替えに失敗したとき、準備中に増えた指示を意図せず元の AI に送らない。
-        if (!switched && JSON.stringify(queueSnapshot(run)) !== initialSignature && run.outbox.later.length > 0) shell.dispatch(chatId, { type: "set_paused", paused: true });
-      }
+      const queueWasPaused = queuePaused(run.run);
+      const queuedIds = run.outbox.later.map((message) => message.id);
+      return withIdleChat(
+        shell,
+        chatId,
+        "switch_provider",
+        "AI の切り替え",
+        async ({ still }) => {
+          const provider = deps.providers[target];
+          const status = await provider.status();
+          const auth = await deps.providerKeys?.authFor(target);
+          if (!provider.implemented || !status.implemented || !status.installed) throw new Conflict("切り替え先の AI が利用できません");
+          if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
+          const requireStable = () => {
+            still();
+            requireConfirmation?.();
+          };
+          return prepareAndCommitProviderSwitch({ store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused, queuedIds });
+        },
+        { check: false, watchQueue: true, conflict: "送信待ちやチャットの状態が変わったため、AI を切り替えられません", next: (ok) => (ok ? "send_next" : undefined) },
+      );
     },
 
     /** 受信不明時に利用者が重複の可能性を承知して再送を選んだ場合だけ実行する。 */

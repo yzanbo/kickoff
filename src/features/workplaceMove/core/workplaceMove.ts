@@ -3,16 +3,13 @@
 // 会話を新しいセッションに写し、古い会話記録をゴミ箱へ入れ、作業場所とブランチを書き替え、区切り workplace_moved を置く
 import { errorMessage } from "@shared/foundation/errors";
 import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
-import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
-import type { Store } from "@/features/chat/core/index";
+import { replaceSession, resumePointBefore, workdirOf, type SessionTrash, type Store } from "@/features/chat/core/index";
 import { currentBranch } from "@/foundation/core/workplace/reads";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import { resumePointBefore } from "@/features/chat/core/sessionPoints";
-import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
-import { workdirOf } from "@/features/chat/core/workdir";
 
 export interface WorkplaceMoveDeps {
   store: Store;
@@ -94,14 +91,8 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
     } catch (e) {
       failure = errorMessage(e);
     }
-    if (copied) {
-      store.events.remapSession(chatId, old, copied.sessionId);
-      store.chats.update(chatId, { session_id: copied.sessionId });
-      // 分岐したチャットなど、ほかのチャットがまだ元の記録を指していれば残す
-      if (!store.events.sessionInUse(old)) {
-        await deps.sessionTrash?.(old, copied.previousFile, { projectId: chat.project_id, label: `会話記録（「${chat.title || UNTITLED_CHAT_TITLE}」の作業場所を移す前）` }).catch(() => {});
-      }
-    } else if (isManual(input.reason)) {
+    if (copied) await replaceSession({ store, trash: deps.sessionTrash }, chat, copied, "作業場所を移す前").catch(() => {});
+    else if (isManual(input.reason)) {
       throw new Invalid(`会話を新しいセッションに写せなかったので、作業場所を移しませんでした（${failure}）`);
     }
   }

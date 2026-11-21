@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import { isBeforeProviderSwitch, providerAtEvent, providerBoundaries, providerSwitchLine } from "./providerSwitch";
+import { lockedBefore } from "@shared/chat/boundaries";
+import { providerAtEvent, providerBoundaries, providerSwitchLine } from "./providerSwitch";
 
 test("AI の切り替えを境に操作を制限し、切り替え元と先を表示する", () => {
   const ev = eventSequence();
@@ -9,9 +10,9 @@ test("AI の切り替えを境に操作を制限し、切り替え元と先を�
   const switched = ev("provider_switched", { from: "claude", to: "codex" });
   const after = ev("user", { text: "後" });
   const all = [first, switched, after];
-  assert.equal(isBeforeProviderSwitch(all, first.id), true);
-  assert.equal(isBeforeProviderSwitch(all, switched.id), false);
-  assert.equal(isBeforeProviderSwitch(all, after.id), false);
+  assert.equal(lockedBefore(all, first.id, "rewind"), "AI を切り替える前の発言なので巻き戻せません");
+  assert.equal(lockedBefore(all, switched.id, "fork"), null);
+  assert.equal(lockedBefore(all, after.id, "files"), null);
   assert.equal(providerSwitchLine(switched.data), "Claude Code → Codex に切り替えました");
 });
 

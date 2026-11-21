@@ -5,12 +5,10 @@ import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
 import type { AiChatRelation } from "@shared/chat/aiCreateChat";
-import type { Store } from "@/features/chat/core/index";
+import { forkFrom, resumePointBefore, workdirOf, type Store } from "@/features/chat/core/index";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { CHILD_FORK_KEEP, type AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunPort } from "@/features/chat/core/index";
-import { resumePointBefore } from "@/features/chat/core/sessionPoints";
-import { workdirOf } from "@/features/chat/core/workdir";
 
 export interface ChildChatInput {
   /** 聞くこと */
@@ -91,10 +89,9 @@ export async function startChildChat(
     const provider = providers[parent.provider];
     const { session_id: from, message_id: at } = point ?? {};
     if (from && at && provider.fork) {
-      const forkSession = provider.fork.bind(provider);
       const workdir = workdirOf(parent, project);
       // 子チャットは最新の区切り（最後の圧縮の要約とそのあと）だけを写す
-      fork = () => forkSession(from, at, workdir, { keep: CHILD_FORK_KEEP });
+      fork = () => forkFrom(provider, { session_id: from, message_id: at }, workdir, { keep: CHILD_FORK_KEEP });
     } else {
       notice = asChild
         ? `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`

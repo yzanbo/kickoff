@@ -13,6 +13,7 @@ import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import type { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import type { Clock } from "@/foundation/core/clock";
+import type { Log } from "@/foundation/core/kernel";
 import { Conflict, Invalid, NotFound, type AppError } from "@/foundation/core/errors";
 import type { OutboxEnv } from "@shared/chat/outbox";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
@@ -27,6 +28,8 @@ export interface ShellDeps extends ExecutionDeps, ShellUpperDeps {
   editHoldTtlMs?: number;
   /** 出来事・変わった項目・命令を 1 行ずつ書く口（KICKOFF_RUN_TRACE=1 のときだけ渡す） */
   trace?: (line: string) => void;
+  /** 失敗したときに戻す手順の失敗を書く口（省けば console） */
+  log?: Pick<Log, "warn">;
 }
 
 /** 上の機能の力が要る命令（作業の終わりにすること）と、プロジェクトの圧縮前指示（殻を組み立てる runner.ts が渡す） */

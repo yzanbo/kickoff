@@ -5,8 +5,7 @@ import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
-import { WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/workplaceMove/workplaceMoves";
-import { PROVIDER_FILES_LOCKED, PROVIDER_REWIND_LOCKED } from "@shared/providerSwitch/providerSwitch";
+import { LOCKED_LABELS } from "@shared/chat/boundaries";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
@@ -76,8 +75,8 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // 作業場所を移した区切りより前の発言は、会話もファイルも巻き戻せない
   const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
   const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
-  const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_REWIND_LOCKED : beforeSwitch ? PROVIDER_REWIND_LOCKED : null);
-  const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? WORKPLACE_FILES_LOCKED : beforeSwitch ? PROVIDER_FILES_LOCKED : null);
+  const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? LOCKED_LABELS.workplace_moved.rewind : beforeSwitch ? LOCKED_LABELS.provider_switched.rewind : null);
+  const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? LOCKED_LABELS.workplace_moved.files : beforeSwitch ? LOCKED_LABELS.provider_switched.files : null);
   // 書き直しを始める（作業中かは操作の部品が見る）
   const onEdit = pane && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）

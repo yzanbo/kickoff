@@ -1,7 +1,6 @@
 import { ClipboardPenLine, GitBranch } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
-import { WORKPLACE_FORK_LOCKED } from "@shared/workplaceMove/workplaceMoves";
-import { PROVIDER_FORK_LOCKED } from "@shared/providerSwitch/providerSwitch";
+import { LOCKED_LABELS } from "@shared/chat/boundaries";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatClock, formatDuration } from "@/foundation/ui/lib/time";
 import { copyRich } from "@/features/conversation/ui/richCopy";
@@ -57,7 +56,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
   // 作業場所を移した区切りより前の地点からは分岐できない
   const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
   const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
-  const forkBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_FORK_LOCKED : beforeSwitch ? PROVIDER_FORK_LOCKED : null);
+  const forkBlock = useFeatureBlock("fork") ?? (beforeMove ? LOCKED_LABELS.workplace_moved.fork : beforeSwitch ? LOCKED_LABELS.provider_switched.fork : null);
   const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
   const worked = turnStart && formatDuration(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;

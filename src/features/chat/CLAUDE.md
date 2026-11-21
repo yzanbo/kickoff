@@ -15,7 +15,7 @@
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
+- 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作は `requireIdle` で 409。用意して確定する流れ（巻き戻し・AI の切り替え・引き継ぎのやり直し・移動）は `withIdleChat`（`run/idle.ts`）。
 - 状態は `ChatRun`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。作業の始まりと終わりは `onTurnStarted`・`onTurnEnded` で聞く。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
@@ -69,9 +69,9 @@
 
 ## 巻き戻し・ファイルを戻す（`core/rewind.ts`・`core/sessionSwitch.ts`）
 
-- 巻き戻しは、自分の発言より前のいちばん近い起点（`resumePointBefore`。消去・作業場所を移した区切りで止まる）から分岐し、後ろの記録と送信待ちを消して送り直す。
-- `restore_files` はファイルを分岐より先に戻す（`rewindChat` の JSDoc）。`rewindFiles` は dryRun で測ってから戻し、消去のあとなら前のセッション（`sessionAt`）で戻す。
-- 長いチャットの乗り換え（`switchAfterCompact`）は直近の区切りだけの新しいセッションに移り、`store.events.remapSession` で付け替える。失敗しても作業は止めない。
+- 巻き戻しは、自分の発言より前のいちばん近い起点（`resumePointBefore`）から分岐し、後ろの記録と送信待ちを消して送り直す。区切りの手前は断る（`@shared/chat/boundaries`）。
+- `restore_files` はファイルを分岐より先に戻す。`rewindFiles` は dryRun で測ってから戻す（消去のあとは `sessionAt`）。
+- 長いチャットの乗り換え（`switchAfterCompact`）は直近の区切りだけのセッションに移る（`replaceSession`）。失敗しても止めない。
 
 ## AI の操作ツールの中身（`core/tools/`）
 
