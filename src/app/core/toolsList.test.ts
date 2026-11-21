@@ -88,7 +88,6 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   });
   const core = setupCore(provider, {
     toolHost: host,
-    terminals,
     sandboxDiagnostics: { processes: async () => [], denials: async () => [] },
     ...options,
   });
@@ -106,9 +105,9 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       openSqlToolGroup({ store, dbConnectionsOf: (id) => store.dbConnections.list(id), publish: (e) => core.bus.publish(e) }),
       terminalToolGroup({ store, terminals }),
       usageToolGroup(core.usage),
-      createChatToolGroup({ store, startChat: unused("startChat"), worktreeEnvs: () => undefined }),
+      createChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
       worktreeToolGroup(finisher),
-      workplaceToolGroup({ store, reservations: unused("reservations"), isBusy: (id) => runner.isBusy(id), terminals: () => terminals }),
+      workplaceToolGroup({ store, reservations: unused("reservations"), isBusy: (id) => runner.isBusy(id), terminals: () => null }),
       visualToolGroup(store),
       userViewToolGroup({ store, userViews: new UserViewRegistry() }),
       notifyToolGroup({ store: () => core.store, publish: (e) => core.bus.publish(e) }),

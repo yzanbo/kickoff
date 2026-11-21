@@ -1,4 +1,4 @@
-import type { ExecutionDeps, ShellUpperDeps } from "@/features/chat/core/turn";
+import type { ExecutionDeps } from "@/features/chat/core/turn";
 import { RunShell } from "./shell";
 import { queueWindow } from "./queueWindow";
 import { preparations } from "./preparations";
@@ -6,7 +6,6 @@ import { restartResumes } from "./restartResumes";
 import { withIdleChat, type IdleChat, type IdleChatOptions } from "./idle";
 import { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine/types";
-import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import { TurnEndTasks, type TurnEndKind, type TurnEndTask } from "@/features/chat/core/turnEnd";
 import { recordEvent } from "./record";
 import type { StartChatInput } from "@/features/chat/core/input";
@@ -20,7 +19,7 @@ import type { SendOpts } from "./queueWindow";
 import { compactPromptFor } from "@shared/chat/prompts";
 
 /** 殻を組み立てるのに使うもの */
-export type RunnerDeps = ExecutionDeps & ShellUpperDeps & {
+export type RunnerDeps = ExecutionDeps & {
   usage: UsageMonitor;
   /** 時計（省けば本物。書き直しの持ち時間・行の時刻） */
   clock?: Clock;
@@ -38,7 +37,7 @@ export type RunnerDeps = ExecutionDeps & ShellUpperDeps & {
   log?: Pick<Log, "warn">;
 };
 
-/** ほかの機能に出す口（作業中か・作業中の様子・送る・送信待ちを止める・作業場所を移す・作業の始まりと終わりの知らせ） */
+/** ほかの機能に出す口（作業中か・作業中の様子・送る・送信待ちを止める・用意して確定する・作業の終わりの予約・作業の始まりと終わりの知らせ） */
 export interface ChatRunPort {
   isBusy(chatId: number): boolean;
   requireIdle(chatId: number, action: string): void;
@@ -49,7 +48,8 @@ export interface ChatRunPort {
   message(chatId: number, body: SendBody): Promise<SendResult>;
   send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
   setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
-  moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat>;
+  /** 作業中でないと確かめてから準備の段階で用意して確定する（失敗なら戻す。idle.ts。作業場所の移動が使う） */
+  withIdleChat<T>(chatId: number, why: PrepareReason, action: string, fn: (h: IdleChat) => Promise<T>, opts?: IdleChatOptions): Promise<T>;
   /** 作業の終わりに行う予約（turnEnd.ts） */
   reserveAtTurnEnd(chatId: number, task: TurnEndTask): void;
   cancelTurnEnd(chatId: number, kind: TurnEndKind): TurnEndTask | null;
@@ -126,8 +126,8 @@ export function createChatRunner(deps: RunnerDeps) {
     reservedFolders: () => turnEnds.reservedFolders(),
     continuation: (chatId: number, text: string, afterFinish: boolean) => void shell.dispatch(chatId, { type: "continuation", text, afterFinish }),
 
-    /** 上の機能の口（ワークツリーの実行環境と後始末・内蔵ターミナル・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach" | "providerSwitch"> & ShellUpperDeps) {
+    /** 上の機能の口（AI のツールの組・親から外す・AI の切り替え）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
+    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach" | "providerSwitch">) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },

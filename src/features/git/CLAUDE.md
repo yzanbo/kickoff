@@ -12,7 +12,7 @@
 - ブランチ・タグの名前は「-」で始まるものを断る。マージ・リベース・プルは衝突で止まっても失敗にせず、衝突したファイルを返す。
 - Git で管理していないプロジェクト（`repo: false`）のファイルの一覧と検索は `@/foundation/core/workplace/plainFolder.ts`（フォルダの中に何も作らない）。ワークツリー・差分・履歴は 400。
 - リポジトリの中のフォルダを本体にしたプロジェクト（`gitPrefix`）は、そのフォルダから見たパスで返す。コミットは、外にもステージしたファイルがあれば 409。
-- 取り込みとフォルダの変更は `prepareImportedWorkspace` の決まり。登録済みかは実体のパスでも比べる（`projectAt`）。フォルダを変えたら、チャットは `Runner.moveWorkplace` で移す（`src/features/workplaceMove/CLAUDE.md`）。
+- 取り込みとフォルダの変更は `prepareImportedWorkspace` の決まり。登録済みかは実体のパスでも比べる（`projectAt`）。フォルダを変えたら、チャットは `workplaceMove.api.move` で移す（`src/features/workplaceMove/CLAUDE.md`）。
 - プロジェクトの GitHub のアカウントは `runAsGitHubAccount` の中で gh に渡す（github が `k.workplace.projectScopes` に登録し、プロジェクトの引き当てが包むので、ルートで渡さない。gh の有効なアカウントは切り替えない）。git は remote に触る操作（`k.workplace.git`。github が `gitEnv` に登録）だけにトークンを足す。
 - GitHub として扱うホストは `@/features/github/core/githubTarget.ts` の `GITHUB_HOSTS` だけ（Enterprise を足すときに直す所はその JSDoc）。
 - リモートとやり取りする操作は `runGitOperation` を通す（自動のフェッチとぶつかると「cannot lock ref」で落ちる）。

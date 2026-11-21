@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ExecutionDeps, ShellUpperDeps, TurnRequest } from "@/features/chat/core/turn";
+import type { ExecutionDeps, TurnRequest } from "@/features/chat/core/turn";
 import { executeTurn } from "./turn/execute";
 import { ChatRuns } from "./chatRuns";
 import type { ChatRun, TurnHandle } from "./chatRun";
@@ -22,7 +22,7 @@ import type { Chat } from "@shared/chat/types";
 import { busyPreCompactMessage } from "@shared/chat/prompts";
 
 /** 殻が受けるもの（1 回の実行に渡すもの・使用状況・時計・書き直しの持ち時間・出来事の記録の口） */
-export interface ShellDeps extends ExecutionDeps, ShellUpperDeps {
+export interface ShellDeps extends ExecutionDeps {
   usage: UsageMonitor;
   clock: Clock;
   editHoldTtlMs?: number;

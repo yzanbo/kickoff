@@ -20,7 +20,7 @@ import { sweepUnusedSessions } from "./sessions/sessionTrash";
 import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
-import type { ExecutionDeps, ShellUpperDeps } from "./turn";
+import type { ExecutionDeps } from "./turn";
 import type { TurnContributor } from "./run/turn/contributor";
 import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
@@ -83,8 +83,6 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 
 /** チャットより上の機能の口（上の機能はチャットを使うのであとに作り、組み立ての最後に attach で渡す） */
 export interface ChatUpper {
-  worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
-  terminals: NonNullable<ShellUpperDeps["terminals"]>;
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */
   aiTools: NonNullable<ExecutionDeps["aiTools"]>;
 }
@@ -101,6 +99,8 @@ export interface ChatApi {
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat） */
   chatRemover: ChatRemover;
   sessionsElsewhere?: SessionsUsedElsewhere;
+  /** 乗り換えた古い会話記録をゴミ箱へ入れる（ほかの Kickoff が使っていれば入れない。作業場所を移すときも） */
+  sessionTrash: SessionTrash;
   /** 上の機能の口を受ける（組み立ての最後に 1 回だけ。仮の口で、上の機能が実行に足すものを登録する形に替えたら消す） */
   attach(upper: ChatUpper): void;
   /** 子チャットを親から外す口を受ける（childChats が createChildChats の中で登録する。AI の update_chat の parent_id） */
@@ -185,13 +185,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     const extras = { user_view: userView, fromHost: callerOf(c).kind === "host" };
     for (const fn of sendHooks) fn(chatId, extras);
   };
-  // 上の機能の口（ルートは待ち受けの前に登録するので、それまでに attach で受ける）
-  let upper: ChatUpper | null = null;
-  const routeDeps = () => {
-    if (!upper) throw new Error("組み立ての最後に chat の attach を呼んでいません");
-    const { worktreeEnvs, terminals } = upper;
-    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, terminals };
-  };
+  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
   return {
@@ -206,10 +200,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       mcpTools,
       chatRemover,
       sessionsElsewhere,
-      attach: (given) => {
-        upper = given;
-        runner.attach(given);
-      },
+      sessionTrash,
+      attach: (given) => runner.attach(given),
       provideDetach: (port) => runner.attach({ detach: port }),
       provideProviderSwitch: (port) => runner.attach({ providerSwitch: port }),
       addTurnContributor: (c) => void contributors.push(c),
@@ -222,12 +214,11 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     routes: [
       {
         legacy: (app) => {
-          const r = routeDeps();
-          chatRoutes(app, r);
-          turnRoutes(app, r);
-          queueRoutes(app, r);
-          sessionRoutes(app, r);
-          approvalRoutes(app, r);
+          chatRoutes(app, routeDeps);
+          turnRoutes(app, routeDeps);
+          queueRoutes(app, routeDeps);
+          sessionRoutes(app, routeDeps);
+          approvalRoutes(app, routeDeps);
         },
       },
     ],
@@ -242,20 +233,9 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   };
 }
 
-/** プロジェクトの口に、チャットの分を登録する（作業中か・本体のフォルダを変えたら作業場所を移す・ゴミ箱に入れたら作業中の状態を捨てる） */
+/** プロジェクトの口に、チャットの分を登録する（作業中か・ゴミ箱に入れたら作業中の状態を捨てる。本体のフォルダを変えたら作業場所を移すのは workplaceMove） */
 function registerProjectHooks(projects: ProjectsApi, store: Store, runner: ChatRunner): void {
   projects.addBusyCheck((projectId) => store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id)));
-  projects.afterRepoMove(async (project, moves) => {
-    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
-    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（本体のチャットも）
-    for (const chat of chats) {
-      const to = chat.worktree_path ? (moves.get(chat.worktree_path) ?? null) : null;
-      await runner.moveWorkplace(chat.id, { worktreePath: to, reason: "folder_moved", fromDir: chat.worktree_path ?? project.repo_path });
-    }
-    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように）
-    const used = new Set(chats.flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
-    for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
-  });
   // プロジェクトをゴミ箱に入れたら、中のチャット（アーカイブ・子孫も）を同じ行で入れる（戻すと一緒に戻る）
   projects.onTrashed((project, trashId, at) => {
     const chats = store.chats.list({ projectId: project.id, includeArchived: true });

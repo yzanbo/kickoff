@@ -3,15 +3,13 @@
 // 承認は、コミットしていない変更を持っていくときだけファイルの一覧を見せて聞く（覚えない・Auto mode でも聞く）
 import fs from "node:fs";
 import path from "node:path";
-import type { GitWorktree } from "@shared/git/types";
 import type { AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
-import type { Store } from "@/features/chat/core/index";
+import { workdirOf, type Store } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
 import { listWorktrees, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
-import type { TerminalControl } from "@/features/terminal/core/control";
-import { workdirOf } from "@/features/chat/core/workdir";
 import type { WorkplaceMovePlan } from "./reserve";
-import { runningTerminals, workplaceMoveBlocked } from "./workplaceUserMove";
+import { busyChatsIn, terminalLabel } from "./target";
+import { runningTerminals, workplaceMoveBlocked, type WorkplaceUserMoveDeps } from "./userMove";
 
 interface AiWorkplaceMoveInput {
   to: AiWorkplaceTarget;
@@ -39,14 +37,14 @@ export interface AiWorkplaceDeps {
   /** 移す予約と、片付けの予約（このチャットの片付けを予約しているか・片付けるフォルダ） */
   reservations: { reserve(chatId: number, plan: WorkplaceMovePlan): void; cancel(chatId: number): boolean; finishing(chatId: number): boolean; reservedFolders(): Set<string> };
   isBusy: (chatId: number) => boolean;
-  terminals?: Pick<TerminalControl, "list">;
+  terminals: WorkplaceUserMoveDeps["terminals"];
 }
 
 /** 承認の一覧に並べるファイルの数の上限（残りは数だけ） */
 const CARRY_LIST_MAX = 50;
 
 /** ワークツリーの名前の一覧（見つからないときに返す） */
-const worktreeNames = (list: GitWorktree[]) =>
+const worktreeNames = (list: Awaited<ReturnType<typeof listWorktrees>>) =>
   list
     .filter((w) => !w.main)
     .map((w) => w.branch ?? path.basename(w.root))
@@ -111,12 +109,12 @@ export function createAiWorkplaceTools(deps: AiWorkplaceDeps, chatId: number): A
       deps.reservations.reserve(chatId, plan);
       const running = runningTerminals(deps, dir, project.id);
       const target = plan.body.new_worktree_branch ? undefined : plan.body.worktree_path;
-      const busy = target === undefined ? 0 : store.chats.list({ projectId: project.id }).filter((c) => c.id !== chatId && c.worktree_path === target && deps.isBusy(c.id)).length;
+      const busy = busyChatsIn(store, deps.isBusy, project.id, chatId, target);
       return [
         `${replaced ? "前の予約を置き換えて、" : ""}予約しました。この作業が最後まで終わったら、Kickoff がこのチャットを${plan.label}へ移し${continuation ? "、続きの指示を送ります" : "ます（続きの指示はないので、移すだけです）"}。止めた・失敗したときは移しません。`,
         finishing ? (plan.body.worktree_path === null && !plan.body.new_worktree_branch ? "片付けの予約があるので、先に片付けます（片付けると本体に戻るので、移すのはそれで済みます）。" : "片付けの予約があるので、先に片付けてから移します。") : null,
         plan.body.carry ? "コミットしていない変更は、新しいワークツリーへ持っていきます。" : input.to === "new_worktree" ? "コミットしていない変更は、元の作業場所に残ります。" : null,
-        running.length > 0 ? `元の作業場所で動いているターミナル（${running.map((t) => (t.command ? `${t.title}（${t.command}）` : t.title)).join("、")}）は止めずに残ります。` : null,
+        running.length > 0 ? `元の作業場所で動いているターミナル（${running.map(terminalLabel).join("、")}）は止めずに残ります。` : null,
         busy > 0 ? `移す先では、ほかのチャット ${busy} 件が作業中です（同じファイルを書き換えるとぶつかることがあります）。` : null,
         "利用者は作業中の様子で予約を見て取り消せます。予約したら、結果を返答で伝えて作業を終えてください。",
       ]

@@ -22,6 +22,8 @@ export interface IdleChatOptions {
   check?: boolean;
   /** 用意している間に送信待ちの形が変わったら確定しない（AI の切り替え。失敗して形が変わっていれば、増えた指示を送らないよう送信待ちを止める） */
   watchQueue?: boolean;
+  /** 用意の前に、止まったあとの再開の段取りをやめる（作業場所の移動。再開の指示を移した先で送らない） */
+  forgetRecovery?: boolean;
   /** 確かめ直しで断るときの文（省けば「チャットの状態が変わったため、続けられません」） */
   conflict?: string;
   /** 済んだあとにすること（ok = 用意が成功した）。send_next = 送信待ちの次を送る / deliver = 預かり（なければ送信待ちの次）を送る */
@@ -43,6 +45,7 @@ export async function withIdleChat<T>(shell: RunShell, chatId: number, why: Prep
   let released = false;
   let ok = false;
   shell.dispatch(chatId, { type: "begin", why });
+  if (opts.forgetRecovery) shell.dispatch(chatId, { type: "forget_recovery" });
   const h: IdleChat = {
     still() {
       const { phase } = run.run;

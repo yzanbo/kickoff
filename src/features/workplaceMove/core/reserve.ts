@@ -4,7 +4,9 @@
 import { errorMessage } from "@shared/foundation/errors";
 import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
 import { workdirOf, type ChatRunPort, type Store, type TurnEndTask } from "@/features/chat/core/index";
-import { planUserWorkplaceMove, runningTerminals, type WorkplaceUserMoveDeps } from "./workplaceUserMove";
+import type { createMover } from "./move";
+import { busyChatsIn, terminalLabel } from "./target";
+import { planUserWorkplaceMove, runningTerminals, type WorkplaceUserMoveDeps } from "./userMove";
 
 /** AI が予約した移動（移す先・持っていくか・画面に出す呼び名・続きの指示） */
 export interface WorkplaceMovePlan {
@@ -15,11 +17,11 @@ export interface WorkplaceMovePlan {
   continuation: string | null;
 }
 
-export interface WorkplaceMoveRunDeps {
+export interface WorkplaceMoveRunDeps extends Pick<WorkplaceUserMoveDeps, "terminals" | "workplace"> {
   store: Store;
-  runner: Pick<ChatRunPort, "isBusy" | "live" | "moveWorkplace" | "reservedFolders" | "reserveAtTurnEnd" | "continuation">;
-  terminals?: WorkplaceUserMoveDeps["terminals"];
-  worktreeEnvs?: WorkplaceUserMoveDeps["worktreeEnvs"];
+  runner: Pick<ChatRunPort, "isBusy" | "live" | "reservedFolders" | "reserveAtTurnEnd" | "continuation">;
+  /** 作業場所を移す口（move.ts の createMover） */
+  move: ReturnType<typeof createMover>;
 }
 
 /** 予約する（前の予約は置き換える。済んだら・取り消したら作業中の様子からも消える） */
@@ -74,10 +76,10 @@ async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number, plan:
     if (!done) {
       const dir = workdirOf(chat, project);
       const target = body.new_worktree_branch ? undefined : body.worktree_path;
-      const busy = target === undefined ? 0 : store.chats.list({ projectId: project.id }).filter((c) => c.id !== chatId && c.worktree_path === target && isBusy(c.id)).length;
-      const running = runningTerminals(deps, dir, project.id).map((t) => (t.command ? `${t.title}（${t.command}）` : t.title));
-      const { input, steps } = await planUserWorkplaceMove({ reservedFolders: () => runner.reservedFolders(), terminals: deps.terminals, worktreeEnvs: deps.worktreeEnvs }, chat, project, body, "ai");
-      await runner.moveWorkplace(chatId, { ...input, ...(running.length ? { running } : {}), ...(busy ? { busy } : {}), ...(afterFinish ? { afterFinish: true } : {}) }, steps);
+      const busy = busyChatsIn(store, isBusy, project.id, chatId, target);
+      const running = runningTerminals(deps, dir, project.id).map(terminalLabel);
+      const { input, steps } = await planUserWorkplaceMove({ reservedFolders: () => runner.reservedFolders(), terminals: deps.terminals, workplace: deps.workplace }, chat, project, body, "ai");
+      await deps.move(chatId, { ...input, ...(running.length ? { running } : {}), ...(busy ? { busy } : {}), ...(afterFinish ? { afterFinish: true } : {}) }, steps);
     }
     // 移したあとの続きの指示を出す箱に置く（止めていて送らないときはお知らせを残す。@shared/chat/outbox の placeContinuation）
     if (plan.continuation !== null) runner.continuation(chatId, plan.continuation, afterFinish);

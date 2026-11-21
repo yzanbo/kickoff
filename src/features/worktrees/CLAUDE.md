@@ -13,8 +13,8 @@
 ## 決まり
 
 - 置き場所は一番上の隣の `<名前>-worktrees/<ブランチ>`。`GitWorktree` の `root` は一番上、`path` は作業するフォルダ（チャットの `worktree_path`・`?worktree=` はこちら。一番上へ戻すのはコアの中だけ。名前を出すときは `root`）。
-- 作ったら `prepareWorktree` が無視しているもの（`node_modules` など）を APFS の複製で写し、`onCreated` で実行環境を整える。作る道（API・新しいチャット・PR・CI）はどれも同じ口を渡す。
-- 消すのは画面も AI も `WorktreeFinisher`（画面は `confirmRemoveWorktree` で失うコミットを先に知らせる）。失うものは控えに入れてゴミ箱に残し、チャットは殻の `moveWorkplace` で本体へ移す（同じリポジトリのほかのプロジェクトも見る = `usersOf`）。
+- 作ったら `prepareWorktree` が無視しているもの（`node_modules` など）を APFS の複製で写し、`onCreated` で実行環境を整える。作る道（API・新しいチャット・PR・CI）はどれも同じ口を渡す（ほかの機能は土台の `creator()`）。
+- 消すのは画面も AI も `WorktreeFinisher`（画面は `confirmRemoveWorktree` で失うコミットを先に知らせる）。失うものは控えに入れてゴミ箱に残し、チャットは `workplaceMove.api.move` で本体へ移す（同じリポジトリのほかのプロジェクトも見る = `usersOf`）。
 - 「コンテナとデータも消す」は本体と同じ組の名前のワークツリーでは出さない（本体のデータが消える）。
 - 実行環境はワークツリーごとにポートの帯と Docker の組の名前を分ける。決めるのは作るときだけで、書くのは Git で管理していないファイルだけ。Git で管理している `.env` があれば何も書かずに `blocked`。
 - 色はコアが付けた `GitWorktree.hue`。一覧は店 `@/foundation/ui/workplace/worktreesStore.ts` の 1 系統だけ（操作の応答の一覧は `worktreesStore.set` で入れる）。

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AI_MOVE_WORKPLACE_TOOL, AI_WORKPLACE_TARGETS } from "@shared/workplaceMove/aiWorkplace";
 import type { Store, TurnContributor } from "@/features/chat/core/index";
 import { carryApprovalText, createAiWorkplaceTools, type AiWorkplaceDeps } from "./aiWorkplace";
-import { workplaceMoveContext } from "./workplaceMove";
+import { workplaceMoveContext } from "./move";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 
 /** 作業場所を移すツールの使い方（MCP の instructions として AI に渡す） */
@@ -17,11 +17,10 @@ const WORKPLACE_INSTRUCTIONS = [
 ];
 
 /**
- * 作業場所を移す予約・取り消しのツールの組（変更を持っていくときだけ利用者に聞く。覚えない）。移せないチャットからは理由の文で断る。
- * ターミナルは上の機能なので、呼ばれたときに引く
+ * 作業場所を移す予約・取り消しのツールの組（変更を持っていくときだけ利用者に聞く。覚えない）。移せないチャットからは理由の文で断る
  */
-export function workplaceToolGroup(deps: Omit<AiWorkplaceDeps, "terminals"> & { terminals: () => AiWorkplaceDeps["terminals"] }): AiToolGroup {
-  return { server: "kickoff_chat", order: 130, instructions: WORKPLACE_INSTRUCTIONS, open: ({ chatId }) => workplaceTools(createAiWorkplaceTools({ ...deps, terminals: deps.terminals() }, chatId)) };
+export function workplaceToolGroup(deps: AiWorkplaceDeps): AiToolGroup {
+  return { server: "kickoff_chat", order: 130, instructions: WORKPLACE_INSTRUCTIONS, open: ({ chatId }) => workplaceTools(createAiWorkplaceTools(deps, chatId)) };
 }
 
 /** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがあるときだけ。家系のあと・一度だけ添える知らせの前） */

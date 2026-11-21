@@ -1,5 +1,6 @@
 // 子チャットの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
+import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import type { AiApi } from "@/features/ai/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
@@ -16,8 +17,8 @@ export interface ChildChatsDeps {
   ai: Pick<AiApi, "providers">;
   /** 添付の置き場（サブエージェントについて聞くとき、その記録を添付にする） */
   uploads: UploadStore;
-  /** ワークツリーの実行環境（worktrees。上の機能なので呼ばれたときに引く） */
-  worktreeEnvs: () => AiCreateChatDeps["worktreeEnvs"];
+  /** ワークツリーを作る人（AI の create_chat の worktree_branch。作業場所の土台 Kernel.workplace） */
+  workplace: Pick<WorkplaceKit, "creator">;
 }
 
 export interface ChildChatsApi {
@@ -42,7 +43,7 @@ export function createChildChats(deps: ChildChatsDeps): CoreFeature<ChildChatsAp
   return {
     name: "childChats",
     api: { onForked: (fn) => void forked.push(fn) },
-    aiTools: [createChatToolGroup({ store, startChat, worktreeEnvs: deps.worktreeEnvs })],
+    aiTools: [createChatToolGroup({ store, startChat, workplace: deps.workplace })],
     routes: [
       {
         legacy: (app) =>

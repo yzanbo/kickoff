@@ -6,10 +6,10 @@ import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
-import { replaceSession, resumePointBefore, workdirOf, type SessionTrash, type Store } from "@/features/chat/core/index";
+import { replaceSession, resumePointBefore, workdirOf, type ChatRunner, type SessionTrash, type Store } from "@/features/chat/core/index";
 import { currentBranch } from "@/foundation/core/workplace/reads";
 import { Invalid, NotFound } from "@/foundation/core/errors";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { AgentProvider } from "@/features/ai/core/index";
 
 export interface WorkplaceMoveDeps {
   store: Store;
@@ -59,7 +59,7 @@ async function branchAt(dir: string, fallback: string | null): Promise<string | 
 }
 
 /**
- * 作業場所を移す。移す先がいまと同じなら何もしない（区切りも置かない）。作業中かは呼ぶ側（Runner.moveWorkplace）が確かめる。
+ * 作業場所を移す。移す先がいまと同じなら何もしない（区切りも置かない）。作業中かは呼ぶ側（createMover の move）が確かめる。
  * 利用者・AI が移すときは、会話を新しいセッションに写せなければ移さずに 400。写せないプロバイダー・まだ会話がないチャットは写さずに移す
  */
 export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number, input: WorkplaceMoveInput): Promise<Chat> {
@@ -127,4 +127,28 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
 /** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがなければ null） */
 export function workplaceMoveContext(pending: ChatEventDataOf<"workplace_moved"> | null): string | null {
   return pending ? `Kickoff からの知らせ（利用者の発言ではありません）:\n${workplaceMoveNote(pending)}` : null;
+}
+
+/**
+ * チャットの作業場所を移す口（作業場所が変わる道はすべてここを通す）。利用者・AI が移すときは作業中なら 409。
+ * 移している間（会話を写す間）も作業中として数え（chat の withIdleChat。送る準備 move_workplace）、その間の「いま」は預かって、
+ * 利用者が移したなら済んでから送る。止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
+ */
+export function createMover(deps: WorkplaceMoveDeps & { runner: Pick<ChatRunner, "withIdleChat"> }) {
+  return (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> =>
+    // AI の予約は作業の終わりに移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
+    deps.runner.withIdleChat(
+      chatId,
+      "move_workplace",
+      "作業場所の変更",
+      async ({ undo }) => {
+        // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
+        const prepared = { ...input, ...(await steps?.before?.()) };
+        undo.add(() => steps?.undo?.());
+        const chat = await moveChatWorkplace(deps, chatId, prepared);
+        await steps?.after?.();
+        return chat;
+      },
+      { check: input.reason === "user", forgetRecovery: true, next: () => (input.reason === "user" ? "deliver" : undefined) },
+    );
 }

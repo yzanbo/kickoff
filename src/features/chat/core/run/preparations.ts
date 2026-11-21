@@ -1,10 +1,9 @@
-// 殻の窓口のうち、作業を動かす前の長い準備（新しいチャット・親の会話を写す・AI の切り替えと引き継ぎ・作業場所の移動）と、AI が予約した移動の取り消し
+// 殻の窓口のうち、作業を動かす前の長い準備（新しいチャット・親の会話を写す・AI の切り替えと引き継ぎ）と、AI が予約した移動の取り消し（作業場所の移動は workplaceMove が withIdleChat を呼ぶ）
 import { randomUUID } from "node:crypto";
 import type { TurnRequest } from "@/features/chat/core/turn";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
 import { recordEvent } from "@/features/chat/core/run/record";
-import { moveChatWorkplace, type WorkplaceMoveInput, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import { Conflict } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
@@ -45,30 +44,6 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
     })();
   };
 
-  /**
-   * チャットの作業場所を移す（中身は workplaceMove.ts の moveChatWorkplace）。
-   * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（送る準備 move_workplace）、その間の「いま」は預かって、
-   * 利用者が移したなら済んでから送る。止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
-   */
-  const moveWorkplace = (chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> =>
-    // AI の予約は作業の終わりに殻が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
-    withIdleChat(
-      shell,
-      chatId,
-      "move_workplace",
-      "作業場所の変更",
-      async ({ undo }) => {
-        shell.dispatch(chatId, { type: "forget_recovery" });
-        // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
-        const prepared = { ...input, ...(await steps?.before?.()) };
-        undo.add(() => steps?.undo?.());
-        const chat = await moveChatWorkplace({ store, providers: deps.providers, sessionTrash: deps.sessionTrash }, chatId, prepared);
-        await steps?.after?.();
-        return chat;
-      },
-      { check: input.reason === "user", next: () => (input.reason === "user" ? "deliver" : undefined) },
-    );
-
   /** 送信前の引き継ぎ失敗をやり直す。すでに記録した指示は同じ発言として再開する。 */
   const retryProviderHandoff = async (chatId: number): Promise<{ warning: string | null }> => {
     shell.requireChat(chatId);
@@ -107,7 +82,6 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
   };
 
   return {
-    moveWorkplace,
     retryProviderHandoff,
 
     /** 新しいチャットを作ってすぐ動かす（親の会話を写すなら、写し終えてから）。作った直後から作業中に数える（最初の発言の下ごしらえの間に送られても、実行を 2 つ並べない） */

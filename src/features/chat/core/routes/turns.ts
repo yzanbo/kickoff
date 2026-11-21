@@ -11,7 +11,7 @@ import type { TellResult } from "@shared/foundation/apiTypes";
 import type { SendResult } from "@shared/chat/send";
 
 /**
- * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・巻き戻し・ファイルを戻す（子チャット・分岐は childChats）。
+ * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・巻き戻し・ファイルを戻す（子チャット・分岐は childChats、AI が予約した作業場所の移動の取り消しは workplaceMove）。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
 export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pick<ChatRouteDeps, "store" | "runner" | "providers" | "userSent">) {
@@ -66,12 +66,6 @@ export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pi
   // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 409）
   app.delete("/api/chats/:id/reconnect", withChat, (c) => {
     runner.stopReconnect(c.var.chat.id);
-    return c.body(null, 204);
-  });
-
-  // AI が予約した作業場所の移動を取り消す（作業中の様子の予約の取り消し。スマホからも。予約がなければ 409）
-  app.delete("/api/chats/:id/workplace-move", withChat, (c) => {
-    runner.cancelWorkplaceMove(c.var.chat.id);
     return c.body(null, 204);
   });
 

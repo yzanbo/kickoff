@@ -54,10 +54,9 @@ function createChatTool(createChat: AiCreateChatTools): AiToolDef {
 }
 
 /**
- * チャット（子・兄弟・親のないチャット）を作るツールの組（設定で止めていない・AI が作った世代の上限に達していないときだけ出す）。
- * ワークツリーの実行環境は上の機能なので、呼ばれたときに引く
+ * チャット（子・兄弟・親のないチャット）を作るツールの組（設定で止めていない・AI が作った世代の上限に達していないときだけ出す）
  */
-export function createChatToolGroup(deps: Omit<AiCreateChatDeps, "worktreeEnvs"> & { worktreeEnvs: () => AiCreateChatDeps["worktreeEnvs"] }): AiToolGroup {
+export function createChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 20,
@@ -65,7 +64,7 @@ export function createChatToolGroup(deps: Omit<AiCreateChatDeps, "worktreeEnvs">
     open: ({ chatId }) => {
       const chat = deps.store.chats.get(chatId);
       if (!chat || !canCreateChat(deps.store, chat)) return null;
-      return [createChatTool(createAiCreateChatTools({ store: deps.store, startChat: deps.startChat, worktreeEnvs: deps.worktreeEnvs() }, chatId))];
+      return [createChatTool(createAiCreateChatTools(deps, chatId))];
     },
   };
 }

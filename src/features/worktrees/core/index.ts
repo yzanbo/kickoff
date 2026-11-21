@@ -1,11 +1,12 @@
 // ワークツリーの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
-import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
+import { createWorktreeFrom, forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ChatRunPort, Store, TurnContributor } from "@/features/chat/core/index";
+import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
@@ -24,6 +25,8 @@ export interface WorktreesDeps {
   docker: DockerService;
   /** 作業中か・送信待ち・作業場所を移す・実行に足すもの（PORT）を登録する */
   chat: { runner: ChatRunPort; store: Store; addTurnContributor(c: TurnContributor): void };
+  /** 片付けたワークツリーのチャットを本体へ移す */
+  workplaceMove: Pick<WorkplaceMoveApi, "move">;
 }
 
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr">;
@@ -46,7 +49,14 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
   const { projects, chats, events, trash, groups } = deps.chat.store;
   const envs = new WorktreeEnvService(stores, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
+  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, moveWorkplace: deps.workplaceMove.move, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
+  // ワークツリーを作る人（新しいチャット・AI の create_chat・作業場所の移動が、作業場所の土台から呼ぶ。作ったら実行環境を整える）
+  k.workplace.provideCreator({
+    createWorktree: (target, branch, fromDir) => {
+      const project = projects.get(target.projectId);
+      return createWorktreeFrom(target.repoPath, branch, fromDir, project ? (made) => envs.prepare(project, made) : undefined);
+    },
+  });
   // 作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す
   deps.chat.addTurnContributor(worktreeTurnParts(envs));
   let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];

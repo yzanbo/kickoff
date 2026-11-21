@@ -87,33 +87,28 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const guard = createGuard({ trash: trash.api, ai: ai.api, chat: chat.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });
   const compact = createCompact({ chat: chat.api });
   const subagents = createSubagents({ chat: chat.api });
-  // ワークツリー・ターミナルはあとに作るので、呼ばれたときに引く
-  const childChats = createChildChats({ chat: chat.api, ai: ai.api, uploads: attachments.api.uploads, worktreeEnvs: () => worktrees.api.envs });
+  const childChats = createChildChats({ chat: chat.api, ai: ai.api, uploads: attachments.api.uploads, workplace: k.workplace });
   const visuals = createVisuals({ chat: chat.api });
   const remoteImages = createRemoteImages(k, { chat: chat.api, childChats: childChats.api }, env.remoteImages);
   const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
-  const workplaceMove = createWorkplaceMove({ chat: chat.api, terminals: () => terminal.api, worktreeEnvs: () => worktrees.api.envs });
+  const workplaceMove = createWorkplaceMove(k, { chat: chat.api, ai: ai.api, projects: projects.api });
   const files = createFiles(k, { trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, guard: guard.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
-  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, env.worktrees);
+  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api }, env.worktrees);
   const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
-  const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store }, { shell: env.platformParts.terminalShell(), ...env.terminal });
+  const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store, workplaceMove: workplaceMove.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser(k, { chat: chat.api }, { control: env.browser });
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
   const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
-  // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
+  // AI のツールの組を全部の機能から集めて、チャットの実行に渡す（仮の口。組み立てがレジストリを持つ形に替えたら消す）
   const terminals = terminal.api;
-  chat.api.attach({
-    worktreeEnvs: worktrees.api.envs,
-    terminals,
-    aiTools: features.flatMap((f) => f.aiTools ?? []),
-  });
+  chat.api.attach({ aiTools: features.flatMap((f) => f.aiTools ?? []) });
   return {
     features,
     hooks: {

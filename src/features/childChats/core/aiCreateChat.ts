@@ -18,8 +18,8 @@ import type { ProviderId } from "@shared/settings/types";
 import { depthOf, type Store } from "@/features/chat/core/index";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
-import { addWorktree, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
-import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
+import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
+import { newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { ChildChatInput } from "./children";
 import { workdirOf } from "@/features/chat/core/workdir";
 
@@ -78,8 +78,8 @@ export interface AiCreateChatDeps {
   store: Store;
   /** 作る側のチャット（from）の会話を写す元にして、チャットを作って動かす（children.ts の startChildChat） */
   startChat: (from: Chat, input: ChildChatInput) => Promise<StartedChild>;
-  /** ワークツリーの実行環境（作ったワークツリーにポートの帯と組の名前を割り当てる。なければ割り当てない） */
-  worktreeEnvs?: WorktreeEnvService;
+  /** ワークツリーを作る人（作業場所の土台。worktrees が登録し、ポートの帯と組の名前も割り当てる） */
+  workplace: Pick<WorkplaceKit, "creator">;
 }
 
 /** 新しいワークツリーを作れるか確かめる（承認を聞く前。Git でない・名前に使えない・同じ名前があれば理由の文で throw） */
@@ -101,10 +101,8 @@ async function makeWorktree(deps: AiCreateChatDeps, project: Project, from: Chat
   const cwd = workdirOf(from, project);
   const base = (await gitOutput(cwd, ["rev-parse", "HEAD"])).trim();
   const status = await gitOutput(cwd, ["status", "--porcelain"]).catch(() => "");
-  const list = await addWorktree(project.repo_path, branch, deps.worktreeEnvs ? (made) => deps.worktreeEnvs!.prepare(project, made) : undefined, base);
-  const made = list.find((w) => w.branch === branch && !w.main);
-  if (!made) throw new Error(`ワークツリー（${branch}）を作れませんでした`);
-  return { path: made.path, base, uncommitted: status.split("\n").filter(Boolean).length };
+  const { folder } = await deps.workplace.creator().createWorktree({ projectId: project.id, repoPath: project.repo_path }, branch, cwd);
+  return { path: folder, base, uncommitted: status.split("\n").filter(Boolean).length };
 }
 
 /**

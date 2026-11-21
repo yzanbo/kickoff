@@ -1,7 +1,5 @@
 // 1 回の実行に使うもの（ExecutionDeps）・実行の依頼（TurnRequest）と、実行（run/turn/）が使う上の機能の中身を 1 か所から渡す仮の口。
 // 実行のファイルは上の機能を直に読まず、ここだけを読む（上の機能を読む辺をこのファイルに閉じ込める。P5-4 の TurnContributor で登録の形にしたら消す）
-import type { TerminalControl } from "@/features/terminal/core/control";
-import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { ApprovalCenter } from "./approvals";
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
@@ -57,12 +55,4 @@ export interface ExecutionDeps {
   detach?: ChatDetachPort;
   /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
   contributors?: TurnContributor[];
-}
-
-/** 殻が AI の予約した作業場所の移動（作業の終わり）とルートに使う上の機能の口（attach が渡す。1 回の実行は使わない。P5-5 で作業の終わりの予約と作業場所を作る口に替えたら消す） */
-export interface ShellUpperDeps {
-  /** ワークツリーの実行環境（移した先・作ったワークツリーにポートの帯を割り当てる） */
-  worktreeEnvs?: WorktreeEnvService;
-  /** 内蔵ターミナルの読み取り（移す前に、その作業場所で動いているシェルを確かめる） */
-  terminals?: TerminalControl;
 }

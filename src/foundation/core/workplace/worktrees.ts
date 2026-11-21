@@ -173,6 +173,17 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
 }
 
 /**
+ * fromDir（作業するフォルダ）のいまのコミットから新しいブランチのワークツリーを作り、作業するフォルダを返す（作る人 WorkplaceCreator の中身）。
+ * fromDir がない・コミットがまだなければ本体の HEAD から。ブランチがもうあれば、それを取り出す（addWorktree）
+ */
+export async function createWorktreeFrom(repo: string, branch: string, fromDir: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<{ folder: string }> {
+  const base = existsSync(fromDir) ? (await gitOutput(fromDir, ["rev-parse", "HEAD"]).catch(() => "")).trim() || undefined : undefined;
+  const made = (await addWorktree(repo, branch, onCreated, base)).find((w) => w.branch === branch && !w.main);
+  if (!made) throw new Conflict(`ワークツリー（${branch}）を作れませんでした`);
+  return { folder: made.path };
+}
+
+/**
  * 新しいブランチでワークツリーを作れるかの確かめ（AI の create_chat が、承認を聞く前に断るため）。作れなければ理由の文、作れれば null。
  * 断るのは、名前に使えない文字・同じ名前のブランチがある・置き場所のフォルダがある（使い回さない。AI には新しいブランチだけを作らせる）
  */

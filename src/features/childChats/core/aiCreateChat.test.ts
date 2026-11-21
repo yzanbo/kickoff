@@ -8,6 +8,7 @@ import type { Chat } from "@shared/chat/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
+import { createWorktreeFrom } from "@/foundation/core/workplace/worktrees";
 import type { UploadStore } from "@/features/attachments/core/index";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
@@ -15,13 +16,16 @@ import { canCreateChat } from "./aiCreateChat";
 import { depthOf } from "@/features/chat/core/index";
 import { createChildChats } from "./index";
 
+/** ワークツリーを作る人（本物は worktrees が実行環境も整える。ここは作るだけ） */
+const workplace = { creator: () => ({ createWorktree: (target: { repoPath: string }, branch: string, fromDir: string) => createWorktreeFrom(target.repoPath, branch, fromDir) }) };
+
 /** すぐ終わる偽のプロバイダーで組み立て、実行に渡した AI の操作ツールを見張る */
 function setup() {
   const provider = new ScriptedProvider(async (params) => ({ status: "completed", sessionId: "s", turns: 1, result: params.prompt }));
   const host = new McpToolHost(() => "http://127.0.0.1:1");
   const core = setupCore(provider, { toolHost: host });
   // 本物の組み立てと同じく、子チャットの機能が出す create_chat の組を実行に渡す（ルートは使わないので添付の置き場は空）
-  const childChats = createChildChats({ chat: { store: core.store, runner: core.runner, addTurnContributor: () => {}, provideDetach: () => {} }, ai: { providers: core.providers }, uploads: {} as UploadStore, worktreeEnvs: () => undefined });
+  const childChats = createChildChats({ chat: { store: core.store, runner: core.runner, addTurnContributor: () => {}, provideDetach: () => {} }, ai: { providers: core.providers }, uploads: {} as UploadStore, workplace });
   core.runner.attach({ aiTools: childChats.aiTools ?? [] });
   return { ...core, tools: watchTools(core, host) };
 }

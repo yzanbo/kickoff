@@ -43,7 +43,7 @@
 | 実行に足すもの（上の機能が 1 回の実行に足す環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること。AI のツールは含めない） | `TurnContributor`（`chat.api.addTurnContributor`。足したもの `TurnParts`・集める `collectTurnParts`） |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `ChatRunner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `src/features/chat/core/sessionPoints.ts`） |
-| 作業場所を移した区切り（チャットの作業場所（本体 / ワークツリー・プロジェクト・フォルダ）が変わった所。会話は新しいセッションに写して続け、これより前の発言は巻き戻せず、分岐の起点にもできない） | 記録 `workplace_moved`（`from` / `to` は `WorkplaceRef`・理由 `WorkplaceMoveReason`）・移す処理 `src/features/workplaceMove/core/workplaceMove.ts` の `moveChatWorkplace`（`ChatRunner.moveWorkplace`。画面から移すのは `src/features/workplaceMove/core/workplaceUserMove.ts`・`POST /api/chats/:id/workplace`）・決まり `@shared/workplaceMove/workplaceMoves` |
+| 作業場所を移した区切り（チャットの作業場所（本体 / ワークツリー・プロジェクト・フォルダ）が変わった所。会話は新しいセッションに写して続け、これより前の発言は巻き戻せず、分岐の起点にもできない） | 記録 `workplace_moved`（`from` / `to` は `WorkplaceRef`・理由 `WorkplaceMoveReason`）・移す処理 `src/features/workplaceMove/core/move.ts` の `moveChatWorkplace`（口は `workplaceMove.api.move`。画面から移すのは `src/features/workplaceMove/core/userMove.ts`・`POST /api/chats/:id/workplace`）・決まり `@shared/workplaceMove/workplaceMoves` |
 | 作業中の様子（保存しない） | `ChatLive` |
 | 末尾（チャットを開くときに読む最新のターン。ターンの境目は作業の終わり） | `tail`（`GET /api/chats/:id?tail_turns=`・`CHAT_TAIL_TURNS`・`src/features/chat/core/chatLogQuery.ts` の `tailStart`） |
 | 索引（末尾より前の記録のうち、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要るものだけを軽くしたもの） | `index`（`ChatDetail.index`・`@shared/chat/chatIndex` の `selectIndexIds` / `ChatEventMeta`・覆う索引 `idx_chat_events_meta`） |
