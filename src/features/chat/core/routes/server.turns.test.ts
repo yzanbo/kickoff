@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
-import type { ChatLive, CompactingState } from "@shared/chat/chatLive";
+import { EMPTY_CHAT_LIVE, EMPTY_QUEUE_STATE, type ChatLive, type CompactingState } from "@shared/chat/chatLive";
 import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
@@ -54,7 +54,7 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
   release();
   await until(() => !runner.isBusy(chatId));
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.background, null);
-  assert.deepEqual(seen, [state, null]);
+  assert.deepEqual(seen.filter((v, i) => i === 0 || JSON.stringify(v) !== JSON.stringify(seen[i - 1])), [null, state, null]);
 });
 
 test("圧縮: 圧縮している間はチャットの詳細で始めた時刻ときっかけ（ふつうの指示の途中なら自動）を返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
@@ -73,10 +73,10 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻と
   release();
   await until(() => !runner.isBusy(chatId));
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.compacting, null);
-  // 圧縮中の様子は、始めた時刻ときっかけ → なし の順に届く（ほかの様子が変わった知らせでは、同じ値が続く）
+  // 圧縮中の様子は、なし → 始めた時刻ときっかけ → なし の順に届く（ほかの様子・段階・状態が変わった知らせでは、同じ値が続く）
   assert.deepEqual(
     seen.filter((v, i) => i === 0 || JSON.stringify(v) !== JSON.stringify(seen[i - 1])),
-    [compacting, null],
+    [null, compacting, null],
   );
 });
 
@@ -288,7 +288,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
   // 変わらなければ知らせない
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
-  assert.equal(lives.length, 2);
+  assert.equal(lives.length, 3);
   const last = lives.at(-1)!;
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live, last);
   assert.deepEqual(
@@ -297,7 +297,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, drawing_visual: false, after_compact: [], awaiting_compact: false, compact_after_turn: false, compacted_turn: false, tells_closed: false, inheriting: false, restart_resume: null, workplace_move: null },
+    { ...EMPTY_CHAT_LIVE, queue: { ...EMPTY_QUEUE_STATE, paused: true, waiting: "busy" }, phase: "running", status: "running" },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
@@ -331,8 +331,7 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, false);
   // 止めるよう頼んだだけで返すものはない（停止中は SSE の chat_live で届く）
   assert.deepEqual(await call("POST", `/api/chats/${chatId}/cancel`), { status: 204, body: undefined });
-  // 2 回押しても知らせは 1 回
-  await call("POST", `/api/chats/${chatId}/cancel`);
+  const once = seen.length; await call("POST", `/api/chats/${chatId}/cancel`); assert.equal(seen.length, once); // 2 回押しても知らせは 1 回
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, true);
   assert.equal(runner.isBusy(chatId), true);
   finish();
@@ -340,7 +339,7 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
   const detail = (await call("GET", `/api/chats/${chatId}`)).body;
   assert.equal(detail.live.stopping, false);
   assert.equal(detail.chat.status, "cancelled");
-  assert.deepEqual(seen, [true, false]);
+  assert.deepEqual(seen.filter((v, i) => i === 0 || v !== seen[i - 1]), [false, true, false]);
 });
 
 test("作業の終わり: 終わりの知らせがないまま止まったサブエージェントは、通信以外ならお知らせを残す", async () => {

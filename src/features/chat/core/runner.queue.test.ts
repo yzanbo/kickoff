@@ -11,8 +11,8 @@ const setup = (script: Script) => setupCore(new ScriptedProvider(script));
 test("待ちの列: 作業中に送った指示は列に入り、終わったら順に送る", async () => {
   const { gates, script } = gatedScript();
   const { store, runner, provider, project, bus } = setup(script);
-  const published: number[] = [];
-  bus.subscribe((e) => e.type === "chat_live" && published.push(e.live.queue.messages.length));
+  const published: number[] = [], seen = { rows: "[]" };
+  bus.subscribe((e) => { if (e.type !== "chat_live" || JSON.stringify(e.live.queue.messages) === seen.rows) return; seen.rows = JSON.stringify(e.live.queue.messages); published.push(e.live.queue.messages.length); }); // 行が変わった chat_live だけ（段階・状態が変わっても配る）
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   assert.equal((await runner.queueMessage(chat.id, "2")).queued, true);

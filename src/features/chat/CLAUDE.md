@@ -14,8 +14,7 @@
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= 実行中（`turn`）か送る準備中（`preparing`）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
-- 作業中かを確かめてから動かし始めるまで（`await` の間も）`preparing` で数える（理由は `ChatRuntime` のコメント）。
+- 作業中（`isBusy`）= 実行中（`turn`）か送る準備中（`preparing` = 理由。確かめてから動かし始めるまで、`await` の間も）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
 - 作業中の状態は `ChatRuntime` に集め、モジュールの変数に持たない。チャットを消したら `forget` で捨てる。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
@@ -26,8 +25,8 @@
 
 - `start` はチャットを作ってすぐ動かし、`send` は作業中なら 409。名前は 1 行目で付けて AI にも付けてもらう（その間に変わっていれば置き換えない）。
 - `tell` は作業中ならいまのやり取りに足す（口ができるまで `TELLABLE_WAIT_MS` 待つ）。結果は `told` / `queued` / `sent` / `held`。
-- 足せなければ送信待ちに戻さず預かり、作業の終わりに `deliverHeld` が送信待ちより先に送る（理由は `runner.ts` のコメント）。以後の「いま」も `tellsClosed` で預かる。
-- 「いま」を預かるかは `ChatRuntime.holdsTells` 1 つで決める。預かる場面を足したらここに足す。
+- 足せなければ送信待ちに戻さず預かり、作業の終わりに `deliverHeld` が送信待ちより先に送る（理由は `runner.ts`）。以後の「いま」も `tellsClosed` で預かる。
+- 「いま」を預かる理由は `turnState.ts` の `holdOf` 1 つで決める。
 - 発言の印（`MessageMarks`）はどの道でも `@shared/chat/handoff` の `marksOf` で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
 - 自分で送ったら再開の段取りをやめる（`forgetRecovery`）。質問として送る（`pause_after`）は `pauseAfterTurn` か `setStopAfter` の印にする。
 
@@ -42,7 +41,7 @@
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る形は `ChatLive`。詳細の `live` と SSE の `chat_live` を同じ形にし、変わるたびに丸ごと配る。保存しない。
+- 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後にも）。保存しない。
 - 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
 
 ## 送信待ち（`core/runnerQueue.ts`）

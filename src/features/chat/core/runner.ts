@@ -5,7 +5,7 @@ import { outboxEnv, type ChatRuntime } from "./runtime";
 import { ChatRuntimes } from "./runtimes";
 import { newMessage, resetOptions } from "@shared/chat/outbox";
 import { parkNow } from "@/features/chat/core/run/machine/outbox";
-import { turnKindOf } from "./turnState";
+import { compactByOf, turnKindOf } from "./turnState";
 import { recordEvent } from "@/features/chat/core/run/record";
 import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import { ChatRecovery } from "@/features/chat/core/recovery/recovery";
@@ -136,9 +136,7 @@ export class Runner extends RunnerQueue {
 
   /** AI の切り替えの引き継ぎの門（DB の写しを読む。準備ができていても、チャットの AI が切り替え先でなければ送らない） */
   protected handoffGate(chatId: number) {
-    const pending = this.deps.store.chatProviderHandoffs.get(chatId);
-    if (!pending) return null;
-    return pending.state === "ready" && pending.provider !== this.deps.store.chats.get(chatId)?.provider ? "blocked" : pending.state;
+    return this.runtimes.get(chatId).handoff()?.state ?? null;
   }
 
   protected normalizeHandoffQueue(chatId: number): void {
@@ -162,7 +160,7 @@ export class Runner extends RunnerQueue {
     const initialQueue = queueSnapshot(runtime);
     const initialSignature = JSON.stringify(initialQueue);
     runtime.switchingProvider = true;
-    runtime.preparing = true;
+    runtime.preparing = "switch_provider";
     let switched = false;
     try {
       const provider = this.deps.providers[target];
@@ -179,7 +177,7 @@ export class Runner extends RunnerQueue {
       return result;
     } finally {
       runtime.switchingProvider = false;
-      runtime.preparing = false;
+      runtime.preparing = null;
       // 切り替えに失敗したとき、準備中に増えた指示を意図せず元の AI に送らない。
       if (switched) void this.sendNextQueued(chatId);
       else if (JSON.stringify(queueSnapshot(runtime)) !== initialSignature && runtime.outbox.later.length > 0) this.setPausedFor(chatId, true);
@@ -195,7 +193,7 @@ export class Runner extends RunnerQueue {
     if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
     if (!uploads) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
     const runtime = this.runtimes.get(chatId);
-    runtime.preparing = true;
+    runtime.preparing = "handoff_retry";
     runtime.switchingProvider = true;
     let started = false;
     let recovered = false;
@@ -209,7 +207,7 @@ export class Runner extends RunnerQueue {
       claimed = attempt?.type === "user";
       if (attempt?.type === "user" && prompt !== null) {
         store.chats.update(chatId, { status: "running", error: null, unread: false });
-        runtime.preparing = false;
+        runtime.preparing = null;
         runtime.switchingProvider = false;
         started = true;
         void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId });
@@ -222,7 +220,7 @@ export class Runner extends RunnerQueue {
       else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
       throw error;
     } finally {
-      runtime.preparing = false;
+      runtime.preparing = null;
       runtime.switchingProvider = false;
       if (recovered && !started && this.handoffAllows(chatId)) void this.sendNextQueued(chatId);
     }
@@ -358,7 +356,7 @@ export class Runner extends RunnerQueue {
   private inheritThenExecute(chatId: number, prepare: () => Promise<string>, item: TurnRequest) {
     const { store } = this.deps;
     const runtime = this.runtimes.get(chatId);
-    runtime.preparing = true;
+    runtime.preparing = "inherit";
     runtime.update({ inheriting: true });
     void (async () => {
       let sessionId: string | null = null;
@@ -367,7 +365,7 @@ export class Runner extends RunnerQueue {
       } catch (e) {
         if (store.chats.get(chatId)) recordEvent(store, runtime, { type: "notice", message: `親の会話を引き継げませんでした（${errorMessage(e)}）。会話を引き継がずに始めます` });
       }
-      runtime.preparing = false;
+      runtime.preparing = null;
       const cancelled = runtime.next.stopRequested;
       runtime.update({ inheriting: false });
       // 写している間にチャットを消した・アプリを終える
@@ -398,12 +396,12 @@ export class Runner extends RunnerQueue {
     const { store } = this.deps;
     const runtime = this.runtimes.get(chatId);
     // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
-    runtime.preparing = true;
+    runtime.preparing = "send";
     let prepared: Awaited<ReturnType<typeof followupPrompt>>;
     try {
       prepared = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
     } catch (e) {
-      runtime.preparing = false;
+      runtime.preparing = null;
       // 送れなかった間に届いた指示（待ちの列）は取り残さない
       void this.sendNextQueued(chatId);
       throw e;
@@ -425,7 +423,7 @@ export class Runner extends RunnerQueue {
       ...options,
     });
     // 動かし始めたら作業中（runtime.turn）として数えられるので、準備の印は外す
-    runtime.preparing = false;
+    runtime.preparing = null;
     // 質問として送った: 動かし始める前に印を付ける（すぐ終わる作業でも、終わりの自動送信より先に付いている）
     if (pauseAfter) this.pauseAfterTurn(chatId);
     void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
@@ -722,7 +720,7 @@ export class Runner extends RunnerQueue {
     // AI の予約は作業の終わりに Runner が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
     if (input.reason === "user") this.requireIdle(chatId, "作業場所の変更");
     const runtime = this.runtimes.get(chatId);
-    runtime.preparing = true;
+    runtime.preparing = "move_workplace";
     try {
       this.forgetRecovery(chatId);
       // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
@@ -736,7 +734,7 @@ export class Runner extends RunnerQueue {
         throw e;
       }
     } finally {
-      runtime.preparing = false;
+      runtime.preparing = null;
     }
   }
 
@@ -939,7 +937,7 @@ export class Runner extends RunnerQueue {
     const runtime = this.runtimes.get(item.chatId);
     const controller = new AbortController();
     // 手で圧縮する実行の間は、圧縮が始まる前・終わったあとも「いま」を預かる（startTurn。実行の終わりで送る）
-    runtime.startTurn(randomUUID(), turnKindOf(item, runtime), controller);
+    runtime.startTurn(randomUUID(), turnKindOf(item, runtime), controller, compactByOf(item));
     let outcome: TurnOutcome = { status: "failed", network: false };
     try {
       outcome = await executeTurn(this.turnDeps, runtime, item, controller.signal);

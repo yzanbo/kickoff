@@ -93,7 +93,7 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
     const body: WorkplaceMoveBody = afterFinish ? { ...plan.body, carry: false } : plan.body;
     const done = !body.new_worktree_branch && body.worktree_path === chat.worktree_path;
     if (!done) {
-      runtime.preparing = true;
+      runtime.preparing = "move_workplace";
       try {
         const dir = workdirOf(chat, project);
         const target = body.new_worktree_branch ? undefined : body.worktree_path;
@@ -108,7 +108,7 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
         );
         await deps.moveWorkplace(chatId, { ...input, ...(running.length ? { running } : {}), ...(busy ? { busy } : {}), ...(afterFinish ? { afterFinish: true } : {}) }, steps);
       } finally {
-        runtime.preparing = false;
+        runtime.preparing = null;
       }
     }
     if (plan.continuation !== null) placeContinuation(store, runtime, chatId, plan.continuation, afterFinish);

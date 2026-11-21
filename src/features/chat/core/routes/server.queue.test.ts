@@ -6,10 +6,10 @@ import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Bus } from "@/foundation/core/bus";
 import { Runner } from "@/features/chat/core/runner";
 import { setup, until } from "@/app/core/testing/testServer";
+import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
 test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
-  const { call, project, runner, provider } = setup();
-  const release = provider.hold();
+  const { call, project, runner, provider } = setup(), release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue`, {})).status, 400);
@@ -44,7 +44,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   // 添付を省けば今のまま（文だけ直す）。外して元に戻す
   assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した" })).body.messages[0].attachments, [image]);
   assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した", attachments: [] })).body.messages[0].attachments, []);
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue/${queue[0].id}`)).body, { messages: [{ ...moved.body.messages[0], text: "3 を直した" }], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue/${queue[0].id}`)).body, { ...EMPTY_QUEUE_STATE, messages: [{ ...moved.body.messages[0], text: "3 を直した" }], waiting: "busy" });
   assert.equal((await call("DELETE", `/api/chats/${chatId}/queue/nope`)).status, 404);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/nope/send`)).status, 404);
 
@@ -56,7 +56,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   release();
   await until(() => !runner.isBusy(chatId));
   // 作業中でなければすぐ送る
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { text: "4" })).body, { messages: [], paused: false, stops: [], waiting_edit: false, queued: false, id: null });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { text: "4" })).body, { ...EMPTY_QUEUE_STATE, queued: false, id: null });
   await until(() => provider.prompts.length === 2);
   await until(() => !runner.isBusy(chatId));
   // hold: 作業していなくても送らずに、列の最後に足す（止めている送信待ちがあるときの「ためておく」）
@@ -92,7 +92,7 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 列が空なら止めない
-  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body, { messages: [], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body, EMPTY_QUEUE_STATE);
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/paused`, {})).status, 400);
   assert.equal((await call("PUT", "/api/chats/999/queue/paused", { paused: true })).status, 404);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "2" });
@@ -116,7 +116,7 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   assert.equal(runner.live(chatId).queue.paused, true);
 
   // 自動で送るに戻すと、作業中でなければ先頭をすぐ送り、列が空になったら止めない状態に戻る
-  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false })).body, { messages: [], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false })).body, EMPTY_QUEUE_STATE);
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
   assert.equal(runner.live(chatId).queue.paused, false);
@@ -258,7 +258,7 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`)).status, 409);
   // すべて消す
   await call("POST", `/api/chats/${chatId}/queue`, { text: "消す" });
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, { messages: [], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, EMPTY_QUEUE_STATE);
   assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body.messages, []);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "A" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "B" });
@@ -365,7 +365,7 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
   release();
   await until(() => !runner.isBusy(chatId));
-  assert.deepEqual(runner.live(chatId).queue, { messages: [], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual(runner.live(chatId).queue, EMPTY_QUEUE_STATE);
   // 作業していないときの /queue でも同じ（すぐ送って、その作業の終わりで止める）
   release = provider.hold();
   assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { text: "なぜ?", pause_after: true })).body.queued, false);

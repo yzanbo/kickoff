@@ -1,7 +1,7 @@
 // 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { ChatLive } from "@shared/chat/chatLive";
+import { EMPTY_CHAT_LIVE, type ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { ChatDetail } from "@shared/foundation/apiTypes";
 import type { BusEvent } from "@shared/foundation/contract";
@@ -18,27 +18,8 @@ export interface ChatDetailState {
   live: ChatLive;
 }
 
-/** 読み込む前・何も起きていないときの作業中の様子 */
-const IDLE_LIVE: ChatLive = {
-  queue: { messages: [], paused: false, stops: [], waiting_edit: false },
-  background: null,
-  retry: null,
-  reconnect: null,
-  compacting: null,
-  stopping: false,
-  drawing_visual: false,
-  after_compact: [],
-  awaiting_compact: false,
-  compact_after_turn: false,
-  compacted_turn: false,
-  tells_closed: false,
-  inheriting: false,
-  workplace_move: null,
-  restart_resume: null,
-};
-
-/** 読み込む前の中身 */
-export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], range: EMPTY_RANGE, approvals: [], live: IDLE_LIVE };
+/** 読み込む前の中身（作業中の様子は何も起きていないもの） */
+export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], range: EMPTY_RANGE, approvals: [], live: EMPTY_CHAT_LIVE };
 
 /**
  * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
@@ -62,6 +43,14 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     inheriting: next.inheriting,
     restart_resume: keep(prev.restart_resume, next.restart_resume),
     workplace_move: keep(prev.workplace_move, next.workplace_move),
+    phase: next.phase,
+    status: next.status,
+    provider_handoff: keep(prev.provider_handoff, next.provider_handoff),
+    preparing_for: next.preparing_for,
+    compact_by: next.compact_by,
+    hold: next.hold,
+    now: keep(prev.now, next.now),
+    turn_end: keep(prev.turn_end, next.turn_end),
   };
 }
 

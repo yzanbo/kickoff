@@ -4,11 +4,12 @@ import { createRecoveryState, type RecoveryState } from "@/features/chat/core/ru
 import type { Compaction, TurnKind } from "@/features/chat/core/run/machine/types";
 import type { RecoveryReason } from "@/features/chat/core/run/machine/recovery";
 import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
-import type { QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
-import { emptyNext, liveOf, type NextTurn, type TurnPatch, type TurnState } from "./turnState";
+import type { PrepareReason, ProviderHandoff, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
+import { emptyNext, holdOf, liveOf, type NextTurn, type TurnPatch, type TurnState } from "./turnState";
 import { restoreOutbox, EMPTY_OUTBOX, type Outbox, type OutboxEnv } from "@shared/chat/outbox";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
-import type { QueuedMessage } from "@shared/chat/types";
+import type { ChatStatus, QueuedMessage } from "@shared/chat/types";
+import type { CompactTrigger } from "@shared/ai/turnEvents";
 
 /** 出す箱の列（now = 預かり、later = 送信待ち） */
 export type Lane = "now" | "later";
@@ -43,8 +44,8 @@ interface LiveFields {
 export class ChatRuntime {
   /** 動かしている作業（作業中でなければ null） */
   turn: TurnState | null = null;
-  /** 送る準備をしている（作業中かを確かめてから動かし始めるまで。作業中として数え、組み立ての間に別の送信が割り込んで同じチャットを 2 つ動かさない） */
-  preparing = false;
+  /** 送る準備をしている理由（作業中かを確かめてから動かし始めるまで。作業中として数え、組み立ての間に別の送信が割り込んで同じチャットを 2 つ動かさない） */
+  preparing: PrepareReason | null = null;
   /** AI の交代の準備中。送信待ちを取り出したり「いま」を預けたりしない。 */
   switchingProvider = false;
   /**
@@ -84,6 +85,8 @@ export class ChatRuntime {
       onEditingChanged: (lane: Lane, wasWaiting: boolean) => void;
       /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
       onCompactEnded?: () => void;
+      /** 店から読む、チャットの状態（chats.status）と引き継ぎの門（ChatLive の status・provider_handoff） */
+      read?: { status(): ChatStatus; handoff(): ProviderHandoff | null };
     },
   ) {
     this.marks = opts.marks;
@@ -96,7 +99,7 @@ export class ChatRuntime {
 
   /** 作業中か（動かしている・送る準備をしている） */
   get busy(): boolean {
-    return this.turn !== null || this.preparing;
+    return this.turn !== null || this.preparing !== null;
   }
 
   /** いまの作業の印（作業していなければ、次の作業に持ち越す印） */
@@ -105,16 +108,9 @@ export class ChatRuntime {
     return turn ? { closed: turn.tell === "closed", stopRequested: turn.stopRequested, compaction: turn.compaction } : this.next;
   }
 
-  /**
-   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaiting）か、圧縮したやり取りの途中（done。
-   * 圧縮後指示のやり取りが終わるまで）か、圧縮のあとに預かった指示を送っている途中。
-   * 圧縮の前に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため。
-   * 圧縮のあとに足すと、圧縮後指示のやり取りに混ざるため。送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため。
-   * 預かった指示を書き直している間も（その指示より先に入らないように）、いまの作業に足せなくなったあと（closed。先に預かった指示より先に入らないように）も預かる
-   */
+  /** 「いま」を預かるか（理由は turnState.ts の holdOf。預かる場面を足したらそこに足す） */
   get holdsTells(): boolean {
-    const { closed, compaction } = this.flags;
-    return this.compactPhase || compaction.done || this.fields.deliveringAfterCompact || this.editingAfterCompact || closed || this.fields.inheriting;
+    return holdOf(this) !== null;
   }
 
   /** いまの作業に「いま」を足せなくなったか（作業の終わりまで預かる） */
@@ -148,6 +144,16 @@ export class ChatRuntime {
   get waitingEdit(): boolean {
     const head = this.box.later[0];
     return !this.busy && !this.fields.resume?.queued && head !== undefined && !this.queuePaused && this.edits.later.includes(head.id);
+  }
+
+  /** チャットの状態（chats.status の写し） */
+  get chatStatus(): ChatStatus {
+    return this.opts.read?.status() ?? "completed";
+  }
+
+  /** AI の切り替えの引き継ぎの門（引き継ぎがなければ null） */
+  handoff(): ProviderHandoff | null {
+    return this.opts.read?.handoff() ?? null;
   }
 
   /** 出す箱（読むだけ。変えるのは setOutbox） */
@@ -203,11 +209,11 @@ export class ChatRuntime {
   }
 
   /** 作業を始める（次の作業に持ち越した印を移す。手で圧縮する実行は、圧縮が終わるまで待つ間として始める） */
-  startTurn(id: string, kind: TurnKind, abort: AbortController) {
+  startTurn(id: string, kind: TurnKind, abort: AbortController, compactBy: CompactTrigger | null = null) {
     this.apply(() => {
       const { closed, stopRequested, compaction } = this.next;
       this.next = emptyNext();
-      this.turn = { id, kind, abort, control: null, tell: closed ? "closed" : kind === "compact" ? "never" : "opening", compaction: { ...compaction, awaiting: compaction.awaiting || kind === "compact" }, stopRequested, background: null, retry: null, drawingVisual: false };
+      this.turn = { id, kind, abort, control: null, tell: closed ? "closed" : kind === "compact" ? "never" : "opening", compaction: { ...compaction, awaiting: compaction.awaiting || kind === "compact" }, stopRequested, background: null, retry: null, drawingVisual: false, compactBy };
     });
   }
 
@@ -284,11 +290,6 @@ export class ChatRuntime {
     this.onChange();
   }
 
-  /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
-  queueState(): QueueState {
-    const { later, stops } = this.box;
-    return { messages: later, paused: this.queuePaused, stops, waiting_edit: this.waitingEdit };
-  }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
   dispose() {

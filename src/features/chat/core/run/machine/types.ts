@@ -1,5 +1,6 @@
 // チャットの実行の状態の型（純粋。Node・店・時計を読まない）。作業ごとの状態 TurnState の中身の言葉
 import type { CompactTrigger } from "@shared/ai/turnEvents";
+import type { HandoffState } from "@shared/chat/chatLive";
 
 /** 作業の種類（ふつうの指示・手で圧縮する前の圧縮前指示・手で圧縮する実行・圧縮後指示の作業・再開） */
 export type TurnKind = "message" | "pre_compact" | "compact" | "post_compact" | "resume";
@@ -23,5 +24,5 @@ export interface Compaction {
   done: boolean;
 }
 
-/** AI の切り替えの引き継ぎの門（DB の写し。null = 引き継ぎなし / ready = 送ってよい / blocked = 準備できていない / sending = 送っている途中 / uncertain = 受け取ったか分からない） */
-export type HandoffGate = null | "ready" | "blocked" | "sending" | "uncertain";
+/** AI の切り替えの引き継ぎの門（DB の写し。null = 引き継ぎなし。状態は @shared/chat/chatLive の HandoffState） */
+export type HandoffGate = null | HandoffState;

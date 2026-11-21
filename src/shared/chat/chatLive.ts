@@ -1,7 +1,37 @@
 // 作業中のチャットの様子（保存しない。チャットの詳細の live と SSE の chat_live で同じ形で配る）。型と定数のみ
 import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
-import type { QueuedMessage } from "./types";
+import type { ChatStatus, QueueAction, QueuedMessage } from "./types";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
+import type { ProviderId } from "@shared/settings/types";
+
+/** 作業の段階（idle のほかは作業中。preparing = 送る準備・親の会話を写す・AI の切り替え・作業場所の移動、settling = 作業の終わりにすることを待つ） */
+export const WORK_PHASES = ["idle", "preparing", "running", "awaiting_compact", "compacting", "compacted", "settling"] as const;
+export type WorkPhase = (typeof WORK_PHASES)[number];
+
+/** 作業中か（段階が idle でない） */
+export function isBusyPhase(phase: WorkPhase): boolean {
+  return phase !== "idle";
+}
+
+/** 送る準備の理由（段階が preparing のとき） */
+const PREPARE_REASONS = ["send", "inherit", "switch_provider", "handoff_retry", "move_workplace"] as const;
+export type PrepareReason = (typeof PREPARE_REASONS)[number];
+
+/** 「いま」を預かる理由: 親の会話を写している / 圧縮の前と最中 / 圧縮したやり取りの途中 / 入力が閉じた / 預かった指示を書き直している */
+const HOLD_REASONS = ["inherit", "compact", "exchange", "closed", "editing"] as const;
+export type HoldReason = (typeof HOLD_REASONS)[number];
+
+/** AI の切り替えの引き継ぎの状態（送ってよい / 準備できていない / 送っている途中 / 受け取ったか分からない） */
+const HANDOFF_STATES = ["ready", "blocked", "sending", "uncertain"] as const;
+export type HandoffState = (typeof HANDOFF_STATES)[number];
+/** AI の切り替えの引き継ぎの様子（コアの門と同じ: 準備ができていても、チャットの AI が切り替え先でなければ blocked） */
+export type ProviderHandoff = { state: HandoffState; provider: ProviderId };
+
+/** 作業の終わりの予約の種類（いまは AI が予約した作業場所の移動だけ） */
+const TURN_END_KINDS = ["workplace_move"] as const;
+
+/** 送信待ちの頭が待っている理由（作業中 / 止めている・線で待つ / Kickoff が止めた / AI の引き継ぎ / 書き直し / 起動したときの確かめ） */
+const QUEUE_WAIT_REASONS = ["busy", "paused", "recovery", "handoff", "editing", "hold"] as const;
 
 /** 通信が切れて止まったチャットの、つながったら自動で再開するのを待っている状態（保存しない） */
 export interface ReconnectState {
@@ -22,6 +52,14 @@ export interface QueueState {
   stops: number[];
   /** 次の指示を画面で書き直しているので、送らずに書き直しが終わるのを待っている（作業は終わり、送信の準備ができている） */
   waiting_edit: boolean;
+  /** 出す箱の now の列（ChatLive.now と同じ） */
+  now: QueuedMessage[];
+  /** 列の頭が待っている理由（列が空・待っていなければ null） */
+  waiting: (typeof QUEUE_WAIT_REASONS)[number] | null;
+  /** 作業の終わりにすぐ行う圧縮・消去（列の頭の予約。なければ null） */
+  reserved: QueueAction | null;
+  /** 送っている途中の行の ID（いまは使わず空） */
+  sending: string[];
 }
 
 /** 会話を圧縮（要約）している最中の様子 */
@@ -86,7 +124,54 @@ export interface ChatLive {
    * 画面とスマホに「作業が終わったら … へ移ります」と出し、取り消せる（DELETE /api/chats/:id/workplace-move）
    */
   workplace_move: WorkplaceMoveReservation | null;
+  /** 作業の段階（作業中 = isBusyPhase） */
+  phase: WorkPhase;
+  /** chats.status の写し（status が変わったら、chat の知らせのすぐあとに chat_live でも届ける） */
+  status: ChatStatus;
+  /** AI の切り替えの引き継ぎの様子（引き継ぎがなければ null） */
+  provider_handoff: ProviderHandoff | null;
+  /** 送る準備の理由（phase が preparing のとき） */
+  preparing_for: PrepareReason | null;
+  /** 圧縮前指示を送ってから圧縮が終わるまでの、圧縮のきっかけ（phase が awaiting_compact のとき。manual = 手で頼んだ圧縮） */
+  compact_by: CompactTrigger | null;
+  /** 「いま」を預かっている理由（預かっていなければ null） */
+  hold: HoldReason | null;
+  /** 出す箱の now の列（預かり・圧縮後指示・移動の続き。いまは after_compact と同じ） */
+  now: QueuedMessage[];
+  /** 作業の終わりの予約（いまは AI が予約した作業場所の移動だけ） */
+  turn_end: { kind: (typeof TURN_END_KINDS)[number]; label: string }[];
+  // 中間の姿: after_compact・compact_after_turn・awaiting_compact・compacted_turn・tells_closed・inheriting は、新しい欄と同じ状態から作って出し続ける（画面が新しい欄を読むようになったら消す）
 }
+
+/** 送信待ちが空で、待っていない様子 */
+export const EMPTY_QUEUE_STATE: QueueState = { messages: [], paused: false, stops: [], waiting_edit: false, now: [], waiting: null, reserved: null, sending: [] };
+
+/** 何も起きていない作業中の様子（画面の既定・テストの元。status はまだ知らない間の completed） */
+export const EMPTY_CHAT_LIVE: ChatLive = {
+  queue: EMPTY_QUEUE_STATE,
+  background: null,
+  retry: null,
+  reconnect: null,
+  compacting: null,
+  stopping: false,
+  drawing_visual: false,
+  after_compact: [],
+  awaiting_compact: false,
+  compact_after_turn: false,
+  compacted_turn: false,
+  tells_closed: false,
+  inheriting: false,
+  restart_resume: null,
+  workplace_move: null,
+  phase: "idle",
+  status: "completed",
+  provider_handoff: null,
+  preparing_for: null,
+  compact_by: null,
+  hold: null,
+  now: [],
+  turn_end: [],
+};
 
 /** AI が予約した作業場所の移動の様子（ChatLive の workplace_move） */
 export interface WorkplaceMoveReservation {

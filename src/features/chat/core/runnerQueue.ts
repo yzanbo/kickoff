@@ -1,12 +1,12 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { AppError, Conflict, NotFound } from "@/foundation/core/errors";
 import { outboxEnv } from "./runtime";
+import { queueStateOf } from "./turnState";
 import type { ChatRuntimes } from "./runtimes";
 import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
 import { addAction, addLater, mergeLater, newMessage, pauseAtHead, reserve, setPaused, setStopAfter, takeLater, takeNext, type Outbox } from "@shared/chat/outbox";
 import { applyQueueCommand, isQueueReject, type QueueCommand } from "@shared/chat/queueCommand";
 import type { MessageMarks } from "@shared/chat/chatEvent";
-import type { QueueState } from "@shared/chat/chatLive";
 import type { Attachment, QueueAction, QueuedMessage, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { TellResult } from "@shared/foundation/apiTypes";
 import { marksOf } from "@shared/chat/handoff";
@@ -85,8 +85,8 @@ export abstract class RunnerQueue {
   }
 
   /** 送信待ちの様子（チャットの詳細・SSE の chat_live・送信待ちを変える API の応答で同じ形） */
-  queueState(chatId: number): QueueState {
-    return this.runtimes.get(chatId).queueState();
+  queueState(chatId: number) {
+    return queueStateOf(this.runtimes.get(chatId));
   }
 
   /**

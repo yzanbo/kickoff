@@ -2,7 +2,7 @@
 // Node・DOM に依存しない
 import { PROVIDER_FEATURES, type ProviderStatus } from "@shared/ai/types";
 import type { ChatEventDataOf, ChatEventOf, ChatEventType } from "@shared/chat/chatEvent";
-import type { ChatLive } from "@shared/chat/chatLive";
+import { EMPTY_CHAT_LIVE, type ChatLive } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { GitWorktree } from "@shared/git/types";
 import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
@@ -204,24 +204,7 @@ export function makeAttachment(id: string, patch: Partial<Attachment> = {}): Att
 
 /** 作業中の様子（何も起きていない: 送信待ちは空・自動で送る） */
 export function makeChatLive(patch: Partial<ChatLive> = {}): ChatLive {
-  return {
-    queue: { messages: [], paused: false, stops: [], waiting_edit: false },
-    background: null,
-    retry: null,
-    reconnect: null,
-    compacting: null,
-    stopping: false,
-    drawing_visual: false,
-    after_compact: [],
-    awaiting_compact: false,
-    compact_after_turn: false,
-    compacted_turn: false,
-    tells_closed: false,
-    inheriting: false,
-    workplace_move: null,
-    restart_resume: null,
-    ...patch,
-  };
+  return { ...EMPTY_CHAT_LIVE, ...patch };
 }
 
 /** サブエージェントの一覧の行（説明は key、動いている） */

@@ -3,6 +3,7 @@ import { test } from "vitest";
 import { relayMessage } from "@shared/chat/prompts";
 import { nextQueuedText, queuedHint, reservedAction } from "./queuedHint";
 import type { QueuedMessage } from "@shared/chat/types";
+import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
 const base = { paused: false, busy: true, collapsed: false, stopIndex: -1 };
 
@@ -23,7 +24,7 @@ test("queuedHint: 作業が終わって 1 件目の上の線で待っている�
 test("reservedAction: いちばん上の圧縮・消去の行で、その上で止めていないときだけ予約とみなす。畳んだ 1 行の「次:」は「会話を圧縮」", () => {
   const row = (text: string, action?: "compact" | "clear"): QueuedMessage => ({ id: text, text, options: {}, attachments: [], created_at: "", ...(action ? { [action]: true } : {}) });
   const compact = row("", "compact");
-  const queue = { messages: [compact, row("2")], paused: false, stops: [], waiting_edit: false };
+  const queue = { ...EMPTY_QUEUE_STATE, messages: [compact, row("2")], paused: false, stops: [], waiting_edit: false };
   assert.equal(reservedAction(queue), compact);
   assert.equal(reservedAction({ ...queue, paused: true }), null);
   assert.equal(reservedAction({ ...queue, stops: [0] }), null);
@@ -35,7 +36,7 @@ test("reservedAction: いちばん上の圧縮・消去の行で、その上で�
 
 test("reservedAction: いちばん上がコンテキストの消去の行なら、消去の予約。畳んだ 1 行の「次:」は「コンテキストを消去」", () => {
   const clear: QueuedMessage = { id: "c", text: "", options: {}, attachments: [], created_at: "", clear: true };
-  assert.equal(reservedAction({ messages: [clear], paused: false, stops: [], waiting_edit: false }), clear);
+  assert.equal(reservedAction({ ...EMPTY_QUEUE_STATE, messages: [clear], paused: false, stops: [], waiting_edit: false }), clear);
   assert.equal(nextQueuedText(clear), "コンテキストを消去");
 });
 
