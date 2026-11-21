@@ -171,3 +171,25 @@ test("使い切った枠の戻る時刻: その AI の取った値から（ま�
   assert.equal(await monitor.limitResetAt("claude"), "2026-11-17T05:00:00Z");
   assert.equal(await monitor.limitResetAt("codex"), null);
 });
+
+test("「更新」（force）は、進んでいるふつうの取得に相乗りせず、Claude の枠も取り直す", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  let claudeCalls = 0;
+  let codexCalls = 0;
+  const monitor = new UsageMonitor(undefined, {
+    claude: async () => (claudeCalls++, claude()),
+    codex: async () => {
+      codexCalls++;
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
+      return codex();
+    },
+  });
+  await monitor.refresh("claude");
+  // 設定を開いた（Claude はとっておいた値・Codex は取りに行って遅い）ところで「更新」を押す
+  const opened = monitor.all();
+  const refreshed = monitor.serviceUsages(true);
+  await vi.advanceTimersByTimeAsync(5_000);
+  await Promise.all([opened, refreshed]);
+  assert.deepEqual([claudeCalls, codexCalls], [2, 2]);
+});

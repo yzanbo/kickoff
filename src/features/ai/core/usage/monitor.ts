@@ -48,7 +48,7 @@ export class UsageMonitor {
   private readonly inflight = new Map<ProviderId, Promise<ProviderUsage>>();
   private readonly lastFetch = new Map<ProviderId, number>();
   private list: { at: number; usages: ProviderUsage[] } | undefined;
-  private listInflight: Promise<ProviderUsage[]> | undefined;
+  private listInflight: { force: boolean; loading: Promise<ProviderUsage[]> } | undefined;
   private timer: NodeJS.Timeout | undefined;
 
   constructor(
@@ -97,10 +97,18 @@ export class UsageMonitor {
     return this.refreshAll(false);
   }
 
-  /** すべての AI を取り直す（force: プランの枠も間を空けずに取り直す。「更新」ボタン） */
+  /** すべての AI を取り直す（force: プランの枠も間を空けずに取り直す。「更新」ボタンは、進んでいるふつうの取得に相乗りしない） */
   refreshAll(force: boolean): Promise<ProviderUsage[]> {
-    this.listInflight ??= this.loadAll(force).finally(() => (this.listInflight = undefined));
-    return this.listInflight;
+    const running = this.listInflight;
+    if (running && (running.force || !force)) return running.loading;
+    const current = {
+      force,
+      loading: this.loadAll(force).finally(() => {
+        if (this.listInflight === current) this.listInflight = undefined;
+      }),
+    };
+    this.listInflight = current;
+    return current.loading;
   }
 
   /** 実行中の支払いの知らせを重ねる。引かれていなかったのが引かれ始めたかを返す（チャットのお知らせに残すかを決めるため） */
@@ -139,7 +147,8 @@ export class UsageMonitor {
     const startedAt = Date.now();
     const ids = PROVIDER_IDS.filter((id) => this.fetchers[id]);
     const usages = await Promise.all(ids.map((id) => (isPlan(id) ? (force ? this.refresh(id, true) : this.current(id)) : this.fetch(id))));
-    this.list = { at: startedAt, usages };
+    // あとから始めた取得（「更新」）が先に終わっていたら、古い一覧で上書きしない
+    if (!this.list || this.list.at <= startedAt) this.list = { at: startedAt, usages };
     return usages;
   }
 
