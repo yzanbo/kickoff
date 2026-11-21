@@ -6,6 +6,7 @@
 @import "./base/maximized-header.css" layer(feature);
 @import "./base/scrollbar.css" layer(base);
 @import "./base/focus.css" layer(base);
+@import "./base/motion.css" layer(base);
 @import "./ui/types/floating.css" layer(ui);
 @import "./ui/types/card.css" layer(ui);
 @import "./ui/types/notice.css" layer(ui);

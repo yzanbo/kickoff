@@ -17,13 +17,6 @@
   animation: popover-in 0.14s ease-out;
 }
 
-@keyframes popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-}
-
 /* 見出し（PopoverHeader。題名・取り直し・閉じる） */
 .popover-head {
   display: flex;

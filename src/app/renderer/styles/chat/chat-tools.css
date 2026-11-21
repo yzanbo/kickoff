@@ -35,12 +35,6 @@
   animation: shimmer 1.6s linear infinite;
 }
 
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
-}
-
 .tool-chevron {
   flex: none;
   transition: transform 0.15s;

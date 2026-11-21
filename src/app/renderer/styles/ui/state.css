@@ -69,13 +69,6 @@
   right: var(--drop-offset, -1px);
 }
 
-@keyframes drop-line-in {
-  from {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-}
-
 /*
  * 動かしている物（startDragGhost がドラッグの間だけ付ける・並べ替えの部品が付ける data-drag-source）は薄く（濃さ --drag-source-opacity）。
  * まとまりごと薄くしている中（グループの並べ替えでつかんだ見出し）では重ねて薄くしない

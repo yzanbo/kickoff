@@ -216,12 +216,6 @@
   color: var(--muted);
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-
 .working {
   display: flex;
   align-items: center;

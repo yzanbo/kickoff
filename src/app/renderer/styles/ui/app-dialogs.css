@@ -6,13 +6,6 @@
   animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-}
-
 .app-dialog-body {
   display: grid;
   /* 列はダイアログの幅まで（auto のままだと、折り返さない長い文（PR の題名・パス）の幅まで列が伸び、横にスクロールした） */
