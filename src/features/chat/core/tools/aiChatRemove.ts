@@ -9,6 +9,7 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import type { TrashApi } from "@/features/trash/core/index";
 import { toolChat } from "./context";
+import { archiveChatFamily } from "@/features/chat/core/update";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 
 /** アーカイブか削除か */
@@ -108,8 +109,8 @@ export class ChatRemover {
     const others = withOthers(this.familyOf(action, target).length - 1);
     const label = `チャット「${nameOf(target)}」（ID ${target.id}）`;
     if (action === "archive") {
-      for (const c of this.familyOf(action, target)) runner.requireIdle(c.id, "アーカイブ");
-      store.chats.archive(target.id, true);
+      // 子孫ごとしまう（作業中のものがあれば断る。決まりは PATCH /api/chats/:id と同じ update.ts）
+      archiveChatFamily({ store, requireIdle: (id, why) => runner.requireIdle(id, why) }, target);
       return `${label}${others}をアーカイブしました。利用者はサイドバーのアーカイブから戻せます。`;
     }
     trashChat({ store, trashBin, runner }, target, { byChatId });

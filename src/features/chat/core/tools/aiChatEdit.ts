@@ -12,6 +12,7 @@ import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import { familyOrder, familyRelation } from "@shared/chat/family";
 import { detachChat } from "@/features/childChats/core/detach";
+import { applyChatUpdate, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { toolChat } from "./context";
 
 /** 名前・固定・グループを変えるツールの使い方（MCP の instructions として AI に渡す） */
@@ -80,6 +81,18 @@ export function familyOf(store: Store, self: Chat) {
   return { members, relationOf };
 }
 
+/** 決まりが断ったら、AI に返す理由の文で投げ直す */
+function refusedForAi<T>(fn: () => T, input: Pick<UpdateChatInput, "group_id">): T {
+  const groupGone = () => new Error(`グループ ID ${input.group_id} はこのプロジェクトにありません（ほかのプロジェクトのグループ・ないグループは選べず、グループは作りません）。list_family_chats の groups から選んでください`);
+  return refusedAs(fn, {
+    title_empty: () => new Error("名前（title）が空です"),
+    title_long: () => new Error(`名前（title）は ${CHAT_TITLE_MAX} 文字までです`),
+    child_group: () => new Error("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです。parent_id: null で親から外すなら、一緒にグループへ入れられます）"),
+    group_missing: groupGone,
+    group_other_project: groupGone,
+  });
+}
+
 /** 家系の外のチャットの名前を変える（同じプロジェクトのチャットの名前だけ。ほかの項目・ほかのプロジェクトは断る） */
 function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): string {
   const target = toolChat(store.chats, self.id).chatInProject(self, input.chat_id, "list_family_chats・list_project_chats で ID を確かめてください");
@@ -88,12 +101,11 @@ function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): 
       `チャット ID ${input.chat_id} は、このチャットの家系（いちばん上の親チャットから下にぶら下がるチャット）にありません。家系の外のチャットは名前（title）だけ変えられます（固定・グループ・親から外すは同じ家系のチャットだけ）`,
     );
   }
-  const title = input.title?.trim();
-  if (!title) throw new Error("名前（title）が空です");
-  if (title.length > CHAT_TITLE_MAX) throw new Error(`名前（title）は ${CHAT_TITLE_MAX} 文字までです`);
+  const plan = refusedForAi(() => planChatUpdate({ store, requireIdle: () => {} }, target, { title: input.title ?? "" }), input);
+  const title = plan.title ?? target.title;
   const label = `チャット「${nameOf(title)}」（ID ${target.id}・ほかの家系）`;
-  if (title === target.title) return `${label}は、もともと頼まれた名前だったので変えていません。`;
-  store.chats.update(target.id, { title });
+  if (plan.title === undefined) return `${label}は、もともと頼まれた名前だったので変えていません。`;
+  applyChatUpdate(store.chats, plan);
   return `${label}を変えました: 名前を「${nameOf(target.title)}」から「${title}」に変えた。`;
 }
 
@@ -145,21 +157,12 @@ export function createAiChatEditTools(store: Store, chatId: number, isBusy: (cha
       if (detaching && input.parent_id !== null && input.group_id !== undefined && input.group_id !== null) {
         throw new Error("グループに入れられるのは親のないチャットだけです（先祖の子に上げるときは group_id を渡さないでください）");
       }
-      // 先にすべて確かめてから変える（途中で断って一部だけ変わらないように）
-      const title = input.title?.trim();
-      if (title !== undefined && !title) throw new Error("名前（title）が空です");
-      if (title !== undefined && title.length > CHAT_TITLE_MAX) throw new Error(`名前（title）は ${CHAT_TITLE_MAX} 文字までです`);
-      const group = input.group_id === undefined || input.group_id === null ? null : store.groups.get(input.group_id);
-      if (input.group_id !== undefined) {
-        if (target.parent_chat_id !== null && !(detaching && input.parent_id === null)) {
-          throw new Error("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです。parent_id: null で親から外すなら、一緒にグループへ入れられます）");
-        }
-        if (input.group_id !== null && (!group || group.project_id !== target.project_id)) {
-          throw new Error(
-            `グループ ID ${input.group_id} はこのプロジェクトにありません（ほかのプロジェクトのグループ・ないグループは選べず、グループは作りません）。list_family_chats の groups から選んでください`,
-          );
-        }
-      }
+      // 先にすべて確かめてから変える（途中で断って一部だけ変わらないように。決まりは PATCH /api/chats/:id と同じ update.ts。親から外して親のないチャットにするときはグループも渡せる）
+      const plan = refusedForAi(
+        () => planChatUpdate({ store, requireIdle: () => {} }, target, { title: input.title, pinned: input.pinned, groupId: input.group_id }, { becomesRoot: detaching && input.parent_id === null, strictChildGroup: true }),
+        input,
+      );
+      const group = plan.group?.group ?? (input.group_id === undefined || input.group_id === null ? null : (store.groups.get(input.group_id) ?? null));
 
       const changes: string[] = [];
       // 親から外すのを先にする（先祖でない ID・作業中などで断るときは、ほかの項目も変えないように）
@@ -174,19 +177,15 @@ export function createAiChatEditTools(store: Store, chatId: number, isBusy: (cha
         const to = parentId === null ? null : store.chats.get(parentId);
         changes.push(to ? `「${nameOf(before?.title ?? "")}」から「${nameOf(to.title)}」の子に上げた` : `「${nameOf(before?.title ?? "")}」から外して親のないチャットにした${group ? `（グループ「${group.name}」）` : ""}`);
       }
-      if (title !== undefined && title !== target.title) {
-        store.chats.update(target.id, { title });
-        changes.push(`名前を「${nameOf(target.title)}」から「${title}」に変えた`);
+      // グループは親から外すときに一緒に入れたので、ここでは変えない
+      const { changes: made } = applyChatUpdate(store.chats, detaching ? { ...plan, group: undefined } : plan);
+      for (const kind of ["title", "pinned", "group"] as const) {
+        const change = made.find((c) => c.kind === kind);
+        if (change?.kind === "title") changes.push(`名前を「${nameOf(change.from)}」から「${change.to}」に変えた`);
+        if (change?.kind === "pinned") changes.push(change.to ? "固定した" : "固定を外した");
+        if (change?.kind === "group") changes.push(change.group ? `グループ「${change.group.name}」に入れた` : "グループから外した");
       }
-      if (input.pinned !== undefined && input.pinned !== target.pinned) {
-        store.chats.setPinned(target.id, input.pinned);
-        changes.push(input.pinned ? "固定した" : "固定を外した");
-      }
-      if (!detaching && input.group_id !== undefined && input.group_id !== target.group_id) {
-        store.chats.setGroup(target.id, input.group_id);
-        changes.push(group ? `グループ「${group.name}」に入れた` : "グループから外した");
-      }
-      const label = `チャット「${nameOf(title ?? target.title)}」（ID ${target.id}・${relationOf(target)}）`;
+      const label = `チャット「${nameOf(plan.title ?? target.title)}」（ID ${target.id}・${relationOf(target)}）`;
       return changes.length > 0 ? `${label}を変えました: ${changes.join("・")}。` : `${label}は、もともと頼まれた値だったので変えていません。`;
     },
   };

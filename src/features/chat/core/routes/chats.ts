@@ -3,7 +3,7 @@ import { z } from "zod";
 import { addWorktree, requireWorktree, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
-import { Invalid } from "@/foundation/core/errors";
+import { applyChatUpdate, HTTP_REFUSALS, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
 import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
@@ -205,18 +205,9 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
   app.patch("/api/chats/:id", withChat, async (c) => {
     const { chat } = c.var;
     const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
-    if (group_id !== undefined && group_id !== null) {
-      // グループに入るのは親のないチャットだけ（子チャットは親の下に並ぶ。AI の update_chat と同じ決まり）
-      if (chat.parent_chat_id !== null) throw new Invalid("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです）");
-      requireGroupOf(store.groups, group_id, chat.project_id);
-    }
-    // 子チャット（子・孫…）も一緒にしまう（作業中のものがあればしまえない）。戻すときは、一緒にしまった子孫だけを戻す（store.chats.archive）
-    if (archived) for (const c of [chat, ...store.chats.descendants(chat.id)]) if (c.archived_at === null) runner.requireIdle(c.id, "アーカイブ");
-    if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);
-    if (pinned !== undefined) store.chats.setPinned(chat.id, pinned);
-    if (title !== undefined) store.chats.update(chat.id, { title });
-    if (archived !== undefined) store.chats.archive(chat.id, archived);
-    return c.json(store.chats.get(chat.id));
+    // 決まりは AI の update_chat・archive_chat と同じ update.ts（子チャットはグループに入らない・子孫ごとしまう・作業中はしまえない）
+    const plan = refusedAs(() => planChatUpdate({ store, requireIdle: (id, action) => runner.requireIdle(id, action) }, chat, { title, pinned, groupId: group_id, archived }), HTTP_REFUSALS);
+    return c.json(applyChatUpdate(store.chats, plan).chat);
   });
 
   // 確認した（未読を消す）。event_id = 画面で一番下まで見た記録。それより新しい返答が届いていれば、まだ見ていないので消さない
