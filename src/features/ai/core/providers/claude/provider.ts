@@ -1,36 +1,21 @@
 import os from "node:os";
-import { bundledClaudeVersion, MCP_SERVERS_DELIVERY, overageInUseOf, planUsageOf, resolveClaudeExecutable, type Options, type Query, type SDKResultMessage, type SDKUserMessage } from "./wire";
+import { bundledClaudeVersion, planUsageOf, resolveClaudeExecutable, type Options, type Query, type SDKUserMessage } from "./wire";
 import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk";
-import { createBackgroundTracker } from "./background";
 import { claudeSessionStore, findSessionFile, removeSession, writeRecentSegments } from "./sessionFiles";
-import { createTurnOver } from "./turnOver";
-import { createCommandOutputWatcher } from "./commandOutput";
-import { createInputChannel } from "./input";
-import { createPreCompactGate, preCompactHook, replyText } from "./preCompact";
 import { errorMessage } from "@shared/foundation/errors";
-import { isNetworkError } from "@shared/ai/networkErrors";
-import { isUsageLimitError, resetTimeOf } from "@/features/ai/core/providers/shared/usageLimit";
-import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels";
+import { TERMINAL_ONLY_COMMANDS } from "./labels";
 import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
 import type { EffortDefault, ModelOption } from "@shared/chat/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
-import { createCanUseTool } from "./approvals";
-import { mcpServersOf, toolAllowList } from "./mcpServers";
-import { agentSpawnNotes } from "./spawnNotes";
-import { agentEnv, claudeAuthEnv } from "./env";
-import { autoCompactEnv, type ClaudeAuthStatus } from "./internals";
-import { createMessageState, emitSdkMessage } from "./messages";
+import { agentEnv } from "./env";
+import type { ClaudeAuthStatus } from "./internals";
 import { subagentLogOf } from "./subagentLog";
-import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { normalizeUsage, readPlanDisplayName } from "./usage";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
-import { claudeSandboxOption } from "./sandbox";
-import { confirmedClaudeMissingResume } from "./missingResume";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/ai/commands";
-import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { claudeEffortDefault } from "./effortDefault";
+import { runClaudeTurn } from "./run";
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -42,7 +27,7 @@ export class ClaudeProvider implements AgentProvider {
   readonly sessions = claudeSessionStore;
   private readonly sdk: ClaudeSdk;
   private readonly executable: string | undefined;
-  private readonly self: SelfInfo | undefined;
+  private readonly self: ClaudeProviderOptions["self"];
 
   constructor(opts: ClaudeProviderOptions = {}) {
     this.sdk = opts.sdk ?? realClaudeSdk;
@@ -144,200 +129,9 @@ export class ClaudeProvider implements AgentProvider {
     }
   }
 
-  async run(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
-    const abortController = new AbortController();
-    const onAbort = () => abortController.abort();
-    signal.addEventListener("abort", onAbort, { once: true });
-    // 渡されたときにもう止められていたら、知らせは来ないのでここで止める
-    if (signal.aborted) onAbort();
-
-    const canUseTool = createCanUseTool(cb);
-    // AI の操作ツール（埋め込みブラウザ・DB・チャット）は、コアの MCP サーバーの口を HTTP でつなぐ（中身と承認はコアが持つ）
-    const tools = params.tools ?? [];
-    const mcpServers = mcpServersOf(tools);
-
-    let sessionId = params.resumeSessionId;
-    let final: SDKResultMessage | undefined;
-    let seenOtherMessage = false;
-    // メインエージェントの最後の応答で、コンテキストに入っていたトークン数
-    let contextTokens: number | undefined;
-    // 要約したあとの大きさが分からず、次のメインの応答で知らせるところか
-    let contextAfterCompact = false;
-    // メインの会話の最後のメッセージの ID（分岐の位置。結果に残す）
-    let lastMessageId: string | undefined;
-    // 通信を再試行しているところか（返答が届き始めたら終わり）と、応答のないまま再試行したことがあるか（通信の切断の目印）
-    let retrying = false;
-    let noResponse = false;
-    /** 失敗が通信の切断によるものか */
-    const network = (error: string | undefined) => noResponse || isNetworkError(error);
-    // 使用枠の上限で断られたか（rate_limit_event の rejected・返答のエラー）と、枠が戻る時刻
-    let limited = false;
-    let limitResetsAt: string | null = null;
-    /** 失敗が使用枠の上限によるものなら、枠が戻る時刻を添える */
-    const usageLimit = (error: string | undefined) => (limited || isUsageLimitError(error) ? { usageLimit: { resetsAt: limitResetsAt } } : {});
-
-    // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
-    const input = createInputChannel(params.prompt, params.promptId);
-    // 入力を閉じる時（Claude Code が本当に手が空いたとき）。足した発言で次の返答が始まりうるので、足したことも知らせる
-    const turnOver = createTurnOver(() => input.close());
-    const push = (text: string, uuid?: string) => {
-      const ok = input.push(text, uuid);
-      if (ok) turnOver.pushed();
-      return ok;
-    };
-    // 実行中のコマンドの出力（Claude Code が書いているファイルを読み続け、終わる前から画面に届ける）
-    const commandOutput = createCommandOutputWatcher((output) => cb.commandOutput?.(output));
-    // 上限に近づいて自動で圧縮する前に、圧縮前指示を足して済ませてもらう（PreCompact フックで圧縮を止める）
-    const preCompact = params.preCompact
-      ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid), onNudged: (uuid) => cb.preCompactNudged?.(uuid) })
-      : null;
-    // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
-    const spawnNotes = agentSpawnNotes(params.onAgentSpawned);
-    const sandbox = claudeSandboxOption(params.bashSandbox, params.disableSandbox);
-    try {
-      const q = this.sdk.query({
-        prompt: input.messages,
-        options: {
-          ...spawnNotes.options,
-          cwd: params.cwd,
-          additionalDirectories: params.additionalDirectories,
-          model: params.model || undefined,
-          // 決めていなければ指定しない（SDK とモデルの既定に任せる）
-          effort: params.effort ?? undefined,
-          systemPrompt: { type: "preset", preset: "claude_code", append: params.systemPrompt },
-          // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
-          settingSources: ["user", "project", "local"],
-          permissionMode: params.permissionMode,
-          // AI の操作ツールのうち、聞かずに使わせるもの（埋め込みブラウザの見るだけのもの・DB とチャットのツールのすべて = 承認と断りはツールの中で行う）。
-          // 埋め込みブラウザの開く・押す・打つ・JS は権限モードと承認に従う
-          allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
-          // Kickoff のチャットでは使わせないツール（PushNotification・EnterWorktree / ExitWorktree。理由は KICKOFF_DISALLOWED_TOOLS）
-          disallowedTools: KICKOFF_DISALLOWED_TOOLS,
-          // AI の操作ツールの口は、鍵の見出しを Claude Code の起動の引数に載せないよう標準入力の initialize で渡す
-          // （同梱の Claude Code は SDK と同じ版なので読める。決めずにおくと SDK が廃止予定の警告を出す）
-          ...(Object.keys(mcpServers).length > 0 ? { mcpServers, ...MCP_SERVERS_DELIVERY } : {}),
-          canUseTool,
-          resume: params.resumeSessionId ?? undefined,
-          abortController,
-          // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
-          // API キーで動かす設定なら、キーを渡す（agentEnv はプランで動かすため鍵の環境変数を外すので、そのあとに重ねる）
-          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env, ...claudeAuthEnv(params.auth) },
-          pathToClaudeCodeExecutable: this.executable,
-          hooks: {
-            ...turnHooks(params, this.self, cb),
-            ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}),
-            // このチャットの文脈（子チャットの親など）は、実行の初めの指示に添える
-            ...(params.turnContext ? { UserPromptSubmit: [turnContextHook(params.turnContext)] } : {}),
-          },
-          includePartialMessages: true,
-          // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
-          enableFileCheckpointing: true,
-          ...(params.fastMode ? { settings: { fastMode: true } } : {}),
-          // Bash を砂場に入れ、書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする（止めるのは OS）
-          ...(sandbox ? { sandbox } : {}),
-        },
-      });
-
-      // 作業中の発言の足し方と、裏の作業の止め方を Runner に渡す
-      cb.control?.({ tell: push, stopTask: (taskId) => q.stopTask(taskId) });
-      // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
-      const messageState = createMessageState();
-      // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
-      const trackBackground = createBackgroundTracker();
-      for await (const msg of q) {
-        if (msg.type !== "result") seenOtherMessage = true;
-        // 1 件の処理に名前を付けて詰まりの見張りに知らせる（system/stallWatch.ts）
-        const handleStart = syncStart();
-        // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
-        if (msg.type === "system" && msg.subtype === "api_retry") {
-          retrying = true;
-          if (msg.error_status === null) noResponse = true;
-          cb.retry?.({ attempt: msg.attempt, max_retries: msg.max_retries, retry_delay_ms: msg.retry_delay_ms, at: new Date().toISOString() });
-        } else if (retrying && (msg.type === "assistant" || msg.type === "stream_event")) {
-          retrying = false;
-          cb.retry?.(null);
-        }
-        if (msg.type === "rate_limit_event") {
-          if (msg.rate_limit_info.status === "rejected") {
-            limited = true;
-            limitResetsAt = resetTimeOf(msg.rate_limit_info.resetsAt) ?? limitResetsAt;
-          }
-          // いま超過分（追加の使用枠。使った分の支払い）で動いているか（意図せず課金していないかを下の帯で見せる）
-          const overage = overageInUseOf(msg.rate_limit_info);
-          if (overage !== null) cb.overage?.(overage);
-        }
-        if (msg.type === "assistant" && msg.error === "rate_limit") limited = true;
-        commandOutput.handle(msg);
-        const sid = emitSdkMessage(msg, cb, messageState);
-        const background = trackBackground(msg);
-        if (background) cb.background?.(background);
-        // Claude Code の手が空き、裏の作業もなくなった: 入力を閉じて終わらせる（足した発言がまだ渡っていなければ閉じない。turnOver.ts）
-        turnOver.note(msg, background);
-        // 圧縮前指示の合図のあと、裏の作業の終わりだけを待って止まっていたら、背中を押して圧縮を走らせる（preCompact.ts）
-        preCompact?.noteWaiting(turnOver.waitingOnBackground());
-        // メインの会話の最後のメッセージ（ここから分岐するときの位置）
-        if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
-        if (sid) sessionId = sid;
-        if (msg.type === "result") final = msg;
-        if (msg.type === "assistant" && msg.parent_tool_use_id === null) {
-          const u = msg.message.usage;
-          contextTokens =
-            u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
-          preCompact?.noteReply(contextTokens, replyText(msg.message.content));
-          // 要約したあとの大きさが分からなかったときは、要約のあとの最初の応答で知らせる
-          if (contextAfterCompact) {
-            contextAfterCompact = false;
-            cb.context?.(contextTokens);
-          }
-        }
-        // 要約したあとのコンテキストの大きさ。作業の終わりを待たずに知らせる（自動の圧縮は作業の途中で起き、そのあとも作業が続くため）
-        if (msg.type === "system" && msg.subtype === "compact_boundary") {
-          const post = msg.compact_metadata.post_tokens;
-          preCompact?.noteCompacted(post ?? null);
-          if (post !== undefined) {
-            contextTokens = post;
-            cb.context?.(post);
-          } else contextAfterCompact = true;
-        }
-        noteSyncSince(handleStart, () => `provider:claude:${msg.type}`);
-      }
-    } catch (e) {
-      if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
-      const error = errorMessage(e);
-      return { status: "failed", sessionId, error, lastMessageId, ...(confirmedClaudeMissingResume(e, params.resumeSessionId, final, seenOtherMessage) ? { resumeSessionMissing: true as const } : {}), network: network(error), ...usageLimit(error) };
-    } finally {
-      signal.removeEventListener("abort", onAbort);
-      turnOver.stop();
-      preCompact?.stop();
-      input.close(true);
-      cb.control?.(null);
-      commandOutput.stopAll();
-      spawnNotes.release();
-    }
-
-    if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
-    if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました", lastMessageId, network: noResponse };
-
-    // ファストモードを指定したのに使われなかった場合は、理由をチャットに残す
-    if (params.fastMode && final.fast_mode_state !== "on" && final.fast_mode_disabled_reason) {
-      cb.emit({
-        type: "notice",
-        message: `ファストモードは使われませんでした（${FAST_MODE_REASONS[final.fast_mode_disabled_reason] ?? final.fast_mode_disabled_reason}）`,
-      });
-    }
-
-    // 上限は、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）
-    const windows = Object.values(final.modelUsage ?? {}).map((m) => m.contextWindow).filter((w) => w > 0);
-    const context = contextTokens === undefined ? undefined : { tokens: contextTokens, window: windows.length ? Math.max(...windows) : null };
-    const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns, context, lastMessageId };
-    if (final.subtype === "success" && !final.is_error) {
-      return { ...common, status: "completed", result: final.result };
-    }
-    const error =
-      final.subtype === "success"
-        ? final.result
-        : final.errors?.join("\n") || ERROR_LABELS[final.subtype] || final.subtype;
-    return { ...common, status: "failed", error, network: network(error), ...usageLimit(error) };
+  /** 1 回の実行（run.ts。SDK の口はテストで偽物に差し替えられる） */
+  run(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
+    return runClaudeTurn({ query: this.sdk.query, executable: this.executable, self: this.self }, params, cb, signal);
   }
 
   /**

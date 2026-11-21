@@ -20,7 +20,7 @@
 
 | ファイル | 役目 |
 |---|---|
-| `provider.ts` | `ClaudeProvider`（状態・使用枠・モデル・実行・分岐・ファイルを戻す・1 回だけ聞く） |
+| `provider.ts`・`run.ts`・`turnTracker.ts` | `ClaudeProvider`（状態・使用枠・モデル・分岐ほか）・実行・記録係 |
 | `wire.ts`・`internals.ts` | SDK を読む唯一の所（型にない欄・確かめた版 `TESTED_VERSION`）・Claude Code の内部の決まり（環境変数・場所） |
 | `sessionFiles.ts` | Claude Code の会話記録のファイル（探す・分岐と乗り換えの切り出し・ゴミ箱へ） |
 | `env.ts`・`policy.ts`・`sandbox.ts`・`preCompact.ts` | 環境変数・フック（文脈・守り）・Bash の砂場・圧縮前指示のフック |
