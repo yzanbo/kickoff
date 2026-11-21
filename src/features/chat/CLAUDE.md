@@ -65,7 +65,7 @@
 - 未読の条件は `@shared/chat/state` の `isUnreadEvent`（`core/db/events.ts` の `latestUnreadId` が同じものを SQL で持つ。変えたら両方）。
 - 既読（`POST …/seen`）は、画面が見た `event_id` より新しい結果があれば消さない。画面は一番下まで見た記録の ID を `api.markSeen` に渡し、自分で見たときだけ既読にする（`@/features/conversation/ui/timeline/useMarkSeen.ts`）。印の付け外しで並び順を変えない。
 - 画面の状態は `chatStateOf`（`@shared/chat/state.ts` の `agentStateOf`）、色は `ui/state/tones.ts`。場所ごとに判定を書かない。
-- 回答待ちは `ApprovalCenter` が持ち、回答まで実行は待つ。止められたら拒否で返す（あとの回答は 409）。回答の添付のパスは `answersWithAttachments` が書き添える。
+- 回答待ちは `ApprovalCenter` が持ち、回答まで実行は待つ。止められたら拒否で返す（あとの回答は 409）。回答の添付は `ChatAttachments.answers` がパスを添える。
 
 ## 巻き戻し・ファイルを戻す（`core/rewind.ts`・`core/sessionSwitch.ts`）
 

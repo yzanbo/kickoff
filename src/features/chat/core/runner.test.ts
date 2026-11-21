@@ -5,13 +5,12 @@ import { test } from "vitest";
 import { ScriptedProvider, type Script } from "@/features/ai/core/testing/fakeProvider";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
-import { setupCore, until } from "@/app/core/testing/testCore";
+import { setupCore, testUploads, until } from "@/app/core/testing/testCore";
 import { judgeFileWrite } from "@/features/guard/core/guard/writeScope";
-import { UploadStore } from "@/features/attachments/core/uploads";
 import type { CompactingState } from "@shared/chat/chatLive";
 
 /** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
-const setup = (script: Script, uploads?: UploadStore) => setupCore(new ScriptedProvider(script), { uploads });
+const setup = (script: Script, uploads?: ReturnType<typeof testUploads>) => setupCore(new ScriptedProvider(script), { uploads });
 
 test("実行するとイベントが記録され、続きのメッセージは同じセッションで再開する", async () => {
   const { store, runner, provider, project } = setup(async (params, cb) => {
@@ -70,7 +69,7 @@ test("どこでも決めていなければ、推論の深さは指定せず（nu
 
 test("添付ファイルはパスがメッセージに書き添えられ、会話には添付として記録される", async () => {
   const uploadsDir = tempDir();
-  const uploads = new UploadStore(uploadsDir);
+  const uploads = testUploads(uploadsDir);
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
   const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });
   const chat = await runner.start({ projectId: project.id, prompt: "読んで", attachments: [attachment] });

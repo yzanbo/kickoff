@@ -14,6 +14,10 @@ export interface ChatAttachments {
   promptNote(text: string, attachments: Attachment[], project: Project | null): Promise<string>;
   /** 添付のファイルの場所（見つからなければ null） */
   locate(attachment: Attachment): Promise<string | null>;
+  /** AI からの質問への回答に、質問ごとに添えた添付のパスを書き添える（見つからない添付は書かない。複数選ぶ質問は最後の答えに） */
+  answers(answers: Record<string, string | string[]>, attachments: Record<string, Attachment[]> | undefined): Promise<Record<string, string | string[]>>;
+  /** 本当に消したチャットの添付のうち、どこからも使われなくなったものを消す（見つからない・消せないものは飛ばす） */
+  discard(ids: string[]): Promise<void>;
 }
 
 /** 子チャットを親から外す（childChats が実装する。AI の update_chat の parent_id。断るときは理由の文で投げる） */

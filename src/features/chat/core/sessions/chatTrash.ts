@@ -12,8 +12,8 @@ import type { Store } from "@/features/chat/core/stores";
 import { descendantsOf } from "@/features/chat/core/family";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { ChatAttachments } from "@/features/chat/core/ports";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
-import type { UploadStore } from "@/features/attachments/core/uploads";
 import { tx } from "@/foundation/core/db/tx";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashService } from "@/features/trash/core/service";
@@ -29,7 +29,8 @@ export interface ChatTrashDeps {
 export interface ChatPurgeDeps {
   store: Store;
   providers: Record<ProviderId, AgentProvider>;
-  uploads: Pick<UploadStore, "resolve" | "remove">;
+  /** 添付の口（どこからも使われなくなった添付を消す） */
+  attachments: Pick<ChatAttachments, "discard">;
   /** 上の機能の後片付け（AI の SQL の結果を書き出した CSV・チャット欄の外の画像の覚え。chat の onChatsPurged に登録したもの） */
   onPurged?: (chatIds: number[]) => Promise<void>;
   /** ほかの Kickoff（製品版と開発版）のチャットが使っているセッション（その会話記録は消さない。siblingSessions.ts） */
@@ -115,10 +116,7 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
   await discardUnusedSessions(deps.store, deps.providers, sessions, (file) => fs.rm(file, { recursive: true, force: true }), deps.sessionsElsewhere).catch((e: unknown) =>
     console.warn(`[trash] 会話記録を消せませんでした: ${errorMessage(e)}`),
   );
-  for (const id of uploadIds) {
-    if (deps.store.events.uploadInUse(id) || !(await deps.uploads.resolve(id))) continue;
-    await deps.uploads.remove(id).catch(() => {});
-  }
+  await deps.attachments.discard([...uploadIds].filter((id) => !deps.store.events.uploadInUse(id)));
   await deps.onPurged?.(ids).catch(() => {});
 }
 

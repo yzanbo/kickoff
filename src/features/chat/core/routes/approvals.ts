@@ -5,7 +5,6 @@ import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { attachmentsSchema } from "@/foundation/core/http/schemas";
 import { optionalId } from "@/foundation/core/http/zodParts";
-import { answersWithAttachments } from "@/features/attachments/core/uploads";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -20,7 +19,7 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
 ]);
 
 /** 回答待ち: ツールの承認依頼・AI からの質問・再開するかの確かめ（一覧と回答） */
-export function approvalRoutes(app: Hono, { approvals, uploads }: Pick<ChatRouteDeps, "approvals" | "uploads">) {
+export function approvalRoutes(app: Hono, { approvals, attachments: files }: Pick<ChatRouteDeps, "approvals" | "attachments">) {
   app.get("/api/approvals", (c) => {
     const { project_id } = z.object({ project_id: optionalId }).parse({ project_id: queryOf(c, "project_id") });
     return c.json(approvals.list({ projectId: project_id }));
@@ -32,7 +31,7 @@ export function approvalRoutes(app: Hono, { approvals, uploads }: Pick<ChatRoute
     if (decision.action === "answer" && decision.attachments) {
       const { attachments, ...rest } = decision;
       // AI には添付のパスを書き添えた回答を渡し、チャットの記録には選んだままの回答と添付を残す
-      decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments), plain: rest.answers, attachments };
+      decision = { ...rest, answers: await files.answers(rest.answers, attachments), plain: rest.answers, attachments };
     }
     // もう待っていない（回答済み・中断済み）なら 409。回答した依頼は一覧から消えるので、返すものはない
     approvals.resolve(c.req.param("id"), decision);

@@ -21,6 +21,7 @@ import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { createChatRunner, type RunnerDeps } from "@/features/chat/core/run/runner";
 import { chatAttachmentsOf } from "@/features/attachments/core/index";
+import { UploadStore } from "@/features/attachments/core/uploads";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { toolGateFactory } from "@/features/guard/core/gate";
@@ -94,7 +95,11 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
  * Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など）と、本物と同じく登録する守りの contributor に渡すもの
  * （Bash の砂場・砂場の診断・門の作り方）
  */
-type RunnerOptions = Omit<RunnerDeps, "store" | "approvals" | "providers" | "usage" | "bus"> & Partial<Pick<GuardTurnDeps, "bashSandbox" | "toolGate">> & { sandboxDiagnostics?: GuardTurnDeps["diagnostics"] };
+type RunnerOptions = Omit<RunnerDeps, "store" | "approvals" | "providers" | "usage" | "bus"> &
+  Partial<Pick<GuardTurnDeps, "bashSandbox" | "toolGate">> & { sandboxDiagnostics?: GuardTurnDeps["diagnostics"]; uploads?: UploadStore };
+
+/** テストの添付の置き場（一時フォルダ。dir を渡せばそこ） */
+export const testUploads = (dir = tempDir()) => new UploadStore(dir);
 
 /** 偽のプロバイダー（どのプロバイダーとして呼ばれても同じもの）で、実行の受付だけを組み立てる */
 export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: RunnerOptions = {}, beforeStart?: (store: TestStores, project: Project) => number[]) {
@@ -109,22 +114,22 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const usage = offlineUsage();
   // 守りの門は本物と同じく guard が作る（自分を守る守りはテストでは付けない）。門の材料は実行ごとに覚える（gateMaterials）
   const gateMaterials: GuardMaterials[] = [];
-  const { bashSandbox, sandboxDiagnostics: diagnostics, toolGate: givenGate, contributors: given = [], aiTools: givenTools = [], ...rest } = runnerOptions;
+  const { bashSandbox, sandboxDiagnostics: diagnostics, toolGate: givenGate, contributors: given = [], aiTools: givenTools = [], uploads, ...rest } = runnerOptions;
   const factory = givenGate ?? toolGateFactory(undefined, []);
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
   // 本物の組み立てと同じく、守り・圧縮・AI の切り替えが実行に足すものと、砂場の診断のツールを登録する（ほかの上の機能はテストごとに contributors・aiTools で足す）
   const contributors = [
     guardTurnParts({ toolGate, bashSandbox, diagnostics, deleteGuard: rest.trashCommand !== undefined, providers }),
     compactTurnParts(store),
-    handoffTurnParts({ store, uploads: rest.uploads }),
+    handoffTurnParts({ store, uploads }),
     ...given,
   ];
   // 添付の置き場を渡したら、本物と同じく送る文に添付のパスを書き添える口も作る
-  const attachments = rest.uploads ? chatAttachmentsOf(rest.uploads) : undefined;
+  const attachments = uploads ? chatAttachmentsOf(uploads) : undefined;
   const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...rest, contributors, aiTools: [diagnosticToolGroup, ...givenTools] });
   // 子チャットを親から外す口と、AI の切り替えの準備（添付の置き場があるとき）も本物と同じく登録する
   const detach = chatDetachPort(store, (chatId) => runner.isBusy(chatId));
-  runner.attach({ detach, ...(rest.uploads ? { providerSwitch: providerSwitchPort(store, rest.uploads) } : {}) });
+  runner.attach({ detach, ...(uploads ? { providerSwitch: providerSwitchPort(store, uploads) } : {}) });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials, detach };
 }
 

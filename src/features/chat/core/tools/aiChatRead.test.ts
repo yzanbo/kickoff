@@ -2,10 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
-import { setupCore } from "@/app/core/testing/testCore";
+import { setupCore, testUploads } from "@/app/core/testing/testCore";
 import { createAiChatReadTools } from "./read";
-import { UploadStore } from "@/features/attachments/core/uploads";
-import { tempDir } from "@/foundation/core/testing/tempDir";
 
 function setup() {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
@@ -81,7 +79,7 @@ test("read_chat: 省略された長い発言を記録 ID と文字位置で最�
 
 test("read_chat: 添付のある発言は場所を後から読み、欠けた添付も知らせる。他プロジェクトは読ませない", async () => {
   const ctx = setup();
-  const uploads = new UploadStore(tempDir());
+  const uploads = testUploads();
   const file = await uploads.save({ name: "資料.txt", type: "text/plain", bytes: new TextEncoder().encode("秘密の内容") });
   const missing = { ...file, id: "00000000-0000-0000-0000-000000000000", name: "消えた.txt" };
   const event = ctx.store.events.add(ctx.other.id, { type: "user", text: "確認して", message_uuid: "u", attachments: [file, missing] });

@@ -3,6 +3,7 @@
 ## 地図
 
 - `core/uploads.ts`: 添付の置き場 `UploadStore`（保存先の `uploads/<id>/`）。表示のルートは `core/routes/uploads.ts`、ツールの画像は `core/toolImage.ts`（読んでよいフォルダは作業場所・添付の置き場と、上の機能が `addImageDir` で足すもの = ノートのフォルダ）。片付けは `core/attachmentsCleanup.ts`（`core/index.ts` の `createAttachments` がゴミ箱の片付けの段に足す）。送る文の見出しは `core/chatAttachments.ts`（chat の口 `ChatAttachments`）。
+- `core/chatAttachments.ts` は回答の添付のパスと、本当に消したチャットの添付の片付けも（chat の `purgeChatsOf` が使われなくなった ID を渡す）。
 - `ui/handoff/`: 「AI に渡す」。渡すものは各タブが `HandOffItem`（`handOff.ts`）で作る。ボタンは `HandOffButton`・項目は `HandOffItems`、渡し先は `HAND_OFF_TARGETS`。
 
 ## 決まり

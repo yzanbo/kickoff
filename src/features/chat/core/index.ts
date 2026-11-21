@@ -64,9 +64,7 @@ export interface ChatDeps {
   /** 定型文に足す（AI の add_snippet。上の snippets の店を組み立てが渡す） */
   snippets: Store["snippets"];
   ai: AiApi;
-  /** 添付の置き場（attachments の口） */
-  uploads: NonNullable<ExecutionDeps["uploads"]>;
-  /** 送る文に添付のパスを書き添える口（attachments が実装する） */
+  /** 添付の口（保存先・送る文と回答に添付のパスを書き添える・消したチャットの添付を消す。attachments が実装する） */
   attachments: ChatAttachments;
 }
 
@@ -130,7 +128,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: store.chats.get,
   });
-  const { trash: trashBin, uploads, attachments } = deps;
+  const { trash: trashBin, attachments } = deps;
   const { providers, keys: providerKeys, usage } = deps.ai;
   const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
@@ -155,7 +153,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, log: k.log, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -163,7 +161,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const purgeDeps: ChatPurgeDeps = {
     store,
     providers,
-    uploads,
+    attachments,
     sessionsElsewhere,
     // 1 つが失敗してもほかの後片付けは続ける
     onPurged: async (ids) => {
@@ -185,7 +183,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     const extras = { user_view: userView, fromHost: callerOf(c).kind === "host" };
     for (const fn of sendHooks) fn(chatId, extras);
   };
-  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
+  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, attachments, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
   return {

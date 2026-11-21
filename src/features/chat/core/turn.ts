@@ -10,7 +10,6 @@ import type { TrashCommand } from "@/features/trash/core/command";
 import type { SessionTrash } from "./sessionSwitch";
 import type { Store } from "@/features/chat/core/stores";
 import type { ProviderId } from "@shared/settings/types";
-import type { UploadStore } from "@/features/attachments/core/uploads";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
@@ -28,7 +27,6 @@ export interface ExecutionDeps {
   store: Store;
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
-  uploads?: UploadStore;
   /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */
   attachments?: ChatAttachments;
   bus?: Bus;

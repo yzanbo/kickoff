@@ -5,13 +5,17 @@ import type { ChatAttachments } from "@/features/chat/core/index";
 import type { Project } from "@shared/projects/types";
 import { isInside } from "@/foundation/core/system/paths";
 import { appendNote, CAPTURE_HEADING, captureLine, NOTE_SNAPSHOT_HEADING, noteSnapshotLine } from "./attachmentNotes";
-import { withAttachmentNote, type UploadStore } from "./uploads";
+import { answersWithAttachments, withAttachmentNote, type UploadStore } from "./uploads";
 
 /** 添付の置き場から、チャットの添付の口を作る（noteDirOf = プロジェクトのノートのフォルダ。ノートの写しの元のノートを引く。なければ元のノートは書かない） */
 export function chatAttachmentsOf(uploads: UploadStore, noteDirOf: (project: Project) => string | null = () => null): ChatAttachments {
   return {
     dir: uploads.dir,
     locate: async (attachment) => (await uploads.resolve(attachment.id))?.path ?? null,
+    answers: (answers, attachments) => answersWithAttachments(uploads, answers, attachments),
+    async discard(ids) {
+      for (const id of ids) if (await uploads.resolve(id)) await uploads.remove(id).catch(() => {});
+    },
     // ノートの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・ノートは書かない
     async promptNote(text, attachments, project) {
       const noteDir = project ? noteDirOf(project) : null;
