@@ -43,12 +43,6 @@
   transform: translateX(-50%);
 }
 
-.board-selection .selection-bar {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-2);
-}
-
 /* ==== ボードの中身と右のパネルを並べる格子（BoardShell・useBoardPanel。パネルは panel/side-panel.css） ==== */
 
 .board-body {
