@@ -1,6 +1,9 @@
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
-import { deniedWithWords, type GuardVerdict } from "@/features/guard/core/guard/judgeTool";
+import { deniedWithWords, type judgeCommand } from "@/features/guard/core/guard/judgeTool";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams } from "./types";
+
+/** 守りの判定（guard/core/rules.ts の GuardVerdict。ai は守りの型を直に読まない） */
+type GuardVerdict = Awaited<ReturnType<typeof judgeCommand>>;
 
 /**
  * 承認の頼みで聞いてくる CLI（Codex の app-server・Copilot SDK・ACP）に共通の承認の決まり（Codex は PreToolUse のフックも持つ。

@@ -4,7 +4,8 @@
 // rmdir（空のフォルダしか消せない）・git rm（コミット済みなら Git から戻せる）は断らない。抜け道（完全に消す例外）は作らない。
 // うっかりを防ぐもので、スクリプトのファイル・Python の os.remove など、わざと避ける書き方までは見抜けない
 import path from "node:path";
-import { commandWords, gitParts, shellScriptOf, splitCommands, type Word } from "@/foundation/core/shell/shellWords";
+import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
+import type { DenyVerdict } from "@/features/guard/core/rules";
 
 /** Kickoff のゴミ箱に入れるコマンドの名前（PATH に入れて AI に渡す。trash/command.ts が置く） */
 export const TRASH_COMMAND = "kickoff-trash";
@@ -24,7 +25,7 @@ function isDryRun(args: Word[]): boolean {
 }
 
 /** 1 つのコマンドの語から、消すものを見つける（なければ null） */
-function findInWords(segment: Word[], depth: number): Found | null {
+function findInWords(segment: Word[]): Found | null {
   const { words } = commandWords(segment);
   const head = base(words[0]);
   if (!head) return null;
@@ -43,18 +44,7 @@ function findInWords(segment: Word[], depth: number): Found | null {
     return null;
   }
   const git = gitParts(words);
-  if (git) return git.sub === "clean" && !isDryRun(git.args) ? { kind: "git_clean" } : null;
-  // sh -c '…' / bash -c "…" の中の文も見る（入れ子は 3 段まで）
-  const script = depth < 3 ? shellScriptOf(words) : null;
-  return script === null ? null : findIn(script, depth + 1);
-}
-
-function findIn(command: string, depth: number): Found | null {
-  for (const segment of splitCommands(command)) {
-    const found = findInWords(segment, depth);
-    if (found) return found;
-  }
-  return null;
+  return git && git.sub === "clean" && !isDryRun(git.args) ? { kind: "git_clean" } : null;
 }
 
 /** 断るときに AI に返す文（コマンドの書き方と、ゴミ箱に入って 3 日は戻せること） */
@@ -66,11 +56,9 @@ function deleteDeniedReason(found: Found): string {
   return `Kickoff では ${found.what} でファイルを消せません（消したものを戻せないため。どこのファイルでも同じです）。${how}`;
 }
 
-type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
-
-/** ツールの呼び出しがファイルを消すコマンド（Bash）なら断る */
-export function evaluateDeleteCommand(toolName: string, input: Record<string, unknown>): Decision {
-  if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
-  const found = findIn(input.command, 0);
-  return found ? { decision: "deny", reason: deleteDeniedReason(found) } : { decision: "pass" };
+/** ツールの呼び出しがファイルを消すコマンド（Bash）なら断る（sh -c '…' / bash -c "…" の中の文も、入れ子 3 段まで見る） */
+export function evaluateDeleteCommand(toolName: string, input: Record<string, unknown>): DenyVerdict {
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
+  const found = scanCommands(input.command, findInWords);
+  return found ? { kind: "deny", reason: deleteDeniedReason(found) } : { kind: "pass" };
 }

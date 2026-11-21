@@ -6,6 +6,8 @@ import type { BashSandboxDeps } from "./sandbox/bashSandbox";
 import type { NetworkRelay } from "./sandbox/networkRelay";
 import type { SandboxDiagnosticsPlatform } from "./sandboxDiagnosticsPlatform";
 
+export type { DenyVerdict } from "./rules";
+
 export interface GuardEnv {
   /** AI の Bash の砂場を付けるか（テストは付けない） */
   sandbox: boolean;

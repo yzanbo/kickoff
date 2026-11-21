@@ -7,18 +7,14 @@ import { evaluateGitHookBypass } from "./gitHookGuard";
 import { evaluateHiddenDbAccess } from "@/features/database/core/guard/hiddenDb";
 import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "./scope";
 import { evaluateSelfProtection, type SelfInfo } from "./selfProtection";
-import { judgeFileWrite, WRITE_SCOPE_DENIED } from "./writeScope";
+import { judgeFileWrite } from "./writeScope";
+import type { DenyVerdict, GuardVerdict } from "@/features/guard/core/rules";
 
-/**
+/*
  * Kickoff の守りを、ツールの呼び出しの形によらずまとめて当てる（プロバイダー非依存）。
  * Claude Code は PreToolUse のフックで 1 つずつ当てる（providers/claude/policy.ts）。フックを持たず、承認の頼みで聞いてくる CLI
- * （Copilot・ACP など）と、Codex の PreToolUse のフック（providers/codex/preToolUse.ts）は、聞かれたコマンド・書く先をここで判定する。
- * deny = 断る（理由を AI に伝える）/ ask = 承認カードで聞く（断られたら deniedReason を AI に伝える）/ pass = 守りは何も言わない（権限モードに任せる）
+ * （Copilot・ACP など）と、Codex の PreToolUse のフック（providers/codex/preToolUse.ts）は、聞かれたコマンド・書く先をここで判定する（判定の形は rules.ts の GuardVerdict）
  */
-export type GuardVerdict =
-  | { kind: "pass" }
-  | { kind: "deny"; reason: string }
-  | { kind: "ask"; title: string; description: string; deniedReason: string; /** 「このチャットでは許可」で覚える書く先（書き込み先の守りのときだけ） */ rememberTarget?: string };
 
 /** 判定に使うもの（実行に渡されたもの） */
 export interface GuardContext {
@@ -26,11 +22,7 @@ export interface GuardContext {
   self?: SelfInfo;
 }
 
-type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
-const firstDeny = (decisions: Decision[]): GuardVerdict | null => {
-  const denied = decisions.find((d): d is { decision: "deny"; reason: string } => d.decision === "deny");
-  return denied ? { kind: "deny", reason: denied.reason } : null;
-};
+const firstDeny = (verdicts: DenyVerdict[]): GuardVerdict | null => verdicts.find((v) => v.kind === "deny") ?? null;
 
 /** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンド・git のフックを飛ばすコマンド・NODE_COMPILE_CACHE を設定するコマンドは断り、ほかの作業場所の Docker は聞く） */
 export async function judgeCommand(ctx: GuardContext, command: string): Promise<GuardVerdict> {
@@ -68,14 +60,12 @@ export async function judgeWritePath(ctx: GuardContext, filePath: string): Promi
   if (!scope) return { kind: "pass" };
   const target = writeTargetOf(params.cwd, "Write", input);
   if (target === null || scope.allowed.has(target)) return { kind: "pass" };
-  const judged = await judgeFileWrite(target, {
+  return judgeFileWrite(target, {
     workdir: realPathOrSelf(params.cwd),
     writableDirs: scope.writableDirs,
     memoryParents: [],
     workplaces: scope.workplaces,
   });
-  if (judged.kind === "ask") return { kind: "ask", title: judged.title, description: judged.description, deniedReason: WRITE_SCOPE_DENIED, rememberTarget: target };
-  return judged;
 }
 
 /** ファイルを読む前の判定（自分の保存先・見せない DB の SQLite のファイルは断る。読むことはほかに絞らない）。聞いてくる CLI（Copilot の read の承認）だけが使う */

@@ -39,7 +39,7 @@ const conn = (patch: Partial<DbConnection>): DbConnection => ({
   ...patch,
 });
 
-const bash = (targets: ReturnType<typeof hiddenDbTargets>, command: string) => evaluateHiddenDbAccess(targets, "Bash", { command }).decision;
+const bash = (targets: ReturnType<typeof hiddenDbTargets>, command: string) => evaluateHiddenDbAccess(targets, "Bash", { command }).kind;
 
 test("見せない接続: ドットのあるホスト・接続の URL を含む Bash を断る（ほかのホスト・名前の一部は通す）", () => {
   const t = hiddenDbTargets([conn({})], ["/repo"]);
@@ -50,7 +50,7 @@ test("見せない接続: ドットのあるホスト・接続の URL を含む 
   assert.equal(bash(t, "curl https://db.example.com.evil.test"), "pass");
   assert.equal(bash(t, "npm test"), "pass");
   const result = evaluateHiddenDbAccess(t, "Bash", { command: "psql -h db.example.com" });
-  assert.ok(result.decision === "deny" && result.reason.includes("「本番」"));
+  assert.ok(result.kind === "deny" && result.reason.includes("「本番」"));
 });
 
 test("見せない接続: 1 語のホスト（docker の db など）は、つなぎ先として書いたときだけ断る", () => {
@@ -79,8 +79,8 @@ test("見せない接続: SQLite のファイルは、作業場所・本体の�
   assert.equal(bash(t, "sqlite3 /repo/db/production.sqlite3"), "deny");
   assert.equal(bash(t, "cd db && sqlite3 production.sqlite3"), "deny");
   assert.equal(bash(t, "sqlite3 db/development.sqlite3"), "pass");
-  assert.equal(evaluateHiddenDbAccess(t, "Read", { file_path: "/wt/db/production.sqlite3" }).decision, "deny");
-  assert.equal(evaluateHiddenDbAccess(t, "Read", { file_path: "/wt/db/schema.rb" }).decision, "pass");
+  assert.equal(evaluateHiddenDbAccess(t, "Read", { file_path: "/wt/db/production.sqlite3" }).kind, "deny");
+  assert.equal(evaluateHiddenDbAccess(t, "Read", { file_path: "/wt/db/schema.rb" }).kind, "pass");
   // ~ から書いたファイル
   const home = hiddenDbTargets([conn({ engine: "sqlite", host: null, port: null, file_path: "~/data/prod.db" })], ["/repo"]);
   assert.equal(bash(home, `sqlite3 ${os.homedir()}/data/prod.db`), "deny");
@@ -95,5 +95,5 @@ test("見せない接続: 見せる接続と同じファイル名なら名前だ
   assert.equal(bash(both, "sqlite3 dev/app.db"), "pass");
   assert.equal(bash(both, "sqlite3 prod/app.db"), "deny");
   assert.deepEqual(hiddenDbTargets([conn({ ai_access: "ask" })], ["/repo"]), []);
-  assert.equal(evaluateHiddenDbAccess([], "Bash", { command: "psql -h db.example.com" }).decision, "pass");
+  assert.equal(evaluateHiddenDbAccess([], "Bash", { command: "psql -h db.example.com" }).kind, "pass");
 });

@@ -4,6 +4,8 @@ import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { SelfGuardRules } from "@/features/guard/core/platformRules";
 import { expandHome, isInside } from "@/foundation/core/system/paths";
 import { TRASH_COMMAND } from "./deleteGuard";
+import type { DenyVerdict } from "@/features/guard/core/rules";
+import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /**
  * エージェントを動かしている Kickoff 自身（製品版で Kickoff を作るときは製品版）。
@@ -40,8 +42,6 @@ export function currentSelf(dataDir: string, port: number, platform: Pick<HostPl
   };
 }
 
-type SelfDecision = { decision: "pass" } | { decision: "deny"; reason: string };
-
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** シェルの書き方の違い（~・$HOME・\ で区切った空白）をそろえて、パスを探しやすくする */
@@ -63,58 +63,49 @@ function mentionsName(command: string, name: string): boolean {
   return new RegExp(`(?<![\\w-])${escape(name)}(?![\\w-]| Dev\\b)`).test(command);
 }
 
-const FILE_TOOLS: Record<string, string[]> = {
-  Read: ["file_path"],
-  Write: ["file_path"],
-  Edit: ["file_path"],
-  MultiEdit: ["file_path"],
-  NotebookEdit: ["notebook_path"],
-  Glob: ["path"],
-  Grep: ["path"],
-};
-
 /**
  * ツールの呼び出しが、エージェントを動かしている Kickoff 自身を壊すものなら断る:
  * 自分のプロセスを止める（kill・pkill・killall・AppleScript）・アプリ本体に触る・保存先のデータに触る・自分の API を叩く。
  * 開発版（Kickoff Dev）は別の名前・保存先・ポート・プロセスなので、ここでは断らない。うっかりを防ぐもので、わざと避ける書き方までは見抜けない
  */
-export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: Record<string, unknown>): SelfDecision {
+export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: Record<string, unknown>): DenyVerdict {
   const who = `「${self.appName}」はこのチャットを動かしているアプリです`;
   // 開発版へ案内するのは、インストールしたアプリ（製品版）のときだけ（開発版が自分のときに開発版を勧めると食い違う）
   const dev = self.appBundle ? "Kickoff を作って確かめるときは、開発版（npm run dev。Kickoff Dev・ポート 4318）を使ってください" : "";
   const join = (...parts: string[]) => parts.filter(Boolean).join("。");
 
-  for (const key of FILE_TOOLS[toolName] ?? []) {
+  const key = claudeToolOf(toolName)?.pathKey;
+  if (key) {
     const file = input[key];
     // チャットの添付ファイル（保存先の uploads）は、Read で読むだけなら通す（画面は「Read ツールで読めます」と案内している）
-    if (toolName === "Read" && typeof file === "string" && isInside(path.join(self.dataDir, "uploads"), path.resolve(expandHome(file)))) continue;
-    if (typeof file === "string" && file && isInside(self.dataDir, expandHome(file))) {
-      return { decision: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
+    const upload = toolName === "Read" && typeof file === "string" && isInside(path.join(self.dataDir, "uploads"), path.resolve(expandHome(file)));
+    if (!upload && typeof file === "string" && file && isInside(self.dataDir, expandHome(file))) {
+      return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
     }
   }
-  if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
 
   // Kickoff が置いた kickoff-trash（保存先の bin/）を場所で呼ぶのは通す（PATH に入れてあるが、場所で書かれることもある）
   const command = normalizeCommand(input.command).split(path.join(self.dataDir, "bin", TRASH_COMMAND)).join(TRASH_COMMAND);
   if (mentionsPath(command, self.dataDir)) {
-    return { decision: "deny", reason: join(who, `その保存先（${self.dataDir}）にはコマンドでも触れません`, dev) };
+    return { kind: "deny", reason: join(who, `その保存先（${self.dataDir}）にはコマンドでも触れません`, dev) };
   }
   if (self.appBundle && mentionsPath(command, self.appBundle)) {
-    return { decision: "deny", reason: `${who}。アプリ本体（${self.appBundle}）には触れません。入れ替えは利用者が macOS のターミナルで npm run install-app を実行します` };
+    return { kind: "deny", reason: `${who}。アプリ本体（${self.appBundle}）には触れません。入れ替えは利用者が macOS のターミナルで npm run install-app を実行します` };
   }
   if (new RegExp(`(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0|\\[::1\\]):${self.port}(?!\\d)`).test(command)) {
-    return { decision: "deny", reason: join(who, `その API（ポート ${self.port}）は叩けません`, dev) };
+    return { kind: "deny", reason: join(who, `その API（ポート ${self.port}）は叩けません`, dev) };
   }
   const stop = `${who}。止めると、このチャットも止まります`;
   const hit = self.pids.find((pid) => new RegExp(`\\bkill\\b[^\\n;&|]*?(?<![\\d.])${pid}(?![\\d.])`).test(command));
   if (hit !== undefined) {
-    return { decision: "deny", reason: `${stop}（プロセス ${hit}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
+    return { kind: "deny", reason: `${stop}（プロセス ${hit}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
   }
   if (self.guard.killByName.test(command) && mentionsName(command, self.appName)) {
-    return { decision: "deny", reason: `${stop}。名前でまとめて止めないでください` };
+    return { kind: "deny", reason: `${stop}。名前でまとめて止めないでください` };
   }
   if (self.guard.scripting.pattern.test(command) && mentionsName(command, self.appName)) {
-    return { decision: "deny", reason: `${stop}。${self.guard.scripting.label} で操作しないでください` };
+    return { kind: "deny", reason: `${stop}。${self.guard.scripting.label} で操作しないでください` };
   }
-  return { decision: "pass" };
+  return { kind: "pass" };
 }

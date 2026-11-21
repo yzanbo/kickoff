@@ -6,6 +6,7 @@ import path from "node:path";
 import { workplaceText } from "@shared/foundation/workplace";
 import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/worktrees";
 import { isInside } from "@/foundation/core/system/paths";
+import type { GuardVerdict } from "@/features/guard/core/rules";
 
 /** 判定に使う様子（パスはどれも実体のパス = realpath） */
 export interface WriteScopeFacts {
@@ -29,12 +30,10 @@ export interface WriteScopeParams {
   allowed: Set<string>;
 }
 
-export type WriteJudgement = { kind: "pass" } | { kind: "deny"; reason: string } | { kind: "ask"; title: string; description: string };
-
 /** 利用者がカードで断ったとき AI に返す文 */
 export const WRITE_SCOPE_DENIED = "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください";
 
-const PASS: WriteJudgement = { kind: "pass" };
+const PASS: GuardVerdict = { kind: "pass" };
 
 /** Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）か */
 const isSubagentWorktree = (dir: string) => dir.includes(`${path.sep}.claude${path.sep}worktrees${path.sep}`);
@@ -64,9 +63,10 @@ function otherWorkplaceReason(target: string, owner: Workplace, mine: string): s
 /**
  * 書く先（実体のパス）を判定する。書ける = 作業場所・ノートのフォルダ・決まりの例外（Claude Code のメモリと計画・サブエージェントのワークツリー）。
  * 同じリポジトリのほかの作業場所は断り、それ以外の外は聞く。どの作業場所のものかは、いちばん深く入る作業場所で決める
- * （本体の中に置いたワークツリーは、本体ではなくそのワークツリーのもの）。作業場所の一覧が取れなければ、作業場所の中かだけで見る
+ * （本体の中に置いたワークツリーは、本体ではなくそのワークツリーのもの）。作業場所の一覧が取れなければ、作業場所の中かだけで見る。
+ * 聞くときは、断られたら AI に返す文と「このチャットでは許可」で覚える書く先（target）を添える
  */
-export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Promise<WriteJudgement> {
+export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Promise<GuardVerdict> {
   if (facts.writableDirs.some((dir) => isInside(dir, target))) return PASS;
   if (facts.memoryParents.some((dir) => isMemoryOf(dir, target))) return PASS;
   const workplaces = await facts.workplaces();
@@ -81,5 +81,7 @@ export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Pr
     kind: "ask",
     title: `作業場所の外のファイルに書き込もうとしています: ${shown(target)}`,
     description: `このチャットの作業場所（${shown(mine)}）とノートのフォルダの外です。Kickoff の AI の守りが、作業場所の外への書き込みを流す前に確かめています。`,
+    deniedReason: WRITE_SCOPE_DENIED,
+    rememberTarget: target,
   };
 }

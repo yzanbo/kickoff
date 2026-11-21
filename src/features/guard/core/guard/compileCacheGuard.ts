@@ -5,7 +5,8 @@
 // launchctl setenv・sh -c '…' / eval の中）を、どのプロジェクトでもいつも断る。読むだけ（echo $NODE_COMPILE_CACHE・printenv）・消す（unset）は通す。
 // うっかりを防ぐもので、スクリプトのファイル・変数で名前を組み立てるなど、わざと避ける書き方までは見抜けない
 import path from "node:path";
-import { ASSIGNMENT, shellScriptOf, splitCommands, WRAPPERS, type Word } from "@/foundation/core/shell/shellWords";
+import { ASSIGNMENT, scanCommands, shellScriptOf, WRAPPERS, type Word } from "@/foundation/core/shell/shellWords";
+import type { DenyVerdict } from "@/features/guard/core/rules";
 
 const NAMES = new Set(["NODE_COMPILE_CACHE", "NODE_COMPILE_CACHE_PORTABLE"]);
 
@@ -36,7 +37,7 @@ function findInWords(segment: Word[], depth: number): string | null {
         if (option.startsWith("-S") || option.startsWith("--split-string")) {
           // env -S 'NAME=値 cmd' は値の文を 1 つのコマンドとして読む
           const script = option.includes("=") ? option.slice(option.indexOf("=") + 1) : option.length > 2 && !option.startsWith("--") ? option.slice(2) : segment[i + 1]?.text;
-          const found = script && depth < 3 ? findIn(script, depth + 1) : null;
+          const found = script && depth < 3 ? scan(script, depth + 1) : null;
           if (found) return found;
         }
         i += ENV_WITH_VALUE.has(option) ? 2 : 1;
@@ -56,15 +57,15 @@ function findInWords(segment: Word[], depth: number): string | null {
   // sh -c '…' / bash -c "…" / eval '…' の中の文も見る（入れ子は 3 段まで）
   if (depth >= 3) return null;
   const script = command === "eval" ? args.map((w) => w.text).join(" ") : shellScriptOf(words);
-  return script ? findIn(script, depth + 1) : null;
+  return script ? scan(script, depth + 1) : null;
 }
 
-function findIn(command: string, depth: number): string | null {
-  for (const segment of splitCommands(command)) {
-    const found = findInWords(segment, depth);
-    if (found) return found;
-  }
-  return null;
+/**
+ * 文の各コマンドを見る。中の文（sh -c・eval・env -S）へは findInWords が自分で下りるので、scanCommands には下りさせない
+ * （前に付けるもの（/usr/bin/env・env のオプション）の読み方が scanCommands と違うため）
+ */
+function scan(command: string, depth: number): string | null {
+  return scanCommands(command, (segment) => findInWords(segment, depth), 0);
 }
 
 /** 断るときに AI に返す文 */
@@ -72,13 +73,11 @@ function compileCacheDeniedReason(what: string): string {
   return `Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（${what}）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください`;
 }
 
-type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
-
 /** ツールの呼び出しが NODE_COMPILE_CACHE を設定するコマンド（Bash）なら断る */
-export function evaluateCompileCacheEnv(toolName: string, input: Record<string, unknown>): Decision {
-  if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
+export function evaluateCompileCacheEnv(toolName: string, input: Record<string, unknown>): DenyVerdict {
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
   // 名前を書いていなければ見るまでもない（ほとんどのコマンドはここで通る）
-  if (!input.command.includes("NODE_COMPILE_CACHE")) return { decision: "pass" };
-  const found = findIn(input.command, 0);
-  return found ? { decision: "deny", reason: compileCacheDeniedReason(found) } : { decision: "pass" };
+  if (!input.command.includes("NODE_COMPILE_CACHE")) return { kind: "pass" };
+  const found = scan(input.command, 0);
+  return found ? { kind: "deny", reason: compileCacheDeniedReason(found) } : { kind: "pass" };
 }

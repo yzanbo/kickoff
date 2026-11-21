@@ -3,7 +3,8 @@
 // git config で core.hooksPath を書き換える・消すコマンドを、どのプロジェクトでも断る（フックが落ちたら直してからやり直す）。
 // 利用者が飛ばすと決めたときは、利用者が自分のターミナルで流す。読むだけ（git config --get core.hooksPath）は断らない。
 // うっかりを防ぐもので、スクリプトのファイル・環境変数の GIT_CONFIG_* など、わざと避ける書き方までは見抜けない
-import { commandWords, gitParts, shellScriptOf, splitCommands, type Word } from "@/foundation/core/shell/shellWords";
+import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
+import type { DenyVerdict } from "@/features/guard/core/rules";
 
 /** --no-verify でフックを飛ばせるサブコマンド */
 const VERIFY_SUBCOMMANDS = new Set(["commit", "push", "merge", "am"]);
@@ -61,26 +62,14 @@ function configWritesHooksPath(args: Word[]): boolean {
 }
 
 /** 1 つのコマンドの語から、フックを飛ばす書き方を見つける（なければ null） */
-function findInWords(segment: Word[], depth: number): string | null {
+function findInWords(segment: Word[]): string | null {
   const { words } = commandWords(segment);
   const git = gitParts(words);
-  if (git) {
-    if (globalsChangeHooksPath(git.globals)) return "git -c core.hooksPath=…";
-    if (git.sub === "config" && configWritesHooksPath(git.args)) return "git config core.hooksPath";
-    if (git.sub === "commit" && commitSkipsHooks(git.args)) return "git commit --no-verify / -n";
-    if (git.sub && VERIFY_SUBCOMMANDS.has(git.sub) && git.args.some((w) => isNoVerify(w.text))) return `git ${git.sub} --no-verify`;
-    return null;
-  }
-  // sh -c '…' / bash -c "…" の中の文も見る（入れ子は 3 段まで）
-  const script = depth < 3 ? shellScriptOf(words) : null;
-  return script === null ? null : findIn(script, depth + 1);
-}
-
-function findIn(command: string, depth: number): string | null {
-  for (const segment of splitCommands(command)) {
-    const found = findInWords(segment, depth);
-    if (found) return found;
-  }
+  if (!git) return null;
+  if (globalsChangeHooksPath(git.globals)) return "git -c core.hooksPath=…";
+  if (git.sub === "config" && configWritesHooksPath(git.args)) return "git config core.hooksPath";
+  if (git.sub === "commit" && commitSkipsHooks(git.args)) return "git commit --no-verify / -n";
+  if (git.sub && VERIFY_SUBCOMMANDS.has(git.sub) && git.args.some((w) => isNoVerify(w.text))) return `git ${git.sub} --no-verify`;
   return null;
 }
 
@@ -89,11 +78,9 @@ function gitHookDeniedReason(what: string): string {
   return `Kickoff では ${what} で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください`;
 }
 
-type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
-
-/** ツールの呼び出しが git のフックを飛ばすコマンド（Bash）なら断る */
-export function evaluateGitHookBypass(toolName: string, input: Record<string, unknown>): Decision {
-  if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
-  const found = findIn(input.command, 0);
-  return found ? { decision: "deny", reason: gitHookDeniedReason(found) } : { decision: "pass" };
+/** ツールの呼び出しが git のフックを飛ばすコマンド（Bash）なら断る（sh -c '…' / bash -c "…" の中の文も、入れ子 3 段まで見る） */
+export function evaluateGitHookBypass(toolName: string, input: Record<string, unknown>): DenyVerdict {
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
+  const found = scanCommands(input.command, findInWords);
+  return found ? { kind: "deny", reason: gitHookDeniedReason(found) } : { kind: "pass" };
 }

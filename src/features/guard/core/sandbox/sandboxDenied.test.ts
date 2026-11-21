@@ -29,7 +29,7 @@ test("説明: ほかの作業場所は守りの断る文、外は Edit を案内
   const other = tempDir({ real: true });
   const sandbox: BashSandbox = { writableDirs: [work], readOnlyDirs: [], unsandboxedCommands: [], proxyPort: null };
   const judge = async (target: string) =>
-    target.startsWith(other) ? { kind: "deny" as const, reason: "同じリポジトリの別の作業場所です（提案してください）" } : { kind: "ask" as const, title: "", description: "" };
+    target.startsWith(other) ? { kind: "deny" as const, reason: "同じリポジトリの別の作業場所です（提案してください）" } : { kind: "ask" as const, title: "", description: "", deniedReason: "" };
   const out = [`(eval):1: operation not permitted: ${path.join(other, "a.txt")}`, `touch: /Users/nobody/.zshrc: Operation not permitted`, `touch: ${path.join(work, ".claude", "settings.json")}: Operation not permitted`].join("\n");
   const note = await sandboxDeniedNote(out, sandbox, judge);
   assert.ok(note);

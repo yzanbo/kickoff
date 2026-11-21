@@ -1,6 +1,8 @@
 import path from "node:path";
 import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
+import type { DenyVerdict } from "@/features/guard/core/index";
+import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */
 export interface HiddenDbTarget {
@@ -11,8 +13,6 @@ export interface HiddenDbTarget {
   /** SQLite のファイル（names: コマンドの中で探す書き方（絶対パス・登録したままの書き方・ファイル名）・absolute: ファイルのツールで比べる絶対パス） */
   file: { names: string[]; absolute: string[] } | null;
 }
-
-type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** 前後がホスト名・パスの続きでない（a.db.example.com・db.example.com.au・/x/prod.db.bak の一部としてでない） */
@@ -45,27 +45,27 @@ function mentionsFile(command: string, target: HiddenDbTarget): boolean {
   return (target.file?.names ?? []).some((n) => n.length > 0 && new RegExp(token(n)).test(command));
 }
 
-const FILE_TOOLS: Record<string, string> = { Read: "file_path", Write: "file_path", Edit: "file_path", MultiEdit: "file_path", NotebookEdit: "notebook_path" };
-
 /**
  * 「見せない」接続の DB に、AI が Kickoff の DB のツールを通らずに入るのを断る（Bash でホスト・接続の URL・SQLite のファイルを使う、
  * SQLite のファイルをファイルのツールで開く）。AI は .env の DATABASE_URL を読んで psql で直接入れ、そこでは読み取り専用も見せないも効かないため。
  * うっかりを防ぐもので、わざと避ける書き方（変数に分けるなど）までは見抜けない
  */
-export function evaluateHiddenDbAccess(targets: HiddenDbTarget[], toolName: string, input: Record<string, unknown>): Decision {
-  if (targets.length === 0) return { decision: "pass" };
+export function evaluateHiddenDbAccess(targets: HiddenDbTarget[], toolName: string, input: Record<string, unknown>): DenyVerdict {
+  if (targets.length === 0) return { kind: "pass" };
   const deny = (t: HiddenDbTarget) => ({
-    decision: "deny" as const,
+    kind: "deny" as const,
     reason: `DB の接続「${t.name}」は、利用者がチャットの AI に見せないと決めた DB です。コマンドやファイルで直接つないだり開いたりしないでください。中身が必要なら、利用者に頼んでください（Kickoff の DB タブの接続の設定で見せるかを変えられます）`,
   });
-  const key = FILE_TOOLS[toolName];
+  // ファイルを開くツール（探す Glob・Grep は見ない）
+  const tool = claudeToolOf(toolName);
+  const key = tool && !tool.searches ? tool.pathKey : null;
   if (key && typeof input[key] === "string") {
     const file = path.resolve(input[key]);
     const hit = targets.find((t) => t.file?.absolute.includes(file));
-    return hit ? deny(hit) : { decision: "pass" };
+    return hit ? deny(hit) : { kind: "pass" };
   }
-  if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
+  if (toolName !== "Bash" || typeof input.command !== "string") return { kind: "pass" };
   const command = normalizeCommand(input.command);
   const hit = targets.find((t) => mentionsHost(command, t) || mentionsFile(command, t));
-  return hit ? deny(hit) : { decision: "pass" };
+  return hit ? deny(hit) : { kind: "pass" };
 }

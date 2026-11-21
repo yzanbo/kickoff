@@ -1,7 +1,7 @@
 // 砂場で止まったときの文（プロバイダー非依存）: Bash の出力の「Operation not permitted」から断られた場所を読み、
 // どこに書こうとして・なぜ断られたか・代わりの道を AI に書き添える（OS の文だけだと、AI が書き方を変えて試し直すため）
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import type { WriteJudgement } from "@/features/guard/core/guard/writeScope";
+import type { GuardVerdict } from "@/features/guard/core/rules";
 import type { BashSandbox } from "./bashSandbox";
 
 /** 1 回の結果で説明する場所の数の上限 */
@@ -26,7 +26,7 @@ export function deniedWritePaths(output: string): string[] {
  * 断られた場所の説明（読み取れた場所がなければ null）。judge は書き込み先の守りの判定（ほかの作業場所かを見分ける。なければ外として扱う）。
  * 書ける場所の中なのに断られたものは、砂場がいつも書かせないファイル（作業場所の .claude/settings.json・git のフックと設定など）
  */
-export async function sandboxDeniedNote(output: string, sandbox: BashSandbox, judge: ((target: string) => Promise<WriteJudgement>) | null): Promise<string | null> {
+export async function sandboxDeniedNote(output: string, sandbox: BashSandbox, judge: ((target: string) => Promise<GuardVerdict>) | null): Promise<string | null> {
   const paths = deniedWritePaths(output);
   if (paths.length === 0) return null;
   const lines = await Promise.all(

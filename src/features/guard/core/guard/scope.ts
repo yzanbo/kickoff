@@ -1,25 +1,18 @@
 import path from "node:path";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
+import type { DenyVerdict } from "@/features/guard/core/rules";
+import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /**
  * 参照資料（読むだけのフォルダ・ファイル）を書き換えさせない仕組み（プロバイダー非依存）。
  * Claude はフック（PreToolUse）で、権限モードや許可ルールより先にこれで判定する
  */
 
-/** ファイルを書き換えるツールと、その入力のパスのキー */
-const WRITE_TOOLS: Record<string, string> = {
-  Write: "file_path",
-  Edit: "file_path",
-  MultiEdit: "file_path",
-  NotebookEdit: "notebook_path",
-};
-
-type ToolDecision = { decision: "deny"; reason: string } | { decision: "pass" };
-
 /** ファイルを書き換えるツールなら、書く先の実体のパス（リンクを解き、まだないファイルはあるところまでの親を解いたもの）。ほかのツールは null */
 export function writeTargetOf(cwd: string, toolName: string, input: Record<string, unknown>): string | null {
-  const pathKey = WRITE_TOOLS[toolName];
+  const tool = claudeToolOf(toolName);
+  const pathKey = tool?.writes ? tool.pathKey : null;
   if (!pathKey) return null;
   const filePath = input[pathKey];
   if (typeof filePath !== "string") return null;
@@ -30,13 +23,13 @@ export function writeTargetOf(cwd: string, toolName: string, input: Record<strin
  * 参照資料への書き込みを止める。どの権限モードでも効く。
  * readOnly は作業場所の外にある参照資料の絶対パス（作業場所の中のものは、ふつうの書き込みの判定に任せる）
  */
-export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName: string, input: Record<string, unknown>): ToolDecision {
-  if (readOnly.length === 0) return { decision: "pass" };
+export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName: string, input: Record<string, unknown>): DenyVerdict {
+  if (readOnly.length === 0) return { kind: "pass" };
   const target = writeTargetOf(cwd, toolName, input);
-  if (target === null) return { decision: "pass" };
+  if (target === null) return { kind: "pass" };
   const hit = readOnly.find((ref) => isInside(realPathLoose(ref), target));
-  if (!hit) return { decision: "pass" };
-  return { decision: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
+  if (!hit) return { kind: "pass" };
+  return { kind: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
 }
 
 /** Git で管理しているファイルか（絶対パス。Git の外・まだないファイルは false） */
@@ -63,17 +56,17 @@ export async function evaluateUntrackedWrite(
   toolName: string,
   input: Record<string, unknown>,
   tracked: (cwd: string, absolute: string) => Promise<boolean> = gitTracks,
-): Promise<ToolDecision> {
+): Promise<DenyVerdict> {
   if (toolName === "Bash") {
     const command = input.command;
-    if (typeof command === "string" && GIT_WRITE.test(command)) return { decision: "deny", reason: "このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）" };
-    return { decision: "pass" };
+    if (typeof command === "string" && GIT_WRITE.test(command)) return { kind: "deny", reason: "このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）" };
+    return { kind: "pass" };
   }
   const target = writeTargetOf(cwd, toolName, input);
-  if (target === null) return { decision: "pass" };
+  if (target === null) return { kind: "pass" };
   const root = realPathLoose(cwd);
-  if (!isInside(root, target) || target === root) return { decision: "deny", reason: `このチャットは作業場所（${cwd}）の中の、Git で管理していないファイルだけを書けます` };
-  if (path.relative(root, target).split(path.sep).includes(".git")) return { decision: "deny", reason: "このチャットでは .git の中は書けません" };
-  if (await tracked(root, target)) return { decision: "deny", reason: `${path.relative(root, target)} は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）` };
-  return { decision: "pass" };
+  if (!isInside(root, target) || target === root) return { kind: "deny", reason: `このチャットは作業場所（${cwd}）の中の、Git で管理していないファイルだけを書けます` };
+  if (path.relative(root, target).split(path.sep).includes(".git")) return { kind: "deny", reason: "このチャットでは .git の中は書けません" };
+  if (await tracked(root, target)) return { kind: "deny", reason: `${path.relative(root, target)} は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）` };
+  return { kind: "pass" };
 }

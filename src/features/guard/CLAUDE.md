@@ -17,10 +17,11 @@
 | `selfProtection.ts` | 自分を動かしている Kickoff | 断る |
 | `core/sandbox/` | Bash が書ける場所 | OS が止める |
 
+- 判定の形は `core/rules.ts` の `GuardVerdict` 1 つ（断るだけの守りは `DenyVerdict`）。ツールのパスの欄は `@shared/ai/claudeTools` の表から読む。
 - 判定はプロバイダーに依らない純粋関数。Claude は PreToolUse のフック（`turnHooks`）で毎回呼び、権限モード・許可ルールに関係なく効く。
 - フックのない CLI は `judgeTool.ts` の `judgeCommand` / `judgeWritePath` / `judgeReadPath` で当てる。守りを足したら両方に入れる。
 - 守りの理由と見抜けない書き方は各ファイルの頭に書く（うっかりを防ぐもので、わざと避ける書き方までは見抜けない）。
-- Bash の文の区切りは `@/foundation/core/shell/shellWords.ts` 1 つを共有する。直したら、それを使う守りのテストを全部通す。
+- Bash の文の区切りと `sh -c` の中へ下りるのは `@/foundation/core/shell/shellWords.ts`（`scanCommands`）1 つを共有する。直したら、それを使う守りのテストを全部通す。
 - 聞く守りは Auto mode でも聞く。「このチャットでは許可」は `ChatRuntime.writeAllowed` に覚える（保存しない）。
 - 砂場（`bashSandboxFor`）はどのチャットにもかけ、内蔵ターミナルにはかけない。利用者の設定ファイルは書ける場所に入れない（理由は JSDoc）。
 - 砂場の外で流すコマンドは、コマンド全体がそれだけのときだけ外で流れる（VAR=値・パイプ・リダイレクトが付くと中に戻る）。

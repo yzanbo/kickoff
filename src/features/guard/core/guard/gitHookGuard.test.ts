@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { evaluateGitHookBypass } from "./gitHookGuard";
 
 const judge = (command: string) => evaluateGitHookBypass("Bash", { command });
-const denied = (command: string) => judge(command).decision === "deny";
+const denied = (command: string) => judge(command).kind === "deny";
 
 test("フックを飛ばす git の書き方は断る（--no-verify・commit -n・core.hooksPath を変える）", () => {
   for (const command of [
@@ -32,8 +32,8 @@ test("フックを飛ばす git の書き方は断る（--no-verify・commit -n�
     assert.ok(denied(command), command);
   }
   const result = judge("git commit --no-verify");
-  assert.equal(result.decision, "deny");
-  if (result.decision === "deny") assert.match(result.reason, /原因を直して/);
+  assert.equal(result.kind, "deny");
+  if (result.kind === "deny") assert.match(result.reason, /原因を直して/);
 });
 
 test("ふつうのコミット・push と、値の中の -n・--no-verify、読むだけの git config は通す", () => {
@@ -58,5 +58,5 @@ test("ふつうのコミット・push と、値の中の -n・--no-verify、読�
   ]) {
     assert.ok(!denied(command), command);
   }
-  assert.equal(evaluateGitHookBypass("Read", { file_path: "/a" }).decision, "pass");
+  assert.equal(evaluateGitHookBypass("Read", { file_path: "/a" }).kind, "pass");
 });

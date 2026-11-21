@@ -16,7 +16,8 @@ import type { ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/p
 import { claudeProjectsDir } from "./internals";
 import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
-type Decision = { decision: "deny"; reason: string } | { decision: "pass" };
+/** 断る守りの判定（guard/core/rules.ts の DenyVerdict。ai は守りの型を直に読まない） */
+type Decision = ReturnType<typeof evaluateDeleteCommand>;
 type Evaluate = (toolName: string, input: Record<string, unknown>) => Decision | Promise<Decision>;
 
 /**
@@ -32,7 +33,7 @@ function denyHook(evaluate: Evaluate): HookCallbackMatcher {
       async (input: HookInput): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PreToolUse") return {};
         const result = await evaluate(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
-        if (result.decision === "pass") return {};
+        if (result.kind === "pass") return {};
         return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: result.reason } };
       },
     ],
@@ -113,7 +114,7 @@ function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, den
         const target = writeTargetOf(params.cwd, input.tool_name, toolInput);
         if (target === null) return {};
         if (scope.allowed.has(target)) return allowed;
-        for (const evaluate of deniedElsewhere) if ((await evaluate(input.tool_name, toolInput)).decision === "deny") return {};
+        for (const evaluate of deniedElsewhere) if ((await evaluate(input.tool_name, toolInput)).kind === "deny") return {};
         const judged = await judgeFileWrite(target, facts);
         if (judged.kind === "pass") return {};
         if (judged.kind === "deny") return deny(judged.reason);

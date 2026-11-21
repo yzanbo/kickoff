@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { evaluateDeleteCommand } from "./deleteGuard";
 
 const judge = (command: string) => evaluateDeleteCommand("Bash", { command });
-const denied = (command: string) => judge(command).decision === "deny";
+const denied = (command: string) => judge(command).kind === "deny";
 
 test("ファイルを消すコマンドは、どこのファイルでも断る（rm・unlink・shred・find -delete・find -exec rm・xargs rm）", () => {
   for (const command of [
@@ -26,7 +26,7 @@ test("ファイルを消すコマンドは、どこのファイルでも断る�
   ]) {
     assert.ok(denied(command), command);
   }
-  const reason = judge("rm a").decision === "deny" ? (judge("rm a") as { reason: string }).reason : "";
+  const reason = judge("rm a").kind === "deny" ? (judge("rm a") as { reason: string }).reason : "";
   assert.match(reason, /kickoff-trash/);
   assert.match(reason, /3 日/);
 });
@@ -38,7 +38,7 @@ test("git clean は断る（下見の -n・--dry-run は通す）。断る文で
   assert.ok(!denied("git clean -nd"));
   assert.ok(!denied("git clean --dry-run"));
   const result = judge("git clean -f");
-  assert.ok(result.decision === "deny" && /git clean -n/.test(result.reason) && /kickoff-trash/.test(result.reason));
+  assert.ok(result.kind === "deny" && /git clean -n/.test(result.reason) && /kickoff-trash/.test(result.reason));
 });
 
 test("消さないものは通す（rmdir・git rm・kickoff-trash・文字の中の rm・ほかのツール）", () => {
@@ -56,5 +56,5 @@ test("消さないものは通す（rmdir・git rm・kickoff-trash・文字の�
   ]) {
     assert.ok(!denied(command), command);
   }
-  assert.equal(evaluateDeleteCommand("Write", { file_path: "/tmp/rm" }).decision, "pass");
+  assert.equal(evaluateDeleteCommand("Write", { file_path: "/tmp/rm" }).kind, "pass");
 });

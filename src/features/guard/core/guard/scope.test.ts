@@ -9,24 +9,24 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 test("参照資料への書き込みは、どの権限モードでも拒否する", () => {
   const ref = tempDir();
   const repo = tempDir();
-  assert.equal(evaluateReferenceWrite(repo, [ref], "Write", { file_path: path.join(ref, "a.md") }).decision, "deny");
-  assert.equal(evaluateReferenceWrite(repo, [ref], "Edit", { file_path: path.join(repo, "src/a.ts") }).decision, "pass");
-  assert.equal(evaluateReferenceWrite(repo, [ref], "Read", { file_path: path.join(ref, "a.md") }).decision, "pass");
-  assert.equal(evaluateReferenceWrite(repo, [], "Write", { file_path: path.join(ref, "a.md") }).decision, "pass");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Write", { file_path: path.join(ref, "a.md") }).kind, "deny");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Edit", { file_path: path.join(repo, "src/a.ts") }).kind, "pass");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Read", { file_path: path.join(ref, "a.md") }).kind, "pass");
+  assert.equal(evaluateReferenceWrite(repo, [], "Write", { file_path: path.join(ref, "a.md") }).kind, "pass");
 });
 
 test("参照資料の中を指すシンボリックリンクを通した書き込みも拒否する", () => {
   const ref = tempDir({ real: true });
   const repo = tempDir({ real: true });
   fs.symlinkSync(ref, path.join(repo, "link"));
-  assert.equal(evaluateReferenceWrite(repo, [ref], "Write", { file_path: "link/a.md" }).decision, "deny");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Write", { file_path: "link/a.md" }).kind, "deny");
 });
 
 test("Git で管理していないファイルだけを書けるチャット: 管理しているファイル・作業場所の外・.git は断り、無視しているファイル・まだないファイルは通す", async () => {
   const repo = tempDir({ real: true });
   gitRepo({ dir: repo, files: { "compose.yaml": "services: {}\n", ".gitignore": ".env\n.kickoff/\n" } });
   fs.writeFileSync(path.join(repo, ".env"), "PORT=3000\n");
-  const decide = (tool: string, input: Record<string, unknown>) => evaluateUntrackedWrite(repo, tool, input).then((r) => r.decision);
+  const decide = (tool: string, input: Record<string, unknown>) => evaluateUntrackedWrite(repo, tool, input).then((r) => r.kind);
   assert.equal(await decide("Edit", { file_path: path.join(repo, ".env") }), "pass");
   assert.equal(await decide("Write", { file_path: ".kickoff/compose.worktree.yaml" }), "pass");
   assert.equal(await decide("Write", { file_path: path.join(repo, "new-untracked.txt") }), "pass");

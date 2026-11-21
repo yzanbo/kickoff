@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { evaluateCompileCacheEnv } from "./compileCacheGuard";
 
 const judge = (command: string) => evaluateCompileCacheEnv("Bash", { command });
-const denied = (command: string) => judge(command).decision === "deny";
+const denied = (command: string) => judge(command).kind === "deny";
 
 test("NODE_COMPILE_CACHE / _PORTABLE を設定する書き方は断る", () => {
   for (const command of [
@@ -58,11 +58,11 @@ test("読むだけ・消すだけ・名前を書くだけは通す", () => {
 
 test("断る理由は、起動に別のコードを差し込める穴があることと、利用者が自分のターミナルで流すことを伝える", () => {
   const result = judge("export NODE_COMPILE_CACHE=/tmp/c");
-  assert.equal(result.decision, "deny");
-  assert.ok(result.decision === "deny" && /別のコードを差し込める/.test(result.reason) && /自分のターミナル/.test(result.reason));
+  assert.equal(result.kind, "deny");
+  assert.ok(result.kind === "deny" && /別のコードを差し込める/.test(result.reason) && /自分のターミナル/.test(result.reason));
 });
 
 test("Bash でないツール・コマンドのない入力は見ない", () => {
-  assert.equal(evaluateCompileCacheEnv("Read", { file_path: "NODE_COMPILE_CACHE=/x" }).decision, "pass");
-  assert.equal(evaluateCompileCacheEnv("Bash", {}).decision, "pass");
+  assert.equal(evaluateCompileCacheEnv("Read", { file_path: "NODE_COMPILE_CACHE=/x" }).kind, "pass");
+  assert.equal(evaluateCompileCacheEnv("Bash", {}).kind, "pass");
 });
