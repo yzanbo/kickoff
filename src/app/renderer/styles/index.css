@@ -50,6 +50,7 @@
 @import "./ui/find.css" layer(ui);
 @import "./ui/selection-bar.css" layer(ui);
 @import "./ui/checklist.css" layer(ui);
+@import "./ui/ansi.css" layer(ui);
 @import "./sidebar/sidebar.css" layer(feature);
 @import "./sidebar/sidebar-rows.css" layer(feature);
 @import "./sidebar/sidebar-search.css" layer(feature);
@@ -186,7 +187,6 @@
 @import "./docker/docker-list.css" layer(feature);
 @import "./docker/docker-ports.css" layer(feature);
 @import "./docker/docker-logs.css" layer(feature);
-@import "./docker/docker-ansi.css" layer(feature);
 @import "./ci/ci.css" layer(feature);
 @import "./terminal/terminal.css" layer(feature);
 @import "./panel/bottom-panel.css" layer(feature);

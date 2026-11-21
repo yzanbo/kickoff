@@ -1,4 +1,4 @@
-/* Docker のログの画面の、アプリが付けた色（ANSI の 16 色。features/docker/ansi.ts）。色はターミナルと同じ（terminalTheme.ts の VS Code の配色） */
+/* ログのアプリが付けた色（ANSI の 16 色。features/docker/ansi.ts。Docker のログと CI のジョブのログが使う）。色はターミナル（terminalTheme.ts の VS Code の配色）と同じ。ただしライトの 9 番の文字と地の 16 色はダークの値のまま（ターミナルと違う） */
 
 .ansi-bold { font-weight: 700; }
 .ansi-dim { opacity: 0.65; }

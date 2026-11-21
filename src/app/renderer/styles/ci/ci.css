@@ -199,7 +199,7 @@
   width: 13px;
 }
 
-/* ログ（色はアプリが付けたまま。docker-ansi.css の ansi-*） */
+/* ログ（色はアプリが付けたまま。ui/ansi.css の ansi-*） */
 .ci-log {
   max-height: 70vh;
   overflow: auto;

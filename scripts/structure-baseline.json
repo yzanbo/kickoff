@@ -2416,7 +2416,7 @@
     ],
     "size": {
       "src/app/renderer/styles/chat/activity.css": 316,
-      "src/app/renderer/styles/chat/chat.css": 354,
+      "src/app/renderer/styles/chat/chat.css": 348,
       "src/app/renderer/styles/chat/child-chats.css": 359,
       "src/app/renderer/styles/chat/composer.css": 309,
       "src/app/renderer/styles/chat/context-meter.css": 473,
@@ -2428,7 +2428,6 @@
       "src/app/renderer/styles/editor/note.css": 323,
       "src/app/renderer/styles/footer/footer.css": 328,
       "src/app/renderer/styles/github/github-list.css": 307,
-      "src/app/renderer/styles/sidebar/sidebar-rows.css": 335,
       "src/features/ai/core/providers/claude/provider.ts": 467,
       "src/features/browser/desktop/agentBrowser.ts": 328,
       "src/features/chat/core/db/chats.ts": 370,
