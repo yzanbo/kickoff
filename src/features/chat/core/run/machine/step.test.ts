@@ -134,6 +134,9 @@ test("止める・長い準備: 作業中は止める命令。親の会話を写
   const box = { ...EMPTY_OUTBOX, now: [row("いま")], later: [row("次")] };
   assert.deepEqual(kinds(run({ ...initialRunState(), outbox: box }, [{ type: "begin", why: "move_workplace" }, { type: "prepared", next: "deliver" }]).effects), ["start:message:いま:held"]);
   assert.deepEqual(kinds(run({ ...initialRunState(), outbox: { ...box, now: [] } }, [{ type: "begin", why: "switch_provider" }, { type: "prepared", next: "send_next" }]).effects), ["start:message:次:queue"]);
+  // 利用者が作業場所を移している間に入れた送信待ちは、預かりがなければ移し終えたら送る（6 章 A1 の (c)）
+  const moving = run(initialRunState(), [{ type: "begin", why: "move_workplace" }, later("移す間に入れた"), { type: "prepared", next: "deliver" }]);
+  assert.deepEqual(kinds(moving.effects), ["reply:queued", "start:message:移す間に入れた:queue"]);
 });
 
 test("準備の間・作業の終わりにすることの間に止めると、済んでも動かさない（送る準備は動かし始めたらすぐ中断。6 章 A8・S52）", () => {

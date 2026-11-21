@@ -57,8 +57,10 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
       const idle: ChatRunState = { ...s, phase: { kind: "idle" } };
       if (p.stopRequested) return idle;
       if (e.next === "send_next") return pumpLater(idle, env, effects);
+      // 預かりを送る。預かりがなければ、準備の間に入った送信待ちの次を送る（利用者が作業場所を移している間に入れた指示を取り残さない）
       const head = idle.outbox.now[0];
-      return e.next === "deliver" && head && !head.post_compact ? deliverNow(idle, effects) : idle;
+      if (e.next !== "deliver") return idle;
+      return head && !head.post_compact ? deliverNow(idle, effects) : pumpLater(idle, env, effects);
     }
     case "turn_started": {
       // 送る準備の間（親の会話を写している間）に止めるよう頼んでいたら、動かし始めたらすぐ止める（プロバイダーを動かさずに中断で終える）
