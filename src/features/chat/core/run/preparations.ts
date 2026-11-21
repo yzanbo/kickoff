@@ -116,9 +116,17 @@ export function preparations(shell: RunShell, workplaceMoves: WorkplaceReservati
     moveWorkplace,
     retryProviderHandoff,
 
-    /** 新しいチャットを作ってすぐ動かす（親の会話を写すなら、写し終えてから） */
+    /** 新しいチャットを作ってすぐ動かす（親の会話を写すなら、写し終えてから）。作った直後から作業中に数える（最初の発言の下ごしらえの間に送られても、実行を 2 つ並べない） */
     async start(input: StartChatInput): Promise<Chat> {
-      const { chat, prompt, messageUuid } = await createChat(deps, input);
+      let made: number | null = null;
+      const begin = (chatId: number) => {
+        made = chatId;
+        shell.dispatch(chatId, { type: "begin", why: input.prepareSession ? "inherit" : "send" });
+      };
+      const { chat, prompt, messageUuid } = await createChat(deps, input, begin).catch((e: unknown) => {
+        if (made !== null) shell.dispatch(made, { type: "prepared" });
+        throw e;
+      });
       const item = { chatId: chat.id, prompt, promptId: messageUuid };
       if (input.prepareSession) inheritThenExecute(chat.id, input.prepareSession, item);
       else void shell.execute(chat.id, item, "message", null);

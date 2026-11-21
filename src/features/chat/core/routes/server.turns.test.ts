@@ -286,9 +286,9 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   await until(() => provider.prompts.length === 1);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
-  // 変わらなければ知らせない
+  // 変わらなければ知らせない（作った直後の送る準備 → 作業中・送信待ちに入れた・止めた）
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
-  assert.equal(lives.length, 3);
+  assert.deepEqual(lives.map((l) => l.phase), ["preparing", "running", "running", "running"]);
   const last = lives.at(-1)!;
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live, last);
   assert.deepEqual(

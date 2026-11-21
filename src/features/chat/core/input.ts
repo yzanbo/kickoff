@@ -54,9 +54,10 @@ export interface StartChatInput {
 
 /**
  * 新しいチャットを作り、最初の発言を記録する（動かすのは Runner）。prompt は添付のパスを書き添えた、AI に渡す文。
- * messageUuid は発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）
+ * messageUuid は発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）。
+ * created はチャットを作った直後に呼ぶ（このあとの下ごしらえの間も作業中に数えるため）
  */
-export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
+export async function createChat(deps: ExecutionDeps, input: StartChatInput, created?: (chatId: number) => void) {
   const { store, providers } = deps;
   const project = store.projects.get(input.projectId);
   if (!project) throw new NotFound("プロジェクトが見つかりません");
@@ -69,7 +70,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const resolved = resolveChatOptions(store.settings.get(), providerId, project, input.options);
   const options = { ...resolved, model: await knownModel(providerId, providers[providerId], resolved.model) };
   const titleText = input.titleText ?? input.prompt;
-  const created = store.chats.create({
+  const made = store.chats.create({
     project_id: project.id,
     provider: providerId,
     title: input.title ?? firstLine(titleText),
@@ -86,8 +87,9 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     github_kind: input.github?.kind ?? null,
     ai_generation: input.aiGeneration ?? 0,
   });
+  created?.(made.id);
   // 親の会話を引き継ぐ子チャットは、親の会話を写したセッションの続きから始める
-  const chat = input.sessionId ? store.chats.update(created.id, { session_id: input.sessionId }) : created;
+  const chat = input.sessionId ? store.chats.update(made.id, { session_id: input.sessionId }) : made;
   if (input.notice) store.events.add(chat.id, { type: "notice", message: input.notice });
   const attachments = input.attachments ?? [];
   const messageUuid = randomUUID();
