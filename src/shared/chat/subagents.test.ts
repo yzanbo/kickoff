@@ -102,6 +102,9 @@ test("サブエージェントの報告: SubagentHandback の本文 → 終わ�
     makeEvent(4, "tool_use", { id: "h2", name: "SubagentHandback", parent: "tu1", input: { message: "2 回目" } }),
   ];
   assert.equal(subagentReport(entry(pointer), handbacks), "2 回目");
+  // 再開した回の報告（その回の記録の parent は再開を頼んだ SendMessage の呼び出し = aliases）も同じ行のものとして探す
+  const resumed = [...handbacks, makeEvent(5, "tool_use", { id: "h3", name: "SubagentHandback", parent: "sm1", input: { message: "再開した回" } })];
+  assert.equal(subagentReport({ ...entry(pointer), aliases: ["sm1"] }, resumed), "再開した回");
 });
 
 test("サブエージェント: 裏で動いているものの一覧から消えたら、報告を渡していれば完了・なければ中断にする（待つ形のものは一覧で判断しない）", () => {

@@ -2165,7 +2165,7 @@
       "src/features/trash/core/service.ts": 334,
       "src/features/worktrees/core/finish.ts": 341,
       "src/foundation/desktop/app/coreProcess.ts": 342,
-      "src/shared/chat/subagents.ts": 311,
+      "src/shared/chat/subagents.ts": 310,
       "src/shared/chat/toolText.ts": 342,
       "src/shared/database/sqlStatements.ts": 318,
       "src/shared/foundation/apiTypes.ts": 614

@@ -286,9 +286,7 @@ export function unfinishedSubagents(events: ChatEvent[], sinceEventId: number): 
  * 通信が戻って自動で再開するときに、SendMessage で続きから再開するよう頼む。自分で止めたもの・ほかの理由の失敗は含めない
  */
 export function networkStoppedSubagents(events: ChatEvent[], sinceEventId: number): SubagentEntry[] {
-  return collectSubagents(events, {}, false).filter(
-    (s) => s.network && !s.supersededBy && s.agentId !== undefined && (s.endEventId ?? Number.POSITIVE_INFINITY) > sinceEventId,
-  );
+  return collectSubagents(events, {}, false).filter((s) => s.network && !s.supersededBy && s.agentId !== undefined && (s.endEventId ?? Number.POSITIVE_INFINITY) > sinceEventId);
 }
 
 /** 終わりの知らせの要約が、報告そのものでなく「報告は別の知らせ（SubagentHandback）で届けた」という案内か */
@@ -296,13 +294,14 @@ const isHandbackPointer = (text: string) => /report was delivered to you as a me
 
 /**
  * サブエージェントの親への報告（いちばん新しいもの）。次の順に探す:
- * 1. サブエージェントが呼んだ SubagentHandback の本文（再開したら、その回のもの）
+ * 1. サブエージェントが呼んだ SubagentHandback の本文（再開したら、その回のもの。その回の記録の parent は再開を頼んだ呼び出し = aliases）
  * 2. 終わりの知らせの要約（「別の知らせで届けた」という案内は除く）
  */
-export function subagentReport(entry: SubagentEntry, events: ChatEvent[]): string | undefined {
+export function subagentReport(entry: Pick<SubagentEntry, "key" | "aliases" | "summary">, events: ChatEvent[]): string | undefined {
+  const keys = new Set([entry.key, ...(entry.aliases ?? [])]);
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
-    if (e.type !== "tool_use" || e.data.parent !== entry.key || e.data.name !== "SubagentHandback") continue;
+    if (e.type !== "tool_use" || e.data.parent === undefined || !keys.has(e.data.parent) || e.data.name !== "SubagentHandback") continue;
     const message = (e.data.input as { message?: string } | undefined)?.message;
     if (message) return message;
   }
