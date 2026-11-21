@@ -469,8 +469,8 @@ export class Runner extends RunnerQueue {
     // 預かった指示を送っている途中（draining）のものは、預かり直さない
     if (runtime.holdsTells && !draining) return hold();
     // 動かし始めたばかりで、まだ足す口（作業中の操作）がなければ、少しの間できるのを待つ（足せないと決めて、この作業の間ずっと預からないように。
-    // 預かった指示を送っている途中のものは、送る側が足す口を待ってから渡す）
-    if (!runtime.turn?.control && !draining) await untilTellable(runtime, this.deps.tellableWaitMs ?? TELLABLE_WAIT_MS);
+    // 預かった指示を送っている途中のものは、送っている間に作業が入れ替わることがあるので、口ができるか作業が終わるまで待つ）
+    if (!runtime.turn?.control) await untilTellable(runtime, draining ? Infinity : (this.deps.tellableWaitMs ?? TELLABLE_WAIT_MS));
     const { prompt, handover } = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
     const messageUuid = randomUUID();
     // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
@@ -496,8 +496,8 @@ export class Runner extends RunnerQueue {
     }
     // 足せない（Claude Code が手を空けて入力を閉じた）: 送信待ちに戻さず預かり、作業の終わりに送信待ちより先に送る（deliverHeld）。
     // 送信待ちに戻すと、止めている・一時停止の線があるときに送られず、「すぐ送る」で送った指示も列に戻って順番が変わるため。
-    // この作業の間のこのあとの「いま」も預かる（口を closed に。先に預かった指示より先に入らないように）
-    if (this.isBusy(chatId)) runtime.patchTurn({ tell: "closed" });
+    // この作業の間のこのあとの「いま」も預かる（口を closed に。先に預かった指示より先に入らないように）。作業を動かし始める前（送る準備の間）は立てない
+    if (runtime.turn) runtime.patchTurn({ tell: "closed" });
     // 預かった指示を送っている途中（drainAfterCompact）のものは、呼び出し元が預かりの先頭に戻す
     if (draining) return "held";
     hold();

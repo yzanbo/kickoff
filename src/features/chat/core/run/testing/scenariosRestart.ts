@@ -133,7 +133,6 @@ export const RESTART_SCENARIOS: Scenario[] = [
   {
     id: "S48",
     behavior: 2,
-    known: "A10",
     name: "預かりを配っている途中で作業が入れ替わっても、入力が閉じていなければ「いま」を足せなくなった印を立てず、次の作業に足す",
     steps: [
       start("1"),
