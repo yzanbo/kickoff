@@ -17,6 +17,11 @@ export function createOutboxStore(db: DatabaseSync) {
       const rows = db.prepare("SELECT chat_id, now, later, stops, paused FROM chat_outbox").all() as { chat_id: number; now: string; later: string; stops: string; paused: number }[];
       return rows.map((row) => ({ chatId: row.chat_id, box: fromRow(row) }));
     },
+    /** 1 つのチャットの保存した箱（なければ undefined） */
+    get(chatId: number): Outbox | undefined {
+      const row = db.prepare("SELECT now, later, stops, paused FROM chat_outbox WHERE chat_id = ?").get(chatId) as { now: string; later: string; stops: string; paused: number } | undefined;
+      return row && fromRow(row);
+    },
     /**
      * 箱を丸ごと書く（行も線もなければ消す。もうないチャットの箱は書かない）。
      * すべて送ったあとの線（次に来た指示の前で止める）は、送信待ちが空でも残す（再起動しても止まる所を覚えておく）

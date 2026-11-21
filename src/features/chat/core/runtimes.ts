@@ -7,7 +7,8 @@ import { liveOf } from "./turnState";
 
 /**
  * チャットごとの作業中の状態（ChatRuntime）の入れ物。チャットの状態が変わったら、作業中の様子をまとめて chat_live で画面に配る。
- * 作るときに、保存した出す箱を読み戻す（止めておくか・線は終えたときのまま。自動で送る列を起動してから送るかは、Runner が利用者に聞く）
+ * 作るたびに（起動したときだけでなく、ゴミ箱から戻したときも）、保存した出す箱を読み戻す（止めておくか・線は保存したまま。
+ * 自動で送る列を起動してから送るかは、Runner が利用者に聞く）
  */
 export class ChatRuntimes implements RuntimeLookup {
   private readonly runtimes = new Map<number, ChatRuntime>();
@@ -23,9 +24,7 @@ export class ChatRuntimes implements RuntimeLookup {
       /** 圧縮が終わった（圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる間が終わった） */
       onCompactEnded?: (chatId: number) => void;
     },
-  ) {
-    for (const { chatId, box } of deps.store.outbox.list()) this.get(chatId).restore(box);
-  }
+  ) {}
 
   /** チャットの作業中の状態（まだなければ作る） */
   get(chatId: number): ChatRuntime {
@@ -39,6 +38,8 @@ export class ChatRuntimes implements RuntimeLookup {
         onCompactEnded: () => this.deps.onCompactEnded?.(chatId),
       });
       this.runtimes.set(chatId, runtime);
+      const saved = this.deps.store.outbox.get(chatId);
+      if (saved) runtime.restore(saved);
     }
     return runtime;
   }
