@@ -697,7 +697,7 @@
             "message": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500,
+              "maxLength": 120,
               "description": "知らせる短い文（120 文字まで）"
             }
           },
