@@ -1,5 +1,4 @@
 import { initEffort, type SDKMessage } from "./wire";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { clipToolResult, contentText, setCompacting } from "@/features/ai/core/providers/shared/events";
 
@@ -18,11 +17,11 @@ export interface MessageState {
   durations: number[];
   /** 会話を圧縮している最中か（Claude Code の status の知らせ） */
   compacting: boolean;
-  /** 中身を書いている途中の図のツールの呼び出し（ブロックの番号） */
-  drawing: Set<number>;
+  /** 入力を書いている途中のメインエージェントのツールの呼び出し（ブロックの番号 → ツールの名前） */
+  toolInputs: Map<number, string>;
 }
 
-export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false, drawing: new Set() });
+export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false, toolInputs: new Map() });
 
 /** 次の思考のかかった時間（終わりの知らせより先に中身が届いたら、まだ終わっていない最初の思考の始まりから数える） */
 function takeThinkingDuration(state: MessageState, now: number): number | undefined {
@@ -155,12 +154,13 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
         cb.stream?.(event.delta.text);
       } else if (event.type === "content_block_start" && (event.content_block.type === "thinking" || event.content_block.type === "redacted_thinking")) {
         state.starts.set(event.index, now);
-      } else if (event.type === "content_block_start" && isVisualToolBlock(event.content_block)) {
-        // 図の中身は長いので、書き終えるまで画面に「図を描いています…」を出す
-        state.drawing.add(event.index);
-        if (state.drawing.size === 1) cb.drawingVisual?.(true);
-      } else if (event.type === "content_block_stop" && state.drawing.delete(event.index)) {
-        if (state.drawing.size === 0) cb.drawingVisual?.(false);
+      } else if (event.type === "content_block_start" && event.content_block.type === "tool_use") {
+        // ツールの入力を書き始めた・書き終えた（図のように中身が長いものは、書き終えるまで画面に出す。どれを出すかはコアが決める）
+        state.toolInputs.set(event.index, event.content_block.name);
+        cb.toolInputStreaming?.(event.content_block.name, true);
+      } else if (event.type === "content_block_stop" && state.toolInputs.has(event.index)) {
+        cb.toolInputStreaming?.(state.toolInputs.get(event.index)!, false);
+        state.toolInputs.delete(event.index);
       } else if (event.type === "content_block_stop" && state.starts.has(event.index)) {
         state.durations.push(now - state.starts.get(event.index)!);
         state.starts.delete(event.index);
@@ -173,7 +173,3 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
   }
 }
 
-/** 図のツール（show_visual・update_visual）を呼ぶブロックか */
-function isVisualToolBlock(block: { type: string; name?: string }): boolean {
-  return block.type === "tool_use" && (block.name === AI_SHOW_VISUAL_TOOL || block.name === AI_UPDATE_VISUAL_TOOL);
-}

@@ -1,8 +1,7 @@
-import type { Context, Hono } from "hono";
+import type { Hono } from "hono";
 import { z } from "zod";
-import type { UserView, UserViewBody } from "@shared/userView/types";
+import type { UserViewBody } from "@shared/userView/types";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
-import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";
 import { userViewSchema } from "@/foundation/core/http/schemas";
 
@@ -13,11 +12,6 @@ const userViewBodySchema = z.object({
   chat_ids: z.array(z.number().int().positive()).max(200),
   focused: z.boolean(),
 }) satisfies z.ZodType<UserViewBody>;
-
-/** 送る指示に添えた、送った時点の画面の様子を覚える（この Mac の画面から送ったときだけ。スマホの様子は入れない） */
-export function rememberSentView(c: Context, userViews: UserViewRegistry, chatId: number, view: UserView | undefined) {
-  if (view && callerOf(c).kind === "host") userViews.rememberSent(chatId, view);
-}
 
 /**
  * 利用者が見ているもの（AI の get_user_view）: この Mac の画面のウィンドウが、見ているものが変わったとき

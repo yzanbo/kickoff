@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
 import type { LinkOpenTarget } from "@shared/settings/types";
-import { browserSection, noteSection, projectSection, referenceSection, sandboxSection, TRASH_SECTION, VISUAL_SECTION, WORK_SECTION } from "./system";
+import { browserSection, noteSection, projectSection, referenceSection, sandboxSection, TRASH_SECTION, WORK_SECTION } from "./system";
 import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
 
-/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節） */
+/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節。図と数式の節は visuals） */
 function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: string; file: string | null }, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
   const references = referenceSection(p);
   return joinSections([
@@ -15,7 +15,6 @@ function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: stri
     ...(opts.trash ? [TRASH_SECTION] : []),
     ...(opts.sandboxLines ? [sandboxSection(opts.sandboxLines)] : []),
     ...(opts.browser ? [browserSection(opts.browser)] : []),
-    VISUAL_SECTION,
     ...(note ? [noteSection(note)] : []),
     ...(references ? [references] : []),
   ]);
@@ -99,15 +98,6 @@ test("指示: 会話ごと別のフォルダへ移る EnterWorktree は使えず
   assert.match(prompt, /自分でチャットもワークツリーも作らずに/);
   assert.match(prompt, /［ワークツリーを作る］で作ったワークツリーのチャットで行うか、ワークツリーの子チャットを作るか/);
   assert.match(prompt, /isolation: "worktree" はこれまでどおり使えます/);
-});
-
-test("図と数式: 図はツールで描き、初めに書き方を読むこと・数式の書き方を伝える（細かい書き方はツールの説明に任せて短く）", () => {
-  const prompt = buildSystemPrompt(project([]));
-  assert.ok(prompt.includes("## 図と数式"));
-  assert.ok(prompt.includes("show_visual"));
-  assert.ok(prompt.includes("visual_guide"));
-  assert.ok(prompt.includes("$$ … $$"));
-  assert.ok(prompt.includes("\\( … \\)"));
 });
 
 test("ノート: どのチャットでも「ノート」が「ノート」タブのノート（フォルダ）のことだと伝え、ノートのチャットはどのノートの横かを伝える", () => {

@@ -6,6 +6,7 @@ import { systemClock } from "@/foundation/core/clock";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { Question } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
+import { DRAWING_TOOLS } from "@shared/chat/indexedTools";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
 import type { ExecutionDeps, ProviderCallbacks } from "@/features/chat/core/turn";
@@ -46,7 +47,8 @@ export function callbacksFor(
       const message = SPENDING_NOTICES[chat.provider];
       if (usage?.noteSpending(chat.provider, note) && message) recordEvent(store, runtime, { type: "notice", message });
     },
-    drawingVisual: (drawingVisual) => runtime.setDisplay({ drawingVisual }),
+    // 図のツールの中身は長いので、書き終えるまで画面に「図を描いています…」を出す（どれかを書いている間）
+    toolInputStreaming: drawingTracker((drawingVisual) => runtime.setDisplay({ drawingVisual })),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
     // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで外れる）
     compacting: (active) => runtime.dispatch({ type: "compacting", active, at: (clock ?? systemClock).iso(), trigger: compactTrigger }),
@@ -115,5 +117,16 @@ export function callbacksFor(
       );
       return answer;
     },
+  };
+}
+
+/** 図のツール（DRAWING_TOOLS）の入力を書いている数を数え、書き始めたら true、全部書き終えたら false を渡す（ほかのツールは見ない） */
+export function drawingTracker(set: (drawing: boolean) => void): (toolName: string, active: boolean) => void {
+  let writing = 0;
+  return (toolName, active) => {
+    if (!DRAWING_TOOLS.has(toolName)) return;
+    writing = Math.max(0, writing + (active ? 1 : -1));
+    if (active && writing === 1) set(true);
+    else if (!active && writing === 0) set(false);
   };
 }

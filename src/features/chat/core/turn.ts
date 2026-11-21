@@ -4,7 +4,6 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import type { UserViewRegistry } from "@/features/userView/core/registry";
 import type { ApprovalCenter } from "./approvals";
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
@@ -69,8 +68,6 @@ export interface ExecutionDeps {
   trashCommand?: TrashCommand;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
-  /** 利用者が見ているもの（AI の get_user_view が読む。なければそのツールを出さない） */
-  userViews?: UserViewRegistry;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */

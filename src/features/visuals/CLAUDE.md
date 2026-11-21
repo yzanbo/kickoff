@@ -2,7 +2,7 @@
 
 ## 図（`ui/`）
 
-- AI のツールは `core/aiVisual.ts`（決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- AI のツールは `core/aiVisual.ts`、組とシステムプロンプトの「図と数式」の節は `core/tools.ts`（決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。書いている間の表示は、chat が `@shared/chat/indexedTools` の `DRAWING_TOOLS` で見分ける。
 - 枠は `VisualFrame`（`allow-same-origin` なし）。図から送る発言は、利用者が枠の中を押したときだけ受ける（`pressedInside`）。理由は各関数の JSDoc。
 - 枠は画面の手前まで来てから置き、同時に読み込むのは `useFrameSlot` の数まで。触った図は `data-keep-row` で窓から外さない。
 - テーマを変えたら SVG は変数だけを送り、HTML は読み直す。テーマの値は `visualTheme.ts` が `@/app/renderer/styles/base/tokens.css` の末尾の一覧から読む（変数を足したら一覧も直す）。

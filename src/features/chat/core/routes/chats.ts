@@ -5,7 +5,6 @@ import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
-import { rememberSentView } from "@/features/userView/core/routes/userView";
 import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
 import { branchName, flag, optionalId } from "@/foundation/core/http/zodParts";
 import { chatTranscript } from "@/features/chat/core/transcript";
@@ -70,7 +69,7 @@ const chatPatchSchema = z
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
 
-export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ChatRouteDeps) {
+export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userSent, worktreeFinisher, terminals }: ChatRouteDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -92,7 +91,7 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
       github: input.github,
       provider: input.provider,
     });
-    rememberSentView(c, userViews, created.id, input.user_view);
+    userSent(c, created.id, input.user_view);
     return c.json(created, 201);
   });
 

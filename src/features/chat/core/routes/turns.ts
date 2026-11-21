@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
-import { rememberSentView } from "@/features/userView/core/routes/userView";
 import { attachmentsSchema, chatOptionsSchema, childChatSchema, editingIdsSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "@/foundation/core/http/schemas";
 import { sendBodySchema } from "./sendSchemas";
 import { forkChat } from "@/features/childChats/core/fork";
@@ -21,7 +20,7 @@ import { providerSwitchPreview } from "@/features/providerSwitch/core/providerSw
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
-export function turnRoutes(app: Hono, { store, runner, providers, uploads, userViews, remoteImages }: Pick<ChatRouteDeps, "store" | "runner" | "providers" | "uploads" | "userViews" | "remoteImages">) {
+export function turnRoutes(app: Hono, { store, runner, providers, uploads, userSent, remoteImages }: Pick<ChatRouteDeps, "store" | "runner" | "providers" | "uploads" | "userSent" | "remoteImages">) {
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
@@ -75,7 +74,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   app.post("/api/chats/:id/messages", withChat, async (c) => {
     const body = sendBodySchema.parse(await jsonBody(c));
     const { id: _queued, ...sent } = await runner.message(c.var.chat.id, body);
-    rememberSentView(c, userViews, c.var.chat.id, body.user_view);
+    userSent(c, c.var.chat.id, body.user_view);
     return c.json(body.when ? (sent satisfies SendResult) : sent.chat);
   });
 
@@ -83,7 +82,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   app.post("/api/chats/:id/tell", withChat, async (c) => {
     const body = messageInputSchema.parse(await jsonBody(c));
     const told: TellResult = { result: (await runner.message(c.var.chat.id, { ...body, when: "now" })).result };
-    rememberSentView(c, userViews, c.var.chat.id, body.user_view);
+    userSent(c, c.var.chat.id, body.user_view);
     return c.json(told);
   });
 

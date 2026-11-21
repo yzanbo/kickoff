@@ -10,13 +10,9 @@ import { chatOpenTools } from "./open";
 import { createAiOpenTools } from "./aiOpen";
 import { createAiProjectTools } from "./aiProject";
 import { createAiTerminalTools } from "@/features/terminal/core/aiTerminal";
-import { createAiVisualTools } from "@/features/visuals/core/aiVisual";
-import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools";
 import { TERMINAL_INSTRUCTIONS, terminalTools } from "@/features/terminal/core/chatTerminalTools";
-import { VISUAL_INSTRUCTIONS, visualTools } from "@/features/visuals/core/chatVisualTools";
-import { USER_VIEW_INSTRUCTIONS, userViewTools } from "@/features/userView/core/chatUserViewTools";
 import { DIAGNOSTIC_INSTRUCTIONS, diagnosticTools } from "@/features/guard/core/chatDiagnosticTools";
 import type { AiSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 
@@ -50,10 +46,6 @@ export function chatToolGroups(deps: ExecutionDeps, diagnostics: AiSandboxDiagno
     chatGroup(60, PROJECT_INSTRUCTIONS, ({ chatId }) => projectTools(createAiProjectTools({ store, notes: deps.notes }, chatId))),
     // このプロジェクトの内蔵ターミナルの出力を読む（メインプロセスが口を渡したときだけ）
     chatGroup(70, TERMINAL_INSTRUCTIONS, ({ chatId }) => (deps.terminals ? terminalTools(createAiTerminalTools({ store, terminals: deps.terminals }, chatId)) : null)),
-    // 返答の中に図（SVG・HTML・Mermaid）を描く（画面とスマホが記録から描く）
-    chatGroup(80, VISUAL_INSTRUCTIONS, ({ chatId }) => visualTools(createAiVisualTools(store, chatId))),
-    // 利用者が見ているものを読む（画面の知らせを覚える所があるときだけ）
-    chatGroup(110, USER_VIEW_INSTRUCTIONS, ({ chatId }) => (deps.userViews ? userViewTools(createAiUserViewTools({ store, userViews: deps.userViews }, chatId)) : null)),
     // チャットをアーカイブする・消す（同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
     removeToolGroup(() => deps.chatRemover),
   ];

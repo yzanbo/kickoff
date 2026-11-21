@@ -4,10 +4,9 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 
 /** 図の書き方の説明を読むツールの名前 */
 export const AI_VISUAL_GUIDE_TOOL = "mcp__kickoff_chat__visual_guide";
-/** 図を描くツールの名前 */
-export const AI_SHOW_VISUAL_TOOL = "mcp__kickoff_chat__show_visual";
-/** 描いた図を描き直すツールの名前 */
-export const AI_UPDATE_VISUAL_TOOL = "mcp__kickoff_chat__update_visual";
+/** 図を描く・描き直すツールの名前（記録の索引と書いている間の表示が chat で同じ名前を使う） */
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/chat/indexedTools";
+export { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL };
 
 /** 図の種類（SVG・HTML（スクリプトと決めた CDN のライブラリを使える）・Mermaid） */
 export const VISUAL_KINDS = ["svg", "html", "mermaid"] as const;

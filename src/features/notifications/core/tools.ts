@@ -41,8 +41,6 @@ export function notifyToolGroup(d: NotifyDeps): AiToolGroup {
     order: 100,
     instructions: NOTIFY_INSTRUCTIONS,
     open() {
-      // 1 回の作業で数える（作業ごとに open する）
-      const count = { sent: 0 };
       return [
         defineAiTool({
           server: "kickoff_chat",
@@ -50,7 +48,8 @@ export function notifyToolGroup(d: NotifyDeps): AiToolGroup {
           title: NOTIFY_USER_VIEW.label,
           description: `利用者に短い知らせを送る（長い作業の途中の区切り・あとで見てほしい判断。${AI_NOTIFY_MESSAGE_MAX} 文字まで・1 回の作業で ${AI_NOTIFY_PER_TURN} 回まで）`,
           input: { message: z.string().min(1).max(500).describe(`知らせる短い文（${AI_NOTIFY_MESSAGE_MAX} 文字まで）`) },
-          run: ({ message }, turn) => notify(d, turn.chatId, message, count),
+          // 1 回の作業で数える（作業ごとの値）
+          run: ({ message }, turn) => notify(d, turn.chatId, message, turn.perTurn("notify_user", () => ({ sent: 0 }))),
         }),
       ];
     },

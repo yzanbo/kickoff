@@ -1,5 +1,5 @@
 import type { ChatEvent, ChatEventType } from "@shared/chat/chatEvent";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";
+import { INDEX_TOOLS } from "./indexedTools";
 
 /*
  * 記録の索引。画面は最新の数十ターン分（末尾 tail）だけを中身のまま持ち、
@@ -56,18 +56,6 @@ const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
   "subagent",
   "approval_resolved",
   "handoff",
-]);
-
-/** R2: 呼び出しと結果を丸ごと入れるツール（サブエージェントの起動・報告・ToDo・図） */
-const INDEX_TOOLS: ReadonlySet<string> = new Set([
-  "Agent",
-  "SendMessage",
-  "SubagentHandback",
-  "TodoWrite",
-  "TaskCreate",
-  "TaskUpdate",
-  AI_SHOW_VISUAL_TOOL,
-  AI_UPDATE_VISUAL_TOOL,
 ]);
 
 const ACTIVITY_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>(["text", "thinking", "tool_use", "tool_result"]);

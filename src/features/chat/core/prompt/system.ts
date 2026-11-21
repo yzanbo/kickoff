@@ -81,16 +81,6 @@ export function browserSection(target: LinkOpenTarget): PromptSection {
   };
 }
 
-/** 図と数式: 書き方の細かい決まりは、描く前に visual_guide で読ませる（いつもの指示を長くしない） */
-export const VISUAL_SECTION: PromptSection = {
-  order: 400,
-  heading: `## 図と数式`,
-  lines: [
-    `- 利用者の画面は返答の Markdown を描きます。図（流れ・構成・関係・グラフ・画面のラフ・動く部品）は、kickoff_chat の show_visual で返答の中に描いてください（構造の図は Mermaid、ほかは SVG か HTML）。このチャットで初めて描く前に visual_guide を読んでください。利用者がアスキーなど別の書き方を頼んだら、そちらに従ってください。`,
-    `- 数式は返答の文の中に、段落なら $$ … $$、文の中なら \\( … \\) で書いてください（KaTeX で描きます）。`,
-  ],
-};
-
 /** ノート: どのチャットでも「ノート」が「ノート」タブのノートのことだと伝え、ノートのチャットはどのノートの横かを伝える */
 export function noteSection(note: { dir: string; file: string | null }): PromptSection {
   if (!note.file) {

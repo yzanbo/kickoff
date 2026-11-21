@@ -3,7 +3,7 @@
 import path from "node:path";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
-import { browserSection, noteSection, sandboxSection, VISUAL_SECTION } from "@/features/chat/core/prompt/system";
+import { browserSection, noteSection, sandboxSection } from "@/features/chat/core/prompt/system";
 import { joinSections, type PromptSection } from "@/features/chat/core/prompt/sections";
 import { appendSections } from "@/features/chat/core/prompt/compose";
 import { permissionOnlyGate, type GuardMaterials, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
@@ -111,7 +111,7 @@ export function toProviderParams(
 
 /**
  * まだ機能へ分けていない組み立て（order 0）: 環境変数（GitHub のアカウント）・Bash の砂場・ノートのフォルダ・
- * システムプロンプトの砂場・ブラウザ・図・ノートの節・守りの門・圧縮前指示
+ * システムプロンプトの砂場・ブラウザ・ノートの節・守りの門・圧縮前指示
  */
 export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, preCompactText: string | null): TurnContributor {
   return {
@@ -143,7 +143,7 @@ export function legacyTurnParts(deps: ExecutionDeps, runtime: ChatRun, preCompac
 }
 
 /**
- * まだ機能へ分けていない節: 砂場の行（guard）・ブラウザ（埋め込みブラウザがあるとき）・図と数式・ノート。ノートのフォルダ（なければ作る: ノートのタブで最初のノートを作るのと同じ場所）も
+ * まだ機能へ分けていない節: 砂場の行（guard）・ブラウザ（埋め込みブラウザがあるとき）・ノート。ノートのフォルダ（なければ作る: ノートのタブで最初のノートを作るのと同じ場所）も
  * 読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える（入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。
  * ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
  */
@@ -151,7 +151,6 @@ function legacySections(deps: ExecutionDeps, chat: Chat, { noteDir, sandbox }: T
   return [
     ...(sandbox ? [sandboxSection(sandboxPromptLines(sandbox.unsandboxedCommands, chat.edit_scope_enabled || chat.untracked_only))] : []),
     ...(deps.browser ? [browserSection(deps.store.settings.get().link_open_in)] : []),
-    VISUAL_SECTION,
     ...(noteDir ? [noteSection({ dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null })] : []),
   ];
 }

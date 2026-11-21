@@ -1,5 +1,7 @@
 // チャットの機能のコアの入口（ほかの機能はここだけを読む）
+import type { Context } from "hono";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
+import { callerOf } from "@/foundation/core/http/caller";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { Kernel } from "@/foundation/core/kernel";
@@ -34,6 +36,7 @@ import type { GroupsApi } from "@/features/groups/core/index";
 export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { ChatRunLookup } from "./run/chatRun";
 export type { TurnContributor } from "./run/turn/contributor";
+export type { PromptSection } from "./prompt/sections";
 export type { ChatAttachments } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
@@ -55,8 +58,6 @@ export interface ChatDeps {
   uploads: NonNullable<ExecutionDeps["uploads"]>;
   /** 送る文に添付のパスを書き添える口（attachments が実装する） */
   attachments: ChatAttachments;
-  /** 利用者が見ているもの（userView の口） */
-  userViews: NonNullable<ExecutionDeps["userViews"]>;
 }
 
 export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "editHoldTtlMs"> {
@@ -106,6 +107,8 @@ export interface ChatApi {
   attach(upper: ChatUpper): void;
   /** 実行に足すもの（環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること）を登録する（上の機能が createX の中で呼ぶ。AI のツールは CoreFeature.aiTools） */
   addTurnContributor(c: TurnContributor): void;
+  /** 送る指示を受けたとき（本文の user_view はそのまま渡す。形を確かめるのは聞く側。fromHost = この Mac の画面から送った） */
+  onUserSend(fn: (chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void): void;
   /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
   onChatsPurged(fn: (chatIds: number[]) => void | Promise<void>): void;
   /** チャットの名前をまとめて引く（ゴミ箱のチャットも。もうないチャットは入れない） */
@@ -123,7 +126,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: store.chats.get,
   });
-  const { trash: trashBin, uploads, userViews, attachments } = deps;
+  const { trash: trashBin, uploads, attachments } = deps;
   const { providers, keys: providerKeys, usage } = deps.ai;
   const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
@@ -148,7 +151,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   const trace = process.env.KICKOFF_RUN_TRACE === "1" ? (line: string) => k.log.info(`[run] ${line}`) : undefined;
   // 上の機能が登録した、実行に足すもの（組み立ての順 = 登録の順。実行ごとに order の順に集める）
   const contributors: TurnContributor[] = [];
-  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
+  const runner = createChatRunner({ store, approvals, providers, usage, uploads, attachments, bus, trashCommand, sessionTrash, toolHost: mcpTools, providerKeys, contributors, interrupted: recovered, clock: k.clock, trace, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
@@ -172,12 +175,18 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, runner, trashBin, retryMs, clock: k.clock });
   runner.useChatRemover(chatRemover);
+  // 送る指示を受けたときに聞く上の機能（userView が送った時点の画面の様子を覚える）
+  const sendHooks: ((chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void)[] = [];
+  const userSent = (c: Context, chatId: number, userView: unknown) => {
+    const extras = { user_view: userView, fromHost: callerOf(c).kind === "host" };
+    for (const fn of sendHooks) fn(chatId, extras);
+  };
   // 上の機能の口（ルートは待ち受けの前に登録するので、それまでに attach で受ける）
   let upper: ChatUpper | null = null;
   const routeDeps = () => {
     if (!upper) throw new Error("組み立ての最後に chat の attach を呼んでいません");
     const { worktreeEnvs, worktreeFinisher, terminals, remoteImages } = upper;
-    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userViews, sessionsElsewhere, trashBin, worktreeEnvs, worktreeFinisher, terminals, remoteImages };
+    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, worktreeFinisher, terminals, remoteImages };
   };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
@@ -199,6 +208,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
         runner.attach({ ...rest, notes, noteDirOf: (project) => notes.dirOf(project) });
       },
       addTurnContributor: (c) => void contributors.push(c),
+      onUserSend: (fn) => void sendHooks.push(fn),
       onChatsPurged: (fn) => void purged.push(fn),
       titlesOf,
       stats: () => databaseStats(k.db, k.db.location()),

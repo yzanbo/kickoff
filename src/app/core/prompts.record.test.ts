@@ -10,6 +10,10 @@ import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { setupCore, until } from "@/app/core/testing/testCore";
 import { setup } from "@/app/core/testing/testServer";
+import { visualTurnParts } from "@/features/visuals/core/tools";
+
+/** 本物の組み立てと同じく、上の機能が実行に足すもの（setupCore は殻だけなので、システムプロンプトの図と数式の節を足す） */
+const contributors = [visualTurnParts()];
 
 type Ctx = ReturnType<typeof setup>;
 
@@ -52,6 +56,7 @@ const CASES: Record<string, () => Promise<string>> = {
       noteDirOf: () => path.join(tmp, "ノート"),
       trashCommand: { path: path.join(tmp, "bin", "kickoff-trash"), dir: path.join(tmp, "trash") },
       bashSandbox: { rules: { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: ["npm run dev:*", "brew services start:*"] }, proxyPort: null, trashDir: null },
+      contributors,
     });
     store.projects.update(project.id, {
       description: "概要の 1 行目\n2 行目",
@@ -210,7 +215,7 @@ const CASES: Record<string, () => Promise<string>> = {
   // ブラウザの開き先（Kickoff のブラウザ → 既定のブラウザ）
   "browser-hint": async () => {
     const provider = new ScriptedProvider(done);
-    const { store, runner, project } = setupCore(provider, { browser: {} as BrowserControl });
+    const { store, runner, project } = setupCore(provider, { browser: {} as BrowserControl, contributors });
     const chat = await runner.start({ projectId: project.id, prompt: "ページを開いて" });
     await until(() => store.chats.get(chat.id)?.status === "completed");
     store.settings.update({ link_open_in: "browser" });

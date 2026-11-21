@@ -8,13 +8,13 @@
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 64756,
+      "bytes": 64772,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
     },
     "docs/requirements.md": {
-      "bytes": 112882,
+      "bytes": 112870,
       "longLines": 5,
       "forbidden": 12,
       "brokenRefs": 0

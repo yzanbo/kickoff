@@ -1,4 +1,5 @@
 // チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書くか ExecutionDeps から引く）
+import type { Context } from "hono";
 import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/features/chat/core/stores";
 import type { AiApi } from "@/features/ai/core/index";
@@ -17,8 +18,8 @@ export interface ChatRouteDeps {
   runner: ChatRunner;
   approvals: ApprovalCenter;
   uploads: NonNullable<ExecutionDeps["uploads"]>;
-  /** 利用者が見ているもの（チャットごとの送ったときの様子） */
-  userViews: NonNullable<ExecutionDeps["userViews"]>;
+  /** 送る指示を受けた（本文の user_view と、この Mac の画面から送ったか。上の機能が onUserSend で聞く） */
+  userSent(c: Context, chatId: number, userView: unknown): void;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（どのチャットも使っていない会話記録の一覧から除く。省けば調べない） */
   sessionsElsewhere?: SessionsUsedElsewhere;
   trashBin: TrashApi;

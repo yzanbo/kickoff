@@ -2,10 +2,13 @@
 import type { Context } from "hono";
 import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/visuals/visualDocument";
 import type { CoreFeature } from "@/foundation/core/feature";
+import type { ChatApi } from "@/features/chat/core/index";
+import { visualToolGroup, visualTurnParts } from "./tools";
 
-/** 図を入れる枠のページ（認証の外） */
-export function createVisuals(): CoreFeature<null> {
-  return { name: "visuals", api: null, pages: { "/visual-frame": visualFrame } };
+/** 図: AI が返答に図を描くツールとシステムプロンプトの節、図を入れる枠のページ（認証の外） */
+export function createVisuals(deps: { chat: Pick<ChatApi, "store" | "addTurnContributor"> }): CoreFeature<null> {
+  deps.chat.addTurnContributor(visualTurnParts());
+  return { name: "visuals", api: null, aiTools: [visualToolGroup(deps.chat.store)], pages: { "/visual-frame": visualFrame } };
 }
 
 /**
