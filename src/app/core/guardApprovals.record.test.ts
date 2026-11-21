@@ -14,8 +14,7 @@ import type { PermissionRequest } from "@/features/ai/core/providers/copilot/sdk
 import { answerPermission } from "@/features/ai/core/providers/acp/permissions";
 import type { RequestPermissionRequest, ToolCall } from "@/features/ai/core/providers/acp/protocol";
 import { cursorExtension } from "@/features/ai/core/providers/cursor/extensions";
-import { hiddenDbRuleSource } from "@/features/database/core/guard/hiddenDb";
-import { dockerRuleSource } from "@/features/docker/core/guard/dockerGuard";
+import { fixedSources, testMaterials, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import { toolGateFactory } from "@/features/guard/core/gate";
 import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
@@ -54,13 +53,13 @@ function harness(w: World, mode: PermissionMode, answer: ApprovalDecision, sandb
     writeScope: { writableDirs: [], workplaces: async () => [{ path: w.cwd, worktree_path: null, branch: "main" }], allowed },
     sandbox: sandbox ? { writableDirs: [w.cwd], readOnlyDirs: [], unsandboxedCommands: ["docker:*"], proxyPort: null } : null,
     tools: [{ name: "kickoff_chat", url: "http://x", headers: {}, autoAllow: ["read_chat"] }],
-  } as unknown as ProviderTurnParams;
+  } as unknown as ProviderTurnParams & TestGuardMaterials;
   const requestApproval = async (r: ApprovalRequest) => {
     asked.push([r.kind, r.toolName, r.title ?? "", r.canRemember ? `remember:${r.rememberScope ?? "rule"}` : "", JSON.stringify(r.input)].filter(Boolean).join(" | "));
     return answer;
   };
   const signal = new AbortController().signal;
-  params.gate = toolGateFactory(self, [hiddenDbRuleSource, dockerRuleSource])(params, { requestApproval }, signal);
+  params.gate = toolGateFactory(self, fixedSources(params))(testMaterials(params), { requestApproval }, signal);
   const base = { params, cb: { requestApproval, emit: (e: unknown) => notes.push(`emit ${JSON.stringify(e)}`) }, signal };
   const result = (out: unknown, approved?: Set<string>) => ({ out, asked, notes, ...(approved?.size ? { approved: [...approved] } : {}), ...(allowed.size ? { allowed: [...allowed] } : {}) });
   return { base, notes, result };

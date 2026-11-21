@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import { test } from "vitest";
 import type { DbConnection } from "@shared/database/types";
-import { evaluateHiddenDbAccess } from "./hiddenDb";
+import { evaluateHiddenDbAccess, hiddenDbRuleSource } from "./hiddenDb";
+import { testMaterials } from "@/app/core/testing/testGate";
 import { hiddenDbTargets } from "@/features/database/core/hiddenTargets";
 
 const conn = (patch: Partial<DbConnection>): DbConnection => ({
@@ -96,4 +97,16 @@ test("見せない接続: 見せる接続と同じファイル名なら名前だ
   assert.equal(bash(both, "sqlite3 prod/app.db"), "deny");
   assert.deepEqual(hiddenDbTargets([conn({ ai_access: "ask" })], ["/repo"]), []);
   assert.equal(evaluateHiddenDbAccess([], "Bash", { command: "psql -h db.example.com" }).kind, "pass");
+});
+
+test("守りを出す口: 実行のたびにプロジェクトの接続を引き、見せない接続があるときだけ守りを付ける（SQLite は作業場所と本体の両方で解く）", async () => {
+  const byProject: Record<number, DbConnection[]> = { 1: [conn({ engine: "sqlite", host: null, port: null, file_path: "db/app.sqlite3" })], 2: [conn({ ai_access: "ask" })] };
+  const source = hiddenDbRuleSource((projectId) => byProject[projectId] ?? []);
+  const materials = testMaterials({ cwd: "/wt" });
+  const [rule, ...rest] = source.rulesFor({ ...materials, project: { ...materials.project, id: 1, repo_path: "/repo" } });
+  assert.equal(rest.length, 0);
+  const read = (file: string) => rule.check({ name: "Read", input: { file_path: file }, cwd: "/wt" });
+  assert.equal((await read("/wt/db/app.sqlite3")).kind, "deny");
+  assert.equal((await read("/repo/db/app.sqlite3")).kind, "deny");
+  assert.deepEqual(source.rulesFor({ ...materials, project: { ...materials.project, id: 2 } }), []);
 });

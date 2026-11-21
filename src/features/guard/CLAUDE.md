@@ -19,7 +19,7 @@
 
 - 判定の形は `core/rules.ts` の `GuardVerdict` 1 つ（断るだけの守りは `DenyVerdict`）。ツールのパスの欄は `@shared/ai/claudeTools` の表から読み、`scope.ts` の `resolveCallPaths`（作業フォルダで解く・`~` を開く）でそろえてから守りに渡す（守りは自分で解かない）。
 - 判定はプロバイダーに依らない純粋関数。Claude は PreToolUse のフック 1 つ（`turnHooks`）で毎回門に当て、権限モード・許可ルールに関係なく効く。
-- 守りは `GuardRule`（名前は `GUARD_ORDER`）を返す関数で作り、当てるのは `judge.ts` の `judgeCall` 1 つ（断る守りを全部見てから聞く守り）。実行ごとの門 `gate.ts`（`ToolGate`）が材料から決まりを並べ、どの AI もこれに当てる（守りを足すのは門だけ）。書ける場所の例外は AI の `writeExceptions`。
+- 守りは `GuardRule`（名前は `GUARD_ORDER`）を返す関数で作り、当てるのは `judge.ts` の `judgeCall` 1 つ（断る守りを全部見てから聞く守り）。実行ごとの門 `gate.ts`（`ToolGate`）が材料から決まりを並べ、どの AI もこれに当てる。見せない DB・Docker は上の機能が `addRuleSource` で登録した口がプロジェクトから作る。書ける場所の例外は AI の `writeExceptions`。
 - 守りの理由と見抜けない書き方は各ファイルの頭に書く（うっかりを防ぐもので、わざと避ける書き方までは見抜けない）。
 - Bash の文の区切りと `sh -c` の中へ下りるのは `@/foundation/core/shell/shellWords.ts`（`scanCommands`）1 つを共有する。直したら、それを使う守りのテストを全部通す。
 - 聞く守りは Auto mode でも聞く。「このチャットでは許可」は `ChatRuntime.writeAllowed` に覚える（保存しない）。

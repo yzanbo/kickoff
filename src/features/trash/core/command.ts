@@ -2,7 +2,9 @@
 // 置き場の形（<id>/origin・chat・at と item/<名前>）は TrashService.importInbox が読む。uuidgen・mv・date は macOS のもの
 import fs from "node:fs/promises";
 import path from "node:path";
-import { TRASH_COMMAND } from "@/features/guard/core/guard/deleteGuard";
+
+/** Kickoff のゴミ箱に入れるコマンドの名前（PATH に入れて AI に渡す。ここで置き、守りの deleteGuard とシステムプロンプトが読む） */
+export const TRASH_COMMAND = "kickoff-trash";
 
 /** コマンドの中身（sh）。置き場は KICKOFF_TRASH_DIR、消したチャットは KICKOFF_CHAT_ID（どちらも Kickoff がチャットに渡す） */
 const TRASH_COMMAND_SCRIPT = `#!/bin/sh

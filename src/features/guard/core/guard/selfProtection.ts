@@ -3,7 +3,7 @@ import path from "node:path";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { SelfGuardRules } from "@/features/guard/core/platformRules";
 import { isInside } from "@/foundation/core/system/paths";
-import { TRASH_COMMAND } from "./deleteGuard";
+import { TRASH_COMMAND } from "@/features/trash/core/index";
 import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 

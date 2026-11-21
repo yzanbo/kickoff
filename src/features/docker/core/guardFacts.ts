@@ -1,6 +1,7 @@
 // AI の Docker の守りが見る Docker の様子（docker ps・compose の組の名前・ボリューム）。どれも 3 秒で打ち切り、答えなければ通す側に倒す
 import type { Project } from "@shared/projects/types";
-import { judgeDockerCommand, type DockerGuard, type DockerGuardFacts } from "@/features/docker/core/guard/dockerGuard";
+import { dockerRule, judgeDockerCommand, type DockerGuard, type DockerGuardFacts } from "@/features/docker/core/guard/dockerGuard";
+import type { GuardRuleSource } from "@/features/guard/core/index";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { PS_FORMAT, parseComposeConfig, parsePs } from "./parse";
 import type { DockerService } from "./service";
@@ -63,4 +64,9 @@ export function createDockerGuard(docker: DockerService, project: Project, workd
     composeNames: () => within(docker.composeNames(project), []),
   };
   return { check: (command) => judgeDockerCommand(command, facts) };
+}
+
+/** Docker の守りを出す口（createDocker が guard に登録する。実行のたびにプロジェクトと作業フォルダの守りを作る） */
+export function dockerRuleSource(docker: DockerService): GuardRuleSource {
+  return { name: "docker", rulesFor: (m) => [dockerRule(createDockerGuard(docker, m.project, m.cwd))] };
 }

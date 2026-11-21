@@ -6,9 +6,7 @@
 import path from "node:path";
 import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
 import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
-
-/** Kickoff のゴミ箱に入れるコマンドの名前（PATH に入れて AI に渡す。trash/command.ts が置く） */
-export const TRASH_COMMAND = "kickoff-trash";
+import { TRASH_COMMAND } from "@/features/trash/core/index";
 
 /** そのまま消すコマンド */
 const DELETE_COMMANDS = new Set(["rm", "unlink", "shred", "srm"]);

@@ -97,7 +97,6 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   chat.api.attach({
     notes: notes.api,
     databases: database.api,
-    docker: docker.api,
     worktreeEnvs: worktrees.api.envs,
     worktreeFinisher: worktrees.api.finisher,
     terminals,

@@ -1,5 +1,5 @@
 import { noteKindOf } from "@shared/notes/kinds";
-import { TRASH_COMMAND } from "@/features/guard/core/guard/deleteGuard";
+import { TRASH_COMMAND } from "@/features/trash/core/index";
 import type { Project } from "@shared/projects/types";
 import type { LinkOpenTarget } from "@shared/settings/types";
 

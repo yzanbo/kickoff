@@ -6,7 +6,7 @@ import { deepestWorkplace, type Workplace } from "@/foundation/core/workplace/wo
 import { workplaceText } from "@shared/foundation/workplace";
 import { isInside } from "@/foundation/core/system/paths";
 import { dockerIntents, type ComposeSub, type ContainerVerb, type DockerIntent } from "./dockerCommand";
-import type { GuardRule, GuardRuleSource } from "@/features/guard/core/index";
+import type { GuardRule } from "@/features/guard/core/index";
 
 /** 承認カードに出す文（title = 何をしようとしているか・description = 補い） */
 export interface DockerAsk {
@@ -199,5 +199,3 @@ export function dockerRule(guard: DockerGuard): GuardRule {
   };
 }
 
-/** 実行の Docker の守りから決まりを出す口（createDocker が guard に登録する） */
-export const dockerRuleSource: GuardRuleSource = { name: "docker", rulesFor: (m) => (m.dockerGuard ? [dockerRule(m.dockerGuard)] : []) };

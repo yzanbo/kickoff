@@ -69,7 +69,6 @@ export interface ChatEnv extends Pick<NonNullable<ConstructorParameters<typeof R
 export interface ChatUpper {
   notes: NonNullable<ExecutionDeps["notes"]>;
   databases: NonNullable<ExecutionDeps["databases"]>;
-  docker: NonNullable<ExecutionDeps["docker"]>;
   worktreeEnvs: NonNullable<ExecutionDeps["worktreeEnvs"]>;
   worktreeFinisher: NonNullable<ExecutionDeps["worktreeFinisher"]>;
   terminals: NonNullable<ExecutionDeps["terminals"]>;

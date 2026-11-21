@@ -4,14 +4,14 @@ import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
-import { withGate } from "@/app/core/testing/testGate";
-import type { ApprovalRequest, GuardMaterials, ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { withGate, type TestGuardMaterials } from "@/app/core/testing/testGate";
+import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
 import { hookDeny } from "./hooks";
 import { createPreToolUseHandler, writeKey } from "./preToolUse";
 import { SANDBOX_EXIT_DECLINED } from "./sandboxExit";
 
-function setup(extra: Partial<ProviderTurnParams & GuardMaterials>, answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
+function setup(extra: Partial<ProviderTurnParams> & TestGuardMaterials, answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const steers: string[] = [];

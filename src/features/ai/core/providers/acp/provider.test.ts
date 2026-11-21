@@ -1,16 +1,16 @@
 // ACP の共通のプロバイダー（Cursor・Gemini）を偽の ACP のエージェントで確かめる（本物の agent・agy・アカウントは使わない）
 import { test } from "vitest";
-import { withGate } from "@/app/core/testing/testGate";
+import { withGate, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, GuardMaterials, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { GEMINI_NEEDS_API_KEY, geminiProvider } from "@/features/ai/core/providers/gemini/provider";
 
 /** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
-const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: Partial<GuardMaterials> = {}) =>
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: TestGuardMaterials = {}) =>
   provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>

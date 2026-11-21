@@ -113,7 +113,7 @@ export class Runner extends RunnerQueue {
   }
 
   /** 上の機能の口（ノート・DB・Docker・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は Runner を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-  attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "docker" | "worktreeEnvs" | "worktreeFinisher" | "terminals" | "browser" | "aiTools">) {
+  attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "worktreeEnvs" | "worktreeFinisher" | "terminals" | "browser" | "aiTools">) {
     Object.assign(this.deps, upper);
     Object.assign(this.turnDeps, upper);
   }

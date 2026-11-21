@@ -1,17 +1,17 @@
 // Codex のプロバイダーを偽の app-server で確かめる（本物の codex・アカウントは使わない）
 import { test } from "vitest";
-import { withGate } from "@/app/core/testing/testGate";
+import { withGate, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeCodexServer, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, GuardMaterials, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { HOOK_INACTIVE } from "./hookTrust";
 import { CodexProvider } from "./provider";
 import { experimentalProviders } from "@/features/ai/core/providers/index";
 
 /** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
-const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: Partial<GuardMaterials> = {}) =>
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: TestGuardMaterials = {}) =>
   provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>

@@ -4,9 +4,9 @@ import path from "node:path";
 import { test } from "vitest";
 import type { HookInput } from "./wire";
 import { KICKOFF_DISALLOWED_TOOLS, toAllowedTools, turnContextHook, turnHooks } from "./policy";
-import type { ApprovalRequest, GuardMaterials, ProviderTurnParams, SandboxPlan } from "@/features/ai/core/providers/types";
+import type { ApprovalRequest, ProviderTurnParams, SandboxPlan } from "@/features/ai/core/providers/types";
 import type { PermissionMode } from "@shared/settings/types";
-import { withGate } from "@/app/core/testing/testGate";
+import { withGate, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
@@ -35,7 +35,7 @@ test("指示に添える文脈: 実行の初めの指示にだけ additionalCont
 });
 
 /** 守りの材料から本物の門（guard の gate.ts）を作った実行の指定（承認カードは requestApproval で答える） */
-function guarded(m: Partial<GuardMaterials> & { cwd?: string; permissionMode?: PermissionMode; sandbox?: SandboxPlan | null }, requestApproval?: (req: ApprovalRequest) => Promise<ApprovalReply>) {
+function guarded(m: TestGuardMaterials & { cwd?: string; permissionMode?: PermissionMode; sandbox?: SandboxPlan | null }, requestApproval?: (req: ApprovalRequest) => Promise<ApprovalReply>) {
   const base = { cwd: m.cwd ?? "/w", permissionMode: m.permissionMode ?? "default", sandbox: m.sandbox ?? null, sandboxOff: false } as ProviderTurnParams;
   return withGate(base, requestApproval, signal, m);
 }

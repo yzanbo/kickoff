@@ -3,11 +3,7 @@ import { knownModel } from "@/features/ai/core/providers/modelCatalog";
 import { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 import { shellPathSettled } from "@/foundation/core/system/exec";
 import type { TerminalControl } from "@/features/terminal/core/control";
-import { hiddenDbTargets } from "@/features/database/core/hiddenTargets";
-import { createDockerGuard } from "@/features/docker/core/guardFacts";
-import type { DockerService } from "@/features/docker/core/service";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
-import type { DatabaseService } from "@/features/database/core/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
 import { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
@@ -26,6 +22,7 @@ import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/cor
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
+import type { DatabaseService } from "@/features/database/core/service";
 import { permissionOnlyGate, type GuardMaterials, type SandboxPlan, type ToolGateFactory, type UsageMonitor } from "@/features/ai/core/index";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
@@ -74,8 +71,6 @@ export interface ExecutionDeps {
   databases?: DatabaseService;
   /** チャットを作る（Runner が渡す。チャットの AI にチャット（子・兄弟・親のないチャット）を作るツールを出す。なければ出さない） */
   startChat?: (from: Chat, input: ChildChatInput) => Promise<StartedChild>;
-  /** Docker タブ（AI の Docker の守りが docker ps・compose の組の名前を引く。なければ守りを付けない） */
-  docker?: DockerService;
   /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
   worktreeEnvs?: WorktreeEnvService;
   /** 使用状況の見張り（AI の get_usage が読み、実行中の支払いの知らせを渡す。なければ get_usage は使えないと返し、知らせは見ない） */
@@ -371,6 +366,7 @@ function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { c
   return {
     cwd,
     permissionMode: chat.permission_mode,
+    project,
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: readOnlyReferences(project, cwd),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
@@ -380,10 +376,6 @@ function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { c
     writeScope: chat.untracked_only || !chat.edit_scope_enabled
       ? null
       : { writableDirs: [...(noteDir ? [realPathOrSelf(noteDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])], workplaces: () => workplacesOf(project.repo_path), allowed: writeAllowed },
-    // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
-    hiddenDb: hiddenDbTargets(deps.databases?.stores.dbConnections.list(project.id) ?? [], [cwd, project.repo_path]),
-    // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
-    dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
     // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
     deleteGuard: deps.trashCommand !== undefined,
     sandbox,

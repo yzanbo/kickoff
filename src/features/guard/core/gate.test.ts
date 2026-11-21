@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
-import type { ApprovalRequest, GuardMaterials } from "@/features/ai/core/index";
+import type { ApprovalRequest } from "@/features/ai/core/index";
+import { testMaterials, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { toolGateFactory } from "./gate";
 import { WRITE_SCOPE_DENIED } from "./guard/writeScope";
@@ -13,30 +14,23 @@ import type { GuardRuleSource, GuardVerdict } from "./rules";
 
 /** 上の機能が登録する口の代わり: Docker の守り（聞く。判定に失敗したら通す）と見せない DB（断る） */
 const DOCKER_DENIED = "利用者が拒否しました";
-const sources: GuardRuleSource[] = [
-  {
-    name: "docker",
-    rulesFor: (m) => {
-      const guard = m.dockerGuard;
-      if (!guard) return [];
-      const check = async (command: string): Promise<GuardVerdict> => {
-        const ask = await guard.check(command).catch(() => null);
-        return ask ? { kind: "ask", ...ask, deniedReason: DOCKER_DENIED } : { kind: "pass" };
-      };
-      return [{ name: "docker", kind: "ask", sees: (c) => c.name === "Bash", check: (c) => check(String(c.input.command)) }];
-    },
-  },
-  {
-    name: "hiddenDb",
-    rulesFor: (m) => [{ name: "hiddenDb", kind: "deny", sees: (c) => c.name !== "Bash", check: (c) => (m.hiddenDb?.some((t) => t.file?.absolute.includes(String(c.input.file_path))) ? { kind: "deny", reason: "見せない DB" } : { kind: "pass" }) }],
-  },
-];
+function sourcesOf(m: TestGuardMaterials): GuardRuleSource[] {
+  const guard = m.dockerGuard;
+  const check = async (command: string): Promise<GuardVerdict> => {
+    const ask = await guard?.check(command).catch(() => null);
+    return ask ? { kind: "ask", ...ask, deniedReason: DOCKER_DENIED } : { kind: "pass" };
+  };
+  return [
+    { name: "docker", rulesFor: () => (guard ? [{ name: "docker", kind: "ask", sees: (c) => c.name === "Bash", check: (c) => check(String(c.input.command)) }] : []) },
+    { name: "hiddenDb", rulesFor: () => [{ name: "hiddenDb", kind: "deny", sees: (c) => c.name !== "Bash", check: (c) => (m.hiddenDb?.some((t) => t.file?.absolute.includes(String(c.input.file_path))) ? { kind: "deny", reason: "見せない DB" } : { kind: "pass" }) }] },
+  ];
+}
 
 /** 門と、出した承認カードの控え（answer: カードへの答え） */
-function gateOf(materials: Partial<GuardMaterials> & { cwd: string }, answer: ApprovalDecision = { action: "allow" }, self?: Parameters<typeof toolGateFactory>[0]) {
+function gateOf(materials: TestGuardMaterials & { cwd: string }, answer: ApprovalDecision = { action: "allow" }, self?: Parameters<typeof toolGateFactory>[0]) {
   const asked: ApprovalRequest[] = [];
   const requestApproval = async (req: ApprovalRequest) => (asked.push(req), answer);
-  const gate = toolGateFactory(self, sources)({ permissionMode: "default", ...materials } as GuardMaterials, { requestApproval }, new AbortController().signal);
+  const gate = toolGateFactory(self, sourcesOf(materials))(testMaterials(materials), { requestApproval }, new AbortController().signal);
   return { gate, asked };
 }
 const bash = (command: string) => ({ name: "Bash", input: { command } });
@@ -172,7 +166,7 @@ test("承認カードを待つのをやめる合図: 渡した signal（Claude �
   const run = new AbortController().signal;
   const hook = new AbortController().signal;
   const requestApproval = async (_req: ApprovalRequest, signal: AbortSignal) => (signals.push(signal), { action: "allow" as const });
-  const gate = toolGateFactory(undefined, sources)({ cwd: "/w", permissionMode: "default", dockerGuard: docker } as GuardMaterials, { requestApproval }, run);
+  const gate = toolGateFactory(undefined, sourcesOf({ dockerGuard: docker }))(testMaterials({ cwd: "/w" }), { requestApproval }, run);
   await gate.guard(bash("docker compose down"), { signal: hook });
   await gate.guard(bash("docker compose down"));
   assert.deepEqual([signals[0] === hook, signals[1] === run], [true, true]);

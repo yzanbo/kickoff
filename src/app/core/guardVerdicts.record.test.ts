@@ -4,12 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { hiddenDbRule, hiddenDbRuleSource, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
-import { dockerRuleSource } from "@/features/docker/core/guard/dockerGuard";
+import { hiddenDbRule, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
 import { compileCacheRule } from "@/features/guard/core/guard/compileCacheGuard";
 import { deleteRule } from "@/features/guard/core/guard/deleteGuard";
 import { gitHookRule } from "@/features/guard/core/guard/gitHookGuard";
-import type { GuardMaterials } from "@/features/ai/core/providers/types";
+import { fixedSources, testMaterials, type TestGuardMaterials } from "@/app/core/testing/testGate";
 import { gateRules } from "@/features/guard/core/gate";
 import { judgeCall } from "@/features/guard/core/judge";
 import { referenceRule, resolveCallPaths, untrackedRule } from "@/features/guard/core/guard/scope";
@@ -165,8 +164,8 @@ async function perGuard(w: World, tool: string, raw: Record<string, unknown>): P
 const key = (text: string) => maskVolatile(text, { paths: { HOME: home } });
 
 /** 門の中の判定（材料から決まりを並べ、パスを解いて judgeCall に当てる。聞く守りはカードを出さずに ask の判定のまま） */
-type Ctx = { params: Partial<GuardMaterials> & { cwd: string }; self?: SelfInfo };
-const judge = (ctx: Ctx, name: string, input: Record<string, unknown>) => judgeCall(gateRules(ctx.params as GuardMaterials, ctx.self, [hiddenDbRuleSource, dockerRuleSource]), resolveCallPaths({ name, input, cwd: ctx.params.cwd }));
+type Ctx = { params: TestGuardMaterials & { cwd: string }; self?: SelfInfo };
+const judge = (ctx: Ctx, name: string, input: Record<string, unknown>) => judgeCall(gateRules(testMaterials(ctx.params), ctx.self, fixedSources(ctx.params)), resolveCallPaths({ name, input, cwd: ctx.params.cwd }));
 const judgeCommand = (ctx: Ctx, command: string) => judge(ctx, "Bash", { command });
 const judgeWritePath = (ctx: Ctx, file: string) => judge(ctx, "Write", { file_path: file });
 const judgeReadPath = (ctx: Ctx, file: string) => judge(ctx, "Read", { file_path: file });

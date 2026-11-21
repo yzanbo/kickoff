@@ -1,6 +1,5 @@
-import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
-import type { DockerGuard } from "@/features/docker/core/guard/dockerGuard";
-import type { WriteScopeParams } from "@/features/guard/core/guard/writeScope";
+import type { Workplace } from "@/foundation/core/workplace/worktrees";
+import type { Project } from "@shared/projects/types";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
@@ -206,18 +205,26 @@ export interface WriteExceptions {
   memoryParents: string[];
 }
 
-/** 門を作る材料（chat が実行ごとに集める。プロバイダーには渡さず、門だけを渡す） */
+/** 書き込み先の守りに chat が渡すもの（guard の writeScope.ts が、その AI の決まりの例外を足して判定の様子にする） */
+export interface WriteScopeParams {
+  /** いつも書けるフォルダ（ノートのフォルダ・一時フォルダ。実体のパス） */
+  writableDirs: string[];
+  /** プロジェクトの本体とワークツリー */
+  workplaces(): Promise<Workplace[]>;
+  /** 承認カードの「このチャットでは許可」で許したファイル（実体のパス。チャットごとに作業をまたいで持つ。保存しない） */
+  allowed: Set<string>;
+}
+
+/** 門を作る材料（chat が実行ごとに集める。プロバイダーには渡さず、門だけを渡す。上の機能の守り = 見せない DB・Docker はプロジェクトと作業フォルダから自分で引く） */
 export interface GuardMaterials {
   cwd: string;
   permissionMode: PermissionMode;
+  /** チャットのプロジェクト（見せない DB の接続・Docker の作業場所を引く） */
+  project: Project;
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
   readOnlyPaths?: string[];
   /** Git で管理していないファイルだけを書けるチャットか（ワークツリーの実行環境の［AI で整える］。guard の scope.ts の untrackedRule で断る） */
   untrackedOnly?: boolean;
-  /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
-  hiddenDb?: HiddenDbTarget[];
-  /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
-  dockerGuard?: DockerGuard | null;
   /**
    * AI の書き込み先の守り（guard の writeScope.ts。ファイルを書き換えるツールの先を、作業場所・ノートのフォルダ・決まりの例外だけにする。
    * 同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く）。なければ付けない（Git で管理していないファイルだけを書けるチャットは、そちらの守りが絞る）

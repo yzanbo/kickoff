@@ -21,16 +21,6 @@ export interface WriteScopeFacts {
   workplaces(): Promise<Workplace[]>;
 }
 
-/** チャットの実行がプロバイダーに渡すもの（プロバイダーが自分の決まりの例外を足して WriteScopeFacts にする） */
-export interface WriteScopeParams {
-  /** いつも書けるフォルダ（ノートのフォルダ。実体のパス） */
-  writableDirs: string[];
-  /** プロジェクトの本体とワークツリー */
-  workplaces(): Promise<Workplace[]>;
-  /** 承認カードの「このチャットでは許可」で許したファイル（実体のパス。チャットごとに作業をまたいで持つ。保存しない） */
-  allowed: Set<string>;
-}
-
 /** 利用者がカードで断ったとき AI に返す文 */
 export const WRITE_SCOPE_DENIED = "利用者が拒否しました（作業場所の外への書き込み）。そのファイルは書き込まずに進めるか、利用者に代わりの方法を聞いてください";
 

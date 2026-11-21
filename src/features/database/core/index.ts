@@ -52,7 +52,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   if (env.cleanExports) databases.cleanExports();
   deps.chat.onChatsPurged((ids) => databases.forgetChatExports(ids));
-  deps.guard.addRuleSource(hiddenDbRuleSource);
+  deps.guard.addRuleSource(hiddenDbRuleSource((projectId) => stores.dbConnections.list(projectId)));
   // ワークツリーを消したら、その DB から作った接続を、選ばれていれば消し、残すなら結び付きだけ外す
   deps.worktrees.useDbConnections((folder) => stores.dbConnections.ofWorktree(folder).map((conn) => ({ id: conn.id, name: conn.name })));
   deps.worktrees.finisher.afterRemove((folder, dropConnections) => {
