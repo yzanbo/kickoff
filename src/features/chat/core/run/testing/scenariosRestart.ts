@@ -1,4 +1,4 @@
-// 振る舞いの表: 起動し直したあとの確かめ（01 の 8 章の 31）と、いまの Runner の不具合（6 章の A5・A10。正しい振る舞いを書き、いまは落ちる）
+// 振る舞いの表: 起動し直したあとの確かめ（01 の 8 章の 31。S49 は 6 章 A3 を直したもの）と、いまの Runner の不具合（6 章の A5・A10。正しい振る舞いを書き、いまは落ちる）
 import { end, later, now, queue, start, type Scenario } from "./types";
 
 export const RESTART_SCENARIOS: Scenario[] = [
@@ -151,5 +151,21 @@ export const RESTART_SCENARIOS: Scenario[] = [
       end("completed", "idle"),
     ],
     expect: { runs: ["1", "A", "B"], told: ["C"] },
+  },
+  {
+    id: "S49",
+    behavior: 31,
+    name: "Kickoff が止めた送信待ち（使用枠の上限）は、起動し直すと利用者が止めたものにせず、起動したときの確かめで聞く",
+    steps: [
+      start("1"),
+      later("2"),
+      end({ usage_limit: 3_600_000 }, "idle"),
+      { check: { paused: true, queue: ["2"] } },
+      { restart: true },
+      { check: { paused: false, restartResumes: [{ chat: "a", interrupted: false, queued: true, messages: ["2"] }] } },
+      { do: "answer_restart", decisions: [["a", "send"]], then: "turn" },
+      end("completed", "idle"),
+    ],
+    expect: { runs: ["1", "2"], queue: [], live: { restart_resume: null } },
   },
 ];

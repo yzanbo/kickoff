@@ -21,6 +21,8 @@ export interface RecoveryPlan {
 interface RecoveryContext {
   chatId: number;
   state: RecoveryState;
+  /** Kickoff が送信待ちを止めている（門。再開した作業が最後まで終わったら戻す） */
+  held: boolean;
 }
 
 /**
@@ -113,8 +115,8 @@ export function usageLimitRule({ store, usage }: { store: Store; usage?: { limit
     return usage && provider ? usage.limitResetAt(provider) : null;
   };
   /** 枠が戻る時刻が分かったら: その時刻を過ぎてから聞く（分からなければ、お知らせだけ） */
-  const planFor = (state: RecoveryState, resetAt: string | null): RecoveryPlan => {
-    const held = state.held ? "送信待ちは止めてあります。" : "";
+  const planFor = (heldQueue: boolean, resetAt: string | null): RecoveryPlan => {
+    const held = heldQueue ? "送信待ちは止めてあります。" : "";
     if (!resetAt) {
       return { notice: `使用枠の上限に達したため止まりました。枠が戻る時刻が分からないため、戻ったらメッセージを送ると続きから再開できます。${held}`, next: { do: "none" } };
     }
@@ -125,13 +127,13 @@ export function usageLimitRule({ store, usage }: { store: Store; usage?: { limit
   };
   return {
     reason: "usage_limit",
-    plan: ({ chatId, state, outcome }) => {
+    plan: ({ chatId, held, outcome }) => {
       const reported = outcome.usageLimit?.resetsAt;
-      return reported ? planFor(state, reported) : resetFromUsage(chatId).then((resetAt) => planFor(state, resetAt));
+      return reported ? planFor(held, reported) : resetFromUsage(chatId).then((resetAt) => planFor(held, resetAt));
     },
-    ask: ({ state }) => ({
+    ask: ({ held }) => ({
       title: "使用枠が戻りました",
-      description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${state.held ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
+      description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${held ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
       input: {},
     }),
     prompt: () => USAGE_RESUME_PROMPT,

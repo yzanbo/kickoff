@@ -252,16 +252,14 @@ export abstract class RunnerQueue {
     const waiting = this.boxOf(chatId).stops[0] === 0;
     change();
     const box = this.boxOf(chatId);
-    if (waiting && box.stops[0] !== 0 && !box.paused && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
+    if (waiting && box.stops[0] !== 0 && !this.runtimes.get(chatId).queuePaused && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
   }
 
-  /**
-   * 待ちの列を止めておくかを切り替える（列が空なら止めない）。自動で送るに戻したとき、作業中でなければ先頭をすぐ送る。
-   * 止めておくかを返す
-   */
+  /** 待ちの列を止めておくかを切り替える（列が空なら止めない。自動で送るに戻したら、Kickoff の門も外し、作業中でなければ先頭をすぐ送る）。止めておくかを返す */
   async setQueuePaused(chatId: number, paused: boolean): Promise<boolean> {
     // 送信待ちの「自動で送る / 止めています」を押したら、起動したときの確かめにも答えたことにする
     this.runtimes.get(chatId).answerRestartResume();
+    if (!paused) this.runtimes.get(chatId).setRecoveryGate(null);
     const next = this.command(chatId, { op: "set_paused", paused }).paused;
     if (!next && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
     return next;
@@ -299,7 +297,8 @@ export abstract class RunnerQueue {
     if (head && !this.handoffAllows(chatId, head)) return;
     // 自動で送る次の指示を画面で書き直している間は送らず、書き直しが終わる（保存・やめる・欄を閉じる）のを待つ（waitingEdit）
     if (runtime.waitingEdit) return;
-    // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）。先頭の上に印があれば、ここで止めておく
+    // 止めておくチャット（Kickoff が門で止めたものも）は、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）。先頭の上に印があれば、ここで止めておく
+    if (runtime.queuePaused) return;
     const taken = takeNext(runtime.outbox);
     runtime.setOutbox(taken.box);
     const next = taken.item;

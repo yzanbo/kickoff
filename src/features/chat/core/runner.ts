@@ -3,7 +3,7 @@ import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest, typ
 import { RunnerQueue, type SendOpts } from "./runnerQueue";
 import { outboxEnv, type ChatRuntime } from "./runtime";
 import { ChatRuntimes } from "./runtimes";
-import { newMessage, resetOptions, type Outbox } from "@shared/chat/outbox";
+import { newMessage, resetOptions } from "@shared/chat/outbox";
 import { parkNow } from "@/features/chat/core/run/machine/outbox";
 import { turnKindOf } from "./turnState";
 import { recordEvent } from "@/features/chat/core/run/record";
@@ -159,7 +159,7 @@ export class Runner extends RunnerQueue {
     const uploads = this.deps.uploads;
     if (!uploads) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
     const runtime = this.runtimes.get(chatId);
-    const initialQueue = queueSnapshot(runtime.outbox);
+    const initialQueue = queueSnapshot(runtime);
     const initialSignature = JSON.stringify(initialQueue);
     runtime.switchingProvider = true;
     runtime.preparing = true;
@@ -171,7 +171,7 @@ export class Runner extends RunnerQueue {
       if (!provider.implemented || !status.implemented || !status.installed) throw new Conflict("切り替え先の AI が利用できません");
       if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
       const requireStable = () => {
-        if (!runtime.switchingProvider || !runtime.preparing || runtime.turn || JSON.stringify(queueSnapshot(runtime.outbox)) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
+        if (!runtime.switchingProvider || !runtime.preparing || runtime.turn || JSON.stringify(queueSnapshot(runtime)) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
         requireConfirmation?.();
       };
       const result = await prepareAndCommitProviderSwitch({ store: this.deps.store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused: initialQueue.paused, queuedIds: initialQueue.messages.map((message) => message.id) });
@@ -182,7 +182,7 @@ export class Runner extends RunnerQueue {
       runtime.preparing = false;
       // 切り替えに失敗したとき、準備中に増えた指示を意図せず元の AI に送らない。
       if (switched) void this.sendNextQueued(chatId);
-      else if (JSON.stringify(queueSnapshot(runtime.outbox)) !== initialSignature && runtime.outbox.later.length > 0) this.setPausedFor(chatId, true);
+      else if (JSON.stringify(queueSnapshot(runtime)) !== initialSignature && runtime.outbox.later.length > 0) this.setPausedFor(chatId, true);
     }
   }
 
@@ -981,7 +981,7 @@ export class Runner extends RunnerQueue {
 }
 
 /** AI の切り替えで確かめる送信待ちの形（確かめている間に変わったら確定しない） */
-const queueSnapshot = ({ later, paused, stops }: Readonly<Outbox>) => ({ messages: later, paused, stops });
+const queueSnapshot = (runtime: ChatRuntime) => ({ messages: runtime.outbox.later, paused: runtime.queuePaused, stops: runtime.outbox.stops });
 
 /** 圧縮後指示として送った発言の記録の印（ほかの発言には付けない） */
 function postCompactMark(postCompact: boolean): { post_compact?: true } {

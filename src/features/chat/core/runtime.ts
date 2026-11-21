@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { createRecoveryState, type RecoveryState } from "@/features/chat/core/run/machine/recoveryState";
 import type { Compaction, TurnKind } from "@/features/chat/core/run/machine/types";
+import type { RecoveryReason } from "@/features/chat/core/run/machine/recovery";
 import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
 import type { QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { emptyNext, liveOf, type NextTurn, type TurnPatch, type TurnState } from "./turnState";
@@ -66,6 +67,8 @@ export class ChatRuntime {
   private editTimers: Partial<Record<Lane, TimerHandle>> = {};
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
+  /** Kickoff が送信待ちを止めている理由（門。outbox.paused = 利用者が止めた、とは分けて持ち、保存しない。送信待ちが空になったら外れる） */
+  readonly gates: { recovery: RecoveryReason | null } = { recovery: null };
   private fields: LiveFields = { deliveringAfterCompact: false, inheriting: false, resume: null, workplaceMove: null };
 
   constructor(
@@ -129,10 +132,22 @@ export class ChatRuntime {
     return this.box.now.some((m) => this.edits.now.includes(m.id));
   }
 
+  /** 送信待ちを送らずに止めているか（利用者が止めた・Kickoff が門で止めた。画面の「止めています」） */
+  get queuePaused(): boolean {
+    return this.box.paused || (this.gates.recovery !== null && this.box.later.length > 0);
+  }
+
+  /** 送信待ちの門を立てる・外す（変わったら配る） */
+  setRecoveryGate(reason: RecoveryReason | null) {
+    if (this.gates.recovery === reason) return;
+    this.gates.recovery = reason;
+    this.onChange();
+  }
+
   /** 送信待ちの次の指示を画面で書き直しているので、送らずに書き直しが終わるのを待っている（作業は終わり、送る準備ができている） */
   get waitingEdit(): boolean {
     const head = this.box.later[0];
-    return !this.busy && !this.fields.resume?.queued && head !== undefined && !this.box.paused && this.edits.later.includes(head.id);
+    return !this.busy && !this.fields.resume?.queued && head !== undefined && !this.queuePaused && this.edits.later.includes(head.id);
   }
 
   /** 出す箱（読むだけ。変えるのは setOutbox） */
@@ -154,6 +169,7 @@ export class ChatRuntime {
 
   private writeBox(next: Outbox) {
     this.box = next;
+    if (next.later.length === 0) this.gates.recovery = null;
     this.opts.save?.(next);
   }
 
@@ -270,8 +286,8 @@ export class ChatRuntime {
 
   /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
   queueState(): QueueState {
-    const { later, paused, stops } = this.box;
-    return { messages: later, paused, stops, waiting_edit: this.waitingEdit };
+    const { later, stops } = this.box;
+    return { messages: later, paused: this.queuePaused, stops, waiting_edit: this.waitingEdit };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */

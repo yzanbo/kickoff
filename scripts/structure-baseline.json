@@ -2302,7 +2302,7 @@
       "src/features/chat/core/runner.queue.test.ts": 530,
       "src/features/chat/core/runner.test.ts": 440,
       "src/features/chat/core/runner.ts": 998,
-      "src/features/chat/core/runnerQueue.ts": 329,
+      "src/features/chat/core/runnerQueue.ts": 328,
       "src/features/chat/core/turn.ts": 527,
       "src/features/chat/ui/store/chatStore.test.ts": 430,
       "src/features/chat/ui/store/chatStore.ts": 389,

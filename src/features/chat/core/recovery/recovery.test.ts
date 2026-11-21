@@ -60,7 +60,7 @@ test("使用枠の上限: 待つ時間ではなく時計の時刻で見て、戻
   const { approvals, runtime, chat, sent, clock, finish, notices, queueOne } = setup();
   queueOne();
   assert.equal(finish(usageLimit(RESET)), false);
-  assert.equal(runtime.outbox.paused, true);
+  assert.equal(liveOf(runtime).queue.paused, true);
   assert.match(notices()[0], /枠が戻ったら、続けるかを確かめます。送信待ちは止めてあります。/);
 
   // 戻る時刻のちょうど 1 分後までは聞かない
@@ -77,7 +77,7 @@ test("使用枠の上限: 待つ時間ではなく時計の時刻で見て、戻
   await until(() => sent.length === 1);
   assert.deepEqual(sent, [USAGE_RESUME_PROMPT]);
   assert.equal(finish({ status: "completed", network: false }), true);
-  assert.equal(runtime.outbox.paused, false);
+  assert.equal(liveOf(runtime).queue.paused, false);
 });
 
 test("続けて別の理由で止まったら、前の段取りは新しい段取りに置き換える（枠が戻って続けるかを聞いている → 通信の切断）", async () => {
@@ -94,7 +94,7 @@ test("続けて別の理由で止まったら、前の段取りは新しい段�
   assert.deepEqual(liveOf(runtime).reconnect, { attempts: 0, max: 3, agents: [] });
   // 取り下げた確かめの答え（中断）で、止めた送信待ちを忘れない。つながったら自動で再開する
   await tick();
-  assert.equal(runtime.recovery.held, true);
+  assert.equal(runtime.gates.recovery, "reconnect");
   network.online = true;
   await until(() => sent.length === 1);
   assert.deepEqual(sent, [RESUME_PROMPT]);

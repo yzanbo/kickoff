@@ -5,10 +5,10 @@ import { test } from "vitest";
 import { SCENARIOS } from "./testing/scenarios";
 import { runScenario } from "./testing/scenarioDriver";
 
-test("表は S01〜S48 の筋書きを 1 つずつ持ち、どれも 8 章の番号を持つ", () => {
+test("表は S01〜S49 の筋書きを 1 つずつ持ち、どれも 8 章の番号を持つ", () => {
   const ids = SCENARIOS.map((s) => s.id);
   assert.equal(new Set(ids).size, ids.length);
-  for (let n = 1; n <= 48; n++) assert.ok(ids.includes(`S${String(n).padStart(2, "0")}`), `S${n} がない`);
+  for (let n = 1; n <= 49; n++) assert.ok(ids.includes(`S${String(n).padStart(2, "0")}`), `S${n} がない`);
   assert.ok(SCENARIOS.every((s) => s.behavior >= 1 && s.behavior <= 38));
   assert.deepEqual(
     SCENARIOS.filter((s) => s.known).map((s) => [s.id, s.known]),
