@@ -18,7 +18,7 @@ import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
 export type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
-import type { ChatAttachments, ChatDetachPort } from "./ports";
+import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
 
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
 export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -51,6 +51,8 @@ export interface ExecutionDeps {
   aiTools?: readonly AiToolGroup[];
   /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
   providerKeys?: ProviderKeyVault;
+  /** AI の切り替えの準備と確定（providerSwitch が chat.api.provideProviderSwitch で登録する。なければ切り替えられない） */
+  providerSwitch?: ProviderSwitchPort;
   /** 子チャットを親から外す口（childChats が chat.api.provideDetach で登録する。なければ AI の update_chat は親から外せない） */
   detach?: ChatDetachPort;
   /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */

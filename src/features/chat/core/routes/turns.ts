@@ -9,8 +9,6 @@ import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";
 import type { TellResult } from "@shared/foundation/apiTypes";
 import type { SendResult } from "@shared/chat/send";
-import { Conflict, NotFound } from "@/foundation/core/errors";
-import { providerSwitchPreview } from "@/features/providerSwitch/core/providerSwitchPreview";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・巻き戻し・ファイルを戻す（子チャット・分岐は childChats）。
@@ -20,50 +18,6 @@ export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pi
   const { withChat } = lookups(store);
   /** 巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
-
-  app.get("/api/chats/:id/provider-switch", withChat, (c) => {
-    const target = z.enum(["claude", "codex"]).parse(c.req.query("target"));
-    runner.requireIdle(c.var.chat.id, "AI の切り替え");
-    return c.json(providerSwitchPreview(store, runner, c.var.chat.id, target));
-  });
-
-  app.post("/api/chats/:id/provider-switch", withChat, async (c) => {
-    const body = z.object({ target: z.enum(["claude", "codex"]), confirmation: z.string().regex(/^[a-f0-9]{64}$/) }).parse(await jsonBody(c));
-    const { chat } = c.var;
-    const requireConfirmation = () => {
-      if (providerSwitchPreview(store, runner, chat.id, body.target).confirmation !== body.confirmation) throw new Conflict("確認した内容が変わりました。もう一度確かめてください");
-    };
-    requireConfirmation();
-    return c.json(await runner.switchProvider(chat.id, chat.provider, body.target, requireConfirmation));
-  });
-
-  // 保留中の引き継ぎを表示する。送る前の資料は準備したもので、受信済みを意味しない。
-  app.get("/api/chats/:id/provider-handoff", withChat, (c) => {
-    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
-    return c.json(pending ? { event_id: pending.eventId, provider: pending.provider, state: pending.state, error: pending.error, context: pending.context } : null);
-  });
-
-  app.get("/api/chats/:id/provider-handoff/:eventId", withChat, (c) => {
-    const id = z.coerce.number().int().positive().parse(c.req.param("eventId"));
-    const event = store.events.get(id);
-    if (!event || event.chat_id !== c.var.chat.id || event.type !== "provider_switched") throw new NotFound("AI の切り替え記録が見つかりません");
-    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
-    return c.json({ event, pending: pending?.eventId === id ? { state: pending.state, error: pending.error } : null });
-  });
-
-  // 画面で見た区切りが変わった場合は、別の引き継ぎを誤って再試行しない。
-  app.post("/api/chats/:id/provider-handoff/retry", withChat, async (c) => {
-    const { event_id } = z.object({ event_id: z.number().int().positive() }).parse(await jsonBody(c));
-    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
-    if (!pending || pending.eventId !== event_id || pending.state !== "blocked") throw new Conflict("AI の引き継ぎ状態が変わりました。確認し直してください");
-    return c.json(await runner.retryProviderHandoff(c.var.chat.id));
-  });
-
-  // 受信不明の場合、重複の可能性を利用者が明示的に確認した操作だけを受け付ける。
-  app.post("/api/chats/:id/provider-handoff/confirm-resend", withChat, async (c) => {
-    const { event_id } = z.object({ event_id: z.number().int().positive(), confirm_duplicate_risk: z.literal(true) }).parse(await jsonBody(c));
-    return c.json(await runner.confirmResendProviderHandoff(c.var.chat.id, event_id));
-  });
 
   // 送る口 1 本（@shared/chat/send の SendBody。when: now = 止めずに伝える / later = 作業中なら送信待ちへ。答えは SendResult）。
   // when を省けば前からの続きを送る口（作業中なら 409。答えはチャット）。pause_after なら、この作業が終わったら送信待ちを一時停止する = 質問として送る

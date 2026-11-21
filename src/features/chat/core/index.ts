@@ -22,7 +22,7 @@ import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { ExecutionDeps, ShellUpperDeps } from "./turn";
 import type { TurnContributor } from "./run/turn/contributor";
-import type { ChatAttachments, ChatDetachPort } from "./ports";
+import type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
@@ -47,7 +47,7 @@ export { toolChat } from "./tools/context";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";
-export type { ChatAttachments, ChatDetachPort } from "./ports";
+export type { ChatAttachments, ChatDetachPort, ProviderSwitchPort } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
@@ -105,6 +105,8 @@ export interface ChatApi {
   attach(upper: ChatUpper): void;
   /** 子チャットを親から外す口を受ける（childChats が createChildChats の中で登録する。AI の update_chat の parent_id） */
   provideDetach(port: ChatDetachPort): void;
+  /** AI の切り替えの準備と確定を受ける（providerSwitch が createProviderSwitch の中で登録する） */
+  provideProviderSwitch(port: ProviderSwitchPort): void;
   /** 実行に足すもの（環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること）を登録する（上の機能が createX の中で呼ぶ。AI のツールは CoreFeature.aiTools） */
   addTurnContributor(c: TurnContributor): void;
   /** チャットを消したとき（作業中の状態を捨てたあと。上の機能がチャットごとの覚えを捨てる） */
@@ -209,6 +211,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
         runner.attach(given);
       },
       provideDetach: (port) => runner.attach({ detach: port }),
+      provideProviderSwitch: (port) => runner.attach({ providerSwitch: port }),
       addTurnContributor: (c) => void contributors.push(c),
       onForget: (fn) => runner.onForget(fn),
       onUserSend: (fn) => void sendHooks.push(fn),

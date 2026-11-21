@@ -27,7 +27,7 @@ import { toolGateFactory } from "@/features/guard/core/gate";
 import { diagnosticToolGroup, guardTurnParts, type GuardTurnDeps } from "@/features/guard/core/index";
 import { chatDetachPort } from "@/features/childChats/core/index";
 import { compactTurnParts } from "@/features/compact/core/index";
-import { handoffTurnParts } from "@/features/providerSwitch/core/index";
+import { handoffTurnParts, providerSwitchPort } from "@/features/providerSwitch/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
 import { ALL_SETTINGS } from "@/app/shared/settings";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform, type TestEnvOptions, type TestFakes } from "./testEnv";
@@ -122,9 +122,9 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   // 添付の置き場を渡したら、本物と同じく送る文に添付のパスを書き添える口も作る
   const attachments = rest.uploads ? chatAttachmentsOf(rest.uploads) : undefined;
   const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...rest, contributors, aiTools: [diagnosticToolGroup, ...givenTools] });
-  // 子チャットを親から外す口も本物と同じく登録する（AI の update_chat の parent_id）
+  // 子チャットを親から外す口と、AI の切り替えの準備（添付の置き場があるとき）も本物と同じく登録する
   const detach = chatDetachPort(store, (chatId) => runner.isBusy(chatId));
-  runner.attach({ detach });
+  runner.attach({ detach, ...(rest.uploads ? { providerSwitch: providerSwitchPort(store, rest.uploads) } : {}) });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials, detach };
 }
 

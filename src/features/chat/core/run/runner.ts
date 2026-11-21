@@ -127,7 +127,7 @@ export function createChatRunner(deps: RunnerDeps) {
     continuation: (chatId: number, text: string, afterFinish: boolean) => void shell.dispatch(chatId, { type: "continuation", text, afterFinish }),
 
     /** 上の機能の口（ワークツリーの実行環境と後始末・内蔵ターミナル・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach"> & ShellUpperDeps) {
+    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach" | "providerSwitch"> & ShellUpperDeps) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },

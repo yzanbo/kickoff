@@ -4,7 +4,7 @@ import type { TurnRequest } from "@/features/chat/core/turn";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
 import { recordEvent } from "@/features/chat/core/run/record";
-import { moveChatWorkplace, prepareAndCommitProviderSwitch, retryProviderHandoffPreparation, type WorkplaceMoveInput, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
+import { moveChatWorkplace, type WorkplaceMoveInput, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import { Conflict } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
@@ -73,10 +73,10 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
   const retryProviderHandoff = async (chatId: number): Promise<{ warning: string | null }> => {
     shell.requireChat(chatId);
     shell.requireIdle(chatId, "AI の引き継ぎの再試行");
-    const { uploads } = deps;
+    const { uploads, providerSwitch: port } = deps;
     const pending = store.chatProviderHandoffs.get(chatId);
     if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
-    if (!uploads) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
+    if (!uploads || !port) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
     // 再試行できたら送信待ちの次を送る（記録した指示を送り直したら、その作業が段階を引き継ぐ）
     return withIdleChat(
       shell,
@@ -88,7 +88,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
         try {
           const attempt = store.events.list(chatId, { after: pending.eventId, types: ["user"], limit: 1 })[0];
           const prompt = attempt?.type === "user" ? (await followupPrompt(deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
-          const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: still }, chatId, attempt?.type === "user");
+          const result = await port.retry(chatId, attempt?.type === "user", still);
           claimed = attempt?.type === "user";
           if (attempt?.type === "user" && prompt !== null) {
             store.chats.update(chatId, { status: "running", error: null, unread: false });
@@ -134,8 +134,8 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
       if (chat.provider !== expectedProvider || chat.provider === target || !providerCan(target, "switch") || !providerCan(chat.provider, "switch")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
       const blocked = handoffBlocksSwitch(store.chatProviderHandoffs.get(chatId), chat.provider);
       if (blocked) throw new Conflict(blocked);
-      const uploads = deps.uploads;
-      if (!uploads) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
+      const { uploads, providerSwitch: port } = deps;
+      if (!uploads || !port) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
       const run = runs.get(chatId);
       const queueWasPaused = queuePaused(run.run);
       const queuedIds = run.outbox.later.map((message) => message.id);
@@ -154,7 +154,7 @@ export function preparations(shell: RunShell, turnEnds: TurnEndTasks) {
             still();
             requireConfirmation?.();
           };
-          return prepareAndCommitProviderSwitch({ store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused, queuedIds });
+          return port.commit({ chatId, expectedProvider, target, queueWasPaused, queuedIds }, requireStable);
         },
         { check: false, watchQueue: true, conflict: "送信待ちやチャットの状態が変わったため、AI を切り替えられません", next: (ok) => (ok ? "send_next" : undefined) },
       );

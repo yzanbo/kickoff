@@ -14,6 +14,7 @@ export interface ProviderSwitchDeps {
   uploads: Pick<UploadStore, "save" | "resolve" | "remove">;
   /** 作業中や送信準備中なら例外にする。非同期の準備の前後で検査する。 */
   requireIdle: (chatId: number) => void;
+  /** Git の状態の資料（投げない。取れなければ取れないと書いた資料を返す） */
   git?: typeof providerHandoffGit;
 }
 
@@ -48,7 +49,7 @@ export async function prepareAndCommitProviderSwitch(
   } catch (error) {
     preparationError = `会話の引き継ぎを準備できませんでした: ${errorMessage(error)}`;
   }
-  const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project)).catch(() => ({ context: "作業場所の Git の状態を取得できませんでした。", warning: "Git の状態を取得できませんでした" }));
+  const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project));
   try {
     deps.requireIdle(input.chatId);
     const context = [prepared?.context, git.context].filter(Boolean).join("\n\n");
@@ -91,7 +92,7 @@ export async function retryProviderHandoffPreparation(
   const events = store.events.list(chatId, { before: pending.eventId });
   const prepared = await prepareProviderHandoff(uploads, chatId, events, pending.lastEventId ?? 0);
   try {
-    const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project)).catch(() => ({ context: "作業場所の Git の状態を取得できませんでした。", warning: "Git の状態を取得できませんでした" }));
+    const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project));
     deps.requireIdle(chatId);
     if (!store.providerSwitch.retry(chatId, pending.eventId, pending.provider, [prepared.context, git.context].filter(Boolean).join("\n\n"), prepared.created, claim)) throw new Error("AI の引き継ぎ状態が変わったため、再試行できません");
     const missing = prepared.missing.length ? `添付 ${prepared.missing.length} 件が見つかりません` : null;
