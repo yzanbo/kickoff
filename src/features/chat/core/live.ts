@@ -1,5 +1,5 @@
 // 画面に配る作業中の様子 liveOf と送信待ちの様子 queueStateOf（チャットの詳細の live・SSE の chat_live・送信待ちを変える API の応答で同じ形）
-import { reconnectStateOf } from "@/features/chat/core/run/machine/recoveryState";
+import { reconnectStateOf } from "@/features/chat/core/run/machine/recovery";
 import { holdOf, isBusy, noCompaction, queuePaused, turnOf, waitingEdit } from "@/features/chat/core/run/machine/state";
 import type { ChatRunState } from "@/features/chat/core/run/machine/types";
 import type { ChatLive, QueueState, WorkPhase } from "@shared/chat/chatLive";
@@ -19,7 +19,7 @@ export function liveOf(runtime: ChatRuntime): ChatLive {
     queue: queueStateOf(runtime),
     background,
     retry,
-    reconnect: reconnectStateOf(runtime.recovery),
+    reconnect: reconnectStateOf(s.gates.recovery),
     compacting: compaction.running,
     stopping: p.kind === "idle" ? false : p.stopRequested,
     drawing_visual: drawingVisual,
@@ -64,7 +64,7 @@ function waitingOf(runtime: ChatRuntime, head: QueueState["messages"][number]): 
   const s = runtime.run;
   const handoff = runtime.handoff();
   if (isBusy(s)) return "busy";
-  if (s.gates.recovery !== null) return "recovery";
+  if (s.gates.recovery?.holds) return "recovery";
   if (s.outbox.paused || s.outbox.stops[0] === 0) return "paused";
   if (s.gates.restart?.queued) return "hold";
   if (handoff && (handoff.state !== "ready" || isQueueAction(head))) return "handoff";

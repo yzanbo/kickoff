@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import { resumeMomentsOf, toolLine } from "./restartResume";
+import { resumeMomentsOf, toolLine } from "./restartMoments";
 
 test("止まったところ: 最後の自分の指示から後ろの、メインエージェントの最後の返答・ツールを拾う（サブエージェントのもの・前の作業のものは拾わない）", () => {
   const ev = eventSequence();

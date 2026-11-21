@@ -73,7 +73,8 @@ export function queueOf(s: ChatRunState, cmd: QueueCommand, env: Env, effects: E
   const before = s.outbox;
   if (cmd.op === "set_paused") {
     s = answerRestartQueue(s);
-    if (!cmd.paused) s = { ...s, gates: { ...s.gates, recovery: null } };
+    const gate = s.gates.recovery;
+    if (!cmd.paused && gate?.holds) s = { ...s, gates: { ...s.gates, recovery: { ...gate, holds: false } } };
   }
   const outbox = applyQueueCommand(s.outbox, cmd, env);
   if (isQueueReject(outbox)) return reject(s, effects, outbox.reject, outbox.message);

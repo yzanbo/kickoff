@@ -6,7 +6,7 @@ import { noCompaction } from "./state";
 import { afterTurn, onTurnEnded } from "./turnEnd";
 import type { ChatRunState, Compaction, Effect, Env, Gates, TurnKind, TurnOutcome } from "./types";
 
-const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "new", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false };
+const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "new", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
 const row = (text: string, extra: object = {}) => ({ ...newMessage(env, text, {}, []), id: text, ...extra });
 const later = (...texts: string[]): Outbox => ({ ...EMPTY_OUTBOX, later: texts.map((t) => row(t)) });
 const completed: TurnOutcome = { status: "completed", network: false };
@@ -19,7 +19,8 @@ function ended({ turn = "message", compaction = {}, outbox = EMPTY_OUTBOX, gates
 }
 
 const end = (s: ChatRunState, outcome: TurnOutcome, e: Partial<Env> = {}) => onTurnEnded(s, outcome, { ...env, ...e });
-const head = (outcome: TurnOutcome): Effect[] => [{ do: "end_recovery", outcome }, { do: "refresh_usage" }];
+const head = (_outcome: TurnOutcome): Effect[] => [{ do: "refresh_usage" }];
+const gate = { reason: "reconnect" as const, holds: true, attempts: 0, agents: {}, step: { at: "idle" as const } };
 const sendNext = (text: string): Effect => ({ do: "start_turn", turn: "message", item: row(text), from: "queue" });
 
 test("作業の終わり: 止めた・失敗しても送信待ちの次を送る（S13・S14）。作業中は取り出さず、終わってから送る（S36）", () => {
@@ -32,14 +33,14 @@ test("作業の終わり: 止めた・失敗しても送信待ちの次を送る
 
 test("作業の終わり: 通信の切断・使用枠の上限・アプリの終了では送らず、送信待ちは門で止める（S15。paused は書かない）。引き継ぎを確かめるまでは再開の段取りにも入らない", () => {
   const cut = end(ended({ outbox: later("次") }), network);
-  assert.deepEqual([cut.effects, cut.state.gates.recovery, cut.state.outbox.paused, cut.state.phase.kind], [head(network), "reconnect", false, "idle"]);
-  assert.equal(end(ended({ outbox: later("次") }), usage).state.gates.recovery, "usage_limit");
+  assert.deepEqual([cut.state.gates.recovery?.reason, cut.state.gates.recovery?.holds, cut.state.outbox.paused, cut.state.phase.kind], ["reconnect", true, false, "idle"]);
+  assert.equal(end(ended({ outbox: later("次") }), usage).state.gates.recovery?.reason, "usage_limit");
   assert.deepEqual(end(ended({ outbox: later("次") }), completed, { shuttingDown: true }).effects, head(completed));
   assert.deepEqual(end(ended({ outbox: later("次") }), completed, { handoff: "blocked" }).effects, [{ do: "refresh_usage" }]);
   assert.deepEqual(end(ended({ outbox: later("次") }), completed, { handoff: "ready" }).effects, [...head(completed), sendNext("次")]);
   // 門で止めた送信待ち: 最後まで終わったら外して送る。止めた・失敗したら外して利用者が止めたものにする
-  assert.deepEqual(end(ended({ outbox: later("次"), gates: { recovery: "reconnect" } }), completed).effects.at(-1), sendNext("次"));
-  const failed = end(ended({ outbox: later("次"), gates: { recovery: "reconnect" } }), { status: "failed", network: false });
+  assert.deepEqual(end(ended({ outbox: later("次"), gates: { recovery: gate } }), completed).effects.at(-1), sendNext("次"));
+  const failed = end(ended({ outbox: later("次"), gates: { recovery: gate } }), { status: "failed", network: false });
   assert.deepEqual([failed.state.gates.recovery, failed.state.outbox.paused, failed.effects], [null, true, head({ status: "failed", network: false })]);
 });
 

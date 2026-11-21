@@ -14,11 +14,10 @@ import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, 
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { ChatLive, RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume";
+import { resumeMomentsOf, stoppedSubagentsOf } from "@/features/chat/core/log/restartMoments";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
-import { restartResumePrompt } from "@shared/chat/prompts";
 import { preCompactPromptOf } from "@/features/compact/core/preCompact";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
@@ -77,7 +76,7 @@ export class Runner extends RunnerShell {
     for (const chatId of new Set([...interrupted, ...queued])) this.dispatch(chatId, { type: "gates", patch: { restart: { interrupted: interrupted.has(chatId), queued: queued.has(chatId) } } });
     this.workplaceMoves = new WorkplaceReservations(this.runtimes);
     this.turnDeps.workplaceMoves = { reserve: (chatId, plan) => this.workplaceMoves.reserve(chatId, plan), cancel: (chatId) => this.workplaceMoves.cancel(chatId) !== null };
-    this.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runtimes: this.runtimes, isBusy: (chatId) => this.isBusy(chatId), send: (chatId, text) => this.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
+    this.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runtimes: this.runtimes, dispatch: (chatId, event) => this.dispatch(chatId, event), send: (chatId, text) => this.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   }
 
   /** 上の機能の口（ノート・DB・Docker・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は Runner を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
@@ -239,17 +238,8 @@ export class Runner extends RunnerShell {
       const resume = this.runtimes.get(chatId).run.gates.restart;
       if (!resume) continue;
       // 続けるなら、止まったサブエージェントは答えを消す前に探す
-      const agents = action === "continue" && resume.interrupted ? this.stoppedSubagents(chatId) : [];
-      this.settleResume(chatId);
-      if (action === "pause") {
-        if (resume.queued) this.dispatch(chatId, { type: "set_paused", paused: true });
-      } else if (this.isBusy(chatId)) {
-        continue;
-      } else if (action === "continue" && resume.interrupted) {
-        await this.send(chatId, restartResumePrompt(agents.map((a) => ({ agentId: a.agent_id, description: a.description }))));
-      } else if (resume.queued) {
-        await Promise.all(this.dispatch(chatId, { type: "send_next" }).started);
-      }
+      const agents = action === "continue" && resume.interrupted ? this.stoppedSubagents(chatId).map((a) => ({ agentId: a.agent_id, description: a.description })) : [];
+      await Promise.all(this.dispatch(chatId, { type: "answer_restart", action, agents }).started);
     }
   }
 
@@ -260,14 +250,6 @@ export class Runner extends RunnerShell {
     const interrupted = runtime.run.gates.restart?.interrupted ?? false;
     this.dispatch(chatId, { type: "gates", patch: { restart: null } });
     if (interrupted) this.deps.store.chats.setResumePending([chatId], false);
-  }
-
-  /** 自分で送った: 前回の終了で止まった作業を続けるかは、もう聞かない（印も外す）。送信待ちを聞いていれば、それは聞き続ける */
-  protected forgetInterrupted(chatId: number) {
-    const resume = this.runtimes.peek(chatId)?.run.gates.restart;
-    if (!resume?.interrupted) return;
-    this.dispatch(chatId, { type: "gates", patch: { restart: resume.queued ? { interrupted: false, queued: true } : null } });
-    this.deps.store.chats.setResumePending([chatId], false);
   }
 
   /** 前回の終了で作業の途中で止まったサブエージェント（最後の自分の指示より後の記録から） */
@@ -284,7 +266,7 @@ export class Runner extends RunnerShell {
 
   /** つながったら自動で再開するのをやめる（待っていなければ 409） */
   stopReconnect(chatId: number): void {
-    if (!this.recovery.stopWaiting(chatId)) throw new Conflict("つながるのを待っていません");
+    this.run(chatId, { type: "stop_reconnect" });
   }
 
   async start(input: StartChatInput): Promise<Chat> {
@@ -331,7 +313,7 @@ export class Runner extends RunnerShell {
 
   /** チャットを消したとき: 作業中の状態（送信待ちの列も）を捨て、再開の段取りもやめる */
   forget(chatId: number) {
-    this.recovery.forget(chatId);
+    if (this.runtimes.peek(chatId)) this.dispatch(chatId, { type: "forget_recovery" });
     for (const resolve of this.tellWaits.get(chatId)?.values() ?? []) resolve("held");
     this.tellWaits.delete(chatId);
     this.told.delete(chatId);
@@ -348,7 +330,7 @@ export class Runner extends RunnerShell {
     if (input.reason === "user") this.requireIdle(chatId, "作業場所の変更");
     this.dispatch(chatId, { type: "begin", why: "move_workplace" });
     try {
-      this.recovery.forget(chatId);
+      this.dispatch(chatId, { type: "forget_recovery" });
       // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
       const prepared = { ...input, ...(await steps?.before?.()) };
       try {

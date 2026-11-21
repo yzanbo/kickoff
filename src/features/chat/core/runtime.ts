@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { ProviderCallbacks } from "@/features/ai/core/index";
-import { createRecoveryState, type RecoveryState } from "@/features/chat/core/run/machine/recoveryState";
 import { initialRunState } from "@/features/chat/core/run/machine/state";
 import type { ChatRunState, Lane, RunEvent } from "@/features/chat/core/run/machine/types";
 import type { TurnMarks } from "@/features/chat/core/run/machine/marks";
@@ -42,8 +41,8 @@ export const EMPTY_DISPLAY: TurnDisplay = { background: null, retry: null, drawi
 
 /**
  * 1 つのチャットの作業中の状態（保存しない。出す箱だけは変わるたびに DB に書く）。Runner が ChatRuntimes でチャットごとに 1 つ持つ。
- * 移り変わる状態（run）は step（run/machine/step.ts）の答えだけで変わり（Runner の dispatch が commit で書く）、殻の持ち物（作業の取っ手・表示・
- * 再開の段取り・予約した移動）はここに直に持つ。画面に配る形（ChatLive）は live.ts の liveOf で作る
+ * 移り変わる状態（run。再開の段取りの門も）は step（run/machine/step.ts）の答えだけで変わり（Runner の dispatch が commit で書く）、殻の持ち物（作業の取っ手・表示・
+ * 予約した移動）はここに直に持つ。画面に配る形（ChatLive）は live.ts の liveOf で作る
  */
 export class ChatRuntime {
   /** 動かしている作業の取っ手（作業中でなければ null） */
@@ -59,8 +58,6 @@ export class ChatRuntime {
   marks: TurnMarks;
   /** AI の書き込み先の守りの承認カードで「このチャットでは許可」を選んだファイル（実体のパス。作業をまたいで持ち、保存しない = アプリを終えたら聞き直す） */
   readonly writeAllowed = new Set<string>();
-  /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
-  readonly recovery: RecoveryState = createRecoveryState();
   /** AI が予約した作業場所の移動（ChatLive の workplace_move。中身は workplaceReservation.ts が持つ） */
   private moveShown: WorkplaceMoveReservation | null = null;
   /** 足している途中の行の番号（足す命令ごとに増やす。結果より先に次の命令が出たら、前の結果は捨てる） */

@@ -39,8 +39,6 @@ export abstract class RunnerShell extends RunnerQueue {
   protected abstract preCompactOf(projectId: number): string | null;
   /** 作業の終わりにすること（AI が予約した作業場所の移動）を行う・予約を消す（行ったら settled を渡す） */
   protected abstract turnEndTasks(chatId: number, runtime: ChatRuntime, effect: Extract<Effect, { do: "run_turn_end_tasks" | "drop_turn_end_tasks" }>): void;
-  /** 自分で送った: 前回の終了で止まった作業を続けるかは、もう聞かない */
-  protected abstract forgetInterrupted(chatId: number): void;
 
   /**
    * 出来事を回す: 1 件ずつ step に渡して状態を書き（出す箱が変わったら保存）、命令を実行する。命令の実行が出した出来事は列に積んで続けて回す。
@@ -50,7 +48,7 @@ export abstract class RunnerShell extends RunnerQueue {
     const queued = this.queues.get(chatId);
     if (queued) {
       queued.push(event);
-      return { effects: [], started: [] };
+      return { effects: [], started: [], queued: true };
     }
     const queue = [event];
     this.queues.set(chatId, queue);
@@ -88,6 +86,8 @@ export abstract class RunnerShell extends RunnerQueue {
       handoffQueued: switched?.type === "provider_switched" ? (switched.data.queued_ids ?? []) : [],
       preCompact: chat ? this.preCompactOf(chat.project_id) : null,
       preCompactSent: preCompactSent(runtime.marks),
+      autoResumeOnReconnect: store.settings.get().auto_resume_on_reconnect,
+      chatFailed: chat?.status === "failed",
     };
   }
 
@@ -108,7 +108,7 @@ export abstract class RunnerShell extends RunnerQueue {
     else if (effect.do === "clear_session") {
       // 自分で頼んだ: 止まったあとの再開の段取り（前の会話の続きを頼むもの）をやめる。コンテキストの大きさは、次の応答まで分からない。
       // ほかの AI に戻しても、消去前の会話を再開しない。新しい会話: 次に上限に近づいたら、また圧縮前指示を送る（消去の記録から導く preCompactSent）
-      this.recovery.forget(chatId);
+      this.dispatch(chatId, { type: "forget_recovery" });
       store.chats.update(chatId, { session_id: null, context_tokens: null });
       store.chatProviderSessions.removeAll(chatId);
       recordEvent(store, runtime, { type: "context_cleared" });
@@ -116,7 +116,8 @@ export abstract class RunnerShell extends RunnerQueue {
     else if (effect.do === "record") {
       if (effect.kind === "error") store.events.add(chatId, { type: "error", message: effect.message });
       else recordEvent(store, runtime, { type: "notice", message: effect.message });
-    } else if (effect.do === "end_recovery") this.recovery.finished(chatId, effect.outcome);
+    } else if (effect.do === "watch" || effect.do === "ask_recovery" || effect.do === "withdraw_ask" || effect.do === "resume_recovery" || effect.do === "lookup_limit") this.recovery.run(chatId, effect);
+    else if (effect.do === "resume_pending") store.chats.setResumePending([chatId], effect.value);
     else if (effect.do === "refresh_usage") this.deps.usage.refreshPolled();
     else if (effect.do === "run_turn_end_tasks" || effect.do === "drop_turn_end_tasks") this.turnEndTasks(chatId, runtime, effect);
   }
@@ -144,8 +145,8 @@ export abstract class RunnerShell extends RunnerQueue {
       throw e;
     }
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）。起動したときの再開の確かめで、作業を続けるかも聞かない
-    this.recovery.forget(chatId);
-    this.forgetInterrupted(chatId);
+    this.dispatch(chatId, { type: "forget_recovery" });
+    this.dispatch(chatId, { type: "forget_interrupted" });
     const messageUuid = randomUUID();
     // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
     if (!post) nameOnFirstMessage(this.deps, chatId, m.text, m.attachments);
@@ -198,8 +199,8 @@ export abstract class RunnerShell extends RunnerQueue {
       if (note && runtime.pendingNote === note) takePendingNote(runtime);
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
       if (!post) {
-        this.recovery.forget(chatId);
-        this.forgetInterrupted(chatId);
+        this.dispatch(chatId, { type: "forget_recovery" });
+        this.dispatch(chatId, { type: "forget_interrupted" });
       }
       recordEvent(store, runtime, { type: "user", text: item.text, ...(item.attachments.length ? { attachments: item.attachments } : {}), ...prepared.handover, ...(post ? { post_compact: true } : {}), ...marksOf(item), message_uuid: messageUuid });
       if (!post && store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, false);

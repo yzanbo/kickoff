@@ -20,6 +20,8 @@ export interface SendOpts {
 export interface Dispatched {
   effects: Effect[];
   started: Promise<void>[];
+  /** 出来事を回している間に渡したので、列に積んだだけ（答えはまだない） */
+  queued?: boolean;
 }
 
 /** 列にない指示を指したとき（消した・送ったあと） */
@@ -48,6 +50,8 @@ export abstract class RunnerQueue {
   /** 出来事を回し、断られたら失敗の種類の例外を投げる */
   protected run(chatId: number, event: RunEvent): Dispatched {
     const done = this.dispatch(chatId, event);
+    // 窓口は答えを読むので、出来事を回している間（命令の実行の中）からは呼ばない
+    if (done.queued) throw new Error("出来事を回している間に、送る・送信待ちの窓口を呼びました");
     const rejected = done.effects.find((e) => e.do === "reject");
     if (rejected) throw rejection(rejected.status, rejected.message);
     return done;

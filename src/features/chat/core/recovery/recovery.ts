@@ -1,14 +1,13 @@
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/features/chat/core/stores";
-import type { ChatRuntime } from "@/features/chat/core/runtime";
 import type { ChatRuntimes } from "@/features/chat/core/runtimes";
-import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
+import type { Effect, RunEvent, StoppedAgent, WaitFor } from "@/features/chat/core/run/machine/types";
+import { resumeFailedOf, USAGE_RESUME, type RecoveryReason } from "@/features/chat/core/run/machine/recovery";
+import { networkStoppedSubagents } from "@shared/chat/subagents";
+import { resumePrompt } from "@shared/chat/prompts";
 import { Poller } from "./poller";
-import { recordEvent } from "@/features/chat/core/run/record";
 import { canReachApi } from "./reachability";
-import { reconnectRule, usageLimitRule, type RecoveryPlan, type RecoveryReason, type RecoveryRule } from "@/features/chat/core/run/machine/recovery";
-import type { RecoveryWait } from "@/features/chat/core/run/machine/recoveryState";
 import type { ProviderId } from "@shared/settings/types";
 
 /** つながったかを確かめる間隔 */
@@ -17,27 +16,28 @@ const ONLINE_CHECK_MS = 15_000;
 /** 枠が戻る時刻を過ぎたかを確かめる間隔（Mac がスリープしても遅れないよう、待つ時間ではなく時計の時刻で見る） */
 const CLOCK_CHECK_MS = 60_000;
 
+/** 再開の段取りの命令 */
+export type RecoveryEffect = Extract<Effect, { do: "watch" | "ask_recovery" | "withdraw_ask" | "resume_recovery" | "lookup_limit" }>;
+
 /**
- * 止まったあとの再開の段取り（通信の切断・使用枠の上限で止まったとき。Runner から使う）。理由ごとの違い（待つ条件・知らせる文・聞く文・
- * 再開の文）は rules.ts の RecoveryRule に任せ、流れはここで 1 つにする:
- * 1. 止まったら、送信待ちを送らずに止めておく（保留。送っても失敗して消えるため。自分で止めていたものはそのまま）
- * 2. 決まりの段取りで、条件を待つ（つながる・枠が戻る時刻）・再開するかを聞く（承認のカードと同じ回答待ち）
- * 3. 再開の指示を送り、その作業が最後まで終わったら止めた送信待ちを戻す
- * 自分で送った・チャットを消したら、待つのも聞くのもやめる（止めた送信待ちは止めたまま。自分で戻せる）。
- * チャットごとの状態は ChatRuntime の recovery に 1 つで持つので、続けて別の理由で止まっても、止めた送信待ちを引き継ぐ
+ * 止まったあとの再開の段取りの殻（通信の切断・使用枠の上限で止まったとき）。決めるのは純粋な決まり（run/machine/recovery.ts）で、ここはその命令を実行する:
+ * 条件の見張り（つながったか・時計。満たしたら online / clock を渡す）・再開するかを聞く（承認のカードと同じ回答待ち。答えは answer_recovery）・
+ * 再開の指示を送る（送り終えたら recovery_resumed）・チャットの AI の使い切った枠の戻る時刻を調べる（limit_found）
  */
 export class ChatRecovery {
-  private readonly rules: Record<RecoveryReason, RecoveryRule>;
   private readonly online: Poller;
   private readonly clock: Poller;
   private readonly now: () => number;
+  /** 再開するかを聞いているカードの取り下げ（チャットごと） */
+  private readonly asking = new Map<number, AbortController>();
 
   constructor(
     private readonly deps: {
       store: Store;
       approvals: ApprovalCenter;
       runtimes: ChatRuntimes;
-      isBusy: (chatId: number) => boolean;
+      /** 出来事を渡す（Runner の dispatch） */
+      dispatch: (chatId: number, event: RunEvent) => void;
       send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が枠の戻る時刻を知らせなかったときに使う） */
       usage?: { limitResetAt(id: ProviderId): Promise<string | null> };
@@ -47,62 +47,40 @@ export class ChatRecovery {
       usageLimit?: { now?: () => number; checkMs?: number };
     },
   ) {
-    this.rules = { reconnect: reconnectRule(deps), usage_limit: usageLimitRule(deps) };
     this.now = deps.usageLimit?.now ?? Date.now;
     const check = deps.reconnect?.check ?? canReachApi;
     this.online = new Poller({
       intervalMs: deps.reconnect?.intervalMs ?? ONLINE_CHECK_MS,
-      active: () => this.waitingFor("online").length > 0,
+      active: () => this.waiting("online").length > 0,
       tick: async () => {
-        if (this.waitingFor("online").length === 0 || !(await check().catch(() => false))) return;
+        if (this.waiting("online").length === 0 || !(await check().catch(() => false))) return;
         // 確かめている間に待ち始めたチャットも、いまつながっているので一緒に再開する
-        for (const runtime of this.waitingFor("online")) this.ready(runtime);
+        for (const chatId of this.waiting("online")) deps.dispatch(chatId, { type: "online" });
       },
     });
-    this.clock = new Poller({
-      intervalMs: deps.usageLimit?.checkMs ?? CLOCK_CHECK_MS,
-      active: () => this.waitingFor("clock").length > 0,
-      tick: () => this.checkClock(),
-    });
+    this.clock = new Poller({ intervalMs: deps.usageLimit?.checkMs ?? CLOCK_CHECK_MS, active: () => this.waiting("clock").length > 0, tick: () => this.checkClock() });
   }
 
-  /** 作業が終わったとき（送信待ちの門を立てる・外すのは決まりの step。ここは待つ・聞くの段取り） */
-  finished(chatId: number, outcome: TurnOutcome) {
-    const runtime = this.deps.runtimes.get(chatId);
-    const state = runtime.recovery;
-    const rule = outcome.network ? this.rules.reconnect : outcome.usageLimit ? this.rules.usage_limit : undefined;
-    // 自動で再開した回数と、通信で止まったサブエージェントは、通信の切断が続いている間だけ覚えておく
-    // （ほかの理由で終わったら、止まったサブエージェントの再開は頼まない。一覧の「再開」で戻せる）
-    if (rule?.reason !== "reconnect") {
-      state.attempts = 0;
-      state.agents.clear();
-    }
-    if (rule) this.stop(runtime, rule, outcome);
-  }
-
-  /** 自分でメッセージを送った・チャットを消した: 待つのも聞くのもやめる（再開の指示を送っているところなら何もしない） */
-  forget(chatId: number) {
-    const runtime = this.deps.runtimes.peek(chatId);
-    if (!runtime || runtime.recovery.resuming) return;
-    const state = runtime.recovery;
-    state.version++;
-    this.cancel(runtime);
-    state.attempts = 0;
-    state.agents.clear();
-    this.release(runtime, true);
-  }
-
-  /** つながったら自動で再開するのをやめる（画面の「自動で再開しない」）。待っていたら true */
-  stopWaiting(chatId: number): boolean {
-    const runtime = this.deps.runtimes.peek(chatId);
-    if (runtime?.recovery.waiting?.for.kind !== "online") return false;
-    this.setWaiting(runtime, null);
-    return true;
+  /** 命令を実行する */
+  run(chatId: number, effect: RecoveryEffect) {
+    if (effect.do === "watch") {
+      // 時刻を待つなら、もう過ぎていないかをすぐ確かめる
+      if (effect.what === "clock") this.checkClock();
+      (effect.what === "online" ? this.online : this.clock).start();
+    } else if (effect.do === "ask_recovery") this.ask(chatId, effect);
+    else if (effect.do === "withdraw_ask") {
+      const controller = this.asking.get(chatId);
+      this.asking.delete(chatId);
+      controller?.abort();
+    } else if (effect.do === "resume_recovery") {
+      // 送るのは出来事を回し終えてから（送る口は dispatch を呼ぶので、回している間に呼ぶと入れ子になる）
+      void Promise.resolve().then(() => this.resume(chatId, effect.reason, effect.agents));
+    } else void this.lookup(chatId);
   }
 
   /** 通信の切断で止まり、つながったら自動で再開するのを待っているチャット（アプリを終えるとき、起動したときの再開の確かめの印を付ける） */
   waitingForReconnect(): number[] {
-    return this.deps.runtimes.all().filter((r) => r.recovery.waiting?.rule.reason === "reconnect").map((r) => r.chatId);
+    return this.waiting("online");
   }
 
   /** アプリを終えるとき（もう待たない） */
@@ -111,117 +89,61 @@ export class ChatRecovery {
     this.clock.stop();
   }
 
-  /** 止まった: 決まりの段取り（お知らせ・待つ・聞く）を始める（前の段取りは置き換える。送信待ちは step が門で止めた） */
-  private stop(runtime: ChatRuntime, rule: RecoveryRule, outcome: TurnOutcome) {
-    const { chatId, outbox, recovery: state } = runtime;
-    if (!this.deps.store.chats.get(chatId)) return;
-    const version = ++state.version;
-    this.cancel(runtime);
-    for (const a of outcome.stoppedAgents ?? []) state.agents.set(a.agentId, a.description);
-    // 送信待ちを自分で止めていたか（こちらで止めたものは門で持つので、どの理由で止めたものでも含めない）
-    const pausedByUser = outbox.paused;
-    // 段取りは、決まりがすぐ決められればその場で、調べものが要れば（枠の戻る時刻）調べてから進める
-    const plan = rule.plan({ chatId, state, held: runtime.run.gates.recovery !== null, pausedByUser, outcome });
-    if (plan instanceof Promise) void plan.then((p) => this.follow(runtime, rule, p, version));
-    else this.follow(runtime, rule, plan, version);
-  }
-
-  /** 決まった段取りを進める（決めている間に自分で送った・また止まったなら、もうこの段取りではないのでやめる） */
-  private follow(runtime: ChatRuntime, rule: RecoveryRule, plan: RecoveryPlan, version: number) {
-    if (runtime.recovery.version !== version) return;
-    if (plan.notice) recordEvent(this.deps.store, runtime, { type: "notice", message: plan.notice });
-    if (plan.next.do === "ask") this.ask(runtime, rule);
-    else if (plan.next.do === "wait") this.setWaiting(runtime, { rule, for: plan.next.for, then: plan.next.then });
-  }
-
-  /** 条件を満たした: 決まりのとおり、再開する・聞く */
-  private ready(runtime: ChatRuntime) {
-    const waiting = runtime.recovery.waiting;
-    if (!waiting) return;
-    this.setWaiting(runtime, null);
-    if (waiting.then === "ask") this.ask(runtime, waiting.rule);
-    else void this.resume(runtime, waiting.rule, { counted: true });
-  }
-
-  /** 再開するかを聞く（承認のカードと同じ回答待ち。Mac の通知も出る）。その間に自分で再開していたら聞かない */
-  private ask(runtime: ChatRuntime, rule: RecoveryRule) {
-    const { store, approvals, isBusy } = this.deps;
-    const { chatId, recovery: state } = runtime;
-    const chat = store.chats.get(chatId);
-    if (!chat || chat.status !== "failed" || isBusy(chatId) || state.asking) return;
+  /** 再開するかを聞く（取り下げた・また止まったなら、答えは捨てる） */
+  private ask(chatId: number, { reason, title, description, input }: Extract<RecoveryEffect, { do: "ask_recovery" }>) {
+    const chat = this.deps.store.chats.get(chatId);
+    if (!chat) return;
     const controller = new AbortController();
-    state.asking = controller;
-    const { title, description, input } = rule.ask({ chatId, state, held: runtime.run.gates.recovery !== null });
-    const { decision } = approvals.request(
-      { chatId, projectId: chat.project_id },
-      { kind: rule.reason, toolName: rule.reason, input, title, description, canRemember: false },
-      controller.signal,
-    );
+    this.asking.set(chatId, controller);
+    const { decision } = this.deps.approvals.request({ chatId, projectId: chat.project_id }, { kind: reason, toolName: reason, input, title, description, canRemember: false }, controller.signal);
     void decision.then((answer) => {
-      // 取り下げた（自分で送った・また止まった）: もうこの段取りではない
-      if (state.asking !== controller) return;
-      state.asking = null;
-      state.attempts = 0;
-      // 再開する: 数え直して、すぐ送る（また止まったら、決まりの段取りから）
-      if (answer.action === "allow") void this.resume(runtime, rule, { counted: false });
-      // やめる: 送信待ちは止めたまま（利用者が止めたものにする。自分で戻す・メッセージを送ると続きから再開できる）
-      else this.release(runtime, true);
+      if (this.asking.get(chatId) !== controller) return;
+      this.asking.delete(chatId);
+      this.deps.dispatch(chatId, { type: "answer_recovery", allow: answer.action === "allow" });
     });
   }
 
-  /** 再開の指示を送る（止まったままでないとき（その間に自分で動かした）・作業中なら送らない）。counted: 自動で再開した回数に数える */
-  private async resume(runtime: ChatRuntime, rule: RecoveryRule, { counted }: { counted: boolean }) {
-    const { store, isBusy, send } = this.deps;
-    const { chatId, recovery: state } = runtime;
-    const chat = store.chats.get(chatId);
-    if (!chat || chat.status !== "failed" || isBusy(chatId)) return;
-    if (counted) state.attempts++;
-    state.resuming = true;
+  /** 再開の指示を送る（通信の切断なら、覚えたサブエージェントのうち、いまも通信で止まったままのものの再開も頼む） */
+  private async resume(chatId: number, reason: RecoveryReason, agents: StoppedAgent[]) {
     try {
-      await send(chatId, rule.prompt({ chatId, state, held: runtime.run.gates.recovery !== null }));
+      await this.deps.send(chatId, reason === "usage_limit" ? USAGE_RESUME : resumePrompt(this.halted(chatId, agents)));
     } catch (e) {
-      recordEvent(store, runtime, { type: "error", message: `${rule.resumeFailed}: ${errorMessage(e)}` });
+      this.deps.store.events.add(chatId, { type: "error", message: `${resumeFailedOf(reason)}: ${errorMessage(e)}` });
     } finally {
-      state.resuming = false;
+      this.deps.dispatch(chatId, { type: "recovery_resumed" });
     }
   }
 
-  /** Kickoff が止めた送信待ちの門を外す（keepPaused: 利用者が止めたものにして止めたままにする。外して送り始めるのは最後まで終わったときだけ = step） */
-  private release(runtime: ChatRuntime, keepPaused: boolean) {
-    if (runtime.run.gates.recovery !== null) runtime.dispatch({ type: "recovery_release", keepPaused });
+  /** 再開を頼むサブエージェント: 覚えたもののうち、いまも通信で止まったままのもの（前の再開で戻ったものは除く） */
+  private halted(chatId: number, agents: StoppedAgent[]): StoppedAgent[] {
+    if (agents.length === 0) return [];
+    const halted = new Set(networkStoppedSubagents(this.deps.store.events.forSubagents(chatId), 0).map((s) => s.agentId));
+    return agents.filter((a) => halted.has(a.agentId));
   }
 
-  /** 待つのも聞くのもやめる（聞いていたら取り下げる） */
-  private cancel(runtime: ChatRuntime) {
-    this.setWaiting(runtime, null);
-    const asking = runtime.recovery.asking;
-    runtime.recovery.asking = null;
-    asking?.abort();
+  /** AI が戻る時刻を知らせなかったとき: そのチャットの AI の使い切った枠の戻る時刻（分からなければ null） */
+  private async lookup(chatId: number) {
+    const provider = this.deps.store.chats.get(chatId)?.provider;
+    const at = this.deps.usage && provider ? await this.deps.usage.limitResetAt(provider) : null;
+    this.deps.dispatch(chatId, { type: "limit_found", at });
   }
 
-  /** 待つ条件を変える。つながるのを待っているかが変わったら、作業中の様子を配り直す（時刻を待つなら、もう過ぎていないかをすぐ確かめる） */
-  private setWaiting(runtime: ChatRuntime, waiting: RecoveryWait | null) {
-    const before = runtime.recovery.waiting;
-    runtime.recovery.waiting = waiting;
-    if (before?.for.kind === "online" || waiting?.for.kind === "online") this.deps.runtimes.publish(runtime.chatId);
-    if (waiting?.for.kind === "online") this.online.start();
-    if (waiting?.for.kind === "clock") {
-      this.checkClock();
-      this.clock.start();
-    }
-  }
-
-  /** 枠が戻る時刻を過ぎたチャットを、決まりのとおりに進める */
+  /** 枠が戻る時刻を待っているチャットに、いまの時刻を渡す（過ぎていれば決まりのとおりに進む） */
   private checkClock() {
+    const waiting = this.waiting("clock");
+    if (waiting.length === 0) return;
     const now = this.now();
-    for (const runtime of this.waitingFor("clock")) {
-      const wait = runtime.recovery.waiting!.for;
-      if (wait.kind === "clock" && now >= wait.at) this.ready(runtime);
-    }
+    for (const chatId of waiting) this.deps.dispatch(chatId, { type: "clock", now });
   }
 
   /** その条件を待っているチャット */
-  private waitingFor(kind: "online" | "clock"): ChatRuntime[] {
-    return this.deps.runtimes.all().filter((r) => r.recovery.waiting?.for.kind === kind);
+  private waiting(kind: WaitFor["kind"]): number[] {
+    return this.deps.runtimes
+      .all()
+      .filter((r) => {
+        const step = r.run.gates.recovery?.step;
+        return step?.at === "wait" && step.for.kind === kind;
+      })
+      .map((r) => r.chatId);
   }
 }

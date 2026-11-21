@@ -58,7 +58,7 @@ export function holdOf(s: ChatRunState): HoldReason | null {
 
 /** 送信待ちを送らずに止めているか（利用者が止めた・Kickoff が門で止めた。画面の「止めています」） */
 export function queuePaused(s: ChatRunState): boolean {
-  return s.outbox.paused || (s.gates.recovery !== null && s.outbox.later.length > 0);
+  return s.outbox.paused || (s.gates.recovery?.holds === true && s.outbox.later.length > 0);
 }
 
 /** 送信待ちの次の指示を画面で書き直しているので、送らずに書き直しが終わるのを待っている（作業は終わり、送る準備ができている） */

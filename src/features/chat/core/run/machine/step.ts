@@ -1,10 +1,11 @@
 // チャットの実行の状態機械（純粋）: 出来事を 1 件受けて、次の状態と命令（殻の Runner が実行する）を返す。
 // 利用者・API の出来事は requests.ts、作業の終わりは turnEnd.ts、出す箱から次に出すものは outbox.ts
 import { newMessage, pauseAtHead, placeContinuation, setPaused } from "@shared/chat/outbox";
+import { recoveryStep } from "./recovery";
 import { deliverNow, pumpLater, pumpNow } from "./outbox";
 import { clearOf, compactOf, editingOf, preCompactToldOf, queueOf, queueSendOf, sendOf } from "./requests";
 import { compactionAtStart, compactPhase } from "./state";
-import { afterTurn, onTurnEnded, releaseRecovery } from "./turnEnd";
+import { afterTurn, onTurnEnded } from "./turnEnd";
 import type { ChatRunState, Effect, Env, RunEvent, Step, TurnPhase } from "./types";
 
 /**
@@ -103,17 +104,18 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
       return { ...s, gates: { ...s.gates, ...e.patch } };
     case "set_paused":
       return { ...s, outbox: setPaused(s.outbox, e.paused) };
-    case "recovery_release":
-      return releaseRecovery(s, e.keepPaused);
+    default:
+      return recoveryStep(s, e, env, effects);
   }
 }
 
 /**
- * 状態をそろえる: 送信待ちが空になったら Kickoff の門は外す。足している途中の行が、もう足せない（頭でなくなった・書き直し中・圧縮が始まった・
+ * 状態をそろえる: 送信待ちが空になったら Kickoff が止めている印は外す。足している途中の行が、もう足せない（頭でなくなった・書き直し中・圧縮が始まった・
  * 圧縮したやり取りの途中の自分の指示・口がなくなった）なら結果を待たない（殻は足さずにやめ、行は預かりに残る）
  */
 function normalize(s: ChatRunState): ChatRunState {
-  if (s.gates.recovery !== null && s.outbox.later.length === 0) s = { ...s, gates: { ...s.gates, recovery: null } };
+  const gate = s.gates.recovery;
+  if (gate?.holds && s.outbox.later.length === 0) s = { ...s, gates: { ...s.gates, recovery: { ...gate, holds: false } } };
   const p = s.phase;
   if (p.kind !== "turn" || p.telling === null) return s;
   const head = s.outbox.now[0];

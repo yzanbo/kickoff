@@ -1,6 +1,6 @@
 // チャットの実行の状態・出来事・命令の型（純粋。Node・店・時計を読まない）。出来事を受けて次の状態と命令を返すのは step.ts
 import type { CompactTrigger } from "@shared/ai/turnEvents";
-import type { HandoffState, PrepareReason, RestartResumeState } from "@shared/chat/chatLive";
+import type { HandoffState, PrepareReason, RestartResumeAction, RestartResumeState } from "@shared/chat/chatLive";
 import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { Outbox } from "@shared/chat/outbox";
 import type { QueueCommand } from "@shared/chat/queueCommand";
@@ -63,10 +63,29 @@ export type TurnPhase = Extract<Phase, { kind: "turn" }>;
 /** 出す箱の列（now = 預かり、later = 送信待ち） */
 export type Lane = "now" | "later";
 
+/** 待つ条件: つながる（AI の API に届く）・時計がその時刻（ミリ秒）を過ぎる */
+export type WaitFor = { kind: "online" } | { kind: "clock"; at: number };
+
+/**
+ * 止まったあとの再開の段取り（通信の切断・使用枠の上限。決まりは recovery.ts）。止まった理由に関係なく 1 つで持つので、続けて別の理由で止まっても、
+ * 止めた送信待ちを引き継ぐ。保存しない（アプリを終えたら外れ、起動したときの確かめで聞く）
+ */
+export interface RecoveryGate {
+  reason: "reconnect" | "usage_limit";
+  /** Kickoff が送信待ちを止めている（利用者が止めていたものは含めない。送信待ちが空になったら外れる） */
+  holds: boolean;
+  /** 段: 条件を待つ（満たしたら再開する・聞く）/ 枠の戻る時刻を調べている / 聞いている / 再開の指示を送っている / 何もしない（お知らせだけ） */
+  step: { at: "wait"; for: WaitFor; then: "resume" | "ask" } | { at: "lookup" } | { at: "asking" } | { at: "resuming" } | { at: "idle" };
+  /** 続けて自動で再開した回数（通信の切断が続いている間だけ数える） */
+  attempts: number;
+  /** 通信の切断で止まり、まだ再開を頼んでいないサブエージェント（作業 ID → 名前。通信の切断が続いている間だけ覚える） */
+  agents: Record<string, string>;
+}
+
 /** 送信待ちを自動で送らない、Kickoff の理由（門。outbox.paused = 利用者が止めた、とは分けて持ち、保存しない） */
 export interface Gates {
-  /** 止まったあとの再開の段取りが止めている（通信の切断・使用枠の上限。送信待ちが空になったら外れる） */
-  recovery: "reconnect" | "usage_limit" | null;
+  /** 止まったあとの再開の段取り（送信待ちを止めているのは holds のとき） */
+  recovery: RecoveryGate | null;
   /** 起動したときの再開の確かめを待っている（答えるまで続けない・送信待ちを送らない） */
   restart: RestartResumeState | null;
 }
@@ -104,6 +123,10 @@ export interface Env {
   preCompact: string | null;
   /** 前の圧縮・消去のあとで、もう圧縮前指示を送ったか（記録から導く） */
   preCompactSent: boolean;
+  /** 通信が切れて止まったら、つながったときに自動で再開する（設定） */
+  autoResumeOnReconnect: boolean;
+  /** チャットが失敗で止まったままか（自分で動かしていれば、再開しない・聞かない） */
+  chatFailed: boolean;
 }
 
 /** 送る指示 */
@@ -149,14 +172,23 @@ export type RunEvent =
   | { type: "settled"; then: AfterTurn }
   /** AI が予約した作業場所の移動のあとの続きの指示を置く（止めていれば送信待ちの頭） */
   | { type: "continuation"; text: string; afterFinish: boolean }
-  /** 送信待ちの次を送る（起動したときの確かめに「送る」と答えた） */
+  /** 送信待ちの次を送る */
   | { type: "send_next" }
+  /** 再開の段取り: つながった・時計（ミリ秒）・枠の戻る時刻が分かった・再開するかに答えた・自動で再開しない・自分で送った・再開の指示を送り終えた */
+  | { type: "online" }
+  | { type: "clock"; now: number }
+  | { type: "limit_found"; at: string | null }
+  | { type: "answer_recovery"; allow: boolean }
+  | { type: "stop_reconnect" }
+  | { type: "forget_recovery" }
+  | { type: "recovery_resumed" }
+  /** 起動したときの確かめ: 自分で送った（作業を続けるかはもう聞かない）・答えた（agents: 続けるときに再開を頼む、止まったサブエージェント） */
+  | { type: "forget_interrupted" }
+  | { type: "answer_restart"; action: RestartResumeAction; agents: { agentId: string | null; description: string }[] }
   /** 門を変える（起動したときの確かめ・止まったあとの再開の段取り） */
   | { type: "gates"; patch: Partial<Gates> }
   /** 止めておくかだけを変える（AI の切り替えに失敗した・起動したときの確かめに「止めておく」と答えた） */
-  | { type: "set_paused"; paused: boolean }
-  /** 再開の段取りが止めた送信待ちの門を外す（keepPaused: 利用者が止めたものにして止めたまま） */
-  | { type: "recovery_release"; keepPaused: boolean };
+  | { type: "set_paused"; paused: boolean };
 
 /** 送るの答え（sent = すぐ送った、held = 預かった、queued = 送信待ちに入れた、pending = いまの作業に足すところ。殻が足した結果で told / held にする） */
 export type SendReply = "sent" | "held" | "queued" | "pending";
@@ -177,9 +209,18 @@ export type Effect =
   | { do: "record"; kind: "notice" | "error"; message: string }
   | { do: "reply"; result: SendReply; id: string | null }
   | { do: "reject"; status: 400 | 404 | 409; message: string }
-  /** 止まったあとの再開の段取り（いまの ChatRecovery.finished。門は step が立てる・外す） */
-  | { do: "end_recovery"; outcome: TurnOutcome }
   | { do: "refresh_usage" }
+  /** 再開の条件を見張る（つながったか・時計。満たしたら online / clock を渡す） */
+  | { do: "watch"; what: WaitFor["kind"] }
+  /** 再開するかを聞く（承認のカードと同じ回答待ち。答えは answer_recovery）・聞くのを取り下げる */
+  | { do: "ask_recovery"; reason: RecoveryGate["reason"]; title: string; description: string; input: Record<string, unknown> }
+  | { do: "withdraw_ask" }
+  /** 再開の指示を送る（送り終えたら recovery_resumed） */
+  | { do: "resume_recovery"; reason: RecoveryGate["reason"]; agents: StoppedAgent[] }
+  /** チャットの AI の使い切った枠の戻る時刻を調べる（答えは limit_found） */
+  | { do: "lookup_limit" }
+  /** 起動したときの再開の確かめの印（chats.resume_pending）を変える */
+  | { do: "resume_pending"; value: boolean }
   /** 作業の終わりにすることを行う（済んだら settled で続ける） */
   | { do: "run_turn_end_tasks"; then: AfterTurn }
   /** 作業の終わりにすることの予約を消す（notice: 移さなかったお知らせを残す） */

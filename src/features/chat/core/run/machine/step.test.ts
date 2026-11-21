@@ -6,7 +6,7 @@ import { step } from "./step";
 import { initialRunState, noCompaction } from "./state";
 import type { ChatRunState, Effect, Env, RunEvent, TurnPhase } from "./types";
 
-const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "id", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false };
+const env: Env = { now: "2026-11-22T00:00:00.000Z", newId: () => "id", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false, autoResumeOnReconnect: true, chatFailed: false };
 let seq = 0;
 /** 出来事を順に渡す（ID は 1 から振る）。最後の状態と、すべての命令 */
 function run(s: ChatRunState, events: RunEvent[], e: Partial<Env> = {}): { s: ChatRunState; effects: Effect[] } {
@@ -60,11 +60,11 @@ test("足すのと作業の終わりの行き違い（01 の 6.10 の 1）: 結�
   const id = telling.s.outbox.now[0].id;
   assert.deepEqual(kinds(telling.effects), ["reply:pending", "tell:あ"]);
   const crossed = run(telling.s, [ended]);
-  assert.deepEqual(kinds(crossed.effects), ["end_recovery", "refresh_usage", "start:message:あ:held"]);
+  assert.deepEqual(kinds(crossed.effects), ["refresh_usage", "start:message:あ:held"]);
   assert.deepEqual(run(crossed.s, [{ type: "tell_result", id, ok: true }]).s, crossed.s);
   // 結果が先なら、足したまま終わる（送信待ちの次へ）
   const first = run(telling.s, [{ type: "tell_result", id, ok: true }, ended]);
-  assert.deepEqual([kinds(first.effects), texts(first.s, "now")], [["end_recovery", "refresh_usage"], []]);
+  assert.deepEqual([kinds(first.effects), texts(first.s, "now")], [["refresh_usage"], []]);
   // 足せなかったあとに終わったら、新しい作業として送る
   assert.deepEqual(kinds(run(telling.s, [{ type: "tell_result", id, ok: false }, ended]).effects).at(-1), "start:message:あ:held");
 });
@@ -109,7 +109,7 @@ test("送信待ち: 作業中は列に足し（質問として送ったらその
 
 test("書き直し: 次に送る指示を書き直している間は送らず、外れたら送る。預かりの頭を書き直している間も送らず、外れたら作業していなければ新しい作業として送る（S28・S33）", () => {
   const waiting = run({ ...turn(), outbox: { ...EMPTY_OUTBOX, later: [row("2")] } }, [{ type: "editing", lane: "later", ids: ["2"] }, ended]);
-  assert.deepEqual(kinds(waiting.effects), ["edit_timer", "end_recovery", "refresh_usage"]);
+  assert.deepEqual(kinds(waiting.effects), ["edit_timer", "refresh_usage"]);
   assert.deepEqual(kinds(run(waiting.s, [{ type: "edit_hold_expired", lane: "later" }]).effects), ["edit_timer", "start:message:2:queue"]);
   const held = run({ ...initialRunState(), outbox: { ...EMPTY_OUTBOX, now: [row("い"), row("う")] } }, [{ type: "editing", lane: "now", ids: ["い"] }]);
   assert.deepEqual(kinds(held.effects), ["edit_timer"]);

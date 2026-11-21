@@ -340,7 +340,7 @@
 |---|---|---|---|
 | RUN-045 | 通信が切れたら自動で再開する | chat | M |
 | RUN-046 | 使用枠が戻ったら再開するか聞く | chat | M |
-| RUN-047 | 終了で止まった作業を、起動したときに続けられる | chat | T:restartResume |
+| RUN-047 | 終了で止まった作業を、起動したときに続けられる | chat | T:restartMoments |
 | RUN-048 | 落ちて終わった作業の終わりを、起動したときに記録する | chat | T:interruptedTurnEnd |
 
 ### 巻き戻しと分岐
