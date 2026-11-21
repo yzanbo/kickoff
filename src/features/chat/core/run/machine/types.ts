@@ -143,8 +143,8 @@ export interface NewSend {
 export type RunEvent =
   /** 送る（idle = 作業中なら 409、now = 作業中なら止めずに伝える、later = 作業中なら送信待ちに入れる。hold なら作業していなくても入れる） */
   | { type: "send"; when: "idle" | "now" | "later"; message: NewSend; pauseAfter?: boolean; hold?: boolean }
-  /** 列を変える（applyQueueCommand。now の行は預かりの書き直し・取り消し） */
-  | { type: "queue"; command: QueueCommand }
+  /** 列を変える（命令を順に applyQueueCommand。now の行は預かりの書き直し・取り消し。1 つでも断られたら、どれも変えない） */
+  | { type: "queue"; commands: QueueCommand[] }
   | { type: "queue_send"; mode: "now"; id: string }
   | { type: "queue_send"; mode: "all"; ids?: string[] }
   | { type: "queue_send"; mode: "in_order" }

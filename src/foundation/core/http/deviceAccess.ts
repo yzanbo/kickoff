@@ -59,6 +59,7 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/chats/:id/queue/send-in-order"],
   ["POST", "/api/chats/:id/queue/remove-many"],
   ["POST", "/api/chats/:id/queue/move-many"],
+  ["POST", "/api/chats/:id/queue/send"],
   // ターミナル（一覧・始める・止める・WebSocket でつなぐ。見るだけの端末は見るだけ）
   ["GET", "/api/terminals"],
   ["POST", "/api/projects/:id/terminals"],

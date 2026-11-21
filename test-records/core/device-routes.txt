@@ -44,6 +44,7 @@ POST /api/chats/:id/queue/:queueId/send device
 POST /api/chats/:id/queue/merge device
 POST /api/chats/:id/queue/move-many device
 POST /api/chats/:id/queue/remove-many device
+POST /api/chats/:id/queue/send device
 POST /api/chats/:id/queue/send-all device
 POST /api/chats/:id/queue/send-in-order device
 POST /api/chats/:id/seen deviceRead

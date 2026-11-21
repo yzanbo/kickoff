@@ -28,7 +28,8 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
     case "send":
       return sendOf(s, e, env, effects);
     case "queue":
-      return queueOf(s, e.command, env, effects);
+      // 断られたら step が状態を変えずに返すので、全部通るか、1 つも変えない
+      return e.commands.reduce((st, command) => (effects.some((x) => x.do === "reject") ? st : queueOf(st, command, env, effects)), s);
     case "queue_send":
       return queueSendOf(s, e, env, effects);
     case "editing":

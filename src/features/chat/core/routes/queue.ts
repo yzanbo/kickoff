@@ -4,7 +4,8 @@ import type { ChatRouteDeps } from "./deps";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { rememberSentView } from "@/features/userView/core/routes/userView";
-import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
+import { attachmentsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
+import { queueCommandsSchema, queueEditingSchema, queueSendSchema } from "./sendSchemas";
 import { RESTART_RESUME_ACTIONS } from "@shared/chat/chatLive";
 import { QUEUE_ACTIONS } from "@shared/chat/types";
 import type { QueueAddResult, QueueMergeResult, RestartResumeBody } from "@shared/foundation/apiTypes";
@@ -32,9 +33,12 @@ export function queueRoutes(app: Hono, { store, runner, userViews }: Pick<ChatRo
 
     // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
   // pause_after なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する））
+  // commands を書けば、送信待ちを変える命令の列（@shared/chat/send の QueueCommandsBody。全部通るか、1 つも変えない。答えはそのあとの送信待ち）
   app.post("/api/chats/:id/queue", withChat, async (c) => {
     const { chat } = c.var;
-    const body = queueMessageSchema.parse(await jsonBody(c));
+    const raw = await jsonBody(c);
+    if (raw && typeof raw === "object" && "commands" in raw) return c.json(await runner.queue(chat.id, queueCommandsSchema.parse(raw).commands));
+    const body = queueMessageSchema.parse(raw);
     const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
     rememberSentView(c, userViews, chat.id, body.user_view);
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
@@ -85,12 +89,14 @@ export function queueRoutes(app: Hono, { store, runner, userViews }: Pick<ChatRo
 
   // 画面でいま書き直している待ちの指示（書き直す欄を開いているもの。丸ごと置き換え、空なら外す）。自動で送る次の指示なら、書き直しが終わるまで送らない。
   // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る。列にない指示は数えない）
+  // lane: now なら預かった指示（省けば送信待ち）
   app.put("/api/chats/:id/queue/editing", withChat, async (c) => {
-    const { chat } = c.var;
-    const { ids } = editingIdsSchema.parse(await jsonBody(c));
-    runner.setQueueEditing(chat.id, ids);
-    return c.json(runner.queueState(chat.id));
+    const { lane, ids } = queueEditingSchema.parse(await jsonBody(c));
+    return c.json(runner.editing(c.var.chat.id, lane, ids));
   });
+
+  // 送信待ちをすぐ送る（@shared/chat/send の QueueSendBody。now = その 1 件 / all = まとめて 1 件に / in_order = 1 件ずつ順に）。答えはそのあとの送信待ち
+  app.post("/api/chats/:id/queue/send", withChat, async (c) => c.json(await runner.queueSend(c.var.chat.id, queueSendSchema.parse(await jsonBody(c)))));
 
   // 待ちの列から消す
   app.delete("/api/chats/:id/queue/:queueId", withChat, (c) => {

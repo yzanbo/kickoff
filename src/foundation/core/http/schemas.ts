@@ -18,7 +18,7 @@ const MAX_MESSAGE_CHARS = 50_000;
 /** 1 回に添えられる添付の数の上限（指示・送信待ちの書き直し・質問への回答で同じ） */
 const MAX_ATTACHMENTS = 20;
 /** 送信待ちの複数選択の上限 */
-const MAX_QUEUE_SELECTION = 500;
+export const MAX_QUEUE_SELECTION = 500;
 
 /** 絶対パス（~ で始めてもよい）のフォルダの指定か（ノートの親フォルダ・プロジェクトのノートのフォルダ） */
 export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
@@ -154,8 +154,8 @@ const marksShape = {
   handoff_request: z.boolean().optional(),
   handoff_from: z.object({ chat_id: z.number().int().positive(), title: z.string().max(500) }).optional(),
 };
-const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.text) || v.attachments.length > 0;
-const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
+export const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.text) || v.attachments.length > 0;
+export const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
 /** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
 export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
@@ -202,7 +202,10 @@ export const childChatSchema = z
 export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
-export const queueMessageSchema = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;
+/** 次の指示を送る本文の欄（送る口 1 本の when を足す前の形。chat の sendSchemas.ts が広げる） */
+export const queueMessageFields = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() });
+export const queueMessageSchema = queueMessageFields.refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;
 
 /** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff） */
 export const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() }) satisfies z.ZodType<HandoffBody>;
+

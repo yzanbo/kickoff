@@ -11,7 +11,7 @@ import type { UsageMonitor } from "@/features/ai/core/index";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { ChatLive, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
-import type { TellResult } from "@shared/foundation/apiTypes";
+import type { SendBody, SendResult } from "@shared/chat/send";
 import type { SendOpts } from "./queueWindow";
 
 /** 殻を組み立てるのに使うもの */
@@ -38,9 +38,9 @@ export interface ChatRunPort {
   live(chatId: number): ChatLive;
   queueState(chatId: number): QueueState;
   start(input: StartChatInput): Promise<Chat>;
+  /** 送る口 1 本（when: now = 止めずに伝える / later = 作業中なら送信待ちへ / 省けば作業中は 409） */
+  message(chatId: number, body: SendBody): Promise<SendResult>;
   send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
-  tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<TellResult["result"]>;
-  queueMessage(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { hold?: boolean } & SendOpts): Promise<{ queued: boolean; id: string | null }>;
   setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
   moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat>;
   forget(chatId: number): void;

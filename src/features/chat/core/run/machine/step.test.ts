@@ -99,12 +99,12 @@ test("送信待ち: 作業中は列に足し（質問として送ったらその
   const queued = run(turn(), [{ type: "send", when: "later", message: msg("2"), pauseAfter: true }, later("/clear")]);
   assert.deepEqual([kinds(queued.effects), texts(queued.s, "later"), queued.s.outbox.stops], [["reply:queued", "reply:queued"], ["2", ""], [1]]);
   const stopped = { ...initialRunState(), outbox: { ...EMPTY_OUTBOX, later: [row("3")], stops: [0] } };
-  assert.deepEqual(kinds(run(stopped, [{ type: "queue", command: { op: "set_stops", stops: [] } }]).effects), ["start:message:3:queue"]);
+  assert.deepEqual(kinds(run(stopped, [{ type: "queue", commands: [{ op: "set_stops", stops: [] }] }]).effects), ["start:message:3:queue"]);
   const paused = { ...initialRunState(), outbox: { ...EMPTY_OUTBOX, later: [row("3")], paused: true }, gates: { recovery: null, restart: { interrupted: false, queued: true } } };
-  const resumed = run(paused, [{ type: "queue", command: { op: "set_paused", paused: false } }]);
+  const resumed = run(paused, [{ type: "queue", commands: [{ op: "set_paused", paused: false }] }]);
   assert.deepEqual([kinds(resumed.effects), resumed.s.gates.restart], [["start:message:3:queue"], null]);
   // 列にない行は 404（状態は変えない）
-  assert.deepEqual(run(stopped, [{ type: "queue", command: { op: "remove", ids: ["x"] } }]).effects, [{ do: "reject", status: 404, message: "待ちの指示が見つかりません" }]);
+  assert.deepEqual(run(stopped, [{ type: "queue", commands: [{ op: "remove", ids: ["x"] }] }]).effects, [{ do: "reject", status: 404, message: "待ちの指示が見つかりません" }]);
 });
 
 test("書き直し: 次に送る指示を書き直している間は送らず、外れたら送る。預かりの頭を書き直している間も送らず、外れたら作業していなければ新しい作業として送る（S28・S33）", () => {
@@ -113,7 +113,7 @@ test("書き直し: 次に送る指示を書き直している間は送らず、
   assert.deepEqual(kinds(run(waiting.s, [{ type: "edit_hold_expired", lane: "later" }]).effects), ["edit_timer", "start:message:2:queue"]);
   const held = run({ ...initialRunState(), outbox: { ...EMPTY_OUTBOX, now: [row("い"), row("う")] } }, [{ type: "editing", lane: "now", ids: ["い"] }]);
   assert.deepEqual(kinds(held.effects), ["edit_timer"]);
-  assert.deepEqual(kinds(run(held.s, [{ type: "queue", command: { op: "edit", id: "い", text: "直した" } }]).effects), ["edit_timer", "start:message:直した:held"]);
+  assert.deepEqual(kinds(run(held.s, [{ type: "queue", commands: [{ op: "edit", id: "い", text: "直した" }] }]).effects), ["edit_timer", "start:message:直した:held"]);
 });
 
 test("すぐ送る: 作業中の指示は止めずに伝え、圧縮・消去の行はすぐ行う（作業していなくて会話がなければ 409 で列に残す）。すべて送るはまとめて 1 件にする（S04・S35）", () => {

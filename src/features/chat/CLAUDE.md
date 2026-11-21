@@ -23,7 +23,7 @@
 
 ## 送る・伝える
 
-- `start` はチャットを作ってすぐ動かし、`send` は作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
+- 送る口は `message`（`POST …/messages` の `when`）1 本で、`send`・`tell`・`queueMessage`・`/tell` は別名。`start` はチャットを作ってすぐ動かし、`when` なしは作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
 - `tell` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`（口がまだなら置いた時点で `held`）。
 - 足せなければ預かり、作業の終わりに送信待ちより先に送る（以後の「いま」も `closed` で預かる）。理由は `holdOf` 1 つ（`machine/state.ts`）。
 - 発言の印（`MessageMarks`）はどの道も `marksOf`（`@shared/chat/handoff`）で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
@@ -45,16 +45,16 @@
 
 ## 送信待ち（`core/run/queueWindow.ts`・`requests.ts`）
 
-- 送信待ち `later` と預かり `now` は出す箱 `Outbox` 1 つ。操作は `@shared/chat/outbox`・`queueCommand` の純粋な関数で、変わるたびに `chat_outbox` に丸ごと書く。
+- 送信待ち `later` と預かり `now` は出す箱 `Outbox` 1 つ（`@shared/chat/outbox`・`queueCommand`）。変わるたびに `chat_outbox` に丸ごと書く。
 - 起動したときの再開の確かめを待つ間（門 `gates.restart`）は送らない。`pumpLater` は作業中なら取り出さない。
-- 一時停止の印（`stops`）は列の位置で持つ（寄せ方・並べ替えは画面と同じ `@shared/chat/queueStops`）。
-- 指示の代わりに挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand` の JSDoc）。
-- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも同じ）。
-- 応答はどれも変えたあとの `QueueState`。列にない指示は 404、送るものがないなどは 409。
+- 一時停止の印（`stops`）は列の位置で持つ（`@shared/chat/queueStops`）。
+- 挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand`）。
+- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも）。
+- 口は命令の列 `POST …/queue`（`commands`。全部通るか 1 つも変えない）・`…/queue/send`・`PUT …/queue/editing`（`lane`）。1 件ごとの口は別名。応答は変えたあとの `QueueState`。
 
 ## 止まったあとの再開（`core/run/recovery/`）
 
-- 通信の切断・使用枠の上限・起動したときの確かめの決まりは `core/run/machine/recovery.ts` 1 つ。殻 `ChatRecovery` は見張り・カード・送るだけ。
+- 通信の切断・使用枠の上限・起動したときの確かめの決まりは `machine/recovery.ts` 1 つ。殻 `ChatRecovery` は見張り・カード・送るだけ。
 - 止まると送信待ちを門 `gates.recovery` で止め、再開の作業が最後まで終わったら戻す。自分で送ったらやめる。門は保存しない。
 - 枠が戻る時刻は、待つ時間でなく時計の時刻で見る（`poller.ts`）。
 
@@ -81,7 +81,7 @@
 
 ほかの機能のもの（`create_chat`・`notify_user`・`finish_worktree`・`move_workplace`・ターミナル・図）は各機能の `core/` にあり、下の決まりはどれにも当てる。
 
-- 中身は `create…Tools(deps, chatId)` で作り、`chatTools.ts` が作業ごとに開く。1 回の作業の上限（`AI_CHATS_PER_TURN` など）はその中で数える。
+- 中身は `create…Tools(deps, chatId)` で作り、`chatTools.ts` が作業ごとに開く。1 回の作業の上限（`AI_CHATS_PER_TURN` など）も中で数える。
 - 相手（家系・プロジェクト・タブ）と設定・世代・深さは呼ぶたびに引き直す。ほかのプロジェクトは断る。
 - 承認を聞くのは `create_chat`（設定が `ask`）と、持っていく変更のある `move_workplace` だけ（ほかは戻せる・読むだけ。理由は各ファイルの頭）。
 - 自分を含む操作（自分のワークツリー・アーカイブ・作業場所）は予約して作業の終わりに行い、先に送信待ちを止める。予約はメモリだけ。
@@ -92,22 +92,22 @@
 
 - ほかのチャットの記録（`transcript.ts`）は、自分の発言・メインエージェントの返答・変えたファイル・失敗・中断だけ。
 - 別のプロジェクトへの移動は子孫ごと `moveWorkplace`（理由 `project_moved`）。
-- 削除はゴミ箱へ（`src/features/trash/CLAUDE.md`）。本当に消すとき、ほかのチャット・ほかの Kickoff が使っていない会話記録だけを消す（`core/sessions/sessionCleanup.ts`）。
-- 自動のアーカイブ（`autoArchive.ts`）は親のないチャットだけを見て、子孫も完了したまま日数がたてば子孫ごとしまう（未読・固定は除く）。
+- 削除はゴミ箱へ（`src/features/trash/CLAUDE.md`）。本当に消すとき、ほかで使っていない会話記録だけを消す（`core/sessions/sessionCleanup.ts`）。
+- 自動のアーカイブ（`autoArchive.ts`）は親のないチャットを見て、子孫も完了のまま日数がたてば子孫ごとしまう（未読・固定は除く）。
 
 ## チャットの記録の読み方（`core/routes/chats.ts`・`core/chatLogQuery.ts`）
 
 - `GET /api/chats/:id` の `tail_turns` はほかのクエリと一緒に使えない（400）。一部分の `GET …/events` は `ChatEventsQuery` の 5 つの形だけ。どちらもパソコンの画面だけ。
 - 記録の ID は使い回さない。`after` の記録が巻き戻しで消えていれば `after_missing`（画面はすべて読み直す）。
-- ターンの頭は `result` の直後で、自分の発言で数えない（作業中に伝えた発言で切ると、作業の終わりに付けるものが欠ける）。
-- 索引は覆う索引の軽い形から `@shared/chat/chatIndex` の `selectIndexIds` で選ぶ（SQL に書き直さない）。覚え（`core/chatIndexCache.ts`）は巻き戻し・付け替え・削除で `store.logRevisions` を受けて捨てる。
+- ターンの頭は `result` の直後で、自分の発言で数えない（作業中に伝えた発言で切ると、終わりに付けるものが欠ける）。
+- 索引は覆う索引の軽い形から `selectIndexIds`（`@shared/chat/chatIndex`）で選ぶ（SQL に書き直さない）。覚え（`core/chatIndexCache.ts`）は `store.logRevisions` を受けて捨てる。
 - 詳細には書きかけの返答 `streaming_text` を入れる。あとに届く `chat_delta` は `offset` で、詳細に入っている分を捨てる。
 
 ## 操作・名前・メニュー（`ui/`）
 
 - アーカイブ・削除・移動などは `ui/chatActions.ts` を通す。アーカイブ・削除は既定の閉じ方でも必ず確かめる（取り消しの通知で代えない）。
 - 削除したチャットの書きかけ（`chatDraft`・`chatAttachmentsDraft`）も消す。
-- 名前はその場で `useChatRename` ＋ `ChatTitleInput` で変える（ダイアログを使わない）。上限は `CHAT_TITLE_MAX`（コアの検証と共通）。
+- 名前はその場で `useChatRename` ＋ `ChatTitleInput` で変える（ダイアログなし）。上限は `CHAT_TITLE_MAX`（コアと共通）。
 - 右クリックの項目は `ChatMenuItems` 1 つ（サイドバー・ボード・タブで同じ並び）。下書きは `DraftMenuItems` で、同じ並び・文・アイコンにする。
 - 「新しいチャット」の作成先の札は `useNewChatPlace` ＋ `NewChatPlaceBadges`。まとまりからの作成先は `@/features/chatList/ui/buckets.ts` の `newChatPlaceOf`。
 - ✕ は `closeChatWithChoice`（既定は `chat:close-action`）。Esc・タブの「閉じる」は聞かずに閉じる。

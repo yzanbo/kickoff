@@ -26,9 +26,9 @@ export async function handOffToParent(deps: { store: Store; runner: ChatRunPort 
   if (text === null) throw new Invalid("この作業には渡す返答がありません");
   const marks = { handoff_from: { chat_id: child.id, title: child.title || UNTITLED_CHAT_TITLE } };
   let sent: HandoffResult["sent"] = null;
-  if (via === "send") sent = await runner.tell(parent.id, text, {}, [], { marks });
+  if (via === "send") sent = (await runner.message(parent.id, { text, ...marks, when: "now" })).result;
   else if (via === "queue") {
-    await runner.queueMessage(parent.id, text, {}, [], { hold: true, marks });
+    await runner.message(parent.id, { text, ...marks, when: "later", hold: true });
     sent = "queued";
   }
   store.events.add(child.id, { type: "handoff", via, parent_chat_id: parent.id, turn_event_id });

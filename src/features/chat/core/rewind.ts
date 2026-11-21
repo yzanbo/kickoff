@@ -57,7 +57,7 @@ export async function rewindChat(
       ? `この発言から巻き戻して送り直しました（ファイルもこの発言を送る前の状態に戻しました: ${restoredSummary(restored)}）`
       : "この発言から巻き戻して送り直しました（ファイルの変更は戻していません）",
   });
-  return runner.send(chat.id, input.text, input.options, attachments);
+  return (await runner.message(chat.id, { text: input.text, options: input.options, attachments })).chat;
 }
 
 /** 戻したファイル（「2 個のファイル: README.md、a.ts」。多ければ頭の 5 個） */

@@ -612,6 +612,10 @@
     "device": "full"
   },
   {
+    "route": "POST /api/chats/:id/queue/send",
+    "device": "full"
+  },
+  {
     "route": "POST /api/chats/:id/queue/send-all",
     "device": "full"
   },
