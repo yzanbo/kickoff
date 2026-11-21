@@ -3,7 +3,7 @@ import { test } from "vitest";
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
-import type { ChatDetail } from "@shared/foundation/apiTypes";
+import type { ChatDetail } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { busEvent, makeChat, makeChatLive, makeEvent } from "@shared/foundation/testing/factories";
 import { detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";

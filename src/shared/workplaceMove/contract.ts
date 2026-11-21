@@ -1,6 +1,6 @@
 // 作業場所の移動の取り決め。受け口は src/features/workplaceMove/core/routes.ts
 import { empty, route, type Contract } from "@shared/foundation/contract";
-import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/workplaceMove/types";
 import type { Chat } from "@shared/chat/types";
 
 export const workplaceMoveContract = {

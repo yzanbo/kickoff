@@ -3,9 +3,8 @@
 // 索引 = 末尾より前の、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要る記録だけを軽くしたもの、
 // 途中の一部分 = 遠い発言へ移ったときに読む、末尾とつながっていないまとまり。記録全体から作る関数には、これらを重ねたもの（digest）を渡す
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { ChatDetail, ChatEventPage } from "@shared/foundation/apiTypes";
+import { type ChatDetail, type ChatEventPage, CHAT_TAIL_TURNS } from "@shared/chat/detail";
 import { indexOfEvents, mergeById, type IndexContext } from "@shared/chat/chatIndex";
-import { CHAT_TAIL_TURNS } from "@shared/foundation/apiTypes";
 
 /** 途中の一部分（いつも末尾より前。下の端が末尾に届いたら末尾につなぐ） */
 interface LogFocus {

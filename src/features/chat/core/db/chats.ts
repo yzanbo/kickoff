@@ -1,9 +1,7 @@
 import { systemClock } from "@/foundation/core/clock";
-import type { DatabaseSync } from "node:sqlite";
-import type { Chat, ChatStatus } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
+import type { Chat, ChatStatus, GitHubLink } from "@shared/chat/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import type { SQLOutputValue } from "node:sqlite";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import { chatsTable } from "@/features/chat/core/schema";
 import type { NewChat } from "@/foundation/core/db/types";

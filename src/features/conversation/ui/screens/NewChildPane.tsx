@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
+import { childChatsApi } from "@/features/childChats/ui/index";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
 import { Composer } from "@/features/composer/ui/Composer";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
@@ -78,7 +79,8 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   // 最初の文を送って子チャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
   const start = async (prompt: string, attachments: Attachment[]) => {
     // 選んだ文は入力欄の文に入れて送るので、quote は送らない
-    const child = await api.createChildChat(parent.id, { text: prompt, attachments, quote: null, inherit, event_id: eventId ?? null, provider, options: options.options });
+    const body = { text: prompt, attachments, quote: null, inherit, event_id: eventId ?? null, provider, options: options.options };
+    const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: parent.id }, body });
     // 作った知らせより先に一覧へ入れる（入力欄の上の札・タブの状態の印にすぐ出す）
     addChat(child);
     onCreated(child, { always: false });
@@ -89,7 +91,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
     setOpening(true);
     const body = { text: "", quote: null, inherit: true, event_id: eventId ?? null, options: options.options };
     try {
-      const child = await api.createChildChat(parent.id, body);
+      const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: parent.id }, body });
       addChat(child);
       onCreated(child, { always: true });
     } catch (e) {

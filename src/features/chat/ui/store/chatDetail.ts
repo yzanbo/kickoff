@@ -3,7 +3,7 @@ import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { EMPTY_CHAT_LIVE, type ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import type { ChatDetail } from "@shared/foundation/apiTypes";
+import type { ChatDetail } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { deleteFrom, EMPTY_RANGE, rangeFromDetail, type LogRange } from "./chatLog";
 

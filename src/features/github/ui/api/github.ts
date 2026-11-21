@@ -1,5 +1,5 @@
-import type { Chat } from "@shared/chat/types";
-import type { GitHubCreatedIssue, GitHubLink, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
+import type { Chat, GitHubLink } from "@shared/chat/types";
+import type { GitHubCreatedIssue, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
 import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta } from "@shared/github/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 

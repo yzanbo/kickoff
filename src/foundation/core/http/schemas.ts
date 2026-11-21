@@ -1,10 +1,9 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "@/foundation/core/system/paths";
-import type { Attachment, AttachmentSource, ChatOptionsPatch } from "@shared/chat/types";
-import type { ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/foundation/apiTypes";
+import { type Attachment, type AttachmentSource, type ChatOptionsPatch, type GitHubLink, ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
+import type { NoteChatBody } from "@shared/foundation/apiTypes";
 import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
-import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
 import { GITHUB_KINDS } from "@shared/github/types";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/userView/types";
@@ -146,9 +145,9 @@ export const userViewSchema = z.object({
   side: z.array(userViewTabSchema).max(30),
 }) satisfies z.ZodType<UserView>;
 
-// 送る指示（文・選択・添付）。新しいチャット・続き・止めずに伝える・送信待ちで同じ形にし、ルートごとの項目だけを足す。本文が空でも、添付があれば送れる。
-// user_view は送った時点の画面の様子（この Mac の画面から送ったときだけ。コアがチャットごとに最後の 1 つを覚え、AI の get_user_view が添える）
-const messageShape = { text: messageText.default(""), options: chatOptionsSchema, attachments: attachmentsSchema.default([]), user_view: userViewSchema.optional() };
+// 送る指示（文・選択・添付。@shared/chat/types の MessageBody）。新しいチャット・続き・止めずに伝える・送信待ちで同じ形にし、ルートごとの項目だけを足す。本文が空でも、添付があれば送れる。
+// user_view は送った時点の画面の様子（この Mac の画面から送ったときだけ）。形は userView が onUserSend で確かめて覚える（形が違えば覚えないだけで、送るのは断らない）
+const messageShape = { text: messageText.default(""), options: chatOptionsSchema, attachments: attachmentsSchema.default([]), user_view: z.unknown().optional() };
 /** 発言の印（子チャットに親への依頼文を頼む・子チャットから渡した依頼）。送る・伝える・送信待ちで同じ */
 const marksShape = {
   handoff_request: z.boolean().optional(),
@@ -158,7 +157,7 @@ export const hasContent = (v: { text: string; attachments: unknown[] }) => Boole
 export const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
 /** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
-export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
+export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED);
 
 /** チャットの名前（名前の変更・送る前に付けた名前） */
 export const chatTitle = z.string().trim().min(1).max(CHAT_TITLE_MAX);
@@ -181,7 +180,7 @@ export const newChatSchema = z
     github: githubLinkSchema.optional(),
     provider: z.enum(PROVIDER_IDS).optional(),
   })
-  .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NewChatBody>;
+  .refine(hasContent, CONTENT_REQUIRED);
 
 /** ノートのチャットの最初の指示（どのノートについてのチャットか） */
 export const noteChatSchema = z.object({ ...messageShape, path: repoPath }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NoteChatBody>;
@@ -196,16 +195,16 @@ export const childChatSchema = z
     provider: z.enum(PROVIDER_IDS).optional(),
   })
   // 会話を引き継ぐときは、文も添付もなくてよい（聞かずに、親の会話を写した子チャットを開くだけ）
-  .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
+  .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED);
 
 /** サブエージェントに子チャットで聞く（文か添付が要る） */
-export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;
+export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED);
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
 /** 次の指示を送る本文の欄（送る口 1 本の when を足す前の形。chat の sendSchemas.ts が広げる） */
 export const queueMessageFields = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() });
-export const queueMessageSchema = queueMessageFields.refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;
+export const queueMessageSchema = queueMessageFields.refine(hasContent, CONTENT_REQUIRED);
 
 /** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff） */
-export const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() }) satisfies z.ZodType<HandoffBody>;
+export const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() });
 

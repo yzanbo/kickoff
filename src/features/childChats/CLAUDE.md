@@ -12,7 +12,7 @@
 - 写せない・起点がない・親と違う AI なら、お知らせを残して引き継がずに動かす。写すのは直近の区切りだけ（`CHILD_FORK_KEEP`）。
 - 親子の文脈は送るたびに指示に添える（システムプロンプトにしない理由は JSDoc）。
 - 移動・削除・アーカイブは子孫ごと（どれかが作業中なら 409）。アーカイブは `store.chats.archive` だけで変え、戻すのは `archived_with_parent` の印のあるものだけ。確かめの文は `chatActions.ts` の `childNote`、数は `knownDescendantCount`。
-- 分岐は最後まで終わった作業からだけで、ファイルは戻さない。親から外すは親なしか先祖の子にだけ上げる（画面は確かめてから `api.detachChat`。作業中は外さない）。外したら右の欄のタブを閉じる（`reopenDetached`）。
+- 分岐は最後まで終わった作業からだけで、ファイルは戻さない。親から外すは親なしか先祖の子にだけ上げる（画面は確かめてから `childChatsApi`（`ui/api.ts` の `client(childChatContract)`）。作業中は外さない）。外したら右の欄のタブを閉じる（`reopenDetached`）。
 - サブエージェントについて聞くは記録を添付にし、会話は引き継がない（理由は JSDoc）。
 - 親に渡すのはその作業の最後の返答（`lastReplyOfTurn`）だけ。親の発言に `handoff_from`、子に `handoff` を残す。渡したあとの削除は、今すぐ送った・送信待ちに入れたときだけ（`handoffAfterFor`。入力欄に入れたときはアーカイブ）。
 - 一覧（`selectChats`）に出さず、親の中だけに置く（`@/features/chat/ui/store/knownChats.ts` の `childChatsOf`）。引用は入力欄の文に入れて送る（API の `quote` は送らない）。

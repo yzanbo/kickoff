@@ -7,8 +7,7 @@ import { chatOptionsSchema, messageInputSchema, messageText } from "@/foundation
 import { sendBodySchema } from "./sendSchemas";
 import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";
-import type { TellResult } from "@shared/foundation/apiTypes";
-import type { SendResult } from "@shared/chat/send";
+import type { TellResult, SendResult } from "@shared/chat/send";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・巻き戻し・ファイルを戻す（子チャット・分岐は childChats、AI が予約した作業場所の移動の取り消しは workplaceMove）。

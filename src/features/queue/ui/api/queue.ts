@@ -1,7 +1,8 @@
 import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { RestartResume, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, ChatOptionsPatch, QueueAction } from "@shared/chat/types";
-import type { QueueAddResult, QueueMergeResult, QueueMessageBody, RestartResumeBody } from "@shared/foundation/apiTypes";
+import type { QueueAddResult, QueueMergeResult, QueueMessageBody } from "@shared/chat/send";
+import type { RestartResumeBody } from "@shared/queue/types";
 import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
 import { request } from "@/foundation/ui/api/http";
 import { noteQueuedRemoved } from "./queueRemovals";

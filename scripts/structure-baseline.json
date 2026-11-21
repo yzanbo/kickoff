@@ -502,15 +502,11 @@
       "foundation-ui:src/foundation/ui/workplace/workplaceHue.ts -> src/shared/projects/colors.ts",
       "foundation-ui:src/foundation/ui/workplace/worktreesStore.ts -> src/shared/git/types.ts",
       "foundation-ui:src/foundation/ui/workplace/worktreesStore.ts -> src/shared/worktrees/envTypes.ts",
-      "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/chat/approvalTypes.ts",
-      "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/chat/chatEvent.ts",
-      "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/chat/chatLive.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/chat/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/database/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/github/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/projects/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/settings/types.ts",
-      "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/userView/types.ts",
       "shared-foundation:src/shared/foundation/search/searchMatch.ts -> src/shared/git/types.ts",
       "shared-foundation:src/shared/foundation/testing/factories.ts -> src/shared/ai/types.ts",
       "shared-foundation:src/shared/foundation/testing/factories.ts -> src/shared/chat/chatEvent.ts",
@@ -2123,7 +2119,7 @@
       "src/app/renderer/styles/footer/footer.css": 328,
       "src/app/renderer/styles/github/github-list.css": 307,
       "src/features/browser/desktop/agentBrowser.ts": 328,
-      "src/features/chat/core/db/chats.ts": 350,
+      "src/features/chat/core/db/chats.ts": 348,
       "src/features/chat/core/routes/server.chats.test.ts": 681,
       "src/features/chat/core/routes/server.queue.test.ts": 548,
       "src/features/chat/core/routes/server.turns.test.ts": 753,
@@ -2162,7 +2158,7 @@
       "src/shared/chat/subagents.ts": 310,
       "src/shared/chat/toolText.ts": 342,
       "src/shared/database/sqlStatements.ts": 318,
-      "src/shared/foundation/apiTypes.ts": 614
+      "src/shared/foundation/apiTypes.ts": 372
     },
     "native": [
       "src/app/renderer/popoutHosts.ts",

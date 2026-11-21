@@ -47,8 +47,8 @@
       "brokenRefs": 0
     },
     "src/foundation/core/CLAUDE.md": {
-      "bytes": 10827,
-      "ancestors": 21015,
+      "bytes": 10825,
+      "ancestors": 21013,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -91,8 +91,7 @@
     "src/foundation/ui/lib/progressive.ts": 2,
     "src/foundation/ui/lib/textFind.ts": 1,
     "src/foundation/ui/lib/time.ts": 3,
-    "src/shared/chat/chatIndex.ts": 1,
-    "src/shared/foundation/apiTypes.ts": 1
+    "src/shared/chat/chatIndex.ts": 1
   },
   "vocabulary": 3,
   "forbiddenFiles": [

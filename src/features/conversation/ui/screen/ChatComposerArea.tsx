@@ -5,7 +5,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { api } from "@/foundation/ui/api";
+import { childChatsApi } from "@/features/childChats/ui/index";
 import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -93,7 +93,7 @@ export function ChatComposerArea({
   // ノートのチャット・アーカイブ済みでは出さない
   const noteOrArchived = Boolean(chat.note_path) || chat.archived_at !== null;
   const sendToChild = (inherit: boolean) => async (text: string, attachments: Attachment[]) => {
-    openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit, event_id: null }));
+    openCreatedChild(await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: chat.id }, body: { text, attachments, quote: null, inherit, event_id: null } }));
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => send.onSendOther(text, []);

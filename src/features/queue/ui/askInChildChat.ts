@@ -1,6 +1,7 @@
 // 送信待ちの指示を、子チャットで聞く（右クリックのメニュー。会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の「子チャットを作ったとき」で開く）
 import type { QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
+import { childChatsApi } from "@/features/childChats/ui/index";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { openCreatedChild } from "@/features/chat/ui/open/openChat";
@@ -19,7 +20,7 @@ export function useAskInChildChat(queue: QueuedMessage[], enabled: boolean) {
   return (ids: string[], remove: boolean, inherit: boolean) => {
     const seed = seedOf(queue, ids);
     const run = async () => {
-      const child = await api.createChildChat(chatId, { ...seed, quote: null, inherit, event_id: null });
+      const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId }, body: { ...seed, quote: null, inherit, event_id: null } });
       openCreatedChild(child);
       if (remove) await (ids.length === 1 ? api.removeQueued(chatId, ids[0]) : api.removeQueuedMany(chatId, ids));
     };

@@ -1,9 +1,9 @@
 // チャットの作業場所を移す（見出しの札・右クリックの「作業場所を変更」から）:
 // 移す先で作業中のチャットがあれば新しいチャットと同じ設定に従い、移す前の確かめ（残る変更 / 持っていく・動いているもの）を出して移す
 import type { Chat } from "@shared/chat/types";
-import type { WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { WorkplaceMoveCheck } from "@shared/workplaceMove/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { workplaceMoveApi } from "./api";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -66,7 +66,7 @@ export async function moveChatWorkplace(chat: Chat, target: WorkplaceChoice, lab
   }
   let check: WorkplaceMoveCheck;
   try {
-    check = await api.workplaceCheck(chat.id);
+    check = await workplaceMoveApi("GET /api/chats/:chatId/workplace", { params: { chatId: chat.id } });
   } catch (e) {
     return alert("作業場所を変えられませんでした", errorMessage(e));
   }
@@ -97,11 +97,12 @@ export async function moveChatWorkplace(chat: Chat, target: WorkplaceChoice, lab
     if (!(await confirm({ title, message: [...changes, ...lines].join("\n\n"), confirmLabel: "移す" }))) return;
   }
   try {
-    await api.moveWorkplace(chat.id, {
+    const body = {
       worktree_path: place.kind === "existing" ? place.path : null,
       ...(place.kind === "new" ? { new_worktree_branch: place.branch } : {}),
       ...(carry ? { carry: true } : {}),
-    });
+    };
+    await workplaceMoveApi("POST /api/chats/:chatId/workplace", { params: { chatId: chat.id }, body });
     // チャットはコアの知らせで画面に届く。新しいワークツリーを作ったら、一覧を取り直す（札・タブの作業場所の色）
     if (place.kind === "new") worktreesStore.invalidate(chat.project_id);
     showToast(`作業場所を ${placeName(place, label)} に移しました`);

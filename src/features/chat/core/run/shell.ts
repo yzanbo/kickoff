@@ -16,7 +16,7 @@ import type { Clock } from "@/foundation/core/clock";
 import { Conflict, Invalid, NotFound, type AppError } from "@/foundation/core/errors";
 import type { OutboxEnv } from "@shared/chat/outbox";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
-import type { TellResult } from "@shared/foundation/apiTypes";
+import type { TellResult } from "@shared/chat/send";
 import type { Chat } from "@shared/chat/types";
 import { busyPreCompactMessage } from "@shared/chat/prompts";
 

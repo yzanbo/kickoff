@@ -1,7 +1,7 @@
 import type { FileRewindResult } from "@shared/ai/types";
-import type { ChatEventOf, HandoffVia, MessageMarks } from "@shared/chat/chatEvent";
-import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
-import type { ChildChatBody, HandoffBody, HandoffResult, SendMessageBody, SubagentChildBody, TellResult } from "@shared/foundation/apiTypes";
+import type { ChatEventOf, MessageMarks } from "@shared/chat/chatEvent";
+import type { Attachment, Chat, ChatOptionsPatch, MessageBody, QueuedMessage } from "@shared/chat/types";
+import type { SendMessageBody, TellResult } from "@shared/chat/send";
 import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "@shared/providerSwitch/types";
 import type { ProviderId } from "@shared/settings/types";
 import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
@@ -53,16 +53,8 @@ export const turnsApi = {
   stopBackgroundTask: (chatId: number, taskId: string) => request<void>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
-  /** 子チャットで聞く（親の作業中でも始められる。inherit なら親の会話を引き継ぐ） */
-  createChildChat: (chatId: number, body: ChildChatBody) => request<Chat>("POST", `/api/chats/${chatId}/children`, body),
-  /**
-   * 子チャットの作業（作業の終わりの記録 turnEventId）の最後の返答を、直接の親チャットに渡す（via: composer = 入れる文を返して記録するだけ。入れるのは画面 /
-   * send = 今すぐ送る（親が作業中なら伝える）/ queue = 親の送信待ちの最後に足す）。子には渡したことの記録が残る
-   */
-  handOff: (chatId: number, via: HandoffVia, turnEventId: number) =>
-    request<HandoffResult>("POST", `/api/chats/${chatId}/handoff`, { via, turn_event_id: turnEventId } satisfies HandoffBody),
   /** サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作って送る） */
-  askSubagentInChild: (chatId: number, agentId: string, body: SubagentChildBody) =>
+  askSubagentInChild: (chatId: number, agentId: string, body: MessageBody) =>
     request<Chat>("POST", `/api/chats/${chatId}/subagents/${encodeURIComponent(agentId)}/children`, body),
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。restoreFiles ならファイルも戻す） */
   rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptionsPatch = {}, restoreFiles = false) =>

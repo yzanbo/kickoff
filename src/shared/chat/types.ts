@@ -126,6 +126,33 @@ export interface Chat {
   active_at: string;
 }
 
+/** チャットの変更（PATCH /api/chats/:chatId。書いた項目だけ変える。group_id が null ならグループなし。作業中はアーカイブできない） */
+export interface ChatPatch {
+  title?: string;
+  group_id?: number | null;
+  pinned?: boolean;
+  archived?: boolean;
+}
+
+/** チャットと GitHub の issue・PR の結び付き（PUT /api/chats/:chatId/github の本文・新しいチャットの github） */
+export interface GitHubLink {
+  /** 「持ち主/名前」 */
+  repo: string;
+  number: number;
+  kind: GitHubKind;
+}
+
+/**
+ * 送る指示（新しいチャット・続き・止めずに伝える・送信待ち・ノートのチャットで同じ形）。文が空でも、添付があれば送れる。
+ * user_view は送った時点の画面の様子（この Mac の画面から送ったときだけ。形を確かめて覚えるのは userView。AI の get_user_view が読む）
+ */
+export interface MessageBody {
+  text?: string;
+  options?: ChatOptionsPatch;
+  attachments?: Attachment[];
+  user_view?: unknown;
+}
+
 /** フィード（全プロジェクトの画面）の 1 件: チャットごとの、メインエージェントの最新の返答の初めの部分 */
 export interface FeedItem {
   chat_id: number;

@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { workplaceMoveApi } from "./api";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
 import { useWorkplaceChoices } from "./WorkplaceMoveChip";
 import { moveChatWorkplace } from "./moveWorkplace";
@@ -14,7 +14,7 @@ export function WorkplacePickFlyout({ anchor, chat, onDone, onBack }: { anchor: 
   const [reserved, setReserved] = useState<string[]>([]);
   useEffect(() => {
     let alive = true;
-    api.workplaceCheck(chat.id).then(
+    workplaceMoveApi("GET /api/chats/:chatId/workplace", { params: { chatId: chat.id } }).then(
       (c) => alive && setReserved(c.reserved),
       () => {},
     );

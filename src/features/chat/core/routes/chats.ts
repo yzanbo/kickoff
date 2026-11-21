@@ -11,7 +11,8 @@ import { flag, optionalId } from "@/foundation/core/http/zodParts";
 import { chatTranscript } from "@/features/chat/core/transcript";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript } from "@shared/foundation/apiTypes";
+import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatTexts, type ChatTranscript } from "@shared/chat/detail";
+import type { ChatPatch } from "@shared/chat/types";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
 /**

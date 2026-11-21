@@ -2,7 +2,7 @@
 // 待つのは「出来事が届いた」（実行が始まった・作業中でなくなった・見えるものが合った）で、決め打ちの時間では待たない。テストからだけ使う
 import path from "node:path";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
-import type { ChatDetail } from "@shared/foundation/apiTypes";
+import type { ChatDetail } from "@shared/chat/detail";
 import type { RestartResume } from "@shared/chat/chatLive";
 import { tick } from "@/foundation/core/testing/until";
 import { tempDir } from "@/foundation/core/testing/tempDir";

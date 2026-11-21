@@ -1,7 +1,6 @@
 // 「AI に渡す」の共通の口: 各タブの 1 つのもの（issue・PR・DB のつながらない様子など）を、押した時点の中身の札にして、選んだチャットの入力欄に入れる。
 // どの渡し先でも入力欄で止め、送るのは自分で
-import type { Attachment, Chat } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { reportFailure } from "@/foundation/ui/kit/ask";

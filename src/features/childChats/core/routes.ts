@@ -5,7 +5,7 @@ import type { Chat } from "@shared/chat/types";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
 import { childChatSchema, handoffSchema, subagentChildSchema } from "@/foundation/core/http/schemas";
-import type { ChatDetachBody } from "@shared/foundation/apiTypes";
+import type { ChatDetachBody } from "@shared/childChats/types";
 import type { AgentProvider } from "@/features/ai/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
 import { workdirOf, type ChatRunPort, type Store } from "@/features/chat/core/index";

@@ -2,7 +2,7 @@
 import { GITHUB_DEFAULT_HOST, githubWebOrigin, normalizeGitHubHost } from "@shared/foundation/codeHost";
 import { githubSearchQuery } from "@shared/github/searchQuery";
 import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { GitHubLink } from "@shared/chat/types";
 import type { GitHubListFilter } from "@shared/github/types";
 
 /** issue・PR の URL（https://ホスト/持ち主/名前/issues|pull/番号。後ろの /files・?…・#… は問わない） */

@@ -2,7 +2,7 @@
 // その作業が最後まで終わったら Kickoff が移し、続きの指示を送る。順番は「片付け → 移す → 予約した圧縮・消去 → 続き（＋移動の知らせ）→ 預かった『いま』→ 送信待ち」。
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { errorMessage } from "@shared/foundation/errors";
-import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
+import type { WorkplaceMoveBody } from "@shared/workplaceMove/types";
 import { workdirOf, type ChatRunPort, type Store, type TurnEndTask } from "@/features/chat/core/index";
 import type { createMover } from "./move";
 import { busyChatsIn, terminalLabel } from "./target";

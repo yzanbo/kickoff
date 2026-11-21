@@ -1,12 +1,8 @@
 // HTTP API の本文と応答の形（コアのルートと画面で同じものを使う）。型のみ
-// 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く
-import type { UserView } from "@shared/userView/types";
-import type { Approval } from "@shared/chat/approvalTypes";
-import type { Attachment, AttachmentSource, Chat, ChatOptionsPatch } from "@shared/chat/types";
-import type { ChatEvent, HandoffFrom, HandoffVia } from "@shared/chat/chatEvent";
-import type { ChatLive, RestartResumeAction, QueueState } from "@shared/chat/chatLive";
+// 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く（取り決めに乗せた機能の形は src/shared/<機能>/ へ移した）
+import type { AttachmentSource, MessageBody } from "@shared/chat/types";
 import type { DbAiAccess, DbColumnInfo, DbEngine, DbEnvironment, DbErPositions, DbFilter, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbValue, DbWriteCheck } from "@shared/database/types";
-import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubKind, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "@shared/github/types";
+import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "@shared/github/types";
 import type { Project, ProjectReference } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 
@@ -64,14 +60,6 @@ export interface ProjectRepoPathBody {
   init_git?: boolean;
 }
 
-/** チャットの変更（PATCH /api/chats/:id。書いた項目だけ変える。group_id が null ならグループなし。作業中はアーカイブできない） */
-export interface ChatPatch {
-  title?: string;
-  group_id?: number | null;
-  pinned?: boolean;
-  archived?: boolean;
-}
-
 /**
  * 「AI に渡す」で取る中身（POST /api/captures）。コアが鍵らしい値を伏せ、添付の上限を超えれば頭と終わりを残して切ってから保存し、CaptureAttachment を返す。
  * tail_share は残す分のうち終わりに回す割合（ログは多め。省けば半分）。
@@ -84,39 +72,6 @@ export interface CaptureBody {
   image_base64?: string;
   source: AttachmentSource;
   tail_share?: number;
-}
-
-/** 送る指示（続き・止めずに伝える。POST /api/chats/:id/messages・/tell）。文が空でも、添付があれば送れる */
-interface MessageBody {
-  text?: string;
-  options?: ChatOptionsPatch;
-  attachments?: Attachment[];
-  /** 送った時点の画面の様子（この Mac の画面から送ったときだけ。AI の get_user_view が「発言を送ったときの様子」として読む） */
-  user_view?: UserView;
-}
-
-/**
- * 新しいチャットの最初の指示（POST /api/projects/:id/chats）。作業場所は、いまあるワークツリーのフォルダ（worktree_path）か、
- * 新しく作るワークツリーのブランチ名（new_worktree_branch）。どちらもなければ本体
- */
-export interface NewChatBody extends MessageBody {
-  /** 送る前に付けた名前（あれば AI に名前を付けてもらわない） */
-  title?: string;
-  group_id?: number;
-  worktree_path?: string;
-  new_worktree_branch?: string;
-  /** 結び付ける GitHub の issue・PR（issue から始めた・レビューコメントで直すチャット） */
-  github?: GitHubLink;
-  /** 動かす AI（省けばプロジェクトの AI。作ったあとは変えない） */
-  provider?: ProviderId;
-}
-
-/** チャットと GitHub の issue・PR の結び付き（PUT /api/chats/:id/github の本文にも使う） */
-export interface GitHubLink {
-  /** 「持ち主/名前」 */
-  repo: string;
-  number: number;
-  kind: GitHubKind;
 }
 
 /** PR のブランチのワークツリー（POST /api/projects/:id/github/pulls/:number/worktree の応答。いまあればそれ、なければ作ったもの） */
@@ -191,32 +146,6 @@ export interface GitHubCheckoutBody {
   place: GitHubCheckoutPlace;
 }
 
-/**
- * 続きを送る・止めずに伝える指示（POST /api/chats/:id/messages・/tell）。
- * pause_after なら「質問として送る」: この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する（答えを見て次を決める）
- */
-export interface SendMessageBody extends MessageBody {
-  pause_after?: boolean;
-  /** 子チャットに親への依頼文を頼む発言（記録に印を付ける） */
-  handoff_request?: boolean;
-  /** 子チャットから渡した依頼（親チャットの発言。どの子チャットからか） */
-  handoff_from?: HandoffFrom;
-}
-
-/**
- * 子チャットを親から外す（POST /api/chats/:id/detach）。parent_chat_id: null なら親のないチャット（group_id のグループへ。省く・null ならグループなし）、
- * 自分の先祖（親の親より上）の ID ならその子にする（group_id は渡さない）
- */
-export interface ChatDetachBody {
-  parent_chat_id: number | null;
-  group_id?: number | null;
-}
-
-/** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */
-export interface QueueMessageBody extends SendMessageBody {
-  hold?: boolean;
-}
-
 /** ノートを保存する（PUT /api/projects/:id/note。base_hash は開いたときの指紋。null なら確かめずに上書き） */
 export interface NoteWriteBody {
   path: string;
@@ -264,98 +193,7 @@ export interface NoteAiPlanBody {
   instruction: string | null;
 }
 
-/** 子チャットで聞く（POST /api/chats/:id/children）。inherit なら親の会話を引き継ぐ。quote は親の会話から選んだ文、event_id は聞いた位置の記録 */
-export interface ChildChatBody {
-  text?: string;
-  quote?: string | null;
-  inherit?: boolean;
-  event_id?: number | null;
-  options?: ChatOptionsPatch;
-  /** 添付（チャット欄から子チャットに送るとき。文が空でも添付があれば送れる） */
-  attachments?: Attachment[];
-  /** 動かす AI（省けば親と同じ。違う AI なら会話は引き継がない） */
-  provider?: ProviderId;
-}
-
-/** サブエージェントに子チャットで聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */
-export interface SubagentChildBody {
-  text?: string;
-  options?: ChatOptionsPatch;
-  attachments?: Attachment[];
-}
-
 // ---- 応答 ----
-
-/**
- * チャットの詳細（GET /api/chats/:id）。作業中の様子 live は SSE の chat_live と同じ形（あとはそれで追いかける）。
- * 記録は、クエリがなければすべて。?after=<記録の ID> ならそれより新しい分だけ（つなぎ直したとき）、?limit=n なら終わりから n 件、
- * ?before=<記録の ID>&limit=n ならそれより前の n 件（さかのぼるとき。どれも古い順）
- */
-export interface ChatDetail {
-  chat: Chat;
-  events: ChatEvent[];
-  /** events より前の記録がまだあるか（limit で切ったとき） */
-  has_earlier: boolean;
-  /** after の記録がもうない（巻き戻しで消えた）。events は空なので、すべて読み直す */
-  after_missing: boolean;
-  /** このチャットの回答待ち（ツールの承認・AI からの質問・再開するかの確かめ） */
-  approvals: Approval[];
-  live: ChatLive;
-  /**
-   * 書きかけの返答（作業中に、確定する前の文。SSE の chat_delta で流した分をつないだもの。なければ null）。
-   * 返答の途中で開いても、文の頭から出せるように。このあとに届く chat_delta の offset と比べ、持っている分は足さない
-   */
-  streaming_text: string | null;
-  /** streaming_text の長さ（UTF-16。なければ 0。chat_delta の offset と同じ数え方） */
-  streaming_length: number;
-  /** tail_turns のときだけ: events より前の記録の索引（@shared/chat/chatIndex の規則で選んで軽くしたもの。古い順） */
-  index?: ChatEvent[];
-  /** tail_turns のときだけ: 頭のターンが大きすぎて途中から読んだ（残りは画面が手すきのときに読む） */
-  head_partial?: boolean;
-}
-
-/**
- * 止めずに伝えた結果（POST /api/chats/:id/tell）: told = いまのやり取りに足した / queued = 待ちの列に入れた / sent = すぐ送った /
- * held = 圧縮前指示から圧縮のあとのやり取りが終わるまでなので預かった（そのやり取りが終わったら送る。ChatLive の after_compact）
- */
-export interface TellResult {
-  result: "told" | "queued" | "sent" | "held";
-}
-
-/** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff。turn_event_id は作業の終わりの記録） */
-export interface HandoffBody {
-  via: HandoffVia;
-  turn_event_id: number;
-}
-
-/**
- * 親チャットに渡した結果: text = 渡した文（作業の最後の返答。入力欄に入れるときは画面がこれを入れる）・parent_chat_id = 渡した先（直接の親）・
- * sent = 今すぐ送るなら伝えた結果（told / queued / sent / held）、送信待ちなら queued、入力欄なら null
- */
-export interface HandoffResult {
-  text: string;
-  parent_chat_id: number;
-  sent: TellResult["result"] | null;
-}
-
-/**
- * 次の指示を送った結果（POST /api/chats/:id/queue）。作業中なら送信待ちに入れ（queued と、入れた指示の id）、
- * 作業中でなければすぐ送る（queued: false・id: null）。どちらも、そのあとの送信待ち
- */
-export interface QueueAddResult extends QueueState {
-  queued: boolean;
-  id: string | null;
-}
-
-/** 選んだ指示を送らずに 1 件にまとめた結果（POST /api/chats/:id/queue/merge）。id はまとめた 1 件、ほかはそのあとの送信待ち */
-export interface QueueMergeResult extends QueueState {
-  id: string;
-}
-
-/** チャットのやり取りの記録（GET /api/chats/:id/transcript。自分の発言と AI の返答を古い順に並べた Markdown。右クリックの「全部のやり取りをコピー」） */
-export interface ChatTranscript {
-  markdown: string;
-}
 
 /** 録った音声を文にした結果（POST /api/transcribe） */
 export interface Transcription {
@@ -365,11 +203,6 @@ export interface Transcription {
 /** 秘密の値（OpenAI の API キーなど）を保存した結果（PUT /api/voice/openai-key）。値そのものは返さず、保存してあるかだけ */
 export interface SecretSaved {
   saved: boolean;
-}
-
-/** 起動したときの再開の確かめに答える（POST /api/restart-resumes。チャットごと） */
-export interface RestartResumeBody {
-  decisions: { chat_id: number; action: RestartResumeAction }[];
 }
 
 /**
@@ -536,79 +369,4 @@ export interface DbSqlBody {
   write: boolean;
   /** 「さらに読む」: 頭のこの行数を飛ばして続きを読む（読み取りの文だけ。流し直すので履歴には残さない。省けば 0） */
   offset?: number;
-}
-
-/** チャットの詳細で 1 回に読む記録の数の上限（limit） */
-export const CHAT_DETAIL_LIMIT_MAX = 2000;
-
-/** チャットの詳細の記録の読み方（GET /api/chats/:id のクエリ。after と before は一緒に使えない） */
-export interface ChatDetailQuery {
-  after?: number;
-  before?: number;
-  limit?: number;
-  /**
-   * 末尾をターン（作業の終わり result を境目に数える）で数えて読み、それより前は索引（index）で返す（パソコンの画面）。
-   * after・before・limit とは一緒に使えない
-   */
-  tail_turns?: number;
-}
-
-/** 記録の一部分（GET /api/chats/:id/events） */
-export interface ChatEventPage {
-  /** 読んだ記録（古い順） */
-  events: ChatEvent[];
-  /** events より前の記録がまだあるか */
-  has_earlier: boolean;
-  /** events の後ろ（until があればその手前まで）に、まだ読んでいない記録があるか（around・after のとき。ほかは false） */
-  has_later: boolean;
-  /** 頭のターンが大きすぎて、途中から読んだ（CHAT_TURN_MAX_EVENTS / CHAT_TURN_MAX_BYTES） */
-  head_partial: boolean;
-}
-
-/**
- * GET /api/chats/:id/events のクエリ（どれか 1 つの形）: さかのぼる（before の手前を turns ターン）/ since 以上 before 未満をすべて（頭のターンを埋める・
- * 指定の記録まで読む）/ その記録のターンの前後（遠い所へ移るときの途中の一部分。until の手前まで）/ 途中の一部分から後ろへ（until の手前まで）/
- * サブエージェントの中（parent が parents の中のものと ids の記録。before 未満。parents・ids は , 区切り）
- */
-export type ChatEventsQuery =
-  | { before: number; turns: number }
-  | { before: number; since: number }
-  | { around: number; turns: number; until?: number }
-  | { after: number; turns: number; until?: number }
-  | { parents: string; ids?: string; before: number };
-
-/** チャットの中の検索で読む本文（GET /api/chats/:id/texts?before=<記録の ID>）。自分の発言（user）とメインエージェントの返答（parent のない text）だけ、古い順 */
-export interface ChatTexts {
-  events: ChatEvent[];
-}
-
-/** 開いたときに読む末尾のターンの数（tail_turns。前を読み足す・途中の一部分を読む 1 回も同じ） */
-export const CHAT_TAIL_TURNS = 30;
-/** 末尾の大きさの上限（記録の data の長さの合計。超えたらターンを減らす。最新のターンは残す） */
-export const CHAT_TAIL_MAX_BYTES = 2_000_000;
-/** 1 ターンの記録の数と大きさの上限（超えたら終わりからこの分だけ読み、head_partial にする） */
-export const CHAT_TURN_MAX_EVENTS = 2000;
-export const CHAT_TURN_MAX_BYTES = 4_000_000;
-
-/** チャットの作業場所を移す（POST /api/chats/:id/workplace）。worktree_path: 移す先のワークツリー（本体なら null） */
-export interface WorkplaceMoveBody {
-  worktree_path: string | null;
-  /** 新しいワークツリーへ移すときのブランチの名前（このチャットのいまの作業場所のいまのコミットから作る。あれば worktree_path は見ない） */
-  new_worktree_branch?: string;
-  /** コミットしていない変更も持っていく（新しいワークツリーのときだけ） */
-  carry?: boolean;
-}
-
-/** 移す前の確かめの中身（GET /api/chats/:id/workplace） */
-export interface WorkplaceMoveCheck {
-  /** 元の作業場所のコミットしていない変更（プロジェクトのフォルダの中から見たパス。フォルダがなければ空） */
-  changes: string[];
-  /** 元の作業場所で動いている内蔵ターミナル（止めずに残す） */
-  terminals: { title: string; command: string | null }[];
-  /** 片付けを予約したワークツリー（移す先にできない） */
-  reserved: string[];
-  /** 移せない理由（実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
-  blocked: string | null;
-  /** 元の作業場所のフォルダがない（変更の確かめは飛ばす） */
-  missing: boolean;
 }

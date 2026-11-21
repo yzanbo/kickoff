@@ -1,6 +1,6 @@
 // 子チャットの取り決め。受け口は src/features/childChats/core/routes.ts
 import { route, type Contract } from "@shared/foundation/contract";
-import type { ChatDetachBody, ChildChatBody, HandoffBody, HandoffResult, SubagentChildBody } from "@shared/foundation/apiTypes";
+import type { ChatDetachBody, ChildChatBody, HandoffBody, HandoffResult, SubagentChildBody } from "@shared/childChats/types";
 import type { Chat } from "@shared/chat/types";
 
 export const childChatContract = {

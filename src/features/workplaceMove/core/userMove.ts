@@ -2,7 +2,7 @@
 // 移す先の決め方（本体・いまあるワークツリー・新しいワークツリー）・変更を持っていく・移せないとき
 import fs from "node:fs";
 import type { Chat } from "@shared/chat/types";
-import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/workplaceMove/types";
 import type { Project } from "@shared/projects/types";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "@/foundation/core/workplace/carry";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";

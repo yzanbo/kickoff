@@ -1,6 +1,6 @@
 // 筋書きの「外から見えるもの」を作って比べる: AI に送った指示の名前の付け方（定型文 → 前:・後:・[再開]…）・記録・送信待ち・作業中の様子。テストからだけ使う
 import assert from "node:assert/strict";
-import type { ChatDetail } from "@shared/foundation/apiTypes";
+import type { ChatDetail } from "@shared/chat/detail";
 import type { QueuedMessage } from "@shared/chat/types";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { RestartResume } from "@shared/chat/chatLive";

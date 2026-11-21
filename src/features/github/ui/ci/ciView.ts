@@ -1,5 +1,5 @@
 // CI のタブの純粋な部分（開いている実行の読み書き・自動で取り直すか・開くジョブとステップ・「AI に渡す」の札の中身と一言）
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { GitHubLink } from "@shared/chat/types";
 import type { CiFailedLog, CiJob, CiRun, CiRunList } from "@shared/github/ciTypes";
 
 /** 開いている実行（ciSelected の「実行の ID」か「実行の ID:ジョブの ID」） */

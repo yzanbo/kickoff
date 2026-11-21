@@ -1,7 +1,7 @@
 // 子チャットを親から外す（親のないチャットにする・自分の先祖の子に上げる）。メニュー（「親から外す ▸」）とサイドバーのドラッグで共通の確かめと後始末
 // 付け替え（ほかのチャットの下へ）はしない
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { childChatsApi } from "./api";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
@@ -50,7 +50,8 @@ export async function detachChild(chat: Chat, to: DetachTo): Promise<Chat | null
     confirmLabel: to.parentId === null ? "親から外す" : "子にする",
   });
   if (!ok) return null;
-  const detached = await api.detachChat(chat.id, { parent_chat_id: to.parentId, ...(to.parentId === null ? { group_id: to.groupId ?? null } : {}) });
+  const body = { parent_chat_id: to.parentId, ...(to.parentId === null ? { group_id: to.groupId ?? null } : {}) };
+  const detached = await childChatsApi("POST /api/chats/:chatId/detach", { params: { chatId: chat.id }, body });
   if (detached.parent_chat_id === null) reopenDetached(detached);
   return detached;
 }

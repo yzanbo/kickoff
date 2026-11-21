@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { workplaceMoveApi } from "./api";
 import { useWorktreeEnv, useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
 import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";
@@ -67,7 +67,7 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
         value={choices.current}
         disabled={choices.disabled}
         inactive={block}
-        onOpen={() => void api.workplaceCheck(chat.id).then((c) => setReserved(c.reserved), () => {})}
+        onOpen={() => void workplaceMoveApi("GET /api/chats/:chatId/workplace", { params: { chatId: chat.id } }).then((c) => setReserved(c.reserved), () => {})}
         onPick={(value) =>
           void choices.resolve(value).then((picked) => {
             if (picked) void moveChatWorkplace(chat, picked.place, picked.label);

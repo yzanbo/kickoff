@@ -1,5 +1,6 @@
-import type { Chat, FeedItem, SearchHit } from "@shared/chat/types";
-import type { ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, NewChatBody, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/foundation/apiTypes";
+import type { Chat, FeedItem, SearchHit, ChatPatch } from "@shared/chat/types";
+import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatTexts, ChatTranscript } from "@shared/chat/detail";
+import type { NewChatBody } from "@shared/chat/send";
 import type { TrashedResult } from "@shared/trash/types";
 import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
 import { request, withQuery } from "@/foundation/ui/api/http";
@@ -37,14 +38,8 @@ export const chatsApi = {
   markUnseen: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/unseen`),
   /** 手動の並び（サイドバーの並び順「手動順」）を ids の順にする（並べたチャットが並びの順に返る） */
   reorderChats: (projectId: number, ids: number[]) => request<Chat[]>("PUT", `/api/projects/${projectId}/chats/order`, { ids }),
-  /** 子チャットを親から外す（parent_chat_id: null = 親のないチャット（group_id のグループへ）/ 先祖の ID = その子に上げる） */
-  detachChat: (chatId: number, body: ChatDetachBody) => request<Chat>("POST", `/api/chats/${chatId}/detach`, body),
   /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
-  /** 作業場所を移す前の確かめの中身（元の場所に残る変更・動いているターミナル・移す先にできないワークツリー） */
-  workplaceCheck: (chatId: number) => request<WorkplaceMoveCheck>("GET", `/api/chats/${chatId}/workplace`),
-  /** チャットの作業場所を移す（本体・いまあるワークツリー・新しいワークツリー。子チャットは移さない） */
-  moveWorkplace: (chatId: number, body: WorkplaceMoveBody) => request<Chat>("POST", `/api/chats/${chatId}/workplace`, body),
   /** チャットを Kickoff のゴミ箱へ入れる（子チャットも。3 日は戻せる）。入れたゴミ箱の ID を返す */
   deleteChat: (chatId: number) => request<TrashedResult>("DELETE", `/api/chats/${chatId}`),
 };

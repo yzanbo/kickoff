@@ -1,6 +1,6 @@
 // チャットの店の、記録の読み足し（前を読む・途中の一部分・サブエージェントの中・見ていない間に縮める。
 // chatStore.ts が使う。範囲の決まりは純粋関数の chatLog.ts）
-import { CHAT_TAIL_TURNS, type ChatEventPage, type ChatEventsQuery } from "@shared/foundation/apiTypes";
+import { CHAT_TAIL_TURNS, type ChatEventPage, type ChatEventsQuery } from "@shared/chat/detail";
 import type { ChatDetailState } from "./chatDetail";
 import {
   displays,

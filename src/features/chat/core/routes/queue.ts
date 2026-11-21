@@ -6,7 +6,7 @@ import { lookups } from "@/foundation/core/http/lookups";
 import { attachmentsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
 import { queueCommandsSchema, queueEditingSchema, queueSendSchema } from "./sendSchemas";
 import { QUEUE_ACTIONS } from "@shared/chat/types";
-import type { QueueAddResult, QueueMergeResult } from "@shared/foundation/apiTypes";
+import type { QueueAddResult, QueueMergeResult } from "@shared/chat/send";
 import { marksOf } from "@shared/chat/handoff";
 
 /**

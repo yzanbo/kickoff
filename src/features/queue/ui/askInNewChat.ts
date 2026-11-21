@@ -1,6 +1,5 @@
 // 送信待ちの指示を、新しいチャットで聞く（右クリックのメニュー。文と添付（画像も）を新しいチャットのタブの入力欄に入れて開く）
-import type { Attachment, QueuedMessage } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { Attachment, QueuedMessage, GitHubLink } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useChatPane } from "@/features/chat/ui/screen/ports";

@@ -4,7 +4,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentInfo } from "@shared/ai/turnEvents";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery } from "@shared/foundation/apiTypes";
+import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { EMPTY_DETAIL, type ChatDetailState } from "./chatDetail";
 

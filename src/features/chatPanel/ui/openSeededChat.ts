@@ -1,6 +1,5 @@
 // 「AI に渡す」の「新しいチャットで始める」: 作業場所を選んで、文と添付を入れた新しいチャットのタブを開く（送るのは自分で）
-import type { Attachment } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { Attachment, GitHubLink } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";

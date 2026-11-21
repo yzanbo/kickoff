@@ -1,9 +1,10 @@
 // 子チャットから親チャットへの依頼文の受け渡し（画面の側）: 子チャットの AI に依頼文を書いてもらう・作業の最後の返答を親チャットに渡す
 import type { HandoffVia } from "@shared/chat/chatEvent";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
-import type { HandoffResult } from "@shared/foundation/apiTypes";
+import type { HandoffResult } from "@shared/childChats/types";
 import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@shared/chat/handoff";
 import { api } from "@/foundation/ui/api";
+import { childChatsApi } from "./api";
 import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
@@ -37,7 +38,7 @@ export async function requestHandoff(chat: Pick<Chat, "id" | "title">) {
 export async function handOffTurn(child: Chat, turnEventId: number, via: HandoffVia, after: HandoffAfter = "keep"): Promise<HandoffResult | null> {
   let result: HandoffResult;
   try {
-    result = await api.handOff(child.id, via, turnEventId);
+    result = await childChatsApi("POST /api/chats/:chatId/handoff", { params: { chatId: child.id }, body: { via, turn_event_id: turnEventId } });
   } catch (e) {
     reportFailure("親チャットに渡せませんでした")(e);
     return null;

@@ -1,11 +1,9 @@
 // チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付（送る文の組み立て prompt/compose.ts）と届かなかった報告の書き添え
 import { randomUUID } from "node:crypto";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
-import { knownModel } from "@/features/ai/core/index";
-import { askTitle, canAsk } from "@/features/ai/core/index";
+import { knownModel, askTitle, canAsk } from "@/features/ai/core/index";
 import type { RunnerDeps } from "@/features/chat/core/run/runner";
-import type { Attachment, ChatOptionsPatch } from "@shared/chat/types";
-import type { GitHubLink } from "@shared/foundation/apiTypes";
+import type { Attachment, ChatOptionsPatch, GitHubLink } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";

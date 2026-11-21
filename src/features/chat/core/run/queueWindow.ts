@@ -7,10 +7,9 @@ import { queueActionOf } from "@shared/chat/queueActions";
 import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { Attachment, QueueAction, QueuedMessage, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { QueueState } from "@shared/chat/chatLive";
-import type { QueueSendBody, SendBody, SendResult } from "@shared/chat/send";
+import type { QueueSendBody, SendBody, SendResult, TellResult } from "@shared/chat/send";
 import { marksOf } from "@shared/chat/handoff";
 import type { Lane, RunEvent } from "@/features/chat/core/run/machine/types";
-import type { TellResult } from "@shared/foundation/apiTypes";
 
 /** 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する） */
 export interface SendOpts {

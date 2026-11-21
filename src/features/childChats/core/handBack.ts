@@ -1,9 +1,7 @@
-import type { Chat } from "@shared/chat/types";
-import type { HandoffBody, HandoffResult } from "@shared/foundation/apiTypes";
-import { UNTITLED_CHAT_TITLE } from "@shared/chat/types";
+import { type Chat, UNTITLED_CHAT_TITLE } from "@shared/chat/types";
+import type { HandoffBody, HandoffResult } from "@shared/childChats/types";
 import { lastReplyOfTurn } from "@shared/chat/handoff";
-import type { Store } from "@/features/chat/core/index";
-import type { ChatRunPort } from "@/features/chat/core/index";
+import type { Store, ChatRunPort } from "@/features/chat/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 
 /**
