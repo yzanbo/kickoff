@@ -18,7 +18,7 @@ import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
 export type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
-import type { ChatAttachments } from "./ports";
+import type { ChatAttachments, ChatDetachPort } from "./ports";
 
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
 export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -36,8 +36,6 @@ export interface ExecutionDeps {
   bus?: Bus;
   /** 使用状況の見張り（AI の get_usage が読み、実行中の支払いの知らせを渡す。なければ get_usage は使えないと返し、知らせは見ない） */
   usage?: UsageMonitor;
-  /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
-  isBusy?: (chatId: number) => boolean;
   /**
    * AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れる。trash/command.ts）。あれば PATH などを渡す（rm・git clean などを断る守りは guard が付ける）。
    * なければ（置けなかった・テスト）渡さない
@@ -53,6 +51,8 @@ export interface ExecutionDeps {
   aiTools?: readonly AiToolGroup[];
   /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
   providerKeys?: ProviderKeyVault;
+  /** 子チャットを親から外す口（childChats が chat.api.provideDetach で登録する。なければ AI の update_chat は親から外せない） */
+  detach?: ChatDetachPort;
   /** 上の機能が登録した、実行に足すもの（chat.api.addTurnContributor。登録の順に並べ、実行ごとに order の順に集める） */
   contributors?: TurnContributor[];
 }

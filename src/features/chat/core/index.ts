@@ -22,7 +22,7 @@ import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { ExecutionDeps, ShellUpperDeps } from "./turn";
 import type { TurnContributor } from "./run/turn/contributor";
-import type { ChatAttachments } from "./ports";
+import type { ChatAttachments, ChatDetachPort } from "./ports";
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
@@ -47,7 +47,7 @@ export { toolChat } from "./tools/context";
 export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";
-export type { ChatAttachments } from "./ports";
+export type { ChatAttachments, ChatDetachPort } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
@@ -85,8 +85,6 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 export interface ChatUpper {
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
   terminals: NonNullable<ShellUpperDeps["terminals"]>;
-  /** 分岐したチャットに外の画像の覚えを写す */
-  remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */
   aiTools: NonNullable<ExecutionDeps["aiTools"]>;
 }
@@ -105,6 +103,8 @@ export interface ChatApi {
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 上の機能の口を受ける（組み立ての最後に 1 回だけ。仮の口で、上の機能が実行に足すものを登録する形に替えたら消す） */
   attach(upper: ChatUpper): void;
+  /** 子チャットを親から外す口を受ける（childChats が createChildChats の中で登録する。AI の update_chat の parent_id） */
+  provideDetach(port: ChatDetachPort): void;
   /** 実行に足すもの（環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること）を登録する（上の機能が createX の中で呼ぶ。AI のツールは CoreFeature.aiTools） */
   addTurnContributor(c: TurnContributor): void;
   /** チャットを消したとき（作業中の状態を捨てたあと。上の機能がチャットごとの覚えを捨てる） */
@@ -187,8 +187,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   let upper: ChatUpper | null = null;
   const routeDeps = () => {
     if (!upper) throw new Error("組み立ての最後に chat の attach を呼んでいません");
-    const { worktreeEnvs, terminals, remoteImages } = upper;
-    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, terminals, remoteImages };
+    const { worktreeEnvs, terminals } = upper;
+    return { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, uploads, userSent, sessionsElsewhere, trashBin, worktreeEnvs, terminals };
   };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
@@ -206,9 +206,9 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       sessionsElsewhere,
       attach: (given) => {
         upper = given;
-        const { remoteImages: _images, ...rest } = given;
-        runner.attach(rest);
+        runner.attach(given);
       },
+      provideDetach: (port) => runner.attach({ detach: port }),
       addTurnContributor: (c) => void contributors.push(c),
       onForget: (fn) => runner.onForget(fn),
       onUserSend: (fn) => void sendHooks.push(fn),

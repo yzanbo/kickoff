@@ -11,7 +11,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { CHAT_TITLE_MAX, chatName, type Chat } from "@shared/chat/types";
 import type { Store } from "@/features/chat/core/stores";
 import { familyOf } from "@/features/chat/core/family";
-import { detachChat } from "@/features/childChats/core/detach";
+import type { ChatDetachPort } from "@/features/chat/core/ports";
 import { applyChatUpdate, planChatUpdate, refusedAs } from "@/features/chat/core/update";
 import { toolChat } from "./context";
 
@@ -39,6 +39,12 @@ const UPDATE_CHAT_INPUT = {
     .describe("子チャットを親から外す: null で親のないチャットにする、自分の先祖の ID でその子に上げる。外したら戻せないので、利用者に頼まれたときだけ。省くと変えない"),
 };
 type UpdateChatInput = z.infer<z.ZodObject<typeof UPDATE_CHAT_INPUT>>;
+
+/** 家系のツールに使うもの（親から外すのは childChats の口。作業中のチャットは childChats が断る） */
+interface AiChatEditDeps {
+  store: Store;
+  detach?: ChatDetachPort;
+}
 
 /** 名前・固定・グループを変えるツールの中身（AI に返す文。変えられなければ理由の文で throw） */
 export interface AiChatEditTools {
@@ -78,7 +84,7 @@ function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): 
  * chatId のチャットの AI に渡す、家系のチャットの名前・固定・グループを変えるツールの中身。家系は呼ぶたびに引き直す
  * （作業の途中で子チャットが増えた・消えたら次の呼び出しから効く）
  */
-export function createAiChatEditTools(store: Store, chatId: number, isBusy: (chatId: number) => boolean): AiChatEditTools {
+export function createAiChatEditTools({ store, detach }: AiChatEditDeps, chatId: number): AiChatEditTools {
   const requireSelf = toolChat(store.chats, chatId).self;
   const groupOf = (chat: Chat) => {
     const group = chat.group_id === null ? undefined : store.groups.get(chat.group_id);
@@ -135,7 +141,8 @@ export function createAiChatEditTools(store: Store, chatId: number, isBusy: (cha
         const parentId = input.parent_id ?? null;
         const before = target.parent_chat_id === null ? null : store.chats.get(target.parent_chat_id);
         try {
-          detachChat(store, isBusy, target, { parentId, groupId: parentId === null ? (input.group_id ?? null) : null });
+          if (!detach) throw new Error("子チャットの機能がありません");
+          detach.detach(target, { parentId, groupId: parentId === null ? (input.group_id ?? null) : null });
         } catch (e) {
           throw new Error(`親から外せませんでした: ${errorMessage(e)}`, { cause: e });
         }
@@ -157,13 +164,13 @@ export function createAiChatEditTools(store: Store, chatId: number, isBusy: (cha
 }
 
 /** 家系のチャットの一覧と、名前・固定・グループを変えるツールの組（聞かずに変える。孫チャット・子チャットを作らせない設定のときも出す） */
-export function familyToolGroup({ store, isBusy }: { store: Store; isBusy: (chatId: number) => boolean }): AiToolGroup {
+export function familyToolGroup(deps: AiChatEditDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 30,
     instructions: FAMILY_INSTRUCTIONS,
     open: ({ chatId }) => {
-      const edit = createAiChatEditTools(store, chatId, isBusy);
+      const edit = createAiChatEditTools(deps, chatId);
       return [
         defineAiTool({
           server: "kickoff_chat",

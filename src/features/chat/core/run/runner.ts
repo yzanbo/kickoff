@@ -95,8 +95,8 @@ export function createChatRunner(deps: RunnerDeps) {
   const restart = restartResumes(shell);
   // チャットを消したときに聞く上の機能（守りの「このチャットでは許可」の覚えを捨てる）
   const forgetHooks: ((chatId: number) => void)[] = [];
-  // 1 回の実行に渡すもの（AI の update_chat が作業中の子チャットを外すのを断るため、作業中かの口を足す）
-  shell.turnDeps = { ...shell.deps, isBusy: (chatId) => shell.isBusy(chatId) };
+  // 1 回の実行に渡すもの（上の機能の口は attach で両方に足す）
+  shell.turnDeps = { ...shell.deps };
   shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
   deps.store.chatProviderHandoffs.recoverInterrupted();
@@ -127,7 +127,7 @@ export function createChatRunner(deps: RunnerDeps) {
     continuation: (chatId: number, text: string, afterFinish: boolean) => void shell.dispatch(chatId, { type: "continuation", text, afterFinish }),
 
     /** 上の機能の口（ワークツリーの実行環境と後始末・内蔵ターミナル・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "aiTools"> & ShellUpperDeps) {
+    attach(upper: Pick<ExecutionDeps, "aiTools" | "detach"> & ShellUpperDeps) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },

@@ -3,12 +3,8 @@ import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
-import { attachmentsSchema, chatOptionsSchema, childChatSchema, editingIdsSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "@/foundation/core/http/schemas";
+import { attachmentsSchema, chatOptionsSchema, editingIdsSchema, messageInputSchema, messageText } from "@/foundation/core/http/schemas";
 import { sendBodySchema } from "./sendSchemas";
-import { forkChat } from "@/features/childChats/core/fork";
-import { startChildChat } from "@/features/childChats/core/children";
-import { handOffToParent } from "@/features/childChats/core/handoff";
-import { startSubagentChildChat } from "@/features/childChats/core/subagentChild";
 import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";
 import type { TellResult } from "@shared/foundation/apiTypes";
@@ -17,12 +13,12 @@ import { Conflict, NotFound } from "@/foundation/core/errors";
 import { providerSwitchPreview } from "@/features/providerSwitch/core/providerSwitchPreview";
 
 /**
- * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
+ * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・巻き戻し・ファイルを戻す（子チャット・分岐は childChats）。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
-export function turnRoutes(app: Hono, { store, runner, providers, uploads, userSent, remoteImages }: Pick<ChatRouteDeps, "store" | "runner" | "providers" | "uploads" | "userSent" | "remoteImages">) {
+export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pick<ChatRouteDeps, "store" | "runner" | "providers" | "userSent">) {
   const { withChat } = lookups(store);
-  /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
+  /** 巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
 
   app.get("/api/chats/:id/provider-switch", withChat, (c) => {
@@ -132,38 +128,6 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userS
   });
 
   // 作業の終わり（result イベント）の時点から、新しいチャットに分岐する（作業中は 409、分岐できない時点は 400）
-  app.post("/api/chats/:id/fork", withChat, async (c) => {
-    const { chat } = c.var;
-    const { event_id } = z.object({ event_id: z.number().int() }).parse(await jsonBody(c));
-    runner.requireIdle(chat.id, "分岐");
-    const cwd = workdirOf(chat, requireProject(store, chat.project_id));
-    const forked = await forkChat(deps, chat, event_id, cwd);
-    // 分岐したチャットには元の返答がそのまま並ぶので、外の画像の表示の許可と覚えた画像も写す
-    await remoteImages.copyChat(chat.id, forked.id);
-    return c.json(forked, 201);
-  });
-
-  // 子チャットで聞く（親の作業中でも始められる。inherit なら親の最後まで終わった作業の時点から会話を引き継ぐ）
-  app.post("/api/chats/:id/children", withChat, async (c) => {
-    const body = childChatSchema.parse(await jsonBody(c));
-    const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments, provider: body.provider });
-    return c.json(child, 201);
-  });
-
-  // 子チャットの作業の最後の返答を、直接の親チャットに渡す（via: composer = 入れる文を返して記録だけ / send = 今すぐ送る（作業中なら伝える）/
-  // queue = 親の送信待ちの最後に足す）。親のない・終わっていない作業・返答のない作業は 400、親がアーカイブ済みなら 409
-  app.post("/api/chats/:id/handoff", withChat, async (c) => {
-    const body = handoffSchema.parse(await jsonBody(c));
-    return c.json(await handOffToParent(deps, c.var.chat, body));
-  });
-
-  // サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）
-  app.post("/api/chats/:id/subagents/:agentId/children", withChat, async (c) => {
-    const body = subagentChildSchema.parse(await jsonBody(c));
-    const child = await startSubagentChildChat({ ...deps, uploads }, c.var.chat, { agentId: c.req.param("agentId"), text: body.text, attachments: body.attachments, options: body.options });
-    return c.json(child, 201);
-  });
-
   // 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。restore_files ならファイルも
   // その発言を送る前の状態に戻す。作業中は 409、巻き戻せない発言・プロバイダー・ファイルを戻せないときは 400）
   app.post("/api/chats/:id/rewind", withChat, async (c) => {

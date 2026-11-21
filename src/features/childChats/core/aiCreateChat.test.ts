@@ -8,6 +8,7 @@ import type { Chat } from "@shared/chat/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
+import type { UploadStore } from "@/features/attachments/core/index";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
 import { canCreateChat } from "./aiCreateChat";
@@ -19,8 +20,8 @@ function setup() {
   const provider = new ScriptedProvider(async (params) => ({ status: "completed", sessionId: "s", turns: 1, result: params.prompt }));
   const host = new McpToolHost(() => "http://127.0.0.1:1");
   const core = setupCore(provider, { toolHost: host });
-  // 本物の組み立てと同じく、子チャットの機能が出す create_chat の組を実行に渡す
-  const childChats = createChildChats({ chat: { store: core.store, runner: core.runner, addTurnContributor: () => {} }, ai: { providers: core.providers }, worktreeEnvs: () => undefined });
+  // 本物の組み立てと同じく、子チャットの機能が出す create_chat の組を実行に渡す（ルートは使わないので添付の置き場は空）
+  const childChats = createChildChats({ chat: { store: core.store, runner: core.runner, addTurnContributor: () => {}, provideDetach: () => {} }, ai: { providers: core.providers }, uploads: {} as UploadStore, worktreeEnvs: () => undefined });
   core.runner.attach({ aiTools: childChats.aiTools ?? [] });
   return { ...core, tools: watchTools(core, host) };
 }

@@ -25,8 +25,6 @@ export interface ChatRouteDeps {
   trashBin: TrashApi;
   /** 作業場所の移動の確かめと、新しいワークツリーの実行環境 */
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
-  /** 片付けを予約したワークツリー */
+  /** 内蔵ターミナル（作業場所を移す前に、その作業場所で動いているシェルを確かめる） */
   terminals: NonNullable<ShellUpperDeps["terminals"]>;
-  /** 分岐したチャットに外の画像の覚えを写す */
-  remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
 }

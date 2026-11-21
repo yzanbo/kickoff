@@ -2,7 +2,7 @@
 // 付け替え（別の子チャット・関係のないチャットの下へ置く）はしない。子チャットの AI が覚えているのは元の親（と先祖）の会話なので、
 // 先祖の下までなら「親チャットに渡す」の中身と渡し先の文脈がずれにくい
 import { chatName, type Chat } from "@shared/chat/types";
-import { lineageOf, type Store } from "@/features/chat/core/index";
+import { lineageOf, type ChatDetachPort, type Store } from "@/features/chat/core/index";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { requireGroupOf } from "@/features/groups/core/index";
 
@@ -42,4 +42,9 @@ export function detachChat(store: Store, isBusy: (chatId: number) => boolean, ch
   const from = parent ? `「${chatName(parent, "ai")}」` : "親チャット";
   store.events.add(chat.id, { type: "notice", message: to ? `${from}から「${chatName(to, "ai")}」の子にしました` : `${from}から外しました` });
   return detached;
+}
+
+/** chat の口（AI の update_chat の parent_id）に登録する、親から外す中身 */
+export function chatDetachPort(store: Store, isBusy: (chatId: number) => boolean): ChatDetachPort {
+  return { detach: (chat, target) => detachChat(store, isBusy, chat, target) };
 }

@@ -88,9 +88,9 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const compact = createCompact({ chat: chat.api });
   const subagents = createSubagents({ chat: chat.api });
   // ワークツリー・ターミナルはあとに作るので、呼ばれたときに引く
-  const childChats = createChildChats({ chat: chat.api, ai: ai.api, worktreeEnvs: () => worktrees.api.envs });
+  const childChats = createChildChats({ chat: chat.api, ai: ai.api, uploads: attachments.api.uploads, worktreeEnvs: () => worktrees.api.envs });
   const visuals = createVisuals({ chat: chat.api });
-  const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
+  const remoteImages = createRemoteImages(k, { chat: chat.api, childChats: childChats.api }, env.remoteImages);
   const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
   const workplaceMove = createWorkplaceMove({ chat: chat.api, terminals: () => terminal.api, worktreeEnvs: () => worktrees.api.envs });
   const files = createFiles(k, { trash: trash.api, chat: chat.api });
@@ -112,7 +112,6 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   chat.api.attach({
     worktreeEnvs: worktrees.api.envs,
     terminals,
-    remoteImages: remoteImages.api,
     aiTools: features.flatMap((f) => f.aiTools ?? []),
   });
   return {

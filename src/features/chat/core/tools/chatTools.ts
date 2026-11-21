@@ -17,10 +17,9 @@ export const CHAT_TOOLS_HEAD = "Kickoff（このチャットを動かしてい�
  */
 export function chatToolGroups(deps: ExecutionDeps): AiToolGroup[] {
   const { store } = deps;
-  const isBusy = deps.isBusy ?? (() => false);
   return [
-    // 同じ家系のチャットの名前・固定・グループを変える（孫チャット・子チャットを作らせない設定のときも出す）
-    familyToolGroup({ store, isBusy }),
+    // 同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（孫チャット・子チャットを作らせない設定のときも出す）
+    familyToolGroup({ store, detach: deps.detach }),
     // 同じ家系のチャットを画面に開く・下書きを入れる（画面に頼む口（バス）があるときだけ）
     ...chatOpenToolGroups({ store, publish: deps.bus ? (e) => deps.bus!.publish(e) : null }),
     // 同じプロジェクトのチャットの一覧・会話を読む（使用枠の get_usage は ai の組）

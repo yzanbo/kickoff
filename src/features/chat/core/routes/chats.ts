@@ -9,12 +9,11 @@ import { requireGroupOf } from "@/features/groups/core/index";
 import { chatTitle, githubLinkSchema, newChatSchema } from "@/foundation/core/http/schemas";
 import { branchName, flag, optionalId } from "@/foundation/core/http/zodParts";
 import { chatTranscript } from "@/features/chat/core/transcript";
-import { detachChat } from "@/features/childChats/core/detach";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
 import { descendantsOf } from "@/features/chat/core/family";
 import { planUserWorkplaceMove, workplaceMoveCheck } from "@/features/workplaceMove/core/workplaceUserMove";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type WorkplaceMoveBody } from "@shared/foundation/apiTypes";
+import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type WorkplaceMoveBody } from "@shared/foundation/apiTypes";
 import type { GitWorktree } from "@shared/git/types";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
@@ -49,11 +48,6 @@ const eventsQuerySchema = z.union([
   z.object({ parents: csvIds, ids: csvIds.optional(), before: optionalId.unwrap() }).strict(),
 ]) satisfies z.ZodType<ChatEventsQuery>;
 
-/** 子チャットを親から外す（parent_chat_id: null = 親なし / 先祖の ID = その子に。group_id は親なしにするときだけ） */
-const chatDetachSchema = z.object({
-  parent_chat_id: z.number().int().positive().nullable(),
-  group_id: z.number().int().positive().nullable().optional(),
-}) satisfies z.ZodType<ChatDetachBody>;
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
   .object({
@@ -224,15 +218,6 @@ export function chatRoutes(app: Hono, { store, streamingText, runner, approvals,
   app.post("/api/chats/:id/unseen", withChat, (c) => {
     const { chat } = c.var;
     return c.json(chat.unread ? chat : store.chats.setUnread(chat.id, true));
-  });
-
-  /**
-   * 子チャットを親から外す（親のないチャットにする・自分の先祖の子に上げる。chat/detach.ts）。先祖でない ID・親なしでないときのグループ・
-   * ほかのプロジェクトのグループ・親のないチャットは 400、作業中は 409。外したあとのチャットを返す（知らせは店から）
-   */
-  app.post("/api/chats/:id/detach", withChat, async (c) => {
-    const body = chatDetachSchema.parse(await jsonBody(c));
-    return c.json(detachChat(store, (id) => runner.isBusy(id), c.var.chat, { parentId: body.parent_chat_id, groupId: body.group_id ?? null }));
   });
 
   /**

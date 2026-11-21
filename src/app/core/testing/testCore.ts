@@ -25,6 +25,7 @@ import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
 import { toolGateFactory } from "@/features/guard/core/gate";
 import { diagnosticToolGroup, guardTurnParts, type GuardTurnDeps } from "@/features/guard/core/index";
+import { chatDetachPort } from "@/features/childChats/core/index";
 import { compactTurnParts } from "@/features/compact/core/index";
 import { handoffTurnParts } from "@/features/providerSwitch/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
@@ -121,7 +122,10 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   // 添付の置き場を渡したら、本物と同じく送る文に添付のパスを書き添える口も作る
   const attachments = rest.uploads ? chatAttachmentsOf(rest.uploads) : undefined;
   const runner = createChatRunner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...(attachments ? { attachments } : {}), ...rest, contributors, aiTools: [diagnosticToolGroup, ...givenTools] });
-  return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials };
+  // 子チャットを親から外す口も本物と同じく登録する（AI の update_chat の parent_id）
+  const detach = chatDetachPort(store, (chatId) => runner.isBusy(chatId));
+  runner.attach({ detach });
+  return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials, detach };
 }
 
 /** 実行の承認に返す答え（聞いたカードの入力から決める） */
