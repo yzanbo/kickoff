@@ -7,7 +7,7 @@ Agent SDK の `query` で Claude Code を動かす。寄りかかっている所
 | `provider.ts`・`run.ts`・`turnTracker.ts` | `ClaudeProvider`（状態・モデル・分岐ほか）・1 回の実行・メッセージ 1 件ごとの記録係（純粋） |
 | `sdk.ts`・`idleSession.ts` | 差し込み口 `ClaudeSdk`（テストは偽の SDK）・送らないセッション |
 | `sessionFiles.ts` | 会話記録のファイル（探す・`segmentStart` と `writeSlice` で切って書く・ゴミ箱へ） |
-| `env.ts`・`policy.ts`・`sandbox.ts`・`preCompact.ts` | 環境変数・フック（文脈・守り）・Bash の砂場・圧縮前指示のフック |
+| `env.ts`・`policy.ts`・`sandbox.ts`・`preCompact.ts` | 環境変数・フック（文脈・守りの門・砂場の説明）・Bash の砂場・圧縮前指示のフック |
 | `messages.ts`・`approvals.ts`・`input.ts`・`mcpServers.ts` | SDK のメッセージ → 記録・承認の頼み・ストリーミング入力・MCP の登録 |
 | `commandOutput.ts`・`background.ts`・`turnOver.ts`・`usage.ts` | 実行中のコマンドの出力・裏の作業・入力を閉じる時・プランの使用枠 |
 
@@ -20,7 +20,7 @@ Agent SDK の `query` で Claude Code を動かす。寄りかかっている所
 - 承認カードで聞くフックと MCP のツールの待ち時間は `APPROVAL_WAIT_S`（書かないと、答える前にカードが閉じて拒否になる）。
 - 裏の作業は `background_tasks_changed` の一覧で丸ごと置き換える。圧縮の区切りでは、要約の記録 `compact` を先に出してから圧縮中を外す（`messages.ts`）。
 - 使わせないツールは `KICKOFF_DISALLOWED_TOOLS`。ほかの AI に同じ働き（会話ごと作業場所を移す）のツールが足されたら、同じく外す。
-- 砂場のオフ（`disableSandbox`）を受けるのは表の `sandbox_off` の AI だけ（ほかは `@/features/chat/core/turn.ts` が断る）。
+- 砂場のオフ（`sandboxOff`）を受けるのは表の `sandbox_off` の AI だけ（ほかは `@/features/chat/core/turn.ts` が断る）。
 
 ## 実行の外
 

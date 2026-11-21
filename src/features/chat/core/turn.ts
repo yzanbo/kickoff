@@ -11,8 +11,6 @@ import type { DatabaseService } from "@/features/database/core/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
 import { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
-import { mkdirSync } from "node:fs";
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals";
 import { chosenPreviews } from "@shared/chat/questionPreviews";
@@ -20,7 +18,7 @@ import { isUnreadEvent } from "@shared/chat/state";
 import type { Bus } from "@/foundation/core/bus";
 import { errorMessage } from "@shared/foundation/errors";
 import { currentBranch } from "@/foundation/core/workplace/reads";
-import { isInside, realPathOrSelf } from "@/foundation/core/system/paths";
+import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { buildSystemPrompt } from "@/features/chat/core/prompt/system";
 import { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
@@ -28,13 +26,13 @@ import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/cor
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
-import { permissionOnlyGate, type ToolGateFactory, type UsageMonitor } from "@/features/ai/core/index";
+import { permissionOnlyGate, type GuardMaterials, type SandboxPlan, type ToolGateFactory, type UsageMonitor } from "@/features/ai/core/index";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { trashCommandEnv, type TrashCommand } from "@/features/trash/core/command";
-import { bashSandboxFor, type BashSandbox, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
+import { bashSandboxFor, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch";
 import { stoppedSubagentsNotice } from "./interruptedTurnEnd";
 import type { Store } from "@/features/chat/core/stores";
@@ -46,7 +44,7 @@ import type { Project } from "@shared/projects/types";
 import { PROVIDER_AUTH_MODE_LABELS, type ProviderId } from "@shared/settings/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import type { ChatRuntime } from "./runtime";
-import { workdirOf } from "./workdir";
+import { ensureDir, readOnlyReferences, referenceDirectories, resolveWorkdir } from "./turnFolders";
 import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
@@ -215,7 +213,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       if (model !== chat.model) store.chats.update(chatId, { model });
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
       const base = {
-        ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
+        ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, prompt, promptId, compact ? null : takePendingNote(runtime)),
         model,
         compact: compact || prompt.trim() === "/compact", // 手で頼んだ圧縮（送信待ちの圧縮の行・チャット欄に書いた /compact）
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
@@ -223,7 +221,8 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         auth,
       };
       // 守りの門（この単位では chat が実行の材料から作る。守りの口がなければ権限モードだけで答える）
-      const params: ProviderTurnParams = { ...base, gate: deps.toolGate?.(base, callbacks, signal) ?? permissionOnlyGate({ permissionMode: base.permissionMode, cb: callbacks, signal }) };
+      const materials = guardMaterialsOf(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed);
+      const params: ProviderTurnParams = { ...base, gate: deps.toolGate?.(materials, callbacks, signal) ?? permissionOnlyGate({ permissionMode: base.permissionMode, cb: callbacks, signal }) };
       const initialContext = params.turnContext ?? null;
       if (handoff) {
         if (compact || (handoff.state !== "ready" && !(handoff.state === "sending" && handoff.eventId === claimedHandoffEventId)) || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
@@ -321,24 +320,6 @@ function compactTriggerOf(prompt: string, compact: boolean): CompactTrigger {
   return compact || /^\/compact(?:\s|$)/.test(prompt.trimStart()) ? "manual" : "auto";
 }
 
-/** 作業場所（workdirOf）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
-async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
-  const cwd = workdirOf(chat, project);
-  const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
-  if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
-  return cwd;
-}
-
-/** フォルダがなければ作って返す（作れなければ null。ノートのフォルダ） */
-function ensureDir(dir: string): string | null {
-  try {
-    mkdirSync(dir, { recursive: true });
-    return dir;
-  } catch {
-    return null;
-  }
-}
-
 /** 次に送るものに一度だけ添える知らせを取り出す（取り出したら外す。利用者が作業場所を移す予約を取り消したときなど） */
 export function takePendingNote(runtime: ChatRuntime): string | null {
   const note = runtime.pendingNote;
@@ -351,8 +332,7 @@ function buildTurnParams(
   deps: ExecutionDeps,
   chat: Chat,
   project: Project,
-  { cwd, noteDir, sandbox }: { cwd: string; noteDir: string | null; sandbox: BashSandbox | null },
-  writeAllowed: Set<string>,
+  { cwd, noteDir, sandbox }: TurnPlace,
   prompt: string,
   promptId?: string,
   note: string | null = null,
@@ -378,6 +358,19 @@ function buildTurnParams(
     autoCompactPct: deps.store.settings.get().auto_compact_pct,
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(noteDir ? [noteDir] : [])],
+    sandbox,
+    sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
+  };
+}
+
+/** 実行の場所（作業フォルダ・ノートのフォルダ・Bash の砂場） */
+type TurnPlace = { cwd: string; noteDir: string | null; sandbox: SandboxPlan | null };
+
+/** 守りの門の材料（プロバイダーには渡さず、門だけを渡す） */
+function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { cwd, noteDir, sandbox }: TurnPlace, writeAllowed: Set<string>): GuardMaterials {
+  return {
+    cwd,
+    permissionMode: chat.permission_mode,
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: readOnlyReferences(project, cwd),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
@@ -393,14 +386,10 @@ function buildTurnParams(
     dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
     // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
     deleteGuard: deps.trashCommand !== undefined,
-    bashSandbox: sandbox,
-    disableSandbox: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
+    sandbox,
+    // その AI の CLI の決まりでいつも書ける場所（Claude Code の計画とメモリ）
+    writeExceptions: deps.providers[chat.provider].writeExceptions,
   };
-}
-
-/** 作業場所の外の参照資料（読むだけ。ワークツリーのチャットからは、本体の中の資料も読むだけ） */
-function readOnlyReferences(project: Project, cwd: string): string[] {
-  return project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p));
 }
 
 /**
@@ -560,9 +549,4 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
         : {}),
     });
   }
-}
-
-/** 参照資料を読めるようにするフォルダ（ファイルはそのフォルダ）。重複は除く */
-function referenceDirectories(project: Project): string[] {
-  return [...new Set(project.reference_paths.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
 }

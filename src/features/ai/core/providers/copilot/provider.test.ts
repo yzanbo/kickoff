@@ -5,13 +5,14 @@ import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeCopilotClient, type FakeCopilotSession } from "@/features/ai/core/testing/fakeCopilotClient";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, GuardMaterials, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import type { SessionConfig } from "./sdk";
 import { CopilotProvider } from "./provider";
 import { experimentalProviders } from "@/features/ai/core/providers/index";
 
 /** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
-const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: Partial<GuardMaterials> = {}) =>
+  provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -114,7 +115,7 @@ test("承認と守り: 消すコマンドは聞かずに断って理由を AI �
     s.idle();
   };
   const rec = recorder(() => ({ action: "deny", message: "今はやめて" }));
-  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params(), rec.cb, new AbortController().signal, { deleteGuard: true });
   assert.equal((answers[0] as any).kind, "reject");
   assert.match((answers[0] as any).feedback, /kickoff-trash/);
   assert.equal((answers[1] as any).kind, "reject");
@@ -156,7 +157,7 @@ test("ツールの前のフック: 承認を通らないコマンドでも、断
     out.push(await hook({ toolName: "bash", toolArgs: { command: "ls" }, sessionId: s.sessionId, timestamp: new Date(), workingDirectory: "/w" }, { sessionId: s.sessionId }));
     s.idle();
   };
-  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ deleteGuard: true }), recorder().cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params(), recorder().cb, new AbortController().signal, { deleteGuard: true });
   assert.equal((out[0] as any).permissionDecision, "deny");
   assert.match((out[0] as any).permissionDecisionReason, /kickoff-trash/);
   assert.equal(out[1], undefined);

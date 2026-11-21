@@ -5,13 +5,14 @@ import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeCodexServer, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, GuardMaterials, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { HOOK_INACTIVE } from "./hookTrust";
 import { CodexProvider } from "./provider";
 import { experimentalProviders } from "@/features/ai/core/providers/index";
 
 /** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
-const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: Partial<GuardMaterials> = {}) =>
+  provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -158,7 +159,7 @@ test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/
     complete(s);
   });
   const rec = recorder(() => ({ action: "deny", message: "今はやめて" }));
-  await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), rec.cb, new AbortController().signal, { deleteGuard: true });
   assert.deepEqual(answers, [{ decision: "decline" }, { decision: "decline" }]);
   assert.equal(rec.approvals.length, 1);
   assert.deepEqual(rec.approvals[0].input, { command: "npm install" });
@@ -197,9 +198,10 @@ test("承認と権限モード: Auto mode は守りが何も言わなければ�
   const allowed = new Set<string>();
   const rec = recorder(() => ({ action: "allow_always" }));
   await guardedRun(new CodexProvider({ spawn: server.spawn }), 
-    params({ permissionMode: "auto", cwd: "/w", writeScope: { writableDirs: [], workplaces: async () => [], allowed } }),
+    params({ permissionMode: "auto", cwd: "/w" }),
     rec.cb,
     new AbortController().signal,
+    { writeScope: { writableDirs: [], workplaces: async () => [], allowed } },
   );
   assert.deepEqual(answer, { decision: "accept" });
   assert.equal(rec.approvals.length, 1);

@@ -39,7 +39,7 @@ export function mcpServerOverrides(tools: ToolEndpoint[], permissionMode: Provid
 }
 
 /** 書けるフォルダ（Bash の砂場の一覧。作業場所は Codex が自分で入れる） */
-const writableRootsOf = (params: ProviderTurnParams): string[] => params.bashSandbox?.writableDirs ?? [];
+const writableRootsOf = (params: ProviderTurnParams): string[] => params.sandbox?.writableDirs ?? [];
 
 /**
  * Bash とファイルの変更の砂場（Codex の Seatbelt）。計画モードは読むだけ、ほかは作業場所と書けるフォルダ。ネットワークは絞らない（Kickoff の決まり）。
@@ -47,7 +47,7 @@ const writableRootsOf = (params: ProviderTurnParams): string[] => params.bashSan
  */
 export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
   if (params.permissionMode === "plan") return { type: "readOnly", networkAccess: true };
-  if (params.disableSandbox) return { type: "dangerFullAccess" };
+  if (params.sandboxOff) return { type: "dangerFullAccess" };
   return { type: "workspaceWrite", writableRoots: writableRootsOf(params), networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false };
 }
 
@@ -81,7 +81,7 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
     model: params.model,
     cwd: params.cwd,
     approvalPolicy: CODEX_APPROVAL_POLICY,
-    sandbox: params.permissionMode === "plan" ? "read-only" : params.disableSandbox ? "danger-full-access" : "workspace-write",
+    sandbox: params.permissionMode === "plan" ? "read-only" : params.sandboxOff ? "danger-full-access" : "workspace-write",
     developerInstructions: params.systemPrompt || null,
     config: {
       ...mcpServerOverrides(params.tools ?? [], params.permissionMode),

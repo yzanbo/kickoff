@@ -3,7 +3,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { deniedWritePaths, sandboxDeniedNote } from "./sandboxDenied";
-import type { BashSandbox } from "./bashSandbox";
+import type { SandboxPlan } from "@/features/ai/core/index";
 
 test("出力から断られた場所を読む（zsh・bash のリダイレクト・コマンド・Python・Node の形。重なりは 1 つ）", () => {
   const out = [
@@ -21,7 +21,7 @@ test("出力から断られた場所を読む（zsh・bash のリダイレクト
 test("説明: ほかの作業場所は守りの断る文、外は Edit を案内、書ける場所の中なら砂場が守るファイル。読めなければ null", async () => {
   const work = tempDir({ real: true });
   const other = tempDir({ real: true });
-  const sandbox: BashSandbox = { writableDirs: [work], readOnlyDirs: [], unsandboxedCommands: [], proxyPort: null };
+  const sandbox: SandboxPlan = { writableDirs: [work], readOnlyDirs: [], unsandboxedCommands: [], proxyPort: null };
   const judge = async (target: string) =>
     target.startsWith(other) ? { kind: "deny" as const, reason: "同じリポジトリの別の作業場所です（提案してください）" } : { kind: "ask" as const, title: "", description: "", deniedReason: "" };
   const out = [`(eval):1: operation not permitted: ${path.join(other, "a.txt")}`, `touch: /Users/nobody/.zshrc: Operation not permitted`, `touch: ${path.join(work, ".claude", "settings.json")}: Operation not permitted`].join("\n");

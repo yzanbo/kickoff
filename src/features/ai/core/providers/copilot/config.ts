@@ -34,8 +34,8 @@ export function mcpServersOf(tools: ToolEndpoint[]): Record<string, MCPServerCon
  * Bash の砂場（Copilot の Seatbelt。SDK では実験的）。書けるのは作業場所と Kickoff の書けるフォルダ（計画モードは何も書かせない）、読むことは絞らない、
  * 通信は絞らない（Kickoff の決まり）。コアの MCP サーバー（127.0.0.1）につなぐので、MCP は砂場に入れない。砂場の外で流す道（allowBypass）は切る
  */
-export function copilotSandbox(params: Pick<ProviderTurnParams, "bashSandbox" | "permissionMode">): SandboxConfig | undefined {
-  const sandbox = params.bashSandbox;
+export function copilotSandbox(params: Pick<ProviderTurnParams, "sandbox" | "permissionMode">): SandboxConfig | undefined {
+  const sandbox = params.sandbox;
   if (!sandbox) return undefined;
   const plan = params.permissionMode === "plan";
   return {

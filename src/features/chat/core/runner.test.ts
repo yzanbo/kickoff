@@ -106,10 +106,10 @@ test("書き込み先の守り: OS の一時フォルダは Bash の砂場と同
   const tmp = tempDir({ real: true });
   const rules = { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: [] };
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
-  const { store, runner, project } = setupCore(provider, { bashSandbox: { rules, proxyPort: null, trashDir: null } });
+  const { store, runner, project, gateMaterials } = setupCore(provider, { bashSandbox: { rules, proxyPort: null, trashDir: null } });
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.chats.get(chat.id)?.status === "completed");
-  const scope = provider.calls[0].writeScope;
+  const scope = gateMaterials[0].writeScope;
   assert.ok(scope);
   const facts = { workdir: project.repo_path, writableDirs: scope.writableDirs, memoryParents: [], workplaces: scope.workplaces };
   assert.equal((await judgeFileWrite(path.join(tmp, "perf", "check.ts"), facts)).kind, "pass");
@@ -410,7 +410,7 @@ test("kickoff-trash があれば、PATH・置き場・チャットの ID を渡�
   const chat = await withCommand.runner.start({ projectId: withCommand.project.id, prompt: "x" });
   await until(() => withCommand.store.chats.get(chat.id)?.status === "completed");
   const params = withCommand.provider.calls[0];
-  assert.equal(params.deleteGuard, true);
+  assert.equal(withCommand.gateMaterials[0].deleteGuard, true);
   assert.ok(params.env?.PATH?.startsWith("/data/bin:"));
   assert.equal(params.env?.KICKOFF_TRASH_DIR, "/data/trash");
   assert.equal(params.env?.KICKOFF_CHAT_ID, String(chat.id));
@@ -418,7 +418,7 @@ test("kickoff-trash があれば、PATH・置き場・チャットの ID を渡�
   const plain = setup(async () => ({ status: "completed", sessionId: "s" }));
   const other = await plain.runner.start({ projectId: plain.project.id, prompt: "x" });
   await until(() => plain.store.chats.get(other.id)?.status === "completed");
-  assert.equal(plain.provider.calls[0].deleteGuard, false);
+  assert.equal(plain.gateMaterials[0].deleteGuard, false);
   assert.equal(plain.provider.calls[0].env?.KICKOFF_TRASH_DIR, undefined);
 });
 

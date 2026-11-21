@@ -17,7 +17,7 @@ import type { ToolServer } from "@/foundation/core/aiTools/tool";
 import type { Bus } from "@/foundation/core/bus";
 import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/providers/types";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { Runner } from "@/features/chat/core/runner";
@@ -97,9 +97,12 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const interrupted = beforeStart?.(store, project);
   // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
   const usage = offlineUsage();
-  // 守りの門は本物と同じく guard が作る（自分を守る守りはテストでは付けない）
-  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, toolGate: toolGateFactory(undefined, []), ...(interrupted ? { interrupted } : {}), ...runnerOptions });
-  return { bus, deltas, store, approvals, providers, usage, runner, provider, project };
+  // 守りの門は本物と同じく guard が作る（自分を守る守りはテストでは付けない）。門の材料は実行ごとに覚える（gateMaterials）
+  const gateMaterials: GuardMaterials[] = [];
+  const factory = runnerOptions.toolGate ?? toolGateFactory(undefined, []);
+  const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
+  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
+  return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials };
 }
 
 /** 実行の承認に返す答え（聞いたカードの入力から決める） */

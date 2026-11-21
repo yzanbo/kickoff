@@ -5,12 +5,13 @@ import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, GuardMaterials, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { GEMINI_NEEDS_API_KEY, geminiProvider } from "@/features/ai/core/providers/gemini/provider";
 
 /** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
-const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: Partial<GuardMaterials> = {}) =>
+  provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -158,7 +159,7 @@ test("権限の頼み: 消すコマンドは守りで断り、理由を次の指
     answers.push(await permission(s, { toolCallId: "r1", title: "Read a.ts", kind: "read", locations: [{ path: "/w/a.ts" }] }));
   });
   const rec = recorder((req) => (req.toolName === "Edit" ? { action: "allow_always" } : { action: "deny", message: "" }));
-  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), rec.cb, new AbortController().signal, { deleteGuard: true });
   assert.equal(result.status, "completed");
   assert.deepEqual(
     answers.map((a) => a.outcome.optionId),

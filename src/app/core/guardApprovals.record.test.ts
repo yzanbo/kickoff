@@ -52,7 +52,7 @@ function harness(w: World, mode: PermissionMode, answer: ApprovalDecision, sandb
     deleteGuard: true,
     dockerGuard: { check: async (c: string) => (c.includes("down") ? { title: "ほかの作業場所の Docker を止めます", description: "本体の db" } : null) },
     writeScope: { writableDirs: [], workplaces: async () => [{ path: w.cwd, worktree_path: null, branch: "main" }], allowed },
-    bashSandbox: sandbox ? { writableDirs: [w.cwd], readOnlyDirs: [], unsandboxedCommands: ["docker:*"], proxyPort: null } : null,
+    sandbox: sandbox ? { writableDirs: [w.cwd], readOnlyDirs: [], unsandboxedCommands: ["docker:*"], proxyPort: null } : null,
     tools: [{ name: "kickoff_chat", url: "http://x", headers: {}, autoAllow: ["read_chat"] }],
   } as unknown as ProviderTurnParams;
   const requestApproval = async (r: ApprovalRequest) => {

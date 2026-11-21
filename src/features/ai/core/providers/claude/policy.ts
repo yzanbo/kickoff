@@ -1,209 +1,82 @@
 import path from "node:path";
-import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } from "./wire";
-import { DOCKER_GUARD_DENIED, type DockerGuard } from "@/features/docker/core/guard/dockerGuard";
-import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
-import { evaluateGitHookBypass } from "@/features/guard/core/guard/gitHookGuard";
-import { evaluateCompileCacheEnv } from "@/features/guard/core/guard/compileCacheGuard";
-import { evaluateHiddenDbAccess } from "@/features/database/core/guard/hiddenDb";
-import { evaluateReferenceWrite, evaluateUntrackedWrite, resolveCallPaths, writeTargetOf } from "@/features/guard/core/guard/scope";
-import { evaluateSelfProtection, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
-import { judgeFileWrite, WRITE_SCOPE_DENIED, type WriteScopeFacts, type WriteScopeParams } from "@/features/guard/core/guard/writeScope";
-import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
-import { sandboxDeniedNote } from "@/features/guard/core/sandbox/sandboxDenied";
-import { realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
-import type { ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
+import type { HookCallbackMatcher, HookEvent, SyncHookJSONOutput } from "./wire";
+import { realPathLoose } from "@/foundation/core/system/paths";
+import type { GateCall, ProviderTurnParams, WriteExceptions } from "@/features/ai/core/providers/types";
 import { claudeProjectsDir } from "./internals";
 import { APPROVAL_WAIT_S } from "@/features/ai/core/providers/shared/turnLifecycle";
 
-/** 断る守りの判定（guard/core/rules.ts の DenyVerdict。ai は守りの型を直に読まない） */
-type Decision = ReturnType<typeof evaluateDeleteCommand>;
-type Evaluate = (toolName: string, input: Record<string, unknown>) => Decision | Promise<Decision>;
+/** 利用者が Kickoff の承認カードで許したときの答えの理由（Claude Code の作業フォルダの外の確かめで同じことを 2 回聞かないよう許す） */
+const APPROVED_REASON = "利用者が Kickoff の承認カードで許可しました";
+
+/** PreToolUse の答え（許す・断る） */
+const decide = (permissionDecision: "allow" | "deny", reason: string): SyncHookJSONOutput => ({
+  hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision, permissionDecisionReason: reason },
+});
+
+/** 門に当てる呼び出し（Bash はコマンドだけ。承認カードに出す入力もコマンドだけにする） */
+function gateCallOf(name: string, input: Record<string, unknown>): GateCall {
+  return name === "Bash" && typeof input.command === "string" ? { name, input: { command: input.command } } : { name, input };
+}
 
 /**
- * 承認カードで聞く守り（Docker・書き込み先）のフックの待ち時間（秒）。Claude Code は待ち時間を書いていないフックに既定の待ち時間を当て、過ぎると止める知らせ（signal）を送るので、
- * 書かないと利用者が答える前に承認カードが閉じて「拒否」になる。利用者が答えるか、チャットを止めるまで待つよう長くする（タイマーの上限 24.8 日より短く）
+ * 守りのフック（PreToolUse。どのツールにも、権限モードや許可ルールより先に毎回呼ばれる）: 呼び出しを守りの門（params.gate）に当て、
+ * 断る守り → 断る / 聞く守り（Docker・作業場所の外への書き込み）→ 権限モードに関係なく承認カードで聞いて待つ / 何も言わなければ Claude Code の権限の仕組みに任せる。
+ * 書き込み先のカードで許した（いま・「このチャットでは許可」で前に）ものは許して流す（計画モードは権限モードに任せる）。Docker のカードで許したものは何も返さずに流す。
+ * 待ち時間は承認カードを待つ長さ（書かないと Claude Code の既定の待ち時間で止める知らせが来て、利用者が答える前にカードが閉じて「拒否」になる）。
+ * カードはフックの止める知らせ（signal）で閉じる
  */
-const ASKING_GUARD_HOOK_TIMEOUT_S = APPROVAL_WAIT_S;
-
-/** ツールの呼び出しを判定して断るフック（PreToolUse）。権限モードや許可ルールより先に毎回呼ばれる */
-function denyHook(evaluate: Evaluate): HookCallbackMatcher {
+function guardHook(params: ProviderTurnParams): HookCallbackMatcher {
+  const { gate } = params;
+  const approved: SyncHookJSONOutput = params.permissionMode === "plan" ? {} : decide("allow", APPROVED_REASON);
   return {
+    timeout: APPROVAL_WAIT_S,
     hooks: [
-      async (input: HookInput): Promise<SyncHookJSONOutput> => {
+      async (input, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PreToolUse") return {};
-        const result = await evaluate(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
-        if (result.kind === "pass") return {};
-        return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: result.reason } };
+        const call = gateCallOf(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
+        const outcome = await gate.guard(call, { toolUseId: input.tool_use_id, ...(input.agent_id ? { agentId: input.agent_id } : {}), signal });
+        if (outcome === null) return gate.remembered(call) ? approved : {};
+        if (!outcome.allow) return decide("deny", outcome.reason);
+        return outcome.approved ? approved : {};
       },
     ],
   };
 }
 
 /**
- * AI の Docker の守り（PreToolUse の Bash だけ）: 別の作業場所・ほかのプロジェクトの Docker に手を出すコマンドなら、流す前に承認カードで聞いて待つ
- * （利用者が答えるか、チャットを止めるまで。権限モードに関係なく、Auto mode でも聞く）。［許可］なら何も返さず流し、［拒否］なら断る。「次から聞かない」は出さない
- */
-function dockerGuardHook(guard: DockerGuard, cb: Pick<ProviderCallbacks, "requestApproval">): HookCallbackMatcher {
-  return {
-    matcher: "Bash",
-    timeout: ASKING_GUARD_HOOK_TIMEOUT_S,
-    hooks: [
-      async (input: HookInput, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
-        if (input.hook_event_name !== "PreToolUse" || input.tool_name !== "Bash") return {};
-        const command = (input.tool_input as { command?: unknown } | undefined)?.command;
-        if (typeof command !== "string") return {};
-        // 判定に失敗したら（docker が答えないなど）通す（守りはうっかりを防ぐもので、AI の作業を止めない）
-        const ask = await guard.check(command).catch(() => null);
-        if (!ask) return {};
-        const decision = await cb
-          .requestApproval(
-            {
-              kind: "permission",
-              toolName: "Bash",
-              input: { command },
-              title: ask.title,
-              description: ask.description,
-              canRemember: false,
-              toolUseId: input.tool_use_id,
-              ...(input.agent_id ? { agentId: input.agent_id } : {}),
-            },
-            signal,
-          )
-          .catch(() => ({ action: "deny" as const, message: "" }));
-        if (decision.action === "allow" || decision.action === "allow_always") return {};
-        const reason = decision.action === "deny" && decision.message ? `${DOCKER_GUARD_DENIED}（利用者の言葉: ${decision.message}）` : DOCKER_GUARD_DENIED;
-        return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } };
-      },
-    ],
-  };
-}
-
-/**
- * 書き込み先の守りの判定に使う様子: チャットが渡したもの（作業場所・ノートのフォルダ・作業場所の一覧）に、Claude Code の決まりの例外
- * （計画 ~/.claude/plans と、メモリ ~/.claude/projects/<プロジェクト>/memory。CLAUDE_CONFIG_DIR があればその下）を足す
- */
-function writeScopeFacts(cwd: string, scope: WriteScopeParams): WriteScopeFacts {
-  const projects = realPathLoose(claudeProjectsDir());
-  return {
-    workdir: realPathOrSelf(cwd),
-    writableDirs: [...scope.writableDirs, realPathLoose(path.join(path.dirname(projects), "plans"))],
-    memoryParents: [projects],
-    workplaces: scope.workplaces,
-  };
-}
-
-/**
- * AI の書き込み先の守り（PreToolUse のファイルを書き換えるツールだけ。chat/guard/writeScope.ts）: 同じリポジトリのほかの作業場所なら断り、
- * 作業場所・ノートのフォルダ・例外の外なら承認カードで聞いて待つ（権限モードに関係なく、Auto mode でも聞く）。ほかの守りが断るもの（参照資料・Kickoff の保存先・
- * 見せない DB）はカードを出さずにそちらに任せる。［許可］［このチャットでは許可］なら許して流す（計画モードは権限モードに任せる）。後者はそのファイルをチャットの間もう聞かない
- */
-function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, deniedElsewhere: Evaluate[], cb: Pick<ProviderCallbacks, "requestApproval">): HookCallbackMatcher {
-  const facts = writeScopeFacts(params.cwd, scope);
-  // 利用者が許したら、Claude Code の作業フォルダの外の確かめで同じことを 2 回聞かないよう許す（計画モードでは書かせないので、権限モードに任せる）
-  const allowed: SyncHookJSONOutput =
-    params.permissionMode === "plan" ? {} : { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", permissionDecisionReason: "利用者が Kickoff の承認カードで許可しました" } };
-  const deny = (reason: string): SyncHookJSONOutput => ({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } });
-  return {
-    matcher: "Write|Edit|MultiEdit|NotebookEdit",
-    timeout: ASKING_GUARD_HOOK_TIMEOUT_S,
-    hooks: [
-      async (input: HookInput, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
-        if (input.hook_event_name !== "PreToolUse") return {};
-        const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
-        const target = writeTargetOf(params.cwd, input.tool_name, resolveCallPaths({ name: input.tool_name, input: toolInput, cwd: params.cwd }).input);
-        if (target === null) return {};
-        if (scope.allowed.has(target)) return allowed;
-        for (const evaluate of deniedElsewhere) if ((await evaluate(input.tool_name, toolInput)).kind === "deny") return {};
-        const judged = await judgeFileWrite(target, facts);
-        if (judged.kind === "pass") return {};
-        if (judged.kind === "deny") return deny(judged.reason);
-        const decision = await cb
-          .requestApproval(
-            {
-              kind: "permission",
-              toolName: input.tool_name,
-              input: toolInput,
-              title: judged.title,
-              description: judged.description,
-              canRemember: true,
-              rememberScope: "chat",
-              toolUseId: input.tool_use_id,
-              ...(input.agent_id ? { agentId: input.agent_id } : {}),
-            },
-            signal,
-          )
-          .catch(() => ({ action: "deny" as const, message: "" }));
-        if (decision.action === "allow_always") scope.allowed.add(target);
-        if (decision.action === "allow" || decision.action === "allow_always") return allowed;
-        return deny(decision.action === "deny" && decision.message ? `${WRITE_SCOPE_DENIED}（利用者の言葉: ${decision.message}）` : WRITE_SCOPE_DENIED);
-      },
-    ],
-  };
-}
-
-/**
- * チャットの実行に付けるフック。エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊す呼び出し
- * （selfProtection.ts）はいつも、参照資料への書き込みは参照資料があるときだけ、「見せない」DB の接続に直接入るのは、そういう接続があるときだけ断る。
- * Git で管理していないファイルだけを書けるチャット（untrackedOnly）は、Git で管理しているファイルの書き込みと Git の中身を変える git のコマンドを断る。
- * ファイルを消す Bash（rm・git clean など）は、守りを付けたときは断って kickoff-trash を使わせる（deleteGuard）。
- * git のフック（コミット時・push 時の確かめ）を飛ばす Bash（--no-verify・commit -n・core.hooksPath を変える）は、いつも断る（gitHookGuard）。
- * 環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定する Bash（Kickoff の起動に別のコードを差し込める穴）も、いつも断る（compileCacheGuard）。
- * 別の作業場所・ほかのプロジェクトの Docker に手を出す Bash は、守りがあれば承認カードで聞く（dockerGuardHook）。
- * ファイルを書き換えるツールの先は、守りがあれば作業場所・ノートのフォルダ・例外だけにし、同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く（writeScopeHook）。
- * Auto mode や許可ルールがあっても効く
- */
-export function turnHooks(
-  params: ProviderTurnParams,
-  self: SelfInfo | undefined,
-  cb: Pick<ProviderCallbacks, "requestApproval">,
-): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
-  const readOnly = params.readOnlyPaths ?? [];
-  // 守りはパスを作業フォルダで解いた入力で見る（resolveCallPaths）
-  const at = (tool: string, input: Record<string, unknown>) => resolveCallPaths({ name: tool, input, cwd: params.cwd }).input;
-  // ファイルのツールを断る守り（書き込み先の守りは、これらが断るものにはカードを出さない）
-  const fileDenials: Evaluate[] = [
-    ...(self ? [(tool: string, input: Record<string, unknown>) => evaluateSelfProtection(self, tool, at(tool, input))] : []),
-    ...(readOnly.length > 0 ? [(tool: string, input: Record<string, unknown>) => evaluateReferenceWrite(params.cwd, readOnly, tool, at(tool, input))] : []),
-    ...(params.untrackedOnly ? [(tool: string, input: Record<string, unknown>) => evaluateUntrackedWrite(params.cwd, tool, at(tool, input))] : []),
-    ...(params.hiddenDb?.length ? [(tool: string, input: Record<string, unknown>) => evaluateHiddenDbAccess(params.hiddenDb ?? [], tool, at(tool, input))] : []),
-  ];
-  const matchers = [
-    ...fileDenials.map(denyHook),
-    ...(params.deleteGuard ? [denyHook((tool, input) => evaluateDeleteCommand(tool, input))] : []),
-    denyHook((tool, input) => evaluateGitHookBypass(tool, input)),
-    denyHook((tool, input) => evaluateCompileCacheEnv(tool, input)),
-    ...(params.dockerGuard ? [dockerGuardHook(params.dockerGuard, cb)] : []),
-    ...(params.writeScope ? [writeScopeHook(params, params.writeScope, fileDenials, cb)] : []),
-  ];
-  // Bash の砂場で書き込みを断られたら、どこを・なぜ・代わりの道を結果に書き添える（失敗で終わったコマンドだけ）
-  const denied = params.bashSandbox ? sandboxDeniedHook(params, params.bashSandbox) : null;
-  const hooks: Partial<Record<HookEvent, HookCallbackMatcher[]>> = {
-    ...(matchers.length > 0 ? { PreToolUse: matchers } : {}),
-    ...(denied ? { PostToolUseFailure: [denied] } : {}),
-  };
-  return Object.keys(hooks).length > 0 ? hooks : undefined;
-}
-
-/**
- * 砂場で止まったときの文（guard の sandboxDenied.ts）を、失敗で終わった Bash の結果のあとに AI へ添えるフック（PostToolUseFailure の additionalContext）。
+ * 砂場で止まったときの文（門の sandboxDeniedNote）を、失敗で終わった Bash の結果のあとに AI へ添えるフック（PostToolUseFailure の additionalContext）。
  * 成功したコマンド（PostToolUse）は見ない: ソース・ログ・テストを読んだだけの出力に OS の文の形が入っていても、砂場が断ったとは限らないため。
- * Claude Code は失敗の終了コードを PostToolUseFailure で知らせる（0 以外でも失敗でないもの = grep・diff の 1 などは PostToolUse）。
- * ほかの作業場所かの見分けは書き込み先の守りの判定を使う（書き込み先の守りがないチャットは、外として案内する）
+ * Claude Code は失敗の終了コードを PostToolUseFailure で知らせる（0 以外でも失敗でないもの = grep・diff の 1 などは PostToolUse）
  */
-function sandboxDeniedHook(params: ProviderTurnParams, sandbox: BashSandbox): HookCallbackMatcher {
-  const facts = params.writeScope ? writeScopeFacts(params.cwd, params.writeScope) : null;
-  const judge = facts ? (target: string) => judgeFileWrite(target, facts) : null;
+function sandboxDeniedHook(params: ProviderTurnParams): HookCallbackMatcher {
   return {
     matcher: "Bash",
     hooks: [
-      async (input: HookInput): Promise<SyncHookJSONOutput> => {
+      async (input): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PostToolUseFailure") return {};
-        const note = await sandboxDeniedNote(input.error, sandbox, judge).catch(() => null);
+        const note = await params.gate.sandboxDeniedNote(input.error).catch(() => null);
         if (note === null) return {};
         return { hookSpecificOutput: { hookEventName: "PostToolUseFailure", additionalContext: note } };
       },
     ],
   };
+}
+
+/**
+ * チャットの実行に付けるフック: 守りのフック（PreToolUse 1 つ。守りの中身と並びは guard の門）と、Bash の砂場があれば、
+ * 砂場で書き込みを断られたときに、どこを・なぜ・代わりの道を結果に書き添えるフック。Auto mode や許可ルールがあっても効く
+ */
+export function turnHooks(params: ProviderTurnParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
+  return { PreToolUse: [guardHook(params)], ...(params.sandbox ? { PostToolUseFailure: [sandboxDeniedHook(params)] } : {}) };
+}
+
+/**
+ * Claude Code の決まりでいつも書ける場所（書き込み先の守りが聞かずに通す）: 計画 ~/.claude/plans と、メモリ ~/.claude/projects/<プロジェクト>/memory
+ * （CLAUDE_CONFIG_DIR があればその下。実行のたびに読む）
+ */
+export function claudeWriteExceptions(): WriteExceptions {
+  const projects = realPathLoose(claudeProjectsDir());
+  return { writableDirs: [realPathLoose(path.join(path.dirname(projects), "plans"))], memoryParents: [projects] };
 }
 
 /**

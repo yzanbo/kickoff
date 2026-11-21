@@ -5,13 +5,13 @@ import type { ApprovalReply } from "@shared/ai/approvals";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
 import { withGate } from "@/app/core/testing/testGate";
-import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
+import type { ApprovalRequest, GuardMaterials, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
 import { hookDeny } from "./hooks";
 import { createPreToolUseHandler, writeKey } from "./preToolUse";
 import { SANDBOX_EXIT_DECLINED } from "./sandboxExit";
 
-function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
+function setup(extra: Partial<ProviderTurnParams & GuardMaterials>, answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const steers: string[] = [];
@@ -23,7 +23,8 @@ function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest
       return answer(req);
     },
   };
-  const params = withGate({ cwd: tempDir({ real: true }), permissionMode: "default", deleteGuard: true, ...extra } as ProviderTurnParams, cb.requestApproval);
+  const { writeScope, ...rest } = extra;
+  const params = withGate({ cwd: tempDir({ real: true }), permissionMode: "default", sandbox: null, ...rest } as ProviderTurnParams, cb.requestApproval, undefined, { deleteGuard: true, writeScope });
   const signal = new AbortController().signal;
   const hook = createPreToolUseHandler({ params, cb, approvedWrites });
   const approve = createApprovalHandler({ params, cb, signal, items: new Map(), steer: (t) => steers.push(t), approvedWrites });
@@ -68,12 +69,12 @@ test("フック: 作業場所の外へのファイルの変更は Auto mode で�
 
 test("砂場から出るコマンドの頼み: Bash の砂場をかけていれば、決まったコマンドだけ通し、ほかは理由を伝えて断る", async () => {
   const sandbox = { writableDirs: [], readOnlyDirs: [], unsandboxedCommands: ["brew install:*"], proxyPort: null };
-  const s = setup({ permissionMode: "auto", bashSandbox: sandbox });
+  const s = setup({ permissionMode: "auto", sandbox });
   const ask = (command: string) => s.approve("item/commandExecution/requestApproval", { threadId: "t", turnId: "u", itemId: "c", command });
   assert.deepEqual(await ask("/bin/zsh -lc 'brew install ffmpeg'"), { decision: "accept" });
   assert.deepEqual(await ask("/bin/zsh -lc 'touch ~/x'"), { decision: "decline" });
   assert.match(s.steers[0], new RegExp(SANDBOX_EXIT_DECLINED.slice(0, 20)));
   // 計画モードは断る
-  const plan = setup({ permissionMode: "plan", bashSandbox: sandbox });
+  const plan = setup({ permissionMode: "plan", sandbox });
   assert.deepEqual(await plan.approve("item/commandExecution/requestApproval", { threadId: "t", turnId: "u", itemId: "c", command: "brew install x" }), { decision: "decline" });
 });

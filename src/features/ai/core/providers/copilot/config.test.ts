@@ -1,23 +1,23 @@
 // Copilot SDK の形に直す純粋関数
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
+import type { SandboxPlan } from "@/features/ai/core/providers/types";
 import { toModelOptions } from "./catalog";
 import { byokProvider, copilotSandbox, runtimeEnv } from "./config";
 import { toolAsKickoff } from "./events";
 
-const sandbox: BashSandbox = { writableDirs: ["/note", "/cache"], readOnlyDirs: ["/uploads"], unsandboxedCommands: [], proxyPort: null };
+const sandbox: SandboxPlan = { writableDirs: ["/note", "/cache"], readOnlyDirs: ["/uploads"], unsandboxedCommands: [], proxyPort: null };
 
 test("砂場: 書けるのは作業場所と書けるフォルダ・読むことと通信は絞らない・MCP は砂場に入れない。計画モードは何も書かせない。砂場がなければ渡さない", () => {
-  assert.equal(copilotSandbox({ bashSandbox: null, permissionMode: "default" }), undefined);
-  const on = copilotSandbox({ bashSandbox: sandbox, permissionMode: "default" })!;
+  assert.equal(copilotSandbox({ sandbox: null, permissionMode: "default" }), undefined);
+  const on = copilotSandbox({ sandbox, permissionMode: "default" })!;
   assert.equal(on.enabled, true);
   assert.equal(on.addCurrentWorkingDirectory, true);
   assert.equal(on.sandboxMcpServers, false);
   assert.equal(on.allowBypass, false);
   assert.deepEqual(on.userPolicy?.filesystem, { readwritePaths: ["/note", "/cache"], readonlyPaths: ["/", "/uploads"] });
   assert.deepEqual(on.userPolicy?.network, { allowOutbound: true, allowLocalNetwork: true });
-  const plan = copilotSandbox({ bashSandbox: sandbox, permissionMode: "plan" })!;
+  const plan = copilotSandbox({ sandbox, permissionMode: "plan" })!;
   assert.equal(plan.addCurrentWorkingDirectory, false);
   assert.deepEqual(plan.userPolicy?.filesystem?.readwritePaths, []);
 });

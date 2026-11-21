@@ -1,6 +1,6 @@
 // Claude の 1 回の実行（SDK の query を開き、メッセージを 1 件ずつ記録係 turnTracker と部品に配る）
 import { MCP_SERVERS_DELIVERY } from "./wire";
-import type { ClaudeProviderOptions, ClaudeSdk } from "./sdk";
+import type { ClaudeSdk } from "./sdk";
 import { createBackgroundTracker } from "./background";
 import { createTurnOver } from "./turnOver";
 import { createCommandOutputWatcher } from "./commandOutput";
@@ -18,11 +18,10 @@ import { createTurnTracker } from "./turnTracker";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 
-/** 実行に要るもの（SDK の query の口・Claude Code の実行ファイル・自分を壊す呼び出しを断るための Kickoff 自身） */
+/** 実行に要るもの（SDK の query の口・Claude Code の実行ファイル） */
 export interface ClaudeRunDeps {
   query: ClaudeSdk["query"];
   executable: string | undefined;
-  self: ClaudeProviderOptions["self"];
 }
 
 export async function runClaudeTurn(deps: ClaudeRunDeps, params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
@@ -55,7 +54,7 @@ export async function runClaudeTurn(deps: ClaudeRunDeps, params: ProviderTurnPar
     : null;
   // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
   const spawnNotes = agentSpawnNotes(params.onAgentSpawned);
-  const sandbox = claudeSandboxOption(params.bashSandbox, params.disableSandbox);
+  const sandbox = claudeSandboxOption(params.sandbox, params.sandboxOff);
   try {
     const q = deps.query({
       prompt: input.messages,
@@ -86,7 +85,7 @@ export async function runClaudeTurn(deps: ClaudeRunDeps, params: ProviderTurnPar
         env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env, ...claudeAuthEnv(params.auth) },
         pathToClaudeCodeExecutable: deps.executable,
         hooks: {
-          ...turnHooks(params, deps.self, cb),
+          ...turnHooks(params),
           ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}),
           // このチャットの文脈（子チャットの親など）は、実行の初めの指示に添える
           ...(params.turnContext ? { UserPromptSubmit: [turnContextHook(params.turnContext)] } : {}),

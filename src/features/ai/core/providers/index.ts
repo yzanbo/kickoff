@@ -1,4 +1,3 @@
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { CodexProvider } from "@/features/ai/core/providers/codex/provider";
 import { CopilotProvider } from "@/features/ai/core/providers/copilot/provider";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
@@ -25,10 +24,10 @@ export function experimentalProviders(env: Record<string, string | undefined> = 
  * 利用可能なプロバイダー。新しいプロバイダーはここに追加する。
  * authFor: 実行の外で 1 回だけ聞くとき（名前・要約など）のログインの仕方（設定の API キー）。API キーでしか動かない AI（Gemini）が使う
  */
-export function createProviders(self?: SelfInfo, authFor?: (id: ProviderId) => Promise<ProviderAuth>): Record<ProviderId, AgentProvider> {
+export function createProviders(authFor?: (id: ProviderId) => Promise<ProviderAuth>): Record<ProviderId, AgentProvider> {
   const experimental = experimentalProviders();
   return {
-    claude: new ClaudeProvider({ self }),
+    claude: new ClaudeProvider(),
     codex: new CodexProvider(),
     copilot: experimental.has("copilot") ? new CopilotProvider() : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, PROVIDERS.copilot.cli),
     cursor: experimental.has("cursor") ? cursorProvider({ authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, PROVIDERS.cursor.cli),

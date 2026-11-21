@@ -22,7 +22,7 @@ export function realEnv(opts: CoreOptions): CoreEnv {
     browser: opts.browser,
     mcpBaseUrl: `http://127.0.0.1:${opts.port}`,
     ai: {
-      providers: (authFor) => createProviders(self, authFor),
+      providers: (authFor) => createProviders(authFor),
     },
     // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
     chat: { sessionsElsewhere: siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot) },

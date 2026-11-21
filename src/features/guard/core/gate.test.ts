@@ -119,3 +119,61 @@ test("権限モードの答え・承認なしのコマンド・断ったこと�
   assert.ok(!gate.allowedCommands.some((c) => c.startsWith("git commit")));
   assert.equal(gate.note("コマンド「x」", "理由"), "［Kickoff］コマンド「x」を断りました: 理由");
 });
+
+test("覚えた書く先（remembered）: 「このチャットでは許可」で覚えた書く先への書き込みだけ true（相対パスは作業フォルダで解く）", async () => {
+  const root = tempDir({ real: true });
+  const work = path.join(root, "w");
+  const allowed = new Set<string>();
+  const { gate } = gateOf({ cwd: work, writeScope: { writableDirs: [], workplaces: async () => [], allowed } }, { action: "allow_always" });
+  const write = (file: string) => ({ name: "Write", input: { file_path: file } });
+  assert.equal(gate.remembered(write(path.join(root, "o.txt"))), false);
+  await gate.guard(write(path.join(root, "o.txt")));
+  assert.equal(gate.remembered(write(path.join(root, "o.txt"))), true);
+  assert.equal(gate.remembered(write("../o.txt")), true);
+  assert.equal(gate.remembered({ name: "Read", input: { file_path: path.join(root, "o.txt") } }), false);
+  assert.equal(gate.remembered(bash("touch ../o.txt")), false);
+});
+
+test("CLI の決まりの例外（writeExceptions）: 足した計画のフォルダとメモリは聞かずに書け、ほかの AI（例外なし）は聞く", async () => {
+  const root = tempDir({ real: true });
+  const work = path.join(root, "w");
+  const plans = path.join(root, "claude", "plans");
+  const projects = path.join(root, "claude", "projects");
+  const writeScope = { writableDirs: [], workplaces: async () => [], allowed: new Set<string>() };
+  const write = (file: string) => ({ name: "Write", input: { file_path: file } });
+  const claude = gateOf({ cwd: work, writeScope, writeExceptions: { writableDirs: [plans], memoryParents: [projects] } });
+  assert.equal(await claude.gate.guard(write(path.join(plans, "p.md"))), null);
+  assert.equal(await claude.gate.guard(write(path.join(projects, "app", "memory", "m.md"))), null);
+  assert.deepEqual(await claude.gate.guard(write(path.join(projects, "app", "other.md"))), { allow: true, approved: true });
+  const other = gateOf({ cwd: work, writeScope });
+  assert.deepEqual(await other.gate.guard(write(path.join(plans, "p.md"))), { allow: true, approved: true });
+  assert.equal(claude.asked.length + other.asked.length, 2);
+});
+
+test("砂場で止まったときの文（sandboxDeniedNote）: 砂場があれば断られた場所を説明し、ほかの作業場所は書き込み先の守りの文。砂場がなければ null", async () => {
+  const root = tempDir({ real: true });
+  const work = path.join(root, "w");
+  const other = path.join(root, "w2");
+  const sandbox = { writableDirs: [work], readOnlyDirs: [], unsandboxedCommands: [], proxyPort: null };
+  const workplaces = async () => [
+    { path: work, worktree_path: null, branch: "main" },
+    { path: other, worktree_path: other, branch: "feat/x" },
+  ];
+  const { gate } = gateOf({ cwd: work, sandbox, writeScope: { writableDirs: [], workplaces, allowed: new Set() } });
+  const note = await gate.sandboxDeniedNote(`touch: ${other}/a.txt: Operation not permitted`);
+  assert.match(note ?? "", /Kickoff の砂場が/);
+  assert.match(note ?? "", /別の作業場所/);
+  assert.equal(await gate.sandboxDeniedNote("Exit code 1"), null);
+  assert.equal(await gateOf({ cwd: work }).gate.sandboxDeniedNote(`touch: ${other}/a.txt: Operation not permitted`), null);
+});
+
+test("承認カードを待つのをやめる合図: 渡した signal（Claude のフックの合図）でカードを待ち、省けば実行の signal", async () => {
+  const signals: AbortSignal[] = [];
+  const run = new AbortController().signal;
+  const hook = new AbortController().signal;
+  const requestApproval = async (_req: ApprovalRequest, signal: AbortSignal) => (signals.push(signal), { action: "allow" as const });
+  const gate = toolGateFactory(undefined, sources)({ cwd: "/w", permissionMode: "default", dockerGuard: docker } as GuardMaterials, { requestApproval }, run);
+  await gate.guard(bash("docker compose down"), { signal: hook });
+  await gate.guard(bash("docker compose down"));
+  assert.deepEqual([signals[0] === hook, signals[1] === run], [true, true]);
+});

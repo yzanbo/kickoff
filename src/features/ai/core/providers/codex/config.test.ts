@@ -33,8 +33,8 @@ test("AI の操作ツール: mcp_servers.<名前> に URL・鍵の見出し・�
 test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ。承認は on-request で守りは PreToolUse のフック、システムプロンプトは developer_instructions", () => {
   const sandbox = { writableDirs: ["/note"], readOnlyDirs: ["/ref"], unsandboxedCommands: [], proxyPort: null };
   assert.deepEqual(codexSandboxPolicy(params({ permissionMode: "plan" })), { type: "readOnly", networkAccess: true });
-  assert.deepEqual(codexSandboxPolicy(params({ bashSandbox: sandbox })), { type: "workspaceWrite", writableRoots: ["/note"], networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false });
-  const over = threadOverrides(params({ bashSandbox: sandbox, model: "gpt-x" }));
+  assert.deepEqual(codexSandboxPolicy(params({ sandbox: sandbox })), { type: "workspaceWrite", writableRoots: ["/note"], networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false });
+  const over = threadOverrides(params({ sandbox: sandbox, model: "gpt-x" }));
   assert.equal(over.approvalPolicy, "on-request");
   // 守りのフック（Bash と apply_patch）と、フックの口の URL・鍵を AI のコマンドから外す
   assert.equal(over.config?.["features.hooks"], true);
@@ -50,10 +50,10 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
 });
 
 test("利用者が選んだ砂場オフは thread と turn の両方に渡す。計画モードは読むだけを維持する", () => {
-  const off = params({ disableSandbox: true, permissionMode: "auto" });
+  const off = params({ sandboxOff: true, permissionMode: "auto" });
   assert.equal(threadOverrides(off).sandbox, "danger-full-access");
   assert.deepEqual(codexSandboxPolicy(off), { type: "dangerFullAccess" });
-  const plan = params({ disableSandbox: true, permissionMode: "plan" });
+  const plan = params({ sandboxOff: true, permissionMode: "plan" });
   assert.equal(threadOverrides(plan).sandbox, "read-only");
   assert.deepEqual(codexSandboxPolicy(plan), { type: "readOnly", networkAccess: true });
   assert.equal(threadOverrides(params()).sandbox, "workspace-write");

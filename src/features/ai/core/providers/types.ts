@@ -1,7 +1,6 @@
 import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
 import type { DockerGuard } from "@/features/docker/core/guard/dockerGuard";
 import type { WriteScopeParams } from "@/features/guard/core/guard/writeScope";
-import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
@@ -58,6 +57,8 @@ export interface AgentProvider {
   login?(): Promise<ProviderLogin>;
   /** 推論の深さを指定しないとき（既定）に CLI が使う深さを設定から求める（読むだけ。対応していなければ未実装） */
   effortDefault?(model: string | null, cwd: string): Promise<EffortDefault>;
+  /** CLI の決まりでいつも書ける場所（Claude Code の計画とメモリ。持たない AI は省く。書き込み先の守りが聞かずに通す） */
+  readonly writeExceptions?: WriteExceptions;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
 }
@@ -121,10 +122,6 @@ export interface ProviderTurnParams {
   turnContext?: string | null;
   /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先・参照資料など） */
   additionalDirectories: string[];
-  /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
-  readOnlyPaths?: string[];
-  /** Git で管理していないファイルだけを書けるチャットか（ワークツリーの実行環境の［AI で整える］。chat/guard/scope.ts の evaluateUntrackedWrite で断る） */
-  untrackedOnly?: boolean;
   /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
   env?: Record<string, string>;
   /**
@@ -136,24 +133,13 @@ export interface ProviderTurnParams {
   auth?: ProviderAuth;
   /** 自分で起動した CLI の PID。診断のチャットの境界に使う */
   onAgentSpawned?: (pid: number) => void;
-  /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
-  hiddenDb?: HiddenDbTarget[];
-  /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
-  dockerGuard?: DockerGuard | null;
   /**
-   * AI の書き込み先の守り（chat/guard/writeScope.ts。ファイルを書き換えるツールの先を、作業場所・ノートのフォルダ・決まりの例外だけにする。
-   * 同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く）。なければ付けない（Git で管理していないファイルだけを書けるチャットは、そちらの守りが絞る）
+   * AI の Bash の砂場（guard の bashSandbox.ts。Bash が書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにし、
+   * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。null ならかけない
    */
-  writeScope?: WriteScopeParams | null;
-  /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
-  deleteGuard?: boolean;
-  /**
-   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。Bash が書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにし、
-   * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。なければかけない
-   */
-  bashSandbox?: BashSandbox | null;
-  /** 利用者がこのチャットで明示的に砂場なしを選んだ（省略は砂場にかける） */
-  disableSandbox?: boolean;
+  sandbox: SandboxPlan | null;
+  /** 利用者がこのチャットで明示的に砂場なしを選んだ */
+  sandboxOff: boolean;
   /**
    * 守りの門（chat が実行ごとに作る。断る・聞く・権限モードの答えはここから。承認を聞いてくる CLI（Codex・Copilot・ACP）は、
    * 聞かれたコマンド・書く先・読む先をこれに当てる）。承認なしで流してよいコマンドの一覧も持つ
@@ -170,11 +156,12 @@ export interface GateCall {
   input: Record<string, unknown>;
 }
 
-/** 承認カードに添えるもの（ツールの呼び出し ID・サブエージェント・カードの説明） */
+/** 承認カードに添えるもの（ツールの呼び出し ID・サブエージェント・カードの説明・待つのをやめる合図。合図を省けば実行の signal） */
 export interface GateAsk {
   toolUseId?: string;
   agentId?: string;
   description?: string | null;
+  signal?: AbortSignal;
 }
 
 /** 守りの門（guard の gate.ts が作る。テスト・守りのない実行は permissionMode.ts の permissionOnlyGate） */
@@ -189,14 +176,60 @@ export interface ToolGate {
   guardRead(path: string, ask?: GateAsk): Promise<GateOutcome | null>;
   /** 守りが何も言わなかったときの、権限モードによる答え（command = コマンド / edit = ファイルの変更） */
   byMode(kind: "command" | "edit", call: GateCall, ask?: GateAsk): Promise<GateOutcome>;
+  /** 「このチャットでは許可」で覚えた書く先への書き込みか（Claude Code は聞き直さずに通す。守りが何も言わなかったときに見る） */
+  remembered(call: GateCall): boolean;
   /** 承認なしで流してよいコマンドの頭（Claude Code の許可ルールに写す） */
   readonly allowedCommands: readonly string[];
+  /** 砂場で止まった Bash の出力（失敗で終わったコマンド）に添える文（断られた場所・なぜ・代わりの道。砂場がない・読み取れなければ null） */
+  sandboxDeniedNote(output: string): Promise<string | null>;
   /** 断ったことを AI に伝える文 */
   note(what: string, reason: string): string;
 }
 
-/** 門を作る材料（実行の守りの欄。P5-2d で ProviderTurnParams から外し、門だけを渡す） */
-export type GuardMaterials = Pick<ProviderTurnParams, "cwd" | "permissionMode" | "readOnlyPaths" | "untrackedOnly" | "hiddenDb" | "deleteGuard" | "dockerGuard" | "writeScope">;
+/** Bash の砂場（パスはどれも実体のパス。guard の bashSandboxFor が作り、プロバイダーが自分の砂場の設定に直す） */
+export interface SandboxPlan {
+  /** 書けるフォルダ（作業場所・ノートのフォルダ・決まりの例外） */
+  writableDirs: string[];
+  /** 読めるフォルダに足したが、書かせないもの（添付の保存先・作業場所の外の参照資料。プロバイダーが読めるフォルダを書けるようにしてしまうため） */
+  readOnlyDirs: string[];
+  /** 砂場の外で流すコマンド（Claude Code の許可ルールの書き方 `<コマンド>:*`。中で自分の砂場をかけるので砂場の中では動かないもの） */
+  unsandboxedCommands: string[];
+  /** Bash の通信を通す中継のポート（どこへでも通す。ネットワークは絞らない。なければ null = プロバイダーの中継のまま） */
+  proxyPort: number | null;
+}
+
+/** CLI の決まりでいつも書ける場所（実体のパス。Claude Code の計画とメモリ）。書き込み先の守りが聞かずに通す */
+export interface WriteExceptions {
+  /** いつも書けるフォルダ（Claude Code の計画 ~/.claude/plans） */
+  writableDirs: string[];
+  /** この下の「<名前>/memory」の中を書けるフォルダ（Claude Code のメモリ ~/.claude/projects/<プロジェクト>/memory） */
+  memoryParents: string[];
+}
+
+/** 門を作る材料（chat が実行ごとに集める。プロバイダーには渡さず、門だけを渡す） */
+export interface GuardMaterials {
+  cwd: string;
+  permissionMode: PermissionMode;
+  /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
+  readOnlyPaths?: string[];
+  /** Git で管理していないファイルだけを書けるチャットか（ワークツリーの実行環境の［AI で整える］。guard の scope.ts の untrackedRule で断る） */
+  untrackedOnly?: boolean;
+  /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
+  hiddenDb?: HiddenDbTarget[];
+  /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
+  dockerGuard?: DockerGuard | null;
+  /**
+   * AI の書き込み先の守り（guard の writeScope.ts。ファイルを書き換えるツールの先を、作業場所・ノートのフォルダ・決まりの例外だけにする。
+   * 同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く）。なければ付けない（Git で管理していないファイルだけを書けるチャットは、そちらの守りが絞る）
+   */
+  writeScope?: WriteScopeParams | null;
+  /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（guard の deleteGuard.ts）を付けるか */
+  deleteGuard?: boolean;
+  /** Bash の砂場（砂場で止まったときの文に使う。なければ文を添えない） */
+  sandbox?: SandboxPlan | null;
+  /** その AI の CLI の決まりでいつも書ける場所（AgentProvider.writeExceptions。書き込み先の守りに足す） */
+  writeExceptions?: WriteExceptions;
+}
 
 /** 実行ごとに門を作る口（guard が出し、chat が実行の材料と承認の口を渡して作る） */
 export type ToolGateFactory = (materials: GuardMaterials, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal) => ToolGate;

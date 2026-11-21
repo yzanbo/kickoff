@@ -56,7 +56,9 @@ export function permissionOnlyGate(ctx: ApprovalContext & { permissionMode: Perm
     guardWrites: async () => null,
     guardRead: async () => null,
     byMode: (kind, call, ask) => modeVerdict(ctx, kind, call, ask),
+    remembered: () => false,
     allowedCommands: [],
+    sandboxDeniedNote: async () => null,
     note: declinedNote,
   };
 }

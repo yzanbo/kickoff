@@ -1,4 +1,4 @@
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SessionStore, SubagentLogItem } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SessionStore, SubagentLogItem, ToolGate } from "@/features/ai/core/providers/types";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import { claudeEffortDefault } from "@/features/ai/core/providers/claude/effortDefault";
@@ -93,14 +93,14 @@ export class FakeProvider extends FakeProviderBase {
   preCompacts: ProviderTurnParams["preCompact"][] = [];
   /** これがあれば実行の初めに、自動の圧縮の前に圧縮前指示を足したと知らせる（値は足した発言の ID） */
   preCompactSentId: string | null = null;
-  /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
-  lastUntrackedOnly = false;
+  /** 最後の実行の守りの門（［AI で整える］のチャットの守りの確かめに使う） */
+  lastGate: ToolGate | null = null;
   /** 最後の実行に渡したモデル（一覧にないモデルを外す確かめに使う） */
   lastModel: string | null = null;
   /** モデルの一覧（テストで入れる。なければ一覧を持たない AI） */
   models?: () => Promise<ModelOption[]>;
   async run(
-    params: { cwd: string; model?: string | null; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; untrackedOnly?: boolean },
+    params: { cwd: string; model?: string | null; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; gate?: ToolGate },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
@@ -111,7 +111,7 @@ export class FakeProvider extends FakeProviderBase {
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
     this.lastTurnContext = params.turnContext ?? null;
-    this.lastUntrackedOnly = params.untrackedOnly ?? false;
+    this.lastGate = params.gate ?? null;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);
     this.resumes.push(params.resumeSessionId);

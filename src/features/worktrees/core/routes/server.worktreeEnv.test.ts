@@ -146,7 +146,9 @@ test("［AI で整える］: この機能より前に作ったワークツリー
   assert.equal(chat.worktree_path, wt.path);
   assert.equal(chat.untracked_only, true);
   await until(() => s.store.chats.get(chat.id)?.status === "completed");
-  assert.equal(s.provider.lastUntrackedOnly, true);
+  // Git で管理しているファイル（compose.yaml）への書き込みを門が断る
+  const writeTracked = { name: "Write", input: { file_path: path.join(wt.path, "compose.yaml") } };
+  assert.ok(await s.provider.lastGate?.deny(writeTracked));
   assert.equal(s.provider.lastCwd, wt.path);
   const prompt = s.provider.prompts.at(-1)!;
   assert.match(prompt, /帯: 20100〜20199/);
@@ -158,7 +160,7 @@ test("［AI で整える］: この機能より前に作ったワークツリー
   // ふつうのチャットは書き込みを守らない
   const plain = await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "hi", worktree_path: wt.path });
   await until(() => s.store.chats.get(plain.body.id)?.status === "completed");
-  assert.equal(s.provider.lastUntrackedOnly, false);
+  assert.equal(await s.provider.lastGate?.deny(writeTracked), null);
 });
 
 test("消すとき: drop_db_connections なら、このワークツリーの DB から作った接続も消す。選ばなければ結び付きだけ外す", async () => {

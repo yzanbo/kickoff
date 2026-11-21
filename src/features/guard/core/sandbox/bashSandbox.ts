@@ -6,18 +6,7 @@ import path from "node:path";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import type { AgentSandboxRules } from "@/features/guard/core/platformRules";
 import { realPathLoose } from "@/foundation/core/system/paths";
-
-/** プロバイダーに渡す砂場（パスはどれも実体のパス） */
-export interface BashSandbox {
-  /** 書けるフォルダ（作業場所・ノートのフォルダ・決まりの例外） */
-  writableDirs: string[];
-  /** 読めるフォルダに足したが、書かせないもの（添付の保存先・作業場所の外の参照資料。プロバイダーが読めるフォルダを書けるようにしてしまうため） */
-  readOnlyDirs: string[];
-  /** 砂場の外で流すコマンド（Claude Code の許可ルールの書き方 `<コマンド>:*`。中で自分の砂場をかけるので砂場の中では動かないもの） */
-  unsandboxedCommands: string[];
-  /** Bash の通信を通す中継のポート（どこへでも通す。ネットワークは絞らない。なければ null = プロバイダーの中継のまま） */
-  proxyPort: number | null;
-}
+import type { SandboxPlan } from "@/features/ai/core/index";
 
 /** 実行のたびに使うもの（startCore が作る） */
 export interface BashSandboxDeps {
@@ -96,7 +85,7 @@ function realDirs(dirs: (string | null)[]): string[] {
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
  * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）
  */
-export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, noteDir, readOnlyDirs }: { workdir: string; noteDir: string | null; readOnlyDirs: string[] }): Promise<BashSandbox> {
+export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, noteDir, readOnlyDirs }: { workdir: string; noteDir: string | null; readOnlyDirs: string[] }): Promise<SandboxPlan> {
   const home = os.homedir();
   const [commonDir, platformDirs, electronCommands] = await Promise.all([gitCommonDir(workdir), deps.rules.writableDirs(), electronCommandsOf(workdir)]);
   // Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）。共有の .git が <リポジトリ>/.git のときだけ分かる

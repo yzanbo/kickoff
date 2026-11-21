@@ -11,11 +11,12 @@ import type { ClaudeAuthStatus } from "./internals";
 import { subagentLogOf } from "./subagentLog";
 import { readPlanDisplayName } from "./usage";
 import { withIdleSession } from "./idleSession";
-import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "@/features/ai/core/providers/types";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem, WriteExceptions } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/ai/commands";
 import { claudeEffortDefault } from "./effortDefault";
 import { runClaudeTurn } from "./run";
+import { claudeWriteExceptions } from "./policy";
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -25,14 +26,16 @@ export class ClaudeProvider implements AgentProvider {
   readonly label = "Claude Code";
   readonly implemented = true;
   readonly sessions = claudeSessionStore;
+  /** Claude Code の計画とメモリ（CLAUDE_CONFIG_DIR を実行のたびに読む） */
+  get writeExceptions(): WriteExceptions {
+    return claudeWriteExceptions();
+  }
   private readonly sdk: ClaudeSdk;
   private readonly executable: string | undefined;
-  private readonly self: ClaudeProviderOptions["self"];
 
   constructor(opts: ClaudeProviderOptions = {}) {
     this.sdk = opts.sdk ?? realClaudeSdk;
     this.executable = opts.executable ?? resolveClaudeExecutable();
-    this.self = opts.self;
   }
 
   async status(): Promise<ProviderCliStatus> {
@@ -103,7 +106,7 @@ export class ClaudeProvider implements AgentProvider {
 
   /** 1 回の実行（run.ts。SDK の口はテストで偽物に差し替えられる） */
   run(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
-    return runClaudeTurn({ query: this.sdk.query, executable: this.executable, self: this.self }, params, cb, signal);
+    return runClaudeTurn({ query: this.sdk.query, executable: this.executable }, params, cb, signal);
   }
 
   /**

@@ -4,10 +4,11 @@ import { permissionOnlyGate } from "@/features/ai/core/permissionMode";
 import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
+import { PERMISSION_MODES } from "@shared/settings/types";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
+import { withGate } from "@/app/core/testing/testGate";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { ClaudeProvider } from "./provider";
 
@@ -26,6 +27,8 @@ export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTur
     fastMode: false,
     autoCompactPct: null,
     additionalDirectories: [],
+    sandbox: null,
+    sandboxOff: false,
     gate: permissionOnlyGate({ permissionMode: patch.permissionMode ?? "default", cb: { requestApproval: async () => ({ action: "deny", message: "" }) }, signal: new AbortController().signal }),
     ...patch,
   };
@@ -53,7 +56,7 @@ export function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () =>
   return { cb, events, approvals, contexts, retries, control: () => control };
 }
 
-const provider = (fake: FakeClaudeSdk, self?: SelfInfo) => new ClaudeProvider({ sdk: fake.sdk, executable: "claude", self });
+const provider = (fake: FakeClaudeSdk) => new ClaudeProvider({ sdk: fake.sdk, executable: "claude" });
 const signal = () => new AbortController().signal;
 const usage = (input: number) => ({ input_tokens: input, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 });
 /** query が呼ばれるまで待って、その記録を返す */
@@ -110,10 +113,10 @@ test("続き: resumeSessionId を resume に渡し、存在しないセッショ
   assert.equal(missing.resumeSessionMissing, true);
 });
 
-test("守り: 消すコマンド・フックを飛ばす git・自分を止めるコマンドは、権限モードによらず PreToolUse のフックが断る", async () => {
-  const self: SelfInfo = { pids: [4242], dataDir: "/tmp/kickoff-self-test", port: 4317, appName: "Kickoff", guard: { killByName: /\b(pkill|killall)\b/, scripting: { pattern: /\bosascript\b/, label: "AppleScript" } } };
+test("守り: 消すコマンド・フックを飛ばす git・自分を止めるコマンドは、権限モードによらず PreToolUse のフック（守りの門）が断る", async () => {
+  const self = { pids: [4242], dataDir: "/tmp/kickoff-self-test", port: 4317, appName: "Kickoff", guard: { killByName: /\b(pkill|killall)\b/, scripting: { pattern: /\bosascript\b/, label: "AppleScript" } } };
   const commands = ["rm -rf /tmp/x", "git commit --no-verify -m x", "kill -TERM 4242", "ls"];
-  for (const permissionMode of ["default", "auto"] as const) {
+  for (const permissionMode of PERMISSION_MODES) {
     const fake = fakeClaudeSdk();
     const denied: Record<string, boolean> = {};
     fake.onQuery = async (q) => {
@@ -123,9 +126,27 @@ test("守り: 消すコマンド・フックを飛ばす git・自分を止め�
       }
       q.finish();
     };
-    await provider(fake, self).run(turnParams({ permissionMode, deleteGuard: true }), recorder().cb, signal());
+    await provider(fake).run(withGate(turnParams({ permissionMode }), undefined, signal(), { deleteGuard: true }, self), recorder().cb, signal());
     assert.deepEqual(denied, { "rm -rf /tmp/x": true, "git commit --no-verify -m x": true, "kill -TERM 4242": true, ls: false }, permissionMode);
   }
+});
+
+test("守りのフック: PreToolUse は matcher のない 1 つで、承認カードを待つ長さの待ち時間を渡す。守りが何も言わない Read は聞かずにすぐ答える", async () => {
+  const fake = fakeClaudeSdk();
+  const asked: unknown[] = [];
+  let read: unknown[] = [];
+  fake.onQuery = async (q) => {
+    read = await q.hook("PreToolUse", { hook_event_name: "PreToolUse", tool_name: "Read", tool_input: { file_path: "/w/a.ts" }, tool_use_id: "t-1" });
+    q.finish();
+  };
+  const ask = async (req: ApprovalRequest) => (asked.push(req), new Promise<ApprovalReply>(() => {}));
+  await provider(fake).run(withGate(turnParams({ cwd: tempDir({ real: true }) }), ask, signal(), { deleteGuard: true }), recorder().cb, signal());
+  const [matcher, ...rest] = fake.queries[0].options.hooks?.PreToolUse ?? [];
+  assert.equal(rest.length, 0);
+  assert.equal(matcher?.matcher, undefined);
+  assert.ok((matcher?.timeout ?? 0) >= 24 * 60 * 60);
+  assert.deepEqual(read, [{}]);
+  assert.equal(asked.length, 0);
 });
 
 test("承認: canUseTool が承認を聞き、許せば allow・断れば deny。砂場の中継のツールは聞かずに許す", async () => {

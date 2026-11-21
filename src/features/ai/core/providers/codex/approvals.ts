@@ -53,7 +53,7 @@ async function commandApproval(deps: ApprovalDeps, p: CommandApprovalParams): Pr
   const denied = await gate.deny(call);
   if (denied) return { decision: toDecision(deps, denied, what) };
   if (deps.params.permissionMode === "plan") return { decision: toDecision(deps, { allow: false, reason: PLAN_MODE_DECLINED }, what) };
-  const sandbox = deps.params.bashSandbox;
+  const sandbox = deps.params.sandbox;
   if (sandbox) {
     const allowed = isUnsandboxedCommand(command, sandbox.unsandboxedCommands);
     return { decision: toDecision(deps, allowed ? { allow: true } : { allow: false, reason: SANDBOX_EXIT_DECLINED }, what) };
