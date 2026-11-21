@@ -16,19 +16,17 @@ const INSTRUCTIONS = [
   "利用者に地図・場所を見せたいときは、チャット欄に地図は描けないので、Google マップの URL（https://www.google.com/maps/search/?api=1&query=<場所の名前を URL 符号化したもの>）を browser_open で開く。",
 ];
 
-/** チャットごとに、最後に使ったタブ（tab_id を省いたときに使う。実行をまたいで覚える） */
-const lastTabs = new Map<number, number>();
-
 /**
  * 1 回の実行に渡す、埋め込みブラウザのツール（コアの MCP サーバーがどの CLI にも出す）。
- * tab_id を省くと、このチャットで前に使ったタブ → このプロジェクトのタブ（いちばん新しいもの）の順で選ぶ
+ * tab_id を省くと、このチャットで前に使ったタブ → このプロジェクトのタブ（いちばん新しいもの）の順で選ぶ。
+ * lastTabs はチャットごとに最後に使ったタブ（実行をまたいで覚える。消したチャットの分は機能が捨てる）
  */
-export function browserToolGroup(control: BrowserControl): AiToolGroup {
-  return { server: "kickoff_browser", order: 0, instructions: INSTRUCTIONS, open: ({ projectId, chatId }) => browserTools(control, projectId, chatId) };
+export function browserToolGroup(control: BrowserControl, lastTabs: Map<number, number> = new Map()): AiToolGroup {
+  return { server: "kickoff_browser", order: 0, instructions: INSTRUCTIONS, open: ({ projectId, chatId }) => browserTools(control, lastTabs, projectId, chatId) };
 }
 
 /** 見るだけのツールは読むだけの印を付けて聞かずに使わせ、開く・押す・打つ・JS は、ほかのツールと同じく権限モードと承認に従う（auto: false） */
-function browserTools(control: BrowserControl, projectId: number, chatId: number) {
+function browserTools(control: BrowserControl, lastTabs: Map<number, number>, projectId: number, chatId: number) {
   /** この作業で表に出したタブ（作業ごとに作るので、作業ごとの覚え） */
   const reveal = turnReveal((id, request) => control.reveal(id, request));
   /** 操作するタブを決め、使ったことを覚えて画面に印を出す。作業の初めに使うタブなら、表に出し終えるまで待つ（background なら出さない） */

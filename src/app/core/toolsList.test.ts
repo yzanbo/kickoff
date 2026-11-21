@@ -5,8 +5,9 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { DatabaseService } from "@/features/database/core/service";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
-import { browserToolGroup } from "@/features/browser/core/browserTools";
-import { dbToolGroup } from "@/features/database/core/dbTools";
+import { browserToolGroup } from "@/features/browser/core/index";
+import { dbToolGroup, openSqlToolGroup } from "@/features/database/core/tools";
+import { terminalToolGroup } from "@/features/terminal/core/tools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { diagnosticToolGroup } from "@/features/guard/core/index";
 import { moveNoteToolGroup, openNoteToolGroup } from "@/features/notes/core/tools";
@@ -103,6 +104,8 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       openFileToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       openDiffToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       snippetToolGroup({ snippets: store.snippets, chatOf: (id) => store.chats.get(id) }),
+      openSqlToolGroup({ store, dbConnectionsOf: (id) => store.dbConnections.list(id), publish: (e) => core.bus.publish(e) }),
+      terminalToolGroup({ store, terminals }),
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), worktreeEnvs: () => undefined }),
       worktreeToolGroup(finisher),
@@ -161,7 +164,7 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
     }),
   browser: () => {
     const browser = unused<BrowserControl>("browser");
-    return toolsSeenBy(startPlain, { browser }, () => [browserToolGroup(browser)]);
+    return toolsSeenBy(startPlain, {}, () => [browserToolGroup(browser)]);
   },
   // AI に見せる SQLite の接続が 1 つあるプロジェクト
   database: () =>
@@ -186,7 +189,6 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
       // DB のツールを出すかは database の店の接続で決める（ツールの中身は呼ばない）
       (core) => {
         const databases = { stores: core.store } as unknown as DatabaseService;
-        core.runner.attach({ databases });
         return [dbToolGroup(databases, core.store)];
       },
     ),

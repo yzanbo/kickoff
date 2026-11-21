@@ -1,12 +1,11 @@
 // 1 回の実行の指定を組み立てる: 登録した contributor（TurnContributor）が出したものを order の順に集め（collectTurnParts）、プロバイダーに渡す形にする（toProviderParams）。
 // まだ機能へ分けていない組み立ては 1 つの contributor（legacyTurnParts）に入れてあり、P5-4 の単位ごとに各機能の contributor へ移す
-import { browserSection } from "@/features/chat/core/prompt/system";
 import { joinSections } from "@/features/chat/core/prompt/sections";
 import { appendSections } from "@/features/chat/core/prompt/compose";
 import { permissionOnlyGate, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
-import type { ExecutionDeps, ProviderTurnParams } from "@/features/chat/core/turn";
+import type { ProviderTurnParams } from "@/features/chat/core/turn";
 import type { TurnContext, TurnContributor, TurnParts, TurnRun, TurnRunPatch } from "./contributor";
 
 /** contributor が出したものを集めた答え */
@@ -104,11 +103,7 @@ export function toProviderParams(
   };
 }
 
-/** まだ機能へ分けていない組み立て（order 0）: システムプロンプトのブラウザの節（埋め込みブラウザがあるとき。どの AI にも利用者が選んだ開き先を伝える） */
-export function legacyTurnParts(deps: ExecutionDeps): TurnContributor {
-  return {
-    name: "legacy",
-    order: 0,
-    contribute: () => (deps.browser ? { promptSections: [browserSection(deps.store.settings.get().link_open_in)] } : null),
-  };
+/** まだ機能へ分けていない組み立て（order 0。もう何も出さない。P5-4i で消す） */
+export function legacyTurnParts(): TurnContributor {
+  return { name: "legacy", order: 0, contribute: () => null };
 }

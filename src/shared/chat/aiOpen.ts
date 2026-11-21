@@ -36,12 +36,6 @@ export const AI_OPEN_SQL_TOOL = "mcp__kickoff_chat__open_sql";
 /** 家系のチャットの入力欄に下書きを入れるツールの名前 */
 export const AI_ADD_DRAFT_TOOL = "mcp__kickoff_chat__add_draft";
 
-/** open_sql の引数（connection は接続の名前。AI に見せる接続が 1 つだけなら省ける） */
-export interface OpenSqlInput {
-  sql: string;
-  connection?: string;
-}
-
 /** 記録の行に出す文（「src/a.ts:12（別ウィンドウ）」） */
 export function describeOpenFile(input: Record<string, unknown>): string {
   const target = typeof input.path === "string" ? input.path : "";

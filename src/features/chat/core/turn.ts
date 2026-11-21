@@ -1,6 +1,5 @@
 // 1 回の実行に使うもの（ExecutionDeps）・実行の依頼（TurnRequest）と、実行（run/turn/）が使う上の機能の中身を 1 か所から渡す仮の口。
 // 実行のファイルは上の機能を直に読まず、ここだけを読む（上の機能を読む辺をこのファイルに閉じ込める。P5-4 の TurnContributor で登録の形にしたら消す）
-import type { BrowserControl } from "@shared/browser/control";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
@@ -8,7 +7,6 @@ import type { ApprovalCenter } from "./approvals";
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import type { DatabaseService } from "@/features/database/core/service";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { TrashCommand } from "@/features/trash/core/command";
@@ -37,12 +35,6 @@ export interface ExecutionDeps {
   /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */
   attachments?: ChatAttachments;
   bus?: Bus;
-  /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。なければ AI にブラウザのツールを出さない） */
-  browser?: BrowserControl;
-  /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。なければ AI にターミナルのツールを出さない） */
-  terminals?: TerminalControl;
-  /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
-  databases?: DatabaseService;
   /** 使用状況の見張り（AI の get_usage が読み、実行中の支払いの知らせを渡す。なければ get_usage は使えないと返し、知らせは見ない） */
   usage?: UsageMonitor;
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
@@ -72,4 +64,6 @@ export interface ShellUpperDeps {
   worktreeEnvs?: WorktreeEnvService;
   /** ワークツリーの後始末（片付けを予約したワークツリーへは移さない） */
   worktreeFinisher?: WorktreeFinisher;
+  /** 内蔵ターミナルの読み取り（移す前に、その作業場所で動いているシェルを確かめる） */
+  terminals?: TerminalControl;
 }

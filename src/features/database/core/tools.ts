@@ -3,7 +3,8 @@ import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { aiToolId } from "@shared/foundation/aiToolView";
 import { createDbAiTools, hasAiConnections, type DbAiTools } from "./aiTools";
 import type { DatabaseService } from "./service";
-import type { Store } from "@/features/chat/core/index";
+import { lineageOf, toolChat, type Store } from "@/features/chat/core/index";
+import type { BusEvent } from "@shared/foundation/contract";
 
 /** このツールの使い方（MCP の instructions として AI に渡す） */
 const INSTRUCTIONS = [
@@ -94,4 +95,47 @@ function dbTools(tools: DbAiTools) {
         ),
     }),
   ];
+}
+
+/** SQL の長さの上限 */
+const SQL_MAX = 100_000;
+
+/**
+ * SQL のタブに SQL を入れて開くツールの組（kickoff_chat の開く組。chat の place の使い方（44）の次 = 45）。開く・入れるだけで流さないので聞かずに頼む
+ * （権限モード・Auto mode によらず承認カードを出さない）。確かめてから SSE の open_view で頼む（画面が開いたかは待たない）。接続は呼ぶたびに引き直す
+ */
+export function openSqlToolGroup(d: { store: Store; dbConnectionsOf: (projectId: number) => { id: number; name: string; ai_access: string }[]; publish: (event: BusEvent) => void }): AiToolGroup {
+  return {
+    server: "kickoff_chat",
+    order: 45,
+    instructions: ["open_sql は、このプロジェクトの DB の接続（AI に見せる接続だけ）の新しい SQL のタブに SQL を入れて開く。流さない（流すのは利用者）。書き込みの SQL を用意して、利用者に確かめてから流してもらうときに使う。"],
+    open: ({ chatId }) => [
+      defineAiTool({
+        server: "kickoff_chat",
+        name: "open_sql",
+        description: "このプロジェクトの DB の接続の新しい SQL のタブに SQL を入れて開く（流さない）",
+        input: {
+          sql: z.string().min(1).describe("入れる SQL（いくつかの文でもよい）"),
+          connection: z.string().optional().describe("接続の名前（AI に見せる接続が 1 つだけなら省ける）"),
+        },
+        run(input) {
+          const self = toolChat(d.store.chats, chatId).self();
+          const sql = input.sql.trim();
+          if (!sql) throw new Error("sql が空です");
+          if (sql.length > SQL_MAX) throw new Error(`sql は ${SQL_MAX} 文字までです`);
+          // 「AI に見せない」接続は選ばせない（名前も出さない）
+          const shown = d.dbConnectionsOf(self.project_id).filter((c) => c.ai_access !== "none");
+          const name = input.connection?.trim();
+          const hit = name ? (shown.find((c) => c.name === name) ?? shown.find((c) => c.name.toLowerCase() === name.toLowerCase())) : shown.length === 1 ? shown[0] : undefined;
+          if (!hit) {
+            if (shown.length === 0) throw new Error("このプロジェクトには、AI に見せる DB の接続がありません。");
+            if (!name) throw new Error(`connection に接続の名前を渡してください（AI に見せる接続: ${shown.map((c) => c.name).join("、")}）。`);
+            throw new Error(`「${name}」という AI に見せる接続はありません（AI に見せる接続: ${shown.map((c) => c.name).join("、")}。利用者が AI に見せないと決めた接続は選べません）。`);
+          }
+          d.publish({ type: "open_view", request: { kind: "sql", project_id: self.project_id, connection_id: hit.id, sql, lineage: lineageOf(d.store, self) } });
+          return `接続「${hit.name}」の新しい SQL のタブに SQL を入れて開くよう、画面に頼みました（流していません。流すのは利用者です）。`;
+        },
+      }),
+    ],
+  };
 }

@@ -9,7 +9,6 @@ import { setupCore, until } from "@/app/core/testing/testCore";
 import { judgeFileWrite } from "@/features/guard/core/guard/writeScope";
 import { UploadStore } from "@/features/attachments/core/uploads";
 import type { CompactingState } from "@shared/chat/chatLive";
-import type { BrowserControl } from "@shared/browser/control";
 
 /** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
 const setup = (script: Script, uploads?: UploadStore) => setupCore(new ScriptedProvider(script), { uploads });
@@ -46,24 +45,6 @@ test("チャット欄で指定がなければ設定の既定（モデル・深�
   await until(() => store.chats.get(chat.id)?.status === "completed");
   const call = provider.calls[0];
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
-});
-
-test("ブラウザの開き先を Claude Code と Codex に共通で伝え、同じ会話の続きでも設定を読み直す", async () => {
-  // ブラウザ自体は操作しない。提供の有無と、渡される指示だけを確かめる
-  const browser = {} as BrowserControl;
-  for (const id of ["claude", "codex"] as const) {
-    const { store, runner, provider, project } = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" })), { browser });
-    store.projects.update(project.id, { provider: id });
-    const chat = await runner.start({ projectId: project.id, prompt: "ページを開いて" });
-    await until(() => store.chats.get(chat.id)?.status === "completed");
-    assert.equal(store.chats.get(chat.id)?.provider, id);
-    assert.match(provider.calls[0].systemPrompt, /既定の開き先は「Kickoff のブラウザ」/);
-    store.settings.update({ link_open_in: "browser" });
-    await runner.send(chat.id, "もう一度開いて");
-    await until(() => store.chats.get(chat.id)?.status === "completed" && provider.calls.length === 2);
-    assert.match(provider.calls[1].systemPrompt, /既定の開き先は「既定のブラウザ」/);
-    assert.doesNotMatch(provider.calls[1].systemPrompt, /既定の開き先は「Kickoff のブラウザ」/);
-  }
 });
 
 test("自動圧縮を始める使用率は設定の値を渡す（決めていなければ null）", async () => {

@@ -1,20 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
-import type { LinkOpenTarget } from "@shared/settings/types";
-import { browserSection, projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
+import { projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
 import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
 
-/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節。図と数式の節は visuals・ノートの節は notes） */
-function buildSystemPrompt(p: Project, workdir = p.repo_path, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
+/** 実行と同じ並びで節をつなぐ（chat の節と砂場の行。ブラウザは browser・図と数式は visuals・ノートは notes の節） */
+function buildSystemPrompt(p: Project, workdir = p.repo_path, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean } = {}): string {
   const references = referenceSection(p);
   return joinSections([
     projectSection(p, workdir, opts.editScopeEnabled),
     WORK_SECTION,
     ...(opts.trash ? [TRASH_SECTION] : []),
     ...(opts.sandboxLines ? [{ order: 220, heading: null, lines: opts.sandboxLines }] : []), // 砂場の行（guard の contributor が作る節）
-    ...(opts.browser ? [browserSection(opts.browser)] : []),
     ...(references ? [references] : []),
   ]);
 }
@@ -24,19 +22,6 @@ function project(references: { path: string; kind: "folder" | "file" }[] = []) {
   const p = store.projects.create({ name: "a", description: "ノートアプリ", repo_path: "/tmp/a", provider: "claude" });
   return store.projects.update(p.id, { reference_paths: references });
 }
-
-test("ブラウザ: 開き先が Kickoff なら内蔵ツールを優先し、OS の既定なら外部で開くよう伝える", () => {
-  const p = project();
-  const kickoff = buildSystemPrompt(p, p.repo_path, { browser: "kickoff" });
-  assert.match(kickoff, /既定の開き先は「Kickoff のブラウザ」/);
-  assert.match(kickoff, /kickoff_browser の browser_tabs・browser_open などを優先/);
-  assert.match(kickoff, /利用者が別のブラウザや自動テストを指定した場合を除き/);
-  const external = buildSystemPrompt(p, p.repo_path, { browser: "browser" });
-  assert.match(external, /既定の開き先は「既定のブラウザ」（OS の既定のブラウザ）/);
-  assert.doesNotMatch(external, /browser_open などを優先/);
-  // 内蔵ブラウザのない環境では、使えないツールを勧めない
-  assert.doesNotMatch(buildSystemPrompt(p), /## ブラウザ/);
-});
 
 test("指示はセクション・タスク・成果物に触れず、プロジェクト・参照資料だけを伝える", () => {
   const prompt = buildSystemPrompt(project([{ path: "/tmp/spec", kind: "folder" }]));

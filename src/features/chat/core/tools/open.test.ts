@@ -1,30 +1,28 @@
-// チャットの AI がノート・家系のチャットを開くツールの中身（パスの確かめ・家系の範囲・画面への頼み）
+// チャットの AI が家系のチャットを開く・下書きを入れるツールの中身（家系の範囲・画面への頼み）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/foundation/contract";
-import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
-import { setupCore } from "@/app/core/testing/testCore";
+import { testStore } from "@/app/core/testing/testStore";
+import { tempDir } from "@/foundation/core/testing/tempDir";
 import { callDef } from "@/foundation/core/testing/toolCalls";
-import { createAiOpenTools } from "./aiOpen";
 import { chatOpenTools } from "./open";
 
-/** すぐ終わる偽のプロバイダーで組み立て、根 ─ 子 ─ 孫 と、別の家系の「よそ」を用意する（ノート・ファイル・差分を開くツールは notes・files・git のテスト） */
+/** 店に、根 ─ 子 ─ 孫 と、別の家系の「よそ」を用意する（ノート・ファイル・差分・SQL を開くツールは notes・files・git・database のテスト） */
 function setup() {
-  const provider = new ScriptedProvider(async (params) => ({ status: "completed", sessionId: "s", turns: 1, result: params.prompt }));
-  const ctx = setupCore(provider);
-  const { store, project } = ctx;
+  const store = testStore();
+  const project = store.projects.create({ name: "p", repo_path: tempDir(), provider: "claude" });
+  const ctx = { store, project };
   const base = { project_id: project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null };
   const root = store.chats.create({ ...base, title: "根", parent_chat_id: null });
   const child = store.chats.create({ ...base, title: "子", parent_chat_id: root.id });
   const grandchild = store.chats.create({ ...base, title: "孫", parent_chat_id: child.id });
   const other = store.chats.create({ ...base, title: "よそ", parent_chat_id: null });
   const published: BusEvent[] = [];
-  const toolsOf = (chatId: number) => createAiOpenTools({ store, publish: (e) => published.push(e), dbConnectionsOf: (id) => store.dbConnections.list(id) }, chatId);
   const familyOf = (chatId: number) => {
     const { openChat, addDraft } = chatOpenTools({ store, publish: (e) => published.push(e) }, chatId);
     return { openChat: (args: Record<string, unknown>) => callDef(openChat, args), addDraft: (args: Record<string, unknown>) => callDef(addDraft, args) };
   };
-  return { ctx, root, child, grandchild, other, published, toolsOf, familyOf };
+  return { ctx, root, child, grandchild, other, published, familyOf };
 }
 
 test("open_chat: 家系のチャットは開くよう頼み（親チャットはチャットのパネル）、家系の外は断る", async () => {
@@ -41,24 +39,6 @@ test("open_chat: 家系のチャットは開くよう頼み（親チャットは
   assert.match(await tools.openChat({ chat_id: root.id, place: "window" }), /チャットのパネル/);
   await assert.rejects(tools.openChat({ chat_id: other.id }), /家系（.*）にありません/);
   assert.equal(published.length, 2);
-});
-
-test("open_sql: AI に見せる接続だけを選べ（1 つなら省ける）、見せない接続は名前を出さずに断る", () => {
-  const { ctx, child, published, toolsOf } = setup();
-  const conn = (name: string, ai_access: "none" | "allow") =>
-    ctx.store.dbConnections.create(ctx.project.id, { name, engine: "sqlite", environment: "dev", host: null, port: null, database: null, username: null, file_path: "app.db", ssl: null, read_only: false, ai_access });
-  const tools = toolsOf(child.id);
-  assert.throws(() => tools.openSql({ sql: "SELECT 1" }), /AI に見せる DB の接続がありません/);
-  conn("本番", "none");
-  const dev = conn("開発", "allow");
-  assert.match(tools.openSql({ sql: "  UPDATE users SET name = 'a' WHERE id = 1;  " }), /接続「開発」の新しい SQL のタブ/);
-  const e = published[0];
-  assert.ok(e.type === "open_view" && e.request.kind === "sql");
-  assert.deepEqual([e.request.connection_id, e.request.sql], [dev.id, "UPDATE users SET name = 'a' WHERE id = 1;"]);
-  assert.throws(() => tools.openSql({ sql: "SELECT 1", connection: "本番" }), (err: Error) => /AI に見せる接続はありません（AI に見せる接続: 開発/.test(err.message));
-  conn("ステージング", "allow");
-  assert.throws(() => tools.openSql({ sql: "SELECT 1" }), /connection に接続の名前/);
-  assert.equal(published.length, 1);
 });
 
 test("add_draft: 家系のチャットに頼み、親チャットに入れるときだけ「子チャットから」の印。家系の外・アーカイブ済み・空は断る", async () => {

@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { BrowserControl } from "@shared/browser/control";
+import type { LinkOpenTarget } from "@shared/settings/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
@@ -12,6 +12,7 @@ import { setupCore, until } from "@/app/core/testing/testCore";
 import { setup } from "@/app/core/testing/testServer";
 import { visualTurnParts } from "@/features/visuals/core/tools";
 import { noteTurnParts } from "@/features/notes/core/turnParts";
+import { browserTurnParts } from "@/features/browser/core/index";
 
 /** 本物の組み立てと同じく、上の機能が実行に足すもの（setupCore は殻だけなので、システムプロンプトの図と数式の節を足す） */
 const contributors = [visualTurnParts()];
@@ -215,7 +216,8 @@ const CASES: Record<string, () => Promise<string>> = {
   // ブラウザの開き先（Kickoff のブラウザ → 既定のブラウザ）
   "browser-hint": async () => {
     const provider = new ScriptedProvider(done);
-    const { store, runner, project } = setupCore(provider, { browser: {} as BrowserControl, contributors });
+    const ctx = setupCore(provider, { contributors: [...contributors, browserTurnParts((): LinkOpenTarget => ctx.store.settings.get().link_open_in)] });
+    const { store, runner, project } = ctx;
     const chat = await runner.start({ projectId: project.id, prompt: "ページを開いて" });
     await until(() => store.chats.get(chat.id)?.status === "completed");
     store.settings.update({ link_open_in: "browser" });

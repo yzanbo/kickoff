@@ -102,7 +102,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store }, { shell: env.platformParts.terminalShell(), ...env.terminal });
-  const browser = createBrowser({ control: env.browser });
+  const browser = createBrowser(k, { chat: chat.api }, { control: env.browser });
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
@@ -110,11 +110,9 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
   chat.api.attach({
-    databases: database.api,
     worktreeEnvs: worktrees.api.envs,
     worktreeFinisher: worktrees.api.finisher,
     terminals,
-    browser: browser.api,
     remoteImages: remoteImages.api,
     aiTools: features.flatMap((f) => f.aiTools ?? []),
   });

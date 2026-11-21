@@ -27,7 +27,7 @@ export interface ChatRouteDeps {
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
   /** 片付けを予約したワークツリー */
   worktreeFinisher: { reservedFolders(): Set<string> };
-  terminals: NonNullable<ExecutionDeps["terminals"]>;
+  terminals: NonNullable<ShellUpperDeps["terminals"]>;
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
 }

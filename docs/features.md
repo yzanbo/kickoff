@@ -818,7 +818,7 @@
 | AIT-001 | AI がチャット（子・兄弟・親のないチャット）を作って頼む・ワークツリーでも作る | childChats | T:aiCreateChat |
 | AIT-002 | チャットの名前を変える・家系のチャットを固定する・グループを変える・親から外す | chat | T:aiChatEdit |
 | AIT-003 | チャットをアーカイブする・消す | chat | M |
-| AIT-004 | 家系のチャットに下書きを入れる | chat | T:aiOpen |
+| AIT-004 | 家系のチャットに下書きを入れる | chat | T:open |
 | AIT-005 | チャットの一覧・会話・使用枠を読む | chat | T:aiChatRead |
 | AIT-006 | 利用者に知らせる | notifications | T:server.notifications |
 | AIT-007 | 利用者が見ているものを読む | userView | M |
@@ -827,8 +827,8 @@
 ### 開く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-009 | ノート・チャット・ファイル・差分を画面に開く | chat | T:aiOpen |
-| AIT-010 | SQL のタブに SQL を入れて開く | chat | T:aiOpen |
+| AIT-009 | ノート・チャット・ファイル・差分を画面に開く | chat | T:open |
+| AIT-010 | SQL のタブに SQL を入れて開く | database | T:tools |
 
 ### プロジェクト
 | ID | 機能 | 持ち主 | 確かめ方 |

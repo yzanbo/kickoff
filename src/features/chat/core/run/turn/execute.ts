@@ -32,7 +32,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, request
   const { chatId, prompt, promptId, compact = false, compactTrigger } = request;
   const { store, providers } = deps;
   // 実行に足すもの（まだ機能へ分けていない組み立て・チャット自身・上の機能が登録したもの）
-  const contributors = [legacyTurnParts(deps), chatTurnParts(deps, runtime), ...(deps.contributors ?? [])];
+  const contributors = [legacyTurnParts(), chatTurnParts(deps, runtime), ...(deps.contributors ?? [])];
   // 1 回の作業の値（contributor と AI のツールが同じ入れ物を使う）
   const values = new Map<string, unknown>();
   const perTurn: PerTurn = <T>(key: string, init: () => T): T => {

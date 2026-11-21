@@ -100,8 +100,8 @@ export function createChatRunner(deps: RunnerDeps) {
       cancel: (chatId: number) => workplaceMoves.cancel(chatId) !== null,
     },
 
-    /** 上の機能の口（DB・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "databases" | "terminals" | "browser" | "aiTools"> & ShellUpperDeps) {
+    /** 上の機能の口（ワークツリーの実行環境と後始末・内蔵ターミナル・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
+    attach(upper: Pick<ExecutionDeps, "aiTools"> & ShellUpperDeps) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },

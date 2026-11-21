@@ -82,11 +82,9 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 
 /** チャットより上の機能の口（上の機能はチャットを使うのであとに作り、組み立ての最後に attach で渡す） */
 export interface ChatUpper {
-  databases: NonNullable<ExecutionDeps["databases"]>;
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
   worktreeFinisher: NonNullable<ShellUpperDeps["worktreeFinisher"]>;
-  terminals: NonNullable<ExecutionDeps["terminals"]>;
-  browser: ExecutionDeps["browser"];
+  terminals: NonNullable<ShellUpperDeps["terminals"]>;
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */

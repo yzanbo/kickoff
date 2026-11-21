@@ -4,7 +4,7 @@
 
 ## 地図
 
-- `core/sessions.ts`: シェルを動かす `TerminalSessions`（シェルは `core/shell.ts` の形。macOS の値は `core/macosShell.ts`）。出力と snapshot は `core/output.ts`、AI に読ませる口は `core/control.ts`（AI のツールは `core/aiTerminal.ts`。決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- `core/sessions.ts`: シェルを動かす `TerminalSessions`（シェルは `core/shell.ts` の形。macOS の値は `core/macosShell.ts`）。出力と snapshot は `core/output.ts`、AI に読ませる口は `core/control.ts`（AI のツールは `core/tools.ts`・`aiTerminal.ts`。決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
 - `ui/`: タブ `TerminalPane`・API `ui/api/terminals.ts`（画面もスマホも同じコアの API でつなぐ）・パネルの下の欄 `ui/bottom/`。
 
 ## 決まり
