@@ -6,22 +6,27 @@ import { Bus } from "@/foundation/core/bus";
 import { testStore } from "@/app/core/testing/testStore";
 import { ChatRuntimes } from "@/features/chat/core/runtimes";
 import { addLater, newMessage } from "@shared/chat/outbox";
-import { liveOf } from "@/features/chat/core/turnState";
+import { liveOf } from "@/features/chat/core/live";
+import { step } from "@/features/chat/core/run/machine/step";
+import { recoveryGateOnEnd, recoveryOnEnd } from "@/features/chat/core/run/machine/turnEnd";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { exhaustedResetOf, type ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
-import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
+import type { Env, TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { tick, until } from "@/app/core/testing/testCore";
 
 const RESET = "2026-11-04T10:30:00.000Z";
 
-/** 送ったら作業中にし（Runner の send と同じ）、終わりは finish で知らせる */
+/** step に渡す読むだけの入力（会話あり・引き継ぎなし） */
+const env = (): Env => ({ now: RESET, newId: () => "x", shuttingDown: false, hasSession: true, hasTurnEndTasks: false, handoff: null, handoffQueued: [], preCompact: null, preCompactSent: false });
+
+/** 送ったら作業中にし（Runner の send と同じ）、終わりは finish で知らせる（送信待ちの門は Runner と同じく step で立てる・外す） */
 function setup({ usage, provider = "claude" }: { usage?: (id: ProviderId) => Promise<ProviderUsage>; provider?: ProviderId } = {}) {
   const bus = new Bus();
   const store = testStore(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
-  const runtimes = new ChatRuntimes({ store, bus, onEditingChanged: () => {} });
+  const runtimes: ChatRuntimes = new ChatRuntimes({ store, bus, dispatch: (chatId, event) => runtimes.get(chatId).commit(step(runtimes.get(chatId).run, event, env()).state) });
   const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider, title: "t", status: "failed", model: null });
   const sent: string[] = [];
@@ -43,11 +48,13 @@ function setup({ usage, provider = "claude" }: { usage?: (id: ProviderId) => Pro
   });
   const runtime = runtimes.get(chat.id);
   /** 送信待ちに 1 件ためる */
-  const queueOne = () => runtime.setOutbox(addLater(runtime.outbox, newMessage({ now: RESET, newId: () => "q1" }, "次", {}, [])));
-  /** 作業が終わった（状態を変えてから、段取りに知らせる。送信待ちを送ってよいかを返す） */
+  const queueOne = () => runtime.commit({ ...runtime.run, outbox: addLater(runtime.outbox, newMessage({ now: RESET, newId: () => "q1" }, "次", {}, [])) });
+  /** 作業が終わった（状態を変えてから、門を立てる・外して段取りに知らせる。送信待ちを送ってよいかを返す） */
   const finish = (outcome: TurnOutcome) => {
     store.chats.update(chat.id, { status: outcome.status });
-    return recovery.finished(chat.id, outcome);
+    runtime.commit(recoveryGateOnEnd(runtime.run, outcome));
+    recovery.finished(chat.id, outcome);
+    return recoveryOnEnd(outcome);
   };
   const notices = () => store.events.list(chat.id).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
   return { store, approvals, recovery, runtime, chat, sent, network, clock, finish, notices, queueOne };
@@ -94,7 +101,7 @@ test("続けて別の理由で止まったら、前の段取りは新しい段�
   assert.deepEqual(liveOf(runtime).reconnect, { attempts: 0, max: 3, agents: [] });
   // 取り下げた確かめの答え（中断）で、止めた送信待ちを忘れない。つながったら自動で再開する
   await tick();
-  assert.equal(runtime.gates.recovery, "reconnect");
+  assert.equal(runtime.run.gates.recovery, "reconnect");
   network.online = true;
   await until(() => sent.length === 1);
   assert.deepEqual(sent, [RESUME_PROMPT]);

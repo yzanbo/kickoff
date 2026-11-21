@@ -10,12 +10,13 @@ test("作業中の状態を作り直すと、保存した出す箱を読み戻�
   const store = testStore(":memory:");
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "completed", model: null });
-  const runtimes = new ChatRuntimes({ store, onEditingChanged: () => {} });
-  runtimes.get(chat.id).setOutbox(addLater(runtimes.get(chat.id).outbox, { ...newMessage(env, "次", {}, []), id: "q1" }));
+  const runtimes = new ChatRuntimes({ store });
+  const first = runtimes.get(chat.id);
+  first.commit({ ...first.run, outbox: addLater(first.outbox, { ...newMessage(env, "次", {}, []), id: "q1" }) });
   // ゴミ箱へ入れた（作業中の状態を捨てる）→ 戻した
   runtimes.forget(chat.id);
   const restored = runtimes.get(chat.id);
   assert.deepEqual(restored.outbox.later.map((m) => m.text), ["次"]);
-  restored.setOutbox(addLater(restored.outbox, newMessage(env, "その次", {}, [])));
+  restored.commit({ ...restored.run, outbox: addLater(restored.outbox, newMessage(env, "その次", {}, [])) });
   assert.deepEqual(store.outbox.list()[0].box.later.map((m) => m.text), ["次", "その次"]);
 });

@@ -128,7 +128,7 @@ export interface TestEnvOptions {
   /** どの AI としても呼ぶ偽のプロバイダー（省けば f.provider） */
   provider?: AgentProvider;
   /** チャットの実行の時間の値（つながったかの確かめ方・枠の時計・持ち時間。省いたものはテストの既定） */
-  chat?: Partial<Pick<CoreEnv["chat"], "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs">>;
+  chat?: Partial<Pick<CoreEnv["chat"], "reconnect" | "usageLimit" | "editHoldTtlMs">>;
 }
 
 /**
@@ -164,7 +164,7 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider
       },
     },
     // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない・書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
-    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50, sessionsElsewhere: null, ...chat },
+    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, sessionsElsewhere: null, ...chat },
     trash: { now: () => f.trashClock.now, installCommand: false, projectOfPath: (origin, projects) => projects.find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null },
     notes: { defaultDir: f.noteFake.defaultDir },
     attachments: { dir: tempDir() },

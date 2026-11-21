@@ -12,6 +12,7 @@ import { testFakes, type TestFakes } from "@/app/core/testing/testEnv";
 import { ScenarioProvider, type ScenarioRun } from "./scenarioProvider";
 import { actual, assertMatches, matches, preCompactLabel, promptLabel, rowLabel, type Observed, type PromptTexts } from "./scenarioObserve";
 import { providerStep, userStep } from "./scenarioSteps";
+import type { ChatRunState } from "@/features/chat/core/run/machine/types";
 import { SESSIONS, T0, type ChatAlias, type Scenario, type ScenarioExpect, type ScenarioSettings, type ScenarioStep, type Then } from "./types";
 
 
@@ -68,9 +69,8 @@ export class Driver {
           now: () => (this.clock.reads++, this.clock.now),
           checkMs: 5,
         },
-        // 持ち時間・口を待つ上限は時間では切れない長さにし、持ち時間は時計の出来事で外す
+        // 持ち時間は時間では切れない長さにし、時計の出来事で外す
         editHoldTtlMs: 600_000,
-        tellableWaitMs: 60_000,
       },
     });
   }
@@ -139,10 +139,11 @@ export class Driver {
     return run;
   }
 
-  /** いまの Runner が預かりを配っている途中か（画面に出ない段取りなので中を見る。作り直したら、ここだけ直す） */
+  /** 預かりを配っている途中か（送る準備の途中・いまの作業に足している途中。画面に出ない段取りなので中を見る。作り直したら、ここだけ直す） */
   private delivering(alias: ChatAlias): boolean {
-    const { runtimes } = this.core.runner as unknown as { runtimes: { peek(id: number): { state: { deliveringAfterCompact: boolean } } | undefined } };
-    return runtimes.peek(this.id(alias))?.state.deliveringAfterCompact ?? false;
+    const { runtimes } = this.core.runner as unknown as { runtimes: { peek(id: number): { run: ChatRunState } | undefined } };
+    const phase = runtimes.peek(this.id(alias))?.run.phase;
+    return phase?.kind === "preparing" || (phase?.kind === "turn" && phase.telling !== null);
   }
 
   async idleAll(): Promise<boolean> {

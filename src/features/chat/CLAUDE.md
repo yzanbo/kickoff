@@ -6,7 +6,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `core/runner.ts`・`runnerQueue.ts` | 受付 `Runner`（API から呼ぶ窓口）と、送信待ちの操作の土台 `RunnerQueue` |
+| `core/run/machine/`・`core/runner*.ts` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `Runner` |
 | `core/runtime.ts`・`runtimes.ts` | チャットごとの作業中の状態 `ChatRuntime`（出す箱だけ保存する） |
 | `core/turn.ts` | 1 回の実行 `executeTurn`・プロバイダーに渡すもの `buildTurnParams`・結果の反映 `applyResult` |
 | `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
@@ -14,8 +14,8 @@
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= 実行中（`turn`）か送る準備中（`preparing` = 理由。確かめてから動かし始めるまで、`await` の間も）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
-- 作業中の状態は `ChatRuntime` に集め、モジュールの変数に持たない。チャットを消したら `forget` で捨てる。
+- 作業中（`isBusy`）= 段階 `phase` が作業中か送る準備（理由。確かめてから動かし始めるまで）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409。
+- 状態は `ChatRuntime`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
 - AI へ送る定型文（自分の発言として残る）は `@shared/chat/prompts` に置き、コアと画面で同じものを使う。
@@ -24,11 +24,10 @@
 ## 送る・伝える
 
 - `start` はチャットを作ってすぐ動かし、`send` は作業中なら 409。名前は 1 行目で付けて AI にも付けてもらう（その間に変わっていれば置き換えない）。
-- `tell` は作業中ならいまのやり取りに足す（口ができるまで `TELLABLE_WAIT_MS` 待つ）。結果は `told` / `queued` / `sent` / `held`。
-- 足せなければ送信待ちに戻さず預かり、作業の終わりに `deliverHeld` が送信待ちより先に送る（理由は `runner.ts`）。以後の「いま」も `tellsClosed` で預かる。
-- 「いま」を預かる理由は `turnState.ts` の `holdOf` 1 つで決める。
+- `tell` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`。
+- 足せなければ預かり、作業の終わりに送信待ちより先に送る。以後の「いま」も口 `closed` で預かる。理由は `holdOf` 1 つ（`core/run/machine/state.ts`）。
 - 発言の印（`MessageMarks`）はどの道でも `@shared/chat/handoff` の `marksOf` で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
-- 自分で送ったら再開の段取りをやめる（`forgetRecovery`）。質問として送る（`pause_after`）は `pauseAfterTurn` か `setStopAfter` の印にする。
+- 自分で送ったら再開の段取りをやめる（`recovery.forget`）。質問として送る（`pause_after`）は `pauseAtHead` か `setStopAfter` の印にする。
 
 ## 1 回の実行（`core/turn.ts`）
 
@@ -44,14 +43,13 @@
 - 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後にも）。保存しない。
 - 停止（`cancel`）の `stopping` は、プロセスがサブエージェントごと終わるまで立てておく。
 
-## 送信待ち（`core/runnerQueue.ts`）
+## 送信待ち（`core/runnerQueue.ts`・`core/run/machine/requests.ts`）
 
 - 送信待ち `later` と預かり `now` は出す箱 `Outbox` 1 つ。操作は `@shared/chat/outbox`・`queueCommand` の純粋な関数で、変わるたびに `chat_outbox` に丸ごと書く。
-- 起動したときの再開の確かめ（`restartResume.ts`）を待つ間（`ChatRuntime.resume`）は送らない。
-- `sendNextQueued` は作業中なら取り出さない（取り出すと送れずに消える）。
+- 起動したときの再開の確かめを待つ間（門 `gates.restart`）は送らない。`pumpLater` は作業中なら取り出さない。
 - 一時停止の印（`stops`）は列の位置で持つ（寄せ方・並べ替えは画面と同じ `@shared/chat/queueStops`）。
 - 指示の代わりに挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand` の JSDoc）。
-- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも同じ `setEditing`）。
+- 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも同じ）。
 - 応答はどれも変えたあとの `QueueState`。列にない指示は 404、送るものがないなどは 409。
 
 ## 止まったあとの再開（`core/recovery/`）

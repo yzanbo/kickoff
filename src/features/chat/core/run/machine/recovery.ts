@@ -1,12 +1,12 @@
 import type { Store } from "@/features/chat/core/stores";
-import type { StoppedAgent, TurnOutcome } from "./types";
+import type { Gates, StoppedAgent, TurnOutcome } from "./types";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import { resumePrompt, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { ProviderId } from "@shared/settings/types";
 import type { RecoveryState } from "./recoveryState";
 
 /** 止まった理由（承認と同じ回答待ちの種類 ApprovalKind・ツール名にも、この名前を使う） */
-export type RecoveryReason = "reconnect" | "usage_limit";
+export type RecoveryReason = NonNullable<Gates["recovery"]>;
 
 /** 待つ条件: つながる（AI の API に届く）・時計がその時刻（ミリ秒）を過ぎる */
 export type WaitFor = { kind: "online" } | { kind: "clock"; at: number };

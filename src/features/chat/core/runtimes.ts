@@ -1,10 +1,11 @@
 import type { Bus, BusStage } from "@/foundation/core/bus";
 import type { Store } from "@/features/chat/core/stores";
 import { marksFrom } from "@/features/chat/core/run/machine/marks";
+import type { RunEvent } from "@/features/chat/core/run/machine/types";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { ChatStatus } from "@shared/chat/types";
-import { ChatRuntime, type Lane, type RuntimeLookup } from "./runtime";
-import { liveOf } from "./turnState";
+import { ChatRuntime, type RuntimeLookup } from "./runtime";
+import { liveOf } from "./live";
 
 /**
  * チャットごとの作業中の状態（ChatRuntime）の入れ物。チャットの状態が変わったら、作業中の様子をまとめて chat_live で画面に配る。
@@ -22,10 +23,8 @@ export class ChatRuntimes implements RuntimeLookup {
       bus?: Bus;
       /** 書き直している印の持ち時間（テストで差し替える） */
       editTtlMs?: number;
-      /** 書き直している行が変わった・外れた */
-      onEditingChanged: (chatId: number, lane: Lane, wasWaiting: boolean) => void;
-      /** 圧縮が終わった（圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる間が終わった） */
-      onCompactEnded?: (chatId: number) => void;
+      /** 出来事を渡す先（Runner の dispatch） */
+      dispatch?: (chatId: number, event: RunEvent) => void;
     },
   ) {
     deps.bus?.use(this.statusStage());
@@ -49,10 +48,10 @@ export class ChatRuntimes implements RuntimeLookup {
     if (!runtime) {
       runtime = new ChatRuntime(chatId, () => this.publish(chatId), {
         marks: marksFrom(this.deps.store.events, chatId),
+        saved: this.deps.store.outbox.get(chatId),
         save: (box) => this.deps.store.outbox.save(chatId, box),
         editTtlMs: this.deps.editTtlMs,
-        onEditingChanged: (lane, wasWaiting) => this.deps.onEditingChanged(chatId, lane, wasWaiting),
-        onCompactEnded: () => this.deps.onCompactEnded?.(chatId),
+        dispatch: (event) => this.deps.dispatch?.(chatId, event),
         read: {
           status: () => this.deps.store.chats.get(chatId)?.status ?? "completed",
           handoff: () => {
@@ -64,8 +63,6 @@ export class ChatRuntimes implements RuntimeLookup {
         },
       });
       this.runtimes.set(chatId, runtime);
-      const saved = this.deps.store.outbox.get(chatId);
-      if (saved) runtime.restore(saved);
     }
     return runtime;
   }
@@ -101,7 +98,7 @@ export class ChatRuntimes implements RuntimeLookup {
 
   /** 実行中のチャット（動かしているもの。送る準備の途中は数えない） */
   running(): ChatRuntime[] {
-    return this.all().filter((r) => r.turn !== null);
+    return this.all().filter((r) => r.handle !== null);
   }
 
   /** チャットを消したとき（知らせない） */

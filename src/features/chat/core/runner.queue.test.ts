@@ -38,7 +38,8 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
 
 test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」は作業を止めない（伝えられなければ預かり、作業の終わりに送信待ちより先に送る）", async () => {
   const { gates, script } = gatedScript();
-  const { store, runner, provider, project } = setup(script);
+  // 足す口はあるが、発言を足せない（断る）偽のプロバイダー
+  const { store, runner, provider, project } = setup((params, cb, signal) => (cb.control?.({ tell: () => false, stopTask: async () => {} }), script(params, cb, signal)));
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   await runner.queueMessage(chat.id, "2");
@@ -166,12 +167,11 @@ test("足せなかった「いま」は預かった順に送る: 作業の終わ
   await until(() => !runner.isBusy(chat.id));
 });
 
-test("動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで少し待って足す（預かったままにしない）", async () => {
+test("動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで待って足す（預かったままにしない）", async () => {
   const told: string[] = [];
   let release: (() => void) | undefined;
   let openControl: (() => void) | undefined;
-  // 口ができるのは「いま」を頼んだあと（時間では決めない。全部のテストを流して重いときに、待つ時間を過ぎて預かりになっていた）。
-  // 待つ時間はテストの既定（50ms）より長くして、口ができるまでの遅れで落ちないようにする
+  // 口ができるのは「いま」を頼んだあと（時間では決めない。口ができるまで待つ上限はない = 口ができた知らせで足す）
   const { runner, project } = setupCore(
     new ScriptedProvider(async (_p, cb) => {
       // Claude Code を立ち上げている間（足す口がまだない）
@@ -181,7 +181,6 @@ test("動かし始めたばかりで足す口がまだないときの「いま�
       cb.control?.(null);
       return { status: "completed", sessionId: "s1" };
     }),
-    { tellableWaitMs: 10_000 },
   );
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => openControl !== undefined);

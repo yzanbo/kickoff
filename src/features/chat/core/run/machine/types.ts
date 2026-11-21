@@ -1,7 +1,10 @@
-// チャットの実行の状態の型（純粋。Node・店・時計を読まない）。作業ごとの状態 TurnState の中身の言葉
+// チャットの実行の状態・出来事・命令の型（純粋。Node・店・時計を読まない）。出来事を受けて次の状態と命令を返すのは step.ts
 import type { CompactTrigger } from "@shared/ai/turnEvents";
-import type { HandoffState } from "@shared/chat/chatLive";
+import type { HandoffState, PrepareReason, RestartResumeState } from "@shared/chat/chatLive";
+import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { Outbox } from "@shared/chat/outbox";
+import type { QueueCommand } from "@shared/chat/queueCommand";
+import type { Attachment, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
 
 /** 作業の種類（ふつうの指示・手で圧縮する前の圧縮前指示・手で圧縮する実行・圧縮後指示の作業・再開） */
 export type TurnKind = "message" | "pre_compact" | "compact" | "post_compact" | "resume";
@@ -28,7 +31,7 @@ export interface Compaction {
 /** AI の切り替えの引き継ぎの門（DB の写し。null = 引き継ぎなし。状態は @shared/chat/chatLive の HandoffState） */
 export type HandoffGate = null | HandoffState;
 
-/** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
+/** 1 回の実行の終わり方（次に何をするかを決める） */
 export interface TurnOutcome {
   status: "completed" | "failed" | "cancelled";
   /** 通信の切断で失敗した（つながったら自動で再開する） */
@@ -46,10 +49,36 @@ export interface StoppedAgent {
 }
 
 /**
- * 作業の段階（作業の終わりの決まりで使う分。送る準備・口・止めるの欄は、送る・伝えるを step に乗せる単位で足す）:
- * 作業していない / 作業中（種類と圧縮の様子）/ 作業の終わりにすること（予約した作業場所の移動）が済むのを待つ（済んだら then のとおりに続ける）
+ * 作業の段階: 作業していない / 送る準備（理由。確かめてから動かし始めるまで・長い準備の間）/ 作業中（種類・「いま」を足す口・圧縮の様子・
+ * 止めるよう頼んだか・足している途中の行）。作業の終わりにすること（予約した作業場所の移動）は、まだ段階にしない（殻が済んだら settled を渡す）
  */
-export type Phase = { kind: "idle" } | { kind: "turn"; turn: TurnKind; compaction: Compaction } | { kind: "settling"; task: "workplace_move"; then: AfterTurn };
+export type Phase =
+  | { kind: "idle" }
+  | { kind: "preparing"; why: PrepareReason; stopRequested: boolean }
+  | { kind: "turn"; id: string; turn: TurnKind; tell: TellGate; compaction: Compaction; stopRequested: boolean; telling: string | null; compactBy: CompactTrigger | null };
+
+/** 作業中の段階 */
+export type TurnPhase = Extract<Phase, { kind: "turn" }>;
+
+/** 出す箱の列（now = 預かり、later = 送信待ち） */
+export type Lane = "now" | "later";
+
+/** 送信待ちを自動で送らない、Kickoff の理由（門。outbox.paused = 利用者が止めた、とは分けて持ち、保存しない） */
+export interface Gates {
+  /** 止まったあとの再開の段取りが止めている（通信の切断・使用枠の上限。送信待ちが空になったら外れる） */
+  recovery: "reconnect" | "usage_limit" | null;
+  /** 起動したときの再開の確かめを待っている（答えるまで続けない・送信待ちを送らない） */
+  restart: RestartResumeState | null;
+}
+
+/** 1 つのチャットの実行の状態（保存するのは出す箱だけ） */
+export interface ChatRunState {
+  phase: Phase;
+  outbox: Outbox;
+  /** 画面で書き直している行（列ごと。送る順が来ても、書き直しが終わるまでその行から後ろは送らない） */
+  editing: Record<Lane, string[]>;
+  gates: Gates;
+}
 
 /** 作業の終わりのあとに続けること（続けて圧縮するならそのきっかけ・預かりと送信待ちを送ってよいか） */
 export interface AfterTurn {
@@ -57,32 +86,107 @@ export interface AfterTurn {
   send: boolean;
 }
 
-/** チャットの実行の状態（いまは作業の終わりの決まりに渡す分。ChatRuntime から写し、返ったものを書き戻す） */
-export interface ChatRunState {
-  phase: Phase;
-  outbox: Outbox;
-  gates: { handoff: HandoffGate };
-  /** 作業していない間に持ち越す、圧縮前指示から圧縮が終わるまでの間（続けて圧縮するときだけ残す） */
-  awaitingCompact: boolean;
-}
-
-/** 読むだけの入力 */
+/** 読むだけの入力（時刻と ID も外から渡す） */
 export interface Env {
+  now: string;
+  newId: () => string;
+  /** アプリを終えるところ（預かり・送信待ちを送らない） */
   shuttingDown: boolean;
+  /** 会話がある（chats.session_id） */
+  hasSession: boolean;
   /** 作業の終わりにすること（AI が予約した作業場所の移動）があるか */
   hasTurnEndTasks: boolean;
+  /** AI の切り替えの引き継ぎの門 */
+  handoff: HandoffGate;
+  /** 引き継ぎで選択を戻す送信待ちの行（AI を切り替えた記録の queued_ids。なければ空） */
+  handoffQueued: readonly string[];
+  /** 圧縮前指示（設定・プロジェクト。なければ null） */
+  preCompact: string | null;
+  /** 前の圧縮・消去のあとで、もう圧縮前指示を送ったか（記録から導く） */
+  preCompactSent: boolean;
 }
 
-/** 命令（殻の Runner が実行する）。中間の姿の命令（end_recovery・deliver_held・send_next）は、再開・送る・伝えるを step に乗せる単位で置き換える */
+/** 送る指示 */
+export interface NewSend {
+  text: string;
+  options: ChatOptionsPatch;
+  attachments: Attachment[];
+  marks: MessageMarks;
+}
+
+/** 出来事（利用者・API・プロバイダー・殻から。1 件ずつ step に渡す） */
+export type RunEvent =
+  /** 送る（idle = 作業中なら 409、now = 作業中なら止めずに伝える、later = 作業中なら送信待ちに入れる。hold なら作業していなくても入れる） */
+  | { type: "send"; when: "idle" | "now" | "later"; message: NewSend; pauseAfter?: boolean; hold?: boolean }
+  /** 列を変える（applyQueueCommand。now の行は預かりの書き直し・取り消し） */
+  | { type: "queue"; command: QueueCommand }
+  | { type: "queue_send"; mode: "now"; id: string }
+  | { type: "queue_send"; mode: "all"; ids?: string[] }
+  | { type: "queue_send"; mode: "in_order" }
+  | { type: "editing"; lane: Lane; ids: string[] }
+  | { type: "edit_hold_expired"; lane: Lane }
+  | { type: "cancel" }
+  | { type: "compact" }
+  /** コンテキストを消去する（作業中なら予約。pump なら、消したあと送信待ちの次を送る） */
+  | { type: "clear"; pump: boolean }
+  /** 長い準備を始める・済んだ（next: 済んだあとに送信待ちの次を送る / 預かりの頭を送る） */
+  | { type: "begin"; why: PrepareReason }
+  | { type: "prepared"; next?: "send_next" | "deliver" }
+  /** 殻が作業を動かし始めた（pauseAfter: 質問として送った指示の作業） */
+  | { type: "turn_started"; turn: TurnKind; compactBy: CompactTrigger | null; pauseAfter?: boolean }
+  /** プロバイダーの「いま」を足す口ができた・なくなった */
+  | { type: "tell_ready"; ready: boolean }
+  /** 足した結果（drop: 文を組み立てられなかったので行を外す） */
+  | { type: "tell_result"; id: string; ok: boolean; drop?: boolean }
+  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足せたか */
+  | { type: "pre_compact_told"; ok: boolean }
+  | { type: "compacting"; active: boolean; at: string; trigger: CompactTrigger }
+  /** 圧縮した（記録を残したあと。post: 圧縮後指示の文、compactRun: 手で圧縮する実行の中） */
+  | { type: "compacted"; post: string | null; compactRun: boolean }
+  | { type: "pre_compact_injected" }
+  | { type: "turn_ended"; outcome: TurnOutcome }
+  /** 作業の終わりにすること（予約した作業場所の移動）が済んだ（then: 作業の終わりに決めた続き） */
+  | { type: "settled"; then: AfterTurn }
+  /** AI が予約した作業場所の移動のあとの続きの指示を置く（止めていれば送信待ちの頭） */
+  | { type: "continuation"; text: string; afterFinish: boolean }
+  /** 送信待ちの次を送る（起動したときの確かめに「送る」と答えた） */
+  | { type: "send_next" }
+  /** 門を変える（起動したときの確かめ・止まったあとの再開の段取り） */
+  | { type: "gates"; patch: Partial<Gates> }
+  /** 止めておくかだけを変える（AI の切り替えに失敗した・起動したときの確かめに「止めておく」と答えた） */
+  | { type: "set_paused"; paused: boolean }
+  /** 再開の段取りが止めた送信待ちの門を外す（keepPaused: 利用者が止めたものにして止めたまま） */
+  | { type: "recovery_release"; keepPaused: boolean };
+
+/** 送るの答え（sent = すぐ送った、held = 預かった、queued = 送信待ちに入れた、pending = いまの作業に足すところ。殻が足した結果で told / held にする） */
+export type SendReply = "sent" | "held" | "queued" | "pending";
+
+/** 命令（殻の Runner が実行する） */
 export type Effect =
-  /** 止まったあとの再開の段取り（いまの ChatRecovery.finished。送信待ちを止める・戻す・待つ・聞く） */
+  /** 作業を動かす（指示の文を組み、発言を記録して動かす。from: 失敗したときに理由を残す先） */
+  | { do: "start_turn"; turn: TurnKind; item: QueuedMessage | null; trigger?: CompactTrigger; text?: string; pauseAfter?: boolean; from: "user" | "queue" | "held" }
+  /** いまの作業に行を足す（結果は tell_result で戻す） */
+  | { do: "tell"; turnId: string; item: QueuedMessage }
+  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足す（結果は pre_compact_told で戻す） */
+  | { do: "tell_pre_compact"; text: string }
+  | { do: "abort_turn" }
+  /** コンテキストを消去する（セッションを外して区切りを残す） */
+  | { do: "clear_session" }
+  /** 書き直しの持ち時間の待ち（on: 数え直す） */
+  | { do: "edit_timer"; lane: Lane; on: boolean }
+  | { do: "record"; kind: "notice" | "error"; message: string }
+  | { do: "reply"; result: SendReply; id: string | null }
+  | { do: "reject"; status: 400 | 404 | 409; message: string }
+  /** 止まったあとの再開の段取り（いまの ChatRecovery.finished。門は step が立てる・外す） */
   | { do: "end_recovery"; outcome: TurnOutcome }
   | { do: "refresh_usage" }
-  /** 作業の終わりにすることを行う（済んだら onSettled で続ける） */
-  | { do: "run_turn_end_tasks" }
+  /** 作業の終わりにすることを行う（済んだら settled で続ける） */
+  | { do: "run_turn_end_tasks"; then: AfterTurn }
   /** 作業の終わりにすることの予約を消す（notice: 移さなかったお知らせを残す） */
-  | { do: "drop_turn_end_tasks"; notice: boolean }
-  | { do: "start_turn"; turn: "compact"; trigger: CompactTrigger }
-  /** 預かった「いま」を送信待ちより先に送る（sendNow でなければ送信待ちの頭へ置く） */
-  | { do: "deliver_held"; sendNow: boolean }
-  | { do: "send_next" };
+  | { do: "drop_turn_end_tasks"; notice: boolean };
+
+/** step の答え */
+export interface Step {
+  state: ChatRunState;
+  effects: Effect[];
+}

@@ -3,7 +3,6 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Store } from "@/features/chat/core/stores";
 import type { ChatRuntime } from "@/features/chat/core/runtime";
 import type { ChatRuntimes } from "@/features/chat/core/runtimes";
-import { setPaused } from "@shared/chat/outbox";
 import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { Poller } from "./poller";
 import { recordEvent } from "@/features/chat/core/run/record";
@@ -67,10 +66,8 @@ export class ChatRecovery {
     });
   }
 
-  /**
-   * 作業が終わったとき。送信待ちを送ってよいかを返す（通信の切断・使用枠の上限で止まったときは送らない）
-   */
-  finished(chatId: number, outcome: TurnOutcome): boolean {
+  /** 作業が終わったとき（送信待ちの門を立てる・外すのは決まりの step。ここは待つ・聞くの段取り） */
+  finished(chatId: number, outcome: TurnOutcome) {
     const runtime = this.deps.runtimes.get(chatId);
     const state = runtime.recovery;
     const rule = outcome.network ? this.rules.reconnect : outcome.usageLimit ? this.rules.usage_limit : undefined;
@@ -80,13 +77,7 @@ export class ChatRecovery {
       state.attempts = 0;
       state.agents.clear();
     }
-    if (rule) {
-      this.stop(runtime, rule, outcome);
-      return false;
-    }
-    // 最後まで終わった: 止めた送信待ちを戻す。止めた・ほかの理由で失敗した: 止めたまま（利用者が止めたものにして、自分で戻せる）
-    this.release(runtime, outcome.status !== "completed");
-    return true;
+    if (rule) this.stop(runtime, rule, outcome);
   }
 
   /** 自分でメッセージを送った・チャットを消した: 待つのも聞くのもやめる（再開の指示を送っているところなら何もしない） */
@@ -120,7 +111,7 @@ export class ChatRecovery {
     this.clock.stop();
   }
 
-  /** 止まった: 送信待ちを止めて、決まりの段取り（お知らせ・待つ・聞く）を始める（前の段取りは置き換える） */
+  /** 止まった: 決まりの段取り（お知らせ・待つ・聞く）を始める（前の段取りは置き換える。送信待ちは step が門で止めた） */
   private stop(runtime: ChatRuntime, rule: RecoveryRule, outcome: TurnOutcome) {
     const { chatId, outbox, recovery: state } = runtime;
     if (!this.deps.store.chats.get(chatId)) return;
@@ -129,11 +120,8 @@ export class ChatRecovery {
     for (const a of outcome.stoppedAgents ?? []) state.agents.set(a.agentId, a.description);
     // 送信待ちを自分で止めていたか（こちらで止めたものは門で持つので、どの理由で止めたものでも含めない）
     const pausedByUser = outbox.paused;
-    // 送信待ちは送らずに止めておく（止まったまま送ると、次々に失敗して消えるため）。止めるのは門で、paused は書かない
-    // （門は保存しないので、アプリを終えたら外れ、起動したときの確かめで聞く。利用者が止めたことにしない）
-    if (outbox.later.length > 0 && !outbox.paused) runtime.setRecoveryGate(rule.reason);
     // 段取りは、決まりがすぐ決められればその場で、調べものが要れば（枠の戻る時刻）調べてから進める
-    const plan = rule.plan({ chatId, state, held: runtime.gates.recovery !== null, pausedByUser, outcome });
+    const plan = rule.plan({ chatId, state, held: runtime.run.gates.recovery !== null, pausedByUser, outcome });
     if (plan instanceof Promise) void plan.then((p) => this.follow(runtime, rule, p, version));
     else this.follow(runtime, rule, plan, version);
   }
@@ -163,7 +151,7 @@ export class ChatRecovery {
     if (!chat || chat.status !== "failed" || isBusy(chatId) || state.asking) return;
     const controller = new AbortController();
     state.asking = controller;
-    const { title, description, input } = rule.ask({ chatId, state, held: runtime.gates.recovery !== null });
+    const { title, description, input } = rule.ask({ chatId, state, held: runtime.run.gates.recovery !== null });
     const { decision } = approvals.request(
       { chatId, projectId: chat.project_id },
       { kind: rule.reason, toolName: rule.reason, input, title, description, canRemember: false },
@@ -190,7 +178,7 @@ export class ChatRecovery {
     if (counted) state.attempts++;
     state.resuming = true;
     try {
-      await send(chatId, rule.prompt({ chatId, state, held: runtime.gates.recovery !== null }));
+      await send(chatId, rule.prompt({ chatId, state, held: runtime.run.gates.recovery !== null }));
     } catch (e) {
       recordEvent(store, runtime, { type: "error", message: `${rule.resumeFailed}: ${errorMessage(e)}` });
     } finally {
@@ -198,11 +186,9 @@ export class ChatRecovery {
     }
   }
 
-  /** Kickoff が止めた送信待ちの門を外す（keepPaused: 利用者が止めたものにして止めたままにする。外して送り始めるのは最後まで終わったときだけ） */
+  /** Kickoff が止めた送信待ちの門を外す（keepPaused: 利用者が止めたものにして止めたままにする。外して送り始めるのは最後まで終わったときだけ = step） */
   private release(runtime: ChatRuntime, keepPaused: boolean) {
-    if (runtime.gates.recovery === null) return;
-    if (keepPaused) runtime.setOutbox(setPaused(runtime.outbox, true));
-    runtime.setRecoveryGate(null);
+    if (runtime.run.gates.recovery !== null) runtime.dispatch({ type: "recovery_release", keepPaused });
   }
 
   /** 待つのも聞くのもやめる（聞いていたら取り下げる） */

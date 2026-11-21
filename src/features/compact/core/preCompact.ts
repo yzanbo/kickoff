@@ -1,6 +1,5 @@
 import { autoPreCompactMessage, compactPromptFor, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
-import { randomUUID } from "node:crypto";
-import type { Chat, QueuedMessage } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { Store } from "@/features/chat/core/index";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
@@ -13,14 +12,6 @@ export function preCompactPromptOf(store: Store, project: Project): string | nul
 /** そのプロジェクトで送る圧縮後指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
 export function postCompactPromptOf(store: Store, project: Project): string | null {
   return compactPromptFor("post", store.settings.get(), project);
-}
-
-/**
- * 圧縮後指示を、預かった「いま」（ChatLive の after_compact）の先頭に置く形にする。
- * 預かった指示と同じ口（Runner の deliverAfterCompact / deliverHeld）で、それらより先に送る（預かった指示は、圧縮後指示のやり取りが終わってから）
- */
-export function postCompactItem(text: string): QueuedMessage {
-  return { id: randomUUID(), text, options: {}, attachments: [], created_at: new Date().toISOString(), post_compact: true };
 }
 
 /**

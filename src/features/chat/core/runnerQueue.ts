@@ -1,98 +1,89 @@
-import { errorMessage } from "@shared/foundation/errors";
-import { AppError, Conflict, NotFound } from "@/foundation/core/errors";
-import { outboxEnv } from "./runtime";
-import { queueStateOf } from "./turnState";
+import { Conflict, Invalid, NotFound, type AppError } from "@/foundation/core/errors";
+import { outboxEnv, type ChatRuntime } from "./runtime";
+import { queueStateOf } from "./live";
 import type { ChatRuntimes } from "./runtimes";
-import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
-import { addAction, addLater, mergeLater, newMessage, pauseAtHead, reserve, setPaused, setStopAfter, takeLater, takeNext, type Outbox } from "@shared/chat/outbox";
 import { applyQueueCommand, isQueueReject, type QueueCommand } from "@shared/chat/queueCommand";
+import { queueActionOf } from "@shared/chat/queueActions";
 import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { Attachment, QueueAction, QueuedMessage, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { TellResult } from "@shared/foundation/apiTypes";
-import { marksOf } from "@shared/chat/handoff";
-import { handoffAllows } from "@/features/chat/core/run/machine/outbox";
-import type { HandoffGate } from "@/features/chat/core/run/machine/types";
+import type { Effect, RunEvent } from "@/features/chat/core/run/machine/types";
 
-/**
- * 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する）。
- * postCompact: 圧縮後指示として送る（記録に「圧縮後指示」の札を付け、AI には前置きを付けて送る）
- */
+/** 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する） */
 export interface SendOpts {
   pauseAfter?: boolean;
-  postCompact?: boolean;
   /** 発言の印（依頼文の頼み・子チャットから渡した依頼）。発言の記録・送信待ちの行・預かりに同じ形で残す */
   marks?: MessageMarks;
 }
 
-/** まだ会話がないので行えないとき（作業していないときの「すぐ送る」） */
-const NO_SESSION: Record<QueueAction, string> = {
-  compact: "まだ会話がないので、圧縮できません",
-  clear: "まだ会話がないので、消去するコンテキストがありません",
-};
+/** 出来事を回した答え（渡した出来事の命令と、それが始めた作業の準備。命令の実行が出した出来事のものは含まない） */
+export interface Dispatched {
+  effects: Effect[];
+  started: Promise<void>[];
+}
 
 /** 列にない指示を指したとき（消した・送ったあと） */
 const missing = () => new NotFound("待ちの指示が見つかりません");
 
+/** 決まりが断った理由を、失敗の種類の例外にする */
+const rejection = (status: 400 | 404 | 409, message: string): AppError => (status === 400 ? new Invalid(message) : status === 404 ? new NotFound(message) : new Conflict(message));
+
 /**
- * Runner の、作業中のチャットに送った次の指示の待ちの列（送信待ち。チャットごとの ChatRuntime の出す箱の later）を扱う窓口。
- * 列の出し入れは @shared/chat/outbox・queueCommand の純粋な関数で、ここは API から呼ぶ操作（並べ替え・書き直し・すぐ送る・止めておくなど）と、
- * 終わったら先頭を送る処理だけ。送る・伝える・作業中かは Runner のものを使う。
+ * Runner の、送信待ち（チャットごとの出す箱の later）と預かり（now）を扱う窓口。どの操作も出来事にして dispatch に渡すだけ
+ * （決まりは run/machine の step。列の出し入れは @shared/chat/outbox・queueCommand の純粋な関数）。
  * できなければ失敗の種類の例外を投げる（列にない指示は 404・送るものがないなどの状態は 409・入力は 400。@/foundation/core/errors）
  */
 export abstract class RunnerQueue {
   /** チャットごとの作業中の状態（出す箱・書き直している行） */
   protected abstract readonly runtimes: ChatRuntimes;
-  abstract isBusy(chatId: number): boolean;
-  abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
-  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<TellResult["result"]>;
-  /** 会話を圧縮する（作業中なら、いまのやり取りが終わったらすぐ圧縮するよう、送信待ちのいちばん上に入れる） */
-  abstract compact(chatId: number): Promise<Chat>;
-  /** コンテキストを消去する（作業中なら 409・まだ会話がなければ 409） */
-  abstract clearContext(chatId: number): Chat;
+  /** 出来事を回す（決まりの step を通し、命令を実行する） */
+  abstract dispatch(chatId: number, event: RunEvent): Dispatched;
+  /** その「いま」を足した結果を待つ（足せた told・預かった held） */
+  protected abstract waitTell(chatId: number, id: string): Promise<"told" | "held">;
   /** チャット（なければ 404） */
   protected abstract requireChat(chatId: number): Chat;
-  /** 送れなかった理由をチャットに残す */
-  protected abstract reportError(chatId: number, message: string): void;
-  /** AI の切り替えの引き継ぎの門（判定は handoffAllows 1 つ。AI の交代の準備中は送らない） */
-  protected abstract handoffGate(chatId: number): HandoffGate;
-  protected abstract normalizeHandoffQueue(chatId: number): void;
 
-  /** 送ってよいか（row を渡せば、その行を取り出してよいか）。AI の交代の準備中・引き継ぎを確かめるまでは送らない */
-  protected handoffAllows(chatId: number, row?: QueuedMessage): boolean {
-    return !this.runtimes.get(chatId).switchingProvider && handoffAllows(this.handoffGate(chatId), row);
+  private boxOf = (chatId: number) => this.runtimes.get(chatId).outbox;
+
+  /** 出来事を回し、断られたら失敗の種類の例外を投げる */
+  protected run(chatId: number, event: RunEvent): Dispatched {
+    const done = this.dispatch(chatId, event);
+    const rejected = done.effects.find((e) => e.do === "reject");
+    if (rejected) throw rejection(rejected.status, rejected.message);
+    return done;
   }
 
-  private boxOf = (chatId: number): Outbox => this.runtimes.get(chatId).outbox;
-  /** 出す箱を変える（変わったら保存して配る） */
-  private setBox = (chatId: number, box: Outbox) => this.runtimes.get(chatId).setOutbox(box);
-
-  /** 命令を当てた箱（当てられなければ失敗の種類の例外。commit なら箱を変える） */
-  protected command(chatId: number, cmd: QueueCommand, { commit = true }: { commit?: boolean } = {}): Outbox {
-    const result = applyQueueCommand(this.boxOf(chatId), cmd, outboxEnv());
-    if (isQueueReject(result)) throw new AppError(result.reject, result.message);
-    if (commit) this.setBox(chatId, result);
-    return result;
-  }
-
-  /** いまのやり取りが終わったら、すぐ行う（送信待ちのいちばん上に入れる。@shared/chat/outbox の reserve） */
-  protected reserveAction(chatId: number, action: QueueAction) {
-    this.setBox(chatId, reserve(this.boxOf(chatId), action, outboxEnv()));
-  }
-
-  /** 止めておくかを変える（起動したときの確かめ・再開の段取り・AI の切り替えに失敗したとき） */
-  protected setPausedFor(chatId: number, paused: boolean) {
-    this.setBox(chatId, setPaused(this.boxOf(chatId), paused));
-  }
-
-  /** 送信待ちの様子（チャットの詳細・SSE の chat_live・送信待ちを変える API の応答で同じ形） */
-  queueState(chatId: number) {
-    return queueStateOf(this.runtimes.get(chatId));
+  /** 送るの答え（すぐ送ったなら、送る準備が済むまで待つ。いまの作業に足すところなら、足した結果を待つ） */
+  protected async answer(chatId: number, done: Dispatched): Promise<TellResult["result"]> {
+    const reply = done.effects.find((e) => e.do === "reply");
+    await Promise.all(done.started);
+    if (!reply || reply.result === "sent") return "sent";
+    return reply.result === "pending" ? this.waitTell(chatId, reply.id!) : reply.result;
   }
 
   /**
-   * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
-   * pauseAfter なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する）。
-   * queued: 列に入れたか、id: 列に入れたその指示の ID（すぐ送ったら null）
+   * 終了した会話に追加の指示を送り、続きから再開する（作業中なら 409。pauseAfter なら、この作業が終わったら送信待ちを一時停止する）。
+   * チャット欄の /clear は送らずにコンテキストを消去する
+   */
+  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, marks = {} }: SendOpts = {}): Promise<Chat> {
+    this.requireChat(chatId);
+    await Promise.all(this.run(chatId, { type: "send", when: "idle", message: { text, options, attachments, marks }, pauseAfter }).started);
+    return this.requireChat(chatId);
+  }
+
+  /**
+   * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインエージェントが、いまの手順の切れ目で読む。裏のサブエージェント・コマンドは動き続ける）。
+   * 預かる理由（親の会話を写している・圧縮の前後・入力が閉じた・書き直し中）があれば預かり、作業の終わりに送信待ちより先に送る。
+   * 口がまだなら、できるまで待って足す（足せなければ預かる）。作業していなければすぐ送る。結果は told / held / queued（作業中の /clear）/ sent
+   */
+  async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, marks = {} }: SendOpts = {}): Promise<TellResult["result"]> {
+    this.requireChat(chatId);
+    return this.answer(chatId, this.run(chatId, { type: "send", when: "now", message: { text, options, attachments, marks }, pauseAfter }));
+  }
+
+  /**
+   * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る（hold なら送らずに列の最後に足す）。
+   * pauseAfter なら、列に入れたその指示のすぐあとに一時停止の印を付ける。queued: 列に入れたか、id: 列に入れたその指示の ID（すぐ送ったら null）
    */
   async queueMessage(
     chatId: number,
@@ -102,227 +93,150 @@ export abstract class RunnerQueue {
     { hold = false, pauseAfter = false, marks = {} }: { hold?: boolean } & SendOpts = {},
   ): Promise<{ queued: boolean; id: string | null }> {
     this.requireChat(chatId);
-    // hold: 作業していなくても送らずに、待ちの列の最後に足す（止めている送信待ちがあるときの「ためておく」）
-    if (!hold && !this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments, { pauseAfter, marks });
-      return { queued: false, id: null };
-    }
-    // 送信待ちに入れる /clear は、文の指示ではなくコンテキスト消去の行にする（「＋追加 → コンテキスト消去」と同じ。順が来たら消去する）
-    const clear = isClearCommand(text, attachments);
-    const box = clear ? addAction(this.boxOf(chatId), "clear", null, outboxEnv())! : addLater(this.boxOf(chatId), newMessage(outboxEnv(), text, options, attachments, marks));
-    this.setBox(chatId, box);
-    const message = box.later.at(-1)!;
-    if (!clear && pauseAfter) this.setBox(chatId, setStopAfter(this.boxOf(chatId), message.id, true)!);
-    return { queued: true, id: message.id };
+    const done = this.run(chatId, { type: "send", when: "later", message: { text, options, attachments, marks }, pauseAfter, hold });
+    const reply = done.effects.find((e) => e.do === "reply");
+    await Promise.all(done.started);
+    return reply?.result === "queued" ? { queued: true, id: reply.id } : { queued: false, id: null };
   }
 
-  /**
-   * いま動いている作業が終わったら、送信待ちを自動で送らずに一時停止する（質問として送った指示が、いまの作業に入ったとき）。
-   * 1 件目の上の印にする: 作業のあいだに来た指示の前で止まり、来なければ作業の終わりに外れる（takeNext）
-   */
-  protected pauseAfterTurn(chatId: number) {
-    this.setBox(chatId, pauseAtHead(this.boxOf(chatId)));
+  /** 送信待ちの様子（チャットの詳細・SSE の chat_live・送信待ちを変える API の応答で同じ形） */
+  queueState(chatId: number) {
+    return queueStateOf(this.runtimes.get(chatId));
   }
 
-  /**
-   * 指示の代わりに挟む行（会話の圧縮・コンテキストの消去）を送信待ちに足す（after: その指示のすぐあと。null ならいちばん下）。
-   * 作業していなくても、すぐには行わない（列の順が来たら、ほかの指示と同じく自動で・行の「すぐ送る」で行う）
-   */
+  /** 列を変える（命令を当てられなければ失敗の種類の例外。並び・線が変わって次を送ったら、送る準備が済むまで待つ） */
+  private command(chatId: number, command: QueueCommand): Promise<void> {
+    return this.answer(chatId, this.run(chatId, { type: "queue", command })).then(() => {});
+  }
+
+  /** 指示の代わりに挟む行（会話の圧縮・コンテキストの消去）を足す（after: その指示のすぐあと。null ならいちばん下。すぐには行わない） */
   queueAction(chatId: number, action: QueueAction, after: string | null = null): void {
     this.requireChat(chatId);
-    this.command(chatId, { op: "add_action", action, after });
+    this.run(chatId, { type: "queue", command: { op: "add_action", action, after } });
   }
 
   /** 待ちの列から消す */
   removeQueued(chatId: number, id: string): void {
     if (!this.boxOf(chatId).later.some((m) => m.id === id)) throw missing();
-    this.command(chatId, { op: "remove", ids: [id] });
+    this.run(chatId, { type: "queue", command: { op: "remove", ids: [id] } });
   }
 
   /** 待ちの指示を書き直す（attachments があれば添付も置き換える。文も添付もなくなるなら断る） */
   editQueued(chatId: number, id: string, text: string, attachments?: Attachment[]): void {
     if (!this.boxOf(chatId).later.some((m) => m.id === id)) throw missing();
-    this.command(chatId, { op: "edit", id, text, attachments });
+    this.run(chatId, { type: "queue", command: { op: "edit", id, text, attachments } });
   }
 
   /** 待ちの指示をすべて消す（消した数を返す） */
   clearQueued(chatId: number): number {
     const count = this.boxOf(chatId).later.length;
-    this.command(chatId, { op: "clear" });
+    this.run(chatId, { type: "queue", command: { op: "clear" } });
     return count;
   }
 
   /** 待ちの指示をいくつかまとめて消す（消した数を返す） */
   removeQueuedMany(chatId: number, ids: string[]): number {
     const found = this.boxOf(chatId).later.filter((m) => ids.includes(m.id)).map((m) => m.id);
-    if (found.length > 0) this.command(chatId, { op: "remove", ids: found });
+    if (found.length > 0) this.run(chatId, { type: "queue", command: { op: "remove", ids: found } });
     return found.length;
   }
 
   /** 待ちの指示をいくつか、いちばん上か下・落とした位置へまとめて移す（扱った数を返す） */
   async moveQueuedMany(chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }): Promise<number> {
     const count = this.boxOf(chatId).later.filter((m) => ids.includes(m.id)).length;
-    await this.releasingStop(chatId, () => this.command(chatId, { op: "move", ids, to: typeof to === "object" ? { before: to.before, below_stop: to.belowStop } : to }));
+    await this.command(chatId, { op: "move", ids, to: typeof to === "object" ? { before: to.before, below_stop: to.belowStop } : to });
     return count;
   }
 
   /** 待ちの列を並べ替える */
   moveQueued(chatId: number, id: string, index: number): Promise<void> {
-    return this.releasingStop(chatId, () => this.command(chatId, { op: "move", ids: [id], to: { index } }));
+    return this.command(chatId, { op: "move", ids: [id], to: { index } });
   }
 
-  /**
-   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ預かって作業の終わりに送信待ちより先に送る。
-   * 圧縮・消去の行なら、すぐ行う（作業中なら、いまのやり取りが終わったらすぐ行うよう、いちばん上へ移す。まだ会話がなければ 409 で列に残す）。
-   * 消去はその場で済むので、済んだら送信待ちの次を送る（止めているときは送らない。圧縮はその作業の終わりで送る）
-   */
+  /** 待ちの 1 件をすぐ送る（作業中なら止めずに伝え、伝えられなければ預かる。圧縮・消去の行ならすぐ行う） */
   async sendQueuedNow(chatId: number, id: string): Promise<void> {
-    if (!this.handoffAllows(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
-    this.normalizeHandoffQueue(chatId);
-    const found = this.boxOf(chatId).later.find((m) => m.id === id);
-    if (!found) throw missing();
-    const action = queueActionOf(found);
-    if (action && !this.handoffAllows(chatId, found)) throw new Conflict("AI の引き継ぎが終わるまで、この操作はできません");
-    if (action && !this.isBusy(chatId) && !this.requireChat(chatId).session_id) throw new Conflict(NO_SESSION[action]);
-    const taken = takeLater(this.boxOf(chatId), id)!;
-    this.setBox(chatId, taken.box);
-    if (action === "compact") return void (await this.compact(chatId));
-    if (action === "clear") {
-      if (this.isBusy(chatId)) return this.reserveAction(chatId, "clear");
-      this.clearContext(chatId);
-      return this.sendNextQueued(chatId);
-    }
-    const message = taken.item;
-    await this.tell(chatId, message.text, message.options, message.attachments, { marks: marksOf(message) });
+    await this.answer(chatId, this.run(chatId, { type: "queue_send", mode: "now", id }));
   }
 
-  /**
-   * 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（作業中なら止めずに伝える）。
-   * 列が空なら 409、選んだ指示が 1 つも列になければ 404
-   */
+  /** 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（列が空なら 409、選んだ指示が 1 つも列になければ 404） */
   async sendAllQueued(chatId: number, ids?: string[]): Promise<void> {
-    if (!this.handoffAllows(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
-    this.normalizeHandoffQueue(chatId);
-    // 1 つにまとめた指示を列から取り出して送る（列に「まとめた 1 件」を一瞬出さない）
-    // まとめていま送るのは、起動したときの確かめにも答えたことにする（すべて送るとき。選んだものだけなら、残りはまだ決めていない）
-    if (!ids) this.runtimes.get(chatId).answerRestartResume();
-    const merged = mergeLater(this.boxOf(chatId), ids);
-    if (!merged) throw ids ? missing() : new Conflict("送信待ちの指示がありません");
-    this.runtimes.get(chatId).setOutbox(merged.box, { silent: true });
-    await this.sendQueuedNow(chatId, merged.merged.id);
+    await this.answer(chatId, this.run(chatId, { type: "queue_send", mode: "all", ...(ids ? { ids } : {}) }));
   }
 
-  /**
-   * 選んだ待ちの指示を、送らずに 1 件にまとめる（文は列の順に空行でつなぎ、添付も合わせる。まとめた 1 件は選んだうちのいちばん上の位置に残る）。
-   * 列にあるものを 2 件以上選んでいなければ 400
-   */
+  /** 選んだ待ちの指示を、送らずに 1 件にまとめる（まとめた 1 件は選んだうちのいちばん上の位置に残る。2 件以上選んでいなければ 400） */
   mergeQueued(chatId: number, ids: string[]): QueuedMessage {
     const first = this.boxOf(chatId).later.find((m) => ids.includes(m.id) && !queueActionOf(m));
-    const box = this.command(chatId, { op: "merge", ids });
-    return box.later.find((m) => m.id === first!.id)!;
+    this.run(chatId, { type: "queue", command: { op: "merge", ids } });
+    return this.boxOf(chatId).later.find((m) => m.id === first!.id)!;
   }
 
-  /**
-   * 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（まとめない）。止めている・「ここまで」の印があっても最後まで送るよう、
-   * 止めておくのをやめて印を外す。作業中でなければ先頭をすぐ送り、あとは終わるたびに次を送る（作業中なら、いまの作業が終わってから）。
-   * 列が空なら 409
-   */
+  /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めている・印があっても最後まで送る。列が空なら 409） */
   async sendQueuedInOrder(chatId: number): Promise<void> {
-    if (!this.handoffAllows(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
-    if (this.boxOf(chatId).later.length === 0) throw new Conflict("送信待ちの指示がありません");
-    this.command(chatId, { op: "set_stops", stops: [] });
-    await this.setQueuePaused(chatId, false);
+    await this.answer(chatId, this.run(chatId, { type: "queue_send", mode: "in_order" }));
   }
 
   /** 印の位置をまとめて置き換える（ドラッグで動かした・× で外した） */
   setQueueStops(chatId: number, stops: number[]): Promise<void> {
-    return this.releasingStop(chatId, () => this.command(chatId, { op: "set_stops", stops }));
+    return this.command(chatId, { op: "set_stops", stops });
   }
 
   /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す） */
   setQueueStopAfter(chatId: number, id: string | null, stop = true): Promise<void> {
-    return this.releasingStop(chatId, () => this.command(chatId, { op: "stop_after", id, stop }));
-  }
-
-  /**
-   * 印・並びを変える。作業が終わって先頭の上の印で待っていたのに、その印がなくなった（消した・動かした・指示を線の上へ移した）なら、
-   * そのまま次を送る（止めておくときは送らない）
-   */
-  private async releasingStop(chatId: number, change: () => void): Promise<void> {
-    const waiting = this.boxOf(chatId).stops[0] === 0;
-    change();
-    const box = this.boxOf(chatId);
-    if (waiting && box.stops[0] !== 0 && !this.runtimes.get(chatId).queuePaused && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
+    return this.command(chatId, { op: "stop_after", id, stop });
   }
 
   /** 待ちの列を止めておくかを切り替える（列が空なら止めない。自動で送るに戻したら、Kickoff の門も外し、作業中でなければ先頭をすぐ送る）。止めておくかを返す */
   async setQueuePaused(chatId: number, paused: boolean): Promise<boolean> {
-    // 送信待ちの「自動で送る / 止めています」を押したら、起動したときの確かめにも答えたことにする
-    this.runtimes.get(chatId).answerRestartResume();
-    if (!paused) this.runtimes.get(chatId).setRecoveryGate(null);
-    const next = this.command(chatId, { op: "set_paused", paused }).paused;
-    if (!next && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
+    const done = this.run(chatId, { type: "queue", command: { op: "set_paused", paused } });
+    const next = this.boxOf(chatId).paused;
+    await this.answer(chatId, done);
     return next;
   }
 
-  /**
-   * 画面で書き直している送信待ちの指示を丸ごと置き換える（書き直す欄を開いている指示。空なら外す）。
-   * 開いている間、画面は持ち時間（EDIT_HOLD_TTL_MS）より短い間隔で知らせ直す
-   */
+  /** 画面で書き直している送信待ちの指示を丸ごと置き換える（空なら外す。開いている間、画面は持ち時間 EDIT_HOLD_TTL_MS より短い間隔で知らせ直す） */
   setQueueEditing(chatId: number, ids: string[]) {
-    this.runtimes.get(chatId).setEditing("later", ids);
+    this.dispatch(chatId, { type: "editing", lane: "later", ids });
   }
 
-  /** 書き直している指示が変わった・外れた: 書き直しが終わるのを待っていたなら、いま送る（作業中なら、終わったときに送る） */
-  protected editsChanged(chatId: number, wasWaiting: boolean) {
-    if (!wasWaiting || this.isBusy(chatId)) return;
-    void this.sendNextQueued(chatId);
+  /** 画面で書き直している預かった指示を丸ごと置き換える（空なら外す。書き直している間は、送る順が来てもその指示から後ろを送らずに待つ） */
+  setAfterCompactEditing(chatId: number, ids: string[]) {
+    this.dispatch(chatId, { type: "editing", lane: "now", ids });
   }
 
-  /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
-  protected async sendNextQueued(chatId: number) {
-    // 作業中（送る準備の途中も）なら送らない（取り出すと送れずに消える。いまの作業が終わったときに、もう一度呼ばれる）
-    if (this.isBusy(chatId)) return;
-    if (!this.handoffAllows(chatId)) return;
-    this.normalizeHandoffQueue(chatId);
+  /** 預かりの行（なければ 404 = もう伝えた） */
+  private heldOf(runtime: ChatRuntime, messageId: string): QueuedMessage {
+    const message = runtime.outbox.now.find((m) => m.id === messageId);
+    if (!message) throw new NotFound("その指示は、もう伝えたか見つかりません");
+    return message;
+  }
+
+  /** いまの作業に足している途中か（editing を渡せば、その行を書き直していれば数えない。足している途中に預かりを変えると、別の指示を飛ばしうる） */
+  private telling(runtime: ChatRuntime, editing?: string): boolean {
+    const { phase, editing: edits } = runtime.run;
+    return phase.kind === "turn" && phase.telling !== null && !(editing !== undefined && edits.now.includes(editing));
+  }
+
+  /** 預かった指示を、送らずに外す（外した指示を返す。もう伝えたなら 404、いまの作業に足している途中なら 409） */
+  removeAfterCompact(chatId: number, messageId: string): QueuedMessage {
     const runtime = this.runtimes.get(chatId);
-    // 起動したときの再開の確かめで送信待ちを聞いている間は送らない（中身を見て直している途中に、線を外す・書き直しを終えるなどで送り始めないように）。
-    // 送信待ちが空になったら、送信待ちについては聞かない（作業の途中で止まったことは聞き続ける）
-    if (runtime.state.resume?.queued) {
-      if (runtime.outbox.later.length > 0) return;
-      runtime.answerRestartResume();
-    }
-    const head = runtime.outbox.later[0];
-    // 圧縮・消去は次の指示ではない。引き継ぐ前にセッションを操作せず、列に残す。
-    if (head && !this.handoffAllows(chatId, head)) return;
-    // 自動で送る次の指示を画面で書き直している間は送らず、書き直しが終わる（保存・やめる・欄を閉じる）のを待つ（waitingEdit）
-    if (runtime.waitingEdit) return;
-    // 止めておくチャット（Kickoff が門で止めたものも）は、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）。先頭の上に印があれば、ここで止めておく
-    if (runtime.queuePaused) return;
-    const taken = takeNext(runtime.outbox);
-    runtime.setOutbox(taken.box);
-    const next = taken.item;
-    if (!next) return;
-    if (next.compact) {
-      // 圧縮の行: 会話を圧縮する（終わったら、その作業の終わりで次を送る）。始められなければ理由を残して次へ
-      try {
-        await this.compact(chatId);
-      } catch (e) {
-        this.reportError(chatId, `送信待ちの会話の圧縮を始められませんでした: ${errorMessage(e)}`);
-        await this.sendNextQueued(chatId);
-      }
-      return;
-    }
-    if (next.clear) {
-      // 消去の行: その場で済むので、すぐ次を送る（次の指示は新しい会話で始まる）。まだ会話がなければ消すものがないので、そのまま次へ
-      if (this.requireChat(chatId).session_id) this.clearContext(chatId);
-      await this.sendNextQueued(chatId);
-      return;
-    }
-    try {
-      await this.send(chatId, next.text, next.options, next.attachments, { marks: marksOf(next) });
-    } catch (e) {
-      this.reportError(chatId, `待ちの指示を送れませんでした: ${errorMessage(e)}`);
-    }
+    const message = this.heldOf(runtime, messageId);
+    if (this.telling(runtime)) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
+    this.run(chatId, { type: "queue", command: { op: "remove", ids: [messageId] } });
+    return message;
+  }
+
+  /**
+   * 預かった指示をその場で書き直す（送る順はそのまま）。書き直し中の印も外し、送る順が来ていれば送る。
+   * もう伝えたなら 404、書き直し中の印がないままいまの作業に足している途中なら 409、圧縮後指示・文も添付もなくなるなら 400
+   */
+  updateAfterCompact(chatId: number, messageId: string, text: string, attachments: Attachment[]): QueuedMessage {
+    const runtime = this.runtimes.get(chatId);
+    this.heldOf(runtime, messageId);
+    const command: QueueCommand = { op: "edit", id: messageId, text, attachments };
+    const next = applyQueueCommand(runtime.outbox, command, outboxEnv());
+    if (isQueueReject(next)) throw rejection(next.reject, next.message);
+    if (this.telling(runtime, messageId)) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
+    this.run(chatId, { type: "queue", command });
+    return next.now.find((m) => m.id === messageId)!;
   }
 }

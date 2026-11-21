@@ -42,7 +42,7 @@ import { PROVIDER_AUTH_MODE_LABELS, type ProviderId } from "@shared/settings/typ
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import type { ChatRuntime } from "./runtime";
 import { ensureDir, readOnlyReferences, referenceDirectories, resolveWorkdir } from "./turnFolders";
-import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
+import { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -117,8 +117,6 @@ export interface TurnRequest {
   promptId?: string;
   /** 会話の要約（/compact）。発言・結果としては残さず、未読にもしない */
   compact?: boolean;
-  /** 手で圧縮する前の圧縮前指示。最後まで終わったら、続けて会話を圧縮する（Runner） */
-  thenCompact?: boolean;
   /**
    * 圧縮のきっかけ（compact のとき。省けば手で圧縮した manual）。自動の圧縮の前の圧縮前指示の作業が、圧縮しないまま終わったときに
    * Runner が続けて圧縮する実行は auto（上限に近づいて Claude Code が始めようとした圧縮を、作業の終わりで済ませる）
@@ -388,20 +386,21 @@ function callbacksFor(
     commandOutput: (output) => {
       bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
     },
-    retry: (retry) => runtime.patchTurn({ retry }),
+    retry: (retry) => runtime.setDisplay({ retry }),
     // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない。「いま」は実行の終わりで送る）
-    control: (control) => runtime.patchTurn({ control: compact ? null : control }),
-    background: (background) => runtime.patchTurn({ background }),
+    control: (control) => {
+      if (!compact) runtime.setControl(control);
+    },
+    background: (background) => runtime.setDisplay({ background }),
     // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す（下の帯の札も赤くなる）
     spending: (note) => {
       const message = SPENDING_NOTICES[chat.provider];
       if (usage?.noteSpending(chat.provider, note) && message) recordEvent(store, runtime, { type: "notice", message });
     },
-    drawingVisual: (drawingVisual) => runtime.patchTurn({ drawingVisual }),
+    drawingVisual: (drawingVisual) => runtime.setDisplay({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
-    // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで Runner が外す）
-    compacting: (active) =>
-      runtime.patchTurn({ compaction: { running: active ? (runtime.compaction.running ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null, ...(active ? { done: true } : {}) } }),
+    // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで外れる）
+    compacting: (active) => runtime.dispatch({ type: "compacting", active, at: new Date().toISOString(), trigger: compactTrigger }),
     // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
     context: (tokens) => {
       if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
@@ -417,7 +416,7 @@ function callbacksFor(
     preCompactSent: (uuid) => {
       if (!preCompactText) return;
       // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）。圧縮か消去まで、もう足さない（記録から導く preCompactSent）
-      runtime.patchTurn({ compaction: { awaiting: true } });
+      runtime.dispatch({ type: "pre_compact_injected" });
       recordEvent(store, runtime, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
     },
     // 合図のあと裏の作業を待って止まっていたので、Kickoff が発言を足して圧縮を走らせた: 何が起きたかをお知らせに残す（足した文は AI 向けなので発言にしない）
@@ -430,8 +429,8 @@ function callbacksFor(
       }
       // 手で圧縮する実行の圧縮は、頼んだきっかけで残す（自動の圧縮の前の指示のあとに Runner が続けた圧縮は auto）
       const saved = recordEvent(store, runtime, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
-      // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（ChatRuntime.compacted）
-      if (event.type === "compact") runtime.compacted(postCompactText ? postCompactItem(postCompactText) : null, compact);
+      // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（step の compacted）
+      if (event.type === "compact") runtime.dispatch({ type: "compacted", post: postCompactText, compactRun: compact });
       // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
       if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）

@@ -1,66 +1,50 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest } from "./turn";
-import { RunnerQueue, type SendOpts } from "./runnerQueue";
-import { outboxEnv, type ChatRuntime } from "./runtime";
+import type { ExecutionDeps, TurnRequest } from "./turn";
+import { RunnerShell } from "./runnerShell";
+import type { ChatRuntime } from "./runtime";
 import { ChatRuntimes } from "./runtimes";
-import { newMessage, resetOptions } from "@shared/chat/outbox";
-import { parkNow } from "@/features/chat/core/run/machine/outbox";
-import { compactByOf, noCompaction, turnKindOf } from "./turnState";
-import { onSettled, onTurnEnded } from "@/features/chat/core/run/machine/turnEnd";
-import type { ChatRunState, Effect, TurnOutcome } from "@/features/chat/core/run/machine/types";
+import { holdOf, isBusy as busyState, queuePaused } from "@/features/chat/core/run/machine/state";
+import type { Effect } from "@/features/chat/core/run/machine/types";
 import { recordEvent } from "@/features/chat/core/run/record";
-import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import { ChatRecovery } from "@/features/chat/core/recovery/recovery";
-import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input";
+import { createChat, followupPrompt, type StartChatInput } from "./input";
 import { startChildChat } from "@/features/childChats/core/children";
 import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "@/features/workplaceMove/core/workplaceMove";
 import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "@/features/workplaceMove/core/workplaceReservation";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { ChatLive, RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
-import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
-import type { TellResult } from "@shared/foundation/apiTypes";
+import type { Chat } from "@shared/chat/types";
 import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
-import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, restartResumePrompt } from "@shared/chat/prompts";
-import { postCompactItem, preCompactPromptOf } from "@/features/compact/core/preCompact";
-import { isClearCommand } from "@shared/chat/queueActions";
-import { marksOf } from "@shared/chat/handoff";
+import { restartResumePrompt } from "@shared/chat/prompts";
+import { preCompactPromptOf } from "@/features/compact/core/preCompact";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 import { handoffBlocksSwitch } from "@/features/chat/core/db/chatProviderHandoffs";
 import type { ProviderId } from "@shared/settings/types";
 import { providerCan } from "@shared/ai/providers";
 
 /**
- * エージェントの実行を管理する。
- * 送った指示はすぐ動かす（同時に動かす数は決めない）。
- * 1 つのチャットは 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
- * チャットごとの作業中の状態（動かしている実行・送信待ちの列・裏の作業・再試行・圧縮中・停止中）は runtime.ts の ChatRuntime に 1 つずつ持ち、
- * 変わったらまとめて画面に配る（SSE の chat_live）。作業中のチャットに送った次の指示は送信待ちの列に入れ、作業が終わったら（止めた・失敗したときも）順に送る。
- * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は turn.ts、
- * 通信の切断・使用枠の上限で止まったときの再開の段取り（送信待ちを止める・待つ・聞く・再開する）は recovery/
+ * エージェントの実行を管理する殻。送った指示はすぐ動かす（同時に動かす数は決めない）。1 つのチャットは 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
+ * 操作も知らせも出来事（RunEvent）にして dispatch に渡し、次の状態と命令は純粋な step（run/machine/step.ts）が決める。ここは命令を実行するだけ
+ * （作業を動かす・いまの作業に足す・記録・時計・再開の段取り）。チャットごとの状態は runtime.ts の ChatRuntime、1 回の実行の中身は turn.ts、
+ * 通信の切断・使用枠の上限で止まったときの再開の段取り（待つ・聞く・再開する）は recovery/
  */
 /** 起動したときの再開の確かめで、止まったところを探す記録の数（新しいほうから） */
 const RESUME_EVENTS = 300;
 
-export class Runner extends RunnerQueue {
+export class Runner extends RunnerShell {
   protected readonly runtimes: ChatRuntimes;
-  /** アプリを終えるところ（待ちの列を送らない） */
-  private shuttingDown = false;
-
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り */
-  private readonly recovery: ChatRecovery;
-
+  protected readonly recovery: ChatRecovery;
   /** 1 回の実行に渡すもの（AI が自分の子チャットを作るツールのために、子チャットの作り方を足す） */
-  private readonly turnDeps: ExecutionDeps;
-
+  protected readonly turnDeps: ExecutionDeps;
   /** AI が作業場所を移す予約（作業が最後まで終わったら移す） */
   private readonly workplaceMoves: WorkplaceReservations;
 
   constructor(
-    private readonly deps: ExecutionDeps & {
+    protected readonly deps: ExecutionDeps & {
       usage: UsageMonitor;
       /** つながったかの確かめ方と間隔（テストで差し替える） */
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
@@ -68,8 +52,6 @@ export class Runner extends RunnerQueue {
       usageLimit?: { now?: () => number; checkMs?: number };
       /** 書き直している印の持ち時間（テストで差し替える） */
       editHoldTtlMs?: number;
-      /** 動かし始めたばかりの作業に「いま」を足すとき、足す口（作業中の操作）ができるのを待つ上限（テストで差し替える） */
-      tellableWaitMs?: number;
       /** 前回の終了で作業の途中で止まったチャット（store.chats.recoverInterrupted が返す印のあるもの。起動したときの再開の確かめで「続ける」を選べる） */
       interrupted?: number[];
     },
@@ -81,42 +63,21 @@ export class Runner extends RunnerQueue {
       startChat: async (parent, input) => {
         const chat = await startChildChat({ store: deps.store, runner: this, providers: deps.providers }, parent, input);
         // 親の会話を写し終えた・いま写している（写すのは作ったあとで待たずに進める inheritThenExecute。もう写し終えていることもあるので店から引き直す）
-        const inherited = this.runtimes.get(chat.id).state.inheriting || (deps.store.chats.get(chat.id)?.session_id ?? null) !== null;
-        return { chat, inherited };
+        const { phase } = this.runtimes.get(chat.id).run;
+        return { chat, inherited: (phase.kind === "preparing" && phase.why === "inherit") || (deps.store.chats.get(chat.id)?.session_id ?? null) !== null };
       },
     };
     // 再起動しても送信待ちの列は残す（読み戻した列は止めておく）
-    this.runtimes = new ChatRuntimes({
-      store: deps.store,
-      bus: deps.bus,
-      editTtlMs: deps.editHoldTtlMs,
-      onEditingChanged: (chatId, lane, wasWaiting) => (lane === "later" ? this.editsChanged(chatId, wasWaiting) : this.afterCompactEditsChanged(chatId)),
-      onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
-    });
+    this.runtimes = new ChatRuntimes({ store: deps.store, bus: deps.bus, editTtlMs: deps.editHoldTtlMs, dispatch: (chatId, event) => this.dispatch(chatId, event) });
     // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
     deps.store.chatProviderHandoffs.recoverInterrupted();
-    // 前回の終了で作業の途中で止まったチャットと、自動で送るまま送信待ちが残ったチャットは、起動しただけでは続けず・送らず、
-    // 利用者に聞く（restartResumes / resolveRestartResumes）
+    // 前回の終了で作業の途中で止まったチャットと、自動で送るまま送信待ちが残ったチャットは、起動しただけでは続けず・送らず、利用者に聞く（restartResumes）
     const interrupted = new Set(deps.interrupted ?? []);
     const queued = new Set(deps.store.outbox.list().map((saved) => saved.chatId).filter((chatId) => this.waitsForResume(chatId)));
-    for (const chatId of new Set([...interrupted, ...queued])) {
-      this.runtimes.get(chatId).update({ resume: { interrupted: interrupted.has(chatId), queued: queued.has(chatId) } });
-    }
+    for (const chatId of new Set([...interrupted, ...queued])) this.dispatch(chatId, { type: "gates", patch: { restart: { interrupted: interrupted.has(chatId), queued: queued.has(chatId) } } });
     this.workplaceMoves = new WorkplaceReservations(this.runtimes);
-    this.turnDeps.workplaceMoves = {
-      reserve: (chatId, plan) => this.workplaceMoves.reserve(chatId, plan),
-      cancel: (chatId) => this.workplaceMoves.cancel(chatId) !== null,
-    };
-    this.recovery = new ChatRecovery({
-      store: deps.store,
-      approvals: deps.approvals,
-      runtimes: this.runtimes,
-      isBusy: (chatId) => this.isBusy(chatId),
-      send: (chatId, text) => this.send(chatId, text),
-      usage: deps.usage,
-      reconnect: deps.reconnect,
-      usageLimit: deps.usageLimit,
-    });
+    this.turnDeps.workplaceMoves = { reserve: (chatId, plan) => this.workplaceMoves.reserve(chatId, plan), cancel: (chatId) => this.workplaceMoves.cancel(chatId) !== null };
+    this.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runtimes: this.runtimes, isBusy: (chatId) => this.isBusy(chatId), send: (chatId, text) => this.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   }
 
   /** 上の機能の口（ノート・DB・Docker・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は Runner を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
@@ -130,23 +91,27 @@ export class Runner extends RunnerQueue {
     this.turnDeps.chatRemover = remover;
   }
 
+
+  protected preCompactOf(projectId: number): string | null {
+    const project = this.deps.store.projects.get(projectId);
+    return project ? preCompactPromptOf(this.deps.store, project) : null;
+  }
+
+  protected turnEndTasks(chatId: number, runtime: ChatRuntime, effect: Extract<Effect, { do: "run_turn_end_tasks" | "drop_turn_end_tasks" }>) {
+    const move = this.workplaceMoves.take(chatId);
+    if (effect.do === "drop_turn_end_tasks") {
+      if (move && effect.notice) recordEvent(this.deps.store, runtime, { type: "notice", message: notMovedNotice(move) });
+      return;
+    }
+    const settled = () => this.dispatch(chatId, { type: "settled", then: effect.then });
+    if (move) void this.moveThenContinue(chatId, move).then(settled);
+    else settled();
+  }
+
   /** 起動すると送り始める送信待ちか（指示があり、自動で送るで、先頭の上に一時停止の線がなく、作業していない） */
   private waitsForResume(chatId: number): boolean {
-    const { outbox } = this.runtimes.get(chatId);
+    const { outbox } = this.runtimes.get(chatId).run;
     return outbox.later.length > 0 && !outbox.paused && outbox.stops[0] !== 0 && !this.isBusy(chatId);
-  }
-
-  /** AI の切り替えの引き継ぎの門（DB の写しを読む。準備ができていても、チャットの AI が切り替え先でなければ送らない） */
-  protected handoffGate(chatId: number) {
-    return this.runtimes.get(chatId).handoff()?.state ?? null;
-  }
-
-  protected normalizeHandoffQueue(chatId: number): void {
-    const pending = this.deps.store.chatProviderHandoffs.get(chatId);
-    if (!pending) return;
-    const event = this.deps.store.events.get(pending.eventId);
-    const runtime = this.runtimes.get(chatId);
-    if (event?.type === "provider_switched") runtime.setOutbox(resetOptions(runtime.outbox, event.data.queued_ids ?? []));
   }
 
   /** 切り替えを排他的に準備する。確認中に送信待ちが変わった場合は古い内容で確定しない。 */
@@ -161,8 +126,7 @@ export class Runner extends RunnerQueue {
     const runtime = this.runtimes.get(chatId);
     const initialQueue = queueSnapshot(runtime);
     const initialSignature = JSON.stringify(initialQueue);
-    runtime.switchingProvider = true;
-    runtime.preparing = "switch_provider";
+    this.dispatch(chatId, { type: "begin", why: "switch_provider" });
     let switched = false;
     try {
       const provider = this.deps.providers[target];
@@ -171,18 +135,17 @@ export class Runner extends RunnerQueue {
       if (!provider.implemented || !status.implemented || !status.installed) throw new Conflict("切り替え先の AI が利用できません");
       if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
       const requireStable = () => {
-        if (!runtime.switchingProvider || !runtime.preparing || runtime.turn || JSON.stringify(queueSnapshot(runtime)) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
+        const { phase } = runtime.run;
+        if (phase.kind !== "preparing" || phase.why !== "switch_provider" || JSON.stringify(queueSnapshot(runtime)) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
         requireConfirmation?.();
       };
       const result = await prepareAndCommitProviderSwitch({ store: this.deps.store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused: initialQueue.paused, queuedIds: initialQueue.messages.map((message) => message.id) });
       switched = true;
       return result;
     } finally {
-      runtime.switchingProvider = false;
-      runtime.preparing = null;
+      this.dispatch(chatId, { type: "prepared", ...(switched ? { next: "send_next" as const } : {}) });
       // 切り替えに失敗したとき、準備中に増えた指示を意図せず元の AI に送らない。
-      if (switched) void this.sendNextQueued(chatId);
-      else if (JSON.stringify(queueSnapshot(runtime)) !== initialSignature && runtime.outbox.later.length > 0) this.setPausedFor(chatId, true);
+      if (!switched && JSON.stringify(queueSnapshot(runtime)) !== initialSignature && runtime.outbox.later.length > 0) this.dispatch(chatId, { type: "set_paused", paused: true });
     }
   }
 
@@ -195,8 +158,7 @@ export class Runner extends RunnerQueue {
     if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
     if (!uploads) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
     const runtime = this.runtimes.get(chatId);
-    runtime.preparing = "handoff_retry";
-    runtime.switchingProvider = true;
+    this.dispatch(chatId, { type: "begin", why: "handoff_retry" });
     let started = false;
     let recovered = false;
     let claimed = false;
@@ -204,15 +166,14 @@ export class Runner extends RunnerQueue {
       const attempt = store.events.list(chatId, { after: pending.eventId, types: ["user"], limit: 1 })[0];
       const prompt = attempt?.type === "user" ? (await followupPrompt(this.deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
       const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
-        if (!runtime.preparing || !runtime.switchingProvider || runtime.turn) throw new Conflict("チャットの状態が変わったため、再試行できません");
+        const { phase } = runtime.run;
+        if (phase.kind !== "preparing" || phase.why !== "handoff_retry") throw new Conflict("チャットの状態が変わったため、再試行できません");
       } }, chatId, attempt?.type === "user");
       claimed = attempt?.type === "user";
       if (attempt?.type === "user" && prompt !== null) {
         store.chats.update(chatId, { status: "running", error: null, unread: false });
-        runtime.preparing = null;
-        runtime.switchingProvider = false;
         started = true;
-        void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId });
+        void this.execute(chatId, { chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId }, "message", null);
       }
       recovered = true;
       return result;
@@ -222,9 +183,7 @@ export class Runner extends RunnerQueue {
       else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
       throw error;
     } finally {
-      runtime.preparing = null;
-      runtime.switchingProvider = false;
-      if (recovered && !started && this.handoffAllows(chatId)) void this.sendNextQueued(chatId);
+      if (!started) this.dispatch(chatId, { type: "prepared", ...(recovered ? { next: "send_next" as const } : {}) });
     }
   }
 
@@ -246,7 +205,7 @@ export class Runner extends RunnerQueue {
     const out: RestartResume[] = [];
     for (const runtime of this.runtimes.all()) {
       const { chatId } = runtime;
-      const { resume } = runtime.state;
+      const resume = runtime.run.gates.restart;
       if (!resume) continue;
       const chat = store.chats.get(chatId);
       if (!chat || chat.archived_at !== null) {
@@ -256,21 +215,11 @@ export class Runner extends RunnerQueue {
       const { later: messages, stops } = runtime.outbox;
       const queued = resume.queued && messages.length > 0;
       if (!queued && !resume.interrupted) {
-        runtime.update({ resume: null });
+        this.dispatch(chatId, { type: "gates", patch: { restart: null } });
         continue;
       }
-      if (queued !== resume.queued) runtime.update({ resume: { interrupted: resume.interrupted, queued } });
-      out.push({
-        chat_id: chatId,
-        project_id: chat.project_id,
-        title: chat.title,
-        interrupted: resume.interrupted,
-        queued,
-        messages: queued ? messages : [],
-        stops: queued ? stops : [],
-        ...resumeMomentsOf(store.events.recent(chatId, RESUME_EVENTS)),
-        subagents: resume.interrupted ? this.stoppedSubagents(chatId) : [],
-      });
+      if (queued !== resume.queued) this.dispatch(chatId, { type: "gates", patch: { restart: { interrupted: resume.interrupted, queued } } });
+      out.push({ chat_id: chatId, project_id: chat.project_id, title: chat.title, interrupted: resume.interrupted, queued, messages: queued ? messages : [], stops: queued ? stops : [], ...resumeMomentsOf(store.events.recent(chatId, RESUME_EVENTS)), subagents: resume.interrupted ? this.stoppedSubagents(chatId) : [] });
     }
     return out.sort((a, b) => a.chat_id - b.chat_id);
   }
@@ -284,23 +233,22 @@ export class Runner extends RunnerQueue {
    */
   async resolveRestartResumes(decisions: { chatId: number; action: RestartResumeAction }[]): Promise<void> {
     for (const { chatId, action } of decisions) {
-      if (action === "send" && this.runtimes.peek(chatId)?.state.resume?.queued === false) throw new Invalid("送信待ちのないチャットには「送る」を選べません");
+      if (action === "send" && this.runtimes.peek(chatId)?.run.gates.restart?.queued === false) throw new Invalid("送信待ちのないチャットには「送る」を選べません");
     }
     for (const { chatId, action } of decisions) {
-      const runtime = this.runtimes.get(chatId);
-      const { resume } = runtime.state;
+      const resume = this.runtimes.get(chatId).run.gates.restart;
       if (!resume) continue;
       // 続けるなら、止まったサブエージェントは答えを消す前に探す
       const agents = action === "continue" && resume.interrupted ? this.stoppedSubagents(chatId) : [];
       this.settleResume(chatId);
       if (action === "pause") {
-        if (resume.queued) this.setPausedFor(chatId, true);
+        if (resume.queued) this.dispatch(chatId, { type: "set_paused", paused: true });
       } else if (this.isBusy(chatId)) {
         continue;
       } else if (action === "continue" && resume.interrupted) {
         await this.send(chatId, restartResumePrompt(agents.map((a) => ({ agentId: a.agent_id, description: a.description }))));
       } else if (resume.queued) {
-        await this.sendNextQueued(chatId);
+        await Promise.all(this.dispatch(chatId, { type: "send_next" }).started);
       }
     }
   }
@@ -308,20 +256,17 @@ export class Runner extends RunnerQueue {
   /** 起動したときの再開の確かめに答えた・聞くことがなくなった: 印を外す（次の起動でも聞かない） */
   private settleResume(chatId: number) {
     const runtime = this.runtimes.peek(chatId);
-    const interrupted = runtime?.state.resume?.interrupted ?? false;
-    runtime?.update({ resume: null });
+    if (!runtime) return;
+    const interrupted = runtime.run.gates.restart?.interrupted ?? false;
+    this.dispatch(chatId, { type: "gates", patch: { restart: null } });
     if (interrupted) this.deps.store.chats.setResumePending([chatId], false);
   }
 
-  /**
-   * 自分で送った: 前回の終了で止まった作業を続けるかは、もう聞かない（印も外す）。送信待ちを聞いていれば、それは聞き続ける
-   * （作業が終わっても、答えるまで送信待ちは送らない）
-   */
-  private forgetInterrupted(chatId: number) {
-    const runtime = this.runtimes.peek(chatId);
-    const resume = runtime?.state.resume;
-    if (!runtime || !resume?.interrupted) return;
-    runtime.update({ resume: resume.queued ? { interrupted: false, queued: true } : null });
+  /** 自分で送った: 前回の終了で止まった作業を続けるかは、もう聞かない（印も外す）。送信待ちを聞いていれば、それは聞き続ける */
+  protected forgetInterrupted(chatId: number) {
+    const resume = this.runtimes.peek(chatId)?.run.gates.restart;
+    if (!resume?.interrupted) return;
+    this.dispatch(chatId, { type: "gates", patch: { restart: resume.queued ? { interrupted: false, queued: true } : null } });
     this.deps.store.chats.setResumePending([chatId], false);
   }
 
@@ -344,22 +289,22 @@ export class Runner extends RunnerQueue {
 
   async start(input: StartChatInput): Promise<Chat> {
     const { chat, prompt, messageUuid } = await createChat(this.deps, input);
-    if (input.prepareSession) this.inheritThenExecute(chat.id, input.prepareSession, { chatId: chat.id, prompt, promptId: messageUuid });
-    else void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
+    const item = { chatId: chat.id, prompt, promptId: messageUuid };
+    if (input.prepareSession) this.inheritThenExecute(chat.id, input.prepareSession, item);
+    else void this.execute(chat.id, item, "message", null);
     return this.deps.store.chats.get(chat.id)!;
   }
 
   /**
-   * 親の会話を写してから動かす（子チャット）。写す間（親の記録が大きいと数十秒）も作業中として数え（preparing）、画面には
+   * 親の会話を写してから動かす（子チャット）。写す間（親の記録が大きいと数十秒）も作業中として数え（送る準備 inherit）、画面には
    * ChatLive.inheriting で「親の会話を引き継いでいます」を出す（写し終えるのを待たずに子チャットを作り、送った発言と作業中の行を出す）。
-   * この間の「いま」は預かり（holdsTells）、動かし始めたらその作業に伝える。止めたら、写し終えたところで動かさずに中断で終える。
+   * この間の「いま」は預かり、動かし始めたらその作業に伝える。止めたら、写し終えたところで動かさずに中断で終える。
    * 写せなければ、引き継がずに始めることをお知らせに残して動かす
    */
   private inheritThenExecute(chatId: number, prepare: () => Promise<string>, item: TurnRequest) {
     const { store } = this.deps;
     const runtime = this.runtimes.get(chatId);
-    runtime.preparing = "inherit";
-    runtime.update({ inheriting: true });
+    this.dispatch(chatId, { type: "begin", why: "inherit" });
     void (async () => {
       let sessionId: string | null = null;
       try {
@@ -367,364 +312,43 @@ export class Runner extends RunnerQueue {
       } catch (e) {
         if (store.chats.get(chatId)) recordEvent(store, runtime, { type: "notice", message: `親の会話を引き継げませんでした（${errorMessage(e)}）。会話を引き継がずに始めます` });
       }
-      runtime.preparing = null;
-      const cancelled = runtime.next.stopRequested;
-      runtime.update({ inheriting: false });
       // 写している間にチャットを消した・アプリを終える
-      if (!store.chats.get(chatId) || this.shuttingDown) return;
+      if (!store.chats.get(chatId) || this.shuttingDown) {
+        if (this.runtimes.peek(chatId)) this.dispatch(chatId, { type: "prepared" });
+        return;
+      }
       if (sessionId) store.chats.update(chatId, { session_id: sessionId });
-      void this.execute(item);
-      // 写している間に止めた: 動かし始める前に止める（プロバイダーを動かさずに中断で終える）
-      if (cancelled) runtime.turn?.abort.abort();
-      // 写している間に預かった「いま」: 動かし始めた作業に足す口ができるのを待ってから伝える（作業がもう終われば、作業の終わりに deliverHeld が送る）
-      else if (runtime.outbox.now.length > 0)
-        void untilTellable(runtime).then(() => {
-          if (runtime.turn?.control && runtime.outbox.now.length > 0 && !runtime.state.deliveringAfterCompact) this.drainAfterCompact(chatId, false);
-        });
+      void this.execute(chatId, item, "message", null);
     })();
-  }
-
-  /**
-   * 終了した会話に追加の指示を送り、続きから再開する（pauseAfter なら、この作業が終わったら送信待ちを一時停止する。
-   * postCompact なら圧縮後指示として、記録に札を付け、AI には前置きを付けて送る）
-   */
-  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, postCompact = false, marks = {} }: SendOpts = {}): Promise<Chat> {
-    const chat = this.requireChat(chatId);
-    this.requireIdle(chatId, "送信");
-    if (!this.handoffAllows(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
-    this.normalizeHandoffQueue(chatId);
-    // チャット欄の /clear: Claude Code に送らず、送信待ちのコンテキスト消去と同じく Kickoff がセッションを外して区切りを残す
-    if (!postCompact && isClearCommand(text, attachments)) return this.clearByCommand(chatId);
-    const { store } = this.deps;
-    const runtime = this.runtimes.get(chatId);
-    // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
-    runtime.preparing = "send";
-    let prepared: Awaited<ReturnType<typeof followupPrompt>>;
-    try {
-      prepared = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
-    } catch (e) {
-      runtime.preparing = null;
-      // 送れなかった間に届いた指示（待ちの列）は取り残さない
-      void this.sendNextQueued(chatId);
-      throw e;
-    }
-    // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）。
-    // 起動したときの再開の確かめで、作業を続けるかも聞かない
-    this.forgetRecovery(chatId);
-    this.forgetInterrupted(chatId);
-    const { prompt, handover } = prepared;
-    const messageUuid = randomUUID();
-    // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
-    if (!postCompact) nameOnFirstMessage(this.deps, chat.id, text, attachments);
-    recordEvent(store, runtime, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
-    // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
-    store.chats.update(chat.id, {
-      status: "running",
-      error: null,
-      unread: false,
-      ...options,
-    });
-    // 動かし始めたら作業中（runtime.turn）として数えられるので、準備の印は外す
-    runtime.preparing = null;
-    // 質問として送った: 動かし始める前に印を付ける（すぐ終わる作業でも、終わりの自動送信より先に付いている）
-    if (pauseAfter) this.pauseAfterTurn(chatId);
-    void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
-    // 前の作業が送れない終わり方をして残った圧縮後指示があれば、この作業にそのまま伝える（送信待ちには入れない）
-    if (!postCompact && runtime.outbox.now.length > 0 && !runtime.state.deliveringAfterCompact) this.drainAfterCompact(chatId, false);
-    return store.chats.get(chat.id)!;
-  }
-
-  /**
-   * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインエージェントが、いまの手順の切れ目で読む。
-   * 裏のサブエージェント・コマンドは動き続ける）。圧縮前指示から圧縮後指示のやり取りが終わるまで（どちらもなければ、圧縮からそのあとのやり取りが終わるまで。
-   * holdsTells）なら預かり、そのやり取りが終わってから送る（deliverHeld。圧縮後指示だけは、圧縮が終わったらいまのやり取りに伝える = deliverAfterCompact）。
-   * 動かし始めたばかりで足す口がなければ少し待ち、それでも足せないとき（Claude Code が手を空けて入力を閉じた）は預かり（口を closed に）、作業の終わりに送信待ちより先に送る。
-   * pauseAfter（質問として送る）なら、伝えた・預かったときはいまの作業が終わったら一時停止する。モデルなどの選択は次に送るときから効く
-   */
-  async tell(
-    chatId: number,
-    text: string,
-    options: ChatOptionsPatch = {},
-    attachments: Attachment[] = [],
-    { pauseAfter = false, postCompact = false, draining = false, marks = {} }: SendOpts & { draining?: boolean } = {},
-  ): Promise<TellResult["result"]> {
-    const { store } = this.deps;
-    const chat = this.requireChat(chatId);
-    if (!this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments, { pauseAfter, postCompact, marks });
-      return "sent";
-    }
-    const runtime = this.runtimes.get(chatId);
-    if (runtime.switchingProvider) throw new Conflict("AI の切り替え中は指示を送れません。切り替え後に送ってください");
-    // 作業中の /clear: いまのやり取りには足せない（足すと作業の途中で会話が空になる）ので、終わったらすぐ消去する予約にする
-    // （送信待ちのいちばん上に消去の行。作業中の行の「すぐ送る」と同じ）
-    if (!postCompact && isClearCommand(text, attachments)) {
-      this.reserveAction(chatId, "clear");
-      return "queued";
-    }
-    const hold = (): "held" => {
-      if (pauseAfter) this.pauseAfterTurn(chatId);
-      return this.holdUntilCompacted(runtime, text, options, attachments, postCompact, marks);
-    };
-    // 預かった指示を送っている途中（draining）のものは、預かり直さない
-    if (runtime.holdsTells && !draining) return hold();
-    // 動かし始めたばかりで、まだ足す口（作業中の操作）がなければ、少しの間できるのを待つ（足せないと決めて、この作業の間ずっと預からないように。
-    // 預かった指示を送っている途中のものは、送っている間に作業が入れ替わることがあるので、口ができるか作業が終わるまで待つ）
-    if (!runtime.turn?.control) await untilTellable(runtime, draining ? Infinity : (this.deps.tellableWaitMs ?? TELLABLE_WAIT_MS));
-    const { prompt, handover } = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
-    const messageUuid = randomUUID();
-    // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
-    if (runtime.holdsTells && !(draining && !runtime.compaction.running && !runtime.compaction.awaiting)) return hold();
-    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す。
-    // まだ AI に伝えていない Kickoff からの知らせ（作業場所を移す予約の取り消しなど）があれば、頭に一度だけ添える（足せなければ残す）
-    const note = runtime.pendingNote;
-    if (runtime.turn?.control?.tell(note ? `${note}\n\n${prompt}` : prompt, messageUuid)) {
-      if (note && runtime.pendingNote === note) takePendingNote(runtime);
-      // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
-      this.forgetRecovery(chatId);
-      this.forgetInterrupted(chatId);
-      recordEvent(store, runtime, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
-      if (chat.unread) store.chats.setUnread(chatId, false);
-      if (pauseAfter) this.pauseAfterTurn(chatId);
-      return "told";
-    }
-    if (postCompact) {
-      // 圧縮後指示は送信待ちに入れない: 預かりの先頭に戻し、作業の終わりに送信待ちより先に送る（もう終わっていれば、いま送る）
-      runtime.setOutbox({ ...runtime.outbox, now: [postCompactItem(text), ...runtime.outbox.now] });
-      if (!this.isBusy(chatId)) this.deliverHeld(chatId, true);
-      return "held";
-    }
-    // 足せない（Claude Code が手を空けて入力を閉じた）: 送信待ちに戻さず預かり、作業の終わりに送信待ちより先に送る（deliverHeld）。
-    // 送信待ちに戻すと、止めている・一時停止の線があるときに送られず、「すぐ送る」で送った指示も列に戻って順番が変わるため。
-    // この作業の間のこのあとの「いま」も預かる（口を closed に。先に預かった指示より先に入らないように）。作業を動かし始める前（送る準備の間）は立てない
-    if (runtime.turn) runtime.patchTurn({ tell: "closed" });
-    // 預かった指示を送っている途中（drainAfterCompact）のものは、呼び出し元が預かりの先頭に戻す
-    if (draining) return "held";
-    hold();
-    // 組み立てている間に作業が終わっていたら、終わったときの送り出しはもう済んでいるので、ここで送る（預かりに取り残さない）
-    if (!this.isBusy(chatId)) this.deliverHeld(chatId, true);
-    return "held";
-  }
-
-  /** 預かりの行（なければ 404 = もう伝えた） */
-  private heldOf(runtime: ChatRuntime, messageId: string): QueuedMessage {
-    const message = runtime.outbox.now.find((m) => m.id === messageId);
-    if (!message) throw new NotFound("その指示は、もう伝えたか見つかりません");
-    return message;
-  }
-
-  /**
-   * 圧縮が終わるまで預かった指示（「いま」と圧縮後指示）を、送らずに外す（圧縮中に誤って送ったとき）。外した指示を返す。
-   * 預かりにない（もう伝えた）なら 404、圧縮のあとで順に伝えている途中なら 409（先頭から取り出しているので、外すと別の指示を飛ばしうる）
-   */
-  removeAfterCompact(chatId: number, messageId: string): QueuedMessage {
-    const runtime = this.runtimes.get(chatId);
-    const message = this.heldOf(runtime, messageId);
-    const next = this.command(chatId, { op: "remove", ids: [messageId] }, { commit: false });
-    if (runtime.state.deliveringAfterCompact) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
-    runtime.setOutbox(next);
-    return message;
-  }
-
-  /**
-   * 預かった指示をその場で書き直す（送る順はそのまま）。書き直し中の印も外し、送る順が来ていれば送る（afterCompactEditsChanged）。
-   * 預かりにない（もう伝えた）なら 404、書き直し中の印がないまま順に伝えている途中なら 409、圧縮後指示・文も添付もなくなるなら 400
-   */
-  updateAfterCompact(chatId: number, messageId: string, text: string, attachments: Attachment[]): QueuedMessage {
-    const runtime = this.runtimes.get(chatId);
-    this.heldOf(runtime, messageId);
-    const next = this.command(chatId, { op: "edit", id: messageId, text, attachments }, { commit: false });
-    if (runtime.state.deliveringAfterCompact && !runtime.isEditing("now", messageId)) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
-    runtime.setOutbox(next);
-    runtime.setEditing("now", []);
-    return next.now.find((m) => m.id === messageId)!;
-  }
-
-  /**
-   * 画面で書き直している預かった指示を丸ごと置き換える（空なら外す）。書き直している間は、送る順が来てもその指示から後ろを送らずに待つ。
-   * 開いている間、画面は持ち時間（EDIT_HOLD_TTL_MS）より短い間隔で知らせ直す（途絶えたら外れて送る。預かりにない指示は数えない）
-   */
-  setAfterCompactEditing(chatId: number, ids: string[]) {
-    this.runtimes.get(chatId).setEditing("now", ids);
-  }
-
-  /**
-   * 書き直している預かった指示が変わった・外れた: 書き直しを待って止めていた分を送る。作業していなければ 1 件目から新しい作業として
-   * （作業の終わりの deliverHeld と同じ）、作業中で預かる間でなければ、いまの作業に伝える。圧縮中などは、そのやり取りの終わりに送る
-   */
-  private afterCompactEditsChanged(chatId: number) {
-    const runtime = this.runtimes.get(chatId);
-    const head = runtime.outbox.now[0];
-    if (!head || runtime.state.deliveringAfterCompact || runtime.editingAfterCompact) return;
-    if (!this.isBusy(chatId)) {
-      // 作業していないのに残っている圧縮後指示（次に送る指示と一緒に伝えるもの）は、ここでは送らない
-      if (!head.post_compact) this.deliverHeld(chatId, true);
-    } else if (!runtime.holdsTells) this.drainAfterCompact(chatId, false);
-  }
-
-  /**
-   * 圧縮前指示から圧縮後指示のやり取りが終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「このやり取りが終わったら送ります」と出す）。
-   * この間に足すと、圧縮前指示の作業・圧縮後指示のやり取りに混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、そのやり取りが終わってから送る
-   */
-  private holdUntilCompacted(runtime: ChatRuntime, text: string, options: ChatOptionsPatch, attachments: Attachment[], postCompact: boolean, marks: MessageMarks = {}): "held" {
-    const message: QueuedMessage = { ...newMessage(outboxEnv(), text, options, attachments), ...(postCompact ? { post_compact: true } : {}), ...marks };
-    runtime.setOutbox({ ...runtime.outbox, now: [...runtime.outbox.now, message] });
-    return "held";
-  }
-
-  /**
-   * 圧縮が終わったら、圧縮後指示をいまのやり取りへ伝える（先頭に置いてある。自分の「いま」は、このやり取りが終わってから deliverHeld で送る）。
-   * いまのやり取りに足せない（手で圧縮する実行・作業ごと終わった）ときは、実行の終わり（execute）で送る（deliverHeld）
-   */
-  private deliverAfterCompact(chatId: number) {
-    const runtime = this.runtimes.get(chatId);
-    if (runtime.outbox.now.length === 0 || !runtime.turn?.control) return;
-    this.drainAfterCompact(chatId, false);
-  }
-
-  /**
-   * 実行が終わったときに残っている預かった「いま」を送る: 1 件目をすぐ送り、残りはその作業に伝える（送信待ちを止めていても、送信待ちより先に送る。
-   * 作業していないときの「いま」と同じ）。1 件目が圧縮後指示なら、それだけを送り、自分の指示はその作業が終わってから送る（圧縮後指示のやり取りに混ぜない）。
-   * 送れない終わり方（通信の切断・使用枠の上限・アプリの終了）なら、送信待ちの先頭に入れる
-   */
-  private deliverHeld(chatId: number, sendNow: boolean) {
-    const runtime = this.runtimes.get(chatId);
-    if (runtime.outbox.now.length === 0) return;
-    // 送っている途中なら、その続きに任せる（残りを送ると、その作業の終わりで送信待ちの次へ進む）。送れない終わり方なら、送るのをやめてもらう
-    if (runtime.state.deliveringAfterCompact) {
-      if (!sendNow) runtime.parkAfterCompact = true;
-      return;
-    }
-    if (!sendNow) this.parkAfterCompact(runtime);
-    else this.drainAfterCompact(chatId, true);
-  }
-
-  /** 送れない終わり方のときに、預かった指示を置いておく（machine/outbox.ts の parkNow） */
-  private parkAfterCompact(runtime: ChatRuntime) {
-    runtime.parkAfterCompact = false;
-    runtime.setOutbox(parkNow(runtime.outbox, outboxEnv()));
-  }
-
-  /**
-   * 預かった「いま」を先頭から 1 件ずつ送る（sendFirst なら 1 件目は新しい作業として送り、残りはその作業に伝える）。
-   * 送り終えるまでは「いま」を預かったままにし（deliveringAfterCompact）、その間に来た指示も列の後ろに足して続けて送る（あとから送った指示が先に入らないように）。
-   * 圧縮したやり取りの途中（compaction.done。圧縮後指示を伝えた・新しい作業として送った作業も）は、自分の指示を伝えずに止め、そのやり取りが終わってから送る
-   */
-  private drainAfterCompact(chatId: number, sendFirst: boolean) {
-    const runtime = this.runtimes.get(chatId);
-    runtime.parkAfterCompact = false;
-    runtime.update({ deliveringAfterCompact: true });
-    void (async () => {
-      // 足せずに止めたか（止めている間に作業が終わっていたら、ここで送る）
-      let stalled = false;
-      try {
-        for (let i = 0; ; i++) {
-          const m = runtime.outbox.now[0];
-          if (!m || runtime.parkAfterCompact) break;
-          // 画面で書き直している指示に来たら、そこで止める（書き直しが終わったら afterCompactEditsChanged で続きを送る。順番を入れ替えない）
-          if (runtime.isEditing("now", m.id)) break;
-          const sendNow = i === 0 && sendFirst;
-          // 圧縮したやり取り（圧縮後指示のやり取り）の途中は、自分の指示を足さない（そのやり取りが終わったら deliverHeld で送る）
-          if (!sendNow && !m.post_compact && runtime.compaction.done) break;
-          // いまの作業に足せなくなっていたら止める（作業の終わりに deliverHeld で送る）
-          if (!sendNow && !m.post_compact && runtime.tellsClosed) break;
-          try {
-            if (m.post_compact && !sendNow) {
-              await this.tellPostCompact(chatId, m);
-            } else {
-              runtime.shiftHeld();
-              if (sendNow) {
-                // 圧縮後指示の作業は、終わるまで「いま」を預かる（作業の終わりで外れる。送れなければ外す）
-                if (m.post_compact) runtime.patchTurn({ compaction: { done: true } });
-                await this.send(chatId, m.text, m.options, m.attachments, { postCompact: m.post_compact, marks: marksOf(m) }).catch((e: unknown) => {
-                  if (!this.isBusy(chatId)) runtime.patchTurn({ compaction: { done: false } });
-                  throw e;
-                });
-                // 残りはその作業に伝えるので、足し先（作業中の操作）ができるまで待つ（先に伝えると、足せずに送信待ちへ回る）
-                await untilTellable(runtime);
-              } else if ((await this.tell(chatId, m.text, m.options, m.attachments, { draining: true, marks: marksOf(m) })) === "held") {
-                // 足せなかった・組み立てている間に圧縮が始まった: 預かりの先頭に戻して止める（順番を変えない。作業の終わりに deliverHeld で送る）
-                if (!runtime.outbox.now.some((h) => h.id === m.id)) runtime.setOutbox({ ...runtime.outbox, now: [m, ...runtime.outbox.now] });
-                stalled = true;
-                break;
-              }
-            }
-          } catch (e) {
-            if (runtime.outbox.now[0] === m) runtime.shiftHeld();
-            this.reportError(chatId, `圧縮のあとに指示を${sendNow ? "送れません" : "伝えられません"}でした: ${errorMessage(e)}`);
-          }
-        }
-      } finally {
-        runtime.update({ deliveringAfterCompact: false });
-        // 送っている途中で、作業が送れない終わり方をした: 残りを置いておく
-        if (runtime.parkAfterCompact) {
-          this.parkAfterCompact(runtime);
-          // 置くまでの間に次の作業を送っていれば（send は送っている途中なので、こちらに任せて伝えなかった）、残した圧縮後指示をその作業に伝える
-          if (runtime.busy && runtime.outbox.now.length > 0) this.drainAfterCompact(chatId, false);
-        } else if (stalled && !this.isBusy(chatId)) {
-          // 足せずに止めている間に作業が終わった（作業の終わりの deliverHeld は送っている途中なのでこちらに任せた）: 残りを送る
-          this.deliverHeld(chatId, true);
-        }
-      }
-    })();
-  }
-
-  /**
-   * 圧縮後指示を、送信待ちに入れずにメインエージェントへ伝える: いまのやり取りに足せるまで待って足し、作業がもう終わっていれば新しい作業として送る
-   * （送るまで預かりの先頭に置いたままにするので、作業の終わりに送信待ちの次へ進まない）
-   */
-  private async tellPostCompact(chatId: number, m: QueuedMessage) {
-    const { store } = this.deps;
-    const runtime = this.runtimes.get(chatId);
-    const { prompt, handover } = await followupPrompt(this.deps, chatId, postCompactMessage(m.text), m.attachments);
-    for (;;) {
-      if (runtime.parkAfterCompact) return;
-      if (!this.isBusy(chatId)) {
-        // 圧縮後指示の作業は、終わるまで「いま」を預かる（作業の終わりで外れる）
-        runtime.shiftHeld(true);
-        await this.send(chatId, m.text, m.options, m.attachments, { postCompact: true }).catch((e: unknown) => {
-          if (!this.isBusy(chatId)) runtime.patchTurn({ compaction: { done: false } });
-          throw e;
-        });
-        await untilTellable(runtime);
-        return;
-      }
-      const messageUuid = randomUUID();
-      if (runtime.turn?.control?.tell(prompt, messageUuid)) {
-        // 伝えた作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない）
-        runtime.shiftHeld(true);
-        recordEvent(store, runtime, { type: "user", text: m.text, ...(m.attachments.length ? { attachments: m.attachments } : {}), ...handover, post_compact: true, message_uuid: messageUuid });
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
   }
 
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409） */
   async stopBackgroundTask(chatId: number, taskId: string): Promise<void> {
-    const control = this.runtimes.get(chatId).turn?.control;
+    const control = this.runtimes.get(chatId).handle?.control;
     if (!control) throw new Conflict("このチャットは作業中ではありません");
     await control.stopTask(taskId);
   }
 
   /** チャットを消したとき: 作業中の状態（送信待ちの列も）を捨て、再開の段取りもやめる */
   forget(chatId: number) {
-    this.forgetRecovery(chatId);
+    this.recovery.forget(chatId);
+    for (const resolve of this.tellWaits.get(chatId)?.values() ?? []) resolve("held");
+    this.tellWaits.delete(chatId);
+    this.told.delete(chatId);
     this.runtimes.forget(chatId);
   }
 
   /**
    * チャットの作業場所を移す（中身は workplaceMove.ts の moveChatWorkplace）。
-   * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（preparing）、その間に送られないようにする。
-   * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
+   * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（送る準備 move_workplace）、その間の「いま」は預かって、
+   * 利用者が移したなら済んでから送る。止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
    */
   async moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> {
     // AI の予約は作業の終わりに Runner が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
     if (input.reason === "user") this.requireIdle(chatId, "作業場所の変更");
-    const runtime = this.runtimes.get(chatId);
-    runtime.preparing = "move_workplace";
+    this.dispatch(chatId, { type: "begin", why: "move_workplace" });
     try {
-      this.forgetRecovery(chatId);
+      this.recovery.forget(chatId);
       // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
       const prepared = { ...input, ...(await steps?.before?.()) };
       try {
@@ -736,7 +360,7 @@ export class Runner extends RunnerQueue {
         throw e;
       }
     } finally {
-      runtime.preparing = null;
+      this.dispatch(chatId, { type: "prepared", ...(input.reason === "user" ? { next: "deliver" as const } : {}) });
     }
   }
 
@@ -751,138 +375,44 @@ export class Runner extends RunnerQueue {
     const runtime = this.runtimes.get(chatId);
     recordEvent(this.deps.store, runtime, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
     const note = cancelledNote(plan);
-    const told = this.isBusy(chatId) && !runtime.holdsTells && !runtime.tellsClosed && Boolean(runtime.turn?.control?.tell(note, randomUUID()));
+    const told = runtime.busy && holdOf(runtime.run) === null && Boolean(runtime.handle?.control?.tell(note, randomUUID()));
     if (!told) runtime.pendingNote = note;
   }
 
-  /** 作業の終わりに、AI が予約した作業場所の移動を行ってから、いつもの作業の終わりの処理を続ける */
-  private async moveThenContinue(chatId: number, plan: WorkplaceMovePlan, next: () => void) {
-    await runReservedMove(
-      {
-        store: this.deps.store,
-        runtimes: this.runtimes,
-        isBusy: (id) => this.isBusy(id),
-        moveWorkplace: (id, input, steps) => this.moveWorkplace(id, input, steps),
-        worktreeFinisher: this.turnDeps.worktreeFinisher,
-        terminals: this.deps.terminals,
-        worktreeEnvs: this.deps.worktreeEnvs,
-      },
-      chatId,
-      plan,
-    );
-    next();
-  }
-
-  /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる（再開の段取りが送ったものなら続ける） */
-  private forgetRecovery(chatId: number) {
-    this.recovery.forget(chatId);
+  /** 作業の終わりに、AI が予約した作業場所の移動を行う（済んだら、いつもの作業の終わりの続きを settled で決める） */
+  private moveThenContinue(chatId: number, plan: WorkplaceMovePlan) {
+    const { store, terminals, worktreeEnvs } = this.deps;
+    return runReservedMove({ store, runtimes: this.runtimes, isBusy: (id) => this.isBusy(id), moveWorkplace: (id, input, steps) => this.moveWorkplace(id, input, steps), worktreeFinisher: this.turnDeps.worktreeFinisher, terminals, worktreeEnvs }, chatId, plan);
   }
 
   /**
-   * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。
-   * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても未読にしない。
-   * 作業中なら予約する: 送信待ちのいちばん上に圧縮の行を入れ、いまのやり取りが終わったらすぐ圧縮を始める（行を消せばやめられる）。
-   * 圧縮前指示（設定・プロジェクト）があれば、先にその指示を送り（札付きの自分の発言として残る）、その作業が最後まで終わってから圧縮する
+   * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。
+   * 作業中なら、圧縮前指示をいまの作業に足すか、予約する（送信待ちのいちばん上に圧縮の行）。圧縮前指示があれば、先にその指示を送り、その作業が最後まで終わってから圧縮する
    */
   async compact(chatId: number): Promise<Chat> {
-    const { store } = this.deps;
-    const chat = this.requireChat(chatId);
-    if (this.handoffGate(chatId) !== null) throw new Conflict("AI の引き継ぎが終わるまで圧縮できません");
-    const runtime = this.runtimes.get(chatId);
-    if (this.isBusy(chatId)) {
-      // 圧縮前指示があれば、送信待ちに入れずにいまの作業へそのまま伝え、その作業が終わったら送信待ちより先に圧縮する。足せなければ予約にする
-      if (!this.tellPreCompact(chat, runtime)) this.reserveAction(chatId, "compact");
-      return this.requireChat(chatId);
-    }
-    if (!chat.session_id) throw new Conflict("まだ会話がないので、圧縮できません");
-    store.chats.update(chat.id, { status: "running", error: null });
-    const text = preCompactPromptOf(store, store.projects.get(chat.project_id)!);
-    if (!text) {
-      void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
-      return store.chats.get(chat.id)!;
-    }
-    const messageUuid = randomUUID();
-    // この指示の作業の途中で自動の圧縮が来ても、もう足さない（記録から導く preCompactSent）。圧縮が終わるまで「いま」は預かる
-    recordEvent(store, runtime, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
-    runtime.patchTurn({ compaction: { awaiting: true } });
-    void this.execute({ chatId: chat.id, prompt: manualPreCompactMessage(text), promptId: messageUuid, thenCompact: true });
-    return store.chats.get(chat.id)!;
+    this.requireChat(chatId);
+    await Promise.all(this.run(chatId, { type: "compact" }).started);
+    return this.requireChat(chatId);
   }
 
-  /**
-   * 作業中に手で頼んだ圧縮の圧縮前指示を、いまのやり取りにそのまま足す（足したら true）。指示がない・もう圧縮前指示を送った・圧縮を待っている・
-   * 足せないときは false（予約にする）。足したら圧縮が終わるまで「いま」を預かり、その作業が最後まで終わったら圧縮する（compaction.afterTurn）
-   */
-  private tellPreCompact(chat: Chat, runtime: ChatRuntime): boolean {
-    const { store } = this.deps;
-    if (!chat.session_id || preCompactSent(runtime.marks) || runtime.holdsTells || runtime.compaction.afterTurn) return false;
-    const text = preCompactPromptOf(store, store.projects.get(chat.project_id)!);
-    const messageUuid = randomUUID();
-    if (!text || !runtime.turn?.control?.tell(busyPreCompactMessage(text), messageUuid)) return false;
-    recordEvent(store, runtime, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
-    runtime.patchTurn({ compaction: { awaiting: true, afterTurn: true } });
-    return true;
-  }
-
-  /** 圧縮前指示のあとに圧縮する（終わったら、その終わりで預かった「いま」・送信待ちの次を送る） */
-  private compactNow(chatId: number, trigger: NonNullable<TurnRequest["compactTrigger"]>) {
-    this.deps.store.chats.update(chatId, { status: "running", error: null });
-    void this.execute({ chatId, prompt: "/compact", compact: true, compactTrigger: trigger });
-  }
-
-  /**
-   * 手でコンテキストを消去する（チャット欄のメーターの詳細の「コンテキストを消去」）: 作業していなければその場で消去し、送信待ちがあれば次を送る。
-   * 作業中なら、いまのやり取りが終わったらすぐ消去する予約（送信待ちのいちばん上に消去の行。作業中の「会話を圧縮」と同じ）。まだ会話がなければ 409
-   */
+  /** 手でコンテキストを消去する: 作業していなければその場で消去し、送信待ちがあれば次を送る。作業中なら、いまのやり取りが終わったらすぐ消去する予約 */
   clear(chatId: number): Chat {
-    if (this.isBusy(chatId)) {
-      this.reserveAction(chatId, "clear");
-      return this.requireChat(chatId);
-    }
-    return this.clearByCommand(chatId);
+    this.requireChat(chatId);
+    this.run(chatId, { type: "clear", pump: true });
+    return this.requireChat(chatId);
   }
 
-  /** チャット欄の /clear（作業していないとき）: コンテキストを消去し、送信待ちがあれば次を送る（消去の行と同じく、次の指示は新しい会話で始まる） */
-  private clearByCommand(chatId: number): Chat {
-    const cleared = this.clearContext(chatId);
-    void this.sendNextQueued(chatId);
-    return cleared;
-  }
-
-  /**
-   * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
-   * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
-   */
+  /** コンテキストを消去する（セッションを外し、次の指示から新しい会話。記録は残し、区切り context_cleared を残す）。作業中・まだ会話がなければ 409 */
   clearContext(chatId: number): Chat {
-    const { store } = this.deps;
-    const chat = this.requireChat(chatId);
+    this.requireChat(chatId);
     this.requireIdle(chatId, "コンテキストの消去");
-    if (this.handoffGate(chatId) !== null) throw new Conflict("AI の引き継ぎが終わるまでコンテキストを消去できません");
-    if (!chat.session_id) throw new Conflict("まだ会話がないので、消去するコンテキストがありません");
-    // 自分で頼んだ: 止まったあとの再開の段取り（前の会話の続きを頼むもの）をやめる
-    this.forgetRecovery(chatId);
-    // コンテキストの大きさは、次の応答まで分からない
-    const cleared = store.chats.update(chat.id, { session_id: null, context_tokens: null });
-    // ほかの AI に戻しても、消去前の会話を再開しない。
-    store.chatProviderSessions.removeAll(chat.id);
-    // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る（消去の記録から導く preCompactSent）
-    const runtime = this.runtimes.get(chatId);
-    runtime.patchTurn({ compaction: { awaiting: false, afterTurn: false } });
-    recordEvent(store, runtime, { type: "context_cleared" });
-    return cleared;
+    this.run(chatId, { type: "clear", pump: false });
+    return this.requireChat(chatId);
   }
 
-  /**
-   * 止めるよう頼む。Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで（ふつうは 2 秒ほど、応じなければ SDK が 5 秒後に強制終了する）、
-   * 画面は停止ボタンを「停止中…」にする（作業中の様子の stopping。2 回目以降は知らせない）
-   */
+  /** 止めるよう頼む（Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで、画面は停止ボタンを「停止中…」にする） */
   cancel(chatId: number) {
-    const runtime = this.runtimes.get(chatId);
-    // 親の会話を写している間（子チャット）: 写し終えたら動かさずに中断で終える（写すのは途中で止められない）
-    if (!runtime.turn && runtime.state.inheriting) runtime.patchTurn({ stopRequested: true });
-    if (!runtime.turn) return;
-    runtime.patchTurn({ stopRequested: true });
-    runtime.turn.abort.abort();
+    this.dispatch(chatId, { type: "cancel" });
   }
 
   /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順） */
@@ -908,12 +438,9 @@ export class Runner extends RunnerQueue {
     return chat;
   }
 
-  protected reportError(chatId: number, message: string) {
-    this.deps.store.events.add(chatId, { type: "error", message });
-  }
-
   isBusy(chatId: number): boolean {
-    return this.runtimes.isBusy(chatId);
+    const runtime = this.runtimes.peek(chatId);
+    return runtime ? busyState(runtime.run) : false;
   }
 
   /** 作業中（送る準備の途中も）なら 409。action は「削除」「分岐」などの、できない操作の名前 */
@@ -931,66 +458,9 @@ export class Runner extends RunnerQueue {
     const stopped = this.runtimes.all().filter((r) => r.busy).map((r) => r.chatId);
     this.deps.store.chats.setResumePending([...new Set([...stopped, ...this.recovery.waitingForReconnect()])], true);
     this.recovery.shutdown();
-    for (const runtime of this.runtimes.running()) runtime.turn?.abort.abort();
-  }
-
-  /** 送った指示をすぐ動かす（同時に動かす数は決めない） */
-  private async execute(item: TurnRequest) {
-    const runtime = this.runtimes.get(item.chatId);
-    const controller = new AbortController();
-    // 手で圧縮する実行の間は、圧縮が始まる前・終わったあとも「いま」を預かる（startTurn。実行の終わりで送る）
-    runtime.startTurn(randomUUID(), turnKindOf(item, runtime), controller, compactByOf(item));
-    let outcome: TurnOutcome = { status: "failed", network: false };
-    try {
-      outcome = await executeTurn(this.turnDeps, runtime, item, controller.signal);
-    } finally {
-      // 作業ごとの状態を捨て（停止中・圧縮したやり取り・足せなかった「いま」を預かる間も終わる）、次にすることを決まり（machine/turnEnd.ts）で決めて行う
-      const ended = runtime.turn ?? { kind: turnKindOf(item, runtime), compaction: noCompaction() };
-      runtime.endTurn();
-      const gates = { handoff: this.handoffAllows(item.chatId) ? this.handoffGate(item.chatId) : "blocked" } as const, phase = { kind: "turn", turn: ended.kind, compaction: ended.compaction } as const;
-      const { state, effects } = onTurnEnded({ phase, outbox: runtime.outbox, gates, awaitingCompact: runtime.compaction.awaiting }, outcome, { shuttingDown: this.shuttingDown, hasTurnEndTasks: runtime.state.workplaceMove !== null });
-      runtime.patchTurn({ compaction: { awaiting: state.awaitingCompact } });
-      this.runEffects(item.chatId, state, effects);
-    }
-  }
-
-  /** 決まりが返した命令を順に行う（作業の終わりにすること = AI が予約した作業場所の移動は、済んでから続きを onSettled で決め直す） */
-  private runEffects(chatId: number, state: ChatRunState, effects: Effect[]) {
-    const runtime = this.runtimes.get(chatId);
-    for (const effect of effects) {
-      if (effect.do === "end_recovery") this.recovery.finished(chatId, effect.outcome);
-      else if (effect.do === "refresh_usage") this.deps.usage.refreshPolled();
-      else if (effect.do === "start_turn") this.compactNow(chatId, effect.trigger);
-      else if (effect.do === "deliver_held") this.deliverHeld(chatId, effect.sendNow);
-      else if (effect.do === "send_next") void this.sendNextQueued(chatId);
-      else {
-        const move = this.workplaceMoves.take(chatId);
-        if (effect.do === "drop_turn_end_tasks") {
-          if (move && effect.notice) recordEvent(this.deps.store, runtime, { type: "notice", message: notMovedNotice(move) });
-        } else if (move) {
-          void this.moveThenContinue(chatId, move, () => {
-            const settled = onSettled({ ...state, outbox: runtime.outbox });
-            this.runEffects(chatId, settled.state, settled.effects);
-          });
-        }
-      }
-    }
+    for (const runtime of this.runtimes.running()) runtime.handle?.abort.abort();
   }
 }
 
 /** AI の切り替えで確かめる送信待ちの形（確かめている間に変わったら確定しない） */
-const queueSnapshot = (runtime: ChatRuntime) => ({ messages: runtime.outbox.later, paused: runtime.queuePaused, stops: runtime.outbox.stops });
-
-/** 圧縮後指示として送った発言の記録の印（ほかの発言には付けない） */
-function postCompactMark(postCompact: boolean): { post_compact?: true } {
-  return postCompact ? { post_compact: true } : {};
-}
-
-/** 動かし始めたばかりの作業に「いま」を足すとき、足す口ができるのを待つ上限（Claude Code を立ち上げるまで。ふつうは 1 秒もかからない） */
-const TELLABLE_WAIT_MS = 5000;
-
-/** 動かし始めた作業に発言を足せるようになる（作業中の操作ができる）か、作業が終わるまで待つ（上限を渡せば、それまで） */
-async function untilTellable(runtime: ChatRuntime, timeoutMs = Infinity) {
-  const until = Date.now() + timeoutMs;
-  while (!runtime.turn?.control && runtime.busy && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 20));
-}
+const queueSnapshot = (runtime: ChatRuntime) => ({ messages: runtime.outbox.later, paused: queuePaused(runtime.run), stops: runtime.outbox.stops });

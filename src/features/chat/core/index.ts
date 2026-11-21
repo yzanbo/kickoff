@@ -52,7 +52,7 @@ export interface ChatDeps {
   userViews: NonNullable<ExecutionDeps["userViews"]>;
 }
 
-export interface ChatEnv extends Pick<NonNullable<ConstructorParameters<typeof Runner>[0]>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs"> {
+export interface ChatEnv extends Pick<NonNullable<ConstructorParameters<typeof Runner>[0]>, "reconnect" | "usageLimit" | "editHoldTtlMs"> {
   /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
   recoveredReason?: RecoveredReason;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */

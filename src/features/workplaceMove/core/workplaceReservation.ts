@@ -3,13 +3,12 @@
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
-import { newMessage, placeContinuation as placeInOutbox } from "@shared/chat/outbox";
 import type { WorkplaceMoveBody } from "@shared/foundation/apiTypes";
 import type { Store } from "@/features/chat/core/index";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import { outboxEnv, type ChatRuntime, type RuntimeLookup } from "@/features/chat/core/runtime";
+import type { RuntimeLookup } from "@/features/chat/core/runtime";
 import type { WorkplaceMoveInput, WorkplaceMoveSteps } from "./workplaceMove";
 import { planUserWorkplaceMove, runningTerminals } from "./workplaceUserMove";
 import { workdirOf } from "@/features/chat/core/workdir";
@@ -32,7 +31,7 @@ export class WorkplaceReservations {
   /** 予約する（前の予約は置き換える） */
   reserve(chatId: number, plan: WorkplaceMovePlan) {
     this.reserved.set(chatId, plan);
-    this.runtimes.get(chatId).update({ workplaceMove: { label: plan.label, carry: Boolean(plan.body.carry), continuation: plan.continuation !== null } });
+    this.runtimes.get(chatId).setWorkplaceMove({ label: plan.label, carry: Boolean(plan.body.carry), continuation: plan.continuation !== null });
   }
 
   /** 取り消す（取り消した予約。なければ null） */
@@ -40,7 +39,7 @@ export class WorkplaceReservations {
     const plan = this.reserved.get(chatId) ?? null;
     if (!plan) return null;
     this.reserved.delete(chatId);
-    this.runtimes.get(chatId).update({ workplaceMove: null });
+    this.runtimes.get(chatId).setWorkplaceMove(null);
     return plan;
   }
 
@@ -93,7 +92,7 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
     const body: WorkplaceMoveBody = afterFinish ? { ...plan.body, carry: false } : plan.body;
     const done = !body.new_worktree_branch && body.worktree_path === chat.worktree_path;
     if (!done) {
-      runtime.preparing = "move_workplace";
+      runtime.dispatch({ type: "begin", why: "move_workplace" });
       try {
         const dir = workdirOf(chat, project);
         const target = body.new_worktree_branch ? undefined : body.worktree_path;
@@ -108,18 +107,12 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
         );
         await deps.moveWorkplace(chatId, { ...input, ...(running.length ? { running } : {}), ...(busy ? { busy } : {}), ...(afterFinish ? { afterFinish: true } : {}) }, steps);
       } finally {
-        runtime.preparing = null;
+        runtime.dispatch({ type: "prepared" });
       }
     }
-    if (plan.continuation !== null) placeContinuation(store, runtime, chatId, plan.continuation, afterFinish);
+    // 移したあとの続きの指示を出す箱に置く（止めていて送らないときはお知らせを残す。@shared/chat/outbox の placeContinuation）
+    if (plan.continuation !== null) runtime.dispatch({ type: "continuation", text: plan.continuation, afterFinish });
   } catch (e) {
     store.events.add(chatId, { type: "notice", message: `AI が予約した「${plan.label}へ移る」ができませんでした（${errorMessage(e)}）。元の作業場所のまま、続きの指示は送りません` });
   }
-}
-
-/** 移したあとの続きの指示を出す箱に置く（置き方は @shared/chat/outbox の placeContinuation。止めていて送らないときはお知らせを残す） */
-function placeContinuation(store: Store, runtime: ChatRuntime, chatId: number, text: string, afterFinish: boolean) {
-  const placed = placeInOutbox(runtime.outbox, newMessage(outboxEnv(), text, {}, [], { workplace_continuation: true }), afterFinish);
-  runtime.setOutbox(placed.box);
-  if (placed.stopped) store.events.add(chatId, { type: "notice", message: "送信待ちを止めているので、AI が予約した続きの指示は送らずに送信待ちの先頭に入れました" });
 }

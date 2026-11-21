@@ -103,7 +103,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const gateMaterials: GuardMaterials[] = [];
   const factory = runnerOptions.toolGate ?? toolGateFactory(undefined, []);
   const toolGate: ToolGateFactory = (m, cb, signal) => (gateMaterials.push(m), factory(m, cb, signal));
-  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
+  const runner = new Runner({ store, approvals, providers, usage, bus, ...(interrupted ? { interrupted } : {}), ...runnerOptions, toolGate });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project, gateMaterials };
 }
 
