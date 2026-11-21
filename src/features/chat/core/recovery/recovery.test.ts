@@ -8,19 +8,20 @@ import { ChatRuntimes } from "@/features/chat/core/runtime";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { exhaustedResetOf, type ProviderUsage } from "@shared/ai/usage";
+import type { ProviderId } from "@shared/settings/types";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { tick, until } from "@/app/core/testing/testCore";
 
 const RESET = "2026-11-04T10:30:00.000Z";
 
 /** 送ったら作業中にし（Runner の send と同じ）、終わりは finish で知らせる */
-function setup({ usage }: { usage?: () => Promise<ProviderUsage> } = {}) {
+function setup({ usage, provider = "claude" }: { usage?: (id: ProviderId) => Promise<ProviderUsage>; provider?: ProviderId } = {}) {
   const bus = new Bus();
   const store = testStore(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
   const runtimes = new ChatRuntimes({ store, bus, onEditsChanged: () => {} });
   const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
-  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "failed", model: null });
+  const chat = store.chats.create({ project_id: project.id, provider, title: "t", status: "failed", model: null });
   const sent: string[] = [];
   const network = { online: false };
   const clock = { now: Date.parse(RESET) - 3_600_000 };
@@ -34,7 +35,7 @@ function setup({ usage }: { usage?: () => Promise<ProviderUsage> } = {}) {
       sent.push(text);
       store.chats.update(chatId, { status: "running" });
     },
-    usage: usage && { limitResetAt: async () => exhaustedResetOf(await usage()) },
+    usage: usage && { limitResetAt: async (id) => exhaustedResetOf(await usage(id)) },
     reconnect: { check: async () => network.online, intervalMs: 5 },
     usageLimit: { now: () => clock.now, checkMs: 5 },
   });
@@ -119,4 +120,18 @@ test("「自動で再開しない」は、つながるのを待っていると�
   finish(networkFailure);
   assert.equal(recovery.stopWaiting(chat.id), true);
   assert.equal(recovery.stopWaiting(chat.id), false);
+});
+
+test("使用枠の上限: AI が戻る時刻を知らせなければ、そのチャットの AI の使い切った枠の戻る時刻で待つ", async () => {
+  const asked: ProviderId[] = [];
+  const window = { key: "primary", label: "5時間", utilization: 100, resets_at: RESET };
+  const { runtime, finish, notices } = setup({
+    provider: "codex",
+    usage: async (id) => (asked.push(id), { provider: id, status: "ok", plan: null, account: null, windows: [window], notes: [], pay_as_you_go: null, fetched_at: RESET }),
+  });
+  finish(usageLimit(null));
+  await until(() => notices().length === 1);
+  assert.deepEqual(asked, ["codex"]);
+  assert.match(notices()[0], /枠が戻ったら、続けるかを確かめます/);
+  assert.notEqual(runtime.recovery.waiting, null);
 });

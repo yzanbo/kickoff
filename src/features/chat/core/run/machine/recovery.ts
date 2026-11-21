@@ -106,9 +106,12 @@ const MARGIN_MS = 60_000;
  * 使用枠の上限で止まったとき: 枠が戻る時刻になったら、続けるかを聞く（勝手には再開しない）。
  * 戻る時刻は AI が知らせたもの、なければ使い切った枠の戻る時刻（使用状況の見張り）。分からなければ、お知らせだけ
  */
-export function usageLimitRule({ usage }: { usage?: { limitResetAt(id: ProviderId): Promise<string | null> } }): RecoveryRule {
-  /** AI が戻る時刻を知らせなかったとき: 使い切った枠の戻る時刻（分からなければ null） */
-  const resetFromUsage = async (): Promise<string | null> => (usage ? usage.limitResetAt("claude") : null);
+export function usageLimitRule({ store, usage }: { store: Store; usage?: { limitResetAt(id: ProviderId): Promise<string | null> } }): RecoveryRule {
+  /** AI が戻る時刻を知らせなかったとき: そのチャットの AI の使い切った枠の戻る時刻（分からなければ null） */
+  const resetFromUsage = async (chatId: number): Promise<string | null> => {
+    const provider = store.chats.get(chatId)?.provider;
+    return usage && provider ? usage.limitResetAt(provider) : null;
+  };
   /** 枠が戻る時刻が分かったら: その時刻を過ぎてから聞く（分からなければ、お知らせだけ） */
   const planFor = (state: RecoveryState, resetAt: string | null): RecoveryPlan => {
     const held = state.held ? "送信待ちは止めてあります。" : "";
@@ -122,9 +125,9 @@ export function usageLimitRule({ usage }: { usage?: { limitResetAt(id: ProviderI
   };
   return {
     reason: "usage_limit",
-    plan: ({ state, outcome }) => {
+    plan: ({ chatId, state, outcome }) => {
       const reported = outcome.usageLimit?.resetsAt;
-      return reported ? planFor(state, reported) : resetFromUsage().then((resetAt) => planFor(state, resetAt));
+      return reported ? planFor(state, reported) : resetFromUsage(chatId).then((resetAt) => planFor(state, resetAt));
     },
     ask: ({ state }) => ({
       title: "使用枠が戻りました",
