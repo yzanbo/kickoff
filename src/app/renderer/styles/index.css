@@ -51,6 +51,7 @@
 @import "./ui/selection-bar.css" layer(ui);
 @import "./ui/checklist.css" layer(ui);
 @import "./ui/ansi.css" layer(ui);
+@import "./ui/selection-toolbar.css" layer(ui);
 @import "./sidebar/sidebar.css" layer(feature);
 @import "./sidebar/sidebar-rows.css" layer(feature);
 @import "./sidebar/sidebar-search.css" layer(feature);
@@ -87,7 +88,6 @@
 @import "./chat/child-depth-badge.css" layer(feature);
 @import "./chat/handoff.css" layer(feature);
 @import "./chat/chat-find.css" layer(feature);
-@import "./chat/selection-attach.css" layer(feature);
 @import "./chat/scroll-bottom.css" layer(feature);
 @import "./chat/new-chat.css" layer(feature);
 @import "./chat/composer.css" layer(feature);

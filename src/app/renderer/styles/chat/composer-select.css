@@ -51,20 +51,13 @@
 }
 
 .fast-toggle {
-  display: inline-grid;
-  place-items: center;
   width: 30px;
   height: 30px;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
+/* 見た目は IconButton のまま。乗せたときは、オンの色より乗せたときの文字の色にする */
 .fast-toggle:hover:not(:disabled) {
   color: var(--text);
-  background: var(--bg-hover);
 }
 
 .fast-toggle.on {
@@ -74,9 +67,4 @@
 /* オンのときは稲妻を塗る */
 .fast-toggle.on svg {
   fill: currentColor;
-}
-
-.fast-toggle:disabled {
-  opacity: 0.35;
-  cursor: default;
 }

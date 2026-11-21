@@ -6,6 +6,8 @@
   z-index: var(--z-raised-bar);
   --floating-radius: var(--radius);
   --floating-shadow: var(--shadow-1);
+  /* 乗せたときもボタンの間の線の色のまま（.btn の乗せたときの枠の色の口） */
+  --btn-hover-border: var(--border);
 }
 
 .selection-attach-button {
