@@ -4,7 +4,6 @@ import type { WriteScopeParams } from "@/features/guard/core/guard/writeScope";
 import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
-import type { ChatPolicy } from "@/features/chat/core/prompt/system";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import type { SpendingNote } from "@shared/ai/usage";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
@@ -99,7 +98,6 @@ export interface ProviderTurnParams {
   compact: boolean;
   /** プロバイダー既定のシステムプロンプトに追記する Kickoff の文脈 */
   systemPrompt: string;
-  policy: ChatPolicy;
   /** 続きの会話の場合、前回のセッション ID */
   resumeSessionId: string | null;
   model: string | null;
@@ -158,7 +156,52 @@ export interface ProviderTurnParams {
   bashSandbox?: BashSandbox | null;
   /** 利用者がこのチャットで明示的に砂場なしを選んだ（省略は砂場にかける） */
   disableSandbox?: boolean;
+  /**
+   * 守りの門（chat が実行ごとに作る。断る・聞く・権限モードの答えはここから。承認を聞いてくる CLI（Codex・Copilot・ACP）は、
+   * 聞かれたコマンド・書く先・読む先をこれに当てる）。承認なしで流してよいコマンドの一覧も持つ
+   */
+  gate: ToolGate;
 }
+
+/** 門の答え: 通す（forSession: このセッションの間は覚える / approved: 守りの書き込み先のカードで利用者が許した）/ 断る（AI に伝える理由） */
+export type GateOutcome = { allow: true; forSession?: boolean; approved?: boolean } | { allow: false; reason: string };
+
+/** 門が見る呼び出し（Claude Code のツールの名前と入力の形） */
+export interface GateCall {
+  name: string;
+  input: Record<string, unknown>;
+}
+
+/** 承認カードに添えるもの（ツールの呼び出し ID・サブエージェント・カードの説明） */
+export interface GateAsk {
+  toolUseId?: string;
+  agentId?: string;
+  description?: string | null;
+}
+
+/** 守りの門（guard の gate.ts が作る。テスト・守りのない実行は permissionMode.ts の permissionOnlyGate） */
+export interface ToolGate {
+  /** 守りを当てる: 断る守り → 断る / 聞く守り → 権限モードによらず承認カード / どれも言わなければ null（権限モードに任せる） */
+  guard(call: GateCall, ask?: GateAsk): Promise<GateOutcome | null>;
+  /** 断る守りだけを当てる（聞く守りは見ない。断らなければ null） */
+  deny(call: GateCall): Promise<Extract<GateOutcome, { allow: false }> | null>;
+  /** 書く先を 1 つずつ guard（Write）に当てる: 最初に断られた答え・聞いて許されたものがあれば通す・どれも言わなければ null */
+  guardWrites(paths: string[], ask?: GateAsk): Promise<GateOutcome | null>;
+  /** 読む先を guard（Read）に当てる */
+  guardRead(path: string, ask?: GateAsk): Promise<GateOutcome | null>;
+  /** 守りが何も言わなかったときの、権限モードによる答え（command = コマンド / edit = ファイルの変更） */
+  byMode(kind: "command" | "edit", call: GateCall, ask?: GateAsk): Promise<GateOutcome>;
+  /** 承認なしで流してよいコマンドの頭（Claude Code の許可ルールに写す） */
+  readonly allowedCommands: readonly string[];
+  /** 断ったことを AI に伝える文 */
+  note(what: string, reason: string): string;
+}
+
+/** 門を作る材料（実行の守りの欄。P5-2d で ProviderTurnParams から外し、門だけを渡す） */
+export type GuardMaterials = Pick<ProviderTurnParams, "cwd" | "permissionMode" | "readOnlyPaths" | "untrackedOnly" | "hiddenDb" | "deleteGuard" | "dockerGuard" | "writeScope">;
+
+/** 実行ごとに門を作る口（guard が出し、chat が実行の材料と承認の口を渡して作る） */
+export type ToolGateFactory = (materials: GuardMaterials, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal) => ToolGate;
 
 export interface ApprovalRequest {
   kind: ApprovalKind;

@@ -2,7 +2,6 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ProviderCliStatus, ModelOption } from "@shared/ai/types";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { askModelOf, toModelOptions } from "./catalog";
 import { runtimeEnv } from "./config";
@@ -13,7 +12,6 @@ import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared
 
 
 export interface CopilotProviderOpts {
-  self?: SelfInfo;
   /** SDK のクライアントの作り方（テストは偽物。省けば本物の SDK） */
   clientFactory?: CopilotClientFactory;
   /** ランタイムに渡す環境変数の元（省けば process.env） */
@@ -142,6 +140,6 @@ export class CopilotProvider implements AgentProvider {
   }
 
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
-    return runCopilotTurn({ clientFactory: this.factory, baseEnv: this.baseEnv, self: this.opts.self }, params, callbacks, signal);
+    return runCopilotTurn({ clientFactory: this.factory, baseEnv: this.baseEnv }, params, callbacks, signal);
   }
 }

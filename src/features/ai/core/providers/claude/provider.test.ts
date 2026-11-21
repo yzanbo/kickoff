@@ -1,5 +1,6 @@
 // Claude のプロバイダーの実行（run）を偽の SDK で確かめる（本物の Claude Code・アカウントは使わない）
 import { test, vi } from "vitest";
+import { permissionOnlyGate } from "@/features/ai/core/permissionMode";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
@@ -18,7 +19,6 @@ export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTur
     promptId: "u-1",
     compact: false,
     systemPrompt: "Kickoff の文脈",
-    policy: { allowedCommands: [], web: true },
     resumeSessionId: null,
     model: null,
     effort: null,
@@ -26,6 +26,7 @@ export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTur
     fastMode: false,
     autoCompactPct: null,
     additionalDirectories: [],
+    gate: permissionOnlyGate({ permissionMode: patch.permissionMode ?? "default", cb: { requestApproval: async () => ({ action: "deny", message: "" }) }, signal: new AbortController().signal }),
     ...patch,
   };
 }

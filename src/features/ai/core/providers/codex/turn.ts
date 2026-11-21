@@ -1,7 +1,6 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
 import { appServerLaunch, CODEX_APPROVAL_POLICY, codexEffort, codexSandboxPolicy, threadOverrides, turnInput } from "./config";
@@ -23,7 +22,6 @@ export interface TurnDeps {
   spawn: StdioSpawn;
   /** app-server に渡す環境変数の元（process.env） */
   baseEnv: Record<string, string | undefined>;
-  self?: SelfInfo;
 }
 
 /** 失敗の種類が通信の切断か（HTTP の接続・応答の流れが切れた） */
@@ -66,7 +64,6 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
   const pendingSteers: string[] = [];
   // フックで利用者が許した書く先（あとで同じファイルの変更の承認が来ても聞き直さない）
   const approvedWrites = new Set<string>();
-  const guard = { params, self: deps.self };
   const compactOnly = params.compact;
 
   let finish!: (turn: Turn) => void;
@@ -151,7 +148,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
   let stopper: Stopper | null = null;
   try {
     // 守りを当てる PreToolUse のフックの口（hooks.ts）。URL と鍵は app-server の環境で渡す
-    hook = await startHookServer(createPreToolUseHandler({ params, guard, cb, signal, approvedWrites }));
+    hook = await startHookServer(createPreToolUseHandler({ params, cb, approvedWrites }));
     const { args, env } = appServerLaunch(deps.baseEnv, params, hook);
     rpc = await openSession({
       spawn: deps.spawn,
@@ -160,7 +157,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
       cwd: params.cwd,
       onProcessSpawned: params.onAgentSpawned,
       onNotification,
-      onServerRequest: createApprovalHandler({ params, guard, cb, signal, items, steer, approvedWrites }),
+      onServerRequest: createApprovalHandler({ params, cb, signal, items, steer, approvedWrites }),
       onClosed: (reason) => finish({ id: turnId ?? "", status: "failed", error: { message: reason, codexErrorInfo: null, additionalDetails: null } }),
     });
     if (compactOnly && !threadId) return { status: "failed", sessionId: null, error: "まだ圧縮する会話がありません" };

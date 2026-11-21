@@ -51,7 +51,7 @@
 | 権限モード | `PermissionMode` |
 | AI（チャットを動かす CLI。チャットごとに決め、途中では変えない） | `ProviderId`（`PROVIDER_IDS`・名前 `PROVIDER_LABELS`）・`AgentProvider`・チャットの `provider` |
 | AI によってできること・できないこと（できないものは理由付きで押せない） | `ProviderCapability`（AI ごとの表 `PROVIDERS`・`ProviderStatus.capabilities`）。画面は前の形 `ProviderFeature`（`providerFeatureMissing`・`ProviderStatus.features`） |
-| Kickoff の守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け） | `judgeCommand` / `judgeWritePath` / `judgeReadPath`（`src/features/guard/core/guard/judgeTool.ts`。`GuardVerdict`）・承認の決まり `guardOutcome` / `modeOutcome`（`core/providers/guardedApproval.ts`。`ApprovalOutcome`） |
+| Kickoff の守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け） | 守りの門 `ToolGate`（`guard`・`deny`・`guardWrites`・`guardRead`・`byMode`。`src/features/guard/core/gate.ts` の `createToolGate`。判定は `judge.ts` の `judgeCall` と `rules.ts` の `GuardRule`・`GuardVerdict`）・権限モードの答え `modeVerdict`（`src/features/ai/core/permissionMode.ts`。`GateOutcome`） |
 | Codex の会話と 1 回の実行 | スレッド（= セッション ID）・ターン（= 分岐の起点）・`CodexProvider`（`core/providers/codex/`。`codex app-server`） |
 | GitHub Copilot の会話と 1 回の実行 | セッション（= セッション ID）・最後の記録のイベント（= 分岐の起点）・`CopilotProvider`（`core/providers/copilot/`。`@github/copilot-sdk`） |
 | ACP のエージェント（Cursor・Gemini）の会話と 1 回の実行 | ACP のセッション（= セッション ID）・指示（`session/prompt`）・CLI ごとの違い `AcpProviderSpec`（`CURSOR_SPEC`・`GEMINI_SPEC`）・`AcpProvider`（`core/providers/acp/`）・標準入出力の JSON-RPC の口 `StdioRpc`（`core/providers/stdioRpc.ts`。Codex と共有） |

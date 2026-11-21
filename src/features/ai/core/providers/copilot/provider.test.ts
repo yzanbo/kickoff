@@ -1,13 +1,17 @@
 // GitHub Copilot のプロバイダーを偽の SDK のクライアントで確かめる（本物のランタイム・アカウントは使わない）
 import { test } from "vitest";
+import { withGate } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeCopilotClient, type FakeCopilotSession } from "@/features/ai/core/testing/fakeCopilotClient";
 import { until } from "@/app/core/testing/testCore";
-import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import type { SessionConfig } from "./sdk";
 import { CopilotProvider } from "./provider";
 import { experimentalProviders } from "@/features/ai/core/providers/index";
+
+/** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -92,7 +96,7 @@ test("実行: セッションを作って送り、返答・コマンドを Claud
 
 test("続き: セッション ID のセッションを resume してから送る。指示に添える文脈は先の段落に", async () => {
   const fake = fakeCopilotClient();
-  const result = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ resumeSessionId: "s-old", turnContext: "親は A" }), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ resumeSessionId: "s-old", turnContext: "親は A" }), recorder().cb, new AbortController().signal);
   assert.equal(result.sessionId, "s-old");
   assert.ok(fake.sessions[0].resumed);
   assert.equal(fake.sessions[0].sent[0].prompt, "親は A\n\nやって");
@@ -110,7 +114,7 @@ test("承認と守り: 消すコマンドは聞かずに断って理由を AI �
     s.idle();
   };
   const rec = recorder(() => ({ action: "deny", message: "今はやめて" }));
-  await new CopilotProvider({ clientFactory: fake.factory }).run(params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
   assert.equal((answers[0] as any).kind, "reject");
   assert.match((answers[0] as any).feedback, /kickoff-trash/);
   assert.equal((answers[1] as any).kind, "reject");
@@ -130,7 +134,7 @@ test("承認と守り: 消すコマンドは聞かずに断って理由を AI �
       got.push(await permit(s, { kind: "write", fileName: "/w/a.ts", diff: "+x", intention: "書く", canOfferSessionApproval: true }));
       s.idle();
     };
-    await new CopilotProvider({ clientFactory: f.factory }).run(params({ permissionMode: mode }), recorder().cb, new AbortController().signal);
+    await guardedRun(new CopilotProvider({ clientFactory: f.factory }), params({ permissionMode: mode }), recorder().cb, new AbortController().signal);
     assert.equal(got[0].kind, expected);
   }
   const always = fakeCopilotClient();
@@ -139,7 +143,7 @@ test("承認と守り: 消すコマンドは聞かずに断って理由を AI �
     got.push(await permit(s, { kind: "shell", fullCommandText: "make", intention: "", toolCallId: "c3" }));
     s.idle();
   };
-  await new CopilotProvider({ clientFactory: always.factory }).run(params(), recorder(() => ({ action: "allow_always" })).cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: always.factory }), params(), recorder(() => ({ action: "allow_always" })).cb, new AbortController().signal);
   assert.deepEqual(got, [{ kind: "approve-for-session" }]);
 });
 
@@ -152,7 +156,7 @@ test("ツールの前のフック: 承認を通らないコマンドでも、断
     out.push(await hook({ toolName: "bash", toolArgs: { command: "ls" }, sessionId: s.sessionId, timestamp: new Date(), workingDirectory: "/w" }, { sessionId: s.sessionId }));
     s.idle();
   };
-  await new CopilotProvider({ clientFactory: fake.factory }).run(params({ deleteGuard: true }), recorder().cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ deleteGuard: true }), recorder().cb, new AbortController().signal);
   assert.equal((out[0] as any).permissionDecision, "deny");
   assert.match((out[0] as any).permissionDecisionReason, /kickoff-trash/);
   assert.equal(out[1], undefined);
@@ -165,7 +169,7 @@ test("止める・作業中に足す: tell は immediate で送り、止めた�
   };
   const rec = recorder();
   const ac = new AbortController();
-  const running = new CopilotProvider({ clientFactory: fake.factory }).run(params(), rec.cb, ac.signal);
+  const running = guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params(), rec.cb, ac.signal);
   await until(() => rec.control() !== null);
   assert.equal(rec.control()!.tell("あとこれも"), true);
   assert.deepEqual(fake.sessions[0].sent[1], { prompt: "あとこれも", mode: "immediate" });
@@ -188,7 +192,7 @@ test("起動の途中（ランタイムの起動を待つ間）に止めると�
       },
     };
   };
-  const result = await new CopilotProvider({ clientFactory: factory }).run(params(), recorder().cb, ac.signal);
+  const result = await guardedRun(new CopilotProvider({ clientFactory: factory }), params(), recorder().cb, ac.signal);
   assert.equal(result.status, "cancelled");
   assert.deepEqual(fake.sessions[0].sent, []);
 });
@@ -203,7 +207,7 @@ test("失敗: 使用枠の上限は usageLimit、通信の切断は network に�
       s.emit("session.error", error);
       s.idle();
     };
-    const result = await new CopilotProvider({ clientFactory: fake.factory }).run(params(), recorder().cb, new AbortController().signal);
+    const result = await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params(), recorder().cb, new AbortController().signal);
     assert.equal(result.status, "failed");
     assert.ok(key in result, `${key} が付く`);
   }
@@ -211,14 +215,14 @@ test("失敗: 使用枠の上限は usageLimit、通信の切断は network に�
 
 test("API キー（BYOK）: キーの頭で種類を決めてセッションの設定で渡し（環境変数には載せない）、モデルを選んでいなければ種類の既定", async () => {
   const fake = fakeCopilotClient();
-  await new CopilotProvider({ clientFactory: fake.factory }).run(params({ auth: { mode: "api_key", apiKey: "sk-ant-key" } }), recorder().cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ auth: { mode: "api_key", apiKey: "sk-ant-key" } }), recorder().cb, new AbortController().signal);
   const config = configOf(fake.sessions[0]);
   assert.deepEqual(config.provider, { type: "anthropic", baseUrl: "https://api.anthropic.com", apiKey: "sk-ant-key" });
   assert.ok(config.model);
   assert.ok(!JSON.stringify(fake.clients[0].env).includes("sk-ant-key"));
   // サブスクならつなぎ先を渡さない
   const sub = fakeCopilotClient();
-  await new CopilotProvider({ clientFactory: sub.factory }).run(params(), recorder().cb, new AbortController().signal);
+  await guardedRun(new CopilotProvider({ clientFactory: sub.factory }), params(), recorder().cb, new AbortController().signal);
   assert.equal(configOf(sub.sessions[0]).provider, undefined);
 });
 
@@ -259,10 +263,10 @@ test("1 回だけ聞く: ツールなしの一時のセッションで、light �
 test("手で圧縮: /compact は history.compact を呼び、要約の記録を残す。会話がなければ失敗", async () => {
   const fake = fakeCopilotClient();
   const rec = recorder();
-  const result = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact", compact: true, resumeSessionId: "s-1" }), rec.cb, new AbortController().signal);
+  const result = await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ prompt: "/compact", compact: true, resumeSessionId: "s-1" }), rec.cb, new AbortController().signal);
   assert.equal(result.status, "completed");
   assert.ok(rec.events.some((e) => e.type === "compact" && e.trigger === "manual"));
-  const none = await new CopilotProvider({ clientFactory: fake.factory }).run(params({ prompt: "/compact", compact: true }), recorder().cb, new AbortController().signal);
+  const none = await guardedRun(new CopilotProvider({ clientFactory: fake.factory }), params({ prompt: "/compact", compact: true }), recorder().cb, new AbortController().signal);
   assert.equal(none.status, "failed");
 });
 

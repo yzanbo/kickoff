@@ -72,7 +72,7 @@ export async function runClaudeTurn(deps: ClaudeRunDeps, params: ProviderTurnPar
         permissionMode: params.permissionMode,
         // AI の操作ツールのうち、聞かずに使わせるもの（埋め込みブラウザの見るだけのもの・DB とチャットのツールのすべて = 承認と断りはツールの中で行う）。
         // 埋め込みブラウザの開く・押す・打つ・JS は権限モードと承認に従う
-        allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
+        allowedTools: [...toAllowedTools(params.gate.allowedCommands), ...toolAllowList(tools)],
         // Kickoff のチャットでは使わせないツール（PushNotification・EnterWorktree / ExitWorktree。理由は KICKOFF_DISALLOWED_TOOLS）
         disallowedTools: KICKOFF_DISALLOWED_TOOLS,
         // AI の操作ツールの口は、鍵の見出しを Claude Code の起動の引数に載せないよう標準入力の initialize で渡す

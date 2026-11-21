@@ -1,4 +1,5 @@
-// 守りの決まりの形: 判定（どの守りも、どの AI への当て方も、この 1 つを返す）・守りが見る呼び出し・決まりの並び
+// 守りの決まりの形: 判定（どの守りも、どの AI への当て方も、この 1 つを返す）・守りが見る呼び出し・決まりの並び・上の機能が決まりを出す口
+import type { GuardMaterials } from "@/features/ai/core/index";
 
 /**
  * deny = 断る（理由を AI に伝える）/ ask = 承認カードで聞く（断られたら deniedReason を AI に伝える）/ pass = 守りは何も言わない（権限モードに任せる）。
@@ -31,4 +32,10 @@ export interface GuardRule {
   /** 見る呼び出し（Bash だけ・ファイルのツールだけ など） */
   sees(call: GuardCall): boolean;
   check(call: GuardCall): GuardVerdict | Promise<GuardVerdict>;
+}
+
+/** 実行ごとに守りの決まりを出す口（上の機能 docker・database が、自分の createX の中で guard の addRuleSource に登録する） */
+export interface GuardRuleSource {
+  name: GuardName;
+  rulesFor(materials: GuardMaterials): GuardRule[];
 }

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { HookInput } from "./wire";
-import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks } from "./policy";
+import { KICKOFF_DISALLOWED_TOOLS, toAllowedTools, turnContextHook, turnHooks } from "./policy";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { tempDir } from "@/foundation/core/testing/tempDir";
@@ -13,6 +13,13 @@ const submit = { hook_event_name: "UserPromptSubmit", prompt: "質問", session_
 
 test("使わせないツール: Kickoff の利用者に届かない PushNotification と、会話ごと作業場所を移す EnterWorktree / ExitWorktree を外す", () => {
   assert.deepEqual([...KICKOFF_DISALLOWED_TOOLS].sort(), ["EnterWorktree", "ExitWorktree", "PushNotification"]);
+});
+
+test("許可ルール: 承認なしのコマンドを Bash(<コマンド>:*) に写し、読む・Web はいつも承認なし、ファイルの編集は権限モードに任せる", () => {
+  const rules = toAllowedTools(["git status", "npm test"]);
+  assert.ok(rules.includes("Bash(git status:*)") && rules.includes("Bash(npm test:*)"));
+  assert.ok(rules.includes("Read") && rules.includes("WebSearch") && rules.includes("WebFetch"));
+  assert.ok(!rules.includes("Edit") && !rules.some((r) => r.startsWith("mcp__")));
 });
 
 test("指示に添える文脈: 実行の初めの指示にだけ additionalContext で添え、作業中に足した発言・ほかのフックには添えない", async () => {

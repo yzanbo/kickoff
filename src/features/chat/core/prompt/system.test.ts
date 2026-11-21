@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { buildSystemPrompt, CHAT_POLICY } from "./system";
-import { toAllowedTools } from "@/features/ai/core/providers/claude/policy";
+import { buildSystemPrompt } from "./system";
 import { testStore } from "@/app/core/testing/testStore";
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
@@ -9,15 +8,6 @@ function project(references: { path: string; kind: "folder" | "file" }[] = []) {
   const p = store.projects.create({ name: "a", description: "ノートアプリ", repo_path: "/tmp/a", provider: "claude" });
   return store.projects.update(p.id, { reference_paths: references });
 }
-
-test("どのチャットも同じ権限: Git の読み取りとテスト・ビルドは承認なし、ファイルの編集は権限モードに任せる", () => {
-  const rules = toAllowedTools(CHAT_POLICY);
-  assert.ok(rules.includes("Bash(git status:*)"));
-  assert.ok(rules.includes("Bash(npm test:*)"));
-  assert.ok(rules.includes("WebSearch"));
-  assert.ok(!rules.includes("Edit"));
-  assert.ok(!rules.some((r) => r.startsWith("Bash(git commit") || r.startsWith("mcp__")));
-});
 
 test("ブラウザ: 開き先が Kickoff なら内蔵ツールを優先し、OS の既定なら外部で開くよう伝える", () => {
   const p = project();

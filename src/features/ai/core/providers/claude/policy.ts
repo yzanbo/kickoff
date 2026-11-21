@@ -1,6 +1,5 @@
 import path from "node:path";
 import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } from "./wire";
-import type { ChatPolicy } from "@/features/chat/core/prompt/system";
 import { DOCKER_GUARD_DENIED, type DockerGuard } from "@/features/docker/core/guard/dockerGuard";
 import { evaluateDeleteCommand } from "@/features/guard/core/guard/deleteGuard";
 import { evaluateGitHookBypass } from "@/features/guard/core/guard/gitHookGuard";
@@ -217,16 +216,9 @@ function sandboxDeniedHook(params: ProviderTurnParams, sandbox: BashSandbox): Ho
  */
 export const KICKOFF_DISALLOWED_TOOLS = ["PushNotification", "EnterWorktree", "ExitWorktree"];
 
-/** チャットのポリシーを Claude Code の権限ルールに変換する（ファイルの編集は権限モードに任せる） */
-export function toAllowedTools(policy: ChatPolicy): string[] {
-  return [
-    "Read",
-    "Glob",
-    "Grep",
-    "TodoWrite",
-    ...(policy.web ? ["WebSearch", "WebFetch"] : []),
-    ...policy.allowedCommands.map((cmd) => `Bash(${cmd}:*)`),
-  ];
+/** 承認なしで流してよいコマンド（門の allowedCommands）を Claude Code の権限ルールに変換する（読む・Web は承認なし。ファイルの編集は権限モードに任せる） */
+export function toAllowedTools(allowedCommands: readonly string[]): string[] {
+  return ["Read", "Glob", "Grep", "TodoWrite", "WebSearch", "WebFetch", ...allowedCommands.map((cmd) => `Bash(${cmd}:*)`)];
 }
 
 /**

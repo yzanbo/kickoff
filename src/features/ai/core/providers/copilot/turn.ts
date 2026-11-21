@@ -2,7 +2,6 @@ import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import { setCompacting } from "@/features/ai/core/providers/shared/events";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { byokProvider, copilotSandbox, mcpServersOf, runtimeEnv, turnPrompt } from "./config";
 import { createEventState, handleEvent, type EventState } from "./events";
@@ -15,7 +14,6 @@ export interface TurnDeps {
   clientFactory: CopilotClientFactory;
   /** ランタイムに渡す環境変数の元（process.env） */
   baseEnv: Record<string, string | undefined>;
-  self?: SelfInfo;
 }
 
 /** 手を空けたときの結果 */
@@ -31,8 +29,8 @@ export function turnResult(state: EventState, sessionId: string, aborted: boolea
 }
 
 /** セッションの設定（作るときと続けるときで同じ。続けるときも砂場・MCP・承認の口は渡し直す） */
-function sessionConfig(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, self: SelfInfo | undefined): SessionConfig {
-  const deps = { params, cb, signal, guard: { params, self } };
+function sessionConfig(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): SessionConfig {
+  const deps = { params, cb, signal };
   const byok = byokProvider(params.auth, params.model);
   const model = byok?.model ?? params.model;
   const sandbox = copilotSandbox(params);
@@ -77,7 +75,7 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
   try {
     client = deps.clientFactory({ env: runtimeEnv(deps.baseEnv, params.env), cwd: params.cwd });
     await client.start();
-    const config = sessionConfig(params, cb, signal, deps.self);
+    const config = sessionConfig(params, cb, signal);
     session = sessionId ? await client.resumeSession(sessionId, config) : await client.createSession(config);
     sessionId = session.sessionId;
     session.on((event) => {

@@ -16,7 +16,7 @@
 - チャットの AI は作るときに決め、途中では変えない。違う AI の子チャットは会話を引き継がない（セッションの形が違う）。
 - API キーは `keys.ts` が `secrets` に暗号化して置き、応答・SSE に出さない。キーも MCP の鍵も起動の引数に載せず、環境変数は CLI が子プロセスから外せるものだけ。
 - AI の操作ツールはプロバイダーが作らず、`params.tools` を各 CLI の MCP の書き方に直すだけ。記録の名前と入力の形は Claude Code にそろえる。
-- 承認を聞いてくる CLI（Codex・Copilot・ACP）は、守りの判定と権限モードから同じ `guardOutcome` → `modeOutcome` で決める（`guardedApproval.ts`）。
+- 承認を聞いてくる CLI（Codex・Copilot・ACP）は、`params.gate`（guard の門）の `guard` → `byMode` で決める（権限モードの答えは `permissionMode.ts`）。
 
 ## チャットの AI の画面（`ui/provider/`）
 

@@ -1,8 +1,8 @@
 # 守り（書き込み・見せない DB・自分を守る・砂場）（`src/features/guard`）
 
-## AI への指示と許可（`@/features/chat/core/prompt/system.ts`）
+## AI への指示と許可（`@/features/chat/core/prompt/system.ts`・`core/allowedCommands.ts`）
 
-- `CHAT_POLICY` はどのチャットも同じで、プロバイダーが自分の権限設定に変える。ファイルの編集を自動で承認するかは権限モードだけで決まる。
+- 承認なしのコマンド `ALLOWED_COMMANDS` はどのチャットも同じで、門の `allowedCommands` から各 AI が自分の権限設定に変える。ファイルの編集を自動で承認するかは権限モードだけで決まる。
 - `buildSystemPrompt` はどの AI にも同じものを渡す。送るたびに設定を読む。会話ごと別のフォルダへ移るツールは `KICKOFF_DISALLOWED_TOOLS` で外す。
 
 ## 書き込みの守り（`core/guard/`・`core/sandbox/`）
@@ -19,7 +19,7 @@
 
 - 判定の形は `core/rules.ts` の `GuardVerdict` 1 つ（断るだけの守りは `DenyVerdict`）。ツールのパスの欄は `@shared/ai/claudeTools` の表から読み、`scope.ts` の `resolveCallPaths`（作業フォルダで解く・`~` を開く）でそろえてから守りに渡す（守りは自分で解かない）。
 - 判定はプロバイダーに依らない純粋関数。Claude は PreToolUse のフック（`turnHooks`）で毎回呼び、権限モード・許可ルールに関係なく効く。
-- 守りは `GuardRule`（名前は `GUARD_ORDER`）を返す関数で作り、当てるのは `judge.ts` の `judgeCall` 1 つ（断る守りを全部見てから聞く守り）。フックのない CLI は `judgeTool.ts` が材料から決まりを並べる。Claude のフック（`policy.ts`）はまだ自分で並べるので、守りを足したら両方に入れる。
+- 守りは `GuardRule`（名前は `GUARD_ORDER`）を返す関数で作り、当てるのは `judge.ts` の `judgeCall` 1 つ（断る守りを全部見てから聞く守り）。実行ごとの門 `gate.ts`（`ToolGate`）が材料から決まりを並べ、承認を聞いてくる CLI はこれに当てる。Claude のフック（`policy.ts`）はまだ自分で並べるので、守りを足したら両方に入れる。
 - 守りの理由と見抜けない書き方は各ファイルの頭に書く（うっかりを防ぐもので、わざと避ける書き方までは見抜けない）。
 - Bash の文の区切りと `sh -c` の中へ下りるのは `@/foundation/core/shell/shellWords.ts`（`scanCommands`）1 つを共有する。直したら、それを使う守りのテストを全部通す。
 - 聞く守りは Auto mode でも聞く。「このチャットでは許可」は `ChatRuntime.writeAllowed` に覚える（保存しない）。

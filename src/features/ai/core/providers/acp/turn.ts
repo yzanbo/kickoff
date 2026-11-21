@@ -1,9 +1,8 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
-import type { ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
+import type { ApprovalContext } from "@/features/ai/core/permissionMode";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import type { ProviderId } from "@shared/settings/types";
 import { configChoices, acpEnv, modeFor, promptBlocks, sessionRequest } from "./config";
@@ -35,7 +34,6 @@ export interface AcpTurnDeps {
   spawn: StdioSpawn;
   spec: AcpAgentSpec;
   baseEnv: Record<string, string | undefined>;
-  self?: SelfInfo;
 }
 
 /** Kickoff はファイルの読み書き・端末をエージェントに貸さない（エージェントが自分のツールで行い、権限の頼みで守りを当てる） */
@@ -89,7 +87,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
   let closedReason: string | null = null;
   let cancelled!: () => void;
   const cancelledNow = new Promise<"cancelled">((resolve) => (cancelled = () => resolve("cancelled")));
-  const approval: ApprovalContext = { params, cb, signal };
+  const approval: ApprovalContext = { cb, signal };
 
   const onNotification = (method: string, raw: unknown) => {
     if (method !== "session/update" || loading) return; // session/load は会話を流し直すので読み飛ばす
@@ -99,7 +97,7 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
   };
   const onServerRequest = async (method: string, raw: unknown) => {
     if (method === "session/request_permission") {
-      return answerPermission({ ...approval, guard: { params, self: deps.self }, tools, denied: (note) => denials.push(note) }, raw as RequestPermissionRequest);
+      return answerPermission({ gate: params.gate, signal, tools, denied: (note) => denials.push(note) }, raw as RequestPermissionRequest);
     }
     const handled = deps.spec.extension?.(method, raw, approval);
     if (handled) return handled;

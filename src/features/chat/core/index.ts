@@ -76,6 +76,8 @@ export interface ChatUpper {
   browser: ExecutionDeps["browser"];
   bashSandbox: ExecutionDeps["bashSandbox"];
   sandboxDiagnostics: ExecutionDeps["sandboxDiagnostics"];
+  /** 実行ごとの守りの門を作る口（guard） */
+  toolGate: ExecutionDeps["toolGate"];
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */

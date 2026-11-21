@@ -14,6 +14,9 @@ import type { PermissionRequest } from "@/features/ai/core/providers/copilot/sdk
 import { answerPermission } from "@/features/ai/core/providers/acp/permissions";
 import type { RequestPermissionRequest, ToolCall } from "@/features/ai/core/providers/acp/protocol";
 import { cursorExtension } from "@/features/ai/core/providers/cursor/extensions";
+import { hiddenDbRuleSource } from "@/features/database/core/guard/hiddenDb";
+import { dockerRuleSource } from "@/features/docker/core/guard/dockerGuard";
+import { toolGateFactory } from "@/features/guard/core/gate";
 import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
@@ -56,7 +59,9 @@ function harness(w: World, mode: PermissionMode, answer: ApprovalDecision, sandb
     asked.push([r.kind, r.toolName, r.title ?? "", r.canRemember ? `remember:${r.rememberScope ?? "rule"}` : "", JSON.stringify(r.input)].filter(Boolean).join(" | "));
     return answer;
   };
-  const base = { params, guard: { params, self }, cb: { requestApproval, emit: (e: unknown) => notes.push(`emit ${JSON.stringify(e)}`) }, signal: new AbortController().signal };
+  const signal = new AbortController().signal;
+  params.gate = toolGateFactory(self, [hiddenDbRuleSource, dockerRuleSource])(params, { requestApproval }, signal);
+  const base = { params, cb: { requestApproval, emit: (e: unknown) => notes.push(`emit ${JSON.stringify(e)}`) }, signal };
   const result = (out: unknown, approved?: Set<string>) => ({ out, asked, notes, ...(approved?.size ? { approved: [...approved] } : {}), ...(allowed.size ? { allowed: [...allowed] } : {}) });
   return { base, notes, result };
 }
@@ -104,7 +109,7 @@ const OPTIONS: RequestPermissionRequest["options"] = [
   { optionId: "o3", name: "断る", kind: "reject_once" },
 ];
 const acp = (call: (w: World) => ToolCall): Case => async (w, h) =>
-  h.result(await answerPermission({ ...h.base, tools: h.base.params.tools ?? [], denied: (n) => h.notes.push(`denied ${n}`) }, { sessionId: "s", toolCall: call(w), options: OPTIONS }));
+  h.result(await answerPermission({ gate: h.base.params.gate, signal: h.base.signal, tools: h.base.params.tools ?? [], denied: (n) => h.notes.push(`denied ${n}`) }, { sessionId: "s", toolCall: call(w), options: OPTIONS }));
 
 const inside = (w: World) => w.inside;
 const outside = (w: World) => w.outside;

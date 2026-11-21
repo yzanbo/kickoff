@@ -5,6 +5,8 @@ import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { DockerService } from "@/features/docker/core/index";
+import type { GuardApi } from "@/features/guard/core/index";
+import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { DbWorkerClient, type WorkerChannel } from "./client";
 import { DbSecretVault } from "./secrets";
@@ -25,6 +27,8 @@ export interface DatabaseDeps {
   docker: DockerService;
   /** ワークツリーを消したら、その DB から作った接続を片付ける */
   worktrees: WorktreesApi;
+  /** 見せない DB の守りを登録する */
+  guard: Pick<GuardApi, "addRuleSource">;
 }
 
 export interface DatabaseEnv {
@@ -48,6 +52,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   if (env.cleanExports) databases.cleanExports();
   deps.chat.onChatsPurged((ids) => databases.forgetChatExports(ids));
+  deps.guard.addRuleSource(hiddenDbRuleSource);
   // ワークツリーを消したら、その DB から作った接続を、選ばれていれば消し、残すなら結び付きだけ外す
   deps.worktrees.useDbConnections((folder) => stores.dbConnections.ofWorktree(folder).map((conn) => ({ id: conn.id, name: conn.name })));
   deps.worktrees.finisher.afterRemove((folder, dropConnections) => {

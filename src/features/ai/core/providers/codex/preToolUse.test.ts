@@ -3,7 +3,8 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { PLAN_MODE_DECLINED } from "@/features/ai/core/providers/guardedApproval";
+import { PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
+import { withGate } from "@/app/core/testing/testGate";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { createApprovalHandler } from "./approvals";
 import { hookDeny } from "./hooks";
@@ -11,7 +12,6 @@ import { createPreToolUseHandler, writeKey } from "./preToolUse";
 import { SANDBOX_EXIT_DECLINED } from "./sandboxExit";
 
 function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest) => ApprovalDecision = () => ({ action: "allow" })) {
-  const params = { cwd: tempDir({ real: true }), permissionMode: "default", deleteGuard: true, ...extra } as ProviderTurnParams;
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const steers: string[] = [];
@@ -23,10 +23,10 @@ function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest
       return answer(req);
     },
   };
+  const params = withGate({ cwd: tempDir({ real: true }), permissionMode: "default", deleteGuard: true, ...extra } as ProviderTurnParams, cb.requestApproval);
   const signal = new AbortController().signal;
-  const guard = { params };
-  const hook = createPreToolUseHandler({ params, guard, cb, signal, approvedWrites });
-  const approve = createApprovalHandler({ params, guard, cb, signal, items: new Map(), steer: (t) => steers.push(t), approvedWrites });
+  const hook = createPreToolUseHandler({ params, cb, approvedWrites });
+  const approve = createApprovalHandler({ params, cb, signal, items: new Map(), steer: (t) => steers.push(t), approvedWrites });
   return { params, hook, approve, events, approvals, steers, approvedWrites };
 }
 
@@ -62,7 +62,7 @@ test("フック: 作業場所の外へのファイルの変更は Auto mode で�
   assert.equal(s.approvals.length, 1);
   assert.ok(s.approvedWrites.has(writeKey(s.params.cwd, outside)));
   const items = new Map([["exec-2", { type: "fileChange", id: "exec-2", changes: [{ path: outside, kind: { type: "add" }, diff: "+x" }], status: "inProgress" }]]);
-  const approve = createApprovalHandler({ params: s.params, guard: { params: s.params }, cb: { requestApproval: async () => ({ action: "deny" }) }, signal: new AbortController().signal, items: items as never, steer: () => {}, approvedWrites: s.approvedWrites });
+  const approve = createApprovalHandler({ params: s.params, cb: { requestApproval: async () => ({ action: "deny" }) }, signal: new AbortController().signal, items: items as never, steer: () => {}, approvedWrites: s.approvedWrites });
   assert.deepEqual(await approve("item/fileChange/requestApproval", { threadId: "t", turnId: "u", itemId: "exec-2", reason: null, grantRoot: null }), { decision: "accept" });
 });
 

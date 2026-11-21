@@ -23,6 +23,7 @@ import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { Runner } from "@/features/chat/core/runner";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { assembleCore } from "@/app/core/assemble";
+import { toolGateFactory } from "@/features/guard/core/gate";
 import { MIGRATIONS } from "@/app/core/migrations";
 import { ALL_SETTINGS } from "@/app/shared/settings";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform } from "./testEnv";
@@ -96,7 +97,8 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const interrupted = beforeStart?.(store, project);
   // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
   const usage = offlineUsage();
-  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions });
+  // 守りの門は本物と同じく guard が作る（自分を守る守りはテストでは付けない）
+  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, toolGate: toolGateFactory(undefined, []), ...(interrupted ? { interrupted } : {}), ...runnerOptions });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project };
 }
 

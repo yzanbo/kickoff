@@ -1,7 +1,6 @@
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ProviderCliStatus, ModelOption } from "@shared/ai/types";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderLogin, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { askModelOf, toModelOptions } from "./catalog";
@@ -20,7 +19,6 @@ import { PROVIDERS } from "@shared/ai/providers";
 const MAX_MODEL_PAGES = 5;
 
 export interface CodexProviderOpts {
-  self?: SelfInfo;
   /** app-server の起動（テストは偽物。省けば PATH の codex） */
   spawn?: StdioSpawn;
   /** app-server に渡す環境変数の元（省けば process.env） */
@@ -155,6 +153,6 @@ export class CodexProvider implements AgentProvider {
 
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
     if (!this.spawn) return Promise.resolve({ status: "failed", sessionId: params.resumeSessionId, error: PROVIDERS.codex.installHint });
-    return runCodexTurn({ spawn: this.spawn, baseEnv: this.baseEnv, self: this.opts.self }, params, callbacks, signal);
+    return runCodexTurn({ spawn: this.spawn, baseEnv: this.baseEnv }, params, callbacks, signal);
   }
 }

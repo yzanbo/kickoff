@@ -1,13 +1,17 @@
 // Codex のプロバイダーを偽の app-server で確かめる（本物の codex・アカウントは使わない）
 import { test } from "vitest";
+import { withGate } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeCodexServer, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { HOOK_INACTIVE } from "./hookTrust";
 import { CodexProvider } from "./provider";
 import { experimentalProviders } from "@/features/ai/core/providers/index";
+
+/** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -61,7 +65,7 @@ test("診断に知らせる PID は、この実行で起動した app-server の
   onTurn(server, (s) => complete(s));
   const pids: number[] = [];
   const spawn: typeof server.spawn = (args, opts) => ({ ...server.spawn(args, opts), pid: 321 });
-  const result = await new CodexProvider({ spawn }).run(params({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CodexProvider({ spawn }), params({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
   assert.equal(result.status, "completed");
   assert.deepEqual(pids, [321]);
 });
@@ -108,14 +112,14 @@ test("実行中の使用枠の知らせ（スレッドの ID がない）から�
   });
   const notes: unknown[] = [];
   const rec = recorder();
-  await new CodexProvider({ spawn: server.spawn }).run(params(), { ...rec.cb, spending: (note) => notes.push(note) }, new AbortController().signal);
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), { ...rec.cb, spending: (note) => notes.push(note) }, new AbortController().signal);
   assert.deepEqual(notes, [{ has_credits: true, unlimited: false, balance: 142, limit_reached: true }]);
 });
 
 test("守りのフックが信頼済みにならなければ、作業を始めずに失敗で返す（守りなしで動かさない）", async () => {
   const server = fakeCodexServer();
   server.handle("hooks/list", () => ({ data: [{ cwd: "/w", hooks: [], warnings: [], errors: [] }] }));
-  const result = await new CodexProvider({ spawn: server.spawn }).run(params(), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), recorder().cb, new AbortController().signal);
   assert.equal(result.status, "failed");
   assert.equal(result.error, HOOK_INACTIVE);
   assert.ok(!server.requests.some((r) => r.method === "turn/start"));
@@ -127,7 +131,7 @@ test("続き: セッション ID のスレッドを resume してから送る", 
     setImmediate(() => s.notify("turn/completed", { threadId: p.threadId, turn: { id: "turn-9", status: "completed", error: null } }));
     return { turn: { id: "turn-9", status: "inProgress", error: null } };
   });
-  const result = await new CodexProvider({ spawn: server.spawn }).run(params({ resumeSessionId: "thr-old" }), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ resumeSessionId: "thr-old" }), recorder().cb, new AbortController().signal);
   assert.equal(result.sessionId, "thr-old");
   assert.equal(result.lastMessageId, "turn-9");
   assert.ok(!server.requests.some((r) => r.method === "thread/start" && !r.params.ephemeral));
@@ -137,7 +141,7 @@ test("resume が対象セッションの消失を明示したとき、指示を�
   const server = fakeCodexServer();
   const id = "00000000-0000-4000-8000-000000000000";
   server.handle("thread/resume", () => { throw Object.assign(new Error(`no rollout found for thread id ${id}`), { code: -32600 }); });
-  const result = await new CodexProvider({ spawn: server.spawn }).run(params({ resumeSessionId: id }), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ resumeSessionId: id }), recorder().cb, new AbortController().signal);
   assert.equal(result.status, "failed");
   assert.equal(result.resumeSessionMissing, true);
   assert.equal(result.sessionId, id);
@@ -154,7 +158,7 @@ test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/
     complete(s);
   });
   const rec = recorder(() => ({ action: "deny", message: "今はやめて" }));
-  await new CodexProvider({ spawn: server.spawn }).run(params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
   assert.deepEqual(answers, [{ decision: "decline" }, { decision: "decline" }]);
   assert.equal(rec.approvals.length, 1);
   assert.deepEqual(rec.approvals[0].input, { command: "npm install" });
@@ -177,7 +181,7 @@ test("承認と権限モード: Auto mode は守りが何も言わなければ�
       complete(s);
     });
     const rec = recorder();
-    await new CodexProvider({ spawn: server.spawn }).run(params({ permissionMode: mode }), rec.cb, new AbortController().signal);
+    await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ permissionMode: mode }), rec.cb, new AbortController().signal);
     assert.deepEqual(answer, { decision: expected }, mode);
     assert.equal(rec.approvals.length, 0, mode);
   }
@@ -192,7 +196,7 @@ test("承認と権限モード: Auto mode は守りが何も言わなければ�
   });
   const allowed = new Set<string>();
   const rec = recorder(() => ({ action: "allow_always" }));
-  await new CodexProvider({ spawn: server.spawn }).run(
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), 
     params({ permissionMode: "auto", cwd: "/w", writeScope: { writableDirs: [], workplaces: async () => [], allowed } }),
     rec.cb,
     new AbortController().signal,
@@ -216,7 +220,7 @@ test("AI からの質問: 質問カードに写し、答えを質問の ID ご�
     complete(s);
   });
   const rec = recorder(() => ({ action: "answer", answers: { "どれで書く？": "TS" } }));
-  await new CodexProvider({ spawn: server.spawn }).run(params(), rec.cb, new AbortController().signal);
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), rec.cb, new AbortController().signal);
   assert.equal(rec.approvals[0].kind, "question");
   assert.deepEqual(answer, { answers: { lang: { answers: ["TS"] } } });
 });
@@ -230,7 +234,7 @@ test("作業中に足す発言は turn/steer、止めると turn/interrupt で c
   });
   const rec = recorder();
   const ac = new AbortController();
-  const running = new CodexProvider({ spawn: server.spawn }).run(params(), rec.cb, ac.signal);
+  const running = guardedRun(new CodexProvider({ spawn: server.spawn }), params(), rec.cb, ac.signal);
   // 操作の口はターンが始まってから渡る（そのときにはターンの ID が分かっている）
   await until(() => rec.control() !== null);
   assert.equal(rec.control()!.tell("これも", "u-2"), true);
@@ -251,7 +255,7 @@ test("起動の途中（initialize の答えを待つ間）に止めると、タ
     ac.abort();
     return { userAgent: "fake" };
   });
-  const result = await new CodexProvider({ spawn: server.spawn }).run(params(), recorder().cb, ac.signal);
+  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), recorder().cb, ac.signal);
   assert.equal(result.status, "cancelled");
   assert.ok(!server.requests.some((r) => r.method === "turn/start"));
 });
@@ -259,7 +263,7 @@ test("起動の途中（initialize の答えを待つ間）に止めると、タ
 test("app-server が落ちたら失敗で返す", async () => {
   const server = fakeCodexServer();
   onTurn(server, (s) => s.crash(2));
-  const result = await new CodexProvider({ spawn: server.spawn }).run(params(), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(new CodexProvider({ spawn: server.spawn }), params(), recorder().cb, new AbortController().signal);
   assert.equal(result.status, "failed");
   assert.match(result.error ?? "", /終了コード 2/);
 });
@@ -267,7 +271,7 @@ test("app-server が落ちたら失敗で返す", async () => {
 test("API キー: 起動の環境変数で渡し、引数・スレッドの上書きには載せない", async () => {
   const server = fakeCodexServer();
   onTurn(server, complete);
-  await new CodexProvider({ spawn: server.spawn }).run(params({ auth: { mode: "api_key", apiKey: "sk-test" } }), recorder().cb, new AbortController().signal);
+  await guardedRun(new CodexProvider({ spawn: server.spawn }), params({ auth: { mode: "api_key", apiKey: "sk-test" } }), recorder().cb, new AbortController().signal);
   assert.equal(server.spawned[0].env.CODEX_API_KEY, "sk-test");
   assert.ok(!server.spawned[0].args.join(" ").includes("sk-test"));
   assert.ok(!JSON.stringify(server.requests).includes("sk-test"));

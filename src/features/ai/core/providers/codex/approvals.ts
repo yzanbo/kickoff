@@ -1,6 +1,5 @@
-import { judgeCommand, judgeWritePath, type GuardContext } from "@/features/guard/core/guard/judgeTool";
-import { askApproval, guardOutcome, isAllowed, modeOutcome, PLAN_MODE_DECLINED, type ApprovalOutcome } from "@/features/ai/core/providers/guardedApproval";
-import type { ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { askApproval, isAllowed, PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
+import type { GateOutcome, ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { changeAsTool } from "./items";
 import { writeKey } from "./preToolUse";
 import { isUnsandboxedCommand, SANDBOX_EXIT_DECLINED } from "./sandboxExit";
@@ -19,14 +18,12 @@ import type {
  * Codex の app-server からの頼み（承認・質問）に答える。
  * 承認の決まりは on-request（ふだんのコマンド・ファイルの変更は Codex の砂場の中で聞かずに流れ、守りと権限モードは PreToolUse のフック = preToolUse.ts で当てる）。
  * ここに来るのは砂場から出る頼みだけ: コマンドを砂場の外で流す → 決まったコマンド（Bash の砂場の unsandboxedCommands）だけ通し、ほかは断る /
- * 書ける場所の外へのファイルの変更 → 守り（chat/guard/judgeTool.ts）と権限モード（フックで許した書く先は聞き直さない）。
- * Codex の承認の答えには理由を渡す欄がないので、断った理由は turn/steer でいまの作業に伝える（steer）。
- * 守りと権限モードの決まりは Copilot などと共通の guardedApproval.ts
+ * 書ける場所の外へのファイルの変更 → 守りの門（params.gate）と権限モード（フックで許した書く先は聞き直さない）。
+ * Codex の承認の答えには理由を渡す欄がないので、断った理由は turn/steer でいまの作業に伝える（steer）
  */
 
 export interface ApprovalDeps {
   params: ProviderTurnParams;
-  guard: GuardContext;
   cb: Pick<ProviderCallbacks, "requestApproval">;
   signal: AbortSignal;
   /** 始まった項目（ファイルの変更の承認は項目の ID だけで来るので、変えるファイルをここから引く） */
@@ -37,12 +34,10 @@ export interface ApprovalDeps {
   approvedWrites: Set<string>;
 }
 
-const declinedNote = (what: string, reason: string) => `［Kickoff］${what}を断りました: ${reason}`;
-
-/** 共通の承認の結果を Codex の答えにする（断ったら理由を turn/steer で伝える） */
-function toDecision(deps: ApprovalDeps, outcome: ApprovalOutcome, what: string): ApprovalDecision {
+/** 門の答えを Codex の答えにする（断ったら理由を turn/steer で伝える） */
+function toDecision(deps: ApprovalDeps, outcome: GateOutcome, what: string): ApprovalDecision {
   if (outcome.allow) return outcome.forSession ? "acceptForSession" : "accept";
-  deps.steer(declinedNote(what, outcome.reason));
+  deps.steer(deps.params.gate.note(what, outcome.reason));
   return "decline";
 }
 
@@ -52,18 +47,19 @@ function toDecision(deps: ApprovalDeps, outcome: ApprovalOutcome, what: string):
  */
 async function commandApproval(deps: ApprovalDeps, p: CommandApprovalParams): Promise<{ decision: ApprovalDecision }> {
   const command = p.command ?? "";
-  const input = { command };
+  const call = { name: "Bash", input: { command } };
   const what = `コマンド「${command.slice(0, 200)}」`;
-  const verdict = await judgeCommand(deps.guard, command);
-  if (verdict.kind === "deny") return { decision: toDecision(deps, { allow: false, reason: verdict.reason }, what) };
+  const { gate } = deps.params;
+  const denied = await gate.deny(call);
+  if (denied) return { decision: toDecision(deps, denied, what) };
   if (deps.params.permissionMode === "plan") return { decision: toDecision(deps, { allow: false, reason: PLAN_MODE_DECLINED }, what) };
   const sandbox = deps.params.bashSandbox;
   if (sandbox) {
     const allowed = isUnsandboxedCommand(command, sandbox.unsandboxedCommands);
     return { decision: toDecision(deps, allowed ? { allow: true } : { allow: false, reason: SANDBOX_EXIT_DECLINED }, what) };
   }
-  const guarded = await guardOutcome(deps, verdict, "Bash", input, p.itemId);
-  return { decision: toDecision(deps, guarded ?? (await modeOutcome(deps, "command", "Bash", input, p.itemId, p.reason)), what) };
+  const guarded = await gate.guard(call, { toolUseId: p.itemId });
+  return { decision: toDecision(deps, guarded ?? (await gate.byMode("command", call, { toolUseId: p.itemId, description: p.reason })), what) };
 }
 
 async function fileChangeApproval(deps: ApprovalDeps, p: FileChangeApprovalParams): Promise<{ decision: ApprovalDecision }> {
@@ -73,33 +69,27 @@ async function fileChangeApproval(deps: ApprovalDeps, p: FileChangeApprovalParam
   const what = `ファイルの変更（${paths.slice(0, 3).join("・") || "不明"}）`;
   // 変えるファイルが分からなければ通さない（守りを当てられないため）
   if (paths.length === 0) {
-    deps.steer(declinedNote(what, "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"));
+    deps.steer(deps.params.gate.note(what, "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"));
     return { decision: "decline" };
   }
   // フックで利用者が許した書く先だけなら聞き直さない
   if (paths.every((target) => deps.approvedWrites.has(writeKey(deps.params.cwd, target)))) return { decision: "accept" };
-  let asked = false;
-  for (const target of paths) {
-    const guarded = await guardOutcome(deps, await judgeWritePath(deps.guard, target), "Write", { file_path: target }, p.itemId);
-    if (guarded && !guarded.allow) return { decision: toDecision(deps, guarded, what) };
-    if (guarded) asked = true;
-  }
-  if (asked) return { decision: "accept" };
+  const guarded = await deps.params.gate.guardWrites(paths, { toolUseId: p.itemId });
+  if (guarded && !guarded.allow) return { decision: toDecision(deps, guarded, what) };
+  if (guarded) return { decision: "accept" };
   const shown = changes[0] ? changeAsTool(changes[0]) : { name: "Write", input: { file_path: paths[0] } };
   const input = { ...shown.input, ...(changes.length > 1 ? { files: changes.map((c) => c.path) } : {}) };
-  return { decision: toDecision(deps, await modeOutcome(deps, "edit", shown.name, input, p.itemId, p.reason), what) };
+  return { decision: toDecision(deps, await deps.params.gate.byMode("edit", { name: shown.name, input }, { toolUseId: p.itemId, description: p.reason }), what) };
 }
 
 /** 追加の権限（書けるフォルダ・ネットワーク）。書く先には書き込みの守りを当て、ネットワークは絞らないので通す */
 async function permissionsApproval(deps: ApprovalDeps, p: PermissionsApprovalParams): Promise<unknown> {
   const writes = p.permissions.fileSystem?.write ?? [];
   const what = `書けるフォルダの追加（${writes.join("・")}）`;
-  for (const target of writes) {
-    const guarded = await guardOutcome(deps, await judgeWritePath(deps.guard, target), "Write", { file_path: target }, p.itemId);
-    if (guarded && !guarded.allow) {
-      toDecision(deps, guarded, what);
-      return { permissions: {}, scope: "turn" };
-    }
+  const guarded = await deps.params.gate.guardWrites(writes, { toolUseId: p.itemId });
+  if (guarded && !guarded.allow) {
+    toDecision(deps, guarded, what);
+    return { permissions: {}, scope: "turn" };
   }
   const granted = { ...(p.permissions.network ? { network: p.permissions.network } : {}), ...(p.permissions.fileSystem ? { fileSystem: p.permissions.fileSystem } : {}) };
   if (writes.length > 0 && deps.params.permissionMode !== "auto") {

@@ -83,7 +83,7 @@ test("どこでも決めていなければ、推論の深さは指定せず（nu
   const call = provider.calls[0];
   assert.deepEqual([call.effort, call.permissionMode], [null, "default"]);
   assert.deepEqual([store.chats.get(chat.id)?.effort, store.chats.get(chat.id)?.permission_mode], [null, "default"]);
-  assert.ok(call.policy.allowedCommands.includes("git status"));
+  assert.ok(call.gate.allowedCommands.includes("git status"));
   assert.ok(!call.systemPrompt.includes("mcp__kickoff__"));
 });
 

@@ -29,10 +29,10 @@ export function createProviders(self?: SelfInfo, authFor?: (id: ProviderId) => P
   const experimental = experimentalProviders();
   return {
     claude: new ClaudeProvider({ self }),
-    codex: new CodexProvider({ self }),
-    copilot: experimental.has("copilot") ? new CopilotProvider({ self }) : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, PROVIDERS.copilot.cli),
-    cursor: experimental.has("cursor") ? cursorProvider({ self, authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, PROVIDERS.cursor.cli),
+    codex: new CodexProvider(),
+    copilot: experimental.has("copilot") ? new CopilotProvider() : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, PROVIDERS.copilot.cli),
+    cursor: experimental.has("cursor") ? cursorProvider({ authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, PROVIDERS.cursor.cli),
     // Gemini は Antigravity CLI を API キーで動かす（定額の枠では使えない）
-    gemini: experimental.has("gemini") ? geminiProvider({ self, authFor: authFor && (() => authFor("gemini")) }) : new PlannedProvider("gemini", PROVIDER_LABELS.gemini, PROVIDERS.gemini.cli),
+    gemini: experimental.has("gemini") ? geminiProvider({ authFor: authFor && (() => authFor("gemini")) }) : new PlannedProvider("gemini", PROVIDER_LABELS.gemini, PROVIDERS.gemini.cli),
   };
 }

@@ -1,4 +1,4 @@
-import { askApproval, isAllowed, type ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
+import { askApproval, isAllowed, type ApprovalContext } from "@/features/ai/core/permissionMode";
 
 /**
  * Cursor の ACP の独自の頼み（Cursor の説明の「Cursor extension methods」。答えを待つもの）を Kickoff のカードに写す:

@@ -22,13 +22,13 @@ import { errorMessage } from "@shared/foundation/errors";
 import { currentBranch } from "@/foundation/core/workplace/reads";
 import { isInside, realPathOrSelf } from "@/foundation/core/system/paths";
 import { workplacesOf } from "@/foundation/core/workplace/worktrees";
-import { buildSystemPrompt, CHAT_POLICY } from "@/features/chat/core/prompt/system";
+import { buildSystemPrompt } from "@/features/chat/core/prompt/system";
 import { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
 import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
-import type { UsageMonitor } from "@/features/ai/core/index";
+import { permissionOnlyGate, type ToolGateFactory, type UsageMonitor } from "@/features/ai/core/index";
 import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
@@ -103,6 +103,8 @@ export interface ExecutionDeps {
   workplaceMoves?: AiWorkplaceDeps["reservations"];
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
+  /** 実行ごとの守りの門を作る口（guard が出す。なければ権限モードだけで答える門） */
+  toolGate?: ToolGateFactory;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。なければツールを出さない（テスト）） */
   toolHost?: Pick<McpToolHost, "open">;
   /** 上の機能が出した AI のツールの組（組み立てが全部の機能の CoreFeature.aiTools を集めて渡す。chat の組と同じ並びで出す） */
@@ -211,7 +213,8 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       // その AI のモデルの一覧にない名前（ほかの AI のモデルなど）は外し、その AI の既定で動かす。チャットにも直して残す
       const model = await knownModel(chat.provider, providers[chat.provider], chat.model);
       if (model !== chat.model) store.chats.update(chatId, { model });
-      const params: ProviderTurnParams = {
+      const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
+      const base = {
         ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
         model,
         compact: compact || prompt.trim() === "/compact", // 手で頼んだ圧縮（送信待ちの圧縮の行・チャット欄に書いた /compact）
@@ -219,12 +222,13 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         env,
         auth,
       };
+      // 守りの門（この単位では chat が実行の材料から作る。守りの口がなければ権限モードだけで答える）
+      const params: ProviderTurnParams = { ...base, gate: deps.toolGate?.(base, callbacks, signal) ?? permissionOnlyGate({ permissionMode: base.permissionMode, cb: callbacks, signal }) };
       const initialContext = params.turnContext ?? null;
       if (handoff) {
         if (compact || (handoff.state !== "ready" && !(handoff.state === "sending" && handoff.eventId === claimedHandoffEventId)) || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
         params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
       }
-      const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
       const diagnostics = deps.sandboxDiagnostics && providerCan(chat.provider, "sandbox_diagnostics") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
       params.onAgentSpawned = diagnostics?.onSpawn;
       const closeDiagnostics = () => diagnostics?.close();
@@ -352,7 +356,7 @@ function buildTurnParams(
   prompt: string,
   promptId?: string,
   note: string | null = null,
-): Omit<ProviderTurnParams, "compact"> {
+): Omit<ProviderTurnParams, "compact" | "gate"> {
   // ノートのフォルダ（executeTurn がまだなければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
   // （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
   return {
@@ -366,7 +370,6 @@ function buildTurnParams(
       browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
     }),
     turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
-    policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,
     effort: chat.effort,
@@ -383,11 +386,7 @@ function buildTurnParams(
     // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
     writeScope: chat.untracked_only || !chat.edit_scope_enabled
       ? null
-      : {
-          writableDirs: [...(noteDir ? [realPathOrSelf(noteDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])],
-          workplaces: () => workplacesOf(project.repo_path),
-          allowed: writeAllowed,
-        },
+      : { writableDirs: [...(noteDir ? [realPathOrSelf(noteDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])], workplaces: () => workplacesOf(project.repo_path), allowed: writeAllowed },
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.databases?.stores.dbConnections.list(project.id) ?? [], [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

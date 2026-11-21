@@ -4,11 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { hiddenDbRule, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
+import { hiddenDbRule, hiddenDbRuleSource, type HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
+import { dockerRuleSource } from "@/features/docker/core/guard/dockerGuard";
 import { compileCacheRule } from "@/features/guard/core/guard/compileCacheGuard";
 import { deleteRule } from "@/features/guard/core/guard/deleteGuard";
 import { gitHookRule } from "@/features/guard/core/guard/gitHookGuard";
-import { judgeCommand, judgeReadPath, judgeWritePath } from "@/features/guard/core/guard/judgeTool";
+import type { GuardMaterials } from "@/features/ai/core/providers/types";
+import { gateRules } from "@/features/guard/core/gate";
+import { judgeCall } from "@/features/guard/core/judge";
 import { referenceRule, resolveCallPaths, untrackedRule } from "@/features/guard/core/guard/scope";
 import { selfRule, type SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
@@ -160,6 +163,13 @@ async function perGuard(w: World, tool: string, raw: Record<string, unknown>): P
 
 /** 記録の鍵（一時フォルダ・ホームのパスを伏せる。maskVolatile は値だけを伏せるので、鍵は先に伏せる） */
 const key = (text: string) => maskVolatile(text, { paths: { HOME: home } });
+
+/** 門の中の判定（材料から決まりを並べ、パスを解いて judgeCall に当てる。聞く守りはカードを出さずに ask の判定のまま） */
+type Ctx = { params: Partial<GuardMaterials> & { cwd: string }; self?: SelfInfo };
+const judge = (ctx: Ctx, name: string, input: Record<string, unknown>) => judgeCall(gateRules(ctx.params as GuardMaterials, ctx.self, [hiddenDbRuleSource, dockerRuleSource]), resolveCallPaths({ name, input, cwd: ctx.params.cwd }));
+const judgeCommand = (ctx: Ctx, command: string) => judge(ctx, "Bash", { command });
+const judgeWritePath = (ctx: Ctx, file: string) => judge(ctx, "Write", { file_path: file });
+const judgeReadPath = (ctx: Ctx, file: string) => judge(ctx, "Read", { file_path: file });
 
 const docker = { check: async (c: string) => (c.includes("down") ? { title: "ほかの作業場所の Docker を止めます", description: "本体の db" } : null) };
 const brokenDocker = { check: async () => Promise.reject(new Error("docker が答えない")) };

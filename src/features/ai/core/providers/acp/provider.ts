@@ -1,7 +1,6 @@
 import os from "node:os";
 import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
-import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable } from "@/foundation/core/system/exec";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import type { ProviderAuth } from "@/features/ai/core/providers/keys";
@@ -14,7 +13,6 @@ import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared
 
 
 export interface AcpProviderOpts {
-  self?: SelfInfo;
   /** エージェントの起動（テストは偽物。省けば PATH の CLI） */
   spawn?: StdioSpawn;
   /** エージェントに渡す環境変数の元（省けば process.env） */
@@ -67,7 +65,7 @@ export class AcpProvider implements AgentProvider {
 
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
     if (!this.spawn) return Promise.resolve({ status: "failed", sessionId: params.resumeSessionId, error: this.spec.installHint });
-    return runAcpTurn({ spawn: this.spawn, spec: this.spec, baseEnv: this.baseEnv, self: this.opts.self }, params, callbacks, signal);
+    return runAcpTurn({ spawn: this.spawn, spec: this.spec, baseEnv: this.baseEnv }, params, callbacks, signal);
   }
 
   /**

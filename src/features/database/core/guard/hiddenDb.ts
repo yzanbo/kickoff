@@ -1,6 +1,6 @@
 import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
-import type { DenyVerdict, GuardRule } from "@/features/guard/core/index";
+import type { DenyVerdict, GuardRule, GuardRuleSource } from "@/features/guard/core/index";
 import { claudeToolOf } from "@shared/ai/claudeTools";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */
@@ -79,3 +79,6 @@ export function hiddenDbRule(targets: HiddenDbTarget[]): GuardRule {
     check: (call) => evaluateHiddenDbAccess(targets, call.name, call.input),
   };
 }
+
+/** 実行の見せない接続から守りを出す口（createDatabase が guard に登録する） */
+export const hiddenDbRuleSource: GuardRuleSource = { name: "hiddenDb", rulesFor: (m) => (m.hiddenDb?.length ? [hiddenDbRule(m.hiddenDb)] : []) };

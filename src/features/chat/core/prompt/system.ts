@@ -4,41 +4,6 @@ import type { Project } from "@shared/projects/types";
 import type { LinkOpenTarget } from "@shared/settings/types";
 
 /**
- * チャットのエージェントの権限ポリシー（プロバイダー非依存。どのチャットも同じ）。
- * 各プロバイダーはこれを自分の権限設定（Claude なら allowedTools）に変換する。
- * ファイルの編集を自動で承認するかは、チャット欄の権限モードだけで決まる
- */
-export interface ChatPolicy {
-  /** 承認なしで実行してよいシェルコマンドの接頭辞 */
-  allowedCommands: string[];
-  /** Web 検索・取得を承認なしで許可するか */
-  web: boolean;
-}
-
-const GIT_READ = ["git status", "git diff", "git log", "git show", "git branch"];
-const CHECK_COMMANDS = [
-  "npm test",
-  "npm run test",
-  "npm run lint",
-  "npm run typecheck",
-  "npm run build",
-  "pnpm test",
-  "pnpm run test",
-  "pnpm run lint",
-  "pnpm run typecheck",
-  "pnpm run build",
-  "npx tsc",
-  "npx vitest run",
-  "pytest",
-  "python -m pytest",
-  "go test",
-  "cargo test",
-];
-
-/** すべてのチャットに共通のポリシー（Git の読み取りと、テスト・型チェック・ビルドは承認なし。Web も許可） */
-export const CHAT_POLICY: ChatPolicy = { allowedCommands: [...GIT_READ, ...CHECK_COMMANDS], web: true };
-
-/**
  * 利用者がプロジェクトフォルダのことを指して言う呼び名（「ホーム」「ルート」もこのプロジェクトのプロジェクトフォルダのことで、
  * macOS のホーム（~）・ディスクのいちばん上（/）ではない。ノート・ノートフォルダと同じく、ファイルの場所を言われたときの起点にしてもらう）
  */

@@ -23,6 +23,7 @@ import type { WorktreesEnv } from "@/features/worktrees/core/index";
 import type { RemoteImageServiceOptions } from "@/features/remoteImages/core/service";
 import type { DatabaseEnv } from "@/features/database/core/index";
 import type { WorkerChannel } from "@/features/database/core/client";
+import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 
 export interface CoreOptions {
   dataDir: string;
@@ -125,6 +126,8 @@ export interface CoreEnv {
     sandbox: boolean;
     /** Bash の通信の中継を起こすか（起こさなければプロバイダーの中継のまま） */
     relay: boolean;
+    /** エージェントを動かしている Kickoff 自身（守りの門の自分を守る守り。テストは渡さない） */
+    self?: SelfInfo;
   };
 }
 

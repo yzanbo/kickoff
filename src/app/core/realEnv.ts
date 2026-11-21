@@ -12,6 +12,8 @@ import { defaultNotesDir } from "@/features/notes/core/defaultDir";
 import type { CoreEnv, CoreOptions } from "./types";
 
 export function realEnv(opts: CoreOptions): CoreEnv {
+  // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を守りに渡す
+  const self = currentSelf(opts.dataDir, opts.port, opts.platform, opts.platformParts.selfGuard, opts.hostPid);
   return {
     platformParts: opts.platformParts,
     recoveredReason: opts.recoveredReason,
@@ -20,8 +22,7 @@ export function realEnv(opts: CoreOptions): CoreEnv {
     browser: opts.browser,
     mcpBaseUrl: `http://127.0.0.1:${opts.port}`,
     ai: {
-      // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
-      providers: (authFor) => createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.platformParts.selfGuard, opts.hostPid), authFor),
+      providers: (authFor) => createProviders(self, authFor),
     },
     // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
     chat: { sessionsElsewhere: siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot) },
@@ -40,6 +41,6 @@ export function realEnv(opts: CoreOptions): CoreEnv {
     worktrees: {},
     // DB ワーカー（Electron のアプリはメインが起動する。渡されなければソースの worker を node ＋ tsx で fork）
     database: { worker: opts.dbWorker ?? (() => forkWorker(devWorkerEntry())), cleanExports: true },
-    guard: { sandbox: true, relay: true },
+    guard: { sandbox: true, relay: true, self },
   };
 }

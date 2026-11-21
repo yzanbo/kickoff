@@ -1,7 +1,6 @@
 import path from "node:path";
-import { judgeCommand, judgeWritePath, type GuardContext } from "@/features/guard/core/guard/judgeTool";
 import { realPathLoose } from "@/foundation/core/system/paths";
-import { guardOutcome, modeOutcome, PLAN_MODE_DECLINED, type ApprovalContext } from "@/features/ai/core/providers/guardedApproval";
+import { PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
 import type { ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { hookDeny, patchPaths, type PreToolUseInput } from "./hooks";
 
@@ -14,10 +13,9 @@ import { hookDeny, patchPaths, type PreToolUseInput } from "./hooks";
  * コードモード（exec）の中の呼び出しにもフックは当たる）
  */
 
-export interface PreToolUseDeps extends ApprovalContext {
-  cb: Pick<ProviderCallbacks, "requestApproval" | "emit">;
+export interface PreToolUseDeps {
+  cb: Pick<ProviderCallbacks, "emit">;
   params: ProviderTurnParams;
-  guard: GuardContext;
   /** フックで利用者が許した書く先（実体のパス）。あとで同じファイルの変更の承認が来ても聞き直さない（approvals.ts） */
   approvedWrites: Set<string>;
 }
@@ -26,13 +24,13 @@ export interface PreToolUseDeps extends ApprovalContext {
 export const writeKey = (cwd: string, filePath: string) => realPathLoose(path.resolve(cwd, filePath));
 
 async function commandHook(deps: PreToolUseDeps, command: string, toolUseId: string | undefined): Promise<object | null> {
-  const input = { command };
-  const guarded = await guardOutcome(deps, await judgeCommand(deps.guard, command), "Bash", input, toolUseId);
+  const call = { name: "Bash", input: { command } };
+  const guarded = await deps.params.gate.guard(call, { toolUseId });
   if (guarded) return guarded.allow ? null : hookDeny(guarded.reason);
   const mode = deps.params.permissionMode;
   // 計画モードのコマンドは Codex の読むだけの砂場で流す（読むコマンドは使える）
   if (mode === "plan" || mode === "auto") return null;
-  const outcome = await modeOutcome(deps, "command", "Bash", input, toolUseId);
+  const outcome = await deps.params.gate.byMode("command", call, { toolUseId });
   return outcome.allow ? null : hookDeny(outcome.reason);
 }
 
@@ -41,9 +39,10 @@ async function patchHook(deps: PreToolUseDeps, patch: string, toolUseId: string 
   const paths = patchPaths(patch);
   // 変えるファイルが分からなければ通さない（守りを当てられないため）
   if (paths.length === 0) return hookDeny("変えるファイルが分からないため、Kickoff の守りを当てられませんでした");
+  // 聞いて許した書く先だけを覚えるので、1 つずつ当てる（guardWrites はまとめた答えしか返さない）
   let asked = false;
   for (const target of paths) {
-    const guarded = await guardOutcome(deps, await judgeWritePath(deps.guard, target), "Write", { file_path: target }, toolUseId);
+    const guarded = await deps.params.gate.guard({ name: "Write", input: { file_path: target } }, { toolUseId });
     if (guarded && !guarded.allow) return hookDeny(guarded.reason);
     if (guarded) {
       asked = true;
@@ -52,7 +51,7 @@ async function patchHook(deps: PreToolUseDeps, patch: string, toolUseId: string 
   }
   if (asked) return null;
   const input = { file_path: paths[0], ...(paths.length > 1 ? { files: paths } : {}) };
-  const outcome = await modeOutcome(deps, "edit", "Write", input, toolUseId);
+  const outcome = await deps.params.gate.byMode("edit", { name: "Write", input }, { toolUseId });
   if (!outcome.allow) return hookDeny(outcome.reason);
   for (const target of paths) deps.approvedWrites.add(writeKey(deps.params.cwd, target));
   return null;

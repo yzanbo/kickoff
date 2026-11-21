@@ -7,6 +7,8 @@ import type { PortProbe } from "./ports";
 import { DockerService } from "./service";
 import type { ChatApi } from "@/features/chat/core/index";
 import { dockerRoutes, type DockerRouteDeps } from "./routes/docker";
+import type { GuardApi } from "@/features/guard/core/index";
+import { dockerRuleSource } from "./guard/dockerGuard";
 
 export type { DockerService } from "./service";
 
@@ -20,7 +22,9 @@ export interface DockerEnv {
 }
 
 /** Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く） */
-export function createDocker(k: Kernel, deps: Pick<DockerRouteDeps, "dbConnectionsOf"> & { chat: Pick<ChatApi, "store"> }, env: DockerEnv): CoreFeature<DockerService> {
+export function createDocker(k: Kernel, deps: Pick<DockerRouteDeps, "dbConnectionsOf"> & { chat: Pick<ChatApi, "store">; guard: Pick<GuardApi, "addRuleSource"> }, env: DockerEnv): CoreFeature<DockerService> {
+  // ほかの作業場所・プロジェクトの Docker の守りを登録する
+  deps.guard.addRuleSource(dockerRuleSource);
   const docker = new DockerService(k.bus, { listeningSockets: k.platform.listeningSockets, dockerEngine: env.engine }, env.cli);
   if (env.portProbe) docker.ports.probe = env.portProbe;
   return { name: "docker", api: docker, routes: [{ legacy: (app) => dockerRoutes(app, { store: deps.chat.store, docker, bus: k.bus, dbConnectionsOf: deps.dbConnectionsOf }) }], stop: () => docker.close() };

@@ -1,12 +1,16 @@
 // ACP の共通のプロバイダー（Cursor・Gemini）を偽の ACP のエージェントで確かめる（本物の agent・agy・アカウントは使わない）
 import { test } from "vitest";
+import { withGate } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { GEMINI_NEEDS_API_KEY, geminiProvider } from "@/features/ai/core/providers/gemini/provider";
+
+/** 本物の守りの門を付けて動かす（門の承認カードも同じ cb で聞く） */
+const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => provider.run(withGate(p, cb.requestApproval, signal), cb, signal);
 
 const params = (extra: Partial<ProviderTurnParams> = {}) =>
   ({
@@ -111,7 +115,7 @@ test("実行: JSON-RPC 2.0 で初期化して新しいセッションを作り�
 
 test("初期化の答えで分ける: http の MCP を受けないなら AI の操作ツールを渡さず、システムプロンプトを受けないなら新しいセッションの最初の指示の頭に添える", async () => {
   const agent = fakeAcpAgent({});
-  await cursorProvider({ spawn: agent.spawn }).run(params({ turnContext: "子チャットです" }), recorder().cb, new AbortController().signal);
+  await guardedRun(cursorProvider({ spawn: agent.spawn }), params({ turnContext: "子チャットです" }), recorder().cb, new AbortController().signal);
   const created = await agent.waitFor("session/new");
   assert.deepEqual(created.mcpServers, []);
   assert.equal(created.systemPrompt, undefined);
@@ -121,7 +125,7 @@ test("初期化の答えで分ける: http の MCP を受けないなら AI の�
 
 test("続き: session/resume があればそれ、なければ session/load（流し直す会話は記録にしない）、どちらもなければ新しい会話とお知らせ", async () => {
   const resumeAgent = fakeAcpAgent({ sessionCapabilities: { resume: {} }, loadSession: true });
-  await cursorProvider({ spawn: resumeAgent.spawn }).run(params({ resumeSessionId: "old" }), recorder().cb, new AbortController().signal);
+  await guardedRun(cursorProvider({ spawn: resumeAgent.spawn }), params({ resumeSessionId: "old" }), recorder().cb, new AbortController().signal);
   assert.equal((await resumeAgent.waitFor("session/resume")).sessionId, "old");
   assert.ok(!resumeAgent.requests.some((r) => r.method === "session/load"));
   assert.equal((await resumeAgent.waitFor("session/prompt")).prompt.length, 1, "続きではシステムプロンプトを添えない");
@@ -133,13 +137,13 @@ test("続き: session/resume があればそれ、なければ session/load（�
     return { sessionId: p.sessionId };
   });
   const rec = recorder();
-  const result = await cursorProvider({ spawn: loadAgent.spawn }).run(params({ resumeSessionId: "old" }), rec.cb, new AbortController().signal);
+  const result = await guardedRun(cursorProvider({ spawn: loadAgent.spawn }), params({ resumeSessionId: "old" }), rec.cb, new AbortController().signal);
   assert.equal(result.sessionId, "old");
   assert.ok(!rec.events.some((e) => e.type === "text"), "流し直した会話は記録にしない");
 
   const none = fakeAcpAgent({});
   const rec2 = recorder();
-  const fresh = await cursorProvider({ spawn: none.spawn }).run(params({ resumeSessionId: "old" }), rec2.cb, new AbortController().signal);
+  const fresh = await guardedRun(cursorProvider({ spawn: none.spawn }), params({ resumeSessionId: "old" }), rec2.cb, new AbortController().signal);
   assert.equal(fresh.sessionId, "ses-1");
   assert.ok(rec2.events.some((e) => e.type === "notice" && e.message.includes("新しい会話")));
 });
@@ -154,7 +158,7 @@ test("権限の頼み: 消すコマンドは守りで断り、理由を次の指
     answers.push(await permission(s, { toolCallId: "r1", title: "Read a.ts", kind: "read", locations: [{ path: "/w/a.ts" }] }));
   });
   const rec = recorder((req) => (req.toolName === "Edit" ? { action: "allow_always" } : { action: "deny", message: "" }));
-  const result = await cursorProvider({ spawn: agent.spawn }).run(params({ deleteGuard: true }), rec.cb, new AbortController().signal);
+  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params({ deleteGuard: true }), rec.cb, new AbortController().signal);
   assert.equal(result.status, "completed");
   assert.deepEqual(
     answers.map((a) => a.outcome.optionId),
@@ -173,7 +177,7 @@ test("権限モード: Auto mode は通し、計画モードは plan のモー�
     autoAnswers.push(await permission(s, { toolCallId: "c1", title: "npm test", kind: "execute", rawInput: { command: "npm test" } }));
   });
   const autoRec = recorder(() => ({ action: "deny", message: "" }));
-  await cursorProvider({ spawn: auto.spawn }).run(params({ permissionMode: "auto" }), autoRec.cb, new AbortController().signal);
+  await guardedRun(cursorProvider({ spawn: auto.spawn }), params({ permissionMode: "auto" }), autoRec.cb, new AbortController().signal);
   assert.equal(autoAnswers[0].outcome.optionId, "allow-once");
   assert.equal(autoRec.approvals.length, 0);
   assert.equal((await auto.waitFor("session/set_mode")).modeId, "default", "Auto mode でもエージェントは毎回聞くモード");
@@ -184,7 +188,7 @@ test("権限モード: Auto mode は通し、計画モードは plan のモー�
     planAnswers.push(await permission(s, { toolCallId: "e1", title: "Edit", kind: "edit", locations: [{ path: "/w/a.ts" }] }));
     planAnswers.push(await permission(s, { toolCallId: "m1", title: "mcp__kickoff_chat__list_family_chats", kind: "other", rawInput: {} }));
   });
-  await cursorProvider({ spawn: plan.spawn }).run(params({ permissionMode: "plan" }), recorder().cb, new AbortController().signal);
+  await guardedRun(cursorProvider({ spawn: plan.spawn }), params({ permissionMode: "plan" }), recorder().cb, new AbortController().signal);
   assert.equal((await plan.waitFor("session/set_mode")).modeId, "plan");
   assert.deepEqual(planAnswers.map((a) => a.outcome.optionId), ["reject-once", "allow-once"]);
   assert.equal(plan.requests.filter((r) => r.method === "session/prompt").length, 1);
@@ -200,7 +204,7 @@ test("作業中に伝える: ACP に足す口はないので預かり、いま�
     } else update(s, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "了解" } });
     await tick();
   });
-  const result = await cursorProvider({ spawn: agent.spawn }).run(params(), rec.cb, new AbortController().signal);
+  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), rec.cb, new AbortController().signal);
   const prompts = agent.requests.filter((r) => r.method === "session/prompt");
   assert.deepEqual(prompts[1].params.prompt, [{ type: "text", text: "これも" }]);
   assert.equal(result.result, "了解");
@@ -219,7 +223,7 @@ test("止める: session/cancel を送り、cancelled で終わる。答えを�
   });
   const rec = recorder(() => new Promise<ApprovalDecision>(() => {}) as unknown as ApprovalDecision);
   rec.cb.requestApproval = (_req, signal) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(new Error("止めた"))));
-  const running = cursorProvider({ spawn: agent.spawn }).run(params(), rec.cb, ctrl.signal);
+  const running = guardedRun(cursorProvider({ spawn: agent.spawn }), params(), rec.cb, ctrl.signal);
   await until(() => agent.requests.some((r) => r.method === "session/prompt"));
   await tick();
   ctrl.abort();
@@ -235,7 +239,7 @@ test("起動の途中（initialize の答えを待つ間）に止めると、指
     ctrl.abort();
     return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
   });
-  const result = await cursorProvider({ spawn: agent.spawn }).run(params(), recorder().cb, ctrl.signal);
+  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), recorder().cb, ctrl.signal);
   assert.equal(result.status, "cancelled");
   assert.ok(!agent.requests.some((r) => r.method === "session/prompt"));
 });
@@ -246,7 +250,7 @@ test("落ちたら失敗にして理由を返す", async () => {
     s.crash(2);
     return new Promise(() => {});
   });
-  const result = await cursorProvider({ spawn: agent.spawn }).run(params(), recorder().cb, new AbortController().signal);
+  const result = await guardedRun(cursorProvider({ spawn: agent.spawn }), params(), recorder().cb, new AbortController().signal);
   assert.equal(result.status, "failed");
   assert.match(result.error ?? "", /終了コード 2/);
 });
@@ -258,7 +262,7 @@ test("Cursor の API キー: CURSOR_API_KEY で渡し（引数には載せない
     reply = await s.request("cursor/ask_question", { toolCallId: "q", title: "確認", questions: [{ id: "q1", prompt: "どちら？", options: [{ id: "a", label: "A 案" }, { id: "b", label: "B 案" }] }] });
   });
   const rec = recorder(() => ({ action: "answer", answers: { "どちら？": "B 案" } }) as ApprovalDecision);
-  await cursorProvider({ spawn: agent.spawn }).run(params({ auth: { mode: "api_key", apiKey: "crsr-1" } }), rec.cb, new AbortController().signal);
+  await guardedRun(cursorProvider({ spawn: agent.spawn }), params({ auth: { mode: "api_key", apiKey: "crsr-1" } }), rec.cb, new AbortController().signal);
   assert.equal(agent.spawned[0].env.CURSOR_API_KEY, "crsr-1");
   assert.ok(!agent.spawned[0].args.includes("crsr-1"));
   assert.equal(rec.approvals[0].kind, "question");
