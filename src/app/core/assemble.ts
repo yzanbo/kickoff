@@ -19,6 +19,7 @@ import { createProviderHandoffs, createProviderSwitch } from "@/features/provide
 import { createSubagents } from "@/features/subagents/core/index";
 import { createChildChats } from "@/features/childChats/core/index";
 import { createWorkplaceMove } from "@/features/workplaceMove/core/index";
+import { createQueue } from "@/features/queue/core/index";
 import { createFiles } from "@/features/files/core/index";
 import { createGit } from "@/features/git/core/index";
 import { createDocker, type DockerService } from "@/features/docker/core/index";
@@ -94,6 +95,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const remoteImages = createRemoteImages(k, { chat: chat.api, childChats: childChats.api }, env.remoteImages);
   const providerSwitch = createProviderSwitch(k, { chat: chat.api, uploads: attachments.api.uploads, providerHandoffs });
   const workplaceMove = createWorkplaceMove(k, { chat: chat.api, ai: ai.api, projects: projects.api });
+  const queue = createQueue({ chat: chat.api });
   const files = createFiles(k, { trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
@@ -107,7 +109,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
-  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
+  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, queue, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
   const terminals = terminal.api;
   return {
     features,

@@ -17,6 +17,6 @@ test("組み立てた機能を止める順: 通知 → エージェント（チ�
   k.exec.stopAllStreams = () => void order.push("streams");
   const recorded = features.map((f) => ({ ...f, stop: async () => (order.push(f.name), await f.stop?.()) }));
   await stopFeatures(k, recorded);
-  const rest = ["ports", "browser", "terminal", "database", "notes", "github", "worktrees", "docker", "git", "files", "workplaceMove", "providerSwitch", "remoteImages", "visuals", "childChats", "subagents", "compact", "guard"];
+  const rest = ["ports", "browser", "terminal", "database", "notes", "github", "worktrees", "docker", "git", "files", "queue", "workplaceMove", "providerSwitch", "remoteImages", "visuals", "childChats", "subagents", "compact", "guard"];
   assert.deepEqual(order, ["notifications", "chat", "streams", ...rest, "devices", "voice", "userView", "snippets", "attachments", "ai", "groups", "projects", "trash", "settings"]);
 });

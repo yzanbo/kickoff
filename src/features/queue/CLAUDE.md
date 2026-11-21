@@ -1,5 +1,7 @@
 # 送信待ち（`src/features/queue`）
 
+- コアは起動したときの再開の確かめのルート（`core/routes.ts`）だけ。送信待ちの中身と 1 件ごとの口は chat の殻（`src/features/chat/CLAUDE.md` の「送信待ち」）。
+
 ## 送信待ち（`ui/`）
 
 - 状態は `ChatLive.queue`（`QueueState`）。変える API の応答も同じ形で、受けたら丸ごと置き換える。

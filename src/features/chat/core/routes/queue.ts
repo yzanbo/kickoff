@@ -5,9 +5,8 @@ import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { attachmentsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
 import { queueCommandsSchema, queueEditingSchema, queueSendSchema } from "./sendSchemas";
-import { RESTART_RESUME_ACTIONS } from "@shared/chat/chatLive";
 import { QUEUE_ACTIONS } from "@shared/chat/types";
-import type { QueueAddResult, QueueMergeResult, RestartResumeBody } from "@shared/foundation/apiTypes";
+import type { QueueAddResult, QueueMergeResult } from "@shared/foundation/apiTypes";
 import { marksOf } from "@shared/chat/handoff";
 
 /**
@@ -19,20 +18,6 @@ export function queueRoutes(app: Hono, { store, runner, userSent }: Pick<ChatRou
   const { withChat } = lookups(store);
 
   // 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）
-  app.get("/api/restart-resumes", (c) => c.json(runner.restartResumes()));
-
-  // 起動したときの再開の確かめに答える（チャットごとに 送る / 中断した作業を続ける（送信待ちはそのあと）/ 止めておく。送信待ちのないチャットに送るは 400）。答えたあとの残りを返す
-  app.post("/api/restart-resumes", async (c) => {
-    const { decisions } = z
-      .object({ decisions: z.array(z.object({ chat_id: z.number().int().positive(), action: z.enum(RESTART_RESUME_ACTIONS) })).max(500) })
-      .parse(await jsonBody(c)) satisfies RestartResumeBody;
-    await runner.resolveRestartResumes(decisions.map((d) => ({ chatId: d.chat_id, action: d.action })));
-    return c.json(runner.restartResumes());
-  });
-
-    // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
-  // pause_after なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する））
-  // commands を書けば、送信待ちを変える命令の列（@shared/chat/send の QueueCommandsBody。全部通るか、1 つも変えない。答えはそのあとの送信待ち）
   app.post("/api/chats/:id/queue", withChat, async (c) => {
     const { chat } = c.var;
     const raw = await jsonBody(c);
