@@ -179,6 +179,8 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     await assertHookActive(rpc, threadId);
     cb.emit({ type: "init", session_id: threadId, model: opened.model, permission_mode: params.permissionMode, effort: codexEffort(params.effort) });
     signal.addEventListener("abort", onAbort, { once: true });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    if (signal.aborted) return { status: "cancelled", sessionId: threadId };
     if (compactOnly) {
       state.manualCompact = true;
       await rpc.request("thread/compact/start", { threadId });

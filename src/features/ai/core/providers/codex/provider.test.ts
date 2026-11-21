@@ -244,6 +244,18 @@ test("作業中に足す発言は turn/steer、止めると turn/interrupt で c
   assert.equal(rec.control(), null);
 });
 
+test("起動の途中（initialize の答えを待つ間）に止めると、ターンを始めずに中断で返す", async () => {
+  const server = fakeCodexServer();
+  const ac = new AbortController();
+  server.handle("initialize", () => {
+    ac.abort();
+    return { userAgent: "fake" };
+  });
+  const result = await new CodexProvider({ spawn: server.spawn }).run(params(), recorder().cb, ac.signal);
+  assert.equal(result.status, "cancelled");
+  assert.ok(!server.requests.some((r) => r.method === "turn/start"));
+});
+
 test("app-server が落ちたら失敗で返す", async () => {
   const server = fakeCodexServer();
   onTurn(server, (s) => s.crash(2));

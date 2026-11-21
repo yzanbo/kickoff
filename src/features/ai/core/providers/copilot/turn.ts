@@ -98,6 +98,8 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
     });
     cb.emit({ type: "init", session_id: sessionId, ...(config.model ? { model: config.model } : {}), permission_mode: params.permissionMode, effort: params.effort });
     signal.addEventListener("abort", onAbort, { once: true });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    if (signal.aborted) return { status: "cancelled", sessionId };
 
     if (compactOnly) {
       if (!state.compacting) {

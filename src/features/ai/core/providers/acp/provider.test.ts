@@ -228,6 +228,18 @@ test("止める: session/cancel を送り、cancelled で終わる。答えを�
   assert.deepEqual(answer, { outcome: { outcome: "cancelled" } });
 });
 
+test("起動の途中（initialize の答えを待つ間）に止めると、指示を送らずに中断で返す", async () => {
+  const agent = fakeAcpAgent({});
+  const ctrl = new AbortController();
+  agent.handle("initialize", () => {
+    ctrl.abort();
+    return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+  });
+  const result = await cursorProvider({ spawn: agent.spawn }).run(params(), recorder().cb, ctrl.signal);
+  assert.equal(result.status, "cancelled");
+  assert.ok(!agent.requests.some((r) => r.method === "session/prompt"));
+});
+
 test("落ちたら失敗にして理由を返す", async () => {
   const agent = fakeAcpAgent({});
   agent.handle("session/prompt", (_p, s) => {

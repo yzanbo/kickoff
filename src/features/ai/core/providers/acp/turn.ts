@@ -139,6 +139,8 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
     for (const choice of configChoices(session.configOptions ?? [], params)) await rpc.request("session/set_config_option", { sessionId: id, ...choice }).catch(() => {});
 
     signal.addEventListener("abort", onAbort, { once: true });
+    // 起動の途中（ここまで）で止められていたら、指示を送らずに中断で返す（止めたあとに足した abort の受け手は呼ばれない）
+    if (signal.aborted) return { status: "cancelled", sessionId: id };
     state.manualCompact = params.prompt.trim() === "/compact";
     cb.control?.({ tell: (text) => (tells.push(text), true), stopTask: async () => {} });
     let prompt: ContentBlock[] = promptBlocks(params, { withSystemPrompt: fresh && !caps?.sessionCapabilities?.systemPrompt });

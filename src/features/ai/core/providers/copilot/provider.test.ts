@@ -175,6 +175,24 @@ test("止める・作業中に足す: tell は immediate で送り、止めた�
   assert.ok(fake.sessions[0].aborted);
 });
 
+test("起動の途中（ランタイムの起動を待つ間）に止めると、送らずに中断で返す", async () => {
+  const fake = fakeCopilotClient();
+  const ac = new AbortController();
+  const factory: typeof fake.factory = (opts) => {
+    const client = fake.factory(opts);
+    return {
+      ...client,
+      start: async () => {
+        ac.abort();
+        await client.start();
+      },
+    };
+  };
+  const result = await new CopilotProvider({ clientFactory: factory }).run(params(), recorder().cb, ac.signal);
+  assert.equal(result.status, "cancelled");
+  assert.deepEqual(fake.sessions[0].sent, []);
+});
+
 test("失敗: 使用枠の上限は usageLimit、通信の切断は network にする", async () => {
   for (const [error, key] of [
     [{ errorType: "rate_limit", message: "user_weekly_rate_limited" }, "usageLimit"],
