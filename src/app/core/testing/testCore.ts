@@ -15,7 +15,6 @@ import { callTool, toolNames } from "@/foundation/core/testing/toolCalls";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { ToolServer } from "@/foundation/core/aiTools/tool";
 import type { Bus } from "@/foundation/core/bus";
-import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/providers/types";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
@@ -26,7 +25,7 @@ import { assembleCore } from "@/app/core/assemble";
 import { toolGateFactory } from "@/features/guard/core/gate";
 import { MIGRATIONS } from "@/app/core/migrations";
 import { ALL_SETTINGS } from "@/app/shared/settings";
-import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform } from "./testEnv";
+import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform, type TestEnvOptions, type TestFakes } from "./testEnv";
 import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
 
 export { tick, until } from "@/foundation/core/testing/until";
@@ -41,9 +40,9 @@ export const AUTH = { authorization: `Bearer ${TOKEN}` };
  */
 export type BeforeStart = (store: TestStores, project: Project) => unknown;
 
-/** メモリの DB の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
-function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string): { k: Kernel; store: TestStores; project: Project } {
-  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile: ":memory:", migrations: MIGRATIONS, settings: ALL_SETTINGS });
+/** メモリの DB（dbFile を渡せばそのファイル）の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
+function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string, dbFile = ":memory:"): { k: Kernel; store: TestStores; project: Project } {
+  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile, migrations: MIGRATIONS, settings: ALL_SETTINGS });
   // 組み立てる前（前回のデータを入れる・実行だけのテスト）の店。土台の設定・秘密の値は Kernel のもの
   const store = openTestStores(k.db, (e) => k.bus.publish(e), { databaseId: k.paths.databaseId, settings: k.settings, secrets: k.secrets });
   const repo = path.join(tempDir(), "repo");
@@ -51,13 +50,16 @@ function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string)
   return { k, store, project: store.projects.create({ name: "p", repo_path: repo, provider: "claude" }) };
 }
 
-/** 偽物で全部の機能を組み立てた API のアプリ（待ち受けない。見張りは ports だけ動かし、テストが終わったら機能を止める） */
-export function createTestCore(opts: { staticDir?: string; secretCipher?: SecretCipher; beforeStart?: BeforeStart; claudeSdk?: FakeClaudeSdk } = {}) {
+/**
+ * 偽物で全部の機能を組み立てた API のアプリ（待ち受けない。見張りは ports だけ動かし、テストが終わったら機能を止める）。
+ * 起動し直しを試すときは、同じ dbFile と fakes を渡してもう一度組み立てる（プロジェクトは組み立てるたびに 1 つ足す）
+ */
+export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeStart; dbFile?: string; fakes?: TestFakes } & Omit<TestEnvOptions, "secretCipher"> & { secretCipher?: SecretCipher } = {}) {
   const dataDir = tempDir();
-  const fakes = testFakes(dataDir);
-  const { k, store, project } = testKernel(dataDir, testPlatform(fakes), opts.staticDir);
+  const fakes = opts.fakes ?? testFakes(dataDir);
+  const { k, store, project } = testKernel(dataDir, testPlatform(fakes), opts.staticDir, opts.dbFile);
   opts.beforeStart?.(store, project);
-  const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk }));
+  const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk, provider: opts.provider, chat: opts.chat }));
   const browserLogin = new BrowserLogin();
   const { app, routes } = appOf(k, assembled, { token: TOKEN, browserLogin });
   const close = () => stopFeatures(k, assembled.features);

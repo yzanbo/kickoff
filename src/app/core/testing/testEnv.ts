@@ -120,11 +120,21 @@ export function testPlatform({ portsFake, dbFake }: TestFakes): HostPlatform {
   };
 }
 
+/** 組み立てに渡す値のうち、テストが差し替えるもの */
+export interface TestEnvOptions {
+  secretCipher?: SecretCipher | null;
+  /** claude だけ本物の ClaudeProvider にこの偽の SDK を差し込む（API のテストでも Claude の実行の中身を通す） */
+  claudeSdk?: FakeClaudeSdk;
+  /** どの AI としても呼ぶ偽のプロバイダー（省けば f.provider） */
+  provider?: AgentProvider;
+  /** チャットの実行の時間の値（つながったかの確かめ方・枠の時計・持ち時間。省いたものはテストの既定） */
+  chat?: Partial<Pick<CoreEnv["chat"], "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs">>;
+}
+
 /**
- * 偽物を本物と同じ組み立てに渡す（いまのテストの振る舞いを保つ値: kickoff-trash を置かない・砂場と中継なし・ほかの Kickoff を調べない・確かめ直しは短く）。
- * claudeSdk を渡すと、claude だけ本物の ClaudeProvider にその偽の SDK を差し込む（API のテストでも Claude の実行の中身を通す）
+ * 偽物を本物と同じ組み立てに渡す（いまのテストの振る舞いを保つ値: kickoff-trash を置かない・砂場と中継なし・ほかの Kickoff を調べない・確かめ直しは短く）
  */
-export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk }: { secretCipher?: SecretCipher | null; claudeSdk?: FakeClaudeSdk } = {}): CoreEnv {
+export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider = f.provider, chat }: TestEnvOptions = {}): CoreEnv {
   return {
     platformParts: {
       speech: {
@@ -142,7 +152,7 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk }: { secr
     // テストは app.request で /mcp/<名前> を呼ぶので、URL の頭は使わない
     mcpBaseUrl: "http://127.0.0.1",
     ai: {
-      providers: () => ({ ...sameProvider(f.provider), ...(claudeSdk ? { claude: new ClaudeProvider({ sdk: claudeSdk.sdk, executable: "claude" }) } : {}) }),
+      providers: () => ({ ...sameProvider(provider), ...(claudeSdk ? { claude: new ClaudeProvider({ sdk: claudeSdk.sdk, executable: "claude" }) } : {}) }),
       // 使用状況は、ネットワークに出ない偽物にする（Copilot・Gemini は出さない）
       usage: {
         claude: offlineClaude,
@@ -154,7 +164,7 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk }: { secr
       },
     },
     // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない・書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
-    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50, sessionsElsewhere: null },
+    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50, sessionsElsewhere: null, ...chat },
     trash: { now: () => f.trashClock.now, installCommand: false, projectOfPath: (origin, projects) => projects.find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null },
     notes: { defaultDir: f.noteFake.defaultDir },
     attachments: { dir: tempDir() },
