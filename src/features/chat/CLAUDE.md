@@ -23,11 +23,11 @@
 
 ## 送る・伝える
 
-- `start` はチャットを作ってすぐ動かし、`send` は作業中なら 409。名前は 1 行目で付けて AI にも付けてもらう（その間に変わっていれば置き換えない）。
+- `start` はチャットを作ってすぐ動かし、`send` は作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
 - `tell` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`。
-- 足せなければ預かり、作業の終わりに送信待ちより先に送る。以後の「いま」も口 `closed` で預かる。理由は `holdOf` 1 つ（`core/run/machine/state.ts`）。
+- 足せなければ預かり、作業の終わりに送信待ちより先に送る。以後の「いま」も口 `closed` で預かる。理由は `holdOf` 1 つ（`machine/state.ts`）。
 - 発言の印（`MessageMarks`）はどの道でも `@shared/chat/handoff` の `marksOf` で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
-- 自分で送ったら再開の段取りをやめる（`recovery.forget`）。質問として送る（`pause_after`）は `pauseAtHead` か `setStopAfter` の印にする。
+- 自分で送ったら再開の段取りをやめる。質問として送る（`pause_after`）は `pauseAtHead` か `setStopAfter` の印にする。
 
 ## 1 回の実行（`core/turn.ts`）
 
@@ -40,8 +40,8 @@
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後にも）。保存しない。
-- `cancel` の `stopping` は、プロセスがサブエージェントごと終わるまで立てる。
+- 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後も）。
+- `cancel` の `stopping` は、プロセスがサブエージェントごと終わるまで立てる。準備の間に止めたら、済んでも動かさない。
 
 ## 送信待ち（`core/run/queueWindow.ts`・`requests.ts`）
 

@@ -26,3 +26,17 @@ test("新しいチャットを作っている間（最初の発言の下ごし�
   await until(() => !runner.isBusy(chat.id));
   assert.deepEqual(provider.runs.map((r) => r.params.prompt), ["1"]);
 });
+
+test("新しいチャットを作っている間に止めると、動かし始めたらすぐ中断で終え、AI を動かさない（6 章 A8・S52）", async () => {
+  const { store, runner, provider, project } = setupCore(new ScenarioProvider());
+  const create = store.chats.create.bind(store.chats);
+  vi.spyOn(store.chats, "create").mockImplementation((input) => {
+    const made = create(input);
+    queueMicrotask(() => runner.cancel(made.id));
+    return made;
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => !runner.isBusy(chat.id));
+  assert.equal(provider.runs.length, 0);
+  assert.equal(store.chats.get(chat.id)?.status, "cancelled");
+});

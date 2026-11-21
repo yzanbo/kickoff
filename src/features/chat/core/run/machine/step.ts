@@ -42,17 +42,19 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
     case "clear":
       return clearOf(s, env, effects, e.pump);
     case "cancel":
-      // 作業中なら止める。親の会話を写している間（子チャット）は、写し終えたら動かさずに中断で終える（写すのは途中で止められない）
+      // 作業中なら止める。準備の間（親の会話を写す・作業場所を移す・AI を切り替える…）と作業の終わりにすることの間は途中で止められないので、
+      // 済んだら動かさない（送る準備なら動かし始めたらすぐ中断で終え、済んだあとの送信待ちの次・預かりは送らない）
       if (turn) {
         effects.push({ do: "abort_turn" });
         return patchTurn({ stopRequested: true });
       }
-      return p.kind === "preparing" && p.why === "inherit" ? { ...s, phase: { ...p, stopRequested: true } } : s;
+      return p.kind === "preparing" || p.kind === "settling" ? { ...s, phase: { ...p, stopRequested: true } } : s;
     case "begin":
       return p.kind === "idle" ? { ...s, phase: { kind: "preparing", why: e.why, stopRequested: false } } : s;
     case "prepared": {
       if (p.kind !== "preparing") return s;
       const idle: ChatRunState = { ...s, phase: { kind: "idle" } };
+      if (p.stopRequested) return idle;
       if (e.next === "send_next") return pumpLater(idle, env, effects);
       const head = idle.outbox.now[0];
       return e.next === "deliver" && head && !head.post_compact ? deliverNow(idle, effects) : idle;
@@ -92,7 +94,7 @@ function apply(s: ChatRunState, e: RunEvent, env: Env, effects: Effect[]): ChatR
       return ended.state;
     }
     case "settled":
-      return p.kind === "settling" ? afterTurn({ ...s, phase: { kind: "idle" } }, p.then, env, effects) : s;
+      return p.kind === "settling" ? afterTurn({ ...s, phase: { kind: "idle" } }, p.stopRequested ? { compact: null, send: false } : p.then, env, effects) : s;
     case "continuation": {
       const placed = placeContinuation(s.outbox, newMessage(env, e.text, {}, [], { workplace_continuation: true }), e.afterFinish);
       if (placed.stopped) effects.push({ do: "record", kind: "notice", message: "送信待ちを止めているので、AI が予約した続きの指示は送らずに送信待ちの先頭に入れました" });

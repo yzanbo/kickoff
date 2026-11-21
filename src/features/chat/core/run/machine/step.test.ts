@@ -135,3 +135,16 @@ test("止める・長い準備: 作業中は止める命令。親の会話を写
   assert.deepEqual(kinds(run({ ...initialRunState(), outbox: box }, [{ type: "begin", why: "move_workplace" }, { type: "prepared", next: "deliver" }]).effects), ["start:message:いま:held"]);
   assert.deepEqual(kinds(run({ ...initialRunState(), outbox: { ...box, now: [] } }, [{ type: "begin", why: "switch_provider" }, { type: "prepared", next: "send_next" }]).effects), ["start:message:次:queue"]);
 });
+
+test("準備の間・作業の終わりにすることの間に止めると、済んでも動かさない（送る準備は動かし始めたらすぐ中断。6 章 A8・S52）", () => {
+  const preparing = (why: "send" | "move_workplace"): ChatRunState => ({ ...initialRunState(), outbox: { ...EMPTY_OUTBOX, later: [row("次")], now: [row("いま")] }, phase: { kind: "preparing", why, stopRequested: false } });
+  const sending = run(preparing("send"), [{ type: "cancel" }, { type: "turn_started", turn: "message", compactBy: null }]);
+  assert.deepEqual(kinds(sending.effects), ["abort_turn"]);
+  assert.equal(sending.s.phase.kind === "turn" && sending.s.phase.stopRequested, true);
+  const moved = run(preparing("move_workplace"), [{ type: "cancel" }, { type: "prepared", next: "deliver" }]);
+  assert.deepEqual([kinds(moved.effects), moved.s.phase, texts(moved.s, "now"), texts(moved.s, "later")], [[], { kind: "idle" }, ["いま"], ["次"]]);
+  // 作業の終わりにすること（予約した移動）の間に止めた: 済んだら預かりは送信待ちの頭へ置き、何も送らない
+  const settling: ChatRunState = { ...preparing("send"), phase: { kind: "settling", then: { compact: null, send: true }, stopRequested: false } };
+  const settled = run(settling, [{ type: "cancel" }, { type: "settled" }]);
+  assert.deepEqual([kinds(settled.effects), settled.s.phase, texts(settled.s, "now"), texts(settled.s, "later")], [[], { kind: "idle" }, [], ["いま", "次"]]);
+});
