@@ -1,5 +1,8 @@
+// 使用状況の取り方の共有の小道具（HTTP・JWT・ログイン情報のファイル・結果の作り方。各 AI のフォルダの usage.ts が使う）
 import { existsSync, readFileSync } from "node:fs";
-import type { ServiceUsage, UsageServiceId, UsageWindow } from "@shared/ai/types";
+import type { UsageWindow } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
+import type { ProviderId } from "@shared/settings/types";
 
 /** 各サービスへの問い合わせの待ち時間 */
 const TIMEOUT_MS = 15_000;
@@ -73,21 +76,20 @@ export function usageWindow(key: string, label: string, utilization: number | nu
   return { key, label, utilization: utilization === null ? null : clampPercent(utilization), resets_at, ...(detail ? { detail } : {}) };
 }
 
-type Base = Pick<ServiceUsage, "id" | "label">;
+type Fields = Partial<Pick<ProviderUsage, "plan" | "account">>;
 
-/** 1 つのサービスの結果の作り方（id・表示名を持ち、ok / unavailable / error を同じ形で作る） */
-export interface UsageResults extends Base {
-  ok(fields: Partial<Omit<ServiceUsage, "id" | "label" | "status" | "fetched_at">>): ServiceUsage;
+/** 1 つの AI の結果の作り方（ok / unavailable / error を同じ形で作る） */
+export interface UsageResults {
+  ok(fields: Partial<Omit<ProviderUsage, "provider" | "status" | "fetched_at">>): ProviderUsage;
   /** 見られない（未ログイン・未契約など）。message に見る方法を書く */
-  unavailable(message: string, fields?: Partial<Pick<ServiceUsage, "plan" | "account">>): ServiceUsage;
+  unavailable(message: string, fields?: Fields): ProviderUsage;
   /** 取得に失敗した（message に理由） */
-  error(message: string, fields?: Partial<Pick<ServiceUsage, "plan" | "account">>): ServiceUsage;
+  error(message: string, fields?: Fields): ProviderUsage;
 }
 
-export function usageResult(base: Base): UsageResults {
-  const empty = () => ({ ...base, plan: null, account: null, windows: [], notes: [] });
+export function usageResult(provider: ProviderId): UsageResults {
+  const empty = () => ({ provider, plan: null, account: null, windows: [], notes: [], pay_as_you_go: null });
   return {
-    ...base,
     ok: (fields) => ({ ...empty(), status: "ok", ...fields, fetched_at: new Date().toISOString() }),
     unavailable: (message, fields = {}) => ({ ...empty(), status: "unavailable", ...fields, message, fetched_at: new Date().toISOString() }),
     error: (message, fields = {}) => ({ ...empty(), status: "error", ...fields, message, fetched_at: new Date().toISOString() }),
@@ -112,13 +114,3 @@ export async function fetchJsonOr<T, R>(url: string, init: RequestInit, parse: (
   }
   return parse(body);
 }
-
-/** サービスの使用状況を取る関数 */
-export interface UsageFetcher {
-  id: UsageServiceId;
-  label: string;
-  fetch: () => Promise<ServiceUsage>;
-}
-
-/** 1 サービス 1 ファイルの fetcher（id・表示名は結果の作り方と同じもの） */
-export const defineFetcher = ({ id, label }: Base, fetch: () => Promise<ServiceUsage>): UsageFetcher => ({ id, label, fetch });

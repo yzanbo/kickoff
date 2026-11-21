@@ -1,4 +1,5 @@
 import type { CodexCredits, ExtraUsage, PlanUsage } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /**
  * プランの上限を超えたあとの支払いの様子（Claude は追加の使用枠、Codex はクレジット）。
@@ -85,3 +86,9 @@ export function codexCreditSpendText(credits: CodexCredits): string | null {
 
 /** クレジットの差（小数の引き算の誤差を丸める） */
 const roundCredits = (n: number) => Math.round(n * 100) / 100;
+
+/** 実行中に払って動き始めたとき、どの作業から引かれたかが分かるようチャットに残すお知らせ（上限を超えたあとの支払いがある AI ごと） */
+export const SPENDING_NOTICES: Partial<Record<ProviderId, string>> = {
+  claude: "Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています",
+  codex: "Codex のプランの使用枠の上限を超えたため、ここからクレジットから引かれて動いています",
+};

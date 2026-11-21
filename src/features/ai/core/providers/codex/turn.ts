@@ -88,7 +88,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     // クレジットの残りを渡し、減ったら（上限を超えてクレジットから引かれ始めたら）コアが知らせる
     if (method === "account/rateLimits/updated") {
       const note = creditsNoteOf((raw as RateLimitsUpdatedNotification | null)?.rateLimits);
-      if (note) cb.credits?.(note);
+      if (note) cb.spending?.(note);
       return;
     }
     const p = raw as Record<string, unknown> & { threadId?: string };

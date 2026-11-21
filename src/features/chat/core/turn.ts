@@ -28,8 +28,8 @@ import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/cor
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
-import type { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
-import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
+import type { UsageMonitor } from "@/features/ai/core/index";
+import { SPENDING_NOTICES } from "@shared/ai/overage";
 import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -80,10 +80,8 @@ export interface ExecutionDeps {
   docker?: DockerService;
   /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
   worktreeEnvs?: WorktreeEnvService;
-  /** Claude のプランの使用枠（AI の get_usage が読む。なければ使えないと返す） */
+  /** 使用状況の見張り（AI の get_usage が読み、実行中の支払いの知らせを渡す。なければ get_usage は使えないと返し、知らせは見ない） */
   usage?: UsageMonitor;
-  /** Codex のクレジットの見張り（実行中の知らせで残りが減ったら、そのチャットにお知らせを残す。なければ見ない） */
-  codexCredits?: CodexCreditsWatch;
   /** ノート（AI の move_note が名前を変える・移す。なければそのツールは使えないと返す） */
   notes?: NoteService;
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
@@ -406,17 +404,12 @@ function readOnlyReferences(project: Project, cwd: string): string[] {
   return project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p));
 }
 
-/** 超過分で動き始めたときのお知らせ */
-const OVERAGE_NOTICE = "Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています";
-/** Codex のクレジットの残りが減り始めたときのお知らせ */
-const CODEX_CREDITS_NOTICE = "Codex のプランの使用枠の上限を超えたため、ここからクレジットから引かれて動いています";
-
 /**
  * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
  * 承認依頼は回答を待つ（待つ間は回答待ち）
  */
 function callbacksFor(
-  { store, approvals, bus, usage, codexCredits }: ExecutionDeps,
+  { store, approvals, bus, usage }: ExecutionDeps,
   runtime: ChatRuntime,
   chat: Chat,
   signal: AbortSignal,
@@ -440,13 +433,11 @@ function callbacksFor(
       runtime.control = compact ? null : control;
     },
     background: (background) => runtime.update({ background }),
-    // 超過分（追加の使用枠）で動き始めたら、どの作業から課金されたかが分かるようお知らせに残す（下の帯の札は使用枠の知らせで赤くなる）
-    overage: (inUse) => {
-      if (usage?.noteOverage(inUse)) store.events.add(chatId, { type: "notice", message: OVERAGE_NOTICE });
-    },
-    // Codex のクレジットの残りが減り始めたら、どの作業から引かれたかが分かるようお知らせに残す
-    credits: (note) => {
-      if (codexCredits?.note(note)) store.events.add(chatId, { type: "notice", message: CODEX_CREDITS_NOTICE });
+    // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す
+    // （下の帯の札は使用状況の知らせで赤くなる）
+    spending: (note) => {
+      const message = SPENDING_NOTICES[chat.provider];
+      if (usage?.noteSpending(chat.provider, note) && message) store.events.add(chatId, { type: "notice", message });
     },
     drawingVisual: (drawingVisual) => runtime.update({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）

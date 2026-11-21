@@ -190,9 +190,6 @@ export interface RateLimitSnapshot {
   planType: string | null;
   credits?: CreditsSnapshot | null;
 }
-export interface RateLimitsResponse {
-  rateLimits: RateLimitSnapshot;
-}
 /** 実行中の使用枠の知らせ（account/rateLimits/updated。分からない項目は null で、前の値を消さない） */
 export interface RateLimitsUpdatedNotification {
   rateLimits: RateLimitSnapshot;

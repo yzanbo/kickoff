@@ -1,10 +1,12 @@
+// Gemini CLI（Google ログイン）の使用状況の取り方
 import os from "node:os";
 import path from "node:path";
-import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
-import { defineFetcher, emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "./common";
+import type { UsageWindow } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
+import { emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
 import { geminiOAuthClient } from "./geminiClient";
 
-const result = usageResult({ id: "gemini", label: "Gemini" });
+const result = usageResult("gemini");
 const CODE_ASSIST = "https://cloudcode-pa.googleapis.com/v1internal";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -49,7 +51,7 @@ export const isConsumerShutdown = (load: LoadCodeAssistResponse) =>
   !load.currentTier && !load.paidTier?.name && (load.ineligibleTiers ?? []).some((t) => t.reasonCode === "UNSUPPORTED_CLIENT");
 
 /** モデルごとの残り（割合）を、段階ごとの使用率にする */
-export function parseGeminiQuota(quota: QuotaResponse, plan: string | null, account: string | null): ServiceUsage {
+export function parseGeminiQuota(quota: QuotaResponse, plan: string | null, account: string | null): ProviderUsage {
   const buckets = (quota.buckets ?? []).filter((b) => b.modelId && typeof b.remainingFraction === "number");
   const windows: UsageWindow[] = [];
   for (const [key, label, match] of TIERS) {
@@ -79,7 +81,7 @@ const postRequest = (method: string, token: string, body: unknown): [string, Req
 ];
 
 /** Gemini CLI（Google ログイン）のモデルごとの枠。~/.gemini/oauth_creds.json を読む */
-async function fetchGeminiUsage(): Promise<ServiceUsage> {
+export async function fetchGeminiUsage(): Promise<ProviderUsage> {
   const creds = readJsonFile<OAuthCreds>(path.join(os.homedir(), ".gemini", "oauth_creds.json"));
   if (!creds?.access_token && !creds?.refresh_token) {
     return result.unavailable("Gemini CLI に Google アカウントでログインしていません（ターミナルで `gemini`）");
@@ -95,11 +97,9 @@ async function fetchGeminiUsage(): Promise<ServiceUsage> {
     return result.unavailable("個人向けの Gemini CLI（Google ログイン）は 2026 年 6 月に終了しました（Workspace・Standard 以上の契約なら使えます）", { account });
   }
   // 403 は、この契約では枠を見られない
-  return fetchJsonOr<QuotaResponse, ServiceUsage>(
+  return fetchJsonOr<QuotaResponse, ProviderUsage>(
     ...postRequest("retrieveUserQuota", token, load.cloudaicompanionProject ? { project: load.cloudaicompanionProject } : {}),
     (quota) => parseGeminiQuota(quota, plan, account),
     { 403: () => result.unavailable("このアカウントの契約では、Gemini CLI の枠を見られません", { plan, account }) },
   );
 }
-
-export const geminiUsage = defineFetcher(result, fetchGeminiUsage);

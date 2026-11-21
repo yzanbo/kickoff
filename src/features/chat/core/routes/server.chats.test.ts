@@ -312,8 +312,8 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.equal((await call("GET", "/api/providers")).body.length, PROVIDER_IDS.length);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);
   assert.equal((await call("GET", "/api/providers/unknown/models")).status, 400);
-  assert.deepEqual((await call("GET", "/api/usage")).body, { available: false });
-  assert.deepEqual((await call("POST", "/api/usage/refresh")).body, { available: false });
+  assert.deepEqual([(await call("GET", "/api/usage")).body.available, (await call("GET", "/api/usage")).body.provider], [false, "claude"]); // テストの Claude の枠は取れない
+  assert.equal((await call("POST", "/api/usage/refresh")).body.available, false);
 });
 
 test("チャット欄の / のコマンド: プロジェクトの作業場所で調べる。プロジェクトがなければ 404", async () => {

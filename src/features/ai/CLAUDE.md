@@ -83,8 +83,8 @@
 
 ## 使用状況（`core/usage/`・`ui/usage/`）
 
-- Claude のプランの使用枠は `planUsage.ts` の `UsageMonitor`（メッセージを送らないので枠を使わない）。Codex のクレジットは `codexCredits.ts`。
-- サービスごと（`core/usage/services/`）は 1 ファイルずつ `defineFetcher` で作り、1 つが失敗・遅れても、ほかは出す。覚える時間は `USAGE_REFRESH_MS`。
+- 形は `@shared/ai/usage` の `ProviderUsage`、見張りは `monitor.ts` の `UsageMonitor` 1 つ（支払いは `spending.ts`）。前の形の API・SSE は `usageCompat.ts`。
+- 取り方は各 AI のフォルダの `usage.ts`。1 つが失敗・遅れても、ほかは出す。覚える時間は `USAGE_REFRESH_MS`。
 - 各サービスのログイン情報は読むだけで更新しない（更新するとその CLI のログインが切れる）。名乗りは `USER_AGENT`（ほかのアプリのふりをしない）。
 - 画面の使用枠の店は App が 1 つ持つ。残り時間を進める時計は `UsageMeter` に置く（App に置くと全体が描き直る）。帯に並べる AI は `usageGroups.ts`。
 - 超過分・クレジットの言葉は `@shared/ai/overage`（AI の get_usage と同じ）。

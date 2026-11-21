@@ -8,7 +8,7 @@
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 63215,
+      "bytes": 63300,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
@@ -69,8 +69,6 @@
     }
   },
   "comments": {
-    "src/features/ai/core/usage/codexCredits.ts": 1,
-    "src/features/ai/core/usage/planUsage.ts": 1,
     "src/features/browser/ui/BrowserPane.tsx": 1,
     "src/features/chat/core/routes/chats.ts": 1,
     "src/features/chat/ui/open/openChat.ts": 1,

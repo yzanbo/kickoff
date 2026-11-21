@@ -1,10 +1,10 @@
 import os from "node:os";
 import path from "node:path";
-import type { CodexCredits, ServiceUsage } from "@shared/ai/types";
-import { creditBalanceOf } from "@/features/ai/core/usage/codexCredits";
-import { defineFetcher, emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "./common";
+// Codex（ChatGPT のプラン）の使用状況の取り方
+import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
+import { emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
 
-const result = usageResult({ id: "codex", label: "Codex" });
+const result = usageResult("codex");
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 /** 期限が書かれていないとき、ログインを更新したとみなす日数（Codex と同じ 8 日） */
 const STALE_DAYS = 8;
@@ -27,6 +27,12 @@ export interface CodexUsageResponse {
   credits?: { has_credits?: boolean; unlimited?: boolean; balance?: number | string | null } | null;
 }
 
+/** クレジットの残り（使用状況の応答は数、app-server の知らせは数の文字）。読めなければ null */
+export function creditBalanceOf(value: unknown): number | null {
+  const n = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
 /** 枠の長さ（秒）から名前を付ける（5 時間・週・30 日。それ以外は時間か日） */
 function windowLabel(seconds: number | undefined, fallback: string): string {
   if (!seconds) return fallback;
@@ -37,7 +43,7 @@ function windowLabel(seconds: number | undefined, fallback: string): string {
 }
 
 /** Codex の使用状況の応答を Kickoff の形にする */
-export function parseCodexUsage(body: CodexUsageResponse, account: string | null, planHint: string | null): ServiceUsage {
+export function parseCodexUsage(body: CodexUsageResponse, account: string | null, planHint: string | null): ProviderUsage {
   const windows = [
     ["primary", body.rate_limit?.primary_window, "5時間"],
     ["secondary", body.rate_limit?.secondary_window, "週"],
@@ -47,8 +53,10 @@ export function parseCodexUsage(body: CodexUsageResponse, account: string | null
   const balance = creditBalanceOf(raw?.balance);
   if (raw?.unlimited) notes.push("クレジット: 無制限");
   else if (raw?.has_credits && balance !== null) notes.push(`クレジット残り ${balance}`);
-  // 減ったかは見張り（CodexCreditsWatch）が前の値と比べて決める
-  const credits: CodexCredits | null = raw ? { has_credits: raw.has_credits ?? false, unlimited: raw.unlimited ?? false, balance, spending: null } : null;
+  // 減ったか（spending）は見張り（usage/monitor.ts）が前の値と比べて決める
+  const credits: PayAsYouGo | null = raw
+    ? { enabled: raw.has_credits ?? false, unlimited: raw.unlimited ?? false, balance, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null }
+    : null;
   return result.ok({
     plan: body.plan_type ?? planHint,
     account,
@@ -56,12 +64,12 @@ export function parseCodexUsage(body: CodexUsageResponse, account: string | null
       raw ? [usageWindow(key, windowLabel(raw.limit_window_seconds, fallback), raw.used_percent ?? null, isoFromSeconds(raw.reset_at))] : [],
     ),
     notes,
-    credits,
+    pay_as_you_go: credits,
   });
 }
 
 /** Codex（ChatGPT のプラン）の 5 時間・週の枠。~/.codex/auth.json を読むだけで、ログインの更新は Codex に任せる */
-async function fetchCodexUsage(): Promise<ServiceUsage> {
+export async function fetchCodexUsage(): Promise<ProviderUsage> {
   const home = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
   const auth = readJsonFile<CodexAuth>(path.join(home, "auth.json"));
   const tokens = auth?.tokens;
@@ -88,9 +96,7 @@ async function fetchCodexUsage(): Promise<ServiceUsage> {
     ...(tokens.account_id ? { "ChatGPT-Account-Id": tokens.account_id } : {}),
   };
   // 401 はログインの期限切れ（Kickoff では更新しない）
-  return fetchJsonOr<CodexUsageResponse, ServiceUsage>(USAGE_URL, { headers }, (body) => parseCodexUsage(body, account, plan), {
+  return fetchJsonOr<CodexUsageResponse, ProviderUsage>(USAGE_URL, { headers }, (body) => parseCodexUsage(body, account, plan), {
     401: () => result.error(refreshHint, { plan, account }),
   });
 }
-
-export const codexUsage = defineFetcher(result, fetchCodexUsage);

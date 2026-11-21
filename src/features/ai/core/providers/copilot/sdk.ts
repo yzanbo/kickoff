@@ -23,15 +23,6 @@ export interface CopilotSessionLike {
   compact(): Promise<{ success: boolean; tokensRemoved: number }>;
 }
 
-/** 使用枠の 1 つ（account.getQuota の quotaSnapshots の値） */
-export interface CopilotQuotaSnapshot {
-  isUnlimitedEntitlement: boolean;
-  entitlementRequests: number;
-  usedRequests: number;
-  remainingPercentage: number;
-  resetDate?: string;
-}
-
 /** 使うクライアント（1 回の用事・1 回の実行ごとに 1 つのランタイムを起こして止める） */
 export interface CopilotClientLike {
   start(): Promise<void>;
@@ -40,8 +31,6 @@ export interface CopilotClientLike {
   resumeSession(sessionId: string, config: ResumeSessionConfig): Promise<CopilotSessionLike>;
   getAuthStatus(): Promise<GetAuthStatusResponse>;
   listModels(): Promise<ModelInfo[]>;
-  /** 使用枠（account.getQuota。実験的） */
-  getQuota(): Promise<Record<string, CopilotQuotaSnapshot | undefined>>;
   /** 会話を分ける（sessions.fork。toEventId の手前まで） */
   forkSession(sessionId: string, toEventId: string | undefined): Promise<string>;
 }
@@ -91,7 +80,6 @@ export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
     resumeSession: async (id, config) => wrapSession(await (await ready()).resumeSession(id, config)),
     getAuthStatus: async () => (await ready()).getAuthStatus(),
     listModels: async () => (await ready()).listModels(),
-    getQuota: async () => (await (await ready()).rpc.account.getQuota({})).quotaSnapshots,
     forkSession: async (sessionId, toEventId) => (await (await ready()).rpc.sessions.fork({ sessionId, ...(toEventId ? { toEventId } : {}) })).sessionId,
   };
 };

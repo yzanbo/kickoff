@@ -13,7 +13,7 @@ import type { ChatLive, RestartResume, RestartResumeAction } from "@shared/chat/
 import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
 import type { TellResult } from "@shared/foundation/apiTypes";
 import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume";
-import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
+import type { UsageMonitor } from "@/features/ai/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
 import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, restartResumePrompt } from "@shared/chat/prompts";
@@ -961,7 +961,7 @@ export class Runner extends RunnerQueue {
       // 圧縮したやり取りも終わったので、預かった「いま」を送れるようにする（このあとの deliverHeld で送る）
       // 作業が終わったので、足せなかった「いま」を預かるのも終わる（このあとの deliverHeld で送る）
       runtime.update({ stopping: false, compactAfterTurn: false, compactedTurn: false, tellsClosed: false, ...(compactNext ? {} : { awaitingCompact: false }) });
-      void this.deps.usage.refresh();
+      this.deps.usage.refreshPolled();
       const next = () => {
         if (compactNext) {
           this.compactNow(item.chatId, manual ? "manual" : "auto");

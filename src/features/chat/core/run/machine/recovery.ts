@@ -1,9 +1,8 @@
 import type { Store } from "@/features/chat/core/stores";
 import type { StoppedAgent, TurnOutcome } from "@/features/chat/core/turn";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
-import { exhaustedResetOf } from "@/features/ai/core/providers/shared/usageLimit";
 import { resumePrompt, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
-import type { PlanUsage } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { RecoveryState } from "./recoveryState";
 
 /** 止まった理由（承認と同じ回答待ちの種類 ApprovalKind・ツール名にも、この名前を使う） */
@@ -105,17 +104,11 @@ const MARGIN_MS = 60_000;
 
 /**
  * 使用枠の上限で止まったとき: 枠が戻る時刻になったら、続けるかを聞く（勝手には再開しない）。
- * 戻る時刻は Claude Code が知らせたもの、なければ使い切った枠の戻る時刻（usage）。分からなければ、お知らせだけ
+ * 戻る時刻は AI が知らせたもの、なければ使い切った枠の戻る時刻（使用状況の見張り）。分からなければ、お知らせだけ
  */
-export function usageLimitRule({ usage }: { usage?: { get(): Promise<PlanUsage> } }): RecoveryRule {
-  /** Claude Code が戻る時刻を知らせなかったとき: 使い切った枠の戻る時刻（分からなければ null） */
-  const resetFromUsage = async (): Promise<string | null> => {
-    try {
-      return usage ? exhaustedResetOf(await usage.get()) : null;
-    } catch {
-      return null;
-    }
-  };
+export function usageLimitRule({ usage }: { usage?: { limitResetAt(id: ProviderId): Promise<string | null> } }): RecoveryRule {
+  /** AI が戻る時刻を知らせなかったとき: 使い切った枠の戻る時刻（分からなければ null） */
+  const resetFromUsage = async (): Promise<string | null> => (usage ? usage.limitResetAt("claude") : null);
   /** 枠が戻る時刻が分かったら: その時刻を過ぎてから聞く（分からなければ、お知らせだけ） */
   const planFor = (state: RecoveryState, resetAt: string | null): RecoveryPlan => {
     const held = state.held ? "送信待ちは止めてあります。" : "";

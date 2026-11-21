@@ -2,7 +2,6 @@
 import os from "node:os";
 import path from "node:path";
 import { createProviders } from "@/features/ai/core/providers/index";
-import { UsageMonitor } from "@/features/ai/core/usage/planUsage";
 import { siblingSessionCheck } from "@/features/chat/core/sessions/siblingSessions";
 import { forkWorker } from "@/features/database/core/client";
 import { devWorkerEntry } from "@/features/database/core/entry";
@@ -23,7 +22,6 @@ export function realEnv(opts: CoreOptions): CoreEnv {
     ai: {
       // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
       providers: (authFor) => createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.platformParts.selfGuard, opts.hostPid), authFor),
-      usage: (claude, bus) => new UsageMonitor(claude, bus),
     },
     // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
     chat: { sessionsElsewhere: siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot) },

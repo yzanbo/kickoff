@@ -1,14 +1,14 @@
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
-import type { PlanUsage, ProviderCliStatus } from "@shared/ai/types";
+import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderLogin, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-import { askModelOf, toModelOptions, toPlanUsage } from "./catalog";
+import { askModelOf, toModelOptions } from "./catalog";
 import { appServerLaunch } from "./config";
 import { startChatgptLogin } from "./login";
-import type { AccountResponse, CodexModel, ModelListResponse, RateLimitsResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol";
+import type { AccountResponse, CodexModel, ModelListResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol";
 import { spawnStdio, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { withSession } from "./session";
 import { runCodexTurn } from "./turn";
@@ -104,10 +104,6 @@ export class CodexProvider implements AgentProvider {
 
   async models(): Promise<ModelOption[]> {
     return toModelOptions(await this.catalog().catch(() => []));
-  }
-
-  async usage(): Promise<PlanUsage> {
-    return toPlanUsage(await this.session((rpc) => rpc.request<RateLimitsResponse>("account/rateLimits/read", {})));
   }
 
   /**

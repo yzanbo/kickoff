@@ -62,11 +62,13 @@ test("Claude Code に渡す API キー: API キーのときだけ、子プロセ
   assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: "k" }), { ANTHROPIC_API_KEY: "k", CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1" });
 });
 
-test("できること: プロバイダーが持つ任意の機能から決める", () => {
+test("できること: プロバイダーが持つ任意の機能から決める（使用状況は AI ごとの表から）", () => {
   const base = { id: "codex", label: "x", implemented: true, status: async () => ({}), run: async () => ({ status: "completed", sessionId: null }) } as unknown as AgentProvider;
-  assert.deepEqual(providerFeatures(base), []);
-  const more = { ...base, usage: async () => ({}), models: async () => [], fork: async () => "s" } as unknown as AgentProvider;
+  assert.deepEqual(providerFeatures(base), ["usage"]);
+  const more = { ...base, models: async () => [], fork: async () => "s" } as unknown as AgentProvider;
   assert.deepEqual(providerFeatures(more), ["fork", "usage", "models"]);
+  assert.deepEqual(providerFeatures({ ...base, id: "copilot" } as AgentProvider), []);
+  assert.deepEqual(providerFeatures({ ...base, implemented: false } as AgentProvider), []);
 });
 
 test("新しいチャット: AI を選べ（省けばプロジェクトの AI）、子チャットの既定は親と同じ。違う AI の子チャットは会話を引き継がない", async () => {

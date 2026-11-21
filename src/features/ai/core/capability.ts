@@ -15,7 +15,8 @@ export function providerFeatures(provider: AgentProvider): ProviderFeature[] {
     fork: typeof provider.fork === "function",
     rewind_files: typeof provider.rewindFiles === "function",
     subagent_log: typeof provider.subagentLog === "function",
-    usage: typeof provider.usage === "function",
+    // 使用状況を取れる AI（プランの枠か、上限を超えたあとの支払いを見る AI。取り方は各 AI のフォルダの usage.ts）
+    usage: hasCapability(provider, "plan_usage") || hasCapability(provider, "pay_as_you_go"),
     commands: typeof provider.commands === "function",
     models: typeof provider.models === "function",
     // 要約は ask で聞く（ask.ts の askSummary）

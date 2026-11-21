@@ -7,7 +7,7 @@ import { Poller } from "./poller";
 import { canReachApi } from "./reachability";
 import { reconnectRule, usageLimitRule, type RecoveryPlan, type RecoveryReason, type RecoveryRule } from "@/features/chat/core/run/machine/recovery";
 import type { RecoveryWait } from "@/features/chat/core/run/machine/recoveryState";
-import type { PlanUsage } from "@shared/ai/types";
+import type { ProviderId } from "@shared/settings/types";
 
 /** つながったかを確かめる間隔 */
 const ONLINE_CHECK_MS = 15_000;
@@ -38,7 +38,7 @@ export class ChatRecovery {
       isBusy: (chatId: number) => boolean;
       send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が枠の戻る時刻を知らせなかったときに使う） */
-      usage?: { get(): Promise<PlanUsage> };
+      usage?: { limitResetAt(id: ProviderId): Promise<string | null> };
       /** つながったかの確かめ方と間隔（テストで差し替える） */
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
       /** 枠が戻ったかを確かめる時計と間隔（テストで差し替える） */

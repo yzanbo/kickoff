@@ -111,7 +111,7 @@ export async function runClaudeTurn(deps: ClaudeRunDeps, params: ProviderTurnPar
       const handleStart = syncStart();
       const notes = tracker.note(msg);
       if (notes.retry !== undefined) cb.retry?.(notes.retry);
-      if (notes.overage !== undefined) cb.overage?.(notes.overage);
+      if (notes.overage !== undefined) cb.spending?.({ in_use: notes.overage });
       commandOutput.handle(msg);
       emitSdkMessage(msg, cb, messageState);
       const background = trackBackground(msg);

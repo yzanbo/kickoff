@@ -1,16 +1,17 @@
 import os from "node:os";
-import { bundledClaudeVersion, planUsageOf, resolveClaudeExecutable, type Options, type Query, type SDKUserMessage } from "./wire";
+import { bundledClaudeVersion, resolveClaudeExecutable, type Query } from "./wire";
 import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk";
 import { claudeSessionStore, findSessionFile, removeSession, writeRecentSegments } from "./sessionFiles";
 import { errorMessage } from "@shared/foundation/errors";
 import { TERMINAL_ONLY_COMMANDS } from "./labels";
-import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
 import type { EffortDefault, ModelOption } from "@shared/chat/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { agentEnv } from "./env";
 import type { ClaudeAuthStatus } from "./internals";
 import { subagentLogOf } from "./subagentLog";
-import { normalizeUsage, readPlanDisplayName } from "./usage";
+import { readPlanDisplayName } from "./usage";
+import { withIdleSession } from "./idleSession";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/ai/commands";
@@ -61,17 +62,6 @@ export class ClaudeProvider implements AgentProvider {
     }
   }
 
-  /**
-   * /usage と同じプランの使用枠を取得する。メッセージを送らないセッションを一瞬開くだけなので、
-   * モデルへのリクエストは発生しない（使用枠を消費しない）。
-   * 注意: SDK 側で EXPERIMENTAL 扱いの API。形が変わったら normalizeUsage を直す。
-   */
-  async usage(): Promise<PlanUsage> {
-    return this.withIdleSession(async (q) =>
-      normalizeUsage(await planUsageOf(q), await readPlanDisplayName()),
-    );
-  }
-
   /** Claude Code が提示するモデルの一覧（"default" は実体のモデルと重複するので除く） */
   async models(): Promise<ModelOption[]> {
     return this.withIdleSession(async (q) => {
@@ -107,26 +97,9 @@ export class ClaudeProvider implements AgentProvider {
     );
   }
 
-  /**
-   * メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ。
-   * モデルへのリクエストは発生しないので、使用枠を消費しない。
-   */
-  private async withIdleSession<T>(fn: (q: Query) => Promise<T>, extra: Pick<Options, "cwd" | "settingSources" | "resume" | "enableFileCheckpointing"> = {}): Promise<T> {
-    let release!: () => void;
-    const idle = new Promise<void>((resolve) => (release = resolve));
-    async function* noMessages(): AsyncGenerator<SDKUserMessage> {
-      await idle;
-    }
-    const q = this.sdk.query({
-      prompt: noMessages(),
-      options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable, ...extra },
-    });
-    try {
-      return await fn(q);
-    } finally {
-      release();
-      q.close();
-    }
+  /** メッセージを送らないセッションで制御の API だけを呼ぶ（idleSession.ts。使用枠を消費しない） */
+  private withIdleSession<T>(fn: (q: Query) => Promise<T>, extra: Parameters<typeof withIdleSession>[2] = {}): Promise<T> {
+    return withIdleSession({ query: this.sdk.query, executable: this.executable }, fn, extra);
   }
 
   /** 1 回の実行（run.ts。SDK の口はテストで偽物に差し替えられる） */

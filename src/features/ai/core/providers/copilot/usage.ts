@@ -1,8 +1,9 @@
-import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
-import { nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
-import { defineFetcher, fetchJsonOr, isoFromDate, USER_AGENT, usageResult, usageWindow } from "./common";
+// GitHub Copilot の使用状況の取り方（gh のログインを使う。トークンは github の機能が ai の口 provideGhToken に登録する）
+import type { UsageWindow } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
+import { fetchJsonOr, isoFromDate, USER_AGENT, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
 
-const result = usageResult({ id: "copilot", label: "GitHub Copilot" });
+const result = usageResult("copilot");
 const USAGE_URL = "https://api.github.com/copilot_internal/user";
 
 interface QuotaSnapshot {
@@ -27,7 +28,7 @@ const QUOTA_LABELS = [
 ] as const;
 
 /** Copilot の応答を Kickoff の形にする（無制限の枠はメーターにせず、補足に書く） */
-export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
+export function parseCopilotUsage(body: CopilotUserResponse): ProviderUsage {
   const account = body.login ?? null;
   const plan = body.copilot_plan ?? null;
   if (body.access_type_sku === "subscription_ended") return result.unavailable("Copilot の契約が終わっています", { plan, account });
@@ -53,24 +54,13 @@ export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
   return result.ok({ plan, account, windows, notes });
 }
 
-/** gh のログイン（トークン）。gh がない・未ログインなら null */
-async function ghToken(): Promise<string | null> {
-  try {
-    return (await runCommand("gh", ["auth", "token"], { timeout: 10_000, env: nonInteractiveEnv() })).trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 /** GitHub Copilot の月の枠（プレミアムリクエストなど）。gh のログインを使う */
-async function fetchCopilotUsage(): Promise<ServiceUsage> {
-  const token = await ghToken();
+export async function fetchCopilotUsage(ghToken: () => Promise<string | null>): Promise<ProviderUsage> {
+  const token = await ghToken().catch(() => null);
   if (!token) return result.unavailable("GitHub CLI（gh）でログインすると表示できます（ターミナルで `gh auth login`）");
   // gh のログイン（Bearer）だけで答える。エディタの拡張機能のふりはしない
   const headers = { Authorization: `Bearer ${token}`, "User-Agent": USER_AGENT };
   // 401・404 は、このログインでは見られない（Copilot を契約していないアカウントなど）
   const notVisible = () => result.unavailable("gh のログインでは Copilot の使用状況を見られませんでした（Copilot を契約しているアカウントでログインしてください）");
-  return fetchJsonOr<CopilotUserResponse, ServiceUsage>(USAGE_URL, { headers }, parseCopilotUsage, { 401: notVisible, 404: notVisible });
+  return fetchJsonOr<CopilotUserResponse, ProviderUsage>(USAGE_URL, { headers }, parseCopilotUsage, { 401: notVisible, 404: notVisible });
 }
-
-export const copilotUsage = defineFetcher(result, fetchCopilotUsage);

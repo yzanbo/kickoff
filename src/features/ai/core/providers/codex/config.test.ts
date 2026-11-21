@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { appServerLaunch, codexEffort, codexSandboxPolicy, mcpServerOverrides, threadOverrides, turnInput, CODEX_MCP_TOOL_TIMEOUT_S } from "./config";
 import { changeAsTool, diffEdits } from "./items";
-import { askModelOf, creditsNoteOf, toModelOptions, toPlanUsage } from "./catalog";
+import { askModelOf, creditsNoteOf, toModelOptions } from "./catalog";
 import { turnResult } from "./turn";
 import type { CodexModel } from "./protocol";
 
@@ -121,18 +121,6 @@ test("モデル: 隠すものを除き、深さは Kickoff の段だけ。1 回�
   // mini がなければ、説明が速い・安いと言うモデル（gpt-6-luna の形）
   const noMini = [model({ model: "gpt-6.1-sol", isDefault: true, description: "Latest workhorse model." }), model({ model: "gpt-6-luna", description: "Fast and affordable model for easier tasks." })];
   assert.deepEqual(askModelOf(noMini, "light"), { model: "gpt-6-luna", effort: "low" });
-});
-
-test("使用枠: 短い枠を 5 時間、長い枠を週に", () => {
-  const usage = toPlanUsage(
-    { rateLimits: { primary: { usedPercent: 12, windowDurationMins: 300, resetsAt: 1_800_000_000 }, secondary: { usedPercent: 40, windowDurationMins: 10080, resetsAt: null }, planType: "plus" } },
-    new Date("2026-11-15T00:00:00Z"),
-  );
-  assert.equal(usage.available, true);
-  assert.equal(usage.plan, "plus");
-  assert.equal(usage.five_hour.utilization, 12);
-  assert.equal(usage.five_hour.resets_at, new Date(1_800_000_000_000).toISOString());
-  assert.equal(usage.seven_day.utilization, 40);
 });
 
 test("実行中の使用枠の知らせのクレジット: 書いていない項目は null。クレジットも枠もなければ何も知らせない", () => {

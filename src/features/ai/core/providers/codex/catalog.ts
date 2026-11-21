@@ -1,11 +1,11 @@
-import type { PlanUsage, UsageWindow } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
-import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel } from "@shared/settings/types";
-import { creditBalanceOf, limitReachedOf } from "@/features/ai/core/usage/codexCredits";
-import type { AskModel, CreditsNote } from "@/features/ai/core/providers/types";
-import type { CodexModel, RateLimitSnapshot, RateLimitWindow, RateLimitsResponse } from "./protocol";
+import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
+import { limitReachedOf, type SpendingNote } from "@shared/ai/usage";
+import type { AskModel } from "@/features/ai/core/providers/types";
+import type { CodexModel, RateLimitSnapshot, RateLimitWindow } from "./protocol";
+import { creditBalanceOf } from "./usage";
 
-/** Codex の答え（モデルの一覧・使用枠）を Kickoff の形にする（純粋関数） */
+/** Codex の答え（モデルの一覧・実行中の使用枠の知らせ）を Kickoff の形にする（純粋関数） */
 
 const isEffort = (value: string): value is EffortLevel => (EFFORT_LEVELS as readonly string[]).includes(value);
 
@@ -38,32 +38,11 @@ export function askModelOf(models: CodexModel[], tier: AskModel): { model: strin
   return { model: light?.model ?? null, effort: "low" };
 }
 
-const resetIso = (w: RateLimitWindow | null) => (w?.resetsAt ? new Date(w.resetsAt * 1000).toISOString() : null);
-const windowOf = (key: string, label: string, w: RateLimitWindow | null): UsageWindow => ({ key, label, utilization: w ? w.usedPercent : null, resets_at: resetIso(w) });
-
-/** 使用枠（account/rateLimits/read）。短い枠（5 時間）と長い枠（週）を、長さで見分ける */
-export function toPlanUsage(res: RateLimitsResponse, now = new Date()): PlanUsage {
-  const windows = [res.rateLimits.primary, res.rateLimits.secondary].filter((w): w is RateLimitWindow => w !== null);
-  const byLength = [...windows].sort((a, b) => (a.windowDurationMins ?? 0) - (b.windowDurationMins ?? 0));
-  const short = byLength.length > 1 ? byLength[0] : byLength[0] && (byLength[0].windowDurationMins ?? 0) <= 300 ? byLength[0] : null;
-  const long = byLength.find((w) => w !== short) ?? null;
-  return {
-    provider: "codex",
-    provider_label: PROVIDER_LABELS.codex,
-    available: windows.length > 0,
-    plan: res.rateLimits.planType,
-    five_hour: windowOf("five_hour", "5 時間", short),
-    seven_day: windowOf("seven_day", "週", long),
-    model_weekly: [],
-    fetched_at: now.toISOString(),
-  };
-}
-
 /**
  * 実行中の使用枠の知らせ（account/rateLimits/updated）から、クレジットの様子。知らせは一部だけのことがあり、
  * 書いていない項目は null（前の値のまま）。クレジットも枠も書いていなければ null（何も知らせない）
  */
-export function creditsNoteOf(snapshot: RateLimitSnapshot | null | undefined): CreditsNote | null {
+export function creditsNoteOf(snapshot: RateLimitSnapshot | null | undefined): SpendingNote | null {
   if (!snapshot) return null;
   const credits = snapshot.credits ?? null;
   const windows = [snapshot.primary, snapshot.secondary].filter((w): w is RateLimitWindow => w !== null && w !== undefined);

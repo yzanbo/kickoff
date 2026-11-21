@@ -12,7 +12,8 @@ import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { FakeProvider } from "@/features/ai/core/testing/fakeProvider";
 import { ClaudeProvider } from "@/features/ai/core/providers/claude/provider";
 import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
-import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
+import { UsageMonitor } from "@/features/ai/core/usage/monitor";
+import type { ProviderUsage } from "@shared/ai/usage";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import { DockerCli } from "@/features/docker/core/cli";
@@ -29,15 +30,12 @@ import type { AudioInput, LocalOptions, OpenAiOptions, OsSpeechStatus } from "@/
 import type { SpeechOptions } from "@/features/voice/core/speech";
 import type { CoreEnv } from "@/app/core/types";
 
-/** 使用枠は取れない（ネットワークに出ない）。超過分の知らせだけは本物と同じく覚え、動き始めたかを返す */
+/** Claude のプランの使用枠は取れない（ネットワークに出ない。API キーで使っているときと同じ unavailable） */
+const offlineClaude = async (): Promise<ProviderUsage> => ({ provider: "claude", status: "unavailable", plan: null, account: null, windows: [], notes: [], pay_as_you_go: null, fetched_at: new Date().toISOString() });
+
+/** 使用状況の見張り（Claude の枠は取れない。支払いの知らせは本物と同じく覚え、引かれ始めたかを返す） */
 export function offlineUsage(): UsageMonitor {
-  let inUse = false;
-  const noteOverage = (next: boolean) => {
-    const started = next && !inUse;
-    inUse = next;
-    return started;
-  };
-  return { get: async () => ({ available: false }), refresh: async () => ({ available: false }), noteOverage, start() {}, stop() {} } as unknown as UsageMonitor;
+  return new UsageMonitor(undefined, { claude: offlineClaude });
 }
 
 /** どのプロバイダーとして呼ばれても同じ偽物 */
@@ -145,19 +143,15 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk }: { secr
     mcpBaseUrl: "http://127.0.0.1",
     ai: {
       providers: () => ({ ...sameProvider(f.provider), ...(claudeSdk ? { claude: new ClaudeProvider({ sdk: claudeSdk.sdk, executable: "claude" }) } : {}) }),
-      usage: () => offlineUsage(),
-      // ほかのサービスは、ネットワークに出ない偽物にする
-      services: [
-        {
-          id: "codex",
-          label: "Codex",
-          fetch: async () => {
-            f.counts.codex++;
-            return { id: "codex", label: "Codex", status: "ok", plan: "plus", account: null, windows: [], notes: [], fetched_at: new Date().toISOString() };
-          },
+      // 使用状況は、ネットワークに出ない偽物にする（Copilot・Gemini は出さない）
+      usage: {
+        claude: offlineClaude,
+        codex: async () => {
+          f.counts.codex++;
+          return { provider: "codex", status: "ok", plan: "plus", account: null, windows: [], notes: [], pay_as_you_go: null, fetched_at: new Date().toISOString() };
         },
-        { id: "cursor", label: "Cursor", fetch: async () => Promise.reject(new Error("つながりません")) },
-      ],
+        cursor: async () => Promise.reject(new Error("つながりません")),
+      },
     },
     // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない・書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
     chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50, sessionsElsewhere: null },

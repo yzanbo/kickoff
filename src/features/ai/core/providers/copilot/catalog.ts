@@ -1,10 +1,9 @@
-import type { PlanUsage } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
-import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel } from "@shared/settings/types";
+import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import type { AskModel } from "@/features/ai/core/providers/types";
-import type { CopilotQuotaSnapshot, ModelInfo } from "./sdk";
+import type { ModelInfo } from "./sdk";
 
-/** Copilot の答え（モデルの一覧・使用枠）を Kickoff の形にする（純粋関数） */
+/** Copilot の答え（モデルの一覧）を Kickoff の形にする（純粋関数） */
 
 const isEffort = (value: string): value is EffortLevel => (EFFORT_LEVELS as readonly string[]).includes(value);
 const usable = (m: ModelInfo) => m.policy?.state !== "disabled";
@@ -31,23 +30,4 @@ export function askModelOf(models: ModelInfo[], tier: AskModel): string | null {
   const byRate = [...priced].sort((a, b) => a.rate - b.rate);
   if (tier === "light") return byRate[0].id;
   return [...byRate].reverse().find((m) => m.rate <= 1)?.id ?? byRate[0].id;
-}
-
-/**
- * 使用枠（account.getQuota）。Copilot の枠は月ごとのプレミアムリクエスト（premium_interactions）なので、長い枠の欄に「月（プレミアム）」で出し、
- * 5 時間の欄は分からない（null）にする。無制限なら使った割合は 0
- */
-export function toPlanUsage(snapshots: Record<string, CopilotQuotaSnapshot | undefined>, now = new Date()): PlanUsage {
-  const premium = snapshots.premium_interactions ?? null;
-  const used = premium ? (premium.isUnlimitedEntitlement ? 0 : Math.max(0, Math.min(100, 100 - premium.remainingPercentage))) : null;
-  return {
-    provider: "copilot",
-    provider_label: PROVIDER_LABELS.copilot,
-    available: premium !== null,
-    plan: null,
-    five_hour: { key: "five_hour", label: "5 時間", utilization: null, resets_at: null },
-    seven_day: { key: "monthly_premium", label: "月（プレミアム）", utilization: used, resets_at: premium?.resetDate ?? null },
-    model_weekly: [],
-    fetched_at: now.toISOString(),
-  };
 }

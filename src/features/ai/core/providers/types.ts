@@ -5,7 +5,8 @@ import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { ChatPolicy } from "@/features/chat/core/prompt/system";
-import type { FileRewindResult, PlanUsage, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { SpendingNote } from "@shared/ai/usage";
 import type { ApprovalDecision, ApprovalKind, RememberScope } from "@shared/chat/approvalTypes";
 import type { ChatEventData, CommandOutput, SubagentInfo } from "@shared/chat/chatEvent";
 import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
@@ -30,8 +31,6 @@ export interface AgentProvider {
   readonly implemented: boolean;
   /** CLI のインストール・ログイン状態 */
   status(): Promise<ProviderCliStatus>;
-  /** サブスクリプションの使用枠（対応していないプロバイダーは未実装でよい） */
-  usage?(): Promise<PlanUsage>;
   /** チャット欄で選べるモデルの一覧 */
   models?(): Promise<ModelOption[]>;
   /** チャット欄の / で出すコマンド（cwd のプロジェクトのコマンド・スキルも含む） */
@@ -187,15 +186,6 @@ export interface TurnControl {
   stopTask(taskId: string): Promise<void>;
 }
 
-/** AI が知らせたクレジットの様子（分からない項目は null = 前の値のまま） */
-export interface CreditsNote {
-  has_credits: boolean | null;
-  unlimited: boolean | null;
-  balance: number | null;
-  /** 上限に達した枠があるか（ないなら、クレジットから引かれてはいない） */
-  limit_reached: boolean | null;
-}
-
 export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
   /** 返答の文字を生成されたそばから渡す（画面のストリーミング表示用。保存しない） */
@@ -209,10 +199,8 @@ export interface ProviderCallbacks {
   retry?(info: ApiRetryInfo | null): void;
   /** 裏で動いている作業・メインの返答が終わったかが変わったとき（保存しない） */
   background?(state: BackgroundState): void;
-  /** いま超過分（プランの上限を超えたあとの追加の使用枠。使った分の支払い）で動いているかを AI が知らせた（Claude だけ。保存はコアが使用枠に） */
-  overage?(inUse: boolean): void;
-  /** クレジットの様子を AI が知らせた（Codex だけ。残りが減ったかはコアが前の値と比べる） */
-  credits?(note: CreditsNote): void;
+  /** 上限を超えたあとの支払いの様子を AI が知らせた（Claude は超過分で動いているか、Codex はクレジット。引かれ始めたかは使用状況の見張りが決める） */
+  spending?(note: SpendingNote): void;
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
   /** 図のツール（show_visual・update_visual）の中身を書いている途中か（書き始めた・書き終えた。保存しない） */

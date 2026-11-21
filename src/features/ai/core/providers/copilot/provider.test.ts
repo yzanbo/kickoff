@@ -266,17 +266,12 @@ test("手で圧縮: /compact は history.compact を呼び、要約の記録を�
   assert.equal(none.status, "failed");
 });
 
-test("状態・使用枠: ログインの様子と、月のプレミアムリクエストの使った割合", async () => {
+test("状態: ログインの様子", async () => {
   const fake = fakeCopilotClient();
-  fake.quota = { premium_interactions: { isUnlimitedEntitlement: false, entitlementRequests: 300, usedRequests: 75, remainingPercentage: 75, resetDate: "2026-12-01T00:00:00Z" } };
   const provider = new CopilotProvider({ clientFactory: fake.factory });
   const status = await provider.status();
   assert.equal(status.logged_in, true);
   assert.equal(status.account, "octo");
-  const usage = await provider.usage();
-  assert.equal(usage.seven_day.utilization, 25);
-  assert.equal(usage.seven_day.resets_at, "2026-12-01T00:00:00Z");
-  assert.equal(usage.five_hour.utilization, null);
 });
 
 test("開発用の環境変数で copilot を選んだときだけ本物の実装を使う", () => {

@@ -108,7 +108,7 @@ test("実行中の使用枠の知らせ（スレッドの ID がない）から�
   });
   const notes: unknown[] = [];
   const rec = recorder();
-  await new CodexProvider({ spawn: server.spawn }).run(params(), { ...rec.cb, credits: (note) => notes.push(note) }, new AbortController().signal);
+  await new CodexProvider({ spawn: server.spawn }).run(params(), { ...rec.cb, spending: (note) => notes.push(note) }, new AbortController().signal);
   assert.deepEqual(notes, [{ has_credits: true, unlimited: false, balance: 142, limit_reached: true }]);
 });
 

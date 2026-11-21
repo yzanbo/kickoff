@@ -7,14 +7,14 @@ import { testStore } from "@/app/core/testing/testStore";
 import { ChatRuntimes } from "@/features/chat/core/runtime";
 import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
-import type { PlanUsage } from "@shared/ai/types";
+import { exhaustedResetOf, type ProviderUsage } from "@shared/ai/usage";
 import type { TurnOutcome } from "@/features/chat/core/turn";
 import { tick, until } from "@/app/core/testing/testCore";
 
 const RESET = "2026-11-04T10:30:00.000Z";
 
 /** 送ったら作業中にし（Runner の send と同じ）、終わりは finish で知らせる */
-function setup({ usage }: { usage?: () => Promise<PlanUsage> } = {}) {
+function setup({ usage }: { usage?: () => Promise<ProviderUsage> } = {}) {
   const bus = new Bus();
   const store = testStore(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
@@ -34,7 +34,7 @@ function setup({ usage }: { usage?: () => Promise<PlanUsage> } = {}) {
       sent.push(text);
       store.chats.update(chatId, { status: "running" });
     },
-    usage: usage && { get: usage },
+    usage: usage && { limitResetAt: async () => exhaustedResetOf(await usage()) },
     reconnect: { check: async () => network.online, intervalMs: 5 },
     usageLimit: { now: () => clock.now, checkMs: 5 },
   });
@@ -97,13 +97,13 @@ test("続けて別の理由で止まったら、前の段取りは新しい段�
 });
 
 test("使用枠の上限: 枠の戻る時刻を調べている間に自分で送ったら、その段取りはやめる（あとから待ち始めない）", async () => {
-  let answer!: (usage: PlanUsage) => void;
+  let answer!: (usage: ProviderUsage) => void;
   const { approvals, runtime, chat, recovery, clock, finish, notices } = setup({ usage: () => new Promise((resolve) => (answer = resolve)) });
   finish(usageLimit(null));
   // 自分で送った（再開の段取りは忘れる）
   recovery.forget(chat.id);
   const window = { key: "five_hour", label: "5 時間", utilization: 100, resets_at: RESET };
-  answer({ provider: "claude", provider_label: "Claude", available: true, plan: "max", five_hour: window, seven_day: { ...window, utilization: 10 }, model_weekly: [], fetched_at: RESET });
+  answer({ provider: "claude", status: "ok", plan: "max", account: null, windows: [window, { ...window, key: "seven_day", utilization: 10 }], notes: [], pay_as_you_go: null, fetched_at: RESET });
   await tick();
   assert.deepEqual(notices(), []);
   assert.equal(runtime.recovery.waiting, null);

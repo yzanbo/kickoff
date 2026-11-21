@@ -6,7 +6,6 @@ import { ScriptedProvider, type Script } from "@/features/ai/core/testing/fakePr
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setupCore, until } from "@/app/core/testing/testCore";
-import { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import { judgeFileWrite } from "@/features/guard/core/guard/writeScope";
 import { UploadStore } from "@/features/attachments/core/uploads";
 import type { CompactingState } from "@shared/chat/chatLive";
@@ -326,9 +325,9 @@ test("超過分（追加の使用枠）で動き始めたら、その作業の�
   const { store, runner, project } = setup(async (params, cb) => {
     cb.emit({ type: "init", session_id: "s1" });
     if (params.prompt !== "枠の中") {
-      cb.overage?.(true);
-      cb.overage?.(true);
-    } else cb.overage?.(false);
+      cb.spending?.({ in_use: true });
+      cb.spending?.({ in_use: true });
+    } else cb.spending?.({ in_use: false });
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
   });
   const notices = (chatId: number) => store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
@@ -351,11 +350,11 @@ test("Codex のクレジットの残りが減り始めたら、その作業の�
   const balances = [150, 142, 130];
   const { store, runner, project } = setupCore(new ScriptedProvider(async (_params, cb) => {
     cb.emit({ type: "init", session_id: "s1" });
-    cb.credits?.({ has_credits: true, unlimited: false, balance: balances.shift() ?? null, limit_reached: true });
+    cb.spending?.({ has_credits: true, unlimited: false, balance: balances.shift() ?? null, limit_reached: true });
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
-  }), { codexCredits: new CodexCreditsWatch() });
+  }));
   const notices = (chatId: number) => store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
-  const chat = await runner.start({ projectId: project.id, prompt: "初め" });
+  const chat = await runner.start({ projectId: project.id, prompt: "初め", provider: "codex" });
   await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
   // 初めて見た残りでは比べる相手がないので残さない
   assert.deepEqual(notices(chat.id), []);

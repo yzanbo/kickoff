@@ -22,8 +22,8 @@ export interface AiChatReadTools {
 export interface AiChatReadDeps {
   store: Store;
   approvals: ApprovalCenter;
-  /** Claude のプランの使用枠（なければ get_usage は使えないと返す） */
-  usage?: { get(): Promise<PlanUsage> };
+  /** Claude のプランの使用枠（使用状況の見張りの前の形。なければ get_usage は使えないと返す） */
+  usage?: { planUsage(): Promise<PlanUsage> };
   uploads?: Pick<UploadStore, "resolve">;
 }
 
@@ -144,7 +144,7 @@ export function createAiChatReadTools({ store, approvals, usage, uploads }: AiCh
     },
     async usage() {
       if (!usage) throw new Error("使用枠を読む口がないため、使用枠の残りを返せません");
-      return usageText(await usage.get());
+      return usageText(await usage.planUsage());
     },
   };
   return tools;

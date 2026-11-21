@@ -1,11 +1,13 @@
+// Cursor の使用状況の取り方（Cursor.app のログインを読むだけ）
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { ServiceUsage, UsageWindow } from "@shared/ai/types";
-import { defineFetcher, dollars, fetchJsonOr, isExpired, isoFromDate, jwtClaims, jwtExpiry, usageResult, usageWindow } from "./common";
+import type { UsageWindow } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
+import { dollars, fetchJsonOr, isExpired, isoFromDate, jwtClaims, jwtExpiry, usageResult, usageWindow } from "@/features/ai/core/providers/shared/http";
 
-const result = usageResult({ id: "cursor", label: "Cursor" });
+const result = usageResult("cursor");
 const USAGE_URL = "https://cursor.com/api/usage-summary";
 const STATE_DB = path.join(os.homedir(), "Library", "Application Support", "Cursor", "User", "globalStorage", "state.vscdb");
 
@@ -28,7 +30,7 @@ export interface CursorUsageSummary {
 }
 
 /** Cursor の使用状況（今月の請求期間）の応答を Kickoff の形にする。金額はセント */
-export function parseCursorUsage(body: CursorUsageSummary, account: string | null): ServiceUsage {
+export function parseCursorUsage(body: CursorUsageSummary, account: string | null): ProviderUsage {
   const plan = body.individualUsage?.plan;
   const resetsAt = isoFromDate(body.billingCycleEnd);
   const windows: UsageWindow[] = [];
@@ -65,7 +67,7 @@ function readCursorAuth(): { token: string | null; email: string | null } | null
 }
 
 /** Cursor の今月の利用（合計・Auto・モデルを指定）。Cursor.app のログインを使う */
-async function fetchCursorUsage(): Promise<ServiceUsage> {
+export async function fetchCursorUsage(): Promise<ProviderUsage> {
   const auth = readCursorAuth();
   if (!auth?.token) return result.unavailable("Cursor にログインしていません（Cursor を開いてログインしてください）");
   const account = auth.email;
@@ -78,12 +80,10 @@ async function fetchCursorUsage(): Promise<ServiceUsage> {
   if (isExpired(jwtExpiry(auth.token))) return result.error("Cursor のログインの期限が切れています。Cursor を開くと更新されます", { account });
   // 401・403 はログインが使えない（開き直すと更新される）
   const loginFailed = () => result.error("Cursor のログインが使えませんでした。Cursor を開いてログインし直してください", { account });
-  return fetchJsonOr<CursorUsageSummary, ServiceUsage>(
+  return fetchJsonOr<CursorUsageSummary, ProviderUsage>(
     USAGE_URL,
     { headers: { Cookie: `WorkosCursorSessionToken=${userId}%3A%3A${auth.token}` } },
     (body) => parseCursorUsage(body, account),
     { 401: loginFailed, 403: loginFailed },
   );
 }
-
-export const cursorUsage = defineFetcher(result, fetchCursorUsage);

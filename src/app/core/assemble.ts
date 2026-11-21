@@ -85,7 +85,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
-  const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, env.github);
+  const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store }, { shell: env.platformParts.terminalShell(), ...env.terminal });

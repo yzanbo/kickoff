@@ -1,11 +1,11 @@
 import { createRequire } from "node:module";
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
-import type { PlanUsage, ProviderCliStatus } from "@shared/ai/types";
+import type { ProviderCliStatus } from "@shared/ai/types";
 import type { ModelOption } from "@shared/chat/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-import { askModelOf, toModelOptions, toPlanUsage } from "./catalog";
+import { askModelOf, toModelOptions } from "./catalog";
 import { runtimeEnv } from "./config";
 import { sdkClientFactory, type CopilotClientFactory, type CopilotClientLike } from "./sdk";
 import { runCopilotTurn } from "./turn";
@@ -34,7 +34,7 @@ function bundledRuntimeInstalled(): boolean {
 /**
  * GitHub Copilot を公式の Copilot SDK（@github/copilot-sdk。SDK に同梱の Copilot のランタイムを JSON-RPC で動かす）で動かすプロバイダー。
  * 会話 = セッション（Kickoff のセッション ID = Copilot のセッション ID）。
- * 分岐は sessions.fork、モデルは listModels、使用枠は account.getQuota（月のプレミアムリクエスト）。本物のアカウントで確かめるまで、画面では「対応予定」のまま
+ * 分岐は sessions.fork、モデルは listModels。本物のアカウントで確かめるまで、画面では「対応予定」のまま
  * （createProviders が開発用の環境変数のときだけこれを使う）
  */
 export class CopilotProvider implements AgentProvider {
@@ -81,10 +81,6 @@ export class CopilotProvider implements AgentProvider {
 
   async models(): Promise<ModelOption[]> {
     return toModelOptions(await this.withClient((c) => c.listModels()).catch(() => []));
-  }
-
-  async usage(): Promise<PlanUsage> {
-    return toPlanUsage(await this.withClient((c) => c.getQuota()));
   }
 
   /**

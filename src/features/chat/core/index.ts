@@ -114,7 +114,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     getChat: store.chats.get,
   });
   const { trash: trashBin, uploads, userViews } = deps;
-  const { providers, keys: providerKeys, usage, codexCredits } = deps.ai;
+  const { providers, keys: providerKeys, usage } = deps.ai;
   const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
   // 前回の終了で作業の途中で止まったチャット（落ちて作業中のまま残ったものを失敗にし、終えるときに印を付けたものと一緒に返す）は、起動したときの再開の確かめで聞く
@@ -134,7 +134,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   };
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => mcpBaseUrl);
-  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, trashCommand, sessionTrash, userViews, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）とプロジェクトを戻す・3 日たったら会話記録のファイル・添付と、上の機能が登録したものごと本当に消す
