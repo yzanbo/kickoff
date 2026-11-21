@@ -1,6 +1,6 @@
 // 殻の命令のうち、文を組み立ててから行うもの: 作業を動かす（start_turn）・いまの作業に「いま」を足す（tell）
 import { randomUUID } from "node:crypto";
-import { takePendingNote } from "@/features/chat/core/turn";
+import { takePendingNote } from "./turn/execute";
 import { followupPrompt, nameOnFirstMessage } from "@/features/chat/core/input";
 import type { Effect } from "@/features/chat/core/run/machine/types";
 import { recordEvent } from "@/features/chat/core/run/record";

@@ -8,7 +8,7 @@
 |---|---|
 | `core/run/machine/`・`core/run/` | 純粋な `step`（出来事 → 状態と命令）と、命令を実行する殻 `ChatRunner` |
 | `core/run/chatRun.ts`・`chatRuns.ts` | チャットごとの作業中の状態 `ChatRun`（出す箱だけ保存する） |
-| `core/turn.ts` | 1 回の実行 `executeTurn`・プロバイダーに渡すもの `buildTurnParams`・結果の反映 `applyResult` |
+| `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`core/turn.ts` は `ExecutionDeps`・上の機能の口 |
 | `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
@@ -29,12 +29,12 @@
 - 発言の印（`MessageMarks`）はどの道も `marksOf`（`@shared/chat/handoff`）で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
 - 自分で送ったら再開の段取りをやめる。質問として送る（`pause_after`）は `pauseAtHead` か `setStopAfter` の印にする。
 
-## 1 回の実行（`core/turn.ts`）
+## 1 回の実行（`core/run/turn/`）
 
 - 作業場所は `workdirOf`（null なら本体）。送るたびと作業の終わり（失敗でも）に、いまのブランチを `chats.branch` に覚える。
 - 動かし始める前に止められたら、プロバイダーを動かさずに中断で終える。
-- `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけで保存しない。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
-- 分岐の起点（`result` の `session_id` / `message_id`）は最後まで終わったときだけ残す。
+- `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけ。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
+- 分岐の起点（`result` の `session_id`・`message_id`）は最後まで終わったときだけ残す。
 - 終わりにすることは `machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
 - 砂場の診断（`@/features/guard/core/sandboxDiagnostics.ts`）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
 

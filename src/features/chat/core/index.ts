@@ -10,7 +10,7 @@ import { ApprovalCenter } from "./approvals";
 import { startAutoArchive } from "./autoArchive";
 import { chatTitlesOf } from "./db/chatTitles";
 import { chatDeltaStage } from "./deltaStage";
-import { endInterruptedTurns } from "./interruptedTurnEnd";
+import { endInterruptedTurns } from "./run/turn/result";
 import { createChatRunner, type ChatRunner, type RunnerDeps } from "./run/runner";
 import { registerChatTrash, type ChatPurgeDeps } from "./sessions/chatTrash";
 import { registerProjectTrash } from "./sessions/projectTrash";

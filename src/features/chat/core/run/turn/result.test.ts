@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { testStore } from "@/app/core/testing/testStore";
 import { collectSubagents } from "@shared/chat/subagents";
-import { endInterruptedTurns, stoppedSubagentsNotice } from "./interruptedTurnEnd";
+import { endInterruptedTurns, stoppedSubagentsNotice } from "./result";
 
 function setup() {
   const store = testStore(":memory:");

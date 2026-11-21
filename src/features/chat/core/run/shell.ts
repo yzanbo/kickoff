@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, type ExecutionDeps, type TurnRequest } from "@/features/chat/core/turn";
+import type { ExecutionDeps, TurnRequest } from "@/features/chat/core/turn";
+import { executeTurn } from "./turn/execute";
 import { ChatRuns } from "./chatRuns";
 import type { ChatRun, TurnHandle } from "./chatRun";
 import { liveOf } from "@/features/chat/core/live";

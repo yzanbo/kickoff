@@ -1,62 +1,46 @@
+// 1 回の実行に使うもの（ExecutionDeps）・実行の依頼（TurnRequest）と、実行（run/turn/）が使う上の機能の中身を 1 か所から渡す仮の口。
+// 実行のファイルは上の機能を直に読まず、ここだけを読む（上の機能を読む辺をこのファイルに閉じ込める。P5-4 の TurnContributor で登録の形にしたら消す）
 import type { BrowserControl } from "@shared/browser/control";
-import { knownModel } from "@/features/ai/core/providers/modelCatalog";
-import { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
-import { shellPathSettled } from "@/foundation/core/system/exec";
-import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
-import { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
-import path from "node:path";
 import type { ApprovalCenter } from "./approvals";
-import { chosenPreviews } from "@shared/chat/questionPreviews";
-import { isUnreadEvent } from "@shared/chat/state";
 import type { Bus } from "@/foundation/core/bus";
-import { errorMessage } from "@shared/foundation/errors";
-import { currentBranch } from "@/foundation/core/workplace/reads";
-import { realPathOrSelf } from "@/foundation/core/system/paths";
-import { workplacesOf } from "@/foundation/core/workplace/worktrees";
-import { buildSystemPrompt } from "@/features/chat/core/prompt/system";
-import { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
-import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
+import type { Clock } from "@/foundation/core/clock";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { DatabaseService } from "@/features/database/core/service";
-import { permissionOnlyGate, type GuardMaterials, type SandboxPlan, type ToolGateFactory, type UsageMonitor } from "@/features/ai/core/index";
-import { SPENDING_NOTICES } from "@shared/ai/overage";
+import type { ToolGateFactory, UsageMonitor } from "@/features/ai/core/index";
 import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-import { trashCommandEnv, type TrashCommand } from "@/features/trash/core/command";
-import { bashSandboxFor, sandboxPromptLines, type BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
-import { switchAfterCompact, type SessionTrash } from "./sessionSwitch";
-import { stoppedSubagentsNotice } from "./interruptedTurnEnd";
+import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { TrashCommand } from "@/features/trash/core/command";
+import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
+import type { SessionTrash } from "./sessionSwitch";
 import type { Store } from "@/features/chat/core/stores";
-import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { Question } from "@shared/chat/approvalTypes";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { PROVIDER_AUTH_MODE_LABELS, type ProviderId } from "@shared/settings/types";
+import type { ProviderId } from "@shared/settings/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
-import type { ChatRun } from "@/features/chat/core/run/chatRun";
-import { ensureDir, readOnlyReferences, referenceDirectories, resolveWorkdir } from "./turnFolders";
-import { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
-import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
-import { CHAT_TOOLS_HEAD, chatToolGroups } from "@/features/chat/core/tools/chatTools";
-import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
-import { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
-import { providerCan } from "@shared/ai/providers";
-import { recordEvent } from "@/features/chat/core/run/record";
-import { preCompactSent } from "@/features/chat/core/run/machine/marks";
-import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 
-/** 実行に使うもの（Runner から受け取る） */
+export { knownModel } from "@/features/ai/core/providers/modelCatalog";
+export { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
+export { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
+export { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
+export { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
+export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
+export { trashCommandEnv } from "@/features/trash/core/command";
+export { bashSandboxFor, sandboxPromptLines } from "@/features/guard/core/sandbox/bashSandbox";
+export { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
+export { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
+
+/** 実行に使うもの（殻から受け取る） */
 export interface ExecutionDeps {
   /** 時計（作業を始めた時刻・圧縮を始めた時刻。省けば本物） */
   clock?: Pick<Clock, "iso">;
@@ -127,384 +111,4 @@ export interface TurnRequest {
   compactTrigger?: CompactTrigger;
   /** 再試行時に資料と同時に取った送信中の印。ほかの操作へ渡さない。 */
   claimedHandoffEventId?: number;
-}
-
-/**
- * 1 回の実行を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）は
- * チャットの run に書く（画面には殻が配る）。失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
- */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRun, { chatId, prompt, promptId, compact = false, compactTrigger, claimedHandoffEventId }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
-  const { store, providers } = deps;
-  const handoff = store.chatProviderHandoffs.get(chatId);
-  let handoffClaimed = false;
-  // 作業した場所と、始めたときのブランチ（調べ終える前に失敗した・Git でない・ブランチから外れていれば null）
-  let turnDir: string | null = null;
-  /**
-   * 作業の途中で AI がブランチを替えていたら、最後に作業したブランチを覚え直す（結果を書く前に。外れていれば・読めなければ前のまま）。
-   * 始めにブランチから外れていても、作業中にブランチを取り出すことがあるので読み直す。
-   */
-  const rememberEndBranch = async () => {
-    const branch = turnDir ? await currentBranch(turnDir) : null;
-    const chat = store.chats.get(chatId);
-    if (branch && chat && branch !== chat.branch) store.chats.update(chatId, { branch });
-  };
-  try {
-    // エージェントの CLI は、ログインシェルの PATH を読み直し終えてから起こす（コアのプロセスの起動の直後だけ待つ。system/exec.ts）
-    await shellPathSettled();
-    const chat = store.chats.get(chatId)!;
-    const project = store.projects.get(chat.project_id)!;
-    const cwd = await resolveWorkdir(chat, project);
-    turnDir = cwd;
-    // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
-    // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
-    const branch = await currentBranch(cwd);
-    store.chats.update(chatId, { turn_started_at: (deps.clock ?? systemClock).iso(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
-    // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
-    const since = store.events.latestId(chatId) ?? 0;
-    // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）
-    const preCompactText = compact ? null : preCompactPromptOf(store, project);
-    // 圧縮したら（手で・自動のどちらも）、預かった指示より先に送る圧縮後指示
-    const postCompactText = postCompactPromptOf(store, project);
-    // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
-    // 作業場所がポートの帯を持つワークツリーなら、開発サーバーの番号（PORT=帯+00）も渡す
-    // rm の代わりに Kickoff のゴミ箱へ入れる kickoff-trash を PATH に足す（どこで消しても、どのチャットが消したか分かるようにチャットの ID も）
-    const env = {
-      ...(deps.worktreeEnvs?.envFor(cwd) ?? {}),
-      ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}),
-      ...(deps.trashCommand ? trashCommandEnv(deps.trashCommand, chat.id) : {}),
-    };
-
-    // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
-    const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
-    // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
-    const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
-    if (!useSandbox && !providerCan(chat.provider, "sandbox_off")) throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
-    const sandbox = useSandbox && deps.bashSandbox
-      ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, noteDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
-      : null;
-
-    // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える（中断済みの signal には abort の知らせが来ない）
-    const result: ProviderTurnResult = signal.aborted ? { status: "cancelled", sessionId: chat.session_id } : await runProvider();
-    async function runProvider(): Promise<ProviderTurnResult> {
-      // ログインの仕方（API キーにしたのに置いていない・開けなければ、動かさずに分かる文で止める）
-      const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
-      if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
-      // その AI のモデルの一覧にない名前（ほかの AI のモデルなど）は外し、その AI の既定で動かす。チャットにも直して残す
-      const model = await knownModel(chat.provider, providers[chat.provider], chat.model);
-      if (model !== chat.model) store.chats.update(chatId, { model });
-      const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
-      const base = {
-        ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, prompt, promptId, compact ? null : takePendingNote(runtime)),
-        model,
-        compact: compact || prompt.trim() === "/compact", // 手で頼んだ圧縮（送信待ちの圧縮の行・チャット欄に書いた /compact）
-        preCompact: autoPreCompactParams(preCompactText, chat, preCompactSent(runtime.marks)),
-        env,
-        auth,
-      };
-      // 守りの門（この単位では chat が実行の材料から作る。守りの口がなければ権限モードだけで答える）
-      const materials = guardMaterialsOf(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed);
-      const params: ProviderTurnParams = { ...base, gate: deps.toolGate?.(materials, callbacks, signal) ?? permissionOnlyGate({ permissionMode: base.permissionMode, cb: callbacks, signal }) };
-      const initialContext = params.turnContext ?? null;
-      if (handoff) {
-        if (compact || (handoff.state !== "ready" && !(handoff.state === "sending" && handoff.eventId === claimedHandoffEventId)) || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
-        params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
-      }
-      const diagnostics = deps.sandboxDiagnostics && providerCan(chat.provider, "sandbox_diagnostics") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
-      params.onAgentSpawned = diagnostics?.onSpawn;
-      const closeDiagnostics = () => diagnostics?.close();
-      signal.addEventListener("abort", closeDiagnostics, { once: true });
-      if (signal.aborted) closeDiagnostics();
-      // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
-      let tools: ReturnType<McpToolHost["open"]> | null = null;
-      try {
-        // chat の組と、上の機能が出した組（通知・DB・ブラウザ）を、レジストリが order の順に並べて作業ごとに開く
-        const registry = new AiToolRegistry([...chatToolGroups(deps, diagnostics), ...(deps.aiTools ?? [])]);
-        tools = deps.toolHost?.open(registry.serversFor(aiTurnOf(chat, cwd, callbacks.requestApproval, signal), { kickoff_chat: CHAT_TOOLS_HEAD })) ?? null;
-        if (handoff) {
-          if (claimedHandoffEventId === handoff.eventId) {
-            const current = store.chatProviderHandoffs.get(chatId);
-            if (!current || current.eventId !== handoff.eventId || current.provider !== chat.provider || current.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
-          } else if (!store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
-          handoffClaimed = true;
-        }
-        const first = await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
-        if (!handoff || !first.resumeSessionMissing || first.status !== "failed" || !chat.session_id || first.sessionId !== chat.session_id || signal.aborted) return first;
-        // 「再開要求の段階で履歴がない」と確定した場合は、まだ利用者の指示は送られていない。
-        if (!store.providerSwitch.markSessionMissing(chatId, handoff.eventId, chat.provider, chat.session_id)) throw new Error("AI のセッション状態が変わったため再開を中止しました");
-        handoffClaimed = false;
-        recordEvent(store, runtime, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
-        if (!deps.uploads) throw new Error("添付の保存先がないため、会話の引き継ぎを準備できません");
-        // 再準備と送信中の印を同時に保存する。終了が割り込んでも、元の指示を飛ばして次へ進まない。
-        const retry = await retryProviderHandoffPreparation({ store, uploads: deps.uploads, requireIdle: () => {} }, chatId, true);
-        handoffClaimed = true;
-        if (retry.warning) recordEvent(store, runtime, { type: "notice", message: retry.warning });
-        if (signal.aborted) throw new Error("新しいセッションの準備中に中断しました");
-        const prepared = store.chatProviderHandoffs.get(chatId);
-        if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
-        return await providers[chat.provider].run({ ...params, resumeSessionId: null, turnContext: joinContexts(initialContext, prepared.context), tools: tools?.endpoints ?? [] }, callbacks, signal);
-      } finally {
-        signal.removeEventListener("abort", closeDiagnostics);
-        diagnostics?.close();
-        tools?.close();
-      }
-    }
-    const network = result.status === "failed" && Boolean(result.network);
-    await rememberEndBranch();
-    applyResult(store, runtime, result, compact, since, network);
-    if (handoff) {
-      if (handoffClaimed && result.status === "completed" && result.sessionId) {
-        const last = store.events.recent(chatId, 1)[0];
-        if (!last || last.type !== "result" || !store.providerSwitch.complete(chatId, handoff.eventId, handoff.provider, result.sessionId)) {
-          store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, "AI の引き継ぎ完了を確認できませんでした");
-        }
-      } else if (handoffClaimed) {
-        store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, result.error ?? "AI が指示を受け取ったか確認できません");
-      } else {
-        const reason = result.error ?? "AI に引き継ぐ前に作業が止まりました";
-        if (claimedHandoffEventId === handoff.eventId) store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, reason);
-        else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, reason);
-      }
-    }
-    // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
-    if (result.status === "completed") {
-      await switchAfterCompact({ store, provider: providers[chat.provider], trash: deps.sessionTrash }, chatId, cwd, since).catch((e: unknown) =>
-        console.warn(`[session] 会話記録を乗り換えられませんでした: ${errorMessage(e)}`),
-      );
-    }
-    const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
-    if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };
-    const stoppedAgents = networkStoppedSubagents(store.events.forSubagents(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
-    return { status: result.status, network, stoppedAgents };
-  } catch (e) {
-    const message = errorMessage(e);
-    if (handoff) {
-      if (handoffClaimed) store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, message);
-      else if (claimedHandoffEventId === handoff.eventId) store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, message);
-      else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, message);
-    }
-    await rememberEndBranch();
-    store.chats.update(chatId, { error: message, unread: true }); // 失敗も、見るまでは未読にする（状態 failed は作業していないに戻ったときに殻が書く）
-    recordEvent(store, runtime, { type: "error", message });
-    return { status: "failed", network: false };
-  }
-}
-
-/**
- * この実行の中の圧縮のきっかけ: 手で圧縮した（圧縮のボタン = compact、チャット欄から /compact を送った）なら manual、ほかの指示の途中で起きた圧縮は、コンテキストが上限に近づいて Claude Code が自動で始めたもの
- */
-function compactTriggerOf(prompt: string, compact: boolean): CompactTrigger {
-  return compact || /^\/compact(?:\s|$)/.test(prompt.trimStart()) ? "manual" : "auto";
-}
-
-/** 次に送るものに一度だけ添える知らせを取り出す（取り出したら外す。利用者が作業場所を移す予約を取り消したときなど） */
-export function takePendingNote(runtime: ChatRun): string | null {
-  const note = runtime.pendingNote;
-  runtime.pendingNote = null;
-  return note;
-}
-
-/** プロバイダーに渡すもの（作業場所・指示・権限） */
-function buildTurnParams(
-  deps: ExecutionDeps,
-  chat: Chat,
-  project: Project,
-  { cwd, noteDir, sandbox }: TurnPlace,
-  prompt: string,
-  promptId?: string,
-  note: string | null = null,
-): Omit<ProviderTurnParams, "compact" | "gate"> {
-  // ノートのフォルダ（executeTurn がまだなければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
-  // （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
-  return {
-    cwd,
-    prompt,
-    ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, noteDir ? { dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null } : undefined, {
-      trash: deps.trashCommand !== undefined,
-      sandboxLines: sandbox ? sandboxPromptLines(sandbox.unsandboxedCommands, chat.edit_scope_enabled || chat.untracked_only) : undefined,
-      editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
-      browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
-    }),
-    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
-    resumeSessionId: chat.session_id,
-    model: chat.model,
-    effort: chat.effort,
-    permissionMode: chat.permission_mode,
-    fastMode: chat.fast_mode,
-    autoCompactPct: deps.store.settings.get().auto_compact_pct,
-    // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
-    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(noteDir ? [noteDir] : [])],
-    sandbox,
-    sandboxOff: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
-  };
-}
-
-/** 実行の場所（作業フォルダ・ノートのフォルダ・Bash の砂場） */
-type TurnPlace = { cwd: string; noteDir: string | null; sandbox: SandboxPlan | null };
-
-/** 守りの門の材料（プロバイダーには渡さず、門だけを渡す） */
-function guardMaterialsOf(deps: ExecutionDeps, chat: Chat, project: Project, { cwd, noteDir, sandbox }: TurnPlace, writeAllowed: Set<string>): GuardMaterials {
-  return {
-    cwd,
-    permissionMode: chat.permission_mode,
-    project,
-    // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
-    readOnlyPaths: readOnlyReferences(project, cwd),
-    // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
-    untrackedOnly: chat.untracked_only,
-    // ファイルを書き換えるツールの先は、作業場所・ノートのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
-    // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
-    writeScope: chat.untracked_only || !chat.edit_scope_enabled
-      ? null
-      : { writableDirs: [...(noteDir ? [realPathOrSelf(noteDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])], workplaces: () => workplacesOf(project.repo_path), allowed: writeAllowed },
-    // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
-    deleteGuard: deps.trashCommand !== undefined,
-    sandbox,
-    // その AI の CLI の決まりでいつも書ける場所（Claude Code の計画とメモリ）
-    writeExceptions: deps.providers[chat.provider].writeExceptions,
-  };
-}
-
-/**
- * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は run に書き（殻が画面に配る）、イベントは記録、承認依頼は回答を待つ（待つ間は回答待ち）
- */
-function callbacksFor(
-  { store, approvals, bus, usage, clock }: ExecutionDeps,
-  runtime: ChatRun,
-  chat: Chat,
-  signal: AbortSignal,
-  compact: boolean,
-  compactTrigger: CompactTrigger,
-  { pre: preCompactText, post: postCompactText }: { pre: string | null; post: string | null },
-): ProviderCallbacks {
-  const chatId = chat.id;
-  const projectId = chat.project_id;
-  return {
-    subagentProgress: (subagent) => {
-      bus?.publish({ type: "chat_subagent", project_id: projectId, chat_id: chatId, subagent });
-    },
-    commandOutput: (output) => {
-      bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
-    },
-    retry: (retry) => runtime.setDisplay({ retry }),
-    // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない。「いま」は実行の終わりで送る）
-    control: (control) => {
-      if (!compact) runtime.setControl(control);
-    },
-    background: (background) => runtime.setDisplay({ background }),
-    // 上限を超えたあとの支払い（Claude の追加の使用枠・Codex のクレジット）で動き始めたら、どの作業から引かれたかが分かるようお知らせに残す（下の帯の札も赤くなる）
-    spending: (note) => {
-      const message = SPENDING_NOTICES[chat.provider];
-      if (usage?.noteSpending(chat.provider, note) && message) recordEvent(store, runtime, { type: "notice", message });
-    },
-    drawingVisual: (drawingVisual) => runtime.setDisplay({ drawingVisual }),
-    // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
-    // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで外れる）
-    compacting: (active) => runtime.dispatch({ type: "compacting", active, at: (clock ?? systemClock).iso(), trigger: compactTrigger }),
-    // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
-    context: (tokens) => {
-      if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
-    },
-    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は too_few_groups なども含み Claude Code も知らせない。本当にあふれたら作業が失敗として残る）
-    compactFailed: (reason) => {
-      if (compactTrigger === "manual") recordEvent(store, runtime, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
-    },
-    stream: (text) => {
-      bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
-    },
-    // 自動の圧縮の前に圧縮前指示を足した: 札付きの自分の発言として残す（AI には前置きを付けて送っている）
-    preCompactSent: (uuid) => {
-      if (!preCompactText) return;
-      // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）。圧縮か消去まで、もう足さない（記録から導く preCompactSent）
-      runtime.dispatch({ type: "pre_compact_injected" });
-      recordEvent(store, runtime, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
-    },
-    // 合図のあと裏の作業を待って止まっていたので、Kickoff が発言を足して圧縮を走らせた: 何が起きたかをお知らせに残す（足した文は AI 向けなので発言にしない）
-    preCompactNudged: () => {
-      recordEvent(store, runtime, { type: "notice", message: "圧縮前指示が済んだあと、AI が裏の作業の終わりを待って止まっていたので、会話の圧縮を始めるよう Kickoff が促しました" });
-    },
-    emit: (event) => {
-      if (event.type === "init" && event.session_id !== store.chats.get(chatId)?.session_id) {
-        store.chats.update(chatId, { session_id: event.session_id });
-      }
-      // 手で圧縮する実行の圧縮は、頼んだきっかけで残す（自動の圧縮の前の指示のあとに Runner が続けた圧縮は auto）
-      const saved = recordEvent(store, runtime, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
-      // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（step の compacted）
-      if (event.type === "compact") runtime.dispatch({ type: "compacted", post: postCompactText, compactRun: compact });
-      // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
-      if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
-      // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
-      if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
-    },
-    requestApproval: async (req, approvalSignal) => {
-      const { approval, decision } = approvals.request({ chatId, projectId }, req, approvalSignal);
-      recordEvent(store, runtime, {
-        type: "approval",
-        approval_id: approval.id,
-        kind: approval.kind,
-        tool_name: approval.tool_name,
-        title: approval.title,
-      });
-      const answer = await decision;
-      // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付・選んだ選択肢の図）も残す（画面は「質問への回答」の吹き出しで出す）
-      const previews = answer.action === "answer" ? chosenPreviews((approval.input.questions as Question[] | undefined) ?? [], answer.plain ?? answer.answers) : undefined;
-      recordEvent(
-        store,
-        runtime,
-        answer.action === "answer"
-          ? {
-              type: "approval_resolved",
-              approval_id: approval.id,
-              kind: approval.kind,
-              action: "answer",
-              answers: answer.plain ?? answer.answers,
-              ...(answer.attachments ? { attachments: answer.attachments } : {}),
-              ...(previews ? { previews } : {}),
-            }
-          : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
-      );
-      return answer;
-    },
-  };
-}
-
-/** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
-function applyResult(store: Store, runtime: ChatRun, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
-  const { chatId } = runtime;
-  const current = store.chats.get(chatId)!;
-  // 状態（result.status）は、作業の終わりにすることが済んで作業していないに戻ったときに殻が書く（chats.status は段階の写し）
-  store.chats.update(chatId, {
-    session_id: result.sessionId ?? current.session_id,
-    cost_usd: current.cost_usd + (result.costUsd ?? 0),
-    // 要約は会話の回数・最後の回答に数えない
-    num_turns: current.num_turns + (compact ? 0 : (result.turns ?? 0)),
-    error: result.error ?? null,
-    ...(result.context
-      ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window }
-      : compact && result.status === "completed"
-        ? // 要約したあとの大きさが分からないときは、次の応答まで空にしておく
-          { context_tokens: null }
-        : {}),
-    // 終わったら「未読」にする（中断・要約のときは除く）。最後の結果を一番下まで見ると消える
-    unread: compact || result.status === "cancelled" ? current.unread : true,
-  });
-  // この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
-  // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。
-  // 通信の切断のときは、つながってから再開する段取り（reconnect）が知らせる
-  const notice = compact || network ? null : stoppedSubagentsNotice(unfinishedSubagents(store.events.forSubagents(chatId), since).map((s) => s.description));
-  if (notice) recordEvent(store, runtime, { type: "notice", message: notice });
-  // 要約は compact イベントだけを残す（失敗したときは理由を残す）
-  if (!compact || result.status !== "completed") {
-    recordEvent(store, runtime, {
-      type: "result",
-      status: result.status,
-      text: result.status === "completed" ? result.result : result.error,
-      ...(network ? { network: true } : {}),
-      ...(result.usageLimit ? { usage_limit: { resets_at: result.usageLimit.resetsAt ?? null } } : {}),
-      // 分岐・巻き戻しの起点（最後まで終わったときだけ。止めた作業の最後のメッセージはセッションに残らないことがある）
-      ...(result.status === "completed" && result.lastMessageId && result.sessionId
-        ? { session_id: result.sessionId, message_id: result.lastMessageId }
-        : {}),
-    });
-  }
 }
