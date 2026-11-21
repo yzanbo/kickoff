@@ -139,6 +139,8 @@ test("片付けの予約と重なれば先に片付ける。本体へなら移�
   await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt });
   const { tools, release } = await busyTurn(ctx, chatId);
   assert.match(await worktreeFinisher.finishFromChat(chatId, undefined), /予約しました/);
+  // 片付けを予約したワークツリーからは変更を持っていけない（取り消す口はないので、持っていかずに移すよう案内する。6 章 B4）
+  await assert.rejects(tools.move({ to: "new_worktree", branch: "feat/next", carry: true }, allow), /片付けの予約は取り消せません）。持っていかずに移してください/);
   assert.match(await tools.move({ to: "main", continuation: "本体で続ける" }, allow), /先に片付けます/);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "あとの指示" });
   release();

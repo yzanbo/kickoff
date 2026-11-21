@@ -76,7 +76,7 @@ export function createAiWorkplaceTools(deps: AiWorkplaceDeps, chatId: number): A
         if (problem) throw new Error(problem);
         let carry = false;
         if (input.carry) {
-          if (finishing) throw new Error("このワークツリーは片付けを予約しているので、変更は持っていけません（片付けるときに控えに入ります）。持っていくなら先に片付けの予約をやめてください");
+          if (finishing) throw new Error("このワークツリーは片付けを予約しているので、変更は持っていけません（片付けるときに控えに入ります。片付けの予約は取り消せません）。持っていかずに移してください");
           if (!fs.existsSync(dir)) throw new Error("いまの作業場所のフォルダがないので、変更は持っていけません");
           const files = await carryFiles(dir);
           if (files.length > 0) {
