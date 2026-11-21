@@ -1,14 +1,12 @@
 // 1 回の実行の指定を組み立てる: 登録した contributor（TurnContributor）が出したものを order の順に集め（collectTurnParts）、プロバイダーに渡す形にする（toProviderParams）。
 // まだ機能へ分けていない組み立ては 1 つの contributor（legacyTurnParts）に入れてあり、P5-4 の単位ごとに各機能の contributor へ移す
-import path from "node:path";
-import { browserSection, noteSection } from "@/features/chat/core/prompt/system";
-import { joinSections, type PromptSection } from "@/features/chat/core/prompt/sections";
+import { browserSection } from "@/features/chat/core/prompt/system";
+import { joinSections } from "@/features/chat/core/prompt/sections";
 import { appendSections } from "@/features/chat/core/prompt/compose";
 import { permissionOnlyGate, type PreCompactRequest, type ProviderCallbacks, type ProviderTurnResult, type SandboxPlan, type ToolGate } from "@/features/ai/core/index";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
-import { ensureDir } from "@/features/chat/core/turnFolders";
-import { githubEnvForGit, runAsGitHubAccount, type ExecutionDeps, type ProviderTurnParams } from "@/features/chat/core/turn";
+import type { ExecutionDeps, ProviderTurnParams } from "@/features/chat/core/turn";
 import type { TurnContext, TurnContributor, TurnParts, TurnRun, TurnRunPatch } from "./contributor";
 
 /** contributor が出したものを集めた答え */
@@ -106,36 +104,11 @@ export function toProviderParams(
   };
 }
 
-/**
- * まだ機能へ分けていない組み立て（order 0）: 環境変数（GitHub のアカウント）・ノートのフォルダ（読み書きできる場所）・システムプロンプトのブラウザ・ノートの節
- */
+/** まだ機能へ分けていない組み立て（order 0）: システムプロンプトのブラウザの節（埋め込みブラウザがあるとき。どの AI にも利用者が選んだ開き先を伝える） */
 export function legacyTurnParts(deps: ExecutionDeps): TurnContributor {
   return {
     name: "legacy",
     order: 0,
-    async contribute({ chat, project }) {
-      // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
-      const env = project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {};
-      // ノートのフォルダ（Bash の砂場・書き込み先の守りでも書ける場所にする）
-      const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
-      return {
-        env,
-        readableDirs: noteDir ? [noteDir] : [],
-        writableDirs: noteDir ? [noteDir] : [],
-        promptSections: legacySections(deps, chat, noteDir),
-      };
-    },
+    contribute: () => (deps.browser ? { promptSections: [browserSection(deps.store.settings.get().link_open_in)] } : null),
   };
-}
-
-/**
- * まだ機能へ分けていない節: ブラウザ（埋め込みブラウザがあるとき）・ノート。ノートのフォルダ（なければ作る: ノートのタブで最初のノートを作るのと同じ場所）も
- * 読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える（入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。
- * ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
- */
-function legacySections(deps: ExecutionDeps, chat: Chat, noteDir: string | null): PromptSection[] {
-  return [
-    ...(deps.browser ? [browserSection(deps.store.settings.get().link_open_in)] : []),
-    ...(noteDir ? [noteSection({ dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null })] : []),
-  ];
 }

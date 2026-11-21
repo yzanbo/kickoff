@@ -150,6 +150,6 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
 }
 
 /** 添付のパスを書き添えた、AI に渡す文（添付の口が書く。ノートの写しの元のノートは、プロジェクトのノートのフォルダから引く） */
-function promptWithAttachments({ attachments: port, noteDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
-  return composePrompt(port, project && noteDirOf ? noteDirOf(project) : null, text, attachments);
+function promptWithAttachments({ attachments: port }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
+  return composePrompt(port, project, text, attachments);
 }

@@ -40,6 +40,10 @@ export type { PromptSection } from "./prompt/sections";
 export { appendSections } from "./prompt/compose";
 export { readOnlyReferences } from "./turnFolders";
 export { preCompactSent } from "./run/machine/marks";
+export { lineageOf } from "./tools/aiChatEdit";
+export { openPlaceInput } from "./tools/open";
+export { toolChat } from "./tools/context";
+export { workdirOf } from "./workdir";
 export type { ChatAttachments } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
@@ -78,7 +82,6 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 
 /** チャットより上の機能の口（上の機能はチャットを使うのであとに作り、組み立ての最後に attach で渡す） */
 export interface ChatUpper {
-  notes: NonNullable<ExecutionDeps["notes"]>;
   databases: NonNullable<ExecutionDeps["databases"]>;
   worktreeEnvs: NonNullable<ShellUpperDeps["worktreeEnvs"]>;
   worktreeFinisher: NonNullable<ShellUpperDeps["worktreeFinisher"]>;
@@ -205,8 +208,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       sessionsElsewhere,
       attach: (given) => {
         upper = given;
-        const { remoteImages: _images, notes, ...rest } = given;
-        runner.attach({ ...rest, notes, noteDirOf: (project) => notes.dirOf(project) });
+        const { remoteImages: _images, ...rest } = given;
+        runner.attach(rest);
       },
       addTurnContributor: (c) => void contributors.push(c),
       onForget: (fn) => runner.onForget(fn),

@@ -3,6 +3,7 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import type { ChatApi } from "@/features/chat/core/index";
 import { gitRoutes } from "./routes/git";
+import { openDiffToolGroup } from "./tools";
 
 export { gitStatus, parseGitStatus } from "./status";
 export { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, trashProjectFile, writeProjectFile } from "@/features/files/core/files";
@@ -13,5 +14,10 @@ export { gitCommitDetail, gitCommitDiff, gitLog, gitRefs, parseCommit, parseName
 
 /** 作業場所の Git（状態・変更・コミット・履歴・ブランチ・PR の受け口） */
 export function createGit(k: Kernel, deps: { chat: Pick<ChatApi, "store"> }): CoreFeature<null> {
-  return { name: "git", api: null, routes: [{ legacy: (app) => gitRoutes(app, { store: deps.chat.store, remoteGit: k.workplace.git }) }] };
+  return {
+    name: "git",
+    api: null,
+    routes: [{ legacy: (app) => gitRoutes(app, { store: deps.chat.store, remoteGit: k.workplace.git }) }],
+    aiTools: [openDiffToolGroup({ store: deps.chat.store, publish: (e) => k.bus.publish(e) })],
+  };
 }

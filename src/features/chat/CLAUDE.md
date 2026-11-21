@@ -77,7 +77,7 @@
 | ファイル | ツール（`kickoff_chat`） |
 |---|---|
 | `aiChatEdit.ts`・`read.ts`・`remove.ts`・`open.ts` | 家系・読む・アーカイブと削除・開くと下書き |
-| `aiOpen.ts`・`aiProject.ts` | ノート・ファイル・差分・SQL を開く・`add_snippet`・`move_note`（移す前） |
+| `chatOpenTools.ts`・`aiOpen.ts` | 開く組の chat の分（並びの値で持ち主の組と交互）・SQL（移す前） |
 
 ほかの機能のツールは各機能の `core/` にあり、下の決まりはどれにも当てる。
 

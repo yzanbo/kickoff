@@ -83,8 +83,6 @@ export function callbacksFor(
       // 圧縮した（記録を残してから）: 圧縮後指示があれば、預かった指示の先頭に置く（step の compacted）
       if (event.type === "compact") runtime.dispatch({ type: "compacted", post: postCompactText, compactRun: compact });
       onRecord(saved);
-      // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
-      if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
       if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
     },

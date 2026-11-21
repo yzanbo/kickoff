@@ -6,6 +6,7 @@
 
 | ファイル | 中身 |
 |---|---|
+| `core/index.ts` | チャットの実行の環境変数（order 20。選んだアカウント） |
 | `core/service.ts`・`core/ghApi.ts` | `GitHubService`（プロジェクトのアカウントで `gh api`。問い合わせ `queries.ts`・形の変換は純粋な `normalize.ts`）。CI の `CiService`（`ci.ts`・`ciNormalize.ts`）も同じ口 |
 | `core/prWatch.ts` | PR の見張り `WorktreePrWatch`（CI の失敗も見る） |
 | `ui/GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文との行き来は `@shared/github/searchQuery`） |

@@ -7,12 +7,6 @@ export const AI_OPEN_NOTE_TOOL = "mcp__kickoff_chat__open_note";
 /** 家系のチャットを開くツールの名前 */
 export const AI_OPEN_CHAT_TOOL = "mcp__kickoff_chat__open_chat";
 
-/** open_note の引数（path はノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス。place を省くと画面の設定の開き方） */
-export interface OpenNoteInput {
-  path: string;
-  place?: OpenPlace;
-}
-
 /** 引数の place の言葉（なければ null） */
 const placeLabel = (place: unknown): string | null => (OPEN_PLACES.includes(place as OpenPlace) ? OPEN_PLACE_LABELS[place as OpenPlace] : null);
 
@@ -41,19 +35,6 @@ export const AI_OPEN_SQL_TOOL = "mcp__kickoff_chat__open_sql";
 
 /** 家系のチャットの入力欄に下書きを入れるツールの名前 */
 export const AI_ADD_DRAFT_TOOL = "mcp__kickoff_chat__add_draft";
-
-/** open_file の引数（path は作業場所からの相対パスか、作業場所の中の絶対パス。line は目立たせる行） */
-export interface OpenFileInput {
-  path: string;
-  line?: number;
-  place?: OpenPlace;
-}
-
-/** open_diff の引数（path を省くと変更の全体） */
-export interface OpenDiffInput {
-  path?: string;
-  place?: OpenPlace;
-}
 
 /** open_sql の引数（connection は接続の名前。AI に見せる接続が 1 つだけなら省ける） */
 export interface OpenSqlInput {

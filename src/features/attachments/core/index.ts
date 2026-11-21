@@ -25,6 +25,8 @@ export interface AttachmentsApi {
   forChat: ChatAttachments;
   /** ツールの結果の画像を読んでよいフォルダを足す（上の機能が登録する。notes がノートのフォルダを足す） */
   addImageDir(dirOf: (project: Project) => string): void;
+  /** プロジェクトのノートのフォルダを引く口を渡す（notes が登録する。送る文にノートの写しの元のノートのパスを書き添える） */
+  useNoteDir(dirOf: (project: Project) => string): void;
 }
 
 /** 添付の置き場と、添付・ツールの結果の画像の表示 */
@@ -33,9 +35,10 @@ export function createAttachments(k: Kernel, deps: { trash: TrashApi; chatStore:
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない）
   deps.trash.addSweepStep(() => sweepUnusedUploads({ store: deps.chatStore(), uploads }));
   const imageDirs: ((project: Project) => string)[] = [];
+  let noteDirOf: ((project: Project) => string) | null = null;
   return {
     name: "attachments",
-    api: { uploads, forChat: chatAttachmentsOf(uploads), addImageDir: (dirOf) => void imageDirs.push(dirOf) },
+    api: { uploads, forChat: chatAttachmentsOf(uploads, (p) => noteDirOf?.(p) ?? null), addImageDir: (dirOf) => void imageDirs.push(dirOf), useNoteDir: (dirOf) => void (noteDirOf = dirOf) },
     routes: [{ legacy: (app) => uploadRoutes(app, { uploads, store: deps.chatStore(), imageDirs }) }],
   };
 }

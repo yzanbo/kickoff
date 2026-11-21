@@ -3,6 +3,7 @@
 ## 地図
 
 - `core/index.ts` が入口（状態 `status.ts`・差分とコミット `changes.ts`・`blame.ts`・`history.ts`・ブランチの操作 `branches.ts`）。ファイルと検索・置換は `@/features/files/core/`、プロジェクトの作成と取り込みは `@/features/projects/core/workspace.ts`。
+- `core/tools.ts`: AI の `open_diff`（パスは files の `workPathIn`）。
 - `ui/`: 変更・差分・コミット（`ChangesPane`・`DiffView`）と、履歴（`ui/history/`。操作の窓 `GitCommandPalette`・途中の操作の帯 `OperationBanner`）。
 
 ## 決まり

@@ -11,6 +11,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { setupCore, until } from "@/app/core/testing/testCore";
 import { setup } from "@/app/core/testing/testServer";
 import { visualTurnParts } from "@/features/visuals/core/tools";
+import { noteTurnParts } from "@/features/notes/core/turnParts";
 
 /** 本物の組み立てと同じく、上の機能が実行に足すもの（setupCore は殻だけなので、システムプロンプトの図と数式の節を足す） */
 const contributors = [visualTurnParts()];
@@ -53,10 +54,9 @@ const CASES: Record<string, () => Promise<string>> = {
     fs.writeFileSync(path.join(tmp, "design.png"), "");
     const provider = new ScriptedProvider(done);
     const { store, runner, project } = setupCore(provider, {
-      noteDirOf: () => path.join(tmp, "ノート"),
       trashCommand: { path: path.join(tmp, "bin", "kickoff-trash"), dir: path.join(tmp, "trash") },
       bashSandbox: { rules: { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: ["npm run dev:*", "brew services start:*"] }, proxyPort: null, trashDir: null },
-      contributors,
+      contributors: [...contributors, noteTurnParts({ dirOf: () => path.join(tmp, "ノート"), publish: () => {} })],
     });
     store.projects.update(project.id, {
       description: "概要の 1 行目\n2 行目",

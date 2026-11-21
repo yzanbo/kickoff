@@ -1,5 +1,6 @@
 // 送る文の組み立て: 指示の後ろに見出しつきの文（添付のパス・届かなかった報告）や文脈を、空行 1 つでつなぐ
 import type { Attachment } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import type { ChatAttachments } from "@/features/chat/core/ports";
 
 /**
@@ -13,6 +14,6 @@ export function appendSections(text: string | null, ...sections: (string | null)
 }
 
 /** 送る文（添付のパスを書き添える。添付の口がなければ文のまま） */
-export async function composePrompt(attachments: ChatAttachments | undefined, noteDir: string | null, text: string, files: Attachment[]): Promise<string> {
-  return attachments ? attachments.promptNote(text, files, noteDir) : text;
+export async function composePrompt(attachments: ChatAttachments | undefined, project: Project | null, text: string, files: Attachment[]): Promise<string> {
+  return attachments ? attachments.promptNote(text, files, project) : text;
 }

@@ -1,5 +1,4 @@
-// 1 回の実行のフォルダ: 作業場所・ノートのフォルダ・参照資料（読めるフォルダと、読むだけで書かせないもの）
-import { mkdirSync } from "node:fs";
+// 1 回の実行のフォルダ: 作業場所・参照資料（読めるフォルダと、読むだけで書かせないもの）
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isInside } from "@/foundation/core/system/paths";
@@ -13,16 +12,6 @@ export async function resolveWorkdir(chat: Chat, project: Project): Promise<stri
   const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
   if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
   return cwd;
-}
-
-/** フォルダがなければ作って返す（作れなければ null。ノートのフォルダ） */
-export function ensureDir(dir: string): string | null {
-  try {
-    mkdirSync(dir, { recursive: true });
-    return dir;
-  } catch {
-    return null;
-  }
 }
 
 /** 作業場所の外の参照資料（読むだけ。ワークツリーのチャットからは、本体の中の資料も読むだけ） */

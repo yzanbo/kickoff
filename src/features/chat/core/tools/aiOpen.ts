@@ -1,25 +1,13 @@
-// チャットの AI が、このプロジェクトのノート・作業場所のファイルと差分・SQL のタブを画面に開く
-// （kickoff_chat の open_note・open_file・open_diff・open_sql の中身。プロバイダーに依らない。家系のチャットの open_chat・add_draft は open.ts）。
-// 開く・入れるだけで送る・流す・消すはしないので、聞かずに頼む（権限モード・Auto mode によらず承認カードを出さない）。コアは確かめてから SSE の
-// open_view・chat_draft で頼み、Mac のアプリのメインのウィンドウが、画面のいまの開き方（右の欄 / 別ウィンドウ）で開く（画面が開いたかは待たない）
-import fs from "node:fs/promises";
-import path from "node:path";
-import type { OpenDiffInput, OpenFileInput, OpenNoteInput, OpenSqlInput } from "@shared/chat/aiOpen";
-import { noteExtensionOf } from "@shared/notes/kinds";
-import { OPEN_PLACE_LABELS, type OpenPlace } from "@shared/chat/openView";
-import type { Chat } from "@shared/chat/types";
-import type { Project } from "@shared/projects/types";
+// チャットの AI が、このプロジェクトの DB の接続の SQL のタブを画面に開く（kickoff_chat の open_sql の中身。プロバイダーに依らない。P5-4h で database へ）。
+// 開く・入れるだけで流さないので、聞かずに頼む（権限モード・Auto mode によらず承認カードを出さない）。コアは確かめてから SSE の open_view で頼む（画面が開いたかは待たない）
+import type { OpenSqlInput } from "@shared/chat/aiOpen";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Store } from "@/features/chat/core/stores";
-import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/system/paths";
 import { lineageOf } from "./aiChatEdit";
-import { workdirOf } from "@/features/chat/core/workdir";
+import { toolChat } from "./context";
 
-/** ノート・ファイル・差分・SQL を開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
-export interface AiOpenTools {
-  openNote(input: OpenNoteInput): Promise<string>;
-  openFile(input: OpenFileInput): Promise<string>;
-  openDiff(input: OpenDiffInput): string;
+/** SQL を開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
+interface AiOpenTools {
   openSql(input: OpenSqlInput): string;
 }
 
@@ -30,90 +18,14 @@ export interface AiOpenDeps {
   store: Store;
   /** 画面に頼む（SSE） */
   publish: (event: BusEvent) => void;
-  /** プロジェクトのノートのフォルダ（なければノートは開けない） */
-  noteDirOf?: (project: Project) => string;
   /** プロジェクトの DB の接続（database の店。なければ open_sql で選べる接続はない） */
   dbConnectionsOf?: (projectId: number) => { id: number; name: string; ai_access: string }[];
 }
 
-/** 開く場所の言葉（省いたら設定の開き方） */
-const placeText = (place: OpenPlace | undefined, setting: string) => (place ? OPEN_PLACE_LABELS[place] : `設定の「${setting}」の場所`);
-
-/**
- * AI が渡したパスを、ノートのフォルダからの相対パス（「/」区切り）にする。絶対パスはノートのフォルダの中だけ（リンクを解いた形でも比べる）。
- * 外を指す・フォルダそのもの・「.」で始まる名前は throw
- */
-export function notePathIn(dir: string, given: string): string {
-  const raw = given.trim();
-  if (!raw) throw new Error("path が空です。ノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パスを渡してください");
-  const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);
-  const base = [dir, realPathOrSelf(dir)].find((d) => isInside(d, abs) || isInside(d, realPathOrSelf(abs)));
-  if (!base) throw new Error(`${raw} はこのプロジェクトのノートのフォルダ（${dir}）の外です。開けるのはノートのフォルダの中のノートだけです`);
-  const rel = relativeApiPath(base, isInside(base, abs) ? abs : realPathOrSelf(abs));
-  if (!rel) throw new Error("ノートのフォルダそのものは開けません。ノートのファイルを指してください");
-  if (rel.split("/").some((part) => part.startsWith("."))) throw new Error("「.」で始まる名前のファイル・フォルダは、ノートとして扱いません");
-  return rel;
-}
-
-/**
- * AI が渡したパスを、作業場所からの相対パス（「/」区切り）にする。絶対パスは作業場所の中だけ（リンクを解いた形でも比べる）。外・作業場所そのものは throw
- */
-function workPathIn(dir: string, given: string): string {
-  const raw = given.trim();
-  if (!raw) throw new Error("path が空です。作業場所からの相対パスか、作業場所の中の絶対パスを渡してください");
-  const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);
-  const base = [dir, realPathOrSelf(dir)].find((d) => isInside(d, abs) || isInside(d, realPathOrSelf(abs)));
-  if (!base) throw new Error(`${raw} はこのチャットの作業場所（${dir}）の外です。開けるのは作業場所の中のファイルだけです`);
-  const rel = relativeApiPath(base, isInside(base, abs) ? abs : realPathOrSelf(abs));
-  if (!rel) throw new Error("作業場所そのものは開けません。ファイルを指してください");
-  return rel;
-}
-
-/**
- * chatId のチャットの AI に渡す、ノート・ファイルなどを開くツールの中身。ノート・接続は呼ぶたびに引き直す
- */
-export function createAiOpenTools({ store, publish, noteDirOf, dbConnectionsOf }: AiOpenDeps, chatId: number): AiOpenTools {
-  const requireSelf = (): Chat => {
-    const chat = store.chats.get(chatId);
-    if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
-    return chat;
-  };
-  /** このチャットとプロジェクトと作業場所のフォルダ */
-  const workplace = () => {
-    const self = requireSelf();
-    const project = store.projects.get(self.project_id);
-    if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
-    return { self, project, dir: workdirOf(self, project) };
-  };
+/** chatId のチャットの AI に渡す、SQL のタブを開くツールの中身。接続は呼ぶたびに引き直す */
+export function createAiOpenTools({ store, publish, dbConnectionsOf }: AiOpenDeps, chatId: number): AiOpenTools {
+  const { self: requireSelf } = toolChat(store.chats, chatId);
   return {
-    async openNote(input) {
-      const self = requireSelf();
-      const project = store.projects.get(self.project_id);
-      if (!project || !noteDirOf) throw new Error("このプロジェクトのノートのフォルダが分からないため、ノートを開けません");
-      const dir = noteDirOf(project);
-      const rel = notePathIn(dir, input.path);
-      if (!noteExtensionOf(rel)) throw new Error(`${rel} はノート（.md・.markdown・.html・.htm）ではありません`);
-      const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
-      if (!stat?.isFile()) throw new Error(`ノート ${rel} が見つかりません（ノートのフォルダ: ${dir}）`);
-      publish({ type: "open_view", request: { kind: "note", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(store, self) } });
-      return `ノート「${rel}」を${placeText(input.place, "チャットからノートを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
-    },
-    async openFile(input) {
-      const { self, project, dir } = workplace();
-      const rel = workPathIn(dir, input.path);
-      const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
-      if (!stat?.isFile()) throw new Error(`ファイル ${rel} が見つかりません（作業場所: ${dir}）`);
-      const line = input.line !== undefined && input.line >= 1 ? Math.trunc(input.line) : null;
-      publish({ type: "open_view", request: { kind: "file", project_id: project.id, worktree: self.worktree_path, path: rel, line, place: input.place ?? null, lineage: lineageOf(store, self) } });
-      return `ファイル「${rel}」${line ? `の ${line} 行目` : ""}を${input.place ? OPEN_PLACE_LABELS[input.place] : "右の欄"}で開くよう、画面に頼みました（開けたかは返りません）。`;
-    },
-    openDiff(input) {
-      const { self, project, dir } = workplace();
-      // 消したファイルの差分もあるので、ファイルがあるかは確かめない
-      const rel = input.path?.trim() ? workPathIn(dir, input.path) : null;
-      publish({ type: "open_view", request: { kind: "diff", project_id: project.id, worktree: self.worktree_path, path: rel, place: input.place ?? null, lineage: lineageOf(store, self) } });
-      return `コミットしていない変更${rel ? `（${rel} の位置）` : ""}を${input.place ? OPEN_PLACE_LABELS[input.place] : "右の欄"}で開くよう、画面に頼みました（開けたかは返りません）。`;
-    },
     openSql(input) {
       const self = requireSelf();
       const sql = input.sql.trim();

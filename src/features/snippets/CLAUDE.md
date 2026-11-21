@@ -8,6 +8,7 @@
 | `ui/api.ts` | 呼び手 `client(snippetContract)`（画面を取り決めに乗せ替えた見本） |
 | `ui/SnippetManager`・`SnippetForm` | 管理（帯のダイアログ・設定・プロジェクトの設定で同じ部品） |
 | `core/routes.ts`・`schemas.ts` | 受け口（取り決め `@shared/snippets/contract.ts` の見本。プロジェクトは `projects.api.require`） |
+| `core/tools.ts` | AI の `add_snippet`（足すだけ） |
 
 - 範囲は行ごと（`project_id` が `null` なら共通）。チャットの一覧は `snippetsFor`（そのプロジェクト ＋ 共通）。
 - 操作の応答は店に入れ、知らせを待たない。並べ替えは見えている行だけを動かす（`moveWithin`）。

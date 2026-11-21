@@ -74,7 +74,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const groups = createGroups(k, { projects: projects.api });
   const ai = createAi(k, { projects: projects.api }, { ...env.ai, secretCipher: env.secretCipher });
   const attachments = createAttachments(k, { trash: trash.api, chatStore: () => chat.api.store }, env.attachments);
-  const snippets = createSnippets(k, { projects: projects.api });
+  const snippets = createSnippets(k, { projects: projects.api, chatOf: (chatId) => chat.api.store.chats.get(chatId) });
   const notifications = createNotifications(k, { chatStore: () => chat.api.store, devices: () => devices.api.store, projects: projects.api.store }, env.notifications);
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
@@ -93,7 +93,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
   const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
   const workplaceMove = createWorkplaceMove({ chat: chat.api, worktreeFinisher: () => worktrees.api.finisher, terminals: () => terminal.api });
-  const files = createFiles({ trash: trash.api, chat: chat.api });
+  const files = createFiles(k, { trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, guard: guard.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
@@ -110,7 +110,6 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
   chat.api.attach({
-    notes: notes.api,
     databases: database.api,
     worktreeEnvs: worktrees.api.envs,
     worktreeFinisher: worktrees.api.finisher,

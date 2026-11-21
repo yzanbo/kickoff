@@ -42,7 +42,7 @@ export interface GitHubApi {
 const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_remote", "pr_watch", "ci_watch", "archived"]);
 
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
-export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store">; ai: Pick<AiApi, "provideGhToken"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
+export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store" | "addTurnContributor">; ai: Pick<AiApi, "provideGhToken"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { bus } = k;
   const stores = createGitHubStores(k.db);
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
@@ -52,6 +52,12 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
   k.workplace.gitEnv.register(() => githubEnvForGit());
   // Copilot の使用状況は gh で有効なアカウントのトークンで読む（ai は github より下なので、ここから渡す）
   deps.ai.provideGhToken(activeGhToken);
+  // チャットの AI が動かす gh・git も、そのプロジェクトで選んだ GitHub のアカウントにする（環境変数 order 20。gh にそのアカウントがなければ、gh で有効なもののまま）
+  deps.chat.addTurnContributor({
+    name: "github",
+    order: 20,
+    contribute: async ({ project }) => (project.github_account ? { env: await runAsGitHubAccount(project.github_account, githubEnvForGit) } : null),
+  });
   // PR のブランチのワークツリーを作ったら、実行環境を整える
   const github = new GitHubService({ ...env.service, onWorktreeCreated: (project, worktree) => deps.worktrees.envs.prepare(project, worktree) }, k.workplace.git);
   const ci = new CiService(github, env.ci);

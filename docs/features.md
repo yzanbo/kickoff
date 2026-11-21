@@ -833,7 +833,7 @@
 ### プロジェクト
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-011 | 定型文を足す・ノートを動かす | chat | T:aiProject |
+| AIT-011 | 定型文を足す・ノートを動かす | snippets | T:tools |
 | AIT-012 | ターミナルの出力を読む | terminal | T:aiTerminal |
 | AIT-013 | 埋め込みブラウザを見る・操作する | browser | M |
 | AIT-014 | ワークツリーを後始末する | worktrees | M |

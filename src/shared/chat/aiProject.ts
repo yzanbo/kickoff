@@ -6,18 +6,6 @@ export const AI_ADD_SNIPPET_TOOL = "mcp__kickoff_chat__add_snippet";
 /** ノートの名前を変える・移すツールの名前 */
 export const AI_MOVE_NOTE_TOOL = "mcp__kickoff_chat__move_note";
 
-/** add_snippet の引数（範囲はいつもこのプロジェクトだけ。共通にするのは利用者が画面で切り替える） */
-export interface AddSnippetInput {
-  text: string;
-  label?: string;
-}
-
-/** move_note の引数（どちらもノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス） */
-export interface MoveNoteInput {
-  from: string;
-  to: string;
-}
-
 /** 記録の行に出す文（名前があれば名前、なければ本文の 1 行目） */
 export function describeAddSnippet(input: Record<string, unknown>): string {
   if (typeof input.label === "string" && input.label.trim()) return input.label.trim();

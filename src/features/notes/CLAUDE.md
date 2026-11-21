@@ -17,12 +17,12 @@
 ## 決まり
 
 - パスはノートのフォルダからの相対で、操作はファイルと同じ `folderFiles`（外・「.」で始まる名前を断る。指紋で 409）。変えたら SSE の `notes`。
-- 保存は ⌘S（と ⌘⇧S）だけ。書きかけは `notes:draft` に残す（タブを移っても・閉じても失わない）。
+- 保存は ⌘S（と ⌘⇧S）だけ。書きかけは `notes:draft` に残す（タブを移る・閉じるでも失わない）。
 - 離れる・名前を変える・動かす・ゴミ箱に入れる前に `noteGuards.ts` の `confirmLeaveNote` で聞く（開いているノートは `registerNoteGuard` で知らせる）。
 - ノートのチャットに送る前・ノートを添付する前に書きかけを保存し、保存できなければ送らない・足さない。
-- ノートのフォルダは、どのチャットでも実行のときに書ける場所に足し、システムプロンプトで伝える（`buildTurnParams`）。AI にパスを渡すときは区切りが分かる形にする。
-- 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外に出る。コアも 400）。
-- ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` が除く）。
+- ノートのフォルダは、どのチャットでも実行のときに書ける場所に足し、システムプロンプトで伝える（`core/turnParts.ts`。AI のツールは `core/tools.ts`）。AI に渡すパスは区切りが分かる形に。
+- 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外。コアも 400）。
+- ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` で除く）
 - ノートを足すときは付けたときの写し（`api.noteSnapshot`。`taken_at`）。足す口は `addToChat`（別ウィンドウはメインに頼む）。
 
 ## 行へ移る（`ui/noteReveal.ts`）
@@ -32,8 +32,8 @@
 ## 落とし穴
 
 - ノートの名前を変える・動かすと、ノートのチャットと DB の手順ノートを `remapNotePath` で付け替える。ゴミ箱に入れると、ノートのチャットも同じ行に入れる（`trashNoteChats`。kickoff-trash でも）。
-- 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう、窓に戻ったときも確かめる（`checkFresh`）。
+- 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ `chatDraft` を使う。欄は閉じても描いたまま置く（書きかけを残す）。
-- 開いているフォルダ `openFolders` はノートのタブと入力欄の上の `NoteChipTree` で共通。ドラッグの決まりも `noteDrag.ts` で共通。
-- テストは `core/routes/server.notes.test.ts`（`noteFake`）。
+- 開いているフォルダ `openFolders` はノートのタブと入力欄の上の `NoteChipTree` で、ドラッグの決まりは `noteDrag.ts` で共通。
+- テスト: `core/routes/server.notes.test.ts`（`noteFake`）。

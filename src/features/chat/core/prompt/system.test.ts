@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
 import type { LinkOpenTarget } from "@shared/settings/types";
-import { browserSection, noteSection, projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
+import { browserSection, projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
 import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
 
-/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節。図と数式の節は visuals） */
-function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: string; file: string | null }, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
+/** 実行と同じ並びで節をつなぐ（chat の節と、まだ機能へ分けていない節。図と数式の節は visuals・ノートの節は notes） */
+function buildSystemPrompt(p: Project, workdir = p.repo_path, opts: { trash?: boolean; sandboxLines?: string[]; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
   const references = referenceSection(p);
   return joinSections([
     projectSection(p, workdir, opts.editScopeEnabled),
@@ -15,7 +15,6 @@ function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: stri
     ...(opts.trash ? [TRASH_SECTION] : []),
     ...(opts.sandboxLines ? [{ order: 220, heading: null, lines: opts.sandboxLines }] : []), // 砂場の行（guard の contributor が作る節）
     ...(opts.browser ? [browserSection(opts.browser)] : []),
-    ...(note ? [noteSection(note)] : []),
     ...(references ? [references] : []),
   ]);
 }
@@ -28,11 +27,11 @@ function project(references: { path: string; kind: "folder" | "file" }[] = []) {
 
 test("ブラウザ: 開き先が Kickoff なら内蔵ツールを優先し、OS の既定なら外部で開くよう伝える", () => {
   const p = project();
-  const kickoff = buildSystemPrompt(p, p.repo_path, undefined, { browser: "kickoff" });
+  const kickoff = buildSystemPrompt(p, p.repo_path, { browser: "kickoff" });
   assert.match(kickoff, /既定の開き先は「Kickoff のブラウザ」/);
   assert.match(kickoff, /kickoff_browser の browser_tabs・browser_open などを優先/);
   assert.match(kickoff, /利用者が別のブラウザや自動テストを指定した場合を除き/);
-  const external = buildSystemPrompt(p, p.repo_path, undefined, { browser: "browser" });
+  const external = buildSystemPrompt(p, p.repo_path, { browser: "browser" });
   assert.match(external, /既定の開き先は「既定のブラウザ」（OS の既定のブラウザ）/);
   assert.doesNotMatch(external, /browser_open などを優先/);
   // 内蔵ブラウザのない環境では、使えないツールを勧めない
@@ -100,21 +99,8 @@ test("指示: 会話ごと別のフォルダへ移る EnterWorktree は使えず
   assert.match(prompt, /isolation: "worktree" はこれまでどおり使えます/);
 });
 
-test("ノート: どのチャットでも「ノート」が「ノート」タブのノート（フォルダ）のことだと伝え、ノートのチャットはどのノートの横かを伝える", () => {
-  const p = project();
-  const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/notes/a", file: null });
-  assert.ok(plain.includes("利用者が「ノート」と言ったら、Kickoff の「ノート」タブのノートのことです"));
-  assert.ok(plain.includes("ノートフォルダ `/tmp/notes/a`"));
-  assert.ok(!plain.includes("の横で話しています"));
-  const noteChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/notes/a", file: "/tmp/notes/a/x.md" });
-  assert.ok(noteChat.includes("`/tmp/notes/a/x.md` の横で話しています"));
-  assert.ok(!noteChat.includes("利用者が「ノート」と言ったら"));
-  // ノートのフォルダが分からなければ、ノートのことは書かない
-  assert.ok(!buildSystemPrompt(p).includes("## ノート"));
-});
-
 test("砂場: 砂場の行（guard が作る）は渡したときだけ、ゴミ箱の行のあとに入れる", () => {
   assert.doesNotMatch(buildSystemPrompt(project([])), /砂場/);
-  const prompt = buildSystemPrompt(project([]), "/tmp/a", undefined, { trash: true, sandboxLines: ["- 砂場の行 1", "- 砂場の行 2"] });
+  const prompt = buildSystemPrompt(project([]), "/tmp/a", { trash: true, sandboxLines: ["- 砂場の行 1", "- 砂場の行 2"] });
   assert.ok(prompt.indexOf("- 砂場の行 1\n- 砂場の行 2") > prompt.indexOf("kickoff-trash"));
 });

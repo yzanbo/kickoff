@@ -4,10 +4,12 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { AiApi } from "@/features/ai/core/index";
 import type { AttachmentsApi } from "@/features/attachments/core/index";
-import { trashNoteChats, trashNoteChatsOnImport, type ChatRunPort, type Store } from "@/features/chat/core/index";
+import { trashNoteChats, trashNoteChatsOnImport, type ChatRunPort, type Store, type TurnContributor } from "@/features/chat/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { NoteService } from "./notes";
 import { noteRoutes } from "./routes/notes";
+import { moveNoteToolGroup, openNoteToolGroup } from "./tools";
+import { noteTurnParts } from "./turnParts";
 
 export type { NoteService } from "./notes";
 
@@ -16,7 +18,7 @@ export interface NotesDeps {
   /** ノートの案を AI に聞く */
   ai: AiApi;
   /** ノートのチャット */
-  chat: { runner: ChatRunPort; store: Store };
+  chat: { runner: ChatRunPort; store: Store; addTurnContributor(c: TurnContributor): void };
   /** ノートの写しを添付にし、ツールの結果の画像はノートのフォルダからも読む */
   attachments: AttachmentsApi;
   /** DB の接続の手順ノートを付け替える（ノートの名前を変えた・動かしたとき。database はあとに作るので組み立てが渡す） */
@@ -41,10 +43,15 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
   trash.addImportHook((item) => trashNoteChatsOnImport({ store, runner: chat.runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
   deps.attachments.addImageDir((p) => notes.dirOf(p));
+  deps.attachments.useNoteDir((p) => notes.dirOf(p));
+  // チャットの実行に、ノートのフォルダ・「ノート」の節・ノートのチャットの知らせを足す
+  chat.addTurnContributor(noteTurnParts({ dirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }));
+  const toolDeps = { store, notes, publish: (e: Parameters<typeof bus.publish>[0]) => bus.publish(e) };
   return {
     name: "notes",
     api: notes,
     routes: [{ legacy: (app) => noteRoutes(app, { store, notes, runner: chat.runner, uploads: deps.attachments.uploads }) }],
+    aiTools: [openNoteToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
     stop: () => notes.close(),
   };
 }
