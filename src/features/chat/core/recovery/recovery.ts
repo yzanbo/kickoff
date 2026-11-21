@@ -9,6 +9,7 @@ import { resumePrompt } from "@shared/chat/prompts";
 import { Poller } from "./poller";
 import { canReachApi } from "./reachability";
 import type { ProviderId } from "@shared/settings/types";
+import { PROVIDERS } from "@shared/ai/providers";
 
 /** つながったかを確かめる間隔 */
 const ONLINE_CHECK_MS = 15_000;
@@ -41,8 +42,8 @@ export class ChatRecovery {
       send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が枠の戻る時刻を知らせなかったときに使う） */
       usage?: { limitResetAt(id: ProviderId): Promise<string | null> };
-      /** つながったかの確かめ方と間隔（テストで差し替える） */
-      reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
+      /** つながったかの確かめ方（url: チャットの AI の確かめ先）と間隔（テストで差し替える） */
+      reconnect?: { check?: (url: string) => Promise<boolean>; intervalMs?: number };
       /** 枠が戻ったかを確かめる時計と間隔（テストで差し替える） */
       usageLimit?: { now?: () => number; checkMs?: number };
     },
@@ -53,9 +54,11 @@ export class ChatRecovery {
       intervalMs: deps.reconnect?.intervalMs ?? ONLINE_CHECK_MS,
       active: () => this.waiting("online").length > 0,
       tick: async () => {
-        if (this.waiting("online").length === 0 || !(await check().catch(() => false))) return;
-        // 確かめている間に待ち始めたチャットも、いまつながっているので一緒に再開する
-        for (const chatId of this.waiting("online")) deps.dispatch(chatId, { type: "online" });
+        // チャットの AI ごとに、その AI の先に届くかを確かめる（確かめている間に待ち始めたチャットも、いまつながっているので一緒に再開する）
+        for (const url of new Set(this.waiting("online").map((chatId) => this.reachabilityOf(chatId)))) {
+          if (!(await check(url).catch(() => false))) continue;
+          for (const chatId of this.waiting("online")) if (this.reachabilityOf(chatId) === url) deps.dispatch(chatId, { type: "online" });
+        }
       },
     });
     this.clock = new Poller({ intervalMs: deps.usageLimit?.checkMs ?? CLOCK_CHECK_MS, active: () => this.waiting("clock").length > 0, tick: () => this.checkClock() });
@@ -134,6 +137,11 @@ export class ChatRecovery {
     if (waiting.length === 0) return;
     const now = this.now();
     for (const chatId of waiting) this.deps.dispatch(chatId, { type: "clock", now });
+  }
+
+  /** チャットの AI の、つながったかを確かめる先 */
+  private reachabilityOf(chatId: number): string {
+    return PROVIDERS[this.deps.store.chats.get(chatId)?.provider ?? "claude"].reachability;
   }
 
   /** その条件を待っているチャット */

@@ -46,7 +46,7 @@ export class Runner extends RunnerShell {
     protected readonly deps: ExecutionDeps & {
       usage: UsageMonitor;
       /** つながったかの確かめ方と間隔（テストで差し替える） */
-      reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
+      reconnect?: { check?: (url: string) => Promise<boolean>; intervalMs?: number };
       /** 使用枠が戻ったかを確かめる時計と間隔（テストで差し替える） */
       usageLimit?: { now?: () => number; checkMs?: number };
       /** 書き直している印の持ち時間（テストで差し替える） */

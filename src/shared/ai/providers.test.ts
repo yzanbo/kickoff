@@ -25,3 +25,8 @@ test("「できる・できない」は前の AI の名前の分かれ道と同�
   for (const capability of ["any_model", "fast_mode", "effort_default", "plan_usage"] as const) assert.deepEqual(can(capability), ["claude"]);
   assert.deepEqual(can("model_effort_default"), ["codex"]);
 });
+
+test("つながったかを確かめる先は AI ごと（Codex は OpenAI の API、ほかはまだ Anthropic の API）", () => {
+  assert.equal(PROVIDERS.claude.reachability, "https://api.anthropic.com/");
+  assert.equal(PROVIDERS.codex.reachability, "https://api.openai.com/");
+});

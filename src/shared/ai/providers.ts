@@ -49,7 +49,12 @@ export interface ProviderInfo {
   installHint: string | null;
   /** 本物の実装のときにできること（対応予定の AI のときは空として扱う） */
   capabilities: readonly ProviderCapability[];
+  /** つながったかを確かめる先（通信の切断で止まったあと、返事があれば再開する。その AI の API） */
+  reachability: string;
 }
+
+/** つながったかを確かめる先の既定（Anthropic の API。ほかの AI は、その AI の先が決まるまでこれ） */
+const ANTHROPIC_API = "https://api.anthropic.com/";
 
 export const PROVIDERS = {
   claude: {
@@ -60,6 +65,7 @@ export const PROVIDERS = {
     mark: "claude",
     installHint: null,
     capabilities: ["fork", "rewind_files", "subagent_log", "commands", "models", "ask", "sessions", "effort_default", "sandbox_off", "sandbox_diagnostics", "switch", "any_model", "fast_mode", "plan_usage", "pay_as_you_go"],
+    reachability: ANTHROPIC_API,
   },
   codex: {
     label: PROVIDER_LABELS.codex,
@@ -69,8 +75,9 @@ export const PROVIDERS = {
     mark: "letter",
     installHint: "codex CLI が見つかりません（brew install codex）",
     capabilities: ["fork", "models", "ask", "login", "sandbox_off", "sandbox_diagnostics", "switch", "model_effort_default", "pay_as_you_go"],
+    reachability: "https://api.openai.com/",
   },
-  copilot: { label: PROVIDER_LABELS.copilot, short: null, cli: "copilot", hue: 280, mark: "letter", installHint: null, capabilities: ["fork", "models", "ask"] },
+  copilot: { label: PROVIDER_LABELS.copilot, short: null, cli: "copilot", hue: 280, mark: "letter", installHint: null, capabilities: ["fork", "models", "ask"], reachability: ANTHROPIC_API },
   cursor: {
     label: PROVIDER_LABELS.cursor,
     short: null,
@@ -79,6 +86,7 @@ export const PROVIDERS = {
     mark: "letter",
     installHint: "Cursor の CLI（agent）が見つかりません（curl https://cursor.com/install -fsS | bash）",
     capabilities: ["ask"],
+    reachability: ANTHROPIC_API,
   },
   gemini: {
     label: PROVIDER_LABELS.gemini,
@@ -88,6 +96,7 @@ export const PROVIDERS = {
     mark: "letter",
     installHint: "Antigravity CLI（agy）が見つかりません（brew install --cask antigravity-cli）",
     capabilities: ["ask"],
+    reachability: ANTHROPIC_API,
   },
 } as const satisfies Record<ProviderId, ProviderInfo>;
 
