@@ -52,8 +52,6 @@ export class ChatRun {
   pendingNote: string | null = null;
   /** 記録から導く印（記録を足すたびに recordEvent が進める。もう圧縮前指示を送ったかは preCompactSent(marks)） */
   marks: TurnMarks;
-  /** AI の書き込み先の守りの承認カードで「このチャットでは許可」を選んだファイル（実体のパス。作業をまたいで持ち、保存しない = アプリを終えたら聞き直す） */
-  readonly writeAllowed = new Set<string>();
   /** AI が予約した作業場所の移動（ChatLive の workplace_move。中身は workplaceReservation.ts が持つ） */
   private moveShown: WorkplaceMoveReservation | null = null;
   /** 最後に終わった実行の結果の状態（作業していないに戻ったときに chats.status へ書く。続けて次の作業を動かしたら、その作業の結果で置き換える） */

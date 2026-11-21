@@ -1,6 +1,6 @@
 // kickoff_chat の組（チャットを AI が操作するツール）の並び（order）。chat のツールは定義ごと家系（aiChatEdit.ts）・開く（open.ts）・読む（read.ts）・消す（remove.ts）、
-// まだ持ち主の機能へ移していないもの（作る・ノート・ターミナル・図・ワークツリー・利用者の画面・作業場所）は各機能の chat…Tools.ts。
-// 通知の notify_user（order 100）・使用枠の get_usage（ai。order 50）のように、機能が CoreFeature.aiTools で出す組もレジストリが同じ並びに入れる（同じ order ならここの組が先）
+// まだ持ち主の機能へ移していないもの（ノート・ターミナル）は各機能の chat…Tools.ts。
+// 砂場の診断（guard。order 10）・通知の notify_user（order 100）・使用枠の get_usage（ai。order 50）のように、機能が CoreFeature.aiTools で出す組もレジストリが同じ並びに入れる（同じ order ならここの組が先）
 import type { AiToolDef, AiToolGroup, AiTurn } from "@/foundation/core/aiTools/tool";
 import type { ExecutionDeps } from "@/features/chat/core/turn";
 import { familyToolGroup } from "./aiChatEdit";
@@ -13,8 +13,6 @@ import { createAiTerminalTools } from "@/features/terminal/core/aiTerminal";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools";
 import { TERMINAL_INSTRUCTIONS, terminalTools } from "@/features/terminal/core/chatTerminalTools";
-import { DIAGNOSTIC_INSTRUCTIONS, diagnosticTools } from "@/features/guard/core/chatDiagnosticTools";
-import type { AiSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 
 /** kickoff_chat の使い方の頭の 1 文 */
 export const CHAT_TOOLS_HEAD = "Kickoff（このチャットを動かしているアプリ）のチャットなどを操作するツール。";
@@ -24,13 +22,12 @@ const chatGroup = (order: number, instructions: readonly string[], open: (turn: 
 
 /**
  * 1 回の実行に渡す、チャットを操作するツールの組（order は使い方の文とツールの並び。どれも聞かずに使わせる）。
- * 中身は作業ごとに作り（1 回の作業の上限はその中で数える）、口がないもの（バス・ターミナル・後始末など）は出さない。diagnostics はこの作業の砂場の診断
+ * 中身は作業ごとに作り（1 回の作業の上限はその中で数える）、口がないもの（バス・ターミナル・後始末など）は出さない
  */
-export function chatToolGroups(deps: ExecutionDeps, diagnostics: AiSandboxDiagnostics | null): AiToolGroup[] {
+export function chatToolGroups(deps: ExecutionDeps): AiToolGroup[] {
   const { store } = deps;
   const isBusy = deps.isBusy ?? (() => false);
   return [
-    chatGroup(10, DIAGNOSTIC_INSTRUCTIONS, () => (diagnostics ? diagnosticTools(diagnostics) : null)),
     // 同じ家系のチャットの名前・固定・グループを変える（孫チャット・子チャットを作らせない設定のときも出す）
     familyToolGroup({ store, isBusy }),
     // このプロジェクトのノート・同じ家系のチャットを画面に開く（画面に頼む口（バス）があるときだけ）

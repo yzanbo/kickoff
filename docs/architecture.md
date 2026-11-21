@@ -29,7 +29,7 @@
 | 定型文（チャット欄の中の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`src/features/snippets/` |
 | 音声入力（マイク。話した言葉を文字にして入力欄に入れる）・音声モード（波形。話し終わったら送るか入力欄に入れ、AI の返答を声で読み上げる会話） | `useDictation` / `useVoiceMode`・`VoiceSession`・読み上げ `Speaker`（`src/features/voice/ui/`）・コアの `VoiceService` |
 | 圧縮前指示（会話を圧縮する前に AI に送る指示。ノートを残してもらうなど。設定の共通の指示 → プロジェクトの指示の順につなぐ。それぞれオン / オフを切り替えられ、オフなら文を残したまま送らない） | 設定・プロジェクトの `pre_compact_prompt` / `pre_compact_enabled`・`@shared/chat/prompts` の `compactPromptFor`・記録の `user.pre_compact`・`src/features/compact/core/preCompact.ts`・PreCompact フック `core/providers/claude/preCompact.ts` |
-| 圧縮後指示（会話を圧縮したあと、圧縮の間に預かった指示より先に AI に送る指示。ノートを読み直してもらうなど。つなぎ方は圧縮前指示と同じ） | 設定・プロジェクトの `post_compact_prompt` / `post_compact_enabled`・`@shared/chat/prompts` の `postCompactMessage`・記録の `user.post_compact`・送信待ちの `QueuedMessage.post_compact`・`src/features/compact/core/preCompact.ts` の `postCompactPromptOf` |
+| 圧縮後指示（会話を圧縮したあと、圧縮の間に預かった指示より先に AI に送る指示。ノートを読み直してもらうなど。つなぎ方は圧縮前指示と同じ） | 設定・プロジェクトの `post_compact_prompt` / `post_compact_enabled`・`@shared/chat/prompts` の `postCompactMessage`・記録の `user.post_compact`・送信待ちの `QueuedMessage.post_compact`・`@shared/chat/prompts` の `compactPromptFor` |
 | プロジェクトフォルダ（プロジェクトに登録したフォルダ。AI が作業する所。git のリポジトリの中のフォルダでもよい。「フォルダ」「プロジェクトのフォルダ」「本体のフォルダ」とは呼ばない。ワークツリーと並べるときだけ「本体」） | `Project.repo_path`（`PUT /api/projects/:id/repo-path`・`changeProjectFolder`。AI へはシステムプロンプトの「プロジェクトフォルダ」） |
 | 作業フォルダ（そのチャットの AI が実際に作業する所。本体で作業するならプロジェクトフォルダ、ワークツリーならその中の同じ位置） | `workdirOf(chat, project)`（`chat.worktree_path ?? project.repo_path`） |
 | ノートフォルダ（「ノート」タブのノートを置くフォルダ。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わらない） | `NoteService.dirOf(project)`（`note_dir` か、設定の `notes_dir` の下の `note_folder`） |

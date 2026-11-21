@@ -8,6 +8,7 @@ import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { browserToolGroup } from "@/features/browser/core/browserTools";
 import { dbToolGroup } from "@/features/database/core/dbTools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
+import { diagnosticToolGroup } from "@/features/guard/core/index";
 import { usageToolGroup } from "@/features/ai/core/tools";
 import { createChatToolGroup } from "@/features/childChats/core/tools";
 import { worktreeToolGroup } from "@/features/worktrees/core/tools";
@@ -68,7 +69,7 @@ async function describeTools(host: McpToolHost, endpoints: NonNullable<ProviderT
 }
 
 /**
- * 本物の起動（startCore）と同じく、どのチャットにも出すツールの中身（ターミナル・利用者が見ているもの・砂場の診断・ワークツリーの後始末・
+ * 本物の起動（startCore）と同じく、どのチャットにも出すツールの中身（ターミナル・利用者が見ているもの・砂場の診断（guard の組）・ワークツリーの後始末・
  * チャットの削除・使用枠・チャットを作る・作業場所を移す・図・通知の組）を渡して組み立て、send で送った実行で AI に見せたものを返す（ブラウザ・DB は場合ごとに options と groups で足す）
  */
 async function toolsSeenBy(send: (core: Core) => Promise<number>, options: RunnerOptions = {}, groups: (core: Core) => AiToolGroup[] = () => []): Promise<ListedServer[]> {
@@ -89,6 +90,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   core.runner.attach({
     worktreeFinisher: finisher,
     aiTools: [
+      diagnosticToolGroup,
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), worktreeEnvs: () => undefined }),
       worktreeToolGroup(finisher),

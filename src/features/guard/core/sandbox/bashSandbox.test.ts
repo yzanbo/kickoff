@@ -48,7 +48,7 @@ test("書ける場所: 作業場所・ノートのフォルダ・共有の .git�
   const ref = tempDir({ real: true });
   const sandbox = await bashSandboxFor(
     { rules: rules(["/opt/somewhere"], ["brew install:*"]), proxyPort: 4321, trashDir: trash },
-    { workdir: wt, noteDir: note, readOnlyDirs: [ref] },
+    { workdir: wt, writableDirs: [note], readOnlyDirs: [ref] },
   );
   const home = os.homedir();
   for (const dir of [wt, note, path.join(repo.dir, ".git"), path.join(repo.dir, ".claude", "worktrees"), trash, "/opt/somewhere"]) {
@@ -71,14 +71,14 @@ test("Electron を使う作業場所だけ、Electron を起動するスクリ�
     fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ scripts: { dev: "electron-vite dev", build: "electron-vite build" }, devDependencies: deps }));
   const deps = { rules: rules(), proxyPort: null, trashDir: null };
   pkg({ vite: "1" });
-  assert.deepEqual((await bashSandboxFor(deps, { workdir: dir, noteDir: null, readOnlyDirs: [] })).unsandboxedCommands, []);
+  assert.deepEqual((await bashSandboxFor(deps, { workdir: dir, writableDirs: [], readOnlyDirs: [] })).unsandboxedCommands, []);
   pkg({ electron: "39" });
-  const commands = (await bashSandboxFor(deps, { workdir: dir, noteDir: null, readOnlyDirs: [] })).unsandboxedCommands;
+  const commands = (await bashSandboxFor(deps, { workdir: dir, writableDirs: [], readOnlyDirs: [] })).unsandboxedCommands;
   assert.ok(commands.includes("npm run dev:*"));
   assert.ok(!commands.some((c) => c.includes("build")));
   for (const c of ELECTRON_DIRECT_COMMANDS) assert.ok(commands.includes(c));
   // Git でないフォルダでも作れる（共有の .git はない）
-  assert.ok(!(await bashSandboxFor(deps, { workdir: dir, noteDir: null, readOnlyDirs: [] })).writableDirs.some((d) => d.endsWith(`${path.sep}.git`)));
+  assert.ok(!(await bashSandboxFor(deps, { workdir: dir, writableDirs: [], readOnlyDirs: [] })).writableDirs.some((d) => d.endsWith(`${path.sep}.git`)));
 });
 
 test("システムプロンプトの砂場の行: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える", () => {

@@ -14,6 +14,8 @@ import { createVoice } from "@/features/voice/core/index";
 import { createDevices, type DevicesApi } from "@/features/devices/core/index";
 import { createChat, type ChatApi } from "@/features/chat/core/index";
 import { createGuard } from "@/features/guard/core/index";
+import { createCompact } from "@/features/compact/core/index";
+import { createProviderSwitch } from "@/features/providerSwitch/core/index";
 import { createSubagents } from "@/features/subagents/core/index";
 import { createChildChats } from "@/features/childChats/core/index";
 import { createWorkplaceMove } from "@/features/workplaceMove/core/index";
@@ -82,12 +84,14 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // 利用者が見ているもの（並びは通知の前のまま。送ったときの様子をチャットの送る口から受けるので、チャットのあとに作る）
   const userView = createUserView({ chat: chat.api });
   // ここからはチャットの上の機能
-  const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });
+  const guard = createGuard({ trash: trash.api, ai: ai.api, chat: chat.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });
+  const compact = createCompact({ chat: chat.api });
   const subagents = createSubagents({ chat: chat.api });
   // ワークツリー・ターミナルはあとに作るので、呼ばれたときに引く
   const childChats = createChildChats({ chat: chat.api, ai: ai.api, worktreeEnvs: () => worktrees.api.envs });
   const visuals = createVisuals({ chat: chat.api });
   const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
+  const providerSwitch = createProviderSwitch({ chat: chat.api, uploads: attachments.api.uploads });
   const workplaceMove = createWorkplaceMove({ chat: chat.api, worktreeFinisher: () => worktrees.api.finisher, terminals: () => terminal.api });
   const files = createFiles({ trash: trash.api, chat: chat.api });
   const git = createGit(k, { chat: chat.api });
@@ -102,7 +106,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
   chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
-  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, subagents, childChats, visuals, remoteImages, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
+  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
   // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
   chat.api.attach({
@@ -112,7 +116,6 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
     worktreeFinisher: worktrees.api.finisher,
     terminals,
     browser: browser.api,
-    ...guard.api,
     remoteImages: remoteImages.api,
     aiTools: features.flatMap((f) => f.aiTools ?? []),
   });

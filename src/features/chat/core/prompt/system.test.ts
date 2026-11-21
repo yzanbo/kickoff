@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
 import type { LinkOpenTarget } from "@shared/settings/types";
-import { browserSection, noteSection, projectSection, referenceSection, sandboxSection, TRASH_SECTION, WORK_SECTION } from "./system";
+import { browserSection, noteSection, projectSection, referenceSection, TRASH_SECTION, WORK_SECTION } from "./system";
 import { joinSections } from "./sections";
 import { testStore } from "@/app/core/testing/testStore";
 
@@ -13,7 +13,7 @@ function buildSystemPrompt(p: Project, workdir = p.repo_path, note?: { dir: stri
     projectSection(p, workdir, opts.editScopeEnabled),
     WORK_SECTION,
     ...(opts.trash ? [TRASH_SECTION] : []),
-    ...(opts.sandboxLines ? [sandboxSection(opts.sandboxLines)] : []),
+    ...(opts.sandboxLines ? [{ order: 220, heading: null, lines: opts.sandboxLines }] : []), // 砂場の行（guard の contributor が作る節）
     ...(opts.browser ? [browserSection(opts.browser)] : []),
     ...(note ? [noteSection(note)] : []),
     ...(references ? [references] : []),

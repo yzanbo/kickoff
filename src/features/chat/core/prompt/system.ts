@@ -64,9 +64,6 @@ export const TRASH_SECTION: PromptSection = {
   ],
 };
 
-/** 作業の進め方の続き: Bash の砂場の行（guard が作る） */
-export const sandboxSection = (lines: string[]): PromptSection => ({ order: 220, heading: null, lines });
-
 /** ブラウザのツールの説明を読む前にも、どの AI にも利用者が選んだ開き先を伝える */
 export function browserSection(target: LinkOpenTarget): PromptSection {
   return {

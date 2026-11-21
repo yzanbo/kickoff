@@ -37,7 +37,7 @@
 - `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけ。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
 - 分岐の起点（`result` の `session_id`・`message_id`）は最後まで終わったときだけ残す。
 - 終わりにすることは `machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
-- 砂場の診断（guard）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
+- `afterTurn` は後の order から、集める前の失敗でも 1 回呼ぶ（引き継ぎを戻す）。
 
 ## 作業中の様子（ChatLive）
 

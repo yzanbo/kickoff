@@ -37,6 +37,9 @@ export type { ChatRunner, ChatRunPort } from "./run/runner";
 export type { ChatRunLookup } from "./run/chatRun";
 export type { TurnContributor } from "./run/turn/contributor";
 export type { PromptSection } from "./prompt/sections";
+export { appendSections } from "./prompt/compose";
+export { readOnlyReferences } from "./turnFolders";
+export { preCompactSent } from "./run/machine/marks";
 export type { ChatAttachments } from "./ports";
 export type { Store } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
@@ -81,10 +84,6 @@ export interface ChatUpper {
   worktreeFinisher: NonNullable<ShellUpperDeps["worktreeFinisher"]>;
   terminals: NonNullable<ExecutionDeps["terminals"]>;
   browser: ExecutionDeps["browser"];
-  bashSandbox: ExecutionDeps["bashSandbox"];
-  sandboxDiagnostics: ExecutionDeps["sandboxDiagnostics"];
-  /** 実行ごとの守りの門を作る口（guard） */
-  toolGate: ExecutionDeps["toolGate"];
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
   /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */
@@ -107,6 +106,8 @@ export interface ChatApi {
   attach(upper: ChatUpper): void;
   /** 実行に足すもの（環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること）を登録する（上の機能が createX の中で呼ぶ。AI のツールは CoreFeature.aiTools） */
   addTurnContributor(c: TurnContributor): void;
+  /** チャットを消したとき（作業中の状態を捨てたあと。上の機能がチャットごとの覚えを捨てる） */
+  onForget(fn: (chatId: number) => void): void;
   /** 送る指示を受けたとき（本文の user_view はそのまま渡す。形を確かめるのは聞く側。fromHost = この Mac の画面から送った） */
   onUserSend(fn: (chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void): void;
   /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
@@ -208,6 +209,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
         runner.attach({ ...rest, notes, noteDirOf: (project) => notes.dirOf(project) });
       },
       addTurnContributor: (c) => void contributors.push(c),
+      onForget: (fn) => runner.onForget(fn),
       onUserSend: (fn) => void sendHooks.push(fn),
       onChatsPurged: (fn) => void purged.push(fn),
       titlesOf,

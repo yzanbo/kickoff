@@ -5,7 +5,7 @@ import { preparations } from "./preparations";
 import { restartResumes } from "./restartResumes";
 import { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { ChatRunState, TurnOutcome } from "@/features/chat/core/run/machine/types";
-import { preCompactPromptOf, WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
+import { WorkplaceReservations, type WorkplaceMoveInput, type WorkplaceMovePlan, type WorkplaceMoveSteps } from "@/features/chat/core/runner";
 import type { StartChatInput } from "@/features/chat/core/input";
 import type { UsageMonitor } from "@/features/ai/core/index";
 import { systemClock, type Clock } from "@/foundation/core/clock";
@@ -13,6 +13,7 @@ import type { ChatLive, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
 import type { SendOpts } from "./queueWindow";
+import { compactPromptFor } from "@shared/chat/prompts";
 
 /** 殻を組み立てるのに使うもの */
 export type RunnerDeps = ExecutionDeps & ShellUpperDeps & {
@@ -60,7 +61,7 @@ export function createChatRunner(deps: RunnerDeps) {
     {
       preCompactOf: (projectId) => {
         const project = deps.store.projects.get(projectId);
-        return project ? preCompactPromptOf(deps.store, project) : null;
+        return project ? compactPromptFor("pre", deps.store.settings.get(), project) : null;
       },
       turnEndTasks: (chatId, run, effect) => prep.turnEndTasks(chatId, run, effect),
     },
@@ -70,6 +71,8 @@ export function createChatRunner(deps: RunnerDeps) {
   const workplaceMoves = new WorkplaceReservations(shell.runs);
   const prep = preparations(shell, workplaceMoves);
   const restart = restartResumes(shell);
+  // チャットを消したときに聞く上の機能（守りの「このチャットでは許可」の覚えを捨てる）
+  const forgetHooks: ((chatId: number) => void)[] = [];
   // 1 回の実行に渡すもの（AI の update_chat が作業中の子チャットを外すのを断るため、作業中かの口を足す）
   shell.turnDeps = { ...shell.deps, isBusy: (chatId) => shell.isBusy(chatId) };
   shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
@@ -98,7 +101,7 @@ export function createChatRunner(deps: RunnerDeps) {
     },
 
     /** 上の機能の口（ノート・DB・Docker・ワークツリーの実行環境と後始末・内蔵ターミナル・ブラウザ・AI のツールの組）を渡す。上の機能は殻を使うので、組み立ての最後に渡す（渡すまでは AI にそのツールを出さない） */
-    attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "terminals" | "browser" | "aiTools" | "bashSandbox" | "sandboxDiagnostics" | "toolGate"> & ShellUpperDeps) {
+    attach(upper: Pick<ExecutionDeps, "notes" | "noteDirOf" | "databases" | "terminals" | "browser" | "aiTools"> & ShellUpperDeps) {
       Object.assign(shell.deps, upper);
       Object.assign(shell.turnDeps, upper);
     },
@@ -117,6 +120,12 @@ export function createChatRunner(deps: RunnerDeps) {
     forget(chatId: number) {
       if (shell.runs.peek(chatId)) shell.dispatch(chatId, { type: "forget_recovery" });
       shell.forget(chatId);
+      for (const fn of forgetHooks) fn(chatId);
+    },
+
+    /** チャットを消したときに聞く（作業中の状態を捨てたあと） */
+    onForget(fn: (chatId: number) => void) {
+      forgetHooks.push(fn);
     },
 
     /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順） */

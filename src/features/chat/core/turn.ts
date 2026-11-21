@@ -10,13 +10,11 @@ import type { Clock } from "@/foundation/core/clock";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { DatabaseService } from "@/features/database/core/service";
-import type { ToolGateFactory, UsageMonitor } from "@/features/ai/core/index";
+import type { UsageMonitor } from "@/features/ai/core/index";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { TrashCommand } from "@/features/trash/core/command";
-import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import type { SessionTrash } from "./sessionSwitch";
 import type { Store } from "@/features/chat/core/stores";
-import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { UploadStore } from "@/features/attachments/core/uploads";
@@ -24,22 +22,17 @@ import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
+export type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
 import type { ChatAttachments } from "./ports";
 
 export { knownModel } from "@/features/ai/core/providers/modelCatalog";
-export { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 export { githubEnvForGit, runAsGitHubAccount } from "@/features/github/core/githubAccount";
 export type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
-export { bashSandboxFor, sandboxPromptLines } from "@/features/guard/core/sandbox/bashSandbox";
-export { autoPreCompactParams, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
-export { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 
 /** 実行に使うもの（殻から受け取る） */
 export interface ExecutionDeps {
   /** 時計（作業を始めた時刻・圧縮を始めた時刻。省けば本物） */
   clock?: Pick<Clock, "iso">;
-  /** OS の拒否ログを安全に読み取る口（実行ごとに診断を作る） */
-  sandboxDiagnostics?: import("@/features/guard/core/sandboxDiagnosticsPlatform").SandboxDiagnosticsPlatform;
   store: Store;
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
@@ -62,18 +55,14 @@ export interface ExecutionDeps {
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
   isBusy?: (chatId: number) => boolean;
   /**
-   * AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れる。trash/command.ts）。あれば PATH などを渡し、rm・git clean などを断る守りを付ける。
-   * なければ（置けなかった・テスト）付けない
+   * AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れる。trash/command.ts）。あれば PATH などを渡す（rm・git clean などを断る守りは guard が付ける）。
+   * なければ（置けなかった・テスト）渡さない
    */
   trashCommand?: TrashCommand;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
-  /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */
-  bashSandbox?: BashSandboxDeps;
-  /** 実行ごとの守りの門を作る口（guard が出す。なければ権限モードだけで答える門） */
-  toolGate?: ToolGateFactory;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。なければツールを出さない（テスト）） */
   toolHost?: Pick<McpToolHost, "open">;
   /** 上の機能が出した AI のツールの組（組み立てが全部の機能の CoreFeature.aiTools を集めて渡す。chat の組と同じ並びで出す） */
@@ -90,21 +79,4 @@ export interface ShellUpperDeps {
   worktreeEnvs?: WorktreeEnvService;
   /** ワークツリーの後始末（片付けを予約したワークツリーへは移さない） */
   worktreeFinisher?: WorktreeFinisher;
-}
-
-/** 1 回の実行の依頼（送った指示。すぐ動かす） */
-export interface TurnRequest {
-  chatId: number;
-  prompt: string;
-  /** 指示の ID（自分の発言の記録の message_uuid。ファイルを戻すときの目印） */
-  promptId?: string;
-  /** 会話の要約（/compact）。発言・結果としては残さず、未読にもしない */
-  compact?: boolean;
-  /**
-   * 圧縮のきっかけ（compact のとき。省けば手で圧縮した manual）。自動の圧縮の前の圧縮前指示の作業が、圧縮しないまま終わったときに
-   * Runner が続けて圧縮する実行は auto（上限に近づいて Claude Code が始めようとした圧縮を、作業の終わりで済ませる）
-   */
-  compactTrigger?: CompactTrigger;
-  /** 再試行時に資料と同時に取った送信中の印。ほかの操作へ渡さない。 */
-  claimedHandoffEventId?: number;
 }

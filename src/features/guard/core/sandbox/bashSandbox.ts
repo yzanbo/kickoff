@@ -85,13 +85,13 @@ function realDirs(dirs: (string | null)[]): string[] {
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
  * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）
  */
-export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, noteDir, readOnlyDirs }: { workdir: string; noteDir: string | null; readOnlyDirs: string[] }): Promise<SandboxPlan> {
+export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, writableDirs, readOnlyDirs }: { workdir: string; writableDirs: string[]; readOnlyDirs: string[] }): Promise<SandboxPlan> {
   const home = os.homedir();
   const [commonDir, platformDirs, electronCommands] = await Promise.all([gitCommonDir(workdir), deps.rules.writableDirs(), electronCommandsOf(workdir)]);
   // Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）。共有の .git が <リポジトリ>/.git のときだけ分かる
   const subagentWorktrees = commonDir && path.basename(commonDir) === ".git" ? path.join(path.dirname(commonDir), ".claude", "worktrees") : null;
   return {
-    writableDirs: realDirs([workdir, noteDir, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
+    writableDirs: realDirs([workdir, ...writableDirs, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
     readOnlyDirs: realDirs(readOnlyDirs),
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,
