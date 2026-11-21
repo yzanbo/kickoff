@@ -11,7 +11,7 @@ import { ChatRecovery } from "./recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { exhaustedResetOf, type ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
-import type { TurnOutcome } from "@/features/chat/core/turn";
+import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { tick, until } from "@/app/core/testing/testCore";
 
 const RESET = "2026-11-04T10:30:00.000Z";

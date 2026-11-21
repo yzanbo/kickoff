@@ -1,5 +1,5 @@
 import type { Store } from "@/features/chat/core/stores";
-import type { StoppedAgent, TurnOutcome } from "@/features/chat/core/turn";
+import type { StoppedAgent, TurnOutcome } from "./types";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import { resumePrompt, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { ProviderId } from "@shared/settings/types";

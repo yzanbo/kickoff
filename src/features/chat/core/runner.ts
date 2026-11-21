@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn";
+import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest } from "./turn";
 import { RunnerQueue, type SendOpts } from "./runnerQueue";
 import { outboxEnv, type ChatRuntime } from "./runtime";
 import { ChatRuntimes } from "./runtimes";
 import { newMessage, resetOptions } from "@shared/chat/outbox";
 import { parkNow } from "@/features/chat/core/run/machine/outbox";
-import { compactByOf, turnKindOf } from "./turnState";
+import { compactByOf, noCompaction, turnKindOf } from "./turnState";
+import { onSettled, onTurnEnded } from "@/features/chat/core/run/machine/turnEnd";
+import type { ChatRunState, Effect, TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { recordEvent } from "@/features/chat/core/run/record";
 import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import { ChatRecovery } from "@/features/chat/core/recovery/recovery";
@@ -942,37 +944,35 @@ export class Runner extends RunnerQueue {
     try {
       outcome = await executeTurn(this.turnDeps, runtime, item, controller.signal);
     } finally {
-      // 作業ごとの状態を捨てる（停止中・圧縮したやり取り・足せなかった「いま」を預かる間も終わり、このあとの deliverHeld で送る）
-      const ended = runtime.turn;
+      // 作業ごとの状態を捨て（停止中・圧縮したやり取り・足せなかった「いま」を預かる間も終わる）、次にすることを決まり（machine/turnEnd.ts）で決めて行う
+      const ended = runtime.turn ?? { kind: turnKindOf(item, runtime), compaction: noCompaction() };
       runtime.endTurn();
-      // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため。アプリを終えるときも送らない）
-      // 切り替えた AI への引き継ぎが未確定なら、通常の自動再接続・送信待ちを進めない。
-      const finished = this.handoffAllows(item.chatId) && this.recovery.finished(item.chatId, outcome) && !this.shuttingDown;
-      // 圧縮前指示の作業が最後まで終わって、まだ圧縮していなければ、続けて圧縮する（手で頼んだ圧縮の前の指示 = thenCompact、
-      // 自動の圧縮の前の指示で、作業の区切りまで圧縮が来なかったもの = compaction.awaiting。次の指示を送ると、その初めに圧縮されて、指示が圧縮より上に出るため）。止めた・失敗したときは圧縮しない
-      const compactNext = finished && outcome.status === "completed" && !item.compact && (Boolean(item.thenCompact) || Boolean(ended?.compaction.awaiting));
-      const manual = Boolean(item.thenCompact) || Boolean(ended?.compaction.afterTurn);
-      // 続けて圧縮しないなら、圧縮前指示から圧縮が終わるまでの「いま」を預かる間も終わる
-      if (!compactNext) runtime.patchTurn({ compaction: { awaiting: false } });
-      this.deps.usage.refreshPolled();
-      const next = () => {
-        if (compactNext) {
-          this.compactNow(item.chatId, manual ? "manual" : "auto");
-        } else if (runtime.outbox.now.length > 0) {
-          // 圧縮が終わるまで預かった「いま」を、送信待ちより先に送る
-          this.deliverHeld(item.chatId, finished);
-        } else if (finished) {
-          // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る）。
-          // 次が圧縮の行（作業中に予約した圧縮も）なら圧縮し、圧縮が終わったら、その終わりで送信待ちの次を送る
-          void this.sendNextQueued(item.chatId);
-        }
-      };
-      // AI が作業場所を移す予約: 最後まで終わったら、いつもの処理より先に移す。止めた・失敗したら移さずに予約を消す
-      const move = this.workplaceMoves.take(item.chatId);
-      if (move && finished && outcome.status === "completed") void this.moveThenContinue(item.chatId, move, next);
+      const gates = { handoff: this.handoffAllows(item.chatId) ? this.handoffGate(item.chatId) : "blocked" } as const, phase = { kind: "turn", turn: ended.kind, compaction: ended.compaction } as const;
+      const { state, effects } = onTurnEnded({ phase, outbox: runtime.outbox, gates, awaitingCompact: runtime.compaction.awaiting }, outcome, { shuttingDown: this.shuttingDown, hasTurnEndTasks: runtime.state.workplaceMove !== null });
+      runtime.patchTurn({ compaction: { awaiting: state.awaitingCompact } });
+      this.runEffects(item.chatId, state, effects);
+    }
+  }
+
+  /** 決まりが返した命令を順に行う（作業の終わりにすること = AI が予約した作業場所の移動は、済んでから続きを onSettled で決め直す） */
+  private runEffects(chatId: number, state: ChatRunState, effects: Effect[]) {
+    const runtime = this.runtimes.get(chatId);
+    for (const effect of effects) {
+      if (effect.do === "end_recovery") this.recovery.finished(chatId, effect.outcome);
+      else if (effect.do === "refresh_usage") this.deps.usage.refreshPolled();
+      else if (effect.do === "start_turn") this.compactNow(chatId, effect.trigger);
+      else if (effect.do === "deliver_held") this.deliverHeld(chatId, effect.sendNow);
+      else if (effect.do === "send_next") void this.sendNextQueued(chatId);
       else {
-        if (move && !this.shuttingDown) recordEvent(this.deps.store, runtime, { type: "notice", message: notMovedNotice(move) });
-        next();
+        const move = this.workplaceMoves.take(chatId);
+        if (effect.do === "drop_turn_end_tasks") {
+          if (move && effect.notice) recordEvent(this.deps.store, runtime, { type: "notice", message: notMovedNotice(move) });
+        } else if (move) {
+          void this.moveThenContinue(chatId, move, () => {
+            const settled = onSettled({ ...state, outbox: runtime.outbox });
+            this.runEffects(chatId, settled.state, settled.effects);
+          });
+        }
       }
     }
   }

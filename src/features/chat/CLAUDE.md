@@ -36,7 +36,7 @@
 - 動かし始める前に止められたら、プロバイダーを動かさずに中断で終える（`turn.ts` のコメント）。
 - `chat_delta`・`chat_subagent`・`chat_command_output` は配るだけで保存しない。失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。
 - 分岐の起点（`result` の `session_id` / `message_id`）は最後まで終わったときだけ残す。
-- 終わったら（失敗・中断も）送信待ちの次を送る。アプリの終了・通信の切断・使用枠の上限で止まったときは送らない。
+- 終わりにすることは `core/run/machine/turnEnd.ts` が決める（失敗・中断も次を送る。終了・通信切断・使用枠では送らない）。
 - 砂場の診断（`@/features/guard/core/sandboxDiagnostics.ts`）は実行ごとに作り、終わり・失敗・中断で必ず `close` する。
 
 ## 作業中の様子（ChatLive）

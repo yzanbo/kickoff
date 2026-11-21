@@ -53,6 +53,7 @@ import { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/
 import { providerCan } from "@shared/ai/providers";
 import { recordEvent } from "@/features/chat/core/run/record";
 import { preCompactSent } from "@/features/chat/core/run/machine/marks";
+import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -125,23 +126,6 @@ export interface TurnRequest {
   compactTrigger?: CompactTrigger;
   /** 再試行時に資料と同時に取った送信中の印。ほかの操作へ渡さない。 */
   claimedHandoffEventId?: number;
-}
-
-/** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
-export interface TurnOutcome {
-  status: "completed" | "failed" | "cancelled";
-  /** 通信の切断で失敗した（つながったら自動で再開する） */
-  network: boolean;
-  /** 通信の切断で止まったサブエージェント（再開するときに、続きから再開するよう頼む） */
-  stoppedAgents?: StoppedAgent[];
-  /** 使用枠の上限で止まった（枠が戻ったら、続けるかを聞く。resetsAt: 戻る時刻。分からなければ null） */
-  usageLimit?: { resetsAt: string | null };
-}
-
-/** 通信の切断で止まったサブエージェント（SendMessage の宛先と名前） */
-export interface StoppedAgent {
-  agentId: string;
-  description: string;
 }
 
 /**

@@ -4,7 +4,7 @@ import type { Store } from "@/features/chat/core/stores";
 import type { ChatRuntime } from "@/features/chat/core/runtime";
 import type { ChatRuntimes } from "@/features/chat/core/runtimes";
 import { setPaused } from "@shared/chat/outbox";
-import type { TurnOutcome } from "@/features/chat/core/turn";
+import type { TurnOutcome } from "@/features/chat/core/run/machine/types";
 import { Poller } from "./poller";
 import { recordEvent } from "@/features/chat/core/run/record";
 import { canReachApi } from "./reachability";
