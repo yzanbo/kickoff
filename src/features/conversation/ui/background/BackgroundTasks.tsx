@@ -1,7 +1,7 @@
 import { Bot, Square, SquareTerminal } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
+import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 import { api } from "@/foundation/ui/api";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, Bot } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
-import type { ModelOption, Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
+import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LABELS, type EffortLevel } from "@shared/settings/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentState } from "@shared/chat/subagentState";

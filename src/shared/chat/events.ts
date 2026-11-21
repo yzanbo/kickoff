@@ -1,7 +1,8 @@
 // チャットの SSE の種類（device = 端末にも届ける）
 import { event, type EventsOf, type EventTable } from "@shared/foundation/contract";
 import type { Approval } from "./approvalTypes";
-import type { ChatEvent, CommandOutput, SubagentInfo } from "./chatEvent";
+import type { ChatEvent } from "./chatEvent";
+import type { CommandOutput, SubagentInfo } from "@shared/ai/turnEvents";
 import type { ChatLive } from "./chatLive";
 import type { ChatDraftRequest, OpenViewRequest } from "./openView";
 import type { Chat } from "./types";

@@ -1,7 +1,6 @@
 import os from "node:os";
 import { errorMessage } from "@shared/foundation/errors";
-import type { ProviderCliStatus } from "@shared/ai/types";
-import type { ModelOption } from "@shared/chat/types";
+import type { ProviderCliStatus, ModelOption } from "@shared/ai/types";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderLogin, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";

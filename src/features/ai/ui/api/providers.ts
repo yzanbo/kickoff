@@ -1,5 +1,4 @@
-import type { ProviderStatus, SlashCommandOption } from "@shared/ai/types";
-import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import type { ProviderStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import type { ProviderLoginStart } from "@shared/foundation/apiTypes";
 import type { GitHubStatus } from "@shared/foundation/server";
 import type { ProviderId } from "@shared/settings/types";

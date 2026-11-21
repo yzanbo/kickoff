@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { BackgroundState } from "@shared/chat/chatLive";
+import type { BackgroundState } from "@shared/ai/turnEvents";
 import { collectSubagents } from "@shared/chat/subagents";
 import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
 import { EMPTY_DETAIL } from "./chatDetail";

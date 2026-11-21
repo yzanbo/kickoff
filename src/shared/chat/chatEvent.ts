@@ -1,7 +1,9 @@
 // チャットの記録（chat_events の表）の形。型と定数のみ
-import type { ApprovalDecision, ApprovalKind } from "./approvalTypes";
+import type { ApprovalDecision } from "./approvalTypes";
+import type { ApprovalKind } from "@shared/ai/approvals";
 import type { Attachment, ChatStatus } from "./types";
 import type { ProviderId } from "@shared/settings/types";
+import type { SubagentInfo } from "@shared/ai/turnEvents";
 
 /** 作業の終わり方（作業中を除いた状態） */
 export type TurnEndStatus = Exclude<ChatStatus, "running">;
@@ -153,35 +155,6 @@ export interface HandoffFrom {
 
 /** 会話の圧縮のきっかけ（manual: 手で圧縮した（圧縮のボタン・/compact）/ auto: コンテキストが上限に近づいて Claude Code が自動で） */
 export type CompactTrigger = "manual" | "auto";
-
-/** サブエージェント（Task / Agent ツールで起動された別のエージェント）の状態 */
-export interface SubagentInfo {
-  task_id: string;
-  /** 起動した Task / Agent ツールの呼び出し ID（タイムラインの呼び出しと結びつける） */
-  tool_use_id?: string;
-  description: string;
-  subagent_type?: string;
-  status: "running" | "completed" | "failed" | "stopped";
-  tokens?: number;
-  tool_uses?: number;
-  duration_ms?: number;
-  /** 直近に使ったツール（途中経過） */
-  last_tool?: string;
-  summary?: string;
-}
-
-/**
- * 実行中のコマンド（Bash。手前で待つものも裏で動かしたものも）の出力の終わりの部分（保存しない。chat_command_output で届く）。
- * 色の制御文字は除き、\r で上書きした行は最後の状態だけにしてある。終わったら届かなくなり、結果はツールの結果の記録で届く
- */
-export interface CommandOutput {
-  /** コマンドを実行した Bash の呼び出し ID（流れのツールの呼び出しと結びつける） */
-  tool_use_id: string;
-  /** Claude Code の作業 ID（裏で動いている作業の一覧と結びつける） */
-  task_id: string;
-  /** 出力の最後の行（プロバイダーが最後の 40 行に切る。providers/shared/events.ts） */
-  text: string;
-}
 
 export type ChatEventType = ChatEventData["type"];
 

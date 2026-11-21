@@ -2,8 +2,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderStatus } from "@shared/ai/types";
-import type { Chat } from "@shared/chat/types";
-import { PROVIDER_IDS } from "@shared/settings/types";
+import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
@@ -71,17 +70,20 @@ test("できること: プロバイダーが持つ任意の機能から決める
   assert.deepEqual(providerFeatures({ ...base, implemented: false } as AgentProvider), []);
 });
 
+/** 応答のチャットのうち、このテストが見る欄（chat の Chat の型を読まない） */
+type ChatWithAi = { id: number; provider: ProviderId };
+
 test("新しいチャット: AI を選べ（省けばプロジェクトの AI）、子チャットの既定は親と同じ。違う AI の子チャットは会話を引き継がない", async () => {
   const { call, store, project } = setup();
-  const plain = (await call("POST", `/api/projects/${project.id}/chats`, { text: "x" })).body as Chat;
+  const plain = (await call("POST", `/api/projects/${project.id}/chats`, { text: "x" })).body as ChatWithAi;
   assert.equal(plain.provider, "claude");
-  const codex = (await call("POST", `/api/projects/${project.id}/chats`, { text: "y", provider: "codex" })).body as Chat;
+  const codex = (await call("POST", `/api/projects/${project.id}/chats`, { text: "y", provider: "codex" })).body as ChatWithAi;
   assert.equal(codex.provider, "codex");
   await until(() => store.chats.get(codex.id)?.status !== "running");
 
-  const child = (await call("POST", `/api/chats/${codex.id}/children`, { text: "z", inherit: false })).body as Chat;
+  const child = (await call("POST", `/api/chats/${codex.id}/children`, { text: "z", inherit: false })).body as ChatWithAi;
   assert.equal(child.provider, "codex");
-  const other = (await call("POST", `/api/chats/${codex.id}/children`, { text: "w", inherit: true, provider: "claude" })).body as Chat;
+  const other = (await call("POST", `/api/chats/${codex.id}/children`, { text: "w", inherit: true, provider: "claude" })).body as ChatWithAi;
   assert.equal(other.provider, "claude");
   await until(() => store.events.list(other.id).some((e) => e.type === "notice"));
   const notice = store.events.list(other.id).find((e) => e.type === "notice");

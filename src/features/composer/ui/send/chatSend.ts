@@ -1,5 +1,5 @@
 import type { MessageMarks } from "@shared/chat/chatEvent";
-import type { BackgroundState } from "@shared/chat/chatLive";
+import type { BackgroundState } from "@shared/ai/turnEvents";
 import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";

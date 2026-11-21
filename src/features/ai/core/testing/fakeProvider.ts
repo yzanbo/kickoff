@@ -1,7 +1,6 @@
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SessionStore, SubagentLogItem } from "@/features/ai/core/providers/types";
-import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
-import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
-import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
+import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import { claudeEffortDefault } from "@/features/ai/core/providers/claude/effortDefault";
 import { summarizePrompt, titlePrompt } from "@/features/ai/core/providers/askPrompts";
 

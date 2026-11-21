@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { CommandOutput } from "@shared/chat/chatEvent";
+import type { CommandOutput } from "@shared/ai/turnEvents";
 import { onServerEvent } from "@/foundation/ui/api/events";
 
 /*

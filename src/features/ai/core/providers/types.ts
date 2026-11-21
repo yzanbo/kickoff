@@ -5,12 +5,12 @@ import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { ChatPolicy } from "@/features/chat/core/prompt/system";
-import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import type { SpendingNote } from "@shared/ai/usage";
-import type { ApprovalDecision, ApprovalKind, RememberScope } from "@shared/chat/approvalTypes";
-import type { ChatEventData, CommandOutput, SubagentInfo } from "@shared/chat/chatEvent";
-import type { ApiRetryInfo, BackgroundState } from "@shared/chat/chatLive";
-import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalKind, RememberScope } from "@shared/ai/approvals";
+import type { ChatEventData } from "@shared/chat/chatEvent";
+import type { CommandOutput, SubagentInfo, ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 
 /**

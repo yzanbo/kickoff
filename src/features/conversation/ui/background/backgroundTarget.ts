@@ -1,7 +1,7 @@
 // 裏の作業の一覧の行から、流れの中のその呼び出しへ移る先を決める（純粋関数）
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { BackgroundTask } from "@shared/chat/chatLive";
+import type { BackgroundTask } from "@shared/ai/turnEvents";
 import { scopeOf } from "@/features/subagents/ui/model/subagentTree";
 
 /** 移る先: 呼び出しの記録の ID と、サブエージェントの中で起動したものならそのサブエージェントの行のキー（メインなら null） */

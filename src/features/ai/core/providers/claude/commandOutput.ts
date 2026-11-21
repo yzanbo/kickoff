@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { SDKMessage } from "./wire";
-import type { CommandOutput } from "@shared/chat/chatEvent";
+import type { CommandOutput } from "@shared/ai/turnEvents";
 import { outputTail } from "@/features/ai/core/providers/shared/events";
 import { commandOutputRoots } from "./internals";
 

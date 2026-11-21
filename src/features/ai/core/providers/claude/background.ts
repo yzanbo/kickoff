@@ -1,5 +1,5 @@
 import { isAmbientTask, type SDKMessage } from "./wire";
-import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
+import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 
 /** 覚えておく、作業 ID と起動した呼び出しの ID の組の数 */
 const MAX_CALLS = 200;

@@ -1,6 +1,6 @@
 // 記録全体から作るものの取り出し口
-import type { ChatEvent, SubagentInfo } from "@shared/chat/chatEvent";
-import type { BackgroundState } from "@shared/chat/chatLive";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { SubagentInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { ProviderId } from "@shared/settings/types";
 import { providerAtEvent, providerBoundaries } from "@shared/providerSwitch/providerSwitch";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";

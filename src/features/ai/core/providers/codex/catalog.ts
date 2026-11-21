@@ -1,4 +1,4 @@
-import type { ModelOption } from "@shared/chat/types";
+import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { limitReachedOf, type SpendingNote } from "@shared/ai/usage";
 import type { AskModel } from "@/features/ai/core/providers/types";

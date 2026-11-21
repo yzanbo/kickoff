@@ -1,6 +1,7 @@
 // チャットの店（chatStore.ts）の口の形・定数・チャットごとの入れ物（店の中と hook・テストで使う）
 import type { Approval } from "@shared/chat/approvalTypes";
-import type { ChatEvent, SubagentInfo } from "@shared/chat/chatEvent";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { SubagentInfo } from "@shared/ai/turnEvents";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery } from "@shared/foundation/apiTypes";

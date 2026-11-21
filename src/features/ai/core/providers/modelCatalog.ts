@@ -1,4 +1,4 @@
-import type { ModelOption } from "@shared/chat/types";
+import type { ModelOption } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { AgentProvider } from "./types";
 

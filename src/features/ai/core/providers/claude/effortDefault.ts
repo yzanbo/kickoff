@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import os from "node:os";
-import type { EffortDefault } from "@shared/chat/types";
+import type { EffortDefault } from "@shared/ai/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { CLAUDE_ENV, claudeSettingsFiles } from "./internals";
 

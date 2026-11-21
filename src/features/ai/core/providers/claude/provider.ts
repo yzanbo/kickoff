@@ -4,8 +4,7 @@ import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk
 import { claudeSessionStore, findSessionFile, removeSession, writeRecentSegments } from "./sessionFiles";
 import { errorMessage } from "@shared/foundation/errors";
 import { TERMINAL_ONLY_COMMANDS } from "./labels";
-import type { FileRewindResult, ProviderCliStatus, SlashCommandOption } from "@shared/ai/types";
-import type { EffortDefault, ModelOption } from "@shared/chat/types";
+import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { agentEnv } from "./env";
 import type { ClaudeAuthStatus } from "./internals";

@@ -3,32 +3,6 @@ import type { MessageMarks } from "./chatEvent";
 import type { GitHubKind } from "@shared/github/types";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
-/** チャット欄で選べるモデル */
-export interface ModelOption {
-  value: string;
-  /** 別名（opus など）が指すモデルの ID（claude-opus-5-5 など。分からなければなし） */
-  resolved_model?: string;
-  label: string;
-  description: string;
-  efforts: EffortLevel[];
-  /** モデル一覧が知らせる既定の推論の深さ。設定による上書きや今回の実行値とは限らない */
-  default_effort?: string;
-  supports_auto_mode: boolean;
-  /** モデルの対応状況。null はプロバイダーが通知しなかった場合 */
-  supports_fast_mode: boolean | null;
-  /** その AI の既定のモデル（Codex の一覧の isDefault。チャット欄でモデルを決めていないときに選んで見せる。分からなければなし） */
-  is_default?: boolean;
-}
-
-/**
- * 推論の深さを指定しないとき（既定）に Claude Code が使う深さ。effort が null ならモデルの既定（値は分からない）。
- * source はどこで決まったか（env = 環境変数 / local・project = 作業フォルダの .claude / user = ~/.claude）
- */
-export interface EffortDefault {
-  effort: EffortLevel | null;
-  source: "env" | "local" | "project" | "user" | null;
-}
-
 /** 実行ごとに選べるオプション（チャット欄の選択） */
 export interface ChatOptions {
   /** モデル（null ならプロバイダーの既定） */

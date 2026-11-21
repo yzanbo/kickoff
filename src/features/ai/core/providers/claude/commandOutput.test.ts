@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import type { SDKMessage } from "./wire";
-import type { CommandOutput } from "@shared/chat/chatEvent";
+import type { CommandOutput } from "@shared/ai/turnEvents";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
 import { createCommandOutputWatcher, findOutputFile } from "./commandOutput";

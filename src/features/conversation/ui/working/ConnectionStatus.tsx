@@ -1,5 +1,6 @@
 import { WifiOff } from "lucide-react";
-import type { ApiRetryInfo, ReconnectState } from "@shared/chat/chatLive";
+import type { ReconnectState } from "@shared/chat/chatLive";
+import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { api } from "@/foundation/ui/api";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { reportFailure } from "@/foundation/ui/kit/ask";

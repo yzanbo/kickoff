@@ -1,7 +1,6 @@
 import { Bot } from "lucide-react";
 import { useState, type CSSProperties } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
-import type { Chat } from "@shared/chat/types";
 import { PERMISSION_LABELS, PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
@@ -60,8 +59,15 @@ export function ProviderPicker({ value, onChange, tipPrefix = "この AI で始�
   );
 }
 
+/** 札が見るチャットの欄（chat の Chat の型を読まず、要る欄だけを受ける） */
+interface ProviderChipChat {
+  id: number;
+  provider: ProviderId;
+  archived_at: string | null;
+}
+
 /** チャット欄（下の行のモデルの左）の AI の札。Claude Code と Codex は確認してから切り替える。 */
-export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
+export function ProviderChip({ chat, busy }: { chat: ProviderChipChat; busy: boolean }) {
   const provider = chat.provider;
   const statuses = useProviders().data;
   const status = statusOf(statuses, provider);

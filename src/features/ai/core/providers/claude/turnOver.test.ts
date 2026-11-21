@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SDKMessage } from "./wire";
-import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
+import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createTurnOver } from "./turnOver";
 

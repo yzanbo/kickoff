@@ -1,9 +1,9 @@
+// サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
 import { isBackgroundLaunch } from "./backgroundTasks";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { markSuperseded } from "./subagentSupersede";
-import type { ChatEvent, SubagentInfo } from "@shared/chat/chatEvent";
-
-// サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { SubagentInfo } from "@shared/ai/turnEvents";
 
 /** 一覧の 1 行（Agent ツールの呼び出しと、SDK のサブエージェントの通知をまとめたもの） */
 export interface SubagentEntry {

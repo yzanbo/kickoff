@@ -1,5 +1,5 @@
 import { confirm } from "@/foundation/ui/kit/ask";
-import type { BackgroundState, BackgroundTask } from "@shared/chat/chatLive";
+import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 
 /** 種類ごとの呼び名 */
 const KIND_LABELS: Record<BackgroundTask["kind"], string> = { agent: "サブエージェント", command: "コマンド", other: "作業" };

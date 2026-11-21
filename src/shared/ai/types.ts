@@ -1,4 +1,4 @@
-import type { ProviderAuthMode, ProviderId } from "@shared/settings/types";
+import type { EffortLevel, ProviderAuthMode, ProviderId } from "@shared/settings/types";
 import type { ProviderCapability } from "./providers";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
@@ -167,3 +167,29 @@ export interface FileRewindResult {
 /** ブラウザでのログインの終わり方（SSE の provider_login） */
 const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
 export type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];
+
+/** チャット欄で選べるモデル */
+export interface ModelOption {
+  value: string;
+  /** 別名（opus など）が指すモデルの ID（claude-opus-5-5 など。分からなければなし） */
+  resolved_model?: string;
+  label: string;
+  description: string;
+  efforts: EffortLevel[];
+  /** モデル一覧が知らせる既定の推論の深さ。設定による上書きや今回の実行値とは限らない */
+  default_effort?: string;
+  supports_auto_mode: boolean;
+  /** モデルの対応状況。null はプロバイダーが通知しなかった場合 */
+  supports_fast_mode: boolean | null;
+  /** その AI の既定のモデル（Codex の一覧の isDefault。チャット欄でモデルを決めていないときに選んで見せる。分からなければなし） */
+  is_default?: boolean;
+}
+
+/**
+ * 推論の深さを指定しないとき（既定）に Claude Code が使う深さ。effort が null ならモデルの既定（値は分からない）。
+ * source はどこで決まったか（env = 環境変数 / local・project = 作業フォルダの .claude / user = ~/.claude）
+ */
+export interface EffortDefault {
+  effort: EffortLevel | null;
+  source: "env" | "local" | "project" | "user" | null;
+}

@@ -2,7 +2,7 @@
 import { test, vi } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
-import type { ApiRetryInfo } from "@shared/chat/chatLive";
+import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";

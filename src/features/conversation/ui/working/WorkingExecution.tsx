@@ -1,5 +1,6 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { Chat, ModelOption } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
+import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type EffortLevel, type PermissionMode } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
 import { modelDisplayName } from "@/features/ai/ui/options/models";

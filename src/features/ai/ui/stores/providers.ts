@@ -1,8 +1,7 @@
 // 外部 CLI（Claude などのプロバイダー・GitHub の gh）の状態と、チャット欄のモデルの一覧。
 // ログインはアプリの外で変わるので、プロバイダーと GitHub の状態は使い始めるたびに取り直す（届くまでは前の値を出す）。
 // モデルの一覧はアプリ全体で 1 回だけ取る（失敗したら、次に使うときに取り直す）
-import type { ProviderStatus } from "@shared/ai/types";
-import type { ModelOption } from "@shared/chat/types";
+import type { ProviderStatus, ModelOption } from "@shared/ai/types";
 import type { GitHubStatus } from "@shared/foundation/server";
 import type { ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";

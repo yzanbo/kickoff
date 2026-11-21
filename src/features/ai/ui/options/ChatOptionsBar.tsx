@@ -1,7 +1,8 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { resolveChatOptions } from "@shared/ai/chatOptions";
-import type { EffortDefault, ChatOptions } from "@shared/chat/types";
+import type { ChatOptions } from "@shared/chat/types";
+import type { EffortDefault } from "@shared/ai/types";
 import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";

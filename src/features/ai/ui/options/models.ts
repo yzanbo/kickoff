@@ -1,4 +1,5 @@
-import type { ChatOptions, ModelOption } from "@shared/chat/types";
+import type { ChatOptions } from "@shared/chat/types";
+import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 
 /** 一覧での並び順（性能の高い順） */
