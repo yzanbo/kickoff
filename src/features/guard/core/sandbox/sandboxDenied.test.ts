@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { bashOutputText, deniedWritePaths, sandboxDeniedNote } from "./sandboxDenied";
+import { deniedWritePaths, sandboxDeniedNote } from "./sandboxDenied";
 import type { BashSandbox } from "./bashSandbox";
 
 test("出力から断られた場所を読む（zsh・bash のリダイレクト・コマンド・Python・Node の形。重なりは 1 つ）", () => {
@@ -16,12 +16,6 @@ test("出力から断られた場所を読む（zsh・bash のリダイレクト
   ].join("\n");
   assert.deepEqual(deniedWritePaths(out).sort(), ["/Users/a/main.txt", "/Users/a/node.txt", "/Users/a/py.txt", "/Users/a/x.txt", "/Users/a/y.txt"]);
   assert.deepEqual(deniedWritePaths("ok\nexit=0"), []);
-});
-
-test("Bash の結果の文: stdout と stderr をつなぐ（文ならそのまま）", () => {
-  assert.equal(bashOutputText({ stdout: "a", stderr: "b", interrupted: false }), "a\nb");
-  assert.equal(bashOutputText("失敗"), "失敗");
-  assert.equal(bashOutputText(null), "");
 });
 
 test("説明: ほかの作業場所は守りの断る文、外は Edit を案内、書ける場所の中なら砂場が守るファイル。読めなければ null", async () => {

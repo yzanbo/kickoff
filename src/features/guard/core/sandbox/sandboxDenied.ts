@@ -1,4 +1,4 @@
-// 砂場で止まったときの文（プロバイダー非依存）: Bash の出力の「Operation not permitted」から断られた場所を読み、
+// 砂場で止まったときの文（プロバイダー非依存）: 失敗で終わった Bash の出力の「Operation not permitted」から断られた場所を読み、
 // どこに書こうとして・なぜ断られたか・代わりの道を AI に書き添える（OS の文だけだと、AI が書き方を変えて試し直すため）
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { GuardVerdict } from "@/features/guard/core/rules";
@@ -44,14 +44,4 @@ export async function sandboxDeniedNote(output: string, sandbox: BashSandbox, ju
     `Kickoff の砂場が、このコマンドの書き込みを OS で断りました（AI の Bash が書けるのは、作業フォルダ・ノートフォルダ・一時フォルダ・キャッシュなどの決まった場所だけです）。書き方を変えて試し直しても通りません。`,
     ...lines,
   ].join("\n");
-}
-
-/** Bash の結果の出力の文（Claude Code の Bash の結果は stdout・stderr を持つ。失敗は文のまま） */
-export function bashOutputText(response: unknown): string {
-  if (typeof response === "string") return response;
-  if (response && typeof response === "object") {
-    const r = response as { stdout?: unknown; stderr?: unknown };
-    return [r.stdout, r.stderr].filter((s): s is string => typeof s === "string").join("\n");
-  }
-  return "";
 }

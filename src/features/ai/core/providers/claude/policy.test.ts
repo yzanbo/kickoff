@@ -119,20 +119,23 @@ test("AI の書き込み先の守り: ほかの守りが断る場所（参照資
   assert.equal(asked.length, 0);
 });
 
-test("砂場で止まったときの文: Bash の結果（成功・失敗とも）に断られた場所と代わりの道を添える。砂場がなければフックを付けない", async () => {
+test("砂場で止まったときの文: 失敗で終わった Bash の結果に断られた場所と代わりの道を添える。成功したコマンドの出力には足さない。砂場がなければフックを付けない", async () => {
   const root = tempDir({ real: true });
   const sandbox = { writableDirs: [root], readOnlyDirs: [], unsandboxedCommands: [], proxyPort: null };
   const params = { cwd: root, writeScope: { writableDirs: [], workplaces: async () => [], allowed: new Set() }, bashSandbox: sandbox } as unknown as ProviderTurnParams;
   const hooks = turnHooks(params, undefined, { requestApproval: async () => ({ action: "allow" }) });
   const base = { tool_name: "Bash", tool_input: { command: "touch ~/a" }, tool_use_id: "t1", session_id: "s", transcript_path: "/tmp/t", cwd: root };
-  const ok = await hooks?.PostToolUse?.[0]?.hooks[0]({ ...base, hook_event_name: "PostToolUse", tool_response: { stdout: "", stderr: "touch: /Users/nobody/a: Operation not permitted" } } as HookInput, undefined, { signal });
-  assert.match(JSON.stringify(ok), /Kickoff の砂場が.*書ける場所の外です/);
   const failed = await hooks?.PostToolUseFailure?.[0]?.hooks[0]({ ...base, hook_event_name: "PostToolUseFailure", error: "(eval):1: operation not permitted: /Users/nobody/b" } as HookInput, undefined, { signal });
-  assert.match(JSON.stringify(failed), /"hookEventName":"PostToolUseFailure".*\/Users\/nobody\/b/);
+  assert.match(JSON.stringify(failed), /"hookEventName":"PostToolUseFailure".*Kickoff の砂場が.*\/Users\/nobody\/b: 書ける場所の外です/);
+  // 成功したコマンド（ソース・ログ・テストを読んだだけ）の出力に OS の文の形があっても、砂場が断ったとは限らないので足さない
+  const read = { ...base, tool_input: { command: "cat sandboxDenied.test.ts" } };
+  const success = { ...read, hook_event_name: "PostToolUse", tool_response: { stdout: "touch: /Users/nobody/a: Operation not permitted", stderr: "", interrupted: false } } as HookInput;
+  const outs = await Promise.all((hooks?.PostToolUse ?? []).map((m) => m.hooks[0](success, undefined, { signal })));
+  assert.ok(outs.every((o) => !JSON.stringify(o).includes("Kickoff の砂場")));
   // 断られていなければ何も足さない
-  const quiet = await hooks?.PostToolUse?.[0]?.hooks[0]({ ...base, hook_event_name: "PostToolUse", tool_response: { stdout: "ok", stderr: "" } } as HookInput, undefined, { signal });
+  const quiet = await hooks?.PostToolUseFailure?.[0]?.hooks[0]({ ...base, hook_event_name: "PostToolUseFailure", error: "Exit code 1" } as HookInput, undefined, { signal });
   assert.deepEqual(quiet, {});
-  assert.equal(turnHooks({ cwd: root } as unknown as ProviderTurnParams, undefined, { requestApproval: async () => ({ action: "allow" }) })?.PostToolUse, undefined);
+  assert.equal(turnHooks({ cwd: root } as unknown as ProviderTurnParams, undefined, { requestApproval: async () => ({ action: "allow" }) })?.PostToolUseFailure, undefined);
 });
 
 test("git のフックを飛ばす Bash は、ほかの守りがなくてもいつも断る", async () => {
