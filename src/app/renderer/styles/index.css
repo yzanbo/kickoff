@@ -46,6 +46,7 @@
 @import "./ui/drag-ghost.css" layer(ui);
 @import "./ui/status-slot.css" layer(ui);
 @import "./ui/collapse.css" layer(ui);
+@import "./ui/tab-strip.css" layer(ui);
 @import "./sidebar/sidebar.css" layer(feature);
 @import "./sidebar/sidebar-rows.css" layer(feature);
 @import "./sidebar/sidebar-search.css" layer(feature);

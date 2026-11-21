@@ -5,52 +5,6 @@
   border-top: 1px solid var(--border);
 }
 
-/*
- * プロジェクトのタブを左に縦並び（アイコンだけ）にしたとき（設定の「表示」→「プロジェクトのタブ」）。
- * 選んでいるタブは、横並びの下線の代わりに左の線と地の色で示す。数はアイコンの右上に小さく重ねる
- */
-.tabs.project-side-tabs {
-  flex: none;
-  flex-direction: column;
-  gap: 4px;
-  /*
-   * 左の端（サイドバーの線・窓の端）との間（ページの左右の余白 --page-x）と、中身との間（.project-main の間）は、どちらもほかの欄と同じ --gutter。
-   * アイコンの列が端と中身の真ん中に来る（縦並びのタブのまわりだけ狭くすると、ほかの余白と合わずに浮く）
-   */
-  overflow: visible;
-  border-bottom: none;
-}
-
-.project-side-tabs .tab {
-  position: relative;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  margin-bottom: 0;
-  border-bottom: none;
-  border-radius: var(--radius-sm);
-}
-
-.project-side-tabs .tab.active {
-  background: var(--bg-elev);
-}
-
-/*
- * 選んでいるタブの左の線: 地の角丸に沿って曲がらない直線にする。
- * 高さはタブ（押せる範囲・乗せたときの地）いっぱいに引く。
- * 線はまっすぐのまま、地の角丸（乗せたとき・選んでいるとき）も残す。色は横並びの下線と同じ --accent-fg。右サイドバーの右端のアイコンの列も同じ
- */
-.project-side-tabs .tab.active::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 2px;
-  background: var(--accent-fg);
-  content: "";
-}
-
 .project-side-tabs .change-count {
   position: absolute;
   top: 1px;
