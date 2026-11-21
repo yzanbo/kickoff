@@ -2,7 +2,7 @@
 import { test, vi } from "vitest";
 import { permissionOnlyGate } from "@/features/ai/core/permissionMode";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
@@ -32,7 +32,7 @@ export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTur
 }
 
 /** 知らせを覚え、承認には answer で答えるコールバック */
-export function recorder(answer: (req: ApprovalRequest) => ApprovalDecision = () => ({ action: "allow" })) {
+export function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: Parameters<ProviderCallbacks["emit"]>[0][] = [];
   const approvals: ApprovalRequest[] = [];
   const contexts: number[] = [];

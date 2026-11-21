@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { isPreCompactDone, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createPreCompactGate, replyText } from "./preCompact";
+
+/** 合図の一文と背中を押す発言（文は chat が作って渡す。門は中身を知らないので、テストでは仮の文） */
+const PRE_COMPACT_DONE = "合図の一文です";
+const PRE_COMPACT_NUDGE = "背中を押す発言";
 
 /** ウィンドウ 200k・始めの大きさ 150k のゲートと、足した発言の記録 */
 function setup(opts: { contextTokens?: number | null; push?: boolean } = {}) {
@@ -178,8 +181,4 @@ test("背中を押す: 合図以外の理由で通したとき（残りが少な
   assert.equal(gate.shouldBlock("auto", undefined), false);
   gate.noteWaiting(true);
   assert.equal(clock.pending, 0);
-});
-
-test("合図の見分けは、渡された doneMark を含むか（chat の isPreCompactDone と同じ式）", () => {
-  for (const text of [PRE_COMPACT_DONE, `はい。${PRE_COMPACT_DONE}`, "済ませました", ""]) assert.equal(text.includes(PRE_COMPACT_DONE), isPreCompactDone(text));
 });

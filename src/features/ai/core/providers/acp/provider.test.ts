@@ -2,7 +2,7 @@
 import { test } from "vitest";
 import { withGate } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
 import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
@@ -31,7 +31,7 @@ const params = (extra: Partial<ProviderTurnParams> = {}) =>
   }) as ProviderTurnParams;
 
 /** 知らせを覚え、承認には answer で答えるコールバック */
-function recorder(answer: (req: ApprovalRequest) => ApprovalDecision = () => ({ action: "allow" })) {
+function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const streamed: string[] = [];
@@ -221,7 +221,7 @@ test("止める: session/cancel を送り、cancelled で終わる。答えを�
     answer = await pending;
     return { stopReason: "cancelled" };
   });
-  const rec = recorder(() => new Promise<ApprovalDecision>(() => {}) as unknown as ApprovalDecision);
+  const rec = recorder(() => new Promise<ApprovalReply>(() => {}) as unknown as ApprovalReply);
   rec.cb.requestApproval = (_req, signal) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(new Error("止めた"))));
   const running = guardedRun(cursorProvider({ spawn: agent.spawn }), params(), rec.cb, ctrl.signal);
   await until(() => agent.requests.some((r) => r.method === "session/prompt"));
@@ -261,7 +261,7 @@ test("Cursor の API キー: CURSOR_API_KEY で渡し（引数には載せない
   onPrompt(agent, async (s) => {
     reply = await s.request("cursor/ask_question", { toolCallId: "q", title: "確認", questions: [{ id: "q1", prompt: "どちら？", options: [{ id: "a", label: "A 案" }, { id: "b", label: "B 案" }] }] });
   });
-  const rec = recorder(() => ({ action: "answer", answers: { "どちら？": "B 案" } }) as ApprovalDecision);
+  const rec = recorder(() => ({ action: "answer", answers: { "どちら？": "B 案" } }) as ApprovalReply);
   await guardedRun(cursorProvider({ spawn: agent.spawn }), params({ auth: { mode: "api_key", apiKey: "crsr-1" } }), rec.cb, new AbortController().signal);
   assert.equal(agent.spawned[0].env.CURSOR_API_KEY, "crsr-1");
   assert.ok(!agent.spawned[0].args.includes("crsr-1"));

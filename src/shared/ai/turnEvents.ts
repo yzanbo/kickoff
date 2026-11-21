@@ -1,4 +1,30 @@
-// AI の実行が知らせる途中の様子（サブエージェント・コマンドの出力・通信の再試行・裏の作業）。型のみ
+// AI の実行が出す記録（AgentEvent）と、知らせる途中の様子（サブエージェント・コマンドの出力・通信の再試行・裏の作業）。型のみ
+
+/**
+ * AI の実行が出す記録（プロバイダーが出す 8 種類。チャットの記録 chat_events にこの形のまま残る。
+ * 利用者の発言・承認・作業の終わりなどほかの記録はコアが作る = @shared/chat/chatEvent の ChatEventData はこれとの合併）
+ */
+export type AgentEvent =
+  /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
+  | { type: "init"; session_id: string; model?: string; permission_mode?: string; effort?: string | null }
+  /** parent: サブエージェントの発言なら、そのサブエージェントを起動した Task / Agent ツールの呼び出し ID（メインの発言にはない） */
+  | { type: "text"; text: string; parent?: string }
+  /** 思考（text は既定では空）。duration_ms: 考えていた時間（メインエージェントで、測れたときだけ） */
+  | { type: "thinking"; text: string; duration_ms?: number; parent?: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown; parent?: string }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean; parent?: string }
+  | { type: "notice"; message: string }
+  /**
+   * 会話を要約してコンテキストを空けた（manual: 手で圧縮 / auto: 上限に近づいて自動で）。前後のトークン数。
+   * duration_ms: 圧縮にかかった時間（Claude Code が知らせたときだけ。記録の時刻 = 終わった時刻から引くと始めた時刻）
+   */
+  | { type: "compact"; trigger: CompactTrigger; pre_tokens: number; post_tokens?: number; duration_ms?: number }
+  /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
+  | ({ type: "subagent" } & SubagentInfo);
+
+/** 会話の圧縮のきっかけ（manual: 手で圧縮した（圧縮のボタン・/compact）/ auto: コンテキストが上限に近づいて Claude Code が自動で） */
+export type CompactTrigger = "manual" | "auto";
+
 /** サブエージェント（Task / Agent ツールで起動された別のエージェント）の状態 */
 export interface SubagentInfo {
   task_id: string;

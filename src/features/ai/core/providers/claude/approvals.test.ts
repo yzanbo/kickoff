@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { CanUseTool, PermissionUpdate } from "./wire";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import { createCanUseTool } from "./approvals";
 import type { ApprovalRequest } from "@/features/ai/core/providers/types";
 
@@ -11,7 +11,7 @@ const signal = new AbortController().signal;
 type Extra = Partial<Pick<Parameters<CanUseTool>[2], "suggestions" | "title" | "description" | "decisionReason" | "suppressAlwaysAllowRule" | "agentID">>;
 
 /** 決まった回答を返す偽の承認で canUseTool を呼び、届いた依頼と判定を返す */
-async function ask(decision: ApprovalDecision, toolName: string, input: Record<string, unknown>, opts: Extra = {}) {
+async function ask(decision: ApprovalReply, toolName: string, input: Record<string, unknown>, opts: Extra = {}) {
   const requests: ApprovalRequest[] = [];
   const canUseTool = createCanUseTool({
     requestApproval: async (request) => {

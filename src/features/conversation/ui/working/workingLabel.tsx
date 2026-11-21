@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import type { ChatEvent, CompactTrigger } from "@shared/chat/chatEvent";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";

@@ -1,7 +1,7 @@
 // 作業中のチャットの様子（保存しない。チャットの詳細の live と SSE の chat_live で同じ形で配る）。型と定数のみ
 import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { QueuedMessage } from "./types";
-import type { CompactTrigger } from "./chatEvent";
+import type { CompactTrigger } from "@shared/ai/turnEvents";
 
 /** 通信が切れて止まったチャットの、つながったら自動で再開するのを待っている状態（保存しない） */
 export interface ReconnectState {

@@ -5,7 +5,7 @@ import { test } from "vitest";
 import type { HookInput } from "./wire";
 import { KICKOFF_DISALLOWED_TOOLS, toAllowedTools, turnContextHook, turnHooks } from "./policy";
 import type { ApprovalRequest, ProviderTurnParams } from "@/features/ai/core/providers/types";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 const signal = new AbortController().signal;
@@ -61,7 +61,7 @@ test("AI の書き込み先の守り: ほかの作業場所は断り、外は承
   const outside = path.join(root, "outside");
   for (const dir of [main, wt, outside]) fs.mkdirSync(dir);
   const asked: ApprovalRequest[] = [];
-  let answer: ApprovalDecision = { action: "allow_always" };
+  let answer: ApprovalReply = { action: "allow_always" };
   const allowed = new Set<string>();
   const params = {
     cwd: main,

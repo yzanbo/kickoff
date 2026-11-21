@@ -19,7 +19,7 @@
 <!-- 行き先: src/features/chat/ -->
 - `ChatEventData` は `type` で中身が決まる判別共用体。`if (e.type === "text")` で絞り、`event.data as …` と書かない。
 - 絞った形は `ChatEventOf<"result">` / `ChatEventDataOf<T>`。union から項目を外すのは `DistributiveOmit`（`Omit` だと絞り込めなくなる）。
-- 型を足すときは、プロバイダーが `emit` で送る形か（`user` / `approval` / `approval_resolved` / `result` 以外）も考える。
+- AI の実行が出す記録（`emit`）は `ai/turnEvents.ts` の `AgentEvent`、コアが作る記録は `chat/chatEvent.ts` に足す（`ChatEventData` は合併）。
 
 ## 選択（ChatOptions）
 <!-- 行き先: src/features/ai/ -->

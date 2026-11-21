@@ -6,10 +6,8 @@ import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { FileRewindResult, ProviderCliStatus, SlashCommandOption, EffortDefault, ModelOption } from "@shared/ai/types";
 import type { SpendingNote } from "@shared/ai/usage";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
-import type { ApprovalKind, RememberScope } from "@shared/ai/approvals";
-import type { ChatEventData } from "@shared/chat/chatEvent";
-import type { CommandOutput, SubagentInfo, ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
+import type { ApprovalKind, ApprovalReply, RememberScope } from "@shared/ai/approvals";
+import type { AgentEvent, CommandOutput, SubagentInfo, ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
 import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 
 /**
@@ -218,9 +216,6 @@ export interface ApprovalRequest {
   agentId?: string;
 }
 
-/** プロバイダーから Kickoff へ通知する実行中イベント（実装が出す 8 種類。DB にはこの形のまま保存される。ほかの記録はコアが作る） */
-type AgentEvent = Extract<ChatEventData, { type: "init" | "text" | "thinking" | "tool_use" | "tool_result" | "subagent" | "compact" | "notice" }>;
-
 /** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
 export interface TurnControl {
   /** 作業を止めずに発言を足す（いまの手順の切れ目でメインエージェントが読む）。入力が閉じていれば false */
@@ -237,7 +232,7 @@ export interface ProviderCallbacks {
   subagentProgress?(info: SubagentInfo): void;
   /** 実行中のコマンドの出力の終わりの部分（増えたときだけ。保存しない） */
   commandOutput?(output: CommandOutput): void;
-  requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
+  requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalReply>;
   /** AI の API への通信を再試行しているところ（通信が切れたときなど）。返答が届き始めたら null（保存しない） */
   retry?(info: ApiRetryInfo | null): void;
   /** 裏で動いている作業・メインの返答が終わったかが変わったとき（保存しない） */

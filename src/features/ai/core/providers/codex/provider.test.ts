@@ -2,7 +2,7 @@
 import { test } from "vitest";
 import { withGate } from "@/app/core/testing/testGate";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeCodexServer, type FakeCodexServer } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
 import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
@@ -32,7 +32,7 @@ const params = (extra: Partial<ProviderTurnParams> = {}) =>
   }) as ProviderTurnParams;
 
 /** 知らせを覚え、承認には answer で答えるコールバック */
-function recorder(answer: (req: ApprovalRequest) => ApprovalDecision = () => ({ action: "allow" })) {
+function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const streamed: string[] = [];

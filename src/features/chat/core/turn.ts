@@ -40,7 +40,7 @@ import { stoppedSubagentsNotice } from "./interruptedTurnEnd";
 import type { Store } from "@/features/chat/core/stores";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
 import type { Question } from "@shared/chat/approvalTypes";
-import type { CompactTrigger } from "@shared/chat/chatEvent";
+import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { PROVIDER_AUTH_MODE_LABELS, type ProviderId } from "@shared/settings/types";

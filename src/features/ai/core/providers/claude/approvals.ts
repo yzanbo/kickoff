@@ -1,5 +1,5 @@
 import type { CanUseTool, PermissionResult, PermissionUpdate } from "./wire";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import type { ApprovalRequest, ProviderCallbacks } from "@/features/ai/core/providers/types";
 import { SANDBOX_NETWORK_TOOL } from "./sandbox";
 
@@ -25,7 +25,7 @@ function approvalRequestFor(toolName: string, input: Record<string, unknown>, op
 }
 
 /** ユーザーの回答を Claude Code の判定にする */
-function toPermissionResult(request: ApprovalRequest, decision: ApprovalDecision, suggestions: PermissionUpdate[] | undefined): PermissionResult {
+function toPermissionResult(request: ApprovalRequest, decision: ApprovalReply, suggestions: PermissionUpdate[] | undefined): PermissionResult {
   const { input } = request;
   if (request.kind === "question") {
     // 質問への回答は入力に足して通す。答えなければ、質問をスキップしたとして断る

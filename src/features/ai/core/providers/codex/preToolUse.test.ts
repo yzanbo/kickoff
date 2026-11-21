@@ -1,7 +1,7 @@
 // Codex の PreToolUse フックの判定（preToolUse.ts）と、砂場から出る承認の頼み（approvals.ts）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import type { ApprovalDecision } from "@shared/chat/approvalTypes";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { PLAN_MODE_DECLINED } from "@/features/ai/core/permissionMode";
 import { withGate } from "@/app/core/testing/testGate";
@@ -11,7 +11,7 @@ import { hookDeny } from "./hooks";
 import { createPreToolUseHandler, writeKey } from "./preToolUse";
 import { SANDBOX_EXIT_DECLINED } from "./sandboxExit";
 
-function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest) => ApprovalDecision = () => ({ action: "allow" })) {
+function setup(extra: Partial<ProviderTurnParams>, answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
   const events: any[] = [];
   const approvals: ApprovalRequest[] = [];
   const steers: string[] = [];

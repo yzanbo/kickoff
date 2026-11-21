@@ -8,7 +8,7 @@ import { startChildChat } from "@/features/childChats/core/children";
 import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "@/features/workplaceMove/core/workplaceMove";
 import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "@/features/workplaceMove/core/workplaceReservation";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import type { CompactTrigger, MessageMarks } from "@shared/chat/chatEvent";
+import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { ChatLive, RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
 import type { Attachment, Chat, ChatOptionsPatch, QueuedMessage } from "@shared/chat/types";
 import type { TellResult } from "@shared/foundation/apiTypes";
@@ -828,7 +828,7 @@ export class Runner extends RunnerQueue {
   }
 
   /** 圧縮前指示のあとに圧縮する（終わったら、その終わりで預かった「いま」・送信待ちの次を送る） */
-  private compactNow(chatId: number, trigger: CompactTrigger) {
+  private compactNow(chatId: number, trigger: NonNullable<TurnRequest["compactTrigger"]>) {
     this.deps.store.chats.update(chatId, { status: "running", error: null });
     void this.execute({ chatId, prompt: "/compact", compact: true, compactTrigger: trigger });
   }

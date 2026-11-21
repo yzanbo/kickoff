@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SDKMessage } from "./wire";
-import type { ChatEventData } from "@shared/chat/chatEvent";
+import type { AgentEvent } from "@shared/ai/turnEvents";
 import { createMessageState, emitSdkMessage } from "./messages";
 import type { ProviderCallbacks } from "@/features/ai/core/providers/types";
 
 /** 受け取ったイベントを記録する偽のコールバック */
 function recorder() {
-  const events: ChatEventData[] = [];
-  const cb = { emit: (e: ChatEventData) => events.push(e), requestApproval: async () => ({ action: "deny" }) } as unknown as ProviderCallbacks;
+  const events: AgentEvent[] = [];
+  const cb = { emit: (e: AgentEvent) => events.push(e), requestApproval: async () => ({ action: "deny" }) } as unknown as ProviderCallbacks;
   return { events, cb };
 }
 

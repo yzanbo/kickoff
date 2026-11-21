@@ -1,9 +1,7 @@
 // 権限モードの答えと承認カードの聞き方（承認を聞いてくる CLI に共通。守りの判定は guard の門 gate.ts、ここは守りが何も言わなかったときと、守りのない門）
 import type { PermissionMode } from "@shared/settings/types";
+import type { ApprovalReply } from "@shared/ai/approvals";
 import type { ApprovalRequest, GateAsk, GateCall, GateOutcome, ProviderCallbacks, ToolGate } from "./providers/types";
-
-/** 承認カードの答え（@shared/chat/approvalTypes の ApprovalDecision。ai は chat の型を直に読まない） */
-type ApprovalDecision = Awaited<ReturnType<ProviderCallbacks["requestApproval"]>>;
 
 /** 承認カードを出す口と、止める合図 */
 export interface ApprovalContext {
@@ -18,13 +16,13 @@ export const PLAN_MODE_DECLINED = "計画モードなので、ファイルの変
 const userDenied = (words: string | undefined) => (words ? `利用者が拒否しました（利用者の言葉: ${words}）` : "利用者が拒否しました");
 
 /** 承認カードを出して答えを待つ（止めたら断ったことにする） */
-export function askApproval(ctx: ApprovalContext, request: ApprovalRequest): Promise<ApprovalDecision> {
-  return ctx.cb.requestApproval(request, ctx.signal).catch((): ApprovalDecision => ({ action: "deny", message: "" }));
+export function askApproval(ctx: ApprovalContext, request: ApprovalRequest): Promise<ApprovalReply> {
+  return ctx.cb.requestApproval(request, ctx.signal).catch((): ApprovalReply => ({ action: "deny", message: "" }));
 }
 
-export const isAllowed = (d: ApprovalDecision) => d.action === "allow" || d.action === "allow_always";
+export const isAllowed = (d: ApprovalReply) => d.action === "allow" || d.action === "allow_always";
 /** 断ったときの利用者の言葉（なければ undefined） */
-export const wordsOf = (d: ApprovalDecision) => (d.action === "deny" ? d.message || undefined : undefined);
+export const wordsOf = (d: ApprovalReply) => (d.action === "deny" ? d.message || undefined : undefined);
 
 /** 断ったことを AI に伝える文（Codex は turn/steer、Copilot は reject の feedback、ACP は次の指示で渡す） */
 export const declinedNote = (what: string, reason: string) => `［Kickoff］${what}を断りました: ${reason}`;
