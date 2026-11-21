@@ -106,6 +106,9 @@ const RENDERER = ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/rende
 /** 拡張点への登録（機能の ui/contributes.ts と、殻がまとめて出すもの） */
 const CONTRIBUTES = ["src/features/*/ui/contributes.ts", "src/app/renderer/**/contributes.ts"];
 
+/** AI の実装のフォルダ（ai の core/providers の下。shared は共有の小物） */
+const AI_PROVIDER_IMPLS = ["claude", "codex", "copilot", "acp", "cursor", "gemini"];
+
 /** 機能ごとの import の向き（コア・画面・メイン・別プロセス） */
 const featureImports = FEATURES.flatMap((f) => [
   { name: `feature-core:${f}`, from: [`src/features/${f}/core/**`, `src/features/${f}/testing/**`], tests: "exclude", allow: coreAllow(f), message: `機能（${f}）のコアは、取り決めと土台のコアと、自分と下の機能のコアだけを読む（上の機能の力は、下が口を宣言して上が登録する）` },
@@ -148,6 +151,16 @@ export default {
     { name: "foundation-desktop", from: ["src/foundation/desktop/**"], allow: [...SHARED_BASE, "src/foundation/core/**", "src/foundation/desktop/**"], message: "土台のメインは機能と app を読まない（コアから読むのは土台だけ）" },
     // 機能
     ...featureImports,
+    // AI のつなぎ込み: 外の SDK を読む所を 1 つに閉じ、実装どうしは読まない（ACP の上に作る Cursor・Gemini は acp を読む）
+    { name: "ai-claude-sdk", from: ["src/**"], except: ["src/features/ai/core/providers/claude/{wire,run}.ts"], tests: "exclude", denyModules: ["@anthropic-ai/claude-agent-sdk"], message: "Claude Agent SDK を読むのは ai の providers/claude/wire.ts だけ（型・関数は wire から読む）" },
+    { name: "ai-copilot-sdk", from: ["src/**"], except: ["src/features/ai/core/providers/copilot/sdk.ts"], tests: "exclude", denyModules: ["@github/copilot-sdk"], message: "GitHub Copilot の SDK を読むのは ai の providers/copilot/sdk.ts だけ" },
+    ...AI_PROVIDER_IMPLS.map((impl) => ({
+      name: `ai-provider-isolated:${impl}`,
+      from: [`src/features/ai/core/providers/${impl}/**`],
+      tests: "exclude",
+      deny: AI_PROVIDER_IMPLS.filter((other) => other !== impl && !(other === "acp" && ["cursor", "gemini"].includes(impl))).map((other) => `src/features/ai/core/providers/${other}/**`),
+      message: `AI の実装（providers/${impl}）はほかの実装を読まない（共有の小物は providers/shared、口は providers/types.ts）`,
+    })),
     // 土台の保存の宣言（shell・ui・external の群）
     ...["storage", "hooks", "external"].map((d) => ({ name: `ui-storage:foundation/${d}`, from: [`src/foundation/ui/${d}/storage.ts`], allow: ["src/shared/**", `src/foundation/ui/${d}/*.ts`, "src/foundation/ui/storage/index.ts"], allowModules: [], pureLocal: true, message: "土台の保存の宣言（storage.ts）は、@/foundation/ui/storage・@shared・同じフォルダの純粋な .ts だけを読む" })),
     // 拡張点への登録は組み立ての表だけが読み、登録の表は部品を静的に読まない（起動の片付けのあと・最初の描画の前に読むので軽く保つ）

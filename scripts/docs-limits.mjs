@@ -10,7 +10,6 @@ export const DOC_LIMITS = [
   { path: "src/features/chat/CLAUDE.md", max: 21 * 1024 },
   { path: "src/features/panel/CLAUDE.md", max: 13 * 1024 },
   { path: "src/foundation/ui/CLAUDE.md", max: 17 * 1024 },
-  { path: "src/features/ai/CLAUDE.md", max: 10 * 1024 },
   { path: "src/features/sidebar/CLAUDE.md", max: 5 * 1024 },
   { path: "src/features/files/CLAUDE.md", max: 5 * 1024 },
   { path: "src/features/database/CLAUDE.md", max: 6 * 1024 },
