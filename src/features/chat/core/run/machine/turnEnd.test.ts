@@ -39,7 +39,9 @@ test("作業の終わり: 圧縮前指示の作業が最後まで終わって圧
   const auto = onTurnEnded(ended({ compaction: { awaiting: true } }), completed, { shuttingDown: false, hasTurnEndTasks: false });
   assert.deepEqual(auto.effects.at(-1), { do: "start_turn", turn: "compact", trigger: "auto" });
   assert.equal(auto.state.awaitingCompact, true);
-  assert.deepEqual(effectsOf(ended({ turn: "pre_compact" }), completed).at(-1), { do: "start_turn", turn: "compact", trigger: "manual" });
+  assert.deepEqual(effectsOf(ended({ turn: "pre_compact", compaction: { awaiting: true } }), completed).at(-1), { do: "start_turn", turn: "compact", trigger: "manual" });
+  // 手で頼んだ前の指示の作業の中で自動の圧縮が済んだ（待つ間が外れた）: もう圧縮しない（6 章 A5）
+  assert.deepEqual(effectsOf(ended({ turn: "pre_compact", compaction: { done: true } }), completed).at(-1), { do: "send_next" });
   assert.deepEqual(effectsOf(ended({ compaction: { awaiting: true, afterTurn: true } }), completed).at(-1), { do: "start_turn", turn: "compact", trigger: "manual" });
   // 手で圧縮する実行そのものは、続けて圧縮しない
   assert.deepEqual(effectsOf(ended({ turn: "compact", compaction: { awaiting: true } }), completed).at(-1), { do: "send_next" });
@@ -51,7 +53,7 @@ test("作業の終わり: 圧縮前指示の作業が最後まで終わって圧
 
 test("作業の終わりの順: 予約した作業場所の移動 → 続けての圧縮 → 預かり → 送信待ち（S16）。止めたら移さずに予約を消す", () => {
   const withTasks = { shuttingDown: false, hasTurnEndTasks: true };
-  const moving = onTurnEnded(ended({ turn: "pre_compact" }), completed, withTasks);
+  const moving = onTurnEnded(ended({ turn: "pre_compact", compaction: { awaiting: true } }), completed, withTasks);
   assert.deepEqual(moving.effects, [...head(completed), { do: "run_turn_end_tasks" }]);
   assert.deepEqual(moving.state.phase, { kind: "settling", task: "workplace_move", then: { compact: "manual", send: true } });
   assert.deepEqual(onSettled(moving.state).effects, [{ do: "start_turn", turn: "compact", trigger: "manual" }]);

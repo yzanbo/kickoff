@@ -12,10 +12,7 @@ test("表は S01〜S49 の筋書きを 1 つずつ持ち、どれも 8 章の番
   assert.ok(SCENARIOS.every((s) => s.behavior >= 1 && s.behavior <= 38));
   assert.deepEqual(
     SCENARIOS.filter((s) => s.known).map((s) => [s.id, s.known]),
-    [
-      ["S47", "A5"],
-      ["S48", "A10"],
-    ],
+    [["S48", "A10"]],
   );
 });
 

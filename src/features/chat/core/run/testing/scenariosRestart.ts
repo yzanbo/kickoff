@@ -116,7 +116,6 @@ export const RESTART_SCENARIOS: Scenario[] = [
   {
     id: "S47",
     behavior: 14,
-    known: "A5",
     name: "手で圧縮: 圧縮前指示の作業の中で自動の圧縮が起きたら、作業の終わりにもう 1 回は圧縮しない（圧縮後指示も 1 回）",
     settings: { pre_compact_prompt: "ノートを書いて", post_compact_prompt: "読み直す" },
     steps: [
