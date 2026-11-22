@@ -6,6 +6,7 @@ import { definePoint } from "@/foundation/ui/points";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import type { PanelController, PanelPageOps } from "./usePanel";
 import type { TabPatch } from "./state/panelState";
+import type { PanelKind } from "./surface";
 
 /** タブの中身の基底（中身の型は種類ごとに足す） */
 export interface TabBase {
@@ -31,6 +32,13 @@ export interface TabPageProps<T extends TabBase> {
   visible: boolean;
   /** 自分のペインにピントがあるか（ターミナルの入力先） */
   focused: boolean;
+}
+
+/** ウィンドウをまたいで渡す・覚えるタブの形（kind と key のほかは種類ごと。送る前の新しいチャットの中身は下書きの店にあり、キーだけ） */
+export interface TransferredTab {
+  kind: string;
+  key: string;
+  [field: string]: unknown;
 }
 
 /** タブの列のタブ 1 つの、種類が足し替える見た目（どれもなければ種類によらない形のまま） */
@@ -166,6 +174,12 @@ export interface TabKind<T extends TabBase> {
    * 同じ種類でもタブによって開けないとき（プロジェクトの画面の DB のほか）は undefined
    */
   popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean } | undefined;
+  /**
+   * ウィンドウをまたいで移せるタブ（ブラウザ・チャット・送る前の新しいチャット。ドラッグの受け渡しと、タブの列のある別ウィンドウが覚えるタブ）。
+   * save は渡す形（ブラウザはいまのページ）、load は受け取った形から（形が合わなければ null）。shownAs は受け取る欄が出す種類、
+   * dismiss は元の欄から閉じるとき「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）
+   */
+  transfer?: { save(tab: T): TransferredTab; load(value: TransferredTab): T | null; shownAs: PanelKind; dismiss?: boolean };
   /** ほかのウィンドウから移ってきたタブを、このウィンドウのものにする（右サイドバーの受け渡し。ターミナルはシェルの持ち主をこのウィンドウにする） */
   onMoveToWindow?(tab: T): Promise<void> | void;
   /**

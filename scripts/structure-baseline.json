@@ -1183,7 +1183,6 @@
       "src/features/notifications/ui/dockBadge.ts",
       "src/features/notifications/ui/notifications.ts",
       "src/features/notifications/ui/settings/NotificationSettings.tsx",
-      "src/features/panel/ui/popout/tabWindow.ts",
       "src/features/ports/ui/portsStore.ts",
       "src/features/projects/ui/changeProjectFolder.ts",
       "src/features/projects/ui/new/FolderField.tsx",

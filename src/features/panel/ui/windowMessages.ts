@@ -17,7 +17,7 @@ declare module "@/foundation/ui/navigation/windowBus" {
     /** メインのウィンドウから、チャット欄の別ウィンドウにブラウザのタブを開くよう頼む（ターミナルの ⌘ クリック・ポート・Docker などの「ブラウザで開く」） */
     sideOpenBrowser: { panel: string; url: string };
     /** タブ（ブラウザ・チャット）をほかのウィンドウへドラッグで移した（元の欄はそのタブを後始末なしで閉じる。layout/tabTransfer.ts） */
-    tabMovedOut: { panel: string; key: string; kind: "browser" | "chat" | "new" };
+    tabMovedOut: { panel: string; key: string; dismiss: boolean };
     /** チャット欄の別ウィンドウから戻すチャット欄の状態（open: メインのウィンドウのチャット欄を開くか。戻し終えたら docked） */
     returnSidePanels: { panels: [string, PanelState][]; open: boolean };
   }

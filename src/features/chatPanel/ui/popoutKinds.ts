@@ -3,7 +3,8 @@ import type { PopoutKind } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { knownChat, openChat, openInRootSide, screenOfChat } from "@/features/chat/ui";
 import { newChatDraft } from "@/features/composer/ui";
-import { newChatTab, panelKey, PopoutTabWindow, reopenInPanel, returnTabWindow } from "@/features/panel/ui";
+import { newChatTab, panelKey, reopenInPanel, returnTabWindow } from "@/features/panel/ui";
+import { ChatsTabWindowPage } from "./popout/ChatsTabWindowPage";
 import { PopoutChildChat } from "./popout/PopoutChildChat";
 import { SubagentPopoutPage } from "./popout/PopoutSubagent";
 
@@ -59,10 +60,10 @@ export const chatsPopout: PopoutKind<"chats"> = {
   kind: "chats",
   fields: { panel: "string", key: "string", projectId: { kind: "number", param: "project" }, chatId: { kind: "number?", param: "chat" } },
   label: "チャット",
-  Page: PopoutTabWindow,
+  Page: ChatsTabWindowPage,
   dockLabel: () => ({ label: "チャットのパネルに戻す", tip: "メインのウィンドウのチャットのパネルで開き直して、このウィンドウを閉じる" }),
   // タブをすべてチャットのパネルに戻す
-  returnSelf: returnTabWindow,
+  returnSelf: (route) => returnTabWindow(route, "cwin"),
   dock: (route) => {
     // チャットのパネルで開く（移すときに「表示だけ消した」ことにしたのを、開くことで戻す）
     if (route.chatId !== undefined) return void openTarget({ kind: "chat", projectId: route.projectId, chatId: route.chatId });

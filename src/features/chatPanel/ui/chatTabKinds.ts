@@ -50,7 +50,14 @@ export const chatTabKind = defineTabKind<TabOf<"chat">>({
   rename: { initial: (t) => t.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name) => renameChat(t.id, name) },
   Menu: ChatTabMenu,
   Face: ChatTabFace,
-  // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（features/popout/tabWindow.ts）。サイドバーとの連動で足し直されないよう、表示だけ消したことにする
+  // ほかのウィンドウへ移す（チャットのパネルとの連動で足し直されないよう、元の欄からは表示だけ消す）
+  transfer: {
+    save: (t) => ({ kind: "chat", key: t.key, id: t.id, projectId: t.projectId }),
+    load: (v) => (typeof v.id === "number" && typeof v.projectId === "number" ? { kind: "chat", key: v.key, id: v.id, projectId: v.projectId } : null),
+    shownAs: "chat",
+    dismiss: true,
+  },
+  // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（panel の popout/tabWindow.ts）。サイドバーとの連動で足し直されないよう、表示だけ消したことにする
   popout: (t, panel) => ({
     route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
     title: `${knownChat(t.id)?.title ?? t.title ?? "チャット"} — チャット`,
@@ -76,6 +83,8 @@ export const newChatTabKind = defineTabKind<TabOf<"new">>({
   rename: { initial: (t) => newChatDraft(t.key)?.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name, panel) => setDraftTitle({ panel, key: t.key }, name) },
   Menu: NewChatTabMenu,
   Face: NewChatTabFace,
+  // ほかのウィンドウへ移す（書きかけの文・添付は下書きの店にあるので、キーだけ渡す。チャットを出す欄が受ける）
+  transfer: { save: (t) => ({ kind: "new", key: t.key }), load: (v) => ({ kind: "new", key: v.key }), shownAs: "chat" },
   // チャットの別ウィンドウへ移す（書きかけの文・添付は下書きの店にあるので、キーだけ渡す）
   popout: (t, panel) => {
     const draft = newChatDraft(t.key);

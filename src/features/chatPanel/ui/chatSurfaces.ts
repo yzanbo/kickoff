@@ -70,7 +70,7 @@ const chatWindowSurface = defineSurface({
   ViewMenu: ChatViewMenu,
   EmptyHint: ChatPanelEmpty,
   // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
-  onChatCreated: (chat) => postWindowMessage("tabMovedOut", { panel: chatsPanel(chat.project_id), key: chatKey(chat.id), kind: "chat" }),
+  onChatCreated: (chat) => postWindowMessage("tabMovedOut", { panel: chatsPanel(chat.project_id), key: chatKey(chat.id), dismiss: true }),
 });
 
 export const CHAT_SURFACES = [chatsSurface, chatSideSurface, chatWindowSurface];

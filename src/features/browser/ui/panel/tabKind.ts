@@ -30,6 +30,12 @@ export const browserTabKind = defineTabKind<BrowserTab>({
   // いまのページを別ウィンドウで開き直す（webview はウィンドウをまたげないので、戻る・進むの履歴は引き継がない）
   // 外のブラウザで開くのはいまのページ
   externalUrl: (t) => t.current ?? t.url,
+  // ほかのウィンドウへ移す・別ウィンドウが覚える: いまのページ（空のページ = 新しいタブは開いたときの URL のまま）
+  transfer: {
+    save: (t) => ({ kind: "browser", key: t.key, url: t.current && t.current !== "about:blank" ? t.current : t.url, title: t.title }),
+    load: (v) => (typeof v.url === "string" && typeof v.title === "string" ? { kind: "browser", key: v.key, url: v.url, title: v.title } : null),
+    shownAs: "browser",
+  },
   popout: (t, panel) => ({
     route: { kind: "browser", panel, key: t.key, url: t.current ?? t.url, title: t.title, projectId: projectOfPanel(panel) },
     title: `${titleOf(t)} — ブラウザ`,
