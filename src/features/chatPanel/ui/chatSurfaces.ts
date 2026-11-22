@@ -20,6 +20,7 @@ function useWindowChats(key: string, scope: PanelScope) {
 /** チャットのパネル（ボードの右・「チャット」タブ）。サイドバーに出ているチャットのタブをそろえる */
 const chatsSurface = defineSurface({
   id: "kanban",
+  label: "チャットのパネル",
   accepts: ["chat"],
   closeOnEsc: true,
   whenEmpty: "close",
@@ -43,6 +44,7 @@ const chatsSurface = defineSurface({
 /** チャットの画面の右の欄（サブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） */
 const chatSideSurface = defineSurface({
   id: "agents",
+  label: "チャットの画面の右の欄",
   accepts: ["subagent", "file"],
   closeOnEsc: "focused",
   whenEmpty: "close",
@@ -63,6 +65,7 @@ const chatSideSurface = defineSurface({
 /** チャットの別ウィンドウ: チャットだけ。サイドバーとそろえず（ext なし）、移した・ドラッグで足したチャットだけ。最後のタブがなくなればウィンドウごと閉じる（panel の popout/tabWindow.ts） */
 const chatWindowSurface = defineSurface({
   id: "cwin",
+  label: "チャットの別ウィンドウ",
   accepts: ["chat"],
   closeOnEsc: false,
   whenEmpty: "closeWindow",

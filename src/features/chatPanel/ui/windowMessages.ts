@@ -13,9 +13,7 @@ export type PanelOp =
   | { op: "setDraftGroup"; draft: DraftRef; group: number | undefined; groupName: string | undefined }
   | { op: "togglePinDraft"; draft: DraftRef; pinned: boolean }
   | { op: "discardDraft"; draft: DraftRef }
-  | { op: "openChatSplit"; chat: { id: number; project_id: number }; dir: SplitDir }
-  /** その欄にブラウザのタブを開く（別ウィンドウのターミナルで ⌘ を押しながら押した URL） */
-  | { op: "openBrowser"; panel: string; url: string };
+  | { op: "openChatSplit"; chat: { id: number; project_id: number }; dir: SplitDir };
 
 declare module "@/foundation/ui/navigation/windowBus" {
   interface WindowMessageMap {

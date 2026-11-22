@@ -3,6 +3,7 @@ import { defineSurface } from "@/features/panel/ui";
 
 export const noteSurface = defineSurface({
   id: "notes",
+  label: "ノートのタブ",
   accepts: ["file"],
   closeOnEsc: false,
   whenEmpty: "keep",

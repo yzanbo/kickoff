@@ -3,7 +3,7 @@ import type { MouseEvent } from "react";
 import type { ExternalBrowserId, ExternalTerminalId } from "@shared/foundation/ipc";
 import { anchorPlacement, type Placement } from "@/foundation/ui/lib/floating";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { TerminalTargetMenu } from "@/features/terminal/ui/TerminalTargetMenu";
+import { TerminalTargetMenu } from "./TerminalTargetMenu";
 import { findPane, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useExternalBrowser, useExternalTerminal } from "@/foundation/ui/external/externalApps";

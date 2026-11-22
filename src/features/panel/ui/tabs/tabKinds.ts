@@ -1,11 +1,10 @@
-import { Container, Database, FileText, GitPullRequest, SquareTerminal, Trash2, Workflow, type LucideIcon } from "lucide-react";
-import { api } from "@/foundation/ui/api";
+import { Container, Database, FileText, GitPullRequest, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import { baseName } from "@/foundation/ui/lib/format";
 import { ProjectViewTabLead } from "@/features/projects/ui/views/ProjectViewTabLead";
-import { defineTabKind, type AnyTabKind } from "@/features/panel/ui/kind";
+import { defineTabKind, repointedAt, type AnyTabKind } from "@/features/panel/ui/kind";
+import { databaseTab, projectViewTab } from "./tabData";
 import { PROJECT_VIEW_LABELS, type PanelTab, type ProjectTool } from "./panelTypes";
-import { terminalTitle } from "./tabData";
-import { CiPage, DatabasePage, DockerPage, GitHubPage, ProjectViewPage, TerminalPage, TrashPage } from "./PanelTabPage";
+import { CiPage, DatabasePage, DockerPage, GitHubPage, ProjectViewPage, TrashPage } from "./PanelTabPage";
 
 /**
  * パネルのタブの種類（panelTypes.ts の `PanelTab` の kind）ごとの決まり（defineTabKind の項目）。
@@ -31,8 +30,8 @@ function projectToolKind(id: ToolTab["kind"], icon: LucideIcon, label: string, h
 }
 
 /**
- * まだ持ち主の機能へ移していない 7 種類（ui/contributes.ts が panelTabs に入れる。中身の部品は PanelTabPage.tsx）。
- * チャットの 5 種類は chatPanel、ファイル 2 種類は files、ノートは notes、ブラウザは browser、変更は git の ui/contributes.ts が入れる
+ * まだ持ち主の機能へ移していない 6 種類（ui/contributes.ts が panelTabs に入れる。中身の部品は PanelTabPage.tsx。P7-2e で projects の 1 種類にまとめる）。
+ * チャットの 5 種類は chatPanel、ファイル 2 種類は files、ノートは notes、ブラウザは browser、変更は git、ターミナルは terminal の ui/contributes.ts が入れる
  */
 export const PANEL_TAB_KINDS: readonly AnyTabKind[] = [
   defineTabKind<TabOf<"projectView">>({
@@ -45,6 +44,11 @@ export const PANEL_TAB_KINDS: readonly AnyTabKind[] = [
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     ownerChatId: (t) => t.chatId,
+    // 作業場所を移したら新しい作業場所から見る
+    repoint: (t, move) => {
+      const at = repointedAt(t, move);
+      return at && projectViewTab({ ...at, view: t.view });
+    },
     Page: ProjectViewPage,
   }),
   defineTabKind<TabOf<"database">>({
@@ -59,25 +63,15 @@ export const PANEL_TAB_KINDS: readonly AnyTabKind[] = [
       route: { kind: "database", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
       title: `DB — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
+    // 作業場所を移したら新しい作業場所の SQLite を開く
+    repoint: (t, move) => {
+      const at = repointedAt(t, move);
+      return at && databaseTab(at);
+    },
     Page: DatabasePage,
   }),
   projectToolKind("github", GitPullRequest, "GitHub", "GitHub（このプロジェクトの連携先の issue・PR）", GitHubPage),
   projectToolKind("ci", Workflow, "CI", "CI の結果（このプロジェクトの GitHub Actions の実行）", CiPage),
   projectToolKind("docker", Container, "Docker", "Docker（このプロジェクトの compose のサービス）", DockerPage),
   projectToolKind("trash", Trash2, "ゴミ箱", "ゴミ箱（3 日で消えます）", TrashPage),
-  defineTabKind<TabOf<"terminal">>({
-    id: "terminal",
-    icon: SquareTerminal,
-    label: terminalTitle,
-    hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
-    projectOf: (t) => t.projectId,
-    // シェルを止める（コアの API。もう終わっていれば 404 なので、失敗は捨てる）
-    dispose: (t) => void (globalThis.window?.kickoff?.terminal && api.closeTerminal(t.key).catch(() => {})),
-    // 同じシェルに別ウィンドウからつなぎ直す（移すときはシェルを止めない。popOutTab の keep）
-    popout: (t, panel) => {
-      const { key, kind: _kind, ...target } = t;
-      return { route: { kind: "terminal", panel, key, ...target }, title: `${terminalTitle(t)} — ターミナル` };
-    },
-    Page: TerminalPage,
-  }),
 ];

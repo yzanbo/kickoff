@@ -1,54 +1,8 @@
-import { PanelBottomClose } from "lucide-react";
+// 欄の住所から引く、欄によらない値（欄のプロジェクト・欄が出る画面）。欄の決まりは持ち主の機能の defineSurface
 import type { Route } from "@/foundation/ui/navigation/router";
 import { readSetting } from "@/foundation/ui/storage";
-import { CHAT_PLACEMENT, projectChatOpen } from "@/foundation/ui/storage/storageKeys";
-import { BrowserAdds, TerminalAdds } from "@/features/panel/ui/openWith/OpenWithAdds";
-import { defineSurface, parsePanelKey, type AnySurface } from "./surface";
-
-/**
- * 持ち主の機能へ移していない 3 つの欄（ui/contributes.ts が panelSurfaces に入れる。チャットのパネル・右の欄・チャットの別ウィンドウは chatPanel の chatSurfaces.ts、
- * ノートの右は notes の noteSurface.ts、ファイルの右は files の fileSurface.ts）。
- * accepts は出すタブのまとまり（chat = チャットと新しいチャット・file = ファイルとノート）。空の欄のボタン・ドラッグで受け入れる種類もこれで決まる
- */
-export const PANEL_SURFACES: readonly AnySurface[] = [
-  // 右サイドバー（画面の右端のチャット欄。ブラウザだけ）
-  defineSurface({
-    id: "side",
-    accepts: ["browser"],
-    closeOnEsc: false,
-    // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ）
-    whenEmpty: "close",
-    openSetting: projectChatOpen,
-    // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ）
-    maximize: "width",
-    // 狭い欄なので、右・下に分けるボタンは置かない（分けるのはタブのドラッグ・右クリック・⌘\）
-    splitButtons: false,
-    className: "as-sidebar",
-    Adds: BrowserAdds,
-  }),
-  // フッター（下のパネル。ターミナルだけ）
-  defineSurface({
-    id: "bottom",
-    accepts: ["terminal"],
-    closeOnEsc: false,
-    whenEmpty: "close",
-    openWhenEmpty: "terminal",
-    closeButton: { icon: PanelBottomClose, label: "フッターを閉じる", keys: "⌃` / ⌘J", at: "end" },
-    maximize: "height",
-    className: "as-sidebar in-footer",
-    Adds: TerminalAdds,
-  }),
-  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 popout/tabWindow.ts）
-  defineSurface({
-    id: "win",
-    accepts: ["browser"],
-    closeOnEsc: false,
-    whenEmpty: "closeWindow",
-    splitButtons: false,
-    className: "as-sidebar",
-    Adds: BrowserAdds,
-  }),
-];
+import { CHAT_PLACEMENT } from "@/foundation/ui/storage/storageKeys";
+import { parsePanelKey } from "./surface";
 
 /** 欄のプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
 export function projectOfPanel(key: string): number | null {

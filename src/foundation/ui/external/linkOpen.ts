@@ -5,7 +5,7 @@ import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
 import { settingsStore } from "@/features/settings/ui/stores/settings";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
-import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
+import { open } from "@/foundation/ui/navigation/open";
 
 const TITLE = "外部リンクを開く";
 
@@ -44,7 +44,7 @@ export async function openWebLink(href: string, text: string, opts: { invert: bo
   const settings = settingsStore.get().data ?? (await settingsStore.reload());
   if (!(await confirmOpen(href, text, settings))) return;
   const kickoff = (settings.link_open_in === "kickoff") !== opts.invert;
-  if (kickoff && opts.projectId !== undefined) openSideBrowser(opts.projectId, href);
+  if (kickoff && opts.projectId !== undefined) open({ kind: "browser", projectId: opts.projectId, url: href });
   // 新しいウィンドウを開こうとすると、メインプロセスが既定のブラウザで開く（app/externalLinks.ts）
   else window.open(href, "_blank", "noopener,noreferrer");
 }

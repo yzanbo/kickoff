@@ -4,7 +4,6 @@ import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { panelKey, parsePanelKey, type AnySurface, type PanelSurface } from "@/features/panel/ui/surface";
 import type { AnyTabKind, TabBase } from "@/features/panel/ui/kind";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { readBrowserSession, writeBrowserSession } from "@/features/browser/ui/panel/browserSession";
 import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./panelState";
 
 /**
@@ -29,6 +28,8 @@ export interface PanelStore {
   kindOf(tab: TabBase): AnyTabKind;
   /** 欄の決まり（知らない欄なら undefined） */
   surfaceOf(id: PanelSurface): AnySurface | undefined;
+  /** プロジェクトを消したとき: そのプロジェクトの、タブを保存する欄（右サイドバー）の保存を消し、このウィンドウが持っていれば取り出す */
+  forgetProject(projectId: number): void;
   /**
    * 写しの店にする / やめる（サイドバーの別ウィンドウ。メインのウィンドウのパネルの状態を replace で受け取って読むだけで、自分では変えない。
    * 写しの間は dispatch・move は何もしない。閉じたタブの後始末はメインのウィンドウが行う。panelMirror.ts）
@@ -63,11 +64,6 @@ function isWindowPanel(key: string): boolean {
   return surface === "win" || surface === "cwin";
 }
 
-/** 右サイドバーのタブを保存する先（プロジェクトごと） */
-function browserProjectOf(key: string): number | null {
-  const at = parsePanelKey(key);
-  return at?.surface === "side" && typeof at.scope === "number" ? at.scope : null;
-}
 
 export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKind[]; surfaces: readonly AnySurface[] }): PanelStore {
   const kindById = new Map(kinds.map((k) => [k.id, k]));
@@ -88,6 +84,12 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     if (!kind) throw new Error(`タブの種類 ${tab.kind} は登録されていない`);
     return kind;
   };
+  /** タブを保存する欄（欄の決まりの saved。プロジェクトの欄だけ）の、保存の口とプロジェクト */
+  const savedOf = (key: string) => {
+    const at = parsePanelKey(key);
+    const saved = at ? surfaceById.get(at.surface)?.saved : undefined;
+    return saved && typeof at?.scope === "number" ? { saved, projectId: at.scope } : null;
+  };
   const notify = () => {
     version++;
     for (const listener of [...listeners]) listener();
@@ -100,13 +102,13 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     return setting && typeof at.scope === "number" ? setting(at.scope) : undefined;
   };
 
-  /** 欄の初めの状態（開いているかを覚える欄は覚えた値から。右サイドバーは保存したブラウザのタブから） */
+  /** 欄の初めの状態（開いているかを覚える欄は覚えた値から。タブを保存する欄（右サイドバー）は保存したタブから） */
   const initialState = (key: string, tabs: readonly PanelTab[] = []): PanelState => {
     const setting = openSettingOf(key);
-    const project = browserProjectOf(key);
-    const browser = project === null ? null : readBrowserSession(project);
-    const state = emptyPanel(surfaceOfKey(key), browser ? [...browser.tabs, ...tabs] : tabs, setting ? readSetting(setting) : false);
-    return browser ? { ...state, layout: browser.layout } : state;
+    const at = savedOf(key);
+    const saved = at ? at.saved.read(at.projectId) : null;
+    const state = emptyPanel(surfaceOfKey(key), saved ? [...saved.tabs, ...tabs] : tabs, setting ? readSetting(setting) : false);
+    return saved ? { ...state, layout: saved.layout } : state;
   };
 
   const stateOf = (key: string): PanelState => {
@@ -141,8 +143,8 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
         if (!(action.type === "close" && action.keep)) prev.tabs.filter((t) => !kept.has(t.key)).forEach(dispose);
       }
       if (owns(key) && (next.tabs !== prev.tabs || next.layout !== prev.layout)) {
-        const project = browserProjectOf(key);
-        if (project !== null) writeBrowserSession(project, next);
+        const at = savedOf(key);
+        if (at) at.saved.write(at.projectId, next);
       }
       const setting = next.open !== prev.open ? openSettingOf(key) : undefined;
       if (setting) writeSetting(setting, next.open);
@@ -156,6 +158,15 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     version: () => version,
     kindOf,
     surfaceOf: (id) => surfaceById.get(id),
+    forgetProject(projectId) {
+      for (const surface of surfaces) {
+        if (!surface.saved) continue;
+        const key = panelKey(surface.id, projectId);
+        if (!owns(key)) continue;
+        surface.saved.write(projectId, null);
+        take((k) => k === key);
+      }
+    },
     setReplica(on) {
       replica = on;
     },
@@ -222,12 +233,7 @@ export function startPanelServerEvents(): () => void {
   return onServerEvent(["project_deleted", "chat_deleted"], (e) => {
     const s = store();
     if (e.type === "project_deleted") {
-      if (s.isReplica()) return;
-      const side = panelKey("side", e.id);
-      if (s.owns(side)) {
-        writeBrowserSession(e.id, null);
-        s.take((key) => key === side);
-      }
+      if (!s.isReplica()) s.forgetProject(e.id);
       return;
     }
     for (const [key, state] of [...s.all()]) {

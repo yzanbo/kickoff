@@ -3,6 +3,7 @@ import { defineSurface } from "@/features/panel/ui";
 
 export const fileSurface = defineSurface({
   id: "files",
+  label: "ファイルのタブ",
   accepts: ["file"],
   closeOnEsc: false,
   whenEmpty: "keep",

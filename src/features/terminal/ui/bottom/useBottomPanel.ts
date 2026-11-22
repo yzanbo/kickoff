@@ -1,8 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { panelKey, panelSettings, togglePanel, type PanelScope, usePanelOpen } from "@/features/panel/ui";
-import type { TerminalTarget } from "@/features/panel/ui/usePanel";
+import { panelKey, panelSettings, terminalTab, togglePanel, type PanelScope, type TerminalTarget, usePanelOpen } from "@/features/panel/ui";
 
 const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
@@ -38,7 +37,7 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   }, [open]);
 
   /** 開閉。開くときにタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
-  const toggle = () => togglePanel(key, { terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
+  const toggle = () => togglePanel(key, { emptyTab: targets.length === 1 && window.kickoff?.terminal ? terminalTab(targets[0]) : undefined });
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
   useWindowEvent(

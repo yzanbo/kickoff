@@ -3,11 +3,10 @@
 import { findPane, focusedPane, type PaneLayout, type SplitDir, type SplitSide } from "@/features/panel/ui/layout/paneTree";
 import { focusPane as focusLayoutPane, moveTab as moveLayoutTab, returnToHome as returnLayoutToHome, splitPane as splitLayoutPane } from "@/features/panel/ui/layout/paneLayout";
 import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
-import { parsePanelKey } from "@/features/panel/ui/surface";
-import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
-import { newTabKey, terminalTab } from "@/features/panel/ui/tabs/tabData";
+import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import { newTabKey } from "@/features/panel/ui/tabs/tabData";
 import type { TabPatch } from "./panelState";
-import { dispatchPanel, panelStateOf, surfaceOf } from "./panelStore";
+import { dispatchPanel, panelStateOf } from "./panelStore";
 
 const changeLayout = (panel: string, change: (layout: PaneLayout) => PaneLayout) => dispatchPanel(panel, { type: "layout", change });
 
@@ -38,15 +37,11 @@ export const returnToHome = (panel: string, key: string) => changeLayout(panel, 
 
 export const setPanelOpen = (panel: string, open: boolean) => dispatchPanel(panel, { type: "setOpen", open });
 
-/**
- * 開閉。開くときにタブがなければ、欄の決まり（openWhenEmpty）でタブを始める
- * （フッター = 開く場所 terminal が決まっていればターミナル）
- */
-export function togglePanel(panel: string, { terminal }: { terminal?: TerminalTarget } = {}): void {
+/** 開閉。開くときにタブがなく emptyTab があれば、そのタブを始める（フッター = 開く場所が 1 つならターミナル。欄の殻が決める） */
+export function togglePanel(panel: string, { emptyTab }: { emptyTab?: PanelTab } = {}): void {
   const state = panelStateOf(panel);
-  const at = parsePanelKey(panel);
-  if (state.open || !at) return setPanelOpen(panel, !state.open);
-  if (state.tabs.length === 0 && surfaceOf(at.surface)?.openWhenEmpty === "terminal" && terminal) return openTab(panel, terminalTab(terminal));
+  if (state.open) return setPanelOpen(panel, false);
+  if (state.tabs.length === 0 && emptyTab) return openTab(panel, emptyTab);
   setPanelOpen(panel, true);
 }
 

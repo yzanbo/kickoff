@@ -2,10 +2,7 @@ import { webUrlOf } from "@shared/remoteImages/linkWarnings";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { chatPanelSettings } from "@/features/chatPanel/ui";
 import { normalizeUrl } from "@/foundation/ui/lib/url";
-import { reconcileLayout } from "@/features/panel/ui/layout/paneLayout";
-import { singlePane, type PaneLayout, type PaneNode } from "@/features/panel/ui/layout/paneTree";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import type { PanelState } from "@/features/panel/ui/state/panelState";
+import { reconcileLayout, singlePane, type PaneLayout, type PaneNode, type PanelTab, type SavedTabs } from "@/features/panel/ui";
 
 type BrowserTab = Extract<PanelTab, { kind: "browser" }>;
 type BrowserSession = { tabs: BrowserTab[]; layout: PaneLayout };
@@ -67,7 +64,7 @@ export function readBrowserSession(projectId: number): BrowserSession | null {
 }
 
 /** 個々のタブが閉じられたら除き、欄を隠しただけなら残す。初めの URL ではなく最後に表示した URL を使う */
-export function writeBrowserSession(projectId: number, state: Pick<PanelState, "tabs" | "layout"> | null): void {
+export function writeBrowserSession(projectId: number, state: SavedTabs | null): void {
   const tabs = state?.tabs.flatMap((tab) => {
     if (tab.kind !== "browser") return [];
     const url = restorableUrl(tab.current ?? normalizeUrl(tab.url)) ?? "about:blank";

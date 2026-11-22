@@ -1,15 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { terminalTitle } from "@/features/panel/ui/tabs/tabData";
+import { useEffect, useState } from "react";
 import { Panel } from "@/features/panel/ui/Panel";
 import { usePanel } from "@/features/panel/ui/usePanel";
-import { panelKey, windowScope } from "@/features/panel/ui/surface";
+import { windowScope } from "@/features/panel/ui/surface";
 import { startTabWindow, type TabWindowRoute } from "./tabWindow";
-
-const TerminalPane = lazy(() => import("@/features/terminal/ui/TerminalPane"));
-
-type TerminalRoute = Extract<PopoutRoute, { kind: "terminal" }>;
 
 /**
  * タブの列のある別ウィンドウ（ブラウザ・チャット。Chrome のウィンドウと同じく、タブの列を持ち、ほかのタブを足せる。右サイドバー・チャットのパネルと同じ Panel。
@@ -32,26 +25,4 @@ export function PopoutTabWindow({ route }: { route: TabWindowRoute }) {
 function TabWindowPanel({ route }: { route: TabWindowRoute }) {
   const panel = usePanel(route.kind === "browser" ? "win" : "cwin", windowScope(route.projectId, route.key));
   return <Panel panel={panel} />;
-}
-
-/** パネルのターミナルのタブの別ウィンドウ（同じシェルにつなぎ直す。持ち主はこのウィンドウになり、閉じるとシェルも止まる） */
-export function PopoutTerminal({ route }: { route: TerminalRoute }) {
-  return (
-    <div className="popout-body">
-      <Suspense fallback={<div className="page muted">読み込み中…</div>}>
-        <TerminalPane
-          termKey={route.key}
-          cwd={route.cwd}
-          command={route.command}
-          env={route.env}
-          meta={{ projectId: route.projectId, title: terminalTitle(route) }}
-          visible
-          focused
-          // ⌘ を押しながら押した URL は、そのプロジェクトの右サイドバー（チャット欄）のブラウザのタブで開く（メインのウィンドウに頼む）
-          onOpenUrl={(url) => postToMainWindow("panelOp", { op: "openBrowser", panel: panelKey("side", route.projectId), url })}
-          projectId={route.projectId}
-        />
-      </Suspense>
-    </div>
-  );
 }

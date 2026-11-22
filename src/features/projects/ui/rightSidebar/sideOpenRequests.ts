@@ -2,7 +2,7 @@
 // 中身の部品が受け取って開いたら片付ける（同じ頼みで開き直さない）
 import { useSyncExternalStore } from "react";
 import type { FileTarget } from "@/foundation/ui/navigation/router";
-import { sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
+import { sidePanelsHandedOut } from "@/features/panel/ui";
 import { isSideViewShown } from "./sideView";
 
 /** 右サイドバーで開くよう頼まれたもの（ファイル・ノート） */

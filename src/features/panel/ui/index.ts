@@ -2,17 +2,21 @@
 import { storage } from "./storage";
 
 export type { PanelTab, TerminalTarget } from "./tabs/panelTypes";
-export type { PaneLeaf, SplitDir } from "./layout/paneTree";
-export { isTabVisible, paneOfTab } from "./layout/paneTree";
+export type { PaneLayout, PaneLeaf, PaneNode, SplitDir } from "./layout/paneTree";
+export { activeTabOf, isTabVisible, leavesOf, paneOfTab, singlePane } from "./layout/paneTree";
+export { reconcileLayout } from "./layout/paneLayout";
 export { forwardPanelOp } from "./state/panelMirror";
-export type { DraftScope, PanelScope, PanelSurface, StripProps, SurfaceExt, TabLook, ViewScope } from "./surface";
-export type { PanelController } from "./usePanel";
+export type { DraftScope, PanelScope, PanelSurface, SavedTabs, StripProps, SurfaceExt, TabLook, ViewScope } from "./surface";
+export { usePanel, type PanelController } from "./usePanel";
+export { BrowserAdds, TerminalAdds } from "./openWith/OpenWithAdds";
 export { Panel } from "./Panel";
 export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
+export { adoptSidePanels, isSidePanel, ownSidePanelsOnly, sidePanelsHandedOut } from "./state/panelHandOff";
+export { isTabShown, panelOfTab } from "./state/tabPlace";
 export { defineSurface, draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
-export { defineTabKind, panelTabs, type TabFaceProps, type TabMenuProps, type TabPageProps } from "./kind";
+export { defineTabKind, panelTabs, repointedAt, type TabFaceProps, type TabMenuProps, type TabPageProps, type WorkplaceMove } from "./kind";
 export { panelScreen, projectOfPanel } from "./surfaces";
 export {
   allPanels,
@@ -27,11 +31,12 @@ export {
   restorePanelTabs,
   startPanelServerEvents,
   subscribePanels,
+  surfaceOf,
   takePanels,
   usePanelOpen,
   usePanelState,
 } from "./state/panelStore";
-export { addTabBehind, closeTab, openTab, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
+export { addTabBehind, closeTab, openTab, patchTab, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
 export {
   agentTabKey,
   browserTab,

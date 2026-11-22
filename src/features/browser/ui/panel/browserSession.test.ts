@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { activeTabOf, leavesOf, singlePane, type PaneLayout } from "@/features/panel/ui/layout/paneTree";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import { activeTabOf, leavesOf, singlePane, type PaneLayout, type PanelTab } from "@/features/panel/ui";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { chatPanelSettings } from "@/features/chatPanel/ui";
 import { readBrowserSession, writeBrowserSession } from "./browserSession";

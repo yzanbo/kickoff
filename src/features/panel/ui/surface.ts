@@ -5,7 +5,7 @@ import type { ComponentType, ReactNode } from "react";
 import { definePoint } from "@/foundation/ui/points";
 import type { SettingFamily } from "@/foundation/ui/storage";
 import type { PanelTab } from "./tabs/panelTypes";
-import type { PaneLeaf } from "./layout/paneTree";
+import type { PaneLayout, PaneLeaf } from "./layout/paneTree";
 import type { TabGroupLookup } from "./kind";
 import type { PanelController } from "./usePanel";
 
@@ -81,6 +81,12 @@ export interface SurfaceExt<E> {
   linked?(ext: E, tab: PanelTab): boolean;
 }
 
+/** 欄が保存するタブと配置（SurfaceSpec.saved） */
+export interface SavedTabs {
+  tabs: readonly PanelTab[];
+  layout: PaneLayout;
+}
+
 /** 欄のチャットを読む口（SurfaceSpec.chats） */
 export interface SurfaceChats {
   useChats(key: string, scope: PanelScope): PanelController["chats"];
@@ -88,6 +94,8 @@ export interface SurfaceChats {
 
 export interface SurfaceSpec<E = unknown> {
   id: PanelSurface;
+  /** 欄の呼び名（AI の get_user_view が返す「どこのペインか」） */
+  label: string;
   /** 入れられる種類（新しいタブのボタン・空の欄のボタン・ドラッグで受け入れる種類もこれ） */
   accepts: readonly PanelKind[];
   /**
@@ -97,8 +105,14 @@ export interface SurfaceSpec<E = unknown> {
   closeOnEsc: boolean | "focused";
   /** 見せている最後のタブを閉じたとき（close = 欄も閉じる / keep = 開いたまま / closeWindow = ウィンドウごと閉じる（ウィンドウの殻が閉じる）） */
   whenEmpty: "close" | "keep" | "closeWindow";
-  /** タブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき）） */
-  openWhenEmpty?: "terminal";
+  /**
+   * タブを保存して、次に欄を作るときに戻す（右サイドバーのブラウザ。プロジェクトの欄だけ・保存するのは欄の持ち主のウィンドウだけ）。
+   * write(…, null) はプロジェクトを消したとき
+   */
+  saved?: {
+    read(projectId: number): SavedTabs | null;
+    write(projectId: number, state: SavedTabs | null): void;
+  };
   /** いつも開いておく（Esc・最後のタブを閉じても欄は閉じず、タブがなければ案内。ノート・ファイルのタブの右） */
   alwaysOpen?: boolean;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */

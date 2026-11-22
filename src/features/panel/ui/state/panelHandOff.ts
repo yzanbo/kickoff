@@ -1,10 +1,10 @@
 // チャット欄（右端の欄。surface が side の欄）を、メインのウィンドウと別ウィンドウの間で受け渡す（状態の持ち主ごと移す。タブの後始末はしない）。
-// 持っているウィンドウだけがその欄を描き・変え・下書きを残す（setPanelOwnership）。ターミナルのシェルは、受け取った側が持ち主になってから渡した側を閉じる
+// 持っているウィンドウだけがその欄を描き・変え・下書きを残す（setPanelOwnership）。受け取った側は種類の onMoveToWindow でタブを自分のものにしてから
+// （ターミナルはシェルの持ち主になってから）渡した側を閉じる
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
 import { parsePanelKey } from "@/features/panel/ui/surface";
 import type { PanelState } from "./panelState";
-import { putPanels, setPanelOwnership, takePanels } from "./panelStore";
+import { kindOf, putPanels, setPanelOwnership, takePanels } from "./panelStore";
 
 /** メインのウィンドウ: チャット欄を別ウィンドウへ渡したあとか（戻される・別ウィンドウが閉じるまで） */
 let handedOut = false;
@@ -15,9 +15,9 @@ export const sidePanelsHandedOut = (): boolean => handedOut;
 /** チャット欄の欄か */
 export const isSidePanel = (key: string): boolean => parsePanelKey(key)?.surface === "side";
 
-/** 欄の中のターミナルのタブのキー（シェルのキー） */
-export const terminalKeysOf = (panels: readonly (readonly [string, PanelState])[]): string[] =>
-  panels.flatMap(([, state]) => state.tabs.flatMap((t) => (t.kind === "terminal" ? [t.key] : [])));
+/** 移ってきた欄のタブを、このウィンドウのものにする（種類の onMoveToWindow） */
+const adoptTabs = (panels: readonly (readonly [string, PanelState])[]): Promise<unknown> =>
+  Promise.all(panels.flatMap(([, state]) => state.tabs.map((t) => kindOf(t).onMoveToWindow?.(t))));
 
 /**
  * メインのウィンドウ: チャット欄を別ウィンドウへ渡す（取り出して送り、このウィンドウでは描かず・下書きも書かない）。
@@ -43,7 +43,7 @@ export async function takeSidePanelsBack(panels: readonly (readonly [string, Pan
   handedOut = false;
   setPanelOwnership(() => true);
   putPanels(isSidePanel, panels);
-  await Promise.all(terminalKeysOf(panels).map(claimTerminal));
+  await adoptTabs(panels);
 }
 
 /** チャット欄の別ウィンドウ: このウィンドウはチャット欄だけを持つ（ほかの欄の下書きは書かない） */
@@ -55,5 +55,5 @@ export function ownSidePanelsOnly(): void {
 export function adoptSidePanels(panels: readonly (readonly [string, PanelState])[]): void {
   setPanelOwnership(isSidePanel);
   putPanels(isSidePanel, panels);
-  void Promise.all(terminalKeysOf(panels).map(claimTerminal));
+  void adoptTabs(panels);
 }

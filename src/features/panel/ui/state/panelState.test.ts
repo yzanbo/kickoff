@@ -28,7 +28,7 @@ const linkExt: SurfaceExt<readonly number[]> = {
 };
 
 /** チャットのパネルのような連動する欄（whenEmpty は最後のタブを閉じたときに欄も閉じるか） */
-const board = (whenEmpty: "close" | "keep" = "close") => defineSurface({ id: "kanban", accepts: ["chat"], closeOnEsc: false, whenEmpty, ext: linkExt });
+const board = (whenEmpty: "close" | "keep" = "close") => defineSurface({ id: "kanban", label: "チャットのパネル", accepts: ["chat"], closeOnEsc: false, whenEmpty, ext: linkExt });
 const emptyPanel = (tabs: readonly PanelTab[] = []) => empty(board(), tabs);
 const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, board()), state);
 

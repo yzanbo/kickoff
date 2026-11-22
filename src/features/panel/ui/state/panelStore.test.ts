@@ -5,14 +5,12 @@ import { publishServerEvent } from "@/foundation/ui/api/events";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
-import { activeTabOf } from "@/features/panel/ui/layout/paneTree";
-import { readBrowserSession } from "@/features/browser/ui/panel/browserSession";
-import { closePane, closeTab, openTab, patchTab, setPanelOpen, showTab, splitPane, togglePanel } from "./actions";
+import { closePane, closeTab, openTab, patchTab, setPanelOpen, splitPane, togglePanel } from "./actions";
 import { browserTab, chatTab, reopenOf, terminalTab } from "@/features/panel/ui/tabs/tabData";
 import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
 import { discardDraft, draftOfPanelTab, openNewChat, placedDrafts, restoreDraftTabs, setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { api } from "@/foundation/ui/api";
-import { panelStateOf, startPanelServerEvents, takePanels } from "./panelStore";
+import { panelStateOf, startPanelServerEvents } from "./panelStore";
 
 const { local } = installMemoryStorage();
 
@@ -68,38 +66,6 @@ test("見せている最後のタブを閉じると、フッター・右サイ�
   assert.equal(panelStateOf("side:2").open, false);
 });
 
-test("右サイドバーのブラウザ: 隠しても開いていたページと選択を復元し、個別に閉じたタブは復元しない", () => {
-  useStore();
-  const key = "side:31";
-  const start = browserTab("https://example.test/start");
-  const other = browserTab("https://example.test/other");
-  openTab(key, start);
-  openTab(key, other);
-  const [first, second] = [start.key, other.key];
-  patchTab(key, first, { kind: "browser", fields: { current: "https://example.test/next", title: "次のページ" } });
-  showTab(key, first);
-  setPanelOpen(key, false);
-  // メモリの状態を外し、読み込み直したときと同じように保存から作る
-  takePanels((panel) => panel === key);
-  assert.equal(panelStateOf(key).open, false);
-  assert.deepEqual(keys(key), [first, second]);
-  assert.equal(activeTabOf(panelStateOf(key).layout), first);
-  assert.deepEqual(panelStateOf(key).tabs[0], { kind: "browser", key: first, url: "https://example.test/next", title: "次のページ", restored: true });
-  closeTab(key, first);
-  assert.deepEqual(readBrowserSession(31)?.tabs.map((t) => t.key), [second]);
-  closeTab(key, second);
-  assert.equal(readBrowserSession(31), null);
-});
-
-test("削除したプロジェクトのブラウザのタブは保存からも外す", () => {
-  useStore();
-  openTab("side:32", browserTab("https://example.test"));
-  takePanels((key) => key === "side:32");
-  assert.ok(readBrowserSession(32));
-  publishServerEvent({ type: "project_deleted", id: 32 });
-  assert.equal(readBrowserSession(32), null);
-});
-
 test("閉じたターミナルのタブは、シェルも止める（ペインを閉じたときも）", () => {
   useStore();
   closedShells.length = 0;
@@ -113,16 +79,16 @@ test("閉じたターミナルのタブは、シェルも止める（ペイン�
   assert.deepEqual(keys("bottom:3"), []);
 });
 
-test("開閉: タブがないまま開くと、右サイドバー（チャット欄）は空のまま開き、フッターはターミナルを始める", () => {
+test("開閉: タブがないまま開くと、右サイドバー（チャット欄）は空のまま開き、フッターは殻が渡したターミナルを始める", () => {
   useStore();
   togglePanel("side:4");
   assert.deepEqual(keys("side:4"), []);
   assert.equal(panelStateOf("side:4").open, true);
-  togglePanel("bottom:4", { terminal: target(4) });
+  togglePanel("bottom:4", { emptyTab: terminalTab(target(4)) });
   assert.deepEqual(panelStateOf("bottom:4").tabs.map((t) => t.kind), ["terminal"]);
   // タブがあれば、開け閉めするだけ
-  togglePanel("bottom:4", { terminal: target(4) });
-  togglePanel("bottom:4", { terminal: target(4) });
+  togglePanel("bottom:4", { emptyTab: terminalTab(target(4)) });
+  togglePanel("bottom:4", { emptyTab: terminalTab(target(4)) });
   assert.equal(panelStateOf("bottom:4").tabs.length, 1);
   assert.equal(panelStateOf("bottom:4").open, true);
 });

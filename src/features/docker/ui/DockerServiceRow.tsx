@@ -4,7 +4,7 @@ import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, Do
 import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/docker/types";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { openTab, panelKey, terminalTab } from "@/features/panel/ui";
-import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
+import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { api } from "@/foundation/ui/api";
@@ -247,7 +247,7 @@ function PortButton({ projectId, port, warn, onOpenDb }: { projectId: number; po
         type="button"
         className={cx("docker-port small", warn && "is-warn")}
         data-tip={`${url} を右サイドバーのブラウザで開く`}
-        onClick={() => openSideBrowser(projectId, url)}
+        onClick={() => open({ kind: "browser", projectId, url })}
         onContextMenu={(e) => {
           // 行の右クリックのメニューまで開かないように
           e.stopPropagation();

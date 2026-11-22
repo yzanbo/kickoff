@@ -77,6 +77,28 @@ export interface TabFaceProps<T extends TabBase> {
   render(face: TabFace): ReactNode;
 }
 
+/** 作業場所（プロジェクトとワークツリーのフォルダ。本体なら null） */
+export interface WorkplaceAt {
+  projectId: number;
+  worktree: string | null;
+}
+
+/** チャットの作業場所を移したこと（TabKind.repoint） */
+export interface WorkplaceMove {
+  chatId: number;
+  from: WorkplaceAt;
+  to: WorkplaceAt;
+}
+
+/**
+ * 作業場所を指すタブ（チャットの画面の右の欄の、チャット・プロジェクト・ワークツリーを持つタブ）が、移す前の作業場所のものなら、
+ * 新しい作業場所の値（tabData の作る関数に渡す形）を返す。違えば null
+ */
+export function repointedAt(tab: { chatId: number; projectId: number; worktree?: string }, move: WorkplaceMove): { chatId: number; projectId: number; worktree?: string } | null {
+  if (tab.chatId !== move.chatId || tab.projectId !== move.from.projectId || (tab.worktree ?? null) !== move.from.worktree) return null;
+  return { chatId: move.chatId, projectId: move.to.projectId, ...(move.to.worktree ? { worktree: move.to.worktree } : {}) };
+}
+
 /** タブの右クリックのメニューに、土台が作った項目を渡して種類の項目と並べさせる */
 export interface TabMenuProps<T extends TabBase> {
   tab: T;
@@ -142,6 +164,13 @@ export interface TabKind<T extends TabBase> {
    * panel はタブのある欄（戻す先）。dismiss: 欄からは「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）
    */
   popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean };
+  /** ほかのウィンドウから移ってきたタブを、このウィンドウのものにする（右サイドバーの受け渡し。ターミナルはシェルの持ち主をこのウィンドウにする） */
+  onMoveToWindow?(tab: T): Promise<void> | void;
+  /**
+   * チャットの作業場所を移したときの付け替え（チャットの画面の右の欄の、作業場所を指すタブ）。移す前の作業場所のタブでなければ null、
+   * 新しい作業場所のタブを返すか、付け替えずに残すとき（書きかけのファイル）は残したものの名前を kept で返す
+   */
+  repoint?(tab: T, move: WorkplaceMove, panel: string): T | { kept: string } | null;
   /** タブの中身（表示していないタブも hidden で残す） */
   Page: ComponentType<TabPageProps<T>>;
 }

@@ -1,14 +1,14 @@
 # タブの入れ物（`src/features/panel`）
 
-タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ（`kanban`・`agents`・`cwin` は chatPanel の `chatSurfaces.ts`、`notes`・`files` は各機能）。
+タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ（欄の項目は持ち主の機能が出す）。
 パスは `ui/` から。チャットの部分（サイドバーとの連動・タブのまとまり・下書き・右の欄）は `src/features/chatPanel/CLAUDE.md`、タブの中身のチャットは `src/features/conversation/CLAUDE.md`、ターミナルは `src/features/terminal/CLAUDE.md`、ブラウザは `src/features/browser/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
-| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 3 欄は `surfaces.ts`）・入れ子の欄のピント `panelHost.ts` |
+| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（欄によらない住所の読み方は `surfaces.ts`）・入れ子の欄のピント `panelHost.ts` |
 | `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `actions.ts`）・別ウィンドウの写しと受け渡し |
 | `layout/` | ペインの分割（`paneTree.ts`・`paneLayout.ts`・`paneSizes.ts`・`paneGeometry.ts`）・タブのドラッグ（`useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`） |
-| `tabs/` | 持ち主へ移していない 7 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `TabPageFrame`（移していない中身は `PanelTabPage`）・メニュー・先読み |
+| `tabs/` | 持ち主へ移していない 6 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `TabPageFrame`（移していない中身は `PanelTabPage`）・メニュー・先読み |
 | `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く（新しいタブのボタン `OpenWithAdds`） |
 
 欄の殻はそれぞれの持ち主にある: チャットのパネルと右の欄は `@/features/chatPanel/ui/`（`board/`・`agents/`）、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`。
@@ -17,7 +17,7 @@
 
 - 欄ごとの違い（出す種類・Esc・ボタン・空の案内 `EmptyHint`・「表示」の中身 `ViewMenu`・いつも開く `alwaysOpen` など）は欄の項目に集め、`panelSurfaces` で受ける。`usePanel(欄, scope)` に渡すのは 2 つだけ。
 - 欄ごとに出すタブは 1 種類（`kanban` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。
-- ブラウザのタブはどこから開いても右サイドバーに開く（`@/features/browser/ui/panel/openBrowserTab.ts`）。ターミナルは下のパネルに開く。
+- ブラウザのタブはどこから開いても右サイドバーに開く（行き先 `open({ kind: "browser" })`）。ターミナルは下のパネルに開く。
 - 状態は `panelKey(欄, scope)` で欄・画面ごとに覚える。
 - 範囲がチャットの ID かは `typeof scope === "number"` で見分ける（プロジェクトの ID と取り違えない）。
 
@@ -28,14 +28,14 @@
 - 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`TabPageFrame` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
 - 表示していないタブも hidden で残す。チャットの会話・サブエージェント・子チャットはさらに `Activity` で止め、止めると切れる操作の間は `@/features/chat/ui/screen/keepAlive.ts` で止めない。
 - 表示中かは `TabVisibleContext` で入れ子の欄へ伝える。チャットのタブの中身は初めて表示したときに作る（種類の `createWhen: "shown"`）。
-- 右サイドバーのブラウザは `@/features/browser/ui/panel/browserSession.ts` で残す。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。別ウィンドウの店はメインのウィンドウの写し（`panelMirror.ts`）。
+- 欄のタブを残すのは欄の項目の `saved`（右サイドバーのブラウザ）。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。別ウィンドウの店はメインのウィンドウの写し（`panelMirror.ts`）。
 
 ## タブの種類（`kind.ts`）
 
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（名前・後始末・`popout`・中身 `Page`・見た目 `Face`・`Menu`・`close`・`rename`・`confirmClose` など）は、分岐させず種類の項目（`defineTabKind`・`panelTabs`）から `kindOf(tab)` で引く。
-- 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser・変更は git）。
+- 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser・変更は git・ターミナルは terminal）。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
-- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す（`AgentPanelAdds`・`repointTabs.ts`・`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
+- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・AI に返す説明 `@/app/renderer/userViewTabs.ts` も直す（`AgentPanelAdds`・`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 閉じてよいかは `confirmTabClose`（×・右クリックの「タブを閉じる」・ペインを閉じるの 3 か所）。
 

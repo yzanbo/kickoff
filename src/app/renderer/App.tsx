@@ -30,7 +30,7 @@ import { Sidebar, SidebarOpenButton } from "@/features/sidebar/ui/Sidebar";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
 import { requestCodeSearchFocus } from "@/features/files/ui/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/ui/useSidebar";
-import { terminalTargets } from "@/features/panel/ui/usePanel";
+import { terminalTargets } from "@/features/terminal/ui/bottom/terminalTargets";
 import { AskHost } from "@/foundation/ui/kit/AskHost";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/ui/DbUnlockHost";

@@ -5,11 +5,10 @@ import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
 import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/state/panelStore";
 import { panelKey, type PanelScope, type PanelSurface, type SurfaceChats } from "./surface";
-import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
 
-export type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
-export { terminalTargets } from "@/features/panel/ui/tabs/panelTypes";
+export type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 export type PanelController = ReturnType<typeof usePanel>;
 
@@ -41,7 +40,7 @@ function panelOps(key: string) {
     returnToHome: (tabKey: string) => ops.returnToHome(key, tabKey),
     setOpen: (open: boolean) => ops.setPanelOpen(key, open),
     close: () => ops.setPanelOpen(key, false),
-    toggle: (opts?: { terminal?: TerminalTarget }) => ops.togglePanel(key, opts),
+    toggle: (opts?: { emptyTab?: PanelTab }) => ops.togglePanel(key, opts),
     focusPane: (paneId: string) => ops.focusPane(key, paneId),
     splitPane: (paneId: string, dir: Parameters<typeof ops.splitPane>[2], side: Parameters<typeof ops.splitPane>[3], tabKey?: string) => ops.splitPane(key, paneId, dir, side, tabKey),
     moveTab: (tabKey: string, paneId: string, index?: number) => ops.moveTab(key, tabKey, paneId, index),

@@ -1,42 +1,27 @@
-// 作業場所を移したら、そのチャットの右の欄の作業場所付きのタブ（変更・ファイル・プロジェクトの画面・DB）を新しい作業場所に付け替える。
+// 作業場所を移したら、そのチャットの右の欄の作業場所付きのタブ（変更・ファイル・プロジェクトの画面・DB）を新しい作業場所に付け替える（種類の repoint）。
 // 書きかけのファイルのタブだけは付け替えずに残し、そう知らせる
 import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { isFileTabDirty } from "@/features/files/ui/fileTabs";
-import { changesTab, databaseTab, fileTab, panelStateOf, projectViewTab, replaceTab } from "@/features/panel/ui";
+import { kindOf, panelStateOf, replaceTab, type PanelTab, type WorkplaceMove } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";
-import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 type Place = Pick<WorkplaceRef, "project_id" | "worktree_path">;
 
-/** 付け替え方: 置き換えるタブ（元のキーと新しいタブ）と、書きかけで残したファイルのタブのパス */
+/** 付け替え方: 置き換えるタブ（元のキーと新しいタブ）と、書きかけで残したタブの名前 */
 export interface RepointPlan {
   replace: [string, PanelTab][];
   kept: string[];
 }
 
-/** タブの並びから、移す前の作業場所を指すタブの付け替え方を決める（純粋。isDirty はファイルのタブが書きかけか） */
-export function repointPlan(tabs: readonly PanelTab[], chatId: number, from: Place, to: Place, isDirty: (tabKey: string) => boolean): RepointPlan {
+/** タブの並びから付け替え方を決める（純粋。repoint はタブ 1 つの付け替え = 種類の repoint） */
+export function repointPlan(tabs: readonly PanelTab[], repoint: (tab: PanelTab) => PanelTab | { kept: string } | null): RepointPlan {
   const plan: RepointPlan = { replace: [], kept: [] };
-  const worktree = to.worktree_path ?? undefined;
-  const at = { chatId, projectId: to.project_id, ...(worktree ? { worktree } : {}) };
   for (const t of tabs) {
-    if (t.kind !== "changes" && t.kind !== "file" && t.kind !== "projectView" && t.kind !== "database") continue;
-    if (t.chatId !== chatId || t.projectId !== from.project_id || (t.worktree ?? null) !== from.worktree_path) continue;
-    if (t.kind === "file" && isDirty(t.key)) {
-      plan.kept.push(t.path);
-      continue;
-    }
-    const next =
-      t.kind === "changes"
-        ? changesTab({ ...at, ...(t.focus ? { focus: t.focus } : {}) })
-        : t.kind === "file"
-          ? fileTab({ ...at, path: t.path, ...(t.line ? { line: t.line } : {}) })
-          : t.kind === "projectView"
-            ? projectViewTab({ ...at, view: t.view })
-            : databaseTab(at);
-    plan.replace.push([t.key, next]);
+    const next = repoint(t);
+    if (next === null) continue;
+    if ("kept" in next) plan.kept.push(next.kept);
+    else plan.replace.push([t.key, next]);
   }
   return plan;
 }
@@ -44,7 +29,8 @@ export function repointPlan(tabs: readonly PanelTab[], chatId: number, from: Pla
 /** チャットの右の欄のタブを付け替える（区切りの記録が届いたとき） */
 function repointSideTabs(chatId: number, from: Place, to: Place) {
   const key = chatSidePanel(chatId);
-  const plan = repointPlan(panelStateOf(key).tabs, chatId, from, to, (tabKey) => isFileTabDirty(key, tabKey));
+  const move: WorkplaceMove = { chatId, from: { projectId: from.project_id, worktree: from.worktree_path }, to: { projectId: to.project_id, worktree: to.worktree_path } };
+  const plan = repointPlan(panelStateOf(key).tabs, (t) => kindOf(t).repoint?.(t, move, key) ?? null);
   for (const [old, tab] of plan.replace) replaceTab(key, old, tab);
   if (plan.kept.length > 0) {
     showToast(`保存していないファイルのタブ（${plan.kept.join("、")}）は、移す前の作業場所のまま残しました`);

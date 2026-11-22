@@ -13,7 +13,6 @@ import { confirmRemoveWorktree } from "./removeWorktree";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import { runGitOperation } from "@/features/git/ui/gitAutoFetch";
 import { useWorktreeEnv, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
 import { addChat } from "@/features/chat/ui/store/knownChats";
@@ -141,7 +140,7 @@ export function WorktreeBar({
           className="btn"
           data-size="sm"
           data-tip={`${appAddress(env)} を右サイドバーのブラウザで開く（開発サーバーは、このワークツリーのターミナルで起動すると PORT=${env.band} で動きます）`}
-          onClick={() => openSideBrowser(projectId, env.app_url!)}
+          onClick={() => open({ kind: "browser", projectId, url: env.app_url! })}
         >
           <Globe size={12} aria-hidden /> アプリを開く
         </button>

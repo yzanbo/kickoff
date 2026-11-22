@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { setAgentBrowsing } from "./agentBrowsing";
-import { addTabBehind, allPanels, browserTab, isPanelMounted, openTab, panelKey, showTab } from "@/features/panel/ui";
+import { addTabBehind, allPanels, browserTab, isPanelMounted, isTabShown, openTab, panelKey, panelOfTab, showTab } from "@/features/panel/ui";
 import { showSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
-import { isTabShown, panelOfTab } from "@/features/panel/ui/state/tabPlace";
 
 /** いまの欄の状態（画面に出ている欄だけを数える） */
 const panelsView = () => ({ panels: allPanels(), mounted: isPanelMounted });

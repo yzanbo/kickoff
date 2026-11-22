@@ -3,8 +3,7 @@
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { writeSetting } from "@/foundation/ui/storage";
 import { projectsSettings } from "@/features/projects/ui";
-import { browserTab, openTab, panelKey, projectOfPanel } from "@/features/panel/ui";
-import { isSidePanel, sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
+import { browserTab, isSidePanel, openTab, panelKey, projectOfPanel, sidePanelsHandedOut } from "@/features/panel/ui";
 
 /** その欄にブラウザのタブを開く（チャット欄を別ウィンドウへ移していれば、そのウィンドウで） */
 export function openBrowserTab(panel: string, url: string): void {

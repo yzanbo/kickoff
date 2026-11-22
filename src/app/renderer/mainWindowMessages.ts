@@ -9,7 +9,6 @@ import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import type { PanelOp } from "@/features/chatPanel/ui/windowMessages";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { dockPopout } from "@/app/renderer/popout/dockPopout";
-import { openBrowserTab } from "@/features/browser/ui/panel/openBrowserTab";
 import { discardDraft, moveDraftToProject, openDraft, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { receiveForwarded } from "@/foundation/ui/navigation/popoutNavigation";
 import { popoutKey } from "@/foundation/ui/navigation/popout";
@@ -24,7 +23,6 @@ function runPanelOp(o: PanelOp) {
   else if (o.op === "setDraftGroup") setDraftGroup(o.draft, o.group, o.groupName);
   else if (o.op === "togglePinDraft") togglePinDraft({ ...o.draft, pinned: o.pinned });
   else if (o.op === "discardDraft") discardDraft(o.draft);
-  else if (o.op === "openBrowser") openBrowserTab(o.panel, o.url);
   else openChatTab(o.chat, { split: o.dir });
 }
 

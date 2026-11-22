@@ -1,30 +1,15 @@
 // このウィンドウで利用者が見ているもの（AI の get_user_view）を集める:
 // 見ているプロジェクト・プロジェクトのタブ・画面に出ている欄（パネル）のペインごとの前のタブ・チャットの画面の右の欄に開いているもの。
-// タブの中身のうち部品だけが知っているもの（エディタのカーソルと選んでいる範囲・ノートで選んでいる文）は lib/viewDetails から読む
-import { USER_VIEW_TEXT_MAX, type UserView, type UserViewPane, type UserViewTab } from "@shared/userView/types";
-import { readSetting } from "@/foundation/ui/storage";
-import { dbClientTabs, githubSelected } from "@/foundation/ui/storage/storageKeys";
-import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
-import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
+// タブの中身の説明は種類の持ち主が userViewTabs に出す（tabDescribers.ts。エディタのカーソル・ノートで選んでいる文は lib/viewDetails から読む）
+import type { UserView, UserViewPane, UserViewTab } from "@shared/userView/types";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { newChatDraft } from "@/features/composer/ui";
-import { allPanels, isPanelMounted, parsePanelKey, terminalTitle, type PanelSurface } from "@/features/panel/ui";
-import { leavesOf } from "@/features/panel/ui/layout/paneTree";
-import { PROJECT_VIEW_LABELS, type PanelTab } from "@/features/panel/ui/tabs/panelTypes";
+import { allPanels, isPanelMounted, kindOf, leavesOf, parsePanelKey, surfaceOf, terminalTitle, type PanelTab } from "@/features/panel/ui";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
-
-/** 欄の呼び名（AI に返す文の「どこのペインか」） */
-const AREA_LABELS: Record<PanelSurface, string> = {
-  kanban: "チャットのパネル",
-  side: "右サイドバー",
-  bottom: "下のパネル",
-  agents: "チャットの画面の右の欄",
-  notes: "ノートのタブ",
-  files: "ファイルのタブ",
-  win: "ブラウザの別ウィンドウ",
-  cwin: "チャットの別ウィンドウ",
-};
+import { readSetting } from "@/foundation/ui/storage";
+import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
+import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
+import { editorView, githubView, noteView, userViewTabs } from "./tabDescribers";
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */
 const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {
@@ -42,65 +27,21 @@ const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {
   trash: "ゴミ箱",
 };
 
-/** 選んだ文は長ければ切る */
-const clip = (s: string | null) => (s !== null && s.length > USER_VIEW_TEXT_MAX ? `${s.slice(0, USER_VIEW_TEXT_MAX)}…` : s);
-
-/** GitHub のタブ・右の欄で開いている issue・PR（「issue:12」「pr:5」） */
-function githubTab(projectId: number): UserViewTab {
-  const m = /^(issue|pr):(\d+)$/.exec(readSetting(githubSelected(projectId)));
-  return { kind: "github", item: m ? { kind: m[1] as "issue" | "pr", number: Number(m[2]) } : null, project_id: projectId };
-}
-
-/** DB クライアントで前に出しているタブの接続とテーブル（place は DB クライアントの置き場所） */
-function databaseTab(projectId: number, place: string): UserViewTab {
+/** DB クライアントで前に出しているタブの接続とテーブル（place は DB クライアントの置き場所。DB のタブの説明（database の userViewTabs）も使う） */
+export function databaseView(projectId: number, place: string): UserViewTab {
   const state = readSetting(dbClientTabs(place));
   const active = state.tabs.find((t) => t.key === state.active) ?? null;
   const connection = active ? (dbConnectionsStore.get(projectId).data?.find((c) => c.id === active.connection_id)?.name ?? `接続 ${active.connection_id}`) : null;
   return { kind: "database", connection, table: active?.kind === "table" ? active.name : null, project_id: projectId };
 }
 
-/** エディタのタブ（カーソルと選んでいる範囲は開いている部品から） */
-function editorTab(projectId: number, path: string, worktree: string | null, line: number | undefined): UserViewTab {
-  const cursor = editorCursorOf(projectId, path);
-  return { kind: "editor", path, worktree, line: cursor?.line ?? line ?? null, selection: cursor?.selection ?? null, project_id: projectId };
-}
-
-/** パネルのタブ 1 つの中身 */
-function describeTab(tab: PanelTab): UserViewTab {
-  switch (tab.kind) {
-    case "chat":
-      return { kind: "chat", chat_id: tab.id, title: tab.title ?? tab.chat?.title ?? knownChat(tab.id)?.title ?? "", project_id: tab.projectId };
-    case "new":
-      return { kind: "new_chat", project_id: newChatDraft(tab.key)?.projectId ?? 0 };
-    case "subagent":
-      return { kind: "subagent", title: tab.title };
-    case "changes":
-      return { kind: "changes", worktree: tab.worktree ?? null, focus: tab.focus ?? null, project_id: tab.projectId };
-    case "file":
-      return editorTab(tab.projectId, tab.path, tab.worktree ?? null, tab.line);
-    case "projectView":
-      return { kind: "page", label: PROJECT_VIEW_LABELS[tab.view], project_id: tab.projectId };
-    case "projectFile":
-      return editorTab(tab.projectId, tab.path, null, tab.line);
-    case "note":
-      return { kind: "note", path: tab.path, selected_text: clip(noteSelectionOf(tab.projectId, tab.path)), project_id: tab.projectId };
-    case "database":
-      return databaseTab(tab.projectId, `chat-${tab.chatId}`);
-    case "github":
-      return githubTab(tab.projectId);
-    case "ci":
-    case "docker":
-    case "trash":
-      return { kind: "page", label: PROJECT_TAB_LABELS[tab.kind], project_id: tab.projectId };
-    case "child":
-      return { kind: "child_chat", chat_id: tab.childId, title: tab.title, project_id: tab.projectId };
-    case "newChild":
-      return { kind: "page", label: "新しい子チャット（送る前）", project_id: tab.projectId };
-    case "browser":
-      return { kind: "browser", url: tab.current ?? tab.url, title: tab.title };
-    case "terminal":
-      return { kind: "terminal", label: tab.title ?? tab.label, project_id: tab.projectId };
-  }
+/** パネルのタブ 1 つの中身（種類の持ち主が userViewTabs に出した説明。なければ種類の名前の画面: プロジェクトの画面と同じ CI・Docker・ゴミ箱・ファイル・検索・履歴） */
+function describePanelTab(tab: PanelTab): UserViewTab {
+  const describer = userViewTabs.items().find((d) => d.kind === tab.kind);
+  if (describer) return describer.describe(tab);
+  const kind = kindOf(tab);
+  const projectId = kind.projectOf(tab);
+  return { kind: "page", label: kind.label(tab, undefined), ...(projectId !== undefined ? { project_id: projectId } : {}) };
 }
 
 /** プロジェクトのタブのペイン（チャットのタブはパネルのペインで出すので省く。ファイル・ノートの中身はファイル・ノートのタブのペインで出す） */
@@ -108,7 +49,7 @@ function projectTabPane(route: Route): UserViewPane | null {
   if (route.name !== "project" || route.tab === "chats") return null;
   const id = route.id;
   const tab: UserViewTab =
-    route.tab === "github" ? githubTab(id) : route.tab === "db" ? databaseTab(id, `project-${id}`) : { kind: "page", label: PROJECT_TAB_LABELS[route.tab], project_id: id };
+    route.tab === "github" ? githubView(id) : route.tab === "db" ? databaseView(id, `project-${id}`) : { kind: "page", label: PROJECT_TAB_LABELS[route.tab], project_id: id };
   return { area: "プロジェクトのタブ", tab };
 }
 
@@ -118,12 +59,13 @@ function panelPanes(panes: UserViewPane[], side: UserViewTab[]) {
     const at = parsePanelKey(key);
     if (!at || !isPanelMounted(key) || !state.open) continue;
     const leaves = leavesOf(state.layout.root);
+    const area = surfaceOf(at.surface)?.label ?? at.surface;
     const byKey = new Map(state.tabs.map((t) => [t.key, t]));
     leaves.forEach((leaf, i) => {
       const tab = leaf.active ? byKey.get(leaf.active) : undefined;
-      panes.push({ area: leaves.length > 1 ? `${AREA_LABELS[at.surface]}（${i + 1} つ目のペイン）` : AREA_LABELS[at.surface], tab: tab ? describeTab(tab) : null });
+      panes.push({ area: leaves.length > 1 ? `${area}（${i + 1} つ目のペイン）` : area, tab: tab ? describePanelTab(tab) : null });
     });
-    if (at.surface === "agents") side.push(...state.tabs.map(describeTab));
+    if (at.surface === "agents") side.push(...state.tabs.map(describePanelTab));
   }
 }
 
@@ -146,13 +88,13 @@ export function collectPopoutView(route: PopoutRoute): UserView {
     route.kind === "chat"
       ? { kind: chat?.parent_chat_id != null ? "child_chat" : "chat", chat_id: route.chatId, title: chat?.title ?? "", project_id: pid }
       : route.kind === "note"
-        ? { kind: "note", path: route.path, selected_text: clip(noteSelectionOf(route.projectId, route.path)), project_id: route.projectId }
+        ? noteView(route.projectId, route.path)
         : route.kind === "file"
-          ? editorTab(route.projectId, route.path, route.worktree ?? null, route.line)
+          ? editorView(route.projectId, route.path, route.worktree ?? null, route.line)
           : route.kind === "changes"
             ? { kind: "changes", worktree: route.worktree ?? null, focus: route.focus ?? null, project_id: route.projectId }
             : route.kind === "database"
-              ? databaseTab(route.projectId, `chat-${route.chatId}`)
+              ? databaseView(route.projectId, `chat-${route.chatId}`)
               : route.kind === "sidebar"
                 ? { kind: "page", label: "サイドバー" }
                 : route.kind === "side"

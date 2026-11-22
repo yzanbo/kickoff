@@ -2,8 +2,7 @@
 // 値はプロジェクトごとに localStorage に覚えるので、右サイドバーを別ウィンドウへ移していても、メインのウィンドウの列から切り替えられる
 import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
 import { storage } from "@/features/projects/ui/storage";
-import { panelKey, panelStateOf, setPanelOpen } from "@/features/panel/ui";
-import { sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
+import { panelKey, panelStateOf, setPanelOpen, sidePanelsHandedOut } from "@/features/panel/ui";
 import { openSideWindow } from "./useRightSidebar";
 
 /** 右サイドバーの中身（browser = ブラウザ、ほかはプロジェクトのタブと同じ画面） */

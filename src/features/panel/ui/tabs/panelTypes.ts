@@ -1,6 +1,4 @@
 import type { Attachment, Chat } from "@shared/chat/types";
-import type { Project } from "@shared/projects/types";
-import { sidebarOrder } from "@/features/projects/ui/projectOrder";
 
 /** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
 const PROJECT_VIEWS = ["files", "search", "history"] as const;
@@ -87,10 +85,4 @@ export interface TerminalTarget {
   title?: string;
   /** シェルに足す環境変数 */
   env?: Record<string, string>;
-}
-
-/** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */
-export function terminalTargets(projects: Project[], projectId?: number): TerminalTarget[] {
-  const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
-  return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
 }
