@@ -5,7 +5,7 @@ import type { ChatApi } from "@/features/chat/core/index";
 import { gitRoutes } from "./routes/git";
 import { openDiffToolGroup } from "./tools";
 
-export { gitStatus, parseGitStatus } from "./status";
+export { gitStatus } from "./status";
 export { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, trashProjectFile, writeProjectFile } from "@/features/files/core/files";
 export { replaceInProject, searchProject } from "@/features/files/core/search";
 export { commitStaged, discardPaths, fetchRemote, gitDiff, gitOriginal, pullBranch, pushBranch, stagePaths, toGitDiff, unstagePaths } from "./changes";

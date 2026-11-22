@@ -24,8 +24,6 @@
       "feature-core:projects:src/features/projects/core/index.ts -> src/shared/git/types.ts",
       "feature-core:projects:src/features/projects/core/routes/projects.ts -> src/shared/git/types.ts",
       "feature-core:projects:src/features/projects/core/routes/projects.ts -> src/shared/notes/names.ts",
-      "feature-core:providerSwitch:src/features/providerSwitch/core/providerHandoffGit.ts -> src/features/git/core/index.ts",
-      "feature-core:providerSwitch:src/features/providerSwitch/core/providerHandoffGit.ts -> src/shared/git/types.ts",
       "feature-core:trash:src/features/trash/core/index.ts -> src/shared/projects/types.ts",
       "feature-core:worktrees:src/features/worktrees/core/env/envRewrite.ts -> src/shared/database/dbServer.ts",
       "feature-core:worktrees:src/features/worktrees/core/finish.ts -> src/features/github/core/github.ts",

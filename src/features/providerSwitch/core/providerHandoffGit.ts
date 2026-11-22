@@ -1,11 +1,10 @@
-import type { GitStatus } from "@shared/git/types";
-import { gitStatus } from "@/features/git/core/index";
+import { workplaceStatus, type WorkplaceStatus } from "@/foundation/core/workplace/status";
 
-/** Git の状態も資料として渡す。変更内容そのものは含めず、巨大な一覧は件数を添えて切る。 */
-export async function providerHandoffGit(cwd: string, readStatus: (cwd: string) => Promise<GitStatus> = gitStatus): Promise<{ context: string; warning: string | null }> {
+/** Git の状態も資料として渡す（読み方は作業場所の土台。Git でなければ null）。変更内容そのものは含めず、巨大な一覧は件数を添えて切る。 */
+export async function providerHandoffGit(cwd: string, readStatus: (cwd: string) => Promise<WorkplaceStatus | null> = workplaceStatus): Promise<{ context: string; warning: string | null }> {
   try {
     const status = await readStatus(cwd);
-    if (!status.repo) return { context: "作業場所の Git の状態を取得できませんでした（Git の作業ツリーではないか、確認できません）。", warning: "Git の状態を取得できませんでした" };
+    if (!status) return { context: "作業場所の Git の状態を取得できませんでした（Git の作業ツリーではないか、確認できません）。", warning: "Git の状態を取得できませんでした" };
     const changes = [
       ...status.staged.map((item) => ({ area: "ステージ済み", ...item })),
       ...status.unstaged.map((item) => ({ area: "未ステージ", ...item })),

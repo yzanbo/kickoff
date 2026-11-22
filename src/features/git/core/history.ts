@@ -5,7 +5,7 @@ import { gitOutput } from "@/foundation/core/workplace/exec";
 import { assertInside } from "@/features/files/core/files";
 import { readGitHubRemotes } from "@/features/github/core/githubTarget";
 import { gitPrefix, hasRef } from "@/foundation/core/workplace/reads";
-import { kindOf, parseAheadBehind } from "./status";
+import { kindOf, parseAheadBehind } from "@/foundation/core/workplace/status";
 import { Invalid } from "@/foundation/core/errors";
 import { timed } from "@/foundation/core/system/stallWatch";
 
