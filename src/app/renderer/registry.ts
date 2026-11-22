@@ -2,6 +2,7 @@
 // main.tsx が、保存の片付けのあと・別ウィンドウの判定と App の読み込みの前に呼ぶ（別ウィンドウの種類の解析とパネルの保存の読み戻しが登録を要るため）
 import { contributes as chat } from "@/features/chat/ui/contributes";
 import { contributes as chatPanel } from "@/features/chatPanel/ui/contributes";
+import { contributes as database } from "@/features/database/ui/contributes";
 import { contributes as files } from "@/features/files/ui/contributes";
 import { contributes as notes } from "@/features/notes/ui/contributes";
 import { contributes as projects } from "@/features/projects/ui/contributes";
@@ -18,5 +19,5 @@ const PROJECT_VIEWS = ["board", "chats", "files", "search", "changes", "history"
 export function installRegistry(): void {
   configureRouter({ projectViews: PROJECT_VIEWS, defaultView: "board" });
   // 機能の並び順（足すときも同じ順に）。作業場所の飾りは worktrees・github の分（持ち主へ移すまでここ）。殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後
-  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes, ...workplaceDecorItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
+  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes, ...database, ...workplaceDecorItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
 }

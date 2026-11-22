@@ -2,3 +2,4 @@
 export { childChatsApi } from "./api";
 export { handBackToParent, revealInParent } from "./askChild";
 export { DetachSubmenu } from "./DetachSubmenu";
+export { CreatedChatToolDetail } from "./CreatedChatToolDetail";

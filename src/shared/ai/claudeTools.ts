@@ -127,10 +127,11 @@ export interface ClaudeToolInputs {
 export type ClaudeToolName = keyof ClaudeToolInputs;
 export type ClaudeToolInput<N extends ClaudeToolName> = ClaudeToolInputs[N];
 
-/** 「変えた」を 1 つの形にしたもの（hunks は変えた所。deleted: ファイルを消した・movedTo: 名前を変えた先） */
+/** 「変えた」を 1 つの形にしたもの（hunks は変えた所。whole: ファイルを丸ごと書いた（Write）・deleted: ファイルを消した・movedTo: 名前を変えた先） */
 export interface EditChange {
   path: string;
   hunks: EditHunk[];
+  whole: boolean;
   deleted: boolean;
   movedTo: string | null;
 }
@@ -158,20 +159,31 @@ function hunksOfDiff(diff: string): EditHunk[] {
 }
 
 /**
- * ファイルを変えるツールの入力を 1 つの形で読む（Claude Code の Edit・Write、ほかの AI の写しの MultiEdit の edits・deleted・move_path、
+ * ファイルを変えるツールの入力を 1 つの形で読む（Claude Code の Edit・Write・NotebookEdit、ほかの AI の写しの MultiEdit の edits・deleted・move_path、
  * Copilot の承認の Edit の diff）。ファイルを変えるツールでなければ null
  */
 export function editHunksOf(name: string, input: Record<string, unknown>): EditChange | null {
-  if (typeof input.file_path !== "string") return null;
+  if (!isEditTool(name)) return null;
+  const pathKey = claudeToolOf(name)?.pathKey;
+  const path = pathKey ? input[pathKey] : undefined;
+  if (typeof path !== "string") return null;
   let hunks: EditHunk[];
   if (name === "Write") hunks = typeof input.content === "string" ? [{ old_string: "", new_string: input.content }] : [];
-  else if (name !== "Edit" && name !== "MultiEdit") return null;
+  else if (name === "NotebookEdit") hunks = typeof input.new_source === "string" ? [{ old_string: "", new_string: input.new_source }] : [];
   else if (typeof input.old_string === "string") hunks = [{ old_string: input.old_string, new_string: text(input.new_string) }];
   else if (Array.isArray(input.edits))
     hunks = input.edits.filter((e): e is Record<string, unknown> => typeof e === "object" && e !== null).map((e) => ({ old_string: text(e.old_string), new_string: text(e.new_string) }));
   else hunks = typeof input.diff === "string" ? hunksOfDiff(input.diff) : [];
-  return { path: input.file_path, hunks, deleted: input.deleted === true, movedTo: typeof input.move_path === "string" && input.move_path !== "" ? input.move_path : null };
+  const movedTo = typeof input.move_path === "string" && input.move_path !== "" ? input.move_path : null;
+  return { path, hunks, whole: name === "Write", deleted: input.deleted === true, movedTo };
 }
+
+/** ファイル名で探すツールか（Glob。中身を探す Grep と、行の見出しと結果の読み方が違う） */
+export const isFileNameSearch = (name: string): boolean => name === "Glob";
+
+/** 中身を探すツールの、結果の形の既定（Grep の output_mode。ファイル名で探すツールは undefined） */
+export const searchModeOf = (name: string, input: Record<string, unknown>): string | undefined =>
+  name === "Grep" ? (typeof input.output_mode === "string" && input.output_mode !== "" ? input.output_mode : "files_with_matches") : undefined;
 
 const call = <N extends ClaudeToolName>(name: N, input: ClaudeToolInput<N>) => ({ name, input });
 

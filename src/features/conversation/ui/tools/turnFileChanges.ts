@@ -1,5 +1,6 @@
 // 1 回の作業（ターン）で変えたファイルの数え方（ターンの変更カード。純粋関数）
 import type { ChatEventOf } from "@shared/chat/chatEvent";
+import { editHunksOf } from "@shared/ai/claudeTools";
 import { lineCounts, lineDiff } from "@/foundation/ui/lib/lineDiff";
 
 /** ターンで変えたファイル 1 つ */
@@ -26,16 +27,6 @@ export function lineDelta(before: string, after: string): { added: number; remov
   return lineCounts(lineDiff(before, after));
 }
 
-type EditInput = {
-  file_path?: string;
-  notebook_path?: string;
-  old_string?: string;
-  new_string?: string;
-  edits?: { old_string?: string; new_string?: string }[];
-  content?: string;
-  new_source?: string;
-};
-
 /**
  * ターンの編集のツールから、変えたファイルを最初に触った順に並べる（失敗した・結果がまだないものは数えない。
  * サブエージェントが変えたものも含める）
@@ -44,26 +35,22 @@ export function changesOf(calls: EditCall[]): FileChange[] {
   const byPath = new Map<string, FileChange>();
   for (const { use, result } of calls) {
     if (!result || result.data.is_error) continue;
-    const name = use.data.name;
-    const input = use.data.input as EditInput | undefined;
-    const path = input?.file_path ?? input?.notebook_path;
-    if (!path) continue;
-    const change = byPath.get(path) ?? { path, added: 0, removed: 0 };
-    byPath.set(path, change);
-    const add = (d: { added: number; removed: number }) => {
-      change.added += d.added;
-      change.removed += d.removed;
-    };
-    if (name === "Edit") add(lineDelta(input?.old_string ?? "", input?.new_string ?? ""));
-    else if (name === "MultiEdit") for (const edit of input?.edits ?? []) add(lineDelta(edit.old_string ?? "", edit.new_string ?? ""));
-    else if (name === "NotebookEdit") add({ added: lines(input?.new_source ?? "").length, removed: 0 });
-    else if (name === "Write") {
+    const edit = editHunksOf(use.data.name, (use.data.input ?? {}) as Record<string, unknown>);
+    if (!edit) continue;
+    const change = byPath.get(edit.path) ?? { path: edit.path, added: 0, removed: 0 };
+    byPath.set(edit.path, change);
+    if (edit.whole) {
       const created = /created/i.test(result.data.content);
       // 前に Edit したファイルを書き直したら、それまでの数は意味がなくなるので書き直しにする
       change.write = created && !change.write ? "created" : "rewritten";
-      change.added = lines(input?.content ?? "").length;
+      change.added = lines(edit.hunks[0]?.new_string ?? "").length;
       change.removed = 0;
-    }
+    } else
+      for (const hunk of edit.hunks) {
+        const d = lineDelta(hunk.old_string, hunk.new_string);
+        change.added += d.added;
+        change.removed += d.removed;
+      }
   }
   return [...byPath.values()];
 }

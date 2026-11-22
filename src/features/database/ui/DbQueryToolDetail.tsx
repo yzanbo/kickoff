@@ -5,9 +5,6 @@ import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { aiQueryConnection } from "./aiQuery";
 import { openSqlFromChat } from "./openSqlFromChat";
 
-/** チャットの AI の DB のツール db_query（kickoff_db）の名前（ツールの行で中身を出し分ける） */
-export const DB_QUERY_TOOL = "mcp__kickoff_db__db_query";
-
 /**
  * チャットのツールの行を開いた中身（db_query）: 流した SQL を全文 SQL の色で（承認カードと同じ）と、「SQL のタブで開く」
  * （そのチャットの右の欄の DB クライアントに、同じ接続の新しい SQL のタブを足して SQL を書く。この Mac のアプリの中だけ）。

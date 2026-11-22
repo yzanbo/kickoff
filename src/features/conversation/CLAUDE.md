@@ -75,7 +75,7 @@
 
 ## ツール（`tools/`）
 
-- ツールの行は `toolText()`（`@/features/chat/ui`）の文にする（生の JSON を出さない）。語彙は Claude Code が `@shared/ai/claudeTools.ts`、Kickoff は持ち主の `@shared/<機能>/tools.ts`（足したら束ね `src/app/shared/aiToolViews.ts` にも）。
+- 行の文は `toolText()`（生の JSON を出さない）、見せ方は `toolRowViewOf`（上の機能は拡張点 `toolRowViews` に登録）。語彙は `@shared/ai/claudeTools.ts` と持ち主の `@shared/<機能>/tools.ts`（束ね `src/app/shared/aiToolViews.ts`）。
 - 閉じた中身は `LazyDetails` で初めて開くまで作らない（色付けも開いてから）。
 - 裏で動かしたコマンドは、裏の作業の一覧（`ChatLive.background`）に残る間は実行中に見せる（`BackgroundCallsContext`）。前の作業で結果のない呼び出しは中断。
 - 実行中のコマンドの出力（SSE `chat_command_output`）はキーごとの店 `commandOutputs.ts` に入れ、届いた部品だけを描き直す。
