@@ -54,10 +54,6 @@
   --slot-ring: var(--bg-elev);
 }
 
-.composer-chip .status-slot svg {
-  stroke: var(--bg-elev);
-}
-
 .composer-chip:hover,
 .composer-chip.open {
   --slot-ring: var(--bg-hover);

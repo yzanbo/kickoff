@@ -58,10 +58,6 @@
   --slot-ring: var(--bg-elev);
 }
 
-.child-chat-chip .status-slot svg {
-  stroke: var(--bg-elev);
-}
-
 .child-chat-chip.child-unread {
   --pill-border: color-mix(in srgb, var(--state-unread) 60%, var(--border));
 }

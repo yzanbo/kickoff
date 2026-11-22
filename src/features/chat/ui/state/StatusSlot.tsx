@@ -15,7 +15,7 @@ export function StatusSlot({ state, unread = false, label: name = AGENT_STATE_LA
       {state === "running" ? (
         <span className="status-ring" />
       ) : state === "needs_input" ? (
-        <CircleAlert size={13} fill="currentColor" stroke="var(--bg-sidebar)" />
+        <CircleAlert size={13} fill="currentColor" />
       ) : (
         <span className="status-dot-mark" />
       )}
