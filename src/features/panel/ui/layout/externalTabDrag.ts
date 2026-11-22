@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { createCell, useCell } from "@/foundation/ui/store";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /**
@@ -7,29 +7,13 @@ import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
  */
 export const EXTERNAL_TAB_MIME = "application/x-kickoff-panel-external-tab";
 
-let current: { panelKey: string; tab: PanelTab } | null = null;
-const listeners = new Set<() => void>();
-const notify = () => listeners.forEach((f) => f());
+const current = createCell<{ panelKey: string; tab: PanelTab } | null>(null);
 
 /** ドラッグを始めた（dragstart の次の回に呼ぶ。dragstart の中で覆いを出すとドラッグが取り消されることがある） */
-export function beginExternalTabDrag(panelKey: string, tab: PanelTab) {
-  current = { panelKey, tab };
-  notify();
-}
+export const beginExternalTabDrag = (panelKey: string, tab: PanelTab) => current.set({ panelKey, tab });
 
 /** ドラッグを終えた（dragend・落としたとき） */
-export function endExternalTabDrag() {
-  if (!current) return;
-  current = null;
-  notify();
-}
-
-const subscribe = (f: () => void) => {
-  listeners.add(f);
-  return () => void listeners.delete(f);
-};
+export const endExternalTabDrag = () => current.set(null);
 
 /** この欄に落とせる、外からドラッグしているタブ（なければ null） */
-export function useExternalTabDrag(panelKey: string): PanelTab | null {
-  return useSyncExternalStore(subscribe, () => (current?.panelKey === panelKey ? current.tab : null));
-}
+export const useExternalTabDrag = (panelKey: string): PanelTab | null => useCell(current, (c) => (c?.panelKey === panelKey ? c.tab : null));

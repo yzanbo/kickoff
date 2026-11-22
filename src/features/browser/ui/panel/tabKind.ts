@@ -28,6 +28,8 @@ export const browserTabKind = defineTabKind<BrowserTab>({
   // AI が操作しているタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
   pageClass: agentBrowsingClass,
   // いまのページを別ウィンドウで開き直す（webview はウィンドウをまたげないので、戻る・進むの履歴は引き継がない）
+  // 外のブラウザで開くのはいまのページ
+  externalUrl: (t) => t.current ?? t.url,
   popout: (t, panel) => ({
     route: { kind: "browser", panel, key: t.key, url: t.current ?? t.url, title: t.title, projectId: projectOfPanel(panel) },
     title: `${titleOf(t)} — ブラウザ`,

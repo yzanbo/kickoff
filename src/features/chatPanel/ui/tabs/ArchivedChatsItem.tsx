@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -10,9 +9,8 @@ import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 export function ArchivedChatsItem() {
   const [archived, setArchived] = useSetting(storage.settings.showArchived);
   return (
-    <MenuItem role="menuitemcheckbox" checked={archived} title="タブの列だけの設定です（サイドバーの「アーカイブ」とは別）" onSelect={() => setArchived(!archived)}>
+    <MenuItem checked={archived} title="タブの列だけの設定です（サイドバーの「アーカイブ」とは別）" onSelect={() => setArchived(!archived)}>
       <span className="project-switch-item">アーカイブ済みのチャットを表示</span>
-      {archived && <Check size={14} aria-hidden />}
     </MenuItem>
   );
 }

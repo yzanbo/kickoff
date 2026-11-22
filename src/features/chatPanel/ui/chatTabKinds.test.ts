@@ -39,3 +39,9 @@ test("開き直し: 検索結果から（focus 付きで）開き直したら強
   assert.deepEqual(chatTabKind.reopen?.(chatTab({ id: 1, project_id: 1 }, 42)), { kind: "chat", fields: { focus: 42 } });
   assert.equal(chatTabKind.reopen?.(chatTab({ id: 1, project_id: 1 })), undefined);
 });
+
+test("作業場所（タブの列からターミナルを開く場所）: チャットのワークツリー → 本体。チャットがまだ届いていなければタブのプロジェクトの本体", () => {
+  const t = chatTab({ id: 5, project_id: 2 });
+  assert.deepEqual(chatTabKind.workplaceOf?.(t, makeChat(5, { project_id: 2, worktree_path: "/repo/b-worktrees/feat" })), { projectId: 2, worktree: "/repo/b-worktrees/feat" });
+  assert.deepEqual(chatTabKind.workplaceOf?.(t, undefined), { projectId: 2, worktree: null });
+});

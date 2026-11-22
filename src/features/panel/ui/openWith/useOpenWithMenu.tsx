@@ -7,7 +7,8 @@ import { TerminalTargetMenu } from "./TerminalTargetMenu";
 import { findPane, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useExternalBrowser, useExternalTerminal } from "@/foundation/ui/external/externalApps";
-import { browserPageOf, terminalTargetOf } from "./externalTargets";
+import { terminalTargetOf } from "./externalTargets";
+import { kindOf } from "@/features/panel/ui/state/panelStore";
 import { OpenWithMenu } from "./OpenWithMenu";
 import { openTab } from "@/features/panel/ui/state/actions";
 import { terminalTab } from "@/features/panel/ui/tabs/tabData";
@@ -31,9 +32,9 @@ interface OpenWithChoice {
 
 /**
  * パネルのタブの列のブラウザ・ターミナルを開く操作と、▾ のメニュー（新しいタブで開く・「外部で開く」のアプリを押すとそのアプリで開く。次からの既定にもする）。
- * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（openTargets の terminalTargetOf: 押したペインでチャットを表示していればその作業場所 →
+ * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（externalTargets の terminalTargetOf: 押したペインで見せているタブの作業場所 →
  * 開く場所が 1 つならそこ）で、決まらなければ開く場所を選ぶメニューを出す（1 つのメニューを、新しいタブ・外のターミナルで共通に使う）。
- * 外のブラウザでは、押したペインで見せている表示中のブラウザのタブのページを、そのブラウザの新しいタブで開く（なければ空の新しいタブ。browserPageOf）。
+ * 外のブラウザでは、押したペインで見せている表示中のタブのページ（種類の externalUrl）を、そのブラウザの新しいタブで開く（なければ空の新しいタブ）。
  * openTerminal をターミナルのアイコンに、open を ▾ に渡し、menu を描く。targets は開けるターミナルの場所（欄の殻の frame.terminals）
  */
 export function useOpenWithMenu(panel: PanelController, targets: readonly TerminalTarget[]) {
@@ -53,7 +54,7 @@ export function useOpenWithMenu(panel: PanelController, targets: readonly Termin
   /** ターミナルを開く（新しいタブ・外のターミナル）。場所が決まらなければ、開く場所を選ぶメニューを at に出す */
   const openTerminalIn = (paneId: string, mode: "tab" | "external", at: Placement, app?: ExternalTerminalId, icon = false) => {
     const shown = shownTab(paneId);
-    const target = terminalTargetOf(shown, panel.chatOf(shown), targets);
+    const target = terminalTargetOf(shown && kindOf(shown).workplaceOf?.(shown, panel.chatOf(shown)), targets);
     if (!target) return picker.openAt(at, { mode, app, icon });
     if (mode === "tab") openTab(panel.key, terminalTab(target));
     else terminal.open(target.cwd, app);
@@ -80,7 +81,8 @@ export function useOpenWithMenu(panel: PanelController, targets: readonly Termin
   /** ▾ のメニューの中身 */
   const choiceOf = (kind: OpenWithKind, paneId: string, at: Placement): OpenWithChoice => {
     if (kind === "browser") {
-      const url = browserPageOf(shownTab(paneId));
+      const shown = shownTab(paneId);
+      const url = shown && kindOf(shown).externalUrl?.(shown);
       return {
         icon: Globe,
         title: "ブラウザの開き方",

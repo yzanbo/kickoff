@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -11,14 +10,12 @@ export function ClusterShortItem({ keepOpen = false }: { keepOpen?: boolean }) {
   const [on, setOn] = useSetting(storage.settings.clusterShort);
   return (
     <MenuItem
-      role="menuitemcheckbox"
       checked={on}
       keepOpen={keepOpen}
       title={on ? "まとまりの札に名前をすべて出します" : "まとまりの札の名前を頭の 1 文字だけにして、タブの列を広く使います（乗せると名前が出ます）"}
       onSelect={() => setOn(!on)}
     >
       <span className="project-switch-item">まとまりの名前を省略</span>
-      {on && <Check size={14} aria-hidden />}
     </MenuItem>
   );
 }

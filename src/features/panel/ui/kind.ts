@@ -22,10 +22,12 @@ export interface TabGroupBadge {
 /** プロジェクトのグループを引く（なければ undefined） */
 export type TabGroupLookup = (projectId: number, groupId: number | null | undefined) => TabGroupBadge | undefined;
 
-/** タブの名前に使うチャットの値（サイドバーの一覧にあれば最新のもの） */
+/** タブの名前・作業場所に使うチャットの値（サイドバーの一覧にあれば最新のもの） */
 export interface TabChat {
   title: string;
   group_id: number | null;
+  project_id: number;
+  worktree_path: string | null;
 }
 
 /** タブの中身に渡すもの */
@@ -142,6 +144,10 @@ export interface TabKind<T extends TabBase> {
   ownerChatId?(tab: T): number | null;
   /** 中身を作る時（shown = 初めて表示したとき。チャットのタブはサイドバーと連動して自動で増えるので、見ていないチャットまで読み込まない。既定は mounted） */
   createWhen?: "shown" | "mounted";
+  /** タブが見せている作業場所（タブの列からターミナルを開く場所。チャットはその作業場所）。なければ開く場所を選ぶ */
+  workplaceOf?(tab: T, chat: TabChat | undefined): WorkplaceAt;
+  /** 外のブラウザで開くページ（▾ の「外部で開く」。ブラウザはいまのページ）。なければブラウザを開くだけ */
+  externalUrl?(tab: T): string;
   /** 自分で開き直したとき（もう開いていた）に変える中身（reopenOf → openTab の reopen。なければ開いていたタブをそのまま表示する） */
   reopen?(tab: T): TabPatch | undefined;
   /** 閉じたときの後始末（ターミナルはシェルも止める。別ウィンドウへ移すとき（keep）は呼ばない） */

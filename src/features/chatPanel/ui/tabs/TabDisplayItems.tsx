@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
@@ -54,9 +53,8 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
         "チャットのまとめ方",
         <>
           {CHAT_GROUPINGS.map((g) => (
-            <MenuItem key={g} role="menuitemradio" checked={g === grouping} onSelect={() => setGrouping(g)}>
+            <MenuItem key={g} radio checked={g === grouping} onSelect={() => setGrouping(g)}>
               <span className="project-switch-item">{CHAT_GROUPING_LABELS[g]}</span>
-              {g === grouping && <Check size={14} aria-hidden />}
             </MenuItem>
           ))}
           {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）と名前の省略。まとめないときは効かないので出さない。
@@ -75,9 +73,8 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
       section(
         "チャットの並び順",
         CHAT_ORDERS.map((o) => (
-          <MenuItem key={o} role="menuitemradio" checked={o === order} title="サイドバーの「並び順」と共通の設定です" onSelect={() => setOrder(o)}>
+          <MenuItem key={o} radio checked={o === order} title="サイドバーの「並び順」と共通の設定です" onSelect={() => setOrder(o)}>
             <span className="project-switch-item">{ORDER_META[o].label}</span>
-            {o === order && <Check size={14} aria-hidden />}
           </MenuItem>
         )),
       ),
@@ -93,7 +90,6 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
           return (
             <MenuItem
               key={f}
-              role="menuitemcheckbox"
               checked={on}
               disabled={grouped}
               keepOpen
@@ -107,7 +103,6 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
               onSelect={() => setTabHidden(toggleTabField(tabHidden, f))}
             >
               <span className="project-switch-item">{TAB_FIELD_LABELS[f]}</span>
-              {on && <Check size={14} aria-hidden />}
             </MenuItem>
           );
         }).concat(
@@ -116,14 +111,12 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
           // 2 行で表示: グループ・作業場所の札を名前の下の行に置く（すべてのパネルで共通。サイドバーのチャットの行の 1 行 / 2 行とは別）
           <MenuItem
             key="two-line"
-            role="menuitemcheckbox"
             checked={twoLine}
             keepOpen
             title={twoLine ? "タブを 1 行に戻す（札を名前の右に並べる）" : "タブを 2 行にして、グループ・作業場所の札を名前の下の行に並べる（サイドバーのチャットの行とは別の設定です）"}
             onSelect={() => setTwoLine(!twoLine)}
           >
             <span className="project-switch-item">2 行で表示</span>
-            {twoLine && <Check size={14} aria-hidden />}
           </MenuItem>,
         ),
       ),
@@ -135,14 +128,13 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
         TAB_OVERFLOWS.map((o) => (
           <MenuItem
             key={o}
-            role="menuitemradio"
+            radio
             checked={overflow === o}
             keepOpen
             title={TAB_OVERFLOW_TIPS[o]}
             onSelect={() => setOverflow(o)}
           >
             <span className="project-switch-item">{TAB_OVERFLOW_LABELS[o]}</span>
-            {overflow === o && <Check size={14} aria-hidden />}
           </MenuItem>
         )),
       ),

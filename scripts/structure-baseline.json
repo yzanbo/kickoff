@@ -129,7 +129,6 @@
       "feature-ui:palette:src/features/palette/ui/textSearchItems.tsx -> src/shared/chat/types.ts",
       "feature-ui:palette:src/features/palette/ui/textSearchItems.tsx -> src/shared/notes/kinds.ts",
       "feature-ui:palette:src/features/palette/ui/textSearchItems.tsx -> src/shared/notes/types.ts",
-      "feature-ui:panel:src/features/panel/ui/openWith/externalTargets.ts -> src/shared/chat/types.ts",
       "feature-ui:panel:src/features/panel/ui/state/panelMirror.test.ts -> src/features/chatPanel/ui/drafts/panelDrafts.ts",
       "feature-ui:panel:src/features/panel/ui/state/panelStore.test.ts -> src/features/chatPanel/ui/drafts/panelDrafts.ts",
       "feature-ui:panel:src/features/panel/ui/tabs/PanelTab.tsx -> src/features/projects/ui/projectColor.ts",

@@ -32,6 +32,8 @@ export const chatTabKind = defineTabKind<TabOf<"chat">>({
   projectOf: (t) => t.projectId,
   ownerChatId: (t) => t.id,
   createWhen: "shown",
+  // タブの列からターミナルを開く場所はチャットの作業場所（チャットがまだ届いていなければ、タブのプロジェクトの本体）
+  workplaceOf: (t, chat) => ({ projectId: chat?.project_id ?? t.projectId, worktree: chat?.worktree_path ?? null }),
   // 検索結果から開き直したら、強調する発言だけ変える
   reopen: (t) => (t.focus ? { kind: "chat", fields: { focus: t.focus } } : undefined),
   prefetch: (tabs) => prefetchChats(tabs.map((t) => t.id)),

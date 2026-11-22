@@ -1,4 +1,4 @@
-import { Check, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
@@ -45,14 +45,12 @@ export function HiddenGroupItems({ panel }: { panel: PanelController }) {
             return (
               <MenuItem
                 key={group.id}
-                role="menuitemcheckbox"
                 checked={on}
                 keepOpen
                 title={on ? `「${group.name}」の札とタブを、タブの列から隠す（チャットはそのまま）` : `「${group.name}」をタブの列に表示する`}
                 onSelect={() => hidden.toggle(group.id)}
               >
                 <span className="project-switch-item">{label}</span>
-                {on && <Check size={14} aria-hidden />}
               </MenuItem>
             );
           })}
@@ -67,13 +65,11 @@ export function HiddenGroupItems({ panel }: { panel: PanelController }) {
         </MenuFlyout>
       )}
       <MenuItem
-        role="menuitemcheckbox"
         checked={hidden.hideEmpty}
         title={`チャットが 1 つもないグループの札を、タブの列に出しません（${NO_GROUP_LABEL} は出します。チャットを入れると出ます）`}
         onSelect={() => hidden.setHideEmpty(!hidden.hideEmpty)}
       >
         <span className="project-switch-item">チャットのないグループを隠す</span>
-        {hidden.hideEmpty && <Check size={14} aria-hidden />}
       </MenuItem>
     </>
   );

@@ -8,7 +8,7 @@ import { shouldFollowShownTab } from "./shownTabUrl";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
-import { openNewChat, usePanelDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { openNewChat, useDraftsInPanels } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { chatTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel } from "@/features/panel/ui/usePanel";
@@ -80,7 +80,7 @@ export function useBoardPanel({
   focus?: ReopenRoute;
 }) {
   const panel = useProjectChatsPanel({ projectId, focus, tab: "board" });
-  const drafts = usePanelDrafts([panel.key, panelKey("side", projectId)]);
+  const drafts = useDraftsInPanels([panel.key, panelKey("side", projectId)]);
   // タブの列を隠している間は、その左の道具の「横幅いっぱい ⇔ 元の幅」も出ないので、横幅いっぱいにしない（ボードを覆ったまま戻せなくなるため）
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const size = usePanelWidth({ maximizable: !tabRowHidden });

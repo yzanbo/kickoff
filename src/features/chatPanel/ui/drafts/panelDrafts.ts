@@ -106,7 +106,7 @@ export function useAllDrafts(): PlacedDraft[] {
 }
 
 /** 渡した欄のパネルの下書き（ボード: そのボードのパネルと、同じプロジェクトのチャット欄。下書きが変わるまでは同じ配列） */
-export function usePanelDrafts(panels: readonly string[]): PlacedDraft[] {
+export function useDraftsInPanels(panels: readonly string[]): PlacedDraft[] {
   const all = useAllDrafts();
   // panels は中身（sig）が変わったときだけ選び直す（配列を毎回作って渡しても、同じ配列を返す）
   const sig = JSON.stringify(panels);

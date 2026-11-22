@@ -17,3 +17,9 @@ test("復元したタブだけ、欄を初めて開くまで中身を作らな�
   assert.equal(browserTabKind.deferUntilPanelOpen?.({ ...browserTab("https://example.com"), restored: true }), true);
   assert.equal(browserTabKind.deferUntilPanelOpen?.(browserTab("https://example.com")), false);
 });
+
+test("外のブラウザで開くページ: いまのページ（なければ開いたときのページ）", () => {
+  const page = browserTab("https://example.com");
+  assert.equal(browserTabKind.externalUrl?.({ ...page, current: "https://example.com/docs" }), "https://example.com/docs");
+  assert.equal(browserTabKind.externalUrl?.(page), "https://example.com");
+});

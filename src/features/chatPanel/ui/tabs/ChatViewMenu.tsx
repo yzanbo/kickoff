@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -24,7 +23,6 @@ export function ChatViewMenu({ panel, tabMenu = false }: { panel: PanelControlle
       <TabDisplayItems panel={panel} />
       {separator}
       <MenuItem
-        role="menuitemcheckbox"
         checked={!buttonHidden}
         title={
           buttonHidden
@@ -34,7 +32,6 @@ export function ChatViewMenu({ panel, tabMenu = false }: { panel: PanelControlle
         onSelect={() => setButtonHidden(!buttonHidden)}
       >
         <span className="project-switch-item">「表示」ボタンを出す</span>
-        {!buttonHidden && <Check size={14} aria-hidden />}
       </MenuItem>
       {separator}
       <MenuItem
