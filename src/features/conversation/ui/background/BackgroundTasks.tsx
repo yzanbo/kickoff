@@ -3,10 +3,10 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { BackgroundState, BackgroundTask } from "@shared/ai/turnEvents";
 import { api } from "@/foundation/ui/api";
-import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ActivityNote } from "@/features/subagents/ui/SubagentChip";
-import { useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
+import { useActionButton, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { useTaskOutput } from "./commandOutputs";
 import { backgroundCallTarget } from "./backgroundTarget";
 
@@ -33,20 +33,27 @@ export function BackgroundTasks({
   // サブエージェントの中身を開く（チャットの画面の中だけ）
   const subagents = useOptionalSubagentNav();
   const activity = useOptionalActivityNav();
+  // 止めるのは作業ごとに、返るまで押せない
+  const action = useActionButton();
   if (!background || background.tasks.length === 0) return null;
-  const stop = async (task: BackgroundTask) => {
-    if (
-      task.kind === "agent" &&
-      !(await confirm({
-        title: `サブエージェント「${task.description}」を止めます`,
-        message: "止めると、このサブエージェントの報告は届きません。ほかの作業とチャットは止まりません。",
-        confirmLabel: "止める",
-        danger: true,
-      }))
-    )
-      return;
-    await api.stopBackgroundTask(chatId, task.task_id).catch(reportFailure("裏の作業を止められませんでした"));
-  };
+  const stop = (task: BackgroundTask) =>
+    action.press(
+      task.task_id,
+      async () => {
+        if (
+          task.kind === "agent" &&
+          !(await confirm({
+            title: `サブエージェント「${task.description}」を止めます`,
+            message: "止めると、このサブエージェントの報告は届きません。ほかの作業とチャットは止まりません。",
+            confirmLabel: "止める",
+            danger: true,
+          }))
+        )
+          return;
+        await api.stopBackgroundTask(chatId, task.task_id);
+      },
+      "裏の作業を止められませんでした",
+    );
   return (
     <ul className="background-tasks" aria-label="裏で動いている作業">
       {background.tasks.map((task) => {
@@ -79,7 +86,7 @@ export function BackgroundTasks({
             )}
             {entry && <ActivityNote entry={entry} />}
             {task.kind === "command" && <TaskOutputLine taskId={task.task_id} />}
-            <IconButton icon={Square} label={`「${task.description}」を止める`} title="この作業だけを止める（チャットは止めない）" iconSize={12} onClick={() => void stop(task)} />
+            <IconButton icon={Square} label={`「${task.description}」を止める`} title="この作業だけを止める（チャットは止めない）" iconSize={12} disabled={action.pending(task.task_id)} onClick={() => stop(task)} />
           </li>
         );
       })}

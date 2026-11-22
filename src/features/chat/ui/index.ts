@@ -47,6 +47,7 @@ export { useFollowScroll } from "./parts/useFollowScroll";
 export { LinkedItemChip } from "./parts/LinkedItemChip";
 export { AgentListChip, type AgentListRow } from "./parts/AgentListChip";
 export { CreatedChatMarks } from "./parts/ChatLinkChip";
+export { useActionButton } from "./parts/useActionButton";
 export { DefaultOpenPlace, OpenPlaceButtons, placesOf, usePlaceCaps, type OpenPlace } from "./parts/OpenPlaceControls";
 export { ChipWord, ComposerChip } from "./parts/ChatPill";
 export { StatusSlot } from "./state/StatusSlot";

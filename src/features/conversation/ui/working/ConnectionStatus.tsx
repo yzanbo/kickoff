@@ -3,7 +3,7 @@ import type { ReconnectState } from "@shared/chat/chatLive";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { api } from "@/foundation/ui/api";
 import { TICK_SECOND, useTicker } from "@/foundation/ui/hooks/useTicker";
-import { reportFailure } from "@/foundation/ui/kit/ask";
+import { useActionButton } from "@/features/chat/ui";
 import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** 再試行中の文（「接続が切れています。再試行 3/10・あと 8 秒」）。残りの秒数を数える */
@@ -35,6 +35,7 @@ function reconnectLabel(reconnect: ReconnectState): string {
  * 「自動で再開しない」で待つのをやめられる（そのあとは、自分でメッセージを送ると続きから再開する）
  */
 export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect: ReconnectState }) {
+  const action = useActionButton();
   return (
     <Notice look="boxed" className="reconnect-row" role="status">
       <WifiOff size={14} aria-hidden />
@@ -43,7 +44,8 @@ export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect:
         type="button"
         className="link-button"
         title="つながっても自動で再開しない（自分でメッセージを送ると、続きから再開します）"
-        onClick={() => void api.stopReconnect(chatId).catch(reportFailure("自動の再開をやめられませんでした"))}
+        disabled={action.pending()}
+        onClick={() => action.press("", () => api.stopReconnect(chatId), "自動の再開をやめられませんでした")}
       >
         自動で再開しない
       </button>

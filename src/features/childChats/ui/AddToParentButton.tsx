@@ -12,6 +12,7 @@ import { tipProps } from "@/foundation/ui/kit/HoverTip";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { handOffTurn } from "./handBack";
+import { useActionButton } from "@/features/chat/ui";
 
 /** 渡し方ごとの説明（▾ のメニューの下の一言） */
 const VIA_HINTS: Record<HandoffVia, string> = {
@@ -30,17 +31,19 @@ export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat
   const [defaultVia] = useSetting(storage.settings.handBackVia);
   // ▾ のメニューで選んだ、今回だけの渡したあと（開くたびに設定の値から）
   const [after, setAfter] = useState<HandoffAfter>("keep");
-  const run = (via: HandoffVia, afterThis: HandoffAfter) => void handOffTurn(chat, turnEventId, via, afterThis);
+  // 渡してから返るまで押せない（すばやく 2 回押しても 1 回だけ渡す）
+  const action = useActionButton();
+  const run = (via: HandoffVia, afterThis: HandoffAfter) => action.press("", () => handOffTurn(chat, turnEventId, via, afterThis), "親チャットに渡せませんでした");
   const tip = `この返答をそのまま親チャットに渡す（${HANDOFF_VIA_LABELS[defaultVia]}。▾ で今回だけ別の渡し方）`;
   return (
     <span className={cx("handoff-split", prominent && "prominent")} data-turn={turnEventId}>
       {prominent ? (
-        <button type="button" className="btn btn-primary handoff-main" data-size="sm" {...tipProps(tip)} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))}>
+        <button type="button" className="btn btn-primary handoff-main" data-size="sm" {...tipProps(tip)} disabled={action.pending()} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))}>
           <Inbox size={13} aria-hidden />
           親チャットに追加
         </button>
       ) : (
-        <IconButton size="sm" icon={Inbox} label="親チャットに追加" title={tip} iconSize={13} type="button" className="turn-action handoff-main" onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))} />
+        <IconButton size="sm" icon={Inbox} label="親チャットに追加" title={tip} iconSize={13} type="button" className="turn-action handoff-main" disabled={action.pending()} onClick={() => run(defaultVia, readSetting(storage.settings.handBackAfter))} />
       )}
       <IconButton
         size="sm"

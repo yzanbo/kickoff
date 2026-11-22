@@ -5,13 +5,13 @@ import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
+import { useActionButton } from "@/features/chat/ui";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@/features/composer/ui";
-import { reportFailure } from "@/foundation/ui/kit/ask";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
 import { childChatsApi, InheritChoice } from "@/features/childChats/ui";
@@ -80,19 +80,20 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
     onCreated(child, { always: false });
   };
   // 聞くことなしで、親の会話を引き継いだ子チャットを作り、このタブをその子チャットのタブに置き換える
-  const [opening, setOpening] = useState(false);
-  const openOnly = async () => {
-    setOpening(true);
-    const body = { text: "", quote: null, inherit: true, event_id: eventId ?? null, options: options.options };
-    try {
-      const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: parent.id }, body });
-      addChat(child);
-      onCreated(child, { always: true });
-    } catch (e) {
-      setOpening(false);
-      reportFailure("子チャットを開けませんでした")(e);
-    }
-  };
+  // 作ってから返るまで押せない（すばやく 2 回押しても 1 つだけ作る）
+  const action = useActionButton();
+  const opening = action.pending("open");
+  const openOnly = () =>
+    action.press(
+      "open",
+      async () => {
+        const body = { text: "", quote: null, inherit: true, event_id: eventId ?? null, options: options.options };
+        const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: parent.id }, body });
+        addChat(child);
+        onCreated(child, { always: true });
+      },
+      "子チャットを開けませんでした",
+    );
   return (
     <div className="side-child-chat">
       <NewChildBar parentId={parent.id} />
@@ -121,7 +122,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           {otherAi ? (
             <p className="muted small">{PROVIDER_LABELS[provider]} は親のチャットと違う AI なので、会話は引き継がずに新しく始めます</p>
           ) : (
-            <InheritChoice inherit={inheritChoice} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
+            <InheritChoice inherit={inheritChoice} onChange={setInherit} parentLabel="親のチャット" onOpen={openOnly} opening={opening} />
           )}
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。中身のないピルは出さない） */}
           <div className="composer-chips">

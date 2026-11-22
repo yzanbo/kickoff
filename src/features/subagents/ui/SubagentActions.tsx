@@ -1,11 +1,12 @@
 import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/foundation/ui/api";
-import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { activityOf } from "@/features/chat/ui/state/stall";
 import { isSubagentHalted } from "@/features/subagents/ui/model/subagentList";
 import { HAND_OVER_NOW, resumeRequest, retryRequest } from "@shared/chat/prompts";
+import { useActionButton } from "@/features/chat/ui";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。
@@ -28,6 +29,8 @@ export function SubagentActions({
   /** ほかのサブエージェントの中身を開く（やり直した回へ移る。行のキーを渡す） */
   onOpen?: (key: string) => void;
 }) {
+  // 押してから返るまで押せない（すばやく 2 回押しても、メインエージェントに 1 回だけ頼む）
+  const action = useActionButton();
   if (entry.status === "running") {
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
     return stalled ? <StopStalled chatId={chatId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
@@ -40,9 +43,10 @@ export function SubagentActions({
           type="button"
           className="btn"
           title="次の指示を待たずに、届いていなかった報告をメインエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
+          disabled={action.pending("report")}
           onClick={(e) => {
             e.stopPropagation();
-            void api.sendMessage(chatId, { text: HAND_OVER_NOW, options: {}, attachments: [], when: "now" }).catch(reportFailure("報告を渡せませんでした"));
+            action.press("report", () => api.sendMessage(chatId, { text: HAND_OVER_NOW, options: {}, attachments: [], when: "now" }), "報告を渡せませんでした");
           }}
         >
           <Inbox size={12} aria-hidden />
@@ -70,29 +74,36 @@ export function SubagentActions({
     ) : null;
   }
   if (!isSubagentHalted(entry)) return null;
-  const send = (text: string, failure: string) => api.sendMessage(chatId, { text, options: {}, attachments: [], when: "now" }).catch(reportFailure(failure));
+  const send = (text: string) => api.sendMessage(chatId, { text, options: {}, attachments: [], when: "now" });
   const resume = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (entry.agentId) void send(resumeRequest(entry.agentId, entry.description, { outputLimit: entry.outputLimit }), "再開を頼めませんでした");
+    const { agentId } = entry;
+    if (agentId) action.press("resume", () => send(resumeRequest(agentId, entry.description, { outputLimit: entry.outputLimit })), "再開を頼めませんでした");
   };
-  const retry = async (e: React.MouseEvent) => {
+  const retry = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const ok = await confirm({
-      title: `「${entry.description}」をやり直しますか？`,
-      message: "同じ依頼で、新しいサブエージェントを最初から動かします（前の回の続きはしません）。途中まで進めた作業を続けるなら「再開」を使ってください。",
-      confirmLabel: "やり直す",
-    });
-    if (ok) void send(retryRequest(entry), "やり直しを頼めませんでした");
+    action.press(
+      "retry",
+      async () => {
+        const ok = await confirm({
+          title: `「${entry.description}」をやり直しますか？`,
+          message: "同じ依頼で、新しいサブエージェントを最初から動かします（前の回の続きはしません）。途中まで進めた作業を続けるなら「再開」を使ってください。",
+          confirmLabel: "やり直す",
+        });
+        if (ok) await send(retryRequest(entry));
+      },
+      "やり直しを頼めませんでした",
+    );
   };
   return (
     <span className={cx("subagent-recovery", className)}>
       {entry.agentId && (
-        <button type="button" className="btn" title="止まったところから続けるよう、メインエージェントに頼みます" onClick={resume}>
+        <button type="button" className="btn" title="止まったところから続けるよう、メインエージェントに頼みます" disabled={action.pending("resume")} onClick={resume}>
           <Play size={12} aria-hidden />
           再開
         </button>
       )}
-      <button type="button" className="btn" title="同じ依頼で最初から立ち上げ直すよう、メインエージェントに頼みます" onClick={(e) => void retry(e)}>
+      <button type="button" className="btn" title="同じ依頼で最初から立ち上げ直すよう、メインエージェントに頼みます" disabled={action.pending("retry")} onClick={retry}>
         <RotateCcw size={12} aria-hidden />
         やり直す
       </button>
@@ -102,19 +113,26 @@ export function SubagentActions({
 
 /** 長く動きのないサブエージェントを止める（報告は届かなくなるので確かめる。止めたら一覧の「再開」「やり直す」で戻せる） */
 function StopStalled({ chatId, entry, agentId, className }: { chatId: number; entry: SubagentEntry; agentId: string; className?: string }) {
-  const stop = async (e: React.MouseEvent) => {
+  const action = useActionButton();
+  const stop = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const ok = await confirm({
-      title: `サブエージェント「${entry.description}」を止めます`,
-      message: "長く動きがありません。止めると、このサブエージェントの報告は届きません。止めたあとは「再開」で続きから、「やり直す」で最初から戻せます。ほかの作業とチャットは止まりません。",
-      confirmLabel: "止める",
-      danger: true,
-    });
-    if (ok) await api.stopBackgroundTask(chatId, agentId).catch(reportFailure("サブエージェントを止められませんでした"));
+    action.press(
+      "stop",
+      async () => {
+        const ok = await confirm({
+          title: `サブエージェント「${entry.description}」を止めます`,
+          message: "長く動きがありません。止めると、このサブエージェントの報告は届きません。止めたあとは「再開」で続きから、「やり直す」で最初から戻せます。ほかの作業とチャットは止まりません。",
+          confirmLabel: "止める",
+          danger: true,
+        });
+        if (ok) await api.stopBackgroundTask(chatId, agentId);
+      },
+      "サブエージェントを止められませんでした",
+    );
   };
   return (
     <span className={cx("subagent-recovery", className)}>
-      <button type="button" className="btn" title="長く動きのないこのサブエージェントだけを止めます（チャットは止めない）" onClick={(e) => void stop(e)}>
+      <button type="button" className="btn" title="長く動きのないこのサブエージェントだけを止めます（チャットは止めない）" disabled={action.pending("stop")} onClick={stop}>
         <Square size={12} aria-hidden />
         止める
       </button>

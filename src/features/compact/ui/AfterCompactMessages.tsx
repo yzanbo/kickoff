@@ -1,8 +1,7 @@
 import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { QueuedMessage } from "@shared/chat/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { reportFailure } from "@/foundation/ui/kit/ask";
-import { chatQueueApi, useOptionalChatScreen } from "@/features/chat/ui";
+import { chatQueueApi, useActionButton, useOptionalChatScreen } from "@/features/chat/ui";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CompactPromptMark } from "./CompactPromptMark";
@@ -46,11 +45,13 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
   const screen = useOptionalChatScreen();
   // 入力欄で書き直している指示（あれば、その吹き出しに印を付け、ほかの鉛筆は押せなくする）
   const editing = useHeldEdit(screen?.chatId ?? -1);
+  // 消すのは指示ごとに、返るまで押せない
+  const action = useActionButton();
   /** 送らずに外す */
   const remove = (m: QueuedMessage) => {
     if (!screen) return;
     const { chatId } = screen;
-    void chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId }, body: { commands: [{ op: "remove", ids: [m.id] }] } }).catch(reportFailure("指示を取り消せませんでした"));
+    action.press(m.id, () => chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId }, body: { commands: [{ op: "remove", ids: [m.id] }] } }), "指示を取り消せませんでした");
   };
   return (
     <>
@@ -90,6 +91,7 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
                   label="送らずに消す"
                   title={m.post_compact ? "今回の圧縮では、圧縮後指示を送らない（設定の圧縮後指示はそのまま）" : "この指示を送らずに消す（圧縮中に誤って送ったとき）"}
                   className="message-action"
+                  disabled={action.pending(m.id)}
                   onClick={() => remove(m)}
                 />
               </>
