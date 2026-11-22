@@ -3,3 +3,4 @@ export { GitHubStatusCard } from "./GitHubStatusCard";
 export { useChatOptions, type ChatOptionsState } from "./options/ChatOptionsBar";
 export { ProviderIcon } from "./provider/ProviderIcon";
 export { noteForegroundProvider } from "./provider/chatProvider";
+export { ClaudeMark } from "./ClaudeMark";

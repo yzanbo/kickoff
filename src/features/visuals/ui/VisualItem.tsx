@@ -7,7 +7,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
+import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useOptionalChatScreen, useOptionalTimelineNav } from "@/features/chat/ui";

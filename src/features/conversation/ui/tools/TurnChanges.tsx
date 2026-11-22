@@ -1,7 +1,7 @@
 import { ChevronRight, FileDiff } from "lucide-react";
 import { useContext } from "react";
 import { baseName } from "@/foundation/ui/lib/format";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
+import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileLinkContext, openByClick } from "@/features/files/ui/links/fileLinkContext";

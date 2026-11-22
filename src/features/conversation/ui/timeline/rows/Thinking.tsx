@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
+import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { openKey, useTimelineOpen } from "@/features/chat/ui";
 
 /**

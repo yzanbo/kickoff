@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
+import type { ProviderId } from "@shared/settings/types";
 import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 
 /**
@@ -11,6 +12,8 @@ export interface SubagentsView {
   /** チャットのプロジェクトと作業場所（右の欄の入力欄の / と @ の候補を探す場所。本体なら null） */
   projectId: number;
   worktree: string | null;
+  /** チャットの AI（中身が届かない理由などの文に名前を出す） */
+  provider: ProviderId;
   /** リポジトリの絶対パスを相対パスにする（右の欄のサブエージェントの画面の流れに使う。作業場所が変わらない間は同じ関数） */
   rel: (s: string) => string;
   /** メインエージェントが作業中か */

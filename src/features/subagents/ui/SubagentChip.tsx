@@ -15,7 +15,7 @@ import { modelDisplayName } from "@/features/ai/ui/options/models";
 import { SubagentStatusText } from "./SubagentStatusText";
 import { activityOf, activityText, stalledAgents } from "@/features/chat/ui/state/stall";
 import { SubagentActions } from "./SubagentActions";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
+import { ClaudeMark } from "@/features/ai/ui";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { AgentListChip, placesOf, summaryState, usePlaceCaps, useSubagentNav, type AgentListRow, type OpenPlace } from "@/features/chat/ui";
 import { flattenTree, subagentTree } from "@/features/subagents/ui/model/subagentTree";

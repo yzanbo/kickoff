@@ -1,7 +1,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
+import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
 import { openKey, useTimelineOpen } from "@/features/chat/ui";
 

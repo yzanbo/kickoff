@@ -3,6 +3,7 @@ import type { KeyboardEvent } from "react";
 import type { Attachment } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
+import { PROVIDER_LABELS } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { isCancelKey, isComposing, consumeKey } from "@/foundation/ui/lib/keys";
 import { storage } from "./storage";
@@ -48,7 +49,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   const [queueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
   const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
-  if (!agentId) return <p className="muted small">このサブエージェントには伝えられません（Claude Code がサブエージェントの ID を知らせていないため）。</p>;
+  if (!agentId) return <p className="muted small">{`このサブエージェントには伝えられません（${PROVIDER_LABELS[view.provider]} がサブエージェントの ID を知らせていないため）。`}</p>;
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
   const relay = async (text: string, attachments: Attachment[], sendMode?: SendWhen) => {
     const message = relayMessage(agentId, description, text);

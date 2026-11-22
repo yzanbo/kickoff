@@ -97,11 +97,12 @@ export function useChatSubagentsView(chatId: number): SubagentsView | null {
   const projectId = chat?.project_id;
   const worktree = chat?.worktree_path ?? null;
   const busy = chat?.status === "running";
+  const provider = chat?.provider;
   return useMemo(
     () =>
-      projectId === undefined
+      projectId === undefined || provider === undefined
         ? null
-        : { chatId, projectId, worktree, rel: relativeOf(repoPath), busy, events: digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers },
-    [chatId, projectId, worktree, repoPath, busy, digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers],
+        : { chatId, projectId, worktree, provider, rel: relativeOf(repoPath), busy, events: digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers },
+    [chatId, projectId, worktree, provider, repoPath, busy, digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers],
   );
 }

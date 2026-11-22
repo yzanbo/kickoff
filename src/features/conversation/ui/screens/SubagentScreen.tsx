@@ -1,10 +1,10 @@
-import { Bot, GitBranch, MessageSquare } from "lucide-react";
+import { Bot } from "lucide-react";
 import { Fragment } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll } from "@/features/chat/ui";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
+import { ClaudeMark } from "@/features/ai/ui";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { type ActivityNav, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
@@ -13,28 +13,11 @@ import { createSubagentNav, openSubagentWindow } from "@/features/conversation/u
 import { renderScopeOf } from "@/features/conversation/ui/timeline/Timeline";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
-import { SubagentActions } from "@/features/subagents/ui/SubagentActions";
-import { SubagentTellComposer } from "@/features/subagents/ui/SubagentTell";
-import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
-import { SubagentStatusText } from "@/features/subagents/ui/SubagentStatusText";
-import {
-  NowLine,
-  SubagentChildren,
-  SubagentKind,
-  SubagentPrompt,
-  SubagentReport,
-  SubagentSteps,
-  SubagentTime,
-  Summary,
-  useSubagentScope,
-} from "@/features/subagents/ui/subagentParts";
-import { SubagentsContext, type SubagentsView } from "@/features/subagents/ui/subagentsContext";
-import { useChatSubagentsView } from "@/features/subagents/ui";
+import { SubagentActions, SubagentTellComposer, agentHueStyle, SubagentStatusText, NowLine, SubagentChildren, SubagentKind, SubagentLinkActions, SubagentTime, Summary, SubagentPrompt, SubagentReport, SubagentSteps, useSubagentScope, SubagentsContext, type SubagentsView, useChatSubagentsView, childrenOf, pathOf } from "@/features/subagents/ui";
 import { chatVisuals } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
 import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
-import { childrenOf, pathOf } from "@/features/subagents/ui/model/subagentTree";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 
 /**
@@ -184,24 +167,7 @@ function ScreenHead({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
         {running ? <NowLine entry={entry} view={view} rel={view.rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, entry.key).length} />}
         <span className="subagent-card-actions">
           <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => nav.subagents.openSide(k)} />
-          <button
-            type="button"
-            className="link-button subagent-tell"
-            title="チャットの流れの中の、このサブエージェントのカードへ移って開きます"
-            onClick={() => nav.subagents.reveal(entry.key)}
-          >
-            <MessageSquare size={12} aria-hidden />
-            流れで見る
-          </button>
-          <button
-            type="button"
-            className="link-button subagent-tell"
-            title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（上 / 下のボタンで順に移る）"
-            onClick={() => nav.activity.focus(entry.key)}
-          >
-            <GitBranch size={12} aria-hidden />
-            動きで見る
-          </button>
+          <SubagentLinkActions links={{ flow: () => nav.subagents.reveal(entry.key), activity: () => nav.activity.focus(entry.key) }} />
         </span>
       </div>
     </header>

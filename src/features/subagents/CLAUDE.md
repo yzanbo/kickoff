@@ -4,7 +4,7 @@
 
 - 一覧の組み立て・数え方は `@shared/chat/subagents.ts`、状態は `@shared/chat/subagentState.ts`（コア・画面・スマホが同じものを使う）。
 - `core/reports.ts`: 届かなかった報告を次の指示に添える（contributor の `messageNote`。発言の `handover` に残す）。
-- `ui/`: 流れのカード・共通の部品 `subagentParts.tsx`・色 `model/agentHues.ts`・手順の項目 `model/subagentEvents.ts`。入力欄の上のピルは chat の `AgentListChip`（子チャットと同じ形）、木をたどるのは `@shared/foundation/tree`。右の欄の画面 `SubagentScreen` は `@/features/conversation/ui/screens/`。
+- `ui/`: 流れのカード・カードと画面で共通の見出し `SubagentHead.tsx`（行き先のボタン `SubagentLinkActions`）と中身 `subagentBody.tsx`・見出しを押したときの開き方 `subagentOpen.ts`・色 `model/agentHues.ts`・手順の項目 `model/subagentEvents.ts`。入力欄の上のピルは chat の `AgentListChip`（子チャットと同じ形）、木をたどるのは `@shared/foundation/tree`。右の欄の画面 `SubagentScreen` は `@/features/conversation/ui/screens/`。
 
 ## 決まり
 

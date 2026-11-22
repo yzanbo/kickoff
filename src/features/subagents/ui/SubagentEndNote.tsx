@@ -1,7 +1,7 @@
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
+import { ClaudeMark } from "@/features/ai/ui";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { useSubagentsView } from "./subagentsContext";
 

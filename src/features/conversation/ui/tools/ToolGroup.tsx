@@ -12,7 +12,7 @@ import { CallTime, GroupTime } from "./ToolTime";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
+import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { ToolPath } from "./ToolResultCode";
 import { toolRowViewOf, type ToolRowProps } from "./toolRowViews";
 import { FileLinkContext, openByClick } from "@/features/files/ui/links/fileLinkContext";

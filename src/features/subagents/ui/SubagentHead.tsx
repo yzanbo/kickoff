@@ -1,29 +1,20 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { subagentReport, type SubagentEntry } from "@shared/chat/subagents";
+import { CornerDownRight, GitBranch, MessageSquare, PanelRight, Reply } from "lucide-react";
+import { useMemo } from "react";
+import type { SubagentEntry } from "@shared/chat/subagents";
 import { isSubagentTool } from "@shared/ai/claudeTools";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { formatDuration, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/foundation/ui/lib/time";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
-import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
-import { Markdown } from "@/foundation/ui/markdown/Markdown";
-import { activityOf, activityText } from "@/features/chat/ui/state/stall";
-import { Working } from "@/features/chat/ui/parts/Working";
-import type { ChatEvent } from "@shared/chat/chatEvent";
-import { chatLog, openKey, toolText, useTimelineOpen, type RenderScope } from "@/features/chat/ui";
+import { ClaudeMark } from "@/features/ai/ui";
+import { activityOf, activityText, toolText } from "@/features/chat/ui";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
-import { subagentEvents } from "@/features/subagents/ui/model/subagentEvents";
 import { showsSubagentStatus, subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
 import type { SubagentsView } from "./subagentsContext";
-import { childrenOf, latestActivity, scopeOf } from "@/features/subagents/ui/model/subagentTree";
+import { childrenOf, latestActivity } from "@/features/subagents/ui/model/subagentTree";
 
 /*
- * サブエージェントの見せ方の部品（流れの中のカード SubagentCard と、右の欄のサブエージェントの画面 SubagentScreen で共通）:
- * 「サブエージェント」の札・中で起動したサブエージェントの札・開始〜終了の時刻・いまの動き・終わったもののまとめ・起動したエージェントからの依頼・
- * 手順（発言・ツール・入れ子のカード・作業中の行）・起動したエージェントへの報告
+ * サブエージェントの見出しの部品（流れの中のカード SubagentCard と、右の欄のサブエージェントの画面 SubagentScreen で共通）:
+ * 「サブエージェント」の札・中で起動したサブエージェントの札と行・開始〜終了の時刻・いまの動き・終わったもののまとめ・見出しの右の行き先のボタン
  */
 
 /** 中で起動したサブエージェントの札に並べる点の数（多ければ「+n」） */
@@ -189,129 +180,62 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
   return <span className="subagent-card-what muted">{parts.join(" · ")}</span>;
 }
 
-/** サブエージェントの手順の記録と流れ（項目にまとめて描くのは描く側の RenderScope） */
-export type SubagentScope = { events: readonly ChatEvent[]; scope: readonly string[] };
-
-/**
- * サブエージェントの手順の記録（そのサブエージェントの記録だけ）。チャット欄・右の欄の入力欄から伝えた
- * 追加の指示（メインのチャットの自分の発言）は、このサブエージェントの流れに自分の発言として混ぜる
- */
-export function useSubagentScope(entry: SubagentEntry, view: SubagentsView): SubagentScope {
-  const { key, agentId, toolUseEventId } = entry;
-  const scopeKey = scopeOf(entry).join(" ");
-  // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない）
-  const before = view.tailStart > 0 && toolUseEventId !== undefined && toolUseEventId < view.tailStart;
-  const { chatId } = view;
-  useEffect(() => {
-    if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
-  }, [before, chatId, scopeKey, toolUseEventId]);
-  const scope = useMemo(() => scopeKey.split(" "), [scopeKey]);
-  // そのサブエージェントの流れの記録だけを選ぶ（カードごとに読み込んだ記録の全体をたどらない）
-  const events = useMemo(() => subagentEvents(view.loaded, view.events, scope, key, agentId), [view.loaded, view.events, scope, key, agentId]);
-  return { events, scope };
+/** 見出しの右の行き先のボタン（渡したものだけを、右の欄 → 流れ → 動き → 伝えるの順に出す） */
+export interface SubagentLinks {
+  /** チャットの画面の右の欄に開く */
+  side?: () => void;
+  /** チャットの流れの中のカードへ移って開く */
+  flow?: () => void;
+  /** 見出しの「動き」で、このサブエージェントと中で起動したものを強調する */
+  activity?: () => void;
+  /** カードの下に「伝える」の入力欄を開く・閉じる */
+  tell?: { open: boolean; toggle: () => void };
 }
 
-/** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の項目がなければ、その理由 */
-export function SubagentSteps({ entry, view, steps, renderScope }: { entry: SubagentEntry; view: SubagentsView; steps: SubagentScope; renderScope: RenderScope }) {
-  const running = entry.status === "running";
+/** 見出しの右の行き先のボタン（流れの中のカードと右の欄の画面で同じ文。操作のボタン SubagentActions の右に並べる） */
+export function SubagentLinkActions({ links }: { links: SubagentLinks }) {
   return (
     <>
-      {renderScope(steps.events, steps.scope, view.busy && running, <p className="muted small">{emptyText(entry, running)}</p>)}
-      {running && <Working>{workingText(entry)}</Working>}
-    </>
-  );
-}
-
-/**
- * 起動したエージェントへの報告（まだなければ出さない）。limited（流れの中のカード）なら、長い報告は高さを抑えて中でスクロールさせ
- * （.subagent-result-body.limited。チャットの流れを報告の全文で埋めない）、見出しの右の「全文を表示」「高さを抑える」で切り替える。
- * 右の欄のサブエージェントの画面は、報告を読むための場所なので全文のまま
- */
-export function SubagentReport({ entry, view, limited = false }: { entry: SubagentEntry; view: SubagentsView; limited?: boolean }) {
-  const report = subagentReport(entry, view.events);
-  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか。
-  // 高さは、高さを抑える枠の内側の要素の大きさの知らせで測る（scrollHeight を読まない。知らせは描く前に届くので、変わったときだけその場で描き直す）
-  const [long, setLong] = useState(false);
-  const longRef = useRef(false);
-  const [full, setFull] = useTimelineOpen(view.chatId, openKey.report(entry.key));
-  const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
-    const next = height > REPORT_LIMIT_PX + 40;
-    if (!limited || next === longRef.current) return;
-    longRef.current = next;
-    flushSync(() => setLong(next));
-  });
-  if (!report) return null;
-  const clamped = limited && long && !full;
-  return (
-    <div className="subagent-result card">
-      <div className="subagent-result-head">
-        <div className="subagent-label">起動したエージェントへの報告</div>
-        {limited && long && (
-          <button
-            type="button"
-            className="link-button subagent-result-toggle"
-            aria-expanded={full}
-            title={full ? "報告の高さを抑えて、中でスクロールさせます" : "報告の全文を、高さを抑えずに表示します"}
-            onClick={() => setFull(!full)}
-          >
-            {full ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
-            {full ? "高さを抑える" : "全文を表示"}
-          </button>
-        )}
-      </div>
-      <div className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
-        <div ref={measureRef}>
-          <Markdown>{report}</Markdown>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** 流れの中のカードで、報告をここまでの高さに抑える（これより 40px 以上長いときだけ抑える。少しだけはみ出すものは抑えない） */
-const REPORT_LIMIT_PX = 320;
-
-/**
- * 中身の記録がないときの文。サブエージェントの中で起動したサブエージェント（孫より深いもの）の中の手順は Claude Code が送ってこないので、
- * その旨と、届くもの（最後のツール・回数・報告）を伝える
- */
-function emptyText(entry: SubagentEntry, running: boolean): string {
-  if (entry.parentKey !== undefined)
-    return "サブエージェントの中で起動したサブエージェントの途中の手順は、Claude Code が送ってこないため出せません（実行中の最後のツール・ツールの回数・トークン数・報告は出ます）";
-  return running ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません";
-}
-
-/** 実行中のカードの中身の最後の行（子の結果を待っている・ツールを実行中・作業中） */
-function workingText(entry: SubagentEntry): string {
-  const tool = entry.pendingTool ?? entry.lastTool;
-  if (tool && isSubagentTool(tool)) return "中で起動したサブエージェントの終わりを待っています";
-  return tool ? `${tool} を実行中` : "作業中";
-}
-
-/** 起動したエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
-export function SubagentPrompt({ text, chatId, agentKey }: { text: string; chatId: number; agentKey: string }) {
-  // 開閉は流れの見え方の店（流れの中のカードと右の欄の画面で同じ）
-  const [open, setOpen] = useTimelineOpen(chatId, openKey.subagentPrompt(agentKey));
-  const first = text.split("\n").find((line) => line.trim()) ?? "";
-  return (
-    // 全文の Markdown は、初めて開いたときに解析する
-    <LazyDetails
-      className="subagent-prompt"
-      open={open}
-      onOpenChange={setOpen}
-      summary={
-        <summary className="fold-summary">
-          <ChevronRight size={13} className="tool-chevron" />
-          <span className="subagent-label">起動したエージェントからの依頼</span>
-          <span className="subagent-prompt-first">{first}</span>
-        </summary>
-      }
-    >
-      {() => (
-        <div className="subagent-prompt-body">
-          <Markdown>{text}</Markdown>
-        </div>
+      {links.side && (
+        <button
+          type="button"
+          className="link-button subagent-tell"
+          title="このサブエージェントを、チャットの画面の右の欄に、チャットと同じような画面で開く（右の欄の中で上下・左右に分けて並べられます）"
+          onClick={links.side}
+        >
+          <PanelRight size={12} aria-hidden />
+          右の欄で開く
+        </button>
       )}
-    </LazyDetails>
+      {links.flow && (
+        <button type="button" className="link-button subagent-tell" title="チャットの流れの中の、このサブエージェントのカードへ移って開きます" onClick={links.flow}>
+          <MessageSquare size={12} aria-hidden />
+          流れで見る
+        </button>
+      )}
+      {links.activity && (
+        <button
+          type="button"
+          className="link-button subagent-tell"
+          title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（上 / 下のボタンで順に移る）"
+          onClick={links.activity}
+        >
+          <GitBranch size={12} aria-hidden />
+          動きで見る
+        </button>
+      )}
+      {links.tell && (
+        <button
+          type="button"
+          className="link-button subagent-tell"
+          title="メインエージェント経由で、このサブエージェントに追加の指示を伝える（直接は送れないので、メインエージェントが SendMessage で渡します。カードの下に入力欄を開きます）"
+          aria-expanded={links.tell.open}
+          onClick={links.tell.toggle}
+        >
+          <Reply size={12} aria-hidden />
+          伝える
+        </button>
+      )}
+    </>
   );
 }

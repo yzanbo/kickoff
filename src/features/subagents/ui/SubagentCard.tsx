@@ -1,15 +1,25 @@
-import { ChevronRight, GitBranch, PanelRight, Reply } from "lucide-react";
-import { memo, type KeyboardEvent, type MouseEvent } from "react";
+import { ChevronRight } from "lucide-react";
+import { memo } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { canPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useShownInAgentPanel } from "@/features/chatPanel/ui/agents/agentTabs";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
+import { ClaudeMark } from "@/features/ai/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { openKey, useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePortValue, useTimelineOpen, type RenderScope, type ToolCall, CreatedChatMarks } from "@/features/chat/ui";
+import {
+  CreatedChatMarks,
+  openKey,
+  useOptionalActivityNav,
+  useOptionalChatScreen,
+  useOptionalSubagentNav,
+  usePlaceCaps,
+  usePortValue,
+  useTimelineOpen,
+  type RenderScope,
+  type ToolCall,
+} from "@/features/chat/ui";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
 import { SubagentWindow } from "./SubagentWindow";
@@ -17,20 +27,10 @@ import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { SubagentStatusText } from "./SubagentStatusText";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, pathOf } from "@/features/subagents/ui/model/subagentTree";
-import {
-  NowLine,
-  SubagentChildRows,
-  SubagentKind,
-  SubagentPrompt,
-  SubagentReport,
-  SubagentSteps,
-  SubagentTime,
-  Summary,
-  useSubagentScope,
-} from "./subagentParts";
-
-/** 字下げをやめる深さ（これより深い入れ子は字下げせず、見出しに外側からの道筋を添える） */
-const FLAT_DEPTH = 3;
+import { NowLine, SubagentChildRows, SubagentKind, SubagentLinkActions, SubagentTime, Summary } from "./SubagentHead";
+import { SubagentPrompt, SubagentReport, SubagentSteps } from "./subagentBody";
+import { useSubagentScope } from "./useSubagentScope";
+import { subagentOpenHandlers, subagentOpenModel } from "./subagentOpen";
 
 interface CardProps {
   call: ToolCall;
@@ -61,32 +61,22 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
   const running = entry?.status === "running";
   // 実行中は「最後の動き」の表示を進める
   useTicker(running ? TICK_ACTIVITY : null);
-  // 見出しを押したときに右の欄で開くか（設定。右の欄を置けない画面では、いつも流れの中）
+  // 見出しを押したときの開き方（設定。右の欄を置けない画面では、いつも流れの中）
   const [openIn] = useSetting(SUBAGENT_OPEN_IN);
-  const sideFirst = openIn === "side" && Boolean(nav?.canOpenSide);
-  const windowFirst = openIn === "window" && canPopout();
+  const { canWindow } = usePlaceCaps();
   const inSide = useShownInAgentPanel(view?.chatId ?? 0, key);
   if (!view || !entry) return <PlainCard call={call} />;
 
   const path = pathOf(view.tree, key);
   const depth = path.length - 1;
-  const toggle = () => (windowFirst ? nav?.openWindow(key) : sideFirst ? nav?.openSide(key) : nav?.toggle(key));
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
-    e.preventDefault();
-    toggle();
-  };
+  const how = subagentOpenModel({ openIn, canSide: Boolean(nav?.canOpenSide), canWindow, depth });
+  const toggle = () => (how.head === "window" ? nav?.openWindow(key) : how.head === "side" ? nav?.openSide(key) : nav?.toggle(key));
   // 上の 2 行のどこを押しても開く（中のボタン・リンク・入力欄を押したとき、文を選び終えたときは、それぞれに任せる）
-  const onTopClick = (e: MouseEvent<HTMLDivElement>) => {
-    if ((e.target as Element).closest("button, a, input, textarea, select, label")) return;
-    const selection = window.getSelection();
-    if (selection && !selection.isCollapsed && selection.anchorNode && e.currentTarget.contains(selection.anchorNode)) return;
-    toggle();
-  };
+  const { onTopClick, onKeyDown } = subagentOpenHandlers(toggle);
   return (
     <div
       id={`ev-${call.use.id}`}
-      className={cx("subagent-card card", running && "running", open && "open", depth >= FLAT_DEPTH && "flat")}
+      className={cx("subagent-card card", running && "running", open && "open", how.flat && "flat")}
       data-depth={depth}
       style={agentHueStyle(view.hues.get(key))}
     >
@@ -110,7 +100,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
             <ClaudeMark size={14} />
           </span>
           <span className="subagent-card-title">
-            {depth >= FLAT_DEPTH && (
+            {how.flat && (
               <span className="subagent-card-path">
                 {path
                   .slice(0, -1)
@@ -132,40 +122,13 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
           <span className="subagent-card-actions">
             <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => nav?.open(k)} />
             {/* 流れの中での開閉は左の ＞。設定が右の欄のときは、上の 2 行を押せば右の欄に開くので出さない */}
-            {nav?.canOpenSide && !sideFirst && (
-              <button
-                type="button"
-                className="link-button subagent-tell"
-                title="このサブエージェントを、チャットの画面の右の欄に、チャットと同じような画面で開く（右の欄の中で上下・左右に分けて並べられます）"
-                onClick={() => nav.openSide(key)}
-              >
-                <PanelRight size={12} aria-hidden />
-                右の欄で開く
-              </button>
-            )}
-            {activity && (
-              <button
-                type="button"
-                className="link-button subagent-tell"
-                title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（上 / 下のボタンで順に移る）"
-                onClick={() => activity.focus(key)}
-              >
-                <GitBranch size={12} aria-hidden />
-                動きで見る
-              </button>
-            )}
-            {nav && entry.agentId && (
-              <button
-                type="button"
-                className="link-button subagent-tell"
-                title="メインエージェント経由で、このサブエージェントに追加の指示を伝える（直接は送れないので、メインエージェントが SendMessage で渡します。カードの下に入力欄を開きます）"
-                aria-expanded={telling}
-                onClick={() => (telling ? nav.closeTell(key) : nav.tell(key))}
-              >
-                <Reply size={12} aria-hidden />
-                伝える
-              </button>
-            )}
+            <SubagentLinkActions
+              links={{
+                ...(nav && how.sideLink ? { side: () => nav.openSide(key) } : {}),
+                ...(activity ? { activity: () => activity.focus(key) } : {}),
+                ...(nav && entry.agentId ? { tell: { open: telling, toggle: () => (telling ? nav.closeTell(key) : nav.tell(key)) } } : {}),
+              }}
+            />
           </span>
         </div>
       </div>

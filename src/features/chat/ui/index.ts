@@ -1,6 +1,6 @@
 // チャットの画面の入口（ほかの機能はここだけを読む。まだ中のファイルを直接読む所は、読み手を直す単位でここへ寄せる）
 export { ChatStateMark } from "./state/ChatStateMark";
-export { latestOf } from "./state/stall";
+export { activityOf, activityText, latestOf } from "./state/stall";
 export { relativeOf } from "./timeline/relativePath";
 export { memoLast, type ChatSource } from "./store/chatSelector";
 export { chatLog, defineChatSelector, useChatDetail, useChatOf, useOpenChat, useStreaming } from "./store/useChatStore";
@@ -48,6 +48,7 @@ export { LinkedItemChip } from "./parts/LinkedItemChip";
 export { AgentListChip, type AgentListRow } from "./parts/AgentListChip";
 export { CreatedChatMarks } from "./parts/ChatLinkChip";
 export { useActionButton } from "./parts/useActionButton";
+export { Working } from "./parts/Working";
 export { DefaultOpenPlace, OpenPlaceButtons, placesOf, usePlaceCaps, type OpenPlace } from "./parts/OpenPlaceControls";
 export { ChipWord, ComposerChip } from "./parts/ChatPill";
 export { StatusSlot } from "./state/StatusSlot";
