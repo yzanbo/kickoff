@@ -247,7 +247,10 @@ export function createToolText(kickoff: readonly AiToolView[]): ToolText {
       if (name === "ExitPlanMode" && typeof input.plan === "string") return input.plan;
       // AI が作るチャットに送る依頼は、確かめられるよう切らずに全文（何を作るか・名前・作業場所は見出しと説明にある）
       if (isCreateChatTool(name) && typeof input.text === "string") return input.text;
-      return describeToolInput(name, input);
+      // ほかの AI の承認: 変えるファイル・書き込むフォルダは全部（files・folders）、Copilot の編集は差分（diff）も添える
+      const others = [input.files, input.folders].flatMap((list) => (Array.isArray(list) ? list.filter((p): p is string => typeof p === "string" && p !== input.file_path) : []));
+      const diff = typeof input.diff === "string" && input.diff.trim() ? [input.diff.trimEnd()] : [];
+      return [describeToolInput(name, input), ...new Set(others), ...diff].join("\n");
     },
     summarizeTools,
   };

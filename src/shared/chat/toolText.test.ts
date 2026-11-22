@@ -69,6 +69,12 @@ test("承認カード: 計画の提示は全文、ほかは 1 行と同じ", () 
   assert.equal(describeApprovalInput("Bash", { command: "rm -rf dist" }), "rm -rf dist");
 });
 
+test("承認カード: ほかの AI の承認は、変えるファイル・書き込むフォルダを全部と、Copilot の差分を出す", () => {
+  assert.equal(describeApprovalInput("Write", { file_path: "/r/a.ts", files: ["/r/a.ts", "/r/b.ts"] }), "/r/a.ts\n/r/b.ts");
+  assert.equal(describeApprovalInput("Write", { file_path: "/r", folders: ["/r", "/s"] }), "/r\n/s");
+  assert.equal(describeApprovalInput("Edit", { file_path: "/r/a.ts", diff: "@@ -1 +1 @@\n-a\n+b\n" }), "/r/a.ts\n@@ -1 +1 @@\n-a\n+b");
+});
+
 test("ツールの結果: ツール検索の [tool_reference] は出さない", () => {
   assert.equal(visibleToolResult("[tool_reference]\n[tool_reference]"), "");
   assert.equal(visibleToolResult("Task #1 created successfully: 確認 1"), "Task #1 created successfully: 確認 1");
