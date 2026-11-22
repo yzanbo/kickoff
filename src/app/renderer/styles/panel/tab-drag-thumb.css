@@ -1,4 +1,4 @@
-/* ==== タブをドラッグするときの小さなサムネイル（features/panel/layout/tabThumbnail.ts。Zen Browser のタブと同じ見せ方） ==== */
+/* ==== タブをドラッグするときの小さなサムネイル（features/panel/layout/tabThumbnail.ts） ==== */
 
 /*
  * OS のドラッグの絵にするカード。画面の外に置いて描いておき、dragstart で setDragImage に渡す（ブラウザがその場で写す）。

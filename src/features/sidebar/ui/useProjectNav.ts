@@ -96,7 +96,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     writeSetting(storage.settings.lastHashByProject, { ...readSetting(storage.settings.lastHashByProject), [routeProject]: href(route) });
   }, [route, routeProject]);
 
-  /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */
+  /** 横スライドで切り替えたプロジェクトを、右側にも表示する */
   const showProject = (id: number) => {
     if (layout === "stack" || routeProject === id) return;
     const hash = readSetting(storage.settings.lastHashByProject)[id];

@@ -2,7 +2,7 @@ import type { NamedView } from "@/foundation/ui/lib/namedViews";
 import { hiddenCardFields, sameHiddenCardFields, type CardField } from "./cardFields";
 import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 
-// 保存したビュー（ボードの見え方の組に名前を付けたもの。Notion のビューを参考に）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
+// 保存したビュー（ボードの見え方の組に名前を付けたもの）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
 
 /** 表示（feed は全プロジェクトのボードだけ） */
 const VIEW_KINDS = ["board", "list", "feed"] as const;
