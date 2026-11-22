@@ -23,7 +23,7 @@ export interface ActivityFocus {
 /**
  * 動きの強調（カードの「動きで見る」）: 絞り込まない行のうち、そのサブエージェントと配下の行（その起動の行も）を強調し、並びの初めの行
  * （上を最新に並べるので、いちばん新しい行）へ移る。shown は画面に並ぶ順で渡す。
- * ↑↓ で順に移る。移るときは一番上への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。移る先が窓の外なら、reveal で描いてから移る。
+ * 帯の上 / 下のボタンで順に移る。移るときは一番上への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。移る先が窓の外なら、reveal で描いてから移る。
  * 一番上への付いていきの layout effect より後ろで呼ぶ（同じ描き直しで、上へ送ったあとに強調の行へ移すため）
  */
 export function useActivityFocus(
@@ -43,7 +43,7 @@ export function useActivityFocus(
   const currentIndex = focus ? hits[position] : undefined;
   const currentKey = currentIndex === undefined ? undefined : shown[currentIndex].key;
 
-  // 押したとき・↑↓ のときだけ移る（行が増えても、いまの行は動かさない）
+  // 押したとき・上 / 下のボタンのときだけ移る（行が増えても、いまの行は動かさない）
   const nonce = focus?.nonce;
   const missing = currentKey === undefined;
   const revealCurrent = useEffectEvent((isAlive: () => boolean) => {

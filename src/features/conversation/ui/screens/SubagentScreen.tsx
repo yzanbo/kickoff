@@ -197,7 +197,7 @@ function ScreenHead({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
           <button
             type="button"
             className="link-button subagent-tell"
-            title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（↑↓ で順に移る）"
+            title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（上 / 下のボタンで順に移る）"
             onClick={() => nav.activity.focus(entry.key)}
           >
             <GitBranch size={12} aria-hidden />
