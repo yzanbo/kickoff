@@ -8,7 +8,7 @@ import { childChatsApi } from "./api";
 import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
-import { handBackToParent } from "@/features/chat/ui/open/openChat";
+import { handBackToParent } from "./askChild";
 
 /**
  * 子チャットに、親への依頼文を書いてもらう（頼み方の文 handoffRequestPrompt を送る。記録の発言には頼みの印 handoff_request を付け、

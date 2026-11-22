@@ -13,7 +13,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { alert } from "@/foundation/ui/kit/ask";
 import { ancestorsOf, handBackText } from "./childChats";
-import { handBackToParent, revealInParent } from "@/features/chat/ui/open/openChat";
+import { handBackToParent, revealInParent } from "./askChild";
 import { requestHandoff } from "./handBack";
 import { DetachSubmenu } from "./DetachSubmenu";
 

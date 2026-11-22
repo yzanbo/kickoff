@@ -13,11 +13,11 @@ import { workplaceMoveBlock } from "@/features/workplaceMove/ui/moveWorkplace";
 import { useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPickFlyout } from "@/features/groups/ui/GroupPickFlyout";
 import { askNewGroupName } from "@/features/groups/ui/groups";
-import { openAskChild } from "@/features/chat/ui/open/openChat";
+import { openAskChild } from "@/features/chat/ui";
 import { DetachSubmenu } from "@/features/childChats/ui/DetachSubmenu";
 import { manageImageHosts } from "@/features/remoteImages/ui/manageImageHosts";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
+import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
 
 /** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
 const openNewChatAt = (place: NewChatPlace) => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree });

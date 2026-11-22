@@ -5,7 +5,7 @@ import { chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys"
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { openChatOrChild, openChildChat, openInRootSide } from "./openChat";
+import { openChat, openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { appendBlock } from "@/features/chat/ui/quote";
 import { screenOfChat } from "@/features/chat/ui/screen/chatScreens";
@@ -54,8 +54,8 @@ function openRequested(request: OpenViewRequest) {
   if (!target) return;
   // SQL は、頼んだチャットの右の欄の DB クライアントの新しい SQL のタブ（ツールの行の「SQL のタブで開く」と同じ）
   if (request.kind === "sql") return openSqlFromChat(target, { id: request.connection_id }, request.sql);
-  if (target.parent_chat_id !== null) openChildChat(target, request.place ?? undefined);
-  else open({ kind: "chat", projectId: target.project_id, chatId: target.id });
+  // 子チャットは選んだ場所（省けば設定の開き方）、親のないチャットはチャットのパネル
+  open({ kind: "chat", projectId: target.project_id, chatId: target.id, place: target.parent_chat_id !== null ? (request.place ?? "auto") : "tab" });
 }
 
 /**
@@ -71,7 +71,7 @@ function putDraft(request: ChatDraftRequest) {
   if (composer) composer.fill(request.text, { append: true, focus: false });
   else writeSetting(chatDraft(target.id), appendBlock(readSetting(chatDraft(target.id)), request.text));
   const chat = knownChat(target.id) ?? target;
-  showToast(`${chatTargetName(chat)}に下書きを入れました`, { label: "開く", run: () => openChatOrChild(chat) });
+  showToast(`${chatTargetName(chat)}に下書きを入れました`, { label: "開く", run: () => openChat(chat) });
 }
 
 /**

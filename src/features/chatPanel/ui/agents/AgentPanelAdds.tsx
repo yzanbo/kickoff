@@ -1,7 +1,7 @@
 import { Bot, ChevronDown, Container, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
@@ -87,7 +87,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
       <div className="menu-separator" role="separator" />
       <SubmenuItem icon={MessagesSquare} label="子チャット" empty={children.length === 0 ? "子チャットはありません" : null}>
         {children.map((c) => (
-          <MenuItem key={c.id} title={chatTitle(c.title)} onSelect={() => openChildChat(c, "side")}>
+          <MenuItem key={c.id} title={chatTitle(c.title)} onSelect={() => openChat(c, "side")}>
             {chatTitle(c.title)}
           </MenuItem>
         ))}

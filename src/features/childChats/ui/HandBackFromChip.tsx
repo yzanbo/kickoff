@@ -5,7 +5,7 @@ import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
-import { openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 
 /**
  * 子チャットから渡した依頼の出どころの札「子チャット『…』から」（入力欄の上・送った発言の下・送信待ちの行で同じ形）。押すとその子チャットを開く
@@ -20,7 +20,7 @@ export function HandoffFromChip({ from, onRemove }: { from: HandoffFrom; onRemov
         className="handoff-from-open"
         disabled={!child}
         {...tipProps(child ? `子チャット「${from.title}」を開く` : `子チャット「${from.title}」は、もうないか読み込まれていません`)}
-        onClick={() => child && openChildChat(child)}
+        onClick={() => child && openChat(child)}
       >
         <MessagesSquare size={12} aria-hidden />
         <span className="handoff-from-text">子チャット「{from.title}」から</span>

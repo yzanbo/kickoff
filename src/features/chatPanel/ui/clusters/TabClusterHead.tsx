@@ -16,7 +16,7 @@ import { clusterInitial, type TabCluster } from "./tabClusters";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
-import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
+import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
 import { newChatPlaceOf } from "@/features/chatList/ui/buckets";
 
 /**

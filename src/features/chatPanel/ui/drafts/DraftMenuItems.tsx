@@ -13,7 +13,7 @@ import { openNewProject } from "@/features/projects/ui/new/openNewProject";
 import { discardDraft, moveDraftToProject, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft, type PanelDraft } from "./panelDrafts";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
-import { NewChatItem, type NewChatPlace } from "@/features/chat/ui/open/NewChatItem";
+import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
 
 /** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
 const openNewChatAt = (place: NewChatPlace) => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree });

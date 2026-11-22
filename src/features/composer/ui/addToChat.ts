@@ -9,7 +9,7 @@ import { showToast } from "@/foundation/ui/kit/toast";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { mergeAttachments } from "@/features/attachments/ui/attachmentMerge";
 import { appendBlock } from "@/features/chat/ui/quote";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { screenOfChat, setMissingFill } from "@/features/chat/ui";
 
 /**
@@ -31,7 +31,7 @@ function addToChatDraft(chatId: number, text: string, attachments: Attachment[] 
   if (text) writeSetting(chatDraft(chatId), appendBlock(readSetting(chatDraft(chatId)), text));
   if (attachments.length > 0) writeSetting(chatAttachmentsDraft(chatId), mergeAttachments(readSetting(chatAttachmentsDraft(chatId)), attachments));
   const chat = knownChat(chatId);
-  showToast(`${chatTargetName(chat)}に追加しました`, chat ? { label: "開く", run: () => openChatOrChild(chat) } : undefined);
+  showToast(`${chatTargetName(chat)}に追加しました`, chat ? { label: "開く", run: () => openChat(chat) } : undefined);
 }
 
 // 別ウィンドウから頼まれたのに、メインのウィンドウにも足す先の画面がないとき

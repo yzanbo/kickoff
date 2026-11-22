@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
 import { api } from "@/foundation/ui/api";
 import { onServerOpen } from "@/foundation/ui/api/events";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
@@ -68,5 +68,5 @@ async function openNotifiedChat(projectId: number, chatId: number) {
   );
   if (!chat) return openTarget({ kind: "chat", projectId: projectId, chatId: chatId });
   if (chat.note_path !== null) return openTarget({ kind: "note", projectId: chat.project_id, path: chat.note_path });
-  openChatOrChild(chat);
+  openChat(chat);
 }

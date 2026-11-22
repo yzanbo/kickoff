@@ -7,7 +7,7 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { openInRootSide } from "@/features/chat/ui/open/openChat";
+import { openInRootSide } from "@/features/chat/ui";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey, type DraftScope } from "@/features/panel/ui/surfaces";
 import { baseName } from "./notePaths";

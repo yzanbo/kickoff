@@ -4,7 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "@/features/childChats/ui/index";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useChatScreen } from "@/features/chat/ui";
-import { openCreatedChild } from "@/features/chat/ui/open/openChat";
+import { openCreatedChild } from "@/features/chat/ui";
 import { seedOf } from "./askInNewChat";
 
 /**

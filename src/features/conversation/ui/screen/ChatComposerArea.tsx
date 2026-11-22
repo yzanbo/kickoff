@@ -24,7 +24,7 @@ import { sentShownKey } from "@/features/queue/ui/useSendingQueued";
 import { TodoChip } from "@/features/conversation/ui/todo/TodoChip";
 import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
 import { INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui/InheritChoice";
-import { openCreatedChild } from "@/features/chat/ui/open/openChat";
+import { openCreatedChild } from "@/features/chat/ui";
 import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
 import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";

@@ -7,9 +7,10 @@ export { chatLog, defineChatSelector, useChatDetail, useChatOf, useOpenChat, use
 export { chatTail, chatWindow, latestAnswer } from "./store/selectors";
 export { PastWorkplacesProvider, useBeforeWorkplaceMove } from "./screen/pastWorkplace";
 export { setSendExtras, withSendExtras } from "./send/sendExtras";
-export { chatRoleOf, type ChatHost, type NewChatSeed } from "./screen/chatHost";
+export { chatRoleOf, type ChatHost, type NewChatPlace, type NewChatSeed } from "./screen/chatHost";
+export { NewChatItem, NewChatPlaceBadges, useNewChatPlace } from "./open/NewChatItem";
 export { askInNewChatOf, ChatScreenContext, useChatScreen, useOptionalChatScreen, type ChatScreenValue } from "./screen/chatScreen";
-export { lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
+export { isScreenShown, lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
 export { clearKeepAlive, KeepAliveContext, useKeepAlive } from "./screen/keepAlive";
 export {
   ActivityNavContext,
@@ -35,3 +36,6 @@ export {
 } from "./screen/ports";
 export { openAll, setOpen, timelineView } from "./timeline/timelineView";
 export { useMainChat } from "./screen/mainChat";
+export { openAskChild, openChat, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
+export { knownChat } from "./store/knownChats";
+export { appendBlock } from "./quote";

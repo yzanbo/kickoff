@@ -3,7 +3,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
-import { openAskChild } from "@/features/chat/ui/open/openChat";
+import { openAskChild } from "@/features/chat/ui";
 import { addToChat } from "@/features/composer/ui/addToChat";
 import { askInNewChatOf, useChatScreen, useComposerPort } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";

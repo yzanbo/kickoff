@@ -14,7 +14,7 @@ import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsN
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
+import type { NewChatSeed } from "@/features/chat/ui";
 import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
 import type { AttachmentDraft } from "@/features/composer/ui/useDraftFiles";
 import { currentChats, useChats } from "@/features/chat/ui/store/knownChats";

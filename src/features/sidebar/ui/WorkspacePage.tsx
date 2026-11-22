@@ -20,7 +20,7 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { ChatRow } from "./ChatRow";
 import { ChildChatRows } from "./ChildChatRows";
-import { openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { NO_CHATS, useChatsWithChildrenByProject, useChildChats } from "@/features/chat/ui/store/knownChats";
 import { useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
@@ -167,7 +167,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         rename={rename.editorFor(chat)}
         // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
         after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
-        onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
+        onOpen={chat.parent_chat_id !== null ? () => openChat(chat) : undefined}
         reorder={rowReorder(chat)}
         hideChip={inBucket ? bucketChip : undefined}
         // 状態・要対応で絞ると子チャットも親の外に 1 行で並ぶので、子チャットだと分かる札を付ける

@@ -1,6 +1,6 @@
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui/open/openChat";
 import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { BucketChip } from "@/features/chatList/ui/StateChip";
@@ -31,7 +31,7 @@ export function StateStats({ chats, showProject = false }: { chats: Chat[]; show
           sections={sections}
           showProject={showProject}
           // 子チャットも並ぶ（プロジェクト画面の見出し）ので、子チャットは設定の開き方で開く
-          onOpen={openChatOrChild}
+          onOpen={(c) => openChat(c)}
           onClose={popover.close}
         />
       )}

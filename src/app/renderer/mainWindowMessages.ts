@@ -3,7 +3,8 @@
 // サイドバーの別ウィンドウからのパネルの操作。チャットの画面への知らせは features/chat/ui/screen/chatScreens.ts）。
 // 知らせの種類は持ち主の機能の ui/windowMessages.ts。受け手を持ち主の機能の appHosts へ移すまでは、ここでまとめて受ける
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { handBackToParent, openAskChild, openChildSide, revealInParent } from "@/features/chat/ui/open/openChat";
+import { openAskChild, openChat } from "@/features/chat/ui";
+import { handBackToParent, revealInParent } from "@/features/childChats/ui";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import type { PanelOp } from "@/features/chatPanel/ui/windowMessages";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
@@ -44,7 +45,7 @@ export function receiveMainWindowMessages(): () => void {
     onWindowMessage("openSeededChat", (m) => openSeededChat(m.projectId, m.place, m)),
     onWindowMessage("openChild", (m) => {
       const chat = knownChat(m.chatId);
-      if (chat) openChildSide(chat);
+      if (chat) openChat(chat, "side");
     }),
     onWindowMessage("childToParent", (m) => {
       const child = knownChat(m.childId);

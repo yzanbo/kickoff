@@ -6,7 +6,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { openChatSplit } from "@/features/chatPanel/ui/board/openChatSplit";
-import { openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { ChatMenuItems } from "./ChatMenuItems";
 
 /**
@@ -40,7 +40,7 @@ export function ChatMenu({
     <PopupMenu at={at} escape="pass" ignore={ignore} onClose={onClose}>
       <ChatMenuItems
         chat={chat}
-        onOpen={child ? (c) => openChildChat(c) : onOpenPanel}
+        onOpen={child ? (c) => openChat(c) : onOpenPanel}
         onRename={onRename}
         onClose={onClose}
         onError={onError}
@@ -71,11 +71,11 @@ function ChildOpenElsewhere({ chat }: { chat: Chat }) {
   const [openIn] = useSetting(CHILD_CHAT_OPEN_IN);
   if (!canPopout()) return null;
   return openIn === "window" ? (
-    <MenuItem onSelect={() => openChildChat(chat, "side")}>
+    <MenuItem onSelect={() => openChat(chat, "side")}>
       <PanelRight size={14} /> 右の欄で開く
     </MenuItem>
   ) : (
-    <MenuItem onSelect={() => openChildChat(chat, "window")}>
+    <MenuItem onSelect={() => openChat(chat, "window")}>
       <AppWindow size={14} /> 別ウィンドウで開く
     </MenuItem>
   );

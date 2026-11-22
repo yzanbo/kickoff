@@ -3,6 +3,9 @@ import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
 import type { NewChatTarget } from "@/features/panel/ui";
 import type { ChipsPortal } from "./chipsPortal";
 
+/** 新しいチャットを始める先（グループ・作業場所のワークツリーのフォルダ。なければグループなし・本体）。形は panel の NewChatTarget と同じ 1 つ（panel が chat より下なので、型は panel に置いたまま） */
+export type NewChatPlace = NewChatTarget;
+
 /** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示・GitHub の issue から始めるとき） */
 export interface NewChatSeed {
   text: string;
@@ -23,7 +26,7 @@ export interface ChatHost {
   /** 裏に回したら会話の欄を止めてよいか（パネルのタブ・右の欄の子チャット。ノートのチャット・別ウィンドウは止めない） */
   readonly pausable: boolean;
   /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
-  readonly openNewChat?: (target: NewChatTarget, seed?: NewChatSeed) => void;
+  readonly openNewChat?: (place: NewChatPlace, seed?: NewChatSeed) => void;
   /** この画面のあるタブを表に出す（パネルのタブの中だけ。隠れた画面で「移る」を受けたとき） */
   readonly bringToFront?: () => void;
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */

@@ -15,7 +15,7 @@ import type { QueueSendMode } from "@/features/composer/ui/composerKeys";
 import { QueueModeToggle, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
-import { openCreatedChild } from "@/features/chat/ui/open/openChat";
+import { openCreatedChild } from "@/features/chat/ui";
 import type { SubagentsView } from "./subagentsContext";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 

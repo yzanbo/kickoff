@@ -19,7 +19,7 @@ import { useChildChats, useKnownChat } from "@/features/chat/ui/store/knownChats
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
-import { openChatOrChild, openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { useNewChildFlash } from "./useNewChildFlash";
 
 /** まだ終わっていない様子（まとめてアーカイブしない。作業中はコアが断り、回答待ちは答える必要がある） */
@@ -30,14 +30,14 @@ const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
 
 /**
  * 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く）。AI が作った兄弟チャット・親のないチャットも同じ札で、
- * 兄弟チャットは子チャットと同じ開き方、親のないチャットはチャットのパネルで開く（openChatOrChild）
+ * 兄弟チャットは子チャットと同じ開き方、親のないチャットはチャットのパネルで開く（openChat）
  */
 function ChildChip({ chat }: { chat: Chat }) {
   const { stateOf } = useChatStates();
   const state = stateOf(chat);
   const kind = chat.parent_chat_id === null ? "チャット" : "子チャット";
   return (
-    <button type="button" className={cx("child-chat-chip pill", `child-${state}`)} title={`${kind}「${chatTitle(chat.title)}」を開く`} onClick={() => openChatOrChild(chat)}>
+    <button type="button" className={cx("child-chat-chip pill", `child-${state}`)} title={`${kind}「${chatTitle(chat.title)}」を開く`} onClick={() => openChat(chat)}>
       <MessagesSquare size={12} aria-hidden />
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">
@@ -101,7 +101,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
   const open = (chat: Chat, place?: "side" | "window") => {
     popover.close();
-    openChildChat(chat, place);
+    openChat(chat, place);
   };
   const renderRow = (c: Chat) => {
     const state = stateOf(c);

@@ -7,19 +7,19 @@ import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatStateMark } from "@/features/chat/ui";
 import { ChildDepthMark } from "./ChildDepthMark";
 import { descendantRows } from "./childChats";
-import { openChildSide } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 
 /**
  * タブの子チャットの印（ChildActivityMark）を押して開く、そのチャットの子チャットの一覧（孫・ひ孫も、親の下に続けて字下げ。アーカイブ済みは出さない）。
  * 見るだけの一覧で、アーカイブ・削除などの操作は置かない（入力欄の上の子チャットのピルと分ける）。
- * 行を押すと、設定の開き方によらず、いちばん上の親のチャットを左に、その子チャットを右の欄に開く（openChildSide）
+ * 行を押すと、設定の開き方によらず、いちばん上の親のチャットを左に、その子チャットを右の欄に開く（openChat の side）
  */
 export function TabChildChatsPopover({ chatId, anchor, onClose }: { chatId: number; anchor: RefObject<HTMLElement | null>; onClose: () => void }) {
   const childrenOf = useChildChats();
   const rows = descendantRows(chatId, childrenOf);
   const open = (chat: Chat) => {
     onClose();
-    openChildSide(chat);
+    openChat(chat, "side");
   };
   return (
     // タブの名前のボタンの中から開くので、body の直下に出す（タブの文字の大きさ・押したときの動きを受け継がない）

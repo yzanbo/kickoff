@@ -8,7 +8,7 @@ import { SubagentScreen } from "@/features/conversation/ui/screens/SubagentScree
 import { SideChanges } from "@/features/git/ui/SideChanges";
 import { SideChildChat } from "@/features/conversation/ui/screens/SideChildChat";
 import { NewChildPane } from "@/features/conversation/ui/screens/NewChildPane";
-import { createdChildPlace, openChildChat } from "@/features/chat/ui/open/openChat";
+import { createdChildPlace, openChat } from "@/features/chat/ui/open/openChat";
 import { SideNote } from "@/features/notes/ui/SideNote";
 import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/ui/GitHubTab";
@@ -129,7 +129,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         const place = t.follow ? createdChildPlace(opts) : "side";
         if (place === "side") return panel.replaceTab(t.key, childTab({ chatId: t.chatId, childId: child.id, projectId: child.project_id, title: child.title }));
         panel.closeTab(t.key);
-        if (place === "window") openChildChat(child, "window");
+        if (place === "window") openChat(child, "window");
       }}
     />
   ),

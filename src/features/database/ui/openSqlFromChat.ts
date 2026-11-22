@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import type { DbConnection } from "@shared/database/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { openInRootSide } from "@/features/chat/ui/open/openChat";
+import { openInRootSide } from "@/features/chat/ui";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { openNewSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";

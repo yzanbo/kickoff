@@ -14,7 +14,7 @@ import { ChatMenu } from "@/features/chatList/ui/menu/ChatMenu";
 import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { openChildChat } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
 import { ChatRow } from "./ChatRow";
 import { inboxByProject, inboxSections, waitingSince, type InboxSection } from "./inboxOrder";
@@ -62,7 +62,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
       rename={rename.editorFor(chat)}
       // 状態順はプロジェクトをまたぐので、どのプロジェクトかの印を添える（プロジェクト別は見出しで分かる）
       project={order === "status" ? projectOf.get(chat.project_id) : undefined}
-      onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
+      onOpen={chat.parent_chat_id !== null ? () => openChat(chat) : undefined}
       // 子チャットも親の外に 1 行で並ぶので、子チャットだと分かる札を付ける
       childMark
     />

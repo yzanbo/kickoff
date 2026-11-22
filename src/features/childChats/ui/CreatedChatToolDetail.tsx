@@ -2,7 +2,7 @@ import { MessagesSquare } from "lucide-react";
 import { createdChatIdOf } from "@shared/chat/aiCreateChat";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 
 /**
  * チャットのツールの行を開いた中身（AI がチャットを作るツール create_chat）: 送った依頼の全文と、
@@ -24,7 +24,7 @@ export function CreatedChatToolDetail({ text, result }: { text: string; result: 
             data-size="sm"
             disabled={!chat}
             title={chat ? `${kind}「${chatTitle(chat.title)}」を開く` : "チャットが見つかりません（消されたか、まだ一覧に届いていません）"}
-            onClick={() => chat && openChatOrChild(chat)}
+            onClick={() => chat && openChat(chat)}
           >
             <MessagesSquare size={13} aria-hidden /> {chat ? `「${chatTitle(chat.title)}」を開く` : "チャットを開く"}
           </button>

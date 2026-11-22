@@ -19,7 +19,7 @@
 
 ## 落とし穴
 
-- 作った子チャットは、知らせを待たずに `addChat` で一覧に入れてから開く（入っていないと親をたどれず、ふつうのタブで開く）。開き方は `openCreatedChild`・`openChildChat`・`openAskChild`。別ウィンドウからはメインのウィンドウに頼む。
+- 作った子チャットは、知らせを待たずに `addChat` で一覧に入れてから開く（入っていないと親をたどれず、ふつうのタブで開く）。開き方は `openCreatedChild`・`openChat`・`openAskChild`（`askChild.ts`）。別ウィンドウからはメインのウィンドウに頼む。
 - 右の欄の子チャットには右の欄を重ねない（`PanelHostContext` を null）。親の画面が見えていなければ先に開く（`openInRootSide`）。
 - 親の札の 1 回押しは `REVEAL_DELAY_MS` 待つ（ダブルクリックの名前の変更と分ける）。新しくできた子の明滅（`freshChildren`）は、会話の欄を隠している間は光らせない。
 - 親への依頼文の頼み方は `@shared/chat/handoff`。利用者が頼み直しても同じ形になるよう `core/context.ts` にも 1 行ある（変えたら両方）。

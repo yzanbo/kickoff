@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -123,7 +123,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
     if (!item) return;
     dialog.close();
     if (item.kind === "draft") openDraft(item.draft);
-    else openChatOrChild(item.chat);
+    else openChat(item.chat);
   }
   const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, selected, showArchived, shownStates]);

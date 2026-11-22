@@ -8,7 +8,7 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { openChildSide, openInRootSide } from "@/features/chat/ui/open/openChat";
+import { openChat, openInRootSide } from "@/features/chat/ui";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { screenOfChat, shownChatIds } from "@/features/chat/ui";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
@@ -56,14 +56,14 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       return;
     case "chat": {
       const chat = knownChat(route.chatId);
-      if (chat) openChildSide(chat);
+      if (chat) openChat(chat, "side");
       return;
     }
     case "subagent": {
       // サブエージェントの画面は、そのチャットの画面の中にある（子チャットの画面には右の欄がないので、子チャットそのものを開く）
       const chat = knownChat(route.chatId);
       if (!chat) return;
-      if (chat.parent_chat_id !== null) return openChildSide(chat);
+      if (chat.parent_chat_id !== null) return openChat(chat, "side");
       openInRootSide(chat.id, () => whenDrawn(chat.id, () => screenOfChat(chat.id)?.subagents.openSide(route.agentKey)));
       return;
     }

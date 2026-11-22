@@ -5,13 +5,8 @@ import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { useChatWorkplace } from "@/foundation/ui/workplace/useWorkplace";
 import { WORKPLACE_KIND_LABELS, WORKPLACE_SHORT_LABELS } from "@/foundation/ui/workplace/workplace";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import type { NewChatPlace } from "@/features/chat/ui/screen/chatHost";
 
-/** 新しいチャットを始める先（グループ・作業場所のワークツリーのフォルダ。なければグループなし・本体） */
-export interface NewChatPlace {
-  projectId: number;
-  group?: number;
-  worktree?: string;
-}
 
 const hueStyle = (hue: number | null | undefined) => (hue === null || hue === undefined ? undefined : ({ "--hue": hue } as CSSProperties));
 

@@ -7,11 +7,11 @@ import { open } from "@/foundation/ui/navigation/open";
 import { addChat } from "@/features/chat/ui/store/knownChats";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui";
 
 /** チャットを開く（別ウィンドウの中なら、メインのウィンドウに頼む） */
 function openDbChat(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {
-  if (parsePopout(location.hash) === undefined) return openChatOrChild(chat);
+  if (parsePopout(location.hash) === undefined) return openChat(chat);
   if (chat.parent_chat_id !== null) postToMainWindow("openChild", { chatId: chat.id });
   else open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }, { surface: "page" });
 }

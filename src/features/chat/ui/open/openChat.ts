@@ -1,16 +1,14 @@
-// 子チャット・ノートを、設定の開き方（右の欄 / 別ウィンドウ）で開く。右の欄は、いちばん上の親のチャットの画面の右の欄（孫・ひ孫も同じ欄に並べる）。
-// 子チャットから親へ（聞いた位置を見る・答えを入力欄に入れる）もここ。別ウィンドウからは、メインのウィンドウに知らせてここを呼ぶ（App）
-import type { HandoffFrom } from "@shared/chat/chatEvent";
+// チャットを開く（子チャットは設定の開き方（右の欄 / 別ウィンドウ）、親のないチャットはチャットのパネル）。右の欄は、いちばん上の親のチャットの画面の右の欄（孫・ひ孫も同じ欄に並べる）。
+// 新しい子チャットで聞く（openAskChild）もここ。子チャットから親へは childChats の askChild.ts
 import type { Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE } from "@/foundation/ui/storage/storageKeys";
+import { readSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { appendBlock } from "@/features/chat/ui/quote";
-import { isScreenShown, screenOfChat } from "@/features/chat/ui/screen/chatScreens";
+import { isScreenShown } from "@/features/chat/ui/screen/chatScreens";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { rootChatOf, type AskChildTarget } from "@/features/childChats/ui/childChats";
@@ -39,27 +37,47 @@ export function openInRootSide(chatId: number, open: (rootId: number, side: Retu
   return true;
 }
 
+/** 開く場所（auto = 子チャットは設定の開き方・親のないチャットはチャットのパネル / tab = チャットのパネル / side = いちばん上の親の右の欄 / window = 別ウィンドウ） */
+export type ChatOpenPlace = "auto" | "tab" | "side" | "window";
+
+/**
+ * 開く場所の決め方（設定 → 置ける場所。サブエージェントと子チャットが同じ関数を使う）: 別ウィンドウは開けるときだけ、
+ * 右の欄は置けるときだけ、どちらもだめなら流れの中（子チャットは流れの中に置かないので、右の欄を置ける前提で呼ぶ）
+ */
+export function resolveOpenPlace(setting: "inline" | "side" | "window", caps: { canSide: boolean; canWindow: boolean }): "inline" | "side" | "window" {
+  if (setting === "window" && caps.canWindow) return "window";
+  if (setting !== "inline" && caps.canSide) return "side";
+  return "inline";
+}
+
 /** 子チャットを右の欄で開く（いちばん上の親の右の欄のタブ。親が分からなければ、ふつうのチャットと同じくチャットのパネルで） */
-export function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
+function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
   const opened = openInRootSide(chat.id, (rootId, side) => side.openChild({ chatId: rootId, childId: chat.id, projectId: chat.project_id, title: chat.title }));
   if (!opened) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
 /**
- * 子チャットを、設定の開き方（CHILD_CHAT_OPEN_IN）で開く: 右の欄 = いちばん上の親の右の欄のタブ / 別ウィンドウ（もう開いていれば前に出す）。
- * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄。別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む
+ * チャットを開く。子チャット（と side・window を選んだとき）は、設定の開き方（CHILD_CHAT_OPEN_IN）か選んだ場所で: 右の欄 = いちばん上の親の右の欄のタブ /
+ * 別ウィンドウ（もう開いていれば前に出す。開けない（スマホのブラウザ）なら右の欄）。別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む。
+ * 親のないチャット（と tab）はチャットのパネルで
  */
-export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, place?: "side" | "window") {
-  // place を渡すと設定によらずその場所に（入力欄の上の子チャットの一覧の行のボタン）
-  if ((place ?? readSetting(CHILD_CHAT_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
-  if (inPopout()) return postToMainWindow("openChild", { chatId: chat.id });
-  openChildSide(chat);
+export function openChat(chat: Pick<Chat, "id" | "project_id" | "title"> & Partial<Pick<Chat, "parent_chat_id">>, place: ChatOpenPlace = "auto") {
+  if (place === "tab" || (place === "auto" && (chat.parent_chat_id ?? null) === null)) {
+    openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
+    return;
+  }
+  const where = resolveOpenPlace(place === "auto" ? readSetting(CHILD_CHAT_OPEN_IN) : place, { canSide: true, canWindow: canPopout() });
+  if (where === "window") openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
+  else if (inPopout()) postToMainWindow("openChild", { chatId: chat.id });
+  else openChildSide(chat);
 }
 
-/** チャットを開く（子チャットなら設定の開き方で、いちばん上のチャットならチャットのパネルで。要対応・⌘⇧A など子チャットも並ぶ一覧から） */
-export function openChatOrChild(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {
-  if (chat.parent_chat_id !== null) openChildChat(chat);
-  else openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
+/** 行き先 chat の place（子チャットを設定の開き方・選んだ場所で開く。親のないチャット・知らないチャットはチャットのパネル） */
+export function openChatAt(chatId: number, place: ChatOpenPlace): boolean {
+  const chat = knownChat(chatId);
+  if (!chat || place === "tab" || (place === "auto" && chat.parent_chat_id === null)) return false;
+  openChat(chat, place);
+  return true;
 }
 
 /**
@@ -80,7 +98,7 @@ export function createdChildPlace({ always = false }: { always?: boolean } = {})
 export function openCreatedChild(child: Chat, opts: { always?: boolean } = {}) {
   addChat(child);
   const place = createdChildPlace(opts);
-  if (place) openChildChat(child, place);
+  if (place) openChat(child, place);
 }
 
 /**
@@ -103,39 +121,4 @@ export function openAskChild({ parentId, eventId, quote, text, attachments }: As
       follow: true,
     }),
   );
-}
-
-/** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */
-function showChatView(chat: Chat) {
-  if (chat.parent_chat_id !== null) openChildSide(chat);
-  else if (!isScreenShown(chat.id)) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
-}
-
-/** 子チャットの親の、聞いた発言を見せる（メインのウィンドウで。別ウィンドウからはメインに頼む） */
-export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">) {
-  if (child.parent_chat_id === null) return;
-  if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "reveal" });
-  const parent = knownChat(child.parent_chat_id);
-  if (!parent) return;
-  showChatView(parent);
-  const eventId = child.parent_event_id ?? undefined;
-  // 開いたばかりの画面が描かれてから移る
-  requestAnimationFrame(() => screenOfChat(parent.id)?.activity.revealInConversation(eventId, null));
-}
-
-/**
- * 子チャットの答え（handBackText で作った引用・依頼文）を、親の入力欄の後ろに空行を挟んで足す（送るのは自分で。別ウィンドウからはメインに頼む）。
- * from を渡すと、親の入力欄の上に出どころの札（「子チャット『…』から」）を出し、送った発言に付ける（composerHandoff。保存はウィンドウで共有）
- */
-export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string, from?: HandoffFrom) {
-  if (child.parent_chat_id === null) return;
-  if (from) writeSetting(composerHandoff(child.parent_chat_id), from);
-  if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
-  const parent = knownChat(child.parent_chat_id);
-  if (!parent) return;
-  const composer = screenOfChat(parent.id)?.composer;
-  if (composer) composer.fill(text, { append: true });
-  // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る）
-  else writeSetting(chatDraft(parent.id), appendBlock(readSetting(chatDraft(parent.id)), text));
-  showChatView(parent);
 }

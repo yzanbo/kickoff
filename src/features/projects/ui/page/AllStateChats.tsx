@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Activity } from "lucide-react";
 import type { Project } from "@shared/projects/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { openChatOrChild } from "@/features/chat/ui/open/openChat";
+import { openChat } from "@/features/chat/ui/open/openChat";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { WaitingCountBadge } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
 import { useAllProjectChats, type WaitingBadge } from "@/features/chatList/ui/activeChats/useAllWaiting";
@@ -48,7 +48,7 @@ export function AllStateChats({ project, waiting }: { project: Pick<Project, "id
           sections={sections}
           showProject={scope === "all"}
           emptyText={scope === "all" ? "どのプロジェクトにも、作業中・回答待ち・未読のチャットはありません" : undefined}
-          onOpen={openChatOrChild}
+          onOpen={(c) => openChat(c)}
           onClose={popover.close}
           header={
             <Segmented

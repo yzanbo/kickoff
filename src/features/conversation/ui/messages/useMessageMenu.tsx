@@ -9,7 +9,7 @@ import { NoteMenuItems } from "@/features/notes/ui/NoteMenuItems";
 import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";
 import { MessageSquarePlus } from "lucide-react";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
-import { openAskChild } from "@/features/chat/ui/open/openChat";
+import { openAskChild } from "@/features/chat/ui";
 import { AddToChatItems } from "./AddToChatItems";
 import { onEditable, quoteBlockAt, selectionWithin } from "./quotable";
 import { quoteComment } from "@/features/chat/ui/quote";
