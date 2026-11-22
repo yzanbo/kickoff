@@ -1,7 +1,6 @@
 import { useEffect, useEffectEvent } from "react";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { useChatOf, useMainChat } from "@/features/chat/ui";
-import { PanelHostContext } from "@/features/panel/ui/panelHost";
 import { useTabPage } from "@/features/panel/ui";
 import { ChildChatBar } from "@/features/childChats/ui/ChildChatBar";
 
@@ -35,12 +34,12 @@ export function SideChildChat({
     <ChatScreen
       chatId={chatId}
       visible={visible}
-      host={{ surface: "side", pausable: true, slot, bringToFront: tabPage?.show, mainChatId }}
+      host={{ surface: "side", pausable: true, side: null, slot, bringToFront: tabPage?.show, mainChatId }}
       frame={(current, screen) => (
         <div className="side-child-chat">
           <ChildChatBar chat={current} />
           <div className="side-child-chat-body">
-            <PanelHostContext.Provider value={null}>{screen}</PanelHostContext.Provider>
+            {screen}
           </div>
         </div>
       )}

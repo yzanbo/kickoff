@@ -5,10 +5,10 @@
 
 | フォルダ | 中身 |
 |---|---|
-| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 5 欄は `surfaces.ts`）・入れ子の口 `panelHost.ts` |
+| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 5 欄は `surfaces.ts`）・入れ子の欄のピント `panelHost.ts` |
 | `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `actions.ts`）・別ウィンドウの写しと受け渡し |
 | `layout/` | ペインの分割（`paneTree.ts`・`paneLayout.ts`・`paneSizes.ts`・`paneGeometry.ts`）・タブのドラッグ（`useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`） |
-| `tabs/` | 持ち主へ移していない 8 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `PanelTabPage`・メニュー・先読み |
+| `tabs/` | 持ち主へ移していない 8 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `TabPageFrame`（移していない中身は `PanelTabPage`）・メニュー・先読み |
 | `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く（新しいタブのボタン `OpenWithAdds`） |
 
 欄の殻はそれぞれの持ち主にある: チャットのパネルと右の欄は `@/features/chatPanel/ui/`（`board/`・`agents/`）、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`。
@@ -25,7 +25,7 @@
 
 - 1 つの欄の状態（`PanelState`）は店（`createPanelStore`。起動で 1 つ入れる。テストは `testing.ts`）が覚え、変えるのはすべて純粋関数の `panelReducer`（後始末・保存は店）。部品は `usePanelState`、操作は `actions.ts` の関数（`openTab(欄, 作る関数のタブ)` など）。
 - 配置はいつもタブにそろえておく（`reconcileLayout`。理由は `PanelState` の JSDoc）。
-- 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`PanelTabPage` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
+- 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`TabPageFrame` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
 - 表示していないタブも hidden で残す。チャットの会話・サブエージェント・子チャットはさらに `Activity` で止め、止めると切れる操作の間は `@/features/chat/ui/screen/keepAlive.ts` で止めない。
 - 表示中かは `TabVisibleContext` で入れ子の欄へ伝える。チャットのタブの中身は初めて表示したときに作る（種類の `createWhen: "shown"`）。
 - 右サイドバーのブラウザは `@/features/browser/ui/panel/browserSession.ts` で残す。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。別ウィンドウの店はメインのウィンドウの写し（`panelMirror.ts`）。
@@ -43,7 +43,7 @@
 
 - 配置は木とピントのあるペイン `focused`・一覧のペイン `home`（`paneTree.ts`）。木はタブのキーだけを指し、1 つのタブは 1 つのペインにだけある。
 - 変え方は純粋関数（`paneLayout.ts`・`paneSizes.ts`）、位置と落とす場所は `paneGeometry.ts`。最後の 1 つのペインは消さない。
-- タブの中身はいつも中身の直下に置いて style で重ね、分けても作り直さない（`PanelTabPage` のコメント）。
+- タブの中身はいつも中身の直下に置いて style で重ね、分けても作り直さない（`TabPageFrame` のコメント）。
 - ドラッグ中だけ中身の上に透明の覆いを置く（webview の上でも落とせる。`useTabDrag`）。
 - パネルの外からタブにして落とすものは `beginExternalTabDrag` で知らせ、落としたらタブを開いてから移す。
 - ウィンドウの外へ離すと別ウィンドウで開く（`tabDragOut.ts`）。ほかのウィンドウの欄へは `tabTransfer.ts`（落とした側が開き直し、元は後始末なしで閉じる）。
@@ -63,7 +63,7 @@
 - 幅と覆う決まりは `useCoverableWidth` で共通。開閉で動いている間は開き終えたときの幅のまま切り取り、中身を並べ直さない。
 - 右サイドバー（`ProjectChat`）と下のパネル（`BottomPanel`）は閉じても要素を残す（書きかけ・シェルをなくさない）。
 - 右サイドバーのブラウザは、ほかの中身を見ている間も隠して置く（中身は `SideRail` で選ぶ）。
-- 右の欄（`AgentSplit`）はチャットのタブの中の入れ子のパネルで、`PanelHostContext` で受ける（理由は `panelHost.ts`）。パネルの外では置かない。
+- 右の欄（`AgentSplit`）はチャットのタブの中の入れ子のパネルで、置くのは `ChatHost.side`（chatPanel の `sidePanelPort`）を渡した画面だけ。
 - キー（Esc・⌘\）は `usePanelShortcuts` で、ピントのあるいちばん内側の欄だけが受け取る。外側の欄の CSS は子セレクタで内側に効かせない。
 - 右の欄の ⌘F（`AgentPanelFind`）はエディタ・子チャットの検索に任せる。親のチャットの画面のキーは右の欄の中で受け取らない（`isChatTarget`）。
 - 右サイドバーと最大表示の下のパネルの上の行は `.panel-window-titlebar` にそろえ、信号機・戻る / 進むと重ねない。

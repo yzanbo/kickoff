@@ -1,8 +1,8 @@
 // チャットの画面の殻が持つもの（口・画面の要素・流れのスクロール・右の欄の口）を、チャットごとに 1 回だけ作る
 import { useState, type MutableRefObject } from "react";
-import type { ScreenPorts } from "@/features/chat/ui";
+import type { ScreenPorts, SidePanelHandle } from "@/features/chat/ui";
 import { useTimelineScrollHandle, type TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
-import { createScreenActions, type ScreenActions, type SidePanelHandle } from "./screenActions";
+import { createScreenActions, type ScreenActions } from "./screenActions";
 
 export interface ChatShellHandles extends ScreenActions {
   /** 登録簿に載せる口（描き直しても同じ物） */

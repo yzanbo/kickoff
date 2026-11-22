@@ -20,7 +20,7 @@
 ## 落とし穴
 
 - 作った子チャットは、知らせを待たずに `addChat` で一覧に入れてから開く（入っていないと親をたどれず、ふつうのタブで開く）。開き方は `openCreatedChild`・`openChat`・`openAskChild`（`askChild.ts`）。別ウィンドウからはメインのウィンドウに頼む。
-- 右の欄の子チャットには右の欄を重ねない（`PanelHostContext` を null）。親の画面が見えていなければ先に開く（`openInRootSide`）。
+- 右の欄の子チャットには右の欄を重ねない（`ChatHost.side` を null）。親の画面が見えていなければ先に開く（`openInRootSide`）。
 - 親の札の 1 回押しは待つ（`useClickOrDouble`。ダブルクリックの名前の変更と分ける）。新しくできた子の明滅（`freshChildren`）は、会話の欄を隠している間は出さない。
 - 親への依頼文の頼み方は `@shared/chat/handoff`。利用者が頼み直しても同じ形になるよう `core/context.ts` にも 1 行ある（変えたら両方）。
 - タブの印は `role="button"` の span にし、一覧は body に出して、中のクリック・キーをタブに届かせない（Esc は止めない）。

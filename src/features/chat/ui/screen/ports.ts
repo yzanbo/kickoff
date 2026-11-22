@@ -2,7 +2,6 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Cell } from "@/foundation/ui/store";
-import { screenAt, type ShownScreen } from "./chatScreens";
 
 /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
 export type ActivityFilter = { kind: "all" } | { kind: "main" } | { kind: "agent"; key: string };
@@ -122,6 +121,3 @@ export function usePortValue<T, S>(cell: Cell<T> | undefined, select: (value: T)
 
 /** パネルのタブの置き場所（チャットの ID ではなくタブで引く。同じチャットをほかの欄でも開いていることがあるため） */
 export const chatPaneSlot = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
-
-/** そのタブで描いているチャットの画面（描いていなければ undefined。登録簿は chatScreens.ts。panel が読む中継の名前で、panel のタブの中身を移すときに消す） */
-export const chatPaneAt = (slot: string): ShownScreen | undefined => screenAt(slot);

@@ -8,7 +8,7 @@ import { PaneSash, fracStyle } from "@/features/panel/ui/layout/PaneSash";
 import { TabBar } from "./TabBar";
 import { PanelEmpty } from "./PanelEmpty";
 import type { PanelFrame } from "./PanelTools";
-import { PanelTabPage } from "@/features/panel/ui/tabs/PanelTabPage";
+import { TabPageFrame } from "@/features/panel/ui/tabs/TabPageFrame";
 import { layoutRects } from "@/features/panel/ui/layout/paneGeometry";
 import { leavesOf, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import { TabMenu } from "@/features/panel/ui/tabs/TabMenu";
@@ -17,7 +17,6 @@ import { useTabDrag } from "@/features/panel/ui/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
 import { OpenWithContext } from "@/features/panel/ui/openWith/OpenWithAdds";
-import { PanelHostContext } from "./panelHost";
 import { usePanelShortcuts } from "./usePanelShortcuts";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
 import { neighborTabs, useTabPrefetch } from "@/features/panel/ui/tabs/tabPrefetch";
@@ -32,7 +31,7 @@ import { usePanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
  * キー（Esc で閉じる・⌘\ で右に分ける）は usePanelShortcuts。いつも開いておく欄（欄の決まりの alwaysOpen・画面そのもの frame.fixed）は閉じても開き直す。
  * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
  * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
- * タブの中身（PanelTabPage）も memo で、変わったタブだけが描き直る
+ * タブの中身の枠（TabPageFrame）も memo で、変わったタブだけが描き直る
  */
 export const Panel = memo(PanelBody);
 
@@ -111,7 +110,6 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
 
   return (
-    <PanelHostContext.Provider value={Panel}>
     <OpenWithContext.Provider value={openWith}>
     <aside
       ref={asideRef}
@@ -153,7 +151,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
           if (!active && kindOf(t).createWhen === "shown" && !mountedTabs.has(t.key)) return null;
           if (kindOf(t).deferUntilPanelOpen?.(t) && !panelOpen && !mountedTabs.has(t.key)) return null;
           return (
-            <PanelTabPage
+            <TabPageFrame
               key={t.key}
               tab={t}
               panel={panel.pageOps}
@@ -192,6 +190,5 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={() => rename.start(tabMenu.menu!.value)} onClose={tabMenu.close} />}
     </aside>
     </OpenWithContext.Provider>
-    </PanelHostContext.Provider>
   );
 }

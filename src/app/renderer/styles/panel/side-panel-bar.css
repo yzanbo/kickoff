@@ -17,7 +17,7 @@
 }
 
 /*
- * AI が操作しているブラウザのタブ（.agent-browsing。PanelTabPage が features/browser/agentBrowsing.ts の状態で付ける）。
+ * AI が操作しているブラウザのタブ（.agent-browsing。TabPageFrame が features/browser/agentBrowsing.ts の状態で付ける）。
  * 表に出ていないタブも、見えない形で欄いっぱいに並べる（大きさがないとページを撮れず、位置で押せないため）。
  * 透明にして後ろに置き、押せないようにする（見ているタブの操作を邪魔しない）
  */

@@ -37,7 +37,7 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
     <ChatScreen
       chatId={chatId}
       visible
-      host={{ surface: "window", pausable: false, mainChatId }}
+      host={{ surface: "window", pausable: false, side: null, mainChatId }}
       frame={(current, screen) => (
         <SideScope mainChatId={mainChatId}>
           <ChildChatBar chat={current} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />

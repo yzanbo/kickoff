@@ -5,13 +5,12 @@ import { GroupChip } from "@/features/groups/ui/GroupChip";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorkplaceMoveChip } from "@/features/workplaceMove/ui";
 import { ChatFind } from "@/features/conversation/ui/find/ChatFind";
-import { AgentPanelToggle } from "@/features/chatPanel/ui/agents/AgentPanelToggle";
 import { useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderFrame } from "./ChatHeaderFrame";
 import { useChatDisplayMenu } from "./useChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
 import { ChatHeaderTitle } from "./ChatHeaderTitle";
-import { LinkedItemChip, useActivityNav, useSubagentNav } from "@/features/chat/ui";
+import { LinkedItemChip, useActivityNav, useChatScreen } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 
 /**
@@ -32,7 +31,8 @@ export function ChatHeader({
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
-  const { canOpenSide } = useSubagentNav();
+  // 右の欄の開閉ボタン（右の欄を置ける画面だけ）
+  const SideToggle = useChatScreen().host.side?.Toggle;
   const rowHidden = useChatHeaderRowHidden();
   const showing = useCell(useActivityNav().showing);
   // 何もないところの右クリックで「チャットの画面」のメニュー（ボタン・リンク・入力欄の上では、そのものの右クリックを残す）
@@ -86,7 +86,7 @@ export function ChatHeader({
               ))}
             </span>
           )}
-          {canOpenSide && shows("agents") && <AgentPanelToggle chatId={chat.id} />}
+          {SideToggle && shows("agents") && <SideToggle chatId={chat.id} />}
         </>
       }
     >

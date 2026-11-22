@@ -36,7 +36,7 @@ function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; cha
     // チャットの画面と同じものを配る（作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く）
     <ChatEnvironment
       chat={chat}
-      host={{ surface: "window", pausable: false, mainChatId: chat.id }}
+      host={{ surface: "window", pausable: false, side: null, mainChatId: chat.id }}
       ports={{ root, subagents: nav.subagents, activity: nav.activity }}
       timeline={null}
       rewind={nav.rewind.actions}

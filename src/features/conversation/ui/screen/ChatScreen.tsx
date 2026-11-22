@@ -22,8 +22,6 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
 import { ChatImagesProvider } from "@/features/remoteImages/ui";
-import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
-import { usePanelHost } from "@/features/panel/ui/panelHost";
 import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui";
 import { useForegroundProvider } from "./useForegroundProvider";
 import { RewindActionsContext, type RewindActions } from "@/features/conversation/ui/rewindContext";
@@ -74,13 +72,14 @@ function useColumnMode(chatId: number, visible: boolean, pausable: boolean): "vi
 }
 
 /**
- * 1 つのチャットの画面の殻: 子の部品への操作（チャットごとに 1 回だけ作る）と画面の値を ChatEnvironment で配り、右の欄（AgentSplit）を持ち、
+ * 1 つのチャットの画面の殻: 子の部品への操作（チャットごとに 1 回だけ作る）と画面の値を ChatEnvironment で配り、右の欄（置ける場所なら host.side の殻）を持ち、
  * 会話の欄（ChatColumn）を React の Activity で包む。裏のタブでは会話の欄だけを止め、右の欄の中のファイル・ノート・DB などのタブ（エディタの元に戻すの履歴・選択）は止めない。
  * 殻は会話の欄を隠しても動き続けるので、登録簿への登録（タブの右クリックの会話 / 動き・別ウィンドウからの知らせ・キーを受け取る画面）はここ。
  * 読むのはチャット（名前・状態）だけで、記録・途中の文は読まない（読むと、隠れている間も記録が届くたびに殻ごと描き直す）
  */
 function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; project?: Project; host: ChatHost; focus?: number; visible: boolean }) {
-  const canOpenSide = usePanelHost() !== null;
+  const side = host.side;
+  const canOpenSide = side !== null;
   // ピルの列を画面の外に描いているとき（ノートのチャットの欄を閉じている）は、会話へ移る前に画面を見せる（置き場所の値は呼ぶときに読む）
   const hostRef = useLatest(host);
   const shell = useChatShell({ chatId: chat.id, focus, canOpenSide, beforeReveal: () => hostRef.current.chipsPortal?.reveal?.() });
@@ -95,13 +94,23 @@ function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; projec
   const mode = useColumnMode(chat.id, visible, host.pausable);
   // 画面を閉じたら、止めない理由をすべて外す（片付けで外せない理由の持ち主が、会話の欄と一緒になくなるため。殻は Activity の外なので、閉じたときだけ流れる）
   useEffect(() => () => clearKeepAlive(chat.id), [chat.id]);
+  const column = (
+    <Activity mode={mode}>
+      <ChatColumn chat={chat} project={project} focus={focus} visible={visible} beforeSend={host.beforeSend} shell={shell} />
+    </Activity>
+  );
   return (
     <ChatEnvironment chat={chat} host={host} ports={shell.ports} timeline={shell.timeline} rewind={shell.rewind} links={fileLinks} side={canOpenSide}>
-      <AgentSplit scope={chat.id} handleRef={shell.side}>
-        <Activity mode={mode}>
-          <ChatColumn chat={chat} project={project} focus={focus} visible={visible} beforeSend={host.beforeSend} shell={shell} />
-        </Activity>
-      </AgentSplit>
+      {side ? (
+        <side.Frame scope={chat.id} handleRef={shell.side}>
+          {column}
+        </side.Frame>
+      ) : (
+        // 右の欄を置かない画面も、右の欄の殻と同じ並べる要素に入れる（見た目をそろえる）
+        <div className="chat-split">
+          <div className="chat-split-main">{column}</div>
+        </div>
+      )}
     </ChatEnvironment>
   );
 }

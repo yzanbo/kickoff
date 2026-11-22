@@ -11,7 +11,6 @@ import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { screenOfChat } from "@/features/chat/ui";
-import { PanelHostContext } from "@/features/panel/ui/panelHost";
 import type { ChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
 
 /** 外からノートのチャットの欄を動かす口（本文の右クリックの「ノートのチャット」の組） */
@@ -118,9 +117,7 @@ export function NoteChat({
 /** ノートのチャットの会話（ふつうのチャットの画面。右の欄は重ねない。ピルの列と送信待ちは、欄を閉じている間ノートの下の入力欄の上に出す） */
 function NoteChatView({ chatId, visible, beforeSend, chipsPortal }: { chatId: number; visible: boolean; beforeSend: () => Promise<void>; chipsPortal: ChipsPortal | null }) {
   return (
-    <PanelHostContext.Provider value={null}>
-      <ChatScreen chatId={chatId} visible={visible} host={{ surface: "note", pausable: false, beforeSend, chipsPortal, mainChatId: null }} />
-    </PanelHostContext.Provider>
+    <ChatScreen chatId={chatId} visible={visible} host={{ surface: "note", pausable: false, side: null, beforeSend, chipsPortal, mainChatId: null }} />
   );
 }
 

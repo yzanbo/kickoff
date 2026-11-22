@@ -23,7 +23,7 @@ import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { draftScope } from "@/features/panel/ui";
-import type { SidePanelHandle } from "@/features/conversation/ui";
+import type { SidePanelHandle } from "@/features/chat/ui";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
 const NO_REPLIES: VoiceReply[] = [];

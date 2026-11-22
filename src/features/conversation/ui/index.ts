@@ -6,6 +6,5 @@ export { NewChildPane } from "./screens/NewChildPane";
 export { createRewindActions } from "./rewind/createRewindActions";
 export { useChatSending } from "./screen/useChatSending";
 export { useTimelineScrollHandle } from "./timeline/timelineScroll";
-export type { SidePanelHandle } from "./screen/screenActions";
 export { toolRowViews, type ToolRowProps } from "./tools/toolRowViews";
 export { messageActions, type MessageMenuContext, type SelectionContext } from "./messages/messageActions";

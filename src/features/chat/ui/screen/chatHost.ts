@@ -1,4 +1,5 @@
 // チャットの画面の置き場所の値 ChatHost（パネルのタブ・右の欄の子チャット・別ウィンドウ・ノートのチャットの違いを 1 つの値に）と、チャットの種類
+import type { ComponentType, MutableRefObject, ReactNode } from "react";
 import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
 import type { ChipsPortal } from "./chipsPortal";
 
@@ -20,8 +21,22 @@ export interface NewChatSeed {
   newWorktreeBranch?: string;
 }
 
+/** 右の欄の殻を外から動かす口（右の欄の殻が handleRef に入れる） */
+export interface SidePanelHandle {
+  /** メインの会話を覆っていれば、並べる形に戻す（流れの中のカードへ移るとき） */
+  uncover: () => void;
+}
+
+/** 右の欄（チャットのパネルが作る殻）を、チャットの画面が読む口 */
+export interface SidePanelPort {
+  /** 会話の欄（children）と右の欄を横に並べる殻 */
+  Frame: ComponentType<{ scope: number; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }>;
+  /** 見出しの右の欄の開閉ボタン */
+  Toggle: ComponentType<{ chatId: number }>;
+}
+
 /**
- * 置き場所ごとの違い（置く側が作って ChatScreen に渡す）。右の欄（PanelHostContext・AgentSplit）はまだこの値に入れていない。
+ * 置き場所ごとの違い（置く側が作って ChatScreen に渡す）。
  * 渡すたびに作り直してよい（中の関数は呼ぶときに読む）
  */
 export interface ChatHost {
@@ -29,6 +44,8 @@ export interface ChatHost {
   readonly surface: "tab" | "side" | "window" | "note";
   /** 裏に回したら会話の欄を止めてよいか（パネルのタブ・右の欄の子チャット。ノートのチャット・別ウィンドウは止めない） */
   readonly pausable: boolean;
+  /** 右の欄を置ける場所なら、その口（パネルのタブのチャットだけ。右の欄の子チャット・ノートのチャット・別ウィンドウは null） */
+  readonly side: SidePanelPort | null;
   /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
   readonly openNewChat?: (place: NewChatPlace, seed?: NewChatSeed) => void;
   /** この画面のあるタブを表に出す（パネルのタブの中だけ。隠れた画面で「移る」を受けたとき） */

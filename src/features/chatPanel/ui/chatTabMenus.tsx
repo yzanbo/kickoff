@@ -6,7 +6,7 @@ import { GitBranch, MessageSquare, Pencil, SquarePen } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { chatPaneAt, chatPaneSlot, useKnownChat, type NewChatPlace } from "@/features/chat/ui";
+import { chatPaneSlot, screenAt, useKnownChat, type NewChatPlace } from "@/features/chat/ui";
 import { ChatMenuItems } from "@/features/chatList/ui";
 import type { PanelTab, TabMenuProps } from "@/features/panel/ui";
 import { DraftMenuItems } from "./drafts/DraftMenuItems";
@@ -47,7 +47,7 @@ function NewChatItem({ panel, paneId }: TabMenuProps<PanelTab>) {
 function ChatItems({ chat, ...props }: TabMenuProps<PanelTab> & { chat: Chat }) {
   const { tab, panel, before, after, onRename, onClose } = props;
   // そのタブで描いているチャットの画面（会話 / 動きを切り替える。描いていなければ出さない）
-  const chatPane = chatPaneAt(chatPaneSlot(panel.key, tab.key));
+  const chatPane = screenAt(chatPaneSlot(panel.key, tab.key));
   const activity = chatPane?.activity.showing.get() === "activity";
   const showItem = chatPane && (
     <MenuItem

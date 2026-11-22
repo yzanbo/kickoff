@@ -1,5 +1,5 @@
 // チャットの画面の口（流れ・サブエージェント・動き・書き直し・入力欄）を 1 回だけ作り、またがる操作（カードへ移る・会話へ戻る）を組む
-import { openAll, openKey, timelineView, type ActivityNav, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
+import { openAll, openKey, timelineView, type ActivityNav, type SidePanelHandle, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import { createTimelineNav, type TimelineNavWindow } from "@/features/conversation/ui/timeline/createTimelineNav";
 import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
@@ -7,12 +7,6 @@ import { createActivityNav } from "@/features/conversation/ui/activity/createAct
 import { createRewindActions, type RewindSend } from "@/features/conversation/ui/rewind/createRewindActions";
 import type { RewindActions } from "@/features/conversation/ui/rewindContext";
 import { createSubagentNav } from "./createSubagentNav";
-
-/** 右の欄（サブエージェントの欄）の殻を外から動かす口（AgentPanel が入れる） */
-export interface SidePanelHandle {
-  /** メインの会話を覆っていれば、並べる形に戻す（流れの中のカードへ移るとき） */
-  uncover: () => void;
-}
 
 export interface ScreenDeps {
   chatId: number;

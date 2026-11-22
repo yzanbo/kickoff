@@ -7,6 +7,7 @@ export { isTabVisible, paneOfTab } from "./layout/paneTree";
 export { forwardPanelOp } from "./state/panelMirror";
 export type { DraftScope, PanelScope, PanelSurface, StripProps, TabLook, ViewScope } from "./surface";
 export type { PanelController } from "./usePanel";
+export { Panel } from "./Panel";
 export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";

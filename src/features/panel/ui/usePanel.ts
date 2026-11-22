@@ -16,7 +16,7 @@ export { terminalTargets } from "@/features/panel/ui/tabs/panelTypes";
 export type PanelController = ReturnType<typeof usePanel>;
 
 /**
- * タブの中身（PanelTabPage）に渡す操作。欄の状態（タブ・配置）が変わっても同じ物なので、memo したタブの中身を描き直させない
+ * タブの中身（TabPageFrame）に渡す操作。欄の状態（タブ・配置）が変わっても同じ物なので、memo したタブの中身を描き直させない
  * （ほかのタブのチャットが変わってパネルの店が変わっても、そのタブだけが描き直る）
  */
 export type PanelPageOps = ReturnType<typeof panelOps> & {

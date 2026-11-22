@@ -10,6 +10,7 @@ import { NewChatPane } from "./tabs/NewChatPane";
 import { openNewChat } from "./drafts/panelDrafts";
 import { newChatDraft } from "@/features/composer/ui";
 import { moveDraftSidePanel } from "./agents/draftSide";
+import { sidePanelPort } from "./sidePanelPort";
 
 /** 種類 K のタブの中身に渡すもの */
 type PageOf<K extends PanelTab["kind"]> = TabPageProps<Extract<PanelTab, { kind: K }>>;
@@ -77,6 +78,8 @@ export function ChatTabPage({ tab: t, panel, visible }: PageOf<"chat">) {
       host={{
         surface: "tab",
         pausable: true,
+        // チャットのタブの中にだけ右の欄を置く
+        side: sidePanelPort,
         // 送信待ちの指示・選んだ文を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
         openNewChat: (place, seed) => void openNewChat(panel.key, place, seed),
         // 隠れた画面で移る・動きを開くを受けたら、先にこのタブを表に出す
