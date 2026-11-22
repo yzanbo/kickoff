@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test, vi } from "vitest";
+import { afterAll, test, vi } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { panelSurfaces, panelTabs, type PanelSurface, type PanelTab } from "@/features/panel/ui";
 import { userViewTabs } from "@/features/userView/ui";
@@ -7,6 +7,8 @@ import { registryContributions } from "./registry";
 
 // GitHub の本文の部品は DOMPurify（画面のもの）を読み込みで使う（登録の網羅だけを確かめる）
 vi.mock("@/features/github/ui/GitHubHtml", () => ({ GitHubHtml: () => null }));
+// 全部の機能の部品を読み込むので、同じプロセスで続けて流れるファイルのモック（vi.mock）が効くよう、読み込んだものを捨てる
+afterAll(() => vi.resetModules());
 
 /** パネルのタブの種類（panelTypes.ts の PanelTab の kind）と欄（surface.ts の PanelSurface）のすべて */
 const KINDS: readonly PanelTab["kind"][] = ["chat", "new", "subagent", "changes", "file", "projectView", "projectFile", "note", "database", "github", "ci", "docker", "trash", "child", "newChild", "browser", "terminal"];
