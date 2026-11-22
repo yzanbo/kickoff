@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
-import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/ui/chatActions";
+import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/ui";
 import { GroupPickMenu } from "@/features/groups/ui/GroupPickMenu";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

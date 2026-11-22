@@ -4,7 +4,7 @@ import { knownChat } from "./store/knownChats";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { choose, reportFailure } from "@/foundation/ui/kit/ask";
-import { confirmDeleteChat, deleteChat, toggleArchiveChat } from "./chatActions";
+import { confirmArchiveChats, confirmDeleteChats, deleteChat } from "./chatActions";
 import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 
@@ -56,11 +56,11 @@ export async function closeChatWithChoice(
       // やめたら閉じない
       if (!chat.archived_at) {
         if (confirmed) await api.archiveChat(chat.id, true);
-        else if (!(await toggleArchiveChat({ id: chat.id, title: chat.title, archived_at: null }))) return;
+        else if (!(await confirmArchiveChats({ id: chat.id, title: chat.title, archived_at: null }))) return;
       }
     } else if (action === "delete") {
       if (confirmed) await deleteChat(chat.id, chatTitle(chat.title));
-      else if (!(await confirmDeleteChat(chat))) return;
+      else if (!(await confirmDeleteChats(chat))) return;
     }
   } catch (e) {
     reportFailure(action === "delete" ? "削除できませんでした" : "アーカイブできませんでした")(e);

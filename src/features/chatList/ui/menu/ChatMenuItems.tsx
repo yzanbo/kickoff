@@ -1,23 +1,16 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, GitBranch, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
-import { confirmDeleteChat, confirmMoveChatToProject, toggleArchiveChat, togglePinChat } from "@/features/chat/ui/chatActions";
-import { openNewProject } from "@/features/projects/ui/new/openNewProject";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
-import { ProjectPickFlyout } from "@/features/projects/ui/ProjectPickFlyout";
-import { WorkplacePickFlyout } from "@/features/workplaceMove/ui/WorkplacePickFlyout";
-import { workplaceMoveBlock } from "@/features/workplaceMove/ui/moveWorkplace";
-import { useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
-import { GroupPickFlyout } from "@/features/groups/ui/GroupPickFlyout";
-import { askNewGroupName } from "@/features/groups/ui/groups";
-import { openAskChild } from "@/features/chat/ui";
-import { DetachSubmenu } from "@/features/childChats/ui/DetachSubmenu";
-import { manageImageHosts } from "@/features/remoteImages/ui/manageImageHosts";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
+import { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, NewChatItem, openAskChild, togglePinChat, type NewChatPlace } from "@/features/chat/ui";
+import { openNewProject } from "@/features/projects/ui";
+import { DetachSubmenu } from "@/features/childChats/ui";
+import { manageImageHosts } from "@/features/remoteImages/ui";
+import { WorkplaceMoveItem } from "@/features/workplaceMove/ui";
+import { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "./MoveItems";
 
 /** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
 const openNewChatAt = (place: NewChatPlace) => openTarget({ kind: "newChat", projectId: place.projectId, groupId: place.group, worktree: place.worktree });
@@ -52,19 +45,10 @@ export function ChatMenuItems({
   before?: ReactNode;
   after?: ReactNode;
 }) {
-  // 「グループを変更」「プロジェクトを変更」の横に開く一覧
-  const grouping = useSubmenu();
-  const moving = useSubmenu();
-  const relocating = useSubmenu();
-  // 作業場所を変更（ワークツリーの一覧がある = Git のプロジェクトだけ。作業中・実行環境を整えるチャットは押せない）
-  const canRelocate = (useWorktrees(chat.project_id)?.length ?? 0) > 0;
-  const relocateBlock = workplaceMoveBlock(chat);
   // 新しいグループの名前を聞いて作り、このチャットをそこへ移す
   const createGroupAndMove = async () => {
-    const name = await askNewGroupName("作成して移す");
-    if (!name) return;
-    const group = await api.createGroup(chat.project_id, name);
-    await api.setChatGroup(chat.id, group.id);
+    const group = await askNewGroup(chat.project_id);
+    if (group) await api.setChatGroup(chat.id, group.id);
   };
   // 失敗はお知らせで出す（メニューは閉じる）
   const act = (fn: () => Promise<unknown>) => {
@@ -122,47 +106,25 @@ export function ChatMenuItems({
       {chat.parent_chat_id !== null && <DetachSubmenu chat={chat} onClose={onClose} onError={onError} />}
       {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（メニューは閉じない。子チャットはグループに入らないので出さない） */}
       {chat.parent_chat_id === null && (
-        <button {...grouping.trigger}>
-          <Folder size={14} /> グループを変更
-          <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-        </button>
-      )}
-      {grouping.anchor && (
-        <GroupPickFlyout
-          anchor={grouping.anchor}
+        <MoveToGroupItem
           projectId={chat.project_id}
           current={chat.group_id}
           onPick={(group) => act(() => api.setChatGroup(chat.id, group?.id ?? null))}
           onCreate={() => act(createGroupAndMove)}
-          onBack={grouping.back}
         />
       )}
       {/* 乗せる・押す・→ で横に移す先の作業場所の一覧を開く（「プロジェクトを変更」の隣。子チャットは移らない） */}
-      {canRelocate && (
-        <button {...relocating.trigger} disabled={relocateBlock !== null} data-tip={relocateBlock ?? undefined}>
-          <GitBranch size={14} /> 作業場所を変更
-          <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-        </button>
-      )}
-      {relocating.anchor && <WorkplacePickFlyout anchor={relocating.anchor} chat={chat} onDone={onClose} onBack={relocating.back} />}
+      <WorkplaceMoveItem chat={chat} onDone={onClose} />
       {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（メニューは閉じない） */}
-      <button {...moving.trigger}>
-        <FolderInput size={14} /> プロジェクトを変更
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-      </button>
-      {moving.anchor && (
-        <ProjectPickFlyout
-          anchor={moving.anchor}
-          current={chat.project_id}
-          onPick={(project) => act(() => confirmMoveChatToProject(chat, project))}
-          onCreate={(name) => {
-            onClose();
-            // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
-            openNewProject({ name, after: { kind: "moveChat", chatId: chat.id } });
-          }}
-          onBack={moving.back}
-        />
-      )}
+      <MoveToProjectItem
+        current={chat.project_id}
+        onPick={(project) => act(() => confirmMoveChatToProject(chat, project))}
+        onCreate={(name) => {
+          onClose();
+          // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
+          openNewProject({ name, after: { kind: "moveChat", chatId: chat.id } });
+        }}
+      />
       {/* その他の組（あまり使わないので、しまう組のすぐ上に寄せる） */}
       <div className="menu-separator" role="separator" />
       {/* Claude Code で同じ会話を続けるとき（claude --resume <ID>）などに使う */}
@@ -182,10 +144,10 @@ export function ChatMenuItems({
         </MenuItem>
       )}
       <div className="menu-separator" role="separator" />
-      <MenuItem onSelect={() => act(() => toggleArchiveChat(chat))}>
+      <MenuItem onSelect={() => act(() => confirmArchiveChats(chat))}>
         {chat.archived_at ? <ArchiveRestore size={14} /> : <Archive size={14} />} {chat.archived_at ? "アーカイブから戻す" : "アーカイブ"}
       </MenuItem>
-      <MenuItem danger onSelect={() => act(() => confirmDeleteChat(chat))}>
+      <MenuItem danger onSelect={() => act(() => confirmDeleteChats(chat))}>
         <Trash2 size={14} /> 削除…
       </MenuItem>
       {after}

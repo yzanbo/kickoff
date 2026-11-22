@@ -7,7 +7,7 @@ import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "./api";
 import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
+import { confirmArchiveChats, confirmDeleteChats } from "@/features/chat/ui/chatActions";
 import { handBackToParent } from "./askChild";
 
 /**
@@ -50,7 +50,7 @@ export async function handOffTurn(child: Chat, turnEventId: number, via: Handoff
 
 /**
  * 渡したあとの子チャット: アーカイブ・削除（入力欄に入れたときの削除は、依頼文が入力欄にしか残らなくなるのでアーカイブ。handoffAfterFor）。
- * どちらもチャットのアーカイブ・削除と同じく確かめてから（削除は子孫も一緒と添える。toggleArchiveChat / confirmDeleteChat）。子が作業中なら、しないで知らせる
+ * どちらもチャットのアーカイブ・削除と同じく確かめてから（削除は子孫も一緒と添える。confirmArchiveChats / confirmDeleteChats）。子が作業中なら、しないで知らせる
  */
 async function afterHandoff(child: Chat, after: HandoffAfter) {
   if (after === "keep" || (after === "archive" && child.archived_at)) return;
@@ -58,6 +58,6 @@ async function afterHandoff(child: Chat, after: HandoffAfter) {
     await alert(`子チャットが作業中なので、${after === "archive" ? "アーカイブ" : "削除"}しませんでした`, "作業が終わってから、子チャットの一覧・右クリックのメニューで片付けられます。");
     return;
   }
-  if (after === "archive") await toggleArchiveChat(child);
-  else await confirmDeleteChat(child);
+  if (after === "archive") await confirmArchiveChats(child);
+  else await confirmDeleteChats(child);
 }

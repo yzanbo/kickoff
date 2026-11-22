@@ -1,15 +1,11 @@
-import { ChevronRight, Columns2, Folder, FolderInput, PanelRight, Pencil, Pin, Rows2, Trash2 } from "lucide-react";
+import { Columns2, PanelRight, Pencil, Pin, Rows2, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { api } from "@/foundation/ui/api";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
-import { useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { GroupPickFlyout } from "@/features/groups/ui/GroupPickFlyout";
-import { askNewGroupName } from "@/features/groups/ui/groups";
-import { ProjectPickFlyout } from "@/features/projects/ui/ProjectPickFlyout";
-import { openNewProject } from "@/features/projects/ui/new/openNewProject";
+import { openNewProject } from "@/features/projects/ui";
+import { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "@/features/chatList/ui";
 import { discardDraft, moveDraftToProject, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft, type PanelDraft } from "./panelDrafts";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
@@ -44,9 +40,6 @@ export function DraftMenuItems({
   before?: ReactNode;
   after?: ReactNode;
 }) {
-  // 「グループを変更」「プロジェクトを変更」の横に開く一覧
-  const grouping = useSubmenu();
-  const moving = useSubmenu();
   const place: NewChatPlace = { projectId: draft.projectId, group: draft.group, worktree: draft.worktree };
   const close = (fn: () => void) => {
     onClose();
@@ -54,10 +47,8 @@ export function DraftMenuItems({
   };
   // 新しいグループの名前を聞いて作り、作成先をそこにする
   const createGroupAndMove = async () => {
-    const name = await askNewGroupName("作成して移す");
-    if (!name) return;
-    const group = await api.createGroup(draft.projectId, name);
-    setDraftGroup(draft, group.id, group.name);
+    const group = await askNewGroup(draft.projectId);
+    if (group) setDraftGroup(draft, group.id, group.name);
   };
   const written = draft.text.trim() !== "";
   return (
@@ -82,34 +73,18 @@ export function DraftMenuItems({
       {/* 移す組（チャットの右クリックと同じ区切り） */}
       <div className="menu-separator" role="separator" />
       {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（作成先のグループを変える。送ったらそのグループに入る） */}
-      <button {...grouping.trigger}>
-        <Folder size={14} /> グループを変更
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-      </button>
-      {grouping.anchor && (
-        <GroupPickFlyout
-          anchor={grouping.anchor}
-          projectId={draft.projectId}
-          current={draft.group ?? null}
-          onPick={(group) => close(() => setDraftGroup(draft, group?.id, group?.name))}
-          onCreate={() => close(() => void createGroupAndMove().catch(reportFailure("グループを作成できませんでした")))}
-          onBack={grouping.back}
-        />
-      )}
+      <MoveToGroupItem
+        projectId={draft.projectId}
+        current={draft.group ?? null}
+        onPick={(group) => close(() => setDraftGroup(draft, group?.id, group?.name))}
+        onCreate={() => close(() => void createGroupAndMove().catch(reportFailure("グループを作成できませんでした")))}
+      />
       {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（書きかけの文・添付・名前・固定はそのままに、移す先のプロジェクトで開き直す） */}
-      <button {...moving.trigger}>
-        <FolderInput size={14} /> プロジェクトを変更
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-      </button>
-      {moving.anchor && (
-        <ProjectPickFlyout
-          anchor={moving.anchor}
-          current={draft.projectId}
-          onPick={(project) => close(() => moveDraftToProject(draft, project.id))}
-          onCreate={(name) => close(() => openNewProject({ name, after: { kind: "moveDraft", draft: { panel: draft.panel, key: draft.key } } }))}
-          onBack={moving.back}
-        />
-      )}
+      <MoveToProjectItem
+        current={draft.projectId}
+        onPick={(project) => close(() => moveDraftToProject(draft, project.id))}
+        onCreate={(name) => close(() => openNewProject({ name, after: { kind: "moveDraft", draft: { panel: draft.panel, key: draft.key } } }))}
+      />
       <div className="menu-separator" role="separator" />
       {/* 送る前のものは記録に残らないので、アーカイブはなく削除だけ（書きかけの文は消える） */}
       <MenuItem danger title={written ? "書きかけの文も消えます" : undefined} onSelect={() => discardDraft(draft)}>

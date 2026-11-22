@@ -1,6 +1,8 @@
 // chatList の画面の口（ほかの機能から読むもの）
 import { storage } from "./storage";
 
+export { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "./menu/MoveItems";
+
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatListSettings = {
   projectCompact: storage.settings.projectCompact,

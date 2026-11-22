@@ -12,7 +12,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ChatStateMark } from "@/features/chat/ui";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { summaryState } from "@/features/chat/ui/state/chatState";
-import { confirmArchiveChats, confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
+import { confirmArchiveChats, confirmDeleteChats } from "@/features/chat/ui/chatActions";
 import { ModelName } from "@/features/ai/ui/options/ModelName";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/ui/parts/OpenPlaceControls";
 import { useChildChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
@@ -143,7 +143,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
             title="一覧に戻す"
             className="subagent-row-action"
             type="button"
-            onClick={(e) => (e.stopPropagation(), void toggleArchiveChat(c))}
+            onClick={(e) => (e.stopPropagation(), void confirmArchiveChats(c))}
           />
         ) : (
           state !== "running" && (
@@ -153,7 +153,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
               title="アーカイブ"
               className="subagent-row-action"
               type="button"
-              onClick={(e) => (e.stopPropagation(), void toggleArchiveChat(c))}
+              onClick={(e) => (e.stopPropagation(), void confirmArchiveChats(c))}
             />
           )
         )}
@@ -164,7 +164,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
             title="削除（会話の記録も消えます）"
             className="subagent-row-action"
             type="button"
-            onClick={(e) => (e.stopPropagation(), void confirmDeleteChat(c))}
+            onClick={(e) => (e.stopPropagation(), void confirmDeleteChats(c))}
           />
         )}
       </div>

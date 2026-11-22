@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { toggleArchiveChat } from "@/features/chat/ui/chatActions";
+import { confirmArchiveChats } from "@/features/chat/ui/chatActions";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { useChatDropTarget } from "@/features/groups/ui/groups";
 import { useFold } from "@/foundation/ui/hooks/useFold";
@@ -14,23 +14,23 @@ import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
 import { ChatRowList } from "./ChatRowList";
 
 /**
- * ドラッグで落としたチャットをアーカイブする（確かめてから。toggleArchiveChat）。groupId を渡すと、そのグループへも移す
+ * ドラッグで落としたチャットをアーカイブする（確かめてから。confirmArchiveChats）。groupId を渡すと、そのグループへも移す
  * （グループの中の「アーカイブ済み」へ、ほかのグループのチャットを落としたとき。null = グループから外す / undefined = 変えない）。
  * もうアーカイブ済みなら、移すだけ
  */
 async function archiveDroppedChat(chat: Chat, groupId?: number | null) {
   try {
-    if (!chat.archived_at && !(await toggleArchiveChat(chat))) return;
+    if (!chat.archived_at && !(await confirmArchiveChats(chat))) return;
     if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
   } catch (e) {
     reportFailure("アーカイブできませんでした")(e);
   }
 }
 
-/** ドラッグで落としたアーカイブ済みのチャットを戻す（確かめてから。toggleArchiveChat）。groupId を渡すと、そのグループへも移す */
+/** ドラッグで落としたアーカイブ済みのチャットを戻す（確かめてから。confirmArchiveChats）。groupId を渡すと、そのグループへも移す */
 export async function restoreDroppedChat(chat: Chat, groupId?: number | null) {
   try {
-    if (!chat.archived_at || !(await toggleArchiveChat(chat))) return;
+    if (!chat.archived_at || !(await confirmArchiveChats(chat))) return;
     if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
   } catch (e) {
     reportFailure("アーカイブから戻せませんでした")(e);
