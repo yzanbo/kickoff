@@ -1,8 +1,7 @@
 import { Check } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
-import type { Project } from "@shared/projects/types";
+import { PROVIDERS } from "@shared/ai/providers";
 import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
-import type { AppSettings } from "@shared/foundation/contract/settings";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";
@@ -10,14 +9,15 @@ import { useProviders } from "@/features/ai/ui/stores/providers";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, type StatusTone } from "@/foundation/ui/kit/StatusDot";
-import { AiDefaults } from "./AiDefaults";
-import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/settings/plannedProviders";
+import { useEditedProject } from "@/features/projects/ui";
+import { useAppSettings } from "@/features/settings/ui";
+import { ProjectAiDefaults } from "./ProjectAiDefaults";
+import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/plannedProviders";
 
-/** ログインに使う CLI（カードの未ログインの案内） */
-const PROVIDER_CLI: Record<ProviderId, string> = { claude: "claude", codex: "codex", copilot: "copilot", cursor: "agent", gemini: "agy" };
-
-/** AI: どの AI を使うか（カード）と、その AI の既定 */
-export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
+/** プロジェクトの設定の「AI」: どの AI を使うか（カード）と、その AI の既定 */
+export function ProjectAiSection() {
+  const project = useEditedProject();
+  const app = useAppSettings().data;
   const providers = useProviders();
   const planned = usePlannedProviders();
   const { error, guard } = useAction();
@@ -41,7 +41,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
       {planned.note && <p className="muted small">{planned.note}対応するまでは選べません。</p>}
       <ErrorText message={error} />
       {providers.data?.find((p) => p.id === project.provider)?.implemented !== false ? (
-        <AiDefaults project={project} provider={project.provider} app={app} />
+        <ProjectAiDefaults projectId={project.id} provider={project.provider} app={app} />
       ) : (
         <p className="muted small">この AI の既定の設定は、対応したときにここで選べるようになります。</p>
       )}
@@ -69,7 +69,7 @@ function ProviderCard({
         ? { tone: "ng", text: "CLI が見つかりません" }
         : status.logged_in
           ? { tone: "ok", text: "ログイン済み" }
-          : { tone: "ng", text: `未ログイン（${PROVIDER_CLI[id]} でログイン）` };
+          : { tone: "ng", text: `未ログイン（${PROVIDERS[id].cli} でログイン）` };
   return (
     <button
       type="button"

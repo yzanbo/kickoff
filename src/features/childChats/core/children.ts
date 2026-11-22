@@ -60,7 +60,7 @@ function titleSourceOf(text: string): string {
  * ときは、選んだ文と質問だけで始め、そのことをお知らせに残す
  */
 export async function startChildChat(
-  deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">; runner: ChatRunPort; providers: Record<ProviderId, AgentProvider> },
+  deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups" | "aiDefaults">; runner: ChatRunPort; providers: Record<ProviderId, AgentProvider> },
   parent: Chat,
   input: ChildChatInput,
 ): Promise<Chat> {
@@ -125,7 +125,7 @@ export async function startChildChat(
 }
 
 /** 聞かずに開く子チャット: 親の会話を写したセッションを持たせて作り、引き継いだお知らせだけを残す（作業は動かさない。名前は空 = 最初に送った文から付ける） */
-function openChildChat(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">, parent: Chat, init: { sessionId: string; notice: string; eventId: number | null; options?: ChatOptionsPatch }): Chat {
+function openChildChat(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups" | "aiDefaults">, parent: Chat, init: { sessionId: string; notice: string; eventId: number | null; options?: ChatOptionsPatch }): Chat {
   const project = store.projects.get(parent.project_id)!;
   const created = store.chats.create({
     project_id: parent.project_id,
@@ -133,7 +133,7 @@ function openChildChat(store: Pick<ChatStoreDeps, "chats" | "events" | "settings
     provider: parent.provider,
     title: "",
     status: "completed",
-    ...resolveChatOptions(store.settings.get(), parent.provider, project, init.options),
+    ...resolveChatOptions(store.settings.get(), parent.provider, store.aiDefaults.of(project.id), init.options),
     group_id: null,
     worktree_path: parent.worktree_path,
     parent_chat_id: parent.id,

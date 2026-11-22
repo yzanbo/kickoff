@@ -1,12 +1,13 @@
-import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
+import { useEditedProject } from "./editedProject";
 
-export function DeleteProject({ project }: { project: Project }) {
+export function DeleteProject() {
+  const project = useEditedProject();
   const { error, guard } = useAction();
   const remove = async () => {
     const ok = await confirm({

@@ -180,6 +180,10 @@
     "device": "full"
   },
   {
+    "route": "GET /api/projects/:id/ai-defaults",
+    "device": "none"
+  },
+  {
     "route": "GET /api/projects/:id/chats",
     "device": "full"
   },
@@ -978,6 +982,10 @@
   {
     "route": "PUT /api/devices/self/push",
     "device": "read"
+  },
+  {
+    "route": "PUT /api/projects/:id/ai-defaults",
+    "device": "none"
   },
   {
     "route": "PUT /api/projects/:id/chats/order",

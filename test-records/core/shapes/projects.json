@@ -19,7 +19,6 @@
     "pre_compact_enabled": "boolean",
     "pre_compact_prompt": "null",
     "provider": "string",
-    "provider_chat_defaults": {},
     "reference_paths": [],
     "repo_path": "string",
     "tags": []

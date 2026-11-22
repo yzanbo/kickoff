@@ -1,10 +1,10 @@
 import type { ProjectPatch } from "@shared/foundation/apiTypes";
-import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { useEditedProject } from "@/features/projects/ui";
 
 /** 「自動」「gh で有効なもの」を表す select の値 */
 const AUTO = "";
@@ -14,7 +14,8 @@ const AUTO = "";
  * アカウントは gh に入っているもの（gh の有効なアカウントは切り替えず、このプロジェクトの操作の間だけ使う）、連携先は GitHub の remote から選ぶ
  * （自動 = gh repo set-default → upstream → origin。remote が 1 つなら選ぶものはないので見せるだけ）
  */
-export function GitHubSection({ project }: { project: Project }) {
+export function GitHubSection() {
+  const project = useEditedProject();
   // 保存したら、自動の連携先を見せ直すため取り直す
   const github = useQuery(["GitHubSection.github", project.id, project.github_remote, project.github_account], () => api.projectGitHub(project.id), { keepPrevious: true });
   const { error, guard } = useAction();

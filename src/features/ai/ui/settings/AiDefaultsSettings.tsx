@@ -1,11 +1,10 @@
-import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
-import { useModels, useProviders } from "@/features/ai/ui/stores/providers";
+import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type ChatOptions, type ProviderId } from "@shared/settings/types";
+import { useProviders } from "@/features/ai/ui/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
-import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "@/features/ai/ui/options/AiOptions";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { SaveActions } from "@/foundation/ui/kit/SaveActions";
-import { ProviderDefaultsFields } from "./ProviderDefaultsFields";
+import { ChatDefaultsFields } from "./ChatDefaultsFields";
 import { useSettingsDraft } from "@/features/settings/ui/useSettingsDraft";
 
 /**
@@ -14,16 +13,11 @@ import { useSettingsDraft } from "@/features/settings/ui/useSettingsDraft";
  */
 export function AiDefaultsSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
-  const models = useModels("claude");
   const statuses = useProviders().data;
   if (!draft) return null;
   const others = OTHER_PROVIDER_IDS.filter((id) => statusOf(statuses, id)?.implemented);
-  const defaults = draft.provider_chat_defaults.claude;
   /** AI の既定を変える（保存するまでは下書き） */
-  const setDefaults = (provider: ProviderId, next: typeof defaults) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [provider]: next } });
-  /** Claude Code の既定の選択の 1 項目を変える */
-  const setDefault = (patch: Partial<typeof defaults>) => setDefaults("claude", { ...defaults, ...patch });
-  const currentModel = models.find((m) => m.value === defaults.model);
+  const setDefaults = (provider: ProviderId, next: ChatOptions) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [provider]: next } });
   return (
     <section className="section ai-defaults-settings">
       <div className="ai-defaults-intro">
@@ -60,57 +54,17 @@ export function AiDefaultsSettings() {
         <p>AI ごとに、チャットを始めるときの設定を決めます。</p>
       </div>
       <div className="ai-defaults-cards">
-      <section className="ai-defaults-card card" aria-labelledby="ai-defaults-claude-title">
-        <div className="ai-defaults-card-head">
-          <span className="ai-defaults-card-icon"><ProviderIcon provider="claude" size={18} /></span>
-          <div><h3 id="ai-defaults-claude-title">{PROVIDER_LABELS.claude}</h3><p>Claude Code のチャットに適用</p></div>
-        </div>
-      <div className="form ai-defaults-card-form">
-        <div className="ai-defaults-grid">
-        <Field label="モデル">
-          <select value={defaults.model ?? ""} onChange={(e) => setDefault({ model: e.target.value })}>
-            <ModelOptions models={models} value={defaults.model} />
-          </select>
-        </Field>
-        <Field label="推論の深さ（effort）">
-          <select
-            value={defaults.effort ?? ""}
-            onChange={(e) => setDefault({ effort: (e.target.value || null) as EffortLevel | null })}
-          >
-            <option value="">{EFFORT_UNSET_LABEL}</option>
-            <EffortOptions model={currentModel} />
-          </select>
-        </Field>
-        <Field label="権限モード" help="参照資料へのファイル編集ツールによる書き込みは、どのモードでも断ります。">
-          <select value={defaults.permission_mode} onChange={(e) => setDefault({ permission_mode: e.target.value as PermissionMode })}>
-            <PermissionOptions model={currentModel} />
-          </select>
-        </Field>
-        </div>
-        <CheckField
-          className="ai-defaults-fast"
-          label="ファストモードを使う"
-          help={
-            <>
-              応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
-              {currentModel?.supports_fast_mode === false && "（このモデルは対応していません）"}
-              {currentModel?.supports_fast_mode === null && "（このモデルの対応状況を確認できません）"}
-            </>
-          }
-          checked={defaults.fast_mode}
-          disabled={currentModel ? !currentModel.supports_fast_mode : false}
-          onChange={(on) => setDefault({ fast_mode: on })}
-        />
-      </div>
-      </section>
-      {others.map((id) => (
-        <ProviderDefaultsFields
-          key={id}
-          provider={id}
-          value={draft.provider_chat_defaults[id]}
-          onChange={(next) => setDefaults(id, next)}
-        />
-      ))}
+        {[...(["claude"] as const), ...others].map((id) => (
+          <section key={id} className="ai-defaults-card card" aria-labelledby={`ai-defaults-${id}-title`}>
+            <div className="ai-defaults-card-head">
+              <span className="ai-defaults-card-icon"><ProviderIcon provider={id} size={18} /></span>
+              <div><h3 id={`ai-defaults-${id}-title`}>{PROVIDER_LABELS[id]}</h3><p>{PROVIDER_LABELS[id]} のチャットに適用</p></div>
+            </div>
+            <div className="form ai-defaults-card-form">
+              <ChatDefaultsFields provider={id} value={draft.provider_chat_defaults[id]} onChange={(next) => setDefaults(id, next)} />
+            </div>
+          </section>
+        ))}
       </div>
       <div className="ai-defaults-heading">
         <h3>新しいチャットの制限</h3>

@@ -9,7 +9,7 @@ import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/set
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { PAY_PER_USE_LABEL } from "@/features/ai/ui/provider/providerChoice";
-import { PLANNED_BADGE } from "./plannedProviders";
+import { PLANNED_BADGE } from "@/features/ai/ui/provider/plannedProviders";
 
 /**
  * 設定の「接続」の AI ごとのログインの仕方: サブスク（各 CLI のログイン・定額のプラン）か API キー（使った分の支払い）か。

@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { TRASH_KEEP_MS } from "@shared/trash/types";
+import type { BusEvent } from "@shared/foundation/contract";
 import { setup, until } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
@@ -253,7 +254,9 @@ test("プロジェクトを削除するとゴミ箱に入り、3 日たって本
 });
 
 test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と、AI ごとの既定（設定・プロジェクト）を保存し、新しいチャットに当てる（メモの仕様書「0028」の 9 節）。プロジェクトの説明の空は null", async () => {
-  const { call, project, runner, store } = setup();
+  const { call, project, runner, bus } = setup();
+  const events: BusEvent[] = [];
+  bus.subscribe((e) => events.push(e));
   const codex = { model: null, effort: "low", permission_mode: "auto", fast_mode: false };
   const saved = await call("PUT", "/api/settings", { default_provider: "codex", provider_chat_defaults: { codex } });
   assert.equal(saved.status, 200);
@@ -263,20 +266,25 @@ test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と�
   assert.deepEqual(saved.body.provider_chat_defaults.claude, { model: "opus", effort: null, permission_mode: "default", fast_mode: false });
   // Claude Code は既定のモデルを null（その AI の既定）にできない（アプリ・プロジェクトとも）
   assert.equal((await call("PUT", "/api/settings", { provider_chat_defaults: { claude: codex } })).status, 400);
-  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { provider_chat_defaults: { claude: { model: null } } })).status, 400);
+  assert.equal((await call("PUT", `/api/projects/${project.id}/ai-defaults`, { provider: "claude", options: { model: null } })).status, 400);
+  // 知らない項目・ないプロジェクトは断る
+  assert.equal((await call("PUT", `/api/projects/${project.id}/ai-defaults`, { provider: "codex", options: { color: "red" } })).status, 400);
+  assert.equal((await call("PUT", "/api/projects/999/ai-defaults", { provider: "codex", options: {} })).status, 404);
   // 新しいプロジェクトは、設定の AI で作る
   const created = await call("POST", "/api/projects", { name: "新しい", description: "", parent_dir: tempDir(), folder_name: "new-p" });
   assert.equal(created.body.provider, "codex");
-  assert.deepEqual(created.body.provider_chat_defaults, {});
+  assert.deepEqual((await call("GET", `/api/projects/${created.body.id}/ai-defaults`)).body, {});
   assert.equal(created.body.description, null);
   assert.equal((await call("PATCH", `/api/projects/${created.body.id}`, { description: "概要" })).body.description, "概要");
   assert.equal((await call("PATCH", `/api/projects/${created.body.id}`, { description: "" })).body.description, null);
 
   // プロジェクトの既定は書いた項目だけ重ねる
-  const patched = await call("PATCH", `/api/projects/${project.id}`, { provider_chat_defaults: { codex: { effort: "high" } } });
-  assert.deepEqual(patched.body.provider_chat_defaults, { codex: { effort: "high" } });
+  const put = await call("PUT", `/api/projects/${project.id}/ai-defaults`, { provider: "codex", options: { effort: "high" } });
+  assert.deepEqual(put.body, { codex: { effort: "high" } });
+  // 変えたら知らせる（ほかの窓のプロジェクトの設定・新しいチャットの選択が読み直す）
+  assert.ok(events.some((e) => e.type === "project_ai_defaults" && e.project_id === project.id && e.defaults.codex?.effort === "high"));
   const chat = await call("POST", `/api/projects/${project.id}/chats`, { text: "1", provider: "codex" });
   assert.deepEqual([chat.body.model, chat.body.effort, chat.body.permission_mode], [null, "high", "auto"]);
   await until(() => !runner.isBusy(chat.body.id));
-  assert.deepEqual(store.projects.get(project.id)?.provider_chat_defaults, { codex: { effort: "high" } });
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/ai-defaults`)).body, { codex: { effort: "high" } });
 });

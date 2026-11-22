@@ -32,7 +32,7 @@ import { compactPromptFor } from "@shared/chat/prompts";
 export interface RunnerDeps {
   /** 時計（省けば本物。作業を始めた時刻・書き直しの持ち時間・行の時刻） */
   clock?: Clock;
-  store: Pick<ChatStoreDeps, "chats" | "events" | "outbox" | "settings" | "projects" | "groups">;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "outbox" | "settings" | "projects" | "groups" | "aiDefaults">;
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
   /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */

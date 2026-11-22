@@ -8,6 +8,20 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+import { useEditedProject } from "./editedProject";
+
+/** プロジェクトの設定の「参照資料」の節 */
+export function ReferencesSection() {
+  return (
+    <section className="section">
+      <h2>参照資料</h2>
+      <p className="muted small">
+        このプロジェクトのチャットで AI がいつでも読めるフォルダ・ファイルです。AI には一覧が伝わり、必要に応じて中身を読みます（書き込みはできません）。
+      </p>
+      <ReferenceEditor project={useEditedProject()} />
+    </section>
+  );
+}
 
 /**
  * 参照資料の一覧と追加・削除（AI がいつでも読めるフォルダ・ファイル）。

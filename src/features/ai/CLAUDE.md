@@ -1,12 +1,12 @@
 # AI のつなぎ込み（`src/features/ai`）
 
-プロバイダー・ログイン・モデルと選択・使用状況。チャットの実行はプロバイダーの口だけを使い、各 AI の SDK・CLI を直接呼ばない。実装ごとの決まりは `core/providers/{claude,codex,copilot,acp}/CLAUDE.md`。
+プロバイダー・ログイン・モデルと選択・使用状況。チャットの実行はプロバイダーの口だけを使い、SDK・CLI を直に呼ばない。実装ごとの決まりは `core/providers/{claude,codex,copilot,acp}/CLAUDE.md`。
 
 ## 地図と境界
 
-- 口は `core/providers/types.ts`（`AgentProvider`・`ProviderTurnParams`・`ProviderCallbacks`）。ほかの機能は `core/index.ts` からだけ読む（名前・要約の `askTitle`・`askSummary`、`UsageMonitor`）。
-- 実装どうしは読まない（Cursor・Gemini は `acp/` の上に作る）。共有の小物は `core/providers/shared/`（止める・失敗の印・名乗り・環境変数・HTTP）。
-- 外の SDK を読むのは 1 ファイルだけ（Claude は `claude/wire.ts`、Copilot は `copilot/sdk.ts`）。構造の検査（`ai-*` の決まり）が見る。
+- 口は `core/providers/types.ts`（`AgentProvider`・`ProviderTurnParams`・`ProviderCallbacks`）。ほかの機能は `core/index.ts` からだけ読む。
+- 実装どうしは読まない（Cursor・Gemini は `acp/` の上に作る）。共有の小物は `core/providers/shared/`。
+- 外の SDK を読むのは 1 ファイルだけ（Claude は `claude/wire.ts`、Copilot は `copilot/sdk.ts`）。構造の検査（`ai-*`）が見る。
 
 ## 口の決まり
 
@@ -24,10 +24,11 @@
 - その AI にない機能は、`ChatProviderContext` の中の部品が `useFeatureBlock(機能)` で理由を読んで止める（文はコアと同じ `providerFeatureMissing`）。
 - AI の状態は `useProviderStatus` の `load` だけが読み込む。モデルの一覧は `modelCatalog.ts`（一覧にないモデルを外す `knownModel`）。
 - 前に出しているチャットの AI（`noteForegroundProvider`）は裏のタブで上書きしない。AI を替えたら、チャット欄の選択はコアが当て直した値に合わせる（`useChatOptions`）。
-- 選択の決まり（`initialChatOptions`・`fitChatOptions`）は `ui/options/chatOptionsRules.ts`。AI の違いは表から。
+- 選択の決まり（`initialChatOptions`・`fitChatOptions`）は `ui/options/chatOptionsRules.ts`。既定の欄は `ChatDefaultsFields`（アプリ・プロジェクト共通）。
+- プロジェクトの既定は表 `project_ai_defaults`（コア `api.defaults`・画面 `ui/stores/projectAiDefaults.ts`）。
 
 ## 使用状況（`core/usage/`・`ui/usage/`）
 
 - 形は `@shared/ai/usage` の `ProviderUsage`、見張りは `monitor.ts` の `UsageMonitor` 1 つ（支払いは `spending.ts`）。前の形の API・SSE は `usageCompat.ts`。
-- 取り方は各 AI のフォルダの `usage.ts`。1 つが失敗・遅れても、ほかは出す。ログイン情報は読むだけで更新しない（更新するとその CLI のログインが切れる）。名乗りは `USER_AGENT`。
-- 画面の使用枠の店は App が 1 つ持つ。残り時間を進める時計は `UsageMeter` に置く（App に置くと全体が描き直る）。超過分・クレジットの言葉は `@shared/ai/overage`。
+- 取り方は各 AI のフォルダの `usage.ts`。1 つが失敗・遅れても、ほかは出す。ログイン情報は読むだけ（更新すると CLI のログインが切れる）。名乗りは `USER_AGENT`。
+- 画面の使用枠の店は App が 1 つ持つ。残り時間の時計は `UsageMeter` に置く（App だと全体が描き直る）。超過分・クレジットの言葉は `@shared/ai/overage`。

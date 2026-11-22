@@ -57,7 +57,7 @@ export async function prepareAndCommitProviderSwitch(
       chatId: chat.id,
       expectedProvider: chat.provider,
       target: input.target,
-      options: resolveChatOptions(store.settings.get(), input.target, project),
+      options: resolveChatOptions(store.settings.get(), input.target, store.aiDefaults.of(project.id)),
       context,
       state: preparationError ? "blocked" : "ready",
       error: preparationError,

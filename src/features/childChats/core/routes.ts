@@ -23,7 +23,7 @@ const chatDetachSchema = z.object({
 }) satisfies z.ZodType<ChatDetachBody>;
 
 export interface ChildChatRouteDeps {
-  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups" | "aiDefaults">;
   runner: ChatRunPort;
   providers: Record<ProviderId, AgentProvider>;
   uploads: UploadStore;

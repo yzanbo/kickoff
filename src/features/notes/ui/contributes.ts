@@ -10,6 +10,8 @@ import { noteSurface } from "./noteSurface";
 import { projectViews } from "@/features/projects/ui";
 import { chatSideAdds } from "@/features/chatPanel/ui";
 import { notesChatSideAdd, notesView } from "./projectViews";
+import { settingsItems } from "@/features/settings/ui";
+import { noteDirItem } from "./settings/settingsItems";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -21,6 +23,8 @@ export const contributes = [
   // 発言の右クリックの「ノート」の項目と、会話の文を選んだときの「ノート ▾」
   messageActions.item({ kind: "menu", id: "notes.menu", order: 10, Items: lazyPart<MessageMenuContext>(() => import("./NoteMenuItems").then((m) => ({ default: m.NoteMenuItems }))) }),
   messageActions.item({ kind: "selection", id: "notes.selection", order: 10, Button: lazyPart<SelectionContext>(() => import("./SelectionNoteButton").then((m) => ({ default: m.SelectionNoteButton }))) }),
+  // プロジェクトの設定の基本情報の「ノートフォルダ」
+  settingsItems.item(noteDirItem),
   // 入力欄の上のノートのピル
   composerSlots.item({ kind: "pill", id: "notes", order: 10, load: () => import("./NoteChip").then((m) => m.ComposerNotePill) }),
 ];

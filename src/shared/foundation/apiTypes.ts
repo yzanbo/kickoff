@@ -38,10 +38,10 @@ export type ImportProjectBody = {
 } & NewProjectNoteDir;
 
 /**
- * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・provider_chat_defaults・reference_paths は送った内容で置き換える。
+ * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "provider_chat_defaults" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "note_dir" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };

@@ -7,7 +7,7 @@ import { PROJECT_HUES } from "@shared/projects/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { idsBody } from "@/foundation/core/http/zodParts";
-import { ABSOLUTE_FOLDER, isAbsoluteFolder, compactPrompt, projectDescription, projectName, projectProviderDefaultsSchema } from "@/foundation/core/http/schemas";
+import { ABSOLUTE_FOLDER, isAbsoluteFolder, compactPrompt, projectDescription, projectName } from "@/foundation/core/http/schemas";
 import { changeProjectFolder, createProject, importProject, inspectFolder, startProjectGit, trashProjectById, updateProject, type ProjectsCtx } from "./service";
 
 // 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）
@@ -61,8 +61,6 @@ const projectPatchSchema = z
     archived: z.boolean(),
     // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
     reference_paths: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
-    // AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
-    provider_chat_defaults: projectProviderDefaultsSchema,
     // ノートのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
     note_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）

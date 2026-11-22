@@ -140,11 +140,13 @@ test("グループ: 作成順に並び、作る・名前を変える・並べ替
   assert.deepEqual(events.map((e) => e.type), ["chat", "group_deleted"]);
 });
 
-test("プロジェクトの既定は AI ごとに JSON で保存され、壊れていなければそのまま読める。説明のないは null", () => {
+test("プロジェクトの既定は AI ごとの行に JSON で保存され、空にするとその AI の行を消す。説明のないは null", () => {
   const { store, project } = setup();
-  assert.deepEqual([project.provider_chat_defaults, project.description], [{}, null]);
-  const updated = store.projects.update(project.id, { provider_chat_defaults: { claude: { model: "haiku", effort: null }, codex: { model: null } } });
-  assert.deepEqual(updated.provider_chat_defaults, { claude: { model: "haiku", effort: null }, codex: { model: null } });
+  assert.deepEqual([store.aiDefaults.of(project.id), project.description], [{}, null]);
+  store.aiDefaults.set(project.id, "claude", { model: "haiku", effort: null });
+  assert.deepEqual(store.aiDefaults.set(project.id, "codex", { model: null }), { claude: { model: "haiku", effort: null }, codex: { model: null } });
+  assert.deepEqual(store.aiDefaults.set(project.id, "codex", {}), { claude: { model: "haiku", effort: null } });
+  assert.throws(() => store.db.exec(`UPDATE project_ai_defaults SET options = '[]' WHERE project_id = ${project.id}`), /CHECK constraint failed/);
   assert.throws(() => store.db.exec(`UPDATE projects SET description = '' WHERE id = ${project.id}`), /CHECK constraint failed/);
 });
 
@@ -215,7 +217,7 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
   assert.deepEqual(events, []);
 });
 
-test("プロジェクトの既定・参照資料は JSON で保存され、そのまま読み戻せる", () => {
+test("プロジェクトの参照資料は JSON で保存され、そのまま読み戻せる", () => {
   const { store, project } = setup();
   assert.deepEqual(project.reference_paths, []);
   const references = [
@@ -223,12 +225,10 @@ test("プロジェクトの既定・参照資料は JSON で保存され、そ�
     { path: "/tmp/notes.md", kind: "file" as const },
   ];
   const updated = store.projects.update(project.id, {
-    provider_chat_defaults: { claude: { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true } },
     reference_paths: references,
     pinned: true,
     hue: 222,
   });
-  assert.deepEqual(updated.provider_chat_defaults, { claude: { model: "haiku", effort: "high", permission_mode: "auto", fast_mode: true } });
   assert.deepEqual(updated.reference_paths, references);
   assert.equal(updated.pinned, true);
   assert.equal(updated.hue, 222);
@@ -274,7 +274,6 @@ test("スキーマの守り: 同じフォルダの重複登録・ほかのプロ
   // プロジェクトを移すときはグループも外すので通る
   assert.equal(store.chats.move(chat.id, other.id).project_id, other.id);
   assert.throws(() => store.db.exec(`UPDATE projects SET tags = '{}' WHERE id = ${project.id}`), /CHECK constraint failed/);
-  assert.throws(() => store.db.exec(`UPDATE projects SET provider_chat_defaults = '[]' WHERE id = ${project.id}`), /CHECK constraint failed/);
   assert.throws(() => store.db.exec(`UPDATE chats SET worktree_path = '' WHERE id = ${chat.id}`), /CHECK constraint failed/);
 });
 

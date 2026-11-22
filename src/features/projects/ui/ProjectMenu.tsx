@@ -25,7 +25,6 @@ import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { ACTIVE_CHATS_LABEL } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
 import { openActiveChats } from "@/features/chatList/ui/activeChats/openActiveChats";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
-import type { ProjectSettingsSection } from "@/features/projects/ui/settings/ProjectSettings";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
@@ -48,7 +47,7 @@ export interface ProjectMenuExtras {
  */
 export function useProjectMenu(projects: Project[]) {
   const menu = useContextMenu<{ id: number; extras?: ProjectMenuExtras }>();
-  const [editing, setEditing] = useState<{ id: number; section?: ProjectSettingsSection } | null>(null);
+  const [editing, setEditing] = useState<{ id: number; section?: string } | null>(null);
   // 編集中に保存した内容も出るよう、いまのプロジェクトを引き直す
   const find = (id: number) => projects.find((p) => p.id === id);
   const shown = menu.menu;
@@ -98,7 +97,7 @@ function ProjectMenu({
   at: Placement;
   project: Project;
   extras?: ProjectMenuExtras;
-  onEdit: (section?: ProjectSettingsSection) => void;
+  onEdit: (section?: string) => void;
   onClose: () => void;
 }) {
   // 使っているタグ（ほかのプロジェクトの分も。サイドバーのタグの行で並べた順。押すたびに付け外す）

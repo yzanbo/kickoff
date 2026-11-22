@@ -44,6 +44,7 @@ const SSE_TYPES = {
   devices: true,
   trash: true,
   provider_login: true,
+  project_ai_defaults: true,
 } satisfies Record<BusEvent["type"], true>;
 
 /** まだコアのテストに名前が出ない種類（減らすだけ。テストを足したら消す） */

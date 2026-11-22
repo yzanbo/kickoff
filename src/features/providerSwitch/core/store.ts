@@ -147,4 +147,4 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
 export type ProviderSwitchStore = ReturnType<typeof createProviderSwitchStore>;
 
 /** 切り替えの手順が読み書きする店（chat の店の束・引き継ぎの店・切り替えのトランザクション） */
-export type SwitchStore = Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects"> & ProviderHandoffStores & { providerSwitch: ProviderSwitchStore };
+export type SwitchStore = Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "aiDefaults"> & ProviderHandoffStores & { providerSwitch: ProviderSwitchStore };

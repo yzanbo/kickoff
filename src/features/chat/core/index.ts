@@ -121,7 +121,7 @@ export interface ChatApi {
 /** チャットの実行（殻 ChatRunner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
 export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
   const { bus } = k;
-  const store: ChatStoreDeps = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings, deps.providerHandoff.rememberedSessions), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
+  const store: ChatStoreDeps = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings, deps.providerHandoff.rememberedSessions), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets, aiDefaults: deps.ai.defaults };
   // グループを消したら、中のチャットをグループなしに戻して知らせる
   deps.groups.useMembers({
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),

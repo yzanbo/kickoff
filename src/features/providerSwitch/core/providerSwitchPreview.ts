@@ -24,7 +24,7 @@ export function providerSwitchPreview(store: SwitchStore, runner: ChatRunPort, c
   const busyChildren = store.chats.list({ projectId: chat.project_id }).filter((child) => child.parent_chat_id === chatId && path.resolve(workdirOf(child, project)) === cwd && runner.isBusy(child.id)).map((child) => child.id).sort((a, b) => a - b);
   const data = {
     chat_id: chatId, from: chat.provider, to: target,
-    options: resolveChatOptions(store.settings.get(), target, project),
+    options: resolveChatOptions(store.settings.get(), target, store.aiDefaults.of(project.id)),
     queued_ids: queue.messages.map((message) => message.id), paused: queue.paused, stops: queue.stops,
     busy_child_ids: busyChildren, last_event_id: store.events.recent(chatId, 1)[0]?.id ?? null, workdir: cwd,
     sandbox_enabled: chat.sandbox_enabled, edit_scope_enabled: chat.edit_scope_enabled,

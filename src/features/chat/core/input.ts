@@ -61,7 +61,7 @@ export async function createChat(deps: RunnerDeps, input: StartChatInput, create
 
   // チャット欄で指定がなければ、その AI のプロジェクトの既定 → アプリ全体の設定の順に使う。
   // その AI のモデルの一覧にない名前は外す（その AI の既定で動かす）
-  const resolved = resolveChatOptions(store.settings.get(), providerId, project, input.options);
+  const resolved = resolveChatOptions(store.settings.get(), providerId, store.aiDefaults.of(project.id), input.options);
   const options = { ...resolved, model: await knownModel(providerId, providers[providerId], resolved.model) };
   const titleText = input.titleText ?? input.prompt;
   const made = store.chats.create({

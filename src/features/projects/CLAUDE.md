@@ -1,6 +1,6 @@
 # プロジェクト（`src/features/projects`）
 
-プロジェクトの印・色・タグ・並び・メニュー、プロジェクトの画面（`ui/page/`）、編集のダイアログ（`ui/settings/`）、新しいプロジェクト（`ui/new/`）、右サイドバー（`ui/rightSidebar/`）。サイドバーの見出しは `src/features/sidebar/CLAUDE.md`、ボードは `src/features/board/CLAUDE.md`。
+プロジェクトの印・色・タグ・並び・メニュー、プロジェクトの画面（`ui/page/`）、編集のダイアログ（`ui/settings/`。節は settings の `settingsSections`）、新しいプロジェクト（`ui/new/`）、右サイドバー（`ui/rightSidebar/`）。サイドバーの見出しは `src/features/sidebar/CLAUDE.md`、ボードは `src/features/board/CLAUDE.md`。
 
 ## 決まり
 

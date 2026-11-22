@@ -68,8 +68,10 @@ const CLAUDE_MODEL = "Claude Code の既定のモデルを選んでください"
 
 /** AI ごとのチャットの既定（AI の ID → 選択）。アプリの設定は AI ごとに項目をすべて送る */
 export const providerDefaultsSchema = z.partialRecord(z.enum(PROVIDER_IDS), chatOptionsDefaults).refine(claudeModelChosen, CLAUDE_MODEL);
-/** プロジェクトの AI ごとのチャットの既定（書いた項目だけ。書いていない項目はアプリのその AI の既定に従う） */
-export const projectProviderDefaultsSchema = z.partialRecord(z.enum(PROVIDER_IDS), chatOptionsDefaults.partial().strict()).refine(claudeModelChosen, CLAUDE_MODEL);
+/** プロジェクトのその AI のチャットの既定（書いた項目だけ。書いていない項目はアプリのその AI の既定に従う） */
+export const projectAiDefaultsSchema = z
+  .object({ provider: z.enum(PROVIDER_IDS), options: chatOptionsDefaults.partial().strict() })
+  .refine((body) => claudeModelChosen({ [body.provider]: body.options }), CLAUDE_MODEL);
 
 /** ノートのフォルダからの相対パス（外・隠しファイルは指せない） */
 export const notePathSchema = z

@@ -9,6 +9,7 @@ import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
 import { NO_MODELS, useModelsState } from "@/features/ai/ui/stores/providers";
+import { useProjectAiDefaults } from "@/features/ai/ui/stores/projectAiDefaults";
 import { useAppSettings } from "@/features/settings/ui";
 import { fitChatOptions, initialChatOptions, type DefaultedFor } from "./chatOptionsRules";
 import { fastSupportOf } from "./models";
@@ -59,6 +60,8 @@ export function useChatOptions({ initial, projectId, worktree, provider: provide
   const settings = useAppSettings().data;
   const { projectsById, loaded: projectsLoaded } = useProjects();
   const project = projectId === undefined ? undefined : projectsById.get(projectId);
+  // プロジェクトの AI ごとの既定（新しいチャットだけが読む。既存のチャットはチャットの選択から始める）
+  const { data: projectDefaults, loaded: projectDefaultsLoaded } = useProjectAiDefaults(initial ? undefined : projectId);
   const provider: ProviderId = providerArg ?? project?.provider ?? "claude";
   // モデルの一覧（AI ごとにアプリ全体で 1 回だけ取る）
   const modelState = useModelsState(provider);
@@ -76,21 +79,21 @@ export function useChatOptions({ initial, projectId, worktree, provider: provide
   if (fitted !== picked) setPicked(fitted);
   const { model, effort, permission_mode: permission, fast_mode: fastMode } = fitted;
 
-  // 新しいチャットは、設定とプロジェクトが届いたら、その既定から始める（どちらも店から）。既定を当てたプロジェクトと AI を覚え、替わったら当て直す
+  // 新しいチャットは、設定とプロジェクト（と AI ごとの既定）が届いたら、その既定から始める（どれも店から）。既定を当てたプロジェクトと AI を覚え、替わったら当て直す
   const [fresh] = useState(!initial);
   const defaultedFor = useRef<DefaultedFor | null>(null);
   // 選んでいる値が変わっても当て直さない（プロジェクト・AI・既定が届いたときだけ）
   const applyDefaults = useEffectEvent(() => {
-    if (!fresh || !settings || (projectId !== undefined && !projectsLoaded)) return;
+    if (!fresh || !settings || (projectId !== undefined && (!projectsLoaded || !projectDefaultsLoaded))) return;
     const target: DefaultedFor = { target: projectId ?? "app", provider };
-    const next = initialChatOptions(picked, resolveChatOptions(settings, provider, project), defaultedFor.current, target);
+    const next = initialChatOptions(picked, resolveChatOptions(settings, provider, projectDefaults), defaultedFor.current, target);
     if (!next) return;
     defaultedFor.current = target;
     setPicked(next);
   });
   useEffect(() => {
     applyDefaults();
-  }, [settings, projectId, projectsLoaded, project, provider]);
+  }, [settings, projectId, projectsLoaded, project, projectDefaults, provider]);
 
   const current = models.find((m) => m.value === model);
   const fastSupport = fastSupportOf(current, modelState.loading);

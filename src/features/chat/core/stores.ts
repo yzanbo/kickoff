@@ -2,6 +2,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Notify } from "@/foundation/core/db/common";
 import type { Kernel } from "@/foundation/core/kernel";
+import type { ProjectAiDefaultsStore } from "@/features/ai/core/index";
 import type { GroupStore } from "@/features/groups/core/index";
 import type { ProjectStore } from "@/features/projects/core/index";
 import type { TrashStore } from "@/features/trash/core/index";
@@ -40,7 +41,7 @@ interface ChatSnippets {
 }
 
 /**
- * chat が使う店の組: 自分の表の店（ChatStores）と、組み立てが渡す下の機能の店（projects・groups・trash の api の店）・土台の口（DB・設定）・
+ * chat が使う店の組: 自分の表の店（ChatStores）と、組み立てが渡す下の機能の店（projects・groups・trash の api の店・ai の既定）・土台の口（DB・設定）・
  * 上の機能の口（snippets）。受ける所は丸ごと受けず、使う店だけを Pick<ChatStoreDeps, …> で受ける
  */
 export interface ChatStoreDeps extends ChatStores {
@@ -50,4 +51,6 @@ export interface ChatStoreDeps extends ChatStores {
   groups: GroupStore;
   trash: TrashStore;
   snippets: ChatSnippets;
+  /** プロジェクトの AI ごとのチャットの既定（ai の店。選択を決めるときに読む） */
+  aiDefaults: ProjectAiDefaultsStore;
 }

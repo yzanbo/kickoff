@@ -5,7 +5,7 @@ import { ServerInfoRows } from "@/features/devices/ui/ServerInfo";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusCard } from "@/foundation/ui/kit/StatusCard";
 import { GitHubStatusCard } from "@/features/ai/ui/GitHubStatusCard";
-import { PLANNED_BADGE, usePlannedProviders } from "./plannedProviders";
+import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/plannedProviders";
 import { ProviderAuthSettings } from "./ProviderAuthSettings";
 import { canBrowserLogin, ProviderLoginButton } from "./ProviderLoginButton";
 import { ProviderVersion } from "./ProviderVersion";

@@ -5,6 +5,7 @@ export { askApproval, declinedNote, isAllowed, modeVerdict, permissionOnlyGate, 
 export type { UsageMonitor } from "./usage/monitor";
 export type { ProviderKeyVault } from "./providers/keys";
 export { knownModel } from "./providers/modelCatalog";
+export type { ProjectAiDefaultsStore } from "./db/projectAiDefaults";
 import type { ProviderId } from "@shared/settings/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
@@ -15,6 +16,8 @@ import { ProviderKeyVault, type ProviderAuth } from "./providers/keys";
 import { UsageMonitor, type UsageFetchers } from "./usage/monitor";
 import { realUsageFetchers } from "./providers/usageFetchers";
 import { providerRoutes } from "./routes/providers";
+import { aiDefaultsRoutes } from "./routes/aiDefaults";
+import { createProjectAiDefaultsStore, type ProjectAiDefaultsStore } from "./db/projectAiDefaults";
 import { usageRoutes } from "./routes/usage";
 import { usageToolGroup } from "./tools";
 
@@ -33,6 +36,8 @@ export interface AiApi {
   keys: ProviderKeyVault;
   /** 使用状況の見張り（AI ごとの使用状況・実行中の支払いの知らせ・使い切った枠の戻る時刻） */
   usage: UsageMonitor;
+  /** プロジェクトの AI ごとのチャットの既定（新しいチャット・子チャット・AI の切り替えが選択を決めるときに読む） */
+  defaults: ProjectAiDefaultsStore;
   /** Copilot の使用状況が読む gh のログインのトークンの口（github が登録する。なければ未ログインの扱い） */
   provideGhToken(fn: () => Promise<string | null>): void;
 }
@@ -43,11 +48,12 @@ export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv)
   const providers = env.providers((id) => keys.authFor(id));
   let ghToken: () => Promise<string | null> = async () => null;
   const usage = new UsageMonitor(k.bus, env.usage ?? realUsageFetchers(() => ghToken()));
+  const defaults = createProjectAiDefaultsStore(k.db, (e) => k.bus.publish(e));
   return {
     name: "ai",
-    api: { providers, keys, usage, provideGhToken: (fn) => (ghToken = fn) },
+    api: { providers, keys, usage, defaults, provideGhToken: (fn) => (ghToken = fn) },
     aiTools: [usageToolGroup(usage)],
-    routes: [{ legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage })) }],
+    routes: [aiDefaultsRoutes({ defaults, projectParam: deps.projects.param }), { legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage })) }],
     start: () => usage.start(),
     stop: () => usage.stop(),
   };

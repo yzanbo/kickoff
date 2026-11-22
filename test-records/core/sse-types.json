@@ -25,6 +25,7 @@
   "pairing",
   "ports_changed",
   "project",
+  "project_ai_defaults",
   "project_deleted",
   "provider_login",
   "settings",

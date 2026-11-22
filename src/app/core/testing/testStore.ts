@@ -1,4 +1,5 @@
 // テストの店: 全部の機能の表を v1 で作った DB（既定はメモリ）に、chat の店の束と機能の店を開いたもの。テストと決まったデータの道具からだけ使う
+import { createProjectAiDefaultsStore } from "@/features/ai/core/db/projectAiDefaults";
 import type { DatabaseSync } from "node:sqlite";
 import type { Notify } from "@/foundation/core/db/common";
 import { openDb, readDatabaseId } from "@/foundation/core/db/db";
@@ -63,7 +64,7 @@ export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, ba
     idsIn: (group) => chat.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: chat.chats.get,
   });
-  const store: ChatStoreDeps = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds) };
+  const store: ChatStoreDeps = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds), aiDefaults: createProjectAiDefaultsStore(db, onChange) };
   return withFeatureStores(store, base, onChange);
 }
 

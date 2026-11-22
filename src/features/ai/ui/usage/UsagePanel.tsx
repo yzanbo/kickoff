@@ -7,7 +7,7 @@ import { FIVE_HOUR_IDLE, planLabel } from "./usage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, toneOf } from "@/foundation/ui/kit/StatusDot";
 import { UsageMeter } from "./UsageMeter";
-import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/settings/plannedProviders";
+import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/plannedProviders";
 
 /** 開いている間に取り直す間隔 */
 const POLL_MS = 5 * 60_000;

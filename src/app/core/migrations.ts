@@ -1,5 +1,6 @@
 import { BASE_SCHEMA_V1 } from "@/foundation/core/db/baseSchema";
 import type { Migration } from "@/foundation/core/db/db";
+import { AI_SCHEMA_V1 } from "@/features/ai/core/schema";
 import { CHAT_SCHEMA_V1 } from "@/features/chat/core/schema";
 import { DATABASE_SCHEMA_V1 } from "@/features/database/core/schema";
 import { DEVICES_SCHEMA_V1 } from "@/features/devices/core/schema";
@@ -22,6 +23,7 @@ export const MIGRATIONS: readonly Migration[] = [
     sql: [
       BASE_SCHEMA_V1,
       PROJECTS_SCHEMA_V1,
+      AI_SCHEMA_V1,
       GROUPS_SCHEMA_V1,
       CHAT_SCHEMA_V1,
       PROVIDER_SWITCH_SCHEMA_V1,
