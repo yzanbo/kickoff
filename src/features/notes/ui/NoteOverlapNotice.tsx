@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useAppSettings } from "@/features/settings/ui/stores/settings";
+import { useAppSettings } from "@/features/settings/ui";
 import { noteOverlapLines } from "@/features/projects/ui/folderOverlaps";
 import { InspectionList } from "@/features/projects/ui";
 

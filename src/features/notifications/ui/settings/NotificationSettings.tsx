@@ -1,15 +1,15 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { CheckField } from "@/foundation/ui/kit/Field";
-import { ResultMessage, SaveActions } from "@/foundation/ui/kit/SaveActions";
-import { useSettingsDraft } from "@/features/settings/ui/useSettingsDraft";
+import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
+import { applySettings, useAppSettings } from "@/features/settings/ui";
 
-/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数） */
+/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数。変えたらすぐ保存する） */
 export function NotificationSettings() {
-  const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
+  const settings = useAppSettings().data;
   // テスト通知を送っている間と、その結果（届かなかったら理由。Mac の設定で許可していないときなど）
   const test = useAction<"send">();
-  if (!draft) return null;
+  if (!settings) return null;
   const native = window.kickoff;
   const sendTest = async () => {
     if (!native) return;
@@ -31,14 +31,14 @@ export function NotificationSettings() {
         <CheckField
           label="Mac の通知で知らせる"
           help="チャットの完了・失敗・回答待ちを通知します。通知を押すと、そのチャットを開きます。Kickoff でそのチャットを見ているときは通知しません。"
-          checked={draft.desktop_notifications}
-          onChange={(on) => setDraft({ ...draft, desktop_notifications: on })}
+          checked={settings.desktop_notifications}
+          onChange={(on) => applySettings({ desktop_notifications: on })}
         />
         <CheckField
           label="Dock のアイコンに要対応の数を出す"
           help="回答待ち・未読のチャットの数を、Dock の Kickoff のアイコンに赤い数字で出します（アーカイブしたプロジェクト・チャットは数えません）。"
-          checked={draft.dock_badge}
-          onChange={(on) => setDraft({ ...draft, dock_badge: on })}
+          checked={settings.dock_badge}
+          onChange={(on) => applySettings({ dock_badge: on })}
         />
         {/* Mac の通知が届くかを試す・Mac の設定（許可・バナーか通知パネルか・音）を開く（デスクトップアプリだけ） */}
         {native && (
@@ -53,7 +53,6 @@ export function NotificationSettings() {
           </div>
         )}
       </div>
-      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, dock_badge: draft.dock_badge })} />
     </section>
   );
 }

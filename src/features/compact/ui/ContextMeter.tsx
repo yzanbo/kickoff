@@ -1,6 +1,6 @@
 import type { CompactingState } from "@shared/chat/chatLive";
 import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";
-import { useAppSettings } from "@/features/settings/ui/stores/settings";
+import { useAppSettings } from "@/features/settings/ui";
 import { autoCompactThreshold } from "@shared/compact/autoCompact";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useAction } from "@/foundation/ui/hooks/useAction";

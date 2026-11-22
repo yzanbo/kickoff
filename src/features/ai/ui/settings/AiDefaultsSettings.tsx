@@ -3,21 +3,20 @@ import { useProviders } from "@/features/ai/ui/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
-import { SaveActions } from "@/foundation/ui/kit/SaveActions";
 import { ChatDefaultsFields } from "./ChatDefaultsFields";
-import { useSettingsDraft } from "@/features/settings/ui/useSettingsDraft";
+import { applySettings, useAppSettings } from "@/features/settings/ui";
 
 /**
  * 設定: 新しいプロジェクトで使う AI と、AI ごとの新しいチャットの既定（モデル・推論の深さ・権限モード・ファストモード）。
- * Claude Code のほかの AI は、Kickoff のチャットで使えるもの（implemented）だけ出す
+ * Claude Code のほかの AI は、Kickoff のチャットで使えるもの（implemented）だけ出す。変えたらすぐ保存する
  */
 export function AiDefaultsSettings() {
-  const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
+  const settings = useAppSettings().data;
   const statuses = useProviders().data;
-  if (!draft) return null;
+  if (!settings) return null;
   const others = OTHER_PROVIDER_IDS.filter((id) => statusOf(statuses, id)?.implemented);
-  /** AI の既定を変える（保存するまでは下書き） */
-  const setDefaults = (provider: ProviderId, next: ChatOptions) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [provider]: next } });
+  /** AI の既定を変える（AI ごとの一覧を丸ごと送る） */
+  const setDefaults = (provider: ProviderId, next: ChatOptions) => applySettings({ provider_chat_defaults: { ...settings.provider_chat_defaults, [provider]: next } });
   return (
     <section className="section ai-defaults-settings">
       <div className="ai-defaults-intro">
@@ -35,9 +34,9 @@ export function AiDefaultsSettings() {
             label="新しいプロジェクトで使う AI"
             help="プロジェクトの作成後も、そのプロジェクトの設定から変更できます。"
           >
-            <select value={draft.default_provider} onChange={(e) => setDraft({ ...draft, default_provider: e.target.value as ProviderId })}>
+            <select value={settings.default_provider} onChange={(e) => applySettings({ default_provider: e.target.value as ProviderId })}>
               {PROVIDER_IDS.map((id) => {
-                const blocked = id === draft.default_provider ? null : providerPickBlock(id, statusOf(statuses, id));
+                const blocked = id === settings.default_provider ? null : providerPickBlock(id, statusOf(statuses, id));
                 return (
                   <option key={id} value={id} disabled={blocked !== null}>
                     {PROVIDER_LABELS[id]}
@@ -61,7 +60,7 @@ export function AiDefaultsSettings() {
               <div><h3 id={`ai-defaults-${id}-title`}>{PROVIDER_LABELS[id]}</h3><p>{PROVIDER_LABELS[id]} のチャットに適用</p></div>
             </div>
             <div className="form ai-defaults-card-form">
-              <ChatDefaultsFields provider={id} value={draft.provider_chat_defaults[id]} onChange={(next) => setDefaults(id, next)} />
+              <ChatDefaultsFields provider={id} value={settings.provider_chat_defaults[id]} onChange={(next) => setDefaults(id, next)} />
             </div>
           </section>
         ))}
@@ -74,22 +73,17 @@ export function AiDefaultsSettings() {
         <CheckField
           label="コマンドのサンドボックスを使う"
           help="オフにすると、AI のコマンドが利用者の権限で作業場所の外にも書ける可能性があります。計画モードと『AI で整える』では専用の制限を維持します。macOS や AI の設定による制限は別に残ることがあります。"
-          checked={draft.sandbox_enabled_by_default}
-          onChange={(on) => setDraft({ ...draft, sandbox_enabled_by_default: on })}
+          checked={settings.sandbox_enabled_by_default}
+          onChange={(on) => applySettings({ sandbox_enabled_by_default: on })}
         />
         <CheckField
           label="チャットの編集先を制限する"
           help="オフにすると、Kickoff の編集先を確認する守りを外します。サンドボックスがオンなら、コマンド経由の変更にはその制限が残ります。参照資料などを守るファイル編集ツールの制限は別に残りますが、サンドボックスをオフにしたコマンドには及ばない場合があります。"
-          checked={draft.edit_scope_enabled_by_default}
-          onChange={(on) => setDraft({ ...draft, edit_scope_enabled_by_default: on })}
+          checked={settings.edit_scope_enabled_by_default}
+          onChange={(on) => applySettings({ edit_scope_enabled_by_default: on })}
         />
         <p className="muted small">オフにした制限は新しいチャットの入力欄に表示します。Auto mode などの承認の設定は別です。Claude Code・Codex 以外は、砂場オフの指定に未対応の場合、守りを外して実行せずに知らせます。</p>
       </div>
-      <SaveActions
-        save={save}
-        disabled={!dirty}
-        onSave={() => saveFields({ default_provider: draft.default_provider, provider_chat_defaults: draft.provider_chat_defaults, sandbox_enabled_by_default: draft.sandbox_enabled_by_default, edit_scope_enabled_by_default: draft.edit_scope_enabled_by_default })}
-      />
     </section>
   );
 }

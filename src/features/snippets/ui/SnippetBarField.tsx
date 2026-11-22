@@ -1,7 +1,6 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { Field } from "@/foundation/ui/kit/Field";
-import { Segmented } from "@/foundation/ui/kit/Segmented";
+import { SwitchField } from "@/foundation/ui/kit/ChoiceField";
 
 /**
  * 定型文の帯を表示するか（設定の「定型文」のいちばん上と「表示」に置く。どのチャットでも同じ値で、
@@ -10,19 +9,13 @@ import { Segmented } from "@/foundation/ui/kit/Segmented";
 export function SnippetBarField() {
   const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   return (
-    <Field as="div"
+    <SwitchField
       label="定型文の帯"
       help="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます。表示しなくても、定型文は設定の「定型文」で足す・直すことができます。タブの列の「表示」と、帯の右クリックでも切り替えられます。"
-    >
-      <Segmented<"show" | "hide">
-        label="定型文の帯"
-        value={hidden ? "hide" : "show"}
-        onChange={(v) => setHidden(v === "hide")}
-        options={[
-          { value: "show", label: "表示する" },
-          { value: "hide", label: "表示しない" },
-        ]}
-      />
-    </Field>
+      checked={!hidden}
+      onChange={(on) => setHidden(!on)}
+      onLabel="表示する"
+      offLabel="表示しない"
+    />
   );
 }

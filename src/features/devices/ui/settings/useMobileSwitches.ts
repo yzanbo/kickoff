@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LoginItemState } from "@shared/foundation/ipc";
-import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { confirm } from "@/foundation/ui/kit/ask";
 
 /** バッテリーの様子（Chromium の Battery Status API。型は lib.dom にないので、使う所だけ書く） */
@@ -45,7 +44,7 @@ export function useMobileSwitches() {
   const setLogin = (open: boolean) => action.run("login", async () => setLoginItem((await window.kickoff?.loginItem.set(open)) ?? null));
 
   const setMobile = async (on: boolean) => {
-    const ok = await action.run("mobile", async () => settingsStore.set(await api.updateSettings({ remote_enabled: on })));
+    const ok = await action.run("mobile", () => saveSettings({ remote_enabled: on }));
     if (!ok || !on || !loginItem?.available || loginItem.openAtLogin) return;
     const also = await confirm({
       title: "ログイン時に Kickoff を起動しますか？",

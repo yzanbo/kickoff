@@ -1,12 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Field } from "@/foundation/ui/kit/Field";
-import { Segmented } from "@/foundation/ui/kit/Segmented";
+import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { choiceMeta, fieldEnabled, patchOf, viewField, type SidebarViewState, type TunerContext, type ViewKey } from "./viewFields";
 
 type Value = string | boolean;
-/** 設定の画面の Segmented の値（オン・オフは on / off） */
+/** 設定の画面の選ぶ欄の値（オン・オフは on / off） */
 const keyOf = (v: Value) => (v === true ? "on" : v === false ? "off" : v);
 
 interface Props {
@@ -41,18 +40,16 @@ export function TunerFieldButton({ field, state, set, ctx, extra }: Props & { ct
   );
 }
 
-/** 設定の画面の 1 つの項目の欄（Segmented。選べない形のときは出さない） */
+/** 設定の画面の 1 つの項目の欄（選べない形のときは出さない） */
 export function SettingsFieldControl({ field, state, set }: Props) {
   const f = viewField(field);
   if (!fieldEnabled(field, state)) return null;
   return (
-    <Field as="div" label={f.label}>
-      <Segmented
-        label={f.label}
-        value={keyOf(state[field])}
-        onChange={(next) => set(patchOf(field, f.choices.find((c) => keyOf(c) === next) ?? state[field]))}
-        options={f.choices.map((c) => ({ value: keyOf(c), label: choiceMeta(field, c).short }))}
-      />
-    </Field>
+    <ChoiceField
+      label={f.label}
+      value={keyOf(state[field])}
+      onChange={(next) => set(patchOf(field, f.choices.find((c) => keyOf(c) === next) ?? state[field]))}
+      options={f.choices.map((c) => ({ value: keyOf(c), label: choiceMeta(field, c).short }))}
+    />
   );
 }

@@ -7,7 +7,7 @@ import { useVoiceStatus } from "@/features/voice/ui/stores/voice";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
-import { useSettingsDraft } from "@/features/settings/ui/useSettingsDraft";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { VOICE_PROVIDER_INFO } from "./voiceOptions";
 import { VoiceLocalSetup } from "./VoiceLocalSetup";
 import { VoiceMacosSetup } from "./VoiceMacosSetup";
@@ -20,15 +20,12 @@ import { VoiceSpeechSettings } from "./VoiceSpeechSettings";
  * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）→ 音声モードの読み上げ（声の方法・声・速さ）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
  */
 export function VoiceSettings() {
-  const { draft, setDraft, saveFields } = useSettingsDraft();
+  const settings = useAppSettings().data;
   const voice = useVoiceStatus();
   const save = useAction<"save">();
-  if (!draft) return null;
-  /** 変えた項目をすぐ保存する（下書きにも入れて、保存の応答を待たずに画面をそろえる） */
-  const apply = (patch: Partial<AppSettings>) => {
-    setDraft({ ...draft, ...patch });
-    void save.run("save", () => saveFields(patch), { done: "保存しました" });
-  };
+  if (!settings) return null;
+  /** 変えた項目をすぐ保存する（店が応答を待たずに画面をそろえる） */
+  const apply = (patch: Partial<AppSettings>) => void save.run("save", () => saveSettings(patch), { done: "保存しました" });
   return (
     <section className="section voice-settings">
       <div className="voice-settings-head">
@@ -38,18 +35,18 @@ export function VoiceSettings() {
           {!save.result && <span className="muted">変えるとすぐ保存されます</span>}
         </span>
       </div>
-      <VoiceHero status={voice.data} enabled={draft.voice_enabled} onToggle={(on) => apply({ voice_enabled: on })} />
+      <VoiceHero status={voice.data} enabled={settings.voice_enabled} onToggle={(on) => apply({ voice_enabled: on })} />
 
       <Field as="div" label="文字起こしの方法">
         <div className="voice-providers" role="radiogroup" aria-label="文字起こしの方法">
           {VOICE_PROVIDERS.map((p) => (
-            <VoiceProviderCard key={p} name="voice-provider" info={VOICE_PROVIDER_INFO[p]} selected={draft.voice_provider === p} onSelect={() => apply({ voice_provider: p })} />
+            <VoiceProviderCard key={p} name="voice-provider" info={VOICE_PROVIDER_INFO[p]} selected={settings.voice_provider === p} onSelect={() => apply({ voice_provider: p })} />
           ))}
         </div>
       </Field>
 
       <Field label="話す言語" help="決まった言語で話すなら、選んでおくと正確になります。">
-        <select className="voice-language" value={draft.voice_language} onChange={(e) => apply({ voice_language: e.target.value })}>
+        <select className="voice-language" value={settings.voice_language} onChange={(e) => apply({ voice_language: e.target.value })}>
           {VOICE_LANGUAGES.map((l) => (
             <option key={l.value} value={l.value}>
               {l.label}
@@ -58,11 +55,11 @@ export function VoiceSettings() {
         </select>
       </Field>
 
-      {draft.voice_provider === "local" && <VoiceLocalSetup voice={voice} model={draft.voice_model} onModel={(voiceModel) => apply({ voice_model: voiceModel })} />}
-      {draft.voice_provider === "macos" && <VoiceMacosSetup voice={voice} language={draft.voice_language} />}
-      {draft.voice_provider === "openai" && <VoiceOpenAiSetup status={voice.data} draft={draft} apply={apply} />}
+      {settings.voice_provider === "local" && <VoiceLocalSetup voice={voice} model={settings.voice_model} onModel={(voiceModel) => apply({ voice_model: voiceModel })} />}
+      {settings.voice_provider === "macos" && <VoiceMacosSetup voice={voice} language={settings.voice_language} />}
+      {settings.voice_provider === "openai" && <VoiceOpenAiSetup status={voice.data} settings={settings} apply={apply} />}
 
-      <VoiceSpeechSettings status={voice.data} draft={draft} apply={apply} />
+      <VoiceSpeechSettings status={voice.data} settings={settings} apply={apply} />
     </section>
   );
 }

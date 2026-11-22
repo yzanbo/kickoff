@@ -6,9 +6,8 @@ import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { useVoiceStatus, voiceStatusStore } from "@/features/voice/ui/stores/voice";
-import { openSettings } from "@/features/settings/ui";
+import { openSettings, useAppSettings } from "@/features/settings/ui";
 import { armVoiceHandoff, disarmVoiceHandoff, RETURN_MS, returnVoiceHandoff, takeVoiceHandoff } from "./voiceHandoff";
 import { VoiceSession, type VoiceModeState, type VoiceReply } from "./voiceSession";
 

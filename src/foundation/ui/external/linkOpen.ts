@@ -2,9 +2,8 @@
 // 「今後確認しない」はドメインごとにアプリ全体で覚える（設定の trusted_link_domains）。警告に当たるリンクは覚えていても毎回確かめる
 import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/remoteImages/linkWarnings";
 import type { AppSettings } from "@shared/foundation/contract/settings";
-import { api } from "@/foundation/ui/api";
-import { settingsStore } from "@/features/settings/ui/stores/settings";
-import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
+import { applySettings, settingsStore } from "@/features/settings/ui/stores/settings";
+import { confirm } from "@/foundation/ui/kit/ask";
 import { open } from "@/foundation/ui/navigation/open";
 
 const TITLE = "外部リンクを開く";
@@ -27,12 +26,7 @@ async function confirmOpen(href: string, text: string, settings: AppSettings): P
   if (warned || domain === null) return confirm({ title: TITLE, message, confirmLabel: "開く" }).then((r) => r !== null);
   const answer = await confirm({ title: TITLE, message, confirmLabel: "開く", checks: [{ label: `${domain} へのリンクは今後確認しない` }] }).then((r) => r && { checked: r.checked[0] });
   if (!answer) return false;
-  if (answer.checked) {
-    void api
-      .updateSettings({ trusted_link_domains: [...settings.trusted_link_domains, domain] })
-      .then((saved) => settingsStore.set(saved))
-      .catch(reportFailure("設定を保存できませんでした"));
-  }
+  if (answer.checked) applySettings({ trusted_link_domains: [...settings.trusted_link_domains, domain] });
   return true;
 }
 

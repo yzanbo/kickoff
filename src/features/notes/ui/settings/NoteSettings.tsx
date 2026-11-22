@@ -1,6 +1,6 @@
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { NoteFolderField } from "@/features/notes/ui/NoteFolderField";
 
 /** 設定: ノートの保存先（親フォルダ。この下にプロジェクトごとのフォルダを作る） */
@@ -20,7 +20,7 @@ export function NoteSettings() {
           help="変えても、いまあるノートは動かしません（必要なら Finder で新しい場所へ移してください）。iCloud Drive の中にすると、ほかの Mac・iPhone と同期できます。"
           value={settings.notes_dir}
           fallback={defaults.data?.default_dir ?? ""}
-          onSave={async (next) => settingsStore.set(await api.updateSettings({ notes_dir: next }))}
+          onSave={(next) => saveSettings({ notes_dir: next })}
         />
       </div>
     </section>

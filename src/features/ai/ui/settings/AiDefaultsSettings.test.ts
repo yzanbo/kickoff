@@ -11,8 +11,9 @@ vi.mock("@/features/ai/ui/stores/providers", () => ({
   useProviders: () => ({ data: [{ id: "codex", implemented: true, installed: true, logged_in: true }] }),
 }));
 
-vi.mock("@/features/settings/ui/useSettingsDraft", () => ({
-  useSettingsDraft: () => ({ draft: defaultsOf(aiSettings), setDraft: () => {}, dirty: false, save: {}, saveFields: () => {} }),
+vi.mock("@/features/settings/ui", () => ({
+  useAppSettings: () => ({ data: defaultsOf(aiSettings) }),
+  applySettings: () => {},
 }));
 
 test("AI の既定は適用範囲と AI ごとの設定を区別して表示する", () => {

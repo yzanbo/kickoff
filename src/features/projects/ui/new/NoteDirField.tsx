@@ -3,7 +3,7 @@ import type { NewProjectNoteDir } from "@shared/foundation/apiTypes";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useAppSettings } from "@/features/settings/ui/stores/settings";
+import { useAppSettings } from "@/features/settings/ui";
 import { Field } from "@/foundation/ui/kit/Field";
 import { NoteOverlapNotice } from "@/features/notes/ui/NoteOverlapNotice";
 

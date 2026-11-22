@@ -5,7 +5,7 @@ import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode }
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { providersStore } from "@/features/ai/ui/stores/providers";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { PAY_PER_USE_LABEL } from "@/features/ai/ui/provider/providerChoice";
@@ -35,7 +35,7 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
   // API キーでだけ動く AI は、いつも API キーとして見せる（キーを置いたときに設定も API キーにする）
   const mode: ProviderAuthMode = keyOnly ? "api_key" : (p.auth_mode ?? "subscription");
   // 設定は AI ごとの一覧を丸ごと送る（ほかの AI の選択を消さない）
-  const writeMode = async (next: ProviderAuthMode) => settingsStore.set(await api.updateSettings({ provider_auth: { ...(settings?.provider_auth ?? {}), [p.id]: next } }));
+  const writeMode = (next: ProviderAuthMode) => saveSettings({ provider_auth: { ...(settings?.provider_auth ?? {}), [p.id]: next } });
   const setMode = (next: ProviderAuthMode) =>
     save.run("save", async () => {
       await writeMode(next);

@@ -1,6 +1,5 @@
 import { useId } from "react";
-import { api } from "@/foundation/ui/api";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -16,10 +15,7 @@ export function AutoCompactSelect({ windowSize }: { windowSize: number | null })
   const settings = useAppSettings().data;
   const action = useAction<"save">();
   const value = settings?.auto_compact_pct ?? null;
-  const change = (pct: number | null) =>
-    void action.run("save", async () => {
-      settingsStore.set(await api.updateSettings({ auto_compact_pct: pct }));
-    });
+  const change = (pct: number | null) => void action.run("save", () => saveSettings({ auto_compact_pct: pct }));
   return (
     <>
       <div className="context-auto-compact">

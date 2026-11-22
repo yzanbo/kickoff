@@ -15,7 +15,13 @@ const projectAiDefaultsStore = createKeyedStore<number, ProjectAiDefaults>({
 /** そのプロジェクトの AI ごとの既定（projectId が undefined なら読まない） */
 export const useProjectAiDefaults = (projectId: number | undefined): StoreState<ProjectAiDefaults> => useKeyedStore(projectAiDefaultsStore, projectId);
 
-/** その AI の既定を置き換える（応答で店をそろえ、知らせを待たない） */
+/** その AI の既定を置き換える（応答を待たずに店へ入れ、応答でそろえる。失敗したら読み直して投げる） */
 export async function saveProjectAiDefaults(projectId: number, provider: ProviderId, options: ChatOptionsPatch): Promise<void> {
-  projectAiDefaultsStore.set(projectId, await aiDefaultsApi("PUT /api/projects/:projectId/ai-defaults", { params: { projectId }, body: { provider, options } }));
+  projectAiDefaultsStore.update(projectId, (current) => ({ ...current, [provider]: options }));
+  try {
+    projectAiDefaultsStore.set(projectId, await aiDefaultsApi("PUT /api/projects/:projectId/ai-defaults", { params: { projectId }, body: { provider, options } }));
+  } catch (e) {
+    void projectAiDefaultsStore.reload(projectId).catch(() => {});
+    throw e;
+  }
 }

@@ -1,7 +1,7 @@
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { Field } from "@/foundation/ui/kit/Field";
 import { SaveActions } from "@/foundation/ui/kit/SaveActions";
-import { Segmented } from "@/foundation/ui/kit/Segmented";
+import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { COMPACT_PROMPT_KINDS, COMPACT_PROMPT_SWITCH } from "./compactPromptKinds";
 import type { CompactPromptKind } from "@shared/chat/prompts";
 import { useCompactPrompt } from "./useCompactPrompt";
@@ -29,14 +29,14 @@ export function CompactPromptForm({ kind, projectId }: { kind: CompactPromptKind
         {projectId === null ? "プロジェクトの設定にも指示があれば、この共通の指示のあとにつなげて送ります。" : "アプリの設定の「圧縮前・圧縮後指示」に共通の指示があれば、そのあとにこのプロジェクトの指示をつなげて送ります。"}
       </p>
       <div className="form">
-        <Field as="div" label="送る" help="オフにすると、書いた文は残したまま送りません。">
-          <Segmented<"on" | "off">
-            label={`${label}を送る`}
-            value={enabled ? "on" : "off"}
-            options={COMPACT_PROMPT_SWITCH}
-            onChange={(v) => setEnabled(v === "on")}
-          />
-        </Field>
+        <ChoiceField<"on" | "off">
+          label="送る"
+          groupLabel={`${label}を送る`}
+          help="オフにすると、書いた文は残したまま送りません。"
+          value={enabled ? "on" : "off"}
+          options={COMPACT_PROMPT_SWITCH}
+          onChange={(v) => setEnabled(v === "on")}
+        />
         <Field label={projectId === null ? `すべてのプロジェクトの${label}` : `このプロジェクトの${label}`} help={`空にすると送りません。送った指示は、会話に「${label}」の札付きの自分の発言として残ります。`}>
           <textarea rows={4} value={draft} maxLength={COMPACT_PROMPT_MAX} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} />
         </Field>

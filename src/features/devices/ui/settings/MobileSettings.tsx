@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
+import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -25,10 +25,7 @@ export function MobileSettings() {
   if (!settings) return null;
   const off = !settings.remote_enabled;
   const saveUrl = (url: string | null) =>
-    void api.updateSettings({ mobile_url: url }).then(
-      (saved) => settingsStore.set(saved),
-      (e: unknown) => pairing.action.setError(errorMessage(e)),
-    );
+    void saveSettings({ mobile_url: url }).catch((e: unknown) => pairing.action.setError(errorMessage(e)));
   return (
     <section className="section">
       <h2>スマホ連携</h2>

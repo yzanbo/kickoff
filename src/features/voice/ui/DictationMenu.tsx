@@ -1,14 +1,11 @@
 import { useState, type MouseEvent } from "react";
 import { Check, Settings } from "lucide-react";
 import { VOICE_LANGUAGES } from "@shared/voice/types";
-import { api } from "@/foundation/ui/api";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
-import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { openSettings } from "@/features/settings/ui";
+import { applySettings, openSettings, useAppSettings } from "@/features/settings/ui";
 import { listMics } from "./recorder";
 
 /** ▾ を押したときに、開いているメニューを外側のクリックとして閉じない（押したボタンの側で開閉する） */
@@ -28,8 +25,7 @@ export function useDictationMenu() {
     // 開くたびに一覧を読み直す（つないだ・外したマイクを出す）
     void listMics().then(setMics, () => setMics([]));
   };
-  const setLanguage = (language: string) =>
-    void api.updateSettings({ voice_language: language }).then(settingsStore.set, reportFailure("話す言語を変えられませんでした"));
+  const setLanguage = (language: string) => applySettings({ voice_language: language }, "話す言語を変えられませんでした");
 
   const element = menu.menu && (
     <PopupMenu at={menu.menu.at} label="音声入力の設定" ignore={OPENER} onClose={menu.close}>

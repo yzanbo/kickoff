@@ -1,19 +1,8 @@
 import { LINK_OPEN_TARGET_LABELS, LINK_OPEN_TARGETS, type LinkOpenTarget } from "@shared/settings/types";
-import type { AppSettings } from "@shared/foundation/contract/settings";
-import { api } from "@/foundation/ui/api";
-import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
-import { reportFailure } from "@/foundation/ui/kit/ask";
+import { applySettings, useAppSettings } from "@/features/settings/ui";
+import { ChoiceField } from "@/foundation/ui/kit/ChoiceField";
 import { Field } from "@/foundation/ui/kit/Field";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
-import { Segmented } from "@/foundation/ui/kit/Segmented";
-
-/** 選んだらすぐ保存する（確認の画面の「今後確認しない」でも変わるので、下書きにせずいまの設定を出す） */
-function save(patch: Partial<Pick<AppSettings, "link_open_in" | "trusted_link_domains">>) {
-  void api
-    .updateSettings(patch)
-    .then((saved) => settingsStore.set(saved))
-    .catch(reportFailure("設定を保存できませんでした"));
-}
 
 /**
  * 設定の「リンクと画像」: 外部リンクの開き先と、確かめずに開くドメインの一覧。
@@ -27,14 +16,13 @@ export function LinkSettings() {
     <section className="section">
       <h2>リンクと画像</h2>
       <div className="form">
-        <Field as="div" label="外部リンクを開く場所" help="返答などの外部リンクを押したときの開き先です。⌘ を押しながら押すと、もう一方で開きます。Kickoff のブラウザは、見ているプロジェクトのチャット欄に新しいタブで開きます（プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ）。">
-          <Segmented<LinkOpenTarget>
-            label="外部リンクを開く場所"
-            value={settings.link_open_in}
-            onChange={(next) => save({ link_open_in: next })}
-            options={LINK_OPEN_TARGETS.map((t) => ({ value: t, label: LINK_OPEN_TARGET_LABELS[t] }))}
-          />
-        </Field>
+        <ChoiceField<LinkOpenTarget>
+          label="外部リンクを開く場所"
+          help="返答などの外部リンクを押したときの開き先です。⌘ を押しながら押すと、もう一方で開きます。Kickoff のブラウザは、見ているプロジェクトのチャット欄に新しいタブで開きます（プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ）。"
+          value={settings.link_open_in}
+          onChange={(next) => applySettings({ link_open_in: next })}
+          options={LINK_OPEN_TARGETS.map((t) => ({ value: t, label: LINK_OPEN_TARGET_LABELS[t] }))}
+        />
         <Field
           as="div"
           label="確認せずに開くドメイン"
@@ -47,7 +35,7 @@ export function LinkSettings() {
               {domains.map((domain) => (
                 <li key={domain}>
                   <span className="trusted-domain">{domain}</span>
-                  <CloseButton label={`${domain} を一覧から外す（次から確かめる）`} type="button" iconSize={14} onClick={() => save({ trusted_link_domains: domains.filter((d) => d !== domain) })} />
+                  <CloseButton label={`${domain} を一覧から外す（次から確かめる）`} type="button" iconSize={14} onClick={() => applySettings({ trusted_link_domains: domains.filter((d) => d !== domain) })} />
                 </li>
               ))}
             </ul>

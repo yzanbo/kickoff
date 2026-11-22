@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { PROJECT_HUES } from "@shared/projects/colors";
 import type { Project } from "@shared/projects/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
-import { useAction } from "@/foundation/ui/hooks/useAction";
+import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { Field } from "@/foundation/ui/kit/Field";
-import { SaveActions } from "@/foundation/ui/kit/SaveActions";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/projects/ui/GitInitNotice";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
@@ -16,30 +14,24 @@ import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
 import { TagEditor } from "./TagEditor";
 import { useEditedProject } from "./editedProject";
 
-/** 基本情報（名前と概要・フォルダ・ほかの機能が足す欄（ノートのフォルダ）・色・タグ） */
+/** 基本情報（名前と概要・フォルダ・ほかの機能が足す欄（ノートのフォルダ）・色・タグ）。名前と概要は欄の外を押す・Enter で保存する */
 export function BasicInfo() {
   const project = useEditedProject();
-  // 概要のないは null（欄は空。空で保存するとコアが null にそろえる）
-  const pick = (p: Project) => ({ name: p.name, description: p.description ?? "" });
-  const [draft, setDraft] = useState(() => pick(project));
-  const save = useAction<"save">();
-  // 別の画面で変わったときは追従する
-  useEffect(() => setDraft(pick(project)), [project]);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(pick(project));
+  const save = (patch: { name: string } | { description: string }) =>
+    void api.updateProject(project.id, patch).catch((e: unknown) => alert("基本情報を保存できませんでした", errorMessage(e)));
 
   return (
     <section className="section">
       <h2>基本情報</h2>
       <div className="form">
-        {/* プロジェクト名と概要は、基本情報のいちばん上に置く。下の「保存」はこの 2 つだけのもの */}
+        {/* プロジェクト名と概要は、基本情報のいちばん上に置く */}
         <Field label="プロジェクト名">
-          <input type="text" value={draft.name} maxLength={100} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <CommitInput type="text" value={project.name} maxLength={100} required onCommit={(name) => save({ name })} />
         </Field>
-        {/* 概要の欄は、空なら 2 行の高さで、書いた分だけ伸ばす（field-sizing） */}
+        {/* 概要の欄は、空なら 2 行の高さで、書いた分だけ伸ばす（field-sizing）。ないは null（空で保存するとコアが null にそろえる） */}
         <Field label="概要" help="このプロジェクトのチャットで、AI にプロジェクトの説明として渡します。">
-          <textarea className="project-description" rows={2} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+          <CommitInput multiline className="project-description" rows={2} value={project.description ?? ""} onCommit={(description) => save({ description })} />
         </Field>
-        <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
         <FolderRow project={project} />
         {settingsItemsOf("basic").map(({ id, Component }) => (
           <Component key={id} projectId={project.id} />

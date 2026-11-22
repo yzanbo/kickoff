@@ -13,8 +13,8 @@ const isListed = (model: string): model is (typeof OPENAI_TRANSCRIBE_MODELS)[num
  * 「OpenAI」で文字起こしするときの準備: ① API キー（保存したら ✓）② モデル（料金の目安付きのカード）。
  * OpenAI 互換のサーバーを使うときの Base URL とほかのモデル名は「詳しい設定」に畳む（使っていればはじめから開く）
  */
-export function VoiceOpenAiSetup({ status, draft, apply }: { status: VoiceStatus | undefined; draft: AppSettings; apply: (patch: Partial<AppSettings>) => void }) {
-  const model = draft.voice_openai_model;
+export function VoiceOpenAiSetup({ status, settings, apply }: { status: VoiceStatus | undefined; settings: AppSettings; apply: (patch: Partial<AppSettings>) => void }) {
+  const model = settings.voice_openai_model;
   const custom = !isListed(model);
   return (
     <Field as="div" label="OpenAI の準備">
@@ -45,10 +45,10 @@ export function VoiceOpenAiSetup({ status, draft, apply }: { status: VoiceStatus
           <p className="field-help">{OPENAI_PRICE_NOTE}</p>
         </VoiceStep>
       </ol>
-      <details className="voice-advanced" open={custom || Boolean(draft.voice_openai_base_url) || undefined}>
+      <details className="voice-advanced" open={custom || Boolean(settings.voice_openai_base_url) || undefined}>
         <summary>詳しい設定（OpenAI 互換のサーバーを使うとき）</summary>
         <Field label="Base URL" help="空なら https://api.openai.com/v1 です。入れたら欄の外を押す・Enter で保存します。">
-          <CommitInput type="url" value={draft.voice_openai_base_url} placeholder="https://api.openai.com/v1" onCommit={(v) => apply({ voice_openai_base_url: v })} />
+          <CommitInput type="url" value={settings.voice_openai_base_url} placeholder="https://api.openai.com/v1" onCommit={(v) => apply({ voice_openai_base_url: v })} />
         </Field>
         <Field label="モデル名" help="上の一覧にないモデル（互換のサーバーのモデルなど）を使うときに入れます。">
           <CommitInput value={custom ? model : ""} placeholder="例: whisper-large-v3" onCommit={(v) => v && apply({ voice_openai_model: v })} />
