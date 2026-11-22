@@ -1,4 +1,4 @@
-// 入力欄のウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの addToChat.ts の startComposerDrafts）
+// 入力欄のウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの appendToDraft.ts の startComposerDrafts）
 import type { Attachment } from "@shared/chat/types";
 
 declare module "@/foundation/ui/navigation/windowBus" {

@@ -5,7 +5,7 @@ import type { GitHubIssueDetail } from "@shared/github/types";
 import { selectionToMarkdown } from "@/foundation/ui/kit/markdown/selectionMarkdown";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
+import { HandOffItems } from "@/features/attachments/ui";
 import { selectGitHubItem } from "./openGitHubItem";
 import { githubItemRef } from "./githubLinks";
 import { linkOf, quotePrompt } from "./githubPrompt";

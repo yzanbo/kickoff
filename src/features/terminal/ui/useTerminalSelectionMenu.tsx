@@ -5,9 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
-import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
-import { cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "@/features/attachments/ui/longSelection";
+import { type HandOffItem, HandOffItems, cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "@/features/attachments/ui";
 import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
 /** 小さなボタンの幅の目安（画面の右端からはみ出さないように寄せる） */

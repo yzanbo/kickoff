@@ -2,8 +2,7 @@ import { Wrench } from "lucide-react";
 import type { GitHubIssueDetail, GitHubPullDetail } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
-import { HandOffButton } from "@/features/attachments/ui/handoff/HandOffMenu";
+import { type HandOffItem, HandOffButton } from "@/features/attachments/ui";
 import { fixReviewComments } from "./githubHandoff";
 import { captureNameOf, handOffText, itemDocument, linkOf, sourceOf, worktreeBranchOf } from "./githubPrompt";
 

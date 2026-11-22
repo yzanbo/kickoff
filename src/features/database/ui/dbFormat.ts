@@ -1,7 +1,7 @@
 // DB クライアントの表示の補助（セルの文・接続の行の説明・列の並べ替えの切り替え）。React に依らない
 import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
-import { formatBytes } from "@/foundation/ui/lib/format";
+import { formatBytes } from "@shared/foundation/text/bytes";
 
 /** セルに出す文（NULL・バイナリの札・空文字は「（空文字）」・真偽値・長い文字は頭と「…」） */
 export function cellText(value: DbValue): string {

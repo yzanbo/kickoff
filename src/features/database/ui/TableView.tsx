@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { formatBytes } from "@/foundation/ui/lib/format";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

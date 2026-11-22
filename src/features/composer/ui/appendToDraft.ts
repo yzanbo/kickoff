@@ -1,12 +1,10 @@
-// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」・子チャットの答えで共通）。
-// 下の attachments の「AI に渡す」も読むので、渡し先の登録（handOffTargets）にするまではこのファイルの名前のまま
+// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」・子チャットの答えで共通）
 import type { Attachment } from "@shared/chat/types";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { onWindowMessage, postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { knownChat, openChat, screenOfChat } from "@/features/chat/ui";
+import { chatTargetName, knownChat, openChat, screenOfChat } from "@/features/chat/ui";
 import { appendDraft, chatComposerDraft, forgetChatDraft } from "./composerDraft";
 import { focusComposer } from "./composerFields";
 

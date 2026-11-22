@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatSize, truncateText } from "@shared/attachments/truncate";
+import { truncateText } from "@shared/attachments/truncate";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { redactSecrets } from "@shared/foundation/secrets/redact";
 import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, NoteAttachment } from "@shared/chat/types";
 import { Invalid } from "@/foundation/core/errors";
@@ -42,7 +43,7 @@ export class UploadStore {
   async saveCaptureImage(input: { name: string; mime: string; bytes: Uint8Array; source: AttachmentSource }): Promise<CaptureAttachment> {
     const size = input.bytes.byteLength;
     if (size === 0) throw new Invalid("画像が空です");
-    if (size > MAX_UPLOAD_BYTES) throw new Invalid(`画像が大きすぎます（${formatSize(size)}。上限は ${formatSize(MAX_UPLOAD_BYTES)}）`);
+    if (size > MAX_UPLOAD_BYTES) throw new Invalid(`画像が大きすぎます（${formatBytes(size)}。上限は ${formatBytes(MAX_UPLOAD_BYTES)}）`);
     return this.storeCapture(input, input.bytes, { truncated: false, original_size: size, redacted: 0 });
   }
 
@@ -125,7 +126,7 @@ export function safeFileName(name: string): string {
 /** エージェントへのメッセージに添付の案内を付け足す */
 export function withAttachmentNote(text: string, files: { path: string; attachment: Attachment }[], heading = "添付ファイル（Read ツールで読めます）"): string {
   if (files.length === 0) return text;
-  const lines = files.map(({ path: p, attachment: a }) => `- ${p}（${a.mime}, ${formatSize(a.size)}）`);
+  const lines = files.map(({ path: p, attachment: a }) => `- ${p}（${a.mime}, ${formatBytes(a.size)}）`);
   const note = `${heading}:\n${lines.join("\n")}`;
   return text.trim() ? `${text}\n\n${note}` : note;
 }

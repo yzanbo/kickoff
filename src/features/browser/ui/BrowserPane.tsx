@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { normalizeUrl } from "@/foundation/ui/lib/url";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { HandOffButton } from "@/features/attachments/ui/handoff/HandOffMenu";
+import { HandOffButton } from "@/features/attachments/ui";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { DockMenu } from "./DockMenu";
 import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";

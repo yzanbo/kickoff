@@ -3,7 +3,7 @@ import type { Attachment } from "@shared/chat/types";
 import { webUrlOf } from "@shared/remoteImages/linkWarnings";
 import { api } from "@/foundation/ui/api";
 import { showToast } from "@/foundation/ui/kit/toast";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
+import type { HandOffItem } from "@/features/attachments/ui";
 import { consoleDocument, consoleLabelOf, pageLinkOf, screenLabelOf } from "./consoleDocument";
 
 /** コンソールの時刻（秒まで） */

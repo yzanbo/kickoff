@@ -11,7 +11,7 @@ import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
+import { AttachmentChips } from "@/features/attachments/ui";
 import { openKey, useOptionalChatScreen, useTimelineBusy, useTimelineOpen, CreatedChatMarks, useBeforeWorkplaceMove } from "@/features/chat/ui";
 import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { BubbleEditor } from "./BubbleEditor";

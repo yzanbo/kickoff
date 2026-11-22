@@ -7,9 +7,7 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
-import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
-import { isLongSelection } from "@/features/attachments/ui/longSelection";
+import { type HandOffItem, HandOffItems, isLongSelection } from "@/features/attachments/ui";
 import { aroundRow, logCaptureLabel, logQuote, rowText, type LogContainerInfo, type LogRow } from "./dockerLogView";
 import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 

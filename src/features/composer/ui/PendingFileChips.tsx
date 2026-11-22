@@ -1,4 +1,4 @@
-import { AttachmentChip } from "@/features/attachments/ui/AttachmentChip";
+import { AttachmentChip } from "@/features/attachments/ui";
 import type { PendingFile } from "./useDraftFiles";
 
 /** 選んだばかりの添付（アップロード中・済み・失敗）。× で外す。チャット欄と送信待ちの書き直しで共通 */

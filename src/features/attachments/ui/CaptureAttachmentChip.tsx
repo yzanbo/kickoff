@@ -1,6 +1,6 @@
 import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TextSelect, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
-import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
+import { ATTACHMENT_SOURCE_LOOKS } from "@shared/attachments/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/chat/types";
 import { api, attachmentUrl } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -8,10 +8,11 @@ import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { captureSubline, captureTitle } from "./captureLabels";
+import { AttachmentCard } from "./AttachmentCard";
+import { ATTACHMENT_CARDS, captureTitle } from "./attachmentCards";
 
 /** 出どころごとのアイコン（札・中身を見るダイアログで同じ） */
-const SOURCE_ICONS: Record<AttachmentSourceType, LucideIcon> = {
+const ATTACHMENT_SOURCE_ICONS: Record<AttachmentSourceType, LucideIcon> = {
   github_issue: CircleDot,
   github_pull: GitPullRequest,
   github_review: MessageSquareCode,
@@ -33,34 +34,28 @@ const isImage = (a: CaptureAttachment) => a.mime.startsWith("image/");
  */
 export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: CaptureAttachment; onRemove?: () => void }) {
   const [viewing, setViewing] = useState(false);
-  const Icon = SOURCE_ICONS[attachment.source.type];
-  const external = isExternalSource(attachment.source.type);
+  const Icon = ATTACHMENT_SOURCE_ICONS[attachment.source.type];
+  const text = ATTACHMENT_CARDS.capture(attachment, { clock: formatDayTime });
   return (
-    <span className="attachment capture-attachment" title={captureTitle(attachment, formatDayTime)}>
-      <button type="button" className="attachment-link" aria-label={`${attachment.source.label} の中身を見る`} onClick={() => setViewing(true)}>
-        {isImage(attachment) ? (
-          <img className="attachment-thumb" src={attachmentUrl(attachment)} alt="" />
-        ) : (
-          <span className="attachment-icon">
-            <Icon size={18} aria-hidden />
-          </span>
-        )}
-        <span className="attachment-meta">
-          {/* 名前が長くても盾の印は隠さない（名前の文字だけを切る） */}
-          <span className="attachment-name">
-            <span className="capture-name-text">{attachment.source.label}</span>
-            {external && <ShieldAlert size={12} className="capture-external" aria-label="外から来たデータ" />}
-          </span>
-          <span className="attachment-sub">{captureSubline(attachment, formatDayTime)}</span>
-        </span>
-      </button>
-      {onRemove && (
-        <button type="button" className="chip-remove" aria-label={`${attachment.source.label} を外す`} onClick={onRemove}>
-          ×
-        </button>
-      )}
+    <AttachmentCard
+      className="capture-attachment"
+      title={text.title}
+      thumb={isImage(attachment) ? { src: attachmentUrl(attachment) } : undefined}
+      icon={<Icon size={18} aria-hidden />}
+      name={
+        // 名前が長くても盾の印は隠さない（名前の文字だけを切る）
+        <>
+          <span className="capture-name-text">{text.name}</span>
+          {text.external && <ShieldAlert size={12} className="capture-external" aria-label="外から来たデータ" />}
+        </>
+      }
+      sub={text.sub}
+      open={{ kind: "button", label: `${attachment.source.label} の中身を見る`, onClick: () => setViewing(true) }}
+      onRemove={onRemove}
+      removeLabel={`${attachment.source.label} を外す`}
+    >
       {viewing && <CaptureViewer attachment={attachment} onClose={() => setViewing(false)} />}
-    </span>
+    </AttachmentCard>
   );
 }
 
@@ -69,13 +64,13 @@ function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment;
   const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const image = isImage(attachment);
   const text = useQuery(["CaptureAttachmentChip.text", attachment.id], () => (image ? Promise.resolve("") : api.attachmentText(attachment)), { keepPrevious: true });
-  const Icon = SOURCE_ICONS[attachment.source.type];
+  const Icon = ATTACHMENT_SOURCE_ICONS[attachment.source.type];
   return (
     <dialog ref={dialogRef} className="dialog floating app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
       <div className="capture-viewer-head">
         <Icon size={16} aria-hidden />
         <span className="capture-viewer-title">
-          {ATTACHMENT_SOURCE_LABELS[attachment.source.type]}「{attachment.source.label}」
+          {ATTACHMENT_SOURCE_LOOKS[attachment.source.type].label}「{attachment.source.label}」
         </span>
         <CloseButton label="閉じる" onClick={() => dialog.close()} iconSize={16} />
       </div>

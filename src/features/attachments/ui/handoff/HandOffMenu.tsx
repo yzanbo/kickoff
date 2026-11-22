@@ -2,17 +2,18 @@ import { ChevronDown, ChevronRight, MessageSquarePlus, SquarePen } from "lucide-
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { chatTitle, useChats, useKnownChat, useMainChat } from "@/features/chat/ui";
 import { AddToChat } from "@/foundation/ui/kit/icons";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { useMainChat } from "@/features/chat/ui/screen/mainChat";
-import { handOffToChild, handOffToNewChat, handOffToOtherChat, handOffToThisChat, type HandOffItem } from "./handOff";
+import { handOffTargets, visibleHandOffTargets, type HandOffItem, type HandOffTarget, type HandOffTargetId } from "./handOffTargets";
 
 /** 「ほかのチャットに追加 ▸」に並べるチャットの数（最近動いた順） */
 const CHAT_CHOICES = 15;
+
+/** 渡し先のアイコン */
+const TARGET_ICONS: Record<HandOffTargetId, typeof SquarePen> = { new: SquarePen, this: AddToChat, child: MessageSquarePlus, other: AddToChat };
 
 /**
  * 「AI に渡す ▾」のボタン（各タブの 1 つのもの。issue・PR・DB のつながらない様子など）。押した時点の中身を札にして、選んだチャットの入力欄に入れる（送るのは自分で）。
@@ -60,49 +61,36 @@ export function HandOffButton({
 }
 
 /**
- * 「AI に渡す」の 4 つの渡し先（メニューの中で使う。開いている間だけ描くので、チャットの一覧はこのときだけ読む）:
+ * 「AI に渡す」の渡し先（メニューの中で使う。開いている間だけ描くので、チャットの一覧はこのときだけ読む）。並びは登録の order の順:
  * 新しいチャットで始める（作業場所を選ぶ）・このチャットに追加と新しい子チャットで聞く（右の欄・別ウィンドウで、足す先のチャットがあるとき）・ほかのチャットに追加 ▸
  */
 export function HandOffItems({ item, onPick }: { item: HandOffItem; onPick?: () => void }) {
-  const hide = new Set(item.hide ?? []);
-  const pick = (run: () => Promise<void>) => () => {
-    void run();
-    onPick?.();
-  };
   const mainChatId = useMainChat();
-  const mainChat = useKnownChat(mainChatId ?? 0);
-  const canChild = mainChat && !mainChat.note_path && mainChat.archived_at === null;
-  return (
-    <>
-      {!hide.has("new") && (
-        <MenuItem
-          title={item.branch ? `作業場所（新しいワークツリー・本体・いまあるワークツリー）を選んで、${item.what}を入れた新しいチャットを開く` : `${item.what}を入れた新しいチャットを開く`}
-          onSelect={pick(() => handOffToNewChat(item))}
-        >
-          <SquarePen size={14} /> 新しいチャットで始める
-        </MenuItem>
-      )}
-      {mainChat && !hide.has("this") && (
-        <MenuItem title={`${item.what}を「${chatTitle(mainChat.title)}」の入力欄に足す`} onSelect={pick(() => handOffToThisChat(item, mainChat))}>
-          <AddToChat size={14} /> このチャットに追加
-        </MenuItem>
-      )}
-      {canChild && !hide.has("child") && (
-        <MenuItem title={`${item.what}を入れた新しい子チャット（「${chatTitle(mainChat.title)}」の子）を右の欄に開く`} onSelect={pick(() => handOffToChild(item, mainChat))}>
-          <MessageSquarePlus size={14} /> 新しい子チャットで聞く
-        </MenuItem>
-      )}
-      {!hide.has("other") && <OtherChatTargets item={item} except={mainChat?.id ?? null} onPick={onPick} />}
-    </>
-  );
+  const mainChat = useKnownChat(mainChatId ?? 0) ?? null;
+  return visibleHandOffTargets(handOffTargets.items(), item, mainChat).map((target) => {
+    const Icon = TARGET_ICONS[target.id];
+    if (target.pickChat) return <OtherChatTargets key={target.id} target={target} item={item} mainChat={mainChat} onPick={onPick} />;
+    return (
+      <MenuItem
+        key={target.id}
+        title={target.title(item, mainChat)}
+        onSelect={() => {
+          void target.run(item, mainChat);
+          onPick?.();
+        }}
+      >
+        <Icon size={14} /> {target.label(mainChat)}
+      </MenuItem>
+    );
+  });
 }
 
 /** 「ほかのチャットに追加 ▸」（このプロジェクトの最近動いたチャットから選ぶ。足す先のチャットがなければ「チャットに追加 ▸」） */
-function OtherChatTargets({ item, except, onPick }: { item: HandOffItem; except: number | null; onPick?: () => void }) {
+function OtherChatTargets({ target, item, mainChat, onPick }: { target: HandOffTarget; item: HandOffItem; mainChat: Chat | null; onPick?: () => void }) {
   const { chats } = useChats({ projectId: item.projectId });
-  const choices = chats.filter((c) => c.id !== except && c.archived_at === null).slice(0, CHAT_CHOICES);
+  const choices = chats.filter((c) => c.id !== mainChat?.id && c.archived_at === null).slice(0, CHAT_CHOICES);
   const chatMenu = useSubmenu();
-  const label = except === null ? "チャットに追加" : "ほかのチャットに追加";
+  const label = target.label(mainChat) ?? "";
   if (choices.length === 0) {
     return (
       <MenuItem disabled title="このプロジェクトに足せるチャットがありません" onSelect={() => {}}>
@@ -111,7 +99,7 @@ function OtherChatTargets({ item, except, onPick }: { item: HandOffItem; except:
     );
   }
   const pick = (chat: Chat) => {
-    void handOffToOtherChat(item, chat);
+    void target.run(item, chat);
     onPick?.();
   };
   return (
@@ -123,7 +111,7 @@ function OtherChatTargets({ item, except, onPick }: { item: HandOffItem; except:
       {chatMenu.anchor && (
         <MenuFlyout anchor={chatMenu.anchor} label={label} onBack={chatMenu.back}>
           {choices.map((c) => (
-            <MenuItem key={c.id} title={`${item.what}を「${chatTitle(c.title)}」の入力欄に足す（画面は移らず、開いていなければ書きかけに足して知らせる）`} onSelect={() => pick(c)}>
+            <MenuItem key={c.id} title={target.title(item, c)} onSelect={() => pick(c)}>
               {chatTitle(c.title)}
             </MenuItem>
           ))}

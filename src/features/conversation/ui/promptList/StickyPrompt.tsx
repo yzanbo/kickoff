@@ -7,7 +7,7 @@ import { storage } from "@/features/conversation/ui/storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
+import { AttachmentPeek } from "@/features/attachments/ui";
 import { ChatDisplayItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import { COMPACT_PROMPT_KINDS } from "@/features/compact/ui/compactPromptKinds";
 import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";

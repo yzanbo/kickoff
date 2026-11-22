@@ -9,7 +9,7 @@ import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui";
 import { cx } from "@/foundation/ui/lib/cx";
-import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
+import { AttachmentPeek } from "@/features/attachments/ui";
 import { HandBackFromChip } from "@/features/childChats/ui";
 import { useQueueActions } from "./queueContext";
 import { askHandlersOf, groupActionsOf, rowActionsOf } from "./queueOps";

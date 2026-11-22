@@ -5,7 +5,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { isLocalImagePath, remoteImageOf, type RemoteImage } from "@shared/remoteImages/remoteImages";
 import { api } from "@/foundation/ui/api";
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/foundation/ui/kit/markdown/markdownImages";
-import { useAttachmentViewer } from "@/features/attachments/ui/useAttachmentViewer";
+import { useAttachmentViewer } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui/screen/pastWorkplace";
 import { useAllowedHosts } from "./imageHosts";
 import { hostGroupOf, type ImageHostGroup } from "./imageGroups";

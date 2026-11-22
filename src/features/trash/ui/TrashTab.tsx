@@ -1,6 +1,6 @@
 import { Bot, File, Folder, FolderGit2, GitBranch, History, MessageSquare, RotateCcw, Trash2, User } from "lucide-react";
 import type { TrashItem } from "@shared/trash/types";
-import { formatSize } from "@shared/attachments/truncate";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { useProjectTrash } from "@/features/trash/ui/stores/trash";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { open } from "@/foundation/ui/navigation/open";
@@ -97,7 +97,7 @@ export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: strin
             </span>
           )}
           <span title={new Date(item.trashed_at).toLocaleString()}>{formatDayTime(item.trashed_at)}</span>
-          {item.size !== null && <span>{formatSize(item.size)}</span>}
+          {item.size !== null && <span>{formatBytes(item.size)}</span>}
           <span className="trash-row-remaining" title={`${new Date(item.expires_at).toLocaleString()} に消えます`}>
             {remainingText(item.expires_at)}
           </span>

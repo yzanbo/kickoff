@@ -2,7 +2,7 @@
 export { voiceReplies } from "./selectors";
 export { SendCancelled } from "./useComposerSend";
 export { useChatSend } from "./send/chatSend";
-export { appendToDraft, startComposerDrafts } from "./addToChat";
+export { appendToDraft, startComposerDrafts } from "./appendToDraft";
 export { appendDraft, chatComposerDraft, memoryDraft, settingDraft, type ComposerDraft } from "./composerDraft";
 export { focusComposer, focusDraft, useComposerInsert } from "./composerFields";
 export { composerPills, composerSlots, loadComposerSlots, type ComposerBandProps, type ComposerPillProps, type ComposerPlace, type ComposerVoiceHooks, type ComposerVoiceModeInput, type FieldBridge, type FieldVoice, type FieldVoiceMode } from "./composerSlots";

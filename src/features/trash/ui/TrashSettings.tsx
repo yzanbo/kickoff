@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FolderGit2 } from "lucide-react";
 import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupDays, type TrashItem } from "@shared/trash/types";
-import { formatSize } from "@shared/attachments/truncate";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { api } from "@/foundation/ui/api";
 import { useTrashedProjects, useUnassignedTrash } from "@/features/trash/ui/stores/trash";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -111,7 +111,7 @@ function ArchiveCleanup() {
         </Field>
         <div className="archive-cleanup-result">
           <span className="muted">
-            {count === null ? "数えています…" : count === 0 ? "当てはまるチャットはありません" : `${count} 件${size ? `（会話の記録 ${formatSize(size)}）` : ""}`}
+            {count === null ? "数えています…" : count === 0 ? "当てはまるチャットはありません" : `${count} 件${size ? `（会話の記録 ${formatBytes(size)}）` : ""}`}
           </span>
           <button type="button" className="btn btn-danger" data-size="sm" disabled={!count || busy !== null} onClick={() => void clean()}>
             ゴミ箱に入れる

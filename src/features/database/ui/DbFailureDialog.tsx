@@ -13,8 +13,7 @@ import { prompt } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
-import { HandOffButton } from "@/features/attachments/ui/handoff/HandOffMenu";
+import { type HandOffItem, HandOffButton } from "@/features/attachments/ui";
 
 /** 失敗の文から見分けた種類と、よくある原因（接続のダイアログの「つながるか試す」と、つながらないときの案内で共通） */
 export function DbFailureHelp({ error }: { error: string }) {

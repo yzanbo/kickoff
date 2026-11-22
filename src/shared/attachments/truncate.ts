@@ -1,3 +1,5 @@
+import { formatBytes } from "@shared/foundation/text/bytes";
+
 /** 切り詰めた結果（text は切ったあとの文。originalSize は切る前の UTF-8 のバイト数） */
 export interface Truncated {
   text: string;
@@ -7,14 +9,7 @@ export interface Truncated {
 
 /** 頭と終わりの間に入れる印（どれだけ省いたかを AI と利用者に伝える） */
 function cutMark(omitted: number): string {
-  return `\n\n…（ここで ${formatSize(omitted)} を省きました）…\n\n`;
-}
-
-/** バイト数を読みやすく（1.2 MB など） */
-export function formatSize(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `\n\n…（ここで ${formatBytes(omitted)} を省きました）…\n\n`;
 }
 
 /** UTF-8 の続きのバイト（文字の途中）か */

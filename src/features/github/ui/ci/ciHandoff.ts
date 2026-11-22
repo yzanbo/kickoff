@@ -7,7 +7,7 @@ import { open } from "@/foundation/ui/navigation/open";
 import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
+import type { HandOffItem } from "@/features/attachments/ui";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import { appendToDraft } from "@/features/composer/ui";
 import { ciCaptureName, ciFailedDocument, ciFixText, ciHandOffText, ciLinkOf, runName } from "./ciView";

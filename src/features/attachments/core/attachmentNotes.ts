@@ -1,6 +1,6 @@
 // 送るときに AI へ書き添える、添付の見出し（種類・出どころ・取った時刻・パス。中身は書かず、Read ツールで読んでもらう）
-import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
-import { formatSize } from "@shared/attachments/truncate";
+import { ATTACHMENT_SOURCE_LOOKS } from "@shared/attachments/sources";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import type { CaptureAttachment, NoteAttachment } from "@shared/chat/types";
 
 /** ノートの写しの見出し（読むのは写し。頼まれたら元のノートを書き換える） */
@@ -22,11 +22,11 @@ export function formatTakenAt(iso: string): string {
 
 /** 「AI に渡す」で取ったもの 1 つの行（出どころ・取った時刻・元のリンク・外から来たか・伏せた数・切ったか） */
 export function captureLine(file: string, a: CaptureAttachment): string {
-  const parts = [`${ATTACHMENT_SOURCE_LABELS[a.source.type]}「${a.source.label}」を ${formatTakenAt(a.taken_at)} に取ったもの`];
+  const parts = [`${ATTACHMENT_SOURCE_LOOKS[a.source.type].label}「${a.source.label}」を ${formatTakenAt(a.taken_at)} に取ったもの`];
   if (a.source.url) parts.push(`元: ${a.source.url}`);
-  if (isExternalSource(a.source.type)) parts.push(EXTERNAL_NOTE);
+  if (ATTACHMENT_SOURCE_LOOKS[a.source.type].external) parts.push(EXTERNAL_NOTE);
   if (a.redacted > 0) parts.push(`鍵らしい値を ${a.redacted} か所伏せました`);
-  if (a.truncated) parts.push(`大きすぎたので頭と終わりだけ残しました（元は ${formatSize(a.original_size)}）`);
+  if (a.truncated) parts.push(`大きすぎたので頭と終わりだけ残しました（元は ${formatBytes(a.original_size)}）`);
   return `- ${file}（${parts.join("。")}）`;
 }
 

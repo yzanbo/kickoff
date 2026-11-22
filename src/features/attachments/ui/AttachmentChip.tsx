@@ -1,15 +1,15 @@
 import { StickyNote } from "lucide-react";
 import type { Attachment, NoteAttachment } from "@shared/chat/types";
 import { attachmentUrl } from "@/foundation/ui/api";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { useOptionalChatScreen } from "@/features/chat/ui";
-import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
+import { open } from "@/foundation/ui/navigation/open";
+import { knownChat, useOptionalChatScreen } from "@/features/chat/ui";
 import type { ViewerImage } from "@/foundation/ui/kit/imageViewer/ImageViewer";
-import { baseName, formatBytes } from "@/foundation/ui/lib/format";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { formatDayTime } from "@/foundation/ui/lib/time";
+import { cx } from "@/foundation/ui/lib/cx";
+import { AttachmentCard } from "./AttachmentCard";
+import { ATTACHMENT_CARDS, type ChipAttachment, type FileChip } from "./attachmentCards";
 import { CaptureAttachmentChip } from "./CaptureAttachmentChip";
-import { fileKindLabel, noteSubline } from "./chipLabels";
 import { useAttachmentViewer } from "./useAttachmentViewer";
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
@@ -22,12 +22,9 @@ export function viewerImagesOf(attachments: Attachment[]): ViewerImage[] {
   return attachments.filter((a) => isPreviewable(a.mime)).map((a) => ({ src: attachmentUrl(a), name: a.name }));
 }
 
-/** 札に出す添付（保存した添付か、アップロード中のファイル。アップロード中は種類も ID もまだない） */
-export type ChipAttachment = Attachment | { kind?: undefined; id?: string; name: string; mime: string; size: number };
-
 /**
  * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイルの種類のアイコンと名前・種類・大きさ / ノート / 「AI に渡す」で取ったもの）。
- * どれも同じ形の札（左に角丸のアイコンの地、右に名前と 2 行目。styles/chat/attachments.css）。
+ * どれも同じ骨組みの札（AttachmentCard）で、文は種類ごとの表（ATTACHMENT_CARDS）から。
  * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
  */
 export function AttachmentChip({
@@ -57,7 +54,7 @@ function FileAttachmentChip({
   onRemove,
   siblings,
 }: {
-  attachment: { id?: string; name: string; mime: string; size: number };
+  attachment: FileChip;
   siblings?: Attachment[];
   previewUrl?: string;
   uploading?: boolean;
@@ -70,45 +67,27 @@ function FileAttachmentChip({
   const at = siblingImages.findIndex((image) => image.src === src);
   const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name }] : []);
   const index = Math.max(0, at);
-  const kind = fileKindLabel(attachment.name);
-  const body = (
-    <>
-      {isImage && src ? (
-        <img className="attachment-thumb" src={src} alt="" loading="lazy" />
-      ) : (
-        <span className="attachment-icon">
-          <FileIcon name={attachment.name} />
-        </span>
-      )}
-      <span className="attachment-meta">
-        <span className="attachment-name">{attachment.name}</span>
-        <span className="attachment-sub">{uploading ? "アップロード中…" : [kind, formatBytes(attachment.size)].filter(Boolean).join(" · ")}</span>
-      </span>
-    </>
-  );
+  const text = ATTACHMENT_CARDS.file(attachment, { clock: formatDayTime, uploading });
   return (
-    <span className={`attachment file-attachment ${uploading ? "uploading" : ""}`} title={attachment.name}>
-      {isImage && src ? (
-        <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`}
-          onClick={() => viewer.open(index)}
-          onContextMenu={(e) => viewer.menu(e, index)}
-        >
-          {body}
-        </button>
-      ) : attachment.id && !onRemove ? (
-        <a className="attachment-link" href={attachmentUrl({ id: attachment.id, mime: attachment.mime })} download={attachment.name}>
-          {body}
-        </a>
-      ) : (
-        <span className="attachment-link">{body}</span>
-      )}
-      {onRemove && (
-        <button type="button" className="chip-remove" aria-label={`${attachment.name} を外す`} onClick={onRemove}>
-          ×
-        </button>
-      )}
+    <AttachmentCard
+      className={cx("file-attachment", uploading && "uploading")}
+      title={text.title}
+      thumb={isImage && src ? { src, lazy: true } : undefined}
+      icon={<FileIcon name={attachment.name} />}
+      name={text.name}
+      sub={text.sub}
+      open={
+        isImage && src
+          ? { kind: "button", className: "attachment-open", tip: "大きく表示", label: `${attachment.name} を大きく表示`, onClick: () => viewer.open(index), onContextMenu: (e) => viewer.menu(e, index) }
+          : attachment.id && !onRemove
+            ? { kind: "download", href: attachmentUrl({ id: attachment.id, mime: attachment.mime }), download: attachment.name }
+            : undefined
+      }
+      onRemove={onRemove}
+      removeLabel={`${attachment.name} を外す`}
+    >
       {viewer.element}
-    </span>
+    </AttachmentCard>
   );
 }
 
@@ -133,34 +112,20 @@ export function AttachmentChips({ attachments, onRemove }: { attachments: Attach
  * 送った発言の中では押すとそのノートを開く（設定の開き方。チャットの画面の中だけ）
  */
 function NoteAttachmentChip({ attachment, onRemove }: { attachment: NoteAttachment; onRemove?: () => void }) {
-  const { note, taken_at } = attachment;
+  const { note } = attachment;
   const screen = useOptionalChatScreen();
   const chat = screen && !onRemove ? knownChat(screen.chatId) : undefined;
-  const body = (
-    <>
-      <span className="attachment-icon">
-        <StickyNote size={18} aria-hidden />
-      </span>
-      <span className="attachment-meta">
-        <span className="attachment-name">{baseName(note)}</span>
-        <span className="attachment-sub">{noteSubline(note, taken_at, formatDayTime)}</span>
-      </span>
-    </>
-  );
+  const text = ATTACHMENT_CARDS.note(attachment, { clock: formatDayTime });
   return (
-    <span className="attachment note-attachment" title={`ノート: ${note}\n${formatDayTime(taken_at)} に付けたときの中身を渡します（頼めば元のノートを書き換えます）`}>
-      {chat ? (
-        <button type="button" className="attachment-link" aria-label={`ノート「${note}」を開く`} onClick={() => openNoteFromChat({ projectId: chat.project_id, path: note, chatId: chat.id })}>
-          {body}
-        </button>
-      ) : (
-        <span className="attachment-link">{body}</span>
-      )}
-      {onRemove && (
-        <button type="button" className="chip-remove" aria-label={`ノート「${note}」を外す`} onClick={onRemove}>
-          ×
-        </button>
-      )}
-    </span>
+    <AttachmentCard
+      className="note-attachment"
+      title={text.title}
+      icon={<StickyNote size={18} aria-hidden />}
+      name={text.name}
+      sub={text.sub}
+      open={chat ? { kind: "button", label: `ノート「${note}」を開く`, onClick: () => open({ kind: "note", projectId: chat.project_id, path: note }, { fromChatId: chat.id }) } : undefined}
+      onRemove={onRemove}
+      removeLabel={`ノート「${note}」を外す`}
+    />
   );
 }

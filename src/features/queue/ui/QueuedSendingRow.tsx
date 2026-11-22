@@ -1,6 +1,6 @@
 import type { QueuedMessage } from "@shared/chat/types";
 import { relayOf } from "@shared/chat/prompts";
-import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
+import { AttachmentPeek } from "@/features/attachments/ui";
 
 /**
  * 送った指示の「送信中」の行（いちばん上。useSendingQueued）。チャット欄（流れ）にその発言が出たら消える。

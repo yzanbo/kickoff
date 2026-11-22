@@ -2,7 +2,7 @@ import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { QueuedMessage } from "@shared/chat/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { chatQueueApi, useActionButton, useOptionalChatScreen } from "@/features/chat/ui";
-import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
+import { AttachmentChips } from "@/features/attachments/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CompactPromptMark } from "./CompactPromptMark";
 import { startHeldEdit, useHeldEdit } from "./heldEdit";

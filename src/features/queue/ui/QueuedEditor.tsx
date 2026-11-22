@@ -2,7 +2,7 @@ import { Check, SendHorizontal, X } from "lucide-react";
 import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
+import { AttachmentChips } from "@/features/attachments/ui";
 import { AttachButton, MessageField, PendingFileChips, PLAIN_SUBMIT, useDraftFiles, useMessageField } from "@/features/composer/ui";
 
 /**

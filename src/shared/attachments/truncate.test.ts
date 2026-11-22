@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { formatSize, truncateText } from "./truncate";
+import { truncateText } from "./truncate";
 
 const size = (s: string) => new TextEncoder().encode(s).byteLength;
 
@@ -30,10 +30,4 @@ test("truncateText: 文字の途中では切らない", () => {
   const result = truncateText("あ".repeat(1000), 301);
   assert.ok(!result.text.includes("\uFFFD"));
   assert.ok(size(result.text) <= 301);
-});
-
-test("formatSize", () => {
-  assert.equal(formatSize(10), "10 B");
-  assert.equal(formatSize(2048), "2.0 KB");
-  assert.equal(formatSize(45 * 1024 * 1024), "45.0 MB");
 });

@@ -1,7 +1,7 @@
 import { Wrench } from "lucide-react";
 import type { CiRun } from "@shared/github/ciTypes";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { HandOffButton } from "@/features/attachments/ui/handoff/HandOffMenu";
+import { HandOffButton } from "@/features/attachments/ui";
 import { ciHandOffItem, fixCiRun } from "./ciHandoff";
 
 /**

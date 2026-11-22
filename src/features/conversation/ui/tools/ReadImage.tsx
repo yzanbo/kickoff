@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
-import { formatBytes } from "@/foundation/ui/lib/format";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
-import { useAttachmentViewer } from "@/features/attachments/ui/useAttachmentViewer";
+import { useAttachmentViewer } from "@/features/attachments/ui";
 import { usePastWorkplaceAt } from "@/features/chat/ui/screen/pastWorkplace";
 import { readImageHeight, readImageKey, rememberReadImageHeight } from "./readImageHeights";
 

@@ -5,7 +5,7 @@ import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { appendDraft, chatComposerDraft, forgetChatDraft, memoryDraft } from "./composerDraft";
-import { appendToDraft } from "./addToChat";
+import { appendToDraft } from "./appendToDraft";
 
 installMemoryStorage();
 

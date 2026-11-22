@@ -3,7 +3,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
-import { formatBytes } from "@/foundation/ui/lib/format";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 
 /**

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { OrphanSession } from "@shared/trash/types";
-import { formatSize } from "@shared/attachments/truncate";
+import { formatBytes } from "@shared/foundation/text/bytes";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -33,7 +33,7 @@ export function OrphanSessions() {
   const trash = () =>
     run("trash", async () => {
       const ok = await confirm({
-        title: `会話記録 ${picked.size} 件（${formatSize(pickedSize)}）をゴミ箱に入れますか？`,
+        title: `会話記録 ${picked.size} 件（${formatBytes(pickedSize)}）をゴミ箱に入れますか？`,
         message: "3 日はゴミ箱から戻せ、3 日たつと本当に消えます。ターミナルで直接使った Claude Code の記録も一覧に出るので、続けたいものは選ばないでください。",
         confirmLabel: "ゴミ箱に入れる",
         danger: true,
@@ -59,7 +59,7 @@ export function OrphanSessions() {
           <Search size={14} aria-hidden />
           {busy === "search" ? "探しています…" : list ? "探し直す" : "探す"}
         </button>
-        {list && <span className="muted small">{list.length === 0 ? "見つかりませんでした" : `${list.length} 件・合計 ${formatSize(total)}`}</span>}
+        {list && <span className="muted small">{list.length === 0 ? "見つかりませんでした" : `${list.length} 件・合計 ${formatBytes(total)}`}</span>}
         {list && list.length > 0 && (
           <>
             <button type="button" className="link-button" onClick={() => setPicked(picked.size === list.length ? new Set() : new Set(list.map((s) => s.session_id)))}>
@@ -72,11 +72,11 @@ export function OrphanSessions() {
                 title="チャットの名前付け・要約など、Kickoff が 1 回だけ問い合わせたときの記録です（前の版が残したもので、続けることはありません）"
                 onClick={() => setPicked(new Set(asks.map((s) => s.session_id)))}
               >
-                Kickoff の問い合わせの記録を選ぶ（{asks.length} 件・{formatSize(asks.reduce((sum, s) => sum + s.size, 0))}）
+                Kickoff の問い合わせの記録を選ぶ（{asks.length} 件・{formatBytes(asks.reduce((sum, s) => sum + s.size, 0))}）
               </button>
             )}
             <button type="button" className="btn btn-danger" data-size="sm" disabled={picked.size === 0 || busy !== null} onClick={() => void trash()}>
-              選んだ {picked.size} 件{picked.size > 0 ? `（${formatSize(pickedSize)}）` : ""}をゴミ箱に入れる
+              選んだ {picked.size} 件{picked.size > 0 ? `（${formatBytes(pickedSize)}）` : ""}をゴミ箱に入れる
             </button>
           </>
         )}
@@ -95,7 +95,7 @@ export function OrphanSessions() {
                   </span>
                   <span className="muted small orphan-session-meta">
                     <span title={new Date(s.modified_at).toLocaleString()}>{formatDayTime(s.modified_at)}</span>
-                    <span>{formatSize(s.size)}</span>
+                    <span>{formatBytes(s.size)}</span>
                     <span className="orphan-session-cwd" title={s.cwd ?? undefined}>
                       {s.cwd ?? "作業フォルダ不明"}
                     </span>
