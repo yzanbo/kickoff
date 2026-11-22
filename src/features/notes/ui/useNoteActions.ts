@@ -6,12 +6,12 @@ import { notesStore } from "@/features/notes/ui/stores/notes";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { isUnder, remapPrefix } from "@shared/foundation/path";
+import { remapPrefix } from "@shared/foundation/path";
 import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "./notePaths";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
-import { notePanelKeys } from "./notePanel";
-import { mapTabs, noteTab } from "@/features/panel/ui";
+import { movedNoteTab } from "./notePanel";
+import { mapTabs } from "@/features/panel/ui";
 
 /** 新しく作るノート・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。ノートは頭に作った日の日付を付ける（datedNoteName） */
 const UNTITLED_NOTE = "無題のノート";
@@ -220,8 +220,8 @@ export function followMovedNote(projectId: number, from: string, to: string) {
   const selected = readSetting(storage.settings.selected(projectId));
   if (selected) writeSetting(storage.settings.selected(projectId), remapPrefix(selected, from, to));
   writeSetting(storage.settings.openFolders(projectId), [...new Set([...remapPaths(readSetting(storage.settings.openFolders(projectId)), from, to), ...ancestorsOf(to)])]);
-  // ノートのタブの右で開いているタブも付け替える
-  mapTabs("note", (t) => (isUnder(t.path, from) ? noteTab({ chatId: null, projectId, path: remapPrefix(t.path, from, to) }) : t), notePanelKeys(projectId));
+  // 開いているタブも付け替える（ノートのタブの右・右サイドバー・チャットの右の欄）
+  mapTabs("note", movedNoteTab(projectId, from, to));
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */

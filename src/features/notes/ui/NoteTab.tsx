@@ -27,7 +27,7 @@ import { NoteListMenu, type NoteMenuTarget } from "./NoteListMenu";
 import { noteListDropProps } from "./noteDrag";
 import { NoteTree, type NoteRenaming } from "./NoteTree";
 import { confirmLeaveNotesUnder } from "./noteGuards";
-import { notePanelKey, notePanelKeys, openNoteInPanel } from "./notePanel";
+import { notePanelKey, openNoteInPanel, trashedNoteTab } from "./notePanel";
 import { requestNoteReveal } from "./noteReveal";
 import { NotePlanDialog } from "./NotePlanDialog";
 import { followMovedNote, useNoteActions } from "./useNoteActions";
@@ -149,7 +149,7 @@ export function NoteTab({
     beforeChange: (path) => confirmLeaveNotesUnder(projectId, path),
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
-      mapTabs("note", (t) => (isUnder(t.path, path) ? null : t), notePanelKeys(projectId));
+      mapTabs("note", trashedNoteTab(projectId, path));
       // まとめてゴミ箱に入れると続けて呼ばれるので、いま覚えている値から外す
       setOpenList(readSetting(storage.settings.openFolders(projectId)).filter((p) => !isUnder(p, path)));
     },
