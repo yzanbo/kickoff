@@ -1,9 +1,7 @@
-import type { Chat } from "@shared/chat/types";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { singlePane, type PaneLayout } from "@/features/panel/ui/layout/paneTree";
 import { addTabBehind, closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/ui/layout/paneLayout";
-import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "@/features/chatPanel/ui/state/linkedTabs";
-import type { AnySurface, SurfaceExt } from "@/features/panel/ui/surface";
+import type { AnySurface } from "@/features/panel/ui/surface";
 
 /**
  * 1 つの欄のパネルの状態（欄・画面ごとに 1 つ。店（panelStore.ts）が覚える）: タブ・分割の配置（いつもタブにそろえておく）・開いているか・
@@ -127,29 +125,17 @@ export function panelReducer(state: PanelState, action: PanelAction, surface: An
       const layout = action.change(state.layout);
       return layout === state.layout ? state : { ...state, layout };
     }
-    case "sync":
-      return surface?.ext?.sync?.(state, action.input) ?? state;
+    case "sync": {
+      const next = surface?.ext?.sync?.(state.tabs, state.ext, action.input);
+      if (!next || next.tabs === state.tabs) return !next || next.ext === state.ext ? state : { ...state, ext: next.ext };
+      const keys = next.tabs.map((t) => t.key);
+      const kept = new Set(keys);
+      const gone = state.tabs.flatMap((t) => (kept.has(t.key) ? [] : [t.key]));
+      // 外れたタブは閉じたときと同じく隣のタブを表示し、足したタブは一覧のペインへ（分けたペインには自動で足さない。1 つのタブを見せるために分けたペインに、ほかのタブが流れ込まないように）
+      return { ...state, tabs: next.tabs, ext: next.ext, layout: reconcileLayout(closeLayoutTabs(state.layout, gone), keys) };
+    }
     case "setOpen":
       return state.open === action.open ? state : { ...state, open: action.open };
   }
 }
 
-/**
- * チャットのパネルの連動（サイドバーに出ているチャットのタブをそろえる。チャットのパネルの欄の ext）。
- * 覚えるのは、連動したチャット・× で閉じたチャット・一覧にないのに自分で開いたチャット（chatPanel の linkedTabs.ts）
- */
-export const linkedChatsExt: SurfaceExt<LinkState> = {
-  initial: NO_LINKS,
-  onOpen: (links, tab) => (tab.kind === "chat" ? openedLinks(links, tab.id) : links),
-  onClose: (links, closed, dismiss) => closedLinks(links, closed.flatMap((t) => (t.kind === "chat" ? [t.id] : [])), dismiss),
-  linked: (links, tab) => tab.kind === "chat" && links.linked.includes(tab.id),
-  sync: (state, input) => {
-    const next = syncLinkedTabs(state.tabs, input as readonly Chat[], state.ext);
-    if (next.tabs === state.tabs) return next.links === state.ext ? state : { ...state, ext: next.links };
-    const keys = next.tabs.map((t) => t.key);
-    const kept = new Set(keys);
-    const gone = state.tabs.flatMap((t) => (kept.has(t.key) ? [] : [t.key]));
-    // 外れたタブは閉じたときと同じく隣のタブを表示し、足したタブは一覧のペインへ（分けたペインには自動で足さない。1 つのタブを見せるために分けたペインに、ほかのチャットが流れ込まないように）
-    return { ...state, tabs: next.tabs, ext: next.links, layout: reconcileLayout(closeLayoutTabs(state.layout, gone), keys) };
-  },
-};

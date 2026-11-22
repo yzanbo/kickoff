@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
-import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
+import { closedLinks, linkedChatsExt, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 const chatTab = (id: number): PanelTab => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
@@ -51,4 +51,23 @@ test("サイドバーとの連動: 開いたチャットは表示だけ消した
 test("サイドバーとの連動: 利用者が閉じたサイドバーのチャットだけ覚え、アーカイブ・削除のあと（dismiss: false）は覚えない", () => {
   assert.deepEqual(closedLinks(links([1, 2], [], [7]), [1, 7], true), links([1, 2], [1], []));
   assert.deepEqual(closedLinks(links([1, 2]), [1], false), links([1, 2]));
+});
+
+test("チャットのパネルの欄の連動: 一覧にないのに開いたチャットは閉じるまで残し、表示だけ消していたチャットはまた出す", () => {
+  const synced = linkedChatsExt.sync!([], NO_LINKS, [makeChat(1)]);
+  const dismissed = linkedChatsExt.onClose!(synced.ext, [chatTab(1)], true);
+  assert.deepEqual(dismissed.dismissed, [1]);
+  const reopened = linkedChatsExt.onOpen!(linkedChatsExt.onOpen!(dismissed, chatTab(1)), chatTab(5));
+  assert.deepEqual(reopened.dismissed, []);
+  assert.deepEqual(reopened.extra, [5]);
+  assert.ok(linkedChatsExt.linked!(reopened, chatTab(1)) && !linkedChatsExt.linked!(reopened, chatTab(5)) && !linkedChatsExt.linked!(reopened, browser));
+});
+
+test("チャットのパネルの欄の連動: 利用者が閉じたチャットは覚えて出し直さず、アーカイブ・削除のあと（dismiss: false）は覚えない", () => {
+  const s = linkedChatsExt.sync!([], NO_LINKS, [makeChat(1), makeChat(2)]);
+  assert.deepEqual(ids(s.tabs), ["chat:1", "chat:2"]);
+  assert.deepEqual(linkedChatsExt.onClose!(s.ext, [chatTab(1)], false).dismissed, []);
+  const closed = linkedChatsExt.onClose!(s.ext, [chatTab(1)], true);
+  const again = linkedChatsExt.sync!([chatTab(2)], closed, [makeChat(1), makeChat(2)]);
+  assert.deepEqual(ids(again.tabs), ["chat:2"]);
 });

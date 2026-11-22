@@ -14,8 +14,8 @@
 
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
-- チャットのタブは、サイドバーに出ているチャット（`useLinkedChats`）に、一覧が届いてから `syncLinkedTabs` でそろえる。
-- 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は `linkedChatsExt` の `sync` のコメント）。
+- チャットのタブは、サイドバーに出ているチャット（欄の `useChats` = `useLinkedTabs`）に、一覧が届いてから欄の ext `linkedChatsExt` でそろえる。
+- 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は panel の reducer の `"sync"` のコメント）。
 - 表示だけ消したタブは `dismissed` に覚えて出し直さず、一覧にないのに開いたチャットは `extra` で残す。アーカイブ・削除のあとは覚えない。
 - 一覧のペインのタブはサイドバーと同じ並び（`orderLikeSidebar`）で、落とすと手動の並びを変える。アーカイブ済みはタブの列だけの設定 `chatPanel:show-archived`。
 

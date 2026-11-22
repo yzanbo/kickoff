@@ -5,7 +5,6 @@ import type { ComponentType, ReactNode } from "react";
 import { definePoint } from "@/foundation/ui/points";
 import type { SettingFamily } from "@/foundation/ui/storage";
 import type { PanelTab } from "./tabs/panelTypes";
-import type { PanelState } from "./state/panelState";
 import type { PaneLeaf } from "./layout/paneTree";
 import type { TabGroupLookup } from "./kind";
 import type { PanelController } from "./usePanel";
@@ -73,8 +72,11 @@ export interface SurfaceExt<E> {
   onOpen?(ext: E, tab: PanelTab): E;
   /** タブを閉じたとき（dismiss: 利用者が閉じた） */
   onClose?(ext: E, closed: readonly PanelTab[], dismiss: boolean): E;
-  /** 状態をそろえる（reducer の "sync" はこれを呼ぶ。input は欄の持ち主が決める） */
-  sync?(state: PanelState<E>, input: unknown): PanelState<E>;
+  /**
+   * タブをそろえる（reducer の "sync" はこれを呼ぶ。input は欄の持ち主が決める）。変わらなければ同じ配列を返す。
+   * 配置は reducer がそろえる（外れたタブは閉じたときと同じく隣を表示し、足したタブは一覧のペインへ）
+   */
+  sync?(tabs: readonly PanelTab[], ext: E, input: unknown): { tabs: readonly PanelTab[]; ext: E };
   /** ペインを閉じても閉じずに一覧のペインへ戻すタブか（サイドバーと連動したチャット） */
   linked?(ext: E, tab: PanelTab): boolean;
 }
@@ -132,6 +134,11 @@ export interface SurfaceSpec<E = unknown> {
   slide?: boolean;
   /** 欄の持ち主だけが読む値（サイドバーとの連動。なければチャットのタブをサイドバーの一覧にそろえない） */
   ext?: SurfaceExt<E>;
+  /**
+   * 欄のチャットのタブのチャットを読む hook（チャットを出す欄の持ち主が渡す。タブのチャットの状態・まとまりの数もこれで数え、連動するならタブもそろえる）。
+   * usePanel が欄ごとに 1 つだけ呼ぶ（欄は描いている間に変わらない）。なければチャットを読まない
+   */
+  useChats?(key: string, scope: PanelScope): PanelController["chats"];
 }
 
 /** タブに出す項目とグループの引き方（並べ方が決める。なければどの項目も出し、グループは付けない） */

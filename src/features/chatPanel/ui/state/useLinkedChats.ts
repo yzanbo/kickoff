@@ -28,12 +28,11 @@ export function useLinkedChats(scope: PanelScope, enabled = true): { chats: Chat
 
 /**
  * 欄のチャットのタブを、サイドバーの一覧にそろえる（一覧が届いてから。チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する）。
- * サイドバーに出ているチャットを返す（タブのチャットの状態・まとまりの数もこれで数える）。
- * チャットを隠している欄（enabled でない）では、読まず・そろえない（隠したチャットのタブは閉じずにそのまま残し、表示に戻したらそろえる）。
+ * サイドバーに出ているチャットを返す（タブのチャットの状態・まとまりの数もこれで数える。欄の決まりの useChats）。
  * sync でなければ読むだけでそろえない（チャットの別ウィンドウ）
  */
-export function useLinkedTabs(key: string, scope: PanelScope, enabled: boolean, sync = true): Chat[] {
-  const { chats, loaded } = useLinkedChats(scope, enabled);
+export function useLinkedTabs(key: string, scope: PanelScope, sync = true): Chat[] {
+  const { chats, loaded } = useLinkedChats(scope);
   useEffect(() => {
     if (loaded && sync) syncPanel(key, chats);
   }, [key, chats, loaded, sync]);

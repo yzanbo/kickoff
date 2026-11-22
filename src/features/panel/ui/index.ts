@@ -5,14 +5,13 @@ export type { PanelTab, TerminalTarget } from "./tabs/panelTypes";
 export type { PaneLeaf, SplitDir } from "./layout/paneTree";
 export { isTabVisible, paneOfTab } from "./layout/paneTree";
 export { forwardPanelOp } from "./state/panelMirror";
-export type { DraftScope, PanelScope, PanelSurface, StripProps, TabLook, ViewScope } from "./surface";
+export type { DraftScope, PanelScope, PanelSurface, StripProps, SurfaceExt, TabLook, ViewScope } from "./surface";
 export type { PanelController } from "./usePanel";
 export { Panel } from "./Panel";
 export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
 export { defineSurface, draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
-export { linkedChatsExt } from "./state/panelState";
 export { defineTabKind, panelTabs, type TabFaceProps, type TabMenuProps, type TabPageProps } from "./kind";
 export { panelScreen, projectOfPanel } from "./surfaces";
 export {

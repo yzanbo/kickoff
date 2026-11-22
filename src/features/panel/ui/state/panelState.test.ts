@@ -4,19 +4,33 @@ import { makeChat } from "@shared/foundation/testing/factories";
 import { FIRST_PANE, leavesOf, type PaneNode } from "@/features/panel/ui/layout/paneTree";
 import { splitPane } from "@/features/panel/ui/layout/paneLayout";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { defineSurface } from "@/features/panel/ui/surface";
-import { emptyPanel as empty, isLinkedTab, linkedChatsExt, panelReducer, type PanelAction, type PanelState } from "./panelState";
+import { defineSurface, type SurfaceExt } from "@/features/panel/ui/surface";
+import { emptyPanel as empty, isLinkedTab, panelReducer, type PanelAction, type PanelState } from "./panelState";
 
 const chatTab = (id: number): Extract<PanelTab, { kind: "chat" }> => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
 const newTab = (key: string): PanelTab => ({ key, kind: "new" });
 const terminal = (key: string): PanelTab => ({ key, kind: "terminal", cwd: "/tmp", label: "tmp", projectId: 1 });
 
-/** チャットのパネルと同じ欄（サイドバーと連動する。whenEmpty は最後のタブを閉じたときに欄も閉じるか） */
-const board = (whenEmpty: "close" | "keep" = "close") => defineSurface({ id: "kanban", accepts: ["chat"], closeOnEsc: false, whenEmpty, ext: linkedChatsExt });
+/**
+ * 連動の仕組みを確かめる ext（sync の input のチャットの ID にチャットのタブをそろえ、そのタブを連動したタブとする。
+ * チャットのパネルの連動の中身は chatPanel の linkedTabs.ts で確かめる）
+ */
+const linkExt: SurfaceExt<readonly number[]> = {
+  initial: [],
+  linked: (ids, tab) => tab.kind === "chat" && ids.includes(tab.id),
+  sync: (tabs, ids, input) => {
+    const want = input as readonly number[];
+    const kept = tabs.filter((t) => t.kind !== "chat" || want.includes(t.id));
+    const added = want.filter((id) => !kept.some((t) => t.kind === "chat" && t.id === id)).map(chatTab);
+    const same = ids.length === want.length && ids.every((id, i) => id === want[i]);
+    return { tabs: kept.length === tabs.length && added.length === 0 ? tabs : [...kept, ...added], ext: same ? ids : want };
+  },
+};
+
+/** チャットのパネルのような連動する欄（whenEmpty は最後のタブを閉じたときに欄も閉じるか） */
+const board = (whenEmpty: "close" | "keep" = "close") => defineSurface({ id: "kanban", accepts: ["chat"], closeOnEsc: false, whenEmpty, ext: linkExt });
 const emptyPanel = (tabs: readonly PanelTab[] = []) => empty(board(), tabs);
 const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, board()), state);
-/** 連動の覚え（チャットのパネルの欄の ext） */
-const links = (s: PanelState) => s.ext as { linked: number[]; dismissed: number[]; extra: number[] };
 
 /** 木を読みやすい文字列にする（ペインのタブ・表示中のタブ） */
 function shape(node: PaneNode): string {
@@ -50,15 +64,6 @@ test("open: もう開いていたタブは中身をそのままにし、reopen �
   assert.deepEqual(s1.tabs[0], { ...loaded, focus: 42 });
 });
 
-test("open: サイドバーの一覧にないチャットは閉じるまで残し、表示だけ消していたチャットはまた出す", () => {
-  const synced = run(emptyPanel(), { type: "sync", input: [makeChat(1)] }, { type: "close", keys: ["chat:1"], dismiss: true });
-  assert.deepEqual(links(synced).dismissed, [1]);
-  const reopened = run(synced, { type: "open", tab: chatTab(1) }, { type: "open", tab: chatTab(5) });
-  assert.deepEqual(links(reopened).dismissed, []);
-  assert.deepEqual(links(reopened).extra, [5]);
-  assert.ok(isLinkedTab(reopened, "chat:1", board()) && !isLinkedTab(reopened, "chat:5", board()));
-});
-
 test("show: 開いているタブを表示して欄を開く。ないタブなら同じ状態", () => {
   const s = run(emptyPanel([chatTab(1), chatTab(2)]), { type: "show", key: "chat:2" });
   assert.equal(shape(s.layout.root), `${FIRST_PANE}[chat:1,*chat:2]`);
@@ -84,7 +89,7 @@ test("replace: 送った新しいチャットのタブを、同じペインの�
 });
 
 test("replace: 連動で先に足されていた同じチャットのタブは、置き換えるタブ 1 つにまとめる（送った直後にサーバーの知らせが先に届いたとき）", () => {
-  const s = run(emptyPanel([chatTab(1), newTab("new:a")]), { type: "show", key: "new:a" }, { type: "sync", input: [makeChat(1), makeChat(9)] });
+  const s = run(emptyPanel([chatTab(1), newTab("new:a")]), { type: "show", key: "new:a" }, { type: "sync", input: [1, 9] });
   assert.deepEqual(keys(s), ["chat:1", "new:a", "chat:9"]);
   const next = run(s, { type: "replace", key: "new:a", tab: chatTab(9) });
   assert.deepEqual(keys(next), ["chat:1", "chat:9"]);
@@ -102,17 +107,9 @@ test("close: 表示中のタブを閉じたら隣のタブへ。タブがなく�
   assert.equal(run(s, { type: "close", keys: ["zzz"], dismiss: true }), s);
 });
 
-test("close: 利用者が閉じたサイドバーのチャットは覚え、アーカイブ・削除のあと（dismiss: false）は覚えない", () => {
-  const s = run(emptyPanel(), { type: "sync", input: [makeChat(1), makeChat(2)] });
-  assert.deepEqual(links(run(s, { type: "close", keys: ["chat:1"], dismiss: true })).dismissed, [1]);
-  assert.deepEqual(links(run(s, { type: "close", keys: ["chat:1"], dismiss: false })).dismissed, []);
-  // 表示だけ消したチャットは、連動でまた足さない
-  const closed = run(s, { type: "close", keys: ["chat:1"], dismiss: true }, { type: "sync", input: [makeChat(1), makeChat(2)] });
-  assert.deepEqual(keys(closed), ["chat:2"]);
-});
-
-test("closePane: サイドバーと連動したチャットは一覧のペインへ戻し、ほかのタブは閉じる", () => {
-  const s = run(emptyPanel([terminal("terminal:a")]), { type: "sync", input: [makeChat(1), makeChat(2)] });
+test("closePane: 連動したタブは一覧のペインへ戻し、ほかのタブは閉じる", () => {
+  const s = run(emptyPanel([terminal("terminal:a")]), { type: "sync", input: [1, 2] });
+  assert.ok(isLinkedTab(s, "chat:1", board()) && !isLinkedTab(s, "terminal:a", board()));
   const split = run(s, { type: "layout", change: (l) => splitPane(l, FIRST_PANE, "row", "after", "p1", "chat:2") }, { type: "open", tab: terminal("terminal:b") });
   assert.equal(shape(split.layout.root), `row(${FIRST_PANE}[*terminal:a,chat:1] p1[chat:2,*terminal:b])`);
   const closed = run(split, { type: "closePane", paneId: "p1" });
@@ -122,17 +119,17 @@ test("closePane: サイドバーと連動したチャットは一覧のペイン
   assert.equal(run(closed, { type: "closePane", paneId: FIRST_PANE }), closed);
 });
 
-test("sync: 一覧に入ったチャットは一覧のペインへ（ピントのある分けたペインには足さない）。外れたチャットのタブは閉じる", () => {
-  const s = run(emptyPanel([chatTab(1), terminal("terminal:a")]), { type: "sync", input: [makeChat(1)] });
+test("sync: 足したタブは一覧のペインへ（ピントのある分けたペインには足さない）。外れたタブは閉じる", () => {
+  const s = run(emptyPanel([chatTab(1), terminal("terminal:a")]), { type: "sync", input: [1] });
   const split = run(s, { type: "layout", change: (l) => splitPane(l, FIRST_PANE, "row", "after", "p1", "terminal:a") });
   assert.equal(split.layout.focused, "p1");
-  const added = run(split, { type: "sync", input: [makeChat(1), makeChat(3)] });
+  const added = run(split, { type: "sync", input: [1, 3] });
   assert.equal(shape(added.layout.root), `row(${FIRST_PANE}[*chat:1,chat:3] p1[*terminal:a])`);
-  const removed = run(added, { type: "sync", input: [makeChat(3)] });
+  const removed = run(added, { type: "sync", input: [3] });
   assert.deepEqual(keys(removed), ["terminal:a", "chat:3"]);
   assert.equal(leavesOf(removed.layout.root).length, 2);
   // 変わらなければ同じ状態
-  assert.equal(run(removed, { type: "sync", input: [makeChat(3)] }), removed);
+  assert.equal(run(removed, { type: "sync", input: [3] }), removed);
 });
 
 test("setOpen: 開く・閉じる（変わらなければ同じ状態）", () => {

@@ -4,8 +4,6 @@ import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
 import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/state/panelStore";
-import { useLinkedTabs } from "@/features/chatPanel/ui/state/useLinkedChats";
-import { projectOfPanel } from "./surfaces";
 import { panelKey, type PanelScope, type PanelSurface } from "./surface";
 import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
@@ -53,6 +51,10 @@ function panelOps(key: string) {
   };
 }
 
+/** チャットを読まない欄のチャット（いつも同じ空の配列） */
+const NO_CHATS: Chat[] = [];
+const useNoChats = (): Chat[] => NO_CHATS;
+
 /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの。チャットのタブでなければ undefined） */
 export const tabChat = (tab: PanelTab | undefined, chats: readonly Chat[]): Chat | undefined =>
   tab?.kind === "chat" ? (chats.find((r) => r.id === tab.id) ?? tab.chat) : undefined;
@@ -71,11 +73,10 @@ export function usePanel(surface: PanelSurface, scope: PanelScope) {
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
   useMountedPanel(key);
-  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを出さない欄では読まず、タブもそろえない）。
-  // チャットの別ウィンドウは、そのプロジェクトのチャットを読むだけで、タブはそろえない（移したチャットだけを並べる）
   const rules = surfaceOf(surface);
-  const unlinked = rules?.ext === undefined;
-  const chats = useLinkedTabs(key, unlinked ? (projectOfPanel(key) ?? scope) : scope, rules?.accepts.includes("chat") === true, !unlinked);
+  // 欄のチャット（欄の決まりの useChats。チャットを出さない欄では読まない。欄は描いている間に変わらないので、呼ぶ hook も変わらない）
+  const useChats = rules?.useChats ?? useNoChats;
+  const chats: Chat[] = useChats(key, scope);
   const actions = useMemo(() => panelOps(key), [key]);
   const pageOps = useMemo<PanelPageOps>(
     () => ({

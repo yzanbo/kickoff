@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { chatTab } from "@/features/panel/ui";
+import { chatTab, type SurfaceExt } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /** サイドバーと連動したチャットのタブの覚え（パネルごと） */
@@ -55,3 +55,18 @@ export function syncLinkedTabs(tabs: readonly PanelTab[], linked: readonly Chat[
   const same = nextLinked === links.linked && extra.length === links.extra.length && nextDismissed.length === links.dismissed.length;
   return { tabs: nextTabs, links: same ? links : { linked: nextLinked, dismissed: nextDismissed, extra } };
 }
+
+/**
+ * チャットのパネルの連動（サイドバーに出ているチャットのタブをそろえる。チャットのパネルの欄の ext）。
+ * 覚えるのは、連動したチャット・× で閉じたチャット・一覧にないのに自分で開いたチャット
+ */
+export const linkedChatsExt: SurfaceExt<LinkState> = {
+  initial: NO_LINKS,
+  onOpen: (links, tab) => (tab.kind === "chat" ? openedLinks(links, tab.id) : links),
+  onClose: (links, closed, dismiss) => closedLinks(links, closed.flatMap((t) => (t.kind === "chat" ? [t.id] : [])), dismiss),
+  linked: (links, tab) => tab.kind === "chat" && links.linked.includes(tab.id),
+  sync: (tabs, links, input) => {
+    const next = syncLinkedTabs(tabs, input as readonly Chat[], links);
+    return { tabs: next.tabs, ext: next.links };
+  },
+};
