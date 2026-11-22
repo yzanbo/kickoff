@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { ancestorsOf, rootChatOf } from "@/features/childChats/ui/childChats";
+import { ancestorsOf, rootChatOf } from "@/features/chat/ui";
 
 /**
  * 子チャットの行をサイドバーの行に重ねたときの扱い（子チャットを親から外す）:

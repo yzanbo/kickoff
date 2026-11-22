@@ -4,6 +4,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentInfo, BackgroundState } from "@shared/ai/turnEvents";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
 import { subagentAskers } from "@shared/chat/subagentState";
+import { ancestors } from "@shared/foundation/tree";
 import { defineChatSelector, latestOf, memoLast, relativeOf, useChatOf, type ChatSource } from "@/features/chat/ui";
 import { useProjects } from "@/features/projects/ui";
 import { subagentTree, type SubagentTree } from "./model/subagentTree";
@@ -41,13 +42,14 @@ function subagentEntries(events: ChatEvent[], progress: Record<string, SubagentI
 function bubbleProgress(entries: SubagentEntry[]): SubagentEntry[] {
   const byKey = new Map(entries.map((s) => [s.key, s]));
   for (const s of entries) {
-    let up = s.parentKey;
-    for (let depth = 0; up !== undefined && s.lastActivityAt !== undefined && depth < 32; depth++) {
+    if (s.lastActivityAt === undefined) continue;
+    // 祖先は作り直した行で引く（1 つの祖先に、子孫の動きを順に重ねる）。たどるのはキー
+    const ups = ancestors(s.key, (key) => byKey.get(key)?.parentKey);
+    for (const up of ups) {
       const ancestor = byKey.get(up);
-      if (!ancestor) break;
+      if (!ancestor) continue;
       const at = latestOf(ancestor.lastActivityAt, s.lastActivityAt);
       if (at !== ancestor.lastActivityAt) byKey.set(up, { ...ancestor, lastActivityAt: at });
-      up = ancestor.parentKey;
     }
   }
   return entries.map((s) => byKey.get(s.key) ?? s);

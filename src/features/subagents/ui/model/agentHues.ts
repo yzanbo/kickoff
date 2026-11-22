@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { ancestors } from "@shared/foundation/tree";
 
 /**
  * サブエージェントの色の順（色相）。続けて起動したものどうしが似た色にならないよう、離れた色を交互に並べる
@@ -15,17 +16,8 @@ const AGENT_HUES = [222, 135, 292, 48, 172, 330, 262, 200, 28, 0] as const;
 export function agentHues(entries: readonly Pick<SubagentEntry, "key" | "parentKey">[]): ReadonlyMap<string, number> {
   const byKey = new Map(entries.map((e) => [e.key, e]));
   // いちばん外側の祖先（輪になっていても止まる）
-  const rootOf = (entry: Pick<SubagentEntry, "key" | "parentKey">) => {
-    let current = entry;
-    const seen = new Set<string>();
-    while (current.parentKey !== undefined && !seen.has(current.key)) {
-      seen.add(current.key);
-      const parent = byKey.get(current.parentKey);
-      if (!parent) break;
-      current = parent;
-    }
-    return current.key;
-  };
+  const rootOf = (entry: Pick<SubagentEntry, "key" | "parentKey">) =>
+    (ancestors(entry, (e) => (e.parentKey === undefined ? undefined : byKey.get(e.parentKey)), { max: Infinity })[0] ?? entry).key;
   const rootHues = new Map<string, number>();
   const hues = new Map<string, number>();
   for (const entry of entries) {

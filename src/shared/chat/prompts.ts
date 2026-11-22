@@ -87,6 +87,9 @@ export function subagentAskOf(message: string): { name: string; text: string } |
   return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };
 }
 
+/** 文がサブエージェントへの追加の指示か（relayMessage で作った文。宛先は問わない） */
+export const isRelayMessage = (message: string): boolean => message.startsWith(RELAY_HEAD);
+
 /** 文がサブエージェントへの追加の指示なら、宛先の名前と本文（違えば undefined。送信待ちの行で、AI への前置きを隠して見せる） */
 export function relayOf(message: string): { name: string; text: string } | undefined {
   if (!message.startsWith(RELAY_HEAD)) return undefined;

@@ -1,8 +1,6 @@
 import { MessagesSquare } from "lucide-react";
 import { createdChatIdOf } from "@shared/chat/aiCreateChat";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { openChat } from "@/features/chat/ui";
+import { useKnownChat, chatTitle, openChat } from "@/features/chat/ui";
 
 /**
  * チャットのツールの行を開いた中身（AI がチャットを作るツール create_chat）: 送った依頼の全文と、

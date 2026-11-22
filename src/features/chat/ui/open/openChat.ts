@@ -1,6 +1,6 @@
 // チャットを開く（子チャットは設定の開き方（右の欄 / 別ウィンドウ）、親のないチャットはチャットのパネル）。右の欄は、いちばん上の親のチャットの画面の右の欄（孫・ひ孫も同じ欄に並べる）。
 // 新しい子チャットで聞く（openAskChild）もここ。子チャットから親へは childChats の askChild.ts
-import type { Chat } from "@shared/chat/types";
+import type { Attachment, Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
@@ -11,7 +11,17 @@ import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { isScreenShown } from "@/features/chat/ui/screen/chatScreens";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
-import { rootChatOf, type AskChildTarget } from "@/features/childChats/ui/childChats";
+import { rootChatOf } from "@/features/chat/ui/state/descendants";
+
+/** 子チャットで聞くときに渡すもの（どのチャットの、どの記録から、どの文を。openAskChild） */
+export interface AskChildTarget {
+  parentId: number;
+  eventId: number | null;
+  quote: string;
+  /** 入力欄に初めに入れる文と添付（「AI に渡す」の「子チャットで聞く」） */
+  text?: string;
+  attachments?: Attachment[];
+}
 
 /** 別ウィンドウの中か（右の欄はメインのウィンドウにだけあるので、メインに知らせて開く） */
 const inPopout = () => parsePopout(location.hash) !== undefined;

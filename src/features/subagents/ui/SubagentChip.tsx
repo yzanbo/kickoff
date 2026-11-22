@@ -1,34 +1,26 @@
-import { Archive, ArchiveRestore, Bot } from "lucide-react";
-import { useMemo, type CSSProperties } from "react";
+import { Bot } from "lucide-react";
+import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LABELS, type EffortLevel } from "@shared/settings/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentState } from "@shared/chat/subagentState";
 import { confirm } from "@/foundation/ui/kit/ask";
-import { cx } from "@/foundation/ui/lib/cx";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { storage } from "./storage";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
-import { canPopout } from "@/foundation/ui/navigation/popout";
-import { DefaultOpenPlace, OpenPlaceButtons, type OpenPlace } from "@/features/chat/ui/parts/OpenPlaceControls";
 import { modelDisplayName } from "@/features/ai/ui/options/models";
 import { SubagentStatusText } from "./SubagentStatusText";
 import { activityOf, activityText, stalledAgents } from "@/features/chat/ui/state/stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
-import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
-import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
-import { useSubagentNav } from "@/features/chat/ui";
+import { AgentListChip, placesOf, summaryState, usePlaceCaps, useSubagentNav, type AgentListRow, type OpenPlace } from "@/features/chat/ui";
 import { flattenTree, subagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentHues } from "@/features/subagents/ui/model/agentHues";
 import { useSubagentsView } from "./subagentsContext";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
-import { summaryState } from "@/features/chat/ui/state/chatState";
 
 /**
  * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
@@ -37,25 +29,19 @@ import { summaryState } from "@/features/chat/ui/state/chatState";
  */
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
-  const { open, setOpen } = popover;
   const nav = useSubagentNav();
-  /** 設定の開き方（流れの中のカード / 右の欄 / 別ウィンドウ）で開き、一覧を閉じる（key = 一覧の行のキー） */
-  const openRow = (key: string) => {
-    nav.open(key);
-    setOpen(false);
-  };
   // 開ける場所（右の欄はパネルの中のチャットだけ、別ウィンドウは Mac のアプリだけ）と、行を押したときの既定（設定）
-  const places: OpenPlace[] = ["inline", ...(nav.canOpenSide ? (["side"] as const) : []), ...(canPopout() ? (["window"] as const) : [])];
+  const places = placesOf(usePlaceCaps(), { inline: true });
   const [openIn, setOpenIn] = useSetting(SUBAGENT_OPEN_IN);
-  /** 行のボタン: 設定によらず、その場所に開く */
-  const openAt = (key: string, place: OpenPlace) => {
-    if (place === "window") nav.openWindow(key);
+  /** 行を押した: place がなければ設定の開き方（流れの中のカード / 右の欄 / 別ウィンドウ）、あれば設定によらずその場所に開く */
+  const openRow = (key: string, place?: OpenPlace) => {
+    if (place === undefined) nav.open(key);
+    else if (place === "window") nav.openWindow(key);
     else if (place === "side") nav.openSide(key);
     else nav.reveal(key);
-    setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）
-  useTicker(open ? TICK_ACTIVITY : null);
+  useTicker(popover.open ? TICK_ACTIVITY : null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archivedKeys, saveArchived] = useSetting(storage.settings.archived(chat.id));
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
@@ -67,8 +53,6 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   if (entries.length === 0) return null;
   // 新しいものを上に（入れ子は親のすぐ下に、起動した順で）
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
-  // アーカイブしたものの数（すべてアーカイブ済みならピルにこの数を出す。一覧の行は開いているときだけ作る）
-  const hiddenCount = entries.length - visible.length;
   // 状態（チャットと同じ 5 つと細かい様子。印・数はすべてこれから決める）
   const states = visible.map((s) => subagentState(s, waiting?.has(s.key)));
   const count = (match: (st: SubagentState) => boolean) => states.filter(match).length;
@@ -99,94 +83,62 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
     saveArchived(archivedKeys.filter((k) => k !== key));
   };
 
-  const renderRow = (s: SubagentEntry, isArchived: boolean, depth = 0) => {
+  const rowOf = (s: SubagentEntry, isArchived: boolean, depth = 0): AgentListRow => {
     const meta = [
       s.subagentType ?? "general-purpose",
       modelDisplayName(models, s.model ?? chat.model),
       s.model ? null : chat.effort ? EFFORT_LABELS[chat.effort as EffortLevel] : null,
       s.tokens !== undefined ? `${formatTokens(s.tokens)} tokens` : null,
     ].filter(Boolean);
-    return (
-      <div
-        key={s.key}
-        role="button"
-        tabIndex={0}
-        className={cx("subagent-row tree-indent", isArchived && "archived")}
-        style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
-        onClick={() => openRow(s.key)}
-        onKeyDown={(e) => {
-          // 行そのものにピントがあるときだけ（中のボタンの Enter・Space はそのボタンのもの）。Space で下へ流れないようにする
-          if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
-          e.preventDefault();
-          openRow(s.key);
-        }}
-      >
-        <span className={`subagent-icon ${s.status === "running" ? "spinning" : ""}`}>
-          <ClaudeMark size={16} />
-        </span>
-        <span className="subagent-text">
-          <span className="subagent-title">
-            <span className="agent-dot" aria-hidden />
-            {s.description}
-          </span>
-          <span className="subagent-meta">
-            {meta.join(" · ")}
-            <SubagentStatusText entry={s} prefix=" · " />
-            {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
-            {s.status === "running" && <ActivityNote entry={s} />}
-          </span>
-          {!isArchived && (
-            <SubagentActions
-              chatId={chat.id}
-              entry={s}
-              busy={busy}
-              onOpen={(key) => {
-                if (entries.some((x) => x.key === key)) openRow(key);
-              }}
-            />
-          )}
-        </span>
-        <OpenPlaceButtons places={places} onOpen={(place) => openAt(s.key, place)} />
-        {isArchived ? (
-          <IconButton
-            icon={ArchiveRestore}
-            label={`${s.description} を一覧に戻す`}
-            title="一覧に戻す"
-            className="subagent-row-action"
-            type="button"
-            onClick={(e) => (e.stopPropagation(), void restore(s.key))}
-          />
-        ) : (
-          s.status !== "running" && (
-            <IconButton
-              icon={Archive}
-              label={`${s.description} をアーカイブ`}
-              title="アーカイブ"
-              className="subagent-row-action"
-              type="button"
-              onClick={(e) => (e.stopPropagation(), void archive([s.key]))}
-            />
-          )
-        )}
-      </div>
-    );
+    return {
+      key: s.key,
+      name: s.description,
+      icon: <ClaudeMark size={16} />,
+      spinning: s.status === "running",
+      title: (
+        <>
+          <span className="agent-dot" aria-hidden />
+          {s.description}
+        </>
+      ),
+      meta: (
+        <>
+          {meta.join(" · ")}
+          <SubagentStatusText entry={s} prefix=" · " />
+          {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
+          {s.status === "running" && <ActivityNote entry={s} />}
+        </>
+      ),
+      below: (
+        <SubagentActions
+          chatId={chat.id}
+          entry={s}
+          busy={busy}
+          onOpen={(key) => {
+            if (entries.some((x) => x.key === key)) {
+              popover.close();
+              openRow(key);
+            }
+          }}
+        />
+      ),
+      depth,
+      hue: hues.get(s.key) ?? 0,
+      archived: isArchived,
+      canArchive: s.status !== "running",
+    };
   };
 
   return (
-    // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
-    <ComposerChip
+    <AgentListChip
+      noun="サブエージェント"
+      icon={Bot}
       popover={popover}
-      chip={
+      shown={visible.length}
+      archivedCount={entries.length - visible.length}
+      mark={summaryState(states.map((st) => st.state))}
+      details={
         <>
-          {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
-          {visible.length > 0 && <StatusSlot {...summaryState(states.map((st) => st.state))} />}
-          {/* 狭い所でアイコンと数だけにするときの、サブエージェントの印（ふだんは出さない） */}
-          <Bot size={14} className="chip-icon chip-short-icon" aria-hidden />
-          <span>
-            <ChipWord>{visible.length > 0 ? "サブエージェント " : "アーカイブ済みのサブエージェント "}</ChipWord>
-            {visible.length > 0 ? visible.length : hiddenCount}
-            <ChipWord> 件</ChipWord>
-          </span>
           {needsInput > 0 && <span className="chip-needs-input chip-detail"> · {needsInput} 件回答待ち</span>}
           {running > 0 && <span className="chip-running chip-detail"> · {running} 件作業中</span>}
           {stalled > 0 && <span className="chip-network chip-detail"> · {stalled} 件動きなし</span>}
@@ -196,31 +148,23 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           {undelivered > 0 && <span className="chip-network chip-detail"> · {undelivered} 件届かず</span>}
         </>
       }
-      label="サブエージェント"
-      ignore="dialog"
-    >
-      {() => {
-        // 一覧の行（木・アーカイブ済み・完了したもの）は開いているときだけ作る
-        const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
-        const hidden = entries.filter((s) => archived.has(s.key)).reverse();
-        const finished = visible.filter((s) => s.status !== "running");
-        return (
-          <>
-            {places.length > 1 && <DefaultOpenPlace places={places} value={places.includes(openIn) ? openIn : places[0]} onChange={setOpenIn} />}
-            <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
-              <Archive size={15} aria-hidden />
-              完了したサブエージェントをアーカイブ
-              {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
-            </button>
-            {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
-            {rows.map((r) => renderRow(r.entry, false, r.depth))}
-            <ArchivedFold place="composer" foldKey="subagents" count={hidden.length} className="composer-archived">
-              {hidden.map((s) => renderRow(s, true))}
-            </ArchivedFold>
-          </>
-        );
-      }}
-    </ComposerChip>
+      // 一覧の行（木・アーカイブ済み・完了したもの）は開いているときだけ作る
+      list={() => ({
+        rows: flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key)))).map((r) => rowOf(r.entry, false, r.depth)),
+        archived: entries
+          .filter((s) => archived.has(s.key))
+          .reverse()
+          .map((s) => rowOf(s, true)),
+        finished: visible.filter((s) => s.status !== "running").map((s) => s.key),
+      })}
+      places={places}
+      openIn={openIn}
+      onOpenIn={setOpenIn}
+      onOpen={openRow}
+      onArchive={(keys) => void archive(keys)}
+      onRestore={(key) => void restore(key)}
+      foldKey="subagents"
+    />
   );
 }
 

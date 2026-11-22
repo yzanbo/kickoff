@@ -3,9 +3,7 @@ import { closeChatWithChoice } from "@/features/chat/ui/closeChat";
 import { ChildChatBar } from "@/features/childChats/ui/ChildChatBar";
 import { PopoutDockButton } from "@/foundation/ui/navigation/PopoutDockButton";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
-import { useChatOf } from "@/features/chat/ui";
-import { rootChatOf } from "@/features/childChats/ui/childChats";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
+import { useChatOf, rootChatOf, knownChat } from "@/features/chat/ui";
 import { SideScope } from "@/features/conversation/ui/SideScope";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 

@@ -2,10 +2,9 @@ import { MessagesSquare } from "lucide-react";
 import type { HandoffFrom } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { useKnownChat, openChat } from "@/features/chat/ui";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
-import { openChat } from "@/features/chat/ui";
 
 /**
  * 子チャットから渡した依頼の出どころの札「子チャット『…』から」（入力欄の上・送った発言の下・送信待ちの行で同じ形）。押すとその子チャットを開く

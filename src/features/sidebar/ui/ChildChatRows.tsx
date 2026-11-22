@@ -1,15 +1,16 @@
 import { MessagesSquare } from "lucide-react";
-import { STATE_LOOKS } from "@shared/chat/stateLooks";
+import { STATE_LOOKS, summarizeStates } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { CHILD_STATE_MARKS, childStateCounts } from "@/features/childChats/ui/childChats";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { useChatStates, descendantStates, StatusSlot } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFold } from "@/foundation/ui/hooks/useFold";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
+
+/** 開閉の行に数を出す、子孫の状態（印を出す順。既読は数えず、どれも 0 なら出さない） */
+const CHILD_STATE_MARKS = ["needs_input", "failed", "unread", "running"] as const;
 
 /**
  * サイドバーの親のチャットの下の子チャット（フォルダと同じく開閉する。初めは閉じる）。開閉の行に子の数と、子孫（孫・ひ孫も）の様子を、行の先頭と同じ状態の印と数で出す
@@ -38,7 +39,7 @@ export function ChildChatRows({
   const onlyArchived = split[0].length === 0;
   const [active, archived] = onlyArchived ? [kids, []] : split;
   // 子孫の状態ごとの数（アーカイブ済みは数えない。親ごとアーカイブしたときは数える）。閉じていても印で知らせる
-  const counts = childStateCounts(parentId, childrenOf, stateOf, { withArchived: parentArchived || onlyArchived });
+  const { counts } = summarizeStates(descendantStates(parentId, (id) => childrenOf.get(id), stateOf, { withArchived: parentArchived || onlyArchived }));
   const marks = CHILD_STATE_MARKS.filter((state) => counts[state] > 0);
   const summary = marks.map((state) => `${STATE_LOOKS[state].label} ${counts[state]}`).join("・");
   return (

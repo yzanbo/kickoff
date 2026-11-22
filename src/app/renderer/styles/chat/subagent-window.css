@@ -60,8 +60,8 @@
   font-size: var(--chat-fs-12);
 }
 
-/* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--hue は SubagentChip・回答待ちのカードの ApprovalFrom が入れる） */
-.subagent-row .agent-dot,
+/* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--hue は AgentListChip・回答待ちのカードの ApprovalFrom が入れる） */
+.agent-list-row .agent-dot,
 .approval-from .agent-dot {
   display: inline-block;
   width: 8px;
@@ -71,6 +71,6 @@
   background: hsl(var(--hue, 25) var(--hue-fg));
 }
 
-.subagent-row .agent-dot {
+.agent-list-row .agent-dot {
   margin-right: 6px;
 }

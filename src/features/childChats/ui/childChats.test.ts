@@ -1,37 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
-import { ancestorsOf, childActivityOf, childStateCounts, descendantRows, handBackText, rootChatOf } from "./childChats";
+import type { AgentState } from "@shared/chat/types";
+import { childActivityOf, descendantRows, handBackText } from "./childChats";
 
 test("handBackText: どの子チャットの答えかを添えて、答えを引用にする（空行も引用の中に残す）", () => {
   assert.equal(handBackText({ title: "違い" }, "A です。\n\nB です。\n"), "子チャット「違い」の答え:\n> A です。\n>\n> B です。\n\n");
   assert.equal(handBackText({ title: "" }, "x"), "子チャット「Untitled Chat」の答え:\n> x\n\n");
 });
 
-test("rootChatOf: 親をたどって、いちばん上のチャットを返す（親が分からなければそこまで・輪でも止まる）", () => {
-  const chats = new Map([
-    [1, { id: 1, parent_chat_id: null }],
-    [2, { id: 2, parent_chat_id: 1 }],
-    [3, { id: 3, parent_chat_id: 2 }],
-    [4, { id: 4, parent_chat_id: 99 }],
-    [5, { id: 5, parent_chat_id: 6 }],
-    [6, { id: 6, parent_chat_id: 5 }],
-  ]);
-  const lookup = (id: number) => chats.get(id);
-  assert.equal(rootChatOf(chats.get(3)!, lookup).id, 1);
-  assert.equal(rootChatOf(chats.get(1)!, lookup).id, 1);
-  assert.equal(rootChatOf(chats.get(4)!, lookup).id, 4);
-  assert.ok([5, 6].includes(rootChatOf(chats.get(5)!, lookup).id));
-  // 祖先は根 → 親の順（親のないチャットは空・分からない親の手前まで・輪でも止まる）
-  const ids = (id: number) => ancestorsOf(chats.get(id)!, lookup).map((c) => c.id);
-  assert.deepEqual(ids(3), [1, 2]);
-  assert.deepEqual(ids(1), []);
-  assert.deepEqual(ids(4), []);
-  assert.deepEqual(ids(5), [6]);
-});
-
 test("childActivityOf: 子孫と、その中の作業中・回答待ちを数え、回答待ちがあれば回答待ちにする（アーカイブ済みとその下は数えない）", () => {
-  const states = new Map<number, string>([
+  const states = new Map<number, AgentState>([
     [2, "running"],
     [3, "read"],
     [4, "running"],
@@ -55,28 +34,6 @@ test("childActivityOf: 子孫と、その中の作業中・回答待ちを数え
   states.set(4, "running");
   states.set(3, "needs_input");
   assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "needs_input", count: 3, total: 3 });
-});
-
-test("childStateCounts: 子孫を状態ごとに数える（既読は数えず、アーカイブ済みとその下は withArchived のときだけ）", () => {
-  const states = new Map<number, string>([
-    [2, "running"],
-    [3, "read"],
-    [4, "unread"],
-    [5, "needs_input"],
-    [6, "failed"],
-    [7, "running"],
-  ]);
-  const childrenOf = new Map([
-    [1, [makeChat(2, { parent_chat_id: 1 }), makeChat(3, { parent_chat_id: 1 }), makeChat(5, { parent_chat_id: 1, archived_at: "2026-11-11T00:00:00Z" })]],
-    [3, [makeChat(4, { parent_chat_id: 3 }), makeChat(7, { parent_chat_id: 3 })]],
-    [5, [makeChat(6, { parent_chat_id: 5 })]],
-    // 輪になっていても止まる
-    [7, [makeChat(1, { parent_chat_id: 7 })]],
-  ]);
-  const stateOf = (c: { id: number }) => states.get(c.id) ?? "read";
-  assert.deepEqual(childStateCounts(1, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 1, running: 2 });
-  assert.deepEqual(childStateCounts(1, childrenOf, stateOf, { withArchived: true }), { needs_input: 1, failed: 1, unread: 1, running: 2 });
-  assert.deepEqual(childStateCounts(2, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 0, running: 0 });
 });
 
 test("descendantRows: 子の下に孫が続く順に並べ、兄弟は最後に動いた順・深さを添える（アーカイブ済みとその下・輪は入れない）", () => {

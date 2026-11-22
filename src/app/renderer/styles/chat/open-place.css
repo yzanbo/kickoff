@@ -13,8 +13,8 @@
   color: var(--extra-muted);
 }
 
-/* サブエージェントの行: アーカイブのボタンはボタンの組のすぐ右 */
-.subagent-row .open-place-buttons + .subagent-row-action {
+/* 一覧の行: アーカイブのボタンはボタンの組のすぐ右 */
+.agent-list-row .open-place-buttons + .agent-list-row-action {
   margin-left: 0;
 }
 

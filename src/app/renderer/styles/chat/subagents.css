@@ -88,12 +88,12 @@
   overflow-y: auto;
 }
 
-.subagent-row {
+.agent-list-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   width: 100%;
-  /* 入れ子は親のすぐ下に字下げして並べる（--depth は SubagentChip が深さで入れる） */
+  /* 入れ子は親のすぐ下に字下げして並べる（--depth は AgentListChip が深さで入れる） */
   padding: 8px 10px 8px var(--tree-left);
   --tree-pad: 10px;
   --tree-indent: 18px;
@@ -106,32 +106,32 @@
   cursor: pointer;
 }
 
-.subagent-row:hover {
+.agent-list-row:hover {
   background: var(--bg-hover);
 }
 
-.subagent-row.archived {
+.agent-list-row.archived {
   opacity: 0.55;
 }
 
-/* サブエージェントの行の右端のアーカイブ・戻す（いつも薄い色で出し、乗せたら濃くする） */
-.subagent-row-action {
+/* 一覧の行（サブエージェント・子チャット。AgentListChip）の右端のアーカイブ・戻す（いつも薄い色で出し、乗せたら濃くする） */
+.agent-list-row-action {
   flex: none;
   align-self: center;
   margin-left: auto;
 }
 
 /* 操作が続けて並ぶとき（アーカイブ・削除）は、右へ寄せるのを最初の 1 つだけに */
-.subagent-row-action + .subagent-row-action {
+.agent-list-row-action + .agent-list-row-action {
   margin-left: 0;
 }
 
-.subagent-row-action:not(:hover) {
+.agent-list-row-action:not(:hover) {
   color: var(--extra-muted);
 }
 
 /* 一覧の上: 完了したものをまとめてアーカイブ */
-.subagent-archive-all {
+.agent-list-archive-all {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -149,11 +149,11 @@
   cursor: pointer;
 }
 
-.subagent-archive-all:hover:not(:disabled) {
+.agent-list-archive-all:hover:not(:disabled) {
   background: var(--bg-hover);
 }
 
-.subagent-archive-all:disabled {
+.agent-list-archive-all:disabled {
   color: var(--muted);
   cursor: default;
 }
@@ -170,11 +170,11 @@
   font-size: var(--chat-fs-12);
 }
 
-.subagent-empty {
+.agent-list-empty {
   margin: 8px 12px;
 }
 
-.subagent-icon {
+.agent-icon {
   display: grid;
   flex: none;
   place-items: center;
@@ -183,25 +183,25 @@
 }
 
 /* 動いている間は作業中の色で回す（ほかの回る印と同じ色） */
-.subagent-icon.spinning {
+.agent-icon.spinning {
   color: var(--dot-running);
   animation: spin 2.4s linear infinite;
 }
 
-.subagent-text {
+.agent-list-text {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.subagent-title {
+.agent-list-title {
   overflow: hidden;
   font-size: var(--chat-fs-14);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.subagent-meta {
+.agent-list-meta {
   overflow: hidden;
   font-size: var(--chat-fs-12);
   color: var(--muted);
@@ -255,7 +255,7 @@
   font-size: var(--chat-fs-12);
 }
 
-.subagent-text .subagent-recovery {
+.agent-list-text .subagent-recovery {
   margin-top: 6px;
 }
 

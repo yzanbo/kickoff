@@ -1,13 +1,10 @@
 import type { CSSProperties, RefObject } from "react";
 import type { Chat } from "@shared/chat/types";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { useChildChats } from "@/features/chat/ui/store/knownChats";
+import { useChildChats, chatTitle, ChatStateMark, openChat } from "@/features/chat/ui";
 import { Popover } from "@/foundation/ui/kit/Popover";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { ChatStateMark } from "@/features/chat/ui";
 import { ChildDepthMark } from "./ChildDepthMark";
 import { descendantRows } from "./childChats";
-import { openChat } from "@/features/chat/ui";
 
 /**
  * タブの子チャットの印（ChildActivityMark）を押して開く、そのチャットの子チャットの一覧（孫・ひ孫も、親の下に続けて字下げ。アーカイブ済みは出さない）。

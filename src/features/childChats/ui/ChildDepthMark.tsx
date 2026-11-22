@@ -1,8 +1,7 @@
 import { childDepthLabel, childDepthShort } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
+import { chatTitle, ancestorsOf } from "@/features/chat/ui";
 import { knownChat, useChatsValue } from "@/features/chat/ui/store/knownChats";
-import { ancestorsOf } from "./childChats";
 
 /** 子チャットの深さ（1 = 子・2 = 孫・3 = ひ孫）。親が読み込んだ一覧になければ子とみなす */
 export function useChildDepth(chat: Pick<Chat, "id" | "parent_chat_id"> | undefined): number {

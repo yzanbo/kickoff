@@ -3,12 +3,10 @@
 import type { Chat } from "@shared/chat/types";
 import { childChatsApi } from "./api";
 import { open } from "@/foundation/ui/navigation/open";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
+import { knownChat, chatTitle, ancestorsOf } from "@/features/chat/ui";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { allPanels, dispatchPanel } from "@/features/panel/ui/state/panelStore";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
-import { ancestorsOf } from "./childChats";
 
 /** 外す先（parentId: null = 親のないチャット（groupId のグループへ。groupName は確かめの文に出す並べる先の名前。グループ名・「No Group」）/ 先祖の ID = その子に上げる） */
 export interface DetachTo {

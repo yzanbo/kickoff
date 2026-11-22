@@ -1,5 +1,6 @@
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
 import { isSubagentTool } from "@shared/ai/claudeTools";
+import { ancestors } from "@shared/foundation/tree";
 import { isBackgroundLaunch } from "./backgroundTasks";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { markSuperseded } from "./subagentSupersede";
@@ -97,12 +98,8 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
   const isParentActivity = (e: ChatEvent) => (e.type === "text" || e.type === "thinking" || e.type === "tool_use") && !e.data.parent;
   // 入れ子の子孫の動きは、祖先のサブエージェントも動いているとみなす（子の結果を待っている間に「動きがない」としない）
   const bubble = (entry: SubagentEntry, at: string) => {
-    let up = entry.parentKey;
-    for (let depth = 0; up !== undefined && depth < 32; depth++) {
-      const ancestor = map.get(up);
-      if (!ancestor) break;
+    for (const ancestor of ancestors(entry, (s) => (s.parentKey === undefined ? undefined : map.get(s.parentKey)))) {
       if (ancestor.lastActivityAt === undefined || Date.parse(at) > Date.parse(ancestor.lastActivityAt)) ancestor.lastActivityAt = at;
-      up = ancestor.parentKey;
     }
   };
   // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール

@@ -135,7 +135,7 @@ button.subagent-children:hover {
   background: var(--bg-hover);
 }
 
-.subagent-child-row .subagent-icon {
+.subagent-child-row .agent-icon {
   margin-top: 0;
 }
 

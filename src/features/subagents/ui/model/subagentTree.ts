@@ -1,6 +1,7 @@
 // サブエージェントの入れ子（親子）。流れの中のカード・ピルの一覧・カードへ移るときに使う
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { ancestors, walkDown } from "@shared/foundation/tree";
 
 /** サブエージェントの木（行のキーで引く・子を引く。子は起動した順） */
 export interface SubagentTree {
@@ -32,24 +33,14 @@ export const scopeOf = (entry: SubagentEntry): readonly string[] => (entry.alias
 
 /** いちばん外側から、そのサブエージェントまでの道筋（自分を含む。見つからなければ空） */
 export function pathOf(tree: SubagentTree, key: string): SubagentEntry[] {
-  const path: SubagentEntry[] = [];
-  let entry = tree.byKey.get(key);
-  // 壊れた記録で親子が輪になっても止まるよう、深さに上限を付ける
-  for (let depth = 0; entry && depth < 32; depth++) {
-    path.unshift(entry);
-    entry = entry.parentKey === undefined ? undefined : tree.byKey.get(entry.parentKey);
-  }
-  return path;
+  const entry = tree.byKey.get(key);
+  return entry ? [...ancestors(entry, (s) => (s.parentKey === undefined ? undefined : tree.byKey.get(s.parentKey))), entry] : [];
 }
 
 /** 一覧に並べる順（親のすぐ下に子を、深さ付きで。いちばん外側は新しいものを上に、子は起動した順） */
 export function flattenTree(tree: SubagentTree): { entry: SubagentEntry; depth: number }[] {
   const rows: { entry: SubagentEntry; depth: number }[] = [];
-  const walk = (entry: SubagentEntry, depth: number) => {
-    rows.push({ entry, depth });
-    if (depth < 32) for (const child of childrenOf(tree, entry.key)) walk(child, depth + 1);
-  };
-  for (const top of [...childrenOf(tree, undefined)].reverse()) walk(top, 0);
+  walkDown([...childrenOf(tree, undefined)].reverse(), (s) => childrenOf(tree, s.key), (entry, depth) => void rows.push({ entry, depth }));
   return rows;
 }
 
@@ -63,13 +54,11 @@ export function latestActivity(
   events: readonly ChatEvent[],
 ): { use: Extract<ChatEvent, { type: "tool_use" }>; by?: SubagentEntry } | undefined {
   const owner = new Map<string, SubagentEntry | undefined>();
-  const collect = (entry: SubagentEntry, by: SubagentEntry | undefined, depth: number) => {
-    for (const id of scopeOf(entry)) owner.set(id, by);
-    if (depth < 32) for (const child of childrenOf(tree, entry.key)) collect(child, child, depth + 1);
-  };
   const root = tree.byKey.get(key);
   if (!root) return undefined;
-  collect(root, undefined, 0);
+  walkDown([root], (s) => childrenOf(tree, s.key), (entry) => {
+    for (const id of scopeOf(entry)) owner.set(id, entry === root ? undefined : entry);
+  });
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
     if (e.type === "tool_use" && e.data.parent !== undefined && owner.has(e.data.parent)) return { use: e, by: owner.get(e.data.parent) };

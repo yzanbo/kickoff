@@ -162,7 +162,7 @@ function ScreenHead({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
         <PopOutTabButton />
       </div>
       <div className="subagent-screen-title">
-        <span className={cx("subagent-icon", running && "spinning")}>
+        <span className={cx("agent-icon", running && "spinning")}>
           <ClaudeMark size={15} />
         </span>
         <SubagentKind entry={entry} view={view} />

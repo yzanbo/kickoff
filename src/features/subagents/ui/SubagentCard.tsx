@@ -9,10 +9,9 @@ import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useShownInAgentPanel } from "@/features/chatPanel/ui/agents/agentTabs";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { openKey, useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePortValue, useTimelineOpen, type RenderScope, type ToolCall } from "@/features/chat/ui";
+import { openKey, useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePortValue, useTimelineOpen, type RenderScope, type ToolCall, CreatedChatMarks } from "@/features/chat/ui";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
-import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
 import { SubagentWindow } from "./SubagentWindow";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { SubagentStatusText } from "./SubagentStatusText";
@@ -107,7 +106,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
           ) : (
             <ChevronRight size={14} className="tool-chevron" />
           )}
-          <span className={cx("subagent-icon", running && "spinning")}>
+          <span className={cx("agent-icon", running && "spinning")}>
             <ClaudeMark size={14} />
           </span>
           <span className="subagent-card-title">
@@ -177,7 +176,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
       {open && <SubagentCardBody entry={entry} view={view} renderScope={renderScope} windowed={depth === 0} />}
       {nav && telling && <SubagentTellBox entry={entry} view={view} onClose={() => nav.closeTell(key)} />}
       {/* このサブエージェントに子チャットで聞いたら、その子チャットの札（発言の下と同じ。始めた位置は起動の呼び出し） */}
-      {screen && entry.toolUseEventId !== undefined && <ChildChatMarks chatId={screen.chatId} eventId={entry.toolUseEventId} />}
+      {screen && entry.toolUseEventId !== undefined && <CreatedChatMarks chatId={screen.chatId} eventId={entry.toolUseEventId} />}
     </div>
   );
 }
@@ -191,7 +190,7 @@ function PlainCard({ call }: { call: ToolCall }) {
   return (
     <div id={`ev-${call.use.id}`} className="subagent-card card">
       <div className="subagent-card-head static">
-        <span className="subagent-icon">
+        <span className="agent-icon">
           <ClaudeMark size={14} />
         </span>
         <span className="subagent-card-title">

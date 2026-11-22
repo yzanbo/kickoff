@@ -75,8 +75,8 @@
 }
 
 /* 入力欄の上の「子チャット」の一覧（札を縦に並べる） */
-/* 一覧の行はサブエージェントの一覧と同じ形（.subagent-row）。名前の前の状態の印と、様子の色だけ足す */
-.child-chat-row .subagent-title {
+/* 子チャットの一覧の行（AgentListChip の .agent-list-row）: 名前の前の状態の印と、様子の色だけ足す */
+.child-chat-row .agent-list-title {
   display: flex;
   align-items: center;
   gap: 6px;

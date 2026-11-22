@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useFollowScroll } from "@/features/chat/ui";
-import { openKey, useOptionalSubagentNav, useTimelineOpen } from "@/features/chat/ui";
+import { useFollowScroll, openKey, useOptionalSubagentNav, useTimelineOpen } from "@/features/chat/ui";
 
 /**
  * いちばん外側のサブエージェントのカードの、手順を入れる高さを決めた窓（流れの見えている高さの半分ほど。中だけスクロールする）。

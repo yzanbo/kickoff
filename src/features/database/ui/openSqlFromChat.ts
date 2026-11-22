@@ -3,13 +3,11 @@ import type { Chat } from "@shared/chat/types";
 import type { DbConnection } from "@shared/database/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { openInRootSide } from "@/features/chat/ui";
-import { rootChatOf } from "@/features/childChats/ui/childChats";
+import { openInRootSide, rootChatOf, knownChat } from "@/features/chat/ui";
 import { openNewSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
 
 /**
  * 右の欄（子チャットなら、いちばん上の親の右の欄）の DB クライアントに、その接続の新しい SQL のタブを足して sql を書き、DB クライアントを開く。

@@ -2,7 +2,7 @@ import type { OpenViewRequest } from "@shared/chat/openView";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "./openChat";
-import { rootChatOf } from "@/features/childChats/ui/childChats";
+import { rootChatOf } from "@/features/chat/ui/state/descendants";
 import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";

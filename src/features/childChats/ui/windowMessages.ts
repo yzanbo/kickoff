@@ -1,5 +1,5 @@
 // 子チャットのウィンドウ間の知らせ（WindowMessageMap に足す。送るのは別ウィンドウの中の @/features/chat/ui/open/openChat.ts、受けるのはメインのウィンドウの @/app/renderer/mainWindowMessages.ts）
-import type { AskChildTarget } from "./childChats";
+import { type AskChildTarget } from "@/features/chat/ui";
 
 declare module "@/foundation/ui/navigation/windowBus" {
   interface WindowMessageMap {

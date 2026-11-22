@@ -1,5 +1,5 @@
 import { childDepthLabel, childDepthShort } from "@shared/childChats/childDepth";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { useKnownChat } from "@/features/chat/ui";
 import { useChildDepth } from "./ChildDepthMark";
 
 /**

@@ -4,7 +4,7 @@ import { collectSubagents } from "@shared/chat/subagents";
 import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Approval } from "@shared/chat/approvalTypes";
-import type { ChatSource } from "@/features/chat/ui";
+import { type ChatSource } from "@/features/chat/ui";
 import { createChatSubagents } from "./selectors";
 
 /** 店の口のうち、サブエージェントの計算が読む欄だけを持つ偽物（記録と回答待ちを差し替えられる） */

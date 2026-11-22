@@ -1,4 +1,5 @@
 // チャットの家系（いちばん上の親チャットから下にぶら下がるチャットの全部）の、関係の呼び名（AI が家系のチャットを変えるツールで使う。純粋関数）
+import { walkDown } from "@shared/foundation/tree";
 
 /**
  * 自分から見た相手の関係（自分 / 親 / 祖父母 / 子 / 孫 / 兄弟 / 兄弟の子 / 親の兄弟 / いとこ）。
@@ -31,13 +32,6 @@ export function familyOrder<T extends { id: number; parent_chat_id: number | nul
     childrenOf.set(m.parent_chat_id, list);
   }
   const out: T[] = [];
-  const seen = new Set<number>();
-  const visit = (node: T) => {
-    if (seen.has(node.id)) return;
-    seen.add(node.id);
-    out.push(node);
-    for (const child of (childrenOf.get(node.id) ?? []).sort((a, b) => a.id - b.id)) visit(child);
-  };
-  visit(root);
+  walkDown([root], (node) => (childrenOf.get(node.id) ?? []).sort((a, b) => a.id - b.id), (node) => void out.push(node), { key: (node) => node.id });
   return out;
 }

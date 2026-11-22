@@ -12,17 +12,15 @@ import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time"
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
-import { openKey, useOptionalChatScreen, useTimelineBusy, useTimelineOpen } from "@/features/chat/ui";
+import { openKey, useOptionalChatScreen, useTimelineBusy, useTimelineOpen, CreatedChatMarks, useBeforeWorkplaceMove } from "@/features/chat/ui";
 import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
-import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
 import { HandoffFromChip } from "@/features/childChats/ui/HandBackFromChip";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/compact/ui/compactPromptKinds";
 import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
-import { useBeforeWorkplaceMove } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
 /**
@@ -171,7 +169,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
         </div>
       )}
       {/* この発言から聞いた子チャットと、この発言の作業で AI が作った兄弟チャット・親のないチャットの札 */}
-      {screen && <ChildChatMarks chatId={screen.chatId} eventId={event.id} created={createdChats} />}
+      {screen && <CreatedChatMarks chatId={screen.chatId} eventId={event.id} created={createdChats} />}
       {menu.element}
     </div>
   );

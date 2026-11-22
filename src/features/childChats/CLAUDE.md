@@ -2,8 +2,8 @@
 
 ## 地図
 
-- `core/`: ルート `routes.ts`・作る `children.ts`（`startChildChat`）・分岐 `fork.ts`・親から外す `detach.ts`（AI の update_chat には chat の `ChatDetachPort` で渡す）・サブエージェントについて聞く `subagentChild.ts`・親に渡す `handBack.ts`・親子の文脈 `context.ts`（`chatContextNote`）・AI のツール `create_chat` の `aiCreateChat.ts`（組と家系の文脈の contributor は `tools.ts`。AI のツールの決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
-- `ui/`: 上の帯は `ChildBarFrame` 1 つ・タブの印 `ChildActivityMark`・親から外す `detachChild.ts`・親に渡す `handBack.ts`。右の欄の子チャット `SideChildChat` は `@/features/conversation/ui/screens/`。
+- `core/`: ルート `routes.ts`・作る `children.ts`（`startChildChat`）・分岐 `fork.ts`・親から外す `detach.ts`（AI の update_chat には chat の `ChatDetachPort` で渡す）・サブエージェントについて聞く `subagentChild.ts`・親に渡す `handBack.ts`・親子の文脈 `context.ts`（`chatContextNote`）・AI のツール `create_chat` の `aiCreateChat.ts`（組と家系の文脈の contributor は `tools.ts`。決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- `ui/`: 上の帯は `ChildBarFrame` 1 つ・タブの印 `ChildActivityMark`・親から外す `detachChild.ts`・親に渡す `handBack.ts`。入力欄の上のピルは `AgentListChip`、右の欄の子チャット `SideChildChat` は `@/features/conversation/ui/screens/`。
 
 ## 決まり
 
@@ -15,7 +15,7 @@
 - 分岐は最後まで終わった作業からだけで、ファイルは戻さない。親から外すは親なしか先祖の子にだけ上げる（画面は確かめてから `childChatsApi`（`ui/api.ts` の `client(childChatContract)`）。作業中は外さない）。外したら右の欄のタブを閉じる（`reopenDetached`）。
 - サブエージェントについて聞くは記録を添付にし、会話は引き継がない（理由は JSDoc）。
 - 親に渡すのはその作業の最後の返答（`lastReplyOfTurn`）だけ。親の発言に `handoff_from`、子に `handoff` を残す。渡したあとの削除は、今すぐ送った・送信待ちに入れたときだけ（`handoffAfterFor`。入力欄に入れたときはアーカイブ）。
-- 一覧（`selectChats`）に出さず、親の中だけに置く（`@/features/chat/ui/store/knownChats.ts` の `childChatsOf`）。引用は入力欄の文に入れて送る（API の `quote` は送らない）。
+- 一覧（`selectChats`）に出さず、親の中だけに置く（chat の `useChildChats`）。子孫の数え方は `descendantStates`（ピルは直接の子だけ）。引用は入力欄の文に入れて送る（API の `quote` は送らない）。
 
 ## 落とし穴
 

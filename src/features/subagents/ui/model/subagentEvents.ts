@@ -3,7 +3,7 @@
 // カードはそのサブエージェントの流れの分と、どの流れの項目にも要る分だけを ID の順に取り出して groupEvents に渡す
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
-import { relayedText } from "@shared/chat/prompts";
+import { isRelayMessage, relayedText } from "@shared/chat/prompts";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
 
 /** 読み込んだ記録の索引（位置の列はどれも小さい順） */
@@ -16,8 +16,6 @@ interface LoadedIndex {
    */
   shared: number[];
 }
-
-const RELAY_MARK = "【サブエージェントへの追加の指示】";
 
 /** 記録の配列ごとの索引（記録が届くたびに配列が替わるので、同じ配列を読む間だけ覚える） */
 const indexes = new WeakMap<readonly ChatEvent[], LoadedIndex>();
@@ -57,7 +55,7 @@ const relayLists = new WeakMap<readonly ChatEvent[], ChatEvent[]>();
 
 function relaysOf(digest: readonly ChatEvent[]): ChatEvent[] {
   let list = relayLists.get(digest);
-  if (!list) relayLists.set(digest, (list = digest.filter((e) => e.type === "user" && e.data.text.startsWith(RELAY_MARK))));
+  if (!list) relayLists.set(digest, (list = digest.filter((e) => e.type === "user" && isRelayMessage(e.data.text))));
   return list;
 }
 

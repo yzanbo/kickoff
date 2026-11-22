@@ -1,7 +1,6 @@
 import { MessagesSquare } from "lucide-react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { useChildChats } from "@/features/chat/ui/store/knownChats";
+import { useChatStates, useChildChats } from "@/features/chat/ui";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { childActivityOf } from "./childChats";
 import { TabChildChatsPopover } from "./TabChildChatsPopover";

@@ -6,7 +6,7 @@ import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
-import { OpenPlaceButtons, type OpenPlace } from "@/features/chat/ui/parts/OpenPlaceControls";
+import { OpenPlaceButtons, type OpenPlace } from "@/features/chat/ui";
 import { isDraggingNote, useNoteRowDrag } from "./noteDrag";
 
 interface Props {

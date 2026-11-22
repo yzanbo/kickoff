@@ -13,7 +13,7 @@ export function SubagentEndNote({ event, agentKey }: { event: ChatEventOf<"subag
   const verb = event.data.status === "completed" ? "終わりました" : event.data.status === "failed" ? "失敗しました" : "止まりました";
   return (
     <div className={cx("event-note subagent-end", event.data.status === "failed" && "error")}>
-      <span className="subagent-icon">
+      <span className="agent-icon">
         <ClaudeMark size={12} />
       </span>
       <span>

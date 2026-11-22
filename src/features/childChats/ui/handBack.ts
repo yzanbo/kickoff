@@ -6,8 +6,7 @@ import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@share
 import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "./api";
 import { alert, prompt, reportFailure } from "@/foundation/ui/kit/ask";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { confirmArchiveChats, confirmDeleteChats } from "@/features/chat/ui/chatActions";
+import { knownChat, confirmArchiveChats, confirmDeleteChats } from "@/features/chat/ui";
 import { handBackToParent } from "./askChild";
 
 /**

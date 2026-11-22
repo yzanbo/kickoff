@@ -3,8 +3,7 @@ import { PROVIDER_LABELS } from "@shared/settings/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { useMessageMenu } from "./useMessageMenu";
-import { useOptionalChatScreen } from "@/features/chat/ui";
-import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
+import { useOptionalChatScreen, CreatedChatMarks } from "@/features/chat/ui";
 import { useProviderAtEvent } from "@/features/providerSwitch/ui";
 
 /** AI の返答 1 つ（右クリックで、この返答だけをコピーできる） */
@@ -21,7 +20,7 @@ export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
         <Markdown>{text}</Markdown>
       </div>
       {/* この返答から聞いた子チャットの札 */}
-      {screen && <ChildChatMarks chatId={screen.chatId} eventId={event.id} />}
+      {screen && <CreatedChatMarks chatId={screen.chatId} eventId={event.id} />}
       {menu.element}
     </>
   );

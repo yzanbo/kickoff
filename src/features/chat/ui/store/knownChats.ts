@@ -4,6 +4,7 @@
 // 知っているチャット（knownChat）= 詳細を読んだチャット（seenChats.ts。一覧にないアーカイブ済み・別ウィンドウのチャットも）∪ 読み込んだ一覧
 import { useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
+import { walkDown } from "@shared/foundation/tree";
 import { api } from "@/foundation/ui/api";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { createKeyedSelector, createSelector, type ReduceTable } from "@/foundation/ui/store";
@@ -221,13 +222,7 @@ const childView = (archived: boolean): ReadonlyMap<number, Chat[]> => childViews
 export function knownDescendants(id: number, { archived = false }: { archived?: boolean } = {}): Chat[] {
   const map = childView(archived);
   const out: Chat[] = [];
-  const walk = (parentId: number, depth: number) => {
-    for (const c of map.get(parentId) ?? []) {
-      out.push(c);
-      if (depth < 50) walk(c.id, depth + 1);
-    }
-  };
-  walk(id, 1);
+  walkDown(map.get(id) ?? [], (c) => map.get(c.id) ?? [], (c) => void out.push(c), { key: (c) => c.id, seen: [id] });
   return out;
 }
 

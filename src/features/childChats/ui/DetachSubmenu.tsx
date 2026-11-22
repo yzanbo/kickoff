@@ -2,7 +2,7 @@ import { CornerLeftUp, Unplug } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
+import { chatTitle } from "@/features/chat/ui";
 import { detachChild, raiseTargets } from "./detachChild";
 
 /**

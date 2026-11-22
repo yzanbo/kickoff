@@ -102,7 +102,7 @@ export function SubagentChildRows({ entry, view, onOpen, onMore }: { entry: Suba
       {shown.map((child) => (
         <li key={child.key} style={agentHueStyle(view.hues.get(child.key))}>
           <button type="button" className="subagent-child-row" title={`中で起動したサブエージェント「${child.description}」を開く`} onClick={() => onOpen(child.key)}>
-            <span className={cx("subagent-icon", child.status === "running" && "spinning")}>
+            <span className={cx("agent-icon", child.status === "running" && "spinning")}>
               <ClaudeMark size={12} />
             </span>
             <span className="subagent-child-name">{child.description}</span>

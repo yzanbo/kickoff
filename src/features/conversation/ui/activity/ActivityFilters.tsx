@@ -1,4 +1,5 @@
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { walkDown } from "@shared/foundation/tree";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ActivityFilter } from "@/features/chat/ui";
 import { agentHueStyle, childrenOf, type SubagentTree } from "@/features/subagents/ui";
@@ -18,13 +19,13 @@ export function ActivityFilters({
   onChange: (filter: ActivityFilter) => void;
 }) {
   const agents: { entry: SubagentEntry; path: string }[] = [];
-  const walk = (parent: string | undefined, path: string, depth: number) => {
-    for (const entry of childrenOf(tree, parent)) {
-      agents.push({ entry, path });
-      if (depth < 32) walk(entry.key, `${path}${entry.description} › `, depth + 1);
-    }
-  };
-  walk(undefined, "", 0);
+  // 外側からの道筋（「洗い出し › 」）。子の道筋は親の道筋に親の名前を足したもの
+  const pathOf = new Map<string | undefined, string>();
+  walkDown(childrenOf(tree, undefined), (s) => childrenOf(tree, s.key), (entry) => {
+    const path = (entry.parentKey !== undefined && pathOf.get(entry.parentKey)) || "";
+    agents.push({ entry, path });
+    pathOf.set(entry.key, `${path}${entry.description} › `);
+  });
   const chip = (active: boolean, label: string, next: ActivityFilter, extra: { hue?: number; title?: string } = {}) => (
     <button
       key={next.kind === "agent" ? next.key : next.kind}

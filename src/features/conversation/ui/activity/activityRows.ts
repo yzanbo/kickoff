@@ -4,6 +4,7 @@ import { relayedText } from "@shared/chat/prompts";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { TREE_MAX_DEPTH, walkDown } from "@shared/foundation/tree";
 import { subagentState } from "@shared/chat/subagentState";
 import type { ToolCall } from "@/features/chat/ui";
 import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
@@ -85,35 +86,31 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
   };
   push(groupEvents(events), undefined);
   // サブエージェントは親のあとに（同じ時刻なら、起動の行が先に来るように）
-  const walk = (parent: string | undefined, depth: number) => {
-    for (const entry of childrenOf(tree, parent)) {
-      // 流れごとの記録だけを索引から取り出して渡す（サブエージェントごとに記録の全体をたどらない。カードと同じ subagentEvents）
-      const scope = scopeOf(entry);
-      const items = groupEvents(subagentEvents(events, events, scope, entry.key, undefined), scope);
-      push(items, entry);
-      if (entry.status === "running" && items.length === 0 && entry.lastTool && entry.lastActivityAt) {
-        // 中の手順が届かない（孫より深い）実行中のもの: 途中経過の最後のツールを、いまの動きとして 1 行
-        rows.push({ key: `now-${entry.key}`, kind: "now", agent: entry.key, at: entry.lastActivityAt, text: `いま: ${entry.lastTool}`, running: true });
-      }
-      if (entry.status !== "running" && entry.endedAt) {
-        // 終わりの文: 親が受け取った完了は報告先、受け取り待ちはそれを添え、ほか（失敗・通信で中断・中断・届いていない・やり直し済み）はカード・一覧と同じ状態の文
-        const { state, detail } = subagentState(entry);
-        const reported = entry.status === "completed" && (detail === null || detail === "awaiting");
-        rows.push({
-          key: `end-${entry.key}`,
-          kind: "end",
-          agent: entry.key,
-          at: entry.endedAt,
-          durationMs: entry.durationMs ?? elapsed(entry.startedAt, entry.endedAt),
-          text: reported ? `報告 → ${agentName(tree, entry.parentKey)}${detail === "awaiting" ? "（受け取り待ち）" : ""}` : subagentStatusLabel(entry),
-          failed: state === "failed",
-          ...(entry.endEventId !== undefined ? { eventId: entry.endEventId } : {}),
-        });
-      }
-      if (depth < 32) walk(entry.key, depth + 1);
+  walkDown(childrenOf(tree, undefined), (s) => childrenOf(tree, s.key), (entry) => {
+    // 流れごとの記録だけを索引から取り出して渡す（サブエージェントごとに記録の全体をたどらない。カードと同じ subagentEvents）
+    const scope = scopeOf(entry);
+    const items = groupEvents(subagentEvents(events, events, scope, entry.key, undefined), scope);
+    push(items, entry);
+    if (entry.status === "running" && items.length === 0 && entry.lastTool && entry.lastActivityAt) {
+      // 中の手順が届かない（孫より深い）実行中のもの: 途中経過の最後のツールを、いまの動きとして 1 行
+      rows.push({ key: `now-${entry.key}`, kind: "now", agent: entry.key, at: entry.lastActivityAt, text: `いま: ${entry.lastTool}`, running: true });
     }
-  };
-  walk(undefined, 0);
+    if (entry.status !== "running" && entry.endedAt) {
+      // 終わりの文: 親が受け取った完了は報告先、受け取り待ちはそれを添え、ほか（失敗・通信で中断・中断・届いていない・やり直し済み）はカード・一覧と同じ状態の文
+      const { state, detail } = subagentState(entry);
+      const reported = entry.status === "completed" && (detail === null || detail === "awaiting");
+      rows.push({
+        key: `end-${entry.key}`,
+        kind: "end",
+        agent: entry.key,
+        at: entry.endedAt,
+        durationMs: entry.durationMs ?? elapsed(entry.startedAt, entry.endedAt),
+        text: reported ? `報告 → ${agentName(tree, entry.parentKey)}${detail === "awaiting" ? "（受け取り待ち）" : ""}` : subagentStatusLabel(entry),
+        failed: state === "failed",
+        ...(entry.endEventId !== undefined ? { eventId: entry.endEventId } : {}),
+      });
+    }
+  });
   // 時刻の順（同じ時刻なら入れた順のまま。Array.prototype.sort は安定）
   return rows.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
@@ -206,12 +203,8 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
 
 /** そのサブエージェントと、その中で起動したもの（入れ子ごと）のキー */
 export function agentScope(tree: SubagentTree, key: string): Set<string> {
-  const keys = new Set<string>();
-  const collect = (k: string, depth: number) => {
-    keys.add(k);
-    if (depth < 32) for (const child of childrenOf(tree, k)) collect(child.key, depth + 1);
-  };
-  collect(key, 0);
+  const keys = new Set<string>([key]);
+  walkDown(childrenOf(tree, key), (s) => childrenOf(tree, s.key), (s) => void keys.add(s.key), { max: TREE_MAX_DEPTH - 1 });
   return keys;
 }
 
