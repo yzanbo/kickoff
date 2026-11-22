@@ -1,4 +1,5 @@
-import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { PAY_PER_USE_LABEL, providerChipName, providerLabel } from "@/features/ai/ui/provider/providerChoice";
@@ -6,7 +7,7 @@ import { planLabel } from "./usage";
 import type { UsageGroup } from "./usageGroups";
 
 /** AI の札に出す文（契約プランが分かればプラン名、分からなければ AI の短い名前。AI はアイコンと色でも分かる） */
-export function groupChipText(group: UsageGroup, usage: PlanUsage | undefined, status: ProviderStatus | undefined): string {
+export function groupChipText(group: UsageGroup, usage: ProviderUsage | undefined, status: ProviderStatus | undefined): string {
   const name = providerChipName(group.provider, undefined);
   switch (group.kind) {
     case "plan":

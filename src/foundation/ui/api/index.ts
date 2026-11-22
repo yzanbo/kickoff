@@ -21,7 +21,6 @@ import { terminalsApi } from "@/features/terminal/ui/api/terminals";
 import { trashApi } from "@/features/trash/ui/api/trash";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { uploadsApi } from "@/features/attachments/ui/api/uploads";
-import { usageApi } from "@/features/ai/ui/api/usage";
 import { voiceApi } from "@/features/voice/ui/api/voice";
 import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 
@@ -37,7 +36,6 @@ export const api = {
   ...uploadsApi,
   ...approvalsApi,
   ...providersApi,
-  ...usageApi,
   ...gitApi,
   ...filesApi,
   ...worktreesApi,

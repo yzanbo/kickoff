@@ -1,5 +1,6 @@
 import type { RefObject } from "react";
-import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
 import { providerLabel } from "@/features/ai/ui/provider/providerChoice";
 import { PlanUsageDetails } from "./PlanUsageDetails";
 import { ServiceUsageDetails } from "./ServiceUsageDetails";
@@ -12,7 +13,7 @@ interface Props {
   /** 押した下の帯の AI のボタン（その右端にそろえて上に出す） */
   anchor: RefObject<HTMLElement | null>;
   group: UsageGroup;
-  usage: PlanUsage | undefined;
+  usage: ProviderUsage | undefined;
   status: ProviderStatus | undefined;
   refreshing: boolean;
   error?: string;
@@ -51,7 +52,7 @@ export function UsageDetailsPopover({ anchor, group, usage, status, refreshing, 
   );
 }
 
-function GroupDetails({ group, usage, error }: { group: UsageGroup; usage: PlanUsage | undefined; error?: string }) {
+function GroupDetails({ group, usage, error }: { group: UsageGroup; usage: ProviderUsage | undefined; error?: string }) {
   switch (group.kind) {
     case "plan":
       return (

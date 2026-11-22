@@ -1,5 +1,6 @@
 import { Fragment } from "react";
-import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
+import type { ProviderStatus } from "@shared/ai/types";
+import { paysByCredits, planWindows, type ProviderUsage } from "@shared/ai/usage";
 import { useForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { providerLabel, statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
@@ -24,7 +25,7 @@ export function FooterUsage() {
   const statuses = useProviders({ active: false }).data;
   const services = useServiceUsage();
   const groups = usageGroups({ foreground, statuses, services: services.data });
-  useOverageToast(planUsage.usage, services.data?.find((s) => s.id === "codex")?.credits);
+  useOverageToast(planUsage.usage?.pay_as_you_go, services.data?.find((s) => paysByCredits(s.provider))?.pay_as_you_go);
   return (
     <span className="footer-usages">
       {groups.map((g, i) => (
@@ -45,7 +46,7 @@ export function FooterUsage() {
 
 /**
  * 1 つの AI のボタン（札と枠のメーター）と、押すと上に開くその AI の詳細。詳細の更新は、その AI の分だけ取り直す
- * （Claude はプランの枠 `POST /api/usage/refresh`、ほかはサービスごとの使用状況 `POST /api/usage/services/refresh`）
+ * （Claude はプランの枠だけ、ほかはすべての AI の使用状況を `POST /api/usage/refresh` で）
  */
 function UsageGroupButton({ group, planUsage, status, loading, loadError }: {
   group: UsageGroup;
@@ -92,7 +93,7 @@ function UsageGroupButton({ group, planUsage, status, loading, loadError }: {
 /** ボタンの中身（札と、枠ごとの短いメーター。リセットまでの時間は乗せたときの説明に） */
 function UsageGroupInline({ group, usage, status, loading }: {
   group: UsageGroup;
-  usage: PlanUsage | undefined;
+  usage: ProviderUsage | undefined;
   status: ProviderStatus | undefined;
   loading: boolean;
 }) {
@@ -101,22 +102,12 @@ function UsageGroupInline({ group, usage, status, loading }: {
     switch (group.kind) {
       case "plan":
         if (!usage) return <span className="muted">取得中…</span>;
-        if (!usage.available) return <span className="muted">取得できません</span>;
-        return (
-          <>
-            <OverageBadge usage={usage} />
-            <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
-            <UsageMeter window={usage.seven_day} inline />
-            {/* モデル別の週枠（Fable など）。1 行表示では短く「Fable」と出す（usageWindowLabel） */}
-            {usage.model_weekly.map((w) => (
-              <UsageMeter key={w.key} window={w} inline />
-            ))}
-          </>
-        );
+        if (usage.status !== "ok") return <span className="muted">取得できません</span>;
+        return <PlanMeters usage={usage} />;
       case "service":
         return (
           <>
-            {group.provider === "codex" && <CodexCreditsBadge credits={group.service.credits} />}
+            {paysByCredits(group.provider) && <CodexCreditsBadge pay={group.service.pay_as_you_go} />}
             {group.service.windows.map((w) => (
               <UsageMeter key={w.key} window={w} inline />
             ))}
@@ -132,6 +123,22 @@ function UsageGroupInline({ group, usage, status, loading }: {
     <>
       {chip}
       {meters}
+    </>
+  );
+}
+
+/** プランの使用枠の札の横（超過分の印と、5 時間・週・モデル別の週の短いメーター） */
+function PlanMeters({ usage }: { usage: ProviderUsage }) {
+  const { fiveHour, sevenDay, modelWeekly } = planWindows(usage);
+  return (
+    <>
+      <OverageBadge pay={usage.pay_as_you_go} />
+      <UsageMeter window={fiveHour} inline idleText={FIVE_HOUR_IDLE} />
+      <UsageMeter window={sevenDay} inline />
+      {/* モデル別の週枠（Fable など）。1 行表示では短く「Fable」と出す（usageWindowLabel） */}
+      {modelWeekly.map((w) => (
+        <UsageMeter key={w.key} window={w} inline />
+      ))}
     </>
   );
 }

@@ -1,18 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { PayAsYouGo } from "@shared/ai/usage";
-import { toCodexCredits } from "@shared/ai/usageCompat";
 import { applySpending } from "./spending";
 
 const note = (balance: number | null, limit_reached: boolean | null = true) => ({ has_credits: true, unlimited: false, balance, limit_reached });
 
-/** 知らせを順に重ね、引かれ始めたか・配り直すかと、クレジットの前の形を返す */
+/** 知らせを順に重ね、引かれ始めたか・配り直すかと、重ねたあとの支払いの様子を返す */
 function run(steps: [ReturnType<typeof note> | { has_credits: null; unlimited: null; balance: null; limit_reached: null }, string][]) {
   let pay: PayAsYouGo | null = null;
   return steps.map(([n, at]) => {
     const step = applySpending(pay, n, at);
     pay = step.next;
-    return { started: step.started, changed: step.changed, credits: toCodexCredits(pay) };
+    return { started: step.started, changed: step.changed, credits: step.next };
   });
 }
 
@@ -31,7 +30,7 @@ test("Codex のクレジット: 残りが減ったら引かれ始めたと返し
   // 減り続ける: 始まりはそのまま、引かれ始めたとはもう返さない
   assert.deepEqual([more.started, more.credits?.spending], [false, { since: "t1", from: 150, to: 130 }]);
   // 分からない知らせ（残りも枠も null）は前の値のままで、配り直さない
-  assert.deepEqual([unknown.started, unknown.changed, unknown.credits?.balance, unknown.credits?.has_credits], [false, false, 130, true]);
+  assert.deepEqual([unknown.started, unknown.changed, unknown.credits?.balance, unknown.credits?.enabled], [false, false, 130, true]);
   // 枠に空きが戻った: 外す
   assert.deepEqual([freed.started, freed.changed, freed.credits?.spending], [false, true, null]);
 });

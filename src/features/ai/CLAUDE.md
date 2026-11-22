@@ -29,6 +29,6 @@
 
 ## 使用状況（`core/usage/`・`ui/usage/`）
 
-- 形は `@shared/ai/usage` の `ProviderUsage`、見張りは `monitor.ts` の `UsageMonitor` 1 つ（支払いは `spending.ts`）。前の形の API・SSE は `usageCompat.ts`。
+- 形は `@shared/ai/usage` の `ProviderUsage`、見張りは `monitor.ts` の `UsageMonitor` 1 つ（支払いは `spending.ts`）。画面は `ProviderUsage` を直に読む（SSE `usage` はその AI の分）。
 - 取り方は各 AI のフォルダの `usage.ts`。1 つが失敗・遅れても、ほかは出す。ログイン情報は読むだけ（更新すると CLI のログインが切れる）。名乗りは `USER_AGENT`。
 - 下の帯の札と使用状況は `footerItems.ts`。残り時間の時計は `UsageMeter` に置く。超過分・クレジットの言葉は `@shared/ai/overage`。

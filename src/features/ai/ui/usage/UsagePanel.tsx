@@ -30,7 +30,7 @@ export function UsagePanel() {
       ) : (
         <>
           {services.data.map((s) => (
-            <ServiceUsageDetails key={s.id} service={s} variant="panel" planned={planned.ids.has(s.id)} />
+            <ServiceUsageDetails key={s.provider} service={s} variant="panel" planned={planned.ids.has(s.provider)} />
           ))}
           <p className="muted small">開いている間は 1 分ごとに自動で更新します。各サービスのログイン情報は読むだけで、書き換えません。</p>
         </>

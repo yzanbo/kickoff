@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import type { CodexCredits } from "@shared/ai/types";
-import type { ProviderUsage } from "@shared/ai/usage";
+import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
 import { Bus } from "@/foundation/core/bus";
 import { UsageMonitor } from "./monitor";
 
@@ -67,10 +66,10 @@ test("Claude の枠: 15 秒以内の続けての取得はまとめ、失敗し�
   fail = true;
   const failed = await monitor.refresh("claude", true);
   assert.deepEqual([calls, failed.status, failed.error, failed.windows.length], [2, "ok", "timeout", 2]);
-  assert.equal((await monitor.planUsage()).error, "timeout");
+  assert.equal((await monitor.current("claude")).error, "timeout");
   // 前の値がなければ失敗として出す
   const empty = new UsageMonitor(undefined, { claude: async () => Promise.reject(new Error("boom")) });
-  assert.deepEqual([(await empty.planUsage()).available, (await empty.planUsage()).error], [false, "boom"]);
+  assert.deepEqual([(await empty.current("claude")).status, (await empty.current("claude")).message], ["error", "boom"]);
 });
 
 test("Codex などの使用状況は 1 分以内は共有し、1 分後に取り直す", async () => {
@@ -101,10 +100,10 @@ test("サービスの取得が遅くても、取得開始から 1 分後には�
     },
     cursor: async () => Promise.reject(new Error("つながりません")),
   });
-  const initial = monitor.serviceUsages();
+  const initial = monitor.refreshAll(true);
   await vi.advanceTimersByTimeAsync(5_000);
   assert.deepEqual(
-    (await initial).map((s) => [s.id, s.status, s.message ?? null]),
+    (await initial).map((s) => [s.provider, s.status, s.message ?? null]),
     [
       ["claude", "ok", null],
       ["codex", "ok", null],
@@ -120,23 +119,25 @@ test("超過分の知らせ: 変わったときだけ配り、取り直しても
   let current = claude({ windows: [{ key: "five_hour", label: "5時間", utilization: 10, resets_at: null }, { key: "seven_day", label: "週", utilization: 100, resets_at: null }] });
   const bus = new Bus();
   const published: (boolean | undefined)[] = [];
+  /** 超過分で動いているか（まだ知らされていなければ undefined） */
+  const inUse = (u: ProviderUsage) => (u.pay_as_you_go?.checked_at ? u.pay_as_you_go.spending !== null : undefined);
   bus.subscribe((event) => {
-    if (event.type === "usage") published.push(event.usage.overage?.in_use);
+    if (event.type === "usage") published.push(inUse(event.usage));
   });
   const monitor = new UsageMonitor(bus, { claude: async () => current });
   await monitor.refresh("claude", true);
-  assert.equal((await monitor.planUsage()).overage, null);
+  assert.equal(inUse(await monitor.current("claude")), undefined);
   // 動き始めたときだけ true を返し、同じ値の知らせでは配らない
   assert.equal(monitor.noteSpending("claude", { in_use: true }), true);
   assert.equal(monitor.noteSpending("claude", { in_use: true }), false);
-  assert.equal((await monitor.planUsage()).overage?.in_use, true);
+  assert.equal(inUse(await monitor.current("claude")), true);
   // 週の枠が 100% のまま取り直しても、超過分で動いている印は残す
   await monitor.refresh("claude", true);
-  assert.equal((await monitor.planUsage()).overage?.in_use, true);
+  assert.equal(inUse(await monitor.current("claude")), true);
   // 枠がリセットされた（上限に達した枠がない）なら外す
   current = claude();
   await monitor.refresh("claude", true);
-  assert.equal((await monitor.planUsage()).overage?.in_use, false);
+  assert.equal(inUse(await monitor.current("claude")), false);
   // 配ったもの: 初めの取得（印なし）・動き始め・取り直し 2 回（同じ値の 2 回目の知らせは配っていない）
   assert.deepEqual(published, [undefined, true, true, false]);
 });
@@ -145,13 +146,13 @@ test("Codex のクレジット: 取り直して残りが減っていたら spend
   let balance = 150;
   let percent = 100;
   const bus = new Bus();
-  const published: CodexCredits["spending"][] = [];
+  const published: PayAsYouGo["spending"][] = [];
   bus.subscribe((event) => {
-    if (event.type === "codex_credits") published.push(event.credits.spending);
+    if (event.type === "usage") published.push(event.usage.pay_as_you_go?.spending ?? null);
   });
   const pay = () => ({ enabled: true, unlimited: false, balance, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null });
   const monitor = new UsageMonitor(bus, { codex: async () => codex({ windows: [{ key: "primary", label: "5時間", utilization: percent, resets_at: null }], pay_as_you_go: pay() }) });
-  const creditsOf = async () => (await monitor.serviceUsages(true)).find((s) => s.id === "codex")?.credits;
+  const creditsOf = async () => (await monitor.refreshAll(true)).find((s) => s.provider === "codex")?.pay_as_you_go;
   assert.equal((await creditsOf())?.spending, null);
   balance = 142;
   assert.deepEqual([(await creditsOf())?.spending?.from, (await creditsOf())?.spending?.to], [150, 142]);
@@ -188,8 +189,24 @@ test("「更新」（force）は、進んでいるふつうの取得に相乗り
   await monitor.refresh("claude");
   // 設定を開いた（Claude はとっておいた値・Codex は取りに行って遅い）ところで「更新」を押す
   const opened = monitor.all();
-  const refreshed = monitor.serviceUsages(true);
+  const refreshed = monitor.refreshAll(true);
   await vi.advanceTimersByTimeAsync(5_000);
   await Promise.all([opened, refreshed]);
   assert.deepEqual([claudeCalls, codexCalls], [2, 2]);
+});
+
+test("1 分以内の一覧でも、そのあとに取り直した・知らせを重ねた AI は最新の値を返す（SSE の usage と同じ値）", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  let percent = 10;
+  const monitor = new UsageMonitor(undefined, {
+    claude: async () => claude({ windows: [{ key: "five_hour", label: "5時間", utilization: percent, resets_at: null }] }),
+    codex: async () => codex({ pay_as_you_go: { enabled: true, unlimited: false, balance: 150, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null } }),
+  });
+  await monitor.all();
+  percent = 30;
+  await monitor.refresh("claude", true);
+  monitor.noteSpending("codex", { has_credits: true, unlimited: false, balance: 140, limit_reached: true });
+  const [c, x] = await monitor.all();
+  assert.deepEqual([c?.windows[0]?.utilization, x?.pay_as_you_go?.balance, x?.pay_as_you_go?.spending?.to], [30, 140, 140]);
 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { CODEX_CREDIT_STATE_HINTS, codexCreditStateOf, OVERAGE_STATE_HINTS, overageStateOf, type OverageState } from "@shared/ai/overage";
-import type { CodexCredits, PlanUsage } from "@shared/ai/types";
+import type { PayAsYouGo } from "@shared/ai/usage";
 import { showToast } from "@/foundation/ui/kit/toast";
 
 /** 帯の札の横に出す短い文（オフ・不明は出さない。課金されないか分からないだけなので、詳細で伝える） */
@@ -21,14 +21,14 @@ function Badge({ state, text, hint }: { state: OverageState; text: string | unde
 }
 
 /** Claude の超過分（追加の使用枠）の印 */
-export function OverageBadge({ usage }: { usage: PlanUsage | undefined }) {
-  const state = overageStateOf(usage);
+export function OverageBadge({ pay }: { pay: PayAsYouGo | null | undefined }) {
+  const state = overageStateOf(pay);
   return <Badge state={state} text={CLAUDE_BADGE[state]} hint={OVERAGE_STATE_HINTS[state]} />;
 }
 
 /** Codex のクレジットの印 */
-export function CodexCreditsBadge({ credits }: { credits: CodexCredits | null | undefined }) {
-  const state = codexCreditStateOf(credits);
+export function CodexCreditsBadge({ pay }: { pay: PayAsYouGo | null | undefined }) {
+  const state = codexCreditStateOf(pay);
   return <Badge state={state} text={CODEX_BADGE[state]} hint={CODEX_CREDIT_STATE_HINTS[state]} />;
 }
 
@@ -36,9 +36,9 @@ export function CodexCreditsBadge({ credits }: { credits: CodexCredits | null | 
  * 払って動き始めたら（それまでは払っていなかった）、画面の下に知らせる。開いたときにもう払っていたら知らせない（帯の印で分かる）。
  * Claude は超過分で動いているか、Codex はクレジットの残りが減ったか
  */
-export function useOverageToast(usage: PlanUsage | undefined, codexCredits: CodexCredits | null | undefined) {
-  useStartToast(usage?.overage?.in_use ?? null, `Claude: ${OVERAGE_STATE_HINTS.in_use}`);
-  useStartToast(codexCredits ? codexCredits.spending !== null : null, `Codex: ${CODEX_CREDIT_STATE_HINTS.in_use}`);
+export function useOverageToast(plan: PayAsYouGo | null | undefined, credits: PayAsYouGo | null | undefined) {
+  useStartToast(plan?.checked_at ? plan.spending !== null : null, `Claude: ${OVERAGE_STATE_HINTS.in_use}`);
+  useStartToast(credits ? credits.spending !== null : null, `Codex: ${CODEX_CREDIT_STATE_HINTS.in_use}`);
 }
 
 /** active が false から true に変わったら知らせる（null = まだ分からないは、前の値として覚えない） */

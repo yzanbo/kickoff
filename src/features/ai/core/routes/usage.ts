@@ -1,10 +1,19 @@
-import type { Hono } from "hono";
+// AI ごとの使用状況の受け口（取り決めは @shared/ai/contract.ts。下の帯と設定の「使用状況」が読む）
+import { z } from "zod";
+import { usageContract } from "@shared/ai/contract";
+import { PROVIDER_IDS } from "@shared/settings/types";
+import { implement } from "@/foundation/core/http/implement";
 import type { UsageMonitor } from "@/features/ai/core/usage/monitor";
 
-/** プランの使用枠（5 時間・週）と、設定の「使用状況」のサービスごとの使用状況（前の形。画面が ProviderUsage に乗せ替えたら 2 本にする） */
-export function usageRoutes(app: Hono, { usage }: { usage: UsageMonitor }) {
-  app.get("/api/usage", async (c) => c.json(await usage.planUsage()));
-  app.post("/api/usage/refresh", async (c) => c.json(await usage.planUsage(true)));
-  app.get("/api/usage/services", async (c) => c.json(await usage.serviceUsages()));
-  app.post("/api/usage/services/refresh", async (c) => c.json(await usage.serviceUsages(true)));
+const provider = z.enum(PROVIDER_IDS).optional();
+
+export function usageRoutes({ usage }: { usage: UsageMonitor }) {
+  return implement(usageContract, {
+    context: {},
+    "GET /api/usage": { query: z.object({ provider }), run: async ({ query }) => (query.provider ? [await usage.current(query.provider)] : usage.all()) },
+    "POST /api/usage/refresh": {
+      body: z.object({ provider, force: z.boolean().optional() }),
+      run: async ({ body: { provider: id, force = true } }) => (id ? [await usage.refresh(id, force)] : usage.refreshAll(force)),
+    },
+  });
 }

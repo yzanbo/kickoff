@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import type { PlanUsage, UsageWindow } from "@shared/ai/types";
+import type { UsageWindow } from "@shared/ai/types";
+import { usageErrorOf, type ProviderUsage } from "@shared/ai/usage";
 import { refreshPlanUsage, usageStore } from "@/features/ai/ui/stores/usage";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -26,8 +27,9 @@ export function planLabel(plan: string): string {
 }
 
 /** 使用枠を取得できなかったときの文 */
-export function usageUnavailableText(usage: PlanUsage): string {
-  return `プランの使用枠を取得できませんでした${usage.error ? `（${usage.error}）` : ""}。`;
+export function usageUnavailableText(usage: ProviderUsage): string {
+  const error = usageErrorOf(usage);
+  return `プランの使用枠を取得できませんでした${error ? `（${error}）` : ""}。`;
 }
 
 /** 使用率の段階（70% から注意、90% から警告） */

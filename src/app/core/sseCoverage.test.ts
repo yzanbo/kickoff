@@ -27,7 +27,6 @@ const SSE_TYPES = {
   approval_resolved: true,
   settings: true,
   usage: true,
-  codex_credits: true,
   voice_model: true,
   notes: true,
   worktrees_changed: true,

@@ -1,5 +1,6 @@
-// AI ごとの使用状況の形（プランの使用枠も、サービスごとの使用状況も同じ形。画面が乗せ替えるまでは usageCompat.ts で前の形に写す）
-import type { ProviderId } from "@shared/settings/types";
+// AI ごとの使用状況の形（プランの使用枠も、サービスごとの使用状況も同じ形。API の GET /api/usage・SSE の usage・AI の get_usage が使う）
+import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
+import { providerCan } from "./providers";
 import type { UsageWindow } from "./types";
 
 /**
@@ -42,6 +43,28 @@ export interface PayAsYouGo {
   spending: { since: string; from?: number; to?: number } | null;
   /** 引かれているかを実行中の知らせ・取得で最後に確かめた時刻（まだなら null） */
   checked_at: string | null;
+}
+
+/** プランの使用枠（5 時間・週）を 1 分ごとに取り、下の帯に出す AI（Claude） */
+export const PLAN_USAGE_PROVIDER: ProviderId = PROVIDER_IDS.find((id) => providerCan(id, "plan_usage"))!;
+
+/** 上限を超えたあとクレジットから引いて続ける AI（Codex。プランの使用枠の AI の超過分とは見せ方が違う） */
+export const paysByCredits = (id: ProviderId): boolean => providerCan(id, "pay_as_you_go") && !providerCan(id, "plan_usage");
+
+/** 取得に失敗した理由（最新の取得の失敗か、取れなかったときの理由。なければ undefined） */
+export const usageErrorOf = (usage: ProviderUsage): string | undefined => usage.error ?? (usage.status === "error" ? usage.message : undefined);
+
+/** その枠（なければ、まだ始まっていない枠） */
+const windowOf = (usage: ProviderUsage, key: string, label: string): UsageWindow =>
+  usage.windows.find((w) => w.key === key) ?? { key, label, utilization: null, resets_at: null };
+
+/** プランの使用枠の並び（5 時間・週はいつも出し、モデル別の週（Fable など）はあるだけ。下の帯・AI の get_usage で同じ） */
+export function planWindows(usage: ProviderUsage): { fiveHour: UsageWindow; sevenDay: UsageWindow; modelWeekly: UsageWindow[] } {
+  return {
+    fiveHour: windowOf(usage, "five_hour", "5時間"),
+    sevenDay: windowOf(usage, "seven_day", "週"),
+    modelWeekly: usage.windows.filter((w) => w.key.startsWith("model:")),
+  };
 }
 
 /** 上限に達した枠があるか（使用率の一覧から。枠が 1 つもなければ分からない = null） */

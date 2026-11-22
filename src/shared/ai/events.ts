@@ -2,12 +2,15 @@
 import { event, type EventsOf, type EventTable } from "@shared/foundation/contract";
 import type { ProviderId } from "@shared/settings/types";
 import type { ProjectAiDefaults } from "./chatOptions";
-import type { CodexCredits, PlanUsage, ProviderLoginStatus } from "./types";
+import type { ProviderLoginStatus } from "./types";
+import type { ProviderUsage } from "./usage";
 
 export const aiEvents = {
-  usage: event<{ usage: PlanUsage }>(),
-  /** Codex のクレジットの様子が変わった（実行中の知らせ・使用状況の取得で、残りが減った・枠に空きが戻ったなど） */
-  codex_credits: event<{ credits: CodexCredits }>(),
+  /**
+   * AI の使用状況が変わった（変わったあとのその AI の分）。プランの使用枠の AI（Claude）は取り直すたびと超過分の知らせ、
+   * クレジットの AI（Codex）はクレジットの様子が変わったとき（実行中に残りが減った・枠に空きが戻ったなど）
+   */
+  usage: event<{ usage: ProviderUsage }>(),
   /**
    * AI のブラウザでのログインが終わった（設定の「接続」の「ブラウザでログイン」。POST /api/providers/:id/login で始めたもの。
    * completed = ログインした / failed = できなかった（error に理由）/ cancelled = やめた。画面は AI の状態を読み直す。この Mac の画面だけに届ける）

@@ -1,9 +1,11 @@
 // 上限を超えたあとの支払いの様子を、実行中の知らせと取得から重ねる決まり（純粋）
-import { toCodexCredits } from "@shared/ai/usageCompat";
 import type { PayAsYouGo, SpendingNote } from "@shared/ai/usage";
 
 /** まだ何も分からない支払いの様子 */
 export const NO_PAY_AS_YOU_GO: PayAsYouGo = { enabled: null, unlimited: false, balance: null, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null };
+
+/** クレジットの様子のうち画面に出すもの（持っているか・無制限か・残り・減った分。変わったかを比べる） */
+const creditsKey = (p: PayAsYouGo | null) => (p ? JSON.stringify([p.enabled ?? false, p.unlimited, p.balance, p.spending]) : null);
 
 /** 知らせを重ねた結果（started = 引かれていなかったのが引かれ始めた。チャットのお知らせに残す合図。changed = 配り直す） */
 export interface SpendingStep {
@@ -38,5 +40,5 @@ export function applySpending(prev: PayAsYouGo | null, note: SpendingNote, at: s
     balance: balance ?? before,
     spending,
   };
-  return { next, started: spending !== null && !prev?.spending, changed: JSON.stringify(toCodexCredits(prev)) !== JSON.stringify(toCodexCredits(next)) };
+  return { next, started: spending !== null && !prev?.spending, changed: creditsKey(prev) !== creditsKey(next) };
 }

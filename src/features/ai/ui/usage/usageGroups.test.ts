@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ServiceUsage } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
 import { makeProviderStatus } from "@shared/foundation/testing/factories";
 import { usageGroups } from "./usageGroups";
 
-const service = (id: ServiceUsage["id"], patch: Partial<ServiceUsage> = {}): ServiceUsage => ({
-  id,
-  label: id,
+const service = (provider: ProviderUsage["provider"], patch: Partial<ProviderUsage> = {}): ProviderUsage => ({
+  provider,
   status: "ok",
   plan: "plus",
   account: null,
   windows: [{ key: "primary", label: "5時間", utilization: 10, resets_at: null }],
   notes: [],
+  pay_as_you_go: null,
   fetched_at: "2026-11-18T00:00:00Z",
   ...patch,
 });

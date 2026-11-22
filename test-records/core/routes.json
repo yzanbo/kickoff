@@ -452,10 +452,6 @@
     "device": "none"
   },
   {
-    "route": "GET /api/usage/services",
-    "device": "none"
-  },
-  {
     "route": "GET /api/voice",
     "device": "none"
   },
@@ -945,10 +941,6 @@
   },
   {
     "route": "POST /api/usage/refresh",
-    "device": "none"
-  },
-  {
-    "route": "POST /api/usage/services/refresh",
     "device": "none"
   },
   {

@@ -1,10 +1,5 @@
-import type { PlanUsage, ServiceUsage } from "@shared/ai/types";
-import { request } from "@/foundation/ui/api/http";
+// AI ごとの使用状況の呼び手（取り決めは @shared/ai/contract.ts。読むのは ai の店 stores/usage.ts・usage/serviceUsageStore.ts だけ）
+import { usageContract } from "@shared/ai/contract";
+import { client } from "@/foundation/ui/api";
 
-/** プランの使用枠（5 時間・週）と、設定の「使用状況」のサービスごとの使用状況（コアの routes/usage.ts） */
-export const usageApi = {
-  usage: () => request<PlanUsage>("GET", "/api/usage"),
-  refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
-  usageServices: () => request<ServiceUsage[]>("GET", "/api/usage/services"),
-  refreshUsageServices: () => request<ServiceUsage[]>("POST", "/api/usage/services/refresh"),
-};
+export const usageApi = client(usageContract);

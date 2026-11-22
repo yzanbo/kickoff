@@ -1,4 +1,4 @@
-import type { CodexCredits, ExtraUsage, PlanUsage } from "@shared/ai/types";
+import type { PayAsYouGo } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";
 
 /**
@@ -27,10 +27,10 @@ export const OVERAGE_STATE_HINTS: Record<OverageState, string> = {
 };
 
 /** 超過分の様子（いま超過分で動いている知らせが先。次に追加の使用枠のオン・オフ） */
-export function overageStateOf(usage: Pick<PlanUsage, "extra_usage" | "overage"> | undefined): OverageState {
-  if (usage?.overage?.in_use) return "in_use";
-  if (!usage?.extra_usage) return "unknown";
-  return usage.extra_usage.enabled ? "on" : "off";
+export function overageStateOf(pay: PayAsYouGo | null | undefined): OverageState {
+  if (pay?.checked_at && pay.spending) return "in_use";
+  if (!pay || pay.enabled === null) return "unknown";
+  return pay.enabled ? "on" : "off";
 }
 
 /** 通貨の最小単位の額を、通貨の書き方にする（12345・"USD" → "$123.45"）。通貨が分からなければ記号なしで小数 2 桁 */
@@ -47,12 +47,12 @@ export function formatMinorAmount(amount: number, currency: string | null): stri
   return (amount / 100).toFixed(2);
 }
 
-/** この請求期間の超過分の額の 1 行（「今月の超過分 $3.20 / 上限 $50.00（6%）」）。額が分からなければ null */
-export function extraUsageSpendText(extra: ExtraUsage): string | null {
-  if (extra.used_credits === null) return null;
-  const limit = extra.monthly_limit === null ? "" : ` / 上限 ${formatMinorAmount(extra.monthly_limit, extra.currency)}`;
-  const pct = extra.utilization === null ? "" : `（${Math.round(extra.utilization)}%）`;
-  return `今月の超過分 ${formatMinorAmount(extra.used_credits, extra.currency)}${limit}${pct}`;
+/** この請求期間の超過分の額の 1 行（「今月の超過分 $3.20 / 上限 $50.00（6%）」）。追加の使用枠の情報・額が分からなければ null */
+export function extraUsageSpendText(pay: PayAsYouGo | null | undefined): string | null {
+  if (!pay || pay.enabled === null || pay.used === null) return null;
+  const limit = pay.limit === null ? "" : ` / 上限 ${formatMinorAmount(pay.limit, pay.currency)}`;
+  const pct = pay.utilization === null ? "" : `（${Math.round(pay.utilization)}%）`;
+  return `今月の超過分 ${formatMinorAmount(pay.used, pay.currency)}${limit}${pct}`;
 }
 
 /** Codex のクレジットの様子の文（様子の分け方は Claude と同じ。in_use = 残りが減った、on = クレジットがある、off = ない） */
@@ -71,17 +71,20 @@ export const CODEX_CREDIT_STATE_HINTS: Record<OverageState, string> = {
 };
 
 /** Codex のクレジットの様子（残りが減ったのを見たら in_use。無制限か残りがあれば on、なければ off） */
-export function codexCreditStateOf(credits: CodexCredits | null | undefined): OverageState {
-  if (!credits) return "unknown";
-  if (credits.spending) return "in_use";
-  if (credits.unlimited) return "on";
-  return credits.has_credits && (credits.balance === null || credits.balance > 0) ? "on" : "off";
+export function codexCreditStateOf(pay: PayAsYouGo | null | undefined): OverageState {
+  if (!pay) return "unknown";
+  if (pay.spending) return "in_use";
+  if (pay.unlimited) return "on";
+  return pay.enabled && (pay.balance === null || pay.balance > 0) ? "on" : "off";
 }
 
 /** クレジットが減った分の 1 行（「クレジットの残り 150 → 142（8 減りました）」）。減っていなければ null */
-export function codexCreditSpendText(credits: CodexCredits): string | null {
-  const s = credits.spending;
-  return s ? `クレジットの残り ${s.from} → ${s.to}（${roundCredits(s.from - s.to)} 減りました）` : null;
+export function codexCreditSpendText(pay: PayAsYouGo): string | null {
+  const s = pay.spending;
+  if (!s) return null;
+  const from = s.from ?? 0;
+  const to = s.to ?? 0;
+  return `クレジットの残り ${from} → ${to}（${roundCredits(from - to)} 減りました）`;
 }
 
 /** クレジットの差（小数の引き算の誤差を丸める） */

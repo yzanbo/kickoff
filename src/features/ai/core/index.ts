@@ -53,7 +53,7 @@ export function createAi(k: Kernel, deps: { projects: ProjectsApi }, env: AiEnv)
     name: "ai",
     api: { providers, keys, usage, defaults, provideGhToken: (fn) => (ghToken = fn) },
     aiTools: [usageToolGroup(usage)],
-    routes: [aiDefaultsRoutes({ defaults, projectParam: deps.projects.param }), { legacy: (app) => (providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }), usageRoutes(app, { usage })) }],
+    routes: [aiDefaultsRoutes({ defaults, projectParam: deps.projects.param }), usageRoutes({ usage }), { legacy: (app) => providerRoutes(app, { store: { settings: k.settings, projects: deps.projects.store }, providers, providerKeys: keys, bus: k.bus }) }],
     start: () => usage.start(),
     stop: () => usage.stop(),
   };

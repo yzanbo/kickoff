@@ -1,21 +1,24 @@
 import { useEffect } from "react";
-import type { ServiceUsage } from "@shared/ai/types";
+import type { ProviderUsage } from "@shared/ai/usage";
 import { USAGE_REFRESH_MS } from "@shared/ai/usageRefresh";
-import { api } from "@/foundation/ui/api";
+import { usageApi } from "@/features/ai/ui/api/usage";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
+/** 一覧のその AI の分を置き換える（一覧にない AI は足さない） */
+const replace = (list: ProviderUsage[], usage: ProviderUsage) => (list.some((u) => u.provider === usage.provider) ? list.map((u) => (u.provider === usage.provider ? usage : u)) : list);
+
 /**
- * サービスごとの使用状況（Codex など。下の帯と詳細で共有する）。Codex のクレジットの様子は、取り直しを待たずに
- * SSE の codex_credits（実行中に残りが減った・枠に空きが戻った）で当てる
+ * AI ごとの使用状況（Codex など。下の帯と詳細・設定の「使用状況」で共有する）。取り直しを待たずに、
+ * SSE の usage（Claude の取り直し・Codex の実行中にクレジットの残りが減った・枠に空きが戻った）でその AI の分を当てる
  */
-export const serviceUsageStore = createStore<ServiceUsage[]>({
-  load: () => api.usageServices(),
+export const serviceUsageStore = createStore<ProviderUsage[]>({
+  load: () => usageApi("GET /api/usage"),
   maxAge: USAGE_REFRESH_MS,
-  reduce: { codex_credits: (current, e) => (current ? current.map((s) => (s.id === "codex" ? { ...s, credits: e.credits } : s)) : current) },
+  reduce: { usage: (current, e) => replace(current, e.usage) },
 });
 
-/** サービスごとの使用状況を読み、出している間は詳細を閉じていても 1 分ごと（USAGE_REFRESH_MS）に取り直す（詳細も同じ店を読む） */
+/** 使用状況を読み、出している間は詳細を閉じていても 1 分ごと（USAGE_REFRESH_MS）に取り直す（詳細も同じ店を読む） */
 export function useServiceUsage() {
   const usage = useStore(serviceUsageStore);
   useEffect(() => {
@@ -26,7 +29,7 @@ export function useServiceUsage() {
   return usage;
 }
 
-/** 「更新」: コアに取り直させ、下の帯にも当てる */
+/** 「更新」: コアにすべての AI を取り直させ、下の帯にも当てる */
 export async function refreshServiceUsage(): Promise<void> {
-  serviceUsageStore.set(await api.refreshUsageServices());
+  serviceUsageStore.set(await usageApi("POST /api/usage/refresh", { body: { force: true } }));
 }
