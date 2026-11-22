@@ -16,7 +16,7 @@ import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
 import { childChatsApi, InheritChoice } from "@/features/childChats/ui";
 import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
-import { ProviderPicker } from "@/features/ai/ui/provider/ProviderChips";
+import { ProviderPicker } from "@/features/ai/ui";
 
 /** 作ったときに渡すもの（always: 聞かずに「引き継いで開く」で作ったとき。設定が「開かない」でも開く） */
 type OnCreated = (child: Chat, opts: { always: boolean }) => void;

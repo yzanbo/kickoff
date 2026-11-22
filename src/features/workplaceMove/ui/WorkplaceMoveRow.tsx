@@ -1,9 +1,9 @@
 import { GitBranch } from "lucide-react";
 import type { WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
-import { api } from "@/foundation/ui/api";
 import { useActionButton } from "@/features/chat/ui";
 import { Notice } from "@/foundation/ui/kit/Notice";
+import { workplaceMoveApi } from "./api";
 
 /**
  * AI が作業場所を移す予約の行（流れのいちばん下。作業中の様子の workplace_move）:
@@ -20,7 +20,7 @@ export function WorkplaceMoveRow({ chatId, reservation }: { chatId: number; rese
         className="link-button"
         title="予約を取り消して、いまの作業場所のまま続ける（続きの指示も送らない）"
         disabled={action.pending()}
-        onClick={() => action.press("", () => api.cancelWorkplaceMove(chatId), "作業場所を移す予約を取り消せませんでした")}
+        onClick={() => action.press("", () => workplaceMoveApi("DELETE /api/chats/:chatId/workplace-move", { params: { chatId } }), "作業場所を移す予約を取り消せませんでした")}
       >
         移らない
       </button>

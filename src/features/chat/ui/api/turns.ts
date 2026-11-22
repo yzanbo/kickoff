@@ -1,20 +1,11 @@
 import type { FileRewindResult } from "@shared/ai/types";
-import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { Chat, ChatOptionsPatch, MessageBody } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
-import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "@shared/providerSwitch/types";
-import type { ProviderId } from "@shared/settings/types";
 import { withSendExtras } from "@/features/chat/ui/send/sendExtras";
 import { request } from "@/foundation/ui/api/http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
 export const turnsApi = {
-  providerSwitchPreview: (chatId: number, target: ProviderId) => request<ProviderSwitchPreview>("GET", `/api/chats/${chatId}/provider-switch?target=${encodeURIComponent(target)}`),
-  switchProvider: (chatId: number, target: ProviderId, confirmation: string) => request<ProviderSwitchResult>("POST", `/api/chats/${chatId}/provider-switch`, { target, confirmation }),
-  providerHandoff: (chatId: number) => request<ProviderHandoffStatus | null>("GET", `/api/chats/${chatId}/provider-handoff`),
-  providerHandoffRecord: (chatId: number, eventId: number) => request<{ event: ChatEventOf<"provider_switched">; pending: Pick<ProviderHandoffStatus, "state" | "error"> | null }>("GET", `/api/chats/${chatId}/provider-handoff/${eventId}`),
-  retryProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/retry`, { event_id: eventId }),
-  confirmResendProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/confirm-resend`, { event_id: eventId, confirm_duplicate_risk: true }),
   /**
    * 送る口 1 本（POST /api/chats/:chatId/messages）。when: now = 止めずに伝える（作業していなければすぐ送る。足せなければ預かる）/
    * later = 作業中なら送信待ちに入れる（hold なら作業していなくても列の最後）。省けば続きを送る（作業中は 409。答えはチャット）。
@@ -34,8 +25,6 @@ export const turnsApi = {
   clearContext: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/clear`),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
   stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
-  /** AI が予約した作業場所の移動を取り消す */
-  cancelWorkplaceMove: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/workplace-move`),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopBackgroundTask: (chatId: number, taskId: string) => request<void>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */

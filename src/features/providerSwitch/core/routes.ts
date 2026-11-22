@@ -1,5 +1,6 @@
 // AI の切り替えの受け口（取り決めは @shared/providerSwitch/contract.ts）: 確かめる中身・切り替える・保留中の引き継ぎを見る・やり直す・受信不明のまま送り直す（段取りは chat の殻の switchProvider など）
 import { z } from "zod";
+import { SWITCHABLE_PROVIDERS } from "@shared/ai/providers";
 import type { Chat } from "@shared/chat/types";
 import { providerSwitchContract } from "@shared/providerSwitch/contract";
 import { Conflict, NotFound } from "@/foundation/core/errors";
@@ -9,7 +10,7 @@ import type { SwitchStore } from "./store";
 import { providerSwitchPreview } from "./providerSwitchPreview";
 
 /** 切り替えられる先 */
-const target = z.enum(["claude", "codex"]);
+const target = z.enum(SWITCHABLE_PROVIDERS);
 
 export function providerSwitchRoutes({ store, runner, chatParam }: { store: SwitchStore; runner: ChatRunner; chatParam: Param<Chat> }) {
   return implement(providerSwitchContract, {

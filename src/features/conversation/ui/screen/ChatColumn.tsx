@@ -9,7 +9,7 @@ import { SubagentsContext } from "@/features/subagents/ui/subagentsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { chatVisuals, VisualsContext } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
-import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHandoffNotice";
+import { ProviderHandoffNotice } from "@/features/providerSwitch/ui";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { chatRoleOf, useActivityNav } from "@/features/chat/ui";

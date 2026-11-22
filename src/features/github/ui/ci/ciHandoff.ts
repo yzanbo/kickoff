@@ -4,7 +4,7 @@ import type { Attachment } from "@shared/chat/types";
 import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
-import { currentChats } from "@/features/chat/ui/store/knownChats";
+import { currentChats } from "@/features/chat/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { HandOffItem } from "@/features/attachments/ui";

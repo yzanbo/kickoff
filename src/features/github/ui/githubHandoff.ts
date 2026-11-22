@@ -4,7 +4,7 @@ import type { GitHubLink } from "@shared/chat/types";
 import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
-import { currentChats } from "@/features/chat/ui/store/knownChats";
+import { currentChats } from "@/features/chat/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";

@@ -55,5 +55,6 @@ export { ChipWord, ComposerChip } from "./parts/ChatPill";
 export { StatusSlot } from "./state/StatusSlot";
 export { summaryState } from "./state/chatState";
 export { useChatStates } from "./state/chatStates";
-export { useChats, useChildChats, useKnownChat } from "./store/knownChats";
+export { currentChats, useChats, useChildChats, useKnownChat } from "./store/knownChats";
+export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";

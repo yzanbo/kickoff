@@ -21,7 +21,7 @@ import { ComposerHandBackChip } from "@/features/childChats/ui";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
 import { chatSubagents } from "@/features/subagents/ui";
 import { voiceReplies } from "@/features/composer/ui";
-import { ProviderChip } from "@/features/ai/ui/provider/ProviderChips";
+import { ProviderSwitchChip } from "@/features/providerSwitch/ui";
 import type { useChatSend } from "@/features/composer/ui/send/chatSend";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
 import { useHeldEdit, HeldEditComposer } from "@/features/compact/ui";
@@ -154,7 +154,7 @@ export function ChatComposerArea({
         }}
         options={options}
         // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える）
-        providerChip={<ProviderChip chat={chat} busy={busy} />}
+        providerChip={<ProviderSwitchChip chat={chat} busy={busy} />}
         placeholder={send.placeholder}
         send={composerSend}
         // 入力欄に入れた子チャットからの依頼の出どころの札（送ると発言の札になる）。その下に定型文の帯（差し込み）

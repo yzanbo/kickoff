@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
-import { WorkplaceMoveChip } from "@/features/workplaceMove/ui/WorkplaceMoveChip";
+import { WorkplaceMoveChip } from "@/features/workplaceMove/ui";
 import { ChatFind } from "@/features/conversation/ui/find/ChatFind";
 import { AgentPanelToggle } from "@/features/chatPanel/ui/agents/AgentPanelToggle";
 import { useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";

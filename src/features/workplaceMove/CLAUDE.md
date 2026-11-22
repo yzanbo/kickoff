@@ -8,3 +8,7 @@
 - AI への知らせは区切りのあと最初の実行の文脈に添え、知らせたかは保存せず `store.events.pendingWorkplaceMove` で決める。
 - 利用者が移す（`core/userMove.ts`）は子チャットを移さず、持っていく変更は `@/foundation/core/workplace/carry.ts`、移せなければ `undo` で戻す。新しいワークツリーは土台の `creator()`、動いているターミナルは terminal が登録する `RunningTerminalsPort`（`core/target.ts`）。
 - AI が移す（`core/reserve.ts`。ツール `move_workplace` は `core/aiWorkplace.ts`・組と移動の知らせの contributor は `core/tools.ts`。決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）は予約（`reserveAtTurnEnd`）だけで、最後まで終わった作業の終わりに移す（続きは `placeContinuation`）。取り消しは AI にも伝える（`pendingNote`）。
+
+## 画面（`ui/`）
+
+- 見出しの札 `WorkplaceMoveChip`・予約の行 `WorkplaceMoveRow`・右クリックの `WorkplaceMoveItem` は入口から。札の印と説明の行は作業場所の飾り `workplaceDecor`（PR・実行環境の機能を読まない）。

@@ -12,11 +12,9 @@ import { workplacePath, type WorkplaceChoice } from "@/foundation/ui/workplace/w
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
-import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
-import type { NewChatSeed } from "@/features/chat/ui";
+import { chooseBusyWorkplaceAction, currentChats, useChats, type NewChatSeed } from "@/features/chat/ui";
 import { appendDraft, Composer, composerPills, DraftTextWatch, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { mergeAttachments } from "@/features/attachments/ui";
-import { currentChats, useChats } from "@/features/chat/ui/store/knownChats";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPicker } from "@/features/groups/ui/GroupPicker";
@@ -28,7 +26,7 @@ import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { draftScope } from "@/features/panel/ui/surfaces";
 import type { SidePanelHandle } from "@/features/conversation/ui";
 import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
-import { ProviderPicker } from "@/features/ai/ui/provider/ProviderChips";
+import { ProviderPicker } from "@/features/ai/ui";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
 const NO_REPLIES: VoiceReply[] = [];

@@ -47,6 +47,9 @@ export function featureBlock(status: ProviderStatus | undefined, feature: Provid
 /** API キーで動かすか（使った分の支払い。設定の provider_auth が api_key） */
 export const paysPerUse = (status: ProviderStatus | undefined): boolean => status?.auth_mode === "api_key";
 
+/** AI の札に乗せたときの説明の後ろ（API キーで動かすなら、使った分の支払いであることを添える） */
+export const payNote = (status: ProviderStatus | undefined): string => (paysPerUse(status) ? `。API キーで動かします（${PAY_PER_USE_LABEL}）` : "");
+
 /**
  * AI の札とそのメニューに出す名前（表の短い名前。チャット欄の下の行は狭いので「Claude Code」を「Claude」に。乗せたときの説明は正式な名前のまま）。
  * API キーで動かすなら「· API キー」を添える

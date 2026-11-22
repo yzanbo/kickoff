@@ -1,5 +1,5 @@
 // AI ごとの表（1 つ）: 名前・CLI・色・印・入れ方と「できる・できない」。コア・画面・スマホが同じ表を引く（AI の名前で if を書かない）
-import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
+import { PROVIDER_IDS, PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 
 /**
  * AI によってできたりできなかったりすること。前の 9 つはプロバイダーのメソッドがあること（食い違いは capability.test.ts が見張る）、
@@ -102,3 +102,9 @@ export const PROVIDERS = {
 
 /** その AI の表にできることがあるか（AI の ID で決まる決まり。本物の実装かは見ない。コアの状態は hasCapability） */
 export const providerCan = (id: ProviderId, capability: ProviderCapability): boolean => (PROVIDERS[id].capabilities as readonly ProviderCapability[]).includes(capability);
+
+/** 会話を続けたまま替えられる AI（表で "switch" を持つもの） */
+export type SwitchableProvider = { [K in ProviderId]: "switch" extends (typeof PROVIDERS)[K]["capabilities"][number] ? K : never }[ProviderId];
+
+/** 会話を続けたまま替えられる AI の一覧（PROVIDER_IDS の順） */
+export const SWITCHABLE_PROVIDERS: readonly SwitchableProvider[] = PROVIDER_IDS.filter((id): id is SwitchableProvider => providerCan(id, "switch"));

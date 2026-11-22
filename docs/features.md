@@ -283,7 +283,7 @@
 |---|---|---|---|
 | RUN-008 | モデル・推論の深さを選ぶ | ai | M |
 | RUN-009 | 権限モード・ファストモードを選ぶ | ai | M |
-| RUN-010 | チャットごとに AI を選ぶ | ai | T:ProviderChips |
+| RUN-010 | チャットごとに AI を選ぶ | ai | T:providerChoice |
 | RUN-011 | チャットの途中で AI を替えて会話を続ける | providerSwitch | T:providerSwitch |
 | RUN-012 | AI を替えた区切りと、返答ごとの担当 AI を出す | providerSwitch | T:ProviderSwitchRecord |
 | RUN-013 | AI ごとのセッションを持ち、前の AI に戻したら続きから | chat | T:chatProviderSessions |

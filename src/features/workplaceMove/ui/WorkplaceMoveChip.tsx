@@ -1,12 +1,11 @@
 import { useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import { workplaceMoveApi } from "./api";
-import { useWorktreeEnv, useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
+import { useWorktrees } from "@/foundation/ui/workplace/worktreesStore";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
-import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";
 import { useChatWorkplace } from "@/foundation/ui/workplace/useWorkplace";
 import { WORKPLACE_SHORT_LABELS } from "@/foundation/ui/workplace/workplace";
-import { worktreeEnvLines } from "@/features/worktrees/ui/worktreeEnvText";
+import { workplaceDecor, workplaceDecorLines } from "@/foundation/ui/workplace/workplaceDecor";
 import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
 import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import { worktreeLabel } from "@/foundation/ui/workplace/WorktreePicker";
@@ -42,11 +41,12 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
 
 /**
  * チャットの見出しの作業場所の札: 見た目は WorktreeChip のまま ▾ を付け、押すと移す先を選ぶ。
- * 作業中・実行環境を整えるチャットは押せない（理由を説明に）。ワークツリーの一覧がない（Git でない）プロジェクトは押せない札のまま
+ * 作業中・実行環境を整えるチャットは押せない（理由を説明に）。ワークツリーの一覧がない（Git でない）プロジェクトは押せない札のまま。
+ * 札の後ろの印と説明に添える行は、WorktreeChip と同じく作業場所の飾り（workplaceDecor）から
  */
 export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
   const { place, hue } = useChatWorkplace(chat);
-  const envLines = worktreeEnvLines(useWorktreeEnv(chat.project_id, chat.worktree_path));
+  const decorLines = workplaceDecorLines(chat.project_id, chat.worktree_path, useWorktrees(chat.project_id));
   // 片付けを予約したワークツリー（開いたときに読み直す）
   const [reserved, setReserved] = useState<string[]>([]);
   const choices = useWorkplaceChoices(chat, reserved);
@@ -60,7 +60,7 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
         hue={hue}
         kind={WORKPLACE_SHORT_LABELS[place.kind]}
         name={place.name}
-        tip={[place.title, ...envLines, "押すと作業場所を変えられます（会話はそのまま続きます）"].join("\n")}
+        tip={[place.title, ...decorLines, "押すと作業場所を変えられます（会話はそのまま続きます）"].join("\n")}
         menuTitle="作業場所を変更"
         values={choices.values}
         labels={choices.labels}
@@ -74,7 +74,7 @@ export function WorkplaceMoveChip({ chat }: { chat: Chat }) {
           })
         }
       />
-      <WorktreePrMark worktree={chat.worktree_path} />
+      {workplaceDecor.items().map(({ id, Mark }) => Mark && <Mark key={id} projectId={chat.project_id} path={chat.worktree_path} />)}
     </>
   );
 }

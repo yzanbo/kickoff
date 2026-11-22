@@ -1,10 +1,11 @@
 // AI の切り替えの取り決め。受け口は src/features/providerSwitch/core/routes.ts
 import { route, type Contract } from "@shared/foundation/contract";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
+import type { SwitchableProvider } from "@shared/ai/providers";
 import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "./types";
 
-/** 切り替えられる先（いまは Claude Code と Codex） */
-type SwitchTarget = "claude" | "codex";
+/** 切り替えられる先（AI の表で "switch" を持つもの） */
+type SwitchTarget = SwitchableProvider;
 
 /** 引き継ぎのやり直し・送り直しの答え（引き継ぎの資料を作れなかったときの注意） */
 type HandoffRetryResult = { warning: string | null };
