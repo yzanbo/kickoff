@@ -20,6 +20,9 @@ import { NoteChipTree } from "./NoteChipTree";
 import { buildNoteFileTree } from "./notePaths";
 import { openNoteFromChat } from "./openNoteFrom";
 import { useDraftSide } from "@/features/chatPanel/ui/agents/draftSide";
+import { api } from "@/foundation/ui/api";
+import { reportFailure } from "@/foundation/ui/kit/ask";
+import type { ComposerPillProps } from "@/features/composer/ui";
 import { followMovedNote, useNoteActions } from "./useNoteActions";
 
 /**
@@ -133,4 +136,9 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
       )}
     </ComposerChip>
   );
+}
+
+/** 入力欄の差し込み（composerSlots の pill）: ノートのピル。送る前の欄では、選んだノートの写しを attach で下書きに足す */
+export function ComposerNotePill({ projectId, chatId, attach }: ComposerPillProps) {
+  return <NoteChip projectId={projectId} chatId={chatId} onAttach={attach && ((path) => void api.noteSnapshot(projectId, path).then(attach, reportFailure("ノートを添付できませんでした")))} />;
 }

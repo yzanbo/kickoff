@@ -4,15 +4,11 @@ import type { AgentState, Attachment, Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { addChat, useNoteChatOf } from "@/features/chat/ui/store/knownChats";
-import { Composer } from "@/features/composer/ui/Composer";
-import { chatComposerDraft } from "@/features/composer/ui";
-import { ContextMeter } from "@/features/compact/ui/ContextMeter";
-import { QueueModeToggle } from "@/features/composer/ui/QueueModeToggle";
+import { chatComposerDraft, Composer } from "@/features/composer/ui";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { useChatSend } from "@/features/composer/ui/send/chatSend";
 import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
 import { ChatStateMark } from "@/features/chat/ui";
-import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useOverflowLevel } from "@/foundation/ui/hooks/useOverflowCompact";
@@ -194,24 +190,20 @@ function NoteQuickComposer({
       {/* ノートのチャットの送信待ち（閉じている欄の中のチャットの画面がここに描く。入力欄とつなげて 1 枚の枠に見せる） */}
       <div ref={queueRef} className="note-quick-queue" />
       <Composer
-        chatContext={{ projectId, exclude: chat?.id }}
+        place={{ projectId, worktree: chat?.worktree_path ?? null, chatId: chat?.id ?? null, meter: chat ? { chat, compacting: null, reserved: null, afterTurn: false } : undefined }}
         options={options}
-        busy={busy}
-        queueWhileIdle={!busy && queued}
         placeholder={busy ? send.placeholder : PLACEHOLDER}
-        sendLabel={busy ? send.sendLabel : undefined}
-        onSend={onSend}
-        onQueue={send.onQueue}
-        busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
-        stopping={stopping}
-        onStop={chat ? send.onStop : undefined}
-        trailing={<ContextMeter chat={chat ?? null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
-        header={<SnippetBar projectId={projectId} onSend={(text) => (busy ? send.onQueue(text, []) : onSend(text, []))} />}
-        // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
-        menuItems={<SnippetBarToggleItem />}
-        suggestTarget={{ projectId, worktree: chat?.worktree_path ?? undefined }}
+        send={{
+          busy,
+          stopping,
+          holdsQueue: !busy && queued,
+          submit: ({ text, attachments }, mode) => (busy || queued ? send.onQueue(text, attachments, mode) : onSend(text, attachments)),
+          sendOther: (text) => (busy ? send.onQueue(text, []) : onSend(text, [])),
+          stop: chat ? send.onStop : undefined,
+          label: busy ? send.sendLabel : undefined,
+          alternatives: chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, submit: ({ text, attachments }) => send.onAsk(text, attachments) }] : undefined,
+        }}
         draft={chat ? chatComposerDraft(chat.id) : undefined}
-        sendTo={chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, onSend: send.onAsk }] : undefined}
       />
     </div>
   );

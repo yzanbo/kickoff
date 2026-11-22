@@ -1,6 +1,6 @@
 # 定型文（`src/features/snippets`）
 
-よく送る指示を、チャット欄の上の帯（`SnippetBar`）から入力欄に入れる・送る。
+よく送る指示を、チャット欄の上の帯（`SnippetBar`。入力欄の差し込み `composerSlots` の `band`・`menu` に `ui/contributes.ts` が登録）から入力欄に入れる・送る。
 
 | ファイル | 中身 |
 |---|---|

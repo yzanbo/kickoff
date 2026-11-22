@@ -2,21 +2,16 @@ import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "@/features/childChats/ui/index";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
-import { Composer } from "@/features/composer/ui/Composer";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
-import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
-import { ContextMeter } from "@/features/compact/ui/ContextMeter";
-import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
-import { appendDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
+import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
@@ -131,24 +126,21 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           )}
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
-            <NoteChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.noteSnapshot(parent.project_id, path).then((a) => (appendDraft(draft, "", [a]), focusDraft(draft)), reportFailure("ノートを添付できませんでした"))} />
+            {composerPills().map((Pill, i) => (
+              <Pill key={i} projectId={parent.project_id} chatId={null} attach={(a) => (appendDraft(draft, "", [a]), focusDraft(draft))} />
+            ))}
           </div>
           <ChatProviderContext.Provider value={provider}>
           <Composer
-            chatContext={{ projectId: parent.project_id }}
+            place={{ projectId: parent.project_id, worktree: parent.worktree_path, chatId: null }}
             options={options}
             // 使う AI（チャット欄のモデルの左。押すと選び直す）
             providerChip={<ProviderPicker value={provider} onChange={setProvider} tipPrefix="この AI で子チャットを始めます" />}
             autoFocus
             draft={draft}
-            suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
             placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
-            // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
-            header={<SnippetBar projectId={parent.project_id} onSend={(text) => start(text, [])} />}
-            menuItems={<SnippetBarToggleItem />}
-            // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%）
-            trailing={<ContextMeter chat={null} projectId={parent.project_id} compacting={null} reserved={null} afterTurn={false} />}
-            onSend={start}
+            // 定型文の帯・右クリックの帯の表示・右下のコンテキストのメーター（まだ 0%）は、チャットの画面のチャット欄と同じ差し込み
+            send={{ submit: ({ text, attachments }) => start(text, attachments), sendOther: (text) => start(text, []) }}
           />
           </ChatProviderContext.Provider>
         </DraftChatPage>

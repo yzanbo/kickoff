@@ -9,12 +9,10 @@ import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
-import { Composer } from "@/features/composer/ui/Composer";
-import { settingDraft } from "@/features/composer/ui";
+import { Composer, settingDraft } from "@/features/composer/ui";
 import type { QueueSendMode } from "@/features/composer/ui/composerKeys";
-import { QueueModeToggle, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
+import { useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
-import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { openCreatedChild } from "@/features/chat/ui";
 import type { SubagentsView } from "./subagentsContext";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
@@ -47,7 +45,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   const { agentId, description } = entry;
   const [mode, setMode] = useSetting(storage.settings.askMode);
   const logBlock = useFeatureBlock("subagent_log");
-  const [queueMode, setQueueMode] = useQueueMode();
+  const [queueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
   const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
   if (!agentId) return <p className="muted small">このサブエージェントには伝えられません（Claude Code がサブエージェントの ID を知らせていないため）。</p>;
@@ -89,22 +87,21 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         />
       </div>
       <Composer
-        // 子チャットで聞くときは、メインエージェントが作業中でもいま / あとでを聞かずにすぐ送る（メインエージェントの作業には関わらない）
-        busy={child ? false : view.busy}
+        // サブエージェントのメーターは出さない（使用率を Claude Code が知らせない）
+        place={{ projectId: view.projectId, worktree: view.worktree, chatId: view.chatId, slots: { meter: false } }}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        sendLabel={child ? "新しい子チャットで聞く" : later ? "送信待ちに入れる" : "メインエージェント経由で伝える"}
-        onSend={(text, attachments) => send(text, attachments)}
-        onQueue={send}
-        // 伝えるときだけ、メインエージェントの作業中に いま / あとで を選ぶ（チャット欄と同じ設定）
-        busyControls={child ? undefined : <QueueModeToggle busy value={queueMode} onChange={setQueueMode} />}
+        send={{
+          // 子チャットで聞くときは、メインエージェントが作業中でもいま / あとでを聞かずにすぐ送る（メインエージェントの作業には関わらない）。
+          // 伝えるときだけ、メインエージェントの作業中に いま / あとで を選ぶ（チャット欄と同じ設定）
+          busy: child ? false : view.busy,
+          submit: ({ text, attachments }, sendMode) => send(text, attachments, sendMode),
+          // 定型文の「すぐ送る」は、いまの送り先にそのまま送る
+          sendOther: (text) => send(text, []),
+          label: child ? "新しい子チャットで聞く" : later ? "送信待ちに入れる" : "メインエージェント経由で伝える",
+        }}
         // 子チャットで聞くときだけ、作る子チャットのモデルなどを選ぶ
         options={child ? options : undefined}
-        // よく送る指示（このプロジェクトの定型文）。「すぐ送る」は、いまの送り先にそのまま送る
-        header={<SnippetBar projectId={view.projectId} onSend={(text) => send(text, [])} />}
-        menuItems={<SnippetBarToggleItem />}
-        chatContext={{ projectId: view.projectId, exclude: view.chatId }}
-        suggestTarget={{ projectId: view.projectId, worktree: view.worktree ?? undefined }}
         draft={settingDraft(storage.settings.tellDraft(`${view.chatId}:${entry.key}`))}
       />
     </>

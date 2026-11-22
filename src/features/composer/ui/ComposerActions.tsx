@@ -7,7 +7,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { QueueSendMode } from "./composerKeys";
 
 /** 送信ボタンの右クリックで選べる、ほかの送り方・送り先（質問として送る・子チャットに送るなど） */
-export interface SendTarget {
+export interface SendTargetItem {
   label: string;
   /** 名前の下に小さく添える、何が起きるかの一言 */
   hint?: string;
@@ -67,7 +67,7 @@ export function ComposerActions({
   hasContent: boolean;
   sendLabel?: string;
   onSubmit: () => void;
-  sendTargets?: SendTarget[];
+  sendTargets?: SendTargetItem[];
   /** 作業中でも、ふだんの見た目にする（会話の圧縮中） */
   plain?: boolean;
 }) {

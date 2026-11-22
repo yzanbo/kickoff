@@ -42,8 +42,10 @@ void prepareStorage(STORAGE_GROUPS)
     const { startCurrentWork } = await import("@/features/chat/ui/currentWorkStore");
     startCurrentWork();
     // 別ウィンドウから頼まれた下書きへの足し込みと、消したチャットの下書きの片付けを受ける
-    const { startComposerDrafts } = await import("@/features/composer/ui");
+    const { loadComposerSlots, startComposerDrafts } = await import("@/features/composer/ui");
     startComposerDrafts();
+    // 入力欄の差し込み（定型文の帯・メーター・ピル・音声）を最初の描画の前に読み終える（描くときに待たない）
+    await loadComposerSlots();
     const root = createRoot(document.getElementById("root")!);
     // 別ウィンドウ（右の欄の変更・ファイル・サブエージェント）は、メインの App ではなく、その中身だけの画面を描く
     const { parsePopout } = await import("@/foundation/ui/navigation/popout");

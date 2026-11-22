@@ -1,7 +1,46 @@
-// 入力欄への差し込み口（入力欄より上の機能が ui/contributes.ts で登録する。音声は voice）
-import type { KeyboardEvent, ReactNode } from "react";
+// 入力欄への差し込み口（入力欄より上の機能が ui/contributes.ts で登録する: 定型文の帯と右クリックの項目 = snippets・メーター = compact・
+// ピル = notes・音声 = voice）。登録の表は中身を静的に読まず load で渡し、main.tsx が最初の描画の前に loadComposerSlots で読み終える
+// （描くときに待たない。帯・メーター・マイクが遅れて出て、下の行の幅の測り直しが漏れないように。音声の hooks は描く前に決まっていないといけない）
+import type { ComponentType, KeyboardEvent, ReactNode } from "react";
+import type { CompactingState } from "@shared/chat/chatLive";
+import type { Attachment, Chat, QueuedMessage } from "@shared/chat/types";
 import { definePoint } from "@/foundation/ui/points";
 import type { VoiceReply } from "./selectors";
+
+/** 右下のメーターに渡す、このチャットの圧縮の様子（会話の画面のチャット欄だけ。省けば送る前と同じ 0% の形） */
+export interface ComposerMeterInput {
+  chat: Chat | null;
+  compacting: CompactingState | null;
+  /** 作業中に予約した圧縮・コンテキストの消去（送信待ちのいちばん上の行） */
+  reserved: QueuedMessage | null;
+  /** 手で頼んだ圧縮の圧縮前指示を、いまの作業に伝えた */
+  afterTurn: boolean;
+}
+
+/** どこの入力欄か（候補を探す作業場所・「ほかのチャットを参照」で除くチャット・差し込みに渡すもの） */
+export interface ComposerPlace {
+  projectId: number;
+  /** 候補を探すワークツリー（null は本体） */
+  worktree: string | null;
+  /** 既存のチャット（送る前の欄は null） */
+  chatId: number | null;
+  meter?: ComposerMeterInput;
+  /** 出さない差し込み（既定は全部出す） */
+  slots?: { band?: false; meter?: false; menu?: false };
+}
+
+/** 定型文の帯（入れるのは useComposerInsert。send は「すぐ送る」。なければ入れるだけ） */
+export interface ComposerBandProps {
+  place: ComposerPlace;
+  send?: (text: string) => Promise<void>;
+}
+
+/** 入力欄の上のピル（ノート）。attach は送る前の欄の下書きに添付を足す（既存のチャットは自分で足す） */
+export interface ComposerPillProps {
+  projectId: number;
+  chatId: number | null;
+  attach?: (attachment: Attachment) => void;
+}
 
 /** 文を書く欄 1 つと音声をつなぐ口（MessageField が作る） */
 export interface FieldBridge {
@@ -56,26 +95,64 @@ export interface FieldVoiceMode {
   button: ReactNode;
 }
 
-/**
- * 差し込み。voice の hooks は描くたびに必ず 1 回ずつ呼ぶ（登録は起動の前に 1 回だけ入るので、呼ぶ hooks は変わらない）
- */
-export type ComposerSlot = { kind: "voice"; useField: (bridge: FieldBridge) => FieldVoice; useMode: (bridge: FieldBridge, input: ComposerVoiceModeInput) => FieldVoiceMode };
+/** 音声の差し込み（hooks。描くたびに必ず 1 回ずつ呼ぶ。最初の描画の前に読み終えるので、呼ぶ hooks は変わらない） */
+export interface ComposerVoiceHooks {
+  useField: (bridge: FieldBridge) => FieldVoice;
+  useMode: (bridge: FieldBridge, input: ComposerVoiceModeInput) => FieldVoiceMode;
+}
 
-export const composerSlots = definePoint<ComposerSlot>("composerSlots", { key: (s) => s.kind });
+export type ComposerSlot =
+  | { kind: "band"; id: string; order: number; load: () => Promise<ComponentType<ComposerBandProps>> }
+  | { kind: "menu"; id: string; order: number; load: () => Promise<ComponentType<{ place: ComposerPlace }>> }
+  | { kind: "meter"; id: string; load: () => Promise<ComponentType<{ place: ComposerPlace }>> }
+  | { kind: "pill"; id: string; order: number; load: () => Promise<ComponentType<ComposerPillProps>> }
+  | { kind: "voice"; id: string; load: () => Promise<ComposerVoiceHooks> };
+
+const orderOf = (s: ComposerSlot) => ("order" in s ? s.order : 0);
+
+export const composerSlots = definePoint<ComposerSlot>("composerSlots", { key: (s) => `${s.kind}:${s.id}`, order: (a, b) => orderOf(a) - orderOf(b) });
 
 /** 音声の登録がないとき（音声なし） */
 export const NO_VOICE: FieldVoice = { recording: false, finishAndSend: () => {}, onKeyDown: () => false, button: null, error: null };
 const NO_VOICE_MODE: FieldVoiceMode = { active: false, sends: false, stop: () => {}, beforeSend: () => {}, noteSent: () => {}, panel: null, button: null };
-const NO_VOICE_SLOT: ComposerSlot = { kind: "voice", useField: () => NO_VOICE, useMode: () => NO_VOICE_MODE };
+const NO_VOICE_HOOKS: ComposerVoiceHooks = { useField: () => NO_VOICE, useMode: () => NO_VOICE_MODE };
 
-const voiceSlot = (): ComposerSlot => composerSlots.items().find((s) => s.kind === "voice") ?? NO_VOICE_SLOT;
+interface ComposerParts {
+  bands: ComponentType<ComposerBandProps>[];
+  menus: ComponentType<{ place: ComposerPlace }>[];
+  meter: ComponentType<{ place: ComposerPlace }> | null;
+  pills: ComponentType<ComposerPillProps>[];
+  voice: ComposerVoiceHooks;
+}
+const NO_PARTS: ComposerParts = { bands: [], menus: [], meter: null, pills: [], voice: NO_VOICE_HOOKS };
+let parts: ComposerParts | null = null;
+
+/** 差し込みの中身を読み終える（main.tsx が最初の描画の前に 1 回） */
+export async function loadComposerSlots(): Promise<void> {
+  const items = composerSlots.items();
+  const loadedItems = await Promise.all(items.map((s) => s.load()));
+  const of = (kind: ComposerSlot["kind"]): unknown[] => items.flatMap((s, i) => (s.kind === kind ? [loadedItems[i]] : []));
+  parts = {
+    bands: of("band") as ComposerParts["bands"],
+    menus: of("menu") as ComposerParts["menus"],
+    meter: (of("meter")[0] as ComposerParts["meter"] | undefined) ?? null,
+    pills: of("pill") as ComposerParts["pills"],
+    voice: (of("voice")[0] as ComposerVoiceHooks | undefined) ?? NO_VOICE_HOOKS,
+  };
+}
+
+/** 読み終えた差し込み（読み終えていなければ空） */
+export const composerParts = (): ComposerParts => parts ?? NO_PARTS;
+
+/** 入力欄の上のピル（ノート）。ピルの列を描く側（会話の画面・新しいチャット・新しい子チャット）が並べる */
+export const composerPills = (): readonly ComponentType<ComposerPillProps>[] => composerParts().pills;
 
 /** 欄 1 つの音声入力（登録した機能の hook を呼ぶ） */
 export function useFieldVoice(bridge: FieldBridge): FieldVoice {
-  return voiceSlot().useField(bridge);
+  return composerParts().voice.useField(bridge);
 }
 
 /** チャット欄の音声モード（登録した機能の hook を呼ぶ） */
 export function useVoiceMode(bridge: FieldBridge, input: ComposerVoiceModeInput): FieldVoiceMode {
-  return voiceSlot().useMode(bridge, input);
+  return composerParts().voice.useMode(bridge, input);
 }

@@ -4,7 +4,6 @@ import type { Attachment, Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { Composer } from "@/features/composer/ui/Composer";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
@@ -15,7 +14,7 @@ import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors"
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
 import type { NewChatSeed } from "@/features/chat/ui";
-import { appendDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
+import { appendDraft, Composer, composerPills, DraftTextWatch, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { mergeAttachments } from "@/features/attachments/ui";
 import { currentChats, useChats } from "@/features/chat/ui/store/knownChats";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
@@ -23,10 +22,6 @@ import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPicker } from "@/features/groups/ui/GroupPicker";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/screen/ChatDisplayMenu";
-import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
-import { ContextMeter } from "@/features/compact/ui/ContextMeter";
-import { NoteChip } from "@/features/notes/ui/NoteChip";
-import { reportFailure } from "@/foundation/ui/kit/ask";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";
@@ -220,28 +215,26 @@ export function NewChatPane({
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
-        <NoteChip projectId={projectId} chatId={null} onAttach={(path) => void api.noteSnapshot(projectId, path).then((a) => (appendDraft(draft, "", [a]), focusDraft(draft)), reportFailure("ノートを添付できませんでした"))} />
+        {composerPills().map((Pill, i) => (
+          <Pill key={i} projectId={projectId} chatId={null} attach={(a) => (appendDraft(draft, "", [a]), focusDraft(draft))} />
+        ))}
       </div>
+      {/* 書いた文を少し待ってからタブに知らせる（下書きのカードに出す） */}
+      {onDraftChange && <DraftTextWatch key={projectId} draft={draft} onChange={onDraftChange} />}
       {ready && (
         <ChatProviderContext.Provider value={provider}>
         <Composer
           key={projectId}
-          chatContext={{ projectId }}
+          // 新しいワークツリーはまだないので、本体から探す
+          place={{ projectId, worktree: place.kind === "existing" ? place.path : null, chatId: null }}
           options={options}
           // 使う AI（チャット欄のモデルの左。押すと選び直す）
           providerChip={<ProviderPicker value={provider} onChange={setPickedProvider} />}
           autoFocus
-          onTextChange={onDraftChange}
           draft={draft}
-          // 新しいワークツリーはまだないので、本体から探す
-          suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
           placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
-          // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
-          header={<SnippetBar projectId={projectId} onSend={(text) => start(text, [])} />}
-          menuItems={<SnippetBarToggleItem />}
-          // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%。圧縮の設定・圧縮前指示・圧縮後指示はここでも開ける）
-          trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
-          onSend={start}
+          // 定型文の帯・右クリックの帯の表示・右下のコンテキストのメーター（まだ 0%）は、チャットの画面のチャット欄と同じ差し込み
+          send={{ submit: ({ text, attachments }) => start(text, attachments), sendOther: (text) => start(text, []) }}
           // 音声モード（話して最初の指示を送ると、チャットを作り、できたチャットで音声モードを続ける。送る前に確かめてやめたら何もしない）
           voiceMode={{
             replies: NO_REPLIES,

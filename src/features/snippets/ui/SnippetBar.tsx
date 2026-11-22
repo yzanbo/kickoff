@@ -11,7 +11,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
-import { useComposerInsert } from "@/features/composer/ui";
+import { useComposerInsert, type ComposerBandProps } from "@/features/composer/ui";
 import { confirmDeleteSnippet } from "./snippetActions";
 import { SnippetDialog } from "./SnippetDialog";
 import type { SnippetEditing } from "./SnippetManager";
@@ -151,4 +151,9 @@ function SnippetMenuItems({
       <div className="menu-separator" role="separator" />
     </>
   );
+}
+
+/** 入力欄の差し込み（composerSlots の band）: このプロジェクトの定型文の帯 */
+export function SnippetBand({ place, send }: ComposerBandProps) {
+  return <SnippetBar projectId={place.projectId} onSend={send} />;
 }

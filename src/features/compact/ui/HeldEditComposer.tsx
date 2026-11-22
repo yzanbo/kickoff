@@ -6,9 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { alert } from "@/foundation/ui/kit/ask";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
-import { Composer } from "@/features/composer/ui/Composer";
-import { appendToDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
-import { SnippetBar } from "@/features/snippets/ui/SnippetBar";
+import { appendToDraft, Composer, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { endHeldEdit, type HeldEdit } from "./heldEdit";
 
 /**
@@ -66,26 +64,21 @@ export function HeldEditComposer({ chat, edit, gone }: { chat: Chat; edit: HeldE
     <div className="held-edit" onKeyDown={onKeyDown}>
       <Composer
         autoFocus
-        chatContext={{ projectId: chat.project_id, exclude: chat.id }}
+        // 定型文は書き直す欄に入れる（すぐ送るは、書き直しでは入れるだけ = sendOther なし）。右クリックの帯の切り替え・メーターは出さない
+        place={{ projectId: chat.project_id, worktree: chat.worktree_path, chatId: chat.id, slots: { menu: false, meter: false } }}
         placeholder="書き直す文（Enter で保存・Esc でやめる）"
-        sendLabel="保存（送る順はそのまま）"
-        onSend={save}
-        suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
+        send={{ submit: ({ text, attachments }) => save(text, attachments), label: "保存（送る順はそのまま）" }}
         draft={draft}
         header={
-          <>
-            <div className={gone ? "held-edit-banner gone" : "held-edit-banner"}>
-              <Pencil size={13} aria-hidden />
-              <span className="held-edit-title">
-                {gone ? "この指示はもう送られました。保存すると、書いた文をチャット欄に移します" : `預かった指示（${edit.position} 件目）を書き直しています。保存しても送る順はそのままです`}
-              </span>
-              <button type="button" className="btn" data-size="sm" onClick={cancel}>
-                やめる
-              </button>
-            </div>
-            {/* 定型文は書き直す欄に入れる（すぐ送るは、書き直しでは入れるだけ） */}
-            <SnippetBar projectId={chat.project_id} />
-          </>
+          <div className={gone ? "held-edit-banner gone" : "held-edit-banner"}>
+            <Pencil size={13} aria-hidden />
+            <span className="held-edit-title">
+              {gone ? "この指示はもう送られました。保存すると、書いた文をチャット欄に移します" : `預かった指示（${edit.position} 件目）を書き直しています。保存しても送る順はそのままです`}
+            </span>
+            <button type="button" className="btn" data-size="sm" onClick={cancel}>
+              やめる
+            </button>
+          </div>
         }
       />
     </div>

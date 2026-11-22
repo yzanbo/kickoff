@@ -12,6 +12,7 @@ import { compactingLabel } from "@/features/conversation/ui/working/workingLabel
 import { CompactPromptEditor } from "./CompactPromptEditor";
 import { AutoCompactSelect } from "./AutoCompactSelect";
 import { FreeContextActions, type FreeContextAction } from "./FreeContextActions";
+import type { ComposerPlace } from "@/features/composer/ui";
 
 /** 丸いメーターの色（70% から注意、90% から警告） */
 const TONES = { normal: "ok", warning: "warn", critical: "danger" } as const;
@@ -146,4 +147,10 @@ function Ring({ pct, mark, compacting }: { pct: number; mark: number | null; com
       {mark !== null && !compacting && <path className="context-ring-mark" d="M9 0.6 L7.1 -2.4 L10.9 -2.4 Z" transform={`rotate(${(mark * 3.6).toFixed(1)} 9 9)`} />}
     </svg>
   );
+}
+
+/** 入力欄の差し込み（composerSlots の meter）: 右下のコンテキストのメーター（圧縮の様子は会話の画面の欄だけが place.meter で渡す） */
+export function ComposerMeter({ place }: { place: ComposerPlace }) {
+  const m = place.meter;
+  return <ContextMeter chat={m?.chat ?? null} projectId={place.projectId} compacting={m?.compacting ?? null} reserved={m?.reserved ?? null} afterTurn={m?.afterTurn ?? false} />;
 }

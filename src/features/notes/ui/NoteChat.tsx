@@ -5,17 +5,14 @@ import { api } from "@/foundation/ui/api";
 import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { Composer } from "@/features/composer/ui/Composer";
-import { appendDraft, appendToDraft, focusDraft, memoryDraft, type ComposerDraft } from "@/features/composer/ui";
+import { appendDraft, appendToDraft, Composer, focusDraft, memoryDraft, type ComposerDraft } from "@/features/composer/ui";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
-import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { screenOfChat } from "@/features/chat/ui";
 import { PanelHostContext } from "@/features/panel/ui/panelHost";
 import type { ChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
-import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 
 /** 外からノートのチャットの欄を動かす口（本文の右クリックの「ノートのチャット」の組） */
 export interface NoteChatHandle {
@@ -151,16 +148,12 @@ function NoteChatStart({
       </div>
       <div className="chat-composer">
         <Composer
-          chatContext={{ projectId }}
+          // 会話が始まったあとのチャット欄と同じく、定型文の帯（右クリックで出す・隠す）とコンテキストのメーター（まだ 0%）
+          place={{ projectId, worktree: null, chatId: null }}
           options={options}
           draft={draft}
-          suggestTarget={projectId}
           placeholder="ノートについて話す（例: 機能案を一緒に考えて / 優先度順に並べて反映して）。Enter で送る、Shift+Enter で改行"
-          onSend={(text, attachments) => onStart(text, attachments, options.options)}
-          // 会話が始まったあとのチャット欄と同じく、定型文の帯（右クリックで出す・隠す）とコンテキストのメーター（まだ 0%）
-          header={<SnippetBar projectId={projectId} onSend={(text) => onStart(text, [], options.options)} />}
-          menuItems={<SnippetBarToggleItem />}
-          trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
+          send={{ submit: ({ text, attachments }) => onStart(text, attachments, options.options), sendOther: (text) => onStart(text, [], options.options) }}
         />
       </div>
     </div>

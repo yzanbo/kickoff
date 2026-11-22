@@ -1,19 +1,18 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
-import type { Attachment } from "@shared/chat/types";
-import type { GitTarget } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
+import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import { AttachButton } from "./AttachButton";
 import { PendingFileChips } from "./PendingFileChips";
-import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import type { VoiceReply } from "./selectors";
-import { useVoiceMode, type ComposerVoiceModeInput } from "./composerSlots";
-import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
-import { SuggestList } from "@/features/composer/ui/suggest/SuggestList";
-import { useSuggest } from "@/features/composer/ui/suggest/useSuggest";
+import { composerParts, useVoiceMode, type ComposerPlace, type ComposerVoiceModeInput } from "./composerSlots";
+import type { ComposerSend } from "./composerModel";
+import { SuggestList } from "./suggest/SuggestList";
+import { useSuggest } from "./suggest/useSuggest";
 import { useDraftFiles } from "./useDraftFiles";
 import { memoryDraft, useDraftText, type ComposerDraft } from "./composerDraft";
 import { ComposerInsertProvider, useComposerField } from "./composerFields";
@@ -21,130 +20,97 @@ import { usePromptHistory } from "./usePromptHistory";
 import { sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
 import { MessageField, useMessageField } from "./MessageField";
 import { PLAIN_SUBMIT, type SubmitHow } from "./messageFieldModel";
-import { ComposerActions, type SendTarget } from "./ComposerActions";
+import { ComposerActions } from "./ComposerActions";
+import { QueueModeToggle, useQueueMode } from "./QueueModeToggle";
 import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
 import { useComposerTextMenu } from "./useComposerTextMenu";
 import { useComposerBarFit } from "./useComposerBarFit";
 
 interface Props {
+  /** どこの入力欄か（候補の作業場所・「ほかのチャットを参照」で除くチャット・差し込み） */
+  place: ComposerPlace;
+  /** 書きかけの文と送る前の添付の残し先（既存のチャットは chatComposerDraft。渡さなければ入力欄を作り直すと消える） */
+  draft?: ComposerDraft;
+  /** 送る口と作業中の様子 */
+  send: ComposerSend;
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
   options?: ChatOptionsState;
-  /** 使う AI の札（下の行のモデルの左に置く。送る前は選ぶ札、送ったあとは切り替える札） */
+  /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
+  history?: string[];
+  /** 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口。既存のチャットは chatId、送る前の新しいチャットは draft */
+  voiceMode?: Pick<ComposerVoiceModeInput, "replies" | "send" | "chatId" | "draft">;
+  /** 枠の中のいちばん上に置く、場所だけの帯（預かった指示の書き直しの帯・子チャットからの依頼の札）。定型文の帯はその下に差し込む */
+  header?: ReactNode;
+  /** 使う AI の札（下の行のモデルの左に置く） */
   providerChip?: ReactNode;
   placeholder: string;
   autoFocus?: boolean;
-  busy?: boolean;
-  /** 送信ボタンの左に置くもの（コンテキストウィンドウのメーターなど） */
-  trailing?: ReactNode;
-  /** 枠の中のいちばん上（文を書く欄の上）に置くもの（定型文の帯など。中から useComposerInsert でキャレットの位置に文を入れる） */
-  header?: ReactNode;
-  onSend: (text: string, attachments: Attachment[]) => Promise<void>;
-  onStop?: () => void;
-  /** 停止を頼んで、止まるのを待っている（停止ボタンを「停止中…」にして、押し直せないようにする） */
-  stopping?: boolean;
-  /** 作業中（と queueWhileIdle のとき）だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
-  busyControls?: ReactNode;
-  /** 作業中に送ったとき（渡さなければ作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく。なければ切り替えのとおり） */
-  onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
-  /** 作業していなくても、送るときに onQueue と busyControls（すぐ送る / ためておく）を使う（止めている送信待ちがあるとき） */
-  queueWhileIdle?: boolean;
-  /** 作業中でも、右下をふだんの見た目（送信ボタンの左のもの・送信・▾）にする（会話の圧縮中。中断のボタンを出さない。送り方の切り替えは出す） */
-  plainActions?: boolean;
-  /** 送信ボタンの名前（送り方で変わるとき。省けば既定の文） */
-  sendLabel?: string;
-  /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
-  onTextChange?: (text: string) => void;
-  /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
-  suggestTarget?: GitTarget;
-  /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
-  history?: string[];
-  /** 書きかけの文と送る前の添付の残し先（既存のチャットは chatComposerDraft。渡さなければ入力欄を作り直すと消える） */
-  draft?: ComposerDraft;
-  /** ほかの送り方・送り先（送信ボタンの右クリックで選ぶ。質問として送る・子チャットに送るなど）。作業中でも送れる（作業中にどう送るかは onSend が決める） */
-  sendTo?: (Omit<SendTarget, "disabled" | "onSelect"> & { onSend: (text: string, attachments: Attachment[]) => Promise<void> })[];
-  /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
-  chatContext?: { projectId?: number; exclude?: number };
-  /** 文を書く欄の右クリックのメニューで、クリップボードの組の下に並べる項目（定型文の帯の表示の切り替えなど） */
-  menuItems?: ReactNode;
-  /**
-   * 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口。既存のチャットは chatId、
-   * 送る前の新しいチャットは draft（送ったら、できたチャットへ音声モードを引き継ぐ）
-   */
-  voiceMode?: Pick<ComposerVoiceModeInput, "replies" | "send" | "chatId" | "draft">;
 }
 
 const NO_REPLIES: VoiceReply[] = [];
-
-/** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
-const TEXT_CHANGE_DELAY_MS = 300;
 
 /** 停止中に Esc を押したとき（もう止めているので何もしない） */
 const ignoreStop = () => {};
 
 /**
- * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
- * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
- * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
+ * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。音声入力と音声モードは差し込み）。
+ * 文を書く欄は MessageField、送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions。
+ * 定型文の帯・右クリックの項目・右下のメーターは差し込み（composerSlots）で、place.slots で出さないものを選ぶ
  */
-export function Composer({ options, providerChip, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, chatContext, sendTo, menuItems, voiceMode }: Props) {
-  // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
-  // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
+export function Composer({ place, draft, send, options, history, voiceMode, header, providerChip, placeholder, autoFocus }: Props) {
+  const parts = composerParts();
+  const shows = { band: place.slots?.band !== false, meter: place.slots?.meter !== false, menu: place.slots?.menu !== false };
+  // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。既存のチャットだけは、自分が書きかけていた文を戻す
   const [ownDraft] = useState(() => memoryDraft());
   const store = draft ?? ownDraft;
   const [text, setText] = useDraftText(store);
-  // 入力欄が置かれた（起動の時刻の記録。app/bootMarks.ts）
+  // 入力欄が置かれた（起動の時刻の記録）
   useLayoutEffect(() => markInteractive("composer"), []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // 外からピントを移せるよう、描いている間だけ下書きの残す先ごとの登録簿に載せる（focusComposer・focusDraft）
   useComposerField(store.id, textareaRef);
   const attach = useDraftFiles(store);
-  /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
-  const fill = (value: string, caret?: number, focus = true) => {
-    setText(value);
-    if (!focus) return;
-    const at = caret ?? value.length;
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(at, at);
-    });
-  };
-  /** 文をキャレットの位置に入れる（選んでいればその範囲と置き換える。書いている文は残し、入れた後ろにキャレットを置く。定型文の帯から） */
+  /** 文をキャレットの位置に入れる（選んでいればその範囲と置き換える。入れた後ろにキャレットを置く。定型文の帯から） */
   const insert = (value: string) => {
     const el = textareaRef.current;
     const current = el?.value ?? text;
     const start = el?.selectionStart ?? current.length;
     const end = el?.selectionEnd ?? current.length;
-    fill(current.slice(0, start) + value + current.slice(end), start + value.length);
+    const at = start + value.length;
+    setText(current.slice(0, start) + value + current.slice(end));
+    requestAnimationFrame(() => {
+      const target = textareaRef.current;
+      target?.focus();
+      target?.setSelectionRange(at, at);
+    });
   };
-  // 文を書く欄の右クリック（切り取り・コピー・貼り付けと、呼ぶ側の項目）
+  // 文を書く欄の右クリック（切り取り・コピー・貼り付けと、差し込みの項目）
+  const menuItems = shows.menu && parts.menus.length > 0 ? parts.menus.map((Items, i) => <Items key={i} place={place} />) : undefined;
   const textMenu = useComposerTextMenu({ textareaRef, setText, items: menuItems });
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSetting(COMPOSER_COMPACT);
   // ↑↓ で前の発言を呼び出す
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
-  // / と @ の候補（Claude Code の VS Code 拡張と同じ）。呼び出した発言を出している間は出さない
-  const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef, paused: promptHistory.recalled });
-  // 書いた文を少し待ってから知らせる（onTextChange は描くたびに替わってよい。いつも最新を呼ぶ）
-  const listensText = useEffectEvent(() => onTextChange !== undefined);
-  const textChanged = useEffectEvent((value: string) => onTextChange?.(value));
-  useEffect(() => {
-    if (!listensText()) return;
-    const timer = setTimeout(() => textChanged(text), TEXT_CHANGE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [text]);
-  // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる。
-  // キーを押すたびに高さを auto に戻して scrollHeight を測ると、そのたびにページ全体のレイアウトをその場でやり直させる
-  // （長いチャットで画面の要素が多いと、1 文字ごとに数十 ms かかり、文字入力が遅くなる）
+  // / と @ の候補（作業場所から探す）。呼び出した発言を出している間は出さない
+  const suggest = useSuggest({ target: place.worktree ? { projectId: place.projectId, worktree: place.worktree } : place.projectId, text, setText, textareaRef, paused: promptHistory.recalled });
+  // 文を書く欄（Enter で送る・⌘⇧Enter も。候補を出している間は ↑↓・Enter・Tab・Esc を候補に、空の欄・呼び出した発言の ↑↓ は前の発言に使う）。
+  // 音声入力（マイク・⌘⇧Space）も欄が持つ。録音中の Enter・送信ボタンは、起こした文を入れてそのまま送る
+  const field = useMessageField({
+    value: text,
+    onChange: setText,
+    onSubmit: (how) => submit(how),
+    onKeyDown: (e) => suggest.handleKey(e) || promptHistory.handleKey(e),
+    metaShift: true,
+    textareaRef,
+    keepHeldOnBlur: true,
+  });
+  // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる（打つたびに測らない）
   const sender = useComposerSend({
     text,
     files: attach,
-    busy,
-    queueWhileIdle,
-    onSend,
-    onQueue,
+    send,
+    recording: field.voice.recording,
     onSent: () => {
       setText("");
       attach.clear();
@@ -152,62 +118,50 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       voice.noteSent();
     },
   });
+  // 作業中の送り方（いま / あとで。どのチャットでも同じ）。作業中・止めている送信待ちがあるときに出す
+  const [queueMode, setQueueMode] = useQueueMode();
+  const queueToggle = <QueueModeToggle busy={Boolean(send.busy)} value={queueMode} onChange={setQueueMode} />;
+  // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す）か、入力欄に入れる。返答は読み上げる（composerSlots の voice）
+  const voice = useVoiceMode(field.bridge, {
+    replies: voiceMode?.replies ?? NO_REPLIES,
+    busy: Boolean(send.busy),
+    send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
+    draft: voiceMode?.draft,
+    chatId: voiceMode?.chatId,
+    // すぐ送るときの作業中の送り方は既存のチャットだけ
+    queueToggle: voiceMode && !voiceMode.draft ? queueToggle : undefined,
+  });
+
   /** 送信ボタン・Enter（⌘Enter = いま・⌘⇧Enter = あとで。録音中なら、文を書く欄が止めて起こした文を入れてから呼ぶ） */
   const submit = (how: SubmitHow) => {
     // 新しいチャットで音声モードの間に送るなら、できたチャットへ音声モードを引き継ぐ
     if (voice.active) voice.beforeSend();
-    void sender.send(undefined, sendModeOf(how));
+    void sender.send(sendModeOf(how));
   };
-  // 文を書く欄（Enter で送る・⌘⇧Enter も。候補を出している間は ↑↓・Enter・Tab・Esc を候補に、空の欄・呼び出した発言の ↑↓ は前の発言に使う）。
-  // 音声入力（マイク・⌘⇧Space）も欄が持つ。録音中の Enter・送信ボタンは、起こした文を入れてそのまま送る
-  const field = useMessageField({
-    value: text,
-    onChange: setText,
-    onSubmit: submit,
-    onKeyDown: (e) => suggest.handleKey(e) || promptHistory.handleKey(e),
-    metaShift: true,
-    textareaRef,
-    keepHeldOnBlur: true,
-  });
-  // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す）か、入力欄に入れる。返答は読み上げる（composerSlots の voice）
-  const voice = useVoiceMode(field.bridge, {
-    replies: voiceMode?.replies ?? NO_REPLIES,
-    busy: Boolean(busy),
-    send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
-    draft: voiceMode?.draft,
-    chatId: voiceMode?.chatId,
-    queueToggle: busyControls,
-  });
-  // すぐ送る音声モードの間は、作業中の送り方（いま / あとで）を帯に出し、文を書く欄を隠す
-  const voiceSends = voice.sends;
-  // 録音中は、送信で「起こした文を入れてそのまま送る」
-  const canSend = (sender.hasContent || field.voice.recording) && sender.ready;
 
-  // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中・送信待ちがあるときだけ。
-  // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）。
-  // キーを離した・ほかへピントが移った・Kickoff が後ろに回ったら消す（チャット欄の外で離したときも）
+  // ⌘ / ⌘⇧ を押している間だけ、その送り方のボタンを光らせる（選んでいる送り方そのものは変えない。キーを離した・ピントが枠の外へ出たら消す）
   const held = field.held;
   const heldMode: QueueSendMode | undefined = held.held === "meta-shift" ? "queue" : held.held === "meta" ? "tell" : undefined;
-
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
-  const keys = useComposerKeys({ busy, onStop: stopping ? ignoreStop : onStop, options });
+  const keys = useComposerKeys({ busy: send.busy, onStop: send.stopping ? ignoreStop : send.stop, options });
   // 下の行を 1 行に収める段階（入らなくなったらアイコンだけにする。中身の幅が変わるものが変わったら測り直す）
   const { ref: barRef, className: barClass } = useComposerBarFit(
-    [busy, stopping, keys.stopArmed, sender.queueing, queueWhileIdle, plainActions, compact, sendLabel, options?.model, options?.effort, options?.permission, options?.fastMode].join("|"),
+    [send.busy, send.stopping, keys.stopArmed, sender.queueing, send.holdsQueue, send.compacting, compact, send.label, options?.model, options?.effort, options?.permission, options?.fastMode].join("|"),
   );
 
-  /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
+  /** 枠の中のキー: 音声モードの Esc でやめる・ボタンにピントがあるときの音声のキー。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     held.track(e);
     if (voice.active && isCancelKey(e)) {
       consumeKey(e);
       voice.stop();
     } else if (e.defaultPrevented || !field.voice.onKeyDown(e)) {
-      // 文を書く欄が先に扱った音声のキーは見ない（ボタンにピントがあるときはここで扱う）
+      // 文を書く欄が先に扱った音声のキーは見ない
       keys.onKeyDown(e);
     }
   }
 
+  const Meter = shows.meter ? parts.meter : null;
   return (
     <div
       className={cx("composer", attach.dragging && "dragging", compact && "compact")}
@@ -216,7 +170,10 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && held.clear()}
       {...attach.dropProps}
     >
-      <ComposerInsertProvider value={insert}>{header}</ComposerInsertProvider>
+      <ComposerInsertProvider value={insert}>
+        {header}
+        {shows.band && parts.bands.map((Band, i) => <Band key={i} place={place} send={send.sendOther} />)}
+      </ComposerInsertProvider>
       {attach.files.length > 0 && (
         <div className="composer-attachments">
           <PendingFileChips files={attach.files} onRemove={attach.removeFile} />
@@ -226,7 +183,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       {voice.panel}
       <MessageField
         field={field}
-        hidden={voiceSends}
+        hidden={voice.sends}
         rows={1}
         autoFocus={autoFocus}
         placeholder={placeholder}
@@ -238,33 +195,33 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       <div ref={barRef} className={cx("composer-bar", barClass)} onContextMenu={textMenu.onBarContextMenu}>
         <div className="composer-tools">
           <AttachButton size="lg" iconSize={16} className="attach-button" onFiles={attach.addFiles} />
-          {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
+          <ChatContextButton projectId={place.projectId} exclude={place.chatId ?? undefined} onPick={attach.addChat} />
           {providerChip}
           {options && <ChatOptionsBar state={options} />}
         </div>
         <ComposerActions
-          busy={busy}
-          stopping={stopping}
+          busy={send.busy}
+          stopping={send.stopping}
           stopArmed={keys.stopArmed}
-          onStop={onStop}
+          onStop={send.stop}
           queueing={sender.queueing}
           heldMode={heldMode}
-          busyControls={voiceSends ? undefined : busyControls}
-          trailing={trailing}
+          busyControls={voice.sends ? undefined : queueToggle}
+          trailing={Meter && <Meter place={place} />}
           voice={
             <>
               {!voice.active && field.voice.button}
               {voiceMode && voice.button}
             </>
           }
-          canSend={canSend}
+          canSend={sender.canSend}
           recording={field.voice.recording}
           hasContent={sender.hasContent}
-          sendLabel={sendLabel}
+          sendLabel={send.label}
           onSubmit={() => field.submit(PLAIN_SUBMIT)}
-          // 録音中は、文字起こしが済むまでほかの送り先には送らない
-          plain={plainActions}
-          sendTargets={sendTo?.map(({ onSend, ...to }) => ({ ...to, disabled: !sender.viaReady || field.voice.recording, onSelect: () => void sender.sendVia(onSend) }))}
+          plain={send.compacting}
+          // 録音中は、文字起こしが済むまでほかの送り先には送らない（viaReady）
+          sendTargets={send.alternatives?.map((to) => ({ label: to.label, hint: to.hint, icon: to.icon, group: to.group, title: to.title, disabled: !sender.viaReady, onSelect: () => void sender.sendVia(to) }))}
         />
       </div>
       {attach.dragging && <div className="drop-hint">ここにドロップして添付</div>}
