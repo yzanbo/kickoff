@@ -28,7 +28,9 @@ import {
   type RenderItems,
 } from "@/features/subagents/ui/subagentParts";
 import { SubagentsContext, type SubagentsView } from "@/features/subagents/ui/subagentsContext";
-import { useChatBackgroundCalls, useChatSubagentsView, useChatVisuals } from "@/features/chat/ui/store/useChatStore";
+import { useChatSubagentsView } from "@/features/subagents/ui";
+import { chatVisuals } from "@/features/visuals/ui";
+import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
 import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { childrenOf, pathOf } from "@/features/subagents/ui/model/subagentTree";
@@ -45,8 +47,8 @@ export function SubagentScreen({ chatId, agentKey }: { chatId: number; agentKey:
   // 記録から作るもの（サブエージェント・図・裏で動かしている呼び出し）は、チャットの店の取り出し口を直接読む（会話の欄が隠れて止まっていても、
   // この画面は動く。会話の欄と同じ世代なら同じ値）。中の部品にはこの画面が配る
   const view = useChatSubagentsView(chatId);
-  const visuals = useChatVisuals(chatId);
-  const background = useChatBackgroundCalls(chatId);
+  const visuals = chatVisuals.useFor(chatId);
+  const background = backgroundCalls.useFor(chatId);
   const pane = useOptionalChatPane();
   const entry = view?.tree.byKey.get(agentKey);
   if (!view || !entry || !pane) {

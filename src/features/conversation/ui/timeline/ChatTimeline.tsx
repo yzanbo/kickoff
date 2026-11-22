@@ -5,7 +5,7 @@ import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
-import type { ChatLogView } from "@/features/chat/ui/store/chatStore";
+import type { ChatLogView } from "@/features/chat/ui";
 import { chatLog, useStreamingActive } from "@/features/chat/ui/store/useChatStore";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { StickyPrompt } from "@/features/conversation/ui/promptList/StickyPrompt";

@@ -3,7 +3,7 @@ import { subagentState } from "@shared/chat/subagentState";
 import type { AgentState } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { useChatSubagents } from "@/features/chat/ui/store/useChatStore";
+import { chatSubagents } from "@/features/subagents/ui";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
@@ -27,7 +27,7 @@ export function useTabAgentState(panel: PanelController, tab: PanelTab): TabAgen
   // hooks は種類によらず呼ぶ（子チャットでなければ ID 0 = いつも分からない）
   const child = useKnownChat(tab.kind === "child" ? tab.childId : 0);
   // サブエージェントのタブは、チャットの店の取り出し口を直接読む（チャットの会話の欄が隠れて止まっていても、印は変わる。ほかの種類は ID 0 = いつも空）
-  const view = useChatSubagents(tab.kind === "subagent" ? tab.chatId : 0);
+  const view = chatSubagents.useFor(tab.kind === "subagent" ? tab.chatId : 0);
   const chat = tab.kind === "chat" ? panel.chatOf(tab) : tab.kind === "child" ? child : undefined;
   if (chat) {
     const state = stateOf(chat);

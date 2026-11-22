@@ -1,0 +1,2 @@
+// providerSwitch の画面の口（ほかの機能から読むもの）
+export { useBeforeProviderSwitch, useProviderAtEvent } from "./selectors";

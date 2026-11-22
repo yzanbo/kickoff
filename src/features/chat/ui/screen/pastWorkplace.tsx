@@ -2,7 +2,7 @@
 // その行のファイルのチップ・変更カード・「差分を見る」・ツールの行・読んだ画像を、その発言のときの作業場所から開く
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ProjectFiles } from "@shared/git/types";
-import { workplaceGoneText, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";
+import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceBoundary, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
@@ -10,7 +10,25 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { fileLinksFor, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
-import { useWorkplaceBoundaries } from "@/features/chat/ui/store/useChatStore";
+import { memoLast } from "@/features/chat/ui/store/chatSelector";
+import { defineChatSelector } from "@/features/chat/ui/store/useChatStore";
+
+const NO_BOUNDARIES: readonly WorkplaceBoundary[] = [];
+
+/** 作業場所を移した区切り（ID の順。索引にいつも入るので、末尾より前のものも。記録が増えても区切りが同じなら同じ配列） */
+export const workplaceBoundaries = defineChatSelector(["log"], () => {
+  let moves: { key: string; list: readonly WorkplaceBoundary[] } = { key: "", list: NO_BOUNDARIES };
+  const of = memoLast((digest: Parameters<typeof boundariesOf>[0]): readonly WorkplaceBoundary[] => {
+    const list = boundariesOf(digest);
+    const key = list.map((b) => b.id).join(" ");
+    if (key !== moves.key) moves = { key, list: list.length ? list : NO_BOUNDARIES };
+    return moves.list;
+  });
+  return (src, chatId) => of(src.log(chatId).digest);
+});
+
+/** その記録が、作業場所を移した区切りより前か（区切りが変わったときだけ描き直す） */
+export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => workplaceBoundaries.useWith(chatId, (list) => list.some((b) => b.id > eventId));
 
 /** 区切りより前の区間 1 つの開き方 */
 interface PastPlace {
@@ -67,7 +85,7 @@ export function PastWorkplacesProvider({
   adapt?: (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => ChatFileLinks;
   children: ReactNode;
 }) {
-  const boundaries = useWorkplaceBoundaries(chatId);
+  const boundaries = workplaceBoundaries.useFor(chatId);
   const { projectsById } = useProjects();
   const stateOf = useKeyedStores(
     pastFiles,

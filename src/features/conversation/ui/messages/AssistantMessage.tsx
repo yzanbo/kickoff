@@ -5,7 +5,7 @@ import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { useMessageMenu } from "./useMessageMenu";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
-import { useProviderAtEvent } from "@/features/chat/ui/store/useChatStore";
+import { useProviderAtEvent } from "@/features/providerSwitch/ui";
 
 /** AI の返答 1 つ（右クリックで、この返答だけをコピーできる） */
 export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {

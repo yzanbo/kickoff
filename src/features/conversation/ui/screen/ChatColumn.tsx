@@ -10,7 +10,8 @@ import { ActivityView } from "@/features/conversation/ui/activity/ActivityView";
 import { SubagentsContext } from "@/features/subagents/ui/subagentsContext";
 import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
-import { useChatBackgroundCalls, useChatVisuals } from "@/features/chat/ui/store/useChatStore";
+import { chatVisuals } from "@/features/visuals/ui";
+import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
 import { noteForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHandoffNotice";
 import { ChatComposerArea } from "./ChatComposerArea";
@@ -47,13 +48,13 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   // 裏でまだ動いている作業を起動した呼び出し（流れの中の裏のコマンドを、終わるまで実行中に見せる）
-  const backgroundCalls = useChatBackgroundCalls(chat.id);
+  const backgroundCallIds = backgroundCalls.useFor(chat.id);
   // AI が描いた図（記録から組み立てる。流れの図の項目が読む）
-  const visuals = useChatVisuals(chat.id);
+  const visuals = chatVisuals.useFor(chat.id);
   return (
     <SubagentsContext.Provider value={view.subagentsView}>
       <VisualsContext.Provider value={visuals}>
-        <BackgroundCallsContext.Provider value={backgroundCalls}>
+        <BackgroundCallsContext.Provider value={backgroundCallIds}>
           {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・ノートのチャット）を見分ける */}
           <div
             ref={paneRoot}

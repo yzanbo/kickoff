@@ -119,6 +119,8 @@ export interface Entry {
   releasedAt: number;
   /** 先読みしただけのチャットの、先読みした順（大きいほど新しい。一度でも見たら null） */
   prefetched: number | null;
+  /** 取り出し口の覚え（chatSelector.ts。チャットを捨てたら一緒に消える） */
+  memos: Map<object, unknown>;
   /** 見る部品がなくなってから末尾を縮めるタイマー */
   cancelShrink: (() => void) | null;
   /** 見ていない間に SSE をつなぎ直した（次に見るときに取り直す） */

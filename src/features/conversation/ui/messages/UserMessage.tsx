@@ -23,7 +23,8 @@ import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/compact/ui/compa
 import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 import { useTimelineBusy } from "@/features/chat/ui/timeline/timelineBusy";
-import { useBeforeProviderSwitch, useBeforeWorkplaceMove } from "@/features/chat/ui/store/useChatStore";
+import { useBeforeWorkplaceMove } from "@/features/chat/ui";
+import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。

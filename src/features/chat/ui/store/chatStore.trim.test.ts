@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
 import { settle } from "@shared/foundation/testing/async";
 import { PREFETCH_QUEUE } from "./prefetch";
-import { WARM_CHATS } from "./chatStore";
+import { WARM_CHATS } from "./chatStoreTypes";
 import { chatOf, detail, setup, text } from "./storeTesting";
 
 test("見る部品のないチャットは WARM_CHATS 件まで残し、古く見なくなったものから捨てる", async () => {

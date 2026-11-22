@@ -17,7 +17,8 @@ import { requestHandoff } from "@/features/childChats/ui/handBack";
 import { AddToParentButton } from "@/features/childChats/ui/AddToParentButton";
 import { HandoffMarks } from "@/features/childChats/ui/HandBackMarks";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
-import { useBeforeProviderSwitch, useBeforeWorkplaceMove } from "@/features/chat/ui/store/useChatStore";
+import { useBeforeWorkplaceMove } from "@/features/chat/ui";
+import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 import type { TurnHandoff } from "./timelineItems";
 import { useTimelineBusy } from "@/features/chat/ui/timeline/timelineBusy";
 

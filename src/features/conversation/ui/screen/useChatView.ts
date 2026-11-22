@@ -2,7 +2,9 @@ import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useSta
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { chatLog, useChatDetailView, useChatLog, useChatSubagents, useChatSubagentsView } from "@/features/chat/ui/store/useChatStore";
+import { chatLog, useChatDetailView, useChatLog } from "@/features/chat/ui/store/useChatStore";
+import { relativeOf } from "@/features/chat/ui";
+import { chatSubagents, useChatSubagentsView } from "@/features/subagents/ui";
 import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { promptListOf } from "@/features/conversation/ui/promptList/promptHistory";
@@ -10,7 +12,7 @@ import { usePromptKeys } from "@/features/conversation/ui/promptList/usePromptKe
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import { useRetryChoices } from "@/features/conversation/ui/rewind/useRetryChoices";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
-import { groupEvents, relativeOf } from "@/features/conversation/ui/timeline/timelineItems";
+import { groupEvents } from "@/features/conversation/ui/timeline/timelineItems";
 import { useTimelineWindow } from "@/features/conversation/ui/timeline/useTimelineWindow";
 import { timelineView } from "@/features/chat/ui/timeline/timelineView";
 import { compactHoldOf } from "@/features/compact/ui/compactHold";
@@ -67,7 +69,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る
   const events = log.digest;
   // サブエージェントの一覧・入れ子・色・回答待ち（店の取り出し口 chatSelectors。右の欄のタブの印・サブエージェントの画面と同じ値を 1 回だけ作る）
-  const { entries: subagents, tree } = useChatSubagents(chat.id);
+  const { entries: subagents, tree } = chatSubagents.useFor(chat.id);
   // カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
   const subagentsView = useChatSubagentsView(chat.id);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする

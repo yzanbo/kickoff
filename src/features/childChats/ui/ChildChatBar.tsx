@@ -2,7 +2,7 @@ import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote 
 import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
-import { useLatestAnswer } from "@/features/chat/ui/store/useChatStore";
+import { latestAnswer } from "@/features/chat/ui";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { useChatRename, type ChatTitleEditor } from "@/features/chat/ui/useChatRename";
@@ -42,7 +42,7 @@ export function ChildChatBar({
   extra?: ReactNode;
 }) {
   // いちばん新しいメインの AI の返答（サブエージェントの文は除く。文が変わったときだけ描き直す = 会話の欄を隠していても、記録のたびには描き直さない）
-  const answerText = useLatestAnswer(chat.id);
+  const answerText = latestAnswer.useFor(chat.id);
   if (chat.parent_chat_id === null) return <ChildBarFrame parentId={null} self={chat} title={chatTitle(chat.title)} extra={extra} />;
   return (
     <ChildBarFrame

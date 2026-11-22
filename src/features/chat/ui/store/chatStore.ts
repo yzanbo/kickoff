@@ -7,26 +7,7 @@ import { digestOf, loadedOf, prefaceOf, type LogRange } from "./chatLog";
 import { createPaging } from "./chatPaging";
 import { createStreamOps } from "./chatStream";
 import { PREFETCH_QUEUE } from "./prefetch";
-import {
-  EMPTY_LOG,
-  EMPTY_PROGRESS,
-  EMPTY_VIEW,
-  HEAD_FILL_IDLE_MS,
-  OPEN_HOLD_MAX_MS,
-  PUBLISH_FALLBACK_MS,
-  SHRINK_AFTER_MS,
-  WARM_CHATS,
-  type Channel,
-  type ChatDetailView,
-  type ChatLogView,
-  type ChatProgressView,
-  type ChatStoreDeps,
-  type ChatVisibility,
-  type Entry,
-  type Published,
-} from "./chatStoreTypes";
-
-export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHRINK_AFTER_MS, type ChatVisibility, type ChatStoreDeps, type ChatDetailView, type ChatLogView, type ChatProgressView } from "./chatStoreTypes";
+import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, WARM_CHATS, type Channel, type ChatDetailView, type ChatLogView, type ChatProgressView, type ChatStoreDeps, type ChatVisibility, type Entry, type Published } from "./chatStoreTypes";
 
 /*
  * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・ノートの欄）で
@@ -73,6 +54,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       viewers: new Map(),
       releasedAt: deps.now(),
       prefetched: null,
+      memos: new Map(),
       cancelShrink: null,
       stale: false,
       shown: false,
@@ -366,6 +348,9 @@ export function createChatStore(deps: ChatStoreDeps) {
 
     /** 書いている途中の返答が最後に届いた時刻（ISO。届いていなければ null） */
     streamLastAt: (chatId: number): string | null => entries.get(chatId)?.stream.lastAt ?? null,
+
+    /** 取り出し口の覚え（店にないチャットは null） */
+    memos: (chatId: number): Map<object, unknown> | null => entries.get(chatId)?.memos ?? null,
 
     /** 口の変化を購読する（チャットの中身を捨てても、購読はそのまま） */
     subscribe(chatId: number, channel: Channel, listener: () => void): () => void {

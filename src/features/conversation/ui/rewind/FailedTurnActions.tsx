@@ -5,7 +5,8 @@ import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/ui/screen/ports";
-import { useBeforeProviderSwitch, useBeforeWorkplaceMove } from "@/features/chat/ui/store/useChatStore";
+import { useBeforeWorkplaceMove } from "@/features/chat/ui";
+import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
 /**
  * 失敗した作業の終わりの行の下に出す直す操作（いちばん新しい作業が失敗で終わったときだけ）:

@@ -2,7 +2,7 @@ import { Bot, ChevronDown, Container, Database, FileDiff, GitPullRequest, Messag
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { openChildChat } from "@/features/chat/ui/open/openChat";
-import { useChatSubagents } from "@/features/chat/ui/store/useChatStore";
+import { chatSubagents } from "@/features/subagents/ui";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
 import { DbMenuItems } from "@/features/database/ui/DbMenuItems";
@@ -58,7 +58,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const chat = useKnownChat(chatId);
   const pane = useOptionalChatPane();
   // チャットの店の取り出し口を直接読む（会話の欄が配る context は、右の欄の外にある）
-  const { tree } = useChatSubagents(chatId);
+  const { tree } = chatSubagents.useFor(chatId);
   const [archivedKeys] = useSetting(subagentsSettings.archived(chatId));
   const children = (useChildChats().get(chatId) ?? []).filter((c) => c.archived_at === null);
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない

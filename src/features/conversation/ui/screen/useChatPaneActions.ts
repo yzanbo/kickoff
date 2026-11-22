@@ -1,7 +1,7 @@
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Chat } from "@shared/chat/types";
 import { chatLog } from "@/features/chat/ui/store/useChatStore";
-import type { ChatLogView } from "@/features/chat/ui/store/chatStore";
+import type { ChatLogView } from "@/features/chat/ui";
 import { api } from "@/foundation/ui/api";
 import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage";

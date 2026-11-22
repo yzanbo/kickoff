@@ -114,7 +114,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 外の値（窓のフォーカス・つながり）は state に写さず `useSyncExternalStore` で読む（隠している間は購読が外れ、写した値は古いまま）。
 - 手書きの `useMemo`・`useCallback`・`memo` は書かない（React Compiler が覚える。触ったファイルの分は消す）。残すのは比べ方を渡す `memo`・コンパイラから外した関数の中・作り直すと壊れる `getSnapshot` だけ（`// 残す: 理由`）。
 - 流れ全体に効く値（作業中か）を流れの項目の props で渡さない（使う部品が context で読む。`useTimelineBusy`）。
-- 記録をたどる計算は、チャットの店の取り出し口 `@/features/chat/ui/store/chatSelectors.ts` に置く。
+- 記録をたどる計算は、チャットの店の取り出し口（`defineChatSelector`）に置く。
 - 書いている途中の返答（`chat_delta`）は React の state に入れない（店の途中の文の口に当て、`useStreamReveal` が rAF で読む）。
 - `Markdown` に毎回新しい値（その場で作った配列など）を渡さない。react-markdown の版を上げたら `markdownProcessor.test.ts` を流す。
 - 変わる値（ファイルのリンクの一覧など）を Markdown の解析に入れない（すべての返答を解析し直す。`@/features/files/ui/links/fileIndexStore.ts`）。

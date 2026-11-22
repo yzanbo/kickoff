@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
 import { makeEvent } from "@shared/foundation/testing/factories";
 import { settle } from "@shared/foundation/testing/async";
-import { OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS } from "./chatStore";
+import { OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS } from "./chatStoreTypes";
 import { added, chatOf, delta, detail, opened, setup, text , openedTail } from "./storeTesting";
 
 test("同じチャットを何か所で開いても読み込みは 1 回で、見る部品がなくなっても中身を残す", async () => {

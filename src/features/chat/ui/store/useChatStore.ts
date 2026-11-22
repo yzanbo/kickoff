@@ -1,22 +1,18 @@
-import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
-import type { WorkplaceBoundary } from "@shared/workplaceMove/workplaceMoves";
 import { api } from "@/foundation/ui/api";
 import { onServerEvent, onServerOpen } from "@/foundation/ui/api/events";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import type { SubagentsView } from "@/features/subagents/ui/subagentsContext";
-import type { ChatVisuals } from "@/features/visuals/ui/visualsContext";
-import { relativeOf } from "@/features/conversation/ui/timeline/timelineItems";
 import { CHAT_STORE_EVENTS } from "./chatDetail";
-import { createChatStore, type ChatDetailView, type ChatLogView } from "./chatStore";
-import { createChatSelectors, type ChatSubagents } from "./chatSelectors";
+import { createChatStore } from "./chatStore";
+import { createSelectorKit } from "./chatSelector";
 import { createPrefetchQueue } from "./prefetch";
 import { createHoverPrefetch } from "./hoverPrefetch";
-import type { Channel } from "./chatStoreTypes";
+import type { ChatDetailView, ChatLogView } from "./chatStoreTypes";
 
 /*
- * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。店はモジュールを読んだときにサーバーの知らせを購読し、
- * 部品の hook より先に知らせを受ける。テストはこのモジュールを使わず、createChatStore で作った店を試す
+ * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。サーバーの知らせの購読と document の見張りは startChatStore
+ * （起動のときに app/renderer/main.tsx が 1 回、部品より先に呼ぶ）。テストはこのモジュールを使わず、createChatStore で作った店を試す
  */
 function idle(fn: () => void, timeout: number) {
   const id = requestIdleCallback(fn, { timeout });
@@ -39,17 +35,29 @@ const chatStore = createChatStore({
   load: (chatId, query) => api.chatDetail(chatId, query),
   page: (chatId, query) => api.chatEvents(chatId, query),
 });
-const selectors = createChatSelectors(chatStore);
 const prefetchQueue = createPrefetchQueue({ prefetch: (chatId) => chatStore.prefetch(chatId), busy: () => chatStore.busy(), idle, timer });
-onServerEvent(CHAT_STORE_EVENTS, (event) => chatStore.apply(event));
-onServerOpen(() => chatStore.reconnected());
-// チャットを開く所（サイドバーの行・ボードのカード・パネルのタブ）に乗せて少し待ったら先読みする（hoverPrefetch.ts）
-const hover = createHoverPrefetch({ timer, prefetch: (chatId) => prefetchQueue.request([chatId]) });
-document.addEventListener("pointerover", (e) => hover.over(e.target instanceof Element ? e.target : null), { passive: true });
-// ウィンドウが表に出たら、ためていた途中の文をすぐ当てる
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") chatStore.windowShown();
-});
+
+/** 取り出し口を定義する（計算は持ち主の機能が書く。chatSelector.ts） */
+export const defineChatSelector = createSelectorKit(chatStore);
+
+/** サーバーの知らせを店に当て、document を見張る（起動のときに 1 回。部品の hook より先に知らせを受ける） */
+export function startChatStore(): () => void {
+  const offs = [onServerEvent(CHAT_STORE_EVENTS, (event) => chatStore.apply(event)), onServerOpen(() => chatStore.reconnected())];
+  // チャットを開く所（サイドバーの行・ボードのカード・パネルのタブ）に乗せて少し待ったら先読みする（hoverPrefetch.ts）
+  const hover = createHoverPrefetch({ timer, prefetch: (chatId) => prefetchQueue.request([chatId]) });
+  const over = (e: PointerEvent) => hover.over(e.target instanceof Element ? e.target : null);
+  // ウィンドウが表に出たら、ためていた途中の文をすぐ当てる
+  const shown = () => {
+    if (document.visibilityState === "visible") chatStore.windowShown();
+  };
+  document.addEventListener("pointerover", over, { passive: true });
+  document.addEventListener("visibilitychange", shown);
+  return () => {
+    offs.forEach((off) => off());
+    document.removeEventListener("pointerover", over);
+    document.removeEventListener("visibilitychange", shown);
+  };
+}
 
 /**
  * チャットを見る（描いている間。見る部品のいない中身は店に残り、知らせを当て続ける）。visible はパネルの裏のタブ・閉じたパネルで false
@@ -143,7 +151,7 @@ export function streamingSource(chatId: number, gen: number) {
 export const streamingLastAt = (chatId: number): string | null => chatStore.streamLastAt(chatId);
 
 /** 口 detail のチャットだけ（名前・状態などが変わったときだけ描き直す。回答待ち・作業中の様子では描き直さない） */
-function useChatOf(chatId: number): Chat | undefined {
+export function useChatOf(chatId: number): Chat | undefined {
   return useSyncExternalStore(
     (l) => chatStore.subscribe(chatId, "detail", l),
     () => chatStore.detail(chatId).chat,
@@ -180,74 +188,4 @@ export function useOpenChat(chatId: number, visible: boolean) {
     };
   }, [chatId, loaded]);
   return { chat, project, error };
-}
-
-/** いちばん新しいメインの AI の返答の文（サブエージェントの文は除く。なければ ""。文が変わったときだけ描き直す。子チャットの上の帯の「最新の答えを引用して渡す」） */
-export function useLatestAnswer(chatId: number): string {
-  return useSyncExternalStore(
-    (l) => chatStore.subscribe(chatId, "log", l),
-    () => {
-      const { tail } = chatStore.log(chatId);
-      for (let i = tail.length - 1; i >= 0; i--) {
-        const e = tail[i];
-        if (e.type === "text" && !e.data.parent) return e.data.text;
-      }
-      return "";
-    },
-  );
-}
-
-/** いくつかの口のどれかが変わったら読み直す（取り出し口の値は、入力が同じなら同じ物） */
-function useSelected<T>(chatId: number, channels: readonly Channel[], read: () => T): T {
-  // 口の組は呼ぶ所ごとに決まった定数（モジュールの配列）なので、依存に入れても作り直さない
-  const subscribe = useCallback(
-    (l: () => void) => {
-      const offs = channels.map((c) => chatStore.subscribe(chatId, c, l));
-      return () => offs.forEach((off) => off());
-    },
-    [chatId, channels],
-  );
-  return useSyncExternalStore(subscribe, read);
-}
-
-const SUBAGENT_CHANNELS: readonly Channel[] = ["detail", "log", "progress"];
-const LOG_CHANNELS: readonly Channel[] = ["log"];
-const DETAIL_CHANNELS: readonly Channel[] = ["detail"];
-const DETAIL_LOG_CHANNELS: readonly Channel[] = ["detail", "log"];
-
-/**
- * 記録全体から作るものの取り出し口（chatSelectors.ts。同じ世代なら会話の欄と同じ値）。会話の欄のほか、Activity の外の部品
- * （右の欄のタブの印・「サブエージェントを足す」の一覧・右の欄のサブエージェントの画面）が context ではなく直接読む
- */
-export const useChatSubagents = (chatId: number): ChatSubagents => useSelected(chatId, SUBAGENT_CHANNELS, () => selectors.subagents(chatId));
-/** AI が描いた図（記録から組み立てたもの） */
-export const useChatVisuals = (chatId: number): ChatVisuals => useSelected(chatId, LOG_CHANNELS, () => selectors.visuals(chatId));
-/** 作業場所を移した区切り（区切りより前の発言の書き直し・分岐を止め、ファイルをそのときの作業場所から開く） */
-export const useWorkplaceBoundaries = (chatId: number): readonly WorkplaceBoundary[] => useSelected(chatId, LOG_CHANNELS, () => selectors.workplaceBoundaries(chatId));
-/** その記録が、作業場所を移した区切りより前か（区切りが変わったときだけ描き直す） */
-export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => useWorkplaceBoundaries(chatId).some((b) => b.id > eventId);
-/** その記録が、AI を切り替えた区切りより前か。 */
-export const useBeforeProviderSwitch = (chatId: number, eventId: number): boolean => useSelected(chatId, LOG_CHANNELS, () => selectors.providerSwitch(chatId)) > eventId;
-/** その発言を返した AI。途中で AI を替える前の返答も元の担当で表示する。 */
-export const useProviderAtEvent = (chatId: number, eventId: number) => useSelected(chatId, DETAIL_LOG_CHANNELS, () => selectors.providerAt(chatId, eventId));
-/** 裏でまだ動いている作業を起動した呼び出しの ID */
-export const useChatBackgroundCalls = (chatId: number): ReadonlySet<string> => useSelected(chatId, DETAIL_CHANNELS, () => selectors.backgroundCalls(chatId));
-
-/** サブエージェントのカード・画面が読むもの（SubagentsView。チャットを読めていなければ null） */
-export function useChatSubagentsView(chatId: number): SubagentsView | null {
-  const { tree, hues, waiting } = useChatSubagents(chatId);
-  const chat = useChatOf(chatId);
-  const { digest, loaded, tailStart, hasEarlier } = useChatLog(chatId);
-  const { projectsById } = useProjects();
-  const repoPath = chat ? projectsById.get(chat.project_id)?.repo_path : undefined;
-  const projectId = chat?.project_id;
-  const worktree = chat?.worktree_path ?? null;
-  const busy = chat?.status === "running";
-  return useMemo(
-    () =>
-      projectId === undefined
-        ? null
-        : { chatId, projectId, worktree, rel: relativeOf(repoPath), busy, events: digest, loaded, tailStart, hasEarlier, tree, hues, waiting },
-    [chatId, projectId, worktree, repoPath, busy, digest, loaded, tailStart, hasEarlier, tree, hues, waiting],
-  );
 }
