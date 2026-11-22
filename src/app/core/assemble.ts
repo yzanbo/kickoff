@@ -29,7 +29,7 @@ import { createTerminal, type TerminalSessions } from "@/features/terminal/core/
 import { createPorts, type PortWatch } from "@/features/ports/core/index";
 import { createVisuals } from "@/features/visuals/core/index";
 import { createRemoteImages, type RemoteImageService } from "@/features/remoteImages/core/index";
-import { createNotes, type NoteService } from "@/features/notes/core/index";
+import { createNotes, projectNoteFolder, type NoteService } from "@/features/notes/core/index";
 import { createDatabase, type DatabaseService } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
 import { deviceEventTypes } from "@shared/foundation/contract";
@@ -71,7 +71,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const settings = createSettings(k, { schemas: SETTING_SCHEMAS });
   // 下の機能があとで作る上の機能の店を読む所は、呼ばれたときに引く関数を渡す（仮の口。作る順は止める順も決めるので変えない）
   const trash = createTrash(k, { projects: () => projects.api.store }, env.trash);
-  const projects = createProjects(k, { trash: trash.api });
+  const projects = createProjects(k, { trash: trash.api, noteFolderName: projectNoteFolder });
   const groups = createGroups(k, { projects: projects.api });
   const ai = createAi(k, { projects: projects.api }, { ...env.ai, secretCipher: env.secretCipher });
   const attachments = createAttachments(k, { trash: trash.api, chatStore: () => chat.api.store }, env.attachments);

@@ -12,6 +12,8 @@ import { moveNoteToolGroup, openNoteToolGroup } from "./tools";
 import { noteTurnParts } from "./turnParts";
 
 export type { NoteService } from "./notes";
+/** プロジェクトのノートのフォルダ名（重なれば「名前-2」。新しいプロジェクトのダイアログの「ノートの保存先」で projects が使う） */
+export { projectNoteFolder } from "@shared/notes/names";
 
 export interface NotesDeps {
   trash: TrashApi;

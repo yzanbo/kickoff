@@ -1,5 +1,6 @@
 // GitHub と CI の機能のコアの入口（ほかの機能はここだけを読む）
-import type { GitHubAccount } from "@shared/git/types";
+import type { GitHubAccount, ProjectGitHub } from "@shared/git/types";
+import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
@@ -80,12 +81,12 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
   });
   // 設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動で選ぶ remote・いまの連携先
   const accounts = env.accounts ?? listGitHubAccounts;
-  deps.projects.provideGitHub(async (project) => {
+  const projectGitHub = async (project: Project): Promise<ProjectGitHub> => {
     const [list, { remotes, ghDefault }] = await Promise.all([accounts(), readGitHubRemotes(project.repo_path)]);
     const auto = autoGitHubRemote(remotes, ghDefault);
     const target = pickGitHubTarget(remotes, ghDefault, project.github_remote);
     return { accounts: list, remotes, auto_remote: auto?.name ?? null, repo: target?.repo ?? null, host: target?.host ?? null };
-  });
+  };
   return {
     name: "github",
     api: { prWatch },
@@ -93,7 +94,7 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
       {
         legacy: (app) => {
           worktreePrRoutes(app, { store, prWatch });
-          githubRoutes(app, { store, github, prWatch });
+          githubRoutes(app, { store, github, prWatch, projectGitHub });
           ciRoutes(app, { store, ci });
         },
       },

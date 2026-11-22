@@ -1,10 +1,13 @@
 import type { Chat, GitHubLink } from "@shared/chat/types";
 import type { GitHubCreatedIssue, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
 import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta } from "@shared/github/types";
+import type { ProjectGitHub } from "@shared/git/types";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 /** GitHub タブ（連携先のリポジトリの issue・PR を読む。コアの routes/github.ts）。中身はいつも GitHub に聞き直したもの */
 export const githubApi = {
+  /** プロジェクトの GitHub の連携（設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動の連携先・いまの連携先） */
+  projectGitHub: (projectId: number) => request<ProjectGitHub>("GET", `/api/projects/${projectId}/github`),
   /** 連携の状態（使えなければ reason に理由と直し方） */
   githubConnection: (projectId: number) => request<GitHubConnection>("GET", `/api/projects/${projectId}/github/connection`),
   /** 絞り込みの候補（ラベル・マイルストーン・担当にできる人） */

@@ -2,6 +2,8 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { GitHubCheckoutBody, GitHubCommentBody, GitHubLabelsBody, GitHubMergeBody, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadReplyBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
 import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERGE_METHODS, GITHUB_MINE_FILTERS, GITHUB_REVIEW_EVENTS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubListFilter } from "@shared/github/types";
+import type { ProjectGitHub } from "@shared/git/types";
+import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import type { GitHubService } from "@/features/github/core/service";
@@ -88,11 +90,16 @@ const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "
  * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
  * 端末には開かない（http/deviceAccess.ts。中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
-export function githubRoutes(app: Hono, { store, github, prWatch }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; github: GitHubService; prWatch: WorktreePrWatch }) {
+export function githubRoutes(
+  app: Hono,
+  { store, github, prWatch, projectGitHub }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; github: GitHubService; prWatch: WorktreePrWatch; projectGitHub: (project: Project) => Promise<ProjectGitHub> },
+) {
   const { withProject } = lookups(store);
 
   // gh の状態（設定の「接続」。プロジェクトによらない）
   app.get("/api/github", async (c) => c.json(await githubStatus()));
+  // プロジェクトの GitHub の連携（設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動で選ぶ remote・いまの連携先）
+  app.get("/api/projects/:id/github", withProject, async (c) => c.json(await projectGitHub(c.var.project)));
   app.get("/api/projects/:id/github/connection", withProject, async (c) => c.json(await github.connection(c.var.project)));
   app.get("/api/projects/:id/github/meta", withProject, async (c) => c.json(await github.meta(c.var.project)));
 

@@ -3,20 +3,19 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Project } from "@shared/projects/types";
 import { tx } from "@/foundation/core/db/tx";
-import type { StoredTrashItem } from "@/features/trash/core/db/trash";
-import type { TrashService } from "@/features/trash/core/service";
+import type { TrashApi } from "@/features/trash/core/index";
 
 /** プロジェクトをゴミ箱へ入れる（作業中のチャットがないことは呼ぶ側が確かめる。中のチャットは trashed が同じ行で入れる）。入れたゴミ箱の行を返す */
 export function trashProject(
   deps: {
     db: Pick<DatabaseSync, "exec" | "isTransaction">;
     projects: { setTrashed(id: number, at: string | null): void };
-    trashBin: Pick<TrashService, "addRecord">;
+    trashBin: Pick<TrashApi, "addRecord">;
     trashed: (project: Project, trashId: string, at: string) => void;
   },
   project: Project,
   at = new Date().toISOString(),
-): StoredTrashItem {
+): ReturnType<TrashApi["addRecord"]> {
   // 行を足して中のチャットとプロジェクトを隠すまでを 1 つに（間で失敗すると、中身のないゴミ箱の行が残るため）
   return tx(deps.db, () => {
     const item = deps.trashBin.addRecord({ project_id: project.id, kind: "project", label: project.name });
