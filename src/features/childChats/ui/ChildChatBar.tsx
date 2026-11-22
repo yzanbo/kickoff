@@ -2,6 +2,7 @@ import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote 
 import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
+import { busyWithUnread } from "@shared/chat/state";
 import { useLatestAnswer } from "@/features/chat/ui/store/useChatStore";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
@@ -196,7 +197,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
   if (editor) {
     return (
       <span className="child-chat-crumb pill editing">
-        <StatusSlot state={stateOf(parent)} />
+        <StatusSlot state={stateOf(parent)} unread={busyWithUnread(parent, stateOf(parent))} />
         <ChatTitleInput chat={parent} editor={editor} className="child-chat-title-input" />
       </span>
     );
@@ -217,7 +218,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
         rename.start(parent);
       }}
     >
-      <StatusSlot state={stateOf(parent)} />
+      <StatusSlot state={stateOf(parent)} unread={busyWithUnread(parent, stateOf(parent))} />
       <span className="child-chat-crumb-name">{name}</span>
     </button>
   );

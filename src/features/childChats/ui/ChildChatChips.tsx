@@ -119,7 +119,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         </span>
         <span className="subagent-text">
           <span className="subagent-title">
-            <StatusSlot state={state} />
+            <StatusSlot state={state} unread={busyWithUnread(c, state)} />
             {chatTitle(c.title)}
           </span>
           <span className="subagent-meta">

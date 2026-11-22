@@ -1,6 +1,7 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/chat/types";
+import { busyWithUnread } from "@shared/chat/state";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
@@ -97,7 +98,7 @@ export function NoteQuickChat({
         <span className="note-quick-state" role="status">
           {state !== "read" && (
           <>
-              <StatusSlot state={state} />
+              <StatusSlot state={state} unread={!!chat && busyWithUnread(chat, state)} />
               <span className="note-quick-status-text">{STATUS_TEXTS[state]}</span>
             </>
           )}
