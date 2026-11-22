@@ -2,7 +2,7 @@
 // どちらもサーバーの知らせ（chat / chat_deleted / project_deleted）で直し、並びはサーバーと同じく最後に動いた順。
 // 部品は useChats({ projectId?, archived? }) で読む（そのプロジェクト・アーカイブ済みを含めるかの見え方ごとに、中身が同じなら同じ配列を返す）。
 // 知っているチャット（knownChat）= 詳細を読んだチャット（seenChats.ts。一覧にないアーカイブ済み・別ウィンドウのチャットも）∪ 読み込んだ一覧
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
 import { walkDown } from "@shared/foundation/tree";
 import { api } from "@/foundation/ui/api";
@@ -177,10 +177,17 @@ export const knownChat = (id: number): Chat | undefined => seenChats.get(id) ?? 
 /** チャットの店に渡す知っているチャット（詳細の応答で入れ・引き・中身を捨てたら忘れる） */
 export const knownChatsForStore = { remember: seenChats.remember, get: knownChat, forget: seenChats.forget };
 
-/** ID のチャット（knownChat を部品から。変わったときだけ描き直す。右の欄の子チャットのタブの状態の印） */
-export function useKnownChat(id: number): Chat | undefined {
-  useStoreStatus(activeChats);
-  return useSyncExternalStore(subscribeKnown, () => knownChat(id));
+/**
+ * ID のチャット（knownChat を部品から。変わったときだけ描き直す。右の欄の子チャットのタブの状態の印）。
+ * fetch: 一覧が届いても知らないチャットなら、行を 1 回取って一覧の外で見たチャットに入れる（タブが指すチャット。詳細の覚えから外れたアーカイブ済みなど）
+ */
+export function useKnownChat(id: number, { fetch = false }: { fetch?: boolean } = {}): Chat | undefined {
+  const { loaded } = useStoreStatus(activeChats);
+  const chat = useSyncExternalStore(subscribeKnown, () => knownChat(id));
+  const missing = fetch && loaded && id > 0 && !chat;
+  // 行だけを取る（詳細の記録は 1 件だけ読む）
+  useEffect(() => (missing ? seenChats.fetch(id, () => api.chatDetail(id, { limit: 1 }).then((d) => d.chat)) : undefined), [missing, id]);
+  return chat;
 }
 
 /** プロジェクトごとのチャット（サイドバー。中身の変わらないプロジェクトの一覧は同じ配列のまま） */

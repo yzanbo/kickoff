@@ -23,8 +23,8 @@ export interface TabAgentState {
  */
 export function useTabAgentState(tab: PanelTab): TabAgentState | undefined {
   const { stateOf } = useChatStates();
-  // hooks は種類によらず呼ぶ（チャット・子チャットでなければ ID 0 = いつも分からない）
-  const chat = useKnownChat(tab.kind === "chat" ? tab.id : tab.kind === "child" ? tab.childId : 0);
+  // hooks は種類によらず呼ぶ（チャット・子チャットでなければ ID 0 = いつも分からない）。一覧にも詳細の覚えにもないチャットは行を 1 回取る
+  const chat = useKnownChat(tab.kind === "chat" ? tab.id : tab.kind === "child" ? tab.childId : 0, { fetch: true });
   // サブエージェントのタブは、チャットの店の取り出し口を直接読む（チャットの会話の欄が隠れて止まっていても、印は変わる。ほかの種類は ID 0 = いつも空）
   const view = chatSubagents.useFor(tab.kind === "subagent" ? tab.chatId : 0);
   if (chat) {
