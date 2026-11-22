@@ -257,6 +257,8 @@ export function startPanelServerEvents(): () => void {
 }
 
 export const panelStateOf = (key: string) => store().stateOf(key);
+/** 欄の状態を読むだけ（なければ undefined。ほかのウィンドウの欄を、このウィンドウの店に作らない） */
+export const peekPanel = (key: string) => store().peek(key);
 export const dispatchPanel = (key: string, action: PanelAction) => store().dispatch(key, action);
 export const allPanels = () => store().all();
 export const panelsVersion = () => store().version();

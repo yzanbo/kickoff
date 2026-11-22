@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { MOVING_TAB_MIMES, movingMimeFor, parseMovingTab } from "./tabTransfer";
+import { allPanels, panelStateOf } from "@/features/panel/ui/state/panelStore";
+import { useTestPanelStore } from "@/features/panel/ui/testing";
+import { MOVING_TAB_MIMES, movingMimeFor, parseMovingTab, takeMovingTab } from "./tabTransfer";
 
 test("ウィンドウをまたいで渡すタブ: ブラウザ・チャットの形がそろっていれば読み、形が合わなければ null", () => {
   const browser = { panel: "side:21", tab: { kind: "browser", key: "browser:1:abc", url: "https://example.com/", title: "Example" } } as const;
@@ -32,4 +34,11 @@ test("受け取れるタブの型: 欄が出す種類の型だけ（チャット
     movingMimeFor(types, (k) => k === "chat"),
     null,
   );
+});
+
+test("ほかのウィンドウの欄から落とされたタブ: この欄に開き、元の欄はこのウィンドウの店に作らない", () => {
+  useTestPanelStore();
+  takeMovingTab("kanban:31", { panel: "cwin:win-31-chat:7", tab: { kind: "chat", key: "chat:7", id: 7, projectId: 31 } });
+  assert.deepEqual(panelStateOf("kanban:31").tabs.map((t) => t.key), ["chat:7"]);
+  assert.deepEqual([...allPanels().keys()], ["kanban:31"]);
 });

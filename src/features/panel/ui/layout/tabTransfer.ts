@@ -4,7 +4,7 @@
 import { useEffect } from "react";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { closeTab, openTab } from "@/features/panel/ui/state/actions";
-import { panelStateOf, subscribePanels } from "@/features/panel/ui/state/panelStore";
+import { panelStateOf, peekPanel, subscribePanels } from "@/features/panel/ui/state/panelStore";
 import type { PanelKind } from "@/features/panel/ui/surface";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
@@ -76,7 +76,8 @@ const closeMoved = (panel: string, key: string, kind: MovableTab["kind"]) => clo
 export function takeMovingTab(panel: string, moving: MovingTab): string {
   const { tab } = moving;
   openTab(panel, tab);
-  if (moving.panel !== panel && panelStateOf(moving.panel).tabs.some((t) => t.key === tab.key)) closeMoved(moving.panel, tab.key, tab.kind);
+  // 元の欄がこのウィンドウにあるかは読むだけで見る（ほかのウィンドウの欄を、このウィンドウの店に作らない）
+  if (moving.panel !== panel && peekPanel(moving.panel)?.tabs.some((t) => t.key === tab.key)) closeMoved(moving.panel, tab.key, tab.kind);
   else postWindowMessage("tabMovedOut", { panel: moving.panel, key: tab.key, kind: tab.kind });
   return tab.key;
 }
