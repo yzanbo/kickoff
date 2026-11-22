@@ -2,7 +2,7 @@
 // チャットの画面（ChatView）・送る前の新しいチャット・新しい子チャットが ChatProviderContext に AI を入れ、中の部品は useFeatureBlock で理由を読む。
 // AI の状態の店（providersStore）は使い始めるたびに取り直すので、読み込みを頼むのは入れる側の 1 か所（useProviderStatus の load）だけにし、中の部品は頼まずに読む
 import { createContext, useContext, useSyncExternalStore } from "react";
-import type { ProviderFeature, ProviderStatus } from "@shared/ai/types";
+import type { BlockableCapability, ProviderStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { featureBlock, statusOf } from "./providerChoice";
@@ -20,8 +20,8 @@ export function useProviderStatus(id: ProviderId, { load = false }: { load?: boo
 }
 
 /** いまの部品のチャットの AI で、その機能を使えない理由（使えるなら null） */
-export function useFeatureBlock(feature: ProviderFeature): string | null {
-  return featureBlock(useProviderStatus(useChatProviderId()), feature);
+export function useFeatureBlock(capability: BlockableCapability): string | null {
+  return featureBlock(useProviderStatus(useChatProviderId()), capability);
 }
 
 // 前に出しているチャットの AI（下の帯の使用状況）。見えているチャットの画面を最後に表に出した・触ったものにする

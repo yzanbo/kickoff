@@ -11,10 +11,8 @@ export interface ProviderStatus {
   account?: string;
   plan?: string;
   detail: string;
-  /** その AI でできること（ないものは画面で押せない形にして理由を添える。コアの /api/providers が付ける） */
-  features: ProviderFeature[];
-  /** できること（AI ごとの表 @shared/ai/providers。本物の実装でなければ空。コアの /api/providers が付ける。画面はまだ features を読む） */
-  capabilities?: ProviderCapability[];
+  /** できること（AI ごとの表 @shared/ai/providers。本物の実装でなければ空。ないものは画面で押せない形にして理由を添える。コアの /api/providers が付ける） */
+  capabilities: ProviderCapability[];
   /** ログインの仕方（設定の provider_auth。コアの /api/providers が付ける） */
   auth_mode?: ProviderAuthMode;
   /** API キーを置いたか（キーそのものは出さない） */
@@ -26,8 +24,8 @@ export interface ProviderStatus {
   update?: ProviderUpdate | null;
 }
 
-/** 各 AI の CLI が返す状態（API の応答 ProviderStatus は、これにコアの /api/providers ができること features・capabilities を足したもの） */
-export type ProviderCliStatus = Omit<ProviderStatus, "features" | "capabilities">;
+/** 各 AI の CLI が返す状態（API の応答 ProviderStatus は、これにコアの /api/providers ができること capabilities を足したもの） */
+export type ProviderCliStatus = Omit<ProviderStatus, "capabilities">;
 
 /** 入れた CLI の新しい版と上げ方 */
 export interface ProviderUpdate {
@@ -38,24 +36,19 @@ export interface ProviderUpdate {
   source: string;
 }
 
-/** AI によってできたりできなかったりすること（プロバイダーが対応するものだけを持つ） */
-export const PROVIDER_FEATURES = ["fork", "rewind_files", "subagent_log", "usage", "commands", "models", "summarize", "login"] as const;
-export type ProviderFeature = (typeof PROVIDER_FEATURES)[number];
-
-/** できることの名前（押せない理由の文に使う） */
-const PROVIDER_FEATURE_LABELS: Record<ProviderFeature, string> = {
+/** できないときに押せない理由を出す「できること」と、その名前（理由の文に使う） */
+const CAPABILITY_LABELS = {
   fork: "分岐・巻き戻し",
   rewind_files: "ファイルを戻す",
   subagent_log: "サブエージェントの会話の記録",
-  usage: "使用枠の表示",
   commands: "/ のコマンド",
   models: "モデルの選択",
-  summarize: "AI で要約",
   login: "ブラウザでログイン",
-};
+} as const satisfies Partial<Record<ProviderCapability, string>>;
+export type BlockableCapability = keyof typeof CAPABILITY_LABELS;
 
 /** できないことの理由の文（「Codex のチャットでは分岐・巻き戻しは使えません」） */
-export const providerFeatureMissing = (label: string, feature: ProviderFeature) => `${label} のチャットでは${PROVIDER_FEATURE_LABELS[feature]}は使えません`;
+export const providerFeatureMissing = (label: string, capability: BlockableCapability) => `${label} のチャットでは${CAPABILITY_LABELS[capability]}は使えません`;
 
 /** チャット欄の / で出すコマンド（Claude Code のスラッシュコマンド・スキル） */
 export interface SlashCommandOption {

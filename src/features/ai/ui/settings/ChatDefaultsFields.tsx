@@ -1,3 +1,4 @@
+import { providerCan } from "@shared/ai/providers";
 import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LABELS, PERMISSION_LABELS, type ChatOptions, type ChatOptionsPatch, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
@@ -13,6 +14,9 @@ const PROVIDER_DEFAULT = "";
 /** ファストモードの、選んだモデルの対応の注記 */
 const fastNote = (model: ModelOption | undefined) =>
   model?.supports_fast_mode === false ? "（このモデルは対応していません）" : model?.supports_fast_mode === null ? "（このモデルの対応状況を確認できません）" : "";
+
+/** ファストモードの欄を出すか（ファストモードを持つ AI か、モデルのどれかが対応している AI） */
+const showsFast = (provider: ProviderId, models: ModelOption[]) => providerCan(provider, "fast_mode") || models.some((m) => m.supports_fast_mode);
 
 /** モデルの値に当たる一覧の項目（null はその AI の既定のモデル） */
 const modelOf = (models: ModelOption[], model: string | null | undefined) => models.find((m) => m.value === model) ?? (model === null ? models.find((m) => m.is_default) : undefined);
@@ -57,12 +61,12 @@ function AppFields({ provider, value, onChange, models }: Extract<ChatDefaultsFi
           </select>
         </Field>
       </div>
-      {(claude || models.some((m) => m.supports_fast_mode)) && (
+      {showsFast(provider, models) && (
         <CheckField
           className="ai-defaults-fast"
           label="ファストモードを使う"
           help={
-            claude ? (
+            providerCan(provider, "fast_mode") ? (
               <>
                 応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
                 {fastNote(currentModel)}
@@ -119,7 +123,7 @@ function InheritFields({ provider, value, onChange, inherit, models }: Extract<C
           <PermissionOptions model={currentModel} />
         </select>
       </Field>
-      {(provider === "claude" || models.some((m) => m.supports_fast_mode)) && (
+      {showsFast(provider, models) && (
         <Field label="ファストモード">
           <select
             value={value.fast_mode === undefined ? INHERIT : value.fast_mode ? "on" : "off"}

@@ -1,6 +1,6 @@
 // チャットの AI の、画面で使う純粋な決まり:
 // 選べるか（対応予定は選べない）・その AI にない機能の理由・API キーで動かすか（使った分の支払い）
-import { providerFeatureMissing, type ProviderFeature, type ProviderStatus } from "@shared/ai/types";
+import { providerFeatureMissing, type BlockableCapability, type ProviderStatus } from "@shared/ai/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { PROVIDERS } from "@shared/ai/providers";
 
@@ -36,9 +36,9 @@ export function providerSwitchBlock(status: ProviderStatus | undefined): string 
  * そのチャットの AI でその機能を使えない理由（使えるなら null）。
  * 状態がまだ届いていないときは止めない（Claude Code のチャットで押せなくならないように）
  */
-export function featureBlock(status: ProviderStatus | undefined, feature: ProviderFeature): string | null {
+export function featureBlock(status: ProviderStatus | undefined, capability: BlockableCapability): string | null {
   if (!status) return null;
-  return status.features.includes(feature) ? null : providerFeatureMissing(status.label, feature);
+  return status.capabilities.includes(capability) ? null : providerFeatureMissing(status.label, capability);
 }
 
 /** API キーで動かすか（使った分の支払い。設定の provider_auth が api_key） */

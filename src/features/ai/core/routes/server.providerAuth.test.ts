@@ -6,11 +6,9 @@ import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
-import { providerFeatures } from "@/features/ai/core/capability";
 import { claudeAuthEnv } from "@/features/ai/core/providers/claude/env";
 import { testStore } from "@/app/core/testing/testStore";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
 
 /** 中身を逆さにするだけの暗号化（テスト用） */
 const reverseCipher: SecretCipher = {
@@ -23,7 +21,7 @@ test("AI の一覧: 5 つの AI と、できること・ログインの仕方・
   const before = (await call("GET", "/api/providers")).body as ProviderStatus[];
   // テストの偽のプロバイダーはどの AI として呼ばれても同じもの（数だけ見る）
   assert.equal(before.length, PROVIDER_IDS.length);
-  assert.ok(before.every((p) => Array.isArray(p.features) && p.auth_mode === "subscription" && p.has_api_key === false));
+  assert.ok(before.every((p) => Array.isArray(p.capabilities) && !("features" in p) && p.auth_mode === "subscription" && p.has_api_key === false));
 
   assert.equal((await call("PUT", "/api/providers/codex/api-key", { key: "sk-test-123" })).status, 204);
   await call("PUT", "/api/settings", { provider_auth: { codex: "api_key" } });
@@ -59,15 +57,6 @@ test("Claude Code に渡す API キー: API キーのときだけ、子プロセ
   assert.deepEqual(claudeAuthEnv({ mode: "subscription", apiKey: null }), {});
   assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: null }), {});
   assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: "k" }), { ANTHROPIC_API_KEY: "k", CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1" });
-});
-
-test("できること: プロバイダーが持つ任意の機能から決める（使用状況は AI ごとの表から）", () => {
-  const base = { id: "codex", label: "x", implemented: true, status: async () => ({}), run: async () => ({ status: "completed", sessionId: null }) } as unknown as AgentProvider;
-  assert.deepEqual(providerFeatures(base), ["usage"]);
-  const more = { ...base, models: async () => [], fork: async () => "s" } as unknown as AgentProvider;
-  assert.deepEqual(providerFeatures(more), ["fork", "usage", "models"]);
-  assert.deepEqual(providerFeatures({ ...base, id: "copilot" } as AgentProvider), []);
-  assert.deepEqual(providerFeatures({ ...base, implemented: false } as AgentProvider), []);
 });
 
 /** 応答のチャットのうち、このテストが見る欄（chat の Chat の型を読まない） */

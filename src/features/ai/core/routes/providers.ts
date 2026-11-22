@@ -10,7 +10,7 @@ import type { ProviderLoginStart } from "@shared/foundation/apiTypes";
 import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
 import { ttlCache } from "@/foundation/core/system/ttlCache";
 import { lookups } from "@/foundation/core/http/lookups";
-import { capabilitiesOf, providerFeatures } from "@/features/ai/core/capability";
+import { capabilitiesOf } from "@/features/ai/core/capability";
 import { providerModels } from "@/features/ai/core/providers/modelCatalog";
 import { jsonBody } from "@/foundation/core/http/input";
 import { createLoginSessions } from "@/features/ai/core/loginSessions";
@@ -31,13 +31,13 @@ export function providerRoutes(app: Hono, { store, providers, providerKeys, bus 
     return c.body(null, 204);
   });
 
-  // 状態に、その AI でできること（capabilities。前の形の features も）を添える（画面がないものを押せない形にする）
+  // 状態に、その AI でできること（capabilities）を添える（画面がないものを押せない形にする）
   // ログインの仕方と、API キーを置いたか（キーそのものは出さない）も添える
   app.get("/api/providers", async (c) => {
     const auth = store.settings.get().provider_auth;
     return c.json(
       await Promise.all(
-        PROVIDER_IDS.map(async (id) => ({ ...(await providers[id].status()), capabilities: capabilitiesOf(providers[id]), features: providerFeatures(providers[id]), auth_mode: auth[id] ?? "subscription", has_api_key: providerKeys.has(id) })),
+        PROVIDER_IDS.map(async (id) => ({ ...(await providers[id].status()), capabilities: capabilitiesOf(providers[id]), auth_mode: auth[id] ?? "subscription", has_api_key: providerKeys.has(id) })),
       ),
     );
   });

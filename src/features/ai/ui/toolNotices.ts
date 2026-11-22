@@ -1,6 +1,7 @@
 // 下の帯の、AI・ツールの CLI が使えないときの札（Claude Code・gh。ふだんは出さない）。React に依らない
 import type { ProviderStatus } from "@shared/ai/types";
 import type { GitHubStatus } from "@shared/foundation/server";
+import { statusOf } from "@/features/ai/ui/provider/providerChoice";
 
 export interface ToolNotice {
   key: "claude" | "github";
@@ -13,7 +14,7 @@ export interface ToolNotice {
 /** 使えない CLI の札（まだ確かめていないものは出さない） */
 export function toolNotices(providers: ProviderStatus[] | undefined, github: GitHubStatus | undefined): ToolNotice[] {
   const notices: ToolNotice[] = [];
-  const claude = providers?.find((p) => p.id === "claude");
+  const claude = statusOf(providers, "claude");
   if (claude && !(claude.installed && claude.logged_in)) {
     notices.push({
       key: "claude",

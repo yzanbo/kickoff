@@ -10,7 +10,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 type LoginState = { kind: "idle" } | { kind: "starting" } | { kind: "waiting" } | { kind: "failed"; message: string };
 
 /** 設定の「接続」で、ブラウザでログインできる AI（features の login）がログインしていなければ出すか */
-export const canBrowserLogin = (p: ProviderStatus) => p.implemented && p.installed && !p.logged_in && p.features.includes("login");
+export const canBrowserLogin = (p: ProviderStatus) => p.implemented && p.installed && !p.logged_in && p.capabilities.includes("login");
 
 /**
  * AI のブラウザでのログイン（いまは Codex = ChatGPT でログイン）。押すとコアがログインを始め、返った URL を既定のブラウザで開く

@@ -6,7 +6,7 @@ import { featureBlock, paysPerUse, providerChipName, providerPickBlock, provider
 
 /** Claude Code（分岐・ファイルを戻す・モデルの一覧ができる・サブスクで動かす） */
 const status = (patch: Partial<ProviderStatus> = {}) =>
-  makeProviderStatus("claude", { features: ["fork", "rewind_files", "models"], auth_mode: "subscription", has_api_key: false, ...patch });
+  makeProviderStatus("claude", { capabilities: ["fork", "rewind_files", "models"], auth_mode: "subscription", has_api_key: false, ...patch });
 
 test("providerPickBlock: 対応予定・確認中は選べず理由を返し、使える AI は null", () => {
   assert.equal(providerPickBlock("claude", status()), null);

@@ -7,6 +7,7 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { accountLine } from "@/features/ai/ui/usage/usage";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
+import { statusOf } from "@/features/ai/ui/provider/providerChoice";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, type StatusTone } from "@/foundation/ui/kit/StatusDot";
 import { useEditedProject } from "@/features/projects/ui";
@@ -32,7 +33,7 @@ export function ProjectAiSection() {
           <ProviderCard
             key={id}
             id={id}
-            status={providers.data?.find((p) => p.id === id)}
+            status={statusOf(providers.data, id)}
             selected={project.provider === id}
             onSelect={() => void choose(id)}
           />
