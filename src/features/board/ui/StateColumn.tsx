@@ -5,7 +5,8 @@ import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
 import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { ArchiveAllButton } from "./ArchiveAllButton";
-import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
+import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
+import { activeOf, ArchivableItems, archivedOf, ColumnBody } from "@/features/chatList/ui";
 import { ColumnHead } from "./ColumnHead";
 import { DraftCards } from "./DraftCards";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -35,22 +36,13 @@ export function StateColumn({
   /** アーカイブ済みを列のいちばん下に畳んで出す（リスト表示では、最後の ArchivedListSection にまとめるので出さない） */
   foldArchived?: boolean;
 }) {
-  const [active, archived] = splitArchived(column.chats);
-  const body = (
-    <>
-      {active.length === 0 && <p className="empty-note column-empty">なし</p>}
-      <ProgressiveItems items={active} render={render} />
-      {foldArchived && foldPlace && (
-        <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length} bodyClassName="archived-fold">
-          <ProgressiveItems items={archived} render={render} />
-        </ArchivedFold>
-      )}
-    </>
-  );
+  const active = activeOf(column.chats);
   return (
     <section className={list ? "list-group" : "board-column"}>
       <ColumnHead label={column.label} tone={bucketTone(column)} mark={bucketMark(column, active)} count={active.length} action={column.column === "read" ? <ArchiveAllButton chats={active} /> : undefined} />
-      {list ? body : <div className="column-cards">{body}</div>}
+      <ColumnBody list={list}>
+        <ArchivableItems items={column.chats} render={render} empty={<p className="empty-note column-empty">なし</p>} fold={foldArchived} foldPlace={foldPlace} foldKey={`${column.key}/archived`} />
+      </ColumnBody>
     </section>
   );
 }
@@ -60,16 +52,13 @@ export function StateColumn({
  * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない。showProject: 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード）
  */
 function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PlacedDraft[]; list?: boolean; showProject?: boolean }) {
-  const body = (
-    <>
-      <DraftCards drafts={drafts} showProject={showProject} />
-      {drafts.length === 0 && <p className="empty-note column-empty">なし</p>}
-    </>
-  );
   return (
     <section className={list ? "list-group" : "board-column"}>
       <ColumnHead label={DRAFT_LOOK.label} tone={DRAFT_LOOK.tone} count={drafts.length} />
-      {list ? body : <div className="column-cards">{body}</div>}
+      <ColumnBody list={list}>
+        <DraftCards drafts={drafts} showProject={showProject} />
+        {drafts.length === 0 && <p className="empty-note column-empty">なし</p>}
+      </ColumnBody>
     </section>
   );
 }
@@ -122,7 +111,7 @@ export function ListSections({
   render: RenderChat;
 }) {
   // 最初に描く行の上限（hooks/useProgressiveRows.ts）を、縦に並ぶまとまりの上から順に配る
-  const budgets = useRowBudgets(columns.map((c) => splitArchived(c.chats)[0].length));
+  const budgets = useRowBudgets(columns.map((c) => activeOf(c.chats).length));
   return (
     <>
       <DraftColumn drafts={drafts} list showProject={showDraftProject} />
@@ -141,14 +130,13 @@ export function ListSections({
  * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
  */
 function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<PlacedDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
-  const archivedOf = (c: ChatBucket<PlacedDraft>) => splitArchived(c.chats)[1];
-  const count = columns.reduce((n, c) => n + archivedOf(c).length, 0);
+  const count = columns.reduce((n, c) => n + archivedOf(c.chats).length, 0);
   if (count === 0) return null;
   return (
     <section className="list-group archived-list">
       <ArchivedFold place={foldPlace} foldKey={foldKey} count={count} bodyClassName="archived-fold">
         {columns.map((c) => {
-          const list = archivedOf(c);
+          const list = archivedOf(c.chats);
           return (
             <div key={c.key} className="archived-list-state">
               <ColumnHead label={c.label} tone={bucketTone(c)} mark={bucketMark(c)} count={list.length} />

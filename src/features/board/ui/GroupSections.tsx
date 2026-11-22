@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import type { NewChatPlace } from "@/features/chat/ui";
-import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
+import { activeOf, ArchivableItems, ColumnBody } from "@/features/chatList/ui";
 import { UNGROUPED_SORT_ID } from "@/features/groups/ui/groups";
 import { DraftCards } from "./DraftCards";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -50,25 +50,14 @@ export function GroupSections({
   const ordered = orderGroupBuckets(buckets, board.ungroupedAt);
   // 最初に描く行の上限（hooks/useProgressiveRows.ts）: 横に並ぶ列（ボード）はどれにも同じだけ、縦に並ぶまとまり（リスト）は上から順に
   const budgets = useRowBudgets(
-    ordered.map((b) => splitArchived(b.chats)[0].length),
+    ordered.map((b) => activeOf(b.chats).length),
     list,
     boardWidth,
   );
   return ordered.map((bucket, i) => {
     const g = bucket.group ?? null;
     const key = g?.id ?? "none";
-    const [members, archived] = splitArchived(bucket.chats);
-    const body = (
-      <>
-        {/* その列（グループ）で入力中の新しいチャット */}
-        <DraftCards drafts={bucket.drafts} />
-        {members.length === 0 && <p className="empty-note column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
-        {byState && bucket.children ? <StateParts parts={bucket.children} render={render} /> : <ProgressiveItems items={members} render={render} />}
-        <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length} bodyClassName="archived-fold">
-          <ProgressiveItems items={archived} render={render} />
-        </ArchivedFold>
-      </>
-    );
+    const members = activeOf(bucket.chats);
     return (
       <RowBudgetScope key={key} value={budgets[i]}>
       <section
@@ -83,7 +72,18 @@ export function GroupSections({
       >
         {/* 数は送る前の新しいチャット（下書き。New Chat）も 1 つと数える（サイドバーのグループの見出しと同じ） */}
         <GroupColumnHead group={g} count={members.length + bucket.drafts.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
-        {list ? body : <div className="column-cards">{body}</div>}
+        <ColumnBody list={list}>
+          <ArchivableItems
+            items={bucket.chats}
+            render={render}
+            // その列（グループ）で入力中の新しいチャット
+            lead={<DraftCards drafts={bucket.drafts} />}
+            empty={<p className="empty-note column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
+            inner={byState && bucket.children ? <StateParts parts={bucket.children} render={render} /> : undefined}
+            foldPlace={foldPlace}
+            foldKey={`${bucket.key}/archived`}
+          />
+        </ColumnBody>
       </section>
       </RowBudgetScope>
     );
@@ -95,9 +95,9 @@ export function GroupSections({
  */
 function StateParts({ parts, render }: { parts: readonly ChatBucket<PlacedDraft>[]; render: (chat: Chat) => ReactNode }) {
   // 最初に描く行の上限を、縦に並ぶ小分けの上から順に配る
-  const budgets = useRowBudgets(parts.map((part) => splitArchived(part.chats)[0].length));
+  const budgets = useRowBudgets(parts.map((part) => activeOf(part.chats).length));
   return parts.map((part, i) => {
-    const [active] = splitArchived(part.chats);
+    const active = activeOf(part.chats);
     if (active.length === 0) return null;
     return (
       <RowBudgetScope key={part.key} value={budgets[i]}>

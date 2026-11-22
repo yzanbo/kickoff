@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { MessageSquare } from "lucide-react";
 import type { Chat, FeedItem } from "@shared/chat/types";
-import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
+import { ArchivableItems } from "@/features/chatList/ui";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
 
 /**
  * フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答を、返答の新しい順に 1 列に並べる。
@@ -29,8 +28,6 @@ export function FeedList({
     const chat = byId.get(item.chat_id);
     return chat ? [{ item, chat, archived_at: chat.archived_at }] : [];
   });
-  // アーカイブ済みは、ほかのボードと同じく下の閉じたまとまり「アーカイブ済み n」へ（中は新しい順のまま）
-  const [active, archived] = splitArchived(rows);
   if (!loaded) return <p className="muted small board-loading">読み込み中…</p>;
   return (
     <div className="board-feed">
@@ -39,16 +36,8 @@ export function FeedList({
           AI が返答すると、チャットごとに最新の返答がここに新しい順で並びます（絞り込み中なら、合うチャットのものだけ）。
         </EmptyState>
       ) : (
-        <>
-          {active.length > 0 && (
-            <div className="board-feed-list">
-              <ProgressiveItems items={active} render={({ item, chat }) => render(chat, item)} />
-            </div>
-          )}
-          <ArchivedFold place={foldPlace} foldKey="feed/archived" count={archived.length} bodyClassName="archived-fold board-feed-list">
-            <ProgressiveItems items={archived} render={({ item, chat }) => render(chat, item)} />
-          </ArchivedFold>
-        </>
+        // アーカイブ済みは、ほかのボードと同じく下の閉じたまとまり「アーカイブ済み n」へ（中は新しい順のまま）
+        <ArchivableItems items={rows} render={({ item, chat }) => render(chat, item)} wrap="board-feed-list" foldPlace={foldPlace} foldKey="feed/archived" foldClass="archived-fold board-feed-list" />
       )}
     </div>
   );

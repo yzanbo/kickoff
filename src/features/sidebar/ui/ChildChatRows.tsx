@@ -5,7 +5,8 @@ import type { Chat } from "@shared/chat/types";
 import { useChatStates, descendantStates, StatusSlot } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFold } from "@/foundation/ui/hooks/useFold";
-import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
+import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
+import { activeOf, archivedOf } from "@/features/chatList/ui";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 
@@ -35,7 +36,7 @@ export function ChildChatRows({
   const fold = useFold("sidebar", `children:${parentId}`, { defaultOpen: false });
   const { stateOf } = useChatStates();
   if (!kids?.length) return null;
-  const split = parentArchived ? [kids, []] : splitArchived(kids);
+  const split = parentArchived ? [kids, []] : [activeOf(kids), archivedOf(kids)];
   const onlyArchived = split[0].length === 0;
   const [active, archived] = onlyArchived ? [kids, []] : split;
   // 子孫の状態ごとの数（アーカイブ済みは数えない。親ごとアーカイブしたときは数える）。閉じていても印で知らせる

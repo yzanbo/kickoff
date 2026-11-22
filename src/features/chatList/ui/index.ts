@@ -15,6 +15,7 @@ export { StateStats } from "./StateStats";
 export { StateChip } from "./StateChip";
 export { BucketTree, type HeadSpec, type HeadTable } from "./BucketTree";
 export { ChatRowFace, ChatRowTime } from "./ChatRowFace";
+export { activeOf, ArchivableItems, archivedOf, ColumnBody } from "./ArchivableItems";
 export { chatItemProps } from "./chatItemProps";
 export { newChatPlaceOf, type BucketHead, type ChatBucket } from "./buckets";
 export { pinnedKey, projectKey } from "./bucketHeads";

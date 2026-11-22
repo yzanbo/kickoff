@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
-import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
+import { ArchivableItems } from "@/features/chatList/ui";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftCards } from "./DraftCards";
-import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
 
 /**
  * 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。段に分けたときは段ごと）。
@@ -30,21 +29,20 @@ export function FlatTasks({
   /** カード（ボード）・行（リスト）の描き方 */
   render: (chat: Chat) => ReactNode;
 }) {
-  const [active, archived] = splitArchived(chats);
   const items = list ? "flat-tasks-items" : "flat-tasks-items flat-tasks-grid";
   return (
     <section className={list ? "flat-tasks list-group" : "flat-tasks"}>
-      {drafts.length === 0 && active.length === 0 ? (
-        <p className="empty-note column-empty">なし</p>
-      ) : (
-        <div className={items}>
-          <DraftCards drafts={drafts} showProject={showDraftProject} />
-          <ProgressiveItems items={active} render={render} />
-        </div>
-      )}
-      <ArchivedFold place={foldPlace} foldKey={archivedKey} count={archived.length} bodyClassName={`archived-fold ${items}`}>
-        <ProgressiveItems items={archived} render={render} />
-      </ArchivedFold>
+      <ArchivableItems
+        items={chats}
+        render={render}
+        lead={<DraftCards drafts={drafts} showProject={showDraftProject} />}
+        leadCount={drafts.length}
+        empty={<p className="empty-note column-empty">なし</p>}
+        wrap={items}
+        foldPlace={foldPlace}
+        foldKey={archivedKey}
+        foldClass={`archived-fold ${items}`}
+      />
     </section>
   );
 }
