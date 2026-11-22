@@ -192,7 +192,8 @@ function NoteQuickComposer({
       <Composer
         place={{ projectId, worktree: chat?.worktree_path ?? null, chatId: chat?.id ?? null, meter: chat ? { chat, compacting: null, reserved: null, afterTurn: false } : undefined }}
         options={options}
-        placeholder={busy ? send.placeholder : PLACEHOLDER}
+        // 作業中・止めている送信待ちがあるときは、送り方（いま / あとで）に合わせた案内と送信ボタンの説明（チャット欄と同じ）
+        placeholder={busy || queued ? send.placeholder : PLACEHOLDER}
         send={{
           busy,
           stopping,
@@ -200,7 +201,7 @@ function NoteQuickComposer({
           submit: ({ text, attachments }, mode) => (busy || queued ? send.onQueue(text, attachments, mode) : onSend(text, attachments)),
           sendOther: (text) => (busy ? send.onQueue(text, []) : onSend(text, [])),
           stop: chat ? send.onStop : undefined,
-          label: busy ? send.sendLabel : undefined,
+          label: busy || queued ? send.sendLabel : undefined,
           alternatives: chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, submit: ({ text, attachments }) => send.onAsk(text, attachments) }] : undefined,
         }}
         draft={chat ? chatComposerDraft(chat.id) : undefined}
