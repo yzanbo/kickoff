@@ -53,7 +53,7 @@ export function queueStateOf(runtime: ChatRun): QueueState {
   const { later, stops, now } = s.outbox;
   const paused = queuePaused(s);
   const head = later[0];
-  return { messages: later, paused, stops, waiting_edit: waitingEdit(s), now, waiting: head ? waitingOf(runtime, head) : null, reserved: head && !paused && stops[0] !== 0 ? queueActionOf(head) : null, sending: [] };
+  return { messages: later, paused, stops, waiting_edit: waitingEdit(s), now, waiting: head ? waitingOf(runtime, head) : null, reserved: head && !paused && stops[0] !== 0 ? queueActionOf(head) : null, sending: [...runtime.sending] };
 }
 
 /** 送信待ちの頭が待っている理由（送る順が来ていれば null） */

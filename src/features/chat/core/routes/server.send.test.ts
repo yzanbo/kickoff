@@ -72,3 +72,22 @@ test("送信待ちをすぐ送る口: now はその 1 件を伝え、all はま�
   await until(() => provider.prompts.at(-1) === "d");
   await until(() => !runner.isBusy(chatId));
 });
+
+test("送信中: 送信待ちから取り出した指示は、発言を記録するまで sending に出し、発言の知らせのあとに外す", async () => {
+  const { call, project, runner, provider, bus } = setup();
+  const seen: string[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "chat_live") seen.push(`live:${e.live.queue.sending.map((m) => m.text).join()}`);
+    if (e.type === "chat_event" && e.event.type === "user") seen.push(`user:${e.event.data.text}`);
+  });
+  const release = provider.hold();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
+  release();
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
+  const sending = seen.indexOf("live:次");
+  assert.ok(sending >= 0, "送信中が配られる");
+  assert.deepEqual(seen.slice(sending, sending + 3), ["live:次", "user:次", "live:"]);
+  assert.deepEqual(runner.live(chatId).queue.sending, []);
+});

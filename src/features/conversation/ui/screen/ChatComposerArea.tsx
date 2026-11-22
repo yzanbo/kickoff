@@ -12,7 +12,7 @@ import { chatComposerDraft, Composer, composerPills, type ComposerSend, type Out
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { PromptsChip } from "@/features/conversation/ui/promptList/PromptsChip";
-import { QueuedMessages, RestartResumeBanner, reservedRow, sentShownKey } from "@/features/queue/ui";
+import { QueuedMessages, RestartResumeBanner, reservedRow } from "@/features/queue/ui";
 import { TodoChip } from "@/features/conversation/ui/todo/TodoChip";
 import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
 import { childChatsApi, INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui";
@@ -20,7 +20,7 @@ import { openCreatedChild } from "@/features/chat/ui";
 import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
 import { chatSubagents } from "@/features/subagents/ui";
-import { lastUserEventId, voiceReplies } from "@/features/composer/ui";
+import { voiceReplies } from "@/features/composer/ui";
 import { ProviderChip } from "@/features/ai/ui/provider/ProviderChips";
 import type { useChatSend } from "@/features/composer/ui/send/chatSend";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
@@ -64,8 +64,6 @@ export function ChatComposerArea({
   // 預かった指示を書き直している間は、チャット欄を書き直しの欄に入れ替える（ふつうの欄は隠して残す）
   const heldEdit = useHeldEdit(chat.id);
   const queued = live.queue.messages.length > 0;
-  // 送った指示が出る所の印（流れのいちばん新しい自分の発言と預かった指示。送信待ちから送った指示を、どこかに出るまで「送信中」で残すのに使う）
-  const sentShown = sentShownKey(lastUserEventId.useFor(chat.id), live.now);
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「新規の子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で新しい子チャットを作って送る（このチャットの作業は止めない。
@@ -132,7 +130,7 @@ export function ChatComposerArea({
   );
   // 起動したときの再開の確かめ: 送信待ちを聞いていれば送信待ちの上に、作業の途中で止まったことだけなら入力欄の上に帯を出す
   const resume = live.restart_resume;
-  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!noteOrArchived} resume={resume?.queued ? resume : null} sentShown={sentShown} />;
+  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!noteOrArchived} resume={resume?.queued ? resume : null} />;
   // 外の入力欄（ノートの下）にも、送信待ちがあるかを知らせる（あれば、チャット欄と同じく送るものを送信待ちに足す）
   useEffect(() => portal?.onQueued(queued), [portal, queued]);
   return (

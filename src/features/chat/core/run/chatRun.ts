@@ -7,7 +7,7 @@ import type { ProviderHandoff, WorkplaceMoveReservation } from "@shared/chat/cha
 import type { Outbox } from "@shared/chat/outbox";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { ApiRetryInfo, BackgroundState } from "@shared/ai/turnEvents";
-import type { ChatStatus } from "@shared/chat/types";
+import type { ChatStatus, QueuedMessage } from "@shared/chat/types";
 
 export type { Lane };
 
@@ -58,6 +58,8 @@ export class ChatRun {
   endStatus: TurnOutcome["status"] | null = null;
   /** 足している途中の行の番号（足す命令ごとに増やす。結果より先に次の命令が出たら、前の結果は捨てる） */
   tellSeq = 0;
+  /** 送信待ちから取り出して送っている途中の指示（QueueState の sending。発言を記録したか、送れなかったら外す） */
+  private sendingRows: QueuedMessage[] = [];
   private state: ChatRunState;
   private editTimers: Partial<Record<Lane, TimerHandle>> = {};
 
@@ -132,6 +134,23 @@ export class ChatRun {
     if (!this.handle) return;
     this.handle.control = control;
     this.dispatch({ type: "tell_ready", ready: control !== null });
+  }
+
+  /** 送信待ちから取り出して送っている途中の指示 */
+  get sending(): readonly QueuedMessage[] {
+    return this.sendingRows;
+  }
+
+  /** 送信待ちから取り出して送り始めた（配るのは出来事を回し終えたとき） */
+  startSending(item: QueuedMessage) {
+    this.sendingRows = [item];
+  }
+
+  /** 送っている途中の指示の発言を記録した・送れなかった（変わったら配る） */
+  endSending() {
+    if (this.sendingRows.length === 0) return;
+    this.sendingRows = [];
+    this.onChange();
   }
 
   /** AI が予約した作業場所の移動（ChatLive の workplace_move） */

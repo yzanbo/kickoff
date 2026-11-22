@@ -15,8 +15,6 @@ export interface QueueView {
 
 /** 応答が来なくても先回りをやめるまでの時間（失敗の知らせが届かないときの保険） */
 const PREDICTION_MS = 3000;
-/** 消した指示を覚えておく時間（応答より先に送信待ちの知らせが届く短い間だけ使う） */
-const REMOVED_MS = 10_000;
 /** 応答を待たずに出す命令（並べ替えと印の線。09-8.19） */
 const PREDICTED = new Set<QueueCommand["op"]>(["move", "set_stops", "stop_after"]);
 /** 先回りは挟む行を作らないので、行の ID と時刻は使わない */
@@ -56,15 +54,13 @@ export type QueueController = ReturnType<typeof createQueueController>;
 
 /**
  * 1 つのチャットの送信待ちの操作。run・send は通ったら true（失敗は知らせて false）。
- * 先回りは、応答が届いてコアの並びが変わったら・失敗したら・しばらくたったら捨てる。消した指示は短い間覚える（送った指示と見分ける）
+ * 先回りは、応答が届いてコアの並びが変わったら・失敗したら・しばらくたったら捨てる
  */
 export function createQueueController(deps: QueueControllerDeps) {
   let pending: Pending[] = [];
   let snapshot: readonly QueueCommand[] = [];
   let key = "";
   const changed = createSignal();
-  const removed = new Map<string, number>();
-  let clearedAt: number | null = null;
 
   const publish = () => {
     snapshot = pending.map((p) => p.command);
@@ -75,12 +71,6 @@ export function createQueueController(deps: QueueControllerDeps) {
     clearTimeout(p.timer);
     pending = pending.filter((x) => x !== p);
     publish();
-  };
-  const noteRemoved = (command: QueueCommand) => {
-    const now = Date.now();
-    for (const [id, at] of removed) if (now - at > REMOVED_MS) removed.delete(id);
-    if (command.op === "remove" || command.op === "merge") for (const id of command.ids) removed.set(id, now);
-    if (command.op === "clear") clearedAt = now;
   };
 
   return {
@@ -94,7 +84,6 @@ export function createQueueController(deps: QueueControllerDeps) {
     },
     /** failed を渡せば、失敗をそちらで知らせる */
     run(command: QueueCommand, failed = deps.failed): Promise<boolean> {
-      noteRemoved(command);
       let p: Pending | null = null;
       if (PREDICTED.has(command.op)) {
         const item: Pending = { command, base: key, resolved: false, timer: setTimeout(() => drop(item), PREDICTION_MS) };
@@ -125,11 +114,6 @@ export function createQueueController(deps: QueueControllerDeps) {
           return false;
         },
       );
-    },
-    /** その指示をこの画面から消したか（送ったのではない） */
-    removedHere(id: string): boolean {
-      const at = removed.get(id) ?? clearedAt;
-      return at !== null && Date.now() - at <= REMOVED_MS;
     },
   };
 }

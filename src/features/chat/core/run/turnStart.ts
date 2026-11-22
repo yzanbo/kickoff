@@ -27,6 +27,7 @@ export async function startTurn(shell: RunShell, chatId: number, run: ChatRun, e
   try {
     prepared = await followupPrompt(shell.deps, chatId, post ? postCompactMessage(m.text) : m.text, m.attachments);
   } catch (e) {
+    run.endSending();
     // 送れなかった間に届いた指示（待ちの列）は取り残さない
     shell.dispatch(chatId, { type: "prepared", next: "send_next" });
     if (effect.from !== "user") store.events.add(chatId, { type: "error", message: `${effect.from === "queue" ? "待ちの指示を送れませんでした" : "圧縮のあとに指示を送れませんでした"}: ${errorMessage(e)}` });
@@ -39,6 +40,8 @@ export async function startTurn(shell: RunShell, chatId: number, run: ChatRun, e
   // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
   if (!post) nameOnFirstMessage(shell.deps, chatId, m.text, m.attachments);
   recordEvent(store, run, { type: "user", text: m.text, ...(m.attachments.length ? { attachments: m.attachments } : {}), ...prepared.handover, ...(post ? { post_compact: true } : {}), ...marksOf(m), message_uuid: messageUuid });
+  // 発言の記録を配ってから、送信中を外す（画面で送った指示が消えて見える間を作らない）
+  run.endSending();
   // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
   store.chats.update(chatId, { status: "running", error: null, unread: false, ...m.options });
   void shell.execute(chatId, { chatId, prompt: prepared.prompt, promptId: messageUuid }, effect.turn, null, effect.pauseAfter);

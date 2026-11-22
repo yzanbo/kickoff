@@ -24,12 +24,3 @@ export function queuedShape(count: number, sending: number, busy: boolean, stops
 export function collapsedNext(collapsed: boolean, messages: readonly QueuedMessage[]): string {
   return collapsed && messages.length > 0 ? nextQueuedText(messages[0]) : "";
 }
-
-/**
- * 送った指示が出る所（流れのいちばん新しい自分の発言と、圧縮が終わるまで預かった指示）の印。
- * 送った指示は、そのまま送れば流れに自分の発言として、圧縮中などで預かればチャット欄の下の預かりの吹き出しとして出るので、
- * どちらかが変わったら、送った指示はもう画面のどこかに見えている
- */
-export function sentShownKey(lastUserEventId: number, held: { id: string }[]): string {
-  return `${lastUserEventId}|${held.map((m) => m.id).join()}`;
-}

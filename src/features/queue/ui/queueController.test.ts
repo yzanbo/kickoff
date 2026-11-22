@@ -62,14 +62,8 @@ test("印の線を続けて 2 回足すと 2 本になる（2 回目は先回り
   assert.deepEqual(queueViewOf(state, c.pending()).stops, [0, 0]);
 });
 
-test("消した指示は覚え（送ったものと見分ける）、消す命令は先回りしない", () => {
+test("消す命令は先回りしない", () => {
   const { c } = setup();
   void c.run({ op: "remove", ids: ["a"] });
   assert.equal(c.pending().length, 0);
-  assert.equal(c.removedHere("a"), true);
-  assert.equal(c.removedHere("b"), false);
-  void c.run({ op: "clear" });
-  assert.equal(c.removedHere("b"), true);
-  vi.advanceTimersByTime(10_001);
-  assert.equal(c.removedHere("a"), false);
 });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { QueuedMessage } from "@shared/chat/types";
-import { collapsedNext, queuedListItems, queuedShape, sentShownKey } from "./queuedListModel";
+import { collapsedNext, queuedListItems, queuedShape } from "./queuedListModel";
 
 const row = (id: string, patch: Partial<QueuedMessage> = {}): QueuedMessage => ({ id, text: `${id} の文\n2 行目`, options: {}, attachments: [], created_at: "", ...patch });
 const shapeOf = (items: ReturnType<typeof queuedListItems>) => items.map((x) => (x.kind === "stop" ? `|${x.at}:${x.nth}/${x.here}` : `${x.message.id}${x.editing ? "*" : ""}`));
@@ -25,12 +25,4 @@ test("畳んだ 1 行の「次:」は 1 件目の初めの行（開いている�
   assert.equal(collapsedNext(false, [row("a")]), "");
   assert.equal(collapsedNext(true, []), "");
   assert.equal(collapsedNext(true, [row("c", { text: "", compact: true })]), "会話を圧縮");
-});
-
-test("sentShownKey: 自分の発言が増えても、預かった指示が増えても変わる（送った指示がどこかに出た）", () => {
-  const before = sentShownKey(10, []);
-  assert.equal(sentShownKey(10, []), before);
-  assert.notEqual(sentShownKey(11, []), before);
-  assert.notEqual(sentShownKey(10, [{ id: "a" }]), before);
-  assert.notEqual(sentShownKey(10, [{ id: "a" }]), sentShownKey(10, [{ id: "b" }]));
 });

@@ -162,6 +162,7 @@ export class RunShell {
   private runEffect(chatId: number, run: ChatRun, effect: Effect, started: Promise<void>[]) {
     const { store } = this.deps;
     if (effect.do === "start_turn") {
+      if (effect.from === "queue" && effect.item) run.startSending(effect.item);
       const start = startTurn(this, chatId, run, effect);
       start.catch(() => {});
       started.push(start);

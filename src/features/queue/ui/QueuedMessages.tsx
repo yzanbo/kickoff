@@ -46,7 +46,6 @@ export function QueuedMessages({
   busy,
   childChats,
   resume,
-  sentShown,
 }: {
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
@@ -58,12 +57,11 @@ export function QueuedMessages({
   childChats: boolean;
   /** 起動したときの再開の確かめで送信待ちを聞いている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す。送信待ちを聞いていなければ null） */
   resume: ChatLive["restart_resume"];
-  /** 送った指示が出る所（流れの自分の発言・預かりの吹き出し）の印（sentShownKey）。送った指示を、どこかに出るまで「送信中」で残すのに使う */
-  sentShown: string;
 }) {
   const { chatId } = useChatScreen();
-  // 並べ替え・印の線は、口がコアの応答より先に出す（出す並びは先回りのものになることがある）。送った指示は、チャット欄に出るまで「送信中」で残す
-  const { c, view, sending } = useQueue(chatId, queue, sentShown);
+  // 並べ替え・印の線は、口がコアの応答より先に出す（出す並びは先回りのものになることがある）。送った指示は、発言を記録するまでコアが「送信中」で配る
+  const { c, view } = useQueue(chatId, queue);
+  const { sending } = queue;
   const { messages, stops } = view;
   const [collapsed, setCollapsed] = useSetting(storage.settings.collapsed);
   // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）

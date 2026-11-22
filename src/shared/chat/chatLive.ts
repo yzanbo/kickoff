@@ -58,8 +58,8 @@ export interface QueueState {
   waiting: (typeof QUEUE_WAIT_REASONS)[number] | null;
   /** 作業の終わりにすぐ行う圧縮・消去（列の頭の予約。なければ null） */
   reserved: QueueAction | null;
-  /** 送っている途中の行の ID（いまは使わず空） */
-  sending: string[];
+  /** 送信待ちから取り出して送っている途中の指示（発言を記録するまで。画面は送信待ちの下に「送信中…」で出す） */
+  sending: QueuedMessage[];
 }
 
 /** 会話を圧縮（要約）している最中の様子 */
