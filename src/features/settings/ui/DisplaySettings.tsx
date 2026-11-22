@@ -22,7 +22,7 @@ export function DisplaySettings() {
 export function ThemeField() {
   const [theme, setTheme] = useTheme();
   return (
-    <Field label="テーマ">
+    <Field as="div" label="テーマ">
       <Segmented<Theme>
         label="テーマ"
         value={theme}
@@ -40,7 +40,7 @@ export function ThemeField() {
 /** 右の欄か別ウィンドウかを選ぶ欄（子チャット・ノートを開く場所） */
 export function OpenPlaceField({ label, help, value, onChange }: { label: string; help: string; value: "side" | "window"; onChange: (v: "side" | "window") => void }) {
   return (
-    <Field label={label} help={help}>
+    <Field as="div" label={label} help={help}>
       <Segmented<"side" | "window">
         label={label}
         value={value}

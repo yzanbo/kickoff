@@ -8,7 +8,7 @@ import { storage } from "@/features/composer/ui/storage";
 export function ComposerCompactField() {
   const [compactComposer, setCompactComposer] = useSetting(storage.settings.compact);
   return (
-    <Field label="チャット欄" help="コンパクトにすると、チャット欄の文字・余白・下のボタンを小さくして、縦の幅を抑えます。">
+    <Field as="div" label="チャット欄" help="コンパクトにすると、チャット欄の文字・余白・下のボタンを小さくして、縦の幅を抑えます。">
       <Segmented<"normal" | "compact">
         label="チャット欄の大きさ"
         value={compactComposer ? "compact" : "normal"}

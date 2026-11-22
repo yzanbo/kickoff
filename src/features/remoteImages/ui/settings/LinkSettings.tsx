@@ -27,7 +27,7 @@ export function LinkSettings() {
     <section className="section">
       <h2>リンクと画像</h2>
       <div className="form">
-        <Field label="外部リンクを開く場所" help="返答などの外部リンクを押したときの開き先です。⌘ を押しながら押すと、もう一方で開きます。Kickoff のブラウザは、見ているプロジェクトのチャット欄に新しいタブで開きます（プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ）。">
+        <Field as="div" label="外部リンクを開く場所" help="返答などの外部リンクを押したときの開き先です。⌘ を押しながら押すと、もう一方で開きます。Kickoff のブラウザは、見ているプロジェクトのチャット欄に新しいタブで開きます（プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ）。">
           <Segmented<LinkOpenTarget>
             label="外部リンクを開く場所"
             value={settings.link_open_in}

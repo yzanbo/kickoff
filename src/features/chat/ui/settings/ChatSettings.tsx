@@ -76,7 +76,7 @@ export function ChatSettings() {
         }
       />
       <div className="form">
-        <Field
+        <Field as="div"
           label="チャットの ✕ を押したとき"
           help="チャットのタブの × に効きます（選んだらすぐ反映）。毎回聞くときは、表示だけ消す・アーカイブ・削除から選び、「次からはこれにする」でここを変えられます。削除は取り消せないので、既定にしても毎回確かめます。"
         >
@@ -87,7 +87,7 @@ export function ChatSettings() {
             options={CHAT_CLOSE_ACTIONS.map((value) => ({ value, label: CHAT_CLOSE_ACTION_LABELS[value] }))}
           />
         </Field>
-        <Field
+        <Field as="div"
           label="ほかのチャットが作業中の作業場所で、新しいチャットを始めるとき"
           help="同じ作業場所（本体・ワークツリー）でほかのチャットが作業中のときに、新しいチャットを送ったときの扱いです（選んだらすぐ反映）。毎回聞くときは確かめのダイアログを出し、「次からはこれにする」でここを変えられます。新しいワークツリーで始めるときは、ブランチ名を聞いてから作ります。"
         >

@@ -10,7 +10,7 @@ import { Segmented } from "@/foundation/ui/kit/Segmented";
 export function SnippetBarField() {
   const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   return (
-    <Field
+    <Field as="div"
       label="定型文の帯"
       help="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます。表示しなくても、定型文は設定の「定型文」で足す・直すことができます。タブの列の「表示」と、帯の右クリックでも切り替えられます。"
     >

@@ -7,7 +7,7 @@ import { Segmented } from "@/foundation/ui/kit/Segmented";
 export function ChildChatCreateField() {
   const [value, setValue] = useSetting(chatSettings.childOpenOnCreate);
   return (
-    <Field
+    <Field as="div"
       label="子チャットを作ったとき"
       help="チャット欄の送信ボタンの右クリックの「新規の子チャットに送る」、会話の右クリックの「新しい子チャットで聞く」、送信待ちの「子チャットで開く / 移す」で子チャットを作ったときの開き方です。開かないにすると、画面はそのままで、入力欄の上の「子チャット n 件」の札が光って知らせます。"
     >

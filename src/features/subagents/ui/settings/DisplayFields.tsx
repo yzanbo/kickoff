@@ -8,7 +8,7 @@ import { chatSettings } from "@/features/chat/ui";
 export function SubagentOpenField() {
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(chatSettings.subagentOpenIn);
   return (
-    <Field
+    <Field as="div"
       label="サブエージェントを開く場所"
       help="サブエージェントのカードの見出し・動きの行・「サブエージェント N 件」の一覧・裏の作業の一覧を押したときの開き方です。流れの中は、チャットの流れの中でカードを開きます。右の欄は、チャットの画面の右に、チャットと同じような画面で開きます（右の欄の中で上下・左右に分けて並べられ、幅はつまみのドラッグで変えられます）。別ウィンドウは、サブエージェントごとに新しいウィンドウで開きます。ほかの開き方は、一覧の行のボタンやカードのボタンでいつでも選べます。「サブエージェント N 件」の一覧の上でも変えられます。"
     >

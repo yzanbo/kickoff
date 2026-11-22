@@ -8,7 +8,7 @@ import { panelSettings } from "@/features/panel/ui";
 export function ChatTabRowField() {
   const [tabRowHidden, setTabRowHidden] = useSetting(panelSettings.chatTabRowHidden);
   return (
-    <Field
+    <Field as="div"
       label="チャットのタブの列"
       help="チャットのパネルの上の、開いているチャットのタブと、表示・新しいタブ・分けるボタンが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（チャットは左のサイドバー・ボードから切り替えます）。会話の何もないところ・チャットの見出しの右クリックでも切り替えられます。"
     >
@@ -29,7 +29,7 @@ export function ChatTabRowField() {
 export function PanelViewButtonField() {
   const [viewButtonHidden, setViewButtonHidden] = useSetting(panelSettings.viewButtonHidden);
   return (
-    <Field
+    <Field as="div"
       label="タブの列の「表示」ボタン"
       help="タブの列の左の、チャットのまとめ方・並び順・タブに出す項目などを選ぶボタン（調整のアイコン）です。すべてのパネル（チャット・下のパネル・右サイドバーなど）で共通です。隠しても、タブの列の何もないところの右クリックで同じメニューを開けます。そのメニューの「「表示」ボタンを出す」でも切り替えられます。"
     >
