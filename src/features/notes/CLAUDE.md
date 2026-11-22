@@ -23,7 +23,7 @@
 - ノートのフォルダは、どのチャットでも実行のときに書ける場所に足し、システムプロンプトで伝える（`core/turnParts.ts`。AI のツールは `core/tools.ts`）。AI に渡すパスは区切りが分かる形に。
 - 既存のノートへの追記・AI で組み込むは Markdown だけ（HTML の最後に足すとページの外。コアも 400）。
 - ノートのチャットは `chats.note_path` で引き、サイドバー・ボード・タブには並べない（`selectChats` で除く）
-- ノートを足すときは付けたときの写し（`api.noteSnapshot`。`taken_at`）。足す口は `addToChat`（別ウィンドウはメインに頼む）。
+- ノートを足すときは付けたときの写し（`api.noteSnapshot`。`taken_at`）。足す口は `appendToDraft`（別ウィンドウはメインに頼む）。
 
 ## 行へ移る（`ui/noteReveal.ts`）
 
@@ -34,6 +34,6 @@
 - ノートの名前を変える・動かすと、ノートのチャットと DB の手順ノートを `remapNotePath` で付け替える。ゴミ箱に入れると、ノートのチャットも同じ行に入れる（`trashNoteChats`。kickoff-trash でも）。
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
-- ノートのチャットの欄とノートの下の入力欄は同じ `chatDraft` を使う。欄は閉じても描いたまま置く（書きかけを残す）。
+- ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。
 - 開いているフォルダ `openFolders` はノートのタブと入力欄の上の `NoteChipTree` で、ドラッグの決まりは `noteDrag.ts` で共通。
 - テスト: `core/routes/server.notes.test.ts`（`noteFake`）。

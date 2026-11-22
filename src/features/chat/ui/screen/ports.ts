@@ -1,7 +1,6 @@
 // チャットの画面の操作の口（型・context・hook）。実装は持ち主の conversation が作り、ChatScreen がチャットごとに 1 回だけ作って配る
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { Attachment } from "@shared/chat/types";
 import type { Cell } from "@/foundation/ui/store";
 import { screenAt, type ShownScreen } from "./chatScreens";
 
@@ -92,24 +91,9 @@ export interface ActivityNav {
   readonly focused: Cell<ActivityFocus | null>;
 }
 
-/**
- * 外から入力欄に文を入れる（append: 書いている文の後ろに空行を挟んで足す。なければ置き換える。
- * attachments: アップロード済みの添付も足す。focus: false なら入力欄にピントを移さない（隠れているタブに書きかけを戻すとき））
- */
-export type ComposerFill = (text: string, opts?: { append?: boolean; attachments?: Attachment[]; focus?: boolean }) => void;
-
-/** チャットの入力欄の仮の口（入力欄の下書きの店ができるまで。ChatScreen が入力欄の handleRef から作る） */
-export interface ComposerPort {
-  /** チャット欄に文を入れる（append なら書いている文の後ろに足す） */
-  fill: ComposerFill;
-  /** チャット欄にピントを移す */
-  focus: () => void;
-}
-
 export const TimelineNavContext = createContext<TimelineNav | null>(null);
 export const SubagentNavContext = createContext<SubagentNav | null>(null);
 export const ActivityNavContext = createContext<ActivityNav | null>(null);
-export const ComposerPortContext = createContext<ComposerPort | null>(null);
 
 function required<T>(value: T | null, name: string): T {
   if (!value) throw new Error(`${name} はチャットの画面（ChatScreen）の中で使う`);
@@ -128,8 +112,6 @@ export const useOptionalSubagentNav = (): SubagentNav | null => useContext(Subag
 export const useActivityNav = (): ActivityNav => required(useContext(ActivityNavContext), "useActivityNav");
 /** 会話と動きを切り替える口（チャットの画面の外では null） */
 export const useOptionalActivityNav = (): ActivityNav | null => useContext(ActivityNavContext);
-/** 入力欄の仮の口（チャットの画面の外では null） */
-export const useComposerPort = (): ComposerPort | null => useContext(ComposerPortContext);
 
 const noSubscribe = () => () => {};
 

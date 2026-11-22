@@ -108,7 +108,7 @@
 ## 操作・名前・メニュー（`ui/`）
 
 - アーカイブ・削除・移動などは `ui/chatActions.ts` を通す。アーカイブ・削除は既定の閉じ方でも必ず確かめる（取り消しの通知で代えない）。確かめは 1 件もまとめても `confirmArchiveChats`・`confirmDeleteChats`。
-- 削除したチャットの書きかけ（`chatDraft`・`chatAttachmentsDraft`）も消す。
+- 削除したチャットの書きかけは composer が `chat_deleted` で消す。
 - 名前は `useChatRename` ＋ `ChatTitleInput` で変える（ダイアログなし）。上限は `CHAT_TITLE_MAX`。
 - 「新しいチャット」の作成先の札は `useNewChatPlace` ＋ `NewChatPlaceBadges`。まとまりからの作成先は `@/features/chatList/ui/buckets.ts` の `newChatPlaceOf`。
 - ✕ は `closeChatWithChoice`（既定は `chat:close-action`）。Esc・タブの「閉じる」は聞かずに閉じる。

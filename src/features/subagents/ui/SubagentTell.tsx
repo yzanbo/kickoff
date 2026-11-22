@@ -1,5 +1,5 @@
 import { Reply } from "lucide-react";
-import { useRef, type KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
 import type { Attachment } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
@@ -10,7 +10,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { Composer } from "@/features/composer/ui/Composer";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { settingDraft } from "@/features/composer/ui";
 import type { QueueSendMode } from "@/features/composer/ui/composerKeys";
 import { QueueModeToggle, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
@@ -50,7 +50,6 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   const [queueMode, setQueueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
   const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
-  const composer = useRef<ComposerHandle | null>(null);
   if (!agentId) return <p className="muted small">このサブエージェントには伝えられません（Claude Code がサブエージェントの ID を知らせていないため）。</p>;
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
   const relay = async (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => {
@@ -102,12 +101,11 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         // 子チャットで聞くときだけ、作る子チャットのモデルなどを選ぶ
         options={child ? options : undefined}
         // よく送る指示（このプロジェクトの定型文）。「すぐ送る」は、いまの送り先にそのまま送る
-        header={<SnippetBar projectId={view.projectId} composer={composer} onSend={(text) => send(text, [])} />}
+        header={<SnippetBar projectId={view.projectId} onSend={(text) => send(text, [])} />}
         menuItems={<SnippetBarToggleItem />}
         chatContext={{ projectId: view.projectId, exclude: view.chatId }}
-        handleRef={composer}
         suggestTarget={{ projectId: view.projectId, worktree: view.worktree ?? undefined }}
-        draft={storage.settings.tellDraft(`${view.chatId}:${entry.key}`)}
+        draft={settingDraft(storage.settings.tellDraft(`${view.chatId}:${entry.key}`))}
       />
     </>
   );

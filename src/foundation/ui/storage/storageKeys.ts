@@ -1,31 +1,12 @@
 /**
- * まだ機能ごとの ui/storage.ts に配っていない保存の宣言（0018 の P4-2b で 135 を配った残りの 20）。どれも、表の持ち主の機能より下の機能・設定の画面が
+ * まだ機能ごとの ui/storage.ts に配っていない保存の宣言（0018 の P4-2b で 135 を配った残りの 20。P6-3a でチャットの書きかけ 2 つを composer へ移して 18）。どれも、表の持ち主の機能より下の機能・設定の画面が
  * 読んでいて、持ち主へ移すと逆向きの import が増えるもの（読み手を直す段で持ち主へ移す: 設定の画面は 07・パネルの surfaces・PaneTabBar は 07・
  * チャットの書きかけと開き方は 06・AI に見せる画面の様子は 09）。キーは前の名前のまま。宣言は群 legacyKeys.ts に包んで起動の片付けに渡す。
  * プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる）
  */
 import type { HandoffFrom } from "@shared/chat/chatEvent";
-import type { Attachment } from "@shared/chat/types";
 import { choice, defineSetting, defineSettingFamily, flag, json, record, text } from "./settings";
 import { NO_DB_TABS, parseDbClientTabs } from "@/features/database/ui/client/dbClientTabs";
-
-const NO_ATTACHMENTS: readonly Attachment[] = [];
-
-/** 残しておいた添付の 1 つが使える形か（ノートはパスと写した時刻、取ったものは出どころと時刻が要る） */
-function isStoredAttachment(value: unknown): value is Attachment {
-  if (typeof value !== "object" || value === null) return false;
-  const a = value as Record<string, unknown>;
-  if (typeof a.id !== "string" || typeof a.name !== "string" || typeof a.mime !== "string" || typeof a.size !== "number") return false;
-  if (a.kind === "file") return true;
-  if (a.kind === "note") return typeof a.note === "string" && typeof a.taken_at === "string";
-  return a.kind === "capture" && typeof a.source === "object" && a.source !== null && typeof a.taken_at === "string";
-}
-
-/** 残しておいた添付の列（形の合わない要素は捨てる） */
-function parseAttachments(value: unknown): readonly Attachment[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  return value.filter(isStoredAttachment);
-}
 
 /** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
 function parseHandoffFrom(value: unknown): HandoffFrom | null {
@@ -47,10 +28,6 @@ export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 /** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
 export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record(), { ids: true });
-/** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
-export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { ids: true });
-/** チャットごとの、入力欄に添付して送る前のもの（アップロード済みの添付。外した・送った・チャットを削除したら消す。形の合わないものは捨てる） */
-export const chatAttachmentsDraft = defineSettingFamily("kickoff:chat-attachments:", json(parseAttachments, NO_ATTACHMENTS, (v) => v.length === 0), { ids: true });
 /**
  * チャットごとの、入力欄に入れた子チャットからの依頼の出どころ（「親チャットに追加」の入力欄。入力欄の上の札「子チャット『…』から」。
  * 送ると発言の handoff_from にして消す。× でも消す。null = なし）

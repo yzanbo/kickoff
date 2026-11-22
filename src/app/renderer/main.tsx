@@ -41,6 +41,9 @@ void prepareStorage(STORAGE_GROUPS)
     startApprovals();
     const { startCurrentWork } = await import("@/features/chat/ui/currentWorkStore");
     startCurrentWork();
+    // 別ウィンドウから頼まれた下書きへの足し込みと、消したチャットの下書きの片付けを受ける
+    const { startComposerDrafts } = await import("@/features/composer/ui");
+    startComposerDrafts();
     const root = createRoot(document.getElementById("root")!);
     // 別ウィンドウ（右の欄の変更・ファイル・サブエージェント）は、メインの App ではなく、その中身だけの画面を描く
     const { parsePopout } = await import("@/foundation/ui/navigation/popout");

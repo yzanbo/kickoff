@@ -1,12 +1,12 @@
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
-import { useImperativeHandle, useRef, useState, type MutableRefObject } from "react";
+import { useImperativeHandle, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { Composer } from "@/features/composer/ui/Composer";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { appendDraft, appendToDraft, focusDraft, memoryDraft, type ComposerDraft } from "@/features/composer/ui";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
@@ -62,12 +62,20 @@ export function NoteChat({
   // 作ったばかりのチャット（一覧の知らせが届くまでの間も、そのチャットを出す）
   const [created, setCreated] = useState<{ path: string; id: number } | null>(null);
   const chatId = stored?.id ?? (created?.path === path ? created.id : undefined);
-  const composer = useRef<ComposerHandle | null>(null);
+  // まだチャットがないときの最初の指示の書きかけ（残さない。ノートを替えたら空から）
+  const [startDraft, setStartDraft] = useState(() => memoryDraft());
+  const [startPath, setStartPath] = useState(path);
+  if (startPath !== path) {
+    setStartPath(path);
+    setStartDraft(memoryDraft());
+  }
   // 外から読む口（描く中で ref に書かない）
   useImperativeHandle(handleRef, () => ({
     add: (text, attachments) => {
-      if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
-      else screenOfChat(chatId)?.composer.fill(text, { append: true, attachments });
+      if (chatId === undefined) {
+        appendDraft(startDraft, text, attachments);
+        focusDraft(startDraft, { end: true });
+      } else if (screenOfChat(chatId)) appendToDraft(chatId, text, attachments);
     },
   }));
   return (
@@ -95,7 +103,7 @@ export function NoteChat({
           <NoteChatStart
             key={path}
             projectId={projectId}
-            composerRef={composer}
+            draft={startDraft}
             onStart={async (text, attachments, options) => {
               await beforeSend();
               const chat = await api.startNoteChat(projectId, { path, text, options, attachments });
@@ -122,11 +130,11 @@ function NoteChatView({ chatId, visible, beforeSend, chipsPortal }: { chatId: nu
 /** まだチャットがないときの、最初の指示の入力欄（メインの新しいチャットと同じ入力欄。送るとノートのチャットを作る） */
 function NoteChatStart({
   projectId,
-  composerRef,
+  draft,
   onStart,
 }: {
   projectId: number;
-  composerRef: MutableRefObject<ComposerHandle | null>;
+  draft: ComposerDraft;
   onStart: (text: string, attachments: Attachment[], options: ChatOptions) => Promise<void>;
 }) {
   const options = useChatOptions(undefined, projectId);
@@ -145,12 +153,12 @@ function NoteChatStart({
         <Composer
           chatContext={{ projectId }}
           options={options}
-          handleRef={composerRef}
+          draft={draft}
           suggestTarget={projectId}
           placeholder="ノートについて話す（例: 機能案を一緒に考えて / 優先度順に並べて反映して）。Enter で送る、Shift+Enter で改行"
           onSend={(text, attachments) => onStart(text, attachments, options.options)}
           // 会話が始まったあとのチャット欄と同じく、定型文の帯（右クリックで出す・隠す）とコンテキストのメーター（まだ 0%）
-          header={<SnippetBar projectId={projectId} composer={composerRef} onSend={(text) => onStart(text, [], options.options)} />}
+          header={<SnippetBar projectId={projectId} onSend={(text) => onStart(text, [], options.options)} />}
           menuItems={<SnippetBarToggleItem />}
           trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
         />

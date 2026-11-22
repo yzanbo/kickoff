@@ -67,8 +67,8 @@
 
 - 「添付」はファイル全体にだけ使い、選択部分は「追加」と呼ぶ。足す先のチャットは、どのタブでも名前で呼ぶ。
 - 選べる入れ物は `messages/quotable.ts` の `QUOTABLE_ATTR` を付け、丸ごと足せるまとまりには `data-quote-text` と `data-quote-noun` を付ける。
-- 引用はチャット欄の文の後ろに足す（`ComposerPort.fill` の `append`）。送るのは利用者。
-- 右の欄・別ウィンドウから足すのは `addToChat`（composer。画面がなければ書きかけに）。足す先は `addTargetsOf`、その中ではチャット自身の `SelectionAttach` を出さない。上の機能の項目は `messageActions`。
+- 引用はチャットの下書きの後ろに足す（`appendToDraft`）。送るのは利用者。
+- 右の欄・別ウィンドウから足すのも `appendToDraft`（画面がなければ知らせる）。足す先は `addTargetsOf`、その中ではチャット自身の `SelectionAttach` を出さない。上の機能の項目は `messageActions`。
 - 流れの右クリック（`useQuoteMenu` の `openInRegion`）は、自分のメニューを開いた所（`defaultPrevented`）と書く欄の上を任せる。
 - 開閉する行の文をドラッグで選んだら、離したときの押下を止める（`keepSelectionOnClick` を `onClickCapture` に）。
 - コードの行の引用は `[data-quote-path]` の `.diff-code[data-no]` から、Monaco は `@/foundation/ui/code/codeSelection.ts` から読む。

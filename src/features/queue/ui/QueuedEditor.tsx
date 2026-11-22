@@ -7,7 +7,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { AttachButton } from "@/features/composer/ui/AttachButton";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
 import { PendingFileChips } from "@/features/composer/ui/PendingFileChips";
-import { useComposerFiles } from "@/features/composer/ui/useDraftFiles";
+import { useDraftFiles } from "@/features/composer/ui/useDraftFiles";
 import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
 import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";
 
@@ -53,7 +53,7 @@ export function QueuedEditor({
   onSaveAndSend: (attachments: Attachment[]) => void;
   onCancel: () => void;
 }) {
-  const files = useComposerFiles();
+  const files = useDraftFiles();
   // アップロードの途中は保存しない（足した添付が抜け落ちないように）
   const save = (send = false) => {
     if (files.uploading) return;

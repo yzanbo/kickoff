@@ -1,7 +1,6 @@
-// チャットの画面の殻が持つもの（口・画面の要素・流れのスクロール・入力欄・右の欄の口）を、チャットごとに 1 回だけ作る
+// チャットの画面の殻が持つもの（口・画面の要素・流れのスクロール・右の欄の口）を、チャットごとに 1 回だけ作る
 import { useState, type MutableRefObject } from "react";
 import type { ScreenPorts } from "@/features/chat/ui";
-import type { ComposerHandle } from "@/features/composer/ui";
 import { useTimelineScrollHandle, type TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
 import { createScreenActions, type ScreenActions, type SidePanelHandle } from "./screenActions";
 
@@ -9,7 +8,6 @@ export interface ChatShellHandles extends ScreenActions {
   /** 登録簿に載せる口（描き直しても同じ物） */
   ports: ScreenPorts;
   scroll: TimelineScroll;
-  composerSlot: MutableRefObject<ComposerHandle | null>;
   side: MutableRefObject<SidePanelHandle | null>;
 }
 
@@ -31,14 +29,13 @@ export function useChatShell({
 }): ChatShellHandles {
   // 検索結果から開いたときは、初めから一番下へ付いていかない（移り先へ跳ぶ前に一番下へ寄せない）
   const scroll = useTimelineScrollHandle(!focus);
-  // 画面の要素・チャット欄・右の欄の口の入れ物も、口と一緒に 1 回だけ作る（timelineScroll.ts の ref と同じ形）
+  // 画面の要素・右の欄の口の入れ物も、口と一緒に 1 回だけ作る（timelineScroll.ts の ref と同じ形）
   const [handles] = useState<ChatShellHandles>(() => {
     const root: MutableRefObject<HTMLDivElement | null> = { current: null };
-    const composerSlot: MutableRefObject<ComposerHandle | null> = { current: null };
     const side: MutableRefObject<SidePanelHandle | null> = { current: null };
-    const actions = createScreenActions({ chatId, canOpenSide, scroll, composer: () => composerSlot.current, side: () => side.current, beforeReveal: () => beforeReveal() });
-    const ports: ScreenPorts = { root, timeline: actions.timeline, subagents: actions.subagents, activity: actions.activity, composer: actions.composer };
-    return { ...actions, ports, scroll, composerSlot, side };
+    const actions = createScreenActions({ chatId, canOpenSide, scroll, side: () => side.current, beforeReveal: () => beforeReveal() });
+    const ports: ScreenPorts = { root, timeline: actions.timeline, subagents: actions.subagents, activity: actions.activity };
+    return { ...actions, ports, scroll, side };
   });
   return handles;
 }

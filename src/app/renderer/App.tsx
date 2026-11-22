@@ -41,6 +41,7 @@ import { chatIdsOf, collectUserView } from "@/features/userView/ui/userViewColle
 import { useDockBadge } from "@/features/notifications/ui/dockBadge";
 import { useAgentBrowserBridge } from "@/features/browser/ui/agentBrowser";
 import { useAiOpenRequests } from "@/features/chat/ui/open/aiOpenRequests";
+import { useAiDraftRequests } from "@/features/childChats/ui";
 import { useWorkplaceMoveTabs } from "@/features/workplaceMove/ui/repointTabs";
 import { AllProjectsPage } from "@/features/board/ui/AllProjectsPage";
 import { ProjectPage } from "@/features/projects/ui/page/ProjectPage";
@@ -100,6 +101,8 @@ export function App() {
   useAgentBrowserBridge();
   // チャットの AI が頼んだノート・家系のチャットを開く（kickoff_chat の open_note・open_chat）
   useAiOpenRequests();
+  // チャットの AI が頼んだ下書きを、家系のチャットの入力欄に入れる（kickoff_chat の add_draft）
+  useAiDraftRequests();
   // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える
   useWorkplaceMoveTabs();
   const sidebar = useSidebar();

@@ -1,17 +1,16 @@
 import { MessageSquarePlus, MessagesSquare, OctagonPause } from "lucide-react";
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { childChatsApi } from "@/features/childChats/ui/index";
-import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
+import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
-import { settingAttachmentDraft } from "@/features/composer/ui/useDraftFiles";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { Composer } from "@/features/composer/ui/Composer";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { chatComposerDraft } from "@/features/composer/ui";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { reservedAction } from "@/features/queue/ui/queuedHint";
 import { QueueModeToggle } from "@/features/composer/ui/QueueModeToggle";
@@ -57,7 +56,6 @@ export function ChatComposerArea({
   live,
   options,
   send,
-  composer,
   onDock,
 }: {
   chat: Chat;
@@ -65,8 +63,6 @@ export function ChatComposerArea({
   live: ChatLive;
   options: ChatOptionsState;
   send: ReturnType<typeof useChatSend>;
-  /** 外からチャット欄を動かす口（チャットの画面の操作が使う） */
-  composer: MutableRefObject<ComposerHandle | null>;
   /** 一番下へ戻るボタンの置き場所（ピルの列の右端。描いたら要素が届き、流れの側で置けるか測る） */
   onDock: (dock: HTMLSpanElement | null) => void;
 }) {
@@ -132,7 +128,7 @@ export function ChatComposerArea({
       {/* 作業の途中で止まったことだけを聞いているときの帯は、送信待ち・入力欄の上（送信待ちと入力欄の 1 枚の枠を切らない） */}
       {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}
       {portal?.queueTarget ? createPortal(queuedList, portal.queueTarget) : queuedList}
-      {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} composer={composer} />}
+      {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} />}
       {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
@@ -157,17 +153,15 @@ export function ChatComposerArea({
         header={
           <>
             <ComposerHandoffChip chatId={chat.id} />
-            <SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />
+            <SnippetBar projectId={chat.project_id} onSend={sendSnippet} />
           </>
         }
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}
         voiceMode={{ replies, send: sendSnippet, chatId: chat.id }}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
-        handleRef={composer}
         history={prompts.recalls}
-        draft={chatDraft(chat.id)}
-        savedAttachments={settingAttachmentDraft(chatAttachmentsDraft(chat.id))}
+        draft={chatComposerDraft(chat.id)}
         sendTo={[
           { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, onSend: send.onAsk },
           ...(noteOrArchived

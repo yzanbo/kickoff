@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, type KeyboardEvent, type MutableRefObject } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { Pencil } from "lucide-react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
@@ -7,7 +7,7 @@ import { ApiError } from "@/foundation/ui/api/http";
 import { alert } from "@/foundation/ui/kit/ask";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
 import { Composer } from "@/features/composer/ui/Composer";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { appendToDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { SnippetBar } from "@/features/snippets/ui/SnippetBar";
 import { endHeldEdit, type HeldEdit } from "./heldEdit";
 
@@ -18,13 +18,16 @@ import { endHeldEdit, type HeldEdit } from "./heldEdit";
  * 書き直している間は、送る順が来てもその指示から後ろを送らずに待つ（api.setAfterCompactEditing を持ち時間の 1/4 ごとに知らせ直す。送信待ちの書き直しと同じ）。
  * やめる（帯のボタン・Esc）と何も変えずに戻る。保存する前に送られてしまった（持ち時間で外れた・消した）ときは、書いた文と添付をふつうのチャット欄に移す
  */
-export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; edit: HeldEdit; gone: boolean; composer: MutableRefObject<ComposerHandle | null> }) {
-  const handle = useRef<ComposerHandle | null>(null);
-  // 書き直す文と添付を入れる（描いたあと、指示が替わったときだけ）
-  const fillEdit = useEffectEvent(() => handle.current?.fill(edit.text, { attachments: edit.attachments }));
-  useEffect(() => {
-    fillEdit();
-  }, [edit.id]);
+export function HeldEditComposer({ chat, edit, gone }: { chat: Chat; edit: HeldEdit; gone: boolean }) {
+  // 書き直す文と添付（指示が替わったら、その指示の中身で作り直す。残さない）
+  const [draft, setDraft] = useState(() => memoryDraft({ text: edit.text, attachments: edit.attachments }));
+  const [draftOf, setDraftOf] = useState(edit.id);
+  if (draftOf !== edit.id) {
+    setDraftOf(edit.id);
+    setDraft(memoryDraft({ text: edit.text, attachments: edit.attachments }));
+  }
+  // 入れたら文の終わりにピントを置く
+  useEffect(() => focusDraft(draft, { end: true }), [draft]);
   // 書き直している間は送らずに待つよう知らせ続け、終えたら外す
   useEffect(() => {
     const tell = (ids: string[]) => void api.setAfterCompactEditing(chat.id, ids).catch(() => undefined);
@@ -40,7 +43,7 @@ export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; e
   /** もう送られていた: 書いたものをふつうのチャット欄に移す（新しい指示として送り直せる） */
   const moveToComposer = async (text: string, attachments: Attachment[]) => {
     endHeldEdit(chat.id);
-    composer.current?.fill(text, { append: true, attachments });
+    appendToDraft(chat.id, text, attachments);
     await alert("この指示はもう送られていました", "書き直した文と添付は、チャット欄に移しました。");
   };
   const save = async (text: string, attachments: Attachment[]) => {
@@ -68,7 +71,7 @@ export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; e
         sendLabel="保存（送る順はそのまま）"
         onSend={save}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
-        handleRef={handle}
+        draft={draft}
         header={
           <>
             <div className={gone ? "held-edit-banner gone" : "held-edit-banner"}>
@@ -81,7 +84,7 @@ export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; e
               </button>
             </div>
             {/* 定型文は書き直す欄に入れる（すぐ送るは、書き直しでは入れるだけ） */}
-            <SnippetBar projectId={chat.project_id} composer={handle} onSend={async (text) => handle.current?.insert(text)} />
+            <SnippetBar projectId={chat.project_id} />
           </>
         }
       />

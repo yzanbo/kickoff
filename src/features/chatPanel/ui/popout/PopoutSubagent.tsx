@@ -37,7 +37,7 @@ function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; cha
     <ChatEnvironment
       chat={chat}
       host={{ surface: "window", pausable: false, mainChatId: chat.id }}
-      ports={{ root, subagents: nav.subagents, activity: nav.activity, composer: nav.composer }}
+      ports={{ root, subagents: nav.subagents, activity: nav.activity }}
       timeline={null}
       rewind={nav.rewind.actions}
       links={links}

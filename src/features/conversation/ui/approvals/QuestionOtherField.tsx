@@ -6,7 +6,7 @@ import { DictationButton, DictationError } from "@/features/voice/ui/DictationBu
 import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";
 import { AttachButton } from "@/features/composer/ui/AttachButton";
 import { PendingFileChips } from "@/features/composer/ui/PendingFileChips";
-import { useComposerFiles } from "@/features/composer/ui/useDraftFiles";
+import { useDraftFiles } from "@/features/composer/ui/useDraftFiles";
 
 
 /**
@@ -30,7 +30,7 @@ export function QuestionOtherField({
   /** Enter で回答する（回答できないときは何もしない） */
   onSubmit: () => void;
 }) {
-  const files = useComposerFiles();
+  const files = useDraftFiles();
   // 添付が変わったら知らせる（ID の並びとアップロードの途中かで比べ、描き直しのたびには知らせない）
   const key = `${files.attachments.map((a) => a.id).join(",")}|${files.uploading}`;
   const reportFiles = useEffectEvent(() => onFiles({ attachments: files.attachments, uploading: files.uploading }));

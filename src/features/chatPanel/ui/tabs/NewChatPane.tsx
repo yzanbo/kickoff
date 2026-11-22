@@ -15,8 +15,8 @@ import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors"
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
 import type { NewChatSeed } from "@/features/chat/ui";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
-import type { AttachmentDraft } from "@/features/composer/ui/useDraftFiles";
+import { appendDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
+import { mergeAttachments } from "@/features/attachments/ui";
 import { currentChats, useChats } from "@/features/chat/ui/store/knownChats";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
@@ -54,8 +54,8 @@ interface Props {
   draftText?: string;
   /** 残していた送る前の添付（一度も残していなければ undefined。そのときだけ seed の添付を入れる） */
   draftAttachments?: readonly Attachment[];
-  /** 送る前の添付を残す先（タブ） */
-  savedAttachments?: AttachmentDraft;
+  /** 送る前の添付を残す（タブに。入力欄がなくなってから終わったアップロードも） */
+  saveAttachments?: (list: readonly Attachment[]) => void;
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
   /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
@@ -81,7 +81,7 @@ export function NewChatPane({
   seed,
   draftText,
   draftAttachments,
-  savedAttachments,
+  saveAttachments,
   visible = true,
   onGroupChange,
   onWorktreeChange,
@@ -130,7 +130,14 @@ export function NewChatPane({
   const ready = projectsLoaded && (chats.loaded || chats.error !== undefined);
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
-  const composer = useRef<ComposerHandle | null>(null);
+  // 書きかけは入力欄の下書きの店に持ち、添付はタブに残す（文は onDraftChange で少し待ってから）。プロジェクトを選び直したら文は空から（添付は残す）
+  const newDraft = (attachments: readonly Attachment[]) => memoryDraft({ attachments }, (value, next) => next.attachments && saveAttachments?.(value.attachments));
+  const [draft, setDraft] = useState(() => newDraft(draftAttachments ?? []));
+  const [draftProject, setDraftProject] = useState(projectId);
+  if (draftProject !== projectId) {
+    setDraftProject(projectId);
+    setDraft(newDraft(draft.read().attachments));
+  }
   const initialText = useRef(draftText);
   // seed の添付は、タブに添付をまだ残していないときだけ入れる（残していれば入力欄がそれを戻す。外した添付を戻さない）
   const seedAttachments = useRef(draftAttachments === undefined ? seed?.attachments : undefined);
@@ -141,7 +148,8 @@ export function NewChatPane({
     const text = initialText.current ?? seed?.text;
     if (!text && !seed) return;
     seeded.current = true;
-    composer.current?.fill(text ?? "", { attachments: seedAttachments.current, focus: visible });
+    draft.write({ text: text ?? "", ...(seedAttachments.current ? { attachments: mergeAttachments(draft.read().attachments, seedAttachments.current) } : {}) });
+    if (visible) focusDraft(draft, { end: true });
   });
   useEffect(() => {
     seedComposer();
@@ -212,7 +220,7 @@ export function NewChatPane({
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
-        <NoteChip projectId={projectId} chatId={null} onAttach={(path) => void api.noteSnapshot(projectId, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("ノートを添付できませんでした"))} />
+        <NoteChip projectId={projectId} chatId={null} onAttach={(path) => void api.noteSnapshot(projectId, path).then((a) => (appendDraft(draft, "", [a]), focusDraft(draft)), reportFailure("ノートを添付できませんでした"))} />
       </div>
       {ready && (
         <ChatProviderContext.Provider value={provider}>
@@ -224,13 +232,12 @@ export function NewChatPane({
           providerChip={<ProviderPicker value={provider} onChange={setPickedProvider} />}
           autoFocus
           onTextChange={onDraftChange}
-          savedAttachments={savedAttachments}
-          handleRef={composer}
+          draft={draft}
           // 新しいワークツリーはまだないので、本体から探す
           suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
           placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
           // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
-          header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => start(text, [])} />}
+          header={<SnippetBar projectId={projectId} onSend={(text) => start(text, [])} />}
           menuItems={<SnippetBarToggleItem />}
           // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%。圧縮の設定・圧縮前指示・圧縮後指示はここでも開ける）
           trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}

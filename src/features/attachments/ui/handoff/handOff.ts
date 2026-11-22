@@ -6,7 +6,7 @@ import { showToast } from "@/foundation/ui/kit/toast";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { openAskChild } from "@/features/chat/ui/open/openChat";
-import { addToChat } from "@/features/composer/ui/addToChat";
+import { appendToDraft } from "@/features/composer/ui/addToChat";
 import { screenOfChat } from "@/features/chat/ui";
 import { chooseWorkplace, openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 
@@ -62,7 +62,7 @@ export async function handOffToNewChat(item: HandOffItem) {
 export async function handOffToThisChat(item: HandOffItem, chat: Chat) {
   const attachments = await captureOf(item);
   if (!attachments) return;
-  addToChat(chat.id, item.text, attachments);
+  appendToDraft(chat.id, item.text, attachments);
   linkChat(item, chat);
 }
 
@@ -78,8 +78,8 @@ export async function handOffToOtherChat(item: HandOffItem, chat: Chat) {
   const attachments = await captureOf(item);
   if (!attachments) return;
   const open = screenOfChat(chat.id) !== undefined;
-  addToChat(chat.id, item.text, attachments);
-  // 画面があれば入力欄に入る（知らせは開いていないときに addToChat が出す）
+  appendToDraft(chat.id, item.text, attachments);
+  // 画面があれば入力欄に入る（知らせは開いていないときに appendToDraft が出す）
   if (open) showToast(`${chatTargetName(chat)}に追加しました`);
   linkChat(item, chat);
 }

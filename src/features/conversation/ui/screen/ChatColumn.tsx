@@ -88,7 +88,6 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
               live={view.live}
               options={view.options}
               send={view.send}
-              composer={shell.composerSlot}
               onDock={setPillDock}
             />
           </div>

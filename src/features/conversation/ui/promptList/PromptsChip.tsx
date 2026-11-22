@@ -3,7 +3,8 @@ import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
-import { useChatScreen, useComposerPort, useTimelineNav } from "@/features/chat/ui";
+import { useChatScreen, useTimelineNav } from "@/features/chat/ui";
+import { chatComposerDraft, focusComposer } from "@/features/composer/ui";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -25,9 +26,8 @@ import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
 export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
-  const { root } = useChatScreen();
+  const { root, chatId } = useChatScreen();
   const timeline = useTimelineNav();
-  const composer = useComposerPort();
   const popover = usePopover();
   const { open, setOpen } = popover;
   const [query, setQuery] = useState("");
@@ -41,7 +41,7 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   const items = q ? prompts.filter((p) => searchText(p).includes(q)) : prompts;
   const close = () => {
     // 絞り込みの欄にピントがあれば、チャット欄に戻す（欄が消えてピントが外れると、次の Esc でパネルが閉じる）
-    if (ref.current?.contains(document.activeElement)) composer?.focus();
+    if (ref.current?.contains(document.activeElement)) focusComposer(chatId);
     setOpen(false);
     setQuery("");
   };
@@ -50,7 +50,8 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
     if (p?.answers || p?.cleared) return jump(p);
     if (!p?.text) return;
     close();
-    composer?.fill(p.text);
+    chatComposerDraft(chatId).write({ text: p.text });
+    focusComposer(chatId, { end: true });
   };
   // 行・⌘Enter: その指示へ移って強調する
   const jump = (p: PromptEntry | undefined) => {

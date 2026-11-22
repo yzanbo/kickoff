@@ -1,14 +1,8 @@
-import type { ChatDraftRequest, OpenViewRequest } from "@shared/chat/openView";
+import type { OpenViewRequest } from "@shared/chat/openView";
 import { useServerEvent } from "@/foundation/ui/api/events";
-import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
-import { showToast } from "@/foundation/ui/kit/toast";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { openChat, openInRootSide } from "./openChat";
+import { openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
-import { appendBlock } from "@/features/chat/ui/quote";
-import { screenOfChat } from "@/features/chat/ui/screen/chatScreens";
 import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
@@ -59,31 +53,12 @@ function openRequested(request: OpenViewRequest) {
 }
 
 /**
- * AI の頼み（chat_draft）: 入れる先のチャットの入力欄の後ろに空行を挟んで足し（画面がなければ書きかけの文に足す）、親チャットに入れるなら
- * 「子チャットから渡した」の札も付ける（「親チャットに渡す」と同じ）。画面は移さず「〇〇に下書きを入れました［開く］」と知らせる
- */
-function putDraft(request: ChatDraftRequest) {
-  learnLineage(request.lineage);
-  const target = request.lineage.at(-1);
-  if (!target) return;
-  if (request.from) writeSetting(composerHandoff(target.id), request.from);
-  const composer = screenOfChat(target.id)?.composer;
-  if (composer) composer.fill(request.text, { append: true, focus: false });
-  else writeSetting(chatDraft(target.id), appendBlock(readSetting(chatDraft(target.id)), request.text));
-  const chat = knownChat(target.id) ?? target;
-  showToast(`${chatTargetName(chat)}に下書きを入れました`, { label: "開く", run: () => openChat(chat) });
-}
-
-/**
- * チャットの AI がノート・家系のチャット・ファイル・差分・SQL を開く（コアの SSE `open_view`）・下書きを入れる（`chat_draft`）よう頼んだら、
+ * チャットの AI がノート・家系のチャット・ファイル・差分・SQL を開く（コアの SSE `open_view`）よう頼んだら、
  * 頼まれた場所（省けば設定の開き方）で開く・入れる。Mac のアプリのメインのウィンドウだけが受ける（別ウィンドウ・ほかのブラウザでは開かない。
  * 開いているウィンドウの数だけ開かないように）
  */
 export function useAiOpenRequests() {
   useServerEvent("open_view", (e) => {
     if (window.kickoff) openRequested(e.request);
-  });
-  useServerEvent("chat_draft", (e) => {
-    if (window.kickoff) putDraft(e.request);
   });
 }

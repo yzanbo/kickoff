@@ -1,5 +1,5 @@
 import { MessageSquarePlus } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
@@ -16,7 +16,7 @@ import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { appendDraft, focusDraft, memoryDraft } from "@/features/composer/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
@@ -66,15 +66,15 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   const inherit = inheritChoice && !otherAi;
   const project = useProjects().projectsById.get(parent.project_id);
   const shows = useChatHeaderItems();
-  const composer = useRef<ComposerHandle | null>(null);
   // 選んだ文から開いたら、引用を入力欄に入れる（キャレットはその下）。「AI に渡す」から開いたら、一言と添付も入れる
-  // 開いたときに 1 回だけ（書き換えたあとで引用を入れ直さない）
-  const fillSeed = useEffectEvent(() => {
-    const text = `${initialText(quote)}${seedText ?? ""}`;
-    if (text || seedAttachments?.length) composer.current?.fill(text, seedAttachments?.length ? { attachments: seedAttachments } : undefined);
+  // 開いたときに 1 回だけ（書き換えたあとで引用を入れ直さない）。書きかけは残さない
+  const [draft] = useState(() => memoryDraft({ text: `${initialText(quote)}${seedText ?? ""}`, attachments: seedAttachments ?? [] }));
+  const focusSeed = useEffectEvent(() => {
+    const { text, attachments } = draft.read();
+    if (text || attachments.length > 0) focusDraft(draft, { end: true });
   });
   useEffect(() => {
-    fillSeed();
+    focusSeed();
   }, []);
   // 最初の文を送って子チャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
   const start = async (prompt: string, attachments: Attachment[]) => {
@@ -131,7 +131,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           )}
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
-            <NoteChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.noteSnapshot(parent.project_id, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("ノートを添付できませんでした"))} />
+            <NoteChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.noteSnapshot(parent.project_id, path).then((a) => (appendDraft(draft, "", [a]), focusDraft(draft)), reportFailure("ノートを添付できませんでした"))} />
           </div>
           <ChatProviderContext.Provider value={provider}>
           <Composer
@@ -140,11 +140,11 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
             // 使う AI（チャット欄のモデルの左。押すと選び直す）
             providerChip={<ProviderPicker value={provider} onChange={setProvider} tipPrefix="この AI で子チャットを始めます" />}
             autoFocus
-            handleRef={composer}
+            draft={draft}
             suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
             placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
             // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
-            header={<SnippetBar projectId={parent.project_id} composer={composer} onSend={(text) => start(text, [])} />}
+            header={<SnippetBar projectId={parent.project_id} onSend={(text) => start(text, [])} />}
             menuItems={<SnippetBarToggleItem />}
             // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%）
             trailing={<ContextMeter chat={null} projectId={parent.project_id} compacting={null} reserved={null} afterTurn={false} />}

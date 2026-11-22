@@ -4,7 +4,7 @@ import { IconButton, type IconButtonSize } from "@/foundation/ui/kit/IconButton"
 
 /**
  * 📎 のボタン（押すとファイルを選ぶ。チャット欄・送信待ちの書き直し・質問の「その他」で共通）。
- * 選んだファイルは onFiles に渡し（useComposerFiles の addFiles）、同じファイルをもう一度選べるよう選んだあとは空に戻す。
+ * 選んだファイルは onFiles に渡し（useDraftFiles の addFiles）、同じファイルをもう一度選べるよう選んだあとは空に戻す。
  * onOpen は選ぶ前に呼ぶ（質問の「その他」を選ぶなど）
  */
 export function AttachButton({

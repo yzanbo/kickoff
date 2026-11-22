@@ -1,5 +1,5 @@
 import { Plus, Settings } from "lucide-react";
-import { useState, type MouseEvent, type MutableRefObject } from "react";
+import { useState, type MouseEvent } from "react";
 import type { Snippet } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -10,8 +10,8 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
+import { useComposerInsert } from "@/features/composer/ui";
 import { confirmDeleteSnippet } from "./snippetActions";
 import { SnippetDialog } from "./SnippetDialog";
 import type { SnippetEditing } from "./SnippetManager";
@@ -30,14 +30,15 @@ const tipOf = (text: string) => (text.length > TIP_MAX ? `${text.slice(0, TIP_MA
  */
 export function SnippetBar({
   projectId,
-  composer,
   onSend,
 }: {
   projectId: number;
-  composer: MutableRefObject<ComposerHandle | null>;
-  onSend: (text: string) => Promise<void>;
+  /** すぐ送る（省けば、すぐ送るも入力欄に入れるだけ。預かった指示の書き直し） */
+  onSend?: (text: string) => Promise<void>;
 }) {
   const snippets = useProjectSnippets(projectId);
+  // 入力欄のキャレットの位置に入れる口（入力欄の枠の中に置いたときだけある）
+  const insertText = useComposerInsert();
   const [hidden, setHidden] = useSetting(storage.settings.barHidden);
   const { ref: scrollerRef, ...scroller } = useHorizontalScroller(snippets);
   const menu = useContextMenu<Snippet | null>();
@@ -45,10 +46,10 @@ export function SnippetBar({
   const [managing, setManaging] = useState<SnippetEditing | false>(false);
   if (hidden) return null;
 
-  const insert = (s: Snippet) => composer.current?.insert(s.text);
+  const insert = (s: Snippet) => insertText?.(s.text);
   // 送る前の確かめでやめた（SendCancelled）なら、失敗の文を出さない
   const send = (s: Snippet) =>
-    void onSend(s.text).catch((e: unknown) => {
+    void (onSend ? onSend(s.text) : Promise.resolve(insert(s))).catch((e: unknown) => {
       if (!(e instanceof SendCancelled)) void reportFailure("定型文を送れませんでした")(e);
     });
   const onChipClick = (e: MouseEvent, s: Snippet) => (e.metaKey ? send(s) : insert(s));

@@ -1,10 +1,9 @@
-import { useEffect, useEffectEvent, useInsertionEffect, useLayoutEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
 import type { Attachment } from "@shared/chat/types";
 import type { GitTarget } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useOptionalSetting, useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { Setting } from "@/foundation/ui/storage";
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useHeldMeta } from "@/foundation/ui/hooks/useHeldMeta";
 import { consumeKey, hasModifiers, isCancelKey } from "@/foundation/ui/lib/keys";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
@@ -20,11 +19,11 @@ import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import { SuggestList } from "@/features/composer/ui/suggest/SuggestList";
 import { useSuggest } from "@/features/composer/ui/suggest/useSuggest";
-import { useComposerFiles, type AttachmentDraft } from "./useDraftFiles";
-import { appendBlock } from "@/features/chat/ui/quote";
+import { useDraftFiles } from "./useDraftFiles";
+import { memoryDraft, useDraftText, type ComposerDraft } from "./composerDraft";
+import { ComposerInsertProvider, useComposerField } from "./composerFields";
 import { usePromptHistory } from "./usePromptHistory";
 import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
-import type { ComposerHandle } from "./composerHandle";
 import { ComposerActions, type SendTarget } from "./ComposerActions";
 import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
@@ -41,7 +40,7 @@ interface Props {
   busy?: boolean;
   /** 送信ボタンの左に置くもの（コンテキストウィンドウのメーターなど） */
   trailing?: ReactNode;
-  /** 枠の中のいちばん上（文を書く欄の上）に置くもの（定型文の帯など） */
+  /** 枠の中のいちばん上（文を書く欄の上）に置くもの（定型文の帯など。中から useComposerInsert でキャレットの位置に文を入れる） */
   header?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
@@ -63,12 +62,8 @@ interface Props {
   suggestTarget?: GitTarget;
   /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
   history?: string[];
-  /** 書きかけの文を残す設定（既存のチャットの chatDraft。新しいチャットはタブの draftText で残すので渡さない） */
-  draft?: Setting<string>;
-  /** 添付して送る前のものを残す先（既存のチャットは chatAttachmentsDraft、新しいチャットはタブ。渡さなければ入力欄を作り直すと消える） */
-  savedAttachments?: AttachmentDraft;
-  /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
-  handleRef?: MutableRefObject<ComposerHandle | null>;
+  /** 書きかけの文と送る前の添付の残し先（既存のチャットは chatComposerDraft。渡さなければ入力欄を作り直すと消える） */
+  draft?: ComposerDraft;
   /** ほかの送り方・送り先（送信ボタンの右クリックで選ぶ。質問として送る・子チャットに送るなど）。作業中でも送れる（作業中にどう送るかは onSend が決める） */
   sendTo?: (Omit<SendTarget, "disabled" | "onSelect"> & { onSend: (text: string, attachments: Attachment[]) => Promise<void> })[];
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
@@ -95,14 +90,18 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, providerChip, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems, voiceMode }: Props) {
+export function Composer({ options, providerChip, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, chatContext, sendTo, menuItems, voiceMode }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
-  const [text, setText] = useOptionalSetting(draft, "");
+  const [ownDraft] = useState(() => memoryDraft());
+  const store = draft ?? ownDraft;
+  const [text, setText] = useDraftText(store);
   // 入力欄が置かれた（起動の時刻の記録。app/bootMarks.ts）
   useLayoutEffect(() => markInteractive("composer"), []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const attach = useComposerFiles(savedAttachments);
+  // 外からピントを移せるよう、描いている間だけ下書きの残す先ごとの登録簿に載せる（focusComposer・focusDraft）
+  useComposerField(store.id, textareaRef);
+  const attach = useDraftFiles(store);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
   const fill = (value: string, caret?: number, focus = true) => {
     setText(value);
@@ -115,29 +114,14 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       el.setSelectionRange(at, at);
     });
   };
-  // 外から動かす口は、描いた結果を当てる段で置き直す（描く中で ref に書かない。会話の欄を Activity で隠している間も外さない
-  // = 片付けを返さない。裏のタブのチャットにも下書きを入れられるように）
-  useInsertionEffect(() => {
-    if (!handleRef) return;
-    handleRef.current = {
-      fill: (value, opts) => {
-        // 添付だけを足すとき（文が空で append）は、書いている文をそのままにする
-        if (opts?.append && !value) {
-          if (opts.focus !== false) textareaRef.current?.focus();
-        } else fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
-        // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
-        if (opts?.attachments) attach.addAttachments(opts.attachments);
-      },
-      insert: (value) => {
-        const el = textareaRef.current;
-        const current = el?.value ?? text;
-        const start = el?.selectionStart ?? current.length;
-        const end = el?.selectionEnd ?? current.length;
-        fill(current.slice(0, start) + value + current.slice(end), start + value.length);
-      },
-      focus: () => textareaRef.current?.focus(),
-    };
-  });
+  /** 文をキャレットの位置に入れる（選んでいればその範囲と置き換える。書いている文は残し、入れた後ろにキャレットを置く。定型文の帯から） */
+  const insert = (value: string) => {
+    const el = textareaRef.current;
+    const current = el?.value ?? text;
+    const start = el?.selectionStart ?? current.length;
+    const end = el?.selectionEnd ?? current.length;
+    fill(current.slice(0, start) + value + current.slice(end), start + value.length);
+  };
   // 文を書く欄の右クリック（切り取り・コピー・貼り付けと、呼ぶ側の項目）
   const textMenu = useComposerTextMenu({ textareaRef, setText, items: menuItems });
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
@@ -267,7 +251,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && held.clear()}
       {...attach.dropProps}
     >
-      {header}
+      <ComposerInsertProvider value={insert}>{header}</ComposerInsertProvider>
       {attach.files.length > 0 && (
         <div className="composer-attachments">
           <PendingFileChips files={attach.files} onRemove={attach.removeFile} />

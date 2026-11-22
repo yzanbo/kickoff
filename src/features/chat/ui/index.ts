@@ -10,15 +10,13 @@ export { setSendExtras, withSendExtras } from "./send/sendExtras";
 export { chatRoleOf, type ChatHost, type ChatRole, type NewChatPlace, type NewChatSeed } from "./screen/chatHost";
 export { NewChatItem, NewChatPlaceBadges, useNewChatPlace } from "./open/NewChatItem";
 export { askInNewChatOf, ChatScreenContext, useChatScreen, useOptionalChatScreen, type ChatScreenValue } from "./screen/chatScreen";
-export { isScreenShown, lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
+export { isScreenShown, lastPressedElement, lastPressedScreen, screenOfChat, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
 export { clearKeepAlive, KeepAliveContext, useKeepAlive } from "./screen/keepAlive";
 export {
   ActivityNavContext,
-  ComposerPortContext,
   SubagentNavContext,
   TimelineNavContext,
   useActivityNav,
-  useComposerPort,
   useOptionalActivityNav,
   useOptionalSubagentNav,
   useOptionalTimelineNav,
@@ -29,8 +27,6 @@ export {
   type ActivityFocus,
   type ActivityNav,
   type ChatShowing,
-  type ComposerFill,
-  type ComposerPort,
   type SubagentNav,
   type TimelineNav,
 } from "./screen/ports";
@@ -39,8 +35,9 @@ export { TimelineBusyContext, useTimelineBusy } from "./timeline/timelineBusy";
 export type { RenderScope, ToolCall } from "./timeline/toolCall";
 export { useMainChat } from "./screen/mainChat";
 export { openAskChild, openChat, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
-export { knownChat } from "./store/knownChats";
+export { addChats, knownChat } from "./store/knownChats";
 export { appendBlock } from "./quote";
+export { chatTargetName } from "./chatTitle";
 export { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, markChatsSeen, moveChatsToGroup, togglePinChat } from "./chatActions";
 export { aiToolViews, toolText } from "./tools/toolText";
 export { SNAP_PX, scrollsUpKey, snapTarget } from "./parts/followScroll";

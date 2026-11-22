@@ -9,7 +9,7 @@ import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
-import { addToChat } from "@/features/composer/ui/addToChat";
+import { appendToDraft } from "@/features/composer/ui";
 import { ciCaptureName, ciFailedDocument, ciFixText, ciHandOffText, ciLinkOf, runName } from "./ciView";
 
 /** 押した時点の落ちたステップのログを札にする（外から来た中身。鍵らしい値はコアが伏せる。長ければ終わりを多めに残す） */
@@ -63,7 +63,7 @@ export async function fixCiRun(projectId: number, run: CiRun, repo: string) {
     openSeededChat(projectId, place.worktree_path ? { kind: "existing", path: place.worktree_path } : { kind: "main" }, { text, attachments: [attachment], link });
     return;
   }
-  addToChat(chat.id, text, [attachment]);
+  appendToDraft(chat.id, text, [attachment]);
   open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
   if (link && chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }

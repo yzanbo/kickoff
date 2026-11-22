@@ -1,7 +1,6 @@
 // チャットの画面の口（流れ・サブエージェント・動き・書き直し・入力欄）を 1 回だけ作り、またがる操作（カードへ移る・会話へ戻る）を組む
-import { openAll, openKey, timelineView, type ActivityNav, type ComposerPort, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
+import { openAll, openKey, timelineView, type ActivityNav, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
-import type { ComposerHandle } from "@/features/composer/ui";
 import { createTimelineNav, type TimelineNavWindow } from "@/features/conversation/ui/timeline/createTimelineNav";
 import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
 import { createActivityNav } from "@/features/conversation/ui/activity/createActivityNav";
@@ -20,8 +19,6 @@ export interface ScreenDeps {
   /** 右の欄を置けるか（パネルの中のチャット） */
   canOpenSide: boolean;
   scroll: TimelineScroll;
-  /** チャット欄の口（呼ぶときに読む） */
-  composer: () => ComposerHandle | null;
   /** 右の欄の殻の口（呼ぶときに読む） */
   side: () => SidePanelHandle | null;
   /** 会話へ移る前にすること（ピルの列を画面の外に描いているとき、画面を見せる） */
@@ -33,7 +30,6 @@ export interface ScreenActions {
   subagents: SubagentNav;
   activity: ActivityNav;
   rewind: RewindActions;
-  composer: ComposerPort;
   /** 会話の欄が描くたびに入れる（窓・指示の移り方・読んだあとの続き） */
   setWindow: (window: TimelineNavWindow) => void;
   /** 会話の欄が描くたびに入れる（選択・送り方） */
@@ -44,7 +40,7 @@ export interface ScreenActions {
  * 口はどれも、描き直しても同じ物（中身はいつも最新の値で動く）なので、memo した流れの項目に配っても描き直させない。
  * いまのプロジェクト・サブエージェントの一覧・末尾の位置は店から読み、描いた値（窓・送り方）だけを set… で入れ直す
  */
-export function createScreenActions({ chatId, canOpenSide, scroll, composer, side, beforeReveal }: ScreenDeps): ScreenActions {
+export function createScreenActions({ chatId, canOpenSide, scroll, side, beforeReveal }: ScreenDeps): ScreenActions {
   const t = createTimelineNav({ chatId, scroll, beforeReveal });
   const toConversation = () => activity.showing.set("conversation");
   const subagents = createSubagentNav({
@@ -92,10 +88,6 @@ export function createScreenActions({ chatId, canOpenSide, scroll, composer, sid
     subagents,
     activity,
     rewind: rewind.actions,
-    composer: {
-      fill: (text, opts) => composer()?.fill(text, opts),
-      focus: () => composer()?.focus(),
-    },
     setWindow: t.setWindow,
     setSend: rewind.setSend,
   };

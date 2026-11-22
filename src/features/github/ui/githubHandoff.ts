@@ -8,7 +8,7 @@ import { currentChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
-import { addToChat } from "@/features/composer/ui/addToChat";
+import { appendToDraft } from "@/features/composer/ui";
 import { captureNameOf, reviewDocument, reviewFixText, sourceOf } from "./githubPrompt";
 
 /**
@@ -40,7 +40,7 @@ export async function fixReviewComments(projectId: number, detail: GitHubPullDet
     openSeededChat(projectId, place.worktree_path ? { kind: "existing", path: place.worktree_path } : { kind: "main" }, { text, attachments: [attachment], link });
     return;
   }
-  addToChat(chat.id, text, [attachment]);
+  appendToDraft(chat.id, text, [attachment]);
   open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
   if (chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }

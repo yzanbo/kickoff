@@ -4,9 +4,10 @@ import type { HandoffFrom } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { chatDraft, composerHandoff } from "@/foundation/ui/storage/storageKeys";
-import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { appendBlock, isScreenShown, knownChat, openChat, screenOfChat } from "@/features/chat/ui";
+import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
+import { writeSetting } from "@/foundation/ui/storage";
+import { isScreenShown, knownChat, openChat, screenOfChat } from "@/features/chat/ui";
+import { appendToDraft } from "@/features/composer/ui";
 
 /** 別ウィンドウの中か（右の欄はメインのウィンドウにだけあるので、メインに知らせて開く） */
 const inPopout = () => parsePopout(location.hash) !== undefined;
@@ -39,9 +40,7 @@ export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, tex
   if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;
-  const composer = screenOfChat(parent.id)?.composer;
-  if (composer) composer.fill(text, { append: true });
-  // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る）
-  else writeSetting(chatDraft(parent.id), appendBlock(readSetting(chatDraft(parent.id)), text));
+  // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る。知らせは出さない）
+  appendToDraft(parent.id, text, [], { notify: false });
   showChatView(parent);
 }

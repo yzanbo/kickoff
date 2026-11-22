@@ -6,8 +6,7 @@ import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
-import { readSetting, subscribeSetting, writeSetting, type Setting } from "@/foundation/ui/storage";
-import { sameAttachment } from "@/features/attachments/ui/attachmentMerge";
+import type { ComposerDraft } from "./composerDraft";
 
 export interface PendingFile {
   key: string;
@@ -17,25 +16,6 @@ export interface PendingFile {
   attachment?: Attachment;
   error?: string;
 }
-
-/**
- * 送る前の添付を残す先（入力欄が描き直されても、利用者が外すまで添付を戻す。アップロードできたものだけを残す）。
- * id: 何の添付か（変わったら、その先に残した添付に入れ替える）。subscribe: ほかの入力欄が同じ先を書き換えたら知らせる（なければ見ない）
- */
-export interface AttachmentDraft {
-  id: string;
-  read: () => readonly Attachment[];
-  write: (list: Attachment[]) => void;
-  subscribe?: (listener: () => void) => () => void;
-}
-
-/** 設定（localStorage）に残す添付の先（既存のチャットの chatAttachmentsDraft。同じチャットの入力欄どうしで書き換えを知らせ合う） */
-export const settingAttachmentDraft = (setting: Setting<readonly Attachment[]>): AttachmentDraft => ({
-  id: setting.key,
-  read: () => readSetting(setting),
-  write: (list) => writeSetting(setting, list),
-  subscribe: (listener) => subscribeSetting(setting, listener),
-});
 
 const newKey = () => `${Date.now()}-${Math.random()}`;
 
@@ -51,12 +31,13 @@ const uploadedOf = (files: readonly PendingFile[]) => files.flatMap((f) => (f.at
 
 /**
  * チャット欄の添付（📎・ドラッグ＆ドロップ・貼り付け。選んだ時点でアップロードしておき、送信を待たせない）。
- * saved を渡すと、アップロードできた添付をそこに残し、入力欄を作り直したとき（プロジェクトを移って戻ったなど）に戻す（外す・送るまで消さない）
+ * 下書きの店を渡すと、アップロードできた添付をそこに残し、入力欄を作り直したとき（プロジェクトを移って戻ったなど）に戻す（外す・送るまで消さない）。
+ * 並びは選んだ順（アップロードの終わる順にしない）なので、アップロードの途中のものも含めた並びはこの中に持つ
  */
-export function useComposerFiles(saved?: AttachmentDraft) {
-  const [files, setFiles] = useState<PendingFile[]>(() => restore(saved?.read() ?? []));
+export function useDraftFiles(draft?: ComposerDraft) {
+  const [files, setFiles] = useState<PendingFile[]>(() => restore(draft?.read().attachments ?? []));
   const [dragging, setDragging] = useState(false);
-  const savedRef = useLatest(saved);
+  const draftRef = useLatest(draft);
   /** 最後に残した（読んだ）添付の JSON（同じものを書き直さない・自分の書き換えの知らせを読み直さない） */
   const written = useRef(JSON.stringify(uploadedOf(files)));
   const mounted = useRef(true);
@@ -68,11 +49,11 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   }, []);
 
   // 残す先が変わったら（同じ入力欄で別のチャットへ）、その先に残した添付に入れ替える（描いている間に合わせる）
-  const [savedId, setSavedId] = useState(saved?.id);
+  const [draftId, setDraftId] = useState(draft?.id);
   const [restored, setRestored] = useState<{ json: string } | null>(null);
-  if (saved?.id !== savedId) {
-    setSavedId(saved?.id);
-    const next = restore(saved?.read() ?? []);
+  if (draft?.id !== draftId) {
+    setDraftId(draft?.id);
+    const next = restore(draft?.read().attachments ?? []);
     setRestored({ json: JSON.stringify(uploadedOf(next)) });
     setFiles(next);
   }
@@ -86,22 +67,22 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   useEffect(() => {
     if (uploadedJson === written.current) return;
     written.current = uploadedJson;
-    savedRef.current?.write(JSON.parse(uploadedJson) as Attachment[]);
+    draftRef.current?.write({ attachments: JSON.parse(uploadedJson) as Attachment[] });
   }, [uploadedJson]);
 
   // ほかの入力欄（同じチャットのノートの下の入力欄など）が書き換えたら、アップロードの途中のものは残したまま合わせる
-  // 見張り直すのは残す先（id）が変わったときだけ（saved は描くたびに作られることがある）
-  const subscribeSaved = useEffectEvent((listener: () => void) => saved?.subscribe?.(listener));
+  // 見張り直すのは残す先（id）が変わったときだけ（店は同じ残す先なら同じもの）
+  const subscribeSaved = useEffectEvent((listener: () => void) => draft?.subscribe(listener));
   useEffect(
     () =>
       subscribeSaved(() => {
-        const list = savedRef.current?.read() ?? [];
+        const list = draftRef.current?.read().attachments ?? [];
         const json = JSON.stringify(list);
         if (json === written.current) return;
         written.current = json;
         setFiles((prev) => [...restore(list, prev), ...prev.filter((f) => !f.attachment && !f.error)]);
       }),
-    [saved?.id],
+    [draft?.id],
   );
 
   // アップロードの途中は、タブを裏に回しても会話の欄を止めない（終わった添付を入力欄に入れるまで）
@@ -125,7 +106,7 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   /** アップロードが終わったとき（入力欄がもうなければ、残す先へじかに足す。移っている間に終わっても添付を失わない） */
   function uploaded(key: string, attachment: Attachment) {
     if (mounted.current) setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, attachment } : f)));
-    else savedRef.current?.write([...savedRef.current.read(), attachment]);
+    else draftRef.current?.write({ attachments: [...draftRef.current.read().attachments, attachment] });
   }
 
   function addFiles(list: FileList | File[]) {
@@ -151,15 +132,6 @@ export function useComposerFiles(saved?: AttachmentDraft) {
       .chatTranscript(chat.id)
       .then((attachment) => uploaded(key, attachment))
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
-  }
-
-  /**
-   * 保存済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき・ノートを添付したとき・「AI に渡す」。アップロードし直さない）。
-   * 同じノート・同じ出どころの取ったものは重ねず、新しく足したもの（付けなおした時点の中身）に入れ替える
-   */
-  function addAttachments(list: Attachment[]) {
-    const added = list.map((attachment) => ({ key: newKey(), file: new File([], attachment.name, { type: attachment.mime }), attachment }));
-    setFiles((prev) => [...prev.filter((f) => !f.attachment || !list.some((a) => sameAttachment(a, f.attachment!))), ...added]);
   }
 
   function removeFile(key: string) {
@@ -205,7 +177,6 @@ export function useComposerFiles(saved?: AttachmentDraft) {
     dragging,
     addFiles,
     addChat,
-    addAttachments,
     removeFile,
     clear,
     onPaste,

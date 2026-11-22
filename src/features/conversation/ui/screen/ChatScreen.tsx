@@ -6,7 +6,6 @@ import {
   chatRoleOf,
   ChatScreenContext,
   clearKeepAlive,
-  ComposerPortContext,
   KeepAliveContext,
   PastWorkplacesProvider,
   SubagentNavContext,
@@ -140,11 +139,9 @@ export function ChatEnvironment({ chat, host, ports, timeline, rewind, links, si
               <TimelineNavContext.Provider value={timeline}>
                 <SubagentNavContext.Provider value={ports.subagents}>
                   <ActivityNavContext.Provider value={ports.activity}>
-                    <ComposerPortContext.Provider value={ports.composer}>
-                      <RewindActionsContext.Provider value={rewind}>
-                        <KeepAliveContext.Provider value={chat.id}>{children}</KeepAliveContext.Provider>
-                      </RewindActionsContext.Provider>
-                    </ComposerPortContext.Provider>
+                    <RewindActionsContext.Provider value={rewind}>
+                      <KeepAliveContext.Provider value={chat.id}>{children}</KeepAliveContext.Provider>
+                    </RewindActionsContext.Provider>
                   </ActivityNavContext.Provider>
                 </SubagentNavContext.Provider>
               </TimelineNavContext.Provider>

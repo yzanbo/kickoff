@@ -4,8 +4,8 @@ import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
-import { addToChat } from "@/features/composer/ui/addToChat";
-import { askInNewChatOf, chatRoleOf, useChatScreen, useComposerPort } from "@/features/chat/ui";
+import { appendToDraft } from "@/features/composer/ui";
+import { askInNewChatOf, chatRoleOf, useChatScreen } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
@@ -110,7 +110,6 @@ function SelectionActions(props: SelectionContext) {
 export function SelectionAttach() {
   const screen = useChatScreen();
   const { root, chatId, projectId } = screen;
-  const composer = useComposerPort();
   const askInNewChat = askInNewChatOf(screen);
   const inSide = useMainChat() !== null;
   if (inSide) return null;
@@ -118,7 +117,7 @@ export function SelectionAttach() {
     ...addTargetsOf({ chatId, mainChatId: null, role: screen.role, mainName: "" }).map((t) => ({
       label: `${t.name}に追加`,
       title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）",
-      onAdd: (text: string) => composer?.fill(text, { append: true }),
+      onAdd: (text: string) => appendToDraft(t.chatId, text),
     })),
     {
       label: "新しい子チャットで聞く",
@@ -180,7 +179,7 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
         return addTargetsOf({ chatId: inner?.chatId ?? null, mainChatId, role: inner?.role ?? null, mainName: chatTargetName(knownChat(mainChatId)) }).map((t) => ({
           label: `${t.name}に追加`,
           title: `選択部分を引用して、${t.kind === "main" ? t.name : "このチャット"}の入力欄に足します（送るのは自分で）`,
-          onAdd: (text: string) => addToChat(t.chatId, text),
+          onAdd: (text: string) => appendToDraft(t.chatId, text),
         }));
       }}
       extra={(picked, controls) => {

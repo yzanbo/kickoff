@@ -4,7 +4,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { fileURLToPath } from "node:url";
 import { storage as shellStorage } from "./storage";
-import { chatAttachmentsDraft, chatDraft, NEW_CHAT_DRAFTS } from "./storageKeys";
+import { composerHandoff, NEW_CHAT_DRAFTS } from "./storageKeys";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 /** 画面のソースの根（画面の土台・組み立て・各機能の ui） */
@@ -44,23 +44,9 @@ test("localStorage・sessionStorage は storage/settings.ts の外で直接読�
 });
 
 test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
-  assert.equal(chatDraft(1).ids, true);
-  assert.equal(chatAttachmentsDraft(1).ids, true);
+  assert.equal(composerHandoff(1).ids, true);
   assert.equal(NEW_CHAT_DRAFTS.ids, true);
   assert.equal(shellStorage.settings.lastRoute.ids, true);
   assert.equal(shellStorage.settings.theme.ids, false);
   assert.equal(shellStorage.settings.databaseId.ids, false);
-});
-
-test("送る前の添付: 形の合う添付だけを読み、空なら保存しない", () => {
-  const setting = chatAttachmentsDraft(1);
-  const ok = { kind: "file" as const, id: "a", name: "x.png", mime: "image/png", size: 3 };
-  const note = { kind: "note", id: "b", name: "m.md", mime: "text/markdown", size: 4, note: "m.md", taken_at: "2026-11-13T00:00:00Z" };
-  const capture = { kind: "capture", id: "c", name: "i.md", mime: "text/markdown", size: 1, source: { type: "github_issue", label: "#1", url: null }, taken_at: "2026-11-13T00:00:00Z", truncated: false, original_size: 1, redacted: 0 };
-  const broken = { kind: "capture", id: "d", name: "i.md", mime: "text/markdown", size: 1 };
-  const noKind = { id: "e", name: "n.md", mime: "text/markdown", size: 0, note: "n.md" };
-  assert.deepEqual(setting.decode(JSON.stringify([ok, { id: 1 }, null, note, capture, broken, noKind])), [ok, note, capture]);
-  assert.equal(setting.decode("{}"), undefined);
-  assert.equal(setting.encode([]), null);
-  assert.equal(setting.encode([ok]), JSON.stringify([ok]));
 });

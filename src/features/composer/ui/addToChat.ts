@@ -1,38 +1,34 @@
-// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」で共通）
+// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」・子チャットの答えで共通）。
+// 下の attachments の「AI に渡す」も読むので、渡し先の登録（handOffTargets）にするまではこのファイルの名前のまま
 import type { Attachment } from "@shared/chat/types";
+import { onServerEvent } from "@/foundation/ui/api/events";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
+import { onWindowMessage, postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { mergeAttachments } from "@/features/attachments/ui/attachmentMerge";
-import { appendBlock } from "@/features/chat/ui/quote";
-import { openChat } from "@/features/chat/ui";
-import { screenOfChat, setMissingFill } from "@/features/chat/ui";
+import { knownChat, openChat, screenOfChat } from "@/features/chat/ui";
+import { appendDraft, chatComposerDraft, forgetChatDraft } from "./composerDraft";
+import { focusComposer } from "./composerFields";
 
 /**
- * そのチャットの入力欄の後ろに足す（送るのは自分で）。このウィンドウにそのチャットの画面があればそこへ（右の欄の子チャット・別ウィンドウの子チャットなど）、
- * なければ、別ウィンドウの中からはメインのウィンドウに頼む。メインのウィンドウで画面が開いていなければ、書きかけの文と送る前の添付に足して知らせる（画面は移さない）
+ * そのチャットの下書きの後ろに足す（送るのは自分で）。このウィンドウにそのチャットの画面があれば、その入力欄にピントを移す（focus: false なら移さない）。
+ * 画面がなければ、別ウィンドウの中からはメインのウィンドウに頼み、メインのウィンドウでは足したことを「〇〇に追加しました［開く］」と知らせる（画面は移さない。notify: false なら知らせない）
  */
-export function addToChat(chatId: number, text: string, attachments?: Attachment[]) {
-  const composer = screenOfChat(chatId)?.composer;
-  if (composer) return composer.fill(text, { append: true, attachments });
-  if (parsePopout(location.hash)) return postToMainWindow("fillComposer", { chatId, text, attachments });
-  addToChatDraft(chatId, text, attachments);
-}
-
-/**
- * 開いていないチャットの書きかけの文（chatDraft）と送る前の添付（chatAttachmentsDraft）に足し、「〇〇に追加しました［開く］」と知らせる。
- * 開いたときに入力欄に入る。同じノート・同じ出どころの取ったものは新しく足した方に入れ替える
- */
-function addToChatDraft(chatId: number, text: string, attachments: Attachment[] = []) {
-  if (text) writeSetting(chatDraft(chatId), appendBlock(readSetting(chatDraft(chatId)), text));
-  if (attachments.length > 0) writeSetting(chatAttachmentsDraft(chatId), mergeAttachments(readSetting(chatAttachmentsDraft(chatId)), attachments));
+export function appendToDraft(chatId: number, text: string, attachments: readonly Attachment[] = [], opts: { focus?: boolean; notify?: boolean } = {}) {
+  const screen = screenOfChat(chatId);
+  if (!screen && parsePopout(location.hash)) return postToMainWindow("appendToDraft", { chatId, text, attachments: [...attachments] });
+  appendDraft(chatComposerDraft(chatId), text, attachments);
+  if (screen) {
+    if (opts.focus !== false) focusComposer(chatId, { end: true });
+    return;
+  }
+  if (opts.notify === false) return;
   const chat = knownChat(chatId);
   showToast(`${chatTargetName(chat)}に追加しました`, chat ? { label: "開く", run: () => openChat(chat) } : undefined);
 }
 
-// 別ウィンドウから頼まれたのに、メインのウィンドウにも足す先の画面がないとき
-setMissingFill(addToChatDraft);
+/** 別ウィンドウから頼まれた足し込みと、消したチャットの下書きの片付けを受け始める（起動したときに 1 回） */
+export function startComposerDrafts() {
+  onWindowMessage("appendToDraft", ({ chatId, text, attachments }) => appendToDraft(chatId, text, attachments));
+  onServerEvent("chat_deleted", (e) => forgetChatDraft(e.id));
+}

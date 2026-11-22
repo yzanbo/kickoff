@@ -3,8 +3,6 @@ import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
-import { writeSetting } from "@/foundation/ui/storage";
-import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
 import { knownDescendantCount } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
 import { parse } from "@/foundation/ui/navigation/router";
@@ -87,13 +85,11 @@ export async function confirmArchiveChats(target: ChatTarget | readonly ChatTarg
 export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => api.pinChat(chat.id, !chat.pinned);
 
 /**
- * チャットを削除する = Kickoff のゴミ箱へ（消したチャットの入力欄の書きかけの文・添付も残さない）。label を渡すと、
+ * チャットを削除する = Kickoff のゴミ箱へ（消したチャットの入力欄の書きかけの文・添付は、入力欄が知らせ chat_deleted で消す）。label を渡すと、
  * 入れた直後に「元に戻す」の知らせを出す（まとめて消すときは出さない）
  */
 export async function deleteChat(chatId: number, label?: string) {
   const { trash_id } = await api.deleteChat(chatId);
-  writeSetting(chatDraft(chatId), "");
-  writeSetting(chatAttachmentsDraft(chatId), []);
   if (label !== undefined) showTrashedToast(trash_id, label);
 }
 

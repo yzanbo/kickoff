@@ -1,13 +1,11 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
-import { settingAttachmentDraft } from "@/features/composer/ui/useDraftFiles";
 import { addChat, useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { Composer } from "@/features/composer/ui/Composer";
-import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
+import { chatComposerDraft } from "@/features/composer/ui";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { QueueModeToggle } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
@@ -53,7 +51,7 @@ const NO_SCROLL: TimelineScroll = {
  * 作業中・回答待ちなどの様子・右端に「会話を開く」（ノートのチャットの欄を開く）・「非表示にする」（×）。
  * 入力欄のすぐ上に送信待ち（閉じている欄の中のチャットの画面が chipsPortal の queueTarget に描く。並べ替え・書き直し・すぐ送るなどもそのまま）。
  * 送信待ちがあれば（queued）、チャット欄と同じく、作業していなくても送るものを送信待ちに足す。
- * 書きかけの文はノートのチャットの入力欄と共有する（chatDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
+ * 書きかけの文はノートのチャットの入力欄と共有する（chatComposerDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
  */
 export function NoteQuickChat({
   projectId,
@@ -165,7 +163,6 @@ function NoteQuickComposer({
     chat?.worktree_path ?? undefined,
     chat?.provider,
   );
-  const composer = useRef<ComposerHandle | null>(null);
   const busy = chat?.status === "running";
   // 停止を押して、止まるのを待っている（止まったら戻す）
   const [stopping, setStopping] = useState(false);
@@ -209,13 +206,11 @@ function NoteQuickComposer({
         stopping={stopping}
         onStop={chat ? send.onStop : undefined}
         trailing={<ContextMeter chat={chat ?? null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
-        header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => (busy ? send.onQueue(text, []) : onSend(text, []))} />}
+        header={<SnippetBar projectId={projectId} onSend={(text) => (busy ? send.onQueue(text, []) : onSend(text, []))} />}
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}
         suggestTarget={{ projectId, worktree: chat?.worktree_path ?? undefined }}
-        handleRef={composer}
-        draft={chat ? chatDraft(chat.id) : undefined}
-        savedAttachments={chat ? settingAttachmentDraft(chatAttachmentsDraft(chat.id)) : undefined}
+        draft={chat ? chatComposerDraft(chat.id) : undefined}
         sendTo={chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, onSend: send.onAsk }] : undefined}
       />
     </div>

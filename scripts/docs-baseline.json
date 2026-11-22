@@ -26,22 +26,22 @@
       "brokenRefs": 0
     },
     "src/features/chat/CLAUDE.md": {
-      "bytes": 12361,
-      "ancestors": 22549,
+      "bytes": 12351,
+      "ancestors": 22539,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/features/conversation/CLAUDE.md": {
-      "bytes": 15111,
-      "ancestors": 25299,
+      "bytes": 15087,
+      "ancestors": 25275,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/features/notes/CLAUDE.md": {
-      "bytes": 4124,
-      "ancestors": 14312,
+      "bytes": 4113,
+      "ancestors": 14301,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

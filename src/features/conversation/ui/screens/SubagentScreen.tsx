@@ -6,7 +6,7 @@ import { useFollowScroll } from "@/features/chat/ui";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { type ActivityNav, type ComposerPort, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
+import { type ActivityNav, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { createActivityNav } from "@/features/conversation/ui/activity/createActivityNav";
 import { createSubagentNav, openSubagentWindow } from "@/features/conversation/ui/screen/createSubagentNav";
@@ -39,9 +39,9 @@ import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 
 /**
  * 別ウィンドウのサブエージェントの画面の口: メインの会話・右の欄が要る操作はこのウィンドウにないので、ほかのサブエージェントの画面は別ウィンドウで開き、
- * 会話のその場所へ移る・動きで強調する・チャット欄に足すは、メインのウィンドウに知らせる（カードの開閉・「伝える」の欄はこのウィンドウの中で）
+ * 会話のその場所へ移る・動きで強調するは、メインのウィンドウに知らせる（チャット欄に足すのは appendToDraft がメインに頼む）（カードの開閉・「伝える」の欄はこのウィンドウの中で）
  */
-export function windowSubagentNav(chatId: number): { subagents: SubagentNav; activity: ActivityNav; composer: ComposerPort } {
+export function windowSubagentNav(chatId: number): { subagents: SubagentNav; activity: ActivityNav } {
   const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow("reveal", { chatId, eventId, agent });
   const open = (key: string) => openSubagentWindow(chatId, key);
   const subagents = createSubagentNav({ chatId, canOpenSide: false, release: () => {}, reveal: (key, inside) => reveal(inside, key) });
@@ -49,7 +49,6 @@ export function windowSubagentNav(chatId: number): { subagents: SubagentNav; act
   return {
     subagents: { ...subagents, open, openSide: open, openWindow: open },
     activity: { ...activity, focus: (key) => postToMainWindow("showActivity", { chatId, agent: key }) },
-    composer: { fill: (text) => postToMainWindow("fillComposer", { chatId, text }), focus: () => {} },
   };
 }
 

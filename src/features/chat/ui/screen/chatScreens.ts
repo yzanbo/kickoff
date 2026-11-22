@@ -1,8 +1,7 @@
 // このウィンドウで描いているチャットの画面の登録簿（1 つだけ）: チャット・タブの置き場所で引く・見えているか・最後に押した画面・別ウィンドウからの知らせ
 import { useEffect, useRef, type RefObject } from "react";
-import type { Attachment } from "@shared/chat/types";
 import { onWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import type { ActivityNav, ComposerPort, SubagentNav, TimelineNav } from "./ports";
+import type { ActivityNav, SubagentNav, TimelineNav } from "./ports";
 
 /** 描いているチャットの画面（ChatScreen が描いている間だけ登録する） */
 export interface ShownScreen {
@@ -14,7 +13,6 @@ export interface ShownScreen {
   timeline: TimelineNav;
   subagents: SubagentNav;
   activity: ActivityNav;
-  composer: ComposerPort;
   /** 画面のあるタブを表に出す（パネルのタブの中の画面だけ） */
   bringToFront?: () => void;
 }
@@ -71,11 +69,6 @@ export function createChatScreens() {
 
 const registry = createChatScreens();
 let started = false;
-/** 足す先の画面がないときの受け口（addToChat.ts が置く。輪にならないよう、ここからは import しない） */
-let onMissingFill: ((chatId: number, text: string, attachments?: Attachment[]) => void) | undefined;
-export const setMissingFill = (fn: typeof onMissingFill) => {
-  onMissingFill = fn;
-};
 
 /** このウィンドウで描いているそのチャットの画面（見えているものを先に。なければ undefined） */
 export const screenOfChat = registry.screenOfChat;
@@ -95,12 +88,6 @@ function start() {
   if (started) return;
   started = true;
   window.addEventListener("pointerdown", (e) => registry.pressed(e.target instanceof Node ? e.target : null), true);
-  onWindowMessage("fillComposer", ({ chatId, text, attachments }) => {
-    const s = screenOfChat(chatId);
-    // 別ウィンドウから足す先のチャットの画面がメインのウィンドウにもなければ、書きかけの文と添付に足して知らせる
-    if (s) s.composer.fill(text, { append: true, attachments });
-    else onMissingFill?.(chatId, text, attachments);
-  });
   onWindowMessage("reveal", ({ chatId, eventId, agent }) => registry.front(chatId)?.activity.revealInConversation(eventId, agent));
   onWindowMessage("showActivity", ({ chatId, agent }) => registry.front(chatId)?.activity.focus(agent));
 }
@@ -117,7 +104,6 @@ export interface ScreenPorts {
   timeline: TimelineNav;
   subagents: SubagentNav;
   activity: ActivityNav;
-  composer: ComposerPort;
 }
 
 /** チャットの画面を描いている間だけ登録する（ChatScreen が呼ぶ。表に出す操作が変わっても登録し直さない = 最後に押した画面のまま） */

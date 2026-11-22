@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { addToChat } from "@/features/composer/ui/addToChat";
-import { useComposerPort, useOptionalChatScreen } from "@/features/chat/ui";
+import { appendToDraft } from "@/features/composer/ui";
+import { useOptionalChatScreen } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
@@ -18,17 +18,16 @@ import { addTargetsOf } from "./addTargets";
 export function AddToChatItems({ quote, what, path }: { quote: string | null; what: string; path?: string | null }) {
   const main = useMainChat();
   const screen = useOptionalChatScreen();
-  const composer = useComposerPort();
   if (!quote && !path) return null;
-  // 中のチャット（右の欄・別ウィンドウの中の子チャット・ノートのチャット、またはチャットの画面のこのチャット）は、その入力欄の口で足す
-  const inner = screen && composer ? screen : null;
+  // 中のチャット（右の欄・別ウィンドウの中の子チャット・ノートのチャット、またはチャットの画面のこのチャット）
+  const inner = screen;
   const targets = addTargetsOf({ chatId: inner?.chatId ?? null, mainChatId: main, role: inner?.role ?? null, mainName: main === null ? "" : chatTargetName(knownChat(main)) });
-  const add = (kind: string, chatId: number, text: string) => (kind === "main" ? addToChat(chatId, text) : composer?.fill(text, { append: true }));
+  const add = (chatId: number, text: string) => appendToDraft(chatId, text);
   if (main === null) {
     if (targets.length === 0 || !quote) return null;
     return (
       <>
-        <MenuItem title="引用にして、このチャットの入力欄に足します（送るのは自分で）" onSelect={() => add("this", targets[0].chatId, quote)}>
+        <MenuItem title="引用にして、このチャットの入力欄に足します（送るのは自分で）" onSelect={() => add(targets[0].chatId, quote)}>
           {what}をチャットに追加
         </MenuItem>
         <div className="menu-separator" role="separator" />
@@ -39,12 +38,12 @@ export function AddToChatItems({ quote, what, path }: { quote: string | null; wh
     <Fragment key={target.kind}>
       <div className="menu-label">{target.name}</div>
       {quote && (
-        <MenuItem title={`引用にして、${target.name}の入力欄に足します（送るのは自分で）`} onSelect={() => add(target.kind, target.chatId, quote)}>
+        <MenuItem title={`引用にして、${target.name}の入力欄に足します（送るのは自分で）`} onSelect={() => add(target.chatId, quote)}>
           {what}を追加
         </MenuItem>
       )}
       {path && (
-        <MenuItem title={`ファイルのフルパスを、${target.name}の入力欄に足します`} onSelect={() => add(target.kind, target.chatId, path)}>
+        <MenuItem title={`ファイルのフルパスを、${target.name}の入力欄に足します`} onSelect={() => add(target.chatId, path)}>
           パスを追加
         </MenuItem>
       )}
