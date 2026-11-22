@@ -4,7 +4,7 @@
  * AI に見せる画面の様子は 09）。キーは前の名前のまま。宣言は群 legacyKeys.ts に包んで起動の片付けに渡す。
  * プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる）
  */
-import { choice, defineSetting, defineSettingFamily, flag, json, record, text } from "./settings";
+import { choice, defineSetting, defineSettingFamily, flag, json, text } from "./settings";
 import { NO_DB_TABS, parseDbClientTabs } from "@/features/database/ui/client/dbClientTabs";
 
 /**
@@ -18,8 +18,6 @@ export const PANEL_TAB_GROUP_COLORS = defineSetting("kickoff:panel-tab-group-col
 export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button-hidden", flag());
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
-/** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
-export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record(), { ids: true });
 /**
  * サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄にサブエージェントの画面を開く /
  * window = 別ウィンドウ。初めは右の欄。カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。ほかはピルの一覧の行のボタン・カードのボタンで選べる。

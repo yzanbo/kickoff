@@ -12,7 +12,7 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { FOLD_GROUP } from "./foldLooks";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { GroupSectionProps } from "./useGroupSections";
 import { huedHeadProps } from "./bucketColor";
 import { ArchivedBucketFold } from "./ArchivedBucketFold";
@@ -40,7 +40,7 @@ export function CustomGroupSection({
   projectId: number;
   group: ChatGroup;
   /** グループのチャット（絞り込みを通したもの）と、このグループで始める下書き（中身のいちばん上に出す） */
-  bucket: ChatBucket<PanelDraft>;
+  bucket: ChatBucket<PlacedDraft>;
   closed: boolean;
   onSetClosed: (closed: boolean) => void;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */

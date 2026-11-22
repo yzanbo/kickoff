@@ -4,8 +4,8 @@ import { findPane, focusedPane, type PaneLayout, type SplitDir, type SplitSide }
 import { focusPane as focusLayoutPane, moveTab as moveLayoutTab, returnToHome as returnLayoutToHome, splitPane as splitLayoutPane } from "@/features/panel/ui/layout/paneLayout";
 import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
 import { parsePanelKey } from "@/features/panel/ui/surface";
-import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
-import { newChatTab, newTabKey, terminalTab } from "@/features/panel/ui/tabs/tabData";
+import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import { newTabKey, terminalTab } from "@/features/panel/ui/tabs/tabData";
 import type { TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf, surfaceOf } from "./panelStore";
 
@@ -85,19 +85,3 @@ export const equalizeSplit = (panel: string, path: number[]) => changeLayout(pan
 /** 欄の持ち主が決める形にそろえる（チャットのパネルは、サイドバーの一覧のチャット） */
 export const syncPanel = (panel: string, input: unknown) => dispatchPanel(panel, { type: "sync", input });
 
-/** 新しいチャットのタブを最後に開いたもの（欄ごと。開発時の effect の二重実行で、同じタブを 2 つ開かないように） */
-const lastNew = new Map<string, { target: string; key: string; at: number }>();
-
-/**
- * 新しいチャットのタブを開き、そのキーを返す（ボードや列・グループの＋、サイドバーの＋など）。押すたびに新しいタブを開く
- * （書きかけの新しいチャットがあっても、もう 1 つ始められる）。seed は初めに入力欄に入れるもの（送信待ちの指示から始めたとき）
- */
-export function openNewChat(panel: string, target: NewChatTarget, seed?: Extract<PanelTab, { kind: "new" }>["seed"]): string {
-  // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる（初めの入力があるものは利用者の操作なのでまとめない）
-  const sig = `${target.projectId}:${target.group ?? ""}:${target.worktree ?? ""}`;
-  const recent = lastNew.get(panel);
-  const key = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
-  lastNew.set(panel, { target: sig, key, at: Date.now() });
-  openTab(panel, newChatTab(target, seed, key));
-  return key;
-}

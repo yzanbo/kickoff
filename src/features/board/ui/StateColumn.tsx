@@ -8,7 +8,7 @@ import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
 import { DraftCards } from "./DraftCards";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
 
@@ -27,7 +27,7 @@ export function StateColumn({
   list = false,
   foldArchived = true,
 }: {
-  column: ChatBucket<PanelDraft>;
+  column: ChatBucket<PlacedDraft>;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード。列は列のまとまりのキーで分ける） */
   foldPlace?: string;
   render: RenderChat;
@@ -59,7 +59,7 @@ export function StateColumn({
  * いちばん左の「下書き」の列（まだ送っていない新しいチャット。AI はまだ何もしていない）。
  * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない。showProject: 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード）
  */
-function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PanelDraft[]; list?: boolean; showProject?: boolean }) {
+function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PlacedDraft[]; list?: boolean; showProject?: boolean }) {
   const body = (
     <>
       <DraftCards drafts={drafts} showProject={showProject} />
@@ -85,8 +85,8 @@ export function StateColumns({
   foldPlace,
   render,
 }: {
-  columns: readonly ChatBucket<PanelDraft>[];
-  drafts: readonly PanelDraft[];
+  columns: readonly ChatBucket<PlacedDraft>[];
+  drafts: readonly PlacedDraft[];
   showDraftProject?: boolean;
   foldPlace: string;
   render: RenderChat;
@@ -113,8 +113,8 @@ export function ListSections({
   archivedKey,
   render,
 }: {
-  columns: readonly ChatBucket<PanelDraft>[];
-  drafts: readonly PanelDraft[];
+  columns: readonly ChatBucket<PlacedDraft>[];
+  drafts: readonly PlacedDraft[];
   /** 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード） */
   showDraftProject?: boolean;
   foldPlace: string;
@@ -140,8 +140,8 @@ export function ListSections({
  * リスト表示のいちばん下の「アーカイブ済み」（初めは閉じていて、押すと開く）。中は、アーカイブしていないものと同じく
  * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
  */
-function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<PanelDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
-  const archivedOf = (c: ChatBucket<PanelDraft>) => splitArchived(c.chats)[1];
+function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<PlacedDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
+  const archivedOf = (c: ChatBucket<PlacedDraft>) => splitArchived(c.chats)[1];
   const count = columns.reduce((n, c) => n + archivedOf(c).length, 0);
   if (count === 0) return null;
   return (

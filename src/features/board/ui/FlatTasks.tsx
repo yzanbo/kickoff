@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftCards } from "./DraftCards";
 import { ProgressiveItems } from "@/foundation/ui/kit/ProgressiveRows";
 
@@ -20,7 +20,7 @@ export function FlatTasks({
   render,
 }: {
   chats: readonly Chat[];
-  drafts: readonly PanelDraft[];
+  drafts: readonly PlacedDraft[];
   list: boolean;
   /** 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード） */
   showDraftProject?: boolean;

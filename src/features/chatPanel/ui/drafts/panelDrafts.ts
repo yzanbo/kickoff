@@ -1,93 +1,112 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
-import type { DraftTarget } from "@/features/chatList/ui/buckets";
 import type { DraftTabSpot } from "@/features/chatList/ui/manualOrder";
 import { homePane, isTabVisible, paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
-import { allPanels, dispatchPanel, isPanelMounted, openNewChat, panelKey, panelScreen, panelStateOf, panelsVersion, showTab, splitPane, subscribePanels } from "@/features/panel/ui";
+import {
+  allPanels,
+  dispatchPanel,
+  forwardPanelOp,
+  isPanelMounted,
+  newChatTab,
+  newTabKey,
+  openTab,
+  panelScreen,
+  panelStateOf,
+  panelsVersion,
+  restorePanelTabs,
+  showTab,
+  splitPane,
+  subscribePanels,
+  type TabGroupBadge,
+  type TabGroupLookup,
+} from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { draftDisplayTitle } from "@/features/composer/ui/drafts/draftTitle";
-import { forwardPanelOp } from "@/features/panel/ui/state/panelMirror";
+import { chatsPanel, type NewChatSeed } from "@/features/chat/ui";
+import {
+  createNewChatDraft,
+  discardNewChatDraft,
+  draftTitleOf,
+  newChatDraft,
+  patchNewChatDraft,
+  readNewChatDrafts,
+  subscribeNewChatDrafts,
+  type NewChatDraft,
+  type NewChatDraftTarget,
+} from "@/features/composer/ui";
 
 /**
- * 送る前の新しいチャット（下書き）。どの欄のパネルのどのタブか・作成先・書きかけの文・その欄で表示しているか
- * （サイドバー・ボードの「下書き」の列・⌘⇧A で共通の形）
+ * 開いている送る前の新しいチャット（composer の店の下書きと、そのタブのある欄・その欄で表示しているか）。
+ * サイドバー・ボードの「下書き」の列・⌘⇧A で共通の形。このウィンドウの欄にタブがある下書きだけ
  */
-export interface PanelDraft extends DraftTarget {
-  /** 欄のパネル（surfaces.ts の panelKey） */
+export interface PlacedDraft extends NewChatDraft {
+  /** タブのある欄（surface.ts の panelKey） */
   panel: string;
-  /** タブのキー */
-  key: string;
-  /** 書いている途中の文 */
-  text: string;
   /** その欄で表示しているか（欄が開いていて、どれかのペインで表示中。ボードのカードを選択中に見せる） */
   showing: boolean;
-  /** サイドバーの「固定」に出すか（送ったら、できたチャットも固定する） */
+  /** サイドバーの「固定」に出すか */
   pinned: boolean;
-  /** 送る前に付けた名前（右クリックの「名前を変更」。送ったらその名前のチャットになる。なければ「New Chat」） */
-  title?: string;
-  /** 送る前の添付があるか */
-  hasAttachments?: boolean;
 }
 
-/** 下書きの表示名（手動の名前、本文の最初の行、New Chat の順） */
-export const draftTitleOf = (draft: Pick<PanelDraft, "title" | "text">) => draftDisplayTitle(draft.title, draft.text);
+export { draftTitleOf };
 
-/** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか） */
-export type DraftRef = Pick<PanelDraft, "panel" | "key">;
+/** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか。タブのキーは下書きのキー） */
+export type DraftRef = Pick<PlacedDraft, "panel" | "key">;
 
 /** 下書きを指す値だけを取り出す（サイドバーの別ウィンドウからメインのウィンドウに頼むとき） */
 const refOf = (draft: DraftRef): DraftRef => ({ panel: draft.panel, key: draft.key });
 
-const NO_DRAFTS: PanelDraft[] = [];
-let snapshot: { version: number; list: PanelDraft[] } | undefined;
+/** 送る前の添付があるか */
+export const hasDraftAttachments = (draft: Pick<NewChatDraft, "attachments">) => (draft.attachments ?? []).length > 0;
 
-const sameDraft = (a: PanelDraft, b: PanelDraft) =>
-  a.panel === b.panel &&
-  a.key === b.key &&
-  a.projectId === b.projectId &&
-  a.group === b.group &&
-  a.worktree === b.worktree &&
-  a.text === b.text &&
-  a.showing === b.showing &&
-  a.pinned === b.pinned &&
-  a.hasAttachments === b.hasAttachments &&
-  a.title === b.title;
+/** 下書きの作成先のグループ（プロジェクトのグループになければ、分かっているグループ名だけ） */
+export function draftGroupOf(key: string, groupOf: TabGroupLookup): TabGroupBadge | undefined {
+  const draft = newChatDraft(key);
+  if (!draft) return undefined;
+  return groupOf(draft.projectId, draft.group) ?? (draft.groupName ? { name: draft.groupName, hue: null } : undefined);
+}
 
-/** 新しいチャットのタブの下書き（showing はその欄で表示しているか） */
-const draftOfTab = (panel: string, t: Extract<PanelTab, { kind: "new" }>, showing: boolean): PanelDraft => ({
-  panel,
-  key: t.key,
-  projectId: t.projectId,
-  group: t.group,
-  worktree: t.worktree,
-  text: t.draftText ?? "",
-  showing,
-  pinned: t.pinned === true,
-  title: t.title,
-  hasAttachments: (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0,
-});
+let snapshot: { drafts: readonly NewChatDraft[]; version: number; list: PlacedDraft[] } | undefined;
 
-/** パネルのタブが下書きなら、その下書き（タブの右クリックのメニュー。表示しているかは見ない） */
-export const draftOfPanelTab = (panel: string, tab: PanelTab | undefined): PanelDraft | undefined => (tab?.kind === "new" ? draftOfTab(panel, tab, false) : undefined);
-
-/** いまの下書き（中身が変わるまでは同じ配列を返す。下書きを使う部品を、ほかのパネルの操作のたびに描き直さない） */
-export function currentDrafts(): PanelDraft[] {
+/** いまの下書きと置き場所（並びは欄・タブの並び。下書きの店もタブの置き場所も変わるまでは同じ配列を返す。下書きを使う部品を、ほかのパネルの操作のたびに描き直さない） */
+export function placedDrafts(): PlacedDraft[] {
+  const drafts = readNewChatDrafts();
   const version = panelsVersion();
-  if (snapshot?.version === version) return snapshot.list;
-  const list = [...allPanels()].flatMap(([panel, s]) => s.tabs.flatMap((t) => (t.kind === "new" ? [draftOfTab(panel, t, s.open && isTabVisible(s.layout, t.key))] : [])));
-  const prev = snapshot?.list;
-  const same = prev !== undefined && prev.length === list.length && prev.every((d, i) => sameDraft(d, list[i]));
-  snapshot = { version, list: same ? prev : list.length === 0 ? NO_DRAFTS : list };
+  if (snapshot?.drafts === drafts && snapshot.version === version) return snapshot.list;
+  const byKey = new Map(drafts.map((d) => [d.key, d]));
+  const list = [...allPanels()].flatMap(([panel, s]) =>
+    s.tabs.flatMap((t) => {
+      const draft = t.kind === "new" ? byKey.get(t.key) : undefined;
+      return draft ? [{ ...draft, panel, showing: s.open && isTabVisible(s.layout, t.key), pinned: draft.pinned === true }] : [];
+    }),
+  );
+  const prev = snapshot?.drafts === drafts ? snapshot.list : undefined;
+  const same = prev !== undefined && prev.length === list.length && prev.every((d, i) => d.key === list[i].key && d.panel === list[i].panel && d.showing === list[i].showing);
+  snapshot = { drafts, version, list: same ? prev : list };
   return snapshot.list;
 }
 
+const subscribeDrafts = (listener: () => void) => {
+  const offPanels = subscribePanels(listener);
+  const offDrafts = subscribeNewChatDrafts(listener);
+  return () => {
+    offPanels();
+    offDrafts();
+  };
+};
+
+/** パネルのタブが下書きなら、その下書き（タブの右クリックのメニュー。表示しているかは見ない） */
+export function draftOfPanelTab(panel: string, tab: PanelTab | undefined): PlacedDraft | undefined {
+  const draft = tab?.kind === "new" ? newChatDraft(tab.key) : undefined;
+  return draft && { ...draft, panel, showing: false, pinned: draft.pinned === true };
+}
+
 /** すべての欄の下書き（サイドバー・⌘⇧A） */
-export function useAllDrafts(): PanelDraft[] {
-  return useSyncExternalStore(subscribePanels, currentDrafts);
+export function useAllDrafts(): PlacedDraft[] {
+  return useSyncExternalStore(subscribeDrafts, placedDrafts);
 }
 
 /** 渡した欄のパネルの下書き（ボード: そのボードのパネルと、同じプロジェクトのチャット欄。下書きが変わるまでは同じ配列） */
-export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
+export function usePanelDrafts(panels: readonly string[]): PlacedDraft[] {
   const all = useAllDrafts();
   // panels は中身（sig）が変わったときだけ選び直す（配列を毎回作って渡しても、同じ配列を返す）
   const sig = JSON.stringify(panels);
@@ -95,6 +114,34 @@ export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
     const wanted = JSON.parse(sig) as string[];
     return all.filter((d) => wanted.includes(d.panel));
   }, [all, sig]);
+}
+
+/** 新しいチャットのタブを最後に開いたもの（欄ごと。開発時の effect の二重実行で、同じタブを 2 つ開かないように） */
+const lastNew = new Map<string, { target: string; key: string; at: number }>();
+
+/**
+ * 新しいチャット（下書き）を作ってタブを開き、そのキーを返す（ボードや列・グループの＋、サイドバーの＋など）。押すたびに新しい下書きを作る
+ * （書きかけの新しいチャットがあっても、もう 1 つ始められる）。seed は初めに入力欄に入れるもの（送信待ちの指示から始めたとき）、fields は初めの中身
+ */
+export function openNewChat(panel: string, target: NewChatDraftTarget, seed?: NewChatSeed, fields?: Parameters<typeof createNewChatDraft>[3]): string {
+  // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる（初めの入力があるものは利用者の操作なのでまとめない）
+  const sig = `${target.projectId}:${target.group ?? ""}:${target.worktree ?? ""}`;
+  const recent = lastNew.get(panel);
+  const key = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
+  lastNew.set(panel, { target: sig, key, at: Date.now() });
+  createNewChatDraft(key, target, seed, fields);
+  openTab(panel, newChatTab(key));
+  return key;
+}
+
+/** 前回残した下書きを、作成先のプロジェクトのチャットのパネルの閉じたタブとして戻す（起動したとき 1 回。チャットの別ウィンドウにあったものも） */
+export function restoreDraftTabs(): void {
+  const byPanel = new Map<string, PanelTab[]>();
+  for (const d of readNewChatDrafts()) {
+    const panel = chatsPanel(d.projectId);
+    byPanel.set(panel, [...(byPanel.get(panel) ?? []), newChatTab(d.key)]);
+  }
+  for (const [panel, tabs] of byPanel) restorePanelTabs(panel, tabs);
 }
 
 /**
@@ -137,7 +184,7 @@ export function openDraftSplit(draft: DraftRef, dir: SplitDir) {
 /** 下書きに名前を付ける（空なら外して「New Chat」に戻す） */
 export function setDraftTitle(draft: DraftRef, title: string) {
   if (forwardPanelOp({ op: "setDraftTitle", draft: refOf(draft), title })) return;
-  dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { title: title.trim() || undefined } });
+  patchNewChatDraft(draft.key, { title: title.trim() || undefined });
 }
 
 /**
@@ -146,12 +193,11 @@ export function setDraftTitle(draft: DraftRef, title: string) {
  */
 export function moveDraftToProject(draft: DraftRef, projectId: number) {
   if (forwardPanelOp({ op: "moveDraftToProject", draft: refOf(draft), projectId }, { focusMain: true })) return;
-  const tab = allPanels().get(draft.panel)?.tabs.find((t) => t.key === draft.key);
-  if (tab?.kind !== "new" || tab.projectId === projectId) return;
-  const panel = panelKey("kanban", projectId);
-  // 送信待ちから始めたとき（seed）の案内は出さないよう、書きかけの文と添付はタブにそのまま入れる（入力欄は開いたときにタブから戻す）
-  const key = openNewChat(panel, { projectId });
-  dispatchPanel(panel, { type: "patch", key, kind: "new", fields: { draftText: tab.draftText, draftAttachments: tab.draftAttachments, title: tab.title, pinned: tab.pinned } });
+  const from = newChatDraft(draft.key);
+  if (!from || from.projectId === projectId) return;
+  const panel = chatsPanel(projectId);
+  // 送信待ちから始めたとき（seed）の案内は出さないよう、書きかけの文と添付は下書きの中身として入れる
+  const key = openNewChat(panel, { projectId }, undefined, { text: from.text, attachments: from.attachments, title: from.title, pinned: from.pinned });
   // 先に移す先を開いてから元を消す（先に消すと、元の欄が表示中のタブの変わったことを URL にして、移る先の画面を上書きする）
   openDraft({ panel, key });
   discardDraft(draft);
@@ -160,19 +206,20 @@ export function moveDraftToProject(draft: DraftRef, projectId: number) {
 /** 下書きの作成先のグループを変える（サイドバーでグループへドラッグしたとき。undefined ならグループなし） */
 export function setDraftGroup(draft: DraftRef, group: number | undefined, groupName: string | undefined) {
   if (forwardPanelOp({ op: "setDraftGroup", draft: refOf(draft), group, groupName })) return;
-  dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { group, groupName } });
+  patchNewChatDraft(draft.key, { group, groupName });
 }
 
 /** 下書きの固定を付け外しする（サイドバーの「固定」に出す。外したら pinned を残さない） */
-export function togglePinDraft(draft: DraftRef & Pick<PanelDraft, "pinned">) {
+export function togglePinDraft(draft: DraftRef & Pick<PlacedDraft, "pinned">) {
   if (forwardPanelOp({ op: "togglePinDraft", draft: refOf(draft), pinned: draft.pinned })) return;
-  dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { pinned: draft.pinned ? undefined : true } });
+  patchNewChatDraft(draft.key, { pinned: draft.pinned ? undefined : true });
 }
 
-/** 下書きを消す */
+/** 下書きを消す（タブを閉じる。閉じたタブの後始末で下書きも消えるが、タブがなくても消す） */
 export function discardDraft(draft: DraftRef) {
   if (forwardPanelOp({ op: "discardDraft", draft: refOf(draft) })) return;
   dispatchPanel(draft.panel, { type: "close", keys: [draft.key], dismiss: false });
+  discardNewChatDraft(draft.key);
 }
 
 /**
@@ -181,7 +228,6 @@ export function discardDraft(draft: DraftRef) {
  */
 export function forgetDraftsOfMissingProjects(projectIds: ReadonlySet<number>) {
   if (projectIds.size === 0) return;
-  currentDrafts()
-    .filter((d) => !projectIds.has(d.projectId))
-    .forEach(discardDraft);
+  const placed = new Map(placedDrafts().map((d) => [d.key, d.panel]));
+  for (const d of readNewChatDrafts()) if (!projectIds.has(d.projectId)) discardDraft({ panel: placed.get(d.key) ?? chatsPanel(d.projectId), key: d.key });
 }

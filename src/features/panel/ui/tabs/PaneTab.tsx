@@ -56,6 +56,7 @@ export function PaneTab({
   };
   const render = (face: TabFace) => {
     const name = face.label ?? label;
+    const shownGroup = face.group ?? group;
     return (
       <PanelTab
         active={active}
@@ -64,11 +65,11 @@ export function PaneTab({
         badge={spec.badge && surfaceOf(panel.surface)?.kindBadges !== false ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
         label={name}
         after={face.after}
-        group={show("group") ? group : undefined}
+        group={show("group") ? shownGroup : undefined}
         tag={face.tag}
         tagKey={face.tagKey}
         twoLine={twoLine}
-        title={spec.hint?.(t) ?? face.title ?? (group ? `${name}（グループ: ${group.name}）` : name)}
+        title={spec.hint?.(t) ?? face.title ?? (shownGroup ? `${name}（グループ: ${shownGroup.name}）` : name)}
         className={cx(className, face.unread && "unread")}
         extra={face.attrs ? { ...extra, ...face.attrs } : extra}
         onSelect={() => panel.showTab(t.key)}
@@ -83,5 +84,5 @@ export function PaneTab({
       />
     );
   };
-  return spec.Face ? <spec.Face tab={t} panel={panel} show={show} base={{ label, group }} render={render} /> : render({});
+  return spec.Face ? <spec.Face tab={t} panel={panel} show={show} base={{ label, group }} groupOf={groupOf} render={render} /> : render({});
 }

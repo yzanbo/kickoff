@@ -7,7 +7,7 @@ import { useBoardFocus } from "./useBoardFocus";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
-import { usePanelDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { openNewChat, usePanelDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { chatTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel } from "@/features/panel/ui/usePanel";
@@ -31,7 +31,7 @@ export function useProjectChatsPanel({ projectId, focus, tab }: { projectId: num
       if (target.name === "chat") {
         const tab = chatTab({ id: target.chatId, project_id: target.projectId }, target.focus);
         openTab(panel.key, tab, reopenOf(tab));
-      } else panel.openNew({ projectId: target.projectId, group: target.group, worktree: target.worktree });
+      } else openNewChat(panel.key, { projectId: target.projectId, group: target.group, worktree: target.worktree });
     },
     tab,
   );

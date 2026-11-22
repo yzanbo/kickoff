@@ -1,17 +1,16 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { draftScope, panelKey, parsePanelKey, type AnySurface, type PanelSurface } from "@/features/panel/ui/surface";
+import { panelKey, parsePanelKey, type AnySurface, type PanelSurface } from "@/features/panel/ui/surface";
 import type { AnyTabKind, TabBase } from "@/features/panel/ui/kind";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { readBrowserSession, writeBrowserSession } from "@/features/browser/ui/panel/browserSession";
-import { moveDraftsToChatPanels, readSavedDrafts, writeDrafts } from "@/features/composer/ui/drafts/draftPersistence";
 import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./panelState";
 
 /**
  * 欄のパネルの状態を、欄・画面ごと（panelKey）に覚えておく店。ボードとエディタなどのタブを切り替えると欄の部品は
  * 作り直されるので、戻ってきたときに元どおりにできるよう、部品ではなくここで持つ（原則アプリを閉じるまで）。
- * 送る前の新しいチャットと、右サイドバーのブラウザのタブ・配置・欄の開閉は localStorage にも残す。
+ * 右サイドバーのブラウザのタブ・配置・欄の開閉は localStorage にも残す（送る前の新しいチャットは composer の下書きの店が残し、chatPanel が restore で戻す）。
  * 種類と欄の決まりは作るときに受け取る（app/renderer の起動が panelTabs・panelSurfaces の項目を渡して 1 つ作り、installPanelStore で入れる。テストは自分の店を作る）
  */
 export interface PanelStore {
@@ -22,9 +21,9 @@ export interface PanelStore {
   /** 欄の状態を変える（panelReducer）。閉じたタブの後始末・保存をし、読んでいる部品に知らせる。変わらなければ何もしない */
   dispatch(key: string, action: PanelAction): void;
   subscribe(listener: () => void): () => void;
-  /** すべての欄の状態（下書きの一覧に使う） */
+  /** すべての欄の状態（下書きを開いている欄を探すのに使う） */
   all(): ReadonlyMap<string, PanelState>;
-  /** 状態が変わるたびに増える数（下書きの一覧を作り直すかを決める） */
+  /** 状態が変わるたびに増える数（下書きの置き場所を作り直すかを決める） */
   version(): number;
   /** タブの種類の決まり */
   kindOf(tab: TabBase): AnyTabKind;
@@ -32,17 +31,17 @@ export interface PanelStore {
   surfaceOf(id: PanelSurface): AnySurface | undefined;
   /**
    * 写しの店にする / やめる（サイドバーの別ウィンドウ。メインのウィンドウのパネルの状態を replace で受け取って読むだけで、自分では変えない。
-   * 写しの間は dispatch・move は何もしない。閉じたタブの後始末・下書きの保存はメインのウィンドウが行う。panelMirror.ts）
+   * 写しの間は dispatch・move は何もしない。閉じたタブの後始末はメインのウィンドウが行う。panelMirror.ts）
    */
   setReplica(on: boolean): void;
   isReplica(): boolean;
-  /** このウィンドウが持つ欄を決める（下書き・ブラウザの保存で、ほかのウィンドウが持つ欄の分は書き換えない。panelHandOff.ts） */
+  /** このウィンドウが持つ欄を決める（ブラウザの保存で、ほかのウィンドウが持つ欄の分は書き換えない。panelHandOff.ts） */
   setOwnership(owns: (key: string) => boolean): void;
   /** このウィンドウが持つ欄か */
   owns(key: string): boolean;
   /** 合う欄の状態を取り出して、このウィンドウから外す（閉じたタブの後始末はしない。別ウィンドウへ移すとき） */
   take(match: (key: string) => boolean): [string, PanelState][];
-  /** 合う欄の状態を、届いたものに置き換える（後始末はしない。別ウィンドウから移されたとき・戻されたとき）。下書きも残し直す */
+  /** 合う欄の状態を、届いたものに置き換える（後始末はしない。別ウィンドウから移されたとき・戻されたとき） */
   put(match: (key: string) => boolean, entries: readonly (readonly [string, PanelState])[]): void;
   /** すべての欄の状態を置き換える（サイドバーの別ウィンドウが、メインのウィンドウから届いた写しを入れる） */
   replace(entries: readonly (readonly [string, PanelState])[]): void;
@@ -51,12 +50,14 @@ export interface PanelStore {
    * mapTab でタブを書き換える。移す先にもうタブがあれば、移す元のタブは閉じて捨てる（重ねない）
    */
   move(from: string, to: string, mapTab?: (tab: PanelTab) => PanelTab): void;
+  /** 前回残したタブを、閉じた欄のタブとして戻す（その欄の状態がまだないときだけ。起動したときの送る前の新しいチャット） */
+  restore(key: string, tabs: readonly PanelTab[]): void;
   /** 欄が画面に出ていることを知らせる（返り値で取り消す。下書きを開くとき、出ていなければその画面へ移る） */
   mount(key: string): () => void;
   isMounted(key: string): boolean;
 }
 
-/** タブの列のある別ウィンドウの欄か（その別ウィンドウが持つので、メインのウィンドウは下書きの保存で書き換えない） */
+/** タブの列のある別ウィンドウの欄か（その別ウィンドウが持つ） */
 function isWindowPanel(key: string): boolean {
   const surface = parsePanelKey(key)?.surface;
   return surface === "win" || surface === "cwin";
@@ -108,28 +109,14 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     return browser ? { ...state, layout: browser.layout } : state;
   };
 
-  /** 下書きのタブを残す（このウィンドウが持つ欄の分だけ） */
-  const persistDrafts = () => writeDrafts([...states].map(([k, s]) => [k, s.tabs] as const), owns);
-
   const stateOf = (key: string): PanelState => {
     let state = states.get(key);
     if (!state) states.set(key, (state = initialState(key)));
     return state;
   };
 
-  /**
-   * 閉じたタブの後始末（種類の dispose。ターミナルはシェルも止める）。送らずに閉じた新しいチャットのタブは、その右の欄（draft-<key>）も捨てる
-   * （送ったときは、先にできたチャットの右の欄へ移してある）
-   */
-  const dispose = (tab: PanelTab): void => {
-    kindOf(tab).dispose?.(tab);
-    if (tab.kind !== "new") return;
-    const side = panelKey("agents", draftScope(tab.key));
-    const state = states.get(side);
-    if (!state) return;
-    states.delete(side);
-    state.tabs.forEach(dispose);
-  };
+  /** 閉じたタブの後始末（種類の dispose。ターミナルはシェルも止める。送らずに閉じた新しいチャットは下書きとその右の欄も捨てる） */
+  const dispose = (tab: PanelTab): void => kindOf(tab).dispose?.(tab);
 
   const take = (match: (key: string) => boolean): [string, PanelState][] => {
     const taken = [...states].filter(([key]) => match(key));
@@ -138,12 +125,6 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     notify();
     return taken;
   };
-
-  // 前回残した下書きのタブを、閉じた欄のタブとして戻す（チャットの別ウィンドウに残っていたものは、作成先のプロジェクトのチャットのパネルへ移して残し直す）
-  const savedDrafts = readSavedDrafts();
-  const restoredDrafts = moveDraftsToChatPanels(savedDrafts);
-  for (const [key, tabs] of restoredDrafts) states.set(key, initialState(key, tabs));
-  if (restoredDrafts !== savedDrafts) writeDrafts(restoredDrafts);
 
   return {
     peek: (key) => states.get(key),
@@ -158,7 +139,6 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
         const kept = new Set(next.tabs.map((t) => t.key));
         // 別ウィンドウへ移したタブは後始末をしない（keep。ターミナルのシェルは移した先がつなぐ）
         if (!(action.type === "close" && action.keep)) prev.tabs.filter((t) => !kept.has(t.key)).forEach(dispose);
-        persistDrafts();
       }
       if (owns(key) && (next.tabs !== prev.tabs || next.layout !== prev.layout)) {
         const project = browserProjectOf(key);
@@ -188,9 +168,7 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     put(match, entries) {
       for (const key of [...states.keys()]) if (match(key)) states.delete(key);
       for (const [key, state] of entries) states.set(key, state);
-      version++;
-      persistDrafts();
-      for (const listener of [...listeners]) listener();
+      notify();
     },
     replace(entries) {
       states.clear();
@@ -205,6 +183,9 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
       if (stateOf(to).tabs.length > 0) prev.tabs.forEach(dispose);
       else states.set(to, { ...prev, tabs: prev.tabs.map(mapTab) });
       notify();
+    },
+    restore(key, tabs) {
+      if (!states.has(key) && tabs.length > 0) states.set(key, initialState(key, tabs));
     },
     mount(key) {
       mounted.set(key, (mounted.get(key) ?? 0) + 1);
@@ -272,6 +253,7 @@ export const setPanelOwnership = (fn: (key: string) => boolean) => store().setOw
 export const takePanels = (match: (key: string) => boolean) => store().take(match);
 export const putPanels = (match: (key: string) => boolean, entries: readonly (readonly [string, PanelState])[]) => store().put(match, entries);
 export const isPanelMounted = (key: string) => store().isMounted(key);
+export const restorePanelTabs = (key: string, tabs: readonly PanelTab[]) => store().restore(key, tabs);
 
 /** 欄の状態を読む（変わったら描き直す） */
 export function usePanelState(key: string): PanelState {

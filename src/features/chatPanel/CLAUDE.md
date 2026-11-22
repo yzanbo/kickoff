@@ -28,5 +28,5 @@
 
 ## 下書き（送る前の新しいチャット）
 
-- 下書き（`ui/drafts/panelDrafts.ts`）を変える操作（`setDraftGroup`・`setDraftTitle` など）は、欄が画面になくても覚えている内容を書き換える。名前の出し方は `draftDisplayTitle` 1 つ。
-- 再起動しても残すのは下書きのタブだけ（`draftPersistence.ts`）。書きかけは入力欄に 1 回だけ戻し、外した添付は戻さない。
+- 中身（書きかけの文・添付・名前・固定・作成先）は composer の下書きの店（`newChatDrafts.ts`）。タブは同じキーで指すだけで、閉じたら種類の `dispose` が下書きと右の欄を捨てる。
+- 開いている欄と開く操作は `ui/drafts/panelDrafts.ts`（`openNewChat`・`PlacedDraft`）。起動したら `restoreDraftTabs` がチャットのパネルに戻す。

@@ -1,7 +1,6 @@
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { sidebarOrder } from "@/features/projects/ui/projectOrder";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 
 /** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
 const PROJECT_VIEWS = ["files", "search", "history"] as const;
@@ -12,14 +11,6 @@ export const PROJECT_VIEW_LABELS: Record<ProjectView, string> = { files: "ファ
 const PROJECT_TOOLS = ["ci", "docker", "trash"] as const;
 export type ProjectTool = (typeof PROJECT_TOOLS)[number];
 
-/** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */
-export interface NewChatTarget {
-  projectId: number;
-  group?: number;
-  /** 始める作業場所のワークツリーのフォルダ（作業場所別のまとまりの「新しいチャット」から。なければ本体） */
-  worktree?: string;
-}
-
 /** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ノート・子チャット・新しい子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
   /**
@@ -27,8 +18,8 @@ export type PanelTab =
    * chat: タブの中のチャットから届いた最新のチャット（サイドバーの一覧にないチャットでも、状態の印・右クリックのメニューの固定・アーカイブなどに使う）
    */
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; chat?: Chat }
-  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。draftAttachments: 送る前の添付（アップロード済み。外すまで残す。一度も残していなければ undefined）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき）。pinned: サイドバーの「固定」に出すか（送ったら、できたチャットも固定する） */
-  | ({ key: string; kind: "new"; groupName?: string; draftText?: string; draftAttachments?: Attachment[]; seed?: NewChatSeed; pinned?: boolean; title?: string } & NewChatTarget)
+  /** 送る前の新しいチャット。キーは下書きのキー（書きかけの文・添付・名前・固定・作成先は composer の下書きの店） */
+  | { key: string; kind: "new" }
   /**
    * チャットの画面の右の欄（サブエージェントの欄）に開いた、サブエージェントの画面。chatId: どのチャットのものか。
    * agentKey: サブエージェントの一覧の行のキー（起動した Task / Agent の呼び出し ID）。title: タブに出す名前（開いたときの名前）。

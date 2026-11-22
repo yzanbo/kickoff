@@ -9,7 +9,7 @@ import type { ReopenRoute } from "@/foundation/ui/navigation/router";
 import { useBoardPanel } from "@/features/chatPanel/ui/board/useBoardPanel";
 import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/chatPanel/ui/board/boardChats";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
-import { useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui";
 import { BoardColumnsToggle, useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useGroupLaneDrop } from "./useGroupLaneDrop";
@@ -108,7 +108,7 @@ interface ViewProps {
   /** カード・行・右クリックの「開く」 */
   onOpen: (chat: Chat) => void;
   /** いちばん左の「下書き」の列に出す下書き（全プロジェクトのボードでは、出しているプロジェクトのものだけに絞る） */
-  drafts: readonly PanelDraft[];
+  drafts: readonly PlacedDraft[];
 }
 
 /** チャットのカンバン（プロジェクト・全プロジェクトで共通の中身）。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。カードの点はより細かい状態（順番待ち・エラーなど） */

@@ -6,7 +6,7 @@ import type { NewChatPlace } from "@/features/chat/ui";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import { UNGROUPED_SORT_ID } from "@/features/groups/ui/groups";
 import { DraftCards } from "./DraftCards";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
 import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
 import { BucketChip } from "@/features/chatList/ui/StateChip";
@@ -34,7 +34,7 @@ export function GroupSections({
   byState = false,
 }: {
   projectId: number;
-  buckets: readonly ChatBucket<PanelDraft>[];
+  buckets: readonly ChatBucket<PlacedDraft>[];
   board: GroupBoardState;
   /** グループの列の＋（そのグループで新しいチャットを始める。開く先はボードのチャットの置き方で決まる） */
   onNewChat: (target: NewChatPlace) => void;
@@ -93,7 +93,7 @@ export function GroupSections({
 /**
  * グループの中の状態ごとの小分け（小見出しの札 ＋ カード・行。チャットのない状態は出さない。アーカイブ済みはグループのいちばん下の閉じたまとまりのまま）
  */
-function StateParts({ parts, render }: { parts: readonly ChatBucket<PanelDraft>[]; render: (chat: Chat) => ReactNode }) {
+function StateParts({ parts, render }: { parts: readonly ChatBucket<PlacedDraft>[]; render: (chat: Chat) => ReactNode }) {
   // 最初に描く行の上限を、縦に並ぶ小分けの上から順に配る
   const budgets = useRowBudgets(parts.map((part) => splitArchived(part.chats)[0].length));
   return parts.map((part, i) => {

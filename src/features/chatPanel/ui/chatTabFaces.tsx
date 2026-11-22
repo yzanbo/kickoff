@@ -5,6 +5,8 @@ import { Paperclip } from "lucide-react";
 import { StatusSlot, chatTitle, useKnownChat } from "@/features/chat/ui";
 import { ChildActivityMark } from "@/features/childChats/ui";
 import type { PanelTab, TabFaceProps } from "@/features/panel/ui";
+import { draftTitleOf, useNewChatDraft } from "@/features/composer/ui";
+import { draftGroupOf, hasDraftAttachments } from "./drafts/panelDrafts";
 import { TabWorkplaceBadge } from "./tabs/TabWorkplaceBadge";
 import { useChatTabHint } from "./tabs/useChatTabHint";
 import { useTabAgentState, type TabAgentState } from "./tabs/useTabAgentState";
@@ -44,12 +46,16 @@ export function ChatTabFace({ tab, panel, show, base, render }: FaceOf<"chat">) 
   });
 }
 
-/** 新しいチャットのタブ: 作業場所の札は始める作業場所、書きかけの文がなく添付だけあれば添付の印 */
-export function NewChatTabFace({ tab: t, show, render }: FaceOf<"new">) {
-  const place = { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null };
+/** 新しいチャットのタブ: 名前・グループは下書きの店から（書くたびに描き直す）、作業場所の札は始める作業場所、書きかけの文がなく添付だけあれば添付の印 */
+export function NewChatTabFace({ tab: t, show, groupOf, render }: FaceOf<"new">) {
+  const draft = useNewChatDraft(t.key);
+  if (!draft) return render({});
+  const place = { project_id: draft.projectId, worktree_path: draft.worktree ?? null, branch: null };
   const tag = show("worktree") ? <TabWorkplaceBadge chat={place} /> : undefined;
-  const attached = !t.draftText?.trim() && (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0;
+  const attached = !draft.text.trim() && hasDraftAttachments(draft);
   return render({
+    label: draftTitleOf(draft),
+    group: draftGroupOf(t.key, groupOf),
     after: attached ? <Paperclip size={12} aria-label="添付あり" /> : undefined,
     tag,
     tagKey: tag ? `${place.worktree_path ?? ""}|` : undefined,

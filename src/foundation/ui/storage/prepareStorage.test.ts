@@ -5,7 +5,7 @@ import { installMemoryStorage } from "./memoryStorage";
 import { choice, optionalFlag, readSetting, record } from "./settings";
 import { storage as legacyKeys } from "./legacyKeys";
 import { storage as shellStorage } from "./storage";
-import { githubSelected, NEW_CHAT_DRAFTS } from "./storageKeys";
+import { githubSelected, projectChatOpen } from "./storageKeys";
 import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
@@ -20,10 +20,10 @@ const GROUPS = [shellStorage, legacyKeys, extra];
 const DATABASE_ID = shellStorage.settings.databaseId;
 const fold = extra.settings.fold;
 
-/** ID を含むもの（まとまりの開閉・下書き・書きかけの文・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
+/** ID を含むもの（まとまりの開閉・チャット欄の開閉・選んだ PR・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
 function rememberSome() {
   local.setItem(fold("sidebar:p1/g3").key, "0");
-  local.setItem(NEW_CHAT_DRAFTS.key, JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new", projectId: 1 }] }));
+  local.setItem(projectChatOpen(1).key, "1");
   local.setItem(githubSelected(7).key, "pr:8");
   local.setItem(fold("panel:p1/g2").key, "0");
   session.setItem(extra.settings.lastHashes.key, JSON.stringify({ 1: "#/projects/1" }));
@@ -31,7 +31,7 @@ function rememberSome() {
   local.setItem(extra.settings.queueMode.key, "queue");
 }
 
-const ID_KEYS = [fold("sidebar:p1/g3").key, NEW_CHAT_DRAFTS.key, githubSelected(7).key, fold("panel:p1/g2").key];
+const ID_KEYS = [fold("sidebar:p1/g3").key, projectChatOpen(1).key, githubSelected(7).key, fold("panel:p1/g2").key];
 
 /** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
 function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {

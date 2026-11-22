@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/foundation/testing/factories";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ChatRow } from "./ChatRow";
 import { DraftRow } from "./DraftRows";
 import { BucketChatRows } from "./BucketChatRows";
@@ -18,7 +18,7 @@ vi.mock("@/features/chat/ui/currentWorkStore", () => ({ useChatActivity: () => n
 vi.mock("@/foundation/ui/navigation/router", () => ({ href: () => "#chat", useRoute: () => ({ name: "project", id: 1, tab: "chats" }) }));
 vi.mock("@/features/projects/ui/page/chatPlacement", () => ({ useChatPlacement: () => ["separate"] }));
 vi.mock("@/features/chatPanel/ui/drafts/DraftMenuItems", () => ({ DraftMenuItems: () => null, DraftSplitItems: () => null, DraftTitleInput: () => null }));
-vi.mock("@/features/chatPanel/ui/drafts/panelDrafts", () => ({ draftTitleOf: () => "New Chat", openDraft: () => {}, useAllDrafts: () => [] }));
+vi.mock("@/features/chatPanel/ui/drafts/panelDrafts", () => ({ draftTitleOf: () => "New Chat", hasDraftAttachments: () => false, openDraft: () => {}, useAllDrafts: () => [] }));
 vi.mock("@/foundation/ui/kit/PopupMenu", () => ({ PopupMenu: () => null }));
 
 const renderChat = (patch: Partial<Chat>, rename = false) => renderToStaticMarkup(createElement(ChatRow, {
@@ -50,7 +50,7 @@ test("名前の変更中もピン留めの背景と区切り線の対象を維�
 
 test("下書きもピン留めした行だけを同じ背景の対象にする", () => {
   for (const pinned of [false, true]) {
-    const draft: PanelDraft = { projectId: 1, panel: "board:1", key: "draft:1", text: "", showing: false, pinned };
+    const draft: PlacedDraft = { projectId: 1, panel: "board:1", key: "draft:1", text: "", showing: false, pinned };
     const html = renderToStaticMarkup(createElement(DraftRow, { draft }));
     assert.equal(html.includes('class="chat-row draft-row pinned"'), pinned);
     assert.equal(html.includes('aria-label="ピン留め中"'), pinned);
@@ -58,8 +58,8 @@ test("下書きもピン留めした行だけを同じ背景の対象にする",
 });
 
 const renderRow = (chat: Chat) => createElement("li", { key: chat.id, "data-row": chat.id }, chat.title);
-const draft = (key: string, pinned: boolean): PanelDraft => ({ projectId: 1, panel: "board:1", key, text: "", showing: false, pinned });
-const renderBucket = (chats: Chat[], drafts: PanelDraft[] = []) => renderToStaticMarkup(createElement(BucketChatRows, { chats, drafts, renderRow }));
+const draft = (key: string, pinned: boolean): PlacedDraft => ({ projectId: 1, panel: "board:1", key, text: "", showing: false, pinned });
+const renderBucket = (chats: Chat[], drafts: PlacedDraft[] = []) => renderToStaticMarkup(createElement(BucketChatRows, { chats, drafts, renderRow }));
 
 test("固定の小見出しの下に固定した行を並べ、通常の行は区切り線の後ろに置く", () => {
   const html = renderBucket([makeChat(1, { pinned: true }), makeChat(2, { pinned: true }), makeChat(3)]);

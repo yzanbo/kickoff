@@ -125,17 +125,21 @@ const tabHead = (key: string): BucketHead => ({ key, kind: "group", label: key }
 test("まとまり: チャットはチャットの（分からなければ作成先の）、新しいチャットは作成先の、ターミナルはフォルダの、ブラウザはその他", () => {
   const resolve: ClusterResolver = {
     chatById: (id) => (id === 1 ? makeChat(1) : undefined),
+    draftOf: (key) => drafts[key],
     ofChat: (c) => tabHead(`chat:${c.id}`),
     ofTarget: (projectId, group, worktree) => tabHead(`target:${projectId}:${group ?? ""}${worktree ? `:${worktree}` : ""}`),
     ofFolder: (projectId, cwd) => tabHead(`folder:${projectId}:${cwd}`),
   };
+  const drafts: Record<string, { projectId: number; group?: number; worktree?: string }> = { "new:g": { projectId: 2, group: 4 }, "new:w": { projectId: 2, worktree: "/repo/a-wt" } };
   const of = (t: PanelTab) => tabClusterOf(t, resolve).key;
   assert.equal(of(chatTab(makeChat(1))), "chat:1");
   assert.equal(of(chatTab(makeChat(9))), "target:1:");
   assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
-  assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
+  assert.equal(of(newChatTab("new:g")), "target:2:4");
   // 作業場所別のまとまりの「新しいチャット」から始めたものは、そのワークツリーのまとまり
-  assert.equal(of(newChatTab({ projectId: 2, worktree: "/repo/a-wt" })), "target:2::/repo/a-wt");
+  assert.equal(of(newChatTab("new:w")), "target:2::/repo/a-wt");
+  // 下書きが見つからないものはその他
+  assert.equal(tabClusterOf(newChatTab("new:x"), resolve), OTHER_CLUSTER);
   assert.equal(of(terminalTab({ cwd: "/repo/a", label: "a", projectId: 3 })), "folder:3:/repo/a");
   assert.equal(tabClusterOf(browserTab(), resolve), OTHER_CLUSTER);
 });

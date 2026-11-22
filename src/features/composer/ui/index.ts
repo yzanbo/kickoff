@@ -12,7 +12,6 @@ export { useDraftFiles } from "./useDraftFiles";
 export { useEditHold } from "./useEditHold";
 export { AttachButton } from "./AttachButton";
 export { PendingFileChips } from "./PendingFileChips";
-export { DraftTextWatch } from "./DraftTextWatch";
 export { Composer } from "./Composer";
 export type { ComposerSend, OutgoingMessage } from "./composerModel";
-export { draftDisplayTitle } from "./drafts/draftTitle";
+export { createNewChatDraft, discardNewChatDraft, draftTitleOf, newChatComposerDraft, newChatDraft, patchNewChatDraft, readNewChatDrafts, subscribeNewChatDrafts, useNewChatDraft, useNewChatDrafts, type NewChatDraft, type NewChatDraftTarget } from "./newChatDrafts";

@@ -8,9 +8,9 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat, openChat, openInRootSide, rootChatOf, screenOfChat, shownChatIds } from "@/features/chat/ui";
-import { changesTab, databaseTab, fileTab, isPanelMounted, noteTab, openTab, panelKey, panelScreen, reopenOf } from "@/features/panel/ui";
+import { changesTab, databaseTab, fileTab, isPanelMounted, newChatTab, noteTab, openTab, panelKey, panelScreen, reopenOf } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { takeHandedTab } from "@/features/panel/ui/tabs/tabHandoff";
+import { newChatDraft } from "@/features/composer/ui";
 import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
 
 /** 描かれるまで待ってから（開いたばかりのチャットの画面は、次の描画のあとにできる。2 秒まで） */
@@ -35,9 +35,9 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
     case "chats": {
       // チャットのパネルで開く（移すときに「表示だけ消した」ことにしたのを、開くことで戻す）
       if (route.chatId !== undefined) return void openTarget({ kind: "chat", projectId: route.projectId, chatId: route.chatId });
-      // 送る前の新しいチャット: 別ウィンドウが渡した中身（書きかけの文・添付）のまま、チャットのパネルに開き直す
-      const draft = takeHandedTab(route.key);
-      if (draft) reopenInPanel(panelKey("kanban", route.projectId), draft);
+      // 送る前の新しいチャット: 下書き（書きかけの文・添付は下書きの店にある）を、作成先のプロジェクトのチャットのパネルに開き直す
+      const draft = newChatDraft(route.key);
+      if (draft) reopenInPanel(panelKey("kanban", draft.projectId), newChatTab(draft.key));
       return;
     }
     case "terminal": {

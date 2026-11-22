@@ -7,6 +7,7 @@ import { dbClientTabs, githubSelected } from "@/foundation/ui/storage/storageKey
 import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
+import { newChatDraft } from "@/features/composer/ui";
 import { allPanels, isPanelMounted, parsePanelKey, terminalTitle, type PanelSurface } from "@/features/panel/ui";
 import { leavesOf } from "@/features/panel/ui/layout/paneTree";
 import { PROJECT_VIEW_LABELS, type PanelTab } from "@/features/panel/ui/tabs/panelTypes";
@@ -70,7 +71,7 @@ function describeTab(tab: PanelTab): UserViewTab {
     case "chat":
       return { kind: "chat", chat_id: tab.id, title: tab.title ?? tab.chat?.title ?? knownChat(tab.id)?.title ?? "", project_id: tab.projectId };
     case "new":
-      return { kind: "new_chat", project_id: tab.projectId };
+      return { kind: "new_chat", project_id: newChatDraft(tab.key)?.projectId ?? 0 };
     case "subagent":
       return { kind: "subagent", title: tab.title };
     case "changes":

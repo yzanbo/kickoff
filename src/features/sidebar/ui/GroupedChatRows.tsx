@@ -14,7 +14,7 @@ import { FOLD_SECTION } from "./foldLooks";
 import type { MouseEvent } from "react";
 import { huedHeadProps } from "./bucketColor";
 import { BucketChatRows } from "./BucketChatRows";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなしは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
@@ -119,7 +119,7 @@ export function GroupedChatRows({
 
 interface SectionProps {
   /** いちばん外の作業場所の中に並べる下書き */
-  draftsOf?: (bucket: BucketHead) => readonly PanelDraft[];
+  draftsOf?: (bucket: BucketHead) => readonly PlacedDraft[];
   renderRow: (chat: Chat) => ReactNode;
   forceOpen: boolean;
   /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。lead はその上に置く項目（作業場所の「新しいチャット」）。まとめないときは undefined） */

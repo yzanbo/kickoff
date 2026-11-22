@@ -29,10 +29,13 @@ test("clusterTabDrop: チャットのタブはそのグループ・グループ�
 });
 
 test("clusterTabDrop: 送る前の新しいチャットは作成先のグループを変える（同じ作成先・ほかのプロジェクトは変えない）。チャット以外のタブは移さない", () => {
-  const draft = (group?: number, projectId = 1): PanelTab => ({ key: "new:1", kind: "new", projectId, group });
-  assert.deepEqual(clusterTabDrop(none, draft(5), undefined), { kind: "draft", tabKey: "new:1", groupId: null, groupName: undefined });
-  assert.deepEqual(clusterTabDrop(g5, draft(), undefined), { kind: "draft", tabKey: "new:1", groupId: 5, groupName: "実装" });
-  assert.equal(clusterTabDrop(none, draft(), undefined), null);
-  assert.equal(clusterTabDrop(g5, draft(undefined, 2), undefined), null);
+  const tab: PanelTab = { key: "new:1", kind: "new" };
+  const draft = (group?: number, projectId = 1) => ({ projectId, group });
+  assert.deepEqual(clusterTabDrop(none, tab, undefined, draft(5)), { kind: "draft", tabKey: "new:1", groupId: null, groupName: undefined });
+  assert.deepEqual(clusterTabDrop(g5, tab, undefined, draft()), { kind: "draft", tabKey: "new:1", groupId: 5, groupName: "実装" });
+  assert.equal(clusterTabDrop(none, tab, undefined, draft()), null);
+  assert.equal(clusterTabDrop(g5, tab, undefined, draft(undefined, 2)), null);
+  // 下書きが見つからないタブは移さない
+  assert.equal(clusterTabDrop(g5, tab, undefined), null);
   assert.equal(clusterTabDrop(none, { key: "browser:1", kind: "browser", url: "about:blank", title: "ブラウザ" }, undefined), null);
 });

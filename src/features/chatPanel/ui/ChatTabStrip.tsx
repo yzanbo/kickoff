@@ -13,6 +13,7 @@ import { joinDropHandlers, useClusterTabDrop } from "./clusters/useClusterTabDro
 import { useTabStrip } from "./clusters/useTabStrip";
 import { ArchivedChatsItem } from "./tabs/ArchivedChatsItem";
 import { tabFieldShown, type TabField } from "./tabs/tabFields";
+import { openNewChat } from "./drafts/panelDrafts";
 
 /**
  * チャットのパネル・チャットの別ウィンドウ・チャットの画面の右の欄のタブの並べ方（欄の Strip）。
@@ -88,7 +89,7 @@ export function ChatTabStrip({ panel, pane, home, dragging, renderTab, bar }: St
                   panel.kinds.has("chat")
                     ? (place) => {
                         panel.focusPane(pane.id);
-                        panel.openNew(place);
+                        openNewChat(panel.key, place);
                       }
                     : undefined
                 }

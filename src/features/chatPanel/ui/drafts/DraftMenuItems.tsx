@@ -6,7 +6,7 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { openNewProject } from "@/features/projects/ui";
 import { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "@/features/chatList/ui";
-import { discardDraft, moveDraftToProject, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft, type PanelDraft } from "./panelDrafts";
+import { discardDraft, moveDraftToProject, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft, type PlacedDraft } from "./panelDrafts";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
@@ -29,7 +29,7 @@ export function DraftMenuItems({
   before,
   after,
 }: {
-  draft: PanelDraft;
+  draft: PlacedDraft;
   /** 開く（サイドバー・ボードだけ。タブはもう開いているので渡さない） */
   onOpen?: () => void;
   /** 同じグループ・作業場所で新しいチャットを始める（既定はそのプロジェクトのチャットのパネルで。タブは右クリックしたタブのペインで） */
@@ -96,7 +96,7 @@ export function DraftMenuItems({
 }
 
 /** 下書きの名前をその場で変える入力欄（サイドバーの行・ボードのカード。チャットの ChatTitleInput と同じ形。決めたら onDone） */
-export function DraftTitleInput({ draft, className, onDone }: { draft: PanelDraft; className?: string; onDone: () => void }) {
+export function DraftTitleInput({ draft, className, onDone }: { draft: PlacedDraft; className?: string; onDone: () => void }) {
   return (
     <InlineName
       initial={draft.title ?? ""}
@@ -113,7 +113,7 @@ export function DraftTitleInput({ draft, className, onDone }: { draft: PanelDraf
 }
 
 /** 下書きを右・下に分けて開く項目（サイドバーの行・ボードのカード。チャットの右クリックの「右に分けて開く」「下に分けて開く」と同じ） */
-export function DraftSplitItems({ draft }: { draft: PanelDraft }) {
+export function DraftSplitItems({ draft }: { draft: PlacedDraft }) {
   return (
     <>
       <MenuItem onSelect={() => openDraftSplit(draft, "row")}>

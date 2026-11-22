@@ -15,8 +15,6 @@ export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey:
   const tab = panelStateOf(panel.key).tabs.find((t) => t.key === tabKey);
   const target = canPopout() && tab ? kindOf(tab).popout?.(tab, panel.key) : undefined;
   if (!tab || !target) return;
-  // 送る前の新しいチャットは、書きかけの文・添付ごと渡す（URL には入らないので。種類の onMoveToWindow）
-  kindOf(tab).onMoveToWindow?.(tab, panel.key);
   openPopout(target.route, target.title, at);
   // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（種類の popout の dismiss。チャットのパネルに戻せば、また出る）
   panel.closeTab(tabKey, { dismiss: target.dismiss === true, keep: true });

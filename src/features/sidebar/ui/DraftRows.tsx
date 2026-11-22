@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { startDraftDrag } from "@/features/groups/ui/groups";
-import { draftTitleOf, openDraft, useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -15,7 +15,7 @@ import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
  * 選択中になるのと同じく、タブで選んでいるものがサイドバーで分かるように）。チャットのパネルが出ているのは、
  * チャットタブに分ける置き方ならチャットタブ、ボードの右に置くならボード（パネルが開いているときだけ = draft.showing）
  */
-function useDraftSelected(draft: PanelDraft): boolean {
+function useDraftSelected(draft: PlacedDraft): boolean {
   const route = useRoute();
   const [placement] = useChatPlacement();
   if (!draft.showing || draft.panel !== panelKey("kanban", draft.projectId)) return false;
@@ -24,7 +24,7 @@ function useDraftSelected(draft: PanelDraft): boolean {
 }
 
 /** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける。下書きが変わるまでは同じ配列） */
-export function useProjectDrafts(projectId: number): PanelDraft[] {
+export function useProjectDrafts(projectId: number): PlacedDraft[] {
   const all = useAllDrafts();
   return useMemo(() => all.filter((d) => d.projectId === projectId), [all, projectId]);
 }
@@ -34,7 +34,7 @@ export function useProjectDrafts(projectId: number): PanelDraft[] {
  * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックはチャットの行と同じ並びの DraftMenuItems（ピン留めしたものは「固定」に出す）。
  * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る。落とし先はまとまりを包む要素）
  */
-export function DraftRows({ drafts }: { drafts: readonly PanelDraft[] }) {
+export function DraftRows({ drafts }: { drafts: readonly PlacedDraft[] }) {
   if (drafts.length === 0) return null;
   return (
     <ul className="chat-rows draft-rows">
@@ -46,7 +46,7 @@ export function DraftRows({ drafts }: { drafts: readonly PanelDraft[] }) {
 }
 
 /** 下書きの 1 行（チャットの行の並びの中にも置ける。手動の並びでタブの位置に合わせるとき） */
-export function DraftRow({ draft }: { draft: PanelDraft }) {
+export function DraftRow({ draft }: { draft: PlacedDraft }) {
   const menu = useContextMenu();
   const selected = useDraftSelected(draft);
   const [renaming, setRenaming] = useState(false);
@@ -83,7 +83,7 @@ export function DraftRow({ draft }: { draft: PanelDraft }) {
         <span className="chat-row-body">
           <span className="chat-row-line">
             <span className="chat-row-title">{draftTitleOf(draft)}</span>
-            {draft.hasAttachments && !draft.text.trim() && <Paperclip size={12} aria-label="添付あり" />}
+            {hasDraftAttachments(draft) && !draft.text.trim() && <Paperclip size={12} aria-label="添付あり" />}
             {draft.pinned && (
               <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
                 <Pin size={11} aria-hidden />

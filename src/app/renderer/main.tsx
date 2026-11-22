@@ -33,9 +33,11 @@ void prepareStorage(STORAGE_GROUPS)
     // 拡張点に全部の機能の項目を入れる（別ウィンドウの種類の解析と、App が読む保存の読み戻しより前。機能のモジュールは片付けのあとに読む）
     const { installRegistry } = await import("./registry");
     installRegistry();
-    // パネルの店を、入れたタブの種類と欄から 1 つ作る（下書きのタブ・右サイドバーのブラウザを保存から戻す）。消したチャット・プロジェクトのタブを片付け始める
+    // パネルの店を、入れたタブの種類と欄から 1 つ作る（右サイドバーのブラウザを保存から戻す）。下書きのタブを戻し、消したチャット・プロジェクトのタブを片付け始める
     const { createPanelStore, installPanelStore, panelSurfaces, panelTabs, startPanelServerEvents } = await import("@/features/panel/ui");
     installPanelStore(createPanelStore({ kinds: panelTabs.items(), surfaces: panelSurfaces.items() }));
+    const { restoreDraftTabs } = await import("@/features/chatPanel/ui");
+    restoreDraftTabs();
     startPanelServerEvents();
     // チャットの店にサーバーの知らせを当て始める（部品の hook より先に受ける。別ウィンドウも同じ）
     const { startChatStore } = await import("@/features/chat/ui/store/useChatStore");

@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { openDraft, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { openDraft, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { NEW_CHAT_TITLE } from "@/features/chat/ui/chatTitle";
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
@@ -13,7 +13,7 @@ import { ProjectChip } from "@/features/projects/ui/ProjectChip";
  * 列・グループに出す、送る前の新しいチャット（パネル・チャット欄で入力中）の下書き（押すとその欄で開き、表示中なら選択中に見せる。
  * 欄が画面になければ、その画面へ移ってから開く）。showProject: プロジェクトのバッジを付ける（いくつかのプロジェクトの下書きが並ぶ全プロジェクトのボード）
  */
-export function DraftCards({ drafts, showProject = false }: { drafts: readonly PanelDraft[]; showProject?: boolean }) {
+export function DraftCards({ drafts, showProject = false }: { drafts: readonly PlacedDraft[]; showProject?: boolean }) {
   const { projectName } = useProjects();
   return drafts.map((d) => <DraftCard key={`${d.panel}:${d.key}`} draft={d} project={showProject ? { id: d.projectId, name: projectName(d.projectId) } : undefined} />);
 }
@@ -26,7 +26,7 @@ function DraftCard({
   draft,
   project,
 }: {
-  draft: PanelDraft;
+  draft: PlacedDraft;
   /** どのプロジェクトの下書きか（全プロジェクトのボードだけ） */
   project?: { id: number; name: string };
 }) {

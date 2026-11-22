@@ -11,7 +11,7 @@ import type { TabGroupLookup } from "./kind";
 import type { PanelController } from "./usePanel";
 
 /**
- * 欄の名前（覚える状態の名前の頭。下書きの保存（kickoff:new-chat-drafts）のキーにも使うので変えない）:
+ * 欄の名前（覚える状態の名前の頭）:
  * kanban = チャットのパネル（ボードの右・「チャット」タブ）/ side = 右サイドバー（ブラウザ）/ bottom = フッター（ターミナル）/
  * agents = チャットの画面の右の欄（チャットのタブの中に入れ子で置く）/ notes・files = プロジェクトの「ノート」「ファイル」タブの右 /
  * win = ブラウザの別ウィンドウ / cwin = チャットの別ウィンドウ

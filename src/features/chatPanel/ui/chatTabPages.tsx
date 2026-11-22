@@ -5,8 +5,10 @@ import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { chatPaneSlot, createdChildPlace, openChat, useKeepAlive } from "@/features/chat/ui";
 import { ChatScreen, NewChildPane, SideChildChat, SubagentScreen } from "@/features/conversation/ui";
-import { childTab, panelStateOf, useTabPage, type PanelTab, type TabPageProps } from "@/features/panel/ui";
+import { childTab, useTabPage, type PanelTab, type TabPageProps } from "@/features/panel/ui";
 import { NewChatPane } from "./tabs/NewChatPane";
+import { openNewChat } from "./drafts/panelDrafts";
+import { newChatDraft } from "@/features/composer/ui";
 import { moveDraftSidePanel } from "./agents/draftSide";
 
 /** 種類 K のタブの中身に渡すもの */
@@ -15,30 +17,15 @@ type PageOf<K extends PanelTab["kind"]> = TabPageProps<Extract<PanelTab, { kind:
 export function NewChatPage({ tab: t, panel, visible }: PageOf<"new">) {
   return (
     <NewChatPane
-      tabKey={t.key}
-      projectId={t.projectId}
-      group={t.group}
-      title={t.title}
-      worktree={t.worktree}
-      seed={t.seed}
-      draftText={t.draftText}
-      draftAttachments={t.draftAttachments}
-      // 送る前の添付はタブに残す（プロジェクトを移って戻っても・再起動しても、外すまで残る。入力欄がなくなってから終わったアップロードも足す）
-      saveAttachments={(list) => panel.patchTab(t.key, { kind: "new", fields: { draftAttachments: [...list] } })}
+      draftKey={t.key}
       visible={visible}
-      // 作業場所を選び直したら、タブのまとまり（作業場所別）も合わせる
-      onWorktreeChange={(worktree) => panel.patchTab(t.key, { kind: "new", fields: { worktree } })}
-      onGroupChange={(group, groupName) => panel.patchTab(t.key, { kind: "new", fields: { group, groupName } })}
       onCreated={(chat) => {
         // 固定していた下書きは、できたチャットも固定する（送るまでの間に固定を付け外ししていても、いまの値で）
-        const now = panelStateOf(panel.key).tabs.find((x) => x.key === t.key);
-        if (now?.kind === "new" && now.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
+        if (newChatDraft(t.key)?.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
         // 下書きの右の欄（開いたノートなど）は、できたチャットの右の欄へ移す
         moveDraftSidePanel(t.key, chat.id);
         panel.replaceWithChat(t.key, chat);
       }}
-      // 空の文は覚えない（書き始める前と同じ形のまま）
-      onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
   );
 }
@@ -91,7 +78,7 @@ export function ChatTabPage({ tab: t, panel, visible }: PageOf<"chat">) {
         surface: "tab",
         pausable: true,
         // 送信待ちの指示・選んだ文を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
-        openNewChat: panel.openNew,
+        openNewChat: (place, seed) => void openNewChat(panel.key, place, seed),
         // 隠れた画面で移る・動きを開くを受けたら、先にこのタブを表に出す
         bringToFront: tabPage?.show,
         slot: chatPaneSlot(panel.key, t.key),

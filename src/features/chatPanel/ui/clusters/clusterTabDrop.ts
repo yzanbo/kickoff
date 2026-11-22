@@ -1,6 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
+import type { NewChatDraft } from "@/features/composer/ui";
 
 /** タブをまとまりに落としたときに変えるもの: チャットのグループ / 送る前の新しいチャット（下書き）の作成先のグループ（groupId が null ならグループなし） */
 export type ClusterTabDrop = { kind: "chat"; chatId: number; groupId: number | null } | { kind: "draft"; tabKey: string; groupId: number | null; groupName: string | undefined };
@@ -15,13 +16,13 @@ export function clusterGroupOf(cluster: BucketHead): number | null | undefined {
 
 /**
  * タブ（chat はそのチャット）をまとまりに落としたら、どのグループへ移すか（移さないなら null）。
- * 同じプロジェクトのグループ・グループなしだけで、いまと同じグループ・子チャット（グループに入らない）・チャットの分からないタブ・チャット以外のタブは移さない
+ * draft は新しいチャットのタブの下書き。同じプロジェクトのグループ・グループなしだけで、いまと同じグループ・子チャット（グループに入らない）・チャットの分からないタブ・チャット以外のタブは移さない
  */
-export function clusterTabDrop(cluster: BucketHead, tab: PanelTab, chat: Chat | undefined): ClusterTabDrop | null {
+export function clusterTabDrop(cluster: BucketHead, tab: PanelTab, chat: Chat | undefined, draft?: Pick<NewChatDraft, "projectId" | "group">): ClusterTabDrop | null {
   const groupId = clusterGroupOf(cluster);
   if (groupId === undefined) return null;
   if (tab.kind === "new") {
-    if (tab.projectId !== cluster.projectId || (tab.group ?? null) === groupId) return null;
+    if (!draft || draft.projectId !== cluster.projectId || (draft.group ?? null) === groupId) return null;
     return { kind: "draft", tabKey: tab.key, groupId, groupName: cluster.group?.name };
   }
   if (tab.kind !== "chat" || !chat || chat.parent_chat_id !== null || chat.project_id !== cluster.projectId || chat.group_id === groupId) return null;

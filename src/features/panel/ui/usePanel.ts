@@ -7,7 +7,7 @@ import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/s
 import { useLinkedTabs } from "@/features/chatPanel/ui/state/useLinkedChats";
 import { projectOfPanel } from "./surfaces";
 import { panelKey, type PanelScope, type PanelSurface } from "./surface";
-import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
 
 export type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
@@ -28,8 +28,6 @@ export type PanelPageOps = ReturnType<typeof panelOps> & {
 function panelOps(key: string) {
   return {
     key,
-    /** 新しいチャットのタブを開き、そのキーを返す */
-    openNew: (target: NewChatTarget, seed?: Extract<PanelTab, { kind: "new" }>["seed"]) => ops.openNewChat(key, target, seed),
     /** ブラウザの新しいタブを開き、そのキーを返す（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => {
       const tab = browserTab(url);

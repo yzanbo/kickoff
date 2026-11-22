@@ -8,7 +8,7 @@ import { defineSurface } from "@/features/panel/ui/surface";
 import { emptyPanel as empty, isLinkedTab, linkedChatsExt, panelReducer, type PanelAction, type PanelState } from "./panelState";
 
 const chatTab = (id: number): Extract<PanelTab, { kind: "chat" }> => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
-const newTab = (key: string): PanelTab => ({ key, kind: "new", projectId: 1 });
+const newTab = (key: string): PanelTab => ({ key, kind: "new" });
 const terminal = (key: string): PanelTab => ({ key, kind: "terminal", cwd: "/tmp", label: "tmp", projectId: 1 });
 
 /** チャットのパネルと同じ欄（サイドバーと連動する。whenEmpty は最後のタブを閉じたときに欄も閉じるか） */
@@ -68,11 +68,11 @@ test("show: 開いているタブを表示して欄を開く。ないタブな�
 
 test("patch: その種類のタブの中身だけを変え、変わらなければ同じ状態", () => {
   const s = emptyPanel([newTab("new:a"), chatTab(1)]);
-  const s1 = run(s, { type: "patch", key: "new:a", kind: "new", fields: { group: 3, groupName: "実装" } });
-  assert.deepEqual(s1.tabs[0], { ...newTab("new:a"), group: 3, groupName: "実装" });
-  assert.equal(run(s1, { type: "patch", key: "new:a", kind: "new", fields: { group: 3 } }), s1);
+  const s1 = run(s, { type: "patch", key: "chat:1", kind: "chat", fields: { title: "実装" } });
+  assert.deepEqual(s1.tabs[1], { ...chatTab(1), title: "実装" });
+  assert.equal(run(s1, { type: "patch", key: "chat:1", kind: "chat", fields: { title: "実装" } }), s1);
   // 種類の違うタブ・知らないタブは変えない
-  assert.equal(run(s1, { type: "patch", key: "chat:1", kind: "new", fields: { group: 1 } }), s1);
+  assert.equal(run(s1, { type: "patch", key: "new:a", kind: "chat", fields: { title: "x" } }), s1);
   assert.equal(run(s1, { type: "patch", key: "zzz", kind: "chat", fields: { title: "x" } }), s1);
 });
 

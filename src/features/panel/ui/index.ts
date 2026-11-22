@@ -1,19 +1,18 @@
 // panel の画面の口（ほかの機能から読むもの）
 import { storage } from "./storage";
 
-export type { NewChatTarget, PanelTab, TerminalTarget } from "./tabs/panelTypes";
+export type { PanelTab, TerminalTarget } from "./tabs/panelTypes";
 export type { PaneLeaf, SplitDir } from "./layout/paneTree";
 export { isTabVisible, paneOfTab } from "./layout/paneTree";
 export { forwardPanelOp } from "./state/panelMirror";
 export type { DraftScope, PanelScope, PanelSurface, StripProps, TabLook, ViewScope } from "./surface";
 export type { PanelController } from "./usePanel";
-export type { TabGroupLookup } from "./kind";
+export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
 export { defineSurface, draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
 export { linkedChatsExt } from "./state/panelState";
 export { defineTabKind, panelTabs, type TabFaceProps, type TabMenuProps, type TabPageProps } from "./kind";
-export { handOffTab } from "./tabs/tabHandoff";
 export { panelScreen, projectOfPanel } from "./surfaces";
 export {
   allPanels,
@@ -25,12 +24,14 @@ export {
   movePanel,
   panelsVersion,
   panelStateOf,
+  restorePanelTabs,
   startPanelServerEvents,
   subscribePanels,
+  takePanels,
   usePanelOpen,
   usePanelState,
 } from "./state/panelStore";
-export { addTabBehind, closeTab, openNewChat, openTab, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
+export { addTabBehind, closeTab, openTab, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
 export {
   agentTabKey,
   browserTab,
@@ -44,6 +45,7 @@ export {
   hostOf,
   newChatTab,
   newChildTab,
+  newTabKey,
   noteTab,
   projectToolTab,
   projectViewTab,

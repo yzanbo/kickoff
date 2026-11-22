@@ -3,13 +3,14 @@ import { test } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
 import { tabChat } from "@/features/panel/ui/usePanel";
 import type { PanelTab } from "./panelTypes";
-import { browserTab, chatTab, newChatTab, terminalTab } from "./tabData";
+import { browserTab, chatTab, newChatTab, newTabKey, terminalTab } from "./tabData";
 
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
 
-test("タブのキー: チャットは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ブラウザ・ターミナルは開くたびに別のキー", () => {
+test("タブのキー: チャットは中身から決まり（同じものは 1 つのタブ）、新しいチャットは下書きのキー、ブラウザ・ターミナルは開くたびに別のキー", () => {
   assert.equal(chatTab(makeChat(5)).key, chatTab(makeChat(5)).key);
-  assert.notEqual(newChatTab({ projectId: 1 }).key, newChatTab({ projectId: 1 }).key);
+  assert.notEqual(newTabKey("new"), newTabKey("new"));
+  assert.equal(newChatTab("new:1").key, "new:1");
   assert.notEqual(terminalTab(target).key, terminalTab(target).key);
   // ブラウザも、同じ瞬間に 2 つ開いても重ならない（時刻だけのキーだと、続けて開くと同じキーになる）
   assert.notEqual(browserTab().key, browserTab().key);

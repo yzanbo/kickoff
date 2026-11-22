@@ -14,7 +14,7 @@ import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
-import { openDraft, useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import { ChatStateMark } from "@/features/chat/ui";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
@@ -26,10 +26,10 @@ import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, typ
 import { ACTIVE_LOOKS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } from "./PaletteStateFilter";
 
 /** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
-type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PanelDraft };
+type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PlacedDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
-const draftTitle = (draft: PanelDraft) => draft.title ?? (draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE);
+const draftTitle = (draft: PlacedDraft) => draft.title ?? (draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE);
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形。子チャットも並べ、押すと設定の開き方で開く）。

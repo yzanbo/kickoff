@@ -1,6 +1,6 @@
 import type { Chat } from "@shared/chat/types";
 import { open } from "@/foundation/ui/navigation/open";
-import { usePanelDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { openNewChat, usePanelDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui";
 import type { PanelController } from "@/features/panel/ui";
 import type { NewChatPlace } from "@/features/chat/ui";
@@ -16,7 +16,7 @@ export interface BoardChats {
   /** カードを選択中として見せる・ツールバーのパネルの開閉（ボードの右で開く置き方のときだけ） */
   panel?: PanelController;
   /** ボードに出す下書き（このプロジェクトのパネルとチャット欄で書いている途中のもの） */
-  drafts: readonly PanelDraft[];
+  drafts: readonly PlacedDraft[];
   /** カード・行・右クリックの「開く」 */
   open: (chat: Chat) => void;
   /** グループの列の＋など、作成先を決めた新しいチャット */
@@ -30,7 +30,7 @@ export function panelChats(rightPanel: ReturnType<typeof useBoardPanel>): BoardC
     panel: rightPanel.panel,
     drafts: rightPanel.drafts,
     open: rightPanel.open,
-    openNew: (target) => rightPanel.panel.openNew(target),
+    openNew: (target) => void openNewChat(rightPanel.panel.key, target),
   };
 }
 

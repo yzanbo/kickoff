@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { draftScope, movePanel, type DraftScope } from "@/features/panel/ui";
+import { draftScope, kindOf, movePanel, takePanels, type DraftScope } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";
 
 /**
@@ -17,4 +17,10 @@ export const useDraftSide = (): DraftScope | null => useContext(DraftSideContext
  */
 export function moveDraftSidePanel(tabKey: string, chatId: number): void {
   movePanel(chatSidePanel(draftScope(tabKey)), chatSidePanel(chatId), (tab) => (tab.kind === "note" && tab.chatId === null ? { ...tab, chatId } : tab));
+}
+
+/** 送らずに閉じた下書きの右の欄を捨てる（中のタブの後始末もする。送ったときは、先にできたチャットの右の欄へ移してある） */
+export function discardDraftSidePanel(tabKey: string): void {
+  const side = chatSidePanel(draftScope(tabKey));
+  for (const [, state] of takePanels((key) => key === side)) state.tabs.forEach((t) => kindOf(t).dispose?.(t));
 }

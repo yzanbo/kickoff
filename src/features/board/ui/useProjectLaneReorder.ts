@@ -3,9 +3,9 @@ import { projectsSettings } from "@/features/projects/ui";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useProjectReorder } from "@/features/sidebar/ui/useProjectReorder";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 
-type Lane = ChatBucket<PanelDraft>;
+type Lane = ChatBucket<PlacedDraft>;
 
 /**
  * 全プロジェクトのボードの、プロジェクトの段の見出しのドラッグでの並べ替え（段の並びはサイドバーと同じ並びなので、並べ替えもサイドバーと同じ）。

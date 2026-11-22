@@ -10,7 +10,7 @@ import { chatPaneAt, chatPaneSlot, useKnownChat, type NewChatPlace } from "@/fea
 import { ChatMenuItems } from "@/features/chatList/ui";
 import type { PanelTab, TabMenuProps } from "@/features/panel/ui";
 import { DraftMenuItems } from "./drafts/DraftMenuItems";
-import { draftOfPanelTab } from "./drafts/panelDrafts";
+import { draftOfPanelTab, openNewChat } from "./drafts/panelDrafts";
 import { startNewChat } from "./startNewChat";
 
 type MenuOf<K extends PanelTab["kind"]> = TabMenuProps<Extract<PanelTab, { kind: K }>>;
@@ -20,7 +20,7 @@ const newChatIn = ({ panel, paneId }: TabMenuProps<PanelTab>) =>
   panel.kinds.has("chat")
     ? (place: NewChatPlace) => {
         panel.focusPane(paneId);
-        panel.openNew(place);
+        openNewChat(panel.key, place);
       }
     : undefined;
 

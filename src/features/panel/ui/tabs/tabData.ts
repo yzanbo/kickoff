@@ -1,6 +1,6 @@
 // タブの中身を作る関数（種類ごとのキーの決め方）。種類の決まり（アイコン・名前・中身）は tabKinds.ts、型は panelTypes.ts
 import { normalizeUrl } from "@/foundation/ui/lib/url";
-import type { NewChatTarget, PanelTab, ProjectTool, ProjectView, TerminalTarget } from "./panelTypes";
+import type { PanelTab, ProjectTool, ProjectView, TerminalTarget } from "./panelTypes";
 import type { TabPatch } from "@/features/panel/ui/state/panelState";
 
 type TabKind = PanelTab["kind"];
@@ -22,13 +22,8 @@ export const chatTab = (chat: { id: number; project_id: number; title?: string }
   ...(focus ? { focus } : {}),
 });
 
-/** 新しいチャットのタブ（押すたびに新しいキー。seed は初めに入力欄に入れるもの（送信待ちの指示から始めたとき）） */
-export const newChatTab = (target: NewChatTarget, seed?: TabOf<"new">["seed"], key = newTabKey("new")): TabOf<"new"> => ({
-  key,
-  kind: "new",
-  ...target,
-  ...(seed ? { seed, draftText: seed.text } : {}),
-});
+/** 新しいチャットのタブ（キーは下書きのキー。中身は composer の下書きの店） */
+export const newChatTab = (draftKey: string): TabOf<"new"> => ({ key: draftKey, kind: "new" });
 
 /** サブエージェントのタブのキー（同じサブエージェントは、その欄に 1 つのタブ） */
 export const agentTabKey = (agentKey: string) => `agent:${agentKey}`;

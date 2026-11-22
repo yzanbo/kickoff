@@ -4,8 +4,8 @@ import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { choose } from "@/foundation/ui/kit/ask";
-import { openNewChat, panelKey } from "@/features/panel/ui";
-import { openDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { panelKey } from "@/features/panel/ui";
+import { openDraft, openNewChat } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
 import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 

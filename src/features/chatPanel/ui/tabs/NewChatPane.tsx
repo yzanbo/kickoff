@@ -12,9 +12,8 @@ import { workplacePath, type WorkplaceChoice } from "@/foundation/ui/workplace/w
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
-import { chooseBusyWorkplaceAction, currentChats, useChats, type NewChatSeed } from "@/features/chat/ui";
-import { appendDraft, Composer, composerPills, DraftTextWatch, focusDraft, memoryDraft } from "@/features/composer/ui";
-import { mergeAttachments } from "@/features/attachments/ui";
+import { chooseBusyWorkplaceAction, currentChats, useChats } from "@/features/chat/ui";
+import { appendDraft, Composer, composerPills, focusDraft, newChatComposerDraft, patchNewChatDraft, useNewChatDraft, type NewChatDraft } from "@/features/composer/ui";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPicker } from "@/features/groups/ui/GroupPicker";
@@ -30,55 +29,26 @@ import type { SidePanelHandle } from "@/features/conversation/ui";
 const NO_REPLIES: VoiceReply[] = [];
 
 interface Props {
-  /** このタブの key（右の欄の範囲 draft-<key>。送ったら、できたチャットの右の欄へ中身を移す） */
-  tabKey: string;
-  projectId: number;
-  /** グループの＋から始めたときのグループ */
-  group?: number;
-  /** 送る前に付けた名前（右クリックの「名前を変更」。あれば、その名前でチャットを作る） */
-  title?: string;
-  /** 作業場所別のまとまりの「新しいチャット」から始めたときのワークツリーのフォルダ（なければ本体） */
-  worktree?: string;
-  /** 初めに入力欄に入れるもの（送信待ちの指示・選んだ文を新しいチャットで聞くとき。文と添付） */
-  seed?: NewChatSeed;
-  /** 書きかけていた文（ボードを開き直した・アプリを再起動したときに入力欄へ戻す） */
-  draftText?: string;
-  /** 残していた送る前の添付（一度も残していなければ undefined。そのときだけ seed の添付を入れる） */
-  draftAttachments?: readonly Attachment[];
-  /** 送る前の添付を残す（タブに。入力欄がなくなってから終わったアップロードも） */
-  saveAttachments?: (list: readonly Attachment[]) => void;
+  /** 下書きのキー（このタブのキー。右の欄の範囲 draft-<key>。送ったら、できたチャットの右の欄へ中身を移す） */
+  draftKey: string;
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
-  /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
-  onWorktreeChange?: (worktree: string | undefined) => void;
-  /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
-  onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
   onCreated: (chat: Chat) => void;
-  /** 書いている文が変わったとき（ボードの「下書き」のカードに出す） */
-  onDraftChange?: (text: string) => void;
 }
 
 /**
- * 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる）。
+ * 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる）。中身（書きかけの文・添付・名前・作成先）は composer の下書きの店。
  * チャットの画面と同じく右の欄を持ち（AgentSplit。範囲は下書きのタブの draft-<key>）、ノートのピルから開いたノートはここに開く。送ったら中身はできたチャットの右の欄へ移る
  */
-export function NewChatPane({
-  tabKey,
-  projectId,
-  group,
-  title,
-  worktree,
-  seed,
-  draftText,
-  draftAttachments,
-  saveAttachments,
-  visible = true,
-  onGroupChange,
-  onWorktreeChange,
-  onCreated,
-  onDraftChange,
-}: Props) {
+export function NewChatPane({ draftKey, visible = true, onCreated }: Props) {
+  const saved = useNewChatDraft(draftKey);
+  if (!saved) return null;
+  return <NewChatForm draft={saved} visible={visible} onCreated={onCreated} />;
+}
+
+function NewChatForm({ draft: saved, visible, onCreated }: { draft: NewChatDraft; visible: boolean; onCreated: (chat: Chat) => void }) {
+  const { key: draftKey, projectId, group, title, worktree, seed } = saved;
   const { projectsById, loaded: projectsLoaded } = useProjects();
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
@@ -92,24 +62,20 @@ export function NewChatPane({
   // GitHub の issue から「新しいワークツリー」で始めたときは、そのブランチ名の新しいワークツリー（送ったときに作る）
   const initialPlace = (): WorkplaceChoice => (worktree ? { kind: "existing", path: worktree } : seed?.newWorktreeBranch ? { kind: "new", branch: seed.newWorktreeBranch } : { kind: "main" });
   const [place, setPlace] = useState<WorkplaceChoice>(initialPlace);
-  const firstProject = useRef(projectId);
-  useEffect(() => {
-    // プロジェクトを選び直したら本体から（初めの描画では、渡された作業場所のまま）
-    if (firstProject.current === projectId) return;
-    firstProject.current = projectId;
-    setPlace({ kind: "main" });
-  }, [projectId]);
+  // 作業場所を選び直したら、タブのまとまり（作業場所別）も合わせる
   const changePlace = (next: WorkplaceChoice) => {
     setPlace(next);
-    onWorktreeChange?.(next.kind === "existing" ? next.path : undefined);
+    patchNewChatDraft(draftKey, { worktree: next.kind === "existing" ? next.path : undefined });
   };
   // 同じ作業場所で作業中のほかのチャットの数（同じファイルを触るとぶつかる。チャットの画面と同じ数え方・同じ知らせ）
   const busyNeighbors = useBusyNeighbors(projectId, workplacePath(place));
   // 作成先のグループ（作る・名前を変える・消すと、サーバーの知らせで選択肢も直る）
   const groups = useGroups(projectId);
   const groupName = groupNameIn(groups, group);
+  // 作成先のグループを変える（グループ名はタブの表示に使う）
+  const changeGroup = (next: number | undefined, name: string | undefined) => patchNewChatDraft(draftKey, { group: next, groupName: name });
   // グループ名が分かったら、タブにも出す
-  const tellGroupName = useEffectEvent((name: string) => onGroupChange?.(group, name));
+  const tellGroupName = useEffectEvent((name: string) => changeGroup(group, name));
   useEffect(() => {
     if (groupName) tellGroupName(groupName);
   }, [groupName]);
@@ -119,32 +85,18 @@ export function NewChatPane({
   const rowHidden = useChatHeaderRowHidden();
 
   const ready = projectsLoaded && (chats.loaded || chats.error !== undefined);
-  // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
-  // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
-  // 書きかけは入力欄の下書きの店に持ち、添付はタブに残す（文は onDraftChange で少し待ってから）。プロジェクトを選び直したら文は空から（添付は残す）
-  const newDraft = (attachments: readonly Attachment[]) => memoryDraft({ attachments }, (value, next) => next.attachments && saveAttachments?.(value.attachments));
-  const [draft, setDraft] = useState(() => newDraft(draftAttachments ?? []));
-  const [draftProject, setDraftProject] = useState(projectId);
-  if (draftProject !== projectId) {
-    setDraftProject(projectId);
-    setDraft(newDraft(draft.read().attachments));
-  }
-  const initialText = useRef(draftText);
-  // seed の添付は、タブに添付をまだ残していないときだけ入れる（残していれば入力欄がそれを戻す。外した添付を戻さない）
-  const seedAttachments = useRef(draftAttachments === undefined ? seed?.attachments : undefined);
-  const seeded = useRef(false);
-  // ピントを移すかは、入れるときに表示しているかで決める
-  const seedComposer = useEffectEvent(() => {
-    if (!ready || seeded.current) return;
-    const text = initialText.current ?? seed?.text;
-    if (!text && !seed) return;
-    seeded.current = true;
-    draft.write({ text: text ?? "", ...(seedAttachments.current ? { attachments: mergeAttachments(draft.read().attachments, seedAttachments.current) } : {}) });
-    if (visible) focusDraft(draft, { end: true });
+  // 入力欄の下書きは下書きの店（書くたびにすぐ残す。送る前の添付も）
+  const draft = newChatComposerDraft(draftKey);
+  // 書きかけていた文（送信待ちの指示から始めたときの文も）があれば、入力欄ができたら 1 回だけピントを末尾へ。隠れているタブ（閉じたパネル・ほかのタブの裏）では移さない
+  const focused = useRef(false);
+  const focusOnce = useEffectEvent(() => {
+    if (!ready || focused.current) return;
+    focused.current = true;
+    if (visible && (saved.text || seed)) focusDraft(draft, { end: true });
   });
   useEffect(() => {
-    seedComposer();
-  }, [ready, seed]);
+    focusOnce();
+  }, [ready]);
 
   // 最初の指示を送ってチャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
   const start = async (prompt: string, attachments: Attachment[]) => {
@@ -180,16 +132,16 @@ export function NewChatPane({
     onCreated(chat);
   };
 
-  const groupBadge = groups.length > 0 && onGroupChange && shows("group");
+  const groupBadge = groups.length > 0 && shows("group");
   return (
-    <AgentSplit scope={draftScope(tabKey)} handleRef={side}>
+    <AgentSplit scope={draftScope(draftKey)} handleRef={side}>
     <DraftChatPage
       provider={provider}
       badges={
         <>
           {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。グループと作業場所は、押すと選び直せる */}
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
-          {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => onGroupChange(next, groupNameIn(groups, next))} />}
+          {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => changeGroup(next, groupNameIn(groups, next))} />}
           {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
         </>
       }
@@ -215,12 +167,9 @@ export function NewChatPane({
           <Pill key={i} projectId={projectId} chatId={null} attach={(a) => (appendDraft(draft, "", [a]), focusDraft(draft))} />
         ))}
       </div>
-      {/* 書いた文を少し待ってからタブに知らせる（下書きのカードに出す） */}
-      {onDraftChange && <DraftTextWatch key={projectId} draft={draft} onChange={onDraftChange} />}
       {ready && (
         <ChatProviderContext.Provider value={provider}>
         <Composer
-          key={projectId}
           // 新しいワークツリーはまだないので、本体から探す
           place={{ projectId, worktree: place.kind === "existing" ? place.path : null, chatId: null }}
           options={options}

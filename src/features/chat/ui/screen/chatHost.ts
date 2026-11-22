@@ -1,10 +1,14 @@
 // チャットの画面の置き場所の値 ChatHost（パネルのタブ・右の欄の子チャット・別ウィンドウ・ノートのチャットの違いを 1 つの値に）と、チャットの種類
 import type { Attachment, Chat, GitHubLink } from "@shared/chat/types";
-import type { NewChatTarget } from "@/features/panel/ui";
 import type { ChipsPortal } from "./chipsPortal";
 
-/** 新しいチャットを始める先（グループ・作業場所のワークツリーのフォルダ。なければグループなし・本体）。形は panel の NewChatTarget と同じ 1 つ（panel が chat より下なので、型は panel に置いたまま） */
-export type NewChatPlace = NewChatTarget;
+/** 新しいチャットを始める先（どのプロジェクト・グループ・作業場所で始めるか。なければグループなし・本体） */
+export interface NewChatPlace {
+  projectId: number;
+  group?: number;
+  /** 始める作業場所のワークツリーのフォルダ（作業場所別のまとまりの「新しいチャット」から。なければ本体） */
+  worktree?: string;
+}
 
 /** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示・GitHub の issue から始めるとき） */
 export interface NewChatSeed {

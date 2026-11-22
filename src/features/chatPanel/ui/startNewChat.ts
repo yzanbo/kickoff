@@ -1,5 +1,6 @@
 import { openNoProjectsGuide } from "@/features/projects/ui";
 import { parsePanelKey, type PanelController } from "@/features/panel/ui";
+import { openNewChat } from "./drafts/panelDrafts";
 
 /**
  * 欄の「新しいチャット」（タブのすぐ右のボタン・タブがないときのボタン・タブの右クリック）。チャットのパネルはその欄のプロジェクトで始め、
@@ -7,6 +8,6 @@ import { parsePanelKey, type PanelController } from "@/features/panel/ui";
  */
 export function startNewChat(panel: PanelController): void {
   const scope = parsePanelKey(panel.key)?.scope;
-  if (typeof scope === "number") panel.openNew({ projectId: scope });
+  if (typeof scope === "number") openNewChat(panel.key, { projectId: scope });
   else openNoProjectsGuide();
 }

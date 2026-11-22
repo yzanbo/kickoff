@@ -1,5 +1,5 @@
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import type { BoardView } from "./BoardHeader";
 import { BoardLanes } from "./BoardLanes";
 import { FlatTasks } from "./FlatTasks";
@@ -19,8 +19,8 @@ interface Props {
   byGroup: boolean;
   /** グループの列の中を状態で小分けにする（列の分け方の「グループ×状態」。buckets はグループの下を状態でも分けたもの） */
   byState: boolean;
-  buckets: ChatBucket<PanelDraft>[];
-  drafts: readonly PanelDraft[];
+  buckets: ChatBucket<PlacedDraft>[];
+  drafts: readonly PlacedDraft[];
   allProjects: boolean;
   /** 作業場所の段にプロジェクト名を添える（いくつかのプロジェクトが並ぶ全プロジェクトのボード） */
   showLaneProject: boolean;
@@ -28,7 +28,7 @@ interface Props {
   cards: ReturnType<typeof useBoardCards>;
   laneReorder: ReturnType<typeof useProjectLaneReorder>;
   /** 段をグループの落とし先にする（プロジェクトのボードの段: グループ。useGroupLaneDrop の laneProps） */
-  laneDrop?: (lane: ChatBucket<PanelDraft>) => Record<string, unknown>;
+  laneDrop?: (lane: ChatBucket<PlacedDraft>) => Record<string, unknown>;
   /** プロジェクトのボードのプロジェクト（グループの列に使う。全プロジェクトのボードにはない） */
   projectId?: number;
 }
@@ -42,7 +42,7 @@ export function KanbanBody({ view, split, flat, byGroup, byState, buckets, draft
 
   if (byGroup && projectId !== undefined) {
     // プロジェクトのボードのグループの列: グループを列にして縦に並べ、カードのドラッグでグループを移す（段に分けるなら段ごとに）
-    const groupColumns = (chats: ChatBucket<PanelDraft>["chats"], laneDrafts: readonly PanelDraft[]) => (
+    const groupColumns = (chats: ChatBucket<PlacedDraft>["chats"], laneDrafts: readonly PlacedDraft[]) => (
       <ProjectGroupColumns projectId={projectId} chats={chats} drafts={laneDrafts} list={list} foldPlace={foldPlace} render={render} />
     );
     if (split) {

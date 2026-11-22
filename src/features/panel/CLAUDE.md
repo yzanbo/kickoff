@@ -18,7 +18,7 @@
 - 欄ごとの違い（出す種類・Esc・ボタン・空の案内 `EmptyHint`・「表示」の中身 `ViewMenu`・いつも開く `alwaysOpen` など）は欄の項目に集め、`panelSurfaces` で受ける。`usePanel(欄, scope)` に渡すのは 2 つだけ。
 - 欄ごとに出すタブは 1 種類（`kanban` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。
 - ブラウザのタブはどこから開いても右サイドバーに開く（`@/features/browser/ui/panel/openBrowserTab.ts`）。ターミナルは下のパネルに開く。
-- 状態は `panelKey(欄, scope)` で欄・画面ごとに覚える。欄の名前は下書きの保存のキーにも使うので変えない。
+- 状態は `panelKey(欄, scope)` で欄・画面ごとに覚える。
 - 範囲がチャットの ID かは `typeof scope === "number"` で見分ける（プロジェクトの ID と取り違えない）。
 
 ## 状態（`state/`）

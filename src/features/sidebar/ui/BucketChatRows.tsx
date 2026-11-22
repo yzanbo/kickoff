@@ -2,7 +2,7 @@ import { Pin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { ChatRowList } from "./ChatRowList";
 import { DraftRows } from "./DraftRows";
@@ -16,7 +16,7 @@ export function BucketChatRows({
   renderSections,
 }: {
   chats: readonly Chat[];
-  drafts?: readonly PanelDraft[];
+  drafts?: readonly PlacedDraft[];
   sections?: readonly ChatBucket[];
   renderRow: (chat: Chat) => ReactNode;
   renderSections?: (sections: readonly ChatBucket[]) => ReactNode;

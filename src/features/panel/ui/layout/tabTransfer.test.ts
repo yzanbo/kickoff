@@ -14,10 +14,11 @@ test("ウィンドウをまたいで渡すタブ: ブラウザ・チャットの
   assert.equal(parseMovingTab("{"), null);
 });
 
-test("送る前の新しいチャットのタブ: 書きかけの文ごと渡し、作成先のプロジェクトがなければ読まない。チャットを出す欄が受ける", () => {
-  const draft = { panel: "kanban:21", tab: { kind: "new", key: "new:1:abc", projectId: 21, draftText: "書きかけ", group: 3 } } as const;
+test("送る前の新しいチャットのタブ: 下書きのキーだけを渡し（中身は下書きの店）、ほかの値は捨てる。チャットを出す欄が受ける", () => {
+  const draft = { panel: "kanban:21", tab: { kind: "new", key: "new:1:abc" } } as const;
   assert.deepEqual(parseMovingTab(JSON.stringify(draft)), draft);
-  assert.equal(parseMovingTab(JSON.stringify({ ...draft, tab: { kind: "new", key: "new:1:abc" } })), null);
+  assert.deepEqual(parseMovingTab(JSON.stringify({ ...draft, tab: { ...draft.tab, draftText: "書きかけ" } })), draft);
+  assert.equal(parseMovingTab(JSON.stringify({ ...draft, tab: { kind: "new" } })), null);
   assert.equal(
     movingMimeFor([MOVING_TAB_MIMES.new], (k) => k === "chat"),
     MOVING_TAB_MIMES.new,

@@ -1,19 +1,19 @@
 import { useMemo, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
 import { draftAnchor, type DraftTabSpot } from "@/features/chatList/ui/manualOrder";
-import { draftTabSpot, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { draftTabSpot, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { subscribePanels } from "@/features/panel/ui";
 import { useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
 
 /** 下書きと、その下書きを並べるまとまりのチャット（match があれば、そのうち下書きと同じまとまりに出すものだけ） */
 export interface DraftSlot {
-  drafts: readonly PanelDraft[];
+  drafts: readonly PlacedDraft[];
   chats: readonly Chat[];
-  match?: (chat: Chat, draft: PanelDraft) => boolean;
+  match?: (chat: Chat, draft: PlacedDraft) => boolean;
 }
 
 /** 下書きの行の置き場所: チャットの ID → その行のすぐ後ろに置く下書き。ここに入らない下書きは、まとまりのいちばん上に置く */
-export type DraftsAfter = ReadonlyMap<number, readonly PanelDraft[]>;
+export type DraftsAfter = ReadonlyMap<number, readonly PlacedDraft[]>;
 
 const NO_PLACEMENT: DraftsAfter = new Map();
 
@@ -31,7 +31,7 @@ export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly C
   return useMemo(() => {
     if (!on) return NO_PLACEMENT;
     const list = JSON.parse(spots) as (DraftTabSpot | null)[];
-    const after = new Map<number, PanelDraft[]>();
+    const after = new Map<number, PlacedDraft[]>();
     let i = 0;
     for (const slot of slots) {
       const byId = new Map(slot.chats.map((c) => [c.id, c]));
@@ -50,7 +50,7 @@ export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly C
 }
 
 /** 下書きのうち、チャットの行の後ろに置かないもの（まとまりのいちばん上に置く）。どれも置くなら同じ配列 */
-export function unplacedDrafts<D extends PanelDraft>(drafts: D[], after: DraftsAfter): D[] {
+export function unplacedDrafts<D extends PlacedDraft>(drafts: D[], after: DraftsAfter): D[] {
   if (after.size === 0 || drafts.length === 0) return drafts;
   const placed = new Set([...after.values()].flat());
   return drafts.some((d) => placed.has(d)) ? drafts.filter((d) => !placed.has(d)) : drafts;

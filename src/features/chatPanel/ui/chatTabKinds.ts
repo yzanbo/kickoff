@@ -6,12 +6,13 @@ import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats } from "@/features/chat/ui";
 import { ChildTabBadge } from "@/features/childChats/ui";
-import { draftDisplayTitle } from "@/features/composer/ui";
-import { defineTabKind, handOffTab, type PanelTab } from "@/features/panel/ui";
+import { discardNewChatDraft, draftTitleOf, newChatDraft } from "@/features/composer/ui";
+import { defineTabKind, type PanelTab } from "@/features/panel/ui";
 import { ChatTabPage, ChildPage, NewChatPage, NewChildPage, SubagentPage } from "./chatTabPages";
 import { ChatTabFace, ChildTabFace, NewChatTabFace, SubagentTabFace } from "./chatTabFaces";
 import { ChatTabMenu, ChildTabMenu, NewChatTabMenu } from "./chatTabMenus";
-import { setDraftTitle } from "./drafts/panelDrafts";
+import { draftGroupOf, setDraftTitle } from "./drafts/panelDrafts";
+import { discardDraftSidePanel } from "./agents/draftSide";
 
 type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 
@@ -49,18 +50,25 @@ export const chatTabKind = defineTabKind<TabOf<"chat">>({
 export const newChatTabKind = defineTabKind<TabOf<"new">>({
   id: "new",
   icon: SquarePen,
-  // 表示だけ本文の冒頭にする（手動の名前があれば優先）
-  label: (t) => draftDisplayTitle(t.title, t.draftText),
+  // 表示だけ本文の冒頭にする（手動の名前があれば優先）。中身は下書きの店（変わったら Face が描き直す）
+  label: (t) => draftTitleOf(newChatDraft(t.key)),
   // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
-  group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
-  projectOf: (t) => t.projectId,
+  group: (t, _chat, groupOf) => draftGroupOf(t.key, groupOf),
+  projectOf: (t) => newChatDraft(t.key)?.projectId,
+  // 送らずに閉じたら下書きとその右の欄も捨てる（送ったときは、先にできたチャットの右の欄へ移してある。別ウィンドウへ移すときは呼ばれない）
+  dispose: (t) => {
+    discardNewChatDraft(t.key);
+    discardDraftSidePanel(t.key);
+  },
   // 送ったらその名前のチャットになる
-  rename: { initial: (t) => t.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name, panel) => setDraftTitle({ panel, key: t.key }, name) },
+  rename: { initial: (t) => newChatDraft(t.key)?.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name, panel) => setDraftTitle({ panel, key: t.key }, name) },
   Menu: NewChatTabMenu,
   Face: NewChatTabFace,
-  // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。URL には入らないので、移す直前に tabHandoff で渡す）
-  popout: (t, panel) => ({ route: { kind: "chats", panel, key: t.key, projectId: t.projectId }, title: `${t.title ?? NEW_CHAT_TITLE} — チャット` }),
-  onMoveToWindow: (t) => handOffTab(t),
+  // チャットの別ウィンドウへ移す（書きかけの文・添付は下書きの店にあるので、キーだけ渡す）
+  popout: (t, panel) => {
+    const draft = newChatDraft(t.key);
+    return { route: { kind: "chats", panel, key: t.key, projectId: draft?.projectId ?? 0 }, title: `${draft?.title ?? NEW_CHAT_TITLE} — チャット` };
+  },
   Page: NewChatPage,
 });
 

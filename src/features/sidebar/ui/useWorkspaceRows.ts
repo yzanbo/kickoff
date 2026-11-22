@@ -10,7 +10,7 @@ import { isWaitingState, useShowArchivedChats } from "@/features/chatList/ui/cha
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { useWaitingView } from "./waitingView";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { sidebarLevels, sidebarSort } from "@/features/chatList/ui/chatOrder";
 import { splitPinnedDrafts } from "./sidebarDrafts";
@@ -20,7 +20,7 @@ import { unplacedDrafts, useDraftPlacement, type DraftSlot } from "./useDraftPla
 /** チャットのないグループも出す（グループなしは出すかを見出しの決まりで決めるので、いつも作っておく）。絞り込み中は一致するものだけ */
 const KEEP_GROUPS = (head: BucketHead) => head.kind === "group" || head.kind === "ungrouped";
 const KEEP_UNGROUPED = (head: BucketHead) => head.kind === "ungrouped";
-const NO_DRAFTS: PanelDraft[] = [];
+const NO_DRAFTS: PlacedDraft[] = [];
 /** 見出しの下に並べるまとまり（固定・アーカイブ済み・自分で作ったグループ以外） */
 const isMainBucket = (b: BucketHead) => b.kind !== "pinned" && b.kind !== "archived" && b.kind !== "group";
 
@@ -114,7 +114,7 @@ export function useWorkspaceRows({
     [nestedDrafts, buckets, topDraftList, mainRows],
   );
   const draftsAfter = useDraftPlacement(slots, chats, projectId, order === "manual" && !collapsed);
-  const withUnplaced = <B extends { drafts: PanelDraft[] }>(b: B): B => {
+  const withUnplaced = <B extends { drafts: PlacedDraft[] }>(b: B): B => {
     const rest = unplacedDrafts(b.drafts, draftsAfter);
     return rest === b.drafts ? b : { ...b, drafts: rest };
   };

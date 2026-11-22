@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { open } from "@/foundation/ui/navigation/open";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useGroups } from "@/features/groups/ui/stores/groups";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { GroupSections } from "./GroupSections";
@@ -28,7 +28,7 @@ export function ProjectGroupColumns({
 }: {
   projectId: number;
   chats: readonly Chat[];
-  drafts: readonly PanelDraft[];
+  drafts: readonly PlacedDraft[];
   list: boolean;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード。グループはまとまりのキーで分ける） */
   foldPlace: string;

@@ -8,11 +8,11 @@ import { panelStateOf, peekPanel, subscribePanels } from "@/features/panel/ui/st
 import type { PanelKind } from "@/features/panel/ui/surface";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
-/** ウィンドウをまたいで移せるタブ（中身の形。送る前の新しいチャットは、書きかけの文・添付ごとタブの中身をそのまま） */
+/** ウィンドウをまたいで移せるタブ（中身の形。送る前の新しいチャットの中身は composer の下書きの店にあり、キーだけ渡す） */
 export type MovableTab =
   | { kind: "browser"; key: string; url: string; title: string }
   | { kind: "chat"; key: string; id: number; projectId: number }
-  | Extract<PanelTab, { kind: "new" }>;
+  | { kind: "new"; key: string };
 
 /** 渡すもの（どの欄のどのタブか） */
 interface MovingTab {
@@ -34,7 +34,7 @@ const SHOWN_AS: Readonly<Record<MovableTab["kind"], PanelKind>> = { browser: "br
 function movableTab(tab: PanelTab): MovableTab | null {
   if (tab.kind === "browser") return { kind: "browser", key: tab.key, url: tab.current ?? tab.url, title: tab.title };
   if (tab.kind === "chat") return { kind: "chat", key: tab.key, id: tab.id, projectId: tab.projectId };
-  if (tab.kind === "new") return tab;
+  if (tab.kind === "new") return { kind: "new", key: tab.key };
   return null;
 }
 
@@ -59,8 +59,7 @@ export function parseMovingTab(raw: string): MovingTab | null {
     if (typeof panel !== "string" || typeof tab !== "object" || tab === null || typeof tab.key !== "string") return null;
     if (tab.kind === "browser" && typeof tab.url === "string" && typeof tab.title === "string") return { panel, tab: { kind: "browser", key: tab.key, url: tab.url, title: tab.title } };
     if (tab.kind === "chat" && typeof tab.id === "number" && typeof tab.projectId === "number") return { panel, tab: { kind: "chat", key: tab.key, id: tab.id, projectId: tab.projectId } };
-    // 送る前の新しいチャットは、作成先のプロジェクトがあればタブの中身をそのまま使う（同じアプリのウィンドウから渡したもの）
-    if (tab.kind === "new" && typeof tab.projectId === "number") return { panel, tab: tab as unknown as MovableTab };
+    if (tab.kind === "new") return { panel, tab: { kind: "new", key: tab.key } };
     return null;
   } catch {
     return null;

@@ -44,6 +44,8 @@ export interface TabFace {
   label?: string;
   /** マウスを乗せたときの説明（hint がない種類だけ。なければ名前とグループ名） */
   title?: string;
+  /** 名前の後ろに添えるグループ（店を読むもの。送る前の新しいチャットの作成先） */
+  group?: TabGroupBadge;
   /** アイコンの代わりに名前の前に置くもの（状態の印） */
   lead?: ReactNode;
   /** 名前のすぐ後ろ（子チャットの動きの印・添付ありの印） */
@@ -70,6 +72,8 @@ export interface TabFaceProps<T extends TabBase> {
   show(field: string): boolean;
   /** 種類によらない形で決めた名前とグループ */
   base: { label: string; group: TabGroupBadge | undefined };
+  /** プロジェクトのグループ（名前と色）を引く（店を読んで決めるグループに使う） */
+  groupOf: TabGroupLookup;
   render(face: TabFace): ReactNode;
 }
 
@@ -138,8 +142,6 @@ export interface TabKind<T extends TabBase> {
    * panel はタブのある欄（戻す先）。dismiss: 欄からは「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）
    */
   popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean };
-  /** 別ウィンドウへ移す直前（送る前の新しいチャットは、書きかけの文・添付ごと渡す） */
-  onMoveToWindow?(tab: T, from: string): void;
   /** タブの中身（表示していないタブも hidden で残す） */
   Page: ComponentType<TabPageProps<T>>;
 }

@@ -2,12 +2,12 @@ import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { useGroupDrop } from "@/features/groups/ui/groups";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { useGroups } from "@/features/groups/ui/stores/groups";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 
-type Lane = ChatBucket<PanelDraft>;
+type Lane = ChatBucket<PlacedDraft>;
 
 /**
  * プロジェクトのボードの段: グループ（列は状態）で、カードを別のグループの段へドラッグして落とすと、そのグループへ移す（「No Group」の段ならグループから外す）。

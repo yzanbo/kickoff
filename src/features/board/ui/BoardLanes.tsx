@@ -17,7 +17,7 @@ import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
 import { useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
 import { FoldHead, type FoldLook } from "@/foundation/ui/kit/FoldHead";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 
 /**
@@ -71,7 +71,7 @@ export function LaneSelect({ value, options, onChange }: { value: BoardLane | "n
 }
 
 /** 段の見出しの印と名前（グループ・プロジェクト・作業場所。作業場所は見出しをサイドバーと同じ workplaceOf で出し、種類を添える） */
-function LaneTitle({ lane, showProject }: { lane: ChatBucket<PanelDraft>; showProject: boolean }) {
+function LaneTitle({ lane, showProject }: { lane: ChatBucket<PlacedDraft>; showProject: boolean }) {
   const { projectName } = useProjects();
   const { place } = lane;
   if (place) {
@@ -97,7 +97,7 @@ function LaneTitle({ lane, showProject }: { lane: ChatBucket<PanelDraft>; showPr
 }
 
 /** 段のまとめ方（色を決めるため。グループ・グループなしの段があればグループ別、作業場所の段があれば作業場所別、プロジェクトの段だけなら色はプロジェクトから） */
-function laneGrouping(lanes: readonly ChatBucket<PanelDraft>[]): ChatGrouping {
+function laneGrouping(lanes: readonly ChatBucket<PlacedDraft>[]): ChatGrouping {
   if (lanes.some((l) => l.kind === "group" || l.kind === "ungrouped")) return "group";
   return lanes.some((l) => l.place) ? "worktree" : "none";
 }
@@ -106,7 +106,7 @@ function laneGrouping(lanes: readonly ChatBucket<PanelDraft>[]): ChatGrouping {
  * 段の見出しの地の色（サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷く）。プロジェクトの段はプロジェクトの色（--hue。
  * 地は project-mark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--hue。bucketHues.ts）。色のない段は灰色の地
  */
-function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucket<PanelDraft>) => { className: string; style?: CSSProperties } {
+function useLaneTint(lanes: readonly ChatBucket<PlacedDraft>[]): (lane: ChatBucket<PlacedDraft>) => { className: string; style?: CSSProperties } {
   const projectIds = [...new Set(lanes.flatMap((l) => (l.projectId === undefined ? [] : [l.projectId])))];
   const hueOf = useBucketHueOf(laneGrouping(lanes), projectIds, true);
   return (lane) => {
@@ -117,7 +117,7 @@ function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucke
 }
 
 /** 段が縦に取る行の数（リストは段のすべて、ボードの状態の列は横に並ぶのでいちばん長い列） */
-function laneRows(lane: ChatBucket<PanelDraft>, list: boolean): number {
+function laneRows(lane: ChatBucket<PlacedDraft>, list: boolean): number {
   if (list || !lane.children?.length) return lane.chats.length;
   return Math.max(...lane.children.map((c) => c.chats.length));
 }
@@ -139,7 +139,7 @@ export function BoardLanes({
   actions,
   children,
 }: {
-  lanes: readonly ChatBucket<PanelDraft>[];
+  lanes: readonly ChatBucket<PlacedDraft>[];
   /** 段の開閉を覚える場所（ボードごと） */
   foldPlace: string;
   /** 段の中をリストで並べる（リスト表示。段の中の状態のまとまりを縦に並べる） */
@@ -147,13 +147,13 @@ export function BoardLanes({
   /** 作業場所の段に、どのプロジェクトのものかを添える（いくつかのプロジェクトが並ぶボード） */
   showProject?: boolean;
   /** 段の要素に付けるもの（ドロップ先にするなど） */
-  laneProps?: (lane: ChatBucket<PanelDraft>) => { className?: string } & Record<string, unknown>;
+  laneProps?: (lane: ChatBucket<PlacedDraft>) => { className?: string } & Record<string, unknown>;
   /** 段の見出しに付けるもの（ドラッグで段を並べ替えるつかむところなど） */
-  headProps?: (lane: ChatBucket<PanelDraft>) => Record<string, unknown>;
+  headProps?: (lane: ChatBucket<PlacedDraft>) => Record<string, unknown>;
   /** 段の見出しの名前の右に置く操作（全プロジェクトのリストの「グループを作成」） */
-  actions?: (lane: ChatBucket<PanelDraft>) => ReactNode;
+  actions?: (lane: ChatBucket<PlacedDraft>) => ReactNode;
   /** 段の中身 */
-  children: (lane: ChatBucket<PanelDraft>) => ReactNode;
+  children: (lane: ChatBucket<PlacedDraft>) => ReactNode;
 }) {
   const tint = useLaneTint(lanes);
   // 段の見出しの右クリックのメニュー（その段で始める新しいチャット）

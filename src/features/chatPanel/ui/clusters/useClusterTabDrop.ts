@@ -2,6 +2,7 @@ import { useState, type DragEvent } from "react";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { newChatDraft } from "@/features/composer/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";
 import type { TabCluster } from "./tabClusters";
@@ -26,7 +27,7 @@ export function useClusterTabDrop(panel: PanelController, dragging: string | nul
   /** ドラッグ中のタブをそのまとまりに落としたときに変えるもの（移せなければ null） */
   const dropOf = (c: TabCluster) => {
     const tab = enabled && dragging !== null ? panel.tabs.find((t) => t.key === dragging) : undefined;
-    return tab ? clusterTabDrop(c, tab, panel.chatOf(tab)) : null;
+    return tab ? clusterTabDrop(c, tab, panel.chatOf(tab), newChatDraft(tab.key)) : null;
   };
 
   return {

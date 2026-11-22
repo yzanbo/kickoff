@@ -14,7 +14,7 @@
 - 下の行は 1 行に収める（`useComposerBarFit`）。決め打ちの幅で切り替えず実際に測り、中身の幅が変わる値が変わったら測り直す。
 - Esc は 2 回で中断（パネルを閉じるのにも使う）。録音中・候補の一覧で先に扱ったキーは見ない。
 - 選択は ai の `useChatOptions({ initial, projectId, worktree, provider })`（`provider` がチャットの AI）。モデルに合わない選択は描くときに `fitChatOptions` で外す。Fast は対応が分からない間、保存した希望を消さず実行にも渡さない。
-- 添付は選んだ時点でアップロードし、送るか外すまで残す（下書きの店・タブの `draftAttachments`）。入力欄がなくなってから終わったアップロードも残す先へ足す。
+- 添付は選んだ時点でアップロードし、送るか外すまで残す（下書きの店。新しいチャットは `newChatDrafts.ts`）。入力欄がなくなってから終わったアップロードも残す先へ足す。
 - 添付は `mergeAttachments` で同じものを入れ替える。札は `AttachmentChip` 1 つ。
 - ほかのチャットを読ませるのは「参照」（`ChatContextButton`）。
 

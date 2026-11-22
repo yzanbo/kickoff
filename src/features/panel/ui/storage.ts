@@ -1,13 +1,8 @@
 // panel の画面の保存（キーは kickoff:panel:<名前の kebab>。ほかの機能が読むものは ui/index.ts から出す）
-import { choice, defineSettings, flag, json, list, number, record, single } from "@/foundation/ui/storage";
+import { choice, defineSettings, flag, json, list, number, single } from "@/foundation/ui/storage";
 import { NO_POPOUT_WINDOW_TABS, isPopoutWindowTab } from "./popoutWindowTab";
 
 export const storage = defineSettings("panel", {
-  /**
-   * 別ウィンドウへ・別ウィンドウから移す送る前の新しいチャットのタブの中身（タブのキーごと。書きかけの文・添付は URL に入らないので、ここで渡し、受け取った側が消す。
-   * features/panel/tabs/popOutTab.ts・features/popout/tabWindow.ts・dockPopout.ts）
-   */
-  popoutTabHandoff: single(record(), { ids: true }),
   popoutWindowTabs: single(json((value) => (Array.isArray(value) ? value.filter(isPopoutWindowTab) : undefined), NO_POPOUT_WINDOW_TABS, (tabs) => tabs.length === 0), { ids: true, session: true }),
   width: number(1127),
   /** 右のパネルを横幅いっぱいにしているか */
