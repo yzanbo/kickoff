@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { Attachment, QueuedMessage } from "@shared/chat/types";
+import { isQueueAction } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 
@@ -76,9 +77,9 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
   return {
     edits,
     editHeight,
-    /** 書き直す欄を開く（もう開いているものは、書いている途中の文のまま。会話の圧縮の行は書き直せないので除く） */
+    /** 書き直す欄を開く（もう開いているものは、書いている途中の文のまま。挟む行（圧縮・消去）は書き直せないので除く） */
     start: (messages: QueuedMessage[]) => {
-      const editable = messages.filter((m) => !m.compact);
+      const editable = messages.filter((m) => !isQueueAction(m));
       if (editable.length === 0) return;
       setEdits((prev) => ({ ...prev, ...Object.fromEntries(editable.filter((m) => !prev[m.id]).map((m) => [m.id, { text: m.text, attachments: m.attachments }])) }));
       setLast(editable.at(-1)?.id);
