@@ -1,6 +1,5 @@
-import { Check, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Check } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
@@ -14,9 +13,6 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
 import { ArchivedChatsItem } from "./ArchivedChatsItem";
-
-/** その欄に、タブの表示の項目があるか（チャットを出す欄。サブエージェントの欄はない） */
-export const hasTabDisplayItems = (panel: PanelController) => panel.kinds.has("chat");
 
 const separator = <div className="menu-separator" role="separator" />;
 
@@ -161,26 +157,4 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
       {s}
     </Fragment>
   ));
-}
-
-/**
- * タブの右クリックの「タブの表示 ›」（乗せる・押す・→ で横に開く子のメニューに TabDisplayItems を出す。タブの列の「表示」のメニューと同じ値）。
- * 項目のない欄（サブエージェントの欄）では何も出さない。区切り線は置かない（タブのメニューで「タブを閉じる」と 1 つの組にする）
- */
-export function TabDisplaySubmenu({ panel }: { panel: PanelController }) {
-  const sub = useSubmenu();
-  if (!hasTabDisplayItems(panel)) return null;
-  return (
-    <>
-      <button {...sub.trigger} title="タブの列の「表示」のメニューと同じ、タブの表示の選び方です">
-        <SlidersHorizontal size={14} /> タブの表示
-        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-      </button>
-      {sub.anchor && (
-        <MenuFlyout anchor={sub.anchor} label="タブの表示" onBack={sub.back}>
-          <TabDisplayItems panel={panel} />
-        </MenuFlyout>
-      )}
-    </>
-  );
 }

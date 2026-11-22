@@ -36,22 +36,21 @@ const chatViewAtInitial = () => CHAT_VIEW_SETTINGS.every((s) => atInitial(s, rea
 
 /**
  * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（チャットのまとめ方・並び順（サイドバーと共通）・出すグループ・タブに出す項目・
- * アーカイブ済み・まとまりの色と名前の省略・2 行で表示・タブが増えたとき）と「表示」ボタンを初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、「表示」ボタンだけを戻す）。
+ * アーカイブ済み・まとまりの色と名前の省略・2 行で表示・タブが増えたとき）と「表示」ボタンを初めの値に戻す（メニューはチャットを出す欄だけにある）。
  * changed は初めと違う選び方があるか（なければ押せない）
  */
-export function usePanelViewReset(surface: PanelSurface, chat: boolean) {
+export function usePanelViewReset(surface: PanelSurface) {
   const groupingSetting = storage.settings.tabGrouping(surface);
   const [grouping] = useSetting(groupingSetting);
-  // 「表示」ボタンを出すか（どの欄のメニューにも出すので、チャットを出さない欄でも戻す）
+  // 「表示」ボタンを出すか
   const [buttonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
   // チャットの項目の設定がすべて初めの値か（どれが変わってもメニューを描き直す。hook を並べて呼ばない）
   const chatViewInitial = useSyncExternalStore(subscribeChatView, chatViewAtInitial);
-  const chatChanged = chat && (!atInitial(groupingSetting, grouping) || !chatViewInitial);
+  const chatChanged = !atInitial(groupingSetting, grouping) || !chatViewInitial;
   return {
     changed: chatChanged || buttonHidden !== PANEL_VIEW_BUTTON_HIDDEN.initial,
     reset: () => {
       writeSetting(PANEL_VIEW_BUTTON_HIDDEN, PANEL_VIEW_BUTTON_HIDDEN.initial);
-      if (!chat) return;
       writeSetting(groupingSetting, groupingSetting.initial);
       for (const s of CHAT_VIEW_SETTINGS) writeSetting(s, s.initial);
     },

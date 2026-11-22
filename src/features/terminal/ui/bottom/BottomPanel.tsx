@@ -32,8 +32,7 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
 
 /** フッターの中身（画面ごとのタブ。開いているかは殻 useBottomPanel と同じ店から読む） */
 function BottomTabs({ bottom }: { bottom: BottomPanelController }) {
-  const { targets, scope } = bottom;
-  // ターミナルだけの欄なので、新しいチャットの作成先は渡さない
-  const panel = usePanel({ surface: "bottom", scope, newChat: undefined, terminals: targets });
-  return <Panel panel={panel} frame={{ maximize: { on: bottom.maximized, toggle: bottom.toggleMaximized } }} />;
+  const panel = usePanel("bottom", bottom.scope);
+  // 開けるターミナルの場所は殻から渡す（チャットを表示しているペインでは、そのチャットの作業場所で開く）
+  return <Panel panel={panel} frame={{ maximize: { on: bottom.maximized, toggle: bottom.toggleMaximized }, terminals: bottom.terminals }} />;
 }

@@ -11,6 +11,7 @@ import { browserPageOf, terminalTargetOf } from "./externalTargets";
 import { OpenWithMenu } from "./OpenWithMenu";
 import { openTab } from "@/features/panel/ui/state/actions";
 import { terminalTab } from "@/features/panel/ui/tabs/tabData";
+import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";
@@ -33,12 +34,11 @@ interface OpenWithChoice {
  * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（openTargets の terminalTargetOf: 押したペインでチャットを表示していればその作業場所 →
  * 開く場所が 1 つならそこ）で、決まらなければ開く場所を選ぶメニューを出す（1 つのメニューを、新しいタブ・外のターミナルで共通に使う）。
  * 外のブラウザでは、押したペインで見せている表示中のブラウザのタブのページを、そのブラウザの新しいタブで開く（なければ空の新しいタブ。browserPageOf）。
- * openTerminal をターミナルのアイコンに、open を ▾ に渡し、menu を描く
+ * openTerminal をターミナルのアイコンに、open を ▾ に渡し、menu を描く。targets は開けるターミナルの場所（欄の殻の frame.terminals）
  */
-export function useOpenWithMenu(panel: PanelController) {
+export function useOpenWithMenu(panel: PanelController, targets: readonly TerminalTarget[]) {
   const browser = useExternalBrowser();
   const terminal = useExternalTerminal();
-  const targets = panel.terminals;
   // ▾ のメニュー（どのペインの、どちらの ▾ か）
   const caret = useContextMenu<{ kind: OpenWithKind; paneId: string }>({ align: "end" });
   // ターミナルを開く場所を選ぶメニュー（tab = 新しいタブ / external = 外のターミナル。icon = アイコン・タブがないときのボタンから開いた）
@@ -133,6 +133,8 @@ export function useOpenWithMenu(panel: PanelController) {
     </>
   );
   return {
+    /** 開けるターミナルの場所 */
+    targets,
     openTerminal,
     open,
     /** いま開いている ▾ のメニュー（aria-expanded に使う） */

@@ -56,9 +56,9 @@ export function BrowserAdds({ panel, pane }: { panel: PanelController; pane: Pan
 }
 
 /** ターミナルの欄（フッター）の新しいタブ: アイコンで新しいタブ（開く場所が決まらなければ選ぶメニュー）、横の ▾ で外のターミナルで開くメニュー。開ける場所がなければ出さない */
-export function TerminalAdds({ panel, pane }: { panel: PanelController; pane: PaneLeaf }) {
+export function TerminalAdds({ pane }: { panel: PanelController; pane: PaneLeaf }) {
   const openWith = useContext(OpenWithContext);
-  const terminals = panel.terminals.length;
+  const terminals = openWith?.targets.length ?? 0;
   return (
     <span className="panel-bar-buttons panel-tab-adds">
       {terminals > 0 && openWith && (

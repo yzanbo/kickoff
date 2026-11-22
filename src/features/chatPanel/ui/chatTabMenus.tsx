@@ -2,7 +2,7 @@
 // チャットのタブと子チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
 // （ChatMenuItems。名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる（子チャットのタブも、ふつうのチャットのタブと同じ並び）。
 // 送る前の新しいチャットのタブは、サイドバーの下書きの行と同じ項目（DraftMenuItems。チャットの項目のうち下書きでもできるもの）を同じ並びで
-import { GitBranch, MessageSquare, Pencil } from "lucide-react";
+import { GitBranch, MessageSquare, Pencil, SquarePen } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -11,6 +11,7 @@ import { ChatMenuItems } from "@/features/chatList/ui";
 import type { PanelTab, TabMenuProps } from "@/features/panel/ui";
 import { DraftMenuItems } from "./drafts/DraftMenuItems";
 import { draftOfPanelTab } from "./drafts/panelDrafts";
+import { startNewChat } from "./startNewChat";
 
 type MenuOf<K extends PanelTab["kind"]> = TabMenuProps<Extract<PanelTab, { kind: K }>>;
 
@@ -22,6 +23,25 @@ const newChatIn = ({ panel, paneId }: TabMenuProps<PanelTab>) =>
         panel.openNew(place);
       }
     : undefined;
+
+/** 「新しいチャット」（チャットを出す欄だけ。右クリックしたタブのペインに、欄の作成先で始める。チャット・下書きをまだ読み込んでいないタブのメニュー） */
+function NewChatItem({ panel, paneId }: TabMenuProps<PanelTab>) {
+  if (!panel.kinds.has("chat")) return null;
+  return (
+    <>
+      <MenuItem
+        title="このペインで新しいチャットを始める"
+        onSelect={() => {
+          panel.focusPane(paneId);
+          startNewChat(panel);
+        }}
+      >
+        <SquarePen size={14} /> 新しいチャット
+      </MenuItem>
+      <div className="menu-separator" role="separator" />
+    </>
+  );
+}
 
 /** チャットの項目（会話 / 動きの切り替えを、表示する場所の組の前に足す） */
 function ChatItems({ chat, ...props }: TabMenuProps<PanelTab> & { chat: Chat }) {
@@ -64,7 +84,7 @@ export function ChatTabMenu(props: MenuOf<"chat">) {
   if (chat) return <ChatItems {...props} chat={chat} />;
   return (
     <>
-      {props.newChat}
+      <NewChatItem {...props} />
       {props.before}
       {props.after}
     </>
@@ -77,7 +97,7 @@ export function ChildTabMenu(props: MenuOf<"child">) {
   if (child) return <ChatItems {...props} chat={child} />;
   return (
     <>
-      {props.newChat}
+      <NewChatItem {...props} />
       <MenuItem onSelect={props.onRename}>
         <Pencil size={14} /> 名前を変更
       </MenuItem>
@@ -93,7 +113,7 @@ export function NewChatTabMenu(props: MenuOf<"new">) {
   if (!draft)
     return (
       <>
-        {props.newChat}
+        <NewChatItem {...props} />
         {props.before}
         {props.after}
       </>

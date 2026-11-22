@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Panel } from "@/features/panel/ui/Panel";
-import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
+import { usePanel } from "@/features/panel/ui/usePanel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
@@ -9,7 +9,6 @@ import type { ProjectChatController } from "./useRightSidebar";
 import { SideViewBody } from "./SideViewBody";
 
 /** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
-const NO_TERMINALS: TerminalTarget[] = [];
 
 /**
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで。画面の文言では「右サイドバー」）。ブラウザのタブはボードの右のパネルと同じタブ（Panel）で、
@@ -65,6 +64,6 @@ export function SideBody({ projectId, frame }: { projectId: number; frame?: Pane
  */
 function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
   // ブラウザだけの欄なので、新しいチャット・ターミナルの開く場所は渡さない
-  const panel = usePanel({ surface: "side", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
+  const panel = usePanel("side", projectId);
   return <Panel panel={panel} frame={frame} />;
 }

@@ -4,6 +4,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { surfaceOf } from "./state/panelStore";
 import { PanelViewButton, type PanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
+import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 
 /** 欄の殻（大きさを持つ側）から Panel に渡すもの。大きさの変え方は欄ごとに違うので、殻に残す */
 export interface PanelFrame {
@@ -13,8 +14,10 @@ export interface PanelFrame {
   resizeHandle?: HTMLAttributes<HTMLDivElement>;
   /** 大きくする切り替えの状態（欄の決まりの maximize で出す。disabled: 狭くて元の大きさに戻せない） */
   maximize?: { on: boolean; disabled?: boolean; toggle: () => void };
-  /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さない */
+  /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さず、いつも開いておく（Esc でも閉じない） */
   fixed?: boolean;
+  /** 開けるターミナルの場所（フッター。Mac のアプリでだけ。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
+  terminals?: readonly TerminalTarget[];
 }
 
 /** 欄の閉じるボタン（欄の決まりの closeButton。欄が画面そのもののときは出さない） */

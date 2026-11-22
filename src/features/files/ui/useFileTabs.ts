@@ -1,24 +1,19 @@
-import { useEffect, useMemo } from "react";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+import { useMemo } from "react";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import type { PanelScope } from "@/features/panel/ui";
 import { usePanel } from "@/features/panel/ui/usePanel";
 import type { Selection } from "@/features/git/ui/changes/fileSelection";
 import { closeFileTabsUnder, dirtyFilePaths, dirtyFileUnder, openFileTab, relocateFileTabs, selectionOf } from "./fileTabs";
 
-const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
  * ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（files。ノートのタブの右と同じく、タブのドラッグ・右クリック・⌘\ で上下・左右に分けられる）と、
  * 左の一覧から開く操作。選んでいるファイル（selected）は、ピントのあるペインで表示中のタブ。scope はプロジェクト（チャットの右の欄の「ファイル」タブの中は、その部品ごとの名前）
  */
 export function useFileTabs(projectId: number, scope: PanelScope) {
-  const panel = usePanel({ surface: "files", scope, newChat: undefined, terminals: NO_TERMINALS });
-  const { panelOpen, setOpen, key } = panel;
-  // 右の欄はいつも開いておく（タブがなければ案内）
-  useEffect(() => {
-    if (!panelOpen) setOpen(true);
-  }, [panelOpen, setOpen]);
+  // 右の欄はいつも開いておく（タブがなければ案内。欄の決まりの alwaysOpen）
+  const panel = usePanel("files", scope);
+  const { key } = panel;
   const focused = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
   const selected = useMemo(() => (focused?.kind === "projectFile" ? selectionOf(focused) : undefined), [focused]);
   return {

@@ -20,7 +20,6 @@ export {
   installPanelStore,
   isPanelMounted,
   kindOf,
-  surfaceOf,
   movePanel,
   panelsVersion,
   panelStateOf,

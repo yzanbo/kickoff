@@ -1,4 +1,4 @@
-import { AppWindow, ArrowRightLeft, Columns2, Rows2, SquarePen, Undo2, X } from "lucide-react";
+import { AppWindow, ArrowRightLeft, Columns2, Rows2, Undo2, X } from "lucide-react";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/ui/layout/paneTree";
@@ -6,15 +6,14 @@ import type { PanelController } from "@/features/panel/ui/usePanel";
 import { confirmTabClose } from "@/features/panel/ui/state/closeTabs";
 import { kindOf } from "@/features/panel/ui/state/panelStore";
 import { canPopOut, popOutTab } from "./popOutTab";
-import { TabDisplaySubmenu } from "@/features/chatPanel/ui/tabs/TabDisplayItems";
+import { ViewSubmenu } from "./PanelViewMenu";
 
 /**
- * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。右クリックしたタブのペインに、
- * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、表示する場所の組（右・下に分ける・ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
+ * 右のパネルのタブの右クリックのメニュー: 表示する場所の組（右・下に分ける・ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
  * 一覧のペインに「（一覧）」と添える）・別ウィンドウで開く・分けたペインのサイドバーと連動したチャットは一覧のペインに戻す）、
  * いちばん下にタブの組（タブの表示 ›・タブを閉じる）。
- * 種類が Menu を持てば、その項目（チャット・子チャットのチャットの項目、新しいチャットの下書きの項目）を、ここで作った組と並べて種類が描く。
- * 閉じるのすぐ上に「タブの表示 ›」（タブの列の「表示」のメニューの上の部分と同じ項目を横に開く。TabDisplaySubmenu）。
+ * 種類が Menu を持てば、その項目（チャット・子チャットのチャットの項目と「新しいチャット」、新しいチャットの下書きの項目）を、ここで作った組と並べて種類が描く。
+ * 閉じるのすぐ上に「タブの表示 ›」（タブの列の「表示」のメニューと同じ項目を横に開く。ViewSubmenu）。
  */
 export function TabMenu({
   panel,
@@ -39,21 +38,6 @@ export function TabMenu({
   const homeId = panes.length > 1 && panel.kinds.has("chat") ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
-  // 「新しいチャット」（右クリックしたタブのペインに、欄の作成先で始める）
-  const newChatItem = panel.kinds.has("chat") && (
-    <>
-      <MenuItem
-        title="このペインで新しいチャットを始める"
-        onSelect={() => {
-          panel.focusPane(pane.id);
-          panel.startNewChat();
-        }}
-      >
-        <SquarePen size={14} /> 新しいチャット
-      </MenuItem>
-      <div className="menu-separator" role="separator" />
-    </>
-  );
   // 表示する場所の組（分ける・ほかのペインへ移す・別ウィンドウ・一覧のペインに戻す）。タブはもう開いているので「開く」は付けず、ペインの右上のボタンと同じ「右に分ける」「下に分ける」と呼ぶ
   const paneItems = (
     <>
@@ -88,7 +72,7 @@ export function TabMenu({
   const tabItems = (
     <>
       <div className="menu-separator" role="separator" />
-      <TabDisplaySubmenu panel={panel} />
+      <ViewSubmenu panel={panel} />
       {/* メニューの「閉じる」は、チャットの閉じ方を聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）。保存していない書きかけのあるファイル・ノートは × と同じく保存するかを聞く */}
       <MenuItem onSelect={() => void (tab ? confirmTabClose(panel.key, tab) : Promise.resolve(true)).then((ok) => ok && panel.closeTab(tabKey))}>
         <X size={14} /> タブを閉じる
@@ -99,10 +83,9 @@ export function TabMenu({
   return (
     <PopupMenu at={at} label="タブのメニュー" onClose={onClose}>
       {Menu ? (
-        <Menu tab={tab} panel={panel} paneId={pane.id} newChat={newChatItem || null} before={paneItems} after={tabItems} onRename={onRename} onClose={onClose} />
+        <Menu tab={tab} panel={panel} paneId={pane.id} before={paneItems} after={tabItems} onRename={onRename} onClose={onClose} />
       ) : (
         <>
-          {newChatItem}
           {paneItems}
           {tabItems}
         </>

@@ -1,49 +1,31 @@
-import { Globe, MessageSquarePlus, SquarePen, SquareTerminal } from "lucide-react";
+import type { ReactNode } from "react";
+import { Globe, SquareTerminal } from "lucide-react";
 import type { PanelKind } from "./surface";
 
 /**
- * タブがないときのパネル・ペインの中身（新しいチャット・ブラウザ・ターミナルを開くボタン）。
- * hint があれば、新しいチャットの代わりにその案内の文を出す（ボードの分けていないパネル。新しいチャットは見出しの「新規」から）。
- * チャットを出さない欄でも、hint があれば出す（サブエージェントの欄。中身は外から開くタブだけなので、開き方を案内する）。
- * サブエージェントの欄では、案内の下に新しい子チャットのボタンも出す（onNewChild）。欄に出さない種類（kinds）のボタンは出さない
+ * タブがないときのパネル・ペインの中身: 案内（欄の EmptyHint か emptyHint の文。チャットの欄は新しいチャットのボタン、右の欄は新しい子チャットのボタンも）と、
+ * ブラウザ・ターミナルを開くボタン（欄に出す種類 kinds のものだけ）
  */
 export function PanelEmpty({
   hint,
   kinds,
   hasTerminals,
   manyTerminals,
-  onNewChat,
-  onNewChild,
   onBrowser,
   onTerminal,
 }: {
-  hint?: string;
+  /** 案内（文なら控えめな段落にする） */
+  hint: ReactNode;
   kinds: { has: (kind: PanelKind) => boolean };
   hasTerminals: boolean;
   /** 開く場所がいくつもある（押すとメニューを開く） */
   manyTerminals: boolean;
-  onNewChat: () => void;
-  /** 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ） */
-  onNewChild: (() => void) | null;
   onBrowser: () => void;
   onTerminal: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
     <div className="panel-empty">
-      {!kinds.has("chat") && hint && <p className="muted small">{hint}</p>}
-      {kinds.has("chat") &&
-        (hint ? (
-          <p className="muted small">{hint}</p>
-        ) : (
-          <button className="btn" onClick={onNewChat}>
-            <SquarePen size={14} /> 新しいチャット
-          </button>
-        ))}
-      {onNewChild && (
-        <button className="btn" onClick={onNewChild}>
-          <MessageSquarePlus size={14} /> 新しい子チャット
-        </button>
-      )}
+      {typeof hint === "string" ? <p className="muted small">{hint}</p> : hint}
       {kinds.has("browser") && (
         <button className="btn" onClick={onBrowser}>
           <Globe size={14} /> ブラウザを開く

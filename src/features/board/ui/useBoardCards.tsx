@@ -12,7 +12,7 @@ import { useCardFields } from "./CardFieldsMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { ChatSelection } from "@/features/chatList/ui/selection/chatSelection";
 
-/** カードの右クリックメニュー（どこに・どのチャットの。開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
+/** カードの右クリックメニュー（どこに・どのチャットの。開いている間はパネルを Esc で閉じない: パネルはメニューの開いている間の Esc を見送る） */
 export const useCardMenu = () => useContextMenu<Chat>();
 
 interface Options {

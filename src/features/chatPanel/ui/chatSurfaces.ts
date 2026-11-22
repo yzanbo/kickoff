@@ -1,10 +1,13 @@
 // チャットのパネル・チャットの別ウィンドウ・チャットの画面の右の欄の決まり（ui/contributes.ts が panelSurfaces に入れる）。
-// タブの並べ方は ChatTabStrip（まとまり・タブに出す項目）、新しいタブのボタンは欄ごとの Adds
+// タブの並べ方は ChatTabStrip（まとまり・タブに出す項目）、「表示」のメニューは ChatViewMenu、新しいタブのボタン・タブがないときの案内は欄ごとの Adds・EmptyHint
 import { PanelRightClose } from "lucide-react";
-import { defineSurface, linkedChatsExt } from "@/features/panel/ui";
-import { AgentPanelAdds } from "./agents/AgentPanelAdds";
-import { ChatPanelAdds } from "./ChatPanelAdds";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { chatKey, defineSurface, linkedChatsExt, panelKey } from "@/features/panel/ui";
+import { AgentPanelAdds, AgentPanelEmpty } from "./agents/AgentPanelAdds";
+import { ChatPanelAdds, ChatPanelEmpty } from "./ChatPanelAdds";
 import { ChatTabStrip } from "./ChatTabStrip";
+import { ChatViewMenu } from "./tabs/ChatViewMenu";
 
 /** チャットのパネル（ボードの右・「チャット」タブ）。サイドバーに出ているチャットのタブをそろえる */
 const chatsSurface = defineSurface({
@@ -21,6 +24,10 @@ const chatsSurface = defineSurface({
   ext: linkedChatsExt,
   Adds: ChatPanelAdds,
   Strip: ChatTabStrip,
+  ViewMenu: ChatViewMenu,
+  EmptyHint: ChatPanelEmpty,
+  // 新しいチャットを送ったら、そのチャットを URL にする
+  onChatCreated: (chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id }, { replace: true }),
 });
 
 /** チャットの画面の右の欄（サブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） */
@@ -35,10 +42,9 @@ const chatSideSurface = defineSurface({
   maximize: "width",
   emptyHint:
     "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとノートの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
-  newChildHint: "「＋」で新しい子チャットを始められます。",
-  // 新しいタブのボタンの代わりに、新しい子チャットと、右の欄に開けるもののメニュー
+  // 新しいタブのボタンの代わりに、新しい子チャットと、右の欄に開けるもののメニュー（タブがないときの案内にも新しい子チャット）
   Adds: AgentPanelAdds,
-  newChild: true,
+  EmptyHint: AgentPanelEmpty,
   rootClass: "agent-panel",
   slide: true,
   Strip: ChatTabStrip,
@@ -53,6 +59,10 @@ const chatWindowSurface = defineSurface({
   splitButtons: false,
   className: "as-sidebar",
   Strip: ChatTabStrip,
+  ViewMenu: ChatViewMenu,
+  EmptyHint: ChatPanelEmpty,
+  // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
+  onChatCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("kanban", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
 });
 
 export const CHAT_SURFACES = [chatsSurface, chatSideSurface, chatWindowSurface];

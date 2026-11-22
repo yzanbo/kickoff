@@ -8,7 +8,8 @@
 
 ## 欄（`ui/chatSurfaces.ts`）
 
-- チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。タブの並べ方は 3 つとも `ChatTabStrip`（まとまり・タブに出す項目・グループ名）、新しいタブのボタンは `ChatPanelAdds`（チャットのパネル）・`AgentPanelAdds`（右の欄）。
+- チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。タブの並べ方は 3 つとも `ChatTabStrip`（まとまり・タブに出す項目・グループ名）、新しいタブのボタンと空の案内は `ChatPanelAdds`・`AgentPanelAdds`、「表示」のメニューは `ChatViewMenu`。
+- 新しいチャットは `startNewChat`（欄のプロジェクトで始める。決まらなければ案内）。送ってできたチャットの後は欄の `onChatCreated`（URL にする・メインのウィンドウに知らせる）。
 
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 

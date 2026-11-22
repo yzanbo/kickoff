@@ -6,7 +6,7 @@ import { storage } from "@/features/chatPanel/ui/storage";
 import type { SidePanelHandle } from "@/features/conversation/ui";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
+import { usePanel } from "@/features/panel/ui/usePanel";
 import { SideSelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/ui/screen/mainChat";
 import { panelKey, type DraftScope } from "@/features/panel/ui";
@@ -17,7 +17,6 @@ import { AgentPanelFind } from "./AgentPanelFind";
 const MIN_AGENT_PANEL_WIDTH = 300;
 /** 右の欄の横に残すメインの会話がこれより狭くなるなら、右の欄でメインを覆う（読めない細い帯を残さない） */
 const MIN_MAIN_WIDTH = 320;
-const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
  * チャットの画面を、左のメインの会話（children）と、右の欄（サブエージェントの欄。チャットごとのパネル）に横に並べる殻。
@@ -34,7 +33,7 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
 export function AgentSplit({ scope, handleRef, children }: { scope: number | DraftScope; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }) {
   const Host = usePanelHost();
   const chatId = typeof scope === "number" ? scope : null;
-  const panel = usePanel({ surface: "agents", scope, newChat: undefined, terminals: NO_TERMINALS });
+  const panel = usePanel("agents", scope);
   const { bodyRef: widthBodyRef, ...width } = useCoverableWidth({
     width: storage.settings.agentPanelWidth,
     maximized: storage.settings.agentPanelMaximized,

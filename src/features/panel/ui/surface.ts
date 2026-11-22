@@ -92,6 +92,8 @@ export interface SurfaceSpec<E = unknown> {
   whenEmpty: "close" | "keep" | "closeWindow";
   /** タブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき）） */
   openWhenEmpty?: "terminal";
+  /** いつも開いておく（Esc・最後のタブを閉じても欄は閉じず、タブがなければ案内。ノート・ファイルのタブの右） */
+  alwaysOpen?: boolean;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
   openSetting?: SettingFamily<boolean>;
   /**
@@ -107,19 +109,21 @@ export interface SurfaceSpec<E = unknown> {
   Adds?: ComponentType<{ panel: PanelController; pane: PaneLeaf }>;
   /** タブの並べ方（なければ PlainStrip: ペインの並びのまま） */
   Strip?: ComponentType<StripProps>;
+  /**
+   * 「表示」のメニューの中身（左の道具のボタン・タブの列の何もないところの右クリックで開く。なければボタンも右クリックも出さない）。
+   * tabMenu: タブの右クリックの「タブの表示 ›」の中（タブの表示の項目だけ）
+   */
+  ViewMenu?: ComponentType<{ panel: PanelController; tabMenu?: boolean }>;
+  /** タブがないときの案内（なければ emptyHint の文。hint は emptyHint） */
+  EmptyHint?: ComponentType<{ panel: PanelController; pane: PaneLeaf; hint: string | undefined }>;
+  /** 新しいチャットのタブを送ってチャットができたとき（タブはできたチャットのタブに置き換えたあと） */
+  onChatCreated?(chat: { id: number; project_id: number }): void;
   /** false: タブの種類の札（「ノート」「サブ」「子」）を付けない（1 つの種類しか並ばない欄） */
   kindBadges?: false;
   /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
   hideableTabs?: boolean;
-  /**
-   * 新しい子チャットを開けるか（チャットの右の欄。タブの列の「＋」と空の欄のボタンで、この欄のチャットの子チャットを入力欄だけのタブで始める。
-   * ノートのチャット・アーカイブ済みのチャットでは出さない）
-   */
-  newChild?: boolean;
-  /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ） */
+  /** タブがないときの案内の文 */
   emptyHint?: string;
-  /** 新しい子チャットを開けるときだけ、案内の後ろに足す文 */
-  newChildHint?: string;
   /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
   className?: string;
   /** パネルの根のクラス（なければ board-panel）。入れ子の欄は別の名前にし、外側の欄の規則が効かないようにする */
@@ -171,9 +175,3 @@ export const defineSurface = <E>(spec: SurfaceSpec<E>): SurfaceSpec<E> => spec;
 
 /** 欄の拡張点（app/renderer/registry.ts が入れ、店を作るときに渡す） */
 export const panelSurfaces = definePoint<AnySurface>("panelSurfaces", { key: (s) => s.id });
-
-/** タブがないときの案内（新しい子チャットを開けるときだけ、その文を足す） */
-export function emptyHintOf(surface: AnySurface, canNewChild: boolean): string | undefined {
-  if (!surface.emptyHint) return undefined;
-  return canNewChild && surface.newChildHint ? `${surface.emptyHint}${surface.newChildHint}` : surface.emptyHint;
-}

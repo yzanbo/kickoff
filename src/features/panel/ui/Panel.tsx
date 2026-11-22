@@ -1,6 +1,5 @@
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
@@ -18,20 +17,19 @@ import { useTabDrag } from "@/features/panel/ui/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
 import { OpenWithContext } from "@/features/panel/ui/openWith/OpenWithAdds";
-import { splitShownTab } from "@/features/panel/ui/state/actions";
-import { emptyHintOf } from "./surface";
-import { focusedPanelKey, PanelHostContext } from "./panelHost";
+import { PanelHostContext } from "./panelHost";
+import { usePanelShortcuts } from "./usePanelShortcuts";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
 import { neighborTabs, useTabPrefetch } from "@/features/panel/ui/tabs/tabPrefetch";
 import { usePanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
-import { useNewChild } from "@/features/chatPanel/ui/agents/useNewChild";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは欄の項目（surfaceOf）と、殻が渡す frame）。
  * タブは上下・左右のペインに分けて並べられる（VS Code のエディターと同じ）。分けていないときは、タブの列 → 中身の 1 段。
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
  * 各ペインのタブの列（TabBar）の右端に、欄の新しいタブのボタン（欄の Adds）と、右・下に分けるボタンを並べる。タブの並べ方は欄の Strip。
- * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
+ * 開けるターミナル（Mac のアプリでだけ）は欄の殻が frame で渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
+ * キー（Esc で閉じる・⌘\ で右に分ける）は usePanelShortcuts。いつも開いておく欄（欄の決まりの alwaysOpen・画面そのもの frame.fixed）は閉じても開き直す。
  * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
  * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
  * タブの中身（PanelTabPage）も memo で、変わったタブだけが描き直る
@@ -39,7 +37,9 @@ import { useNewChild } from "@/features/chatPanel/ui/agents/useNewChild";
 export const Panel = memo(PanelBody);
 
 function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
-  const { tabs, layout, panelOpen, terminals } = panel;
+  const { tabs, layout, panelOpen } = panel;
+  // 開けるターミナルの場所（フッターの殻が渡す。ほかの欄はターミナルを開かない）
+  const terminals = frame?.terminals ?? [];
   const rules = surfaceOf(panel.surface)!;
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
@@ -63,25 +63,17 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const slide = rules.slide === true && !frame?.fixed;
   const { panes, sashes } = layoutRects(layout.root);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
-  const openWith = useOpenWithMenu(panel);
-
-  // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ。
-  // チャットの中の右の欄（入れ子のパネル）にピントがあるときは、いちばん内側の欄だけが分ける）
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      if (!e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.code !== "Backslash") return;
-      if (focusedPanelKey() !== panel.key) return;
-      e.preventDefault();
-      splitShownTab(panel.key, "row");
-    },
-    panelOpen,
-  );
+  const openWith = useOpenWithMenu(panel, terminals);
+  usePanelShortcuts(panel, frame);
+  // いつも開いておく欄（タブがなければ案内）
+  const alwaysOpen = rules.alwaysOpen === true || frame?.fixed === true;
+  const { setOpen } = panel;
+  useEffect(() => {
+    if (alwaysOpen && !panelOpen) setOpen(true);
+  }, [alwaysOpen, panelOpen, setOpen]);
 
   // 「表示」のメニュー（まとめ方・アーカイブ済み・チャットの画面）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
   const view = usePanelViewMenu(panel);
-  // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
-  const newChild = useNewChild(panel);
   // 一度表示したタブ。中身を作る時が shown の種類（チャット）は初めて表示したとき、欄を開くまで作らないタブ（復元したブラウザ）は初めて欄を開いたときから中身を作る
   // （描く中で ref に書かず state に持つ。表示中なのにまだ入っていないタブがあれば、描いている間に足す）
   const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
@@ -105,21 +97,13 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const bar = (pane: PaneLeaf) => (
     <TabBar panel={panel} pane={pane} frame={frame} view={view} drag={drag} rename={rename} onTabMenu={(key, e) => tabMenu.open(e, key)} />
   );
+  const EmptyHint = rules.EmptyHint;
   const empty = (pane: PaneLeaf) => (
     <PanelEmpty
-      // 分けたペインには、案内の代わりに新しいチャットも出す（チャットを出さない欄（サブエージェントの欄）は、分けたペインにも案内を出す）
-      hint={split && panel.kinds.has("chat") ? undefined : emptyHintOf(rules, Boolean(newChild))}
+      hint={EmptyHint ? <EmptyHint panel={panel} pane={pane} hint={rules.emptyHint} /> : rules.emptyHint}
       kinds={panel.kinds}
       hasTerminals={terminals.length > 0}
       manyTerminals={terminals.length > 1}
-      onNewChat={panel.startNewChat}
-      onNewChild={
-        newChild &&
-        (() => {
-          panel.focusPane(pane.id);
-          newChild();
-        })
-      }
       onBrowser={() => panel.openBrowser()}
       onTerminal={(e) => openWith.openTerminal(e, pane)}
     />

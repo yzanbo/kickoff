@@ -1,6 +1,5 @@
 import { FileCode2, FilePlus, FolderOpen, StickyNote } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState, type MouseEvent } from "react";
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
@@ -37,7 +36,6 @@ import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 右の欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
 const FIXED_FRAME: PanelFrame = { fixed: true };
-const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
  * プロジェクトの「ノート」タブ（左にノートのフォルダの木、右に開いたノート）。左の一覧は隠せる（listHidden。隠している間は左端の細い帯 ListRail に「一覧を表示」）。ノートはプロジェクトの外（設定の親フォルダの下の、
@@ -62,12 +60,8 @@ export function NoteTab({
 }) {
   const list = useNoteList(projectId);
   const panelKeyOf = notePanelKey(projectId, scope);
-  const panel = usePanel({ surface: "notes", scope: scope ?? projectId, newChat: undefined, terminals: NO_TERMINALS });
-  const { panelOpen, setOpen } = panel;
-  // 右の欄はいつも開いておく（タブがなければ案内）
-  useEffect(() => {
-    if (!panelOpen) setOpen(true);
-  }, [panelOpen, setOpen]);
+  // 右の欄はいつも開いておく（タブがなければ案内。欄の決まりの alwaysOpen）
+  const panel = usePanel("notes", scope ?? projectId);
   // 一覧の選んでいる行 = ピントのあるペインで表示中のノート
   const focusedTab = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
   const selected = focusedTab?.kind === "note" ? focusedTab.path : "";

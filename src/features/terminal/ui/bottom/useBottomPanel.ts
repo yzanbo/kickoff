@@ -61,6 +61,8 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     open,
     maximized,
     targets,
+    /** タブの列・タブがないときに開けるターミナルの場所（ターミナルの使える Mac のアプリでだけ） */
+    terminals: window.kickoff?.terminal ? targets : [],
     toggle,
     toggleMaximized: () => setMaximized((m) => !m),
     /** 上の端のつまみに渡す */

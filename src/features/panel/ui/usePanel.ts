@@ -1,7 +1,5 @@
 import { useMemo } from "react";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import type { Chat } from "@shared/chat/types";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
@@ -11,30 +9,9 @@ import { projectOfPanel } from "./surfaces";
 import { panelKey, type PanelScope, type PanelSurface } from "./surface";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
-import { openNoProjectsGuide } from "@/features/projects/ui/new/openNewProject";
-import { isComposing } from "@/foundation/ui/lib/keys";
-import { focusedPanelKey, focusInNestedPanel } from "./panelHost";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/ui/tabs/panelTypes";
-
-interface Options {
-  /** どの欄か（決まりは欄の項目 SurfaceSpec。タブのまとめ方も欄ごとに覚える） */
-  surface: PanelSurface;
-  /**
-   * どの画面の欄か（プロジェクト・全プロジェクト "all"）。状態はこれで覚え、チャットのタブはこの範囲のサイドバーに出ているチャットにそろえる
-   * （チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する。アーカイブ済みはサイドバーと共通の表示の切り替えに従う）
-   */
-  scope: PanelScope;
-  /** true の間は Esc で閉じない（メニューが開いているときなど。Esc で閉じる欄だけ） */
-  holdEsc?: boolean;
-  /** 「新しいチャット」で始める作成先（どのプロジェクト・グループで始めるかは欄が決める。決まらなければ始めない） */
-  newChat: NewChatTarget | undefined;
-  /** 開けるターミナルの場所（Mac のアプリでだけ使う。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
-  terminals: readonly TerminalTarget[];
-  /** 新しいチャットができたとき（URL をそのチャットにするなど） */
-  onCreated?: (chat: Chat) => void;
-}
 
 export type PanelController = ReturnType<typeof usePanel>;
 
@@ -87,9 +64,11 @@ export const tabChat = (tab: PanelTab | undefined, chats: readonly Chat[]): Chat
  * 状態は欄・画面ごとに店（panelStore）が覚え、変え方は純粋関数（panelState の panelReducer）。ここでは読む・そろえる・束ねるだけ。
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。自分で開くタブはピントのあるペインに、
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
- * 表示は Panel。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ
+ * 表示は Panel（Esc・⌘\ も Panel の usePanelShortcuts）。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ。
+ * surface は欄（決まりは欄の項目 SurfaceSpec。タブのまとめ方も欄ごとに覚える）、scope はどの画面の欄か（プロジェクト・全プロジェクト "all"・チャット。
+ * 状態はこれで覚え、チャットのタブはこの範囲のサイドバーに出ているチャットにそろえる）
  */
-export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, onCreated }: Options) {
+export function usePanel(surface: PanelSurface, scope: PanelScope) {
   const key = panelKey(surface, scope);
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
@@ -100,31 +79,17 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   const unlinked = rules?.ext === undefined;
   const chats = useLinkedTabs(key, unlinked ? (projectOfPanel(key) ?? scope) : scope, rules?.accepts.includes("chat") === true, !unlinked);
   const actions = useMemo(() => panelOps(key), [key]);
-  // 新しいチャットができたときの知らせは、いま渡されているものを呼ぶ（タブの中身に渡す操作を作り直さないため）
-  const created = useLatest(onCreated);
   const pageOps = useMemo<PanelPageOps>(
     () => ({
       ...actions,
       key,
+      // 新しいチャットができたときの知らせは欄の決まり（URL をそのチャットにする・メインのウィンドウに知らせる）
       replaceWithChat: (tabKey, chat) => {
         actions.replaceTab(tabKey, chatTab(chat));
-        created.current?.(chat);
+        rules?.onChatCreated?.(chat);
       },
     }),
-    [actions, key, created],
-  );
-
-  // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）。
-  // ピントがこの欄の中の入れ子の欄（チャットの中の右の欄）にあるときは、そちらに任せる。focused の欄は、ピントが中にあるときだけ閉じる
-  const escRule = rules?.closeOnEsc ?? false;
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      if (e.key !== "Escape" || isComposing(e) || document.querySelector("dialog[open]")) return;
-      if (escRule === "focused" ? focusedPanelKey() !== key : focusInNestedPanel(key)) return;
-      actions.close();
-    },
-    panelOpen && escRule !== false && !holdEsc,
+    [actions, key, rules],
   );
 
   // 欄の状態・設定が同じ間は同じ物を返す（チャットの画面が描き直っても、右の欄のパネル（memo）を描き直させない）
@@ -148,20 +113,11 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
       chats,
       /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
       chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
-      /** 開けるターミナルの場所（Mac のアプリでなければ空） */
-      terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
-      /** 「新しいチャット」（欄が決めた作成先で始める。作成先がない = 出せるプロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する） */
-      startNewChat: () => {
-        if (newChat) actions.openNew(newChat);
-        else openNoProjectsGuide();
-      },
       /** サイドバーに出ているチャットのタブか（ペインを閉じても一覧のペインへ戻すもの） */
       isLinkedTab: (tabKey: string) => isLinkedTab(state, tabKey, rules),
       isShowingTab,
       /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
       isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
     };
-  }, [pageOps, actions, key, state, tabs, layout, panelOpen, surface, rules, chats, terminals, newChat]);
+  }, [pageOps, key, state, tabs, layout, panelOpen, surface, rules, chats]);
 }
-
-const NO_TERMINALS: readonly TerminalTarget[] = [];

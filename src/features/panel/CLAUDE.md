@@ -15,8 +15,8 @@
 
 ## 欄の決まり（`surface.ts`）
 
-- 欄ごとの違い（出す種類 `accepts`・Esc・ボタン・札など）は、作る側・描く側で分岐させず欄の項目に集め、`panelSurfaces` で受ける（`surfaceOf`）。チャットのパネルの連動は `ext`。
-- 欄ごとに出すタブは 1 種類（`kanban` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。新しいタブ・空の欄のボタンもその種類だけ。
+- 欄ごとの違い（出す種類・Esc・ボタン・空の案内 `EmptyHint`・「表示」の中身 `ViewMenu`・いつも開く `alwaysOpen` など）は欄の項目に集め、`panelSurfaces` で受ける。`usePanel(欄, scope)` に渡すのは 2 つだけ。
+- 欄ごとに出すタブは 1 種類（`kanban` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。
 - ブラウザのタブはどこから開いても右サイドバーに開く（`@/features/browser/ui/panel/openBrowserTab.ts`）。ターミナルは下のパネルに開く。
 - 状態は `panelKey(欄, scope)` で欄・画面ごとに覚える。欄の名前は下書きの保存のキーにも使うので変えない。
 - 範囲がチャットの ID かは `typeof scope === "number"` で見分ける（プロジェクトの ID と取り違えない）。
@@ -64,7 +64,7 @@
 - 右サイドバー（`ProjectChat`）と下のパネル（`BottomPanel`）は閉じても要素を残す（書きかけ・シェルをなくさない）。
 - 右サイドバーのブラウザは、ほかの中身を見ている間も隠して置く（中身は `SideRail` で選ぶ）。
 - 右の欄（`AgentSplit`）はチャットのタブの中の入れ子のパネルで、`PanelHostContext` で受ける（理由は `panelHost.ts`）。パネルの外では置かない。
-- キーはピントのあるいちばん内側の欄だけが受け取る（`focusedPanelKey`・`focusInNestedPanel`）。外側の欄の CSS は子セレクタで内側に効かせない。
+- キー（Esc・⌘\）は `usePanelShortcuts` で、ピントのあるいちばん内側の欄だけが受け取る。外側の欄の CSS は子セレクタで内側に効かせない。
 - 右の欄の ⌘F（`AgentPanelFind`）はエディタ・子チャットの検索に任せる。親のチャットの画面のキーは右の欄の中で受け取らない（`isChatTarget`）。
 - 右サイドバーと最大表示の下のパネルの上の行は `.panel-window-titlebar` にそろえ、信号機・戻る / 進むと重ねない。
 - 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（`src/foundation/ui/styles/CLAUDE.md`）。

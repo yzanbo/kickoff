@@ -7,11 +7,10 @@ import { useBoardFocus } from "./useBoardFocus";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { usePanelDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { chatTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { terminalTargets, usePanel } from "@/features/panel/ui/usePanel";
+import { usePanel } from "@/features/panel/ui/usePanel";
 import { usePanelWidth } from "./usePanelWidth";
 
 /** チャットを URL にする（サイドバーで強調され、戻る・進むで行き来できる） */
@@ -19,21 +18,12 @@ const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openTarget({ kind: 
 
 /**
  * プロジェクトのチャットのパネル（ボードの右のパネル・ボードと分けた「チャット」タブで共通。どちらも kanban:<プロジェクト> の同じパネルなので、
- * 設定で置き方を切り替えても開いているタブ・分割はそのまま）。新しいチャットはそのプロジェクトで始め、ターミナルはその本体で開ける。
- * 新しいチャットを送ったチャットを URL にし、サイドバー・検索などから開いたチャット・新しいチャット（focus）をパネルで開く。
+ * 設定で置き方を切り替えても開いているタブ・分割はそのまま）。新しいチャットはそのプロジェクトで始め、送ったチャットを URL にする（欄の決まり。chatSurfaces.ts）。
+ * サイドバー・検索などから開いたチャット・新しいチャット（focus）をパネルで開く。
  * tab は新しいチャットを開いたあとに URL を戻すタブ
  */
-export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { projectId: number; holdEsc: boolean; focus?: ReopenRoute; tab: "board" | "chats" }) {
-  const { projects: all } = useProjects();
-  const panel = usePanel({
-    surface: "kanban",
-    scope: projectId,
-    holdEsc,
-    // 新しいチャットを送ったら、そのチャットを URL にする
-    onCreated: (chat) => openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id }, { replace: true }),
-    newChat: { projectId },
-    terminals: terminalTargets(all, projectId),
-  });
+export function useProjectChatsPanel({ projectId, focus, tab }: { projectId: number; focus?: ReopenRoute; tab: "board" | "chats" }) {
+  const panel = usePanel("kanban", projectId);
   // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
   useBoardFocus(
     focus,
@@ -83,16 +73,13 @@ function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number
  */
 export function useBoardPanel({
   projectId,
-  holdEsc,
   focus,
 }: {
   projectId: number;
-  /** true の間は Esc でパネルを閉じない（カードのメニューが開いているとき） */
-  holdEsc: boolean;
   /** URL で開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
 }) {
-  const panel = useProjectChatsPanel({ projectId, holdEsc, focus, tab: "board" });
+  const panel = useProjectChatsPanel({ projectId, focus, tab: "board" });
   const drafts = usePanelDrafts([panel.key, panelKey("side", projectId)]);
   // タブの列を隠している間は、その左の道具の「横幅いっぱい ⇔ 元の幅」も出ないので、横幅いっぱいにしない（ボードを覆ったまま戻せなくなるため）
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);

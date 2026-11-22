@@ -55,11 +55,11 @@ export function KanbanBoard({ projectId, focus }: { projectId: number; focus?: R
 
 /** ボードの右のパネルで開くカンバン */
 function KanbanWithPanel({ projectId, focus }: { projectId: number; focus?: ReopenRoute }) {
-  // カードの右クリックメニュー（開いている間はパネルを Esc で閉じない）
+  // カードの右クリックメニュー（開いている間はパネルを Esc で閉じない: メニューの開いている間の Esc は usePanelShortcuts が見送る）
   const menu = useCardMenu();
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ。チャットのタブはサイドバーの一覧にそろえる）と、
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。いちばん左の「下書き」の列に出す）
-  const chats = panelChats(useBoardPanel({ projectId, holdEsc: menu.isOpen, focus }));
+  const chats = panelChats(useBoardPanel({ projectId, focus }));
   return <ProjectKanban projectId={projectId} menu={menu} chats={chats} />;
 }
 

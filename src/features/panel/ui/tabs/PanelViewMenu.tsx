@@ -1,64 +1,27 @@
-import { Check, SlidersHorizontal } from "lucide-react";
-import { Fragment, type MouseEvent, type ReactNode } from "react";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import type { MouseEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
+import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { surfaceOf } from "@/features/panel/ui/state/panelStore";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { usePanelViewReset } from "@/features/chatPanel/ui/tabs/usePanelViewReset";
-import { hasTabDisplayItems, TabDisplayItems } from "@/features/chatPanel/ui/tabs/TabDisplayItems";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * タブの表示（チャットのまとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。TabDisplayItems。タブの右クリックの「タブの表示 ›」と共通）を
- * 1 つにまとめる（タブの列の道具を増やさない）。
- * チャットの画面の表示（タブの列・見出し・指示の帯など）は、チャットの見出しと会話の何もないところの右クリック・設定の「表示」で選ぶ。
- * 欄に関係のない項目は出さない（サブエージェントの欄は項目がないので、ボタンも右クリックも出さない）。
+ * 中身は欄の ViewMenu（チャットのパネルはまとめ方・並び順・タブに出す項目など。タブの右クリックの「タブの表示 ›」と共通）。
+ * 中身のない欄（サブエージェントの欄など）は、ボタンも右クリックも出さない。
  * 既定と違う選び方をしていても、ボタンに印は付けない（自分で選んだ好みなので、ずっと印を出すと何か問題があるように見えるため）
  */
 export function usePanelViewMenu(panel: PanelController) {
   const menu = useContextMenu();
-  // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
-  const defaults = usePanelViewReset(panel.surface, panel.kinds.has("chat"));
-  const has = hasTabDisplayItems(panel);
+  const Items = surfaceOf(panel.surface)?.ViewMenu;
+  const has = Items !== undefined;
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
-  // タブの列の「表示」ボタンを出すか（すべてのパネルで共通。隠しても、タブの列の何もないところの右クリックでこのメニューを開ける）
-  const [buttonHidden, setButtonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
-
-  const separator = <div className="menu-separator" role="separator" />;
-  const sections: ReactNode[] = [];
-  // タブの表示（まとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。タブの右クリックの「タブの表示 ›」と共通）
-  if (has) sections.push(<TabDisplayItems panel={panel} />);
-  if (has)
-    sections.push(
-      <MenuItem
-        role="menuitemcheckbox"
-        checked={!buttonHidden}
-        title={
-          buttonHidden
-            ? "タブの列の左に「表示」ボタンを出します"
-            : "タブの列の左の「表示」ボタンを隠します（このメニューは、タブの列の何もないところの右クリックでも開けます）"
-        }
-        onSelect={() => setButtonHidden(!buttonHidden)}
-      >
-        <span className="project-switch-item">「表示」ボタンを出す</span>
-        {!buttonHidden && <Check size={14} aria-hidden />}
-      </MenuItem>,
-    );
-  if (has)
-    sections.push(
-      <MenuItem
-        disabled={!defaults.changed}
-        title={defaults.changed ? "このメニューの選び方を初めの値に戻します" : "初めの選び方のままです"}
-        keepOpen
-        onSelect={defaults.reset}
-      >
-        <span className="project-switch-item">既定に戻す</span>
-      </MenuItem>,
-    );
   return {
     has,
     isOpen: menu.isOpen,
@@ -70,17 +33,35 @@ export function usePanelViewMenu(panel: PanelController) {
       if (!has || (e.target as HTMLElement).closest("input, textarea, .panel-tab")) return;
       menu.open(e);
     },
-    menu: menu.menu && (
+    menu: menu.menu && Items && (
       <PopupMenu at={menu.menu.at} label="表示" ignore={`.${buttonClass}`} onClose={menu.close}>
-        {sections.map((s, i) => (
-          <Fragment key={i}>
-            {i > 0 && separator}
-            {s}
-          </Fragment>
-        ))}
+        <Items panel={panel} />
       </PopupMenu>
     ),
   };
+}
+
+/**
+ * タブの右クリックの「タブの表示 ›」（乗せる・押す・→ で横に開く子のメニューに、欄の ViewMenu のタブの表示の項目を出す。タブの列の「表示」のメニューと同じ値）。
+ * 中身のない欄では何も出さない。区切り線は置かない（タブのメニューで「タブを閉じる」と 1 つの組にする）
+ */
+export function ViewSubmenu({ panel }: { panel: PanelController }) {
+  const sub = useSubmenu();
+  const Items = surfaceOf(panel.surface)?.ViewMenu;
+  if (!Items) return null;
+  return (
+    <>
+      <button {...sub.trigger} title="タブの列の「表示」のメニューと同じ、タブの表示の選び方です">
+        <SlidersHorizontal size={14} /> タブの表示
+        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+      </button>
+      {sub.anchor && (
+        <MenuFlyout anchor={sub.anchor} label="タブの表示" onBack={sub.back}>
+          <Items panel={panel} tabMenu />
+        </MenuFlyout>
+      )}
+    </>
+  );
 }
 
 export type PanelViewMenu = ReturnType<typeof usePanelViewMenu>;

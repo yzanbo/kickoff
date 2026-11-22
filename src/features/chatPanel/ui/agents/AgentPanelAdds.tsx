@@ -58,6 +58,27 @@ export function AgentPanelAdds({ panel, pane }: { panel: PanelController; pane: 
   );
 }
 
+/** 右の欄にタブがないときの案内（新しい子チャットを開けるときだけ、その文とボタンを足す） */
+export function AgentPanelEmpty({ panel, pane, hint }: { panel: PanelController; pane: PaneLeaf; hint: string | undefined }) {
+  const newChild = useNewChild(panel);
+  return (
+    <>
+      {hint && <p className="muted small">{newChild ? `${hint}「＋」で新しい子チャットを始められます。` : hint}</p>}
+      {newChild && (
+        <button
+          className="btn"
+          onClick={() => {
+            panel.focusPane(pane.id);
+            newChild();
+          }}
+        >
+          <MessageSquarePlus size={14} /> 新しい子チャット
+        </button>
+      )}
+    </>
+  );
+}
+
 /** メニューの中身（開いている間だけ描くので、一覧はこのときだけ読む） */
 function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
   const at = parsePanelKey(panel.key);

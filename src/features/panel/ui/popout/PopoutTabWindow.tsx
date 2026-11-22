@@ -1,18 +1,15 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { chatKey, terminalTitle } from "@/features/panel/ui/tabs/tabData";
+import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
+import { terminalTitle } from "@/features/panel/ui/tabs/tabData";
 import { Panel } from "@/features/panel/ui/Panel";
-import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
+import { usePanel } from "@/features/panel/ui/usePanel";
 import { panelKey, windowScope } from "@/features/panel/ui/surface";
 import { startTabWindow, type TabWindowRoute } from "./tabWindow";
 
 const TerminalPane = lazy(() => import("@/features/terminal/ui/TerminalPane"));
 
 type TerminalRoute = Extract<PopoutRoute, { kind: "terminal" }>;
-
-/** タブの列のある別ウィンドウ（ブラウザ・チャット）はターミナルを開かない */
-const NO_TERMINALS: TerminalTarget[] = [];
 
 /**
  * タブの列のある別ウィンドウ（ブラウザ・チャット。Chrome のウィンドウと同じく、タブの列を持ち、ほかのタブを足せる。右サイドバー・チャットのパネルと同じ Panel。
@@ -33,14 +30,7 @@ export function PopoutTabWindow({ route }: { route: TabWindowRoute }) {
 }
 
 function TabWindowPanel({ route }: { route: TabWindowRoute }) {
-  const panel = usePanel({
-    surface: route.kind === "browser" ? "win" : "cwin",
-    scope: windowScope(route.projectId, route.key),
-    newChat: undefined,
-    terminals: NO_TERMINALS,
-    // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
-    onCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("kanban", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
-  });
+  const panel = usePanel(route.kind === "browser" ? "win" : "cwin", windowScope(route.projectId, route.key));
   return <Panel panel={panel} />;
 }
 

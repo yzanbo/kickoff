@@ -79,8 +79,6 @@ export interface TabMenuProps<T extends TabBase> {
   panel: PanelController;
   /** 右クリックしたタブのペイン */
   paneId: string;
-  /** 「新しいチャット」（チャットを出す欄だけ。ほかは null） */
-  newChat: ReactNode;
   /** 表示する場所の組（分ける・移す・別ウィンドウ・一覧のペインに戻す） */
   before: ReactNode;
   /** タブの組（タブの表示 ›・タブを閉じる） */
