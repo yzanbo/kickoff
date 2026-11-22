@@ -3,7 +3,7 @@ import type { ChatEvent, ChatEventData, ChatEventDataOf, ChatEventType } from "@
 import { FEED_TEXT_LIMIT, type Chat, type FeedItem, type SearchHit } from "@shared/chat/types";
 import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "@/foundation/core/db/common";
-import type { RememberedSessions } from "@/features/chat/core/ports";
+import type { RememberedSessionIds } from "@/features/chat/core/ports";
 import type { LogRevisions } from "./logRevisions";
 
 interface EventRow {
@@ -146,7 +146,7 @@ function typeIn(where: Where, types: readonly ChatEventType[]): string {
 }
 
 /** チャットの記録（chat_events の表）と、やり取りの全文検索。getChat は、知らせにプロジェクトを添えるのに使う */
-export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined, remembered: RememberedSessions, revisions?: LogRevisions) {
+export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined, remembered: RememberedSessionIds, revisions?: LogRevisions) {
   const readRows = (sql: string, params: SQLInputValue[]) => (db.prepare(sql).all(...params) as unknown as EventRow[]).map(toEvent);
 
   /** 記録を読む（既定は古い順ですべて）。読み方は list・latestId・exists・latestResult に集め、名前の付いた読み取りはこれらを呼ぶ */

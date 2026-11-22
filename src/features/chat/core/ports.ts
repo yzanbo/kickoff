@@ -65,11 +65,11 @@ export interface ProviderHandoffPort {
   /** そのチャットが覚えている離れた AI のセッション（会話記録の片付けで、使っているものとして数える） */
   sessionsOf(chatId: number): { session_id: string; provider: ProviderId }[];
   /** どれかのチャットが離れた AI のセッションとして覚えている ID（会話記録を片付けるかの判定） */
-  rememberedSessions: RememberedSessions;
+  rememberedSessions: RememberedSessionIds;
 }
 
 /**
  * chat の表のほかで覚えているセッションの ID（ids を渡せばそのうち覚えているものだけ。db を渡せば、ほかの Kickoff の DB（読むだけで開いたもの）で調べる。
  * 表がないなど読めなければ投げる）
  */
-export type RememberedSessions = (ids?: readonly string[], db?: DatabaseSync) => Set<string>;
+export type RememberedSessionIds = (ids?: readonly string[], db?: DatabaseSync) => Set<string>;

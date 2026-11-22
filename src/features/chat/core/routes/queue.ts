@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
+import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { attachmentsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
@@ -24,7 +25,7 @@ export function queueRoutes(app: Hono, { store, runner, userSent }: Pick<ChatRou
     if (raw && typeof raw === "object" && "commands" in raw) return c.json(await runner.queue(chat.id, queueCommandsSchema.parse(raw).commands));
     const body = queueMessageSchema.parse(raw);
     const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
-    userSent(c, chat.id, body.user_view);
+    userSent(callerOf(c), chat.id, body.user_view);
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
     return c.json(result);
   });

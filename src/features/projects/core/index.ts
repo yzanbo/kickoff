@@ -2,6 +2,7 @@
 import type { Project } from "@shared/projects/types";
 import type { ProjectGitHub } from "@shared/git/types";
 import type { CoreFeature } from "@/foundation/core/feature";
+import { idParam, type Param } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
 import type { Kernel } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
@@ -21,6 +22,8 @@ export interface ProjectsApi {
   store: ProjectStore;
   /** そのプロジェクト（なければ 404「プロジェクトが見つかりません」） */
   require(id: number): Project;
+  /** ルートの :projectId の引き当て（なければ 404。受け口の全体を登録された包み k.workplace.projectScopes の中で流す） */
+  param: Param<Project>;
   /** 作業中のチャットがあるか（chat が登録。フォルダを変える・git の管理を始める・ゴミ箱に入れるのを 409 で断る） */
   addBusyCheck(check: ProjectRouteHooks["isBusy"]): void;
   /** 設定を変えたあと（github が登録: GitHub の連携・アーカイブを変えたら PR の見張りを聞き直す） */
@@ -63,6 +66,7 @@ export function createProjects(k: Kernel, deps: ProjectsDeps): CoreFeature<Proje
     api: {
       store,
       require: (id) => requireProject({ projects: store }, id),
+      param: { ...idParam((id) => store.get(id), "プロジェクトが見つかりません"), around: (project, run) => k.workplace.projectScopes.run(project, run) },
       addBusyCheck: (check) => void busyChecks.push(check),
       afterUpdate: (fn) => void updated.push(fn),
       afterRepoMove: (fn) => void repoMoved.push(fn),

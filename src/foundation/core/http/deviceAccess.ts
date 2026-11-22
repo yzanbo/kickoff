@@ -16,16 +16,6 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   // プロジェクト・グループ（見るだけ）
   ["GET", "/api/projects"],
   ["GET", "/api/projects/:id/groups"],
-  // チャット（一覧・中身・作る・名前と固定・既読・探す）
-  ["GET", "/api/projects/:id/chats"],
-  ["POST", "/api/projects/:id/chats"],
-  ["GET", "/api/chats"],
-  ["GET", "/api/chats/:id"],
-  ["PATCH", "/api/chats/:id"],
-  ["POST", "/api/chats/:id/seen"],
-  ["POST", "/api/chats/:id/unseen"],
-  ["GET", "/api/search"],
-  ["GET", "/api/feed"],
   // 送る・伝える・止める・圧縮・消去・再開をやめる・裏の作業を止める・圧縮が終わるまでの預かり・子チャット・親に渡す
   ["POST", "/api/chats/:id/messages"],
   ["POST", "/api/chats/:id/tell"],
@@ -54,9 +44,6 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/projects/:id/terminals"],
   ["DELETE", "/api/terminals/:key"],
   ["GET", "/api/terminals/:key/ws"],
-  // 承認・質問への回答
-  ["GET", "/api/approvals"],
-  ["POST", "/api/approvals/:id"],
   // 添付・ツールの結果の画像
   ["POST", "/api/uploads"],
   ["GET", "/api/uploads/:id"],
@@ -79,14 +66,12 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
 ];
 
 /**
- * 「見るだけ」の端末も使える、GET のほかの口（見ているものの知らせ・自分のプッシュの宛先・既読と未読の印）。
+ * 「見るだけ」の端末も使える、GET のほかの口（見ているものの知らせ・自分のプッシュの宛先）。
  * どれも LEGACY_DEVICE_ROUTES にあるもので、チャット・送信待ち・承認などの中身は変えない（取り決めでは access: "deviceRead"）
  */
 export const LEGACY_READ_ONLY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["PUT", "/api/viewing"],
   ["PUT", "/api/devices/self/push"],
-  ["POST", "/api/chats/:id/seen"],
-  ["POST", "/api/chats/:id/unseen"],
 ];
 
 /** 端末に開いた口 1 本（device = 見るだけの端末は GET だけ・deviceRead = 見るだけの端末も使える） */

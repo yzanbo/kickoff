@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
+import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { chatOptionsSchema, messageInputSchema, messageText } from "@/foundation/core/http/schemas";
@@ -23,7 +24,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pi
   app.post("/api/chats/:id/messages", withChat, async (c) => {
     const body = sendBodySchema.parse(await jsonBody(c));
     const { id: _queued, ...sent } = await runner.message(c.var.chat.id, body);
-    userSent(c, c.var.chat.id, body.user_view);
+    userSent(callerOf(c), c.var.chat.id, body.user_view);
     return c.json(body.when ? (sent satisfies SendResult) : sent.chat);
   });
 
@@ -31,7 +32,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, userSent }: Pi
   app.post("/api/chats/:id/tell", withChat, async (c) => {
     const body = messageInputSchema.parse(await jsonBody(c));
     const told: TellResult = { result: (await runner.message(c.var.chat.id, { ...body, when: "now" })).result };
-    userSent(c, c.var.chat.id, body.user_view);
+    userSent(callerOf(c), c.var.chat.id, body.user_view);
     return c.json(told);
   });
 

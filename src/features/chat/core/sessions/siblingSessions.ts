@@ -7,12 +7,12 @@ import { DatabaseSync } from "node:sqlite";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { realPathLoose } from "@/foundation/core/system/paths";
 import { DB_FILE } from "@/foundation/core/db/db";
-import type { RememberedSessions } from "@/features/chat/core/ports";
+import type { RememberedSessionIds } from "@/features/chat/core/ports";
 
 /** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result・離れた AI のセッションの覚え）。読めない DB があれば、すべて使っている扱い */
 export type SessionsUsedElsewhere = (ids: string[]) => Set<string>;
 /** ほかの Kickoff の DB を調べる口（remembered: chat の表のほかで覚えているセッションを、相手の DB で読む口。createChat が providerSwitch の口を渡す） */
-export type SiblingSessionCheck = (ids: string[], remembered: RememberedSessions) => Set<string>;
+export type SiblingSessionCheck = (ids: string[], remembered: RememberedSessionIds) => Set<string>;
 
 /** 自分の保存先（dataDir）でない製品版・開発版の保存先の DB を調べる口を作る */
 export function siblingSessionCheck(dataDir: string, appDataRoot: string): SiblingSessionCheck {
@@ -34,7 +34,7 @@ export function siblingSessionCheck(dataDir: string, appDataRoot: string): Sibli
  * 1 つの DB で使われている ID（読むだけで開く）。開けない・表や列が違う（相手の版が違う）ときは、すべて使っている扱いにする
  * （使っていない扱いにすると、相手のチャットが使う会話記録を片付けてしまうため）
  */
-function usedIn(file: string, ids: string[], remembered: RememberedSessions): string[] {
+function usedIn(file: string, ids: string[], remembered: RememberedSessionIds): string[] {
   let db: DatabaseSync | null = null;
   try {
     db = new DatabaseSync(file, { readOnly: true });

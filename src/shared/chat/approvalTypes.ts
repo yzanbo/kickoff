@@ -42,3 +42,5 @@ export interface Approval {
 export type ApprovalDecision =
   | Exclude<ApprovalReply, { action: "answer" }>
   | (Extract<ApprovalReply, { action: "answer" }> & { attachments?: Record<string, Attachment[]>; plain?: Record<string, string | string[]> });
+/** 回答の本文（POST /api/approvals/:approvalId。画面・スマホが送る形。plain はコアが付ける） */
+export type ApprovalDecisionBody = Exclude<ApprovalReply, { action: "answer" }> | (Extract<ApprovalReply, { action: "answer" }> & { attachments?: Record<string, Attachment[]> });

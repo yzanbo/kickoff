@@ -1,7 +1,6 @@
 // チャットの機能のコアの入口（ほかの機能はここだけを読む）
-import type { Context } from "hono";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
-import { callerOf } from "@/foundation/core/http/caller";
+import type { Caller } from "@/foundation/core/http/caller";
 import { idParam, type Param } from "@/foundation/core/http/implement";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
@@ -27,7 +26,7 @@ import type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwit
 import { approvalRoutes } from "./routes/approvals";
 import { chatRoutes } from "./routes/chats";
 import { queueRoutes } from "./routes/queue";
-import { sessionRoutes } from "./routes/sessions";
+import { archiveCleanupRoutes, orphanSessionRoutes } from "./routes/sessions";
 import { turnRoutes } from "./routes/turns";
 import { databaseStats } from "./db/stats";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
@@ -181,11 +180,12 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   runner.provide({ chatRemover });
   // 送る指示を受けたときに聞く上の機能（userView が送った時点の画面の様子を覚える）
   const sendHooks: ((chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void)[] = [];
-  const userSent = (c: Context, chatId: number, userView: unknown) => {
-    const extras = { user_view: userView, fromHost: callerOf(c).kind === "host" };
+  const userSent = (caller: Caller, chatId: number, userView: unknown) => {
+    const extras = { user_view: userView, fromHost: caller.kind === "host" };
     for (const fn of sendHooks) fn(chatId, extras);
   };
-  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, attachments, providerHandoff: deps.providerHandoff, userSent, sessionsElsewhere, trashBin, workplace: k.workplace };
+  const chatParam = idParam((id) => store.chats.get(id), "チャットが見つかりません");
+  const routeDeps = { store, bus, streamingText: deltas.streamingText, providers, runner, approvals, attachments, providerHandoff: deps.providerHandoff, userSent, sessionsElsewhere, trashBin, workplace: k.workplace, chatParam, projectParam: deps.projects.param };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
   return {
@@ -208,17 +208,18 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       onUserSend: (fn) => void sendHooks.push(fn),
       onChatsPurged: (fn) => void purged.push(fn),
       titlesOf,
-      chatParam: idParam((id) => store.chats.get(id), "チャットが見つかりません"),
+      chatParam,
       stats: () => databaseStats(k.db, k.db.location()),
     },
     routes: [
+      chatRoutes(routeDeps),
+      approvalRoutes(routeDeps),
+      archiveCleanupRoutes(routeDeps),
       {
         legacy: (app) => {
-          chatRoutes(app, routeDeps);
           turnRoutes(app, routeDeps);
           queueRoutes(app, routeDeps);
-          sessionRoutes(app, routeDeps);
-          approvalRoutes(app, routeDeps);
+          orphanSessionRoutes(app, routeDeps);
         },
       },
     ],

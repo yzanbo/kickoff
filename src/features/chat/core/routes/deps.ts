@@ -1,5 +1,4 @@
 // チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書く）
-import type { Context } from "hono";
 import type { Bus } from "@/foundation/core/bus";
 import type { Store } from "@/features/chat/core/stores";
 import type { AiApi } from "@/features/ai/core/index";
@@ -9,6 +8,10 @@ import type { ChatRunner } from "@/features/chat/core/run/runner";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
 import type { ChatAttachments, ProviderHandoffPort } from "@/features/chat/core/ports";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
+import type { Caller } from "@/foundation/core/http/caller";
+import type { Param } from "@/foundation/core/http/implement";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 
 export interface ChatRouteDeps {
   store: Store;
@@ -23,7 +26,10 @@ export interface ChatRouteDeps {
   /** 添付の口（回答に添付のパスを書き添える） */
   attachments: ChatAttachments;
   /** 送る指示を受けた（本文の user_view と、この Mac の画面から送ったか。上の機能が onUserSend で聞く） */
-  userSent(c: Context, chatId: number, userView: unknown): void;
+  userSent(caller: Caller, chatId: number, userView: unknown): void;
+  /** ルートの :chatId・:projectId の引き当て（chat.api.chatParam・projects.api.param） */
+  chatParam: Param<Chat>;
+  projectParam: Param<Project>;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（どのチャットも使っていない会話記録の一覧から除く。省けば調べない） */
   sessionsElsewhere?: SessionsUsedElsewhere;
   trashBin: TrashApi;
