@@ -1,161 +1,90 @@
-import type { Hono } from "hono";
+// 送信待ちの受け口（取り決めは @shared/chat/contract.ts の chatQueueContract）
 import { z } from "zod";
+import { chatQueueContract } from "@shared/chat/contract";
+import type { QueueCommandsBody, QueueMessageBody } from "@shared/chat/send";
 import type { ChatRouteDeps } from "./deps";
-import { callerOf } from "@/foundation/core/http/caller";
-import { jsonBody } from "@/foundation/core/http/input";
-import { lookups } from "@/foundation/core/http/lookups";
+import { implement } from "@/foundation/core/http/implement";
 import { attachmentsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "@/foundation/core/http/schemas";
 import { queueCommandsSchema, queueEditingSchema, queueSendSchema } from "./sendSchemas";
-import { QUEUE_ACTIONS } from "@shared/chat/types";
-import type { QueueAddResult, QueueMergeResult } from "@shared/chat/send";
 import { marksOf } from "@shared/chat/handoff";
+
+/**
+ * POST …/queue の本文は 2 つの形（commands があれば命令の列、なければ送る指示）。選んだ形の zod の失敗をそのまま返す
+ * （合併の zod にすると 400 の中身が変わる）。入力の形は 2 つの合併
+ */
+const queueBodySchema = z.unknown().transform((raw, ctx) => {
+  const parsed = raw && typeof raw === "object" && "commands" in raw ? queueCommandsSchema.safeParse(raw) : queueMessageSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  for (const issue of parsed.error.issues) ctx.addIssue({ ...issue });
+  return z.NEVER;
+}) as unknown as z.ZodType<z.output<typeof queueCommandsSchema> | z.output<typeof queueMessageSchema>, QueueMessageBody | QueueCommandsBody>;
+
+/** 挟む行の位置（その指示のすぐあと。なければいちばん下） */
+const actionBody = z.object({ after: queueId.nullable().default(null) });
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（送信待ち）: ためる・消す・書き換える・並べ替える・まとめて送る・すぐ送る・
  * 止めておく・「ここまで送ったら止めます」の印。応答はどれも、変えたあとの送信待ち（QueueState。SSE の chat_live の queue と同じ形）。
  * 列にない指示は 404、送るものがないなどの状態は 409（Runner が投げる）
  */
-export function queueRoutes(app: Hono, { store, runner, userSent }: Pick<ChatRouteDeps, "store" | "runner" | "userSent">) {
-  const { withChat } = lookups(store);
-
-  // 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）
-  app.post("/api/chats/:id/queue", withChat, async (c) => {
-    const { chat } = c.var;
-    const raw = await jsonBody(c);
-    if (raw && typeof raw === "object" && "commands" in raw) return c.json(await runner.queue(chat.id, queueCommandsSchema.parse(raw).commands));
-    const body = queueMessageSchema.parse(raw);
-    const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
-    userSent(callerOf(c), chat.id, body.user_view);
-    const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
-    return c.json(result);
-  });
-
-  // 指示の代わりに挟む行を足す（compact: 会話の圧縮 / clear: コンテキストの消去。after: その指示のすぐあと。なければいちばん下。
-  // 作業していなくても、すぐには行わない）
-  for (const action of QUEUE_ACTIONS) {
-    app.post(`/api/chats/:id/queue/${action}`, withChat, async (c) => {
-      const chat = c.var.chat;
-      const { after } = z.object({ after: queueId.nullable().default(null) }).parse(await jsonBody(c));
-      runner.queueAction(chat.id, action, after);
-      return c.json(runner.queueState(chat.id));
-    });
-  }
-
-  // 待ちの指示をすべて消す
-  app.delete("/api/chats/:id/queue", withChat, (c) => {
-    const { chat } = c.var;
-    runner.clearQueued(chat.id);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「この指示のあとで止める」。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
-  app.put("/api/chats/:id/queue/stop-after", withChat, async (c) => {
-    const { chat } = c.var;
-    const { id, stop } = z.object({ id: queueId.nullable(), stop: z.boolean().default(true) }).parse(await jsonBody(c));
-    await runner.setQueueStopAfter(chat.id, id, stop);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと。列の長さに収める）
-  app.put("/api/chats/:id/queue/stops", withChat, async (c) => {
-    const { chat } = c.var;
-    const { stops } = z.object({ stops: z.array(z.number().int().min(0)).max(200) }).parse(await jsonBody(c));
-    await runner.setQueueStops(chat.id, stops);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）
-  app.put("/api/chats/:id/queue/paused", withChat, async (c) => {
-    const { chat } = c.var;
-    const { paused } = z.object({ paused: z.boolean() }).parse(await jsonBody(c));
-    await runner.setQueuePaused(chat.id, paused);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 画面でいま書き直している待ちの指示（書き直す欄を開いているもの。丸ごと置き換え、空なら外す）。自動で送る次の指示なら、書き直しが終わるまで送らない。
-  // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る。列にない指示は数えない）
-  // lane: now なら預かった指示（省けば送信待ち）
-  app.put("/api/chats/:id/queue/editing", withChat, async (c) => {
-    const { lane, ids } = queueEditingSchema.parse(await jsonBody(c));
-    return c.json(runner.editing(c.var.chat.id, lane, ids));
-  });
-
-  // 送信待ちをすぐ送る（@shared/chat/send の QueueSendBody。now = その 1 件 / all = まとめて 1 件に / in_order = 1 件ずつ順に）。答えはそのあとの送信待ち
-  app.post("/api/chats/:id/queue/send", withChat, async (c) => c.json(await runner.queueSend(c.var.chat.id, queueSendSchema.parse(await jsonBody(c)))));
-
-  // 待ちの列から消す
-  app.delete("/api/chats/:id/queue/:queueId", withChat, (c) => {
-    const { chat } = c.var;
-    runner.removeQueued(chat.id, c.req.param("queueId"));
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 待ちの指示の文を書き換える
-  app.patch("/api/chats/:id/queue/:queueId", withChat, async (c) => {
-    const { chat } = c.var;
-    // attachments: 添付を置き換える（足す・外す。省けば今のまま）
-    const { text, attachments } = z.object({ text: messageText, attachments: attachmentsSchema.optional() }).parse(await jsonBody(c));
-    runner.editQueued(chat.id, c.req.param("queueId"), text, attachments);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 待ちの列を並べ替える（index は移したあとの位置）
-  app.post("/api/chats/:id/queue/:queueId/move", withChat, async (c) => {
-    const { chat } = c.var;
-    const { index } = z.object({ index: z.number().int().min(0) }).parse(await jsonBody(c));
-    await runner.moveQueued(chat.id, c.req.param("queueId"), index);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ預かり、作業の終わりに送信待ちより先に送る）
-  app.post("/api/chats/:id/queue/send-all", withChat, async (c) => {
-    const { chat } = c.var;
-    const { ids } = queueIdsSchema.partial().parse(await jsonBody(c));
-    await runner.sendAllQueued(chat.id, ids);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 選んだ待ちの指示を、送らずに 1 件にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）
-  app.post("/api/chats/:id/queue/merge", withChat, async (c) => {
-    const { chat } = c.var;
-    const { ids } = queueIdsSchema.parse(await jsonBody(c));
-    const merged = runner.mergeQueued(chat.id, ids);
-    const result: QueueMergeResult = { ...runner.queueState(chat.id), id: merged.id };
-    return c.json(result);
-  });
-
-  // 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、「ここまで」の印を外す。作業中なら終わってから）
-  app.post("/api/chats/:id/queue/send-in-order", withChat, async (c) => {
-    const { chat } = c.var;
-    await runner.sendQueuedInOrder(chat.id);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 選んだ待ちの指示をまとめて消す
-  app.post("/api/chats/:id/queue/remove-many", withChat, async (c) => {
-    const { chat } = c.var;
-    const { ids } = queueIdsSchema.parse(await jsonBody(c));
-    runner.removeQueuedMany(chat.id, ids);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 選んだ待ちの指示を、並びを保ったまままとめて移す（to: いちばん上・いちばん下 / before: その指示の前（null ならいちばん下）。ドラッグで落とした位置。
-  // below_stop: その位置に「ここまで送ったら止めます」の線があれば、線の下に入れるか（省けば下）。線は動かしていない指示の側に残る）
-  app.post("/api/chats/:id/queue/move-many", withChat, async (c) => {
-    const { chat } = c.var;
-    const body = queueIdsSchema
-      .extend({ to: z.enum(["top", "bottom"]).optional(), before: queueId.nullable().optional(), below_stop: z.boolean().optional() })
-      .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
-      .parse(await jsonBody(c));
-    const to = body.to ?? { before: body.before ?? null, belowStop: body.below_stop };
-    await runner.moveQueuedMany(chat.id, body.ids, to);
-    return c.json(runner.queueState(chat.id));
-  });
-
-  // 待ちの 1 件をすぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ預かり、作業の終わりに送信待ちより先に送る）
-  app.post("/api/chats/:id/queue/:queueId/send", withChat, async (c) => {
-    const { chat } = c.var;
-    await runner.sendQueuedNow(chat.id, c.req.param("queueId"));
-    return c.json(runner.queueState(chat.id));
+export function queueRoutes({ runner, userSent, chatParam }: Pick<ChatRouteDeps, "runner" | "userSent" | "chatParam">) {
+  const state = (chatId: number) => runner.queueState(chatId);
+  return implement(chatQueueContract, {
+    context: { chatId: chatParam, queueId: { parse: (raw: string) => raw } },
+    "POST /api/chats/:chatId/queue": {
+      body: queueBodySchema,
+      run: async ({ chatId: chat, body, caller }) => {
+        if ("commands" in body) return runner.queue(chat.id, body.commands);
+        const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
+        userSent(caller, chat.id, body.user_view);
+        return { ...state(chat.id), ...added };
+      },
+    },
+    // 指示の代わりに挟む行を足す（compact: 会話の圧縮 / clear: コンテキストの消去。作業していなくても、すぐには行わない）
+    "POST /api/chats/:chatId/queue/compact": { body: actionBody, run: ({ chatId: chat, body }) => (runner.queueAction(chat.id, "compact", body.after), state(chat.id)) },
+    "POST /api/chats/:chatId/queue/clear": { body: actionBody, run: ({ chatId: chat, body }) => (runner.queueAction(chat.id, "clear", body.after), state(chat.id)) },
+    // 待ちの指示をすべて消す
+    "DELETE /api/chats/:chatId/queue": { run: ({ chatId: chat }) => (runner.clearQueued(chat.id), state(chat.id)) },
+    // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「この指示のあとで止める」。列にない指示なら 404）
+    "PUT /api/chats/:chatId/queue/stop-after": {
+      body: z.object({ id: queueId.nullable(), stop: z.boolean().default(true) }),
+      run: async ({ chatId: chat, body }) => (await runner.setQueueStopAfter(chat.id, body.id, body.stop), state(chat.id)),
+    },
+    // 印の位置をまとめて置き換える（印のドラッグ・×）
+    "PUT /api/chats/:chatId/queue/stops": {
+      body: z.object({ stops: z.array(z.number().int().min(0)).max(200) }),
+      run: async ({ chatId: chat, body }) => (await runner.setQueueStops(chat.id, body.stops), state(chat.id)),
+    },
+    "PUT /api/chats/:chatId/queue/paused": { body: z.object({ paused: z.boolean() }), run: async ({ chatId: chat, body }) => (await runner.setQueuePaused(chat.id, body.paused), state(chat.id)) },
+    // 自動で送る次の指示なら、書き直しが終わるまで送らない（途絶えたら外れて送る。列にない指示は数えない）
+    "PUT /api/chats/:chatId/queue/editing": { body: queueEditingSchema, run: ({ chatId: chat, body }) => runner.editing(chat.id, body.lane, body.ids) },
+    "POST /api/chats/:chatId/queue/send": { body: queueSendSchema, run: ({ chatId: chat, body }) => runner.queueSend(chat.id, body) },
+    "DELETE /api/chats/:chatId/queue/:queueId": { run: ({ chatId: chat, queueId: id }) => (runner.removeQueued(chat.id, id), state(chat.id)) },
+    "PATCH /api/chats/:chatId/queue/:queueId": {
+      body: z.object({ text: messageText, attachments: attachmentsSchema.optional() }),
+      run: ({ chatId: chat, queueId: id, body }) => (runner.editQueued(chat.id, id, body.text, body.attachments), state(chat.id)),
+    },
+    "POST /api/chats/:chatId/queue/:queueId/move": {
+      body: z.object({ index: z.number().int().min(0) }),
+      run: async ({ chatId: chat, queueId: id, body }) => (await runner.moveQueued(chat.id, id, body.index), state(chat.id)),
+    },
+    "POST /api/chats/:chatId/queue/send-all": { body: queueIdsSchema.partial(), run: async ({ chatId: chat, body }) => (await runner.sendAllQueued(chat.id, body.ids), state(chat.id)) },
+    "POST /api/chats/:chatId/queue/merge": {
+      body: queueIdsSchema,
+      run: ({ chatId: chat, body }) => {
+        const merged = runner.mergeQueued(chat.id, body.ids);
+        return { ...state(chat.id), id: merged.id };
+      },
+    },
+    "POST /api/chats/:chatId/queue/send-in-order": { run: async ({ chatId: chat }) => (await runner.sendQueuedInOrder(chat.id), state(chat.id)) },
+    "POST /api/chats/:chatId/queue/remove-many": { body: queueIdsSchema, run: ({ chatId: chat, body }) => (runner.removeQueuedMany(chat.id, body.ids), state(chat.id)) },
+    // 線は動かしていない指示の側に残る
+    "POST /api/chats/:chatId/queue/move-many": {
+      body: queueIdsSchema
+        .extend({ to: z.enum(["top", "bottom"]).optional(), before: queueId.nullable().optional(), below_stop: z.boolean().optional() })
+        .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください"),
+      run: async ({ chatId: chat, body }) => (await runner.moveQueuedMany(chat.id, body.ids, body.to ?? { before: body.before ?? null, belowStop: body.below_stop }), state(chat.id)),
+    },
+    "POST /api/chats/:chatId/queue/:queueId/send": { run: async ({ chatId: chat, queueId: id }) => (await runner.sendQueuedNow(chat.id, id), state(chat.id)) },
   });
 }

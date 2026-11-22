@@ -11,7 +11,8 @@
 | `core/run/turn/` | 1 回の実行（`execute`・`params`・`providerEvents`・`result`）。`RunnerDeps` を受ける |
 | `core/input.ts` | チャットの作成と続きの指示の準備（名前・添付 `ChatAttachments`・届かなかった報告） |
 | `core/family.ts` | 家系のたどり方（ほかで書かない） |
-| `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の節） |
+| `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方 |
+| `core/routes/` | 受け口（取り決めは `@shared/chat/contract.ts`） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 
@@ -52,7 +53,7 @@
 - 一時停止の印（`stops`）は列の位置で持つ（`@shared/chat/queueStops`）。
 - 挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand`）。
 - 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも）。
-- 口は命令の列 `POST …/queue`（`commands`。全部通るか 1 つも変えない）・`…/queue/send`・`PUT …/queue/editing`（`lane`）。1 件ごとの口は別名。応答は変えたあとの `QueueState`。
+- 口は `POST …/queue`（`commands` は全部通るか 1 つも変えない）・`…/queue/send`・`PUT …/queue/editing`。1 件ごとの口は別名。
 
 ## 止まったあとの再開（`core/run/recovery/`）
 

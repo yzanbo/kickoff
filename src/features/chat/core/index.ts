@@ -213,15 +213,11 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
     },
     routes: [
       chatRoutes(routeDeps),
+      turnRoutes(routeDeps),
+      queueRoutes(routeDeps),
       approvalRoutes(routeDeps),
       archiveCleanupRoutes(routeDeps),
-      {
-        legacy: (app) => {
-          turnRoutes(app, routeDeps);
-          queueRoutes(app, routeDeps);
-          orphanSessionRoutes(app, routeDeps);
-        },
-      },
+      { legacy: (app) => orphanSessionRoutes(app, routeDeps) },
     ],
     start: () => {
       stopAutoArchive = startAutoArchive(store, bus, k.clock);
