@@ -1,16 +1,20 @@
 import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { test, vi } from "vitest";
+import { afterAll, test, vi } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/foundation/testing/factories";
-import { RowBudgetScope } from "@/foundation/ui/hooks/useProgressiveRows";
 import { FOLD_ROW } from "@/foundation/ui/kit/FoldHead";
-import { BucketTree, type HeadTable } from "./BucketTree";
+import type { HeadTable } from "./BucketTree";
 import type { ChatBucket } from "./buckets";
 
 // 開閉は覚えた値のない初めの形（アーカイブ済みだけ閉じる）
 vi.mock("@/foundation/ui/hooks/useFold", () => ({ useFolds: () => ({ isOpen: (_key: string, defaultOpen = true) => defaultOpen, set: () => {} }) }));
+// 同じプロセスで先に流れたファイルが本物の useFold で読み込んでいても、モックで読み直す（あとのファイルにも残さない）
+vi.resetModules();
+const { BucketTree } = await import("./BucketTree");
+const { RowBudgetScope } = await import("@/foundation/ui/hooks/useProgressiveRows");
+afterAll(() => vi.resetModules());
 
 type Draft = { projectId: number; key: string; pinned: boolean };
 const ZERO = { running: 0, needs_input: 0, unread: 0 };
