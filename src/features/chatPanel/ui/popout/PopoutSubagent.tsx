@@ -12,6 +12,7 @@ import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { ChatImagesProvider } from "@/features/remoteImages/ui/ChatImage";
 import { PastWorkplacesProvider } from "@/features/chat/ui/screen/pastWorkplace";
 import { popoutFileLinks, usePopoutFileLinks } from "@/features/files/ui/PopoutFiles";
+import { ChatProviderContext } from "@/features/ai/ui";
 
 /**
  * 別ウィンドウのサブエージェントの画面: チャットの中身をチャットの店から読み、右の欄と同じ SubagentScreen を描く
@@ -56,17 +57,20 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   }, [shell.pane, chat.id, viewRef]);
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
-    <FileLinksProvider value={links}>
-      {/* 作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く */}
-      <PastWorkplacesProvider chatId={chat.id} current={links} side={false} adapt={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}>
-        <ChatImagesProvider chatId={chat.id}>
-          <ChatPaneContext.Provider value={pane}>
-            <div className="popout-body">
-              <SubagentScreen chatId={chat.id} agentKey={agentKey} />
-            </div>
-          </ChatPaneContext.Provider>
-        </ChatImagesProvider>
-      </PastWorkplacesProvider>
-    </FileLinksProvider>
+    // チャットの AI（ツールの行の文・使用状況など。右の欄のサブエージェントの画面と同じく、そのチャットの AI で出す）
+    <ChatProviderContext.Provider value={chat.provider}>
+      <FileLinksProvider value={links}>
+        {/* 作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く */}
+        <PastWorkplacesProvider chatId={chat.id} current={links} side={false} adapt={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}>
+          <ChatImagesProvider chatId={chat.id}>
+            <ChatPaneContext.Provider value={pane}>
+              <div className="popout-body">
+                <SubagentScreen chatId={chat.id} agentKey={agentKey} />
+              </div>
+            </ChatPaneContext.Provider>
+          </ChatImagesProvider>
+        </PastWorkplacesProvider>
+      </FileLinksProvider>
+    </ChatProviderContext.Provider>
   );
 }
