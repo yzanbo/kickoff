@@ -6,7 +6,7 @@ import { toPathspecs } from "@shared/foundation/search/pathGlobs";
 import { replaceInLine, searchPattern } from "@shared/foundation/search/searchMatch";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { git } from "@/foundation/core/workplace/git";
-import { hashOf, MAX_FILE_BYTES, resolveInside } from "./files";
+import { hashOf, MAX_FILE_BYTES, workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { plainSearchExcludes } from "@/foundation/core/workplace/plainFolder";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
@@ -80,7 +80,7 @@ export async function replaceInProject(repo: string, body: ProjectReplaceBody): 
   for (const target of body.files) {
     let real: string;
     try {
-      real = await resolveInside(repo, target.path);
+      real = await workplaceFiles(repo).resolve(target.path);
     } catch (e) {
       if (e instanceof NotFound) {
         result.skipped.push({ path: target.path, reason: "ファイルがありません" });

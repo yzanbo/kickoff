@@ -2,7 +2,7 @@
 import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs } from "@shared/git/types";
 import { toGitDiff } from "./changes";
 import { git } from "@/foundation/core/workplace/git";
-import { assertInside } from "@/features/files/core/files";
+import { workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { readGitHubRemotes } from "@/features/github/core/githubTarget";
 import { gitPrefix, hasRef, readStashes } from "@/foundation/core/workplace/reads";
 import { kindOf, parseAheadBehind } from "@/foundation/core/workplace/status";
@@ -78,8 +78,8 @@ export async function gitCommitDetail(repo: string, hash: string): Promise<GitCo
 /** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */
 export async function gitCommitDiff(repo: string, hash: string, file: string, oldPath?: string): Promise<GitDiff> {
   if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
-  await assertInside(repo, file);
-  if (oldPath) await assertInside(repo, oldPath);
+  await workplaceFiles(repo).inside(file);
+  if (oldPath) await workplaceFiles(repo).inside(oldPath);
   const paths = oldPath ? ["--", oldPath, file] : ["--", file];
   const parents = (await git(repo).run(["show", "-s", "--format=%P", hash])).trim();
   const parent = parents.split(" ")[0];

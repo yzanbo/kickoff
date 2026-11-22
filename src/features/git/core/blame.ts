@@ -1,7 +1,7 @@
 // 行ごとの変更の記録（git blame。エディタのいまの行の右に、いつ誰が変えたかを出す）
 import type { GitBlame, GitBlameCommit } from "@shared/git/types";
 import { git } from "@/foundation/core/workplace/git";
-import { assertInside } from "@/features/files/core/files";
+import { workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { timed } from "@/foundation/core/system/stallWatch";
 
 /** まだコミットしていない行のハッシュ（git blame が 0 を並べて返す） */
@@ -54,7 +54,7 @@ export function parseBlame(out: string, youEmail: string): GitBlame {
  * Git で管理していない・まだコミットのないファイルは null（git blame が 128 で終わる）
  */
 export async function gitBlame(repo: string, file: string): Promise<GitBlame | null> {
-  await assertInside(repo, file);
+  await workplaceFiles(repo).inside(file);
   const out = await git(repo).run(["blame", "--porcelain", "--", `./${file}`], { okCodes: [128] });
   if (!out.trim()) return null;
   const email = await git(repo).maybe(["config", "user.email"]);

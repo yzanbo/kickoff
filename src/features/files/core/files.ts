@@ -1,8 +1,8 @@
-// リポジトリの中のファイル（一覧・読む・保存・作る・名前の変更・ゴミ箱）。操作は土台の folderFiles（ノートと同じ口）で、パスはリポジトリの外を指さないか必ず確かめる
+// リポジトリの中のファイル（一覧・読む・保存・作る・名前の変更・ゴミ箱）。操作は土台の workplaceFiles（folderFiles。ノートと同じ口）で、パスはリポジトリの外を指さないか必ず確かめる
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Invalid } from "@/foundation/core/errors";
-import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
+import { workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/imageFiles";
 import type { FileContent, ProjectFiles, RenamedFile, SavedFile } from "@shared/foundation/fileTypes";
 import { git, nulList } from "@/foundation/core/workplace/git";
@@ -11,23 +11,10 @@ import { plainLsFiles } from "@/foundation/core/workplace/plainFolder";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { timed } from "@/foundation/core/system/stallWatch";
 
-export { hashOf, MAX_FILE_BYTES } from "@/foundation/core/files/folderFiles";
-
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
 /** 空のフォルダを探すときに読むフォルダの数の上限 */
 const MAX_DIR_READS = 5000;
-
-/** ページのプレビュー（HTML のファイル）が読むファイルの上限 */
-const MAX_ASSET_BYTES = 30 * 1024 * 1024;
-
-/** リポジトリ（作業場所）の中のファイルの操作 */
-const repoFiles = (repo: string): FolderFiles => folderFiles(repo, { outsideMessage: "リポジトリの外のファイルです", maxAssetBytes: MAX_ASSET_BYTES });
-
-/** リポジトリの中のパスか（外のファイルを読ませない）。リポジトリの中の絶対パスを返す */
-export function assertInside(repo: string, file: string): Promise<string> {
-  return repoFiles(repo).inside(file);
-}
 
 /**
  * エクスプローラーに出すファイルの一覧。
@@ -90,18 +77,13 @@ async function emptyDirs(repo: string, files: string[], ignored: string[]): Prom
  * 途中のフォルダもなければ作る（"a/b.ts" と書けば a の中に作る）。「.」「..」の段・リポジトリの外は 400、同じ名前のものがあれば 409
  */
 export async function createProjectFile(repo: string, file: string, dir: boolean): Promise<RenamedFile> {
-  await repoFiles(repo).create(file, { dir });
+  await workplaceFiles(repo).create(file, { dir });
   return { path: file };
 }
 
 /** ファイル・フォルダをゴミ箱へ入れる（ファイルタブの右クリックの「ゴミ箱に入れる」。入れ方は trash に任せる。ないものは 404） */
 export function trashProjectFile<T>(repo: string, file: string, trash: (target: string) => Promise<T>): Promise<T> {
-  return repoFiles(repo).trash(file, trash);
-}
-
-/** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない。なければ 404） */
-export function resolveInside(repo: string, file: string): Promise<string> {
-  return repoFiles(repo).resolve(file);
+  return workplaceFiles(repo).trash(file, trash);
 }
 
 /**
@@ -109,7 +91,7 @@ export function resolveInside(repo: string, file: string): Promise<string> {
  * 409 にする（開いたあとで、ほかで（エージェントなどが）変えていた。エージェントの作業を消さないため）。null なら確かめずに上書きする
  */
 export function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
-  return repoFiles(repo).write(file, content, baseHash);
+  return workplaceFiles(repo).write(file, content, baseHash);
 }
 
 /**
@@ -118,17 +100,17 @@ export function writeProjectFile(repo: string, file: string, content: string, ba
  * リポジトリの外を指すシンボリックリンクの先は動かさない（リンクそのものの名前を変える）
  */
 export async function renameProjectFile(repo: string, file: string, name: string): Promise<RenamedFile> {
-  return { path: await repoFiles(repo).rename(file, name) };
+  return { path: await workplaceFiles(repo).rename(file, name) };
 }
 
 /** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */
 export function readProjectFile(repo: string, file: string): Promise<FileContent> {
-  return repoFiles(repo).read(file);
+  return workplaceFiles(repo).read(file);
 }
 
 /** 作業場所のファイルの中身をそのまま読む（HTML のファイルのプレビューと、そのページが相対パスで読む CSS・画像。作業場所の外は断る） */
 export function readProjectAsset(repo: string, file: string): Promise<Buffer> {
-  return repoFiles(repo).asset(file);
+  return workplaceFiles(repo).asset(file);
 }
 
 /**
@@ -138,7 +120,7 @@ export function readProjectAsset(repo: string, file: string): Promise<Buffer> {
 export async function readProjectImage(repo: string, file: string): Promise<{ data: Buffer; type: string }> {
   const type = imageFileType(file);
   if (!type) throw new Invalid("画像のファイルではありません");
-  const real = await resolveInside(repo, file);
+  const real = await workplaceFiles(repo).resolve(file);
   const stat = await fs.stat(real);
   if (!stat.isFile()) throw new Invalid("ファイルではありません");
   if (stat.size > MAX_IMAGE_FILE_BYTES) throw new Invalid(`画像が大きすぎます（上限 ${MAX_IMAGE_FILE_BYTES / 1024 / 1024} MB）`);

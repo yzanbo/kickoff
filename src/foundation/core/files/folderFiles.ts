@@ -170,3 +170,11 @@ export function folderFiles(root: string, opts: FolderFilesOptions): FolderFiles
     },
   };
 }
+
+/** 作業場所のファイルの asset で読む上限（HTML のファイルのプレビューが読むページ・CSS・画像） */
+const WORKPLACE_ASSET_BYTES = 30 * 1024 * 1024;
+
+/** 作業場所（本体・ワークツリー）の中のファイル（ファイルの機能と、Git の差分・記録のパスの確かめが同じ口を使う） */
+export function workplaceFiles(dir: string): FolderFiles {
+  return folderFiles(dir, { outsideMessage: "リポジトリの外のファイルです", maxAssetBytes: WORKPLACE_ASSET_BYTES });
+}

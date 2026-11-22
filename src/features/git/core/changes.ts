@@ -1,7 +1,7 @@
 // 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
 import type { GitDiff, GitOriginal } from "@shared/git/types";
 import { git, nulList } from "@/foundation/core/workplace/git";
-import { assertInside, MAX_FILE_BYTES } from "@/features/files/core/files";
+import { MAX_FILE_BYTES, workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { gitPrefix, hasRef, listRemotes } from "@/foundation/core/workplace/reads";
 import { gitStatus } from "./status";
 import { Conflict, Invalid } from "@/foundation/core/errors";
@@ -18,8 +18,8 @@ const MAX_DIFF_CHARS = 400_000;
  * 未追跡のファイルは、空のファイルとの差分（すべて追加）にする。oldPath は名前を変えたときの元のパス
  */
 export async function gitDiff(repo: string, file: string, staged: boolean, oldPath?: string): Promise<GitDiff> {
-  await assertInside(repo, file);
-  if (oldPath) await assertInside(repo, oldPath);
+  await workplaceFiles(repo).inside(file);
+  if (oldPath) await workplaceFiles(repo).inside(oldPath);
   const paths = oldPath ? ["--", oldPath, file] : ["--", file];
   const base = ["diff", "--no-color", "--no-ext-diff", "--relative", "-M"];
   let diff = await git(repo).run(staged ? [...base, "--cached", ...paths] : [...base, ...paths]);
@@ -36,9 +36,9 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
  * パスは作業場所から見た形（./ を付けて、リポジトリの中のフォルダでもそのフォルダから見る）。改行などは作業中のファイルと同じ変換をする（--filters）
  */
 export async function gitOriginal(repo: string, file: string, staged: boolean, oldPath?: string): Promise<GitOriginal> {
-  await assertInside(repo, file);
+  await workplaceFiles(repo).inside(file);
   const source = oldPath ?? file;
-  if (oldPath) await assertInside(repo, oldPath);
+  if (oldPath) await workplaceFiles(repo).inside(oldPath);
   const specs = staged ? [`HEAD:./${source}`] : [`:./${source}`, `HEAD:./${source}`];
   for (const spec of specs) {
     // ないもの（コミットがまだない・追加したファイル）は 128 で終わる
@@ -63,7 +63,7 @@ export function toGitDiff(diff: string): GitDiff {
 /** 操作するパスがすべてリポジトリの中か確かめる */
 async function assertAllInside(repo: string, paths: string[]) {
   if (paths.length === 0) throw new Invalid("ファイルが選ばれていません");
-  for (const p of paths) await assertInside(repo, p);
+  for (const p of paths) await workplaceFiles(repo).inside(p);
 }
 
 /** ステージする（消したファイルは、消したことをステージする） */
