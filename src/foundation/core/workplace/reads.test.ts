@@ -16,7 +16,11 @@ test("upstreamOf: 名前に「/」を含む remote でも、remote の一覧で�
   assert.deepEqual(await upstreamOf(dir, "feat/x"), { remote: "team/origin", branch: "main" });
   git("switch", "-q", "-c", "local");
   assert.equal(await upstreamOf(dir, "local"), null);
-  assert.deepEqual(await readRemotes(dir), [{ name: "team/origin", url: origin.dir }]);
+  assert.deepEqual(await readRemotes(dir), [{ name: "team/origin", url: origin.dir, host: null }]);
+  // URL からホストを読む（部分クローンの絞り方の付いた行も）
+  git("remote", "add", "gh", "git@GitHub.com:me/app.git");
+  git("config", "remote.gh.partialclonefilter", "blob:none");
+  assert.deepEqual((await readRemotes(dir)).find((r) => r.name === "gh"), { name: "gh", url: "git@GitHub.com:me/app.git", host: "github.com" });
 });
 
 test("readStashes・changedCount: 退避を新しい順に読み、変更の数を数える（scope でその中だけ）", async () => {

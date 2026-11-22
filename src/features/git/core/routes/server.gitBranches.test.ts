@@ -129,6 +129,31 @@ test("リモートとのやり取り: プッシュ（追いかけ先を作る）
   assert.equal((await refs()).branches.find((b: { name: string }) => b.name === "topic").upstream, "origin/topic");
 });
 
+test("フェッチ: 自動（auto）は前の自動のフェッチから間がなければ飛ばして今の状態を返し、押したフェッチはいつでも取ってくる", async () => {
+  const { call, base, act, dir } = branchSetup();
+  const remote = tempDir();
+  gitIn(remote)("init", "-q", "--bare", "-b", "main");
+  gitIn(dir)("remote", "add", "origin", remote);
+  await act({ action: "push", branch: "main" });
+  const other = tempDir();
+  gitIn(other)("clone", "-q", remote, ".");
+  /** 別の場所でコミットしてプッシュする */
+  const pushFromOther = (file: string) => {
+    fs.writeFileSync(path.join(other, file), "x\n");
+    gitIn(other)("add", "-A");
+    gitIn(other)("commit", "-q", "-m", file);
+    gitIn(other)("push", "-q", "origin", "main");
+  };
+  pushFromOther("b.txt");
+  assert.equal((await call("POST", `${base}/fetch`, { auto: true })).body.behind, 1);
+  pushFromOther("c.txt");
+  // 間がないので取ってこない（遅れの数は前のまま）
+  const skipped = await call("POST", `${base}/fetch`, { auto: true });
+  assert.equal(skipped.status, 200);
+  assert.equal(skipped.body.behind, 1);
+  assert.equal((await call("POST", `${base}/fetch`)).body.behind, 2);
+});
+
 test("マージ: 前の見込み（取り込むものなし・早送り・衝突しそう）と、衝突して止まったら解いて続ける・取りやめる", async () => {
   const { act, call, base, status, commit, git, dir } = branchSetup();
   const preview = async (branch: string) => (await call("GET", `${base}/merge-preview?branch=${encodeURIComponent(branch)}`)).body;
@@ -155,6 +180,8 @@ test("マージ: 前の見込み（取り込むものなし・早送り・衝突
   assert.equal((await call("POST", `${base}/operation`, { action: "continue" })).status, 400);
   assert.equal((await call("POST", `${base}/operation`, { action: "skip" })).status, 400);
 
+  // 作業場所の外のパスは解かない（400）
+  assert.equal((await call("POST", `${base}/resolve`, { path: "../a.txt", how: "mark" })).status, 400);
   // 取り込む側の版で解いて続ける → マージのコミットができる
   const resolved = await call("POST", `${base}/resolve`, { path: "a.txt", how: "theirs" });
   assert.equal(resolved.status, 200);

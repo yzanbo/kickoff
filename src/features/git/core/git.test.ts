@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { parseWorktrees } from "@/foundation/core/workplace/worktrees";
-import { parseCommit, parseNameStatus, toGitDiff } from "./index";
+import { toGitDiff } from "./changes";
+import { parseCommit, parseNameStatus } from "./history";
 
 test("git worktree list --porcelain を読む（最初が本体。ブランチなし・locked・prunable）", () => {
   const out = [

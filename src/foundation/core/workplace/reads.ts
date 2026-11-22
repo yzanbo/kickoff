@@ -1,5 +1,6 @@
 // 作業場所の共通の読み取り（参照・ブランチ・remote・退避・変更の数・追跡と無視）。手元だけの git で読む（remote には触らない）
 import os from "node:os";
+import { parseRemoteUrl } from "@shared/foundation/codeHost";
 import { Invalid } from "@/foundation/core/errors";
 import { git } from "./git";
 
@@ -88,14 +89,17 @@ export function gitCommonDir(dir: string): Promise<string> {
   return git(dir).text(["rev-parse", "--path-format=absolute", "--git-common-dir"]);
 }
 
-/** remote の名前と URL（取ってくる先の URL。なければ空） */
-export async function readRemotes(repo: string): Promise<{ name: string; url: string }[]> {
+/**
+ * remote の名前と URL（取ってくる先の URL。なければ空）と、URL のホスト（読めなければ null）。
+ * 部分クローン（--filter）の remote は行の終わりに「 [blob:none]」のような絞り方が付くので、それも読む
+ */
+export async function readRemotes(repo: string): Promise<{ name: string; url: string; host: string | null }[]> {
   const remotes = new Map<string, string>();
   for (const line of await git(repo).lines(["remote", "-v"])) {
-    const m = /^(\S+)\s+(\S+)\s+\(fetch\)$/.exec(line);
+    const m = /^(\S+)\s+(\S+)\s+\(fetch\)(?: \[[^\]]*\])?$/.exec(line);
     if (m && !remotes.has(m[1])) remotes.set(m[1], m[2]);
   }
-  return [...remotes].map(([name, url]) => ({ name, url }));
+  return [...remotes].map(([name, url]) => ({ name, url, host: parseRemoteUrl(url)?.host ?? null }));
 }
 
 /** リポジトリの一番上のフォルダ（Git でなければ null） */

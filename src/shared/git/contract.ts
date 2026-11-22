@@ -41,8 +41,8 @@ export const gitContract = {
   "GET /api/projects/:projectId/git/log": route<never, GitLog, WorkdirQuery & { skip: number }>({ workdir: true }),
   "GET /api/projects/:projectId/git/commits/:hash": route<never, GitCommitDetail, WorkdirQuery>({ workdir: true }),
   "GET /api/projects/:projectId/git/commits/:hash/diff": route<never, GitDiff, WorkdirQuery & { path: string; old?: string }>({ workdir: true }),
-  /** フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない） */
-  "POST /api/projects/:projectId/git/fetch": route<never, GitStatus, WorkdirQuery>({ workdir: true }),
+  /** フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない。auto は裏の自動のフェッチ: 前から 60 秒以内・操作中ならコアが飛ばし、失敗も知らせずに今の状態を返す） */
+  "POST /api/projects/:projectId/git/fetch": route<{ auto?: boolean }, GitStatus, WorkdirQuery>({ workdir: true }),
   /** プル（早送りで最新にする） */
   "POST /api/projects/:projectId/git/pull": route<never, GitStatus, WorkdirQuery>({ workdir: true }),
   /** ブランチ・タグの操作。衝突して止まったら conflicts に衝突したファイル（push_pr なら作った PR も） */

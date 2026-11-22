@@ -1,28 +1,16 @@
 // プロジェクトの連携先の GitHub のリポジトリ（git の remote から決める。fork なら元のリポジトリ（upstream）を先に選ぶ）
-import { GITHUB_DEFAULT_HOST, normalizeGitHubHost } from "@shared/foundation/codeHost";
+import { GITHUB_HOSTS, isGitHubHost, parseRemoteUrl } from "@shared/foundation/codeHost";
 import type { GitHubRemote } from "@shared/git/types";
 import { git } from "@/foundation/core/workplace/git";
-
-/**
- * Kickoff が GitHub として扱うホスト（いまは github.com だけ）。GitHub Enterprise を足すときは、ここに足す（ほかの所はホストを受け取って動く）。
- * 残りの手順: ① この一覧を gh にログインしているホスト（gh auth status --json hosts のキー）から作る ② アカウントの一覧（listGitHubAccounts）を連携先のホストで出す
- * ③ git と AI のチャットに渡すトークン（k.workplace.git・turn.ts の githubEnvForGit()）に連携先のホストを渡す ④ githubStatus のホスト
- * ⑤ 画面の CSP（src/app/renderer/index.html の img-src）に本文の画像のホストを足す
- */
-export const GITHUB_HOSTS: readonly string[] = [GITHUB_DEFAULT_HOST];
 
 /**
  * remote の URL から GitHub のホストと「持ち主/名前」を読む（hosts にないホストなら null。https・ssh://・git@ の形。純粋な関数）。
  * ホストは小文字にそろえる
  */
 export function parseGitHubUrl(url: string, hosts: readonly string[] = GITHUB_HOSTS): { host: string; repo: string } | null {
-  const m =
-    /^https?:\/\/(?:[^@/]+@)?([^/:@\s]+)(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim()) ??
-    /^ssh:\/\/(?:[^@/]+@)?([^/:@\s]+)(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim()) ??
-    /^[^@/:\s]+@([^/:@\s]+):([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim());
-  if (!m) return null;
-  const host = normalizeGitHubHost(m[1]);
-  return hosts.some((h) => normalizeGitHubHost(h) === host) ? { host, repo: `${m[2]}/${m[3]}` } : null;
+  const parsed = parseRemoteUrl(url);
+  if (!parsed) return null;
+  return isGitHubHost(parsed.host, hosts) ? { host: parsed.host, repo: `${parsed.owner}/${parsed.name}` } : null;
 }
 
 /**

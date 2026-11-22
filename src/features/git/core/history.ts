@@ -3,8 +3,8 @@ import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRef
 import { toGitDiff } from "./changes";
 import { git } from "@/foundation/core/workplace/git";
 import { workplaceFiles } from "@/foundation/core/files/folderFiles";
-import { readGitHubRemotes } from "@/features/github/core/githubTarget";
-import { gitPrefix, hasRef, readStashes } from "@/foundation/core/workplace/reads";
+import { isGitHubHost } from "@shared/foundation/codeHost";
+import { gitPrefix, hasRef, readRemotes, readStashes } from "@/foundation/core/workplace/reads";
 import { kindOf, parseAheadBehind } from "@/foundation/core/workplace/status";
 import { Invalid } from "@/foundation/core/errors";
 import { timed } from "@/foundation/core/system/stallWatch";
@@ -100,7 +100,8 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
       "refs/remotes",
       "refs/tags",
     ]),
-    readGitHubRemotes(repo).then((r) => new Set(r.remotes.map((remote) => remote.name))),
+    // GitHub の remote（URL のホストが GitHub として扱うもの）
+    readRemotes(repo).then((r) => new Set(r.filter((remote) => remote.host !== null && isGitHubHost(remote.host)).map((remote) => remote.name)), () => new Set<string>()),
   ]);
   for (const line of out.split("\n").filter(Boolean)) {
     const [ref, object, peeled, upstream, track, head, worktree] = line.split("\0");

@@ -1,9 +1,8 @@
-// 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
+// 作業ツリーの変更（差分・ステージ・コミット・プル・フェッチ。プッシュは branches.ts の pushBranch）
 import type { GitDiff, GitOriginal } from "@shared/git/types";
 import { git, nulList } from "@/foundation/core/workplace/git";
 import { MAX_FILE_BYTES, workplaceFiles } from "@/foundation/core/files/folderFiles";
 import { gitPrefix, hasRef, listRemotes } from "@/foundation/core/workplace/reads";
-import { gitStatus } from "./status";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
 
@@ -109,21 +108,6 @@ export async function commitStaged(repo: string, message: string, amend = false)
   }
   if (amend) await git(repo).run(["commit", "-q", "--amend", ...(message.trim() ? ["-m", message] : ["--no-edit"])]);
   else await git(repo).run(["commit", "-q", "-m", message]);
-}
-
-/**
- * いまのブランチをプッシュする。追いかけているリモートのブランチがなければ、origin に同じ名前で公開する
- * （VS Code の「ブランチの発行」と同じ）。認証は利用者の git の設定（SSH・キーチェーン）に任せる
- */
-export async function pushBranch(repo: string, remoteGit: RemoteGit): Promise<void> {
-  const status = await gitStatus(repo);
-  if (!status.repo || !status.branch) throw new Invalid("プッシュするブランチがありません");
-  if (status.upstream) {
-    await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["push", "-q"]);
-    return;
-  }
-  if (!status.has_origin) throw new Invalid("プッシュ先のリモート（origin）がありません");
-  await remoteGit(repo, { timeout: NETWORK_TIMEOUT }).run(["push", "-q", "-u", "origin", status.branch]);
 }
 
 /** リモートの変更を取ってきて、いまのブランチを早送りで最新にする（手元の変更とぶつかるときは失敗する） */
