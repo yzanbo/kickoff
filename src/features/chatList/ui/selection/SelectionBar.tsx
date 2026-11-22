@@ -1,8 +1,8 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { isCancelKey } from "@/foundation/ui/lib/keys";
+import { useCommandHandler, useCommandKeys } from "@/foundation/ui/commands";
+import { selectionClears } from "./selectionClears";
 import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/ui";
 import { GroupPickMenu } from "@/features/groups/ui/GroupPickMenu";
 import type { Placement } from "@/foundation/ui/lib/floating";
@@ -26,13 +26,9 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
   const allArchived = picked.length > 0 && picked.every((r) => r.archived_at);
   const unread = picked.some((r) => r.unread);
 
-  // Esc で選ぶのをやめる（入力欄・ダイアログ・メニューの中の Esc は、そちらに任せる）
-  useWindowEvent("keydown", (e) => {
-    if (!isCancelKey(e) || selection.ids.size === 0 || e.defaultPrevented) return;
-    const target = e.target as HTMLElement | null;
-    if (target?.closest("input, textarea, [role=dialog], [role=menu]")) return;
-    selection.clear();
-  });
+  // Esc で選ぶのをやめる（選んでいるときだけ）
+  useCommandHandler(selectionClears, () => selection.clear(), selection.ids.size > 0);
+  const clearKeys = useCommandKeys("chatList.clearSelection");
 
   if (picked.length === 0) return null;
   const done = () => selection.clear();
@@ -46,7 +42,7 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
       <div className="selection-bar" role="toolbar" aria-label="選んだチャットの操作">
         <div className="selection-bar-head">
           <span className="selection-bar-count">{picked.length} 件を選択中</span>
-          <button className="link-button selection-bar-clear" onClick={done} title="選ぶのをやめる（Esc）">
+          <button className="link-button selection-bar-clear" onClick={done} title={`選ぶのをやめる（${clearKeys}）`}>
             <X size={12} aria-hidden /> 解除
           </button>
         </div>

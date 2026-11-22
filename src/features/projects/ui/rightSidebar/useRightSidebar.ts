@@ -1,11 +1,14 @@
 import { openPopout } from "@/foundation/ui/navigation/popout";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { commandHandler, useCommandHandler } from "@/foundation/ui/commands";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
 import { panelKey, togglePanel, usePanelOpen } from "@/features/panel/ui";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
+
+/** ⌥⌘B のコマンド（projects.toggleRightSidebar）が呼ぶ開閉（App の useProjectChat が置く。プロジェクトがあるときだけ） */
+export const rightSidebarToggles = commandHandler();
 
 /**
  * プロジェクトのチャット欄（画面の右端。画面の文言では「右サイドバー」。どのタブでも開ける）の殻: 開閉・幅・⌥⌘B。App が持つ。
@@ -29,16 +32,7 @@ export function useProjectChat(projectId: number | undefined, { inWindow = false
     if (key) togglePanel(key);
   };
 
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      if (e.metaKey && e.altKey && !e.ctrlKey && !e.shiftKey && e.code === "KeyB") {
-        e.preventDefault();
-        toggle();
-      }
-    },
-    projectId !== undefined,
-  );
+  useCommandHandler(rightSidebarToggles, toggle, projectId !== undefined);
 
   return { projectId, open, toggle, width, inWindow, maximized, setMaximized };
 }

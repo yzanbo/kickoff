@@ -1,10 +1,12 @@
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { commandContext, runCommandKey } from "./commands";
 
-/** 殻が 1 回: window の keydown でコマンドの表を引いて走らせる（capture の項目はほかより先に受ける） */
+/** 殻が 1 回: window の keydown でコマンドの表を引いて走らせる（capture の項目はほかより先に受け、受けたらほかへ渡さない = ターミナルに入れない） */
 export function useCommandShortcuts(window: "main" | "popout"): void {
   const onKey = (phase: "capture" | "bubble") => (e: KeyboardEvent) => {
-    if (runCommandKey(e, commandContext(window, e), phase)) e.preventDefault();
+    if (!runCommandKey(e, commandContext(window, e), phase)) return;
+    e.preventDefault();
+    if (phase === "capture") e.stopPropagation();
   };
   useWindowEvent("keydown", onKey("bubble"));
   useWindowEvent("keydown", onKey("capture"), true, true);

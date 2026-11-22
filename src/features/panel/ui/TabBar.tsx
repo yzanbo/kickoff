@@ -2,6 +2,7 @@ import { Columns2, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { homePane, leavesOf, topRightPane, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
@@ -49,6 +50,7 @@ export function TabBar({
   onTabMenu: (tabKey: string, e: React.MouseEvent) => void;
 }) {
   const rules = surfaceOf(panel.surface)!;
+  const splitKeys = useCommandKeys("panel.splitRight");
   const leaves = leavesOf(panel.layout.root);
   const split = leaves.length > 1;
   // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
@@ -128,7 +130,7 @@ export function TabBar({
       <span className="panel-bar-buttons panel-pane-tools">
         {rules.splitButtons !== false && (
           <>
-            <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" iconSize={14} onClick={() => splitShownTab(panel.key, "row", pane.id)} />
+            <IconButton icon={Columns2} label="右に分ける" title={`右に分ける（${splitKeys}）`} iconSize={14} onClick={() => splitShownTab(panel.key, "row", pane.id)} />
             <IconButton icon={Rows2} label="下に分ける" iconSize={14} onClick={() => splitShownTab(panel.key, "column", pane.id)} />
           </>
         )}

@@ -11,7 +11,7 @@
 | `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / 殻の口 `points.ts` |
 | `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所（飾り `workplaceDecor`）・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
-App・起動・ショートカット・下の帯は `src/app/renderer/`。
+App・起動・下の帯は `src/app/renderer/`。
 
 - 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。どの機能にも属さないものだけを土台に置く。
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
@@ -50,7 +50,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 1 つの部品だけが読む値は `useQuery`（SSE で直す値は店）。実行中と失敗は `useAction`。
 - 知らせは `reportFailure`（失敗のお知らせ）・`showToast`（済んだ操作）・`showDropHint`（落とせない理由）。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
-- アプリのショートカットは `commands/`（`commands.item`）。判定 `matchKey` は Mac で ⌘ だけ（⌃ は入力欄で使う）。
+- ショートカットは `commands.item`（部品の操作は `useCommandHandler`、表示は `useCommandKeys`・`KeyHint`）。`matchKey` は Mac で ⌘ だけ。
 - 選ぶ: ↑↓ ←→ は `useRovingList`、木は `useTree` ＋ `TreeView`、タブは `kit/tabs/`、複数選択は `useMultiSelect`。
 - 大きさ: つまみは `useDragSize`、一覧＋詳細は `useListDetail`、狭いかは `useNarrowerThan`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。

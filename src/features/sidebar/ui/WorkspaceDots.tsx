@@ -7,6 +7,7 @@ import type { StateCounts } from "@/features/chat/ui/state/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/StateCornerCounts";
 import type { ProjectReorder } from "./useProjectNav";
 import { useProjectChatDrops } from "./projectChatDrop";
+import { useCommandKeyList } from "@/foundation/ui/commands";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・ほかのプロジェクトのチャットを落とすと確かめて移す・右クリックでメニュー）。
@@ -40,6 +41,8 @@ export function WorkspaceDots({
   onNewProject: () => void;
 }) {
   const dotsRef = useRef<HTMLDivElement>(null);
+  // n 番目のプロジェクトへ移るキー（⌃1〜⌃9）
+  const dotKeys = useCommandKeyList("sidebar.projectN");
   // ほかのプロジェクトのチャットを丸へ落とすと、確かめてからそのプロジェクトへ移す（並べ替えのドラッグとは種類で分かれる）
   const chatDrop = useProjectChatDrops((id) => projects.find((p) => p.id === id));
   const dropProps = (id: number) => {
@@ -80,7 +83,7 @@ export function WorkspaceDots({
             className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", chatDrop.over === p.id && (chatDrop.blockedAt(p.id) ? "chat-drop-blocked" : "chat-drop-over"))}
             style={{ "--hue": `${p.hue}` } as CSSProperties}
             {...reorder.attrsFor(p.id, axis)}
-            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
+            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${dotKeys[i] ? `（${dotKeys[i]}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}
             onContextMenu={(e) => onMenu(e, p)}
             draggable={draggable}

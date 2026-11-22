@@ -1,5 +1,5 @@
 // projects が拡張点に出すもの（app/renderer/registry.ts が入れる）: プロジェクトの画面の行き先・ゴミ箱の画面・チャットの右の欄のプロジェクトの画面のタブの種類・
-// プロジェクトの設定の節（基本情報・参照資料・削除）・右サイドバーの別ウィンドウ
+// プロジェクトの設定の節（基本情報・参照資料・削除）・右サイドバーの別ウィンドウ・⌥⌘B
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { panelTabs } from "@/features/panel/ui";
@@ -10,6 +10,9 @@ import { projectViews } from "./projectViews";
 import { basicSection, deleteSection, referencesSection } from "./settings/settingsSections";
 import { trashView } from "./trashView";
 import { sidePopout } from "./popoutKinds";
+import { commands } from "@/foundation/ui/commands";
+import { IS_MAC } from "@/foundation/ui/lib/keys";
+import { rightSidebarToggles } from "./rightSidebar/useRightSidebar";
 
 export const contributes = [
   openTargets.item(projectViewTarget),
@@ -19,4 +22,12 @@ export const contributes = [
   settingsSections.item(referencesSection),
   settingsSections.item(deleteSection),
   popoutKinds.item(sidePopout),
+  // ⌥ を押すと文字が変わるので、キーの位置で見る（いまは Mac の ⌘ だけ）。エディタが先に受けても効く
+  commands.item({
+    id: "projects.toggleRightSidebar",
+    title: "右サイドバーの開閉",
+    keys: "alt+mod+code:KeyB",
+    evenIfHandled: true,
+    run: () => IS_MAC && rightSidebarToggles.run(),
+  }),
 ];

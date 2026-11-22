@@ -1,6 +1,7 @@
 import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import { surfaceOf } from "./state/panelStore";
 import { PanelViewButton, type PanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
@@ -23,8 +24,9 @@ export interface PanelFrame {
 /** 欄の閉じるボタン（欄の決まりの closeButton。欄が画面そのもののときは出さない） */
 export function PanelCloseButton({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { closeButton } = surfaceOf(panel.surface)!;
+  const commandKeys = useCommandKeys(closeButton?.command ?? "", { all: true });
   if (!closeButton || frame?.fixed) return null;
-  return <IconButton type="button" icon={closeButton.icon} iconSize={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />;
+  return <IconButton type="button" icon={closeButton.icon} iconSize={15} className="panel-control" label={closeButton.label} keys={commandKeys ?? closeButton.keys} onClick={panel.close} />;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { Check, GitBranch, Settings, TriangleAlert, Unplug, WifiOff } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import { useOnline } from "@/foundation/ui/hooks/useOnline";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import type { usePlanUsage } from "@/features/ai/ui/usage/usage";
@@ -38,6 +39,7 @@ interface Props {
  */
 export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: Props) {
   const online = useOnline();
+  const settingsKeys = useCommandKeys("settings.open");
   const { anchor: connAnchor, ...conn } = usePopover();
   const notice = useConnectionNotice(connection.state);
   const [mode, setMode] = useFooterMode();
@@ -47,7 +49,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   return (
     <footer className={cx("app-footer", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
-      <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={() => onOpenSettings("usage")} />
+      <IconButton icon={Settings} label="設定" title={`設定（${settingsKeys}）`} className="footer-settings" onClick={() => onOpenSettings("usage")} />
       {/* サーバーとの接続が切れたときだけ（SSE が切れると返答・状態・承認待ちが止まって見え、操作も失敗する）。
           詳細を開いている間につながったら、閉じるまで残す */}
       {(notice || conn.open) && (
@@ -93,7 +95,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
               key={m}
               role="menuitemradio"
               checked={m === mode}
-              title={m === "hide" ? "戻すときは、設定（⌘,）の「表示」→「下の帯」から" : undefined}
+              title={m === "hide" ? `戻すときは、設定（${settingsKeys}）の「表示」→「下の帯」から` : undefined}
               onSelect={() => setMode(m)}
             >
               <span className="project-switch-item">{FOOTER_MODE_LABELS[m]}</span>

@@ -1,6 +1,6 @@
 # パレット（`src/features/palette`）
 
-キーで開いて探して移る一覧。開くのは App（`@/app/renderer/shortcuts.ts`）。
+キーで開いて探して移る一覧。開くのはコマンド `palette.open`（`ui/contributes.ts`）。
 
 | ファイル | 中身 |
 |---|---|

@@ -1,4 +1,5 @@
 import { ArchiveRestore, ChevronDown, ChevronRight, Pin, SquarePen } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import type { DragEvent } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
@@ -56,6 +57,7 @@ export function WorkspaceHead({
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
+  const newChatKeys = useCommandKeys("chat.new");
   // ＋を押したときの、作成先のグループを選ぶメニュー
   const pickMenu = useContextMenu();
   const projectMenu = useProjectMenu([project]);
@@ -137,7 +139,7 @@ export function WorkspaceHead({
         <IconButton
           icon={SquarePen}
           label={`${project.name} の新しいチャット`}
-          title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
+          title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : `新しいチャット（${newChatKeys}）`}
           iconSize={15}
           className="workspace-new-chat"
           aria-haspopup={groups.length > 0 ? "menu" : undefined}

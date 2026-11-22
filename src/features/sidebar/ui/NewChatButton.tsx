@@ -1,4 +1,5 @@
 import { SquarePen } from "lucide-react";
+import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { NewChatPlaceBadges, useNewChatPlace } from "@/features/chat/ui";
 
@@ -9,10 +10,11 @@ import { NewChatPlaceBadges, useNewChatPlace } from "@/features/chat/ui";
  * 乗せたときの説明にはプロジェクトの名前も出す）。プロジェクトがひとつもなければ札を出さない
  */
 export function NewChatButton({ projectId, onClick }: { projectId: number | undefined; onClick: () => void }) {
+  const keys = useCommandKeys("chat.new");
   if (projectId === undefined) {
     return (
-      <button className="nav-row" onClick={onClick} title="新しいチャット（⌘N）">
-        <SquarePen size={15} /> 新しいチャット <kbd>⌘N</kbd>
+      <button className="nav-row" onClick={onClick} title={`新しいチャット（${keys}）`}>
+        <SquarePen size={15} /> 新しいチャット <KeyHint command="chat.new" />
       </button>
     );
   }
@@ -23,12 +25,13 @@ function NewChatButtonWithPlace({ projectId, onClick }: { projectId: number; onC
   const { projectName } = useProjects();
   const info = useNewChatPlace({ projectId });
   const name = projectName(projectId);
-  const title = `${name ? `プロジェクト「${name}」の` : ""}グループ「${info.groupName}」・作業場所「${info.whereText}」で、新しいチャットを始める（⌘N）`;
+  const keys = useCommandKeys("chat.new");
+  const title = `${name ? `プロジェクト「${name}」の` : ""}グループ「${info.groupName}」・作業場所「${info.whereText}」で、新しいチャットを始める（${keys}）`;
   return (
     <button className="nav-row new-chat-row" onClick={onClick} title={title}>
       <SquarePen size={15} /> 新しいチャット
       <NewChatPlaceBadges place={info} />
-      <kbd>⌘N</kbd>
+      <KeyHint command="chat.new" />
     </button>
   );
 }

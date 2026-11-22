@@ -1,4 +1,5 @@
 import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
 import { useLayoutEffect } from "react";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
@@ -34,6 +35,7 @@ interface Props {
  */
 export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
+  const toggleKeys = useCommandKeys("sidebar.toggle") ?? undefined;
   const { projects, loaded: projectsLoaded } = useProjects();
   // プロジェクトとチャットの一覧が初めて届いて描けたら、起動の時刻の記録に知らせる（app/bootMarks.ts）
   const chatsLoaded = useChatsLoaded();
@@ -87,7 +89,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
               }}
             />
           )}
-          <IconButton icon={PanelLeftClose} size="xs" className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
+          <IconButton icon={PanelLeftClose} size="xs" className="titlebar-toggle" label="サイドバーを閉じる" keys={toggleKeys} onClick={sidebar.toggle} />
         </div>
       )}
       <div className="nav-rows">
@@ -96,7 +98,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
         <button className="nav-row" onClick={onSearch}>
-          <Search size={15} /> 検索 <kbd>⌘K</kbd>
+          <Search size={15} /> 検索 <KeyHint command="palette.open" />
         </button>
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
@@ -113,8 +115,9 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
  * 押せなくならないよう、画面のいちばん後ろに置く
  */
 export function SidebarOpenButton({ sidebar }: { sidebar: SidebarController }) {
+  const toggleKeys = useCommandKeys("sidebar.toggle") ?? undefined;
   if (sidebar.open) return null;
   return (
-    <IconButton icon={PanelLeftOpen} size="xs" className="titlebar-toggle fixed" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
+    <IconButton icon={PanelLeftOpen} size="xs" className="titlebar-toggle fixed" label="サイドバーを開く" keys={toggleKeys} onClick={sidebar.toggle} />
   );
 }

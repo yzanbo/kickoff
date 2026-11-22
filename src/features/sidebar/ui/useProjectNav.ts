@@ -5,7 +5,7 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { foldAll, useFolds } from "@/foundation/ui/hooks/useFold";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { useCommandHandler } from "@/foundation/ui/commands";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { href, navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
@@ -25,6 +25,7 @@ import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { moveInList } from "@/foundation/ui/lib/moveInList";
 import { PROJECT_DRAG_TYPE } from "@/features/chatList/ui";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
+import { projectMoves } from "./commands";
 
 /**
  * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・要対応だけ・検索・
@@ -135,25 +136,12 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ（縦スライドは縦方向で受け取る）
   const swipe = useWorkspaceSwipe({ index, count: ordered.length, go, active: layout !== "stack", axis: layout === "rail" ? "y" : "x" });
 
-  // ショートカット: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）・⌃Tab / ⌃⇧Tab で前後、⌃1〜9 で n 番目
-  useWindowEvent("keydown", (e) => {
-    // チャットの中の ⌘⌥↑ / ↓（前後の指示へ）など、先に扱ったキーは見ない
-    if (e.defaultPrevented) return;
-    // ⌃Tab で次、⌃⇧Tab で前（ブラウザのタブと同じく、端まで来たら反対の端へ回る）
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Tab") {
-      e.preventDefault();
-      if (ordered.length > 1) go((index + (e.shiftKey ? -1 : 1) + ordered.length) % ordered.length);
-      return;
-    }
-    // 縦スライドでは ⌥⌘↑ / ⌥⌘↓ でも前後へ
-    const prevNext = layout === "rail" ? ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
-    if (e.metaKey && e.altKey && prevNext.includes(e.key)) {
-      e.preventDefault();
-      go(index + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1));
-    } else if (e.ctrlKey && !e.metaKey && /^[1-9]$/.test(e.key)) {
-      e.preventDefault();
-      go(Number(e.key) - 1);
-    }
+  // ショートカット（コマンドの表は ./commands.ts）: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）・⌃Tab / ⌃⇧Tab で前後、⌃1〜9 で n 番目
+  useCommandHandler(projectMoves, (move) => {
+    if ("at" in move) return go(move.at);
+    if (move.vertical && layout !== "rail") return false;
+    if (!move.wrap) return go(index + move.step);
+    if (ordered.length > 1) go((index + move.step + ordered.length) % ordered.length);
   });
 
   // プロジェクトと、その中のまとまりをすべて閉じる・開く（縦並び・横スライドのどちらでも、見出しの行から）

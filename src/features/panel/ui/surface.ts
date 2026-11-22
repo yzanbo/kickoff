@@ -117,7 +117,8 @@ export interface SurfaceSpec<E = unknown> {
    * 閉じるボタン（start / end = タブの列の左の道具の先頭か最後、right = 右上のペインのタブの列の右端（分けるボタンの後ろ）。
    * なければ出さない: チャット欄は右上のレイアウトの開閉で閉じる）
    */
-  closeButton?: { icon: LucideIcon; label: string; keys: string; at: "start" | "end" | "right" };
+  /** keys は欄の中のキー（Esc）、command は開閉のコマンド（キーの表示をコマンドの表から出す） */
+  closeButton?: { icon: LucideIcon; label: string; keys?: string; command?: string; at: "start" | "end" | "right" };
   /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
   maximize?: "width" | "height";
   /** false: タブの列の右端に分けるボタンを置かない（狭い欄。分けるのはタブのドラッグ・右クリック・⌘\ でできる） */

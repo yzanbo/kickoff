@@ -64,6 +64,12 @@ const NO_PROJECTS: Project[] = [];
 /** 一覧と読めなかった理由の引き当て（一覧と理由が変わったときだけ作り直す。同じ入力なら、どの部品から呼んでも同じ物） */
 const projectsIndexOf = createSelector<[Project[] | undefined, string | undefined], ProjectsIndex>((data, error) => indexProjects(data ?? NO_PROJECTS, data !== undefined, error));
 
+/** プロジェクトの一覧と名前の引き当て（部品の外から読む） */
+export const currentProjectsIndex = (): ProjectsIndex => {
+  const { data, error } = projectsStore.get();
+  return projectsIndexOf(data, error);
+};
+
 /** プロジェクトの一覧と名前の引き当て */
 export function useProjects(): ProjectsIndex {
   const { data, error } = useStore(projectsStore);

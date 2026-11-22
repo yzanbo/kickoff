@@ -1,4 +1,5 @@
 import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/palette/ui";
 import type { BoardViewState } from "./layout";
@@ -88,8 +89,9 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
 
 /** チャットを名前で絞り込む検索欄（⌘F でここへ。Esc で消す）。横のボタンで文言の全文検索を開く */
 function BoardSearch({ query, onChange }: { query: string; onChange: (query: string) => void }) {
+  const findKeys = useCommandKeys("page.find");
   return (
-    <SearchField className="board-search" value={query} onChange={onChange} placeholder="チャット名で検索（⌘F）" label="このボードのチャットを名前で検索">
+    <SearchField className="board-search" value={query} onChange={onChange} placeholder={`チャット名で検索（${findKeys}）`} label="このボードのチャットを名前で検索">
       {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
       <IconButton icon={TextSearch} iconSize={13} size="xs" className="chat-search-content" label="チャットの中の文言を検索" onClick={openContentSearch} />
     </SearchField>

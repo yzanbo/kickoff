@@ -1,4 +1,5 @@
 import { Activity } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import type { Project } from "@shared/projects/types";
 import { ACTIVE_CHATS_LABEL } from "@/features/projects/ui";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -12,13 +13,14 @@ import type { WaitingBadge } from "./useAllWaiting";
  * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは AllStateChats
  */
 export function ActiveChatsButton({ project, iconSize, className }: { project: Pick<Project, "id" | "name">; iconSize?: number; className?: string }) {
+  const keys = useCommandKeys("chatList.activeChats");
   return (
     <IconButton
       icon={Activity}
       iconSize={iconSize}
       className={className}
       label={`${project.name} の${ACTIVE_CHATS_LABEL}`}
-      title={`${ACTIVE_CHATS_LABEL}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`}
+      title={`${ACTIVE_CHATS_LABEL}（下書き・作業中・回答待ち・未読。${keys} の一覧をこのプロジェクトで絞り込んで開く）`}
       aria-haspopup="dialog"
       onClick={() => openActiveChats({ projectId: project.id })}
     />

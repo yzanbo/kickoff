@@ -9,7 +9,7 @@ export const bottomSurface = defineSurface({
   accepts: ["terminal"],
   closeOnEsc: false,
   whenEmpty: "close",
-  closeButton: { icon: PanelBottomClose, label: "フッターを閉じる", keys: "⌃` / ⌘J", at: "end" },
+  closeButton: { icon: PanelBottomClose, label: "フッターを閉じる", command: "terminal.toggleBottom", at: "end" },
   maximize: "height",
   className: "as-sidebar in-footer",
   Adds: TerminalAdds,

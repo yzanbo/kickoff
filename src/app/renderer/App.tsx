@@ -28,7 +28,6 @@ import { RestartResumeHost } from "@/features/queue/ui";
 import { PrNoticeHost } from "@/features/github/ui/prNotice/PrNoticeDialog";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/ui/Sidebar";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
-import { requestCodeSearchFocus } from "@/features/files/ui/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/ui/useSidebar";
 import { terminalTargets } from "@/features/terminal/ui/bottom/terminalTargets";
 import { AskHost } from "@/foundation/ui/kit/AskHost";
@@ -51,12 +50,12 @@ import { receiveMainWindowMessages } from "./mainWindowMessages";
 import { usePopoutHosts } from "./popoutHosts";
 import { boardTabOf, useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 import { useNavigationHistory } from "@/foundation/ui/navigation/useNavigationHistory";
-import { NavigationButtons } from "@/foundation/ui/navigation/NavigationButtons";
+import { NavigationButtons } from "./NavigationButtons";
 import { MaximizedHeader, MaximizedHeaderBar } from "@/foundation/ui/shell/WindowHeaderContent";
 import { onAppDialogRequested, type AppDialogMap, type AppDialogRequest } from "@/foundation/ui/shell/points";
 import { createNavigationHistory } from "@/foundation/ui/navigation/navigationHistory";
-import { useAppShortcuts } from "./shortcuts";
-import { useCommandShortcuts } from "@/foundation/ui/commands";
+import { useCommandHandler, useCommandShortcuts } from "@/foundation/ui/commands";
+import { historySteps } from "./commands";
 import { usePlanUsage } from "@/features/ai/ui/usage/usage";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
@@ -142,26 +141,11 @@ export function App() {
     else showDialog({ id: "noProjectsGuide", detail: null });
   };
 
-  /** ⌘⇧F: 開いている（なければサイドバーで選んでいる）プロジェクトの検索タブへ移り、検索の欄にピントを置く */
-  const openCodeSearch = () => {
-    const target = projectId ?? fallbackProject;
-    if (target === undefined) return showDialog({ id: "noProjectsGuide", detail: null });
-    openTarget({ kind: "projectView", projectId: target, view: "search" });
-    requestCodeSearchFocus();
-  };
-
   // 会話の文字の大きさ（<html> の CSS 変数）
   useApplyChatFontSize();
-  useAppShortcuts({
-    toggleSidebar: sidebar.toggle,
-    openPalette: () => showDialog({ id: "commandPalette", detail: null }),
-    openCodeSearch,
-    newChat: startNewChat,
-    openSettings: () => showDialog({ id: "settings", detail: "usage" }),
-    openActiveChats: () => showDialog({ id: "activeChats", detail: {} }),
-  });
-  // 機能が commands に入れたショートカット（いまの 11 キーは useAppShortcuts のまま。表に移したら useAppShortcuts を消す）
+  // ショートカット（機能と殻が commands に入れたもの。殻の分は ./commands.ts）
   useCommandShortcuts("main");
+  useCommandHandler(historySteps, navigation.step);
   // 部品・別ウィンドウから開くダイアログ（openAppDialog。設定は開いていればその項目に切り替える）と、サイドバーの別ウィンドウの「新しいチャット」
   const onDialogRequested = useEffectEvent((request: AppDialogRequest) => (request.id === "newChat" ? startNewChat() : showDialog(request)));
   useEffect(() => onAppDialogRequested(onDialogRequested), []);

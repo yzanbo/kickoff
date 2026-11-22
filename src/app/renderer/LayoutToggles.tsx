@@ -1,6 +1,7 @@
 import { PanelBottomClose, PanelBottomOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { cx } from "@/foundation/ui/lib/cx";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import type { ProjectHeaderMode } from "@/features/projects/ui/page/headerMode";
 
 interface Toggle {
@@ -16,6 +17,7 @@ interface Toggle {
  * 非表示なら出さない（ショートカットはそのまま効く）
  */
 export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { sidebar: Toggle; bottom?: Toggle; chat?: Toggle; reveal?: ProjectHeaderMode }) {
+  const keys = { sidebar: useCommandKeys("sidebar.toggle"), bottom: useCommandKeys("terminal.toggleBottom", { all: true }), chat: useCommandKeys("projects.toggleRightSidebar") };
   if (reveal === "hide") return null;
   return (
     <div className={cx("layout-toggles", reveal === "hover" && "auto-hide")} role="group" aria-label="レイアウト">
@@ -23,7 +25,7 @@ export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { side
         icon={sidebar.open ? PanelLeftClose : PanelLeftOpen}
         iconSize={15}
         label={sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}
-        title={`${sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}（⌘B）`}
+        title={`${sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}（${keys.sidebar}）`}
         aria-pressed={sidebar.open}
         active={sidebar.open}
         onClick={sidebar.onToggle}
@@ -33,7 +35,7 @@ export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { side
           icon={bottom.open ? PanelBottomClose : PanelBottomOpen}
           iconSize={15}
           label={bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}
-          title={`${bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}（⌃\` / ⌘J）`}
+          title={`${bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}（${keys.bottom}）`}
           aria-pressed={bottom.open}
           active={bottom.open}
           onClick={bottom.onToggle}
@@ -44,7 +46,7 @@ export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { side
           icon={chat.open ? PanelRightClose : PanelRightOpen}
           iconSize={15}
           label={chat.open ? "右サイドバーを閉じる" : "右サイドバーを開く"}
-          title={`${chat.open ? "右サイドバーを閉じる" : "右サイドバーを開く"}（⌥⌘B）`}
+          title={`${chat.open ? "右サイドバーを閉じる" : "右サイドバーを開く"}（${keys.chat}）`}
           aria-pressed={chat.open}
           active={chat.open}
           onClick={chat.onToggle}

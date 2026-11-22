@@ -1,4 +1,5 @@
 import { Check, ChevronRight, GripVertical } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import { Fragment, type ComponentProps, type ReactNode } from "react";
 import { storage } from "@/features/conversation/ui/storage";
 import { snippetsSettings } from "@/features/snippets/ui";
@@ -80,6 +81,7 @@ function CheckItem({
 export function ChatDisplayItems() {
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
+  const rowKeys = useCommandKeys("conversation.toggleHeaderRow");
   const [saved, setSaved] = useSetting(storage.settings.headerHidden);
   const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
@@ -114,7 +116,7 @@ export function ChatDisplayItems() {
       </CheckItem>
       <CheckItem
         on={!rowHidden}
-        title={rowHidden ? "見出しの行を表示する（⌥⌘T）" : "見出しの行を隠す（⌥⌘T）。隠しても、動きを見ている間とアーカイブ済みのチャットでは出し、⌘F でチャットの右上に検索欄が出ます"}
+        title={rowHidden ? `見出しの行を表示する（${rowKeys}）` : `見出しの行を隠す（${rowKeys}）。隠しても、動きを見ている間とアーカイブ済みのチャットでは出し、⌘F でチャットの右上に検索欄が出ます`}
         onToggle={() => setRowHidden(!rowHidden)}
       >
         見出しの行

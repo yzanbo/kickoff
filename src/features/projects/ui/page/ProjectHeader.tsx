@@ -1,4 +1,5 @@
 import { ArchiveRestore, Settings } from "lucide-react";
+import { useCommandKeys } from "@/foundation/ui/commands";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -30,6 +31,7 @@ export function ProjectHeader({
   badge: TabBadgeSource;
   onEdit: () => void;
 }) {
+  const settingsKeys = useCommandKeys("settings.open");
   const { project } = data;
   const [layout] = useProjectTabsLayout();
   const [mode, setMode] = useProjectHeaderMode();
@@ -73,7 +75,7 @@ export function ProjectHeader({
         title="プロジェクトの見出し"
         values={PROJECT_HEADER_MODES}
         labels={PROJECT_HEADER_MODE_LABELS}
-        titles={{ hide: "戻すときは、設定（⌘,）の「表示」→「プロジェクトの見出し」から" }}
+        titles={{ hide: `戻すときは、設定（${settingsKeys}）の「表示」→「プロジェクトの見出し」から` }}
         value={mode}
         onPick={setMode}
         onClose={menu.close}

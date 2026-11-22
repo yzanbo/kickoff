@@ -1,5 +1,9 @@
-// ⌘⇧F で検索タブの検索欄にピントを置く頼み（app/shortcuts.ts → App が検索タブへ移ってから頼む）。
+// ⌘⇧F で検索タブの検索欄にピントを置く頼み（コマンド files.codeSearch が検索タブへ移ってから頼む）。
 // もう開いている検索欄には知らせで、これから開く検索欄（タブを移った直後）は描いたときに受け取る
+
+import { commands } from "@/foundation/ui/commands";
+import { open } from "@/foundation/ui/navigation/open";
+import { openNoProjectsGuide, projectInView } from "@/features/projects/ui";
 
 type Listener = () => void;
 
@@ -32,3 +36,16 @@ export function subscribeCodeSearchFocus(listener: Listener): () => void {
   listeners.add(listener);
   return () => void listeners.delete(listener);
 }
+
+/** ⌘⇧F: 開いている（なければサイドバーで選んでいる）プロジェクトの検索タブへ移り、検索の欄にピントを置く（チャットの中の文言の全文検索は palette.contentSearch） */
+export const codeSearchCommand = commands.item({
+  id: "files.codeSearch",
+  title: "プロジェクトのファイルの中を探す",
+  keys: "mod+shift+f",
+  run: ({ projectId }) => {
+    const target = projectInView(projectId);
+    if (target === undefined) return openNoProjectsGuide();
+    open({ kind: "projectView", projectId: target, view: "search" });
+    requestCodeSearchFocus();
+  },
+});

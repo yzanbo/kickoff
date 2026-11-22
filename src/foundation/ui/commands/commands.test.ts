@@ -5,7 +5,7 @@ import { test } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import type { KeyInput } from "@/foundation/ui/lib/keys";
 import { runCommandKey } from "./commands";
-import { commands, KeyHint, keyLabel, matchKey, runCommand, useCommandKeys, type Command, type CommandContext } from "./index";
+import { commandHandler, commands, KeyHint, keyLabel, matchKey, runCommand, useCommandKeys, type Command, type CommandContext } from "./index";
 
 /** キーの知らせ（書いたものだけ押している） */
 const key = (k: string, mods: Partial<KeyInput & { defaultPrevented: boolean }> = {}): KeyInput & { defaultPrevented: boolean } => ({ key: k, code: "", metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, defaultPrevented: false, ...mods });
@@ -51,6 +51,8 @@ test("keyLabel: 修飾キーは書いた順に、Mac は記号で続け、ほか
   assert.equal(keyLabel("ctrl+code:Digit1", true), "⌃1");
   assert.equal(keyLabel("Escape", true), "Esc");
   assert.equal(keyLabel("mod+alt+ArrowUp", true), "⌘⌥↑");
+  assert.equal(keyLabel("mod+code:Backslash", true), "⌘\\");
+  assert.equal(keyLabel("ctrl+code:Backquote", true), "⌃`");
 });
 
 /** 走らせた id を並べるコマンド */
@@ -106,4 +108,18 @@ test("runCommand・useCommandKeys・KeyHint: 表のコマンドを id で走ら�
   assert.deepEqual(shown.slice(1), [null, null]);
   assert.match(renderToString(createElement(KeyHint, { keys: "mod+k" })), /<kbd>(⌘K|Ctrl\+K)<\/kbd>/);
   assert.equal(renderToString(createElement(KeyHint, { command: "none" })), "");
+});
+
+test("commandHandler: 出ている部品の操作をすべて呼び、どれかが走らせたら true。なければ・どれも false なら false", () => {
+  const handler = commandHandler<[step: number]>();
+  assert.equal(handler.run(1), false);
+  const got: string[] = [];
+  const offA = handler.add((step) => void got.push(`a${step}`));
+  const offB = handler.add((step) => (got.push(`b${step}`), false));
+  assert.equal(handler.run(1), true);
+  offA();
+  assert.equal(handler.run(2), false);
+  offB();
+  assert.equal(handler.run(3), false);
+  assert.deepEqual(got, ["a1", "b1", "b2"]);
 });

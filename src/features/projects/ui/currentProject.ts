@@ -1,7 +1,7 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { currentProjectsIndex, useProjects } from "@/features/projects/ui/stores/projects";
 
 /** サイドバーで最後に選んでいたプロジェクト（⌘N の新しいチャットの作成先にも使う。まだなければ undefined） */
 export function loadCurrentProject(): number | undefined {
@@ -14,8 +14,20 @@ export function loadCurrentProject(): number | undefined {
  */
 export function useFallbackProject(): number | undefined {
   const current = useSetting(storage.settings.currentProject)[0] || undefined;
-  const { projects, missing } = useProjects();
-  return (missing(current) ? undefined : current) ?? projects[0]?.id;
+  return fallbackOf(current, useProjects());
+}
+
+/** fallback の決め方（もうないものは飛ばして、サイドバーで最後に選んでいたもの → 先頭） */
+const fallbackOf = (current: number | undefined, { projects, missing }: ReturnType<typeof useProjects>): number | undefined => (missing(current) ? undefined : current) ?? projects[0]?.id;
+
+/**
+ * いま見ている画面のプロジェクト（URL のプロジェクト。もうないとわかったもの・URL にないときは useFallbackProject と同じ決め方）。
+ * React の外から（コマンドの ⌘⇧F）読む
+ */
+export function projectInView(routeProjectId: number | null): number | undefined {
+  const index = currentProjectsIndex();
+  if (routeProjectId !== null && !index.missing(routeProjectId)) return routeProjectId;
+  return fallbackOf(loadCurrentProject(), index);
 }
 
 export function saveCurrentProject(id: number) {

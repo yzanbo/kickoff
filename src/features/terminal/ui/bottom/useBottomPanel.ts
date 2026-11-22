@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { commandHandler, useCommandHandler } from "@/foundation/ui/commands";
 import { panelKey, panelSettings, terminalTab, togglePanel, type PanelScope, type TerminalTarget, usePanelOpen } from "@/features/panel/ui";
 
 const MIN_HEIGHT = 120;
@@ -8,6 +8,9 @@ const MIN_HEIGHT = 120;
 const KEEP_ABOVE = 120;
 
 export type BottomPanelController = ReturnType<typeof useBottomPanel>;
+
+/** ⌃` / ⌘J のコマンド（terminal.toggleBottom）が呼ぶ開閉（App の useBottomPanel が置く。ターミナルの使えるアプリでだけ） */
+export const bottomToggles = commandHandler();
 
 /**
  * フッター（画面の下のパネル。VS Code と同じく、どの画面でも ⌃` か ⌘J で開閉する）の殻: 開閉・高さ・最大化・ショートカット。App が持つ。
@@ -39,20 +42,8 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   /** 開閉。開くときにタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
   const toggle = () => togglePanel(key, { emptyTab: targets.length === 1 && window.kickoff?.terminal ? terminalTab(targets[0]) : undefined });
 
-  // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      const ctrlBackquote = e.ctrlKey && !e.metaKey && e.code === "Backquote";
-      const cmdJ = e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "j";
-      if (!ctrlBackquote && !cmdJ) return;
-      e.preventDefault();
-      e.stopPropagation();
-      toggle();
-    },
-    available,
-    true,
-  );
+  // ⌃`（VS Code と同じ）か ⌘J で開閉（コマンドの表は ../contributes.ts。ターミナルの中で押しても効くよう、ほかより先に受け取る）
+  useCommandHandler(bottomToggles, toggle, available);
 
   return {
     available,

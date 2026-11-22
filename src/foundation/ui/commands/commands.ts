@@ -55,7 +55,7 @@ export function matchKey(e: KeyInput, combo: KeyCombo, mac = IS_MAC): boolean {
 
 const MAC_NAMES: Record<Modifier, string> = { mod: "⌘", ctrl: "⌃", shift: "⇧", alt: "⌥" };
 const OTHER_NAMES: Record<Modifier, string> = { mod: "Ctrl", ctrl: "Ctrl", shift: "Shift", alt: "Alt" };
-const KEY_NAMES: Record<string, string> = { ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Escape: "Esc" };
+const KEY_NAMES: Record<string, string> = { ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Escape: "Esc", Backslash: "\\", Backquote: "`" };
 
 /** キーの表示（修飾キーは書いた順。Mac は "⌘⇧S"、ほかは "Ctrl+Shift+S"） */
 export function keyLabel(combo: KeyCombo, mac = IS_MAC): string {
