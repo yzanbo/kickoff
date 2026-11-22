@@ -2,7 +2,7 @@
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import type { ProjectsApi } from "@/features/projects/core/index";
-import { groupRoutes } from "./routes/groups";
+import { groupRoutes } from "./routes";
 import { createGroupStore, type GroupMembers, type GroupStore } from "./db/groups";
 
 export type { GroupStore } from "./db/groups";
@@ -23,6 +23,6 @@ export function createGroups(k: Kernel, deps: { projects: ProjectsApi }): CoreFe
   return {
     name: "groups",
     api: { store, useMembers: (given) => void (members = given) },
-    routes: [{ legacy: (app) => groupRoutes(app, { store: { projects: deps.projects.store, groups: store } }) }],
+    routes: [groupRoutes({ groups: store, projectParam: deps.projects.param })],
   };
 }

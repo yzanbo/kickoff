@@ -13,11 +13,11 @@ GET /api/notes/defaults device
 GET /api/notes/search device
 GET /api/notes/users device
 GET /api/projects device
-GET /api/projects/:id/groups device
 GET /api/projects/:id/note device
 GET /api/projects/:id/note/file/* device
 GET /api/projects/:id/notes device
 GET /api/projects/:projectId/chats device
+GET /api/projects/:projectId/groups device
 GET /api/restart-resumes device
 GET /api/search device
 GET /api/status device
