@@ -3,13 +3,14 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 
 /**
  * いまドラッグしている物（ドラッグの間だけ。dragover ではデータを読めないので、始めたときに覚えて、落とす前に受けるかを決める）。
- * dragend と drop（落とした先の処理のあと）で消す
+ * dragend・drop（落とした先の処理のあと）と、ウィンドウを離れたとき（Esc でやめて dragend が来ないことがある）に消す
  */
 let current: { type: string; value: unknown } | undefined;
 if (typeof window !== "undefined") {
   const clear = () => (current = undefined);
   window.addEventListener("dragend", clear, true);
   window.addEventListener("drop", () => setTimeout(clear), true);
+  window.addEventListener("blur", clear);
 }
 
 /** ドラッグする物の種類（dataTransfer の種類と、中身の書き方・読み方） */
@@ -50,5 +51,6 @@ export function useDragging(kind: DragKind<unknown>): boolean {
   useWindowEvent("dragstart", (e) => e.dataTransfer?.types.includes(kind.type) && setDragging(true));
   useWindowEvent("dragend", () => setDragging(false), dragging, true);
   useWindowEvent("drop", () => setDragging(false), dragging, true);
+  useWindowEvent("blur", () => setDragging(false), dragging);
   return dragging;
 }
