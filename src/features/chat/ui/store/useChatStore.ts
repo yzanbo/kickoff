@@ -4,6 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { onServerEvent, onServerOpen } from "@/foundation/ui/api/events";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { CHAT_STORE_EVENTS } from "./chatDetail";
+import type { EdgeAsk } from "./chatPaging";
 import { createChatStore } from "./chatStore";
 import { createSelectorKit } from "./chatSelector";
 import { createPrefetchQueue } from "./prefetch";
@@ -89,12 +90,12 @@ export function useChatDetail(chatId: number): ChatDetailView {
 }
 
 /**
- * 記録の読み足し: 前を読む・途中の一部分の後ろを読む・遠い記録を読む・末尾に戻る・
- * サブエージェントの中を読む・その記録を流れに出しているか
+ * 記録の読み足し: 前を読む・途中の一部分の後ろを読む（窓の端からは ask を付ける。読んでいる最中・同じ形のままなら頼まず null）・
+ * 遠い記録を読む・末尾に戻る・サブエージェントの中を読む・その記録を流れに出しているか
  */
 export const chatLog = {
-  loadEarlier: (chatId: number) => chatStore.loadEarlier(chatId),
-  loadLater: (chatId: number) => chatStore.loadLater(chatId),
+  loadEarlier: (chatId: number, ask?: EdgeAsk) => chatStore.loadEarlier(chatId, ask),
+  loadLater: (chatId: number, ask?: EdgeAsk) => chatStore.loadLater(chatId, ask),
   openAround: (chatId: number, eventId: number) => chatStore.openAround(chatId, eventId),
   backToTail: (chatId: number) => chatStore.backToTail(chatId),
   loadScope: (chatId: number, parents: readonly string[], ids?: readonly number[]) => chatStore.loadScope(chatId, parents, ids),

@@ -24,6 +24,11 @@ interface PagingDeps {
   mark: (e: Entry) => void;
 }
 
+/** 画面の端から頼む読み足し（流れ・動きの窓）。sameAs は頼んだときの並びの形 */
+export interface EdgeAsk {
+  sameAs: string;
+}
+
 type Applied = { range: LogRange; tail?: ChatDetailState["events"] };
 type Plan = { query: ChatEventsQuery; apply: (p: ChatEventPage, d: ChatDetailState) => Applied };
 
@@ -75,6 +80,17 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     return p;
   };
 
+  /** 端から最後に頼んだ側と形（読んでも並びの形が変わらなければ（もう読めない・失敗した）、変わるまで同じ側を頼み直さない） */
+  const lastAsk = new WeakMap<Entry, string>();
+  /** 端からの頼み（ask あり）は、何か読んでいる最中・同じ側を同じ形で頼んだあとなら頼まない（null） */
+  const fromEdge = (e: Entry, side: "earlier" | "later", ask: EdgeAsk | undefined, load: () => Promise<void>): Promise<void> | null => {
+    if (!ask) return load();
+    const key = `${side}:${ask.sameAs}`;
+    if (e.paging || lastAsk.get(e) === key) return null;
+    lastAsk.set(e, key);
+    return load();
+  };
+
   return {
     /** 見ていない間の末尾を縮める（店の retain が時計で呼ぶ） */
     shrink(e: Entry) {
@@ -90,11 +106,11 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
       mark(e);
     },
 
-    /** 流れに出している記録の前を読み足す（途中の一部分ならその前、なければ末尾の前を CHAT_TAIL_TURNS ターン） */
-    loadEarlier(chatId: number): Promise<void> {
+    /** 流れに出している記録の前を読み足す（途中の一部分ならその前、なければ末尾の前を CHAT_TAIL_TURNS ターン。端からの頼みは fromEdge） */
+    loadEarlier(chatId: number, ask?: EdgeAsk): Promise<void> | null {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      return page(e, "earlier", () => {
+      return fromEdge(e, "earlier", ask, () => page(e, "earlier", () => {
         const { range } = e.detail;
         if (range.focus) {
           const first = range.focus.events[0]?.id;
@@ -103,18 +119,18 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
         }
         if (!range.hasEarlier || range.tailStart === 0) return null;
         return { query: { before: range.tailStart, turns: CHAT_TAIL_TURNS }, apply: (p, d) => prependTail(d.range, d.events, p) };
-      });
+      }));
     },
 
     /** 途中の一部分の後ろを読み足す（末尾に届いたら末尾につなぐ） */
-    loadLater(chatId: number): Promise<void> {
+    loadLater(chatId: number, ask?: EdgeAsk): Promise<void> | null {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      return page(e, "later", () => {
+      return fromEdge(e, "later", ask, () => page(e, "later", () => {
         const last = e.detail.range.focus?.events.at(-1)?.id;
         if (last === undefined) return null;
         return { query: { after: last, turns: CHAT_TAIL_TURNS, until: e.detail.range.tailStart }, apply: (p, d) => focusLater(d.range, d.events, p) };
-      });
+      }));
     },
 
     /**

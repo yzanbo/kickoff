@@ -1,6 +1,5 @@
 import { MessageSquare, PanelRight } from "lucide-react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type RefObject, type UIEvent } from "react";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type RefObject, type UIEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
@@ -46,18 +45,15 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const events = view?.loaded;
   const tree = view?.tree;
   const busy = view?.busy ?? false;
-  const rows = useMemo(() => (events && tree ? activityRows(events, tree, busy) : []), [events, tree, busy]);
-  const shown = useMemo(() => (tree ? filterActivity(rows, tree, filter) : rows), [rows, tree, filter]);
+  const rows = events && tree ? activityRows(events, tree, busy) : [];
+  const shown = tree ? filterActivity(rows, tree, filter) : rows;
   // 上を最新にして並べる（履歴のタブと同じ）。線は絞り込んだ行の全体を時刻の順で決めてから逆にする
   // （描くのが最近の分だけでも、それより前から続く線を下から通す）
-  const ordered = useMemo(() => [...shown].reverse(), [shown]);
+  const ordered = [...shown].reverse();
   // 最新の行より先へ線を続けるのは、まだ作業中の持ち主（作業中のサブエージェントと、チャットが作業中ならメイン）だけ
-  const active = useMemo(() => {
-    const keys = new Set<string | null>(tree ? [...tree.byKey.values()].filter((s) => s.status === "running").map((s) => s.key) : []);
-    if (busy) keys.add(null);
-    return keys;
-  }, [tree, busy]);
-  const rails = useMemo(() => flipRails(layoutRails(shown, active)), [shown, active]);
+  const active = new Set<string | null>(tree ? [...tree.byKey.values()].filter((s) => s.status === "running").map((s) => s.key) : []);
+  if (busy) active.add(null);
+  const rails = flipRails(layoutRails(shown, active));
 
   // 一番上を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番上から）
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -186,31 +182,17 @@ function useActivityWindow({
   hasEarlier: boolean;
 }) {
   const [sizes] = useState(() => createLruMap<string, number>(ACTIVITY_SIZES));
-  const estimate = useCallback(
-    (row: ActivityRow, layout: RowLayoutContext) => Math.round((ROW_EST_PX + (expanded.has(row.key) ? (row.tools?.length ?? 0) * CALL_EST_PX : 0)) * layout.scale),
-    [expanded],
-  );
+  const estimate = (row: ActivityRow, layout: RowLayoutContext) => Math.round((ROW_EST_PX + (expanded.has(row.key) ? (row.tools?.length ?? 0) * CALL_EST_PX : 0)) * layout.scale);
   const [loading, setLoading] = useState(false);
-  const inflight = useRef(false);
-  const lastAsk = useRef<string | null>(null);
-  const shape = `${rows.length}:${rows.at(-1)?.key}`;
-  const shapeRef = useLatest(shape);
-  const onNearEnd = useMemo(
-    () =>
-      hasEarlier
-        ? () => {
-            if (inflight.current || lastAsk.current === shapeRef.current) return;
-            inflight.current = true;
-            lastAsk.current = shapeRef.current;
-            setLoading(true);
-            void chatLog.loadEarlier(chatId).finally(() => {
-              inflight.current = false;
-              setLoading(false);
-            });
-          }
-        : undefined,
-    [hasEarlier, chatId, shapeRef],
-  );
+  const sameAs = `${rows.length}:${rows.at(-1)?.key}`;
+  const onNearEnd = hasEarlier
+    ? () => {
+        const earlier = chatLog.loadEarlier(chatId, { sameAs });
+        if (!earlier) return;
+        setLoading(true);
+        void earlier.finally(() => setLoading(false));
+      }
+    : undefined;
   const w = useRowWindow({
     items: rows,
     keyOf: rowKey,

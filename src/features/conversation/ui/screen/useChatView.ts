@@ -1,4 +1,4 @@
-import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useInsertionEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { chatLog, chatWindow, relativeOf, timelineView } from "@/features/chat/ui";
@@ -41,14 +41,6 @@ export function useChatView({ chat, project, focus, beforeSend }: ChatViewInput,
   const prompts = promptList.useFor(chat.id);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const chatId = chat.id;
-  const paging = useMemo(
-    () => ({
-      loadEarlier: () => chatLog.loadEarlier(chatId),
-      loadLater: () => chatLog.loadLater(chatId),
-      backToTail: () => chatLog.backToTail(chatId),
-    }),
-    [chatId],
-  );
   // 開き直したとき: 前に読んでいた位置があり、そのあと新しい項目が届いていなければ、その位置から（届いていれば一番下。検索から開いたらその発言）
   const [initial] = useState(() => {
     const saved = timelineView(chatId).position;
@@ -61,7 +53,7 @@ export function useChatView({ chat, project, focus, beforeSend }: ChatViewInput,
     items,
     chatId,
     scroll,
-    log: { hasEarlier: log.hasEarlier, focused: log.focused, paging: log.paging, ...paging },
+    log: { hasEarlier: log.hasEarlier, focused: log.focused, paging: log.paging },
     initial,
     onDrawn: () => shell.timeline.drawn.set((n) => n + 1),
   });

@@ -43,3 +43,20 @@ test("読んでいる最中の同じ頼みは 1 つにまとめる", async () =>
   await earlier;
   assert.equal(pages.length, 1);
 });
+
+test("窓の端からの読み足しは、読んでいる最中と、同じ側を同じ形で頼んだあとは頼まない", async () => {
+  const { store, pages } = await openedTail();
+  const earlier = store.loadEarlier(1, { sameAs: "a" });
+  assert.ok(earlier);
+  // 読んでいる最中は、形が違っても頼まない（読み終わりを待つ約束も返さない）
+  assert.equal(store.loadEarlier(1, { sameAs: "b" }), null);
+  assert.equal(store.loadLater(1, { sameAs: "a" }), null);
+  pages[0].resolve({ events: [], has_earlier: true, has_later: false, head_partial: false });
+  await earlier;
+  // 読んでも並びの形が変わらなければ、変わるまで同じ側を頼み直さない
+  assert.equal(store.loadEarlier(1, { sameAs: "a" }), null);
+  assert.equal(pages.length, 1);
+  const next = store.loadEarlier(1, { sameAs: "b" });
+  assert.ok(next);
+  assert.equal(pages.length, 2);
+});

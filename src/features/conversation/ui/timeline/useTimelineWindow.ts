@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
+import { useState } from "react";
 import { useRowWindow, type RowLayoutContext, type RowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
 import { nextCorrection, type EstimateContext } from "./rowEstimate";
 import { estimateItem, estimateRaw, rowKindOf } from "./rowKinds";
@@ -7,9 +6,9 @@ import { turnExtras } from "./selectors";
 import { itemIndexOfEvent } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
 import type { TimelineScroll } from "./timelineScroll";
-import { timelineView } from "@/features/chat/ui";
+import { chatLog, timelineView } from "@/features/chat/ui";
 
-/** 読んでいない記録の読み足し（チャットの店） */
+/** 読んでいない記録の読み足しの様子（チャットの店。読むのは chatLog） */
 export interface TimelinePaging {
   /** 流れに出す記録より前に、読んでいない記録があるか */
   hasEarlier: boolean;
@@ -17,9 +16,6 @@ export interface TimelinePaging {
   focused: boolean;
   /** 読んでいる最中か */
   paging: boolean;
-  loadEarlier: () => Promise<void>;
-  loadLater: () => Promise<void>;
-  backToTail: () => void;
 }
 
 const itemKey = (item: TimelineItem) => item.key;
@@ -53,33 +49,24 @@ export function useTimelineWindow({
 }) {
   const view = timelineView(chatId);
   // 見積もり（種類ごとの補正は見え方の店に置き、測るたびに進める）
-  const estimate = useCallback((item: TimelineItem, layout: RowLayoutContext) => estimateItem(item, contextOf(chatId, view, layout)), [chatId, view]);
-  const onMeasured = useCallback(
-    (item: TimelineItem, height: number, layout: RowLayoutContext) => {
-      const kind = rowKindOf(item).estimateKind(item);
-      view.correction.set(kind, nextCorrection(view.correction.get(kind), height, estimateRaw(item, contextOf(chatId, view, layout))));
-    },
-    [chatId, view],
-  );
-  // 前・後ろを読み足しているか（頼んでから、その読み込みが終わるまで。流れの上・下に「読み込み中…」）。同時に頼むのは 1 つ
+  const estimate = (item: TimelineItem, layout: RowLayoutContext) => estimateItem(item, contextOf(chatId, view, layout));
+  const onMeasured = (item: TimelineItem, height: number, layout: RowLayoutContext) => {
+    const kind = rowKindOf(item).estimateKind(item);
+    view.correction.set(kind, nextCorrection(view.correction.get(kind), height, estimateRaw(item, contextOf(chatId, view, layout))));
+  };
+  // 前・後ろを読み足しているか（頼んでから、その読み込みが終わるまで。流れの上・下に「読み込み中…」）。
+  // 同時に頼むのは 1 つ・読み足しても流れの項目が変わらなかったら（もう読めない・失敗した）項目が変わるまで同じ側を頼み直さない（店の sameAs）
   const [asked, setAsked] = useState<"earlier" | "later" | null>(null);
-  const inflight = useRef(false);
-  const { hasEarlier, focused, paging, loadEarlier, loadLater } = log;
-  // 読み足しても流れの項目が変わらなかったら（もう読めない・失敗した）、項目が変わるまで同じ側を頼み直さない
-  const lastAsk = useRef<string | null>(null);
-  const shapeRef = useLatest(`${items[0]?.key}:${items.length}`);
-  const ask = useCallback((side: "earlier" | "later", load: () => Promise<void>) => {
-    if (inflight.current || lastAsk.current === `${side}:${shapeRef.current}`) return;
-    inflight.current = true;
-    lastAsk.current = `${side}:${shapeRef.current}`;
+  const { hasEarlier, focused, paging } = log;
+  const sameAs = `${items[0]?.key}:${items.length}`;
+  const ask = (side: "earlier" | "later") => {
+    const loading = side === "earlier" ? chatLog.loadEarlier(chatId, { sameAs }) : chatLog.loadLater(chatId, { sameAs });
+    if (!loading) return;
     setAsked(side);
-    void load().finally(() => {
-      inflight.current = false;
-      setAsked(null);
-    });
-  }, [shapeRef]);
-  const onNearStart = useMemo(() => (hasEarlier && !paging ? () => ask("earlier", loadEarlier) : undefined), [hasEarlier, paging, loadEarlier, ask]);
-  const onNearEnd = useMemo(() => (focused && !paging ? () => ask("later", loadLater) : undefined), [focused, paging, loadLater, ask]);
+    void loading.finally(() => setAsked(null));
+  };
+  const onNearStart = hasEarlier && !paging ? () => ask("earlier") : undefined;
+  const onNearEnd = focused && !paging ? () => ask("later") : undefined;
   const w: RowWindow = useRowWindow({
     items,
     keyOf: itemKey,
