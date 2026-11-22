@@ -87,7 +87,7 @@ function PermissionCard({ approval }: { approval: Approval }) {
     <div className="approval-card card">
       <div className="approval-head">
         <span className="approval-badge tag" data-look="solid">承認待ち</span>
-        <span className="approval-title">{approval.title ?? `${approval.tool_name} の実行`}</span>
+        <span className="approval-title">{approval.title ?? toolText().toolLabel(approval.tool_name)}</span>
       </div>
       {description && <p className="muted small">{description}</p>}
       <pre className="approval-command">
