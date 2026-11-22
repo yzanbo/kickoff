@@ -5,7 +5,7 @@ import { isQueueAction } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
 import { QueuedHeadTools } from "./QueuedHeadActions";
 import { RestartResumeBanner } from "@/features/queue/ui/restartResume/RestartResumeBanner";
-import { QueuedSelectionActions } from "./QueuedSelectionActions";
+import { QueuedSelectionActions, removeSelected } from "./QueuedSelectionActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
@@ -272,7 +272,7 @@ export function QueuedMessages({
                   sendTogether: () => void api.sendAllQueued(chatId, selected).then(clearSelection, failed),
                   merge: () => void api.mergeQueued(chatId, selected).then(clearSelection, failed),
                   moveTo: (to) => void api.moveQueuedMany(chatId, selected, to).catch(failed),
-                  remove: () => void api.removeQueuedMany(chatId, selected).then(clearSelection, failed),
+                  remove: () => removeSelected(chatId, selected, clearSelection),
                 }}
                 className={cx("queued-row", selected.includes(m.id) && "selected")}
                 // 入る位置の線（動かしても変わらないところには出さない）

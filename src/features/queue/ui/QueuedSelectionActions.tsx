@@ -77,13 +77,7 @@ export function QueuedSelectionActions({
           data-look="outline"
           aria-label={`選んだ ${n} 件を消す`}
           title={`選んだ ${n} 件を消す（確かめてから）`}
-          onClick={() =>
-            void confirm({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(
-              async (ok) => {
-                if (ok) await api.removeQueuedMany(chatId, selected).then(done, failed);
-              },
-            )
-          }
+          onClick={() => removeSelected(chatId, selected, done)}
         >
           <Trash2 size={12} aria-hidden />
           <span className="queued-head-label">消す</span>
@@ -92,4 +86,12 @@ export function QueuedSelectionActions({
       </span>
     </div>
   );
+}
+
+/** 選んだ指示を消す（見出しのボタン・行の右クリックのどちらからも確かめてから。消せたら done） */
+export function removeSelected(chatId: number, selected: string[], done: () => void): void {
+  const n = selected.length;
+  void confirm({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(async (ok) => {
+    if (ok) await api.removeQueuedMany(chatId, selected).then(done, failed);
+  });
 }
