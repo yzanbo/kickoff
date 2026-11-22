@@ -88,11 +88,14 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
     cancel: close,
     /** すべての欄を閉じ、書いている途中の文も捨てる（一覧をたたんだとき。見えないところで書き直し中のまま送るのを止め続けないため） */
     discardAll: () => setEdits({}),
-    /** 保存する（send なら続けていま送る。行の「すぐ送る」と同じで、作業中なら止めずに伝える）。保存した欄だけを閉じる */
+    /**
+     * 保存する（send なら続けていま送る。行の「すぐ送る」と同じで、作業中なら止めずに伝える）。保存した欄だけを閉じる。
+     * 保存できて送れなかったときも欄は閉じ、失敗だけ知らせる（文はもう保存されている）
+     */
     save: (id: string, attachments: Attachment[], send: boolean) =>
-      void api
-        .editQueued(chatId, id, edits[id]?.text ?? "", attachments)
-        .then(() => (send ? api.sendQueuedNow(chatId, id) : undefined))
-        .then(() => close(id), failed),
+      void api.editQueued(chatId, id, edits[id]?.text ?? "", attachments).then(() => {
+        close(id);
+        if (send) void api.sendQueuedNow(chatId, id).catch(failed);
+      }, failed),
   };
 }
