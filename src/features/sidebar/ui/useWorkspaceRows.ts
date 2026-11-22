@@ -9,8 +9,6 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { PlacedDraft } from "@/features/chatPanel/ui";
 import { chatListOptions, chatListSettings, pinnedKey, projectKey, useChatBuckets, useChatLayout, type BucketHead, type ChatBucket } from "@/features/chatList/ui";
 import { storage } from "./storage";
-import { useWaitingView } from "./waitingView";
-import { waitingAxes } from "./waitingAxes";
 import { inboxSections, waitingSince } from "./inboxOrder";
 import { splitPinnedDrafts } from "./sidebarDrafts";
 import { useProjectDrafts } from "./DraftRows";
@@ -57,8 +55,9 @@ export function useWorkspaceRows({
   const { grouping, order } = useChatLayout();
   // 要対応（回答待ち・未読）だけを出すか（表示が「プロジェクトで絞る」のときだけ絞る）・プロジェクト内の上にまとめるか
   const [waitingOn] = useSetting(storage.settings.waitingOnly);
-  const [waitingView] = useWaitingView();
-  const waitingOnly = waitingOn && waitingView === "filter";
+  const [waitingScope] = useSetting(storage.settings.waitingScope);
+  const [waitingOrder] = useSetting(storage.settings.waitingOrder);
+  const waitingOnly = waitingOn && waitingScope === "only" && waitingOrder === "project";
   const [showArchived] = useSetting(chatListSettings.showArchived);
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
@@ -115,7 +114,7 @@ export function useWorkspaceRows({
   const draftCounts = useMemo(() => new Map(buckets.filter((b) => b.drafts.length > 0).map((b) => [b.key, b.drafts.length])), [buckets]);
 
   // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す。検索・状態で絞っている間は出さない）
-  const showWaitingTop = waitingOn && waitingAxes(waitingView).scope === "project" && !keyword && !stateFilter;
+  const showWaitingTop = waitingOn && waitingScope === "project" && !keyword && !stateFilter;
   const waitingTop = useMemo(
     () => (showWaitingTop ? inboxSections(counted, stateOf, (chat, state) => waitingSince(chat, state, approvals)).flatMap((s) => s.chats) : []),
     [showWaitingTop, counted, stateOf, approvals],

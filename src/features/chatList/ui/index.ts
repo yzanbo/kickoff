@@ -20,7 +20,9 @@ export { chatItemProps } from "./chatItemProps";
 export { newChatPlaceOf, type BucketHead, type ChatBucket } from "./buckets";
 export { pinnedKey, projectKey } from "./bucketHeads";
 export { useChatBuckets } from "./useChatBuckets";
-export { useChatLayout } from "./chatLayout";
+export { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "./chatLayout";
+export { CHAT_GROUPINGS } from "./chatGrouping";
+export { confirmRemoveView, NamedViewTabs } from "./NamedViewTabs";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatListSettings = {

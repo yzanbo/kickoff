@@ -14,8 +14,10 @@ export const storage = defineSettings("sidebar", {
   lastHashByProject: single(record((v): v is string => typeof v === "string"), { ids: true, session: true }),
   /** 要対応（回答待ち・未読）のチャットに目を向けるか（初めはオン = 一覧の上に × プロジェクト別） */
   waitingOnly: flag(true),
-  /** 要対応がオンのときの表示（出し方 × 並べ方。filter = 要対応だけ × プロジェクト別 / list = 要対応だけ × 状態順 / inbox = 一覧の上に × 状態順 / inbox-project = 一覧の上に × プロジェクト別 / in-project = プロジェクト内の上に。sidebar/waitingAxes.ts。初めは inbox-project） */
-  waitingView: choice(["filter", "inbox", "list", "inbox-project", "in-project"], "inbox-project"),
+  /** 要対応がオンのときの出し方（only = 要対応だけ / top = 一覧の上に / project = プロジェクト内の上に。初めは一覧の上に） */
+  waitingScope: choice(["only", "top", "project"], "top"),
+  /** 要対応がオンのときの並べ方（project = プロジェクト別 / status = 状態順。プロジェクト内の上には project だけ） */
+  waitingOrder: choice(["project", "status"], "project"),
   savedViews: namedViews(DEFAULT_SIDEBAR_VIEWS),
   /**
    * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビュー（初めは標準）を当てる）

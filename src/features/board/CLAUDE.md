@@ -18,7 +18,7 @@
 - 開く先は `BoardChats` だけを見る（置き方で分岐しない）。全プロジェクトのボードはチャットを開かず、そのプロジェクトへ移って開く（右のパネルを持たない）。
 - ボードごとの違いは `useBoardCards` の `classFor` などだけで渡す（カードを描く所を増やさない）。
 - 覚えた値の意味を変えない: 列の分け方は `useBoardColumns`、グループ×状態は別のキー `board:groups-by-state`、フィードも別のキー（プロジェクトのボードに渡らないように）。
-- ビューは見え方の組を覚えるだけで、当てるときに各設定へ書く（`apply`）。名前の検索・作業場所の絞り込みは入れない。一覧の操作はサイドバーと共通の `@/foundation/ui/lib/namedViews.ts`。
+- ビューは見え方の組を覚えるだけで、当てるときに各設定へ書く（`apply`）。名前の検索・作業場所の絞り込みは入れない。タブはサイドバーと共通の chatList の `NamedViewTabs`、一覧の操作は `@/foundation/ui/lib/namedViews.ts`。
 - 初めのビューは `ui/initialViews.ts` の `DEFAULT_PROJECT_VIEWS` など。すべて消したら `[]` を覚えて戻さない。
 - 狭いときは `@container` と `useWrapCompact` で詰める（決め打ちの幅で切り替えない）。
 

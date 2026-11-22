@@ -11,7 +11,7 @@
 | `ui/bucketHeads.ts`・`bucketHues.ts` | まとまりのキーと見出し・色 |
 | `ui/chatLayout.ts`・`chatOrder.ts`・`manualOrder.ts` | まとめ方と並び順（`useChatLayout`・`useChatOrder`）・手動の並び |
 | `ui/chatGrouping.ts` | まとめ方の選択肢（要対応・太字の決まりは `@shared/chat/state.ts` の `needsAttention`・`showsBold`） |
-| `ui/selection/chatSelection.ts` | 複数選択（`useChatSelectionState`・`SelectionBar`） |
+| `ui/selection/`・`NamedViewTabs.tsx` | 複数選択・ビューのタブ（サイドバー・ボード） |
 | `ui/StateCornerCounts`・`StateChatsPopover`・`StateChip`・`StateStats` | 角の数・状態ごとの一覧・札・見出しの数（拡張点 `projectHeaderStats`） |
 | `ui/ChatRowFace.tsx`・`chatItemProps.ts` | 行の中身（チャット・下書き）・行とカードの同じ操作 |
 | `ui/activeChats/` | ⌘⇧A（中身は純粋な `activeChatGroups`。下書きと開き方は chatPanel の `ActiveChatsDialog` が渡す） |

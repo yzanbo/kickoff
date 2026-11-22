@@ -1,13 +1,8 @@
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
-import type { SettingValue } from "@/foundation/ui/storage";
-import type { storage } from "./storage";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { errorMessage } from "@shared/foundation/errors";
-
-/** サイドバーのプロジェクトの並べ方: 手動（ドラッグで並べ替えた順）/ 最近動いた順 */
-export type ProjectOrder = SettingValue<typeof storage.settings.listOrder>;
 
 /**
  * サイドバーに出すプロジェクトの並び: 上に固定したものを先に、そのあとドラッグで並べ替えた順（同じなら作成順）。

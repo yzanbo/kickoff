@@ -8,7 +8,6 @@ import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import { ProjectList } from "./ProjectList";
 import { useProjectNav } from "./useProjectNav";
 import { WaitingInbox } from "./WaitingInbox";
-import { waitingAxes } from "./waitingAxes";
 import { ProjectListHead } from "./ProjectListHead";
 
 interface Props {
@@ -26,7 +25,7 @@ interface Props {
  */
 export function ProjectNav({ chats, groups, onNewProject }: Props) {
   const nav = useProjectNav(chats);
-  const { projects, archived, ordered, visible, waitingOnly, waitingView, filterByWaiting, setWaitingOnly, tagFilter, showArchived, setShowArchived } = nav;
+  const { projects, archived, ordered, visible, waitingOnly, waitingScope, waitingOrder, filterByWaiting, setWaitingOnly, tagFilter, showArchived, setShowArchived } = nav;
   // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）。hooks は、下の早い return より前に呼ぶ
   const selection = useChatSelection();
 
@@ -71,12 +70,11 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   const selectionBar = selection && <SelectionBar selection={selection} chats={chats} groups={groups} />;
 
   // 要対応の表示の出し方と並べ方（要対応だけ × プロジェクト別は、プロジェクトの一覧そのものを絞る filterByWaiting）
-  const { scope: waitingScope, order: waitingOrder } = waitingAxes(waitingView);
   // 要対応だけ × 状態順: プロジェクトの一覧の代わりに、待っているチャットだけをプロジェクトをまたいで状態順に並べる
   if (waitingOnly && waitingScope === "only" && waitingOrder === "status") {
     return (
       <div className={cx("workspaces", nav.compact && "compact")}>
-        <ProjectListHead {...nav.head} />
+        <ProjectListHead nav={nav} />
         <div className="workspace-stack">
           {tagEmptyNotice || <WaitingInbox variant="list" order="status" />}
         </div>

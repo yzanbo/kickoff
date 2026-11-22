@@ -48,7 +48,7 @@ export function ProjectList({
     const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
     return (
       <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
-        <ProjectListHead {...nav.head} />
+        <ProjectListHead nav={nav} />
         <div className="search-all">
           <SearchField value={nav.searchAll} onChange={nav.setSearchAll} placeholder="すべてのプロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
         </div>
@@ -106,7 +106,7 @@ export function ProjectList({
   );
   return (
     <div className={cx("workspaces", rail && "rail", compact && "compact", compactProjects && "compact-projects")}>
-      <ProjectListHead {...nav.head} />
+      <ProjectListHead nav={nav} />
       {topInbox && <div className="waiting-inbox-slot">{topInbox}</div>}
       <div className="workspace-body">
         {rail && switcher}

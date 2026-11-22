@@ -2,18 +2,12 @@ import { ArrowDown, ArrowUp, Check, Pencil, Plus, SlidersHorizontal, Trash2 } fr
 import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { viewNameTaken } from "@/foundation/ui/lib/namedViews";
-import { CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
-import { confirm } from "@/foundation/ui/kit/ask";
-import { Field } from "@/foundation/ui/kit/Field";
+import { confirmRemoveView } from "@/features/chatList/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
-import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { CHAT_ORDERS, GROUPING_META, ORDER_META } from "@/features/chatList/ui/chatLayout";
-import { newSidebarViewName, type SidebarView, type SidebarViewState } from "./sidebarViews";
-import { LAYOUT_META, LAYOUTS } from "./SidebarViewTuner";
 import { useSidebarViews, type SidebarViews } from "./useSidebarViews";
-import { canChooseOrder, WAITING_ORDERS, WAITING_SCOPES, waitingAxes, waitingViewOf } from "./waitingAxes";
-import { WAITING_ORDER_META, WAITING_SCOPE_META } from "./waitingView";
+import { SettingsFieldControl } from "./ViewFieldControl";
+import { describeSidebarView, newSidebarViewName, SIDEBAR_REMOVE_NOTE, VIEW_KEYS, type SidebarView, type SidebarViewState } from "./viewFields";
 
 /**
  * 設定の「サイドバー」: サイドバーの見出しのビューの一覧。並べ替え（↑↓。見出しのタブのドラッグと同じ並び）・名前の変更・
@@ -28,7 +22,7 @@ export function SidebarViewSettings() {
     setEditing(view.id);
   };
   const remove = async (view: SidebarView) => {
-    if (await confirm({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
+    if (await confirmRemoveView(view, SIDEBAR_REMOVE_NOTE)) views.remove(view.id);
   };
   return (
     <section className="section">
@@ -73,7 +67,7 @@ export function SidebarViewSettings() {
                     )}
                     {views.active?.id === view.id && <span className="snippet-scope tag common" data-look="outline">表示中</span>}
                   </div>
-                  {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="snippet-manager-text">{describeState(view.state)}</p>}
+                  {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="snippet-manager-text">{describeSidebarView(view.state)}</p>}
                 </div>
                 <div className="snippet-manager-actions">
                   <IconButton icon={Pencil} iconSize={13} label="名前を変更" title="名前を変更（名前のダブルクリックでも）" onClick={() => setRenaming(view.id)} />
@@ -94,121 +88,14 @@ export function SidebarViewSettings() {
   );
 }
 
-/** ビューの見え方の短い説明（一覧の行） */
-function describeState(s: SidebarViewState): string {
-  const waiting = s.waitingOn ? `要対応: ${WAITING_SCOPE_META[waitingAxes(s.waitingView).scope].short}・${WAITING_ORDER_META[waitingAxes(s.waitingView).order].short}` : "要対応: オフ";
-  return [
-    `プロジェクト: ${LAYOUT_META[s.layout].short}・${s.projectOrder === "recent" ? "最近順" : "手動"}・${s.projectCompact ? "1 行" : "2 行"}${s.showArchivedProjects ? "・アーカイブを表示" : ""}`,
-    `チャット: ${GROUPING_META[s.grouping].short}・${ORDER_META[s.chatOrder].short}・${s.chatCompact ? "1 行" : "2 行"}${s.showArchivedChats ? "・アーカイブを表示" : ""}`,
-    waiting,
-  ].join(" / ");
-}
-
-/** ビューの中身を変えるフォーム（変えるとすぐ保存する。表示中のビューなら、いまの見え方にも当てる） */
+/** ビューの中身を変えるフォーム（項目は viewFields.ts の表。変えるとすぐ保存する。表示中のビューなら、いまの見え方にも当てる） */
 function ViewStateForm({ view, views }: { view: SidebarView; views: SidebarViews }) {
-  const s = view.state;
-  const set = (patch: Partial<SidebarViewState>) => views.update(view.id, { ...s, ...patch });
-  const { scope, order } = waitingAxes(s.waitingView);
-  const onOff = (value: boolean) => (value ? "on" : "off");
+  const set = (patch: Partial<SidebarViewState>) => views.update(view.id, { ...view.state, ...patch });
   return (
     <div className="form sidebar-view-form">
-      <Field as="div" label="プロジェクトの並べ方">
-        <Segmented label="プロジェクトの並べ方" value={s.layout} onChange={(layout) => set({ layout })} options={LAYOUTS.map((l) => ({ value: l, label: LAYOUT_META[l].short }))} />
-      </Field>
-      <Field as="div" label="プロジェクトの並び順">
-        <Segmented
-          label="プロジェクトの並び順"
-          value={s.projectOrder}
-          onChange={(projectOrder) => set({ projectOrder })}
-          options={[
-            { value: "manual", label: "手動" },
-            { value: "recent", label: "最近順" },
-          ]}
-        />
-      </Field>
-      <Field as="div" label="プロジェクトのカード">
-        <Segmented
-          label="プロジェクトのカード"
-          value={onOff(s.projectCompact)}
-          onChange={(v) => set({ projectCompact: v === "on" })}
-          options={[
-            { value: "on", label: "1 行" },
-            { value: "off", label: "2 行" },
-          ]}
-        />
-      </Field>
-      <Field as="div" label="しまったプロジェクト">
-        <Segmented
-          label="しまったプロジェクト"
-          value={onOff(s.showArchivedProjects)}
-          onChange={(v) => set({ showArchivedProjects: v === "on" })}
-          options={[
-            { value: "on", label: "表示" },
-            { value: "off", label: "隠す" },
-          ]}
-        />
-      </Field>
-      <Field as="div" label="チャットのまとめ方">
-        <Segmented label="チャットのまとめ方" value={s.grouping} onChange={(grouping) => set({ grouping })} options={CHAT_GROUPINGS.map((g) => ({ value: g, label: GROUPING_META[g].short }))} />
-      </Field>
-      <Field as="div" label="チャットの並び順">
-        <Segmented label="チャットの並び順" value={s.chatOrder} onChange={(chatOrder) => set({ chatOrder })} options={CHAT_ORDERS.map((o) => ({ value: o, label: ORDER_META[o].short }))} />
-      </Field>
-      <Field as="div" label="チャットの行">
-        <Segmented
-          label="チャットの行"
-          value={onOff(s.chatCompact)}
-          onChange={(v) => set({ chatCompact: v === "on" })}
-          options={[
-            { value: "on", label: "1 行" },
-            { value: "off", label: "2 行" },
-          ]}
-        />
-      </Field>
-      <Field as="div" label="アーカイブ済みのチャット">
-        <Segmented
-          label="アーカイブ済みのチャット"
-          value={onOff(s.showArchivedChats)}
-          onChange={(v) => set({ showArchivedChats: v === "on" })}
-          options={[
-            { value: "on", label: "表示" },
-            { value: "off", label: "隠す" },
-          ]}
-        />
-      </Field>
-      <Field as="div" label="要対応">
-        <Segmented
-          label="要対応"
-          value={onOff(s.waitingOn)}
-          onChange={(v) => set({ waitingOn: v === "on" })}
-          options={[
-            { value: "on", label: "オン" },
-            { value: "off", label: "オフ" },
-          ]}
-        />
-      </Field>
-      {s.waitingOn && (
-        <>
-          <Field as="div" label="要対応の出し方">
-            <Segmented
-              label="要対応の出し方"
-              value={scope}
-              onChange={(next) => set({ waitingView: waitingViewOf(next, order) })}
-              options={WAITING_SCOPES.map((w) => ({ value: w, label: WAITING_SCOPE_META[w].short }))}
-            />
-          </Field>
-          {canChooseOrder(scope) && (
-            <Field as="div" label="要対応の並べ方">
-              <Segmented
-                label="要対応の並べ方"
-                value={order}
-                onChange={(next) => set({ waitingView: waitingViewOf(scope, next) })}
-                options={WAITING_ORDERS.map((w) => ({ value: w, label: WAITING_ORDER_META[w].short }))}
-              />
-            </Field>
-          )}
-        </>
-      )}
+      {VIEW_KEYS.map((k) => (
+        <SettingsFieldControl key={k} field={k} state={view.state} set={set} />
+      ))}
     </div>
   );
 }

@@ -1,8 +1,8 @@
-// サイドバーのビューの初めの値（保存の宣言は storage.ts。形は sidebarViews.ts の SidebarViewState）
+// サイドバーのビューの初めの値（保存の宣言は storage.ts。形は viewFields.ts の SidebarViewState）
 import type { StoredView } from "@/foundation/ui/storage";
 
 /**
- * サイドバーのビュー（プロジェクト・チャット・要対応の見え方の組に名前を付けたもの。features/sidebar/sidebarViews.ts の SidebarViewState）。
+ * サイドバーのビュー（プロジェクト・チャット・要対応の見え方の組に名前を付けたもの。viewFields.ts の SidebarViewState）。
  * 初めは「標準」「コンパクト」「要対応」の順。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
  */
 const sidebarView = (id: string, name: string, state: Readonly<Record<string, unknown>>): StoredView => ({
@@ -18,7 +18,8 @@ const sidebarView = (id: string, name: string, state: Readonly<Record<string, un
     chatCompact: false,
     showArchivedChats: false,
     waitingOn: false,
-    waitingView: "inbox-project",
+    waitingScope: "top",
+    waitingOrder: "project",
     ...state,
   },
 });
@@ -28,5 +29,5 @@ export const DEFAULT_SIDEBAR_VIEWS: readonly StoredView[] = [
   // コンパクト: 標準をプロジェクトもチャットも 1 行にし、チャットのアーカイブは隠す
   sidebarView("default-sidebar-compact", "コンパクト", { layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true }),
   // 要対応: 縦並び・要対応のチャットだけ（プロジェクト別）
-  sidebarView("default-sidebar-waiting", "要対応", { waitingOn: true, waitingView: "filter" }),
+  sidebarView("default-sidebar-waiting", "要対応", { waitingOn: true, waitingScope: "only" }),
 ];

@@ -1,61 +1,22 @@
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { addView, moveView, removeView, renameView, replaceViewState } from "@/foundation/ui/lib/namedViews";
-import { chatListSettings } from "@/features/chatList/ui";
 import { storage } from "./storage";
-import { projectsSettings } from "@/features/projects/ui";
-import { activeSidebarView, parseSidebarViews, type SidebarView, type SidebarViewState } from "./sidebarViews";
+import { activeSidebarView, applySidebarView, parseSidebarViews, useSidebarViewState, type SidebarView, type SidebarViewState } from "./viewFields";
 
 /**
  * サイドバーのビュー（見出しのタブ・⚙ の窓・設定の画面で共通）と、いまの見え方・当てる操作。
- * 見え方の設定（並べ方・まとめ方など）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ（ボードの保存したビューと同じ）。
+ * 見え方の設定（並べ方・まとめ方など）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ（項目の表は viewFields.ts）。
  * selected は最後に選んだビュー（⚙ の窓の「上書き」の先。いまの見え方に合うビューがあれば、そちらを選んでいるものとみなす）
  */
 export function useSidebarViews() {
   const [stored, setStored] = useSetting(storage.settings.savedViews);
   const views = useMemo(() => parseSidebarViews(stored), [stored]);
   const [selectedId, setSelectedId] = useSetting(storage.settings.viewSelected);
-
-  const [layout, setLayout] = useSetting(storage.settings.layout);
-  const [projectOrder, setProjectOrder] = useSetting(projectsSettings.listOrder);
-  const [projectCompact, setProjectCompact] = useSetting(chatListSettings.projectCompact);
-  const [showArchivedProjects, setShowArchivedProjects] = useSetting(storage.settings.showArchivedProjects);
-  const [grouping, setGrouping] = useSetting(chatListSettings.sections);
-  const [chatOrder, setChatOrder] = useSetting(chatListSettings.order);
-  const [chatCompact, setChatCompact] = useSetting(chatListSettings.compact);
-  const [showArchivedChats, setShowArchivedChats] = useSetting(chatListSettings.showArchived);
-  const [waitingOn, setWaitingOn] = useSetting(storage.settings.waitingOnly);
-  const [waitingView, setWaitingView] = useSetting(storage.settings.waitingView);
-
-  const current: SidebarViewState = {
-    layout,
-    projectOrder,
-    projectCompact,
-    showArchivedProjects,
-    grouping,
-    chatOrder,
-    chatCompact,
-    showArchivedChats,
-    waitingOn,
-    waitingView,
-  };
+  const current = useSidebarViewState();
   const active = activeSidebarView(views, current);
   /** 選んでいるビュー（いまの見え方に合うもの。なければ最後に選んだもの） */
   const selected = active ?? views.find((v) => v.id === selectedId);
-
-  /** 見え方を当てる（それぞれの設定に書き込む） */
-  const applyState = (state: SidebarViewState) => {
-    setLayout(state.layout);
-    setProjectOrder(state.projectOrder);
-    setProjectCompact(state.projectCompact);
-    setShowArchivedProjects(state.showArchivedProjects);
-    setGrouping(state.grouping);
-    setChatOrder(state.chatOrder);
-    setChatCompact(state.chatCompact);
-    setShowArchivedChats(state.showArchivedChats);
-    setWaitingOn(state.waitingOn);
-    setWaitingView(state.waitingView);
-  };
 
   return {
     views,
@@ -65,9 +26,11 @@ export function useSidebarViews() {
     selected,
     /** まだ一度もビューを選んでいないか（初めて開いたときに最初のビューを当てる） */
     neverSelected: selectedId === "",
+    /** いまの見え方の一部を変える（⚙ の窓） */
+    set: applySidebarView,
     /** ビューを選ぶ（見え方を当て、上書きの先として覚える） */
     apply: (view: SidebarView) => {
-      applyState(view.state);
+      applySidebarView(view.state);
       setSelectedId(view.id);
     },
     /** いまの見え方に名前を付けて保存する（いちばん後ろに足し、選んでいるものにする）。足したビューを返す */
@@ -83,7 +46,7 @@ export function useSidebarViews() {
     /** 中身を変える（設定の画面。そのビューを選んでいれば、いまの見え方にも当てる） */
     update: (id: string, state: SidebarViewState) => {
       setStored(replaceViewState(views, id, state));
-      if (selected?.id === id) applyState(state);
+      if (selected?.id === id) applySidebarView(state);
     },
     remove: (id: string) => setStored(removeView(views, id)),
     /** ビュー id を target の前・後ろへ動かす（ドラッグ・設定の画面の上下） */

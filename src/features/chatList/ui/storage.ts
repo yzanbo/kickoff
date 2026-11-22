@@ -6,7 +6,7 @@ export const storage = defineSettings("chatList", {
   projectCompact: flag(),
   /** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。初めはまとめない） */
   sections: choice(["none", "group", "worktree"], "none"),
-  /** チャットの並び順（recent = 最近動いた順 / status = 状態順） */
+  /** チャットの並び順（recent = 最近動いた順 / status = 状態順 / manual = 手動） */
   order: choice(["recent", "status", "manual"], "recent"),
   /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
   compact: flag(true),

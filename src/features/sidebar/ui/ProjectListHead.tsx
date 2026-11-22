@@ -1,46 +1,23 @@
-import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Pencil, Save, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { cx } from "@/foundation/ui/lib/cx";
-import { isRenameKey } from "@/foundation/ui/lib/keys";
-import { viewNameTaken } from "@/foundation/ui/lib/namedViews";
-import { confirm } from "@/foundation/ui/kit/ask";
+import { ChevronsDownUp, ChevronsUpDown, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { NamedViewTabs } from "@/features/chatList/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { Popover } from "@/foundation/ui/kit/Popover";
-import { anchorPlacement } from "@/foundation/ui/lib/floating";
-import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
-import { sameSidebarViewState, type SidebarView } from "./sidebarViews";
-import { SidebarViewTuner, type TunerProps } from "./SidebarViewTuner";
+import { createCell, useCell } from "@/foundation/ui/store/cell";
+import { SidebarViewTuner } from "./SidebarViewTuner";
 import { TagFilterRow } from "./TagFilterRow";
-import { useSidebarViews, type SidebarViews } from "./useSidebarViews";
+import type { ProjectNavController } from "./useProjectNav";
+import { useSidebarViews } from "./useSidebarViews";
+import { sameSidebarViewState, SIDEBAR_REMOVE_NOTE } from "./viewFields";
 
 /**
  * ⚙ の窓（サイドバーの見え方）を開いているか。見出しは並べ方（縦並び・スライド）ごとに別の部品の中に描くので、
  * 窓の中で並べ方を変えて見出しが作り直されても、開いたままにする（窓の中でいろいろ変えて、終わったら × で閉じる）
  */
-let tunerOpen = false;
-const tunerListeners = new Set<() => void>();
-function setTunerOpen(open: boolean) {
-  if (tunerOpen === open) return;
-  tunerOpen = open;
-  for (const listener of tunerListeners) listener();
-}
-function useTunerOpen(): boolean {
-  return useSyncExternalStore(
-    (listener) => {
-      tunerListeners.add(listener);
-      return () => void tunerListeners.delete(listener);
-    },
-    () => tunerOpen,
-  );
-}
+const tunerOpenCell = createCell(false);
 
-interface Props extends TunerProps {
-  /** すべてのプロジェクトのチャット一覧（と中のまとまり）をまとめて閉じる・開く（縦並び・横スライドのどちらでも） */
-  fold: { allCollapsed: boolean; set: (collapsed: boolean) => void };
-}
+/** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
+const VIEW_DRAG_TYPE = "application/x-kickoff-sidebar-view";
 
 /**
  * プロジェクト一覧の上の見出し（縦の幅を取らないよう、ビューのタブ 1 行）。
@@ -48,11 +25,12 @@ interface Props extends TunerProps {
  * すべて閉じる / 開く、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。要対応の数は出さない（数は一覧の「要対応」の見出しと ⚙ の窓の「要対応」の行にある）。
  * その下に、タグがあるときだけタグの絞り込みの行（その場の絞り込みなのでビューに入れない）
  */
-export function ProjectListHead({ fold, ...tuner }: Props) {
+export function ProjectListHead({ nav }: { nav: ProjectNavController }) {
+  const { fold } = nav;
   const views = useSidebarViews();
-  const tunerOpen = useTunerOpen();
+  const tunerOpen = useCell(tunerOpenCell);
   const tunerAnchor = useRef<HTMLButtonElement>(null);
-  const closeTuner = () => setTunerOpen(false);
+  const closeTuner = () => tunerOpenCell.set(false);
 
   // まだ一度もビューを選んでいなければ、最初のビュー（初めは標準）を当てて選んだ状態にする
   useEffect(() => {
@@ -65,7 +43,28 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   return (
     <div className="sidebar-head">
       <div className="sidebar-view-bar">
-        <SidebarViewTabs views={views} />
+        <NamedViewTabs
+          views={views.views}
+          activeId={views.active?.id}
+          modifiedId={views.active ? undefined : views.selected?.id}
+          look="sidebar-view"
+          listClass="sidebar-view-tabs"
+          label="サイドバーのビュー"
+          dragType={VIEW_DRAG_TYPE}
+          overflow
+          tabTitle={(modified) =>
+            modified
+              ? "このビューから見え方を変えています（押すとビューの見え方に戻す。⚙ で上書きできる）"
+              : "押すとこのビューの見え方にする（ダブルクリック・Enter・右クリックで名前の変更。ドラッグで並べ替え・右クリックで上書き・削除）"
+          }
+          texts={{ overwrite: "いまの見え方で上書き", same: "いまの見え方と同じです", removeNote: SIDEBAR_REMOVE_NOTE }}
+          same={(view) => sameSidebarViewState(view.state, views.current)}
+          onApply={views.apply}
+          onRename={views.rename}
+          onOverwrite={views.overwrite}
+          onRemove={views.remove}
+          onMove={views.move}
+        />
         {/* 開いているものがあれば閉じる、すべて閉じていれば開く（すべてのプロジェクトと中のまとまり） */}
         <IconButton
           icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
@@ -83,162 +82,16 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           iconSize={14}
           className="sidebar-view-icon" active={tunerOpen}
           aria-expanded={tunerOpen}
-          onClick={() => setTunerOpen(!tunerOpen)}
+          onClick={() => tunerOpenCell.set(!tunerOpen)}
         />
       </div>
       {tunerOpen && (
         <Popover anchor={tunerAnchor} align="end" label="サイドバーの見え方" title="サイドバーの見え方" className="sidebar-view-popover" onClose={closeTuner}>
-          <SidebarViewTuner {...tuner} views={views} />
+          <SidebarViewTuner views={views} archivedCount={nav.archived.length} waitingCount={nav.waitingCount} />
         </Popover>
       )}
       {/* タグがあるときだけ、タグでの絞り込みの行（押すたびに付け外し） */}
       <TagFilterRow />
     </div>
-  );
-}
-
-/** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
-const VIEW_DRAG_TYPE = "application/x-kickoff-sidebar-view";
-
-/**
- * ビューのタブ。1 行に並べ、入らないタブは折り返した先を隠して ▾ のメニューに出す（実際に折り返したかで決める）。
- * いまの見え方に合うタブを選択中に、合うものがなければ最後に選んだタブを「変えている」印（点線の枠）で見せる
- */
-function SidebarViewTabs({ views }: { views: SidebarViews }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const [hidden, setHidden] = useState<readonly string[]>([]);
-  const [renaming, setRenaming] = useState<string>();
-  const menu = useContextMenu<SidebarView>();
-  const more = useContextMenu({ align: "end" });
-  const drag = useReorder({ keys: views.views.map((v) => v.id), type: VIEW_DRAG_TYPE, onMove: views.move });
-
-  // 折り返して 2 行目より下に行ったタブ（隠れる）を数える。幅・タブが変わるたびに測り直す
-  useLayoutEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const measure = () => {
-      const tabs = [...list.querySelectorAll<HTMLElement>("[data-view-id]")];
-      // 名前を変えている欄は先頭に並べ替える（CSS の order）ので、DOM の最初のタブではなく、いちばん上の行の高さを基準にする
-      const top = Math.min(...tabs.map((t) => t.offsetTop));
-      const next = tabs.filter((t) => t.offsetTop > top).map((t) => t.dataset.viewId ?? "");
-      setHidden((prev) => (prev.length === next.length && prev.every((id, i) => id === next[i]) ? prev : next));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(list);
-    return () => ro.disconnect();
-  }, [views.views, renaming]);
-
-  const remove = async (view: SidebarView) => {
-    if (await confirm({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
-  };
-
-  return (
-    <>
-      <div ref={listRef} className="sidebar-view-tabs" role="tablist" aria-label="サイドバーのビュー">
-        {views.views.map((view) =>
-          renaming === view.id ? (
-            <span key={view.id} data-view-id={view.id} className="sidebar-view-rename">
-              <InlineName
-                className="sidebar-view-name"
-                initial={view.name}
-                validate={(name) => (viewNameTaken(views.views, name, view.id) ? `「${name}」というビューはもうあります` : null)}
-                onSubmit={(name) => {
-                  views.rename(view.id, name);
-                  setRenaming(undefined);
-                }}
-                onCancel={() => setRenaming(undefined)}
-              />
-            </span>
-          ) : (
-            <button
-              key={view.id}
-              type="button"
-              role="tab"
-              data-view-id={view.id}
-              aria-selected={views.active?.id === view.id}
-              tabIndex={hidden.includes(view.id) ? -1 : undefined}
-              {...drag.itemProps(view.id)}
-              className={cx(
-                "sidebar-view-tab view-tab",
-                views.active?.id === view.id && "active",
-                !views.active && views.selected?.id === view.id && "modified",
-                hidden.includes(view.id) && "overflowed",
-              )}
-              title={
-                !views.active && views.selected?.id === view.id
-                  ? "このビューから見え方を変えています（押すとビューの見え方に戻す。⚙ で上書きできる）"
-                  : "押すとこのビューの見え方にする（ダブルクリック・Enter・右クリックで名前の変更。ドラッグで並べ替え・右クリックで上書き・削除）"
-              }
-              onClick={() => views.apply(view)}
-              onContextMenu={(e) => menu.open(e, view)}
-              onDoubleClick={() => setRenaming(view.id)}
-              // ピントがあるときの Enter で名前を変える（チャットの行・タグと同じ。押すのは Space）
-              onKeyDown={(e) => {
-                if (!isRenameKey(e)) return;
-                e.preventDefault();
-                setRenaming(view.id);
-              }}
-            >
-              {view.name}
-            </button>
-          ),
-        )}
-      </div>
-      {hidden.length > 0 && (
-        <IconButton
-          icon={ChevronDown}
-          label={`ほかのビュー（${hidden.length} 件）`}
-          iconSize={14}
-          active={more.isOpen}
-          className={cx("sidebar-view-icon sidebar-view-more", hidden.some((id) => id === views.active?.id) && "has-active")}
-          aria-expanded={more.isOpen}
-          onClick={(e) => more.toggle(e, undefined)}
-          // タブをドラッグして重ねると、いちばん後ろへ落とせる。重ねたまま待つとメニューを開き、その中の好きな位置へ落とせる
-          {...drag.endProps((el) => !more.isOpen && more.openAt(anchorPlacement(el, { align: "end", gap: 4 }), undefined))}
-        />
-      )}
-      {more.menu && (
-        <PopupMenu at={more.menu.at} className="sidebar-view-menu" label="ほかのビュー" ignore=".sidebar-view-more" onClose={more.close}>
-          {views.views
-            .filter((v) => hidden.includes(v.id))
-            .map((view) => (
-              <MenuItem
-                key={view.id}
-                role="menuitemradio"
-                checked={views.active?.id === view.id}
-                onSelect={() => views.apply(view)}
-                // ドラッグで並べ替える（メニューの中の上下の半分で前後を決める。タブの行へも落とせる）。右クリックはタブと同じメニュー（▾ のメニューは閉じて、その位置に開く）
-                buttonProps={{
-                  ...drag.itemProps(view.id, "y"),
-                  onContextMenu: (e) => {
-                    menu.open(e, view);
-                    more.close();
-                  },
-                }}
-              >
-                {view.name}
-              </MenuItem>
-            ))}
-        </PopupMenu>
-      )}
-      {menu.menu && (
-        <PopupMenu at={menu.menu.at} label={`ビュー「${menu.menu.value.name}」`} onClose={menu.close}>
-          <MenuItem onSelect={() => setRenaming(menu.menu?.value.id)}>
-            <Pencil size={14} aria-hidden /> 名前を変更
-          </MenuItem>
-          <MenuItem
-            disabled={sameSidebarViewState(menu.menu.value.state, views.current)}
-            title={sameSidebarViewState(menu.menu.value.state, views.current) ? "いまの見え方と同じです" : undefined}
-            onSelect={() => menu.menu && views.overwrite(menu.menu.value.id)}
-          >
-            <Save size={14} aria-hidden /> いまの見え方で上書き
-          </MenuItem>
-          <MenuItem danger onSelect={() => menu.menu && void remove(menu.menu.value)}>
-            <Trash2 size={14} aria-hidden /> 削除
-          </MenuItem>
-        </PopupMenu>
-      )}
-    </>
   );
 }

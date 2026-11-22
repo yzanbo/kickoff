@@ -20,7 +20,6 @@ import { chatListSettings } from "@/features/chatList/ui";
 import { waitingChats } from "@/features/chat/ui";
 import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
 import { useProjectReorder } from "./useProjectReorder";
-import { useWaitingView } from "./waitingView";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /**
@@ -32,7 +31,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const { projects } = useProjects();
   const { pending } = useChatStates();
   // 横スライド / 縦並び
-  const [layout, changeLayout] = useSetting(storage.settings.layout);
+  const [layout] = useSetting(storage.settings.layout);
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useSetting(storage.settings.showArchivedProjects);
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順 / 最近動いた順）と、タグでの絞り込み（見出しの「タグ」。
@@ -41,9 +40,10 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const { active: sorted, visible, archived, tagFilter } = useVisibleProjects();
   // 要対応だけを出すときは、要対応のチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSetting(storage.settings.waitingOnly);
-  // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
-  const [waitingView, setWaitingView] = useWaitingView();
-  const filterByWaiting = waitingOnly && waitingView === "filter";
+  // オンのときの出し方 × 並べ方。プロジェクトとチャットを絞るのは「要対応だけ × プロジェクト別」のときだけ
+  const [waitingScope] = useSetting(storage.settings.waitingScope);
+  const [waitingOrder] = useSetting(storage.settings.waitingOrder);
+  const filterByWaiting = waitingOnly && waitingScope === "only" && waitingOrder === "project";
   const [compact] = useSetting(chatListSettings.compact);
   const [compactProjects] = useSetting(chatListSettings.projectCompact);
   const drafts = useAllDrafts();
@@ -147,26 +147,14 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // プロジェクトと、その中のまとまりをすべて閉じる・開く（縦並び・横スライドのどちらでも、見出しの行から）
   const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
   const setAllCollapsed = (on: boolean) => foldAll("sidebar", on);
-  /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか・すべて閉じる / 開く） */
-  const head = {
-    layout,
-    onLayout: changeLayout,
-    order: projectOrder,
-    onOrder: setProjectOrder,
-    archivedCount: archived.length,
-    showArchived,
-    onShowArchived: setShowArchived,
-    fold: { allCollapsed, set: setAllCollapsed },
-    // 要対応の行（オン / オフ・数・オンのときの表示。オフでも行は出し、表示の 2 つは薄くする）
-    waiting: { on: waitingOnly, onToggle: () => setWaitingOnly(!waitingOnly), count: waitingCount, view: waitingView, onView: setWaitingView },
-  };
-
   return {
     projects,
     pending,
     layout,
-    /** 一覧の上の見出しの行（ProjectListHead）に渡す */
-    head,
+    /** すべて閉じる / 開く（一覧の上の見出しの行） */
+    fold: { allCollapsed, set: setAllCollapsed },
+    /** 要対応の数（⚙ の窓の「要対応」の行） */
+    waitingCount,
     /** しまったものを除いた並び / 絞り込みも通した並び（画面に出す順） */
     visible,
     ordered,
@@ -179,8 +167,9 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     swipe,
     waitingOnly,
     setWaitingOnly,
-    /** 要対応がオンのときの表示と、プロジェクト・チャットを要対応で絞っているか（表示が「絞る」のとき） */
-    waitingView,
+    /** 要対応がオンのときの出し方・並べ方と、プロジェクト・チャットを要対応で絞っているか（要対応だけ × プロジェクト別のとき） */
+    waitingScope,
+    waitingOrder,
     filterByWaiting,
     tagFilter,
     showArchived,

@@ -7,7 +7,7 @@ import { useChatStates, useChatsWithChildrenByProject } from "@/features/chat/ui
 import { BucketTree } from "@/features/chatList/ui";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { inboxBuckets, inboxByProject, inboxSections, waitingSince } from "./inboxOrder";
-import type { WaitingOrder } from "./waitingAxes";
+import type { SidebarViewState } from "./viewFields";
 import { INBOX_HEADS } from "./sidebarHeads";
 import { useChatRowRenderer } from "./useChatRowRenderer";
 
@@ -18,7 +18,7 @@ import { useChatRowRenderer } from "./useChatRowRenderer";
  * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット。
  * 子チャット（孫も）も並べ、押すと設定の開き方（右の欄 / 別ウィンドウ）で開く（未読の子チャットも数に入れるため）
  */
-export function WaitingInbox({ variant, order }: { variant: "top" | "list"; order: WaitingOrder }) {
+export function WaitingInbox({ variant, order }: { variant: "top" | "list"; order: SidebarViewState["waitingOrder"] }) {
   const chats = useChatsWithChildrenByProject();
   const { stateOf, approvals } = useChatStates();
   const { visible } = useVisibleProjects();
