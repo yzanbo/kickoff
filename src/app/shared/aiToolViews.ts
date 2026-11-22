@@ -13,6 +13,7 @@ import { WORKTREE_TOOL_VIEWS } from "@shared/worktrees/tools";
 import { NOTE_TOOL_VIEWS } from "@shared/notes/tools";
 import { DB_TOOL_VIEWS } from "@shared/database/tools";
 import { TERMINAL_TOOL_VIEWS } from "@shared/terminal/tools";
+import { BROWSER_TOOL_VIEWS } from "@shared/browser/tools";
 
 /** 全部の機能のツールの表示の表 */
 export const AI_TOOL_VIEWS: readonly AiToolView[] = [
@@ -29,4 +30,5 @@ export const AI_TOOL_VIEWS: readonly AiToolView[] = [
   ...NOTE_TOOL_VIEWS,
   ...DB_TOOL_VIEWS,
   ...TERMINAL_TOOL_VIEWS,
+  ...BROWSER_TOOL_VIEWS,
 ];

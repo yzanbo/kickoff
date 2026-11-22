@@ -93,3 +93,11 @@ test("AI がチャットをアーカイブする・消すツール: 行はどの
 test("AI が利用者に知らせるツール: 行は知らせた文", () => {
   assert.equal(describeTool(aiToolId(NOTIFY_USER_VIEW), { message: "1 段目が済みました" }), "利用者に知らせる: 1 段目が済みました");
 });
+
+test("ブラウザと DB のツールは表示名と記録の行の 1 文で出す", () => {
+  assert.equal(describeTool("mcp__kickoff_browser__browser_open", { url: "http://localhost:3000" }), "ページを開く: http://localhost:3000");
+  assert.equal(describeTool("mcp__kickoff_browser__browser_click", { ref: 3 }), "ページをクリック: ref 3");
+  assert.equal(describeTool("mcp__kickoff_browser__browser_read", { tab_id: 1 }), "ページを読む");
+  assert.equal(describeTool("mcp__kickoff_db__db_query", { connection: "開発", sql: "SELECT 1\nFROM t" }), "SQL を流す: 開発: SELECT 1");
+  assert.equal(toolLabel("mcp__kickoff_db__db_connections"), "DB の接続を確かめる");
+});

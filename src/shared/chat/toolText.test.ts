@@ -96,4 +96,6 @@ test("ツールのまとまりの要約: ToDo・ツール検索・スキル・�
   assert.equal(summarizeTools([call("TaskList"), call("TaskGet")]), "ToDo を2回確認");
   assert.equal(summarizeTools([call("TaskStop"), call("TaskOutput"), call("ExitPlanMode")]), "作業の様子を1回確認、作業を1件停止 および 計画を1回提示");
   assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
+  // Kickoff のツール（kickoff_chat・kickoff_browser・kickoff_db）は MCP と分けて数える
+  assert.equal(summarizeTools([call("mcp__kickoff_browser__browser_read"), call("mcp__kickoff_chat__notify_user"), call("mcp__github__get_issue")]), "Kickoff を2回使用 および MCP のツールを1回使用");
 });

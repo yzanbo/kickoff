@@ -192,6 +192,7 @@ function summarizeTools(calls: readonly ToolCallText[]): string {
   const edited = new Set<string>();
   const read = new Set<string>();
   const counts = COUNTED_KINDS.map(() => 0);
+  let kickoff = 0;
   let mcp = 0;
   let others = 0;
   for (const t of calls) {
@@ -202,6 +203,7 @@ function summarizeTools(calls: readonly ToolCallText[]): string {
     if (isEditTool(t.name)) edited.add(file);
     else if (kind === "read") read.add(file);
     else if (counted !== undefined) counts[counted] += 1;
+    else if (t.name.startsWith("mcp__kickoff_")) kickoff += 1;
     else if (t.name.startsWith("mcp__")) mcp += 1;
     else others += 1;
   }
@@ -211,6 +213,7 @@ function summarizeTools(calls: readonly ToolCallText[]): string {
     commands,
     read.size > 0 && `${read.size}個のファイルを読み取り`,
     ...rest,
+    kickoff > 0 && `Kickoff を${kickoff}回使用`,
     mcp > 0 && `MCP のツールを${mcp}回使用`,
     others > 0 && `その他のツールを${others}回使用`,
   ].filter((part): part is string => Boolean(part));
