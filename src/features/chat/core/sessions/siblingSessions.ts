@@ -7,21 +7,24 @@ import { DatabaseSync } from "node:sqlite";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { realPathLoose } from "@/foundation/core/system/paths";
 import { DB_FILE } from "@/foundation/core/db/db";
+import type { RememberedSessions } from "@/features/chat/core/ports";
 
-/** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result）。読めない DB があれば、すべて使っている扱い */
+/** ids のうち、ほかの Kickoff のチャットが使っているもの（チャットの session_id か、記録の init・result・離れた AI のセッションの覚え）。読めない DB があれば、すべて使っている扱い */
 export type SessionsUsedElsewhere = (ids: string[]) => Set<string>;
+/** ほかの Kickoff の DB を調べる口（remembered: chat の表のほかで覚えているセッションを、相手の DB で読む口。createChat が providerSwitch の口を渡す） */
+export type SiblingSessionCheck = (ids: string[], remembered: RememberedSessions) => Set<string>;
 
 /** 自分の保存先（dataDir）でない製品版・開発版の保存先の DB を調べる口を作る */
-export function siblingSessionCheck(dataDir: string, appDataRoot: string): SessionsUsedElsewhere {
+export function siblingSessionCheck(dataDir: string, appDataRoot: string): SiblingSessionCheck {
   const self = realPathLoose(dataDir);
   const others = [appDataDir(appDataRoot, "production"), appDataDir(appDataRoot, "development")].filter((dir) => realPathLoose(dir) !== self);
-  return (ids) => {
+  return (ids, remembered) => {
     const used = new Set<string>();
     if (ids.length === 0) return used;
     for (const dir of others) {
       const file = path.join(dir, DB_FILE);
       if (!fs.existsSync(file)) continue;
-      for (const id of usedIn(file, ids)) used.add(id);
+      for (const id of usedIn(file, ids, remembered)) used.add(id);
     }
     return used;
   };
@@ -31,7 +34,7 @@ export function siblingSessionCheck(dataDir: string, appDataRoot: string): Sessi
  * 1 つの DB で使われている ID（読むだけで開く）。開けない・表や列が違う（相手の版が違う）ときは、すべて使っている扱いにする
  * （使っていない扱いにすると、相手のチャットが使う会話記録を片付けてしまうため）
  */
-function usedIn(file: string, ids: string[]): string[] {
+function usedIn(file: string, ids: string[], remembered: RememberedSessions): string[] {
   let db: DatabaseSync | null = null;
   try {
     db = new DatabaseSync(file, { readOnly: true });
@@ -40,11 +43,10 @@ function usedIn(file: string, ids: string[]): string[] {
       .prepare(
         `SELECT session_id AS sid FROM chats WHERE session_id IN (${marks})
          UNION SELECT json_extract(data, '$.session_id') FROM chat_events
-         WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IN (${marks})
-         UNION SELECT session_id FROM chat_provider_sessions WHERE session_id IN (${marks})`,
+         WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IN (${marks})`,
       )
-      .all(...ids, ...ids, ...ids) as { sid: string }[];
-    return rows.map((r) => r.sid);
+      .all(...ids, ...ids) as { sid: string }[];
+    return [...new Set([...rows.map((r) => r.sid), ...remembered(ids, db)])];
   } catch {
     return ids;
   } finally {

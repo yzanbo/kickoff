@@ -58,7 +58,7 @@ export function withFeatureStores(store: Store, base: Pick<BaseStores, "database
 /** 開いた DB に全部の店を開く（土台の設定・秘密の値は渡したもの、省けばここで開く） */
 export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, base: BaseStores = openBaseStores(db, onChange)): TestStores {
   const projects = createProjectStore(db, onChange);
-  const chat = createChatStores(db, onChange, base.settings);
+  const chat = createChatStores(db, onChange, base.settings, createProviderHandoffStores(db).chatProviderSessions.remembered);
   const groups = createGroupStore(db, onChange, {
     idsIn: (group) => chat.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: chat.chats.get,

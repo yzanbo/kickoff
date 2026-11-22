@@ -1,4 +1,4 @@
-// AI の切り替えの保存（chats・chat_events・providerSwitch の 2 表を 1 つのトランザクションで書く）
+// AI の切り替えの保存（chat の店の操作と providerSwitch の 2 表を、土台の tx の 1 つのトランザクションで書く。chat の表を直の SQL で書かない）
 import type { DatabaseSync } from "node:sqlite";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { Attachment, Chat, ChatOptions } from "@shared/chat/types";
@@ -54,20 +54,23 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
           const blocked = handoffBlocksSwitch(pending, current.provider);
           if (blocked) throw new Error(blocked);
           // 送る前に替え直したので、前の区切りの資料は渡していない印を付ける（引き継ぎ内容の表示で区別する）
-          if (pending) db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'superseded') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(pending.eventId, current.id);
+          if (pending) s.events.patchData(current.id, pending.eventId, "provider_switched", { handoff_status: "superseded" });
           // いまの AI のセッションは chats.session_id だけが持つ: 離れる AI の分を覚えに書き、戻る AI の分は覚えから読んで消す
           if (current.session_id) s.chatProviderSessions.save(current.id, current.provider, current.session_id, input.currentLastEventId);
           const targetSession = s.chatProviderSessions.get(current.id, input.target);
           if (targetSession) s.chatProviderSessions.remove(current.id, input.target);
-          const inserted = db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
-            current.id,
-            JSON.stringify({ from: current.provider, to: input.target, handoff_context: input.context, handoff_status: input.state, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}), ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}) }),
-          );
-          const id = Number(inserted.lastInsertRowid);
+          const id = s.events.write(current.id, {
+            type: "provider_switched",
+            from: current.provider,
+            to: input.target,
+            handoff_context: input.context,
+            handoff_status: input.state,
+            ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}),
+            ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}),
+          });
           s.chatProviderHandoffs.save({ chatId: current.id, eventId: id, provider: input.target, context: input.context, state: input.state, error: input.error, lastEventId: input.afterEventId, queueWasPaused: input.queueWasPaused });
-          db.prepare(`UPDATE chats SET provider = ?, session_id = ?, model = ?, effort = ?, permission_mode = ?, fast_mode = ?, context_tokens = NULL, context_window = NULL WHERE id = ?`).run(
-            input.target, targetSession?.session_id ?? null, input.options.model, input.options.effort, input.options.permission_mode, input.options.fast_mode ? 1 : 0, current.id,
-          );
+          const { model, effort, permission_mode, fast_mode } = input.options;
+          s.chats.write(current.id, { provider: input.target, session_id: targetSession?.session_id ?? null, model, effort, permission_mode, fast_mode, context_tokens: null, context_window: null });
           return { eventId: id, superseded: pending !== undefined };
         },
         "immediate",
@@ -87,7 +90,7 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
           const current = s.chats.get(chatId);
           const pending = s.chatProviderHandoffs.get(chatId);
           if (!current || current.provider !== provider || current.session_id !== sessionId || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "sending") return false;
-          db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'delivered') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(eventId, chatId);
+          s.events.patchData(chatId, eventId, "provider_switched", { handoff_status: "delivered" });
           if (!s.chatProviderHandoffs.complete(chatId, eventId)) throw new Error("AI の引き継ぎ状態が変わりました");
           return true;
         },
@@ -103,7 +106,7 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
           const chat = s.chats.get(chatId);
           const pending = s.chatProviderHandoffs.get(chatId);
           if (!chat || chat.provider !== provider || chat.session_id !== sessionId || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "sending") return false;
-          db.prepare("UPDATE chats SET session_id = NULL WHERE id = ?").run(chatId);
+          s.chats.write(chatId, { session_id: null });
           s.chatProviderHandoffs.save({ ...pending, state: "blocked", error: "以前のセッションが見つからないため、会話の資料を作り直します", lastEventId: null });
           return true;
         },
@@ -125,8 +128,7 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
           const event = s.events.get(eventId);
           if (!chat || chat.archived_at || chat.provider !== provider || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "blocked" || !event || event.chat_id !== chatId || event.type !== "provider_switched") return false;
           const previous = event.data.handoff_attachments ?? [];
-          const data = { ...event.data, handoff_context: context, handoff_status: "ready", handoff_attachments: [...previous, ...attachments] };
-          db.prepare("UPDATE chat_events SET data = ? WHERE id = ? AND chat_id = ?").run(JSON.stringify(data), eventId, chatId);
+          s.events.patchData(chatId, eventId, "provider_switched", { handoff_context: context, handoff_status: "ready", handoff_attachments: [...previous, ...attachments] });
           s.chatProviderHandoffs.save({ ...pending, context, state: claim ? "sending" : "ready", error: null });
           return true;
         },

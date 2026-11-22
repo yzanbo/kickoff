@@ -11,15 +11,19 @@ import { readSubagentEvents } from "./db/subagentEvents";
 import { createEventStore } from "./db/events";
 import { createLogRevisions } from "./db/logRevisions";
 import { createOutboxStore } from "./db/outbox";
+import type { RememberedSessions } from "./ports";
 
-/** チャットの表の店（チャット・記録・送信待ち・Kickoff が作ったセッション・記録を変えた知らせ） */
-export function createChatStores(db: DatabaseSync, onChange: Notify, settings: Pick<Kernel["settings"], "get">) {
+/**
+ * チャットの表の店（チャット・記録・送信待ち・Kickoff が作ったセッション・記録を変えた知らせ）。
+ * remembered: chat の表のほかで覚えているセッション（providerSwitch の離れた AI のセッション。会話記録を片付けるかの判定に足す）
+ */
+export function createChatStores(db: DatabaseSync, onChange: Notify, settings: Pick<Kernel["settings"], "get">, remembered: RememberedSessions) {
   /** 記録を足す以外の形で変えた知らせ（巻き戻し・セッションの付け替え・チャットの削除。コアの索引の覚えを捨てる合図） */
   const logRevisions = createLogRevisions();
   const chats = createChatStore(db, onChange, logRevisions, settings.get);
   const stores = {
     chats,
-    events: { ...createEventStore(db, onChange, chats.get, logRevisions), forSubagents: (chatId: number) => readSubagentEvents(db, chatId) },
+    events: { ...createEventStore(db, onChange, chats.get, remembered, logRevisions), forSubagents: (chatId: number) => readSubagentEvents(db, chatId) },
     outbox: createOutboxStore(db),
     /** Kickoff が作ったセッション（Claude Code の会話記録）の覚え（使われなくなったらゴミ箱へ） */
     agentSessions: createAgentSessionStore(db),

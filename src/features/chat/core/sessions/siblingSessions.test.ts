@@ -23,9 +23,10 @@ test("ほかの Kickoff の DB が使っているセッションだけを返す�
   store.close();
 
   const fromDev = siblingSessionCheck(dev, root);
-  assert.deepEqual([...fromDev(["s-chat", "s-init", "s-other-ai", "s-none"])].sort(), ["s-chat", "s-init", "s-other-ai"]);
+  const remembered = store.chatProviderSessions.remembered;
+  assert.deepEqual([...fromDev(["s-chat", "s-init", "s-other-ai", "s-none"], remembered)].sort(), ["s-chat", "s-init", "s-other-ai"]);
   // 製品版から見ると、開発版の DB はないので空（自分の DB は見ない）
-  assert.equal(siblingSessionCheck(prod, root)(["s-chat"]).size, 0);
+  assert.equal(siblingSessionCheck(prod, root)(["s-chat"], remembered).size, 0);
 });
 
 test("ほかの Kickoff の DB が読めない（版が違って表がない・壊れている）ときは、すべて使っている扱い（会話記録を片付けない）", () => {
@@ -34,5 +35,5 @@ test("ほかの Kickoff の DB が読めない（版が違って表がない・�
   const dev = appDataDir(root, "development");
   fs.mkdirSync(prod, { recursive: true });
   fs.writeFileSync(path.join(prod, DB_FILE), "Kickoff のデータベースではない");
-  assert.deepEqual([...siblingSessionCheck(dev, root)(["s1", "s2"])].sort(), ["s1", "s2"]);
+  assert.deepEqual([...siblingSessionCheck(dev, root)(["s1", "s2"], () => new Set())].sort(), ["s1", "s2"]);
 });

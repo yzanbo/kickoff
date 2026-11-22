@@ -33,5 +33,13 @@ export function createChatProviderSessionStore(db: DatabaseSync) {
     removeAll(chatId: number): void {
       db.prepare("DELETE FROM chat_provider_sessions WHERE chat_id = ?").run(chatId);
     },
+    /** 覚えているセッションの ID（ids を渡せばそのうちのものだけ。on を渡せば、ほかの Kickoff の DB で調べる。chat の会話記録を片付けるかの判定） */
+    remembered(ids?: readonly string[], on: DatabaseSync = db): Set<string> {
+      if (ids?.length === 0) return new Set();
+      const rows = ids
+        ? (on.prepare(`SELECT session_id AS sid FROM chat_provider_sessions WHERE session_id IN (${ids.map(() => "?").join(", ")})`).all(...ids) as { sid: string }[])
+        : (on.prepare("SELECT session_id AS sid FROM chat_provider_sessions").all() as { sid: string }[]);
+      return new Set(rows.map((r) => r.sid));
+    },
   };
 }

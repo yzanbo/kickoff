@@ -3,6 +3,7 @@ import type { ChatEvent, ChatEventData, ChatEventDataOf, ChatEventType } from "@
 import { FEED_TEXT_LIMIT, type Chat, type FeedItem, type SearchHit } from "@shared/chat/types";
 import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "@/foundation/core/db/common";
+import type { RememberedSessions } from "@/features/chat/core/ports";
 import type { LogRevisions } from "./logRevisions";
 
 interface EventRow {
@@ -145,7 +146,7 @@ function typeIn(where: Where, types: readonly ChatEventType[]): string {
 }
 
 /** チャットの記録（chat_events の表）と、やり取りの全文検索。getChat は、知らせにプロジェクトを添えるのに使う */
-export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined, revisions?: LogRevisions) {
+export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined, remembered: RememberedSessions, revisions?: LogRevisions) {
   const readRows = (sql: string, params: SQLInputValue[]) => (db.prepare(sql).all(...params) as unknown as EventRow[]).map(toEvent);
 
   /** 記録を読む（既定は古い順ですべて）。読み方は list・latestId・exists・latestResult に集め、名前の付いた読み取りはこれらを呼ぶ */
@@ -216,6 +217,15 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const chat = getChat(chatId);
       if (chat) onChange({ type: "chat_event", project_id: chat.project_id, event: saved });
       return saved;
+    },
+    /** 知らせずに 1 件足し、記録の ID を返す（ほかの表と 1 つのトランザクションで書くとき。知らせは呼ぶ側がコミットのあとに） */
+    write(chatId: number, event: ChatEventData): number {
+      const { type, ...data } = event;
+      return Number(db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, ?, ?)").run(chatId, type, JSON.stringify(data)).lastInsertRowid);
+    },
+    /** 記録の中身の項目を知らせずに書き換える（その種類の記録でなければ変えない。トランザクションの中で使い、知らせは呼ぶ側） */
+    patchData(chatId: number, eventId: number, type: ChatEventType, data: Record<string, unknown>): void {
+      db.prepare("UPDATE chat_events SET data = json_patch(data, ?) WHERE id = ? AND chat_id = ? AND type = ?").run(JSON.stringify(data), eventId, chatId, type);
     },
     /** 記録を 1 件（なければ null） */
     get(eventId: number): ChatEvent | null {
@@ -328,28 +338,25 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
           .get({ id: uploadId }) !== undefined
       );
     },
-    /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id・AI ごとのセッション・記録の init・result・workplace_moved） */
+    /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id・記録の init・result・workplace_moved・離れた AI のセッションの覚え） */
     usedSessionIds(): Set<string> {
       const rows = db
         .prepare(
           `SELECT session_id AS sid FROM chats WHERE session_id IS NOT NULL
-           UNION SELECT session_id FROM chat_provider_sessions
            UNION SELECT json_extract(data, '$.session_id') FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IS NOT NULL`,
         )
         .all() as { sid: string }[];
-      return new Set(rows.map((r) => r.sid));
+      return new Set([...rows.map((r) => r.sid), ...remembered()]);
     },
     /** このセッション ID を、いまあるチャットのどれかが使っているか（usedSessionIds と同じ所を見る） */
     sessionInUse(sessionId: string): boolean {
-      return Boolean(
-        db
-          .prepare(
-            `SELECT 1 FROM chats WHERE session_id = $sid
-             UNION ALL SELECT 1 FROM chat_provider_sessions WHERE session_id = $sid
-             UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
-          )
-          .get({ sid: sessionId }),
-      );
+      const inChats = db
+        .prepare(
+          `SELECT 1 FROM chats WHERE session_id = $sid
+           UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
+        )
+        .get({ sid: sessionId });
+      return Boolean(inChats) || remembered([sessionId]).size > 0;
     },
     /**
      * 移したあとまだ AI に知らせていない、作業場所を移した区切りの中身（いちばん新しい区切りのあとに作業の終わり result がない。なければ null）。

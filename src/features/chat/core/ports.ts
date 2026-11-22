@@ -1,4 +1,5 @@
 // chat が宣言し、上の機能が実装する口（chat は上の機能を読まない。組み立てが渡す）
+import type { DatabaseSync } from "node:sqlite";
 import type { HandoffState } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
@@ -63,4 +64,12 @@ export interface ProviderHandoffPort {
   cleared(chatId: number): void;
   /** そのチャットが覚えている離れた AI のセッション（会話記録の片付けで、使っているものとして数える） */
   sessionsOf(chatId: number): { session_id: string; provider: ProviderId }[];
+  /** どれかのチャットが離れた AI のセッションとして覚えている ID（会話記録を片付けるかの判定） */
+  rememberedSessions: RememberedSessions;
 }
+
+/**
+ * chat の表のほかで覚えているセッションの ID（ids を渡せばそのうち覚えているものだけ。db を渡せば、ほかの Kickoff の DB（読むだけで開いたもの）で調べる。
+ * 表がないなど読めなければ投げる）
+ */
+export type RememberedSessions = (ids?: readonly string[], db?: DatabaseSync) => Set<string>;

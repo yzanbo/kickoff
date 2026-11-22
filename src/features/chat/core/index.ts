@@ -18,7 +18,7 @@ import { createChatRunner, type ChatRunner, type RunnerDeps } from "./run/runner
 import { registerChatTrash, type ChatPurgeDeps } from "./sessions/chatTrash";
 import { registerProjectTrash } from "./sessions/projectTrash";
 import { sweepUnusedSessions } from "./sessions/sessionTrash";
-import type { SessionsUsedElsewhere } from "./sessions/siblingSessions";
+import type { SessionsUsedElsewhere, SiblingSessionCheck } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
 import { ChatRemover } from "./tools/aiChatRemove";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -78,7 +78,7 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
   /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
   recoveredReason?: RecoveredReason;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */
-  sessionsElsewhere: SessionsUsedElsewhere | null;
+  sessionsElsewhere: SiblingSessionCheck | null;
   /** 置いた kickoff-trash（置かなければ、AI に rm の代わりを渡さない） */
   trashCommandFile?: string;
   /** AI の操作ツールの MCP の URL の頭（http://127.0.0.1:<ポート>） */
@@ -122,7 +122,7 @@ export interface ChatApi {
 /** チャットの実行（殻 ChatRunner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
 export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
   const { bus } = k;
-  const store: Store = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
+  const store: Store = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings, deps.providerHandoff.rememberedSessions), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
   // グループを消したら、中のチャットをグループなしに戻して知らせる
   deps.groups.useMembers({
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
@@ -141,7 +141,8 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
   // AI の rm の代わりの kickoff-trash（置けていなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = env.trashCommandFile ? { path: env.trashCommandFile, dir: trashBin.dir } : undefined;
   const { recoveredReason: _reason, sessionsElsewhere: elsewhere, trashCommandFile: _file, mcpBaseUrl, ...timing } = env;
-  const sessionsElsewhere = elsewhere ?? undefined;
+  // ほかの Kickoff の DB でも、離れた AI のセッションの覚えを使っているものに数える
+  const sessionsElsewhere: SessionsUsedElsewhere | undefined = elsewhere ? (ids) => elsewhere(ids, deps.providerHandoff.rememberedSessions) : undefined;
   // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ
   const sessionTrash: SessionTrash = async (sessionId, file, { projectId, label }) => {
     if (sessionsElsewhere && sessionsElsewhere([sessionId]).size > 0) return;

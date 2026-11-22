@@ -112,10 +112,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
   };
 
   const noteChats = (projectId: number, notePath: string): Chat[] =>
-    db
-      .prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
-      .all(projectId, notePath, notePath, notePath)
-      .map(toChat);
+    db.prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC").all(projectId, notePath, notePath, notePath).map(toChat);
 
   return {
     get,
@@ -177,6 +174,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions: L
       onChange({ type: "chat", chat });
       return chat;
     },
+    /** 知らせずに項目（と担当の AI）を変える（AI の切り替えでほかの表と 1 つのトランザクションに書く。知らせは呼ぶ側。動いた時刻は進めず、セッションも覚えない） */
+    write: (id: number, patch: ChatPatch & Partial<Pick<Chat, "provider">>): void => updateRow(db, "chats", id, rows.toRow(patch), [...CHAT_COLUMNS, "provider"]),
     /** GitHub の issue・PR を結び付ける・外す（null）。最後に動いた時刻は進めない（並び順を変えない） */
     setGitHub(id: number, link: GitHubLink | null): Chat {
       db.prepare("UPDATE chats SET github_repo = ?, github_number = ?, github_kind = ? WHERE id = ?").run(link?.repo ?? null, link?.number ?? null, link?.kind ?? null, id);

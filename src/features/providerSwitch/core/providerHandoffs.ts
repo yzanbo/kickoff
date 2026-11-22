@@ -36,6 +36,7 @@ export function providerHandoffPortOf(s: ProviderHandoffStores): ProviderHandoff
     onBoot: () => void s.chatProviderHandoffs.recoverInterrupted(),
     cleared: (chatId) => s.chatProviderSessions.removeAll(chatId),
     sessionsOf: (chatId) => s.chatProviderSessions.list(chatId),
+    rememberedSessions: (ids, db) => s.chatProviderSessions.remembered(ids, db),
   };
 }
 

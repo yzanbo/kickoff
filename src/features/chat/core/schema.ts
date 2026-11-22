@@ -11,7 +11,7 @@ import { col, table } from "@/foundation/core/db/table";
  * - chat_events: 自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、全文検索の索引 chat_event_search
  *   （trigram で部分一致）はビュー chat_event_texts を中身にしてトリガーで追従させる。idx_chat_events_meta は記録の軽い形と大きさを data を解かずに読む覆う索引
  *   （式は店の SQL と同じに書く。チャットごとの読み取りはこれか主キーで引くので (chat_id, id) だけの索引は作らない。eventIndex.test.ts）
- * - session_id: いまの AI（provider）のセッションの正（離れた AI のセッションは providerSwitch の chat_provider_sessions）
+ * - session_id: いまの AI（provider）のセッションの正（離れた AI のセッションの覚えは providerSwitch の表）
  * - agent_sessions: Kickoff が作ったセッションの覚え（チャットを消しても残す。使われなくなったら会話記録をゴミ箱へ）
  */
 export const CHAT_SCHEMA_V1 = `
