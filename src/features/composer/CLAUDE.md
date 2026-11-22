@@ -7,7 +7,7 @@
 - ピル（`ComposerChip`）の一覧は、開いているときだけ呼ぶ関数（`children: () => ReactNode`）で渡す。言葉は `ChipWord`・`.chip-detail`・`.chip-short-icon` の形にする（狭い所でアイコンと数だけにする）。
 - ピルの列・送信待ちを外の描く先（`ChatHost.chipsPortal`・`queueTarget`）に描くときは、会話へ移る操作の前に `reveal` で画面を見せる。
 - 書きかけと添付は下書きの店（`chatComposerDraft`）。外から足すのは `appendToDraft`、ピントは `focusComposer`。
-- 文を書く欄は `MessageField`＋`useMessageField` 1 つ（チャット欄・送信待ちの書き直し・質問の「その他」・吹き出しの書き直し）。キーの順は `messageFieldModel.ts`、音声入力は差し込み口 `composerSlots` の `voice`（voice が登録。マイク `voice.button`・失敗 `voice.error` は呼ぶ側が置く）。
+- 文を書く欄は `MessageField`＋`useMessageField` 1 つ（チャット欄・送信待ちの書き直し・質問の「その他」・吹き出しの書き直し）。キーの順は `messageFieldModel.ts`、音声入力と音声モードは差し込み口 `composerSlots` の `voice`（voice が登録する hooks。マイク `voice.button`・失敗 `voice.error` は呼ぶ側が置く。composer は voice を読まない）。
 - 高さは CSS（`field-sizing: content`）で伸ばす。コンパクトは `compact` のクラスで、送信待ち・ピルの列にも付ける（兄弟かでは見分けない）。
 - 下の行は 1 行に収める（`useComposerBarFit`）。決め打ちの幅で切り替えず実際に測り、中身の幅が変わる値が変わったら測り直す。
 - Esc は 2 回で中断（パネルを閉じるのにも使うため）。録音中・候補の一覧などで先に扱ったキーは見ない。

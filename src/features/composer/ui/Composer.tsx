@@ -9,10 +9,8 @@ import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { AttachButton } from "./AttachButton";
 import { PendingFileChips } from "./PendingFileChips";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { insertDictation } from "@/features/voice/ui/dictationText";
-import { useVoiceMode } from "@/features/voice/ui/useVoiceMode";
-import { VoiceModeButton, VoiceModePanel } from "@/features/voice/ui/VoiceModePanel";
-import type { VoiceReply } from "@/features/voice/ui/voiceSession";
+import type { VoiceReply } from "./selectors";
+import { useVoiceMode, type ComposerVoiceModeInput } from "./composerSlots";
 import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import { SuggestList } from "@/features/composer/ui/suggest/SuggestList";
 import { useSuggest } from "@/features/composer/ui/suggest/useSuggest";
@@ -73,7 +71,7 @@ interface Props {
    * 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口。既存のチャットは chatId、
    * 送る前の新しいチャットは draft（送ったら、できたチャットへ音声モードを引き継ぐ）
    */
-  voiceMode?: { replies: VoiceReply[]; send: (text: string) => Promise<void>; chatId?: number; draft?: boolean };
+  voiceMode?: Pick<ComposerVoiceModeInput, "replies" | "send" | "chatId" | "draft">;
 }
 
 const NO_REPLIES: VoiceReply[] = [];
@@ -154,28 +152,6 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       voice.noteSent();
     },
   });
-  /** 起こした文をキャレットの位置（選んでいればその範囲）に入れた文 */
-  const withSpoken = (spoken: string) => {
-    const el = textareaRef.current;
-    const value = el?.value ?? text;
-    return insertDictation(value, el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length, spoken);
-  };
-  // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す。書きかけの文はそのまま残す）か、
-  // 入力欄に入れる（帯の下に文を書く欄を出したまま、キャレットの位置に足していく）。返答は読み上げる
-  const voice = useVoiceMode({
-    replies: voiceMode?.replies ?? NO_REPLIES,
-    busy: Boolean(busy),
-    send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
-    draft: voiceMode?.draft,
-    chatId: voiceMode?.chatId,
-    fill: (spoken) => {
-      const inserted = withSpoken(spoken);
-      fill(inserted.text, inserted.caret);
-    },
-  });
-  // すぐ送る音声モードの間は、作業中の送り方（いま / あとで）を帯に出し、文を書く欄を隠す
-  const voiceSends = voice.active && voice.delivery === "send";
-
   /** 送信ボタン・Enter（⌘Enter = いま・⌘⇧Enter = あとで。録音中なら、文を書く欄が止めて起こした文を入れてから呼ぶ） */
   const submit = (how: SubmitHow) => {
     // 新しいチャットで音声モードの間に送るなら、できたチャットへ音声モードを引き継ぐ
@@ -193,6 +169,17 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
     textareaRef,
     keepHeldOnBlur: true,
   });
+  // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す）か、入力欄に入れる。返答は読み上げる（composerSlots の voice）
+  const voice = useVoiceMode(field.bridge, {
+    replies: voiceMode?.replies ?? NO_REPLIES,
+    busy: Boolean(busy),
+    send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
+    draft: voiceMode?.draft,
+    chatId: voiceMode?.chatId,
+    queueToggle: busyControls,
+  });
+  // すぐ送る音声モードの間は、作業中の送り方（いま / あとで）を帯に出し、文を書く欄を隠す
+  const voiceSends = voice.sends;
   // 録音中は、送信で「起こした文を入れてそのまま送る」
   const canSend = (sender.hasContent || field.voice.recording) && sender.ready;
 
@@ -236,7 +223,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
         </div>
       )}
       <SuggestList suggest={suggest} />
-      {voice.active && <VoiceModePanel voice={voice} queueToggle={busyControls} />}
+      {voice.panel}
       <MessageField
         field={field}
         hidden={voiceSends}
@@ -267,7 +254,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
           voice={
             <>
               {!voice.active && field.voice.button}
-              {voiceMode && <VoiceModeButton voice={voice} />}
+              {voiceMode && voice.button}
             </>
           }
           canSend={canSend}

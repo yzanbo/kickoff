@@ -106,6 +106,8 @@ export function useMessageField(input: MessageFieldInput) {
     value,
     onChange,
     textareaRef,
+    /** 音声とつなぐ口（音声モードも同じ欄に入れる） */
+    bridge,
     voice,
     /** ⌘ を押している間（⌘Enter・⌘⇧Enter で使われるボタンを光らせる） */
     held,

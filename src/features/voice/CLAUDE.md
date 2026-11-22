@@ -4,7 +4,7 @@
 
 - `core/service.ts`: `VoiceService` が設定の `voice_provider` で `local`（`whisper-cli`＋`ffmpeg`）/ `macos`（`core/macos.ts` の `macosSpeech`）/ `openai` に振り分ける。準備の確かめは `readiness.ts`、WebM は `webmToOgg.ts` で Ogg に詰め替える。
 - macOS は補助コマンド `kickoff-speech`（`native/kickoff-speech/main.swift`）。
-- `ui/`: 入力欄への差し込み `composerVoice.ts`（composer の `composerSlots` の `voice` に `ui/contributes.ts` が登録。文を書く欄 `MessageField` ごとのマイク。hooks なので遅延読み込みにしない）・入れ方 `insertDictation`・音声モード `voiceSession.ts`（React に依存しない）・読み上げる文 `speakableText`・準備の状態 `useVoiceStatus`・設定 `ui/settings/`。
+- `ui/`: 入力欄への差し込み `composerVoice.ts`（composer の `composerSlots` の `voice` に `ui/contributes.ts` が登録。文を書く欄 `MessageField` ごとのマイクとチャット欄の音声モード。hooks なので遅延読み込みにしない）・入れ方 `insertDictation`・音声モード `voiceSession.ts`（React に依存しない）・読み上げる文 `speakableText`・準備の状態 `useVoiceStatus`・設定 `ui/settings/`。
 
 ## 決まり
 

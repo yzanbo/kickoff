@@ -3,10 +3,19 @@
 // （マイクのボタンは前から入力欄と一緒に、最初の描画の前に読み込まれている）
 import { createElement, type KeyboardEvent } from "react";
 import { consumeKey, hasModifiers, isCancelKey } from "@/foundation/ui/lib/keys";
-import type { FieldBridge, FieldVoice } from "@/features/composer/ui";
+import type { ComposerVoiceModeInput, FieldBridge, FieldVoice, FieldVoiceMode } from "@/features/composer/ui";
 import { DictationButton, DictationError } from "./DictationButton";
 import { insertDictation } from "./dictationText";
 import { useDictation } from "./useDictation";
+import { useVoiceMode } from "./useVoiceMode";
+import { VoiceModeButton, VoiceModePanel } from "./VoiceModePanel";
+
+/** 起こした文を欄のキャレットの位置（選んでいればその範囲）に入れる */
+function insertSpoken(bridge: FieldBridge, spoken: string, sendNow: boolean) {
+  const { text, start, end } = bridge.read();
+  const inserted = insertDictation(text, start, end, spoken);
+  bridge.write(inserted.text, inserted.caret, sendNow);
+}
 
 /**
  * 文を書く欄 1 つの音声入力（チャット欄・送信待ちの書き直し・質問の「その他」）。
@@ -15,11 +24,7 @@ import { useDictation } from "./useDictation";
  */
 export function useComposerFieldVoice(bridge: FieldBridge): FieldVoice {
   const dictation = useDictation({
-    onText: (spoken, send) => {
-      const { text, start, end } = bridge.read();
-      const inserted = insertDictation(text, start, end, spoken);
-      bridge.write(inserted.text, inserted.caret, send);
-    },
+    onText: (spoken, send) => insertSpoken(bridge, spoken, send),
   });
   const onKeyDown = (e: KeyboardEvent<HTMLElement>): boolean => {
     if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
@@ -37,5 +42,29 @@ export function useComposerFieldVoice(bridge: FieldBridge): FieldVoice {
     onKeyDown,
     button: createElement(DictationButton, { dictation }),
     error: createElement(DictationError, { dictation }),
+  };
+}
+
+/**
+ * チャット欄の音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す。書きかけの文はそのまま残す）か、
+ * 入力欄に入れる（帯の下に文を書く欄を出したまま、キャレットの位置に足していく）。返答は読み上げる
+ */
+export function useComposerVoiceMode(bridge: FieldBridge, input: ComposerVoiceModeInput): FieldVoiceMode {
+  const voice = useVoiceMode({
+    replies: input.replies,
+    busy: input.busy,
+    send: input.send,
+    draft: input.draft,
+    chatId: input.chatId,
+    fill: (spoken) => insertSpoken(bridge, spoken, false),
+  });
+  return {
+    active: voice.active,
+    sends: voice.active && voice.delivery === "send",
+    stop: voice.stop,
+    beforeSend: voice.beforeSend,
+    noteSent: voice.noteSent,
+    panel: voice.active ? createElement(VoiceModePanel, { voice, queueToggle: input.queueToggle }) : null,
+    button: createElement(VoiceModeButton, { voice }),
   };
 }

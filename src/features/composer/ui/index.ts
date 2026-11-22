@@ -5,7 +5,7 @@ export { useChatSend } from "./send/chatSend";
 export { appendToDraft, startComposerDrafts } from "./addToChat";
 export { appendDraft, chatComposerDraft, memoryDraft, settingDraft, type ComposerDraft } from "./composerDraft";
 export { focusComposer, focusDraft, useComposerInsert } from "./composerFields";
-export { composerSlots, type FieldBridge, type FieldVoice } from "./composerSlots";
+export { composerSlots, type ComposerVoiceModeInput, type FieldBridge, type FieldVoice, type FieldVoiceMode } from "./composerSlots";
 export { MessageField, useMessageField } from "./MessageField";
 export { PLAIN_SUBMIT } from "./messageFieldModel";
 export { useDraftFiles } from "./useDraftFiles";
