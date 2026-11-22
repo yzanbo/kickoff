@@ -7,8 +7,8 @@ const ARRIVE_RATIO = 0.25;
 /** 動いている間に行が描かれて行き先がずれたとき、寄せ直す回数の上限 */
 const MAX_RETRIES = 2;
 
-/** 前に頼んだ「スクロールし終えたら強調する」（続けて移ったら、前のものはやめる） */
-let pendingFlash: (() => void) | null = null;
+/** 流れの要素ごとの、前に頼んだ「スクロールし終えたら強調する」（同じ流れで続けて移ったら、前のものはやめる。ほかの画面の流れの待ちは消さない） */
+const pendingFlash = new WeakMap<HTMLElement, () => void>();
 
 /**
  * チャットの発言（id が `ev-<イベント ID>` の要素）か、そのツールの呼び出しを含むまとまり（`data-tool-ids`）までスクロールして、一瞬強調する。
@@ -18,7 +18,7 @@ let pendingFlash: (() => void) | null = null;
 export function jumpToEvent(root: HTMLElement, eventId: number, { smooth = false }: { smooth?: boolean } = {}): boolean {
   const target = root.querySelector<HTMLElement>(`#ev-${eventId}`) ?? root.querySelector<HTMLElement>(`[data-tool-ids~="${eventId}"]`);
   if (!target) return false;
-  pendingFlash?.();
+  pendingFlash.get(root)?.();
   if (!smooth || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     target.scrollIntoView({ block: "center" });
     flash(target);
@@ -70,7 +70,7 @@ function flashWhenSettled(root: HTMLElement, target: HTMLElement) {
   const stop = () => {
     root.removeEventListener("scrollend", onEnd);
     window.clearTimeout(timer);
-    if (pendingFlash === stop) pendingFlash = null;
+    if (pendingFlash.get(root) === stop) pendingFlash.delete(root);
   };
   function done() {
     stop();
@@ -89,7 +89,7 @@ function flashWhenSettled(root: HTMLElement, target: HTMLElement) {
   };
   root.addEventListener("scrollend", onEnd);
   timer = window.setTimeout(onTimeout, SETTLE_TIMEOUT_MS);
-  pendingFlash = stop;
+  pendingFlash.set(root, stop);
 }
 
 function flash(target: HTMLElement) {
