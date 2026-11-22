@@ -225,4 +225,4 @@ scripts/  docs/           道具と文書
 - 裏のタブの会話の欄を `Activity` の hidden で止める（`ChatScreen.tsx`）: 裏に 6 つのチャットを開き、表で返答を書かせながら打つと、1 文字の遅れが中央値 22ms → 15ms（95% で 23ms）、裏のタブを表に戻すのが 77ms → 68ms になった。
 - チャットの流れの窓（`useRowWindow`）: 数千ターンのチャットで要素が 10 万個を超え、画面が真っ黒になった。窓にすると、上へ 50 画面読み進めても要素は 200 個ほど（窓なしは 1,300 個、250 画面で 8,300 個）。
 - サイドバー・ボードは窓にせず、開いた直後だけ段階に分けて描く（`useProgressivePage`）: ⌘F・キーでの移動・ドラッグが、すべての行が DOM にあることを前提にするため。1,000 チャットで最初に見えるまでが、サイドバー 144〜270ms → 29〜51ms・ボード 226〜378ms → 30〜113ms・全プロジェクト 約 450ms → 48〜68ms、いちばん長いタスクが 120〜350ms → 0〜85ms（JS の合計はほぼ同じ。`scripts/perf/lists.mjs`）。
-- 一番下への付いていき（`src/features/composer/ui/followScroll.ts`）: 伸びるたびに effect で `scrollTop = scrollHeight` を書くと、書いている最中の入力 1 文字に 50ms ほどかかった。大きさの知らせの中で、ずれたときだけ寄せる。
+- 一番下への付いていき（`src/features/chat/ui/parts/followScroll.ts`）: 伸びるたびに effect で `scrollTop = scrollHeight` を書くと、書いている最中の入力 1 文字に 50ms ほどかかった。大きさの知らせの中で、ずれたときだけ寄せる。

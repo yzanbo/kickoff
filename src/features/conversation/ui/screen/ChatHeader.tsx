@@ -2,18 +2,16 @@ import { Fragment, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
-import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorkplaceMoveChip } from "@/features/workplaceMove/ui/WorkplaceMoveChip";
-import { GitHubLinkChip } from "@/features/github/ui/GitHubLinkChip";
 import { ChatFind } from "@/features/conversation/ui/find/ChatFind";
 import { AgentPanelToggle } from "@/features/chatPanel/ui/agents/AgentPanelToggle";
-import { cx } from "@/foundation/ui/lib/cx";
-import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { ChatHeaderFrame } from "./ChatHeaderFrame";
+import { useChatDisplayMenu } from "./useChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
 import { ChatHeaderTitle } from "./ChatHeaderTitle";
-import { useActivityNav, useSubagentNav } from "@/features/chat/ui";
+import { LinkedItemChip, useActivityNav, useSubagentNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 
 /**
@@ -36,9 +34,9 @@ export function ChatHeader({
   const ordered = useChatHeaderOrder();
   const { canOpenSide } = useSubagentNav();
   const rowHidden = useChatHeaderRowHidden();
-  const badgeColors = useChatHeaderBadgeColors();
   const showing = useCell(useActivityNav().showing);
-  const menu = useContextMenu();
+  // 何もないところの右クリックで「チャットの画面」のメニュー（ボタン・リンク・入力欄の上では、そのものの右クリックを残す）
+  const menu = useChatDisplayMenu();
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す
   const findInline = !collapsed && shows("find");
@@ -59,46 +57,41 @@ export function ChatHeader({
     cost: cost && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${chat.cost_usd.toFixed(2)}</span>,
   };
   return (
-    <header
-      className="chat-header"
-      // 何もないところの右クリックで「チャットの画面」のメニュー（ボタン・リンク・入力欄の上では、そのものの右クリックを残す）
-      onContextMenu={(e) => {
-        if ((e.target as HTMLElement).closest("button, a, input, textarea, [role='search']")) return;
-        menu.open(e);
-      }}
-    >
-      <div className="chat-title-row">
-        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン） */}
-        <span className={cx("chat-sub muted small", !badgeColors && "plain-badges")}>
+    <ChatHeaderFrame
+      onContextMenu={menu.onBlank}
+      // どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン）と、結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く）
+      badges={
+        <>
           {ordered(["project", "group", "worktree"] as const).map((k) => (
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
-          {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
-          <GitHubLinkChip chat={chat} />
-        </span>
-        {title && <ChatHeaderTitle chat={chat} />}
-        {chat.archived_at && <span className="archived-chip tag" data-look="outline">アーカイブ済み</span>}
-        <span className="spacer" />
-        {/* 道具（右に寄せ、名前・バッジと分ける。アーカイブのボタンは置かない（タブ・サイドバーの行の右クリックから、確かめてからアーカイブする）） */}
-        <span className="chat-tools">
-          <ChatHeaderTools find={findInline ? find : null} />
-        </span>
-        {/* ターン数と費用（狭いときは隠す） */}
-        {(turns || cost) && (
-          <span className="chat-meta muted small">
-            {ordered(["turns", "cost"] as const).map((k) => (
-              <Fragment key={k}>{meta[k]}</Fragment>
-            ))}
-          </span>
-        )}
-        {canOpenSide && shows("agents") && <AgentPanelToggle chatId={chat.id} />}
-      </div>
+          <LinkedItemChip chat={chat} />
+        </>
+      }
+      title={
+        <>
+          {title && <ChatHeaderTitle chat={chat} />}
+          {chat.archived_at && <span className="archived-chip tag" data-look="outline">アーカイブ済み</span>}
+        </>
+      }
+      // 道具（右に寄せ、名前・バッジと分ける。アーカイブのボタンは置かない（タブ・サイドバーの行の右クリックから、確かめてからアーカイブする））
+      tools={<ChatHeaderTools find={findInline ? find : null} />}
+      end={
+        <>
+          {/* ターン数と費用（狭いときは隠す） */}
+          {(turns || cost) && (
+            <span className="chat-meta muted small">
+              {ordered(["turns", "cost"] as const).map((k) => (
+                <Fragment key={k}>{meta[k]}</Fragment>
+              ))}
+            </span>
+          )}
+          {canOpenSide && shows("agents") && <AgentPanelToggle chatId={chat.id} />}
+        </>
+      }
+    >
       {!findInline && find}
-      {menu.menu && (
-        <PopupMenu at={menu.menu.at} label="チャットの画面" onClose={menu.close}>
-          <ChatDisplayItems />
-        </PopupMenu>
-      )}
-    </header>
+      {menu.element}
+    </ChatHeaderFrame>
   );
 }

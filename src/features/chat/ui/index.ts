@@ -43,3 +43,6 @@ export { knownChat } from "./store/knownChats";
 export { appendBlock } from "./quote";
 export { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, markChatsSeen, moveChatsToGroup, togglePinChat } from "./chatActions";
 export { aiToolViews, toolText } from "./tools/toolText";
+export { SNAP_PX, scrollsUpKey, snapTarget } from "./parts/followScroll";
+export { useFollowScroll } from "./parts/useFollowScroll";
+export { LinkedItemChip } from "./parts/LinkedItemChip";

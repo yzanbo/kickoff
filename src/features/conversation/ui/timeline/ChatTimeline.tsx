@@ -10,10 +10,8 @@ import { useStickyPrompt } from "@/features/conversation/ui/promptList/useSticky
 import { useWorkingStatus } from "@/features/conversation/ui/working/useWorkingStatus";
 import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
-import { ChatDisplayItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
+import { useChatDisplayMenu } from "@/features/conversation/ui/screen/useChatDisplayMenu";
 import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
-import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { activeFloor, TimelineRows } from "./Timeline";
 import { TimelineEnd } from "./TimelineEnd";
@@ -101,7 +99,7 @@ export function ChatTimeline({
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
   // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
-  const displayMenu = useContextMenu();
+  const displayMenu = useChatDisplayMenu();
 
   return (
     <div className="timeline-wrap" hidden={hidden}>
@@ -115,8 +113,7 @@ export function ChatTimeline({
         {...{ [QUOTABLE_ATTR]: "" }}
         onContextMenu={(e) => {
           if (quoteMenu.openInRegion(e) || e.defaultPrevented || onEditable(e.target)) return;
-          if ((e.target as Element).closest("a, button, summary, input, textarea")) return;
-          displayMenu.open(e);
+          displayMenu.onBlank(e);
         }}
         onContextMenuCapture={(e) => {
           // 返答の行の文の外（行の右の空き・段落の間）も何もないところと同じに扱い、返答のメニューより先に受ける
@@ -156,11 +153,7 @@ export function ChatTimeline({
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}
       {quoteMenu.element}
-      {displayMenu.menu && (
-        <PopupMenu at={displayMenu.menu.at} label="チャットの画面" onClose={displayMenu.close}>
-          <ChatDisplayItems />
-        </PopupMenu>
-      )}
+      {displayMenu.element}
       {jumping !== null && (
         <div className="timeline-jumping pill" role="status">
           <span className="spinner" aria-hidden />

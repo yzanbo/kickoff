@@ -120,7 +120,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 変わる値（ファイルのリンクの一覧など）を Markdown の解析に入れない（すべての返答を解析し直す。`@/features/files/ui/links/fileIndexStore.ts`）。
 - 長い一覧は描く範囲を絞る。チャットの流れは窓 `@/features/conversation/ui/timeline/rowWindow/useRowWindow.ts`、サイドバー・ボードは開いた直後だけ段階に分ける（`useProgressiveRows.ts`）。
 - 行の DOM を読む操作（キーでの移動・範囲の選択・ドラッグ）では、先に `ensureAllRows()` を呼ぶ（描いている途中・effect の中では呼ばない）。
-- 一番下への付いていきは、大きさの知らせの中でずれたときだけ寄せる（`@/features/composer/ui/followScroll.ts`）。effect で `scrollTop = scrollHeight` を書かない。
+- 一番下への付いていきは、大きさの知らせでずれたときだけ寄せる（`@/features/chat/ui/parts/followScroll.ts`）。effect で `scrollTop = scrollHeight` を書かない。
 - `content-visibility: auto` で省いた行の中の位置を読まない（その行のレイアウトを強いる）。流れをたどるときは行の包みの位置で決める。
 - 重いもの（Mermaid・AI の図・コードの色付け）は `useNearViewport` で手前まで来てから始める。色付けは Web Worker（`code/highlightPool.ts`）。
 - 入力欄の高さは CSS の `field-sizing: content` で伸ばす。JS で `scrollHeight` を測らない。

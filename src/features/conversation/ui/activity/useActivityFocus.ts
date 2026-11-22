@@ -1,4 +1,4 @@
-import { useEffectEvent, useLayoutEffect, useMemo, useState, type RefObject } from "react";
+import { useEffectEvent, useLayoutEffect, useState, type RefObject } from "react";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 import { useOptionalActivityNav, usePortValue } from "@/features/chat/ui";
 import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
@@ -35,8 +35,8 @@ export function useActivityFocus(
 ): ActivityFocus {
   const focus = usePortValue(useOptionalActivityNav()?.focused, (f) => f, null);
   const focusKey = focus?.key ?? null;
-  const hits = useMemo(() => (focusKey !== null && tree ? focusedRowIndexes(shown, agentScope(tree, focusKey)) : []), [focusKey, tree, shown]);
-  const keys = useMemo(() => new Set(hits.map((i) => shown[i].key)), [hits, shown]);
+  const hits = focusKey !== null && tree ? focusedRowIndexes(shown, agentScope(tree, focusKey)) : [];
+  const keys = new Set(hits.map((i) => shown[i].key));
   // 押し直したら（nonce が変わったら）初めの行から
   const [cursor, setCursor] = useState({ nonce: -1, index: 0 });
   const position = focus && cursor.nonce === focus.nonce ? Math.min(cursor.index, Math.max(0, hits.length - 1)) : 0;

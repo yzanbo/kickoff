@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
 import { languageOf } from "@/foundation/ui/code/languages";
 import { CodeLine } from "@/foundation/ui/kit/CodeLine";
@@ -12,7 +12,7 @@ const SHOWN_LINES = 60;
 function useClipped<T>(items: T[]): { shown: T[]; more: ReactNode } {
   const [all, setAll] = useState(false);
   const hidden = all ? 0 : Math.max(0, items.length - SHOWN_LINES);
-  const shown = useMemo(() => (hidden > 0 ? items.slice(0, SHOWN_LINES) : items), [items, hidden]);
+  const shown = hidden > 0 ? items.slice(0, SHOWN_LINES) : items;
   const more = hidden > 0 && (
     <button type="button" className="link-button bash-more" onClick={() => setAll(true)}>
       … ほか {hidden} 行
@@ -59,14 +59,14 @@ export function SearchTitle({ glob, pattern, path, highlight }: { glob: boolean;
  * highlight が false の間（一度も開いていない）は色付けを始めない
  */
 export function ReadResult({ content, path, highlight }: { content: string; path: string; highlight: boolean }) {
-  const lines = useMemo(() => parseNumberedLines(content), [content]);
+  const lines = parseNumberedLines(content);
   if (!lines) return <pre className="tool-output">{content}</pre>;
   return <NumberedCode lines={lines} lang={highlight ? languageOf(path) : undefined} />;
 }
 
 function NumberedCode({ lines, lang }: { lines: NumberedLine[]; lang: string | undefined }) {
   const { shown, more } = useClipped(lines);
-  const texts = useMemo(() => shown.map((l) => l.text), [shown]);
+  const texts = shown.map((l) => l.text);
   const tokens = useHighlight(texts, lang);
   return (
     <div className="tool-code-block">
@@ -90,9 +90,9 @@ function NumberedCode({ lines, lang }: { lines: NumberedLine[]; lang: string | u
  * mode は Grep の output_mode（Glob は undefined = パスの一覧）、path は探した場所（1 つのファイルを探したときの言語）
  */
 export function SearchResult({ content, mode, path, highlight }: { content: string; mode: string | undefined; path: string | undefined; highlight: boolean }) {
-  const lines = useMemo(() => parseSearchLines(content, mode), [content, mode]);
+  const lines = parseSearchLines(content, mode);
   const { shown, more } = useClipped(lines);
-  const runs = useMemo(() => searchRuns(shown, path), [shown, path]);
+  const runs = searchRuns(shown, path);
   return (
     <div className="tool-code-block">
       <pre className="tool-output tool-code">
@@ -110,7 +110,7 @@ export function SearchResult({ content, mode, path, highlight }: { content: stri
 
 /** 同じファイルの続いた行（1 回で色を付ける） */
 function SearchRunLines({ lines, lang }: { lines: SearchLine[]; lang: string | undefined }) {
-  const texts = useMemo(() => lines.map((l) => (l.kind === "match" || l.kind === "context" ? l.text : "")), [lines]);
+  const texts = lines.map((l) => (l.kind === "match" || l.kind === "context" ? l.text : ""));
   const tokens = useHighlight(texts, lang);
   return lines.map((line, i) => (
     <Fragment key={i}>

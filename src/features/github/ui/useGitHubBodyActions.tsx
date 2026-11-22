@@ -6,7 +6,7 @@ import { selectionToMarkdown } from "@/foundation/ui/kit/markdown/selectionMarkd
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
-import { selectGitHubItem } from "./GitHubLinkChip";
+import { selectGitHubItem } from "./openGitHubItem";
 import { githubItemRef } from "./githubLinks";
 import { linkOf, quotePrompt } from "./githubPrompt";
 

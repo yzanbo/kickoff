@@ -1,5 +1,5 @@
 import { CornerDownLeft, Eraser, History, MessageCircleQuestion } from "lucide-react";
-import { useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
@@ -34,13 +34,11 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   const ref = useRef<HTMLDivElement>(null);
   // ピルの数（指示と質問への回答。コンテキストの消去は自分の発言ではないので数えない）
   const count = prompts.filter((p) => !p.cleared).length;
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    // 質問への回答は、答えだけでなく問いの文でも当てる。コンテキストの消去は札の名前でも当てる
-    const searchText = (p: PromptEntry) =>
-      (p.answers ? [p.label, ...p.answers.map((a) => a.question)].join("\n") : p.cleared ? `${CLEARED_TAG}\n${p.label}` : p.label).toLowerCase();
-    return q ? prompts.filter((p) => searchText(p).includes(q)) : prompts;
-  }, [prompts, query]);
+  const q = query.trim().toLowerCase();
+  // 質問への回答は、答えだけでなく問いの文でも当てる。コンテキストの消去は札の名前でも当てる
+  const searchText = (p: PromptEntry) =>
+    (p.answers ? [p.label, ...p.answers.map((a) => a.question)].join("\n") : p.cleared ? `${CLEARED_TAG}\n${p.label}` : p.label).toLowerCase();
+  const items = q ? prompts.filter((p) => searchText(p).includes(q)) : prompts;
   const close = () => {
     // 絞り込みの欄にピントがあれば、チャット欄に戻す（欄が消えてピントが外れると、次の Esc でパネルが閉じる）
     if (ref.current?.contains(document.activeElement)) composer?.focus();
@@ -147,7 +145,7 @@ function PromptRows({
   // 選んでいる行
   const activeRef = useRef<HTMLDivElement>(null);
   // 行に出す番号（会話の中で何番目の指示か。質問への回答・コンテキストの消去は数えない。絞り込んでも変えない）
-  const numbers = useMemo(() => new Map(prompts.filter((p) => !p.answers && !p.cleared).map((p, i) => [p.id, i + 1])), [prompts]);
+  const numbers = new Map(prompts.filter((p) => !p.answers && !p.cleared).map((p, i) => [p.id, i + 1]));
   useLayoutEffect(() => {
     activeRef.current?.scrollIntoView({ block: "nearest" });
   }, [active]);

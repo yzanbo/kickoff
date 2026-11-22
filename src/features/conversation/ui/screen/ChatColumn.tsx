@@ -10,14 +10,14 @@ import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { chatVisuals } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
-import { noteForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHandoffNotice";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { chatRoleOf, useActivityNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 import { useWideText } from "./TextWidthToggle";
-import { useChatView } from "./useChatView";
+import { useConversationState } from "./useConversationState";
+import { useForegroundProvider } from "./useForegroundProvider";
 import type { ChatShellHandles } from "./useChatShell";
 
 interface ChatColumnProps {
@@ -34,12 +34,14 @@ interface ChatColumnProps {
 /**
  * チャットの会話の欄（見出し・流れ・チャット欄）。殻（ChatView）の中の Activity の内側に置き、裏のタブでは止まる（effect を片付け、
  * 記録が届いても描き直さない。表に戻したら最新の記録で 1 回描く）。記録・回答待ち・作業中の様子・記録全体から作るものは、ここで
- * チャットの店の口を読む（殻は読まない）。状態は useChatView にあり、ここは描くだけ。
+ * チャットの店の口を読む（殻は読まない）。状態は useConversationState にあり、ここは描くだけ。
  * 流れの部品が読むサブエージェント・図・裏の呼び出しは、ここから context で配る（右の欄のサブエージェントの画面は、同じ口を自分で読む）
  */
 export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, beforeSend, shell }: ChatColumnProps) {
-  const view = useChatView({ chat, project, focus, beforeSend }, shell);
+  const view = useConversationState({ chat, project, focus, beforeSend }, shell);
   const { ports: { root: paneRoot } } = shell;
+  // 押したら、このチャットの AI を下の帯の使用状況に出す（表に出たときは ChatScreen が出す）
+  const noteForeground = useForegroundProvider(chat.provider, `chat:${chat.id}`);
   // 会話の横幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
@@ -58,7 +60,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
             className={cx("chat-page chat-panel", wide && "wide")}
             data-chat-id={chat.id}
             data-chat-role={chatRoleOf(chat)}
-            onPointerDownCapture={() => noteForegroundProvider(chat.provider, `chat:${chat.id}`)}
+            onPointerDownCapture={noteForeground}
           >
             <ChatHeader chat={chat} project={project} />
             <ProviderHandoffNotice key={chat.id} chatId={chat.id} visible={visible} />

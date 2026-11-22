@@ -9,7 +9,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { openGitHubItem } from "@/features/github/ui/GitHubLinkChip";
+import { openGitHubItem } from "@/features/github/ui/openGitHubItem";
 import { GITHUB_REFRESH_MS, useGitHubRefresh } from "@/features/github/ui/useGitHubRefresh";
 import { CiHandoffMenu } from "./CiHandoffMenu";
 import { CiJobSection } from "./CiJobLog";

@@ -1,5 +1,4 @@
 // 画面に出す作業中の様子: コアの ChatLive に、停止を押した直後からの「停止中」だけを足す（押してからコアの知らせが届くまでの間も止めているように見せる）
-import { useMemo } from "react";
 import type { ChatLive } from "@shared/chat/chatLive";
 import { createCell, useCell } from "@/foundation/ui/store";
 import { useChatDetail } from "@/features/chat/ui";
@@ -23,8 +22,6 @@ export function useScreenLive(chatId: number): ChatLive {
   const { live, chat } = useChatDetail(chatId);
   const busy = chat?.status === "running";
   const stopClicked = useCell(pressed, (set) => set.has(chatId));
-  return useMemo(() => {
-    const stopping = busy && (stopClicked || live.stopping);
-    return stopping === live.stopping ? live : { ...live, stopping };
-  }, [live, busy, stopClicked]);
+  const stopping = busy && (stopClicked || live.stopping);
+  return stopping === live.stopping ? live : { ...live, stopping };
 }

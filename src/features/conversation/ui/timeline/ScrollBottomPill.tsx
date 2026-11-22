@@ -5,9 +5,8 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { CHAT_STATUS_LABELS } from "@/features/chat/ui/chatStatus";
 import { lastResultIdOf } from "@/features/conversation/ui/working/workingLabel";
-import { scrollPillOf, type ScrollPillTone } from "./scrollPill";
+import { CHAT_STATUS_LABELS, scrollPillOf, type ScrollPillTone } from "./scrollPill";
 
 /**
  * 一番下へ戻るボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。

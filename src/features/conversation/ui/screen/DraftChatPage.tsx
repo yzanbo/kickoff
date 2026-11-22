@@ -1,11 +1,11 @@
-import { useContext, useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
+import { useContext, useId, useRef, type ReactNode } from "react";
 import type { ProviderId } from "@shared/settings/types";
 import { TabVisibleContext } from "@/features/panel/ui/tabs/tabPageContext";
-import { noteForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { cx } from "@/foundation/ui/lib/cx";
-import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { ChatHeaderFrame } from "./ChatHeaderFrame";
+import { useChatDisplayMenu } from "./useChatDisplayMenu";
+import { useForegroundProvider } from "./useForegroundProvider";
 import { ChatFontSizeButton } from "./ChatFontSizeButton";
 import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
@@ -22,51 +22,38 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
   const visible = useContext(TabVisibleContext);
   const draftKey = `draft:${useId()}`;
   // 初回送信を待たず、見出しで選んだ AI の使用状況を下の帯に出す。裏のタブでは上書きしない。
-  useEffect(() => {
-    if (visible) noteForegroundProvider(provider, draftKey);
-  }, [visible, provider, draftKey]);
+  const noteForeground = useForegroundProvider(provider, draftKey, visible);
   const [wide] = useWideText();
   const shows = useChatHeaderItems();
   const rowHidden = useChatHeaderRowHidden();
-  const badgeColors = useChatHeaderBadgeColors();
-  const menu = useContextMenu();
+  const menu = useChatDisplayMenu();
   const settings = useAppSettings().data;
-  // ボタン・リンク・入力欄の上では、そのものの右クリックを残す（チャットの見出しと同じ）
-  const onBlankContextMenu = (e: MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='search']")) return;
-    menu.open(e);
-  };
   return (
     <div
       ref={page}
       className={cx("chat-page chat-panel new-chat", wide && "wide", className)}
-      onPointerDownCapture={() => noteForegroundProvider(provider, draftKey)}
-      onFocusCapture={() => noteForegroundProvider(provider, draftKey)}
+      onPointerDownCapture={noteForeground}
+      onFocusCapture={noteForeground}
     >
       {rowHidden ? (
         <header className="chat-header collapsed" />
       ) : (
-        <header className="chat-header" onContextMenu={onBlankContextMenu}>
-          {/* 名前と閉じるはタブに出すので、見出しには出さない（チャットの見出しと同じ） */}
-          <div className="chat-title-row">
-            <span className={cx("chat-sub muted small", !badgeColors && "plain-badges")}>{badges}</span>
-            <span className="spacer" />
-            <span className="chat-tools">
+        <ChatHeaderFrame
+          onContextMenu={menu.onBlank}
+          badges={badges}
+          tools={
+            <>
               {shows("textWidth") && <TextWidthToggle panel={page} />}
               {shows("fontSize") && <ChatFontSizeButton />}
-            </span>
-          </div>
-        </header>
+            </>
+          }
+        />
       )}
-      <div className="timeline" onContextMenu={onBlankContextMenu}>
+      <div className="timeline" onContextMenu={menu.onBlank}>
         {hero}
       </div>
       <div className="chat-composer">{settings ? <RestrictionNotice draft sandboxEnabled={settings.sandbox_enabled_by_default} editScopeEnabled={settings.edit_scope_enabled_by_default} /> : <p className="composer-notice small">制限の設定を読み込み中です。</p>}{children}</div>
-      {menu.menu && (
-        <PopupMenu at={menu.menu.at} label="チャットの画面" onClose={menu.close}>
-          <ChatDisplayItems />
-        </PopupMenu>
-      )}
+      {menu.element}
     </div>
   );
 }

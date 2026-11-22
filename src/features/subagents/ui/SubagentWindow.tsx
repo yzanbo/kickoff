@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
+import { useFollowScroll } from "@/features/chat/ui";
 import { openKey, useOptionalSubagentNav, useTimelineOpen } from "@/features/chat/ui";
 
 /**

@@ -1,4 +1,13 @@
 // 一番下へ戻るボタンに出すいまの状態の決め方（純粋関数。useScrollPill が使う）
+import type { ChatStatus } from "@shared/chat/types";
+
+/** 一番下へ戻るボタンに添えるチャットの状態の文 */
+export const CHAT_STATUS_LABELS: Record<ChatStatus, string> = {
+  running: "作業中",
+  completed: "完了",
+  failed: "失敗",
+  cancelled: "中断",
+};
 
 export type ScrollPillTone = "waiting" | "arrived" | "working" | "idle" | "failed" | "offline";
 

@@ -107,6 +107,13 @@ export function ChatComposerArea({
       {!portal?.target && <span ref={onDock} className="composer-chips-dock" />}
     </div>
   );
+  // 制限の知らせとピルの列（外に描く先があればそこへ）
+  const aboveComposer = (
+    <>
+      <RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />
+      {chips}
+    </>
+  );
   // 起動したときの再開の確かめ: 送信待ちを聞いていれば送信待ちの上に、作業の途中で止まったことだけなら入力欄の上に帯を出す
   const resume = live.restart_resume;
   const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!noteOrArchived} resume={resume?.queued ? resume : null} sentShown={sentShown} />;
@@ -120,7 +127,7 @@ export function ChatComposerArea({
       */}
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
-      {portal?.target ? createPortal(<><RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />{chips}</>, portal.target) : <><RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />{chips}</>}
+      {portal?.target ? createPortal(aboveComposer, portal.target) : aboveComposer}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順。外に描く先があれば、そこの入力欄の上へ） */}
       {/* 作業の途中で止まったことだけを聞いているときの帯は、送信待ち・入力欄の上（送信待ちと入力欄の 1 枚の枠を切らない） */}
       {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}

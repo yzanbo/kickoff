@@ -2,6 +2,7 @@ import { busyWithUnread } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
+import { LinkedItemChip } from "@/features/chat/ui";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { ModelName } from "@/features/ai/ui/options/ModelName";
 import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
@@ -9,7 +10,6 @@ import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
-import { GitHubLinkChip } from "@/features/github/ui/GitHubLinkChip";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { cardStatText } from "./cardFields";
 import type { ShowCardField } from "./CardFieldsMenu";
@@ -34,7 +34,7 @@ export function CardBadges({ chat, projectName, show }: Pick<Props, "chat" | "pr
       {projectName !== undefined && show("project") && <ProjectChip id={chat.project_id} name={projectName} />}
       {show("group") && <GroupChip chat={chat} />}
       {show("worktree") && <WorktreeChip chat={chat} />}
-      <GitHubLinkChip chat={chat} />
+      <LinkedItemChip chat={chat} />
       {chat.archived_at && <span className="archived-chip tag" data-look="outline">アーカイブ済み</span>}
     </>
   );

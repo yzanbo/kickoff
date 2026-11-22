@@ -2,6 +2,7 @@
 import { storage } from "./storage";
 
 export { trySideOpen } from "./rightSidebar/sideOpenRequests";
+export { isSideViewShown, showSideView } from "./rightSidebar/sideView";
 export { useProjects } from "./stores/projects";
 export { ProjectPickFlyout } from "./ProjectPickFlyout";
 export { openNewProject } from "./new/openNewProject";

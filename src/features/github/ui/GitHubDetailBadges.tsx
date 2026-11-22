@@ -2,7 +2,7 @@
 import { Check, CircleDashed, TriangleAlert } from "lucide-react";
 import { GITHUB_MERGE_STATE_LABELS, type GitHubLinkedPull, type GitHubMergeState, type GitHubPullDetail } from "@shared/github/types";
 import { GitHubStateIcon } from "./GitHubStateIcon";
-import { selectGitHubItem } from "./GitHubLinkChip";
+import { selectGitHubItem } from "./openGitHubItem";
 
 /** マージの様子の色（clean・フックあり = 通る / まだ分からない = 薄く / ほかは止まっている） */
 const toneOf = (state: GitHubMergeState): "ok" | "wait" | "warn" => (state === "clean" || state === "has_hooks" ? "ok" : state === "unknown" ? "wait" : "warn");

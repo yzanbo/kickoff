@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { observeSize } from "@/foundation/ui/hooks/useSizeObserver";
-import { scrollsUpKey, snapTarget } from "@/features/composer/ui/followScroll";
+import { scrollsUpKey, snapTarget } from "@/features/chat/ui";
 import { onEditable } from "@/features/conversation/ui/messages/quotable";
 import type { TimelineScroll } from "./timelineScroll";
 

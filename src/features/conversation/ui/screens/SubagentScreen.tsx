@@ -2,7 +2,7 @@ import { Bot, GitBranch, MessageSquare } from "lucide-react";
 import { Fragment } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
+import { useFollowScroll } from "@/features/chat/ui";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";

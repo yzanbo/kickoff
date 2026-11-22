@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject, type UIEvent } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { SNAP_PX } from "@/features/composer/ui/followScroll";
+import { SNAP_PX } from "@/features/chat/ui";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { jumpToEvent } from "./jumpToEvent";

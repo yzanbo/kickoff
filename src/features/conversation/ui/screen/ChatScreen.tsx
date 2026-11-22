@@ -25,7 +25,8 @@ import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useF
 import { ChatImagesProvider } from "@/features/remoteImages/ui/ChatImage";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
-import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/ai/ui/provider/chatProvider";
+import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui/provider/chatProvider";
+import { useForegroundProvider } from "./useForegroundProvider";
 import { RewindActionsContext, type RewindActions } from "@/features/conversation/ui/rewindContext";
 import { ChatColumn } from "./ChatColumn";
 import { useChatShell } from "./useChatShell";
@@ -91,9 +92,7 @@ function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; projec
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
   useProviderStatus(chat.provider, { load: true });
   // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）
-  useEffect(() => {
-    if (visible) noteForegroundProvider(chat.provider, `chat:${chat.id}`);
-  }, [visible, chat.provider, chat.id]);
+  useForegroundProvider(chat.provider, `chat:${chat.id}`, visible);
   const mode = useColumnMode(chat.id, visible, host.pausable);
   // 画面を閉じたら、止めない理由をすべて外す（片付けで外せない理由の持ち主が、会話の欄と一緒になくなるため。殻は Activity の外なので、閉じたときだけ流れる）
   useEffect(() => () => clearKeepAlive(chat.id), [chat.id]);

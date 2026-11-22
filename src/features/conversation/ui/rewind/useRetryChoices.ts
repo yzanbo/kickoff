@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { RETRY_PROMPT } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
@@ -19,13 +18,11 @@ export function useRetryChoices(chatId: number, busy: boolean, options: ChatOpti
   const current = options.model;
   const allModels = options.models;
   const provider = options.provider;
-  return useMemo(() => {
-    if (!failed) return null;
-    const models = groupModels(allModels).flatMap((g) =>
-      g.items.filter((i) => i.value !== current).map((i) => ({ value: i.value, label: `${g.family} ${i.version}` })),
-    );
-    return { failed, lower, models, provider };
-  }, [failed, lower, current, allModels, provider]);
+  if (!failed) return null;
+  const models = groupModels(allModels).flatMap((g) =>
+    g.items.filter((i) => i.value !== current).map((i) => ({ value: i.value, label: `${g.family} ${i.version}` })),
+  );
+  return { failed, lower, models, provider };
 }
 
 /**
