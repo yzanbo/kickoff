@@ -41,6 +41,8 @@ export interface ChatStoreDeps {
   page: (chatId: number, query: ChatEventsQuery) => Promise<ChatEventPage>;
   /** 知っているチャット（knownChats.ts）。詳細の応答のチャットを入れ（remember）、口 detail のチャットはここから引き、中身を捨てたら忘れる */
   chats: { remember(chat: Chat): void; get(id: number): Chat | undefined; forget(id: number): void };
+  /** そのチャットの回答待ち（回答待ちの店 approvals.ts の approvalsOf。中身が同じなら同じ配列）。口 detail の回答待ちはここから引く */
+  approvals: (chatId: number) => Approval[];
 }
 
 /** 読み込みの印（loading = 中身をまだ一度も読めていない / ready = 読めた） */
@@ -52,6 +54,7 @@ export interface ChatDetailView {
   state: ChatLoadState;
   /** 知っているチャット（knownChats.ts から。知らなければ undefined） */
   chat: Chat | undefined;
+  /** 回答待ち（回答待ちの店から） */
   approvals: Approval[];
   live: ChatLive;
   /** 読み込みの失敗（中身を一度も読めていないときだけ） */

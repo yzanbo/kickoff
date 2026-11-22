@@ -26,8 +26,10 @@ export interface SubagentsView {
   tree: SubagentTree;
   /** サブエージェントの色相（起動した順。カードの縦線・目次の点・動きの線で同じ色。agentHues） */
   hues: ReadonlyMap<string, number>;
-  /** 回答待ちの依頼（承認・質問）を出しているサブエージェント（行のキー。waitingSubagentKeys。カード・ピル・タブで「回答待ち」にする） */
+  /** 回答待ちの依頼（承認・質問）を出しているサブエージェント（行のキー。カード・ピル・タブで「回答待ち」にする） */
   waiting: ReadonlySet<string>;
+  /** 回答待ちの依頼ごとの、依頼を出しているサブエージェント（依頼の ID → 行のキー。subagentAskers。承認カードが描くたびに記録をたどらない） */
+  askers: ReadonlyMap<string, string>;
 }
 
 /** ChatView が配る（チャットの画面の外では null） */

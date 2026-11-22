@@ -20,6 +20,7 @@ import type { ChatStoreDeps, Entry } from "./chatStoreTypes";
 interface PagingDeps {
   entries: Map<number, Entry>;
   page: ChatStoreDeps["page"];
+  approvals: ChatStoreDeps["approvals"];
   /** 口 log の差し替えを予約する */
   mark: (e: Entry) => void;
 }
@@ -32,7 +33,7 @@ export interface EdgeAsk {
 type Applied = { range: LogRange; tail?: ChatDetailState["events"] };
 type Plan = { query: ChatEventsQuery; apply: (p: ChatEventPage, d: ChatDetailState) => Applied };
 
-export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
+export function createPaging({ entries, page: fetchPage, approvals, mark }: PagingDeps) {
   const resolved = Promise.resolve();
   const loadedEntry = (chatId: number) => {
     const e = entries.get(chatId);
@@ -97,7 +98,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
       e.cancelShrink = null;
       if (e.viewers.size > 0 || !e.loaded || e.paging) return;
       const ctx = {
-        approvalCallIds: e.detail.approvals.flatMap((a) => (a.tool_use_id ? [a.tool_use_id] : [])),
+        approvalCallIds: approvals(e.chatId).flatMap((a) => (a.tool_use_id ? [a.tool_use_id] : [])),
         backgroundCallIds: (e.detail.live.background?.tasks ?? []).flatMap((t) => (t.tool_use_id ? [t.tool_use_id] : [])),
       };
       const next = shrinkTail(e.detail.range, e.detail.events, ctx);

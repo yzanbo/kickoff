@@ -1,9 +1,8 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useUserViewReport } from "@/features/userView/ui/userViewReport";
 import { collectPopoutView, popoutChatIds } from "@/features/userView/ui/userViewCollect";
 import { useServerConnection } from "@/foundation/ui/api/serverConnection";
-import { useApprovals } from "@/features/chat/ui/store/approvals";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
@@ -31,7 +30,6 @@ import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { SideScope } from "@/features/conversation/ui/SideScope";
 import { PopoutDockButton } from "@/foundation/ui/navigation/PopoutDockButton";
 import { GitHubDialogHost } from "@/features/github/ui/GitHubDialogHost";
-import { ChatStatesContext, indexApprovals } from "@/features/chat/ui/state/chatStates";
 import { popoutPath, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { usePopoutForwarding } from "@/foundation/ui/navigation/popoutNavigation";
 import { useCommandShortcuts } from "@/foundation/ui/commands";
@@ -52,8 +50,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   useServerConnection();
   const { projects } = useProjects();
   setProjectHues(projects);
-  const approvals = useApprovals();
-  const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   useApplyChatFontSize();
   // 中で画面を移る操作（リンク・サイドバーの行）は、メインのウィンドウで開く（設定・⌘⇧A などのダイアログは openAppDialog がメインへ送る）
   usePopoutForwarding(route);
@@ -80,7 +76,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
     // URL は別ウィンドウの行き先なので、画面の URL として購読しない（useHashRoute は見ている画面を shell:last-route に覚えるので、
     // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされる）。useRoute() は初めの値（全プロジェクト）
     <>
-      <ChatStatesContext.Provider value={chatStates}>
         {/* 外部リンクは確かめてから開く。別ウィンドウには Kickoff のブラウザのタブの置き場がないので、開き先は既定のブラウザ */}
         <LinkOpenerProvider projectId={undefined}>
         <div ref={rootRef} className="popout">
@@ -140,7 +135,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         <GitHubDialogHost />
         <DbUnlockHost />
         <AskHost />
-      </ChatStatesContext.Provider>
     </>
   );
 }

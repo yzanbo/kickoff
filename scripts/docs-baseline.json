@@ -26,15 +26,15 @@
       "brokenRefs": 0
     },
     "src/features/chat/CLAUDE.md": {
-      "bytes": 12364,
-      "ancestors": 22552,
+      "bytes": 12361,
+      "ancestors": 22549,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/features/conversation/CLAUDE.md": {
-      "bytes": 15161,
-      "ancestors": 25349,
+      "bytes": 15152,
+      "ancestors": 25340,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

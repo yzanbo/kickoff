@@ -1,7 +1,6 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useState } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useServerConnection } from "@/foundation/ui/api/serverConnection";
-import { useApprovals } from "@/features/chat/ui/store/approvals";
 import { addProject, useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { AppFooter } from "@/app/renderer/shell/footer/AppFooter";
@@ -61,7 +60,7 @@ import { usePlanUsage } from "@/features/ai/ui/usage/usage";
 import { setProjectHues } from "@/features/projects/ui/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
-import { ChatStatesContext, indexApprovals } from "@/features/chat/ui/state/chatStates";
+import { useChatStates } from "@/features/chat/ui/state/chatStates";
 
 /** 開いているダイアログから、その種類を外したもの */
 function withoutDialog(open: Partial<AppDialogMap>, id: keyof AppDialogMap): Partial<AppDialogMap> {
@@ -79,9 +78,8 @@ export function App() {
   const planUsage = usePlanUsage();
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
   const connection = useServerConnection();
-  // アプリ全体で使うデータ（プロジェクト・回答待ち・設定）は店から読む（要る部品も、props で中継せずに店から読む）
+  // アプリ全体で使うデータ（プロジェクト・設定）は店から読む（要る部品も、props で中継せずに店から読む）
   const { projects, missing: missingProject, loaded: projectsLoaded } = useProjects();
-  const approvals = useApprovals();
   const appSettings = useAppSettings().data;
   // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
   setProjectHues(projects);
@@ -89,15 +87,15 @@ export function App() {
   useEffect(() => {
     if (projectsLoaded) forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id)));
   }, [projects, projectsLoaded]);
-  // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useChatStates で読む）
-  const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
+  // 回答待ちのあるチャット（回答待ちの店から。要る部品も useChatStates で読む）
+  const { pending } = useChatStates();
   // 通知（完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める。画面は見ているものを知らせ、通知が押されたら開く
   useViewingReport(route);
   useNotificationTargets();
   // 利用者が見ているもの（このウィンドウのペインごとの前のタブ・選んでいる範囲など。AI の get_user_view が読む）
   useUserViewReport(() => collectUserView(route), (view) => chatIdsOf(view, route), [route]);
   // 要対応（回答待ち・未読）の数を Dock のアイコンの赤い数字で出す（設定で切り替え。設定が届くまでは出す）
-  useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
+  useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending });
   // AI が埋め込みブラウザのタブを開く・操作している印
   useAgentBrowserBridge();
   // チャットの AI が頼んだノート・家系のチャットを開く（kickoff_chat の open_note・open_chat）
@@ -172,7 +170,6 @@ export function App() {
 
   return (
     <RouteContext.Provider value={route}>
-      <ChatStatesContext.Provider value={chatStates}>
       {/* 返答の外部リンクの開き方（確かめ・開き先） */}
       <LinkOpenerProvider projectId={projectId}>
       <div {...sidebar.layout}>
@@ -265,7 +262,6 @@ export function App() {
         </MaximizedHeader>
       </div>
       </LinkOpenerProvider>
-      </ChatStatesContext.Provider>
     </RouteContext.Provider>
   );
 }

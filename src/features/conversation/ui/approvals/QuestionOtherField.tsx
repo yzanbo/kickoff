@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
-import type { Attachment } from "@shared/chat/types";
+import type { OtherFiles } from "./questionAnswers";
 import { cx } from "@/foundation/ui/lib/cx";
 import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
 import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";
@@ -8,11 +8,6 @@ import { AttachButton } from "@/features/composer/ui/AttachButton";
 import { PendingFileChips } from "@/features/composer/ui/PendingFileChips";
 import { useComposerFiles } from "@/features/composer/ui/useDraftFiles";
 
-/** 「その他」に添えた添付の様子（回答するときに使う。アップロードの途中は回答させない） */
-export interface OtherFiles {
-  attachments: Attachment[];
-  uploading: boolean;
-}
 
 /**
  * AI からの質問の「その他」の欄: チャット欄と同じく、書いた分だけ伸びる複数行の欄（Enter で回答・Shift+Enter で改行）と、

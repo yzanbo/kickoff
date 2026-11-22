@@ -14,7 +14,7 @@ import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX
  * 開いても、読み込みと SSE の当て方はここで 1 回。React には依存しない（hook は useChatStore.ts）。
  *
  * 口は用途ごとに分け、部品は要る口だけを購読する:
- * - detail: 読み込みの印・チャット（知っているチャット knownChats.ts から引く）・回答待ち・作業中の様子・読み込みの失敗（変わることが少ない）
+ * - detail: 読み込みの印・チャット（知っているチャット knownChats.ts から引く）・回答待ち（回答待ちの店 approvals.ts から引く）・作業中の様子・読み込みの失敗（変わることが少ない）
  * - log: 記録（流れに出す記録・末尾・記録全体から作るものに渡す digest など。chatLog.ts）と、書いている途中の返答の世代 streamGen
  * - streaming: 書いている途中の返答（React の state に入れない。少しずつ出す部品が rAF の中で streamText で読む。chatStream.ts）
  * - progress: サブエージェントの途中経過（SSE の chat_subagent。記録に残らない）
@@ -80,8 +80,8 @@ export function createChatStore(deps: ChatStoreDeps) {
     const dirty = [...e.dirty];
     e.dirty.clear();
     for (const channel of dirty) {
-      // チャットは知っているチャットから引く（消したチャットなど、引けなくなったら前に見せたもののまま）
-      if (channel === "detail") e.published.detail = { state: e.loaded ? "ready" : "loading", chat: deps.chats.get(e.chatId) ?? e.published.detail.chat, approvals: e.detail.approvals, live: e.detail.live, error: e.error };
+      // チャットは知っているチャットから（消したチャットなど、引けなくなったら前に見せたもののまま）、回答待ちは回答待ちの店から引く
+      if (channel === "detail") e.published.detail = { state: e.loaded ? "ready" : "loading", chat: deps.chats.get(e.chatId) ?? e.published.detail.chat, approvals: deps.approvals(e.chatId), live: e.detail.live, error: e.error };
       else if (channel === "log") e.published.log = logView(e);
       else e.published.progress = e.progress;
     }
@@ -146,7 +146,7 @@ export function createChatStore(deps: ChatStoreDeps) {
 
   /** 当てたあとの中身と前の中身を比べ、変わった口を差し替えの予約に入れる */
   const changed = (e: Entry, prev: ChatDetailState) => {
-    if (prev.approvals !== e.detail.approvals || prev.live !== e.detail.live) mark(e, "detail");
+    if (prev.live !== e.detail.live) mark(e, "detail");
     if (prev.events !== e.detail.events || prev.range !== e.detail.range) mark(e, "log");
   };
 
@@ -213,7 +213,7 @@ export function createChatStore(deps: ChatStoreDeps) {
   };
 
   // 記録の読み足し（前を読む・途中の一部分・サブエージェントの中）と、見ていない間に縮める shrink
-  const { shrink, ...paging } = createPaging({ entries, page: deps.page, mark: (e) => mark(e, "log") });
+  const { shrink, ...paging } = createPaging({ entries, page: deps.page, approvals: deps.approvals, mark: (e) => mark(e, "log") });
 
   return {
     /**
@@ -305,10 +305,11 @@ export function createChatStore(deps: ChatStoreDeps) {
       }
     },
 
+    /** 回答待ちの一覧が変わった: 回答待ちの変わったチャットを見せ直す */
+    approvalsChanged: () => entries.forEach((e) => e.published.detail.approvals !== deps.approvals(e.chatId) && mark(e, "detail")),
+
     /** ウィンドウが表に出た: ためた途中の文をすぐ当てる */
-    windowShown() {
-      for (const e of entries.values()) stream.flush(e);
-    },
+    windowShown: () => entries.forEach((e) => stream.flush(e)),
 
     /** チャットの画面が描き終えた: 開いた直後にためていた知らせを 1 回で当てる */
     markPainted(chatId: number) {
@@ -327,9 +328,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     /** 書いている途中の返答の、その世代の文（いまの世代なら当てた分、部品に見せている前の世代なら消す前の文、ほかは ""） */
     streamText(chatId: number, gen: number): string {
       const s = entries.get(chatId)?.stream;
-      if (!s) return "";
-      if (s.gen === gen) return s.text;
-      return s.retired?.gen === gen ? s.retired.text : "";
+      return !s ? "" : s.gen === gen ? s.text : s.retired?.gen === gen ? s.retired.text : "";
     },
 
     /** 書いている途中の返答が最後に届いた時刻（ISO。届いていなければ null） */

@@ -10,6 +10,7 @@ import { createSelectorKit } from "./chatSelector";
 import { createPrefetchQueue } from "./prefetch";
 import { createHoverPrefetch } from "./hoverPrefetch";
 import { knownChatsForStore } from "./knownChats";
+import { approvalsOf, subscribeApprovals } from "./approvals";
 import type { ChatDetailView } from "./chatStoreTypes";
 
 /*
@@ -37,15 +38,16 @@ const chatStore = createChatStore({
   load: (chatId, query) => api.chatDetail(chatId, query),
   page: (chatId, query) => api.chatEvents(chatId, query),
   chats: knownChatsForStore,
+  approvals: approvalsOf,
 });
 const prefetchQueue = createPrefetchQueue({ prefetch: (chatId) => chatStore.prefetch(chatId), busy: () => chatStore.busy(), idle, timer });
 
 /** 取り出し口を定義する（計算は持ち主の機能が書く。chatSelector.ts） */
 export const defineChatSelector = createSelectorKit(chatStore);
 
-/** サーバーの知らせを店に当て、document を見張る（起動のときに 1 回。部品の hook より先に知らせを受ける） */
+/** サーバーの知らせと回答待ちの店の変化を店に当て、document を見張る（起動のときに 1 回。部品の hook より先に知らせを受ける） */
 export function startChatStore(): () => void {
-  const offs = [onServerEvent(CHAT_STORE_EVENTS, (event) => chatStore.apply(event)), onServerOpen(() => chatStore.reconnected())];
+  const offs = [onServerEvent(CHAT_STORE_EVENTS, (event) => chatStore.apply(event)), onServerOpen(() => chatStore.reconnected()), subscribeApprovals(() => chatStore.approvalsChanged())];
   // チャットを開く所（サイドバーの行・ボードのカード・パネルのタブ）に乗せて少し待ったら先読みする（hoverPrefetch.ts）
   const hover = createHoverPrefetch({ timer, prefetch: (chatId) => prefetchQueue.request([chatId]) });
   const over = (e: PointerEvent) => hover.over(e.target instanceof Element ? e.target : null);

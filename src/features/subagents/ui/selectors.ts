@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentInfo, BackgroundState } from "@shared/ai/turnEvents";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
-import { waitingSubagentKeys } from "@shared/chat/subagentState";
+import { subagentAskers } from "@shared/chat/subagentState";
 import { defineChatSelector, latestOf, memoLast, relativeOf, useChatOf, type ChatSource } from "@/features/chat/ui";
 import { useProjects } from "@/features/projects/ui";
 import { subagentTree, type SubagentTree } from "./model/subagentTree";
@@ -20,6 +20,8 @@ export interface ChatSubagents {
   hues: ReadonlyMap<string, number>;
   /** 回答待ちの依頼を出しているサブエージェント（行のキー） */
   waiting: ReadonlySet<string>;
+  /** 回答待ちの依頼ごとの、依頼を出しているサブエージェント（依頼の ID → 行のキー。承認カードの「〜からの依頼」） */
+  askers: ReadonlyMap<string, string>;
 }
 
 /** 途中経過を足した、サブエージェントの一覧（裏で動いているものの一覧にないものは、もう動いていない） */
@@ -56,14 +58,15 @@ export function createChatSubagents(): (src: ChatSource, chatId: number) => Chat
   const entries = memoLast(subagentEntries);
   const tree = memoLast(subagentTree);
   const hues = memoLast(agentHues);
-  const waiting = memoLast(waitingSubagentKeys);
-  const data = memoLast((list: SubagentEntry[], t: SubagentTree, h: ReadonlyMap<string, number>, w: ReadonlySet<string>): ChatSubagents => ({ entries: list, tree: t, hues: h, waiting: w }));
+  const askers = memoLast(subagentAskers);
+  const waiting = memoLast((a: ReadonlyMap<string, string>): ReadonlySet<string> => new Set(a.values()));
+  const data = memoLast((list: SubagentEntry[], t: SubagentTree, h: ReadonlyMap<string, number>, a: ReadonlyMap<string, string>): ChatSubagents => ({ entries: list, tree: t, hues: h, waiting: waiting(a), askers: a }));
   return (src, chatId) => {
     const { chat, approvals, live } = src.detail(chatId);
     const { digest } = src.log(chatId);
     const { progress, progressAt } = src.progress(chatId);
     const list = entries(digest, progress, progressAt, chat?.status === "running", live.background);
-    return data(list, tree(list), hues(list), waiting(approvals, digest, list));
+    return data(list, tree(list), hues(list), askers(approvals, digest, list));
   };
 }
 
@@ -84,7 +87,7 @@ const subagentLog = defineChatSelector(["log"], () => {
 
 /** サブエージェントのカード・画面が読むもの（SubagentsView。チャットを読めていなければ null） */
 export function useChatSubagentsView(chatId: number): SubagentsView | null {
-  const { tree, hues, waiting } = chatSubagents.useFor(chatId);
+  const { tree, hues, waiting, askers } = chatSubagents.useFor(chatId);
   const chat = useChatOf(chatId);
   const { events: digest, loaded, tailStart, hasEarlier } = subagentLog.useFor(chatId);
   const { projectsById } = useProjects();
@@ -96,7 +99,7 @@ export function useChatSubagentsView(chatId: number): SubagentsView | null {
     () =>
       projectId === undefined
         ? null
-        : { chatId, projectId, worktree, rel: relativeOf(repoPath), busy, events: digest, loaded, tailStart, hasEarlier, tree, hues, waiting },
-    [chatId, projectId, worktree, repoPath, busy, digest, loaded, tailStart, hasEarlier, tree, hues, waiting],
+        : { chatId, projectId, worktree, rel: relativeOf(repoPath), busy, events: digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers },
+    [chatId, projectId, worktree, repoPath, busy, digest, loaded, tailStart, hasEarlier, tree, hues, waiting, askers],
   );
 }

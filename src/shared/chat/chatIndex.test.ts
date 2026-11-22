@@ -6,7 +6,7 @@ import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { collectVisuals } from "@shared/visuals/aiVisual";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";
 import { collectSubagents, subagentReport } from "./subagents";
-import { waitingSubagentKeys } from "./subagentState";
+import { subagentAskers } from "./subagentState";
 
 /** 記録の中の呼び出しから、回答待ち・裏の作業が指す呼び出しを種で決めて選ぶ（R3 を確かめる） */
 function contextOf(events: readonly ChatEvent[]): IndexContext {
@@ -20,12 +20,12 @@ const digestAt = (events: readonly ChatEvent[], s: number, ctx: IndexContext) =>
 
 /** 記録全体から作るもの（@shared の関数）を、同じ記録の並びに流した結果 */
 function digestResults(events: ChatEvent[], ctx: IndexContext) {
-  const approvals = ctx.approvalCallIds.map((id) => ({ kind: "permission" as const, tool_use_id: id }));
+  const approvals = ctx.approvalCallIds.map((id) => ({ id, kind: "permission" as const, tool_use_id: id }));
   const out: unknown[] = [];
   for (const busy of [true, false]) {
     for (const live of [undefined, new Set<string>()]) {
       const entries = collectSubagents(events, {}, busy, live);
-      out.push(entries, entries.map((e) => subagentReport(e, events)), [...waitingSubagentKeys(approvals, events, entries)]);
+      out.push(entries, entries.map((e) => subagentReport(e, events)), [...subagentAskers(approvals, events, entries)]);
     }
   }
   out.push([...collectVisuals(events)]);

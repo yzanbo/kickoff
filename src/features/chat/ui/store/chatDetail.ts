@@ -1,6 +1,6 @@
-// 1 つのチャットの中身（記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）。
-// チャット自身（名前・状態）は持たない（知っているチャット knownChats.ts を正にする。詳細の応答のチャットは chatAfter で当て直してから入れる）
-import type { Approval } from "@shared/chat/approvalTypes";
+// 1 つのチャットの中身（記録・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）。
+// チャット自身（名前・状態）は持たない（知っているチャット knownChats.ts を正にする。詳細の応答のチャットは chatAfter で当て直してから入れる）。
+// 回答待ちも持たない（回答待ちの店 approvals.ts を正にする。詳細の応答の approvals は使わない）
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { EMPTY_CHAT_LIVE, type ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
@@ -14,12 +14,11 @@ export interface ChatDetailState {
   events: ChatEvent[];
   /** 末尾のほかに読んだもの（索引・途中の一部分・サブエージェントの中。chatLog.ts） */
   range: LogRange;
-  approvals: Approval[];
   live: ChatLive;
 }
 
 /** 読み込む前の中身（作業中の様子は何も起きていないもの） */
-export const EMPTY_DETAIL: ChatDetailState = { events: [], range: EMPTY_RANGE, approvals: [], live: EMPTY_CHAT_LIVE };
+export const EMPTY_DETAIL: ChatDetailState = { events: [], range: EMPTY_RANGE, live: EMPTY_CHAT_LIVE };
 
 /**
  * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
@@ -55,7 +54,7 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
 }
 
 /** チャットの店（chatStore.ts の apply）が当てる SSE の種類（下の detailChatIdOf の種類・途中の文 streamingEffectOf・サブエージェントの進み具合） */
-export const CHAT_STORE_EVENTS = ["chat", "chat_event", "approval", "approval_resolved", "chat_events_deleted", "chat_live", "chat_delta", "chat_subagent"] as const;
+export const CHAT_STORE_EVENTS = ["chat", "chat_event", "chat_events_deleted", "chat_live", "chat_delta", "chat_subagent"] as const;
 
 /** 中身を変える知らせなら、そのチャットの ID（ほかの知らせは null。書いている途中の返答 chat_delta は別に扱うので含めない） */
 export function detailChatIdOf(event: BusEvent): number | null {
@@ -64,11 +63,8 @@ export function detailChatIdOf(event: BusEvent): number | null {
       return event.chat.id;
     case "chat_event":
       return event.event.chat_id;
-    case "approval":
-      return event.approval.chat_id;
     case "chat_events_deleted":
     case "chat_live":
-    case "approval_resolved":
       return event.chat_id;
     default:
       return null;
@@ -77,7 +73,7 @@ export function detailChatIdOf(event: BusEvent): number | null {
 
 /**
  * 知らせで中身を直す（このチャットのものでなければ、そのまま返す）。同じ知らせを 2 回当てても同じになる
- * （記録・回答待ちは ID で重ねない）ので、読み込みの最中に届いた知らせを、届いた中身にもう一度当てられる
+ * （記録は ID で重ねない）ので、読み込みの最中に届いた知らせを、届いた中身にもう一度当てられる
  */
 export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId: number): ChatDetailState {
   if (detailChatIdOf(event) !== chatId) return state;
@@ -96,12 +92,6 @@ export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId
     }
     case "chat_live":
       return { ...state, live: keepUnchanged(state.live, event.live) };
-    case "approval":
-      return state.approvals.some((a) => a.id === event.approval.id) ? state : { ...state, approvals: [...state.approvals, event.approval] };
-    case "approval_resolved": {
-      const approvals = state.approvals.filter((a) => a.id !== event.id);
-      return approvals.length === state.approvals.length ? state : { ...state, approvals };
-    }
     default:
       return state;
   }
@@ -116,7 +106,6 @@ export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEve
   const base: ChatDetailState = {
     events: snapshot.events,
     range: rangeFromDetail(snapshot),
-    approvals: snapshot.approvals,
     live: keepUnchanged(prev.live, snapshot.live),
   };
   return replay.reduce((state, event) => reduceChatDetail(state, event, chatId), base);
@@ -124,7 +113,7 @@ export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEve
 
 /**
  * つなぎ直したときの取り直し（GET /api/chats/:id?after=<持っている最後の記録>）を、持っている記録の後ろに足す。
- * 記録のほか（チャット・回答待ち・作業中の様子）は読んだもので置き換え、読み込みの最中に届いた知らせは当て直す
+ * 記録のほか（チャット・作業中の様子）は読んだもので置き換え、読み込みの最中に届いた知らせは当て直す
  */
 export function detailFromIncrement(snapshot: ChatDetail, replay: readonly BusEvent[], chatId: number, prev: ChatDetailState): ChatDetailState {
   const last = prev.events.at(-1)?.id ?? 0;

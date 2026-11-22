@@ -34,17 +34,17 @@ export function subagentState(entry: SubagentEntry, waiting = false): SubagentSt
 }
 
 /**
- * 回答待ちの依頼（承認・質問）を出しているサブエージェント（一覧の行のキー）。依頼の呼び出し ID（tool_use_id）の記録の parent から引き、
- * 中の手順が届かない深い入れ子などで記録にないときは、サブエージェントの ID（agent_id）で引く。メインエージェントの依頼・再開の確かめは数えない
+ * 回答待ちの依頼（承認・質問）ごとの、依頼を出しているサブエージェント（依頼の ID → 一覧の行のキー）。依頼の呼び出し ID（tool_use_id）の記録の parent から引き、
+ * 中の手順が届かない深い入れ子などで記録にないときは、サブエージェントの ID（agent_id）で引く。メインエージェントの依頼・再開の確かめは入れない
  */
-export function waitingSubagentKeys(
-  approvals: readonly Pick<Approval, "kind" | "tool_use_id" | "agent_id">[],
+export function subagentAskers(
+  approvals: readonly Pick<Approval, "id" | "kind" | "tool_use_id" | "agent_id">[],
   events: readonly ChatEvent[],
   entries: readonly SubagentEntry[],
-): Set<string> {
-  const keys = new Set<string>();
+): Map<string, string> {
+  const askers = new Map<string, string>();
   const asking = approvals.filter((a) => (a.kind === "permission" || a.kind === "question") && (a.tool_use_id || a.agent_id));
-  if (asking.length === 0 || entries.length === 0) return keys;
+  if (asking.length === 0 || entries.length === 0) return askers;
   // 記録の parent（起動した呼び出し ID。SendMessage で再開した回はその ID）→ 一覧の行のキー
   const entryOfScope = new Map<string, string>();
   for (const e of entries) for (const scope of [e.key, ...(e.aliases ?? [])]) entryOfScope.set(scope, e.key);
@@ -54,7 +54,7 @@ export function waitingSubagentKeys(
   for (const a of asking) {
     const parent = a.tool_use_id ? parentOf.get(a.tool_use_id) : undefined;
     const key = (parent && entryOfScope.get(parent)) || (a.agent_id ? entries.find((e) => e.agentId === a.agent_id)?.key : undefined);
-    if (key) keys.add(key);
+    if (key) askers.set(a.id, key);
   }
-  return keys;
+  return askers;
 }

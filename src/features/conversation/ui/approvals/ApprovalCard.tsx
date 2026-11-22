@@ -5,7 +5,6 @@ import { toolText } from "@/features/chat/ui";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
@@ -24,13 +23,13 @@ export function ApprovalCard({ approval }: { approval: Approval }) {
 
 /**
  * サブエージェントからの依頼なら、カードの上に「サブエージェント「調査」からの依頼」と添え、「開く」でそのサブエージェントを開く
- * （設定の開き方。どのサブエージェントが待っているかは waitingSubagentKeys。メインエージェントの依頼・チャットの画面の外では出さない）
+ * （設定の開き方。どのサブエージェントが待っているかはサブエージェントの取り出し口の askers。メインエージェントの依頼・チャットの画面の外では出さない）
  */
 function ApprovalFrom({ approval }: { approval: Approval }) {
   const view = useSubagentsView();
   const subagents = useOptionalSubagentNav();
   if (!view) return null;
-  const [key] = waitingSubagentKeys([approval], view.events, [...view.tree.byKey.values()]);
+  const key = view.askers.get(approval.id);
   const entry = key === undefined ? undefined : view.tree.byKey.get(key);
   if (!entry) return null;
   return (

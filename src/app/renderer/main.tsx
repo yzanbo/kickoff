@@ -36,6 +36,9 @@ void prepareStorage(STORAGE_GROUPS)
     // チャットの店にサーバーの知らせを当て始める（部品の hook より先に受ける。別ウィンドウも同じ）
     const { startChatStore } = await import("@/features/chat/ui/store/useChatStore");
     startChatStore();
+    // 回答待ちの店は読む部品の有無に関係なく起動したときから読む（一覧の印・チャットの見出し・会話の欄がここから引く）
+    const { startApprovals } = await import("@/features/chat/ui/store/approvals");
+    startApprovals();
     const { startCurrentWork } = await import("@/features/chat/ui/currentWorkStore");
     startCurrentWork();
     const root = createRoot(document.getElementById("root")!);

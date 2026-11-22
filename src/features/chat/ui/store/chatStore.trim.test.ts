@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import type { Approval } from "@shared/chat/approvalTypes";
 import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
 import { settle } from "@shared/foundation/testing/async";
 import { PREFETCH_QUEUE } from "./prefetch";
@@ -43,6 +44,27 @@ test("読み込みの印は中身を読めたら ready。チャットは知っ�
   s.store.apply({ type: "chat", chat: chatOf(1, "failed") });
   s.clock.advance(200);
   assert.equal(s.store.detail(1).chat?.status, "failed");
+});
+
+test("回答待ちは回答待ちの店から引き（詳細の応答のものは使わない）、変わったチャットだけ見せ直す", async () => {
+  const s = setup();
+  const asked = { id: "a", chat_id: 1 } as Approval;
+  s.store.retain(1, "visible");
+  s.store.retain(2, "visible");
+  s.loads[0].resolve({ ...detail(chatOf(1)), approvals: [asked] });
+  s.loads[1].resolve(detail(chatOf(2)));
+  await settle();
+  s.store.markPainted(1);
+  s.store.markPainted(2);
+  assert.deepEqual(s.store.detail(1).approvals, []);
+  const other = s.store.detail(2);
+  const c = s.counts(1);
+  s.approvals.set(1, [asked]);
+  s.store.approvalsChanged();
+  s.clock.advance(200);
+  assert.deepEqual(s.store.detail(1).approvals, [asked]);
+  assert.equal(c.detail, 1);
+  assert.equal(s.store.detail(2), other);
 });
 
 test("先読みは見る部品を増やさずに読み、開いたときは読み直さずにすぐ見せる（案 4 の先読み）", async () => {

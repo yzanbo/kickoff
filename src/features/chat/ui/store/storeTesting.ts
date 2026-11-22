@@ -1,4 +1,5 @@
 // チャットの店のテストの準備（偽の rAF・タイマー・時計・読み込みで作った店と、記録・詳細を作る補助。テストだけが読む）
+import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery } from "@shared/chat/detail";
@@ -9,6 +10,8 @@ import { EMPTY_DETAIL } from "./chatDetail";
 import { createChatStore } from "./chatStore";
 import { createSeenChats } from "./seenChats";
 
+const NO_APPROVALS: Approval[] = [];
+
 /** 偽の rAF・タイマー・時計・読み込みで作った店（テストごとに新しく作る） */
 export function setup() {
   let hidden = false;
@@ -16,6 +19,8 @@ export function setup() {
   const loads: { chatId: number; query: ChatDetailQuery; resolve: (d: ChatDetail) => void; reject: (e: Error) => void }[] = [];
   const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void; reject: (e: Error) => void }[] = [];
   const chats = createSeenChats();
+  // 回答待ちの店の代わり（テストが入れ替えて store.approvalsChanged() を呼ぶ）
+  const approvals = new Map<number, Approval[]>();
   const store = createChatStore({
     frame: clock.frame,
     idle: clock.idle,
@@ -25,6 +30,7 @@ export function setup() {
     load: (chatId, query) => new Promise((resolve, reject) => loads.push({ chatId, query, resolve, reject })),
     page: (chatId, query) => new Promise((resolve, reject) => pages.push({ chatId, query, resolve, reject })),
     chats,
+    approvals: (chatId) => approvals.get(chatId) ?? NO_APPROVALS,
   });
   /** 口ごとの知らせの回数 */
   const counts = (chatId: number) => {
@@ -32,7 +38,7 @@ export function setup() {
     for (const channel of ["detail", "log", "progress", "streaming"] as const) store.subscribe(chatId, channel, () => c[channel]++);
     return c;
   };
-  return { store, chats, clock, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
+  return { store, chats, approvals, clock, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
 }
 
 export const chatOf = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
