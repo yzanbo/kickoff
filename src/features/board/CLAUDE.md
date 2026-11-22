@@ -16,6 +16,7 @@
 ## 決まり
 
 - 状態の列は AI の状態から `boardColumnOf` で決め、人は動かさない。
+- グループの列・段へ落とすのは `useGroupDropTargets`（アーカイブ済みは確かめて戻してから入れる）。
 - 開く先は `BoardChats` だけを見る（置き方で分岐しない）。全プロジェクトのボードはチャットを開かず、そのプロジェクトへ移って開く（右のパネルを持たない）。
 - ボードごとの違いは `useBoardCards` の `classFor` などだけで渡す（カードを描く所を増やさない）。
 - 見え方は全プロジェクトとプロジェクトのボードで別のキー（`layoutAll`・`layoutProject`）。部品は `useBoard()` から読み、`allProjects` を props で渡さない。列・段の決まりは純粋な `boardLayout` に足す。

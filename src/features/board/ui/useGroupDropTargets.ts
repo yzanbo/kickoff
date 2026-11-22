@@ -1,6 +1,6 @@
 import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
-import { useGroupDrop } from "@/features/chatList/ui";
+import { restoreDroppedChat, useGroupDrop } from "@/features/chatList/ui";
 import { busyBlockReason, moveDroppedChatToProject } from "@/features/chat/ui";
 import { useProjects } from "@/features/projects/ui";
 
@@ -9,7 +9,7 @@ type Run = (task: () => Promise<unknown>, failed: string) => void;
 
 /**
  * ボードのグループの落とし先（全プロジェクトのボードのグループの列 columns・プロジェクトのボードの段 lanes で同じ）。
- * チャットはそのグループへ移し、グループの見出しはその位置へ並べ替える（グループの並びは DB）。
+ * チャットはそのグループへ移し（アーカイブ済みは確かめて戻してから）、グループの見出しはその位置へ並べ替える（グループの並びは DB）。
  * 列だけ: 「No Group」も並べ替え（位置 ungroupedAt は画面に覚える。変わった方だけ書く）、ほかのプロジェクトのチャット（サイドバーから）は確かめてからこのプロジェクトへ移して落とした列のグループへ入れる（作業中なら落とせない）
  */
 export function useGroupDropTargets(
@@ -29,8 +29,8 @@ export function useGroupDropTargets(
     },
     on: {
       chat: (chat, groupId) => run(() => api.setChatGroup(chat.id, groupId), "グループを移せませんでした"),
-      // アーカイブ済みのカード（13-1 は次の直しで戻して入れる）
-      archived: () => {},
+      // アーカイブ済みのカードは、確かめて戻してから、落とした列・段のグループへ入れる
+      archived: (chat, groupId) => void restoreDroppedChat(chat, groupId),
       foreign: columns
         ? (chat, groupId) => {
             const group = groups.find((g) => g.id === groupId);
