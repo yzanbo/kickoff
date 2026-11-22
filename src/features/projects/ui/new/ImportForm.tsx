@@ -21,7 +21,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [initGit, setInitGit] = useState(false);
   // ノートの保存先を手で決めた場所（null なら取り込むフォルダの名前から自動）
   const [noteDir, setNoteDir] = useState<string | null>(null);
-  const { busy, error, setError, run } = useAction<"submit">();
+  const { busy, error, run } = useAction<"submit">();
   const submitting = busy !== null;
 
   // フォルダが決まったら中身を点検する（入力中は少し待つ）。フォルダを変えたら git の管理の選択は初めに戻す
@@ -29,10 +29,6 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const inspection = inspected.data;
   const inspecting = inspected.loading;
   useEffect(() => setInitGit(false), [folder]);
-  // 点検の失敗は送るときの失敗と同じ所に出す
-  useEffect(() => {
-    if (inspected.error) setError(errorMessage(inspected.error));
-  }, [inspected.error, setError]);
 
   useEffect(() => {
     if (inspection && !nameEdited) setName(inspection.suggested_name);
@@ -94,7 +90,8 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
       </Field>
 
 
-      <ErrorText message={error} />
+      {/* 点検の失敗はいまのフォルダのものだけ（フォルダを直したら消える）。送るときの失敗と同じ所に出す */}
+      <ErrorText message={error ?? (inspected.error ? errorMessage(inspected.error) : undefined)} />
 
       <DialogActions onCancel={onCancel} submit={{ label: "取り込む", busyLabel: "取り込み中…", busy: submitting, disabled: blocked || !name.trim() }} />
     </form>
