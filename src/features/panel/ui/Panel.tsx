@@ -81,7 +81,10 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       ? panelOpen
       : (leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]).active === t.key
   ));
-  if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
+  // 閉じたタブのキーは忘れる（同じキーのタブを開き直したとき、表示する前に中身を作らない）
+  const liveKeys = new Set(tabs.map((t) => t.key));
+  const closed = [...mountedTabs].some((key) => !liveKeys.has(key));
+  if (shownNow.length > 0 || closed) setMountedTabs(new Set([...[...mountedTabs].filter((key) => liveKeys.has(key)), ...shownNow.map((t) => t.key)]));
   // まだ描いていないタブ（先読みできる種類）を、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
   const tabByKey = new Map(tabs.map((t) => [t.key, t]));
   const prefetch = neighborTabs(
