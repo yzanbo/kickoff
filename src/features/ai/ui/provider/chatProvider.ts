@@ -1,10 +1,11 @@
 // チャットの AI を画面の部品に配る（その AI にない機能は押せない形にして理由を出す）。
 // チャットの画面（ChatView）・送る前の新しいチャット・新しい子チャットが ChatProviderContext に AI を入れ、中の部品は useFeatureBlock で理由を読む。
 // AI の状態の店（providersStore）は使い始めるたびに取り直すので、読み込みを頼むのは入れる側の 1 か所（useProviderStatus の load）だけにし、中の部品は頼まずに読む
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext } from "react";
 import type { BlockableCapability, ProviderStatus } from "@shared/ai/types";
 import type { ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
+import { createCell, useCell } from "@/foundation/ui/store/cell";
 import { featureBlock, statusOf } from "./providerChoice";
 import { nextForegroundChat, type ForegroundChat } from "./foregroundChat";
 
@@ -25,22 +26,12 @@ export function useFeatureBlock(capability: BlockableCapability): string | null 
 }
 
 // 前に出しているチャットの AI（下の帯の使用状況）。見えているチャットの画面を最後に表に出した・触ったものにする
-let foreground: ForegroundChat = { provider: null, key: null };
-const listeners = new Set<() => void>();
+const foreground = createCell<ForegroundChat>({ provider: null, key: null });
 
-/** チャットの画面が表に出た・触られたときに、その AI を前に出したものとして覚える */
+/** チャットの画面が表に出た・触られたときに、その AI を前に出したものとして覚える（変わらなければ知らせない） */
 export function noteForegroundProvider(id: ProviderId, key: string) {
-  const next = nextForegroundChat(foreground, id, key);
-  if (foreground === next) return;
-  foreground = next;
-  listeners.forEach((l) => l());
+  foreground.set((current) => nextForegroundChat(current, id, key));
 }
 
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
-
 /** 前に出しているチャットの AI（まだチャットを開いていなければ null） */
-const useForegroundChat = (): ForegroundChat => useSyncExternalStore(subscribe, () => foreground);
-export const useForegroundProvider = (): ProviderId | null => useForegroundChat().provider;
+export const useForegroundProvider = (): ProviderId | null => useCell(foreground).provider;
