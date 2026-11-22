@@ -5,7 +5,8 @@ import type { WindowMessageMap } from "@/foundation/ui/navigation/windowBus";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { useTestPanelStore } from "@/features/panel/ui/testing";
-import { discardDraft, openDraft, openNewChat, setDraftTitle } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { newChatTab } from "@/features/panel/ui/tabs/tabData";
+import { openTab } from "./actions";
 import { forwardPanelOp, sendPanelsWhileChanging } from "./panelMirror";
 import { allPanels, dispatchPanel, panelStateOf, replacePanels, setPanelReplica } from "./panelStore";
 import type { PanelState } from "./panelState";
@@ -31,7 +32,7 @@ test("メインのウィンドウ: いまのパネルの写しを送り、変わ
   onTestFinished(stop);
   assert.equal(sent.length, 1);
   const key = "kanban:9101";
-  openNewChat(key, { projectId: 9101 });
+  openTab(key, newChatTab("new:9101"));
   dispatchPanel(key, { type: "setOpen", open: false });
   // 続けて変えても 1 回にまとめる
   assert.equal(sent.length, 1);
@@ -46,7 +47,7 @@ test("メインのウィンドウ: いまのパネルの写しを送り、変わ
   assert.equal(sent.length, 2);
 });
 
-test("写しの店: 届いた状態に置き換え、自分では変えない（下書きの操作もパネルを変えない）", () => {
+test("写しの店: 届いた状態に置き換え、自分では変えない（下書きの操作は chatPanel の panelDrafts.test.ts）", () => {
   useTestPanelStore();
   becomeReplica();
   const key = "kanban:9102";
@@ -54,8 +55,6 @@ test("写しの店: 届いた状態に置き換え、自分では変えない（
   replacePanels([[key, state]]);
   assert.deepEqual([...allPanels().keys()], [key]);
   dispatchPanel(key, { type: "close", keys: ["new:1"], dismiss: false });
-  setDraftTitle({ panel: key, key: "new:1" }, "名前");
-  discardDraft({ panel: key, key: "new:1" });
   assert.equal(panelStateOf(key), state);
 });
 
@@ -68,12 +67,4 @@ test("forwardPanelOp: サイドバーの別ウィンドウの中だけメイン�
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });
   vi.stubGlobal("window", { kickoff: { windows: { focusMain: async () => {} } } });
   assert.equal(forwardPanelOp({ op: "discardDraft", draft: { panel: "kanban:1", key: "new:1" } }), true);
-  // 下書きを開く操作も、このウィンドウのパネルを変えずに頼むだけ
-  const key = "kanban:9103";
-  const draftKey = openNewChat(key, { projectId: 9103 });
-  vi.stubGlobal("location", { hash: "#/popout/sidebar" });
-  const before = panelStateOf(key);
-  openDraft({ panel: key, key: draftKey });
-  discardDraft({ panel: key, key: draftKey });
-  assert.equal(panelStateOf(key), before);
 });

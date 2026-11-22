@@ -1,5 +1,5 @@
 import { RefreshCw, X, type LucideIcon } from "lucide-react";
-import type { ButtonHTMLAttributes, Ref } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { tipProps } from "./HoverTip";
 
@@ -19,6 +19,8 @@ interface IconProps {
   iconClassName?: string;
   /** マウスを乗せたときの説明に添えるショートカットのキー（「⌘B」など。見出しの右に出す） */
   keys?: string;
+  /** アイコンの後ろに添える札（閉じたパネルの開いているタブの数など。見た目は札のクラスが決める） */
+  badge?: ReactNode;
 }
 
 /**
@@ -35,12 +37,14 @@ export function IconButton({
   iconSize = 14,
   active,
   iconClassName,
+  badge,
   className,
   ...rest
 }: ButtonProps & IconProps & { icon: LucideIcon; label: string }) {
   return (
     <button className={cx("icon-button", className)} data-size={size} data-active={active || undefined} aria-label={label} title="" {...tipProps(title ?? label, keys)} {...rest}>
       <Icon size={iconSize} className={iconClassName} />
+      {badge}
     </button>
   );
 }

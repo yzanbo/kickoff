@@ -8,7 +8,6 @@ import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { closePane, closeTab, openTab, patchTab, setPanelOpen, splitPane, togglePanel } from "./actions";
 import { browserTab, chatTab, terminalTab } from "@/features/panel/ui/tabs/tabData";
 import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
-import { discardDraft, draftOfPanelTab, openNewChat, placedDrafts, restoreDraftTabs, setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { api } from "@/foundation/ui/api";
 import { panelStateOf, startPanelServerEvents } from "./panelStore";
 
@@ -109,44 +108,4 @@ test("削除したチャットのタブは、画面に出ていない欄でも�
   openTab("kanban:6", chatTab({ id: 61, project_id: 6 }));
   publishServerEvent({ type: "chat_deleted", id: 60, project_id: 6 });
   assert.deepEqual(keys("kanban:6"), ["chat:61"]);
-});
-
-/** 下書きのテストの店 */
-const useDraftStore = () => useTestPanelStore();
-/** 下書きの店の中身（タブのある欄によらない） */
-const draftOf = (key: string) => draftOfPanelTab("", { kind: "new", key });
-
-test("下書き: 下書きの店に作ってタブを開き、タブのある欄と表示しているかを添えて出す。グループを変える・消すは店とタブに効く", () => {
-  useDraftStore();
-  const a = openNewChat("kanban:7", { projectId: 7 });
-  const b = openNewChat("kanban:8", { projectId: 8, group: 2 });
-  assert.deepEqual(keys("kanban:7"), [a]);
-  assert.deepEqual(
-    placedDrafts().map((d) => [d.key, d.panel, d.group, d.showing]),
-    [
-      [a, "kanban:7", undefined, true],
-      [b, "kanban:8", 2, true],
-    ],
-  );
-  // 下書きも置き場所も変わらなければ同じ配列
-  assert.equal(placedDrafts(), placedDrafts());
-  setDraftGroup({ panel: "kanban:7", key: a }, 3, "実装");
-  assert.equal(draftOf(a)?.group, 3);
-  assert.equal(draftOf(b)?.group, 2);
-  discardDraft({ panel: "kanban:8", key: b });
-  assert.deepEqual(keys("kanban:8"), []);
-  assert.equal(draftOf(b), undefined);
-  discardDraft({ panel: "kanban:7", key: a });
-  assert.equal(draftOf(a), undefined);
-});
-
-test("下書き: 起動したら、残した下書きを作成先のプロジェクトのチャットのパネルの閉じたタブとして戻す", () => {
-  useDraftStore();
-  const a = openNewChat("cwin:9:x", { projectId: 9 });
-  // 店を作り直す（再起動）
-  useDraftStore();
-  restoreDraftTabs();
-  assert.deepEqual(keys("kanban:9"), [a]);
-  assert.equal(panelStateOf("kanban:9").open, false);
-  discardDraft({ panel: "kanban:9", key: a });
 });
