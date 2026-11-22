@@ -35,7 +35,7 @@
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（名前・後始末・`popout`・中身 `Page`・見た目 `Face`・`Menu`・`close`・`rename`・`confirmClose` など）は、分岐させず種類の項目（`defineTabKind`・`panelTabs`）から `kindOf(tab)` で引く。
 - 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser・変更は git・ターミナルは terminal・プロジェクトの画面は projects）。panel は機能を読まない。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
-- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・AI に返す説明 `@/app/renderer/userViewTabs.ts` も直す（`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
+- 種類を足すときは、作る関数（`tabData.ts`）・別ウィンドウの種類（持ち主の `popoutKinds.ts`）・`tabWindow.ts`・AI に返す説明 `@/app/renderer/userViewTabs.ts` も直す（`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 閉じてよいかは `confirmTabClose`（×・右クリックの「タブを閉じる」・ペインを閉じるの 3 か所）。
 
@@ -71,7 +71,7 @@
 
 ## 別ウィンドウ（`popout/`・`@/foundation/ui/navigation/popout.ts`・`@/app/renderer/PopoutApp.tsx`）
 
-- 行き先は `#/popout/<種類>`（種類の表は `@/app/renderer/popout/contributes.ts`）。`PopoutApp` は App の一部だけを描き、URL を画面として購読しない。
+- 行き先は `#/popout/<種類>`。種類（URL の項目・札・中身・戻し方 `dock`）は持ち主の `ui/popoutKinds.ts` が `popoutKinds` に登録し、`PopoutApp` は中身を描くだけ（URL を画面として購読しない）。閉じるのは `closeSelf`・`dockAndClose`。
 - メインの画面・ダイアログを動かす操作は `@/foundation/ui/navigation/windowBus.ts` でメインに頼む（種類は持ち主の機能の `windowMessages.ts` が足す。中身はウィンドウをまたげる値だけ）。
 - サイドバーのウィンドウの店はメインの写し（`panelMirror.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
 - 子チャットのウィンドウの ✕ はメインプロセスが止めて聞く（`beforeunload` では止められない。`@/foundation/desktop/app/popouts.ts`）。

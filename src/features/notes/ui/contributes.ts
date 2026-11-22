@@ -12,6 +12,8 @@ import { chatSideAdds } from "@/features/chatPanel/ui";
 import { notesChatSideAdd, notesView } from "./projectViews";
 import { settingsItems } from "@/features/settings/ui";
 import { noteDirItem } from "./settings/settingsItems";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { notePopout } from "./popoutKinds";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -25,6 +27,7 @@ export const contributes = [
   messageActions.item({ kind: "selection", id: "notes.selection", order: 10, Button: lazyPart<SelectionContext>(() => import("./SelectionNoteButton").then((m) => ({ default: m.SelectionNoteButton }))) }),
   // プロジェクトの設定の基本情報の「ノートフォルダ」
   settingsItems.item(noteDirItem),
+  popoutKinds.item(notePopout),
   // 入力欄の上のノートのピル
   composerSlots.item({ kind: "pill", id: "notes", order: 10, load: () => import("./NoteChip").then((m) => m.ComposerNotePill) }),
 ];

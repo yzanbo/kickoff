@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
-import { parsePopout, popoutKey, popoutPath, type PopoutRoute } from "@/foundation/ui/navigation/popout";
+import { afterAll, test, vi } from "vitest";
+import { parsePopout, popoutKey, popoutKinds, popoutPath, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
-import { contributes } from "./contributes";
+import { registryContributions } from "./registry";
+
+// GitHub の本文の部品は DOMPurify（画面のもの）を読み込みで使う（登録した種類の URL の表だけを確かめる）
+vi.mock("@/features/github/ui/GitHubHtml", () => ({ GitHubHtml: () => null }));
+// 全部の機能の部品を読み込むので、同じプロセスで続けて流れるファイルのモック（vi.mock）が効くよう、読み込んだものを捨てる
+afterAll(() => vi.resetModules());
 
 /** 11 種の行き先と、表にする前の popoutPath が作っていた URL（同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出すので変えない） */
 const ROUTES: [PopoutRoute, string][] = [
@@ -27,7 +32,7 @@ const ROUTES: [PopoutRoute, string][] = [
 ];
 
 test("popoutPath / parsePopout: 11 種を表にする前と同じ URL にし、読み戻すと同じ行き先", () => {
-  useTestContributions(contributes);
+  useTestContributions(registryContributions());
   for (const [route, path] of ROUTES) {
     assert.equal(popoutPath(route), path);
     assert.deepEqual(parsePopout(`#${path}`), route);
@@ -35,7 +40,7 @@ test("popoutPath / parsePopout: 11 種を表にする前と同じ URL にし、�
 });
 
 test("parsePopout: 別ウィンドウでない・知らない種類・欠けているものは undefined", () => {
-  useTestContributions(contributes);
+  useTestContributions(registryContributions());
   assert.equal(parsePopout("#/projects/1"), undefined);
   assert.equal(parsePopout("#/popout/changes?project=1"), undefined);
   assert.equal(parsePopout("#/popout/file?chat=1&project=1"), undefined);
@@ -51,8 +56,16 @@ test("parsePopout: 別ウィンドウでない・知らない種類・欠けて�
 });
 
 test("popoutKey: 変更は移るファイルによらず同じウィンドウ（移るファイルは URL のいちばん後ろ）", () => {
-  useTestContributions(contributes);
+  useTestContributions(registryContributions());
   assert.equal(popoutKey({ kind: "changes", chatId: 3, projectId: 1, focus: "a.ts" }), popoutKey({ kind: "changes", chatId: 3, projectId: 1 }));
   assert.match(popoutPath({ kind: "changes", chatId: 3, projectId: 1, focus: "a.ts" }), /&focus=a\.ts$/);
   assert.equal(popoutKey({ kind: "file", chatId: 3, projectId: 1, path: "a.ts", line: 2 }), "/popout/file?chat=3&project=1&path=a.ts&line=2");
+});
+
+test("別ウィンドウの種類: 11 種を持ち主が 1 つずつ登録し、どれも札と中身を持つ。戻し方のないのは右サイドバー（欄ごと戻す）だけ", () => {
+  useTestContributions(registryContributions());
+  const kinds = popoutKinds.items();
+  assert.deepEqual(kinds.map((k) => k.kind).sort(), [...new Set(ROUTES.map(([r]) => r.kind))].sort());
+  assert.equal(new Set(kinds.map((k) => k.label)).size, kinds.length);
+  assert.deepEqual(kinds.filter((k) => !k.dock).map((k) => k.kind), ["side"]);
 });

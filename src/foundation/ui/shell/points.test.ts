@@ -27,7 +27,7 @@ test("footerItems・appHosts: order の順に並ぶ（appHosts の order は省�
 
 test("openAppDialog: メインのウィンドウでは、そのウィンドウの受け手に種類と渡すもの（なければ null）を届ける", () => {
   vi.stubGlobal("location", { hash: "#/projects/1" });
-  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   const got: AppDialogRequest[] = [];
   onTestFinished(onAppDialogRequested((r) => got.push(r)));
   openAppDialog("sampleDialog", { n: 1 });
@@ -42,7 +42,7 @@ test("openAppDialog: 別ウィンドウでは、そのウィンドウでは開�
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });
   const focusMain = vi.fn(async () => {});
   vi.stubGlobal("window", { kickoff: { windows: { focusMain } } });
-  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   const got: AppDialogRequest[] = [];
   onTestFinished(onAppDialogRequested((r) => got.push(r)));
   openAppDialog("sampleDialog", { n: 2 });

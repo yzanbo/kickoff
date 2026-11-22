@@ -6,5 +6,7 @@ import { browserWindowSurface, sideSurface } from "./panel/browserSurfaces";
 import { browserTarget } from "./openTargets";
 import { projectViews } from "@/features/projects/ui";
 import { browserView } from "./projectViews";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { browserPopout } from "./popoutKinds";
 
-export const contributes = [panelTabs.item(browserTabKind), panelSurfaces.item(sideSurface), panelSurfaces.item(browserWindowSurface), openTargets.item(browserTarget), projectViews.item(browserView)];
+export const contributes = [panelTabs.item(browserTabKind), panelSurfaces.item(sideSurface), panelSurfaces.item(browserWindowSurface), openTargets.item(browserTarget), projectViews.item(browserView), popoutKinds.item(browserPopout)];

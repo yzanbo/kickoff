@@ -2,5 +2,7 @@
 import { panelSurfaces, panelTabs } from "@/features/panel/ui";
 import { terminalTabKind } from "./terminalTabKind";
 import { bottomSurface } from "./bottom/bottomSurface";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { terminalPopout } from "./popoutKinds";
 
-export const contributes = [panelTabs.item(terminalTabKind), panelSurfaces.item(bottomSurface)];
+export const contributes = [panelTabs.item(terminalTabKind), panelSurfaces.item(bottomSurface), popoutKinds.item(terminalPopout)];

@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { openPopout, popoutKey, type PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { onWindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { useMemo, type ReactNode } from "react";
+import { openPopout, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { SideChanges } from "@/features/git/ui/SideChanges";
+import { SideScope } from "@/features/conversation/ui";
 import { SideFileView } from "./SideFileView";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import type { FileRef } from "@/features/files/ui/links/fileRefs";
 import { openFileRef, useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
-
-type FilesRoute = Extract<PopoutRoute, { kind: "changes" | "file" }>;
 
 /**
  * 別ウィンドウのファイル（作業場所の変更・中身）の開き方: 変更・中身は別ウィンドウで開き、「ファイルタブで開く」はメインのウィンドウで開く
@@ -35,33 +32,25 @@ export function popoutFileLinks(base: ChatFileLinks, { chatId, projectId, worktr
   };
 }
 
-/**
- * 別ウィンドウの「変更」「ファイル」（チャットの画面の右の欄と同じ中身）。行の「チャットに追加」・右クリックの「メインのチャット」は、メインのウィンドウのそのチャットのチャット欄に足す（PopoutApp の SideScope）。
- * 変更は、もう開いているウィンドウへの「このファイルの位置へ」の知らせ（popoutFocus）でも移る
- */
-export function PopoutFiles({ route }: { route: FilesRoute }) {
-  const { chatId, projectId, worktree } = route;
+/** 別ウィンドウの変更・ファイルの枠: ファイルのリンクを別ウィンドウの開き方にし、右の欄と同じく開いたチャットを「メインのチャット」にする（SideScope） */
+export function PopoutFilesFrame({ chatId, projectId, worktree, children }: { chatId: number; projectId: number; worktree?: string; children: ReactNode }) {
   const { projectsById } = useProjects();
   const base = useFileLinks({ id: chatId, project_id: projectId, worktree_path: worktree ?? null, status: "" }, projectsById.get(projectId)?.repo_path, false);
   const links = usePopoutFileLinks(base, { chatId, projectId, worktree });
-  // 移るファイル（初めは URL のもの。開いているときに、ほかの所から同じウィンドウを開き直されたら知らせで受け取る）
-  const [focus, setFocus] = useState({ path: route.kind === "changes" ? route.focus : undefined, at: Date.now() });
-  useEffect(
-    () =>
-      onWindowMessage("popoutFocus", (m) => {
-        if (m.key === popoutKey(route)) setFocus({ path: m.focus, at: Date.now() });
-      }),
-    [route],
-  );
   return (
-    <FileLinksProvider value={links}>
-      <div className="popout-body">
-        {route.kind === "changes" ? (
-          <SideChanges projectId={projectId} worktree={worktree} focus={focus.path} focusAt={focus.at} />
-        ) : (
-          <SideFileView projectId={projectId} worktree={worktree} path={route.path} line={route.line} />
-        )}
-      </div>
-    </FileLinksProvider>
+    <SideScope mainChatId={chatId}>
+      <FileLinksProvider value={links}>
+        <div className="popout-body">{children}</div>
+      </FileLinksProvider>
+    </SideScope>
+  );
+}
+
+/** 別ウィンドウの「ファイル」（チャットの画面の右の欄と同じ中身） */
+export function FilePopoutPage({ route }: { route: Extract<PopoutRoute, { kind: "file" }> }) {
+  return (
+    <PopoutFilesFrame chatId={route.chatId} projectId={route.projectId} worktree={route.worktree}>
+      <SideFileView projectId={route.projectId} worktree={route.worktree} path={route.path} line={route.line} />
+    </PopoutFilesFrame>
   );
 }

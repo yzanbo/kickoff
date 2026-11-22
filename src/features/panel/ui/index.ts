@@ -37,7 +37,7 @@ export {
   usePanelOpen,
   usePanelState,
 } from "./state/panelStore";
-export { addTabBehind, closeTab, mapTabs, openInFocusedPane, openTab, patchTab, reopenOf, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
+export { addTabBehind, closeTab, mapTabs, openInFocusedPane, openTab, patchTab, reopenInPanel, reopenOf, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
 export {
   agentTabKey,
   browserTab,
@@ -65,3 +65,5 @@ export const panelSettings = {
   tabOverflow: storage.settings.tabOverflow,
   bottomHeight: storage.settings.bottomHeight,
 } as const;
+export { PopoutTabWindow } from "./popout/PopoutTabWindow";
+export { returnTabWindow } from "./popout/tabWindow";

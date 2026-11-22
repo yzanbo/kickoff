@@ -61,7 +61,7 @@ test("写しの店: 届いた状態に置き換え、自分では変えない（
 test("forwardPanelOp: サイドバーの別ウィンドウの中だけメインのウィンドウに頼み、メインのウィンドウではそのまま行う", () => {
   useTestPanelStore();
   // サイドバーの別ウィンドウの種類（本物の表は sidebar の ui/popoutKinds.ts）
-  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   vi.stubGlobal("location", { hash: "#/projects/1" });
   assert.equal(forwardPanelOp({ op: "discardDraft", draft: { panel: "kanban:1", key: "new:1" } }), false);
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });

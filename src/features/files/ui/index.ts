@@ -2,6 +2,7 @@
 import { storage } from "./storage";
 
 export { EditorViewPage } from "./projectViewPages";
+export { PopoutFilesFrame } from "./PopoutFiles";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const filesSettings = { listWidth: storage.settings.listWidth } as const;

@@ -7,8 +7,8 @@ import { forwardedNavigation } from "./popoutNavigation";
 test("forwardedNavigation: 別ウィンドウの行き先でなくなったらメインのウィンドウで開き、別ウィンドウの URL に戻す", () => {
   // 別ウィンドウの種類（本物の表は持ち主の機能の ui/popoutKinds.ts）
   useTestContributions([
-    popoutKinds.item({ kind: "sidebar", fields: {} }),
-    popoutKinds.item({ kind: "note", fields: { projectId: { kind: "number", param: "project" }, path: "string", chatId: { kind: "number?", param: "chat" } } }),
+    popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null }),
+    popoutKinds.item({ kind: "note", fields: { projectId: { kind: "number", param: "project" }, path: "string", chatId: { kind: "number?", param: "chat" } }, label: "", Page: () => null }),
   ]);
   const route = { kind: "sidebar" } as const;
   // 別ウィンドウの行き先のまま（ノートの名前を変えたなど）は何もしない

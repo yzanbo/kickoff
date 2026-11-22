@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from "react";
-import { popoutKey } from "@/foundation/ui/navigation/popout";
+import { closeWhenDocked, popoutKey } from "@/foundation/ui/navigation/popout";
 import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router";
 import { onWindowMessage, postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -11,14 +11,9 @@ import { useMainWindowRoute } from "@/foundation/ui/navigation/useMainWindowRout
 
 /** メインのウィンドウがチャット欄の状態を渡してくるのを待つ上限（過ぎたら空のまま描く） */
 const ADOPT_WAIT_MS = 3000;
-/** 戻し終えた知らせ（docked）を待つ上限（メインのウィンドウが応えなくても閉じる） */
-const RETURN_WAIT_MS = 3000;
 
 /** このウィンドウがチャット欄の状態を持っているか（受け取ったか。メインのウィンドウが読み込み直したら、渡し直さずにこのウィンドウのものを使ってもらう） */
 let holding = false;
-
-/** このウィンドウを閉じる */
-const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
 
 /**
  * チャット欄をメインのウィンドウに戻して、このウィンドウを閉じる（open: メインのウィンドウのチャット欄を開くか。「チャット欄に戻す」は開き、✕ は閉じたまま）。
@@ -26,13 +21,7 @@ const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf(
  */
 export function returnSideWindow(open: boolean) {
   const panels = [...allPanels()].filter(([key]) => isSidePanel(key));
-  const key = popoutKey({ kind: "side" });
-  const timer = setTimeout(closeSelf, RETURN_WAIT_MS);
-  onWindowMessage("docked", (m) => {
-    if (m.key !== key) return;
-    clearTimeout(timer);
-    closeSelf();
-  });
+  closeWhenDocked(popoutKey({ kind: "side" }));
   holding = false;
   (open ? postToMainWindow : postWindowMessage)("returnSidePanels", { panels, open });
 }

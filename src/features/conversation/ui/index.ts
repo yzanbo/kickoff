@@ -2,6 +2,7 @@
 export { ChatEnvironment, ChatScreen } from "./screen/ChatScreen";
 export { SubagentScreen } from "./screens/SubagentScreen";
 export { SideChildChat } from "./screens/SideChildChat";
+export { SideScope } from "./SideScope";
 export { NewChildPane } from "./screens/NewChildPane";
 export { createRewindActions } from "./rewind/createRewindActions";
 export { useChatSending } from "./screen/useChatSending";

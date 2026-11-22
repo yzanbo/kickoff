@@ -1,5 +1,8 @@
-// sidebar の別ウィンドウの種類と URL の項目の表（app/renderer/popout/contributes.ts が popoutKinds に入れる）
+// sidebar の別ウィンドウの種類（URL の項目・中身・戻し方。ui/contributes.ts が popoutKinds に入れる）
 import type { PopoutKind } from "@/foundation/ui/navigation/popout";
+import { writeSetting } from "@/foundation/ui/storage";
+import { SidebarPopoutPage } from "./PopoutSidebar";
+import { storage } from "./storage";
 
 declare module "@/foundation/ui/navigation/popout" {
   interface PopoutParamsMap {
@@ -8,4 +11,12 @@ declare module "@/foundation/ui/navigation/popout" {
   }
 }
 
-export const sidebarPopout: PopoutKind<"sidebar"> = { kind: "sidebar", fields: {} };
+export const sidebarPopout: PopoutKind<"sidebar"> = {
+  kind: "sidebar",
+  fields: {},
+  label: "サイドバー",
+  Page: SidebarPopoutPage,
+  dockLabel: () => ({ label: "左の欄に戻す", tip: "メインのウィンドウのサイドバーを開いて、このウィンドウを閉じる", left: true }),
+  // メインのウィンドウのサイドバーを開く
+  dock: () => writeSetting(storage.settings.open, true),
+};

@@ -1,8 +1,9 @@
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・ノート・DB クライアント、左のサイドバー、
 // 右端のチャット欄とそのブラウザ・ターミナルのタブを、メインのウィンドウの外に出して見る）の行き先。
 // 種類は持ち主の機能が ui/popoutKinds.ts で PopoutParamsMap に足し、URL の項目の表を popoutKinds に入れる
+import type { ComponentType } from "react";
 import { definePoint } from "@/foundation/ui/points";
-import { postWindowMessage } from "./windowBus";
+import { onWindowMessage, postToMainWindow, postWindowMessage } from "./windowBus";
 
 /** 機能が足していく別ウィンドウの種類の表（declare module "@/foundation/ui/navigation/popout" で足す。値は URL に載せる項目） */
 export interface PopoutParamsMap {}
@@ -21,8 +22,37 @@ interface FieldSpec {
   param?: string;
   fallback?: string;
 }
+/** 種類の行き先 */
+type RouteOf<K extends PopoutKindId> = Extract<PopoutRoute, { kind: K }>;
+
+/** 「戻す」ボタンの名前と説明（left: 左の欄へ戻す = サイドバー） */
+export interface PopoutDockLabel {
+  label: string;
+  tip: string;
+  left?: boolean;
+}
+
 export interface PopoutKind<K extends PopoutKindId = PopoutKindId> {
   kind: K;
+  /** 上の帯の、何のウィンドウかの札 */
+  label: string;
+  /** 中身（PopoutApp が描く。右の欄と同じく開いたチャットを「メインのチャット」にするものは、中で SideScope に包む） */
+  Page: ComponentType<{ route: RouteOf<K> }>;
+  /** 上の帯（札と「戻す」）を描くか（既定は描く。子チャットは自分の帯に同じボタンを置く） */
+  bar?: boolean;
+  /** ⌘F でこのウィンドウを探すか（既定は探す。ブラウザはページの検索） */
+  find?: boolean;
+  /** 「戻す」ボタンの名前と説明（なければ「右の欄に戻す」） */
+  dockLabel?(route: RouteOf<K>): PopoutDockLabel;
+  /** 「戻す」を押したとき（別ウィンドウで呼ぶ。なければ beforeDock のあと dockAndClose） */
+  returnSelf?(route: RouteOf<K>): void;
+  /** dockAndClose の前に別ウィンドウでする（ノートの書きかけを残す） */
+  beforeDock?(): void;
+  /**
+   * 戻す（メインのウィンドウで呼ぶ）: 中身をメインのウィンドウの元の欄で開き直す。返り値が済んでから docked を送り、別ウィンドウが閉じる
+   * （ターミナルはシェルの持ち主をメインのウィンドウに移してから）
+   */
+  dock?(route: RouteOf<K>): Promise<void> | void;
   /** URL の項目（書く順に並べる。path と parse をこの表から作る。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
   fields: { readonly [F in keyof PopoutParamsMap[K]]-?: FieldKind | FieldSpec };
   /** 同じウィンドウかを見るときに外す項目（変更の移るファイルなど） */
@@ -39,7 +69,7 @@ declare module "./windowBus" {
   }
 }
 
-/** 別ウィンドウの種類（key は kind。表は app/renderer/popout/contributes.ts が出す） */
+/** 別ウィンドウの種類（key は kind。持ち主の機能の ui/contributes.ts が出す） */
 export const popoutKinds = definePoint<{ [K in PopoutKindId]: PopoutKind<K> }[PopoutKindId]>("popoutKinds", { key: (k) => k.kind });
 
 const PREFIX = "/popout/";
@@ -96,7 +126,7 @@ function readField(kind: FieldKind, raw: string | null, fallback: string | undef
 /** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。種類の表の順に書く） */
 export function popoutPath(route: PopoutRoute): string {
   const fields = fieldsOf(route.kind);
-  if (!fields) throw new Error(`別ウィンドウの種類 ${route.kind} がない（app/renderer/popout/contributes.ts）`);
+  if (!fields) throw new Error(`別ウィンドウの種類 ${route.kind} がない（持ち主の ui/contributes.ts）`);
   const params = new URLSearchParams();
   for (const field of fields) {
     const text = writeField(field.kind, (route as Record<string, unknown>)[field.name]);
@@ -158,4 +188,36 @@ export function openPopout(route: PopoutRoute, title: string, at: { x: number; y
   void window.kickoff?.windows.openPopout(popoutPath(route), title, at).then(() => {
     if (route.kind === "changes" && route.focus) postWindowMessage("popoutFocus", { key: popoutKey(route), focus: route.focus });
   });
+}
+
+/** 種類の項目（なければ undefined） */
+export const popoutKindOf = <K extends PopoutKindId>(kind: K): PopoutKind<K> | undefined => popoutKinds.items().find((k) => k.kind === kind) as PopoutKind<K> | undefined;
+
+/** メインのウィンドウ: 別ウィンドウの中身を元の欄で開き直す（種類の dock。メインのウィンドウの知らせの受け口が呼び、済んだら docked を送る） */
+export async function dockPopout(route: PopoutRoute): Promise<void> {
+  const kind = popoutKindOf(route.kind) as PopoutKind | undefined;
+  await kind?.dock?.(route as never);
+}
+
+/** docked を待つ上限（メインのウィンドウが応えなくても閉じる） */
+export const DOCK_WAIT_MS = 3000;
+
+/** このウィンドウを閉じる（閉じ方を聞かない。デスクトップアプリでなければ、ふつうに閉じる） */
+export const closeSelf = (): void => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
+
+/** 戻し終えた知らせ（key の docked）が届いたら・waitMs たったら、このウィンドウを閉じる（onDocked は知らせの受け方。テストが差し替える） */
+export function closeWhenDocked(key: string, waitMs = DOCK_WAIT_MS, onDocked: (handler: (m: { key: string }) => void) => () => void = (handler) => onWindowMessage("docked", handler)): void {
+  const timer = setTimeout(closeSelf, waitMs);
+  const off = onDocked((m) => {
+    if (m.key !== key) return;
+    clearTimeout(timer);
+    off();
+    closeSelf();
+  });
+}
+
+/** 別ウィンドウ: 中身をメインのウィンドウの元の欄で開き直すよう頼み、docked を waitMs まで待って閉じる */
+export function dockAndClose(route: PopoutRoute, opts: { waitMs?: number } = {}): void {
+  closeWhenDocked(popoutKey(route), opts.waitMs);
+  postToMainWindow("dockPopout", { route });
 }

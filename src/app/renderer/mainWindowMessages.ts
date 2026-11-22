@@ -8,10 +8,9 @@ import { handBackToParent, revealInParent } from "@/features/childChats/ui";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 import type { PanelOp } from "@/features/chatPanel/ui/windowMessages";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
-import { dockPopout } from "@/app/renderer/popout/dockPopout";
 import { discardDraft, moveDraftToProject, openDraft, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { receiveForwarded } from "@/foundation/ui/navigation/popoutNavigation";
-import { popoutKey } from "@/foundation/ui/navigation/popout";
+import { dockPopout, popoutKey } from "@/foundation/ui/navigation/popout";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 
 /** サイドバーの別ウィンドウから頼まれた、このウィンドウのパネルを変える操作 */

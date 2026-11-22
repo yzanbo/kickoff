@@ -55,7 +55,7 @@ test("チャットに足す: 画面のないメインのウィンドウでは、
 });
 
 test("チャットに足す: 別ウィンドウからは自分の下書きに書かず、メインのウィンドウに頼んで前に出す", () => {
-  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   const focusMain = vi.fn(async () => {});
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });
   vi.stubGlobal("window", { kickoff: { windows: { focusMain } } });

@@ -64,7 +64,7 @@ test("写しの店（サイドバーの別ウィンドウ）: 下書きの操作
 test("サイドバーの別ウィンドウの中では、下書きを開く操作もこのウィンドウのパネルを変えずにメインのウィンドウに頼むだけ", () => {
   useChatPanelTestStore();
   // サイドバーの別ウィンドウの種類（本物の表は sidebar の ui/popoutKinds.ts）
-  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   vi.stubGlobal("window", { kickoff: { windows: { focusMain: async () => {} } } });
   vi.stubGlobal("location", { hash: "#/projects/1" });
   const key = "kanban:9103";

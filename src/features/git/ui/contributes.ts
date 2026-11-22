@@ -4,5 +4,7 @@ import { projectViews } from "@/features/projects/ui";
 import { changesTabKind } from "./changesTabKind";
 import { chatSideAdds } from "@/features/chatPanel/ui";
 import { changesChatSideAdd, changesView, historyView } from "./projectViews";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { changesPopout } from "./popoutKinds";
 
-export const contributes = [panelTabs.item(changesTabKind), projectViews.item(changesView), projectViews.item(historyView), chatSideAdds.item(changesChatSideAdd)];
+export const contributes = [panelTabs.item(changesTabKind), projectViews.item(changesView), projectViews.item(historyView), chatSideAdds.item(changesChatSideAdd), popoutKinds.item(changesPopout)];

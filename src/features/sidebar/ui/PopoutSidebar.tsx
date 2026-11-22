@@ -34,3 +34,12 @@ export function PopoutSidebar() {
     </RouteContext.Provider>
   );
 }
+
+/** 別ウィンドウのサイドバー（PopoutApp が描く中身） */
+export function SidebarPopoutPage() {
+  return (
+    <div className="popout-body">
+      <PopoutSidebar />
+    </div>
+  );
+}

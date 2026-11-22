@@ -6,6 +6,8 @@ import { fileTabKind, projectFileTabKind } from "./fileTabKinds";
 import { fileSurface } from "./fileSurface";
 import { projectViews } from "@/features/projects/ui";
 import { filesView, searchView } from "./projectViews";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { filePopout } from "./popoutKinds";
 
 export const contributes = [
   panelTabs.item(fileTabKind),
@@ -14,4 +16,5 @@ export const contributes = [
   openTargets.item(fileTarget),
   projectViews.item(filesView),
   projectViews.item(searchView),
+  popoutKinds.item(filePopout),
 ];

@@ -5,12 +5,23 @@ import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
 import { useFileLinks } from "@/features/files/ui/links/useFileLinks";
 import { SubagentScreen, windowSubagentNav } from "@/features/conversation/ui/screens/SubagentScreen";
 import { popoutFileLinks, usePopoutFileLinks } from "@/features/files/ui/PopoutFiles";
+import { SideScope } from "@/features/conversation/ui";
+import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { ChatEnvironment, createRewindActions, useChatSending, useTimelineScrollHandle } from "@/features/conversation/ui";
+/** 別ウィンドウのサブエージェント（右の欄と同じく、開いたチャットを「メインのチャット」にする） */
+export function SubagentPopoutPage({ route }: { route: Extract<PopoutRoute, { kind: "subagent" }> }) {
+  return (
+    <SideScope mainChatId={route.chatId}>
+      <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
+    </SideScope>
+  );
+}
+
 /**
  * 別ウィンドウのサブエージェントの画面: チャットの中身をチャットの店から読み、右の欄と同じ SubagentScreen を描く
  * （メインエージェントの書いている途中の返答は出さないので、途中の文の口は読まない = 返答中に描き直さない）
  */
-export function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey: string }) {
+function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey: string }) {
   const { chat, project, error, ready } = useOpenChat(chatId, true);
   if (error) return <div className="page error">{error}</div>;
   if (!ready || !chat) return <div className="page muted">読み込み中…</div>;

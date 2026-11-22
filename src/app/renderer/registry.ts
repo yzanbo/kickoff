@@ -15,11 +15,11 @@ import { contributes as git } from "@/features/git/ui/contributes";
 import { contributes as github } from "@/features/github/ui/contributes";
 import { contributes as notes } from "@/features/notes/ui/contributes";
 import { contributes as projects } from "@/features/projects/ui/contributes";
+import { contributes as sidebar } from "@/features/sidebar/ui/contributes";
 import { contributes as snippets } from "@/features/snippets/ui/contributes";
 import { contributes as terminal } from "@/features/terminal/ui/contributes";
 import { contributes as voice } from "@/features/voice/ui/contributes";
 import { configureRouter } from "@/foundation/ui/navigation/router";
-import { contributes as popouts } from "./popout/contributes";
 import { workplaceDecorItems } from "./workplaceDecor";
 import { userViewTabItems } from "./userViewTabs";
 import { installContributions } from "@/foundation/ui/points";
@@ -29,11 +29,11 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 
 /**
  * 全部の機能の登録（機能の並び順。足すときも同じ順に）。作業場所の飾りは worktrees・github の分・タブの説明（userViewTabs）は全部の種類の分（持ち主へ移すまでここ）。
- * 殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
+ * AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...board,
-  ...workplaceDecorItems, ...userViewTabItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
+  ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...sidebar, ...board,
+  ...workplaceDecorItems, ...userViewTabItems, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 
 export function installRegistry(): void {

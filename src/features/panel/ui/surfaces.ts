@@ -27,4 +27,3 @@ export function panelScreen(key: string): Route | undefined {
   const chats = at.surface === "kanban" && readSetting(CHAT_PLACEMENT) === "separate";
   return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };
 }
-export { parsePanelKey } from "./surface";

@@ -1,5 +1,10 @@
-// notes の別ウィンドウの種類と URL の項目の表（app/renderer/popout/contributes.ts が popoutKinds に入れる）
+// notes の別ウィンドウの種類（URL の項目・中身・戻し方。ui/contributes.ts が popoutKinds に入れる）
 import type { PopoutKind } from "@/foundation/ui/navigation/popout";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { knownChat, openInRootSide, rootChatOf, shownChatIds } from "@/features/chat/ui";
+import { noteTab, openTab } from "@/features/panel/ui";
+import { flushNoteDrafts } from "./noteGuards";
+import { NotePopoutPage } from "./NotePopoutPage";
 
 declare module "@/foundation/ui/navigation/popout" {
   interface PopoutParamsMap {
@@ -11,4 +16,21 @@ declare module "@/foundation/ui/navigation/popout" {
   }
 }
 
-export const notePopout: PopoutKind<"note"> = { kind: "note", fields: { projectId: { kind: "number", param: "project" }, path: "string", chatId: { kind: "number?", param: "chat" } } };
+export const notePopout: PopoutKind<"note"> = {
+  kind: "note",
+  fields: { projectId: { kind: "number", param: "project" }, path: "string", chatId: { kind: "number?", param: "chat" } },
+  label: "ノート",
+  Page: NotePopoutPage,
+  // 書きかけは残してから閉じる（右の欄で未保存のまま続きを書ける）
+  beforeDock: flushNoteDrafts,
+  dock: (route) => {
+    // 開いたチャット（なければ、いま見えているチャットのうち、そのプロジェクトのもの。子チャットなら、いちばん上の親）の右の欄。チャットが見えていなければノートのタブ
+    const shown =
+      (route.chatId !== undefined ? knownChat(route.chatId) : undefined) ??
+      shownChatIds()
+        .map((id) => knownChat(id))
+        .find((c) => c?.project_id === route.projectId);
+    const root = shown && rootChatOf(shown, knownChat);
+    if (!root || !openInRootSide(root.id, (rootId, side) => openTab(side, noteTab({ chatId: rootId, projectId: route.projectId, path: route.path })))) openTarget({ kind: "note", projectId: route.projectId, path: route.path });
+  },
+};

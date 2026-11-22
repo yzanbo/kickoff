@@ -15,7 +15,7 @@ declare module "./open" {
 function installSample() {
   const got: { n: number; options: OpenOptions }[] = [];
   const sample: OpenTargetHandler<"sample"> = { kind: "sample", open: ({ n }, options) => (got.push({ n, options }), true) };
-  useTestContributions([openTargets.item(sample), popoutKinds.item({ kind: "sidebar", fields: {} })]);
+  useTestContributions([openTargets.item(sample), popoutKinds.item({ kind: "sidebar", fields: {}, label: "", Page: () => null })]);
   return got;
 }
 

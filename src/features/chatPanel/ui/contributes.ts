@@ -8,6 +8,8 @@ import { newChatHandOff } from "./handOffTarget";
 import { newChatTarget } from "./openTargets";
 import { projectViews } from "@/features/projects/ui";
 import { chatsView } from "./board/chatsView";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { chatPopout, chatsPopout, subagentPopout } from "./popoutKinds";
 
 export const contributes = [
   ...CHAT_TAB_KINDS.map((k) => panelTabs.item(k)),
@@ -15,4 +17,7 @@ export const contributes = [
   openTargets.item(newChatTarget),
   handOffTargets.item(newChatHandOff),
   projectViews.item(chatsView),
+  popoutKinds.item(subagentPopout),
+  popoutKinds.item(chatPopout),
+  popoutKinds.item(chatsPopout),
 ];

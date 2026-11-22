@@ -5,8 +5,10 @@ import { focusPane as focusLayoutPane, moveTab as moveLayoutTab, returnToHome as
 import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { newTabKey } from "@/features/panel/ui/tabs/tabData";
+import { navigate } from "@/foundation/ui/navigation/router";
+import { panelScreen } from "@/features/panel/ui/surfaces";
 import type { TabPatch } from "./panelState";
-import { allPanels, dispatchPanel, kindOf, panelStateOf } from "./panelStore";
+import { allPanels, dispatchPanel, isPanelMounted, kindOf, panelStateOf } from "./panelStore";
 
 const changeLayout = (panel: string, change: (layout: PaneLayout) => PaneLayout) => dispatchPanel(panel, { type: "layout", change });
 
@@ -15,6 +17,13 @@ export const reopenOf = (tab: PanelTab): TabPatch | undefined => kindOf(tab).reo
 
 /** タブを開く（なければピントのあるペインに足し、あればそのペインで表示する。reopen はもう開いていたときに変える中身）。欄も開く */
 export const openTab = (panel: string, tab: PanelTab, reopen?: TabPatch) => dispatchPanel(panel, { type: "open", tab, reopen });
+
+/** 欄にタブを開き直す（その欄が画面になければ、その画面へ移ってから。別ウィンドウを元の欄に戻すとき） */
+export function reopenInPanel(panel: string, tab: PanelTab): void {
+  const screen = isPanelMounted(panel) ? undefined : panelScreen(panel);
+  if (screen) navigate(screen);
+  openTab(panel, tab);
+}
 
 type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 
