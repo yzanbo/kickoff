@@ -7,7 +7,7 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { openAskChild } from "@/features/chat/ui/open/openChat";
 import { addToChat } from "@/features/composer/ui/addToChat";
-import { chatPaneOf } from "@/features/chat/ui/screen/chatScreens";
+import { screenOfChat } from "@/features/chat/ui";
 import { chooseWorkplace, openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 
 /** 渡し先: 新しいチャットで始める / このチャット（右の欄の足す先のチャット）に追加 / 新しい子チャットで聞く / ほかのチャットに追加 */
@@ -77,7 +77,7 @@ export async function handOffToChild(item: HandOffItem, chat: Chat) {
 export async function handOffToOtherChat(item: HandOffItem, chat: Chat) {
   const attachments = await captureOf(item);
   if (!attachments) return;
-  const open = chatPaneOf(chat.id) !== undefined;
+  const open = screenOfChat(chat.id) !== undefined;
   addToChat(chat.id, item.text, attachments);
   // 画面があれば入力欄に入る（知らせは開いていないときに addToChat が出す）
   if (open) showToast(`${chatTargetName(chat)}に追加しました`);

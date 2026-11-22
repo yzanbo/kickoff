@@ -1,8 +1,9 @@
 // panel の画面の口（ほかの機能から読むもの）
 import { storage } from "./storage";
 
-export type { TerminalTarget } from "./tabs/panelTypes";
+export type { NewChatTarget, TerminalTarget } from "./tabs/panelTypes";
 export type { SplitDir } from "./layout/paneTree";
+export { useTabPage } from "./tabs/tabPageContext";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const panelSettings = {

@@ -40,6 +40,7 @@
 | 作業の段階（作業していない・送る準備・作業中・圧縮の前後・作業の終わりにすることを待つ）・「いま」を預かる理由 | `ChatLive.phase`（`WorkPhase`・`isBusyPhase`）・`ChatLive.hold`（`HoldReason`） |
 | チャットの実行の決まり（出来事を受けて、次の状態と殻が行う命令を決める） | 純粋な `step`（`src/features/chat/core/run/machine/`）・状態 `ChatRunState`・出来事 `RunEvent`・命令 `Effect` |
 | チャットの実行の殻（出来事を 1 件ずつ決まりに通し、命令を行う。ほかの機能に出す口は `ChatRunPort`） | `ChatRunner`（`src/features/chat/core/run/`）・チャットごとの状態 `ChatRun` |
+| チャットの画面の置き場所の値（タブ・右の欄・別ウィンドウ・ノートの違い）と、描いている画面の登録簿 | `ChatHost`・`ChatScreen`・`ChatEnvironment`・`chatScreens.ts`（`src/features/chat/ui/screen/`・`src/features/conversation/ui/screen/`） |
 | 実行に足すもの（上の機能が 1 回の実行に足す環境変数・フォルダ・システムプロンプトの節・添える文脈・作業の終わりにすること。AI のツールは含めない） | `TurnContributor`（`chat.api.addTurnContributor`。足したもの `TurnParts`・集める `collectTurnParts`） |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `ChatRunner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `src/features/chat/core/sessionPoints.ts`） |
@@ -221,7 +222,7 @@ scripts/  docs/           道具と文書
 - 会話の流れの読んでいた位置（`useTimelineWindow`）: ブラウザのスクロールアンカーに任せ、いちばん上（scrollTop 0）で前に項目が増えたときだけ JS で直す。アンカーを切って JS だけで保つ形と比べ、上へ読み進めたときのずれが最大 0.7px 対 3,300px だった（JS で位置を書き換えると慣性のスクロールも止まる）。
 - macOS の音声認識が使えるかの確かめ（`kickoff-speech` の check）: ふつう 0.1 秒ほどで終わるので、結果を覚える仕組みは作らず、毎回聞く。
 - 記録が届いたときの作り直し（`defineChatSelector` の取り出し口）: 記録全体から作り直しても、確かめ用のチャット（末尾と索引で約 1,600 件）で 0.3ms（95% で 0.8ms）なので、届いた分だけ計算する形は作らない。
-- 裏のタブの会話の欄を `Activity` の hidden で止める（`ChatPane.tsx`）: 裏に 6 つのチャットを開き、表で返答を書かせながら打つと、1 文字の遅れが中央値 22ms → 15ms（95% で 23ms）、裏のタブを表に戻すのが 77ms → 68ms になった。
+- 裏のタブの会話の欄を `Activity` の hidden で止める（`ChatScreen.tsx`）: 裏に 6 つのチャットを開き、表で返答を書かせながら打つと、1 文字の遅れが中央値 22ms → 15ms（95% で 23ms）、裏のタブを表に戻すのが 77ms → 68ms になった。
 - チャットの流れの窓（`useRowWindow`）: 数千ターンのチャットで要素が 10 万個を超え、画面が真っ黒になった。窓にすると、上へ 50 画面読み進めても要素は 200 個ほど（窓なしは 1,300 個、250 画面で 8,300 個）。
 - サイドバー・ボードは窓にせず、開いた直後だけ段階に分けて描く（`useProgressivePage`）: ⌘F・キーでの移動・ドラッグが、すべての行が DOM にあることを前提にするため。1,000 チャットで最初に見えるまでが、サイドバー 144〜270ms → 29〜51ms・ボード 226〜378ms → 30〜113ms・全プロジェクト 約 450ms → 48〜68ms、いちばん長いタスクが 120〜350ms → 0〜85ms（JS の合計はほぼ同じ。`scripts/perf/lists.mjs`）。
 - 一番下への付いていき（`src/features/composer/ui/followScroll.ts`）: 伸びるたびに effect で `scrollTop = scrollHeight` を書くと、書いている最中の入力 1 文字に 50ms ほどかかった。大きさの知らせの中で、ずれたときだけ寄せる。

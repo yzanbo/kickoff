@@ -10,7 +10,7 @@ import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { appendBlock } from "@/features/chat/ui/quote";
-import { chatPaneOf, isChatPaneShown } from "@/features/chat/ui/screen/chatScreens";
+import { isScreenShown, screenOfChat } from "@/features/chat/ui/screen/chatScreens";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { panelKey } from "@/features/panel/ui/surfaces";
 import { rootChatOf, type AskChildTarget } from "@/features/childChats/ui/childChats";
@@ -24,7 +24,7 @@ function showRoot(chatId: number): Chat | undefined {
   if (!chat) return undefined;
   const root = rootChatOf(chat, knownChat);
   if (root.parent_chat_id !== null) return undefined;
-  if (!isChatPaneShown(root.id)) openTarget({ kind: "chat", projectId: root.project_id, chatId: root.id });
+  if (!isScreenShown(root.id)) openTarget({ kind: "chat", projectId: root.project_id, chatId: root.id });
   return root;
 }
 
@@ -108,7 +108,7 @@ export function openAskChild({ parentId, eventId, quote, text, attachments }: As
 /** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */
 function showChatView(chat: Chat) {
   if (chat.parent_chat_id !== null) openChildSide(chat);
-  else if (!isChatPaneShown(chat.id)) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
+  else if (!isScreenShown(chat.id)) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
 /** 子チャットの親の、聞いた発言を見せる（メインのウィンドウで。別ウィンドウからはメインに頼む） */
@@ -120,7 +120,7 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
   showChatView(parent);
   const eventId = child.parent_event_id ?? undefined;
   // 開いたばかりの画面が描かれてから移る
-  requestAnimationFrame(() => chatPaneOf(parent.id)?.revealInConversation(eventId, null));
+  requestAnimationFrame(() => screenOfChat(parent.id)?.pane.revealInConversation(eventId, null));
 }
 
 /**
@@ -133,7 +133,7 @@ export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, tex
   if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;
-  const pane = chatPaneOf(parent.id);
+  const pane = screenOfChat(parent.id)?.pane;
   if (pane) pane.fillComposer(text, { append: true });
   // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る）
   else writeSetting(chatDraft(parent.id), appendBlock(readSetting(chatDraft(parent.id)), text));

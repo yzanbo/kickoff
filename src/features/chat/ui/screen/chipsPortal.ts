@@ -1,4 +1,5 @@
-import { createContext, useContext } from "react";
+import { useContext } from "react";
+import { ChatScreenContext } from "./chatScreen";
 
 /**
  * チャット欄の上のピルの列と送信待ちを、チャットの画面の外に描く先（ノートのチャットの欄を閉じている間、ノートの下の入力欄の上に出す）。
@@ -16,9 +17,7 @@ export interface ChipsPortal {
   reveal: () => void;
 }
 
-export const ChipsPortalContext = createContext<ChipsPortal | null>(null);
-
-/** ピルの列を外に描く先（なければ null = いつもの場所に描く） */
+/** ピルの列を外に描く先（チャットの画面の置き場所の ChatHost.chipsPortal。なければ null = いつもの場所に描く） */
 export function useChipsPortal(): ChipsPortal | null {
-  return useContext(ChipsPortalContext);
+  return useContext(ChatScreenContext)?.host.chipsPortal ?? null;
 }

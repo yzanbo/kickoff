@@ -1,10 +1,11 @@
-import { createContext, useContext, useEffect, useSyncExternalStore, type RefObject } from "react";
+import { createContext, useContext, useSyncExternalStore, type RefObject } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Attachment } from "@shared/chat/types";
 import type { EffortLevel } from "@shared/settings/types";
 import type { Cell } from "@/foundation/ui/store";
 import type { ComposerFill } from "@/features/composer/ui/composerHandle";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
+import type { NewChatSeed } from "./chatHost";
+import { screenAt } from "./chatScreens";
 import type { FailedTurn } from "@/features/conversation/ui/rewind/retryActions";
 import type { ActivityFilter } from "@/features/conversation/ui/activity/activityRows";
 
@@ -150,24 +151,8 @@ export function useChatPaneState<T>(select: (state: ChatPaneState) => T): T | un
   return useSyncExternalStore(pane ? pane.state.subscribe : noSubscribe, () => (pane ? select(pane.state.get()) : undefined));
 }
 
-/**
- * パネルのタブごとの、開いているチャットの画面の操作（タブの右クリックから会話 / 動きを切り替えるため。見出しを隠していても切り替えられるように）。
- * 置き場所は chatPaneSlot(パネル, タブ)。同じチャットをほかの欄でも開いていることがあるので、チャットの ID ではなくタブで引く
- */
-const slots = new Map<string, ChatPaneActions>();
-
+/** パネルのタブの置き場所（チャットの ID ではなくタブで引く。同じチャットをほかの欄でも開いていることがあるため） */
 export const chatPaneSlot = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
 
-/** そのタブで描いているチャットの画面の操作（描いていなければ undefined） */
-export const chatPaneAt = (slot: string): ChatPaneActions | undefined => slots.get(slot);
-
-/** チャットの画面を、そのタブの置き場所に登録する（描いている間だけ） */
-export function useChatPaneSlot(slot: string | undefined, pane: ChatPaneActions) {
-  useEffect(() => {
-    if (!slot) return;
-    slots.set(slot, pane);
-    return () => {
-      if (slots.get(slot) === pane) slots.delete(slot);
-    };
-  }, [slot, pane]);
-}
+/** そのタブで描いているチャットの画面の操作（描いていなければ undefined。登録簿は chatScreens.ts。panel が読む中継の名前で、panel のタブの中身を移すときに消す） */
+export const chatPaneAt = (slot: string): ChatPaneActions | undefined => screenAt(slot)?.pane;

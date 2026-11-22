@@ -4,7 +4,7 @@
 
 | フォルダ | 中身 |
 |---|---|
-| `screen/`・`screens/` | 1 つのチャットの画面（`ChatScreen.tsx` の `ChatPane` → 殻 `ChatView` → 会話の欄 `ChatColumn`）・見出し・右の欄の子チャットとサブエージェントの画面 |
+| `screen/`・`screens/` | 1 つのチャットの画面（`ChatScreen` → 殻 `ChatShell` → 会話の欄 `ChatColumn`）・見出し・右の欄の子チャットとサブエージェントの画面 |
 | `timeline/`・`streaming/` | 流れ（組み立て `timelineItems.ts`・窓 `useTimelineWindow`・既読 `useMarkSeen`）・書いている途中の返答 |
 | `messages/`・`tools/` | 発言・返答・質問への回答・選択部分の追加 / ツールの行・コマンドの出力・変更カード |
 | `working/`・`background/`・`todo/` | 作業中の行・動きの目安 / 裏の作業 / ToDo |
@@ -15,12 +15,12 @@
 
 ## 1 つのチャットの画面（`screen/`）
 
-- チャットの画面を描く 5 か所（`ChatPane`・`SideChildChat`・`NoteChatView`・`PopoutChildChat`・`PopoutSubagent`）は `useOpenChat(chatId, visible)` で店を見る。部品で記録の fetch・SSE を持たない。
+- チャットの画面は `ChatScreen` 1 つ。置く側は違いを `ChatHost`（`@/features/chat/ui`）で渡す。読み込みの印 `ready` で殻を描き、配るものは `ChatEnvironment`。
 - 店（`createChatStore`）はチャットごとに 1 つ。同じチャットを何か所で開いても読み込みと SSE は 1 回（別ウィンドウはウィンドウごと）。
 - 部品は要る口だけを `useSyncExternalStore` で購読する（`detail`・`log`・`streaming`・`progress`）。差し替えは 1 フレームに 1 回、変わっていない口は同じ値。途中の文は state に入れない。
-- `ChatPane` と殻 `ChatView` は記録を読まない（読むと、隠れている間も届くたびに殻ごと描き直す）。記録は会話の欄 `ChatColumn` が読む。
+- `ChatScreen` と殻は記録を読まない（読むと、隠れている間も届くたびに殻ごと描き直す）。記録は会話の欄 `ChatColumn` が読む。
 - `ChatColumn` は `Activity` に入れ、止めてよい画面で表示していないときは hidden で止める（`useColumnMode`）。ノートのチャット・別ウィンドウは止めない。
-- 別ウィンドウからの知らせは殻が `useWindowMessagesFor` で受ける（止めていても）。移る・動きを開くなら、先にタブを表に出す（`TabPageContext` の `show`）。
+- 殻は登録簿（`chatScreens.ts`）に載る（止めていても）。別ウィンドウからの移る・動きを開くは、先にタブを表に出す（`bringToFront`）。
 - 子の部品への操作は `ChatPaneContext`（`ChatPaneActions`）1 つで配り、チャットごとに 1 回だけ作る。props で中継しない・クラス名で DOM を探さない。
 - 変わる様子は `useChatPaneState` で読む（保存しない）。画面の外でも描く部品は `useOptionalChatPane` を使う。
 - 記録から作るもの（サブエージェント・図・ToDo・指示の一覧・流れの項目 `timelineItems` など）は持ち主の取り出し口（`defineChatSelector`）で読む。記録の配列を props で渡さない。

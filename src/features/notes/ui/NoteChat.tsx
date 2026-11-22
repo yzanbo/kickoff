@@ -11,11 +11,10 @@ import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
-import { ChatView } from "@/features/conversation/ui/screen/ChatScreen";
-import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
-import { chatPaneOf } from "@/features/chat/ui/screen/chatScreens";
+import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
+import { screenOfChat } from "@/features/chat/ui";
 import { PanelHostContext } from "@/features/panel/ui/panelHost";
-import { ChipsPortalContext, type ChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
+import type { ChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 
 /** 外からノートのチャットの欄を動かす口（本文の右クリックの「ノートのチャット」の組） */
@@ -68,7 +67,7 @@ export function NoteChat({
   useImperativeHandle(handleRef, () => ({
     add: (text, attachments) => {
       if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
-      else chatPaneOf(chatId)?.fillComposer(text, { append: true, attachments });
+      else screenOfChat(chatId)?.pane.fillComposer(text, { append: true, attachments });
     },
   }));
   return (
@@ -104,23 +103,18 @@ export function NoteChat({
             }}
           />
         ) : (
-          <ChipsPortalContext.Provider value={chipsPortal}>
-            <NoteChatView key={chatId} chatId={chatId} visible={visible} beforeSend={beforeSend} />
-          </ChipsPortalContext.Provider>
+          <NoteChatView key={chatId} chatId={chatId} visible={visible} beforeSend={beforeSend} chipsPortal={chipsPortal} />
         )}
       </div>
     </aside>
   );
 }
 
-/** ノートのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
-function NoteChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
-  const { chat, project, error, ready } = useOpenChat(chatId, visible);
-  if (error) return <div className="page error">{error}</div>;
-  if (!ready || !chat) return <div className="page muted">読み込み中…</div>;
+/** ノートのチャットの会話（ふつうのチャットの画面。右の欄は重ねない。ピルの列と送信待ちは、欄を閉じている間ノートの下の入力欄の上に出す） */
+function NoteChatView({ chatId, visible, beforeSend, chipsPortal }: { chatId: number; visible: boolean; beforeSend: () => Promise<void>; chipsPortal: ChipsPortal | null }) {
   return (
     <PanelHostContext.Provider value={null}>
-      <ChatView chat={chat} project={project} visible={visible} beforeSend={beforeSend} />
+      <ChatScreen chatId={chatId} visible={visible} host={{ surface: "note", pausable: false, beforeSend, chipsPortal, mainChatId: null }} />
     </PanelHostContext.Provider>
   );
 }

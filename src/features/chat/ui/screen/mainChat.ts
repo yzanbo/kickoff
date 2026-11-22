@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { ChatScreenContext } from "./chatScreen";
 
 /**
  * 右の欄・別ウィンドウ（サブエージェント・変更・ファイル・ノート・子チャット）の中で、「メインのチャット」（その右の欄を持つチャット・別ウィンドウを開いたチャット）の ID。
@@ -6,4 +7,9 @@ import { createContext, useContext } from "react";
  */
 export const MainChatContext = createContext<number | null>(null);
 
-export const useMainChat = (): number | null => useContext(MainChatContext);
+/** 足す先のチャット（チャットの画面の中は置き場所の ChatHost.mainChatId、なければ外の MainChatContext） */
+export function useMainChat(): number | null {
+  const fromHost = useContext(ChatScreenContext)?.host.mainChatId ?? null;
+  const outer = useContext(MainChatContext);
+  return fromHost ?? outer;
+}

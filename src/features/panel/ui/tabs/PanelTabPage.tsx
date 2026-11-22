@@ -2,7 +2,7 @@ import { Activity, lazy, memo, Suspense, useContext, useMemo, type CSSProperties
 import { cx } from "@/foundation/ui/lib/cx";
 import { BrowserPane } from "@/features/browser/ui/BrowserPane";
 import { useAgentBrowsing } from "@/features/browser/ui/agentBrowsing";
-import { ChatPane } from "@/features/conversation/ui/screen/ChatScreen";
+import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { chatPaneSlot } from "@/features/chat/ui/screen/ports";
 import { SubagentScreen } from "@/features/conversation/ui/screens/SubagentScreen";
 import { SideChanges } from "@/features/git/ui/SideChanges";
@@ -51,18 +51,7 @@ interface PageProps<T extends PanelTab> {
  * 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたノート）。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
  */
 const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>) => ReactNode } = {
-  chat: ({ tab: t, panel, visible }) => (
-    <ChatPane
-      chatId={t.id}
-      focus={t.focus}
-      visible={visible}
-      // 送信待ちの指示・選んだ文を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
-      onOpenNew={panel.openNew}
-      // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
-      onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
-      slot={chatPaneSlot(panel.key, t.key)}
-    />
-  ),
+  chat: (props) => <ChatTabPage {...props} />,
   new: ({ tab: t, panel, visible }) => (
     <NewChatPane
       tabKey={t.key}
@@ -177,6 +166,30 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     />
   ),
 };
+
+/** チャットのタブ: パネルのタブに置いたチャットの画面 */
+function ChatTabPage({ tab: t, panel, visible }: PageProps<Extract<PanelTab, { kind: "chat" }>>) {
+  const tabPage = useContext(TabPageContext);
+  return (
+    <ChatScreen
+      chatId={t.id}
+      focus={t.focus}
+      visible={visible}
+      host={{
+        surface: "tab",
+        pausable: true,
+        // 送信待ちの指示・選んだ文を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
+        openNewChat: panel.openNew,
+        // 隠れた画面で移る・動きを開くを受けたら、先にこのタブを表に出す
+        bringToFront: tabPage?.show,
+        slot: chatPaneSlot(panel.key, t.key),
+        mainChatId: null,
+      }}
+      // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
+      onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
+    />
+  );
+}
 
 /** 右の欄のサブエージェントのタブ: 裏に回したら（外のチャットのタブが裏に回ったときも）止め、記録が届いても描き直さない */
 function SubagentTabPage({ chatId, agentKey, visible }: { chatId: number; agentKey: string; visible: boolean }) {

@@ -10,14 +10,14 @@ import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { mergeAttachments } from "@/features/attachments/ui/attachmentMerge";
 import { appendBlock } from "@/features/chat/ui/quote";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";
-import { chatPaneOf, setMissingFill } from "@/features/chat/ui/screen/chatScreens";
+import { screenOfChat, setMissingFill } from "@/features/chat/ui";
 
 /**
  * そのチャットの入力欄の後ろに足す（送るのは自分で）。このウィンドウにそのチャットの画面があればそこへ（右の欄の子チャット・別ウィンドウの子チャットなど）、
  * なければ、別ウィンドウの中からはメインのウィンドウに頼む。メインのウィンドウで画面が開いていなければ、書きかけの文と送る前の添付に足して知らせる（画面は移さない）
  */
 export function addToChat(chatId: number, text: string, attachments?: Attachment[]) {
-  const pane = chatPaneOf(chatId);
+  const pane = screenOfChat(chatId)?.pane;
   if (pane) return pane.fillComposer(text, { append: true, attachments });
   if (parsePopout(location.hash)) return postToMainWindow("fillComposer", { chatId, text, attachments });
   addToChatDraft(chatId, text, attachments);

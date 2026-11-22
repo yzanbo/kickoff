@@ -2,7 +2,7 @@ import { useState } from "react";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { FindBar } from "@/foundation/ui/kit/FindBar";
-import { lastPressedElement } from "@/features/conversation/ui/screen/chatHotkeys";
+import { lastPressedElement } from "@/features/chat/ui";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
 
 /**

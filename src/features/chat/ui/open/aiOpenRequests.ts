@@ -8,7 +8,7 @@ import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { openChatOrChild, openChildChat, openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { appendBlock } from "@/features/chat/ui/quote";
-import { chatPaneOf } from "@/features/chat/ui/screen/chatScreens";
+import { screenOfChat } from "@/features/chat/ui/screen/chatScreens";
 import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
@@ -67,7 +67,7 @@ function putDraft(request: ChatDraftRequest) {
   const target = request.lineage.at(-1);
   if (!target) return;
   if (request.from) writeSetting(composerHandoff(target.id), request.from);
-  const pane = chatPaneOf(target.id);
+  const pane = screenOfChat(target.id)?.pane;
   if (pane) pane.fillComposer(request.text, { append: true, focus: false });
   else writeSetting(chatDraft(target.id), appendBlock(readSetting(chatDraft(target.id)), request.text));
   const chat = knownChat(target.id) ?? target;

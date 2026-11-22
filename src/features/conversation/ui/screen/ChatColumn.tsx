@@ -17,6 +17,7 @@ import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHand
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { chatRoleOf } from "@/features/chat/ui";
 import { useWideText } from "./TextWidthToggle";
 import { useChatView } from "./useChatView";
 import type { ChatShellHandles } from "./useChatPaneActions";
@@ -59,7 +60,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
             ref={paneRoot}
             className={cx("chat-page chat-panel", wide && "wide")}
             data-chat-id={chat.id}
-            data-chat-role={chat.note_path ? "note" : chat.parent_chat_id !== null ? "child" : "chat"}
+            data-chat-role={chatRoleOf(chat)}
             onPointerDownCapture={() => noteForegroundProvider(chat.provider, `chat:${chat.id}`)}
           >
             <ChatHeader chat={chat} project={project} />

@@ -10,7 +10,7 @@ import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { openChildSide, openInRootSide } from "@/features/chat/ui/open/openChat";
 import { rootChatOf } from "@/features/childChats/ui/childChats";
-import { chatPaneOf, shownChatIds } from "@/features/chat/ui/screen/chatScreens";
+import { screenOfChat, shownChatIds } from "@/features/chat/ui";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { isPanelMounted } from "@/features/panel/ui/state/panelStore";
 import { panelKey, panelScreen } from "@/features/panel/ui/surfaces";
@@ -20,7 +20,7 @@ import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
 
 /** 描かれるまで待ってから（開いたばかりのチャットの画面は、次の描画のあとにできる。2 秒まで） */
 function whenDrawn(chatId: number, run: () => void, tries = 120) {
-  if (chatPaneOf(chatId)) return run();
+  if (screenOfChat(chatId)) return run();
   if (tries > 0) requestAnimationFrame(() => whenDrawn(chatId, run, tries - 1));
 }
 
@@ -64,7 +64,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       const chat = knownChat(route.chatId);
       if (!chat) return;
       if (chat.parent_chat_id !== null) return openChildSide(chat);
-      openInRootSide(chat.id, () => whenDrawn(chat.id, () => chatPaneOf(chat.id)?.openSubagentSide(route.agentKey)));
+      openInRootSide(chat.id, () => whenDrawn(chat.id, () => screenOfChat(chat.id)?.pane.openSubagentSide(route.agentKey)));
       return;
     }
     case "database":
