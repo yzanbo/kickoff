@@ -23,7 +23,7 @@
 
 ## 状態（`state/`）
 
-- 1 つの欄の状態（`PanelState`）は店（`createPanelStore`。起動で 1 つ入れる。テストは `testing.ts`）が覚え、変えるのはすべて純粋関数の `panelReducer`（後始末・保存は店）。部品は `usePanelState`、操作は `actions.ts` の関数（`openTab(欄, 作る関数のタブ)` など）。
+- 1 つの欄の状態（`PanelState`）は店（`createPanelStore`。起動で 1 つ入れる。テストは `testing.ts`）が覚え、変えるのはすべて純粋関数の `panelReducer`（後始末・保存は店）。部品は `usePanelState`、操作は `actions.ts` の関数（`openTab(欄, タブ)`・一覧から開く `openInFocusedPane`・付け替え `mapTabs`）。
 - 配置はいつもタブにそろえておく（`reconcileLayout`。理由は `PanelState` の JSDoc）。
 - 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`TabPageFrame` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
 - 表示していないタブも hidden で残す。チャットの会話・サブエージェント・子チャットはさらに `Activity` で止め、止めると切れる操作の間は `@/features/chat/ui/screen/keepAlive.ts` で止めない。

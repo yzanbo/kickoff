@@ -36,7 +36,7 @@ export {
   usePanelOpen,
   usePanelState,
 } from "./state/panelStore";
-export { addTabBehind, closeTab, openTab, patchTab, reopenOf, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
+export { addTabBehind, closeTab, mapTabs, openInFocusedPane, openTab, patchTab, reopenOf, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
 export {
   agentTabKey,
   browserTab,

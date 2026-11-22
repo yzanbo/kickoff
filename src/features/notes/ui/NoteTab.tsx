@@ -17,18 +17,17 @@ import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { folderPaths, topLevelPaths, visibleTreePaths, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
-import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { usePanel } from "@/features/panel/ui/usePanel";
-import type { PanelScope } from "@/features/panel/ui";
-import { ancestorsOf, buildNoteTree, filterNotes, isUnder, parentOf } from "./notePaths";
+import { mapTabs, Panel, usePanel, type PanelScope } from "@/features/panel/ui";
+import { isUnder } from "@shared/foundation/path";
+import { ancestorsOf, buildNoteTree, filterNotes, parentOf } from "./notePaths";
 import { NoteFoundList } from "./NoteFoundList";
 import { NoteListHead } from "./NoteListHead";
 import { NoteListMenu, type NoteMenuTarget } from "./NoteListMenu";
 import { noteListDropProps } from "./noteDrag";
 import { NoteTree, type NoteRenaming } from "./NoteTree";
 import { confirmLeaveNotesUnder } from "./noteGuards";
-import { closeNoteTabsUnder, notePanelKey, openNoteInPanel } from "./notePanel";
+import { notePanelKey, notePanelKeys, openNoteInPanel } from "./notePanel";
 import { requestNoteReveal } from "./noteReveal";
 import { NotePlanDialog } from "./NotePlanDialog";
 import { followMovedNote, useNoteActions } from "./useNoteActions";
@@ -150,7 +149,7 @@ export function NoteTab({
     beforeChange: (path) => confirmLeaveNotesUnder(projectId, path),
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
-      closeNoteTabsUnder(projectId, path);
+      mapTabs("note", (t) => (isUnder(t.path, path) ? null : t), notePanelKeys(projectId));
       // まとめてゴミ箱に入れると続けて呼ばれるので、いま覚えている値から外す
       setOpenList(readSetting(storage.settings.openFolders(projectId)).filter((p) => !isUnder(p, path)));
     },

@@ -1,7 +1,7 @@
 // プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files。開いたファイル・差分をタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { focusedPane } from "@/features/panel/ui/layout/paneTree";
-import { closeTab, openTab, panelStateOf, replaceTab, showTab } from "@/features/panel/ui";
+import { isUnder } from "@shared/foundation/path";
+import { openInFocusedPane, panelStateOf } from "@/features/panel/ui";
 import { baseName } from "@/foundation/ui/lib/format";
 import { choose } from "@/foundation/ui/kit/ask";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
@@ -12,7 +12,6 @@ import type { Selection } from "@/features/git/ui/changes/fileSelection";
 export type FileTab = Extract<PanelTab, { kind: "projectFile" }>;
 
 const isFileTab = (t: PanelTab): t is FileTab => t.kind === "projectFile";
-const isUnder = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
 
 /**
  * タブのキー: 中身（エクスプローラー・検索の行から）はファイルごとに 1 つ（検索の別の行から開いても同じタブで、その行へ移る）。
@@ -110,43 +109,17 @@ export async function confirmCloseFileTab(panelKey: string, tabKey: string): Pro
 }
 
 /**
- * ファイルを開く（ノートのタブと同じ開き方）。開いていればそのタブを表示する（検索の別の行・差分の「編集」なら、そのタブの中身を替える）。
+ * ファイルを開く（ノートのタブと同じ開き方。パネルの openInFocusedPane）。開いていればそのタブを表示する（検索の別の行・差分の「編集」なら、そのタブの中身を替える）。
  * newTab（一覧の ⌘クリック・新しく作ったとき・チャットから来たとき）なら新しいタブ、ふだんはピントのあるペインで表示中のファイルを入れ替える
  * （保存していない変更があれば保存するかを聞く。表示中がファイルでなければ新しいタブ）
  */
-export async function openFileTab(panelKey: string, projectId: number, sel: Selection, newTab: boolean): Promise<void> {
+export function openFileTab(panelKey: string, projectId: number, sel: Selection, newTab: boolean): Promise<void> {
   const tab = fileTabOf(projectId, sel);
-  const tabs = fileTabsOf(panelKey);
-  const existing = tabs.find((t) => t.key === tab.key);
-  if (existing) {
-    if (existing.line !== tab.line || Boolean(existing.edit) !== Boolean(tab.edit)) {
-      if (!(await confirmLeave(panelKey, existing, "開く"))) return;
-      replaceTab(panelKey, existing.key, tab);
-    }
-    return showTab(panelKey, tab.key);
-  }
-  const current = tabs.find((t) => t.key === focusedPane(panelStateOf(panelKey).layout).active);
-  if (newTab || !current) return openTab(panelKey, tab);
-  if (!(await confirmLeave(panelKey, current, "開く"))) return;
-  replaceTab(panelKey, current.key, tab);
-}
-
-/** 名前を変えたファイル・フォルダ（from）のタブを、新しいパス（to）に付け替える（確かめない。先に保存してもらっている） */
-export function relocateFileTabs(panelKey: string, projectId: number, from: string, to: string) {
-  for (const t of fileTabsOf(panelKey)) {
-    if (!isUnder(t.path, from)) continue;
-    setFileTabDirty(panelKey, t.key, false);
-    replaceTab(panelKey, t.key, fileTabOf(projectId, { ...selectionOf(t), path: to + t.path.slice(from.length) }));
-  }
-}
-
-/** ゴミ箱に入れたファイル・フォルダ（path）のタブを閉じる（確かめない。保存していない変更も捨てる） */
-export function closeFileTabsUnder(panelKey: string, path: string) {
-  for (const t of fileTabsOf(panelKey)) {
-    if (!isUnder(t.path, path)) continue;
-    setFileTabDirty(panelKey, t.key, false);
-    closeTab(panelKey, t.key);
-  }
+  return openInFocusedPane(panelKey, tab, {
+    newTab,
+    changed: (existing) => existing.line !== tab.line || Boolean(existing.edit) !== Boolean(tab.edit),
+    confirmReplace: (current) => confirmLeave(panelKey, current, "開く"),
+  });
 }
 
 /** 保存していない変更のあるタブのファイル（名前の変更・ゴミ箱・置換の前に確かめる） */

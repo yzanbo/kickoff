@@ -6,7 +6,7 @@ import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { newTabKey } from "@/features/panel/ui/tabs/tabData";
 import type { TabPatch } from "./panelState";
-import { dispatchPanel, kindOf, panelStateOf } from "./panelStore";
+import { allPanels, dispatchPanel, kindOf, panelStateOf } from "./panelStore";
 
 const changeLayout = (panel: string, change: (layout: PaneLayout) => PaneLayout) => dispatchPanel(panel, { type: "layout", change });
 
@@ -15,6 +15,50 @@ export const reopenOf = (tab: PanelTab): TabPatch | undefined => kindOf(tab).reo
 
 /** タブを開く（なければピントのあるペインに足し、あればそのペインで表示する。reopen はもう開いていたときに変える中身）。欄も開く */
 export const openTab = (panel: string, tab: PanelTab, reopen?: TabPatch) => dispatchPanel(panel, { type: "open", tab, reopen });
+
+type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
+
+/**
+ * 一覧から開く（ノート・ファイルのタブの右の欄）: 開いていればそのタブを表示する（changed なら確かめてから中身を替える）。newTab（⌘クリック・新しく作ったとき・
+ * ほかから来たとき）なら新しいタブ、ふだんはピントのあるペインで表示中の同じ種類のタブを入れ替える（confirmReplace が false ならやめる。表示中が同じ種類でなければ新しいタブ）
+ */
+export async function openInFocusedPane<T extends PanelTab>(
+  panel: string,
+  tab: T,
+  { newTab, changed, confirmReplace }: { newTab: boolean; changed?: (existing: T) => boolean; confirmReplace?: (current: T) => Promise<boolean> },
+): Promise<void> {
+  const state = panelStateOf(panel);
+  const ofKind = (t: PanelTab | undefined): t is T => t?.kind === tab.kind;
+  const existing = state.tabs.find((t) => t.key === tab.key);
+  if (ofKind(existing)) {
+    if (changed?.(existing)) {
+      if (confirmReplace && !(await confirmReplace(existing))) return;
+      replaceTab(panel, existing.key, tab);
+    }
+    return showTab(panel, tab.key);
+  }
+  const active = focusedPane(state.layout).active;
+  const current = state.tabs.find((t) => t.key === active);
+  if (newTab || !ofKind(current)) return openTab(panel, tab);
+  if (confirmReplace && !(await confirmReplace(current))) return;
+  replaceTab(panel, current.key, tab);
+}
+
+/**
+ * その種類のタブを、このウィンドウの欄（panels を渡せばその欄だけ）で付け替える・閉じる（名前を変えた・ゴミ箱に入れたノート・ファイル）。
+ * fn が新しいタブを返せば置き換え、null なら閉じ、同じタブならそのまま
+ */
+export function mapTabs<K extends PanelTab["kind"]>(kind: K, fn: (tab: TabOf<K>, panel: string) => TabOf<K> | null, panels?: readonly string[]): void {
+  for (const [key, state] of [...allPanels()]) {
+    if (panels && !panels.includes(key)) continue;
+    for (const t of state.tabs) {
+      if (t.kind !== kind) continue;
+      const next = fn(t as TabOf<K>, key);
+      if (next === null) closeTab(key, t.key);
+      else if (next !== t) replaceTab(key, t.key, next);
+    }
+  }
+}
 
 /** タブを表に出さずに足す（もうあれば何もしない）。見ているタブ・欄の開閉は変えない（AI が「裏で」開いたブラウザのタブ） */
 export const addTabBehind = (panel: string, tab: PanelTab) => dispatchPanel(panel, { type: "add", tab });

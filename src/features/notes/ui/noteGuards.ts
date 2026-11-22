@@ -1,7 +1,8 @@
 // まだ保存していないノートを離れるときの確かめ（別のノートへ移る・右の欄のノートのタブを閉じる）。
 // 開いているノート（useNoteDocument）が自分の様子と操作をここに知らせ、離れる側が confirmLeaveNote で聞く
 import { choose } from "@/foundation/ui/kit/ask";
-import { baseName, isUnder } from "./notePaths";
+import { isUnder } from "@shared/foundation/path";
+import { baseName } from "./notePaths";
 
 interface NoteGuard {
   /** まだ保存していない書きかけがあるか */

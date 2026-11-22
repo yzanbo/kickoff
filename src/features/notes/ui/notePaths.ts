@@ -91,20 +91,6 @@ export function renamedPath(path: string, dir: boolean, name: string): string {
   return joinNotePath(parentOf(path), dir || keepAsTyped ? name : `${name}${ext ?? ".md"}`);
 }
 
-/**
- * from を to へ動かしたあとの path（from そのもの・from のフォルダの中なら付け替える。関係なければそのまま）。
- * 開いているノート・開いているフォルダを、名前の変更・移動に付いていかせる
- */
-export function remapPath(path: string, from: string, to: string): string {
-  if (path === from) return to;
-  return path.startsWith(`${from}/`) ? `${to}${path.slice(from.length)}` : path;
-}
-
-/** path が folder の中か（folder 自身も含む。"" はすべて） */
-export function isUnder(path: string, folder: string): boolean {
-  return folder === "" || path === folder || path.startsWith(`${folder}/`);
-}
-
 /** path を見せるために開くフォルダ（親をたどったもの。直下なら空） */
 export function ancestorsOf(path: string): string[] {
   const out: string[] = [];

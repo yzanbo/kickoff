@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { NoteEntry } from "@shared/notes/types";
-import { ancestorsOf, buildNoteFileTree, buildNoteTree, filterNotes, isUnder, noteTitle, pathTaken, recentNotes, remapPath, renamedPath, untitledPath } from "./notePaths";
+import { ancestorsOf, buildNoteFileTree, buildNoteTree, filterNotes, noteTitle, pathTaken, recentNotes, renamedPath, untitledPath } from "./notePaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): NoteEntry => ({ path, dir, modified_at });
 
@@ -29,10 +29,6 @@ test("名前の変更・移動のパス", () => {
   assert.equal(renamedPath("図.png", false, "図2.png"), "図2.png");
   assert.equal(noteTitle("資料/計画.html"), "計画");
   assert.equal(renamedPath("資料/計画.HTML", false, "企画"), "資料/企画.html");
-  assert.equal(remapPath("設計/DB.md", "設計", "設計ノート"), "設計ノート/DB.md");
-  assert.equal(remapPath("設計2/DB.md", "設計", "設計ノート"), "設計2/DB.md");
-  assert.equal(remapPath("a.md", "a.md", "b/a.md"), "b/a.md");
-  assert.ok(isUnder("a/b.md", "a") && isUnder("a", "a") && isUnder("x.md", "") && !isUnder("ab/c.md", "a"));
   assert.deepEqual(ancestorsOf("a/b/c.md"), ["a", "a/b"]);
 });
 
