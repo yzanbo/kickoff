@@ -10,7 +10,8 @@ import { ReconnectRow } from "@/features/conversation/ui/working/ConnectionStatu
 import { Working } from "@/features/chat/ui/parts/Working";
 import { WorkingExecution } from "@/features/conversation/ui/working/WorkingExecution";
 import { CompactingRow } from "@/features/compact/ui/CompactingRow";
-import { AfterCompactMessages, type AfterCompactUntil } from "@/features/compact/ui/AfterCompactMessages";
+import { AfterCompactMessages } from "@/features/compact/ui/AfterCompactMessages";
+import { afterCompactUntilOf, isWaitingCompact } from "@/features/conversation/ui/working/workPhase";
 import { VisualPending } from "@/features/visuals/ui/VisualItem";
 import { WorkplaceMoveRow } from "@/features/workplaceMove/ui/WorkplaceMoveRow";
 import { useSentCompactPrompt } from "@/features/compact/ui/useCompactPrompt";
@@ -49,10 +50,10 @@ export function TimelineEnd({
 }) {
   const post = useSentCompactPrompt("post", chat.project_id);
   // 圧縮を待つ間（圧縮前指示の作業中・圧縮中）は、コアが圧縮の記録を受け取って預かりの先頭に入れる前から、圧縮後指示を送る順で見せる
-  const waitingCompact = busy && (live.compacting !== null || live.awaiting_compact);
+  const waitingCompact = busy && isWaitingCompact(live);
   const pendingPost = waitingCompact && !live.after_compact.some((m) => m.post_compact) ? post : null;
-  // いまの作業に足せなくなったあと（tells_closed）の「いま」は、作業の終わりに送る
-  const until: AfterCompactUntil = waitingCompact ? "compact" : busy && live.tells_closed ? "closed" : busy && live.compacted_turn ? "exchange" : busy ? "turn" : "next";
+  // いまの作業に足せなくなったあとの「いま」は、作業の終わりに送る
+  const until = busy ? afterCompactUntilOf(live) : "next";
   return (
     <>
       {streaming && <StreamingReply chatId={chat.id} visible={visible} />}

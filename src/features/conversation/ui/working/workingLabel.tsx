@@ -8,6 +8,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "@/features/chat/ui/state/stall";
 import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundLabel";
 import { RetryLabel } from "./ConnectionStatus";
+import { isInheriting } from "./workPhase";
 import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
@@ -23,7 +24,7 @@ export interface ChatActivity {
 export function workingLabel(chat: Chat, last: TimelineItem | undefined, streaming: boolean, live: ChatLive, runningAgents: number, activity: ChatActivity): ReactNode {
   if (live.stopping) return "停止中…";
   // 子チャットで親の会話を写している（写し終えたら送る。親の会話が長いと数十秒かかる）
-  if (live.inheriting) return "親の会話を引き継いでいます（会話が長いと数十秒かかります）";
+  if (isInheriting(live)) return "親の会話を引き継いでいます（会話が長いと数十秒かかります）";
   if (live.retry) return <RetryLabel retry={live.retry} agents={Math.max(runningAgents, countBackground(live.background).agents)} />;
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
   if (live.compacting !== null) return compactingLabel(live.compacting.trigger);

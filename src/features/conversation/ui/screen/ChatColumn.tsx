@@ -71,7 +71,6 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
                   window={view.timeline}
                   rel={view.rel}
                   chat={chat}
-                  live={view.live}
                   focus={focus}
                   scroll={shell.scroll}
                   prompts={view.prompts}

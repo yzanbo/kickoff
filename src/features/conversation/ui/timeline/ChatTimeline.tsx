@@ -1,5 +1,4 @@
 import { useLayoutEffect } from "react";
-import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import { useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
@@ -24,6 +23,7 @@ import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
+import { useScreenLive } from "@/features/conversation/ui/working/screenLive";
 
 /**
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
@@ -37,7 +37,6 @@ export function ChatTimeline({
   window: w,
   rel,
   chat,
-  live,
   focus,
   scroll,
   prompts,
@@ -49,11 +48,6 @@ export function ChatTimeline({
   window: TimelineWindow;
   rel: (s: string) => string;
   chat: Chat;
-  /**
-   * 作業中の様子（裏の作業と、メインの返答が終わったか・通信の再試行中・つながるのを待っているところ・圧縮中・停止中）。
-   * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatView が決める）
-   */
-  live: ChatLive;
   focus?: number;
   /** 流れのスクロールの持ち主（流れの要素と、一番下に付いていくか） */
   scroll: TimelineScroll;
@@ -68,6 +62,8 @@ export function ChatTimeline({
 }) {
   const { root } = useChatScreen();
   const nav = useTimelineNav();
+  // 作業中の様子（裏の作業と、メインの返答が終わったか・通信の再試行中・つながるのを待っているところ・圧縮中・停止中。停止中は押した直後から）
+  const live = useScreenLive(chat.id);
   // 要素に付ける ref は先に取り出す（scroll.ref を JSX の ref に渡すと、React Compiler が scroll 全体を ref とみなして最適化から外す）
   const { ref: timelineRef, inner: timelineInnerRef } = scroll;
   const busy = chat.status === "running";

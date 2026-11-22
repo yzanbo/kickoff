@@ -36,6 +36,7 @@ import type { useChatSend } from "@/features/composer/ui/send/chatSend";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
 import { useHeldEdit } from "@/features/compact/ui/heldEdit";
 import { HeldEditComposer } from "@/features/compact/ui/HeldEditComposer";
+import { compactsAfterTurn } from "@/features/conversation/ui/working/workPhase";
 import { RestrictionNotice } from "./RestrictionNotice";
 
 /** 「質問として送る」の説明 */
@@ -143,7 +144,7 @@ export function ChatComposerArea({
         busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} projectId={chat.project_id} compacting={live.compacting} reserved={reservedAction(live.queue)} afterTurn={live.compact_after_turn} />}
+        trailing={<ContextMeter chat={chat} projectId={chat.project_id} compacting={live.compacting} reserved={reservedAction(live.queue)} afterTurn={compactsAfterTurn(live)} />}
         // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる。
         // その上に、入力欄に入れた子チャットからの依頼の出どころの札（送ると発言の札になる）
         header={

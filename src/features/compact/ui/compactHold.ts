@@ -7,12 +7,12 @@ import type { ChatLive } from "@shared/chat/chatLive";
  */
 export type CompactHold = "compacting" | "awaiting" | "post" | null;
 
-/** 作業中の様子から、「いま」を預かる間か */
-export function compactHoldOf(live: ChatLive): CompactHold {
-  if (live.compacting !== null) return "compacting";
-  // 圧縮が済んだあと（手で圧縮する実行の終わりまでは awaiting_compact も立っている）は、圧縮のあとのやり取りとして案内する
-  if (live.compacted_turn) return "post";
-  return live.awaiting_compact ? "awaiting" : null;
+/** 作業中の段階から、「いま」を預かる間か */
+export function compactHoldOf(live: Pick<ChatLive, "phase" | "compacted_turn">): CompactHold {
+  if (live.phase === "compacting") return "compacting";
+  // 圧縮が済んだあと（手で圧縮する実行の終わりまでは段階が awaiting_compact のまま）は、圧縮のあとのやり取りとして案内する
+  if (live.phase === "compacted" || live.compacted_turn) return "post";
+  return live.phase === "awaiting_compact" ? "awaiting" : null;
 }
 
 /** 「いま」を預かる間に「いま」を選んでいるときのチャット欄の案内と送信ボタンの名前（送ると、コアが預かって圧縮のあとのやり取りが終わってから送る） */
