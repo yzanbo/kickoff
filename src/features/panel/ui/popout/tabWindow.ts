@@ -1,6 +1,6 @@
 // タブの列のある別ウィンドウ（ブラウザ・チャット）の殻（Chrome のウィンドウと同じく、タブの列を持ち、ほかのタブを足せる）。
 // 右サイドバーのブラウザのタブ・チャットのパネルのチャット（いちばん上の親）のタブを右クリック・ウィンドウの外へのドラッグで移すと開き、移したタブ 1 つから始まる。
-// タブはこのウィンドウの欄（ブラウザ = window:<…>・チャット = cwin:<…>。SURFACES.window / chatWindow）に持ち、ウィンドウの外へドラッグしたタブはさらに別のウィンドウへ、
+// タブはこのウィンドウの欄（ブラウザ = window:<…>・チャット = cwin:<…>。欄 win / cwin）に持ち、ウィンドウの外へドラッグしたタブはさらに別のウィンドウへ、
 // 元の欄・ほかのウィンドウのタブの列に落とせばそこへ移る（features/panel/layout/tabTransfer.ts）。
 // 最後のタブを閉じた・移したら、ウィンドウごと閉じる。読み込み直しても同じタブを開き直す（sessionStorage はウィンドウごと）
 import { popoutKey, type PopoutRoute } from "@/foundation/ui/navigation/popout";
@@ -8,9 +8,9 @@ import { onWindowMessage, postToMainWindow } from "@/foundation/ui/navigation/wi
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/panel/ui/storage";
 import type { PopoutWindowTab } from "@/features/panel/ui/popoutWindowTab";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
+import { openTab, setPanelOpen, showTab } from "@/features/panel/ui/state/actions";
 import { panelStateOf, setPanelOwnership, subscribePanels } from "@/features/panel/ui/state/panelStore";
-import { panelKey, windowScope } from "@/features/panel/ui/surfaces";
+import { panelKey, windowScope } from "@/features/panel/ui/surface";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { handOffTab, takeHandedTab } from "@/features/panel/ui/tabs/tabHandoff";
 
@@ -27,7 +27,7 @@ let started: string | null = null;
 const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
 
 /** 移したタブ（行き先）から、このウィンドウの欄の名前 */
-const tabWindowPanel = (route: TabWindowRoute): string => panelKey(route.kind === "browser" ? "window" : "chatWindow", windowScope(route.projectId, route.key));
+const tabWindowPanel = (route: TabWindowRoute): string => panelKey(route.kind === "browser" ? "win" : "cwin", windowScope(route.projectId, route.key));
 
 /** 移したタブ（行き先）のタブ（送る前の新しいチャットは、移す元が置いた中身を取り出す。なければ作成先だけの空の新しいチャット） */
 function firstTab(route: TabWindowRoute): PanelTab {
@@ -64,10 +64,9 @@ export function startTabWindow(route: TabWindowRoute): void {
   setPanelOwnership((key) => key === panel);
   const saved = readSetting(storage.settings.popoutWindowTabs);
   const tabs = saved.length > 0 ? saved.map(toPanelTab) : [firstTab(route)];
-  const actions = panelActions(panel);
-  for (const t of tabs) actions.openPanelTab(t);
-  actions.showTab(tabs[0].key);
-  actions.setOpen(true);
+  for (const t of tabs) openTab(panel, t);
+  showTab(panel, tabs[0].key);
+  setPanelOpen(panel, true);
   let had = true;
   subscribePanels(() => {
     const now = currentTabs(panel);

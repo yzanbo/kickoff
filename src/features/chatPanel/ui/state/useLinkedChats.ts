@@ -3,9 +3,8 @@ import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import type { PanelScope } from "@/features/panel/ui/surfaces";
+import { syncPanel, type PanelScope } from "@/features/panel/ui";
 import { useChats } from "@/features/chat/ui/store/knownChats";
-import { dispatchPanel } from "@/features/panel/ui/state/panelStore";
 
 /**
  * サイドバーに出ているチャット（パネルのチャットのタブをこれにそろえる）。アーカイブ済みは、タブの列の
@@ -36,7 +35,7 @@ export function useLinkedChats(scope: PanelScope, enabled = true): { chats: Chat
 export function useLinkedTabs(key: string, scope: PanelScope, enabled: boolean, sync = true): Chat[] {
   const { chats, loaded } = useLinkedChats(scope, enabled);
   useEffect(() => {
-    if (loaded && sync) dispatchPanel(key, { type: "sync", chats });
+    if (loaded && sync) syncPanel(key, chats);
   }, [key, chats, loaded, sync]);
   return chats;
 }

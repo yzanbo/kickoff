@@ -5,7 +5,7 @@ import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { projectHueStyle } from "@/features/projects/ui/projectColor";
-import type { TabGroupBadge } from "./tabKinds";
+import type { TabGroupBadge } from "@/features/panel/ui/kind";
 
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。

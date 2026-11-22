@@ -2,10 +2,8 @@
 // 値はプロジェクトごとに localStorage に覚えるので、右サイドバーを別ウィンドウへ移していても、メインのウィンドウの列から切り替えられる
 import { readSetting, writeSetting, type SettingValue } from "@/foundation/ui/storage";
 import { storage } from "@/features/projects/ui/storage";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelStateOf } from "@/features/panel/ui/state/panelStore";
+import { panelKey, panelStateOf, setPanelOpen } from "@/features/panel/ui";
 import { sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
-import { panelKey } from "@/features/panel/ui/surfaces";
 import { openSideWindow } from "./useRightSidebar";
 
 /** 右サイドバーの中身（browser = ブラウザ、ほかはプロジェクトのタブと同じ画面） */
@@ -24,7 +22,7 @@ export const sideViewOfTab = (tab: string): Exclude<SideView, "browser"> | null 
 export function showSideView(projectId: number, view: SideView): void {
   writeSetting(storage.settings.sideView(projectId), view);
   if (sidePanelsHandedOut()) return openSideWindow();
-  panelActions(panelKey("side", projectId)).setOpen(true);
+  setPanelOpen(panelKey("side", projectId), true);
 }
 
 /** 右サイドバーがいまその中身を見せているか（開いている・別ウィンドウへ移しているときだけ。ほかから開くときの行き先を決める） */

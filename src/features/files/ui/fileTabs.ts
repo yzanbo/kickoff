@@ -1,8 +1,7 @@
 // プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files。開いたファイル・差分をタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelStateOf } from "@/features/panel/ui/state/panelStore";
+import { closeTab, openTab, panelStateOf, replaceTab, showTab } from "@/features/panel/ui";
 import { baseName } from "@/foundation/ui/lib/format";
 import { choose } from "@/foundation/ui/kit/ask";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
@@ -116,40 +115,37 @@ export async function confirmCloseFileTab(panelKey: string, tabKey: string): Pro
  * （保存していない変更があれば保存するかを聞く。表示中がファイルでなければ新しいタブ）
  */
 export async function openFileTab(panelKey: string, projectId: number, sel: Selection, newTab: boolean): Promise<void> {
-  const actions = panelActions(panelKey);
   const tab = fileTabOf(projectId, sel);
   const tabs = fileTabsOf(panelKey);
   const existing = tabs.find((t) => t.key === tab.key);
   if (existing) {
     if (existing.line !== tab.line || Boolean(existing.edit) !== Boolean(tab.edit)) {
       if (!(await confirmLeave(panelKey, existing, "開く"))) return;
-      actions.replaceTab(existing.key, tab);
+      replaceTab(panelKey, existing.key, tab);
     }
-    return actions.showTab(tab.key);
+    return showTab(panelKey, tab.key);
   }
   const current = tabs.find((t) => t.key === focusedPane(panelStateOf(panelKey).layout).active);
-  if (newTab || !current) return actions.openPanelTab(tab);
+  if (newTab || !current) return openTab(panelKey, tab);
   if (!(await confirmLeave(panelKey, current, "開く"))) return;
-  actions.replaceTab(current.key, tab);
+  replaceTab(panelKey, current.key, tab);
 }
 
 /** 名前を変えたファイル・フォルダ（from）のタブを、新しいパス（to）に付け替える（確かめない。先に保存してもらっている） */
 export function relocateFileTabs(panelKey: string, projectId: number, from: string, to: string) {
-  const actions = panelActions(panelKey);
   for (const t of fileTabsOf(panelKey)) {
     if (!isUnder(t.path, from)) continue;
     setFileTabDirty(panelKey, t.key, false);
-    actions.replaceTab(t.key, fileTabOf(projectId, { ...selectionOf(t), path: to + t.path.slice(from.length) }));
+    replaceTab(panelKey, t.key, fileTabOf(projectId, { ...selectionOf(t), path: to + t.path.slice(from.length) }));
   }
 }
 
 /** ゴミ箱に入れたファイル・フォルダ（path）のタブを閉じる（確かめない。保存していない変更も捨てる） */
 export function closeFileTabsUnder(panelKey: string, path: string) {
-  const actions = panelActions(panelKey);
   for (const t of fileTabsOf(panelKey)) {
     if (!isUnder(t.path, path)) continue;
     setFileTabDirty(panelKey, t.key, false);
-    actions.closeTab(t.key);
+    closeTab(panelKey, t.key);
   }
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
-import type { PanelScope } from "@/features/panel/ui/surfaces";
+import type { PanelScope } from "@/features/panel/ui";
 import { usePanel } from "@/features/panel/ui/usePanel";
 import type { Selection } from "@/features/git/ui/changes/fileSelection";
 import { closeFileTabsUnder, dirtyFilePaths, dirtyFileUnder, openFileTab, relocateFileTabs, selectionOf } from "./fileTabs";

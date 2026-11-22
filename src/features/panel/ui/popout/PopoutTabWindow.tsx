@@ -1,11 +1,10 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { chatKey } from "@/features/panel/ui/tabs/tabKinds";
+import { chatKey, terminalTitle } from "@/features/panel/ui/tabs/tabData";
 import { Panel } from "@/features/panel/ui/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
-import { panelKey, windowScope } from "@/features/panel/ui/surfaces";
-import { terminalTitle } from "@/features/panel/ui/tabs/tabKinds";
+import { panelKey, windowScope } from "@/features/panel/ui/surface";
 import { startTabWindow, type TabWindowRoute } from "./tabWindow";
 
 const TerminalPane = lazy(() => import("@/features/terminal/ui/TerminalPane"));
@@ -35,12 +34,12 @@ export function PopoutTabWindow({ route }: { route: TabWindowRoute }) {
 
 function TabWindowPanel({ route }: { route: TabWindowRoute }) {
   const panel = usePanel({
-    surface: route.kind === "browser" ? "window" : "chatWindow",
+    surface: route.kind === "browser" ? "win" : "cwin",
     scope: windowScope(route.projectId, route.key),
     newChat: undefined,
     terminals: NO_TERMINALS,
     // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
-    onCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("board", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
+    onCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("kanban", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
   });
   return <Panel panel={panel} />;
 }

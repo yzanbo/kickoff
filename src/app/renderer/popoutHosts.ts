@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { sendPanelsWhileChanging } from "@/features/panel/ui/state/panelMirror";
 import { handSidePanelsOut, ownSidePanelsAgain, takeSidePanelsBack } from "@/features/panel/ui/state/panelHandOff";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, setPanelOpen } from "@/features/panel/ui";
 import { popoutKey, popoutPath } from "@/foundation/ui/navigation/popout";
 import { href, routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
@@ -37,8 +36,8 @@ export function usePopoutHosts(route: Route): { sideHeld: boolean } {
         const projectId = routeProjectId(latestRoute.current);
         void takeSidePanelsBack(m.panels).finally(() => {
           // 「チャット欄に戻す」はいまのプロジェクトの欄を開き、✕ は閉じたまま戻す（別ウィンドウではいつも開いていたので、どの欄も閉じる）
-          for (const [key] of m.panels) panelActions(key).setOpen(false);
-          if (m.open && projectId !== null) panelActions(panelKey("side", projectId)).setOpen(true);
+          for (const [key] of m.panels) setPanelOpen(key, false);
+          if (m.open && projectId !== null) setPanelOpen(panelKey("side", projectId), true);
           setSide(0);
           postWindowMessage("docked", { key: popoutKey({ kind: "side" }) });
         });

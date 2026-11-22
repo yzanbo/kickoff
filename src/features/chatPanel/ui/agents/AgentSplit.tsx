@@ -9,7 +9,7 @@ import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";
 import { SideSelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/ui/screen/mainChat";
-import { panelKey, type DraftScope } from "@/features/panel/ui/surfaces";
+import { panelKey, type DraftScope } from "@/features/panel/ui";
 import { DraftSideContext } from "./draftSide";
 import { AgentPanelFind } from "./AgentPanelFind";
 

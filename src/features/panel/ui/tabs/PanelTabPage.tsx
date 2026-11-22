@@ -1,4 +1,4 @@
-import { Activity, lazy, memo, Suspense, useContext, useMemo, type CSSProperties, type ReactNode } from "react";
+import { Activity, lazy, memo, Suspense, useContext, useMemo, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { BrowserPane } from "@/features/browser/ui/BrowserPane";
 import { useAgentBrowsing } from "@/features/browser/ui/agentBrowsing";
@@ -18,13 +18,14 @@ import { TrashTab } from "@/features/trash/ui/TrashTab";
 import { ProjectFileTab } from "@/features/files/ui/ProjectFileTab";
 import { SideFileView } from "@/features/files/ui/SideFileView";
 import { SideProjectView } from "@/features/projects/ui/views/SideProjectView";
-import { childTab, noteTab, terminalTitle } from "./tabKinds";
+import { childTab, noteTab, terminalTitle } from "./tabData";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext, TabVisibleContext } from "./tabPageContext";
 import { useKeepAlive } from "@/features/chat/ui/screen/keepAlive";
 import { NewChatPane } from "@/features/chatPanel/ui/tabs/NewChatPane";
 import { moveDraftSidePanel } from "@/features/chatPanel/ui/agents/draftSide";
-import { panelStateOf } from "@/features/panel/ui/state/panelStore";
+import { kindOf, panelStateOf } from "@/features/panel/ui/state/panelStore";
+import type { TabPageProps } from "@/features/panel/ui/kind";
 import { projectOfPanel } from "@/features/panel/ui/surfaces";
 import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 import { api } from "@/foundation/ui/api";
@@ -34,25 +35,14 @@ import type { PanelTab, PanelPageOps } from "@/features/panel/ui/usePanel";
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
 const TerminalPane = lazy(() => import("@/features/terminal/ui/TerminalPane"));
 
-type TabKind = PanelTab["kind"];
+/** 種類 K のタブの中身に渡すもの */
+type PageOf<K extends PanelTab["kind"]> = TabPageProps<Extract<PanelTab, { kind: K }>>;
 
-interface PageProps<T extends PanelTab> {
-  tab: T;
-  /** 欄の操作（欄の状態が変わっても同じ物） */
-  panel: PanelPageOps;
-  /** 欄を開いていて、自分のペインで表示中か */
-  visible: boolean;
-  /** 自分のペインにピントがあるか（ターミナルの入力先） */
-  focused: boolean;
-}
+// タブの種類ごとの中身（どの部品を描き、中身からの知らせでタブをどう変えるか。種類の項目の Page は tabKinds.ts）。中身からタブへの知らせは、どれも patchTab（その種類のタブの中身だけを変える）か、
+// 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたノート）
 
-/**
- * タブの種類ごとの中身（どの部品を描き、中身からの知らせでタブをどう変えるか）。中身からタブへの知らせは、どれも patchTab（その種類のタブの中身だけを変える）か、
- * 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたノート）。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
- */
-const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>) => ReactNode } = {
-  chat: (props) => <ChatTabPage {...props} />,
-  new: ({ tab: t, panel, visible }) => (
+export function NewChatPage({ tab: t, panel, visible }: PageOf<"new">) {
+  return (
     <NewChatPane
       tabKey={t.key}
       projectId={t.projectId}
@@ -79,39 +69,54 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       // 空の文は覚えない（書き始める前と同じ形のまま）
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
-  ),
-  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。記録から作るものはチャットの店から読み、操作はそのチャットの画面のものを使う。
-  // 表示していない間は Activity で止める（伝える入力欄の音声入力など、チャットに止めない理由があれば止めない）
-  subagent: ({ tab: t, visible }) => <SubagentTabPage chatId={t.chatId} agentKey={t.agentKey} visible={visible} />,
-  // チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
-  changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
-  // チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面
-  projectView: ({ tab: t }) => <SideProjectView chatId={t.chatId} projectId={t.projectId} worktree={t.worktree} view={t.view} />,
-  // プロジェクトの「ファイル」「検索」「変更」タブの右だけに開く（中身が使う Git の状態などは EditorTab が FileTabsContext で渡す）
-  projectFile: ({ tab: t, panel }) => <ProjectFileTab tab={t} panelKey={panel.key} />,
-  file: ({ tab: t, panel }) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} tabOf={{ panelKey: panel.key, tabKey: t.key }} />,
-  // チャットの画面の右の欄だけに開く。プロジェクトのノート（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
-  // 名前を変えたら、新しい名前のノートのタブに置き換える（同じ位置のまま）
-  note: ({ tab: t, panel }) => <SideNote projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, noteTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
-  // チャットの画面の右の欄だけに開く。DB クライアント（開いているタブ・木の開き具合はチャットごとに覚える。別ウィンドウと同じ place）
-  database: ({ tab: t }) => <LazyDatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />,
-  // チャットの画面の右の欄だけに開く。プロジェクトの「GitHub」タブと同じ画面（狭いので一覧と中身を切り替えて出す。絞り込みと開いているものはプロジェクトのタブと共通）
-  github: ({ tab: t }) => <GitHubTab projectId={t.projectId} />,
-  // チャットの画面の右の欄だけに開く。プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面（開いているもの・絞り込みはプロジェクトのタブと共通）
-  ci: ({ tab: t }) => <CiTab projectId={t.projectId} />,
-  docker: ({ tab: t }) => <DockerTab projectId={t.projectId} />,
-  trash: ({ tab: t }) => <TrashTab projectId={t.projectId} />,
-  child: ({ tab: t, panel, visible }) => (
+  );
+}
+
+// チャットの画面の右の欄（サブエージェントの欄）だけに開く。記録から作るものはチャットの店から読み、操作はそのチャットの画面のものを使う。
+// 表示していない間は Activity で止める（伝える入力欄の音声入力など、チャットに止めない理由があれば止めない）
+export const SubagentPage = ({ tab: t, visible }: PageOf<"subagent">) => <SubagentTabPage chatId={t.chatId} agentKey={t.agentKey} visible={visible} />;
+
+// チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
+export const ChangesPage = ({ tab: t }: PageOf<"changes">) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />;
+
+// チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面
+export const ProjectViewPage = ({ tab: t }: PageOf<"projectView">) => <SideProjectView chatId={t.chatId} projectId={t.projectId} worktree={t.worktree} view={t.view} />;
+
+// プロジェクトの「ファイル」「検索」「変更」タブの右だけに開く（中身が使う Git の状態などは EditorTab が FileTabsContext で渡す）
+export const ProjectFilePage = ({ tab: t, panel }: PageOf<"projectFile">) => <ProjectFileTab tab={t} panelKey={panel.key} />;
+
+export const FilePage = ({ tab: t, panel }: PageOf<"file">) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} tabOf={{ panelKey: panel.key, tabKey: t.key }} />;
+
+// チャットの画面の右の欄だけに開く。プロジェクトのノート（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
+// 名前を変えたら、新しい名前のノートのタブに置き換える（同じ位置のまま）
+export const NotePage = ({ tab: t, panel }: PageOf<"note">) => <SideNote projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, noteTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />;
+
+// チャットの画面の右の欄だけに開く。DB クライアント（開いているタブ・木の開き具合はチャットごとに覚える。別ウィンドウと同じ place）
+export const DatabasePage = ({ tab: t }: PageOf<"database">) => <LazyDatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />;
+
+// チャットの画面の右の欄だけに開く。プロジェクトの「GitHub」タブと同じ画面（狭いので一覧と中身を切り替えて出す。絞り込みと開いているものはプロジェクトのタブと共通）
+export const GitHubPage = ({ tab: t }: PageOf<"github">) => <GitHubTab projectId={t.projectId} />;
+
+// チャットの画面の右の欄だけに開く。プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面（開いているもの・絞り込みはプロジェクトのタブと共通）
+export const CiPage = ({ tab: t }: PageOf<"ci">) => <CiTab projectId={t.projectId} />;
+export const DockerPage = ({ tab: t }: PageOf<"docker">) => <DockerTab projectId={t.projectId} />;
+export const TrashPage = ({ tab: t }: PageOf<"trash">) => <TrashTab projectId={t.projectId} />;
+
+export function ChildPage({ tab: t, panel, visible }: PageOf<"child">) {
+  return (
     <SideChildChat
       chatId={t.childId}
       visible={visible}
       onTitle={(title) => panel.patchTab(t.key, { kind: "child", fields: { title } })}
       slot={chatPaneSlot(panel.key, t.key)}
     />
-  ),
-  // 新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）。
-  // 「子チャットを作成」「新しい子チャットで聞く」から開いたタブ（follow）は、設定の「子チャットを作ったとき」が別ウィンドウ・開かないなら、閉じてそちらで開く
-  newChild: ({ tab: t, panel }) => (
+  );
+}
+
+// 新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）。
+// 「子チャットを作成」「新しい子チャットで聞く」から開いたタブ（follow）は、設定の「子チャットを作ったとき」が別ウィンドウ・開かないなら、閉じてそちらで開く
+export function NewChildPage({ tab: t, panel }: PageOf<"newChild">) {
+  return (
     <NewChildPane
       parentId={t.parentId ?? t.chatId}
       quote={t.quote}
@@ -125,8 +130,11 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         if (place === "window") openChat(child, "window");
       }}
     />
-  ),
-  terminal: ({ tab: t, panel, visible, focused }) => (
+  );
+}
+
+export function TerminalPage({ tab: t, panel, visible, focused }: PageOf<"terminal">) {
+  return (
     <Suspense fallback={<div className="page muted">読み込み中…</div>}>
       <TerminalPane
         termKey={t.key}
@@ -141,8 +149,11 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         projectId={projectOfPanel(panel.key)}
       />
     </Suspense>
-  ),
-  browser: ({ tab: t, panel, visible }) => (
+  );
+}
+
+export function BrowserPage({ tab: t, panel, visible }: PageOf<"browser">) {
+  return (
     <BrowserPane
       url={t.current ?? t.url}
       visible={visible}
@@ -157,11 +168,11 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       // 空のページのあいだは「新しいタブ」と表示する
       onChange={({ url, title }) => panel.patchTab(t.key, { kind: "browser", fields: { title: url === "about:blank" ? "" : title, current: url } })}
     />
-  ),
-};
+  );
+}
 
 /** チャットのタブ: パネルのタブに置いたチャットの画面 */
-function ChatTabPage({ tab: t, panel, visible }: PageProps<Extract<PanelTab, { kind: "chat" }>>) {
+export function ChatTabPage({ tab: t, panel, visible }: PageOf<"chat">) {
   const tabPage = useContext(TabPageContext);
   return (
     <ChatScreen
@@ -194,10 +205,7 @@ function SubagentTabPage({ chatId, agentKey, visible }: { chatId: number; agentK
   );
 }
 
-/** タブの種類の中身を描く（種類と中身の型を結びつけて引く） */
-const pageOf = <T extends PanelTab>(tab: T) => PAGES[tab.kind] as unknown as (props: PageProps<T>) => ReactNode;
-
-type TabPageProps = {
+type FrameProps = {
   tab: PanelTab;
   /** 欄の操作（usePanel の pageOps。欄の状態が変わっても同じ物） */
   panel: PanelPageOps;
@@ -222,7 +230,7 @@ function sameStyle(a: CSSProperties | undefined, b: CSSProperties | undefined): 
 }
 
 /**
- * パネルの 1 つのタブの中身（チャット・新しいチャット・サブエージェント・ターミナル・ブラウザ。PAGES）。
+ * パネルの 1 つのタブの中身（中身は種類の項目の Page）。
  * タブを切り替えても入力中の文章やスクロール位置が残るよう、表示していないタブも hidden で残す。
  * ペインを分けても作り直さない（webview・ターミナル・入力中の文を保つ）よう、どのタブもパネルの中身の直下に置き、
  * 分けているときは style でそのペインの位置に重ねる。押す・ピントが入るとそのペインにピントを移す。
@@ -250,9 +258,9 @@ function PanelTabPageBody({
   focused,
   style,
   split = false,
-}: TabPageProps) {
+}: FrameProps) {
   const focus = () => panel.focusPane(paneId);
-  const Page = pageOf(tab);
+  const Page = kindOf(tab).Page;
   // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
   const popOutable = canPopOut(tab);
   // このタブを表に出す（入れ子の欄（チャットの画面の右の欄）なら、外のチャットのタブも表に出す）

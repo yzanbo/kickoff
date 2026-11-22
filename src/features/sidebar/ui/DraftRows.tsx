@@ -7,7 +7,7 @@ import { draftTitleOf, openDraft, useAllDrafts, type PanelDraft } from "@/featur
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey } from "@/features/panel/ui";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 
 /**
@@ -18,7 +18,7 @@ import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 function useDraftSelected(draft: PanelDraft): boolean {
   const route = useRoute();
   const [placement] = useChatPlacement();
-  if (!draft.showing || draft.panel !== panelKey("board", draft.projectId)) return false;
+  if (!draft.showing || draft.panel !== panelKey("kanban", draft.projectId)) return false;
   if (route.name !== "project" || route.id !== draft.projectId) return false;
   return placement === "separate" ? route.tab === "chats" : route.tab === "board";
 }

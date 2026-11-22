@@ -7,6 +7,7 @@ import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
+import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
 
 /** 系譜のうち、まだ読み込んでいないチャットを一覧に入れる（親をたどって、いちばん上の親の右の欄に開けるように） */
 function learnLineage(lineage: OpenViewRequest["lineage"]) {
@@ -25,11 +26,13 @@ function openWorkFile(request: Extract<OpenViewRequest, { kind: "file" | "diff" 
     if (request.kind === "file") return openPopout({ kind: "file", chatId: root.id, ...target, path: request.path, ...(request.line ? { line: request.line } : {}) }, `${name} — ファイル`);
     return openPopout({ kind: "changes", chatId: root.id, ...target, ...(request.path ? { focus: request.path } : {}) }, "変更");
   }
-  const opened = openInRootSide(from.id, (rootId, side) =>
-    request.kind === "file"
-      ? side.openFile({ chatId: rootId, ...target, path: request.path, ...(request.line ? { line: request.line } : {}) })
-      : side.openChanges({ chatId: rootId, ...target, ...(request.path ? { focus: request.path } : {}) }),
-  );
+  const opened = openInRootSide(from.id, (rootId, side) => {
+    const tab =
+      request.kind === "file"
+        ? fileTab({ chatId: rootId, ...target, path: request.path, ...(request.line ? { line: request.line } : {}) })
+        : changesTab({ chatId: rootId, ...target, ...(request.path ? { focus: request.path } : {}) });
+    openTab(side, tab, reopenOf(tab));
+  });
   // 右の欄を置けない（親が分からない）ときはファイルタブ
   if (!opened && request.kind === "file") open({ kind: "file", projectId: request.project_id, path: request.path, line: request.line ?? undefined, worktree: request.worktree });
 }

@@ -1,10 +1,7 @@
 // プロジェクトの「ノート」タブの右の欄（パネルの notes。開いたノートをタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelStateOf } from "@/features/panel/ui/state/panelStore";
-import { panelKey, type PanelScope, type ViewScope } from "@/features/panel/ui/surfaces";
-import { noteTab } from "@/features/panel/ui/tabs/tabKinds";
+import { closeTab, noteTab, openTab, panelKey, panelStateOf, replaceTab, showTab, type PanelScope, type ViewScope } from "@/features/panel/ui";
 import { confirmLeaveNote } from "./noteGuards";
 import { isUnder, remapPath } from "./notePaths";
 
@@ -29,29 +26,26 @@ const tabFor = (projectId: number, path: string) => noteTab({ chatId: null, proj
  * ふだんのクリックはピントのあるペインで表示中のノートを入れ替える（書きかけがあれば保存するかを聞く。ノートのタブがなければ新しいタブ）
  */
 export async function openNoteInPanel(projectId: number, path: string, newTab: boolean, key = notePanelKey(projectId)): Promise<void> {
-  const actions = panelActions(key);
   const state = panelStateOf(key);
   const tab = tabFor(projectId, path);
-  if (state.tabs.some((t) => t.key === tab.key)) return actions.showTab(tab.key);
+  if (state.tabs.some((t) => t.key === tab.key)) return showTab(key, tab.key);
   const active = focusedPane(state.layout).active;
   const current = noteTabsOf(key).find((t) => t.key === active);
-  if (newTab || !current) return actions.openNote(tab);
+  if (newTab || !current) return openTab(key, tab);
   if (!(await confirmLeaveNote(projectId, current.path))) return;
-  actions.replaceTab(current.key, tab);
+  replaceTab(key, current.key, tab);
 }
 
 /** 名前を変えた・動かしたノート（とフォルダの中のノート）のタブを、新しいパスに付け替える */
 export function remapNoteTabs(projectId: number, from: string, to: string) {
   for (const key of notePanelKeys(projectId)) {
-    const actions = panelActions(key);
-    for (const t of noteTabsOf(key)) if (isUnder(t.path, from)) actions.replaceTab(t.key, tabFor(projectId, remapPath(t.path, from, to)));
+    for (const t of noteTabsOf(key)) if (isUnder(t.path, from)) replaceTab(key, t.key, tabFor(projectId, remapPath(t.path, from, to)));
   }
 }
 
 /** ゴミ箱に入れたノート（フォルダならその中のノート）のタブを閉じる */
 export function closeNoteTabsUnder(projectId: number, path: string) {
   for (const key of notePanelKeys(projectId)) {
-    const actions = panelActions(key);
-    for (const t of noteTabsOf(key)) if (isUnder(t.path, path)) actions.closeTab(t.key);
+    for (const t of noteTabsOf(key)) if (isUnder(t.path, path)) closeTab(key, t.key);
   }
 }

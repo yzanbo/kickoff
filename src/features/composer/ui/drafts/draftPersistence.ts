@@ -1,6 +1,6 @@
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { NEW_CHAT_DRAFTS } from "@/foundation/ui/storage/storageKeys";
-import { panelKey, parsePanelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, parsePanelKey } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /** 送る前の新しいチャットのタブ */
@@ -29,14 +29,14 @@ export function readSavedDrafts(): Map<string, DraftTab[]> {
  * 別ウィンドウはアプリを閉じると閉じるので、開けない欄に下書きが残り続けないように、読み戻すときに 1 度だけ行う。移すものがなければ同じ Map を返す
  */
 export function moveDraftsToChatPanels(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
-  const froms = [...saved.keys()].filter((key) => parsePanelKey(key)?.surface === "chatWindow");
+  const froms = [...saved.keys()].filter((key) => parsePanelKey(key)?.surface === "cwin");
   if (froms.length === 0) return saved;
   const out = new Map(saved);
   for (const from of froms) {
     const stray = out.get(from) ?? [];
     out.delete(from);
     for (const tab of stray) {
-      const to = panelKey("board", tab.projectId);
+      const to = panelKey("kanban", tab.projectId);
       const tabs = out.get(to) ?? [];
       if (!tabs.some((t) => t.key === tab.key)) out.set(to, [...tabs, tab]);
     }

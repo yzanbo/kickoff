@@ -1,5 +1,5 @@
 import { Globe, MessageSquarePlus, SquarePen, SquareTerminal } from "lucide-react";
-import type { PanelKind } from "./surfaces";
+import type { PanelKind } from "./surface";
 
 /**
  * タブがないときのパネル・ペインの中身（新しいチャット・ブラウザ・ターミナルを開くボタン）。

@@ -9,6 +9,8 @@ import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useExternalBrowser, useExternalTerminal } from "@/foundation/ui/external/externalApps";
 import { browserPageOf, terminalTargetOf } from "./externalTargets";
 import { OpenWithMenu } from "./OpenWithMenu";
+import { openTab } from "@/features/panel/ui/state/actions";
+import { terminalTab } from "@/features/panel/ui/tabs/tabData";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";
@@ -53,7 +55,7 @@ export function useOpenWithMenu(panel: PanelController) {
     const shown = shownTab(paneId);
     const target = terminalTargetOf(shown, panel.chatOf(shown), targets);
     if (!target) return picker.openAt(at, { mode, app, icon });
-    if (mode === "tab") panel.openTerminal(target);
+    if (mode === "tab") openTab(panel.key, terminalTab(target));
     else terminal.open(target.cwd, app);
   };
 
@@ -124,7 +126,7 @@ export function useOpenWithMenu(panel: PanelController) {
           at={picker.menu.at}
           targets={targets}
           ignore={OPENERS}
-          onPick={(t) => (pick.mode === "tab" ? panel.openTerminal(t) : terminal.open(t.cwd, pick.app))}
+          onPick={(t) => (pick.mode === "tab" ? openTab(panel.key, terminalTab(t)) : terminal.open(t.cwd, pick.app))}
           onClose={picker.close}
         />
       )}

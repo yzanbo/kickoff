@@ -3,7 +3,7 @@ import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
-import { panelActions, panelKey } from "@/features/panel/ui";
+import { openTab, panelKey, subagentTab } from "@/features/panel/ui";
 import { openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import { jumpToEvent } from "@/features/conversation/ui/timeline/jumpToEvent";
@@ -54,12 +54,15 @@ export function createSubagentNav({ chatId, canOpenSide, release, reveal }: Suba
       if (!canOpenSide) return nav.reveal(key, eventId);
       // サブエージェントの中で起動したもの（入れ子）は、タブに外側からの道筋を持たせる（名前の前の「↳」と、乗せたときの道筋）
       const path = pathOf(tree(), key);
-      panelActions(panelKey("agents", chatId)).openSubagent({
-        chatId,
-        agentKey: key,
-        title: entry.description,
-        ...(path.length > 1 ? { path: path.map((s) => s.description).join(" › ") } : {}),
-      });
+      openTab(
+        panelKey("agents", chatId),
+        subagentTab({
+          chatId,
+          agentKey: key,
+          title: entry.description,
+          ...(path.length > 1 ? { path: path.map((s) => s.description).join(" › ") } : {}),
+        }),
+      );
       if (eventId !== undefined) requestAnimationFrame(() => jumpInSide(key, eventId));
     },
     reveal,

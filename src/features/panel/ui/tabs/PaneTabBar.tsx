@@ -16,8 +16,10 @@ import type { OpenWithKind } from "@/features/panel/ui/openWith/useOpenWithMenu"
 import { confirmCloseAllUnsaved } from "./confirmUnsaved";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
-import { specOf, type TabGroupLookup } from "./tabKinds";
-import { SURFACES } from "@/features/panel/ui/surfaces";
+import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
+import { openTab } from "@/features/panel/ui/state/actions";
+import type { TabGroupLookup } from "@/features/panel/ui/kind";
+import { chatTab } from "./tabData";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
 import { ClusterShortItem } from "@/features/chatPanel/ui/clusters/ClusterShortItem";
 import { storage } from "@/features/panel/ui/storage";
@@ -117,7 +119,7 @@ export function PaneTabBar({
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // タブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
-  const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []));
+  const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => kindOf(t).projectOf(t) ?? []));
   const groupOf: TabGroupLookup = (projectId, groupId) => {
     const group = groupId === null || groupId === undefined ? undefined : groupsOf(projectId).find((g) => g.id === groupId);
     return group && { name: group.name, hue: group.hue };
@@ -169,7 +171,7 @@ export function PaneTabBar({
         <TabClusterHead
           cluster={{ key: "all", kind: "all", label: "チャット", title: "このパネルのチャット", tabs: strip.known }}
           chats={strip.allChats}
-          onOpen={(chat) => panel.open(chat)}
+          onOpen={(chat) => openTab(panel.key, chatTab(chat))}
           all
           popoverTitle="状態ごとのチャット"
         />
@@ -204,7 +206,7 @@ export function PaneTabBar({
                 <TabClusterHead
                   cluster={c}
                   chats={strip.clusterChats(c)}
-                  onOpen={(chat) => panel.open(chat)}
+                  onOpen={(chat) => openTab(panel.key, chatTab(chat))}
                   collapsed={collapsed}
                   onToggleCollapsed={c.tabs.length > 0 ? () => strip.toggleCollapsed(c) : undefined}
                   dragProps={strip.reorder.handle(c)}
@@ -239,7 +241,7 @@ export function PaneTabBar({
         : display.map(tab)}
       </div>
       {/* 新しいタブ: 欄で出す種類（チャット・ブラウザ・ターミナル）を 1 回で開く（タブのすぐ右。外から開くタブだけの欄（サブエージェントの欄など）では出さない） */}
-      {!SURFACES[panel.surface].noTabAdds && (
+      {surfaceOf(panel.surface)?.tabAdds !== false && (
       <PanelTabAdds
         panel={panel}
         pane={pane}
@@ -255,7 +257,7 @@ export function PaneTabBar({
       {onNewChild && <AgentPanelAdds panel={panel} onNewChild={onNewChild} />}
       {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}
       <span className="panel-bar-buttons panel-pane-tools">
-        {!SURFACES[panel.surface].noSplitButtons && (
+        {surfaceOf(panel.surface)?.splitButtons !== false && (
           <>
             <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" iconSize={14} onClick={() => splitTo("row")} />
             <IconButton icon={Rows2} label="下に分ける" iconSize={14} onClick={() => splitTo("column")} />

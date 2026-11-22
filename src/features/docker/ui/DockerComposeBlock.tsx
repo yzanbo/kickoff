@@ -2,8 +2,7 @@ import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
 import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";
 import { open } from "@/foundation/ui/navigation/open";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { openTab, panelKey, terminalTab } from "@/features/panel/ui";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
@@ -132,7 +131,7 @@ export function DockerComposeBlock({
               className="btn"
               data-size="sm"
               onClick={() =>
-                panelActions(panelKey("bottom", projectId)).openTerminal({ cwd: failure.cwd, label: compose.file ?? "compose", projectId, command: failure.command, title: "docker compose" })
+                openTab(panelKey("bottom", projectId), terminalTab({ cwd: failure.cwd, label: compose.file ?? "compose", projectId, command: failure.command, title: "docker compose" }))
               }
             >
               ターミナルで流し直す

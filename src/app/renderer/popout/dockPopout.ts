@@ -8,9 +8,7 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat, openChat, openInRootSide, rootChatOf, screenOfChat, shownChatIds } from "@/features/chat/ui";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { isPanelMounted } from "@/features/panel/ui/state/panelStore";
-import { panelKey, panelScreen } from "@/features/panel/ui/surfaces";
+import { changesTab, databaseTab, fileTab, isPanelMounted, noteTab, openTab, panelKey, panelScreen, reopenOf } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { takeHandedTab } from "@/features/panel/ui/tabs/tabHandoff";
 import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
@@ -25,7 +23,7 @@ function whenDrawn(chatId: number, run: () => void, tries = 120) {
 function reopenInPanel(panel: string, tab: PanelTab) {
   const screen = isPanelMounted(panel) ? undefined : panelScreen(panel);
   if (screen) navigate(screen);
-  panelActions(panel).openPanelTab(tab);
+  openTab(panel, tab);
 }
 
 export async function dockPopout(route: PopoutRoute): Promise<void> {
@@ -39,7 +37,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       if (route.chatId !== undefined) return void openTarget({ kind: "chat", projectId: route.projectId, chatId: route.chatId });
       // 送る前の新しいチャット: 別ウィンドウが渡した中身（書きかけの文・添付）のまま、チャットのパネルに開き直す
       const draft = takeHandedTab(route.key);
-      if (draft) reopenInPanel(panelKey("board", route.projectId), draft);
+      if (draft) reopenInPanel(panelKey("kanban", route.projectId), draft);
       return;
     }
     case "terminal": {
@@ -65,14 +63,15 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       return;
     }
     case "database":
-      openInRootSide(route.chatId, (rootId, side) => side.openDatabase({ chatId: rootId, projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) }));
+      openInRootSide(route.chatId, (rootId, side) => openTab(side, databaseTab({ chatId: rootId, projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) })));
       return;
     case "changes":
     case "file": {
       const place = { projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) };
-      openInRootSide(route.chatId, (rootId, side) =>
-        route.kind === "changes" ? side.openChanges({ chatId: rootId, ...place, focus: route.focus }) : side.openFile({ chatId: rootId, ...place, path: route.path, line: route.line }),
-      );
+      openInRootSide(route.chatId, (rootId, side) => {
+        const tab = route.kind === "changes" ? changesTab({ chatId: rootId, ...place, focus: route.focus }) : fileTab({ chatId: rootId, ...place, path: route.path, line: route.line });
+        openTab(side, tab, reopenOf(tab));
+      });
       return;
     }
     case "note": {
@@ -83,7 +82,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
           .map((id) => knownChat(id))
           .find((c) => c?.project_id === route.projectId);
       const root = shown && rootChatOf(shown, knownChat);
-      if (!root || !openInRootSide(root.id, (rootId, side) => side.openNote({ chatId: rootId, projectId: route.projectId, path: route.path }))) openTarget({ kind: "note", projectId: route.projectId, path: route.path });
+      if (!root || !openInRootSide(root.id, (rootId, side) => openTab(side, noteTab({ chatId: rootId, projectId: route.projectId, path: route.path })))) openTarget({ kind: "note", projectId: route.projectId, path: route.path });
       return;
     }
   }

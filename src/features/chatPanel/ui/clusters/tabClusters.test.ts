@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeGroup } from "@shared/foundation/testing/factories";
+import { makeChat, makeGroup } from "@shared/foundation/testing/factories";
+import { browserTab, chatTab, newChatTab, terminalTab, type PanelTab } from "@/features/panel/ui";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
-import { OTHER_CLUSTER, clusterInitial, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
+import { OTHER_CLUSTER, clusterInitial, tabClusterOf, type ClusterResolver, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
 
 const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
@@ -117,4 +118,24 @@ test("まとまりの名前を省略: グループ名・本体・ブランチ名
   assert.equal(clusterInitial(wt), "f");
   assert.equal(clusterInitial({ key: "p", kind: "pinned", label: "Kickoff · 固定" }), "固");
   assert.equal(clusterInitial({ key: "e", kind: "group", label: "x", group: makeGroup(2, { name: "🚀 リリース" }) }), "🚀");
+});
+
+const tabHead = (key: string): BucketHead => ({ key, kind: "group", label: key });
+
+test("まとまり: チャットはチャットの（分からなければ作成先の）、新しいチャットは作成先の、ターミナルはフォルダの、ブラウザはその他", () => {
+  const resolve: ClusterResolver = {
+    chatById: (id) => (id === 1 ? makeChat(1) : undefined),
+    ofChat: (c) => tabHead(`chat:${c.id}`),
+    ofTarget: (projectId, group, worktree) => tabHead(`target:${projectId}:${group ?? ""}${worktree ? `:${worktree}` : ""}`),
+    ofFolder: (projectId, cwd) => tabHead(`folder:${projectId}:${cwd}`),
+  };
+  const of = (t: PanelTab) => tabClusterOf(t, resolve).key;
+  assert.equal(of(chatTab(makeChat(1))), "chat:1");
+  assert.equal(of(chatTab(makeChat(9))), "target:1:");
+  assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
+  assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
+  // 作業場所別のまとまりの「新しいチャット」から始めたものは、そのワークツリーのまとまり
+  assert.equal(of(newChatTab({ projectId: 2, worktree: "/repo/a-wt" })), "target:2::/repo/a-wt");
+  assert.equal(of(terminalTab({ cwd: "/repo/a", label: "a", projectId: 3 })), "folder:3:/repo/a");
+  assert.equal(tabClusterOf(browserTab(), resolve), OTHER_CLUSTER);
 });

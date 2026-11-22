@@ -1,244 +1,114 @@
-import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
+import { PanelBottomClose, PanelRightClose } from "lucide-react";
 import type { Route } from "@/foundation/ui/navigation/router";
-import { readSetting, type SettingFamily } from "@/foundation/ui/storage";
+import { readSetting } from "@/foundation/ui/storage";
 import { CHAT_PLACEMENT, projectChatOpen } from "@/foundation/ui/storage/storageKeys";
+import { linkedChatsExt } from "./state/panelState";
+import { defineSurface, parsePanelKey, type AnySurface } from "./surface";
 
 /**
- * タブの欄（board = チャットのパネル（ボードの右・「チャット」タブ。チャットだけ）/ side = 画面の右端のチャット欄（画面の文言では「右サイドバー」。ブラウザだけ）/
- * bottom = フッター（下のパネル。ターミナルだけ）/
- * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
- * notes = プロジェクトの「ノート」タブの右（開いたノートをタブで並べる。左の一覧から開く） /
- * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く） /
- * window = ブラウザの別ウィンドウ（右サイドバーのタブをウィンドウの外へ出した先。Chrome のウィンドウと同じく、中でもタブを足せる。ウィンドウごとに 1 つ） /
- * chatWindow = チャットの別ウィンドウ（チャットのパネルのチャットのタブを外へ出した先。ほかのチャットのタブもドラッグで足せる。ウィンドウごとに 1 つ））
+ * いまの 8 つの欄（持ち主の機能へ移すまで panel に置く。ui/contributes.ts が panelSurfaces に入れる）。
+ * accepts は出すタブのまとまり（chat = チャットと新しいチャット・file = ファイルとノート）。新しいタブ・空の欄のボタン・ドラッグで受け入れる種類もこれで決まる
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents" | "notes" | "files" | "window" | "chatWindow";
-
-/**
- * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェント・ファイルはチャットの画面の右の欄・ノートとファイルのタブの右だけに出す種類）
- */
-export type PanelKind = "chat" | "browser" | "terminal" | "subagent" | "file";
-
-/**
- * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
- * 覚えておく状態と、サイドバーと連動する範囲がこれで決まる
- */
-export type PanelScope = number | "all" | DraftScope | ViewScope | WindowScope;
-
-/**
- * 送る前の新しいチャット（下書きのタブ）の右の欄の範囲（draft-<タブの key>）。送ってチャットができたら、そのチャットの右の欄へ中身を移す（moveDraftSidePanel）
- */
-export type DraftScope = `draft-${string}`;
-
-/**
- * 画面の中に入れ子で置いた、プロジェクトの画面と同じ部品の欄の範囲（view-<部品ごとの名前>。チャットの右の欄の「ファイル」タブの中のファイルのタブ。
- * プロジェクトの画面の欄とは別に持ち、アプリを閉じるまで覚える）
- */
-export type ViewScope = `view-${string}`;
-
-/**
- * ブラウザの別ウィンドウの欄の範囲（win-<プロジェクト>-<開いたタブのキー>。プロジェクトのないものは 0）。
- * どのプロジェクトのブラウザか（AI の操作の対象・右サイドバーに戻す先）を、欄の名前から読めるように入れておく
- */
-export type WindowScope = `win-${number}-${string}`;
-
-/** ブラウザの別ウィンドウの欄の範囲 */
-export const windowScope = (projectId: number | null, tabKey: string): WindowScope => `win-${projectId ?? 0}-${tabKey}`;
-
-/** 下書きのタブの右の欄の範囲 */
-export const draftScope = (tabKey: string): DraftScope => `draft-${tabKey}`;
-
-/** 欄ごとの決まり（作る側・描く側・中で別々に分岐させず、ここに集める） */
-export interface SurfaceRules {
-  /** 覚えておく状態の名前の頭（<頭>:<プロジェクト | all>。下書きの保存（kickoff:new-chat-drafts）のキーにも使うので変えない） */
-  memoryPrefix: string;
-  /** 出すタブの種類（欄ごとに決まっている。新しいタブのボタン・空の欄のボタン・ドラッグで受け入れる種類もこれで決まる） */
-  kinds: readonly PanelKind[];
-  /**
-   * Esc で閉じるか（ボードの右のパネル。チャット欄はページの中で Esc を使うので、フッターはターミナルの中で使うので閉じない）。
-   * focused は、ピントが欄の中にあるときだけ閉じる（サブエージェントの欄。外のメインのチャットで押した Esc では閉じない）
-   */
-  closeOnEsc: boolean | "focused";
-  /** 見せている最後のタブを閉じたら、欄も閉じるか（右サイドバーも下のパネルと同じく閉じる） */
-  closeWhenEmpty: boolean;
-  /** タブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき）） */
-  openWhenEmpty: "terminal" | null;
-  /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
-  openSetting?: SettingFamily<boolean>;
-  /**
-   * 閉じるボタン（start / end = タブの列の左の道具の先頭か最後、right = 右上のペインのタブの列の右端（分けるボタンの後ろ）。
-   * なければ出さない: チャット欄は右上のレイアウトの開閉で閉じる）
-   */
-  closeButton?: { icon: LucideIcon; label: string; keys: string; at: "start" | "end" | "right" };
-  /** タブの列の右端に分けるボタンを置かない（右の欄。分けるのはタブのドラッグ・右クリック・⌘\ でできる） */
-  noSplitButtons?: boolean;
-  /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
-  maximize?: "width" | "height";
-  /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・ノートとファイルのタブの右） */
-  noTabAdds?: boolean;
-  /**
-   * サイドバーの一覧とチャットのタブをそろえない欄（チャットの別ウィンドウ。移したチャットだけを並べる。タブのチャットの状態のために、
-   * そのプロジェクトのチャットの一覧は読む）
-   */
-  unlinkedChats?: boolean;
-  /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
-  hideableTabs?: boolean;
-  /**
-   * 新しい子チャットを開けるか（サブエージェントの欄。タブの列の「＋」と空の欄のボタンで、この欄のチャットの子チャットを入力欄だけのタブで始める。
-   * ノートのチャット・アーカイブ済みのチャットでは出さない）
-   */
-  newChild?: boolean;
-  /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
-  emptyHint?: string;
-  /** タブの種類の札（「ノート」「サブ」「子」）を付けない（1 つの種類しか並ばない欄。ノートのタブの右） */
-  noKindBadges?: boolean;
-  /** 新しい子チャットを開けるときだけ、案内の後ろに足す文（ノートのチャット・アーカイブ済みでは「＋」を出さないので、案内でも言わない） */
-  newChildHint?: string;
-  /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
-  className?: string;
-  /**
-   * パネルの根のクラス（なければ board-panel）。チャットのタブの中に入れ子にする欄（サブエージェントの欄）は別の名前にし、
-   * 外側の欄の規則（.board-panel の幅・開閉の動き・opacity など）が効かないようにする
-   */
-  rootClass?: string;
-  /**
-   * 開閉で幅が動く欄か（.slide-pane。幅は並べる要素の格子の列が決め、中身は開き終えたときの幅のまま切り取り、閉じ終えたら隠す）。
-   * ボードの右のパネルとチャットの右の欄。画面そのものとして置くとき（frame.fixed。チャットタブ）は動かさない
-   */
-  slide?: boolean;
-}
-
-export const SURFACES: Record<PanelSurface, SurfaceRules> = {
-  board: {
-    memoryPrefix: "kanban",
-    kinds: ["chat"],
+export const PANEL_SURFACES: readonly AnySurface[] = [
+  // チャットのパネル（ボードの右・「チャット」タブ）。サイドバーに出ているチャットのタブをそろえる
+  defineSurface({
+    id: "kanban",
+    accepts: ["chat"],
     closeOnEsc: true,
-    closeWhenEmpty: true,
-    openWhenEmpty: null,
+    whenEmpty: "close",
     // 横から出てきたパネルを、横へしまう（タブはそのまま残る）
     closeButton: { icon: PanelRightClose, label: "パネルを閉じる", keys: "Esc", at: "start" },
     maximize: "width",
     hideableTabs: true,
     emptyHint: "カードを押すと、ここにチャットが開きます。",
     slide: true,
-  },
-  side: {
-    memoryPrefix: "side",
-    kinds: ["browser"],
+    ext: linkedChatsExt,
+  }),
+  // 右サイドバー（画面の右端のチャット欄。ブラウザだけ）
+  defineSurface({
+    id: "side",
+    accepts: ["browser"],
     closeOnEsc: false,
     // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ）
-    closeWhenEmpty: true,
-    openWhenEmpty: null,
+    whenEmpty: "close",
     openSetting: projectChatOpen,
     // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ）
     maximize: "width",
     // 狭い欄なので、右・下に分けるボタンは置かない（分けるのはタブのドラッグ・右クリック・⌘\）
-    noSplitButtons: true,
+    splitButtons: false,
     className: "as-sidebar",
-  },
-  bottom: {
-    memoryPrefix: "bottom",
-    kinds: ["terminal"],
+  }),
+  // フッター（下のパネル。ターミナルだけ）
+  defineSurface({
+    id: "bottom",
+    accepts: ["terminal"],
     closeOnEsc: false,
-    closeWhenEmpty: true,
+    whenEmpty: "close",
     openWhenEmpty: "terminal",
     closeButton: { icon: PanelBottomClose, label: "フッターを閉じる", keys: "⌃` / ⌘J", at: "end" },
     maximize: "height",
     className: "as-sidebar in-footer",
-  },
-  agents: {
-    memoryPrefix: "agents",
-    kinds: ["subagent", "file"],
+  }),
+  // チャットの画面の右の欄（サブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く）
+  defineSurface({
+    id: "agents",
+    accepts: ["subagent", "file"],
     closeOnEsc: "focused",
-    closeWhenEmpty: true,
-    openWhenEmpty: null,
+    whenEmpty: "close",
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "right" },
-    noSplitButtons: true,
+    splitButtons: false,
     // 左の会話を覆って横幅いっぱいに広げる ⇔ 元の幅に戻す（タブの列の左端）
     maximize: "width",
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとノートの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     newChildHint: "「＋」で新しい子チャットを始められます。",
-    noTabAdds: true,
+    tabAdds: false,
     newChild: true,
     rootClass: "agent-panel",
     slide: true,
-  },
-  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 features/popout/tabWindow.ts）
-  window: {
-    memoryPrefix: "win",
-    kinds: ["browser"],
+  }),
+  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 popout/tabWindow.ts）
+  defineSurface({
+    id: "win",
+    accepts: ["browser"],
     closeOnEsc: false,
-    closeWhenEmpty: false,
-    openWhenEmpty: null,
-    noSplitButtons: true,
+    whenEmpty: "closeWindow",
+    splitButtons: false,
     className: "as-sidebar",
-  },
-  // チャットの別ウィンドウ: チャットだけ。サイドバーとそろえず、移した・ドラッグで足したチャットだけ。最後のタブがなくなればウィンドウごと閉じる（features/popout/tabWindow.ts）
-  chatWindow: {
-    memoryPrefix: "cwin",
-    kinds: ["chat"],
+  }),
+  // チャットの別ウィンドウ: チャットだけ。サイドバーとそろえず（ext なし）、移した・ドラッグで足したチャットだけ。最後のタブがなくなればウィンドウごと閉じる（popout/tabWindow.ts）
+  defineSurface({
+    id: "cwin",
+    accepts: ["chat"],
     closeOnEsc: false,
-    closeWhenEmpty: false,
-    openWhenEmpty: null,
-    noSplitButtons: true,
-    noTabAdds: true,
-    unlinkedChats: true,
+    whenEmpty: "closeWindow",
+    splitButtons: false,
+    tabAdds: false,
     className: "as-sidebar",
-  },
-  notes: {
-    memoryPrefix: "notes",
-    // ノートのタブは「ファイル」の種類に入る
-    kinds: ["file"],
+  }),
+  // プロジェクトの「ノート」タブの右（開いたノートをタブで並べる。左の一覧から開く。ノートのタブは「ファイル」のまとまりに入る）
+  defineSurface({
+    id: "notes",
+    accepts: ["file"],
     closeOnEsc: false,
-    closeWhenEmpty: false,
-    openWhenEmpty: null,
+    whenEmpty: "keep",
     emptyHint: "左の一覧でノートを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    noTabAdds: true,
-    noKindBadges: true,
+    tabAdds: false,
+    kindBadges: false,
     className: "note-panel",
-  },
-  files: {
-    memoryPrefix: "files",
-    // ファイルのタブは「ファイル」の種類に入る
-    kinds: ["file"],
+  }),
+  // プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く）
+  defineSurface({
+    id: "files",
+    accepts: ["file"],
     closeOnEsc: false,
-    closeWhenEmpty: false,
-    openWhenEmpty: null,
+    whenEmpty: "keep",
     emptyHint: "左の一覧でファイルを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    noTabAdds: true,
-    noKindBadges: true,
+    tabAdds: false,
+    kindBadges: false,
     className: "file-panel",
-  },
-};
-
-const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
-
-/** タブがないときの案内（新しい子チャットを開けるときだけ、その文を足す） */
-export function emptyHintOf(rules: SurfaceRules, canNewChild: boolean): string | undefined {
-  if (!rules.emptyHint) return undefined;
-  return canNewChild && rules.newChildHint ? `${rules.emptyHint}${rules.newChildHint}` : rules.emptyHint;
-}
-
-/**
- * 欄の状態を覚える名前（ボード = kanban:<プロジェクト>（列を状態で分けても・グループで分けても同じパネル。全プロジェクトのボードはパネルを持たない）/
- * チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>）
- */
-export const panelKey = (surface: PanelSurface, scope: PanelScope) => `${SURFACES[surface].memoryPrefix}:${scope}`;
-
-/** 覚える名前から、どの欄・どの画面のものか（知らない形なら undefined） */
-export function parsePanelKey(key: string): { surface: PanelSurface; scope: PanelScope } | undefined {
-  const at = key.indexOf(":");
-  const surface = SURFACE_NAMES.find((s) => SURFACES[s].memoryPrefix === key.slice(0, at));
-  const rest = key.slice(at + 1);
-  const id = Number(rest);
-  if (at < 0 || !surface) return undefined;
-  if (rest === "all") return { surface, scope: "all" };
-  if (rest.startsWith("draft-") && rest.length > 6) return { surface, scope: rest as DraftScope };
-  if (rest.startsWith("view-") && rest.length > 5) return { surface, scope: rest as ViewScope };
-  if (/^win-\d+-./.test(rest)) return { surface, scope: rest as WindowScope };
-  return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
-}
+  }),
+];
 
 /** 欄のプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
 export function projectOfPanel(key: string): number | null {
@@ -260,6 +130,7 @@ export function panelScreen(key: string): Route | undefined {
   if (at.scope === "all") return { name: "allProjects" };
   if (typeof at.scope !== "number") return undefined;
   if (at.surface === "notes") return { name: "project", id: at.scope, tab: "notes" };
-  const chats = at.surface === "board" && readSetting(CHAT_PLACEMENT) === "separate";
+  const chats = at.surface === "kanban" && readSetting(CHAT_PLACEMENT) === "separate";
   return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };
 }
+export { parsePanelKey } from "./surface";

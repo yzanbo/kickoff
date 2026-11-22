@@ -17,16 +17,16 @@ import { useTabRename } from "@/features/panel/ui/tabs/useTabRename";
 import { useTabDrag } from "@/features/panel/ui/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
-import { emptyHintOf, SURFACES } from "./surfaces";
+import { emptyHintOf } from "./surface";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
-import { specOf } from "@/features/panel/ui/tabs/tabKinds";
+import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
 import { neighborChats } from "@/features/chatPanel/ui/tabs/tabPrefetch";
 import { useTabPrefetch } from "@/features/chatPanel/ui/tabs/useTabPrefetch";
 import { usePanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import { useNewChild } from "@/features/chatPanel/ui/agents/useNewChild";
 
 /**
- * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
+ * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは欄の項目（surfaceOf）と、殻が渡す frame）。
  * タブは上下・左右のペインに分けて並べられる（VS Code のエディターと同じ）。分けていないときは、タブの列 → 中身の 1 段。
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
@@ -39,7 +39,7 @@ export const Panel = memo(PanelBody);
 
 function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { tabs, layout, panelOpen, terminals } = panel;
-  const rules = SURFACES[panel.surface];
+  const rules = surfaceOf(panel.surface)!;
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
   // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別
@@ -63,7 +63,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const split = leaves.length > 1;
   const homeId = homePane(layout).id;
   // 閉じるボタンをタブの列の右端に置く欄（サブエージェントの欄）は、右上のペインにだけ置く
-  const closeAtRight = SURFACES[panel.surface].closeButton?.at === "right";
+  const closeAtRight = rules.closeButton?.at === "right";
   // 開閉で幅が動く欄（ui/types/slide-pane.css。画面そのものとして置くときは動かさない）
   const slide = rules.slide === true && !frame?.fixed;
   const topRightId = topRightPane(layout.root).id;
@@ -104,7 +104,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
     leaves.map((p) => ({ tabs: p.tabs, shown: p.active })),
     (key) => {
       const t = tabByKey.get(key);
-      return t?.kind === "chat" && specOf(t).lazy && !mountedTabs.has(key) ? t.id : null;
+      return t?.kind === "chat" && kindOf(t).createWhen === "shown" && !mountedTabs.has(key) ? t.id : null;
     },
   );
   useTabPrefetch(prefetch, panelOpen);
@@ -205,7 +205,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
           const active = pane.active === t.key;
-          if (!active && specOf(t).lazy && !mountedTabs.has(t.key)) return null;
+          if (!active && kindOf(t).createWhen === "shown" && !mountedTabs.has(t.key)) return null;
           if (t.kind === "browser" && t.restored && !panelOpen && !mountedTabs.has(t.key)) return null;
           return (
             <PanelTabPage

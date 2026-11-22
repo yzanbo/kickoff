@@ -4,11 +4,8 @@ import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { isFileTabDirty } from "@/features/files/ui/fileTabs";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelStateOf } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { changesTab, databaseTab, fileTab, panelKey, panelStateOf, projectViewTab, replaceTab } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { changesTab, databaseTab, fileTab, projectViewTab } from "@/features/panel/ui/tabs/tabKinds";
 
 type Place = Pick<WorkplaceRef, "project_id" | "worktree_path">;
 
@@ -47,8 +44,7 @@ export function repointPlan(tabs: readonly PanelTab[], chatId: number, from: Pla
 function repointSideTabs(chatId: number, from: Place, to: Place) {
   const key = panelKey("agents", chatId);
   const plan = repointPlan(panelStateOf(key).tabs, chatId, from, to, (tabKey) => isFileTabDirty(key, tabKey));
-  const actions = panelActions(key);
-  for (const [old, tab] of plan.replace) actions.replaceTab(old, tab);
+  for (const [old, tab] of plan.replace) replaceTab(key, old, tab);
   if (plan.kept.length > 0) {
     showToast(`保存していないファイルのタブ（${plan.kept.join("、")}）は、移す前の作業場所のまま残しました`);
   }

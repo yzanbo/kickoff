@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/chat/types";
-import { chatTab } from "@/features/panel/ui/tabs/tabKinds";
+import { chatTab } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /** サイドバーと連動したチャットのタブの覚え（パネルごと） */

@@ -1,242 +1,63 @@
 import { Bot, Container, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
-import type { ComponentType } from "react";
-import type { Chat } from "@shared/chat/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
 import { draftDisplayTitle } from "@/features/composer/ui/drafts/draftTitle";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { api } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
-import { normalizeUrl } from "@/foundation/ui/lib/url";
 import { ChildTabBadge } from "@/features/childChats/ui/ChildTabBadge";
 import { FileTabLead } from "@/features/files/ui/FileTabLead";
 import { ProjectViewTabLead } from "@/features/projects/ui/views/ProjectViewTabLead";
 import { BrowserTabLead } from "@/features/browser/ui/BrowserTabLead";
-import { OTHER_CLUSTER } from "@/features/chatPanel/ui/clusters/tabClusters";
 import { projectOfPanel } from "@/features/panel/ui/surfaces";
-import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectTool, type ProjectView, type TerminalTarget } from "./panelTypes";
+import { defineTabKind, type AnyTabKind } from "@/features/panel/ui/kind";
+import { PROJECT_VIEW_LABELS, type PanelTab, type ProjectTool } from "./panelTypes";
+import { hostOf, terminalTitle } from "./tabData";
+import {
+  BrowserPage,
+  ChangesPage,
+  ChatTabPage,
+  ChildPage,
+  CiPage,
+  DatabasePage,
+  DockerPage,
+  FilePage,
+  GitHubPage,
+  NewChatPage,
+  NewChildPage,
+  NotePage,
+  ProjectFilePage,
+  ProjectViewPage,
+  SubagentPage,
+  TerminalPage,
+  TrashPage,
+} from "./PanelTabPage";
 
 /**
- * パネルのタブの種類（panelTypes.ts の `PanelTab` の kind）ごとの違いを集めた表。
- * タブを作る（キーの決め方）・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
- * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
+ * パネルのタブの種類（panelTypes.ts の `PanelTab` の kind）ごとの決まり（defineTabKind の項目）。
+ * アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・別ウィンドウの行き先・中身の部品を、種類で分岐させずにここから引く。
+ * タブを作る関数（キーの決め方）は tabData.ts
  */
 
-type TabKind = PanelTab["kind"];
-type TabOf<K extends TabKind> = Extract<PanelTab, { kind: K }>;
-
-/** 新しいタブ・ペインのキー（"<頭>:<時刻>:<乱数>"。ターミナルのキーは裏のシェルのキーにも使うので、同じ瞬間に 2 つ作っても重ならないよう乱数を添える） */
-export const newTabKey = (prefix: "new" | "newChild" | "browser" | "terminal" | "pane") => `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-
-/** チャットのタブのキー（同じチャットは 1 つのタブ。サイドバーとの連動・カードの選択中もこれで引く） */
-export const chatKey = (id: number) => `chat:${id}`;
-
-/** チャットのタブ（focus: 検索結果から開いたときに、スクロールして強調する発言） */
-export const chatTab = (chat: Pick<Chat, "id" | "project_id"> & Partial<Pick<Chat, "title">>, focus?: number): TabOf<"chat"> => ({
-  key: chatKey(chat.id),
-  kind: "chat",
-  id: chat.id,
-  projectId: chat.project_id,
-  title: chat.title,
-  ...(focus ? { focus } : {}),
-});
-
-/** 新しいチャットのタブ（押すたびに新しいキー。seed は初めに入力欄に入れるもの（送信待ちの指示から始めたとき）） */
-export const newChatTab = (target: NewChatTarget, seed?: NewChatSeed, key = newTabKey("new")): TabOf<"new"> => ({
-  key,
-  kind: "new",
-  ...target,
-  ...(seed ? { seed, draftText: seed.text } : {}),
-});
-
-/** サブエージェントのタブのキー（同じサブエージェントは、その欄に 1 つのタブ） */
-export const agentTabKey = (agentKey: string) => `agent:${agentKey}`;
-
-/** サブエージェントの画面のタブ（チャットの画面の右の欄に開く。agentKey は一覧の行のキー。path は入れ子のときの外側からの道筋） */
-export const subagentTab = ({ chatId, agentKey, title, path }: { chatId: number; agentKey: string; title: string; path?: string }): TabOf<"subagent"> => ({
-  key: agentTabKey(agentKey),
-  kind: "subagent",
-  chatId,
-  agentKey,
-  title,
-  ...(path ? { path } : {}),
-});
-
-/** 変更のタブのキー（作業場所ごとに、その欄に 1 つのタブ） */
-const changesTabKey = (worktree: string | undefined) => `changes:${worktree ?? ""}`;
-
-/** 右の欄に開く変更のタブ（作業場所のコミットしていない変更。focus は移るファイル） */
-export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: number; projectId: number; worktree?: string; focus?: string }): TabOf<"changes"> => ({
-  key: changesTabKey(worktree),
-  kind: "changes",
-  chatId,
-  projectId,
-  ...(worktree ? { worktree } : {}),
-  ...(focus ? { focus, focusAt: Date.now() } : {}),
-});
-
-/** プロジェクトの画面（ファイル・検索・履歴）のタブのキー（種類ごとに、その欄に 1 つのタブ） */
-const projectViewTabKey = (view: ProjectView) => `project-view:${view}`;
-
-/** 右の欄に開く、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面のタブ */
-export const projectViewTab = ({ chatId, projectId, worktree, view }: Omit<TabOf<"projectView">, "key" | "kind">): TabOf<"projectView"> => ({
-  key: projectViewTabKey(view),
-  kind: "projectView",
-  chatId,
-  projectId,
-  view,
-  ...(worktree ? { worktree } : {}),
-});
-
-/** ファイルのタブのキー（同じ作業場所の同じファイルは、その欄に 1 つのタブ） */
-const fileTabKey = (worktree: string | undefined, path: string) => `file:${worktree ?? ""}:${path}`;
-
-/** 右の欄に開くファイルのタブ（作業場所のファイルの中身。line は目立たせる行） */
-export const fileTab = ({ chatId, projectId, worktree, path, line }: Omit<TabOf<"file">, "key" | "kind">): TabOf<"file"> => ({
-  key: fileTabKey(worktree, path),
-  kind: "file",
-  chatId,
-  projectId,
-  path,
-  ...(worktree ? { worktree } : {}),
-  ...(line ? { line } : {}),
-});
-
-/** ノートのタブのキー（同じノートは、その欄に 1 つのタブ） */
-export const noteTabKey = (projectId: number, path: string) => `note:${projectId}:${path}`;
-
-/** 右の欄に開くノートのタブ */
-export const noteTab = ({ chatId, projectId, path }: Omit<TabOf<"note">, "key" | "kind">): TabOf<"note"> => ({
-  key: noteTabKey(projectId, path),
-  kind: "note",
-  chatId,
-  projectId,
-  path,
-});
-
-/** 右の欄に開く DB クライアントのタブ（その欄に 1 つ） */
-export const databaseTab = ({ chatId, projectId, worktree }: Omit<TabOf<"database">, "key" | "kind">): TabOf<"database"> => ({
-  key: "database",
-  kind: "database",
-  chatId,
-  projectId,
-  ...(worktree ? { worktree } : {}),
-});
-
-/** 右の欄に開く GitHub のタブ（その欄に 1 つ） */
-export const githubTab = ({ chatId, projectId }: Omit<TabOf<"github">, "key" | "kind">): TabOf<"github"> => ({ key: "github", kind: "github", chatId, projectId });
-
-/** 右の欄に開く CI・Docker・ゴミ箱のタブ（種類ごとに、その欄に 1 つ） */
-export const projectToolTab = <K extends ProjectTool>(kind: K, { chatId, projectId }: { chatId: number; projectId: number }) =>
-  ({ key: kind, kind, chatId, projectId }) as TabOf<K>;
+type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
+type ToolTab = TabOf<"github" | ProjectTool>;
 
 /** 右の欄に欄に 1 つだけ開く、プロジェクトのタブと同じ画面（GitHub・CI・Docker・ゴミ箱）の種類の決まり。違うのはアイコンと名前だけ */
-function projectToolKind<T extends { chatId: number; projectId: number } & PanelTab>(icon: LucideIcon, label: string, hint: string): TabKindSpec<T> {
-  return {
+function projectToolKind(id: ToolTab["kind"], icon: LucideIcon, label: string, hint: string, Page: AnyTabKind["Page"]): AnyTabKind {
+  return defineTabKind<ToolTab>({
+    id,
     icon,
     label: () => label,
     hint: () => hint,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
-  };
+    ownerChatId: (t) => t.chatId,
+    Page,
+  });
 }
 
-/** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
-const childTabKey = (childId: number) => `child:${childId}`;
-
-/** 右の欄に開く子チャットのタブ */
-export const childTab = ({ chatId, childId, projectId, title }: Omit<TabOf<"child">, "key" | "kind">): TabOf<"child"> => ({
-  key: childTabKey(childId),
-  kind: "child",
-  chatId,
-  childId,
-  projectId,
-  title,
-});
-
-/** 新しい子チャットのタブ（押すたびに新しいキー。最初の文を送ると childTab に置き換える。中身の意味は PanelTab の newChild） */
-export const newChildTab = (target: Omit<TabOf<"newChild">, "key" | "kind">): TabOf<"newChild"> => ({ key: newTabKey("newChild"), kind: "newChild", ...target });
-
-/** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
-export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
-
-/** ターミナルのタブ（開く場所のフォルダでシェルを始める。どのプロジェクトの作業場所かも覚える） */
-export const terminalTab = (target: TerminalTarget): TabOf<"terminal"> => ({ key: newTabKey("terminal"), kind: "terminal", ...target });
-
-/** ターミナルのタブの名前（タブの列と、AI が読むタブの一覧で同じ） */
-export const terminalTitle = (t: TerminalTarget) => t.title ?? `ターミナル · ${t.label}`;
-
-/** ブラウザのタブに出すホスト名（URL として読めなければそのまま） */
-export function hostOf(url: string): string {
-  try {
-    return new URL(normalizeUrl(url)).host || url;
-  } catch {
-    return url;
-  }
-}
-
-/** タブのまとまりを決めるのに使うもの（useTabClusters が、いまのまとめ方・サイドバーのチャット・ワークツリーの一覧から作る） */
-export interface ClusterResolver {
-  /** ID のチャット（サイドバーの一覧から。なければ undefined） */
-  chatById: (id: number) => Chat | undefined;
-  /** チャットが入るまとまり（サイドバー・ボードと同じ決め方） */
-  ofChat: (chat: Chat) => BucketHead;
-  /** 作成先（プロジェクト・グループ）のまとまり（チャットがまだ分からないタブ・新しいチャット） */
-  ofTarget: (projectId: number, group?: number, worktree?: string) => BucketHead;
-  /** フォルダ（本体・ワークツリー）のまとまり（ターミナル。グループ別では「その他」） */
-  ofFolder: (projectId: number, cwd: string) => BucketHead;
-}
-
-/** タブの名前の後ろに添えるグループ（名前と色。色は分からないとき null） */
-export interface TabGroupBadge {
-  name: string;
-  hue: number | null;
-}
-
-/** プロジェクトのグループを引く（なければ undefined） */
-export type TabGroupLookup = (projectId: number, groupId: number | null | undefined) => TabGroupBadge | undefined;
-
-interface TabKindSpec<T extends PanelTab> {
-  /** タブのアイコン（チャットのタブは、状態の印に置き換わる） */
-  icon: LucideIcon;
-  iconClass?: string;
-  /**
-   * 名前の前に置く種類の札（チャットの画面の右の欄に並ぶノート・サブエージェント・子チャットを、タブを見ただけで見分ける）。札があるタブは、
-   * 上の 1px の線と表示中の枠も同じ形で、色だけ種類ごとに変える（CSS の panel/side-panel-tab-kinds.css）
-   */
-  badge?: string;
-  /** 札の文をタブごとに変えるときの部品（子チャットの深さ「子 / 孫 / ひ孫」。なければ badge の文） */
-  BadgeText?: ComponentType<{ tab: T }>;
-  /** アイコンの代わりに名前の前に置く部品（サブエージェントのタブの状態のアイコン。チャットのタブの状態の印は PaneTab が出す） */
-  Lead?: ComponentType<{ tab: T }>;
-  /** タブに出す名前（chat はタブのチャット（サイドバーの一覧にあれば最新のもの）） */
-  label: (tab: T, chat: Chat | undefined) => string;
-  /** マウスを乗せたときの説明（なければ名前とグループ名） */
-  hint?: (tab: T) => string;
-  /** 名前の後ろに控えめに添えるグループ名（nameOf はプロジェクトのグループ名を引く） */
-  group?: (tab: T, chat: Chat | undefined, groupOf: TabGroupLookup) => TabGroupBadge | undefined;
-  /** どのプロジェクトのタブか（まとまり・グループ名を引くのに使う。ブラウザはどれにも入らない） */
-  projectOf: (tab: T) => number | undefined;
-  /** どのチャットのタブか（そのチャットを消したら閉じる。チャット・サブエージェント） */
-  chatIdOf?: (tab: T) => number | null;
-  /** 中身を初めて表示したときに作るか（チャットのタブはサイドバーと連動して自動で増えるので、見ていないチャットまで読み込まない） */
-  lazy?: boolean;
-  /** 閉じたときの後始末（ターミナルはシェルも止める。ブラウザの開発者ツールは webview がなくなるときに BrowserPane が閉じる） */
-  dispose?: (tab: T) => void;
-  /** どのまとまりに入るか（グループ別・作業場所別にまとめるとき） */
-  cluster: (tab: T, resolve: ClusterResolver) => BucketHead;
-  /**
-   * 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・ノート・子チャット、パネルのブラウザ・ターミナル）の行き先とウィンドウの名前。
-   * panel はタブのある欄（戻す先）
-   */
-  popout?: (tab: T, panel: string) => { route: PopoutRoute; title: string };
-}
-
-const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
-  chat: {
+/** いまの 17 種類（持ち主の機能へ移すまで panel に置く。ui/contributes.ts が panelTabs に入れる。中身の部品は PanelTabPage.tsx） */
+export const PANEL_TAB_KINDS: readonly AnyTabKind[] = [
+  defineTabKind<TabOf<"chat">>({
+    id: "chat",
     icon: MessageSquare,
     iconClass: "muted",
     // サイドバーの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
@@ -246,31 +67,29 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     },
     group: (t, chat, groupOf) => groupOf(t.projectId, chat?.group_id),
     projectOf: (t) => t.projectId,
-    chatIdOf: (t) => t.id,
-    lazy: true,
-    // チャットが分からない（まだ届いていない）タブは、作成先（グループなし・本体）のまとまり
-    cluster: (t, r) => {
-      const chat = r.chatById(t.id) ?? t.chat;
-      return chat ? r.ofChat(chat) : r.ofTarget(t.projectId);
-    },
+    ownerChatId: (t) => t.id,
+    createWhen: "shown",
     // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（features/popout/tabWindow.ts）
     popout: (t, panel) => ({
       route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
       title: `${t.chat?.title ?? t.title ?? "チャット"} — チャット`,
     }),
-  },
-  new: {
+    Page: ChatTabPage,
+  }),
+  defineTabKind<TabOf<"new">>({
+    id: "new",
     icon: SquarePen,
     // 表示だけ本文の冒頭にする（手動の名前があれば優先）
     label: (t) => draftDisplayTitle(t.title, t.draftText),
     // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
     group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,
-    cluster: (t, r) => r.ofTarget(t.projectId, t.group, t.worktree),
     // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。中身は popOutTab が tabHandoff で渡す）
     popout: (t, panel) => ({ route: { kind: "chats", panel, key: t.key, projectId: t.projectId }, title: `${t.title ?? NEW_CHAT_TITLE} — チャット` }),
-  },
-  subagent: {
+    Page: NewChatPage,
+  }),
+  defineTabKind<TabOf<"subagent">>({
+    id: "subagent",
     icon: Bot,
     badge: "サブ",
     // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
@@ -278,24 +97,26 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => t.path ?? t.title,
     projectOf: () => undefined,
     // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.chatId,
     popout: (t) => ({ route: { kind: "subagent", chatId: t.chatId, agentKey: t.agentKey }, title: `${t.title} — サブエージェント` }),
-  },
-  changes: {
+    Page: SubagentPage,
+  }),
+  defineTabKind<TabOf<"changes">>({
+    id: "changes",
     icon: FileDiff,
     label: () => "変更",
     hint: (t) => `コミットしていない変更（${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}）`,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.chatId,
     popout: (t) => ({
       route: { kind: "changes", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
       title: `変更 — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
-  },
-  projectView: {
+    Page: ChangesPage,
+  }),
+  defineTabKind<TabOf<"projectView">>({
+    id: "projectView",
     icon: FileText,
     // アイコンはプロジェクトの左の列のタブと同じ
     Lead: ProjectViewTabLead,
@@ -303,10 +124,11 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => `プロジェクトの「${PROJECT_VIEW_LABELS[t.view]}」（${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}から）`,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
-  },
-  file: {
+    ownerChatId: (t) => t.chatId,
+    Page: ProjectViewPage,
+  }),
+  defineTabKind<TabOf<"file">>({
+    id: "file",
     icon: FileText,
     // アイコンはエディタと同じファイルの種類のアイコン
     Lead: FileTabLead,
@@ -314,14 +136,15 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => (t.line ? `${t.path}（${t.line} 行目）` : t.path),
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.chatId,
     popout: (t) => ({
       route: { kind: "file", chatId: t.chatId, projectId: t.projectId, path: t.path, ...(t.worktree ? { worktree: t.worktree } : {}), ...(t.line ? { line: t.line } : {}) },
       title: t.path,
     }),
-  },
-  projectFile: {
+    Page: FilePage,
+  }),
+  defineTabKind<TabOf<"projectFile">>({
+    id: "projectFile",
     icon: FileText,
     Lead: FileTabLead,
     // 差分のタブは、同じファイルの中身のタブと見分ける（VS Code の「(Working Tree)」「(Index)」と同じ）
@@ -329,38 +152,41 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => (t.line ? `${t.path}（${t.line} 行目）` : t.path),
     projectOf: (t) => t.projectId,
     // 見ていないタブのファイルまで読み込まない
-    lazy: true,
-    cluster: () => OTHER_CLUSTER,
-  },
-  note: {
+    createWhen: "shown",
+    Page: ProjectFilePage,
+  }),
+  defineTabKind<TabOf<"note">>({
+    id: "note",
     icon: StickyNote,
     badge: "ノート",
     label: (t) => baseName(t.path),
     hint: (t) => `ノート: ${t.path}`,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）。ノートのタブの右（notes）で開いたものはチャットなし
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.chatId,
     popout: (t) => ({ route: { kind: "note", projectId: t.projectId, path: t.path, ...(t.chatId !== null ? { chatId: t.chatId } : {}) }, title: `${baseName(t.path)} — ノート` }),
-  },
-  database: {
+    Page: NotePage,
+  }),
+  defineTabKind<TabOf<"database">>({
+    id: "database",
     icon: Database,
     label: () => "DB",
     hint: (t) => `DB クライアント（SQLite は${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}のファイル）`,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.chatId,
     popout: (t) => ({
       route: { kind: "database", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
       title: `DB — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
-  },
-  github: projectToolKind(GitPullRequest, "GitHub", "GitHub（このプロジェクトの連携先の issue・PR）"),
-  ci: projectToolKind(Workflow, "CI", "CI の結果（このプロジェクトの GitHub Actions の実行）"),
-  docker: projectToolKind(Container, "Docker", "Docker（このプロジェクトの compose のサービス）"),
-  trash: projectToolKind(Trash2, "ゴミ箱", "ゴミ箱（3 日で消えます）"),
-  child: {
+    Page: DatabasePage,
+  }),
+  projectToolKind("github", GitPullRequest, "GitHub", "GitHub（このプロジェクトの連携先の issue・PR）", GitHubPage),
+  projectToolKind("ci", Workflow, "CI", "CI の結果（このプロジェクトの GitHub Actions の実行）", CiPage),
+  projectToolKind("docker", Container, "Docker", "Docker（このプロジェクトの compose のサービス）", DockerPage),
+  projectToolKind("trash", Trash2, "ゴミ箱", "ゴミ箱（3 日で消えます）", TrashPage),
+  defineTabKind<TabOf<"child">>({
+    id: "child",
     icon: MessagesSquare,
     // 子チャットであることは札で見せる（名前の頭の「↳」だけだと、サブエージェントの入れ子と見分けにくい）
     badge: "子",
@@ -370,21 +196,23 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => `子チャット: ${chatTitle(t.title)}`,
     projectOf: (t) => t.projectId,
     // 子チャットを消したら閉じる（親を消すと子孫も消える）
-    chatIdOf: (t) => t.childId,
-    cluster: () => OTHER_CLUSTER,
+    ownerChatId: (t) => t.childId,
     popout: (t) => ({ route: { kind: "chat", chatId: t.childId }, title: `${chatTitle(t.title)} — 子チャット` }),
-  },
-  newChild: {
+    Page: ChildPage,
+  }),
+  defineTabKind<TabOf<"newChild">>({
+    id: "newChild",
     icon: MessageSquarePlus,
     badge: "子",
     label: () => "新しい子チャット",
     hint: () => "新しい子チャット（このチャットの会話を引き継ぎ、最初の文を送ると始まります）",
     projectOf: (t) => t.projectId,
     // 親のチャットを消したら閉じる（孫を作るタブは、その親）
-    chatIdOf: (t) => t.parentId ?? t.chatId,
-    cluster: () => OTHER_CLUSTER,
-  },
-  browser: {
+    ownerChatId: (t) => t.parentId ?? t.chatId,
+    Page: NewChildPage,
+  }),
+  defineTabKind<TabOf<"browser">>({
+    id: "browser",
     icon: Globe,
     // AI が操作している間は「AI 操作中」の印
     Lead: BrowserTabLead,
@@ -392,32 +220,26 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     label: (t) => t.title || (t.url ? hostOf(t.url) : "新しいタブ"),
     hint: (t) => t.url,
     projectOf: () => undefined,
-    cluster: () => OTHER_CLUSTER,
     // いまのページを別ウィンドウで開き直す（webview はウィンドウをまたげないので、戻る・進むの履歴は引き継がない）
     popout: (t, panel) => ({
       route: { kind: "browser", panel, key: t.key, url: t.current ?? t.url, title: t.title, projectId: projectOfPanel(panel) },
       title: `${t.title || (t.url ? hostOf(t.url) : "新しいタブ")} — ブラウザ`,
     }),
-  },
-  terminal: {
+    Page: BrowserPage,
+  }),
+  defineTabKind<TabOf<"terminal">>({
+    id: "terminal",
     icon: SquareTerminal,
     label: terminalTitle,
     hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
     projectOf: (t) => t.projectId,
     // シェルを止める（コアの API。もう終わっていれば 404 なので、失敗は捨てる）
     dispose: (t) => void (globalThis.window?.kickoff?.terminal && api.closeTerminal(t.key).catch(() => {})),
-    cluster: (t, r) => r.ofFolder(t.projectId, t.cwd),
     // 同じシェルに別ウィンドウからつなぎ直す（移すときはシェルを止めない。popOutTab の keep）
     popout: (t, panel) => {
       const { key, kind: _kind, ...target } = t;
       return { route: { kind: "terminal", panel, key, ...target }, title: `${terminalTitle(t)} — ターミナル` };
     },
-  },
-};
-
-/** タブの種類の決まり（種類と中身の型を結びつけて引く） */
-export const specOf = <T extends PanelTab>(tab: T) => TAB_KINDS[tab.kind] as unknown as TabKindSpec<T>;
-
-/** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの。チャットのタブでなければ undefined） */
-export const tabChat = (tab: PanelTab | undefined, chats: readonly Chat[]): Chat | undefined =>
-  tab?.kind === "chat" ? (chats.find((r) => r.id === tab.id) ?? tab.chat) : undefined;
+    Page: TerminalPage,
+  }),
+];

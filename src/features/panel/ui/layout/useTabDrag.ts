@@ -4,7 +4,8 @@ import type { PanelController } from "@/features/panel/ui/usePanel";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { canPopOut, popOutTab } from "@/features/panel/ui/tabs/popOutTab";
-import { specOf } from "@/features/panel/ui/tabs/tabKinds";
+import { kindOf } from "@/features/panel/ui/state/panelStore";
+import { openTab } from "@/features/panel/ui/state/actions";
 import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
 import { endedOutsideWindow } from "./tabDragOut";
 import { discardTabThumbnail, prepareTabThumbnail, tabThumbnailOf } from "./tabThumbnail";
@@ -51,7 +52,7 @@ export function useTabDrag(panel: PanelController) {
   const movingMime = (e: DragEvent) => (dragging === null ? movingMimeFor(e.dataTransfer.types, (kind) => panel.kinds.has(kind)) : null);
   /** 落としたタブのキー（外から来たものは、ここでタブを開く） */
   const dropped = () => {
-    if (!own && external) panel.openPanelTab(external);
+    if (!own && external) openTab(panel.key, external);
     return dragging;
   };
   /** 要素の外へ出たときだけ（中の子へ移ったときは除く） */
@@ -70,7 +71,7 @@ export function useTabDrag(panel: PanelController) {
       onPointerDown: (e: PointerEvent<HTMLElement>) => {
         if (e.button !== 0) return;
         const tab = panelStateOf(panel.key).tabs.find((t) => t.key === key);
-        if (tab && canPopOut(tab)) prepareTabThumbnail(key, specOf(tab).label(tab, undefined));
+        if (tab && canPopOut(tab)) prepareTabThumbnail(key, kindOf(tab).label(tab, undefined));
       },
       onPointerUp: () => discardTabThumbnail(),
       onDragStart: (e: DragEvent<HTMLElement>) => {

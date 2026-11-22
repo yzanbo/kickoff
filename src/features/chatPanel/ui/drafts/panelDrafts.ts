@@ -3,12 +3,10 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import type { DraftTarget } from "@/features/chatList/ui/buckets";
 import type { DraftTabSpot } from "@/features/chatList/ui/manualOrder";
 import { homePane, isTabVisible, paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
-import { panelKey, panelScreen } from "@/features/panel/ui/surfaces";
+import { allPanels, dispatchPanel, isPanelMounted, openNewChat, panelKey, panelScreen, panelStateOf, panelsVersion, showTab, splitPane, subscribePanels } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { draftDisplayTitle } from "@/features/composer/ui/drafts/draftTitle";
 import { forwardPanelOp } from "@/features/panel/ui/state/panelMirror";
-import { allPanels, dispatchPanel, isPanelMounted, panelStateOf, panelsVersion, subscribePanels } from "@/features/panel/ui/state/panelStore";
 
 /**
  * 送る前の新しいチャット（下書き）。どの欄のパネルのどのタブか・作成先・書きかけの文・その欄で表示しているか
@@ -122,7 +120,7 @@ export function openDraft(draft: DraftRef) {
   if (forwardPanelOp({ op: "openDraft", draft: refOf(draft) }, { focusMain: true })) return;
   const screen = isPanelMounted(draft.panel) ? undefined : panelScreen(draft.panel);
   if (screen) navigate(screen);
-  panelActions(draft.panel).showTab(draft.key);
+  showTab(draft.panel, draft.key);
 }
 
 /**
@@ -133,7 +131,7 @@ export function openDraftSplit(draft: DraftRef, dir: SplitDir) {
   if (forwardPanelOp({ op: "openDraftSplit", draft: refOf(draft), dir }, { focusMain: true })) return;
   openDraft(draft);
   const pane = paneOfTab(panelStateOf(draft.panel).layout, draft.key);
-  if (pane) panelActions(draft.panel).splitPane(pane.id, dir, "after", draft.key);
+  if (pane) splitPane(draft.panel, pane.id, dir, "after", draft.key);
 }
 
 /** 下書きに名前を付ける（空なら外して「New Chat」に戻す） */
@@ -150,9 +148,9 @@ export function moveDraftToProject(draft: DraftRef, projectId: number) {
   if (forwardPanelOp({ op: "moveDraftToProject", draft: refOf(draft), projectId }, { focusMain: true })) return;
   const tab = allPanels().get(draft.panel)?.tabs.find((t) => t.key === draft.key);
   if (tab?.kind !== "new" || tab.projectId === projectId) return;
-  const panel = panelKey("board", projectId);
+  const panel = panelKey("kanban", projectId);
   // 送信待ちから始めたとき（seed）の案内は出さないよう、書きかけの文と添付はタブにそのまま入れる（入力欄は開いたときにタブから戻す）
-  const key = panelActions(panel).openNew({ projectId });
+  const key = openNewChat(panel, { projectId });
   dispatchPanel(panel, { type: "patch", key, kind: "new", fields: { draftText: tab.draftText, draftAttachments: tab.draftAttachments, title: tab.title, pinned: tab.pinned } });
   // 先に移す先を開いてから元を消す（先に消すと、元の欄が表示中のタブの変わったことを URL にして、移る先の画面を上書きする）
   openDraft({ panel, key });

@@ -22,7 +22,7 @@ import { useFileTabs } from "./useFileTabs";
 import { fileDragProps } from "./fileTabs";
 import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import type { PanelScope } from "@/features/panel/ui/surfaces";
+import type { PanelScope } from "@/features/panel/ui";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
 import { useFileActions } from "./useFileActions";

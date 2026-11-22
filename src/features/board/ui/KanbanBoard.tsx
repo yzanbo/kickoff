@@ -10,7 +10,7 @@ import { useBoardPanel } from "@/features/chatPanel/ui/board/useBoardPanel";
 import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/chatPanel/ui/board/boardChats";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey } from "@/features/panel/ui";
 import { BoardColumnsToggle, useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useGroupLaneDrop } from "./useGroupLaneDrop";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
@@ -216,7 +216,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
    * 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける。チャットの置き方を変えても、
    * 全プロジェクトのボードも、パネルがあったときと同じ名前のまま）
    */
-  const foldPlace = `board:${panelKey("board", projectId ?? "all")}`;
+  const foldPlace = `board:${panelKey("kanban", projectId ?? "all")}`;
   // ボードを開いた直後（見え方を変えた・チャットが届いたときも）は画面に入る数のカードだけを描き、最初の描画のあとに残りを描く
   const rowBudget = useProgressivePage(
     `${projectId ?? "all"}/${feed ? `feed/${feedData.loaded ? 1 : 0}` : view}/${laneSplit ? lanes : "none"}/${columns}/${filters.archive}/${loaded ? 1 : 0}`,

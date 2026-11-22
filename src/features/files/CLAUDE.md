@@ -10,7 +10,7 @@
 | `core/tools.ts` | AI の `open_file`（作業場所の中だけ） |
 | `ui/EditorTab` | タブの殻（同じ部品のまま切り替え、開いたタブ・検索・操作の様子を共有） |
 | `ui/FilesPane`・`FileTree`・`useFileActions` | ファイルの木・右クリック・名前の変更・作る・ゴミ箱 |
-| `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（`Panel` の `SURFACES.files`） |
+| `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（`Panel` の欄 `files`） |
 | `ui/FileView`・`CodeEditor`・`monacoEditor.ts` | 中身（Monaco）・差分を見ながら編集・プレビュー |
 | `ui/useProjectSearch`・`useSearchReplace` | 検索と置換 |
 | `ui/SideFileView` | チャットの右の欄のファイル |

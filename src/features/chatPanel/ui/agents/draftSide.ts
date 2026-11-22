@@ -1,6 +1,5 @@
 import { createContext, useContext } from "react";
-import { draftScope, panelKey, type DraftScope } from "@/features/panel/ui/surfaces";
-import { movePanel } from "@/features/panel/ui/state/panelStore";
+import { draftScope, movePanel, panelKey, type DraftScope } from "@/features/panel/ui";
 
 /**
  * 送る前の新しいチャット（下書きのタブ）の右の欄（入力欄の上のノートのピルから開いても、

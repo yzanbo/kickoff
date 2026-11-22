@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { onTestFinished, test, vi } from "vitest";
+import { onTestFinished, test } from "vitest";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { NEW_CHAT_DRAFTS } from "@/foundation/ui/storage/storageKeys";
 import { writeDrafts } from "@/features/composer/ui/drafts/draftPersistence";
 import { isSidePanel, terminalKeysOf } from "./panelHandOff";
-import { panelActions } from "./panelActions";
+import { openTab } from "./actions";
+import { terminalTab } from "@/features/panel/ui/tabs/tabData";
+import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
 import { panelStateOf, putPanels, setPanelOwnership, takePanels } from "./panelStore";
 
 installMemoryStorage();
@@ -25,15 +27,12 @@ test("writeDrafts: このウィンドウが持たない欄の下書きは、残�
 });
 
 test("チャット欄の受け渡し: 取り出すときも戻すときもタブの後始末をしない（ターミナルのシェルを止めない）", () => {
-  vi.stubGlobal("window", { kickoff: { terminal: { owner: async () => "wc:1" } } });
+  // 閉じたタブの後始末（ターミナルならシェルを止める）を呼んだか
   const closed: string[] = [];
-  vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
-    if (init?.method === "DELETE") closed.push(url);
-    return new Response(null, { status: 204 });
-  });
+  useTestPanelStore({ kinds: [testTabKind("terminal", { dispose: (t) => closed.push(t.key) })] });
   onTestFinished(() => setPanelOwnership(() => true));
   const key = "side:9201";
-  panelActions(key).openTerminal({ cwd: "/repo", label: "p", projectId: 9201 });
+  openTab(key, terminalTab({ cwd: "/repo", label: "p", projectId: 9201 }));
   const before = panelStateOf(key);
   const taken = takePanels((k) => k === key);
   assert.equal(taken.length, 1);

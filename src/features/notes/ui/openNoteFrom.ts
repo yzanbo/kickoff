@@ -8,8 +8,7 @@ import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "@/features/chat/ui";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey, type DraftScope } from "@/features/panel/ui/surfaces";
+import { noteTab, openTab, panelKey, type DraftScope } from "@/features/panel/ui";
 import { baseName } from "./notePaths";
 
 export function openNoteFromChat({
@@ -28,11 +27,11 @@ export function openNoteFromChat({
 }) {
   // place を渡すと設定によらずその場所に（入力欄の上のノートの一覧の行のボタン）
   if ((place ?? readSetting(NOTE_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "note", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — ノート`);
-  if (chatId === null && draftSide !== null) return panelActions(panelKey("agents", draftSide)).openNote({ chatId: null, projectId, path });
+  if (chatId === null && draftSide !== null) return openTab(panelKey("agents", draftSide), noteTab({ chatId: null, projectId, path }));
   if (parsePopout(location.hash)) return postToMainWindow("openNote", { projectId, path, chatId });
   // ノートのチャット（ノートのタブの中で開いたもの）からは、ノートのタブで開く（ノートのチャットは右の欄を持たない）
   const from = chatId !== null && !knownChat(chatId)?.note_path ? chatId : null;
-  if (from !== null && openInRootSide(from, (rootId, side) => side.openNote({ chatId: rootId, projectId, path }))) return;
+  if (from !== null && openInRootSide(from, (rootId, side) => openTab(side, noteTab({ chatId: rootId, projectId, path })))) return;
   openTarget({ kind: "note", projectId: projectId, path: path });
 }
 

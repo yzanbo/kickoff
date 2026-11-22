@@ -2,7 +2,7 @@
 import { choice, defineSettings, family, flag, list, number, record, single } from "@/foundation/ui/storage";
 
 export const storage = defineSettings("chatPanel", {
-  /** 欄（board = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方（選べる値はサイドバーのまとめ方と同じ） */
+  /** 欄（kanban = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方（選べる値はサイドバーのまとめ方と同じ） */
   tabGrouping: family(choice(["none", "group", "worktree"], "none")),
   /** タブのまとまりの札の名前を、頭の 1 文字だけにするか（すべての欄で共通。初めは省略しない） */
   clusterShort: flag(),

@@ -1,7 +1,5 @@
 import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
-import { usePanelState } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
-import { agentTabKey } from "@/features/panel/ui/tabs/tabKinds";
+import { agentTabKey, panelKey, usePanelState } from "@/features/panel/ui";
 
 /**
  * そのサブエージェントを、チャットの画面の右の欄（サブエージェントの欄）で表示しているか（右の欄が開いていて、どれかのペインで表示中）。

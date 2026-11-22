@@ -8,12 +8,12 @@ import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChildActivityMark } from "@/features/childChats/ui/ChildActivityMark";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { SURFACES } from "@/features/panel/ui/surfaces";
 import { confirmCloseUnsaved } from "./confirmUnsaved";
 import { PanelTab } from "./PanelTab";
 import { TabWorkplaceBadge } from "@/features/chatPanel/ui/tabs/TabWorkplaceBadge";
 import type { PanelTab as Tab } from "./panelTypes";
-import { specOf, type TabGroupLookup } from "./tabKinds";
+import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
+import type { TabGroupLookup } from "@/features/panel/ui/kind";
 import type { TabRename } from "./useTabRename";
 import { useChatTabHint } from "@/features/chatPanel/ui/tabs/useChatTabHint";
 import { useTabAgentState } from "@/features/chatPanel/ui/tabs/useTabAgentState";
@@ -58,7 +58,7 @@ export function PaneTab({
   /** チャット・新しいチャットのタブの名前をその場で変える（パネル全体で 1 つ） */
   rename: TabRename;
 }) {
-  const spec = specOf(t);
+  const spec = kindOf(t);
   // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と、エージェントの状態（チャット・子チャット・サブエージェント）
   const chat = panel.chatOf(t);
   const agent = useTabAgentState(panel, t);
@@ -95,7 +95,7 @@ export function PaneTab({
       active={active}
       icon={spec.icon}
       iconClass={spec.iconClass}
-      badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
+      badge={spec.badge && surfaceOf(panel.surface)?.kindBadges !== false ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
       after={t.kind === "new" && !t.draftText?.trim() && (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0 ? <Paperclip size={12} aria-label="添付あり" /> : activity}
       group={show("group") ? group : undefined}

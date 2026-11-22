@@ -1,12 +1,51 @@
 // panel の画面の口（ほかの機能から読むもの）
 import { storage } from "./storage";
 
-export type { NewChatTarget, TerminalTarget } from "./tabs/panelTypes";
+export type { NewChatTarget, PanelTab, TerminalTarget } from "./tabs/panelTypes";
 export type { SplitDir } from "./layout/paneTree";
+export type { DraftScope, PanelScope, PanelSurface, ViewScope } from "./surface";
 export { useTabPage } from "./tabs/tabPageContext";
-export { panelActions } from "./state/panelActions";
 export { closeTabsWhere } from "./state/closeTabs";
-export { panelKey } from "./surfaces";
+export { draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
+export { panelTabs } from "./kind";
+export { panelScreen, projectOfPanel } from "./surfaces";
+export {
+  allPanels,
+  createPanelStore,
+  dispatchPanel,
+  installPanelStore,
+  isPanelMounted,
+  kindOf,
+  surfaceOf,
+  movePanel,
+  panelsVersion,
+  panelStateOf,
+  startPanelServerEvents,
+  subscribePanels,
+  usePanelOpen,
+  usePanelState,
+} from "./state/panelStore";
+export { addTabBehind, closeTab, openNewChat, openTab, replaceTab, setPanelOpen, showTab, splitPane, syncPanel, togglePanel } from "./state/actions";
+export {
+  agentTabKey,
+  browserTab,
+  changesTab,
+  chatKey,
+  chatTab,
+  childTab,
+  databaseTab,
+  fileTab,
+  githubTab,
+  newChatTab,
+  newChildTab,
+  noteTab,
+  projectToolTab,
+  projectViewTab,
+  reopenOf,
+  subagentTab,
+  terminalTab,
+  terminalTitle,
+} from "./tabs/tabData";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const panelSettings = {

@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import { test, vi } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
-import type { BucketHead } from "@/features/chatList/ui/buckets";
-import { OTHER_CLUSTER } from "@/features/chatPanel/ui/clusters/tabClusters";
+import { tabChat } from "@/features/panel/ui/usePanel";
 import type { PanelTab } from "./panelTypes";
-import { agentTabKey, browserTab, chatTab, newChatTab, specOf, subagentTab, tabChat, terminalTab, type ClusterResolver } from "./tabKinds";
+import { agentTabKey, browserTab, chatTab, newChatTab, subagentTab, terminalTab } from "./tabData";
+import { PANEL_TAB_KINDS } from "./tabKinds";
 
-const head = (key: string): BucketHead => ({ key, kind: "group", label: key });
+// 中身の部品（会話の画面・ブラウザなど）は読まない（名前などの決まりだけを確かめる）
+vi.mock("./PanelTabPage", () => {
+  const pages = ["ChatTabPage", "NewChatPage", "SubagentPage", "ChangesPage", "ProjectViewPage", "FilePage", "ProjectFilePage", "NotePage", "DatabasePage", "GitHubPage", "CiPage", "DockerPage", "TrashPage", "ChildPage", "NewChildPage", "BrowserPage", "TerminalPage"];
+  return Object.fromEntries(pages.map((name) => [name, () => null]));
+});
+
+/** 種類の決まり（登録の表から引く） */
+const specOf = (tab: PanelTab) => PANEL_TAB_KINDS.find((k) => k.is(tab))!;
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
 
 test("タブのキー: チャットは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ブラウザ・ターミナルは開くたびに別のキー", () => {
@@ -40,30 +47,12 @@ test("タブのチャット: チャットのタブだけ。一覧にあれば最
   assert.equal(tabChat(undefined, [listed]), undefined);
 });
 
-test("まとまり: チャットはチャットの（分からなければ作成先の）、新しいチャットは作成先の、ターミナルはフォルダの、ブラウザはその他", () => {
-  const resolve: ClusterResolver = {
-    chatById: (id) => (id === 1 ? makeChat(1) : undefined),
-    ofChat: (c) => head(`chat:${c.id}`),
-    ofTarget: (projectId, group, worktree) => head(`target:${projectId}:${group ?? ""}${worktree ? `:${worktree}` : ""}`),
-    ofFolder: (projectId, cwd) => head(`folder:${projectId}:${cwd}`),
-  };
-  const of = (t: PanelTab) => specOf(t).cluster(t, resolve).key;
-  assert.equal(of(chatTab(makeChat(1))), "chat:1");
-  assert.equal(of(chatTab(makeChat(9))), "target:1:");
-  assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
-  assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
-  // 作業場所別のまとまりの「新しいチャット」から始めたものは、そのワークツリーのまとまり
-  assert.equal(of(newChatTab({ projectId: 2, worktree: "/repo/a-wt" })), "target:2::/repo/a-wt");
-  assert.equal(of(terminalTab(target)), "folder:3:/repo/a");
-  assert.equal(specOf(browserTab()).cluster(browserTab(), resolve), OTHER_CLUSTER);
-});
-
 test("サブエージェントのタブ: 同じサブエージェントは 1 つのタブ、名前は開いたときの名前、そのチャットを消したら閉じる", () => {
   const tab = subagentTab({ chatId: 33, agentKey: "toolu_1", title: "調査" });
   assert.equal(tab.key, agentTabKey("toolu_1"));
   assert.equal(subagentTab({ chatId: 33, agentKey: "toolu_1", title: "名前が変わった" }).key, tab.key);
   assert.equal(specOf(tab).label(tab, undefined), "調査");
-  assert.equal(specOf(tab).chatIdOf?.(tab), 33);
+  assert.equal(specOf(tab).ownerChatId?.(tab), 33);
   assert.equal(specOf(tab).projectOf(tab), undefined);
 });
 

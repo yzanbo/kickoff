@@ -7,7 +7,7 @@ import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
 import { DbMenuItems } from "@/features/database/ui/DbMenuItems";
 import { RecentNoteItems } from "@/features/notes/ui/NoteMenuItems";
-import { parsePanelKey } from "@/features/panel/ui/surfaces";
+import { changesTab, databaseTab, githubTab, noteTab, openTab, parsePanelKey, projectToolTab, projectViewTab } from "@/features/panel/ui";
 import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/ui/tabs/panelTypes";
 import { PROJECT_VIEW_ICONS } from "@/features/projects/ui/views/ProjectViewTabLead";
 import type { PanelController } from "@/features/panel/ui/usePanel";
@@ -73,7 +73,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
     return (
       <MenuItem
         title={`プロジェクトの「${PROJECT_VIEW_LABELS[view]}」タブと同じ画面を開く（このチャットの作業場所から）`}
-        onSelect={() => panel.openProjectView({ chatId: chat.id, projectId: chat.project_id, view, ...(worktree ? { worktree } : {}) })}
+        onSelect={() => openTab(panel.key, projectViewTab({ chatId: chat.id, projectId: chat.project_id, view, ...(worktree ? { worktree } : {}) }))}
       >
         <Icon size={14} /> {PROJECT_VIEW_LABELS[view]}
       </MenuItem>
@@ -113,14 +113,14 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
       {projectView("search")}
       <MenuItem
         title="このチャットの作業場所の、コミットしていない変更を開く"
-        onSelect={() => panel.openChanges({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) })}
+        onSelect={() => openTab(panel.key, changesTab({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) }))}
       >
         <FileDiff size={14} /> 変更
       </MenuItem>
       {projectView("history")}
       <div className="menu-separator" role="separator" />
       <SubmenuItem icon={StickyNote} label="ノート" empty={null}>
-        <RecentNoteItems projectId={chat.project_id} onPick={(path) => panel.openNote({ chatId: chat.id, projectId: chat.project_id, path })} />
+        <RecentNoteItems projectId={chat.project_id} onPick={(path) => openTab(panel.key, noteTab({ chatId: chat.id, projectId: chat.project_id, path }))} />
       </SubmenuItem>
       {/* DB はこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける） */}
       {window.kickoff && (
@@ -128,25 +128,25 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
           <DbMenuItems
             projectId={chat.project_id}
             place={`chat-${chat.id}`}
-            onOpen={() => panel.openDatabase({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) })}
+            onOpen={() => openTab(panel.key, databaseTab({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) }))}
           />
         </SubmenuItem>
       )}
       {/* Docker・GitHub・CI もこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける。プロジェクトのタブと同じ）。並びはプロジェクトのタブの初めの並び */}
       {window.kickoff && (
         <>
-          <MenuItem title="プロジェクトの「Docker」タブと同じ画面（compose のサービス）を開く" onSelect={() => panel.openProjectTool("docker", target)}>
+          <MenuItem title="プロジェクトの「Docker」タブと同じ画面（compose のサービス）を開く" onSelect={() => openTab(panel.key, projectToolTab("docker", target))}>
             <Container size={14} /> Docker
           </MenuItem>
-          <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => panel.openGitHub(target)}>
+          <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => openTab(panel.key, githubTab(target))}>
             <GitPullRequest size={14} /> GitHub
           </MenuItem>
-          <MenuItem title="プロジェクトの「CI」タブと同じ画面（GitHub Actions の実行の一覧とログ）を開く" onSelect={() => panel.openProjectTool("ci", target)}>
+          <MenuItem title="プロジェクトの「CI」タブと同じ画面（GitHub Actions の実行の一覧とログ）を開く" onSelect={() => openTab(panel.key, projectToolTab("ci", target))}>
             <Workflow size={14} /> CI
           </MenuItem>
         </>
       )}
-      <MenuItem title="プロジェクトの「ゴミ箱」タブと同じ画面（消したものを 3 日取っておき、元に戻せる）を開く" onSelect={() => panel.openProjectTool("trash", target)}>
+      <MenuItem title="プロジェクトの「ゴミ箱」タブと同じ画面（消したものを 3 日取っておき、元に戻せる）を開く" onSelect={() => openTab(panel.key, projectToolTab("trash", target))}>
         <Trash2 size={14} /> ゴミ箱
       </MenuItem>
     </>

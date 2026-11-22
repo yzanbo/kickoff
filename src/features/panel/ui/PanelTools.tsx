@@ -1,7 +1,7 @@
 import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { SURFACES } from "./surfaces";
+import { surfaceOf } from "./state/panelStore";
 import { PanelViewButton, type PanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
 
@@ -11,15 +11,15 @@ export interface PanelFrame {
   paneRef?: RefObject<HTMLElement | null>;
   /** 左端の幅のつまみ（ボードの右のパネル） */
   resizeHandle?: HTMLAttributes<HTMLDivElement>;
-  /** 大きくする切り替えの状態（欄の決まり SURFACES の maximize で出す。disabled: 狭くて元の大きさに戻せない） */
+  /** 大きくする切り替えの状態（欄の決まりの maximize で出す。disabled: 狭くて元の大きさに戻せない） */
   maximize?: { on: boolean; disabled?: boolean; toggle: () => void };
   /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さない */
   fixed?: boolean;
 }
 
-/** 欄の閉じるボタン（欄の決まり SURFACES の closeButton。欄が画面そのもののときは出さない） */
+/** 欄の閉じるボタン（欄の決まりの closeButton。欄が画面そのもののときは出さない） */
 export function PanelCloseButton({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
-  const { closeButton } = SURFACES[panel.surface];
+  const { closeButton } = surfaceOf(panel.surface)!;
   if (!closeButton || frame?.fixed) return null;
   return <IconButton type="button" icon={closeButton.icon} iconSize={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />;
 }
@@ -31,7 +31,7 @@ export function PanelCloseButton({ panel, frame }: { panel: PanelController; fra
  * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
  */
 export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
-  const { closeButton, maximize } = SURFACES[panel.surface];
+  const { closeButton, maximize } = surfaceOf(panel.surface)!;
   const close = <PanelCloseButton panel={panel} frame={frame} />;
   const state = frame?.maximize;
   return (

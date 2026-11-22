@@ -3,9 +3,8 @@ import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "
 import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerServiceInfo, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/docker/types";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
+import { openTab, panelKey, terminalTab } from "@/features/panel/ui";
 import { openSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
-import { panelKey } from "@/features/panel/ui/surfaces";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { api } from "@/foundation/ui/api";
@@ -32,7 +31,7 @@ function useOpenShell(projectId: number, compose: DockerCompose) {
   const { projectsById } = useProjects();
   return (service: string, container: DockerContainer) => {
     const cwd = compose.worktree_path ?? projectsById.get(projectId)?.repo_path ?? "/";
-    panelActions(panelKey("bottom", projectId)).openTerminal({ cwd, label: service, projectId, command: shellCommand(container.id), title: `シェル · ${service}` });
+    openTab(panelKey("bottom", projectId), terminalTab({ cwd, label: service, projectId, command: shellCommand(container.id), title: `シェル · ${service}` }));
   };
 }
 

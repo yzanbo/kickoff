@@ -3,9 +3,9 @@
 // 落とした側がタブを開き、元の欄（ほかのウィンドウなら知らせ tabMovedOut で）は後始末なしで閉じる（チャットはサイドバーとの連動で足し直されないよう、表示だけ消したことにする）
 import { useEffect } from "react";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
+import { closeTab, openTab } from "@/features/panel/ui/state/actions";
 import { panelStateOf, subscribePanels } from "@/features/panel/ui/state/panelStore";
-import type { PanelKind } from "@/features/panel/ui/surfaces";
+import type { PanelKind } from "@/features/panel/ui/surface";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /** ウィンドウをまたいで移せるタブ（中身の形。送る前の新しいチャットは、書きかけの文・添付ごとタブの中身をそのまま） */
@@ -68,14 +68,14 @@ export function parseMovingTab(raw: string): MovingTab | null {
 }
 
 /** 元の欄から閉じる（後始末なし。チャットは表示だけ消したことにする） */
-const closeMoved = (panel: string, key: string, kind: MovableTab["kind"]) => panelActions(panel).closeTab(key, { dismiss: kind === "chat", keep: true });
+const closeMoved = (panel: string, key: string, kind: MovableTab["kind"]) => closeTab(panel, key, { dismiss: kind === "chat", keep: true });
 
 /**
  * 落とされたタブをこの欄に開き、元の欄から閉じる（このウィンドウの欄ならここで、ほかのウィンドウなら知らせて）。開いたタブのキーを返す
  */
 export function takeMovingTab(panel: string, moving: MovingTab): string {
   const { tab } = moving;
-  panelActions(panel).openPanelTab(tab);
+  openTab(panel, tab);
   if (moving.panel !== panel && panelStateOf(moving.panel).tabs.some((t) => t.key === tab.key)) closeMoved(moving.panel, tab.key, tab.kind);
   else postWindowMessage("tabMovedOut", { panel: moving.panel, key: tab.key, kind: tab.kind });
   return tab.key;

@@ -4,7 +4,8 @@ import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import type { WindowMessageMap } from "@/foundation/ui/navigation/windowBus";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
-import { panelActions } from "./panelActions";
+import { openNewChat } from "./actions";
+import { useTestPanelStore } from "@/features/panel/ui/testing";
 import { discardDraft, openDraft, setDraftTitle } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { forwardPanelOp, sendPanelsWhileChanging } from "./panelMirror";
 import { allPanels, dispatchPanel, panelStateOf, replacePanels, setPanelReplica } from "./panelStore";
@@ -23,6 +24,7 @@ function becomeReplica() {
 }
 
 test("メインのウィンドウ: いまのパネルの写しを送り、変わったらまとめて送り直す", () => {
+  useTestPanelStore();
   vi.useFakeTimers();
   onTestFinished(() => void vi.useRealTimers());
   const sent: WindowMessageMap["mainPanels"][] = [];
@@ -30,8 +32,7 @@ test("メインのウィンドウ: いまのパネルの写しを送り、変わ
   onTestFinished(stop);
   assert.equal(sent.length, 1);
   const key = "kanban:9101";
-  const actions = panelActions(key);
-  actions.openNew({ projectId: 9101 });
+  openNewChat(key, { projectId: 9101 });
   dispatchPanel(key, { type: "setOpen", open: false });
   // 続けて変えても 1 回にまとめる
   assert.equal(sent.length, 1);
@@ -47,6 +48,7 @@ test("メインのウィンドウ: いまのパネルの写しを送り、変わ
 });
 
 test("写しの店: 届いた状態に置き換え、自分では変えない（下書きの操作もパネルを変えない）", () => {
+  useTestPanelStore();
   becomeReplica();
   const key = "kanban:9102";
   const state: PanelState = { ...panelStateOf(key), tabs: [{ kind: "new", key: "new:1", projectId: 9102 }] };
@@ -59,6 +61,7 @@ test("写しの店: 届いた状態に置き換え、自分では変えない（
 });
 
 test("forwardPanelOp: サイドバーの別ウィンドウの中だけメインのウィンドウに頼み、メインのウィンドウではそのまま行う", () => {
+  useTestPanelStore();
   // サイドバーの別ウィンドウの種類（本物の表は sidebar の ui/popoutKinds.ts）
   useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
   vi.stubGlobal("location", { hash: "#/projects/1" });
@@ -68,7 +71,7 @@ test("forwardPanelOp: サイドバーの別ウィンドウの中だけメイン�
   assert.equal(forwardPanelOp({ op: "discardDraft", draft: { panel: "kanban:1", key: "new:1" } }), true);
   // 下書きを開く操作も、このウィンドウのパネルを変えずに頼むだけ
   const key = "kanban:9103";
-  const draftKey = panelActions(key).openNew({ projectId: 9103 });
+  const draftKey = openNewChat(key, { projectId: 9103 });
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });
   const before = panelStateOf(key);
   openDraft({ panel: key, key: draftKey });

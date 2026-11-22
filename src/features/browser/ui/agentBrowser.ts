@@ -1,10 +1,8 @@
 import { useEffect } from "react";
 import { setAgentBrowsing } from "./agentBrowsing";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { allPanels, isPanelMounted } from "@/features/panel/ui/state/panelStore";
+import { addTabBehind, allPanels, browserTab, isPanelMounted, openTab, panelKey, showTab } from "@/features/panel/ui";
 import { showSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
 import { isTabShown, panelOfTab } from "@/features/panel/ui/state/tabPlace";
-import { panelKey } from "@/features/panel/ui/surfaces";
 
 /** いまの欄の状態（画面に出ている欄だけを数える） */
 const panelsView = () => ({ panels: allPanels(), mounted: isPanelMounted });
@@ -30,10 +28,12 @@ export function useAgentBrowserBridge() {
         return;
       }
       const show = reveal && mayReveal(after);
-      const actions = panelActions(key);
       // 表に出すときは、右サイドバーの中身もブラウザにする（ほかの中身を見ていても気づけるように）
       if (show) showSideBrowser(key);
-      const tabKey = show ? actions.openBrowser(url) : actions.addBrowserBehind(url);
+      const tab = browserTab(url);
+      if (show) openTab(key, tab);
+      else addTabBehind(key, tab);
+      const tabKey = tab.key;
       setAgentBrowsing(tabKey, true);
       api.opened(requestId, tabKey, show, null);
     });
@@ -42,7 +42,7 @@ export function useAgentBrowserBridge() {
       const show = key !== null && mayReveal(after);
       if (show) {
         showSideBrowser(key);
-        panelActions(key).showTab(tabKey);
+        showTab(key, tabKey);
       }
       api.revealed(requestId, show);
     });

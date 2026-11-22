@@ -9,7 +9,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { usePanelDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { chatTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { terminalTargets, usePanel } from "@/features/panel/ui/usePanel";
 import { usePanelWidth } from "./usePanelWidth";
@@ -26,7 +26,7 @@ const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openTarget({ kind: 
 export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { projectId: number; holdEsc: boolean; focus?: ReopenRoute; tab: "board" | "chats" }) {
   const { projects: all } = useProjects();
   const panel = usePanel({
-    surface: "board",
+    surface: "kanban",
     scope: projectId,
     holdEsc,
     // 新しいチャットを送ったら、そのチャットを URL にする
@@ -38,8 +38,10 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
   useBoardFocus(
     focus,
     (target) => {
-      if (target.name === "chat") panel.open({ id: target.chatId, project_id: target.projectId }, target.focus);
-      else panel.openNew({ projectId: target.projectId, group: target.group, worktree: target.worktree });
+      if (target.name === "chat") {
+        const tab = chatTab({ id: target.chatId, project_id: target.projectId }, target.focus);
+        openTab(panel.key, tab, reopenOf(tab));
+      } else panel.openNew({ projectId: target.projectId, group: target.group, worktree: target.worktree });
     },
     tab,
   );
@@ -111,7 +113,7 @@ export function useBoardPanel({
   };
   /** カードから開く（URL もそのチャットにする） */
   const open = (chat: Chat) => {
-    panel.open(chat);
+    openTab(panel.key, chatTab(chat));
     showInUrl(chat);
   };
   return { panel, drafts, frame, body, open };

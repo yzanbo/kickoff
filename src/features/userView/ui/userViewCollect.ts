@@ -7,24 +7,22 @@ import { dbClientTabs, githubSelected } from "@/foundation/ui/storage/storageKey
 import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { allPanels, isPanelMounted } from "@/features/panel/ui/state/panelStore";
+import { allPanels, isPanelMounted, parsePanelKey, terminalTitle, type PanelSurface } from "@/features/panel/ui";
 import { leavesOf } from "@/features/panel/ui/layout/paneTree";
-import { parsePanelKey, type PanelSurface } from "@/features/panel/ui/surfaces";
 import { PROJECT_VIEW_LABELS, type PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { terminalTitle } from "@/features/panel/ui/tabs/tabKinds";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 
 /** 欄の呼び名（AI に返す文の「どこのペインか」） */
 const AREA_LABELS: Record<PanelSurface, string> = {
-  board: "チャットのパネル",
+  kanban: "チャットのパネル",
   side: "右サイドバー",
   bottom: "下のパネル",
   agents: "チャットの画面の右の欄",
   notes: "ノートのタブ",
   files: "ファイルのタブ",
-  window: "ブラウザの別ウィンドウ",
-  chatWindow: "チャットの別ウィンドウ",
+  win: "ブラウザの別ウィンドウ",
+  cwin: "チャットの別ウィンドウ",
 };
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */

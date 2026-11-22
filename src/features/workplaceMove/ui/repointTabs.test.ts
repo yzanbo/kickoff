@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { changesTab, databaseTab, fileTab, noteTab, projectViewTab } from "@/features/panel/ui/tabs/tabKinds";
+import { changesTab, databaseTab, fileTab, noteTab, projectViewTab } from "@/features/panel/ui";
 import { repointPlan } from "./repointTabs";
 
 test("作業場所を移したら、移す前の作業場所を指す右の欄のタブを付け替え、書きかけのファイルのタブは残す（メモの仕様書「0025」の H4）", () => {

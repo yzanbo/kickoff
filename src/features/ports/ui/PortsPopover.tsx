@@ -7,8 +7,7 @@ import { navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/r
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { openBrowserTab } from "@/features/browser/ui/panel/openBrowserTab";
 import { sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
-import { isPanelMounted } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { isPanelMounted, panelKey } from "@/features/panel/ui";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";

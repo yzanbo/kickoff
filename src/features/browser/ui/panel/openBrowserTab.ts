@@ -3,15 +3,14 @@
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { writeSetting } from "@/foundation/ui/storage";
 import { projectsSettings } from "@/features/projects/ui";
-import { panelKey, projectOfPanel } from "@/features/panel/ui/surfaces";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
+import { browserTab, openTab, panelKey, projectOfPanel } from "@/features/panel/ui";
 import { isSidePanel, sidePanelsHandedOut } from "@/features/panel/ui/state/panelHandOff";
 
 /** その欄にブラウザのタブを開く（チャット欄を別ウィンドウへ移していれば、そのウィンドウで） */
 export function openBrowserTab(panel: string, url: string): void {
   showSideBrowser(panel);
   if (isSidePanel(panel) && sidePanelsHandedOut()) return postWindowMessage("sideOpenBrowser", { panel, url });
-  panelActions(panel).openBrowser(url);
+  openTab(panel, browserTab(url));
 }
 
 /** そのプロジェクトの右サイドバー（チャット欄）にブラウザのタブを開く（ターミナルの ⌘ クリック・ポート・Docker・ワークツリーの「ブラウザで開く」） */

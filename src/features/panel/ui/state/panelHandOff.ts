@@ -2,7 +2,7 @@
 // 持っているウィンドウだけがその欄を描き・変え・下書きを残す（setPanelOwnership）。ターミナルのシェルは、受け取った側が持ち主になってから渡した側を閉じる
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
-import { parsePanelKey } from "@/features/panel/ui/surfaces";
+import { parsePanelKey } from "@/features/panel/ui/surface";
 import type { PanelState } from "./panelState";
 import { putPanels, setPanelOwnership, takePanels } from "./panelStore";
 

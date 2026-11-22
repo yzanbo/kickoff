@@ -1,7 +1,35 @@
+import type { Chat } from "@shared/chat/types";
 import { sortBuckets, type BucketHead } from "@/features/chatList/ui/buckets";
+import type { PanelTab } from "@/features/panel/ui";
 
 /** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */
 export const OTHER_CLUSTER: BucketHead = { key: "other", kind: "other", label: "その他", title: "グループ・作業場所に入らないタブ（ブラウザなど）" };
+
+/** タブのまとまりを決めるのに使うもの（useTabClusters が、いまのまとめ方・サイドバーのチャット・ワークツリーの一覧から作る） */
+export interface ClusterResolver {
+  /** ID のチャット（サイドバーの一覧から。なければ undefined） */
+  chatById: (id: number) => Chat | undefined;
+  /** チャットが入るまとまり（サイドバー・ボードと同じ決め方） */
+  ofChat: (chat: Chat) => BucketHead;
+  /** 作成先（プロジェクト・グループ）のまとまり（チャットがまだ分からないタブ・新しいチャット） */
+  ofTarget: (projectId: number, group?: number, worktree?: string) => BucketHead;
+  /** フォルダ（本体・ワークツリー）のまとまり（ターミナル。グループ別では「その他」） */
+  ofFolder: (projectId: number, cwd: string) => BucketHead;
+}
+
+/**
+ * タブがどのまとまりに入るか（グループ別・作業場所別にまとめるとき）: チャットはそのチャットのまとまり（まだ届いていなければ作成先（グループなし・本体））、
+ * 新しいチャットは作成先、ターミナルは開いたフォルダ。ほか（ブラウザ・右の欄のタブ）は「その他」
+ */
+export function tabClusterOf(tab: PanelTab, resolve: ClusterResolver): BucketHead {
+  if (tab.kind === "chat") {
+    const chat = resolve.chatById(tab.id) ?? tab.chat;
+    return chat ? resolve.ofChat(chat) : resolve.ofTarget(tab.projectId);
+  }
+  if (tab.kind === "new") return resolve.ofTarget(tab.projectId, tab.group, tab.worktree);
+  if (tab.kind === "terminal") return resolve.ofFolder(tab.projectId, tab.cwd);
+  return OTHER_CLUSTER;
+}
 
 /** タブのまとまり（見出しは bucketChats と同じ形・同じキー。サイドバーの見出し・ボードの段と同じまとまり） */
 /**

@@ -1,8 +1,6 @@
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { usePanelOpen } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, togglePanel, usePanelOpen } from "@/features/panel/ui";
 
 /**
  * チャットの見出しの右端の、右の欄（そのチャットのサブエージェント・変更・ファイル・ノート・子チャットのタブ）を開く・閉じるボタン。
@@ -19,7 +17,7 @@ export function AgentPanelToggle({ chatId }: { chatId: number }) {
       title={open ? "右の欄を閉じる（タブは残る）" : "右の欄を開く（サブエージェント・変更・ファイル・ノート・子チャットのタブ）"}
       aria-pressed={open}
       className="chat-agents-toggle"
-      onClick={() => panelActions(key).toggle()}
+      onClick={() => togglePanel(key)}
     />
   );
 }

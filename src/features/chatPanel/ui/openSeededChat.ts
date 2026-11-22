@@ -4,9 +4,8 @@ import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { choose } from "@/foundation/ui/kit/ask";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
+import { openNewChat, panelKey } from "@/features/panel/ui";
 import { openDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { panelKey } from "@/features/panel/ui/surfaces";
 import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
 import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 
@@ -45,8 +44,9 @@ export function openSeededChat(projectId: number, place: WorkplaceChoice, seed: 
     postToMainWindow("openSeededChat", { projectId, place, text: seed.text, attachments: seed.attachments ?? [], link: seed.link ?? null });
     return;
   }
-  const panel = panelKey("board", projectId);
-  const key = panelActions(panel).openNew(
+  const panel = panelKey("kanban", projectId);
+  const key = openNewChat(
+    panel,
     { projectId, ...(place.kind === "existing" ? { worktree: place.path } : {}) },
     {
       text: seed.text,

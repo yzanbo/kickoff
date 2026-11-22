@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `core/notes.ts`・`noteWatcher.ts` | 一覧・読み書き・移動・ゴミ箱（フォルダは `NoteService.dirOf`）・外の変更の知らせ |
-| `ui/NoteTab`・`NoteTree`・`noteDrag.ts`・`useNoteActions` | ノートのタブ（一覧・右のタブ `SURFACES.notes`）・木・操作 |
+| `ui/NoteTab`・`NoteTree`・`noteDrag.ts`・`useNoteActions` | ノートのタブ（一覧・右のタブ 欄 `notes`）・木・操作 |
 | `ui/NoteView`・`NoteEditor`・`livePreview*.ts`・`useNoteDocument` | 開いたノート・編集（CodeMirror）・保存 |
 | `ui/HtmlNotePage`・`htmlPage.ts` | HTML のノートのページ（読むファイルは `@/foundation/core/http/assets.ts` の `assetResponse`） |
 | `ui/NoteChat`・`addToNote.ts`・`openNoteFrom.ts`・`attachNote.ts` | ノートのチャット・チャットの文をノートにする・チャットから開く・ノートを足す |

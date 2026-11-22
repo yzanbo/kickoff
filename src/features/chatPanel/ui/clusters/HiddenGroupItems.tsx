@@ -4,8 +4,7 @@ import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
-import { parsePanelKey } from "@/features/panel/ui/surfaces";
-import { specOf } from "@/features/panel/ui/tabs/tabKinds";
+import { parsePanelKey, kindOf } from "@/features/panel/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 
@@ -13,7 +12,7 @@ import { useHiddenTabGroups } from "./useHiddenTabGroups";
 function panelProjectIds(panel: PanelController): number[] {
   const scope = parsePanelKey(panel.key)?.scope;
   const own = panel.surface !== "agents" && typeof scope === "number" ? [scope] : [];
-  return [...new Set([...own, ...panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? [])])];
+  return [...new Set([...own, ...panel.tabs.flatMap((t) => kindOf(t).projectOf(t) ?? [])])];
 }
 
 /**

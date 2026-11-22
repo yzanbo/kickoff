@@ -3,9 +3,7 @@ import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { usePanelOpen } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, togglePanel, usePanelOpen } from "@/features/panel/ui";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
 
@@ -28,7 +26,7 @@ export function useProjectChat(projectId: number | undefined, { inWindow = false
   /** 開閉（タブがなくても、開くだけ） */
   const toggle = () => {
     if (inWindow) return openSideWindow();
-    if (key) panelActions(key).toggle();
+    if (key) togglePanel(key);
   };
 
   useWindowEvent(

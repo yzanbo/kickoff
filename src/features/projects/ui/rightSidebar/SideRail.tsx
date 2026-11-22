@@ -4,8 +4,7 @@ import { canPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, setPanelOpen } from "@/features/panel/ui";
 import { TAB_GROUPS } from "@/features/projects/ui/page/ProjectTabs";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -54,7 +53,7 @@ export function SideRail({ projectId, open, held = false, inWindow = false }: { 
   const shown = open || held || inWindow;
   const pick = (next: SideView) => {
     if (inWindow) return showSideView(projectId, next);
-    if (!held && open && view === next) return panelActions(panelKey("side", projectId)).setOpen(false);
+    if (!held && open && view === next) return setPanelOpen(panelKey("side", projectId), false);
     showSideView(projectId, next);
   };
   const tabState = (v: SideView) => {

@@ -21,7 +21,7 @@ import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel } from "@/features/panel/ui/usePanel";
-import type { PanelScope } from "@/features/panel/ui/surfaces";
+import type { PanelScope } from "@/features/panel/ui";
 import { ancestorsOf, buildNoteTree, filterNotes, isUnder, parentOf } from "./notePaths";
 import { NoteFoundList } from "./NoteFoundList";
 import { NoteListHead } from "./NoteListHead";

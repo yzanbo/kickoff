@@ -5,17 +5,17 @@ import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./p
 import { isTabShown, panelOfTab } from "./tabPlace";
 
 const browser = (key: string): PanelTab => ({ key, kind: "browser", url: "https://example.com", title: "" });
-const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, { closeWhenEmpty: false }), state);
+const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, undefined), state);
 
 /** ブラウザのタブ a（表示中）と b（裏）の開いた欄 */
-const sideOpen = run(emptyPanel(), { type: "open", tab: browser("browser:a") }, { type: "add", tab: browser("browser:b") });
-const bottomClosed = run(emptyPanel(), { type: "add", tab: browser("browser:c") });
+const sideOpen = run(emptyPanel(undefined), { type: "open", tab: browser("browser:a") }, { type: "add", tab: browser("browser:b") });
+const bottomClosed = run(emptyPanel(undefined), { type: "add", tab: browser("browser:c") });
 
 const view = (mounted: string[] = ["side:1", "bottom:1"]) => ({
   panels: new Map<string, PanelState>([
     ["side:1", sideOpen],
     ["bottom:1", bottomClosed],
-    ["side:2", run(emptyPanel(), { type: "open", tab: browser("browser:d") })],
+    ["side:2", run(emptyPanel(undefined), { type: "open", tab: browser("browser:d") })],
   ]),
   mounted: (key: string) => mounted.includes(key),
 });

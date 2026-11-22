@@ -4,8 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { open } from "@/foundation/ui/navigation/open";
 import { changeOf } from "@/features/git/ui/diff/sideFile";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { changesTab, fileTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
 import type { FileLinks } from "./fileLinkContext";
 import { buildFileIndex, type FileRef } from "./fileRefs";
 
@@ -70,12 +69,16 @@ export function fileLinksFor({
 }): ChatFileLinks {
   const place = { projectId, ...(worktree ? { worktree } : {}) };
   const openInEditor = (ref: FileRef) => open({ kind: "file", projectId, ...ref, worktree });
-  const actions = () => panelActions(panelKey("agents", chatId));
+  const sidePanel = panelKey("agents", chatId);
   const openChanges = (focus?: string) => {
     if (!side) return focus ? openInEditor({ path: focus }) : undefined;
-    actions().openChanges({ chatId, ...place, ...(focus ? { focus } : {}) });
+    const tab = changesTab({ chatId, ...place, ...(focus ? { focus } : {}) });
+    openTab(sidePanel, tab, reopenOf(tab));
   };
-  const openFile = (ref: FileRef) => actions().openFile({ chatId, ...place, ...ref });
+  const openFile = (ref: FileRef) => {
+    const tab = fileTab({ chatId, ...place, ...ref });
+    openTab(sidePanel, tab, reopenOf(tab));
+  };
   return {
     index: buildFileIndex(files.files, root, files.truncated),
     side,

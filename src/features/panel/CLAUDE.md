@@ -1,40 +1,40 @@
 # タブの入れ物（`src/features/panel`）
 
-タブを並べる欄。8 つの欄（`board`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `window`・`chatWindow`）は同じ `Panel` / `usePanel` で、違いは `SURFACES` と欄の殻が渡す `frame` だけ。
+タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ。
 パスは `ui/` から。チャットの部分（サイドバーとの連動・タブのまとまり・下書き・右の欄）は `src/features/chatPanel/CLAUDE.md`、タブの中身のチャットは `src/features/conversation/CLAUDE.md`、ターミナルは `src/features/terminal/CLAUDE.md`、ブラウザは `src/features/browser/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
-| 直下 | `Panel`・`usePanel`・欄の決まり `surfaces.ts`・入れ子の口 `panelHost.ts` |
-| `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `panelActions.ts`）・別ウィンドウの写しと受け渡し |
+| 直下 | `Panel`・`usePanel`・種類の口 `kind.ts`・欄の口 `surface.ts`（いまの 8 欄は `surfaces.ts`）・入れ子の口 `panelHost.ts` |
+| `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `actions.ts`）・別ウィンドウの写しと受け渡し |
 | `layout/` | ペインの分割（`paneTree.ts`・`paneLayout.ts`・`paneSizes.ts`・`paneGeometry.ts`）・タブのドラッグ（`useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`） |
-| `tabs/` | 種類の表 `tabKinds.ts`・型 `panelTypes.ts`・タブの列・中身 `PanelTabPage`・メニュー |
+| `tabs/` | いまの 17 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブの列・中身 `PanelTabPage`・メニュー |
 | `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く |
 
 欄の殻はそれぞれの持ち主にある: チャットのパネルと右の欄は `@/features/chatPanel/ui/`（`board/`・`agents/`）、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`。
 
-## 欄の決まり（`SURFACES`）
+## 欄の決まり（`surface.ts`）
 
-- 欄ごとの違い（出す種類 `kinds`・Esc・ボタン・札など）は、作る側・描く側で分岐させず `SURFACES` に集める。
-- 欄ごとに出すタブは 1 種類（`board` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。新しいタブ・空の欄のボタンもその種類だけ。
+- 欄ごとの違い（出す種類 `accepts`・Esc・ボタン・札など）は、作る側・描く側で分岐させず欄の項目に集め、`panelSurfaces` で受ける（`surfaceOf`）。チャットのパネルの連動は `ext`。
+- 欄ごとに出すタブは 1 種類（`kanban` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。新しいタブ・空の欄のボタンもその種類だけ。
 - ブラウザのタブはどこから開いても右サイドバーに開く（`@/features/browser/ui/panel/openBrowserTab.ts`）。ターミナルは下のパネルに開く。
-- 状態は `panelKey(surface, scope)` で欄・画面ごとに覚える。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
+- 状態は `panelKey(欄, scope)` で欄・画面ごとに覚える。欄の名前は下書きの保存のキーにも使うので変えない。
 - 範囲がチャットの ID かは `typeof scope === "number"` で見分ける（プロジェクトの ID と取り違えない）。
 
 ## 状態（`state/`）
 
-- 1 つの欄の状態（`PanelState`）は店（`panelStore.ts`）が覚え、変えるのはすべて純粋関数の `panelReducer`（後始末・保存は店）。部品は `usePanelState` と `dispatchPanel`、外からは `panelActions(key)`。
+- 1 つの欄の状態（`PanelState`）は店（`createPanelStore`。起動で 1 つ入れる。テストは `testing.ts`）が覚え、変えるのはすべて純粋関数の `panelReducer`（後始末・保存は店）。部品は `usePanelState`、操作は `actions.ts` の関数（`openTab(欄, 作る関数のタブ)` など）。
 - 配置はいつもタブにそろえておく（`reconcileLayout`。理由は `PanelState` の JSDoc）。
 - 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`PanelTabPage` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
 - 表示していないタブも hidden で残す。チャットの会話・サブエージェント・子チャットはさらに `Activity` で止め、止めると切れる操作の間は `@/features/chat/ui/screen/keepAlive.ts` で止めない。
-- 表示中かは `TabVisibleContext` で入れ子の欄へ伝える。チャットのタブの中身は初めて表示したときに作る（`TabKindSpec.lazy`）。
+- 表示中かは `TabVisibleContext` で入れ子の欄へ伝える。チャットのタブの中身は初めて表示したときに作る（種類の `createWhen: "shown"`）。
 - 右サイドバーのブラウザは `@/features/browser/ui/panel/browserSession.ts` で残す。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。別ウィンドウの店はメインのウィンドウの写し（`panelMirror.ts`）。
 
 ## タブの種類（`tabs/tabKinds.ts`）
 
-- 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（キー・名前・後始末・`popout` など）は、種類で分岐させず `TAB_KINDS` から引く。中身は `PanelTabPage` の `PAGES`。
+- 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（名前・後始末・`popout`・中身 `Page` など）は、分岐させず種類の項目（`defineTabKind`・`panelTabs`）から `kindOf(tab)` で引く。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
-- 種類を足すときは、作る関数・`panelActions` の `open…`・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
+- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
 - ほかにも `@/features/chatPanel/ui/agents/AgentPanelAdds.tsx`・`@/features/workplaceMove/ui/repointTabs.ts`・`layout/tabTransfer.ts`・`ui/popoutWindowTab.ts` の保存の型・`PaneTab.tsx` の名指しを見る。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 右クリックの `TabMenu` はサイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`。状態の印はどの種類も `useTabAgentState`（店から読む）。

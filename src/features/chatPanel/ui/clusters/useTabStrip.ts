@@ -3,7 +3,7 @@ import { useFolds } from "@/foundation/ui/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useManualChatReorder, useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
-import { parsePanelKey } from "@/features/panel/ui/surfaces";
+import { parsePanelKey } from "@/features/panel/ui";
 import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";

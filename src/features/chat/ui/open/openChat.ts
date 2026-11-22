@@ -10,8 +10,7 @@ import { readSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { isScreenShown } from "@/features/chat/ui/screen/chatScreens";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { childTab, newChildTab, openTab, panelKey } from "@/features/panel/ui";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
 
 /** 子チャットで聞くときに渡すもの（どのチャットの、どの記録から、どの文を。openAskChild） */
@@ -38,13 +37,13 @@ function showRoot(chatId: number): Chat | undefined {
 }
 
 /**
- * いちばん上の親のチャットの画面の右の欄で開く（open に、いちばん上の親の ID と右の欄の操作を渡す）。
+ * いちばん上の親のチャットの画面の右の欄で開く（open に、いちばん上の親の ID と右の欄の住所を渡す）。
  * 親が分からない・右の欄を置けないときは false（呼んだ側が別の開き方にする）
  */
-export function openInRootSide(chatId: number, open: (rootId: number, side: ReturnType<typeof panelActions>) => void): boolean {
+export function openInRootSide(chatId: number, open: (rootId: number, side: string) => void): boolean {
   const root = showRoot(chatId);
   if (!root) return false;
-  open(root.id, panelActions(panelKey("agents", root.id)));
+  open(root.id, panelKey("agents", root.id));
   return true;
 }
 
@@ -63,7 +62,7 @@ export function resolveOpenPlace(setting: "inline" | "side" | "window", caps: { 
 
 /** 子チャットを右の欄で開く（いちばん上の親の右の欄のタブ。親が分からなければ、ふつうのチャットと同じくチャットのパネルで） */
 function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
-  const opened = openInRootSide(chat.id, (rootId, side) => side.openChild({ chatId: rootId, childId: chat.id, projectId: chat.project_id, title: chat.title }));
+  const opened = openInRootSide(chat.id, (rootId, side) => openTab(side, childTab({ chatId: rootId, childId: chat.id, projectId: chat.project_id, title: chat.title })));
   if (!opened) openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }
 
@@ -121,15 +120,18 @@ export function openAskChild({ parentId, eventId, quote, text, attachments }: As
   const parent = knownChat(parentId);
   if (!parent) return;
   openInRootSide(parentId, (rootId, side) =>
-    side.openNewChild({
-      chatId: rootId,
-      projectId: parent.project_id,
-      ...(parentId !== rootId ? { parentId } : {}),
-      ...(quote.trim() ? { quote } : {}),
-      ...(eventId !== null ? { eventId } : {}),
-      ...(text ? { text } : {}),
-      ...(attachments?.length ? { attachments } : {}),
-      follow: true,
-    }),
+    openTab(
+      side,
+      newChildTab({
+        chatId: rootId,
+        projectId: parent.project_id,
+        ...(parentId !== rootId ? { parentId } : {}),
+        ...(quote.trim() ? { quote } : {}),
+        ...(eventId !== null ? { eventId } : {}),
+        ...(text ? { text } : {}),
+        ...(attachments?.length ? { attachments } : {}),
+        follow: true,
+      }),
+    ),
   );
 }

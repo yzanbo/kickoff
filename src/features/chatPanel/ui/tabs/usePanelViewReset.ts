@@ -2,11 +2,10 @@ import { useSyncExternalStore } from "react";
 import type { Setting } from "@/foundation/ui/storage";
 import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/chatPanel/ui/storage";
-import { panelSettings } from "@/features/panel/ui";
+import { panelSettings, type PanelSurface } from "@/features/panel/ui";
 import { chatListSettings } from "@/features/chatList/ui";
 import { PANEL_TAB_GROUP_COLORS, PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { PanelSurface } from "@/features/panel/ui/surfaces";
 
 /**
  * 「表示」のメニューのチャットの項目が読む設定（まとめ方は欄ごとなので別に見る）。

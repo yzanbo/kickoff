@@ -4,9 +4,7 @@ import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router"
 import { onWindowMessage, postToMainWindow, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { adoptSidePanels, isSidePanel, ownSidePanelsOnly } from "@/features/panel/ui/state/panelHandOff";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { allPanels } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { allPanels, browserTab, openTab, panelKey, setPanelOpen } from "@/features/panel/ui";
 import { SideBody } from "./RightSidebar";
 import { SideRail } from "./SideRail";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
@@ -55,7 +53,7 @@ export function PopoutSideChat() {
     const timer = setTimeout(() => setReady(true), ADOPT_WAIT_MS);
     // メインのウィンドウから頼まれたブラウザのタブ（このウィンドウがチャット欄を持っている間）
     const offBrowser = onWindowMessage("sideOpenBrowser", (m) => {
-      if (isSidePanel(m.panel)) panelActions(m.panel).openBrowser(m.url);
+      if (isSidePanel(m.panel)) openTab(m.panel, browserTab(m.url));
     });
     const offPanels = onWindowMessage("sidePanels", (m) => {
       // 受け取るのは 1 回だけ（同じ知らせが重ねて届いても、受け取ったあとのタブを消さない）
@@ -81,7 +79,7 @@ export function PopoutSideChat() {
   const projectId = routeProject !== null && !missing(routeProject) ? routeProject : fallbackProject;
   // このウィンドウでは欄をいつも開いておく（閉じるボタン・右上の開閉はない）
   useEffect(() => {
-    if (ready && projectId !== undefined) panelActions(panelKey("side", projectId)).setOpen(true);
+    if (ready && projectId !== undefined) setPanelOpen(panelKey("side", projectId), true);
   }, [ready, projectId]);
   if (!ready) return <div className="popout-body page muted">読み込み中…</div>;
   if (projectId === undefined) return <div className="popout-body page muted">プロジェクトがありません</div>;

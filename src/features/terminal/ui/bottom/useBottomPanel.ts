@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { panelSettings } from "@/features/panel/ui";
-import { panelActions } from "@/features/panel/ui/state/panelActions";
-import { usePanelOpen } from "@/features/panel/ui/state/panelStore";
-import { panelKey, type PanelScope } from "@/features/panel/ui/surfaces";
+import { panelKey, panelSettings, togglePanel, type PanelScope, usePanelOpen } from "@/features/panel/ui";
 import type { TerminalTarget } from "@/features/panel/ui/usePanel";
 
 const MIN_HEIGHT = 120;
@@ -22,7 +19,6 @@ export type BottomPanelController = ReturnType<typeof useBottomPanel>;
  */
 export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   const key = panelKey("bottom", scope);
-  const actions = useMemo(() => panelActions(key), [key]);
   const open = usePanelOpen(key);
   const [maximized, setMaximized] = useState(false);
   // 上の端をドラッグして高さを変える（いま見えている高さから。最大化していればやめる。ダブルクリックで元の高さ）
@@ -42,7 +38,7 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   }, [open]);
 
   /** 開閉。開くときにタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
-  const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
+  const toggle = () => togglePanel(key, { terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
   useWindowEvent(

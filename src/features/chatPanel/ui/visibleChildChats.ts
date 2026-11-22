@@ -1,8 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { leavesOf } from "@/features/panel/ui/layout/paneTree";
-import { panelStateOf, subscribePanels } from "@/features/panel/ui/state/panelStore";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey, panelStateOf, subscribePanels } from "@/features/panel/ui";
 
 const NONE: ReadonlySet<number> = new Set();
 

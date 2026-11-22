@@ -8,7 +8,7 @@ import { onServerOpen } from "@/foundation/ui/api/events";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { setSendExtras } from "@/features/chat/ui";
-import { subscribePanels } from "@/features/panel/ui/state/panelStore";
+import { subscribePanels } from "@/features/panel/ui";
 
 /** 続けて変わったときにまとめる間 */
 const SETTLE_MS = 400;

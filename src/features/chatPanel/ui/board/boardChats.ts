@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/chat/types";
 import { open } from "@/foundation/ui/navigation/open";
 import { usePanelDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { panelKey } from "@/features/panel/ui/surfaces";
+import { panelKey } from "@/features/panel/ui";
 import type { NewChatTarget, PanelController } from "@/features/panel/ui/usePanel";
 import type { useBoardPanel } from "./useBoardPanel";
 
@@ -35,7 +35,7 @@ export function panelChats(rightPanel: ReturnType<typeof useBoardPanel>): BoardC
 
 /** ボードと分けた「チャット」タブへ移って開く（パネルはそのタブが持つ。ボードは下書きを出すだけ） */
 export function useChatsTabLinks(projectId: number): BoardChats {
-  const drafts = usePanelDrafts([panelKey("board", projectId), panelKey("side", projectId)]);
+  const drafts = usePanelDrafts([panelKey("kanban", projectId), panelKey("side", projectId)]);
   return {
     drafts,
     open: (chat) => open({ kind: "chat", projectId: chat.project_id, chatId: chat.id }),

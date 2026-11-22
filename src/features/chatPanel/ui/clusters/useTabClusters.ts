@@ -7,9 +7,8 @@ import type { ChatGrouping } from "@/features/chatList/ui/chatGrouping";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { chatHead, draftHead, groupHeads, workplaceHead } from "@/features/chatList/ui/bucketHeads";
 import { useBucketContext, useBucketHueOf } from "@/features/chatList/ui/useChatBuckets";
-import { OTHER_CLUSTER } from "./tabClusters";
-import type { PanelSurface } from "@/features/panel/ui/surfaces";
-import { specOf, type ClusterResolver } from "@/features/panel/ui/tabs/tabKinds";
+import { OTHER_CLUSTER, tabClusterOf, type ClusterResolver } from "./tabClusters";
+import { kindOf, type PanelSurface } from "@/features/panel/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
@@ -22,7 +21,7 @@ const TITLES: Partial<Record<BucketHead["kind"], string>> = {
 };
 
 /**
- * タブがどのまとまりに入るか（grouping が none なら使わない）。どのタブがどのまとまりに入るかは種類の表（tabKinds.ts の cluster）で決め、
+ * タブがどのまとまりに入るか（grouping が none なら使わない）。どのタブがどのまとまりに入るかは tabClusterOf で決め、
  * まとまりはサイドバー・ボードと同じ bucketChats の決め方（chatHead / draftHead / workplaceHead）・同じキー: グループ別はチャット・サブエージェントのグループ、
  * 新しいチャットは作成先のグループ（もうないグループのものはグループなし）。作業場所別はチャット・サブエージェントの作業場所（ブランチ。workplaceOf）、
  * 新しいチャットはプロジェクトの本体、ターミナルは開いたフォルダ（本体・ワークツリー）。ブラウザ（グループ別ではターミナルも）は「その他」。
@@ -44,7 +43,7 @@ export function useTabClusters(
   hueOf: (head: BucketHead) => number | null;
 } {
   const { projectsById, projectName } = useProjects();
-  const projectIds = [...new Set(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []))];
+  const projectIds = [...new Set(panel.tabs.flatMap((t) => kindOf(t).projectOf(t) ?? []))];
   const by = grouping === "group" ? "group" : "worktree";
   // 自分で作ったグループ（サイドバーと同じ並び）・ワークツリーの一覧（作業場所別のとき）
   const ctx = useBucketContext(grouping === "none" ? [] : by, projectIds);
@@ -68,7 +67,7 @@ export function useTabClusters(
   };
   const clusterOf = (key: string): BucketHead => {
     const t = panel.tabs.find((x) => x.key === key);
-    return t ? specOf(t).cluster(t, resolve) : OTHER_CLUSTER;
+    return t ? tabClusterOf(t, resolve) : OTHER_CLUSTER;
   };
   const seeds = grouping === "group" ? projectIds.flatMap((id) => groupHeads(id, ctx).filter((h) => h.kind === "group").map(present)) : [];
   // まとまりの色（サイドバーと同じ色。bucketHues.ts）。「まとまりを色付きで表示」を外していれば、どれも色なし
