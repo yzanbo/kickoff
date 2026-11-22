@@ -7,6 +7,8 @@ export { addProject, useProjects } from "./stores/projects";
 export { sidebarOrder } from "./projectOrder";
 export { ProjectPickFlyout } from "./ProjectPickFlyout";
 export { InspectionList } from "./InspectionList";
+export { projectViews } from "./projectViews";
+export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */

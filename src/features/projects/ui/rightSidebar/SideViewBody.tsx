@@ -11,7 +11,7 @@ import { sideNoteScope } from "@/features/notes/ui/notePanel";
 import { TrashTab } from "@/features/trash/ui/TrashTab";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { useOrderedProjectTabs } from "@/features/projects/ui/page/ProjectTabs";
+import { projectViewOf } from "@/features/projects/ui/projectViews";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { takeSideOpenRequest, useSideOpenRequest } from "./sideOpenRequests";
@@ -25,7 +25,7 @@ import type { SideView } from "./sideView";
  * 見ていない中身は描かない（裏で取り直し・見張りを続けない。開いていたもの・絞り込みは設定と欄の店に残る）
  */
 export function SideViewBody({ projectId, view, frame }: { projectId: number; view: Exclude<SideView, "browser">; frame?: PanelFrame }) {
-  const label = useOrderedProjectTabs().find((t) => t.tab === view);
+  const label = projectViewOf(view);
   const maximize = frame?.maximize;
   return (
     <div className="side-view">

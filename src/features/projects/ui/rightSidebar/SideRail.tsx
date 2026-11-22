@@ -1,19 +1,24 @@
 import { AppWindow, Globe, GripHorizontal, type LucideIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+import { useMemo, type ComponentProps } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/projects/ui/storage";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
-import { TAB_GROUPS } from "@/features/projects/ui/page/ProjectTabs";
+import { availableProjectViews, projectViewGroups } from "@/features/projects/ui/projectViews";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { railGroupsOf } from "./railGroups";
 import { showSideView, type SideView } from "./sideView";
 import { openSideWindow } from "./useRightSidebar";
 
-/** 列のまとまり（プロジェクトのタブのまとまりから、ボード・チャットを除いたもの。読み込んだときに 1 回だけ作る） */
-const RAIL_GROUPS = railGroupsOf<LucideIcon>(TAB_GROUPS);
+/** プロジェクトのタブのまとまり（真ん中に置ける画面の表。並べ替えの全体）と、列のまとまり（そこからボード・チャットを除いたもの） */
+function useRailGroups() {
+  return useMemo(() => {
+    const all = projectViewGroups(availableProjectViews("center")).map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
+    return { all, rail: railGroupsOf<LucideIcon>(all) };
+  }, []);
+}
 
 /** 列のアイコン 1 つ（プロジェクトの縦のタブと同じ .tab の見た目。押すとその中身で開く） */
 function RailTab({
@@ -48,7 +53,8 @@ function RailTab({
  * inWindow: 右サイドバーの別ウィンドウの中の列（切り替えるだけで、閉じない。別ウィンドウのボタンは出さない）
  */
 export function SideRail({ projectId, open, held = false, inWindow = false }: { projectId: number; open: boolean; held?: boolean; inWindow?: boolean }) {
-  const order = useProjectTabOrder(RAIL_GROUPS, true, TAB_GROUPS);
+  const groups = useRailGroups();
+  const order = useProjectTabOrder(groups.rail, true, groups.all);
   const [view] = useSetting(storage.settings.sideView(projectId));
   const shown = open || held || inWindow;
   const pick = (next: SideView) => {

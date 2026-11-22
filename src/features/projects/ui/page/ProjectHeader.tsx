@@ -8,7 +8,7 @@ import { confirmRestoreProject } from "@/features/projects/ui/projectOrder";
 import type { ProjectViewId } from "@/foundation/ui/navigation/router";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 import { ProjectSwitcher } from "./ProjectSwitcher";
-import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
+import { ProjectTabs, useProjectTabsLayout, type TabBadgeSource } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
 import { AllStateChats } from "./AllStateChats";
 import { useAllWaiting } from "@/features/chatList/ui/activeChats/useAllWaiting";
@@ -18,21 +18,19 @@ import { PROJECT_HEADER_MODE_LABELS, PROJECT_HEADER_MODES, useProjectHeaderMode 
 
 /**
  * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・すべてのプロジェクトの状態ごとのチャット（AllStateChats）と、
- * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）。
+ * タブの列（チャットの件数、変更は変更のあるファイルの数。左に縦並びにする設定のときは、見出しには出さない）。
  * 名前の行の出し方（表示 / 上端に寄せたときだけ表示 / 非表示。useProjectHeaderMode）は、名前の行の右クリックと設定の「表示」で選ぶ（下の帯と同じ）。
  * 寄せたときだけ表示は、画面の上に重ねて出し（縦の幅を取らない）、乗せている間・中のメニューや一覧を開いている間は出したまま（.project-title-row.auto-hide）
  */
 export function ProjectHeader({
   data,
   tab,
-  changeCount,
-  refreshing,
+  badge,
   onEdit,
 }: {
   data: ProjectData;
   tab: ProjectViewId;
-  changeCount: number;
-  refreshing: TabRefreshing;
+  badge: TabBadgeSource;
   onEdit: () => void;
 }) {
   const { project } = data;
@@ -89,7 +87,7 @@ export function ProjectHeader({
     )}
     {layout === "top" && (
       <div className="project-tabs-row">
-        <ProjectTabs projectId={project.id} tab={tab} changeCount={changeCount} refreshing={refreshing} />
+        <ProjectTabs projectId={project.id} tab={tab} badge={badge} />
       </div>
     )}
   </header>
