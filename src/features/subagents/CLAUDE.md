@@ -18,6 +18,6 @@
 ## 落とし穴
 
 - 孫より深いものの中の手順は Claude Code が送ってこない。途中経過の時刻は祖先の「最後の動き」に伝える（`bubbleProgress`）。
-- カードの中の流れは描く側から `renderItems` で渡す（流れの部品を読むと輪になる）。
-- 手順の項目は `subagentEvents.ts` で選んでから `groupEvents` に渡し、中身が同じなら同じ配列を返す（`subagentEvents.test.ts` で全体と比べる）。
+- カードの中の流れは描く側から `renderScope` で渡す（流れの部品を読むと輪になる）。
+- 手順の記録は `subagentEvents.ts` で選び（中身が同じなら同じ配列）、`renderScope` に渡す（`subagentEvents.test.ts` で全体と比べる）。
 - 伝える入力欄を開いている間は一番下への付いていきを止める。Esc はパネルを閉じる Esc に渡さない。

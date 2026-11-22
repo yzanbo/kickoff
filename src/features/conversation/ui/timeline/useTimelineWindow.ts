@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useRowWindow, type RowLayoutContext, type RowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
-import { estimateItem, estimateKind, estimateRaw, nextCorrection, type EstimateContext } from "./rowEstimate";
+import { nextCorrection, type EstimateContext } from "./rowEstimate";
+import { estimateItem, estimateRaw, rowKindOf } from "./rowKinds";
+import { turnExtras } from "./selectors";
 import { itemIndexOfEvent } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
 import type { TimelineScroll } from "./timelineScroll";
-import { timelineView } from "@/features/chat/ui/timeline/timelineView";
+import { timelineView } from "@/features/chat/ui";
 
 /** 読んでいない記録の読み足し（チャットの店） */
 export interface TimelinePaging {
@@ -51,13 +53,13 @@ export function useTimelineWindow({
 }) {
   const view = timelineView(chatId);
   // 見積もり（種類ごとの補正は見え方の店に置き、測るたびに進める）
-  const estimate = useCallback((item: TimelineItem, layout: RowLayoutContext) => estimateItem(item, contextOf(view, layout)), [view]);
+  const estimate = useCallback((item: TimelineItem, layout: RowLayoutContext) => estimateItem(item, contextOf(chatId, view, layout)), [chatId, view]);
   const onMeasured = useCallback(
     (item: TimelineItem, height: number, layout: RowLayoutContext) => {
-      const kind = estimateKind(item);
-      view.correction.set(kind, nextCorrection(view.correction.get(kind), height, estimateRaw(item, contextOf(view, layout))));
+      const kind = rowKindOf(item).estimateKind(item);
+      view.correction.set(kind, nextCorrection(view.correction.get(kind), height, estimateRaw(item, contextOf(chatId, view, layout))));
     },
-    [view],
+    [chatId, view],
   );
   // 前・後ろを読み足しているか（頼んでから、その読み込みが終わるまで。流れの上・下に「読み込み中…」）。同時に頼むのは 1 つ
   const [asked, setAsked] = useState<"earlier" | "later" | null>(null);
@@ -107,14 +109,16 @@ export function useTimelineWindow({
   };
 }
 
-/** 見積もりの文脈（幅・倍率・開閉・補正） */
-function contextOf(view: ReturnType<typeof timelineView>, layout: RowLayoutContext): EstimateContext {
+/** 見積もりの文脈（幅・倍率・開閉・補正・変更カード） */
+function contextOf(chatId: number, view: ReturnType<typeof timelineView>, layout: RowLayoutContext): EstimateContext {
   const open = view.open.get();
+  const extras = turnExtras.read(chatId);
   return {
     textWidth: layout.width || 720,
     scale: layout.scale,
     isOpen: (key) => open.has(key),
     correction: (kind) => view.correction.get(kind) ?? 1,
+    hasTurnChanges: (resultId) => extras.get(resultId)?.changes !== undefined,
   };
 }
 

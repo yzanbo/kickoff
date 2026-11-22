@@ -4,7 +4,7 @@ import { readSetting } from "@/foundation/ui/storage";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { panelActions, panelKey } from "@/features/panel/ui";
-import { resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
+import { openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import { jumpToEvent } from "@/features/conversation/ui/timeline/jumpToEvent";
 
@@ -66,11 +66,11 @@ export function createSubagentNav({ chatId, canOpenSide, release, reveal }: Suba
     toggle: (key, open) => {
       // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
       const view = timelineView(chatId);
-      setOpen(view, `sa:${key}`, open ?? !view.open.get().has(`sa:${key}`));
+      setOpen(view, openKey.subagentCard(key), open ?? !view.open.get().has(openKey.subagentCard(key)));
     },
     toggleFull: (key) => {
       const view = timelineView(chatId);
-      setOpen(view, `sf:${key}`, !view.open.get().has(`sf:${key}`));
+      setOpen(view, openKey.subagentFull(key), !view.open.get().has(openKey.subagentFull(key)));
     },
     tell: (key) => {
       if (!tree().byKey.get(key)?.agentId) return;

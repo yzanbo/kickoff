@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
-import { useOptionalSubagentNav } from "@/features/chat/ui";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
+import { openKey, useOptionalSubagentNav, useTimelineOpen } from "@/features/chat/ui";
 
 /**
  * いちばん外側のサブエージェントのカードの、手順を入れる高さを決めた窓（流れの見えている高さの半分ほど。中だけスクロールする）。
@@ -12,7 +11,7 @@ import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
  */
 export function SubagentWindow({ chatId, cardKey, running, children }: { chatId: number; cardKey: string; running: boolean; children: ReactNode }) {
   const nav = useOptionalSubagentNav();
-  const [full] = useTimelineOpen(chatId, `sf:${cardKey}`);
+  const [full] = useTimelineOpen(chatId, openKey.subagentFull(cardKey));
   const { scrollRef, contentRef, overflowing, onScroll } = useFollowScroll(running, full);
   return (
     <div className={cx("subagent-window", full && "full")}>

@@ -1,5 +1,5 @@
 // ツールの呼び出しの時刻（いつ始めて、いつ終わったか）。流れのツールの 1 件・まとまりの見出し・サブエージェントのカードで同じ数え方にする
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
 
 /** まとまりの時間（start = 最初に始めた時刻・latestStart = 最後に始めた時刻・end = 最後に終わった時刻） */
 export interface ToolSpan {

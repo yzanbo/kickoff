@@ -1,6 +1,6 @@
 import { useLayoutEffect } from "react";
 import type { Chat } from "@shared/chat/types";
-import { useChatScreen, useTimelineNav } from "@/features/chat/ui";
+import { TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 import { chatLog, chatTail, chatWindow, useChatDetail, useStreaming } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
@@ -16,7 +16,6 @@ import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { activeFloor, TimelineRows } from "./Timeline";
-import { TimelineBusyContext } from "@/features/chat/ui/timeline/timelineBusy";
 import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
 import { useFollowBottom } from "./useFollowBottom";

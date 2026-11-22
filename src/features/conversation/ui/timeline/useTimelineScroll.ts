@@ -5,8 +5,8 @@ import { isKey } from "@/foundation/ui/lib/keys";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { jumpToEvent } from "./jumpToEvent";
 import type { TimelineScroll } from "./timelineScroll";
-import { timelineView } from "@/features/chat/ui/timeline/timelineView";
 import type { TimelineWindow } from "./useTimelineWindow";
+import { timelineView } from "@/features/chat/ui";
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない。既読にするかもこれで見る） */
 export const BOTTOM_SLACK_PX = 80;

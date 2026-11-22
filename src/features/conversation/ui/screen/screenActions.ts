@@ -1,5 +1,5 @@
 // チャットの画面の口（流れ・サブエージェント・動き・書き直し・入力欄）を 1 回だけ作り、またがる操作（カードへ移る・会話へ戻る）を組む
-import { openAll, timelineView, type ActivityNav, type ComposerPort, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
+import { openAll, openKey, timelineView, type ActivityNav, type ComposerPort, type SubagentNav, type TimelineNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import type { ComposerHandle } from "@/features/composer/ui";
 import { createTimelineNav, type TimelineNavWindow } from "@/features/conversation/ui/timeline/createTimelineNav";
@@ -59,7 +59,7 @@ export function createScreenActions({ chatId, canOpenSide, scroll, composer, sid
       // 右の欄がメインの会話を覆っていれば、並べる形に戻してから移る
       side()?.uncover();
       // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る（動きを見せていれば会話に戻す）
-      openAll(timelineView(chatId), path.map((s) => `sa:${s.key}`));
+      openAll(timelineView(chatId), path.map((s) => openKey.subagentCard(s.key)));
       toConversation();
       scroll.release();
       const root = path[0].toolUseEventId;

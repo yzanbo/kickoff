@@ -34,7 +34,9 @@ export {
   type SubagentNav,
   type TimelineNav,
 } from "./screen/ports";
-export { openAll, setOpen, timelineView } from "./timeline/timelineView";
+export { openAll, openKey, setOpen, timelineView, useTimelineOpen } from "./timeline/timelineView";
+export { TimelineBusyContext, useTimelineBusy } from "./timeline/timelineBusy";
+export type { RenderScope, ToolCall } from "./timeline/toolCall";
 export { useMainChat } from "./screen/mainChat";
 export { openAskChild, openChat, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
 export { knownChat } from "./store/knownChats";

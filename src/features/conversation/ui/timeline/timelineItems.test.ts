@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence, makeEvent } from "@shared/foundation/testing/factories";
-import { AI_CREATE_CHAT_TOOL, createdChatMark } from "@shared/chat/aiCreateChat";
-import { createdChatsByUser, groupEvents } from "./timelineItems";
-
+import { makeEvent } from "@shared/foundation/testing/factories";
+import { groupEvents } from "./timelineItems";
 
 test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果は呼び出しにぶら下げる。init・thinking などは出さない", () => {
   const items = groupEvents([
@@ -32,7 +30,6 @@ test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果�
     ],
   );
 });
-
 test("groupEvents: 図のツール（show_visual・update_visual）はまとまりに入れず、文の間の図の項目にする", () => {
   const items = groupEvents([
     makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),
@@ -48,7 +45,6 @@ test("groupEvents: 図のツール（show_visual・update_visual）はまとま�
   const shown = items[1];
   assert.ok(shown.kind === "visual" && shown.call.result?.id === 3);
 });
-
 test("groupEvents: parent を渡すとそのサブエージェントの分だけ、渡さなければメインエージェントの分だけ", () => {
   const events = [makeEvent(1, "text", { text: "親" }), makeEvent(2, "text", { text: "子", parent: "sub1" }), makeEvent(3, "tool_use", { id: "x", name: "Read", input: {}, parent: "sub1" })];
   assert.deepEqual(
@@ -60,71 +56,6 @@ test("groupEvents: parent を渡すとそのサブエージェントの分だけ
     ["e2", "t3"],
   );
 });
-
-test("groupEvents: 作業の終わり（result）に、その作業を始めた自分の発言の時刻と返答の文を付ける", () => {
-  const items = groupEvents([
-    makeEvent(1, "user", { text: "1 回目" }, { created_at: "2026-11-01T00:00:00Z" }),
-    makeEvent(10, "text", { text: "答え 1" }, { created_at: "2026-11-01T00:00:30Z" }),
-    makeEvent(11, "text", { text: "サブ", parent: "x" }, { created_at: "2026-11-01T00:00:40Z" }),
-    makeEvent(12, "text", { text: "答え 2" }, { created_at: "2026-11-01T00:00:50Z" }),
-    makeEvent(2, "result", { status: "completed" }, { created_at: "2026-11-01T00:01:23Z" }),
-    makeEvent(3, "user", { text: "2 回目" }, { created_at: "2026-11-01T00:05:00Z" }),
-    makeEvent(4, "user", { text: "追加" }, { created_at: "2026-11-01T00:05:10Z" }),
-    makeEvent(5, "result", { status: "cancelled" }, { created_at: "2026-11-01T00:06:00Z" }),
-    makeEvent(6, "result", { status: "completed" }, { created_at: "2026-11-01T00:07:00Z" }),
-  ]);
-  const starts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnStart] : []));
-  // 続けて送ったときは最初の発言から数え、発言のない result には付けない
-  assert.deepEqual(starts, ["2026-11-01T00:00:00Z", "2026-11-01T00:05:00Z", undefined]);
-  // コピーする返答は、その作業での AI の返答だけ（サブエージェントの発言は含めない）
-  const texts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnText] : []));
-  assert.deepEqual(texts, ["答え 1\n\n答え 2", undefined, undefined]);
-});
-
-test("groupEvents: 作業の終わりに、親チャットに渡す最後の返答と、依頼文を頼んだ作業かを付ける（返答がなければ付けない・同じ記録には同じものを渡す）", () => {
-  const events = [
-    makeEvent(1, "user", { text: "依頼文を", handoff_request: true }),
-    makeEvent(2, "text", { text: "確認します" }),
-    makeEvent(3, "tool_use", { id: "r1", name: "Read", input: {} }),
-    makeEvent(4, "tool_result", { tool_use_id: "r1", content: "…" }),
-    makeEvent(5, "text", { text: "依頼文の本文" }),
-    makeEvent(6, "result", { status: "completed" }),
-    makeEvent(7, "user", { text: "ふつうの質問" }),
-    makeEvent(8, "text", { text: "答え" }),
-    makeEvent(9, "result", { status: "completed" }),
-    makeEvent(10, "user", { text: "返答なし" }),
-    makeEvent(11, "result", { status: "cancelled" }),
-  ];
-  const handoffs = (items: ReturnType<typeof groupEvents>) =>
-    items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnHandoff] : []));
-  const first = handoffs(groupEvents(events));
-  assert.deepEqual(first, [{ reply: "依頼文の本文", requested: true }, { reply: "答え", requested: false }, undefined]);
-  // 組み立て直しても同じもの（memo した終わりの行を描き直させない）
-  assert.equal(handoffs(groupEvents(events))[0], first[0]);
-});
-
-test("groupEvents: 親チャットに渡した記録は流れに出さず、渡した作業の終わりに渡した順で付ける（増えるまでは同じ配列）", () => {
-  const events = [
-    makeEvent(1, "user", { text: "依頼文を" }),
-    makeEvent(2, "text", { text: "本文" }),
-    makeEvent(3, "result", { status: "completed" }),
-    makeEvent(4, "user", { text: "次" }),
-    makeEvent(5, "text", { text: "答え" }),
-    makeEvent(6, "result", { status: "completed" }),
-    makeEvent(7, "handoff", { via: "composer", parent_chat_id: 9, turn_event_id: 3 }),
-    makeEvent(8, "handoff", { via: "send", parent_chat_id: 9, turn_event_id: 3 }),
-  ];
-  const marks = (items: ReturnType<typeof groupEvents>) => items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnHandoffs] : []));
-  const items = groupEvents(events);
-  assert.ok(items.every((i) => i.kind !== "event" || i.event.type !== "handoff"));
-  const [first, second] = marks(items);
-  assert.deepEqual(first?.map((e) => e.data.via), ["composer", "send"]);
-  assert.equal(second, undefined);
-  assert.equal(marks(groupEvents(events))[0], first);
-  const more = [...events, makeEvent(9, "handoff", { via: "queue", parent_chat_id: 9, turn_event_id: 3 })];
-  assert.deepEqual(marks(groupEvents(more))[0]?.map((e) => e.data.via), ["composer", "send", "queue"]);
-});
-
 test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだけ出す（短い思考ではツールのまとまりを分けない）", () => {
   const items = groupEvents([
     makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),
@@ -139,7 +70,6 @@ test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだ�
     ["tools:2", 4, 5],
   );
 });
-
 test("groupEvents: サブエージェントの起動はツールのまとまりに入れず、カードの項目にする（前後のツールは別のまとまり）", () => {
   const items = groupEvents([
     makeEvent(1, "tool_use", { id: "b1", name: "Bash", input: {} }),
@@ -155,7 +85,6 @@ test("groupEvents: サブエージェントの起動はツールのまとまり�
   assert.ok(card.kind === "subagent");
   assert.equal(card.call.result?.id, 4);
 });
-
 test("groupEvents: サブエージェントの中身は、行のキーと再開した回の呼び出し ID の記録を並べる（入れ子の起動もカード）", () => {
   const events = [
     makeEvent(1, "tool_use", { id: "a1", name: "Agent", input: {} }),
@@ -173,7 +102,6 @@ test("groupEvents: サブエージェントの中身は、行のキーと再開�
     ["e4"],
   );
 });
-
 test("groupEvents: 裏で動かしたサブエージェントが終わったら、起動した流れのその時刻の位置に 1 行（待つ形のものには出さない）", () => {
   const launched = "Async agent launched successfully.\nagentId: t1 (internal ID)";
   const events = [
@@ -204,25 +132,23 @@ test("groupEvents: 裏で動かしたサブエージェントが終わったら�
   );
 });
 
-test("AI が作ったチャットの札: 発言の作業で create_chat が作った兄弟・親のないチャットを、その発言に付ける（子チャット・失敗・サブエージェントの中は付けない）", () => {
-  const ev = eventSequence();
-  const first = ev("user", { text: "作って", message_uuid: "u1" });
+test("groupEvents: 前の回の項目を渡すと、中身が同じ項目は前の物を返す（結果が届いたまとまり・新しい項目だけ新しい物）", () => {
   const events = [
-    first,
-    ev("tool_use", { id: "c1", name: AI_CREATE_CHAT_TOOL, input: { relation: "root", text: "x" } }),
-    ev("tool_result", { tool_use_id: "c1", content: `親のないチャット「x」を作り、依頼を送りました${createdChatMark(31)}。`, is_error: false }),
-    ev("tool_use", { id: "c2", name: AI_CREATE_CHAT_TOOL, input: { relation: "child", text: "y" } }),
-    ev("tool_result", { tool_use_id: "c2", content: `子チャット「y」を作り、依頼を送りました${createdChatMark(32)}。`, is_error: false }),
-    ev("tool_use", { id: "c3", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "z" } }),
-    ev("tool_result", { tool_use_id: "c3", content: "利用者が断りました", is_error: true }),
-    ev("tool_use", { id: "c4", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "w" }, parent: "agent" }),
-    ev("tool_result", { tool_use_id: "c4", content: `兄弟チャット「w」${createdChatMark(34)}`, is_error: false, parent: "agent" }),
+    makeEvent(1, "user", { text: "やって" }),
+    makeEvent(2, "tool_use", { id: "a", name: "Read", input: {} }),
+    makeEvent(3, "tool_result", { tool_use_id: "a", content: "ok" }),
+    makeEvent(4, "text", { text: "途中" }),
+    makeEvent(5, "tool_use", { id: "b", name: "Bash", input: {} }),
   ];
-  const second = ev("user", { text: "もう 1 つ", message_uuid: "u2" });
-  events.push(second, ev("tool_use", { id: "c5", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "v" } }), ev("tool_result", { tool_use_id: "c5", content: `兄弟チャット「v」${createdChatMark(35)}`, is_error: false }));
-  assert.deepEqual([...createdChatsByUser(events)], [[first.id, [31]], [second.id, [35]]]);
-  // 流れの組み立てでは、発言の項目に「,」でつないだ ID が付く
-  const items = groupEvents(events);
-  const userItems = items.filter((i) => i.kind === "event" && i.event.type === "user");
-  assert.deepEqual(userItems.map((i) => (i.kind === "event" ? i.createdChats : null)), ["31", "35"]);
+  const first = groupEvents(events);
+  const more = [...events, makeEvent(6, "tool_result", { tool_use_id: "b", content: "done" }), makeEvent(7, "text", { text: "終わり" })];
+  const next = groupEvents(more, undefined, { prev: first });
+  assert.deepEqual(next.map((i) => i.key), ["e1", "t2", "e4", "t5", "e7"]);
+  // 変わらない発言・ツールのまとまりは同じ物、結果が届いたまとまりは新しい物
+  assert.equal(next[0], first[0]);
+  assert.equal(next[1], first[1]);
+  assert.equal(next[2], first[2]);
+  assert.notEqual(next[3], first[3]);
+  // 同じ記録で組み立て直せば、全部が前の物
+  assert.ok(groupEvents(more, undefined, { prev: next }).every((item, i) => item === next[i]));
 });

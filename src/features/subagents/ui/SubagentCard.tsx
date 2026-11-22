@@ -9,9 +9,7 @@ import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useShownInAgentPanel } from "@/features/chatPanel/ui/agents/agentTabs";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePortValue } from "@/features/chat/ui";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import { openKey, useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePortValue, useTimelineOpen, type RenderScope, type ToolCall } from "@/features/chat/ui";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
 import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
@@ -29,8 +27,7 @@ import {
   SubagentSteps,
   SubagentTime,
   Summary,
-  useSubagentItems,
-  type RenderItems,
+  useSubagentScope,
 } from "./subagentParts";
 
 /** 字下げをやめる深さ（これより深い入れ子は字下げせず、見出しに外側からの道筋を添える） */
@@ -39,7 +36,7 @@ const FLAT_DEPTH = 3;
 interface CardProps {
   call: ToolCall;
   rel: (s: string) => string;
-  renderItems: RenderItems;
+  renderScope: RenderScope;
 }
 
 /**
@@ -51,14 +48,14 @@ interface CardProps {
  * 設定が右の欄でないときは、操作の「右の欄で開く」で右の欄にも開ける。
  * 右の欄で表示しているカードには「右の欄で表示中」と添える
  */
-function SubagentCardView({ call, rel, renderItems }: CardProps) {
+function SubagentCardView({ call, rel, renderScope }: CardProps) {
   const view = useSubagentsView();
   const nav = useOptionalSubagentNav();
   const activity = useOptionalActivityNav();
   const screen = useOptionalChatScreen();
   const key = call.use.data.id;
   // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
-  const [open] = useTimelineOpen(call.use.chat_id, `sa:${key}`);
+  const [open] = useTimelineOpen(call.use.chat_id, openKey.subagentCard(key));
   // 「伝える」の入力欄を開いているか（カードのいちばん下に開く）
   const telling = usePortValue(nav?.tellOpen, (s) => s.has(key), false);
   const entry = view?.tree.byKey.get(key);
@@ -177,7 +174,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
       {!open && nav && (
         <SubagentChildRows entry={entry} view={view} onOpen={(k) => nav.open(k)} onMore={() => nav.toggle(key, true)} />
       )}
-      {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
+      {open && <SubagentCardBody entry={entry} view={view} renderScope={renderScope} windowed={depth === 0} />}
       {nav && telling && <SubagentTellBox entry={entry} view={view} onClose={() => nav.closeTell(key)} />}
       {/* このサブエージェントに子チャットで聞いたら、その子チャットの札（発言の下と同じ。始めた位置は起動の呼び出し） */}
       {screen && entry.toolUseEventId !== undefined && <ChildChatMarks chatId={screen.chatId} eventId={entry.toolUseEventId} />}
@@ -209,9 +206,9 @@ function PlainCard({ call }: { call: ToolCall }) {
  * 開いたカードの中身: 親からの依頼（初めはたたむ）→ 手順（発言・ツール・入れ子のカード・実行中の印）→ 親への報告。
  * いちばん外側のカード（windowed）の手順は、高さを決めた窓の中に入れる（依頼と報告は窓の外で、いつも見える。入れ子のカードは窓の中でふつうに開く）
  */
-function SubagentCardBody({ entry, view, renderItems, windowed }: { entry: SubagentEntry; view: SubagentsView; renderItems: RenderItems; windowed: boolean }) {
-  const items = useSubagentItems(entry, view);
-  const steps = <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />;
+function SubagentCardBody({ entry, view, renderScope, windowed }: { entry: SubagentEntry; view: SubagentsView; renderScope: RenderScope; windowed: boolean }) {
+  const scope = useSubagentScope(entry, view);
+  const steps = <SubagentSteps entry={entry} view={view} steps={scope} renderScope={renderScope} />;
   return (
     <div className="subagent-card-body">
       {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}

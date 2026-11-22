@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import { groupEvents } from "@/features/conversation/ui/timeline/timelineItems";
 import { changesOf, lineDelta, type EditCall } from "./turnFileChanges";
 
 const ev = eventSequence();
@@ -37,21 +36,4 @@ test("ターンの変更: ファイルごとにまとめ、失敗したものは
   ]);
   // 結果がまだないものは数えない
   assert.deepEqual(changesOf([{ use: events[0] as ChatEventOf<"tool_use"> }]), []);
-});
-
-test("ターンの変更: タイムラインの作業の終わりに、その作業で変えたファイルを付ける（サブエージェントの変更も含める）", () => {
-  const items = groupEvents([
-    ev("user", { text: "直して" }),
-    ...call("e1", "Edit", { file_path: "/r/a.ts", old_string: "x", new_string: "y" }),
-    ...call("s1", "Write", { file_path: "/r/sub.ts", content: "a" }, { content: "File created successfully" }, "agent1"),
-    ev("result", { status: "completed" }),
-    ev("user", { text: "質問だけ" }),
-    ev("text", { text: "答え" }),
-    ev("result", { status: "completed" }),
-  ]);
-  const ends = items.filter((i) => i.kind === "event" && i.event.type === "result");
-  assert.deepEqual(
-    ends.map((i) => (i.kind === "event" ? i.turnChanges?.map((f) => f.path) : null)),
-    [["/r/a.ts", "/r/sub.ts"], undefined],
-  );
 });

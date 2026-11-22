@@ -4,11 +4,11 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { BashOutput } from "./BashOutput";
 import { CommandLive } from "./CommandLive";
 import { useCommandOutput } from "@/features/conversation/ui/background/commandOutputs";
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
 import { visibleToolResult } from "@shared/chat/toolText";
 import { claudeToolOf, isEditTool } from "@shared/ai/claudeTools";
 import { toolCallTexts } from "./toolCallTexts";
-import { toolText } from "@/features/chat/ui";
+import { openKey, toolText, useTimelineOpen } from "@/features/chat/ui";
 import { CallTime, GroupTime } from "./ToolTime";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
@@ -23,7 +23,6 @@ import { isCreateChatTool } from "@shared/chat/aiCreateChat";
 import { AI_GET_USER_VIEW_TOOL, userViewSummaryOf } from "@shared/userView/tools";
 import { toolImageType } from "@shared/attachments/toolImage";
 import { FileLinkContext, openByClick } from "@/features/files/ui/links/fileLinkContext";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
@@ -45,7 +44,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
   const live = useCommandOutput(current?.use.data.name === "Bash" ? current.use.data.id : undefined);
   // 開閉は流れの見え方の店（窓から外れて戻っても・画面を作り直しても開いたまま）
-  const [open, setOpen] = useTimelineOpen(tools[0].use.chat_id, `tg:${tools[0].use.id}`);
+  const [open, setOpen] = useTimelineOpen(tools[0].use.chat_id, openKey.toolGroup(tools[0].use.id));
 
   return (
     <>
@@ -100,7 +99,7 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
   const isDbQuery = name === DB_QUERY_TOOL && typeof input.sql === "string";
   // チャットの AI が作ったチャット（送った依頼の全文と、作ったチャットの札。結果の文も下に出す）
   const isCreatedChat = isCreateChatTool(name) && typeof input.text === "string";
-  const [open, setOpen] = useTimelineOpen(call.use.chat_id, `tc:${call.use.id}`);
+  const [open, setOpen] = useTimelineOpen(call.use.chat_id, openKey.toolCall(call.use.id));
   /** 開いた中身（中身を作るのは開いてからなので、色付けはいつも始める） */
   const renderDetail = () => {
     let detail: ReactNode = null;

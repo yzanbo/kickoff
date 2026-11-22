@@ -7,12 +7,7 @@ import { createCell, type Cell } from "@/foundation/ui/store";
  * 部品の外にチャットごとに持つので、行が窓から外れて戻っても・チャットの画面を作り直しても（タブを閉じて開き直した）残る。保存しない（メモリだけ。アプリを終えたら消える）
  */
 export interface TimelineView {
-  /**
-   * 開いているもの（"tg:<最初の呼び出しの記録 ID>" ツールのまとまり・"tc:<呼び出しの記録 ID>" ツール 1 件・"th:<記録 ID>" 思考・
-   * "sp:<サブエージェントのキー>" 依頼・"ch:<作業の終わりの記録 ID>" 変更カード・"qa:<記録 ID>:<問いの番号>" 選んだ図・
-   * "um:<記録 ID>" 長い発言のもっと見る・"hr:<記録 ID>" 親への依頼文の全文・"rp:<キー>" 報告の全文・
-   * "sa:<キー>" サブエージェントのカード・"sf:<キー>" カードの高さの制限を外した）。変えたときだけ新しい Set にする
-   */
+  /** 開いているもの（キーは openKey で作る）。変えたときだけ新しい Set にする */
   readonly open: Cell<ReadonlySet<string>>;
   /** 測った高さ（行のキー → px。行の包み .timeline-row の、重ねた余白を除いた高さ。描くのを省いている間の大きさは入れない） */
   readonly sizes: LruMap<string, number>;
@@ -24,6 +19,32 @@ export interface TimelineView {
    */
   position: { key: string; offset: number; last: string } | null;
 }
+
+/** 開閉のキー（部品と高さの見積もりが同じ関数で作る。頭の 2 文字で種類を分ける） */
+export const openKey = {
+  /** ツールのまとまり（最初の呼び出しの記録 ID） */
+  toolGroup: (firstCallId: number) => `tg:${firstCallId}`,
+  /** ツール 1 件（呼び出しの記録 ID） */
+  toolCall: (callId: number) => `tc:${callId}`,
+  /** 思考 */
+  thinking: (eventId: number) => `th:${eventId}`,
+  /** サブエージェントへの依頼（サブエージェントのキー） */
+  subagentPrompt: (key: string) => `sp:${key}`,
+  /** 作業の終わりの変更カード */
+  turnChanges: (resultId: number) => `ch:${resultId}`,
+  /** 質問への回答で選んだ図（記録 ID と問いの番号） */
+  questionPreview: (eventId: number, q: number) => `qa:${eventId}:${q}`,
+  /** 長い発言のもっと見る */
+  longMessage: (eventId: number) => `um:${eventId}`,
+  /** 親への依頼文の全文 */
+  handBackText: (eventId: number) => `hr:${eventId}`,
+  /** サブエージェントの報告の全文 */
+  report: (key: string) => `rp:${key}`,
+  /** サブエージェントのカード */
+  subagentCard: (key: string) => `sa:${key}`,
+  /** カードの高さの制限を外した */
+  subagentFull: (key: string) => `sf:${key}`,
+};
 
 /** 1 チャットで覚える測った高さの数（超えたら古い項目から捨てる。見積もりに戻るだけで壊れない） */
 const SIZES_PER_CHAT = 20_000;

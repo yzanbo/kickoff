@@ -1,6 +1,5 @@
 import { ChevronRight, ClipboardPenLine, GitBranch, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { subagentAskOf } from "@shared/chat/prompts";
@@ -13,7 +12,7 @@ import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time"
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
-import { useOptionalChatScreen } from "@/features/chat/ui";
+import { openKey, useOptionalChatScreen, useTimelineBusy, useTimelineOpen } from "@/features/chat/ui";
 import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { shouldCollapse } from "./collapse";
@@ -23,7 +22,6 @@ import { HandoffFromChip } from "@/features/childChats/ui/HandBackFromChip";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/compact/ui/compactPromptKinds";
 import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
-import { useTimelineBusy } from "@/features/chat/ui/timeline/timelineBusy";
 import { useBeforeWorkplaceMove } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
@@ -40,8 +38,8 @@ import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
  * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」。
  * AI が作業場所を移す予約に書いた続きの指示（記録の workplace_continuation。Kickoff が移したあとに送った）は、上に「作業場所を移したあとの続き（AI の予約）」と添える
  */
-/** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。timelineItems の createdChatsByUser） */
-export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user">; createdChats?: string }) {
+/** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（turnExtras.ts の createdChatsByUser） */
+export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user">; createdChats?: readonly number[] }) {
   const data = event.data;
   const subagentAsk = subagentAskOf(data.text);
   const text = subagentAsk?.text ?? data.text;
@@ -52,7 +50,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // 依頼文の頼みに添えた追加の指示（なければ null）
   const handoffExtra = handoffRequest ? handoffRequestExtra(data.text) : null;
   // 依頼文の頼みの全文を開いているか
-  const [requestOpen, setRequestOpen] = useTimelineOpen(event.chat_id, `hr:${event.id}`);
+  const [requestOpen, setRequestOpen] = useTimelineOpen(event.chat_id, openKey.handBackText(event.id));
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
@@ -60,7 +58,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   const [long, setLong] = useState(false);
   const longRef = useRef(false);
   // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
-  const [expanded, setExpanded] = useTimelineOpen(event.chat_id, `um:${event.id}`);
+  const [expanded, setExpanded] = useTimelineOpen(event.chat_id, openKey.longMessage(event.id));
   // 文の高さは、畳むための max-height の内側の要素で測る（畳んでも文の高さは変わらないので、畳む・開くで行き来しない）。
   // 大きさの知らせで測るので、幅・文字の大きさが変わったら測り直し、画面の外で描くのを省いている間は読まない。
   // 知らせは描く前に届くので、変わったときだけその場で描き直し、畳む前の全文が一瞬見えないようにする（依頼文の頼みは、開いてから測る）

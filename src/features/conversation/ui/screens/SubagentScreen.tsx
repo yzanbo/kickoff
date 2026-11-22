@@ -6,12 +6,11 @@ import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { useOptionalActivityNav, useOptionalSubagentNav, type ActivityNav, type ComposerPort, type SubagentNav } from "@/features/chat/ui";
+import { type ActivityNav, type ComposerPort, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { createActivityNav } from "@/features/conversation/ui/activity/createActivityNav";
 import { createSubagentNav, openSubagentWindow } from "@/features/conversation/ui/screen/createSubagentNav";
-import { TimelineItems } from "@/features/conversation/ui/timeline/Timeline";
-import { TimelineBusyContext } from "@/features/chat/ui/timeline/timelineBusy";
+import { renderScopeOf } from "@/features/conversation/ui/timeline/Timeline";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
 import { SubagentActions } from "@/features/subagents/ui/SubagentActions";
@@ -27,8 +26,7 @@ import {
   SubagentSteps,
   SubagentTime,
   Summary,
-  useSubagentItems,
-  type RenderItems,
+  useSubagentScope,
 } from "@/features/subagents/ui/subagentParts";
 import { SubagentsContext, type SubagentsView } from "@/features/subagents/ui/subagentsContext";
 import { useChatSubagentsView } from "@/features/subagents/ui";
@@ -101,9 +99,9 @@ function ScreenView({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
   const running = entry.status === "running";
   // 実行中は「最後の動き」の表示を進める
   useTicker(running ? 15_000 : 3_600_000);
-  const items = useSubagentItems(entry, view);
+  const steps = useSubagentScope(entry, view);
   const { scrollRef, contentRef, onScroll } = useFollowScroll(running);
-  const renderItems: RenderItems = (inner, active) => <TimelineItems items={inner} rel={view.rel} active={active} />;
+  const renderScope = renderScopeOf(view.rel);
   // 手順・頼んだ内容・報告の文の右クリック（会話の流れと同じメニュー）
   const quoteMenu = useQuoteMenu();
   return (
@@ -119,7 +117,7 @@ function ScreenView({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
           {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}
           {/* 作業中か（作業の終わりの行の分岐などが読む。timelineBusy） */}
           <TimelineBusyContext.Provider value={view.busy}>
-            <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
+            <SubagentSteps entry={entry} view={view} steps={steps} renderScope={renderScope} />
           </TimelineBusyContext.Provider>
           <SubagentReport entry={entry} view={view} />
         </div>

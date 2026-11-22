@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { isSubagentTool } from "@shared/ai/claudeTools";
@@ -12,9 +12,8 @@ import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/ui/state/stall";
 import { Working } from "@/features/chat/ui/parts/Working";
-import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
-import { chatLog, toolText } from "@/features/chat/ui";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
+import type { ChatEvent } from "@shared/chat/chatEvent";
+import { chatLog, openKey, toolText, useTimelineOpen, type RenderScope } from "@/features/chat/ui";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { subagentEvents } from "@/features/subagents/ui/model/subagentEvents";
 import { showsSubagentStatus, subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
@@ -88,9 +87,6 @@ export function SubagentChildren({ entry, view, onOpen }: { entry: SubagentEntry
     </button>
   );
 }
-
-/** サブエージェントの手順の流れを描く（TimelineItems。流れの部品をここから読むと輪になるので、描く側から渡す） */
-export type RenderItems = (items: TimelineItem[], active: boolean) => ReactNode;
 
 /**
  * 閉じたカードの下に、中で起動したサブエージェントを木の枝の形で 1 行ずつ並べる（「└ ✳ 洗い出し 完了 · 50秒」。枝はその子の色）。
@@ -193,11 +189,14 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
   return <span className="subagent-card-what muted">{parts.join(" · ")}</span>;
 }
 
+/** サブエージェントの手順の記録と流れ（項目にまとめて描くのは描く側の RenderScope） */
+export type SubagentScope = { events: readonly ChatEvent[]; scope: readonly string[] };
+
 /**
- * サブエージェントの手順の項目（そのサブエージェントの記録だけを、メインと同じまとめ方で）。チャット欄・右の欄の入力欄から伝えた
+ * サブエージェントの手順の記録（そのサブエージェントの記録だけ）。チャット欄・右の欄の入力欄から伝えた
  * 追加の指示（メインのチャットの自分の発言）は、このサブエージェントの流れに自分の発言として混ぜる
  */
-export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): TimelineItem[] {
+export function useSubagentScope(entry: SubagentEntry, view: SubagentsView): SubagentScope {
   const { key, agentId, toolUseEventId } = entry;
   const scopeKey = scopeOf(entry).join(" ");
   // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない）
@@ -206,18 +205,18 @@ export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): Tim
   useEffect(() => {
     if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
   }, [before, chatId, scopeKey, toolUseEventId]);
-  // そのサブエージェントの流れの記録だけを選んでから組み立てる（カードごとに読み込んだ記録の全体をたどらない）
-  const events = useMemo(() => subagentEvents(view.loaded, view.events, scopeKey.split(" "), key, agentId), [view.loaded, view.events, scopeKey, key, agentId]);
-  return useMemo(() => groupEvents(events, scopeKey.split(" ")), [events, scopeKey]);
+  const scope = useMemo(() => scopeKey.split(" "), [scopeKey]);
+  // そのサブエージェントの流れの記録だけを選ぶ（カードごとに読み込んだ記録の全体をたどらない）
+  const events = useMemo(() => subagentEvents(view.loaded, view.events, scope, key, agentId), [view.loaded, view.events, scope, key, agentId]);
+  return { events, scope };
 }
 
-/** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の記録がなければ、その理由 */
-export function SubagentSteps({ entry, view, items, renderItems }: { entry: SubagentEntry; view: SubagentsView; items: TimelineItem[]; renderItems: RenderItems }) {
+/** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の項目がなければ、その理由 */
+export function SubagentSteps({ entry, view, steps, renderScope }: { entry: SubagentEntry; view: SubagentsView; steps: SubagentScope; renderScope: RenderScope }) {
   const running = entry.status === "running";
   return (
     <>
-      {items.length === 0 && <p className="muted small">{emptyText(entry, running)}</p>}
-      {renderItems(items, view.busy && running)}
+      {renderScope(steps.events, steps.scope, view.busy && running, <p className="muted small">{emptyText(entry, running)}</p>)}
       {running && <Working>{workingText(entry)}</Working>}
     </>
   );
@@ -234,7 +233,7 @@ export function SubagentReport({ entry, view, limited = false }: { entry: Subage
   // 高さは、高さを抑える枠の内側の要素の大きさの知らせで測る（scrollHeight を読まない。知らせは描く前に届くので、変わったときだけその場で描き直す）
   const [long, setLong] = useState(false);
   const longRef = useRef(false);
-  const [full, setFull] = useTimelineOpen(view.chatId, `rp:${entry.key}`);
+  const [full, setFull] = useTimelineOpen(view.chatId, openKey.report(entry.key));
   const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
     const next = height > REPORT_LIMIT_PX + 40;
     if (!limited || next === longRef.current) return;
@@ -292,7 +291,7 @@ function workingText(entry: SubagentEntry): string {
 /** 起動したエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
 export function SubagentPrompt({ text, chatId, agentKey }: { text: string; chatId: number; agentKey: string }) {
   // 開閉は流れの見え方の店（流れの中のカードと右の欄の画面で同じ）
-  const [open, setOpen] = useTimelineOpen(chatId, `sp:${agentKey}`);
+  const [open, setOpen] = useTimelineOpen(chatId, openKey.subagentPrompt(agentKey));
   const first = text.split("\n").find((line) => line.trim()) ?? "";
   return (
     // 全文の Markdown は、初めて開いたときに解析する

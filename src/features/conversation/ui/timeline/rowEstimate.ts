@@ -1,4 +1,6 @@
-import type { TimelineItem } from "./timelineItems";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
+import { openKey, type ToolCall } from "@/features/chat/ui";
+import { COLLAPSE_PX } from "@/features/conversation/ui/messages/collapse";
 
 /**
  * 測っていない流れの行の高さの見積もり。
@@ -19,6 +21,8 @@ export interface EstimateContext {
   isOpen: (key: string) => boolean;
   /** 種類ごとの補正（測った高さ ÷ 見積もりの移動平均。なければ 1） */
   correction: (kind: EstimateKind) => number;
+  /** 作業の終わりに変更カードが付くか（作業の終わりの記録の ID） */
+  hasTurnChanges: (resultId: number) => boolean;
 }
 
 /** 本文の文字の大きさ（.timeline-inner の 15px） */
@@ -27,39 +31,8 @@ const FONT_PX = 15;
 const REPLY_LINE = FONT_PX * 1.7;
 /** 自分の発言の 1 行（line-height はふつうの 1.5 ほど） */
 const USER_LINE = FONT_PX * 1.5;
-/** 長い自分の発言を畳む高さ（messages/collapse.ts の COLLAPSE_PX と、それを超えてよい分） */
-const COLLAPSE_PX = 240;
+/** 長い自分の発言を畳む高さ（messages/collapse.ts の COLLAPSE_PX）を超えてよい分 */
 const COLLAPSE_SLACK_PX = 40;
-
-/** 項目の種類 */
-export function estimateKind(item: TimelineItem): EstimateKind {
-  switch (item.kind) {
-    case "tools":
-      return "tools";
-    case "subagent":
-      return "subagent";
-    case "visual":
-      return "visual";
-    case "subagentEnd":
-      return "note";
-    default:
-      switch (item.event.type) {
-        case "user":
-        case "approval_resolved":
-          return item.event.type === "user" || item.event.data.action === "answer" ? "user" : "note";
-        case "text":
-          return "text";
-        case "thinking":
-          return "thinking";
-        case "result":
-          return "turn";
-        case "compact":
-          return "compact";
-        default:
-          return "note";
-      }
-  }
-}
 
 /** 文字の幅（em。全角は 1・半角は 0.55） */
 function charEm(code: number): number {
@@ -119,56 +92,35 @@ export function estimateMarkdown(text: string, widthPx: number): number {
   return h;
 }
 
-/** 倍率 1 のときの見積もり（補正の前） */
-function rawEstimate(item: TimelineItem, kind: EstimateKind, ctx: EstimateContext): number {
-  const width = ctx.textWidth / ctx.scale;
-  switch (item.kind) {
-    case "tools": {
-      if (!ctx.isOpen(`tg:${item.tools[0].use.id}`)) return 30;
-      return 30 + item.tools.length * 28 + item.tools.filter((t) => ctx.isOpen(`tc:${t.use.id}`)).length * 200;
-    }
-    case "subagent":
-      return ctx.isOpen(`sa:${item.call.use.data.id}`) ? 64 + 30 + 300 + 120 : 64;
-    case "visual":
-      return 36 + 300;
-    case "subagentEnd":
-      return 28;
-    default:
-      break;
-  }
-  const e = item.event;
-  switch (kind) {
-    case "user": {
-      const text = e.type === "user" ? e.data.text : "";
-      // 吹き出しの中の幅（流れの 8 割から左右の余白 32 を引く）
-      const lines = textLines(text, width * 0.8 - 32, FONT_PX) * USER_LINE;
-      const body = e.type === "approval_resolved" ? 80 : !ctx.isOpen(`um:${e.id}`) && lines > COLLAPSE_PX + COLLAPSE_SLACK_PX ? COLLAPSE_PX + 24 : lines;
-      const attached = e.type === "user" && (e.data.attachments?.length ?? 0) > 0 ? 34 : 0;
-      return 24 + 22 + 16 + body + attached;
-    }
-    case "text":
-      return e.type === "text" ? 16 + estimateMarkdown(e.data.text, width) : 28;
-    case "thinking":
-      return e.type === "thinking" && ctx.isOpen(`th:${e.id}`) ? 24 + textLines(e.data.text, width, FONT_PX) * REPLY_LINE : 24;
-    case "turn":
-      return item.kind === "event" && item.turnChanges ? 28 + 34 : 28;
-    case "compact":
-      return 56;
-    default:
-      // お知らせ・エラー・消去の境目・承認の結果の 1 行（確かめ用のチャットで測って 20 前後）
-      return 20;
-  }
-}
+/** 見積もりの幅（倍率 1 のときの本文の幅） */
+const widthOf = (ctx: EstimateContext) => ctx.textWidth / ctx.scale;
 
-/** 補正の前の見積もり（倍率を掛けたもの。補正を進めるときに測った高さと比べる） */
-export function estimateRaw(item: TimelineItem, ctx: EstimateContext): number {
-  return rawEstimate(item, estimateKind(item), ctx) * ctx.scale;
-}
-
-/** 測っていない行の高さ（px。種類ごとの補正を掛ける） */
-export function estimateItem(item: TimelineItem, ctx: EstimateContext): number {
-  return Math.max(1, Math.round(estimateRaw(item, ctx) * ctx.correction(estimateKind(item))));
-}
+/** 倍率 1 のときの見積もり（補正の前）。行の種類の表（rowKinds.tsx）が項目ごとに引く */
+export const ROW_ESTIMATES = {
+  tools(tools: readonly ToolCall[], ctx: EstimateContext): number {
+    if (!ctx.isOpen(openKey.toolGroup(tools[0].use.id))) return 30;
+    return 30 + tools.length * 28 + tools.filter((t) => ctx.isOpen(openKey.toolCall(t.use.id))).length * 200;
+  },
+  subagent: (call: ToolCall, ctx: EstimateContext): number => (ctx.isOpen(openKey.subagentCard(call.use.data.id)) ? 64 + 30 + 300 + 120 : 64),
+  visual: (): number => 36 + 300,
+  subagentEnd: (): number => 28,
+  user(e: ChatEventOf<"user">, ctx: EstimateContext): number {
+    // 吹き出しの中の幅（流れの 8 割から左右の余白 32 を引く）
+    const lines = textLines(e.data.text, widthOf(ctx) * 0.8 - 32, FONT_PX) * USER_LINE;
+    const body = !ctx.isOpen(openKey.longMessage(e.id)) && lines > COLLAPSE_PX + COLLAPSE_SLACK_PX ? COLLAPSE_PX + 24 : lines;
+    const attached = (e.data.attachments?.length ?? 0) > 0 ? 34 : 0;
+    return 24 + 22 + 16 + body + attached;
+  },
+  /** 質問への回答の吹き出し */
+  answer: (): number => 24 + 22 + 16 + 80,
+  text: (e: ChatEventOf<"text">, ctx: EstimateContext): number => 16 + estimateMarkdown(e.data.text, widthOf(ctx)),
+  thinking: (e: ChatEventOf<"thinking">, ctx: EstimateContext): number =>
+    ctx.isOpen(openKey.thinking(e.id)) ? 24 + textLines(e.data.text, widthOf(ctx), FONT_PX) * REPLY_LINE : 24,
+  turn: (e: ChatEventOf<"result">, ctx: EstimateContext): number => (ctx.hasTurnChanges(e.id) ? 28 + 34 : 28),
+  compact: (): number => 56,
+  /** お知らせ・エラー・消去の境目・承認の結果の 1 行（確かめ用のチャットで測って 20 前後） */
+  note: (): number => 20,
+};
 
 /** 補正の移動平均の重み（新しく測った分） */
 const CORRECTION_WEIGHT = 0.1;

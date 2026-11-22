@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
 import { callDuration, toolSpan } from "./toolTimes";
 
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 5, 0, 0, sec)).toISOString();

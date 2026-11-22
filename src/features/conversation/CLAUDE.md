@@ -11,7 +11,7 @@
 | `activity/`・`approvals/` | 動き（全エージェントの時系列）/ 承認と質問 |
 | `promptList/`・`find/`・`rewind/` | 自分の指示の一覧 / チャットの中の検索 / 巻き戻し・失敗した作業の直す操作 |
 
-チャットの店（`chatStore.ts`・読んだ範囲 `chatLog.ts`・読み足し `chatPaging.ts`・先読み `prefetch.ts`）と見え方の店 `timelineView.ts` は `@/features/chat/ui/`、画面の口の型と context は `@/features/chat/ui/screen/ports.ts`。
+チャットの店（`chatStore.ts`・読んだ範囲 `chatLog.ts`・読み足し `chatPaging.ts`・先読み `prefetch.ts`）と見え方の店 `timelineView.ts` は `@/features/chat/ui/`、画面の口は `@/features/chat/ui/screen/ports.ts`。
 
 ## 1 つのチャットの画面（`screen/`）
 
@@ -42,14 +42,15 @@
 
 ## 流れ（`timeline/`・`streaming/`）
 
-- `groupEvents` は終わった作業の分を作業の終わりの記録ごとに覚え、配列を作り直さない。
+- 項目の種類の扱いは `rowKinds.tsx` の表だけ。作業の終わりの付け足し・作ったチャットは項目に載せず `turnExtras`・`createdChats` で読む。
+- 流れの再帰は `renderScopeOf` だけ。
 - 項目は 1 つずつ `.timeline-row` に包む（測る・描くのを省く単位）。作業中かは props で渡さず `TimelineBusyContext` で配る。
-- 開閉・測った高さ・読んでいた位置は見え方の店 `timelineView.ts`（メモリだけ）に置き、部品は `useTimelineOpen(chatId, key)` で自分のキーだけを購読する。テストは `createTimelineViews(limit)` で作る。
-- 窓（`useTimelineWindow`。`timeline/rowWindow/useRowWindow.ts` を包む）の外は、測った高さか見積もり（`rowEstimate.ts`）の箱。選んでいる・ピントのある・書く欄のある行は外さない。
+- 開閉・測った高さ・読んでいた位置は見え方の店 `timelineView.ts`（メモリだけ）。部品は `useTimelineOpen(chatId, openKey.…)` で自分のキーだけを購読する。
+- 窓（`useTimelineWindow`。`rowWindow/useRowWindow.ts` を包む）の外は、測った高さか見積もり（`rowEstimate.ts`）の箱。選んでいる・ピントのある・書く欄のある行は外さない。
 - 読み足しは読んだ範囲の始まりの手前で始める（端で足すとトラックパッドの慣性が止まる）。移る処理のあと 1.5 秒は読み足さない。
 - 読んでいた位置はブラウザのスクロールアンカーに任せ、いちばん上（scrollTop 0）で前に項目が増えたときだけ JS で直す（`docs/architecture.md` の「決めたこと（測った数）」）。
 - 移る処理はどれも `TimelineNav.reveal(記録の ID)` を待ってから移る。描いている範囲に頼るもの（検索の印・上に貼り付ける指示）は `drawn` で確かめ直す。
-- 一番下への付いていきは `useFollowBottom` が大きさの知らせ（`@/foundation/ui/hooks/useSizeObserver.ts`）で行う。`scrollHeight` を毎フレーム読まず、項目の数を依存に持たない。
+- 一番下への付いていきは `useFollowBottom` が大きさの知らせ（`useSizeObserver`）で行う。`scrollHeight` を毎フレーム読まず、項目の数を依存に持たない。
 - 上へ戻す操作は、スクロールの知らせより先に付いていきをやめ（`holdUp`）、スクロールし終えるまで付き直さない。
 - 強調の `.flash` は光り終えたら外す（光っている間は描くのを省くのをやめている）。色はアクセント（黄は検索と注意の色）。
 - 書いている途中の返答（`StreamingReply`）は文を props・state で渡さず店の口から読み、見えていない間は rAF を回さない。書きかけの記号は `streaming/markdownReveal.ts` で手前で止める。

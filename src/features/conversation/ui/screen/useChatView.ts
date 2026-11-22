@@ -1,14 +1,13 @@
 import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { chatLog, chatWindow, relativeOf } from "@/features/chat/ui";
+import { chatLog, chatWindow, relativeOf, timelineView } from "@/features/chat/ui";
 import { useChatSubagentsView } from "@/features/subagents/ui";
 import { promptList } from "@/features/conversation/ui/promptList/selectors";
 import { usePromptKeys } from "@/features/conversation/ui/promptList/usePromptKeys";
 import { useRetryChoices } from "@/features/conversation/ui/rewind/useRetryChoices";
 import { timelineItems } from "@/features/conversation/ui/timeline/selectors";
 import { useTimelineWindow } from "@/features/conversation/ui/timeline/useTimelineWindow";
-import { timelineView } from "@/features/chat/ui/timeline/timelineView";
 import type { ChatShellHandles } from "./useChatShell";
 import { useChatSending } from "./useChatSending";
 

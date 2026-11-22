@@ -6,3 +6,5 @@ export const subagentsSettings = { archived: storage.settings.archived } as cons
 
 export { chatSubagents, useChatSubagentsView } from "./selectors";
 export { pathOf } from "./model/subagentTree";
+export { SubagentCard } from "./SubagentCard";
+export { SubagentEndNote } from "./SubagentEndNote";

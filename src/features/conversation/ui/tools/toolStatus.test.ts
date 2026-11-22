@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 
 const ev = eventSequence();

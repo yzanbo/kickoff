@@ -57,11 +57,11 @@ function CreatedChip({ id }: { id: number }) {
 
 /**
  * 親の会話の、聞いた発言・返答の下に並べる子チャットの札（そこから聞いた子チャットだけ）と、その発言の作業で AI が create_chat で作った
- * 兄弟チャット・親のないチャットの札（created。「,」でつないだ ID。作った側の流れから見つけられるように）
+ * 兄弟チャット・親のないチャットの札（created。作った側の流れから見つけられるように）
  */
-export function ChildChatMarks({ chatId, eventId, created }: { chatId: number; eventId: number; created?: string }) {
+export function ChildChatMarks({ chatId, eventId, created }: { chatId: number; eventId: number; created?: readonly number[] }) {
   const children = useChildChats().get(chatId)?.filter((c) => c.parent_event_id === eventId) ?? [];
-  const others = created ? created.split(",").map(Number).filter((id) => !children.some((c) => c.id === id)) : [];
+  const others = created?.filter((id) => !children.some((c) => c.id === id)) ?? [];
   if (children.length === 0 && others.length === 0) return null;
   return (
     <div className="child-chat-marks">

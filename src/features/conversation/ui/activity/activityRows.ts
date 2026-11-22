@@ -5,7 +5,9 @@ import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState } from "@shared/chat/subagentState";
-import { groupEvents, type TimelineItem, type ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
+import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
+import { turnExtrasOf, type TurnExtras } from "@/features/conversation/ui/timeline/turnExtras";
 import { toolCallTexts } from "@/features/conversation/ui/tools/toolCallTexts";
 import { toolText } from "@/features/chat/ui";
 import { toolSpan } from "@/features/conversation/ui/tools/toolTimes";
@@ -68,10 +70,12 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
   const relays = [...tree.byKey.values()].filter((s) => s.agentId !== undefined);
   const name = (key: string | undefined) => (key === undefined ? "メインエージェント" : (tree.byKey.get(key)?.description ?? "サブエージェント"));
 
+  // 作業の終わりの付け足し（作業時間を出すための始まりの時刻）
+  const extras = turnExtrasOf(events);
   const push = (items: TimelineItem[], owner: SubagentEntry | undefined) => {
     const agent = owner?.key ?? null;
     for (const item of items) {
-      const row = rowOf(item, agent, owner, { busy, mainFloor, relays, tree });
+      const row = rowOf(item, agent, owner, { busy, mainFloor, relays, tree, extras });
       if (row) rows.push(row);
     }
   };
@@ -113,6 +117,7 @@ interface RowContext {
   mainFloor: number;
   relays: SubagentEntry[];
   tree: SubagentTree;
+  extras: ReadonlyMap<number, TurnExtras>;
 }
 
 /** 流れの項目 1 つを、動きの 1 行にする（考えた行・裏のサブエージェントの終わりの 1 行など、出さないものは null） */
@@ -172,7 +177,7 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
         ...base,
         kind: "turn",
         text: status === "cancelled" ? "作業を中断" : status === "failed" ? "作業が失敗" : "作業の終わり",
-        durationMs: elapsed(item.turnStart, e.created_at),
+        durationMs: elapsed(ctx.extras.get(e.id)?.start, e.created_at),
         ...(status === "failed" ? { failed: true } : {}),
       };
     }

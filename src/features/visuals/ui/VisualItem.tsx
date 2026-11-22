@@ -11,7 +11,7 @@ import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useOptionalChatScreen, useOptionalTimelineNav } from "@/features/chat/ui";
-import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import type { ToolCall } from "@/features/chat/ui";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
 import { saveVisualToNote } from "./saveVisual";

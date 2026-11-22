@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeEvent } from "@shared/foundation/testing/factories";
-import { estimateItem, estimateMarkdown, nextCorrection, textLines, wrappedLines, type EstimateContext } from "./rowEstimate";
+import { estimateMarkdown, nextCorrection, textLines, wrappedLines, type EstimateContext } from "./rowEstimate";
+import { estimateItem } from "./rowKinds";
 import type { TimelineItem } from "./timelineItems";
 
 const ctx = (over: Partial<EstimateContext> = {}): EstimateContext => ({
@@ -9,6 +10,7 @@ const ctx = (over: Partial<EstimateContext> = {}): EstimateContext => ({
   scale: 1,
   isOpen: () => false,
   correction: () => 1,
+  hasTurnChanges: () => false,
   ...over,
 });
 
@@ -51,6 +53,12 @@ test("estimateItem: ツールのまとまりは閉じていれば 30、開いた
   assert.equal(estimateItem(tools, ctx()), 30);
   assert.equal(estimateItem(tools, ctx({ isOpen: (k) => k === "tg:1" })), 30 + 2 * 28);
   assert.equal(estimateItem(tools, ctx({ isOpen: (k) => k === "tg:1" || k === "tc:2" })), 30 + 2 * 28 + 200);
+});
+
+test("estimateItem: 作業の終わりは、変更カードが付けばその分を足す", () => {
+  const end: TimelineItem = { kind: "event", key: "e9", event: makeEvent(9, "result", { status: "completed" }) };
+  assert.equal(estimateItem(end, ctx()), 28);
+  assert.equal(estimateItem(end, ctx({ hasTurnChanges: (id) => id === 9 })), 28 + 34);
 });
 
 test("estimateItem: 文字の倍率と種類ごとの補正を掛ける", () => {

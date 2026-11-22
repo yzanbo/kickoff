@@ -3,7 +3,7 @@ import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
-import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
+import { openKey, useTimelineOpen } from "@/features/chat/ui";
 
 /**
  * AI からの質問に答えた内容（記録の approval_resolved の answers / attachments）。自分の発言と同じ吹き出しで右に出し、
@@ -58,7 +58,7 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
 
 /** 選んだ図（開閉は流れの見え方の店。キーは記録 ID と問いの番号） */
 function PreviewDetails({ event, index, text }: { event: ChatEventOf<"approval_resolved">; index: number; text: string }) {
-  const [open, setOpen] = useTimelineOpen(event.chat_id, `qa:${event.id}:${index}`);
+  const [open, setOpen] = useTimelineOpen(event.chat_id, openKey.questionPreview(event.id, index));
   return (
     <LazyDetails className="question-answer-preview" open={open} onOpenChange={setOpen} summary={<summary>選んだ図</summary>}>
       {() => <pre>{text}</pre>}

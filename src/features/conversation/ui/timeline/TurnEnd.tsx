@@ -11,35 +11,30 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { TurnChanges } from "@/features/conversation/ui/tools/TurnChanges";
-import type { FileChange } from "@/features/conversation/ui/tools/turnFileChanges";
 import { FailedTurnActions } from "@/features/conversation/ui/rewind/FailedTurnActions";
 import { requestHandoff } from "@/features/childChats/ui/handBack";
 import { AddToParentButton } from "@/features/childChats/ui/AddToParentButton";
 import { HandoffMarks } from "@/features/childChats/ui/HandBackMarks";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
-import { useBeforeWorkplaceMove } from "@/features/chat/ui";
+import { useBeforeWorkplaceMove, useTimelineBusy } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
-import type { TurnHandoff } from "./timelineItems";
-import { useTimelineBusy } from "@/features/chat/ui/timeline/timelineBusy";
+import type { TurnExtras } from "./turnExtras";
+import { turnExtras } from "./selectors";
 
-/** 作業の終わり: その作業で変えたファイルのカード（あれば）と、終わりの行 */
-export function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
+/**
+ * 作業の終わり: その作業で変えたファイルのカード（あれば）と、終わりの行。付け足し（作業時間・返答・変更・親へ渡すもの）は自分の分だけを読む
+ * （記録が届いても、この作業の分が変わらなければ描き直さない）
+ */
+export function TurnEnd({ event }: { event: ChatEventOf<"result"> }) {
+  const extras = turnExtras.useWith(event.chat_id, (byEnd) => byEnd.get(event.id));
   return (
     <>
-      {props.turnChanges && <TurnChanges files={props.turnChanges} chatId={props.event.chat_id} resultId={props.event.id} />}
-      <TurnFooter {...props} />
-      <FailedTurnActions resultId={props.event.id} />
+      {extras?.changes && <TurnChanges files={extras.changes} chatId={event.chat_id} resultId={event.id} />}
+      <TurnFooter event={event} extras={extras} />
+      <FailedTurnActions resultId={event.id} />
     </>
   );
 }
-
-type TurnFooterProps = {
-  event: ChatEventOf<"result">;
-  turnStart?: string;
-  turnText?: string;
-  turnHandoff?: TurnHandoff;
-  turnHandoffs?: ChatEventOf<"handoff">[];
-};
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
@@ -47,8 +42,9 @@ type TurnFooterProps = {
  * 子チャットでは「親チャットに追加 ▾」（最後まで終わった作業の最後の返答を、そのまま親に渡す。依頼文の頼みに答えた作業では文字のボタンで目立たせる）と
  * 「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
  */
-function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: TurnFooterProps) {
+function TurnFooter({ event, extras }: { event: ChatEventOf<"result">; extras: TurnExtras | undefined }) {
   const data = event.data;
+  const { start: turnStart, text: turnText, handoff: turnHandoff, handoffs: turnHandoffs } = extras ?? {};
   // 作業中か（作業の始まりと終わりで、この行だけが描き直る）
   const busy = useTimelineBusy();
   const chat = useKnownChat(event.chat_id);
