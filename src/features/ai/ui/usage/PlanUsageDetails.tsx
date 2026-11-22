@@ -1,5 +1,5 @@
 import type { PlanUsage } from "@shared/ai/types";
-import { OverageDetails } from "./OverageDetails";
+import { SpendState } from "./SpendState";
 import { FIVE_HOUR_IDLE, usageUnavailableText } from "./usage";
 import { UsageFetchedNote } from "./UsageFetchedNote";
 import { UsageMeter } from "./UsageMeter";
@@ -15,7 +15,7 @@ export function PlanUsageDetails({ usage }: { usage: PlanUsage | undefined }) {
       {usage.model_weekly.map((w) => (
         <UsageMeter key={w.key} window={w} />
       ))}
-      <OverageDetails usage={usage} />
+      <SpendState usage={usage} />
       <UsageFetchedNote usage={usage} className="usage-popover-foot" />
     </div>
   );
