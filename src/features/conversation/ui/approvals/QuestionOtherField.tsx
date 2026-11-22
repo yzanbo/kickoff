@@ -1,13 +1,7 @@
-import { useEffect, useEffectEvent, useRef } from "react";
-import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
+import { useEffect, useEffectEvent } from "react";
 import type { OtherFiles } from "./questionAnswers";
 import { cx } from "@/foundation/ui/lib/cx";
-import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
-import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";
-import { AttachButton } from "@/features/composer/ui/AttachButton";
-import { PendingFileChips } from "@/features/composer/ui/PendingFileChips";
-import { useDraftFiles } from "@/features/composer/ui/useDraftFiles";
-
+import { AttachButton, MessageField, PendingFileChips, useDraftFiles, useMessageField } from "@/features/composer/ui";
 
 /**
  * AI からの質問の「その他」の欄: チャット欄と同じく、書いた分だけ伸びる複数行の欄（Enter で回答・Shift+Enter で改行）と、
@@ -36,11 +30,9 @@ export function QuestionOtherField({
   const reportFiles = useEffectEvent(() => onFiles({ attachments: files.attachments, uploading: files.uploading }));
   useEffect(() => reportFiles(), [key]);
 
-  // Enter で回答する（変換中の Enter は確定に使い、送らない）・Shift+Enter で改行
-  const keys = useEditKeys({ onSubmit });
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Enter で回答する（変換中の Enter は確定に使い、送らない）・Shift+Enter で改行。
   // 音声入力: 起こした文をキャレットの位置に入れ、「その他」を選ぶ（録音中の Enter は入れてそのまま回答・⌘⇧Space で開始・停止・Esc でやめる）
-  const { dictation, handleKey } = useFieldDictation({ textareaRef, value, onChange, onSubmit: () => onSubmit(), onInsert: onFocus });
+  const field = useMessageField({ value, onChange, onSubmit: () => onSubmit(), onVoiceInsert: onFocus });
   return (
     <div className={cx("question-other-field", files.dragging && "file-over")} {...files.dropProps}>
       {files.files.length > 0 && (
@@ -49,17 +41,13 @@ export function QuestionOtherField({
         </div>
       )}
       <div className="question-other-input">
-        <textarea
-          ref={textareaRef}
+        <MessageField
+          field={field}
           rows={1}
-          value={value}
           placeholder="その他の回答"
           aria-label="その他の回答"
           title="Enter で回答・Shift+Enter で改行。画像は貼り付け・ドラッグ・📎 で添付できます。マイクか ⌘⇧Space で音声入力"
           onFocus={onFocus}
-          onChange={(e) => onChange(e.target.value)}
-          {...keys.keyProps}
-          onKeyDown={(e) => handleKey(e) || keys.keyProps.onKeyDown(e)}
           onPaste={(e) => {
             onFocus();
             files.onPaste(e);
@@ -67,9 +55,9 @@ export function QuestionOtherField({
         />
         {/* 押したら「その他」を選ぶ（選ばないと添付が回答に入らない） */}
         <AttachButton onOpen={onFocus} onFiles={files.addFiles} />
-        <DictationButton dictation={dictation} />
+        {field.voice.button}
       </div>
-      <DictationError dictation={dictation} />
+      {field.voice.error}
     </div>
   );
 }

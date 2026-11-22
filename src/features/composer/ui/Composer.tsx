@@ -4,15 +4,12 @@ import type { Attachment } from "@shared/chat/types";
 import type { GitTarget } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useHeldMeta } from "@/foundation/ui/hooks/useHeldMeta";
-import { consumeKey, hasModifiers, isCancelKey } from "@/foundation/ui/lib/keys";
+import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { AttachButton } from "./AttachButton";
 import { PendingFileChips } from "./PendingFileChips";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
 import { insertDictation } from "@/features/voice/ui/dictationText";
-import { useDictation } from "@/features/voice/ui/useDictation";
 import { useVoiceMode } from "@/features/voice/ui/useVoiceMode";
 import { VoiceModeButton, VoiceModePanel } from "@/features/voice/ui/VoiceModePanel";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";
@@ -23,7 +20,9 @@ import { useDraftFiles } from "./useDraftFiles";
 import { memoryDraft, useDraftText, type ComposerDraft } from "./composerDraft";
 import { ComposerInsertProvider, useComposerField } from "./composerFields";
 import { usePromptHistory } from "./usePromptHistory";
-import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
+import { sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
+import { MessageField, useMessageField } from "./MessageField";
+import { PLAIN_SUBMIT, type SubmitHow } from "./messageFieldModel";
 import { ComposerActions, type SendTarget } from "./ComposerActions";
 import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
@@ -161,18 +160,6 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
     const value = el?.value ?? text;
     return insertDictation(value, el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length, spoken);
   };
-  // 音声入力: 起こした文をキャレットの位置に入れる。send なら、入れてそのまま送る
-  const dictation = useDictation({
-    onText: (spoken, sendNow) => {
-      const inserted = withSpoken(spoken);
-      if (sendNow) {
-        setText(inserted.text);
-        void sender.send(inserted.text);
-      } else {
-        fill(inserted.text, inserted.caret);
-      }
-    },
-  });
   // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す。書きかけの文はそのまま残す）か、
   // 入力欄に入れる（帯の下に文を書く欄を出したまま、キャレットの位置に足していく）。返答は読み上げる
   const voice = useVoiceMode({
@@ -188,37 +175,31 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
   });
   // すぐ送る音声モードの間は、作業中の送り方（いま / あとで）を帯に出し、文を書く欄を隠す
   const voiceSends = voice.active && voice.delivery === "send";
-  // 録音中は、送信で「起こした文を入れてそのまま送る」
-  const canSend = (sender.hasContent || dictation.recording) && sender.ready;
 
-  /** 送信ボタン・Enter: 録音中なら、止めて起こした文を入れてから送る */
-  const submit = (mode?: QueueSendMode) => {
+  /** 送信ボタン・Enter（⌘Enter = いま・⌘⇧Enter = あとで。録音中なら、文を書く欄が止めて起こした文を入れてから呼ぶ） */
+  const submit = (how: SubmitHow) => {
     // 新しいチャットで音声モードの間に送るなら、できたチャットへ音声モードを引き継ぐ
     if (voice.active) voice.beforeSend();
-    if (dictation.recording) void dictation.finish(true);
-    else void sender.send(undefined, mode);
+    void sender.send(undefined, sendModeOf(how));
   };
-
-  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    // 録音中の Enter・⌘Enter は、起こした文を入れてそのまま送る
-    if (dictation.recording && isSendEnter(e)) {
-      e.preventDefault();
-      return submit();
-    }
-    // 候補を出している間は、↑↓・Enter・Tab・Esc を候補の操作に使う
-    if (suggest.handleKey(e)) return;
-    // 空の入力欄・呼び出した発言を出している間の ↑↓ は、前の発言の呼び出しに使う
-    if (promptHistory.handleKey(e)) return;
-    if (isSendEnter(e)) {
-      e.preventDefault();
-      submit(sendModeOf(e));
-    }
-  }
+  // 文を書く欄（Enter で送る・⌘⇧Enter も。候補を出している間は ↑↓・Enter・Tab・Esc を候補に、空の欄・呼び出した発言の ↑↓ は前の発言に使う）。
+  // 音声入力（マイク・⌘⇧Space）も欄が持つ。録音中の Enter・送信ボタンは、起こした文を入れてそのまま送る
+  const field = useMessageField({
+    value: text,
+    onChange: setText,
+    onSubmit: submit,
+    onKeyDown: (e) => suggest.handleKey(e) || promptHistory.handleKey(e),
+    metaShift: true,
+    textareaRef,
+    keepHeldOnBlur: true,
+  });
+  // 録音中は、送信で「起こした文を入れてそのまま送る」
+  const canSend = (sender.hasContent || field.voice.recording) && sender.ready;
 
   // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中・送信待ちがあるときだけ。
   // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）。
   // キーを離した・ほかへピントが移った・Kickoff が後ろに回ったら消す（チャット欄の外で離したときも）
-  const held = useHeldMeta();
+  const held = field.held;
   const heldMode: QueueSendMode | undefined = held.held === "meta-shift" ? "queue" : held.held === "meta" ? "tell" : undefined;
 
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
@@ -234,13 +215,10 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
     if (voice.active && isCancelKey(e)) {
       consumeKey(e);
       voice.stop();
-    } else if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
-      e.preventDefault();
-      dictation.toggle();
-    } else if (isCancelKey(e) && (dictation.recording || dictation.state.kind === "transcribing")) {
-      consumeKey(e);
-      dictation.cancel();
-    } else keys.onKeyDown(e);
+    } else if (e.defaultPrevented || !field.voice.onKeyDown(e)) {
+      // 文を書く欄が先に扱った音声のキーは見ない（ボタンにピントがあるときはここで扱う）
+      keys.onKeyDown(e);
+    }
   }
 
   return (
@@ -259,19 +237,13 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
       )}
       <SuggestList suggest={suggest} />
       {voice.active && <VoiceModePanel voice={voice} queueToggle={busyControls} />}
-      <textarea
+      <MessageField
+        field={field}
         hidden={voiceSends}
-        ref={textareaRef}
         rows={1}
-        value={text}
-        onSelect={(e) => suggest.onCaret(e.currentTarget.selectionStart)}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        onChange={(e) => {
-          setText(e.target.value);
-          suggest.onCaret(e.target.selectionStart);
-        }}
-        onKeyDown={onKeyDown}
+        onCaret={suggest.onCaret}
         onPaste={attach.onPaste}
         onContextMenu={textMenu.onContextMenu}
       />
@@ -294,22 +266,22 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
           trailing={trailing}
           voice={
             <>
-              {!voice.active && <DictationButton dictation={dictation} />}
+              {!voice.active && field.voice.button}
               {voiceMode && <VoiceModeButton voice={voice} />}
             </>
           }
           canSend={canSend}
-          recording={dictation.recording}
+          recording={field.voice.recording}
           hasContent={sender.hasContent}
           sendLabel={sendLabel}
-          onSubmit={() => submit()}
+          onSubmit={() => field.submit(PLAIN_SUBMIT)}
           // 録音中は、文字起こしが済むまでほかの送り先には送らない
           plain={plainActions}
-          sendTargets={sendTo?.map(({ onSend, ...to }) => ({ ...to, disabled: !sender.viaReady || dictation.recording, onSelect: () => void sender.sendVia(onSend) }))}
+          sendTargets={sendTo?.map(({ onSend, ...to }) => ({ ...to, disabled: !sender.viaReady || field.voice.recording, onSelect: () => void sender.sendVia(onSend) }))}
         />
       </div>
       {attach.dragging && <div className="drop-hint">ここにドロップして添付</div>}
-      <DictationError dictation={dictation} />
+      {field.voice.error}
       <ErrorText message={sender.error} className="composer-error" />
     </div>
   );

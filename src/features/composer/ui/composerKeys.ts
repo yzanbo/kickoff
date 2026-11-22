@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { consumeKey, isCancelKey, isComposing, isKey, type KeyInput } from "@/foundation/ui/lib/keys";
+import { consumeKey, isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
 import { permissionChoices } from "@/features/ai/ui/options/models";
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import type { SettingValue } from "@/foundation/ui/storage";
 import type { storage } from "./storage";
+import type { SubmitHow } from "./messageFieldModel";
 
 /** 作業中に送るときの扱い（tell = 伝える（止めずに、いまのやり取りに足す）/ queue = ためておく（終わったら送る）） */
 export type QueueSendMode = SettingValue<typeof storage.settings.queueMode>;
 
-/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
-export const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
-
-/** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
-export const isSendEnter = (e: KeyInput) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !isComposing(e);
+/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり。切り替えの値は変えない） */
+export const sendModeOf = (how: SubmitHow): QueueSendMode | undefined => (how.meta ? (how.shift ? "queue" : "tell") : undefined);
 
 /** 1 回目の Esc のあと、もう一度押すと中断する、と待つ時間 */
 const STOP_CONFIRM_MS = 2000;

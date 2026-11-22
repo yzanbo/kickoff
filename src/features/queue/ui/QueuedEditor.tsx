@@ -1,15 +1,9 @@
-import { useRef } from "react";
 import { Check, SendHorizontal, X } from "lucide-react";
-import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
 import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { AttachButton } from "@/features/composer/ui/AttachButton";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
-import { PendingFileChips } from "@/features/composer/ui/PendingFileChips";
-import { useDraftFiles } from "@/features/composer/ui/useDraftFiles";
-import { DictationButton, DictationError } from "@/features/voice/ui/DictationButton";
-import { useFieldDictation } from "@/features/voice/ui/useFieldDictation";
+import { AttachButton, MessageField, PendingFileChips, PLAIN_SUBMIT, useDraftFiles, useMessageField } from "@/features/composer/ui";
 
 /**
  * 送信待ちの指示を書き直す欄（Enter で保存・⌘Enter で保存していま送る（チャット欄の「いま」と同じ。作業中なら止めずにいまのやり取りに足す）・
@@ -63,9 +57,8 @@ export function QueuedEditor({
   };
   // Enter で保存・⌘Enter で保存していま送る（チャット欄の ⌘Enter =「いま」と同じ）・Esc でやめる。
   // ⌘ を押している間は、⌘Enter で使われる「保存していま送る」のボタンを光らせる
-  const keys = useEditKeys({ onSubmit: ({ meta }) => save(meta), onCancel });
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const { dictation, handleKey, submit } = useFieldDictation({ textareaRef, value: text, onChange, onSubmit: ({ meta }) => save(meta) });
+  // 開いたら文の終わりから書き始める
+  const field = useMessageField({ value: text, onChange, onSubmit: ({ meta }) => save(meta), onCancel, focusEnd: true });
   const sendLabel = busy ? "保存していま送る（止めずに、いまのやり取りに足す）" : "保存していま送る";
   const hasAttachments = attachments.length > 0 || files.files.length > 0;
   return (
@@ -83,28 +76,16 @@ export function QueuedEditor({
         )}
         {/* 入力欄の右にボタンを並べる（添付があっても入力欄の横。入力欄が縦に伸びたら上にそろえる） */}
         <div className="queued-editor-line">
-          <textarea
+          <MessageField
+            field={field}
             className="queued-editor"
-            value={text}
             // 高さは文に合わせる（折り返した行も含めて全部見せる。CSS の field-sizing）
             rows={1}
-            // 開いたら文の終わりから書き始める
-            ref={(el) => {
-              textareaRef.current = el;
-              if (el && !el.dataset.ready) {
-                el.dataset.ready = "1";
-                el.focus();
-                el.setSelectionRange(el.value.length, el.value.length);
-              }
-            }}
             aria-label="待ちの指示を書き直す"
-            onChange={(e) => onChange(e.target.value)}
-            {...keys.keyProps}
-            onKeyDown={(e) => handleKey(e) || keys.keyProps.onKeyDown(e)}
             onPaste={files.onPaste}
           />
           <div className="queued-editor-actions">
-            <DictationButton dictation={dictation} />
+            {field.voice.button}
             <AttachButton iconSize={13} onFiles={files.addFiles} />
             <IconButton
               icon={Check}
@@ -114,21 +95,21 @@ export function QueuedEditor({
               className="queued-editor-ok"
               disabled={files.uploading}
               // 録音中なら、止めて起こした文を入れてから保存する
-              onClick={() => submit({ meta: false })}
+              onClick={() => field.submit(PLAIN_SUBMIT)}
             />
             <IconButton
               icon={SendHorizontal}
               label={sendLabel}
               title={files.uploading ? "アップロードが終わるまでお待ちください" : `${sendLabel}（⌘Enter）`}
               iconSize={13}
-              className={cx("queued-editor-send", keys.heldMeta && "held")}
+              className={cx("queued-editor-send", field.held.held === "meta" && "held")}
               disabled={files.uploading}
-              onClick={() => submit({ meta: true })}
+              onClick={() => field.submit({ meta: true, shift: false })}
             />
             <IconButton icon={X} label="やめる" title={ready ? "やめる（Esc。元の文のまま送ります）" : "やめる（Esc）"} iconSize={13} onClick={onCancel} />
           </div>
         </div>
-        <DictationError dictation={dictation} />
+        {field.voice.error}
       </div>
     </div>
   );

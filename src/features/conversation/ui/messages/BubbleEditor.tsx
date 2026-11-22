@@ -1,6 +1,6 @@
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { MessageField, useMessageField } from "@/features/composer/ui";
 
 /** 吹き出しの中の書き直しの欄（Enter で送り直す・Shift+Enter で改行・Esc でやめる）。onSend は確かめてやめたら false */
 export function BubbleEditor({
@@ -23,24 +23,11 @@ export function BubbleEditor({
       if (await onSend()) onCancel();
     });
   };
-  const keys = useEditKeys({ onSubmit: () => void send(), onCancel });
+  // 開いたら文の終わりから書き始める（音声入力はない）
+  const field = useMessageField({ value: text, onChange, onSubmit: () => void send(), onCancel, voice: false, focusEnd: true });
   return (
     <div className="bubble-editor">
-      <textarea
-        value={text}
-        rows={Math.min(12, Math.max(2, text.split("\n").length))}
-        aria-label="発言を書き直す"
-        // 開いたら文の終わりから書き始める
-        ref={(el) => {
-          if (el && !el.dataset.ready) {
-            el.dataset.ready = "1";
-            el.focus();
-            el.setSelectionRange(el.value.length, el.value.length);
-          }
-        }}
-        onChange={(e) => onChange(e.target.value)}
-        {...keys.keyProps}
-      />
+      <MessageField field={field} rows={Math.min(12, Math.max(2, text.split("\n").length))} aria-label="発言を書き直す" />
       <ErrorText message={action.error} />
       <div className="bubble-editor-actions">
         <button type="button" className="btn" data-size="sm" disabled={sending} onClick={onCancel}>

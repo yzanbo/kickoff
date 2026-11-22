@@ -42,9 +42,12 @@ export function isKey(e: KeyInput, key: string, mods?: Modifiers): boolean {
   return same && hasModifiers(e, mods) && !isComposing(e);
 }
 
-/** 送る・決める Enter か（Shift+Enter は改行なので除く。⌘ / Ctrl を添えた Enter は含む。変換を確定する Enter は除く） */
-export function isSubmitKey(e: KeyInput): boolean {
-  return e.key === "Enter" && !e.shiftKey && !isComposing(e);
+/**
+ * 送る・決める Enter か（Shift+Enter は改行なので除く。⌘ / Ctrl を添えた Enter は含む。変換を確定する Enter は除く）。
+ * metaShift: ⌘⇧Enter も含める（チャット欄の「あとで」）
+ */
+export function isSubmitKey(e: KeyInput, { metaShift = false }: { metaShift?: boolean } = {}): boolean {
+  return e.key === "Enter" && (!e.shiftKey || (metaShift && e.metaKey)) && !isComposing(e);
 }
 
 /**

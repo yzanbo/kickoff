@@ -20,6 +20,13 @@ test("isSubmitKey: Enter と ⌘Enter は送る。Shift+Enter（改行）と変�
   assert.equal(isSubmitKey(key("a")), false);
 });
 
+test("isSubmitKey: metaShift なら ⌘⇧Enter も送る（Shift+Enter は改行のまま・変換を確定する ⌘⇧Enter は送らない）", () => {
+  assert.equal(isSubmitKey(key("Enter", { metaKey: true, shiftKey: true })), false);
+  assert.equal(isSubmitKey(key("Enter", { metaKey: true, shiftKey: true }), { metaShift: true }), true);
+  assert.equal(isSubmitKey(key("Enter", { shiftKey: true }), { metaShift: true }), false);
+  assert.equal(isSubmitKey(key("Enter", { metaKey: true, shiftKey: true, keyCode: 229 }), { metaShift: true }), false);
+});
+
 test("isCancelKey: 修飾キーのない Esc だけ（変換をやめる Esc は除く）", () => {
   assert.equal(isCancelKey(key("Escape")), true);
   assert.equal(isCancelKey(key("Escape", { shiftKey: true })), false);
