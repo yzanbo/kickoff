@@ -2,7 +2,7 @@ import { AttachmentChip } from "@/features/attachments/ui/AttachmentChip";
 import type { PendingFile } from "./useDraftFiles";
 
 /** 選んだばかりの添付（アップロード中・済み・失敗）。× で外す。チャット欄と送信待ちの書き直しで共通 */
-export function PendingFileChips({ files, onRemove }: { files: PendingFile[]; onRemove: (key: string) => void }) {
+export function PendingFileChips({ files, onRemove }: { files: (PendingFile & { previewUrl?: string })[]; onRemove: (key: string) => void }) {
   return files.map((f) => (
     <span key={f.key} className="composer-attachment">
       <AttachmentChip

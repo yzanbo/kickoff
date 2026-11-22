@@ -1,5 +1,6 @@
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useEffect, useEffectEvent, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { createFilePreviews } from "./filePreviews";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 import type { Attachment } from "@shared/chat/types";
@@ -11,7 +12,8 @@ import { sameAttachment } from "@/features/attachments/ui/attachmentMerge";
 export interface PendingFile {
   key: string;
   file: File;
-  previewUrl?: string;
+  /** 選んだ画像（プレビューを選んだファイルから出す。残していた添付は保存先のサムネイル） */
+  preview?: true;
   attachment?: Attachment;
   error?: string;
 }
@@ -107,8 +109,18 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   const hold = useKeepAliveHold("upload");
   useEffect(() => hold(uploading), [uploading, hold]);
 
-  // 画像のプレビュー用 URL は不要になったら解放する
-  useEffect(() => () => files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl)), []);
+  // 画像のプレビューの URL は描いている間だけ持つ（入力欄が外れた・裏のタブに隠れたら解放し、表に戻ったら選んだファイルから作り直す）
+  const [previews, setPreviews] = useState(() => createFilePreviews());
+  const released = useRef(false);
+  useEffect(() => {
+    if (released.current) {
+      released.current = false;
+      setPreviews(createFilePreviews());
+    }
+    return () => {
+      if (previews.releaseAll() > 0) released.current = true;
+    };
+  }, [previews]);
 
   /** アップロードが終わったとき（入力欄がもうなければ、残す先へじかに足す。移っている間に終わっても添付を失わない） */
   function uploaded(key: string, attachment: Attachment) {
@@ -119,8 +131,8 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   function addFiles(list: FileList | File[]) {
     for (const file of Array.from(list)) {
       const key = newKey();
-      const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
-      setFiles((prev) => [...prev, { key, file, previewUrl }]);
+      const preview = file.type.startsWith("image/") ? { preview: true as const } : {};
+      setFiles((prev) => [...prev, { key, file, ...preview }]);
       api
         .upload(file)
         .then((attachment) => uploaded(key, attachment))
@@ -151,16 +163,13 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   }
 
   function removeFile(key: string) {
-    setFiles((prev) => {
-      const target = prev.find((f) => f.key === key);
-      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
-      return prev.filter((f) => f.key !== key);
-    });
+    previews.drop(key);
+    setFiles((prev) => prev.filter((f) => f.key !== key));
   }
 
   /** 送ったあと: すべて外す */
   function clear() {
-    files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl));
+    previews.releaseAll();
     setFiles([]);
   }
 
@@ -191,7 +200,8 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   };
 
   return {
-    files,
+    /** 札に出すもの（選んだ画像はプレビューの URL 付き） */
+    files: files.map((f) => (f.preview ? { ...f, previewUrl: previews.of(f.key, f.file) } : f)),
     dragging,
     addFiles,
     addChat,
