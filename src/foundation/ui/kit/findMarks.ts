@@ -52,11 +52,14 @@ interface MarkNames {
   current: string;
 }
 
-/** iframe の文書に、印の色の CSS を置く（まだなければ） */
+/**
+ * 印の色の CSS を置く（まだなければ）。iframe の文書と、画面の CSS にない名前（チャットの画面ごとの名前など）の画面の文書に。
+ * 画面の文書は変数のまま（テーマを替えても色が付いていく）、iframe の中は変数がないのでいまの値を書き込む
+ */
 function ensureFrameStyle(doc: Document, { all, current }: MarkNames) {
   const id = all === ALL ? FRAME_STYLE_ID : `${FRAME_STYLE_ID}-${all}`;
-  if (doc === document || doc.getElementById(id)) return;
-  const warn = getComputedStyle(document.documentElement).getPropertyValue("--warn").trim() || "#e5a50a";
+  if ((doc === document && all === ALL) || doc.getElementById(id)) return;
+  const warn = doc === document ? "var(--warn)" : getComputedStyle(document.documentElement).getPropertyValue("--warn").trim() || "#e5a50a";
   const style = doc.createElement("style");
   style.id = id;
   style.textContent = `::highlight(${all}) { background-color: color-mix(in srgb, ${warn} 35%, transparent); }

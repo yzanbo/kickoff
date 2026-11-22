@@ -69,11 +69,4 @@
   pointer-events: none;
 }
 
-::highlight(chat-find) {
-  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
-}
-
-::highlight(chat-find-current) {
-  color: #000;
-  background-color: var(--warn);
-}
+/* 見つけた文の印の色は、チャットの画面ごとの名前で findMarks が置く（ページの ⌘F と同じ色） */

@@ -9,11 +9,14 @@ import { chatTail } from "@/features/chat/ui";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
+import { createFindMarks } from "@/foundation/ui/kit/findMarks";
 import { findMatches } from "./chatFindMatches";
 
-/** 見つけた文の印（CSS の ::highlight(chat-find) / ::highlight(chat-find-current) で色を付ける） */
-const HIGHLIGHT = "chat-find";
-const CURRENT = "chat-find-current";
+/**
+ * 見つけた文の印の名前（チャットの画面ごと。CSS.highlights は文書に 1 つなので、同じウィンドウのほかのチャットの検索の印を消さない・上書きしない）。
+ * 色は findMarks が名前ごとに置く CSS（::highlight(chat-find-<ID>) / ::highlight(chat-find-current-<ID>)）
+ */
+const marksOf = (chatId: number) => createFindMarks({ names: { all: `chat-find-${chatId}`, current: `chat-find-current-${chatId}` } });
 
 /**
  * チャットの中の検索。チャットの見出しの行にいつも置き、⌘F でピントが入る（ピントがこのチャットの中にあるとき、
@@ -92,31 +95,21 @@ export function ChatFind({
   const current = index !== null ? matches[index] : undefined;
   // 描いている範囲の一致すべてに印を付ける（閉じたら外す）
   useEffect(() => {
-    const highlights = CSS.highlights;
-    if (!highlights) return;
-    if (root.current && pattern) highlights.set(HIGHLIGHT, new Highlight(...findRanges(root.current, pattern)));
-    else highlights.delete(HIGHLIGHT);
-    return () => {
-      highlights.delete(HIGHLIGHT);
-    };
-  }, [pattern, version, root]);
+    if (!root.current || !pattern) return;
+    const marks = marksOf(chatId);
+    marks.all(findRanges(root.current, pattern));
+    return () => marks.all([]);
+  }, [pattern, version, root, chatId]);
 
   // いま選んでいる一致に印を付ける（その発言の中の nth 番目。描いた文と記録がずれたら最初。描かれたら付け直す）
   useEffect(() => {
-    const highlights = CSS.highlights;
     const el = current && root.current?.querySelector<HTMLElement>(`#ev-${current.eventId}`);
-    if (!el) {
-      highlights?.delete(CURRENT);
-      return;
-    }
+    if (!el) return;
     const ranges = findRanges(el, pattern);
-    const range = ranges[current.nth] ?? ranges[0];
-    if (range) highlights?.set(CURRENT, new Highlight(range));
-    else highlights?.delete(CURRENT);
-    return () => {
-      highlights?.delete(CURRENT);
-    };
-  }, [current, pattern, version, root]);
+    const marks = marksOf(chatId);
+    marks.current(ranges[current.nth] ?? ranges[0]);
+    return () => marks.current(undefined);
+  }, [current, pattern, version, root, chatId]);
 
   const go = (step: 1 | -1) => {
     if (matches.length === 0) return;

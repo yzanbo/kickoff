@@ -117,6 +117,6 @@
 
 ## チャットの中の検索（`find/`）
 
-- 欄は共有の `FindField`・`FindOptionButtons`・`useFindOptions`（`@/foundation/ui/`）。照らし合わせは記録と画面の印で共通の `@/foundation/ui/lib/textFind.ts`。
+- 欄は共有の `FindField`・`useFindOptions`（`@/foundation/ui/`）。照らし合わせは記録と印で共通の `@/foundation/ui/lib/textFind.ts`。
 - 探すのは記録から（`chatFindMatches.ts`）。末尾より前の本文はコアの `texts?before=` で読み、正規表現はコアで流さない。
-- 印は描いている範囲だけに CSS Custom Highlight API で付ける（DOM を書き換えない）。
+- 印は描いている範囲だけに CSS Custom Highlight API で付ける（画面ごとの名前。DOM を書き換えない）。
