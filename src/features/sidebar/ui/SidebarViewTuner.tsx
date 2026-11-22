@@ -3,11 +3,11 @@ import { useState } from "react";
 import type { ProjectOrder } from "@/features/projects/ui/projectOrder";
 import type { SettingValue } from "@/foundation/ui/storage";
 import { chatListSettings } from "@/features/chatList/ui";
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { storage } from "./storage";
 import { sameViewExistsText, viewNameTaken } from "@/foundation/ui/lib/namedViews";
 import { CHAT_GROUPINGS } from "@/features/chatList/ui/chatGrouping";
 import { BucketColorItem } from "@/features/chatList/ui/BucketColorItem";
-import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
 import { openSettings } from "@/features/settings/ui/openSettings";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "@/features/chatList/ui/chatLayout";
@@ -51,9 +51,9 @@ export interface TunerProps {
  */
 export function SidebarViewTuner({ layout, onLayout, order, onOrder, archivedCount, showArchived, onShowArchived, waiting, views }: TunerProps & { views: SidebarViews }) {
   const { grouping, setGrouping, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
-  const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
-  const [compact, setCompact] = useCompactRows();
-  const [compactProjects, setCompactProjects] = useCompactProjects();
+  const [showArchivedChats, setShowArchivedChats] = useSetting(chatListSettings.showArchived);
+  const [compact, setCompact] = useSetting(chatListSettings.compact);
+  const [compactProjects, setCompactProjects] = useSetting(chatListSettings.projectCompact);
   /** アーカイブを出すかのボタン（プロジェクト・チャットで共通。押すたびに 表示 ⇄ 隠す） */
   const archiveToggle = (id: string, target: string, shown: boolean, set: (show: boolean) => void, note = "") => (
     <HeadToggle

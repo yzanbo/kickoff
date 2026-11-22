@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { makeChat, makeGroup } from "@shared/foundation/testing/factories";
 import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { bucketChats } from "./buckets";
-import { bucketScopes, byManual, draftAnchor, moveChatInOrder } from "./manualOrder";
+import { bucketScopes, byManual, draftAnchor, insertNear, moveChatInOrder } from "./manualOrder";
 
 test("byManual: まだ並べていない新しいチャットがいちばん上（新しい順）、そのあと position の順", () => {
   const chats = [makeChat(1, { position: 1 }), makeChat(2, { position: 0 }), makeChat(3), makeChat(4), makeChat(5, { position: 2 })];
@@ -59,4 +59,11 @@ test("draftAnchor: タブの列で下書きより前に見える、同じまと�
   assert.equal(draftAnchor({ chatIds: [1, 2], before: 0 }, order, () => true), null);
   // サイドバーの並びにないチャットは後ろ
   assert.equal(draftAnchor({ chatIds: [9, 2], before: 1 }, order, () => true), 2);
+});
+
+test("insertNear: 前後へ入れ、もとの位置にあれば動かす。target がなければ null", () => {
+  assert.deepEqual(insertNear([1, 6, 7], 3, 6, "before"), [1, 3, 6, 7]);
+  assert.deepEqual(insertNear([1, 6, 7], 3, 7, "after"), [1, 6, 7, 3]);
+  assert.deepEqual(insertNear([3, 1, 6], 3, 6, "after"), [1, 6, 3]);
+  assert.equal(insertNear([1, 6], 3, 9, "after"), null);
 });

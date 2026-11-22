@@ -8,10 +8,11 @@
 |---|---|
 | `ui/buckets.ts`・`useChatBuckets.ts` | 分ける純粋な関数 `bucketChats`・並び `sortBuckets`・画面の口 |
 | `ui/bucketHeads.ts`・`bucketHues.ts` | まとまりのキーと見出し・色 |
-| `ui/chatLayout.ts`・`chatOrder.ts`・`manualOrder.ts` | まとめ方と並び順（`useChatLayout`・`useSidebarChatOrder`）・手動の並び |
-| `ui/chatGrouping.ts`・`chatListFlags.ts` | まとめ方の選択肢・サイドバーの表示の切り替え |
+| `ui/chatLayout.ts`・`chatOrder.ts`・`manualOrder.ts` | まとめ方と並び順（`useChatLayout`・`useChatOrder`）・手動の並び |
+| `ui/chatGrouping.ts` | まとめ方の選択肢（要対応・太字の決まりは `@shared/chat/state.ts` の `needsAttention`・`showsBold`） |
 | `ui/selection/chatSelection.ts` | 複数選択（`useChatSelectionState`・`SelectionBar`） |
 | `ui/StateCornerCounts`・`StateChatsPopover`・`StateChip` | 角の数・状態ごとの一覧・状態の札 |
+| `ui/activeChats/` | ⌘⇧A（中身は純粋な `activeChatGroups`。下書きと開き方は chatPanel の `ActiveChatsDialog` が渡す） |
 
 行の部品 `ChatRow`・`ChatRowList` は `@/features/sidebar/ui/`。
 
@@ -29,7 +30,7 @@
 
 ## 落とし穴
 
-- パネルの一覧のペインのタブも `useSidebarChatOrder` で同じ並びにする（変えたら `src/features/chatPanel/CLAUDE.md` の「サイドバーとの連動」も見る）。
+- パネルの一覧のペインのタブも `useChatOrder` で同じ並びにする（変えたら `src/features/chatPanel/CLAUDE.md` の「サイドバーとの連動」も見る）。
 - 範囲の選択・↑↓・ドラッグは先に `ensureAllRows` で残りを描く。
 - 色は画面に出ているまとまりでなく、なりうるものすべてから決める（`projectBucketHues`。サイドバーとタブで同じ色にする）。
 - `useFolds` の開閉は購読した snapshot から読む（保存先を直接読むと React Compiler が描画を使い回す）。

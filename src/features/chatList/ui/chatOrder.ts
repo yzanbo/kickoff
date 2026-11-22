@@ -2,25 +2,29 @@ import { useCallback, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { addChats } from "@/features/chat/ui/store/knownChats";
-import { flattenBucketChats, type BucketBy } from "./buckets";
+import { flattenBucketChats, type BucketBy, type BucketOptions } from "./buckets";
 import type { ChatGrouping } from "./chatGrouping";
-import { bucketScopes, byManual, moveChatInOrder } from "./manualOrder";
+import { bucketScopes, byManual, insertNear, moveChatInOrder } from "./manualOrder";
 import { useChatBuckets } from "./useChatBuckets";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useChatLayout, type ChatOrder } from "./chatLayout";
-import { insertNear } from "@/features/sidebar/ui/childRowDrop";
 
-/** サイドバーの段: まとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける（まとめない × 最近動いた順・手動は分けない） */
-export const sidebarLevels = (grouping: ChatGrouping, order: ChatOrder): BucketBy[] => [
-  ...(grouping === "none" ? [] : [grouping]),
-  ...(order === "status" ? (["status"] as const) : []),
-];
+/**
+ * サイドバー・パネルのタブ（一覧のペイン）で同じ分け方: 段はまとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける
+ * （まとめない × 最近動いた順・手動は分けない）。まとまりの中は手動ならドラッグで並べた順（byManual。ほかは最後に動いた順 = bucketChats の既定）。
+ * まとめないときは固定・アーカイブ済みを 1 つのまとまりに、まとめるときはまとまりごとの先頭・いちばん下に入れる
+ */
+export function chatListOptions(grouping: ChatGrouping, order: ChatOrder): { by: BucketBy[] } & Pick<BucketOptions, "pinned" | "archived" | "sort"> {
+  return {
+    by: [...(grouping === "none" ? [] : [grouping]), ...(order === "status" ? (["status"] as const) : [])],
+    pinned: grouping === "none" ? true : "nested",
+    archived: grouping === "none" ? "bucket" : "nested",
+    sort: order === "manual" ? byManual : undefined,
+  };
+}
 
-/** まとまりの中のチャットの並び（手動ならドラッグで並べた順 byManual。ほかは最後に動いた順 = bucketChats の既定） */
-export const sidebarSort = (order: ChatOrder) => (order === "manual" ? byManual : undefined);
-
-/** サイドバーのチャットの並び（useSidebarChatOrder） */
-export interface SidebarChatOrder {
+/** サイドバーのチャットの並び（useChatOrder） */
+export interface ChatListOrder {
   /** 画面に並ぶ順のチャットの ID */
   ids: readonly number[];
   /** チャットの ID → 何番目か */
@@ -34,17 +38,15 @@ export interface SidebarChatOrder {
  * （useWorkspaceRows と同じ分け方。絞り込みは入れない）。project がなければ全プロジェクトで、サイドバーのプロジェクトの並びで分ける。
  * パネルのチャットのタブをサイドバーと同じ順に並べ、ドラッグで並べ替えた順を保存するのに使う
  */
-export function useSidebarChatOrder(chats: readonly Chat[], project: number | undefined, enabled: boolean): SidebarChatOrder {
+export function useChatOrder(chats: readonly Chat[], project: number | undefined, enabled: boolean): ChatListOrder {
   const { grouping, order } = useChatLayout();
   const { visible } = useVisibleProjects();
-  const levels = sidebarLevels(grouping, order);
+  const options = chatListOptions(grouping, order);
   const buckets = useChatBuckets(chats, {
-    by: project === undefined ? ["project", ...levels] : levels,
+    ...options,
+    by: project === undefined ? ["project", ...options.by] : options.by,
     project,
     projects: project === undefined ? visible : undefined,
-    pinned: grouping === "none" ? true : "nested",
-    archived: grouping === "none" ? "bucket" : "nested",
-    sort: sidebarSort(order),
     idle: !enabled,
   });
   return useMemo(() => {
@@ -61,7 +63,7 @@ export function useSidebarChatOrder(chats: readonly Chat[], project: number | un
  * 動かしたものだけを動かし、その並び全体を手動の並びとして保存して（api.reorderChats。プロジェクトの中の 1 つの並び）、並び順を手動に切り替える
  * （最近順・状態順のときも。プロジェクトの並べ替えと同じ）。応答のチャットはすぐ一覧に入れ、知らせを待たずにそろえる
  */
-export function useManualChatReorder(order: SidebarChatOrder) {
+export function useManualChatReorder(order: ChatListOrder) {
   const { order: current, setOrder } = useChatLayout();
   /** moved を target の側へ動かせるか（同じ範囲のチャットどうしか） */
   const canMove = useCallback(

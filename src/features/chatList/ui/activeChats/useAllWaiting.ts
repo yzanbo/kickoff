@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatStateOf } from "@/features/chat/ui/state/chatState";
-import { waitingChats } from "@/features/chatList/ui/chatListFlags";
+import { waitingChats } from "@/features/chat/ui";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { paletteSettings } from "@/features/palette/ui";

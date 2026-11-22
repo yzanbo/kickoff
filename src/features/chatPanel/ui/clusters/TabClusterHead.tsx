@@ -15,7 +15,7 @@ import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateCha
 import { clusterInitial, type TabCluster } from "./tabClusters";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/ui";
 import { newChatPlaceOf } from "@/features/chatList/ui/buckets";
 

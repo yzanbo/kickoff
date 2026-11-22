@@ -3,7 +3,7 @@ import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 import { huedHeadProps } from "./bucketColor";
 

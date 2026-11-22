@@ -5,7 +5,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import type { GroupBoardState } from "./useGroupBoard";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { UNGROUPED_SORT_ID } from "@/features/groups/ui/groups";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";

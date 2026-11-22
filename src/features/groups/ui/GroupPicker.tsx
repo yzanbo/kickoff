@@ -1,7 +1,7 @@
 import { Folder } from "lucide-react";
 import type { ChatGroup } from "@shared/groups/types";
 import { ChipPicker } from "@/foundation/ui/kit/ChipPicker";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 
 /** グループなしの値（選択肢の値は文字列なので、グループの ID を文字にして持つ） */
 const NONE = "";

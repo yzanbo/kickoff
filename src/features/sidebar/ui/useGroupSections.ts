@@ -1,14 +1,15 @@
-import { useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
+import { createElement, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { moveDroppedChatToProject } from "@/features/chat/ui/chatActions";
 import { busyBlockReason } from "@/features/chat/ui/state/chatBusy";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { detachBlockReason, detachChild } from "@/features/childChats/ui/detachChild";
 import { errorMessage } from "@shared/foundation/errors";
 import { alert } from "@/foundation/ui/kit/ask";
 import { api } from "@/foundation/ui/api";
+import { NewChatItem } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/groups/ui/groups";
@@ -46,7 +47,8 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
   };
   // グループの「…」メニュー（右クリックでも開く）
   const menu = useGroupMenu({
-    onNewChat: (g) => open({ kind: "newChat", projectId: projectId, groupId: g.id }),
+    // チャットの右クリックと同じく、どこで始めるか（グループの札と作業場所の札「本体」）を項目の右に添える
+    lead: (g) => createElement(NewChatItem, { place: { projectId: g.project_id, group: g.id }, sameAs: "", onSelect: () => open({ kind: "newChat", projectId, groupId: g.id }) }),
     onRename: (g) => setRenaming(g.id),
     onDelete: (g) => void removeGroup(g),
     extra: menuExtra,

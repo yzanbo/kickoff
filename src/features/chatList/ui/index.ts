@@ -5,6 +5,10 @@ export { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "./menu/MoveItem
 export { ChatMenuItems } from "./menu/ChatMenuItems";
 export { BucketColorItem } from "./BucketColorItem";
 export type { DraftTabSpot } from "./manualOrder";
+export { ChatSelectionContext, useChatSelection, useChatSelectionState, visibleRows, type ChatSelection } from "./selection/chatSelection";
+export { SelectionBar } from "./selection/SelectionBar";
+export { ActiveChatsPalette } from "./activeChats/ActiveChatsPalette";
+export { chatListOptions, useChatOrder, useManualChatReorder } from "./chatOrder";
 export { StateCornerCounts, stateCountsSummary } from "./StateCornerCounts";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */

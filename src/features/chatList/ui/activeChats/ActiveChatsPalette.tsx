@@ -1,9 +1,7 @@
 import { Activity } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { Chat } from "@shared/chat/types";
+import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { openChat } from "@/features/chat/ui";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
@@ -12,9 +10,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { DRAFT_LOOK } from "@shared/chat/stateLooks";
-import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
-import { draftTitleOf, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { draftTitleOf } from "@/features/composer/ui";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import { ChatStateMark } from "@/features/chat/ui";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
@@ -22,13 +18,11 @@ import { PaletteChatChips, PaletteProjectMark } from "@/features/chatList/ui/Pal
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { hiddenItemsOf, toggleHiddenItem } from "@/foundation/ui/lib/hiddenItems";
 import { paletteSettings } from "@/features/palette/ui";
-import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
-import { ACTIVE_LOOKS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } from "./PaletteStateFilter";
+import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterValue } from "./PaletteProjectFilter";
+import { ACTIVE_LOOKS, PaletteStateFilter } from "./PaletteStateFilter";
+import { ACTIVE_STATES, activeChatGroups, type ActiveDraft, type ActiveGroup, type ActiveItem, type ActiveState } from "./activeChatGroups";
+import { useAllProjectChats } from "./useAllWaiting";
 
-/** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
-type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PlacedDraft };
-
-/** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形。子チャットも並べ、押すと設定の開き方で開く）。
@@ -37,19 +31,29 @@ type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: st
  * 入力欄の下の行で、プロジェクトでも絞り込める（すべて / プロジェクトごと。Tab / Shift+Tab でも切り替え。⌘⇧A で開くたびに「すべて」から。
  * プロジェクトのボタン・右クリックから開いたときは initialProject で絞り込んだところから）。
  * アーカイブ済みのプロジェクトのチャットは、行の右端の切り替えで出す（初めは隠す。覚えておく）。
- * その下の行で、並べる状態（下書き・作業中・回答待ち・未読）を選べる（いくつでも。1 つは残す。覚えておく。PaletteStateFilter）
+ * その下の行で、並べる状態（下書き・作業中・回答待ち・未読）を選べる（いくつでも。1 つは残す。覚えておく。PaletteStateFilter）。
+ * 下書きとその開き方は、下書きのタブを持つ chatPanel が渡す（ActiveChatsDialog）
  */
-export function ActiveChatsPalette({ initialProject, onClose }: { initialProject?: number; onClose: () => void }) {
+export function ActiveChatsPalette<D extends ActiveDraft>({
+  initialProject,
+  drafts,
+  openDraft,
+  onClose,
+}: {
+  initialProject?: number;
+  drafts: readonly D[];
+  openDraft: (draft: D) => void;
+  onClose: () => void;
+}) {
   const { projectName } = useProjects();
   // 出すプロジェクト: サイドバーと同じく、しまったものを除いた並び（サイドバーの「タグ」で絞り込んでいれば、合うものだけ）。
   // アーカイブ済みのプロジェクトは、行の右端の切り替えで出したときだけ後ろに足す
   const { visible, archived, tagFilter } = useVisibleProjects();
   const { pending } = useChatStates();
   const [query, setQuery] = useState("");
-  // すべてのプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく）
-  const chats = useChatsWithChildren();
+  // 出せるプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく。要対応の数と同じ範囲）
+  const chats = useAllProjectChats();
   const { ref: dialogRef, ...dialog } = useModalDialog();
-  const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
   const [showArchived, setShowArchived] = useSetting(paletteSettings.activeShowArchivedProjects);
   // 並べる状態（隠したものだけを覚える。すべて隠した値が残っていても、すべて出す）
@@ -64,61 +68,19 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
     setHiddenStates(toggleHiddenItem(ACTIVE_STATES, hiddenStates, state));
   };
 
-  // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び。
-  // プロジェクトの絞り込みの選択肢には、ほかの絞り込み（文字・タグ・アーカイブ済みのプロジェクト・状態）を通ったものの数を、
-  // 状態の絞り込みの選択肢には、文字・プロジェクトの絞り込みを通ったものの数を添える
-  const { groups, items, total, options, selected, stateCounts } = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    // 選べるプロジェクト（サイドバーの並び → アーカイブ済み）
-    const ordered = showArchived ? [...visible, ...archived] : visible;
-    const allowed = new Set(ordered.map((p) => p.id));
-    const inFilter = (projectId: number) => allowed.has(projectId);
-    const matches = (title: string, projectId: number) => inFilter(projectId) && (!q || `${title} ${projectName(projectId)}`.toLowerCase().includes(q));
-    // 状態ごとのまとまり（作業中・回答待ち・未読。アーカイブしたもの・既読は入れない。中は最後に動いた順）
-    const allSections = chatsByState(
-      chats.filter((chat) => matches(chatTitle(chat.title), chat.project_id)),
-      pending,
-    );
-    const allDrafts = drafts.filter((d) => matches(draftTitleOf(d), d.projectId));
-    // 選んだ状態だけ（column は作業中・回答待ち・未読のどれか）
-    const sections = allSections.filter((s) => s.column && shownStates.has(s.column as ActiveState));
-    const baseChats = sections.flatMap((s) => s.chats);
-    const baseDrafts = shownStates.has("draft") ? allDrafts : [];
-    // プロジェクトごとの数と、選択肢（サイドバーの並び → アーカイブ済み。チャットのあるものと、選んでいるもの）
-    const counts = new Map<number, number>();
-    for (const id of [...baseChats.map((r) => r.project_id), ...baseDrafts.map((d) => d.projectId)]) counts.set(id, (counts.get(id) ?? 0) + 1);
-    // 選んでいたプロジェクトが隠れた（アーカイブ済みを隠した・タグで外れた）ら「すべて」に戻す
-    const selected: ProjectFilterValue = project !== "all" && inFilter(project) ? project : "all";
-    const options: ProjectFilterOption[] = ordered
-      .filter((p) => (counts.get(p.id) ?? 0) > 0 || p.id === selected)
-      .map((p) => ({ id: p.id, name: p.name, count: counts.get(p.id) ?? 0, archived: Boolean(p.archived_at) }));
-    const inProject = (projectId: number) => selected === "all" || projectId === selected;
-    // 状態ごとの数（文字・プロジェクトの絞り込みを通ったもの。隠している状態も数える）
-    const stateCounts = Object.fromEntries(ACTIVE_STATES.map((s) => [s, 0])) as Record<ActiveState, number>;
-    stateCounts.draft = allDrafts.filter((d) => inProject(d.projectId)).length;
-    for (const section of allSections) {
-      if (section.column && section.column in stateCounts) stateCounts[section.column as ActiveState] = section.chats.filter((c) => inProject(c.project_id)).length;
-    }
-
-    const draftItems: Item[] = baseDrafts
-      .filter((d) => inProject(d.projectId))
-      .map((draft) => ({ kind: "draft", key: `draft:${draft.panel}:${draft.key}`, draft }));
-    const groups = [
-      { key: "draft", label: DRAFT_LOOK.label, tone: DRAFT_LOOK.tone, mark: undefined as ReactNode, items: draftItems },
-      ...sections.map((section) => ({
-        key: section.key,
-        label: section.label,
-        tone: bucketTone(section),
-        // 見出しの札の印はサイドバーの行と同じ状態の印（作業中は回るリング。作業中のまま未読があれば緑の点）
-        mark: bucketMark(section, section.chats.filter((chat) => inProject(chat.project_id))),
-        items: section.chats.filter((chat) => inProject(chat.project_id)).map((chat): Item => ({ kind: "chat", key: `chat:${chat.id}`, chat })),
-      })),
-    ].filter((g) => g.items.length > 0);
-    return { groups, items: groups.flatMap((g) => g.items), total: baseChats.length + baseDrafts.length, options, selected, stateCounts };
-  }, [chats, drafts, query, pending, visible, archived, projectName, project, showArchived, shownStates]);
+  const { groups, items, total, options, selected, stateCounts } = activeChatGroups({
+    chats,
+    drafts,
+    query,
+    projects: showArchived ? [...visible, ...archived] : visible,
+    projectName,
+    project,
+    shownStates,
+    pending,
+  });
   const archivedCount = archived.length;
 
-  function go(item: Item | undefined) {
+  function go(item: ActiveItem<D> | undefined) {
     if (!item) return;
     dialog.close();
     if (item.kind === "draft") openDraft(item.draft);
@@ -172,7 +134,8 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
         {groups.map((g) => (
           <Fragment key={g.key}>
             <li className="palette-group" role="presentation">
-              <ToneChip state={g.tone} dot={!g.mark} icon={g.mark} label={g.label} count={g.items.length} />
+              {/* 見出しの札の印はサイドバーの行と同じ状態の印（作業中は回るリング。作業中のまま未読があれば緑の点。下書きは印なし） */}
+              <GroupChip group={g} />
             </li>
             {g.items.map((item) => {
               const i = items.indexOf(item);
@@ -219,4 +182,11 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
       </ul>
     </dialog>
   );
+}
+
+/** まとまりの見出しの札（作業中・回答待ち・未読はサイドバーの行と同じ状態の印 = bucketMark、下書きは点） */
+function GroupChip({ group }: { group: ActiveGroup }) {
+  const chats = group.items.flatMap((item) => (item.kind === "chat" ? [item.chat] : []));
+  const mark = group.section ? bucketMark(group.section, chats) : undefined;
+  return <ToneChip state={group.tone} dot={!mark} icon={mark} label={group.label} count={group.items.length} />;
 }

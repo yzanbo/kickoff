@@ -10,7 +10,13 @@ import { FeedCardContent } from "./FeedList";
 import { chatCardProps } from "./chatCardProps";
 import { useCardFields } from "./CardFieldsMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { ChatSelection } from "@/features/chatList/ui/selection/chatSelection";
+import type { ChatSelection } from "@/features/chatList/ui";
+
+/** ボードのカード・リストの行の、画面に出ている上からの並び（閉じている段・まとまりの中は除く。ボードで選ぶときの範囲） */
+export const boardCardIds = () =>
+  [...document.querySelectorAll<HTMLElement>(".board-main [data-chat-id]")]
+    .filter((el) => !el.closest("[inert]") && !el.closest(".collapse:not(.open)"))
+    .map((el) => Number(el.dataset.chatId));
 
 /** カードの右クリックメニュー（どこに・どのチャットの。開いている間はパネルを Esc で閉じない: パネルはメニューの開いている間の Esc を見送る） */
 export const useCardMenu = () => useContextMenu<Chat>();

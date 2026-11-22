@@ -6,7 +6,7 @@ import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { AppFooter } from "@/app/renderer/shell/footer/AppFooter";
 import { BottomPanel } from "@/features/terminal/ui/bottom/BottomPanel";
 import { useBottomPanel } from "@/features/terminal/ui/bottom/useBottomPanel";
-import { ActiveChatsPalette } from "@/features/chatList/ui/activeChats/ActiveChatsPalette";
+import { ActiveChatsDialog } from "@/features/chatPanel/ui";
 import { CommandPalette } from "@/features/palette/ui/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
 import { useProjectHeaderMode } from "@/features/projects/ui/page/headerMode";
@@ -251,7 +251,7 @@ export function App() {
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
         <DropHintHost />
         {dialogs.commandPalette !== undefined && <CommandPalette onClose={() => closeDialog("commandPalette")} />}
-        {activeChats && <ActiveChatsPalette initialProject={activeChats.projectId} onClose={() => closeDialog("activeChats")} />}
+        {activeChats && <ActiveChatsDialog initialProject={activeChats.projectId} onClose={() => closeDialog("activeChats")} />}
         {dialogs.contentSearch !== undefined && (
           <SearchPanel
             chatId={route.name === "chat" ? route.chatId : undefined}

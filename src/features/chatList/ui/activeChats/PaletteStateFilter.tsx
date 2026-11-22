@@ -1,11 +1,7 @@
 import { cx } from "@/foundation/ui/lib/cx";
 import { COLUMN_LOOKS, DRAFT_LOOK, type StateTone } from "@shared/chat/stateLooks";
-import { COUNTED_COLUMNS } from "@/features/chat/ui/state/chatState";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
-
-/** ⌘⇧A で並べる状態（下書き → 作業中・回答待ち・未読。この順に並べる） */
-export const ACTIVE_STATES = ["draft", ...COUNTED_COLUMNS] as const;
-export type ActiveState = (typeof ACTIVE_STATES)[number];
+import { ACTIVE_STATES, type ActiveState } from "./activeChatGroups";
 
 /** 並べる状態の文と色（下書き・カンバンの列と同じ） */
 export const ACTIVE_LOOKS: Record<ActiveState, { label: string; tone: StateTone }> = {

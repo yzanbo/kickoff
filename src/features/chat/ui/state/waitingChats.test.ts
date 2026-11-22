@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
-import { approvalIndex } from "@/features/chat/ui/state/chatState";
-import { isWaitingState, waitingChats } from "./chatListFlags";
+import { needsAttention } from "@shared/chat/state";
+import { approvalIndex, waitingChats } from "./chatState";
 
 const chats = [
   makeChat(1, { status: "running" }),
@@ -21,12 +21,12 @@ const chats = [
 ];
 const pending = approvalIndex([{ chat_id: 3 }, { chat_id: 7 }, { chat_id: 8 }]);
 
-test("isWaitingState: 自分が見る番は回答待ちと未読（失敗したものも未読）", () => {
-  assert.equal(isWaitingState("needs_input"), true);
-  assert.equal(isWaitingState("unread"), true);
-  assert.equal(isWaitingState("failed"), true);
-  assert.equal(isWaitingState("running"), false);
-  assert.equal(isWaitingState("read"), false);
+test("needsAttention: 自分が見る番は回答待ちと未読（失敗したものも未読）", () => {
+  assert.equal(needsAttention("needs_input"), true);
+  assert.equal(needsAttention("unread"), true);
+  assert.equal(needsAttention("failed"), true);
+  assert.equal(needsAttention("running"), false);
+  assert.equal(needsAttention("read"), false);
 });
 
 test("waitingChats: 要対応のチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {

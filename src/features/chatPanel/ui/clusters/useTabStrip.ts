@@ -2,7 +2,7 @@ import type { Chat } from "@shared/chat/types";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { useManualChatReorder, useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
+import { useChatOrder, useManualChatReorder } from "@/features/chatList/ui";
 import { parsePanelKey } from "@/features/panel/ui";
 import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
@@ -26,7 +26,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const scope = parsePanelKey(panel.key)?.scope;
   // 欄に出すチャット（サイドバーに出ているもの。まとまりの数・札の一覧もこれで数える）
   const chats = usePanelChats(panel.key);
-  const sidebarOrder = useSidebarChatOrder(chats, typeof scope === "number" ? scope : undefined, showChat && home);
+  const sidebarOrder = useChatOrder(chats, typeof scope === "number" ? scope : undefined, showChat && home);
   const chatIdOf = (key: string) => {
     const t = panel.tabs.find((x) => x.key === key);
     return t?.kind === "chat" ? t.id : null;

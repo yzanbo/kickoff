@@ -1,8 +1,9 @@
 // 要対応のチャットを、状態順（プロジェクトをまたいで急ぐもの順）・プロジェクト別に並べる（要対応の表示の並べ方）
 import type { Approval } from "@shared/chat/approvalTypes";
+import { needsAttention } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 
-/** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読 */
+/** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読（どれも要対応 = needsAttention） */
 const INBOX_STATES = ["needs_input", "failed", "unread"] as const satisfies readonly AgentState[];
 type InboxState = (typeof INBOX_STATES)[number];
 
@@ -11,7 +12,7 @@ export interface InboxSection {
   chats: Chat[];
 }
 
-const isInboxState = (state: AgentState): state is InboxState => (INBOX_STATES as readonly AgentState[]).includes(state);
+const isInboxState = (state: AgentState): state is InboxState => needsAttention(state);
 
 /**
  * 待ち始めた時刻: 回答待ちは、いちばん古い依頼が届いた時刻（なければ最後に動いた時刻）、ほかは最後に動いた時刻（結果が届いた時刻）

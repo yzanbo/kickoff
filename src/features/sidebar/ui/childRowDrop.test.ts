@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeChat } from "@shared/foundation/testing/factories";
-import { childRowDrop, insertNear } from "./childRowDrop";
+import { childRowDrop } from "./childRowDrop";
 
 // 根 1 → 子 2 → 孫 3 → ひ孫 4、根 1 の下の子 5（兄弟）、ほかの家系の 6・固定の 7・アーカイブ済みの 8・ほかのプロジェクトの 9
 const chats = [
@@ -36,11 +36,4 @@ test("childRowDrop: ほかの家系の親のない行は、まとめないとき
   assert.equal(drop(3, 9), null);
   // 親のないチャットのドラッグは扱わない（いつもの並べ替え）
   assert.equal(drop(6, 1), null);
-});
-
-test("insertNear: 前後へ入れ、もとの位置にあれば動かす。target がなければ null", () => {
-  assert.deepEqual(insertNear([1, 6, 7], 3, 6, "before"), [1, 3, 6, 7]);
-  assert.deepEqual(insertNear([1, 6, 7], 3, 7, "after"), [1, 6, 7, 3]);
-  assert.deepEqual(insertNear([3, 1, 6], 3, 6, "after"), [1, 6, 3]);
-  assert.equal(insertNear([1, 6], 3, 9, "after"), null);
 });

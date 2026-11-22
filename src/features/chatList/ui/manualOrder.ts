@@ -55,3 +55,12 @@ export function draftAnchor(spot: DraftTabSpot, orderOf: ReadonlyMap<number, num
   for (let i = shown.length - 1; i >= 0; i--) if (eligible(shown[i])) return shown[i];
   return null;
 }
+
+/** 親のないチャットにした moved を、並び ids の target の前後へ入れた並び（target がなければ null） */
+export function insertNear(ids: readonly number[], moved: number, target: number, side: "before" | "after"): number[] | null {
+  const rest = ids.filter((id) => id !== moved);
+  const at = rest.indexOf(target);
+  if (at < 0) return null;
+  const to = at + (side === "after" ? 1 : 0);
+  return [...rest.slice(0, to), moved, ...rest.slice(to)];
+}

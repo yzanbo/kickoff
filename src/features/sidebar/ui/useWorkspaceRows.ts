@@ -1,18 +1,17 @@
 import { useMemo, useState } from "react";
-import { boardColumnOf } from "@shared/chat/state";
+import { boardColumnOf, needsAttention } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useChatSearch } from "@/features/chat/ui/chatSearch";
 import type { CountedColumn } from "@/features/chat/ui/state/chatState";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { useChatBuckets } from "@/features/chatList/ui/useChatBuckets";
-import { isWaitingState, useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { useWaitingView } from "./waitingView";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
-import { sidebarLevels, sidebarSort } from "@/features/chatList/ui/chatOrder";
+import { chatListOptions, chatListSettings } from "@/features/chatList/ui";
 import { splitPinnedDrafts } from "./sidebarDrafts";
 import { useProjectDrafts } from "./DraftRows";
 import { unplacedDrafts, useDraftPlacement, type DraftSlot } from "./useDraftPlacement";
@@ -55,7 +54,7 @@ export function useWorkspaceRows({
   const [waitingView] = useWaitingView();
   const waitingOnly = waitingOn && waitingView === "filter";
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ）
-  const [showArchived] = useShowArchivedChats();
+  const [showArchived] = useSetting(chatListSettings.showArchived);
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query || searchAll);
@@ -81,7 +80,7 @@ export function useWorkspaceRows({
   const shown = useMemo(() => {
     const fits = (chat: Chat) => {
       const state = stateOf(chat);
-      return matches(chat) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter);
+      return matches(chat) && (!waitingOnly || needsAttention(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter);
     };
     const top = chats.filter((chat) => (chat.archived_at ? showArchived && !waitingOnly && stateFilter === null && matches(chat) : fits(chat)));
     if (!waitingOnly && stateFilter === null) return top;
@@ -89,13 +88,9 @@ export function useWorkspaceRows({
     return children.length > 0 ? [...top, ...children] : top;
   }, [chats, counted, showArchived, waitingOnly, matches, stateOf, stateFilter]);
   const buckets = useChatBuckets(shown, {
-    by: sidebarLevels(grouping, order),
+    // 手動のときは、まとまりの中をドラッグで並べた順（Chat.position）。グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み
+    ...chatListOptions(grouping, order),
     project: projectId,
-    // 手動のときは、まとまりの中をドラッグで並べた順（Chat.position）
-    sort: sidebarSort(order),
-    pinned: grouping === "none" ? true : "nested",
-    // グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み（bucket.archived）、まとめないときはいちばん下にまとめる
-    archived: grouping === "none" ? "bucket" : "nested",
     drafts: nestedDrafts && showDrafts ? drafts : NO_DRAFTS,
     keepEmpty: filtering ? KEEP_UNGROUPED : KEEP_GROUPS,
     idle: collapsed,

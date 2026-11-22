@@ -17,6 +17,3 @@ export function chatTargetName(chat: { title: string | null } | undefined, max =
 
 /** 送る前の新しいチャット（下書き）の名前（タブ・サイドバー・ボードに出すので短く。名前として見せるので英語の頭を大文字に） */
 export const NEW_CHAT_TITLE = "New Chat";
-
-/** グループに入っていないチャットのまとまりの名前（サイドバー・ボードの列・タブのまとまりの札・作成先のグループの選択肢。NEW_CHAT_TITLE とそろえて英語） */
-export const NO_GROUP_LABEL = "No Group";

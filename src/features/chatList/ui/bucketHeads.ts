@@ -7,7 +7,7 @@ import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";
 import type { BucketBy, BucketContext, BucketHead, BucketOptions, DraftTarget } from "./buckets";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 
 /** プロジェクトのまとまりのキー（ほかのまとまりのキーの根） */
 export const projectKey = (projectId: number) => `p${projectId}`;

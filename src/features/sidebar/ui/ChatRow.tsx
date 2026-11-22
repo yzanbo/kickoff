@@ -1,7 +1,7 @@
 import { Ellipsis, Pin } from "lucide-react";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";
-import { busyWithUnread } from "@shared/chat/state";
+import { busyWithUnread, showsBold } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -15,7 +15,7 @@ import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { workingFor } from "@/features/chat/ui/currentWork";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useChatActivity } from "@/features/chat/ui/currentWorkStore";
-import { useChatSelection } from "@/features/chatList/ui/selection/chatSelection";
+import { useChatSelection } from "@/features/chatList/ui";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
@@ -104,7 +104,7 @@ export function ChatRow({
           chat.archived_at && "archived",
           active && "active",
           selected && "multi-selected",
-          (state === "needs_input" || state === "unread" || busyUnread) && "is-unread",
+          showsBold(state, busyUnread) && "is-unread",
         )}
         data-chat-id={chat.id}
         // 乗せて少し待ったら先読みする（chat の hoverPrefetch）

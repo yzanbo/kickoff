@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { confirm, prompt } from "@/foundation/ui/kit/ask";
 import type { DraftRef } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";

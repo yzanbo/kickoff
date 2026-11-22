@@ -1,4 +1,4 @@
-import { agentStateOf, boardColumnOf } from "@shared/chat/state";
+import { agentStateOf, boardColumnOf, needsAttention } from "@shared/chat/state";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { summarizeStates } from "@shared/chat/stateLooks";
 import type { AgentState, Chat } from "@shared/chat/types";
@@ -49,3 +49,6 @@ export function summaryState(states: readonly AgentState[]): SummaryState {
   const state = mark ?? "read";
   return { state, unread: state === "running" && counts.unread > 0 };
 }
+
+/** 要対応のチャット（アーカイブしたものは除く。元の順のまま）。pending は回答待ちの一覧 */
+export const waitingChats = <T extends Chat>(chats: readonly T[], pending: ApprovalIndex): T[] => chats.filter((r) => !r.archived_at && needsAttention(chatStateOf(r, pending)));

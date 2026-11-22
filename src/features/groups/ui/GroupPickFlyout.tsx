@@ -2,7 +2,7 @@ import { Check, Folder, FolderPlus, Inbox } from "lucide-react";
 import type { ChatGroup } from "@shared/groups/types";
 import { useGroups } from "@/features/groups/ui/stores/groups";
 import { MenuFlyout } from "@/foundation/ui/kit/MenuFlyout";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 
 /**
  * メニューの項目の横に開く、グループを選ぶ一覧（チャットの右クリックの「グループを変更」）:

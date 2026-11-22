@@ -4,22 +4,20 @@ import type { ChatGroup } from "@shared/groups/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
 
 /**
  * グループの「…」メニュー（新しいチャット・名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
  * 見出しの右クリックでも同じメニューを開く。1 つの画面（サイドバーのプロジェクト・全プロジェクトのボードのグループの列）で 1 つ使う。
- * onNewChat があれば、いちばん上に「新しいチャット」（そのグループに作る。見出しの鉛筆と同じ）を区切り線で分けて置く。
- * チャットの右クリックと同じく、どこで始めるか（グループの札と作業場所の札「本体」）を項目の右に添える（NewChatItem）。
+ * lead があれば、いちばん上にその項目（呼ぶ側が渡す「新しいチャット」。そのグループに作る。見出しの鉛筆と同じ）を区切り線で分けて置く。
  * extra は区切り線の下に足す項目（サイドバーの「まとまりを色付きで表示」）
  */
 export function useGroupMenu({
-  onNewChat,
+  lead,
   onRename,
   onDelete,
   extra,
 }: {
-  onNewChat?: (group: ChatGroup) => void;
+  lead?: (group: ChatGroup) => ReactNode;
   onRename: (group: ChatGroup) => void;
   onDelete: (group: ChatGroup) => void;
   extra?: ReactNode;
@@ -38,7 +36,7 @@ export function useGroupMenu({
     <IconButton
       icon={Ellipsis}
       label={`${group.name} のメニュー`}
-      title={onNewChat ? "メニュー（新しいチャット・名前を変更・削除）" : "メニュー（名前を変更・削除）"}
+      title={lead ? "メニュー（新しいチャット・名前を変更・削除）" : "メニュー（名前を変更・削除）"}
       className="group-menu-button"
       aria-haspopup="menu"
       aria-expanded={open?.value.id === group.id}
@@ -53,9 +51,9 @@ export function useGroupMenu({
 
   const menu = open && (
     <PopupMenu at={open.at} ignore=".group-menu-button" onClose={menuState.close}>
-      {onNewChat && (
+      {lead && (
         <>
-          <NewChatItem place={{ projectId: open.value.project_id, group: open.value.id }} sameAs="" onSelect={() => onNewChat(open.value)} />
+          {lead(open.value)}
           <div className="menu-separator" role="separator" />
         </>
       )}

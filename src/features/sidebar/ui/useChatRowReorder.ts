@@ -9,7 +9,7 @@ import { alert } from "@/foundation/ui/kit/ask";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { childRowDrop } from "./childRowDrop";
 import { dragAttrs, type DragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
-import { useManualChatReorder, useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
+import { useChatOrder, useManualChatReorder } from "@/features/chatList/ui";
 
 /** 行（ChatRow）に付ける、手動の並べ替えの落とし先 */
 export interface RowReorderProps {
@@ -32,7 +32,7 @@ const reportDetach = (e: unknown) => void alert("親から外せませんでし�
  * 重ねると枠を出してその子に上げ、まとめないときの一覧の行の間では親のないチャットにしてその位置へ置く。同じ家系のほかの行には落とせない
  */
 export function useChatRowReorder(projectId: number, chats: readonly Chat[], enabled: boolean) {
-  const order = useSidebarChatOrder(chats, projectId, enabled);
+  const order = useChatOrder(chats, projectId, enabled);
   const { canMove, move, insert } = useManualChatReorder(order);
   const { grouping } = useChatLayout();
   const [target, setTarget] = useState<{ id: number; side: Side }>();

@@ -41,3 +41,12 @@ export function boardColumnOf(state: AgentState): BoardColumn {
   if (state === "unread" || state === "failed") return "unread";
   return "read";
 }
+
+/** 自分が見る番か（要対応。カンバンの回答待ち・未読の列と同じ。失敗したものも見るまでは未読なので入る）。サイドバーの要対応・⌘⇧A のボタンの数・Dock の数で共通 */
+export const needsAttention = (state: AgentState): boolean => {
+  const column = boardColumnOf(state);
+  return column === "needs_input" || column === "unread";
+};
+
+/** 行の名前を太字にするか（回答待ち・未読と、作業中のまま読んでいない結果があるとき。失敗した行は太字にしない = 不具合の候補 12-5 は利用者に聞くまでいまのまま） */
+export const showsBold = (state: AgentState, busyUnread: boolean): boolean => state === "needs_input" || state === "unread" || busyUnread;

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import { draftAnchor } from "@/features/chatList/ui/manualOrder";
 import { useDraftTabSpots, type PlacedDraft } from "@/features/chatPanel/ui";
-import { useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
+import { useChatOrder } from "@/features/chatList/ui";
 
 /** 下書きと、その下書きを並べるまとまりのチャット（match があれば、そのうち下書きと同じまとまりに出すものだけ） */
 export interface DraftSlot {
@@ -25,7 +25,7 @@ export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly C
   const drafts = slots.flatMap((s) => s.drafts);
   const on = enabled && drafts.length > 0;
   // タブの列と同じ並び（一覧のペインのチャットのタブは、この並びに並べ替えて見せている）
-  const order = useSidebarChatOrder(chats, projectId, on);
+  const order = useChatOrder(chats, projectId, on);
   const list = useDraftTabSpots(drafts, on);
   return useMemo(() => {
     if (!on) return NO_PLACEMENT;

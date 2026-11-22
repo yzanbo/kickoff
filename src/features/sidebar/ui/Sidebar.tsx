@@ -6,11 +6,12 @@ import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
 import { href, useRoute } from "@/foundation/ui/navigation/router";
 import { ProjectNav } from "./ProjectNav";
-import { useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
+import { chatListSettings } from "@/features/chatList/ui";
+import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useChatsByProject, useChatsLoaded } from "@/features/chat/ui/store/knownChats";
 import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import type { SidebarController } from "./useSidebar";
-import { ChatSelectionContext, useChatSelectionState, visibleRows } from "@/features/chatList/ui/selection/chatSelection";
+import { ChatSelectionContext, useChatSelectionState, visibleRows } from "@/features/chatList/ui";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { NewChatButton } from "./NewChatButton";
@@ -39,7 +40,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     if (projectsLoaded && chatsLoaded) markInteractive("sidebar");
   }, [projectsLoaded, chatsLoaded]);
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
-  const [showArchivedChats] = useShowArchivedChats();
+  const [showArchivedChats] = useSetting(chatListSettings.showArchived);
   const chats = useChatsByProject({ archived: showArchivedChats });
   const groupsOf = useGroupsOf(projects.map((p) => p.id));
   const groups = Object.fromEntries(projects.map((p) => [p.id, groupsOf(p.id)]));

@@ -16,7 +16,8 @@ import { projectKey } from "@/features/chatList/ui/bucketHeads";
 import { loadCurrentProject, saveCurrentProject } from "@/features/projects/ui/currentProject";
 import { useProjectMenu } from "@/features/projects/ui/ProjectMenu";
 import { useAllDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/ui/chatListFlags";
+import { chatListSettings } from "@/features/chatList/ui";
+import { waitingChats } from "@/features/chat/ui";
 import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWaitingView } from "./waitingView";
@@ -43,8 +44,8 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
   const [waitingView, setWaitingView] = useWaitingView();
   const filterByWaiting = waitingOnly && waitingView === "filter";
-  const [compact] = useCompactRows();
-  const [compactProjects] = useCompactProjects();
+  const [compact] = useSetting(chatListSettings.compact);
+  const [compactProjects] = useSetting(chatListSettings.projectCompact);
   const drafts = useAllDrafts();
   // 要対応の数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない。子チャットも数える）
   const counted = useChatsWithChildrenByProject();
@@ -53,7 +54,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
-  const [showArchivedChats] = useShowArchivedChats();
+  const [showArchivedChats] = useSetting(chatListSettings.showArchived);
   const hasMatch = (p: Project) => (chats[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
   const base = filterByWaiting ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;

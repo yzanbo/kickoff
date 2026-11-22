@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ApprovalIndex } from "@/features/chat/ui/state/chatState";
-import { waitingChats } from "@/features/chatList/ui/chatListFlags";
+import { waitingChats } from "@/features/chat/ui";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 
 /**

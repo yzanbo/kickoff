@@ -21,7 +21,7 @@ import { ChatRow } from "./ChatRow";
 import { ChildChatRows } from "./ChildChatRows";
 import { openChat } from "@/features/chat/ui";
 import { NO_CHATS, useChatsWithChildrenByProject, useChildChats } from "@/features/chat/ui/store/knownChats";
-import { useShowArchivedChats } from "@/features/chatList/ui/chatListFlags";
+import { chatListSettings } from "@/features/chatList/ui";
 import { useChatLayout } from "@/features/chatList/ui/chatLayout";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
@@ -89,7 +89,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived, mainArchived } = list;
   const { stateOf, approvals } = useChatStates();
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
-  const [showArchivedChats] = useShowArchivedChats();
+  const [showArchivedChats] = useSetting(chatListSettings.showArchived);
   const childChats = useChildChats({ archived: showArchivedChats });
   // 一覧を開いた直後（まとめ方・並び順・開閉・アーカイブ済みを出すか・チャットが届いたかが変わったとき）は画面に入る数の行だけを描き、
   // 最初の描画のあとに残りを描く（見えていない裏のページは初めは描かない）

@@ -3,7 +3,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useGroupsOf } from "@/features/groups/ui/stores/groups";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { NO_GROUP_LABEL } from "@/features/chat/ui/chatTitle";
+import { NO_GROUP_LABEL } from "@shared/groups/labels";
 import { parsePanelKey, kindOf } from "@/features/panel/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";

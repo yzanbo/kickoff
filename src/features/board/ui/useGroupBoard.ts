@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { createElement, useState } from "react";
 import type { ChatGroup } from "@shared/groups/types";
 import { api } from "@/foundation/ui/api";
+import { NewChatItem } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/groups/ui/groups";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -34,7 +35,12 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));
   };
   // グループの「…」メニュー（右クリックでも開く）
-  const groupMenu = useGroupMenu({ onNewChat: (g) => open({ kind: "newChat", projectId: projectId, groupId: g.id }), onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
+  const groupMenu = useGroupMenu({
+    // チャットの右クリックと同じく、どこで始めるか（グループの札と作業場所の札「本体」）を項目の右に添える
+    lead: (g) => createElement(NewChatItem, { place: { projectId: g.project_id, group: g.id }, sameAs: "", onSelect: () => open({ kind: "newChat", projectId, groupId: g.id }) }),
+    onRename: (g) => setRenaming(g.id),
+    onDelete: (g) => void removeGroup(g),
+  });
   // グループの並びの中の「No Group」の位置（覚えていなければ、ボードは先頭・リストはいちばん下）
   const [savedUngroupedAt, setUngroupedAt] = useSetting(groupsSettings.ungroupedAt(projectId));
   // 覚えていなければ、ボードは先頭・リストはいちばん下
