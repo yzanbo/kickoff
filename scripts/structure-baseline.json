@@ -1002,7 +1002,6 @@
       "feature-entry:src/features/conversation/ui/promptList/StickyPrompt.tsx -> src/features/compact/ui/CompactPromptMark.tsx",
       "feature-entry:src/features/conversation/ui/promptList/StickyPrompt.tsx -> src/features/compact/ui/compactPromptKinds.ts",
       "feature-entry:src/features/conversation/ui/promptList/promptHistory.ts -> src/features/compact/ui/compactPromptKinds.ts",
-      "feature-entry:src/features/conversation/ui/rewind/FailedTurnActions.tsx -> src/features/ai/ui/ClaudeMark.tsx",
       "feature-entry:src/features/conversation/ui/rewind/useRetryChoices.ts -> src/features/ai/ui/options/ChatOptionsBar.tsx",
       "feature-entry:src/features/conversation/ui/rewind/useRetryChoices.ts -> src/features/ai/ui/options/models.ts",
       "feature-entry:src/features/conversation/ui/screen/ChatColumn.tsx -> src/features/ai/ui/provider/chatProvider.ts",

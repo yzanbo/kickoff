@@ -1,7 +1,7 @@
 import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
 import { EFFORT_LABELS } from "@shared/settings/types";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
+import { ProviderIcon } from "@/features/ai/ui";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useOptionalChatScreen, usePortValue } from "@/features/chat/ui";
@@ -24,7 +24,7 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
   const beforeMove = useBeforeWorkplaceMove(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
   const beforeSwitch = useBeforeProviderSwitch(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
   if (!actions || !choices || choices.failed.resultId !== resultId) return null;
-  const { lower, models, failed } = choices;
+  const { lower, models, failed, provider } = choices;
   const retry = actions.retry;
   const prompt = failed.prompt;
   const rewind = prompt && !beforeMove && !beforeSwitch && (() => void actions.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
@@ -49,7 +49,7 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
           aria-expanded={menu.isOpen}
           onClick={menu.toggle}
         >
-          <ClaudeMark />
+          <ProviderIcon provider={provider} />
           別のモデルで再試行
           <ChevronDown size={12} aria-hidden />
         </button>

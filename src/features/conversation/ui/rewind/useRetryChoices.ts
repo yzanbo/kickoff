@@ -18,13 +18,14 @@ export function useRetryChoices(chatId: number, busy: boolean, options: ChatOpti
   const lower = lowerEffort(options.effort, options.effortDefault?.effort ?? null, effortsFor(options.current));
   const current = options.model;
   const allModels = options.models;
+  const provider = options.provider;
   return useMemo(() => {
     if (!failed) return null;
     const models = groupModels(allModels).flatMap((g) =>
       g.items.filter((i) => i.value !== current).map((i) => ({ value: i.value, label: `${g.family} ${i.version}` })),
     );
-    return { failed, lower, models };
-  }, [failed, lower, current, allModels]);
+    return { failed, lower, models, provider };
+  }, [failed, lower, current, allModels, provider]);
 }
 
 /**

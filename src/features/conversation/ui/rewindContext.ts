@@ -1,7 +1,7 @@
 // 書き直し・送り直し・ファイルを戻す・再試行の口（RewindActions。conversation の中だけで読む。実装は rewind/、読むのは messages/ と rewind/ なので、輪にならないよう両方の外に置く）
 import { createContext, useContext } from "react";
 import type { Attachment } from "@shared/chat/types";
-import type { EffortLevel } from "@shared/settings/types";
+import type { EffortLevel, ProviderId } from "@shared/settings/types";
 import type { Cell } from "@/foundation/ui/store";
 
 /** 直す操作を出す失敗の作業: いちばん新しい作業の終わりが失敗で、そのあと発言していないもの（その作業の終わりの記録と、元の自分の発言） */
@@ -24,6 +24,8 @@ export interface RetryChoices {
   lower?: EffortLevel;
   /** 切り替えられるモデル（いまのモデルを除く） */
   models: { value: string; label: string }[];
+  /** チャットの AI（別のモデルで再試行の印） */
+  provider: ProviderId;
 }
 
 export interface RewindActions {
