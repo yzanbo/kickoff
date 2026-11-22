@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { FolderInspection } from "@shared/projects/types";
-import { gitInitChoice, gitManagedNote } from "./gitInitChoice";
+import { gitInitChoice, gitManagedNote, newProjectGitChoice } from "./gitInitChoice";
 
 const folder = (patch: Partial<FolderInspection> = {}): FolderInspection => ({
   path: "/w/app",
@@ -44,4 +44,13 @@ test("git の管理: コミットのないリポジトリは始めるかを選�
   assert.notEqual(gitInitChoice(folder({ is_git: true, git_root: "/w/app" })), null);
   assert.equal(gitInitChoice(folder({ exists: false })), null);
   assert.equal(gitManagedNote(folder({ exists: false })), null);
+});
+
+test("新しいプロジェクトの git: 保存先がリポジトリの中なら別のリポジトリにするか親の中で使うか、ほかは管理するかしないか", () => {
+  const inside = newProjectGitChoice("/w/repo");
+  assert.deepEqual([inside.on, inside.off], ["このフォルダで新しく始める", "親のリポジトリの中で使う"]);
+  assert.match(inside.help(false), /（\/w\/repo）の中です。親のリポジトリの中のフォルダとして使います/);
+  const plain = newProjectGitChoice(null);
+  assert.deepEqual([plain.on, plain.off], ["git で管理する", "管理しない"]);
+  assert.match(plain.help(true), /README で最初のコミットを作ります/);
 });
