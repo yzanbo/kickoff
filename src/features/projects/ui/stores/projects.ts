@@ -5,7 +5,8 @@ import type { ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
-import { useStore } from "@/foundation/ui/store/useStore";
+import { useSyncExternalStore } from "react";
+import { useStore, useStoreStatus } from "@/foundation/ui/store/useStore";
 
 const byPosition = (a: Project, b: Project) => a.position - b.position || a.id - b.id;
 
@@ -22,6 +23,12 @@ const projectsStore = createStore<Project[]>({ load: () => api.projects(), reduc
 
 /** いまのプロジェクトの一覧（部品の外から読む。まだ届いていなければ空） */
 export const currentProjects = (): Project[] => projectsStore.get().data ?? [];
+
+/** 一覧から選んだ値（選んだ値が変わったときだけ描き直す。使っている間は一覧の読み込みを頼む） */
+export function useProjectsValue<T>(select: (projects: Project[]) => T): T {
+  useStoreStatus(projectsStore);
+  return useSyncExternalStore(projectsStore.subscribe, () => select(currentProjects()));
+}
 
 /** 作ったプロジェクトを、知らせを待たずに一覧へ入れる（作ったらすぐ、そのプロジェクトの画面を開くため） */
 export const addProject = (project: Project) => projectsStore.update((list) => upsertProject(list, project));

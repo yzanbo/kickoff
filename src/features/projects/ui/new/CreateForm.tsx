@@ -4,7 +4,8 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { Field } from "@/foundation/ui/kit/Field";
-import { GIT_FEATURES } from "@/features/projects/ui/GitInitNotice";
+import { useQuery } from "@/foundation/ui/query";
+import { newProjectGitChoice } from "@/features/projects/ui/gitInitChoice";
 import { GitInitField } from "@/features/projects/ui/GitInitField";
 import { folderOverlaps } from "@/features/projects/ui/folderOverlaps";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
@@ -33,10 +34,6 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   // git で管理するか（初めは管理する。しなければ README だけを置き、あとからファイル・変更・履歴のタブで始められる）
   const [initGit, setInitGit] = useState(true);
   const [gitTouched, setGitTouched] = useState(false);
-  // 保存先が git のリポジトリの中ならその一番上（中に作ると、初めは親のリポジトリの中のフォルダにする）
-  const [parentRepo, setParentRepo] = useState<string | null>(null);
-  // 保存先の実体のパス（リンクを解いたもの。ほかのプロジェクトのフォルダとの被りを比べる）
-  const [parentReal, setParentReal] = useState<string>();
   // ノートの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
   const [noteDir, setNoteDir] = useState<string | null>(null);
   const { busy, error, run } = useAction<"submit">();
@@ -47,28 +44,14 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
     if (!folderEdited) setFolderName(suggestFolderName(name));
   }, [name, folderEdited]);
 
-  // 保存先を点検する（入力中は少し待つ）。リポジトリの中なら、手で選ぶまでは git の管理を始めない（リポジトリの中にリポジトリを作らない）
-  useEffect(() => {
-    let alive = true;
-    const timer = setTimeout(() => {
-      api
-        .inspectWorkspace(parentDir)
-        .then((info) => {
-          if (!alive) return;
-          setParentRepo(info.is_git ? info.git_root : null);
-          setParentReal(info.exists ? info.path : undefined);
-        })
-        .catch(() => {
-          if (!alive) return;
-          setParentRepo(null);
-          setParentReal(undefined);
-        });
-    }, 300);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [parentDir]);
+  // 保存先を点検する（入力中は少し待つ。届くまでは前の結果のまま、読めなければどちらもなし）。リポジトリの中なら、手で選ぶまでは git の管理を始めない（リポジトリの中にリポジトリを作らない）
+  const parent = useQuery(["CreateForm.parent", parentDir], () => api.inspectWorkspace(parentDir), { delay: 300, keepPrevious: true });
+  const parentInfo = parent.error ? undefined : parent.data;
+  // 保存先が git のリポジトリの中ならその一番上（中に作ると、初めは親のリポジトリの中のフォルダにする）
+  const parentRepo = parentInfo?.is_git ? parentInfo.git_root : null;
+  // 保存先の実体のパス（リンクを解いたもの。ほかのプロジェクトのフォルダとの被りを比べる）
+  const parentReal = parentInfo?.exists ? parentInfo.path : undefined;
+  const gitChoice = newProjectGitChoice(parentRepo);
   useEffect(() => {
     if (!gitTouched) setInitGit(parentRepo === null);
   }, [parentRepo, gitTouched]);
@@ -119,17 +102,9 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
       <NoteDirField base={folderName} custom={noteDir} onCustom={setNoteDir} />
 
       <GitInitField
-        on={parentRepo ? "このフォルダで新しく始める" : "git で管理する"}
-        off={parentRepo ? "親のリポジトリの中で使う" : "管理しない"}
-        help={
-          parentRepo
-            ? initGit
-              ? `保存先は git のリポジトリ（${parentRepo}）の中です。新しいフォルダを別のリポジトリとして初期化します（親のリポジトリからは、別のリポジトリに見えます）。`
-              : `保存先は git のリポジトリ（${parentRepo}）の中です。親のリポジトリの中のフォルダとして使います（変更・履歴・ワークツリーは、このフォルダの中だけ。コミットするまでワークツリーは作れません）。`
-            : initGit
-              ? `リポジトリとして初期化し、README で最初のコミットを作ります。${GIT_FEATURES}が使えます。`
-              : `git で管理しないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。`
-        }
+        on={gitChoice.on}
+        off={gitChoice.off}
+        help={gitChoice.help(initGit)}
         value={initGit}
         onChange={(checked) => {
           setInitGit(checked);

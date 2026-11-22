@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
 import type { SettingValue } from "@/foundation/ui/storage";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
-import { projectHueStyle } from "@/features/projects/ui/projectColor";
+import { hueStyle, projectHue } from "@/features/projects/ui/projectColor";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { storage } from "./storage";
 import { WORKPLACE_KIND_LABELS } from "@/foundation/ui/workplace/workplace";
@@ -109,8 +109,10 @@ function laneGrouping(lanes: readonly ChatBucket<PlacedDraft>[]): ChatGrouping {
 function useLaneTint(lanes: readonly ChatBucket<PlacedDraft>[]): (lane: ChatBucket<PlacedDraft>) => { className: string; style?: CSSProperties } {
   const projectIds = [...new Set(lanes.flatMap((l) => (l.projectId === undefined ? [] : [l.projectId])))];
   const hueOf = useBucketHueOf(laneGrouping(lanes), projectIds, true);
+  // プロジェクトの色（色を変えたら描き直す）
+  const { projectsById } = useProjects();
   return (lane) => {
-    if (lane.kind === "project" && lane.projectId !== undefined) return { className: "lane-project", style: projectHueStyle(lane.projectId) };
+    if (lane.kind === "project" && lane.projectId !== undefined) return { className: "lane-project", style: hueStyle(projectsById.get(lane.projectId)?.hue ?? projectHue(lane.projectId)) };
     const hue = hueOf(lane);
     return hue === null ? { className: "lane-plain" } : { className: "lane-hued", style: { "--hue": hue } as CSSProperties };
   };

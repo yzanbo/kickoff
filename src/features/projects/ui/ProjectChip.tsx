@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { projectHueStyle } from "./projectColor";
+import { hueStyle, useProjectHue } from "./projectColor";
 import { href } from "@/foundation/ui/navigation/router";
 import { ProjectMark } from "./ProjectMark";
 
@@ -22,7 +22,7 @@ export function ProjectChip({
   children?: ReactNode;
 }) {
   const chip = (
-    <span className={cx("project-chip", className)} style={projectHueStyle(id)} title={`プロジェクト: ${name}`}>
+    <span className={cx("project-chip", className)} style={hueStyle(useProjectHue(id))} title={`プロジェクト: ${name}`}>
       <ProjectMark project={{ id, name }} />
       {children ?? name}
     </span>

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Placement } from "@/foundation/ui/lib/floating";
-import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
+import { MAX_TAG_LENGTH, MAX_TAGS, validateTagAdd } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { alert, prompt } from "@/foundation/ui/kit/ask";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
@@ -83,8 +83,9 @@ async function addNewTag(project: Project) {
     confirmLabel: "付ける",
   }).then((r) => r?.value ?? null);
   if (!name) return;
-  if (name.length > MAX_TAG_LENGTH) return alert("タグを付けられません", `タグは ${MAX_TAG_LENGTH} 文字までです。`);
-  changeProject(project.id, { tags: normalizeTags([...project.tags, name]) });
+  const added = validateTagAdd(project.tags, [name]);
+  if (!added.ok) return alert("タグを付けられません", added.reason === "too_long" ? `タグは ${MAX_TAG_LENGTH} 文字までです。` : `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
+  changeProject(project.id, { tags: added.tags });
 }
 
 function ProjectMenu({

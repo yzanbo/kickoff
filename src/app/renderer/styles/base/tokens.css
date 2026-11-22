@@ -187,7 +187,7 @@
  *   --label-color GitHub のラベルの色（GitHubItemRow.tsx）
  *   --note-find-right ノートの検索欄の右のずれ（会話の欄の幅。NoteView.tsx）
  *   --row-est    流れの行の高さの見積もり（useRowWindow.ts。@property で宣言。timeline-row.css）
- *   --hue        色相（プロジェクト projectHueStyle・WorkspaceDots・BasicInfo、グループ / 作業場所 bucketColor・WorktreeChip・PanelTab ほか、サブエージェント agentHueStyle、コミットの人 CommitSummary）
+ *   --hue        色相（プロジェクト hueStyle・WorkspaceDots・BasicInfo、グループ / 作業場所 bucketColor・WorktreeChip・PanelTab ほか、サブエージェント agentHueStyle、コミットの人 CommitSummary）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
  *   --cluster-tabs パネルのタブのまとまりで見せているタブの数（PaneTabBar.tsx）
  *   --img-w --img-h --img-x --img-y  画像を大きく見るときの画像の大きさと、中央からのずれ（imageViewer/useImageZoom.ts）

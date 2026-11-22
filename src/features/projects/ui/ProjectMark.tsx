@@ -1,6 +1,6 @@
 import { LayoutGrid } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { initialOf, projectHueStyle } from "./projectColor";
+import { hueStyle, initialOf, useProjectHue } from "./projectColor";
 
 /**
  * プロジェクトの印（プロジェクトの色の角丸の四角に、名前の頭文字）。プロジェクトの色はこの印だけで出し、名前はどこでも普通の文字色にする
@@ -8,6 +8,7 @@ import { initialOf, projectHueStyle } from "./projectColor";
  * size: sm = 16px（バッジ・メニュー・段）/ md = 20px（見出し）。project がなければ全プロジェクトの印（灰色の四角に格子）
  */
 export function ProjectMark({ project, size = "sm", className }: { project?: { id: number; name: string }; size?: "sm" | "md"; className?: string }) {
+  const hue = useProjectHue(project?.id ?? 0);
   if (!project) {
     return (
       <span className={cx("project-mark", size, "all-projects", className)} aria-hidden>
@@ -16,7 +17,7 @@ export function ProjectMark({ project, size = "sm", className }: { project?: { i
     );
   }
   return (
-    <span className={cx("project-mark", size, className)} style={projectHueStyle(project.id)} aria-hidden>
+    <span className={cx("project-mark", size, className)} style={hueStyle(hue)} aria-hidden>
       {initialOf(project.name)}
     </span>
   );

@@ -1,6 +1,6 @@
 import { Plus, Tag } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
+import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags, validateTagAdd } from "@shared/projects/tags";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -46,21 +46,16 @@ export function TagEditor({ project }: { project: Project }) {
 
   /** 文（読点・カンマで区切って複数も）をタグとして足す。上限を超えるなら足さずに知らせる（足せたら true） */
   const add = (raw: string): boolean => {
-    const parts = normalizeTags(raw.split(SEPARATORS));
-    if (parts.length === 0) return true;
-    const tooLong = parts.find((t) => t.length > MAX_TAG_LENGTH);
-    if (tooLong) {
-      setError(`タグは ${MAX_TAG_LENGTH} 文字までです（「${tooLong.slice(0, 10)}…」）`);
-      return false;
-    }
-    const next = normalizeTags([...tags, ...parts]);
-    if (next.length > MAX_TAGS) {
-      setError(`タグは ${MAX_TAGS} 個までです`);
+    const parts = raw.split(SEPARATORS);
+    if (normalizeTags(parts).length === 0) return true;
+    const added = validateTagAdd(tags, parts);
+    if (!added.ok) {
+      setError(added.reason === "too_long" ? `タグは ${MAX_TAG_LENGTH} 文字までです（「${added.tag.slice(0, 10)}…」）` : `タグは ${MAX_TAGS} 個までです`);
       return false;
     }
     setText("");
     setOpen(false);
-    if (next.length !== tags.length) save(next);
+    if (added.tags.length !== tags.length) save(added.tags);
     return true;
   };
 

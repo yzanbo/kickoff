@@ -4,14 +4,14 @@ import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui/stores/settings";
 import { noteOverlapLines } from "@/features/projects/ui/folderOverlaps";
-import { OverlapList } from "@/features/projects/ui/OverlapNotice";
+import { InspectionList } from "@/features/projects/ui";
 
 /**
  * ノートフォルダがほかのプロジェクト（except を除く）と同じなら知らせる（被っていても使える。新しいプロジェクトのダイアログ・基本情報・プロジェクトの設定のノート）。
  * 比べるのはコア（~ とリンクを解く）。入力中は少し待ち、プロジェクトの一覧・設定の親フォルダが変わったら調べ直す
  */
 export function NoteOverlapNotice({ dir, except }: { dir: string | undefined; except?: number }) {
-  return <OverlapList lines={noteOverlapLines(useNoteDirUsers(dir, except))} />;
+  return <InspectionList className="overlap-notice" items={noteOverlapLines(useNoteDirUsers(dir, except))} />;
 }
 
 function useNoteDirUsers(dir: string | undefined, except?: number): Project[] {

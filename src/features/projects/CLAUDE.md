@@ -4,7 +4,7 @@
 
 ## 決まり
 
-- プロジェクトの色を出すのは印 `ProjectMark` だけ。名前の札の地と枠の色は `project-mark.css` に 1 か所（部品の CSS に書かない）。色は `projectHue(id)` で読む。
+- プロジェクトの色を出すのは印 `ProjectMark` だけ。名前の札の地と枠の色は `project-mark.css` に 1 か所（部品の CSS に書かない）。色は店の `Project.hue`（部品は `useProjectHue(id)`）。
 - 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A・パネルのタブで共通）。並びは `projectOrder.ts`。
 - アーカイブする・戻すは必ず確かめる（`confirmArchiveProject` / `confirmRestoreProject`）。
 - 操作は右クリックの `useProjectMenu` に入れる。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。

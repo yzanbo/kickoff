@@ -3,10 +3,11 @@ import type { FolderInspection } from "@shared/projects/types";
 import { href } from "@/foundation/ui/navigation/router";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { folderOverlapLines, folderOverlaps } from "@/features/projects/ui/folderOverlaps";
+import { InspectionList, type InspectionKind } from "@/features/projects/ui/InspectionList";
 
 export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection; isSubfolder: boolean }) {
   const { projects, projectName } = useProjects();
-  const items: { kind: "ok" | "warn" | "ng" | "info"; text: ReactNode }[] = [];
+  const items: { kind: InspectionKind; text: ReactNode }[] = [];
 
   if (!info.exists) {
     items.push({ kind: "ng", text: "フォルダが見つかりません" });
@@ -50,18 +51,5 @@ export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection;
     items.push(...folderOverlapLines({ ...folderOverlaps(info.path, projects), same: [] }, "warn"));
   }
 
-  return (
-    <ul className="inspection">
-      {items.map((item, i) => (
-        <li key={i} className={`inspection-${item.kind}`}>
-          <span className="inspection-icon" aria-hidden>
-            {ICONS[item.kind]}
-          </span>
-          <span>{item.text}</span>
-        </li>
-      ))}
-    </ul>
-  );
+  return <InspectionList items={items} />;
 }
-
-const ICONS = { ok: "✓", warn: "⚠", ng: "✕", info: "ℹ" } as const;

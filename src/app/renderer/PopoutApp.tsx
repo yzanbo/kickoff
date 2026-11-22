@@ -3,7 +3,6 @@ import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useUserViewReport } from "@/features/userView/ui/userViewReport";
 import { collectPopoutView, popoutChatIds } from "@/features/userView/ui/userViewCollect";
 import { useServerConnection } from "@/foundation/ui/api/serverConnection";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
@@ -18,7 +17,6 @@ import { AskHost } from "@/foundation/ui/kit/AskHost";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/ui/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
-import { setProjectHues } from "@/features/projects/ui/projectColor";
 import { PopoutFiles } from "@/features/files/ui/PopoutFiles";
 import { PopoutSubagent } from "@/features/chatPanel/ui/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/chatPanel/ui/popout/PopoutChildChat";
@@ -49,8 +47,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
   useLayoutEffect(() => bootMark("firstCommit"), []);
   useServerConnection();
-  const { projects } = useProjects();
-  setProjectHues(projects);
   useApplyChatFontSize();
   // 中で画面を移る操作（リンク・サイドバーの行）は、メインのウィンドウで開く（設定・⌘⇧A などのダイアログは openAppDialog がメインへ送る）
   usePopoutForwarding(route);

@@ -58,7 +58,6 @@ import { createNavigationHistory } from "@/foundation/ui/navigation/navigationHi
 import { useAppShortcuts } from "./shortcuts";
 import { useCommandShortcuts } from "@/foundation/ui/commands";
 import { usePlanUsage } from "@/features/ai/ui/usage/usage";
-import { setProjectHues } from "@/features/projects/ui/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
@@ -82,8 +81,6 @@ export function App() {
   // アプリ全体で使うデータ（プロジェクト・設定）は店から読む（要る部品も、props で中継せずに店から読む）
   const { projects, missing: missingProject, loaded: projectsLoaded } = useProjects();
   const appSettings = useAppSettings().data;
-  // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
-  setProjectHues(projects);
   // 消したプロジェクトの下書き（再起動しても残すもの）を片付ける（一覧が届いてから）
   useEffect(() => {
     if (projectsLoaded) forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id)));

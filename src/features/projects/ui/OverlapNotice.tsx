@@ -1,24 +1,6 @@
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { folderOverlapLines, folderOverlaps, type OverlapLine } from "./folderOverlaps";
-
-const ICONS = { ng: "✕", warn: "⚠" } as const;
-
-/** 被りの知らせの行（点検の一覧と同じ見た目。なければ何も出さない） */
-export function OverlapList({ lines }: { lines: readonly OverlapLine[] }) {
-  if (lines.length === 0) return null;
-  return (
-    <ul className="inspection overlap-notice">
-      {lines.map((line) => (
-        <li key={line.text} className={`inspection-${line.kind}`}>
-          <span className="inspection-icon" aria-hidden>
-            {ICONS[line.kind]}
-          </span>
-          <span>{line.text}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
+import { InspectionList } from "./InspectionList";
 
 /**
  * プロジェクトフォルダの被り（ほかのプロジェクトと同じ・その中・中にある）の知らせ。path はリンクを解いた実体。
@@ -27,5 +9,5 @@ export function OverlapList({ lines }: { lines: readonly OverlapLine[] }) {
 export function FolderOverlapNotice({ path, except, same }: { path: string | undefined; except?: number; same: "ng" | "warn" }) {
   const { projects } = useProjects();
   if (!path) return null;
-  return <OverlapList lines={folderOverlapLines(folderOverlaps(path, projects, except), same)} />;
+  return <InspectionList className="overlap-notice" items={folderOverlapLines(folderOverlaps(path, projects, except), same)} />;
 }

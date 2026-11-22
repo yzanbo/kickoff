@@ -43,6 +43,29 @@ export function gitInitChoice(info: FolderInspection): GitInitChoice | null {
 }
 
 /**
+ * 新しいプロジェクトのフォルダを git で管理するかの組（いつも出す。初めは、保存先が git のリポジトリの中でなければ管理する）。
+ * parentRepo: 保存先が git のリポジトリの中ならその一番上（中に作ると、親のリポジトリの中のフォルダとして使うか、別のリポジトリとして始めるか）
+ */
+export function newProjectGitChoice(parentRepo: string | null): Omit<GitInitChoice, "label"> {
+  if (parentRepo) {
+    return {
+      on: "このフォルダで新しく始める",
+      off: "親のリポジトリの中で使う",
+      help: (checked) =>
+        checked
+          ? `保存先は git のリポジトリ（${parentRepo}）の中です。新しいフォルダを別のリポジトリとして初期化します（親のリポジトリからは、別のリポジトリに見えます）。`
+          : `保存先は git のリポジトリ（${parentRepo}）の中です。親のリポジトリの中のフォルダとして使います（変更・履歴・ワークツリーは、このフォルダの中だけ。コミットするまでワークツリーは作れません）。`,
+    };
+  }
+  return {
+    on: "git で管理する",
+    off: "管理しない",
+    help: (checked) =>
+      checked ? `リポジトリとして初期化し、README で最初のコミットを作ります。${GIT_FEATURES}が使えます。` : `git で管理しないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。`,
+  };
+}
+
+/**
  * もう git で管理されていて、始めるかを選ばないフォルダの案内（gitInitChoice が null のときの、git の欄に出す文。どちらでもなければ null）。
  * コミットのあるリポジトリの一番上・親のリポジトリがこの中のファイルを管理しているフォルダ
  */

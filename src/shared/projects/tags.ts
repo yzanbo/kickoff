@@ -19,6 +19,18 @@ export function normalizeTags(tags: readonly string[]): string[] {
   return out;
 }
 
+/** タグを足した結果（足せないときは理由。too_long は長すぎるタグ） */
+export type TagAddResult = { ok: true; tags: string[] } | { ok: false; reason: "too_long"; tag: string } | { ok: false; reason: "too_many" };
+
+/** tags に added（前後の空白・空・重複は除く）を足す。長すぎるタグがある・数の上限を超えるなら足さない（プロジェクトのメニューの「新しいタグ…」と編集のダイアログで同じ決まり） */
+export function validateTagAdd(tags: readonly string[], added: readonly string[]): TagAddResult {
+  const parts = normalizeTags(added);
+  const tooLong = parts.find((t) => t.length > MAX_TAG_LENGTH);
+  if (tooLong !== undefined) return { ok: false, reason: "too_long", tag: tooLong };
+  const next = normalizeTags([...tags, ...parts]);
+  return next.length > MAX_TAGS ? { ok: false, reason: "too_many" } : { ok: true, tags: next };
+}
+
 /** プロジェクトで使っているタグの一覧（重複なし・名前順） */
 export function collectTags(projects: readonly { tags: readonly string[] }[]): string[] {
   return [...new Set(projects.flatMap((p) => p.tags))].sort((a, b) => a.localeCompare(b, "ja"));

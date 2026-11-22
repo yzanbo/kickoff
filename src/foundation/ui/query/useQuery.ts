@@ -21,6 +21,8 @@ export interface QueryOptions<T> {
   keepPrevious?: boolean;
   /** 取り直した結果が前と同じなら前の値のまま（中身が同じなら描き直さない） */
   same?: (prev: T, next: T) => boolean;
+  /** 取りに行く前に待つ時間（ms。入力中のフォルダの点検など。待つ間も読み込み中で、その間にキーが変われば取りに行かない） */
+  delay?: number;
 }
 
 export interface QueryResult<T> {
@@ -44,7 +46,7 @@ export interface QueryResult<T> {
  * key が null なら取りに行かない。古いキー・古い取り直しの応答は捨てる（取り下げたら signal を abort する）
  */
 export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) => Promise<T>, options: QueryOptions<T> = {}): QueryResult<T> {
-  const { enabled = true, deps = [], refetchOn, interval, refetchOnFocus = false, keepPrevious = false } = options;
+  const { enabled = true, deps = [], refetchOn, interval, refetchOnFocus = false, keepPrevious = false, delay = 0 } = options;
   const keyText = key === null ? null : JSON.stringify(key);
   const depsText = JSON.stringify(deps);
   const [state, setState] = useState<QueryState<T>>(EMPTY_QUERY);
@@ -65,16 +67,23 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
       for (const resolve of waiters.current.splice(0)) resolve();
     };
     setState((s) => startFetch(s, keyText));
-    startLoad(controller.signal).then(
-      (data) => {
-        // setState に渡す更新の関数は描く中で呼ばれることがあるので、effect event はその外で呼んで比べ方を取り出しておく
-        const same = currentSame();
-        done((s) => settleData(s, keyText, data, same));
-      },
-      (e: unknown) => done((s) => settleError(s, keyText, toError(e), keepPrevious)),
-    );
-    return () => controller.abort();
-  }, [keyText, enabled, nonce, depsText, keepPrevious]);
+    const fetchNow = () =>
+      startLoad(controller.signal).then(
+        (data) => {
+          // setState に渡す更新の関数は描く中で呼ばれることがあるので、effect event はその外で呼んで比べ方を取り出しておく
+          const same = currentSame();
+          done((s) => settleData(s, keyText, data, same));
+        },
+        (e: unknown) => done((s) => settleError(s, keyText, toError(e), keepPrevious)),
+      );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (delay > 0) timer = setTimeout(fetchNow, delay);
+    else void fetchNow();
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [keyText, enabled, nonce, depsText, keepPrevious, delay]);
 
   const refetch = () => setNonce((n) => n + 1);
   const onEvent = useEffectEvent((event: AnyServerEvent) => {

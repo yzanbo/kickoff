@@ -10,7 +10,6 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useChatDragging } from "@/features/groups/ui/groups";
 import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { useFold, useFolds } from "@/foundation/ui/hooks/useFold";
-import { projectHue } from "@/features/projects/ui/projectColor";
 import { archivedKey, groupKey, pinnedKey } from "@/features/chatList/ui/bucketHeads";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
@@ -282,7 +281,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {...projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
       inert={hidden}
-      style={{ "--hue": `${projectHue(project.id)}` } as React.CSSProperties}
+      style={{ "--hue": `${project.hue}` } as React.CSSProperties}
     >
       <WorkspaceHead
         project={project}

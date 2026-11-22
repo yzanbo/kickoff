@@ -1,7 +1,7 @@
 import { Check, ChevronDown, Trash2 } from "lucide-react";
 import type { Project } from "@shared/projects/types";
 import { archivedProjects, sidebarOrder } from "@/features/projects/ui/projectOrder";
-import { projectHueStyle } from "@/features/projects/ui/projectColor";
+import { hueStyle, useProjectHue } from "@/features/projects/ui/projectColor";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate, type ProjectViewId } from "@/foundation/ui/navigation/router";
 import type { Placement } from "@/foundation/ui/lib/floating";
@@ -25,7 +25,8 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
   const menu = useContextMenu();
   const trashed = useTrashedProjects(menu.isOpen).data?.length ?? 0;
   const className = project ? "project-switch" : "project-switch all-projects";
-  const hue = project ? projectHueStyle(project.id) : undefined;
+  const projectHueValue = useProjectHue(project?.id ?? 0);
+  const hue = project ? hueStyle(projectHueValue) : undefined;
   const identity = (
     <>
       <ProjectMark project={project} size="md" />

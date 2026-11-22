@@ -1,6 +1,6 @@
-import { ArchiveRestore, Check, Settings } from "lucide-react";
+import { ArchiveRestore, Settings } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
@@ -76,21 +76,16 @@ export function ProjectHeader({
     </WindowHeaderContent>
     )}
     {menu.menu && (
-      <PopupMenu at={menu.menu.at} label="見出しの出し方" onClose={menu.close}>
-        <div className="menu-label">プロジェクトの見出し</div>
-        {PROJECT_HEADER_MODES.map((m) => (
-          <MenuItem
-            key={m}
-            role="menuitemradio"
-            checked={m === mode}
-            title={m === "hide" ? "戻すときは、設定（⌘,）の「表示」→「プロジェクトの見出し」から" : undefined}
-            onSelect={() => setMode(m)}
-          >
-            <span className="project-switch-item">{PROJECT_HEADER_MODE_LABELS[m]}</span>
-            {m === mode && <Check size={14} aria-hidden />}
-          </MenuItem>
-        ))}
-      </PopupMenu>
+      <ChoiceMenu
+        at={menu.menu.at}
+        title="プロジェクトの見出し"
+        values={PROJECT_HEADER_MODES}
+        labels={PROJECT_HEADER_MODE_LABELS}
+        titles={{ hide: "戻すときは、設定（⌘,）の「表示」→「プロジェクトの見出し」から" }}
+        value={mode}
+        onPick={setMode}
+        onClose={menu.close}
+      />
     )}
     {layout === "top" && (
       <div className="project-tabs-row">

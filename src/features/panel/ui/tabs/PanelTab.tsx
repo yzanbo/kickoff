@@ -5,7 +5,7 @@ import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { useOverflowCompact } from "@/foundation/ui/hooks/useOverflowCompact";
-import { projectHueStyle } from "@/features/projects/ui/projectColor";
+import { hueStyle, useProjectHue } from "@/features/projects/ui/projectColor";
 import type { TabGroupBadge } from "@/features/panel/ui/kind";
 
 /**
@@ -75,7 +75,8 @@ export function PanelTab({
   /** 名前を変えている途中なら、入力欄の初めの値・上限・決定・取り消し */
   editor?: { initial: string; maxLength: number; onSubmit: (name: string) => void; onCancel: () => void };
 }) {
-  const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={projectHueStyle(pinnedIn)} aria-label="ピン留め" />;
+  const pinHue = useProjectHue(pinnedIn ?? 0);
+  const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={hueStyle(pinHue)} aria-label="ピン留め" />;
   const groupBadge = group && (
     <span className="panel-tab-group-name tag" style={group.hue === null ? undefined : ({ "--hue": group.hue } as CSSProperties)}>
       {group.name}

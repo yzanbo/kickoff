@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import type { FolderInspection } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
+import { useQuery } from "@/foundation/ui/query";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { Field } from "@/foundation/ui/kit/Field";
@@ -15,8 +15,6 @@ import type { FormProps } from "./NewProjectDialog";
 
 export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [folder, setFolder] = useState("");
-  const [inspection, setInspection] = useState<FolderInspection>();
-  const [inspecting, setInspecting] = useState(false);
   const [name, setName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState("");
@@ -26,25 +24,15 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const { busy, error, setError, run } = useAction<"submit">();
   const submitting = busy !== null;
 
-  // フォルダが決まったら中身を点検する（入力中は少し待つ）
+  // フォルダが決まったら中身を点検する（入力中は少し待つ）。フォルダを変えたら git の管理の選択は初めに戻す
+  const inspected = useQuery(folder.trim() ? ["ImportForm.inspect", folder] : null, () => api.inspectWorkspace(folder), { delay: 300 });
+  const inspection = inspected.data;
+  const inspecting = inspected.loading;
+  useEffect(() => setInitGit(false), [folder]);
+  // 点検の失敗は送るときの失敗と同じ所に出す
   useEffect(() => {
-    setInspection(undefined);
-    setInitGit(false);
-    if (!folder.trim()) return;
-    let alive = true;
-    setInspecting(true);
-    const timer = setTimeout(() => {
-      api
-        .inspectWorkspace(folder)
-        .then((info) => alive && setInspection(info))
-        .catch((e: unknown) => alive && setError(errorMessage(e)))
-        .finally(() => alive && setInspecting(false));
-    }, 300);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [folder]);
+    if (inspected.error) setError(errorMessage(inspected.error));
+  }, [inspected.error, setError]);
 
   useEffect(() => {
     if (inspection && !nameEdited) setName(inspection.suggested_name);
