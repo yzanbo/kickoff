@@ -51,8 +51,8 @@ test("端末: 開いた口だけ使え、ほかは 403 と印で断る（DB・Do
   // 開いた口でも、書いていないメソッドは断る（プロジェクトを消す・変える）
   assert.equal((await app.request(`/api/projects/${project.id}`, { method: "DELETE", headers: DEVICE })).status, 403);
   assert.equal((await app.request(`/api/projects/${project.id}`, { method: "PATCH", headers: DEVICE })).status, 403);
-  // 似た形の口でも、書いたものだけ（送信待ちの「すべて送る」は開き、分岐・巻き戻しは閉じる）
-  assert.notEqual((await app.request("/api/chats/999/queue/send-all", { method: "POST", headers: DEVICE })).status, 403);
+  // 似た形の口でも、書いたものだけ（送信待ちの「すぐ送る」は開き、分岐・巻き戻しは閉じる）
+  assert.notEqual((await app.request("/api/chats/999/queue/send", { method: "POST", headers: DEVICE })).status, 403);
   assert.equal((await app.request("/api/chats/999/fork", { method: "POST", headers: DEVICE })).status, 403);
   assert.equal((await app.request("/api/chats/999/rewind", { method: "POST", headers: DEVICE })).status, 403);
 });

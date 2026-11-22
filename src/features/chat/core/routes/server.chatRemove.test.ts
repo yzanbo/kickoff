@@ -77,7 +77,7 @@ test("自分のアーカイブ: 作業中は予約だけして、作業が終わ
   await until(() => runner.isBusy(me));
   const text = chatRemover.fromChat(me, "archive", me);
   assert.match(text, /予約しました。このチャットの作業が終わったら、Kickoff がチャット「.*」（ID \d+）をアーカイブします/);
-  assert.equal((await call("POST", `/api/chats/${me}/queue`, { text: "次の指示" })).body.queued, true);
+  assert.equal((await call("POST", `/api/chats/${me}/messages`, { text: "次の指示", when: "later" })).body.result, "queued");
   assert.equal(store.chats.get(me)?.archived_at, null, "作業中はまだしまわない");
   release();
   await until(() => store.chats.get(me)?.archived_at !== null);

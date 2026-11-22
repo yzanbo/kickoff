@@ -1,6 +1,3 @@
-DELETE /api/chats/:chatId/after-compact/:messageId device
-DELETE /api/chats/:chatId/queue device
-DELETE /api/chats/:chatId/queue/:queueId device
 DELETE /api/chats/:chatId/reconnect device
 DELETE /api/chats/:chatId/workplace-move device
 DELETE /api/projects/:id/note device
@@ -28,8 +25,6 @@ GET /api/terminals device
 GET /api/terminals/:key/ws device
 GET /api/uploads/:id device
 PATCH /api/chats/:chatId device
-PATCH /api/chats/:chatId/after-compact/:messageId device
-PATCH /api/chats/:chatId/queue/:queueId device
 POST /api/approvals/:approvalId device
 POST /api/chats/:chatId/background/:taskId/stop device
 POST /api/chats/:chatId/cancel device
@@ -39,17 +34,9 @@ POST /api/chats/:chatId/compact device
 POST /api/chats/:chatId/handoff device
 POST /api/chats/:chatId/messages device
 POST /api/chats/:chatId/queue device
-POST /api/chats/:chatId/queue/:queueId/move device
-POST /api/chats/:chatId/queue/:queueId/send device
-POST /api/chats/:chatId/queue/merge device
-POST /api/chats/:chatId/queue/move-many device
-POST /api/chats/:chatId/queue/remove-many device
 POST /api/chats/:chatId/queue/send device
-POST /api/chats/:chatId/queue/send-all device
-POST /api/chats/:chatId/queue/send-in-order device
 POST /api/chats/:chatId/seen deviceRead
 POST /api/chats/:chatId/subagents/:agentId/children device
-POST /api/chats/:chatId/tell device
 POST /api/chats/:chatId/unseen deviceRead
 POST /api/projects/:id/note/chat device
 POST /api/projects/:id/note/snapshot device
@@ -61,11 +48,7 @@ POST /api/projects/:id/terminals device
 POST /api/projects/:projectId/chats device
 POST /api/restart-resumes device
 POST /api/uploads device
-PUT /api/chats/:chatId/after-compact/editing device
 PUT /api/chats/:chatId/queue/editing device
-PUT /api/chats/:chatId/queue/paused device
-PUT /api/chats/:chatId/queue/stop-after device
-PUT /api/chats/:chatId/queue/stops device
 PUT /api/devices/self/push deviceRead
 PUT /api/projects/:id/note device
 PUT /api/viewing deviceRead

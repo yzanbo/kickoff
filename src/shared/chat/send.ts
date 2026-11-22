@@ -1,5 +1,4 @@
 // 送る口の本文・答えの形（新しいチャット・POST /api/chats/:chatId/messages・POST /api/chats/:chatId/queue・POST /api/chats/:chatId/queue/send・PUT /api/chats/:chatId/queue/editing）。
-// 前からの口（/tell・送信待ちの 1 件ごとの口・/after-compact/*）は、この口と同じ決まりを通る別名として残る（画面・スマホを乗せ替えたら消す）
 import type { HandoffFrom } from "./chatEvent";
 import type { QueueState } from "./chatLive";
 import type { QueueCommand } from "./queueCommand";
@@ -23,7 +22,7 @@ export interface NewChatBody extends MessageBody {
 }
 
 /**
- * 続きを送る・止めずに伝える指示（POST /api/chats/:chatId/messages・/tell）。
+ * 続きを送る・止めずに伝える指示（POST /api/chats/:chatId/messages）。
  * pause_after なら「質問として送る」: この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する（答えを見て次を決める）
  */
 export interface SendMessageBody extends MessageBody {
@@ -34,31 +33,17 @@ export interface SendMessageBody extends MessageBody {
   handoff_from?: HandoffFrom;
 }
 
-/** 送信待ちに送る指示（POST /api/chats/:chatId/queue）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */
+/** 送信待ちに送る指示（POST /api/chats/:chatId/messages の when: later）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */
 export interface QueueMessageBody extends SendMessageBody {
   hold?: boolean;
 }
 
 /**
- * 止めずに伝えた結果（POST /api/chats/:chatId/tell）: told = いまのやり取りに足した / queued = 待ちの列に入れた / sent = すぐ送った /
+ * 送った結果の種類（POST /api/chats/:chatId/messages の result）: told = いまのやり取りに足した / queued = 待ちの列に入れた / sent = すぐ送った /
  * held = 圧縮前指示から圧縮のあとのやり取りが終わるまでなので預かった（そのやり取りが終わったら送る。ChatLive の now）
  */
 export interface TellResult {
   result: "told" | "queued" | "sent" | "held";
-}
-
-/**
- * 次の指示を送った結果（POST /api/chats/:chatId/queue）。作業中なら送信待ちに入れ（queued と、入れた指示の id）、
- * 作業中でなければすぐ送る（queued: false・id: null）。どちらも、そのあとの送信待ち
- */
-export interface QueueAddResult extends QueueState {
-  queued: boolean;
-  id: string | null;
-}
-
-/** 選んだ指示を送らずに 1 件にまとめた結果（POST /api/chats/:chatId/queue/merge）。id はまとめた 1 件、ほかはそのあとの送信待ち */
-export interface QueueMergeResult extends QueueState {
-  id: string;
 }
 
 /**

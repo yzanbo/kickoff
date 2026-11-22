@@ -1,6 +1,6 @@
 # 送信待ち（`src/features/queue`）
 
-- コアは起動したときの再開の確かめのルート（`core/routes.ts`）だけ。送信待ちの中身と 1 件ごとの口は chat の殻（`src/features/chat/CLAUDE.md` の「送信待ち」）。
+- コアは起動したときの再開の確かめのルート（`core/routes.ts`）だけ。送信待ちの中身と口は chat の殻（`src/features/chat/CLAUDE.md` の「送信待ち」）。
 
 ## 送信待ち（`ui/`）
 

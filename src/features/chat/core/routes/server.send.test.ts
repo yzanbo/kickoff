@@ -1,5 +1,4 @@
-// API のテスト: 送る口 1 本（POST /messages の when）と送信待ちの口（POST /queue の commands・POST /queue/send・PUT /queue/editing の lane）。
-// 前からの口（/tell・POST /queue の text・送信待ちの 1 件ごとの口）と同じ結果になる（共通の準備は testing/testServer.ts）
+// API のテスト: 送る口 1 本（POST /messages の when）と送信待ちの口（POST /queue の commands・POST /queue/send・PUT /queue/editing の lane）（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
@@ -23,8 +22,6 @@ test("送る口: when を省けば作業中は 409（前からの口・答えは
   assert.deepEqual(provider.told, ["いま"]);
   const queued = (await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" })).body;
   assert.deepEqual([queued.result, texts(queued.queue)], ["queued", ["次"]]);
-  // 別名の /tell も同じ決まり
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "もう 1 つ" })).body, { result: "told" });
   release();
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
   // 作業していなければ、when があってもすぐ送る（前からの口は答えがチャット）
@@ -35,9 +32,9 @@ test("送る口: when を省けば作業中は 409（前からの口・答えは
   await until(() => !runner.isBusy(chatId));
 });
 
-test("送信待ちの命令の列: 全部通るか、1 つも変えない（答えはそのあとの送信待ち）。前からの 1 件ごとの口と同じ結果", async () => {
+test("送信待ちの命令の列: 全部通るか、1 つも変えない（答えはそのあとの送信待ち）", async () => {
   const { call, chatId, release } = await busyChat();
-  for (const text of ["a", "b", "c"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
+  for (const text of ["a", "b", "c"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
   const ids = ((await call("GET", `/api/chats/${chatId}`)).body.live.queue.messages as { id: string }[]).map((m) => m.id);
   const moved = (await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "move", ids: [ids[2]], to: "top" }, { op: "stop_after", id: ids[2], stop: true }] })).body;
   assert.deepEqual([texts(moved), moved.stops], [["c", "a", "b"], [1]]);
@@ -55,7 +52,7 @@ test("送信待ちの命令の列: 全部通るか、1 つも変えない（答�
 
 test("送信待ちをすぐ送る口: now はその 1 件を伝え、all はまとめて 1 件に、in_order は止めていても順に送る。書き直しは lane で預かりも", async () => {
   const { call, chatId, provider, runner, release } = await busyChat();
-  for (const text of ["a", "b", "c"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
+  for (const text of ["a", "b", "c"]) await call("POST", `/api/chats/${chatId}/messages`, { text, when: "later" });
   const ids = ((await call("GET", `/api/chats/${chatId}`)).body.live.queue.messages as { id: string }[]).map((m) => m.id);
   assert.deepEqual(texts((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "now", ids: [ids[0]] })).body), ["b", "c"]);
   assert.deepEqual(provider.told, ["a"]);
@@ -67,8 +64,8 @@ test("送信待ちをすぐ送る口: now はその 1 件を伝え、all はま�
   await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [] });
   assert.deepEqual(texts((await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "all" })).body), []);
   assert.equal(provider.told.length, 2);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "d" });
-  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "d", when: "later" });
+  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
   release();
   await until(() => !runner.isBusy(chatId));
   await call("POST", `/api/chats/${chatId}/queue/send`, { mode: "in_order" });

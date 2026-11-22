@@ -161,7 +161,7 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   const text = await worktreeFinisher.finishFromChat(chatId, undefined);
   assert.match(text, /予約しました。このチャットの作業が終わったら/);
   assert.match(text, /失うものはありません/);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { text: "次の指示" })).body.queued, true);
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "次の指示", when: "later" })).body.result, "queued");
   assert.ok(fs.existsSync(wt));
   release();
   await until(() => store.chats.get(chatId)?.worktree_path === null);

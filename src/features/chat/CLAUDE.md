@@ -25,7 +25,7 @@
 
 ## 送る・伝える
 
-- 送る口は `message`（`POST …/messages` の `when`）1 本で、`send`・`tell`・`queueMessage`・`/tell` は別名。`start` は作ってすぐ動かし、`when` なしは作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
+- 送る口は `message`（`POST …/messages` の `when`）1 本で、`send`・`tell`・`queueMessage` は殻の中の別名。`start` は作ってすぐ動かし、`when` なしは作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
 - `tell` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`（口がまだなら置いた時点で `held`）。
 - 足せなければ預かり、作業の終わりに送信待ちより先に送る（以後の「いま」も `closed` で預かる）。理由は `holdOf` 1 つ（`machine/state.ts`）。
 - 発言の印（`MessageMarks`）はどの道も `marksOf`（`@shared/chat/handoff`）で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
@@ -53,7 +53,7 @@
 - 一時停止の印（`stops`）は列の位置で持つ（`@shared/chat/queueStops`）。
 - 挟む行（圧縮・消去）は `queueActionOf` で見分ける。チャット欄の `/clear` は送らずに消去にする（`isClearCommand`）。
 - 書き直し中の先頭は送らずに待ち、知らせが `EDIT_HOLD_TTL_MS` 途絶えたら外す（預かりも）。
-- 口は `POST …/queue`（`commands` は全部通るか 1 つも変えない）・`…/queue/send`・`PUT …/queue/editing`。1 件ごとの口は別名。
+- 口は `POST …/queue`（`commands` は全部通るか 1 つも変えない）・`…/queue/send`・`PUT …/queue/editing` だけ。
 
 ## 止まったあとの再開（`core/run/recovery/`）
 

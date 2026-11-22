@@ -41,8 +41,6 @@ export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の�
 
 /** 送信待ちの指示の ID */
 export const queueId = z.string().min(1).max(100);
-/** 選んだ送信待ちの指示（複数選択） */
-export const queueIdsSchema = z.object({ ids: z.array(queueId).min(1).max(MAX_QUEUE_SELECTION) });
 /** 画面で書き直している送信待ちの指示（空でもよい） */
 export const editingIdsSchema = z.object({ ids: z.array(queueId).max(MAX_QUEUE_SELECTION) });
 
@@ -156,9 +154,6 @@ const marksShape = {
 export const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.text) || v.attachments.length > 0;
 export const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
-/** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
-export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED);
-
 /** チャットの名前（名前の変更・送る前に付けた名前） */
 export const chatTitle = z.string().trim().min(1).max(CHAT_TITLE_MAX);
 
@@ -200,10 +195,8 @@ export const childChatSchema = z
 /** サブエージェントに子チャットで聞く（文か添付が要る） */
 export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED);
 
-/** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
-/** 次の指示を送る本文の欄（送る口 1 本の when を足す前の形。chat の sendSchemas.ts が広げる） */
+/** 次の指示を送る本文の欄（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する。chat の sendSchemas.ts が when を足して広げる） */
 export const queueMessageFields = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() });
-export const queueMessageSchema = queueMessageFields.refine(hasContent, CONTENT_REQUIRED);
 
 /** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff） */
 export const handoffSchema = z.object({ via: z.enum(HANDOFF_VIAS), turn_event_id: z.number().int().positive() });

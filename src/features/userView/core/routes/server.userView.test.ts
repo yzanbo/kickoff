@@ -29,7 +29,7 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
   await call("POST", `/api/chats/${chat.id}/messages`, { text: "続き", user_view: viewOf(project.id, "second.ts") });
   await until(() => !runner.isBusy(chat.id));
   assert.match(tools.read(), /送ったとき.*の様子:\n- プロジェクトのファイル: エディタ: second\.ts/);
-  await call("POST", `/api/chats/${chat.id}/queue`, { text: "あとで", user_view: viewOf(project.id, "queued.ts") });
+  await call("POST", `/api/chats/${chat.id}/messages`, { text: "あとで", user_view: viewOf(project.id, "queued.ts"), when: "later" });
   assert.match(tools.read(), /queued\.ts/);
   // ウィンドウを閉じたら、画面が開いていないと返す
   assert.equal((await call("PUT", "/api/user-view", { window_id: "w1", view: null, chat_ids: [], focused: false })).status, 204);

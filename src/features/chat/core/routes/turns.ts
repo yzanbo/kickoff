@@ -4,7 +4,7 @@ import { chatTurnContract } from "@shared/chat/contract";
 import type { ChatRouteDeps } from "./deps";
 import { implement } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
-import { chatOptionsSchema, messageInputSchema, messageText } from "@/foundation/core/http/schemas";
+import { chatOptionsSchema, messageText } from "@/foundation/core/http/schemas";
 import { sendBodySchema } from "./sendSchemas";
 import { rewindFiles, rewindChat } from "@/features/chat/core/rewind";
 import { workdirOf } from "@/features/chat/core/workdir";
@@ -27,15 +27,6 @@ export function turnRoutes({ store, runner, providers, userSent, chatParam }: Pi
         const { id: _queued, ...sent } = await runner.message(chat.id, body);
         userSent(caller, chat.id, body.user_view);
         return body.when ? sent : sent.chat;
-      },
-    },
-    // 止めずに伝える（送る口の when: now の別名。答えは結果だけ）
-    "POST /api/chats/:chatId/tell": {
-      body: messageInputSchema,
-      run: async ({ chatId: chat, body, caller }) => {
-        const told = { result: (await runner.message(chat.id, { ...body, when: "now" })).result };
-        userSent(caller, chat.id, body.user_view);
-        return told;
       },
     },
     "POST /api/chats/:chatId/cancel": { run: ({ chatId: chat }) => runner.cancel(chat.id) },

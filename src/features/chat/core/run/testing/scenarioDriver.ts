@@ -245,7 +245,7 @@ export class Driver {
     this.clock.now += ms;
     if (ms >= EDIT_HOLD_TTL_MS) {
       for (const lane of ["now", "later"] as const) {
-        for (const alias of this.editing[lane]) await this.core.call("PUT", lane === "later" ? `/api/chats/${this.id(alias)}/queue/editing` : `/api/chats/${this.id(alias)}/after-compact/editing`, { ids: [] });
+        for (const alias of this.editing[lane]) await this.core.call("PUT", `/api/chats/${this.id(alias)}/queue/editing`, { lane, ids: [] });
         this.editing[lane].clear();
       }
     }

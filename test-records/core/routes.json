@@ -4,24 +4,12 @@
     "device": "none"
   },
   {
-    "route": "DELETE /api/chats/:id/after-compact/:messageId",
-    "device": "full"
-  },
-  {
     "route": "DELETE /api/chats/:id/github",
     "device": "none"
   },
   {
     "route": "DELETE /api/chats/:id/image-hosts",
     "device": "none"
-  },
-  {
-    "route": "DELETE /api/chats/:id/queue",
-    "device": "full"
-  },
-  {
-    "route": "DELETE /api/chats/:id/queue/:queueId",
-    "device": "full"
   },
   {
     "route": "DELETE /api/chats/:id/reconnect",
@@ -488,14 +476,6 @@
     "device": "full"
   },
   {
-    "route": "PATCH /api/chats/:id/after-compact/:messageId",
-    "device": "full"
-  },
-  {
-    "route": "PATCH /api/chats/:id/queue/:queueId",
-    "device": "full"
-  },
-  {
     "route": "PATCH /api/devices/:id",
     "device": "none"
   },
@@ -584,43 +564,7 @@
     "device": "full"
   },
   {
-    "route": "POST /api/chats/:id/queue/:queueId/move",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/:queueId/send",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/clear",
-    "device": "none"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/compact",
-    "device": "none"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/merge",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/move-many",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/remove-many",
-    "device": "full"
-  },
-  {
     "route": "POST /api/chats/:id/queue/send",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/send-all",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/queue/send-in-order",
     "device": "full"
   },
   {
@@ -637,10 +581,6 @@
   },
   {
     "route": "POST /api/chats/:id/subagents/:agentId/children",
-    "device": "full"
-  },
-  {
-    "route": "POST /api/chats/:id/tell",
     "device": "full"
   },
   {
@@ -1024,10 +964,6 @@
     "device": "none"
   },
   {
-    "route": "PUT /api/chats/:id/after-compact/editing",
-    "device": "full"
-  },
-  {
     "route": "PUT /api/chats/:id/github",
     "device": "none"
   },
@@ -1037,18 +973,6 @@
   },
   {
     "route": "PUT /api/chats/:id/queue/editing",
-    "device": "full"
-  },
-  {
-    "route": "PUT /api/chats/:id/queue/paused",
-    "device": "full"
-  },
-  {
-    "route": "PUT /api/chats/:id/queue/stop-after",
-    "device": "full"
-  },
-  {
-    "route": "PUT /api/chats/:id/queue/stops",
     "device": "full"
   },
   {

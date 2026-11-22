@@ -133,7 +133,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   // 作業中は断り、記録も待ちの列も変えない
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "3" });
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "待ち" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "待ち", when: "later" });
   const busyEvents = store.events.list(chatId).length;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "x" })).status, 409);
   assert.equal(store.events.list(chatId).length, busyEvents);

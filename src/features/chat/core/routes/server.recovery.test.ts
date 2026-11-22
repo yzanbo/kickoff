@@ -10,7 +10,7 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
   // 作業中に通信が切れて失敗する
   provider.networkFailures = 1;
   network.online = false;
@@ -102,7 +102,7 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "次の指示" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次の指示", when: "later" });
   // 枠が戻る時刻はもう過ぎている（すぐ聞く）
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();
@@ -138,7 +138,7 @@ test("使用枠の上限: 戻る前は聞かず、その間に自分で送った
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
   await until(() => provider.prompts.length === 3);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "あとで" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "あとで", when: "later" });
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();
   await until(() => approvals.list({ chatId }).length === 1);
@@ -188,7 +188,7 @@ test("通信の切断のあとに使用枠の上限で止まっても、止め�
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
   // 通信が切れて止まる: 送信待ちを止めて、つながるのを待つ
   provider.networkFailures = 1;
   network.online = false;
@@ -218,7 +218,7 @@ test("使用枠の上限のあとに通信の切断で止まっても、止め�
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次", when: "later" });
   // 使用枠の上限で止まる: 送信待ちを止めて、続けるかを聞く
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
   release();

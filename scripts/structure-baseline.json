@@ -1774,7 +1774,7 @@
       "src/features/browser/desktop/agentBrowser.ts": 328,
       "src/features/chat/core/db/chats.ts": 347,
       "src/features/chat/core/routes/server.chats.test.ts": 681,
-      "src/features/chat/core/routes/server.queue.test.ts": 548,
+      "src/features/chat/core/routes/server.queue.test.ts": 536,
       "src/features/chat/core/routes/server.turns.test.ts": 753,
       "src/features/chat/core/runner.queue.test.ts": 529,
       "src/features/chat/core/runner.test.ts": 420,

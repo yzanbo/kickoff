@@ -54,7 +54,7 @@ test("子チャット: 親の会話を写すのを待たずに作って最初の
   assert.equal(child.session_id, null);
   const turnsBefore = provider.resumes.length;
   // 写している間の「いま」は預かる
-  assert.equal((await call("POST", `/api/chats/${child.id}/tell`, { text: "ついでに" })).body.result, "held");
+  assert.equal((await call("POST", `/api/chats/${child.id}/messages`, { text: "ついでに", when: "now" })).body.result, "held");
   assert.equal(provider.resumes.length, turnsBefore);
   const releaseTurn = provider.hold();
   release();

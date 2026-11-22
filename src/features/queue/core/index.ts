@@ -1,4 +1,4 @@
-// 送信待ちの機能のコアの入口（ほかの機能はここだけを読む。送信待ちの中身と 1 件ごとの口は chat の殻）
+// 送信待ちの機能のコアの入口（ほかの機能はここだけを読む。送信待ちの中身と口は chat の殻）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { ChatApi } from "@/features/chat/core/index";
 import { queueRoutes } from "./routes";

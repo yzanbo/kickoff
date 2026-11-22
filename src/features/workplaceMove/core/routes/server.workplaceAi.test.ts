@@ -49,7 +49,7 @@ test("予約は作業中の様子に出し、作業が終わったら新しい�
   const answer = await tools.move({ to: "new_worktree", branch: "feat/ai", continuation: "feat/ai で a.txt を直す" }, allow);
   assert.match(answer, /予約しました。この作業が最後まで終わったら、Kickoff がこのチャットを新しいワークツリー（feat\/ai）へ移し、続きの指示を送ります/);
   assert.deepEqual((await live(ctx, chatId)).workplace_move, { label: "新しいワークツリー（feat/ai）", carry: false, continuation: true });
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "利用者の次の指示" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "利用者の次の指示", when: "later" });
   release();
   await until(() => continuations(ctx, chatId).length === 1 && !runner.isBusy(chatId) && store.chats.get(chatId)?.status === "completed" && provider.prompts.at(-1) === "利用者の次の指示");
   const chat = store.chats.get(chatId)!;
@@ -101,8 +101,8 @@ test("送信待ちを止めていれば、移すが続きは送らずに送信�
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
   await tools.move({ to: "new_worktree", branch: "feat/paused", continuation: "続きの指示" }, allow);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "待っている指示" });
-  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "待っている指示", when: "later" });
+  await call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "set_paused", paused: true }] });
   const sent = provider.prompts.length;
   release();
   await until(() => !runner.isBusy(chatId) && store.chats.get(chatId)?.worktree_path !== null && notices(ctx, chatId).some((m) => m.includes("送信待ちの先頭")));
@@ -142,7 +142,7 @@ test("片付けの予約と重なれば先に片付ける。本体へなら移�
   // 片付けを予約したワークツリーからは変更を持っていけない（取り消す口はないので、持っていかずに移すよう案内する。6 章 B4）
   await assert.rejects(tools.move({ to: "new_worktree", branch: "feat/next", carry: true }, allow), /片付けの予約は取り消せません）。持っていかずに移してください/);
   assert.match(await tools.move({ to: "main", continuation: "本体で続ける" }, allow), /先に片付けます/);
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "あとの指示" });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "あとの指示", when: "later" });
   release();
   await until(() => !runner.isBusy(chatId) && continuations(ctx, chatId).length === 1 && store.chats.get(chatId)?.status === "completed");
   assert.equal(store.chats.get(chatId)?.worktree_path, null);
@@ -218,9 +218,9 @@ test("足せなかった取り消しの知らせは、次に伝えた発言の�
   await call("DELETE", `/api/chats/${chatId}/workplace-move`);
   // 入力がまた受け付けるようになってから、利用者が伝えた発言に添わる
   provider.acceptTell = true;
-  assert.equal((await call("POST", `/api/chats/${chatId}/tell`, { text: "ついでに" })).body.result, "told");
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "ついでに", when: "now" })).body.result, "told");
   assert.match(provider.told.at(-1) ?? "", /取り消しました。[\s\S]*\n\nついでに$/);
-  assert.equal((await call("POST", `/api/chats/${chatId}/tell`, { text: "もう一つ" })).body.result, "told");
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "もう一つ", when: "now" })).body.result, "told");
   assert.equal(provider.told.at(-1), "もう一つ");
   release();
   await until(() => !runner.isBusy(chatId));

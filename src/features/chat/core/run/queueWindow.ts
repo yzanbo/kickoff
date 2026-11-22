@@ -1,11 +1,9 @@
-import { Conflict, NotFound } from "@/foundation/core/errors";
-import type { ChatRun } from "./chatRun";
-import { rejection, type RunShell } from "./shell";
+import { NotFound } from "@/foundation/core/errors";
+import type { RunShell } from "./shell";
 import { queueStateOf } from "@/features/chat/core/live";
-import { applyQueueCommand, isQueueReject, type QueueCommand } from "@shared/chat/queueCommand";
-import { queueActionOf } from "@shared/chat/queueActions";
+import type { QueueCommand } from "@shared/chat/queueCommand";
 import type { MessageMarks } from "@shared/chat/chatEvent";
-import type { Attachment, QueueAction, QueuedMessage, Chat, ChatOptionsPatch } from "@shared/chat/types";
+import type { Attachment, QueueAction, Chat, ChatOptionsPatch } from "@shared/chat/types";
 import type { QueueState } from "@shared/chat/chatLive";
 import type { QueueSendBody, SendBody, SendResult, TellResult } from "@shared/chat/send";
 import { marksOf } from "@shared/chat/handoff";
@@ -21,8 +19,6 @@ export interface SendOpts {
 /** 列にない指示を指したとき（消した・送ったあと） */
 const missing = () => new NotFound("待ちの指示が見つかりません");
 
-const TELLING = "圧縮のあとで順に伝えている途中です。少し待ってからやり直してください";
-
 /**
  * 送る・伝える・送信待ち（チャットごとの出す箱の later）と預かり（now）の窓口。どの操作も出来事にして殻の dispatch に渡すだけ
  * （決まりは machine の step。列の出し入れは @shared/chat/outbox・queueCommand の純粋な関数）。
@@ -32,17 +28,6 @@ export function queueWindow(shell: RunShell) {
   const boxOf = (chatId: number) => shell.runs.get(chatId).outbox;
   /** 列を変える（命令を当てられなければ失敗の種類の例外。並び・線が変わって次を送ったら、送る準備が済むまで待つ） */
   const command = (chatId: number, cmd: QueueCommand): Promise<void> => shell.answer(chatId, shell.run(chatId, { type: "queue", commands: [cmd] })).then(() => {});
-  /** 預かりの行（なければ 404 = もう伝えた） */
-  const heldOf = (run: ChatRun, messageId: string): QueuedMessage => {
-    const message = run.outbox.now.find((m) => m.id === messageId);
-    if (!message) throw new NotFound("その指示は、もう伝えたか見つかりません");
-    return message;
-  };
-  /** いまの作業に足している途中か（editing を渡せば、その行を書き直していれば数えない。足している途中に預かりを変えると、別の指示を飛ばしうる） */
-  const telling = (run: ChatRun, editing?: string): boolean => {
-    const { phase, editing: edits } = run.run;
-    return phase.kind === "turn" && phase.telling !== null && !(editing !== undefined && edits.now.includes(editing));
-  };
   /** 送る口 1 本（when: now = 止めずに伝える / later = 作業中なら送信待ちへ / 省けば作業中は 409。決まりは step の send）。送った結果と、そのあとのチャット・送信待ち */
   const message = async (chatId: number, body: SendBody): Promise<SendResult & { id: string | null }> => {
     shell.requireChat(chatId);
@@ -117,38 +102,12 @@ export function queueWindow(shell: RunShell) {
       return count;
     },
 
-    /** 待ちの指示をいくつかまとめて消す（消した数を返す） */
-    removeQueuedMany(chatId: number, ids: string[]): number {
-      const found = boxOf(chatId).later.filter((m) => ids.includes(m.id)).map((m) => m.id);
-      if (found.length > 0) shell.run(chatId, { type: "queue", commands: [{ op: "remove", ids: found }] });
-      return found.length;
-    },
-
-    /** 待ちの指示をいくつか、いちばん上か下・落とした位置へまとめて移す（扱った数を返す） */
-    async moveQueuedMany(chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }): Promise<number> {
-      const count = boxOf(chatId).later.filter((m) => ids.includes(m.id)).length;
-      await command(chatId, { op: "move", ids, to: typeof to === "object" ? { before: to.before, below_stop: to.belowStop } : to });
-      return count;
-    },
-
     /** 待ちの列を並べ替える */
     moveQueued: (chatId: number, id: string, index: number): Promise<void> => command(chatId, { op: "move", ids: [id], to: { index } }),
 
     /** 待ちの 1 件をすぐ送る（作業中なら止めずに伝え、伝えられなければ預かる。圧縮・消去の行ならすぐ行う） */
     async sendQueuedNow(chatId: number, id: string): Promise<void> {
       await shell.answer(chatId, shell.run(chatId, { type: "queue_send", mode: "now", id }));
-    },
-
-    /** 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（列が空なら 409、選んだ指示が 1 つも列になければ 404） */
-    async sendAllQueued(chatId: number, ids?: string[]): Promise<void> {
-      await shell.answer(chatId, shell.run(chatId, { type: "queue_send", mode: "all", ...(ids ? { ids } : {}) }));
-    },
-
-    /** 選んだ待ちの指示を、送らずに 1 件にまとめる（まとめた 1 件は選んだうちのいちばん上の位置に残る。2 件以上選んでいなければ 400） */
-    mergeQueued(chatId: number, ids: string[]): QueuedMessage {
-      const first = boxOf(chatId).later.find((m) => ids.includes(m.id) && !queueActionOf(m));
-      shell.run(chatId, { type: "queue", commands: [{ op: "merge", ids }] });
-      return boxOf(chatId).later.find((m) => m.id === first!.id)!;
     },
 
     /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めている・印があっても最後まで送る。列が空なら 409） */
@@ -159,49 +118,12 @@ export function queueWindow(shell: RunShell) {
     /** 印の位置をまとめて置き換える（ドラッグで動かした・× で外した） */
     setQueueStops: (chatId: number, stops: number[]): Promise<void> => command(chatId, { op: "set_stops", stops }),
 
-    /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す） */
-    setQueueStopAfter: (chatId: number, id: string | null, stop = true): Promise<void> => command(chatId, { op: "stop_after", id, stop }),
-
     /** 待ちの列を止めておくかを切り替える（列が空なら止めない。自動で送るに戻したら、Kickoff の門も外し、作業中でなければ先頭をすぐ送る）。止めておくかを返す */
     async setQueuePaused(chatId: number, paused: boolean): Promise<boolean> {
       const done = shell.run(chatId, { type: "queue", commands: [{ op: "set_paused", paused }] });
       const next = boxOf(chatId).paused;
       await shell.answer(chatId, done);
       return next;
-    },
-
-    /** 画面で書き直している送信待ちの指示を丸ごと置き換える（空なら外す。開いている間、画面は持ち時間 EDIT_HOLD_TTL_MS より短い間隔で知らせ直す） */
-    setQueueEditing(chatId: number, ids: string[]) {
-      shell.dispatch(chatId, { type: "editing", lane: "later", ids });
-    },
-
-    /** 画面で書き直している預かった指示を丸ごと置き換える（空なら外す。書き直している間は、送る順が来てもその指示から後ろを送らずに待つ） */
-    setAfterCompactEditing(chatId: number, ids: string[]) {
-      shell.dispatch(chatId, { type: "editing", lane: "now", ids });
-    },
-
-    /** 預かった指示を、送らずに外す（外した指示を返す。もう伝えたなら 404、いまの作業に足している途中なら 409） */
-    removeAfterCompact(chatId: number, messageId: string): QueuedMessage {
-      const run = shell.runs.get(chatId);
-      const message = heldOf(run, messageId);
-      if (telling(run)) throw new Conflict(TELLING);
-      shell.run(chatId, { type: "queue", commands: [{ op: "remove", ids: [messageId] }] });
-      return message;
-    },
-
-    /**
-     * 預かった指示をその場で書き直す（送る順はそのまま）。書き直し中の印も外し、送る順が来ていれば送る。
-     * もう伝えたなら 404、書き直し中の印がないままいまの作業に足している途中なら 409、圧縮後指示・文も添付もなくなるなら 400
-     */
-    updateAfterCompact(chatId: number, messageId: string, text: string, attachments: Attachment[]): QueuedMessage {
-      const run = shell.runs.get(chatId);
-      heldOf(run, messageId);
-      const cmd: QueueCommand = { op: "edit", id: messageId, text, attachments };
-      const next = applyQueueCommand(run.outbox, cmd, shell.outboxEnv());
-      if (isQueueReject(next)) throw rejection(next.reject, next.message);
-      if (telling(run, messageId)) throw new Conflict(TELLING);
-      shell.run(chatId, { type: "queue", commands: [cmd] });
-      return next.now.find((m) => m.id === messageId)!;
     },
 
     /**

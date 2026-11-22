@@ -1,4 +1,5 @@
 // 筋書きの利用者の出来事（送る・送信待ちの操作・止める・答えるなど）を、いまの HTTP の口に当て、偽のプロバイダーの出来事を実行に起こす。テストからだけ使う
+import type { QueueCommand } from "@shared/chat/queueCommand";
 import type { Driver } from "./scenarioDriver";
 import { SESSIONS, T0, type ChatAlias, type ScenarioQueueCommand, type ScenarioStep } from "./types";
 
@@ -30,7 +31,7 @@ export async function userStep(d: Driver, st: Extract<ScenarioStep, { do: string
         ...(st.pauseAfter ? { pause_after: true } : {}),
         ...(st.hold ? { hold: true } : {}),
       };
-      const res = await call("POST", `${base}/${st.when === "idle" ? "messages" : st.when === "now" ? "tell" : "queue"}`, body);
+      const res = await call("POST", `${base}/messages`, st.when === "idle" ? body : { ...body, when: st.when });
       d.status(res, st.status);
       if (st.result && (res.body as { result?: string }).result !== st.result) throw new Error(`伝えた結果 ${JSON.stringify(res.body)}（${st.result} のはず）`);
       return;
@@ -38,19 +39,14 @@ export async function userStep(d: Driver, st: Extract<ScenarioStep, { do: string
     case "queue":
       return d.status(await queueCommand(d, alias, st.command), st.status);
     case "queue_send": {
-      const url = st.mode === "now" ? `${base}/queue/${(await d.row(alias, st.rows![0])).id}/send` : st.mode === "all" ? `${base}/queue/send-all` : `${base}/queue/send-in-order`;
-      const body =
-        st.mode === "all" && st.rows
-          ? {
-              ids: await Promise.all(st.rows.map(async (r) => (await d.row(alias, r)).id)),
-            }
-          : {};
-      return d.status(await call("POST", url, body), st.status);
+      const ids = st.rows && (await Promise.all(st.rows.map(async (r) => (await d.row(alias, r)).id)));
+      const body = st.mode === "now" ? { mode: "now", ids: [ids![0]] } : st.mode === "all" && ids ? { mode: "all", ids } : { mode: st.mode };
+      return d.status(await call("POST", `${base}/queue/send`, body), st.status);
     }
     case "editing": {
       const ids = await Promise.all(st.rows.map(async (r) => (await d.row(alias, r)).id));
       d.editing[st.lane][ids.length > 0 ? "add" : "delete"](alias);
-      return d.status(await call("PUT", st.lane === "later" ? `${base}/queue/editing` : `${base}/after-compact/editing`, { ids }), undefined);
+      return d.status(await call("PUT", `${base}/queue/editing`, { lane: st.lane, ids }), undefined);
     }
     case "archive":
       return d.status(await call("PATCH", base, { archived: st.archived }), undefined);
@@ -74,60 +70,34 @@ export async function userStep(d: Driver, st: Extract<ScenarioStep, { do: string
   }
 }
 
-/** 送信待ちの操作を、いまの送信待ちの API に当てる（行は文から ID に引き直す） */
+/** 送信待ちの操作を、送信待ちの口の命令（POST …/queue の commands）に当てる（行は文から ID に引き直す） */
 async function queueCommand(d: Driver, alias: ChatAlias, c: ScenarioQueueCommand): Promise<{ status: number; body?: unknown }> {
-  const base = `/api/chats/${d.id(alias)}`;
-  const ids = async (rows: string[]) => Promise.all(rows.map(async (r) => (await d.row(alias, r)).id));
-  const call = d.core.call;
-  switch (c.op) {
-    case "add_action":
-      return call("POST", `${base}/queue/${c.action}`, {
-        after: c.after === null ? null : (await d.row(alias, c.after)).id,
-      });
-    case "remove": {
-      if (c.rows.length > 1)
-        return call("POST", `${base}/queue/remove-many`, {
-          ids: await ids(c.rows),
-        });
-      const { id, lane } = await d.row(alias, c.rows[0]);
-      return call("DELETE", lane === "later" ? `${base}/queue/${id}` : `${base}/after-compact/${id}`);
+  const row = async (r: string) => (await d.row(alias, r)).id;
+  const ids = async (rows: string[]) => Promise.all(rows.map(row));
+  const command = async (): Promise<QueueCommand> => {
+    switch (c.op) {
+      case "add_action":
+        return { op: "add_action", action: c.action, after: c.after === null ? null : await row(c.after) };
+      case "remove":
+        return { op: "remove", ids: await ids(c.rows) };
+      case "edit": {
+        // 預かりの行は添付も置き換える（画面の書き直しの欄は添付ごと保存する）
+        const { id, lane } = await d.row(alias, c.row);
+        return { op: "edit", id, text: c.text, ...(lane === "now" ? { attachments: [] } : {}) };
+      }
+      case "move": {
+        const to = typeof c.to === "string" || "index" in c.to ? c.to : { before: c.to.before === null ? null : await row(c.to.before) };
+        return { op: "move", ids: await ids(c.rows), to };
+      }
+      case "merge":
+        return { op: "merge", ids: await ids(c.rows) };
+      case "stop_after":
+        return { op: "stop_after", id: c.row === null ? null : await row(c.row), stop: c.stop };
+      default:
+        return c;
     }
-    case "edit": {
-      const { id, lane } = await d.row(alias, c.row);
-      return lane === "later"
-        ? call("PATCH", `${base}/queue/${id}`, { text: c.text })
-        : call("PATCH", `${base}/after-compact/${id}`, {
-            text: c.text,
-            attachments: [],
-          });
-    }
-    case "move": {
-      if (typeof c.to === "object" && "index" in c.to) return call("POST", `${base}/queue/${(await d.row(alias, c.rows[0])).id}/move`, { index: c.to.index });
-      const to =
-        typeof c.to === "string"
-          ? { to: c.to }
-          : {
-              before: c.to.before === null ? null : (await d.row(alias, c.to.before)).id,
-            };
-      return call("POST", `${base}/queue/move-many`, {
-        ids: await ids(c.rows),
-        ...to,
-      });
-    }
-    case "merge":
-      return call("POST", `${base}/queue/merge`, { ids: await ids(c.rows) });
-    case "set_stops":
-      return call("PUT", `${base}/queue/stops`, { stops: c.stops });
-    case "stop_after":
-      return call("PUT", `${base}/queue/stop-after`, {
-        id: c.row === null ? null : (await d.row(alias, c.row)).id,
-        stop: c.stop,
-      });
-    case "set_paused":
-      return call("PUT", `${base}/queue/paused`, { paused: c.paused });
-    case "clear":
-      return call("DELETE", `${base}/queue`);
-  }
+  };
+  return d.core.call("POST", `/api/chats/${d.id(alias)}/queue`, { commands: [await command()] });
 }
 
 /** 偽のプロバイダーの出来事を、そのチャットのいま動いている実行に起こす */
