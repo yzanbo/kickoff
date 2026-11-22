@@ -1,25 +1,24 @@
-import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote } from "lucide-react";
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { ArrowUpLeft, ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
-import { latestAnswer, chatTitle, ChatStateMark, ancestorsOf } from "@/features/chat/ui";
+import { latestAnswer, chatTitle, ChatStateMark, ancestorsOf, LineageTrail } from "@/features/chat/ui";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { useChatRename, type ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 import { knownChat, useChatsValue, useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { alert } from "@/foundation/ui/kit/ask";
 import { handBackText } from "./childChats";
 import { handBackToParent, revealInParent } from "./askChild";
 import { requestHandoff } from "./handBack";
 import { DetachSubmenu } from "./DetachSubmenu";
+import { HandBackMenu, type HandBack } from "./HandBackMenu";
+import { useClickOrDouble } from "./clickOrDouble";
 
 /** 系譜を出す数（これより深ければ、根と親の間を「…」にまとめる） */
 const MAX_CRUMBS = 2;
-
-/** 親の札を 1 回押してから親の会話へ移るまで待つ時間（その間にもう一度押せばダブルクリック = 名前の変更にして、移らない） */
-const REVEAL_DELAY_MS = 300;
 
 /** 親の会話で聞いた位置（押したときに見せる子。送る前の新しい子チャットは ID がないので、親の画面を見せるだけ） */
 type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
@@ -96,7 +95,6 @@ function ChildBarFrame({
   const depth = Math.max(ancestors.length, 1);
   // 札ごとに、押したときに見せる「聞いた位置」は、その札のすぐ下の子のもの（いちばん下の親は、この子チャット）
   const crumbs = ancestors.map((id, i) => ({ id, below: ancestors[i + 1] ?? null }));
-  const shown = crumbs.length > MAX_CRUMBS ? [crumbs[0], null, ...crumbs.slice(-(MAX_CRUMBS - 1))] : crumbs;
   // 親の札を押したとき: その親の画面を見せ、すぐ下の子を聞いた発言へ（送る前の子チャットは、聞いた位置がないので親を見せるだけ）
   const reveal = (belowId: number | null, ownerId: number) => {
     const below: Below | undefined = belowId !== null ? knownChat(belowId) : (self ?? { id: -1, parent_chat_id: ownerId, parent_event_id: null });
@@ -114,36 +112,36 @@ function ChildBarFrame({
       }
     >
       {parentId !== null && (
-        <nav className="child-chat-lineage" aria-label="親チャット">
-          <span className="child-chat-lineage-lead" aria-hidden>
-            <ArrowUpLeft size={13} />
-            <span className="child-chat-lineage-lead-text">親</span>
-          </span>
-          {shown.length === 0 ? (
-            // 親が読み込んだ一覧にない（アーカイブ済みなど）: 名前は出さずに開くだけ
-            <button type="button" className="child-chat-crumb pill" data-tip="親のチャットの、聞いた位置を見る" onClick={() => reveal(null, parentId)}>
-              親のチャット
-            </button>
-          ) : (
-            shown.map((crumb, i) => {
-              const item = crumb ? <ParentCrumb id={crumb.id} rename={rename} onReveal={() => reveal(crumb.below, crumb.id)} /> : <span className="muted">…</span>;
-              const sep = <ChevronRight size={12} className="child-chat-lineage-sep" aria-hidden />;
-              // 親より上（根の側）は、狭い帯では隠して親だけを残す（.child-chat-lineage-up）
-              return i < shown.length - 1 ? (
-                <span key={crumb?.id ?? "more"} className="child-chat-lineage-up">
-                  {item}
-                  {sep}
-                </span>
-              ) : (
-                <Fragment key={crumb?.id ?? "more"}>
-                  {item}
-                  {sep}
-                </Fragment>
-              );
-            })
-          )}
-          {shown.length === 0 && <ChevronRight size={12} className="child-chat-lineage-sep" aria-hidden />}
-        </nav>
+        <LineageTrail
+          className="child-chat-lineage"
+          label="親チャット"
+          lead={
+            <span className="child-chat-lineage-lead" aria-hidden>
+              <ArrowUpLeft size={13} />
+              <span className="child-chat-lineage-lead-text">親</span>
+            </span>
+          }
+          items={
+            crumbs.length === 0
+              ? // 親が読み込んだ一覧にない（アーカイブ済みなど）: 名前は出さずに開くだけ
+                [
+                  {
+                    key: "parent",
+                    node: (
+                      <button type="button" className="child-chat-crumb pill" data-tip="親のチャットの、聞いた位置を見る" onClick={() => reveal(null, parentId)}>
+                        親のチャット
+                      </button>
+                    ),
+                  },
+                ]
+              : crumbs.map((crumb) => ({ key: crumb.id, node: <ParentCrumb id={crumb.id} rename={rename} onReveal={() => reveal(crumb.below, crumb.id)} /> }))
+          }
+          sep={<ChevronRight size={12} className="child-chat-lineage-sep" aria-hidden />}
+          trailing
+          max={MAX_CRUMBS}
+          // 親より上（根の側）は、狭い帯では隠して親だけを残す
+          upClassName="child-chat-lineage-up"
+        />
       )}
       {/* 深さで呼び名と色を変える（子・孫・ひ孫） */}
       <span className={`child-chat-bar-label tag child-depth-${Math.min(depth, 3)}`}>{childDepthLabel(depth)}</span>
@@ -182,10 +180,8 @@ type ChatRename = ReturnType<typeof useChatRename>;
  */
 function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename; onReveal: () => void }) {
   const parent = useKnownChat(id);
-  const timer = useRef<number | undefined>(undefined);
-  const cancelReveal = () => window.clearTimeout(timer.current);
-  // 待っている間に帯が消えたら移らない
-  useEffect(() => cancelReveal, []);
+  // 1 回押しは少し待ってから移る（その間にもう一度押せば名前の変更。キーで押したらすぐ。待っている間に帯が消えたら移らない）
+  const press = useClickOrDouble(onReveal, () => parent && rename.start(parent));
   if (!parent) return null;
   const name = chatTitle(parent.title);
   const editor: ChatTitleEditor | undefined = rename.editorFor(parent);
@@ -202,66 +198,10 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
       type="button"
       className="child-chat-crumb pill"
       data-tip={`親のチャット「${name}」の、聞いた位置を見る（ダブルクリックで名前を変更）`}
-      onClick={(e) => {
-        cancelReveal();
-        // キーで押したとき（detail が 0）はすぐ移る。2 回目の押下はダブルクリックに任せる
-        if (e.detail === 0) onReveal();
-        else if (e.detail === 1) timer.current = window.setTimeout(onReveal, REVEAL_DELAY_MS);
-      }}
-      onDoubleClick={() => {
-        cancelReveal();
-        rename.start(parent);
-      }}
+      onClick={press}
     >
       <ChatStateMark chat={parent} />
       <span className="child-chat-crumb-name">{name}</span>
     </button>
-  );
-}
-
-/** 親チャットに渡す ▾ の項目: request = 依頼文を作ってもらう / quote = 最新の答えを引用して渡す */
-interface HandBack {
-  request?: () => void;
-  quote?: () => void;
-}
-
-/** 「親チャットに渡す ▾」: 押すと、渡し方を 2 つから選ぶ（依頼文を作ってもらう / 最新の答えを引用して渡す） */
-function HandBackMenu({ handBack }: { handBack: HandBack }) {
-  const menu = useContextMenu({ align: "end" });
-  return (
-    <>
-      <button
-        type="button"
-        className="btn btn-primary child-chat-hand-back"
-        data-size="sm"
-        disabled={!handBack.request && !handBack.quote}
-        aria-haspopup="menu"
-        aria-expanded={menu.isOpen}
-        title="親チャットに渡す（依頼文を作ってもらうか、最新の答えを引用して渡すかを選ぶ）"
-        onClick={menu.toggle}
-      >
-        <Inbox size={13} aria-hidden />
-        <span className="child-chat-hand-back-text">親チャットに渡す</span>
-        <ChevronDown size={12} aria-hidden />
-      </button>
-      {menu.menu && (
-        <PopupMenu at={menu.menu.at} label="親チャットへの渡し方" ignore=".child-chat-hand-back" onClose={menu.close}>
-          <MenuItem className="send-target" disabled={!handBack.request} onSelect={() => handBack.request?.()}>
-            <ClipboardPenLine size={15} aria-hidden className="send-target-icon" />
-            <span className="send-target-text">
-              <span>依頼文を作ってもらう</span>
-              <span className="send-target-hint">この子チャットの AI に、親チャットの AI へ渡す依頼文を書いてもらう</span>
-            </span>
-          </MenuItem>
-          <MenuItem className="send-target" disabled={!handBack.quote} onSelect={() => handBack.quote?.()}>
-            <Quote size={15} aria-hidden className="send-target-icon" />
-            <span className="send-target-text">
-              <span>最新の答えを引用して渡す</span>
-              <span className="send-target-hint">いちばん新しい答えを引用にして、親チャットの入力欄に入れる（送るのは自分で）</span>
-            </span>
-          </MenuItem>
-        </PopupMenu>
-      )}
-    </>
   );
 }

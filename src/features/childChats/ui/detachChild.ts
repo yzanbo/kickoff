@@ -5,8 +5,7 @@ import { childChatsApi } from "./api";
 import { open } from "@/foundation/ui/navigation/open";
 import { knownChat, chatTitle, ancestorsOf } from "@/features/chat/ui";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
-import { allPanels, dispatchPanel } from "@/features/panel/ui/state/panelStore";
-import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
+import { closeTabsWhere } from "@/features/panel/ui";
 
 /** 外す先（parentId: null = 親のないチャット（groupId のグループへ。groupName は確かめの文に出す並べる先の名前。グループ名・「No Group」）/ 先祖の ID = その子に上げる） */
 export interface DetachTo {
@@ -56,13 +55,6 @@ export async function detachChild(chat: Chat, to: DetachTo): Promise<Chat | null
 
 /** 親のないチャットにしたチャットのタブを、右の欄（どのチャットの右の欄でも）から閉じ、見ていたならチャットのパネルで開き直す */
 function reopenDetached(chat: Chat) {
-  let shown = false;
-  for (const [key, state] of [...allPanels()]) {
-    if (!key.startsWith("agents:")) continue;
-    const tabs = state.tabs.filter((t) => t.kind === "child" && t.childId === chat.id);
-    if (tabs.length === 0) continue;
-    if (tabs.some((t) => isTabVisible(state.layout, t.key))) shown = true;
-    dispatchPanel(key, { type: "close", keys: tabs.map((t) => t.key), dismiss: false });
-  }
-  if (shown) open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
+  const { wasVisible } = closeTabsWhere("agents", (t) => t.kind === "child" && t.childId === chat.id);
+  if (wasVisible) open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
 }

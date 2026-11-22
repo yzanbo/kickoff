@@ -1,12 +1,11 @@
 import { Bot } from "lucide-react";
-import { Fragment } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll } from "@/features/chat/ui";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { type ActivityNav, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
+import { type ActivityNav, LineageTrail, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { createActivityNav } from "@/features/conversation/ui/activity/createActivityNav";
 import { createSubagentNav, openSubagentWindow } from "@/features/conversation/ui/screen/createSubagentNav";
@@ -118,30 +117,39 @@ function ScreenHead({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
     <header className="subagent-screen-head">
       {/* 1 行目: 階層と、右の欄のタブのときだけ右端に「別ウィンドウで開く」 */}
       <div className="subagent-screen-top">
-      <nav className="subagent-screen-path" aria-label="サブエージェントの階層">
-        <button
-          type="button"
-          className="link-button"
-          title="チャットの流れの中の、このサブエージェントを起動したカードへ移ります"
-          onClick={() => nav.subagents.reveal(path[0]?.key ?? entry.key)}
-        >
-          メインエージェント
-        </button>
-        {path.slice(0, -1).map((s) => (
-          <Fragment key={s.key}>
-            <span className="subagent-screen-sep" aria-hidden>
-              ›
-            </span>
-            <button type="button" className="link-button" title={`「${s.description}」の画面を、この欄に開きます`} onClick={() => nav.subagents.openSide(s.key)}>
-              {s.description}
-            </button>
-          </Fragment>
-        ))}
-        <span className="subagent-screen-sep" aria-hidden>
-          ›
-        </span>
-        <span className="subagent-screen-current">{entry.description}</span>
-      </nav>
+      <LineageTrail
+        className="subagent-screen-path"
+        label="サブエージェントの階層"
+        items={[
+          {
+            key: "main",
+            node: (
+              <button
+                type="button"
+                className="link-button"
+                title="チャットの流れの中の、このサブエージェントを起動したカードへ移ります"
+                onClick={() => nav.subagents.reveal(path[0]?.key ?? entry.key)}
+              >
+                メインエージェント
+              </button>
+            ),
+          },
+          ...path.slice(0, -1).map((s) => ({
+            key: s.key,
+            node: (
+              <button type="button" className="link-button" title={`「${s.description}」の画面を、この欄に開きます`} onClick={() => nav.subagents.openSide(s.key)}>
+                {s.description}
+              </button>
+            ),
+          })),
+          { key: "current", node: <span className="subagent-screen-current">{entry.description}</span> },
+        ]}
+        sep={
+          <span className="subagent-screen-sep" aria-hidden>
+            ›
+          </span>
+        }
+      />
         <PopOutTabButton />
       </div>
       <div className="subagent-screen-title">

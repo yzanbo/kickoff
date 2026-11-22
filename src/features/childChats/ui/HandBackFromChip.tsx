@@ -10,7 +10,7 @@ import { tipProps } from "@/foundation/ui/kit/HoverTip";
  * 子チャットから渡した依頼の出どころの札「子チャット『…』から」（入力欄の上・送った発言の下・送信待ちの行で同じ形）。押すとその子チャットを開く
  * （設定の「子チャットを開く場所」。消した・読み込んでいない子チャットは押せない）。名前は渡したときのもの
  */
-export function HandoffFromChip({ from, onRemove }: { from: HandoffFrom; onRemove?: () => void }) {
+export function HandBackFromChip({ from, onRemove }: { from: HandoffFrom; onRemove?: () => void }) {
   const child = useKnownChat(from.chat_id);
   return (
     <span className="handoff-from">
@@ -30,12 +30,12 @@ export function HandoffFromChip({ from, onRemove }: { from: HandoffFrom; onRemov
 }
 
 /** 入力欄の上の出どころの札（「親チャットに追加」で入力欄に入れた依頼。送ると発言の札になり、ここからは消える。× で外す） */
-export function ComposerHandoffChip({ chatId }: { chatId: number }) {
+export function ComposerHandBackChip({ chatId }: { chatId: number }) {
   const [from, setFrom] = useSetting(storage.settings.handBackFrom(chatId));
   if (!from) return null;
   return (
     <div className="composer-handoff">
-      <HandoffFromChip from={from} onRemove={() => setFrom(null)} />
+      <HandBackFromChip from={from} onRemove={() => setFrom(null)} />
     </div>
   );
 }

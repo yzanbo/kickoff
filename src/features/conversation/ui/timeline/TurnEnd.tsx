@@ -14,7 +14,7 @@ import { TurnChanges } from "@/features/conversation/ui/tools/TurnChanges";
 import { FailedTurnActions } from "@/features/conversation/ui/rewind/FailedTurnActions";
 import { requestHandoff } from "@/features/childChats/ui/handBack";
 import { AddToParentButton } from "@/features/childChats/ui/AddToParentButton";
-import { HandoffMarks } from "@/features/childChats/ui/HandBackMarks";
+import { HandBackMarks } from "@/features/childChats/ui";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 import { useBeforeWorkplaceMove, useTimelineBusy } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
@@ -62,7 +62,7 @@ function TurnFooter({ event, extras }: { event: ChatEventOf<"result">; extras: T
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
       {child && turnHandoff && data.status === "completed" && <AddToParentButton chat={child} turnEventId={event.id} prominent={turnHandoff.requested} />}
-      {turnHandoffs && <HandoffMarks handoffs={turnHandoffs} />}
+      {turnHandoffs && <HandBackMarks handoffs={turnHandoffs} />}
       {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
       {turnText && <CopyButton size="sm" copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
       {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}

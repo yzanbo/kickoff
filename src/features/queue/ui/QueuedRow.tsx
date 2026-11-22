@@ -10,7 +10,7 @@ import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { AttachmentPeek } from "@/features/attachments/ui/AttachmentPeek";
-import { HandoffFromChip } from "@/features/childChats/ui/HandBackFromChip";
+import { HandBackFromChip } from "@/features/childChats/ui";
 import { useQueueActions } from "./queueContext";
 import { askHandlersOf, groupActionsOf, rowActionsOf } from "./queueOps";
 import { MoveButtons } from "./QueueMoves";
@@ -106,7 +106,7 @@ export function QueuedRow({
           <>
             <AttachmentPeek attachments={m.attachments} />
             {/* 子チャットから渡した依頼（「親チャットに追加」の送信待ち）の出どころ */}
-            {m.handoff_from && <HandoffFromChip from={m.handoff_from} />}
+            {m.handoff_from && <HandBackFromChip from={m.handoff_from} />}
             {/* サブエージェントに「あとで」伝える指示は、AI への前置きを隠して宛先の札と本文だけ */}
             {relay && <span className="queued-relay-tag tag">伝える → {relay.name}</span>}
             <span className="queued-text" title={relay ? relay.text : m.text}>{(relay ? relay.text : m.text) || m.attachments.map((a) => a.name).join("、")}</span>

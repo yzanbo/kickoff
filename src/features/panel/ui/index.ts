@@ -5,6 +5,7 @@ export type { NewChatTarget, TerminalTarget } from "./tabs/panelTypes";
 export type { SplitDir } from "./layout/paneTree";
 export { useTabPage } from "./tabs/tabPageContext";
 export { panelActions } from "./state/panelActions";
+export { closeTabsWhere } from "./state/closeTabs";
 export { panelKey } from "./surfaces";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */

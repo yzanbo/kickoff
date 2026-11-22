@@ -7,7 +7,7 @@ import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
  * 子チャットの作業の終わりの行の、渡したことの印（渡すたびに 1 つ。「渡しました · 入力欄へ · 5分前」。乗せると渡した日時）。
  * 何分前かは 1 分ごとに描き直す
  */
-export function HandoffMarks({ handoffs }: { handoffs: readonly ChatEventOf<"handoff">[] }) {
+export function HandBackMarks({ handoffs }: { handoffs: readonly ChatEventOf<"handoff">[] }) {
   useTicker(60_000);
   return handoffs.map((h) => (
     <span key={h.id} className="handoff-mark tag" title={`${formatFullDateTime(h.created_at)} に親チャットに渡しました`}>

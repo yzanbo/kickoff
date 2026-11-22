@@ -6,3 +6,5 @@ export { CreatedChatToolDetail } from "./CreatedChatToolDetail";
 export { useAiDraftRequests } from "./aiDraftRequests";
 export { handBackFromOf } from "./handBackFrom";
 export { INHERIT_LABELS, inheritHelp, InheritChoice } from "./InheritChoice";
+export { ComposerHandBackChip, HandBackFromChip } from "./HandBackFromChip";
+export { HandBackMarks } from "./HandBackMarks";

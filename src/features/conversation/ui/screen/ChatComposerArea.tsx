@@ -17,7 +17,7 @@ import { TodoChip } from "@/features/conversation/ui/todo/TodoChip";
 import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
 import { childChatsApi, INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui";
 import { openCreatedChild } from "@/features/chat/ui";
-import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
+import { ComposerHandBackChip } from "@/features/childChats/ui";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
 import { chatSubagents } from "@/features/subagents/ui";
 import { voiceReplies } from "@/features/composer/ui";
@@ -161,7 +161,7 @@ export function ChatComposerArea({
         placeholder={send.placeholder}
         send={composerSend}
         // 入力欄に入れた子チャットからの依頼の出どころの札（送ると発言の札になる）。その下に定型文の帯（差し込み）
-        header={<ComposerHandoffChip chatId={chat.id} />}
+        header={<ComposerHandBackChip chatId={chat.id} />}
         voiceMode={{ replies, send: sendSnippet, chatId: chat.id }}
         history={prompts.recalls}
         draft={chatComposerDraft(chat.id)}

@@ -17,7 +17,7 @@ import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
-import { HandoffFromChip } from "@/features/childChats/ui/HandBackFromChip";
+import { HandBackFromChip } from "@/features/childChats/ui";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/compact/ui/compactPromptKinds";
 import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
@@ -165,7 +165,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
       {/* 子チャットから渡した依頼（「親チャットに追加」）の出どころ。押すとその子チャットを開く */}
       {data.handoff_from && (
         <div className="message-handoff-from">
-          <HandoffFromChip from={data.handoff_from} />
+          <HandBackFromChip from={data.handoff_from} />
         </div>
       )}
       {/* この発言から聞いた子チャットと、この発言の作業で AI が作った兄弟チャット・親のないチャットの札 */}

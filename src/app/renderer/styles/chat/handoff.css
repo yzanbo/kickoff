@@ -82,7 +82,7 @@
   background: color-mix(in srgb, var(--accent) 88%, black);
 }
 
-/* 渡したことの印（HandoffMarks。子チャットの作業の終わりの行の「渡しました · 入力欄へ · 5分前」）: 終わりの行の文字と同じ薄い色の小さな札 */
+/* 渡したことの印（HandBackMarks。子チャットの作業の終わりの行の「渡しました · 入力欄へ · 5分前」）: 終わりの行の文字と同じ薄い色の小さな札 */
 .handoff-mark {
   display: inline-flex;
   align-items: center;
@@ -96,7 +96,7 @@
 }
 
 /*
- * 子チャットから渡した依頼の出どころの札（HandoffFromChip。「子チャット『…』から」）: 入力欄の上・送った発言の下・送信待ちの行で同じ形。
+ * 子チャットから渡した依頼の出どころの札（HandBackFromChip。「子チャット『…』から」）: 入力欄の上・送った発言の下・送信待ちの行で同じ形。
  * 子チャットの帯の呼び名と同じ子の深さの色（--child-depth-1）で、押すとその子チャットを開く
  */
 .handoff-from {
