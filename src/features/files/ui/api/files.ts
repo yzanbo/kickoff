@@ -1,26 +1,10 @@
-import type { FileContent, RenamedFile, SavedFile } from "@shared/foundation/fileTypes";
-import type { ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types";
-import type { TrashedResult } from "@shared/trash/types";
-import { request, requestBlob } from "@/foundation/ui/api/http";
-import { workdirPath, type GitTarget } from "@/foundation/ui/api/workdir";
+import { filesApi } from "@/features/files/ui/api";
+import { workdirInput, type GitTarget } from "@/foundation/ui/api/workdir";
 
-/** 作業場所のファイル（エクスプローラーの一覧・中身・検索・保存・作る・名前の変更・ゴミ箱。コアの routes/files.ts） */
-export const filesApi = {
-  projectFiles: (target: GitTarget) => request<ProjectFiles>("GET", workdirPath(target, "/files")),
-  projectFile: (target: GitTarget, path: string) => request<FileContent>("GET", workdirPath(target, "/file", { path })),
-  /** 画像のファイルの中身（プレビュー。icns は中の PNG） */
-  projectImage: async (target: GitTarget, path: string): Promise<Blob> => (await requestBlob(workdirPath(target, "/file/image", { path }))).blob,
-  /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
-  saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
-    request<SavedFile>("PUT", workdirPath(target, "/file"), { path, content, base_hash: baseHash }),
-  /** ファイル・フォルダの名前を変える（同じフォルダの中で。同じ名前があれば 409）。変えたあとのパスを返す */
-  renameProjectFile: (target: GitTarget, path: string, name: string) => request<RenamedFile>("POST", workdirPath(target, "/file/rename"), { path, name }),
-  /** 新しいファイル・フォルダを作る（途中のフォルダも作る。同じ名前があれば 409） */
-  createProjectFile: (target: GitTarget, path: string, dir: boolean) => request<RenamedFile>("POST", workdirPath(target, "/files"), { path, dir }),
-  /** ファイル・フォルダを Kickoff のゴミ箱へ入れる（3 日は戻せる）。入れたゴミ箱の ID を返す */
-  trashProjectFile: (target: GitTarget, path: string) => request<TrashedResult>("DELETE", workdirPath(target, "/file", { path })),
-  searchProject: (target: GitTarget, { query, case_sensitive, whole_word, regex, include, exclude, use_ignore }: ProjectSearchQuery) =>
-    request<ProjectSearchResult>("GET", workdirPath(target, "/search", { q: query, case: case_sensitive, word: whole_word, regex, include, exclude, ignore: use_ignore })),
-  /** 探した結果の行を置換する（いまの行が結果の行と違えば置換しない。置換する前の中身が返るので、元に戻せる） */
-  replaceInProject: (target: GitTarget, body: ProjectReplaceBody) => request<ProjectReplaceResult>("POST", workdirPath(target, "/search/replace"), body),
+/**
+ * 束ねの api（@/foundation/ui/api）から読むファイルの口（ほかの機能の composer・chat が読む分だけ。files の中は ui/api.ts の filesApi を呼ぶ）。
+ * 束ねの api をなくすとき（P9 の前）に、読む側を口に替えて消す
+ */
+export const filesShared = {
+  projectFiles: (target: GitTarget) => filesApi("GET /api/projects/:projectId/files", workdirInput(target)),
 };

@@ -3,7 +3,7 @@ import type { GitCommit, GitCommitDetail, GitFileChange, GitRefs } from "@shared
 import { baseName } from "@/foundation/ui/lib/format";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { GitHubMark } from "@/features/git/ui/GitHubMark";
-import { CHANGE_LABELS } from "@/features/git/ui/DiffView";
+import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { RefBadges } from "./CommitRefBadges";
 import type { RefTarget } from "./refTarget";
@@ -127,7 +127,7 @@ export function CommitSummary({
       <ul className="commit-summary-files">
         {files.map((f) => (
           <li key={f.path}>
-            <button type="button" className="list-item commit-summary-file" title={`${f.path}（${CHANGE_LABELS[f.kind]}。押すと「変更」で差分を開きます）`} onClick={() => onOpenFile(f)}>
+            <button type="button" className="list-item commit-summary-file" title={`${f.path}（${GIT_CHANGE_LABELS[f.kind]}。押すと「変更」で差分を開きます）`} onClick={() => onOpenFile(f)}>
               <span className="commit-summary-file-marks">
                 <span className="change-badge" data-kind={f.kind}>
                   {f.kind}

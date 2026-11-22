@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import type { ProjectFiles } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
+import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { buildTree } from "@/foundation/ui/kit/list/treeModel";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /**
  * エクスプローラーに出すファイルの木。active（すべてのファイルを表示している）の間だけ読み、
@@ -11,7 +12,7 @@ import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
  */
 export function useProjectFiles(projectId: number, active: boolean, version: number) {
   const { target, key } = useGitTarget(projectId);
-  const { data: files, error } = useQuery(key, () => api.projectFiles(target), { enabled: active, deps: [version], same: sameFiles });
+  const { data: files, error } = useQuery(key, () => filesApi("GET /api/projects/:projectId/files", workdirInput(target)), { enabled: active, deps: [version], same: sameFiles });
   const tree = useMemo(() => (files ? buildTree(files) : undefined), [files]);
   return { tree, truncated: Boolean(files?.truncated), error: errorText(error) };
 }

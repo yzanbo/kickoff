@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import type { ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
+import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
+import type { ProjectSearchResult } from "@shared/files/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** 打つのが止まってから探すまでの時間 */
 const DEBOUNCE_MS = 300;
@@ -40,7 +42,18 @@ export function useProjectSearch(projectId: number) {
     async (search: ProjectSearchQuery) => {
       const request = ++latest.current;
       setLoading(true);
-      await api.searchProject(target, search).then(
+      await filesApi(
+        "GET /api/projects/:projectId/search",
+        workdirInput(target, {
+          q: search.query,
+          case: search.case_sensitive,
+          word: search.whole_word,
+          regex: search.regex,
+          include: search.include,
+          exclude: search.exclude,
+          ignore: search.use_ignore,
+        }),
+      ).then(
         (value) => {
           if (request !== latest.current) return;
           setResult({ query: search, value });

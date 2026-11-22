@@ -1,7 +1,7 @@
 import { Pencil } from "lucide-react";
 import { Fragment, useMemo, type ReactNode } from "react";
 import type { GitDiff, GitFileChange } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
+import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { CodeToken } from "@/foundation/ui/code/highlight";
 import { languageOf } from "@/foundation/ui/code/languages";
@@ -13,19 +13,12 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { parseDiff, toSplitRows, type DiffLine } from "@/foundation/ui/diff/diffModel";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { gitApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 
-/** ファイルの状態の名前（差分の見出しに出す） */
-export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
-  M: "変更",
-  A: "追加",
-  D: "削除",
-  R: "名前の変更",
-  C: "コピー",
-  T: "種類の変更",
-  U: "未追跡",
-  "!": "競合",
-};
+/** files の FileTree が読む変更の種類の名前（files ⇄ git の口 filesGit を作る P8-1g で消す） */
+export { GIT_CHANGE_LABELS as CHANGE_LABELS } from "@shared/git/labels";
 
 /** 読み込んだ差分（まだ読み込んでいなければ undefined） */
 export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined } | undefined;
@@ -37,7 +30,9 @@ export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined 
 export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
-  const loaded = useQuery(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version], enabled: active });
+  const loaded = useQuery(key, () => (commit
+        ? gitApi("GET /api/projects/:projectId/git/commits/:hash/diff", { params: { ...workdirInput(target).params, hash: commit }, query: workdirInput(target, { path: file.path, old: file.old_path }).query })
+        : gitApi("GET /api/projects/:projectId/git/diff", workdirInput(target, { path: file.path, old: file.old_path, staged }))), { deps: [version], enabled: active });
   return loaded.loaded ? { diff: loaded.data, error: errorText(loaded.error) } : undefined;
 }
 
@@ -90,7 +85,7 @@ export function DiffView({
           {file.path}
         </span>
         <span className="diff-state">
-          {CHANGE_LABELS[file.kind]}・{commit ? commit.slice(0, 7) : staged ? "ステージ済み" : "未ステージ"}
+          {GIT_CHANGE_LABELS[file.kind]}・{commit ? commit.slice(0, 7) : staged ? "ステージ済み" : "未ステージ"}
         </span>
         <span className="spacer" />
         {onEdit && (

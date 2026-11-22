@@ -1,6 +1,5 @@
 import { Copy, ExternalLink, FilePlus, FolderOpen, FolderPlus, FolderSearch, Minus, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
-import { api } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
@@ -16,6 +15,8 @@ import { joinTreePath, parentPath, topLevelPaths } from "@/foundation/ui/kit/lis
 import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** 右クリックした行（null は木の下の空いている所。staged は変更の一覧のどちらのまとまりか。many は選んだいくつかの行の 1 つを右クリックしたときの、選んでいるものすべて） */
 type MenuTarget = { path: string; dir: boolean; ignored: boolean; staged?: boolean; many: PickedEntry[] | null } | null;
@@ -105,8 +106,7 @@ export function useFileActions(
   const submit = (path: string, name: string) => {
     setRenaming(null);
     if (name === baseName(path)) return;
-    void api
-      .renameProjectFile(target, path, name)
+    void filesApi("POST /api/projects/:projectId/file/rename", { ...workdirInput(target), body: { path, name } })
       .then(({ path: to }) => {
         selection.relocate(path, to);
         onMoved?.(path, to);
@@ -125,8 +125,7 @@ export function useFileActions(
     const { parent, dir } = creating;
     setCreating(null);
     const path = joinTreePath(parent, name);
-    void api
-      .createProjectFile(target, path, dir)
+    void filesApi("POST /api/projects/:projectId/files", { ...workdirInput(target), body: { path, dir } })
       .then(async () => {
         const folder = dir ? path : parentPath(path);
         if (folder) onReveal?.(folder);
@@ -145,7 +144,7 @@ export function useFileActions(
       danger: true,
     });
     if (!ok) return;
-    await api.trashProjectFile(target, path).then(({ trash_id }) => {
+    await filesApi("DELETE /api/projects/:projectId/file", workdirInput(target, { path })).then(({ trash_id }) => {
       selection.forget(path);
       void git.refresh();
       showTrashedToast(trash_id, baseName(path));
@@ -170,7 +169,7 @@ export function useFileActions(
     const failed: string[] = [];
     for (const { path } of targets) {
       try {
-        await api.trashProjectFile(target, path);
+        await filesApi("DELETE /api/projects/:projectId/file", workdirInput(target, { path }));
         selection.forget(path);
       } catch (e) {
         failed.push(`${baseName(path)}: ${errorMessage(e)}`);

@@ -7,6 +7,7 @@ import { test } from "vitest";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitLog } from "../history";
 
 test("Git で管理していないフォルダでも、ファイルの一覧と検索は使える（.gitignore と node_modules は無視しているものに。フォルダの中に Git の印は作らない）", async () => {
   const { call, project } = setup();
@@ -305,14 +306,13 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(st.upstream, "origin/main");
   assert.equal(st.ahead, 0);
   assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
-
   // 履歴: 新しい順。ブランチの印。コミットの詳細と、そのコミットでのファイルの差分
   const log = (await call("GET", `/api/projects/${project.id}/git/log`)).body;
   assert.deepEqual(log.commits.map((c: { subject: string }) => c.subject), ["b を直す", "init"]);
   assert.ok(log.commits[0].refs.includes("HEAD -> main"));
   assert.deepEqual(log.commits[1].parents, []);
   assert.equal(log.more, false);
-  assert.equal((await call("GET", `/api/projects/${project.id}/git/log?limit=1`)).body.more, true);
+  assert.equal((await gitLog(repo, 0, 1)).more, true); // API は 200 ずつ（取り決めに数の指定はない）
   const detail = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[0].hash}`)).body;
   assert.deepEqual(detail.files, [{ path: "b.txt", kind: "M" }]);
   const first = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[1].hash}`)).body;

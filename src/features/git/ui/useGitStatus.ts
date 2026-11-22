@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/git/types";
-import { api } from "@/foundation/ui/api";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { gitAutoFetch, runGitOperation } from "./gitAutoFetch";
 import { createGitStatusStore } from "./gitStatusStore";
+import { gitApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** 画面全体で 1 つの Git の状態の店（作業場所ごとに 1 つの購読。取り直す決まりは gitStatusStore.ts） */
-const gitStatuses = createGitStatusStore({ load: (ref) => api.gitStatus(ref), fetch: (ref) => api.gitFetch(ref), autoFetcher: gitAutoFetch });
+const gitStatuses = createGitStatusStore({ load: (ref) => gitApi("GET /api/projects/:projectId/git/status", workdirInput(ref)), fetch: (ref) => gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref)), autoFetcher: gitAutoFetch });
 
 // チャットが動いた（送った・終わった）か、作業中にツールの結果が届いた（ファイルを変えたかもしれない）。
 // 作業中はチャットの行が変わらないので、ツールの結果も見ないと、差分が作業の終わりまで追いつかない
@@ -35,14 +36,14 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
 
   const apply = (request: Promise<GitStatus>) => gitStatuses.apply(ref, request);
   /** ステージ・ステージの取り消し・元に戻す */
-  const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(ref, action, paths));
+  const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(gitApi(`POST /api/projects/:projectId/git/${action}`, { ...workdirInput(ref), body: { paths } }));
   /** コミット（amend は直前のコミットに足して書き直す「コミット (修正)」） */
-  const commit = (message: string, amend = false) => apply(api.gitCommit(ref, message, amend));
+  const commit = (message: string, amend = false) => apply(gitApi("POST /api/projects/:projectId/git/commit", { ...workdirInput(ref), body: { message, amend } }));
   // リモートとやり取りする操作は、自動のフェッチの途中なら終わるのを待ってから（runGitOperation）
-  const push = () => apply(runGitOperation(projectId, () => api.gitPush(ref)));
-  const pull = () => apply(runGitOperation(projectId, () => api.gitPull(ref)));
+  const push = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/push", workdirInput(ref))));
+  const pull = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/pull", workdirInput(ref))));
   /** リモートの情報を取ってきてから取り直す（遅れている数を出すため。取り直しのボタンで使う） */
-  const fetchRemote = () => apply(runGitOperation(projectId, () => api.gitFetch(ref))).catch((e: unknown) => gitStatuses.fetchFailed(ref, e));
+  const fetchRemote = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref)))).catch((e: unknown) => gitStatuses.fetchFailed(ref, e));
 
   const value = state.data?.value;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;
@@ -50,12 +51,12 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const applyStatus = (next: GitStatus) => apply(Promise.resolve(next));
   /** 途中で止まっているマージ・リベースを、取りやめる・続ける・飛ばす（続けた先でまた衝突したら、衝突したファイルを返す） */
   const operate = async (action: GitOperationAction): Promise<string[]> => {
-    const result = await api.gitOperation(ref, action);
+    const result = await gitApi("POST /api/projects/:projectId/git/operation", { ...workdirInput(ref), body: { action } });
     await applyStatus(result.status);
     return result.conflicts;
   };
   /** 衝突したファイルを解く（こちらの版・取り込む側の版・いまの中身で解決済み） */
-  const resolve = (path: string, how: GitConflictResolution) => apply(api.gitResolve(ref, path, how));
+  const resolve = (path: string, how: GitConflictResolution) => apply(gitApi("POST /api/projects/:projectId/git/resolve", { ...workdirInput(ref), body: { path, how } }));
   return {
     status: value,
     error: fetchError ?? state.error,

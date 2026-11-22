@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { GitBranchAction, GitBranchActionResult, GitOperation, GitRefs } from "@shared/git/types";
-import { GIT_OPERATION_LABELS } from "@shared/git/types";
+import { GIT_OPERATION_LABELS } from "@shared/git/labels";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
@@ -12,6 +12,8 @@ import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import { runGitOperation } from "@/features/git/ui/gitAutoFetch";
 import type { GitLogController } from "./useGitLog";
+import { gitApi } from "@/features/git/ui/api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** 衝突したファイルを、ダイアログに出す数まで並べる */
 export function fileList(files: string[], max = 8): string {
@@ -77,7 +79,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   /** 操作を送り、Git の状態と履歴を取り直し、衝突したら選んでもらう（失敗は投げる） */
   const sendAction = async (body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult> => {
     // プル・プッシュなどはリモートの参照も書き換えるので、自動のフェッチの途中なら終わるのを待つ
-    const result = await runGitOperation(projectId, () => api.gitBranchAction(target, body));
+    const result = await runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/branch-action", { ...workdirInput(target), body }));
     git.applyStatus(result.status);
     log.refresh();
     const stopped = result.status.repo ? result.status.operation : null;
@@ -96,7 +98,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     }
     let preview;
     try {
-      preview = await api.gitMergePreview(target, other);
+      preview = await gitApi("GET /api/projects/:projectId/git/merge-preview", workdirInput(target, { branch: other }));
     } catch (e) {
       await alert("見込みを調べられませんでした", errorMessage(e));
       return false;
@@ -128,7 +130,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
 
   /** ブランチを消す（マージしていなければ確かめ直して強制で消す。やめたら何もしない。失敗は投げる） */
   const deleteLocalBranch = async (branch: string, remote: boolean) => {
-    const request = (force: boolean) => runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force, remote }));
+    const request = (force: boolean) => runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/branch-action", { ...workdirInput(target), body: { action: "delete_branch", branch, force, remote } }));
     const result = await request(false).catch(async (e: unknown) => {
       // マージしていないコミットがあると -d では消せないので、消えてもよいか確かめ直す
       if (!/not fully merged/.test(errorMessage(e))) throw e;

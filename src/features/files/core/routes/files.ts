@@ -1,15 +1,15 @@
-import type { Hono } from "hono";
+// 作業場所のファイルの受け口（取り決めは @shared/files/contract.ts。操作するフォルダは取り決めの workdir: true が ?worktree= から解く）
 import { z } from "zod";
-import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "@/features/git/core/index";
-import type { ChatStoreDeps } from "@/features/chat/core/index";
+import { filesContract } from "@shared/files/contract";
+import type { Project } from "@shared/projects/types";
+import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, trashProjectFile, writeProjectFile } from "../files";
+import { replaceInProject, searchProject } from "../search";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { ProjectReplaceBody } from "@shared/git/types";
-import { jsonBody, queryOf } from "@/foundation/core/http/input";
-import { lookups } from "@/foundation/core/http/lookups";
+import { implement, type Param } from "@/foundation/core/http/implement";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
 import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import { Invalid } from "@/foundation/core/errors";
-import { flag, repoPath } from "@/foundation/core/http/zodParts";
+import { flagOn, repoPath, workdirQuery } from "@/foundation/core/http/zodParts";
 
 /** 置換の本文（検索の指定・置換の文・置換する行） */
 const replaceBodySchema = z.object({
@@ -25,101 +25,76 @@ const replaceBodySchema = z.object({
   replace: z.string().max(10_000),
   preserve_case: z.boolean(),
   files: z.array(z.object({ path: repoPath, lines: z.array(z.object({ line: z.number().int().min(1), text: z.string().max(1000) })).min(1).max(1000) })).min(1).max(5000),
-}) satisfies z.ZodType<ProjectReplaceBody>;
+});
+
+/** ファイルを指すクエリ */
+const pathQuery = workdirQuery.extend({ path: repoPath });
+const globs = z.string().max(2000).default("");
+/** 検索のクエリ（ignore=0 なら .gitignore で無視しているものも探す） */
+const searchQuery = workdirQuery.extend({ q: z.string().max(1000).default(""), case: flagOn("0"), word: flagOn("0"), regex: flagOn("0"), include: globs, exclude: globs, ignore: flagOn("1") });
 
 /** HTML のファイルのプレビューの口の前置き（1 段目が作業場所、その後ろが作業場所からの相対パス。画面の <base> と同じ形） */
 const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/file\/asset\/([^/]+)\/(.+)$/;
+/** 作業場所とパスは受け口が URL の生のパスから読む（Hono が解いたあとの形だと %2F を取り違える） */
+const rawSegment: Param<string> = { parse: (raw) => raw };
 
-/** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
-export function filesRoutes(app: Hono, { store, trashBin }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; trashBin: TrashApi }) {
-  const { withProject, withWorkdir } = lookups(store);
-
-  // Git で管理していないフォルダも、中のファイルを同じ形で返す
-  app.get("/api/projects/:id/files", withWorkdir, async (c) => c.json(await listProjectFiles(c.var.workdir)));
-
-  // ファイルの中身（リポジトリの外・外を指すリンクは 400、なければ 404）
-  app.get("/api/projects/:id/file", withWorkdir, async (c) => {
-    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    return c.json(await readProjectFile(c.var.workdir, path));
-  });
-
-  // 画像のファイルの中身（ファイルタブのプレビュー。icns は中の PNG）。ページとして開かれても何も動かないよう sandbox の CSP を付ける
-  app.get("/api/projects/:id/file/image", withWorkdir, async (c) => {
-    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    const image = await readProjectImage(c.var.workdir, path);
-    return c.body(new Uint8Array(image.data), 200, {
-      "Content-Type": image.type,
-      "Content-Security-Policy": "sandbox",
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "no-cache",
-    });
-  });
-
-  // HTML のファイルのプレビューが読むファイル（ページ自身と、相対パスの CSS・画像）。画面は <base> をそのファイルのフォルダに向ける。
-  // 相対パスで解くと ?worktree= が落ちるので、作業場所はパスの 1 段目に入れる（"-" = 本体 / ワークツリーのフォルダを 1 段に符号化したもの）
-  app.get("/api/projects/:id/file/asset/:place/*", withProject, async (c) => {
-    const match = ASSET_PREFIX.exec(new URL(c.req.url).pathname);
-    if (!match) throw new Invalid("パスが正しくありません");
-    let place: string;
-    try {
-      place = decodeURIComponent(match[1]);
-    } catch {
-      throw new Invalid("作業場所の指定が正しくありません");
-    }
-    const workdir = place === "-" ? c.var.project.repo_path : await resolveWorkdir(c.var.project.repo_path, place);
-    const file = repoPath.parse(decodeSegments(match[2]));
-    return assetResponse(c, file, await readProjectAsset(workdir, file));
-  });
-
-  // ファイルの中を探す（正規表現・含める / 除外するファイルの書き方が正しくなければ 400）。ignore=0 なら .gitignore で無視しているものも探す
-  app.get("/api/projects/:id/search", withWorkdir, async (c) => {
-    const toggle = (fallback: "0" | "1") => flag.default(fallback).transform((v) => v === "1");
-    const globs = z.string().max(2000).default("");
-    const query = z
-      .object({ q: z.string().max(1000).default(""), case: toggle("0"), word: toggle("0"), regex: toggle("0"), include: globs, exclude: globs, ignore: toggle("1") })
-      .parse({ q: queryOf(c, "q"), case: queryOf(c, "case"), word: queryOf(c, "word"), regex: queryOf(c, "regex"), include: queryOf(c, "include"), exclude: queryOf(c, "exclude"), ignore: queryOf(c, "ignore") });
-    return c.json(
-      await searchProject(c.var.workdir, {
-        query: query.q,
-        case_sensitive: query.case,
-        whole_word: query.word,
-        regex: query.regex,
-        include: query.include,
-        exclude: query.exclude,
-        use_ignore: query.ignore,
-      }),
-    );
-  });
-
-  // 探した結果の行を置換する（いまの行が結果の行と違えば、その行は置換しない。置換する前の中身を返すので、画面が元に戻せる）
-  app.post("/api/projects/:id/search/replace", withWorkdir, async (c) => {
-    const body = replaceBodySchema.parse(await jsonBody(c));
-    return c.json(await replaceInProject(c.var.workdir, body));
-  });
-
-  // ファイルを保存する（開いたときの指紋 base_hash といまの中身が違えば 409。null なら上書き）
-  app.put("/api/projects/:id/file", withWorkdir, async (c) => {
-    const body = z.object({ path: repoPath, content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() }).parse(await jsonBody(c));
-    return c.json(await writeProjectFile(c.var.workdir, body.path, body.content, body.base_hash));
-  });
-
-  // ファイル・フォルダの名前を変える（同じフォルダの中で。使えない名前・外は 400、ない 404、同じ名前がある 409）
-  app.post("/api/projects/:id/file/rename", withWorkdir, async (c) => {
-    const body = z.object({ path: repoPath, name: z.string().min(1).max(255) }).parse(await jsonBody(c));
-    return c.json(await renameProjectFile(c.var.workdir, body.path, body.name));
-  });
-
-  // 新しいファイル・フォルダを作る（途中のフォルダも作る。使えない名前・外は 400、同じ名前がある 409）
-  app.post("/api/projects/:id/files", withWorkdir, async (c) => {
-    const body = z.object({ path: repoPath, dir: z.boolean().default(false) }).parse(await jsonBody(c));
-    return c.json(await createProjectFile(c.var.workdir, body.path, body.dir), 201);
-  });
-
-  // ファイル・フォルダを Kickoff のゴミ箱へ入れる（3 日は元に戻せる。外は 400、ない 404）。入れたゴミ箱の ID を返す（画面の「元に戻す」）
-  app.delete("/api/projects/:id/file", withWorkdir, async (c) => {
-    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    const projectId = c.var.project.id;
-    const item = await trashProjectFile(c.var.workdir, path, (target) => trashBin.putPath(target, { projectId }));
-    return c.json({ trash_id: item.id });
+/** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱） */
+export function filesRoutes({ projectParam, trashBin }: { projectParam: Param<Project>; trashBin: TrashApi }) {
+  return implement(filesContract, {
+    context: { projectId: projectParam, place: rawSegment, "*": rawSegment },
+    "GET /api/projects/:projectId/files": { query: workdirQuery, run: ({ workdir }) => listProjectFiles(workdir) },
+    "GET /api/projects/:projectId/file": { query: pathQuery, run: ({ workdir, query }) => readProjectFile(workdir, query.path) },
+    // 画像のファイルの中身（ファイルタブのプレビュー。icns は中の PNG）
+    "GET /api/projects/:projectId/file/image": {
+      query: pathQuery,
+      run: async ({ workdir, query }) => {
+        const image = await readProjectImage(workdir, query.path);
+        return { bytes: new Uint8Array(image.data), type: image.type };
+      },
+    },
+    "GET /api/projects/:projectId/file/asset/:place/*": {
+      run: async ({ projectId: project, raw: c }) => {
+        const match = ASSET_PREFIX.exec(new URL(c.req.url).pathname);
+        if (!match) throw new Invalid("パスが正しくありません");
+        let place: string;
+        try {
+          place = decodeURIComponent(match[1]);
+        } catch {
+          throw new Invalid("作業場所の指定が正しくありません");
+        }
+        const workdir = place === "-" ? project.repo_path : await resolveWorkdir(project.repo_path, place);
+        const file = repoPath.parse(decodeSegments(match[2]));
+        return assetResponse(c, file, await readProjectAsset(workdir, file));
+      },
+    },
+    "GET /api/projects/:projectId/search": {
+      query: searchQuery,
+      run: ({ workdir, query: q }) =>
+        searchProject(workdir, { query: q.q, case_sensitive: q.case, whole_word: q.word, regex: q.regex, include: q.include, exclude: q.exclude, use_ignore: q.ignore }),
+    },
+    "POST /api/projects/:projectId/search/replace": { query: workdirQuery, body: replaceBodySchema, run: ({ workdir, body }) => replaceInProject(workdir, body) },
+    "PUT /api/projects/:projectId/file": {
+      query: workdirQuery,
+      body: z.object({ path: repoPath, content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() }),
+      run: ({ workdir, body }) => writeProjectFile(workdir, body.path, body.content, body.base_hash),
+    },
+    "POST /api/projects/:projectId/file/rename": {
+      query: workdirQuery,
+      body: z.object({ path: repoPath, name: z.string().min(1).max(255) }),
+      run: ({ workdir, body }) => renameProjectFile(workdir, body.path, body.name),
+    },
+    "POST /api/projects/:projectId/files": {
+      query: workdirQuery,
+      body: z.object({ path: repoPath, dir: z.boolean().default(false) }),
+      run: ({ workdir, body }) => createProjectFile(workdir, body.path, body.dir),
+    },
+    // 入れたゴミ箱の ID を返す（画面の「元に戻す」）
+    "DELETE /api/projects/:projectId/file": {
+      query: pathQuery,
+      run: async ({ projectId: project, workdir, query }) => {
+        const item = await trashProjectFile(workdir, query.path, (target) => trashBin.putPath(target, { projectId: project.id }));
+        return { trash_id: item.id };
+      },
+    },
   });
 }

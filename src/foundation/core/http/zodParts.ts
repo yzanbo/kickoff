@@ -17,3 +17,9 @@ export const branchName = z.string().trim().min(1).max(200);
 
 /** 並べ替えの ID の並び（500 まで） */
 export const idsBody = z.object({ ids: z.array(z.number().int()).max(500) });
+
+/** 作業場所のルート（取り決めの workdir: true）のクエリ。?worktree= は mount が作業場所に解くので受け口は読まない（ほかのクエリは extend で足す） */
+export const workdirQuery = z.object({ worktree: z.string().optional() });
+
+/** ?staged=1 などの切り替えを真偽にする（省けば fallback） */
+export const flagOn = (fallback: "0" | "1") => flag.default(fallback).transform((v) => v === "1");

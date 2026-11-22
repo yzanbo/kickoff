@@ -1,6 +1,8 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { GitBlame } from "@shared/git/types";
-import { api, type GitTarget } from "@/foundation/ui/api";
+import type { GitTarget } from "@/foundation/ui/api";
+import { gitApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /**
  * 開いているファイルの行ごとの変更の記録（`GET /git/blame`。エディタのいまの行の右に、いつ誰が変えたかを出す GitLens と同じ形）。
@@ -10,7 +12,7 @@ export function useGitBlame({ target, key, path, hash, version, enabled }: { tar
   const [state, setState] = useState<{ key: string; blame: GitBlame | null }>();
   // ファイル・作業場所（どちらも key で表す）・保存した中身・取り直した回で読み直す
   const readBlame = useEffectEvent((isAlive: () => boolean) => {
-    api.gitBlame(target, path).then(
+    gitApi("GET /api/projects/:projectId/git/blame", workdirInput(target, { path })).then(
       (blame) => isAlive() && setState({ key, blame }),
       () => isAlive() && setState({ key, blame: null }),
     );

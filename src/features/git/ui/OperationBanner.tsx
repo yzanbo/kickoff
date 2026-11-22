@@ -1,6 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import type { GitConflictResolution, GitOperation, GitOperationAction, GitStatus } from "@shared/git/types";
-import { GIT_OPERATION_LABELS } from "@shared/git/types";
+import { GIT_OPERATION_LABELS } from "@shared/git/labels";
 import type { ActionState } from "@/foundation/ui/hooks/useAction";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import type { CommitBusy } from "./useCommitActions";

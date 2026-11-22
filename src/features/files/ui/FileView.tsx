@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
 import type { GitFileChange, GitStatus } from "@shared/git/types";
-import { api, ApiError } from "@/foundation/ui/api";
+import { api, ApiError, workdirInput } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { baseName } from "@/foundation/ui/lib/format";
@@ -27,6 +27,7 @@ import { changeOf } from "@/features/git/ui/diff/sideFile";
 import { useGitBlame } from "@/features/git/ui/useGitBlame";
 import { useQuickDiffBase } from "@/features/git/ui/useQuickDiffBase";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+import { filesApi } from "./api";
 
 // 編集の部品（Monaco）は大きいので、ファイルの中身を初めて開いたときに読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -77,7 +78,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
   // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
-  const loaded = useQuery(key, () => api.projectFile(target, path), { deps: [version] });
+  const loaded = useQuery(key, () => filesApi("GET /api/projects/:projectId/file", workdirInput(target, { path })), { deps: [version] });
   const [stored, setBase] = useState<EditBase | null>(null);
   const [dirty, setDirty] = useState(false);
   // 保存している間と、その結果（保存しました・失敗の理由）
@@ -129,7 +130,6 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     if (pageKind) setPagePreview(showCode);
     setShowCode(!showCode);
   };
-
   const current = loaded.loaded ? { file: loaded.data, error: errorText(loaded.error) } : undefined;
   const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
   // 編集の始まり: 読み込んだ中身（作業場所が変わったら、その作業場所の中身から始め直す）
@@ -159,7 +159,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     saving.run(
       "save",
       async () => {
-        const write = (hash: string | null) => api.saveProjectFile(target, path, content, hash);
+        const write = (hash: string | null) => filesApi("PUT /api/projects/:projectId/file", { ...workdirInput(target), body: { path, content, base_hash: hash } });
         let saved: { hash: string };
         try {
           saved = await write(base.hash);

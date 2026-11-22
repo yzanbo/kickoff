@@ -1,24 +1,24 @@
-import type { Context, Hono } from "hono";
+import type { Hono } from "hono";
 import { z } from "zod";
 import { commitStaged, discardPaths, fetchRemote, gitBlame, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "@/features/git/core/index";
 import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "@/features/git/core/branches";
 import { createPullRequest, pullRequestFor } from "@/features/github/core/github";
 import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
-import type { GitBranchAction, GitBranchActionResult } from "@shared/git/types";
+import { gitContract } from "@shared/git/contract";
 import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
-import { jsonBody, queryOf } from "@/foundation/core/http/input";
+import { implement, type Param } from "@/foundation/core/http/implement";
 import { lookups } from "@/foundation/core/http/lookups";
-import { branchName, flag, repoPath } from "@/foundation/core/http/zodParts";
+import { branchName, flagOn, repoPath, workdirQuery } from "@/foundation/core/http/zodParts";
 
-const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), staged: flag.default("0") });
+const diffQuerySchema = workdirQuery.extend({ path: repoPath, old: repoPath.optional(), staged: flagOn("0") });
 
 /** Git の操作をしてから、新しい状態を返す（操作の失敗は 400） */
-async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
+async function gitAction(dir: string, action: () => Promise<void>) {
   await action();
-  return c.json(await gitStatus(dir));
+  return gitStatus(dir);
 }
 
 /**
@@ -61,111 +61,83 @@ const branchActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("stash_pop"), ref: stashRef }),
   z.object({ action: z.literal("stash_apply"), ref: stashRef }),
   z.object({ action: z.literal("stash_drop"), ref: stashRef }),
-]) satisfies z.ZodType<GitBranchAction>;
+]);
+
+/** ステージ・ステージの取り消し・変更を捨てるの本文 */
+const pathsBody = z.object({ paths: z.array(repoPath).min(1).max(5000) });
+/** パスの :hash はそのまま渡す（git が知らない名前なら 400） */
+const hashParam: Param<string> = { parse: (raw) => raw };
 
 /**
- * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
- * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
+ * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・ブランチの操作）。操作するフォルダは取り決めの workdir: true が ?worktree= から解く。
+ * ファイルの一覧・中身は files の routes/files.ts、ワークツリーは worktrees の routes/worktrees.ts
  */
-export function gitRoutes(app: Hono, { store, remoteGit }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; remoteGit: RemoteGit }) {
+export function gitRoutes({ store, remoteGit, projectParam }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; remoteGit: RemoteGit; projectParam: Param<Project> }) {
+  return implement(gitContract, {
+    context: { projectId: projectParam, hash: hashParam },
+    "GET /api/projects/:projectId/git/status": { query: workdirQuery, run: ({ workdir }) => gitStatus(workdir) },
+    "GET /api/projects/:projectId/git/diff": { query: diffQuerySchema, run: ({ workdir, query }) => gitDiff(workdir, query.path, query.staged, query.old) },
+    // 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければ索引）
+    "GET /api/projects/:projectId/git/original": { query: diffQuerySchema, run: ({ workdir, query }) => gitOriginal(workdir, query.path, query.staged, query.old) },
+    // 行ごとの変更の記録（git blame。エディタのいまの行の右に、いつ誰が変えたかを出す。Git で管理していないファイルは null）
+    "GET /api/projects/:projectId/git/blame": { query: workdirQuery.extend({ path: repoPath }), run: ({ workdir, query }) => gitBlame(workdir, query.path) },
+    // ステージ・ステージの取り消し・変更を捨てる（元に戻す）・コミット・プッシュ。終わったら新しい状態を返す
+    "POST /api/projects/:projectId/git/stage": { query: workdirQuery, body: pathsBody, run: ({ workdir, body }) => gitAction(workdir, () => stagePaths(workdir, body.paths)) },
+    "POST /api/projects/:projectId/git/unstage": { query: workdirQuery, body: pathsBody, run: ({ workdir, body }) => gitAction(workdir, () => unstagePaths(workdir, body.paths)) },
+    "POST /api/projects/:projectId/git/discard": { query: workdirQuery, body: pathsBody, run: ({ workdir, body }) => gitAction(workdir, () => discardPaths(workdir, body.paths)) },
+    "POST /api/projects/:projectId/git/commit": {
+      query: workdirQuery,
+      body: z.object({ message: z.string().max(10_000), amend: z.boolean().optional() }),
+      run: ({ workdir, body }) => gitAction(workdir, () => commitStaged(workdir, body.message, body.amend)),
+    },
+    "POST /api/projects/:projectId/git/push": { query: workdirQuery, run: ({ workdir }) => gitAction(workdir, () => pushBranch(workdir, remoteGit)) },
+    // 履歴（読むだけ）
+    "GET /api/projects/:projectId/git/refs": { query: workdirQuery, run: ({ workdir }) => gitRefs(workdir) },
+    "GET /api/projects/:projectId/git/log": { query: workdirQuery.extend({ skip: z.coerce.number().int().min(0).default(0) }), run: ({ workdir, query }) => gitLog(workdir, query.skip) },
+    "GET /api/projects/:projectId/git/commits/:hash": { query: workdirQuery, run: ({ workdir, hash }) => gitCommitDetail(workdir, hash) },
+    "GET /api/projects/:projectId/git/commits/:hash/diff": {
+      query: workdirQuery.extend({ path: repoPath, old: repoPath.optional() }),
+      run: ({ workdir, hash, query }) => gitCommitDiff(workdir, hash, query.path, query.old),
+    },
+    // フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない）・プル（早送りで最新にする）
+    "POST /api/projects/:projectId/git/fetch": { query: workdirQuery, run: ({ workdir }) => gitAction(workdir, () => fetchRemote(workdir, remoteGit)) },
+    "POST /api/projects/:projectId/git/pull": { query: workdirQuery, run: ({ workdir }) => gitAction(workdir, () => pullBranch(workdir, remoteGit)) },
+    // ブランチ・タグの操作（チェックアウト・プッシュ・マージなど）。終わったら状態と、衝突して止まったら衝突したファイルを返す
+    "POST /api/projects/:projectId/git/branch-action": {
+      query: workdirQuery,
+      body: branchActionSchema,
+      run: async ({ projectId: project, workdir: dir, body }) => {
+        const { conflicts } = await runBranchAction(dir, body, remoteGit);
+        const status = await gitStatus(dir);
+        if (body.action !== "push_pr") return { status, conflicts };
+        // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
+        const target = await resolveGitHubTarget(dir, project.github_remote);
+        return { status, conflicts, pr: await createPullRequest(dir, body.branch, target, closingIssues(store, project, dir, target)) };
+      },
+    },
+    // マージ・リベースの前の見込み（取り込むものがあるか・早送りで済むか・衝突しそうなファイル）
+    "GET /api/projects/:projectId/git/merge-preview": { query: workdirQuery.extend({ branch: refName }), run: ({ workdir, query }) => mergePreview(workdir, query.branch) },
+    // 途中で止まっているマージ・リベースなどを、取りやめる・続ける・飛ばす
+    "POST /api/projects/:projectId/git/operation": {
+      query: workdirQuery,
+      body: z.object({ action: z.enum(["abort", "continue", "skip"]) }),
+      run: async ({ workdir: dir, body }) => {
+        const { conflicts } = await runOperationAction(dir, body.action);
+        return { status: await gitStatus(dir), conflicts };
+      },
+    },
+    // 衝突したファイルを解く（こちらの版・取り込む側の版を使う・いまの中身で解決済みにする）
+    "POST /api/projects/:projectId/git/resolve": {
+      query: workdirQuery,
+      body: z.object({ path: repoPath, how: z.enum(["ours", "theirs", "mark"]) }),
+      run: ({ workdir: dir, body }) => gitAction(dir, () => resolveConflict(dir, body.path, body.how)),
+    },
+  });
+}
+
+/** 作業場所のブランチの PR（まだ取り決めの外。P8-2d で github へ） */
+export function gitPrRoutes(app: Hono, { store, remoteGit }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; remoteGit: RemoteGit }) {
   const { withWorkdir } = lookups(store);
-
-  app.get("/api/projects/:id/git/status", withWorkdir, async (c) => c.json(await gitStatus(c.var.workdir)));
-
-  app.get("/api/projects/:id/git/diff", withWorkdir, async (c) => {
-    const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
-    return c.json(await gitDiff(c.var.workdir, query.path, query.staged === "1", query.old));
-  });
-
-  // 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければ索引）
-  app.get("/api/projects/:id/git/original", withWorkdir, async (c) => {
-    const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
-    return c.json(await gitOriginal(c.var.workdir, query.path, query.staged === "1", query.old));
-  });
-
-  // 行ごとの変更の記録（git blame。エディタのいまの行の右に、いつ誰が変えたかを出す。Git で管理していないファイルは null）
-  app.get("/api/projects/:id/git/blame", withWorkdir, async (c) => {
-    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    return c.json(await gitBlame(c.var.workdir, path));
-  });
-
-  // ステージ・ステージの取り消し・変更を捨てる（元に戻す）。終わったら新しい状態を返す
-  const pathsSchema = z.object({ paths: z.array(repoPath).min(1).max(5000) });
-  const actions = { stage: stagePaths, unstage: unstagePaths, discard: discardPaths } as const;
-  for (const [name, action] of Object.entries(actions)) {
-    app.post(`/api/projects/:id/git/${name}`, withWorkdir, async (c) => {
-      const { paths } = pathsSchema.parse(await jsonBody(c));
-      const dir = c.var.workdir;
-      return gitAction(c, dir, () => action(dir, paths));
-    });
-  }
-
-  // コミット・プッシュ（終わったら新しい状態を返す）
-  app.post("/api/projects/:id/git/commit", withWorkdir, async (c) => {
-    const { message, amend } = z.object({ message: z.string().max(10_000), amend: z.boolean().optional() }).parse(await jsonBody(c));
-    const dir = c.var.workdir;
-    return gitAction(c, dir, () => commitStaged(dir, message, amend));
-  });
-
-  app.post("/api/projects/:id/git/push", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pushBranch(c.var.workdir, remoteGit)));
-
-  // 履歴（読むだけ）
-  app.get("/api/projects/:id/git/refs", withWorkdir, async (c) => c.json(await gitRefs(c.var.workdir)));
-
-  app.get("/api/projects/:id/git/log", withWorkdir, async (c) => {
-    const { skip, limit } = z
-      .object({ skip: z.coerce.number().int().min(0).default(0), limit: z.coerce.number().int().min(1).max(1000).default(200) })
-      .parse({ skip: queryOf(c, "skip"), limit: queryOf(c, "limit") });
-    return c.json(await gitLog(c.var.workdir, skip, limit));
-  });
-
-  app.get("/api/projects/:id/git/commits/:hash", withWorkdir, async (c) => c.json(await gitCommitDetail(c.var.workdir, c.req.param("hash"))));
-
-  app.get("/api/projects/:id/git/commits/:hash/diff", withWorkdir, async (c) => {
-    const query = z.object({ path: repoPath, old: repoPath.optional() }).parse({ path: c.req.query("path"), old: c.req.query("old") });
-    return c.json(await gitCommitDiff(c.var.workdir, c.req.param("hash"), query.path, query.old));
-  });
-
-  // フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない）
-  app.post("/api/projects/:id/git/fetch", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => fetchRemote(c.var.workdir, remoteGit)));
-
-  // プル（早送りで最新にする）
-  app.post("/api/projects/:id/git/pull", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pullBranch(c.var.workdir, remoteGit)));
-
-  // ブランチ・タグの操作（チェックアウト・プッシュ・マージなど）。終わったら状態と、衝突して止まったら衝突したファイルを返す
-  app.post("/api/projects/:id/git/branch-action", withWorkdir, async (c) => {
-    const body = branchActionSchema.parse(await jsonBody(c));
-    const dir = c.var.workdir;
-    const { conflicts } = await runBranchAction(dir, body, remoteGit);
-    const result: GitBranchActionResult = { status: await gitStatus(dir), conflicts };
-    // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
-    if (body.action === "push_pr") {
-      const target = await resolveGitHubTarget(dir, c.var.project.github_remote);
-      result.pr = await createPullRequest(dir, body.branch, target, closingIssues(store, c.var.project, dir, target));
-    }
-    return c.json(result);
-  });
-
-  // マージ・リベースの前の見込み（取り込むものがあるか・早送りで済むか・衝突しそうなファイル）
-  app.get("/api/projects/:id/git/merge-preview", withWorkdir, async (c) => {
-    const branch = refName.parse(c.req.query("branch"));
-    return c.json(await mergePreview(c.var.workdir, branch));
-  });
-
-  // 途中で止まっているマージ・リベースなどを、取りやめる・続ける・飛ばす
-  app.post("/api/projects/:id/git/operation", withWorkdir, async (c) => {
-    const { action } = z.object({ action: z.enum(["abort", "continue", "skip"]) }).parse(await jsonBody(c));
-    const dir = c.var.workdir;
-    const { conflicts } = await runOperationAction(dir, action);
-    return c.json({ status: await gitStatus(dir), conflicts } satisfies GitBranchActionResult);
-  });
-
-  // 衝突したファイルを解く（こちらの版・取り込む側の版を使う・いまの中身で解決済みにする）
-  app.post("/api/projects/:id/git/resolve", withWorkdir, async (c) => {
-    const { path, how } = z.object({ path: repoPath, how: z.enum(["ours", "theirs", "mark"]) }).parse(await jsonBody(c));
-    const dir = c.var.workdir;
-    return gitAction(c, dir, () => resolveConflict(dir, path, how));
-  });
 
   // 作業場所のブランチの PR（GitHub。gh を使う）。なければ null
   app.get("/api/projects/:id/git/pr", withWorkdir, async (c) => {

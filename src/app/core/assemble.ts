@@ -96,8 +96,8 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const providerSwitch = createProviderSwitch(k, { chat: chat.api, uploads: attachments.api.uploads, providerHandoffs });
   const workplaceMove = createWorkplaceMove(k, { chat: chat.api, ai: ai.api, projects: projects.api });
   const queue = createQueue({ chat: chat.api });
-  const files = createFiles(k, { trash: trash.api, chat: chat.api });
-  const git = createGit(k, { chat: chat.api });
+  const files = createFiles(k, { trash: trash.api, projects: projects.api, chat: chat.api });
+  const git = createGit(k, { projects: projects.api, chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
   const docker = createDocker(k, { chat: chat.api, guard: guard.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api }, env.worktrees);

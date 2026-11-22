@@ -1,6 +1,8 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { GitFileChange, GitStatus } from "@shared/git/types";
-import { api, type GitTarget } from "@/foundation/ui/api";
+import type { GitTarget } from "@/foundation/ui/api";
+import { gitApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /**
  * 編集の部品の行の横に出す Git との違いの帯の、元の中身（VS Code と同じく、ステージした中身。なければコミットの中身）。
@@ -30,7 +32,7 @@ export function useQuickDiffBase({
   const [fetched, setFetched] = useState<{ key: string; text: string | null }>();
   // 変更のあるファイル・作業場所・取り直した回で読み直す
   const readOriginal = useEffectEvent((file: GitFileChange, isAlive: () => boolean) => {
-    api.gitOriginal(target, file, false).then(
+    gitApi("GET /api/projects/:projectId/git/original", workdirInput(target, { path: file.path, old: file.old_path, staged: false })).then(
       (o) => isAlive() && setFetched({ key, text: o.binary || o.truncated ? null : o.content }),
       () => isAlive() && setFetched({ key, text: null }),
     );

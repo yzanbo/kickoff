@@ -6,8 +6,8 @@ import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatImagesApi } from "@/features/remoteImages/ui/api/chatImages";
 import { databasesApi } from "@/features/database/ui/api/databases";
 import { devicesApi } from "@/features/devices/ui/api/devices";
-import { filesApi } from "@/features/files/ui/api/files";
-import { gitApi } from "@/features/git/ui/api/git";
+import { filesShared } from "@/features/files/ui/api/files";
+import { gitShared } from "@/features/git/ui/api/git";
 import { githubApi } from "@/features/github/ui/api/github";
 import { dockerApi } from "@/features/docker/ui/api/docker";
 import { ciApi } from "@/features/github/ui/api/ci";
@@ -36,8 +36,8 @@ export const api = {
   ...uploadsApi,
   ...approvalsApi,
   ...providersApi,
-  ...gitApi,
-  ...filesApi,
+  ...gitShared,
+  ...filesShared,
   ...worktreesApi,
   ...voiceApi,
   ...notesApi,
@@ -52,4 +52,5 @@ export const api = {
 export { ApiError } from "./http";
 export { client } from "./client";
 export { attachmentUrl } from "@/features/attachments/ui/api/uploads";
+export { workdirInput } from "./workdir";
 export type { GitTarget } from "./workdir";

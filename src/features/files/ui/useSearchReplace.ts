@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/git/types";
-import { api, ApiError } from "@/foundation/ui/api";
+import type { ProjectReplaceResult } from "@shared/files/types";
+import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
+import { ApiError } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
@@ -8,6 +9,8 @@ import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHit
 import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import type { ProjectSearchController } from "./useProjectSearch";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** 置換したあとの知らせと、元に戻すのに使うもの（置換する前の中身と、置換したあとの指紋） */
 interface LastReplace {
@@ -54,7 +57,7 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
   };
   /** 置換して、探し直し・Git の状態を取り直す（失敗は投げる） */
   const replaceFiles = async (query: ProjectSearchQuery, files: readonly SearchFileResult[]) => {
-    const r = await api.replaceInProject(target, { query, replace: search.replace, preserve_case: search.preserveCase, files: replaceTargets(files) });
+    const r = await filesApi("POST /api/projects/:projectId/search/replace", { ...workdirInput(target), body: { query, replace: search.replace, preserve_case: search.preserveCase, files: replaceTargets(files) } });
     const undo = r.files.length > 0 && r.files.every((f) => f.before !== null) ? r.files.map((f) => ({ path: f.path, before: f.before ?? "", hash: f.hash })) : null;
     setLast({ message: replaceMessage(r), undo });
     search.rerun();
@@ -72,7 +75,7 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
   const restoreFiles = async (list: NonNullable<LastReplace["undo"]>) => {
     const kept: string[] = [];
     for (const f of list) {
-      await api.saveProjectFile(target, f.path, f.before, f.hash).catch((e: unknown) => {
+      await filesApi("PUT /api/projects/:projectId/file", { ...workdirInput(target), body: { path: f.path, content: f.before, base_hash: f.hash } }).catch((e: unknown) => {
         if (e instanceof ApiError && (e.status === 409 || e.status === 404)) kept.push(f.path);
         else throw e;
       });

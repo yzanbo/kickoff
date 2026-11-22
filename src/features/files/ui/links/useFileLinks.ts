@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ProjectFiles } from "@shared/git/types";
+import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { open } from "@/foundation/ui/navigation/open";

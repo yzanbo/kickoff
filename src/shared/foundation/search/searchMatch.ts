@@ -1,6 +1,21 @@
 // ファイルの中の検索の探し方・置き換え方。画面（結果の印・置換の見込み）とコア（core/git/search.ts の置換）が同じこの関数を使う。
 // 変えたら searchMatch.test.ts と server.git.test.ts の置換を通す
-import type { ProjectSearchQuery } from "@shared/git/types";
+/** プロジェクトのファイルの中を探すときの指定（VS Code の検索と同じ 3 つの切り替え） */
+export interface ProjectSearchQuery {
+  query: string;
+  /** 大文字と小文字を区別する */
+  case_sensitive: boolean;
+  /** 単語単位で探す */
+  whole_word: boolean;
+  /** 正規表現として探す */
+  regex: boolean;
+  /** 含めるファイル（VS Code と同じ glob のカンマ区切り。空ならすべて） */
+  include: string;
+  /** 除外するファイル（glob のカンマ区切り） */
+  exclude: string;
+  /** .gitignore などで無視しているファイルを除く（false なら無視しているものも探す） */
+  use_ignore: boolean;
+}
 
 /** 探し方を決める指定（含める・除外するファイルは使わない） */
 export type SearchPatternQuery = Pick<ProjectSearchQuery, "query" | "case_sensitive" | "whole_word" | "regex">;

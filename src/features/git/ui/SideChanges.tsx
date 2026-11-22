@@ -13,7 +13,8 @@ import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { DiffLayoutToggle } from "@/foundation/ui/diff/DiffLayoutToggle";
-import { CHANGE_LABELS, DiffView, useFileDiff } from "./DiffView";
+import { GIT_CHANGE_LABELS } from "@shared/git/labels";
+import { DiffView, useFileDiff } from "./DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { changedFiles, diffFingerprint, pruneViewed, viewedStateOf } from "@/features/git/ui/diff/sideFile";
 import { useCodeQuoteMenu } from "@/features/files/ui/useCodeQuoteMenu";
@@ -156,7 +157,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
                     <PathParts path={file.path} nameClass="side-changes-name" dirClass="side-changes-dir" />
                     {viewed[file.path] !== undefined && !changedSince.has(file.path) && <Check size={12} className="side-changes-viewed" aria-label="確認済み" />}
                     <span className="change-kind side-changes-kind" data-kind={file.kind}>
-                      {CHANGE_LABELS[file.kind]}
+                      {GIT_CHANGE_LABELS[file.kind]}
                     </span>
                   </button>
                 </li>
@@ -243,7 +244,7 @@ function ChangeSection({
           <FileIcon name={file.path} />
           <PathParts path={file.old_path ? `${file.old_path} → ${file.path}` : file.path} nameClass="side-changes-name" dirClass="side-changes-dir" />
           <span className="change-kind side-changes-kind" data-kind={file.kind}>
-            {CHANGE_LABELS[file.kind]}・{staged ? "ステージ済み" : "未ステージ"}
+            {GIT_CHANGE_LABELS[file.kind]}・{staged ? "ステージ済み" : "未ステージ"}
           </span>
         </button>
         {state === "changed" && (

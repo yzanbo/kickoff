@@ -1,4 +1,4 @@
-import type { ProjectSearchResult, SearchMatch } from "@shared/git/types";
+import type { ProjectSearchResult, SearchMatch } from "@shared/files/types";
 
 /** 検索の結果のファイル（ファイルごとの見つかった行） */
 export type SearchFileResult = ProjectSearchResult["files"][number];

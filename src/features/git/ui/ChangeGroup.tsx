@@ -9,7 +9,7 @@ import { confirm } from "@/foundation/ui/kit/ask";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
-import { CHANGE_LABELS } from "./DiffView";
+import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileTree, siblingNameError, type TreeMulti } from "@/features/files/ui/FileTree";
 import { buildTree, folderPaths, kindMaps, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
@@ -145,7 +145,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
                   <button
                     className={cx("list-item change-file", isSelected && "selected")}
                     aria-current={isSelected || undefined}
-                    title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
+                    title={`${file.path}（${GIT_CHANGE_LABELS[file.kind]}）`}
                     onClick={(e) => {
                       if (!multi.click(e, file.path)) onSelect({ path: file.path, staged });
                     }}
@@ -166,7 +166,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
                   >
                     <FileIcon name={name} />
                     <PathParts path={file.path} nameClass={cx("change-name", file.kind === "D" && "deleted")} dirClass="change-dir" />
-                    <span className="change-kind" data-kind={file.kind} aria-label={CHANGE_LABELS[file.kind]}>
+                    <span className="change-kind" data-kind={file.kind} aria-label={GIT_CHANGE_LABELS[file.kind]}>
                       {file.kind}
                     </span>
                   </button>

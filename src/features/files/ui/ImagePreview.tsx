@@ -1,10 +1,11 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { formatBytes } from "@shared/foundation/text/bytes";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { filesApi } from "./api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /**
  * 画像のファイルのプレビュー（ファイルタブ・右の欄・別ウィンドウの FileView。VS Code の画像のプレビューと同じく、
@@ -21,7 +22,7 @@ export function ImagePreview({ projectId, path, version, source }: { projectId: 
   const name = path.slice(path.lastIndexOf("/") + 1);
 
   // 読み直すのは、作業場所（key で表す）・ファイル・版・書きかけの中身が変わったときだけ
-  const readImage = useEffectEvent(() => (source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : api.projectImage(target, path)));
+  const readImage = useEffectEvent(() => (source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : filesApi("GET /api/projects/:projectId/file/image", workdirInput(target, { path })).then((r) => r.blob)));
   useEffect(() => {
     let alive = true;
     let url: string | undefined;

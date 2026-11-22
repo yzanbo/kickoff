@@ -14,13 +14,16 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { CHANGE_LABELS, DiffView } from "@/features/git/ui/DiffView";
+import { GIT_CHANGE_LABELS } from "@shared/git/labels";
+import { DiffView } from "@/features/git/ui/DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileTree } from "@/features/files/ui/FileTree";
 import { buildTree, folderPaths, kindMaps } from "@/foundation/ui/kit/list/treeModel";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { CommitSummary } from "./CommitSummary";
 import type { RefTarget } from "./refTarget";
+import { gitApi } from "@/features/git/ui/api";
+import { workdirInput } from "@/foundation/ui/api/workdir";
 
 type CommitTab = "commit" | "changes";
 
@@ -50,7 +53,7 @@ export function CommitView({
 }) {
   const { target, key: at } = useGitTarget(projectId);
   // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
-  const loaded = useQuery(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
+  const loaded = useQuery(commit.hash, () => gitApi("GET /api/projects/:projectId/git/commits/:hash", { params: { ...workdirInput(target).params, hash: commit.hash }, query: workdirInput(target).query }), { deps: [at] });
   const detail = loaded.data;
   // 連携先が GitHub なら、SHA の横にこのコミットの GitHub のページを開くボタンを出す（プロジェクトごとに 1 回聞く）
   const github = useQuery(["CommitView.github", projectId], () => api.projectGitHub(projectId).catch(() => null), { keepPrevious: true });
@@ -127,7 +130,7 @@ export function CommitView({
                         <button
                           className={cx("list-item change-file", selected && "selected")}
                           aria-current={selected || undefined}
-                          title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
+                          title={`${f.path}（${GIT_CHANGE_LABELS[f.kind]}）`}
                           onClick={() => setFile(f)}
                         >
                           <FileIcon name={baseName(f.path)} />

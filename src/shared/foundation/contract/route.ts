@@ -25,6 +25,11 @@ export interface RouteSpec<B = never, R = unknown, Q = never, K extends RouteKin
   readonly [types]?: { body: B; res: R; query: Q };
 }
 
+/** 作業場所のルート（workdir: true）のクエリ（ワークツリーの作業するフォルダ。省けば本体。コアは mount が作業場所に解く） */
+export interface WorkdirQuery {
+  worktree?: string;
+}
+
 type Opts = { status?: 200 | 201 | 202; alsoStatus?: SuccessStatus; access?: Access; workdir?: true; marks?: Readonly<Record<string, true>> };
 type Extra = Pick<RouteSpec, "alsoStatus" | "access" | "workdir" | "marks">;
 

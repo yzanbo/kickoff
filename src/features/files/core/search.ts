@@ -1,6 +1,7 @@
 // ファイルの中を探す（git grep）と、探した結果を置換する
 import fs from "node:fs/promises";
-import type { ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult } from "@shared/git/types";
+import type { ProjectReplaceBody, ProjectReplaceResult, ProjectSearchResult } from "@shared/files/types";
+import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
 import { toPathspecs } from "@shared/foundation/search/pathGlobs";
 import { replaceInLine, searchPattern } from "@shared/foundation/search/searchMatch";
 import { Invalid, NotFound } from "@/foundation/core/errors";
