@@ -1,6 +1,5 @@
 // サイドバーのコマンド: ⌘B 開閉・⌃Tab ⌥⌘← → 前後のプロジェクト・⌃1〜9 n 番目のプロジェクト
 import { commandHandler, commands } from "@/foundation/ui/commands";
-import { IS_MAC } from "@/foundation/ui/lib/keys";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 
@@ -8,8 +7,8 @@ import { storage } from "./storage";
 export type ProjectMove = { step: -1 | 1; wrap: boolean; vertical: boolean } | { at: number };
 export const projectMoves = commandHandler<[move: ProjectMove]>();
 
-/** ⌥⌘↑ ↓ は縦スライドのときだけ（useProjectNav が vertical を断る）。⌥⌘ はいまは Mac の ⌘ だけ */
-const arrowStep = (step: -1 | 1, vertical: boolean) => () => IS_MAC && projectMoves.run({ step, wrap: false, vertical });
+/** ⌥⌘↑ ↓ は縦スライドのときだけ（useProjectNav が vertical を断る） */
+const arrowStep = (step: -1 | 1, vertical: boolean) => () => projectMoves.run({ step, wrap: false, vertical });
 
 export const sidebarCommands = [
   commands.item({ id: "sidebar.toggle", title: "サイドバーの開閉", keys: "mod+b", run: () => writeSetting(storage.settings.open, !readSetting(storage.settings.open)) }),

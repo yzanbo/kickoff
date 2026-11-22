@@ -11,7 +11,6 @@ import { basicSection, deleteSection, referencesSection } from "./settings/setti
 import { trashView } from "./trashView";
 import { sidePopout } from "./popoutKinds";
 import { commands } from "@/foundation/ui/commands";
-import { IS_MAC } from "@/foundation/ui/lib/keys";
 import { rightSidebarToggles } from "./rightSidebar/useRightSidebar";
 
 export const contributes = [
@@ -22,12 +21,12 @@ export const contributes = [
   settingsSections.item(referencesSection),
   settingsSections.item(deleteSection),
   popoutKinds.item(sidePopout),
-  // ⌥ を押すと文字が変わるので、キーの位置で見る（いまは Mac の ⌘ だけ）。エディタが先に受けても効く
+  // ⌥ を押すと文字が変わるので、キーの位置で見る。エディタが先に受けても効く
   commands.item({
     id: "projects.toggleRightSidebar",
     title: "右サイドバーの開閉",
     keys: "alt+mod+code:KeyB",
     evenIfHandled: true,
-    run: () => IS_MAC && rightSidebarToggles.run(),
+    run: () => rightSidebarToggles.run(),
   }),
 ];
