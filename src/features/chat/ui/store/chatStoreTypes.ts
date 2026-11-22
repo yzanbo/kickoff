@@ -117,6 +117,8 @@ export interface Entry {
   viewers: Map<symbol, ChatVisibility>;
   /** 見る部品がなくなった時刻（捨てる順） */
   releasedAt: number;
+  /** 先読みしただけのチャットの、先読みした順（大きいほど新しい。一度でも見たら null） */
+  prefetched: number | null;
   /** 見る部品がなくなってから末尾を縮めるタイマー */
   cancelShrink: (() => void) | null;
   /** 見ていない間に SSE をつなぎ直した（次に見るときに取り直す） */

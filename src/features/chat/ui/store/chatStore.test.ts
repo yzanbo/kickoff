@@ -1,62 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { Chat } from "@shared/chat/types";
-import { CHAT_TAIL_TURNS, type ChatDetail, type ChatDetailQuery, type ChatEventPage, type ChatEventsQuery } from "@shared/chat/detail";
-import { busEvent, makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
+import { makeEvent } from "@shared/foundation/testing/factories";
 import { settle } from "@shared/foundation/testing/async";
-import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
-import { EMPTY_DETAIL } from "./chatDetail";
-import { createChatStore, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS, WARM_CHATS } from "./chatStore";
-
-/** 偽の rAF・タイマー・時計・読み込みで作った店（テストごとに新しく作る） */
-function setup() {
-  let hidden = false;
-  const clock = createFakeScheduler();
-  const loads: { chatId: number; query: ChatDetailQuery; resolve: (d: ChatDetail) => void; reject: (e: Error) => void }[] = [];
-  const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void; reject: (e: Error) => void }[] = [];
-  const store = createChatStore({
-    frame: clock.frame,
-    idle: clock.idle,
-    timer: clock.timer,
-    now: clock.now,
-    windowHidden: () => hidden,
-    load: (chatId, query) => new Promise((resolve, reject) => loads.push({ chatId, query, resolve, reject })),
-    page: (chatId, query) => new Promise((resolve, reject) => pages.push({ chatId, query, resolve, reject })),
-  });
-  /** 口ごとの知らせの回数 */
-  const counts = (chatId: number) => {
-    const c = { detail: 0, log: 0, progress: 0, streaming: 0 };
-    for (const channel of ["detail", "log", "progress", "streaming"] as const) store.subscribe(chatId, channel, () => c[channel]++);
-    return c;
-  };
-  return { store, clock, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
-}
-
-const chatOf = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
-const text = (id: number, chatId = 1, data: { text: string; parent?: string } = { text: `#${id}` }) => makeEvent(id, "text", data, { chat_id: chatId });
-const added = (event: ChatEvent) => busEvent("chat_event", { project_id: 1, event });
-const delta = (t: string, offset: number, chatId = 1) => busEvent("chat_delta", { project_id: 1, chat_id: chatId, text: t, offset });
-const detail = (chat: Chat, events: ChatEvent[] = [], streaming: string | null = null): ChatDetail => ({
-  chat,
-  events,
-  has_earlier: false,
-  after_missing: false,
-  approvals: [],
-  live: EMPTY_DETAIL.live,
-  streaming_text: streaming,
-  streaming_length: streaming?.length ?? 0,
-});
-
-/** チャット 1 を開いて読み込み、開いた直後のため方も終えた店 */
-async function opened(events: ChatEvent[] = [text(1)], streaming: string | null = null) {
-  const s = setup();
-  const handle = s.store.retain(1, "visible");
-  s.loads[0].resolve(detail(chatOf(1), events, streaming));
-  await settle();
-  s.store.markPainted(1);
-  return { ...s, handle };
-}
+import { OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS } from "./chatStore";
+import { added, chatOf, delta, detail, opened, setup, text , openedTail } from "./storeTesting";
 
 test("同じチャットを何か所で開いても読み込みは 1 回で、見る部品がなくなっても中身を残す", async () => {
   const { store, loads } = setup();
@@ -248,20 +196,6 @@ test("一度も読めなかったら失敗を出し、もう一度見るとき�
   assert.equal(loads.length, 2);
 });
 
-test("見る部品のないチャットは WARM_CHATS 件まで残し、古く見なくなったものから捨てる", async () => {
-  const { store, loads, clock } = setup();
-  for (let id = 1; id <= WARM_CHATS + 1; id++) {
-    const h = store.retain(id, "visible");
-    loads.at(-1)?.resolve(detail(chatOf(id)));
-    await settle();
-    clock.advance(1);
-    h.release();
-  }
-  assert.equal(store.size(), WARM_CHATS);
-  assert.equal(store.detail(1).chat, undefined);
-  assert.equal(store.detail(2).chat?.id, 2);
-});
-
 test("サブエージェントの途中経過を作業 ID ごとに覚え、届いた時刻も持つ", async () => {
   const { store, counts, clock } = await opened();
   const c = counts(1);
@@ -276,16 +210,6 @@ test("サブエージェントの途中経過を作業 ID ごとに覚え、届�
 });
 
 /** 末尾（5 から 7）と索引（作業の終わり 2・4）で開いた店（記録 1〜7。作業の終わりは 2・4・6） */
-async function openedTail() {
-  const s = setup();
-  const handle = s.store.retain(1, "visible");
-  const result = (id: number) => makeEvent(id, "result", { status: "completed" }, { chat_id: 1 });
-  s.loads[0].resolve({ ...detail(chatOf(1, "completed"), [text(5), result(6), text(7)]), has_earlier: true, index: [result(2), result(4)], head_partial: false });
-  await settle();
-  s.store.markPainted(1);
-  return { ...s, handle, result };
-}
-
 test("末尾で開き、前を読み足す・遠い記録を途中の一部分として読む・末尾に戻る（メモの仕様書「0023_表示を軽くする」の案 4）", async () => {
   const { store, pages, clock, result } = await openedTail();
   assert.deepEqual([store.log(1).tailStart, store.log(1).hasEarlier], [5, true]);
@@ -394,37 +318,4 @@ test("頭のターンを読めなかったら、同じ末尾では読み直さ�
   s.clock.runIdle();
   assert.equal(s.pages.length, 1);
   assert.equal(s.store.log(1).headPartial, true);
-});
-
-test("先読みは見る部品を増やさずに読み、開いたときは読み直さずにすぐ見せる（案 4 の先読み）", async () => {
-  const s = setup();
-  const done = s.store.prefetch(3);
-  assert.deepEqual(s.loads[0].query, { tail_turns: CHAT_TAIL_TURNS });
-  // 読み込み中にもう一度頼んでも 1 回
-  void s.store.prefetch(3);
-  assert.equal(s.loads.length, 1);
-  s.loads[0].resolve(detail(chatOf(3, "completed"), [text(1, 3)]));
-  await done;
-  assert.deepEqual(s.store.log(3).events.map((e) => e.id), [1]);
-  s.store.retain(3, "visible");
-  assert.equal(s.loads.length, 1);
-  assert.deepEqual(s.store.log(3).events.map((e) => e.id), [1]);
-});
-
-test("先読みしただけのチャットは、見なくなったチャットより先に上限で捨てる。見ているチャットの読み込み中は busy", async () => {
-  const s = setup();
-  void s.store.prefetch(500);
-  s.loads[0].resolve(detail(chatOf(500, "completed")));
-  await settle();
-  for (let id = 1; id <= WARM_CHATS; id++) {
-    const h = s.store.retain(id, "visible");
-    assert.equal(s.store.busy(), true);
-    s.loads.at(-1)!.resolve(detail(chatOf(id, "completed")));
-    await settle();
-    s.clock.advance(1);
-    h.release();
-  }
-  assert.equal(s.store.busy(), false);
-  assert.equal(s.store.size(), WARM_CHATS);
-  assert.equal(s.store.log(500).events.length, 0);
 });

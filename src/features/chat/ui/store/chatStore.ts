@@ -6,6 +6,7 @@ import { detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, 
 import { digestOf, loadedOf, prefaceOf, type LogRange } from "./chatLog";
 import { createPaging } from "./chatPaging";
 import { createStreamOps } from "./chatStream";
+import { PREFETCH_QUEUE } from "./prefetch";
 import {
   EMPTY_LOG,
   EMPTY_PROGRESS,
@@ -28,8 +29,7 @@ import {
 export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHRINK_AFTER_MS, type ChatVisibility, type ChatStoreDeps, type ChatDetailView, type ChatLogView, type ChatProgressView } from "./chatStoreTypes";
 
 /*
- * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・
- * 書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・ノートの欄）で
+ * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・ノートの欄）で
  * 開いても、読み込みと SSE の当て方はここで 1 回。React には依存しない（hook は useChatStore.ts）。
  *
  * 口は用途ごとに分け、部品は要る口だけを購読する:
@@ -45,14 +45,14 @@ export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHR
  * （rAF。隠れたウィンドウでは rAF が止まるので PUBLISH_FALLBACK_MS で当てる）。開いた直後（中身を初めて見せた・残っていた中身をまた見せた）は、
  * 待たずに 1 回見せてから描き終えるまで（markPainted か OPEN_HOLD_MAX_MS）ためて 1 回で当てる。
  *
- * 見る部品がなくなったチャット（retain が 0）も、WARM_CHATS 件まで中身を残して知らせを当て続け、SHRINK_AFTER_MS たったら末尾を最新
- * CHAT_TAIL_TURNS ターンに縮める。SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し
+ * 見る部品がなくなったチャット（retain が 0）も、WARM_CHATS 件まで中身を残して知らせを当て続け、SHRINK_AFTER_MS たったら末尾を最新 CHAT_TAIL_TURNS ターンに縮める。SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し
  * （巻き戻しで消えていれば末尾から読み直す）、見ていないチャットは次に見るときに取り直す（stale）
  */
 
 /** チャットの店を作る（アプリでは useChatStore.ts の 1 つだけ。テストは偽の frame・timer・時計・読み込みで作る） */
 export function createChatStore(deps: ChatStoreDeps) {
   const entries = new Map<number, Entry>();
+  let prefetchSeq = 0;
   const listeners = new Map<number, Record<Channel, Set<() => void>>>();
 
   const notify = (chatId: number, channel: Channel) => {
@@ -72,6 +72,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       paging: null,
       viewers: new Map(),
       releasedAt: deps.now(),
+      prefetched: null,
       cancelShrink: null,
       stale: false,
       shown: false,
@@ -230,10 +231,12 @@ export function createChatStore(deps: ChatStoreDeps) {
       });
   };
 
-  /** 見る部品のないチャットを、新しく見なくなった順に WARM_CHATS 件まで残して捨てる */
+  /** 見る部品のないチャットを、見なくなったもの WARM_CHATS 件・先読みだけのもの PREFETCH_QUEUE 件まで新しい順に残して捨てる（別々に数える） */
   const trim = () => {
-    const idle = [...entries.values()].filter((e) => e.viewers.size === 0).sort((a, b) => b.releasedAt - a.releasedAt);
-    for (const e of idle.slice(WARM_CHATS)) {
+    const idle = [...entries.values()].filter((e) => e.viewers.size === 0);
+    const released = idle.filter((e) => e.prefetched === null).sort((a, b) => b.releasedAt - a.releasedAt);
+    const prefetched = idle.filter((e) => e.prefetched !== null).sort((a, b) => b.prefetched! - a.prefetched!);
+    for (const e of [...released.slice(WARM_CHATS), ...prefetched.slice(PREFETCH_QUEUE)]) {
       e.cancelPublish?.();
       e.cancelFill?.();
       e.cancelShrink?.();
@@ -256,6 +259,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       const key = Symbol(chatId);
       const first = e.viewers.size === 0;
       e.viewers.set(key, visibility);
+      e.prefetched = null;
       e.cancelShrink?.();
       e.cancelShrink = null;
       if (e.replay === null && (!e.detail.chat || e.stale)) void load(e);
@@ -277,11 +281,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       };
     },
 
-    /**
-     * チャットを先読みする（見る部品は増やさない）。中身がなければ末尾と索引を読み、
-     * 見ていない間につなぎ直していれば取り直す。読み終えたら（読めなくても・もう持っていれば すぐ）解決する。先読みしただけのチャットは、
-     * 一度も見ていないものとして、見なくなったチャットより先に WARM_CHATS の上限で捨てる
-     */
+    /** チャットを先読みする（見る部品は増やさない。中身がなければ末尾と索引を読み、つなぎ直していれば取り直す。読み終えたら・読めなくても・持っていればすぐ解決） */
     prefetch(chatId: number): Promise<void> {
       const existing = entries.get(chatId);
       if (existing) {
@@ -289,7 +289,7 @@ export function createChatStore(deps: ChatStoreDeps) {
         return Promise.resolve();
       }
       const e = create(chatId);
-      e.releasedAt = 0;
+      e.prefetched = ++prefetchSeq;
       const run = load(e);
       trim();
       return run;
