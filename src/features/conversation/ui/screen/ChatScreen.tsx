@@ -37,7 +37,7 @@ interface ChatPaneProps {
  * （チャットごとに作り直す）。読むのはチャット（名前・状態）だけで、記録が届いても描き直さない（会話の欄が自分で読む）
  */
 export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew, slot }: ChatPaneProps) {
-  const { chat, project, error } = useOpenChat(chatId, visible);
+  const { chat, project, error, ready } = useOpenChat(chatId, visible);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる。会話の欄の外なので、裏のタブでも届く）
   const notifyChat = useEffectEvent((current: Chat) => onChatChange?.(current));
@@ -46,7 +46,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
   }, [chat]);
 
   if (error) return <div className="page error">{error}</div>;
-  if (!chat) return <div className="page muted">読み込み中…</div>;
+  if (!ready || !chat) return <div className="page muted">読み込み中…</div>;
   return <ChatView key={chat.id} chat={chat} project={project} focus={focus} visible={visible} onOpenNew={onOpenNew} slot={slot} pausable />;
 }
 

@@ -115,9 +115,9 @@ export function NoteChat({
 
 /** ノートのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
 function NoteChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
-  const { chat, project, error } = useOpenChat(chatId, visible);
+  const { chat, project, error, ready } = useOpenChat(chatId, visible);
   if (error) return <div className="page error">{error}</div>;
-  if (!chat) return <div className="page muted">読み込み中…</div>;
+  if (!ready || !chat) return <div className="page muted">読み込み中…</div>;
   return (
     <PanelHostContext.Provider value={null}>
       <ChatView chat={chat} project={project} visible={visible} beforeSend={beforeSend} />

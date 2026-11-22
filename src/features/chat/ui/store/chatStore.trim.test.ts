@@ -6,8 +6,8 @@ import { PREFETCH_QUEUE } from "./prefetch";
 import { WARM_CHATS } from "./chatStoreTypes";
 import { chatOf, detail, setup, text } from "./storeTesting";
 
-test("見る部品のないチャットは WARM_CHATS 件まで残し、古く見なくなったものから捨てる", async () => {
-  const { store, loads, clock } = setup();
+test("見る部品のないチャットは WARM_CHATS 件まで残し、古く見なくなったものから捨てる（知っているチャットからも忘れる）", async () => {
+  const { store, chats, loads, clock } = setup();
   for (let id = 1; id <= WARM_CHATS + 1; id++) {
     const h = store.retain(id, "visible");
     loads.at(-1)?.resolve(detail(chatOf(id)));
@@ -17,7 +17,32 @@ test("見る部品のないチャットは WARM_CHATS 件まで残し、古く�
   }
   assert.equal(store.size(), WARM_CHATS);
   assert.equal(store.detail(1).chat, undefined);
+  assert.equal(chats.get(1), undefined);
   assert.equal(store.detail(2).chat?.id, 2);
+  assert.equal(chats.get(2)?.id, 2);
+});
+
+test("読み込みの印は中身を読めたら ready。チャットは知っているチャットから引き、読み込みの最中に届いたチャットの知らせを当て直して入れる", async () => {
+  const s = setup();
+  s.store.retain(1, "visible");
+  assert.equal(s.store.detail(1).state, "loading");
+  s.store.apply({ type: "chat", chat: chatOf(1, "completed") });
+  s.loads[0].resolve(detail(chatOf(1, "running")));
+  await settle();
+  assert.equal(s.store.detail(1).state, "ready");
+  assert.equal(s.chats.get(1)?.status, "completed");
+  assert.equal(s.store.detail(1).chat?.status, "completed");
+  s.store.markPainted(1);
+  // 知っているチャットが直ったら、知らせで見せ直す
+  s.chats.update(chatOf(1, "failed"));
+  s.store.apply({ type: "chat", chat: chatOf(1, "failed") });
+  s.clock.advance(200);
+  assert.equal(s.store.detail(1).chat?.status, "failed");
+  // 引けなくなっても（消した）、前に見せたもののまま
+  s.chats.forget(1);
+  s.store.apply({ type: "chat", chat: chatOf(1, "failed") });
+  s.clock.advance(200);
+  assert.equal(s.store.detail(1).chat?.status, "failed");
 });
 
 test("先読みは見る部品を増やさずに読み、開いたときは読み直さずにすぐ見せる（案 4 の先読み）", async () => {

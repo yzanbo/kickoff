@@ -2,10 +2,10 @@ import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
 import { streamingEffectOf } from "@shared/chat/streamingRules";
-import { detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
-import { digestOf, loadedOf, prefaceOf, type LogRange } from "./chatLog";
+import { chatAfter, detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 import { createPaging } from "./chatPaging";
 import { createStreamOps } from "./chatStream";
+import { createLogView } from "./logView";
 import { PREFETCH_QUEUE } from "./prefetch";
 import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, WARM_CHATS, type Channel, type ChatDetailView, type ChatLogView, type ChatProgressView, type ChatStoreDeps, type ChatVisibility, type Entry, type Published } from "./chatStoreTypes";
 
@@ -14,7 +14,7 @@ import { EMPTY_LOG, EMPTY_PROGRESS, EMPTY_VIEW, HEAD_FILL_IDLE_MS, OPEN_HOLD_MAX
  * 開いても、読み込みと SSE の当て方はここで 1 回。React には依存しない（hook は useChatStore.ts）。
  *
  * 口は用途ごとに分け、部品は要る口だけを購読する:
- * - detail: チャット・回答待ち・作業中の様子・読み込みの失敗（変わることが少ない）
+ * - detail: 読み込みの印・チャット（知っているチャット knownChats.ts から引く）・回答待ち・作業中の様子・読み込みの失敗（変わることが少ない）
  * - log: 記録（流れに出す記録・末尾・記録全体から作るものに渡す digest など。chatLog.ts）と、書いている途中の返答の世代 streamGen
  * - streaming: 書いている途中の返答（React の state に入れない。少しずつ出す部品が rAF の中で streamText で読む。chatStream.ts）
  * - progress: サブエージェントの途中経過（SSE の chat_subagent。記録に残らない）
@@ -57,6 +57,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       memos: new Map(),
       cancelShrink: null,
       stale: false,
+      loaded: false,
       shown: false,
       published: { detail: EMPTY_VIEW, log: EMPTY_LOG, progress: EMPTY_PROGRESS },
       dirty: new Set(),
@@ -71,28 +72,7 @@ export function createChatStore(deps: ChatStoreDeps) {
 
   // ---- 見せる値の差し替え（1 フレームに 1 回・開いた直後はためる） ----
 
-  /** 口 log の値（前の値と範囲・頭が同じなら、流れの項目に渡す preface は同じものを使う） */
-  const logView = (e: Entry): ChatLogView => {
-    const { events: tail, range } = e.detail;
-    const prev = e.published.log;
-    const events = range.focus?.events ?? tail;
-    const sameRange = prevRange.get(e) === range;
-    prevRange.set(e, range);
-    return {
-      events,
-      tail,
-      digest: digestOf(range, tail),
-      loaded: loadedOf(range, tail),
-      preface: sameRange && prev.events[0]?.id === events[0]?.id ? prev.preface : prefaceOf(range, tail),
-      tailStart: range.tailStart,
-      hasEarlier: range.focus ? range.focus.hasEarlier : range.hasEarlier,
-      focused: range.focus !== null,
-      headPartial: range.focus === null && range.headPartial,
-      paging: e.paging !== null,
-      streamGen: e.stream.gen,
-    };
-  };
-  const prevRange = new WeakMap<Entry, LogRange>();
+  const logView = createLogView();
 
   const publish = (e: Entry) => {
     e.cancelPublish?.();
@@ -100,7 +80,8 @@ export function createChatStore(deps: ChatStoreDeps) {
     const dirty = [...e.dirty];
     e.dirty.clear();
     for (const channel of dirty) {
-      if (channel === "detail") e.published.detail = { chat: e.detail.chat, approvals: e.detail.approvals, live: e.detail.live, error: e.error };
+      // チャットは知っているチャットから引く（消したチャットなど、引けなくなったら前に見せたもののまま）
+      if (channel === "detail") e.published.detail = { state: e.loaded ? "ready" : "loading", chat: deps.chats.get(e.chatId) ?? e.published.detail.chat, approvals: e.detail.approvals, live: e.detail.live, error: e.error };
       else if (channel === "log") e.published.log = logView(e);
       else e.published.progress = e.progress;
     }
@@ -165,7 +146,7 @@ export function createChatStore(deps: ChatStoreDeps) {
 
   /** 当てたあとの中身と前の中身を比べ、変わった口を差し替えの予約に入れる */
   const changed = (e: Entry, prev: ChatDetailState) => {
-    if (prev.chat !== e.detail.chat || prev.approvals !== e.detail.approvals || prev.live !== e.detail.live) mark(e, "detail");
+    if (prev.approvals !== e.detail.approvals || prev.live !== e.detail.live) mark(e, "detail");
     if (prev.events !== e.detail.events || prev.range !== e.detail.range) mark(e, "log");
   };
 
@@ -174,7 +155,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     const id = ++e.request;
     e.replay = [];
     e.stale = false;
-    const last = all || !e.detail.chat ? undefined : e.detail.events.at(-1)?.id;
+    const last = all || !e.loaded ? undefined : e.detail.events.at(-1)?.id;
     const alive = () => e.request === id && entries.get(e.chatId) === e;
     return deps
       .load(e.chatId, last === undefined ? { tail_turns: CHAT_TAIL_TURNS } : { after: last })
@@ -190,7 +171,9 @@ export function createChatStore(deps: ChatStoreDeps) {
           e.fillTriedAt = null;
         }
         e.detail = last === undefined ? detailFromSnapshot(d, missed, e.chatId, prev) : detailFromIncrement(d, missed, e.chatId, prev);
-        if (e.error !== null) mark(e, "detail");
+        deps.chats.remember(chatAfter(d.chat, missed, e.chatId));
+        e.loaded = true;
+        mark(e, "detail");
         e.error = null;
         stream.seed(e, d.chat.status === "running" ? d.streaming_text : null, missed);
         changed(e, prev);
@@ -206,7 +189,7 @@ export function createChatStore(deps: ChatStoreDeps) {
         if (!alive()) return;
         e.replay = null;
         // 中身を一度も読めていなければ失敗を出す。取り直しの失敗は前の中身を出したまま（次につながったときにまた取り直す）
-        if (e.detail.chat) return;
+        if (e.loaded) return;
         e.error = errorMessage(err);
         e.dirty.add("detail");
         publish(e);
@@ -225,6 +208,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       e.stream.cancel?.();
       e.hold?.();
       entries.delete(e.chatId);
+      deps.chats.forget(e.chatId);
     }
   };
 
@@ -244,7 +228,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       e.prefetched = null;
       e.cancelShrink?.();
       e.cancelShrink = null;
-      if (e.replay === null && (!e.detail.chat || e.stale)) void load(e);
+      if (e.replay === null && (!e.loaded || e.stale)) void load(e);
       if (first && e.shown) showNow(e);
       scheduleFill(e);
       if (visibility === "visible") stream.flush(e);
@@ -297,7 +281,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       const e = id === null ? undefined : entries.get(id);
       if (!e) return;
       e.replay?.push(event);
-      if (!e.detail.chat) return;
+      if (!e.loaded) return;
       // 途中の文を先に消してから記録を足す（同じ差し替えで、確定した返答が入り途中の文が消える）
       if (effect) stream.apply(e, effect);
       if (event.type === "chat_delta") return;
@@ -306,6 +290,8 @@ export function createChatStore(deps: ChatStoreDeps) {
         void load(e, true);
         return;
       }
+      // チャット自身は知っているチャットが直す（ここでは見せ直すだけ）
+      if (event.type === "chat") return mark(e, "detail");
       const prev = e.detail;
       e.detail = reduceChatDetail(prev, event, e.chatId);
       changed(e, prev);

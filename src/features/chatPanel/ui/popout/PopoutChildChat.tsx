@@ -16,7 +16,7 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
  * 「メインのチャット」（右クリックの組・選んだときの「メインに追加」）は、右の欄に開いたときと同じく、いちばん上の親
  */
 export function PopoutChildChat({ chatId }: { chatId: number }) {
-  const { chat, project, error } = useOpenChat(chatId, true);
+  const { chat, project, error, ready } = useOpenChat(chatId, true);
   // 閉じ方を聞いている間に、もう一度 ✕ を押されても重ねて聞かない
   const asking = useRef(false);
   // 閉じ方を聞かずに閉じる（メインプロセスに頼む。デスクトップアプリでなければ、ふつうに閉じる）
@@ -33,7 +33,7 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
   useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);
 
   if (error) return <div className="page error">{error}</div>;
-  if (!chat) return <div className="page muted">読み込み中…</div>;
+  if (!ready || !chat) return <div className="page muted">読み込み中…</div>;
   // いちばん上の親（一覧をまだ読んでいなければ、すぐ上の親）
   const root = rootChatOf(chat, knownChat);
   const mainChatId = root.id !== chat.id ? root.id : chat.parent_chat_id;

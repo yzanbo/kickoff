@@ -9,7 +9,7 @@ import { EMPTY_LOG, EMPTY_PROGRESS, type ChatDetailView, type ChatLogView, type 
 /** 口の値を手で差し替えられる偽の店の口 */
 function fakeSource() {
   const state: { detail: ChatDetailView; log: ChatLogView; progress: ChatProgressView } = {
-    detail: { chat: makeChat(1, { status: "running" }), approvals: [], live: EMPTY_DETAIL.live, error: null },
+    detail: { state: "ready", chat: makeChat(1, { status: "running" }), approvals: [], live: EMPTY_DETAIL.live, error: null },
     log: EMPTY_LOG,
     progress: EMPTY_PROGRESS,
   };

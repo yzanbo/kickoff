@@ -31,7 +31,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
   const resolved = Promise.resolve();
   const loadedEntry = (chatId: number) => {
     const e = entries.get(chatId);
-    return e?.detail.chat ? e : undefined;
+    return e?.loaded ? e : undefined;
   };
 
   /** 読んでいる最中・待っている頼み（同じ頼みは 1 つにまとめる） */
@@ -79,7 +79,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     /** 見ていない間の末尾を縮める（店の retain が時計で呼ぶ） */
     shrink(e: Entry) {
       e.cancelShrink = null;
-      if (e.viewers.size > 0 || !e.detail.chat || e.paging) return;
+      if (e.viewers.size > 0 || !e.loaded || e.paging) return;
       const ctx = {
         approvalCallIds: e.detail.approvals.flatMap((a) => (a.tool_use_id ? [a.tool_use_id] : [])),
         backgroundCallIds: (e.detail.live.background?.tasks ?? []).flatMap((t) => (t.tool_use_id ? [t.tool_use_id] : [])),

@@ -8,6 +8,7 @@ import { createChatStore } from "./chatStore";
 import { createSelectorKit } from "./chatSelector";
 import { createPrefetchQueue } from "./prefetch";
 import { createHoverPrefetch } from "./hoverPrefetch";
+import { knownChatsForStore } from "./knownChats";
 import type { ChatDetailView } from "./chatStoreTypes";
 
 /*
@@ -34,6 +35,7 @@ const chatStore = createChatStore({
   windowHidden: () => document.visibilityState === "hidden",
   load: (chatId, query) => api.chatDetail(chatId, query),
   page: (chatId, query) => api.chatEvents(chatId, query),
+  chats: knownChatsForStore,
 });
 const prefetchQueue = createPrefetchQueue({ prefetch: (chatId) => chatStore.prefetch(chatId), busy: () => chatStore.busy(), idle, timer });
 
@@ -162,13 +164,17 @@ export function useOpenChat(chatId: number, visible: boolean) {
     (l) => chatStore.subscribe(chatId, "detail", l),
     () => chatStore.detail(chatId).error,
   );
+  // 読み込みの印（チャットがあっても、中身を読むまでは会話の欄を描かない）
+  const ready = useSyncExternalStore(
+    (l) => chatStore.subscribe(chatId, "detail", l),
+    () => chatStore.detail(chatId).state === "ready",
+  );
   // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）。
   // チャット自身のプロジェクトで引く（別のプロジェクトへ移したら、タブが知るのを待たずに移した先のものになる）
   const { projectsById } = useProjects();
   const project = chat ? projectsById.get(chat.project_id) : undefined;
-  const loaded = chat !== undefined;
   useLayoutEffect(() => {
-    if (!loaded) return;
+    if (!ready) return;
     let second = 0;
     const first = requestAnimationFrame(() => {
       second = requestAnimationFrame(() => chatStore.markPainted(chatId));
@@ -177,6 +183,6 @@ export function useOpenChat(chatId: number, visible: boolean) {
       cancelAnimationFrame(first);
       cancelAnimationFrame(second);
     };
-  }, [chatId, loaded]);
-  return { chat, project, error };
+  }, [chatId, ready]);
+  return { chat, project, error, ready };
 }

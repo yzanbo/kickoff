@@ -1,4 +1,5 @@
-// 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）
+// 1 つのチャットの中身（記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）。
+// チャット自身（名前・状態）は持たない（知っているチャット knownChats.ts を正にする。詳細の応答のチャットは chatAfter で当て直してから入れる）
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { EMPTY_CHAT_LIVE, type ChatLive } from "@shared/chat/chatLive";
@@ -7,9 +8,8 @@ import type { ChatDetail } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { deleteFrom, EMPTY_RANGE, rangeFromDetail, type LogRange } from "./chatLog";
 
-/** 画面が持つチャットの中身（読み込む前は chat が undefined） */
+/** 画面が持つチャットの中身 */
 export interface ChatDetailState {
-  chat: Chat | undefined;
   /** 記録の末尾（開いたときに読んだ最新のターンから終わりまで。SSE の記録はここに足す） */
   events: ChatEvent[];
   /** 末尾のほかに読んだもの（索引・途中の一部分・サブエージェントの中。chatLog.ts） */
@@ -19,7 +19,7 @@ export interface ChatDetailState {
 }
 
 /** 読み込む前の中身（作業中の様子は何も起きていないもの） */
-export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], range: EMPTY_RANGE, approvals: [], live: EMPTY_CHAT_LIVE };
+export const EMPTY_DETAIL: ChatDetailState = { events: [], range: EMPTY_RANGE, approvals: [], live: EMPTY_CHAT_LIVE };
 
 /**
  * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
@@ -82,8 +82,6 @@ export function detailChatIdOf(event: BusEvent): number | null {
 export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId: number): ChatDetailState {
   if (detailChatIdOf(event) !== chatId) return state;
   switch (event.type) {
-    case "chat":
-      return { ...state, chat: event.chat };
     case "chat_event": {
       // 記録は ID の順に届く。いちばん新しいものより前の ID なら、もう持っているかを確かめる
       const last = state.events.at(-1);
@@ -116,7 +114,6 @@ export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId
  */
 export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEvent[], chatId: number, prev: ChatDetailState = EMPTY_DETAIL): ChatDetailState {
   const base: ChatDetailState = {
-    chat: snapshot.chat,
     events: snapshot.events,
     range: rangeFromDetail(snapshot),
     approvals: snapshot.approvals,
@@ -134,4 +131,9 @@ export function detailFromIncrement(snapshot: ChatDetail, replay: readonly BusEv
   const next = detailFromSnapshot({ ...snapshot, events: [...prev.events, ...snapshot.events.filter((e) => e.id > last)] }, replay, chatId, prev);
   // 末尾の前に読んだもの（索引など）はそのまま（after で読んだ詳細は索引を返さない）
   return { ...next, range: prev.range };
+}
+
+/** 詳細の応答のチャットに、読み込みの最中に届いたそのチャットの知らせを当て直したもの（行き違って古いチャットで上書きしない） */
+export function chatAfter(chat: Chat, replay: readonly BusEvent[], chatId: number): Chat {
+  return replay.reduce((current, event) => (event.type === "chat" && event.chat.id === chatId ? event.chat : current), chat);
 }

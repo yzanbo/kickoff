@@ -26,8 +26,8 @@
       "brokenRefs": 0
     },
     "src/features/chat/CLAUDE.md": {
-      "bytes": 12479,
-      "ancestors": 22667,
+      "bytes": 12473,
+      "ancestors": 22661,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -72,7 +72,6 @@
     "src/features/browser/ui/BrowserPane.tsx": 1,
     "src/features/chat/core/routes/chats.ts": 1,
     "src/features/chat/ui/open/openChat.ts": 1,
-    "src/features/chat/ui/store/chatDetail.ts": 1,
     "src/features/chat/ui/store/chatLog.ts": 2,
     "src/features/chat/ui/store/chatStore.ts": 2,
     "src/features/childChats/ui/ChildChatBar.tsx": 1,

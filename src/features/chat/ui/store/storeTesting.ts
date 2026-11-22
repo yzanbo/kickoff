@@ -7,6 +7,7 @@ import { settle } from "@shared/foundation/testing/async";
 import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { EMPTY_DETAIL } from "./chatDetail";
 import { createChatStore } from "./chatStore";
+import { createSeenChats } from "./seenChats";
 
 /** 偽の rAF・タイマー・時計・読み込みで作った店（テストごとに新しく作る） */
 export function setup() {
@@ -14,6 +15,7 @@ export function setup() {
   const clock = createFakeScheduler();
   const loads: { chatId: number; query: ChatDetailQuery; resolve: (d: ChatDetail) => void; reject: (e: Error) => void }[] = [];
   const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void; reject: (e: Error) => void }[] = [];
+  const chats = createSeenChats();
   const store = createChatStore({
     frame: clock.frame,
     idle: clock.idle,
@@ -22,6 +24,7 @@ export function setup() {
     windowHidden: () => hidden,
     load: (chatId, query) => new Promise((resolve, reject) => loads.push({ chatId, query, resolve, reject })),
     page: (chatId, query) => new Promise((resolve, reject) => pages.push({ chatId, query, resolve, reject })),
+    chats,
   });
   /** 口ごとの知らせの回数 */
   const counts = (chatId: number) => {
@@ -29,7 +32,7 @@ export function setup() {
     for (const channel of ["detail", "log", "progress", "streaming"] as const) store.subscribe(chatId, channel, () => c[channel]++);
     return c;
   };
-  return { store, clock, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
+  return { store, chats, clock, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
 }
 
 export const chatOf = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });

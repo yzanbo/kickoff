@@ -6,7 +6,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatDetail } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
 import { busEvent, makeChat, makeChatLive, makeEvent } from "@shared/foundation/testing/factories";
-import { detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
+import { chatAfter, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 import { EMPTY_RANGE } from "./chatLog";
 
 const chat = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
@@ -15,7 +15,7 @@ const approval = (id: string, chatId = 1) => ({ id, chat_id: chatId }) as Approv
 const live = (paused: boolean) => makeChatLive({ queue: { ...makeChatLive().queue, paused } });
 const ids = (s: ChatDetailState) => s.events.map((e) => e.id);
 const added = (event: ChatEvent) => busEvent("chat_event", { project_id: 1, event });
-const loaded: ChatDetailState = { chat: chat(1), events: [ev(1), ev(2)], range: EMPTY_RANGE, approvals: [], live: EMPTY_DETAIL.live };
+const loaded: ChatDetailState = { events: [ev(1), ev(2)], range: EMPTY_RANGE, approvals: [], live: EMPTY_DETAIL.live };
 const run = (state: ChatDetailState, ...events: BusEvent[]) => events.reduce((s, e) => reduceChatDetail(s, e, 1), state);
 
 test("reduceChatDetail: 記録を足す（同じ ID は重ねない）。巻き戻しはその発言から後ろを消す", () => {
@@ -33,8 +33,8 @@ test("reduceChatDetail: ほかのチャットの知らせでは変えない", ()
   assert.equal(run(loaded, { type: "chat_live", project_id: 1, chat_id: 2, live: live(true) }), loaded);
 });
 
-test("reduceChatDetail: チャット・作業中の様子は置き換え、回答待ちは足す・外す（同じ ID は重ねない）", () => {
-  assert.equal(run(loaded, { type: "chat", chat: chat(1, "completed") }).chat?.status, "completed");
+test("reduceChatDetail: 作業中の様子は置き換え、回答待ちは足す・外す（同じ ID は重ねない）。チャット自身は持たない", () => {
+  assert.equal(run(loaded, { type: "chat", chat: chat(1, "completed") }), loaded);
   assert.equal(run(loaded, { type: "chat_live", project_id: 1, chat_id: 1, live: live(true) }).live.queue.paused, true);
   const asked = run(loaded, { type: "approval", approval: approval("a") }, { type: "approval", approval: approval("a") });
   assert.deepEqual(asked.approvals.map((a) => a.id), ["a"]);
@@ -69,12 +69,17 @@ test("detailFromSnapshot: 取り直しで作業中の様子が変わっていな
   assert.equal(next.live.queue, prev.live.queue);
 });
 
-test("detailFromIncrement: つなぎ直したときに after で読んだ分を、持っている記録の後ろに足す（重ねない）。チャット・回答待ち・様子は読んだもの", () => {
+test("detailFromIncrement: つなぎ直したときに after で読んだ分を、持っている記録の後ろに足す（重ねない）。回答待ち・様子は読んだもの", () => {
   const prev: ChatDetailState = { ...loaded, events: [ev(1), ev(2)] };
   const snapshot: ChatDetail = { chat: chat(1, "completed"), events: [ev(2), ev(3), ev(4)], approvals: [approval("b")], live: live(true), has_earlier: false, after_missing: false, streaming_text: null, streaming_length: 0 };
   const next = detailFromIncrement(snapshot, [added(ev(5))], 1, prev);
   assert.deepEqual(ids(next), [1, 2, 3, 4, 5]);
-  assert.equal(next.chat?.status, "completed");
   assert.deepEqual(next.approvals.map((a) => a.id), ["b"]);
   assert.equal(next.live.queue.paused, true);
+});
+
+test("chatAfter: 詳細の応答のチャットに、読み込みの最中に届いたそのチャットの知らせを当て直す（ほかのチャットは見ない）", () => {
+  const missed: BusEvent[] = [{ type: "chat", chat: chat(1, "completed") }, { type: "chat", chat: chat(2, "failed") }];
+  assert.equal(chatAfter(chat(1), missed, 1).status, "completed");
+  assert.equal(chatAfter(chat(1), [], 1).status, "running");
 });

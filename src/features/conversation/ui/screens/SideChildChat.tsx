@@ -20,7 +20,7 @@ export function SideChildChat({
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
   slot?: string;
 }) {
-  const { chat, project, error } = useOpenChat(chatId, visible);
+  const { chat, project, error, ready } = useOpenChat(chatId, visible);
   const title = chat?.title;
   // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
   const setTitle = useEffectEvent(onTitle);
@@ -28,7 +28,7 @@ export function SideChildChat({
     if (title !== undefined) setTitle(title);
   }, [title]);
   if (error) return <div className="page error">{error}</div>;
-  if (!chat) return <div className="page muted">読み込み中…</div>;
+  if (!ready || !chat) return <div className="page muted">読み込み中…</div>;
   return (
     <div className="side-child-chat">
       <ChildChatBar chat={chat} />

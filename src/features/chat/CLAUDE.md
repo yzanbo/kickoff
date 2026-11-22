@@ -13,15 +13,15 @@
 | `core/family.ts` | 家系のたどり方（ほかで書かない） |
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方 |
 | `core/routes/` | 受け口（取り決めは `@shared/chat/contract.ts`） |
-| `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`）・取り出し口 `defineChatSelector` |
+| `ui/store/` | 画面のチャットの店・知っているチャット `knownChats.ts`（一覧 ∪ 詳細で見たもの）・取り出し口 `defineChatSelector` |
 | ほか | 下の同じ名前の節 |
 
-- 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作は `requireIdle` で 409。用意して確定する流れ（巻き戻し・AI の切り替え・移動など）は `withIdleChat`（`run/idle.ts`）。
+- 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作は `requireIdle` で 409。用意して確定する流れ（巻き戻し・移動など）は `withIdleChat`（`run/idle.ts`）。
 - 状態は `ChatRun`（`run` は `step` の答えだけで変わる）。モジュールの変数に持たない。消したら `forget`。作業の始まりと終わりは `onTurnStarted`・`onTurnEnded` で聞く。
 - 選択は `resolveChatOptions`（送るときの指定 → その AI のプロジェクトの既定 → アプリの既定）。Claude Code 以外は一覧にないモデル名を実行の前にも外す（`knownModel`）。
 - 砂場と編集先の制限は、チャットを作るときにアプリの既定を書く（既存のチャットは変わらず、分岐は元を引き継ぐ）。
 - AI へ送る定型文（自分の発言として残る）は `@shared/chat/prompts` に置き、コアと画面で同じものを使う。
-- 終えるとき `shutdown` は止める前に作業中のチャットに `chats.resume_pending` を付け、待たずに DB を閉じる。抜けた `result`（ターンの境目）は起動のとき `endInterruptedTurns` が足す。
+- 終えるとき `shutdown` は止める前に作業中のチャットに `chats.resume_pending` を付け、待たずに DB を閉じる。抜けた `result` は起動のとき `endInterruptedTurns` が足す。
 
 ## 送る・伝える
 

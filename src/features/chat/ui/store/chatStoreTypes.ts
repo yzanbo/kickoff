@@ -39,11 +39,18 @@ export interface ChatStoreDeps {
   load: (chatId: number, query: ChatDetailQuery) => Promise<ChatDetail>;
   /** 記録の一部分を読む（GET /api/chats/:id/events） */
   page: (chatId: number, query: ChatEventsQuery) => Promise<ChatEventPage>;
+  /** 知っているチャット（knownChats.ts）。詳細の応答のチャットを入れ（remember）、口 detail のチャットはここから引き、中身を捨てたら忘れる */
+  chats: { remember(chat: Chat): void; get(id: number): Chat | undefined; forget(id: number): void };
 }
+
+/** 読み込みの印（loading = 中身をまだ一度も読めていない / ready = 読めた） */
+export type ChatLoadState = "loading" | "ready";
 
 /** 口 detail の値 */
 export interface ChatDetailView {
-  /** undefined の間は読み込み中 */
+  /** 読み込みの印（会話の欄は ready になってから描く） */
+  state: ChatLoadState;
+  /** 知っているチャット（knownChats.ts から。知らなければ undefined） */
   chat: Chat | undefined;
   approvals: Approval[];
   live: ChatLive;
@@ -125,6 +132,8 @@ export interface Entry {
   cancelShrink: (() => void) | null;
   /** 見ていない間に SSE をつなぎ直した（次に見るときに取り直す） */
   stale: boolean;
+  /** 中身を一度でも読めたか（読み込みの印） */
+  loaded: boolean;
   /** 中身を部品に見せたか */
   shown: boolean;
   published: { detail: ChatDetailView; log: ChatLogView; progress: ChatProgressView };
@@ -138,7 +147,7 @@ export interface Entry {
   fillTriedAt: number | null;
 }
 
-export const EMPTY_VIEW: ChatDetailView = { chat: undefined, approvals: [], live: EMPTY_DETAIL.live, error: null };
+export const EMPTY_VIEW: ChatDetailView = { state: "loading", chat: undefined, approvals: [], live: EMPTY_DETAIL.live, error: null };
 export const EMPTY_LOG: ChatLogView = {
   events: [],
   tail: [],
