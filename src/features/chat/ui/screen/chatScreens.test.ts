@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createChatScreens, type ShownScreen } from "./chatScreens";
-import type { ChatPaneActions } from "./ports";
 
 /** 偽の要素（見えているか・入れ子は親を辿る） */
 interface FakeEl { nodeType: 1; isConnected: boolean; offsetParent: object | null; parent: FakeEl | null; contains(o: unknown): boolean }
@@ -19,7 +18,7 @@ function el(parent: FakeEl | null = null, shown = true): FakeEl {
   return self;
 }
 const screen = (chatId: number, root: FakeEl, extra: Partial<ShownScreen> = {}): ShownScreen =>
-  ({ chatId, root: { current: root as unknown as HTMLElement }, pane: {} as ChatPaneActions, ...extra }) as ShownScreen;
+  ({ chatId, root: { current: root as unknown as HTMLElement }, ...extra }) as ShownScreen;
 
 test("同じチャットの画面が 2 つあれば見えている方を先に引き、隠れていれば front で先にタブを表に出す", () => {
   const r = createChatScreens();

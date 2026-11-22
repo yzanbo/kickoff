@@ -54,7 +54,7 @@ export function TabMenu({
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
   // そのタブで描いているチャットの画面（会話 / 動きを切り替える。描いていなければ出さない）
   const chatPane = chat ? chatPaneAt(chatPaneSlot(panel.key, tabKey)) : undefined;
-  const activity = chatPane?.state.get().showing === "activity";
+  const activity = chatPane?.activity.showing.get() === "activity";
   // 右クリックしたタブのペインに開く（チャット・新しいチャットのタブは、いちばん上の「新しいチャット」から同じグループ・作業場所で。ほかは欄の作成先）
   const startNew = (target: NewChatTarget | undefined) => {
     panel.focusPane(pane.id);
@@ -74,7 +74,7 @@ export function TabMenu({
     <MenuItem
       onSelect={() => {
         panel.showTab(tabKey);
-        chatPane.show(activity ? "conversation" : "activity");
+        chatPane.activity.show(activity ? "conversation" : "activity");
       }}
     >
       {activity ? <MessageSquare size={14} /> : <GitBranch size={14} />} {activity ? "会話に戻る" : "動きを見る"}

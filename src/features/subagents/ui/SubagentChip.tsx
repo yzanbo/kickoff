@@ -23,7 +23,7 @@ import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useSubagentNav } from "@/features/chat/ui";
 import { flattenTree, subagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentHues } from "@/features/subagents/ui/model/agentHues";
 import { useSubagentsView } from "./subagentsContext";
@@ -38,20 +38,20 @@ import { summaryState } from "@/features/chat/ui/state/chatState";
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
-  const pane = useChatPane();
+  const nav = useSubagentNav();
   /** 設定の開き方（流れの中のカード / 右の欄 / 別ウィンドウ）で開き、一覧を閉じる（key = 一覧の行のキー） */
   const openRow = (key: string) => {
-    pane.openSubagent(key);
+    nav.open(key);
     setOpen(false);
   };
   // 開ける場所（右の欄はパネルの中のチャットだけ、別ウィンドウは Mac のアプリだけ）と、行を押したときの既定（設定）
-  const places: OpenPlace[] = ["inline", ...(pane.canOpenSide ? (["side"] as const) : []), ...(canPopout() ? (["window"] as const) : [])];
+  const places: OpenPlace[] = ["inline", ...(nav.canOpenSide ? (["side"] as const) : []), ...(canPopout() ? (["window"] as const) : [])];
   const [openIn, setOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   /** 行のボタン: 設定によらず、その場所に開く */
   const openAt = (key: string, place: OpenPlace) => {
-    if (place === "window") pane.openSubagentWindow(key);
-    else if (place === "side") pane.openSubagentSide(key);
-    else pane.revealSubagent(key);
+    if (place === "window") nav.openWindow(key);
+    else if (place === "side") nav.openSide(key);
+    else nav.reveal(key);
     setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）

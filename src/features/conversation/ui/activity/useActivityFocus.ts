@@ -1,6 +1,6 @@
 import { useEffectEvent, useLayoutEffect, useMemo, useState, type RefObject } from "react";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
-import { useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { useOptionalActivityNav, usePortValue } from "@/features/chat/ui";
 import type { SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentScope, focusedRowIndexes, type ActivityRow } from "./activityRows";
 
@@ -33,7 +33,7 @@ export function useActivityFocus(
   followingRef: RefObject<boolean>,
   reveal: (index: number) => Promise<void>,
 ): ActivityFocus {
-  const focus = useChatPaneState((s) => s.activityFocus) ?? null;
+  const focus = usePortValue(useOptionalActivityNav()?.focused, (f) => f, null);
   const focusKey = focus?.key ?? null;
   const hits = useMemo(() => (focusKey !== null && tree ? focusedRowIndexes(shown, agentScope(tree, focusKey)) : []), [focusKey, tree, shown]);
   const keys = useMemo(() => new Set(hits.map((i) => shown[i].key)), [hits, shown]);

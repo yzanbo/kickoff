@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ActivityNote } from "@/features/subagents/ui/SubagentChip";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
 import { useTaskOutput } from "./commandOutputs";
 import { backgroundCallTarget } from "./backgroundTarget";
 
@@ -31,7 +31,8 @@ export function BackgroundTasks({
   events?: ChatEvent[];
 }) {
   // サブエージェントの中身を開く（チャットの画面の中だけ）
-  const pane = useOptionalChatPane();
+  const subagents = useOptionalSubagentNav();
+  const activity = useOptionalActivityNav();
   if (!background || background.tasks.length === 0) return null;
   const stop = async (task: BackgroundTask) => {
     if (
@@ -55,18 +56,18 @@ export function BackgroundTasks({
         return (
           <li key={task.task_id} className="background-task">
             <Icon size={13} aria-hidden className="muted" />
-            {entry && pane ? (
-              <button type="button" className="link-button hover-bg background-task-name" title={`「${task.description}」を開く（設定の開き方で、流れの中のカードか右の欄）`} onClick={() => pane.openSubagent(entry.key)}>
+            {entry && subagents ? (
+              <button type="button" className="link-button hover-bg background-task-name" title={`「${task.description}」を開く（設定の開き方で、流れの中のカードか右の欄）`} onClick={() => subagents.open(entry.key)}>
                 {task.description}
               </button>
-            ) : task.kind !== "agent" && task.tool_use_id && pane ? (
+            ) : task.kind !== "agent" && task.tool_use_id && activity ? (
               <button
                 type="button"
                 className="link-button hover-bg background-task-name"
                 title={`「${task.description}」の、流れの中の行へ移る（実行中の様子と出力）`}
                 onClick={() => {
                   const target = backgroundCallTarget(task, events, agents);
-                  if (target) pane.revealInConversation(target.eventId, target.agent);
+                  if (target) activity.revealInConversation(target.eventId, target.agent);
                 }}
               >
                 {task.description}

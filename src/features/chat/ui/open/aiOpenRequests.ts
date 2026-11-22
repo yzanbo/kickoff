@@ -67,8 +67,8 @@ function putDraft(request: ChatDraftRequest) {
   const target = request.lineage.at(-1);
   if (!target) return;
   if (request.from) writeSetting(composerHandoff(target.id), request.from);
-  const pane = screenOfChat(target.id)?.pane;
-  if (pane) pane.fillComposer(request.text, { append: true, focus: false });
+  const composer = screenOfChat(target.id)?.composer;
+  if (composer) composer.fill(request.text, { append: true, focus: false });
   else writeSetting(chatDraft(target.id), appendBlock(readSetting(chatDraft(target.id)), request.text));
   const chat = knownChat(target.id) ?? target;
   showToast(`${chatTargetName(chat)}に下書きを入れました`, { label: "開く", run: () => openChatOrChild(chat) });

@@ -5,7 +5,7 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui/open/openChat";
 import { addToChat } from "@/features/composer/ui/addToChat";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { askInNewChatOf, useChatScreen, useComposerPort } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
@@ -106,11 +106,14 @@ const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追�
  * 右の欄・別ウィンドウの中のチャット（子チャット・ノートのチャット）では出さない（SideSelectionAttach が足す先のチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
-  const { root, fillComposer, chatId, projectId, askInNewChat } = useChatPane();
+  const screen = useChatScreen();
+  const { root, chatId, projectId } = screen;
+  const composer = useComposerPort();
+  const askInNewChat = askInNewChatOf(screen);
   const inSide = useMainChat() !== null;
   if (inSide) return null;
   const targets = (): AddTarget[] => [
-    { ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) },
+    { ...ADD_TO_THIS_CHAT, onAdd: (text) => composer?.fill(text, { append: true }) },
     {
       label: "新しい子チャットで聞く",
       title: "選択部分を引用した子チャットを作り、このチャットの作業を止めずに横で聞きます（送るのは自分で）",
@@ -133,7 +136,7 @@ export function SelectionAttach() {
       pick={() => pickedInQuotable(root.current)}
       targets={targets}
       extra={(picked, controls) => (
-        <SelectionNoteButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
+        <SelectionNoteButton projectId={projectId} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
       )}
     />
   );

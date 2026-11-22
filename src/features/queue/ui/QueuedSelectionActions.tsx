@@ -2,7 +2,7 @@ import { ArrowDownToLine, ArrowUpToLine, Merge, Pencil, SendHorizontal, Trash2, 
 import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useChatScreen } from "@/features/chat/ui";
 import { queueFailed as failed } from "./queueFailed";
 
 /**
@@ -22,7 +22,7 @@ export function QueuedSelectionActions({
   /** 選んだ指示の書き直す欄をまとめて開く（いくつでも同時に書き直せる） */
   onEditSelected: () => void;
 }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   const n = selected.length;
   // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインエージェントがいまの手順の切れ目で読む）
   const stopping = busy ? "（作業は止めずに、いまのやり取りに足す）" : "";

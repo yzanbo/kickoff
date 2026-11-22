@@ -11,7 +11,7 @@
 | `activity/`・`approvals/` | 動き（全エージェントの時系列）/ 承認と質問 |
 | `promptList/`・`find/`・`rewind/` | 自分の指示の一覧 / チャットの中の検索 / 巻き戻し・失敗した作業の直す操作 |
 
-チャットの店（`chatStore.ts`・読んだ範囲 `chatLog.ts`・読み足し `chatPaging.ts`・先読み `prefetch.ts`）と見え方の店 `timelineView.ts` は `@/features/chat/ui/`、操作の context `ChatPaneContext` は `@/features/chat/ui/screen/ports.ts`。
+チャットの店（`chatStore.ts`・読んだ範囲 `chatLog.ts`・読み足し `chatPaging.ts`・先読み `prefetch.ts`）と見え方の店 `timelineView.ts` は `@/features/chat/ui/`、画面の口の型と context は `@/features/chat/ui/screen/ports.ts`。
 
 ## 1 つのチャットの画面（`screen/`）
 
@@ -21,8 +21,8 @@
 - `ChatScreen` と殻は記録を読まない（読むと、隠れている間も届くたびに殻ごと描き直す）。記録は会話の欄 `ChatColumn` が読む。
 - `ChatColumn` は `Activity` に入れ、止めてよい画面で表示していないときは hidden で止める（`useColumnMode`）。ノートのチャット・別ウィンドウは止めない。
 - 殻は登録簿（`chatScreens.ts`）に載る（止めていても）。別ウィンドウからの移る・動きを開くは、先にタブを表に出す（`bringToFront`）。
-- 子の部品への操作は `ChatPaneContext`（`ChatPaneActions`）1 つで配り、チャットごとに 1 回だけ作る。props で中継しない・クラス名で DOM を探さない。
-- 変わる様子は `useChatPaneState` で読む（保存しない）。画面の外でも描く部品は `useOptionalChatPane` を使う。
+- 操作は持ち主ごとの口（`TimelineNav` など）で配り、`createScreenActions` で 1 回だけ作る。props で中継しない・DOM を探さない。
+- 口は描いた値（窓・送り方）だけを `setWindow`・`setSend` で受け、ほかは店から読む。画面の外でも描く部品は `useOptional…`。
 - 記録から作るもの（サブエージェント・図・ToDo・指示の一覧・流れの項目 `timelineItems` など）は持ち主の取り出し口（`defineChatSelector`）で読む。記録の配列を props で渡さない。
 - 末尾と索引の規則は `src/shared/CLAUDE.md` の「末尾と索引」。どの切れ目でも全件と同じになることを `@/features/chat/ui/store/chatLog.test.ts` で確かめる。索引のない詳細はすべてを読んだものとして扱う（`rangeFromDetail`）。
 - 読み足しは `chatPaging.ts` で 1 つずつ（すべて読み直したら答えを捨てる）。末尾より前で巻き戻したら末尾から読み直す。
@@ -48,7 +48,7 @@
 - 窓（`useTimelineWindow`。`timeline/rowWindow/useRowWindow.ts` を包む）の外は、測った高さか見積もり（`rowEstimate.ts`）の箱。選んでいる・ピントのある・書く欄のある行は外さない。
 - 読み足しは読んだ範囲の始まりの手前で始める（端で足すとトラックパッドの慣性が止まる）。移る処理のあと 1.5 秒は読み足さない。
 - 読んでいた位置はブラウザのスクロールアンカーに任せ、いちばん上（scrollTop 0）で前に項目が増えたときだけ JS で直す（`docs/architecture.md` の「決めたこと（測った数）」）。
-- 移る処理はどれも `ChatPaneActions.reveal(記録の ID)` を待ってから移る。描いている範囲に頼るもの（検索の印・上に貼り付ける指示）は `drawn` で確かめ直す。
+- 移る処理はどれも `TimelineNav.reveal(記録の ID)` を待ってから移る。描いている範囲に頼るもの（検索の印・上に貼り付ける指示）は `drawn` で確かめ直す。
 - 一番下への付いていきは `useFollowBottom` が大きさの知らせ（`@/foundation/ui/hooks/useSizeObserver.ts`）で行う。`scrollHeight` を毎フレーム読まず、項目の数を依存に持たない。
 - 上へ戻す操作は、スクロールの知らせより先に付いていきをやめ（`holdUp`）、スクロールし終えるまで付き直さない。
 - 強調の `.flash` は光り終えたら外す（光っている間は描くのを省くのをやめている）。色はアクセント（黄は検索と注意の色）。
@@ -66,7 +66,7 @@
 
 - 「添付」はファイル全体にだけ使い、選択部分は「追加」と呼ぶ。足す先のチャットは、どのタブでも名前で呼ぶ。
 - 選べる入れ物は `messages/quotable.ts` の `QUOTABLE_ATTR` を付け、丸ごと足せるまとまりには `data-quote-text` と `data-quote-noun` を付ける。
-- 引用はチャット欄の文の後ろに足す（`fillComposer` の `append`）。送るのは利用者。
+- 引用はチャット欄の文の後ろに足す（`ComposerPort.fill` の `append`）。送るのは利用者。
 - 右の欄・別ウィンドウから足すのは `@/features/composer/ui/addToChat.ts` の `addToChat` 1 つ（画面がなければ書きかけに足す）。足す先は `MainChatContext` で知り、その中ではチャット自身の `SelectionAttach` を出さない。
 - 流れの右クリック（`useQuoteMenu` の `openInRegion`）は、自分のメニューを開いた所（`defaultPrevented`）と書く欄の上を任せる。
 - 開閉する行の文をドラッグで選んだら、離したときの押下を止める（`keepSelectionOnClick` を `onClickCapture` に）。

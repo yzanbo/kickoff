@@ -2,8 +2,6 @@ import { memo, useState, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import { SelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/conversation/ui/timeline/ChatTimeline";
 import { ActivityView } from "@/features/conversation/ui/activity/ActivityView";
@@ -16,11 +14,11 @@ import { noteForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHandoffNotice";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
-import { useChatPaneState } from "@/features/chat/ui/screen/ports";
-import { chatRoleOf } from "@/features/chat/ui";
+import { chatRoleOf, useActivityNav } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 import { useWideText } from "./TextWidthToggle";
 import { useChatView } from "./useChatView";
-import type { ChatShellHandles } from "./useChatPaneActions";
+import type { ChatShellHandles } from "./useChatShell";
 
 interface ChatColumnProps {
   chat: Chat;
@@ -28,9 +26,8 @@ interface ChatColumnProps {
   focus?: number;
   /** 表示しているか（パネルの裏のタブ・閉じたパネルでは false） */
   visible: boolean;
-  onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
   beforeSend?: () => Promise<void>;
-  /** 殻（ChatView）が 1 回だけ作った操作・スクロール・チャット欄の口 */
+  /** 殻（ChatShell）が 1 回だけ作った口・スクロール・チャット欄の口 */
   shell: ChatShellHandles;
 }
 
@@ -40,9 +37,9 @@ interface ChatColumnProps {
  * チャットの店の口を読む（殻は読まない）。状態は useChatView にあり、ここは描くだけ。
  * 流れの部品が読むサブエージェント・図・裏の呼び出しは、ここから context で配る（右の欄のサブエージェントの画面は、同じ口を自分で読む）
  */
-export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, onOpenNew, beforeSend, shell }: ChatColumnProps) {
-  const view = useChatView({ chat, project, focus, onOpenNew, beforeSend }, shell);
-  const { pane: { root: paneRoot } } = shell;
+export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, beforeSend, shell }: ChatColumnProps) {
+  const view = useChatView({ chat, project, focus, beforeSend }, shell);
+  const { ports: { root: paneRoot } } = shell;
   // 会話の横幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
@@ -90,7 +87,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
               live={view.live}
               options={view.options}
               send={view.send}
-              composer={shell.composer}
+              composer={shell.composerSlot}
               onDock={setPillDock}
             />
           </div>
@@ -105,7 +102,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
  * 会話は隠しても描いたまま残す（読んでいた位置・開いたカード・窓の中の位置を保ち、動きの行から戻ってすぐ移れるように）
  */
 function ChatBody({ conversation, activity }: { conversation: (shown: boolean) => ReactNode; activity: ReactNode }) {
-  const showing = useChatPaneState((s) => s.showing) ?? "conversation";
+  const showing = useCell(useActivityNav().showing);
   return (
     <>
       {conversation(showing === "conversation")}

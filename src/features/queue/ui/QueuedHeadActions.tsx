@@ -3,7 +3,7 @@ import { QUEUE_ACTIONS, type QueueAction } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useChatScreen } from "@/features/chat/ui";
 import { queueFailed as failed } from "./queueFailed";
 import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui/queueActionLooks";
 import { SendAllMenu } from "./SendAllMenu";
@@ -54,7 +54,7 @@ export function QueuedHeadTools({
 
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
 function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   return (
     <button
       type="button"
@@ -81,7 +81,7 @@ function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) 
  * 1 件目の上にもう印があっても押せ、押すたびにいちばん上に 1 本ずつ重なる（何本か足してから、1 本ずつ止めたい位置へ動かせるように）
  */
 function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   return (
     <button
       type="button"
@@ -103,7 +103,7 @@ function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => 
  * 置いたあとは、行のつまみのドラッグ・↑↓ で位置を決める。色は行と同じ（queueActionLooks の tone）
  */
 function QueuedActionButton({ action, onAdded }: { action: QueueAction; onAdded: () => void }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   const look = QUEUE_ACTION_LOOKS[action];
   return (
     <button
@@ -123,7 +123,7 @@ function QueuedActionButton({ action, onAdded }: { action: QueueAction; onAdded:
 
 /** 送信待ちをすべて消す（確かめてから） */
 function QueuedRemoveAllButton({ count }: { count: number }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   return (
     <button
       type="button"

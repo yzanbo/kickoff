@@ -3,7 +3,7 @@ import type { QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen } from "@/features/chat/ui";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CompactPromptMark } from "./CompactPromptMark";
@@ -44,13 +44,13 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
   const pending: QueuedMessage[] = pendingPost === null ? [] : [{ id: PENDING_POST_ID, text: pendingPost, options: {}, attachments: [], created_at: "", post_compact: true }];
   const items = [...pending, ...messages];
   const hasPost = items.some((m) => m.post_compact);
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
   // 入力欄で書き直している指示（あれば、その吹き出しに印を付け、ほかの鉛筆は押せなくする）
-  const editing = useHeldEdit(pane?.chatId ?? -1);
+  const editing = useHeldEdit(screen?.chatId ?? -1);
   /** 送らずに外す */
   const remove = (m: QueuedMessage) => {
-    if (!pane) return;
-    void api.removeAfterCompact(pane.chatId, m.id).catch(reportFailure("指示を取り消せませんでした"));
+    if (!screen) return;
+    void api.removeAfterCompact(screen.chatId, m.id).catch(reportFailure("指示を取り消せませんでした"));
   };
   return (
     <>
@@ -69,7 +69,7 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
             {editing?.id === m.id ? <Pencil size={12} aria-hidden /> : <Clock size={12} aria-hidden />}
             {editing?.id === m.id ? "チャット欄で書き直しています（保存しても、この順番のまま送ります）" : untilText(until, m.post_compact === true, hasPost)}
             {/* 伝える前なら送らずに消せる（コアが預かりに入れる前に先に見せている圧縮後指示は、まだ消せない） */}
-            {pane && m.id !== PENDING_POST_ID && (
+            {screen && m.id !== PENDING_POST_ID && (
               <>
                 {!m.post_compact && editing?.id !== m.id && (
                   <IconButton
@@ -80,7 +80,7 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
                     title={editing ? "ほかの指示を書き直しています（保存するか、やめてから）" : "チャット欄で書き直す（画像の添付・定型文も使えます。保存しても送る順はそのまま。書き直している間は送らずに待ちます）"}
                     className="message-action"
                     disabled={editing !== null}
-                    onClick={() => startHeldEdit(pane.chatId, { id: m.id, position: i + 1, text: m.text, attachments: m.attachments })}
+                    onClick={() => startHeldEdit(screen.chatId, { id: m.id, position: i + 1, text: m.text, attachments: m.attachments })}
                   />
                 )}
                 <IconButton

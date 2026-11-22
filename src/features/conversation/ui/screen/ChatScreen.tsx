@@ -2,27 +2,33 @@ import { Activity, useEffect, useEffectEvent, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import {
+  ActivityNavContext,
   chatRoleOf,
-  ChatPaneContext,
   ChatScreenContext,
   clearKeepAlive,
+  ComposerPortContext,
   KeepAliveContext,
   PastWorkplacesProvider,
+  SubagentNavContext,
+  TimelineNavContext,
   useKeepAlive,
   useOpenChat,
   useRegisterScreen,
   type ChatHost,
-  type ChatPaneActions,
   type ChatScreenValue,
+  type ScreenPorts,
+  type TimelineNav,
 } from "@/features/chat/ui";
+import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
 import { ChatImagesProvider } from "@/features/remoteImages/ui/ChatImage";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
 import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/ai/ui/provider/chatProvider";
+import { RewindActionsContext, type RewindActions } from "@/features/conversation/ui/rewindContext";
 import { ChatColumn } from "./ChatColumn";
-import { useChatPaneActions } from "./useChatPaneActions";
+import { useChatShell } from "./useChatShell";
 
 interface ChatScreenProps {
   chatId: number;
@@ -75,10 +81,11 @@ function useColumnMode(chatId: number, visible: boolean, pausable: boolean): "vi
  */
 function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; project?: Project; host: ChatHost; focus?: number; visible: boolean }) {
   const canOpenSide = usePanelHost() !== null;
-  const shell = useChatPaneActions({ chatId: chat.id, focus, canOpenSide, onOpenNew: host.openNewChat });
-  const { pane } = shell;
+  // ピルの列を画面の外に描いているとき（ノートのチャットの欄を閉じている）は、会話へ移る前に画面を見せる（置き場所の値は呼ぶときに読む）
+  const hostRef = useLatest(host);
+  const shell = useChatShell({ chatId: chat.id, focus, canOpenSide, beforeReveal: () => hostRef.current.chipsPortal?.reveal?.() });
   // 登録簿（タブの右クリックの会話 / 動き・別ウィンドウからの知らせ・最後に押した画面）。隠れた画面で移る・動きを開くを受けたら、先にこのタブを表に出す
-  useRegisterScreen(chat.id, pane, host.slot, host.bringToFront);
+  useRegisterScreen(chat.id, shell.ports, host.slot, host.bringToFront);
   // 返答の中のファイルのパス・変更カード・ツールの行のファイルを、押して右の欄（置けなければファイルタブ）で開けるようにする（作業場所のファイルだけ）
   const fileLinks = useFileLinks(chat, project?.repo_path, canOpenSide);
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
@@ -91,10 +98,10 @@ function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; projec
   // 画面を閉じたら、止めない理由をすべて外す（片付けで外せない理由の持ち主が、会話の欄と一緒になくなるため。殻は Activity の外なので、閉じたときだけ流れる）
   useEffect(() => () => clearKeepAlive(chat.id), [chat.id]);
   return (
-    <ChatEnvironment chat={chat} host={host} pane={pane} links={fileLinks} side={canOpenSide}>
+    <ChatEnvironment chat={chat} host={host} ports={shell.ports} timeline={shell.timeline} rewind={shell.rewind} links={fileLinks} side={canOpenSide}>
       <AgentSplit scope={chat.id} handleRef={shell.side}>
         <Activity mode={mode}>
-          <ChatColumn chat={chat} project={project} focus={focus} visible={visible} onOpenNew={host.openNewChat} beforeSend={host.beforeSend} shell={shell} />
+          <ChatColumn chat={chat} project={project} focus={focus} visible={visible} beforeSend={host.beforeSend} shell={shell} />
         </Activity>
       </AgentSplit>
     </ChatEnvironment>
@@ -104,8 +111,12 @@ function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; projec
 interface ChatEnvironmentProps {
   chat: Chat;
   host: ChatHost;
-  /** 画面の操作（チャットごとに 1 回だけ作ったもの） */
-  pane: ChatPaneActions;
+  /** 画面の操作の口（チャットごとに 1 回だけ作ったもの。流れの口は timeline で渡す） */
+  ports: Omit<ScreenPorts, "timeline">;
+  /** 流れの中を移る口（流れのない別ウィンドウのサブエージェントの画面では null） */
+  timeline: TimelineNav | null;
+  /** 書き直し・再試行の口 */
+  rewind: RewindActions | null;
   /** 返答の中のファイルのパスを押して開く口（作業場所のファイルだけ） */
   links: ChatFileLinks | undefined;
   /** 右の欄に開けるか（作業場所を移す前の行の開き方） */
@@ -119,17 +130,25 @@ interface ChatEnvironmentProps {
  * チャットの画面の中で部品が読むもの（チャットの AI・ファイルのリンク・作業場所を移す前の行・外の画像・画面の値・操作・止めない理由の持ち主）を、
  * 1 か所でまとめて配る（チャットの画面 ChatScreen と、別ウィンドウのサブエージェントの画面が同じものを使う）
  */
-export function ChatEnvironment({ chat, host, pane, links, side, adaptPast, children }: ChatEnvironmentProps) {
-  const screen: ChatScreenValue = { chatId: chat.id, projectId: chat.project_id, role: chatRoleOf(chat), host, root: pane.root };
+export function ChatEnvironment({ chat, host, ports, timeline, rewind, links, side, adaptPast, children }: ChatEnvironmentProps) {
+  const screen: ChatScreenValue = { chatId: chat.id, projectId: chat.project_id, role: chatRoleOf(chat), host, root: ports.root };
   return (
     <ChatProviderContext.Provider value={chat.provider}>
       <FileLinksProvider value={links}>
         <PastWorkplacesProvider chatId={chat.id} current={links} side={side} adapt={adaptPast}>
           <ChatImagesProvider chatId={chat.id}>
             <ChatScreenContext.Provider value={screen}>
-              <ChatPaneContext.Provider value={pane}>
-                <KeepAliveContext.Provider value={chat.id}>{children}</KeepAliveContext.Provider>
-              </ChatPaneContext.Provider>
+              <TimelineNavContext.Provider value={timeline}>
+                <SubagentNavContext.Provider value={ports.subagents}>
+                  <ActivityNavContext.Provider value={ports.activity}>
+                    <ComposerPortContext.Provider value={ports.composer}>
+                      <RewindActionsContext.Provider value={rewind}>
+                        <KeepAliveContext.Provider value={chat.id}>{children}</KeepAliveContext.Provider>
+                      </RewindActionsContext.Provider>
+                    </ComposerPortContext.Provider>
+                  </ActivityNavContext.Provider>
+                </SubagentNavContext.Provider>
+              </TimelineNavContext.Provider>
             </ChatScreenContext.Provider>
           </ChatImagesProvider>
         </PastWorkplacesProvider>

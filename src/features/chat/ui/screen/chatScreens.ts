@@ -2,7 +2,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { onWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import type { ChatPaneActions } from "./ports";
+import type { ActivityNav, ComposerPort, SubagentNav, TimelineNav } from "./ports";
 
 /** 描いているチャットの画面（ChatScreen が描いている間だけ登録する） */
 export interface ShownScreen {
@@ -10,8 +10,11 @@ export interface ShownScreen {
   /** パネルのタブの置き場所（タブの中の画面だけ） */
   slot?: string;
   root: RefObject<HTMLElement | null>;
-  /** 画面の操作 */
-  pane: ChatPaneActions;
+  /** 画面の操作の口（チャットごとに 1 回だけ作ったもの） */
+  timeline: TimelineNav;
+  subagents: SubagentNav;
+  activity: ActivityNav;
+  composer: ComposerPort;
   /** 画面のあるタブを表に出す（パネルのタブの中の画面だけ） */
   bringToFront?: () => void;
 }
@@ -95,11 +98,11 @@ function start() {
   onWindowMessage("fillComposer", ({ chatId, text, attachments }) => {
     const s = screenOfChat(chatId);
     // 別ウィンドウから足す先のチャットの画面がメインのウィンドウにもなければ、書きかけの文と添付に足して知らせる
-    if (s) s.pane.fillComposer(text, { append: true, attachments });
+    if (s) s.composer.fill(text, { append: true, attachments });
     else onMissingFill?.(chatId, text, attachments);
   });
-  onWindowMessage("reveal", ({ chatId, eventId, agent }) => registry.front(chatId)?.pane.revealInConversation(eventId, agent));
-  onWindowMessage("showActivity", ({ chatId, agent }) => registry.front(chatId)?.pane.focusActivity(agent));
+  onWindowMessage("reveal", ({ chatId, eventId, agent }) => registry.front(chatId)?.activity.revealInConversation(eventId, agent));
+  onWindowMessage("showActivity", ({ chatId, agent }) => registry.front(chatId)?.activity.focus(agent));
 }
 
 /** チャットの画面を登録する（描いている間だけ。返り値で外す） */
@@ -108,15 +111,24 @@ function registerScreen(screen: ShownScreen): () => void {
   return registry.register(screen);
 }
 
+/** 登録する画面の口（チャットごとに 1 回だけ作ったもの） */
+export interface ScreenPorts {
+  root: RefObject<HTMLDivElement | null>;
+  timeline: TimelineNav;
+  subagents: SubagentNav;
+  activity: ActivityNav;
+  composer: ComposerPort;
+}
+
 /** チャットの画面を描いている間だけ登録する（ChatScreen が呼ぶ。表に出す操作が変わっても登録し直さない = 最後に押した画面のまま） */
-export function useRegisterScreen(chatId: number, pane: ChatPaneActions, slot: string | undefined, bringToFront: (() => void) | undefined) {
+export function useRegisterScreen(chatId: number, ports: ScreenPorts, slot: string | undefined, bringToFront: (() => void) | undefined) {
   const current = useRef<ShownScreen | null>(null);
   useEffect(() => {
-    const screen: ShownScreen = { chatId, slot, root: pane.root, pane };
+    const screen: ShownScreen = { chatId, slot, ...ports };
     current.current = screen;
     return registerScreen(screen);
-  }, [chatId, pane, slot]);
+  }, [chatId, ports, slot]);
   useEffect(() => {
     if (current.current) current.current.bringToFront = bringToFront;
-  }, [chatId, pane, slot, bringToFront]);
+  }, [chatId, ports, slot, bringToFront]);
 }

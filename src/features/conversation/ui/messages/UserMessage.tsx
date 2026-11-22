@@ -13,7 +13,8 @@ import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time"
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen } from "@/features/chat/ui";
+import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
@@ -69,7 +70,8 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
     longRef.current = next;
     flushSync(() => setLong(next));
   });
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
+  const rewind = useRewindActions();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
   // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う）
@@ -79,11 +81,11 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? LOCKED_LABELS.workplace_moved.rewind : beforeSwitch ? LOCKED_LABELS.provider_switched.rewind : null);
   const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? LOCKED_LABELS.workplace_moved.files : beforeSwitch ? LOCKED_LABELS.provider_switched.files : null);
   // 書き直しを始める（作業中かは操作の部品が見る）
-  const onEdit = pane && !rewindBlock ? () => setDraft(text) : undefined;
+  const onEdit = rewind && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
   // 同じ文と添付を、新しい指示としてもう一度送る（文も添付もない発言では出さない）
-  const resend = pane && (text || attachments.length > 0) ? () => void pane.resend(withHead(text), attachments) : undefined;
-  const restoreFiles = pane && data.message_uuid && !filesBlock ? () => void pane.restoreFiles(event.id) : undefined;
+  const resend = rewind && (text || attachments.length > 0) ? () => void rewind.resend(withHead(text), attachments) : undefined;
+  const restoreFiles = rewind && data.message_uuid && !filesBlock ? () => void rewind.restoreFiles(event.id) : undefined;
   const menu = useMessageMenu(text, <UserMessageMenuItems resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} />, { eventId: event.id });
   return (
     <div
@@ -129,12 +131,12 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
             <AttachmentChips attachments={attachments} />
           </div>
         )}
-        {draft !== undefined && pane ? (
+        {draft !== undefined && rewind ? (
           <BubbleEditor
             text={draft}
             onChange={setDraft}
             onCancel={() => setDraft(undefined)}
-            onSend={() => pane.rewind(event.id, withHead(draft))}
+            onSend={() => rewind.rewind(event.id, withHead(draft))}
           />
         ) : (
           (!handoffRequest || requestOpen) && (
@@ -162,7 +164,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
           </span>
         )}
         {text && <CopyButton size="sm" text={text} label="メッセージをコピー" className="message-action" />}
-        <UserMessageActions resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} canEdit={pane !== null} rewindBlock={rewindBlock} />
+        <UserMessageActions resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} canEdit={rewind !== null} rewindBlock={rewindBlock} />
       </div>
       {/* 子チャットから渡した依頼（「親チャットに追加」）の出どころ。押すとその子チャットを開く */}
       {data.handoff_from && (
@@ -171,7 +173,7 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
         </div>
       )}
       {/* この発言から聞いた子チャットと、この発言の作業で AI が作った兄弟チャット・親のないチャットの札 */}
-      {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} created={createdChats} />}
+      {screen && <ChildChatMarks chatId={screen.chatId} eventId={event.id} created={createdChats} />}
       {menu.element}
     </div>
   );

@@ -11,7 +11,7 @@ import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalTimelineNav } from "@/features/chat/ui";
 import { todoList } from "./selectors";
 import { todoSignature, todoVisibility, type TodoGroup, type TodoItem, type TodoStatus } from "./todoList";
 
@@ -135,7 +135,7 @@ export function TodoChip({ chatId, prompts }: { chatId: number; prompts: Prompts
  * 開閉は一覧を開いている間だけ覚える（保存しない）。見出しの右の吹き出しでその指示へ移る
  */
 function TodoHistory({ groups, prompts, onJump }: { groups: TodoGroup[]; prompts: PromptsById; onJump: () => void }) {
-  const pane = useOptionalChatPane();
+  const timeline = useOptionalTimelineNav();
   const [open, setOpen] = useState<ReadonlySet<number | null>>(() => new Set(groups.slice(0, 1).map((g) => g.promptId)));
   const toggle = (id: number | null) =>
     setOpen((prev) => {
@@ -164,7 +164,7 @@ function TodoHistory({ groups, prompts, onJump }: { groups: TodoGroup[]; prompts
                 <span className="todo-group-count">{g.items.length}</span>
                 {prompt && <time className="todo-group-time">{formatMessageTime(prompt.at)}</time>}
               </button>
-              {prompt && pane && (
+              {prompt && timeline && (
                 <IconButton
                   icon={MessageSquare}
                   iconSize={13}
@@ -173,7 +173,7 @@ function TodoHistory({ groups, prompts, onJump }: { groups: TodoGroup[]; prompts
                   label="この指示へ移る"
                   onClick={() => {
                     onJump();
-                    pane.jumpTo(prompt.id);
+                    timeline.jumpTo(prompt.id);
                   }}
                 />
               )}

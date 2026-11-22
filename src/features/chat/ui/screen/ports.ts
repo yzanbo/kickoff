@@ -1,158 +1,145 @@
-import { createContext, useContext, useSyncExternalStore, type RefObject } from "react";
+// チャットの画面の操作の口（型・context・hook）。実装は持ち主の conversation が作り、ChatScreen がチャットごとに 1 回だけ作って配る
+import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Attachment } from "@shared/chat/types";
-import type { EffortLevel } from "@shared/settings/types";
 import type { Cell } from "@/foundation/ui/store";
-import type { ComposerFill } from "@/features/composer/ui/composerHandle";
-import type { NewChatSeed } from "./chatHost";
-import { screenAt } from "./chatScreens";
-import type { FailedTurn } from "@/features/conversation/ui/rewind/retryActions";
-import type { ActivityFilter } from "@/features/conversation/ui/activity/activityRows";
+import { screenAt, type ShownScreen } from "./chatScreens";
 
-/** 失敗した作業を再試行するときに変えるもの（推論の深さ・モデル） */
-export interface RetryChange {
-  effort?: EffortLevel;
-  model?: string;
-}
-
-/** 失敗した作業の直し方の選択肢（いちばん新しい作業が失敗で終わったときだけ） */
-export interface RetryChoices {
-  failed: FailedTurn;
-  /** 1 段下げた推論の深さ（下げられなければ undefined） */
-  lower?: EffortLevel;
-  /** 切り替えられるモデル（いまのモデルを除く） */
-  models: { value: string; label: string }[];
-}
+/** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
+export type ActivityFilter = { kind: "all" } | { kind: "main" } | { kind: "agent"; key: string };
 
 /** チャットの画面の見え方（会話 = 発言の流れ / 動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） */
 export type ChatShowing = "conversation" | "activity";
 
-/** 1 つのチャットの画面の、変わる様子（useChatPaneState で読む） */
-export interface ChatPaneState {
-  /** 失敗した作業の直し方（作業中・失敗していなければ null） */
-  retry: RetryChoices | null;
-  /** 会話と動きのどちらを見せているか（見出しの「会話 / 動き」） */
-  showing: ChatShowing;
-  /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
-  activityFilter: ActivityFilter;
-  /**
-   * 動きで強調しているサブエージェント（カードの「動きで見る」。その配下ごとの行を強調して、順に移る）。
-   * nonce は押すたびに増やす（同じサブエージェントでもう一度押したら、また初めの行へ移る）。強調していなければ null
-   */
-  activityFocus: { key: string; nonce: number } | null;
-  /** 「伝える」の入力欄を開いているサブエージェントのカード（行のキー。カードのいちばん下に開く） */
-  tellOpen: ReadonlySet<string>;
+/**
+ * 動きで強調しているサブエージェント（カードの「動きで見る」。その配下ごとの行を強調して、順に移る）。
+ * nonce は押すたびに増やす（同じサブエージェントでもう一度押したら、また初めの行へ移る）
+ */
+export interface ActivityFocus {
+  key: string;
+  nonce: number;
+}
+
+/** 流れの中を移る口（conversation/timeline が作る）。どれも描き直しても同じ物で、中身はいつも最新の値で動く */
+export interface TimelineNav {
+  /** その発言へ移って一瞬強調する（一番下への追従をやめ、窓の外なら描いてから。流れにピントを置く） */
+  jumpTo: (eventId: number) => void;
+  /** その発言を描く（一番下への追従をやめ、読んでいなければ読み、窓の外なら前後を描く）。描いて測り終えたら解決する。移るのは呼ぶ側（チャットの中の検索） */
+  reveal: (eventId: number) => Promise<void>;
+  /** 前（-1）・次（1）の自分の指示へ移る（from: 上に貼り付けた指示。その前後へ。省けば位置で決める） */
+  stepPrompt: (dir: -1 | 1, from?: number) => void;
+  /** チャットの中の検索で探す、末尾より前の本文（自分の発言とメインの返答。末尾から読んでいれば空） */
+  searchTexts: () => Promise<ChatEvent[]>;
+  /** 流れの窓が描く行を変えて描き終えた回数（チャットの中の検索が、見出しを通さずに購読して印を付け直す） */
+  readonly drawn: Cell<number>;
   /** 遠い記録へ移るために読んでいる記録の ID（読むのが 150ms を超えたときだけ。押した所に回る印を出す） */
-  jumping: number | null;
+  readonly jumping: Cell<number | null>;
 }
 
 /**
- * 1 つのチャットの画面の操作。流れの項目・ピル・送信待ち・検索・質問のカードなど、子の部品はどれもここから使う（props で中継しない・クラス名で DOM を探さない）。
- * ChatView がチャットごとに 1 回だけ作り、描き直しても同じもの（中身はいつも最新の値で動く）なので、memo した流れの項目に配っても描き直させない。
- * 変わる様子（失敗した作業の直し方）は state に置き、useChatPaneState で読む（変わったときに、読んでいる部品だけが描き直る）
+ * サブエージェントを開く口（conversation/screen が作る。別ウィンドウのサブエージェントの画面は、メインのウィンドウに頼む口に差し替える）。
+ * key は一覧の行のキー（= 起動した呼び出し ID）
  */
-export interface ChatPaneActions {
-  readonly chatId: number;
-  /** いまのプロジェクト（チャットをほかのプロジェクトへ移すと変わる。ノートに追加する先） */
-  projectId: () => number;
-  /** チャットの画面の要素（ピントがこのチャットにあるかを見る・会話の横幅を測る・検索の印を付ける範囲） */
-  readonly root: RefObject<HTMLDivElement | null>;
+export interface SubagentNav {
   /**
-   * サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く。key = 一覧の行のキー = 起動した呼び出し ID）。
-   * eventId を渡すと、カードの中のその記録（発言・ツールのまとまり）へ移る。動きを見せていれば会話に戻す
-   */
-  revealSubagent: (key: string, eventId?: number) => void;
-  /**
-   * サブエージェントを、設定の開き方（SUBAGENT_OPEN_IN）で開く: 流れの中 = そのカードへ移って開く（revealSubagent）/
-   * 右の欄 = チャットの画面の右の欄にそのサブエージェントの画面を開く（openSubagentSide）/ 別ウィンドウ（openSubagentWindow）。
+   * 設定の開き方（SUBAGENT_OPEN_IN）で開く: 流れの中 = そのカードへ移って開く（reveal）/ 右の欄（openSide）/ 別ウィンドウ（openWindow）。
    * eventId を渡すと、その中のその記録へ移る（別ウィンドウでは移らない）
    */
-  openSubagent: (key: string, eventId?: number) => void;
+  open: (key: string, eventId?: number) => void;
   /**
-   * チャットの画面の右の欄（サブエージェントの欄）に、そのサブエージェントの画面を開く（開いていればそのタブを表示）。
+   * チャットの画面の右の欄に、そのサブエージェントの画面を開く（開いていればそのタブを表示）。
    * eventId を渡すと、その画面の中のその記録へ移る。右の欄を置けない画面（パネルの外）では、流れの中のカードへ移る
    */
-  openSubagentSide: (key: string, eventId?: number) => void;
+  openSide: (key: string, eventId?: number) => void;
   /** そのサブエージェントの画面を別ウィンドウで開く（もう開いていれば前に出す。別ウィンドウを開けなければ右の欄） */
-  openSubagentWindow: (key: string) => void;
+  openWindow: (key: string) => void;
+  /** サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く）。eventId を渡すと、カードの中のその記録へ移る。動きを見せていれば会話に戻す */
+  reveal: (key: string, eventId?: number) => void;
+  /** カードを開く・閉じる（open を省けば切り替え） */
+  toggle: (key: string, open?: boolean) => void;
+  /** カードの中身の高さの制限を外す・戻す（「全体を表示」） */
+  toggleFull: (key: string) => void;
+  /**
+   * そのサブエージェントのカードのいちばん下に「伝える」の入力欄を開く（送るとメインエージェントから SendMessage で伝える）。
+   * 書いている欄が流れていかないよう、流れの一番下への付いていきを止める
+   */
+  tell: (key: string) => void;
+  /** カードの「伝える」の入力欄を閉じる（送った・やめた。書きかけの文は残る） */
+  closeTell: (key: string) => void;
+  /** 「伝える」の入力欄を開いているカード（行のキー。カードのいちばん下に開く） */
+  readonly tellOpen: Cell<ReadonlySet<string>>;
   /** 右の欄を置ける画面か（パネルの中のチャット。外では「右の欄で開く」を出さない） */
   readonly canOpenSide: boolean;
-  /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */
-  toggleSubagent: (key: string, open?: boolean) => void;
-  /** カードの中身の高さの制限を外す・戻す（「全体を表示」） */
-  toggleSubagentFull: (key: string) => void;
+}
+
+/** 会話と動きを切り替える口（conversation/activity が作る） */
+export interface ActivityNav {
   /** 会話・動きを切り替える（動きは filter を渡せば、その絞り込みで） */
   show: (showing: ChatShowing, filter?: ActivityFilter) => void;
   /** 絞り込まない動きを開き、そのサブエージェントと配下の行をすべて強調して、初めの行へ移る（カードの「動きで見る」） */
-  focusActivity: (key: string) => void;
+  focus: (key: string) => void;
   /** 動きの強調をやめる */
-  clearActivityFocus: () => void;
+  clearFocus: () => void;
   /**
    * 会話に戻って、その記録へ移って強調する（agent を渡せば、そのサブエージェントを設定の開き方で開いてその中へ: 流れの中 = カードを開いてその中へ /
    * 右の欄 = 右の欄のその画面の中へ。右の欄のときは、会話に戻さず動きを見せたまま）
    */
   revealInConversation: (eventId: number | undefined, agent: string | null) => void;
-  /**
-   * そのサブエージェントのカードのいちばん下に「伝える」の入力欄を開く（送るとメインエージェントから SendMessage で伝える）。
-   * 書いている欄が流れていかないよう、流れの一番下への付いていきを止める
-   */
-  tellSubagent: (key: string) => void;
-  /** カードの「伝える」の入力欄を閉じる（送った・やめた。書きかけの文は残る） */
-  closeTell: (key: string) => void;
-  /** 自分の発言を書き直して送り直す（確かめ（会話だけ / ファイルも）てから送る。やめたら false。作業中は呼ばない） */
-  rewind: (eventId: number, text: string) => Promise<boolean>;
-  /**
-   * 自分の発言を、新しい指示としてもう一度送る（文と添付をそのまま。前のやり取りは消さない）。
-   * 送り方はチャット欄の送信と同じ（作業中・送信待ちがあれば、チャット欄の切り替え（いま / あとで）。圧縮中の「いま」は圧縮が終わってから伝わる）
-   */
-  resend: (text: string, attachments: Attachment[]) => Promise<void>;
-  /** ファイルだけを、その発言を送る前の状態に戻す（会話はそのまま。変わる量を見せて確かめてから） */
-  restoreFiles: (eventId: number) => Promise<void>;
-  /** 失敗した作業を、続きから再試行する（深さ・モデルを変えるときは、チャット欄の選択も同じに変える） */
-  retry: (change?: RetryChange) => void;
-  /** その発言へ移って一瞬強調する（一番下への追従をやめ、窓の外なら描いてから。流れにピントを置く） */
-  jumpTo: (eventId: number) => void;
-  /** その発言を描く（一番下への追従をやめ、読んでいなければ読み、窓の外なら前後を描く）。描いて測り終えたら解決する。移るのは呼ぶ側（チャットの中の検索） */
-  reveal: (eventId: number) => Promise<void>;
-  /** チャットの中の検索で探す、末尾より前の本文（自分の発言とメインの返答。末尾から読んでいれば空） */
-  searchTexts: () => Promise<ChatEvent[]>;
-  /** 前（-1）・次（1）の自分の指示へ移る（from: 上に貼り付けた指示。その前後へ。省けば位置で決める） */
-  stepPrompt: (dir: -1 | 1, from?: number) => void;
+  /** 会話と動きのどちらを見せているか（見出しの「会話 / 動き」） */
+  readonly showing: Cell<ChatShowing>;
+  readonly filter: Cell<ActivityFilter>;
+  /** 強調しているサブエージェント（強調していなければ null） */
+  readonly focused: Cell<ActivityFocus | null>;
+}
+
+/**
+ * 外から入力欄に文を入れる（append: 書いている文の後ろに空行を挟んで足す。なければ置き換える。
+ * attachments: アップロード済みの添付も足す。focus: false なら入力欄にピントを移さない（隠れているタブに書きかけを戻すとき））
+ */
+export type ComposerFill = (text: string, opts?: { append?: boolean; attachments?: Attachment[]; focus?: boolean }) => void;
+
+/** チャットの入力欄の仮の口（入力欄の下書きの店ができるまで。ChatScreen が入力欄の handleRef から作る） */
+export interface ComposerPort {
   /** チャット欄に文を入れる（append なら書いている文の後ろに足す） */
-  fillComposer: ComposerFill;
+  fill: ComposerFill;
   /** チャット欄にピントを移す */
-  focusComposer: () => void;
-  /** 新しいチャットのタブに文と添付を入れて開く（作成先はこのチャットのプロジェクト・グループ。パネルの外では undefined） */
-  readonly askInNewChat?: (seed: NewChatSeed) => void;
-  /** 変わる様子 */
-  readonly state: Cell<ChatPaneState>;
-  /** 流れの窓が描く行を変えて描き終えた回数（チャットの中の検索が、見出しを通さずに購読して印を付け直す） */
-  readonly drawn: Cell<number>;
+  focus: () => void;
 }
 
-/** 1 つのチャットの画面の操作（ChatView が配る。チャットの画面の外では null） */
-export const ChatPaneContext = createContext<ChatPaneActions | null>(null);
+export const TimelineNavContext = createContext<TimelineNav | null>(null);
+export const SubagentNavContext = createContext<SubagentNav | null>(null);
+export const ActivityNavContext = createContext<ActivityNav | null>(null);
+export const ComposerPortContext = createContext<ComposerPort | null>(null);
 
-/** チャットの画面の中だけで使う部品から（外で使うと例外） */
-export function useChatPane(): ChatPaneActions {
-  const pane = useContext(ChatPaneContext);
-  if (!pane) throw new Error("useChatPane はチャットの画面（ChatView）の中で使う");
-  return pane;
+function required<T>(value: T | null, name: string): T {
+  if (!value) throw new Error(`${name} はチャットの画面（ChatScreen）の中で使う`);
+  return value;
 }
 
-/** チャットの画面の外でも描く部品から（発言・ツールのまとまりなど。外では null で、書き直し・再試行・カードの開閉を出さない） */
-export const useOptionalChatPane = (): ChatPaneActions | null => useContext(ChatPaneContext);
+/** 流れの中を移る口（チャットの画面の中だけで使う部品から。外で使うと例外） */
+export const useTimelineNav = (): TimelineNav => required(useContext(TimelineNavContext), "useTimelineNav");
+/** 流れの中を移る口（チャットの画面の外・別ウィンドウのサブエージェントの画面では null） */
+export const useOptionalTimelineNav = (): TimelineNav | null => useContext(TimelineNavContext);
+/** サブエージェントを開く口（外で使うと例外） */
+export const useSubagentNav = (): SubagentNav => required(useContext(SubagentNavContext), "useSubagentNav");
+/** サブエージェントを開く口（チャットの画面の外では null） */
+export const useOptionalSubagentNav = (): SubagentNav | null => useContext(SubagentNavContext);
+/** 会話と動きを切り替える口（外で使うと例外） */
+export const useActivityNav = (): ActivityNav => required(useContext(ActivityNavContext), "useActivityNav");
+/** 会話と動きを切り替える口（チャットの画面の外では null） */
+export const useOptionalActivityNav = (): ActivityNav | null => useContext(ActivityNavContext);
+/** 入力欄の仮の口（チャットの画面の外では null） */
+export const useComposerPort = (): ComposerPort | null => useContext(ComposerPortContext);
 
 const noSubscribe = () => () => {};
 
-/** チャットの画面の変わる様子から select で選んだ値（選んだ値が変わったときだけ描き直す。チャットの画面の外では undefined） */
-export function useChatPaneState<T>(select: (state: ChatPaneState) => T): T | undefined {
-  const pane = useContext(ChatPaneContext);
-  return useSyncExternalStore(pane ? pane.state.subscribe : noSubscribe, () => (pane ? select(pane.state.get()) : undefined));
+/** 口の変わる値から select で選んだ値（選んだ値が変わったときだけ描き直す。口がなければ fallback） */
+export function usePortValue<T, S>(cell: Cell<T> | undefined, select: (value: T) => S, fallback: S): S {
+  return useSyncExternalStore(cell ? cell.subscribe : noSubscribe, () => (cell ? select(cell.get()) : fallback));
 }
 
 /** パネルのタブの置き場所（チャットの ID ではなくタブで引く。同じチャットをほかの欄でも開いていることがあるため） */
 export const chatPaneSlot = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
 
-/** そのタブで描いているチャットの画面の操作（描いていなければ undefined。登録簿は chatScreens.ts。panel が読む中継の名前で、panel のタブの中身を移すときに消す） */
-export const chatPaneAt = (slot: string): ChatPaneActions | undefined => screenAt(slot)?.pane;
+/** そのタブで描いているチャットの画面（描いていなければ undefined。登録簿は chatScreens.ts。panel が読む中継の名前で、panel のタブの中身を移すときに消す） */
+export const chatPaneAt = (slot: string): ShownScreen | undefined => screenAt(slot);

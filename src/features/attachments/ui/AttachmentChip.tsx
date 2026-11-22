@@ -2,7 +2,7 @@ import { StickyNote } from "lucide-react";
 import type { Attachment, NoteAttachment } from "@shared/chat/types";
 import { attachmentUrl } from "@/foundation/ui/api";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen } from "@/features/chat/ui";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import type { ViewerImage } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { baseName, formatBytes } from "@/foundation/ui/lib/format";
@@ -134,8 +134,8 @@ export function AttachmentChips({ attachments, onRemove }: { attachments: Attach
  */
 function NoteAttachmentChip({ attachment, onRemove }: { attachment: NoteAttachment; onRemove?: () => void }) {
   const { note, taken_at } = attachment;
-  const pane = useOptionalChatPane();
-  const chat = pane && !onRemove ? knownChat(pane.chatId) : undefined;
+  const screen = useOptionalChatScreen();
+  const chat = screen && !onRemove ? knownChat(screen.chatId) : undefined;
   const body = (
     <>
       <span className="attachment-icon">

@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { addToChat } from "@/features/composer/ui/addToChat";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useComposerPort, useOptionalChatScreen } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
@@ -19,24 +19,25 @@ const INNER_NAMES: Record<string, string> = { child: "子チャット", note: "�
  */
 export function AddToChatItems({ quote, what, path }: { quote: string | null; what: string; path?: string | null }) {
   const main = useMainChat();
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
+  const composer = useComposerPort();
   if (!quote && !path) return null;
   if (main === null) {
-    if (!pane || !quote) return null;
+    if (!screen || !composer || !quote) return null;
     return (
       <>
-        <MenuItem title="引用にして、このチャットの入力欄に足します（送るのは自分で）" onSelect={() => pane.fillComposer(quote, { append: true })}>
+        <MenuItem title="引用にして、このチャットの入力欄に足します（送るのは自分で）" onSelect={() => composer.fill(quote, { append: true })}>
           {what}をチャットに追加
         </MenuItem>
         <div className="menu-separator" role="separator" />
       </>
     );
   }
-  const inner = pane && pane.chatId !== main ? pane : null;
+  const inner = screen && composer && screen.chatId !== main ? { root: screen.root, fill: composer.fill } : null;
   const groups = [
     { key: "main", name: chatTargetName(knownChat(main)), add: (text: string) => addToChat(main, text) },
     ...(inner
-      ? [{ key: "inner", name: INNER_NAMES[inner.root.current?.dataset.chatRole ?? ""] ?? "このチャット", add: (text: string) => inner.fillComposer(text, { append: true }) }]
+      ? [{ key: "inner", name: INNER_NAMES[inner.root.current?.dataset.chatRole ?? ""] ?? "このチャット", add: (text: string) => inner.fill(text, { append: true }) }]
       : []),
   ];
   return groups.map((group) => (

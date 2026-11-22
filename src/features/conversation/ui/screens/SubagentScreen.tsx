@@ -6,7 +6,10 @@ import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { useOptionalChatPane, type ChatPaneActions } from "@/features/chat/ui/screen/ports";
+import { useOptionalActivityNav, useOptionalSubagentNav, type ActivityNav, type ComposerPort, type SubagentNav } from "@/features/chat/ui";
+import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
+import { createActivityNav } from "@/features/conversation/ui/activity/createActivityNav";
+import { createSubagentNav, openSubagentWindow } from "@/features/conversation/ui/screen/createSubagentNav";
 import { TimelineItems } from "@/features/conversation/ui/timeline/Timeline";
 import { TimelineBusyContext } from "@/features/chat/ui/timeline/timelineBusy";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
@@ -37,6 +40,22 @@ import { childrenOf, pathOf } from "@/features/subagents/ui/model/subagentTree";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 
 /**
+ * 別ウィンドウのサブエージェントの画面の口: メインの会話・右の欄が要る操作はこのウィンドウにないので、ほかのサブエージェントの画面は別ウィンドウで開き、
+ * 会話のその場所へ移る・動きで強調する・チャット欄に足すは、メインのウィンドウに知らせる（カードの開閉・「伝える」の欄はこのウィンドウの中で）
+ */
+export function windowSubagentNav(chatId: number): { subagents: SubagentNav; activity: ActivityNav; composer: ComposerPort } {
+  const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow("reveal", { chatId, eventId, agent });
+  const open = (key: string) => openSubagentWindow(chatId, key);
+  const subagents = createSubagentNav({ chatId, canOpenSide: false, release: () => {}, reveal: (key, inside) => reveal(inside, key) });
+  const activity = createActivityNav({ beforeShow: () => {}, revealInConversation: reveal });
+  return {
+    subagents: { ...subagents, open, openSide: open, openWindow: open },
+    activity: { ...activity, focus: (key) => postToMainWindow("showActivity", { chatId, agent: key }) },
+    composer: { fill: (text) => postToMainWindow("fillComposer", { chatId, text }), focus: () => {} },
+  };
+}
+
+/**
  * 右の欄（サブエージェントの欄）のタブの中身: 1 つのサブエージェントを、チャットの画面と同じような画面で見る。
  * 上から、階層（メインエージェント › 調査 › 洗い出し。押すとその階層へ）・見出し（状態・時刻・いまの動き・操作）→ 起動したエージェントからの依頼 → 手順（チャットの流れと同じ部品で、
  * 発言・時刻付きのツール・入れ子のカード）→ 起動したエージェントへの報告 → そのサブエージェントに伝える入力欄。
@@ -49,9 +68,10 @@ export function SubagentScreen({ chatId, agentKey }: { chatId: number; agentKey:
   const view = useChatSubagentsView(chatId);
   const visuals = chatVisuals.useFor(chatId);
   const background = backgroundCalls.useFor(chatId);
-  const pane = useOptionalChatPane();
+  const subagents = useOptionalSubagentNav();
+  const activity = useOptionalActivityNav();
   const entry = view?.tree.byKey.get(agentKey);
-  if (!view || !entry || !pane) {
+  if (!view || !entry || !subagents || !activity) {
     return (
       <div className="subagent-screen missing">
         <EmptyState icon={Bot} title="このサブエージェントは見つかりません">
@@ -64,14 +84,20 @@ export function SubagentScreen({ chatId, agentKey }: { chatId: number; agentKey:
     <SubagentsContext.Provider value={view}>
       <VisualsContext.Provider value={visuals}>
         <BackgroundCallsContext.Provider value={background}>
-          <ScreenView entry={entry} view={view} pane={pane} />
+          <ScreenView entry={entry} view={view} nav={{ subagents, activity }} />
         </BackgroundCallsContext.Provider>
       </VisualsContext.Provider>
     </SubagentsContext.Provider>
   );
 }
 
-function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: SubagentsView; pane: ChatPaneActions }) {
+/** 画面の見出しが使う口（右の欄はチャットの画面の口、別ウィンドウはメインのウィンドウに頼む口） */
+interface ScreenNav {
+  subagents: SubagentNav;
+  activity: ActivityNav;
+}
+
+function ScreenView({ entry, view, nav }: { entry: SubagentEntry; view: SubagentsView; nav: ScreenNav }) {
   const running = entry.status === "running";
   // 実行中は「最後の動き」の表示を進める
   useTicker(running ? 15_000 : 3_600_000);
@@ -87,7 +113,7 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
       style={agentHueStyle(view.hues.get(entry.key))}
       data-agent-screen={`${view.chatId}:${entry.key}`}
     >
-      <ScreenHead entry={entry} view={view} pane={pane} />
+      <ScreenHead entry={entry} view={view} nav={nav} />
       <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1} data-near-root="">
         <div ref={contentRef} className="subagent-screen-content" {...{ [QUOTABLE_ATTR]: "" }} onContextMenu={quoteMenu.openInRegion} onClickCapture={keepSelectionOnClick}>
           {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}
@@ -105,7 +131,7 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
 }
 
 /** 見出し: 階層・名前と状態と時刻・いまの動き（終わったものはまとめ）と操作 */
-function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: SubagentsView; pane: ChatPaneActions }) {
+function ScreenHead({ entry, view, nav }: { entry: SubagentEntry; view: SubagentsView; nav: ScreenNav }) {
   const running = entry.status === "running";
   const path = pathOf(view.tree, entry.key);
   return (
@@ -117,7 +143,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
           type="button"
           className="link-button"
           title="チャットの流れの中の、このサブエージェントを起動したカードへ移ります"
-          onClick={() => pane.revealSubagent(path[0]?.key ?? entry.key)}
+          onClick={() => nav.subagents.reveal(path[0]?.key ?? entry.key)}
         >
           メインエージェント
         </button>
@@ -126,7 +152,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
             <span className="subagent-screen-sep" aria-hidden>
               ›
             </span>
-            <button type="button" className="link-button" title={`「${s.description}」の画面を、この欄に開きます`} onClick={() => pane.openSubagentSide(s.key)}>
+            <button type="button" className="link-button" title={`「${s.description}」の画面を、この欄に開きます`} onClick={() => nav.subagents.openSide(s.key)}>
               {s.description}
             </button>
           </Fragment>
@@ -151,7 +177,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
           view={view}
           onOpen={() => {
             const first = childrenOf(view.tree, entry.key)[0]?.toolUseEventId;
-            if (first !== undefined) pane.openSubagentSide(entry.key, first);
+            if (first !== undefined) nav.subagents.openSide(entry.key, first);
           }}
         />
         <SubagentStatusText entry={entry} />
@@ -160,12 +186,12 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
       <div className="subagent-screen-now">
         {running ? <NowLine entry={entry} view={view} rel={view.rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, entry.key).length} />}
         <span className="subagent-card-actions">
-          <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane.openSubagentSide(k)} />
+          <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => nav.subagents.openSide(k)} />
           <button
             type="button"
             className="link-button subagent-tell"
             title="チャットの流れの中の、このサブエージェントのカードへ移って開きます"
-            onClick={() => pane.revealSubagent(entry.key)}
+            onClick={() => nav.subagents.reveal(entry.key)}
           >
             <MessageSquare size={12} aria-hidden />
             流れで見る
@@ -174,7 +200,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
             type="button"
             className="link-button subagent-tell"
             title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（↑↓ で順に移る）"
-            onClick={() => pane.focusActivity(entry.key)}
+            onClick={() => nav.activity.focus(entry.key)}
           >
             <GitBranch size={12} aria-hidden />
             動きで見る

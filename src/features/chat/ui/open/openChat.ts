@@ -120,7 +120,7 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
   showChatView(parent);
   const eventId = child.parent_event_id ?? undefined;
   // 開いたばかりの画面が描かれてから移る
-  requestAnimationFrame(() => screenOfChat(parent.id)?.pane.revealInConversation(eventId, null));
+  requestAnimationFrame(() => screenOfChat(parent.id)?.activity.revealInConversation(eventId, null));
 }
 
 /**
@@ -133,8 +133,8 @@ export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, tex
   if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;
-  const pane = screenOfChat(parent.id)?.pane;
-  if (pane) pane.fillComposer(text, { append: true });
+  const composer = screenOfChat(parent.id)?.composer;
+  if (composer) composer.fill(text, { append: true });
   // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る）
   else writeSetting(chatDraft(parent.id), appendBlock(readSetting(chatDraft(parent.id)), text));
   showChatView(parent);

@@ -4,7 +4,7 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyRich } from "@/features/conversation/ui/richCopy";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen } from "@/features/chat/ui";
 import { NoteMenuItems } from "@/features/notes/ui/NoteMenuItems";
 import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";
 import { MessageSquarePlus } from "lucide-react";
@@ -47,7 +47,7 @@ interface Selected {
 export function useQuoteMenu(extra?: ReactNode) {
   const menu = useContextMenu<{ source: QuoteSource; selected: Selected | null }>();
   const at = menu.menu;
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
   const copyTranscript = (chatId: number) =>
@@ -75,23 +75,23 @@ export function useQuoteMenu(extra?: ReactNode) {
           コピー
         </MenuItem>
         {source.text && <MenuItem onSelect={() => (source.rich ? copyFormatted(source.text) : copy(source.text))}>{source.noun}全体をコピー</MenuItem>}
-        {pane && (
-          <MenuItem title="このチャットの自分の発言と AI の返答を、初めからすべて Markdown でコピーします" onSelect={() => copyTranscript(pane.chatId)}>
+        {screen && (
+          <MenuItem title="このチャットの自分の発言と AI の返答を、初めからすべて Markdown でコピーします" onSelect={() => copyTranscript(screen.chatId)}>
             全部のやり取りをコピー
           </MenuItem>
         )}
         {extra}
-        {pane && (
+        {screen && (
           <>
             <div className="menu-separator" role="separator" />
             {/* 選んだ文（なければ項目の全体）を引用して、このチャットの作業を止めずに横で聞く */}
-            <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_ASK_CHILD_QUOTE) })}>
+            <MenuItem onSelect={() => openAskChild({ parentId: screen.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_ASK_CHILD_QUOTE) })}>
               <MessageSquarePlus size={14} /> 新しい子チャットで聞く
             </MenuItem>
           </>
         )}
-        {pane && <NoteMenuItems projectId={pane.projectId()} chatId={pane.chatId} text={quoted} />}
-        {pane && <IssueFromTextItem projectId={pane.projectId()} body={() => quoted} />}
+        {screen && <NoteMenuItems projectId={screen.projectId} chatId={screen.chatId} text={quoted} />}
+        {screen && <IssueFromTextItem projectId={screen.projectId} body={() => quoted} />}
       </PopupMenu>
     );
   }

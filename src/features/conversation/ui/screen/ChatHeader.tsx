@@ -13,7 +13,8 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
 import { ChatHeaderTitle } from "./ChatHeaderTitle";
-import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { useActivityNav, useSubagentNav } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 
 /**
  * チャットの見出し: プロジェクト・グループ・作業場所のバッジとチャットの名前（親のないチャットだけ。ダブルクリックで名前を変える）、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。
@@ -33,10 +34,10 @@ export function ChatHeader({
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
-  const { canOpenSide } = useChatPane();
+  const { canOpenSide } = useSubagentNav();
   const rowHidden = useChatHeaderRowHidden();
   const badgeColors = useChatHeaderBadgeColors();
-  const showing = useChatPaneState((s) => s.showing) ?? "conversation";
+  const showing = useCell(useActivityNav().showing);
   const menu = useContextMenu();
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す

@@ -9,7 +9,7 @@ import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { DB_QUERY_TOOL } from "@/features/database/ui/DbQueryToolDetail";
 
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
@@ -29,7 +29,7 @@ export function ApprovalCard({ approval }: { approval: Approval }) {
  */
 function ApprovalFrom({ approval }: { approval: Approval }) {
   const view = useSubagentsView();
-  const pane = useOptionalChatPane();
+  const subagents = useOptionalSubagentNav();
   if (!view) return null;
   const [key] = waitingSubagentKeys([approval], view.events, [...view.tree.byKey.values()]);
   const entry = key === undefined ? undefined : view.tree.byKey.get(key);
@@ -38,8 +38,8 @@ function ApprovalFrom({ approval }: { approval: Approval }) {
     <div className="approval-from small" style={agentHueStyle(view.hues.get(entry.key))}>
       <span className="agent-dot" aria-hidden />
       サブエージェント「{entry.description}」からの依頼
-      {pane && (
-        <button type="button" className="link-button" title="このサブエージェントを開く（設定の開き方で、流れの中のカードか右の欄）" onClick={() => pane.openSubagent(entry.key)}>
+      {subagents && (
+        <button type="button" className="link-button" title="このサブエージェントを開く（設定の開き方で、流れの中のカードか右の欄）" onClick={() => subagents.open(entry.key)}>
           開く
         </button>
       )}

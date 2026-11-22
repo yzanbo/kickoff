@@ -64,7 +64,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       const chat = knownChat(route.chatId);
       if (!chat) return;
       if (chat.parent_chat_id !== null) return openChildSide(chat);
-      openInRootSide(chat.id, () => whenDrawn(chat.id, () => screenOfChat(chat.id)?.pane.openSubagentSide(route.agentKey)));
+      openInRootSide(chat.id, () => whenDrawn(chat.id, () => screenOfChat(chat.id)?.subagents.openSide(route.agentKey)));
       return;
     }
     case "database":

@@ -4,7 +4,8 @@ import { reportFailure } from "@/foundation/ui/kit/ask";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useChatPaneState, useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen, usePortValue } from "@/features/chat/ui";
+import { useRewindActions } from "@/features/conversation/ui/rewindContext";
 import { useBeforeWorkplaceMove } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
@@ -14,18 +15,19 @@ import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
  * 選択肢はチャットの画面の変わる様子から読む（チャットの画面の外では出さない）
  */
 export function FailedTurnActions({ resultId }: { resultId: number }) {
-  const pane = useOptionalChatPane();
-  const choices = useChatPaneState((s) => s.retry);
+  const screen = useOptionalChatScreen();
+  const actions = useRewindActions();
+  const choices = usePortValue(actions?.choices, (c) => c, null);
   // 別のモデルの一覧（終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く）
   const menu = useContextMenu();
   // 作業を始めた発言が作業場所を移した区切りより前なら、巻き戻して再試行は出さない
-  const beforeMove = useBeforeWorkplaceMove(pane?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
-  const beforeSwitch = useBeforeProviderSwitch(pane?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
-  if (!pane || !choices || choices.failed.resultId !== resultId) return null;
+  const beforeMove = useBeforeWorkplaceMove(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
+  const beforeSwitch = useBeforeProviderSwitch(screen?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
+  if (!actions || !choices || choices.failed.resultId !== resultId) return null;
   const { lower, models, failed } = choices;
-  const retry = pane.retry;
+  const retry = actions.retry;
   const prompt = failed.prompt;
-  const rewind = prompt && !beforeMove && !beforeSwitch && (() => void pane.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
+  const rewind = prompt && !beforeMove && !beforeSwitch && (() => void actions.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
   return (
     <div className="turn-retry" role="group" aria-label="失敗した作業を直す">
       <button type="button" className="btn" title="同じ設定のまま、止まったところから続けるよう頼みます" onClick={() => retry()}>

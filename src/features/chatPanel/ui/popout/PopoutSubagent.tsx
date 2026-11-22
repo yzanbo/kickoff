@@ -1,16 +1,11 @@
-import { useMemo } from "react";
-import { openPopout } from "@/foundation/ui/navigation/popout";
-import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import type { ChatPaneActions } from "@/features/chat/ui/screen/ports";
+import { useInsertionEffect, useRef, useState } from "react";
+import type { Chat } from "@shared/chat/types";
+import type { Project } from "@shared/projects/types";
 import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
-import { useChatView, type ChatViewInput } from "@/features/conversation/ui/screen/useChatView";
-import { useChatPaneActions } from "@/features/conversation/ui/screen/useChatPaneActions";
 import { useFileLinks } from "@/features/files/ui/links/useFileLinks";
-import { SubagentScreen } from "@/features/conversation/ui/screens/SubagentScreen";
+import { SubagentScreen, windowSubagentNav } from "@/features/conversation/ui/screens/SubagentScreen";
 import { popoutFileLinks, usePopoutFileLinks } from "@/features/files/ui/PopoutFiles";
-import { ChatEnvironment } from "@/features/conversation/ui";
-
+import { ChatEnvironment, createRewindActions, useChatSending, useTimelineScrollHandle } from "@/features/conversation/ui";
 /**
  * 別ウィンドウのサブエージェントの画面: チャットの中身をチャットの店から読み、右の欄と同じ SubagentScreen を描く
  * （メインエージェントの書いている途中の返答は出さないので、途中の文の口は読まない = 返答中に描き直さない）
@@ -23,42 +18,28 @@ export function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey:
 }
 
 /**
- * チャットの画面と同じ状態と操作（useChatView）で、サブエージェントの画面だけを描く。メインの会話・右の欄が要る操作はこのウィンドウにないので、
- * ほかのサブエージェントの画面は別ウィンドウで開き、会話のその場所へ移る・動きで強調する・チャット欄に足すは、メインのウィンドウに知らせる
+ * サブエージェントの画面だけを描く。メインの会話・右の欄が要る操作はこのウィンドウにないので、口はメインのウィンドウに頼むもの（windowSubagentNav）に差し替える。
+ * 伝えた指示（自分の発言）の書き直し・送り直しは、チャットの画面と同じ選択と送り方で送る
  */
-function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: string }) {
-  const { chat } = input;
-  const shell = useChatPaneActions({ chatId: chat.id, canOpenSide: false });
-  const view = useChatView(input, shell);
-  const fileLinks = useFileLinks(chat, input.project?.repo_path, false);
-  // 開いたときの名前は、押したときの一覧から引く
-  const viewRef = useLatest(view);
-  const pane = useMemo<ChatPaneActions>(() => {
-    const base = shell.pane;
-    const openScreen = (key: string) => {
-      const entry = viewRef.current.subagentsView?.tree.byKey.get(key);
-      openPopout({ kind: "subagent", chatId: chat.id, agentKey: key }, `${entry?.description ?? "サブエージェント"} — サブエージェント`);
-    };
-    const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow("reveal", { chatId: chat.id, eventId, agent });
-    return {
-      ...base,
-      openSubagentSide: (key) => openScreen(key),
-      openSubagentWindow: (key) => openScreen(key),
-      openSubagent: (key) => openScreen(key),
-      revealSubagent: (key, inside) => reveal(inside, key),
-      revealInConversation: reveal,
-      focusActivity: (key) => postToMainWindow("showActivity", { chatId: chat.id, agent: key }),
-      fillComposer: (text) => postToMainWindow("fillComposer", { chatId: chat.id, text }),
-    };
-    // チャットの画面の操作はチャットごとに 1 回だけ作る（shell.pane と同じ）
-  }, [shell.pane, chat.id, viewRef]);
+function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; chat: Chat; project?: Project }) {
+  const scroll = useTimelineScrollHandle(true);
+  const root = useRef<HTMLDivElement>(null);
+  // 口はチャットごとに 1 回だけ作る
+  const [nav] = useState(() => ({ ...windowSubagentNav(chat.id), rewind: createRewindActions(chat.id, () => scroll.follow()) }));
+  const { options, send } = useChatSending(chat, scroll);
+  useInsertionEffect(() => {
+    nav.rewind.setSend({ options, sendOther: send.onSendOther });
+  });
+  const fileLinks = useFileLinks(chat, project?.repo_path, false);
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     // チャットの画面と同じものを配る（作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く）
     <ChatEnvironment
       chat={chat}
       host={{ surface: "window", pausable: false, mainChatId: chat.id }}
-      pane={pane}
+      ports={{ root, subagents: nav.subagents, activity: nav.activity, composer: nav.composer }}
+      timeline={null}
+      rewind={nav.rewind.actions}
       links={links}
       side={false}
       adaptPast={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}

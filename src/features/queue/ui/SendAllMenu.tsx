@@ -2,7 +2,7 @@ import { ChevronDown, ListOrdered, Merge, SendHorizontal } from "lucide-react";
 import { api } from "@/foundation/ui/api";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useChatScreen } from "@/features/chat/ui";
 import { queueFailed as failed } from "./queueFailed";
 
 /**
@@ -20,7 +20,7 @@ export function SendAllMenu({
   /** 止めている・一時停止の印がある（1 件ずつ送るときは外して最後まで送る） */
   holds: boolean;
 }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   const menu = useContextMenu({ side: "above", align: "end" });
   return (
     <>

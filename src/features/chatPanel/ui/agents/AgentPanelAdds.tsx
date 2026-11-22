@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { openChildChat } from "@/features/chat/ui/open/openChat";
 import { chatSubagents } from "@/features/subagents/ui";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
 import { DbMenuItems } from "@/features/database/ui/DbMenuItems";
 import { RecentNoteItems } from "@/features/notes/ui/NoteMenuItems";
@@ -56,7 +56,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const at = parsePanelKey(panel.key);
   const chatId = at && typeof at.scope === "number" ? at.scope : 0;
   const chat = useKnownChat(chatId);
-  const pane = useOptionalChatPane();
+  const subagentNav = useOptionalSubagentNav();
   // チャットの店の取り出し口を直接読む（会話の欄が配る context は、右の欄の外にある）
   const { tree } = chatSubagents.useFor(chatId);
   const [archivedKeys] = useSetting(subagentsSettings.archived(chatId));
@@ -92,14 +92,14 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
           </MenuItem>
         ))}
       </SubmenuItem>
-      {pane && (
+      {subagentNav && (
         <SubmenuItem icon={Bot} label="サブエージェント" empty={subagents.length === 0 ? "サブエージェントはいません" : null}>
           {subagents.map(({ entry, depth }) => (
             <MenuItem
               key={entry.key}
               title={entry.description}
               buttonProps={depth > 0 ? { style: { paddingLeft: `calc(10px + ${Math.min(depth, 4)} * 12px)` } } : undefined}
-              onSelect={() => pane.openSubagentSide(entry.key)}
+              onSelect={() => subagentNav.openSide(entry.key)}
             >
               {depth > 0 && <span aria-hidden>↳</span>}
               {entry.description}

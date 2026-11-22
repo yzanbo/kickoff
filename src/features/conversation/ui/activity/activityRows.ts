@@ -10,6 +10,7 @@ import { describeTool } from "@shared/chat/toolText";
 import { toolSpan } from "@/features/conversation/ui/tools/toolTimes";
 import { childrenOf, scopeOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
+import type { ActivityFilter } from "@/features/chat/ui";
 
 /** 行の種類（指示・返答・ツールのまとまり・サブエージェントの起動・その終わり・お知らせ・作業の終わり・中の手順が届かないもののいまの動き） */
 type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";
@@ -48,9 +49,6 @@ export function agentTargetOf(row: ActivityRow, eventId = row.eventId): { key: s
   if ((row.kind === "end" || row.kind === "now") && row.agent !== null) return { key: row.agent };
   return row.agent === null ? null : { key: row.agent, eventId };
 }
-
-/** 絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
-export type ActivityFilter = { kind: "all" } | { kind: "main" } | { kind: "agent"; key: string };
 
 const firstLine = (text: string): string => text.split("\n").find((line) => line.trim())?.trim() ?? "";
 const elapsed = (from: string | undefined, to: string | undefined): number | undefined =>

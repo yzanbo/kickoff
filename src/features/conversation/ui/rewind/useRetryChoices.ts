@@ -4,7 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { effortsFor, groupModels } from "@/features/ai/ui/options/models";
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
-import type { RetryChange, RetryChoices } from "@/features/chat/ui/screen/ports";
+import type { RetryChange, RetryChoices } from "@/features/conversation/ui/rewindContext";
 import { lowerEffort } from "./retryActions";
 import { failedTurn } from "./selectors";
 

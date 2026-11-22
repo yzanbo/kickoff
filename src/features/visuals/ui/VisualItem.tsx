@@ -10,7 +10,7 @@ import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { LazyDetails } from "@/features/conversation/ui/LazyDetails";
 import { MermaidDiagram } from "@/foundation/ui/kit/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen, useOptionalTimelineNav } from "@/features/chat/ui";
 import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
@@ -119,15 +119,15 @@ function VisualFailed({ text, source }: { text: string; source: { code: string; 
 
 /** 描き直した位置の 1 行（押すと元の図へ移る） */
 function UpdatedRow({ visual }: { visual: ChatVisual }) {
-  const pane = useOptionalChatPane();
+  const timeline = useOptionalTimelineNav();
   const { shownEvent } = useVisuals();
   const target = shownEvent.get(visual.id);
   const name = visual.title ? `「${visual.title}」` : "図";
   return (
     <div className="visual-note">
       <RotateCcw size={14} aria-hidden />
-      {pane && target !== undefined ? (
-        <button type="button" className="link-button hover-bg" onClick={() => pane.jumpTo(target)} title="元の図へ移る">
+      {timeline && target !== undefined ? (
+        <button type="button" className="link-button hover-bg" onClick={() => timeline.jumpTo(target)} title="元の図へ移る">
           {name}を描き直しました
         </button>
       ) : (
@@ -139,7 +139,7 @@ function UpdatedRow({ visual }: { visual: ChatVisual }) {
 
 /** 図のカード（上の帯: 題名・種類・ソース・コピー・全画面・ノートに保存） */
 function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }) {
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
   const [showSource, setShowSource] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -159,10 +159,10 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   const shownError = error?.code === visual.code ? error.message : null;
   const onError = (message: string) => setError({ code: visual.code, message });
   // 利用者が図の中のボタンを押したときだけ届く。作業していなければすぐ送り、作業中なら送信待ちに入れる（いまの作業に割り込まない）
-  const onPrompt = pane ? (text: string) => void api.queueMessage(pane.chatId, text, {}).catch(reportFailure("図から送れませんでした")) : undefined;
+  const onPrompt = screen ? (text: string) => void api.queueMessage(screen.chatId, text, {}).catch(reportFailure("図から送れませんでした")) : undefined;
   const save = () => {
-    if (!pane) return;
-    saveVisualToNote(visual, pane.chatId, pane.projectId()).catch((e: unknown) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${errorMessage(e)}` }));
+    if (!screen) return;
+    saveVisualToNote(visual, screen.chatId, screen.projectId).catch((e: unknown) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${errorMessage(e)}` }));
   };
   return (
     <div className="visual-card" id={`ev-${eventId}`} data-keep-row={touched ? "" : undefined}>
@@ -174,7 +174,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
           {framed && <IconButton size="sm" icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} iconSize={14} onClick={() => setShowSource(!showSource)} />}
           <CopyButton size="sm" text={visual.code} label="ソースをコピー" iconSize={14} />
           {framed && !showSource && <IconButton size="sm" icon={Maximize2} label="全画面で表示" iconSize={14} onClick={() => setFullscreen(true)} />}
-          {pane && <IconButton size="sm" icon={StickyNote} label={visual.kind === "mermaid" ? "ノートに保存（Markdown）" : "ノートに保存（HTML。スクリプトは動きません）"} iconSize={14} onClick={save} />}
+          {screen && <IconButton size="sm" icon={StickyNote} label={visual.kind === "mermaid" ? "ノートに保存（Markdown）" : "ノートに保存（HTML。スクリプトは動きません）"} iconSize={14} onClick={save} />}
         </span>
       </div>
       {frameKind === null ? (

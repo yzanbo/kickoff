@@ -4,12 +4,34 @@ export { latestOf } from "./state/stall";
 export { relativeOf } from "./timeline/relativePath";
 export { memoLast, type ChatSource } from "./store/chatSelector";
 export { chatLog, defineChatSelector, useChatDetail, useChatOf, useOpenChat, useStreaming } from "./store/useChatStore";
-export { chatTail, chatWindow, latestAnswer, type ChatWindow } from "./store/selectors";
+export { chatTail, chatWindow, latestAnswer } from "./store/selectors";
 export { PastWorkplacesProvider, useBeforeWorkplaceMove } from "./screen/pastWorkplace";
 export { setSendExtras, withSendExtras } from "./send/sendExtras";
 export { chatRoleOf, type ChatHost, type NewChatSeed } from "./screen/chatHost";
-export { ChatScreenContext, type ChatScreenValue } from "./screen/chatScreen";
-export { lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen } from "./screen/chatScreens";
+export { askInNewChatOf, ChatScreenContext, useChatScreen, useOptionalChatScreen, type ChatScreenValue } from "./screen/chatScreen";
+export { lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
 export { clearKeepAlive, KeepAliveContext, useKeepAlive } from "./screen/keepAlive";
-export { ChatPaneContext, type ChatPaneActions } from "./screen/ports";
+export {
+  ActivityNavContext,
+  ComposerPortContext,
+  SubagentNavContext,
+  TimelineNavContext,
+  useActivityNav,
+  useComposerPort,
+  useOptionalActivityNav,
+  useOptionalSubagentNav,
+  useOptionalTimelineNav,
+  usePortValue,
+  useSubagentNav,
+  useTimelineNav,
+  type ActivityFilter,
+  type ActivityFocus,
+  type ActivityNav,
+  type ChatShowing,
+  type ComposerFill,
+  type ComposerPort,
+  type SubagentNav,
+  type TimelineNav,
+} from "./screen/ports";
+export { openAll, setOpen, timelineView } from "./timeline/timelineView";
 export { useMainChat } from "./screen/mainChat";

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 
 /**
@@ -11,7 +11,7 @@ import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
  * 終わったものは初めから読めるよう、開いたときは上から。「全体を表示」で高さの制限を外す（チャットの画面の状態で覚える）
  */
 export function SubagentWindow({ chatId, cardKey, running, children }: { chatId: number; cardKey: string; running: boolean; children: ReactNode }) {
-  const pane = useOptionalChatPane();
+  const nav = useOptionalSubagentNav();
   const [full] = useTimelineOpen(chatId, `sf:${cardKey}`);
   const { scrollRef, contentRef, overflowing, onScroll } = useFollowScroll(running, full);
   return (
@@ -21,12 +21,12 @@ export function SubagentWindow({ chatId, cardKey, running, children }: { chatId:
           {children}
         </div>
       </div>
-      {pane && (overflowing || full) && (
+      {nav && (overflowing || full) && (
         <button
           type="button"
           className="link-button subagent-window-toggle"
           title={full ? "中身を、決めた高さの窓の中に戻します" : "高さの制限を外して、中身をすべて流れの中に出します"}
-          onClick={() => pane.toggleSubagentFull(cardKey)}
+          onClick={() => nav.toggleFull(cardKey)}
         >
           {full ? "高さを戻す" : "全体を表示"}
         </button>

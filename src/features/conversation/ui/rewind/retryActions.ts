@@ -2,13 +2,8 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { promptBefore, promptListOf } from "@/features/conversation/ui/promptList/promptHistory";
+import type { FailedTurn } from "@/features/conversation/ui/rewindContext";
 
-/** 直す操作を出す失敗の作業: いちばん新しい作業の終わりが失敗で、そのあと発言していないもの（その作業の終わりの記録と、元の自分の発言） */
-export interface FailedTurn {
-  resultId: number;
-  /** その作業を始めた自分の発言（巻き戻して再試行するとき。なければ出さない） */
-  prompt?: { eventId: number; text: string };
-}
 
 /**
  * いちばん新しい作業が、直す操作を出す失敗で終わっていればその作業（なければ undefined）。

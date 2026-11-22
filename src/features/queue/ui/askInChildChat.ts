@@ -3,7 +3,7 @@ import type { QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "@/features/childChats/ui/index";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useChatScreen } from "@/features/chat/ui";
 import { openCreatedChild } from "@/features/chat/ui/open/openChat";
 import { seedOf } from "./askInNewChat";
 
@@ -15,7 +15,7 @@ import { seedOf } from "./askInNewChat";
  * remove: 送信待ちから外す（子チャットへ移す）/ 外さない（このチャットでも、このあと送る）
  */
 export function useAskInChildChat(queue: QueuedMessage[], enabled: boolean) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   if (!enabled) return undefined;
   return (ids: string[], remove: boolean, inherit: boolean) => {
     const seed = seedOf(queue, ids);

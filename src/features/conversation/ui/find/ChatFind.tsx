@@ -3,7 +3,8 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { consumeKey, isKey } from "@/foundation/ui/lib/keys";
 import { findPattern, spansIn, type FindPattern } from "@/foundation/ui/lib/textFind";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { useChatScreen, useComposerPort, useTimelineNav } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 import { chatTail } from "@/features/chat/ui";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
@@ -34,13 +35,15 @@ export function ChatFind({
   floating?: boolean;
 }) {
   // 印を付ける範囲（チャットの画面）・移るとき（その発言を描くよう窓を動かす）・やめたあと（チャット欄にピントを戻す）
-  const { chatId, root, reveal, focusComposer, searchTexts, drawn } = useChatPane();
+  const { chatId, root } = useChatScreen();
+  const { reveal, searchTexts, drawn, jumping: jumpingCell } = useTimelineNav();
+  const composer = useComposerPort();
   // 記録の末尾（その前の本文は searchTexts で読む）
   const tail = chatTail.useFor(chatId);
   // 流れの窓が描く行を変えたら印を付け直す（見出しを通さずに直接購読する。スクロールで描く行が変わっても見出しは描き直さない）
   const version = useSyncExternalStore(drawn.subscribe, drawn.get);
   // 遠い一致へ移るために読んでいる（150ms を超えたら件数のところに出す）
-  const jumping = useChatPaneState((s) => s.jumping) ?? null;
+  const jumping = useCell(jumpingCell);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const { options, toggle } = useFindOptions();
@@ -165,7 +168,7 @@ export function ChatFind({
         consumeKey(e);
         e.nativeEvent.stopImmediatePropagation();
         setQuery("");
-        focusComposer();
+        composer?.focus();
       }}
       className={cx("chat-find", query && "active", floating && "detached")}
       onPointerDown={(e) => {

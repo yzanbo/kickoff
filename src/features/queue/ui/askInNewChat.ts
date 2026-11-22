@@ -2,8 +2,7 @@
 import type { QueuedMessage } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
-import type { NewChatSeed } from "@/features/chat/ui";
+import { askInNewChatOf, useChatScreen, type NewChatSeed } from "@/features/chat/ui";
 
 export type { NewChatSeed };
 
@@ -25,7 +24,9 @@ export function seedOf(queue: QueuedMessage[], ids: string[]): NewChatSeed {
  * remove: 送信待ちから外す（新しいチャットへ移す）/ 外さない（元のチャットでも、このあと送る）
  */
 export function useAskInNewChat(queue: QueuedMessage[]) {
-  const { chatId, askInNewChat } = useChatPane();
+  const screen = useChatScreen();
+  const { chatId } = screen;
+  const askInNewChat = askInNewChatOf(screen);
   if (!askInNewChat) return undefined;
   return (ids: string[], remove: boolean) => {
     askInNewChat(seedOf(queue, ids));

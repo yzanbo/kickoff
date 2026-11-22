@@ -3,7 +3,7 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
 import { storage } from "@/features/chatPanel/ui/storage";
-import type { SidePanelHandle } from "@/features/conversation/ui/screen/useChatPaneActions";
+import type { SidePanelHandle } from "@/features/conversation/ui";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel, type TerminalTarget } from "@/features/panel/ui/usePanel";

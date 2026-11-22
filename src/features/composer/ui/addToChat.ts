@@ -17,8 +17,8 @@ import { screenOfChat, setMissingFill } from "@/features/chat/ui";
  * なければ、別ウィンドウの中からはメインのウィンドウに頼む。メインのウィンドウで画面が開いていなければ、書きかけの文と送る前の添付に足して知らせる（画面は移さない）
  */
 export function addToChat(chatId: number, text: string, attachments?: Attachment[]) {
-  const pane = screenOfChat(chatId)?.pane;
-  if (pane) return pane.fillComposer(text, { append: true, attachments });
+  const composer = screenOfChat(chatId)?.composer;
+  if (composer) return composer.fill(text, { append: true, attachments });
   if (parsePopout(location.hash)) return postToMainWindow("fillComposer", { chatId, text, attachments });
   addToChatDraft(chatId, text, attachments);
 }

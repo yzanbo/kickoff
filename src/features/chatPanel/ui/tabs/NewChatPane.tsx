@@ -31,7 +31,7 @@ import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { draftScope } from "@/features/panel/ui/surfaces";
-import type { SidePanelHandle } from "@/features/conversation/ui/screen/useChatPaneActions";
+import type { SidePanelHandle } from "@/features/conversation/ui";
 import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
 import { ProviderPicker } from "@/features/ai/ui/provider/ProviderChips";
 

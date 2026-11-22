@@ -67,7 +67,7 @@ export function NoteChat({
   useImperativeHandle(handleRef, () => ({
     add: (text, attachments) => {
       if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
-      else screenOfChat(chatId)?.pane.fillComposer(text, { append: true, attachments });
+      else screenOfChat(chatId)?.composer.fill(text, { append: true, attachments });
     },
   }));
   return (

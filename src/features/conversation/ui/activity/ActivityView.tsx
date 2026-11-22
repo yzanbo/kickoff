@@ -8,12 +8,13 @@ import { useRowWindow, type RowLayoutContext } from "@/features/conversation/ui/
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { formatStamp } from "@/foundation/ui/lib/time";
-import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { useActivityNav, useSubagentNav, type ActivityFilter } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
 import { chatLog } from "@/features/chat/ui/store/useChatStore";
 import { childrenOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
-import { activityRows, agentTargetOf, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
+import { activityRows, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
 import { flipRails, layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
 import { ActivityFocusBar } from "./ActivityFocusBar";
@@ -23,7 +24,6 @@ import { useActivityFocus } from "./useActivityFocus";
 const ACTIVITY_SIZES = 5000;
 /** 一番上を見ているとみなす、上端からの距離（ここにいる間は新しい行に付いていく） */
 const FOLLOW_SLACK_PX = 40;
-const ALL: ActivityFilter = { kind: "all" };
 
 /**
  * 動き: メインとすべてのサブエージェントの動きを、1 本の時系列に並べる（チャットの見出しの「会話 / 動き」で、会話と同じ場所に出す）。
@@ -36,8 +36,9 @@ const ALL: ActivityFilter = { kind: "all" };
  */
 export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
-  const pane = useChatPane();
-  const filter = useChatPaneState((s) => s.activityFilter) ?? ALL;
+  const subagents = useSubagentNav();
+  const activity = useActivityNav();
+  const filter = useCell(activity.filter);
   // サブエージェントの行の右クリック: 開き方を選ぶ（流れの中のカード / 右の欄）
   const menu = useContextMenu<{ key: string; eventId?: number }>();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -91,21 +92,21 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const open = (row: ActivityRow, at?: number) => {
     const eventId = at === undefined ? row.eventId : at;
     const target = agentTargetOf(row, eventId);
-    if (target) pane.openSubagent(target.key, target.eventId);
-    else pane.revealInConversation(eventId, null);
+    if (target) subagents.open(target.key, target.eventId);
+    else activity.revealInConversation(eventId, null);
   };
   // 右クリック（サブエージェントの行で、右の欄を置ける画面だけ）: 設定によらず、どちらで開くかを選ぶ
   const openMenu = (row: ActivityRow, e: MouseEvent, at?: number) => {
     const eventId = at === undefined ? row.eventId : at;
     const target = agentTargetOf(row, eventId);
-    if (target && pane.canOpenSide) menu.open(e, target);
+    if (target && subagents.canOpenSide) menu.open(e, target);
   };
   // 行の右端の 2 つのボタン（右クリックのメニューと同じ）: 会話の流れの中で見る / 右の欄で開く
   const pick = (row: ActivityRow, where: "inline" | "side") => {
     const target = agentTargetOf(row);
     if (!target) return;
-    if (where === "side") pane.openSubagentSide(target.key, target.eventId);
-    else pane.revealSubagent(target.key, target.eventId);
+    if (where === "side") subagents.openSide(target.key, target.eventId);
+    else subagents.reveal(target.key, target.eventId);
   };
   const running = [...tree.byKey.values()].filter((s) => s.status === "running").length;
   // 別の日の行があれば、時刻の欄を日付の入る幅に（すべての行で同じ幅にそろえる）
@@ -113,8 +114,8 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
 
   return (
     <div className="activity-wrap">
-      <Filters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => pane.show("activity", f)} />
-      {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={pane.clearActivityFocus} />}
+      <Filters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => activity.show("activity", f)} />
+      {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={activity.clearFocus} />}
       <div ref={scrollRef} className="activity" tabIndex={-1} onScroll={onScroll}>
         <div className="activity-inner" style={timeWidth} ref={innerRef}>
           {shown.length === 0 && <p className="muted small activity-empty">まだ動きがありません</p>}
@@ -137,7 +138,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
                     onToggle={toggle}
                     onOpen={open}
                     onMenu={openMenu}
-                    onPick={pane.canOpenSide ? pick : undefined}
+                    onPick={subagents.canOpenSide ? pick : undefined}
                     rowRef={w.measureRef(row.key)}
                   />
                 )),
@@ -151,10 +152,10 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
       </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="サブエージェントの開き方" onClose={menu.close}>
-          <MenuItem onSelect={() => pane.revealSubagent(menu.menu!.value.key, menu.menu!.value.eventId)}>
+          <MenuItem onSelect={() => subagents.reveal(menu.menu!.value.key, menu.menu!.value.eventId)}>
             <MessageSquare size={14} /> 会話の流れの中で見る
           </MenuItem>
-          <MenuItem onSelect={() => pane.openSubagentSide(menu.menu!.value.key, menu.menu!.value.eventId)}>
+          <MenuItem onSelect={() => subagents.openSide(menu.menu!.value.key, menu.menu!.value.eventId)}>
             <PanelRight size={14} /> 右の欄で開く
           </MenuItem>
         </PopupMenu>

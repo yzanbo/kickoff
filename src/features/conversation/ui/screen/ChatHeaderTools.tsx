@@ -5,7 +5,8 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { useChatPane, useChatPaneState, type ChatShowing } from "@/features/chat/ui/screen/ports";
+import { useActivityNav, useChatScreen, type ChatShowing } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 import { useChatHeaderItems, useChatHeaderOrder } from "./ChatDisplayMenu";
 import { ChatFontSizeButton } from "./ChatFontSizeButton";
 import { TextWidthToggle } from "./TextWidthToggle";
@@ -17,8 +18,9 @@ import { TextWidthToggle } from "./TextWidthToggle";
  * 検索欄は見出しが渡す（隠したときは見出しが浮かせて出すので、ここには null）。並びは「見出しに出す項目」で並べ替えた順
  */
 export function ChatHeaderTools({ find }: { find: ReactNode }) {
-  const { root, show } = useChatPane();
-  const showing = useChatPaneState((s) => s.showing) ?? "conversation";
+  const { root } = useChatScreen();
+  const { show, showing: showingCell } = useActivityNav();
+  const showing = useCell(showingCell);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();

@@ -1,30 +1,22 @@
 import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { chatLog, chatWindow, relativeOf, useChatDetail } from "@/features/chat/ui";
-import { chatSubagents, useChatSubagentsView } from "@/features/subagents/ui";
-import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { chatLog, chatWindow, relativeOf } from "@/features/chat/ui";
+import { useChatSubagentsView } from "@/features/subagents/ui";
 import { promptList } from "@/features/conversation/ui/promptList/selectors";
 import { usePromptKeys } from "@/features/conversation/ui/promptList/usePromptKeys";
-import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import { useRetryChoices } from "@/features/conversation/ui/rewind/useRetryChoices";
-import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
 import { timelineItems } from "@/features/conversation/ui/timeline/selectors";
 import { useTimelineWindow } from "@/features/conversation/ui/timeline/useTimelineWindow";
 import { timelineView } from "@/features/chat/ui/timeline/timelineView";
-import { compactHoldOf } from "@/features/compact/ui/compactHold";
-import { useChatSend } from "@/features/composer/ui/send/chatSend";
-import type { ChatShellHandles, PaneLatest } from "./useChatPaneActions";
+import type { ChatShellHandles } from "./useChatShell";
+import { useChatSending } from "./useChatSending";
 
 export interface ChatViewInput {
   chat: Chat;
   project?: Project;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
-  /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
-  onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
   /** 送る前にすること（ノートのチャットで、書きかけのノートを保存してから送る） */
   beforeSend?: () => Promise<void>;
 }
@@ -32,48 +24,18 @@ export interface ChatViewInput {
 /**
  * 1 つのチャットの会話の欄（ChatColumn）の状態: 選択（モデル・深さ・権限）・作業中の様子・サブエージェント・流れ（窓とスクロール）・
  * 自分の指示の一覧・送り方。記録・回答待ち・作業中の様子はチャットの店の口をここで読む（会話の欄は隠すと止まる Activity の中なので、
- * 隠れている間は記録が届いても描き直さない）。子の部品に配る操作（ChatPaneActions）は殻（ChatView）が useChatPaneActions で 1 回だけ作り、
- * 操作が読むいまの値はここで描くたびに shell.latest に入れる
+ * 隠れている間は記録が届いても描き直さない）。子の部品に配る口は殻（ChatShell）が useChatShell で 1 回だけ作り、
+ * 口が読む描いた値（窓・送り方）はここで描くたびに入れる
  */
-export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: ChatViewInput, shell: ChatShellHandles) {
-  const { pane, scroll, latest: latestRef } = shell;
-  const { live: coreLive } = useChatDetail(chat.id);
+export function useChatView({ chat, project, focus, beforeSend }: ChatViewInput, shell: ChatShellHandles) {
+  const { scroll } = shell;
   // 流れに出す記録の範囲と読み足しの様子（記録の配列は読まず、要るものを取り出し口で読む）
   const log = chatWindow.useFor(chat.id);
-  const options = useChatOptions(
-    { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
-    chat.project_id,
-    chat.worktree_path ?? undefined,
-    chat.provider,
-  );
-  const busy = chat.status === "running";
-  // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）
-  const [stopClicked, setStopClicked] = useState(false);
-  useEffect(() => {
-    if (!busy) setStopClicked(false);
-  }, [busy]);
-  // 画面に出す作業中の様子: 停止中は押した直後から、会話の圧縮中・圧縮前指示から圧縮が終わるまでは作業中だけ（作業中の行・チャット欄のメーターで知らせる）
-  const live = useMemo<ChatLive>(
-    () => ({
-      ...coreLive,
-      stopping: busy && (stopClicked || coreLive.stopping),
-      compacting: busy ? coreLive.compacting : null,
-      awaiting_compact: busy && coreLive.awaiting_compact,
-      compact_after_turn: busy && coreLive.compact_after_turn,
-      compacted_turn: busy && coreLive.compacted_turn,
-      tells_closed: busy && coreLive.tells_closed,
-      inheriting: busy && coreLive.inheriting,
-    }),
-    [coreLive, busy, stopClicked],
-  );
-  // サブエージェントの一覧・入れ子・色・回答待ち（店の取り出し口 chatSelectors。右の欄のタブの印・サブエージェントの画面と同じ値を 1 回だけ作る）
-  const { entries: subagents, tree } = chatSubagents.useFor(chat.id);
+  const { options, busy, live, send } = useChatSending(chat, scroll, beforeSend);
   // カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
   const subagentsView = useChatSubagentsView(chat.id);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const rel = relativeOf(project?.repo_path);
-  // 動いているサブエージェント（作業を止めると一緒に止まる。Claude Code は手前で動かすサブエージェントを裏の作業の一覧に出さないので、一覧の行から数える）
-  const runningAgents = subagents.filter((s) => s.status === "running").length;
   // 流れに出すのは末尾（遠い発言へ移ったときは途中の一部分）。前に起動したサブエージェントは preface で数える
   const items = timelineItems.useFor(chat.id);
   // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録全体から作る取り出し口）
@@ -102,7 +64,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     scroll,
     log: { hasEarlier: log.hasEarlier, focused: log.focused, paging: log.paging, ...paging },
     initial,
-    onDrawn: () => pane.drawn.set(pane.drawn.get() + 1),
+    onDrawn: () => shell.timeline.drawn.set((n) => n + 1),
   });
   // 検索結果から開いた発言を読んでいなければ、その前後を読む（読めたら窓がその前後を描く）。発言ごとに 1 回だけ
   // （隠したタブを表に戻すと effect が流れ直すので、末尾に戻ったあとに引き戻さない）
@@ -124,43 +86,29 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   }, [afterShow, log]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
   const retry = useRetryChoices(chat.id, busy, options);
-  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, compactHold: compactHoldOf(live), options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   // 指示の位置は、描いていない行も窓の前からの和で（箱の中の指示を見落とさない）。読み込んでいない範囲の指示は記録の順で前後を決める
   const loaded = log.shown ? { first: log.shown.first, last: log.focused ? log.shown.last : Number.MAX_SAFE_INTEGER } : null;
   const promptKeys = usePromptKeys({
-    root: pane.root,
+    root: shell.ports.root,
     timeline: scroll.ref,
     promptIds: prompts.ids,
     locate: (id) => timeline.topOf(`e${id}`),
     loaded,
-    onJump: (id) => pane.jumpTo(id),
+    onJump: (id) => shell.timeline.jumpTo(id),
   });
-  // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  // ピルの列を画面の外に描いているとき（ノートのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
-  const chipsPortal = useChipsPortal();
-  const latest: PaneLatest = {
-    chat,
-    log,
-    options,
-    tree,
-    timeline,
-    onOpenNew,
-    stepPrompt: promptKeys.go,
-    send,
-    reveal: chipsPortal?.reveal,
-    showAfter: (eventId, then) => setAfterShow({ eventId, then }),
-  };
-  // 描く中で ref に書かない（React Compiler の決まり）。描いた結果を当てる段で、どの effect よりも先に入れる
+  // 口がいつも最新の値で動くよう、描くたびに入れ直す（口そのものは作り直さない）
+  // 描く中で外の値を書かない（React Compiler の決まり）。描いた結果を当てる段で、どの effect よりも先に入れる
   useInsertionEffect(() => {
-    latestRef.current = latest;
+    shell.setWindow({ revealEvent: timeline.revealEvent, stepPrompt: promptKeys.go, showAfter: (eventId, then) => setAfterShow({ eventId, then }) });
+    shell.setSend({ options, sendOther: send.onSendOther });
   });
 
-  // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）
+  // 失敗した作業の直し方を配る（変わったときだけ。読んでいる部品だけが描き直る）
   useLayoutEffect(() => {
-    if (pane.state.get().retry !== retry) pane.state.set({ ...pane.state.get(), retry });
-  }, [pane, retry]);
+    shell.rewind.choices.set(retry);
+  }, [shell, retry]);
 
   return { options, busy, live, subagentsView, prompts, rel, timeline, send };
 }

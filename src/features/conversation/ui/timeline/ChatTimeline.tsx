@@ -1,7 +1,8 @@
 import { useLayoutEffect } from "react";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
+import { useChatScreen, useTimelineNav } from "@/features/chat/ui";
+import { useCell } from "@/foundation/ui/store";
 import { chatLog, chatTail, chatWindow, useChatDetail, useStreaming } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
@@ -65,7 +66,8 @@ export function ChatTimeline({
   /** 動きを見せている間は隠す（描いたまま残し、読んでいた位置・開いたカードを保つ） */
   hidden?: boolean;
 }) {
-  const pane = useChatPane();
+  const { root } = useChatScreen();
+  const nav = useTimelineNav();
   // 要素に付ける ref は先に取り出す（scroll.ref を JSX の ref に渡すと、React Compiler が scroll 全体を ref とみなして最適化から外す）
   const { ref: timelineRef, inner: timelineInnerRef } = scroll;
   const busy = chat.status === "running";
@@ -78,7 +80,7 @@ export function ChatTimeline({
   // 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む。書き始め・消したときだけ描き直す）
   const stream = useStreaming(chat.id);
   const streaming = stream.active;
-  const s = useTimelineScroll({ chatId: chat.id, scroll, root: pane.root, window: w, focus, focused: log.focused, backToTail: () => chatLog.backToTail(chat.id) });
+  const s = useTimelineScroll({ chatId: chat.id, scroll, root, window: w, focus, focused: log.focused, backToTail: () => chatLog.backToTail(chat.id) });
   // 一番下に付いていく間は、流れの枠か中身の大きさが変わったら一番下へ寄せる（書いている途中の文・新しい項目・確認のカード・作業中の行も、すべて中身の大きさの知らせで）
   useFollowBottom(scroll, scroll.inner, s.settle);
   // 上に貼り付ける指示は、描く行が変わった・最後の項目が変わったときに確かめ直す
@@ -99,7 +101,7 @@ export function ChatTimeline({
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
   useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
   // 遠い記録を読むのが長引いているとき（押した所に回る印）
-  const jumping = useChatPaneState((st) => st.jumping) ?? null;
+  const jumping = useCell(nav.jumping);
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
@@ -155,8 +157,8 @@ export function ChatTimeline({
           answers={pinned.answers}
           compactKind={pinned.compactKind}
           attachments={sticky.attachments}
-          onPrev={sticky.hasPrev ? () => pane.stepPrompt(-1, pinned.id) : undefined}
-          onNext={sticky.hasNext ? () => pane.stepPrompt(1, pinned.id) : undefined}
+          onPrev={sticky.hasPrev ? () => nav.stepPrompt(-1, pinned.id) : undefined}
+          onNext={sticky.hasNext ? () => nav.stepPrompt(1, pinned.id) : undefined}
         />
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}

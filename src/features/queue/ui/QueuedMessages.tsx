@@ -20,7 +20,7 @@ import { useAskInNewChat } from "./askInNewChat";
 import { useAskInChildChat } from "./askInChildChat";
 import { nextQueuedText, queuedHint } from "./queuedHint";
 import { queueFailed as failed } from "./queueFailed";
-import { useChatPane } from "@/features/chat/ui/screen/ports";
+import { useChatScreen } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
@@ -68,7 +68,7 @@ export function QueuedMessages({
   /** 送った指示が出る所（流れの自分の発言・預かりの吹き出し）の印（sentShownKey）。送った指示を、どこかに出るまで「送信中」で残すのに使う */
   sentShown: string;
 }) {
-  const { chatId } = useChatPane();
+  const { chatId } = useChatScreen();
   const { paused, waiting_edit: waitingEdit } = queue;
   // 並べ替えは、落とした形をサーバーの応答より先に出す（出す並びは先回りのものになることがある）
   const view = useQueuePrediction(queue.messages, queue.stops);

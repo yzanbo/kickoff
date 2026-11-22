@@ -3,7 +3,7 @@ import { PROVIDER_LABELS } from "@shared/settings/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { useMessageMenu } from "./useMessageMenu";
-import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
+import { useOptionalChatScreen } from "@/features/chat/ui";
 import { ChildChatMarks } from "@/features/childChats/ui/ChildChatChips";
 import { useProviderAtEvent } from "@/features/providerSwitch/ui";
 
@@ -12,7 +12,7 @@ export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
   const data = event.data;
   const text = data.text;
   const menu = useMessageMenu(text, undefined, { rich: true, eventId: event.id });
-  const pane = useOptionalChatPane();
+  const screen = useOptionalChatScreen();
   const provider = useProviderAtEvent(event.chat_id, event.id);
   return (
     <>
@@ -21,7 +21,7 @@ export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
         <Markdown>{text}</Markdown>
       </div>
       {/* この返答から聞いた子チャットの札 */}
-      {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} />}
+      {screen && <ChildChatMarks chatId={screen.chatId} eventId={event.id} />}
       {menu.element}
     </>
   );
