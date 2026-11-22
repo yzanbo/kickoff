@@ -1,0 +1,116 @@
+// チャットのパネル・チャットの画面の右の欄のタブの種類（チャット・新しいチャット・サブエージェント・子チャット・新しい子チャット）。
+// 中身は chatTabPages.tsx、見た目の足し替えは chatTabFaces.tsx、右クリックは chatTabMenus.tsx。ui/contributes.ts が panelTabs に入れる
+import { Bot, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen } from "lucide-react";
+import { CHAT_TITLE_MAX } from "@shared/chat/types";
+import { api } from "@/foundation/ui/api";
+import { reportFailure } from "@/foundation/ui/kit/ask";
+import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats } from "@/features/chat/ui";
+import { ChildTabBadge } from "@/features/childChats/ui";
+import { draftDisplayTitle } from "@/features/composer/ui";
+import { defineTabKind, handOffTab, type PanelTab } from "@/features/panel/ui";
+import { ChatTabPage, ChildPage, NewChatPage, NewChildPage, SubagentPage } from "./chatTabPages";
+import { ChatTabFace, ChildTabFace, NewChatTabFace, SubagentTabFace } from "./chatTabFaces";
+import { ChatTabMenu, ChildTabMenu, NewChatTabMenu } from "./chatTabMenus";
+import { setDraftTitle } from "./drafts/panelDrafts";
+
+type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
+
+/** チャット・子チャットの名前を変える（名前を変える API） */
+const renameChat = (chatId: number, title: string) => void api.renameChat(chatId, title).catch(reportFailure("名前を変更できませんでした"));
+
+export const chatTabKind = defineTabKind<TabOf<"chat">>({
+  id: "chat",
+  icon: MessageSquare,
+  iconClass: "muted",
+  // サイドバーの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
+  label: (t, chat) => {
+    const title = chat?.title ?? t.title;
+    return title === undefined ? "チャット" : chatTitle(title);
+  },
+  group: (t, chat, groupOf) => groupOf(t.projectId, chat?.group_id),
+  projectOf: (t) => t.projectId,
+  ownerChatId: (t) => t.id,
+  createWhen: "shown",
+  prefetch: (tabs) => prefetchChats(tabs.map((t) => t.id)),
+  // × は表示だけ消す・アーカイブ・削除を選んでから閉じる（見出しには名前を出さない）
+  close: (t, { panel, close }) => void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: panel.chatOf(t)?.archived_at }, (action) => close({ dismiss: action === "close" })),
+  rename: { initial: (t) => t.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name) => renameChat(t.id, name) },
+  Menu: ChatTabMenu,
+  Face: ChatTabFace,
+  // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（features/popout/tabWindow.ts）。サイドバーとの連動で足し直されないよう、表示だけ消したことにする
+  popout: (t, panel) => ({
+    route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
+    title: `${t.chat?.title ?? t.title ?? "チャット"} — チャット`,
+    dismiss: true,
+  }),
+  Page: ChatTabPage,
+});
+
+export const newChatTabKind = defineTabKind<TabOf<"new">>({
+  id: "new",
+  icon: SquarePen,
+  // 表示だけ本文の冒頭にする（手動の名前があれば優先）
+  label: (t) => draftDisplayTitle(t.title, t.draftText),
+  // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
+  group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
+  projectOf: (t) => t.projectId,
+  // 送ったらその名前のチャットになる
+  rename: { initial: (t) => t.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name, panel) => setDraftTitle({ panel, key: t.key }, name) },
+  Menu: NewChatTabMenu,
+  Face: NewChatTabFace,
+  // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。URL には入らないので、移す直前に tabHandoff で渡す）
+  popout: (t, panel) => ({ route: { kind: "chats", panel, key: t.key, projectId: t.projectId }, title: `${t.title ?? NEW_CHAT_TITLE} — チャット` }),
+  onMoveToWindow: (t) => handOffTab(t),
+  Page: NewChatPage,
+});
+
+export const subagentTabKind = defineTabKind<TabOf<"subagent">>({
+  id: "subagent",
+  icon: Bot,
+  badge: "サブ",
+  // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
+  label: (t) => (t.path ? `↳ ${t.title}` : t.title),
+  hint: (t) => t.path ?? t.title,
+  projectOf: () => undefined,
+  // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+  ownerChatId: (t) => t.chatId,
+  Face: SubagentTabFace,
+  popout: (t) => ({ route: { kind: "subagent", chatId: t.chatId, agentKey: t.agentKey }, title: `${t.title} — サブエージェント` }),
+  Page: SubagentPage,
+});
+
+export const childTabKind = defineTabKind<TabOf<"child">>({
+  id: "child",
+  icon: MessagesSquare,
+  // 子チャットであることは札で見せる（名前の頭の「↳」だけだと、サブエージェントの入れ子と見分けにくい）
+  badge: "子",
+  // 孫より深いものは「孫」「ひ孫」にし、札と下線を深さの色にする（孫・ひ孫も同じ欄に子と並ぶので見分ける）
+  BadgeText: ChildTabBadge,
+  label: (t) => chatTitle(t.title),
+  hint: (t) => `子チャット: ${chatTitle(t.title)}`,
+  projectOf: (t) => t.projectId,
+  // 子チャットを消したら閉じる（親を消すと子孫も消える）
+  ownerChatId: (t) => t.childId,
+  // チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
+  close: (t, { close }) => void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => close()),
+  // 初めの値はいまの子チャットの名前（タブに覚えた名前は開いたときのもの）
+  rename: { initial: (t) => knownChat(t.childId)?.title ?? t.title, max: CHAT_TITLE_MAX, submit: (t, name) => renameChat(t.childId, name) },
+  Menu: ChildTabMenu,
+  Face: ChildTabFace,
+  popout: (t) => ({ route: { kind: "chat", chatId: t.childId }, title: `${chatTitle(t.title)} — 子チャット` }),
+  Page: ChildPage,
+});
+
+export const newChildTabKind = defineTabKind<TabOf<"newChild">>({
+  id: "newChild",
+  icon: MessageSquarePlus,
+  badge: "子",
+  label: () => "新しい子チャット",
+  hint: () => "新しい子チャット（このチャットの会話を引き継ぎ、最初の文を送ると始まります）",
+  projectOf: (t) => t.projectId,
+  // 親のチャットを消したら閉じる（孫を作るタブは、その親）
+  ownerChatId: (t) => t.parentId ?? t.chatId,
+  Page: NewChildPage,
+});
+
+export const CHAT_TAB_KINDS = [chatTabKind, newChatTabKind, subagentTabKind, childTabKind, newChildTabKind];

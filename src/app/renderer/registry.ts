@@ -1,5 +1,6 @@
 // 拡張点への登録の表: 全部の機能の ui/contributes.ts の contributes を、機能の並び順（scripts/structure.config.mjs の FEATURES）に並べて 1 回だけ入れる。
 // main.tsx が、保存の片付けのあと・別ウィンドウの判定と App の読み込みの前に呼ぶ（別ウィンドウの種類の解析とパネルの保存の読み戻しが登録を要るため）
+import { contributes as browser } from "@/features/browser/ui/contributes";
 import { contributes as chat } from "@/features/chat/ui/contributes";
 import { contributes as chatPanel } from "@/features/chatPanel/ui/contributes";
 import { contributes as childChats } from "@/features/childChats/ui/contributes";
@@ -26,5 +27,5 @@ const PROJECT_VIEWS = ["board", "chats", "files", "search", "changes", "history"
 export function installRegistry(): void {
   configureRouter({ projectViews: PROJECT_VIEWS, defaultView: "board" });
   // 機能の並び順（足すときも同じ順に）。作業場所の飾りは worktrees・github の分（持ち主へ移すまでここ）。殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後
-  installContributions([...panel, ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...github, ...notes, ...database, ...voice, ...workplaceDecorItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
+  installContributions([...panel, ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...github, ...notes, ...database, ...browser, ...voice, ...workplaceDecorItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
 }

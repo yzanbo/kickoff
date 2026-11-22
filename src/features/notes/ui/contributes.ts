@@ -3,9 +3,12 @@ import { openTargets } from "@/foundation/ui/navigation/open";
 import { lazyPart } from "@/foundation/ui/points";
 import { messageActions, type MessageMenuContext, type SelectionContext } from "@/features/conversation/ui";
 import { composerSlots } from "@/features/composer/ui";
+import { panelTabs } from "@/features/panel/ui";
 import { noteFromVisualTarget, noteTarget } from "./openTargets";
+import { noteTabKind } from "./noteTabKind";
 
 export const contributes = [
+  panelTabs.item(noteTabKind),
   openTargets.item(noteTarget),
   openTargets.item(noteFromVisualTarget),
   // 発言の右クリックの「ノート」の項目と、会話の文を選んだときの「ノート ▾」

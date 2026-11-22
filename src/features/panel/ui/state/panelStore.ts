@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { onServerEvent } from "@/foundation/ui/api/events";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { draftScope, panelKey, parsePanelKey, type AnySurface, type PanelSurface } from "@/features/panel/ui/surface";
-import type { AnyTabKind } from "@/features/panel/ui/kind";
+import type { AnyTabKind, TabBase } from "@/features/panel/ui/kind";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { readBrowserSession, writeBrowserSession } from "@/features/browser/ui/panel/browserSession";
 import { moveDraftsToChatPanels, readSavedDrafts, writeDrafts } from "@/features/composer/ui/drafts/draftPersistence";
@@ -27,7 +27,7 @@ export interface PanelStore {
   /** 状態が変わるたびに増える数（下書きの一覧を作り直すかを決める） */
   version(): number;
   /** タブの種類の決まり */
-  kindOf<T extends PanelTab>(tab: T): AnyTabKind;
+  kindOf(tab: TabBase): AnyTabKind;
   /** 欄の決まり（知らない欄なら undefined） */
   surfaceOf(id: PanelSurface): AnySurface | undefined;
   /**
@@ -82,7 +82,7 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
     const at = parsePanelKey(key);
     return at ? surfaceById.get(at.surface) : undefined;
   };
-  const kindOf = (tab: PanelTab): AnyTabKind => {
+  const kindOf = (tab: TabBase): AnyTabKind => {
     const kind = kindById.get(tab.kind);
     if (!kind) throw new Error(`タブの種類 ${tab.kind} は登録されていない`);
     return kind;
@@ -263,7 +263,7 @@ export const dispatchPanel = (key: string, action: PanelAction) => store().dispa
 export const allPanels = () => store().all();
 export const panelsVersion = () => store().version();
 export const subscribePanels = (listener: () => void) => store().subscribe(listener);
-export const kindOf = (tab: PanelTab) => store().kindOf(tab);
+export const kindOf = (tab: TabBase) => store().kindOf(tab);
 export const surfaceOf = (id: PanelSurface) => store().surfaceOf(id);
 export const movePanel = (from: string, to: string, mapTab?: (tab: PanelTab) => PanelTab) => store().move(from, to, mapTab);
 export const setPanelReplica = (on: boolean) => store().setReplica(on);

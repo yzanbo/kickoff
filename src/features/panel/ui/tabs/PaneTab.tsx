@@ -1,29 +1,17 @@
 import type { HTMLAttributes } from "react";
-import { Paperclip } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { knownChat, useKnownChat } from "@/features/chat/ui/store/knownChats";
-import { useFileTabDirty } from "@/features/files/ui/fileTabs";
-import { closeChatWithChoice } from "@/features/chat/ui/closeChat";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { ChildActivityMark } from "@/features/childChats/ui/ChildActivityMark";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { confirmCloseUnsaved } from "./confirmUnsaved";
+import { confirmTabClose } from "@/features/panel/ui/state/closeTabs";
 import { PanelTab } from "./PanelTab";
-import { TabWorkplaceBadge } from "@/features/chatPanel/ui/tabs/TabWorkplaceBadge";
 import type { PanelTab as Tab } from "./panelTypes";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
-import type { TabGroupLookup } from "@/features/panel/ui/kind";
+import type { TabFace, TabGroupLookup } from "@/features/panel/ui/kind";
 import type { TabRename } from "./useTabRename";
-import { useChatTabHint } from "@/features/chatPanel/ui/tabs/useChatTabHint";
-import { useTabAgentState } from "@/features/chatPanel/ui/tabs/useTabAgentState";
-import type { TabField } from "@/features/chatPanel/ui/tabs/tabFields";
 
 /**
- * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャット・子チャット・サブエージェントのタブは
- * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。子孫の子チャットがあれば名前の後ろに印（ChildActivityMark。動いていれば色付き）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
- * × は表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。分けたペイン（home でない）のサイドバーと連動したチャットは、
- * × で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
+ * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の項目から引き、店を読む見た目（状態の印・動きの印・作業場所の札・ピン・太字・
+ * 保存していない印）は種類の Face が足し替える。名前の変更は種類の rename、× は種類の close（なければ confirmClose で聞いてから閉じる）。
+ * 分けたペイン（home でない）のサイドバーと連動したチャットは、× で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
  */
 export function PaneTab({
   panel,
@@ -42,11 +30,8 @@ export function PaneTab({
   active: boolean;
   /** 一覧のペインのタブか */
   home: boolean;
-  /**
-   * タブに出す項目（状態の印・ピン・グループの札・作業場所の札。タブの列の「表示」のメニューの「タブに出す項目」で選んだもの。
-   * グループ別ならグループ・作業場所別なら作業場所は、まとまりの札に出るので選んでいても出さない。tabFields.ts の tabFieldShown）
-   */
-  show: (field: TabField) => boolean;
+  /** タブに出す項目（タブの列の「表示」のメニューの「タブに出す項目」で選んだもの。項目の名前は欄の持ち主が決める） */
+  show: (field: string) => boolean;
   /** 2 行にする（名前の下にグループ・作業場所の札） */
   twoLine: boolean;
   /** プロジェクトのグループ（名前と色）を引く */
@@ -55,72 +40,48 @@ export function PaneTab({
   className?: string;
   /** ドラッグ・右クリックのメニュー */
   extra: HTMLAttributes<HTMLDivElement>;
-  /** チャット・新しいチャットのタブの名前をその場で変える（パネル全体で 1 つ） */
+  /** タブの名前をその場で変える（パネル全体で 1 つ） */
   rename: TabRename;
 }) {
   const spec = kindOf(t);
-  // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と、エージェントの状態（チャット・子チャット・サブエージェント）
+  // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）
   const chat = panel.chatOf(t);
-  const agent = useTabAgentState(panel, t);
-  // 子チャットのタブの名前は、いまの子チャットの名前（タブに覚えた名前は開いたときのもので、名前を変えると古いまま残った）
-  const child = useKnownChat(t.kind === "child" ? t.childId : 0);
-  const label = t.kind === "child" && child ? chatTitle(child.title) : spec.label(t, chat);
+  const label = spec.label(t, chat);
   const group = spec.group?.(t, chat, groupOf);
-  const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group?.name);
   const backHome = !home && panel.isLinkedTab(t.key);
-  // ファイルのタブは、保存していない変更があれば × の代わりに「●」（乗せると ×。VS Code と同じ）
-  const dirty = useFileTabDirty(panel.key, t.kind === "projectFile" ? t.key : null);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);
-    // 子チャットのタブは、チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
-    if (t.kind === "child") return void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => panel.closeTab(t.key));
-    // ノート・ファイルのタブは、保存していない書きかけがあれば保存するかを聞く（confirmUnsaved.ts）
-    if (t.kind !== "chat") return void confirmCloseUnsaved(panel.key, t).then((ok) => ok && panel.closeTab(t.key));
-    void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
+    if (spec.close) return spec.close(t, { panel, close: (opts) => panel.closeTab(t.key, opts) });
+    void confirmTabClose(panel.key, t).then((ok) => ok && panel.closeTab(t.key));
   };
-  const editor = rename.editorFor(panel.key, t, child?.title);
-  // 作業場所の札（チャットはそのチャットの作業場所、新しいチャットは始める作業場所。ほかの種類は添えない）
-  const place =
-    t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
-  const workplaceTag = show("worktree") && place ? <TabWorkplaceBadge chat={place} /> : undefined;
-  // 子孫の子チャットの印を名前の後ろに（チャットのタブは子・孫…、子チャットのタブはその下の孫…）。作業中・回答待ちの色付きの印は「状態」、
-  // 動いていなくても子チャットがあることを出すのは「子チャット」（タブに出す項目）
-  const activityOf = t.kind === "chat" ? chat?.id : t.kind === "child" ? t.childId : undefined;
-  const activity =
-    activityOf !== undefined && (show("state") || show("children")) ? (
-      <ChildActivityMark chatId={activityOf} moving={show("state")} always={show("children")} />
-    ) : undefined;
-  return (
-    <PanelTab
-      active={active}
-      icon={spec.icon}
-      iconClass={spec.iconClass}
-      badge={spec.badge && surfaceOf(panel.surface)?.kindBadges !== false ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
-      label={label}
-      after={t.kind === "new" && !t.draftText?.trim() && (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0 ? <Paperclip size={12} aria-label="添付あり" /> : activity}
-      group={show("group") ? group : undefined}
-      tag={workplaceTag}
-      tagKey={workplaceTag && place ? `${place.worktree_path ?? ""}|${place.branch ?? ""}` : undefined}
-      twoLine={twoLine}
-      title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
-      className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
-      // チャット・子チャットのタブは、乗せて少し待ったら中身を先読みする（features/chat/store/hoverPrefetch.ts）
-      extra={t.kind === "browser" ? { ...extra, ...browserTabAttr(t.key) } : activityOf === undefined ? extra : { ...extra, ...prefetchAttr(activityOf) }}
-      onSelect={() => panel.showTab(t.key)}
-      pinnedIn={show("pin") && chat?.pinned ? chat.project_id : null}
-      // 状態の印を隠したときは、ほかの種類のタブと同じくアイコンを出す（未読・失敗の太字はそのまま）
-      lead={spec.Lead ? <spec.Lead tab={t} /> : agent && show("state") ? <StatusSlot state={agent.state} unread={agent.unread} label={agent.label} /> : undefined}
-      onRename={rename.canRename(t) ? () => rename.start(t.key) : undefined}
-      // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前。新しいチャットは付けた名前）
-      editor={editor}
-      closeLabel={backHome ? `${label} を一覧のペインに戻す` : dirty ? `${label} のタブを閉じる（保存していない変更があります）` : undefined}
-      dirty={dirty}
-      onClose={close}
-    />
-  );
+  const render = (face: TabFace) => {
+    const name = face.label ?? label;
+    return (
+      <PanelTab
+        active={active}
+        icon={spec.icon}
+        iconClass={spec.iconClass}
+        badge={spec.badge && surfaceOf(panel.surface)?.kindBadges !== false ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
+        label={name}
+        after={face.after}
+        group={show("group") ? group : undefined}
+        tag={face.tag}
+        tagKey={face.tagKey}
+        twoLine={twoLine}
+        title={spec.hint?.(t) ?? face.title ?? (group ? `${name}（グループ: ${group.name}）` : name)}
+        className={cx(className, face.unread && "unread")}
+        extra={face.attrs ? { ...extra, ...face.attrs } : extra}
+        onSelect={() => panel.showTab(t.key)}
+        pinnedIn={face.pinnedIn ?? null}
+        lead={spec.Lead ? <spec.Lead tab={t} /> : face.lead}
+        onRename={rename.canRename(t) ? () => rename.start(t.key) : undefined}
+        // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値は種類の rename.initial）
+        editor={rename.editorFor(panel.key, t)}
+        closeLabel={backHome ? `${name} を一覧のペインに戻す` : face.closeLabel}
+        dirty={face.dirty}
+        onClose={close}
+      />
+    );
+  };
+  return spec.Face ? <spec.Face tab={t} panel={panel} show={show} base={{ label, group }} render={render} /> : render({});
 }
-
-/** 先読みの見張りが読む印（HTMLAttributes に data-* を書けないので、属性の束として渡す） */
-const prefetchAttr = (chatId: number) => ({ "data-prefetch-chat": String(chatId) }) as HTMLAttributes<HTMLDivElement>;
-/** ブラウザのページ内検索が、名前のボタンにピントがあるときに読む印 */
-const browserTabAttr = (key: string) => ({ "data-browser-tab-key": key }) as HTMLAttributes<HTMLDivElement>;

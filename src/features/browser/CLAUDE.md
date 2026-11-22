@@ -4,7 +4,7 @@
 
 - `desktop/`: メインの口（webview の守り `hardenWebviews`・`isOurWebview`・開発者ツール・拡張・AI の操作）。
 - `core/`: AI のブラウザのツール（`tools.ts`。最後に使ったタブはチャットごと）・タブを表に出す `browserReveal.ts`・「ブラウザ」の節の contributor（`turnParts.ts`）。
-- `ui/`: ブラウザのタブ（`BrowserPane`）・開発者ツールの重ね `devtoolsBox.ts`。
+- `ui/`: ブラウザのタブ（`BrowserPane`。種類は `panel/tabKind.ts`）・開発者ツールの重ね `devtoolsBox.ts`。
 
 ## 決まり
 

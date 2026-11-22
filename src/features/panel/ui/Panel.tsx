@@ -20,8 +20,7 @@ import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
 import { emptyHintOf } from "./surface";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
-import { neighborChats } from "@/features/chatPanel/ui/tabs/tabPrefetch";
-import { useTabPrefetch } from "@/features/chatPanel/ui/tabs/useTabPrefetch";
+import { neighborTabs, useTabPrefetch } from "@/features/panel/ui/tabs/tabPrefetch";
 import { usePanelViewMenu } from "@/features/panel/ui/tabs/PanelViewMenu";
 import { useNewChild } from "@/features/chatPanel/ui/agents/useNewChild";
 
@@ -89,24 +88,24 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const view = usePanelViewMenu(panel);
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);
-  // 一度表示したタブ。チャットは初めて表示したとき、復元したブラウザは初めて欄を開いたときから中身を作る
+  // 一度表示したタブ。中身を作る時が shown の種類（チャット）は初めて表示したとき、欄を開くまで作らないタブ（復元したブラウザ）は初めて欄を開いたときから中身を作る
   // （描く中で ref に書かず state に持つ。表示中なのにまだ入っていないタブがあれば、描いている間に足す）
   const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
   const shownNow = tabs.filter((t) => !mountedTabs.has(t.key) && (
-    t.kind === "browser" && t.restored
+    kindOf(t).deferUntilPanelOpen?.(t)
       ? panelOpen
       : (leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]).active === t.key
   ));
   if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
-  // まだ描いていないチャットのタブを、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
+  // まだ描いていないタブ（先読みできる種類）を、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
   const tabByKey = new Map(tabs.map((t) => [t.key, t]));
-  const prefetch = neighborChats(
+  const prefetch = neighborTabs(
     leaves.map((p) => ({ tabs: p.tabs, shown: p.active })),
     (key) => {
       const t = tabByKey.get(key);
-      return t?.kind === "chat" && kindOf(t).createWhen === "shown" && !mountedTabs.has(key) ? t.id : null;
+      return t !== undefined && kindOf(t).prefetch !== undefined && kindOf(t).createWhen === "shown" && !mountedTabs.has(key);
     },
-  );
+  ).map((key) => tabByKey.get(key)!);
   useTabPrefetch(prefetch, panelOpen);
   /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
@@ -206,7 +205,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
           const rect = rectOf.get(pane.id);
           const active = pane.active === t.key;
           if (!active && kindOf(t).createWhen === "shown" && !mountedTabs.has(t.key)) return null;
-          if (t.kind === "browser" && t.restored && !panelOpen && !mountedTabs.has(t.key)) return null;
+          if (kindOf(t).deferUntilPanelOpen?.(t) && !panelOpen && !mountedTabs.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}

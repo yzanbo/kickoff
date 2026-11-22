@@ -1,10 +1,10 @@
 // タブの種類の口: 種類ごとの違い（アイコン・名前・中身・後始末・別ウィンドウ）を 1 つの項目にまとめ、拡張点 panelTabs で受ける。
 // 種類を名指しして分岐させず、店・タブの列・中身の枠は kindOf(tab) の項目から引く
-import type { ComponentType } from "react";
+import type { ComponentType, HTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { definePoint } from "@/foundation/ui/points";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import type { PanelPageOps } from "./usePanel";
+import type { PanelController, PanelPageOps } from "./usePanel";
 
 /** タブの中身の基底（中身の型は種類ごとに足す） */
 export interface TabBase {
@@ -38,6 +38,57 @@ export interface TabPageProps<T extends TabBase> {
   focused: boolean;
 }
 
+/** タブの列のタブ 1 つの、種類が足し替える見た目（どれもなければ種類によらない形のまま） */
+export interface TabFace {
+  /** 名前（店を読む名前。子チャットのいまの名前） */
+  label?: string;
+  /** マウスを乗せたときの説明（hint がない種類だけ。なければ名前とグループ名） */
+  title?: string;
+  /** アイコンの代わりに名前の前に置くもの（状態の印） */
+  lead?: ReactNode;
+  /** 名前のすぐ後ろ（子チャットの動きの印・添付ありの印） */
+  after?: ReactNode;
+  /** グループの札の後ろ（作業場所の札）と、その中身が変わったら測り直すためのキー */
+  tag?: ReactNode;
+  tagKey?: string;
+  /** ピン留めしたチャットのプロジェクト（いちばん左にピン） */
+  pinnedIn?: number | null;
+  /** 名前を太字にする（未読・失敗） */
+  unread?: boolean;
+  /** タブに足す属性（先読み・ページ内検索が読む印） */
+  attrs?: HTMLAttributes<HTMLDivElement>;
+  /** 保存していない変更がある（× の代わりに ●）と、そのときの閉じるボタンの名前 */
+  dirty?: boolean;
+  closeLabel?: string;
+}
+
+/** 種類のタブの見た目の部品に渡すもの（部品は店を読んで render に足し替える見た目を渡す） */
+export interface TabFaceProps<T extends TabBase> {
+  tab: T;
+  panel: PanelController;
+  /** タブに出す項目を選んでいるか（項目の名前は欄の持ち主が決める。「表示」のメニューの「タブに出す項目」） */
+  show(field: string): boolean;
+  /** 種類によらない形で決めた名前とグループ */
+  base: { label: string; group: TabGroupBadge | undefined };
+  render(face: TabFace): ReactNode;
+}
+
+/** タブの右クリックのメニューに、土台が作った項目を渡して種類の項目と並べさせる */
+export interface TabMenuProps<T extends TabBase> {
+  tab: T;
+  panel: PanelController;
+  /** 右クリックしたタブのペイン */
+  paneId: string;
+  /** 「新しいチャット」（チャットを出す欄だけ。ほかは null） */
+  newChat: ReactNode;
+  /** 表示する場所の組（分ける・移す・別ウィンドウ・一覧のペインに戻す） */
+  before: ReactNode;
+  /** タブの組（タブの表示 ›・タブを閉じる） */
+  after: ReactNode;
+  onRename(): void;
+  onClose(): void;
+}
+
 export interface TabKind<T extends TabBase> {
   id: T["kind"];
   /** その種類のタブか（defineTabKind が id から作る） */
@@ -52,7 +103,7 @@ export interface TabKind<T extends TabBase> {
   badge?: string;
   /** 札の文をタブごとに変えるときの部品（子チャットの深さ「子 / 孫 / ひ孫」。なければ badge の文） */
   BadgeText?: ComponentType<{ tab: T }>;
-  /** アイコンの代わりに名前の前に置く部品（サブエージェントのタブの状態のアイコン。チャットのタブの状態の印は PaneTab が出す） */
+  /** アイコンの代わりに名前の前に置く部品（ファイルの種類のアイコン・ブラウザの AI 操作中の印。状態の印は Face が出す） */
   Lead?: ComponentType<{ tab: T }>;
   /** タブに出す名前（chat はタブのチャット（サイドバーの一覧にあれば最新のもの）） */
   label(tab: T, chat: TabChat | undefined): string;
@@ -68,11 +119,29 @@ export interface TabKind<T extends TabBase> {
   createWhen?: "shown" | "mounted";
   /** 閉じたときの後始末（ターミナルはシェルも止める。別ウィンドウへ移すとき（keep）は呼ばない） */
   dispose?(tab: T): void;
+  /** 閉じてよいか（保存していない書きかけを聞く）。×・右クリックの「タブを閉じる」・ペインを閉じる、のどれでも聞く */
+  confirmClose?(tab: T, panel: string): Promise<boolean>;
+  /** × の動きの差し替え（チャットは閉じ方を聞く）。分けたペインの連動したチャットを一覧のペインへ戻すのは、これより先に土台がする */
+  close?(tab: T, ctx: { panel: PanelController; close(opts?: { dismiss?: boolean }): void }): void;
+  /** その場で名前を変えられる種類（ダブルクリック・Enter・右クリックの「名前を変更」） */
+  rename?: { initial(tab: T): string; max: number; submit(tab: T, name: string, panel: string): void };
+  /** 右クリックのメニュー（なければ土台の項目だけ） */
+  Menu?: ComponentType<TabMenuProps<T>>;
+  /** タブの見た目の足し替え（状態の印・動きの印・作業場所の札など、店を読むもの） */
+  Face?: ComponentType<TabFaceProps<T>>;
+  /** 中身を作る時が shown のタブを、表のタブの隣から手すきのときに先読みする */
+  prefetch?(tabs: readonly T[]): void;
+  /** 欄を初めて開くまで中身を作らない（復元したブラウザのタブ） */
+  deferUntilPanelOpen?(tab: T): boolean;
+  /** 中身の枠に足すクラス（AI が操作しているブラウザ。subscribe で変わりを知らせる） */
+  pageClass?: { subscribe(listener: () => void): () => void; of(tab: T): string | undefined };
   /**
    * 別ウィンドウで開けるタブの行き先とウィンドウの名前（チャットの画面の右の欄のサブエージェント・変更・ファイル・ノート・子チャット、パネルのブラウザ・ターミナル）。
-   * panel はタブのある欄（戻す先）
+   * panel はタブのある欄（戻す先）。dismiss: 欄からは「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）
    */
-  popout?(tab: T, panel: string): { route: PopoutRoute; title: string };
+  popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean };
+  /** 別ウィンドウへ移す直前（送る前の新しいチャットは、書きかけの文・添付ごと渡す） */
+  onMoveToWindow?(tab: T, from: string): void;
   /** タブの中身（表示していないタブも hidden で残す） */
   Page: ComponentType<TabPageProps<T>>;
 }

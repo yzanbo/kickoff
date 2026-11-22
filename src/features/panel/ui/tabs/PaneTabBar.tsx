@@ -13,7 +13,7 @@ import { HiddenGroupItems } from "@/features/chatPanel/ui/clusters/HiddenGroupIt
 import { useTabStrip } from "@/features/chatPanel/ui/clusters/useTabStrip";
 import { joinDropHandlers, useClusterTabDrop } from "@/features/chatPanel/ui/clusters/useClusterTabDrop";
 import type { OpenWithKind } from "@/features/panel/ui/openWith/useOpenWithMenu";
-import { confirmCloseAllUnsaved } from "./confirmUnsaved";
+import { confirmTabsClose } from "@/features/panel/ui/state/closeTabs";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
@@ -114,7 +114,7 @@ export function PaneTabBar({
   /** ペインを閉じる（閉じるファイル・ノートのタブに保存していない書きかけがあれば、先に保存するかを聞く） */
   const closePane = () => {
     const tabs = panel.tabs.filter((t) => pane.tabs.includes(t.key));
-    void confirmCloseAllUnsaved(panel.key, tabs).then((ok) => ok && panel.closePane(pane.id));
+    void confirmTabsClose(panel.key, tabs).then((ok) => ok && panel.closePane(pane.id));
   };
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
@@ -126,7 +126,7 @@ export function PaneTabBar({
   };
   // タブに出す項目（表示のメニューで選んだもの。まとめ方の項目はまとまりの札に出るので出さない）
   const [hiddenTabFields] = useSetting(storage.settings.tabHidden);
-  const showField = (field: TabField) => tabFieldShown(field, hiddenTabFields, strip.grouping);
+  const showField = (field: string) => tabFieldShown(field as TabField, hiddenTabFields, strip.grouping);
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);

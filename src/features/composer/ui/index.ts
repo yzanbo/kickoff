@@ -15,3 +15,4 @@ export { PendingFileChips } from "./PendingFileChips";
 export { DraftTextWatch } from "./DraftTextWatch";
 export { Composer } from "./Composer";
 export type { ComposerSend, OutgoingMessage } from "./composerModel";
+export { draftDisplayTitle } from "./drafts/draftTitle";

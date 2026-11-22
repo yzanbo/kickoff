@@ -7,7 +7,8 @@ export type { DraftScope, PanelScope, PanelSurface, ViewScope } from "./surface"
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
 export { draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
-export { panelTabs } from "./kind";
+export { defineTabKind, panelTabs, type TabFaceProps, type TabMenuProps, type TabPageProps } from "./kind";
+export { handOffTab } from "./tabs/tabHandoff";
 export { panelScreen, projectOfPanel } from "./surfaces";
 export {
   allPanels,
@@ -36,6 +37,7 @@ export {
   databaseTab,
   fileTab,
   githubTab,
+  hostOf,
   newChatTab,
   newChildTab,
   noteTab,

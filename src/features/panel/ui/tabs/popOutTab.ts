@@ -2,7 +2,6 @@ import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import type { PanelPageOps, PanelTab } from "@/features/panel/ui/usePanel";
 import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { kindOf } from "@/features/panel/ui/state/panelStore";
-import { handOffTab } from "./tabHandoff";
 
 /** 別ウィンドウで開けるタブか（Mac のアプリで、チャットの画面の右の欄のサブエージェント・変更・ファイルなどのタブと、パネルのブラウザ・ターミナルのタブ） */
 export const canPopOut = (tab: PanelTab | undefined): boolean => canPopout() && tab !== undefined && kindOf(tab).popout !== undefined;
@@ -15,10 +14,10 @@ export const canPopOut = (tab: PanelTab | undefined): boolean => canPopout() && 
 export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey: string, at: { x: number; y: number } | null = null) {
   const tab = panelStateOf(panel.key).tabs.find((t) => t.key === tabKey);
   const target = canPopout() && tab ? kindOf(tab).popout?.(tab, panel.key) : undefined;
-  if (!target) return;
-  // 送る前の新しいチャットは、書きかけの文・添付ごと渡す（URL には入らないので）
-  if (tab?.kind === "new") handOffTab(tab);
+  if (!tab || !target) return;
+  // 送る前の新しいチャットは、書きかけの文・添付ごと渡す（URL には入らないので。種類の onMoveToWindow）
+  kindOf(tab).onMoveToWindow?.(tab, panel.key);
   openPopout(target.route, target.title, at);
-  // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（チャットのパネルに戻せば、また出る）
-  panel.closeTab(tabKey, { dismiss: tab?.kind === "chat", keep: true });
+  // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（種類の popout の dismiss。チャットのパネルに戻せば、また出る）
+  panel.closeTab(tabKey, { dismiss: target.dismiss === true, keep: true });
 }

@@ -8,3 +8,5 @@ export { handBackFromOf } from "./handBackFrom";
 export { INHERIT_LABELS, inheritHelp, InheritChoice } from "./InheritChoice";
 export { ComposerHandBackChip, HandBackFromChip } from "./HandBackFromChip";
 export { HandBackMarks } from "./HandBackMarks";
+export { ChildActivityMark } from "./ChildActivityMark";
+export { ChildTabBadge } from "./ChildTabBadge";

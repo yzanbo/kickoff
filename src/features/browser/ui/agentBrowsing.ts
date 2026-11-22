@@ -16,8 +16,11 @@ export function setAgentBrowsing(tabKey: string, on: boolean) {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => void listeners.delete(listener);
 }
+
+/** 中身の枠に足すクラス（タブの種類の pageClass。AI が操作しているタブは、表に出ていなくても見えない形で並べる） */
+export const agentBrowsingClass = { subscribe, of: (tab: { key: string }) => (active.has(tab.key) ? "agent-browsing" : undefined) };
 
 /** AI がこのタブを操作しているか（タブのキーがなければ false） */
 export function useAgentBrowsing(tabKey: string | null): boolean {

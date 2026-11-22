@@ -1,5 +1,11 @@
 # チャットのパネル（`src/features/chatPanel`）
 
+## タブの種類（`ui/chatTabKinds.ts`）
+
+- チャット・新しいチャット・サブエージェント・子チャット・新しい子チャットの 5 種類。中身 `chatTabPages.tsx`・見た目 `chatTabFaces.tsx`（状態の印 `useTabAgentState`・動きの印・作業場所の札）・右クリック `chatTabMenus.tsx`（サイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`）。
+- タブに出す項目（`tabFields.ts`）は隠したものだけを覚える。まとまりの札に出る項目はタブに出さない（`groupedTabField`）。
+- 新しいチャットのタブは送ると同じ位置で `replaceWithChat`、右の欄の中身は `moveDraftSidePanel` で移す。
+
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
 - チャットのタブは、サイドバーに出ているチャット（`useLinkedChats`）に、一覧が届いてから `syncLinkedTabs` でそろえる。
