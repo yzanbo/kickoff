@@ -4,7 +4,6 @@ import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import { streamingLastAt } from "@/features/chat/ui/store/useChatStore";
 import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/ui/state/stall";
 import { workingLabel } from "./workingLabel";
@@ -19,6 +18,7 @@ export function useWorkingStatus({
   events,
   last,
   streaming,
+  streamedAt: lastStreamedAt,
   live,
   agents,
   busy,
@@ -29,6 +29,8 @@ export function useWorkingStatus({
   last: TimelineItem | undefined;
   /** 書いている途中の返答があるか */
   streaming: boolean;
+  /** 書いている途中の返答が最後に届いた時刻（描くときに読む） */
+  streamedAt: () => string | null;
   live: ChatLive;
   agents: SubagentEntry[];
   busy: boolean;
@@ -36,7 +38,7 @@ export function useWorkingStatus({
   useTicker(busy ? 15_000 : 3_600_000);
   if (!busy) return null;
   // 書いている途中の返答が最後に届いた時刻は、描くときにチャットの店から読む（作業中は 15 秒ごとに描き直す）
-  const streamedAt = streamingLastAt(chat.id);
+  const streamedAt = lastStreamedAt();
   const running = agents.filter((s) => s.status === "running");
   const activity = {
     parent: activityOf(latestOf(events.at(-1)?.created_at, streamedAt, chat.turn_started_at, ...running.map((s) => s.lastActivityAt))),

@@ -2,7 +2,7 @@ import type { Chat, FeedItem, SearchHit, ChatPatch } from "@shared/chat/types";
 import type { ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatTexts, ChatTranscript } from "@shared/chat/detail";
 import type { NewChatBody } from "@shared/chat/send";
 import type { TrashedResult } from "@shared/trash/types";
-import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
+import { withSendExtras } from "@/features/chat/ui/send/sendExtras";
 import { request, withQuery } from "@/foundation/ui/api/http";
 
 const patchChat = (chatId: number, patch: ChatPatch) => request<Chat>("PATCH", `/api/chats/${chatId}`, patch);
@@ -19,7 +19,7 @@ export const chatsApi = {
     request<SearchHit[]>("GET", withQuery("/api/search", { q, project_id: scope.projectId, chat_id: scope.chatId })),
   /** フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答 1 件の初めの部分。返答の新しい順 */
   feed: (limit?: number) => request<FeedItem[]>("GET", withQuery("/api/feed", { limit })),
-  startChat: (projectId: number, body: NewChatBody) => request<Chat>("POST", `/api/projects/${projectId}/chats`, { ...body, ...withUserView() } satisfies NewChatBody),
+  startChat: (projectId: number, body: NewChatBody) => request<Chat>("POST", `/api/projects/${projectId}/chats`, withSendExtras(body satisfies NewChatBody)),
   /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける。query を省けば記録はすべて。つなぎ直したときは after で切れていた間の分だけ） */
   chatDetail: (id: number, query: ChatDetailQuery = {}) => request<ChatDetail>("GET", withQuery(`/api/chats/${id}`, { ...query })),
   /** チャットの記録の一部分（さかのぼる・間をすべて・遠い所の前後・下へ伸ばす・サブエージェントの中。開いたときに末尾だけを読んだあと） */

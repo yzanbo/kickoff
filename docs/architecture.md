@@ -48,7 +48,7 @@
 | 末尾（チャットを開くときに読む最新のターン。ターンの境目は作業の終わり） | `tail`（`GET /api/chats/:id?tail_turns=`・`CHAT_TAIL_TURNS`・`src/features/chat/core/chatLogQuery.ts` の `tailStart`） |
 | 索引（末尾より前の記録のうち、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要るものだけを軽くしたもの） | `index`（`ChatDetail.index`・`@shared/chat/chatIndex` の `selectIndexIds` / `ChatEventMeta`・覆う索引 `idx_chat_events_meta`） |
 | 途中の一部分（遠い発言へ移るときに読む、末尾とつながっていない記録のまとまり） | `focus`（`GET /api/chats/:id/events?around=`・`ChatEventPage`） |
-| チャットの店（開いているチャットの中身を、部品の外にチャットごとに 1 つ持つ画面の店。同じチャットを何か所で開いても読み込みと SSE は 1 回）と口（部品が購読する用途ごとの入口: 詳細・記録・途中の文・サブエージェントの途中経過） | `src/features/chat/ui/store/`（`createChatStore`・口 `detail` / `log` / `streaming` / `progress`・hook `useChatContent` / `useStreamingActive` / `useChatStreamGen` / `useChatProgress`） |
+| チャットの店（開いているチャットの中身を、部品の外にチャットごとに 1 つ持つ画面の店。同じチャットを何か所で開いても読み込みと SSE は 1 回）と口（部品が購読する用途ごとの入口: 詳細・記録・途中の文・サブエージェントの途中経過） | `src/features/chat/ui/store/`（`createChatStore`・口 `detail` / `log` / `streaming` / `progress`・hook `useChatDetail` / `useStreaming` と取り出し口 `defineChatSelector`） |
 | 書きかけの返答（作業中に、確定する前の AI の文。画面では「書いている途中の返答」）と、その世代（消すたびに進む。確定した返答と同じ描き直しで入れ替える） | コアの `StreamingTexts`（`Bus.streamingText`・詳細の `streaming_text` / `streaming_length`・`chat_delta` の `offset`）・画面の店の `streamGen` / `streamText` |
 | フィード（全プロジェクトの画面の、チャットごとのメインエージェントの最新の返答 1 件を新しい順に並べたもの） | `FeedItem`（`GET /api/feed`・`store.events.feed`・画面の `FeedList` / `useFeed`） |
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） |

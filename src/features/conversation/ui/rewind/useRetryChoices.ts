@@ -1,19 +1,20 @@
 import { useMemo } from "react";
-import type { ChatEvent } from "@shared/chat/chatEvent";
 import { RETRY_PROMPT } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { effortsFor, groupModels } from "@/features/ai/ui/options/models";
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import type { RetryChange, RetryChoices } from "@/features/chat/ui/screen/ports";
-import { failedTurnOf, lowerEffort } from "./retryActions";
+import { lowerEffort } from "./retryActions";
+import { failedTurn } from "./selectors";
 
 /**
  * 失敗した作業の直し方の選択肢（作業中・失敗していなければ null）。モデルの一覧はあとから届くので、届いたら組み立て直す。
  * 記録・選択が変わったときだけ作り直す（チャットの画面の変わる様子に入れ、失敗した作業の終わりの行だけが描き直る）
  */
-export function useRetryChoices(events: ChatEvent[], busy: boolean, options: ChatOptionsState): RetryChoices | null {
-  const failed = useMemo(() => (busy ? undefined : failedTurnOf(events)), [events, busy]);
+export function useRetryChoices(chatId: number, busy: boolean, options: ChatOptionsState): RetryChoices | null {
+  const latest = failedTurn.useFor(chatId);
+  const failed = busy ? undefined : latest;
   const lower = lowerEffort(options.effort, options.effortDefault?.effort ?? null, effortsFor(options.current));
   const current = options.model;
   const allModels = options.models;

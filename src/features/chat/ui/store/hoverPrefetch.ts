@@ -5,14 +5,14 @@
 /** 乗せてから先読みするまでの時間 */
 export const HOVER_PREFETCH_MS = 120;
 
-/** 先読みする要素（サイドバーのチャットの行・ボードのカード・パネルのチャットと子チャットのタブ） */
-const TARGETS = "a.chat-row[data-chat-id], .board-main [data-chat-id], [data-prefetch-chat]";
+/** 先読みする要素（サイドバーのチャットの行・ボードのカード・パネルのチャットと子チャットのタブ。行の側が data-prefetch-chat="<ID>" を付ける） */
+const TARGETS = "[data-prefetch-chat]";
 
 /** 乗せた要素から、先読みするチャットの ID（なければ null） */
 export function prefetchTargetOf(el: Element | null): number | null {
   const hit = el?.closest<HTMLElement>(TARGETS);
   if (!hit) return null;
-  const id = Number(hit.dataset.prefetchChat ?? hit.dataset.chatId);
+  const id = Number(hit.dataset.prefetchChat);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 

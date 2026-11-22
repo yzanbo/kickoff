@@ -40,6 +40,8 @@ export function chatCardProps(
     role: "button",
     // 画面の並び（Shift ＋クリックの範囲）を読む印
     "data-chat-id": chat.id,
+    // 乗せて少し待ったら先読みする（chat の hoverPrefetch）
+    "data-prefetch-chat": chat.id,
     tabIndex: 0,
     "aria-label": `チャット「${chatTitle(chat.title)}」を開く${dragHint ? `（${dragHint}）` : ""}`,
     draggable: Boolean(onDragStart) && !editing,

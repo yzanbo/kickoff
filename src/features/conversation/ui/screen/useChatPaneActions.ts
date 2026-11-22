@@ -1,7 +1,7 @@
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Chat } from "@shared/chat/types";
 import { chatLog } from "@/features/chat/ui/store/useChatStore";
-import type { ChatLogView } from "@/features/chat/ui";
+import type { ChatWindow } from "@/features/chat/ui";
 import { api } from "@/foundation/ui/api";
 import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage";
@@ -41,7 +41,7 @@ const sideScroller = (chatId: number, key: string) =>
 /** 会話の欄（ChatColumn）が描くたびに入れる、操作が読むいまの値（隠れている間は、隠す前の値のまま） */
 export interface PaneLatest {
   chat: Chat;
-  log: ChatLogView;
+  log: ChatWindow;
   options: ChatOptionsState;
   tree: SubagentTree;
   timeline: TimelineWindow;

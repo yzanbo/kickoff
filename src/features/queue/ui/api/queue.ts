@@ -3,7 +3,7 @@ import type { RestartResume, QueueState } from "@shared/chat/chatLive";
 import type { Attachment, ChatOptionsPatch, QueueAction } from "@shared/chat/types";
 import type { QueueAddResult, QueueMergeResult, QueueMessageBody } from "@shared/chat/send";
 import type { RestartResumeBody } from "@shared/queue/types";
-import { withUserView } from "@/features/chat/ui/send/userViewSnapshot";
+import { withSendExtras } from "@/features/chat/ui";
 import { request } from "@/foundation/ui/api/http";
 import { noteQueuedRemoved } from "./queueRemovals";
 
@@ -29,7 +29,7 @@ export const queueApi = {
     attachments: Attachment[] = [],
     { hold = false, pauseAfter = false, marks = {} }: { hold?: boolean; pauseAfter?: boolean; marks?: MessageMarks } = {},
   ) =>
-    request<QueueAddResult>("POST", queuePath(chatId), { text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}), ...marks, ...withUserView() } satisfies QueueMessageBody),
+    request<QueueAddResult>("POST", queuePath(chatId), withSendExtras({ text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies QueueMessageBody)),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<QueueState>("PATCH", queuePath(chatId, `/${id}`), attachments ? { text, attachments } : { text }),

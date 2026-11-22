@@ -2,17 +2,16 @@ import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useSta
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
-import { chatLog, useChatDetailView, useChatLog } from "@/features/chat/ui/store/useChatStore";
-import { relativeOf } from "@/features/chat/ui";
+import { chatLog, chatWindow, relativeOf, useChatDetail } from "@/features/chat/ui";
 import { chatSubagents, useChatSubagentsView } from "@/features/subagents/ui";
 import type { NewChatTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
-import { promptListOf } from "@/features/conversation/ui/promptList/promptHistory";
+import { promptList } from "@/features/conversation/ui/promptList/selectors";
 import { usePromptKeys } from "@/features/conversation/ui/promptList/usePromptKeys";
 import type { NewChatSeed } from "@/features/queue/ui/askInNewChat";
 import { useRetryChoices } from "@/features/conversation/ui/rewind/useRetryChoices";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
-import { groupEvents } from "@/features/conversation/ui/timeline/timelineItems";
+import { timelineItems } from "@/features/conversation/ui/timeline/selectors";
 import { useTimelineWindow } from "@/features/conversation/ui/timeline/useTimelineWindow";
 import { timelineView } from "@/features/chat/ui/timeline/timelineView";
 import { compactHoldOf } from "@/features/compact/ui/compactHold";
@@ -38,8 +37,9 @@ export interface ChatViewInput {
  */
 export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: ChatViewInput, shell: ChatShellHandles) {
   const { pane, scroll, latest: latestRef } = shell;
-  const { approvals, live: coreLive } = useChatDetailView(chat.id);
-  const log = useChatLog(chat.id);
+  const { live: coreLive } = useChatDetail(chat.id);
+  // 流れに出す記録の範囲と読み足しの様子（記録の配列は読まず、要るものを取り出し口で読む）
+  const log = chatWindow.useFor(chat.id);
   const options = useChatOptions(
     { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
     chat.project_id,
@@ -66,8 +66,6 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     }),
     [coreLive, busy, stopClicked],
   );
-  // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る
-  const events = log.digest;
   // サブエージェントの一覧・入れ子・色・回答待ち（店の取り出し口 chatSelectors。右の欄のタブの印・サブエージェントの画面と同じ値を 1 回だけ作る）
   const { entries: subagents, tree } = chatSubagents.useFor(chat.id);
   // カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
@@ -77,9 +75,9 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   // 動いているサブエージェント（作業を止めると一緒に止まる。Claude Code は手前で動かすサブエージェントを裏の作業の一覧に出さないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   // 流れに出すのは末尾（遠い発言へ移ったときは途中の一部分）。前に起動したサブエージェントは preface で数える
-  const items = useMemo(() => groupEvents(log.events, undefined, { preface: log.preface, partialHead: log.headPartial }), [log.events, log.preface, log.headPartial]);
-  // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録が変わったときだけ作り直す）
-  const prompts = promptListOf(events);
+  const items = timelineItems.useFor(chat.id);
+  // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録全体から作る取り出し口）
+  const prompts = promptList.useFor(chat.id);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const chatId = chat.id;
   const paging = useMemo(
@@ -118,19 +116,19 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   const [afterShow, setAfterShow] = useState<{ eventId: number; then: () => void } | null>(null);
   useEffect(() => {
     if (!afterShow) return;
-    const first = log.events[0]?.id;
-    const shown = first !== undefined && (log.focused ? afterShow.eventId >= first && afterShow.eventId <= log.events.at(-1)!.id : afterShow.eventId >= log.tailStart);
+    const { shown: range } = log;
+    const shown = range !== null && (log.focused ? afterShow.eventId >= range.first && afterShow.eventId <= range.last : afterShow.eventId >= log.tailStart);
     if (!shown) return;
     setAfterShow(null);
     afterShow.then();
   }, [afterShow, log]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
-  const retry = useRetryChoices(events, busy, options);
+  const retry = useRetryChoices(chat.id, busy, options);
   const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, compactHold: compactHoldOf(live), options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   // 指示の位置は、描いていない行も窓の前からの和で（箱の中の指示を見落とさない）。読み込んでいない範囲の指示は記録の順で前後を決める
-  const loaded = log.events.length > 0 ? { first: log.events[0].id, last: log.focused ? log.events.at(-1)!.id : Number.MAX_SAFE_INTEGER } : null;
+  const loaded = log.shown ? { first: log.shown.first, last: log.focused ? log.shown.last : Number.MAX_SAFE_INTEGER } : null;
   const promptKeys = usePromptKeys({
     root: pane.root,
     timeline: scroll.ref,
@@ -164,5 +162,5 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     if (pane.state.get().retry !== retry) pane.state.set({ ...pane.state.get(), retry });
   }, [pane, retry]);
 
-  return { log, approvals, options, busy, live, subagents, subagentsView, prompts, rel, timeline, send };
+  return { options, busy, live, subagentsView, prompts, rel, timeline, send };
 }

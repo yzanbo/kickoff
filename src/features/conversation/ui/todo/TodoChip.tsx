@@ -1,6 +1,5 @@
 import { CheckCircle2, Circle, CircleDashed, CircleDot, EyeOff, ListChecks, ListTodo, MessageSquare } from "lucide-react";
-import { useMemo, useState } from "react";
-import type { ChatEvent } from "@shared/chat/chatEvent";
+import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { useFold } from "@/foundation/ui/hooks/useFold";
@@ -13,8 +12,8 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
-import { promptListOf } from "@/features/conversation/ui/promptList/promptHistory";
-import { collectTodoList, todoSignature, todoVisibility, type TodoGroup, type TodoItem, type TodoStatus } from "./todoList";
+import { todoList } from "./selectors";
+import { todoSignature, todoVisibility, type TodoGroup, type TodoItem, type TodoStatus } from "./todoList";
 
 const STATUS_ICONS: Record<TodoStatus, typeof Circle> = { pending: Circle, in_progress: CircleDot, completed: CheckCircle2 };
 const STATUS_LABELS: Record<TodoStatus, string> = { pending: "未着手", in_progress: "作業中", completed: "完了" };
@@ -36,8 +35,11 @@ function TodoRow({ todo }: { todo: TodoItem }) {
  * これまでの ToDo に移って隠れる（todoVisibility）。一覧の下に、閉じたまとまりで「前の作業から残っているもの」と「これまでの ToDo」（指示ごとに
  * 開閉できるまとまり。TodoHistory）。「この一覧を隠す」で手でも隠せる（チャットごとに覚え、いまの作業が書き換わったらまた出す）
  */
-export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent[] }) {
-  const list = useMemo(() => collectTodoList(events), [events]);
+/** 指示の一覧から引く、まとまりの見出しの指示（指示の一覧 promptList の byId を受ける） */
+type PromptsById = ReadonlyMap<number, { id: number; label: string; at: string }>;
+
+export function TodoChip({ chatId, prompts }: { chatId: number; prompts: PromptsById }) {
+  const list = todoList.useFor(chatId);
   const [hidden, setHidden] = useSetting(storage.settings.todoHidden(chatId));
   const popover = usePopover();
   const staleFold = useFold("composer", "todo-stale", { defaultOpen: false });
@@ -103,7 +105,7 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
                 indent={false}
                 wrapClassName="composer-archived todo-fold"
               >
-                <TodoHistory groups={list.history} events={events} onJump={popover.close} />
+                <TodoHistory groups={list.history} prompts={prompts} onJump={popover.close} />
               </FoldSection>
             )}
             <div className="todo-actions">
@@ -132,9 +134,8 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
  * 長く使うチャットでは 1 本の長い一覧に見える）。初めはいちばん新しいまとまりだけを開き、ほかは見出し（指示の 1 行目・件数・時刻）だけの履歴にする。
  * 開閉は一覧を開いている間だけ覚える（保存しない）。見出しの右の吹き出しでその指示へ移る
  */
-function TodoHistory({ groups, events, onJump }: { groups: TodoGroup[]; events: ChatEvent[]; onJump: () => void }) {
+function TodoHistory({ groups, prompts, onJump }: { groups: TodoGroup[]; prompts: PromptsById; onJump: () => void }) {
   const pane = useOptionalChatPane();
-  const prompts = promptListOf(events).byId;
   const [open, setOpen] = useState<ReadonlySet<number | null>>(() => new Set(groups.slice(0, 1).map((g) => g.promptId)));
   const toggle = (id: number | null) =>
     setOpen((prev) => {

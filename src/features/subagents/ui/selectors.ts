@@ -4,7 +4,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { SubagentInfo, BackgroundState } from "@shared/ai/turnEvents";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
 import { waitingSubagentKeys } from "@shared/chat/subagentState";
-import { defineChatSelector, latestOf, memoLast, relativeOf, useChatLog, useChatOf, type ChatSource } from "@/features/chat/ui";
+import { defineChatSelector, latestOf, memoLast, relativeOf, useChatOf, type ChatSource } from "@/features/chat/ui";
 import { useProjects } from "@/features/projects/ui";
 import { subagentTree, type SubagentTree } from "./model/subagentTree";
 import { agentHues } from "./model/agentHues";
@@ -73,11 +73,20 @@ export function createChatSubagents(): (src: ChatSource, chatId: number) => Chat
  */
 export const chatSubagents = defineChatSelector(["detail", "log", "progress"], createChatSubagents);
 
+/** カード・画面が読む記録（記録全体から作るものに渡す digest・中身のまま読んだ記録・読んだ範囲） */
+const subagentLog = defineChatSelector(["log"], () => {
+  const data = memoLast((events: ChatEvent[], loaded: ChatEvent[], tailStart: number, hasEarlier: boolean) => ({ events, loaded, tailStart, hasEarlier }));
+  return (src, chatId) => {
+    const { digest, loaded, tailStart, hasEarlier } = src.log(chatId);
+    return data(digest, loaded, tailStart, hasEarlier);
+  };
+});
+
 /** サブエージェントのカード・画面が読むもの（SubagentsView。チャットを読めていなければ null） */
 export function useChatSubagentsView(chatId: number): SubagentsView | null {
   const { tree, hues, waiting } = chatSubagents.useFor(chatId);
   const chat = useChatOf(chatId);
-  const { digest, loaded, tailStart, hasEarlier } = useChatLog(chatId);
+  const { events: digest, loaded, tailStart, hasEarlier } = subagentLog.useFor(chatId);
   const { projectsById } = useProjects();
   const repoPath = chat ? projectsById.get(chat.project_id)?.repo_path : undefined;
   const projectId = chat?.project_id;

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { streamingSource, useChatStreamGen } from "@/features/chat/ui/store/useChatStore";
+import { useStreaming } from "@/features/chat/ui";
 import { useStreamReveal } from "./useStreamReveal";
 import { createMarkdownRevealLimit } from "./markdownReveal";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
@@ -15,8 +15,7 @@ import { Markdown } from "@/foundation/ui/markdown/Markdown";
  * この部品は外れる）
  */
 export function StreamingReply({ chatId, visible }: { chatId: number; visible: boolean }) {
-  const gen = useChatStreamGen(chatId);
-  const source = streamingSource(chatId, gen);
+  const { source } = useStreaming(chatId);
   const reveal = useStreamReveal(source.read, source.subscribe, visible, createMarkdownRevealLimit);
   // 出す文（reveal は少しずつ出すたびに新しい物になる）が同じなら作り直さない。届いた文・親の描き直しで同じ文を解析し直さない
   const body = useMemo(

@@ -8,7 +8,7 @@ import { createChatStore } from "./chatStore";
 import { createSelectorKit } from "./chatSelector";
 import { createPrefetchQueue } from "./prefetch";
 import { createHoverPrefetch } from "./hoverPrefetch";
-import type { ChatDetailView, ChatLogView } from "./chatStoreTypes";
+import type { ChatDetailView } from "./chatStoreTypes";
 
 /*
  * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。サーバーの知らせの購読と document の見張りは startChatStore
@@ -79,18 +79,10 @@ function useChatRetain(chatId: number, visible: boolean) {
 }
 
 /** 口 detail（チャット・回答待ち・作業中の様子・読み込みの失敗） */
-export function useChatDetailView(chatId: number): ChatDetailView {
+export function useChatDetail(chatId: number): ChatDetailView {
   return useSyncExternalStore(
     (l) => chatStore.subscribe(chatId, "detail", l),
     () => chatStore.detail(chatId),
-  );
-}
-
-/** 口 log（流れに出す記録・末尾・記録全体から作るものに渡す digest・読み込んだ範囲） */
-export function useChatLog(chatId: number): ChatLogView {
-  return useSyncExternalStore(
-    (l) => chatStore.subscribe(chatId, "log", l),
-    () => chatStore.log(chatId),
   );
 }
 
@@ -113,42 +105,41 @@ export const chatLog = {
  */
 export const prefetchChats = (chatIds: readonly number[]) => prefetchQueue.request(chatIds);
 
-/** 書いている途中の返答の世代（記録の口から選んで読む。消したときだけ変わり、確定した返答が記録に入る描き直しと同じ 1 回で進む） */
-export function useChatStreamGen(chatId: number): number {
-  return useSyncExternalStore(
-    (l) => chatStore.subscribe(chatId, "log", l),
-    () => chatStore.log(chatId).streamGen,
-  );
+/** 書いている途中の返答の、その世代の文の読み方と購読の仕方（文は React の state に入れず、少しずつ出す rAF の中で読む） */
+export interface StreamingSource {
+  read: () => string;
+  subscribe: (l: () => void) => () => void;
 }
 
-/** 書いている途中の返答があるか（真偽。書き始め・消したときだけ描き直す） */
-export function useStreamingActive(chatId: number): boolean {
-  const gen = useChatStreamGen(chatId);
-  return useSyncExternalStore(
-    (l) => chatStore.subscribe(chatId, "streaming", l),
-    () => chatStore.streamText(chatId, gen) !== "",
-  );
-}
-
-/**
- * 書いている途中の返答の、その世代の文の読み方と購読の仕方（`useStreamReveal` に渡す。文は React の state に入れず、
- * 少しずつ出す rAF の中で読む。同じチャット・世代なら同じ物を返す）
- */
-const sources = new Map<string, { read: () => string; subscribe: (l: () => void) => () => void }>();
-export function streamingSource(chatId: number, gen: number) {
+// 同じチャット・世代なら同じ読み方を返す（古い世代の読み方は持ち続けない。書いている途中の返答は 1 チャットに 1 つ）
+const sources = new Map<string, StreamingSource>();
+function streamingSource(chatId: number, gen: number): StreamingSource {
   const key = `${chatId}:${gen}`;
   let source = sources.get(key);
   if (!source) {
     source = { read: () => chatStore.streamText(chatId, gen), subscribe: (l) => chatStore.subscribe(chatId, "streaming", l) };
-    // 古い世代の読み方は持ち続けない（書いている途中の返答は 1 チャットに 1 つ）
     for (const k of sources.keys()) if (k.startsWith(`${chatId}:`)) sources.delete(k);
     sources.set(key, source);
   }
   return source;
 }
 
-/** 書いている途中の返答が最後に届いた時刻（作業中の行の「動きがない」の目安。描くときに読む） */
-export const streamingLastAt = (chatId: number): string | null => chatStore.streamLastAt(chatId);
+/**
+ * 書いている途中の返答: あるか（書き始め・消したときだけ描き直す）・その世代の文の読み方（StreamingReply が rAF の中で読む）・
+ * 最後に届いた時刻（作業中の行の「動きがない」の目安。描くときに読む）。世代は記録の口から選んで読む（消したときだけ変わり、
+ * 確定した返答が記録に入る描き直しと同じ 1 回で進む）
+ */
+export function useStreaming(chatId: number): { active: boolean; source: StreamingSource; lastAt: () => string | null } {
+  const gen = useSyncExternalStore(
+    (l) => chatStore.subscribe(chatId, "log", l),
+    () => chatStore.log(chatId).streamGen,
+  );
+  const active = useSyncExternalStore(
+    (l) => chatStore.subscribe(chatId, "streaming", l),
+    () => chatStore.streamText(chatId, gen) !== "",
+  );
+  return { active, source: streamingSource(chatId, gen), lastAt: () => chatStore.streamLastAt(chatId) };
+}
 
 /** 口 detail のチャットだけ（名前・状態などが変わったときだけ描き直す。回答待ち・作業中の様子では描き直さない） */
 export function useChatOf(chatId: number): Chat | undefined {

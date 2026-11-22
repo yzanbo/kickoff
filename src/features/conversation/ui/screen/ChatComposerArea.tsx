@@ -1,10 +1,8 @@
 import { MessageSquarePlus, MessagesSquare, OctagonPause } from "lucide-react";
-import { useEffect, useMemo, type MutableRefObject } from "react";
+import { useEffect, type MutableRefObject } from "react";
 import { createPortal } from "react-dom";
-import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Attachment, Chat } from "@shared/chat/types";
-import type { SubagentEntry } from "@shared/chat/subagents";
 import { childChatsApi } from "@/features/childChats/ui/index";
 import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -30,6 +28,8 @@ import { openCreatedChild } from "@/features/chat/ui/open/openChat";
 import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
 import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
+import { chatSubagents } from "@/features/subagents/ui";
+import { lastUserEventId, voiceReplies } from "@/features/composer/ui";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { ProviderChip } from "@/features/ai/ui/provider/ProviderChips";
 import type { useChatSend } from "@/features/composer/ui/send/chatSend";
@@ -52,40 +52,32 @@ const childSendTitle = (inherit: boolean) =>
  */
 export function ChatComposerArea({
   chat,
-  events,
   prompts,
   live,
-  busy,
   options,
-  subagents,
   send,
   composer,
   onDock,
 }: {
   chat: Chat;
-  /** 記録全体から作るものに渡す記録（末尾と索引を重ねた digest） */
-  events: ChatEvent[];
   prompts: PromptList;
   live: ChatLive;
-  busy: boolean;
   options: ChatOptionsState;
-  subagents: SubagentEntry[];
   send: ReturnType<typeof useChatSend>;
   /** 外からチャット欄を動かす口（チャットの画面の操作が使う） */
   composer: MutableRefObject<ComposerHandle | null>;
   /** 一番下へ戻るボタンの置き場所（ピルの列の右端。描いたら要素が届き、流れの側で置けるか測る） */
   onDock: (dock: HTMLSpanElement | null) => void;
 }) {
+  const busy = chat.status === "running";
+  // チャットのサブエージェント（チャット欄の上のピル）
+  const { entries: subagents } = chatSubagents.useFor(chat.id);
   const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
   // 預かった指示を書き直している間は、チャット欄を書き直しの欄に入れ替える（ふつうの欄は隠して残す）
   const heldEdit = useHeldEdit(chat.id);
   const queued = live.queue.messages.length > 0;
   // 送った指示が出る所の印（流れのいちばん新しい自分の発言と預かった指示。送信待ちから送った指示を、どこかに出るまで「送信中」で残すのに使う）
-  const lastUserEventId = useMemo(() => {
-    for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "user") return events[i].id;
-    return 0;
-  }, [events]);
-  const sentShown = sentShownKey(lastUserEventId, live.after_compact);
+  const sentShown = sentShownKey(lastUserEventId.useFor(chat.id), live.after_compact);
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「新規の子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で新しい子チャットを作って送る（このチャットの作業は止めない。
@@ -98,8 +90,7 @@ export function ChatComposerArea({
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => send.onSendOther(text, []);
   // 音声モードで読み上げる候補（メインエージェントの文章の返答）。起こした文は定型文の「すぐ送る」と同じ送り方で送る（入力欄の文は残す）
-  // （events は末尾と索引を重ねたもの。索引の返答は文を空にした軽い形なので除く）
-  const voiceReplies = useMemo(() => events.flatMap((e) => (e.type === "text" && !e.data.parent && e.data.text ? [{ id: e.id, text: e.data.text }] : [])), [events]);
+  const replies = voiceReplies.useFor(chat.id);
   // ノートのチャットの欄を閉じている間は、ピルの列と送信待ちをノートの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
   // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）
@@ -107,7 +98,7 @@ export function ChatComposerArea({
   const chips = (
     <div className={cx("composer-chips", compact && "compact")}>
       <PromptsChip prompts={prompts.history} />
-      <TodoChip chatId={chat.id} events={events} />
+      <TodoChip chatId={chat.id} prompts={prompts.byId} />
       <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
       <ChildChatsChip chatId={chat.id} />
       <NoteChip projectId={chat.project_id} chatId={chat.id} />
@@ -163,7 +154,7 @@ export function ChatComposerArea({
         }
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}
-        voiceMode={{ replies: voiceReplies, send: sendSnippet, chatId: chat.id }}
+        voiceMode={{ replies, send: sendSnippet, chatId: chat.id }}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

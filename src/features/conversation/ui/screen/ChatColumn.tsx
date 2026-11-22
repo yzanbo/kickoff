@@ -42,7 +42,6 @@ interface ChatColumnProps {
 export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, onOpenNew, beforeSend, shell }: ChatColumnProps) {
   const view = useChatView({ chat, project, focus, onOpenNew, beforeSend }, shell);
   const { pane: { root: paneRoot } } = shell;
-  const { log, approvals } = view;
   // 会話の横幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
@@ -63,7 +62,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
             data-chat-role={chat.note_path ? "note" : chat.parent_chat_id !== null ? "child" : "chat"}
             onPointerDownCapture={() => noteForegroundProvider(chat.provider, `chat:${chat.id}`)}
           >
-            <ChatHeader chat={chat} project={project} tail={log.tail} />
+            <ChatHeader chat={chat} project={project} />
             <ProviderHandoffNotice key={chat.id} chatId={chat.id} visible={visible} />
             {/* 返答の一部を選んで、チャット欄に引用を足す（右の欄・別ウィンドウの中では SideSelectionAttach が出す） */}
             <SelectionAttach />
@@ -74,14 +73,9 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
                   window={view.timeline}
                   rel={view.rel}
                   chat={chat}
-                  busy={view.busy}
-                  agents={view.subagents}
                   live={view.live}
-                  approvals={approvals}
                   focus={focus}
                   scroll={shell.scroll}
-                  events={log.tail}
-                  log={log}
                   prompts={view.prompts}
                   visible={visible && shown}
                   pillDock={pillDock}
@@ -91,12 +85,9 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
             />
             <ChatComposerArea
               chat={chat}
-              events={log.digest}
               prompts={view.prompts}
               live={view.live}
-              busy={view.busy}
               options={view.options}
-              subagents={view.subagents}
               send={view.send}
               composer={shell.composer}
               onDock={setPillDock}

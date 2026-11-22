@@ -23,7 +23,7 @@
 - 別ウィンドウからの知らせは殻が `useWindowMessagesFor` で受ける（止めていても）。移る・動きを開くなら、先にタブを表に出す（`TabPageContext` の `show`）。
 - 子の部品への操作は `ChatPaneContext`（`ChatPaneActions`）1 つで配り、チャットごとに 1 回だけ作る。props で中継しない・クラス名で DOM を探さない。
 - 変わる様子は `useChatPaneState` で読む（保存しない）。画面の外でも描く部品は `useOptionalChatPane` を使う。
-- 記録全体から作るもの（サブエージェント・回答待ち・図・ToDo・指示の一覧・失敗した作業・子チャットの帯）は `log.digest`（`digestOf`）から作る。流れは末尾だけを `groupEvents` に渡す。
+- 記録から作るもの（サブエージェント・図・ToDo・指示の一覧・流れの項目 `timelineItems` など）は持ち主の取り出し口（`defineChatSelector`）で読む。記録の配列を props で渡さない。
 - 末尾と索引の規則は `src/shared/CLAUDE.md` の「末尾と索引」。どの切れ目でも全件と同じになることを `@/features/chat/ui/store/chatLog.test.ts` で確かめる。索引のない詳細はすべてを読んだものとして扱う（`rangeFromDetail`）。
 - 読み足しは `chatPaging.ts` で 1 つずつ（すべて読み直したら答えを捨てる）。末尾より前で巻き戻したら末尾から読み直す。
 - SSE をつなぎ直したら、見ているチャットは `?after=` で足りない分を読む（記録が消えていれば末尾から）。

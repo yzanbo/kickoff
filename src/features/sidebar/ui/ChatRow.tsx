@@ -107,6 +107,8 @@ export function ChatRow({
           (state === "needs_input" || state === "unread" || busyUnread) && "is-unread",
         )}
         data-chat-id={chat.id}
+        // 乗せて少し待ったら先読みする（chat の hoverPrefetch）
+        data-prefetch-chat={chat.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
         title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${STATE_LOOKS[state].label}${busyUnread ? "・未読あり" : ""}）`}

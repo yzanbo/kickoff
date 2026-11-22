@@ -1,12 +1,9 @@
 import { useLayoutEffect } from "react";
-import type { Approval } from "@shared/chat/approvalTypes";
-import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
-import type { ChatLogView } from "@/features/chat/ui";
-import { chatLog, useStreamingActive } from "@/features/chat/ui/store/useChatStore";
+import { chatLog, chatTail, chatWindow, useChatDetail, useStreaming } from "@/features/chat/ui";
+import { chatSubagents } from "@/features/subagents/ui";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { StickyPrompt } from "@/features/conversation/ui/promptList/StickyPrompt";
 import { useStickyPrompt } from "@/features/conversation/ui/promptList/useStickyPrompt";
@@ -39,14 +36,9 @@ export function ChatTimeline({
   window: w,
   rel,
   chat,
-  busy,
-  agents = [],
   live,
-  approvals,
   focus,
   scroll,
-  events,
-  log,
   prompts,
   visible,
   pillDock,
@@ -56,22 +48,14 @@ export function ChatTimeline({
   window: TimelineWindow;
   rel: (s: string) => string;
   chat: Chat;
-  busy: boolean;
-  /** チャットのサブエージェント（実行中の数・長く動きのないもの・裏の作業の一覧から中身を開く） */
-  agents?: SubagentEntry[];
   /**
    * 作業中の様子（裏の作業と、メインの返答が終わったか・通信の再試行中・つながるのを待っているところ・圧縮中・停止中）。
    * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatView が決める）
    */
   live: ChatLive;
-  approvals: Approval[];
   focus?: number;
   /** 流れのスクロールの持ち主（流れの要素と、一番下に付いていくか） */
   scroll: TimelineScroll;
-  /** 会話の記録の末尾（最新の結果を一番下まで見たら既読にする） */
-  events: ChatEvent[];
-  /** 記録の口（前・後ろの記録を読んでいるか・途中の一部分を出しているか） */
-  log: ChatLogView;
   /** 自分の指示の一覧（上に貼り付ける指示の帯の ↑ / ↓・添付） */
   prompts: PromptList;
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
@@ -84,8 +68,16 @@ export function ChatTimeline({
   const pane = useChatPane();
   // 要素に付ける ref は先に取り出す（scroll.ref を JSX の ref に渡すと、React Compiler が scroll 全体を ref とみなして最適化から外す）
   const { ref: timelineRef, inner: timelineInnerRef } = scroll;
+  const busy = chat.status === "running";
+  // 回答待ち・記録の末尾（最新の結果を一番下まで見たら既読にする）・途中の一部分を出しているか・サブエージェント（実行中の数・長く動きのないもの・
+  // 裏の作業の一覧から中身を開く）は、チャットの店の取り出し口から読む
+  const { approvals } = useChatDetail(chat.id);
+  const events = chatTail.useFor(chat.id);
+  const log = chatWindow.useFor(chat.id);
+  const { entries: agents } = chatSubagents.useFor(chat.id);
   // 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む。書き始め・消したときだけ描き直す）
-  const streaming = useStreamingActive(chat.id);
+  const stream = useStreaming(chat.id);
+  const streaming = stream.active;
   const s = useTimelineScroll({ chatId: chat.id, scroll, root: pane.root, window: w, focus, focused: log.focused, backToTail: () => chatLog.backToTail(chat.id) });
   // 一番下に付いていく間は、流れの枠か中身の大きさが変わったら一番下へ寄せる（書いている途中の文・新しい項目・確認のカード・作業中の行も、すべて中身の大きさの知らせで）
   useFollowBottom(scroll, scroll.inner, s.settle);
@@ -101,7 +93,7 @@ export function ChatTimeline({
     return observeSize(el, ({ height }) => el.style.setProperty("--timeline-h", `${height}px`));
   }, [scroll]);
   // 作業中の行と一番下へ戻るボタンの文（1 回だけ組み立てる）
-  const working = useWorkingStatus({ chat, events, last: w.last, streaming, live, agents, busy });
+  const working = useWorkingStatus({ chat, events, last: w.last, streaming, streamedAt: stream.lastAt, live, agents, busy });
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない

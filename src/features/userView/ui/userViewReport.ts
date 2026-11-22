@@ -1,13 +1,13 @@
 // このウィンドウで利用者が見ているものをコアに知らせる（AI の get_user_view）:
 // 見ているものが変わったら（欄のタブ・画面・選んでいる範囲・押したもの。少しまとめて）と、見ている間は USER_VIEW_REPORT_MS ごとに知らせ直し、
-// 窓を閉じる・読み込み直すときは「閉じた」を知らせる。送る指示にも、送った時点の様子を添える（lib/userViewSnapshot）
+// 窓を閉じる・読み込み直すときは「閉じた」を知らせる。送る指示にも、送った時点の様子を添える（chat の setSendExtras）
 import { useEffect } from "react";
 import { USER_VIEW_REPORT_MS, type UserView } from "@shared/userView/types";
 import { api } from "@/foundation/ui/api";
 import { onServerOpen } from "@/foundation/ui/api/events";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { setUserViewProvider } from "@/features/chat/ui/send/userViewSnapshot";
+import { setSendExtras } from "@/features/chat/ui";
 import { subscribePanels } from "@/features/panel/ui/state/panelStore";
 
 /** 続けて変わったときにまとめる間 */
@@ -24,7 +24,7 @@ export function useUserViewReport(collect: () => UserView, chatIds: (view: UserV
   // 送る指示・時計・知らせから、いつも最新の集め方を呼ぶ
   const latest = useLatest({ collect, chatIds });
   // 送る指示に添える様子
-  useEffect(() => setUserViewProvider(() => latest.current.collect()), []);
+  useEffect(() => setSendExtras(() => ({ user_view: latest.current.collect() })), []);
   // 窓を閉じた・読み込み直したら、このウィンドウを忘れてもらう（ページが消えても届くよう keepalive）
   useWindowEvent("pagehide", () => api.reportUserViewClosed(WINDOW_ID));
   useEffect(() => {

@@ -36,6 +36,8 @@ void prepareStorage(STORAGE_GROUPS)
     // チャットの店にサーバーの知らせを当て始める（部品の hook より先に受ける。別ウィンドウも同じ）
     const { startChatStore } = await import("@/features/chat/ui/store/useChatStore");
     startChatStore();
+    const { startCurrentWork } = await import("@/features/chat/ui/currentWorkStore");
+    startCurrentWork();
     const root = createRoot(document.getElementById("root")!);
     // 別ウィンドウ（右の欄の変更・ファイル・サブエージェント）は、メインの App ではなく、その中身だけの画面を描く
     const { parsePopout } = await import("@/foundation/ui/navigation/popout");

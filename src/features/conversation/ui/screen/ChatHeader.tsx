@@ -1,5 +1,4 @@
 import { Fragment, type ReactNode } from "react";
-import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { GroupChip } from "@/features/groups/ui/GroupChip";
@@ -28,12 +27,9 @@ import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
 export function ChatHeader({
   chat,
   project,
-  tail,
 }: {
   chat: Chat;
   project?: Project;
-  /** 記録の末尾（チャットの中の検索で探す。その前は検索がコアから読む） */
-  tail: ChatEvent[];
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
@@ -45,7 +41,7 @@ export function ChatHeader({
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す
   const findInline = !collapsed && shows("find");
-  const find = showing === "conversation" && <ChatFind tail={tail} floating={!findInline} />;
+  const find = showing === "conversation" && <ChatFind floating={!findInline} />;
   if (collapsed) return <header className="chat-header collapsed">{find}</header>;
 
   const turns = shows("turns") && chat.num_turns > 0;
