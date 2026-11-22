@@ -8,3 +8,8 @@ export const usageStore = createStore<PlanUsage>({
   load: () => api.usage(),
   reduce: { usage: (_current, e) => e.usage },
 });
+
+/** 「更新」: コアに取り直させ、応答を店に入れる */
+export async function refreshPlanUsage(): Promise<void> {
+  usageStore.set(await api.refreshUsage());
+}

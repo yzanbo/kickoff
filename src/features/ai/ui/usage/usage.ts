@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import type { PlanUsage, UsageWindow } from "@shared/ai/types";
-import { api } from "@/foundation/ui/api";
-import { usageStore } from "@/features/ai/ui/stores/usage";
+import { refreshPlanUsage, usageStore } from "@/features/ai/ui/stores/usage";
 import { useStore } from "@/foundation/ui/store/useStore";
 
 /**
@@ -14,10 +13,7 @@ export function usePlanUsage() {
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await api
-      .refreshUsage()
-      .then((usage) => usageStore.set(usage))
-      .finally(() => setRefreshing(false));
+    await refreshPlanUsage().finally(() => setRefreshing(false));
   }, []);
 
   return { usage, refresh, refreshing };
