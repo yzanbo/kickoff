@@ -1,4 +1,6 @@
 import type { Chat } from "@shared/chat/types";
+import { PROVIDER_LABELS } from "@shared/settings/types";
+import { knownChat } from "./store/knownChats";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
 import { choose, reportFailure } from "@/foundation/ui/kit/ask";
@@ -34,7 +36,7 @@ export async function closeChatWithChoice(
     const archived = Boolean(chat.archived_at);
     const picked = await choose({
       title: `チャット「${chatTitle(chat.title)}」を閉じます`,
-      message: "表示だけ消すと、チャットはサイドバーやボードに残ります。アーカイブすると一覧から隠れ（会話の記録は残ります）、削除すると会話の記録も消えます（Claude Code の会話記録はゴミ箱へ移します）。",
+      message: `表示だけ消すと、チャットはサイドバーやボードに残ります。アーカイブすると一覧から隠れ（会話の記録は残ります）、削除すると会話の記録も消えます（${PROVIDER_LABELS[knownChat(chat.id)?.provider ?? "claude"]} の会話記録はゴミ箱へ移します）。`,
       choices: [
         { value: "close", label: "表示だけ消す", primary: true },
         ...(archived ? [] : [{ value: "archive" as const, label: "アーカイブ" }]),
