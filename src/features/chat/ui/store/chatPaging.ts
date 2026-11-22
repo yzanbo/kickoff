@@ -25,6 +25,7 @@ interface PagingDeps {
 }
 
 type Applied = { range: LogRange; tail?: ChatDetailState["events"] };
+type Plan = { query: ChatEventsQuery; apply: (p: ChatEventPage, d: ChatDetailState) => Applied };
 
 export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
   const resolved = Promise.resolve();
@@ -33,27 +34,45 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     return e?.detail.chat ? e : undefined;
   };
 
-  /**
-   * 記録の一部分を読んで当てる（1 つずつ。読んでいる間にすべて読み直したら答えは捨てる）。apply は当てたあとの末尾と範囲を返す。
-   * 読めなくても失敗にしない（前の中身のまま。もう一度押せば読み直す）
-   */
-  const page = (e: Entry, query: ChatEventsQuery, apply: (p: ChatEventPage, d: ChatDetailState) => Applied): Promise<void> => {
-    if (e.paging) return e.paging;
+  /** 読んでいる最中・待っている頼み（同じ頼みは 1 つにまとめる） */
+  const waiting = new WeakMap<Entry, Map<string, Promise<void>>>();
+
+  /** 1 つずつ読む: 読んでいる最中なら前が終わってから、そのときの中身で plan を決める（もう読んであれば null で何もしない） */
+  const run = (e: Entry, plan: () => Plan | null): Promise<void> => {
+    if (e.paging) return e.paging.then(() => (entries.get(e.chatId) === e ? run(e, plan) : undefined));
+    const next = plan();
+    if (!next) return resolved;
     const epoch = e.epoch;
-    const run = fetchPage(e.chatId, query)
+    const done = fetchPage(e.chatId, next.query)
       .then((p) => {
         if (entries.get(e.chatId) !== e || e.epoch !== epoch) return;
-        const next = apply(p, e.detail);
-        e.detail = { ...e.detail, range: next.range, events: next.tail ?? e.detail.events };
+        const applied = next.apply(p, e.detail);
+        e.detail = { ...e.detail, range: applied.range, events: applied.tail ?? e.detail.events };
       })
       .catch(() => undefined)
       .finally(() => {
         e.paging = null;
         mark(e);
       });
-    e.paging = run;
+    e.paging = done;
     mark(e);
-    return run;
+    return done;
+  };
+
+  /**
+   * 記録の一部分を読んで当てる（読んでいる最中の頼みは捨てずに順に流し、同じ key の頼みは 1 つにまとめる。読んでいる間にすべて読み直したら
+   * 答えは捨てる）。読めなくても失敗にしない（前の中身のまま。もう一度押せば読み直す）
+   */
+  const page = (e: Entry, key: string, plan: () => Plan | null): Promise<void> => {
+    const byKey = waiting.get(e) ?? new Map<string, Promise<void>>();
+    waiting.set(e, byKey);
+    const same = byKey.get(key);
+    if (same) return same;
+    const p = run(e, plan).finally(() => {
+      if (byKey.get(key) === p) byKey.delete(key);
+    });
+    byKey.set(key, p);
+    return p;
   };
 
   return {
@@ -75,22 +94,27 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     loadEarlier(chatId: number): Promise<void> {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      const { range } = e.detail;
-      if (range.focus) {
-        const first = range.focus.events[0]?.id;
-        if (!range.focus.hasEarlier || first === undefined) return resolved;
-        return page(e, { before: first, turns: CHAT_TAIL_TURNS }, (p, d) => ({ range: focusEarlier(d.range, p) }));
-      }
-      if (!range.hasEarlier || range.tailStart === 0) return resolved;
-      return page(e, { before: range.tailStart, turns: CHAT_TAIL_TURNS }, (p, d) => prependTail(d.range, d.events, p));
+      return page(e, "earlier", () => {
+        const { range } = e.detail;
+        if (range.focus) {
+          const first = range.focus.events[0]?.id;
+          if (!range.focus.hasEarlier || first === undefined) return null;
+          return { query: { before: first, turns: CHAT_TAIL_TURNS }, apply: (p, d) => ({ range: focusEarlier(d.range, p) }) };
+        }
+        if (!range.hasEarlier || range.tailStart === 0) return null;
+        return { query: { before: range.tailStart, turns: CHAT_TAIL_TURNS }, apply: (p, d) => prependTail(d.range, d.events, p) };
+      });
     },
 
     /** 途中の一部分の後ろを読み足す（末尾に届いたら末尾につなぐ） */
     loadLater(chatId: number): Promise<void> {
       const e = loadedEntry(chatId);
-      const last = e?.detail.range.focus?.events.at(-1)?.id;
-      if (!e || last === undefined) return resolved;
-      return page(e, { after: last, turns: CHAT_TAIL_TURNS, until: e.detail.range.tailStart }, (p, d) => focusLater(d.range, d.events, p));
+      if (!e) return resolved;
+      return page(e, "later", () => {
+        const last = e.detail.range.focus?.events.at(-1)?.id;
+        if (last === undefined) return null;
+        return { query: { after: last, turns: CHAT_TAIL_TURNS, until: e.detail.range.tailStart }, apply: (p, d) => focusLater(d.range, d.events, p) };
+      });
     },
 
     /**
@@ -100,17 +124,19 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     openAround(chatId: number, eventId: number): Promise<void> {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      const { range, events } = e.detail;
-      if (displays(range, events, eventId)) return resolved;
-      if (eventId >= range.tailStart) {
-        e.detail = { ...e.detail, range: { ...range, focus: null } };
-        mark(e);
-        return resolved;
-      }
-      if (turnsBefore(range, eventId) <= CHAT_TAIL_TURNS * 2) {
-        return page(e, { before: range.tailStart, since: turnHeadOf(range, eventId) }, (p, d) => joinSince(d.range, d.events, p));
-      }
-      return page(e, { around: eventId, turns: CHAT_TAIL_TURNS, until: range.tailStart }, (p, d) => withFocus(d.range, d.events, p));
+      return page(e, `around:${eventId}`, () => {
+        const { range, events } = e.detail;
+        if (displays(range, events, eventId)) return null;
+        if (eventId >= range.tailStart) {
+          e.detail = { ...e.detail, range: { ...range, focus: null } };
+          mark(e);
+          return null;
+        }
+        if (turnsBefore(range, eventId) <= CHAT_TAIL_TURNS * 2) {
+          return { query: { before: range.tailStart, since: turnHeadOf(range, eventId) }, apply: (p, d) => joinSince(d.range, d.events, p) };
+        }
+        return { query: { around: eventId, turns: CHAT_TAIL_TURNS, until: range.tailStart }, apply: (p, d) => withFocus(d.range, d.events, p) };
+      });
     },
 
     /** 途中の一部分をやめて末尾に戻る（一番下へ戻る） */
@@ -125,11 +151,13 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     loadScope(chatId: number, parents: readonly string[], ids: readonly number[] = []): Promise<void> {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      const { range } = e.detail;
-      const wanted = parents.filter((p) => !range.scopeKeys.includes(p));
-      if (wanted.length === 0 || range.tailStart === 0) return resolved;
-      const query: ChatEventsQuery = { parents: wanted.join(","), ...(ids.length > 0 ? { ids: ids.join(",") } : {}), before: range.tailStart };
-      return page(e, query, (p, d) => ({ range: withScopes(d.range, wanted, p.events) }));
+      return page(e, `scope:${parents.join(",")}:${ids.join(",")}`, () => {
+        const { range } = e.detail;
+        const wanted = parents.filter((p) => !range.scopeKeys.includes(p));
+        if (wanted.length === 0 || range.tailStart === 0) return null;
+        const query: ChatEventsQuery = { parents: wanted.join(","), ...(ids.length > 0 ? { ids: ids.join(",") } : {}), before: range.tailStart };
+        return { query, apply: (p, d) => ({ range: withScopes(d.range, wanted, p.events) }) };
+      });
     },
 
     /**
@@ -139,9 +167,11 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     fillHead(chatId: number): Promise<void> {
       const e = loadedEntry(chatId);
       if (!e) return resolved;
-      const { range } = e.detail;
-      if (range.focus || !range.headPartial || range.tailStart === 0) return resolved;
-      return page(e, { before: range.tailStart, since: turnHeadOf(range, range.tailStart) }, (p, d) => joinSince(d.range, d.events, p));
+      return page(e, "head", () => {
+        const { range } = e.detail;
+        if (range.focus || !range.headPartial || range.tailStart === 0) return null;
+        return { query: { before: range.tailStart, since: turnHeadOf(range, range.tailStart) }, apply: (p, d) => joinSince(d.range, d.events, p) };
+      });
     },
 
     /** その記録をいま流れに出しているか */

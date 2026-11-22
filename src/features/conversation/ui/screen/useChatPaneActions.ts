@@ -108,7 +108,8 @@ export function useChatPaneActions({
       void chatLog.openAround(chatId, eventId).finally(() => {
         clearTimeout(slow);
         if (state.get().jumping !== null) patch({ jumping: null });
-        now().showAfter(eventId, then);
+        // 読めなかったら続きを捨てる（残すと、あとで別の読み足しでその記録が出たときに急に移る）
+        if (chatLog.shows(chatId, eventId)) now().showAfter(eventId, then);
       });
     };
     /**
