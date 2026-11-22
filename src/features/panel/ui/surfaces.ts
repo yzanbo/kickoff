@@ -6,7 +6,8 @@ import { BrowserAdds, TerminalAdds } from "@/features/panel/ui/openWith/OpenWith
 import { defineSurface, parsePanelKey, type AnySurface } from "./surface";
 
 /**
- * 持ち主の機能へ移していない 5 つの欄（ui/contributes.ts が panelSurfaces に入れる。チャットのパネル・右の欄・チャットの別ウィンドウは chatPanel の chatSurfaces.ts）。
+ * 持ち主の機能へ移していない 3 つの欄（ui/contributes.ts が panelSurfaces に入れる。チャットのパネル・右の欄・チャットの別ウィンドウは chatPanel の chatSurfaces.ts、
+ * ノートの右は notes の noteSurface.ts、ファイルの右は files の fileSurface.ts）。
  * accepts は出すタブのまとまり（chat = チャットと新しいチャット・file = ファイルとノート）。空の欄のボタン・ドラッグで受け入れる種類もこれで決まる
  */
 export const PANEL_SURFACES: readonly AnySurface[] = [
@@ -46,28 +47,6 @@ export const PANEL_SURFACES: readonly AnySurface[] = [
     splitButtons: false,
     className: "as-sidebar",
     Adds: BrowserAdds,
-  }),
-  // プロジェクトの「ノート」タブの右（開いたノートをタブで並べる。左の一覧から開く。ノートのタブは「ファイル」のまとまりに入る）
-  defineSurface({
-    id: "notes",
-    accepts: ["file"],
-    closeOnEsc: false,
-    whenEmpty: "keep",
-    alwaysOpen: true,
-    emptyHint: "左の一覧でノートを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    kindBadges: false,
-    className: "note-panel",
-  }),
-  // プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く）
-  defineSurface({
-    id: "files",
-    accepts: ["file"],
-    closeOnEsc: false,
-    whenEmpty: "keep",
-    alwaysOpen: true,
-    emptyHint: "左の一覧でファイルを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    kindBadges: false,
-    className: "file-panel",
   }),
 ];
 

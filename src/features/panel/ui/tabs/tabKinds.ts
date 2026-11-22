@@ -1,11 +1,11 @@
-import { Container, Database, FileDiff, FileText, GitPullRequest, SquareTerminal, Trash2, Workflow, type LucideIcon } from "lucide-react";
+import { Container, Database, FileText, GitPullRequest, SquareTerminal, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import { api } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { ProjectViewTabLead } from "@/features/projects/ui/views/ProjectViewTabLead";
 import { defineTabKind, type AnyTabKind } from "@/features/panel/ui/kind";
 import { PROJECT_VIEW_LABELS, type PanelTab, type ProjectTool } from "./panelTypes";
 import { terminalTitle } from "./tabData";
-import { ChangesPage, CiPage, DatabasePage, DockerPage, GitHubPage, ProjectViewPage, TerminalPage, TrashPage } from "./PanelTabPage";
+import { CiPage, DatabasePage, DockerPage, GitHubPage, ProjectViewPage, TerminalPage, TrashPage } from "./PanelTabPage";
 
 /**
  * パネルのタブの種類（panelTypes.ts の `PanelTab` の kind）ごとの決まり（defineTabKind の項目）。
@@ -31,24 +31,10 @@ function projectToolKind(id: ToolTab["kind"], icon: LucideIcon, label: string, h
 }
 
 /**
- * まだ持ち主の機能へ移していない 8 種類（ui/contributes.ts が panelTabs に入れる。中身の部品は PanelTabPage.tsx）。
- * チャットの 5 種類は chatPanel、ファイル 2 種類は files、ノートは notes、ブラウザは browser の ui/contributes.ts が入れる
+ * まだ持ち主の機能へ移していない 7 種類（ui/contributes.ts が panelTabs に入れる。中身の部品は PanelTabPage.tsx）。
+ * チャットの 5 種類は chatPanel、ファイル 2 種類は files、ノートは notes、ブラウザは browser、変更は git の ui/contributes.ts が入れる
  */
 export const PANEL_TAB_KINDS: readonly AnyTabKind[] = [
-  defineTabKind<TabOf<"changes">>({
-    id: "changes",
-    icon: FileDiff,
-    label: () => "変更",
-    hint: (t) => `コミットしていない変更（${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}）`,
-    projectOf: (t) => t.projectId,
-    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    ownerChatId: (t) => t.chatId,
-    popout: (t) => ({
-      route: { kind: "changes", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
-      title: `変更 — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
-    }),
-    Page: ChangesPage,
-  }),
   defineTabKind<TabOf<"projectView">>({
     id: "projectView",
     icon: FileText,

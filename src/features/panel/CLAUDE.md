@@ -1,14 +1,14 @@
 # タブの入れ物（`src/features/panel`）
 
-タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ（`kanban`・`agents`・`cwin` は chatPanel の `chatSurfaces.ts`）。
+タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ（`kanban`・`agents`・`cwin` は chatPanel の `chatSurfaces.ts`、`notes`・`files` は各機能）。
 パスは `ui/` から。チャットの部分（サイドバーとの連動・タブのまとまり・下書き・右の欄）は `src/features/chatPanel/CLAUDE.md`、タブの中身のチャットは `src/features/conversation/CLAUDE.md`、ターミナルは `src/features/terminal/CLAUDE.md`、ブラウザは `src/features/browser/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
-| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 5 欄は `surfaces.ts`）・入れ子の欄のピント `panelHost.ts` |
+| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 3 欄は `surfaces.ts`）・入れ子の欄のピント `panelHost.ts` |
 | `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `actions.ts`）・別ウィンドウの写しと受け渡し |
 | `layout/` | ペインの分割（`paneTree.ts`・`paneLayout.ts`・`paneSizes.ts`・`paneGeometry.ts`）・タブのドラッグ（`useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`） |
-| `tabs/` | 持ち主へ移していない 8 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `TabPageFrame`（移していない中身は `PanelTabPage`）・メニュー・先読み |
+| `tabs/` | 持ち主へ移していない 7 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `TabPageFrame`（移していない中身は `PanelTabPage`）・メニュー・先読み |
 | `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く（新しいタブのボタン `OpenWithAdds`） |
 
 欄の殻はそれぞれの持ち主にある: チャットのパネルと右の欄は `@/features/chatPanel/ui/`（`board/`・`agents/`）、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`。
@@ -33,7 +33,7 @@
 ## タブの種類（`kind.ts`）
 
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（名前・後始末・`popout`・中身 `Page`・見た目 `Face`・`Menu`・`close`・`rename`・`confirmClose` など）は、分岐させず種類の項目（`defineTabKind`・`panelTabs`）から `kindOf(tab)` で引く。
-- 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser）。
+- 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser・変更は git）。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
 - 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す（`AgentPanelAdds`・`repointTabs.ts`・`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。

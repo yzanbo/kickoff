@@ -1,5 +1,4 @@
 import { lazy, Suspense } from "react";
-import { SideChanges } from "@/features/git/ui/SideChanges";
 import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/ui/GitHubTab";
 import { CiTab } from "@/features/github/ui/ci/CiTab";
@@ -20,9 +19,6 @@ type PageOf<K extends PanelTab["kind"]> = TabPageProps<Extract<PanelTab, { kind:
 
 // まだ持ち主の機能へ移していないタブの種類の中身（種類の項目の Page は tabKinds.ts。チャット・ファイル・ノート・ブラウザの中身は持ち主の機能の種類の項目）。
 // 中身を包む枠は TabPageFrame.tsx（Panel が読むのは枠だけ）
-
-// チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）
-export const ChangesPage = ({ tab: t }: PageOf<"changes">) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />;
 
 // チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面
 export const ProjectViewPage = ({ tab: t }: PageOf<"projectView">) => <SideProjectView chatId={t.chatId} projectId={t.projectId} worktree={t.worktree} view={t.view} />;
