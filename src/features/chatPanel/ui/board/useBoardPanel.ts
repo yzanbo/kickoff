@@ -1,9 +1,10 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import type { Chat } from "@shared/chat/types";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { navigate, type ReopenRoute } from "@/foundation/ui/navigation/router";
+import { navigate, parse, type ReopenRoute } from "@/foundation/ui/navigation/router";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { useBoardFocus } from "./useBoardFocus";
+import { shouldFollowShownTab } from "./shownTabUrl";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
@@ -43,7 +44,7 @@ export function useProjectChatsPanel({ projectId, focus, tab }: { projectId: num
  * タブで選んだチャットを URL にする（サイドバーの行も選択中として強調される。カードから開いたチャットと同じ）。
  * 見るのは、ピントのあるペインで表示中のタブ。変わったときだけ画面移動として履歴に積み、チャットでないタブ
  * （新しいチャット・ブラウザ・ターミナル）にしたらプロジェクトの画面（tab）に戻して、サイドバーの強調を外す。
- * はじめて描いたときは URL を変えない（URL で開いたチャット（useBoardFocus）より先に、前に表示していたタブで上書きしないため）
+ * 変えるかは shouldFollowShownTab（はじめて描いたとき・ほかのプロジェクトの画面へ移る途中は変えない）
  */
 function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number, tab: "board" | "chats") {
   const shown = panel.panelOpen ? focusedPane(panel.layout).active : null;
@@ -52,10 +53,9 @@ function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number
   const chat = shownTab?.kind === "chat" ? { id: shownTab.id, project_id: shownTab.projectId } : undefined;
   const prev = useRef<string | null | undefined>(undefined);
   const showShown = useEffectEvent(() => {
-    const first = prev.current === undefined;
-    if (prev.current === shown) return;
+    const follow = shouldFollowShownTab({ prev: prev.current, shown, projectId, current: parse(location.hash) });
     prev.current = shown;
-    if (first || shown === null) return;
+    if (!follow) return;
     if (chat) showInUrl(chat);
     else navigate({ name: "project", id: projectId, tab });
   });

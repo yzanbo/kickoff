@@ -10,6 +10,7 @@
 
 - チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。タブの並べ方は 3 つとも `ChatTabStrip`（まとまり・タブに出す項目・グループ名）、新しいタブのボタンと空の案内は `ChatPanelAdds`・`AgentPanelAdds`、「表示」のメニューは `ChatViewMenu`。
 - 新しいチャットは `startNewChat`（欄のプロジェクトで始める。決まらなければ案内）。送ってできたチャットの後は欄の `onChatCreated`（URL にする・メインのウィンドウに知らせる）。
+- チャットのパネルの表示中のタブは URL にする（`useShownChatInUrl`）。URL がもうほかのプロジェクトの画面なら書かない（`board/shownTabUrl.ts`。移る途中に元の欄のタブを閉じても、移る先を上書きしない）。
 
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 

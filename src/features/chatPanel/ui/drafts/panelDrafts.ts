@@ -198,7 +198,7 @@ export function moveDraftToProject(draft: DraftRef, projectId: number) {
   const panel = chatsPanel(projectId);
   // 送信待ちから始めたとき（seed）の案内は出さないよう、書きかけの文と添付は下書きの中身として入れる
   const key = openNewChat(panel, { projectId }, undefined, { text: from.text, attachments: from.attachments, title: from.title, pinned: from.pinned });
-  // 先に移す先を開いてから元を消す（先に消すと、元の欄が表示中のタブの変わったことを URL にして、移る先の画面を上書きする）
+  // 元のタブを閉じると元の欄の表示中のタブが変わるが、URL はもう移る先の画面なので、元の欄は URL を書き換えない（board/shownTabUrl.ts）
   openDraft({ panel, key });
   discardDraft(draft);
 }
