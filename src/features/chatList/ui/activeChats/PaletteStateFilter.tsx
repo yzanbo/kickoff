@@ -1,4 +1,4 @@
-import { cx } from "@/foundation/ui/lib/cx";
+import { PillGroup } from "@/foundation/ui/kit/PillGroup";
 import { COLUMN_LOOKS, DRAFT_LOOK, type StateTone } from "@shared/chat/stateLooks";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 import { ACTIVE_STATES, type ActiveState } from "./activeChatGroups";
@@ -18,26 +18,33 @@ export const ACTIVE_LOOKS: Record<ActiveState, { label: string; tone: StateTone 
 export function PaletteStateFilter({ shown, counts, onToggle }: { shown: ReadonlySet<ActiveState>; counts: Record<ActiveState, number>; onToggle: (state: ActiveState) => void }) {
   return (
     <div className="palette-filters bar palette-state-filters">
-      <div className="palette-projects" role="group" aria-label="状態で絞り込む">
-        {ACTIVE_STATES.map((state) => {
-          const on = shown.has(state);
+      <PillGroup
+        className="palette-projects"
+        pillClassName="palette-project pill"
+        label="状態で絞り込む"
+        mode="multi"
+        keepOne
+        selected={ACTIVE_STATES.filter((s) => shown.has(s))}
+        pills={ACTIVE_STATES.map((state) => {
           const { label, tone } = ACTIVE_LOOKS[state];
-          return (
-            <button
-              key={state}
-              type="button"
-              aria-pressed={on}
-              className={cx("palette-project pill", on && "active")}
-              title={on ? (shown.size > 1 ? `${label}を一覧から外す` : "状態は 1 つ以上選びます") : `${label}も一覧に出す`}
-              onClick={() => onToggle(state)}
-            >
-              <StatusDot state={tone} />
-              <span className="palette-project-name">{label}</span>
-              <span className="palette-project-count">{counts[state]}</span>
-            </button>
-          );
+          return {
+            key: state,
+            title: shown.has(state) ? (shown.size > 1 ? `${label}を一覧から外す` : "状態は 1 つ以上選びます") : `${label}も一覧に出す`,
+            label: (
+              <>
+                <StatusDot state={tone} />
+                <span className="palette-project-name">{label}</span>
+                <span className="palette-project-count">{counts[state]}</span>
+              </>
+            ),
+          };
         })}
-      </div>
+        // 押したもの（付け外しで変わった 1 つ）を渡す
+        onChange={(next) => {
+          const state = ACTIVE_STATES.find((s) => next.includes(s) !== shown.has(s));
+          if (state) onToggle(state);
+        }}
+      />
     </div>
   );
 }

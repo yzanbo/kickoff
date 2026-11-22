@@ -2,6 +2,9 @@
 import { openAppDialog } from "@/foundation/ui/shell/points";
 import { storage } from "./storage";
 
+export { paletteSources, type PaletteNamedSource, type PaletteTextSource } from "./sources";
+export type { PaletteItem } from "./paletteItem";
+
 declare module "@/foundation/ui/shell/points" {
   interface AppDialogMap {
     /** コマンドパレット（⌘K） */

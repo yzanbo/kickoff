@@ -1,10 +1,10 @@
 import { Activity } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useState, type KeyboardEvent } from "react";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { openChat } from "@/features/chat/ui";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
-import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
+import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
@@ -53,15 +53,13 @@ export function ActiveChatsPalette<D extends ActiveDraft>({
   const [query, setQuery] = useState("");
   // 出せるプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく。要対応の数と同じ範囲）
   const chats = useAllProjectChats();
-  const { ref: dialogRef, ...dialog } = useModalDialog();
+  const modal = usePaletteDialog();
   const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
   const [showArchived, setShowArchived] = useSetting(paletteSettings.activeShowArchivedProjects);
   // 並べる状態（隠したものだけを覚える。すべて隠した値が残っていても、すべて出す）
   const [hiddenStates, setHiddenStates] = useSetting(paletteSettings.activeHiddenStates);
-  const shownStates = useMemo(() => {
-    const hidden = hiddenItemsOf(ACTIVE_STATES, hiddenStates);
-    return new Set<ActiveState>(hidden.size === ACTIVE_STATES.length ? ACTIVE_STATES : ACTIVE_STATES.filter((s) => !hidden.has(s)));
-  }, [hiddenStates]);
+  const hidden = hiddenItemsOf(ACTIVE_STATES, hiddenStates);
+  const shownStates = new Set<ActiveState>(hidden.size === ACTIVE_STATES.length ? ACTIVE_STATES : ACTIVE_STATES.filter((s) => !hidden.has(s)));
   const toggleState = (state: ActiveState) => {
     // 最後の 1 つは外さない
     if (shownStates.has(state) && shownStates.size === 1) return;
@@ -82,7 +80,7 @@ export function ActiveChatsPalette<D extends ActiveDraft>({
 
   function go(item: ActiveItem<D> | undefined) {
     if (!item) return;
-    dialog.close();
+    modal.close();
     if (item.kind === "draft") openDraft(item.draft);
     else openChat(item.chat);
   }
@@ -90,46 +88,46 @@ export function ActiveChatsPalette<D extends ActiveDraft>({
   useEffect(() => nav.setIndex(0), [query, selected, showArchived, shownStates]);
   // 入力欄の Tab / Shift+Tab でプロジェクトの絞り込みを順に切り替える（ほかのキーは一覧の ↑↓・Enter）
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Tab" && !e.metaKey && !e.altKey && !e.ctrlKey) {
-      e.preventDefault();
-      setProject(cycleProjectFilter(selected, options, e.shiftKey));
-      return;
-    }
-    nav.onKeyDown(e);
+    if (e.key !== "Tab" || e.metaKey || e.altKey || e.ctrlKey) return false;
+    e.preventDefault();
+    setProject(cycleProjectFilter(selected, options, e.shiftKey));
+    return true;
   };
-  // ↑↓ で選んだ行が見えるようにスクロールする
-  useEffect(() => {
-    dialogRef.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
-  }, [nav.index, dialogRef]);
 
   return (
-    <dialog ref={dialogRef} className="palette floating" aria-label="作業中・待ちのチャット" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input bar">
-        <Activity size={16} className="muted" aria-hidden />
-        <input
-          autoFocus
-          value={query}
-          placeholder={`${ACTIVE_STATES.filter((s) => shownStates.has(s))
-            .map((s) => ACTIVE_LOOKS[s].label)
-            .join("・")}のチャットを絞り込む`}
-          aria-label="作業中・待ちのチャットを絞り込む"
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKeyDown}
-          aria-activedescendant={nav.activeId}
-        />
-        <TagFilterNotice filter={tagFilter} />
-      </div>
-      <PaletteProjectFilter
-        value={selected}
-        total={total}
-        options={options}
-        onChange={setProject}
-        archivedCount={archivedCount}
-        showArchived={showArchived}
-        onToggleArchived={() => setShowArchived(!showArchived)}
-      />
-      <PaletteStateFilter shown={shownStates} counts={stateCounts} onToggle={toggleState} />
-      <ul className="palette-list" role="listbox">
+    <PaletteDialog
+      modal={modal}
+      nav={nav}
+      label="作業中・待ちのチャット"
+      icon={<Activity size={16} className="muted" aria-hidden />}
+      input={{
+        value: query,
+        onChange: setQuery,
+        placeholder: `${ACTIVE_STATES.filter((s) => shownStates.has(s))
+          .map((s) => ACTIVE_LOOKS[s].label)
+          .join("・")}のチャットを絞り込む`,
+        label: "作業中・待ちのチャットを絞り込む",
+        onKeyDown,
+      }}
+      inputAfter={<TagFilterNotice filter={tagFilter} />}
+      // ↑↓ で選んだ行が見えるようにスクロールする
+      scrollActive
+      onClose={onClose}
+      bars={
+        <>
+          <PaletteProjectFilter
+            value={selected}
+            total={total}
+            options={options}
+            onChange={setProject}
+            archivedCount={archivedCount}
+            showArchived={showArchived}
+            onToggleArchived={() => setShowArchived(!showArchived)}
+          />
+          <PaletteStateFilter shown={shownStates} counts={stateCounts} onToggle={toggleState} />
+        </>
+      }
+    >
         {items.length === 0 && <li className="palette-empty">{query.trim() ? "見つかりません" : shownStates.size < ACTIVE_STATES.length && total === 0 ? "選んだ状態のチャットはありません（上の行で状態を足せます）" : selected !== "all" ? "このプロジェクトに作業中・待ちのチャットはありません" : tagFilter.active ? "タグで絞り込んだプロジェクトに、作業中・待ちのチャットはありません" : "作業中・待ちのチャットはありません"}</li>}
         {groups.map((g) => (
           <Fragment key={g.key}>
@@ -179,8 +177,7 @@ export function ActiveChatsPalette<D extends ActiveDraft>({
             })}
           </Fragment>
         ))}
-      </ul>
-    </dialog>
+    </PaletteDialog>
   );
 }
 

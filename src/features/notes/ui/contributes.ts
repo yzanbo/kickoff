@@ -14,6 +14,8 @@ import { settingsItems } from "@/features/settings/ui";
 import { noteDirItem } from "./settings/settingsItems";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { notePopout } from "./popoutKinds";
+import { paletteSources } from "@/features/palette/ui";
+import { notePaletteSource, noteTextPaletteSource } from "./paletteSources";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -28,6 +30,9 @@ export const contributes = [
   // プロジェクトの設定の基本情報の「ノートフォルダ」
   settingsItems.item(noteDirItem),
   popoutKinds.item(notePopout),
+  // ⌘K のノートとノート内の文言
+  paletteSources.item(notePaletteSource),
+  paletteSources.item(noteTextPaletteSource),
   // 入力欄の上のノートのピル
   composerSlots.item({ kind: "pill", id: "notes", order: 10, load: () => import("./NoteChip").then((m) => m.ComposerNotePill) }),
 ];

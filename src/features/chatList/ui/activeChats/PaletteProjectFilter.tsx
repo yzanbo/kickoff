@@ -1,5 +1,7 @@
 import { Archive } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
+import { PillGroup } from "@/foundation/ui/kit/PillGroup";
+import { cycleValue } from "@/foundation/ui/lib/cycleValue";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 
 /** 絞り込むプロジェクト（"all" = すべて） */
@@ -36,27 +38,37 @@ export function PaletteProjectFilter({
 }) {
   return (
     <div className="palette-filters bar">
-      <div className="palette-projects" role="radiogroup" aria-label="プロジェクトで絞り込む（Tab / Shift+Tab で切り替え）">
-        <button type="button" role="radio" aria-checked={value === "all"} className={cx("palette-project pill", value === "all" && "active")} onClick={() => onChange("all")}>
-          すべて
-          <span className="palette-project-count">{total}</span>
-        </button>
-        {options.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={value === p.id}
-            className={cx("palette-project pill", value === p.id && "active", p.archived && "archived")}
-            title={p.archived ? `${p.name}（アーカイブ済み）` : p.name}
-            onClick={() => onChange(p.id)}
-          >
-            <ProjectMark project={p} />
-            <span className="palette-project-name">{p.name}</span>
-            <span className="palette-project-count">{p.count}</span>
-          </button>
-        ))}
-      </div>
+      <PillGroup<ProjectFilterValue>
+        className="palette-projects"
+        pillClassName="palette-project pill"
+        label="プロジェクトで絞り込む（Tab / Shift+Tab で切り替え）"
+        mode="single"
+        selected={[value]}
+        pills={[
+          {
+            key: "all",
+            label: (
+              <>
+                すべて
+                <span className="palette-project-count">{total}</span>
+              </>
+            ),
+          },
+          ...options.map((p) => ({
+            key: p.id,
+            className: p.archived ? "archived" : undefined,
+            title: p.archived ? `${p.name}（アーカイブ済み）` : p.name,
+            label: (
+              <>
+                <ProjectMark project={p} />
+                <span className="palette-project-name">{p.name}</span>
+                <span className="palette-project-count">{p.count}</span>
+              </>
+            ),
+          })),
+        ]}
+        onChange={([next]) => onChange(next)}
+      />
       {archivedCount > 0 && (
         <button
           type="button"
@@ -75,7 +87,5 @@ export function PaletteProjectFilter({
 
 /** Tab / Shift+Tab で、いまの絞り込みの次・前へ（端では反対の端へ回る） */
 export function cycleProjectFilter(value: ProjectFilterValue, options: ProjectFilterOption[], back: boolean): ProjectFilterValue {
-  const values: ProjectFilterValue[] = ["all", ...options.map((p) => p.id)];
-  const i = Math.max(0, values.indexOf(value));
-  return values[(i + (back ? values.length - 1 : 1)) % values.length];
+  return cycleValue<ProjectFilterValue>(["all", ...options.map((p) => p.id)], value, back ? -1 : 1);
 }

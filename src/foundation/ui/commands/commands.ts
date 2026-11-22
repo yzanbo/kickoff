@@ -1,6 +1,7 @@
 // コマンド: ⌘K に出す操作・ショートカット・キーの表示が同じ表を読む。項目は機能が ui/contributes.ts で commands.item({…}) を出す。
 // キーの判定の決まり: Mac は ⌘ だけ（⌃K などは入力欄の編集に残す）・エディタが先に受けたキー（defaultPrevented）は扱わない・
 // Shift つき・⌥ つきは表に書いたものだけ（⌥ は文字が変わるので code: のキーの位置で書く）・capture の項目はほかより先に受ける（ターミナルの中でも効く）
+import type { ComponentType } from "react";
 import { definePoint } from "@/foundation/ui/points";
 import { hasAppModifier, IS_MAC, type KeyInput } from "@/foundation/ui/lib/keys";
 import { isPopoutWindow } from "@/foundation/ui/navigation/popout";
@@ -17,8 +18,11 @@ export interface CommandContext {
 export interface Command {
   id: string;
   title: string;
-  /** ⌘K に出すまとまり（省けば ⌘K に出さない） */
+  /** ⌘K に出すまとまり（省けば ⌘K に出さない。何か入力したときだけ、行の右の薄い文に出す） */
   group?: string;
+  /** ⌘K の行の印と、名前のほかに絞り込みに使う言葉 */
+  icon?: ComponentType<{ size?: number }>;
+  keywords?: string;
   keys?: KeyCombo | readonly KeyCombo[];
   /** どのウィンドウで効くか（既定 "main"） */
   windows?: "main" | "popout" | "both";
@@ -93,6 +97,12 @@ export function runCommandKey(e: KeyInput & { defaultPrevented: boolean }, ctx: 
   }
   return false;
 }
+
+/** ⌘K に出すコマンド（group があり、いまのウィンドウで走らせてよいもの。表の順） */
+export const paletteCommands = (): Command[] => {
+  const ctx = commandContext();
+  return commands.items().filter((c) => c.group !== undefined && allowed(c, ctx));
+};
 
 /** そのコマンドを走らせる（⌘K・ボタンから。走らせたら true） */
 export function runCommand(id: string, ctx: Partial<CommandContext> = {}): boolean {

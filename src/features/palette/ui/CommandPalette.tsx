@@ -1,153 +1,112 @@
-import { Network, Search, SquarePen } from "lucide-react";
-import { openPortsPopover, portsAvailable } from "@/features/ports/ui/portsStore";
-import { busyWithUnread } from "@shared/chat/state";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
-import { ProjectMark } from "@/features/projects/ui/ProjectMark";
-import { PaletteChatChips, PaletteProjectMark } from "@/features/chatList/ui/PaletteChatParts";
-import { useEffect, useMemo, useState } from "react";
-import { api } from "@/foundation/ui/api";
-import { useChats } from "@/features/chat/ui/store/knownChats";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { cx } from "@/foundation/ui/lib/cx";
+import { Search } from "lucide-react";
+import { useEffect, useLayoutEffect, useState } from "react";
+import { useDebouncedSearch } from "@/foundation/ui/hooks/useDebouncedSearch";
+import { paletteCommands, runCommand } from "@/foundation/ui/commands";
+import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
+import { PillGroup } from "@/foundation/ui/kit/PillGroup";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
-import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
+import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { storage } from "./storage";
 import type { PaletteItem as Item } from "./paletteItem";
-import { noteTextItem, messageItem, useDebouncedSearch } from "./textSearchItems";
-import { usePaletteNotes } from "@/features/notes/ui/paletteSource";
+import { arrangePaletteItems, paletteSources, useNamedSourceItems, type PaletteNamedSource, type PaletteSource, type PaletteTextSource } from "./sources";
 
-/**
- * 探す対象。チャットの中の文言は全文検索（文言の全文検索のパネルと同じ API）で、入力したときだけ探す。ノートはすべてのプロジェクトのノートを名前（とフォルダ）で。
- * ノートの中の文言は、すべてのプロジェクトのノートの中の行を、入力したときだけ探す
- */
-type Target = "project" | "chat" | "note" | "message" | "noteText";
-const TARGETS: { value: Target; label: string }[] = [
-  { value: "project", label: "プロジェクト" },
-  { value: "chat", label: "チャット" },
-  { value: "note", label: "ノート" },
-  { value: "message", label: "チャット内の文言" },
-  { value: "noteText", label: "ノート内の文言" },
-];
-const DEFAULT_TARGETS: Target[] = ["project", "chat", "note"];
-const isTarget = (t: string): t is Target => TARGETS.some((x) => x.value === t);
+const isNamed = (s: PaletteSource): s is PaletteNamedSource => "useItems" in s;
+const isText = (s: PaletteSource): s is PaletteTextSource => "search" in s;
 
-/** ⌘K: プロジェクト・チャット・ノートを名前で（選べばチャット・ノートの中の文言でも）探して移動する */
+/** ⌘K: 持ち主の機能が出した探す対象（paletteSources）を名前で（選べば中身の文でも）探して移動する */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
-  const { projects, projectName } = useProjects();
+  const sources = paletteSources.items();
   const [query, setQuery] = useState("");
-  // すべてのプロジェクトのチャット（アーカイブしていないもの）
-  const { chats } = useChats();
-  // チャットの行の左は、サイドバーの行と同じ状態の印（作業中は回るリング・作業中のまま未読なら緑の点）
-  const { stateOf } = useChatStates();
-  const { ref: dialogRef, ...dialog } = useModalDialog();
+  const modal = usePaletteDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
   const [stored, setStored] = useSetting(storage.settings.targets);
-  // 保存した値が変わったときだけ作り直す（下の一覧は、探す対象が変わったときだけ作り直す）
-  const targets = useMemo(() => {
-    const valid = stored.filter(isTarget);
-    return valid.length > 0 ? valid : DEFAULT_TARGETS;
-  }, [stored]);
+  const valid = sources.filter((s) => stored.includes(s.id)).map((s) => s.id);
+  const targets = valid.length > 0 ? valid : sources.filter((s) => s.byDefault).map((s) => s.id);
   const targetKey = targets.join(",");
-  const toggleTarget = (t: Target) => {
-    const next = TARGETS.map((x) => x.value).filter((x) => (x === t ? !targets.includes(t) : targets.includes(x)));
-    if (next.length > 0) setStored(next);
-  };
-  const messages = useDebouncedSearch(query, targets.includes("message"), (q) => api.search(q, {}));
-  const noteTexts = useDebouncedSearch(query, targets.includes("noteText"), (q) => api.searchNotes(q).then((r) => r.hits));
-  const searching = messages.searching || noteTexts.searching;
-  const notes = usePaletteNotes(projects, targets.includes("note"), projectName);
+  // 名前で探す対象の行（対象ごとの hook が NamedRows の中で読み、ここへ渡す）
+  const [namedBy, setNamedBy] = useState<Record<string, readonly Item[]>>({});
+  const report = (id: string, items: readonly Item[]) => setNamedBy((prev) => (prev[id] === items ? prev : { ...prev, [id]: items }));
+  // 中身の文で探す対象（入力が止まってから、選んだ対象をまとめて探す。選んでいなければ探さない）
+  const textSources = sources.filter(isText).filter((s) => targets.includes(s.id));
+  const texts = useDebouncedSearch(textSources.length > 0 ? query : "", (q) => Promise.all(textSources.map((s) => s.search(q).catch(() => []))).then((r) => r.flat()), 200, targetKey);
 
-  const items = useMemo<Item[]>(() => {
-    const q = query.trim().toLowerCase();
-    const named: Item[] = [];
-    if (targets.includes("project")) {
-      // 新しいチャットはプロジェクトの操作なので、プロジェクトを探していて何か入力したときだけ
-      if (q) {
-        for (const p of projects) {
-          const label = `${p.name} で新しいチャット`;
-          named.push({ key: `new-${p.id}`, label, text: label, hint: "新規", icon: <SquarePen size={15} />, route: { name: "newChat", projectId: p.id } });
-        }
-      }
-      for (const p of projects) {
-        named.push({ key: `p-${p.id}`, label: p.name, text: p.name, hint: "プロジェクト", icon: <ProjectMark project={p} />, route: { name: "project", id: p.id, tab: "board" } });
-      }
-    }
-    if (targets.includes("chat")) {
-      for (const r of chats) {
-        const title = chatTitle(r.title);
-        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), hintMark: <PaletteProjectMark projectId={r.project_id} />, chips: <PaletteChatChips chat={r} />, icon: <StatusSlot state={stateOf(r)} unread={busyWithUnread(r, stateOf(r))} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
-      }
-    }
-    named.push(...notes);
-    // 操作（何か入力したときだけ。下の帯を隠していても開ける。Mac のアプリの中だけ）
-    if (q && portsAvailable()) {
-      const label = "ポートを使っているプロセス";
-      named.push({ key: "ports", label, text: `${label} port`, hint: "操作", icon: <Network size={15} />, run: openPortsPopover });
-    }
-    const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
-    // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・ノートの中の文言
-    return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...noteTexts.hits.map((h) => noteTextItem(h, projectName))];
-  }, [projects, chats, notes, query, messages.hits, noteTexts.hits, targets, projectName, stateOf]);
+  const q = query.trim();
+  const named = sources.filter(isNamed).flatMap((s) => namedBy[s.id] ?? []);
+  // 操作（何か入力したときだけ。コマンドの表の group を持つもの）
+  const actions: Item[] = q
+    ? paletteCommands().map((c) => {
+        const Icon = c.icon;
+        return { key: `cmd-${c.id}`, label: c.title, text: c.keywords ? `${c.title} ${c.keywords}` : c.title, hint: c.group ?? "", icon: Icon ? <Icon size={15} /> : null, run: () => void runCommand(c.id) };
+      })
+    : [];
+  const items = arrangePaletteItems([...named, ...actions], texts.results, query);
 
   function go(item: Item | undefined) {
     if (!item) return;
-    dialog.close();
+    modal.close();
     if (item.run) item.run();
     else if (item.route) navigate(item.route);
   }
   const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, targetKey]);
 
-  const placeholder = `${TARGETS.filter((t) => targets.includes(t.value))
-    .map((t) => t.label)
+  const placeholder = `${sources
+    .filter((s) => targets.includes(s.id))
+    .map((s) => s.label)
     .join("・")}を検索`;
   return (
-    <dialog ref={dialogRef} className="palette floating" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input bar">
-        <Search size={16} className="muted" />
-        <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
-        {searching && <span className="spinner" aria-label="検索中" />}
-      </div>
-      {/* 探す対象（複数選べる。押すたびに付け外し。⌘⇧A のプロジェクトの絞り込みと同じピル） */}
-      <div className="palette-filters bar">
-        <div className="palette-projects" role="group" aria-label="探す対象">
-          {TARGETS.map((t) => {
-            const on = targets.includes(t.value);
-            return (
-              <button
-                key={t.value}
-                type="button"
-                aria-pressed={on}
-                className={cx("palette-project pill", on && "active")}
-                title={on ? (targets.length > 1 ? `${t.label}を探す対象から外す` : "探す対象は 1 つ以上選びます") : `${t.label}も探す`}
-                onClick={() => toggleTarget(t.value)}
-              >
-                {t.label}
-              </button>
-            );
-          })}
+    <PaletteDialog
+      modal={modal}
+      nav={nav}
+      icon={<Search size={16} className="muted" />}
+      input={{ value: query, onChange: setQuery, placeholder }}
+      inputAfter={texts.loading && <span className="spinner" aria-label="検索中" />}
+      onClose={onClose}
+      bars={
+        // 探す対象（複数選べる。押すたびに付け外し。⌘⇧A のプロジェクトの絞り込みと同じピル）
+        <div className="palette-filters bar">
+          <PillGroup
+            className="palette-projects"
+            pillClassName="palette-project pill"
+            label="探す対象"
+            mode="multi"
+            keepOne
+            selected={targets}
+            pills={sources.map((s) => {
+              const on = targets.includes(s.id);
+              return { key: s.id, label: s.label, title: on ? (targets.length > 1 ? `${s.label}を探す対象から外す` : "探す対象は 1 つ以上選びます") : `${s.label}も探す` };
+            })}
+            onChange={(next) => setStored(sources.map((s) => s.id).filter((id) => next.includes(id)))}
+          />
         </div>
-      </div>
-      <ul className="palette-list" role="listbox">
-        {items.length === 0 && !searching && <li className="palette-empty">見つかりません</li>}
-        {items.map((item, i) => (
-          <li key={item.key} role="option" {...nav.optionProps(i)}>
-            <button className={cx("palette-item", i === nav.index && "active")} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
-              {item.icon}
-              <span className="palette-label">{item.label}</span>
-              {item.chips}
-              <span className="palette-hint">
-                {item.hintMark}
-                <span className="palette-hint-text">{item.hint}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </dialog>
+      }
+    >
+      {sources.filter(isNamed).map((s) => (
+        <NamedRows key={s.id} id={s.id} enabled={targets.includes(s.id)} query={query} onItems={report} />
+      ))}
+      {items.length === 0 && !texts.loading && <li className="palette-empty">見つかりません</li>}
+      {items.map((item, i) => (
+        <li key={item.key} role="option" {...nav.optionProps(i)}>
+          <button className={cx("palette-item", i === nav.index && "active")} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
+            {item.icon}
+            <span className="palette-label">{item.label}</span>
+            {item.chips}
+            <span className="palette-hint">
+              {item.hintMark}
+              <span className="palette-hint-text">{item.hint}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </PaletteDialog>
   );
+}
+
+/** 名前で探す対象 1 つの行を読み、描く前に ⌘K へ渡す（何も描かない。hook は対象ごとに 1 つ） */
+function NamedRows({ id, enabled, query, onItems }: { id: string; enabled: boolean; query: string; onItems: (id: string, items: readonly Item[]) => void }) {
+  const items = useNamedSourceItems(id, enabled, query);
+  useLayoutEffect(() => onItems(id, items), [id, items, onItems]);
+  return null;
 }

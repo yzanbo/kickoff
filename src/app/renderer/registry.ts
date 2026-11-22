@@ -24,6 +24,7 @@ import { contributes as settings } from "@/features/settings/ui/contributes";
 import { contributes as panel } from "@/features/panel/ui/contributes";
 import { contributes as palette } from "@/features/palette/ui/contributes";
 import { contributes as conversation } from "@/features/conversation/ui/contributes";
+import { contributes as ports } from "@/features/ports/ui/contributes";
 import { appCommands } from "./commands";
 import { configureRouter } from "@/foundation/ui/navigation/router";
 import { workplaceDecorItems } from "./workplaceDecor";
@@ -38,7 +39,7 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
  * AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...settings, ...panel, ...palette, ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...sidebar, ...board,
+  ...settings, ...panel, ...palette, ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...ports, ...voice, ...sidebar, ...board,
   ...appCommands, ...workplaceDecorItems, ...userViewTabItems, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 

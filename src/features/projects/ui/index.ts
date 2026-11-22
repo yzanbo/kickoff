@@ -3,7 +3,7 @@ import { storage } from "./storage";
 
 export { trySideOpen } from "./rightSidebar/sideOpenRequests";
 export { isSideViewShown, showSideView } from "./rightSidebar/sideView";
-export { addProject, useProjects } from "./stores/projects";
+export { addProject, currentProjectsIndex, useProjects } from "./stores/projects";
 export { sidebarOrder } from "./projectOrder";
 export { ProjectPickFlyout } from "./ProjectPickFlyout";
 export { InspectionList } from "./InspectionList";

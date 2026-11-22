@@ -7,6 +7,8 @@ export interface Pill<K> {
   key: K;
   label: ReactNode;
   title?: string;
+  /** そのピルだけに足す class（アーカイブ済みなど） */
+  className?: string;
 }
 
 /** 押したあとの選び（single は押したものだけ、multi は付け外し。keepOne なら最後の 1 つは外さない。変わらなければ null） */
@@ -49,7 +51,7 @@ export function PillGroup<K extends string | number>({
           <button
             key={pill.key}
             type="button"
-            className={cx(pillClassName, on && "active")}
+            className={cx(pillClassName, on && "active", pill.className)}
             {...(mode === "single" ? { role: "radio", "aria-checked": on } : { "aria-pressed": on })}
             title={pill.title}
             onClick={() => {

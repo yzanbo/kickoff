@@ -10,7 +10,7 @@ import { ActiveChatsDialog } from "@/features/chatPanel/ui";
 import { CommandPalette } from "@/features/palette/ui/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
 import { useProjectHeaderMode } from "@/features/projects/ui/page/headerMode";
-import { SearchPanel } from "@/features/palette/ui/SearchPanel";
+import { SearchPanel } from "@/features/conversation/ui/search/SearchPanel";
 import { NewProjectDialog } from "@/features/projects/ui/new/NewProjectDialog";
 import { NoProjectsGuide } from "@/features/projects/ui/NoProjectsGuide";
 import { runAfterNewProject } from "@/features/projects/ui/new/afterNewProject";
