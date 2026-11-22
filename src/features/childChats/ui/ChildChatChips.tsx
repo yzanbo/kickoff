@@ -113,7 +113,12 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         className={cx("subagent-row child-chat-row tree-indent", c.archived_at && "archived")}
         title={`子チャット「${chatTitle(c.title)}」を開く`}
         onClick={() => open(c)}
-        onKeyDown={(e) => e.key === "Enter" && open(c)}
+        onKeyDown={(e) => {
+          // 行そのものにピントがあるときだけ（中のボタンの Enter・Space はそのボタンのもの）。Space で下へ流れないようにする
+          if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+          e.preventDefault();
+          open(c);
+        }}
       >
         <span className="subagent-icon">
           <MessagesSquare size={16} aria-hidden />

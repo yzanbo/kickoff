@@ -114,7 +114,12 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         className={cx("subagent-row tree-indent", isArchived && "archived")}
         style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
         onClick={() => openRow(s.key)}
-        onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
+        onKeyDown={(e) => {
+          // 行そのものにピントがあるときだけ（中のボタンの Enter・Space はそのボタンのもの）。Space で下へ流れないようにする
+          if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+          e.preventDefault();
+          openRow(s.key);
+        }}
       >
         <span className={`subagent-icon ${s.status === "running" ? "spinning" : ""}`}>
           <ClaudeMark size={16} />
