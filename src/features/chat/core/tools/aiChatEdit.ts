@@ -9,7 +9,7 @@ import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { errorMessage } from "@shared/foundation/errors";
 import { CHAT_TITLE_MAX, chatName, type Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { familyOf } from "@/features/chat/core/family";
 import type { ChatDetachPort } from "@/features/chat/core/ports";
 import { applyChatUpdate, planChatUpdate, refusedAs } from "@/features/chat/core/update";
@@ -42,7 +42,7 @@ type UpdateChatInput = z.infer<z.ZodObject<typeof UPDATE_CHAT_INPUT>>;
 
 /** 家系のツールに使うもの（親から外すのは childChats の口。作業中のチャットは childChats が断る） */
 interface AiChatEditDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">;
   detach?: ChatDetachPort;
 }
 
@@ -65,7 +65,7 @@ function refusedForAi<T>(fn: () => T, input: Pick<UpdateChatInput, "group_id">):
 }
 
 /** 家系の外のチャットの名前を変える（同じプロジェクトのチャットの名前だけ。ほかの項目・ほかのプロジェクトは断る） */
-function renameOutsideFamily(store: Store, self: Chat, input: UpdateChatInput): string {
+function renameOutsideFamily(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">, self: Chat, input: UpdateChatInput): string {
   const target = toolChat(store.chats, self.id).chatInProject(self, input.chat_id, "list_family_chats・list_project_chats で ID を確かめてください");
   if (input.pinned !== undefined || input.group_id !== undefined || input.parent_id !== undefined) {
     throw new Error(

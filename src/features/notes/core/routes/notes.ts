@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { NoteAiPlanBody, NoteCreateBody, NoteFromChatBody, NoteMoveBody, NoteWriteBody } from "@shared/foundation/apiTypes";
 import type { NoteDefaults, NoteDirUsers } from "@shared/notes/types";
 import { MAX_NOTE_SOURCE_CHARS } from "@/features/notes/core/notes";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { ChatRunPort } from "@/features/chat/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
@@ -39,7 +39,7 @@ const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satis
  * プロジェクトのノート（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・ノートのチャットを始める・AI のフォルダの整理案（動かさない））。
  * 保存先はプロジェクトの外（設定の notes_dir の下の、プロジェクトごとのフォルダ）。パスはノートのフォルダからの相対
  */
-export function noteRoutes(app: Hono, { store, notes, runner, uploads }: { store: Pick<Store, "projects" | "chats" | "groups">; notes: NoteService; runner: ChatRunPort; uploads: UploadStore }) {
+export function noteRoutes(app: Hono, { store, notes, runner, uploads }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; notes: NoteService; runner: ChatRunPort; uploads: UploadStore }) {
   const { withProject } = lookups(store);
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所

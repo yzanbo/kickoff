@@ -3,7 +3,7 @@
 // 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { errorMessage } from "@shared/foundation/errors";
 import type { WorkplaceMoveBody } from "@shared/workplaceMove/types";
-import { workdirOf, type ChatRunPort, type Store, type TurnEndTask } from "@/features/chat/core/index";
+import { workdirOf, type ChatRunPort, type TurnEndTask, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { createMover } from "./move";
 import { busyChatsIn, terminalLabel } from "./target";
 import { planUserWorkplaceMove, runningTerminals, type WorkplaceUserMoveDeps } from "./userMove";
@@ -18,7 +18,7 @@ export interface WorkplaceMovePlan {
 }
 
 export interface WorkplaceMoveRunDeps extends Pick<WorkplaceUserMoveDeps, "terminals" | "workplace"> {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "projects">;
   runner: Pick<ChatRunPort, "isBusy" | "live" | "reservedFolders" | "reserveAtTurnEnd" | "continuation">;
   /** 作業場所を移す口（move.ts の createMover） */
   move: ReturnType<typeof createMover>;

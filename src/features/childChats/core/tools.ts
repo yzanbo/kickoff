@@ -5,7 +5,7 @@ import { defineAiTool, type AiToolDef, type AiToolGroup } from "@/foundation/cor
 import { AI_CHAT_RELATION_LABELS, AI_CHAT_RELATIONS, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { PROVIDER_IDS, PROVIDER_LABELS } from "@shared/settings/types";
-import type { Store, TurnContributor } from "@/features/chat/core/index";
+import type { TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import { canCreateChat, createAiCreateChatTools, type AiCreateChatDeps, type AiCreateChatRequest, type AiCreateChatTools } from "./aiCreateChat";
 import { chatContextNote, chatContextOf } from "./context";
 
@@ -70,6 +70,6 @@ export function createChatToolGroup(deps: AiCreateChatDeps): AiToolGroup {
 }
 
 /** 指示に添える家系の文脈（送るたびに。移動の知らせ・一度だけ添える知らせより前） */
-export function childChatTurnParts(store: Store): TurnContributor {
+export function childChatTurnParts(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "snippets">): TurnContributor {
   return { name: "childChats", order: 10, contribute: ({ chat }) => ({ turnContext: chatContextNote(chatContextOf(store, chat)) }) };
 }

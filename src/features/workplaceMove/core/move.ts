@@ -6,13 +6,13 @@ import type { ChatEventDataOf, WorkplaceMoveReason, WorkplaceRef } from "@shared
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { workplaceMoveNote } from "@shared/workplaceMove/workplaceMoves";
-import { replaceSession, resumePointBefore, workdirOf, type ChatRunner, type SessionTrash, type Store } from "@/features/chat/core/index";
+import { replaceSession, resumePointBefore, workdirOf, type ChatRunner, type SessionTrash, type ChatStoreDeps } from "@/features/chat/core/index";
 import { currentBranch } from "@/foundation/core/workplace/reads";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import type { AgentProvider } from "@/features/ai/core/index";
 
 export interface WorkplaceMoveDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects">;
   providers: Record<ProviderId, AgentProvider>;
   /** 写したあとの古い会話記録をゴミ箱へ入れる口（ほかのチャット・ほかの Kickoff が使っていれば入れない） */
   sessionTrash?: SessionTrash;

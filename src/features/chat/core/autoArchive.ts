@@ -1,6 +1,6 @@
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 
 /** 自動のアーカイブを確かめる間隔 */
 const CHECK_MS = 60 * 60_000;
@@ -9,7 +9,7 @@ const CHECK_MS = 60 * 60_000;
  * 完了したチャットの自動のアーカイブ（設定の「完了から N 日たったらアーカイブ」）。
  * 起動したとき・1 時間ごと・設定を変えたときに確かめる。止めるときは返り値を呼ぶ
  */
-export function startAutoArchive(store: Store, bus: Bus, clock: Pick<Clock, "setInterval" | "clearInterval">): () => void {
+export function startAutoArchive(store: Pick<ChatStoreDeps, "chats" | "settings">, bus: Bus, clock: Pick<Clock, "setInterval" | "clearInterval">): () => void {
   const check = () => {
     const days = store.settings.get().auto_archive_days;
     if (!days) return;

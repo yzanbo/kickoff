@@ -1,7 +1,7 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { CHAT_TAIL_MAX_BYTES, CHAT_TAIL_TURNS, CHAT_TURN_MAX_BYTES, CHAT_TURN_MAX_EVENTS, type ChatEventPage } from "@shared/chat/detail";
 import type { IndexContext } from "@shared/chat/chatIndex";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { indexCacheOf } from "./chatIndexCache";
 
 /*
@@ -20,7 +20,7 @@ interface TurnLimits {
 }
 
 /** 記録の並び（id ≥ from）の大きさを、ターンの頭ごとに数える道具（覆う索引だけを読む） */
-function sizesFrom(store: Store, chatId: number, from: number, to: number) {
+function sizesFrom(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, from: number, to: number) {
   const rows = store.events.metas(chatId, from, to);
   return {
     rows,
@@ -59,7 +59,7 @@ function capFromEnd(rows: readonly { meta: { id: number }; size: number }[], sta
  * before の手前を turns ターン読むときの頭（id）。result を新しい順に turns + 1 件取り、turns + 1 件目の直後から（足りなければ最初から = 0）。
  * 大きさが maxBytes を超えるなら 1 ターンずつ新しい方へずらし（最新の 1 ターンは残す）、それでも 1 ターンが大きすぎれば終わりから上限まで（partial）
  */
-function turnHead(store: Store, chatId: number, before: number, { turns, maxBytes }: TurnLimits): { start: number; partial: boolean } {
+function turnHead(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, before: number, { turns, maxBytes }: TurnLimits): { start: number; partial: boolean } {
   const results = store.events.resultIdsBefore(chatId, before, turns + 1);
   // 境目の候補（新しい順）: results[k] の直後から読むと、k 件の作業の終わり（と、その後ろの作業中の分）が入る
   const heads = results.map((id) => id + 1);
@@ -73,7 +73,7 @@ function turnHead(store: Store, chatId: number, before: number, { turns, maxByte
 }
 
 /** id を含むターンの頭（その記録の前の作業の終わりの直後。なければ最初 = 0） */
-function headOf(store: Store, chatId: number, id: number): number {
+function headOf(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, id: number): number {
   const prev = store.events.resultIdsBefore(chatId, id, 1)[0];
   return prev === undefined ? 0 : prev + 1;
 }
@@ -82,7 +82,7 @@ function headOf(store: Store, chatId: number, id: number): number {
  * 末尾の始まり（ターンの頭）。最新 turns ターン（大きさの上限で減らす）を読み、最新のメインエージェントの返答・未読の記録が前にあれば、そのターンの頭まで広げる
  * （未読の判定・子チャットの帯の引用が末尾だけで済むように）。広げたあとも 1 ターンが大きすぎれば終わりから上限まで（headPartial）
  */
-export function tailStart(store: Store, chatId: number, limits: TurnLimits = { turns: CHAT_TAIL_TURNS, maxBytes: CHAT_TAIL_MAX_BYTES }): { start: number; headPartial: boolean } {
+export function tailStart(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, limits: TurnLimits = { turns: CHAT_TAIL_TURNS, maxBytes: CHAT_TAIL_MAX_BYTES }): { start: number; headPartial: boolean } {
   const head = turnHead(store, chatId, END, limits);
   let start = head.start;
   if (head.partial) return { start, headPartial: true };
@@ -98,29 +98,29 @@ export function tailStart(store: Store, chatId: number, limits: TurnLimits = { t
  * 末尾より前の記録の索引（覆う索引だけから軽い形を読んで JS の selectIndexIds で選び、選んだ行だけを読んで軽くする）。
  * 読んだ軽い形と選んだ行はチャットごとに覚え、次からは増えた分だけを読む（chatIndexCache.ts）
  */
-export function buildIndex(store: Store, chatId: number, start: number, ctx: IndexContext): ChatEvent[] {
+export function buildIndex(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, start: number, ctx: IndexContext): ChatEvent[] {
   return indexCacheOf(store).index(chatId, start, ctx);
 }
 
 /** before の手前を turns ターン（tailStart と同じ決まり） */
-export function pageBefore(store: Store, chatId: number, before: number, turns: number): ChatEventPage {
+export function pageBefore(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, before: number, turns: number): ChatEventPage {
   const { start, partial } = turnHead(store, chatId, before, { turns, maxBytes: CHAT_TAIL_MAX_BYTES });
   const events = store.events.range(chatId, start, before);
   return { events, has_earlier: events.length > 0 ? store.events.hasBefore(chatId, events[0].id) : store.events.hasBefore(chatId, before), has_later: false, head_partial: partial };
 }
 
 /** since 以上 before 未満をすべて（頭のターンを埋める・遠くない記録まで末尾を伸ばす） */
-export function pageSince(store: Store, chatId: number, before: number, since: number): ChatEventPage {
+export function pageSince(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, before: number, since: number): ChatEventPage {
   const events = store.events.range(chatId, since, before);
   const first = events[0]?.id ?? since;
   return { events, has_earlier: store.events.hasBefore(chatId, first), has_later: false, head_partial: false };
 }
 
 /** 終わり（end を含む）から後ろ、until の手前までにまだ記録があるか */
-const laterThan = (store: Store, chatId: number, last: number, until: number) => store.events.hasBetween(chatId, last + 1, until);
+const laterThan = (store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, last: number, until: number) => store.events.hasBetween(chatId, last + 1, until);
 
 /** around を含むターンから前へ 3 ターン、合わせて turns ターン（遠い所へ移るときの途中の一部分。until の手前まで） */
-export function pageAround(store: Store, chatId: number, around: number, turns: number, until = END): ChatEventPage {
+export function pageAround(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, around: number, turns: number, until = END): ChatEventPage {
   const before = Math.min(3, turns - 1);
   const prev = store.events.resultIdsBefore(chatId, around, before + 1);
   const start = prev.length > before ? prev[before] + 1 : 0;
@@ -137,7 +137,7 @@ export function pageAround(store: Store, chatId: number, around: number, turns: 
 }
 
 /** after より後ろを turns ターン（until の手前まで。途中の一部分を下へ伸ばす） */
-export function pageAfter(store: Store, chatId: number, after: number, turns: number, until = END): ChatEventPage {
+export function pageAfter(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, after: number, turns: number, until = END): ChatEventPage {
   const ends = store.events.resultIdsFrom(chatId, after + 1, until, turns);
   const end = ends.length === turns ? ends[ends.length - 1] + 1 : until;
   const events = store.events.range(chatId, after + 1, end);
@@ -146,7 +146,7 @@ export function pageAfter(store: Store, chatId: number, after: number, turns: nu
 }
 
 /** サブエージェントの中（parent が parents のもの・ids の記録。before 未満）。覆う索引で選び、選んだ行だけを読む */
-export function scopeEvents(store: Store, chatId: number, parents: readonly string[], ids: readonly number[], before: number): ChatEvent[] {
+export function scopeEvents(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, chatId: number, parents: readonly string[], ids: readonly number[], before: number): ChatEvent[] {
   const inScope = new Set(parents);
   const wanted = new Set(ids);
   const picked = store.events

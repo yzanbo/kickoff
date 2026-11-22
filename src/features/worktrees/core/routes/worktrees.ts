@@ -7,7 +7,7 @@ import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { addWorktree, listWorktrees, worktreeRemovalInfo } from "@/foundation/core/workplace/worktrees";
 import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
 import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
@@ -24,7 +24,7 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
 
 /** 受け口が使うもの */
 interface WorktreeRouteDeps {
-  store: Pick<WorktreeStores, "worktreeColors"> & Pick<Store, "projects" | "chats" | "groups">;
+  store: Pick<WorktreeStores, "worktreeColors"> & Pick<ChatStoreDeps, "projects" | "chats" | "groups">;
   /** ワークツリーの DB から作った接続（database が登録する。名前だけ） */
   connectionsIn: (folder: string) => { id: number; name: string }[];
   runner: ChatRunPort;

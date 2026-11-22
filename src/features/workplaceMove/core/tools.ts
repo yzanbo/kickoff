@@ -2,7 +2,7 @@
 // 移したあと最初の実行に添える移動の知らせ（contributor "workplaceMove"・turnContext の order 20）
 import { z } from "zod";
 import { AI_MOVE_WORKPLACE_TOOL, AI_WORKPLACE_TARGETS } from "@shared/workplaceMove/aiWorkplace";
-import type { Store, TurnContributor } from "@/features/chat/core/index";
+import type { TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import { carryApprovalText, createAiWorkplaceTools, type AiWorkplaceDeps } from "./aiWorkplace";
 import { workplaceMoveContext } from "./move";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
@@ -24,7 +24,7 @@ export function workplaceToolGroup(deps: AiWorkplaceDeps): AiToolGroup {
 }
 
 /** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがあるときだけ。家系のあと・一度だけ添える知らせの前） */
-export function workplaceMoveTurnParts(store: Pick<Store, "events">): TurnContributor {
+export function workplaceMoveTurnParts(store: Pick<ChatStoreDeps, "events">): TurnContributor {
   return { name: "workplaceMove", order: 20, contribute: ({ chat }) => ({ turnContext: workplaceMoveContext(store.events.pendingWorkplaceMove(chat.id)) }) };
 }
 

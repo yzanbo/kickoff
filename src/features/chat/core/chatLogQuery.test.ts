@@ -3,7 +3,7 @@ import { test } from "vitest";
 import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { indexOfEvents, metaOfEvent } from "@shared/chat/chatIndex";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { testStore } from "@/app/core/testing/testStore";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "./chatLogQuery";
 
@@ -20,10 +20,10 @@ function seeded(events: readonly ChatEvent[]) {
   return { store, chatId: chat.id, saved: store.events.list(chat.id) };
 }
 
-const add = (store: Store, chatId: number, data: ChatEventData) => store.events.add(chatId, data).id;
+const add = (store: ChatStoreDeps, chatId: number, data: ChatEventData) => store.events.add(chatId, data).id;
 
 /** ターン 1 つ（自分の発言・返答・ツール・作業の終わり）を足し、作業の終わりの ID を返す */
-function turn(store: Store, chatId: number, n: number, opts: { tell?: boolean; bigBytes?: number } = {}) {
+function turn(store: ChatStoreDeps, chatId: number, n: number, opts: { tell?: boolean; bigBytes?: number } = {}) {
   add(store, chatId, { type: "user", text: `指示 ${n}`, message_uuid: `u${n}` });
   add(store, chatId, { type: "text", text: `返答 ${n}${"あ".repeat(opts.bigBytes ?? 0)}` });
   if (opts.tell) add(store, chatId, { type: "user", text: `作業中に伝えた ${n}`, message_uuid: `t${n}` });

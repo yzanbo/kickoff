@@ -5,12 +5,12 @@ import { workplaceMoveContract } from "@shared/workplaceMove/contract";
 import { implement, type Param } from "@/foundation/core/http/implement";
 import { requireProject } from "@/foundation/core/http/lookups";
 import { branchName } from "@/foundation/core/http/zodParts";
-import { descendantsOf, type ChatRunner, type Store } from "@/features/chat/core/index";
+import { descendantsOf, type ChatRunner, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { createMover } from "./move";
 import { planUserWorkplaceMove, workplaceMoveCheck, type WorkplaceUserMoveDeps } from "./userMove";
 
 export interface WorkplaceMoveRouteDeps extends Pick<WorkplaceUserMoveDeps, "terminals" | "workplace"> {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "projects">;
   runner: Pick<ChatRunner, "requireIdle" | "reservedFolders" | "cancelWorkplaceMove">;
   move: ReturnType<typeof createMover>;
   chatParam: Param<Chat>;

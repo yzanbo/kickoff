@@ -5,7 +5,7 @@ import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { BusEvent } from "@shared/foundation/contract";
 import { AI_NOTIFY_MESSAGE_MAX, AI_NOTIFY_PER_TURN, NOTIFY_USER_VIEW, aiNoticeLine } from "@shared/notifications/tools";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 
 /** 利用者に知らせるツールの使い方（MCP の instructions として AI に渡す） */
 const NOTIFY_INSTRUCTIONS = [
@@ -30,7 +30,7 @@ function notify(d: NotifyDeps, chatId: number, message: string, count: { sent: n
 
 interface NotifyDeps {
   /** チャットと記録の店（chat はあとに作るので、呼ばれたときに引く） */
-  store: () => Pick<Store, "chats" | "events">;
+  store: () => Pick<ChatStoreDeps, "chats" | "events">;
   publish: (event: BusEvent) => void;
 }
 

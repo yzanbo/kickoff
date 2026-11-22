@@ -1,12 +1,12 @@
 // AI のツールが呼ばれるたびに、呼んだチャットと相手のチャットを店から引き直す補助（作業の途中で消された・移ったチャットも次の呼び出しから効く）
 import type { Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 
 /** 呼んだチャットが店にないときの文（どのツールも同じ） */
 const CHAT_GONE = "このチャットが見つかりません（消された可能性があります）";
 
 /** chatId のチャットの AI が呼んだツールの文脈 */
-export function toolChat(chats: Pick<Store["chats"], "get">, chatId: number) {
+export function toolChat(chats: Pick<ChatStoreDeps["chats"], "get">, chatId: number) {
   return {
     /** 呼んだチャット（なければ理由の文で throw） */
     self(): Chat {

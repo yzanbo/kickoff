@@ -3,7 +3,7 @@ import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { aiToolId } from "@shared/foundation/aiToolView";
 import { createDbAiTools, hasAiConnections, type DbAiTools } from "./aiTools";
 import type { DatabaseService } from "./service";
-import { lineageOf, toolChat, type Store } from "@/features/chat/core/index";
+import { lineageOf, toolChat, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { BusEvent } from "@shared/foundation/contract";
 
 /** このツールの使い方（MCP の instructions として AI に渡す） */
@@ -21,7 +21,7 @@ const INSTRUCTIONS = [
  * 1 回の実行に渡す、プロジェクトの DB のツール（kickoff_db。AI に見せる接続があるプロジェクトだけ）。どれも読むだけで聞かずに使わせる
  * （「承認して見せる」の承認と「見せない」の断りはツールの中で行うので、権限モードにかかわらず同じに効く）
  */
-export function dbToolGroup(databases: DatabaseService, { projects, chats }: Pick<Store, "projects" | "chats">): AiToolGroup {
+export function dbToolGroup(databases: DatabaseService, { projects, chats }: Pick<ChatStoreDeps, "projects" | "chats">): AiToolGroup {
   return {
     server: "kickoff_db",
     order: 0,
@@ -104,7 +104,7 @@ const SQL_MAX = 100_000;
  * SQL のタブに SQL を入れて開くツールの組（kickoff_chat の開く組。chat の place の使い方（44）の次 = 45）。開く・入れるだけで流さないので聞かずに頼む
  * （権限モード・Auto mode によらず承認カードを出さない）。確かめてから SSE の open_view で頼む（画面が開いたかは待たない）。接続は呼ぶたびに引き直す
  */
-export function openSqlToolGroup(d: { store: Store; dbConnectionsOf: (projectId: number) => { id: number; name: string; ai_access: string }[]; publish: (event: BusEvent) => void }): AiToolGroup {
+export function openSqlToolGroup(d: { store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "groups" | "snippets">; dbConnectionsOf: (projectId: number) => { id: number; name: string; ai_access: string }[]; publish: (event: BusEvent) => void }): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 45,

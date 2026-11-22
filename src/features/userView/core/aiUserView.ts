@@ -1,7 +1,7 @@
 // チャットの AI が利用者の見ている画面を読む（kickoff_chat の get_user_view の中身。プロバイダーに依らない）。
 // 読むのは、このチャットを開いているウィンドウ（なければ最後に前に出したウィンドウ）のいまの様子と、このチャットの最後の発言を送ったときの様子。
 // ほかのプロジェクトを見ていれば中身は返さない。読むだけなので聞かずに返す
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { userViewText } from "./format";
 import type { UserViewRegistry } from "./registry";
 
@@ -10,7 +10,7 @@ export interface AiUserViewTools {
   read(): string;
 }
 
-export function createAiUserViewTools(deps: { store: Store; userViews: UserViewRegistry; now?: () => number }, chatId: number): AiUserViewTools {
+export function createAiUserViewTools(deps: { store: Pick<ChatStoreDeps, "chats" | "settings" | "projects">; userViews: UserViewRegistry; now?: () => number }, chatId: number): AiUserViewTools {
   const { store, userViews } = deps;
   return {
     read() {

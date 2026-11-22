@@ -1,6 +1,6 @@
 // kickoff_chat の利用者が見ているものを読むツール（get_user_view。order 110）。中身は aiUserView.ts、ここは引数の形と使い方だけ
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { createAiUserViewTools } from "./aiUserView";
 import type { UserViewRegistry } from "./registry";
 
@@ -11,7 +11,7 @@ const USER_VIEW_INSTRUCTIONS = [
 ];
 
 /** 利用者が見ているものを読むツールの組（聞かずに返す。どのチャットにも出す） */
-export function userViewToolGroup(deps: { store: Store; userViews: UserViewRegistry }): AiToolGroup {
+export function userViewToolGroup(deps: { store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">; userViews: UserViewRegistry }): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 110,

@@ -1,6 +1,6 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { selectIndexIds, slimIndexEvent, type ChatEventMeta, type IndexContext, type IndexKeep } from "@shared/chat/chatIndex";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 
 /** 索引を覚えておくチャットの数（最後に読んだ順。記録の多いチャットは軽い形だけで数 MB になるので、少しだけ） */
 const INDEX_CACHE_CHATS = 6;
@@ -21,13 +21,13 @@ interface Entry {
  * 覆う索引の全件（記録を 10 倍にしたチャットで 8 万行・約 100ms）と選んだ行（約 40ms）を読み直さない）。
  * 記録は後ろに足すだけで ID を使い回さないので、末尾の始まりが後ろへ動いたら増えた分の軽い形だけを読み足し、選び直して、まだ持っていない行だけを読む
  * （選ぶ決まりは前後をまたぐ（parent ごとの最後など）ので、選ぶのは毎回すべての軽い形から。選ぶだけなら 10ms ほど）。
- * 巻き戻し・セッションの付け替え・チャットの削除（Store の logRevisions）で、そのチャットの覚えを捨てる
+ * 巻き戻し・セッションの付け替え・チャットの削除（Pick<ChatStoreDeps, "chats" | "events" | "logRevisions" | "projects"> の logRevisions）で、そのチャットの覚えを捨てる
  */
 export class ChatIndexCache {
   private readonly entries = new Map<number, Entry>();
 
   constructor(
-    private readonly store: Store,
+    private readonly store: Pick<ChatStoreDeps, "chats" | "events" | "logRevisions" | "projects">,
     private readonly limit = INDEX_CACHE_CHATS,
   ) {
     store.logRevisions.subscribe((chatId) => this.entries.delete(chatId));
@@ -76,10 +76,10 @@ export class ChatIndexCache {
   }
 }
 
-const caches = new WeakMap<Store, ChatIndexCache>();
+const caches = new WeakMap<Pick<ChatStoreDeps, "chats" | "events" | "logRevisions" | "projects">, ChatIndexCache>();
 
-/** その DB の索引の覚え（Store ごとに 1 つ。テストで DB を作り直せば覚えも別） */
-export function indexCacheOf(store: Store): ChatIndexCache {
+/** その DB の索引の覚え（Pick<ChatStoreDeps, "chats" | "events" | "logRevisions" | "projects"> ごとに 1 つ。テストで DB を作り直せば覚えも別） */
+export function indexCacheOf(store: Pick<ChatStoreDeps, "chats" | "events" | "logRevisions" | "projects">): ChatIndexCache {
   let cache = caches.get(store);
   if (!cache) caches.set(store, (cache = new ChatIndexCache(store)));
   return cache;

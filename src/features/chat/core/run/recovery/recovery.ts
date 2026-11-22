@@ -1,6 +1,6 @@
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ChatRuns } from "@/features/chat/core/run/chatRuns";
 import type { Effect, RunEvent, StoppedAgent, WaitFor } from "@/features/chat/core/run/machine/types";
 import { resumeFailedOf, USAGE_RESUME, type RecoveryReason } from "@/features/chat/core/run/machine/recovery";
@@ -35,7 +35,7 @@ export class ChatRecovery {
 
   constructor(
     private readonly deps: {
-      store: Store;
+      store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects">;
       approvals: ApprovalCenter;
       runs: ChatRuns;
       /** 見張りの時計（枠の戻りを見る時刻も、usageLimit.now を渡さなければこれ） */

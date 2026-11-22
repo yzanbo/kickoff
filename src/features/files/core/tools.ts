@@ -7,7 +7,7 @@ import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/system/paths";
 import type { BusEvent } from "@shared/foundation/contract";
 import { OPEN_PLACE_LABELS } from "@shared/chat/openView";
-import { lineageOf, openPlaceInput, toolChat, workdirOf, type Store } from "@/features/chat/core/index";
+import { lineageOf, openPlaceInput, toolChat, workdirOf, type ChatStoreDeps } from "@/features/chat/core/index";
 
 /**
  * AI が渡したパスを、作業場所からの相対パス（「/」区切り）にする。絶対パスは作業場所の中だけ（リンクを解いた形でも比べる）。外・作業場所そのものは throw
@@ -24,7 +24,7 @@ export function workPathIn(dir: string, given: string): string {
 }
 
 /** 呼んだチャットとプロジェクトと作業場所のフォルダ（git の open_diff も使う） */
-export function chatWorkplace(store: Store, chatId: number) {
+export function chatWorkplace(store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">, chatId: number) {
   const self = toolChat(store.chats, chatId).self();
   const project = store.projects.get(self.project_id);
   if (!project) throw new Error("このチャットのプロジェクトが見つかりません");
@@ -32,7 +32,7 @@ export function chatWorkplace(store: Store, chatId: number) {
 }
 
 /** ファイルを開くツールの組（kickoff_chat の開く組。ノート 40・チャット 41 の次 = 42） */
-export function openFileToolGroup(d: { store: Store; publish: (event: BusEvent) => void }): AiToolGroup {
+export function openFileToolGroup(d: { store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">; publish: (event: BusEvent) => void }): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 42,

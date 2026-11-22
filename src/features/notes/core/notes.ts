@@ -10,7 +10,7 @@ import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { TrashService } from "@/features/trash/core/service";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import { askSummary, canAsk, type AgentProvider } from "@/features/ai/core/index";
 import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFiles";
@@ -32,7 +32,7 @@ const noteFiles = (dir: string): FolderFiles => folderFiles(dir, { outsideMessag
 export const MAX_NOTE_SOURCE_CHARS = 200_000;
 
 interface NoteServiceOptions {
-  store: Pick<Store, "projects" | "settings" | "chats"> & { dbConnections: { remapNotePath(projectId: number, from: string, to: string): void } };
+  store: Pick<ChatStoreDeps, "projects" | "settings" | "chats"> & { dbConnections: { remapNotePath(projectId: number, from: string, to: string): void } };
   /** 設定の notes_dir が null のときの親フォルダ（製品版と開発版で別） */
   defaultDir: string;
   providers: Record<ProviderId, AgentProvider>;

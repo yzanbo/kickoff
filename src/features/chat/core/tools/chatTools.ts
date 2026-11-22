@@ -5,7 +5,7 @@ import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { Bus } from "@/foundation/core/bus";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatAttachments, ChatDetachPort } from "@/features/chat/core/ports";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ChatRemover } from "./aiChatRemove";
 import { familyToolGroup } from "./aiChatEdit";
 import { readToolGroup } from "./read";
@@ -19,7 +19,7 @@ export const CHAT_TOOLS_HEAD = "Kickoff（このチャットを動かしてい�
  * 1 回の実行に渡す、チャットを操作するツールの組（order は使い方の文とツールの並び。どれも聞かずに使わせる）。
  * 中身は作業ごとに作り（1 回の作業の上限はその中で数える）、口がないもの（バス・ターミナル・後始末など）は出さない
  */
-export function chatToolGroups(deps: { store: Store; approvals: ApprovalCenter; bus?: Bus; attachments?: ChatAttachments; detach?: ChatDetachPort; chatRemover?: ChatRemover }): AiToolGroup[] {
+export function chatToolGroups(deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">; approvals: ApprovalCenter; bus?: Bus; attachments?: ChatAttachments; detach?: ChatDetachPort; chatRemover?: ChatRemover }): AiToolGroup[] {
   const { store } = deps;
   return [
     // 同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（孫チャット・子チャットを作らせない設定のときも出す）

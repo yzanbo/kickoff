@@ -8,7 +8,7 @@ import { childChatSchema, handoffSchema, subagentChildSchema } from "@/foundatio
 import type { ChatDetachBody } from "@shared/childChats/types";
 import type { AgentProvider } from "@/features/ai/core/index";
 import type { UploadStore } from "@/features/attachments/core/index";
-import { workdirOf, type ChatRunPort, type Store } from "@/features/chat/core/index";
+import { workdirOf, type ChatRunPort, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { ProviderId } from "@shared/settings/types";
 import { startChildChat } from "./children";
 import { detachChat } from "./detach";
@@ -23,7 +23,7 @@ const chatDetachSchema = z.object({
 }) satisfies z.ZodType<ChatDetachBody>;
 
 export interface ChildChatRouteDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">;
   runner: ChatRunPort;
   providers: Record<ProviderId, AgentProvider>;
   uploads: UploadStore;

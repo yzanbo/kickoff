@@ -11,7 +11,7 @@ import type { StartChatInput } from "@/features/chat/core/input";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "@/features/chat/core/ports";
 import type { TurnContributor } from "@/features/chat/core/run/turn/contributor";
 import type { AgentProvider, ProviderKeyVault, UsageMonitor } from "@/features/ai/core/index";
@@ -32,7 +32,7 @@ import { compactPromptFor } from "@shared/chat/prompts";
 export interface RunnerDeps {
   /** 時計（省けば本物。作業を始めた時刻・書き直しの持ち時間・行の時刻） */
   clock?: Clock;
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "outbox" | "settings" | "projects" | "groups">;
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
   /** 添付の口（保存先・送る文に添付のパスを書き添える。attachments が実装する。なければ添えない） */

@@ -2,7 +2,7 @@
 // 待っているソケット・プロセスの表・作業フォルダは OS の口（HostPlatform）から受け取り、テストでは probe を差し替える
 import path from "node:path";
 import type { PortProcess } from "@shared/ports/types";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreeStores } from "@/features/worktrees/core/index";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { Conflict, NotFound } from "@/foundation/core/errors";
@@ -15,7 +15,7 @@ const STOP_WAIT_MS = 5_000;
 const STOP_POLL_MS = 200;
 
 interface Options {
-  store: Pick<Store, "projects"> & Pick<WorktreeStores, "worktreeEnvs">;
+  store: Pick<ChatStoreDeps, "projects"> & Pick<WorktreeStores, "worktreeEnvs">;
   probe: ProcessProbe;
   /** 自分（Kickoff）の pid。自分と祖先は一覧に出さず、止めさせない */
   selfPid?: number;

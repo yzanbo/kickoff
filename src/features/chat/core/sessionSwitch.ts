@@ -3,7 +3,7 @@
 // 圧縮した作業が終わったら、直近 3 区切りだけを写した新しいセッションに乗り換え、古い記録は Kickoff のゴミ箱（3 日）へ入れる。
 // 画面に出る会話（DB の記録）はすべて残る。残した区切りより前の発言へは、巻き戻し・「ファイルを戻す」ができなくなる
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
 /** 古い記録をゴミ箱へ入れる口（ほかの Kickoff が使っていれば入れない。index.ts が作る） */
@@ -14,7 +14,7 @@ export type SessionTrash = (sessionId: string, file: string, ctx: { projectId: n
  * （圧縮していない・切るものがない・プロバイダーが対応していなければ null）。古い記録は、ほかのチャットも使っていなければゴミ箱へ
  */
 export async function switchAfterCompact(
-  deps: { store: Store; provider: AgentProvider; trash?: SessionTrash },
+  deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects">; provider: AgentProvider; trash?: SessionTrash },
   chatId: number,
   cwd: string,
   since: number,
@@ -35,7 +35,7 @@ export async function switchAfterCompact(
  * チャットのセッションを、写して作った新しいセッション（made）に乗り換える（記録のセッションも付け替える。長いチャットの乗り換え・作業場所の移動）。
  * 元の記録は、分岐したチャットなどほかのチャットがまだ指していなければゴミ箱へ（返すのはその待ち。label はゴミ箱の行の「〜の」のあと）
  */
-export function replaceSession(deps: { store: Store; trash?: SessionTrash }, chat: Chat, made: { sessionId: string; previousFile: string }, label: string): Promise<void> {
+export function replaceSession(deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects">; trash?: SessionTrash }, chat: Chat, made: { sessionId: string; previousFile: string }, label: string): Promise<void> {
   const { store } = deps;
   const old = chat.session_id;
   if (old) store.events.remapSession(chat.id, old, made.sessionId);

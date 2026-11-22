@@ -9,7 +9,7 @@ import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/sys
 import type { BusEvent } from "@shared/foundation/contract";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { OPEN_PLACE_LABELS } from "@shared/chat/openView";
-import { lineageOf, openPlaceInput, toolChat, type Store } from "@/features/chat/core/index";
+import { lineageOf, openPlaceInput, toolChat, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { NoteService } from "./notes";
 
 /**
@@ -30,7 +30,7 @@ export function notePathIn(dir: string, given: string): string {
 
 interface NoteToolDeps {
   /** チャットの店（chat はノートより先に作る） */
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">;
   notes: Pick<NoteService, "dirOf" | "move">;
   /** 画面に頼む（SSE） */
   publish: (event: BusEvent) => void;

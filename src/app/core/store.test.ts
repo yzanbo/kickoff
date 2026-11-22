@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { testStore } from "./testing/testStore";
 import type { BusEvent } from "@shared/foundation/contract";
 
@@ -157,7 +157,7 @@ test("プロジェクトの並び順: 作った順に付き、並べ替えられ
 });
 
 /** チャットを 1 つ作る（テストの既定: 要件定義・完了） */
-function mkChat(store: Store, projectId: number, title: string, extra: Partial<Parameters<Store["chats"]["create"]>[0]> = {}) {
+function mkChat(store: ChatStoreDeps, projectId: number, title: string, extra: Partial<Parameters<ChatStoreDeps["chats"]["create"]>[0]> = {}) {
   return store.chats.create({ project_id: projectId, provider: "claude", title, status: "completed", model: null, ...extra });
 }
 

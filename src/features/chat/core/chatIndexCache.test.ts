@@ -3,19 +3,19 @@ import { test, vi } from "vitest";
 import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { indexOfEvents, type IndexContext } from "@shared/chat/chatIndex";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { testStore } from "@/app/core/testing/testStore";
 import { ChatIndexCache } from "./chatIndexCache";
 
 const NO_CTX: IndexContext = { approvalCallIds: [], backgroundCallIds: [] };
 
-function newChat(store: Store, title = "長い") {
+function newChat(store: ChatStoreDeps, title = "長い") {
   const project = store.projects.list()[0] ?? store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   return store.chats.create({ project_id: project.id, provider: "claude", title, status: "completed", model: null }).id;
 }
 
 /** 記録を足す（ほかのチャットの記録も間に挟み、ID が続かない形にする） */
-function append(store: Store, chatId: number, other: number, events: readonly ChatEvent[]) {
+function append(store: ChatStoreDeps, chatId: number, other: number, events: readonly ChatEvent[]) {
   events.forEach((e, i) => {
     store.events.add(chatId, { type: e.type, ...e.data } as ChatEventData);
     if (i % 4 === 0) store.events.add(other, { type: "notice", message: "ほかのチャット" });
@@ -23,7 +23,7 @@ function append(store: Store, chatId: number, other: number, events: readonly Ch
 }
 
 /** 全件を読んで決まりに流したもの（覚えのない答え） */
-const reference = (store: Store, chatId: number, start: number, ctx: IndexContext) => indexOfEvents(store.events.list(chatId), start, ctx);
+const reference = (store: ChatStoreDeps, chatId: number, start: number, ctx: IndexContext) => indexOfEvents(store.events.list(chatId), start, ctx);
 
 test("覚えた索引は、始まりが前後に動いても・外の ID が変わっても・記録が増えても、全件から作ったものと同じ", () => {
   const store = testStore(":memory:");

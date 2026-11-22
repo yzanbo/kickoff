@@ -3,7 +3,7 @@
 import { defineAiTool, type AiToolDef, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { VISUAL_CODE_MAX, VISUAL_GUIDE_TOPICS, VISUAL_KINDS, VISUAL_TITLE_MAX } from "@shared/visuals/aiVisual";
-import type { PromptSection, Store, TurnContributor } from "@/features/chat/core/index";
+import type { PromptSection, TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import { createAiVisualTools, type AiVisualTools } from "./aiVisual";
 
 /** 図のツールの使い方（MCP の instructions として AI に渡す） */
@@ -30,7 +30,7 @@ export function visualTurnParts(): TurnContributor {
 }
 
 /** 返答の中に図（SVG・HTML・Mermaid）を描くツールの組（画面とスマホが記録から描く。どのチャットにも出す） */
-export function visualToolGroup(store: Store): AiToolGroup {
+export function visualToolGroup(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "snippets">): AiToolGroup {
   return { server: "kickoff_chat", order: 80, instructions: VISUAL_INSTRUCTIONS, open: ({ chatId }) => visualTools(createAiVisualTools(store, chatId)) };
 }
 

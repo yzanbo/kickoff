@@ -31,7 +31,7 @@ import { turnRoutes } from "./routes/turns";
 import { databaseStats } from "./db/stats";
 import type { DatabaseStats } from "@shared/chat/databaseStats";
 import type { Chat } from "@shared/chat/types";
-import { createChatStores, type Store } from "./stores";
+import { createChatStores, type ChatStoreDeps } from "./stores";
 import { descendantsOf } from "./family";
 import type { GroupsApi } from "@/features/groups/core/index";
 
@@ -49,7 +49,7 @@ export { workdirOf } from "./workdir";
 export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";
 export type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "./ports";
-export type { ChatStores, Store } from "./stores";
+export type { ChatStoreDeps, ChatStores } from "./stores";
 export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
@@ -63,7 +63,7 @@ export interface ChatDeps {
   projects: ProjectsApi;
   groups: GroupsApi;
   /** 定型文に足す（AI の add_snippet。上の snippets の店を組み立てが渡す） */
-  snippets: Store["snippets"];
+  snippets: ChatStoreDeps["snippets"];
   ai: AiApi;
   /** 添付の口（保存先・送る文と回答に添付のパスを書き添える・消したチャットの添付を消す。attachments が実装する） */
   attachments: ChatAttachments;
@@ -86,7 +86,7 @@ export interface ChatEnv extends Pick<RunnerDeps, "reconnect" | "usageLimit" | "
 
 export interface ChatApi {
   /** chat の店の束（仮の形。上の機能がチャット・記録を読む） */
-  store: Store;
+  store: ChatStoreDeps;
   runner: ChatRunner;
   approvals: ApprovalCenter;
   /** いまの書きかけの返答（チャットの詳細の streaming_text） */
@@ -121,7 +121,7 @@ export interface ChatApi {
 /** チャットの実行（殻 ChatRunner・承認・起動したときの再開の確かめ・削除の予約・自動のアーカイブ・チャットとプロジェクトのゴミ箱の扱い）。エージェントは先に止める */
 export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature<ChatApi> {
   const { bus } = k;
-  const store: Store = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings, deps.providerHandoff.rememberedSessions), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
+  const store: ChatStoreDeps = { ...createChatStores(k.db, (e) => bus.publish(e), k.settings, deps.providerHandoff.rememberedSessions), db: k.db, settings: k.settings, projects: deps.projects.store, groups: deps.groups.store, trash: deps.trash.items, snippets: deps.snippets };
   // グループを消したら、中のチャットをグループなしに戻して知らせる
   deps.groups.useMembers({
     idsIn: (group) => store.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
@@ -231,7 +231,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
 }
 
 /** プロジェクトの口に、チャットの分を登録する（作業中か・ゴミ箱に入れたら作業中の状態を捨てる。本体のフォルダを変えたら作業場所を移すのは workplaceMove） */
-function registerProjectHooks(projects: ProjectsApi, store: Store, runner: ChatRunner): void {
+function registerProjectHooks(projects: ProjectsApi, store: Pick<ChatStoreDeps, "chats">, runner: ChatRunner): void {
   projects.addBusyCheck((projectId) => store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id)));
   // プロジェクトをゴミ箱に入れたら、中のチャット（アーカイブ・子孫も）を同じ行で入れる（戻すと一緒に戻る）
   projects.onTrashed((project, trashId, at) => {

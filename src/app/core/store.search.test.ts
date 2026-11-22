@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { testStore } from "./testing/testStore";
 
 function setup() {
@@ -10,7 +10,7 @@ function setup() {
   const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) =>
     store.events.add(chatId, type === "user" ? { type, text, message_uuid: `u-${text}` } : { type, text }).id;
   /** 見つかった発言の ID（新しい順） */
-  const ids = (query: string, filter?: Parameters<Store["events"]["search"]>[1]) => store.events.search(query, filter).map((h) => h.event_id);
+  const ids = (query: string, filter?: Parameters<ChatStoreDeps["events"]["search"]>[1]) => store.events.search(query, filter).map((h) => h.event_id);
   /** 全文検索の索引が中身（発言の文）と合っているか（合っていなければ例外） */
   const checkIndex = () => store.db.exec("INSERT INTO chat_event_search (chat_event_search) VALUES ('integrity-check')");
   return { store, project, chat, say, ids, checkIndex };

@@ -3,7 +3,7 @@
 // 前からある会話記録（覚えていないもの）は、ターミナルで直接使った Claude Code の記録と見分けられないので触らない（利用者が選ぶ一覧 orphanSessions.ts から片付ける）
 import { systemClock } from "@/foundation/core/clock";
 import type { ProviderId } from "@shared/settings/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
 import type { TrashService } from "@/features/trash/core/service";
@@ -12,7 +12,7 @@ import type { TrashService } from "@/features/trash/core/service";
 export const SESSION_SWEEP_GRACE_MS = 60 * 60 * 1000;
 
 export interface SessionSweepDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "projects">;
   providers: Record<ProviderId, AgentProvider>;
   trashBin: Pick<TrashService, "putPath">;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（それは片付けず、覚えからだけ外す） */

@@ -5,7 +5,7 @@ import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
-import type { Store } from "./stores";
+import type { ChatStoreDeps } from "./stores";
 import { descendantsOf } from "./family";
 
 /** 変える項目（省いた項目は変えない。groupId は null のときグループから外す） */
@@ -39,7 +39,7 @@ export type ChatChange = { kind: "title"; from: string; to: string } | { kind: "
 
 /** 決まりが読むもの */
 export interface ChatUpdateDeps {
-  store: Pick<Store, "chats" | "groups">;
+  store: Pick<ChatStoreDeps, "chats" | "groups">;
   /** 作業中なら Conflict で断る（アーカイブ） */
   requireIdle(chatId: number, action: string): void;
 }
@@ -75,7 +75,7 @@ export function planChatUpdate(d: ChatUpdateDeps, target: Chat, patch: ChatPatch
 }
 
 /** 確かめ終えた変更を行う（グループ → 固定 → 名前 → アーカイブの順）。変えたあとのチャットと変えたことを返す */
-export function applyChatUpdate(chats: Store["chats"], plan: ChatUpdatePlan): { chat: Chat; changes: ChatChange[] } {
+export function applyChatUpdate(chats: ChatStoreDeps["chats"], plan: ChatUpdatePlan): { chat: Chat; changes: ChatChange[] } {
   const { target } = plan;
   const changes: ChatChange[] = [];
   if (plan.group) {

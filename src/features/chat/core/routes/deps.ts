@@ -1,6 +1,6 @@
 // チャットのルートが受ける値（createChat が組む。チャットより上の機能の口は、使う形だけを書く）
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AiApi } from "@/features/ai/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
@@ -14,7 +14,7 @@ import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 
 export interface ChatRouteDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">;
   bus: Bus;
   /** いまの書きかけの返答（chat の段 chatDeltaStage が持つ。チャットの詳細の streaming_text） */
   streamingText(chatId: number): string | null;

@@ -5,7 +5,7 @@ import type { Attachment, Chat, ChatOptions } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { Notify } from "@/foundation/core/db/common";
 import { tx } from "@/foundation/core/db/tx";
-import type { ChatStores, Store } from "@/features/chat/core/index";
+import type { ChatStores, ChatStoreDeps } from "@/features/chat/core/index";
 import { handoffBlocksSwitch } from "./db/handoffs";
 import type { ProviderHandoffStores } from "./providerHandoffs";
 
@@ -147,4 +147,4 @@ export function createProviderSwitchStore(db: DatabaseSync, onChange: Notify, s:
 export type ProviderSwitchStore = ReturnType<typeof createProviderSwitchStore>;
 
 /** 切り替えの手順が読み書きする店（chat の店の束・引き継ぎの店・切り替えのトランザクション） */
-export type SwitchStore = Store & ProviderHandoffStores & { providerSwitch: ProviderSwitchStore };
+export type SwitchStore = Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects"> & ProviderHandoffStores & { providerSwitch: ProviderSwitchStore };

@@ -1,7 +1,7 @@
 import { type Chat, UNTITLED_CHAT_TITLE } from "@shared/chat/types";
 import type { HandoffBody, HandoffResult } from "@shared/childChats/types";
 import { lastReplyOfTurn } from "@shared/chat/handoff";
-import type { Store, ChatRunPort } from "@/features/chat/core/index";
+import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 
 /**
@@ -10,7 +10,7 @@ import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
  * queue = 親の送信待ちの最後に足す（作業していなくても送らない）。親の発言には出どころ handoff_from を付け、子には渡したことの記録 handoff を残す。
  * 親のないチャット・最後まで終わっていない作業・返答のない作業は 400、親が見つからなければ 404、親がアーカイブ済みなら 409
  */
-export async function handBackToParent(deps: { store: Store; runner: ChatRunPort }, child: Chat, { via, turn_event_id }: HandoffBody): Promise<HandoffResult> {
+export async function handBackToParent(deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "projects">; runner: ChatRunPort }, child: Chat, { via, turn_event_id }: HandoffBody): Promise<HandoffResult> {
   const { store, runner } = deps;
   if (child.parent_chat_id === null) throw new Invalid("親チャットのないチャットからは渡せません");
   const parent = store.chats.get(child.parent_chat_id);

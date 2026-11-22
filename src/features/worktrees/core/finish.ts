@@ -5,7 +5,7 @@ import path from "node:path";
 import type { GitWorktree } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
-import type { ChatRunPort, Store } from "@/features/chat/core/index";
+import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
 import { gitOutput } from "@/foundation/core/workplace/exec";
@@ -62,7 +62,7 @@ interface Inspection extends FinishFacts {
 }
 
 export interface WorktreeFinisherDeps {
-  store: Pick<import("@/features/worktrees/core/db/stores").WorktreeStores, "worktreeEnvs"> & Pick<Store, "projects" | "chats" | "events" | "trash">;
+  store: Pick<import("@/features/worktrees/core/db/stores").WorktreeStores, "worktreeEnvs"> & Pick<ChatStoreDeps, "projects" | "chats" | "events" | "trash">;
   runner: ChatRunPort;
   moveWorkplace: import("@/features/workplaceMove/core/index").WorkplaceMoveApi["move"];
   worktreeEnvs: WorktreeEnvService;

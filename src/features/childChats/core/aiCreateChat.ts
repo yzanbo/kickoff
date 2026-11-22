@@ -15,7 +15,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
-import { depthOf, type Store } from "@/features/chat/core/index";
+import { depthOf, type ChatStoreDeps } from "@/features/chat/core/index";
 import { gitOutput } from "@/foundation/core/workplace/exec";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
@@ -69,13 +69,13 @@ export interface AiCreateChatTools {
  * このチャットの AI に、チャットを作るツールを渡すか（設定で止めていない・AI が作った世代の上限に達していない）。
  * 孫チャットも、兄弟・親のないチャットは作れるので渡す（子チャットは呼んだときに断る）
  */
-export function canCreateChat(store: Store, chat: Chat): boolean {
+export function canCreateChat(store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">, chat: Chat): boolean {
   return store.settings.get().ai_create_chat !== "off" && store.chats.aiGeneration(chat.id) < AI_CHAT_MAX_GENERATION;
 }
 
 /** チャットを作るのに使うもの（Runner が渡す） */
 export interface AiCreateChatDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "settings" | "projects" | "groups">;
   /** 作る側のチャット（from）の会話を写す元にして、チャットを作って動かす（children.ts の startChildChat） */
   startChat: (from: Chat, input: ChildChatInput) => Promise<StartedChild>;
   /** ワークツリーを作る人（作業場所の土台。worktrees が登録し、ポートの帯と組の名前も割り当てる） */

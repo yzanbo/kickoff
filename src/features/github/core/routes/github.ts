@@ -2,7 +2,7 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import type { GitHubCheckoutBody, GitHubCommentBody, GitHubLabelsBody, GitHubMergeBody, GitHubNewIssueBody, GitHubReviewBody, GitHubStateBody, GitHubThreadReplyBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
 import { GITHUB_CHECKOUT_PLACES, GITHUB_CLOSE_REASONS, GITHUB_KINDS, GITHUB_MERGE_METHODS, GITHUB_MINE_FILTERS, GITHUB_REVIEW_EVENTS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubListFilter } from "@shared/github/types";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import type { GitHubService } from "@/features/github/core/service";
 import { githubStatus } from "@/features/github/core/github";
@@ -88,7 +88,7 @@ const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "
  * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
  * 端末には開かない（http/deviceAccess.ts。中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
-export function githubRoutes(app: Hono, { store, github, prWatch }: { store: Pick<Store, "projects" | "chats" | "groups">; github: GitHubService; prWatch: WorktreePrWatch }) {
+export function githubRoutes(app: Hono, { store, github, prWatch }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; github: GitHubService; prWatch: WorktreePrWatch }) {
   const { withProject } = lookups(store);
 
   // gh の状態（設定の「接続」。プロジェクトによらない）

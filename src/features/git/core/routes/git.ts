@@ -6,7 +6,7 @@ import { createPullRequest, pullRequestFor } from "@/features/github/core/github
 import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
 import type { GitBranchAction, GitBranchActionResult } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { Invalid } from "@/foundation/core/errors";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
@@ -24,7 +24,7 @@ async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
 /**
  * PR を作るとき閉じる issue: この作業場所（本体なら worktree_path が null）で作業している、アーカイブしていないチャットが結び付いた、連携先の issue の番号
  */
-function closingIssues(store: Pick<Store, "chats">, project: Project, dir: string, target: GitHubTarget | null): number[] {
+function closingIssues(store: Pick<ChatStoreDeps, "chats">, project: Project, dir: string, target: GitHubTarget | null): number[] {
   if (!target) return [];
   const worktree = dir === project.repo_path ? null : dir;
   return store.chats
@@ -67,7 +67,7 @@ const branchActionSchema = z.discriminatedUnion("action", [
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
  * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
  */
-export function gitRoutes(app: Hono, { store, remoteGit }: { store: Pick<Store, "projects" | "chats" | "groups">; remoteGit: RemoteGit }) {
+export function gitRoutes(app: Hono, { store, remoteGit }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; remoteGit: RemoteGit }) {
   const { withWorkdir } = lookups(store);
 
   app.get("/api/projects/:id/git/status", withWorkdir, async (c) => c.json(await gitStatus(c.var.workdir)));

@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type DockerDbTarget } from "@shared/docker/types";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
 import type { DockerService } from "@/features/docker/core/service";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
@@ -25,7 +25,7 @@ const brewStopBody = z.object({ name: z.string().regex(/^[\w@.+-]{1,200}$/) }) s
 
 /** Docker タブ（端末には開かない = http/deviceAccess.ts。スマホの画面にはタブを出さない） */
 export interface DockerRouteDeps {
-  store: Pick<Store, "projects" | "chats" | "groups">;
+  store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">;
   docker: DockerService;
   bus: Bus;
   /** プロジェクトの DB の接続（「DB で開く」で同じ DB の接続を探す。組み立てが database の店を渡す） */

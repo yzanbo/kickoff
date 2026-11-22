@@ -4,7 +4,7 @@ import { z } from "zod";
 import { DB_AI_ACCESSES, DB_ENVIRONMENT_DEFAULTS, DB_WRITE_CHECKS, DB_CONNECTION_NAME_MAX, DB_ENGINES, DB_ENVIRONMENTS, DB_EDITS_MAX, DB_ER_MAX, DB_FILTER_OPS, DB_HISTORY_MAX, type DbConnection, type DbRowFilter } from "@shared/database/types";
 import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbEditsBody, DbEnteredPasswordsBody, DbConnectedIds, DbErBody, DbErLayoutBody, DbImportBody, DbRowsBody, DbFullRowBody, DbSqlAssistBody, DbSqlAssistResult, DbSqlBody, DbSshHostKeyBody, NewDbConnectionBody } from "@shared/foundation/apiTypes";
 import type { Project } from "@shared/projects/types";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DatabaseService } from "@/features/database/core/service";
 import type { DockerService } from "@/features/docker/core/index";
@@ -157,7 +157,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<Store, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<ChatStoreDeps, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */

@@ -2,9 +2,9 @@
 import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { advanceMarks } from "@/features/chat/core/run/machine/marks";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 
-export function recordEvent(store: Pick<Store, "events">, runtime: ChatRun, event: ChatEventData): ChatEvent {
+export function recordEvent(store: Pick<ChatStoreDeps, "events">, runtime: ChatRun, event: ChatEventData): ChatEvent {
   const saved = store.events.add(runtime.chatId, event);
   runtime.marks = advanceMarks(runtime.marks, saved);
   return saved;

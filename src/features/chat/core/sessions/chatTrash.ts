@@ -8,7 +8,7 @@ import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { descendantsOf } from "@/features/chat/core/family";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
@@ -20,14 +20,14 @@ import type { TrashService } from "@/features/trash/core/service";
 
 /** チャットをゴミ箱に入れるときに使うもの（作業中か確かめる・作業中の状態を捨てる） */
 export interface ChatTrashDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">;
   trashBin: Pick<TrashService, "addRecord">;
   runner: { requireIdle(chatId: number, action: string): void; forget(chatId: number): void };
 }
 
 /** 本当に消すときに使うもの */
 export interface ChatPurgeDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">;
   providers: Record<ProviderId, AgentProvider>;
   /** 添付の口（どこからも使われなくなった添付を消す） */
   attachments: Pick<ChatAttachments, "discard">;
@@ -100,7 +100,7 @@ export function trashNoteChatsOnImport(
 }
 
 /** ゴミ箱の行と一緒に入れたチャットを戻す（親がもう消えたものは親のないチャットに） */
-export function restoreChatsOf(store: Store, itemId: string): Chat[] {
+export function restoreChatsOf(store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">, itemId: string): Chat[] {
   return store.chats.untrash(itemId);
 }
 

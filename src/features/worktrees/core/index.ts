@@ -5,7 +5,7 @@ import { createWorktreeFrom, forgetWorktrees } from "@/foundation/core/workplace
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { ChatRunPort, Store, TurnContributor } from "@/features/chat/core/index";
+import type { ChatRunPort, TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
@@ -24,7 +24,7 @@ export interface WorktreesDeps {
   ai: AiApi;
   docker: DockerService;
   /** 作業中か・送信待ち・作業場所を移す・実行に足すもの（PORT）を登録する */
-  chat: { runner: ChatRunPort; store: Store; addTurnContributor(c: TurnContributor): void };
+  chat: { runner: ChatRunPort; store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "groups" | "trash">; addTurnContributor(c: TurnContributor): void };
   /** 片付けたワークツリーのチャットを本体へ移す */
   workplaceMove: Pick<WorkplaceMoveApi, "move">;
 }

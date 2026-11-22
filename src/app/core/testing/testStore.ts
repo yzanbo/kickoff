@@ -7,7 +7,7 @@ import { createSecretStore } from "@/foundation/core/settings/secretStore";
 import { openAppSettings } from "@/foundation/core/settings/settingsStore";
 import { ALL_SETTINGS } from "@/app/shared/settings";
 import { chatTitlesOf } from "@/features/chat/core/db/chatTitles";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { createChatStores } from "@/features/chat/core/stores";
 import { createDatabaseStores } from "@/features/database/core/index";
 import { createDeviceStore } from "@/features/devices/core/db/devices";
@@ -30,7 +30,7 @@ function openBaseStores(db: DatabaseSync, onChange: Notify): BaseStores {
 }
 
 /** chat の束にない店（土台の DB の ID・秘密の値と、AI の切り替え・端末・DB クライアント・GitHub・ワークツリー・外の画像の店）。店は DB のほかに状態を持たない */
-function extraStores(chat: Store, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {
+function extraStores(chat: ChatStoreDeps, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify) {
   const { db } = chat;
   const handoffs = createProviderHandoffStores(db);
   return {
@@ -48,11 +48,11 @@ function extraStores(chat: Store, base: Pick<BaseStores, "databaseId" | "secrets
 }
 
 /** テストが表を直に見る・データを入れる店（chat の店の束と、ほかの機能の店） */
-export type TestStores = Store & { snippets: SnippetStore } & ReturnType<typeof extraStores>;
+export type TestStores = ChatStoreDeps & { snippets: SnippetStore } & ReturnType<typeof extraStores>;
 
 /** chat の店の束（組み立てた chat のもの）に、ほかの機能の店を足す */
-export function withFeatureStores(store: Store, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify = () => {}): TestStores {
-  return Object.assign(store as Store & { snippets: SnippetStore }, extraStores(store, base, onChange));
+export function withFeatureStores(store: ChatStoreDeps, base: Pick<BaseStores, "databaseId" | "secrets">, onChange: Notify = () => {}): TestStores {
+  return Object.assign(store as ChatStoreDeps & { snippets: SnippetStore }, extraStores(store, base, onChange));
 }
 
 /** 開いた DB に全部の店を開く（土台の設定・秘密の値は渡したもの、省けばここで開く） */
@@ -63,7 +63,7 @@ export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, ba
     idsIn: (group) => chat.chats.list({ projectId: group.project_id, includeArchived: true }).flatMap((c) => (c.group_id === group.id ? [c.id] : [])),
     getChat: chat.chats.get,
   });
-  const store: Store = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds) };
+  const store: ChatStoreDeps = { ...chat, db, settings: base.settings, projects, groups, trash: createTrashStore(db, onChange), snippets: createSnippetStore(db, onChange, projects.trashedIds) };
   return withFeatureStores(store, base, onChange);
 }
 

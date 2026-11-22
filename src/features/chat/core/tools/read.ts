@@ -5,7 +5,7 @@ import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { LIST_PROJECT_CHATS_MAX, READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS } from "@shared/chat/aiRead";
 import { chatName, type Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { ChatAttachments } from "@/features/chat/core/ports";
 import { familyOf } from "@/features/chat/core/family";
@@ -39,7 +39,7 @@ export interface AiChatReadTools {
 }
 
 export interface AiChatReadDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "projects">;
   approvals: ApprovalCenter;
   /** 添付の場所（添付のある発言を読むとき。なければどれも見つからない） */
   attachments?: Pick<ChatAttachments, "locate">;

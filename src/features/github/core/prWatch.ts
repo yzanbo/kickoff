@@ -3,7 +3,7 @@
 import type { GitWorktree, WorktreePrNotice } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { GitHubStores } from "./db/stores";
 import type { BranchPullRequest } from "./github";
 import { runAsGitHubAccount } from "./githubAccount";
@@ -45,7 +45,7 @@ export function noticesFor(
 
 interface WatchOptions {
   /** 自分の表の店（確認を閉じた PR）と、見張るプロジェクト */
-  store: Pick<GitHubStores, "prNotices"> & Pick<Store, "projects">;
+  store: Pick<GitHubStores, "prNotices"> & Pick<ChatStoreDeps, "projects">;
   publish: (event: BusEvent) => void;
   /** ワークツリーの一覧（git worktree list）と、PR の一覧（gh pr list）。テストでは差し替える */
   listWorktrees: (repo: string) => Promise<GitWorktree[]>;

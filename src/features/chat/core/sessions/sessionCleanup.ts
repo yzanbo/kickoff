@@ -4,7 +4,7 @@
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 
 /** チャットが覚えている離れた AI のセッション（providerSwitch の ProviderHandoffPort.sessionsOf） */
@@ -16,7 +16,7 @@ export interface ChatSessions {
   cwds: string[];
 }
 
-export function collectChatSessions(store: Store, chats: Chat[], remembered: RememberedSessions = () => []): ChatSessions {
+export function collectChatSessions(store: Pick<ChatStoreDeps, "chats" | "events" | "db" | "projects" | "trash">, chats: Chat[], remembered: RememberedSessions = () => []): ChatSessions {
   const byProvider = new Map<ProviderId, Set<string>>();
   const cwds = new Set<string>();
   for (const chat of chats) {
@@ -43,7 +43,7 @@ export function collectChatSessions(store: Store, chats: Chat[], remembered: Rem
 
 /** チャットを消したあとで、残ったチャット（とほかの Kickoff のチャット = usedElsewhere）が使っていないセッションの記録を trash で移す（失敗しても削除は止めない。移した数を返す） */
 export async function discardUnusedSessions(
-  store: Store,
+  store: Pick<ChatStoreDeps, "chats" | "events" | "db" | "projects" | "trash">,
   providers: Record<ProviderId, AgentProvider>,
   sessions: ChatSessions,
   trash: (path: string) => Promise<void>,

@@ -8,7 +8,7 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
 
@@ -44,7 +44,7 @@ export interface TerminalDevices {
   get(id: number): { name: string; access: string } | null;
 }
 
-export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<Store, "settings" | "projects" | "chats" | "groups"> & { devices: TerminalDevices }; terminals: TerminalSessions; bus: Bus }) {
+export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<ChatStoreDeps, "settings" | "projects" | "chats" | "groups"> & { devices: TerminalDevices }; terminals: TerminalSessions; bus: Bus }) {
   const { withProject } = lookups(store);
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）

@@ -1,6 +1,6 @@
 import type { Bus, BusStage } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { ProviderHandoffPort } from "@/features/chat/core/ports";
 import { marksFrom } from "@/features/chat/core/run/machine/marks";
 import type { RunEvent } from "@/features/chat/core/run/machine/types";
@@ -21,7 +21,7 @@ export class ChatRuns implements ChatRunLookup {
 
   constructor(
     private readonly deps: {
-      store: Store;
+      store: Pick<ChatStoreDeps, "chats" | "events" | "outbox" | "settings" | "projects">;
       /** AI を替えたあとの引き継ぎ（作業中の様子の provider_handoff。なければ引き継ぎはない） */
       providerHandoff?: Pick<ProviderHandoffPort, "pending">;
       bus?: Bus;

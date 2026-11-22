@@ -3,7 +3,7 @@
 // 日付・大きさ・最初の発言の一覧を出して、利用者が選んだものだけを Kickoff のゴミ箱（3 日）へ入れる
 import type { ProviderId } from "@shared/settings/types";
 import type { OrphanSession } from "@shared/trash/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider, SessionFileInfo } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
 import type { TrashService } from "@/features/trash/core/service";
@@ -13,7 +13,7 @@ import { realPathLoose } from "@/foundation/core/system/paths";
 export interface OrphanSessionDeps {
   /** Kickoff の 1 回だけの問い合わせを動かす一時フォルダ（実体のパス。その作業フォルダの記録に kickoff_ask の印を付ける） */
   askDir?: string | null;
-  store: Store;
+  store: Pick<ChatStoreDeps, "events" | "agentSessions" | "db" | "trash">;
   providers: Record<ProviderId, AgentProvider>;
   trashBin: Pick<TrashService, "putPath">;
   sessionsElsewhere: SessionsUsedElsewhere;

@@ -1,4 +1,4 @@
-// チャットの店の束（ChatStores）と、chat が読むほかの機能の店の仮の入れ物（Store）。createChat が作り、chat.api.store で上の機能に出す
+// チャットの店（ChatStores）と、chat が使う店の組 ChatStoreDeps（自分の店・下の機能の店・土台の口・上の機能の口）。createChat が組み、chat.api.store で上の機能に出す
 import type { DatabaseSync } from "node:sqlite";
 import type { Notify } from "@/foundation/core/db/common";
 import type { Kernel } from "@/foundation/core/kernel";
@@ -40,14 +40,14 @@ interface ChatSnippets {
 }
 
 /**
- * chat の店の束（仮の形）: chat の店と、chat が読むほかの機能の店（下の projects・groups・trash と上の snippets）・土台の DB と設定。
- * 使う所を ChatStores と各機能の口に替えたら消す
+ * chat が使う店の組: 自分の表の店（ChatStores）と、組み立てが渡す下の機能の店（projects・groups・trash の api の店）・土台の口（DB・設定）・
+ * 上の機能の口（snippets）。受ける所は丸ごと受けず、使う店だけを Pick<ChatStoreDeps, …> で受ける
  */
-export type Store = ChatStores & {
+export interface ChatStoreDeps extends ChatStores {
   db: DatabaseSync;
   settings: Kernel["settings"];
   projects: ProjectStore;
   groups: GroupStore;
   trash: TrashStore;
   snippets: ChatSnippets;
-};
+}

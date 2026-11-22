@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { AiWorkplaceTarget } from "@shared/workplaceMove/aiWorkplace";
-import { workdirOf, type Store } from "@/features/chat/core/index";
+import { workdirOf, type ChatStoreDeps } from "@/features/chat/core/index";
 import { carryFiles } from "@/foundation/core/workplace/carry";
 import { listWorktrees, newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { WorkplaceMovePlan } from "./reserve";
@@ -33,7 +33,7 @@ export interface AiWorkplaceTools {
 }
 
 export interface AiWorkplaceDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "projects">;
   /** 移す予約と、片付けの予約（このチャットの片付けを予約しているか・片付けるフォルダ） */
   reservations: { reserve(chatId: number, plan: WorkplaceMovePlan): void; cancel(chatId: number): boolean; finishing(chatId: number): boolean; reservedFolders(): Set<string> };
   isBusy: (chatId: number) => boolean;

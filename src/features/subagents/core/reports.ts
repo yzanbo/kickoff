@@ -1,6 +1,6 @@
 // 親に届かなかったサブエージェントの報告を、次に送る指示に添えて渡す（contributor "subagents" の messageNote。送る・伝える文の後ろに。Node 依存なし）
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
-import type { Store, TurnContributor } from "@/features/chat/core/index";
+import type { TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 
 /** 添える報告 1 件の長さの上限（長すぎれば頭だけにし、続きはサブエージェントに聞き直してもらう） */
 const MAX_REPORT_CHARS = 6000;
@@ -31,7 +31,7 @@ export function undeliveredReportsNote(entries: SubagentEntry[]): string | null 
 }
 
 /** 送る・伝える指示に、親に届かなかった報告を添える（渡したら自分の発言の handover に残るので、次からは返さない） */
-export function subagentReportParts(store: Pick<Store, "events">): TurnContributor {
+export function subagentReportParts(store: Pick<ChatStoreDeps, "events">): TurnContributor {
   return {
     name: "subagents",
     order: 50,

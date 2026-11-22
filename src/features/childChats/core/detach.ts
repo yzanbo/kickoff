@@ -2,7 +2,7 @@
 // 付け替え（別の子チャット・関係のないチャットの下へ置く）はしない。子チャットの AI が覚えているのは元の親（と先祖）の会話なので、
 // 先祖の下までなら「親チャットに渡す」の中身と渡し先の文脈がずれにくい
 import { chatName, type Chat } from "@shared/chat/types";
-import { lineageOf, type ChatDetachPort, type Store } from "@/features/chat/core/index";
+import { lineageOf, type ChatDetachPort, type ChatStoreDeps } from "@/features/chat/core/index";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { requireGroupOf } from "@/features/groups/core/index";
 
@@ -18,7 +18,7 @@ export interface DetachTarget {
  * 外すと、親のどの発言から聞いたか（parent_event_id）と「親と一緒にアーカイブした」印を消し（アーカイブ済みならアーカイブ済みのまま。
  * 親を戻しても一緒には戻らない）、記録にお知らせを残す。子孫は一緒についていく（親子のつながりはそのまま）。外したあとのチャットを返す
  */
-export function detachChat(store: Store, isBusy: (chatId: number) => boolean, chat: Chat, target: DetachTarget): Chat {
+export function detachChat(store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "groups">, isBusy: (chatId: number) => boolean, chat: Chat, target: DetachTarget): Chat {
   if (chat.parent_chat_id === null) throw new Invalid("親のないチャットです（外せるのは子チャットだけです）");
   const parent = store.chats.get(chat.parent_chat_id);
   // 先祖（いちばん上の親から、親の親まで。自分といまの親は除く）
@@ -45,6 +45,6 @@ export function detachChat(store: Store, isBusy: (chatId: number) => boolean, ch
 }
 
 /** chat の口（AI の update_chat の parent_id）に登録する、親から外す中身 */
-export function chatDetachPort(store: Store, isBusy: (chatId: number) => boolean): ChatDetachPort {
+export function chatDetachPort(store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "groups">, isBusy: (chatId: number) => boolean): ChatDetachPort {
   return { detach: (chat, target) => detachChat(store, isBusy, chat, target) };
 }

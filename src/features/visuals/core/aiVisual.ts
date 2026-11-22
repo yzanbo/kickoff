@@ -3,7 +3,7 @@
 // ここは確かめて図の ID を返すだけ。何も変えないので聞かずに使わせる
 import { randomBytes } from "node:crypto";
 import { VISUAL_CODE_MAX, VISUAL_KINDS, VISUAL_TITLE_MAX, isVisualId, visualIdLine, type ShowVisualInput, type UpdateVisualInput, type VisualGuideTopic } from "@shared/visuals/aiVisual";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { visualGuide } from "./visualGuide";
 
 /** 図のツールの中身（AI に返す文。描けなければ理由の文で throw） */
@@ -26,7 +26,7 @@ function checkCode(code: string, title: string | undefined) {
   if (title !== undefined && title.length > VISUAL_TITLE_MAX) throw new Error(`title は ${VISUAL_TITLE_MAX} 文字までです`);
 }
 
-export function createAiVisualTools(store: Store, chatId: number): AiVisualTools {
+export function createAiVisualTools(store: Pick<ChatStoreDeps, "chats" | "events">, chatId: number): AiVisualTools {
   return {
     guide: (topics) => visualGuide(topics),
     show({ kind, code, title }) {

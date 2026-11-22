@@ -6,7 +6,7 @@ import { defineAiTool, type AiToolDef } from "@/foundation/core/aiTools/tool";
 import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/chat/openView";
 import { chatName, type Chat } from "@shared/chat/types";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { familyOf, lineageOf } from "@/features/chat/core/family";
 import { toolChat } from "./context";
 
@@ -20,7 +20,7 @@ const placeText = (place: OpenPlace | undefined, setting: string) => (place ? OP
 export const openPlaceInput = () => z.enum(OPEN_PLACES).optional().describe("side = 右の欄（いちばん上の親チャットの画面）/ window = 別ウィンドウ。利用者が場所を言わなければ省く");
 
 /** chatId のチャットの AI に渡す、家系のチャットを開く・下書きを入れるツール（家系は呼ぶたびに引き直す） */
-export function chatOpenTools({ store, publish }: { store: Store; publish: (event: BusEvent) => void }, chatId: number): { openChat: AiToolDef; addDraft: AiToolDef } {
+export function chatOpenTools({ store, publish }: { store: Pick<ChatStoreDeps, "chats" | "projects">; publish: (event: BusEvent) => void }, chatId: number): { openChat: AiToolDef; addDraft: AiToolDef } {
   const { self: requireSelf } = toolChat(store.chats, chatId);
   /** 同じ家系のチャット（外なら理由の文で throw） */
   const familyMember = (self: Chat, id: number, verb: string) => {

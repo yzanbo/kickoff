@@ -1,7 +1,7 @@
 // 通知の機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { ProjectStore } from "@/features/projects/core/index";
 import type { ChatStatus } from "@shared/chat/types";
 import { NotificationCenter, type DesktopNotify, type PushSender, type PushTargets } from "./center";
@@ -11,7 +11,7 @@ import { ViewingRegistry } from "./viewing";
 
 /** 通知が読む店（chat と devices はあとに作るので、組み立てが呼ばれたときに引く関数を渡す） */
 export interface NotificationsDeps {
-  chatStore: () => Pick<Store, "chats" | "events">;
+  chatStore: () => Pick<ChatStoreDeps, "chats" | "events">;
   devices: () => PushTargets;
   projects: ProjectStore;
 }

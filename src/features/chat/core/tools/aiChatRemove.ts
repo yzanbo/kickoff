@@ -5,7 +5,7 @@
 import type { TurnEndTask } from "@/features/chat/core/turnEnd";
 import { errorMessage } from "@shared/foundation/errors";
 import { chatName, type Chat } from "@shared/chat/types";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { TrashApi } from "@/features/trash/core/index";
 import { toolChat } from "./context";
 import { descendantsOf } from "@/features/chat/core/family";
@@ -18,7 +18,7 @@ export type RemoveAction = "archive" | "delete";
 const ACTION_LABELS: Record<RemoveAction, string> = { archive: "アーカイブ", delete: "削除" };
 
 export interface ChatRemoverDeps {
-  store: Store;
+  store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "settings" | "projects" | "groups" | "trash" | "snippets">;
   /** チャットの実行の殻（作業中か・作業中の状態を捨てる・作業の終わりの予約） */
   runner: { isBusy(chatId: number): boolean; requireIdle(chatId: number, action: string): void; forget(chatId: number): void; reserveAtTurnEnd(chatId: number, task: TurnEndTask): void };
   trashBin: Pick<TrashApi, "addRecord">;

@@ -4,11 +4,11 @@ import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { BusEvent } from "@shared/foundation/contract";
 import { OPEN_PLACE_LABELS } from "@shared/chat/openView";
-import { lineageOf, openPlaceInput, type Store } from "@/features/chat/core/index";
+import { lineageOf, openPlaceInput, type ChatStoreDeps } from "@/features/chat/core/index";
 import { chatWorkplace, workPathIn } from "@/features/files/core/index";
 
 /** 差分を開くツールの組（kickoff_chat の開く組。ファイル 42 の次 = 43。使い方の文はファイルの組が open_file と一緒に書く） */
-export function openDiffToolGroup(d: { store: Store; publish: (event: BusEvent) => void }): AiToolGroup {
+export function openDiffToolGroup(d: { store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">; publish: (event: BusEvent) => void }): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 43,

@@ -1,5 +1,5 @@
 // 移す前に見せるもの: 元の作業場所で動いている内蔵ターミナル（terminal が登録する口）と、移す先で作業中のほかのチャット
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 
 /** 内蔵ターミナルの、名前とコマンド */
 export interface RunningTerminal {
@@ -17,7 +17,7 @@ export interface RunningTerminalsPort {
 export const terminalLabel = (t: RunningTerminal): string => (t.command ? `${t.title}（${t.command}）` : t.title);
 
 /** 移す先（いまあるワークツリーか本体。target が undefined = 新しいワークツリー）で作業中の、ほかのチャットの数 */
-export function busyChatsIn(store: Pick<Store, "chats">, isBusy: (chatId: number) => boolean, projectId: number, selfId: number, target: string | null | undefined): number {
+export function busyChatsIn(store: Pick<ChatStoreDeps, "chats">, isBusy: (chatId: number) => boolean, projectId: number, selfId: number, target: string | null | undefined): number {
   if (target === undefined) return 0;
   return store.chats.list({ projectId }).filter((c) => c.id !== selfId && c.worktree_path === target && isBusy(c.id)).length;
 }

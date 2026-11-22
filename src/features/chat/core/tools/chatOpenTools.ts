@@ -2,14 +2,14 @@
 // 開く組は持ち主ごとに分け、並びの値で前と同じ順に並べる（open_note = notes 40・open_file = files 42・open_diff = git 43・open_sql = database 45）
 import type { AiToolDef, AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { BusEvent } from "@shared/foundation/contract";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { chatOpenTools } from "./open";
 
 /** kickoff_chat の 1 つの組 */
 const openGroup = (order: number, instructions: readonly string[], open: (chatId: number) => AiToolDef[]): AiToolGroup => ({ server: "kickoff_chat", order, instructions, open: ({ chatId }) => open(chatId) });
 
 /** 画面に頼むツールのうち chat の組（聞かずに頼む。画面に頼む口（バス）がなければ出さない） */
-export function chatOpenToolGroups(d: { store: Store; publish: ((event: BusEvent) => void) | null }): AiToolGroup[] {
+export function chatOpenToolGroups(d: { store: Pick<ChatStoreDeps, "chats" | "projects">; publish: ((event: BusEvent) => void) | null }): AiToolGroup[] {
   const { publish } = d;
   if (!publish) return [];
   const family = (chatId: number) => chatOpenTools({ store: d.store, publish }, chatId);

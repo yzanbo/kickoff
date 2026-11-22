@@ -1,6 +1,6 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunner } from "@/features/chat/core/run/runner";
-import type { Store } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { providerFeatureMissing, type FileRewindResult } from "@shared/ai/types";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat, ChatOptionsPatch } from "@shared/chat/types";
@@ -9,7 +9,7 @@ import { lockedBefore } from "@shared/chat/boundaries";
 import { asInvalid, Invalid } from "@/foundation/core/errors";
 import { forkFrom, resumePointBefore, sessionAt } from "./sessionPoints";
 
-type RewindDeps = { store: Store; runner: ChatRunner; providers: Record<ProviderId, AgentProvider> };
+type RewindDeps = { store: Pick<ChatStoreDeps, "chats" | "events" | "projects">; runner: ChatRunner; providers: Record<ProviderId, AgentProvider> };
 
 /** 区切り（作業場所の移動・AI の切り替え）の手前の発言なら断る（会話もファイルも戻せない） */
 function requireUnlocked(events: ChatEvent[], eventId: number, action: "rewind" | "files") {

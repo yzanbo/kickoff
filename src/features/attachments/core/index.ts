@@ -4,7 +4,7 @@ import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import type { TrashApi } from "@/features/trash/core/index";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import { sweepUnusedUploads } from "./attachmentsCleanup";
 import { UploadStore } from "./uploads";
 import { uploadRoutes } from "./routes/uploads";
@@ -30,7 +30,7 @@ export interface AttachmentsApi {
 }
 
 /** 添付の置き場と、添付・ツールの結果の画像の表示 */
-export function createAttachments(k: Kernel, deps: { trash: TrashApi; chatStore: () => Store }, env: AttachmentsEnv): CoreFeature<AttachmentsApi> {
+export function createAttachments(k: Kernel, deps: { trash: TrashApi; chatStore: () => Pick<ChatStoreDeps, "chats" | "events" | "projects" | "groups"> }, env: AttachmentsEnv): CoreFeature<AttachmentsApi> {
   const uploads = new UploadStore(env.dir ?? path.join(k.paths.dataDir, "uploads"));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない）
   deps.trash.addSweepStep(() => sweepUnusedUploads({ store: deps.chatStore(), uploads }));

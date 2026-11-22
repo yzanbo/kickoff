@@ -1,5 +1,5 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
-import { forkFrom, type Store } from "@/features/chat/core/index";
+import { forkFrom, type ChatStoreDeps } from "@/features/chat/core/index";
 import type { Chat } from "@shared/chat/types";
 import type { ProviderId } from "@shared/settings/types";
 import { Invalid } from "@/foundation/core/errors";
@@ -10,7 +10,7 @@ import { lockedBefore } from "@shared/chat/boundaries";
  * その時点までの会話を新しいセッションに写し、新しいチャットにその時点までの記録を写す。元のチャットは変えない。
  * ファイルの変更は戻さない（作業場所は元のチャットと同じ）。分岐できない時点・プロバイダーなら 400
  */
-export async function forkChat(deps: { store: Store; providers: Record<ProviderId, AgentProvider> }, chat: Chat, eventId: number, cwd: string): Promise<Chat> {
+export async function forkChat(deps: { store: Pick<ChatStoreDeps, "chats" | "events" | "projects">; providers: Record<ProviderId, AgentProvider> }, chat: Chat, eventId: number, cwd: string): Promise<Chat> {
   const { store, providers } = deps;
   const events = store.events.list(chat.id);
   const event = events.find((e) => e.id === eventId);

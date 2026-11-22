@@ -4,7 +4,7 @@ import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { familyOrder } from "@shared/chat/family";
 import { chatName, type Chat, type ChatStatus } from "@shared/chat/types";
-import { descendantsOf, lineageOf, type Store } from "@/features/chat/core/index";
+import { descendantsOf, lineageOf, type ChatStoreDeps } from "@/features/chat/core/index";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 /** 系譜の 1 つ（親・祖先のチャット） */
@@ -58,7 +58,7 @@ function excerptOf(event: ChatEvent | null): string | null {
 }
 
 /** チャットの文脈（親の名前は送るたびに引き直すので、あとで名前を変えても次の指示から効く） */
-export function chatContextOf(store: Store, chat: Chat): ChatContext {
+export function chatContextOf(store: Pick<ChatStoreDeps, "chats" | "events" | "projects">, chat: Chat): ChatContext {
   const ancestors = lineageOf(store.chats, chat)
     .slice(0, -1)
     .map((parent): ChatLineageEntry => ({ id: parent.id, title: parent.title, sessionId: parent.session_id }));
@@ -68,13 +68,13 @@ export function chatContextOf(store: Store, chat: Chat): ChatContext {
 }
 
 /** 親の会話で聞いた位置の書き出し（親のものでない記録（親を付け替えたなど）は使わない） */
-function askedFromOf(store: Store, chat: Chat): string | null {
+function askedFromOf(store: Pick<ChatStoreDeps, "chats" | "events" | "projects">, chat: Chat): string | null {
   const askedEvent = chat.parent_event_id !== null ? store.events.get(chat.parent_event_id) : null;
   return askedEvent && askedEvent.chat_id === chat.parent_chat_id ? excerptOf(askedEvent) : null;
 }
 
 /** 子孫を、作った順に、子のすぐ下にその子を並べた一覧にする（アーカイブ済みも含める） */
-function childrenTree(store: Store, chat: Chat): ChatChildEntry[] {
+function childrenTree(store: Pick<ChatStoreDeps, "chats" | "events" | "projects">, chat: Chat): ChatChildEntry[] {
   const depths = new Map([[chat.id, 0]]);
   const out: ChatChildEntry[] = [];
   for (const c of familyOrder(chat, descendantsOf(store.chats, chat.id)).slice(1)) {

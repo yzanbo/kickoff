@@ -4,7 +4,7 @@ import type { ChatStatus } from "@shared/chat/types";
 import type { DevicePush } from "@shared/devices/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Bus } from "@/foundation/core/bus";
-import type { Store } from "@/features/chat/core/index";
+import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Kernel } from "@/foundation/core/kernel";
 import { aiNotice, approvalNotice, chatNotice, ciNotice, type Notice } from "./notices";
 import type { Viewer, ViewingRegistry } from "./viewing";
@@ -37,7 +37,7 @@ export interface PushSender {
 
 interface CenterOptions {
   bus: Bus;
-  store: Pick<Store, "chats" | "projects"> & { settings: Kernel["settings"]; databaseId: string; devices: PushTargets };
+  store: Pick<ChatStoreDeps, "chats" | "projects"> & { settings: Kernel["settings"]; databaseId: string; devices: PushTargets };
   viewing: ViewingRegistry;
   desktop?: DesktopNotify;
   push?: PushSender;
