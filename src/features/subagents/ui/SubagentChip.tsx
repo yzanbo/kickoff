@@ -9,7 +9,7 @@ import { confirm } from "@/foundation/ui/kit/ask";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { storage } from "./storage";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { canPopout } from "@/foundation/ui/navigation/popout";
@@ -55,7 +55,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
     setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）
-  useTicker(open ? 15_000 : 3_600_000);
+  useTicker(open ? TICK_ACTIVITY : null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archivedKeys, saveArchived] = useSetting(storage.settings.archived(chat.id));
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);

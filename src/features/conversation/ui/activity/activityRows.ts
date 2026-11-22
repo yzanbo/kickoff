@@ -14,6 +14,7 @@ import { toolSpan } from "@/features/conversation/ui/tools/toolTimes";
 import { childrenOf, scopeOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
 import type { ActivityFilter } from "@/features/chat/ui";
+import { subagentEvents } from "@/features/subagents/ui";
 
 /** 行の種類（指示・返答・ツールのまとまり・サブエージェントの起動・その終わり・お知らせ・作業の終わり・中の手順が届かないもののいまの動き） */
 type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";
@@ -57,6 +58,10 @@ const firstLine = (text: string): string => text.split("\n").find((line) => line
 const elapsed = (from: string | undefined, to: string | undefined): number | undefined =>
   from && to ? Math.max(0, Date.parse(to) - Date.parse(from)) : undefined;
 
+/** エージェントの呼び名（メインエージェント = null・undefined、サブエージェントは説明。一覧にないものは「サブエージェント」） */
+export const agentName = (tree: SubagentTree, key: string | null | undefined): string =>
+  key === null || key === undefined ? "メインエージェント" : (tree.byKey.get(key)?.description ?? "サブエージェント");
+
 /**
  * メインとすべてのサブエージェントの記録を、時刻の順に 1 本に並べた行にする。それぞれの流れは会話と同じまとめ方（groupEvents）で、
  * 続けてのツールは 1 行（押すと広げる）、自分の指示・返答は 1 行目だけ。サブエージェントは起動の行（起動した側）から始まり、
@@ -68,7 +73,6 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
   const lastResult = events.findLast((e) => e.type === "result");
   const mainFloor = lastResult ? Date.parse(lastResult.created_at) : -Infinity;
   const relays = [...tree.byKey.values()].filter((s) => s.agentId !== undefined);
-  const name = (key: string | undefined) => (key === undefined ? "メインエージェント" : (tree.byKey.get(key)?.description ?? "サブエージェント"));
 
   // 作業の終わりの付け足し（作業時間を出すための始まりの時刻）
   const extras = turnExtrasOf(events);
@@ -83,7 +87,9 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
   // サブエージェントは親のあとに（同じ時刻なら、起動の行が先に来るように）
   const walk = (parent: string | undefined, depth: number) => {
     for (const entry of childrenOf(tree, parent)) {
-      const items = groupEvents(events, scopeOf(entry));
+      // 流れごとの記録だけを索引から取り出して渡す（サブエージェントごとに記録の全体をたどらない。カードと同じ subagentEvents）
+      const scope = scopeOf(entry);
+      const items = groupEvents(subagentEvents(events, events, scope, entry.key, undefined), scope);
       push(items, entry);
       if (entry.status === "running" && items.length === 0 && entry.lastTool && entry.lastActivityAt) {
         // 中の手順が届かない（孫より深い）実行中のもの: 途中経過の最後のツールを、いまの動きとして 1 行
@@ -99,7 +105,7 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
           agent: entry.key,
           at: entry.endedAt,
           durationMs: entry.durationMs ?? elapsed(entry.startedAt, entry.endedAt),
-          text: reported ? `報告 → ${name(entry.parentKey)}${detail === "awaiting" ? "（受け取り待ち）" : ""}` : subagentStatusLabel(entry),
+          text: reported ? `報告 → ${agentName(tree, entry.parentKey)}${detail === "awaiting" ? "（受け取り待ち）" : ""}` : subagentStatusLabel(entry),
           failed: state === "failed",
           ...(entry.endEventId !== undefined ? { eventId: entry.endEventId } : {}),
         });

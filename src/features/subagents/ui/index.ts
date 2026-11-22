@@ -5,6 +5,8 @@ import { storage } from "./storage";
 export const subagentsSettings = { archived: storage.settings.archived } as const;
 
 export { chatSubagents, useChatSubagentsView } from "./selectors";
-export { pathOf } from "./model/subagentTree";
+export { childrenOf, pathOf, type SubagentTree } from "./model/subagentTree";
+export { agentHueStyle } from "./model/agentHues";
 export { SubagentCard } from "./SubagentCard";
 export { SubagentEndNote } from "./SubagentEndNote";
+export { subagentEvents } from "./model/subagentEvents";

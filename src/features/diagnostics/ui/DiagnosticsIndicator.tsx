@@ -26,7 +26,7 @@ export function DiagnosticsIndicator() {
 }
 
 function DiagnosticsMessage({ state }: { state: DiagnosticsState }) {
-  useTicker(state.state === "recording" ? 500 : 3_600_000);
+  useTicker(state.state === "recording" ? 500 : null);
   switch (state.state) {
     case "recording": {
       const left = Math.max(0, Math.ceil((state.endsAt - Date.now()) / 1000));

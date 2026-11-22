@@ -3,7 +3,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/ui/state/stall";
 import { workingLabel } from "./workingLabel";
@@ -35,7 +35,7 @@ export function useWorkingStatus({
   agents: SubagentEntry[];
   busy: boolean;
 }): ReactNode | null {
-  useTicker(busy ? 15_000 : 3_600_000);
+  useTicker(busy ? TICK_ACTIVITY : null);
   if (!busy) return null;
   // 書いている途中の返答が最後に届いた時刻は、描くときにチャットの店から読む（作業中は 15 秒ごとに描き直す）
   const streamedAt = lastStreamedAt();

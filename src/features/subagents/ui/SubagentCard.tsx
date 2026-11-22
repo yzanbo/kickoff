@@ -2,7 +2,7 @@ import { ChevronRight, GitBranch, PanelRight, Reply } from "lucide-react";
 import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
@@ -61,7 +61,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
   const entry = view?.tree.byKey.get(key);
   const running = entry?.status === "running";
   // 実行中は「最後の動き」の表示を進める
-  useTicker(running ? 15_000 : 3_600_000);
+  useTicker(running ? TICK_ACTIVITY : null);
   // 見出しを押したときに右の欄で開くか（設定。右の欄を置けない画面では、いつも流れの中）
   const [openIn] = useSetting(SUBAGENT_OPEN_IN);
   const sideFirst = openIn === "side" && Boolean(nav?.canOpenSide);

@@ -2,13 +2,13 @@ import { WifiOff } from "lucide-react";
 import type { ReconnectState } from "@shared/chat/chatLive";
 import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { api } from "@/foundation/ui/api";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_SECOND, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** 再試行中の文（「接続が切れています。再試行 3/10・あと 8 秒」）。残りの秒数を数える */
 export function RetryLabel({ retry, agents = 0 }: { retry: ApiRetryInfo; agents?: number }) {
-  useTicker(1000);
+  useTicker(TICK_SECOND);
   const left = Math.ceil((new Date(retry.at).getTime() + retry.retry_delay_ms - Date.now()) / 1000);
   return (
     <>

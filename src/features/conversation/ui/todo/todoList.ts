@@ -1,7 +1,7 @@
 // チャットの ToDo（エージェントが TodoWrite / TaskCreate・TaskUpdate で付けた作業の一覧）
 import type { ChatEvent } from "@shared/chat/chatEvent";
+import { todoStatusOf, type TodoStatus } from "@shared/chat/todoStatus";
 
-export type TodoStatus = "pending" | "in_progress" | "completed";
 
 export interface TodoItem {
   key: string;
@@ -34,13 +34,8 @@ export interface TodoList {
   history: TodoGroup[];
 }
 
-const asStatus = (value: unknown): TodoStatus => (value === "in_progress" || value === "completed" ? value : "pending");
-
 /** 未完了のまま、付けた・変えた作業のあと、この回数の作業で触られていなければ「前の作業から残っているもの」にする */
 const STALE_AFTER_RESULTS = 2;
-
-/** いまの ToDo（collectTodoList のいまの作業だけ） */
-export const collectTodos = (events: ChatEvent[]): TodoItem[] => collectTodoList(events).items;
 
 /**
  * メインエージェントのツールの呼び出しから ToDo を組み立てる。
@@ -113,7 +108,7 @@ export function collectTodoList(events: readonly ChatEvent[]): TodoList {
       const previous = [...written];
       written = todos.map((t) => {
         const content = String(t.content ?? "");
-        const status = asStatus(t.status);
+        const status = todoStatusOf(t.status);
         // 前の一覧の同じ文のものを引き継ぐ（付けた指示・最後に変えた時を保つ）
         const index = previous.findIndex((p) => p.content === content);
         const prev = index === -1 ? undefined : previous.splice(index, 1)[0];
@@ -144,7 +139,7 @@ export function collectTodoList(events: readonly ChatEvent[]): TodoList {
           ...task,
           ...(typeof input.subject === "string" ? { content: input.subject } : {}),
           ...(typeof input.activeForm === "string" ? { activeForm: input.activeForm } : {}),
-          ...(input.status ? { status: asStatus(input.status) } : {}),
+          ...(input.status ? { status: todoStatusOf(input.status) } : {}),
           touchedAt: e.id,
         });
       }

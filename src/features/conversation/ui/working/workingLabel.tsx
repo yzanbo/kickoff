@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_SECOND, useTicker } from "@/foundation/ui/hooks/useTicker";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "@/features/chat/ui/state/stall";
-import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundLabel";
+import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundText";
 import { RetryLabel } from "./ConnectionStatus";
 import { isInheriting } from "./workPhase";
 import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
@@ -85,7 +85,7 @@ const THINKING_WORDS: [number, string][] = [
 ];
 
 function ThinkingWords({ since }: { since: string | null }) {
-  useTicker(1000);
+  useTicker(TICK_SECOND);
   const ms = since ? Date.now() - new Date(since).getTime() : 0;
   return <>{THINKING_WORDS.find(([after]) => ms >= after)![1]}</>;
 }

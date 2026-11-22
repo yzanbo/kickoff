@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll } from "@/features/composer/ui/useFollowScroll";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
+import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ClaudeMark } from "@/features/ai/ui/ClaudeMark";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { type ActivityNav, type ComposerPort, type SubagentNav, TimelineBusyContext, useOptionalActivityNav, useOptionalSubagentNav } from "@/features/chat/ui";
@@ -98,7 +98,7 @@ interface ScreenNav {
 function ScreenView({ entry, view, nav }: { entry: SubagentEntry; view: SubagentsView; nav: ScreenNav }) {
   const running = entry.status === "running";
   // 実行中は「最後の動き」の表示を進める
-  useTicker(running ? 15_000 : 3_600_000);
+  useTicker(running ? TICK_ACTIVITY : null);
   const steps = useSubagentScope(entry, view);
   const { scrollRef, contentRef, onScroll } = useFollowScroll(running);
   const renderScope = renderScopeOf(view.rel);

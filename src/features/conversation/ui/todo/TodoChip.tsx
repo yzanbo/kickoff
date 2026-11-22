@@ -13,16 +13,16 @@ import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/ui/parts/ChatPill";
 import { useOptionalTimelineNav } from "@/features/chat/ui";
 import { todoList } from "./selectors";
-import { todoSignature, todoVisibility, type TodoGroup, type TodoItem, type TodoStatus } from "./todoList";
+import { TODO_STATUS_LABELS, type TodoStatus } from "@shared/chat/todoStatus";
+import { todoSignature, todoVisibility, type TodoGroup, type TodoItem } from "./todoList";
 
 const STATUS_ICONS: Record<TodoStatus, typeof Circle> = { pending: Circle, in_progress: CircleDot, completed: CheckCircle2 };
-const STATUS_LABELS: Record<TodoStatus, string> = { pending: "未着手", in_progress: "作業中", completed: "完了" };
 
 function TodoRow({ todo }: { todo: TodoItem }) {
   const Icon = STATUS_ICONS[todo.status];
   return (
     <div className={cx("todo-row", `todo-${todo.status}`)}>
-      <Icon size={15} className="todo-icon" aria-label={STATUS_LABELS[todo.status]} />
+      <Icon size={15} className="todo-icon" aria-label={TODO_STATUS_LABELS[todo.status]} />
       <span className="todo-text">{todo.status === "in_progress" ? (todo.activeForm ?? todo.content) : todo.content}</span>
     </div>
   );

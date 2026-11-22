@@ -3,6 +3,7 @@
 import { claudeToolLabel, isEditTool, isSubagentTool, toolKindOf, type ToolKind } from "@shared/ai/claudeTools";
 import { aiToolId, type AiToolView } from "@shared/foundation/aiToolView";
 import { isCreateChatTool } from "./aiCreateChat";
+import { TODO_STATUS_LABELS } from "./todoStatus";
 
 type Input = Record<string, unknown>;
 
@@ -26,13 +27,6 @@ export interface ToolCallText {
   id: number;
 }
 
-/** ToDo の状態の表示名（TaskUpdate の status） */
-const TODO_STATUS: Record<string, string> = {
-  pending: "未着手",
-  in_progress: "作業中",
-  completed: "完了",
-  deleted: "削除",
-};
 
 const str = (value: unknown): string => (typeof value === "string" ? value : typeof value === "number" ? String(value) : "");
 
@@ -79,7 +73,7 @@ function describeTaskUpdate(input: Input): string {
   const id = str(input.taskId);
   const status = str(input.status);
   let text = id ? `#${id}` : "";
-  if (status) text += `${text ? " " : ""}→ ${TODO_STATUS[status] ?? status}`;
+  if (status) text += `${text ? " " : ""}→ ${(TODO_STATUS_LABELS as Record<string, string>)[status] ?? status}`;
   const extras = [
     str(input.subject) && `名前: ${clip(str(input.subject), 40)}`,
     str(input.description) && "説明を変更",

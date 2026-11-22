@@ -4,6 +4,8 @@ import { swapContributions } from "@/foundation/ui/points";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { eventSequence, makeSubagent } from "@shared/foundation/testing/factories";
+import { collectSubagents } from "@shared/chat/subagents";
+import type { ChatEvent } from "@shared/chat/chatEvent";
 import { subagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { activityRows, agentScope, agentTargetOf, filterActivity, focusedRowIndexes, type ActivityRow } from "./activityRows";
 
@@ -178,4 +180,31 @@ test("agentTargetOf: 起動の行は起動した子・終わりといまの行�
   // まとめたツールのうちの 1 回
   assert.deepEqual(agentTargetOf(row({ kind: "tools", agent: "a1", eventId: 5 }), 6), { key: "a1", eventId: 6 });
   assert.equal(agentTargetOf(row({ kind: "tools", agent: null, eventId: 5 })), null);
+});
+
+/** サブエージェント 25 件がそれぞれ 9 回 Bash を流した、500 件ほどの記録 */
+function bigLog(): ChatEvent[] {
+  const ev = eventSequence();
+  const events: ChatEvent[] = [ev("user", { text: "調べて" })];
+  for (let a = 0; a < 25; a++) {
+    const key = `agent${a}`;
+    events.push(ev("tool_use", { id: key, name: "Agent", input: { description: `調査${a}`, subagent_type: "general-purpose", prompt: "p" } }));
+    for (let i = 0; i < 9; i++) {
+      events.push(ev("tool_use", { id: `${key}-b${i}`, name: "Bash", input: { command: `ls ${i}` }, parent: key }));
+      events.push(ev("tool_result", { tool_use_id: `${key}-b${i}`, content: "ok", is_error: false, parent: key }));
+    }
+    events.push(ev("tool_result", { tool_use_id: key, content: "報告", is_error: false }));
+  }
+  events.push(ev("result", { status: "completed", text: "済み" }));
+  return events;
+}
+
+// 10-9.12: サブエージェントごとに記録の全体をたどらず、索引（subagentEvents）で流れごとの記録だけを渡す。
+// この記録で 1 回あたり 0.8〜1.0 ms → 0.5 ms（2026-11-24・M2 Pro。行は同じ 77 行）
+test("activityRows: 500 件ほどの記録（サブエージェント 25 件）でも、サブエージェントごとに手順と報告の行を作る（索引で流れごとに読む。0.8〜1.0 ms → 0.5 ms）", () => {
+  const events = bigLog();
+  const tree = subagentTree(collectSubagents(events, {}, false));
+  const rows = activityRows(events, tree, false);
+  assert.equal(rows.length, 77);
+  for (let a = 0; a < 25; a++) assert.deepEqual(rows.filter((r) => r.agent === `agent${a}`).map((r) => r.kind), ["tools", "end"]);
 });

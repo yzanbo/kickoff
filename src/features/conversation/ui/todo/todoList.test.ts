@@ -1,25 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence } from "@shared/foundation/testing/factories";
-import { collectTodoList, collectTodos, todoSignature, todoVisibility } from "./todoList";
+import { collectTodoList, todoSignature, todoVisibility } from "./todoList";
 
 const ev = eventSequence();
 let tools = 0;
 const use = (name: string, input: object, id = `u${++tools}`) => ev("tool_use", { id, name, input });
 
 test("ToDo: TodoWrite は最後に書いたものが今の一覧", () => {
-  const todos = collectTodos([
+  const todos = collectTodoList([
     use("TodoWrite", { todos: [{ content: "A", status: "pending" }] }),
     use("TodoWrite", { todos: [{ content: "A", status: "completed" }, { content: "B", activeForm: "B をしています", status: "in_progress" }] }),
   ]);
   assert.deepEqual(
-    todos.map((t) => [t.content, t.status, t.activeForm]),
+    todos.items.map((t) => [t.content, t.status, t.activeForm]),
     [["A", "completed", undefined], ["B", "in_progress", "B をしています"]],
   );
 });
 
 test("ToDo: TaskCreate で足し、TaskUpdate で状態を変え、deleted で消す。サブエージェントの分と失敗した作成は数えない", () => {
-  const todos = collectTodos([
+  const todos = collectTodoList([
     use("TaskCreate", { subject: "調べる", activeForm: "調べています" }, "c1"),
     ev("tool_result", { tool_use_id: "c1", content: "Task #1 created successfully: 調べる" }),
     use("TaskCreate", { subject: "直す" }, "c2"),
@@ -34,13 +34,13 @@ test("ToDo: TaskCreate で足し、TaskUpdate で状態を変え、deleted で�
     use("TaskUpdate", { taskId: "3", status: "deleted" }),
   ]);
   assert.deepEqual(
-    todos.map((t) => [t.content, t.status]),
+    todos.items.map((t) => [t.content, t.status]),
     [["調べる", "completed"], ["直す", "in_progress"]],
   );
 });
 
 test("ToDo: 何もなければ空", () => {
-  assert.deepEqual(collectTodos([use("Bash", { command: "ls" })]), []);
+  assert.deepEqual(collectTodoList([use("Bash", { command: "ls" })]).items, []);
 });
 
 test("ToDo のピル: すべて完了なら控えめに、そのあと次の指示を送ったら隠す。手で隠した一覧は書き換わるまで隠す", () => {
@@ -56,8 +56,8 @@ test("ToDo のピル: すべて完了なら控えめに、そのあと次の指�
   assert.equal(todoVisibility(nextList, ""), "hidden");
   assert.deepEqual(nextList.history.map((g) => [g.promptId, g.items.map((t) => t.content)]), [[start[0].id, ["A", "B"]]]);
   // 手で隠した一覧は隠したまま、書き換わったらまた出す
-  assert.equal(todoVisibility(collectTodoList(working), todoSignature(collectTodos(working))), "hidden");
-  assert.equal(todoVisibility(collectTodoList(done), todoSignature(collectTodos(working))), "done");
+  assert.equal(todoVisibility(collectTodoList(working), todoSignature(collectTodoList(working).items)), "hidden");
+  assert.equal(todoVisibility(collectTodoList(done), todoSignature(collectTodoList(working).items)), "done");
   // 一覧がなければ出さない
   assert.equal(todoVisibility(collectTodoList([]), ""), "hidden");
 });

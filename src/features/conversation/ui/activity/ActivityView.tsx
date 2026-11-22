@@ -1,27 +1,19 @@
 import { MessageSquare, PanelRight } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type RefObject, type UIEvent } from "react";
-import type { SubagentEntry } from "@shared/chat/subagents";
-import { cx } from "@/foundation/ui/lib/cx";
-import { createLruMap } from "@/foundation/ui/lib/lruMap";
-import { useRowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
-import type { RowLayoutContext } from "@/features/conversation/ui/timeline/rowWindow/rowWindowTypes";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type UIEvent } from "react";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { formatStamp } from "@/foundation/ui/lib/time";
-import { useActivityNav, useSubagentNav, type ActivityFilter } from "@/features/chat/ui";
+import { useActivityNav, useSubagentNav } from "@/features/chat/ui";
 import { useCell } from "@/foundation/ui/store";
 import { useSubagentsView } from "@/features/subagents/ui/subagentsContext";
-import { chatLog } from "@/features/chat/ui/store/useChatStore";
-import { childrenOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
-import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
-import { activityRows, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
+import { activityRows, agentName, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
+import { ActivityFilters } from "./ActivityFilters";
+import { useActivityWindow } from "./useActivityWindow";
 import { flipRails, layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
 import { ActivityFocusBar } from "./ActivityFocusBar";
 import { useActivityFocus } from "./useActivityFocus";
 
-/** 覚える行の高さの数（動きを開いている間だけ） */
-const ACTIVITY_SIZES = 5000;
 /** 一番上を見ているとみなす、上端からの距離（ここにいる間は新しい行に付いていく） */
 const FOLLOW_SLACK_PX = 40;
 
@@ -76,7 +68,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   };
 
   if (!view || !tree) return null;
-  const name = (agent: string | null) => (agent === null ? "メインエージェント" : (tree.byKey.get(agent)?.description ?? "サブエージェント"));
+  const name = (agent: string | null) => agentName(tree, agent);
   const toggle = (key: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -111,7 +103,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
 
   return (
     <div className="activity-wrap">
-      <Filters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => activity.show("activity", f)} />
+      <ActivityFilters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => activity.show("activity", f)} />
       {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={activity.clearFocus} />}
       <div ref={scrollRef} className="activity" tabIndex={-1} onScroll={onScroll}>
         <div className="activity-inner" style={timeWidth} ref={innerRef}>
@@ -157,111 +149,6 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
           </MenuItem>
         </PopupMenu>
       )}
-    </div>
-  );
-}
-
-/**
- * 動きの窓（useRowWindow を新しい側が上で使う）: 行の高さは開いている間だけ覚え、見積もりは 1 行（広げたまとまりは呼び出しの数だけ足す）。
- * 絞り込みを変えたら作り直して一番上から。下の端に近づいたら前の記録を読む（同時に 1 つ。読んでも行が増えなければ、増えるまで頼み直さない）
- */
-function useActivityWindow({
-  rows,
-  expanded,
-  scrollRef,
-  innerRef,
-  chatId,
-  filter,
-  hasEarlier,
-}: {
-  rows: ActivityRow[];
-  expanded: ReadonlySet<string>;
-  scrollRef: RefObject<HTMLDivElement | null>;
-  innerRef: RefObject<HTMLDivElement | null>;
-  chatId: number;
-  filter: ActivityFilter;
-  hasEarlier: boolean;
-}) {
-  const [sizes] = useState(() => createLruMap<string, number>(ACTIVITY_SIZES));
-  const estimate = (row: ActivityRow, layout: RowLayoutContext) => Math.round((ROW_EST_PX + (expanded.has(row.key) ? (row.tools?.length ?? 0) * CALL_EST_PX : 0)) * layout.scale);
-  const [loading, setLoading] = useState(false);
-  const sameAs = `${rows.length}:${rows.at(-1)?.key}`;
-  const onNearEnd = hasEarlier
-    ? () => {
-        const earlier = chatLog.loadEarlier(chatId, { sameAs });
-        if (!earlier) return;
-        setLoading(true);
-        void earlier.finally(() => setLoading(false));
-      }
-    : undefined;
-  const w = useRowWindow({
-    items: rows,
-    keyOf: rowKey,
-    estimate,
-    sizes,
-    scroller: scrollRef,
-    list: innerRef,
-    newest: "start",
-    initial: null,
-    resetKey: `${chatId}:${filter.kind === "agent" ? filter.key : filter.kind}`,
-    onNearEnd,
-  });
-  return { ...w, loading };
-}
-
-const rowKey = (row: ActivityRow) => row.key;
-/** 1 行と、広げたまとまりの呼び出し 1 回の見積もりの高さ（px。文字の倍率 1 のとき） */
-const ROW_EST_PX = 26;
-const CALL_EST_PX = 22;
-
-/** 絞り込みのチップ（すべて・メイン・サブエージェントを起動した順に。入れ子は道筋を説明に。押すとその配下ごとに絞る） */
-function Filters({
-  tree,
-  hues,
-  filter,
-  running,
-  onChange,
-}: {
-  tree: SubagentTree;
-  hues: ReadonlyMap<string, number>;
-  filter: ActivityFilter;
-  running: number;
-  onChange: (filter: ActivityFilter) => void;
-}) {
-  const agents: { entry: SubagentEntry; path: string }[] = [];
-  const walk = (parent: string | undefined, path: string, depth: number) => {
-    for (const entry of childrenOf(tree, parent)) {
-      agents.push({ entry, path });
-      if (depth < 32) walk(entry.key, `${path}${entry.description} › `, depth + 1);
-    }
-  };
-  walk(undefined, "", 0);
-  const chip = (active: boolean, label: string, next: ActivityFilter, extra: { hue?: number; title?: string } = {}) => (
-    <button
-      key={next.kind === "agent" ? next.key : next.kind}
-      type="button"
-      role="radio"
-      aria-checked={active}
-      className={cx("activity-chip pill", active && "active")}
-      title={extra.title}
-      style={agentHueStyle(extra.hue)}
-      onClick={() => onChange(next)}
-    >
-      {extra.hue !== undefined && <span className="agent-dot" aria-hidden />}
-      {label}
-    </button>
-  );
-  return (
-    <div className="activity-filters" role="radiogroup" aria-label="動きの絞り込み">
-      {chip(filter.kind === "all", "すべて", { kind: "all" })}
-      {chip(filter.kind === "main", "メインエージェント", { kind: "main" })}
-      {agents.map(({ entry, path }) =>
-        chip(filter.kind === "agent" && filter.key === entry.key, entry.description, { kind: "agent", key: entry.key }, {
-          hue: hues.get(entry.key),
-          title: `${path}${entry.description}（このサブエージェントと、その中で起動したものの動き）`,
-        }),
-      )}
-      {running > 0 && <span className="activity-running">{running} 件作業中</span>}
     </div>
   );
 }
