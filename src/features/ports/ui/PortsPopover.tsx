@@ -4,9 +4,8 @@ import { PORT_ORIGIN_HINTS, type PortProcess } from "@shared/ports/types";
 import { workplaceText } from "@shared/foundation/workplace";
 import { api } from "@/foundation/ui/api";
 import { navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
+import { open } from "@/foundation/ui/navigation/open";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
-import { openBrowserTab } from "@/features/browser/ui";
-import { isPanelMounted, panelKey, sidePanelsHandedOut } from "@/features/panel/ui";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
@@ -20,17 +19,12 @@ import { bandText, originText, portUrl, stopTargetText, uptimeText } from "./por
 type StopState = "stopping" | "stuck";
 
 /**
- * プロジェクトの右サイドバー（チャット欄）のブラウザで開く（ほかのプロジェクトなら、そのプロジェクトへ移って欄ができてから。
- * 右サイドバーを別ウィンドウへ移しているときは、そのウィンドウに頼むので待たない）
+ * プロジェクトの右サイドバー（チャット欄）のブラウザで開く（ほかのプロジェクトなら、そのプロジェクトへ移ってから。
+ * 欄ができるのは待たない: 開く口は欄の店へ入れ、欄が出たときにそのタブを出す。右サイドバーを別ウィンドウへ移していれば、そのウィンドウに頼む）
  */
-async function openInPanel(projectId: number, url: string, current: number | null) {
-  const key = panelKey("side", projectId);
-  if (current !== projectId) {
-    navigate({ name: "project", id: projectId, tab: "board" });
-    const until = Date.now() + 3_000;
-    while (!sidePanelsHandedOut() && !isPanelMounted(key) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
-  }
-  openBrowserTab(key, url);
+function openInPanel(projectId: number, url: string, current: number | null) {
+  if (current !== projectId) navigate({ name: "project", id: projectId, tab: "board" });
+  open({ kind: "browser", projectId, url });
 }
 
 interface Props {
@@ -124,7 +118,7 @@ function PortRow({
   const name = projectName(p.project_id);
   const url = portUrl(p.ports[0]);
   const copy = (text: string) => void navigator.clipboard.writeText(text).catch(reportFailure("コピーできませんでした"));
-  const open = (port: number) => void openInPanel(p.project_id, portUrl(port), current).catch(reportFailure("開けませんでした"));
+  const openPort = (port: number) => openInPanel(p.project_id, portUrl(port), current);
   return (
     <li
       className="ports-row"
@@ -137,7 +131,7 @@ function PortRow({
       <div className="ports-main">
         <span className="ports-ports">
           {p.ports.map((port) => (
-            <button key={port} type="button" className="ports-port" data-tip={`${portUrl(port)} を右サイドバーのブラウザで開く`} onClick={() => open(port)}>
+            <button key={port} type="button" className="ports-port" data-tip={`${portUrl(port)} を右サイドバーのブラウザで開く`} onClick={() => openPort(port)}>
               :{port}
             </button>
           ))}
@@ -152,7 +146,7 @@ function PortRow({
           {originText(p)}
         </span>
         <span className="ports-actions">
-          <button type="button" className="btn" data-size="sm" onClick={() => open(p.ports[0])}>
+          <button type="button" className="btn" data-size="sm" onClick={() => openPort(p.ports[0])}>
             開く
           </button>
           {stopState === "stuck" ? (
