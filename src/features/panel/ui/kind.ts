@@ -48,8 +48,8 @@ export interface TabFace {
   /** グループの札の後ろ（作業場所の札）と、その中身が変わったら測り直すためのキー */
   tag?: ReactNode;
   tagKey?: string;
-  /** ピン留めしたチャットのプロジェクト（いちばん左にピン） */
-  pinnedIn?: number | null;
+  /** ピン留めしたチャットのプロジェクトの色相（いちばん左にピンをその色で） */
+  pinHue?: number | null;
   /** 名前を太字にする（未読・失敗） */
   unread?: boolean;
   /** タブに足す属性（先読み・ページ内検索が読む印） */
@@ -162,9 +162,10 @@ export interface TabKind<T extends TabBase> {
   pageClass?: { subscribe(listener: () => void): () => void; of(tab: T): string | undefined };
   /**
    * 別ウィンドウで開けるタブの行き先とウィンドウの名前（チャットの画面の右の欄のサブエージェント・変更・ファイル・ノート・子チャット、パネルのブラウザ・ターミナル）。
-   * panel はタブのある欄（戻す先）。dismiss: 欄からは「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）
+   * panel はタブのある欄（戻す先）。dismiss: 欄からは「表示だけ消した」ことにする（チャットのパネルとの連動で足し直さない）。
+   * 同じ種類でもタブによって開けないとき（プロジェクトの画面の DB のほか）は undefined
    */
-  popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean };
+  popout?(tab: T, panel: string): { route: PopoutRoute; title: string; dismiss?: boolean } | undefined;
   /** ほかのウィンドウから移ってきたタブを、このウィンドウのものにする（右サイドバーの受け渡し。ターミナルはシェルの持ち主をこのウィンドウにする） */
   onMoveToWindow?(tab: T): Promise<void> | void;
   /**

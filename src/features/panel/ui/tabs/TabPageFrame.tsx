@@ -66,7 +66,7 @@ function TabPageFrameBody({
   const kind = kindOf(tab);
   const Page = kind.Page;
   // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
-  const popOutable = canPopOut(tab);
+  const popOutable = canPopOut(tab, panel.key);
   // このタブを表に出す（入れ子の欄（チャットの画面の右の欄）なら、外のチャットのタブも表に出す）
   const outer = useContext(TabPageContext);
   const actions = useMemo(

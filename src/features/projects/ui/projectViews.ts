@@ -4,7 +4,9 @@ import type { LucideIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import type { Project } from "@shared/projects/types";
 import { definePoint } from "@/foundation/ui/points";
+import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import type { FileTarget, ReopenRoute } from "@/foundation/ui/navigation/router";
+import type { PanelFrame } from "@/features/panel/ui";
 import type { TabGroup } from "./page/tabOrder";
 import { inDesktopApp } from "./native";
 
@@ -44,6 +46,24 @@ export interface ProjectViewContext {
   openFile?: FileTarget;
   openNote?: string;
   openNoteLine?: number;
+  /** 頼まれたファイル・ノートを開いたら呼ぶ（右サイドバーの頼みを片付ける） */
+  takeRequest?(): void;
+  /** チャットの右の欄のとき、どのチャットの右の欄か */
+  chatId?: number;
+  /** 欄の殻から渡すもの（右サイドバーの横幅いっぱいの切り替え） */
+  frame?: PanelFrame;
+}
+
+/** チャットの右の欄のタブにするときの違い（places に chatSide がある画面） */
+export interface ProjectViewChatSide {
+  /** タブに乗せたときの説明（where はタブの作業場所の呼び名「本体」「ワークツリー x」。なければ「プロジェクトの「名前」（where から）」） */
+  hint?(where: string): string;
+  /** 右の欄の「＋ ▾」の項目の説明に添える中身（「プロジェクトの「名前」タブと同じ画面（about）を開く」） */
+  about?: string;
+  /** 余白と枠の包み（.project-content）なしで、欄の幅いっぱいに置く */
+  bare?: boolean;
+  /** 別ウィンドウで開く行き先とウィンドウの名前 */
+  popout?(at: { chatId: number; projectId: number; worktree?: string }, where: string): { route: PopoutRoute; title: string };
 }
 
 /** タブの数（バッジ）を読む hook に渡すもの */
@@ -79,8 +99,11 @@ export interface ProjectViewDef {
   /** この Mac のアプリの中だけ（ブラウザ・スマホからは出さない） */
   desktopOnly?: boolean;
   places: readonly ProjectViewPlace[];
-  /** 作業場所に付く（WorkplaceProvider で包む） */
+  /** 作業場所に付く（WorkplaceProvider で包む。チャットの右の欄では作業場所を移したら付け替える） */
   followsWorkplace?: boolean;
+  /** 右サイドバーで、ほかの中身を見ている間も隠して置く（ブラウザのページ・ログインの状態・書きかけを保つ）。右サイドバーの列ではいつも先頭 */
+  keepAlive?: boolean;
+  chatSide?: ProjectViewChatSide;
   /** チャットをボードと分ける置き方のときだけ出す（分けないときは into の画面が URL と数を受け持つ） */
   onlyWhenSeparate?: { into: string };
   /** 中身（作業場所・プロジェクトで作り直すなら、返す要素に key を付ける） */
@@ -91,9 +114,11 @@ export interface ProjectViewDef {
 
 export const projectViews = definePoint<ProjectViewDef>("projectViews", { key: (v) => v.id, order: (a, b) => a.order - b.order });
 
+/** このウィンドウで出せる画面か（この Mac のアプリの外では desktopOnly を出さない） */
+export const canShowProjectView = (v: ProjectViewDef): boolean => !v.desktopOnly || inDesktopApp();
+
 /** その置き場所で出せる画面（この Mac のアプリの外では desktopOnly を除く。置き方では絞らない） */
-export const availableProjectViews = (place: ProjectViewPlace): ProjectViewDef[] =>
-  projectViews.items().filter((v) => v.places.includes(place) && (!v.desktopOnly || inDesktopApp()));
+export const availableProjectViews = (place: ProjectViewPlace): ProjectViewDef[] => projectViews.items().filter((v) => v.places.includes(place) && canShowProjectView(v));
 
 export const projectViewOf = (id: string): ProjectViewDef | undefined => projectViews.items().find((v) => v.id === id);
 

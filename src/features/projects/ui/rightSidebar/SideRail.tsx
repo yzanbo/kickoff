@@ -1,22 +1,24 @@
-import { AppWindow, Globe, GripHorizontal, type LucideIcon } from "lucide-react";
+import { AppWindow, GripHorizontal, type LucideIcon } from "lucide-react";
 import { useMemo, type ComponentProps } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "@/features/projects/ui/storage";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
 import { availableProjectViews, projectViewGroups } from "@/features/projects/ui/projectViews";
 import { useProjectTabOrder } from "@/features/projects/ui/page/useProjectTabOrder";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { railGroupsOf } from "./railGroups";
-import { showSideView, type SideView } from "./sideView";
+import { showSideView, useSideView, type SideView } from "./sideView";
 import { openSideWindow } from "./useRightSidebar";
 
-/** プロジェクトのタブのまとまり（真ん中に置ける画面の表。並べ替えの全体）と、列のまとまり（そこからボード・チャットを除いたもの） */
+/**
+ * プロジェクトのタブのまとまり（真ん中に置ける画面の表。並べ替えの全体）と、列のまとまり（そこから右サイドバーに置けないボード・チャットを除いたもの）、
+ * 右サイドバーだけの画面（ブラウザ。並べ替えずにいつも先頭）
+ */
 function useRailGroups() {
   return useMemo(() => {
+    const side = availableProjectViews("rightSidebar");
     const all = projectViewGroups(availableProjectViews("center")).map((g) => ({ ...g, tabs: g.tabs.map(({ tab, def }) => ({ tab, label: def.label, tip: def.tip, icon: def.icon })) }));
-    return { all, rail: railGroupsOf<LucideIcon>(all) };
+    return { all, rail: railGroupsOf<LucideIcon>(all, (tab) => side.some((v) => v.id === tab)), own: side.filter((v) => !v.places.includes("center")) };
   }, []);
 }
 
@@ -55,7 +57,7 @@ function RailTab({
 export function SideRail({ projectId, open, held = false, inWindow = false }: { projectId: number; open: boolean; held?: boolean; inWindow?: boolean }) {
   const groups = useRailGroups();
   const order = useProjectTabOrder(groups.rail, true, groups.all);
-  const [view] = useSetting(storage.settings.sideView(projectId));
+  const view = useSideView(projectId);
   const shown = open || held || inWindow;
   const pick = (next: SideView) => {
     if (inWindow) return showSideView(projectId, next);
@@ -69,10 +71,12 @@ export function SideRail({ projectId, open, held = false, inWindow = false }: { 
   return (
     <nav className={cx("side-rail", inWindow && "in-window")} aria-label="右サイドバーの中身">
       <div className="side-rail-items tabs project-side-tabs" role="tablist" aria-orientation="vertical">
-        {/* ブラウザは右サイドバーだけの中身なので、並べ替えずにいつも先頭 */}
-        <div className="project-tab-group" aria-label="ブラウザ">
-          <RailTab label="ブラウザ" icon={Globe} {...tabState("browser")} />
-        </div>
+        {/* 右サイドバーだけの中身（ブラウザ）は、並べ替えずにいつも先頭 */}
+        {groups.own.map((v) => (
+          <div key={v.id} className="project-tab-group" aria-label={v.label}>
+            <RailTab label={v.label} icon={v.icon} {...tabState(v.id)} />
+          </div>
+        ))}
         {order.groups.map((group) => (
           <div key={group.key} className={cx("project-tab-group", group.tabs.length > 1 && "boxed")} {...order.groupAttrs(group)} aria-label={group.label} {...order.groupProps(group)}>
             {group.tabs.length > 1 && (

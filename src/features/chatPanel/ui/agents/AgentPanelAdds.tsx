@@ -1,15 +1,13 @@
-import { Bot, ChevronDown, Container, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { Bot, ChevronDown, MessageSquarePlus, MessagesSquare, type LucideIcon } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
+import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { openChat } from "@/features/chat/ui";
 import { chatSubagents } from "@/features/subagents/ui";
 import { useOptionalSubagentNav } from "@/features/chat/ui";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
-import { DbMenuItems } from "@/features/database/ui/DbMenuItems";
-import { RecentNoteItems } from "@/features/notes/ui/NoteMenuItems";
-import { changesTab, databaseTab, githubTab, noteTab, openTab, parsePanelKey, projectToolTab, projectViewTab } from "@/features/panel/ui";
-import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/ui/tabs/panelTypes";
-import { PROJECT_VIEW_ICONS } from "@/features/projects/ui/views/ProjectViewTabLead";
+import { openTab, parsePanelKey } from "@/features/panel/ui";
+import { canShowProjectView, projectViews, projectViewTab, type ProjectViewDef } from "@/features/projects/ui";
 import type { PaneLeaf, PanelController } from "@/features/panel/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { subagentsSettings } from "@/features/subagents/ui";
@@ -19,11 +17,13 @@ import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useNewChild } from "./useNewChild";
+import { chatSideAdds, type ChatSideAdd } from "@/features/chatPanel/ui/chatSideAdds";
 
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
- * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
- * 作業場所はこのチャットの作業場所から）｜ ノート ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）・Docker・GitHub・CI（この Mac のアプリの中だけ）・ゴミ箱。
+ * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ プロジェクトの画面（画面の表 projectViews の初めの並び。
+ * ファイル・検索・変更・履歴 ｜ ノート ▸・DB ▸・Docker・GitHub・CI・ゴミ箱。作業場所はこのチャットの作業場所から。DB・Docker・GitHub・CI はこの Mac のアプリの中だけ。
+ * ノート・DB・変更は持ち主の機能が chatSideAdds で出すもの = 最近変えた 12 件・DB クライアントと接続ごとの新しい SQL のタブ・右の欄向けの変更のタブ）。
  * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）。欄のチャットが子チャットを作れないとき（useNewChild）は出さない
  */
 export function AgentPanelAdds({ panel, pane }: { panel: PanelController; pane: PaneLeaf }) {
@@ -92,21 +92,9 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない
   const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));
   if (!chat) return null;
-  const worktree = chat.worktree_path ?? undefined;
-  // 欄に 1 つだけ開くもの（GitHub・CI・Docker・ゴミ箱）の開く先
-  const target = { chatId: chat.id, projectId: chat.project_id };
-  /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面を、この右の欄に開く項目 */
-  const projectView = (view: ProjectView) => {
-    const Icon = PROJECT_VIEW_ICONS[view];
-    return (
-      <MenuItem
-        title={`プロジェクトの「${PROJECT_VIEW_LABELS[view]}」タブと同じ画面を開く（このチャットの作業場所から）`}
-        onSelect={() => openTab(panel.key, projectViewTab({ chatId: chat.id, projectId: chat.project_id, view, ...(worktree ? { worktree } : {}) }))}
-      >
-        <Icon size={14} /> {PROJECT_VIEW_LABELS[view]}
-      </MenuItem>
-    );
-  };
+  // プロジェクトの画面（右の欄に置ける画面と、持ち主が代わりのものを出す画面）。コードのまとまりの前後に線を引く
+  const adds = new Map(chatSideAdds.items().map((a) => [a.view, a]));
+  const views = projectViews.items().filter((v) => (v.places.includes("chatSide") || adds.has(v.id)) && canShowProjectView(v));
   return (
     <>
       <MenuItem title="入力欄だけの新しい子チャットのタブを開く（最初の文を送ると子チャットができます）" onSelect={onNewChild}>
@@ -135,49 +123,39 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
           ))}
         </SubmenuItem>
       )}
-      {/* プロジェクトの左の列のコードのタブと同じ並び（ファイル・検索・変更・履歴）。作業場所はこのチャットの作業場所から */}
       <div className="menu-separator" role="separator" />
-      {projectView("files")}
-      {projectView("search")}
-      <MenuItem
-        title="このチャットの作業場所の、コミットしていない変更を開く"
-        onSelect={() => openTab(panel.key, changesTab({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) }))}
-      >
-        <FileDiff size={14} /> 変更
-      </MenuItem>
-      {projectView("history")}
-      <div className="menu-separator" role="separator" />
-      <SubmenuItem icon={StickyNote} label="ノート" empty={null}>
-        <RecentNoteItems projectId={chat.project_id} onPick={(path) => openTab(panel.key, noteTab({ chatId: chat.id, projectId: chat.project_id, path }))} />
-      </SubmenuItem>
-      {/* DB はこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける） */}
-      {window.kickoff && (
-        <SubmenuItem icon={Database} label="DB" empty={null}>
-          <DbMenuItems
-            projectId={chat.project_id}
-            place={`chat-${chat.id}`}
-            onOpen={() => openTab(panel.key, databaseTab({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) }))}
-          />
-        </SubmenuItem>
-      )}
-      {/* Docker・GitHub・CI もこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける。プロジェクトのタブと同じ）。並びはプロジェクトのタブの初めの並び */}
-      {window.kickoff && (
-        <>
-          <MenuItem title="プロジェクトの「Docker」タブと同じ画面（compose のサービス）を開く" onSelect={() => openTab(panel.key, projectToolTab("docker", target))}>
-            <Container size={14} /> Docker
-          </MenuItem>
-          <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => openTab(panel.key, githubTab(target))}>
-            <GitPullRequest size={14} /> GitHub
-          </MenuItem>
-          <MenuItem title="プロジェクトの「CI」タブと同じ画面（GitHub Actions の実行の一覧とログ）を開く" onSelect={() => openTab(panel.key, projectToolTab("ci", target))}>
-            <Workflow size={14} /> CI
-          </MenuItem>
-        </>
-      )}
-      <MenuItem title="プロジェクトの「ゴミ箱」タブと同じ画面（消したものを 3 日取っておき、元に戻せる）を開く" onSelect={() => openTab(panel.key, projectToolTab("trash", target))}>
-        <Trash2 size={14} /> ゴミ箱
-      </MenuItem>
+      {views.map((def, i) => {
+        const prev = views[i - 1];
+        const line = prev !== undefined && prev.group !== def.group && (prev.group === "code" || def.group === "code");
+        return (
+          <Fragment key={def.id}>
+            {line && <div className="menu-separator" role="separator" />}
+            <ProjectViewItem def={def} add={adds.get(def.id)} chat={chat} panelKey={panel.key} />
+          </Fragment>
+        );
+      })}
     </>
+  );
+}
+
+/** プロジェクトの画面を、この右の欄に開く項目（持ち主が代わりのものを出していれば、その動き・子のメニュー） */
+function ProjectViewItem({ def, add, chat, panelKey }: { def: ProjectViewDef; add: ChatSideAdd | undefined; chat: Chat; panelKey: string }) {
+  // 作業場所に付く画面は、このチャットの作業場所から
+  const worktree = def.followsWorkplace ? (chat.worktree_path ?? undefined) : undefined;
+  const props = { chat, panelKey, openView: () => openTab(panelKey, projectViewTab({ chatId: chat.id, projectId: chat.project_id, view: def.id, ...(worktree ? { worktree } : {}) })) };
+  if (add?.Submenu) {
+    return (
+      <SubmenuItem icon={def.icon} label={def.label} empty={null}>
+        <add.Submenu {...props} />
+      </SubmenuItem>
+    );
+  }
+  const about = def.chatSide?.about ? `（${def.chatSide.about}）` : "";
+  const title = add?.title ?? `プロジェクトの「${def.label}」タブと同じ画面${about}を開く${def.followsWorkplace ? "（このチャットの作業場所から）" : ""}`;
+  return (
+    <MenuItem title={title} onSelect={() => (add?.open ? add.open(props) : props.openView())}>
+      <def.icon size={14} /> {def.label}
+    </MenuItem>
   );
 }
 

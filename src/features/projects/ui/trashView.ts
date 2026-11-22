@@ -11,5 +11,6 @@ export const trashView: ProjectViewDef = {
   group: "trash",
   order: 120,
   places: ["center", "rightSidebar", "chatSide"],
+  chatSide: { hint: () => "ゴミ箱（3 日で消えます）", about: "消したものを 3 日取っておき、元に戻せる", bare: true },
   Page: TrashViewPage,
 };

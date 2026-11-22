@@ -56,7 +56,7 @@ export function TabMenu({
           ),
         )}
       {/* チャットのパネルのチャット・チャットの画面の右の欄のサブエージェント・変更・ファイルなどは、別ウィンドウへ移せる（2 枚目の画面に置くなど） */}
-      {canPopOut(tab) && (
+      {canPopOut(tab, panel.key) && (
         <MenuItem onSelect={() => popOutTab(panel, tabKey)}>
           <AppWindow size={14} /> 別ウィンドウで開く
         </MenuItem>

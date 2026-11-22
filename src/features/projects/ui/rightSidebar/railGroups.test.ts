@@ -15,7 +15,7 @@ test("プロジェクトのタブのまとまりから、ボード・チャッ�
       ],
     },
     { key: "ci", label: "CI", tabs: [{ tab: "ci", label: "CI", tip: "CI の結果", icon: "i" }] },
-  ]);
+  ], (tab) => tab !== "board" && tab !== "chats");
   assert.deepEqual(
     groups.map((g) => [g.key, g.tabs.map((t) => t.tab)]),
     [

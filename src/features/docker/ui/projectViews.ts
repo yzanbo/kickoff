@@ -11,5 +11,6 @@ export const dockerView: ProjectViewDef = {
   order: 90,
   desktopOnly: true,
   places: ["center", "rightSidebar", "chatSide"],
+  chatSide: { hint: () => "Docker（このプロジェクトの compose のサービス）", about: "compose のサービス", bare: true },
   Page: DockerViewPage,
 };

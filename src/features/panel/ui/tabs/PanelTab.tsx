@@ -5,13 +5,12 @@ import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { useOverflowCompact } from "@/foundation/ui/hooks/useOverflowCompact";
-import { hueStyle, useProjectHue } from "@/features/projects/ui/projectColor";
 import type { TabGroupBadge } from "@/features/panel/ui/kind";
 
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
  * onRename があれば名前のダブルクリック・ピントがあるときの Enter で名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
- * pinnedIn があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など。
+ * pinHue があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など。
  * after は名前のすぐ後ろ（子チャットの動きの印）。twoLine なら、グループ・作業場所の札を名前の下の行に置く（「表示」のメニューの「タブに出す項目」の「2 行で表示」）。
  * 作業場所の札（tag）は、入る幅があるときだけ「本体 | main」「WT | ブランチ」、入らなければ「本体」・ブランチ名だけ（省く）にする（useOverflowCompact。
  * 2 行のタブは札の行、1 行のタブは名前ごと見るので、名前を省くことになるならブランチ名を隠す。名前のボタンは flex: 1 なので max-content の幅を測れず、
@@ -38,7 +37,7 @@ export function PanelTab({
   onRename,
   editor,
   lead,
-  pinnedIn = null,
+  pinHue = null,
 }: {
   active: boolean;
   icon: LucideIcon;
@@ -68,15 +67,14 @@ export function PanelTab({
   dirty?: boolean;
   /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
   lead?: ReactNode;
-  /** ピン留めしたチャットのタブなら、そのチャットのプロジェクトの ID（いちばん左にピンをその色で出す）。ピン留めでなければ null */
-  pinnedIn?: number | null;
+  /** ピン留めしたチャットのタブなら、そのチャットのプロジェクトの色相（いちばん左にピンをその色で出す）。ピン留めでなければ null */
+  pinHue?: number | null;
   /** 名前のダブルクリックで名前を変え始める */
   onRename?: () => void;
   /** 名前を変えている途中なら、入力欄の初めの値・上限・決定・取り消し */
   editor?: { initial: string; maxLength: number; onSubmit: (name: string) => void; onCancel: () => void };
 }) {
-  const pinHue = useProjectHue(pinnedIn ?? 0);
-  const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={hueStyle(pinHue)} aria-label="ピン留め" />;
+  const pin = pinHue !== null && <Pin size={12} className="panel-tab-pin" style={{ "--hue": `${pinHue}` } as CSSProperties} aria-label="ピン留め" />;
   const groupBadge = group && (
     <span className="panel-tab-group-name tag" style={group.hue === null ? undefined : ({ "--hue": group.hue } as CSSProperties)}>
       {group.name}

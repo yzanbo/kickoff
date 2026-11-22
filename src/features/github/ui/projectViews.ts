@@ -11,6 +11,7 @@ export const githubView: ProjectViewDef = {
   order: 100,
   desktopOnly: true,
   places: ["center", "rightSidebar", "chatSide"],
+  chatSide: { hint: () => "GitHub（このプロジェクトの連携先の issue・PR）", about: "issue・PR の一覧と中身", bare: true },
   Page: GitHubViewPage,
 };
 
@@ -23,5 +24,6 @@ export const ciView: ProjectViewDef = {
   order: 110,
   desktopOnly: true,
   places: ["center", "rightSidebar", "chatSide"],
+  chatSide: { hint: () => "CI の結果（このプロジェクトの GitHub Actions の実行）", about: "GitHub Actions の実行の一覧とログ", bare: true },
   Page: CiViewPage,
 };

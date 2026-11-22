@@ -1,6 +1,6 @@
 // タブの中身を作る関数（種類ごとのキーの決め方）。種類の決まり（アイコン・名前・中身）は tabKinds.ts、型は panelTypes.ts
 import { normalizeUrl } from "@/foundation/ui/lib/url";
-import type { PanelTab, ProjectTool, ProjectView, TerminalTarget } from "./panelTypes";
+import type { PanelTab, TerminalTarget } from "./panelTypes";
 
 type TabKind = PanelTab["kind"];
 type TabOf<K extends TabKind> = Extract<PanelTab, { kind: K }>;
@@ -50,19 +50,6 @@ export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: num
   ...(focus ? { focus, focusAt: Date.now() } : {}),
 });
 
-/** プロジェクトの画面（ファイル・検索・履歴）のタブのキー（種類ごとに、その欄に 1 つのタブ） */
-const projectViewTabKey = (view: ProjectView) => `project-view:${view}`;
-
-/** 右の欄に開く、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面のタブ */
-export const projectViewTab = ({ chatId, projectId, worktree, view }: Omit<TabOf<"projectView">, "key" | "kind">): TabOf<"projectView"> => ({
-  key: projectViewTabKey(view),
-  kind: "projectView",
-  chatId,
-  projectId,
-  view,
-  ...(worktree ? { worktree } : {}),
-});
-
 /** ファイルのタブのキー（同じ作業場所の同じファイルは、その欄に 1 つのタブ） */
 const fileTabKey = (worktree: string | undefined, path: string) => `file:${worktree ?? ""}:${path}`;
 
@@ -88,22 +75,6 @@ export const noteTab = ({ chatId, projectId, path }: Omit<TabOf<"note">, "key" |
   projectId,
   path,
 });
-
-/** 右の欄に開く DB クライアントのタブ（その欄に 1 つ） */
-export const databaseTab = ({ chatId, projectId, worktree }: Omit<TabOf<"database">, "key" | "kind">): TabOf<"database"> => ({
-  key: "database",
-  kind: "database",
-  chatId,
-  projectId,
-  ...(worktree ? { worktree } : {}),
-});
-
-/** 右の欄に開く GitHub のタブ（その欄に 1 つ） */
-export const githubTab = ({ chatId, projectId }: Omit<TabOf<"github">, "key" | "kind">): TabOf<"github"> => ({ key: "github", kind: "github", chatId, projectId });
-
-/** 右の欄に開く CI・Docker・ゴミ箱のタブ（種類ごとに、その欄に 1 つ） */
-export const projectToolTab = <K extends ProjectTool>(kind: K, { chatId, projectId }: { chatId: number; projectId: number }) =>
-  ({ key: kind, kind, chatId, projectId }) as TabOf<K>;
 
 /** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
 const childTabKey = (childId: number) => `child:${childId}`;

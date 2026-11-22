@@ -7,7 +7,9 @@ export { addProject, useProjects } from "./stores/projects";
 export { sidebarOrder } from "./projectOrder";
 export { ProjectPickFlyout } from "./ProjectPickFlyout";
 export { InspectionList } from "./InspectionList";
-export { projectViews } from "./projectViews";
+export { useProjectHue } from "./projectColor";
+export { projectViewTab } from "./chatSideView";
+export { canShowProjectView, projectViewOf, projectViews } from "./projectViews";
 export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
 

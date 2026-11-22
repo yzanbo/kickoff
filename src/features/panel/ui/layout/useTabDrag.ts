@@ -71,7 +71,7 @@ export function useTabDrag(panel: PanelController) {
       onPointerDown: (e: PointerEvent<HTMLElement>) => {
         if (e.button !== 0) return;
         const tab = panelStateOf(panel.key).tabs.find((t) => t.key === key);
-        if (tab && canPopOut(tab)) prepareTabThumbnail(key, kindOf(tab).label(tab));
+        if (tab && canPopOut(tab, panel.key)) prepareTabThumbnail(key, kindOf(tab).label(tab));
       },
       onPointerUp: () => discardTabThumbnail(),
       onDragStart: (e: DragEvent<HTMLElement>) => {

@@ -10,6 +10,7 @@ export type { DraftScope, PanelScope, PanelSurface, SavedTabs, StripProps, Surfa
 export { usePanel, type PanelController } from "./usePanel";
 export { BrowserAdds, TerminalAdds } from "./openWith/OpenWithAdds";
 export { Panel } from "./Panel";
+export { MaximizeButton, type PanelFrame } from "./PanelTools";
 export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
@@ -44,16 +45,12 @@ export {
   chatKey,
   chatTab,
   childTab,
-  databaseTab,
   fileTab,
-  githubTab,
   hostOf,
   newChatTab,
   newChildTab,
   newTabKey,
   noteTab,
-  projectToolTab,
-  projectViewTab,
   subagentTab,
   terminalTab,
   terminalTitle,

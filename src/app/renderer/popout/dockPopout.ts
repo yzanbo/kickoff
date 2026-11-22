@@ -8,7 +8,8 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { sidebarSettings } from "@/features/sidebar/ui";
 import { knownChat, openChat, openInRootSide, rootChatOf, screenOfChat, shownChatIds } from "@/features/chat/ui";
-import { changesTab, databaseTab, fileTab, isPanelMounted, newChatTab, noteTab, openTab, panelKey, panelScreen, reopenOf } from "@/features/panel/ui";
+import { projectViewTab } from "@/features/projects/ui";
+import { changesTab, fileTab, isPanelMounted, newChatTab, noteTab, openTab, panelKey, panelScreen, reopenOf } from "@/features/panel/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { newChatDraft } from "@/features/composer/ui";
 import { claimTerminal } from "@/features/terminal/ui/terminalOwner";
@@ -63,7 +64,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       return;
     }
     case "database":
-      openInRootSide(route.chatId, (rootId, side) => openTab(side, databaseTab({ chatId: rootId, projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) })));
+      openInRootSide(route.chatId, (rootId, side) => openTab(side, projectViewTab({ chatId: rootId, projectId: route.projectId, view: "db", ...(route.worktree ? { worktree: route.worktree } : {}) })));
       return;
     case "changes":
     case "file": {

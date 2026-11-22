@@ -28,6 +28,27 @@ export function PanelCloseButton({ panel, frame }: { panel: PanelController; fra
 }
 
 /**
+ * 横幅いっぱいに広げる ⇔ 元の幅に戻す（欄の決まりの maximize が width の欄のタブの列と、右サイドバーの中身の見出し）。
+ * 横にだけ広がるので、横向きの矢印。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
+ * ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない）
+ */
+export function MaximizeButton({ state }: { state: NonNullable<PanelFrame["maximize"]> }) {
+  return (
+    <IconButton
+      type="button"
+      icon={state.on ? FoldHorizontal : UnfoldHorizontal}
+      iconSize={15}
+      className="panel-control"
+      label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+      title={state.on ? `元の幅に戻す${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}` : "横幅いっぱいに広げる"}
+      aria-pressed={state.on}
+      disabled={state.disabled}
+      onClick={state.toggle}
+    />
+  );
+}
+
+/**
  * タブの列の左の道具（左上のペインにだけ置く）: 左から、閉じる（欄の決まりで先頭か最後。右端に置く欄（サブエージェントの欄）は PaneTabBar の endControls、
  * チャット欄は右上のレイアウトの開閉で閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（チャットのまとめ方・
  * アーカイブ済み・チャットの画面。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
@@ -40,21 +61,7 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
   return (
     <div className="panel-controls">
       {closeButton?.at === "start" && close}
-      {maximize === "width" && state && (
-        // 横にだけ広がるので、横向きの矢印。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
-        // ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない）
-        <IconButton
-          type="button"
-          icon={state.on ? FoldHorizontal : UnfoldHorizontal}
-          iconSize={15}
-          className="panel-control"
-          label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          title={state.on ? `元の幅に戻す${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}` : "横幅いっぱいに広げる"}
-          aria-pressed={state.on}
-          disabled={state.disabled}
-          onClick={state.toggle}
-        />
-      )}
+      {maximize === "width" && state && <MaximizeButton state={state} />}
       {maximize === "height" && state && (
         <IconButton
           type="button"

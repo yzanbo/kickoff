@@ -71,7 +71,7 @@ export function PaneTab({
         className={cx(className, face.unread && "unread")}
         extra={face.attrs ? { ...extra, ...face.attrs } : extra}
         onSelect={() => panel.showTab(t.key)}
-        pinnedIn={face.pinnedIn ?? null}
+        pinHue={face.pinHue ?? null}
         lead={spec.Lead ? <spec.Lead tab={t} /> : face.lead}
         onRename={rename.canRename(t) ? () => rename.start(t.key) : undefined}
         // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値は種類の rename.initial）

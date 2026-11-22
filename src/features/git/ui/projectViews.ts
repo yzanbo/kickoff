@@ -1,6 +1,8 @@
 // git がプロジェクトの画面の表（projectViews）に出す画面: 変更（数のバッジ = 変更のあるファイルの数）・履歴
 import { FileDiff, History } from "lucide-react";
 import type { ProjectViewDef } from "@/features/projects/ui";
+import type { ChatSideAdd } from "@/features/chatPanel/ui";
+import { changesTab, openTab } from "@/features/panel/ui";
 import { EditorViewPage } from "@/features/files/ui";
 import { HistoryViewPage, useChangesBadge } from "./projectViewPages";
 
@@ -26,4 +28,11 @@ export const historyView: ProjectViewDef = {
   places: ["center", "rightSidebar", "chatSide"],
   followsWorkplace: true,
   Page: HistoryViewPage,
+};
+
+/** チャットの右の欄の「＋ ▾」の変更: 右の欄向けの変更のタブ（種類 changes。チャットの作業場所のコミットしていない変更） */
+export const changesChatSideAdd: ChatSideAdd = {
+  view: "changes",
+  title: "このチャットの作業場所の、コミットしていない変更を開く",
+  open: ({ chat, panelKey }) => openTab(panelKey, changesTab({ chatId: chat.id, projectId: chat.project_id, ...(chat.worktree_path ? { worktree: chat.worktree_path } : {}) })),
 };

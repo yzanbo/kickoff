@@ -16,7 +16,7 @@ export function testTabKind<K extends PanelTab["kind"]>(id: K, extra: Partial<Om
 
 /** どの種類も入る店の既定（チャットはそのチャットを消したら閉じる） */
 const DEFAULT_KINDS: readonly AnyTabKind[] = (
-  ["new", "subagent", "changes", "file", "projectView", "projectFile", "note", "database", "github", "ci", "docker", "trash", "child", "newChild", "browser", "terminal"] as const
+  ["new", "subagent", "changes", "file", "projectView", "projectFile", "note", "child", "newChild", "browser", "terminal"] as const
 ).map((id) => testTabKind(id));
 
 /**

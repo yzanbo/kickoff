@@ -8,7 +8,8 @@ import { openNewSqlTab } from "@/features/database/ui/client/dbClientTabs";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
-import { databaseTab, openTab } from "@/features/panel/ui";
+import { openTab } from "@/features/panel/ui";
+import { projectViewTab } from "@/features/projects/ui";
 
 /**
  * 右の欄（子チャットなら、いちばん上の親の右の欄）の DB クライアントに、その接続の新しい SQL のタブを足して sql を書き、DB クライアントを開く。
@@ -23,5 +24,5 @@ export function openSqlFromChat(chat: Pick<Chat, "id" | "project_id" | "parent_c
   writeSetting(dbClientTabs(place), next);
   const target = { chatId: root.id, projectId: chat.project_id, ...(chat.worktree_path ? { worktree: chat.worktree_path } : {}) };
   if (parsePopout(location.hash) !== undefined) return postToMainWindow("dockPopout", { route: { kind: "database", ...target } });
-  openInRootSide(chat.id, (_rootId, side) => openTab(side, databaseTab(target)));
+  openInRootSide(chat.id, (_rootId, side) => openTab(side, projectViewTab({ ...target, view: "db" })));
 }

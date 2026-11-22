@@ -6,6 +6,7 @@ import { StatusSlot, chatTitle, useKnownChat } from "@/features/chat/ui";
 import { ChildActivityMark } from "@/features/childChats/ui";
 import type { PanelTab, TabFaceProps } from "@/features/panel/ui";
 import { draftTitleOf, useNewChatDraft } from "@/features/composer/ui";
+import { useProjectHue } from "@/features/projects/ui";
 import { draftGroupOf, hasDraftAttachments } from "./drafts/panelDrafts";
 import { TabWorkplaceBadge } from "./tabs/TabWorkplaceBadge";
 import { useChatTabHint } from "./tabs/useChatTabHint";
@@ -35,6 +36,7 @@ export function ChatTabFace({ tab, show, base, groupOf, render }: FaceOf<"chat">
   const agent = useTabAgentState(tab);
   const title = useChatTabHint(chat, base.label, base.group?.name);
   const tag = show("worktree") && chat ? <TabWorkplaceBadge chat={chat} /> : undefined;
+  const pinHue = useProjectHue(chat?.project_id ?? 0);
   return render({
     ...stateFace(agent, show),
     // 名前とグループはいまのチャットから（タブの列は欄の状態が変わったときだけ描き直る）
@@ -44,7 +46,7 @@ export function ChatTabFace({ tab, show, base, groupOf, render }: FaceOf<"chat">
     after: activityOf(chat?.id, show),
     tag,
     tagKey: tag && chat ? `${chat.worktree_path ?? ""}|${chat.branch ?? ""}` : undefined,
-    pinnedIn: show("pin") && chat?.pinned ? chat.project_id : null,
+    pinHue: show("pin") && chat?.pinned ? pinHue : null,
     attrs: chat ? prefetchAttr(chat.id) : undefined,
   });
 }

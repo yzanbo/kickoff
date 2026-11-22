@@ -4,7 +4,7 @@ import { panelStateOf } from "@/features/panel/ui/state/panelStore";
 import { kindOf } from "@/features/panel/ui/state/panelStore";
 
 /** 別ウィンドウで開けるタブか（Mac のアプリで、チャットの画面の右の欄のサブエージェント・変更・ファイルなどのタブと、パネルのブラウザ・ターミナルのタブ） */
-export const canPopOut = (tab: PanelTab | undefined): boolean => canPopout() && tab !== undefined && kindOf(tab).popout !== undefined;
+export const canPopOut = (tab: PanelTab | undefined, panel: string): boolean => canPopout() && tab !== undefined && kindOf(tab).popout?.(tab, panel) !== undefined;
 
 /**
  * タブを別ウィンドウで開き、欄からは閉じる（別ウィンドウへ移す。同じものがもう開いていれば、それを前に出す）。

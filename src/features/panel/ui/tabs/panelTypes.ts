@@ -1,14 +1,5 @@
 import type { Attachment } from "@shared/chat/types";
 
-/** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
-const PROJECT_VIEWS = ["files", "search", "history"] as const;
-export type ProjectView = (typeof PROJECT_VIEWS)[number];
-export const PROJECT_VIEW_LABELS: Record<ProjectView, string> = { files: "ファイル", search: "検索", history: "履歴" };
-
-/** チャットの画面の右の欄に開ける、プロジェクトのタブと同じ画面のうち、欄に 1 つだけ開くもの（GitHub と同じ形。CI・Docker・ゴミ箱） */
-const PROJECT_TOOLS = ["ci", "docker", "trash"] as const;
-export type ProjectTool = (typeof PROJECT_TOOLS)[number];
-
 /** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ノート・子チャット・新しい子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
   /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。チャットそのものは持たず、ID で知っているチャットから引く */
@@ -32,10 +23,10 @@ export type PanelTab =
    */
   | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
   /**
-   * チャットの画面の右の欄に開いた、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面（view。作業場所はチャットの作業場所から始め、中で切り替えられる）。
-   * chatId: どのチャットの右の欄か。worktree: 初めに見る作業場所のワークツリーのフォルダ（本体ならない）
+   * チャットの画面の右の欄に開いた、プロジェクトの画面（view = projects の画面の表 projectViews の名前。ファイル・検索・履歴・DB・GitHub・CI・Docker・ゴミ箱。画面ごとに欄に 1 つ）。
+   * chatId: どのチャットの右の欄か。worktree: 初めに見る作業場所のワークツリーのフォルダ（本体ならない。作業場所に付く画面だけ使い、中で切り替えられる）
    */
-  | { key: string; kind: "projectView"; chatId: number; projectId: number; worktree?: string; view: ProjectView }
+  | { key: string; kind: "projectView"; chatId: number; projectId: number; worktree?: string; view: string }
   /**
    * プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files）に開いたファイル（features/editor/fileTabs.ts）。path: 作業場所からの相対パス。
    * staged: 変更の一覧から開いた差分（ステージ済みか。なければ中身）。line: 検索の行から開いたときの行。edit: 差分を見ながら編集する。focus: 開いたら編集の部品にピントを置く
@@ -43,12 +34,6 @@ export type PanelTab =
   | { key: string; kind: "projectFile"; projectId: number; path: string; staged?: boolean; line?: number; edit?: boolean; focus?: boolean }
   /** チャットの画面の右の欄に開いた、プロジェクトのノート（自動で保存）。chatId: どのチャットの右の欄か。path: ノートのフォルダからの相対パス */
   | { key: string; kind: "note"; chatId: number | null; projectId: number; path: string }
-  /** チャットの画面の右の欄に開いた DB クライアント（欄に 1 つ）。chatId: どのチャットの右の欄か。worktree: SQLite のファイルを開く作業場所のワークツリーのフォルダ（本体ならない） */
-  | { key: string; kind: "database"; chatId: number; projectId: number; worktree?: string }
-  /** チャットの画面の右の欄に開いた、プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身。欄に 1 つ）。chatId: どのチャットの右の欄か */
-  | { key: string; kind: "github"; chatId: number; projectId: number }
-  /** チャットの画面の右の欄に開いた、プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面（種類ごとに欄に 1 つ）。chatId: どのチャットの右の欄か */
-  | { [K in ProjectTool]: { key: string; kind: K; chatId: number; projectId: number } }[ProjectTool]
   /**
    * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
    * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）

@@ -1,14 +1,11 @@
 import { useMemo, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { Panel } from "@/features/panel/ui/Panel";
-import { usePanel } from "@/features/panel/ui/usePanel";
-import type { PanelFrame } from "@/features/panel/ui/PanelTools";
-import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "@/features/projects/ui/storage";
+import type { PanelFrame } from "@/features/panel/ui";
+import { availableProjectViews } from "@/features/projects/ui/projectViews";
+import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { ProjectChatController } from "./useRightSidebar";
-import { SideViewBody } from "./SideViewBody";
-
-/** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
+import { SideViewBody, SideViewContent } from "./SideViewBody";
+import { useSideView } from "./sideView";
 
 /**
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで。画面の文言では「右サイドバー」）。ブラウザのタブはボードの右のパネルと同じタブ（Panel）で、
@@ -41,29 +38,26 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
 }
 
 /**
- * 右サイドバーの中身: 右端のアイコンの列で選んだもの。
- * ブラウザはほかの中身を見ている間も隠して置く（ページ・ログインの状態・書きかけを保つ）。ほかの中身は見ているものだけ描く（SideViewBody）。
+ * 右サイドバーの中身: 右端のアイコンの列で選んだもの（画面の表 projectViews のうち右サイドバーに置けるもの）。
+ * keepAlive の画面（ブラウザ）はほかの中身を見ている間も隠して置く（ページ・ログインの状態・書きかけを保つ）。ほかの中身は見ているものだけ描く（SideViewBody）。
  * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
  */
 export function SideBody({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
-  const [view] = useSetting(storage.settings.sideView(projectId));
+  const view = useSideView(projectId);
+  const project = useProjects().projectsById.get(projectId);
+  if (!project) return null;
+  const views = availableProjectViews("rightSidebar");
+  const shown = views.find((v) => v.id === view);
   return (
     <>
-      <div className="side-browser" hidden={view !== "browser"}>
-        <ProjectChatPanel projectId={projectId} frame={frame} />
-      </div>
-      {view !== "browser" && <SideViewBody key={projectId} projectId={projectId} view={view} frame={frame} />}
+      {views
+        .filter((v) => v.keepAlive)
+        .map((v) => (
+          <div key={v.id} className="side-browser" hidden={view !== v.id}>
+            <SideViewContent project={project} def={v} frame={frame} />
+          </div>
+        ))}
+      {shown && !shown.keepAlive && <SideViewBody key={projectId} project={project} def={shown} frame={frame} />}
     </>
   );
-}
-
-/**
- * チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む）。チャット欄の別ウィンドウ（PopoutSideChat）も同じものを描く。
- * 欄ごと別ウィンドウへ移すボタンは置かない（タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
- * frame: 横幅いっぱいの切り替え（メインのウィンドウだけ。別ウィンドウはウィンドウの大きさで決まるので渡さない）
- */
-function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
-  // ブラウザだけの欄なので、新しいチャット・ターミナルの開く場所は渡さない
-  const panel = usePanel("side", projectId);
-  return <Panel panel={panel} frame={frame} />;
 }

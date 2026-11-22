@@ -20,10 +20,10 @@ export const storage = defineSettings("projects", {
   /** 右サイドバーを横幅いっぱい（左のサイドバーの右から画面の右端まで）に広げているか（タブの列の左端の切り替え。アプリ全体） */
   projectChatMaximized: flag(),
   /**
-   * プロジェクトごとの、右サイドバーで見ている中身（右端のアイコンの列で切り替える。browser = ブラウザ、ほかはプロジェクトのタブと同じ画面。
-   * メインのウィンドウと右サイドバーの別ウィンドウで同じ値を読む。features/panel/projectChat/sideView.ts）
+   * プロジェクトごとの、右サイドバーで見ている中身（右端のアイコンの列で切り替える。画面の表 projectViews の名前。空・置けない画面はブラウザ。
+   * メインのウィンドウと右サイドバーの別ウィンドウで同じ値を読む。rightSidebar/sideView.ts）
    */
-  sideView: family(choice(["browser", "notes", "files", "search", "changes", "history", "db", "docker", "github", "ci", "trash"], "browser"), { ids: true }),
+  sideView: family(text(), { ids: true }),
   /** プロジェクトごとの、ファイルタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
   workplace: family(text(), { ids: true }),
 });

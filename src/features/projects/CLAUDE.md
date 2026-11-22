@@ -5,7 +5,7 @@
 ## 決まり
 
 - プロジェクトの色を出すのは印 `ProjectMark` だけ。名前の札の地と枠の色は `project-mark.css` に 1 か所（部品の CSS に書かない）。色は店の `Project.hue`（部品は `useProjectHue(id)`）。
-- 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A・パネルのタブで共通）。並びは `projectOrder.ts`。
+- 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A で共通）。並びは `projectOrder.ts`。
 - アーカイブする・戻すは必ず確かめる（`confirmArchiveProject` / `confirmRestoreProject`）。
 - 操作は右クリックの `useProjectMenu` に入れる。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`（付いているすべてのプロジェクトに効く）。
@@ -17,5 +17,5 @@
 
 - タグの絞り込み（`useProjectTagFilter`）は、サイドバーの並び・ショートカット・要対応の数・全プロジェクトの画面・⌘⇧A に効く。変えたらこれらも見る。
 - もうないプロジェクト（`useProjects().missing`）の画面は中身の部品を出さない（グループ・Git の状態を読みに行かない）。
-- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録する（中身 `Page`・タブの数 `useBadge`。描くのは `ProjectViewHost`）。足すときは、道具の画面（線で囲む）かページの画面（囲まない）かで枠を決める。並べ替えの決まりは `ui/page/tabOrder.ts`。
+- プロジェクトの画面（真ん中のタブ・右サイドバー・チャットの右の欄）は拡張点 `projectViews`（`ui/projectViews.ts`）に持ち主が登録し、どこも `ProjectViewHost` で描く（置き場所の違いは中身が `place` で決める。右の欄のタブは `chatSideView.ts`、「＋ ▾」は chatPanel の `chatSideAdds`）。道具の画面（線で囲む）かページの画面かで枠を決める。並べ替えは `ui/page/tabOrder.ts`。
 - 名前の行の「寄せたときだけ表示」はドラッグ領域にしない（理由は `project-page.css`）。

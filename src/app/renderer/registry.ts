@@ -13,7 +13,6 @@ import { contributes as files } from "@/features/files/ui/contributes";
 import { contributes as git } from "@/features/git/ui/contributes";
 import { contributes as github } from "@/features/github/ui/contributes";
 import { contributes as notes } from "@/features/notes/ui/contributes";
-import { contributes as panel } from "@/features/panel/ui/contributes";
 import { contributes as projects } from "@/features/projects/ui/contributes";
 import { contributes as snippets } from "@/features/snippets/ui/contributes";
 import { contributes as terminal } from "@/features/terminal/ui/contributes";
@@ -32,7 +31,7 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
  * 殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...panel, ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...board,
+  ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...board,
   ...workplaceDecorItems, ...userViewTabItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 
