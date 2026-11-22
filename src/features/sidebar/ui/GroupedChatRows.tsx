@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { newChatPlaceOf, type BucketHead, type ChatBucket } from "@/features/chatList/ui/buckets";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { NewChatItem } from "@/features/chat/ui/open/NewChatItem";
-import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
+import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import { useFold, useFolds } from "@/foundation/ui/hooks/useFold";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -19,7 +19,7 @@ import type { PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなしは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
   if (bucket.kind === "pinned") return <Pin size={13} />;
-  if (bucket.column) return <span className="status-group-dot" style={{ background: COLUMN_TONE[bucket.column] }} aria-hidden />;
+  if (bucket.column) return <span className="status-group-dot" data-state={COLUMN_LOOKS[bucket.column].tone} aria-hidden />;
   const kind = bucket.place?.kind;
   if (!kind) return null;
   return <GitBranch size={13} className={cx(kind === "worktree" && "status-group-worktree", kind === "missing" && "status-group-gone")} />;

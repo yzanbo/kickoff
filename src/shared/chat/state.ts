@@ -31,6 +31,9 @@ export function busyWithUnread(chat: Chat, state: AgentState): boolean {
   return chat.unread && state === "running";
 }
 
+/** いくつかの状態をまとめるときの強い順（回答待ちは手を止めているので最優先、次に作業中のリング。ボードの列の並びとは別） */
+export const STATE_STRENGTH = ["needs_input", "running", "failed", "unread", "read"] as const satisfies readonly AgentState[];
+
 /** カンバンの列（AI の状態だけで決まる。失敗したものも、見るまでは未読） */
 export function boardColumnOf(state: AgentState): BoardColumn {
   if (state === "running") return "running";

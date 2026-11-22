@@ -62,6 +62,11 @@
   background: var(--extra-muted);
 }
 
+/* チャットの状態の色（data-state。ui/status-slot.css の --state-color） */
+.status-dot[data-state] {
+  background: var(--state-color);
+}
+
 .status-dot.tone-ok {
   background: var(--ok);
 }

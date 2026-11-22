@@ -1,6 +1,7 @@
 import { MessagesSquare } from "lucide-react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";
-import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { CHILD_STATE_MARKS, childStateCounts } from "@/features/childChats/ui/childChats";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
@@ -39,7 +40,7 @@ export function ChildChatRows({
   // 子孫の状態ごとの数（アーカイブ済みは数えない。親ごとアーカイブしたときは数える）。閉じていても印で知らせる
   const counts = childStateCounts(parentId, childrenOf, stateOf, { withArchived: parentArchived || onlyArchived });
   const marks = CHILD_STATE_MARKS.filter((state) => counts[state] > 0);
-  const summary = marks.map((state) => `${AGENT_STATE_LABELS[state]} ${counts[state]}`).join("・");
+  const summary = marks.map((state) => `${STATE_LOOKS[state].label} ${counts[state]}`).join("・");
   return (
     <div className="chat-children">
       <button type="button" className={cx("chat-children-toggle", onlyArchived && "archived")} aria-expanded={fold.open} onClick={fold.toggle}>

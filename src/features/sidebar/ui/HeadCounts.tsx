@@ -1,7 +1,5 @@
-import type { CSSProperties } from "react";
-import { BOARD_COLUMN_LABELS } from "@shared/chat/types";
+import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import { cx } from "@/foundation/ui/lib/cx";
-import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
 import { COUNTED_COLUMNS, type CountedColumn, type StateCounts } from "@/features/chat/ui/state/chatState";
 
 /**
@@ -16,14 +14,14 @@ export function HeadCounts({ counts, filter, onFilter }: { counts: StateCounts; 
     <span className="head-counts">
       {shown.map((c) => {
         const on = c === filter;
-        const label = `${BOARD_COLUMN_LABELS[c]} ${counts[c]} 件`;
+        const label = `${COLUMN_LOOKS[c].label} ${counts[c]} 件`;
         return (
           <button
             key={c}
             type="button"
             className={cx("head-count tag", `head-count-${c}`, on && "active")}
-            style={{ "--tone": COLUMN_TONE[c] } as CSSProperties}
-            title={on ? `${label}（押すと、すべてのチャットに戻す）` : `${label}（押すと、${BOARD_COLUMN_LABELS[c]}のチャットだけを出す）`}
+            data-state={COLUMN_LOOKS[c].tone}
+            title={on ? `${label}（押すと、すべてのチャットに戻す）` : `${label}（押すと、${COLUMN_LOOKS[c].label}のチャットだけを出す）`}
             aria-label={label}
             aria-pressed={on}
             onClick={() => onFilter(on ? null : c)}

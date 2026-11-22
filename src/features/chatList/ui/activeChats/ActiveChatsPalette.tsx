@@ -12,19 +12,18 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { DRAFT_TONE } from "@/features/chat/ui/state/tones";
+import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import { openDraft, useAllDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { ChatStateMark } from "@/features/chat/ui";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
 import { PaletteChatChips, PaletteProjectMark } from "@/features/chatList/ui/PaletteChatParts";
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
-import { busyWithUnread } from "@shared/chat/state";
 import { hiddenItemsOf, toggleHiddenItem } from "@/foundation/ui/lib/hiddenItems";
 import { paletteSettings } from "@/features/palette/ui";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
-import { ACTIVE_STATE_LABELS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } from "./PaletteStateFilter";
+import { ACTIVE_LOOKS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } from "./PaletteStateFilter";
 
 /** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
 type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PanelDraft };
@@ -46,7 +45,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   // 出すプロジェクト: サイドバーと同じく、しまったものを除いた並び（サイドバーの「タグ」で絞り込んでいれば、合うものだけ）。
   // アーカイブ済みのプロジェクトは、行の右端の切り替えで出したときだけ後ろに足す
   const { visible, archived, tagFilter } = useVisibleProjects();
-  const { pending, stateOf } = useChatStates();
+  const { pending } = useChatStates();
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく）
   const chats = useChatsWithChildren();
@@ -106,7 +105,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
       .filter((d) => inProject(d.projectId))
       .map((draft) => ({ kind: "draft", key: `draft:${draft.panel}:${draft.key}`, draft }));
     const groups = [
-      { key: "draft", label: "下書き", tone: DRAFT_TONE, mark: undefined as ReactNode, items: draftItems },
+      { key: "draft", label: DRAFT_LOOK.label, tone: DRAFT_LOOK.tone, mark: undefined as ReactNode, items: draftItems },
       ...sections.map((section) => ({
         key: section.key,
         label: section.label,
@@ -150,7 +149,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
           autoFocus
           value={query}
           placeholder={`${ACTIVE_STATES.filter((s) => shownStates.has(s))
-            .map((s) => ACTIVE_STATE_LABELS[s])
+            .map((s) => ACTIVE_LOOKS[s].label)
             .join("・")}のチャットを絞り込む`}
           aria-label="作業中・待ちのチャットを絞り込む"
           onChange={(e) => setQuery(e.target.value)}
@@ -174,7 +173,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
         {groups.map((g) => (
           <Fragment key={g.key}>
             <li className="palette-group" role="presentation">
-              <ToneChip tone={g.tone} dot={!g.mark} icon={g.mark} label={g.label} count={g.items.length} />
+              <ToneChip state={g.tone} dot={!g.mark} icon={g.mark} label={g.label} count={g.items.length} />
             </li>
             {g.items.map((item) => {
               const i = items.indexOf(item);
@@ -199,7 +198,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                     ) : (
                       <>
                         {/* サイドバーの行と同じ状態の印（見出しの札の印の真下） */}
-                        <StatusSlot state={stateOf(item.chat)} unread={busyWithUnread(item.chat, stateOf(item.chat))} />
+                        <ChatStateMark chat={item.chat} />
                         {/* 子チャットも親の外に 1 行で並ぶので、深さの札（「子」「孫」）を付ける */}
                         {item.chat.parent_chat_id !== null && <ChildDepthMark chat={item.chat} />}
                         <span className="palette-label">{chatTitle(item.chat.title)}</span>

@@ -1,21 +1,19 @@
 import type { ReactNode, RefObject } from "react";
-import { busyWithUnread } from "@shared/chat/state";
 import { BOARD_COLUMNS, type Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/ui/state/chatState";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { COLUMN_TONE } from "@/features/chat/ui/state/tones";
+import { COLUMN_LOOKS, type StateTone } from "@shared/chat/stateLooks";
 import { Popover } from "@/foundation/ui/kit/Popover";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { ChatStateMark } from "@/features/chat/ui";
 import { bucketChats, type BucketHead, type ChatBucket } from "./buckets";
 import { BucketChip } from "./StateChip";
 
 /** 状態のまとまりの色（カンバンの列と同じ。いちばん下の「アーカイブ済み」は控えめな灰。画面の見出しの状態ごとの数 StateStats でも使う） */
-export const bucketTone = (bucket: Pick<BucketHead, "column">) => (bucket.column ? COLUMN_TONE[bucket.column] : "var(--extra-muted)");
+export const bucketTone = (bucket: Pick<BucketHead, "column">): StateTone => (bucket.column ? COLUMN_LOOKS[bucket.column].tone : "read");
 
 /**
  * チャットを状態ごとに分ける（bucketChats。チャットのないまとまりは出さない。中は最後に動いた順）。数え方はカンバンの列と同じで、状態ごとの数（stateCounts）とそろう。
@@ -60,7 +58,6 @@ export function StateChatsPopover({
   header?: ReactNode;
 }) {
   const { projectName } = useProjects();
-  const { stateOf } = useChatStates();
   return (
     <Popover anchor={anchor} gap={6} title={title} label={title} className={cx("state-chats-popover", className)} onClose={onClose}>
       {header}
@@ -81,7 +78,7 @@ export function StateChatsPopover({
               }}
             >
               {/* サイドバーの行と同じ状態の印（見出しの札の印の真下。見出しの状態と同じでも、行ごとにひと目で分かるように） */}
-              <StatusSlot state={stateOf(chat)} unread={busyWithUnread(chat, stateOf(chat))} />
+              <ChatStateMark chat={chat} />
               {/* 子チャット・孫チャットは、名前の前に深さの札（サイドバーの絞り込みの行・⌘⇧A と同じ。乗せると親の名前） */}
               {chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
               <span className="state-chats-title">{chatTitle(chat.title)}</span>

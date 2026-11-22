@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import { MessageSquare } from "lucide-react";
 import { busyWithUnread } from "@shared/chat/state";
-import { AGENT_STATE_LABELS, type AgentState, type Chat, type FeedItem } from "@shared/chat/types";
+import type { AgentState, Chat, FeedItem } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
@@ -88,7 +89,7 @@ export function FeedCardContent({
         {/* 状態はボードの列の見出しと同じ色の札 */}
         {show("state") && (
           <span className="feed-card-state">
-            <StateChip state={state} label={AGENT_STATE_LABELS[state]} unread={busyWithUnread(chat, state)} />
+            <StateChip state={state} label={STATE_LOOKS[state].label} unread={busyWithUnread(chat, state)} />
           </span>
         )}
         <CardStats chat={chat} show={show} />

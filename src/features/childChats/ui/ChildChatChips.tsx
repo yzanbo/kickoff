@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
-import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/chat/types";
-import { busyWithUnread } from "@shared/chat/state";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
+import type { AgentState, Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
@@ -9,6 +9,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { ArchivedFold } from "@/foundation/ui/kit/ArchivedFold";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { ChatStateMark } from "@/features/chat/ui";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { summaryState } from "@/features/chat/ui/state/chatState";
 import { confirmArchiveChats, confirmDeleteChat, toggleArchiveChat } from "@/features/chat/ui/chatActions";
@@ -41,8 +42,8 @@ function ChildChip({ chat }: { chat: Chat }) {
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">
         {/* 状態の印はサイドバーの行・タブと同じ（作業中のリング・回答待ちの！・未読と失敗の点） */}
-        <StatusSlot state={state} unread={busyWithUnread(chat, state)} />
-        {AGENT_STATE_LABELS[state]}
+        <ChatStateMark chat={chat} />
+        {STATE_LOOKS[state].label}
       </span>
     </button>
   );
@@ -119,11 +120,11 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         </span>
         <span className="subagent-text">
           <span className="subagent-title">
-            <StatusSlot state={state} unread={busyWithUnread(c, state)} />
+            <ChatStateMark chat={c} />
             {chatTitle(c.title)}
           </span>
           <span className="subagent-meta">
-            <span className={cx("child-chat-row-state", `child-${state}`)}>{AGENT_STATE_LABELS[state]}</span>
+            <span className={cx("child-chat-row-state", `child-${state}`)}>{STATE_LOOKS[state].label}</span>
             {c.model && (
               <>
                 {" · "}
@@ -186,7 +187,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
           {notices.map(({ state, count }) => (
             <span key={state} className={cx("child-chats-waiting", "chip-detail", `child-${state}`)}>
               {" "}
-              · {count} 件{AGENT_STATE_LABELS[state]}
+              · {count} 件{STATE_LOOKS[state].label}
             </span>
           ))}
         </>

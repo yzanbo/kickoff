@@ -14,7 +14,7 @@
   height: 18px;
   padding: 0 5px;
   border: 1px solid transparent;
-  --tag-color: var(--tone);
+  --tag-color: var(--state-color);
   font: inherit;
   font-size: var(--fs-11);
   font-weight: 700;
@@ -27,7 +27,7 @@
 
 /* 押して、その状態だけに絞っているとき */
 .head-count.active {
-  border-color: var(--tone);
+  border-color: var(--state-color);
   --tag-tint: 30%;
 }
 
@@ -35,7 +35,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--tone);
+  background: var(--state-color);
 }
 
 /* 作業中の点は、動いていることが分かるようにゆっくり明滅させる */

@@ -1,21 +1,19 @@
-import { BOARD_COLUMN_LABELS } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
+import { COLUMN_LOOKS, DRAFT_LOOK, type StateTone } from "@shared/chat/stateLooks";
 import { COUNTED_COLUMNS } from "@/features/chat/ui/state/chatState";
-import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/ui/state/tones";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 
 /** ⌘⇧A で並べる状態（下書き → 作業中・回答待ち・未読。この順に並べる） */
 export const ACTIVE_STATES = ["draft", ...COUNTED_COLUMNS] as const;
 export type ActiveState = (typeof ACTIVE_STATES)[number];
 
-export const ACTIVE_STATE_LABELS: Record<ActiveState, string> = {
-  draft: "下書き",
-  running: BOARD_COLUMN_LABELS.running,
-  needs_input: BOARD_COLUMN_LABELS.needs_input,
-  unread: BOARD_COLUMN_LABELS.unread,
+/** 並べる状態の文と色（下書き・カンバンの列と同じ） */
+export const ACTIVE_LOOKS: Record<ActiveState, { label: string; tone: StateTone }> = {
+  draft: DRAFT_LOOK,
+  running: COLUMN_LOOKS.running,
+  needs_input: COLUMN_LOOKS.needs_input,
+  unread: COLUMN_LOOKS.unread,
 };
-
-const TONES: Record<ActiveState, string> = { draft: DRAFT_TONE, running: COLUMN_TONE.running, needs_input: COLUMN_TONE.needs_input, unread: COLUMN_TONE.unread };
 
 /**
  * ⌘⇧A の一覧を状態で絞り込む行: 下書き・作業中・回答待ち・未読を、押すたびに付け外しする（いくつでも選べ、1 つは残す。⌘K の探す対象と同じピル）。
@@ -27,7 +25,7 @@ export function PaletteStateFilter({ shown, counts, onToggle }: { shown: Readonl
       <div className="palette-projects" role="group" aria-label="状態で絞り込む">
         {ACTIVE_STATES.map((state) => {
           const on = shown.has(state);
-          const label = ACTIVE_STATE_LABELS[state];
+          const { label, tone } = ACTIVE_LOOKS[state];
           return (
             <button
               key={state}
@@ -37,7 +35,7 @@ export function PaletteStateFilter({ shown, counts, onToggle }: { shown: Readonl
               title={on ? (shown.size > 1 ? `${label}を一覧から外す` : "状態は 1 つ以上選びます") : `${label}も一覧に出す`}
               onClick={() => onToggle(state)}
             >
-              <StatusDot color={TONES[state]} />
+              <StatusDot state={tone} />
               <span className="palette-project-name">{label}</span>
               <span className="palette-project-count">{counts[state]}</span>
             </button>

@@ -1,6 +1,7 @@
 import { Archive, Folder, Inbox, Pin, SquarePen } from "lucide-react";
 import { Fragment, memo, useMemo, useState } from "react";
-import { BOARD_COLUMN_LABELS, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
+import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
@@ -103,8 +104,7 @@ export const WorkspacePage = memo(function WorkspacePage({
     [showWaitingTop, counted, stateOf, approvals],
   );
   const waitingFold = useFold("sidebar", `waiting:in:${project.id}`);
-  // 開閉の記憶（まとまりのキーで覚え、見出しの行の「すべて閉じる / 開く」にも従う）: 固定・グループなし・自分で作ったグループ（絞り込み中は開いて見せる）、
-  // アーカイブ済み（初めは閉じる。検索中は開いて見せる）
+  // 開閉の記憶（まとまりのキーで覚え、見出しの「すべて閉じる / 開く」にも従う）: 固定・グループなし・自作のグループ（絞り込み中は開く）、アーカイブ済み（初めは閉じる。検索中は開く）
   const pinnedFold = useFold("sidebar", pinnedKey(project.id), { forceOpen: filtering });
   const ungroupedFold = useFold("sidebar", groupKey(project.id, null), { forceOpen: filtering });
   const archivedFold = useFold("sidebar", archivedKey(project.id), { defaultOpen: false, forceOpen: Boolean(keyword) });
@@ -305,7 +305,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       <Collapse open={!collapsed}>
         {chatCount > 0 && <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />}
         {keyword && visibleCount === 0 && <p className="empty-note chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
-        {!keyword && stateFilter && visibleCount === 0 && <p className="empty-note chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>}
+        {!keyword && stateFilter && visibleCount === 0 && <p className="empty-note chat-search-empty">{COLUMN_LOOKS[stateFilter].label}のチャットはありません</p>}
         {creating && (
           <div className="custom-group-head editing">
             <Folder size={13} aria-hidden />

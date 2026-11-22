@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { bucketTone } from "@/features/chatList/ui/StateChatsPopover";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
-import { DRAFT_TONE } from "@/features/chat/ui/state/tones";
+import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
@@ -68,7 +68,7 @@ function DraftColumn({ drafts, list = false, showProject = false }: { drafts: re
   );
   return (
     <section className={list ? "list-group" : "board-column"}>
-      <ColumnHead label="下書き" tone={DRAFT_TONE} count={drafts.length} />
+      <ColumnHead label={DRAFT_LOOK.label} tone={DRAFT_LOOK.tone} count={drafts.length} />
       {list ? body : <div className="column-cards">{body}</div>}
     </section>
   );

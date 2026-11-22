@@ -8,8 +8,8 @@ export function toneOf(ok: boolean | null | undefined): StatusTone {
 
 /**
  * 状態の点。tone は接続・ログイン・準備状況（使える・使えない・確認中・対応予定）、
- * color はカンバンの列・チャットの状態のように、色を呼び出し側で決めるとき（tones.ts の COLUMN_TONE / STATE_TONE）
+ * state はカンバンの列・チャットの状態の色の名前（data-state。色は CSS の [data-state] が決める --state-color。@shared/chat/stateLooks の tone）
  */
-export function StatusDot(props: { tone: StatusTone } | { color: string }) {
-  return "tone" in props ? <span className={`status-dot tone-${props.tone}`} /> : <span className="status-dot" style={{ background: props.color }} />;
+export function StatusDot(props: { tone: StatusTone } | { state: string }) {
+  return "tone" in props ? <span className={`status-dot tone-${props.tone}`} /> : <span className="status-dot" data-state={props.state} />;
 }

@@ -1,5 +1,6 @@
 import { agentStateOf, boardColumnOf } from "@shared/chat/state";
 import type { Approval } from "@shared/chat/approvalTypes";
+import { summarizeStates } from "@shared/chat/stateLooks";
 import type { AgentState, Chat } from "@shared/chat/types";
 
 /** 回答待ちの依頼があるチャットの ID（approvals を 1 回なめて作り、チャットごとの判定に使う） */
@@ -39,15 +40,12 @@ export interface SummaryState {
   unread: boolean;
 }
 
-/** まとめるときに強い順（回答待ちは手を止めているので最優先、次に作業中のリング） */
-const SUMMARY_ORDER = ["needs_input", "running", "failed", "unread", "read"] as const satisfies readonly AgentState[];
-
 /**
  * いくつかの状態を 1 つの印にまとめる（入力欄の上の子チャット・サブエージェントのピルの左。開かなくても様子が分かるように）。
- * 回答待ち > 作業中 > 失敗 > 未読 > 既読 の順で強いものを出し、作業中で、ほかに未読があれば unread（リングに緑の点を重ねる）。空なら既読
+ * 強い順（STATE_STRENGTH: 回答待ち > 作業中 > 失敗 > 未読 > 既読）でいちばん強いものを出し、作業中で、ほかに未読があれば unread（リングに緑の点を重ねる）。空なら既読
  */
 export function summaryState(states: readonly AgentState[]): SummaryState {
-  const has = new Set(states);
-  const state = SUMMARY_ORDER.find((s) => has.has(s)) ?? "read";
-  return { state, unread: state === "running" && has.has("unread") };
+  const { mark, counts } = summarizeStates(states);
+  const state = mark ?? "read";
+  return { state, unread: state === "running" && counts.unread > 0 };
 }

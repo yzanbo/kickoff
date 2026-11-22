@@ -39,27 +39,12 @@ export const CHAT_TITLE_MAX = 100;
 export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
 export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 
-export const BOARD_COLUMN_LABELS: Record<BoardColumn, string> = {
-  running: "作業中",
-  needs_input: "回答待ち",
-  unread: "未読",
-  read: "既読",
-};
-
 /**
  * エージェント自身の状態（状態の分け方に合わせる）。
  * needs_input: 承認・回答待ち / failed: 失敗してまだ見ていない / running: 作業中 / unread: 終わってまだ見ていない（未読）/ read: 見た（既読）
  */
 const AGENT_STATES = ["needs_input", "failed", "unread", "running", "read"] as const;
 export type AgentState = (typeof AGENT_STATES)[number];
-
-export const AGENT_STATE_LABELS: Record<AgentState, string> = {
-  needs_input: "回答待ち",
-  failed: "失敗",
-  unread: "未読",
-  running: "作業中",
-  read: "既読",
-};
 
 /** チャットの状態（いまの作業、なければ最後の作業の終わり方）。承認・質問の回答待ちは状態に持たず、回答待ちの一覧から決める（shared/chat/state.ts の agentStateOf） */
 const CHAT_STATUSES = ["running", "completed", "failed", "cancelled"] as const;

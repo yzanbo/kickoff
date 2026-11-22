@@ -2,14 +2,12 @@ import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote 
 import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
-import { busyWithUnread } from "@shared/chat/state";
 import { useLatestAnswer } from "@/features/chat/ui/store/useChatStore";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { useChatRename, type ChatTitleEditor } from "@/features/chat/ui/useChatRename";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { ChatStateMark } from "@/features/chat/ui";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { knownChat, useChatsValue, useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -186,7 +184,6 @@ type ChatRename = ReturnType<typeof useChatRename>;
  */
 function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename; onReveal: () => void }) {
   const parent = useKnownChat(id);
-  const { stateOf } = useChatStates();
   const timer = useRef<number | undefined>(undefined);
   const cancelReveal = () => window.clearTimeout(timer.current);
   // 待っている間に帯が消えたら移らない
@@ -197,7 +194,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
   if (editor) {
     return (
       <span className="child-chat-crumb pill editing">
-        <StatusSlot state={stateOf(parent)} unread={busyWithUnread(parent, stateOf(parent))} />
+        <ChatStateMark chat={parent} />
         <ChatTitleInput chat={parent} editor={editor} className="child-chat-title-input" />
       </span>
     );
@@ -218,7 +215,7 @@ function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename;
         rename.start(parent);
       }}
     >
-      <StatusSlot state={stateOf(parent)} unread={busyWithUnread(parent, stateOf(parent))} />
+      <ChatStateMark chat={parent} />
       <span className="child-chat-crumb-name">{name}</span>
     </button>
   );

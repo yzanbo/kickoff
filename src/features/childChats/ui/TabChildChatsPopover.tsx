@@ -1,12 +1,10 @@
 import type { CSSProperties, RefObject } from "react";
-import { busyWithUnread } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { useChildChats } from "@/features/chat/ui/store/knownChats";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { ChatStateMark } from "@/features/chat/ui";
 import { ChildDepthMark } from "./ChildDepthMark";
 import { descendantRows } from "./childChats";
 import { openChildSide } from "@/features/chat/ui/open/openChat";
@@ -18,7 +16,6 @@ import { openChildSide } from "@/features/chat/ui/open/openChat";
  */
 export function TabChildChatsPopover({ chatId, anchor, onClose }: { chatId: number; anchor: RefObject<HTMLElement | null>; onClose: () => void }) {
   const childrenOf = useChildChats();
-  const { stateOf } = useChatStates();
   const rows = descendantRows(chatId, childrenOf);
   const open = (chat: Chat) => {
     onClose();
@@ -37,7 +34,7 @@ export function TabChildChatsPopover({ chatId, anchor, onClose }: { chatId: numb
           title={`${chatTitle(chat.title)} を右の欄で開く`}
           onClick={() => open(chat)}
         >
-          <StatusSlot state={stateOf(chat)} unread={busyWithUnread(chat, stateOf(chat))} />
+          <ChatStateMark chat={chat} />
           {depth > 1 && <ChildDepthMark chat={chat} />}
           <span className="state-chats-title">{chatTitle(chat.title)}</span>
           <span className="state-chats-time muted">{relativeTime(chat.active_at, { style: "short" })}</span>

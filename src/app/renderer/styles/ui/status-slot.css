@@ -1,4 +1,28 @@
-/* ==== チャットの状態の印（StatusSlot。サイドバーの行・札・タブ・カードの先頭） ==== */
+/* ==== チャットの状態の色と印（StatusSlot。サイドバーの行・札・タブ・カードの先頭） ==== */
+
+/*
+ * 状態の色: data-state（@shared/chat/stateLooks の tone）が --state-color を決める。印・札・点・数はこの変数で塗る（JS で色を渡さない）
+ */
+[data-state="needs-input"] {
+  --state-color: var(--dot-needs-input);
+}
+
+[data-state="running"] {
+  --state-color: var(--dot-running);
+}
+
+[data-state="failed"] {
+  --state-color: var(--dot-failed);
+}
+
+[data-state="unread"] {
+  --state-color: var(--dot-unread);
+}
+
+[data-state="read"],
+[data-state="draft"] {
+  --state-color: var(--extra-muted);
+}
 
 .status-slot {
   position: relative;
@@ -13,25 +37,20 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--state-color);
 }
 
-.state-unread .status-dot-mark {
-  background: var(--dot-unread);
-}
-
-.state-failed .status-dot-mark {
+.status-slot[data-state="failed"] .status-dot-mark {
   width: 8px;
   height: 8px;
-  background: var(--dot-failed);
 }
 
-.state-read .status-dot-mark {
-  background: var(--extra-muted);
+.status-slot[data-state="read"] .status-dot-mark {
   opacity: 0.3;
 }
 
-.status-slot.state-needs_input {
-  color: var(--dot-needs-input);
+.status-slot[data-state="needs-input"] {
+  color: var(--state-color);
 }
 
 /* 回答待ちの！の縁は、緑の点の縁と同じ置き場所の地の色 --slot-ring */

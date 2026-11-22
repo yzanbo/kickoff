@@ -1,8 +1,9 @@
 // 本体のチャット一覧（プロジェクトごと。回答待ち → 作業中 → 未読 → 最後に動いた順）。押すとチャットへ。新しいチャット・ターミナル
 import { useMemo } from "react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import { Pressable, SectionList, Text, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { AGENT_STATE_LABELS, type AgentState } from "@shared/chat/types";
+import type { AgentState } from "@shared/chat/types";
 import { chatSections } from "../../lib/hostState";
 import { useHosts } from "../../state/hosts";
 import { useHostState } from "../../state/useHostState";
@@ -48,7 +49,7 @@ export default function ChatListScreen() {
               <Text style={[ui.text, { flex: 1 }]} numberOfLines={1}>
                 {item.chat.title}
               </Text>
-              {item.state !== "read" && <Text style={[ui.muted, { color: STATE_COLORS[item.state] }]}>{AGENT_STATE_LABELS[item.state]}</Text>}
+              {item.state !== "read" && <Text style={[ui.muted, { color: STATE_COLORS[item.state] }]}>{STATE_LOOKS[item.state].label}</Text>}
             </View>
           </Pressable>
         )}

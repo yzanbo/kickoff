@@ -1,7 +1,6 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/chat/types";
-import { busyWithUnread } from "@shared/chat/state";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { chatAttachmentsDraft, chatDraft } from "@/foundation/ui/storage/storageKeys";
@@ -14,7 +13,7 @@ import { QueueModeToggle } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { useChatSend } from "@/features/composer/ui/send/chatSend";
 import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
-import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
+import { ChatStateMark } from "@/features/chat/ui";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -96,9 +95,9 @@ export function NoteQuickChat({
             名前と同じ行に並べる（別の行にすると、入力欄の上が 2 行になって高くなる） */}
         <div ref={chipsRef} className="note-quick-chips" />
         <span className="note-quick-state" role="status">
-          {state !== "read" && (
+          {chat && state !== "read" && (
           <>
-              <StatusSlot state={state} unread={!!chat && busyWithUnread(chat, state)} />
+              <ChatStateMark chat={chat} />
               <span className="note-quick-status-text">{STATUS_TEXTS[state]}</span>
             </>
           )}

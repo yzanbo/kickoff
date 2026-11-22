@@ -1,6 +1,7 @@
 import { Inbox } from "lucide-react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import { useMemo, type ReactNode } from "react";
-import { AGENT_STATE_LABELS, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import { alert } from "@/foundation/ui/kit/ask";
 import { FOLD_ROW, FoldSection } from "@/foundation/ui/kit/FoldHead";
 import { FOLD_SECTION } from "./foldLooks";
@@ -10,7 +11,6 @@ import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { ChatMenu } from "@/features/chatList/ui/menu/ChatMenu";
-import { STATE_TONE } from "@/features/chat/ui/state/tones";
 import { useChatRename } from "@/features/chat/ui/useChatRename";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
@@ -109,8 +109,8 @@ function InboxGroup({ section, renderRow }: { section: InboxSection; renderRow: 
   const fold = useFold("sidebar", `waiting:${section.state}`);
   const label = (
     <>
-      <span className="status-group-dot" style={{ background: STATE_TONE[section.state] }} aria-hidden />
-      <span className="status-group-label">{AGENT_STATE_LABELS[section.state]}</span>
+      <span className="status-group-dot" data-state={STATE_LOOKS[section.state].tone} aria-hidden />
+      <span className="status-group-label">{STATE_LOOKS[section.state].label}</span>
     </>
   );
   return (

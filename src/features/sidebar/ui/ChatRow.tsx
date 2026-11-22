@@ -1,7 +1,8 @@
 import { Ellipsis, Pin } from "lucide-react";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
-import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/chat/types";
+import type { AgentState, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isOpenKey, isRenameKey } from "@/foundation/ui/lib/keys";
@@ -108,7 +109,7 @@ export function ChatRow({
         data-chat-id={chat.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
-        title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
+        title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${STATE_LOOKS[state].label}${busyUnread ? "・未読あり" : ""}）`}
         draggable
         onDragStart={(e) => startChatDrag(e, chat.id)}
         onDoubleClick={(e) => {

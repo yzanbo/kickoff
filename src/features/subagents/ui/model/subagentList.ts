@@ -1,9 +1,16 @@
-import { AGENT_STATE_LABELS, type AgentState } from "@shared/chat/types";
+import type { AgentState } from "@shared/chat/types";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState, type SubagentDetail, type SubagentState } from "@shared/chat/subagentState";
 
-/** サブエージェントの状態の文（細かい様子がないとき）。チャット・子チャットと同じ言葉（AGENT_STATE_LABELS）で、未読・既読の区別のないサブエージェントは「完了」 */
-const SUBAGENT_STATE_LABELS: Record<AgentState, string> = { ...AGENT_STATE_LABELS, unread: "完了", read: "完了" };
+/** サブエージェントの状態の文（細かい様子がないとき）。チャット・子チャットと同じ言葉（STATE_LOOKS）で、未読・既読の区別のないサブエージェントは「完了」 */
+const SUBAGENT_STATE_LABELS: Record<AgentState, string> = {
+  needs_input: STATE_LOOKS.needs_input.label,
+  failed: STATE_LOOKS.failed.label,
+  running: STATE_LOOKS.running.label,
+  unread: "完了",
+  read: "完了",
+};
 
 /** 細かい様子の文（通信の切断・出力の上限・受け取り待ち・届いていない・中断・やり直し済み） */
 const SUBAGENT_DETAIL_LABELS: Record<SubagentDetail, string> = {

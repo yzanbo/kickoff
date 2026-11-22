@@ -1,7 +1,8 @@
 // どのまとまりに入るか（まとまりのキーと見出し。決まりと形は buckets.ts の先頭）。チャット・下書き・作業場所から見出しを作る。
 // bucketChats が使い、パネルのタブのまとまり（useTabClusters）もタブの中身からこれで決める
 import { boardColumnOf } from "@shared/chat/state";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
+import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
+import { BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
 import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";
@@ -55,7 +56,7 @@ export function workplaceHead(projectId: number, chat: Pick<Chat, "worktree_path
 const statusHead = (column: BoardColumn, scope: number | undefined, parent: string | undefined): BucketHead => ({
   key: keyAt(`status:${column}`, scope, parent),
   kind: "status",
-  label: BOARD_COLUMN_LABELS[column],
+  label: COLUMN_LOOKS[column].label,
   projectId: scope,
   column,
 });
