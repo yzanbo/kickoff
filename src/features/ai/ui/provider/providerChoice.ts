@@ -7,9 +7,6 @@ import { PROVIDERS } from "@shared/ai/providers";
 /** API キーで動かす AI に添える印（設定・チャットの AI の札） */
 export const PAY_PER_USE_LABEL = "使った分の支払い";
 
-/** サブスクでは使わず、API キーでだけ動かす AI（Gemini（Antigravity）のログインをほかのアプリから使うのは利用規約で禁じられているので、定額のプランとしては扱わない） */
-export const API_KEY_ONLY_PROVIDERS: ReadonlySet<ProviderId> = new Set<ProviderId>(["gemini"]);
-
 /** AI の名前（状態がまだ届いていなくても出せるように、共有の名前から） */
 export const providerLabel = (id: ProviderId, status?: ProviderStatus): string => status?.label ?? PROVIDER_LABELS[id];
 
@@ -23,7 +20,7 @@ export const statusOf = (statuses: readonly ProviderStatus[] | undefined, id: Pr
 export function providerPickBlock(id: ProviderId, status: ProviderStatus | undefined): string | null {
   if (!status) return "確認中…";
   if (!status.implemented) return `${providerLabel(id, status)} は今後の対応予定です（まだ Kickoff のチャットでは使えません）`;
-  if (API_KEY_ONLY_PROVIDERS.has(id) && (status.auth_mode !== "api_key" || !status.has_api_key)) return `${providerLabel(id, status)} は API キーでだけ動きます（設定の「接続」で API キーを置いてください）`;
+  if (PROVIDERS[id].apiKeyOnly && (status.auth_mode !== "api_key" || !status.has_api_key)) return `${providerLabel(id, status)} は API キーでだけ動きます（設定の「接続」で API キーを置いてください）`;
   return null;
 }
 

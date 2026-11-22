@@ -51,6 +51,11 @@ export interface ProviderInfo {
   capabilities: readonly ProviderCapability[];
   /** つながったかを確かめる先（通信の切断で止まったあと、返事があれば再開する。その AI の API） */
   reachability: string;
+  /**
+   * サブスクでは使わず、API キーでだけ動かすか（Gemini（Antigravity）のログインをほかのアプリから使うのは利用規約で禁じられているので、
+   * 定額のプランとしては扱わない）
+   */
+  apiKeyOnly: boolean;
 }
 
 /** つながったかを確かめる先の既定（Anthropic の API。ほかの AI は、その AI の先が決まるまでこれ） */
@@ -66,6 +71,7 @@ export const PROVIDERS = {
     installHint: null,
     capabilities: ["fork", "rewind_files", "subagent_log", "commands", "models", "ask", "sessions", "effort_default", "sandbox_off", "sandbox_diagnostics", "switch", "any_model", "fast_mode", "plan_usage", "pay_as_you_go"],
     reachability: ANTHROPIC_API,
+    apiKeyOnly: false,
   },
   codex: {
     label: PROVIDER_LABELS.codex,
@@ -76,8 +82,9 @@ export const PROVIDERS = {
     installHint: "codex CLI が見つかりません（brew install codex）",
     capabilities: ["fork", "models", "ask", "login", "sandbox_off", "sandbox_diagnostics", "switch", "model_effort_default", "pay_as_you_go"],
     reachability: "https://api.openai.com/",
+    apiKeyOnly: false,
   },
-  copilot: { label: PROVIDER_LABELS.copilot, short: null, cli: "copilot", hue: 280, mark: "letter", installHint: null, capabilities: ["fork", "models", "ask"], reachability: ANTHROPIC_API },
+  copilot: { label: PROVIDER_LABELS.copilot, short: null, cli: "copilot", hue: 280, mark: "letter", installHint: null, capabilities: ["fork", "models", "ask"], reachability: ANTHROPIC_API, apiKeyOnly: false },
   cursor: {
     label: PROVIDER_LABELS.cursor,
     short: null,
@@ -87,6 +94,7 @@ export const PROVIDERS = {
     installHint: "Cursor の CLI（agent）が見つかりません（curl https://cursor.com/install -fsS | bash）",
     capabilities: ["ask"],
     reachability: ANTHROPIC_API,
+    apiKeyOnly: false,
   },
   gemini: {
     label: PROVIDER_LABELS.gemini,
@@ -97,6 +105,7 @@ export const PROVIDERS = {
     installHint: "Antigravity CLI（agy）が見つかりません（brew install --cask antigravity-cli）",
     capabilities: ["ask"],
     reachability: ANTHROPIC_API,
+    apiKeyOnly: true,
   },
 } as const satisfies Record<ProviderId, ProviderInfo>;
 

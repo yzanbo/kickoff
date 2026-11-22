@@ -2,7 +2,7 @@ import type { Attachment } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { queueModeTexts, useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import type { SendWhen } from "@/features/composer/ui/composerKeys";
-import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
+import type { ChatOptionsState } from "@/features/ai/ui";
 import type { OutgoingMessage } from "../composerModel";
 import { createChatSend, type HandBackFrom } from "./createChatSend";
 

@@ -1,8 +1,7 @@
 import { RETRY_PROMPT } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { effortsFor, groupModels } from "@/features/ai/ui/options/models";
-import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
+import { type ChatOptionsState, effortsFor, fitChatOptions, groupModels } from "@/features/ai/ui";
 import type { RetryChange, RetryChoices } from "@/features/conversation/ui/rewindContext";
 import { lowerEffort } from "./retryActions";
 import { failedTurn } from "./selectors";
@@ -27,15 +26,13 @@ export function useRetryChoices(chatId: number, busy: boolean, options: ChatOpti
 
 /**
  * 失敗した作業を、続きから再試行する（RETRY_PROMPT を送る）。深さ・モデルを変えるときは、チャット欄の選択も同じに変える
- * （そのあとの送信も、変えた選択のまま）。新しいモデルで選べない深さは、指定しない（モデルの既定）にする
+ * （そのあとの送信も、変えた選択のまま）。新しいモデルに合わない選択は、チャット欄と同じ fitChatOptions で外す（選べない深さは指定しない = モデルの既定）
  */
 export function retryTurn(chatId: number, options: ChatOptionsState, change: RetryChange = {}): void {
-  const next = { ...options.options };
+  let next = { ...options.options };
   if (change.model !== undefined) {
-    next.model = change.model;
     options.setModel(change.model);
-    const efforts = effortsFor(options.models.find((m) => m.value === change.model));
-    if (next.effort && !efforts.includes(next.effort)) next.effort = null;
+    next = fitChatOptions({ ...next, model: change.model }, options.models, options.provider);
   }
   if (change.effort !== undefined) {
     next.effort = change.effort;

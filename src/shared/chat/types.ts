@@ -1,20 +1,10 @@
-import type { EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
+import type { ChatOptionsPatch, EffortLevel, PermissionMode, ProviderId } from "@shared/settings/types";
 import type { MessageMarks } from "./chatEvent";
 import type { GitHubKind } from "@shared/github/types";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
-/** 実行ごとに選べるオプション（チャット欄の選択） */
-export interface ChatOptions {
-  /** モデル（null ならプロバイダーの既定） */
-  model: string | null;
-  /** 推論の深さ（null なら指定しない＝モデルの既定） */
-  effort: EffortLevel | null;
-  permission_mode: PermissionMode;
-  fast_mode: boolean;
-}
-
-/** 選択の一部（送るとき・送信待ち・プロジェクトの既定）。書いていない項目は、次の段（送るとき → プロジェクト → アプリ）に従う */
-export type ChatOptionsPatch = Partial<ChatOptions>;
+/** 実行ごとに選べるオプション（チャット欄の選択）と、その一部（定義は値の一覧の隣 @shared/settings/types。設定・AI の画面も読む） */
+export type { ChatOptions, ChatOptionsPatch } from "@shared/settings/types";
 
 /** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・ノート・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
 export const UNTITLED_CHAT_TITLE = "Untitled Chat";

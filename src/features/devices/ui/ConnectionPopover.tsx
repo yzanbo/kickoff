@@ -1,9 +1,8 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui/stores/providers";
+import { accountLine, githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui";
 import type { ConnectionState } from "@/foundation/ui/api/serverConnection";
-import { accountLine } from "@/features/ai/ui/usage/usage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { StatusDot, toneOf, type StatusTone } from "@/foundation/ui/kit/StatusDot";

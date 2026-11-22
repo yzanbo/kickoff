@@ -5,7 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { addChat, useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { chatComposerDraft, Composer } from "@/features/composer/ui";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { useChatOptions } from "@/features/ai/ui";
 import { useChatSend } from "@/features/composer/ui";
 import { handBackFromOf } from "@/features/childChats/ui";
 import { ChatStateMark } from "@/features/chat/ui";
@@ -141,12 +141,12 @@ function NoteQuickComposer({
   queueRef: (el: HTMLDivElement | null) => void;
   queued: boolean;
 }) {
-  const options = useChatOptions(
-    chat ? { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode } : undefined,
+  const options = useChatOptions({
+    initial: chat ? { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode } : undefined,
     projectId,
-    chat?.worktree_path ?? undefined,
-    chat?.provider,
-  );
+    worktree: chat?.worktree_path ?? undefined,
+    provider: chat?.provider,
+  });
   const busy = chat?.status === "running";
   // 停止を押して、止まるのを待っている（止まったら戻す）
   const [stopping, setStopping] = useState(false);

@@ -6,7 +6,7 @@ import { isComposing } from "@/foundation/ui/lib/keys";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { findTrigger, isSuggestAcceptKey, matchCommands, matchFiles } from "./suggestMatch";
-import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
+import { useFeatureBlock } from "@/features/ai/ui";
 
 export type SuggestItem =
   | { kind: "slash"; key: string; command: SlashCommandOption }

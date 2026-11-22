@@ -1,4 +1,4 @@
-import type { ChatOptions } from "@shared/chat/types";
+import type { ChatOptions } from "@shared/settings/types";
 import { PROVIDER_LABELS, type EffortLevel, type OtherProviderId, type PermissionMode } from "@shared/settings/types";
 import { useModels } from "@/features/ai/ui/stores/providers";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";

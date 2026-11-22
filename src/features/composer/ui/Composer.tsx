@@ -5,7 +5,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
+import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui";
 import { AttachButton } from "./AttachButton";
 import { PendingFileChips } from "./PendingFileChips";
 import type { VoiceReply } from "./selectors";

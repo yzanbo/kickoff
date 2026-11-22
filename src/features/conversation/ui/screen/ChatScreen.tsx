@@ -24,7 +24,7 @@ import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useF
 import { ChatImagesProvider } from "@/features/remoteImages/ui";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
-import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui/provider/chatProvider";
+import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui";
 import { useForegroundProvider } from "./useForegroundProvider";
 import { RewindActionsContext, type RewindActions } from "@/features/conversation/ui/rewindContext";
 import { ChatColumn } from "./ChatColumn";

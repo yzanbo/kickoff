@@ -9,7 +9,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { chatComposerDraft, Composer, composerPills, type ComposerSend, type OutgoingMessage } from "@/features/composer/ui";
-import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
+import type { ChatOptionsState } from "@/features/ai/ui";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { PromptsChip } from "@/features/conversation/ui/promptList/PromptsChip";
 import { QueuedMessages, RestartResumeBanner } from "@/features/queue/ui";

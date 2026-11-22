@@ -1,5 +1,5 @@
 // チャットの選択（モデル・推論の深さ・権限モード・ファストモード）の決め方（コアと画面で共通。Node 依存を持ち込まないこと）
-import type { ChatOptions, ChatOptionsPatch } from "@shared/chat/types";
+import type { ChatOptions, ChatOptionsPatch } from "@shared/settings/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";

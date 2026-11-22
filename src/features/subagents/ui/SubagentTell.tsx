@@ -13,10 +13,9 @@ import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { Composer, settingDraft } from "@/features/composer/ui";
 import type { SendWhen } from "@/features/composer/ui/composerKeys";
 import { useQueueMode } from "@/features/composer/ui/QueueModeToggle";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { useChatOptions, useFeatureBlock } from "@/features/ai/ui";
 import { openCreatedChild } from "@/features/chat/ui";
 import type { SubagentsView } from "./subagentsContext";
-import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 
 type AskMode = "relay" | "child";
 
@@ -48,7 +47,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   const logBlock = useFeatureBlock("subagent_log");
   const [queueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
-  const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
+  const options = useChatOptions({ projectId: view.projectId, worktree: view.worktree ?? undefined });
   if (!agentId) return <p className="muted small">{`このサブエージェントには伝えられません（${PROVIDER_LABELS[view.provider]} がサブエージェントの ID を知らせていないため）。`}</p>;
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
   const relay = async (text: string, attachments: Attachment[], sendMode?: SendWhen) => {

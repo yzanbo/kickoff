@@ -4,7 +4,7 @@ import type { ProviderId } from "@shared/settings/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { LinkedItemChip } from "@/features/chat/ui";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
-import { ModelName } from "@/features/ai/ui/options/ModelName";
+import { ModelName } from "@/features/ai/ui";
 import { formatFullDateTime, relativeTime } from "@/foundation/ui/lib/time";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { GroupChip } from "@/features/groups/ui/GroupChip";

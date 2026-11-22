@@ -1,5 +1,4 @@
 // プロバイダー・推論の深さ・権限モードなど、設定の項目の値の一覧（設定の項目と既定は各機能の src/shared/<機能>/settings.ts。束ねは src/app/shared/settings.ts）
-import type { ChatOptions } from "@shared/chat/types";
 
 export const PROVIDER_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -62,4 +61,17 @@ export const LINK_OPEN_TARGET_LABELS: Record<LinkOpenTarget, string> = { kickoff
 export const TRUSTED_LINK_DOMAINS_MAX = 500;
 
 /** Claude Code のほかの AI の既定の初め（モデル・推論の深さはその AI の既定に任せ、権限モードは毎回確認） */
+/** 実行ごとに選べるオプション（チャット欄の選択） */
+export interface ChatOptions {
+  /** モデル（null ならプロバイダーの既定） */
+  model: string | null;
+  /** 推論の深さ（null なら指定しない＝モデルの既定） */
+  effort: EffortLevel | null;
+  permission_mode: PermissionMode;
+  fast_mode: boolean;
+}
+
+/** 選択の一部（送るとき・送信待ち・プロジェクトの既定）。書いていない項目は、次の段（送るとき → プロジェクト → アプリ）に従う */
+export type ChatOptionsPatch = Partial<ChatOptions>;
+
 export const PROVIDER_BASE_CHAT_OPTIONS: ChatOptions = { model: null, effort: null, permission_mode: "default", fast_mode: false };

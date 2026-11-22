@@ -19,7 +19,7 @@ import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
 import { HandBackFromChip } from "@/features/childChats/ui";
 import { COMPACT_PROMPT_KINDS, compactKindOf, CompactPromptMark } from "@/features/compact/ui";
-import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
+import { useFeatureBlock } from "@/features/ai/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
 /**

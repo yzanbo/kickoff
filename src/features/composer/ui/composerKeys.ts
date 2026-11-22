@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { consumeKey, isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
-import { permissionChoices } from "@/features/ai/ui/options/models";
-import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
+import { type ChatOptionsState, permissionChoices } from "@/features/ai/ui";
 import type { SettingValue } from "@/foundation/ui/storage";
 import type { storage } from "./storage";
 import type { SubmitHow } from "./messageFieldModel";

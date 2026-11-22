@@ -15,7 +15,7 @@ import { FailedTurnActions } from "@/features/conversation/ui/rewind/FailedTurnA
 import { requestHandoff } from "@/features/childChats/ui/handBack";
 import { AddToParentButton } from "@/features/childChats/ui/AddToParentButton";
 import { HandBackMarks } from "@/features/childChats/ui";
-import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
+import { useFeatureBlock } from "@/features/ai/ui";
 import { useBeforeWorkplaceMove, useTimelineBusy } from "@/features/chat/ui";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 import type { TurnExtras } from "./turnExtras";

@@ -6,7 +6,7 @@ import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { appendDraft, appendToDraft, Composer, focusDraft, memoryDraft, type ComposerDraft } from "@/features/composer/ui";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { useChatOptions } from "@/features/ai/ui";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
@@ -134,7 +134,7 @@ function NoteChatStart({
   draft: ComposerDraft;
   onStart: (text: string, attachments: Attachment[], options: ChatOptions) => Promise<void>;
 }) {
-  const options = useChatOptions(undefined, projectId);
+  const options = useChatOptions({ projectId });
   // 会話の横幅はチャットの画面と同じ（標準なら上限で真ん中、広げるなら幅いっぱい。ノートの下の入力欄とも同じ）
   const [wide] = useWideText();
   return (

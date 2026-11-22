@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { ChatProviderContext, ProviderPicker, useChatOptions } from "@/features/ai/ui";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useActionButton } from "@/features/chat/ui";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
@@ -15,8 +15,6 @@ import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
 import { childChatsApi, InheritChoice } from "@/features/childChats/ui";
-import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
-import { ProviderPicker } from "@/features/ai/ui";
 
 /** 作ったときに渡すもの（always: 聞かずに「引き継いで開く」で作ったとき。設定が「開かない」でも開く） */
 type OnCreated = (child: Chat, opts: { always: boolean }) => void;
@@ -55,7 +53,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   // 使う AI（初めは親と同じ。選び直せ、親と違う AI なら会話は引き継がない）
   const [provider, setProvider] = useState<ProviderId>(parent.provider);
   const otherAi = provider !== parent.provider;
-  const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined, provider);
+  const options = useChatOptions({ projectId: parent.project_id, worktree: parent.worktree_path ?? undefined, provider });
   const [inheritChoice, setInherit] = useState(true);
   const inherit = inheritChoice && !otherAi;
   const project = useProjects().projectsById.get(parent.project_id);

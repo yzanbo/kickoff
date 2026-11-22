@@ -1,140 +1,13 @@
 import { Brain, Shield, Zap } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { resolveChatOptions } from "@shared/ai/chatOptions";
-import type { ChatOptions } from "@shared/chat/types";
 import type { EffortDefault } from "@shared/ai/types";
+import { providerCan } from "@shared/ai/providers";
 import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
-import { api } from "@/foundation/ui/api";
-import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
-import { useKeyedStore } from "@/foundation/ui/store/useStore";
-import { useProjects } from "@/features/projects/ui/stores/projects";
-import { NO_MODELS, useModelsState } from "@/features/ai/ui/stores/providers";
-import { useAppSettings } from "@/features/settings/ui/stores/settings";
-import { effortsFor, fallbackModel, fastSupportOf, groupModels, modelDisplayName, permissionChoices, withDefaults } from "./models";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 import { OptionChoice } from "./OptionChoice";
+import type { ChatOptionsState } from "./useChatOptions";
 import { ProviderIcon } from "@/features/ai/ui/provider/ProviderIcon";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
-
-/** 既定の深さを取り直すまでの間（Claude Code の設定を書き換えたら、しばらくして直る） */
-const EFFORT_DEFAULT_MAX_AGE_MS = 60_000;
-
-/** プロジェクト・モデル・作業場所の key（本体は作業場所が空） */
-const effortKeyOf = (projectId: number, model: string | null, worktree: string | undefined) => `${projectId}\n${model ?? ""}\n${worktree ?? ""}`;
-
-/**
- * 深さを指定しないときに使われる深さ（プロジェクト・モデル・作業場所ごと。チャット欄がいくつあっても、取りに行くのは key ごとに 1 回。
- * 描いたときの effect で取ると、隠したタブを表に戻すたびに同じ値を取り直す）
- */
-const effortDefaults = createKeyedStore<string, EffortDefault>({
-  load: (key) => {
-    const [projectId, model, worktree] = key.split("\n");
-    return api.effortDefault(Number(projectId), model || null, worktree || undefined);
-  },
-  maxAge: EFFORT_DEFAULT_MAX_AGE_MS,
-});
-
-/**
- * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
- * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
- * 新しいチャットでプロジェクトを替えたら（全プロジェクトのボード）、そのプロジェクトの既定に当て直す。
- * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始め、既定は当てない（別のプロジェクトへ移しても、チャットの選択のまま）。
- * provider はそのチャットの AI（モデルの一覧をその AI から読む。省けばプロジェクトの AI）。新しいチャットで AI を替えたら、モデル・推論の深さをその AI の既定に当て直す
- * （前の AI のモデルの名前を残すと、その AI に知らない名前を渡す）。
- */
-export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string, providerArg?: ProviderId) {
-  const settings = useAppSettings().data;
-  const { projectsById, loaded: projectsLoaded } = useProjects();
-  const project = projectId === undefined ? undefined : projectsById.get(projectId);
-  const provider: ProviderId = providerArg ?? project?.provider ?? "claude";
-  // モデルの一覧（AI ごとにアプリ全体で 1 回だけ取る）
-  const modelState = useModelsState(provider);
-  const models = modelState.data ?? NO_MODELS;
-  const [model, setModel] = useState<string | null>(initial?.model ?? null);
-  const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
-  const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
-  const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
-  // 既存のチャットの AI を途中で替えたら、コアが当て直したそのチャットの選択に合わせ直す。
-  // 前の AI のモデル・権限モードを残すと、確認画面で見せた値と違うものを新しい AI に送ってしまう（Claude Code は一覧の外のモデル名も受け付けるので、下の当て直しでも直らない）
-  const [optionsProvider, setOptionsProvider] = useState(provider);
-  if (initial && optionsProvider !== provider) {
-    setOptionsProvider(provider);
-    setModel(initial.model ?? null);
-    setEffort(initial.effort ?? null);
-    setPermission(initial.permission_mode ?? "default");
-    setFastMode(initial.fast_mode ?? false);
-  }
-
-  // 新しいチャットは、設定とプロジェクトが届いたら、その既定から始める（どちらも店から。あとで既定を変えても、選び直したものは変えない）。
-  // 既定を当てたプロジェクト（"app" = プロジェクトなし）と AI を覚え、替わったら当て直す
-  const [fresh] = useState(!initial);
-  const defaultedFor = useRef<{ target: number | "app"; provider: ProviderId } | null>(null);
-  // 選んでいる値が変わっても当て直さない（プロジェクト・AI・既定が届いたときだけ）
-  const applyDefaults = useEffectEvent(() => {
-    const target = projectId ?? "app";
-    const prev = defaultedFor.current;
-    if (!fresh || (prev?.target === target && prev.provider === provider) || !settings || (projectId !== undefined && !projectsLoaded)) return;
-    defaultedFor.current = { target, provider };
-    const defaults = resolveChatOptions(settings, provider, project);
-    // AI だけを替えたら、モデルと推論の深さだけを新しい AI の既定にする（権限モードは利用者が選んだまま。使えなければ下で外れる）
-    if (prev && prev.target === target) {
-      setModel(defaults.model);
-      setEffort(defaults.effort);
-      return;
-    }
-    // 開いて初めて当てるときは、既定が届く前に選んだモデルを残す
-    const next = withDefaults({ model, effort, permission_mode: permission, fast_mode: fastMode }, defaults, prev === null);
-    setModel(next.model);
-    setEffort(next.effort);
-    setPermission(next.permission_mode);
-    setFastMode(next.fast_mode);
-  });
-  useEffect(() => {
-    applyDefaults();
-  }, [settings, projectId, projectsLoaded, project, provider]);
-
-  // 一覧にないモデル（ほかの AI のモデル・その AI の既定 = null）は、その AI の既定のモデルにして見せる（一覧が届いてから）
-  useEffect(() => {
-    const fallback = fallbackModel(models, model, provider);
-    if (fallback !== model) setModel(fallback);
-  }, [models, model, provider]);
-
-  const current = models.find((m) => m.value === model);
-  const fastSupport = fastSupportOf(current, modelState.loading);
-  // 選んだモデルが対応していない深さ・Auto mode・ファストモードは外す
-  useEffect(() => {
-    if (!current) return;
-    if (effort && !current.efforts.includes(effort)) setEffort(null);
-    if (permission === "auto" && !current.supports_auto_mode) setPermission("default");
-    if (fastMode && current.supports_fast_mode === false) setFastMode(false);
-  }, [current, effort, permission, fastMode]);
-
-  // 深さを指定しないとき（既定）に、実際に使われる深さ（Claude Code の設定から。モデルを変えたら取り直す。ほかの AI は読まない）
-  const modelId = current?.resolved_model ?? model;
-  const effortDefault = useKeyedStore(effortDefaults, projectId === undefined || provider !== "claude" ? undefined : effortKeyOf(projectId, modelId, worktree)).data;
-
-  // 推論の深さの null は「指定しない」（モデルの既定に任せる）
-  const effectiveFastMode = fastSupport === "supported" && fastMode;
-  const options: ChatOptions = { model, effort, permission_mode: permission, fast_mode: effectiveFastMode };
-  return {
-    provider,
-    models,
-    current,
-    model,
-    setModel,
-    effort,
-    setEffort,
-    permission,
-    setPermission,
-    fastMode: effectiveFastMode,
-    fastSupport,
-    setFastMode,
-    effortDefault,
-    options,
-  };
-}
-
-export type ChatOptionsState = ReturnType<typeof useChatOptions>;
 
 /** 既定の深さが、どこで決まったか */
 const EFFORT_SOURCE_LABELS: Record<NonNullable<EffortDefault["source"]>, string> = {
@@ -155,7 +28,7 @@ function effortDefaultLabel(d: EffortDefault | undefined): string {
 
 /** 既定の深さの説明（メニューの項目の下に出す） */
 function effortDefaultDescription(d: EffortDefault | undefined, provider: ProviderId): string {
-  if (provider !== "claude") return `指定せず、${PROVIDER_LABELS[provider]} の設定・モデルの既定に任せる`;
+  if (!providerCan(provider, "effort_default")) return `指定せず、${PROVIDER_LABELS[provider]} の設定・モデルの既定に任せる`;
   if (d?.effort && d.source) return `指定しない（${EFFORT_SOURCE_LABELS[d.source]} の値を使う）`;
   if (d) return "指定しない（Claude Code の設定にないので、モデルの既定を使う。値は分からない）";
   return "指定せず、Claude Code の設定・モデルの既定に任せる";
@@ -172,7 +45,6 @@ const PERMISSION_HINTS: Partial<Record<PermissionMode, string>> = {
   auto: "安全と判断した操作は確認せずに進める",
   plan: "計画を立てるだけで、ファイルは変更しない",
 };
-
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; disabled?: boolean }) {

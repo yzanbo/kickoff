@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { appChatDefaults } from "@shared/ai/chatOptions";
-import type { ChatOptionsPatch } from "@shared/chat/types";
+import type { ChatOptionsPatch } from "@shared/settings/types";
 import type { Project } from "@shared/projects/types";
 import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
 import type { AppSettings } from "@shared/foundation/contract/settings";

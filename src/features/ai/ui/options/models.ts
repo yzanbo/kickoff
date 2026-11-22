@@ -1,6 +1,5 @@
-import type { ChatOptions } from "@shared/chat/types";
 import type { ModelOption } from "@shared/ai/types";
-import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/settings/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type PermissionMode } from "@shared/settings/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku", "astra", "sol", "terra", "luna"];
@@ -48,15 +47,6 @@ export function modelDisplayName(models: ModelOption[], value: string | null): s
   return version ? `${family} ${version}` : family;
 }
 
-/**
- * 一覧にないモデル（ほかの AI のモデル・その AI の既定 = null）を、その AI の既定のモデル（一覧の `is_default`。なければ null）に直す。
- * 一覧が届くまでと、Claude Code（一覧の外の名前も受け付ける）は直さない
- */
-export function fallbackModel(models: ModelOption[], model: string | null, provider: ProviderId): string | null {
-  if (provider === "claude" || models.length === 0 || models.some((m) => m.value === model)) return model;
-  return models.find((m) => m.is_default)?.value ?? null;
-}
-
 /** そのモデルで選べる推論の深さ（モデルが分からなければすべて） */
 export function effortsFor(model: ModelOption | undefined): readonly EffortLevel[] {
   return model?.efforts ?? EFFORT_LEVELS;
@@ -72,12 +62,4 @@ export function fastSupportOf(model: ModelOption | undefined, loading: boolean):
 /** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
 export function permissionChoices(model: ModelOption | undefined): PermissionMode[] {
   return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supports_auto_mode);
-}
-
-/**
- * 新しいチャットの選択に既定（設定とプロジェクトの既定を重ねたもの）を当てる。
- * keepModel: 既定が届く前に自分で選んだモデルは残す（開いて初めて当てるとき）。プロジェクトを替えたときは、そのプロジェクトの既定にすべて当て直す
- */
-export function withDefaults(current: ChatOptions, defaults: ChatOptions, keepModel: boolean): ChatOptions {
-  return { ...defaults, model: keepModel ? (current.model ?? defaults.model) : defaults.model };
 }

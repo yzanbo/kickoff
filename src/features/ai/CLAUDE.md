@@ -20,10 +20,11 @@
 
 ## チャットの AI の画面（`ui/provider/`）
 
-- 選んだ AI（`ProviderPicker`）は送るときの本文の `provider` で、送ったあとは providerSwitch だけが替える。選べない理由は `providerPickBlock`、決まりは `providerChoice.ts`。
+- 選んだ AI（`ProviderPicker`）は送るときの本文の `provider`（途中で替えるのは providerSwitch）。選べない理由は `providerChoice.ts` の `providerPickBlock`。
 - その AI にない機能は、`ChatProviderContext` の中の部品が `useFeatureBlock(機能)` で理由を読んで止める（文はコアと同じ `providerFeatureMissing`）。
 - AI の状態は `useProviderStatus` の `load` だけが読み込む。モデルの一覧は `modelCatalog.ts`（一覧にないモデルを外す `knownModel`）。
-- 前に出しているチャットの AI（`noteForegroundProvider`）は裏のタブで上書きしない。AI を替えたら、チャット欄の選択はコアが当て直した値に合わせ直す（`useChatOptions`）。
+- 前に出しているチャットの AI（`noteForegroundProvider`）は裏のタブで上書きしない。AI を替えたら、チャット欄の選択はコアが当て直した値に合わせる（`useChatOptions`）。
+- 選択の決まり（`initialChatOptions`・`fitChatOptions`）は `ui/options/chatOptionsRules.ts`。AI の違いは表から。
 
 ## 使用状況（`core/usage/`・`ui/usage/`）
 

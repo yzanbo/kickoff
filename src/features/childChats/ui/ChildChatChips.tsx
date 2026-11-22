@@ -6,7 +6,7 @@ import { relativeTime } from "@/foundation/ui/lib/time";
 import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import { ModelName } from "@/features/ai/ui/options/ModelName";
+import { ModelName } from "@/features/ai/ui";
 import { AgentListChip, ChatStateMark, chatTitle, confirmArchiveChats, confirmDeleteChats, descendantStates, openChat, summaryState, useChatStates, useChildChats, usePlaceCaps, type AgentListRow } from "@/features/chat/ui";
 import { useNewChildFlash } from "./useNewChildFlash";
 

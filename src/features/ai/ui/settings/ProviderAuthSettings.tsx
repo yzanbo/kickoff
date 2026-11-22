@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
+import { PROVIDERS } from "@shared/ai/providers";
 import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_AUTH_MODES, type ProviderAuthMode } from "@shared/settings/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -7,7 +8,7 @@ import { providersStore } from "@/features/ai/ui/stores/providers";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
-import { API_KEY_ONLY_PROVIDERS, PAY_PER_USE_LABEL } from "@/features/ai/ui/provider/providerChoice";
+import { PAY_PER_USE_LABEL } from "@/features/ai/ui/provider/providerChoice";
 import { PLANNED_BADGE } from "./plannedProviders";
 
 /**
@@ -30,7 +31,7 @@ function ProviderAuthRow({ status: p }: { status: ProviderStatus }) {
   const settings = useAppSettings().data;
   const save = useAction<"save">();
   const [key, setKey] = useState("");
-  const keyOnly = API_KEY_ONLY_PROVIDERS.has(p.id);
+  const keyOnly = PROVIDERS[p.id].apiKeyOnly;
   // API キーでだけ動く AI は、いつも API キーとして見せる（キーを置いたときに設定も API キーにする）
   const mode: ProviderAuthMode = keyOnly ? "api_key" : (p.auth_mode ?? "subscription");
   // 設定は AI ごとの一覧を丸ごと送る（ほかの AI の選択を消さない）

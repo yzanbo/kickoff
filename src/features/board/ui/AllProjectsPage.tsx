@@ -1,13 +1,12 @@
 import { Tag } from "lucide-react";
 import { ProjectSwitcher } from "@/features/projects/ui/page/ProjectSwitcher";
 import { StatusCard } from "@/foundation/ui/kit/StatusCard";
-import { GitHubStatusCard } from "@/features/ai/ui";
 import { AllProjectsKanban } from "./KanbanBoard";
 import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { useChats } from "@/features/chat/ui/store/knownChats";
-import { useGitHubStatus, useProviders } from "@/features/ai/ui/stores/providers";
+import { GitHubStatusCard, useGitHubStatus, useProviders } from "@/features/ai/ui";
 import { StateStats } from "@/features/projects/ui/page/StateStats";
 import { NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";

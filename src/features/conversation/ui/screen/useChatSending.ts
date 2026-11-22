@@ -14,12 +14,12 @@ import { setStopPressed, useScreenLive } from "@/features/conversation/ui/workin
 const holdTextsOf = (hold: ReturnType<typeof compactHoldOf>) => (hold ? HOLD_TEXTS[hold] : null);
 
 export function useChatSending(chat: Chat, scroll: TimelineScroll, beforeSend?: () => Promise<void>) {
-  const options = useChatOptions(
-    { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
-    chat.project_id,
-    chat.worktree_path ?? undefined,
-    chat.provider,
-  );
+  const options = useChatOptions({
+    initial: { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
+    projectId: chat.project_id,
+    worktree: chat.worktree_path ?? undefined,
+    provider: chat.provider,
+  });
   const busy = chat.status === "running";
   // 画面に出す作業中の様子（コアの段階 phase と status は同じ知らせで届くので、作業中だけの欄を画面で隠さない。停止中だけは押した直後から）
   const live = useScreenLive(chat.id);

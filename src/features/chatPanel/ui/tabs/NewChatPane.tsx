@@ -6,7 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
-import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
+import { ChatProviderContext, ProviderPicker, useChatOptions } from "@/features/ai/ui";
 import { askNewWorktreeBranch, WorkplacePicker } from "@/foundation/ui/workplace/WorkplacePicker";
 import { workplacePath, type WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
@@ -25,8 +25,6 @@ import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
 import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { draftScope } from "@/features/panel/ui/surfaces";
 import type { SidePanelHandle } from "@/features/conversation/ui";
-import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
-import { ProviderPicker } from "@/features/ai/ui";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
 const NO_REPLIES: VoiceReply[] = [];
@@ -88,7 +86,7 @@ export function NewChatPane({
   // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない）
   const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
   const provider: ProviderId = pickedProvider ?? project?.provider ?? "claude";
-  const options = useChatOptions(undefined, projectId, undefined, provider);
+  const options = useChatOptions({ projectId, provider });
   const chats = useChats({ projectId });
   // 作業場所（初めは本体か、作業場所別のまとまりから始めたときはそのワークツリー。並行して進めたいときにワークツリーを選ぶ）
   // GitHub の issue から「新しいワークツリー」で始めたときは、そのブランチ名の新しいワークツリー（送ったときに作る）
