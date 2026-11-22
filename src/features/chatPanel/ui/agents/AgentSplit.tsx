@@ -87,7 +87,7 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
       {(panel.panelOpen || panel.tabs.length > 0) && (
         <MainChatContext.Provider value={chatId}>
           <Panel panel={panel} frame={frame} />
-          {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${chatSidePanel(chatId)}"]`)} />}
+          {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${CSS.escape(chatSidePanel(chatId))}"]`)} />}
         </MainChatContext.Provider>
       )}
       {/* ⌘F でタブの中の文字を探す（右の欄の中にピントがあるとき） */}

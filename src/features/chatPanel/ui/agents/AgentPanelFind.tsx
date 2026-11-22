@@ -22,7 +22,7 @@ export function AgentPanelFind({ panelKey }: { panelKey: string }) {
       if (!(isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }))) return;
       const active = document.activeElement;
       const idle = !active || active === document.body;
-      const panel = [...document.querySelectorAll<HTMLElement>(`[data-panel-key="${panelKey}"]`)].find(
+      const panel = [...document.querySelectorAll<HTMLElement>(`[data-panel-key="${CSS.escape(panelKey)}"]`)].find(
         (p) => p.offsetParent && (p.contains(active) || (idle && p.contains(lastPressedElement()))),
       );
       if (!panel) return;
