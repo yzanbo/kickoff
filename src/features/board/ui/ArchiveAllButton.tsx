@@ -22,11 +22,10 @@ export function ArchiveAllButton({ chats }: { chats: Chat[] }) {
           confirmLabel: "すべてアーカイブ",
         });
         if (!ok) return;
-        try {
-          await Promise.all(targets.map((r) => api.archiveChat(r.id)));
-        } catch (e) {
-          await alert("アーカイブできませんでした", errorMessage(e));
-        }
+        // 1 件が失敗しても残りはアーカイブし、失敗した件数と最初の理由を知らせる
+        const results = await Promise.allSettled(targets.map((r) => api.archiveChat(r.id)));
+        const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+        if (failed.length > 0) await alert(`${targets.length} 件のうち ${failed.length} 件をアーカイブできませんでした`, errorMessage(failed[0].reason));
       }}
     />
   );
