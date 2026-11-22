@@ -18,7 +18,8 @@
  * - アーカイブ済みを各まとまりの中に入れる（archived: "perBucket"）ときは、いちばん外の段のまとまりの archived に、そのまとまりのアーカイブ済み
  *   （キーは "p3/g5/archived"）を入れる。アーカイブ済みだけのまとまり（消えたワークツリーなど）も、そのために作る
  */
-import { BOARD_COLUMNS, type AgentState, type BoardColumn, type Chat } from "@shared/chat/types";
+import type { AgentState, BoardColumn, Chat } from "@shared/chat/types";
+import { byUrgency, URGENCY_ORDER } from "@shared/chatList/urgency";
 import type { GitWorktree } from "@shared/git/types";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
@@ -122,13 +123,12 @@ export interface BucketOptions<D extends DraftTarget = DraftTarget> extends Buck
 /** 後ろに置くまとまり（アーカイブ済み → その他）と、プロジェクトの中での並び */
 const TAIL_RANK: Partial<Record<BucketKind, number>> = { archived: 1, other: 2 };
 const KIND_RANK: Partial<Record<BucketKind, number>> = { pinned: 0, ungrouped: 2 };
-const COLUMN_RANK = new Map<BoardColumn, number>(BOARD_COLUMNS.map((c, i) => [c, i]));
 
 /** 同じ種類のまとまりどうしの並び（グループはサイドバーの並び、作業場所は本体が先、状態はカンバンの列の順） */
 function compareWithin(a: BucketHead, b: BucketHead): number {
   if (a.group && b.group) return a.group.position - b.group.position || a.group.id - b.group.id;
   if (a.place && b.place) return compareWorkplaces(a.place, b.place);
-  if (a.column && b.column) return (COLUMN_RANK.get(a.column) ?? 0) - (COLUMN_RANK.get(b.column) ?? 0);
+  if (a.column && b.column) return byUrgency(a.column, b.column);
   return 0;
 }
 
@@ -156,7 +156,7 @@ const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (t
 /**
  * チャット（と下書き）をまとまりに分ける（純粋な関数。決まりはファイルの先頭）。
  * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: "nested", archived: "perBucket", ... })、
- * ボードの列 = bucketChats(chats, { by: "status", keepEmpty: true })、⌘⇧A = bucketChats(chats, { by: "status", columns: COUNTED_COLUMNS, archived: "drop" })
+ * ボードの列 = bucketChats(chats, { by: "status", keepEmpty: true })、⌘⇧A = bucketChats(chats, { by: "status", columns: ACTIVE_URGENCY, archived: "drop" })
  */
 export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly Chat[], options: BucketOptions<D>): ChatBucket<D>[] {
   const own = (projectId: number) => options.project === undefined || projectId === options.project;
@@ -180,7 +180,7 @@ function bucketLevel<D extends DraftTarget>(
   at: { top: boolean; scope: number | undefined; parent?: string },
 ): ChatBucket<D>[] {
   const [by, ...inner] = levels;
-  const columns = options.columns ?? BOARD_COLUMNS;
+  const columns = options.columns ?? URGENCY_ORDER;
   const keepEmpty = options.keepEmpty ?? false;
   const keep = typeof keepEmpty === "function" ? keepEmpty : () => keepEmpty;
   const buckets = new Map<string, ChatBucket<D>>();

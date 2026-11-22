@@ -24,10 +24,9 @@ export const CHAT_TITLE_MAX = 100;
 /**
  * カンバンの列。人は動かさず、AI の状態から決まる（boardColumnOf）:
  * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 未読（作業が終わった・失敗した。まだ見ていない）→ 既読（見た）。
- * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）
+ * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）。並びは @shared/chatList/urgency.ts の URGENCY_ORDER
  */
-export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
-export type BoardColumn = (typeof BOARD_COLUMNS)[number];
+export type BoardColumn = "running" | "needs_input" | "unread" | "read";
 
 /**
  * エージェント自身の状態（状態の分け方に合わせる）。

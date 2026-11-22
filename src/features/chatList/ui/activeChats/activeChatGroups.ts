@@ -3,15 +3,16 @@
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { DRAFT_LOOK, type StateTone } from "@shared/chat/stateLooks";
-import { chatTitle, COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/ui";
+import { chatTitle, type ApprovalIndex } from "@/features/chat/ui";
+import { ACTIVE_URGENCY } from "@shared/chatList/urgency";
 import { draftTitleOf, type NewChatDraft } from "@/features/composer/ui";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
 import type { ProjectFilterOption, ProjectFilterValue } from "./PaletteProjectFilter";
 
-/** ⌘⇧A で並べる状態（下書き → 作業中・回答待ち・未読。この順に並べる） */
-export const ACTIVE_STATES = ["draft", ...COUNTED_COLUMNS] as const;
-export type ActiveState = (typeof ACTIVE_STATES)[number];
+/** ⌘⇧A で並べる状態（下書き → 急ぐ順の作業中・回答待ち・未読。この順に並べる） */
+export type ActiveState = "draft" | (typeof ACTIVE_URGENCY)[number];
+export const ACTIVE_STATES: readonly ActiveState[] = ["draft", ...ACTIVE_URGENCY];
 
 /** 一覧に出す下書き（送る前の新しいチャット。panel はタブのある欄 = chatPanel の PlacedDraft） */
 export type ActiveDraft = NewChatDraft & { panel: string };

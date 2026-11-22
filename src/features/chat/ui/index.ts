@@ -59,7 +59,7 @@ export { ChipWord, ComposerChip } from "./parts/ChatPill";
 export { StatusSlot } from "./state/StatusSlot";
 export { summaryState } from "./state/chatState";
 export { useChatStates } from "./state/chatStates";
-export { approvalIndex, COUNTED_COLUMNS, stateCounts, waitingChats, type ApprovalIndex } from "./state/chatState";
+export { approvalIndex, stateCounts, waitingChats, type ApprovalIndex } from "./state/chatState";
 export { currentChats, NO_CHATS, useChats, useChatsWithChildrenByProject, useChildChats, useKnownChat } from "./store/knownChats";
 export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";

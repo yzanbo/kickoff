@@ -1,10 +1,11 @@
 import type { ReactNode, RefObject } from "react";
-import { BOARD_COLUMNS, type Chat } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
+import { ACTIVE_URGENCY, URGENCY_ORDER } from "@shared/chatList/urgency";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChildDepthMark } from "@/features/childChats/ui/ChildDepthMark";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/ui/state/chatState";
+import type { ApprovalIndex } from "@/features/chat/ui/state/chatState";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { COLUMN_LOOKS, type StateTone } from "@shared/chat/stateLooks";
 import { Popover } from "@/foundation/ui/kit/Popover";
@@ -21,7 +22,7 @@ export const bucketTone = (bucket: Pick<BucketHead, "column">): StateTone => (bu
  * all なら既読と、いちばん下にアーカイブ済みも並べ、渡したチャットをすべて出す（右のパネルのタブのまとまりの札。そのまとまりのチャットの一覧）
  */
 export function chatsByState(chats: readonly Chat[], pending: ApprovalIndex, { all = false }: { all?: boolean } = {}): ChatBucket[] {
-  return bucketChats(chats, { pending, by: "status", columns: all ? BOARD_COLUMNS : COUNTED_COLUMNS, archived: all ? "tail" : "drop" });
+  return bucketChats(chats, { pending, by: "status", columns: all ? URGENCY_ORDER : ACTIVE_URGENCY, archived: all ? "tail" : "drop" });
 }
 
 /**

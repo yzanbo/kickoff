@@ -2,7 +2,8 @@
 // bucketChats が使い、パネルのタブのまとまり（useTabClusters）もタブの中身からこれで決める
 import { boardColumnOf } from "@shared/chat/state";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
-import { BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
+import type { BoardColumn, Chat } from "@shared/chat/types";
+import { URGENCY_ORDER } from "@shared/chatList/urgency";
 import { chatStateOf } from "@/features/chat/ui/state/chatState";
 import { workplaceOf } from "@/foundation/ui/workplace/workplace";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";
@@ -97,7 +98,7 @@ export function chatHead(
   chat: Chat,
   by: BucketBy | undefined,
   ctx: BucketContext,
-  { pinned = false, archived = "keep", columns = BOARD_COLUMNS, project }: Pick<BucketOptions, "pinned" | "archived" | "columns" | "project"> = {},
+  { pinned = false, archived = "keep", columns = URGENCY_ORDER, project }: Pick<BucketOptions, "pinned" | "archived" | "columns" | "project"> = {},
   parent?: string,
 ): BucketHead | undefined {
   const scope = by === "status" || by === undefined ? project : chat.project_id;
