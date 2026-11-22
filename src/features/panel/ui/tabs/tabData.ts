@@ -1,7 +1,6 @@
 // タブの中身を作る関数（種類ごとのキーの決め方）。種類の決まり（アイコン・名前・中身）は tabKinds.ts、型は panelTypes.ts
 import { normalizeUrl } from "@/foundation/ui/lib/url";
 import type { PanelTab, ProjectTool, ProjectView, TerminalTarget } from "./panelTypes";
-import type { TabPatch } from "@/features/panel/ui/state/panelState";
 
 type TabKind = PanelTab["kind"];
 type TabOf<K extends TabKind> = Extract<PanelTab, { kind: K }>;
@@ -138,15 +137,4 @@ export function hostOf(url: string): string {
   } catch {
     return url;
   }
-}
-
-/**
- * もう開いていたときに変える中身（openTab の reopen）: チャットは強調する発言（検索結果から開いたとき）、変更は移るファイル（押し直しても移るよう頼んだ時刻も）、
- * ファイルは目立たせる行。ほかの種類は開いていたタブをそのまま表示する
- */
-export function reopenOf(tab: PanelTab): TabPatch | undefined {
-  if (tab.kind === "chat") return tab.focus ? { kind: "chat", fields: { focus: tab.focus } } : undefined;
-  if (tab.kind === "changes") return tab.focus ? { kind: "changes", fields: { focus: tab.focus, focusAt: tab.focusAt } } : undefined;
-  if (tab.kind === "file") return { kind: "file", fields: { line: tab.line } };
-  return undefined;
 }

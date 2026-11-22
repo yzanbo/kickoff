@@ -32,6 +32,8 @@ export const chatTabKind = defineTabKind<TabOf<"chat">>({
   projectOf: (t) => t.projectId,
   ownerChatId: (t) => t.id,
   createWhen: "shown",
+  // 検索結果から開き直したら、強調する発言だけ変える
+  reopen: (t) => (t.focus ? { kind: "chat", fields: { focus: t.focus } } : undefined),
   prefetch: (tabs) => prefetchChats(tabs.map((t) => t.id)),
   // × は表示だけ消す・アーカイブ・削除を選んでから閉じる（見出しには名前を出さない）
   close: (t, { panel, close }) => void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: panel.chatOf(t)?.archived_at }, (action) => close({ dismiss: action === "close" })),

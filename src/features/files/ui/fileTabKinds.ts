@@ -20,6 +20,8 @@ export const fileTabKind = defineTabKind<FileTab>({
     route: { kind: "file", chatId: t.chatId, projectId: t.projectId, path: t.path, ...(t.worktree ? { worktree: t.worktree } : {}), ...(t.line ? { line: t.line } : {}) },
     title: t.path,
   }),
+  // 開き直したら目立たせる行だけ変える
+  reopen: (t) => ({ kind: "file", fields: { line: t.line } }),
   // 作業場所を移したら新しい作業場所の同じファイルにする（行は引き継ぐ）。保存していない変更があれば、移す前の作業場所のまま残す
   repoint: (t, move, panel) => {
     const at = repointedAt(t, move);

@@ -19,6 +19,8 @@ export const changesTabKind = defineTabKind<ChangesTab>({
     route: { kind: "changes", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
     title: `変更 — ${placeOf(t)}`,
   }),
+  // 押し直したら移るファイルへ移る（同じファイルでも移るよう頼んだ時刻も）
+  reopen: (t) => (t.focus ? { kind: "changes", fields: { focus: t.focus, focusAt: t.focusAt } } : undefined),
   // 作業場所を移したら新しい作業場所の変更にする（移るファイルは引き継ぐ）
   repoint: (t, move) => {
     const at = repointedAt(t, move);

@@ -6,7 +6,7 @@ import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { closePane, closeTab, openTab, patchTab, setPanelOpen, splitPane, togglePanel } from "./actions";
-import { browserTab, chatTab, reopenOf, terminalTab } from "@/features/panel/ui/tabs/tabData";
+import { browserTab, chatTab, terminalTab } from "@/features/panel/ui/tabs/tabData";
 import { testTabKind, useTestPanelStore } from "@/features/panel/ui/testing";
 import { discardDraft, draftOfPanelTab, openNewChat, placedDrafts, restoreDraftTabs, setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { api } from "@/foundation/ui/api";
@@ -99,7 +99,7 @@ test("開いているチャットを検索から（focus 付きで）開き直�
   const loaded = makeChat(130, { project_id: 13, title: "調べもの" });
   patchTab("kanban:13", "chat:130", { kind: "chat", fields: { chat: loaded } });
   const again = chatTab({ id: 130, project_id: 13 }, 42);
-  openTab("kanban:13", again, reopenOf(again));
+  openTab("kanban:13", again, { kind: "chat", fields: { focus: 42 } });
   assert.deepEqual(panelStateOf("kanban:13").tabs, [{ key: "chat:130", kind: "chat", id: 130, projectId: 13, title: "調べもの", chat: loaded, focus: 42 }]);
 });
 

@@ -6,9 +6,12 @@ import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { newTabKey } from "@/features/panel/ui/tabs/tabData";
 import type { TabPatch } from "./panelState";
-import { dispatchPanel, panelStateOf } from "./panelStore";
+import { dispatchPanel, kindOf, panelStateOf } from "./panelStore";
 
 const changeLayout = (panel: string, change: (layout: PaneLayout) => PaneLayout) => dispatchPanel(panel, { type: "layout", change });
+
+/** もう開いていたときに変える中身（種類の reopen。チャットは強調する発言・変更は移るファイル・ファイルは目立たせる行。openTab の reopen に渡す） */
+export const reopenOf = (tab: PanelTab): TabPatch | undefined => kindOf(tab).reopen?.(tab);
 
 /** タブを開く（なければピントのあるペインに足し、あればそのペインで表示する。reopen はもう開いていたときに変える中身）。欄も開く */
 export const openTab = (panel: string, tab: PanelTab, reopen?: TabPatch) => dispatchPanel(panel, { type: "open", tab, reopen });

@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { definePoint } from "@/foundation/ui/points";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import type { PanelController, PanelPageOps } from "./usePanel";
+import type { TabPatch } from "./state/panelState";
 
 /** タブの中身の基底（中身の型は種類ごとに足す） */
 export interface TabBase {
@@ -141,6 +142,8 @@ export interface TabKind<T extends TabBase> {
   ownerChatId?(tab: T): number | null;
   /** 中身を作る時（shown = 初めて表示したとき。チャットのタブはサイドバーと連動して自動で増えるので、見ていないチャットまで読み込まない。既定は mounted） */
   createWhen?: "shown" | "mounted";
+  /** 自分で開き直したとき（もう開いていた）に変える中身（reopenOf → openTab の reopen。なければ開いていたタブをそのまま表示する） */
+  reopen?(tab: T): TabPatch | undefined;
   /** 閉じたときの後始末（ターミナルはシェルも止める。別ウィンドウへ移すとき（keep）は呼ばない） */
   dispose?(tab: T): void;
   /** 閉じてよいか（保存していない書きかけを聞く）。×・右クリックの「タブを閉じる」・ペインを閉じる、のどれでも聞く */

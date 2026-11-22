@@ -34,3 +34,8 @@ test("サブエージェントのタブ: 入れ子のものは名前の前に「
   assert.equal("path" in top, false);
   assert.equal(subagentTabKind.hint?.(top), "調査");
 });
+
+test("開き直し: 検索結果から（focus 付きで）開き直したら強調する発言だけ変え、focus がなければそのまま表示する", () => {
+  assert.deepEqual(chatTabKind.reopen?.(chatTab({ id: 1, project_id: 1 }, 42)), { kind: "chat", fields: { focus: 42 } });
+  assert.equal(chatTabKind.reopen?.(chatTab({ id: 1, project_id: 1 })), undefined);
+});
