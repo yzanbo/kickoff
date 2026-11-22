@@ -8,7 +8,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { HistoryMain } from "./HistoryMain";
 import { HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import { useGitStatus } from "@/features/git/ui/useGitStatus";
 import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { RefMenu } from "./RefMenu";
@@ -28,16 +28,16 @@ import { useStashActions } from "./useStashActions";
  */
 export function HistoryTab({
   projectId,
-  git,
   worktree,
   onWorktreeChange,
 }: {
   projectId: number;
-  git: GitStatusController;
   /** 見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
   worktree?: string;
   onWorktreeChange: (worktree: string | undefined) => void;
 }) {
+  // Git の状態（開いている間は一定の間隔でも取り直す。同じ作業場所の変更のタブのバッジとは同じ購読）
+  const git = useGitStatus(projectId, true, worktree ?? null);
   const { status } = git;
   const log = useGitLog(projectId, Boolean(status?.repo), git.version);
   const [picked, setPicked] = useState<{ projectId: number; commit: GitCommit }>();

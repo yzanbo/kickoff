@@ -4,7 +4,6 @@ import { CiTab } from "@/features/github/ui/ci/CiTab";
 import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { DockerTab } from "@/features/docker/ui/DockerTab";
 import { EditorTab } from "@/features/files/ui/EditorTab";
-import { useGitStatus } from "@/features/git/ui/useGitStatus";
 import { GitHubTab } from "@/features/github/ui/GitHubTab";
 import { HistoryTab } from "@/features/git/ui/history/HistoryTab";
 import { NoteTab } from "@/features/notes/ui/NoteTab";
@@ -83,7 +82,6 @@ function SideNotes({ projectId }: { projectId: number }) {
 function SideCodeView({ projectId, view }: { projectId: number; view: "files" | "search" | "changes" | "history" | "db" }) {
   const [worktree, setWorktree] = useSideWorktree(projectId);
   const project = useProjects().projectsById.get(projectId);
-  const git = useGitStatus(projectId, view !== "db", worktree);
   // ほかから開くよう頼まれたファイル（別の作業場所のものなら、先にその作業場所へ切り替える）
   const openFile = useSideOpenRequest(projectId, "file")?.file;
   const followOpenFile = useEffectEvent(() => {
@@ -100,7 +98,7 @@ function SideCodeView({ projectId, view }: { projectId: number; view: "files" | 
   return (
     <WorkplaceProvider value={{ projectId, worktree: worktree ?? null }}>
       {view === "history" ? (
-        <HistoryTab key={worktree ?? ""} projectId={projectId} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
+        <HistoryTab key={worktree ?? ""} projectId={projectId} worktree={worktree} onWorktreeChange={setWorktree} />
       ) : (
         <EditorTab
           // 作業場所を変えたら初めからにする。開いたファイルのタブは作業場所ごとに覚える（戻れば元どおり）
@@ -108,7 +106,7 @@ function SideCodeView({ projectId, view }: { projectId: number; view: "files" | 
           view={view}
           projectId={projectId}
           repoPath={project.repo_path}
-          git={git}
+         
           worktree={worktree}
           onWorktreeChange={setWorktree}
           openFile={openFile?.worktree === worktree ? openFile : undefined}

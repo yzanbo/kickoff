@@ -23,7 +23,7 @@ import { fileDragProps } from "./fileTabs";
 import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import type { PanelScope } from "@/features/panel/ui";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import { useGitStatus } from "@/features/git/ui/useGitStatus";
 import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
 import { useFileActions } from "./useFileActions";
 import { useProjectFiles } from "./useProjectFiles";
@@ -46,7 +46,6 @@ export function EditorTab({
   view,
   projectId,
   repoPath,
-  git,
   worktree,
   onWorktreeChange,
   openFile,
@@ -56,7 +55,6 @@ export function EditorTab({
   view: ChangesView;
   projectId: number;
   repoPath: string;
-  git: GitStatusController;
   /** 見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
   worktree?: string;
   onWorktreeChange: (worktree: string | undefined) => void;
@@ -66,6 +64,8 @@ export function EditorTab({
   panelScope?: PanelScope;
 }) {
   const rootName = baseName(worktree ?? repoPath);
+  // Git の変更（一覧と差分。開いている間は一定の間隔でも取り直す。同じ作業場所のタブのバッジとは同じ購読）
+  const git = useGitStatus(projectId, true, worktree ?? null);
   const { status } = git;
   const selection = useFileTabs(projectId, panelScope ?? projectId);
   const { selected, setSelected } = selection;

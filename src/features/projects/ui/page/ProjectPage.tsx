@@ -64,8 +64,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
   const setWorktree = (path: string | undefined) => storeWorktree(path ?? "");
   // ファイル・検索・変更のタブ（同じ部品 EditorTab を、左の一覧の表示だけ変えて出す。行き来しても開いたファイルは共有）
   const editorView = tab === "files" || tab === "search" || tab === "changes" ? tab : undefined;
-  // Git の変更（変更のタブのバッジに数を出し、ファイル・検索・変更のタブで一覧と差分を出す）
-  const git = useGitStatus(id, editorView !== undefined || tab === "history", worktree);
+  // Git の変更（変更のタブのバッジの数。一覧と差分はファイル・検索・変更・履歴のタブが同じ作業場所の購読で読む）
+  const git = useGitStatus(id, false, worktree ?? null);
   // タブの数を取り直している最中（更新を知ってから結果が届くまで、数の代わりに更新中の印を出す）
   const refreshing = { chats: useBusyBadge(chatsLoading), changes: useBusyBadge(git.refreshing) };
   // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
@@ -103,7 +103,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
             view={editorView}
             projectId={project.id}
             repoPath={project.repo_path}
-            git={git}
+           
             worktree={worktree}
             onWorktreeChange={setWorktree}
             // 別のプロジェクトを読み込んでいる途中・作業場所を切り替える前は渡さない
@@ -113,7 +113,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
       )}
       {tab === "history" && (
         <WorkplaceProvider value={{ projectId: project.id, worktree: worktree ?? null }}>
-          <HistoryTab key={worktree ?? ""} projectId={project.id} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
+          <HistoryTab key={worktree ?? ""} projectId={project.id} worktree={worktree} onWorktreeChange={setWorktree} />
         </WorkplaceProvider>
       )}
       {/* ノート（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たノートを渡さない */}
