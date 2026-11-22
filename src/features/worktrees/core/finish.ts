@@ -12,7 +12,7 @@ import { git } from "@/foundation/core/workplace/git";
 import { mergedPullRequestOf, type MergedPullRequest } from "@/features/github/core/github";
 import { resolveGitHubTarget } from "@/features/github/core/githubTarget";
 import { addWorktree, findWorktree, listWorktrees, removeWorktree } from "@/foundation/core/workplace/worktrees";
-import { changedCount, hasRef, isAncestor, isGitWorkTree, listRemotes } from "@/foundation/core/workplace/reads";
+import { changedCount, hasRef, isAncestor, isGitWorkTree, listRemotes, upstreamOf } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
@@ -136,10 +136,9 @@ export class WorktreeFinisher {
   }
 
   /** 消したブランチの追いかけ先（「origin/feat-x」。なければ origin の同じ名前。remote がなければ null） */
-  private async upstreamOf(repo: string, branch: string): Promise<{ remote: string; branch: string } | null> {
-    const upstream = (await git(repo).maybe(["rev-parse", "--abbrev-ref", "--symbolic-full-name", `${branch}@{upstream}`])).trim();
-    const slash = upstream.indexOf("/");
-    if (slash > 0) return { remote: upstream.slice(0, slash), branch: upstream.slice(slash + 1) };
+  private async remoteBranchOf(repo: string, branch: string): Promise<{ remote: string; branch: string } | null> {
+    const upstream = await upstreamOf(repo, branch);
+    if (upstream) return upstream;
     const remotes = await listRemotes(repo).catch((): string[] => []);
     return remotes.includes("origin") ? { remote: "origin", branch } : null;
   }
@@ -200,7 +199,7 @@ export class WorktreeFinisher {
       trashId = item.id;
     }
     // ブランチを消すと追いかけ先の設定も消えるので、先に読んでおく
-    const upstream = opts.deleteMergedRemote && facts.merged?.via === "github" && facts.branch ? await this.upstreamOf(repo, facts.branch) : null;
+    const upstream = opts.deleteMergedRemote && facts.merged?.via === "github" && facts.branch ? await this.remoteBranchOf(repo, facts.branch) : null;
     const envBefore = store.worktreeEnvs.get(folder);
     const ownCompose = (envBefore?.compose_names.length ?? 0) > 0;
     const hasCompose = !target.prunable && findComposeFiles(target.path).length > 0;

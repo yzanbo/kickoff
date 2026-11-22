@@ -144,6 +144,22 @@ test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら
   assert.equal(item.by_chat_id, main);
 });
 
+test("AI の後始末: リモートの名前に / があっても、追いかけている先のリモートのブランチを消す（最初の / で割らない）", async () => {
+  const ctx = setup();
+  const { project, prFake, worktreeFinisher } = ctx;
+  const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
+  const remote = tempDir();
+  execFileSync("git", ["init", "-q", "--bare", remote]);
+  gitIn(repo)("remote", "add", "my/fork", remote);
+  const { wt } = await worktreeChat(ctx, "feat/slash");
+  gitIn(wt)("commit", "-q", "--allow-empty", "-m", "s");
+  gitIn(wt)("push", "-q", "-u", "my/fork", "feat/slash");
+  prFake.merged["feat/slash"] = { number: 14, url: "u", head_sha: gitIn(wt)("rev-parse", "HEAD").trim() };
+  const text = await worktreeFinisher.finishFromChat(await mainChat(ctx), "feat/slash");
+  assert.match(text, /リモートのブランチ（my\/fork\/feat\/slash）も消しました/);
+  assert.equal(execFileSync("git", ["ls-remote", "--heads", remote, "feat/slash"]).toString().trim(), "");
+});
+
 test("AI の後始末（ワークツリー自身のチャットから）: 予約して作業の終わりに消し、送信待ちは止めておく。ほかのワークツリーのチャットからは消せない", async () => {
   const ctx = setup();
   const { call, project, store, provider, runner, worktreeFinisher } = ctx;
