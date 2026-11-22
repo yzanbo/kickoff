@@ -1,23 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolText";
-import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "./aiChatEdit";
-import { AI_CREATE_CHAT_TOOL } from "./aiCreateChat";
-import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_NOTE_TOOL, AI_OPEN_SQL_TOOL } from "./aiOpen";
-import { AI_ADD_SNIPPET_TOOL, AI_MOVE_NOTE_TOOL } from "./aiProject";
-import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "./aiRead";
-import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/terminal/aiTerminal";
-import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/guard/aiSandboxDiagnostics";
-import { AI_FINISH_WORKTREE_TOOL } from "@shared/worktrees/aiWorktree";
-import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL } from "@shared/workplaceMove/aiWorkplace";
-import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "./aiChatRemove";
-import { NOTIFY_USER_VIEW } from "@shared/notifications/tools";
-import { aiToolId } from "@shared/foundation/aiToolView";
+import { createToolText, describeUnknownInput, visibleToolResult, type ToolCallText } from "./toolText";
 
-test("OS の拒否ログ診断は、Claude Code・Codex 共通の名前を日本語にする", () => {
-  assert.equal(describeTool(AI_START_SANDBOX_DIAGNOSTICS_TOOL, {}), "OS の拒否ログの診断を始める");
-  assert.equal(describeTool(AI_READ_SANDBOX_DENIALS_TOOL, {}), "OS の拒否ログを読む");
-});
+// Claude Code のツールと、表にない MCP・知らないツール（Kickoff のツールの表は src/app/shared/aiToolViews.test.ts）
+const { describeApprovalInput, describeTool, describeToolInput, summarizeTools, toolLabel } = createToolText([]);
+let calls = 0;
+const call = (name: string, input: object = {}): ToolCallText => ({ name, input, id: ++calls });
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -87,65 +75,25 @@ test("ツールの結果: ツール検索の [tool_reference] は出さない", 
   assert.equal(visibleToolResult("見つかった\n[tool_reference]"), "見つかった");
 });
 
-test("AI がチャットを作るツール: 行は何を作ったかと名前（なければ依頼の 1 行目）・ワークツリー、承認カードは依頼の全文", () => {
-  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "child", title: "ログの調査", text: "ログの形式を調べて" }), "チャットを作る: 子チャット「ログの調査」");
-  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "root", text: "1 行目\n2 行目", worktree_branch: "feat/a" }), "チャットを作る: 親のないチャット「1 行目」（ワークツリー feat/a）");
-  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "sibling", text: "別の観点" }), "チャットを作る: 兄弟チャット「別の観点」");
-  assert.equal(describeApprovalInput(AI_CREATE_CHAT_TOOL, { relation: "child", title: "ログの調査", text: "1 行目\n2 行目" }), "1 行目\n2 行目");
+test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
+  assert.equal(
+    summarizeTools([call("Bash"), call("Bash"), call("Bash"), call("Bash"), call("TodoWrite"), call("WebFetch"), call("ToolSearch"), call("AskUserQuestion")]),
+    "4個のコマンドを実行、1件のページを取得、ToDo を1件更新、ツールを1回検索 および 1件の質問",
+  );
+  // 同じファイルを何度編集しても 1 個と数える
+  assert.equal(
+    summarizeTools([call("Edit", { file_path: "a.ts" }), call("Edit", { file_path: "a.ts" }), call("Write", { file_path: "b.ts" }), call("Read", { file_path: "a.ts" }), call("Grep"), call("Glob")]),
+    "2個のファイルを編集、1個のファイルを読み取り および 2回検索",
+  );
+  assert.equal(summarizeTools([call("Agent"), call("Agent")]), "サブエージェントを2件起動");
+  assert.equal(summarizeTools([]), "");
 });
 
-test("AI がチャットの名前・固定・グループを変えるツール: 行は引数から作った「どのチャットの何を変えたか」", () => {
-  assert.equal(describeTool(AI_LIST_FAMILY_TOOL, {}), "同じ家系のチャットを確かめる");
-  assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 12, title: "【済】調査", pinned: true }), "チャットを変更: 名前を『【済】調査』に変えた・固定した（チャット 12）");
-  assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 3, group_id: null }), "チャットを変更: グループから外した（チャット 3）");
-});
-
-test("AI がノート・チャットを開くツール: 何をどこに開いたか（場所を省いたら付けない）", () => {
-  assert.equal(describeTool(AI_OPEN_NOTE_TOOL, { path: "機能の仕様/図.html", place: "window" }), "ノートを開く: 機能の仕様/図.html（別ウィンドウ）");
-  assert.equal(describeTool(AI_OPEN_NOTE_TOOL, { path: "ノート.md" }), "ノートを開く: ノート.md");
-  assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 12, place: "side" }), "チャットを開く: チャット 12（右の欄）");
-  assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 3, place: "どこか" }), "チャットを開く: チャット 3");
-});
-
-test("AI が読むだけのツール: 一覧・使用枠は名前だけ、会話はどのチャットをどこから読んだか", () => {
-  assert.equal(describeTool(AI_LIST_PROJECT_CHATS_TOOL, {}), "プロジェクトのチャットを確かめる");
-  assert.equal(describeTool(AI_USAGE_TOOL, {}), "使用枠を確かめる");
-  assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12 }), "チャットの会話を読む: チャット 12");
-  assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12, before: 38, turns: 5 }), "チャットの会話を読む: チャット 12（38 回目より前）");
-});
-
-test("AI がプロジェクトに足す・変えるツール: 定型文は名前（なければ 1 行目）、ノートは移す前と後", () => {
-  assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "テストを流して", label: "テスト" }), "定型文に登録: テスト");
-  assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "型を確かめて\n二行目" }), "定型文に登録: 型を確かめて");
-  assert.equal(describeTool(AI_MOVE_NOTE_TOOL, { from: "案.md", to: "済/案.md" }), "ノートを移動: 案.md → 済/案.md");
-});
-
-test("AI が画面に頼むツール: 開いたファイル・差分・SQL と、下書きを入れたチャット", () => {
-  assert.equal(describeTool(AI_OPEN_FILE_TOOL, { path: "src/a.ts", line: 12, place: "window" }), "ファイルを開く: src/a.ts:12（別ウィンドウ）");
-  assert.equal(describeTool(AI_OPEN_DIFF_TOOL, {}), "差分を開く: 変更の全体");
-  assert.equal(describeTool(AI_OPEN_DIFF_TOOL, { path: "src/a.ts", place: "side" }), "差分を開く: src/a.ts（右の欄）");
-  assert.equal(describeTool(AI_OPEN_SQL_TOOL, { connection: "開発", sql: "UPDATE users\nSET a = 1" }), "SQL のタブに入れる: 開発: UPDATE users");
-  assert.equal(describeTool(AI_ADD_DRAFT_TOOL, { chat_id: 3, text: "a" }), "下書きを入れる: チャット 3");
-});
-
-test("AI がターミナルを読むツール: 一覧は名前だけ、出力は読んだ行の数を渡したときだけ添える", () => {
-  assert.equal(describeTool(AI_LIST_TERMINALS_TOOL, {}), "ターミナルを確かめる");
-  assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a" }), "ターミナルの出力を読む");
-  assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a", lines: 50 }), "ターミナルの出力を読む: 最後の 50 行");
-});
-
-test("AI がワークツリーを片付けるツール: 行はどのワークツリーか（省いたらこのチャットのワークツリー）", () => {
-  assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, { worktree: "feat/a" }), "ワークツリーを片付ける: feat/a");
-  assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, {}), "ワークツリーを片付ける: このチャットのワークツリー");
-  assert.equal(describeTool(AI_MOVE_WORKPLACE_TOOL, { to: "new_worktree", branch: "feat/a", carry: true }), "作業場所を移す予約: 新しいワークツリー（feat/a）（変更を持っていく）");
-  assert.equal(describeTool(AI_CANCEL_WORKPLACE_MOVE_TOOL, {}), "作業場所を移す予約を取り消す");
-});
-
-test("AI がチャットをアーカイブする・消すツール: 行はどのチャットか", () => {
-  assert.equal(describeTool(AI_ARCHIVE_CHAT_TOOL, { chat_id: 7 }), "チャットをアーカイブ: チャット 7");
-  assert.equal(describeTool(AI_DELETE_CHAT_TOOL, { chat_id: 8 }), "チャットをゴミ箱へ: チャット 8");
-});
-
-test("AI が利用者に知らせるツール: 行は知らせた文", () => {
-  assert.equal(describeTool(aiToolId(NOTIFY_USER_VIEW), { message: "1 段目が済みました" }), "利用者に知らせる: 1 段目が済みました");
+test("ツールのまとまりの要約: ToDo・ツール検索・スキル・ページの取得などを種類ごとに数え、分類できないものだけ「その他」", () => {
+  assert.equal(summarizeTools([call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate")]), "ToDo を4件更新");
+  assert.equal(summarizeTools([call("ToolSearch"), call("TaskCreate"), call("TaskCreate"), call("ToolSearch")]), "ToDo を2件追加 および ツールを2回検索");
+  assert.equal(summarizeTools([call("Skill"), call("WebFetch"), call("WebFetch")]), "2件のページを取得 および スキルを1回使用");
+  assert.equal(summarizeTools([call("TaskList"), call("TaskGet")]), "ToDo を2回確認");
+  assert.equal(summarizeTools([call("TaskStop"), call("TaskOutput"), call("ExitPlanMode")]), "作業の様子を1回確認、作業を1件停止 および 計画を1回提示");
+  assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
 });

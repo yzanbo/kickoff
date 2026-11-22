@@ -40,3 +40,4 @@ export { openAskChild, openChat, openCreatedChild, openInRootSide, resolveOpenPl
 export { knownChat } from "./store/knownChats";
 export { appendBlock } from "./quote";
 export { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, markChatsSeen, moveChatsToGroup, togglePinChat } from "./chatActions";
+export { aiToolViews, toolText } from "./tools/toolText";

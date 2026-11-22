@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import { beforeEach, test } from "vitest";
+import { swapContributions } from "@/foundation/ui/points";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { eventSequence, makeSubagent } from "@shared/foundation/testing/factories";
@@ -9,6 +10,9 @@ import { activityRows, agentScope, agentTargetOf, filterActivity, focusedRowInde
 /** 2026-11-01 00:00:00 から sec 秒後の時刻 */
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, sec)).toISOString();
 const summary = (rows: ReturnType<typeof activityRows>) => rows.map((r) => [r.agent ?? "main", r.kind, r.text]);
+
+// ツールの文（toolText）は Kickoff のツールの表がなくても作れる（ここでは Claude Code のツールだけ）
+beforeEach(() => swapContributions([]));
 
 test("activityRows: メインの指示・ツール・返答・作業の終わりを時刻の順に、1 行目だけ・続けてのツールは 1 行で", () => {
   const ev = eventSequence();

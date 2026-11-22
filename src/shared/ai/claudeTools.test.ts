@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { claudeToolOf, toolUse } from "./claudeTools";
+import { claudeToolOf, toolUse } from "@shared/ai/claudeTools";
 
 test("ツールの表: パスの欄・書き換えるか・探す場所か。表にないツールは null", () => {
   assert.deepEqual(claudeToolOf("Edit"), { pathKey: "file_path", writes: true, searches: false });

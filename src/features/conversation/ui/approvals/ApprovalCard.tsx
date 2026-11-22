@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { REMEMBER_SCOPE_LABELS } from "@shared/ai/approvals";
-import { describeApprovalInput } from "@shared/chat/toolText";
+import { toolText } from "@/features/chat/ui";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -95,9 +95,9 @@ function PermissionCard({ approval }: { approval: Approval }) {
         {dbSql !== null ? (
           <HighlightedCode code={dbSql} lang="sql" />
         ) : approval.tool_name === "Bash" ? (
-          <HighlightedCode code={describeApprovalInput(approval.tool_name, approval.input)} lang="shellscript" />
+          <HighlightedCode code={toolText().describeApprovalInput(approval.tool_name, approval.input)} lang="shellscript" />
         ) : (
-          describeApprovalInput(approval.tool_name, approval.input)
+          toolText().describeApprovalInput(approval.tool_name, approval.input)
         )}
       </pre>
       {denying ? (

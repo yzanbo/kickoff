@@ -4,8 +4,11 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { BashOutput } from "./BashOutput";
 import { CommandLive } from "./CommandLive";
 import { useCommandOutput } from "@/features/conversation/ui/background/commandOutputs";
-import { summarizeTools, type ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
-import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "@shared/chat/toolText";
+import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import { visibleToolResult } from "@shared/chat/toolText";
+import { claudeToolOf, isEditTool } from "@shared/ai/claudeTools";
+import { toolCallTexts } from "./toolCallTexts";
+import { toolText } from "@/features/chat/ui";
 import { CallTime, GroupTime } from "./ToolTime";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
@@ -32,7 +35,7 @@ import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
   const background = useContext(BackgroundCallsContext);
   const isRunning = (t: ToolCall) => isCallRunning(t, active, background);
-  const summary = summarizeTools(tools);
+  const summary = toolText().summarizeTools(toolCallTexts(tools));
   const failed = tools.filter((t) => t.result?.data.is_error).length;
   // 実行中の呼び出し（並べて呼んだものは、動いているうちいちばん後ろ）
   const current = tools.findLast(isRunning);
@@ -59,7 +62,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
           <ToolStatusIcon status={status} />
           <span className="tool-summary">{summary}</span>
           {currentData ? (
-            <span className="tool-current">{rel(describeTool(currentData.name, currentData.input ?? {}))}</span>
+            <span className="tool-current">{rel(toolText().describeTool(currentData.name, currentData.input ?? {}))}</span>
           ) : (
             failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
           )}
@@ -134,22 +137,22 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
       summary={
         <summary className="fold-summary">
           <ToolStatusIcon status={callStatus(call, running)} />
-          <span className="tool-name">{toolLabel(name)}</span>
+          <span className="tool-name">{toolText().toolLabel(name)}</span>
           <span className="tool-arg">
             {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
             {isCommand ? (
               <HighlightedCode code={rel(String(input.command))} lang="shellscript" />
             ) : isSearch ? (
               <SearchTitle glob={name === "Glob"} pattern={String(input.pattern)} path={rel(strOf(input.path) ?? "")} highlight />
-            ) : FILE_TOOLS.has(name) && typeof input.file_path === "string" ? (
-              <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
+            ) : isFileEdit(name) && typeof input.file_path === "string" ? (
+              <ToolFileArg path={input.file_path} label={rel(toolText().describeToolInput(name, input))} />
             ) : name === "Read" && typeof input.file_path === "string" ? (
               <ToolPath path={rel(input.file_path)} />
             ) : name === AI_GET_USER_VIEW_TOOL ? (
               // 画面を見たか・読めなかった事情は、結果の 1 行目から（引数がないので、ツールの名前だけでは何が起きたか分からない）
               (userViewSummaryOf(r?.content) ?? "")
             ) : (
-              rel(describeToolInput(name, input))
+              rel(toolText().describeToolInput(name, input))
             )}
           </span>
           <CallTime call={call} running={running} />
@@ -165,7 +168,8 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
 const strOf = (v: unknown) => (typeof v === "string" && v !== "" ? v : undefined);
 
 /** ファイルを変えるツール（行のファイル名を押して開ける） */
-const FILE_TOOLS = new Set(["Edit", "MultiEdit", "Write"]);
+/** パスを札で出す編集（Edit・MultiEdit・Write。ノートブックは除く） */
+const isFileEdit = (name: string) => isEditTool(name) && claudeToolOf(name)?.pathKey === "file_path";
 
 /**
  * ファイルを変えるツールの行のファイル名。作業場所の中のファイルなら押して開ける（右の欄。コミットしていない変更があれば変更のタブのその位置、なければ中身。

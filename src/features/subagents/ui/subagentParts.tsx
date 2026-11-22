@@ -1,7 +1,8 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
+import { subagentReport, type SubagentEntry } from "@shared/chat/subagents";
+import { isSubagentTool } from "@shared/ai/claudeTools";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSizeObserver } from "@/foundation/ui/hooks/useSizeObserver";
 import { formatTokens } from "@/foundation/ui/lib/format";
@@ -12,8 +13,7 @@ import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/ui/state/stall";
 import { Working } from "@/features/chat/ui/parts/Working";
 import { groupEvents, type TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
-import { describeTool } from "@shared/chat/toolText";
-import { chatLog } from "@/features/chat/ui/store/useChatStore";
+import { chatLog, toolText } from "@/features/chat/ui";
 import { useTimelineOpen } from "@/features/chat/ui/timeline/timelineView";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { subagentEvents } from "@/features/subagents/ui/model/subagentEvents";
@@ -162,7 +162,7 @@ export function NowLine({ entry, view, rel }: { entry: SubagentEntry; view: Suba
     child?.status === "running" && child.lastTool
       ? `${latest?.by ? `${latest.by.description} › ` : ""}${child.description} › ${child.lastTool}`
       : latest
-        ? `${latest.by ? `${latest.by.description} › ` : ""}${describeTool(latest.use.data.name, (latest.use.data.input ?? {}) as Record<string, unknown>)}`
+        ? `${latest.by ? `${latest.by.description} › ` : ""}${toolText().describeTool(latest.use.data.name, (latest.use.data.input ?? {}) as Record<string, unknown>)}`
         : (entry.lastTool ?? "準備しています");
   const activity = activityOf(entry.lastActivityAt);
   const note = activityText(activity, entry.pendingTool);

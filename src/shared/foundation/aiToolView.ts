@@ -17,3 +17,11 @@ export interface AiToolView {
   /** 行の 1 文（省けば空） */
   describe?: (input: Record<string, unknown>) => string;
 }
+
+/** 長い名前（mcp__<サーバー>__<ツール>）の定数から表の 1 行を作る（名前を 2 か所に書かない。Kickoff のツールでなければ投げる） */
+export function aiToolViewOf(id: string, label: string, describe?: AiToolView["describe"]): AiToolView {
+  const m = /^mcp__(.+?)__(.+)$/.exec(id);
+  const server = AI_TOOL_SERVERS.find((s) => s === m?.[1]);
+  if (!m || !server) throw new Error(`Kickoff のツールの名前ではありません: ${id}`);
+  return { server, name: m[2], label, describe };
+}

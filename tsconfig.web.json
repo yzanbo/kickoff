@@ -12,7 +12,8 @@
     "src/app/renderer/**/*.ts",
     "src/app/renderer/**/*.tsx",
     "src/shared/*/events.ts",
-    "src/app/shared/settings.ts"
+    "src/app/shared/settings.ts",
+    "src/app/shared/aiToolViews.ts"
   ],
   "exclude": ["**/*.test.ts", "src/**/testing/**", "src/foundation/ui/storage/memoryStorage.ts"]
 }

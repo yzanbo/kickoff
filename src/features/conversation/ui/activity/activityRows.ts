@@ -5,8 +5,9 @@ import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState } from "@shared/chat/subagentState";
-import { groupEvents, summarizeTools, type TimelineItem, type ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
-import { describeTool } from "@shared/chat/toolText";
+import { groupEvents, type TimelineItem, type ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
+import { toolCallTexts } from "@/features/conversation/ui/tools/toolCallTexts";
+import { toolText } from "@/features/chat/ui";
 import { toolSpan } from "@/features/conversation/ui/tools/toolTimes";
 import { childrenOf, scopeOf, type SubagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
@@ -131,7 +132,7 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
       at: span.start,
       durationMs: pending ? undefined : elapsed(span.start, span.end),
       // 1 件ならそのツールの中身（「コマンド: npm test」）、いくつもならまとめ（「2個のファイルを読み取り および 1回検索」）
-      text: tools.length === 1 ? describeTool(first.name, (first.input ?? {}) as Record<string, unknown>) : summarizeTools(tools),
+      text: tools.length === 1 ? toolText().describeTool(first.name, (first.input ?? {}) as Record<string, unknown>) : toolText().summarizeTools(toolCallTexts(tools)),
       eventId: tools[0].use.id,
       tools,
       ...(running ? { running } : {}),

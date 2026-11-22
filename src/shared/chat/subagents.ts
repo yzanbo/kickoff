@@ -1,4 +1,5 @@
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
+import { isSubagentTool } from "@shared/ai/claudeTools";
 import { isBackgroundLaunch } from "./backgroundTasks";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { markSuperseded } from "./subagentSupersede";
@@ -59,13 +60,6 @@ export interface SubagentEntry {
 /** 失敗の文が、出力の上限（max_output_tokens）で止まったものか（通信の切断とは別。同じやり方では、再開しても同じところで止まる） */
 export function isOutputLimitError(message: string | null | undefined): boolean {
   return Boolean(message) && /max_output_tokens|output token maximum/i.test(message!);
-}
-
-/** サブエージェントを起動するツール（コアが記録を軽く読むときも、この名前の呼び出しは引数ごと読む） */
-export const SUBAGENT_TOOLS: readonly string[] = ["Agent"];
-/** サブエージェントを起動するツール（Agent）か */
-export function isSubagentTool(name: string): boolean {
-  return SUBAGENT_TOOLS.includes(name);
 }
 
 /**

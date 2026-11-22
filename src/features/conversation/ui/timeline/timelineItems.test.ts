@@ -2,34 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { eventSequence, makeEvent } from "@shared/foundation/testing/factories";
 import { AI_CREATE_CHAT_TOOL, createdChatMark } from "@shared/chat/aiCreateChat";
-import { createdChatsByUser, groupEvents, summarizeTools, type ToolCall } from "./timelineItems";
+import { createdChatsByUser, groupEvents } from "./timelineItems";
 
-const use = eventSequence();
-let tools = 0;
-const call = (name: string, input: object = {}): ToolCall => ({ use: use("tool_use", { id: `tu${++tools}`, name, input }) });
-
-test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
-  assert.equal(
-    summarizeTools([call("Bash"), call("Bash"), call("Bash"), call("Bash"), call("TodoWrite"), call("WebFetch"), call("ToolSearch"), call("AskUserQuestion")]),
-    "4個のコマンドを実行、1件のページを取得、ToDo を1件更新、ツールを1回検索 および 1件の質問",
-  );
-  // 同じファイルを何度編集しても 1 個と数える
-  assert.equal(
-    summarizeTools([call("Edit", { file_path: "a.ts" }), call("Edit", { file_path: "a.ts" }), call("Write", { file_path: "b.ts" }), call("Read", { file_path: "a.ts" }), call("Grep"), call("Glob")]),
-    "2個のファイルを編集、1個のファイルを読み取り および 2回検索",
-  );
-  assert.equal(summarizeTools([call("Agent"), call("Agent")]), "サブエージェントを2件起動");
-  assert.equal(summarizeTools([]), "");
-});
-
-test("ツールのまとまりの要約: ToDo・ツール検索・スキル・ページの取得などを種類ごとに数え、分類できないものだけ「その他」", () => {
-  assert.equal(summarizeTools([call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate")]), "ToDo を4件更新");
-  assert.equal(summarizeTools([call("ToolSearch"), call("TaskCreate"), call("TaskCreate"), call("ToolSearch")]), "ToDo を2件追加 および ツールを2回検索");
-  assert.equal(summarizeTools([call("Skill"), call("WebFetch"), call("WebFetch")]), "2件のページを取得 および スキルを1回使用");
-  assert.equal(summarizeTools([call("TaskList"), call("TaskGet")]), "ToDo を2回確認");
-  assert.equal(summarizeTools([call("TaskStop"), call("TaskOutput"), call("ExitPlanMode")]), "作業の様子を1回確認、作業を1件停止 および 計画を1回提示");
-  assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
-});
 
 test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果は呼び出しにぶら下げる。init・thinking などは出さない", () => {
   const items = groupEvents([

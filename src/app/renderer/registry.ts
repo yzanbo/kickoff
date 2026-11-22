@@ -9,12 +9,14 @@ import { configureRouter } from "@/foundation/ui/navigation/router";
 import { contributes as popouts } from "./popout/contributes";
 import { workplaceDecorItems } from "./workplaceDecor";
 import { installContributions } from "@/foundation/ui/points";
+import { aiToolViews } from "@/features/chat/ui";
+import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 
 /** プロジェクトの画面（タブ）の ID（URL の #/projects/<id>/<画面>。プロジェクトの画面の拡張点 projectViews ができたら、そこから作る） */
 const PROJECT_VIEWS = ["board", "chats", "files", "search", "changes", "history", "notes", "db", "github", "docker", "ci", "trash"];
 
 export function installRegistry(): void {
   configureRouter({ projectViews: PROJECT_VIEWS, defaultView: "board" });
-  // 機能の並び順（足すときも同じ順に）。作業場所の飾りは worktrees・github の分（持ち主へ移すまでここ）。殻がまとめて出すもの（別ウィンドウの種類）は最後
-  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes, ...workplaceDecorItems, ...popouts]);
+  // 機能の並び順（足すときも同じ順に）。作業場所の飾りは worktrees・github の分（持ち主へ移すまでここ）。殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後
+  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes, ...workplaceDecorItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
 }

@@ -74,8 +74,7 @@
 
 ## ツール（`tools/`）
 
-- ツールの行は人が読める文にする（`@shared/chat/toolText.ts`。生の JSON を出さない）。承認カードは `describeApprovalInput`、まとまりの要約は `summarizeTools`。
-- AI のツール（`@shared/chat/ai*.ts` の名前）を足したら、`toolText.ts` に行の文を足す。
+- ツールの行は `toolText()`（`@/features/chat/ui`）の文にする（生の JSON を出さない）。語彙は Claude Code が `@shared/ai/claudeTools.ts`、Kickoff は持ち主の `@shared/<機能>/tools.ts`（足したら束ね `src/app/shared/aiToolViews.ts` にも）。
 - 閉じた中身は `LazyDetails` で初めて開くまで作らない（色付けも開いてから）。
 - 裏で動かしたコマンドは、裏の作業の一覧（`ChatLive.background`）に残る間は実行中に見せる（`BackgroundCallsContext`）。前の作業で結果のない呼び出しは中断。
 - 実行中のコマンドの出力（SSE `chat_command_output`）はキーごとの店 `commandOutputs.ts` に入れ、届いた部品だけを描き直す。

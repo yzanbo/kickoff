@@ -1,11 +1,11 @@
 // チャットのやり取りの記録（Markdown。別のチャットに添付ファイルとして渡して AI が Read で読む・右クリックの「全部のやり取りをコピー」。Node 依存なし）
+import { isEditTool } from "@shared/ai/claudeTools";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { workdirOf } from "./workdir";
 
 /** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */
-const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
 
 /** 記録の日時（2026-11-04 13:05） */
 function stamp(iso: string): string {
@@ -52,7 +52,7 @@ export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]
       lines.push("", `## 自分（質問への回答・${stamp(e.created_at)}）`, "", ...items);
     } else if (e.type === "text" && !e.data.parent && e.data.text.trim()) {
       lines.push("", "## AI", "", e.data.text.trim());
-    } else if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) {
+    } else if (e.type === "tool_use" && isEditTool(e.data.name)) {
       const input = e.data.input as { file_path?: string; notebook_path?: string } | undefined;
       const file = input?.file_path ?? input?.notebook_path;
       if (file) edited.add(relative(file, root));

@@ -16,6 +16,7 @@
     "src/features/*/ui/popoutKinds.ts",
     "src/features/*/ui/windowMessages.ts",
     "src/app/shared/settings.ts",
+    "src/app/shared/aiToolViews.ts",
     "src/app/core/hostRemote.ts"
   ]
 }

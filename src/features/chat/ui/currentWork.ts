@@ -1,15 +1,22 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { EDIT_TOOLS } from "@/features/conversation/ui/timeline/timelineItems";
-import { describeTool } from "@shared/chat/toolText";
+import { toolKindOf, type ToolKind } from "@shared/ai/claudeTools";
+import { clip } from "@shared/chat/toolText";
 import { baseName } from "@/foundation/ui/lib/format";
+import { toolText } from "./tools/toolText";
 
-const SEARCH_TOOLS = new Set(["Grep", "Glob"]);
-const WEB_TOOLS = new Set(["WebFetch", "WebSearch"]);
-
+type Input = Record<string, unknown>;
 const fileName = (value: unknown) => baseName(String(value ?? ""));
-const clip = (text: string, max = 40) => {
-  const line = text.trim().split("\n")[0] ?? "";
-  return line.length > max ? `${line.slice(0, max)}…` : line;
+const short = (value: unknown) => clip(String(value ?? ""), 40);
+
+/** ツールの種類ごとの、いまの作業の文（ない種類は toolText の 1 文） */
+const WORK_TEXT: Partial<Record<ToolKind, (input: Input) => string>> = {
+  edit: (input) => `ファイルを編集: ${fileName(input.file_path ?? input.notebook_path)}`,
+  read: (input) => `ファイルを読み取り: ${fileName(input.file_path)}`,
+  command: (input) => `コマンドを実行: ${short(input.command)}`,
+  search: (input) => `検索: ${short(input.pattern)}`,
+  subagent: (input) => `サブエージェントを起動: ${short(input.description)}`,
+  webSearch: () => "Web を調べています",
+  fetch: () => "Web を調べています",
 };
 
 /**
@@ -23,17 +30,11 @@ export function describeActivity(event: Pick<ChatEvent, "type" | "data">): strin
   if (e.type === "approval") return "承認を待っています";
   if (e.type !== "tool_use") return null;
   const name = e.data.name;
-  const input = (e.data.input ?? {}) as Record<string, unknown>;
+  const input = (e.data.input ?? {}) as Input;
   const prefix = e.data.parent ? "サブエージェント: " : "";
-  let text: string;
-  if (EDIT_TOOLS.has(name)) text = `ファイルを編集: ${fileName(input.file_path ?? input.notebook_path)}`;
-  else if (name === "Read") text = `ファイルを読み取り: ${fileName(input.file_path)}`;
-  else if (name === "Bash") text = `コマンドを実行: ${clip(String(input.command ?? ""))}`;
-  else if (SEARCH_TOOLS.has(name)) text = `検索: ${clip(String(input.pattern ?? ""))}`;
-  else if (name === "Agent") text = `サブエージェントを起動: ${clip(String(input.description ?? ""))}`;
-  else if (WEB_TOOLS.has(name)) text = "Web を調べています";
-  else text = clip(describeTool(name, input));
-  return prefix + text;
+  const kind = toolKindOf(name);
+  const work = kind && WORK_TEXT[kind];
+  return prefix + (work ? work(input) : short(toolText().describeTool(name, input)));
 }
 
 /** 経過時間の文（作業中のチャットの時刻の代わりに出す。1 分未満は「作業中」だけ） */

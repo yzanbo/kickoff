@@ -1,93 +1,30 @@
-// ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
-import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "./aiChatEdit";
-import { AI_CHAT_RELATION_LABELS, AI_CREATE_CHAT_TOOL, isCreateChatTool, relationOf } from "./aiCreateChat";
-import {
-  AI_ADD_DRAFT_TOOL,
-  AI_OPEN_CHAT_TOOL,
-  AI_OPEN_DIFF_TOOL,
-  AI_OPEN_FILE_TOOL,
-  AI_OPEN_NOTE_TOOL,
-  AI_OPEN_SQL_TOOL,
-  describeAddDraft,
-  describeOpenChat,
-  describeOpenDiff,
-  describeOpenFile,
-  describeOpenNote,
-  describeOpenSql,
-} from "./aiOpen";
-import { AI_ADD_SNIPPET_TOOL, AI_MOVE_NOTE_TOOL, describeAddSnippet, describeMoveNote } from "./aiProject";
-import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "./aiRead";
-import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/terminal/aiTerminal";
-import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/guard/aiSandboxDiagnostics";
-import { AI_FINISH_WORKTREE_TOOL, describeFinishWorktree } from "@shared/worktrees/aiWorktree";
-import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL, describeMoveWorkplace } from "@shared/workplaceMove/aiWorkplace";
-import { NOTIFICATION_TOOL_VIEWS } from "@shared/notifications/tools";
-import { aiToolId } from "@shared/foundation/aiToolView";
-import { AI_GET_USER_VIEW_TOOL } from "@shared/userView/tools";
-import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL, describeRemoveChat } from "./aiChatRemove";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL, describeVisual } from "@shared/visuals/aiVisual";
-import { isSubagentTool } from "./subagents";
+// ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）。
+// Claude Code のツールは @shared/ai/claudeTools の表、Kickoff のツールは各機能の表（AiToolView。束ねは src/app/shared/aiToolViews.ts）を受けて引く
+import { claudeToolLabel, isEditTool, isSubagentTool, toolKindOf, type ToolKind } from "@shared/ai/claudeTools";
+import { aiToolId, type AiToolView } from "@shared/foundation/aiToolView";
+import { isCreateChatTool } from "./aiCreateChat";
 
 type Input = Record<string, unknown>;
 
-const TOOL_LABELS: Record<string, string> = {
-  Read: "読む",
-  Write: "作成",
-  Edit: "編集",
-  MultiEdit: "編集",
-  NotebookEdit: "編集",
-  Bash: "コマンド",
-  Grep: "検索",
-  Glob: "ファイル検索",
-  WebSearch: "Web 検索",
-  WebFetch: "ページを取得",
-  TodoWrite: "ToDo",
-  TaskCreate: "ToDo を追加",
-  TaskUpdate: "ToDo を更新",
-  TaskList: "ToDo の一覧",
-  TaskGet: "ToDo を確認",
-  TaskStop: "作業を停止",
-  TaskOutput: "作業の出力",
-  Monitor: "監視",
-  AskUserQuestion: "質問",
-  Agent: "サブエージェント",
-  SendMessage: "メッセージ",
-  SubagentHandback: "報告",
-  ToolSearch: "ツール検索",
-  Skill: "スキル",
-  ExitPlanMode: "計画を提示",
-  EnterPlanMode: "計画モード",
-  EnterWorktree: "ワークツリーに入る",
-  ExitWorktree: "ワークツリーを出る",
-  [AI_CREATE_CHAT_TOOL]: "チャットを作る",
-  [AI_LIST_FAMILY_TOOL]: "同じ家系のチャットを確かめる",
-  [AI_UPDATE_CHAT_TOOL]: "チャットを変更",
-  [AI_OPEN_NOTE_TOOL]: "ノートを開く",
-  [AI_OPEN_CHAT_TOOL]: "チャットを開く",
-  [AI_LIST_PROJECT_CHATS_TOOL]: "プロジェクトのチャットを確かめる",
-  [AI_READ_CHAT_TOOL]: "チャットの会話を読む",
-  [AI_USAGE_TOOL]: "使用枠を確かめる",
-  [AI_ADD_SNIPPET_TOOL]: "定型文に登録",
-  [AI_MOVE_NOTE_TOOL]: "ノートを移動",
-  [AI_OPEN_FILE_TOOL]: "ファイルを開く",
-  [AI_OPEN_DIFF_TOOL]: "差分を開く",
-  [AI_OPEN_SQL_TOOL]: "SQL のタブに入れる",
-  [AI_ADD_DRAFT_TOOL]: "下書きを入れる",
-  [AI_LIST_TERMINALS_TOOL]: "ターミナルを確かめる",
-  [AI_READ_TERMINAL_TOOL]: "ターミナルの出力を読む",
-  [AI_START_SANDBOX_DIAGNOSTICS_TOOL]: "OS の拒否ログの診断を始める",
-  [AI_READ_SANDBOX_DENIALS_TOOL]: "OS の拒否ログを読む",
-  [AI_FINISH_WORKTREE_TOOL]: "ワークツリーを片付ける",
-  [AI_MOVE_WORKPLACE_TOOL]: "作業場所を移す予約",
-  [AI_CANCEL_WORKPLACE_MOVE_TOOL]: "作業場所を移す予約を取り消す",
-  ...Object.fromEntries(NOTIFICATION_TOOL_VIEWS.map((v) => [aiToolId(v), v.label])),
-  [AI_GET_USER_VIEW_TOOL]: "画面を見る",
-  [AI_ARCHIVE_CHAT_TOOL]: "チャットをアーカイブ",
-  [AI_DELETE_CHAT_TOOL]: "チャットをゴミ箱へ",
-  [AI_VISUAL_GUIDE_TOOL]: "図の書き方を読む",
-  [AI_SHOW_VISUAL_TOOL]: "図を描く",
-  [AI_UPDATE_VISUAL_TOOL]: "図を描き直す",
-};
+export interface ToolText {
+  /** 表示名（表にない MCP のツールはサーバーの名前） */
+  toolLabel(name: string): string;
+  /** 表示名と入力をつないだ 1 文（「ToDo を追加: 確認 1」。実行中のまとまりの見出しに出す） */
+  describeTool(name: string, input: Input): string;
+  /** 入力の 1 行（ツール名は含めない） */
+  describeToolInput(name: string, input: Input): string;
+  /** 承認カードに出す入力（計画の提示は計画の全文。ほかは describeToolInput と同じ） */
+  describeApprovalInput(name: string, input: Input): string;
+  /** まとまりで何をしたかを 1 文にする（「2個のファイルを編集 および 3個のコマンドを実行」） */
+  summarizeTools(calls: readonly ToolCallText[]): string;
+}
+
+/** 要約に数える 1 回の呼び出し（id はファイルのないツールの数え分け） */
+export interface ToolCallText {
+  name: string;
+  input?: unknown;
+  id: number;
+}
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
 const TODO_STATUS: Record<string, string> = {
@@ -100,7 +37,7 @@ const TODO_STATUS: Record<string, string> = {
 const str = (value: unknown): string => (typeof value === "string" ? value : typeof value === "number" ? String(value) : "");
 
 /** 1 行目だけを max 文字までにする */
-function clip(text: string, max = 60): string {
+export function clip(text: string, max = 60): string {
   const line = text.trim().split("\n")[0] ?? "";
   return line.length > max ? `${line.slice(0, max)}…` : line;
 }
@@ -111,11 +48,6 @@ const joinLabel = (label: string, arg: string) => (arg ? `${label}: ${arg}` : la
 function splitMcp(name: string): { server: string; tool: string } | null {
   const m = /^mcp__(.+?)__(.+)$/.exec(name);
   return m ? { server: m[1], tool: m[2] } : null;
-}
-
-/** ツールの表示名（表にない MCP のツールはサーバーの名前） */
-export function toolLabel(name: string): string {
-  return TOOL_LABELS[name] ?? splitMcp(name)?.server ?? name;
 }
 
 /** 知らないツールの入力を `key: value` の短い列にする（長い値は省き、配列は件数だけ） */
@@ -176,10 +108,8 @@ function describeQuestions(questions: unknown): string {
   return questions.length > 1 ? `${first}（ほか ${questions.length - 1} 件）` : first;
 }
 
-/** ツールごとの入力の文（ツール名を除いた部分）。null ならツール固有の形がない。表で持つ Kickoff のツールは表の 1 文 */
-function describeKnown(name: string, input: Input): string | null {
-  const view = NOTIFICATION_TOOL_VIEWS.find((v) => aiToolId(v) === name);
-  if (view) return clip(view.describe?.(input) ?? "");
+/** Claude Code のツールごとの入力の文（ツール名を除いた部分）。null ならツール固有の形がない */
+function describeClaude(name: string, input: Input): string | null {
   switch (name) {
     case "Bash":
       return typeof input.command === "string" ? input.command : null;
@@ -230,105 +160,94 @@ function describeKnown(name: string, input: Input): string | null {
       return "";
     case "AskUserQuestion":
       return describeQuestions(input.questions);
-    case AI_CREATE_CHAT_TOOL:
-      // 何を作ったか・名前（なければ依頼の 1 行目）・ワークツリー（「子チャット「ログの調査」（ワークツリー feat/a）」）
-      return clip(describeCreateChat(input));
-    case AI_LIST_FAMILY_TOOL:
-      return "";
-    case AI_UPDATE_CHAT_TOOL:
-      // どのチャットの何を変えたか（引数から。「名前を『…』に変えた・固定した（チャット 12）」）
-      return clip(describeUpdateChat(input));
-    case AI_OPEN_NOTE_TOOL:
-      // どのノートをどこに開いたか（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら設定の開き方なので付けない）
-      return clip(describeOpenNote(input));
-    case AI_OPEN_CHAT_TOOL:
-      return clip(describeOpenChat(input));
-    case AI_LIST_PROJECT_CHATS_TOOL:
-    case AI_USAGE_TOOL:
-      return "";
-    case AI_READ_CHAT_TOOL:
-      // どのチャットを、どこからさかのぼって読んだか（「チャット 12（38 回目より前）」）
-      return clip(describeReadChat(input));
-    case AI_ADD_SNIPPET_TOOL:
-      return clip(describeAddSnippet(input));
-    case AI_MOVE_NOTE_TOOL:
-      return clip(describeMoveNote(input));
-    case AI_OPEN_FILE_TOOL:
-      return clip(describeOpenFile(input));
-    case AI_OPEN_DIFF_TOOL:
-      return clip(describeOpenDiff(input));
-    case AI_OPEN_SQL_TOOL:
-      return clip(describeOpenSql(input));
-    case AI_ADD_DRAFT_TOOL:
-      return clip(describeAddDraft(input));
-    case AI_VISUAL_GUIDE_TOOL:
-      return Array.isArray(input.topics) ? input.topics.filter((t) => typeof t === "string").join("・") : "";
-    case AI_SHOW_VISUAL_TOOL:
-    case AI_UPDATE_VISUAL_TOOL:
-      // 題名と種類（「構成図（SVG）」）。中身は図として出す
-      return clip(describeVisual(input));
-    case AI_LIST_TERMINALS_TOOL:
-    case AI_START_SANDBOX_DIAGNOSTICS_TOOL:
-    case AI_READ_SANDBOX_DENIALS_TOOL:
-      return "";
-    case AI_GET_USER_VIEW_TOOL:
-      // 引数はない（何を読んだか・読めなかった事情は、ツールの行が結果の 1 行目から出す）
-      return "";
-    case AI_FINISH_WORKTREE_TOOL:
-      // どのワークツリーか（省いたらこのチャットのワークツリー。結果（取り込み済みか・控え）は結果の欄とお知らせ）
-      return clip(describeFinishWorktree(input));
-    case AI_MOVE_WORKPLACE_TOOL:
-      // どこへ移すか（変更を持っていくなら添える。予約の様子は流れのいちばん下の行、移したら区切りの 1 行）
-      return clip(describeMoveWorkplace(input));
-    case AI_CANCEL_WORKPLACE_MOVE_TOOL:
-      return "";
-    case AI_ARCHIVE_CHAT_TOOL:
-    case AI_DELETE_CHAT_TOOL:
-      // どのチャットか（予約したか・一緒に扱った子チャットの数は結果の欄）
-      return describeRemoveChat(input);
-    case AI_READ_TERMINAL_TOOL:
-      // 読んだ行の数（省いたら既定なので付けない）
-      return clip(describeReadTerminal(input));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {
     return typeof input.subagent_type === "string" ? `${input.description}（${input.subagent_type}）` : input.description;
   }
-  const mcp = splitMcp(name);
-  if (mcp) return [mcp.tool, describeUnknownInput(input)].filter(Boolean).join(" ");
   return null;
 }
 
-/** ツールの入力を人が読める 1 行にする（ツール名は含めない。表示名は toolLabel） */
-export function describeToolInput(name: string, input: Input): string {
-  const known = describeKnown(name, input);
-  if (known !== null) return known;
-  if (typeof input.file_path === "string") return input.file_path;
-  if (typeof input.url === "string") return input.url;
-  if (typeof input.query === "string") return input.query;
-  if (typeof input.pattern === "string") return input.pattern;
-  return describeUnknownInput(input);
+/** 回数で数えるツールの種類（並びは要約に出す順。先頭のコマンドの次に、ファイルの読み取りを挟む。編集・読み取りはファイルの数で数える） */
+const COUNTED_KINDS: readonly { kinds: readonly ToolKind[]; text: (n: number) => string }[] = [
+  { kinds: ["command"], text: (n) => `${n}個のコマンドを実行` },
+  { kinds: ["search", "webSearch"], text: (n) => `${n}回検索` },
+  { kinds: ["fetch"], text: (n) => `${n}件のページを取得` },
+  { kinds: ["todoAdd"], text: (n) => `ToDo を${n}件追加` },
+  { kinds: ["todoUpdate"], text: (n) => `ToDo を${n}件更新` },
+  { kinds: ["todoCheck"], text: (n) => `ToDo を${n}回確認` },
+  { kinds: ["toolSearch"], text: (n) => `ツールを${n}回検索` },
+  { kinds: ["skill"], text: (n) => `スキルを${n}回使用` },
+  { kinds: ["subagent"], text: (n) => `サブエージェントを${n}件起動` },
+  { kinds: ["message"], text: (n) => `メッセージを${n}件送信` },
+  { kinds: ["watch"], text: (n) => `作業の様子を${n}回確認` },
+  { kinds: ["stop"], text: (n) => `作業を${n}件停止` },
+  { kinds: ["question"], text: (n) => `${n}件の質問` },
+  { kinds: ["plan"], text: (n) => `計画を${n}回提示` },
+];
+const COUNT_OF = new Map(COUNTED_KINDS.flatMap((c, i) => c.kinds.map((kind) => [kind, i] as const)));
+
+/** まとまりの要約（編集・読み取りはファイルの数、それ以外は種類ごとの回数。分類できないものだけ「その他」） */
+function summarizeTools(calls: readonly ToolCallText[]): string {
+  const edited = new Set<string>();
+  const read = new Set<string>();
+  const counts = COUNTED_KINDS.map(() => 0);
+  let mcp = 0;
+  let others = 0;
+  for (const t of calls) {
+    const input = (t.input ?? {}) as Input;
+    const file = String(input.file_path ?? input.notebook_path ?? t.id);
+    const kind = toolKindOf(t.name);
+    const counted = kind === null ? undefined : COUNT_OF.get(kind);
+    if (isEditTool(t.name)) edited.add(file);
+    else if (kind === "read") read.add(file);
+    else if (counted !== undefined) counts[counted] += 1;
+    else if (t.name.startsWith("mcp__")) mcp += 1;
+    else others += 1;
+  }
+  const [commands, ...rest] = COUNTED_KINDS.map((c, i) => (counts[i] > 0 ? c.text(counts[i]) : ""));
+  const parts = [
+    edited.size > 0 && `${edited.size}個のファイルを編集`,
+    commands,
+    read.size > 0 && `${read.size}個のファイルを読み取り`,
+    ...rest,
+    mcp > 0 && `MCP のツールを${mcp}回使用`,
+    others > 0 && `その他のツールを${others}回使用`,
+  ].filter((part): part is string => Boolean(part));
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join("、")} および ${parts[parts.length - 1]}`;
 }
 
-/** AI が作ったチャットの行の文（何を作ったか・名前か依頼の 1 行目・ワークツリーのブランチ） */
-function describeCreateChat(input: Input): string {
-  const name = str(input.title) || str(input.text).split("\n")[0];
-  const relation = relationOf(input);
-  const branch = str(input.worktree_branch);
-  return `${relation ? AI_CHAT_RELATION_LABELS[relation] : ""}「${name}」${branch ? `（ワークツリー ${branch}）` : ""}`;
-}
-
-/** 承認カードに出す入力（計画の提示は計画の全文。ほかは describeToolInput と同じ） */
-export function describeApprovalInput(name: string, input: Input): string {
-  if (name === "ExitPlanMode" && typeof input.plan === "string") return input.plan;
-  // AI が作るチャットに送る依頼は、確かめられるよう切らずに全文（何を作るか・名前・作業場所は見出しと説明にある）
-  if (isCreateChatTool(name) && typeof input.text === "string") return input.text;
-  return describeToolInput(name, input);
-}
-
-/** 表示名と入力をつないだ 1 文（「ToDo を追加: 確認 1」。実行中のまとまりの見出しに出す） */
-export function describeTool(name: string, input: Input): string {
-  return joinLabel(toolLabel(name), describeToolInput(name, input));
+/** Kickoff のツールの表（各機能の AiToolView）を受けて、ツールの文の関数を作る */
+export function createToolText(kickoff: readonly AiToolView[]): ToolText {
+  const views = new Map(kickoff.map((v) => [aiToolId(v), v]));
+  const toolLabel = (name: string) => claudeToolLabel(name) ?? views.get(name)?.label ?? splitMcp(name)?.server ?? name;
+  const describeToolInput = (name: string, input: Input): string => {
+    // 表で持つ Kickoff のツールは表の 1 文
+    const view = views.get(name);
+    if (view) return clip(view.describe?.(input) ?? "");
+    const known = describeClaude(name, input);
+    if (known !== null) return known;
+    const mcp = splitMcp(name);
+    if (mcp) return [mcp.tool, describeUnknownInput(input)].filter(Boolean).join(" ");
+    if (typeof input.file_path === "string") return input.file_path;
+    if (typeof input.url === "string") return input.url;
+    if (typeof input.query === "string") return input.query;
+    if (typeof input.pattern === "string") return input.pattern;
+    return describeUnknownInput(input);
+  };
+  return {
+    toolLabel,
+    describeToolInput,
+    describeTool: (name, input) => joinLabel(toolLabel(name), describeToolInput(name, input)),
+    describeApprovalInput: (name, input) => {
+      if (name === "ExitPlanMode" && typeof input.plan === "string") return input.plan;
+      // AI が作るチャットに送る依頼は、確かめられるよう切らずに全文（何を作るか・名前・作業場所は見出しと説明にある）
+      if (isCreateChatTool(name) && typeof input.text === "string") return input.text;
+      return describeToolInput(name, input);
+    },
+    summarizeTools,
+  };
 }
 
 /** ツールの結果のうち、結果の欄に出す文（ツール検索の `[tool_reference]` のような意味のない行は除く。何も残らなければ空） */

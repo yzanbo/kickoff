@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";
 import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
 import { callDuration } from "@/features/conversation/ui/tools/toolTimes";
-import { describeTool } from "@shared/chat/toolText";
+import { toolText } from "@/features/chat/ui";
 import { agentHueStyle } from "@/features/subagents/ui/model/agentHues";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { agentTargetOf } from "./activityRows";
@@ -94,7 +94,7 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlig
                   onContextMenu={(e) => onMenu(row, e, call.use.id)}
                 >
                   <span className="activity-call-time">{formatStamp(call.use.created_at)}</span>
-                  <span className="activity-text">{rel(describeTool(call.use.data.name, (call.use.data.input ?? {}) as Record<string, unknown>))}</span>
+                  <span className="activity-text">{rel(toolText().describeTool(call.use.data.name, (call.use.data.input ?? {}) as Record<string, unknown>))}</span>
                   <span className="activity-meta">{ms !== undefined ? formatDuration(ms) : row.running ? <Elapsed since={call.use.created_at} /> : null}</span>
                 </button>
               );
