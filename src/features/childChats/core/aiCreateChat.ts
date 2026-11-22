@@ -16,8 +16,8 @@ import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
 import { depthOf, type ChatStoreDeps } from "@/features/chat/core/index";
-import { gitOutput } from "@/foundation/core/workplace/exec";
-import { isGitWorkTree } from "@/foundation/core/workplace/reads";
+import { git } from "@/foundation/core/workplace/git";
+import { changedCount, isGitWorkTree } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { newWorktreeProblem } from "@/foundation/core/workplace/worktrees";
 import type { ChildChatInput } from "./children";
@@ -99,10 +99,10 @@ interface MadeWorktree {
 /** 作る側のチャットの作業場所のいまのコミットから、新しいブランチのワークツリーを作る（画面の「ワークツリーを作る」と同じ手順。ポートの帯・組の名前・.env の写しも） */
 async function makeWorktree(deps: AiCreateChatDeps, project: Project, from: Chat, branch: string): Promise<MadeWorktree> {
   const cwd = workdirOf(from, project);
-  const base = (await gitOutput(cwd, ["rev-parse", "HEAD"])).trim();
-  const status = await gitOutput(cwd, ["status", "--porcelain"]).catch(() => "");
+  const base = await git(cwd).text(["rev-parse", "HEAD"]);
+  const uncommitted = await changedCount(cwd).catch(() => 0);
   const { folder } = await deps.workplace.creator().createWorktree({ projectId: project.id, repoPath: project.repo_path }, branch, cwd);
-  return { path: folder, base, uncommitted: status.split("\n").filter(Boolean).length };
+  return { path: folder, base, uncommitted };
 }
 
 /**

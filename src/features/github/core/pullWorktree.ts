@@ -1,7 +1,7 @@
 // PR のブランチを手元のワークツリーに取り出す（GitHub タブの「レビューコメントで直す」）
 import type { GitHubRemote, GitWorktree } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 import { hasRef } from "@/foundation/core/workplace/reads";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { addWorktree, listWorktrees } from "@/foundation/core/workplace/worktrees";
@@ -54,7 +54,7 @@ async function ensurePullBranch(repo: string, pr: PullHead, remotes: GitHubRemot
   if (await hasRef(repo, `refs/heads/${branch}`)) return branch;
   if (remote) {
     await remoteGit(repo).run(["fetch", remote, `+refs/heads/${pr.head_ref}:refs/remotes/${remote}/${pr.head_ref}`]);
-    await gitOutput(repo, ["branch", "--track", branch, `${remote}/${pr.head_ref}`]);
+    await git(repo).run(["branch", "--track", branch, `${remote}/${pr.head_ref}`]);
   } else {
     await remoteGit(repo).run(["fetch", targetRemote, `refs/pull/${pr.number}/head:refs/heads/${branch}`]);
   }
@@ -72,6 +72,6 @@ export async function checkoutPullMain(repo: string, pr: PullHead, remotes: GitH
   if (holder?.main) return branch;
   if (holder) throw new Invalid(`ブランチ ${branch} はワークツリー（${holder.path}）で取り出しているので、本体には取り出せません。そのワークツリーで作業してください`);
   await ensurePullBranch(repo, pr, remotes, targetRemote, remoteGit);
-  await gitOutput(repo, ["switch", "-q", branch]);
+  await git(repo).run(["switch", "-q", branch]);
   return branch;
 }

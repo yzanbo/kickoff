@@ -1,13 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { gitOutput } from "@/foundation/core/workplace/exec";
-import { hasRef } from "@/foundation/core/workplace/reads";
+import { git } from "@/foundation/core/workplace/git";
+import { changedCount, hasRef, repoTop } from "@/foundation/core/workplace/reads";
 import { expandHome } from "@/foundation/core/system/paths";
 import type { FolderInspection } from "@shared/projects/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";
-
-const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();
 
 /** フォルダ名として安全な文字だけにする（英数字・ハイフン・アンダースコア・ドット） */
 export function toFolderName(name: string): string {
@@ -55,10 +53,10 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
     return fs.realpath(repo);
   }
   try {
-    await git(repo, ["init", "-b", "main"]);
+    await git(repo).run(["init", "-b", "main"]);
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
-    await git(repo, ["add", "README.md"]);
-    await git(repo, ["commit", "-m", "chore: Kickoff でプロジェクトを作成"]);
+    await git(repo).run(["add", "README.md"]);
+    await git(repo).run(["commit", "-m", "chore: Kickoff でプロジェクトを作成"]);
   } catch (e) {
     // 途中で失敗したら、作ったフォルダを片付けてから伝える
     if (!existing) await fs.rm(repo, { recursive: true, force: true });
@@ -94,16 +92,16 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
   result.path = await fs.realpath(target);
   result.empty = ((await fs.readdir(target).catch(() => [])) as string[]).every((name) => name === ".DS_Store");
 
-  const root = await git(target, ["rev-parse", "--show-toplevel"]).catch(() => null);
+  const root = await repoTop(target);
   if (!root) return result;
   result.is_git = true;
   result.git_root = await fs.realpath(root).catch(() => root);
   result.has_commits = await hasRef(target, "HEAD");
-  result.branch = (await git(target, ["branch", "--show-current"]).catch(() => "")) || null;
-  result.remote_url = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
+  result.branch = (await git(target).maybe(["branch", "--show-current"])).trim() || null;
+  result.remote_url = (await git(target).maybe(["remote", "get-url", "origin"])).trim() || null;
   // リポジトリの中のフォルダなら、その中だけを見る
-  result.dirty = Boolean(await git(target, ["status", "--porcelain", "--", "."]).catch(() => ""));
-  if (result.git_root !== result.path) result.parent_tracked = Boolean(await git(target, ["ls-files", "--", "."]).catch(() => ""));
+  result.dirty = (await changedCount(target, { scope: "." }).catch(() => 0)) > 0;
+  if (result.git_root !== result.path) result.parent_tracked = Boolean((await git(target).maybe(["ls-files", "--", "."])).trim());
   return result;
 }
 
@@ -136,9 +134,9 @@ export async function initGitRepo(dir: string, message = "chore: Kickoff で git
   if (inner && info.parent_tracked) throw new Conflict(`親のリポジトリ（${info.git_root}）がこのフォルダのファイルを管理しているので、このフォルダで別に git の管理を始められません`);
   if (!inner && info.is_git && info.has_commits) throw new Conflict("このフォルダは、もう git で管理しています");
   try {
-    if (!info.is_git || inner) await git(info.path, ["init", "-b", "main"]);
-    await git(info.path, ["add", "-A"]);
-    await git(info.path, ["commit", "--allow-empty", "-m", message]);
+    if (!info.is_git || inner) await git(info.path).run(["init", "-b", "main"]);
+    await git(info.path).run(["add", "-A"]);
+    await git(info.path).run(["commit", "--allow-empty", "-m", message]);
   } catch (e) {
     throw new Invalid(`git の初期化に失敗しました: ${errorMessage(e)}`);
   }

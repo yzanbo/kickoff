@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { GitWorktree } from "@shared/git/types";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 
 /** 続けて変わったら（git の書き換えは HEAD.lock を作ってから名前を変える）まとめて 1 回知らせる */
 const SETTLE_MS = 150;
@@ -31,7 +31,7 @@ export class HeadWatch {
   async watch(projectId: number, repo: string, worktrees: GitWorktree[]): Promise<void> {
     const generation = (this.generations.get(projectId) ?? 0) + 1;
     this.generations.set(projectId, generation);
-    const gitDirOf = (dir: string, args: string[]) => gitOutput(dir, args).then((s) => s.trim(), () => "");
+    const gitDirOf = async (dir: string, args: string[]) => (await git(dir).maybe(args)).trim();
     const dirs = await Promise.all(worktrees.filter((w) => !w.prunable).map((w) => gitDirOf(w.root, ["rev-parse", "--absolute-git-dir"])));
     const common = await gitDirOf(repo, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
     if (this.closed || this.generations.get(projectId) !== generation) return;

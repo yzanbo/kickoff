@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { GitOperation, GitStatus } from "@shared/git/types";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 import { gitPrefix, listRemotes } from "@/foundation/core/workplace/reads";
 import { statusIn } from "@/foundation/core/workplace/status";
 
@@ -17,7 +17,7 @@ const OPERATION_MARKS: [GitOperation, string][] = [
 
 /** 途中で止まっている操作（マージ・リベースなどで衝突して止まっているもの。なければ null） */
 export async function gitOperation(repo: string): Promise<GitOperation | null> {
-  const out = await gitOutput(repo, ["rev-parse", ...OPERATION_MARKS.flatMap(([, mark]) => ["--git-path", mark])]);
+  const out = await git(repo).run(["rev-parse", ...OPERATION_MARKS.flatMap(([, mark]) => ["--git-path", mark])]);
   const paths = out.split("\n").filter(Boolean);
   for (const [i, [operation]] of OPERATION_MARKS.entries()) {
     const mark = paths[i];

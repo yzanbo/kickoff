@@ -103,8 +103,12 @@ export async function repoTop(dir: string): Promise<string | null> {
   return (await git(dir).maybe(["rev-parse", "--show-toplevel"])).trim() || null;
 }
 
-/** 新しいブランチの名前に使えるか（git の決まりと、オプションと取り違える「-」で始まる名前。だめなら Invalid。リポジトリの外で確かめる） */
+/** 新しいブランチの名前に使えるか（git の決まりと、オプションと取り違える「-」で始まる名前。リポジトリの外で確かめる） */
+export async function isBranchName(name: string): Promise<boolean> {
+  return !name.startsWith("-") && (await git(os.tmpdir()).ok(["check-ref-format", "--branch", name]));
+}
+
+/** 新しいブランチの名前に使えなければ Invalid（isBranchName） */
 export async function assertBranchName(name: string): Promise<void> {
-  const valid = !name.startsWith("-") && (await git(os.tmpdir()).ok(["check-ref-format", "--branch", name]));
-  if (!valid) throw new Invalid(`ブランチの名前に使えない文字があります: ${name}`);
+  if (!(await isBranchName(name))) throw new Invalid(`ブランチ名に使えない文字が入っています: ${name}`);
 }

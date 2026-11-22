@@ -12,10 +12,11 @@ import { findComposeFiles, upFilesFor } from "@/features/docker/core/compose";
 import { STANDARD_COMPOSE_NAMES } from "@/features/docker/core/parse";
 import type { DockerService } from "@/features/docker/core/service";
 import { isInside } from "@/foundation/core/system/paths";
+import { isIgnored, isTracked } from "@/foundation/core/workplace/reads";
 import { assignSlots, pickBand, type DockerSlotWant } from "./bands";
 import { composePortsOf, overrideYaml, portSpec } from "./composeOverride";
 import { commentOutKeys, rewriteEnvPorts, withKickoffBlock } from "./envRewrite";
-import { KICKOFF_DIR, OVERRIDE_FILE, addGitExclude, devServerIssue, envFilesIn, exists, isIgnored, isTracked } from "./files";
+import { KICKOFF_DIR, OVERRIDE_FILE, addGitExclude, devServerIssue, envFilesIn, exists } from "./files";
 import { browserHostOf, composeProjectNameOf } from "./names";
 import type { EnvSetupPromptInput } from "./setupPrompt";
 

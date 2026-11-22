@@ -1,12 +1,12 @@
 // プロジェクトの連携先の GitHub のリポジトリ（git の remote から決める。fork なら元のリポジトリ（upstream）を先に選ぶ）
 import { GITHUB_DEFAULT_HOST, normalizeGitHubHost } from "@shared/foundation/codeHost";
 import type { GitHubRemote } from "@shared/git/types";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 
 /**
  * Kickoff が GitHub として扱うホスト（いまは github.com だけ）。GitHub Enterprise を足すときは、ここに足す（ほかの所はホストを受け取って動く）。
  * 残りの手順: ① この一覧を gh にログインしているホスト（gh auth status --json hosts のキー）から作る ② アカウントの一覧（listGitHubAccounts）を連携先のホストで出す
- * ③ git と AI のチャットに渡すトークン（gitOutput・turn.ts の githubEnvForGit()）に連携先のホストを渡す ④ githubStatus のホスト
+ * ③ git と AI のチャットに渡すトークン（k.workplace.git・turn.ts の githubEnvForGit()）に連携先のホストを渡す ④ githubStatus のホスト
  * ⑤ 画面の CSP（src/app/renderer/index.html の img-src）に本文の画像のホストを足す
  */
 export const GITHUB_HOSTS: readonly string[] = [GITHUB_DEFAULT_HOST];
@@ -53,8 +53,8 @@ export function autoGitHubRemote(remotes: GitHubRemote[], ghDefault: string | nu
 /** GitHub の remote の一覧と、gh repo set-default で決めた remote（git config の remote.<名前>.gh-resolved = base） */
 export async function readGitHubRemotes(repo: string): Promise<{ remotes: GitHubRemote[]; ghDefault: string | null }> {
   const [remotes, resolved] = await Promise.all([
-    gitOutput(repo, ["remote", "-v"]).then(parseGitHubRemotes, () => []),
-    gitOutput(repo, ["config", "--get-regexp", "^remote\\..*\\.gh-resolved$"], [1]).catch(() => ""),
+    git(repo).run(["remote", "-v"]).then(parseGitHubRemotes, () => []),
+    git(repo).maybe(["config", "--get-regexp", "^remote\\..*\\.gh-resolved$"]),
   ]);
   const base = resolved
     .split("\n")

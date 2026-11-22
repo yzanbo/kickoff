@@ -4,7 +4,7 @@ import type { ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, Proj
 import { toPathspecs } from "@shared/foundation/search/pathGlobs";
 import { replaceInLine, searchPattern } from "@shared/foundation/search/searchMatch";
 import { Invalid, NotFound } from "@/foundation/core/errors";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 import { hashOf, MAX_FILE_BYTES, resolveInside } from "./files";
 import { plainSearchExcludes } from "@/foundation/core/workplace/plainFolder";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
@@ -39,7 +39,7 @@ export async function searchProject(repo: string, q: ProjectSearchQuery): Promis
   if (q.whole_word) args.push("-w");
   args.push(q.regex ? "-E" : "-F", "-e", q.query, "--", ...toPathspecs(q.include, q.exclude), ...(plain && q.use_ignore ? plainSearchExcludes() : []));
   // 見つからなければ終了コード 1
-  const out = await gitOutput(repo, args, [1]).catch(() => {
+  const out = await git(repo).run(args, { okCodes: [1] }).catch(() => {
     throw new Invalid(q.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした（含める・除外するファイルの書き方を確かめてください）");
   });
   readGrep(out, result);

@@ -8,11 +8,11 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 import { mergedPullRequestOf, type MergedPullRequest } from "@/features/github/core/github";
 import { resolveGitHubTarget } from "@/features/github/core/githubTarget";
 import { addWorktree, findWorktree, listWorktrees, removeWorktree } from "@/foundation/core/workplace/worktrees";
-import { hasRef, isGitWorkTree } from "@/foundation/core/workplace/reads";
+import { changedCount, hasRef, isAncestor, isGitWorkTree, listRemotes } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
@@ -72,9 +72,6 @@ export interface WorktreeFinisherDeps {
   mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
 }
 
-/** 祖先か（a が b に含まれるか。どちらかがなければ false） */
-const isAncestor = (repo: string, a: string, b: string) => gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(() => true, () => false);
-
 /** ブランチのマージ済みの PR を gh に聞く（GitHub の remote がない・聞けなければ null） */
 async function askMergedPr(project: Project, branch: string): Promise<MergedPullRequest | null> {
   const target = await resolveGitHubTarget(project.repo_path, project.github_remote).catch(() => null);
@@ -122,15 +119,14 @@ export class WorktreeFinisher {
   /** 消す前の確かめ（コミットしていない変更・取り込み済みか・取り込んでいないコミット）。断るためでなく、何を控えに入れたか・取り込み済みかを伝えるため */
   private async inspect(project: Project, worktree: GitWorktree, list: GitWorktree[]): Promise<Inspection> {
     const repo = project.repo_path;
-    const ok = (p: Promise<string>) => p.then((out) => out.trim(), () => "");
-    const changes = worktree.prunable ? 0 : (await ok(gitOutput(worktree.root, ["status", "--porcelain"]))).split("\n").filter(Boolean).length;
+    const changes = worktree.prunable ? 0 : await changedCount(worktree.root).catch(() => 0);
     const branch = worktree.branch;
-    const tip = (branch ? await ok(gitOutput(repo, ["rev-parse", `refs/heads/${branch}`])) : worktree.head) || null;
+    const tip = (branch ? (await git(repo).maybe(["rev-parse", `refs/heads/${branch}`])).trim() : worktree.head) || null;
     const main = list.find((w) => w.main);
     const into = main?.branch ?? null;
     const mainRef = into ? `refs/heads/${into}` : (main?.head ?? null);
     if (!tip || !mainRef) return { branch, changes, merged: null, unmerged: 0, tip };
-    const unmerged = Number(await ok(gitOutput(repo, ["rev-list", "--count", tip, "--not", mainRef]))) || 0;
+    const unmerged = Number((await git(repo).maybe(["rev-list", "--count", tip, "--not", mainRef])).trim()) || 0;
     // ローカルで取り込んだ: ブランチの先が本体のブランチに含まれている
     if (await isAncestor(repo, tip, mainRef)) return { branch, changes, merged: { via: "local", into: into ?? "本体" }, unmerged: 0, tip };
     // GitHub などで取り込んだ: PR がマージ済みで、PR に入った最後のコミットのあとに手元で足したコミットがない（squash・rebase でマージしても見分けられる）
@@ -141,10 +137,10 @@ export class WorktreeFinisher {
 
   /** 消したブランチの追いかけ先（「origin/feat-x」。なければ origin の同じ名前。remote がなければ null） */
   private async upstreamOf(repo: string, branch: string): Promise<{ remote: string; branch: string } | null> {
-    const upstream = await gitOutput(repo, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", `${branch}@{upstream}`]).then((out) => out.trim(), () => "");
+    const upstream = (await git(repo).maybe(["rev-parse", "--abbrev-ref", "--symbolic-full-name", `${branch}@{upstream}`])).trim();
     const slash = upstream.indexOf("/");
     if (slash > 0) return { remote: upstream.slice(0, slash), branch: upstream.slice(slash + 1) };
-    const remotes = (await gitOutput(repo, ["remote"]).catch(() => "")).split("\n").filter(Boolean);
+    const remotes = await listRemotes(repo).catch((): string[] => []);
     return remotes.includes("origin") ? { remote: "origin", branch } : null;
   }
 
@@ -318,7 +314,7 @@ export class WorktreeFinisher {
     if (!(await hasRef(repo, `refs/heads/${details.branch}`))) {
       const from = details.has_branch_ref ? trashRef(item.id, "branch") : details.head;
       if (!from) throw new Invalid("ワークツリーのブランチの先が分からないので戻せません");
-      await gitOutput(repo, ["branch", details.branch, from]);
+      await git(repo).run(["branch", details.branch, from]);
     }
     const list = await addWorktree(repo, details.branch, (made) => this.deps.worktreeEnvs.prepare(project, made));
     const made = list.find((w) => w.branch === details.branch && !w.main);

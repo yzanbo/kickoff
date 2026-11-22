@@ -6,7 +6,7 @@ import { folderFiles, type FolderFiles } from "@/foundation/core/files/folderFil
 import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/imageFiles";
 import type { FileContent, RenamedFile, SavedFile } from "@shared/foundation/fileTypes";
 import type { ProjectFiles } from "@shared/git/types";
-import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
+import { git, nulList } from "@/foundation/core/workplace/git";
 import { largestIcnsPng } from "./icns";
 import { plainLsFiles } from "@/foundation/core/workplace/plainFolder";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
@@ -37,7 +37,7 @@ export function assertInside(repo: string, file: string): Promise<string> {
  * Git で管理していないフォルダも、中のファイルを同じ形で返す（.gitignore も読む。node_modules などはいつも無視しているものにする。plainFolder.ts）
  */
 export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
-  const lsFiles = (await isGitWorkTree(repo)) ? (args: string[]) => gitOutput(repo, ["ls-files", ...args]) : (args: string[]) => plainLsFiles(repo, args);
+  const lsFiles = (await isGitWorkTree(repo)) ? (args: string[]) => git(repo).run(["ls-files", ...args]) : (args: string[]) => plainLsFiles(repo, args);
   const [all, deleted, ignored] = await Promise.all([
     lsFiles(["--cached", "--others", "--exclude-standard", "-z"]),
     lsFiles(["--deleted", "-z"]),

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { isTracked } from "@/foundation/core/workplace/reads";
 import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { DenyVerdict, GuardCall, GuardRule } from "@/features/guard/core/rules";
 import { claudeToolOf } from "@shared/ai/claudeTools";
@@ -44,14 +44,6 @@ export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName
   return { kind: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
 }
 
-/** Git で管理しているファイルか（絶対パス。Git の外・まだないファイルは false） */
-async function gitTracks(cwd: string, absolute: string): Promise<boolean> {
-  return gitOutput(cwd, ["ls-files", "--error-unmatch", "--", absolute]).then(
-    () => true,
-    () => false,
-  );
-}
-
 /**
  * Git の中身を変える git のサブコマンド（Git で管理していないファイルだけを書けるチャットで断る）。
  * 読むだけのもの（status・diff・log・branch の一覧など）は通す。sed -i などのファイルの書き換えは見抜けない（指示でも禁じる）
@@ -67,7 +59,7 @@ export async function evaluateUntrackedWrite(
   cwd: string,
   toolName: string,
   input: Record<string, unknown>,
-  tracked: (cwd: string, absolute: string) => Promise<boolean> = gitTracks,
+  tracked: (cwd: string, absolute: string) => Promise<boolean> = isTracked,
 ): Promise<DenyVerdict> {
   if (toolName === "Bash") {
     const command = input.command;

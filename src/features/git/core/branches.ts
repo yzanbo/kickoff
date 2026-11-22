@@ -1,10 +1,9 @@
 // ブランチ・タグの操作（履歴の左の一覧・コミットの札の右クリック）と、途中で止まったマージ・リベースの扱い
 import type { GitBranchAction, GitConflictResolution, GitMergePreview, GitOperationAction } from "@shared/git/types";
 import { Invalid } from "@/foundation/core/errors";
-import { gitOutput } from "@/foundation/core/workplace/exec";
 import { git, type Git } from "@/foundation/core/workplace/git";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
-import { hasRef } from "@/foundation/core/workplace/reads";
+import { assertBranchName, hasRef, isAncestor, listRemotes, readStashes } from "@/foundation/core/workplace/reads";
 import { gitOperation, gitStatus } from "./status";
 
 /** ネットワークを使う操作（プッシュ・プル・フェッチ）の待ち時間 */
@@ -34,26 +33,18 @@ function assertRefName(name: string): string {
 /** 新しいブランチ名として使えるか（git の決まり。使えなければ理由を投げる） */
 async function assertNewBranchName(repo: string, name: string): Promise<void> {
   assertRefName(name);
-  try {
-    await gitOutput(repo, ["check-ref-format", "--branch", name]);
-  } catch {
-    throw new Invalid(`ブランチ名に使えない文字が入っています: ${name}`);
-  }
+  await assertBranchName(name);
   if (await hasRef(repo, `refs/heads/${name}`)) throw new Invalid(`同じ名前のブランチがあります: ${name}`);
 }
 
 /** ブランチの追いかけているリモートのブランチ（"origin/main" の形。なければ null） */
-async function upstreamOf(repo: string, branch: string): Promise<string | null> {
-  try {
-    return (await gitOutput(repo, ["rev-parse", "--abbrev-ref", `${branch}@{upstream}`])).trim() || null;
-  } catch {
-    return null;
-  }
+async function upstreamName(repo: string, branch: string): Promise<string | null> {
+  return (await git(repo).maybe(["rev-parse", "--abbrev-ref", `${branch}@{upstream}`])).trim() || null;
 }
 
 /** "origin/feature/x" をリモートと、その中のブランチ名に分ける（リモートの一覧から長いものを先に当てる） */
 async function splitRemoteBranch(repo: string, remoteBranch: string): Promise<{ remote: string; branch: string }> {
-  const remotes = (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
+  const remotes = await listRemotes(repo);
   const remote = remotes.sort((a, b) => b.length - a.length).find((r) => remoteBranch.startsWith(`${r}/`));
   if (!remote) throw new Invalid(`リモートのブランチではありません: ${remoteBranch}`);
   return { remote, branch: remoteBranch.slice(remote.length + 1) };
@@ -67,7 +58,7 @@ async function headBranch(repo: string): Promise<string | null> {
 
 /** 衝突しているファイル（リポジトリの一番上から見たパス。プロジェクトがリポジトリの中のフォルダでも、外の衝突も数える） */
 async function conflictedFiles(repo: string): Promise<string[]> {
-  return (await gitOutput(repo, ["diff", "--name-only", "--diff-filter=U"])).split("\n").filter(Boolean);
+  return (await git(repo).run(["diff", "--name-only", "--diff-filter=U"])).split("\n").filter(Boolean);
 }
 
 /** 途中の操作がないことを確かめる（マージ中に別のマージを始めない） */
@@ -81,15 +72,9 @@ async function assertNoOperation(repo: string): Promise<void> {
  */
 export async function mergePreview(repo: string, branch: string): Promise<GitMergePreview> {
   assertRefName(branch);
-  // --is-ancestor は「先祖でない」を終了コード 1 で返すので、出力ではなく成否で見る
-  const ancestor = (a: string, b: string) =>
-    gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(
-      () => true,
-      () => false,
-    );
-  if (await ancestor(branch, "HEAD")) return { up_to_date: true, fast_forward: false, conflicts: [] };
-  if (await ancestor("HEAD", branch)) return { up_to_date: false, fast_forward: true, conflicts: [] };
-  const out = await gitOutput(repo, ["merge-tree", "--write-tree", "--name-only", "--no-messages", "HEAD", branch], [1]);
+  if (await isAncestor(repo, branch, "HEAD")) return { up_to_date: true, fast_forward: false, conflicts: [] };
+  if (await isAncestor(repo, "HEAD", branch)) return { up_to_date: false, fast_forward: true, conflicts: [] };
+  const out = await git(repo).run(["merge-tree", "--write-tree", "--name-only", "--no-messages", "HEAD", branch], { okCodes: [1] });
   // 1 行目は合わせた木、続く行が衝突したファイル（なければ衝突しない）
   const conflicts = [...new Set(out.split("\n").slice(1).filter(Boolean))];
   return { up_to_date: false, fast_forward: false, conflicts };
@@ -101,26 +86,26 @@ export async function runBranchAction(repo: string, a: GitBranchAction, remoteGi
   const net = remoteGit(repo, { timeout: NETWORK_TIMEOUT });
   switch (a.action) {
     case "checkout":
-      await gitOutput(repo, ["switch", "-q", assertRefName(a.branch)]);
+      await git(repo).run(["switch", "-q", assertRefName(a.branch)]);
       return done;
     case "checkout_remote": {
       await assertNewBranchName(repo, a.name);
-      await gitOutput(repo, ["switch", "-q", "-c", a.name, "--track", assertRefName(a.remote_branch)]);
+      await git(repo).run(["switch", "-q", "-c", a.name, "--track", assertRefName(a.remote_branch)]);
       return done;
     }
     case "checkout_detached":
-      await gitOutput(repo, ["switch", "-q", "--detach", assertRefName(a.ref)]);
+      await git(repo).run(["switch", "-q", "--detach", assertRefName(a.ref)]);
       return done;
     case "fast_forward": {
-      const upstream = await upstreamOf(repo, assertRefName(a.branch));
+      const upstream = await upstreamName(repo, assertRefName(a.branch));
       if (!upstream) throw new Invalid(`${a.branch} は追いかけているリモートのブランチがありません`);
-      if ((await headBranch(repo)) === a.branch) await gitOutput(repo, ["merge", "-q", "--ff-only", upstream]);
+      if ((await headBranch(repo)) === a.branch) await git(repo).run(["merge", "-q", "--ff-only", upstream]);
       // いまのブランチでなければ、作業場所を変えずにブランチだけを早送りする（早送りできなければ git が断る）
-      else await gitOutput(repo, ["fetch", "-q", ".", `${upstream}:${a.branch}`]);
+      else await git(repo).run(["fetch", "-q", ".", `${upstream}:${a.branch}`]);
       return done;
     }
     case "pull": {
-      const upstream = await upstreamOf(repo, assertRefName(a.branch));
+      const upstream = await upstreamName(repo, assertRefName(a.branch));
       if (!upstream) throw new Invalid(`${a.branch} は追いかけているリモートのブランチがありません`);
       const { remote, branch } = await splitRemoteBranch(repo, upstream);
       if ((await headBranch(repo)) === a.branch) {
@@ -134,12 +119,12 @@ export async function runBranchAction(repo: string, a: GitBranchAction, remoteGi
     }
     case "push":
     case "push_pr": {
-      const upstream = await upstreamOf(repo, assertRefName(a.branch));
+      const upstream = await upstreamName(repo, assertRefName(a.branch));
       if (upstream) {
         const { remote, branch } = await splitRemoteBranch(repo, upstream);
         await net.run(["push", "-q", remote, `${a.branch}:${branch}`]);
       } else {
-        const remotes = (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
+        const remotes = await listRemotes(repo);
         if (!remotes.includes("origin")) throw new Invalid("プッシュ先のリモート（origin）がありません");
         await net.run(["push", "-q", "-u", "origin", a.branch]);
       }
@@ -153,30 +138,30 @@ export async function runBranchAction(repo: string, a: GitBranchAction, remoteGi
     }
     case "create_branch":
       await assertNewBranchName(repo, a.name);
-      await gitOutput(repo, a.checkout ? ["switch", "-q", "-c", a.name, assertRefName(a.from)] : ["branch", a.name, assertRefName(a.from)]);
+      await git(repo).run(a.checkout ? ["switch", "-q", "-c", a.name, assertRefName(a.from)] : ["branch", a.name, assertRefName(a.from)]);
       return done;
     case "create_tag": {
       assertRefName(a.name);
       if (await hasRef(repo, `refs/tags/${a.name}`)) throw new Invalid(`同じ名前のタグがあります: ${a.name}`);
       const message = a.message?.trim();
-      await gitOutput(repo, message ? ["tag", "-a", a.name, "-m", message, assertRefName(a.at)] : ["tag", a.name, assertRefName(a.at)]);
+      await git(repo).run(message ? ["tag", "-a", a.name, "-m", message, assertRefName(a.at)] : ["tag", a.name, assertRefName(a.at)]);
       if (a.push) await net.run(["push", "-q", "origin", `refs/tags/${a.name}`]);
       return done;
     }
     case "set_upstream":
       assertRefName(a.branch);
-      await gitOutput(repo, a.upstream ? ["branch", `--set-upstream-to=${assertRefName(a.upstream)}`, a.branch] : ["branch", "--unset-upstream", a.branch]);
+      await git(repo).run(a.upstream ? ["branch", `--set-upstream-to=${assertRefName(a.upstream)}`, a.branch] : ["branch", "--unset-upstream", a.branch]);
       return done;
     case "rename_branch":
       assertRefName(a.branch);
       await assertNewBranchName(repo, a.name);
-      await gitOutput(repo, ["branch", "-m", a.branch, a.name]);
+      await git(repo).run(["branch", "-m", a.branch, a.name]);
       return done;
     case "delete_branch": {
       assertRefName(a.branch);
       // リモートのブランチも消すなら、手元を消す前に追いかけている先を読んでおく
-      const upstream = a.remote ? await upstreamOf(repo, a.branch) : null;
-      await gitOutput(repo, ["branch", a.force ? "-D" : "-d", a.branch]);
+      const upstream = a.remote ? await upstreamName(repo, a.branch) : null;
+      await git(repo).run(["branch", a.force ? "-D" : "-d", a.branch]);
       if (upstream) {
         const { remote, branch } = await splitRemoteBranch(repo, upstream);
         await net.run(["push", "-q", remote, "--delete", branch]);
@@ -192,14 +177,14 @@ export async function runBranchAction(repo: string, a: GitBranchAction, remoteGi
       await net.run(["push", "-q", "origin", `refs/tags/${assertRefName(a.name)}`]);
       return done;
     case "delete_tag":
-      await gitOutput(repo, ["tag", "-d", assertRefName(a.name)]);
+      await git(repo).run(["tag", "-d", assertRefName(a.name)]);
       if (a.remote) await net.run(["push", "-q", "origin", "--delete", `refs/tags/${a.name}`]);
       return done;
     case "stash_save": {
       // 退避するものがなくても git は成功で返すので、退避の数が増えたかで確かめる
       const before = await stashCount(repo);
       const message = a.message?.trim();
-      await gitOutput(repo, ["stash", "push", "-q", ...(a.include_untracked ? ["-u"] : []), ...(message ? ["-m", message] : [])]);
+      await git(repo).run(["stash", "push", "-q", ...(a.include_untracked ? ["-u"] : []), ...(message ? ["-m", message] : [])]);
       if ((await stashCount(repo)) === before) throw new Invalid("退避する変更がありません");
       return done;
     }
@@ -208,14 +193,14 @@ export async function runBranchAction(repo: string, a: GitBranchAction, remoteGi
       // 戻した変更が作業中の変更とぶつかったら、衝突したファイルを返す（pop でも退避は消えずに残る）
       return runStoppable(repo, ["stash", a.action === "stash_pop" ? "pop" : "apply", "-q", a.ref]);
     case "stash_drop":
-      await gitOutput(repo, ["stash", "drop", "-q", a.ref]);
+      await git(repo).run(["stash", "drop", "-q", a.ref]);
       return done;
   }
 }
 
 /** 退避の数 */
 async function stashCount(repo: string): Promise<number> {
-  return (await gitOutput(repo, ["stash", "list", "--format=%gd"]).catch(() => "")).split("\n").filter(Boolean).length;
+  return (await readStashes(repo).catch(() => [])).length;
 }
 
 /** 途中で止まっているマージ・リベースなどを、取りやめる・続ける・飛ばす。続けた先でまた衝突したら、衝突したファイルを返す */
@@ -223,7 +208,7 @@ export async function runOperationAction(repo: string, action: GitOperationActio
   const operation = await gitOperation(repo);
   if (!operation) throw new Invalid("途中の操作はありません");
   if (action === "abort") {
-    await gitOutput(repo, [operation, "--abort"]);
+    await git(repo).run([operation, "--abort"]);
     return { conflicts: [] };
   }
   if (action === "continue" && (await conflictedFiles(repo)).length > 0) throw new Invalid("まだ衝突しているファイルがあります。解決済みにしてから続けてください");
@@ -237,13 +222,13 @@ export async function runOperationAction(repo: string, action: GitOperationActio
 export async function resolveConflict(repo: string, file: string, how: GitConflictResolution): Promise<void> {
   if (how !== "mark") {
     try {
-      await gitOutput(repo, ["checkout", `--${how}`, "--", file]);
+      await git(repo).run(["checkout", `--${how}`, "--", file]);
     } catch (e) {
       // 選んだ側でファイルが消えている（片方で削除）なら、消したことにする
       if (!/does not have (our|their) version/.test(String((e as Error).message))) throw e;
-      await gitOutput(repo, ["rm", "-q", "--", file]);
+      await git(repo).run(["rm", "-q", "--", file]);
       return;
     }
   }
-  await gitOutput(repo, ["add", "-A", "--", file]);
+  await git(repo).run(["add", "-A", "--", file]);
 }

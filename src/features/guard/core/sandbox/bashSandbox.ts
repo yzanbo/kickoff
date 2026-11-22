@@ -3,7 +3,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { git } from "@/foundation/core/workplace/git";
 import type { AgentSandboxRules } from "@/features/guard/core/platformRules";
 import { realPathLoose } from "@/foundation/core/system/paths";
 import type { SandboxPlan } from "@/features/ai/core/index";
@@ -71,8 +71,7 @@ async function electronCommandsOf(workdir: string): Promise<string[]> {
 
 /** 共有の .git（ワークツリーでコミットすると本体の .git に書く。丸ごと例外にする。Git でなければ null） */
 async function gitCommonDir(workdir: string): Promise<string | null> {
-  const out = await gitOutput(workdir, ["rev-parse", "--path-format=absolute", "--git-common-dir"], [], 5000).catch(() => "");
-  return out.trim() || null;
+  return (await git(workdir, { timeout: 5000 }).maybe(["rev-parse", "--path-format=absolute", "--git-common-dir"])).trim() || null;
 }
 
 /** 重なりを除いて、実体のパスにする（まだないものは、あるところまでを解く） */

@@ -1,6 +1,6 @@
 // 作業場所の変更（git status の読み方。参照・ブランチ・remote は reads.ts）。git の機能の状態と、AI の切り替えの資料が同じ読み方を使う
 import { timed } from "@/foundation/core/system/stallWatch";
-import { gitOutput } from "./exec";
+import { git } from "./git";
 import { gitPrefix } from "./reads";
 
 /** 変更の種類（M: 変更 / A: 追加 / D: 削除 / R: 名前の変更 / C: コピー / T: 種類の変更 / U: 未追跡 / !: 競合。@shared/git の GitChangeKind と同じ） */
@@ -36,8 +36,8 @@ export function parseAheadBehind(text: string): { ahead: number; behind: number 
 function parseBranch(line: string): { branch: string | null; upstream: string | null; ahead: number; behind: number } {
   const text = line.replace(/^## /, "");
   const { ahead, behind } = parseAheadBehind(text);
-  // コミットがまだないとき: "No commits yet on main"（古い git は "Initial commit on main"）
-  const initial = /^(?:No commits yet|Initial commit) on (.+)$/.exec(text);
+  // コミットがまだないとき: "No commits yet on main"
+  const initial = /^No commits yet on (.+)$/.exec(text);
   if (initial) return { branch: initial[1], upstream: null, ahead, behind };
   if (text.startsWith("HEAD (no branch)")) return { branch: null, upstream: null, ahead, behind };
   const upstream = /\.\.\.(\S+)/.exec(text)?.[1] ?? null;
@@ -91,7 +91,7 @@ const readRaw = timed("git:status", (raw: string) => parseGitStatus(raw));
 
 /** リポジトリの中のフォルダ prefix（gitPrefix の値）の変更（その中だけ。パスはそのフォルダから見た形） */
 export async function statusIn(dir: string, prefix: string): Promise<WorkplaceStatus> {
-  const status = readRaw(await gitOutput(dir, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", ...(prefix ? ["--", "."] : [])]));
+  const status = readRaw(await git(dir).run(["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", ...(prefix ? ["--", "."] : [])]));
   return { ...status, staged: scopeChanges(status.staged, prefix), unstaged: scopeChanges(status.unstaged, prefix), conflicts: scopeChanges(status.conflicts, prefix) };
 }
 

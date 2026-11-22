@@ -1,7 +1,7 @@
 // ワークツリーの実行環境のファイルの読み書き（.env を写す・Git に無視させる・開発サーバーの見分け）
 import fs from "node:fs/promises";
 import path from "node:path";
-import { gitOutput } from "@/foundation/core/workplace/exec";
+import { gitCommonDir } from "@/foundation/core/workplace/reads";
 
 /** 見本の .env（値は仮のもの）は写さない */
 const ENV_SAMPLE = /\.(example|sample|template|dist|defaults?)$/i;
@@ -19,21 +19,9 @@ export async function envFilesIn(dir: string): Promise<string[]> {
   return names.filter((n) => /^\.env(\..+)?$/.test(n) && !ENV_SAMPLE.test(n)).sort();
 }
 
-const gitOk = (cwd: string, args: string[]) =>
-  gitOutput(cwd, args).then(
-    () => true,
-    () => false,
-  );
-
-/** Git で管理しているファイルか（rel は cwd からの相対） */
-export const isTracked = (cwd: string, rel: string) => gitOk(cwd, ["ls-files", "--error-unmatch", "--", rel]);
-/** Git で無視しているか（まだないファイルでも .gitignore で決まる） */
-export const isIgnored = (cwd: string, rel: string) => gitOk(cwd, ["check-ignore", "-q", "--", rel]);
-
 /** .git/info/exclude に足す（同じ行があれば何もしない。exclude はワークツリーで共通） */
 export async function addGitExclude(cwd: string, pattern: string): Promise<void> {
-  const common = (await gitOutput(cwd, ["rev-parse", "--git-common-dir"])).trim();
-  const file = path.join(path.resolve(cwd, common), "info", "exclude");
+  const file = path.join(await gitCommonDir(cwd), "info", "exclude");
   const text = await fs.readFile(file, "utf8").catch(() => "");
   if (text.split("\n").some((l) => l.trim() === pattern)) return;
   await fs.mkdir(path.dirname(file), { recursive: true });

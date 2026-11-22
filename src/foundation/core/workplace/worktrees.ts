@@ -4,8 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
 import { prepareWorktree } from "./worktreeSetup";
-import { gitOutput } from "./exec";
-import { gitPrefix, hasRef, listRemotes } from "./reads";
+import { git } from "./git";
+import { assertBranchName, changedCount, gitPrefix, hasRef, headSha, isBranchName, listRemotes } from "./reads";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { timed } from "@/foundation/core/system/stallWatch";
@@ -46,7 +46,7 @@ const worktreeLists = ttlCache<string, GitWorktree[]>({ ms: 1000, max: 64 });
 export async function listWorktrees(repo: string, { fresh = false } = {}): Promise<GitWorktree[]> {
   if (fresh) forgetWorktrees(repo);
   const list = await worktreeLists.getOrLoad(repo, async () => {
-    const [out, prefix] = await Promise.all([gitOutput(repo, ["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
+    const [out, prefix] = await Promise.all([git(repo).run(["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
     return readWorktrees(out, prefix ?? "");
   });
   // 覚えた一覧を使う所が書き換えないよう、写しを返す
@@ -120,7 +120,7 @@ export async function resolveWorkdir(repo: string, worktree: string | undefined)
 }
 
 /** リポジトリの一番上のフォルダ（実体のパス） */
-const repoTop = async (repo: string) => fs.realpath((await gitOutput(repo, ["rev-parse", "--show-toplevel"])).trim());
+const repoTop = async (repo: string) => fs.realpath(await git(repo).text(["rev-parse", "--show-toplevel"]));
 
 /** 新しいワークツリーを置く一番上のフォルダ（リポジトリの一番上の隣の <名前>-worktrees/<ブランチ名>。/ は - にする） */
 async function worktreeRootFor(repo: string, branch: string): Promise<string> {
@@ -143,9 +143,7 @@ export async function worktreePathFor(repo: string, branch: string): Promise<str
  * base は新しいブランチの元のコミット（省けば本体の HEAD。AI の create_chat は作る側のチャットの作業場所のいまのコミットを渡す。ブランチがもうあれば使わない）
  */
 export async function addWorktree(repo: string, branch: string, onCreated?: (worktree: GitWorktree) => Promise<void>, base?: string): Promise<GitWorktree[]> {
-  await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
-    throw new Invalid("ブランチの名前に使えない文字があります");
-  });
+  await assertBranchName(branch);
   const [target, prefix] = await Promise.all([worktreeRootFor(repo, branch), gitPrefix(repo)]);
   const existing = (await listWorktrees(repo, { fresh: true })).find((w) => w.root === target);
   if (existing && existing.branch === branch && !existing.prunable) return listWorktrees(repo);
@@ -153,15 +151,12 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
   const exists = await hasRef(repo, `refs/heads/${branch}`);
   if (prefix) {
     const from = exists ? `refs/heads/${branch}` : (base ?? "HEAD");
-    const present = await gitOutput(repo, ["cat-file", "-e", `${from}:${prefix}`]).then(
-      () => true,
-      () => false,
-    );
+    const present = await git(repo).ok(["cat-file", "-e", `${from}:${prefix}`]);
     if (!present) {
       throw new Invalid(`プロジェクトフォルダ（${prefix}）が ${exists ? `ブランチ ${branch}` : "いまのコミット"} にまだないため、ワークツリーに出てきません。先にフォルダをコミットしてください`);
     }
   }
-  await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target, ...(base ? [base] : [])]);
+  await git(repo).run(exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target, ...(base ? [base] : [])]);
   forgetWorktrees(repo);
   const top = await repoTop(repo);
   if (prefix) await prepareWorktree(path.join(top, prefix), path.join(target, prefix));
@@ -177,7 +172,7 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
  * fromDir がない・コミットがまだなければ本体の HEAD から。ブランチがもうあれば、それを取り出す（addWorktree）
  */
 export async function createWorktreeFrom(repo: string, branch: string, fromDir: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<{ folder: string }> {
-  const base = existsSync(fromDir) ? (await gitOutput(fromDir, ["rev-parse", "HEAD"]).catch(() => "")).trim() || undefined : undefined;
+  const base = existsSync(fromDir) ? ((await headSha(fromDir)) ?? undefined) : undefined;
   const made = (await addWorktree(repo, branch, onCreated, base)).find((w) => w.branch === branch && !w.main);
   if (!made) throw new Conflict(`ワークツリー（${branch}）を作れませんでした`);
   return { folder: made.path };
@@ -188,11 +183,7 @@ export async function createWorktreeFrom(repo: string, branch: string, fromDir: 
  * 断るのは、名前に使えない文字・同じ名前のブランチがある・置き場所のフォルダがある（使い回さない。AI には新しいブランチだけを作らせる）
  */
 export async function newWorktreeProblem(repo: string, branch: string): Promise<string | null> {
-  const valid = await gitOutput(repo, ["check-ref-format", "--branch", branch]).then(
-    () => true,
-    () => false,
-  );
-  if (!valid || branch.startsWith("-")) return `ブランチの名前「${branch}」に使えない文字があります`;
+  if (!(await isBranchName(branch))) return `ブランチの名前「${branch}」に使えない文字があります`;
   if (await hasRef(repo, `refs/heads/${branch}`)) return `同じ名前のブランチ「${branch}」がもうあります。別の名前にしてください`;
   const target = await worktreeRootFor(repo, branch);
   if (await fs.stat(target).catch(() => null)) return `ワークツリーを置くフォルダがもうあります: ${target}`;
@@ -223,19 +214,18 @@ export async function worktreeMoves(oldRepo: string, newRepo: string): Promise<M
 export async function worktreeRemovalInfo(repo: string, target: string): Promise<Omit<WorktreeRemovalInfo, "db_connections">> {
   const worktree = (await listWorktrees(repo, { fresh: true })).find((w) => w.path === target);
   if (!worktree) throw new NotFound("ワークツリーが見つかりません");
-  const ok = (p: Promise<string>) => p.then((out) => out, () => "");
   // ワークツリーは一番上ごと消えるので、変更も一番上から数える
-  const changes = worktree.prunable ? "" : await ok(gitOutput(worktree.root, ["status", "--porcelain"]));
+  const changes = worktree.prunable ? 0 : await changedCount(worktree.root).catch(() => 0);
   const hasRemote = (await listRemotes(repo).catch(() => [])).length > 0;
   const branch = worktree.branch;
   const ref = `refs/heads/${branch}`;
-  const unpushed = branch && hasRemote ? await ok(gitOutput(repo, ["rev-list", "--count", ref, "--not", "--remotes"])) : "0";
+  const unpushed = branch && hasRemote ? await git(repo).maybe(["rev-list", "--count", ref, "--not", "--remotes"]) : "0";
   // --branches と組む --exclude は refs/heads/ を付けない名前で書く
-  const onlyHere = branch ? await ok(gitOutput(repo, ["rev-list", "--count", ref, "--not", `--exclude=${branch}`, "--branches", "--remotes"])) : "0";
-  const upstream = branch ? await ok(gitOutput(repo, ["rev-parse", "--abbrev-ref", `${branch}@{upstream}`])) : "";
+  const onlyHere = branch ? await git(repo).maybe(["rev-list", "--count", ref, "--not", `--exclude=${branch}`, "--branches", "--remotes"]) : "0";
+  const upstream = branch ? await git(repo).maybe(["rev-parse", "--abbrev-ref", `${branch}@{upstream}`]) : "";
   return {
     branch,
-    changes: changes.split("\n").filter(Boolean).length,
+    changes,
     unpushed: Number(unpushed.trim()) || 0,
     only_here: Number(onlyHere.trim()) || 0,
     pushed: Boolean(upstream.trim()),
@@ -252,9 +242,9 @@ export async function removeWorktree(repo: string, target: string, { force = fal
   const worktree = (await listWorktrees(repo, { fresh: true })).find((w) => w.path === target);
   if (!worktree) throw new NotFound("ワークツリーが見つかりません");
   if (worktree.main) throw new Invalid("本体のフォルダは消せません");
-  if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
-  else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), worktree.root]);
+  if (worktree.prunable) await git(repo).run(["worktree", "prune"]);
+  else await git(repo).run(["worktree", "remove", ...(force ? ["--force"] : []), worktree.root]);
   forgetWorktrees(repo);
-  if (deleteBranch && worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
+  if (deleteBranch && worktree.branch) await git(repo).run(["branch", "-D", worktree.branch]);
   return listWorktrees(repo);
 }

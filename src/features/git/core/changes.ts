@@ -1,6 +1,6 @@
 // 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
 import type { GitDiff, GitOriginal } from "@shared/git/types";
-import { gitOutput, nulList } from "@/foundation/core/workplace/exec";
+import { git, nulList } from "@/foundation/core/workplace/git";
 import { assertInside, MAX_FILE_BYTES } from "@/features/files/core/files";
 import { gitPrefix, hasRef, listRemotes } from "@/foundation/core/workplace/reads";
 import { gitStatus } from "./status";
@@ -22,10 +22,10 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
   if (oldPath) await assertInside(repo, oldPath);
   const paths = oldPath ? ["--", oldPath, file] : ["--", file];
   const base = ["diff", "--no-color", "--no-ext-diff", "--relative", "-M"];
-  let diff = await gitOutput(repo, staged ? [...base, "--cached", ...paths] : [...base, ...paths]);
+  let diff = await git(repo).run(staged ? [...base, "--cached", ...paths] : [...base, ...paths]);
   if (!staged && !diff) {
-    const untracked = await gitOutput(repo, ["ls-files", "--others", "--exclude-standard", "--", file]);
-    if (untracked.trim()) diff = await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "--no-index", "--", "/dev/null", file], [1]);
+    const untracked = await git(repo).run(["ls-files", "--others", "--exclude-standard", "--", file]);
+    if (untracked.trim()) diff = await git(repo).run(["diff", "--no-color", "--no-ext-diff", "--no-index", "--", "/dev/null", file], { okCodes: [1] });
   }
   return toGitDiff(diff);
 }
@@ -42,10 +42,10 @@ export async function gitOriginal(repo: string, file: string, staged: boolean, o
   const specs = staged ? [`HEAD:./${source}`] : [`:./${source}`, `HEAD:./${source}`];
   for (const spec of specs) {
     // ないもの（コミットがまだない・追加したファイル）は 128 で終わる
-    const size = (await gitOutput(repo, ["cat-file", "-s", spec], [128])).trim();
+    const size = (await git(repo).run(["cat-file", "-s", spec], { okCodes: [128] })).trim();
     if (!size) continue;
     if (Number(size) > MAX_FILE_BYTES) return { content: "", binary: false, truncated: true };
-    const content = await gitOutput(repo, ["cat-file", "--filters", spec]);
+    const content = await git(repo).run(["cat-file", "--filters", spec]);
     // 先頭に NUL があればバイナリとみなす（ファイルの中身と同じ考え方）
     const binary = content.slice(0, 8000).includes("\0");
     return { content: binary ? "" : content, binary, truncated: false };
@@ -69,14 +69,14 @@ async function assertAllInside(repo: string, paths: string[]) {
 /** ステージする（消したファイルは、消したことをステージする） */
 export async function stagePaths(repo: string, paths: string[]): Promise<void> {
   await assertAllInside(repo, paths);
-  await gitOutput(repo, ["add", "-A", "--", ...paths]);
+  await git(repo).run(["add", "-A", "--", ...paths]);
 }
 
 /** ステージを取り消す（作業中の中身はそのまま。コミットがまだないリポジトリでは索引から外す） */
 export async function unstagePaths(repo: string, paths: string[]): Promise<void> {
   await assertAllInside(repo, paths);
   const hasHead = await hasRef(repo, "HEAD");
-  await gitOutput(repo, hasHead ? ["restore", "--staged", "--", ...paths] : ["rm", "-r", "-q", "--cached", "--", ...paths]);
+  await git(repo).run(hasHead ? ["restore", "--staged", "--", ...paths] : ["rm", "-r", "-q", "--cached", "--", ...paths]);
 }
 
 /**
@@ -85,10 +85,10 @@ export async function unstagePaths(repo: string, paths: string[]): Promise<void>
  */
 export async function discardPaths(repo: string, paths: string[]): Promise<void> {
   await assertAllInside(repo, paths);
-  const untracked = new Set(nulList(await gitOutput(repo, ["ls-files", "--others", "--exclude-standard", "-z", "--", ...paths])));
+  const untracked = new Set(nulList(await git(repo).run(["ls-files", "--others", "--exclude-standard", "-z", "--", ...paths])));
   const tracked = paths.filter((p) => !untracked.has(p));
-  if (untracked.size > 0) await gitOutput(repo, ["clean", "-f", "-q", "--", ...untracked]);
-  if (tracked.length > 0) await gitOutput(repo, ["restore", "--worktree", "--", ...tracked]);
+  if (untracked.size > 0) await git(repo).run(["clean", "-f", "-q", "--", ...untracked]);
+  if (tracked.length > 0) await git(repo).run(["restore", "--worktree", "--", ...tracked]);
 }
 
 /**
@@ -99,16 +99,16 @@ export async function discardPaths(repo: string, paths: string[]): Promise<void>
 export async function commitStaged(repo: string, message: string, amend = false): Promise<void> {
   if (!amend && !message.trim()) throw new Invalid("コミットのメッセージを入れてください");
   if (await gitPrefix(repo)) {
-    const all = nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z"]));
-    const inside = new Set(nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z", "--", "."])));
+    const all = nulList(await git(repo).run(["diff", "--cached", "--name-only", "-z"]));
+    const inside = new Set(nulList(await git(repo).run(["diff", "--cached", "--name-only", "-z", "--", "."])));
     const outside = all.filter((f) => !inside.has(f));
     if (outside.length > 0) {
       const shown = outside.slice(0, 3).join("、") + (outside.length > 3 ? ` ほか ${outside.length - 3} 件` : "");
       throw new Conflict(`プロジェクトフォルダの外にも、ステージしたファイルがあります（${shown}）。一緒にコミットしないよう、ターミナルで git restore --staged で外してからコミットしてください`);
     }
   }
-  if (amend) await gitOutput(repo, ["commit", "-q", "--amend", ...(message.trim() ? ["-m", message] : ["--no-edit"])]);
-  else await gitOutput(repo, ["commit", "-q", "-m", message]);
+  if (amend) await git(repo).run(["commit", "-q", "--amend", ...(message.trim() ? ["-m", message] : ["--no-edit"])]);
+  else await git(repo).run(["commit", "-q", "-m", message]);
 }
 
 /**

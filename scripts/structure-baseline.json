@@ -887,7 +887,7 @@
       "src/features/notes/ui/NoteView.tsx": 365,
       "src/features/trash/core/routes/server.trash.test.ts": 442,
       "src/features/trash/core/service.ts": 334,
-      "src/features/worktrees/core/finish.ts": 341,
+      "src/features/worktrees/core/finish.ts": 337,
       "src/foundation/desktop/app/coreProcess.ts": 342,
       "src/shared/chat/subagents.ts": 301,
       "src/shared/database/sqlStatements.ts": 318,
