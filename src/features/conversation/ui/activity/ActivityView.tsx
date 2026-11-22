@@ -3,7 +3,8 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent,
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
-import { useRowWindow, type RowLayoutContext } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
+import { useRowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
+import type { RowLayoutContext } from "@/features/conversation/ui/timeline/rowWindow/rowWindowTypes";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { formatStamp } from "@/foundation/ui/lib/time";

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { RenderScope } from "@/features/chat/ui";
-import type { RowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
+import type { RowWindow } from "@/features/conversation/ui/timeline/rowWindow/rowWindowTypes";
 import { PastWorkplace } from "@/features/chat/ui/screen/pastWorkplace";
 import type { TimelineItem } from "./timelineItems";
 import { rowKindOf, type RowContext } from "./rowKinds";

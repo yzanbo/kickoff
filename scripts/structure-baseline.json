@@ -1902,7 +1902,6 @@
       "src/features/childChats/core/routes/server.children.test.ts": 466,
       "src/features/composer/ui/Composer.tsx": 332,
       "src/features/conversation/ui/streaming/markdownReveal.ts": 435,
-      "src/features/conversation/ui/timeline/rowWindow/useRowWindow.ts": 566,
       "src/features/database/core/routes/databases.ts": 451,
       "src/features/database/core/routes/server.databases.test.ts": 852,
       "src/features/database/core/service.ts": 547,

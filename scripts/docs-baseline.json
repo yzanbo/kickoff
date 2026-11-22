@@ -79,7 +79,6 @@
     "src/features/conversation/ui/activity/ActivityView.tsx": 1,
     "src/features/conversation/ui/messages/UserMessage.tsx": 1,
     "src/features/conversation/ui/promptList/promptNav.ts": 1,
-    "src/features/conversation/ui/timeline/rowWindow/useRowWindow.ts": 1,
     "src/features/database/ui/ConnectionNoteField.tsx": 1,
     "src/features/database/worker/postgres.ts": 1,
     "src/features/docker/ui/useDockerLogs.ts": 2,

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useRowWindow, type RowLayoutContext, type RowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
+import { useRowWindow } from "@/features/conversation/ui/timeline/rowWindow/useRowWindow";
+import type { RowLayoutContext, RowWindow } from "@/features/conversation/ui/timeline/rowWindow/rowWindowTypes";
 import { nextCorrection, type EstimateContext } from "./rowEstimate";
 import { estimateItem, estimateRaw, rowKindOf } from "./rowKinds";
 import { turnExtras } from "./selectors";
