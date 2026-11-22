@@ -1,4 +1,5 @@
 // 入力欄の入口（ほかの機能はここだけを読む。まだ中のファイルを直接読む所は、読み手を直す単位でここへ寄せる）
+import { storage } from "./storage";
 export { voiceReplies } from "./selectors";
 export { SendCancelled } from "./useComposerSend";
 export { useChatSend } from "./send/chatSend";
@@ -15,3 +16,6 @@ export { PendingFileChips } from "./PendingFileChips";
 export { Composer } from "./Composer";
 export type { ComposerSend, OutgoingMessage } from "./composerModel";
 export { createNewChatDraft, discardNewChatDraft, draftTitleOf, newChatComposerDraft, newChatDraft, patchNewChatDraft, readNewChatDrafts, subscribeNewChatDrafts, useNewChatDraft, useNewChatDrafts, type NewChatDraft, type NewChatDraftTarget } from "./newChatDrafts";
+
+/** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
+export const composerSettings = { compact: storage.settings.compact } as const;

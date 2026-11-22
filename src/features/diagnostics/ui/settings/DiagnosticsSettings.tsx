@@ -8,7 +8,7 @@ import { Field } from "@/foundation/ui/kit/Field";
  * 診断: 重いときに、再起動せずその場で性能の記録を取る（10 秒）。押すと設定を閉じ、記録の間も操作を続けられる
  * （様子は画面の右下の DiagnosticsIndicator に出る）。アプリのメニューの「ヘルプ → 性能の記録を取る」と同じ
  */
-export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
+export function DiagnosticsSettings({ onClose }: { onClose?: () => void }) {
   const available = Boolean(window.kickoff);
   // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
   const folders = useQuery("DiagnosticsSettings.folders", async () => (await window.kickoff?.diagnostics.folders()) ?? null);
@@ -28,7 +28,7 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
             className="btn"
             disabled={!available}
             onClick={() => {
-              onClose();
+              onClose?.();
               void window.kickoff?.diagnostics.start();
             }}
           >

@@ -1,7 +1,7 @@
 import { useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
 import type { PromptList } from "./promptHistory";
 import { promptAround } from "./promptNav";
 import { readingLine, readingPromptId, type PinnedHold } from "./readingPromptId";
@@ -19,7 +19,7 @@ const NO_ATTACHMENTS: Attachment[] = [];
  * 動かさなければ、中身は境目から離れる向きに動く）
  */
 export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts: PromptList, drawn: number, lastKey: string | undefined) {
-  const [hidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [hidden] = useSetting(storage.settings.stickyPromptHidden);
   const [pinnedId, setPinnedId] = useState<number>();
   const current = useRef<number>(undefined);
   const hold = useRef<PinnedHold>(undefined);

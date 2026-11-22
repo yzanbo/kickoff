@@ -40,7 +40,7 @@ export interface TimelineNav {
  */
 export interface SubagentNav {
   /**
-   * 設定の開き方（SUBAGENT_OPEN_IN）で開く: 流れの中 = そのカードへ移って開く（reveal）/ 右の欄（openSide）/ 別ウィンドウ（openWindow）。
+   * 設定の開き方（chat の保存 subagentOpenIn）で開く: 流れの中 = そのカードへ移って開く（reveal）/ 右の欄（openSide）/ 別ウィンドウ（openWindow）。
    * eventId を渡すと、その中のその記録へ移る（別ウィンドウでは移らない）
    */
   open: (key: string, eventId?: number) => void;

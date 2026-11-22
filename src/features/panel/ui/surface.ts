@@ -138,7 +138,7 @@ export interface SurfaceSpec<E = unknown> {
   onChatCreated?(chat: { id: number; project_id: number }): void;
   /** false: タブの種類の札（「ノート」「サブ」「子」）を付けない（1 つの種類しか並ばない欄） */
   kindBadges?: false;
-  /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
+  /** タブの列を隠せる欄か（チャットのパネル。設定の chatTabRowHidden で隠す。隠すとタブの列の道具も出ない） */
   hideableTabs?: boolean;
   /** タブがないときの案内の文 */
   emptyHint?: string;

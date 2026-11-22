@@ -2,7 +2,7 @@ import { GitBranch, MessageSquare, PanelTop } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/conversation/ui/storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { useActivityNav, useChatScreen, type ChatShowing } from "@/features/chat/ui";
@@ -21,7 +21,7 @@ export function ChatHeaderTools({ find }: { find: ReactNode }) {
   const { root } = useChatScreen();
   const { show, showing: showingCell } = useActivityNav();
   const showing = useCell(showingCell);
-  const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [stickyHidden, setStickyHidden] = useSetting(storage.settings.stickyPromptHidden);
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
   const tools: Record<"showing" | "textWidth" | "fontSize" | "sticky" | "find", ReactNode> = {

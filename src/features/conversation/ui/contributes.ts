@@ -1,9 +1,11 @@
 // conversation が拡張点に出すもの（app/renderer/registry.ts が入れる）: ⌥⌘T チャットの見出しの行の表示・非表示・⌘K のチャット内の文言
+import { settingsItems } from "@/features/settings/ui";
 import { commands } from "@/foundation/ui/commands";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { CHAT_HEADER_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { paletteSources } from "@/features/palette/ui";
 import { messagePaletteSource } from "./search/paletteSources";
+import { conversationDisplayItems } from "./settings/appSettings";
 
 export const contributes = [
   paletteSources.item(messagePaletteSource),
@@ -13,6 +15,8 @@ export const contributes = [
     // ⌥ を押すと文字が変わるので、キーの位置で見る（Finder・Safari の「ツールバーを隠す」と同じキー）。エディタが先に受けても効く
     keys: "alt+mod+code:KeyT",
     evenIfHandled: true,
-    run: () => writeSetting(CHAT_HEADER_ROW_HIDDEN, !readSetting(CHAT_HEADER_ROW_HIDDEN)),
+    run: () => writeSetting(storage.settings.headerRowHidden, !readSetting(storage.settings.headerRowHidden)),
   }),
+  // 設定の「表示」の欄
+  ...conversationDisplayItems.map((i) => settingsItems.item(i)),
 ];

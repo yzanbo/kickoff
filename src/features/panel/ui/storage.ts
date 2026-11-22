@@ -17,4 +17,8 @@ export const storage = defineSettings("panel", {
    */
   tabOverflow: choice(["shrink", "scroll"], "shrink"),
   bottomHeight: number(198),
+  /** チャットのパネルのタブの列を隠すか（タブの列の「表示」・見出しと会話の何もないところの右クリック・設定の「表示」。どのプロジェクトでも同じ） */
+  chatTabRowHidden: flag(),
+  /** タブの列の左の道具の「表示」ボタンを隠すか（すべてのパネルで共通。初めは出す。隠してもタブの列の何もないところの右クリックで同じメニューを開ける） */
+  viewButtonHidden: flag(),
 });

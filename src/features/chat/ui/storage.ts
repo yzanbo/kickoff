@@ -11,4 +11,8 @@ export const storage = defineSettings("chat", {
    * チャット欄の「新規の子チャットに送る」・「新しい子チャットで聞く」の画面・送信待ちの「子チャットで開く / 移す」で共通（別ウィンドウを開けないブラウザでは右の欄）
    */
   childOpenOnCreate: choice(["side", "window", "none"], "side"),
+  /** サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄 / window = 別ウィンドウ。初めは右の欄。設定の「表示」と、ピルの一覧の上でも変えられる） */
+  subagentOpenIn: choice(["inline", "side", "window"], "side"),
+  /** 子チャットを開く場所（side = いちばん上の親のチャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」。別ウィンドウを開けない（スマホのブラウザ）なら右の欄） */
+  childOpenIn: choice(["side", "window"], "side"),
 });

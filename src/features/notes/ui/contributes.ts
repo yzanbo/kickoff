@@ -10,12 +10,13 @@ import { noteSurface } from "./noteSurface";
 import { projectViews } from "@/features/projects/ui";
 import { chatSideAdds } from "@/features/chatPanel/ui";
 import { notesChatSideAdd, notesView } from "./projectViews";
-import { settingsItems } from "@/features/settings/ui";
+import { settingsItems, settingsSections } from "@/features/settings/ui";
 import { noteDirItem } from "./settings/settingsItems";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { notePopout } from "./popoutKinds";
 import { paletteSources } from "@/features/palette/ui";
 import { notePaletteSource, noteTextPaletteSource } from "./paletteSources";
+import { notesSection, noteOpenItem } from "./settings/appSettings";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -35,4 +36,7 @@ export const contributes = [
   paletteSources.item(noteTextPaletteSource),
   // 入力欄の上のノートのピル
   composerSlots.item({ kind: "pill", id: "notes", order: 10, load: () => import("./NoteChip").then((m) => m.ComposerNotePill) }),
+  // アプリの設定の節・欄
+  settingsSections.item(notesSection),
+  settingsItems.item(noteOpenItem),
 ];

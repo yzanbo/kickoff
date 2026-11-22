@@ -1,5 +1,5 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { panelSettings } from "@/features/panel/ui";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import type { PanelController } from "@/features/panel/ui";
 import { TabDisplayItems } from "./TabDisplayItems";
@@ -16,7 +16,7 @@ export function ChatViewMenu({ panel, tabMenu = false }: { panel: PanelControlle
   // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
   const defaults = usePanelViewReset(panel.surface);
   // タブの列の「表示」ボタンを出すか（すべてのパネルで共通。隠しても、タブの列の何もないところの右クリックでこのメニューを開ける）
-  const [buttonHidden, setButtonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
+  const [buttonHidden, setButtonHidden] = useSetting(panelSettings.viewButtonHidden);
   if (tabMenu) return <TabDisplayItems panel={panel} />;
   return (
     <>

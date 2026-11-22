@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/foundation/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { errorMessage } from "@shared/foundation/errors";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 import { micErrorMessage, transcribeParts } from "./dictationText";
 import { openMic, recordStream, watchLevel, type Recording } from "./recorder";
 import { useVoiceStatus, voiceStatusStore } from "@/features/voice/ui/stores/voice";

@@ -6,7 +6,7 @@ import type { OpenPlace } from "@/features/chat/ui";
 const FLAT_DEPTH = 3;
 
 /**
- * カードの見出しを押したときの開き方と出し分け（純粋）: head = 設定（SUBAGENT_OPEN_IN）の場所に置ければそこ、置けなければ流れの中での開閉
+ * カードの見出しを押したときの開き方と出し分け（純粋）: head = 設定（chat の保存 subagentOpenIn）の場所に置ければそこ、置けなければ流れの中での開閉
  * （設定が別ウィンドウで別ウィンドウを開けないときも流れの中）/ sideLink = 「右の欄で開く」を出すか（右の欄を置けて、押しても右の欄に開かないとき）/
  * flat = 字下げをやめて道筋を添えるか
  */

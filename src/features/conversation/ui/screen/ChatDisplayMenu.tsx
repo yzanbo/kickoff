@@ -3,7 +3,8 @@ import { useCommandKeys } from "@/foundation/ui/commands";
 import { Fragment, type ComponentProps, type ReactNode } from "react";
 import { storage } from "@/features/conversation/ui/storage";
 import { snippetsSettings } from "@/features/snippets/ui";
-import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { panelSettings } from "@/features/panel/ui";
+import { composerSettings } from "@/features/composer/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
@@ -37,12 +38,12 @@ export function useChatHeaderOrder() {
 
 /** 見出しのグループ・作業場所のバッジを色付きで表示するか（どのチャットでも同じ。外すと灰色の枠と文字だけ） */
 export function useChatHeaderBadgeColors(): boolean {
-  return useSetting(CHAT_HEADER_BADGE_COLORS)[0];
+  return useSetting(storage.settings.headerBadgeColors)[0];
 }
 
 /** 見出しの行を隠しているか（どのチャットでも同じ） */
 export function useChatHeaderRowHidden(): boolean {
-  return useSetting(CHAT_HEADER_ROW_HIDDEN)[0];
+  return useSetting(storage.settings.headerRowHidden)[0];
 }
 
 /** チェックの付く項目（keepOpen: 押してもメニューを閉じない。buttonProps: ドラッグで並べ替える項目の属性。grip: 左のつまみの印（"space" は印を出さずに幅だけ空け、文字の位置をそろえる）） */
@@ -79,15 +80,15 @@ function CheckItem({
  * タブの列・見出しを隠しても指示の帯・会話の右クリックから戻せる。設定の「表示」と同じ値
  */
 export function ChatDisplayItems() {
-  const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
-  const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
+  const [tabRowHidden, setTabRowHidden] = useSetting(panelSettings.chatTabRowHidden);
+  const [rowHidden, setRowHidden] = useSetting(storage.settings.headerRowHidden);
   const rowKeys = useCommandKeys("conversation.toggleHeaderRow");
   const [saved, setSaved] = useSetting(storage.settings.headerHidden);
-  const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
-  const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [badgeColors, setBadgeColors] = useSetting(storage.settings.headerBadgeColors);
+  const [stickyHidden, setStickyHidden] = useSetting(storage.settings.stickyPromptHidden);
   const [snippetBarHidden, setSnippetBarHidden] = useSetting(snippetsSettings.barHidden);
   const [wide, setWide] = useWideText();
-  const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
+  const [compact, setCompact] = useSetting(composerSettings.compact);
   const items = useSubmenu();
   const drag = useHeaderItemDrag();
   const fontSizes = useSubmenu();

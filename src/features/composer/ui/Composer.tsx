@@ -3,7 +3,7 @@ import { markInteractive } from "@/foundation/ui/lib/bootMarks";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { consumeKey, isCancelKey } from "@/foundation/ui/lib/keys";
-import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ChatOptionsBar, type ChatOptionsState } from "@/features/ai/ui";
 import { AttachButton } from "./AttachButton";
@@ -89,7 +89,7 @@ export function Composer({ place, draft, send, options, history, voiceMode, head
   const menuItems = shows.menu && parts.menus.length > 0 ? parts.menus.map((Items, i) => <Items key={i} place={place} />) : undefined;
   const textMenu = useComposerTextMenu({ textareaRef, setText, items: menuItems });
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
-  const [compact] = useSetting(COMPOSER_COMPACT);
+  const [compact] = useSetting(storage.settings.compact);
   // ↑↓ で前の発言を呼び出す
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
   // / と @ の候補（作業場所から探す）。呼び出した発言を出している間は出さない

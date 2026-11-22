@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import type { MouseEvent, ReactNode, RefObject } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { ClipboardItems } from "@/foundation/ui/kit/ClipboardItems";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -19,7 +19,7 @@ const CONTROL_SELECTOR = "button, a, input, select, textarea, [role=button], [ro
 /**
  * チャット欄の右クリックのメニュー（文を書く欄と、下の道具の行の何もないところ）: 「クリップボード」の組（切り取り・コピー・貼り付け。
  * 右クリックしたときの文を書く欄の選択範囲に効く）と、その下に呼ぶ側の項目（items。定型文の帯の表示の切り替えなど）、いちばん下に
- * 「チャット欄をコンパクトに」（COMPOSER_COMPACT。どのチャット欄でも同じ。設定の「表示」→「チャット欄」と同じ）。
+ * 「チャット欄をコンパクトに」（storage.settings.compact。どのチャット欄でも同じ。設定の「表示」→「チャット欄」と同じ）。
  * 書き換えは入力と同じ扱いの execCommand で入れ、⌘Z で戻せるようにする（React の onChange にも届く）。使えなければ setText で入れる
  */
 export function useComposerTextMenu({
@@ -37,7 +37,7 @@ export function useComposerTextMenu({
   element: ReactNode;
 } {
   const menu = useContextMenu<Picked>();
-  const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
+  const [compact, setCompact] = useSetting(storage.settings.compact);
   const replace = ({ start, end }: Picked, value: string) => {
     const el = textareaRef.current;
     if (!el) return;

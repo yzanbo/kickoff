@@ -9,7 +9,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { useTrashedProjects } from "@/features/trash/ui/stores/trash";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";

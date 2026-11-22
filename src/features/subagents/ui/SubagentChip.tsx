@@ -10,13 +10,12 @@ import { formatTokens } from "@/foundation/ui/lib/format";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { storage } from "./storage";
-import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { ClaudeMark, modelDisplayName } from "@/features/ai/ui";
 import { SubagentStatusText } from "./SubagentStatusText";
 import { activityOf, activityText, stalledAgents } from "@/features/chat/ui/state/stall";
 import { SubagentActions } from "./SubagentActions";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import { AgentListChip, placesOf, summaryState, usePlaceCaps, useSubagentNav, type AgentListRow, type OpenPlace } from "@/features/chat/ui";
+import { AgentListChip, placesOf, summaryState, usePlaceCaps, useSubagentNav, type AgentListRow, type OpenPlace, chatSettings } from "@/features/chat/ui";
 import { flattenTree, subagentTree } from "@/features/subagents/ui/model/subagentTree";
 import { agentHues } from "@/features/subagents/ui/model/agentHues";
 import { useSubagentsView } from "./subagentsContext";
@@ -31,7 +30,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const nav = useSubagentNav();
   // 開ける場所（右の欄はパネルの中のチャットだけ、別ウィンドウは Mac のアプリだけ）と、行を押したときの既定（設定）
   const places = placesOf(usePlaceCaps(), { inline: true });
-  const [openIn, setOpenIn] = useSetting(SUBAGENT_OPEN_IN);
+  const [openIn, setOpenIn] = useSetting(chatSettings.subagentOpenIn);
   /** 行を押した: place がなければ設定の開き方（流れの中のカード / 右の欄 / 別ウィンドウ）、あれば設定によらずその場所に開く */
   const openRow = (key: string, place?: OpenPlace) => {
     if (place === undefined) nav.open(key);

@@ -2,7 +2,7 @@ import { FolderGit2, FolderInput, FolderSearch, Inbox, LayoutGrid, MessageSquare
 import { href } from "@/foundation/ui/navigation/router";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { useTrashedProjects } from "@/features/trash/ui/stores/trash";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 import { useVisibleProjects } from "./useVisibleProjects";
 import { ProjectMark } from "./ProjectMark";
 import { openNewProject } from "@/features/projects/ui/new/openNewProject";

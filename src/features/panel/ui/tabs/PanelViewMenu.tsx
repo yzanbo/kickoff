@@ -2,7 +2,7 @@ import { ChevronRight, SlidersHorizontal } from "lucide-react";
 import type { MouseEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/panel/ui/storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -66,9 +66,9 @@ export function ViewSubmenu({ panel }: { panel: PanelController }) {
 
 export type PanelViewMenu = ReturnType<typeof usePanelViewMenu>;
 
-/** タブの列の左の道具の「表示」ボタン（隠す設定 PANEL_VIEW_BUTTON_HIDDEN なら出さない。初めは出す） */
+/** タブの列の左の道具の「表示」ボタン（隠す設定 storage.settings.viewButtonHidden なら出さない。初めは出す） */
 export function PanelViewButton({ view }: { view: PanelViewMenu }) {
-  const [hidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
+  const [hidden] = useSetting(storage.settings.viewButtonHidden);
   if (!view.has || hidden) return null;
   const label = "表示";
   return (

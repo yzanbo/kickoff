@@ -1,5 +1,5 @@
 /*
- * チャット欄のコンパクト表示（COMPOSER_COMPACT。設定の「表示」→「チャット欄」）を、入力欄の上の送信待ちとピルの列にも効かせる。
+ * チャット欄のコンパクト表示（composer の保存 compact。設定の「表示」→「チャット欄」）を、入力欄の上の送信待ちとピルの列にも効かせる。
  * 入力欄そのものは composer.css の末尾（.composer.compact）。送信待ち（QueuedMessages・QueuedPauseNotice）とピルの列（ChatComposerArea）は、
  * ノートの下の入力欄の上へ描くこともあるので、入力欄の兄弟で見分けず、それぞれの要素に付けた .compact で決める
  */

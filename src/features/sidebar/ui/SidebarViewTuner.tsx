@@ -2,7 +2,7 @@ import { Plus, Save, Settings } from "lucide-react";
 import { useState } from "react";
 import { BucketColorItem, chatListSettings } from "@/features/chatList/ui";
 import { sameViewExistsText, viewNameTaken } from "@/foundation/ui/lib/namedViews";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import type { SidebarViews } from "./useSidebarViews";
 import { TunerFieldButton } from "./ViewFieldControl";

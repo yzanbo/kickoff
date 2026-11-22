@@ -7,7 +7,6 @@ import { FooterUsage } from "@/features/ai/ui/usage/FooterUsage";
 import type { ConnectionState } from "@/foundation/ui/api/serverConnection";
 import { href } from "@/foundation/ui/navigation/router";
 import { useMainBranch } from "@/foundation/ui/workplace/useWorkplace";
-import type { SettingsSection } from "@/features/settings/ui/SettingsDialog";
 import { ConnectionPopover, connectionLabel } from "@/features/devices/ui/ConnectionPopover";
 import { useConnectionNotice } from "@/features/devices/ui/useConnectionNotice";
 import { toolNotices } from "@/features/ai/ui/toolNotices";
@@ -22,7 +21,7 @@ import { PortsButton, PortsFallback } from "@/features/ports/ui/PortsButton";
 import { portsAvailable } from "@/features/ports/ui/portsStore";
 
 interface Props {
-  onOpenSettings: (section: SettingsSection) => void;
+  onOpenSettings: (section: string) => void;
   /** Kickoff サーバーとの接続（状態と、最後につながった時刻） */
   connection: { state: ConnectionState; since: number | null };
   planUsage: ReturnType<typeof usePlanUsage>;

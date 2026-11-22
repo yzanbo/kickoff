@@ -4,7 +4,6 @@ import type { Attachment, Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { storage } from "@/features/chat/ui/storage";
 import { readSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
@@ -68,7 +67,7 @@ function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
 }
 
 /**
- * チャットを開く。子チャット（と side・window を選んだとき）は、設定の開き方（CHILD_CHAT_OPEN_IN）か選んだ場所で: 右の欄 = いちばん上の親の右の欄のタブ /
+ * チャットを開く。子チャット（と side・window を選んだとき）は、設定の開き方（storage.settings.childOpenIn）か選んだ場所で: 右の欄 = いちばん上の親の右の欄のタブ /
  * 別ウィンドウ（もう開いていれば前に出す。開けない（スマホのブラウザ）なら右の欄）。別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む。
  * 親のないチャット（と tab）はチャットのパネルで
  */
@@ -77,7 +76,7 @@ export function openChat(chat: Pick<Chat, "id" | "project_id" | "title"> & Parti
     openTarget({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
     return;
   }
-  const where = resolveOpenPlace(place === "auto" ? readSetting(CHILD_CHAT_OPEN_IN) : place, { canSide: true, canWindow: canPopout() });
+  const where = resolveOpenPlace(place === "auto" ? readSetting(storage.settings.childOpenIn) : place, { canSide: true, canWindow: canPopout() });
   if (where === "window") openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
   else if (inPopout()) postToMainWindow("openChild", { chatId: chat.id });
   else openChildSide(chat);
@@ -98,7 +97,7 @@ export function openChatAt(chatId: number, place: ChatOpenPlace): boolean {
  */
 export function createdChildPlace({ always = false }: { always?: boolean } = {}): "side" | "window" | null {
   const on = readSetting(storage.settings.childOpenOnCreate);
-  const place = on !== "none" ? on : always ? readSetting(CHILD_CHAT_OPEN_IN) : null;
+  const place = on !== "none" ? on : always ? readSetting(storage.settings.childOpenIn) : null;
   return place === "window" && !canPopout() ? "side" : place;
 }
 

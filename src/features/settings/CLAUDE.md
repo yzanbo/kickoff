@@ -1,8 +1,8 @@
 # 設定の画面（`src/features/settings`）
 
-設定のダイアログ `SettingsDialog`（項目は `SettingsSection`。部品から開くときは `openSettings(section)`）。節の部品は各機能の `ui/settings/` にある。
+設定のダイアログ `SettingsDialog`（節の id で開く。部品から開くときは `openSettings(section)`）。節・欄の部品と登録（`appSettings.ts`）は各機能の `ui/settings/` にある。
 
-- 節と欄は拡張点 `settingsSections`・`settingsItems`（`ui/points.ts`）に持ち主が登録する（`scope` が `project` の節はプロジェクトの編集 `ProjectEditDialog` が並べ、中で `useEditedProject`）。アプリの設定のダイアログはまだ名指し。
+- 節と欄は拡張点 `settingsSections`・`settingsItems`（`ui/points.ts`）に持ち主が登録する（`scope: "app"` はアプリの設定、`project` はプロジェクトの編集 `ProjectEditDialog` で、中で `useEditedProject`）。「表示」の節（`DisplaySettings`）は `section: "display"` の欄を並べる。
 
 | 置き場所 | 中身 |
 |---|---|

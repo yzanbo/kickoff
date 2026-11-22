@@ -2,7 +2,6 @@ import { memo, useEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/ui/layout/PaneSash";
 import { TabBar } from "./TabBar";
@@ -40,7 +39,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   // 開けるターミナルの場所（フッターの殻が渡す。ほかの欄はターミナルを開かない）
   const terminals = frame?.terminals ?? [];
   const rules = surfaceOf(panel.surface)!;
-  const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
+  const [tabRowHidden] = useSetting(storage.settings.chatTabRowHidden);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
   // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別
   const [tabTwoLine] = useSetting(storage.settings.tabTwoLine);

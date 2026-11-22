@@ -1,6 +1,6 @@
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 import { SnippetManager, type SnippetEditing } from "./SnippetManager";
 
 /**

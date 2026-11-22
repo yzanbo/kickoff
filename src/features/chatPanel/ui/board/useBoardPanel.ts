@@ -7,9 +7,8 @@ import { useBoardFocus } from "./useBoardFocus";
 import { shouldFollowShownTab } from "./shownTabUrl";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { openNewChat, useDraftsInPanels } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { chatTab, openTab, panelKey, reopenOf } from "@/features/panel/ui";
+import { chatTab, openTab, panelKey, reopenOf, panelSettings } from "@/features/panel/ui";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel } from "@/features/panel/ui/usePanel";
 import { usePanelWidth } from "./usePanelWidth";
@@ -82,7 +81,7 @@ export function useBoardPanel({
   const panel = useProjectChatsPanel({ projectId, focus, tab: "board" });
   const drafts = useDraftsInPanels([panel.key, panelKey("side", projectId)]);
   // タブの列を隠している間は、その左の道具の「横幅いっぱい ⇔ 元の幅」も出ないので、横幅いっぱいにしない（ボードを覆ったまま戻せなくなるため）
-  const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
+  const [tabRowHidden] = useSetting(panelSettings.chatTabRowHidden);
   const size = usePanelWidth({ maximizable: !tabRowHidden });
   // 横幅いっぱいに見えているか（横幅いっぱいにした・横に残るボードが狭すぎてボードを覆っている）
   const full = size.maximized || size.covering;

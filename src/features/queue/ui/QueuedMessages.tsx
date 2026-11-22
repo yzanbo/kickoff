@@ -20,7 +20,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
+import { composerSettings } from "@/features/composer/ui";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
 const MIN_LIST_HEIGHT = 36;
@@ -65,7 +65,7 @@ export function QueuedMessages({
   const { messages, stops } = view;
   const [collapsed, setCollapsed] = useSetting(storage.settings.collapsed);
   // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）
-  const [compact] = useSetting(COMPOSER_COMPACT);
+  const [compact] = useSetting(composerSettings.compact);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useSetting(storage.settings.expanded);
   const listRef = useRef<HTMLDivElement>(null);

@@ -3,11 +3,10 @@ import { STATE_LOOKS, summarizeStates } from "@shared/chat/stateLooks";
 import type { AgentState, Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { ModelName } from "@/features/ai/ui";
-import { AgentListChip, ChatStateMark, chatTitle, confirmArchiveChats, confirmDeleteChats, descendantStates, openChat, summaryState, useChatStates, useChildChats, usePlaceCaps, type AgentListRow } from "@/features/chat/ui";
+import { AgentListChip, ChatStateMark, chatTitle, confirmArchiveChats, confirmDeleteChats, descendantStates, openChat, summaryState, useChatStates, useChildChats, usePlaceCaps, type AgentListRow, chatSettings } from "@/features/chat/ui";
 import { useNewChildFlash } from "./useNewChildFlash";
 
 /** まだ終わっていない様子（まとめてアーカイブしない。作業中はコアが断り、回答待ちは答える必要がある） */
@@ -29,7 +28,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   const children = childrenOf.get(chatId);
   const { stateOf } = useChatStates();
   const popover = usePopover();
-  const [openIn, setOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
+  const [openIn, setOpenIn] = useSetting(chatSettings.childOpenIn);
   // 別ウィンドウは Mac のアプリだけ
   const { canWindow } = usePlaceCaps();
   // 子チャットが新しくできたら、少しの間ピルを光らせる（開かない設定でも、作ったことと置き場所が分かる）

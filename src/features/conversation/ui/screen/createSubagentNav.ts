@@ -2,9 +2,8 @@
 import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
-import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { openTab, subagentTab } from "@/features/panel/ui";
-import { chatSidePanel, openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
+import { chatSidePanel, openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav, chatSettings } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import { jumpToEvent } from "@/features/conversation/ui/timeline/jumpToEvent";
 
@@ -39,7 +38,7 @@ export function createSubagentNav({ chatId, canOpenSide, release, reveal }: Suba
   };
   const nav: SubagentNav = {
     open: (key, eventId) => {
-      const place = resolveOpenPlace(readSetting(SUBAGENT_OPEN_IN), { canSide: canOpenSide, canWindow: canPopout() });
+      const place = resolveOpenPlace(readSetting(chatSettings.subagentOpenIn), { canSide: canOpenSide, canWindow: canPopout() });
       if (place === "window") nav.openWindow(key);
       else if (place === "side") nav.openSide(key, eventId);
       else nav.reveal(key, eventId);

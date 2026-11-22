@@ -8,7 +8,7 @@ import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/set
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { openSettings } from "@/features/settings/ui/openSettings";
+import { openSettings } from "@/features/settings/ui";
 import { listMics } from "./recorder";
 
 /** ▾ を押したときに、開いているメニューを外側のクリックとして閉じない（押したボタンの側で開閉する） */

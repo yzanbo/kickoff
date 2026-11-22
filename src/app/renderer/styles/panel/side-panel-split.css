@@ -207,7 +207,7 @@ input[type="text"].panel-tab-input {
   width: 24px;
 }
 
-/* タブの列を隠しているとき（チャットのパネル。CHAT_TAB_ROW_HIDDEN）は、ペインのタブの中身をタブの列の高さだけ下げない */
+/* タブの列を隠しているとき（チャットのパネル。panel の保存 chatTabRowHidden）は、ペインのタブの中身をタブの列の高さだけ下げない */
 .tabs-hidden > .panel-content.split-view {
   --split-tabs-h: 0px;
   --tab-lines-extra: 0px;

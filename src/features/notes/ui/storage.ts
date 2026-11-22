@@ -23,4 +23,6 @@ export const storage = defineSettings("notes", {
   chatPlace: choice(["right", "bottom"], "right"),
   /** ノートのチャットの欄の高さ（本文の下に置いたとき。本文と欄を合わせた高さに対する %。境目のつまみで変える） */
   chatHeight: number(45),
+  /** チャットからノートを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」） */
+  openIn: choice(["side", "window"], "side"),
 });

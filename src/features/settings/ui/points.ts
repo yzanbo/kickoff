@@ -1,12 +1,13 @@
-// 設定の節と欄の拡張点: 持ち主の機能が節（左の一覧の 1 項目と右の中身）・節の中の欄を登録し、ダイアログが scope ごとに order の順で並べる。
-// いまはプロジェクトの編集（scope: "project"。projects の ProjectEditDialog）だけが読む（アプリの設定のダイアログを節に分けるのは後の段）
+// 設定の節と欄の拡張点: 持ち主の機能が節（左の一覧の 1 項目と右の中身）・節の中の欄を登録し、ダイアログが scope ごとに order の順で並べる
+// （app = アプリの設定 SettingsDialog、project = プロジェクトの編集 ProjectEditDialog）
 import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import { definePoint } from "@/foundation/ui/points";
 
-/** 節・欄に渡すもの（projectId はプロジェクトの編集で開いたとき。プロジェクトそのものは projects の useEditedProject） */
+/** 節・欄に渡すもの（projectId はプロジェクトの編集で開いたとき。プロジェクトそのものは projects の useEditedProject。onClose はアプリの設定のダイアログを閉じる） */
 export interface SettingsPartProps {
   projectId?: number;
+  onClose?: () => void;
 }
 
 export interface SettingsSectionDef {

@@ -3,12 +3,11 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
-import { chatComposerDraft, Composer, composerPills, type ComposerSend, type OutgoingMessage } from "@/features/composer/ui";
+import { chatComposerDraft, Composer, composerPills, type ComposerSend, type OutgoingMessage, composerSettings } from "@/features/composer/ui";
 import type { ChatOptionsState } from "@/features/ai/ui";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { PromptsChip } from "@/features/conversation/ui/promptList/PromptsChip";
@@ -105,7 +104,7 @@ export function ChatComposerArea({
   // ノートのチャットの欄を閉じている間は、ピルの列と送信待ちをノートの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
   // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）
-  const [compact] = useSetting(COMPOSER_COMPACT);
+  const [compact] = useSetting(composerSettings.compact);
   const chips = (
     <div className={cx("composer-chips", compact && "compact")}>
       <PromptsChip prompts={prompts.history} />

@@ -65,7 +65,7 @@ export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
-export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate };
+export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate, subagentOpenIn: storage.settings.subagentOpenIn, childOpenIn: storage.settings.childOpenIn };
 export { busyBlockReason } from "./state/chatBusy";
 export { useChatRename } from "./useChatRename";
 export { workingFor } from "./currentWork";

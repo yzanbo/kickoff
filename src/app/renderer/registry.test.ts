@@ -28,3 +28,14 @@ test("作業場所を移したときの付け替え: 作業場所を持つ右の
   const repointing = panelTabs.items().filter((k) => k.repoint).map((k) => k.id).sort();
   assert.deepEqual(repointing, ["changes", "file", "projectView"]);
 });
+
+test("設定の画面: アプリの節 17 がいまの並びで重ならず、「表示」の欄がいまの順", async () => {
+  useTestContributions(registryContributions());
+  const { settingsItemsOf, settingsSectionsOf } = await import("@/features/settings/ui");
+  const ids = settingsSectionsOf("app").map((s) => s.id);
+  assert.deepEqual(ids, ["usage", "display", "sidebar", "connection", "ai", "chats", "snippets", "compact", "notes", "links", "voice", "notifications", "terminal", "browser", "mobile", "trash", "diagnostics"]);
+  assert.deepEqual(
+    settingsItemsOf("display").map((i) => i.id),
+    ["settings.theme", "composer.compact", "conversation.fontSize", "conversation.wide", "chatPanel.tabRow", "chatPanel.viewButton", "conversation.headerRow", "conversation.headerBadge", "conversation.stickyPrompt", "snippets.bar", "subagents.openIn", "childChats.openIn", "childChats.create", "childChats.handoffVia", "childChats.handoffAfter", "notes.openIn", "projects.header", "projects.tabs", "projects.chatPlacement", "shell.footerMode"],
+  );
+});

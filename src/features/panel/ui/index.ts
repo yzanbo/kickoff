@@ -66,6 +66,8 @@ export const panelSettings = {
   tabTwoLine: storage.settings.tabTwoLine,
   tabOverflow: storage.settings.tabOverflow,
   bottomHeight: storage.settings.bottomHeight,
+  chatTabRowHidden: storage.settings.chatTabRowHidden,
+  viewButtonHidden: storage.settings.viewButtonHidden
 } as const;
 export { PopoutTabWindow } from "./popout/PopoutTabWindow";
 export { returnTabWindow } from "./popout/tabWindow";

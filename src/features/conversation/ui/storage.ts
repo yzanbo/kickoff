@@ -14,4 +14,12 @@ export const storage = defineSettings("conversation", {
   fontSize: choice(["xs", "sm", "md", "lg", "xl"], "md"),
   /** AI からの質問が複数あるときの出し方（steps = 1 問ずつ / all = すべて並べる） */
   questionLayout: choice(["steps", "all"], "steps"),
+  /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */
+  wide: flag(true),
+  /** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ。初めは出す） */
+  stickyPromptHidden: flag(false),
+  /** チャットの見出しの行を隠すか（見出しと会話の右クリックの「チャット画面表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
+  headerRowHidden: flag(),
+  /** チャットの見出しのグループ・作業場所のバッジを色付きで表示するか（見出し・会話の何もないところの右クリック・設定の「表示」。どのチャットでも同じ。初めは色付き） */
+  headerBadgeColors: flag(true),
 });

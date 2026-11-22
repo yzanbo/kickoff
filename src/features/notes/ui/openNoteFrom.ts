@@ -1,10 +1,10 @@
-// チャットからノートを、設定の開き方（NOTE_OPEN_IN）で開く: 右の欄 = そのチャット（子チャットなら、いちばん上の親）の画面の右の欄のタブ /
+// チャットからノートを、設定の開き方（storage.settings.openIn）で開く: 右の欄 = そのチャット（子チャットなら、いちばん上の親）の画面の右の欄のタブ /
 // 別ウィンドウ。送る前の新しいチャット（draftSide）なら、その下書きのタブの右の欄。チャットが分からない・ノートのチャットならノートのタブ。
 // 別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatSidePanel, openInRootSide } from "@/features/chat/ui";
@@ -26,7 +26,7 @@ export function openNoteFromChat({
   draftSide?: DraftScope | null;
 }) {
   // place を渡すと設定によらずその場所に（入力欄の上のノートの一覧の行のボタン）
-  if ((place ?? readSetting(NOTE_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "note", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — ノート`);
+  if ((place ?? readSetting(storage.settings.openIn)) === "window" && canPopout()) return openPopout({ kind: "note", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — ノート`);
   if (chatId === null && draftSide !== null) return openTab(chatSidePanel(draftSide), noteTab({ chatId: null, projectId, path }));
   if (parsePopout(location.hash)) return postToMainWindow("openNote", { projectId, path, chatId });
   // ノートのチャット（ノートのタブの中で開いたもの）からは、ノートのタブで開く（ノートのチャットは右の欄を持たない）

@@ -3,7 +3,7 @@
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { panelTabs } from "@/features/panel/ui";
-import { settingsSections } from "@/features/settings/ui";
+import { settingsItems, settingsSections } from "@/features/settings/ui";
 import { projectViewTabKind } from "./chatSideView";
 import { projectViewTarget } from "./openTargets";
 import { projectViews } from "./projectViews";
@@ -14,6 +14,7 @@ import { commands } from "@/foundation/ui/commands";
 import { rightSidebarToggles } from "./rightSidebar/useRightSidebar";
 import { paletteSources } from "@/features/palette/ui";
 import { projectPaletteSource } from "./paletteSources";
+import { projectsDisplayItems } from "./page/displaySettings";
 
 export const contributes = [
   openTargets.item(projectViewTarget),
@@ -32,4 +33,6 @@ export const contributes = [
     evenIfHandled: true,
     run: () => rightSidebarToggles.run(),
   }),
+  // 設定の「表示」の欄
+  ...projectsDisplayItems.map((i) => settingsItems.item(i)),
 ];

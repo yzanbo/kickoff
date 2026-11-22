@@ -1,5 +1,5 @@
 // composer の画面の保存（キーは kickoff:composer:<名前の kebab>。ほかの機能が読むものは ui/index.ts から出す）
-import { choice, defineSettings, family, json, single, text } from "@/foundation/ui/storage";
+import { choice, defineSettings, family, flag, json, single, text } from "@/foundation/ui/storage";
 import { NO_ATTACHMENTS, NO_DRAFTS, parseAttachments, parseNewChatDrafts } from "./storedDrafts";
 
 /** 前の保存の名前（tell / queue）も同じ扱いとして読む */
@@ -18,4 +18,6 @@ export const storage = defineSettings("composer", {
   attachments: family(json(parseAttachments, NO_ATTACHMENTS, (v) => v.length === 0), { ids: true }),
   /** 送る前の新しいチャット（再起動しても残す。送った・閉じた・プロジェクトを消したら消す） */
   newChatDrafts: single(json(parseNewChatDrafts, NO_DRAFTS, (v) => v.length === 0), { ids: true }),
+  /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクトにしない） */
+  compact: flag(false),
 });

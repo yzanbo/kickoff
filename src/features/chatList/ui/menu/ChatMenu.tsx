@@ -3,9 +3,8 @@ import type { Chat } from "@shared/chat/types";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { openChat, openChatTab } from "@/features/chat/ui";
+import { openChat, openChatTab, chatSettings } from "@/features/chat/ui";
 import { ChatMenuItems } from "./ChatMenuItems";
 
 /**
@@ -67,7 +66,7 @@ export function ChatMenu({
 /** 子チャットを、設定の開き方（「開く」）でないもう一方で開く項目。別ウィンドウを開けない（スマホのブラウザ）なら出さない */
 function ChildOpenElsewhere({ chat }: { chat: Chat }) {
   // 描く中で読む設定は購読して読む（readSetting だと React Compiler が覚えた結果を使い、設定を変えても読み直さない）
-  const [openIn] = useSetting(CHILD_CHAT_OPEN_IN);
+  const [openIn] = useSetting(chatSettings.childOpenIn);
   if (!canPopout()) return null;
   return openIn === "window" ? (
     <MenuItem onSelect={() => openChat(chat, "side")}>

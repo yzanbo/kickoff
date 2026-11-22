@@ -4,22 +4,9 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { ClaudeMark } from "@/features/ai/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import {
-  CreatedChatMarks,
-  openKey,
-  useOptionalActivityNav,
-  useOptionalChatScreen,
-  useOptionalSubagentNav,
-  usePlaceCaps,
-  usePortValue,
-  useShownInChatSide,
-  useTimelineOpen,
-  type RenderScope,
-  type ToolCall,
-} from "@/features/chat/ui";
+import { CreatedChatMarks, openKey, useOptionalActivityNav, useOptionalChatScreen, useOptionalSubagentNav, usePlaceCaps, usePortValue, useShownInChatSide, useTimelineOpen, type RenderScope, type ToolCall, chatSettings } from "@/features/chat/ui";
 import { agentTabKey } from "@/features/panel/ui";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
@@ -43,7 +30,7 @@ interface CardProps {
  * 流れの中のサブエージェントのカード（Agent / Task の呼び出し 1 つ）。閉じた状態でも、状態・名前・開始〜終了（実行中は開始〜最後の動き）・
  * いまの動き（中で起動したサブエージェントのものも）・操作を出す。開くと、そのサブエージェントの流れ（依頼 → 発言・ツール（時刻付き）→ 報告）を
  * 字下げして出し、中で起動したサブエージェントも同じカードとして入れ子で出す。開閉はチャットの画面の状態（ピルから移ったときも開く）。
- * カードの上の 2 行（見出しといまの動き / まとめ）のどこを押しても、設定（SUBAGENT_OPEN_IN）の開き方で開く: 流れの中で開く・チャットの画面の右の欄に開く・別ウィンドウで開く
+ * カードの上の 2 行（見出しといまの動き / まとめ）のどこを押しても、設定（chatSettings.subagentOpenIn）の開き方で開く: 流れの中で開く・チャットの画面の右の欄に開く・別ウィンドウで開く
  * （中のボタンを押したとき・文を選んだときは除く）。左の ＞ はいつも流れの中での開閉（設定が右の欄でも、流れの中で中身を見られる）。
  * 設定が右の欄でないときは、操作の「右の欄で開く」で右の欄にも開ける。
  * 右の欄で表示しているカードには「右の欄で表示中」と添える
@@ -63,7 +50,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
   // 実行中は「最後の動き」の表示を進める
   useTicker(running ? TICK_ACTIVITY : null);
   // 見出しを押したときの開き方（設定。右の欄を置けない画面では、いつも流れの中）
-  const [openIn] = useSetting(SUBAGENT_OPEN_IN);
+  const [openIn] = useSetting(chatSettings.subagentOpenIn);
   const { canWindow } = usePlaceCaps();
   const inSide = useShownInChatSide(view?.chatId ?? 0, agentTabKey(key));
   if (!view || !entry) return <PlainCard call={call} />;

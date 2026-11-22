@@ -4,7 +4,7 @@ import { readSetting, subscribeSetting, writeSetting } from "@/foundation/ui/sto
 import { storage } from "@/features/chatPanel/ui/storage";
 import { panelSettings, type PanelSurface } from "@/features/panel/ui";
 import { chatListSettings } from "@/features/chatList/ui";
-import { PANEL_TAB_GROUP_COLORS, PANEL_VIEW_BUTTON_HIDDEN } from "@/foundation/ui/storage/storageKeys";
+import { PANEL_TAB_GROUP_COLORS } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 
 /**
@@ -43,14 +43,14 @@ export function usePanelViewReset(surface: PanelSurface) {
   const groupingSetting = storage.settings.tabGrouping(surface);
   const [grouping] = useSetting(groupingSetting);
   // 「表示」ボタンを出すか
-  const [buttonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
+  const [buttonHidden] = useSetting(panelSettings.viewButtonHidden);
   // チャットの項目の設定がすべて初めの値か（どれが変わってもメニューを描き直す。hook を並べて呼ばない）
   const chatViewInitial = useSyncExternalStore(subscribeChatView, chatViewAtInitial);
   const chatChanged = !atInitial(groupingSetting, grouping) || !chatViewInitial;
   return {
-    changed: chatChanged || buttonHidden !== PANEL_VIEW_BUTTON_HIDDEN.initial,
+    changed: chatChanged || buttonHidden !== panelSettings.viewButtonHidden.initial,
     reset: () => {
-      writeSetting(PANEL_VIEW_BUTTON_HIDDEN, PANEL_VIEW_BUTTON_HIDDEN.initial);
+      writeSetting(panelSettings.viewButtonHidden, panelSettings.viewButtonHidden.initial);
       writeSetting(groupingSetting, groupingSetting.initial);
       for (const s of CHAT_VIEW_SETTINGS) writeSetting(s, s.initial);
     },

@@ -5,7 +5,6 @@ import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useNoteList } from "@/features/notes/ui/stores/notes";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -40,7 +39,7 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
   const mainChat = useMainChat();
   // 送る前の新しいチャットなら、そのタブの右の欄
   const draftSide = useDraftSide();
-  const [openIn, setOpenIn] = useSetting(NOTE_OPEN_IN);
+  const [openIn, setOpenIn] = useSetting(storage.settings.openIn);
   const tree = useMemo(() => buildNoteFileTree(list.data?.entries ?? []), [list.data]);
   // 開いているフォルダは、ノートのタブの木と同じものを覚える（どちらで開け閉めしても、もう一方も同じになる）
   const [openList, setOpenList] = useSetting(storage.settings.openFolders(projectId));
