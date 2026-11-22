@@ -31,4 +31,4 @@
 
 - 形は `@shared/ai/usage` の `ProviderUsage`、見張りは `monitor.ts` の `UsageMonitor` 1 つ（支払いは `spending.ts`）。前の形の API・SSE は `usageCompat.ts`。
 - 取り方は各 AI のフォルダの `usage.ts`。1 つが失敗・遅れても、ほかは出す。ログイン情報は読むだけ（更新すると CLI のログインが切れる）。名乗りは `USER_AGENT`。
-- 画面の使用枠の店は App が 1 つ持つ。残り時間の時計は `UsageMeter` に置く（App だと全体が描き直る）。超過分・クレジットの言葉は `@shared/ai/overage`。
+- 下の帯の札と使用状況は `footerItems.ts`。残り時間の時計は `UsageMeter` に置く。超過分・クレジットの言葉は `@shared/ai/overage`。

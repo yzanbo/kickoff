@@ -8,7 +8,7 @@
 - `core/finish.ts`・`core/backup.ts`: 消す `WorktreeFinisher`（消した・戻したあとは `afterChange`、消したあとは `afterRemove` に上の機能が登録したものを呼ぶ。github が PR の知らせを作り直し、database が DB の接続を片付ける）・失うものの Git の控え。`core/headWatch.ts`: Git のフォルダを見張って `worktrees_changed` を出す（その前にコアの一覧の覚えを `forgetWorktrees` で捨てる。作る・消す所も同じ）。
 - `core/env/`: 実行環境 `WorktreeEnvService`（ポートの帯 `bands.ts`・`.env` の区切り `envRewrite.ts`）。
 - `core/tools.ts`: AI のツール `finish_worktree` と、実行に足す `PORT`（AI のツールの決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
-- `ui/`: PR・片付ける・消す（`WorktreeBar`・`removeWorktree.ts`）。
+- `ui/`: PR・片付ける・消す（`WorktreeBar`・`removeWorktree.ts`）・下の帯のブランチ。
 
 ## 決まり
 

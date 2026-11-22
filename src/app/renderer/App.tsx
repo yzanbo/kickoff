@@ -56,7 +56,6 @@ import { onAppDialogRequested, type AppDialogMap, type AppDialogRequest } from "
 import { createNavigationHistory } from "@/foundation/ui/navigation/navigationHistory";
 import { useCommandHandler, useCommandShortcuts } from "@/foundation/ui/commands";
 import { historySteps } from "./commands";
-import { usePlanUsage } from "@/features/ai/ui/usage/usage";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useApplyChatFontSize } from "@/features/conversation/ui/screen/chatFontSize";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
@@ -74,9 +73,8 @@ export function App() {
   // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
   const [routeHistory] = useState(() => createNavigationHistory(parse(location.hash)));
   const route = useHashRoute((next, replace) => routeHistory.record(next, replace));
-  const planUsage = usePlanUsage();
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
-  const connection = useServerConnection();
+  useServerConnection();
   // アプリ全体で使うデータ（プロジェクト・設定）は店から読む（要る部品も、props で中継せずに店から読む）
   const { projects, missing: missingProject, loaded: projectsLoaded } = useProjects();
   const appSettings = useAppSettings().data;
@@ -188,7 +186,7 @@ export function App() {
         {/* 右端のアイコンの列（右サイドバーを閉じていても・別ウィンドウへ移していても置く） */}
         {chat.projectId !== undefined && <SideRail projectId={chat.projectId} open={chat.open} held={sideHeld} />}
         <MaximizedHeaderBar />
-        <AppFooter onOpenSettings={(section) => showDialog({ id: "settings", detail: section })} connection={connection} planUsage={planUsage} projectId={projectId} />
+        <AppFooter projectId={projectId} />
         {creating && (
           <NewProjectDialog
             defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}

@@ -39,3 +39,11 @@ test("設定の画面: アプリの節 17 がいまの並びで重ならず、�
     ["settings.theme", "composer.compact", "conversation.fontSize", "conversation.wide", "chatPanel.tabRow", "chatPanel.viewButton", "conversation.headerRow", "conversation.headerBadge", "conversation.stickyPrompt", "snippets.bar", "subagents.openIn", "childChats.openIn", "childChats.create", "childChats.handoffVia", "childChats.handoffAfter", "notes.openIn", "projects.header", "projects.tabs", "projects.chatPlacement", "shell.footerMode"],
   );
 });
+
+test("下の帯: 項目 8 が前の帯の並び（左 7・右 1）で重ならない", async () => {
+  useTestContributions(registryContributions());
+  const { footerItems } = await import("@/foundation/ui/shell/points");
+  const side = (s: "start" | "end") => footerItems.items().filter((i) => i.side === s).map((i) => i.id);
+  assert.deepEqual(side("start"), ["settings", "connection", "offline", "toolNotices", "branch", "ports", "restartResume"]);
+  assert.deepEqual(side("end"), ["usage"]);
+});

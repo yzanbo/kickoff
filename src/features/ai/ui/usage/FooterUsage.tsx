@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import type { PlanUsage, ProviderStatus } from "@shared/ai/types";
 import { useForegroundProvider } from "@/features/ai/ui/provider/chatProvider";
 import { providerLabel, statusOf } from "@/features/ai/ui/provider/providerChoice";
-import { FIVE_HOUR_IDLE, type usePlanUsage } from "./usage";
+import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
 import { UsageMeter } from "./UsageMeter";
 import { refreshServiceUsage, useServiceUsage } from "./serviceUsageStore";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -18,7 +18,8 @@ import { usageGroups, type UsageGroup } from "./usageGroups";
  * 下の帯の右の使用状況。Claude と Codex（と、前に出しているチャットのほかの AI）を、AI ごとのまとまり（札 ＋ 枠のメーター）で並べる。
  * まとまりごとに別のボタンで、押すとその AI の詳細を開く
  */
-export function FooterUsage({ planUsage }: { planUsage: ReturnType<typeof usePlanUsage> }) {
+export function FooterUsage() {
+  const planUsage = usePlanUsage();
   const foreground = useForegroundProvider();
   const statuses = useProviders({ active: false }).data;
   const services = useServiceUsage();

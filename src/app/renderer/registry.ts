@@ -31,24 +31,27 @@ import { contributes as devices } from "@/features/devices/ui/contributes";
 import { contributes as trash } from "@/features/trash/ui/contributes";
 import { contributes as diagnostics } from "@/features/diagnostics/ui/contributes";
 import { contributes as subagents } from "@/features/subagents/ui/contributes";
+import { contributes as queue } from "@/features/queue/ui/contributes";
+import { contributes as worktrees } from "@/features/worktrees/ui/contributes";
 import { appCommands } from "./commands";
-import { footerModeItem } from "./shell/footer/footerSettings";
+import { footerModeItem, offlineFooterItem } from "./shell/footer/footerSettings";
 import { settingsItems } from "@/features/settings/ui";
 import { configureRouter } from "@/foundation/ui/navigation/router";
 import { workplaceDecorItems } from "./workplaceDecor";
 import { userViewTabItems } from "./userViewTabs";
 import { installContributions } from "@/foundation/ui/points";
+import { footerItems } from "@/foundation/ui/shell/points";
 import { projectViews } from "@/features/projects/ui";
 import { aiToolViews } from "@/features/chat/ui";
 import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 
 /**
- * 全部の機能の登録（機能の並び順。足すときも同じ順に）・殻のコマンド（appCommands）・設定の「表示」の下の帯（footerModeItem）。作業場所の飾りは worktrees・github の分・タブの説明（userViewTabs）は全部の種類の分（持ち主へ移すまでここ）。
+ * 全部の機能の登録（機能の並び順。足すときも同じ順に）・殻のコマンド（appCommands）・設定の「表示」の下の帯（footerModeItem）・下の帯のオフライン（offlineFooterItem）。作業場所の飾りは worktrees・github の分・タブの説明（userViewTabs）は全部の種類の分（持ち主へ移すまでここ）。
  * AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...settings, ...panel, ...palette, ...trash, ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...subagents, ...childChats, ...remoteImages, ...notifications, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...ports, ...voice, ...devices, ...diagnostics, ...sidebar, ...board,
-  ...appCommands, settingsItems.item(footerModeItem), ...workplaceDecorItems, ...userViewTabItems, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
+  ...settings, ...panel, ...palette, ...trash, ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...subagents, ...childChats, ...remoteImages, ...queue, ...notifications, ...conversation, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...worktrees, ...github, ...notes, ...database, ...terminal, ...browser, ...ports, ...voice, ...devices, ...diagnostics, ...sidebar, ...board,
+  ...appCommands, settingsItems.item(footerModeItem), footerItems.item(offlineFooterItem), ...workplaceDecorItems, ...userViewTabItems, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 
 export function installRegistry(): void {

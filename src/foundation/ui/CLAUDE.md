@@ -143,5 +143,5 @@ App・起動・下の帯は `src/app/renderer/`。
 
 - アプリのダイアログは `openAppDialog`（種類は持ち主が `AppDialogMap` に足す。別ウィンドウからはメインで開く）。
 - 全体表示中の共通ヘッダー `MaximizedHeader`（`shell/WindowHeaderContent.tsx`）は、元の画面の名前の行を既存の 40px の操作行へ移す（複製しない・行を足さない）。
-- 下の帯の高さは起動直後の骨組みの `.boot-footer` と同じにする（変えたら `@/app/renderer/bootScript.test.ts` を通す）。接続が切れた札は、つながらないまま少し経ってから出す（`useConnectionNotice`。一瞬の切断でちらつかせない）。
+- 下の帯は持ち主が `footerItems` に足した項目を並べるだけ。高さは骨組みの `.boot-footer` と同じにする（`@/app/renderer/bootScript.test.ts`）。
 - Markdown の外部リンクは開く前に確かめる（`external/linkOpen.ts` の `openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。
