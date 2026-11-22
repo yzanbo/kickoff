@@ -16,7 +16,6 @@ import { groupsApi } from "@/features/groups/ui/api/groups";
 import { notesApi } from "@/features/notes/ui/api/notes";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
-import { queueApi } from "@/features/queue/ui/api/queue";
 import { settingsApi } from "@/features/settings/ui/api/settings";
 import { terminalsApi } from "@/features/terminal/ui/api/terminals";
 import { trashApi } from "@/features/trash/ui/api/trash";
@@ -34,7 +33,6 @@ export const api = {
   ...chatsApi,
   ...chatImagesApi,
   ...turnsApi,
-  ...queueApi,
   ...groupsApi,
   ...uploadsApi,
   ...approvalsApi,

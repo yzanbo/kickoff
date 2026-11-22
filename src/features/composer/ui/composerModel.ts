@@ -1,7 +1,7 @@
 // 入力欄の束（送る口と作業中の様子）と、送れるかの決まり（純粋。React に依存しない）
 import type { LucideIcon } from "lucide-react";
 import type { Attachment } from "@shared/chat/types";
-import type { QueueSendMode } from "./composerKeys";
+import type { SendWhen } from "./composerKeys";
 
 /** 送るもの（入力欄の文と添付） */
 export interface OutgoingMessage {
@@ -31,8 +31,8 @@ export interface ComposerSend {
   compacting?: boolean;
   /** 止めている送信待ちがある（作業していなくても、すぐ送る / ためておくを選ぶ） */
   holdsQueue?: boolean;
-  /** 入力欄から送る。mode はキーで決めたとき（⌘Enter = tell・⌘⇧Enter = queue。省けば切り替えのとおり）。SendCancelled ならやめただけ */
-  submit: (message: OutgoingMessage, mode?: QueueSendMode) => Promise<void>;
+  /** 入力欄から送る。mode はキーで決めたとき（⌘Enter = now・⌘⇧Enter = later。省けば切り替えのとおり）。SendCancelled ならやめただけ */
+  submit: (message: OutgoingMessage, mode?: SendWhen) => Promise<void>;
   /** 入力欄の文でないもの（定型文の「すぐ送る」）を送る。省けば定型文は入れるだけ */
   sendOther?: (text: string) => Promise<void>;
   /** 中断（省けば中断のボタンを出さない） */

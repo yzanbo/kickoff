@@ -1,8 +1,9 @@
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
+import { useEffect, useEffectEvent, useLayoutEffect, useState, type RefObject } from "react";
 import type { Attachment, QueuedMessage } from "@shared/chat/types";
 import { isQueueAction } from "@shared/chat/queueActions";
-import { api } from "@/foundation/ui/api";
+import { chatQueueApi } from "@/features/chat/ui";
+import { useEditHold } from "@/features/composer/ui";
+import type { QueueController } from "./queueController";
 import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
 
 /** 書き直している途中の 1 件（文と添付） */
@@ -18,7 +19,7 @@ interface QueuedDraft {
  * （書き直しが終わる = 保存・やめる・一覧をたたむ・画面を閉じると外れて送る。queueEditHolds.ts）。
  * editHeight: 書き直している行の高さの合計（文を中でスクロールさせず全部見せるため、一覧の高さの上限をこれより低くしない。画面の 6 割まで）
  */
-export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: RefObject<HTMLElement | null>, failed: (e: unknown) => void) {
+export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: RefObject<HTMLElement | null>, c: QueueController) {
   const [edits, setEdits] = useState<Record<string, QueuedDraft>>({});
   // いちばん最後に開いた欄（見えるところまで動かす）
   const [last, setLast] = useState<string>();
@@ -33,30 +34,11 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
     closeGone();
   }, [queue]);
 
-  // 書き直している指示をコアに知らせる（開いている間は知らせ直す。一度も開いていなければ知らせない）
-  const editingKey = [...ids].sort().join(",");
-  const told = useRef(false);
+  // 書き直している指示をコアに知らせ続ける（書き直している間は、タブを裏に回しても会話の欄を止めない。止めると、知らせ直しが切れて書き直しの途中で送られる）
+  useEditHold(chatId, ids, tellEditing);
   const hold = useKeepAliveHold("queueEdit");
-  useEffect(() => {
-    const list = editingKey ? editingKey.split(",") : [];
-    // 書き直している間は、タブを裏に回しても会話の欄を止めない（止めると、知らせ直しが切れて書き直しの途中で送られる）
-    hold(list.length > 0);
-    if (list.length === 0 && !told.current) return;
-    told.current = list.length > 0;
-    const tell = () => void api.setQueueEditing(chatId, list).catch(() => undefined);
-    tell();
-    if (list.length === 0) return;
-    const timer = setInterval(tell, EDIT_HOLD_TTL_MS / 4);
-    return () => clearInterval(timer);
-  }, [chatId, editingKey, hold]);
-  // 欄ごと消えた（チャットを閉じた・切り替えた）: 書き直しは終わったとして外す（欄の中身も残らない）
-  useEffect(
-    () => () => {
-      if (told.current) void api.setQueueEditing(chatId, []).catch(() => undefined);
-      told.current = false;
-    },
-    [chatId],
-  );
+  const holding = ids.length > 0;
+  useEffect(() => hold(holding), [hold, holding]);
 
   const [editHeight, setEditHeight] = useState(0);
   // 開いている欄と、その文が変わったら測り直す
@@ -93,9 +75,13 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
      * 保存できて送れなかったときも欄は閉じ、失敗だけ知らせる（文はもう保存されている）
      */
     save: (id: string, attachments: Attachment[], send: boolean) =>
-      void api.editQueued(chatId, id, edits[id]?.text ?? "", attachments).then(() => {
+      void c.run({ op: "edit", id, text: edits[id]?.text ?? "", attachments }).then((ok) => {
+        if (!ok) return;
         close(id);
-        if (send) void api.sendQueuedNow(chatId, id).catch(failed);
-      }, failed),
+        if (send) void c.send({ mode: "now", ids: [id] });
+      }),
   };
 }
+
+/** 書き直している送信待ちの指示を知らせる */
+const tellEditing = (chatId: number, ids: string[]) => chatQueueApi("PUT /api/chats/:chatId/queue/editing", { params: { chatId }, body: { ids } });

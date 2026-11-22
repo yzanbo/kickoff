@@ -10,7 +10,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { Composer, settingDraft } from "@/features/composer/ui";
-import type { QueueSendMode } from "@/features/composer/ui/composerKeys";
+import type { SendWhen } from "@/features/composer/ui/composerKeys";
 import { useQueueMode } from "@/features/composer/ui/QueueModeToggle";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { openCreatedChild } from "@/features/chat/ui";
@@ -50,9 +50,9 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
   if (!agentId) return <p className="muted small">このサブエージェントには伝えられません（Claude Code がサブエージェントの ID を知らせていないため）。</p>;
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
-  const relay = async (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => {
+  const relay = async (text: string, attachments: Attachment[], sendMode?: SendWhen) => {
     const message = relayMessage(agentId, description, text);
-    await api.sendMessage(view.chatId, { text: message, options: {}, attachments, when: view.busy && (sendMode ?? queueMode) === "queue" ? "later" : "now" });
+    await api.sendMessage(view.chatId, { text: message, options: {}, attachments, when: view.busy ? (sendMode ?? queueMode) : "now" });
     onSent?.();
   };
   const ask = async (text: string, attachments: Attachment[]) => {
@@ -62,8 +62,8 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   };
   // そのチャットの AI がサブエージェントの会話の記録を読めなければ、子チャットで聞けない
   const child = mode === "child" && !logBlock;
-  const send = (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => (child ? ask(text, attachments) : relay(text, attachments, sendMode));
-  const later = !child && view.busy && queueMode === "queue";
+  const send = (text: string, attachments: Attachment[], sendMode?: SendWhen) => (child ? ask(text, attachments) : relay(text, attachments, sendMode));
+  const later = !child && view.busy && queueMode === "later";
   const placeholder = child
     ? `サブエージェント「${description}」について聞きたいこと（会話の記録を添えた子チャットを作ります。Enter で送信）`
     : later

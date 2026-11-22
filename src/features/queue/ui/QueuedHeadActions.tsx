@@ -1,11 +1,10 @@
 import { OctagonPause, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { QUEUE_ACTIONS, type QueueAction } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
-import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
-import { useChatScreen } from "@/features/chat/ui";
-import { queueFailed as failed } from "./queueFailed";
-import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui/queueActionLooks";
+import { QUEUE_ACTION_LOOKS } from "@/features/compact/ui";
+import { useQueueActions } from "./queueContext";
+import { QueueHeadButton } from "./QueueHeadButton";
 import { SendAllMenu } from "./SendAllMenu";
 
 /**
@@ -15,21 +14,11 @@ import { SendAllMenu } from "./SendAllMenu";
  *   見出しは「＋追加」
  * - 送り方: 終わったら自動で送るか（列全体の設定）と、いますべて送る
  * - すべて消す（取り消せないので、ほかと離していちばん右に）
- * すべて送る・すべて消すは 2 件以上のときだけ（1 件なら行のボタンと同じになるため）。onAdded は挟んだあと（たたんでいれば一覧を開いて見せる）
+ * すべて送る・すべて消すは 2 件以上のときだけ（1 件なら行のボタンと同じになるため）。挟んだあとは一覧を開いて見せる
  */
-export function QueuedHeadTools({
-  count,
-  busy,
-  paused,
-  stops,
-  onAdded,
-}: {
-  count: number;
-  busy: boolean;
-  paused: boolean;
-  stops: number[];
-  onAdded: () => void;
-}) {
+export function QueuedHeadTools({ busy }: { busy: boolean }) {
+  const { view } = useQueueActions();
+  const count = view.messages.length;
   return (
     <div className="queued-head-tools">
       <span className="queued-head-group" role="group" aria-label="送信待ちに追加">
@@ -37,15 +26,15 @@ export function QueuedHeadTools({
           <Plus size={11} />
           追加
         </span>
-        <QueuedStopButton stops={stops} onAdded={onAdded} />
+        <QueuedStopButton />
         {QUEUE_ACTIONS.map((a) => (
-          <QueuedActionButton key={a} action={a} onAdded={onAdded} />
+          <QueuedActionButton key={a} action={a} />
         ))}
       </span>
       <span className="queued-head-group queued-head-send" role="group" aria-label="送り方">
-        <QueuedModeButton paused={paused} busy={busy} />
+        <QueuedModeButton busy={busy} />
         {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
-        {count > 1 && <SendAllMenu count={count} busy={busy} holds={paused || stops.length > 0} />}
+        {count > 1 && <SendAllMenu count={count} busy={busy} holds={view.paused || view.stops.length > 0} />}
       </span>
       {count > 1 && <QueuedRemoveAllButton count={count} />}
     </div>
@@ -53,13 +42,14 @@ export function QueuedHeadTools({
 }
 
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
-function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) {
-  const { chatId } = useChatScreen();
+function QueuedModeButton({ busy }: { busy: boolean }) {
+  const { c, view } = useQueueActions();
+  const { paused } = view;
   return (
-    <button
-      type="button"
-      className={cx("btn queued-head-btn queued-mode", paused && "paused")}
-      data-size="sm"
+    <QueueHeadButton
+      icon={paused ? Pause : Play}
+      label={paused ? "止めています" : "自動で送る"}
+      className={cx("queued-mode", paused && "paused")}
       aria-pressed={paused}
       aria-label={paused ? "止めています（押すと、自動で送るに戻す）" : "自動で送ります（押すと、送らずに止めておく）"}
       title={
@@ -67,34 +57,28 @@ function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) 
           ? `いまの作業が終わっても送らずに止めておきます。行の「すぐ送る」で 1 件ずつ送れます。押すと、自動で送るに戻します${busy ? "" : "（先頭をすぐ送ります）"}`
           : "いまの作業が終わったら、先頭から順に自動で送ります。押すと、送らずに止めておきます（移動の前などに）"
       }
-      onClick={() => void api.setQueuePaused(chatId, !paused).catch(failed)}
-    >
-      {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
-      <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
-    </button>
+      onClick={() => void c.run({ op: "set_paused", paused: !paused })}
+    />
   );
 }
 
 /**
  * 「一時停止」（自動で送るのを一度止める位置）を、いちばん上（1 件目の上 = 位置 0）に挟む。
  * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
- * 1 件目の上にもう印があっても押せ、押すたびにいちばん上に 1 本ずつ重なる（何本か足してから、1 本ずつ止めたい位置へ動かせるように）
+ * 1 件目の上にもう印があっても押せ、押すたびにいちばん上に 1 本ずつ重なる（何本か足してから、1 本ずつ止めたい位置へ動かせるように。続けて押しても先回りした線から足す）
  */
-function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
-  const { chatId } = useChatScreen();
+function QueuedStopButton() {
+  const { c, view, open } = useQueueActions();
   return (
-    <button
-      type="button"
-      className="btn queued-head-btn queued-add-stop"
-      data-size="sm"
-      data-look="outline"
+    <QueueHeadButton
+      icon={OctagonPause}
+      label="一時停止"
+      look="outline"
+      className="queued-add-stop"
       aria-label="一時停止をいちばん上に挟む"
       title="自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます（押すたびに 1 本ずつ重なります）。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
-      onClick={() => void api.setQueueStops(chatId, [0, ...stops]).then(onAdded, failed)}
-    >
-      <OctagonPause size={12} aria-hidden />
-      <span className="queued-head-label">一時停止</span>
-    </button>
+      onClick={() => void c.run({ op: "set_stops", stops: [0, ...view.stops] }).then((ok) => ok && open())}
+    />
   );
 }
 
@@ -102,34 +86,31 @@ function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => 
  * 「圧縮」「コンテキスト消去」: その行を列のいちばん下に足す（そこまで送ったら、会話を要約する・新しい会話で始める）。
  * 置いたあとは、行のつまみのドラッグ・↑↓ で位置を決める。色は行と同じ（queueActionLooks の tone）
  */
-function QueuedActionButton({ action, onAdded }: { action: QueueAction; onAdded: () => void }) {
-  const { chatId } = useChatScreen();
+function QueuedActionButton({ action }: { action: QueueAction }) {
+  const { c, open } = useQueueActions();
   const look = QUEUE_ACTION_LOOKS[action];
   return (
-    <button
-      type="button"
-      className={cx("btn queued-head-btn queued-add-action", look.tone)}
-      data-size="sm"
-      data-look="outline"
+    <QueueHeadButton
+      icon={look.icon}
+      label={look.button}
+      look="outline"
+      className={cx("queued-add-action", look.tone)}
       aria-label={`${look.button}の行をいちばん下に足す`}
       title={look.addTitle}
-      onClick={() => void api.queueAction(chatId, action).then(onAdded, failed)}
-    >
-      <look.icon size={12} aria-hidden />
-      <span className="queued-head-label">{look.button}</span>
-    </button>
+      onClick={() => void c.run({ op: "add_action", action, after: null }).then((ok) => ok && open())}
+    />
   );
 }
 
 /** 送信待ちをすべて消す（確かめてから） */
 function QueuedRemoveAllButton({ count }: { count: number }) {
-  const { chatId } = useChatScreen();
+  const { c } = useQueueActions();
   return (
-    <button
-      type="button"
-      className="btn queued-head-btn queued-remove"
-      data-size="sm"
-      data-look="outline"
+    <QueueHeadButton
+      icon={Trash2}
+      label="すべて消す"
+      look="outline"
+      className="queued-remove"
       aria-label="すべて消す"
       title={`送信待ちの ${count} 件をすべて消す（確かめてから）`}
       onClick={() =>
@@ -139,12 +120,9 @@ function QueuedRemoveAllButton({ count }: { count: number }) {
           confirmLabel: "すべて消す",
           danger: true,
         }).then(async (ok) => {
-          if (ok) await api.clearQueued(chatId).catch(failed);
+          if (ok) await c.run({ op: "clear" });
         })
       }
-    >
-      <Trash2 size={12} aria-hidden />
-      <span className="queued-head-label">すべて消す</span>
-    </button>
+    />
   );
 }

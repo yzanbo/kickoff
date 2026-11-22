@@ -20,9 +20,16 @@ function parseAttachments(value: unknown): readonly Attachment[] | undefined {
   return value.filter(isStoredAttachment);
 }
 
+/** 前の保存の名前（tell / queue）も同じ扱いとして読む */
+const LEGACY_WHEN: Readonly<Record<string, "now" | "later">> = { tell: "now", queue: "later" };
+function sendWhen() {
+  const shape = choice(["later", "now"], "now");
+  return { ...shape, decode: (raw: string) => shape.decode(raw) ?? LEGACY_WHEN[raw] };
+}
+
 export const storage = defineSettings("composer", {
-  /** 作業中・送信待ちがあるときに送った指示の扱い（queue = あとで（送信待ちに足す）/ tell = いま（止めずに伝える）） */
-  queueMode: choice(["queue", "tell"], "tell"),
+  /** 作業中・送信待ちがあるときに送った指示の扱い（コアの when と同じ名前。later = あとで（送信待ちに足す）/ now = いま（止めずに伝える）） */
+  queueMode: sendWhen(),
   /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
   draft: family(text(), { ids: true }),
   /** チャットごとの、入力欄に添付して送る前のもの（アップロード済みの添付。外した・送った・チャットを削除したら消す。形の合わないものは捨てる） */

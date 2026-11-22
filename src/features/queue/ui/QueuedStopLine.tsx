@@ -1,10 +1,12 @@
-import { ArrowDown, ArrowUp, GripVertical, OctagonPause, X } from "lucide-react";
-import type { DragEvent } from "react";
+import { GripVertical, OctagonPause, X } from "lucide-react";
+import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { useQueueActions } from "./queueContext";
+import { MoveButtons, MoveMenuItems } from "./QueueMoves";
 
 /**
  * 一時停止の印（送信待ちの指示とは別の行）。送信待ちの行と同じ扱いで動かせる:
@@ -13,40 +15,30 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
  */
 export function QueuedStopLine({
   at,
-  count,
-  dragging,
-  dropMark,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
-  onMove,
-  onRemove,
+  nth,
+  here,
 }: {
   /** 線の位置（0 = 1 件目の上、n = n 件目のあと） */
   at: number;
-  /** 送信待ちの件数（いちばん下の位置） */
-  count: number;
-  dragging: boolean;
-  /** 指示をこの線のすぐ上・下に落とすときの、落とす位置の線 */
-  dropMark?: "before" | "after";
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDragOver: (e: DragEvent<HTMLDivElement>) => void;
-  onDrop: (e: DragEvent<HTMLDivElement>) => void;
-  /** 線を位置 to へ動かす */
-  onMove: (to: number) => void;
-  onRemove: () => void;
+  /** 同じ位置に重なった線の何本目か・何本あるか（1 本ずつ動かす・外す。落とす位置の線は重なりのいちばん上の上・いちばん下の下に出す） */
+  nth: number;
+  here: number;
 }) {
+  const { c, view, dnd } = useQueueActions();
+  const count = view.messages.length;
+  const mark = dnd.stopMark(at);
+  const dropMark = (mark === "before" && nth === 0) || (mark === "after" && nth === here - 1) ? mark : undefined;
+  const onMove = (to: number) => void c.run({ op: "set_stops", stops: moveStopOnce(view.stops, at, to) });
+  const onRemove = () => void c.run({ op: "set_stops", stops: removeStopOnce(view.stops, at) });
   const menu = useContextMenu();
   return (
     <>
       <div
         className="queued-stop-line"
-        {...dragAttrs(dropMark, { source: dragging })}
+        {...dragAttrs(dropMark, { source: dnd.drag?.stop === at && dnd.drag.stopNth === nth })}
         role="note"
-        onDragOver={onDragOver}
-        onDrop={onDrop}
+        onDragOver={(e) => dnd.overStop(e, at)}
+        onDrop={dnd.drop}
         onContextMenu={menu.open}
       >
         <span
@@ -57,9 +49,9 @@ export function QueuedStopLine({
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", "ここで一時停止");
             startDragGhost(e, { source: e.currentTarget.closest(".queued-stop-line") });
-            onDragStart();
+            dnd.startStop(at, nth);
           }}
-          onDragEnd={onDragEnd}
+          onDragEnd={dnd.end}
         >
           <GripVertical size={13} aria-hidden />
         </span>
@@ -70,10 +62,7 @@ export function QueuedStopLine({
         </span>
         <span className="queued-stop-rule" aria-hidden />
         {/* 行と同じ 2 つのまとまり・同じ列に置く: 並べ替え（↑↓）｜ 操作（書き直す・送るの位置は空けて、外すを消すの列に） */}
-        <span className="queued-row-moves">
-          <IconButton icon={ArrowUp} label="一時停止を 1 つ上へ移動" iconSize={13} disabled={at === 0} onClick={() => onMove(at - 1)} />
-          <IconButton icon={ArrowDown} label="一時停止を 1 つ下へ移動" iconSize={13} disabled={at >= count} onClick={() => onMove(at + 1)} />
-        </span>
+        <MoveButtons at={at} last={count} what="一時停止を " onMove={onMove} />
         <span className="queued-row-actions">
           <span className="queued-stop-space" aria-hidden />
           <span className="queued-stop-space" aria-hidden />
@@ -82,10 +71,7 @@ export function QueuedStopLine({
       </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="一時停止の操作" onClose={menu.close}>
-          {at > 0 && <MenuItem onSelect={() => onMove(0)}>いちばん上へ移動</MenuItem>}
-          {at > 0 && <MenuItem onSelect={() => onMove(at - 1)}>1 つ上へ移動</MenuItem>}
-          {at < count && <MenuItem onSelect={() => onMove(at + 1)}>1 つ下へ移動</MenuItem>}
-          {at < count && <MenuItem onSelect={() => onMove(count)}>いちばん下へ移動</MenuItem>}
+          <MoveMenuItems at={at} last={count} onMove={onMove} />
           {count > 0 && <div className="menu-separator" role="separator" />}
           <MenuItem danger onSelect={onRemove}>
             この一時停止を外す

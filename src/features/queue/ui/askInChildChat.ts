@@ -1,11 +1,11 @@
 // 送信待ちの指示を、子チャットで聞く（右クリックのメニュー。会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の「子チャットを作ったとき」で開く）
 import type { QueuedMessage } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { childChatsApi } from "@/features/childChats/ui/index";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { useChatScreen } from "@/features/chat/ui";
 import { openCreatedChild } from "@/features/chat/ui";
 import { seedOf } from "./askInNewChat";
+import type { QueueController } from "./queueController";
 
 /**
  * 送信待ちの指示を子チャットで聞く操作（enabled でなければ undefined で、メニューに出さない。ノートのチャット・アーカイブ済みでは作れない）。
@@ -14,16 +14,17 @@ import { seedOf } from "./askInNewChat";
  * （親の選択を引き継がない。発言の右クリックの「新しい子チャットで聞く」・チャット欄の「新規の子チャットに送る」と同じ）。
  * remove: 送信待ちから外す（子チャットへ移す）/ 外さない（このチャットでも、このあと送る）
  */
-export function useAskInChildChat(queue: QueuedMessage[], enabled: boolean) {
+export function useAskInChildChat(queue: QueuedMessage[], enabled: boolean, c: QueueController) {
   const { chatId } = useChatScreen();
   if (!enabled) return undefined;
   return (ids: string[], remove: boolean, inherit: boolean) => {
     const seed = seedOf(queue, ids);
+    const fail = reportFailure(remove ? "子チャットに移せませんでした" : "子チャットで開けませんでした");
     const run = async () => {
       const child = await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId }, body: { ...seed, quote: null, inherit, event_id: null } });
       openCreatedChild(child);
-      if (remove) await (ids.length === 1 ? api.removeQueued(chatId, ids[0]) : api.removeQueuedMany(chatId, ids));
+      if (remove) await c.run({ op: "remove", ids }, fail);
     };
-    void run().catch(reportFailure(remove ? "子チャットに移せませんでした" : "子チャットで開けませんでした"));
+    void run().catch(fail);
   };
 }

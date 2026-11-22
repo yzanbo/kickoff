@@ -9,6 +9,7 @@ export { composerPills, composerSlots, loadComposerSlots, type ComposerBandProps
 export { MessageField, useMessageField } from "./MessageField";
 export { PLAIN_SUBMIT } from "./messageFieldModel";
 export { useDraftFiles } from "./useDraftFiles";
+export { useEditHold } from "./useEditHold";
 export { AttachButton } from "./AttachButton";
 export { PendingFileChips } from "./PendingFileChips";
 export { DraftTextWatch } from "./DraftTextWatch";

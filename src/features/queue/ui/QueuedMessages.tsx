@@ -1,33 +1,26 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizontal } from "lucide-react";
-import { Fragment, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatLive, QueueState } from "@shared/chat/chatLive";
-import { isQueueAction } from "@shared/chat/queueActions";
-import { api } from "@/foundation/ui/api";
-import { QueuedHeadTools } from "./QueuedHeadActions";
 import { RestartResumeBanner } from "@/features/queue/ui/restartResume/RestartResumeBanner";
-import { QueuedSelectionActions, removeSelected } from "./QueuedSelectionActions";
 import { QueuedEditor } from "./QueuedEditor";
+import { QueuedHead } from "./QueuedHead";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
 import { QueuedPauseNotice } from "./QueuedPauseNotice";
-import { useQueueDrag } from "./useQueueDrag";
-import { useQueuePrediction } from "./useQueuePrediction";
-import { useSendingQueued } from "./useSendingQueued";
 import { QueuedSendingRow } from "./QueuedSendingRow";
+import { QueueActionsContext, type QueueActions } from "./queueContext";
+import { queuedListItems, queuedShape } from "./queuedListModel";
+import { useQueue } from "./useQueue";
+import { useQueueDrag } from "./useQueueDrag";
 import { useQueuedEdits } from "./useQueuedEdits";
 import { useQueueSelection } from "./useQueueSelection";
 import { useAskInNewChat } from "./askInNewChat";
 import { useAskInChildChat } from "./askInChildChat";
-import { nextQueuedText, queuedHint } from "./queuedHint";
-import { queueFailed as failed } from "./queueFailed";
 import { useChatScreen } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
-import { dragAttrs } from "@/foundation/ui/kit/drag/dragAttrs";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
-import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
 const MIN_LIST_HEIGHT = 36;
@@ -69,12 +62,9 @@ export function QueuedMessages({
   sentShown: string;
 }) {
   const { chatId } = useChatScreen();
-  const { paused, waiting_edit: waitingEdit } = queue;
-  // 並べ替えは、落とした形をサーバーの応答より先に出す（出す並びは先回りのものになることがある）
-  const view = useQueuePrediction(queue.messages, queue.stops);
+  // 並べ替え・印の線は、口がコアの応答より先に出す（出す並びは先回りのものになることがある）。送った指示は、チャット欄に出るまで「送信中」で残す
+  const { c, view, sending } = useQueue(chatId, queue, sentShown);
   const { messages, stops } = view;
-  // 送った指示は、チャット欄の発言か預かりの吹き出しに出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
-  const sending = useSendingQueued(chatId, queue.messages, sentShown);
   const [collapsed, setCollapsed] = useSetting(storage.settings.collapsed);
   // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）
   const [compact] = useSetting(COMPOSER_COMPACT);
@@ -96,208 +86,83 @@ export function QueuedMessages({
     pane: listRef,
     onChange: () => setExpanded(false),
   });
-  const height = resize.size;
-  const resizing = resize.resizing;
   // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す。Esc でやめる）
-  const { selected, selectRow, clearSelection } = useQueueSelection(messages);
+  const selection = useQueueSelection(messages);
   // ドラッグ: 指示の並べ替えと、一時停止の印の移動
-  const dnd = useQueueDrag(chatId, messages, stops, failed, view.predict);
-  // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
-  const ask = useAskInNewChat(messages);
-  // 右クリックの「子チャットで開く / 移す」（会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の開き方で開く）
-  const askChild = useAskInChildChat(messages, childChats);
+  const dnd = useQueueDrag(messages, stops, c);
+  // 右クリックの「新しいチャットで聞く / 移す」（パネルの外では出さない）・「子チャットで開く / 移す」（会話を引き継ぐ / 新しく始めるを選ぶ）
+  const ask = { newChat: useAskInNewChat(messages, c), child: useAskInChildChat(messages, childChats, c) };
   // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
-  const edit = useQueuedEdits(chatId, messages, listRef, failed);
-  const editSelected = () => {
-    edit.start(messages.filter((q) => selected.includes(q.id)));
-    clearSelection();
-  };
+  const edit = useQueuedEdits(chatId, messages, listRef, c);
   // 一覧の高さが上限を超えたか（超えたときだけ「すべて表示」を出す。すべて出している間は「縮める」を出したまま）
   useLayoutEffect(() => {
     const el = listRef.current;
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
-  }, [messages, edit.edits, collapsed, expanded, height]);
+  }, [messages, edit.edits, collapsed, expanded, resize.size]);
+  const shape = queuedShape(messages.length, sending.length, busy, stops);
   // 空のときは出さない。いまの作業が終わったら止める印だけがあれば（質問として送った）、その予定の 1 行だけ出す
-  if (messages.length === 0 && sending.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} compact={compact} /> : null;
-  // 新しいチャット・子チャットで聞く指示（選んでいる行なら選んだものすべて）。挟む行（会話の圧縮・コンテキストの消去）は持っていかない（送信待ちに残す）
-  const askWith = (run: (ids: string[], remove: boolean) => void, id: string, remove: boolean) => {
-    const ids = selected.includes(id) && selected.length > 1 ? selected : [id];
-    const asked = ids.filter((x) => {
-      const q = messages.find((m) => m.id === x);
-      return q && !isQueueAction(q);
-    });
-    if (asked.length > 0) run(asked, remove);
-    clearSelection();
-  };
-  // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
-  const stopIndex = stops.length > 0 ? stops[0] : -1;
-  const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(chatId, id, !stops.includes(i + 1)).catch(failed);
-  // 指示のすぐ前（位置 i）の印を付け外しする（1 件目の上にも置ける）
-  const toggleStopBefore = (i: number) =>
-    void api.setQueueStops(chatId, stops.includes(i) ? stops.filter((x) => x !== i) : [...stops, i].sort((a, b) => a - b)).catch(failed);
-  /**
-   * 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す）。同じ位置に何本もあれば本数ぶん重ねて出し、1 本ずつ動かす・外す
-   * （見出しの「一時停止」を続けて押すと、いちばん上に重なる）。落とす位置の線は、重なりのいちばん上の線の上・いちばん下の線の下に出す
-   */
-  const stopLine = (k: number) => {
-    const here = stops.filter((x) => x === k).length;
-    const mark = dnd.stopMark(k);
-    return Array.from({ length: here }, (_, n) => (
-      <QueuedStopLine
-        key={`stop-${k}-${n}`}
-        at={k}
-        count={messages.length}
-        dragging={dnd.drag?.stop === k && dnd.drag.stopNth === n}
-        onDragStart={() => dnd.startStop(k, n)}
-        onDragEnd={dnd.end}
-        dropMark={(mark === "before" && n === 0) || (mark === "after" && n === here - 1) ? mark : undefined}
-        onDragOver={(e) => dnd.overStop(e, k)}
-        onDrop={dnd.drop}
-        onMove={(to) => void api.setQueueStops(chatId, moveStopOnce(stops, k, to)).catch(failed)}
-        onRemove={() => void api.setQueueStops(chatId, removeStopOnce(stops, k)).catch(failed)}
-      />
-    ));
-  };
+  if (shape !== "list") return shape === "pause" ? <QueuedPauseNotice compact={compact} onCancel={() => void c.run({ op: "set_stops", stops: [] })} /> : null;
+  const actions: QueueActions = { chatId, c, view, selection, edit, dnd, open: () => setCollapsed(false), ask };
   // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
   // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
-  const readyForEdit = !collapsed && messages.length > 0 && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;
-  const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit, held: resume !== null });
-  // 一時停止の印があって、案内がその止める位置（作業中）か、線で待っていること（作業が終わって 1 件目の上の線）を伝えているとき
-  // （queuedHint の印の分かれ道と同じ条件）。止める印と同じ色・同じアイコンで、畳んでいてもひと目で分かるようにする
-  const stopHint = !paused && (busy ? stopIndex >= 0 : stopIndex === 0) && !readyForEdit && resume === null;
-  // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
-  const next = collapsed && messages.length > 0 ? nextQueuedText(messages[0]) : "";
+  const readyForEdit = !collapsed && messages.length > 0 && Boolean(edit.edits[messages[0].id]) && queue.waiting_edit && !busy && !view.paused;
 
   return (
-    <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing", compact && "compact")} aria-label="送信待ちの指示">
-      {!collapsed && (
-        <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />
-      )}
-      {/* 起動したときの再開の確かめで送信待ちを聞いている間は、畳んでいても上に帯を出し、その場で決められるようにする */}
-      {resume && <RestartResumeBanner chatId={chatId} resume={resume} />}
-      {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の一時停止よりも上） */}
-      <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>
-        <div className="queued-head-main">
-        <button
-          type="button"
-          className="queued-head small muted"
-          aria-expanded={!collapsed}
-          title={`${collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}${hint ? `（${hint}）` : ""}`}
-          onClick={() => {
+    <QueueActionsContext.Provider value={actions}>
+      <div className={cx("queued-messages", collapsed && "collapsed", resize.resizing && "resizing", compact && "compact")} aria-label="送信待ちの指示">
+        {!collapsed && <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />}
+        {/* 起動したときの再開の確かめで送信待ちを聞いている間は、畳んでいても上に帯を出し、その場で決められるようにする */}
+        {resume && <RestartResumeBanner chatId={chatId} resume={resume} />}
+        <QueuedHead
+          busy={busy}
+          collapsed={collapsed}
+          onToggle={() => {
             // たたむときは書き直しをやめ、書いている途中の文も捨てる（見えないところで書き直し中のまま、次の指示を止め続けないため）
             if (!collapsed) edit.discardAll();
             setCollapsed(!collapsed);
           }}
-        >
-          <ChevronRight size={13} className="queued-chevron" aria-hidden />
-          <span className="queued-count">送信待ち {messages.length} 件</span>
-          {/* 畳んでいる間も、送った指示がチャット欄に出るまでは送信中と分かるようにする */}
-          {collapsed && sending.length > 0 && <span className="queued-sending-label">送信中…</span>}
-          {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && (
-              <span className={cx("queued-hint", stopHint && "stop", readyForEdit && "ready")}>
-                {stopHint && <OctagonPause size={12} aria-hidden />}
-                {readyForEdit && <SendHorizontal size={12} aria-hidden />}
-                {hint}
-              </span>
-            )}
-          {next && <span className="queued-next">次: {next}</span>}
-        </button>
-        {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる（一覧の見え方の操作なので、送る・消すの並びと分けて件数の隣に置く） */}
-        {!collapsed && (overflowing || expanded) && (
-          <button
-            type="button"
-            className="btn queued-head-btn" data-size="sm"
-            aria-label={expanded ? "縮めて表示" : "すべて表示"}
-            aria-expanded={expanded}
-            title={expanded ? "決めた高さに縮め、中でスクロールさせる" : `送信待ちの ${messages.length} 件をすべて表示する（中でスクロールさせない）`}
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
-            <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
-          </button>
+          expanded={expanded}
+          onExpand={() => setExpanded(!expanded)}
+          overflowing={overflowing}
+          sending={sending.length}
+          readyForEdit={readyForEdit}
+          held={resume !== null}
+        />
+        {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
+        {!collapsed && (
+          <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(resize.size, edit.editHeight) }}>
+            {/* 送った指示（チャット欄に出たら消える。操作はない） */}
+            {sending.map((m) => (
+              <QueuedSendingRow key={`sending-${m.id}`} message={m} withGrip={messages.length > 1} />
+            ))}
+            {/* 一時停止の線（指示とは別の行。1 件目の上・すべて送ったあとにも置ける。同じ位置に何本もあれば本数ぶん重ねる）と行・書き直す欄 */}
+            {queuedListItems(messages, stops, (id) => Boolean(edit.edits[id])).map((item) => {
+              if (item.kind === "stop") return <QueuedStopLine key={`stop-${item.at}-${item.nth}`} at={item.at} nth={item.nth} here={item.here} />;
+              const { message: m, index: i } = item;
+              const draft = edit.edits[m.id];
+              return draft ? (
+                <QueuedEditor
+                  key={m.id}
+                  id={m.id}
+                  index={i}
+                  withGrip={messages.length > 1}
+                  busy={busy}
+                  ready={i === 0 && readyForEdit}
+                  text={draft.text}
+                  attachments={draft.attachments}
+                  onChange={(text) => edit.update(m.id, { text })}
+                  onAttachmentsChange={(attachments) => edit.update(m.id, { attachments })}
+                  onSave={(attachments) => edit.save(m.id, attachments, false)}
+                  onSaveAndSend={(attachments) => edit.save(m.id, attachments, true)}
+                  onCancel={() => edit.cancel(m.id)}
+                />
+              ) : (
+                <QueuedRow key={m.id} message={m} index={i} count={messages.length} busy={busy} selected={selection.selected.includes(m.id)} stopBefore={stops.includes(i)} stopAfter={stops.includes(i + 1)} />
+              );
+            })}
+          </div>
         )}
-        </div>
-        {/* ここから右が操作（選んでいるときは、選んだものへの操作に入れ替える）。畳んでいる間は一覧と一緒にしまい、1 行だけにする */}
-        {!collapsed &&
-          (selected.length > 0 ? (
-            <QueuedSelectionActions selected={selected} busy={busy} onClearSelection={clearSelection} onEditSelected={editSelected} />
-          ) : (
-            <QueuedHeadTools count={messages.length} busy={busy} paused={paused} stops={stops} onAdded={() => setCollapsed(false)} />
-          ))}
       </div>
-      {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
-      {!collapsed && (
-        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, edit.editHeight) }}>
-          {/* 送った指示（チャット欄に出たら消える。操作はない） */}
-          {sending.map((m) => (
-            <QueuedSendingRow key={`sending-${m.id}`} message={m} withGrip={messages.length > 1} />
-          ))}
-          {messages.map((m, i) => (
-            <Fragment key={m.id}>
-            {/* 一時停止: この行の前で止める印（1 件目の上にも置ける） */}
-            {stopLine(i)}
-            {edit.edits[m.id] ? (
-              <QueuedEditor
-                id={m.id}
-                index={i}
-                withGrip={messages.length > 1}
-                busy={busy}
-                ready={i === 0 && readyForEdit}
-                text={edit.edits[m.id].text}
-                attachments={edit.edits[m.id].attachments}
-                onChange={(text) => edit.update(m.id, { text })}
-                onAttachmentsChange={(attachments) => edit.update(m.id, { attachments })}
-                onSave={(attachments) => edit.save(m.id, attachments, false)}
-                onSaveAndSend={(attachments) => edit.save(m.id, attachments, true)}
-                onCancel={() => edit.cancel(m.id)}
-              />
-            ) : (
-              <QueuedRow
-                message={m}
-                index={i}
-                count={messages.length}
-                busy={busy}
-                selectedCount={selected.includes(m.id) ? selected.length : 0}
-                dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
-                isStop={stops.includes(i + 1)}
-                isStopBefore={stops.includes(i)}
-                onAsk={
-                  ask || askChild
-                    ? { newChat: ask && ((remove) => askWith(ask, m.id, remove)), child: askChild && ((remove, inherit) => askWith((ids, r) => askChild(ids, r, inherit), m.id, remove)) }
-                    : undefined
-                }
-                onSelect={(e) => selectRow(e, m.id)}
-                groupActions={{
-                  edit: editSelected,
-                  sendTogether: () => void api.sendAllQueued(chatId, selected).then(clearSelection, failed),
-                  merge: () => void api.mergeQueued(chatId, selected).then(clearSelection, failed),
-                  moveTo: (to) => void api.moveQueuedMany(chatId, selected, to).catch(failed),
-                  remove: () => removeSelected(chatId, selected, clearSelection),
-                }}
-                className={cx("queued-row", selected.includes(m.id) && "selected")}
-                // 入る位置の線（動かしても変わらないところには出さない）
-                dragState={dragAttrs(dnd.rowMark(i), { source: dnd.drag?.id === m.id || dnd.drag?.ids?.includes(m.id) })}
-                actions={{
-                  edit: () => edit.start([m]),
-                  toggleStop: () => toggleStop(m.id, i),
-                  toggleStopBefore: () => toggleStopBefore(i),
-                  actionAfter: (action) => void api.queueAction(chatId, action, m.id).then(() => setCollapsed(false), failed),
-                  move: (to) => void api.moveQueued(chatId, m.id, to).catch(failed),
-                  sendNow: () => void api.sendQueuedNow(chatId, m.id).catch(failed),
-                  remove: () => void api.removeQueued(chatId, m.id).catch(failed),
-                }}
-                onDragStart={() => dnd.startMessage(m.id, selected.includes(m.id) && selected.length > 1 ? selected : undefined)}
-                onDragEnd={dnd.end}
-                onDragOver={(e) => dnd.overRow(e, i)}
-                onDrop={dnd.drop}
-              />
-            )}
-            </Fragment>
-          ))}
-          {/* すべて送ったあとで止める印（その作業のあいだに来た指示の前で止める） */}
-          {stopLine(messages.length)}
-        </div>
-      )}
-    </div>
+    </QueueActionsContext.Provider>
   );
 }

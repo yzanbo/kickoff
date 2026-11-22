@@ -6,11 +6,11 @@ import type { SettingValue } from "@/foundation/ui/storage";
 import type { storage } from "./storage";
 import type { SubmitHow } from "./messageFieldModel";
 
-/** 作業中に送るときの扱い（tell = 伝える（止めずに、いまのやり取りに足す）/ queue = ためておく（終わったら送る）） */
-export type QueueSendMode = SettingValue<typeof storage.settings.queueMode>;
+/** 作業中に送るときの扱い（コアの送る口の when と同じ名前。now = 伝える（止めずに、いまのやり取りに足す）/ later = ためておく（終わったら送る）） */
+export type SendWhen = SettingValue<typeof storage.settings.queueMode>;
 
 /** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり。切り替えの値は変えない） */
-export const sendModeOf = (how: SubmitHow): QueueSendMode | undefined => (how.meta ? (how.shift ? "queue" : "tell") : undefined);
+export const sendModeOf = (how: SubmitHow): SendWhen | undefined => (how.meta ? (how.shift ? "later" : "now") : undefined);
 
 /** 1 回目の Esc のあと、もう一度押すと中断する、と待つ時間 */
 const STOP_CONFIRM_MS = 2000;

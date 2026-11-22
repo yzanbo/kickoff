@@ -1,6 +1,6 @@
 import { History } from "lucide-react";
 import type { RestartResumeAction, RestartResumeState } from "@shared/chat/chatLive";
-import { api } from "@/foundation/ui/api";
+import { queueApi } from "@/features/queue/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";
 import { restartResumesStore } from "./restartResumes";
@@ -15,7 +15,7 @@ import { Notice } from "@/foundation/ui/kit/Notice";
 export function RestartResumeBanner({ chatId, resume, standalone = false }: { chatId: number; resume: RestartResumeState; standalone?: boolean }) {
   const action = useAction<RestartResumeAction>();
   const answer = (a: RestartResumeAction) =>
-    void action.run(a, async () => restartResumesStore.set(await api.resolveRestartResumes([{ chat_id: chatId, action: a }])));
+    void action.run(a, async () => restartResumesStore.set(await queueApi("POST /api/restart-resumes", { body: { decisions: [{ chat_id: chatId, action: a }] } })));
   const primary = defaultResumeChoice(resume);
   return (
     <Notice look={standalone ? "boxed" : "band"} className={cx("restart-resume-banner", standalone && "standalone")} role="status">

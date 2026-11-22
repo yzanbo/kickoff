@@ -17,7 +17,7 @@ import { useDraftFiles } from "./useDraftFiles";
 import { memoryDraft, useDraftText, type ComposerDraft } from "./composerDraft";
 import { ComposerInsertProvider, useComposerField } from "./composerFields";
 import { usePromptHistory } from "./usePromptHistory";
-import { sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
+import { sendModeOf, useComposerKeys, type SendWhen } from "./composerKeys";
 import { MessageField, useMessageField } from "./MessageField";
 import { PLAIN_SUBMIT, type SubmitHow } from "./messageFieldModel";
 import { ComposerActions } from "./ComposerActions";
@@ -141,7 +141,7 @@ export function Composer({ place, draft, send, options, history, voiceMode, head
 
   // ⌘ / ⌘⇧ を押している間だけ、その送り方のボタンを光らせる（選んでいる送り方そのものは変えない。キーを離した・ピントが枠の外へ出たら消す）
   const held = field.held;
-  const heldMode: QueueSendMode | undefined = held.held === "meta-shift" ? "queue" : held.held === "meta" ? "tell" : undefined;
+  const heldMode: SendWhen | undefined = held.held === "meta-shift" ? "later" : held.held === "meta" ? "now" : undefined;
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
   const keys = useComposerKeys({ busy: send.busy, onStop: send.stopping ? ignoreStop : send.stop, options });
   // 下の行を 1 行に収める段階（入らなくなったらアイコンだけにする。中身の幅が変わるものが変わったら測り直す）

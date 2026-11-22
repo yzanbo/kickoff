@@ -1,43 +1,45 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { relayMessage } from "@shared/chat/prompts";
-import { nextQueuedText, queuedHint, reservedAction } from "./queuedHint";
+import { isStopHint, nextQueuedText, queuedHint, reservedRow } from "./queuedHint";
 import type { QueuedMessage } from "@shared/chat/types";
 import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
-const base = { paused: false, busy: true, collapsed: false, stopIndex: -1 };
+const noStops = { paused: false, stops: [] };
+const line0 = { paused: false, stops: [0] };
+const base = { busy: true, collapsed: false };
 
 test("queuedHint: 次の指示の書き直しが終わるのを待っているときだけ、送信の準備ができたと伝える", () => {
-  assert.equal(queuedHint({ ...base, busy: false, readyForEdit: true }), "次の指示の送信準備ができています。書き直しを保存すると送ります");
+  assert.equal(queuedHint(noStops, { ...base, busy: false, readyForEdit: true }), "次の指示の送信準備ができています。書き直しを保存すると送ります");
   // 作業中・送れなかったなど、書き直しを待っているのでなければ、いつもの案内
-  assert.equal(queuedHint(base), "終わったら順に送ります");
-  assert.equal(queuedHint({ ...base, busy: false }), "自動で送れませんでした。行の「すぐ送る」で送れます");
+  assert.equal(queuedHint(noStops, base), "終わったら順に送ります");
+  assert.equal(queuedHint(noStops, { ...base, busy: false }), "自動で送れませんでした。行の「すぐ送る」で送れます");
 });
 
 test("queuedHint: 作業が終わって 1 件目の上の線で待っているときは、止めているでも送れなかったでもなく、線を消すと続くと伝える", () => {
-  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0 }), "一時停止の線まで送りました。線を消すと続きを送ります");
-  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0, collapsed: true }), "一時停止中");
+  assert.equal(queuedHint(line0, { ...base, busy: false }), "一時停止の線まで送りました。線を消すと続きを送ります");
+  assert.equal(queuedHint(line0, { ...base, busy: false, collapsed: true }), "一時停止中");
   // 止めておくにしているときは、そちらを伝える
-  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0, paused: true }), "止めています。行の「すぐ送る」で 1 件ずつ送れます");
+  assert.equal(queuedHint({ paused: true, stops: [0] }, { ...base, busy: false }), "止めています。行の「すぐ送る」で 1 件ずつ送れます");
 });
 
-test("reservedAction: いちばん上の圧縮・消去の行で、その上で止めていないときだけ予約とみなす。畳んだ 1 行の「次:」は「会話を圧縮」", () => {
+test("reservedRow: コアが予約とした（reserved）ときだけ、いちばん上の行。畳んだ 1 行の「次:」は挟む行の名前", () => {
   const row = (text: string, action?: "compact" | "clear"): QueuedMessage => ({ id: text, text, options: {}, attachments: [], created_at: "", ...(action ? { [action]: true } : {}) });
   const compact = row("", "compact");
-  const queue = { ...EMPTY_QUEUE_STATE, messages: [compact, row("2")], paused: false, stops: [], waiting_edit: false };
-  assert.equal(reservedAction(queue), compact);
-  assert.equal(reservedAction({ ...queue, paused: true }), null);
-  assert.equal(reservedAction({ ...queue, stops: [0] }), null);
-  assert.equal(reservedAction({ ...queue, messages: [row("2"), compact] }), null);
-  const clear = row("c", "clear");
-  assert.equal(reservedAction({ ...queue, messages: [clear, compact] }), clear);
+  const queue = { ...EMPTY_QUEUE_STATE, messages: [compact, row("2")] };
+  assert.equal(reservedRow({ ...queue, reserved: "compact" }), compact);
+  assert.equal(reservedRow(queue), null);
   assert.equal(nextQueuedText(compact), "会話を圧縮");
+  assert.equal(nextQueuedText(row("c", "clear")), "コンテキストを消去");
 });
 
-test("reservedAction: いちばん上がコンテキストの消去の行なら、消去の予約。畳んだ 1 行の「次:」は「コンテキストを消去」", () => {
-  const clear: QueuedMessage = { id: "c", text: "", options: {}, attachments: [], created_at: "", clear: true };
-  assert.equal(reservedAction({ ...EMPTY_QUEUE_STATE, messages: [clear], paused: false, stops: [], waiting_edit: false }), clear);
-  assert.equal(nextQueuedText(clear), "コンテキストを消去");
+test("isStopHint: 作業中は印があれば、作業が終わったら 1 件目の上の線で待っているときだけ（止めている・書き直し・確かめの間は出さない）", () => {
+  assert.equal(isStopHint({ paused: false, stops: [2] }, { busy: true }), true);
+  assert.equal(isStopHint({ paused: false, stops: [2] }, { busy: false }), false);
+  assert.equal(isStopHint(line0, { busy: false }), true);
+  assert.equal(isStopHint({ paused: true, stops: [0] }, { busy: true }), false);
+  assert.equal(isStopHint(line0, { busy: false, readyForEdit: true }), false);
+  assert.equal(isStopHint(line0, { busy: false, held: true }), false);
 });
 
 test("nextQueuedText: サブエージェントに「あとで」伝える指示は、前置きを隠して宛先と本文の初めの行", () => {
@@ -46,6 +48,6 @@ test("nextQueuedText: サブエージェントに「あとで」伝える指示�
 });
 
 test("送信待ちの案内: 起動したときの確かめを待っている間は、決めるまで送らないことをほかより先に、短く伝える（詳しくは上の帯）", () => {
-  assert.equal(queuedHint({ paused: false, busy: false, collapsed: true, stopIndex: -1, held: true }), "決めるまで送りません");
-  assert.equal(queuedHint({ paused: false, busy: false, collapsed: false, stopIndex: 0, held: true }), "決めるまで送りません");
+  assert.equal(queuedHint(noStops, { busy: false, collapsed: true, held: true }), "決めるまで送りません");
+  assert.equal(queuedHint(line0, { busy: false, collapsed: false, held: true }), "決めるまで送りません");
 });

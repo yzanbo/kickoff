@@ -39,7 +39,7 @@ export function ContextMeter({
   /** 圧縮前指示・圧縮後指示を書くプロジェクト */
   projectId: number;
   compacting: CompactingState | null;
-  /** 作業中に予約した圧縮・コンテキストの消去（送信待ちのいちばん上の行。queuedHint の reservedAction。なければ null） */
+  /** 作業中に予約した圧縮・コンテキストの消去（送信待ちのいちばん上の行。コアの予約 reserved から。なければ null） */
   reserved: QueuedMessage | null;
   /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に伝えた（その作業が終わったら圧縮する） */
   afterTurn: boolean;

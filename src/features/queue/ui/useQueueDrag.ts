@@ -1,7 +1,7 @@
 import { useState, type DragEvent } from "react";
 import type { QueuedMessage } from "@shared/chat/types";
 import { moveStopOnce, moveToSlot } from "@shared/chat/queueStops";
-import { api } from "@/foundation/ui/api";
+import type { QueueController } from "./queueController";
 
 /**
  * 送信待ちのドラッグ: 指示の並べ替え（id。選んだ行をつかんだら ids でまとめて）と、
@@ -22,12 +22,10 @@ type DropMark = { kind: "row" | "stop"; index: number; side: "before" | "after" 
 
 /** 送信待ちの行・印の線のドラッグ（並べ替え・印の移動）と、落とす位置の線を出すか */
 export function useQueueDrag(
-  chatId: number,
   queue: QueuedMessage[],
   stops: number[],
-  failed: (e: unknown) => void,
-  /** 落としたあとの並びを、サーバーの応答を待たずに出す（null でやめる。useQueuePrediction） */
-  predict: (next: { list: QueuedMessage[]; stops: number[] } | null) => void,
+  /** 送る口（並べ替え・印の線は応答を待たずに落とした形を出し、送れなければ戻して知らせる） */
+  c: QueueController,
 ) {
   const [drag, setDrag] = useState<QueueDrag>();
   /** 落とす位置を at（印の線があればその上か下）にする */
@@ -65,21 +63,14 @@ export function useQueueDrag(
     const d = drag;
     setDrag(undefined);
     if (!d || d.at === undefined || !changes(d)) return;
-    // 落とした形をその場で出す（応答を待つと、並べ替える前に 1 件目が送られて消えたように見える）。送れなければ元に戻す
-    const undo = (e: unknown) => {
-      predict(null);
-      failed(e);
-    };
+    // 落とした形は口がその場で出す（応答を待つと、並べ替える前に 1 件目が送られて消えたように見える）。送れなければ元に戻す
     if (d.stop !== undefined) {
       // 印を 1 本動かす（1 件目の上にも置ける。同じ位置のほかの線は残る）
-      const next = moveStopOnce(stops, d.stop, d.at);
-      predict({ list: queue, stops: next });
-      void api.setQueueStops(chatId, next).catch(undo);
+      void c.run({ op: "set_stops", stops: moveStopOnce(stops, d.stop, d.at) });
       return;
     }
     // 指示を動かす（1 件でも、選んだものをまとめてでも）: 落とした位置の行の前へ。印の線があれば、その上か下か
-    predict(moveToSlot(queue, stops, moving(d), { at: d.at, belowStop: d.below ?? true }));
-    void api.moveQueuedMany(chatId, moving(d), { before: queue[d.at]?.id ?? null, belowStop: d.below ?? true }).catch(undo);
+    void c.run({ op: "move", ids: moving(d), to: { before: queue[d.at]?.id ?? null, below_stop: d.below ?? true } });
   };
   return {
     drag,

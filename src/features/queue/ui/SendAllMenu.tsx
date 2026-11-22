@@ -1,9 +1,8 @@
 import { ChevronDown, ListOrdered, Merge, SendHorizontal } from "lucide-react";
-import { api } from "@/foundation/ui/api";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useChatScreen } from "@/features/chat/ui";
-import { queueFailed as failed } from "./queueFailed";
+import { useQueueActions } from "./queueContext";
+import { QueueHeadButton } from "./QueueHeadButton";
 
 /**
  * 送信待ちの「すべて送る」: 押すと、このチャットへの送り方を 2 つから選ぶ。
@@ -20,28 +19,26 @@ export function SendAllMenu({
   /** 止めている・一時停止の印がある（1 件ずつ送るときは外して最後まで送る） */
   holds: boolean;
 }) {
-  const { chatId } = useChatScreen();
+  const { c } = useQueueActions();
   const menu = useContextMenu({ side: "above", align: "end" });
   return (
     <>
-      <button
-        type="button"
-        className="btn btn-primary queued-head-btn send-all-button"
-        data-size="sm"
+      <QueueHeadButton
+        icon={SendHorizontal}
+        label="すべて送る"
+        tone="primary"
+        className="send-all-button"
         aria-label="すべて送る"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         title={`送信待ちの ${count} 件をすべて送る（まとめて 1 件で送るか、1 件ずつ順に送るかを選ぶ）`}
         onClick={menu.toggle}
       >
-        <SendHorizontal size={12} aria-hidden />
-        {/* 狭いときは文字を隠してアイコンだけにする（読み上げは aria-label） */}
-        <span className="queued-head-label">すべて送る</span>
         <ChevronDown size={12} aria-hidden />
-      </button>
+      </QueueHeadButton>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="送信待ちの送り方" className="send-all-menu" ignore=".send-all-button" onClose={menu.close}>
-          <MenuItem onSelect={() => void api.sendAllQueued(chatId).catch(failed)}>
+          <MenuItem onSelect={() => void c.send({ mode: "all" })}>
             <Merge size={14} aria-hidden />
             <span className="send-all-option">
               <span>まとめて 1 件で送る</span>
@@ -50,7 +47,7 @@ export function SendAllMenu({
               </span>
             </span>
           </MenuItem>
-          <MenuItem onSelect={() => void api.sendQueuedInOrder(chatId).catch(failed)}>
+          <MenuItem onSelect={() => void c.send({ mode: "in_order" })}>
             <ListOrdered size={14} aria-hidden />
             <span className="send-all-option">
               <span>1 件ずつ順に送る</span>

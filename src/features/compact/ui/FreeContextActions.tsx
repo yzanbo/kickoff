@@ -3,6 +3,7 @@ import type { CompactingState } from "@shared/chat/chatLive";
 import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { api } from "@/foundation/ui/api";
+import { chatQueueApi } from "@/features/chat/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { useAction } from "@/foundation/ui/hooks/useAction";
 import { confirm } from "@/foundation/ui/kit/ask";
@@ -99,7 +100,7 @@ export function FreeContextActions({
           className="btn"
           data-size="sm"
           title={`予約を取り消します（送信待ちの「${QUEUE_ACTION_LOOKS[reservedAction].button}」の行を消します）`}
-          onClick={() => void action.run("cancel", () => api.removeQueued(chat.id, reserved.id))}
+          onClick={() => void action.run("cancel", () => chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId: chat.id }, body: { commands: [{ op: "remove", ids: [reserved.id] }] } }))}
         >
           <X size={13} /> 取り消す
         </button>

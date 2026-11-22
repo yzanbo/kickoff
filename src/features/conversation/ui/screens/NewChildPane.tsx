@@ -2,7 +2,6 @@ import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
-import { childChatsApi } from "@/features/childChats/ui/index";
 import { useKnownChat, addChat } from "@/features/chat/ui/store/knownChats";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
@@ -15,7 +14,7 @@ import { appendDraft, Composer, composerPills, focusDraft, memoryDraft } from "@
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { quoteComment } from "@/features/chat/ui/quote";
 import { NewChildBar } from "@/features/childChats/ui/ChildChatBar";
-import { InheritChoice } from "@/features/childChats/ui/InheritChoice";
+import { childChatsApi, InheritChoice } from "@/features/childChats/ui";
 import { ChatProviderContext } from "@/features/ai/ui/provider/chatProvider";
 import { ProviderPicker } from "@/features/ai/ui/provider/ProviderChips";
 

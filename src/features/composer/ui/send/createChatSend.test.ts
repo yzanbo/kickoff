@@ -13,7 +13,7 @@ function setup(over: Partial<ChatSendDeps> = {}, from: HandoffFrom | null = null
   const chat = createChatSend({
     busy: false,
     queued: false,
-    mode: "tell",
+    mode: "now",
     options: {},
     send: async (body) => void (bodies.push(body), log.push("send")),
     cancel: async () => void log.push("cancel"),
@@ -30,25 +30,25 @@ const msg = { text: "a", attachments: [] };
 
 test("createChatSend: 作業していなくて送信待ちもなければ when なしで続きを送る（送る前の保存 → 一番下へ → 送る）", async () => {
   const { chat, log, bodies } = setup();
-  await chat.submit(msg, "queue");
+  await chat.submit(msg, "later");
   assert.equal(bodies[0].when, undefined);
   assert.deepEqual(log, ["before", "follow", "send"]);
 });
 
 test("createChatSend: 作業中は いま = when now・あとで = when later（キーの mode が切り替えより先）", async () => {
-  const a = setup({ busy: true, mode: "tell" });
+  const a = setup({ busy: true, mode: "now" });
   await a.chat.submit(msg);
-  await a.chat.submit(msg, "queue");
+  await a.chat.submit(msg, "later");
   assert.deepEqual(a.bodies.map((b) => b.when), ["now", "later"]);
   assert.deepEqual(a.bodies.map((b) => b.hold), [undefined, undefined]);
 });
 
 test("createChatSend: 止めている送信待ちがあるとき、ためておく = later・hold（一番下へ付いていかない）・すぐ送る = when なし", async () => {
-  const a = setup({ queued: true, mode: "queue" });
+  const a = setup({ queued: true, mode: "later" });
   await a.chat.submit(msg);
   assert.deepEqual([a.bodies[0].when, a.bodies[0].hold], ["later", true]);
   assert.deepEqual(a.log, ["before", "send"]);
-  const b = setup({ queued: true, mode: "tell" });
+  const b = setup({ queued: true, mode: "now" });
   await b.chat.submit(msg);
   assert.equal(b.bodies[0].when, undefined);
 });

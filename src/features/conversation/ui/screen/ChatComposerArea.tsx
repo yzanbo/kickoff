@@ -3,23 +3,19 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import { childChatsApi } from "@/features/childChats/ui/index";
 import { COMPOSER_COMPACT } from "@/foundation/ui/storage/storageKeys";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { chatComposerDraft, Composer, composerPills, type ComposerSend, type OutgoingMessage } from "@/features/composer/ui";
-import { reservedAction } from "@/features/queue/ui/queuedHint";
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { PromptsChip } from "@/features/conversation/ui/promptList/PromptsChip";
-import { RestartResumeBanner } from "@/features/queue/ui/restartResume/RestartResumeBanner";
-import { QueuedMessages } from "@/features/queue/ui/QueuedMessages";
-import { sentShownKey } from "@/features/queue/ui/useSendingQueued";
+import { QueuedMessages, RestartResumeBanner, reservedRow, sentShownKey } from "@/features/queue/ui";
 import { TodoChip } from "@/features/conversation/ui/todo/TodoChip";
 import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
-import { INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui/InheritChoice";
+import { childChatsApi, INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui";
 import { openCreatedChild } from "@/features/chat/ui";
 import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
@@ -159,7 +155,7 @@ export function ChatComposerArea({
           projectId: chat.project_id,
           worktree: chat.worktree_path,
           chatId: chat.id,
-          meter: { chat, compacting: live.compacting, reserved: reservedAction(live.queue), afterTurn: compactsAfterTurn(live) },
+          meter: { chat, compacting: live.compacting, reserved: reservedRow(live.queue), afterTurn: compactsAfterTurn(live) },
         }}
         options={options}
         // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える）

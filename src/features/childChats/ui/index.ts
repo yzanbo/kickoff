@@ -5,3 +5,4 @@ export { DetachSubmenu } from "./DetachSubmenu";
 export { CreatedChatToolDetail } from "./CreatedChatToolDetail";
 export { useAiDraftRequests } from "./aiDraftRequests";
 export { handBackFromOf } from "./handBackFrom";
+export { INHERIT_LABELS, inheritHelp, InheritChoice } from "./InheritChoice";

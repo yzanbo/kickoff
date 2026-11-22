@@ -19,3 +19,12 @@ test("送る前の添付: 形の合う添付だけを読み、空なら保存し
   assert.equal(setting.encode([]), null);
   assert.equal(setting.encode([ok]), JSON.stringify([ok]));
 });
+
+test("作業中の送り方: コアの when と同じ now / later で残し、前の名前（tell / queue）も同じ扱いで読む", () => {
+  const setting = storage.settings.queueMode;
+  assert.equal(setting.decode("later"), "later");
+  assert.equal(setting.decode("tell"), "now");
+  assert.equal(setting.decode("queue"), "later");
+  assert.equal(setting.decode("x"), undefined);
+  assert.equal(setting.encode("now"), "now");
+});

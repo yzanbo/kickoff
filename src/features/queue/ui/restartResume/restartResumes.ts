@@ -3,7 +3,7 @@
 import type { RestartResume } from "@shared/chat/chatLive";
 import type { ServerEvent } from "@/foundation/ui/api/events";
 import type { ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { queueApi } from "@/features/queue/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -41,7 +41,7 @@ export function autoOpenRestartResumes(shown: ReadonlySet<number>, list: readonl
   return { open: list.some((r) => !shown.has(r.chat_id)), shown: new Set(list.map((r) => r.chat_id)) };
 }
 
-export const restartResumesStore = createStore<RestartResume[]>({ load: () => api.restartResumes(), reduce: reduceRestartResumes });
+export const restartResumesStore = createStore<RestartResume[]>({ load: () => queueApi("GET /api/restart-resumes"), reduce: reduceRestartResumes });
 
 /** 起動したときの再開の確かめを待っているチャット（届くまでは空） */
 export const useRestartResumes = (): RestartResume[] => useStore(restartResumesStore).data ?? NONE;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
-import type { QueueSendMode } from "./composerKeys";
+import type { SendWhen } from "./composerKeys";
 import { composerModel, type ComposerSend, type OutgoingMessage, type SendTarget } from "./composerModel";
 
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
@@ -57,7 +57,7 @@ export function useComposerSend({
   }
 
   /** 送る（mode は作業中の送り方をキーで決めたとき） */
-  async function send(mode?: QueueSendMode) {
+  async function send(mode?: SendWhen) {
     const message = text.trim();
     if (!model.ready || !(message || files.attachments.length > 0)) return;
     await deliver(message, (m) => port.submit(m, mode));

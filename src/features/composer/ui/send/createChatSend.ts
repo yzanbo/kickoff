@@ -2,7 +2,7 @@
 import type { HandoffFrom, MessageMarks } from "@shared/chat/chatEvent";
 import type { SendBody } from "@shared/chat/send";
 import type { Attachment, ChatOptionsPatch } from "@shared/chat/types";
-import type { QueueSendMode } from "../composerKeys";
+import type { SendWhen } from "../composerKeys";
 import type { OutgoingMessage } from "../composerModel";
 
 /** 入力欄に入れた子チャットからの依頼の出どころ（読む・消す。持ち主は childChats） */
@@ -16,7 +16,7 @@ export interface ChatSendDeps {
   /** 送信待ちがあるか（作業していなくても、送り方を選ぶ） */
   queued: boolean;
   /** チャット欄の切り替え（いま / あとで） */
-  mode: QueueSendMode;
+  mode: SendWhen;
   options: ChatOptionsPatch;
   /** 送る口 1 本（POST /api/chats/:id/messages） */
   send: (body: SendBody) => Promise<unknown>;
@@ -44,14 +44,14 @@ export function createChatSend(d: ChatSendDeps) {
     if (follow) d.afterSend?.();
     await d.send(body);
   };
-  const route = (text: string, attachments: Attachment[], mode: QueueSendMode, extra: Partial<SendBody>) => {
+  const route = (text: string, attachments: Attachment[], mode: SendWhen, extra: Partial<SendBody>) => {
     const body: SendBody = { text, options: d.options, attachments, ...extra };
     if (!d.busy && !d.queued) return deliver(body, true);
-    if (!d.busy) return mode === "queue" ? deliver({ ...body, when: "later", hold: true }, false) : deliver(body, true);
-    return deliver({ ...body, when: mode === "tell" ? "now" : "later" }, true);
+    if (!d.busy) return mode === "later" ? deliver({ ...body, when: "later", hold: true }, false) : deliver(body, true);
+    return deliver({ ...body, when: mode }, true);
   };
   return {
-    async submit({ text, attachments }: OutgoingMessage, mode?: QueueSendMode, opts: { asQuestion?: boolean; viaComposer?: boolean } = {}) {
+    async submit({ text, attachments }: OutgoingMessage, mode?: SendWhen, opts: { asQuestion?: boolean; viaComposer?: boolean } = {}) {
       const from = opts.viaComposer ? (d.from?.read() ?? null) : null;
       const marks: MessageMarks = from ? { handoff_from: from } : {};
       await route(text, attachments, mode ?? d.mode, { ...(opts.asQuestion ? { pause_after: true } : {}), ...marks });

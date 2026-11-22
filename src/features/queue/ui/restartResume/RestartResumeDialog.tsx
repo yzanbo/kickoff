@@ -1,7 +1,7 @@
 import { ArrowUpRight, ChevronRight, History, OctagonPause } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
-import { api } from "@/foundation/ui/api";
+import { queueApi } from "@/features/queue/ui/api";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -68,7 +68,7 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
   const decide = async () => {
     const ok = await action.run("decide", async () => {
       restartResumesStore.set(
-        await api.resolveRestartResumes(decided.map((r) => ({ chat_id: r.chat_id, action: choiceOf(r) as RestartResumeAction }))),
+        await queueApi("POST /api/restart-resumes", { body: { decisions: decided.map((r) => ({ chat_id: r.chat_id, action: choiceOf(r) as RestartResumeAction })) } }),
       );
     });
     if (ok) dialog.close();

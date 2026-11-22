@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { QueueSendMode } from "./composerKeys";
+import type { SendWhen } from "./composerKeys";
 
 /** 送信ボタンの右クリックで選べる、ほかの送り方・送り先（質問として送る・子チャットに送るなど） */
 export interface SendTargetItem {
@@ -57,7 +57,7 @@ export function ComposerActions({
   /** 送ると待ちの列に入れる・送り方を選ぶ（作業中・送信待ちがあるとき） */
   queueing: boolean;
   /** ⌘ / ⌘⇧ を押している間の、Enter で使われる送り方 */
-  heldMode?: QueueSendMode;
+  heldMode?: SendWhen;
   busyControls?: ReactNode;
   trailing?: ReactNode;
   /** 送信ボタンのすぐ左に置く音声の道具（マイク・▾・音声モードの波形） */
