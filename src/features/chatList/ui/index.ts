@@ -17,7 +17,7 @@ export { BucketTree, type HeadSpec, type HeadTable } from "./BucketTree";
 export { ChatRowFace, ChatRowTime } from "./ChatRowFace";
 export { activeOf, ArchivableItems, archivedOf, ColumnBody } from "./ArchivableItems";
 export { chatItemProps } from "./chatItemProps";
-export { newChatPlaceOf, type BucketHead, type ChatBucket } from "./buckets";
+export { newChatPlaceOf, type BucketBy, type BucketHead, type ChatBucket } from "./buckets";
 export { pinnedKey, projectKey } from "./bucketHeads";
 export { useChatBuckets } from "./useChatBuckets";
 export { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "./chatLayout";
@@ -32,5 +32,4 @@ export const chatListSettings = {
   compact: storage.settings.compact,
   showArchived: storage.settings.showArchived,
   bucketColors: storage.settings.bucketColors,
-  archiveFilter: storage.settings.archiveFilter,
 } as const;

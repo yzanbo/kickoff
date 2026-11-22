@@ -330,7 +330,6 @@
       "feature-entry:src/features/board/ui/GroupSections.tsx -> src/features/groups/ui/groups.ts",
       "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chat/ui/useChatRename.ts",
-      "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chatList/ui/buckets.ts",
       "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chatList/ui/useChatBuckets.ts",
       "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chatPanel/ui/board/boardChats.ts",
       "feature-entry:src/features/board/ui/KanbanBoard.tsx -> src/features/chatPanel/ui/board/useBoardPanel.ts",

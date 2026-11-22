@@ -4,7 +4,6 @@ import { NamedViewTabs } from "@/features/chatList/ui";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { sameViewExistsText, viewNameTaken } from "@/foundation/ui/lib/namedViews";
 import { sameViewState } from "./savedViews";
-import { useRememberedView } from "./useRememberedView";
 import { useSavedViews } from "./useSavedViews";
 
 /** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
@@ -14,13 +13,11 @@ const VIEW_DRAG_TYPE = "application/x-kickoff-board-view";
  * ツールバーの上の、保存したビューのタブ。押すとそのビューの見え方（表示・段・列の分け方・並び順・
  * アーカイブ）を当て、いまの見え方に合うビューを選択中に見せる。「＋ 今のビューを新規保存」でいまの見え方に名前を付けて足し、
  * タブのドラッグで並べ替え、右クリックで名前の変更・いまの見え方で上書き・削除。いまの見え方と同じビューがもうあれば「今のビューを新規保存」は押せなくし、
- * どのビューと同じかを横に書く（同じ見え方のビューを 2 つ作らない）。全プロジェクトのボード（projectId なし）とプロジェクトのボード（
+ * どのビューと同じかを横に書く（同じ見え方のビューを 2 つ作らない）。全プロジェクトのボードとプロジェクトのボード（
  * すべてのプロジェクトで共通）で別の一覧で、同じ一覧に同じ名前は付けられない
  */
-export function SavedViewTabs({ projectId }: { projectId?: number }) {
-  const saved = useSavedViews(projectId);
-  // ボードを開いたときに、そのボードで最後に見ていた見え方（初めは最初のビュー）に戻す
-  useRememberedView(saved, projectId === undefined);
+export function SavedViewTabs() {
+  const saved = useSavedViews();
   const [adding, setAdding] = useState(false);
   // いまの見え方と同じビュー（あれば新しく作らない）
   const duplicate = saved.active;

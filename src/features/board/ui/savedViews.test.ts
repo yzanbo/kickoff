@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { storage } from "./storage";
-import { activeView, parseSavedViews, parseViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
+import { parseViewState, type BoardViewState } from "./layout";
+import { activeView, parseSavedViews, sameViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
@@ -48,7 +49,7 @@ test("sameViewState: 表示項目は順によらず比べ、持たないビュ�
 });
 
 test("プロジェクトのボードの初めのビュー: グループボード・状態ボード・グループリストの順で、どれも読める", () => {
-  const views = parseSavedViews(storage.settings.views.initial);
+  const views = parseSavedViews(storage.settings.viewsProject.initial);
   assert.deepEqual(
     views.map((v) => v.name),
     ["グループボード", "状態ボード", "グループリスト"],
@@ -62,7 +63,7 @@ test("プロジェクトのボードの初めのビュー: グループボード
     ],
   );
   // すべて消したら [] を覚え、初めのビューに戻さない
-  assert.equal(storage.settings.views.encode([]), "[]");
+  assert.equal(storage.settings.viewsProject.encode([]), "[]");
 });
 
 test("全プロジェクトのボードの初めのビュー: プロジェクト別グループボード・プロジェクト別リストの順で、どれも読める", () => {

@@ -1,70 +1,25 @@
 import { useMemo } from "react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "./storage";
-import { chatListSettings } from "@/features/chatList/ui";
-import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
-import { useBoardView } from "./BoardHeader";
-import { hiddenCardFields } from "./cardFields";
-import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
 import { addView, moveView, removeView, renameView, replaceViewState } from "@/foundation/ui/lib/namedViews";
-import { activeView, parseSavedViews, type BoardViewState } from "./savedViews";
-import { useKanbanLanes } from "./useKanbanFilters";
+import { useBoard } from "./BoardContext";
+import { applyView, type BoardViewState } from "./layout";
+import { activeView, parseSavedViews } from "./savedViews";
+import { storage } from "./storage";
 
 /**
- * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、いまの見え方・当てる操作。
- * 見え方の設定（表示・段・列の分け方・並び順・アーカイブ・表示項目）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
- * projectId がなければ全プロジェクトのボード。列の分け方はどちらのボードも 状態 / グループ / グループ×状態 / 分けない を覚える
+ * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、当てる操作。
+ * ビューは見え方の組を覚えるだけで、当てるといまの見え方（BoardContext の view）に書く
  */
-export function useSavedViews(projectId?: number) {
-  const allProjects = projectId === undefined;
-  const [stored, setStored] = useSetting(allProjects ? storage.settings.viewsAll : storage.settings.views);
+export function useSavedViews() {
+  const { kind, view: current, patch } = useBoard();
+  const [stored, setStored] = useSetting(kind === "all" ? storage.settings.viewsAll : storage.settings.viewsProject);
   const views = useMemo(() => parseSavedViews(stored), [stored]);
-
-  const { view, split, setView, setSplit } = useBoardView();
-  const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
-  const [columns, setColumns] = useBoardColumns(allProjects);
-  const [rawSort, setSort] = useSetting(storage.settings.sort);
-  const [archive, setArchive] = useSetting(chatListSettings.archiveFilter);
-  const [feed, setFeed] = useSetting(storage.settings.feedAll);
-  const [byState, setByState] = useGroupsByState();
-  const [cardHidden, setCardHidden] = useSetting(storage.settings.cardHidden);
-
-  const current: BoardViewState = {
-    view: allProjects && feed ? "feed" : view,
-    lanes: split ? lanes : "none",
-    columns: columns === "groups" && byState ? "groupsState" : columns,
-    sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
-    archive,
-    cardHidden: [...hiddenCardFields(cardHidden)],
-  };
-
-  /** ビューの見え方を当てる（そのボードで選べない段の分け方は、段の分け方だけそのまま） */
-  const apply = (state: BoardViewState) => {
-    if (state.view === "feed") {
-      if (allProjects) setFeed(true);
-    } else {
-      if (allProjects) setFeed(false);
-      setView(state.view);
-    }
-    if (state.lanes === "none") setSplit(false);
-    else if (laneOptions.includes(state.lanes)) {
-      setLanes(state.lanes);
-      setSplit(true);
-    }
-    if (state.columns) {
-      if (state.columns === "groups" || state.columns === "groupsState") setByState(state.columns === "groupsState");
-      setColumns(state.columns === "groupsState" ? "groups" : state.columns);
-    }
-    setSort(sameChatSort(state.sort, DEFAULT_CHAT_SORT) ? null : state.sort);
-    setArchive(state.archive);
-    if (state.cardHidden) setCardHidden(state.cardHidden);
-  };
-
   return {
     views,
     current,
     active: activeView(views, current),
-    apply,
+    /** ビューの見え方を当てる（そのボードで選べない段の分け方は、段の分け方だけそのまま） */
+    apply: (state: BoardViewState) => patch(applyView(current, state, kind)),
     /** いまの見え方に名前を付けて保存する（いちばん後ろに足す） */
     save: (name: string) => setStored(addView(views, { id: crypto.randomUUID(), name, state: current })),
     rename: (id: string, name: string) => setStored(renameView(views, id, name)),

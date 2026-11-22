@@ -8,7 +8,7 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { groupsSettings } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
-import { useBoardView } from "./BoardHeader";
+import { useBoard } from "./BoardContext";
 import { ungroupedPosition } from "@/features/groups/ui/groupOrder";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -29,7 +29,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const { error, guard } = useAction();
   const { chats, error: loadError } = useChats({ projectId });
   // 表示（ボード / リスト。No Group の位置の初めの値を決める）
-  const { view } = useBoardView();
+  const { view } = useBoard().layout;
 
   const removeGroup = async (group: ChatGroup) => {
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));

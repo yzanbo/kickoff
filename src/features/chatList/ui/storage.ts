@@ -10,10 +10,8 @@ export const storage = defineSettings("chatList", {
   order: choice(["recent", "status", "manual"], "recent"),
   /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
   compact: flag(true),
-  /** サイドバーにアーカイブ済みのチャットを出すか（パネルのタブは chatPanel:show-archived で別。ボードの絞り込み archiveFilter とは連動しない。初めは隠す） */
+  /** サイドバーにアーカイブ済みのチャットを出すか（パネルのタブは chatPanel:show-archived で別。ボードのアーカイブの絞り込み（board の見え方）とは連動しない。初めは隠す） */
   showArchived: flag(false),
   /** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付ける。features/chatList/bucketHues.ts） */
   bucketColors: flag(true),
-  /** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ。サイドバーとは連動しない。初めは未アーカイブ） */
-  archiveFilter: choice(["all", "active", "archived"], "active"),
 });

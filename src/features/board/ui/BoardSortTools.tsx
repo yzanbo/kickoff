@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowDownUp, ArrowUp, Check } from "lucide-react";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { useBoard } from "./BoardContext";
 import { CHAT_SORT_KEYS, CHAT_SORT_LABELS, nextChatSort, type ChatSort } from "./chatSort";
 
 /** そのボードで選べる並べ方（プロジェクトは全プロジェクトのボードだけ） */
@@ -10,7 +11,8 @@ const keysFor = (allProjects: boolean) => CHAT_SORT_KEYS.filter((k) => allProjec
  * ツールバーの「並び順」（すべての表示で）。並べる項目と向きを選ぶ。
  * 並び順はボード・リストの列・まとまりの中にも効く
  */
-export function SortMenuButton({ sort, onSort, allProjects }: { sort: ChatSort; onSort: (sort: ChatSort) => void; allProjects: boolean }) {
+export function SortMenuButton({ sort, onSort }: { sort: ChatSort; onSort: (sort: ChatSort) => void }) {
+  const allProjects = useBoard().kind === "all";
   const menu = useContextMenu();
   const Arrow = sort.dir === "asc" ? ArrowUp : ArrowDown;
   return (

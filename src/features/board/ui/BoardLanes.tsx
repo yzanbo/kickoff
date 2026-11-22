@@ -2,11 +2,10 @@ import { Folder, FolderGit2, GitBranch, Square, type LucideIcon } from "lucide-r
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFolds } from "@/foundation/ui/hooks/useFold";
-import type { SettingValue } from "@/foundation/ui/storage";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
 import { hueStyle, projectHue } from "@/features/projects/ui/projectColor";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import type { storage } from "./storage";
+import type { BoardLane } from "./layout";
 import { WORKPLACE_KIND_LABELS } from "@/foundation/ui/workplace/workplace";
 import { newChatPlaceOf, type ChatBucket, type DraftTarget } from "@/features/chatList/ui/buckets";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
@@ -19,11 +18,6 @@ import { FoldHead, type FoldLook } from "@/foundation/ui/kit/FoldHead";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/foundation/ui/hooks/useProgressiveRows";
-
-/**
- * スイムレーンの段の分け方: グループ・作業場所（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）
- */
-export type BoardLane = SettingValue<typeof storage.settings.lanes>;
 
 const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   group: "グループ",

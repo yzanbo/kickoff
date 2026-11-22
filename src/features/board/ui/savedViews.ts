@@ -1,51 +1,12 @@
 import type { NamedView } from "@/foundation/ui/lib/namedViews";
-import { hiddenCardFields, sameHiddenCardFields, type CardField } from "./cardFields";
-import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
+import { sameHiddenCardFields } from "./cardFields";
+import { sameChatSort } from "./chatSort";
+import { parseViewState, type BoardViewState } from "./layout";
 
-// 保存したビュー（ボードの見え方の組に名前を付けたもの）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
-
-/** 表示（feed は全プロジェクトのボードだけ） */
-const VIEW_KINDS = ["board", "list", "feed"] as const;
-const VIEW_LANES = ["none", "group", "worktree", "project"] as const;
-/** 列の分け方（groupsState = グループ×状態。グループの列の中を状態で小分け） */
-const VIEW_COLUMNS = ["state", "groups", "groupsState", "none"] as const;
-const VIEW_ARCHIVES = ["all", "active", "archived"] as const;
-
-/** ボードの見え方（保存するもの。保存の形 Record<string, unknown> に入れられるよう type で書く） */
-export type BoardViewState = {
-  view: (typeof VIEW_KINDS)[number];
-  /** 段の分け方（分けないなら none） */
-  lanes: (typeof VIEW_LANES)[number];
-  /** 列の分け方（state / groups / groupsState / none。どちらのボードも同じ） */
-  columns: (typeof VIEW_COLUMNS)[number];
-  sort: ChatSort;
-  archive: (typeof VIEW_ARCHIVES)[number];
-  /** 表示項目で隠している項目（カード・行に出さないもの。初めからあるビューは持たず、そのときは当てても表示項目を変えない） */
-  cardHidden?: CardField[];
-};
+// 保存したビュー（ボードの見え方の組に名前を付けたもの。形は layout.ts の BoardViewState）。読み書きは useSavedViews、ここは読み方と比べ方（純粋な関数）
 
 /** 保存したビュー 1 つ（名前を付けた見え方。一覧の操作は lib/namedViews.ts） */
 export type SavedView = NamedView<BoardViewState>;
-
-const oneOf = <T extends string>(list: readonly T[], value: unknown): value is T => list.includes(value as T);
-
-/** 保存した見え方を読む（合わない項目があれば undefined。そのビューは捨てる） */
-export function parseViewState(value: unknown): BoardViewState | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-  const v = value as Record<string, unknown>;
-  const sort = parseChatSort(v.sort);
-  if (!oneOf(VIEW_KINDS, v.view) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_COLUMNS, v.columns) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
-  if (v.cardHidden !== undefined && !Array.isArray(v.cardHidden)) return undefined;
-  return {
-    view: v.view,
-    lanes: v.lanes,
-    columns: v.columns,
-    sort,
-    archive: v.archive,
-    // 知らない項目の名前（消した項目）は読まない
-    ...(Array.isArray(v.cardHidden) ? { cardHidden: [...hiddenCardFields(v.cardHidden.filter((x): x is string => typeof x === "string"))] } : {}),
-  };
-}
 
 /** 保存したビューの一覧を読む（見え方の合わないものは捨てる） */
 export function parseSavedViews(list: readonly { id: string; name: string; state: unknown }[]): SavedView[] {

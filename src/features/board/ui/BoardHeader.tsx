@@ -1,9 +1,7 @@
 import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/palette/ui";
-import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { SettingValue } from "@/foundation/ui/storage";
-import { storage } from "./storage";
+import type { BoardViewState } from "./layout";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { PanelToggle } from "@/features/chatPanel/ui/board/PanelToggle";
@@ -12,18 +10,8 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useWrapCompact } from "@/foundation/ui/hooks/useOverflowCompact";
 
-/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
-export type BoardView = SettingValue<typeof storage.settings.view>;
-
-/**
- * 表示の種類と、段（スイムレーン）に分けるか（プロジェクトのボード・全プロジェクトのボードで共通。全プロジェクトのボードで列の分け方を切り替えてもそのまま）。
- * 段の分け方（グループ・作業場所・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
- */
-export function useBoardView() {
-  const [view, setView] = useSetting(storage.settings.view);
-  const [split, setSplit] = useSetting(storage.settings.split);
-  return { view, split, setView, setSplit };
-}
+/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる）・フィード（全プロジェクトのボードだけ） */
+type BoardView = BoardViewState["view"];
 
 interface Props {
   query: string;
@@ -33,8 +21,8 @@ interface Props {
   /** 整えるのまとまり（いちばん左）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;
   /** 表示（feed は全プロジェクトのボードだけ。feed を渡したときだけ選択肢に出す） */
-  view: BoardView | "feed";
-  onView: (view: BoardView | "feed") => void;
+  view: BoardView;
+  onView: (view: BoardView) => void;
   /** 表示の選択肢に「フィード」を出す（全プロジェクトのボード） */
   feed?: boolean;
   /** 表示のまとまりで、列の分け方の後ろに置くもの（段の分け方 LaneSelect） */

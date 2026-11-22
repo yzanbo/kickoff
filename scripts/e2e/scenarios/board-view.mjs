@@ -1,8 +1,8 @@
-// プロジェクトのボードの見え方を「リスト」「ボード」に切り替えると、覚える値（kickoff:board:last-view）と描いた形（行・カード）が変わる
+// プロジェクトのボードの見え方を「リスト」「ボード」に切り替えると、覚える値（kickoff:board:layout-project）と描いた形（行・カード）が変わる
 import assert from "node:assert/strict";
 
 const radio = (name) => `[...document.querySelectorAll("[role=radiogroup][aria-label='表示の切り替え'] [role=radio]")].find((r) => r.textContent.trim() === ${JSON.stringify(name)})`;
-const SHAPE = `({ view: JSON.parse(localStorage.getItem("kickoff:board:last-view") ?? "{}").view ?? null, cards: document.querySelectorAll(".board-main .board-card").length, rows: document.querySelectorAll(".board-main .list-row").length })`;
+const SHAPE = `({ view: JSON.parse(localStorage.getItem("kickoff:board:layout-project") ?? "{}").view ?? null, cards: document.querySelectorAll(".board-main .board-card").length, rows: document.querySelectorAll(".board-main .list-row").length })`;
 
 export default {
   name: "board-view",
