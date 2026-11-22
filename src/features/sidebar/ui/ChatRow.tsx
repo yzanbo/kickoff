@@ -1,21 +1,16 @@
-import { Ellipsis, Pin } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";
 import { busyWithUnread, showsBold } from "@shared/chat/state";
 import type { AgentState, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
-import { isOpenKey, isRenameKey } from "@/foundation/ui/lib/keys";
 import { anchorPlacement, type Placement } from "@/foundation/ui/lib/floating";
 import { startChatDrag } from "@/features/groups/ui/groups";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { href } from "@/foundation/ui/navigation/router";
-import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
-import { workingFor } from "@/features/chat/ui/currentWork";
-import { useTicker } from "@/foundation/ui/hooks/useTicker";
-import { useChatActivity } from "@/features/chat/ui/currentWorkStore";
-import { useChatSelection } from "@/features/chatList/ui";
+import { ChatRowFace, ChatRowTime, chatItemProps, useChatSelection } from "@/features/chatList/ui";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
@@ -75,15 +70,13 @@ export function ChatRow({
   // 作業中のまま、まだ見ていない返答がある（印に未読の点を重ね、名前を太字に）
   const busyUnread = busyWithUnread(chat, state);
   const pinned = chat.pinned && !chat.archived_at;
+  const mark = <StatusSlot state={state} unread={busyUnread} />;
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
       <li className="chat-row-item">
         <div className={cx("chat-row", "renaming", pinned && "pinned", active && "active")}>
-          <StatusSlot state={state} unread={busyUnread} />
-          <span className="chat-row-body">
-            <ChatTitleInput chat={chat} editor={rename} />
-          </span>
+          <ChatRowFace mark={mark} editor={<ChatTitleInput chat={chat} editor={rename} />} />
         </div>
       </li>
     );
@@ -106,64 +99,38 @@ export function ChatRow({
           selected && "multi-selected",
           showsBold(state, busyUnread) && "is-unread",
         )}
-        data-chat-id={chat.id}
-        // 乗せて少し待ったら先読みする（chat の hoverPrefetch）
-        data-prefetch-chat={chat.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
         title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${STATE_LOOKS[state].label}${busyUnread ? "・未読あり" : ""}）`}
-        draggable
-        onDragStart={(e) => startChatDrag(e, chat.id)}
-        onDoubleClick={(e) => {
-          e.preventDefault();
-          onRename();
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          openMenuAt({ x: e.clientX, y: e.clientY });
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲を足す（どちらも開かない）。ふつうのクリックは選ぶのをやめて開く
-          if (selection?.click(e, chat.id)) return;
-          open();
-        }}
-        // 行にピントがあるときの Enter は名前の変更（Finder と同じ）、Space で開く
-        onKeyDown={(e) => {
-          if (isRenameKey(e)) {
-            e.preventDefault();
-            onRename();
-          } else if (isOpenKey(e)) {
-            e.preventDefault();
-            open();
-          }
-        }}
+        // 押すと開く・⌘ / Shift で選ぶ（開かない）・ダブルクリックか Enter で名前の変更・Space で開く・ドラッグでグループへ（chatList の chatItemProps）
+        {...chatItemProps(chat, {
+          open,
+          rename: onRename,
+          menu: openMenuAt,
+          pick: selection ? (e) => selection.click(e, chat.id) : undefined,
+          drag: { start: (e) => startChatDrag(e, chat.id) },
+          as: { link: true },
+        })}
       >
-        <StatusSlot state={state} unread={busyUnread} />
-        <span className="chat-row-body">
-          <span className="chat-row-line">
-            {project && <ProjectMark project={project} className="chat-row-project" />}
-            {childMark && chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
-            <span className="chat-row-title">{chatTitle(chat.title)}</span>
-            {pinned && (
-              <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
-                <Pin size={11} aria-hidden />
-              </span>
-            )}
-            {state === "running" ? (
-              <RunningTime chat={chat} />
-            ) : (
-              <span className="chat-row-time" title={formatDayTime(chat.active_at)}>
-                {relativeTime(chat.active_at, { style: "short" })}
-              </span>
-            )}
-          </span>
-          {/* 2 行目: グループと作業場所（ブランチ）（1 行で出すときは隠す。まとまりの見出しと重なる札は hideChip で隠し、札がなければ行ごと出さない） */}
-          <span className="chat-row-meta">
-            {hideChip !== "group" && <GroupChip chat={chat} />}
-            {hideChip !== "worktree" && <WorktreeChip chat={chat} markIconOnly />}
-          </span>
-        </span>
+        <ChatRowFace
+          mark={mark}
+          lead={
+            <>
+              {project && <ProjectMark project={project} className="chat-row-project" />}
+              {childMark && chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
+            </>
+          }
+          title={chatTitle(chat.title)}
+          pinned={pinned}
+          time={<ChatRowTime chat={chat} state={state} />}
+          // 2 行目: グループと作業場所（ブランチ）（まとまりの見出しと重なる札は hideChip で隠し、札がなければ行ごと出さない）
+          meta={
+            <span className="chat-row-meta">
+              {hideChip !== "group" && <GroupChip chat={chat} />}
+              {hideChip !== "worktree" && <WorktreeChip chat={chat} markIconOnly />}
+            </span>
+          }
+        />
       </a>
       {/* 乗せたとき・メニューを開いている間だけ出す「…」（時刻の上に重ねる）。行の中のリンクと分けて置く */}
       <span className={cx("chat-row-actions", menuOpen && "open")}>
@@ -185,17 +152,5 @@ export function ChatRow({
       </span>
       {after}
     </li>
-  );
-}
-
-/** 作業中のチャットの時刻の代わりに出す経過時間（「作業中 3分」）。マウスを乗せると、いまの作業（ファイルの編集・コマンドの実行など） */
-function RunningTime({ chat }: { chat: Chat }) {
-  useTicker(30_000);
-  const activity = useChatActivity(chat.id);
-  const since = chat.turn_started_at ?? chat.active_at;
-  return (
-    <span className="chat-row-time running" title={`${activity ?? "作業中"}\n始めた時刻: ${formatDayTime(since)}`}>
-      {workingFor(since)}
-    </span>
   );
 }

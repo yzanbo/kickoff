@@ -1,16 +1,15 @@
 import { Activity } from "lucide-react";
 import type { Project } from "@shared/projects/types";
+import { ACTIVE_CHATS_LABEL } from "@/features/projects/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openActiveChats } from "./openActiveChats";
 import type { WaitingBadge } from "./useAllWaiting";
 
-/** プロジェクトの作業中・待ちのチャットの一覧のボタンの文（右クリックのメニューの項目と同じ） */
-export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
 
 /**
  * ⌘⇧A の一覧を、そのプロジェクトに絞り込んだところから開くボタン（サイドバーのプロジェクトのカード。アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
- * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは features/project/page/AllStateChats
+ * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは AllStateChats
  */
 export function ActiveChatsButton({ project, iconSize, className }: { project: Pick<Project, "id" | "name">; iconSize?: number; className?: string }) {
   return (

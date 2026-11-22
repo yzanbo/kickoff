@@ -7,7 +7,7 @@ import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { GitHubStatusCard, useGitHubStatus, useProviders } from "@/features/ai/ui";
-import { StateStats } from "@/features/projects/ui/page/StateStats";
+import { StateStats } from "@/features/chatList/ui";
 import { NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";

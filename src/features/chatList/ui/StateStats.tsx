@@ -1,9 +1,9 @@
 import type { Chat } from "@shared/chat/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { openChat } from "@/features/chat/ui/open/openChat";
-import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
+import type { Project } from "@shared/projects/types";
+import { NO_CHATS, openChat, useChatStates, useChatsWithChildrenByProject } from "@/features/chat/ui";
+import { StateChatsPopover, bucketTone, chatsByState } from "./StateChatsPopover";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import { BucketChip } from "@/features/chatList/ui/StateChip";
+import { BucketChip } from "./StateChip";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
@@ -37,4 +37,10 @@ export function StateStats({ chats, showProject = false }: { chats: Chat[]; show
       )}
     </div>
   );
+}
+
+/** プロジェクトの画面の見出しの、そのプロジェクトの状態ごとのチャット数（子チャットも数える。拡張点 projectHeaderStats） */
+export function ProjectStateStats({ project }: { project: Pick<Project, "id"> }) {
+  const counted = useChatsWithChildrenByProject()[project.id] ?? NO_CHATS;
+  return <StateStats chats={counted} />;
 }

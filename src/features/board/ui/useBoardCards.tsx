@@ -5,12 +5,10 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { startChatDrag } from "@/features/groups/ui/groups";
 import type { useChatRename } from "@/features/chat/ui/useChatRename";
 import type { PanelController } from "@/features/panel/ui/usePanel";
-import { ChatCardContent, ChatRowContent } from "./ChatCard";
-import { FeedCardContent } from "./FeedList";
-import { chatCardProps } from "./chatCardProps";
+import { ChatCardContent } from "./ChatCard";
 import { useCardFields } from "./CardFieldsMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import type { ChatSelection } from "@/features/chatList/ui";
+import { chatItemProps, type ChatSelection } from "@/features/chatList/ui";
 
 /** ボードのカード・リストの行の、画面に出ている上からの並び（閉じている段・まとまりの中は除く。ボードで選ぶときの範囲） */
 export const boardCardIds = () =>
@@ -55,24 +53,22 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
   // ドラッグしている途中のチャット（薄く出す）
   const [dragChat, setDragChat] = useState<number>();
   const cardProps = (chat: Chat) => ({
-    ...chatCardProps(chat, {
-      dragHint: drag?.hint,
-      onOpen: () => onOpen(chat),
-      onPick: selection && ((e) => selection.click(e, chat.id)),
-      onRename: () => rename.start(chat),
-      onMenu: (at) => {
+    ...chatItemProps(chat, {
+      as: { button: true, dragHint: drag?.hint },
+      open: () => onOpen(chat),
+      pick: selection && ((e) => selection.click(e, chat.id)),
+      rename: () => rename.start(chat),
+      menu: (at) => {
         // 選んだいくつかのカードの 1 つなら、まとめて操作するメニュー。ほかのカードなら選んだものを外して、そのカードのメニュー
         if (selection?.has(chat.id) && selection.ids.size > 1) return selection.openMenu(at);
         selection?.clear();
         menu.openAt(at, chat);
       },
-      onDragStart: drag
-        ? (e: DragEvent) => {
-            // 薄く出す（data-drag-source）のは、ドラッグの絵を写したあと
-            startChatDrag(e, chat.id, () => setDragChat(chat.id));
-          }
-        : undefined,
-      onDragEnd: drag ? () => setDragChat(undefined) : undefined,
+      drag: drag && {
+        // 薄く出す（data-drag-source）のは、ドラッグの絵を写したあと
+        start: (e: DragEvent) => startChatDrag(e, chat.id, () => setDragChat(chat.id)),
+        end: () => setDragChat(undefined),
+      },
       editing: Boolean(rename.editorFor(chat)),
     }),
     title: openTitle?.(chat),
@@ -86,19 +82,19 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     /** ボードのカード */
     card: (chat: Chat) => (
       <article key={chat.id} className={cx("board-card", cardClass(chat))} {...cardProps(chat)}>
-        <ChatCardContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} show={show} />
+        <ChatCardContent layout="card" chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} show={show} />
       </article>
     ),
     /** リストの行 */
     row: (chat: Chat) => (
       <div key={chat.id} className={cx("list-row", cardClass(chat))} {...cardProps(chat)}>
-        <ChatRowContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} show={show} />
+        <ChatCardContent layout="row" chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} show={show} />
       </div>
     ),
     /** フィードのカード（チャットの最新の返答。全プロジェクトのボードだけ） */
     feedCard: (chat: Chat, item: FeedItem) => (
       <article key={chat.id} className={cx("board-card feed-card", cardClass(chat))} {...cardProps(chat)}>
-        <FeedCardContent chat={chat} item={item} state={stateOf(chat)} projectName={projectName?.(chat) ?? ""} rename={rename.editorFor(chat)} show={show} />
+        <ChatCardContent layout="feed" chat={chat} item={item} state={stateOf(chat)} projectName={projectName?.(chat) ?? ""} rename={rename.editorFor(chat)} show={show} />
       </article>
     ),
   };

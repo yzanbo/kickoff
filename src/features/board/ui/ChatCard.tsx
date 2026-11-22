@@ -1,5 +1,6 @@
 import { busyWithUnread } from "@shared/chat/state";
-import type { AgentState, Chat } from "@shared/chat/types";
+import type { AgentState, Chat, FeedItem } from "@shared/chat/types";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ProviderId } from "@shared/settings/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { LinkedItemChip } from "@/features/chat/ui";
@@ -12,6 +13,8 @@ import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { StatusSlot } from "@/features/chat/ui/state/StatusSlot";
 import { cardStatText } from "./cardFields";
+import { feedPlainText } from "./feed";
+import { StateChip } from "@/features/chatList/ui";
 import type { ShowCardField } from "./CardFieldsMenu";
 
 interface Props {
@@ -88,10 +91,51 @@ export function CardTimes({ chat, show, active: givenActive }: Pick<Props, "chat
 }
 
 /**
- * ボードのカードの中身（状態の印と名前・札・詳細・日時。出すものはツールバーの「表示項目」で選ぶ）。状態は名前の左に、サイドバーの行と同じ印（StatusSlot。作業中は回るリング・
- * 回答待ちは！・未読は緑の点、作業中のまま未読なら緑の点を重ねる）で出す。何も出さない行は描かない
+ * ボードのカード・リストの行・フィードのカードの中身（出すものはツールバーの「表示項目」で選ぶ）。状態はサイドバーの行と同じ印（StatusSlot。作業中は回るリング・
+ * 回答待ちは！・未読は緑の点、作業中のまま未読なら緑の点を重ねる）を名前の左に、フィードはボードの列の見出しと同じ色の札で出す。
+ * - card: 状態の印と名前・札・詳細と日時（何も出さない行は描かない）
+ * - row: 名前の後ろに札・詳細、右に日時
+ * - feed: プロジェクト・名前・札・状態・詳細・返答の時刻、その下に返答の初めの部分（item）
  */
-export function ChatCardContent({ chat, state, projectName, pending = 0, rename, show }: Props) {
+export function ChatCardContent({ layout, chat, state, projectName, pending = 0, rename, show, item }: Props & { layout: "card" | "row" | "feed"; item?: FeedItem }) {
+  const mark = show("state") && <StatusSlot state={state} unread={busyWithUnread(chat, state)} />;
+  const title = (className: string) => (rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className={className}>{chatTitle(chat.title)}</span>);
+  if (layout === "feed")
+    return (
+      <>
+        <div className="feed-card-head">
+          {show("project") && <ProjectChip id={chat.project_id} name={projectName ?? ""} />}
+          {title("card-title one-line")}
+          <CardBadges chat={chat} show={show} />
+          {/* 状態はボードの列の見出しと同じ色の札 */}
+          {show("state") && (
+            <span className="feed-card-state">
+              <StateChip state={state} label={STATE_LOOKS[state].label} unread={busyWithUnread(chat, state)} />
+            </span>
+          )}
+          <CardStats chat={chat} show={show} />
+          {/* 最終更新の代わりに、この返答の時刻 */}
+          <CardTimes chat={chat} show={show} active={item?.created_at} />
+        </div>
+        <p className="feed-card-text">{feedPlainText(item?.text ?? "")}</p>
+      </>
+    );
+  if (layout === "row")
+    return (
+      <>
+        <div className="list-main">
+          {mark}
+          {title("card-title one-line")}
+          <span className="list-meta">
+            <CardBadges chat={chat} projectName={projectName} show={show} />
+            <CardStats chat={chat} pending={pending} show={show} />
+          </span>
+        </div>
+        <span className="list-times">
+          <CardTimes chat={chat} show={show} />
+        </span>
+      </>
+    );
   const badges = (projectName !== undefined && show("project")) || (show("group") && chat.group_id !== null) || show("worktree") || Boolean(chat.archived_at);
   // 下の行（詳細・日時）に出すものがあるか（なければ行ごと描かず、カードの下に余白を残さない）
   const foot =
@@ -103,8 +147,8 @@ export function ChatCardContent({ chat, state, projectName, pending = 0, rename,
   return (
     <>
       <div className="card-title-row">
-        {show("state") && <StatusSlot state={state} unread={busyWithUnread(chat, state)} />}
-        {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title">{chatTitle(chat.title)}</span>}
+        {mark}
+        {title("card-title")}
       </div>
       {badges && (
         <div className="card-labels">
@@ -117,25 +161,6 @@ export function ChatCardContent({ chat, state, projectName, pending = 0, rename,
           <CardTimes chat={chat} show={show} />
         </div>
       )}
-    </>
-  );
-}
-
-/** リスト表示の行の中身（状態の印は名前の左にカードと同じ StatusSlot で。名前の後ろに札・詳細、右に日時。出すものはツールバーの「表示項目」で選ぶ） */
-export function ChatRowContent({ chat, state, projectName, pending = 0, rename, show }: Props) {
-  return (
-    <>
-      <div className="list-main">
-        {show("state") && <StatusSlot state={state} unread={busyWithUnread(chat, state)} />}
-        {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title one-line">{chatTitle(chat.title)}</span>}
-        <span className="list-meta">
-          <CardBadges chat={chat} projectName={projectName} show={show} />
-          <CardStats chat={chat} pending={pending} show={show} />
-        </span>
-      </div>
-      <span className="list-times">
-        <CardTimes chat={chat} show={show} />
-      </span>
     </>
   );
 }

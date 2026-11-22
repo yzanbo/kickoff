@@ -68,3 +68,5 @@ export { LineageTrail } from "./parts/LineageTrail";
 export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate };
 export { busyBlockReason } from "./state/chatBusy";
 export { useChatRename } from "./useChatRename";
+export { workingFor } from "./currentWork";
+export { useChatActivity } from "./currentWorkStore";

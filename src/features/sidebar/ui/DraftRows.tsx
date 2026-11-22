@@ -1,4 +1,4 @@
-import { Paperclip, Pin, SquarePen } from "lucide-react";
+import { Paperclip, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
@@ -7,6 +7,7 @@ import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type Placed
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
+import { ChatRowFace } from "@/features/chatList/ui";
 import { panelKey } from "@/features/panel/ui";
 import { useChatPlacement } from "@/features/projects/ui/page/chatPlacement";
 
@@ -60,10 +61,7 @@ export function DraftRow({ draft }: { draft: PlacedDraft }) {
     return (
       <li className="chat-row-item">
         <div className={cx("chat-row draft-row renaming", draft.pinned && "pinned", selected && "active")}>
-          {slot}
-          <span className="chat-row-body">
-            <DraftTitleInput draft={draft} onDone={() => setRenaming(false)} />
-          </span>
+          <ChatRowFace mark={slot} editor={<DraftTitleInput draft={draft} onDone={() => setRenaming(false)} />} />
         </div>
       </li>
     );
@@ -79,19 +77,14 @@ export function DraftRow({ draft }: { draft: PlacedDraft }) {
         onClick={() => openDraft(draft)}
         onContextMenu={menu.open}
       >
-        {slot}
-        <span className="chat-row-body">
-          <span className="chat-row-line">
-            <span className="chat-row-title">{draftTitleOf(draft)}</span>
-            {hasDraftAttachments(draft) && !draft.text.trim() && <Paperclip size={12} aria-label="添付あり" />}
-            {draft.pinned && (
-              <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
-                <Pin size={11} aria-hidden />
-              </span>
-            )}
-            <span className="chat-row-time">下書き</span>
-          </span>
-        </span>
+        {/* チャットの行と同じ中身（状態の印の代わりに鉛筆） */}
+        <ChatRowFace
+          mark={slot}
+          title={draftTitleOf(draft)}
+          after={hasDraftAttachments(draft) && !draft.text.trim() && <Paperclip size={12} aria-label="添付あり" />}
+          pinned={draft.pinned}
+          time={<span className="chat-row-time">下書き</span>}
+        />
       </button>
       {menu.menu && (
         // チャットの行の右クリック（ChatMenu）と同じ並びで、右・下に分けて開くも置く

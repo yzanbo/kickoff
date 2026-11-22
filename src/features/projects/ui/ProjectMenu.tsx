@@ -22,12 +22,14 @@ import { alert, prompt } from "@/foundation/ui/kit/ask";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useOrderedTags } from "./projectTagFilter";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
-import { ACTIVE_CHATS_LABEL } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
-import { openActiveChats } from "@/features/chatList/ui/activeChats/openActiveChats";
+import { openAppDialog } from "@/foundation/ui/shell/points";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
+
+/** ⌘⇧A の一覧（作業中・待ちのチャット）を開くメニューの項目の文（chatList のボタンも同じ文） */
+export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
 
 /** 開いた場所によって使える操作（見出しのカードから開いたときだけ渡す） */
 export interface ProjectMenuExtras {
@@ -114,7 +116,7 @@ function ProjectMenu({
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openTarget({ kind: "newChat", projectId: project.id }))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
-      {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openActiveChats({ projectId: project.id }))}
+      {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openAppDialog("activeChats", { projectId: project.id }))}
       {canOpenExternal() && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void openExternal({ kind: "path", path: project.repo_path }))}
 
       <div className="menu-separator" role="separator" />

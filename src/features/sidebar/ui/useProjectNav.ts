@@ -25,7 +25,7 @@ import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /**
  * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・要対応だけ・検索・
- * いま選んでいるプロジェクトと切り替え・ショートカット・スワイプ・すべて閉じる / 開く）。表示は ProjectNav（ProjectStack / ProjectSlides）
+ * いま選んでいるプロジェクトと切り替え・ショートカット・スワイプ・すべて閉じる / 開く）。表示は ProjectNav（ProjectList）
  */
 export function useProjectNav(chats: Record<number, Chat[]>) {
   const route = useRoute();

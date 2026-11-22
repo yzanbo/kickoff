@@ -4,6 +4,7 @@ import { contributes as ai } from "@/features/ai/ui/contributes";
 import { contributes as board } from "@/features/board/ui/contributes";
 import { contributes as browser } from "@/features/browser/ui/contributes";
 import { contributes as chat } from "@/features/chat/ui/contributes";
+import { contributes as chatList } from "@/features/chatList/ui/contributes";
 import { contributes as chatPanel } from "@/features/chatPanel/ui/contributes";
 import { contributes as childChats } from "@/features/childChats/ui/contributes";
 import { contributes as compact } from "@/features/compact/ui/contributes";
@@ -32,7 +33,7 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
  * AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
  */
 export const registryContributions = () => [
-  ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...sidebar, ...board,
+  ...projects, ...ai, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatList, ...chatPanel, ...files, ...git, ...docker, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...sidebar, ...board,
   ...workplaceDecorItems, ...userViewTabItems, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
 ];
 

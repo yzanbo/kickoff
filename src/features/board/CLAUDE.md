@@ -7,7 +7,7 @@
 | `BoardShell`・`BoardHeader` | 外枠・ツールバー（画面の文言では「見出し」と呼ばない） |
 | `KanbanBoard`・`KanbanBody` | 状態と操作・表示 × 段 × 列の分け方の描き分け |
 | `StateColumn`・`BoardLanes`・`FlatTasks`・`ProjectGroupColumns` | 状態の列・段・分けない並び・グループの列 |
-| `useBoardCards`・`chatCardProps.ts`・`ChatCard` | カードとリストの行（描き方は 1 か所） |
+| `useBoardCards`・`ChatCard` | カード・リストの行・フィードのカード（中身は `ChatCardContent` の layout。操作は chatList の `chatItemProps`） |
 | `savedViews.ts`・`useSavedViews`・`useRememberedView` | 保存したビュー・最後の見え方 |
 | `useFeed`・`feed.ts`・`FeedList` | フィード（全プロジェクトのボードだけ） |
 | `useKanbanFilters`・`archiveFilter.ts`・`chatSort.ts`・`cardFields.ts` | 絞り込み・並び順・表示項目 |

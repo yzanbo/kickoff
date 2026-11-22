@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Activity } from "lucide-react";
 import type { Project } from "@shared/projects/types";
-import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { openChat } from "@/features/chat/ui/open/openChat";
+import { openChat, useChatStates } from "@/features/chat/ui";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
-import { WaitingCountBadge } from "@/features/chatList/ui/activeChats/ActiveChatsButton";
-import { useAllProjectChats, type WaitingBadge } from "@/features/chatList/ui/activeChats/useAllWaiting";
+import { WaitingCountBadge } from "./ActiveChatsButton";
+import { useAllProjectChats, useAllWaiting } from "./useAllWaiting";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
@@ -17,7 +16,9 @@ type Scope = "all" | "project";
  * 一覧の上の切り替えで、このプロジェクトだけにもできる（開くたびに「すべてのプロジェクト」から）。
  * 右上にすべてのプロジェクトの要対応の数（useAllWaiting）。数えるプロジェクトは ⌘⇧A の「すべて」と同じ（useAllProjectChats）
  */
-export function AllStateChats({ project, waiting }: { project: Pick<Project, "id" | "name">; waiting: WaitingBadge }) {
+export function AllStateChats({ project }: { project: Pick<Project, "id" | "name"> }) {
+  // 右上の要対応の数は、すべてのプロジェクトのもの（ほかのプロジェクトに要対応があるかを見るため）
+  const waiting = useAllWaiting();
   const { pending } = useChatStates();
   const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
   const [scope, setScope] = useState<Scope>("all");
