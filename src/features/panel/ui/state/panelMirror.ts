@@ -1,4 +1,4 @@
-// サイドバーの別ウィンドウの中では、パネルを変える操作をそのウィンドウで行わず、メインのウィンドウに頼む（受け口は app/renderer/mainWindowMessages.ts）。
+// サイドバーの別ウィンドウの中では、パネルを変える操作をそのウィンドウで行わず、メインのウィンドウに頼む（受け口は chatPanel の ui/appHosts.ts）。
 // サイドバーの別ウィンドウが読むパネルの値（下書きの行・子チャットの行の「開いている」見た目）は、メインのウィンドウからの写し（chatPanel の panelFollow.ts）
 import { isSidebarWindow } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow, postWindowMessage, type WindowMessageMap } from "@/foundation/ui/navigation/windowBus";

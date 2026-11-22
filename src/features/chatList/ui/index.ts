@@ -9,6 +9,7 @@ export type { DraftTabSpot } from "./manualOrder";
 export { ChatSelectionContext, useChatSelection, useChatSelectionState, visibleRows, type ChatSelection } from "./selection/chatSelection";
 export { SelectionBar } from "./selection/SelectionBar";
 export { ActiveChatsPalette } from "./activeChats/ActiveChatsPalette";
+export type { ActiveChatsRequest } from "./activeChats/openActiveChats";
 export { chatListOptions, useChatOrder, useManualChatReorder } from "./chatOrder";
 export { StateCornerCounts, stateCountsSummary } from "./StateCornerCounts";
 export { StateStats } from "./StateStats";

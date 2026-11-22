@@ -283,3 +283,6 @@ export function dockAndClose(route: PopoutRoute, opts: { waitMs?: number } = {})
   closeWhenDocked(popoutKey(route), opts.waitMs);
   postToMainWindow("dockPopout", { route });
 }
+
+/** メインのウィンドウ: 別ウィンドウが閉じたら（落ちた・画面が知らせられずに閉じたときも。メインプロセスから）そのパスを知らせる。やめるときは返り値を呼ぶ */
+export const onPopoutClosed = (handler: (path: string) => void): (() => void) | undefined => window.kickoff?.windows.onPopoutClosed(handler);

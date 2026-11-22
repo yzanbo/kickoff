@@ -16,7 +16,7 @@ export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats
 export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
 export { useEditedProject } from "./settings/editedProject";
-export { projectInView } from "./currentProject";
+export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const projectsSettings = { listOrder: storage.settings.listOrder, sideView: storage.settings.sideView } as const;

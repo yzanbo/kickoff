@@ -2,10 +2,9 @@
 // サイドバーには種類の follow の写し（下書き・子チャットの行に要るパネルの値。chatPanel の panelFollow.ts）を、チャット欄にはチャット欄の状態そのものを渡す（panel の state/panelHandOff.ts）
 import { useEffect, useState } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { handSidePanelsOut, ownSidePanelsAgain, takeSidePanelsBack } from "@/features/panel/ui/state/panelHandOff";
-import { panelKey, setPanelOpen } from "@/features/panel/ui";
+import { handSidePanelsOut, ownSidePanelsAgain, panelKey, setPanelOpen, takeSidePanelsBack } from "@/features/panel/ui";
 import { holdChatsElsewhere } from "@/features/chatPanel/ui";
-import { popoutKey, popoutPath, publishFollow } from "@/foundation/ui/navigation/popout";
+import { onPopoutClosed, popoutKey, popoutPath, publishFollow } from "@/foundation/ui/navigation/popout";
 import { href, routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 
@@ -47,7 +46,7 @@ export function usePopoutHosts(route: Route): { sideHeld: boolean } {
     ];
     // 別ウィンドウが閉じた（メインプロセスから。落ちた・画面が知らせられずに閉じたときも）: 移したままにしない。チャット欄は、戻されずに閉じたなら
     // 状態はなくなっているので、このウィンドウでまた持つ（✕ はメインプロセスが止めて、戻してから閉じる）
-    const offClosed = window.kickoff?.windows.onPopoutClosed((closed) => {
+    const offClosed = onPopoutClosed((closed) => {
       if (closed === popoutPath({ kind: "sidebar" })) setSidebar(0);
       else if (closed === popoutPath({ kind: "side" })) {
         ownSidePanelsAgain();

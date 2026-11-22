@@ -10,5 +10,7 @@ import { browserView } from "./projectViews";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { browserPopout } from "./popoutKinds";
 import { browserSection } from "./settings/appSettings";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { agentBrowserHost } from "./appHosts";
 
-export const contributes = [panelTabs.item(browserTabKind), panelSurfaces.item(sideSurface), panelSurfaces.item(browserWindowSurface), openTargets.item(browserTarget), projectViews.item(browserView), popoutKinds.item(browserPopout), settingsSections.item(browserSection)];
+export const contributes = [panelTabs.item(browserTabKind), panelSurfaces.item(sideSurface), panelSurfaces.item(browserWindowSurface), openTargets.item(browserTarget), projectViews.item(browserView), popoutKinds.item(browserPopout), settingsSections.item(browserSection), appHosts.item(agentBrowserHost)];

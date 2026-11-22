@@ -12,7 +12,8 @@ import { chatsView } from "./board/chatsView";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { chatPopout, chatsPopout, subagentPopout } from "./popoutKinds";
 import { commands } from "@/foundation/ui/commands";
-import { openAppDialog } from "@/foundation/ui/shell/points";
+import { appHosts, openAppDialog } from "@/foundation/ui/shell/points";
+import { chatPanelHosts } from "./appHosts";
 import { chatPanelDisplayItems } from "./settings/appSettings";
 
 export const contributes = [
@@ -24,8 +25,10 @@ export const contributes = [
   popoutKinds.item(subagentPopout),
   popoutKinds.item(chatPopout),
   popoutKinds.item(chatsPopout),
-  // ⌘T はブラウザの「新しいタブ」と同じ手の動き。App が、開いている（なければサイドバーで選んでいる）プロジェクトで始める（プロジェクトがなければ案内）
+  // ⌘T はブラウザの「新しいタブ」と同じ手の動き。./appHosts.ts が、開いている（なければサイドバーで選んでいる）プロジェクトで始める（プロジェクトがなければ案内）
   commands.item({ id: "chat.new", title: "新しいチャット", keys: ["mod+n", "mod+t"], run: () => openAppDialog("newChat") }),
   // 設定の「表示」の欄
   ...chatPanelDisplayItems.map((i) => settingsItems.item(i)),
+  // アプリの根に置く物（新しいチャットの頼み・⌘⇧A・下書きの片付け・別ウィンドウからのパネルの操作）
+  ...chatPanelHosts.map((h) => appHosts.item(h)),
 ];

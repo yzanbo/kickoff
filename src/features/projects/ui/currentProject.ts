@@ -33,3 +33,12 @@ export function projectInView(routeProjectId: number | null): number | undefined
 export function saveCurrentProject(id: number) {
   writeSetting(storage.settings.currentProject, id);
 }
+
+/**
+ * URL のプロジェクト（routeProjectId）。もうないとわかったもの（消した・URL の番号が違う）は、ないものとする
+ * （チャット欄・下のパネル・下の帯に出さず、そのプロジェクトのワークツリー・グループなどを読みに行かない）
+ */
+export function useExistingProject(id: number | null): number | undefined {
+  const { missing } = useProjects();
+  return id === null || missing(id) ? undefined : id;
+}

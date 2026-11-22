@@ -1,4 +1,4 @@
-// ノートのウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの @/app/renderer/mainWindowMessages.ts）
+// ノートのウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの ./appHosts.ts）
 export {};
 
 declare module "@/foundation/ui/navigation/windowBus" {

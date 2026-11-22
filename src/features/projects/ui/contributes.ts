@@ -15,6 +15,8 @@ import { rightSidebarToggles } from "./rightSidebar/useRightSidebar";
 import { paletteSources } from "@/features/palette/ui";
 import { projectPaletteSource } from "./paletteSources";
 import { projectsDisplayItems } from "./page/displaySettings";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { projectsHosts } from "./appHosts";
 
 export const contributes = [
   openTargets.item(projectViewTarget),
@@ -35,4 +37,6 @@ export const contributes = [
   }),
   // 設定の「表示」の欄
   ...projectsDisplayItems.map((i) => settingsItems.item(i)),
+  // アプリのダイアログ（新しいプロジェクト・プロジェクトがないときの案内）
+  ...projectsHosts.map((h) => appHosts.item(h)),
 ];

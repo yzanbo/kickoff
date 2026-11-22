@@ -1,10 +1,11 @@
-// パネルのタブの種類ごとの、AI の get_user_view に返す説明（userViewTabs に registry.ts が入れる）。
+// パネルのタブの種類ごとの、AI の get_user_view に返す説明（contributes.ts が userViewTabs に入れる）。
 // プロジェクトの画面のタブは、DB・GitHub のほか（ファイル・検索・履歴・CI・Docker・ゴミ箱）を画面の名前の画面として説明する。
-// 持ち主の機能が出すと userView が機能の循環に入る（userView が panel・chat・database を読む）ので、userView を作り直すまでここに置く
+// 種類の持ち主（chatPanel・files・notes など）は userView より上なので、説明は userView がまとめて持つ（読むのは下の chat・composer・projects だけ）
 import { knownChat } from "@/features/chat/ui";
 import { newChatDraft } from "@/features/composer/ui";
 import { projectViewOf } from "@/features/projects/ui";
-import { databaseView, describeTab, editorView, githubView, noteView, userViewTabs } from "@/features/userView/ui";
+import { describeTab, editorView, githubView, noteView, userViewTabs } from "./tabDescribers";
+import { databaseView } from "./userViewCollect";
 
 export const userViewTabItems = [
   describeTab("chat", (t) => ({ kind: "chat", chat_id: t.id, title: t.title ?? knownChat(t.id)?.title ?? "", project_id: t.projectId })),

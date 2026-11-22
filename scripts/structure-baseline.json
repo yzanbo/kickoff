@@ -898,7 +898,6 @@
       "src/shared/foundation/apiTypes.ts": 372
     },
     "native": [
-      "src/app/renderer/popoutHosts.ts",
       "src/features/browser/ui/BrowserExtensions.tsx",
       "src/features/browser/ui/BrowserFind.tsx",
       "src/features/browser/ui/BrowserPageMenu.tsx",

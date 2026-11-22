@@ -7,6 +7,9 @@ import { projectViews } from "@/features/projects/ui";
 import { ciView, githubView } from "./projectViews";
 import { settingsSections } from "@/features/settings/ui";
 import { githubSettingsSection } from "./settings/settingsSections";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { workplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
+import { githubHosts, prNoticeDecor } from "./appHosts";
 
 export const contributes = [
   openTargets.item(githubItemTarget),
@@ -16,4 +19,7 @@ export const contributes = [
   settingsSections.item(githubSettingsSection),
   // 発言の右クリックの「issue にする」（ノートの項目の下）
   messageActions.item({ kind: "menu", id: "github.issue", order: 20, Items: lazyPart<MessageMenuContext>(() => import("./IssueFromTextItem").then((m) => ({ default: m.IssueFromMessageItem }))) }),
+  // アプリの根に置く物と、作業場所の飾り（ワークツリーの PR の知らせ）
+  ...githubHosts.map((h) => appHosts.item(h)),
+  workplaceDecor.item(prNoticeDecor),
 ];

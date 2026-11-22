@@ -1,4 +1,4 @@
-// チャットのパネルのウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの @/app/renderer/mainWindowMessages.ts）
+// チャットのパネルのウィンドウ間の知らせ（WindowMessageMap に足す。受けるのはメインのウィンドウの ./appHosts.ts）
 import type { Attachment, GitHubLink } from "@shared/chat/types";
 import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import type { SplitDir } from "@/features/panel/ui";

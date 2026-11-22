@@ -17,6 +17,8 @@ import { notePopout } from "./popoutKinds";
 import { paletteSources } from "@/features/palette/ui";
 import { notePaletteSource, noteTextPaletteSource } from "./paletteSources";
 import { notesSection, noteOpenItem } from "./settings/appSettings";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { notesHosts } from "./appHosts";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
@@ -39,4 +41,6 @@ export const contributes = [
   // アプリの設定の節・欄
   settingsSections.item(notesSection),
   settingsItems.item(noteOpenItem),
+  // アプリの根に置く物
+  ...notesHosts.map((h) => appHosts.item(h)),
 ];

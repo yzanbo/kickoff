@@ -3,7 +3,7 @@ import { storage } from "./storage";
 
 declare module "@/foundation/ui/shell/points" {
   interface AppDialogMap {
-    /** 新しいチャットを始める（⌘N と同じ。App が、開いている・サイドバーで選んでいるプロジェクトで始める） */
+    /** 新しいチャットを始める（⌘N と同じ。./appHosts.ts が、開いている・サイドバーで選んでいるプロジェクトで始める） */
     newChat: null;
   }
 }
@@ -13,6 +13,5 @@ export const chatPanelSettings = { projectBrowserSession: storage.settings.proje
 export { restoreDraftTabs, useDraftTabSpots, type PlacedDraft } from "./drafts/panelDrafts";
 export { useVisibleChildChats } from "./visibleChildChats";
 export { panelFollow } from "./panelFollow";
-export { ActiveChatsDialog } from "./drafts/ActiveChatsDialog";
 export { holdChatsElsewhere } from "./state/windowChats";
 export { chatSideAdds, type ChatSideAdd, type ChatSideAddProps } from "./chatSideAdds";

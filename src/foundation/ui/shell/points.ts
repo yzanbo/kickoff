@@ -26,6 +26,12 @@ type AppDialogId = keyof AppDialogMap & string;
 /** ダイアログを開く頼み */
 export type AppDialogRequest = { [K in AppDialogId]: { id: K; detail: AppDialogMap[K] } }[AppDialogId];
 
+/** アプリのダイアログの部品が受けるもの */
+export interface AppDialogProps {
+  detail: unknown;
+  onClose(): void;
+}
+
 /** アプリの根に置く物 */
 export interface AppHost {
   id: string;
@@ -36,8 +42,8 @@ export interface AppHost {
   useEffect?: () => void;
   /** 殻の中身を包むもの（外部リンクの開き先など） */
   Provider?: ComponentType<{ children: ReactNode }>;
-  /** アプリのダイアログ（openAppDialog(id) で開く） */
-  dialog?: { id: AppDialogId; Dialog: LazyPart<{ detail: unknown; onClose(): void }> };
+  /** アプリのダイアログ（openAppDialog(id) で開く。detail は開くときに渡したもの） */
+  dialog?: { id: AppDialogId; Dialog: LazyPart<AppDialogProps> | ComponentType<AppDialogProps> };
   order?: number;
 }
 /** アプリの根に置く物（key は id、order で並べる） */

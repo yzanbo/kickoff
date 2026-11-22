@@ -15,7 +15,7 @@ export { MaximizeButton, type PanelFrame } from "./PanelTools";
 export type { TabGroupBadge, TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
-export { adoptSidePanels, isSidePanel, ownSidePanelsOnly, sidePanelsHandedOut } from "./state/panelHandOff";
+export { adoptSidePanels, handSidePanelsOut, isSidePanel, ownSidePanelsAgain, ownSidePanelsOnly, sidePanelsHandedOut, takeSidePanelsBack } from "./state/panelHandOff";
 export { isTabShown, panelOfTab } from "./state/tabPlace";
 export { defineSurface, draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
 export { defineTabKind, panelTabs, repointedAt, type TabFaceProps, type TabMenuProps, type TabPageProps, type WorkplaceMove } from "./kind";

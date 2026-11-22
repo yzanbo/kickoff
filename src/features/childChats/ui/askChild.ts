@@ -1,5 +1,5 @@
 // 子チャットから親へ（聞いた位置を見る・答えを入力欄に入れる）。新しい子チャットで聞く openAskChild は chat の openChat.ts（下の attachments も読むため）。
-// 別ウィンドウからは、メインのウィンドウに知らせてここを呼ぶ（App の mainWindowMessages.ts）
+// 別ウィンドウからは、メインのウィンドウに知らせてここを呼ぶ（./appHosts.ts）
 import type { HandoffFrom } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";

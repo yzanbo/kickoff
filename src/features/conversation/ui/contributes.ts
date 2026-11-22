@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { paletteSources } from "@/features/palette/ui";
 import { messagePaletteSource } from "./search/paletteSources";
 import { conversationDisplayItems } from "./settings/appSettings";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { conversationHosts } from "./appHosts";
 
 export const contributes = [
   paletteSources.item(messagePaletteSource),
@@ -19,4 +21,6 @@ export const contributes = [
   }),
   // 設定の「表示」の欄
   ...conversationDisplayItems.map((i) => settingsItems.item(i)),
+  // アプリの根に置く物
+  ...conversationHosts.map((h) => appHosts.item(h)),
 ];

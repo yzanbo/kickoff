@@ -7,6 +7,8 @@ import { chatSideAdds } from "@/features/chatPanel/ui";
 import { databaseChatSideAdd, databaseView } from "./projectViews";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { databasePopout } from "./popoutKinds";
+import { appHosts } from "@/foundation/ui/shell/points";
+import { dbUnlockHost } from "./appHosts";
 
 export const contributes = [
   projectViews.item(databaseView),
@@ -19,4 +21,5 @@ export const contributes = [
     result: "also",
     ApprovalBody: lazyPart<{ input: Record<string, unknown>; name: string }>(() => import("./dbQueryRowView").then((m) => ({ default: m.DbQuerySql }))),
   }),
+  appHosts.item(dbUnlockHost),
 ];

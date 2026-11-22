@@ -11,7 +11,7 @@
 | `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / 殻の口 `points.ts` |
 | `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所（飾り `workplaceDecor`）・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
-App・起動・下の帯は `src/app/renderer/`。
+App・起動・下の帯は `@/app/renderer/`。
 
 - 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。どの機能にも属さないものだけを土台に置く。
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
@@ -25,7 +25,7 @@ App・起動・下の帯は `src/app/renderer/`。
 - プロジェクトの名前は `useProjects()` の `projectName(id)`（`projects.find(…)` を書かない）。領域だけのデータは、その領域で店を作ってよい。
 - 開いているチャットの中身はチャットの店（`src/features/conversation/CLAUDE.md` の「1 つのチャットの画面」）。部品は要る口だけを読む。
 - 操作の応答で届いた値は `set` / `update` で入れ、知らせを待たずに画面をそろえる（`addProject`・`addChat`）。
-- 回答待ちは App が 1 回引き当てて `useChatStates()` で配る（部品で `api.approvals()` を呼ばない）。
+- 回答待ちは `useChatStates()` で読む（部品で `api.approvals()` を呼ばない）。
 - いまのルートは `useRoute()`。前回の画面は `main.tsx` が App を描く前に `restoreLastRoute` で開く（一度きりの指定は `lastingRoute` で外す）。
 
 ## 表示の設定の保存（`storage/`）
@@ -63,7 +63,7 @@ App・起動・下の帯は `src/app/renderer/`。
 ## 共有部品（`kit/`。手書きしない）
 
 - アイコンだけのボタンは `IconButton` / `CloseButton` / `RefreshButton`（`label` が名前と説明）。
-- マウスを乗せたときの説明は `data-tip`（`data-tip-title`・`data-tip-keys`・`data-tip-side`）。App の `HoverTip` が出す。title と重ねない。
+- マウスを乗せたときの説明は `data-tip`（`data-tip-title`・`data-tip-keys`・`data-tip-side`）。殻の `HoverTip` が出す。title と重ねない。
 - 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。選んだ文の上のボタンは `SelectionBox`。
 - メニューは `PopupMenu` ＋ `MenuItem`（選択肢は `checked`、子は `MenuSub`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
 - ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`。
@@ -141,7 +141,8 @@ App・起動・下の帯は `src/app/renderer/`。
 
 ## アプリの殻（`shell/`・`@/app/renderer/`）
 
-- アプリのダイアログは `openAppDialog`（種類は持ち主が `AppDialogMap` に足す。別ウィンドウからはメインで開く）。
+- 根に置く物（ダイアログ・帯・副作用・知らせの受け手）は持ち主が `appHosts` に足す（置くのは `shell/AppShell.tsx`）。
+- アプリのダイアログは `openAppDialog`（種類は持ち主が `AppDialogMap` に足す。別ウィンドウはメインで開く）。
 - 全体表示中の共通ヘッダー `MaximizedHeader`（`shell/WindowHeaderContent.tsx`）は、元の画面の名前の行を既存の 40px の操作行へ移す（複製しない・行を足さない）。
 - 下の帯は持ち主が `footerItems` に足した項目を並べるだけ。高さは骨組みの `.boot-footer` と同じにする（`@/app/renderer/bootScript.test.ts`）。
 - Markdown の外部リンクは開く前に確かめる（`external/linkOpen.ts` の `openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。
