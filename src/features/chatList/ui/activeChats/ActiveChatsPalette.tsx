@@ -110,8 +110,6 @@ export function ActiveChatsPalette<D extends ActiveDraft>({
         onKeyDown,
       }}
       inputAfter={<TagFilterNotice filter={tagFilter} />}
-      // ↑↓ で選んだ行が見えるようにスクロールする
-      scrollActive
       onClose={onClose}
       bars={
         <>
