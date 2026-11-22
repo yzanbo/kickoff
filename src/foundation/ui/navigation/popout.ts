@@ -200,12 +200,20 @@ export function popoutKey(route: PopoutRoute): string {
 
 /**
  * 別ウィンドウで開く（同じものがもう開いていれば前に出す）。title はウィンドウの名前、at は新しく開くときに置く画面の位置（タブをウィンドウの外へドラッグして離した所）。
- * 変更の移るファイルは、新しく開くときは URL で、もう開いていたときは知らせ（popoutFocus）で渡す
+ * 変更の移るファイルは、新しく開くときは URL で、もう開いていたときは知らせ（popoutFocus）で渡す。
+ * 返り値は開けたか（開いた・前に出したら true。デスクトップアプリでない・開けなかったら false。タブを移すときは、開けてから元のタブを閉じる）
  */
-export function openPopout(route: PopoutRoute, title: string, at: { x: number; y: number } | null = null) {
-  void window.kickoff?.windows.openPopout(popoutPath(route), title, at).then(() => {
-    if (route.kind === "changes" && route.focus) postWindowMessage("popoutFocus", { key: popoutKey(route), focus: route.focus });
-  });
+export async function openPopout(route: PopoutRoute, title: string, at: { x: number; y: number } | null = null): Promise<boolean> {
+  const windows = window.kickoff?.windows;
+  if (!windows) return false;
+  try {
+    await windows.openPopout(popoutPath(route), title, at);
+  } catch (e) {
+    console.error("別ウィンドウを開けなかった", e);
+    return false;
+  }
+  if (route.kind === "changes" && route.focus) postWindowMessage("popoutFocus", { key: popoutKey(route), focus: route.focus });
+  return true;
 }
 
 /** 種類の項目（なければ undefined） */

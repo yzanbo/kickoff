@@ -7,7 +7,7 @@ import { kindOf } from "@/features/panel/ui/state/panelStore";
 export const canPopOut = (tab: PanelTab | undefined, panel: string): boolean => canPopout() && tab !== undefined && kindOf(tab).popout?.(tab, panel) !== undefined;
 
 /**
- * タブを別ウィンドウで開き、欄からは閉じる（別ウィンドウへ移す。同じものがもう開いていれば、それを前に出す）。
+ * タブを別ウィンドウで開き、開けたら欄からは閉じる（別ウィンドウへ移す。同じものがもう開いていれば、それを前に出す。開けなければタブを残す）。
  * 閉じるときは後始末をしない（ターミナルのシェルは止めず、移した先がつなぎ直す）。at はウィンドウを置く画面の位置（タブをウィンドウの外へドラッグして離した所）。
  * 別ウィンドウで開けないタブ（チャットなど）・ブラウザで開いた画面では何もしない
  */
@@ -15,7 +15,8 @@ export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey:
   const tab = panelStateOf(panel.key).tabs.find((t) => t.key === tabKey);
   const target = canPopout() && tab ? kindOf(tab).popout?.(tab, panel.key) : undefined;
   if (!tab || !target) return;
-  openPopout(target.route, target.title, at);
-  // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（種類の popout の dismiss。チャットのパネルに戻せば、また出る）
-  panel.closeTab(tabKey, { dismiss: target.dismiss === true, keep: true });
+  void openPopout(target.route, target.title, at).then((opened) => {
+    // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（種類の popout の dismiss。チャットのパネルに戻せば、また出る）
+    if (opened) panel.closeTab(tabKey, { dismiss: target.dismiss === true, keep: true });
+  });
 }
