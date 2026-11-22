@@ -31,7 +31,7 @@ const chatsSurface = defineSurface({
   slide: true,
   ext: linkedChatsExt,
   // サイドバーに出ているチャットを読み、タブをそろえる
-  useChats: useLinkedTabs,
+  chats: { useChats: useLinkedTabs },
   Adds: ChatPanelAdds,
   Strip: ChatTabStrip,
   ViewMenu: ChatViewMenu,
@@ -69,7 +69,7 @@ const chatWindowSurface = defineSurface({
   splitButtons: false,
   className: "as-sidebar",
   // そのプロジェクトのチャットを読むだけで、タブはそろえない（移したチャットだけを並べる）
-  useChats: useWindowChats,
+  chats: { useChats: useWindowChats },
   Strip: ChatTabStrip,
   ViewMenu: ChatViewMenu,
   EmptyHint: ChatPanelEmpty,

@@ -4,7 +4,7 @@ import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
 import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/state/panelStore";
-import { panelKey, type PanelScope, type PanelSurface } from "./surface";
+import { panelKey, type PanelScope, type PanelSurface, type SurfaceChats } from "./surface";
 import type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
 
@@ -53,7 +53,7 @@ function panelOps(key: string) {
 
 /** チャットを読まない欄のチャット（いつも同じ空の配列） */
 const NO_CHATS: Chat[] = [];
-const useNoChats = (): Chat[] => NO_CHATS;
+const NO_CHAT_SOURCE: SurfaceChats = { useChats: () => NO_CHATS };
 
 /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの。チャットのタブでなければ undefined） */
 export const tabChat = (tab: PanelTab | undefined, chats: readonly Chat[]): Chat | undefined =>
@@ -74,9 +74,9 @@ export function usePanel(surface: PanelSurface, scope: PanelScope) {
   const { tabs, layout, open: panelOpen } = state;
   useMountedPanel(key);
   const rules = surfaceOf(surface);
-  // 欄のチャット（欄の決まりの useChats。チャットを出さない欄では読まない。欄は描いている間に変わらないので、呼ぶ hook も変わらない）
-  const useChats = rules?.useChats ?? useNoChats;
-  const chats: Chat[] = useChats(key, scope);
+  // 欄のチャット（欄の決まりの chats。チャットを出さない欄では読まない。欄は描いている間に変わらないので、呼ぶ hook も変わらない）
+  const source = rules?.chats ?? NO_CHAT_SOURCE;
+  const chats: Chat[] = source.useChats(key, scope);
   const actions = useMemo(() => panelOps(key), [key]);
   const pageOps = useMemo<PanelPageOps>(
     () => ({
