@@ -31,8 +31,8 @@ export interface PanelStore {
   /** プロジェクトを消したとき: そのプロジェクトの、タブを保存する欄（右サイドバー）の保存を消し、このウィンドウが持っていれば取り出す */
   forgetProject(projectId: number): void;
   /**
-   * 写しの店にする / やめる（サイドバーの別ウィンドウ。メインのウィンドウのパネルの状態を replace で受け取って読むだけで、自分では変えない。
-   * 写しの間は dispatch・move は何もしない。閉じたタブの後始末はメインのウィンドウが行う。panelMirror.ts）
+   * 写しの店にする / やめる（サイドバーの別ウィンドウ。パネルはメインのウィンドウのものを写した値で読み = chatPanel の panelFollow.ts、自分では変えない。
+   * 写しの間は dispatch・move は何もしない。変える操作はメインのウィンドウに頼む = panelMirror.ts の forwardPanelOp）
    */
   setReplica(on: boolean): void;
   isReplica(): boolean;
@@ -44,8 +44,6 @@ export interface PanelStore {
   take(match: (key: string) => boolean): [string, PanelState][];
   /** 合う欄の状態を、届いたものに置き換える（後始末はしない。別ウィンドウから移されたとき・戻されたとき） */
   put(match: (key: string) => boolean, entries: readonly (readonly [string, PanelState])[]): void;
-  /** すべての欄の状態を置き換える（サイドバーの別ウィンドウが、メインのウィンドウから届いた写しを入れる） */
-  replace(entries: readonly (readonly [string, PanelState])[]): void;
   /**
    * 欄の状態を別の名前へ移す（送る前の新しいチャットの右の欄を、送ってできたチャットの右の欄へ。chatPanel の agents/draftSide.ts）。
    * mapTab でタブを書き換える。移す先にもうタブがあれば、移す元のタブは閉じて捨てる（重ねない）
@@ -181,11 +179,6 @@ export function createPanelStore({ kinds, surfaces }: { kinds: readonly AnyTabKi
       for (const [key, state] of entries) states.set(key, state);
       notify();
     },
-    replace(entries) {
-      states.clear();
-      for (const [key, state] of entries) states.set(key, state);
-      notify();
-    },
     move(from, to, mapTab = (tab) => tab) {
       if (replica) return;
       const prev = states.get(from);
@@ -254,7 +247,6 @@ export const kindOf = (tab: TabBase) => store().kindOf(tab);
 export const surfaceOf = (id: PanelSurface) => store().surfaceOf(id);
 export const movePanel = (from: string, to: string, mapTab?: (tab: PanelTab) => PanelTab) => store().move(from, to, mapTab);
 export const setPanelReplica = (on: boolean) => store().setReplica(on);
-export const replacePanels = (entries: readonly (readonly [string, PanelState])[]) => store().replace(entries);
 export const setPanelOwnership = (fn: (key: string) => boolean) => store().setOwnership(fn);
 export const takePanels = (match: (key: string) => boolean) => store().take(match);
 export const putPanels = (match: (key: string) => boolean, entries: readonly (readonly [string, PanelState])[]) => store().put(match, entries);

@@ -5,7 +5,7 @@ import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { dispatchPanel, panelStateOf } from "@/features/panel/ui";
 import { useChatPanelTestStore } from "@/features/chatPanel/ui/testing";
-import { discardDraft, draftOfPanelTab, openDraft, openNewChat, placedDrafts, restoreDraftTabs, setDraftGroup, setDraftTitle } from "./panelDrafts";
+import { discardDraft, draftOfPanelTab, openDraft, openNewChat, placedDrafts, restoreDraftTabs, setDraftGroup } from "./panelDrafts";
 
 installMemoryStorage();
 
@@ -50,14 +50,13 @@ test("下書き: 起動したら、残した下書きを作成先のプロジェ
 
 test("写しの店（サイドバーの別ウィンドウ）: 下書きの操作はパネルを変えない", () => {
   const store = useChatPanelTestStore();
+  const key = "kanban:9102";
+  const draftKey = openNewChat(key, { projectId: 9102 });
+  const state = panelStateOf(key);
   store.setReplica(true);
   onTestFinished(() => store.setReplica(false));
-  const key = "kanban:9102";
-  const state = { ...panelStateOf(key), tabs: [{ kind: "new" as const, key: "new:1" }] };
-  store.replace([[key, state]]);
-  dispatchPanel(key, { type: "close", keys: ["new:1"], dismiss: false });
-  setDraftTitle({ panel: key, key: "new:1" }, "名前");
-  discardDraft({ panel: key, key: "new:1" });
+  dispatchPanel(key, { type: "close", keys: [draftKey], dismiss: false });
+  discardDraft({ panel: key, key: draftKey });
   assert.equal(panelStateOf(key), state);
 });
 

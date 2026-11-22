@@ -3,7 +3,7 @@
 // 種類は持ち主の機能が ui/popoutKinds.ts で PopoutParamsMap に足し、URL の項目の表を popoutKinds に入れる
 import type { ComponentType } from "react";
 import { definePoint } from "@/foundation/ui/points";
-import { onWindowMessage, postToMainWindow, postWindowMessage } from "./windowBus";
+import { onWindowMessage, postToMainWindow, postWindowMessage, type WindowMessageMap } from "./windowBus";
 
 /** 機能が足していく別ウィンドウの種類の表（declare module "@/foundation/ui/navigation/popout" で足す。値は URL に載せる項目） */
 export interface PopoutParamsMap {}
@@ -53,13 +53,31 @@ export interface PopoutKind<K extends PopoutKindId = PopoutKindId> {
    * （ターミナルはシェルの持ち主をメインのウィンドウに移してから）
    */
   dock?(route: RouteOf<K>): Promise<void> | void;
+  /**
+   * メインのウィンドウの値の写しを読み続ける（サイドバー: 下書きの行・開いている子チャット）。メインのウィンドウは開いている間 publish を送り、
+   * watch が知らせるたびに（まとめて）送り直す。別ウィンドウは begin で受け始め、届いたものを apply に渡す
+   */
+  follow?: PopoutFollow;
   /** URL の項目（書く順に並べる。path と parse をこの表から作る。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
   fields: { readonly [F in keyof PopoutParamsMap[K]]-?: FieldKind | FieldSpec };
   /** 同じウィンドウかを見るときに外す項目（変更の移るファイルなど） */
   keyIgnores?: readonly (keyof PopoutParamsMap[K] & string)[];
 }
+/** メインのウィンドウの値の写しの受け渡し（種類の follow） */
+export interface PopoutFollow {
+  /** メインのウィンドウ: いまの写し（要る値だけ。知らせに載せるので JSON にできる形） */
+  publish(): unknown;
+  /** メインのウィンドウ: 写しの元が変わったら listener を呼ぶ。やめるときは返り値を呼ぶ */
+  watch(listener: () => void): () => void;
+  /** 別ウィンドウ: 写しを受け始める（届くまでの値にする）。やめるときは返り値を呼ぶ */
+  begin(): () => void;
+  /** 別ウィンドウ: 届いた写しを当てる */
+  apply(snapshot: unknown): void;
+}
 declare module "./windowBus" {
   interface WindowMessageMap {
+    /** メインのウィンドウの値の写し（種類の follow の publish。開いている間、変わるたびに送る） */
+    popoutFollow: { kind: string; snapshot: unknown };
     /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄（チャット欄・パネルのタブは元の欄）で開き直す（「右の欄に戻す」。開き直したら docked） */
     dockPopout: { route: PopoutRoute };
     /** dockPopout で開き直し終えた（key は popoutKey。別ウィンドウはこれを待ってから閉じる。ターミナルの持ち主をメインのウィンドウに移してから閉じるため） */
@@ -197,6 +215,42 @@ export const popoutKindOf = <K extends PopoutKindId>(kind: K): PopoutKind<K> | u
 export async function dockPopout(route: PopoutRoute): Promise<void> {
   const kind = popoutKindOf(route.kind) as PopoutKind | undefined;
   await kind?.dock?.(route as never);
+}
+
+/** 続けて変わったときに 1 回にまとめる間（メインのウィンドウが裏にあっても止まらないよう、rAF ではなく時計で） */
+const FOLLOW_DELAY_MS = 50;
+
+/** メインのウィンドウ: 種類の follow の写しを送り、元が変わるたびに（まとめて）送り直す。やめるときは返り値を呼ぶ */
+export function publishFollow(kind: PopoutKindId, post: (message: WindowMessageMap["popoutFollow"]) => void = (m) => postWindowMessage("popoutFollow", m)): () => void {
+  const follow = popoutKindOf(kind)?.follow;
+  if (!follow) return () => {};
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const send = () => {
+    timer = undefined;
+    post({ kind, snapshot: follow.publish() });
+  };
+  send();
+  const off = follow.watch(() => {
+    timer ??= setTimeout(send, FOLLOW_DELAY_MS);
+  });
+  return () => {
+    off();
+    clearTimeout(timer);
+  };
+}
+
+/** 別ウィンドウ: メインのウィンドウから届く種類の follow の写しを受け取る。やめるときは返り値を呼ぶ */
+export function followMain(kind: PopoutKindId): () => void {
+  const follow = popoutKindOf(kind)?.follow;
+  if (!follow) return () => {};
+  const end = follow.begin();
+  const off = onWindowMessage("popoutFollow", (m) => {
+    if (m.kind === kind) follow.apply(m.snapshot);
+  });
+  return () => {
+    off();
+    end();
+  };
 }
 
 /** docked を待つ上限（メインのウィンドウが応えなくても閉じる） */

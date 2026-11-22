@@ -12,4 +12,5 @@ declare module "@/foundation/ui/shell/points" {
 export const chatPanelSettings = { projectBrowserSession: storage.settings.projectBrowserSession } as const;
 export { restoreDraftTabs, useDraftTabSpots, type PlacedDraft } from "./drafts/panelDrafts";
 export { useVisibleChildChats } from "./visibleChildChats";
+export { panelFollow } from "./panelFollow";
 export { chatSideAdds, type ChatSideAdd, type ChatSideAddProps } from "./chatSideAdds";

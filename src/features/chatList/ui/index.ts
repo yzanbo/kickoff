@@ -4,6 +4,7 @@ import { storage } from "./storage";
 export { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "./menu/MoveItems";
 export { ChatMenuItems } from "./menu/ChatMenuItems";
 export { BucketColorItem } from "./BucketColorItem";
+export type { DraftTabSpot } from "./manualOrder";
 export { StateCornerCounts, stateCountsSummary } from "./StateCornerCounts";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */

@@ -1,8 +1,8 @@
 import { useEffect } from "react";
+import { followMain } from "@/foundation/ui/navigation/popout";
 import { RouteContext, routeProjectId } from "@/foundation/ui/navigation/router";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { followMainPanels } from "@/features/panel/ui/state/panelMirror";
 import { openNewProject } from "@/features/projects/ui/new/openNewProject";
 import { Sidebar } from "./Sidebar";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
@@ -11,12 +11,12 @@ import { openAppDialog } from "@/foundation/ui/shell/points";
 
 /**
  * サイドバーの別ウィンドウの中身（メインのウィンドウと同じ Sidebar を、ウィンドウいっぱいに）。
- * いまの画面（開いているチャット・プロジェクトの強調）とパネルの状態（下書きの行など）はメインのウィンドウから写しを受け取り、
+ * いまの画面（開いているチャット・プロジェクトの強調）と下書きの行・子チャットの行に要るパネルの値はメインのウィンドウから写しを受け取り、
  * 行を押す・新しいチャット・検索などはメインのウィンドウで開く（行は @/foundation/ui/navigation/popoutNavigation.ts、ほかは openAppDialog）
  */
 export function PopoutSidebar() {
-  // 開いている間、パネルの状態の写しを受け取る（メインのウィンドウは sidebarWindow を見て送る）
-  useEffect(() => followMainPanels(), []);
+  // 開いている間、下書き・子チャットの行に要るパネルの値の写しを受け取る（種類の follow。メインのウィンドウは sidebarWindow を見て送る）
+  useEffect(() => followMain("sidebar"), []);
   const route = useMainWindowRoute((open) => postWindowMessage("sidebarWindow", { open }));
   const { missing } = useProjects();
   const fallbackProject = useFallbackProject();

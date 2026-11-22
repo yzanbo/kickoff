@@ -28,7 +28,7 @@
 - 描き直しを広げない: `usePanel` は状態が同じ間は同じ物を返し、`Panel`・`TabPageFrame` は memo。タブの中身には `PanelController` でなく `panel.pageOps` を渡し、殻は `frame` を作り置く。
 - 表示していないタブも hidden で残す。チャットの会話・サブエージェント・子チャットはさらに `Activity` で止め、止めると切れる操作の間は `@/features/chat/ui/screen/keepAlive.ts` で止めない。
 - 表示中かは `TabVisibleContext` で入れ子の欄へ伝える。チャットのタブの中身は初めて表示したときに作る（種類の `createWhen: "shown"`）。
-- 欄のタブを残すのは欄の項目の `saved`（右サイドバーのブラウザ）。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。別ウィンドウの店はメインのウィンドウの写し（`panelMirror.ts`）。
+- 欄のタブを残すのは欄の項目の `saved`（右サイドバーのブラウザ）。保存するのは欄の持ち主のウィンドウだけ（`setPanelOwnership`）。サイドバーの別ウィンドウは操作をメインへ頼む（`forwardPanelOp`）。
 
 ## タブの種類（`kind.ts`）
 
@@ -73,7 +73,7 @@
 
 - 行き先は `#/popout/<種類>`。種類（URL の項目・札・中身・戻し方 `dock`）は持ち主の `ui/popoutKinds.ts` が `popoutKinds` に登録し、`PopoutApp` は中身を描くだけ（URL を画面として購読しない）。閉じるのは `closeSelf`・`dockAndClose`。
 - メインの画面・ダイアログを動かす操作は `@/foundation/ui/navigation/windowBus.ts` でメインに頼む（種類は持ち主の機能の `windowMessages.ts` が足す。中身はウィンドウをまたげる値だけ）。
-- サイドバーのウィンドウの店はメインの写し（`panelMirror.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
+- サイドバーのウィンドウは要る値だけの写し（chatPanel の `panelFollow.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
 - 子チャットのウィンドウの ✕ はメインプロセスが止めて聞く（`beforeunload` では止められない。`@/foundation/desktop/app/popouts.ts`）。
 
 ## 外のアプリで開く（`openWith/`）

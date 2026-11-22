@@ -2,8 +2,9 @@
 import { storage } from "./storage";
 
 export type { PanelTab, TerminalTarget } from "./tabs/panelTypes";
+export type { PanelState } from "./state/panelState";
 export type { PaneLayout, PaneLeaf, PaneNode, SplitDir } from "./layout/paneTree";
-export { activeTabOf, isTabVisible, leavesOf, paneOfTab, singlePane } from "./layout/paneTree";
+export { activeTabOf, homePane, isTabVisible, leavesOf, paneOfTab, singlePane } from "./layout/paneTree";
 export { reconcileLayout } from "./layout/paneLayout";
 export { forwardPanelOp } from "./state/panelMirror";
 export type { DraftScope, PanelScope, PanelSurface, SavedTabs, StripProps, SurfaceExt, TabLook, ViewScope } from "./surface";
@@ -30,6 +31,7 @@ export {
   panelsVersion,
   panelStateOf,
   restorePanelTabs,
+  setPanelReplica,
   startPanelServerEvents,
   subscribePanels,
   surfaceOf,

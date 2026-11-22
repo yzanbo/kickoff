@@ -1,11 +1,10 @@
 // メインのウィンドウ: サイドバー・チャット欄の別ウィンドウの受け口。開いている間、いまの画面を写して送り（どちらも、開いているプロジェクト・チャットに合わせるため）、
-// サイドバーにはパネルの状態の写しを、チャット欄にはチャット欄の状態そのものを渡す（features/panel/state/panelMirror.ts・panelHandOff.ts）
+// サイドバーには種類の follow の写し（下書き・子チャットの行に要るパネルの値。chatPanel の panelFollow.ts）を、チャット欄にはチャット欄の状態そのものを渡す（panel の state/panelHandOff.ts）
 import { useEffect, useState } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { sendPanelsWhileChanging } from "@/features/panel/ui/state/panelMirror";
 import { handSidePanelsOut, ownSidePanelsAgain, takeSidePanelsBack } from "@/features/panel/ui/state/panelHandOff";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
-import { popoutKey, popoutPath } from "@/foundation/ui/navigation/popout";
+import { popoutKey, popoutPath, publishFollow } from "@/foundation/ui/navigation/popout";
 import { href, routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 
@@ -60,7 +59,7 @@ export function usePopoutHosts(route: Route): { sideHeld: boolean } {
     };
   }, []);
   useEffect(() => {
-    if (sidebar > 0) return sendPanelsWhileChanging();
+    if (sidebar > 0) return publishFollow("sidebar");
   }, [sidebar]);
   useEffect(() => {
     if (sidebar > 0 || side > 0) postWindowMessage("mainRoute", { hash: href(route) });

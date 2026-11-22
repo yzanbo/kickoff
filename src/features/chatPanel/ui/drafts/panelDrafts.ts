@@ -1,9 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
-import type { DraftTabSpot } from "@/features/chatList/ui/manualOrder";
-import { homePane, isTabVisible, paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
+import type { DraftTabSpot } from "@/features/chatList/ui";
+import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
 import {
-  allPanels,
   dispatchPanel,
   forwardPanelOp,
   isPanelMounted,
@@ -16,7 +15,6 @@ import {
   restorePanelTabs,
   showTab,
   splitPane,
-  subscribePanels,
   type TabGroupBadge,
   type TabGroupLookup,
 } from "@/features/panel/ui";
@@ -33,6 +31,7 @@ import {
   type NewChatDraft,
   type NewChatDraftTarget,
 } from "@/features/composer/ui";
+import { draftTabPlaces, draftTabSpot, followedPanels, subscribeFollowedPanels, type PanelFollowSnapshot } from "@/features/chatPanel/ui/panelFollow";
 
 /**
  * 開いている送る前の新しいチャット（composer の店の下書きと、そのタブのある欄・その欄で表示しているか）。
@@ -65,20 +64,22 @@ export function draftGroupOf(key: string, groupOf: TabGroupLookup): TabGroupBadg
   return groupOf(draft.projectId, draft.group) ?? (draft.groupName ? { name: draft.groupName, hue: null } : undefined);
 }
 
-let snapshot: { drafts: readonly NewChatDraft[]; version: number; list: PlacedDraft[] } | undefined;
+let snapshot: { drafts: readonly NewChatDraft[]; version: number | PanelFollowSnapshot; list: PlacedDraft[] } | undefined;
 
-/** いまの下書きと置き場所（並びは欄・タブの並び。下書きの店もタブの置き場所も変わるまでは同じ配列を返す。下書きを使う部品を、ほかのパネルの操作のたびに描き直さない） */
+/**
+ * いまの下書きと置き場所（並びは欄・タブの並び。下書きの店もタブの置き場所も変わるまでは同じ配列を返す。下書きを使う部品を、ほかのパネルの操作のたびに描き直さない）。
+ * サイドバーの別ウィンドウでは、置き場所はメインのウィンドウからの写し
+ */
 export function placedDrafts(): PlacedDraft[] {
   const drafts = readNewChatDrafts();
-  const version = panelsVersion();
+  const followed = followedPanels();
+  const version = followed ?? panelsVersion();
   if (snapshot?.drafts === drafts && snapshot.version === version) return snapshot.list;
   const byKey = new Map(drafts.map((d) => [d.key, d]));
-  const list = [...allPanels()].flatMap(([panel, s]) =>
-    s.tabs.flatMap((t) => {
-      const draft = t.kind === "new" ? byKey.get(t.key) : undefined;
-      return draft ? [{ ...draft, panel, showing: s.open && isTabVisible(s.layout, t.key), pinned: draft.pinned === true }] : [];
-    }),
-  );
+  const list = (followed?.drafts ?? draftTabPlaces()).flatMap((place) => {
+    const draft = byKey.get(place.key);
+    return draft ? [{ ...draft, panel: place.panel, showing: place.showing, pinned: draft.pinned === true }] : [];
+  });
   const prev = snapshot?.drafts === drafts ? snapshot.list : undefined;
   const same = prev !== undefined && prev.length === list.length && prev.every((d, i) => d.key === list[i].key && d.panel === list[i].panel && d.showing === list[i].showing);
   snapshot = { drafts, version, list: same ? prev : list };
@@ -86,7 +87,7 @@ export function placedDrafts(): PlacedDraft[] {
 }
 
 const subscribeDrafts = (listener: () => void) => {
-  const offPanels = subscribePanels(listener);
+  const offPanels = subscribeFollowedPanels(listener);
   const offDrafts = subscribeNewChatDrafts(listener);
   return () => {
     offPanels();
@@ -145,29 +146,15 @@ export function restoreDraftTabs(): void {
 }
 
 /**
- * 下書きのタブの、その欄の一覧のペイン（サイドバーと連動したチャットのタブが入るペイン）での位置（サイドバーの手動の並びで、下書きの行を
- * タブの位置に合わせる）。一覧のペインにない（分けたペインへ移した）なら null
- */
-function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
-  const state = allPanels().get(draft.panel);
-  if (!state) return null;
-  const keys = homePane(state.layout).tabs;
-  const at = keys.indexOf(draft.key);
-  if (at < 0) return null;
-  const ids = keys.map((key) => {
-    const tab = state.tabs.find((t) => t.key === key);
-    return tab?.kind === "chat" ? tab.id : null;
-  });
-  const chatIds = (list: (number | null)[]) => list.filter((id): id is number => id !== null);
-  return { chatIds: chatIds(ids), before: chatIds(ids.slice(0, at)).length };
-}
-
-/**
  * 下書きのタブの、その欄の一覧のペインでの位置（draftTabSpot。サイドバーの手動の並びで下書きの行を置く）。
  * タブの列が変わったときだけ新しい配列にする（位置は文字にして比べる）。on でなければ読まず空
  */
 export function useDraftTabSpots(drafts: readonly DraftRef[], on: boolean): readonly (DraftTabSpot | null)[] {
-  const sig = useSyncExternalStore(subscribePanels, () => (on ? JSON.stringify(drafts.map(draftTabSpot)) : ""));
+  const sig = useSyncExternalStore(subscribeFollowedPanels, () => {
+    if (!on) return "";
+    const followed = followedPanels();
+    return JSON.stringify(drafts.map((d) => (followed ? (followed.spots[d.key] ?? null) : draftTabSpot(d))));
+  });
   return useMemo(() => (sig === "" ? [] : (JSON.parse(sig) as (DraftTabSpot | null)[])), [sig]);
 }
 

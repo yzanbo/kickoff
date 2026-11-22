@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
-import { closeWhenDocked, DOCK_WAIT_MS, parsePopout, popoutKey, popoutKinds, popoutPath, type PopoutKind } from "./popout";
+import { closeWhenDocked, DOCK_WAIT_MS, parsePopout, popoutKey, popoutKinds, popoutPath, publishFollow, type PopoutKind } from "./popout";
+import type { WindowMessageMap } from "./windowBus";
 
 // 項目の読み書きを確かめるための表（本物の表は持ち主の機能の ui/popoutKinds.ts。札と中身は使わない）
 const look = { label: "", Page: () => null };
@@ -80,4 +81,31 @@ test("closeWhenDocked: docked が来なくても waitMs たったら閉じる（
   assert.equal(closed.mock.calls.length, 0);
   vi.advanceTimersByTime(1);
   assert.equal(closed.mock.calls.length, 1);
+});
+
+test("publishFollow: いまの写しを送り、元が変わったらまとめて送り直す。やめたら送らない", () => {
+  vi.useFakeTimers();
+  onTestFinished(() => void vi.useRealTimers());
+  let value = 1;
+  const listeners = new Set<() => void>();
+  const change = (next: number) => {
+    value = next;
+    for (const l of listeners) l();
+  };
+  const follow = { publish: () => value, watch: (l: () => void) => (listeners.add(l), () => void listeners.delete(l)), begin: () => () => {}, apply: () => {} };
+  useTestContributions([popoutKinds.item({ ...sidebar, follow })]);
+  const sent: WindowMessageMap["popoutFollow"][] = [];
+  const stop = publishFollow("sidebar", (m) => sent.push(m));
+  onTestFinished(stop);
+  assert.deepEqual(sent, [{ kind: "sidebar", snapshot: 1 }]);
+  // 続けて変えても 1 回にまとめる
+  change(2);
+  change(3);
+  assert.equal(sent.length, 1);
+  vi.advanceTimersByTime(100);
+  assert.deepEqual(sent[1], { kind: "sidebar", snapshot: 3 });
+  stop();
+  change(4);
+  vi.advanceTimersByTime(100);
+  assert.equal(sent.length, 2);
 });

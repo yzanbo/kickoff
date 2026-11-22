@@ -15,7 +15,7 @@
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
 - チャットのタブは、サイドバーに出ているチャット（欄の `sync` = `useLinkedTabs`）に、一覧が届いてから欄の ext `linkedChatsExt` でそろえる。札の数と一覧は `usePanelChats`。
-- タブはチャットを持たず ID で `useKnownChat` から引く（列は欄の状態でしか描き直らず、名前は Face が返す。知らないチャットは行を 1 回取る）。
+- タブはチャットを持たず ID で `useKnownChat` から引く（名前は Face が返す。知らないチャットは行を 1 回取る）。
 - 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は panel の reducer の `"sync"` のコメント）。
 - 表示だけ消したタブは `dismissed` に覚えて出し直さず、一覧にないのに開いたチャットは `extra` で残す。アーカイブ・削除のあとは覚えない。
 - 一覧のペインのタブはサイドバーと同じ並び（`orderLikeSidebar`）で、落とすと手動の並びを変える。アーカイブ済みはタブの列だけの設定 `chatPanel:show-archived`。
@@ -30,5 +30,5 @@
 
 ## 下書き（送る前の新しいチャット）
 
-- 中身（書きかけの文・添付・名前・固定・作成先）は composer の下書きの店（`newChatDrafts.ts`）。タブは同じキーで指すだけで、閉じたら種類の `dispose` が下書きと右の欄を捨てる。
-- 開いている欄と開く操作は `ui/drafts/panelDrafts.ts`（`openNewChat`・`PlacedDraft`）。起動したら `restoreDraftTabs` がチャットのパネルに戻す。
+- 中身（書きかけの文・添付・名前・固定・作成先）は composer の下書きの店（`newChatDrafts.ts`）。タブは同じキーで指し、閉じたら種類の `dispose` が下書きと右の欄を捨てる。
+- 開いている欄と開く操作は `ui/drafts/panelDrafts.ts`（`openNewChat`・`PlacedDraft`）。起動したら `restoreDraftTabs` がチャットのパネルに戻す。サイドバーの窓へ写す（`ui/panelFollow.ts`）。
