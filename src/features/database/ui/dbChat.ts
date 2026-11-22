@@ -27,6 +27,7 @@ export async function startDbChat(projectId: number, text: string, title: string
  * いまあるチャットに text を送る（作業中なら送信待ちに入れる。「伝える」と同じ口）。画面は移さず、「〇〇に送りました［開く］」と知らせる
  */
 export async function askDbInChat(chat: Chat, text: string): Promise<void> {
-  const result = await api.queueMessage(chat.id, text, {});
-  showToast(`${chatTargetName(chat)}${result.queued ? "の送信待ちに入れました" : "に送りました"}`, { label: "開く", run: () => openDbChat(chat) });
+  const sent = await api.sendMessage(chat.id, { text, options: {}, attachments: [], when: "later" });
+  const queued = "result" in sent && sent.result === "queued";
+  showToast(`${chatTargetName(chat)}${queued ? "の送信待ちに入れました" : "に送りました"}`, { label: "開く", run: () => openDbChat(chat) });
 }

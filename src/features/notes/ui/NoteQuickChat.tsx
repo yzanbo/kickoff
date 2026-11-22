@@ -6,8 +6,8 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { addChat, useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { chatComposerDraft, Composer } from "@/features/composer/ui";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
-import { useChatSend } from "@/features/composer/ui/send/chatSend";
-import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
+import { useChatSend } from "@/features/composer/ui";
+import { handBackFromOf } from "@/features/childChats/ui";
 import { ChatStateMark } from "@/features/chat/ui";
 import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -24,18 +24,6 @@ const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
 
 /** ふだんの入力欄の案内（作業中は、チャット欄と同じく送り方の案内にする） */
 const PLACEHOLDER = "このページの直し方を AI に頼む（例: 表を日付順に / 見出しの色を青に）。Enter で送る、Shift+Enter で改行";
-
-/** 流れを持たないので、送っても付いていくものがない（useChatSend に渡すスクロールの代わり） */
-const NO_SCROLL: TimelineScroll = {
-  ref: { current: null },
-  inner: { current: null },
-  following: () => false,
-  follow: () => {},
-  release: () => {},
-  holdUp: () => {},
-  held: () => false,
-  settle: () => {},
-};
 
 /**
  * ノートのページの下の、そのノートを AI に直してもらう入力欄（ノートのチャットの欄を閉じている間だけ出す）。
@@ -170,21 +158,19 @@ function NoteQuickComposer({
     busy,
     // 送信待ちがあれば送信待ちに足す（チャット欄と同じ）。裏の作業・圧縮中の様子は読まない（会話の欄を開けば分かる）
     queued,
-    compactHold: null,
+    holdTexts: null,
     options,
-    scroll: NO_SCROLL,
-    background: null,
-    runningAgents: 0,
+    // 裏の作業の様子は読まないので、中断の前に聞かない（流れを持たないので、送っても付いていくものもない）
+    confirmStop: () => Promise.resolve(true),
     onStopping: setStopping,
     beforeSend,
+    from: handBackFromOf(chat?.id ?? 0),
   });
   // まだチャットがなければ、送るとノートのチャットを作る（一覧の知らせを待たずに入れ、様子の行・チャットの欄がすぐこのチャットを指すように）
-  const onSend = chat
-    ? send.onSend
-    : async (text: string, attachments: Attachment[]) => {
-        await beforeSend();
-        addChat(await api.startNoteChat(projectId, { path, text, options: options.options, attachments }));
-      };
+  const start = async (text: string, attachments: Attachment[]) => {
+    await beforeSend();
+    addChat(await api.startNoteChat(projectId, { path, text, options: options.options, attachments }));
+  };
   return (
     <div className="chat-composer">
       {/* ノートのチャットの送信待ち（閉じている欄の中のチャットの画面がここに描く。入力欄とつなげて 1 枚の枠に見せる） */}
@@ -198,11 +184,12 @@ function NoteQuickComposer({
           busy,
           stopping,
           holdsQueue: !busy && queued,
-          submit: ({ text, attachments }, mode) => (busy || queued ? send.onQueue(text, attachments, mode) : onSend(text, attachments)),
-          sendOther: (text) => (busy ? send.onQueue(text, []) : onSend(text, [])),
-          stop: chat ? send.onStop : undefined,
+          submit: chat ? send.submit : ({ text, attachments }) => start(text, attachments),
+          // 定型文の「すぐ送る」（チャットの画面と同じく出どころを付けない）
+          sendOther: chat ? (text) => send.sendOther(text, []) : (text) => start(text, []),
+          stop: chat ? send.stop : undefined,
           label: busy || queued ? send.sendLabel : undefined,
-          alternatives: chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, submit: ({ text, attachments }) => send.onAsk(text, attachments) }] : undefined,
+          alternatives: chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, submit: send.ask }] : undefined,
         }}
         draft={chat ? chatComposerDraft(chat.id) : undefined}
       />

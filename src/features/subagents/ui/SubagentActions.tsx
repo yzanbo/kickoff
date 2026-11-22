@@ -42,7 +42,7 @@ export function SubagentActions({
           title="次の指示を待たずに、届いていなかった報告をメインエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
           onClick={(e) => {
             e.stopPropagation();
-            void api.tellChat(chatId, HAND_OVER_NOW, {}).catch(reportFailure("報告を渡せませんでした"));
+            void api.sendMessage(chatId, { text: HAND_OVER_NOW, options: {}, attachments: [], when: "now" }).catch(reportFailure("報告を渡せませんでした"));
           }}
         >
           <Inbox size={12} aria-hidden />
@@ -70,7 +70,7 @@ export function SubagentActions({
     ) : null;
   }
   if (!isSubagentHalted(entry)) return null;
-  const send = (text: string, failure: string) => api.tellChat(chatId, text, {}).catch(reportFailure(failure));
+  const send = (text: string, failure: string) => api.sendMessage(chatId, { text, options: {}, attachments: [], when: "now" }).catch(reportFailure(failure));
   const resume = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (entry.agentId) void send(resumeRequest(entry.agentId, entry.description, { outputLimit: entry.outputLimit }), "再開を頼めませんでした");

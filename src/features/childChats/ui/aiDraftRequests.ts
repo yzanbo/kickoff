@@ -1,9 +1,9 @@
 // AI の頼み（kickoff_chat の add_draft。コアの SSE chat_draft）を受けて、家系のチャットの入力欄に下書きを入れる。
-// 「子チャットから渡した」の印（composerHandoff）は子チャットの持ち物なので、受け手もここ
+// 「子チャットから渡した」の印（handBackFrom）は子チャットの持ち物なので、受け手もここ
 import type { ChatDraftRequest } from "@shared/chat/openView";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { writeSetting } from "@/foundation/ui/storage";
-import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { canOpenExternal } from "@/foundation/ui/external/native";
 import { addChats, chatTargetName, knownChat, openChat } from "@/features/chat/ui";
@@ -19,7 +19,7 @@ function putDraft(request: ChatDraftRequest) {
   if (unknown.length > 0) addChats(unknown);
   const target = request.lineage.at(-1);
   if (!target) return;
-  if (request.from) writeSetting(composerHandoff(target.id), request.from);
+  if (request.from) writeSetting(storage.settings.handBackFrom(target.id), request.from);
   appendToDraft(target.id, request.text, [], { focus: false, notify: false });
   const chat = knownChat(target.id) ?? target;
   showToast(`${chatTargetName(chat)}に下書きを入れました`, { label: "開く", run: () => openChat(chat) });

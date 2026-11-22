@@ -159,7 +159,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   const shownError = error?.code === visual.code ? error.message : null;
   const onError = (message: string) => setError({ code: visual.code, message });
   // 利用者が図の中のボタンを押したときだけ届く。作業していなければすぐ送り、作業中なら送信待ちに入れる（いまの作業に割り込まない）
-  const onPrompt = screen ? (text: string) => void api.queueMessage(screen.chatId, text, {}).catch(reportFailure("図から送れませんでした")) : undefined;
+  const onPrompt = screen ? (text: string) => void api.sendMessage(screen.chatId, { text, options: {}, attachments: [], when: "later" }).catch(reportFailure("図から送れませんでした")) : undefined;
   const save = () => {
     if (!screen) return;
     saveVisualToNote(visual, screen.chatId, screen.projectId).catch((e: unknown) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${errorMessage(e)}` }));

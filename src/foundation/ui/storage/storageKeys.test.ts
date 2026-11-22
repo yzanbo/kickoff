@@ -4,7 +4,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { fileURLToPath } from "node:url";
 import { storage as shellStorage } from "./storage";
-import { composerHandoff, NEW_CHAT_DRAFTS } from "./storageKeys";
+import { githubSelected, NEW_CHAT_DRAFTS } from "./storageKeys";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 /** 画面のソースの根（画面の土台・組み立て・各機能の ui） */
@@ -44,7 +44,7 @@ test("localStorage・sessionStorage は storage/settings.ts の外で直接読�
 });
 
 test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
-  assert.equal(composerHandoff(1).ids, true);
+  assert.equal(githubSelected(1).ids, true);
   assert.equal(NEW_CHAT_DRAFTS.ids, true);
   assert.equal(shellStorage.settings.lastRoute.ids, true);
   assert.equal(shellStorage.settings.theme.ids, false);

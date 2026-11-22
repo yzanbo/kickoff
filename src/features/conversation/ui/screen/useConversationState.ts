@@ -35,7 +35,7 @@ export function useConversationState({ chat, project, focus, beforeSend }: Conve
   // 描く中で外の値を書かない（React Compiler の決まり）。描いた結果を当てる段で、どの effect よりも先に入れる
   useInsertionEffect(() => {
     shell.setWindow(windowPort);
-    shell.setSend({ options, sendOther: send.onSendOther });
+    shell.setSend({ options, sendOther: send.sendOther });
   });
   useLayoutEffect(() => {
     shell.rewind.choices.set(retry);

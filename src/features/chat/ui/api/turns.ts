@@ -1,7 +1,7 @@
 import type { FileRewindResult } from "@shared/ai/types";
-import type { ChatEventOf, MessageMarks } from "@shared/chat/chatEvent";
+import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { Attachment, Chat, ChatOptionsPatch, MessageBody, QueuedMessage } from "@shared/chat/types";
-import type { SendMessageBody, TellResult } from "@shared/chat/send";
+import type { SendBody, SendResult } from "@shared/chat/send";
 import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "@shared/providerSwitch/types";
 import type { ProviderId } from "@shared/settings/types";
 import { withSendExtras } from "@/features/chat/ui/send/sendExtras";
@@ -23,17 +23,11 @@ export const turnsApi = {
   /** 入力欄で書き直している預かった指示を知らせる（丸ごと置き換え、空なら外す。書き直している間は、その指示から後ろを送らない。開いている間は知らせ直す） */
   setAfterCompactEditing: (chatId: number, ids: string[]) => request<void>("PUT", `/api/chats/${chatId}/after-compact/editing`, { ids }),
   /**
-   * pauseAfter: 質問として送る（この作業が終わったら、送信待ちを自動で送らずに一時停止する）。
-   * marks: 発言の印（親への依頼文の頼み・子チャットから渡した依頼。記録の発言に残る）
+   * 送る口 1 本（POST /api/chats/:chatId/messages）。when: now = 止めずに伝える（作業していなければすぐ送る。足せなければ預かる）/
+   * later = 作業中なら送信待ちに入れる（hold なら作業していなくても列の最後）。省けば続きを送る（作業中は 409。答えはチャット）。
+   * pause_after は質問として送る（この作業が終わったら送信待ちを一時停止）、handoff_* は発言の印
    */
-  sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>
-    request<Chat>("POST", `/api/chats/${chatId}/messages`, withSendExtras({ text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies SendMessageBody)),
-  /**
-   * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ預かり、作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る）。
-   * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った / held = 圧縮中なので預かった。pauseAfter・marks は sendMessage と同じ
-   */
-  tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>
-    request<TellResult>("POST", `/api/chats/${chatId}/tell`, withSendExtras({ text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies SendMessageBody)),
+  sendMessage: (chatId: number, body: SendBody) => request<Chat | SendResult>("POST", `/api/chats/${chatId}/messages`, withSendExtras(body)),
   cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
   /**
    * 会話を要約して、コンテキストを空ける（作業中なら予約: 送信待ちのいちばん上に「会話を圧縮」の行を入れ、

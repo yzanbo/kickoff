@@ -41,5 +41,5 @@ export function retryTurn(chatId: number, options: ChatOptionsState, change: Ret
     next.effort = change.effort;
     options.setEffort(change.effort);
   }
-  void api.sendMessage(chatId, RETRY_PROMPT, next).catch(reportFailure("再試行できませんでした"));
+  void api.sendMessage(chatId, { text: RETRY_PROMPT, options: next, attachments: [] }).catch(reportFailure("再試行できませんでした"));
 }

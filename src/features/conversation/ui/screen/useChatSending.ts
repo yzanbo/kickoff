@@ -3,10 +3,15 @@ import { useEffect } from "react";
 import type { Chat } from "@shared/chat/types";
 import { chatSubagents } from "@/features/subagents/ui";
 import { useChatOptions } from "@/features/ai/ui";
-import { compactHoldOf } from "@/features/compact/ui";
+import { compactHoldOf, HOLD_TEXTS } from "@/features/compact/ui";
+import { handBackFromOf } from "@/features/childChats/ui";
+import { confirmStopAgents } from "@/features/conversation/ui/background/backgroundLabel";
 import { useChatSend } from "@/features/composer/ui";
 import type { TimelineScroll } from "@/features/conversation/ui/timeline/timelineScroll";
 import { setStopPressed, useScreenLive } from "@/features/conversation/ui/working/screenLive";
+
+/** コアが「いま」を預かる間の案内（圧縮前指示から圧縮のあとのやり取りが終わるまで） */
+const holdTextsOf = (hold: ReturnType<typeof compactHoldOf>) => (hold ? HOLD_TEXTS[hold] : null);
 
 export function useChatSending(chat: Chat, scroll: TimelineScroll, beforeSend?: () => Promise<void>) {
   const options = useChatOptions(
@@ -28,13 +33,15 @@ export function useChatSending(chat: Chat, scroll: TimelineScroll, beforeSend?: 
     chatId: chat.id,
     busy,
     queued: live.queue.messages.length > 0,
-    compactHold: compactHoldOf(live),
+    holdTexts: holdTextsOf(compactHoldOf(live)),
     options,
-    scroll,
-    background: live.background,
-    runningAgents,
+    // 中断は、裏で動いているサブエージェント・コマンドも止まることを確かめてから
+    confirmStop: () => confirmStopAgents(live.background, runningAgents, "中断する"),
     onStopping: (on) => setStopPressed(chat.id, on),
     beforeSend,
+    // 送ったら一番下に付いていく
+    afterSend: () => scroll.follow(),
+    from: handBackFromOf(chat.id),
   });
   return { options, busy, live, send };
 }

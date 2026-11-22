@@ -4,16 +4,8 @@
  * チャットの書きかけと開き方は 06・AI に見せる画面の様子は 09）。キーは前の名前のまま。宣言は群 legacyKeys.ts に包んで起動の片付けに渡す。
  * プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる）
  */
-import type { HandoffFrom } from "@shared/chat/chatEvent";
 import { choice, defineSetting, defineSettingFamily, flag, json, record, text } from "./settings";
 import { NO_DB_TABS, parseDbClientTabs } from "@/features/database/ui/client/dbClientTabs";
-
-/** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
-function parseHandoffFrom(value: unknown): HandoffFrom | null {
-  if (typeof value !== "object" || value === null) return null;
-  const { chat_id, title } = value as Record<string, unknown>;
-  return typeof chat_id === "number" && typeof title === "string" ? { chat_id, title } : null;
-}
 
 /**
  * プロジェクトのチャットを開く場所（separate = ボードと分けた「チャット」タブで横幅いっぱいに / together = ボードの右のパネル。設定の「表示」）。
@@ -28,11 +20,6 @@ export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 /** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
 export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record(), { ids: true });
-/**
- * チャットごとの、入力欄に入れた子チャットからの依頼の出どころ（「親チャットに追加」の入力欄。入力欄の上の札「子チャット『…』から」。
- * 送ると発言の handoff_from にして消す。× でも消す。null = なし）
- */
-export const composerHandoff = defineSettingFamily("kickoff:composer-handoff:", json(parseHandoffFrom, null, (v) => v === null), { ids: true });
 /**
  * サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄にサブエージェントの画面を開く /
  * window = 別ウィンドウ。初めは右の欄。カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。ほかはピルの一覧の行のボタン・カードのボタンで選べる。

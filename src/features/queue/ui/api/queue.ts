@@ -1,9 +1,7 @@
-import type { MessageMarks } from "@shared/chat/chatEvent";
 import type { RestartResume, QueueState } from "@shared/chat/chatLive";
-import type { Attachment, ChatOptionsPatch, QueueAction } from "@shared/chat/types";
-import type { QueueAddResult, QueueMergeResult, QueueMessageBody } from "@shared/chat/send";
+import type { Attachment, QueueAction } from "@shared/chat/types";
+import type { QueueMergeResult } from "@shared/chat/send";
 import type { RestartResumeBody } from "@shared/queue/types";
-import { withSendExtras } from "@/features/chat/ui";
 import { request } from "@/foundation/ui/api/http";
 import { noteQueuedRemoved } from "./queueRemovals";
 
@@ -18,18 +16,6 @@ export const queueApi = {
   restartResumes: () => request<RestartResume[]>("GET", "/api/restart-resumes"),
   /** 起動したときの再開の確かめに答える（チャットごと。答えたあとの残りを返す） */
   resolveRestartResumes: (decisions: RestartResumeBody["decisions"]) => request<RestartResume[]>("POST", "/api/restart-resumes", { decisions } satisfies RestartResumeBody),
-  /**
-   * 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
-   * pauseAfter なら、入れたその指示のすぐあとに一時停止の印を付ける = 質問として送る。marks は発言の印（送るときに記録の発言に残る））
-   */
-  queueMessage: (
-    chatId: number,
-    text: string,
-    options: ChatOptionsPatch,
-    attachments: Attachment[] = [],
-    { hold = false, pauseAfter = false, marks = {} }: { hold?: boolean; pauseAfter?: boolean; marks?: MessageMarks } = {},
-  ) =>
-    request<QueueAddResult>("POST", queuePath(chatId), withSendExtras({ text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies QueueMessageBody)),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<QueueState>("PATCH", queuePath(chatId, `/${id}`), attachments ? { text, attachments } : { text }),

@@ -52,8 +52,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
   const relay = async (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => {
     const message = relayMessage(agentId, description, text);
-    if (view.busy && (sendMode ?? queueMode) === "queue") await api.queueMessage(view.chatId, message, {}, attachments);
-    else await api.tellChat(view.chatId, message, {}, attachments);
+    await api.sendMessage(view.chatId, { text: message, options: {}, attachments, when: view.busy && (sendMode ?? queueMode) === "queue" ? "later" : "now" });
     onSent?.();
   };
   const ask = async (text: string, attachments: Attachment[]) => {

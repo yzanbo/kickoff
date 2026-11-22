@@ -4,7 +4,7 @@ import type { HandoffFrom } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { writeSetting } from "@/foundation/ui/storage";
 import { isScreenShown, knownChat, openChat, screenOfChat } from "@/features/chat/ui";
 import { appendToDraft } from "@/features/composer/ui";
@@ -32,11 +32,11 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
 
 /**
  * 子チャットの答え（handBackText で作った引用・依頼文）を、親の入力欄の後ろに空行を挟んで足す（送るのは自分で。別ウィンドウからはメインに頼む）。
- * from を渡すと、親の入力欄の上に出どころの札（「子チャット『…』から」）を出し、送った発言に付ける（composerHandoff。保存はウィンドウで共有）
+ * from を渡すと、親の入力欄の上に出どころの札（「子チャット『…』から」）を出し、送った発言に付ける（handBackFrom。保存はウィンドウで共有）
  */
 export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string, from?: HandoffFrom) {
   if (child.parent_chat_id === null) return;
-  if (from) writeSetting(composerHandoff(child.parent_chat_id), from);
+  if (from) writeSetting(storage.settings.handBackFrom(child.parent_chat_id), from);
   if (inPopout()) return postToMainWindow("childToParent", { childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;

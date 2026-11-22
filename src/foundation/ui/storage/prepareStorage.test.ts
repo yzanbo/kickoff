@@ -5,7 +5,7 @@ import { installMemoryStorage } from "./memoryStorage";
 import { choice, optionalFlag, readSetting, record } from "./settings";
 import { storage as legacyKeys } from "./legacyKeys";
 import { storage as shellStorage } from "./storage";
-import { composerHandoff, NEW_CHAT_DRAFTS } from "./storageKeys";
+import { githubSelected, NEW_CHAT_DRAFTS } from "./storageKeys";
 import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
@@ -24,14 +24,14 @@ const fold = extra.settings.fold;
 function rememberSome() {
   local.setItem(fold("sidebar:p1/g3").key, "0");
   local.setItem(NEW_CHAT_DRAFTS.key, JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new", projectId: 1 }] }));
-  local.setItem(composerHandoff(7).key, JSON.stringify({ chat_id: 8, title: "子" }));
+  local.setItem(githubSelected(7).key, "pr:8");
   local.setItem(fold("panel:p1/g2").key, "0");
   session.setItem(extra.settings.lastHashes.key, JSON.stringify({ 1: "#/projects/1" }));
   local.setItem(shellStorage.settings.theme.key, "light");
   local.setItem(extra.settings.queueMode.key, "queue");
 }
 
-const ID_KEYS = [fold("sidebar:p1/g3").key, NEW_CHAT_DRAFTS.key, composerHandoff(7).key, fold("panel:p1/g2").key];
+const ID_KEYS = [fold("sidebar:p1/g3").key, NEW_CHAT_DRAFTS.key, githubSelected(7).key, fold("panel:p1/g2").key];
 
 /** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
 function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {
@@ -92,9 +92,9 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   serveStatus("db-new", new Promise<void>((resolve) => (answer = resolve)));
   await prepareStorage(GROUPS, { timeoutMs: 5 });
   // まだ届いていないので、捨てていない
-  assert.notEqual(local.getItem(composerHandoff(7).key), null);
+  assert.notEqual(local.getItem(githubSelected(7).key), null);
   answer();
   for (let i = 0; i < 500 && reloaded === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
-  assert.equal(local.getItem(composerHandoff(7).key), null);
+  assert.equal(local.getItem(githubSelected(7).key), null);
   assert.equal(reloaded, 1);
 });

@@ -80,7 +80,7 @@ export function ChatComposerArea({
     openCreatedChild(await childChatsApi("POST /api/chats/:chatId/children", { params: { chatId: chat.id }, body: { text, attachments, quote: null, inherit, event_id: null } }));
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
-  const sendSnippet = (text: string) => send.onSendOther(text, []);
+  const sendSnippet = (text: string) => send.sendOther(text, []);
   // 音声モードで読み上げる候補（メインエージェントの文章の返答）。起こした文は定型文の「すぐ送る」と同じ送り方で送る（入力欄の文は残す）
   const replies = voiceReplies.useFor(chat.id);
   // 入力欄の送る口: 作業中・止めている送信待ちがあるときは送り方（いま / あとで）で送る。圧縮前指示から圧縮のあとのやり取りが終わるまでも切り替えを出す
@@ -90,13 +90,13 @@ export function ChatComposerArea({
     stopping: live.stopping,
     compacting: live.compacting !== null,
     holdsQueue: !busy && queued,
-    submit: ({ text, attachments }, mode) => (busy || queued ? send.onQueue(text, attachments, mode) : send.onSend(text, attachments)),
+    submit: send.submit,
     // 定型文の帯の「すぐ送る」
     sendOther: sendSnippet,
-    stop: send.onStop,
+    stop: send.stop,
     label: send.sendLabel,
     alternatives: [
-      { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, submit: ({ text, attachments }) => send.onAsk(text, attachments) },
+      { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, submit: send.ask },
       ...(noteOrArchived
         ? []
         : [true, false].map((inherit) => ({

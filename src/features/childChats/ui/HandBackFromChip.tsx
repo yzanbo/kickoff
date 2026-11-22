@@ -1,7 +1,7 @@
 import { MessagesSquare } from "lucide-react";
 import type { HandoffFrom } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { composerHandoff } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "./storage";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { tipProps } from "@/foundation/ui/kit/HoverTip";
@@ -32,7 +32,7 @@ export function HandoffFromChip({ from, onRemove }: { from: HandoffFrom; onRemov
 
 /** 入力欄の上の出どころの札（「親チャットに追加」で入力欄に入れた依頼。送ると発言の札になり、ここからは消える。× で外す） */
 export function ComposerHandoffChip({ chatId }: { chatId: number }) {
-  const [from, setFrom] = useSetting(composerHandoff(chatId));
+  const [from, setFrom] = useSetting(storage.settings.handBackFrom(chatId));
   if (!from) return null;
   return (
     <div className="composer-handoff">

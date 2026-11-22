@@ -28,7 +28,7 @@ function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; cha
   const [nav] = useState(() => ({ ...windowSubagentNav(chat.id), rewind: createRewindActions(chat.id, () => scroll.follow()) }));
   const { options, send } = useChatSending(chat, scroll);
   useInsertionEffect(() => {
-    nav.rewind.setSend({ options, sendOther: send.onSendOther });
+    nav.rewind.setSend({ options, sendOther: send.sendOther });
   });
   const fileLinks = useFileLinks(chat, project?.repo_path, false);
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
