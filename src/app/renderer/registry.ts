@@ -27,8 +27,16 @@ import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 /** プロジェクトの画面（タブ）の ID（URL の #/projects/<id>/<画面>。プロジェクトの画面の拡張点 projectViews ができたら、そこから作る） */
 const PROJECT_VIEWS = ["board", "chats", "files", "search", "changes", "history", "notes", "db", "github", "docker", "ci", "trash"];
 
+/**
+ * 全部の機能の登録（機能の並び順。足すときも同じ順に）。作業場所の飾りは worktrees・github の分・タブの説明（userViewTabs）は全部の種類の分（持ち主へ移すまでここ）。
+ * 殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後。registry.test.ts が網羅を確かめる
+ */
+export const registryContributions = () => [
+  ...panel, ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...github, ...notes, ...database, ...terminal, ...browser, ...voice,
+  ...workplaceDecorItems, ...userViewTabItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v)),
+];
+
 export function installRegistry(): void {
   configureRouter({ projectViews: PROJECT_VIEWS, defaultView: "board" });
-  // 機能の並び順（足すときも同じ順に）。作業場所の飾りは worktrees・github の分・タブの説明（userViewTabs）は全部の種類の分（持ち主へ移すまでここ）。殻がまとめて出すもの（別ウィンドウの種類）と、AI のツールの表示の表（src/app/shared/aiToolViews.ts）は最後
-  installContributions([...panel, ...projects, ...chat, ...composer, ...snippets, ...compact, ...childChats, ...chatPanel, ...files, ...git, ...github, ...notes, ...database, ...terminal, ...browser, ...voice, ...workplaceDecorItems, ...userViewTabItems, ...popouts, ...AI_TOOL_VIEWS.map((v) => aiToolViews.item(v))]);
+  installContributions(registryContributions());
 }
