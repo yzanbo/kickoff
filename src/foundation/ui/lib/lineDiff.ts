@@ -1,7 +1,7 @@
 // 2 つの文を行ごとに比べる（最長共通部分列。純粋関数）。ノートの AI の案の差分・ターンの変更カードの行の数で共通に使う
 
-/** 比べた 1 行（same = 両方にある / del = 前だけ / add = 後ろだけ） */
-export interface DiffLine {
+/** 比べた 1 行（same = 両方にある / del = 前だけ / add = 後ろだけ。差分の表の行は @/foundation/ui/diff/diffModel の DiffLine） */
+export interface LineChange {
   kind: "same" | "add" | "del";
   text: string;
 }
@@ -13,19 +13,19 @@ const lines = (text: string) => (text === "" ? [] : text.replace(/\n$/, "").spli
 const MAX_CELLS = 1_000_000;
 
 /** 前後の文の行ごとの違い（前と後ろの同じ行を先に外してから、残りを最長共通部分列で比べる。消した行を足した行より先に並べる） */
-export function lineDiff(before: string, after: string): DiffLine[] {
+export function lineDiff(before: string, after: string): LineChange[] {
   const a = lines(before);
   const b = lines(after);
   let head = 0;
   while (head < a.length && head < b.length && a[head] === b[head]) head++;
   let tail = 0;
   while (tail < a.length - head && tail < b.length - head && a[a.length - 1 - tail] === b[b.length - 1 - tail]) tail++;
-  const same = (text: string): DiffLine => ({ kind: "same", text });
+  const same = (text: string): LineChange => ({ kind: "same", text });
   const midA = a.slice(head, a.length - tail);
   const midB = b.slice(head, b.length - tail);
-  const out: DiffLine[] = a.slice(0, head).map(same);
+  const out: LineChange[] = a.slice(0, head).map(same);
   if (midA.length * midB.length > MAX_CELLS) {
-    out.push(...midA.map((text): DiffLine => ({ kind: "del", text })), ...midB.map((text): DiffLine => ({ kind: "add", text })));
+    out.push(...midA.map((text): LineChange => ({ kind: "del", text })), ...midB.map((text): LineChange => ({ kind: "add", text })));
   } else {
     // 表 len[i][j] = midA[i..] と midB[j..] の最長共通部分列の長さ（後ろから埋め、前からたどる）
     const w = midB.length + 1;
@@ -54,7 +54,7 @@ export function lineDiff(before: string, after: string): DiffLine[] {
 }
 
 /** 足した行と消した行の数 */
-export function lineCounts(diff: readonly DiffLine[]): { added: number; removed: number } {
+export function lineCounts(diff: readonly LineChange[]): { added: number; removed: number } {
   let added = 0;
   let removed = 0;
   for (const d of diff) {

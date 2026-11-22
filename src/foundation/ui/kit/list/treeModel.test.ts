@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { buildTree, changeKinds, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, topLevelPaths, treePaths, visibleTreePaths, type TreeNode } from "./treeModel";
+import { buildTree, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, topLevelPaths, treePaths, visibleTreePaths, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));
 
@@ -31,29 +31,6 @@ test("すべて開く: 無視しているフォルダとその中は開かない
   const tree = buildTree({ files: ["src/lib/x.ts", "docs/a.md"], ignored: [{ path: "node_modules", dir: true }], empty_dirs: ["src/empty"] });
   assert.deepEqual(openableFolders(tree), ["docs", "src", "src/empty", "src/lib"]);
   assert.deepEqual(folderPaths(tree), ["docs", "node_modules", "src", "src/empty", "src/lib"]);
-});
-
-test("ファイルは未ステージ・競合を優先し、フォルダには中でいちばん目立つ記号を付ける", () => {
-  const { files, folders } = changeKinds({
-    repo: true,
-    branch: "main",
-    upstream: null,
-    has_origin: false,
-    ahead: 0,
-    behind: 0,
-    staged: [{ path: "src/a.ts", kind: "A" }],
-    unstaged: [
-      { path: "src/a.ts", kind: "M" },
-      { path: "src/lib/new.ts", kind: "U" },
-    ],
-    conflicts: [{ path: "docs/x.md", kind: "!" }],
-    operation: null,
-  });
-  assert.equal(files.get("src/a.ts"), "M");
-  assert.equal(files.get("src/lib/new.ts"), "U");
-  assert.equal(folders.get("src"), "M");
-  assert.equal(folders.get("src/lib"), "U");
-  assert.equal(folders.get("docs"), "!");
 });
 
 test("parentFolders: ファイルの上にあるフォルダを近い順に返す（直下のファイルは空）", () => {

@@ -12,7 +12,8 @@ import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileTree, siblingNameError, type TreeMulti } from "@/features/files/ui/FileTree";
-import { buildTree, folderPaths, kindMaps, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
+import { buildTree, folderPaths, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
+import { kindMaps } from "./changes/changeMarks";
 import type { FileRename } from "@/features/files/ui/useFileActions";
 
 export type GitAction = "stage" | "unstage" | "discard";

@@ -1,21 +1,16 @@
 import { Pencil } from "lucide-react";
-import { Fragment, useMemo, type ReactNode } from "react";
 import type { GitDiff, GitFileChange } from "@shared/git/types";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
-import { cx } from "@/foundation/ui/lib/cx";
-import type { CodeToken } from "@/foundation/ui/code/highlight";
-import { languageOf } from "@/foundation/ui/code/languages";
-import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
-import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
-import { parseDiff, toSplitRows, type DiffLine } from "@/foundation/ui/diff/diffModel";
+import { parseDiff } from "@/foundation/ui/diff/diffModel";
+import { SPLIT_MIN_WIDTH, SplitDiff, UnifiedDiff } from "@/foundation/ui/diff/DiffTable";
+import { useDiffHighlight } from "@/foundation/ui/diff/useDiffHighlight";
 import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { gitApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
-
 
 /** files の FileTree が読む変更の種類の名前（files ⇄ git の口 filesGit を作る P8-1g で消す） */
 export { GIT_CHANGE_LABELS as CHANGE_LABELS } from "@shared/git/labels";
@@ -35,9 +30,6 @@ export function useFileDiff({ projectId, file, staged, version, commit, active =
         : gitApi("GET /api/projects/:projectId/git/diff", workdirInput(target, { path: file.path, old: file.old_path, staged }))), { deps: [version], enabled: active });
   return loaded.loaded ? { diff: loaded.data, error: errorText(loaded.error) } : undefined;
 }
-
-/** これより狭いときは、左右に並べる設定でも 1 列で出す */
-export const SPLIT_MIN_WIDTH = 560;
 
 /**
  * 選んだファイルの差分。VS Code と同じく左右に並べて出し、git diff と同じ 1 列にもできる（選んだ方を覚えておく）。
@@ -73,7 +65,7 @@ export function DiffView({
   const own = useFileDiff({ projectId, file, staged, version, commit, active: source === undefined });
   const current = source ?? own;
   const diff = current?.diff;
-  const lines = useMemo(() => (diff ? parseDiff(diff.diff) : []), [diff]);
+  const lines = diff ? parseDiff(diff.diff) : [];
   const tokensOf = useDiffHighlight(lines, file.path, file.old_path);
 
   return (
@@ -113,103 +105,5 @@ export function DiffView({
         {current?.diff?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています。</p>}
       </div>
     </div>
-  );
-}
-
-/**
- * 差分の行の色（VS Code と同じ配色）。前後の行のつながり（複数行のコメントなど）を保つため、
- * 変更前（残した行・消した行）と変更後（残した行・足した行）をそれぞれ 1 つのコードとして色を付ける
- */
-export function useDiffHighlight(lines: DiffLine[], path: string, oldPath?: string | null) {
-  const before = useMemo(() => lines.filter((l) => l.oldNo !== undefined), [lines]);
-  const after = useMemo(() => lines.filter((l) => l.newNo !== undefined), [lines]);
-  const beforeTokens = useHighlight(
-    useMemo(() => before.map((l) => l.text), [before]),
-    languageOf(oldPath ?? path),
-  );
-  const afterTokens = useHighlight(
-    useMemo(() => after.map((l) => l.text), [after]),
-    languageOf(path),
-  );
-  return useMemo(() => {
-    const map = new Map<DiffLine, CodeToken[]>();
-    before.forEach((line, i) => beforeTokens?.[i] && map.set(line, beforeTokens[i]));
-    after.forEach((line, i) => afterTokens?.[i] && map.set(line, afterTokens[i]));
-    return map;
-  }, [before, after, beforeTokens, afterTokens]);
-}
-
-type TokensOf = Map<DiffLine, CodeToken[]>;
-
-/** git diff と同じ 1 列（左に変更前・変更後の行番号）。after はその行の下に横幅いっぱいで足すもの（GitHub の PR の行のスレッド） */
-export function UnifiedDiff({ lines, tokensOf, after }: { lines: DiffLine[]; tokensOf: TokensOf; after?: (line: DiffLine) => ReactNode }) {
-  return (
-    <table className="diff-table">
-      <colgroup>
-        <col className="diff-col-no" />
-        <col className="diff-col-no" />
-        <col />
-      </colgroup>
-      <tbody>
-        {lines.map((line, i) =>
-          line.type === "hunk" ? (
-            <tr key={i} className="diff-hunk">
-              <td colSpan={3}>{line.text}</td>
-            </tr>
-          ) : (
-            <Fragment key={i}>
-              <tr className={`line-${line.type}`}>
-                <td className="diff-no">{line.oldNo}</td>
-                <td className="diff-no">{line.newNo}</td>
-                {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行の「チャットに追加」に使う） */}
-                <td className="diff-code" data-no={line.newNo ?? line.oldNo} data-side={line.newNo !== undefined ? "new" : "old"}>
-                  <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
-                  <CodeLine tokens={tokensOf.get(line)} text={line.text} />
-                </td>
-              </tr>
-              {after?.(line)}
-            </Fragment>
-          ),
-        )}
-      </tbody>
-    </table>
-  );
-}
-
-/** 左に変更前、右に変更後を並べる（VS Code と同じ） */
-function SplitDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensOf }) {
-  const rows = useMemo(() => toSplitRows(lines), [lines]);
-  // 左右で key を分ける（同じ key だと、片側のセルが落ちる）
-  const side = (line: DiffLine | undefined, no: "oldNo" | "newNo") => [
-    <td key={`${no}-no`} className={cx("diff-no", line ? `line-${line.type}` : "line-empty")}>
-      {line?.[no]}
-    </td>,
-    <td key={`${no}-code`} className={cx("diff-code", line ? `line-${line.type}` : "line-empty")} data-no={line?.[no]} data-side={no === "newNo" ? "new" : "old"}>
-      {line && <CodeLine tokens={tokensOf.get(line)} text={line.text} />}
-    </td>,
-  ];
-  return (
-    <table className="diff-table">
-      <colgroup>
-        <col className="diff-col-no" />
-        <col />
-        <col className="diff-col-no" />
-        <col />
-      </colgroup>
-      <tbody>
-        {rows.map((row, i) =>
-          "hunk" in row ? (
-            <tr key={i} className="diff-hunk">
-              <td colSpan={4}>{row.hunk.text}</td>
-            </tr>
-          ) : (
-            <tr key={i}>
-              {side(row.left, "oldNo")}
-              {side(row.right, "newNo")}
-            </tr>
-          ),
-        )}
-      </tbody>
-    </table>
   );
 }

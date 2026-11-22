@@ -8,6 +8,9 @@ import { createGitStatusStore } from "./gitStatusStore";
 import { gitApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
+/** files の木が読む変更の記号（files ⇄ git の口 filesGit を作る P8-1g で消す） */
+export { changeKinds, type ChangeKinds } from "./changes/changeMarks";
+
 /** 画面全体で 1 つの Git の状態の店（作業場所ごとに 1 つの購読。取り直す決まりは gitStatusStore.ts） */
 const gitStatuses = createGitStatusStore({ load: (ref) => gitApi("GET /api/projects/:projectId/git/status", workdirInput(ref)), fetch: (ref) => gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref)), autoFetcher: gitAutoFetch });
 

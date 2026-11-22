@@ -6,9 +6,9 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { ListHideButton } from "@/foundation/ui/kit/ListRail";
 import { FileTree, type TreeMulti } from "./FileTree";
-import { folderPaths, parentPath, treePaths, visibleTreePaths, type ChangeKinds } from "@/foundation/ui/kit/list/treeModel";
+import { folderPaths, parentPath, treePaths, visibleTreePaths } from "@/foundation/ui/kit/list/treeModel";
 import type { FileCreate, FileRename } from "./useFileActions";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import type { ChangeKinds, GitStatusController } from "@/features/git/ui/useGitStatus";
 import type { useProjectFiles } from "./useProjectFiles";
 
 /**

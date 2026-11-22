@@ -8,6 +8,18 @@ export interface DiffLine {
   newNo?: number;
 }
 
+/**
+ * 差分・コードの表の行のセル（.diff-code）が持つ印。外から読む取り決め（選んだ行をチャットに引用する・PR の行にコメントを付ける）:
+ * data-no は行番号、data-side は差分の変更前 old・変更後 new（ファイルの中身の表にはない）
+ */
+export const DIFF_ROW_ATTRS = { cell: ".diff-code[data-no]", no: "data-no", side: "data-side" } as const;
+
+/** セルの行番号と側（側がなければ null） */
+export function diffCellOf(cell: Element): { no: number; side: "old" | "new" | null } {
+  const side = cell.getAttribute(DIFF_ROW_ATTRS.side);
+  return { no: Number(cell.getAttribute(DIFF_ROW_ATTRS.no)), side: side === "old" || side === "new" ? side : null };
+}
+
 /** 左右に並べるときの 1 行（見出しは左右をまたぐ） */
 export type SplitRow = { hunk: DiffLine } | { left?: DiffLine; right?: DiffLine };
 

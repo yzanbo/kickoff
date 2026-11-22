@@ -10,6 +10,7 @@ import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
 import { focusedCodeSelection } from "@/foundation/ui/code/codeSelection";
+import { DIFF_ROW_ATTRS, diffCellOf } from "@/foundation/ui/diff/diffModel";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "@/features/chat/ui/quote";
 import { SelectionTargetButton } from "./SelectionTargetButton";
@@ -77,13 +78,13 @@ export function pickedInCode(root: Element | null): Picked | undefined {
   const at = currentRange();
   const section = at?.element?.closest<HTMLElement>("[data-quote-path]");
   if (!at || !root || !section || !root.contains(section)) return undefined;
-  const cells = [...section.querySelectorAll<HTMLElement>(".diff-code[data-no]")].filter((cell) => at.range.intersectsNode(cell));
-  const side: "new" | "old" | null = cells.some((c) => c.dataset.side === "new") ? "new" : cells.some((c) => c.dataset.side === "old") ? "old" : null;
-  const picked = cells.filter((c) => (c.dataset.side ?? null) === side);
+  const cells = [...section.querySelectorAll<HTMLElement>(DIFF_ROW_ATTRS.cell)].filter((cell) => at.range.intersectsNode(cell));
+  const side: "new" | "old" | null = cells.some((c) => diffCellOf(c).side === "new") ? "new" : cells.some((c) => diffCellOf(c).side === "old") ? "old" : null;
+  const picked = cells.filter((c) => diffCellOf(c).side === side);
   if (picked.length === 0) return undefined;
   // 1 列の表の行の頭の +・- は、コードに入れない
   const codeOf = (cell: HTMLElement) => (cell.textContent ?? "").slice(cell.querySelector(".diff-sign")?.textContent?.length ?? 0);
-  const numbers = picked.map((c) => Number(c.dataset.no));
+  const numbers = picked.map((c) => diffCellOf(c).no);
   const code = picked.map(codeOf).join("\n");
   const range = { path: section.dataset.quotePath ?? "", from: Math.min(...numbers), to: Math.max(...numbers), side };
   return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }), code: { text: code, lines: { from: range.from, to: range.to } } };

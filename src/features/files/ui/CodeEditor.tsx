@@ -13,7 +13,7 @@ import { registerCodeSelection } from "@/foundation/ui/code/codeSelection";
 import { quickDiffDecorations, readSelection } from "./codeEditorParts";
 import { MonacoFindBar } from "./MonacoFindBar";
 import { syncMonacoFindOptions } from "./monacoFindOptions";
-import { SPLIT_MIN_WIDTH } from "@/features/git/ui/DiffView";
+import { SPLIT_MIN_WIDTH } from "@/foundation/ui/diff/DiffTable";
 import { blameAt, blameHover, blameLabel } from "@/features/git/ui/blameText";
 import { quickDiff } from "@/foundation/ui/diff/quickDiff";
 

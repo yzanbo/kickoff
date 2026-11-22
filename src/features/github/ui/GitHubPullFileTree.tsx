@@ -4,7 +4,8 @@ import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { storage } from "./storage";
 import { FileTree } from "@/features/files/ui/FileTree";
-import { buildTree, folderPaths, kindMaps } from "@/foundation/ui/kit/list/treeModel";
+import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
+import { kindMaps } from "@/features/git/ui";
 import { pullFileChanges } from "./pullFiles";
 
 /** 左のファイルの木（初めはすべてのフォルダを開く。幅は境目をドラッグで変える） */
