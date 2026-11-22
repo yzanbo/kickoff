@@ -127,6 +127,52 @@ export interface ClaudeToolInputs {
 export type ClaudeToolName = keyof ClaudeToolInputs;
 export type ClaudeToolInput<N extends ClaudeToolName> = ClaudeToolInputs[N];
 
+/** 「変えた」を 1 つの形にしたもの（hunks は変えた所。deleted: ファイルを消した・movedTo: 名前を変えた先） */
+export interface EditChange {
+  path: string;
+  hunks: EditHunk[];
+  deleted: boolean;
+  movedTo: string | null;
+}
+
+const text = (v: unknown): string => (typeof v === "string" ? v : "");
+
+/** unified diff の文を、@@ の塊ごとの「消した行 → 足した行」にする（前後の変えていない行は入れない） */
+function hunksOfDiff(diff: string): EditHunk[] {
+  const hunks: EditHunk[] = [];
+  let removed: string[] = [];
+  let added: string[] = [];
+  const flush = () => {
+    if (removed.length || added.length) hunks.push({ old_string: removed.join("\n"), new_string: added.join("\n") });
+    removed = [];
+    added = [];
+  };
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("@@")) flush();
+    else if (line.startsWith("---") || line.startsWith("+++")) continue;
+    else if (line.startsWith("-")) removed.push(line.slice(1));
+    else if (line.startsWith("+")) added.push(line.slice(1));
+  }
+  flush();
+  return hunks;
+}
+
+/**
+ * ファイルを変えるツールの入力を 1 つの形で読む（Claude Code の Edit・Write、ほかの AI の写しの MultiEdit の edits・deleted・move_path、
+ * Copilot の承認の Edit の diff）。ファイルを変えるツールでなければ null
+ */
+export function editHunksOf(name: string, input: Record<string, unknown>): EditChange | null {
+  if (typeof input.file_path !== "string") return null;
+  let hunks: EditHunk[];
+  if (name === "Write") hunks = typeof input.content === "string" ? [{ old_string: "", new_string: input.content }] : [];
+  else if (name !== "Edit" && name !== "MultiEdit") return null;
+  else if (typeof input.old_string === "string") hunks = [{ old_string: input.old_string, new_string: text(input.new_string) }];
+  else if (Array.isArray(input.edits))
+    hunks = input.edits.filter((e): e is Record<string, unknown> => typeof e === "object" && e !== null).map((e) => ({ old_string: text(e.old_string), new_string: text(e.new_string) }));
+  else hunks = typeof input.diff === "string" ? hunksOfDiff(input.diff) : [];
+  return { path: input.file_path, hunks, deleted: input.deleted === true, movedTo: typeof input.move_path === "string" && input.move_path !== "" ? input.move_path : null };
+}
+
 const call = <N extends ClaudeToolName>(name: N, input: ClaudeToolInput<N>) => ({ name, input });
 
 /** Claude Code のツールの呼び出しを作る（ほかの AI のツールの記録の写しは、名前と入力を手で組み立てずにこれを使う） */

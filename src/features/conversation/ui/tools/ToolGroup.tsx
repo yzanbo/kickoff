@@ -6,7 +6,7 @@ import { CommandLive } from "./CommandLive";
 import { useCommandOutput } from "@/features/conversation/ui/background/commandOutputs";
 import type { ToolCall } from "@/features/chat/ui";
 import { visibleToolResult } from "@shared/chat/toolText";
-import { claudeToolOf, isEditTool } from "@shared/ai/claudeTools";
+import { claudeToolOf, editHunksOf, isEditTool, type EditChange, type EditHunk } from "@shared/ai/claudeTools";
 import { toolCallTexts } from "./toolCallTexts";
 import { openKey, toolText, useTimelineOpen } from "@/features/chat/ui";
 import { CallTime, GroupTime } from "./ToolTime";
@@ -99,6 +99,8 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
   const isDbQuery = name === DB_QUERY_TOOL && typeof input.sql === "string";
   // チャットの AI が作ったチャット（送った依頼の全文と、作ったチャットの札。結果の文も下に出す）
   const isCreatedChat = isCreateChatTool(name) && typeof input.text === "string";
+  // ファイルを変えたもの（ほかの AI の写しの edits・消した・名前を変えたも同じ形で）
+  const edit = editHunksOf(name, input);
   const [open, setOpen] = useTimelineOpen(call.use.chat_id, openKey.toolCall(call.use.id));
   /** 開いた中身（中身を作るのは開いてからなので、色付けはいつも始める） */
   const renderDetail = () => {
@@ -109,10 +111,8 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
       detail = <DbQueryToolDetail chatId={call.use.chat_id} sql={String(input.sql)} connectionName={strOf(input.connection)} result={r?.content} highlight />;
     } else if (isCreatedChat) {
       detail = <CreatedChatToolDetail text={String(input.text)} result={r?.content} />;
-    } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
-      detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
-    } else if (name === "Write" && typeof input.content === "string") {
-      detail = <Diff before="" after={input.content} maxLines={40} />;
+    } else if (edit && edit.hunks.length > 0) {
+      detail = <Diff hunks={edit.hunks} maxLines={name === "Write" ? 40 : 200} />;
     } else if (r && !r.is_error && name === "Read" && typeof input.file_path === "string" && toolImageType(input.file_path)) {
       // 読んだ画像は記録に残らない（結果は「[image]」の文字だけ）ので、開いてから入力のパスで、いまのファイルを読んで出す
       detail = <ReadImage chatId={call.use.chat_id} path={input.file_path} readAt={call.result?.created_at} />;
@@ -144,7 +144,7 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
             ) : isSearch ? (
               <SearchTitle glob={name === "Glob"} pattern={String(input.pattern)} path={rel(strOf(input.path) ?? "")} highlight />
             ) : isFileEdit(name) && typeof input.file_path === "string" ? (
-              <ToolFileArg path={input.file_path} label={rel(toolText().describeToolInput(name, input))} />
+              <ToolFileArg path={input.file_path} label={rel(toolText().describeToolInput(name, input)) + editNote(edit, rel)} />
             ) : name === "Read" && typeof input.file_path === "string" ? (
               <ToolPath path={rel(input.file_path)} />
             ) : name === AI_GET_USER_VIEW_TOOL ? (
@@ -198,9 +198,18 @@ function ToolFileArg({ path, label }: { path: string; label: string }) {
   );
 }
 
-/** 編集内容の表示（削除した行を赤、追加した行を緑で） */
-function Diff({ before, after, maxLines = 200 }: { before: string; after: string; maxLines?: number }) {
-  const lines = [...(before ? before.split("\n").map((l) => ["-", l] as const) : []), ...after.split("\n").map((l) => ["+", l] as const)];
+/** 消した・名前を変えたファイルの行に添える文 */
+function editNote(edit: EditChange | null, rel: (s: string) => string): string {
+  if (edit?.deleted) return "（削除）";
+  return edit?.movedTo ? ` → ${rel(edit.movedTo)}` : "";
+}
+
+/** 編集内容の表示（変えた所ごとに、削除した行を赤、追加した行を緑で） */
+function Diff({ hunks, maxLines }: { hunks: readonly EditHunk[]; maxLines: number }) {
+  const lines = hunks.flatMap(({ old_string: before, new_string: after }) => [
+    ...(before ? before.split("\n").map((l) => ["-", l] as const) : []),
+    ...after.split("\n").map((l) => ["+", l] as const),
+  ]);
   const shown = lines.slice(0, maxLines);
   return (
     <pre className="diff">
