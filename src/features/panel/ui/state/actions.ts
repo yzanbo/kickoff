@@ -1,6 +1,6 @@
 // 欄のパネルの操作（部品の外からも呼ぶ。欄の住所 panel を先頭に受ける）。タブの中身は作る関数（tabs/tabData.ts）で作って openTab に渡す。
 // 開く操作は、自分で開くタブはピントのあるペインに足し（すでにあればそのペインで表示）、欄も開く
-import type { PaneLayout, SplitDir, SplitSide } from "@/features/panel/ui/layout/paneTree";
+import { findPane, focusedPane, type PaneLayout, type SplitDir, type SplitSide } from "@/features/panel/ui/layout/paneTree";
 import { focusPane as focusLayoutPane, moveTab as moveLayoutTab, returnToHome as returnLayoutToHome, splitPane as splitLayoutPane } from "@/features/panel/ui/layout/paneLayout";
 import { equalizeSplit as equalizeLayoutSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
 import { parsePanelKey } from "@/features/panel/ui/surface";
@@ -58,6 +58,16 @@ export function splitPane(panel: string, paneId: string, dir: SplitDir, side: Sp
   // ID は配置を変える関数の外で作る（同じ操作で同じ ID になるように）
   const id = newTabKey("pane");
   changeLayout(panel, (l) => splitLayoutPane(l, paneId, dir, side, id, tabKey));
+}
+
+/**
+ * ペインを右・下に分ける（分けるボタン・⌘\）。タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る。
+ * paneId がなければピントのあるペイン
+ */
+export function splitShownTab(panel: string, dir: SplitDir, paneId?: string): void {
+  const layout = panelStateOf(panel).layout;
+  const pane = (paneId === undefined ? undefined : findPane(layout, paneId)) ?? focusedPane(layout);
+  splitPane(panel, pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
 }
 
 /** タブを別のペイン（同じペインなら並べ替え）の index の位置へ移す */

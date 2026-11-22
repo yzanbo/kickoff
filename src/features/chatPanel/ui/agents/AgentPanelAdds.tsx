@@ -10,7 +10,7 @@ import { RecentNoteItems } from "@/features/notes/ui/NoteMenuItems";
 import { changesTab, databaseTab, githubTab, noteTab, openTab, parsePanelKey, projectToolTab, projectViewTab } from "@/features/panel/ui";
 import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/ui/tabs/panelTypes";
 import { PROJECT_VIEW_ICONS } from "@/features/projects/ui/views/ProjectViewTabLead";
-import type { PanelController } from "@/features/panel/ui/usePanel";
+import type { PaneLeaf, PanelController } from "@/features/panel/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { subagentsSettings } from "@/features/subagents/ui";
 import { useChildChats, useKnownChat } from "@/features/chat/ui/store/knownChats";
@@ -18,15 +18,22 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuSub } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { useNewChild } from "./useNewChild";
 
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
  * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
  * 作業場所はこのチャットの作業場所から）｜ ノート ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）・Docker・GitHub・CI（この Mac のアプリの中だけ）・ゴミ箱。
- * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）
+ * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）。欄のチャットが子チャットを作れないとき（useNewChild）は出さない
  */
-export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
+export function AgentPanelAdds({ panel, pane }: { panel: PanelController; pane: PaneLeaf }) {
   const menu = useContextMenu({ align: "end" });
+  const newChild = useNewChild(panel);
+  if (!newChild) return null;
+  const onNewChild = () => {
+    panel.focusPane(pane.id);
+    newChild();
+  };
   return (
     <span className="panel-bar-buttons panel-tab-adds">
       <span className="panel-split-button">

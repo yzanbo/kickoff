@@ -1,10 +1,14 @@
 // 欄の口: 欄ごとの決まり（入れる種類・Esc・ボタン・札・空になったとき）を 1 つの項目にまとめ、拡張点 panelSurfaces で受ける。
 // 状態は panelKey(欄, 範囲) の住所ごとに店が覚える
 import type { LucideIcon } from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
 import { definePoint } from "@/foundation/ui/points";
 import type { SettingFamily } from "@/foundation/ui/storage";
 import type { PanelTab } from "./tabs/panelTypes";
 import type { PanelState } from "./state/panelState";
+import type { PaneLeaf } from "./layout/paneTree";
+import type { TabGroupLookup } from "./kind";
+import type { PanelController } from "./usePanel";
 
 /**
  * 欄の名前（覚える状態の名前の頭。下書きの保存（kickoff:new-chat-drafts）のキーにも使うので変えない）:
@@ -99,8 +103,10 @@ export interface SurfaceSpec<E = unknown> {
   maximize?: "width" | "height";
   /** false: タブの列の右端に分けるボタンを置かない（狭い欄。分けるのはタブのドラッグ・右クリック・⌘\ でできる） */
   splitButtons?: false;
-  /** false: タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、新しい子チャットだけの欄） */
-  tabAdds?: false;
+  /** タブのすぐ右の新しいタブのボタン（なければ出さない: 中身は外から開くタブだけの欄） */
+  Adds?: ComponentType<{ panel: PanelController; pane: PaneLeaf }>;
+  /** タブの並べ方（なければ PlainStrip: ペインの並びのまま） */
+  Strip?: ComponentType<StripProps>;
   /** false: タブの種類の札（「ノート」「サブ」「子」）を付けない（1 つの種類しか並ばない欄） */
   kindBadges?: false;
   /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
@@ -122,6 +128,39 @@ export interface SurfaceSpec<E = unknown> {
   slide?: boolean;
   /** 欄の持ち主だけが読む値（サイドバーとの連動。なければチャットのタブをサイドバーの一覧にそろえない） */
   ext?: SurfaceExt<E>;
+}
+
+/** タブに出す項目とグループの引き方（並べ方が決める。なければどの項目も出し、グループは付けない） */
+export interface TabLook {
+  /** タブに出す項目か（項目の名前は欄の持ち主が決める。種類の Face が読む） */
+  show(field: string): boolean;
+  groupOf: TabGroupLookup;
+}
+
+/** 並べ方がタブの列の外枠に渡すもの（どれもなければ、ペインの並びのまま並べる） */
+export interface StripOrder {
+  /** タブの並びの左（横にスクロールしても動かない位置）に置くもの */
+  lead?: ReactNode;
+  /** まとまりごとに枠に入れて並べている */
+  grouped?: boolean;
+  /** 見た目の並びの位置をペインの並びの位置に直す（ドラッグで落としたとき） */
+  toPaneIndex?(index: number): number;
+  /** 同じペインの中で並びを別に決めているタブを落としたとき、その並びを変える（変えたら true。after: 前のタブの後ろに落とした） */
+  reorder?(key: string, index: number, after: boolean): boolean;
+}
+
+/** 欄の Strip に渡すもの */
+export interface StripProps {
+  panel: PanelController;
+  pane: PaneLeaf;
+  /** 一覧のペインか（サイドバーと連動したチャットのタブが自動で入るペイン。分けていなければそのペイン） */
+  home: boolean;
+  /** ドラッグ中のタブのキー */
+  dragging: string | null;
+  /** タブ 1 つ（index は見た目の並びの位置・count は見た目の並びのタブの数。ドラッグで落とす位置の印もこの並びで付ける） */
+  renderTab(key: string, index: number, count: number, look?: TabLook): ReactNode;
+  /** 並べたタブを、タブの列の外枠（道具・新しいタブ・分けるボタン・ドラッグの受け口）に入れて返す */
+  bar(content: ReactNode, order?: StripOrder): ReactNode;
 }
 
 /** どの欄も入る形（欄ごとに ext の型が違う項目を 1 つの点に並べる） */

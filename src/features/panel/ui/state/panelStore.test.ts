@@ -52,14 +52,12 @@ test("チャット欄の開閉は欄の状態 1 つで、プロジェクトご�
   );
 });
 
-test("見せている最後のタブを閉じると、ボードの右のパネル・フッター・右サイドバーは閉じる", () => {
+test("見せている最後のタブを閉じると、フッター・右サイドバーは閉じる（欄の決まりの whenEmpty が close。チャットのパネルの決まりは chatPanel の chatSurfaces.ts）", () => {
   useStore();
-  for (const panel of ["kanban:2", "bottom:2"] as const) {
-    openTab(panel, terminalTab(target(2)));
-    assert.equal(panelStateOf(panel).open, true);
-    closeTab(panel, keys(panel)[0]);
-    assert.equal(panelStateOf(panel).open, false, panel);
-  }
+  openTab("bottom:2", terminalTab(target(2)));
+  assert.equal(panelStateOf("bottom:2").open, true);
+  closeTab("bottom:2", keys("bottom:2")[0]);
+  assert.equal(panelStateOf("bottom:2").open, false);
   // 右サイドバーはブラウザだけ: 2 つのうち 1 つを閉じても開いたまま、最後の 1 つを閉じたら閉じる（下のパネルの最後のターミナルと同じ）
   openTab("side:2", browserTab("https://a.example"));
   openTab("side:2", browserTab("https://b.example"));

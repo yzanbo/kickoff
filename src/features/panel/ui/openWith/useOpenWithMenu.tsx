@@ -142,3 +142,5 @@ export function useOpenWithMenu(panel: PanelController) {
     menu,
   };
 }
+
+export type OpenWithMenu = ReturnType<typeof useOpenWithMenu>;

@@ -6,17 +6,19 @@ import { storage } from "./storage";
 import { CHAT_TAB_ROW_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/ui/layout/PaneSash";
-import { PaneTabBar } from "@/features/panel/ui/tabs/PaneTabBar";
+import { TabBar } from "./TabBar";
 import { PanelEmpty } from "./PanelEmpty";
-import { PanelCloseButton, PanelTools, type PanelFrame } from "./PanelTools";
+import type { PanelFrame } from "./PanelTools";
 import { PanelTabPage } from "@/features/panel/ui/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/ui/layout/paneGeometry";
-import { focusedPane, homePane, leavesOf, topRightPane, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
+import { leavesOf, type PaneLeaf } from "@/features/panel/ui/layout/paneTree";
 import { TabMenu } from "@/features/panel/ui/tabs/TabMenu";
 import { useTabRename } from "@/features/panel/ui/tabs/useTabRename";
 import { useTabDrag } from "@/features/panel/ui/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/panel/ui/openWith/useOpenWithMenu";
+import { OpenWithContext } from "@/features/panel/ui/openWith/OpenWithAdds";
+import { splitShownTab } from "@/features/panel/ui/state/actions";
 import { emptyHintOf } from "./surface";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { kindOf, surfaceOf } from "@/features/panel/ui/state/panelStore";
@@ -28,7 +30,7 @@ import { useNewChild } from "@/features/chatPanel/ui/agents/useNewChild";
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは欄の項目（surfaceOf）と、殻が渡す frame）。
  * タブは上下・左右のペインに分けて並べられる（VS Code のエディターと同じ）。分けていないときは、タブの列 → 中身の 1 段。
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
- * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
+ * 各ペインのタブの列（TabBar）の右端に、欄の新しいタブのボタン（欄の Adds）と、右・下に分けるボタンを並べる。タブの並べ方は欄の Strip。
  * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
  * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
  * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
@@ -44,9 +46,6 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別
   const [tabTwoLine] = useSetting(storage.settings.tabTwoLine);
   const twoLine = tabTwoLine && panel.kinds.has("chat");
-  // タブが入らないとき、細くして収めるか横にスクロールするか（チャットを出す欄だけ。「表示」のメニューの「タブが増えたとき」）
-  const [tabOverflow] = useSetting(storage.settings.tabOverflow);
-  const scrollTabs = tabOverflow === "scroll" && panel.kinds.has("chat");
   // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
   const ownRef = useRef<HTMLElement>(null);
   const asideRef = frame?.paneRef ?? ownRef;
@@ -60,12 +59,8 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
   const split = leaves.length > 1;
-  const homeId = homePane(layout).id;
-  // 閉じるボタンをタブの列の右端に置く欄（サブエージェントの欄）は、右上のペインにだけ置く
-  const closeAtRight = rules.closeButton?.at === "right";
   // 開閉で幅が動く欄（ui/types/slide-pane.css。画面そのものとして置くときは動かさない）
   const slide = rules.slide === true && !frame?.fixed;
-  const topRightId = topRightPane(layout.root).id;
   const { panes, sashes } = layoutRects(layout.root);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
   const openWith = useOpenWithMenu(panel);
@@ -78,8 +73,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       if (!e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.code !== "Backslash") return;
       if (focusedPanelKey() !== panel.key) return;
       e.preventDefault();
-      const pane = focusedPane(layout);
-      panel.splitPane(pane.id, "row", "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
+      splitShownTab(panel.key, "row");
     },
     panelOpen,
   );
@@ -107,42 +101,9 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
     },
   ).map((key) => tabByKey.get(key)!);
   useTabPrefetch(prefetch, panelOpen);
-  /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
+  /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く。TabBar が決める） */
   const bar = (pane: PaneLeaf) => (
-    <PaneTabBar
-      panel={panel}
-      pane={pane}
-      split={split}
-      twoLine={twoLine}
-      scrollTabs={scrollTabs}
-      // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
-      home={!split || pane.id === homeId}
-      inert={!panelOpen}
-      // 分けていないときのタブの列は、開閉で幅が動く欄の中身（開き終えたときの幅のまま）
-      className={slide && !split ? "slide-pane-inner" : undefined}
-      controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} view={view} /> : undefined}
-      endControls={closeAtRight && pane.id === topRightId ? <PanelCloseButton panel={panel} frame={frame} /> : undefined}
-      drag={drag}
-      terminals={terminals.length}
-      terminalMenuOpen={openWith.picking}
-      onNewChat={() => {
-        panel.focusPane(pane.id);
-        panel.startNewChat();
-      }}
-      onTerminal={openWith.openTerminal}
-      onNewChild={
-        newChild &&
-        (() => {
-          panel.focusPane(pane.id);
-          newChild();
-        })
-      }
-      rename={rename}
-      onBarMenu={view.has ? view.open : undefined}
-      onOpenWith={openWith.open}
-      openWithShown={openWith.shown}
-      onMenu={(key, e) => tabMenu.open(e, key)}
-    />
+    <TabBar panel={panel} pane={pane} frame={frame} view={view} drag={drag} rename={rename} onTabMenu={(key, e) => tabMenu.open(e, key)} />
   );
   const empty = (pane: PaneLeaf) => (
     <PanelEmpty
@@ -167,6 +128,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
 
   return (
     <PanelHostContext.Provider value={Panel}>
+    <OpenWithContext.Provider value={openWith}>
     <aside
       ref={asideRef}
       className={cx(rules.rootClass ?? "board-panel", rules.className, slide && "slide-pane", slide && panelOpen && "open", tabsHidden && "tabs-hidden")}
@@ -245,6 +207,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       </div>
       {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={() => rename.start(tabMenu.menu!.value)} onClose={tabMenu.close} />}
     </aside>
+    </OpenWithContext.Provider>
     </PanelHostContext.Provider>
   );
 }

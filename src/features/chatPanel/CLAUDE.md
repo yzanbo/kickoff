@@ -6,6 +6,10 @@
 - タブに出す項目（`tabFields.ts`）は隠したものだけを覚える。まとまりの札に出る項目はタブに出さない（`groupedTabField`）。
 - 新しいチャットのタブは送ると同じ位置で `replaceWithChat`、右の欄の中身は `moveDraftSidePanel` で移す。
 
+## 欄（`ui/chatSurfaces.ts`）
+
+- チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。タブの並べ方は 3 つとも `ChatTabStrip`（まとまり・タブに出す項目・グループ名）、新しいタブのボタンは `ChatPanelAdds`（チャットのパネル）・`AgentPanelAdds`（右の欄）。
+
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
 - チャットのタブは、サイドバーに出ているチャット（`useLinkedChats`）に、一覧が届いてから `syncLinkedTabs` でそろえる。
@@ -17,7 +21,7 @@
 
 - まとめ方は欄ごとに覚え（`useTabGrouping(surface)`）、チャットのタブにだけ効く。
 - 入るまとまりは `useTabClusters` で、サイドバー・ボードと同じ `bucketChats` の決め方・キー・色にする。並びは `clusterTabs`（`sortBuckets` と同じ順）。
-- 札を出すのは一覧のペインだけ（`useTabStrip` の `home`）。畳んだまとまりは表示中のタブだけを残す（`visibleClusterTabs`）。
+- 描くのは欄の `Strip` の `ChatTabStrip`（土台の `TabBar` の骨に `bar(並べたタブ, 並び)` で入れる）。札を出すのは一覧のペインだけ（`useTabStrip` の `home`）。畳んだまとまりは表示中のタブだけを残す（`visibleClusterTabs`）。
 - 札の並べ替え `useClusterReorder` とタブをグループへ落とす `useClusterTabDrop` は同じ枠で受けるので、`joinDropHandlers` でつなぐ。
 - 札の右クリックの項目は「表示」のメニューと同じ部品（`HiddenGroupItems`・`BucketColorItem`・`ClusterShortItem`・`ArchivedChatsItem`）。
 

@@ -2,11 +2,14 @@
 import { storage } from "./storage";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "./tabs/panelTypes";
-export type { SplitDir } from "./layout/paneTree";
-export type { DraftScope, PanelScope, PanelSurface, ViewScope } from "./surface";
+export type { PaneLeaf, SplitDir } from "./layout/paneTree";
+export type { DraftScope, PanelScope, PanelSurface, StripProps, TabLook, ViewScope } from "./surface";
+export type { PanelController } from "./usePanel";
+export type { TabGroupLookup } from "./kind";
 export { useTabPage } from "./tabs/tabPageContext";
 export { closeTabsWhere } from "./state/closeTabs";
-export { draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
+export { defineSurface, draftScope, panelKey, panelSurfaces, parsePanelKey } from "./surface";
+export { linkedChatsExt } from "./state/panelState";
 export { defineTabKind, panelTabs, type TabFaceProps, type TabMenuProps, type TabPageProps } from "./kind";
 export { handOffTab } from "./tabs/tabHandoff";
 export { panelScreen, projectOfPanel } from "./surfaces";

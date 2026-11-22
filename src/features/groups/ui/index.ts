@@ -6,3 +6,4 @@ export const groupsSettings = { ungroupedAt: storage.settings.ungroupedAt } as c
 
 export { GroupPickFlyout } from "./GroupPickFlyout";
 export { askNewGroupName } from "./groups";
+export { useGroupsOf } from "./stores/groups";

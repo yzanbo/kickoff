@@ -1,9 +1,10 @@
 import { Pin, type LucideIcon } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode, RefObject } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isRenameKey } from "@/foundation/ui/lib/keys";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
+import { useOverflowCompact } from "@/foundation/ui/hooks/useOverflowCompact";
 import { projectHueStyle } from "@/features/projects/ui/projectColor";
 import type { TabGroupBadge } from "@/features/panel/ui/kind";
 
@@ -12,8 +13,9 @@ import type { TabGroupBadge } from "@/features/panel/ui/kind";
  * onRename があれば名前のダブルクリック・ピントがあるときの Enter で名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
  * pinnedIn があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など。
  * after は名前のすぐ後ろ（子チャットの動きの印）。twoLine なら、グループ・作業場所の札を名前の下の行に置く（「表示」のメニューの「タブに出す項目」の「2 行で表示」）。
- * 作業場所の札（tag）は、入る幅があるときだけ「本体 | main」「WT | ブランチ」、入らなければ「本体」・ブランチ名だけ（省く）にする（useBranchShort。
- * 2 行のタブは札の行、1 行のタブは名前ごと見るので、名前を省くことになるならブランチ名を隠す）
+ * 作業場所の札（tag）は、入る幅があるときだけ「本体 | main」「WT | ブランチ」、入らなければ「本体」・ブランチ名だけ（省く）にする（useOverflowCompact。
+ * 2 行のタブは札の行、1 行のタブは名前ごと見るので、名前を省くことになるならブランチ名を隠す。名前のボタンは flex: 1 なので max-content の幅を測れず、
+ * 省かれた幅で見る = neededWidth）
  */
 export function PanelTab({
   active,
@@ -81,8 +83,7 @@ export function PanelTab({
   );
   const lines = twoLine && Boolean(groupBadge || tag);
   // 作業場所の札のブランチ名が入るか（2 行なら札の行、1 行なら名前のボタンの中で見る）
-  const measureRef = useRef<HTMLElement>(null);
-  const placeShort = useBranchShort(measureRef, `${label}|${group?.name ?? ""}|${tagKey ?? ""}|${lines}`, Boolean(tag));
+  const { ref: measureRef, compact: placeShort } = useOverflowCompact<HTMLElement>(`${label}|${group?.name ?? ""}|${tagKey ?? ""}|${lines}`, { measure: neededWidth });
   const measure = tag ? measureRef : undefined;
   return (
     <div
@@ -149,43 +150,7 @@ export function PanelTab({
   );
 }
 
-/**
- * 作業場所の札のブランチ名を隠すか（PanelTab）。入れ物の中の文字が省かれていれば隠し、そのときに足りなかった幅を覚えて、
- * 入れ物がその幅まで広がったら戻す（隠したままでは、戻して入るかを測れないため。useOverflowCompact と同じ考え方。
- * 名前のボタンは flex: 1 なので max-content の幅を測れず、省かれた幅で見る）。key が変わったら出して測り直す
- */
-function useBranchShort(ref: RefObject<HTMLElement | null>, key: string, enabled: boolean): boolean {
-  const [short, setShort] = useState(false);
-  const needed = useRef(0);
-  useLayoutEffect(() => {
-    needed.current = 0;
-    setShort(false);
-  }, [key]);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!enabled || !el) return;
-    const check = () => {
-      // 隠れている間（幅 0）は測らない
-      if (el.clientWidth === 0) return;
-      if (!short) {
-        const lack = clippedWidth(el);
-        if (lack > 0) {
-          needed.current = el.clientWidth + lack;
-          setShort(true);
-        }
-      } else if (el.clientWidth >= needed.current) {
-        setShort(false);
-      }
-    };
-    check();
-    const observer = new ResizeObserver(check);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [short, key, enabled]);
-  return short;
-}
-
-/** 要素とその中の文字（span）のうち、いちばん省かれている幅（px。省かれていなければ 0） */
-function clippedWidth(el: HTMLElement): number {
-  return Math.max(0, ...[el, ...el.querySelectorAll<HTMLElement>("span")].map((e) => e.scrollWidth - e.clientWidth));
+/** ふつうの表示に要る幅: いまの幅に、要素とその中の文字（span）のうちいちばん省かれている幅を足したもの（省かれていなければいまの幅 = 入る） */
+function neededWidth(el: HTMLElement): number {
+  return el.clientWidth + Math.max(0, ...[el, ...el.querySelectorAll<HTMLElement>("span")].map((e) => e.scrollWidth - e.clientWidth));
 }

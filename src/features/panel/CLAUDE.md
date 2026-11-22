@@ -1,15 +1,15 @@
 # タブの入れ物（`src/features/panel`）
 
-タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ。
+タブを並べる欄。8 つの欄（チャットのパネル `kanban`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `win`・`cwin`）は同じ `Panel` / `usePanel` で、違いは欄の項目と欄の殻が渡す `frame` だけ（`kanban`・`agents`・`cwin` は chatPanel の `chatSurfaces.ts`）。
 パスは `ui/` から。チャットの部分（サイドバーとの連動・タブのまとまり・下書き・右の欄）は `src/features/chatPanel/CLAUDE.md`、タブの中身のチャットは `src/features/conversation/CLAUDE.md`、ターミナルは `src/features/terminal/CLAUDE.md`、ブラウザは `src/features/browser/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
-| 直下 | `Panel`・`usePanel`・種類の口 `kind.ts`・欄の口 `surface.ts`（いまの 8 欄は `surfaces.ts`）・入れ子の口 `panelHost.ts` |
+| 直下 | `Panel`・`usePanel`・タブの列の骨 `TabBar`（既定の並べ方 `PlainStrip`）・種類の口 `kind.ts`・欄の口 `surface.ts`（移していない 5 欄は `surfaces.ts`）・入れ子の口 `panelHost.ts` |
 | `state/` | 状態（`panelReducer`・店 `panelStore.ts`・操作 `actions.ts`）・別ウィンドウの写しと受け渡し |
 | `layout/` | ペインの分割（`paneTree.ts`・`paneLayout.ts`・`paneSizes.ts`・`paneGeometry.ts`）・タブのドラッグ（`useTabDrag`・`tabTransfer.ts`・`tabDragOut.ts`） |
-| `tabs/` | 持ち主へ移していない 8 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブの列・中身の枠 `PanelTabPage`・メニュー・先読み |
-| `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く |
+| `tabs/` | 持ち主へ移していない 8 種類 `tabKinds.ts`・作る関数 `tabData.ts`・型 `panelTypes.ts`・タブ 1 つ `PaneTab`・中身の枠 `PanelTabPage`・メニュー・先読み |
+| `popout/`・`openWith/` | 別ウィンドウのタブ（`tabWindow.ts`）・外のアプリで開く（新しいタブのボタン `OpenWithAdds`） |
 
 欄の殻はそれぞれの持ち主にある: チャットのパネルと右の欄は `@/features/chatPanel/ui/`（`board/`・`agents/`）、右サイドバーは `@/features/projects/ui/rightSidebar/`、下のパネルは `@/features/terminal/ui/bottom/`。
 
@@ -35,8 +35,7 @@
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（名前・後始末・`popout`・中身 `Page`・見た目 `Face`・`Menu`・`close`・`rename`・`confirmClose` など）は、分岐させず種類の項目（`defineTabKind`・`panelTabs`）から `kindOf(tab)` で引く。
 - 種類は持ち主の `ui/contributes.ts` が入れる（チャットの 5 種類は chatPanel・ファイルは files・ノートは notes・ブラウザは browser）。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
-- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
-- ほかにも `@/features/chatPanel/ui/agents/AgentPanelAdds.tsx`・`@/features/workplaceMove/ui/repointTabs.ts`・`layout/tabTransfer.ts`・`ui/popoutWindowTab.ts` の保存の型の名指しを見る。
+- 種類を足すときは、作る関数（`tabData.ts`）・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す（`AgentPanelAdds`・`repointTabs.ts`・`tabTransfer.ts`・`popoutWindowTab.ts` の名指しも見る）。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 閉じてよいかは `confirmTabClose`（×・右クリックの「タブを閉じる」・ペインを閉じるの 3 か所）。
 
@@ -50,10 +49,11 @@
 - ウィンドウの外へ離すと別ウィンドウで開く（`tabDragOut.ts`）。ほかのウィンドウの欄へは `tabTransfer.ts`（落とした側が開き直し、元は後始末なしで閉じる）。
 - 落とす位置は見た目の並びで印を付け、`paneIndexOf` でペインの並びに直す（まとまりの境目は `insertSlotAt`）。
 
-## タブの列（`tabs/PaneTabBar`）
+## タブの列（`TabBar`）
 
-- 表示の選び方は「表示」のメニュー（`usePanelViewMenu`）1 つにまとめ、右クリックの「タブの表示 ›」と同じ `TabDisplayItems` を使う。項目を足したら `usePanelViewReset` にも足す。
-- 色のあるタブは `--tab-color` 1 つで示す（タブと画面の面は `side-panel-tab-sheet.css`）。
+- 並べ方は欄の `Strip`（なければ `PlainStrip`）で、並べたタブを `bar(中身, 並び)` で骨に入れる。タブのすぐ右のボタンは欄の `Adds`。
+- 分けるボタンと ⌘\ は `splitShownTab`。「表示」のメニューの項目を足したら `usePanelViewReset` にも足す。
+- 色のあるタブは `--tab-color` で示す（タブと画面の面は `side-panel-tab-sheet.css`）。
 - タブの列を隠す欄（`hideableTabs`）では、隠している間は覚えた横幅いっぱいを効かせない（`usePanelWidth` の `maximizable`）。
 
 ## 欄の殻
