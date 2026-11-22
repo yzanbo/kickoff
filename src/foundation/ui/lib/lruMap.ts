@@ -13,6 +13,8 @@ export interface LruMap<K, V> {
   /** 入れる（新しい側へ）。上限を超えたら古いものから捨てる */
   set(key: K, value: V): void;
   delete(key: K): boolean;
+  /** 入っているものを古い順に（順は変えない。回しながら delete してよいよう写しを返す） */
+  entries(): [K, V][];
   readonly size: number;
 }
 
@@ -63,6 +65,7 @@ export function createLruMap<K, V>(limit: number, weight?: LruWeight<K, V>, { on
       while (map.size > limit || (weight && total > weight.maxWeight)) evict(map.keys().next().value as K);
     },
     delete: remove,
+    entries: () => [...map],
     get size() {
       return map.size;
     },

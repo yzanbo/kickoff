@@ -1,8 +1,8 @@
 import { CodeXml, Eye, Maximize2, RotateCcw, StickyNote, TriangleAlert } from "lucide-react";
 import { memo, useState } from "react";
 import { AI_UPDATE_VISUAL_TOOL, VISUAL_KIND_LABELS, type ChatVisual } from "@shared/visuals/aiVisual";
-import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
+import { open } from "@/foundation/ui/navigation/open";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
@@ -14,7 +14,6 @@ import { useOptionalChatScreen, useOptionalTimelineNav } from "@/features/chat/u
 import type { ToolCall } from "@/features/chat/ui";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
-import { saveVisualToNote } from "./saveVisual";
 import { VisualFrame } from "./VisualFrame";
 import { useVisuals } from "./visualsContext";
 
@@ -162,7 +161,8 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   const onPrompt = screen ? (text: string) => void api.sendMessage(screen.chatId, { text, options: {}, attachments: [], when: "later" }).catch(reportFailure("図から送れませんでした")) : undefined;
   const save = () => {
     if (!screen) return;
-    saveVisualToNote(visual, screen.chatId, screen.projectId).catch((e: unknown) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${errorMessage(e)}` }));
+    // ノートの名前の決まりと保存は notes が持つ（行き先 noteFromVisual）
+    open({ kind: "noteFromVisual", projectId: screen.projectId, visual, onError: (message) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${message}` }) }, { fromChatId: screen.chatId });
   };
   return (
     <div className="visual-card" id={`ev-${eventId}`} data-keep-row={touched ? "" : undefined}>

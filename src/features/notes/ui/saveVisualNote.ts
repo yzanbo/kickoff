@@ -1,9 +1,10 @@
+// AI が描いた図をノートに保存して開く（visuals の図のカードが open({ kind: "noteFromVisual" }) で頼む。ノートの名前の決まりはここだけ）
 import type { ChatVisual } from "@shared/visuals/aiVisual";
 import { visualNoteHtml } from "@shared/visuals/visualDocument";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
+import { openNoteFromChat } from "./openNoteFrom";
 
 /** 同じ名前があったときに番号を付けて試す回数 */
 const NAME_TRIES = 20;
@@ -18,7 +19,7 @@ function noteOf(visual: ChatVisual, title: string): { ext: string; content: stri
  * 図をノートのフォルダのいちばん外側に保存して開く（名前は作った日付と題名。同じ名前があれば「-2」から番号を付ける）。
  * 開く場所はチャットからノートを開くときと同じ設定
  */
-export async function saveVisualToNote(visual: ChatVisual, chatId: number, projectId: number): Promise<void> {
+export async function saveVisualToNote(visual: ChatVisual, chatId: number | null, projectId: number): Promise<void> {
   const title = visual.title?.trim() || "図";
   const base = datedNoteName(safeNoteName(title), new Date());
   const { ext, content } = noteOf(visual, title);

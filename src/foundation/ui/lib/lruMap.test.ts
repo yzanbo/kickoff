@@ -88,3 +88,13 @@ test("createLruMap の onEvict: 上限・重さで捨てた・同じキーで入
   lru.delete("c");
   assert.deepEqual(evicted, ["a=1", "b=2", "x=toolong"]);
 });
+
+test("createLruMap の entries: 古い順に返し、順は変えない（回しながら delete してよい）", () => {
+  const map = createLruMap<string, number>(3);
+  map.set("a", 1);
+  map.set("b", 2);
+  map.get("a");
+  assert.deepEqual(map.entries(), [["b", 2], ["a", 1]]);
+  for (const [key] of map.entries()) map.delete(key);
+  assert.equal(map.size, 0);
+});

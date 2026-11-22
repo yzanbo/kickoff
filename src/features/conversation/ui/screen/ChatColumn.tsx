@@ -6,9 +6,8 @@ import { SelectionAttach } from "@/features/conversation/ui/messages/SelectionAt
 import { ChatTimeline } from "@/features/conversation/ui/timeline/ChatTimeline";
 import { ActivityView } from "@/features/conversation/ui/activity/ActivityView";
 import { SubagentsContext } from "@/features/subagents/ui/subagentsContext";
-import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
-import { chatVisuals } from "@/features/visuals/ui";
+import { chatVisuals, VisualsContext } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
 import { ProviderHandoffNotice } from "@/features/providerSwitch/ui/ProviderHandoffNotice";
 import { ChatComposerArea } from "./ChatComposerArea";

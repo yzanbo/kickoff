@@ -21,7 +21,7 @@ import {
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
-import { ChatImagesProvider } from "@/features/remoteImages/ui/ChatImage";
+import { ChatImagesProvider } from "@/features/remoteImages/ui";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/ui/panelHost";
 import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui/provider/chatProvider";

@@ -12,7 +12,7 @@ import { WorkingExecution } from "@/features/conversation/ui/working/WorkingExec
 import { CompactingRow } from "@/features/compact/ui/CompactingRow";
 import { AfterCompactMessages } from "@/features/compact/ui/AfterCompactMessages";
 import { afterCompactUntilOf, isWaitingCompact } from "@/features/conversation/ui/working/workPhase";
-import { VisualPending } from "@/features/visuals/ui/VisualItem";
+import { VisualPending } from "@/features/visuals/ui";
 import { WorkplaceMoveRow } from "@/features/workplaceMove/ui/WorkplaceMoveRow";
 import { useSentCompactPrompt } from "@/features/compact/ui/useCompactPrompt";
 import { StreamingReply } from "@/features/conversation/ui/streaming/StreamingReply";

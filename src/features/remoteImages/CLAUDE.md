@@ -3,7 +3,7 @@
 ## 地図
 
 - `core/`: 取る `fetchImage.ts`・手元と社内の宛先の見分け `addresses.ts`・取った画像の覚え `service.ts`・許可のホスト（チャットごとに DB）。
-- `ui/`: 返答の画像 `ChatImage.tsx`・許可のホストの管理・取った画像の覚え `remoteImageCache.ts`。
+- `ui/`: 返答の画像 `ChatImage.tsx`（読み込みは `useQuery`）・許可のホストの管理・取った画像の覚え `remoteImageCache.ts`（`createLruMap`。落ちたら blob を捨てる）。
 
 ## 決まり
 

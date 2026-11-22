@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { textFingerprint } from "@shared/foundation/text/fingerprint";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
 
 /**
@@ -78,9 +79,9 @@ export function useFrameSlot(active: boolean): [granted: boolean, release: () =>
   return [granted, useCallback(() => release.current?.(), [])];
 }
 
-/** 描いた枠の高さ（図の ID と中身ごと。次に同じ図の枠を置くまでの高さにする） */
+/** 描いた枠の高さ（図の ID と中身の指紋ごと。次に同じ図の枠を置くまでの高さにする。中身そのものをキーにすると大きな図の文を 200 個まで抱える） */
 const heights = createLruMap<string, number>(200);
-export const frameHeightKey = (id: string, code: string) => `${id}\u0000${code}`;
+export const frameHeightKey = (id: string, code: string) => `${id}\u0000${textFingerprint(code)}`;
 export const rememberedFrameHeight = (key: string): number | undefined => heights.peek(key);
 export const rememberFrameHeight = (key: string, height: number) => {
   if (height > 0) heights.set(key, height);

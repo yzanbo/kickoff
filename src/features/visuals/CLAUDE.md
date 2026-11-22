@@ -7,3 +7,5 @@
 - 枠は画面の手前まで来てから置き、同時に読み込むのは `useFrameSlot` の数まで。触った図は `data-keep-row` で窓から外さない。
 - テーマを変えたら SVG は変数だけを送り、HTML は読み直す。テーマの値は `visualTheme.ts` が `@/app/renderer/styles/base/tokens.css` の末尾の一覧から読む（変数を足したら一覧も直す）。
 - 中のページは、上限より低い中身では縦のスクロールバーを出さない（幅が縮んで高さが変わり、行き来する）。
+- 描いた高さの覚えのキーは図の ID とソースの指紋（`@shared/foundation/text/fingerprint`。ソースそのものを抱えない）。
+- ノートに保存は `open({ kind: "noteFromVisual" })`（名前の決まりと保存は notes の `saveVisualNote.ts`）。

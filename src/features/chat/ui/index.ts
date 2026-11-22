@@ -5,7 +5,7 @@ export { relativeOf } from "./timeline/relativePath";
 export { memoLast, type ChatSource } from "./store/chatSelector";
 export { chatLog, defineChatSelector, useChatDetail, useChatOf, useOpenChat, useStreaming } from "./store/useChatStore";
 export { chatTail, chatWindow, latestAnswer } from "./store/selectors";
-export { PastWorkplacesProvider, useBeforeWorkplaceMove } from "./screen/pastWorkplace";
+export { PastWorkplacesProvider, useBeforeWorkplaceMove, usePastWorkplaceAt } from "./screen/pastWorkplace";
 export { setSendExtras } from "./send/sendExtras";
 export { chatQueueApi } from "./api/queue";
 export { chatRoleOf, type ChatHost, type ChatRole, type NewChatPlace, type NewChatSeed } from "./screen/chatHost";

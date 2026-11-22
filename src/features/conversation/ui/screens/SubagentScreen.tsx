@@ -13,9 +13,8 @@ import { renderScopeOf } from "@/features/conversation/ui/timeline/Timeline";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/conversation/ui/messages/quotable";
 import { useQuoteMenu } from "@/features/conversation/ui/messages/useMessageMenu";
 import { SubagentActions, SubagentTellComposer, agentHueStyle, SubagentStatusText, NowLine, SubagentChildren, SubagentKind, SubagentLinkActions, SubagentTime, Summary, SubagentPrompt, SubagentReport, SubagentSteps, useSubagentScope, SubagentsContext, type SubagentsView, useChatSubagentsView, childrenOf, pathOf } from "@/features/subagents/ui";
-import { chatVisuals } from "@/features/visuals/ui";
+import { chatVisuals, VisualsContext } from "@/features/visuals/ui";
 import { backgroundCalls } from "@/features/conversation/ui/background/selectors";
-import { VisualsContext } from "@/features/visuals/ui/visualsContext";
 import { BackgroundCallsContext } from "@/features/conversation/ui/background/backgroundCalls";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 
