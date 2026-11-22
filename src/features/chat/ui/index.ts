@@ -1,4 +1,5 @@
 // チャットの画面の入口（ほかの機能はここだけを読む。まだ中のファイルを直接読む所は、読み手を直す単位でここへ寄せる）
+import { storage } from "./storage";
 export { ChatStateMark } from "./state/ChatStateMark";
 export { activityOf, activityText, latestOf } from "./state/stall";
 export { relativeOf } from "./timeline/relativePath";
@@ -58,3 +59,6 @@ export { useChatStates } from "./state/chatStates";
 export { currentChats, useChats, useChildChats, useKnownChat } from "./store/knownChats";
 export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";
+
+/** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
+export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate };

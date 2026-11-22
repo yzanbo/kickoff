@@ -1,7 +1,7 @@
 /**
- * まだ機能ごとの ui/storage.ts に配っていない保存の宣言（0018 の P4-2b で 135 を配った残りの 20。P6-3a でチャットの書きかけ 2 つを composer へ移して 18）。どれも、表の持ち主の機能より下の機能・設定の画面が
+ * まだ機能ごとの ui/storage.ts に配っていない保存の宣言（0018 の P4-2b で 135 を配った残りの 20。P6-3a でチャットの書きかけ 2 つを composer へ、P6-4h で子チャットを作ったときの開き方を chat へ移して 17）。どれも、表の持ち主の機能より下の機能・設定の画面が
  * 読んでいて、持ち主へ移すと逆向きの import が増えるもの（読み手を直す段で持ち主へ移す: 設定の画面は 07・パネルの surfaces・PaneTabBar は 07・
- * チャットの書きかけと開き方は 06・AI に見せる画面の様子は 09）。キーは前の名前のまま。宣言は群 legacyKeys.ts に包んで起動の片付けに渡す。
+ * AI に見せる画面の様子は 09）。キーは前の名前のまま。宣言は群 legacyKeys.ts に包んで起動の片付けに渡す。
  * プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる）
  */
 import { choice, defineSetting, defineSettingFamily, flag, json, record, text } from "./settings";
@@ -31,11 +31,6 @@ export const SUBAGENT_OPEN_IN = defineSetting("kickoff:subagent-open-in", choice
  * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄）。会話の中・入力欄の上の札・サイドバーの行・通知で共通
  */
 export const CHILD_CHAT_OPEN_IN = defineSetting("kickoff:child-chat-open-in", choice(["side", "window"], "side"));
-/**
- * 子チャットを作ったときの開き方（side = 右の欄で開く / window = 別ウィンドウで開く / none = 開かない。初めは右の欄。設定の「表示」）。
- * チャット欄の「新規の子チャットに送る」・「新しい子チャットで聞く」の画面・送信待ちの「子チャットで開く / 移す」で共通（別ウィンドウを開けないブラウザでは右の欄）
- */
-export const CHILD_CHAT_OPEN_ON_CREATE = defineSetting("kickoff:child-chat-open-on-create", choice(["side", "window", "none"], "side"));
 /**
  * チャットからノートを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
  * 「ノートに追加」のあとの「開く」・入力欄の上のノートの札で共通（ノートのタブから開くのは、ノートのタブの中）

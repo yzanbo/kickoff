@@ -4,7 +4,8 @@ import type { Attachment, Chat } from "@shared/chat/types";
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
-import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE } from "@/foundation/ui/storage/storageKeys";
+import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
+import { storage } from "@/features/chat/ui/storage";
 import { readSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
@@ -91,12 +92,12 @@ export function openChatAt(chatId: number, place: ChatOpenPlace): boolean {
 }
 
 /**
- * 作ったばかりの子チャットを開く場所（設定の「子チャットを作ったとき」CHILD_CHAT_OPEN_ON_CREATE。開かないなら null）。
+ * 作ったばかりの子チャットを開く場所（設定の「子チャットを作ったとき」chat の保存の childOpenOnCreate。開かないなら null）。
  * always（「引き継いで開く」で聞かずに作ったとき）なら、開かない設定でも「子チャットを開く場所」（開くために作ったので）。
  * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄
  */
 export function createdChildPlace({ always = false }: { always?: boolean } = {}): "side" | "window" | null {
-  const on = readSetting(CHILD_CHAT_OPEN_ON_CREATE);
+  const on = readSetting(storage.settings.childOpenOnCreate);
   const place = on !== "none" ? on : always ? readSetting(CHILD_CHAT_OPEN_IN) : null;
   return place === "window" && !canPopout() ? "side" : place;
 }

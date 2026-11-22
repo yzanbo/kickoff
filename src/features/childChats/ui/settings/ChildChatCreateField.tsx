@@ -1,11 +1,11 @@
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHILD_CHAT_OPEN_ON_CREATE } from "@/foundation/ui/storage/storageKeys";
+import { chatSettings } from "@/features/chat/ui";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 
 /** 設定の「表示」の「子チャットを作ったとき」（右の欄で開く / 別ウィンドウで開く / 開かない） */
 export function ChildChatCreateField() {
-  const [value, setValue] = useSetting(CHILD_CHAT_OPEN_ON_CREATE);
+  const [value, setValue] = useSetting(chatSettings.childOpenOnCreate);
   return (
     <Field
       label="子チャットを作ったとき"
