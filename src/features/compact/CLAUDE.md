@@ -4,7 +4,8 @@
 
 - `core/routes.ts`: 手で圧縮する・消去（預かった指示を外す・書き直すのは送信待ちの命令。取り決めは `@shared/compact/contract.ts`。段取りは chat の殻）。
 - `core/preCompact.ts`: 自動の圧縮の前に足す圧縮前指示の contributor（`createCompact` が登録）。指示の文は `compactPromptFor`。手で圧縮する実行は `@/features/chat/core/run/turn/execute.ts`（コメントに決まり）。
-- `ui/`: 圧縮前指示・圧縮後指示の設定（`CompactPrompt*`・`useCompactPrompt.ts`）・圧縮中の行・預かった発言の書き直し（`heldEdit.ts`）。種類の名前とアイコンは `COMPACT_PROMPT_KINDS`、保存する項目は `@shared/chat/prompts` の `COMPACT_PROMPT_FIELDS`。
+- `ui/`: 圧縮前指示・圧縮後指示の設定（`CompactPrompt*`・`useCompactPrompt.ts`）・圧縮中の行・預かった発言の書き直し（`heldEdit.ts`）・右下のメーター。種類の名前とアイコンは `COMPACT_PROMPT_KINDS`、保存する項目は `@shared/chat/prompts` の `COMPACT_PROMPT_FIELDS`。
+- メーター（`ContextMeter.tsx`）は composer の差し込み `meter` に登録し、チャットと圧縮の様子は自分で読む。圧縮まわりの `ChatLive` の読み方（`compactingLabel`・`reservedRow`・`compactsAfterTurn`）は `compactHold.ts`、預かった指示の文は `afterCompactLabel.ts`。
 
 ## 決まり
 

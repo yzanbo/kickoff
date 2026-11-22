@@ -12,7 +12,7 @@ import { chatComposerDraft, Composer, composerPills, type ComposerSend, type Out
 import type { ChatOptionsState } from "@/features/ai/ui/options/ChatOptionsBar";
 import type { PromptList } from "@/features/conversation/ui/promptList/promptHistory";
 import { PromptsChip } from "@/features/conversation/ui/promptList/PromptsChip";
-import { QueuedMessages, RestartResumeBanner, reservedRow } from "@/features/queue/ui";
+import { QueuedMessages, RestartResumeBanner } from "@/features/queue/ui";
 import { TodoChip } from "@/features/conversation/ui/todo/TodoChip";
 import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
 import { childChatsApi, INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui";
@@ -24,9 +24,7 @@ import { voiceReplies } from "@/features/composer/ui";
 import { ProviderChip } from "@/features/ai/ui/provider/ProviderChips";
 import type { useChatSend } from "@/features/composer/ui/send/chatSend";
 import { useChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
-import { useHeldEdit } from "@/features/compact/ui/heldEdit";
-import { HeldEditComposer } from "@/features/compact/ui/HeldEditComposer";
-import { compactsAfterTurn } from "@/features/conversation/ui/working/workPhase";
+import { useHeldEdit, HeldEditComposer } from "@/features/compact/ui";
 import { RestrictionNotice } from "./RestrictionNotice";
 
 /** 「質問として送る」の説明 */
@@ -153,7 +151,6 @@ export function ChatComposerArea({
           projectId: chat.project_id,
           worktree: chat.worktree_path,
           chatId: chat.id,
-          meter: { chat, compacting: live.compacting, reserved: reservedRow(live.queue), afterTurn: compactsAfterTurn(live) },
         }}
         options={options}
         // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える）

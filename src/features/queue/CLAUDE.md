@@ -4,7 +4,7 @@
 
 ## 送信待ち（`ui/`）
 
-- 状態は `ChatLive.queue`（`QueueState`）。操作は口 `createQueueController`（`ui/queueController.ts`。取り決めの `POST …/queue` の `commands`・`…/queue/send`）を `useQueue` で持ち、一覧の中の部品は `useQueueActions()` で読む。予約はコアの `reserved`（`reservedRow`）。
+- 状態は `ChatLive.queue`（`QueueState`）。操作は口 `createQueueController`（`ui/queueController.ts`。取り決めの `POST …/queue` の `commands`・`…/queue/send`）を `useQueue` で持ち、一覧の中の部品は `useQueueActions()` で読む。予約はコアの `reserved`（行は compact の `reservedRow`）。
 - 起動したときの再開（`ChatLive.restart_resume`）は、決めるまでコアが続けず送らない。一覧と開いているか（`restartResumeDialog`）は `ui/restartResume/restartResumes.ts`、ダイアログ（`RestartResumeHost`）はメインのウィンドウだけ。コアのプロセスを作り直したあとに止まったチャットでも開く（`autoOpenRestartResumes`）。
 - 一時停止の印は指示に付けず、列の位置で持つ。純粋関数は `@shared/chat/queueStops.ts`（コアの並べ替えと画面の予測で共有）。
 - 並べ替え・印の線は応答を待たずに `applyQueueCommand` で重ねて出し（`queueViewOf`）、応答のあとコアの並びが変わった・送れなかった・3 秒たったら戻す。次の線は先回りした並びから作る。

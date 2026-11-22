@@ -5,27 +5,11 @@ import { chatQueueApi, useActionButton, useOptionalChatScreen } from "@/features
 import { AttachmentChips } from "@/features/attachments/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CompactPromptMark } from "./CompactPromptMark";
+import { afterCompactLabelOf, type AfterCompactUntil } from "./afterCompactLabel";
 import { startHeldEdit, useHeldEdit } from "./heldEdit";
 
 /** コアが預かりに入れる前に、圧縮後指示を先に見せる吹き出しの ID（まだ消せない） */
 const PENDING_POST_ID = "post-compact-pending";
-
-/**
- * 預かった指示をいつ送るか: compact = 圧縮が終わるのを待っている / exchange = 圧縮のあとのやり取り（圧縮後指示か、圧縮のあとの続き）の途中 /
- * closed = いまの作業に足せなくなった（Claude Code が手を空けて入力を閉じた。作業の終わりに送信待ちより先に送る）/
- * turn = 圧縮を待たずに残っている（作業中。いまの作業に伝える）/ next = 作業していないのに残っている（次に送る指示と一緒に伝える）
- */
-export type AfterCompactUntil = "compact" | "exchange" | "closed" | "turn" | "next";
-
-/** 吹き出しの下に添える、いつ送るかの文 */
-function untilText(until: AfterCompactUntil, post: boolean, hasPost: boolean): string {
-  if (until === "next") return "次に送る指示と一緒に伝えます";
-  if (until === "closed") return post ? "この作業が終わったら、最初に送ります" : "この作業が終わったら送ります";
-  if (until === "turn" || (until === "exchange" && post)) return "いまの作業に伝えます";
-  if (until === "exchange") return "このやり取りが終わったら送ります";
-  if (post) return "圧縮が終わったら、最初に送ります";
-  return hasPost ? "圧縮後指示のやり取りが終わったら送ります" : "圧縮のあとのやり取りが終わったら送ります";
-}
 
 /**
  * 圧縮が終わるのを待っている指示（ChatLive の now）。圧縮中の行の下に、送る前の吹き出しとして、送る順に並べる。
@@ -68,7 +52,7 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
           </div>
           <div className="message-meta">
             {editing?.id === m.id ? <Pencil size={12} aria-hidden /> : <Clock size={12} aria-hidden />}
-            {editing?.id === m.id ? "チャット欄で書き直しています（保存しても、この順番のまま送ります）" : untilText(until, m.post_compact === true, hasPost)}
+            {editing?.id === m.id ? "チャット欄で書き直しています（保存しても、この順番のまま送ります）" : afterCompactLabelOf(until, m.post_compact === true, hasPost)}
             {/* 伝える前なら送らずに消せる（コアが預かりに入れる前に先に見せている圧縮後指示は、まだ消せない） */}
             {screen && m.id !== PENDING_POST_ID && (
               <>

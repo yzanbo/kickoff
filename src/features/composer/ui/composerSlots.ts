@@ -2,20 +2,9 @@
 // ピル = notes・音声 = voice）。登録の表は中身を静的に読まず load で渡し、main.tsx が最初の描画の前に loadComposerSlots で読み終える
 // （描くときに待たない。帯・メーター・マイクが遅れて出て、下の行の幅の測り直しが漏れないように。音声の hooks は描く前に決まっていないといけない）
 import type { ComponentType, KeyboardEvent, ReactNode } from "react";
-import type { CompactingState } from "@shared/chat/chatLive";
-import type { Attachment, Chat, QueuedMessage } from "@shared/chat/types";
+import type { Attachment } from "@shared/chat/types";
 import { definePoint } from "@/foundation/ui/points";
 import type { VoiceReply } from "./selectors";
-
-/** 右下のメーターに渡す、このチャットの圧縮の様子（会話の画面のチャット欄だけ。省けば送る前と同じ 0% の形） */
-export interface ComposerMeterInput {
-  chat: Chat | null;
-  compacting: CompactingState | null;
-  /** 作業中に予約した圧縮・コンテキストの消去（送信待ちのいちばん上の行） */
-  reserved: QueuedMessage | null;
-  /** 手で頼んだ圧縮の圧縮前指示を、いまの作業に伝えた */
-  afterTurn: boolean;
-}
 
 /** どこの入力欄か（候補を探す作業場所・「ほかのチャットを参照」で除くチャット・差し込みに渡すもの） */
 export interface ComposerPlace {
@@ -24,7 +13,6 @@ export interface ComposerPlace {
   worktree: string | null;
   /** 既存のチャット（送る前の欄は null） */
   chatId: number | null;
-  meter?: ComposerMeterInput;
   /** 出さない差し込み（既定は全部出す） */
   slots?: { band?: false; meter?: false; menu?: false };
 }

@@ -1,7 +1,7 @@
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Attachment } from "@shared/chat/types";
 import { subagentAskOf } from "@shared/chat/prompts";
-import { compactKindOf } from "@/features/compact/ui/compactPromptKinds";
+import { compactKindOf } from "@/features/compact/ui";
 import type { CompactPromptKind } from "@shared/chat/prompts";
 
 /**

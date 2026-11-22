@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { relayMessage } from "@shared/chat/prompts";
-import { isStopHint, nextQueuedText, queuedHint, reservedRow } from "./queuedHint";
+import { isStopHint, nextQueuedText, queuedHint } from "./queuedHint";
 import type { QueuedMessage } from "@shared/chat/types";
-import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
 const noStops = { paused: false, stops: [] };
 const line0 = { paused: false, stops: [0] };
@@ -23,13 +22,9 @@ test("queuedHint: 作業が終わって 1 件目の上の線で待っている�
   assert.equal(queuedHint({ paused: true, stops: [0] }, { ...base, busy: false }), "止めています。行の「すぐ送る」で 1 件ずつ送れます");
 });
 
-test("reservedRow: コアが予約とした（reserved）ときだけ、いちばん上の行。畳んだ 1 行の「次:」は挟む行の名前", () => {
+test("nextQueuedText: 畳んだ 1 行の「次:」は挟む行の名前", () => {
   const row = (text: string, action?: "compact" | "clear"): QueuedMessage => ({ id: text, text, options: {}, attachments: [], created_at: "", ...(action ? { [action]: true } : {}) });
-  const compact = row("", "compact");
-  const queue = { ...EMPTY_QUEUE_STATE, messages: [compact, row("2")] };
-  assert.equal(reservedRow({ ...queue, reserved: "compact" }), compact);
-  assert.equal(reservedRow(queue), null);
-  assert.equal(nextQueuedText(compact), "会話を圧縮");
+  assert.equal(nextQueuedText(row("", "compact")), "会話を圧縮");
   assert.equal(nextQueuedText(row("c", "clear")), "コンテキストを消去");
 });
 

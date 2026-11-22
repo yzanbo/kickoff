@@ -5,10 +5,10 @@ import { autoCompactThreshold } from "@shared/compact/autoCompact";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { formatTokens } from "@/foundation/ui/lib/format";
-import { usageLevel } from "@/features/ai/ui/usage/usage";
-import { UsageBar } from "@/features/ai/ui/usage/UsageMeter";
+import { UsageBar, usageLevel } from "@/features/ai/ui";
 import { Popover, usePopover } from "@/foundation/ui/kit/Popover";
-import { compactingLabel } from "@/features/conversation/ui/working/workingLabel";
+import { useChatDetail, useKnownChat } from "@/features/chat/ui";
+import { compactingLabel, compactsAfterTurn, reservedRow } from "./compactHold";
 import { CompactPromptEditor } from "./CompactPromptEditor";
 import { AutoCompactSelect } from "./AutoCompactSelect";
 import { FreeContextActions, type FreeContextAction } from "./FreeContextActions";
@@ -149,8 +149,15 @@ function Ring({ pct, mark, compacting }: { pct: number; mark: number | null; com
   );
 }
 
-/** 入力欄の差し込み（composerSlots の meter）: 右下のコンテキストのメーター（圧縮の様子は会話の画面の欄だけが place.meter で渡す） */
+/** 入力欄の差し込み（composerSlots の meter）: 右下のコンテキストのメーター（既存のチャットはチャットと圧縮の様子を自分で読む。送る前の欄は 0% の形） */
 export function ComposerMeter({ place }: { place: ComposerPlace }) {
-  const m = place.meter;
-  return <ContextMeter chat={m?.chat ?? null} projectId={place.projectId} compacting={m?.compacting ?? null} reserved={m?.reserved ?? null} afterTurn={m?.afterTurn ?? false} />;
+  if (place.chatId === null) return <ContextMeter chat={null} projectId={place.projectId} compacting={null} reserved={null} afterTurn={false} />;
+  return <ChatContextMeter chatId={place.chatId} projectId={place.projectId} />;
+}
+
+/** 既存のチャットのメーター（チャットと作業中の様子は店から読む。中身を読んでいないチャットでは圧縮の様子は空） */
+function ChatContextMeter({ chatId, projectId }: { chatId: number; projectId: number }) {
+  const chat = useKnownChat(chatId) ?? null;
+  const { live } = useChatDetail(chatId);
+  return <ContextMeter chat={chat} projectId={projectId} compacting={live.compacting} reserved={reservedRow(live.queue)} afterTurn={compactsAfterTurn(live)} />;
 }

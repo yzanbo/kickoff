@@ -49,8 +49,3 @@ export function nextQueuedText(message: QueuedMessage | undefined): string {
   if (line) return line;
   return message.attachments.length > 0 ? `添付 ${message.attachments.length} 件` : "";
 }
-
-/** 作業の終わりにすぐ行う圧縮・消去の行（コアの予約 reserved。送信待ちのいちばん上の行。なければ null） */
-export function reservedRow(queue: QueueState): QueuedMessage | null {
-  return queue.reserved ? (queue.messages[0] ?? null) : null;
-}

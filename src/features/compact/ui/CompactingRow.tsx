@@ -4,8 +4,8 @@ import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { CompactingState } from "@shared/chat/chatLive";
 import { formatTokens } from "@/foundation/ui/lib/format";
 import { formatFullStamp, formatStamp, formatStampRangeWithRunTime } from "@/foundation/ui/lib/time";
-import { Elapsed } from "@/features/chat/ui/parts/Elapsed";
-import { compactingLabel } from "@/features/conversation/ui/working/workingLabel";
+import { Elapsed } from "@/features/chat/ui";
+import { compactingLabel } from "./compactHold";
 import { Notice } from "@/foundation/ui/kit/Notice";
 
 /** なぜ作業が止まって見えるか（自動の圧縮は利用者が始めたものではないので、きっかけと、終われば作業が続くことを添える） */

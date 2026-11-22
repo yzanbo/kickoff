@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { COMPACT_PROMPT_FIELDS, compactPromptFor, type CompactPromptKind } from "@shared/chat/prompts";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { addProject, useProjects } from "@/features/projects/ui/stores/projects";
+import { addProject, useProjects } from "@/features/projects/ui";
 import { settingsStore, useAppSettings } from "@/features/settings/ui/stores/settings";
 import { savedCompactPrompt } from "./compactPromptKinds";
 

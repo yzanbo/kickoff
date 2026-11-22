@@ -176,7 +176,7 @@ function NoteQuickComposer({
       {/* ノートのチャットの送信待ち（閉じている欄の中のチャットの画面がここに描く。入力欄とつなげて 1 枚の枠に見せる） */}
       <div ref={queueRef} className="note-quick-queue" />
       <Composer
-        place={{ projectId, worktree: chat?.worktree_path ?? null, chatId: chat?.id ?? null, meter: chat ? { chat, compacting: null, reserved: null, afterTurn: false } : undefined }}
+        place={{ projectId, worktree: chat?.worktree_path ?? null, chatId: chat?.id ?? null }}
         options={options}
         // 作業中・止めている送信待ちがあるときは、送り方（いま / あとで）に合わせた案内と送信ボタンの説明（チャット欄と同じ）
         placeholder={busy || queued ? send.placeholder : PLACEHOLDER}

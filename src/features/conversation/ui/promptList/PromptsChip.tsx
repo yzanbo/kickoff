@@ -11,8 +11,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import type { PromptEntry } from "./promptHistory";
-import { COMPACT_PROMPT_KINDS } from "@/features/compact/ui/compactPromptKinds";
-import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
+import { COMPACT_PROMPT_KINDS, CompactPromptMark } from "@/features/compact/ui";
 
 /**
  * チャット欄の上の「指示の履歴 12」（ToDo・サブエージェントと同じピルの列）。押すと、このチャットで自分が送った指示の一覧を上に開く。

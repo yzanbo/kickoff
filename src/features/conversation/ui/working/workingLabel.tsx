@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { TICK_SECOND, useTicker } from "@/foundation/ui/hooks/useTicker";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { CompactTrigger } from "@shared/ai/turnEvents";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
@@ -9,6 +8,7 @@ import { activityOf, activityText, type Activity } from "@/features/chat/ui/stat
 import { backgroundWaitLabel, countBackground } from "@/features/conversation/ui/background/backgroundText";
 import { RetryLabel } from "./ConnectionStatus";
 import { isInheriting } from "./workPhase";
+import { compactingLabel } from "@/features/compact/ui";
 import type { TimelineItem } from "@/features/conversation/ui/timeline/timelineItems";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
@@ -54,9 +54,6 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
     </>
   );
 }
-
-/** 会話を圧縮している間の文（作業中の行・一番下へ戻るボタン・チャット欄のメーター。自動のときは、自分で始めたものではないと分かるように） */
-export const compactingLabel = (trigger: CompactTrigger) => (trigger === "auto" ? "会話を自動で圧縮しています" : "会話を圧縮しています");
 
 /** 長く動きのないサブエージェントを、作業中の行で知らせる（「サブエージェント『調査』が 12 分動いていません（ほか 1 件）」） */
 function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { useFold } from "@/foundation/ui/hooks/useFold";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { useProjects } from "@/features/projects/ui";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { Segmented } from "@/foundation/ui/kit/Segmented";

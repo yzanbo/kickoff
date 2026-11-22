@@ -16,6 +16,3 @@ export function afterCompactUntilOf(live: Pick<ChatLive, "phase" | "input_closed
   if (isWaitingCompact(live)) return "compact";
   return live.input_closed ? "closed" : live.compaction.done ? "exchange" : "turn";
 }
-
-/** 作業中に手で頼んだ圧縮を、いまの作業が終わったら行うか（チャット欄のメーターの「いまの作業が終わったら圧縮します」） */
-export const compactsAfterTurn = (live: Pick<ChatLive, "compaction">): boolean => live.compaction.after_turn;

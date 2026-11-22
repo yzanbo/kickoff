@@ -9,12 +9,10 @@ import { BackgroundTasks } from "@/features/conversation/ui/background/Backgroun
 import { ReconnectRow } from "@/features/conversation/ui/working/ConnectionStatus";
 import { Working } from "@/features/chat/ui/parts/Working";
 import { WorkingExecution } from "@/features/conversation/ui/working/WorkingExecution";
-import { CompactingRow } from "@/features/compact/ui/CompactingRow";
-import { AfterCompactMessages } from "@/features/compact/ui/AfterCompactMessages";
+import { CompactingRow, AfterCompactMessages, useSentCompactPrompt } from "@/features/compact/ui";
 import { afterCompactUntilOf, isWaitingCompact } from "@/features/conversation/ui/working/workPhase";
 import { VisualPending } from "@/features/visuals/ui";
 import { WorkplaceMoveRow } from "@/features/workplaceMove/ui/WorkplaceMoveRow";
-import { useSentCompactPrompt } from "@/features/compact/ui/useCompactPrompt";
 import { StreamingReply } from "@/features/conversation/ui/streaming/StreamingReply";
 
 /**

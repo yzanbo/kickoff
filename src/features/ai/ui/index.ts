@@ -4,3 +4,5 @@ export { useChatOptions, type ChatOptionsState } from "./options/ChatOptionsBar"
 export { ProviderIcon } from "./provider/ProviderIcon";
 export { noteForegroundProvider } from "./provider/chatProvider";
 export { ClaudeMark } from "./ClaudeMark";
+export { usageLevel } from "./usage/usage";
+export { UsageBar } from "./usage/UsageMeter";

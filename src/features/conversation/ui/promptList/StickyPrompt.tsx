@@ -9,8 +9,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { AttachmentPeek } from "@/features/attachments/ui";
 import { ChatDisplayItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
-import { COMPACT_PROMPT_KINDS } from "@/features/compact/ui/compactPromptKinds";
-import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
+import { COMPACT_PROMPT_KINDS, CompactPromptMark } from "@/features/compact/ui";
 import type { PromptEntry } from "./promptHistory";
 
 /**

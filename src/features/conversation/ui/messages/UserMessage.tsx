@@ -18,8 +18,7 @@ import { BubbleEditor } from "./BubbleEditor";
 import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
 import { HandBackFromChip } from "@/features/childChats/ui";
-import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/compact/ui/compactPromptKinds";
-import { CompactPromptMark } from "@/features/compact/ui/CompactPromptMark";
+import { COMPACT_PROMPT_KINDS, compactKindOf, CompactPromptMark } from "@/features/compact/ui";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 import { useBeforeProviderSwitch } from "@/features/providerSwitch/ui";
 
