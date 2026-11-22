@@ -1,10 +1,10 @@
 import { useState, type KeyboardEvent, type RefObject } from "react";
 import { isKey } from "@/foundation/ui/lib/keys";
-import { historyMove } from "@/features/conversation/ui/promptList/promptHistory";
+import { historyMove } from "./promptHistoryKeys";
 
 /**
  * チャット欄の ↑↓ で、前に送った自分の発言を呼び出す。
- * prompts（新しい順）がなければ使わない（新しいチャットの入力欄）。判定は promptHistory.ts の historyMove
+ * prompts（新しい順）がなければ使わない（新しいチャットの入力欄）。判定は promptHistoryKeys.ts の historyMove
  */
 export function usePromptHistory({
   prompts,

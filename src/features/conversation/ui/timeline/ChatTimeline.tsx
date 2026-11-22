@@ -148,9 +148,7 @@ export function ChatTimeline({
       </div>
       {pinned && (
         <StickyPrompt
-          text={pinned.text}
-          answers={pinned.answers}
-          compactKind={pinned.compactKind}
+          prompt={pinned}
           attachments={sticky.attachments}
           onPrev={sticky.hasPrev ? () => nav.stepPrompt(-1, pinned.id) : undefined}
           onNext={sticky.hasNext ? () => nav.stepPrompt(1, pinned.id) : undefined}

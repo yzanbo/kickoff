@@ -4,7 +4,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/foundation/ui/storage/storageKeys";
 import type { PromptList } from "./promptHistory";
 import { promptAround } from "./promptNav";
-import { readingLine, readingPrompt, samePinned, type PinnedHold, type PinnedPrompt } from "./StickyPrompt";
+import { readingLine, readingPromptId, type PinnedHold } from "./readingPromptId";
 
 const NO_ATTACHMENTS: Attachment[] = [];
 
@@ -12,7 +12,7 @@ const NO_ATTACHMENTS: Attachment[] = [];
  * 上に貼り付けておく自分の発言（読んでいる返答の元の発言。いつも出しておき、スクロールに合わせて中身を変える。
  * 見出しの行のボタン・設定の「表示」で出さないこともできる）。
  * 描いた行（窓が描く行を変えた回数 drawn）・最後の項目・帯の出し方が変わったら確かめ直す（スクロールしなくても、開いたときから帯を出す）。スクロールしたら update を呼ぶ。
- * 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない。
+ * DOM から読むのは記録の ID だけで、文・回答・種類・添付は指示の一覧から引く。同じ発言のままならスクロールのたびに描き直さない。
  * 出している指示は、選んだときの線を覚えて、そこより下へ戻るまで出し続ける（`PinnedHold`。そうしないと、高さの違う指示の境目で、
  * 帯が替わると流れの上端が動いてまた元の指示に戻り、一番下に付いていく間は帯が毎フレーム替わり続ける）。
  * 帯の高さが変わったときに流れのスクロールを合わせて中身を止めることはしない（止めると、上へ戻って高い帯に替わったときに次の吹き出しが帯の下に回り込み、また替わった。
@@ -20,17 +20,18 @@ const NO_ATTACHMENTS: Attachment[] = [];
  */
 export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts: PromptList, drawn: number, lastKey: string | undefined) {
   const [hidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  const [pinned, setPinned] = useState<PinnedPrompt>();
-  const current = useRef<PinnedPrompt>(undefined);
+  const [pinnedId, setPinnedId] = useState<number>();
+  const current = useRef<number>(undefined);
   const hold = useRef<PinnedHold>(undefined);
   const update = () => {
     const el = timeline.current;
-    const next = !el || hidden ? undefined : readingPrompt(el, prompts, hold.current);
-    if (samePinned(current.current, next)) return;
+    const next = !el || hidden ? undefined : readingPromptId(el, prompts, hold.current);
+    if (current.current === next) return;
     current.current = next;
-    hold.current = el && next ? { id: next.id, line: readingLine(el) } : undefined;
-    setPinned(next);
+    hold.current = el && next !== undefined ? { id: next, line: readingLine(el) } : undefined;
+    setPinnedId(next);
   };
+  const pinned = pinnedId === undefined ? undefined : prompts.historyById.get(pinnedId);
   // 描き直したとき（描いた行・最後の行・出すかが変わったとき）に読み直す
   const updateOnDraw = useEffectEvent(update);
   useLayoutEffect(() => {
@@ -40,7 +41,8 @@ export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts
   return {
     /** 帯に出す指示（出さない・まだ流れていないときは undefined） */
     pinned: hidden ? undefined : pinned,
-    attachments: (pinned && prompts.byId.get(pinned.id)?.attachments) || NO_ATTACHMENTS,
+    // 質問への回答の添付は帯に出さない（吹き出しの中だけ）
+    attachments: (pinned && !pinned.answers && pinned.attachments) || NO_ATTACHMENTS,
     hasPrev: pinned !== undefined && promptAround(prompts.ids, pinned.id, -1) !== undefined,
     hasNext: pinned !== undefined && promptAround(prompts.ids, pinned.id, 1) !== undefined,
     update,

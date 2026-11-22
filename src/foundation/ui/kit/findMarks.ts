@@ -12,8 +12,11 @@ const SKIP = "input, textarea, script, style, [hidden], .pane-find";
 /** iframe の中に置く、印の色の CSS（画面の CSS の変数は iframe の中にないので、色はいまの値を書き込む） */
 const FRAME_STYLE_ID = "kickoff-pane-find-style";
 
-/** 要素の中の、見えている文字のノード（中の同じオリジンの iframe の文書の中も、並んでいる順に）。skip は入らない要素を足すセレクタ */
-export function findTextNodes(root: HTMLElement, { skip }: { skip?: string } = {}): Text[] {
+/**
+ * 要素の中の、見えている文字のノード（中の同じオリジンの iframe の文書の中も、並んでいる順に）。skip は入らない要素を足すセレクタ。
+ * 空白だけのノードは飛ばす（blank なら残す。空白も探す文字にするチャットの検索）
+ */
+export function findTextNodes(root: HTMLElement, { skip, blank = false }: { skip?: string; blank?: boolean } = {}): Text[] {
   const skipped = skip ? `${SKIP}, ${skip}` : SKIP;
   const nodes: Text[] = [];
   const walk = (el: Element) => {
@@ -26,7 +29,7 @@ export function findTextNodes(root: HTMLElement, { skip }: { skip?: string } = {
           return NodeFilter.FILTER_SKIP;
         }
         const parent = node.parentElement;
-        if (!parent || !node.nodeValue?.trim() || parent.closest(skipped) || !parent.checkVisibility()) return NodeFilter.FILTER_REJECT;
+        if (!parent || !(blank ? node.nodeValue : node.nodeValue?.trim()) || parent.closest(skipped) || !parent.checkVisibility()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });

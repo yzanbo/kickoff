@@ -7,7 +7,7 @@ import type { CompactPromptKind } from "@shared/chat/prompts";
 /**
  * 自分の指示（発言）の一覧と、チャット欄の ↑↓ で前に送った発言を呼び出す決まり。
  * 一覧は記録から promptListOf で 1 回だけ作り、指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・↑↓ の呼び出し・失敗した作業の巻き戻しで共通に使う。
- * 判定はここの純粋関数に集め、Composer は usePromptHistory からキーを渡すだけにする
+ * ↑↓ の呼び出しの決まりは入力欄の側（@/features/composer/ui/promptHistoryKeys.ts）
  */
 
 /** 自分の指示の一覧の 1 行 */
@@ -54,6 +54,8 @@ export interface PromptList {
   ids: number[];
   /** 記録の ID → 指示 */
   byId: ReadonlyMap<number, PromptEntry>;
+  /** 記録の ID → 履歴の行（指示と質問への回答。上に貼り付ける指示の帯が引く） */
+  historyById: ReadonlyMap<number, PromptEntry>;
   /** チャット欄の ↑↓ で呼び出す文（新しい順。文のない添付だけの指示は除き、続けて同じ文は 1 つにまとめる） */
   recalls: string[];
 }
@@ -92,7 +94,7 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
   }
   const recalls: string[] = [];
   for (const p of entries) if (p.text && recalls[recalls.length - 1] !== p.text) recalls.push(p.text);
-  const list: PromptList = { entries, history, ids: entries.map((p) => p.id), byId: new Map(entries.map((p) => [p.id, p])), recalls: recalls.reverse() };
+  const list: PromptList = { entries, history, ids: entries.map((p) => p.id), byId: new Map(entries.map((p) => [p.id, p])), historyById: new Map(history.map((p) => [p.id, p])), recalls: recalls.reverse() };
   lists.set(events, list);
   return list;
 }
@@ -100,49 +102,4 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
 /** その記録より前の、いちばん新しい自分の指示（その作業を始めた指示。なければ undefined） */
 export function promptBefore(list: PromptList, eventId: number): PromptEntry | undefined {
   return list.entries.findLast((p) => p.id < eventId);
-}
-
-export interface HistoryInput {
-  key: "ArrowUp" | "ArrowDown";
-  /** 前に送った発言（新しい順） */
-  prompts: string[];
-  /** いま出している発言の位置（-1 = 呼び出していない） */
-  index: number;
-  /** 入力欄の文 */
-  text: string;
-  selectionStart: number;
-  selectionEnd: number;
-}
-
-export interface HistoryMove {
-  index: number;
-  text: string;
-  /** 入れたあとのキャレットの位置 */
-  caret: number;
-}
-
-/**
- * ↑↓ で履歴を動かすなら、次の状態を返す（普通のカーソル移動に任せるなら null）。
- * 使えるのは、入力欄が空のときと、呼び出した文を書き換えずに出している間だけ。
- * 複数行の文では、↑ はキャレットが 1 行目にあるとき、↓ は最後の行にあるときだけ履歴に使う
- */
-export function historyMove({ key, prompts, index, text, selectionStart, selectionEnd }: HistoryInput): HistoryMove | null {
-  // 書き換えていない呼び出し中の文か、空の入力欄でなければ使わない
-  const current = index >= 0 && prompts[index] === text ? index : text === "" ? -1 : null;
-  if (current === null || selectionStart !== selectionEnd) return null;
-  const caret = selectionStart;
-  if (key === "ArrowUp") {
-    if (text.slice(0, caret).includes("\n")) return null;
-    const next = current + 1;
-    if (next >= prompts.length) return null;
-    const recalled = prompts[next];
-    // 続けて ↑ を押せるよう、キャレットは 1 行目の終わりに置く（1 行の文なら文の終わり）
-    const firstLineEnd = recalled.indexOf("\n");
-    return { index: next, text: recalled, caret: firstLineEnd === -1 ? recalled.length : firstLineEnd };
-  }
-  if (current < 0 || text.slice(caret).includes("\n")) return null;
-  const next = current - 1;
-  // いちばん新しい発言を越えたら、呼び出す前の空の入力欄に戻す
-  const restored = next >= 0 ? prompts[next] : "";
-  return { index: next, text: restored, caret: restored.length };
 }

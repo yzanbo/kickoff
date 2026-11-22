@@ -9,7 +9,7 @@ import { chatTail } from "@/features/chat/ui";
 import { useChatHotkey } from "@/features/conversation/ui/screen/chatHotkeys";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
-import { createFindMarks } from "@/foundation/ui/kit/findMarks";
+import { createFindMarks, findTextNodes } from "@/foundation/ui/kit/findMarks";
 import { findMatches } from "./chatFindMatches";
 
 /**
@@ -53,6 +53,7 @@ export function ChatFind({
   // 長いチャットでも打つのが遅れないよう、探すのは入力に遅れて（空白も探す文字なので削らない）
   const needle = useDeferredValue(query);
   // 探す形（正規表現の誤りなら error。件数のところに出す）
+  // 残す: 描く中で前の形と比べて選んだ一致を外す（同じ形なら同じ物でないと、描くたびに外して描き直し続ける）
   const pattern = useMemo(() => findPattern(needle, options), [needle, options]);
   const invalid = pattern !== null && "error" in pattern;
   // 末尾より前の本文（文を打ち始めたら読み、文を消したら捨てる）
@@ -78,12 +79,9 @@ export function ChatFind({
       setLoadingTexts(false);
     };
   }, [active, earlier, searchTexts]);
-  const searchable = useMemo(() => {
-    if (!earlier?.length) return tail;
-    const first = tail[0]?.id ?? Number.MAX_SAFE_INTEGER;
-    return [...earlier.filter((e) => e.id < first), ...tail];
-  }, [earlier, tail]);
-  const matches = useMemo(() => findMatches(searchable, pattern), [searchable, pattern]);
+  const first = tail[0]?.id ?? Number.MAX_SAFE_INTEGER;
+  const searchable = earlier?.length ? [...earlier.filter((e) => e.id < first), ...tail] : tail;
+  const matches = findMatches(searchable, pattern);
   // いま選んでいる一致（null = まだ移っていない）
   const [index, setIndex] = useState<number | null>(null);
   // 探す形が変わったときだけ外す（前の形と比べて描いている間に決める。隠したタブを表に戻しても、選んでいた一致を残す）
@@ -173,26 +171,17 @@ export function ChatFind({
   );
 }
 
-/** root の中の、見えている文から pattern に合う所を探す（記録から探す findMatches と同じ照らし合わせ） */
+/** 探さない所: ボタンの文・発言の下の行・閉じた開閉（ツールのまとまり・思考）の summary の外 */
+const SKIP = "button, .message-meta, details:not([open]) > :not(summary)";
+
+/** root の中の、見えている文から pattern に合う所を探す（記録から探す findMatches と同じ照らし合わせ。空白も探す文字なので空白だけのノードも見る） */
 function findRanges(root: HTMLElement, pattern: FindPattern): Range[] {
-  const ranges: Range[] = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) => {
-      const parent = node.parentElement;
-      // 閉じたツールのまとまり・思考の中身（summary 以外）と、ボタンの文は探さない
-      if (!parent || parent.closest("button, .message-meta")) return NodeFilter.FILTER_REJECT;
-      const details = parent.closest("details");
-      if (details && !details.open && !parent.closest("summary")) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    },
-  });
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    for (const span of spansIn(node.textContent ?? "", pattern)) {
+  return findTextNodes(root, { skip: SKIP, blank: true }).flatMap((node) =>
+    spansIn(node.nodeValue ?? "", pattern).map((span) => {
       const range = document.createRange();
       range.setStart(node, span.start);
       range.setEnd(node, span.end);
-      ranges.push(range);
-    }
-  }
-  return ranges;
+      return range;
+    }),
+  );
 }
