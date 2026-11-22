@@ -3,7 +3,7 @@ import type { ChatLive } from "@shared/chat/chatLive";
 /**
  * 「いま」をコアが預かる間（awaiting = 圧縮前指示を送ってから圧縮が始まるまで。圧縮前指示の作業中 / compacting = 会話の圧縮中 /
  * post = 圧縮したやり取りの続き。圧縮後指示があればその作業、なければ圧縮のあとの続きの作業が終わるまで）。
- * この間に「いま」で送った指示は、圧縮のあとのやり取りが終わってから送る（ChatLive の after_compact）。「あとで」はいつもどおり送信待ち
+ * この間に「いま」で送った指示は、圧縮のあとのやり取りが終わってから送る（ChatLive の now）。「あとで」はいつもどおり送信待ち
  */
 export type CompactHold = "compacting" | "awaiting" | "post" | null;
 

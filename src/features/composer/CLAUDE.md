@@ -23,6 +23,6 @@
 - 作業中の扱いは `composer:queue-mode`（コアの `when` と同じ `now` = いま / `later` = あとで）とキー（⌘Enter / ⌘⇧Enter。`sendModeOf`）。作業していなくて送信待ちが残るときは「すぐ送る / ためておく」にする（`send.holdsQueue`）。
 - 「いま」は `when: now`。伝えられないとき（`tells_closed`）と圧縮を待つ間（`awaiting_compact`・`compacting`・`compacted_turn`）はコアが預かり（`after_compact`）、作業の終わりに送信待ちより先に送る。
 - 圧縮後指示は送信待ちに入らない。預かった指示の書き直しは `@/features/compact/ui/HeldEditComposer.tsx`（状態は `@/features/compact/ui/heldEdit.ts`）。
-- 書き直している間は `api.setAfterCompactEditing` を `EDIT_HOLD_TTL_MS` の 1/4 ごとに知らせ直す（送信待ちと同じ）。保存の前に送られたら、書いた文をふつうのチャット欄に移す。
+- 書き直している間は `useEditHold` で `PUT …/queue/editing`（`lane: now`）を知らせ直す（送信待ちと同じ）。保存の前に送られたら、書いた文をふつうのチャット欄に移す。
 - 会話の圧縮中は停止のボタンを出さない（`send.compacting`）。止めるのは Esc 2 回。
 - 「質問として送る」（`onAsk`）は、同じ送り方でコアに `pause_after` を付ける。

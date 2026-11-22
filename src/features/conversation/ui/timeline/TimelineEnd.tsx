@@ -51,7 +51,7 @@ export function TimelineEnd({
   const post = useSentCompactPrompt("post", chat.project_id);
   // 圧縮を待つ間（圧縮前指示の作業中・圧縮中）は、コアが圧縮の記録を受け取って預かりの先頭に入れる前から、圧縮後指示を送る順で見せる
   const waitingCompact = busy && isWaitingCompact(live);
-  const pendingPost = waitingCompact && !live.after_compact.some((m) => m.post_compact) ? post : null;
+  const pendingPost = waitingCompact && !live.now.some((m) => m.post_compact) ? post : null;
   // いまの作業に足せなくなったあとの「いま」は、作業の終わりに送る
   const until = busy ? afterCompactUntilOf(live) : "next";
   return (
@@ -66,7 +66,7 @@ export function TimelineEnd({
         approvals.length === 0 &&
         (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at} details={<WorkingExecution chat={chat} events={events} />}>{working}</Working>)}
       {/* 圧縮後指示と、預かった「いま」の指示は、圧縮の行・作業中の行の下に送る順で */}
-      {(live.after_compact.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.after_compact} pendingPost={pendingPost} until={until} />}
+      {(live.now.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.now} pendingPost={pendingPost} until={until} />}
       {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} events={events} />}
       {live.workplace_move && <WorkplaceMoveRow chatId={chat.id} reservation={live.workplace_move} />}
       {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}

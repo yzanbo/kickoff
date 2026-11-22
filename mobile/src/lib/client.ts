@@ -5,7 +5,7 @@ import type { QueueState } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
 import type { Device, DevicePush, ViewingBody } from "@shared/devices/types";
 import type { ChatDetail, ChatDetailQuery } from "@shared/chat/detail";
-import type { SendMessageBody, TellResult } from "@shared/chat/send";
+import type { QueueCommandsBody, SendBody, SendMessageBody, SendResult } from "@shared/chat/send";
 import type { ServerStatus } from "@shared/foundation/server";
 import type { Project } from "@shared/projects/types";
 import type { TerminalCreated, TerminalTab } from "@shared/terminal/types";
@@ -71,10 +71,11 @@ export class HostClient {
   startChat = (projectId: number, text: string) => this.request<Chat>("POST", `/api/projects/${projectId}/chats`, { text });
   send = (chatId: number, text: string) => this.request<Chat>("POST", `/api/chats/${chatId}/messages`, { text } satisfies SendMessageBody);
   /** 作業中なら止めずに伝える（作業していなければ送る） */
-  tell = (chatId: number, text: string) => this.request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text } satisfies SendMessageBody);
+  tell = (chatId: number, text: string) => this.request<SendResult>("POST", `/api/chats/${chatId}/messages`, { text, when: "now" } satisfies SendBody);
   cancel = (chatId: number) => this.request<void>("POST", `/api/chats/${chatId}/cancel`);
-  queue = (chatId: number, text: string) => this.request<QueueState>("POST", `/api/chats/${chatId}/queue`, { text });
-  removeQueued = (chatId: number, queueId: string) => this.request<QueueState>("DELETE", `/api/chats/${chatId}/queue/${encodeURIComponent(queueId)}`);
+  /** 作業中なら送信待ちに入れる（作業していなければ送る） */
+  queue = (chatId: number, text: string) => this.request<SendResult>("POST", `/api/chats/${chatId}/messages`, { text, when: "later" } satisfies SendBody);
+  removeQueued = (chatId: number, queueId: string) => this.request<QueueState>("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: [queueId] }] } satisfies QueueCommandsBody);
   /** AI が予約した作業場所の移動を取り消す */
   cancelWorkplaceMove = (chatId: number) => this.request<void>("DELETE", `/api/chats/${chatId}/workplace-move`);
 

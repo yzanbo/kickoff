@@ -20,8 +20,6 @@ export const turnsApi = {
   /** 預かった指示をその場で書き直す（送る順はそのまま。書き直し中の印も外れる。書き直した指示を返す。もう伝えたなら 404） */
   updateAfterCompact: (chatId: number, messageId: string, text: string, attachments: Attachment[]) =>
     request<QueuedMessage>("PATCH", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`, { text, attachments }),
-  /** 入力欄で書き直している預かった指示を知らせる（丸ごと置き換え、空なら外す。書き直している間は、その指示から後ろを送らない。開いている間は知らせ直す） */
-  setAfterCompactEditing: (chatId: number, ids: string[]) => request<void>("PUT", `/api/chats/${chatId}/after-compact/editing`, { ids }),
   /**
    * 送る口 1 本（POST /api/chats/:chatId/messages）。when: now = 止めずに伝える（作業していなければすぐ送る。足せなければ預かる）/
    * later = 作業中なら送信待ちに入れる（hold なら作業していなくても列の最後）。省けば続きを送る（作業中は 409。答えはチャット）。

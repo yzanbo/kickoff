@@ -65,7 +65,7 @@ export function ChatComposerArea({
   const heldEdit = useHeldEdit(chat.id);
   const queued = live.queue.messages.length > 0;
   // 送った指示が出る所の印（流れのいちばん新しい自分の発言と預かった指示。送信待ちから送った指示を、どこかに出るまで「送信中」で残すのに使う）
-  const sentShown = sentShownKey(lastUserEventId.useFor(chat.id), live.after_compact);
+  const sentShown = sentShownKey(lastUserEventId.useFor(chat.id), live.now);
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「新規の子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で新しい子チャットを作って送る（このチャットの作業は止めない。
@@ -148,7 +148,7 @@ export function ChatComposerArea({
       {/* 作業の途中で止まったことだけを聞いているときの帯は、送信待ち・入力欄の上（送信待ちと入力欄の 1 枚の枠を切らない） */}
       {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}
       {portal?.queueTarget ? createPortal(queuedList, portal.queueTarget) : queuedList}
-      {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} />}
+      {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.now.some((m) => m.id === heldEdit.id)} />}
       {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}
       <Composer
         place={{
