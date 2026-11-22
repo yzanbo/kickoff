@@ -16,6 +16,7 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { NewChatButton } from "./NewChatButton";
 import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
+import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 
 interface Props {
   /** 開閉と幅（メインのウィンドウ）。なければ別ウィンドウのサイドバー（ウィンドウいっぱいに出し、開閉・幅のつまみ・信号機ボタンの行を置かない） */
@@ -56,8 +57,8 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     const rows = visibleRows();
     if (rows.length === 0) return;
     const current = rows.indexOf(target.closest<HTMLElement>("a.chat-row") as HTMLElement);
-    const step = e.key === "ArrowDown" ? 1 : -1;
-    const next = rows[current < 0 ? (step > 0 ? 0 : rows.length - 1) : Math.min(rows.length - 1, Math.max(0, current + step))];
+    // 端では回り込む（最後の次は先頭。候補・メニューと同じ決まり）
+    const next = rows[stepIndex(current, e.key === "ArrowDown" ? 1 : -1, rows.length)];
     e.preventDefault();
     next.focus();
     next.scrollIntoView({ block: "nearest" });

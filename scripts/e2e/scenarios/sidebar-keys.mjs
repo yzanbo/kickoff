@@ -1,4 +1,4 @@
-// 長い一覧を段階に分けて描くとき、最初の行が見えた直後の ↓ で残りの行がそろい、最後から 2 番目の行で ↓ を押すと最後の行へ移る。
+// 長い一覧を段階に分けて描くとき、最初の行が見えた直後の ↓ で残りの行がそろい、最後から 2 番目の行で ↓ を押すと最後の行へ移り、最後の行の ↓ で先頭へ回り込む。
 // 移す前の perf/lists-check.mjs --fixture の値: first 45・rowsAfterKey 1009・movedDown true・reachedLast true
 import assert from "node:assert/strict";
 import { FAKE_CHATS, openLongList, sidebarCheckExpr } from "../longList.mjs";
@@ -20,7 +20,9 @@ export default {
         const movedDown = document.activeElement === all[1];
         all.at(-2).focus();
         all.at(-2).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
-        return { rowsAfterKey: all.length, movedDown, reachedLast: document.activeElement === rows().at(-1) };`,
+        const reachedLast = document.activeElement === rows().at(-1);
+        all.at(-1).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+        return { rowsAfterKey: all.length, movedDown, reachedLast, wrapped: document.activeElement === rows()[0] };`,
       ),
     );
   },
@@ -29,5 +31,6 @@ export default {
     assert.ok(result.rowsAfterKey >= FAKE_CHATS, `↓ のあとに行がそろう（${result.rowsAfterKey} 行・開いた直後 ${result.first} 行）`);
     assert.equal(result.movedDown, true, "1 行目で ↓ を押すと 2 行目へ移る");
     assert.equal(result.reachedLast, true, "最後から 2 番目の行で ↓ を押すと最後の行へ移る");
+    assert.equal(result.wrapped, true, "最後の行で ↓ を押すと先頭の行へ回り込む");
   },
 };
