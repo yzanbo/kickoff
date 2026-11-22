@@ -2,7 +2,7 @@ import { Activity } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
-import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/ui/chatTitle";
+import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { openChat } from "@/features/chat/ui";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
@@ -14,7 +14,7 @@ import { TagFilterNotice } from "@/features/projects/ui/TagFilterNotice";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { DRAFT_LOOK } from "@shared/chat/stateLooks";
 import { bucketTone, chatsByState } from "@/features/chatList/ui/StateChatsPopover";
-import { openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
+import { draftTitleOf, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ToneChip } from "@/foundation/ui/kit/ToneChip";
 import { ChatStateMark } from "@/features/chat/ui";
 import { bucketMark } from "@/features/chatList/ui/StateChip";
@@ -29,7 +29,6 @@ import { ACTIVE_LOOKS, ACTIVE_STATES, PaletteStateFilter, type ActiveState } fro
 type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PlacedDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
-const draftTitle = (draft: PlacedDraft) => draft.title ?? (draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE);
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形。子チャットも並べ、押すと設定の開き方で開く）。
@@ -80,7 +79,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
       chats.filter((chat) => matches(chatTitle(chat.title), chat.project_id)),
       pending,
     );
-    const allDrafts = drafts.filter((d) => matches(draftTitle(d), d.projectId));
+    const allDrafts = drafts.filter((d) => matches(draftTitleOf(d), d.projectId));
     // 選んだ状態だけ（column は作業中・回答待ち・未読のどれか）
     const sections = allSections.filter((s) => s.column && shownStates.has(s.column as ActiveState));
     const baseChats = sections.flatMap((s) => s.chats);
@@ -188,7 +187,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                       <>
                         {/* 状態の印の場所をそろえる（下書きは AI が何もしていないので印なし） */}
                         <span className="status-slot" aria-hidden />
-                        <span className="palette-label">{draftTitle(item.draft)}</span>
+                        <span className="palette-label">{draftTitleOf(item.draft)}</span>
                         {/* 「下書き」のまとまりの見出しの下に並ぶので、プロジェクト名だけを添える */}
                         <span className="palette-hint">
                           <PaletteProjectMark projectId={item.draft.projectId} />
