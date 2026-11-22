@@ -5,7 +5,7 @@ import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
-import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
+import { findTrigger, isSuggestAcceptKey, matchCommands, matchFiles } from "./suggestMatch";
 import { useFeatureBlock } from "@/features/ai/ui/provider/chatProvider";
 
 export type SuggestItem =
@@ -112,7 +112,7 @@ export function useSuggest({
       setIndex((i) => stepIndex(i, step, items.length));
       return true;
     }
-    if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+    if (isSuggestAcceptKey(e)) {
       e.preventDefault();
       accept(items[Math.min(index, items.length - 1)]);
       return true;

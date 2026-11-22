@@ -1,4 +1,5 @@
 import type { SlashCommandOption } from "@shared/ai/types";
+import { isKey, type KeyInput } from "@/foundation/ui/lib/keys";
 
 /** 候補の種類: / はコマンド（文の先頭だけ）、@ はファイル */
 export type SuggestKind = "slash" | "file";
@@ -46,3 +47,9 @@ export function matchFiles(files: string[], query: string): string[] {
     .slice(0, MAX_ITEMS)
     .map((x) => x.path);
 }
+
+/**
+ * 候補を確定するキーか: 修飾キーのない Enter・Tab だけ（Shift+Tab は権限モードの切り替え、⌘Enter・⌘⇧Enter は送る、に渡す。
+ * 変換を確定する Enter は除く）
+ */
+export const isSuggestAcceptKey = (e: KeyInput): boolean => isKey(e, "Enter") || isKey(e, "Tab");

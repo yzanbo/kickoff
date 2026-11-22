@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
+import type { KeyInput } from "@/foundation/ui/lib/keys";
+import { findTrigger, isSuggestAcceptKey, matchCommands, matchFiles } from "./suggestMatch";
 
 test("/ は文の先頭だけ、@ はどこでも（カーソルの前で打っているものを探す）", () => {
   assert.deepEqual(findTrigger("/rev", 4), { kind: "slash", start: 0, query: "rev" });
@@ -23,4 +24,15 @@ test("コマンドは名前の始まり → 名前に含む → 説明に含む�
 test("ファイルはファイル名の始まり → ファイル名に含む → パスに含むの順（同じなら短いパス）", () => {
   const files = ["src/api.ts", "src/core/api/server.ts", "docs/api.md", "src/renderer/src/rapid.ts"];
   assert.deepEqual(matchFiles(files, "api"), ["src/api.ts", "docs/api.md", "src/renderer/src/rapid.ts", "src/core/api/server.ts"]);
+});
+
+test("isSuggestAcceptKey: 修飾キーのない Enter・Tab だけで確定する（Shift+Tab・⌘Enter・⌘⇧Enter・Shift+Enter・変換中の Enter は渡す）", () => {
+  const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
+  assert.equal(isSuggestAcceptKey(key("Enter")), true);
+  assert.equal(isSuggestAcceptKey(key("Tab")), true);
+  assert.equal(isSuggestAcceptKey(key("Tab", { shiftKey: true })), false);
+  assert.equal(isSuggestAcceptKey(key("Enter", { metaKey: true })), false);
+  assert.equal(isSuggestAcceptKey(key("Enter", { metaKey: true, shiftKey: true })), false);
+  assert.equal(isSuggestAcceptKey(key("Enter", { shiftKey: true })), false);
+  assert.equal(isSuggestAcceptKey(key("Enter", { keyCode: 229 })), false);
 });
