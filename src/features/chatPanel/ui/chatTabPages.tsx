@@ -88,7 +88,7 @@ export function ChatTabPage({ tab: t, panel, visible }: PageOf<"chat">) {
         mainChatId: null,
       }}
       // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
-      onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
+      onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id } })}
     />
   );
 }

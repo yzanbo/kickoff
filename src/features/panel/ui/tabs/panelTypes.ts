@@ -1,4 +1,4 @@
-import type { Attachment, Chat } from "@shared/chat/types";
+import type { Attachment } from "@shared/chat/types";
 
 /** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
 const PROJECT_VIEWS = ["files", "search", "history"] as const;
@@ -11,11 +11,8 @@ export type ProjectTool = (typeof PROJECT_TOOLS)[number];
 
 /** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ノート・子チャット・新しい子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
-  /**
-   * title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。
-   * chat: タブの中のチャットから届いた最新のチャット（サイドバーの一覧にないチャットでも、状態の印・右クリックのメニューの固定・アーカイブなどに使う）
-   */
-  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; chat?: Chat }
+  /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。チャットそのものは持たず、ID で知っているチャットから引く */
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string }
   /** 送る前の新しいチャット。キーは下書きのキー（書きかけの文・添付・名前・固定・作成先は composer の下書きの店） */
   | { key: string; kind: "new" }
   /**

@@ -8,6 +8,8 @@ import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClu
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
+import { knownChat } from "@/features/chat/ui";
+import { usePanelChats } from "@/features/chatPanel/ui/state/useLinkedChats";
 
 /**
  * 1 つのペインのタブの並べ方: まとめ方（useTabGrouping。グループ別・作業場所別）を選んでいれば、まとまりごとに並べ替えて見せる
@@ -22,7 +24,9 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   // 一覧のペインのチャットのタブは、サイドバーと同じ並び（まとめ方・並び順・固定・アーカイブ済み）にする。
   // 自分で置いたタブだけの分けたペインは、ペインの並びのまま
   const scope = parsePanelKey(panel.key)?.scope;
-  const sidebarOrder = useSidebarChatOrder(panel.chats, typeof scope === "number" ? scope : undefined, showChat && home);
+  // 欄に出すチャット（サイドバーに出ているもの。まとまりの数・札の一覧もこれで数える）
+  const chats = usePanelChats(panel.key);
+  const sidebarOrder = useSidebarChatOrder(chats, typeof scope === "number" ? scope : undefined, showChat && home);
   const chatIdOf = (key: string) => {
     const t = panel.tabs.find((x) => x.key === key);
     return t?.kind === "chat" ? t.id : null;
@@ -34,7 +38,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const all = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
   // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方。送る前の新しいチャット（下書き。New Chat）のタブも 1 つと数える）
   const isNewTab = (key: string) => panel.tabs.some((t) => t.key === key && t.kind === "new");
-  const chatCount = (c: TabCluster) => panel.chats.filter((r) => clusterOfChat(r).key === c.key).length + c.tabs.filter(isNewTab).length;
+  const chatCount = (c: TabCluster) => chats.filter((r) => clusterOfChat(r).key === c.key).length + c.tabs.filter(isNewTab).length;
   // グループ別では、隠したグループ・チャットのないグループ（設定）を外す。隠したグループでも表示中のタブがあれば、畳んだ形で残す（forced）
   const hiddenGroups = useHiddenTabGroups();
   const shown =
@@ -54,7 +58,11 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const isHidden = (c: TabCluster) => shown.forced.has(c.key);
   const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c), active);
   /** タブのチャット（チャットのタブのものだけ） */
-  const chatsOf = (keys: readonly string[]) => keys.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
+  const chatsOf = (keys: readonly string[]) =>
+    keys.flatMap((key) => {
+      const t = panel.tabs.find((x) => x.key === key);
+      return (t?.kind === "chat" && knownChat(t.id)) || [];
+    });
   const display = clusters ? clusters.flatMap(shownTabs) : known;
   // 一覧のペインのチャットのタブのドラッグでの並べ替えは、サイドバーと同じ手動の並びとして保存する
   const manual = useManualChatReorder(sidebarOrder);
@@ -66,7 +74,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const reorderChatTab = (key: string, index: number, after = false): boolean => {
     if (!(showChat && home)) return false;
     const moved = chatIdOf(key);
-    const chat = moved === null ? undefined : panel.chats.find((c) => c.id === moved);
+    const chat = moved === null ? undefined : chats.find((c) => c.id === moved);
     if (moved === null || !chat) return false;
     const neighbor = (k: string | undefined) => (k === undefined ? null : chatIdOf(k));
     const tryMove = (target: number | null, side: "before" | "after") => {
@@ -106,7 +114,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     clusterChats: (c: TabCluster): Chat[] | undefined => {
       if (c.key === OTHER_CLUSTER.key) return undefined;
       const open = chatsOf(c.tabs);
-      return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id) && clusterOfChat(r).key === c.key)];
+      return [...open, ...chats.filter((r) => !open.some((o) => o.id === r.id) && clusterOfChat(r).key === c.key)];
     },
     /**
      * 札の右の数: 一覧のペインでは、サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。
@@ -120,7 +128,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     allChats: (() => {
       if (clusters) return [];
       const open = chatsOf(known);
-      return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
+      return [...open, ...chats.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
     })(),
   };
 }

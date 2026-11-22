@@ -4,18 +4,13 @@ import { PanelRightClose } from "lucide-react";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
 import { chatsPanel } from "@/features/chat/ui";
-import { chatKey, defineSurface, projectOfPanel, type PanelScope } from "@/features/panel/ui";
+import { chatKey, defineSurface } from "@/features/panel/ui";
 import { linkedChatsExt } from "./state/linkedTabs";
 import { useLinkedTabs } from "./state/useLinkedChats";
 import { AgentPanelAdds, AgentPanelEmpty } from "./agents/AgentPanelAdds";
 import { ChatPanelAdds, ChatPanelEmpty } from "./ChatPanelAdds";
 import { ChatTabStrip } from "./ChatTabStrip";
 import { ChatViewMenu } from "./tabs/ChatViewMenu";
-
-/** チャットの別ウィンドウのチャット（そのプロジェクトのサイドバーのチャット。読むだけでタブはそろえない） */
-function useWindowChats(key: string, scope: PanelScope) {
-  return useLinkedTabs(key, projectOfPanel(key) ?? scope, false);
-}
 
 /** チャットのパネル（ボードの右・「チャット」タブ）。サイドバーに出ているチャットのタブをそろえる */
 const chatsSurface = defineSurface({
@@ -31,8 +26,8 @@ const chatsSurface = defineSurface({
   emptyHint: "カードを押すと、ここにチャットが開きます。",
   slide: true,
   ext: linkedChatsExt,
-  // サイドバーに出ているチャットを読み、タブをそろえる
-  chats: { useChats: useLinkedTabs },
+  // サイドバーに出ているチャットに、タブをそろえる
+  sync: { useSync: useLinkedTabs },
   Adds: ChatPanelAdds,
   Strip: ChatTabStrip,
   ViewMenu: ChatViewMenu,
@@ -71,8 +66,6 @@ const chatWindowSurface = defineSurface({
   whenEmpty: "closeWindow",
   splitButtons: false,
   className: "as-sidebar",
-  // そのプロジェクトのチャットを読むだけで、タブはそろえない（移したチャットだけを並べる）
-  chats: { useChats: useWindowChats },
   Strip: ChatTabStrip,
   ViewMenu: ChatViewMenu,
   EmptyHint: ChatPanelEmpty,

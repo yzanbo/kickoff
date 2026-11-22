@@ -631,7 +631,6 @@
       "feature-entry:src/features/chatPanel/ui/tabs/useTabAgentState.ts -> src/features/chat/ui/state/chatStates.ts",
       "feature-entry:src/features/chatPanel/ui/tabs/useTabAgentState.ts -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/chatPanel/ui/tabs/useTabAgentState.ts -> src/features/panel/ui/tabs/panelTypes.ts",
-      "feature-entry:src/features/chatPanel/ui/tabs/useTabAgentState.ts -> src/features/panel/ui/usePanel.ts",
       "feature-entry:src/features/chatPanel/ui/tabs/useTabAgentState.ts -> src/features/subagents/ui/model/subagentList.ts",
       "feature-entry:src/features/chatPanel/ui/visibleChildChats.ts -> src/features/panel/ui/layout/paneTree.ts",
       "feature-entry:src/features/childChats/core/aiCreateChat.test.ts -> src/features/ai/core/testing/fakeProvider.ts",

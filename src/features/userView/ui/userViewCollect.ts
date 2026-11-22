@@ -41,7 +41,7 @@ function describePanelTab(tab: PanelTab): UserViewTab {
   if (describer) return describer.describe(tab);
   const kind = kindOf(tab);
   const projectId = kind.projectOf(tab);
-  return { kind: "page", label: kind.label(tab, undefined), ...(projectId !== undefined ? { project_id: projectId } : {}) };
+  return { kind: "page", label: kind.label(tab), ...(projectId !== undefined ? { project_id: projectId } : {}) };
 }
 
 /** プロジェクトのタブのペイン（チャットのタブはパネルのペインで出すので省く。ファイル・ノートの中身はファイル・ノートのタブのペインで出す） */

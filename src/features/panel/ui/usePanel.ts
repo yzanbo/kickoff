@@ -4,7 +4,7 @@ import { isTabVisible } from "@/features/panel/ui/layout/paneTree";
 import * as ops from "@/features/panel/ui/state/actions";
 import { isLinkedTab, type TabPatch } from "@/features/panel/ui/state/panelState";
 import { surfaceOf, useMountedPanel, usePanelState } from "@/features/panel/ui/state/panelStore";
-import { panelKey, type PanelScope, type PanelSurface, type SurfaceChats } from "./surface";
+import { panelKey, type PanelScope, type PanelSurface, type SurfaceSpec } from "./surface";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
 
@@ -50,13 +50,8 @@ function panelOps(key: string) {
   };
 }
 
-/** チャットを読まない欄のチャット（いつも同じ空の配列） */
-const NO_CHATS: Chat[] = [];
-const NO_CHAT_SOURCE: SurfaceChats = { useChats: () => NO_CHATS };
-
-/** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの。チャットのタブでなければ undefined） */
-export const tabChat = (tab: PanelTab | undefined, chats: readonly Chat[]): Chat | undefined =>
-  tab?.kind === "chat" ? (chats.find((r) => r.id === tab.id) ?? tab.chat) : undefined;
+/** タブをそろえない欄 */
+const NO_SYNC: NonNullable<SurfaceSpec["sync"]> = { useSync: () => {} };
 
 /**
  * 欄のパネル（チャット・新しいチャット・サブエージェント・ブラウザ・ターミナルのタブ）の状態と操作。ボードの右のパネル・右端のチャット欄・フッターで共通。
@@ -73,9 +68,9 @@ export function usePanel(surface: PanelSurface, scope: PanelScope) {
   const { tabs, layout, open: panelOpen } = state;
   useMountedPanel(key);
   const rules = surfaceOf(surface);
-  // 欄のチャット（欄の決まりの chats。チャットを出さない欄では読まない。欄は描いている間に変わらないので、呼ぶ hook も変わらない）
-  const source = rules?.chats ?? NO_CHAT_SOURCE;
-  const chats: Chat[] = source.useChats(key, scope);
+  // 持ち主がタブをそろえる（欄の決まりの sync。欄は描いている間に変わらないので、呼ぶ hook も変わらない）
+  const sync = rules?.sync ?? NO_SYNC;
+  sync.useSync(key, scope);
   const actions = useMemo(() => panelOps(key), [key]);
   const pageOps = useMemo<PanelPageOps>(
     () => ({
@@ -108,14 +103,11 @@ export function usePanel(surface: PanelSurface, scope: PanelScope) {
       /** 分割の配置 */
       layout,
       panelOpen,
-      chats,
-      /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
-      chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
       /** サイドバーに出ているチャットのタブか（ペインを閉じても一覧のペインへ戻すもの） */
       isLinkedTab: (tabKey: string) => isLinkedTab(state, tabKey, rules),
       isShowingTab,
       /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
       isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
     };
-  }, [pageOps, key, state, tabs, layout, panelOpen, surface, rules, chats]);
+  }, [pageOps, key, state, tabs, layout, panelOpen, surface, rules]);
 }

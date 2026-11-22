@@ -44,10 +44,8 @@ export function PaneTab({
   rename: TabRename;
 }) {
   const spec = kindOf(t);
-  // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）
-  const chat = panel.chatOf(t);
-  const label = spec.label(t, chat);
-  const group = spec.group?.(t, chat, groupOf);
+  const label = spec.label(t);
+  const group = spec.group?.(t, groupOf);
   const backHome = !home && panel.isLinkedTab(t.key);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);

@@ -5,7 +5,6 @@ import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { useKnownChat } from "@/features/chat/ui/store/knownChats";
 import { chatSubagents } from "@/features/subagents/ui";
 import { subagentStatusLabel } from "@/features/subagents/ui/model/subagentList";
-import type { PanelController } from "@/features/panel/ui/usePanel";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 /** タブの名前の前に出すエージェントの状態（印 StatusSlot と、未読・失敗の太字に使う） */
@@ -22,13 +21,12 @@ export interface TabAgentState {
  * どの欄のタブも同じ印・同じ太字の決まりで見せるため。
  * 状態のないタブ（ブラウザ・ファイルなど）・分からないもの（子チャットがまだ読み込まれていない・巻き戻して消えたサブエージェント）は undefined
  */
-export function useTabAgentState(panel: PanelController, tab: PanelTab): TabAgentState | undefined {
+export function useTabAgentState(tab: PanelTab): TabAgentState | undefined {
   const { stateOf } = useChatStates();
-  // hooks は種類によらず呼ぶ（子チャットでなければ ID 0 = いつも分からない）
-  const child = useKnownChat(tab.kind === "child" ? tab.childId : 0);
+  // hooks は種類によらず呼ぶ（チャット・子チャットでなければ ID 0 = いつも分からない）
+  const chat = useKnownChat(tab.kind === "chat" ? tab.id : tab.kind === "child" ? tab.childId : 0);
   // サブエージェントのタブは、チャットの店の取り出し口を直接読む（チャットの会話の欄が隠れて止まっていても、印は変わる。ほかの種類は ID 0 = いつも空）
   const view = chatSubagents.useFor(tab.kind === "subagent" ? tab.chatId : 0);
-  const chat = tab.kind === "chat" ? panel.chatOf(tab) : tab.kind === "child" ? child : undefined;
   if (chat) {
     const state = stateOf(chat);
     return { state, unread: busyWithUnread(chat, state) };

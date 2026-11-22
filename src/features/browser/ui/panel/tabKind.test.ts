@@ -8,8 +8,8 @@ vi.mock("./BrowserTabPage", () => ({ BrowserPage: () => null }));
 
 test("名前: ブラウザはタイトル → ホスト → 「新しいタブ」。乗せると URL", () => {
   const page = { ...browserTab("https://example.com/a"), title: "" };
-  assert.equal(browserTabKind.label(page, undefined), "example.com");
-  assert.equal(browserTabKind.label(browserTab(), undefined), "新しいタブ");
+  assert.equal(browserTabKind.label(page), "example.com");
+  assert.equal(browserTabKind.label(browserTab()), "新しいタブ");
   assert.equal(browserTabKind.hint?.(page), "https://example.com/a");
 });
 

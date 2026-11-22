@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { beforeEach, onTestFinished, test, vi } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
 import { publishServerEvent } from "@/foundation/ui/api/events";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
@@ -92,14 +91,13 @@ test("開閉: タブがないまま開くと、右サイドバー（チャット
   assert.equal(panelStateOf("bottom:4").open, true);
 });
 
-test("開いているチャットを検索から（focus 付きで）開き直しても、タブを作り直さず、名前とタブの中のチャットは残す", () => {
+test("開いているチャットを検索から（focus 付きで）開き直しても、タブを作り直さず、読み込んだときに入れた名前は残す", () => {
   useStore();
-  openTab("kanban:13", chatTab({ id: 130, project_id: 13, title: "調べもの" }));
-  const loaded = makeChat(130, { project_id: 13, title: "調べもの" });
-  patchTab("kanban:13", "chat:130", { kind: "chat", fields: { chat: loaded } });
+  openTab("kanban:13", chatTab({ id: 130, project_id: 13 }));
+  patchTab("kanban:13", "chat:130", { kind: "chat", fields: { title: "調べもの" } });
   const again = chatTab({ id: 130, project_id: 13 }, 42);
   openTab("kanban:13", again, { kind: "chat", fields: { focus: 42 } });
-  assert.deepEqual(panelStateOf("kanban:13").tabs, [{ key: "chat:130", kind: "chat", id: 130, projectId: 13, title: "調べもの", chat: loaded, focus: 42 }]);
+  assert.deepEqual(panelStateOf("kanban:13").tabs, [{ key: "chat:130", kind: "chat", id: 130, projectId: 13, title: "調べもの", focus: 42 }]);
 });
 
 test("削除したチャットのタブは、画面に出ていない欄でも閉じる", () => {

@@ -3,7 +3,7 @@ import type { Chat } from "@shared/chat/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/chatPanel/ui/storage";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
-import { syncPanel, type PanelScope } from "@/features/panel/ui";
+import { parsePanelKey, projectOfPanel, syncPanel, type PanelScope } from "@/features/panel/ui";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 
 /**
@@ -28,13 +28,21 @@ export function useLinkedChats(scope: PanelScope, enabled = true): { chats: Chat
 
 /**
  * 欄のチャットのタブを、サイドバーの一覧にそろえる（一覧が届いてから。チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する）。
- * サイドバーに出ているチャットを返す（タブのチャットの状態・まとまりの数もこれで数える。欄の決まりの useChats）。
- * sync でなければ読むだけでそろえない（チャットの別ウィンドウ）
+ * 欄の決まりの useSync（チャットのパネル）
  */
-export function useLinkedTabs(key: string, scope: PanelScope, sync = true): Chat[] {
+export function useLinkedTabs(key: string, scope: PanelScope): void {
   const { chats, loaded } = useLinkedChats(scope);
   useEffect(() => {
-    if (loaded && sync) syncPanel(key, chats);
-  }, [key, chats, loaded, sync]);
-  return chats;
+    if (loaded) syncPanel(key, chats);
+  }, [key, chats, loaded]);
+}
+
+/**
+ * 欄に出すチャット（タブの列のまとまりの数・札の一覧・サイドバーと同じ並び）: チャットのパネルはその範囲のサイドバーのチャット、
+ * チャットの別ウィンドウはそのプロジェクトのサイドバーのチャット（読むだけでタブはそろえない）、ほかの欄（右の欄）は読まない
+ */
+export function usePanelChats(key: string): Chat[] {
+  const at = parsePanelKey(key);
+  const scope = at?.surface === "kanban" ? at.scope : at?.surface === "cwin" ? (projectOfPanel(key) ?? at.scope) : null;
+  return useLinkedChats(scope ?? "all", scope !== null).chats;
 }

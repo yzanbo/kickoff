@@ -10,6 +10,7 @@ import { useBucketContext, useBucketHueOf } from "@/features/chatList/ui/useChat
 import { OTHER_CLUSTER, tabClusterOf, type ClusterResolver } from "./tabClusters";
 import { kindOf, type PanelSurface } from "@/features/panel/ui";
 import { useNewChatDrafts } from "@/features/composer/ui";
+import { knownChat } from "@/features/chat/ui";
 import type { PanelController } from "@/features/panel/ui/usePanel";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
@@ -61,7 +62,7 @@ export function useTabClusters(
   };
   const clusterOfChat = (chat: Chat): BucketHead => present(chatHead(chat, by, ctx, { pinned: true, archived: "bucket" }) ?? OTHER_CLUSTER);
   const resolve: ClusterResolver = {
-    chatById: (id) => panel.chats.find((r) => r.id === id),
+    chatById: knownChat,
     draftOf: (key) => drafts.find((d) => d.key === key),
     ofChat: clusterOfChat,
     ofTarget: (projectId, group, worktree) => present(draftHead({ projectId, group, worktree }, by, ctx) ?? OTHER_CLUSTER),

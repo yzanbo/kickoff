@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
 import { FIRST_PANE, leavesOf, type PaneNode } from "@/features/panel/ui/layout/paneTree";
 import { splitPane } from "@/features/panel/ui/layout/paneLayout";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
@@ -59,7 +58,7 @@ test("open: 分けたペインにピントがあれば、自分で開くタブ�
 });
 
 test("open: もう開いていたタブは中身をそのままにし、reopen の中身だけ変える", () => {
-  const loaded: PanelTab = { ...chatTab(1), chat: makeChat(1) };
+  const loaded: PanelTab = { ...chatTab(1), title: "読み込んだ名前" };
   const s1 = run(emptyPanel([loaded]), { type: "open", tab: chatTab(1), reopen: { kind: "chat", fields: { focus: 42 } } });
   assert.deepEqual(s1.tabs[0], { ...loaded, focus: 42 });
 });

@@ -1,7 +1,7 @@
 // チャットのパネル・チャットの画面の右の欄のタブの種類（チャット・新しいチャット・サブエージェント・子チャット・新しい子チャット）。
 // 中身は chatTabPages.tsx、見た目の足し替えは chatTabFaces.tsx、右クリックは chatTabMenus.tsx。ui/contributes.ts が panelTabs に入れる
 import { Bot, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen } from "lucide-react";
-import { CHAT_TITLE_MAX } from "@shared/chat/types";
+import { CHAT_TITLE_MAX, type Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { NEW_CHAT_TITLE, chatTitle, closeChatWithChoice, knownChat, prefetchChats } from "@/features/chat/ui";
@@ -19,33 +19,41 @@ type TabOf<K extends PanelTab["kind"]> = Extract<PanelTab, { kind: K }>;
 /** チャット・子チャットの名前を変える（名前を変える API） */
 const renameChat = (chatId: number, title: string) => void api.renameChat(chatId, title).catch(reportFailure("名前を変更できませんでした"));
 
+/** チャットのタブの名前: 知っているチャットの最新の名前 → タブが覚えた名前（まだ届いていないチャット）→ 「チャット」 */
+export function chatTabLabel(t: TabOf<"chat">, chat: Pick<Chat, "title"> | undefined): string {
+  const title = chat?.title ?? t.title;
+  return title === undefined ? "チャット" : chatTitle(title);
+}
+
+/** タブの列からターミナルを開く場所: チャットの作業場所（チャットがまだ届いていなければ、タブのプロジェクトの本体） */
+export const chatTabWorkplace = (t: TabOf<"chat">, chat: Pick<Chat, "project_id" | "worktree_path"> | undefined) => ({
+  projectId: chat?.project_id ?? t.projectId,
+  worktree: chat?.worktree_path ?? null,
+});
+
 export const chatTabKind = defineTabKind<TabOf<"chat">>({
   id: "chat",
   icon: MessageSquare,
   iconClass: "muted",
-  // サイドバーの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
-  label: (t, chat) => {
-    const title = chat?.title ?? t.title;
-    return title === undefined ? "チャット" : chatTitle(title);
-  },
-  group: (t, chat, groupOf) => groupOf(t.projectId, chat?.group_id),
+  // チャットはタブに持たず、ID で知っているチャット（一覧 ∪ 詳細で見たもの）から引く。変わったら Face が描き直す
+  label: (t) => chatTabLabel(t, knownChat(t.id)),
+  group: (t, groupOf) => groupOf(t.projectId, knownChat(t.id)?.group_id),
   projectOf: (t) => t.projectId,
   ownerChatId: (t) => t.id,
   createWhen: "shown",
-  // タブの列からターミナルを開く場所はチャットの作業場所（チャットがまだ届いていなければ、タブのプロジェクトの本体）
-  workplaceOf: (t, chat) => ({ projectId: chat?.project_id ?? t.projectId, worktree: chat?.worktree_path ?? null }),
+  workplaceOf: (t) => chatTabWorkplace(t, knownChat(t.id)),
   // 検索結果から開き直したら、強調する発言だけ変える
   reopen: (t) => (t.focus ? { kind: "chat", fields: { focus: t.focus } } : undefined),
   prefetch: (tabs) => prefetchChats(tabs.map((t) => t.id)),
   // × は表示だけ消す・アーカイブ・削除を選んでから閉じる（見出しには名前を出さない）
-  close: (t, { panel, close }) => void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: panel.chatOf(t)?.archived_at }, (action) => close({ dismiss: action === "close" })),
+  close: (t, { close }) => void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: knownChat(t.id)?.archived_at }, (action) => close({ dismiss: action === "close" })),
   rename: { initial: (t) => t.title ?? "", max: CHAT_TITLE_MAX, submit: (t, name) => renameChat(t.id, name) },
   Menu: ChatTabMenu,
   Face: ChatTabFace,
   // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（features/popout/tabWindow.ts）。サイドバーとの連動で足し直されないよう、表示だけ消したことにする
   popout: (t, panel) => ({
     route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
-    title: `${t.chat?.title ?? t.title ?? "チャット"} — チャット`,
+    title: `${knownChat(t.id)?.title ?? t.title ?? "チャット"} — チャット`,
     dismiss: true,
   }),
   Page: ChatTabPage,
@@ -57,7 +65,7 @@ export const newChatTabKind = defineTabKind<TabOf<"new">>({
   // 表示だけ本文の冒頭にする（手動の名前があれば優先）。中身は下書きの店（変わったら Face が描き直す）
   label: (t) => draftTitleOf(newChatDraft(t.key)),
   // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
-  group: (t, _chat, groupOf) => draftGroupOf(t.key, groupOf),
+  group: (t, groupOf) => draftGroupOf(t.key, groupOf),
   projectOf: (t) => newChatDraft(t.key)?.projectId,
   // 送らずに閉じたら下書きとその右の欄も捨てる（送ったときは、先にできたチャットの右の欄へ移してある。別ウィンドウへ移すときは呼ばれない）
   dispose: (t) => {

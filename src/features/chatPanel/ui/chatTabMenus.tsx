@@ -78,9 +78,9 @@ function ChatItems({ chat, ...props }: TabMenuProps<PanelTab> & { chat: Chat }) 
   );
 }
 
-/** チャットのタブ（ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの。まだ読み込んでいなければチャットの項目は出さない） */
+/** チャットのタブ（知っているチャット。まだ読み込んでいなければチャットの項目は出さない） */
 export function ChatTabMenu(props: MenuOf<"chat">) {
-  const chat = props.panel.chatOf(props.tab);
+  const chat = useKnownChat(props.tab.id);
   if (chat) return <ChatItems {...props} chat={chat} />;
   return (
     <>

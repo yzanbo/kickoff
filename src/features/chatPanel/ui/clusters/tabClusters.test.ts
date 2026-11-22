@@ -134,7 +134,6 @@ test("まとまり: チャットはチャットの（分からなければ作成
   const of = (t: PanelTab) => tabClusterOf(t, resolve).key;
   assert.equal(of(chatTab(makeChat(1))), "chat:1");
   assert.equal(of(chatTab(makeChat(9))), "target:1:");
-  assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
   assert.equal(of(newChatTab("new:g")), "target:2:4");
   // 作業場所別のまとまりの「新しいチャット」から始めたものは、そのワークツリーのまとまり
   assert.equal(of(newChatTab("new:w")), "target:2::/repo/a-wt");

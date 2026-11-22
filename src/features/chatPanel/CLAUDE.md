@@ -2,19 +2,20 @@
 
 ## タブの種類（`ui/chatTabKinds.ts`）
 
-- チャット・新しいチャット・サブエージェント・子チャット・新しい子チャットの 5 種類。中身 `chatTabPages.tsx`・見た目 `chatTabFaces.tsx`（状態の印 `useTabAgentState`・動きの印・作業場所の札）・右クリック `chatTabMenus.tsx`（サイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`）。
+- チャット・新しいチャット・サブエージェント・子チャット・新しい子チャット。中身 `chatTabPages.tsx`・見た目 `chatTabFaces.tsx`（状態の印 `useTabAgentState`・動きの印・作業場所の札）・右クリック `chatTabMenus.tsx`（サイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`）。
 - タブに出す項目（`tabFields.ts`）は隠したものだけを覚える。まとまりの札に出る項目はタブに出さない（`groupedTabField`）。
 - 新しいチャットのタブは送ると同じ位置で `replaceWithChat`、右の欄の中身は `moveDraftSidePanel` で移す。
 
 ## 欄（`ui/chatSurfaces.ts`）
 
-- チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。タブの並べ方は 3 つとも `ChatTabStrip`（まとまり・タブに出す項目・グループ名）、新しいタブのボタンと空の案内は `ChatPanelAdds`・`AgentPanelAdds`、「表示」のメニューは `ChatViewMenu`。
+- チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。並べ方は 3 つとも `ChatTabStrip`、新しいタブのボタンと空の案内は `ChatPanelAdds`・`AgentPanelAdds`、「表示」のメニューは `ChatViewMenu`。
 - 新しいチャットは `startNewChat`（欄のプロジェクトで始める。決まらなければ案内）。送ってできたチャットの後は欄の `onChatCreated`（URL にする・メインのウィンドウに知らせる）。
 - チャットのパネルの表示中のタブは URL にする（`useShownChatInUrl`）。URL がもうほかのプロジェクトの画面なら書かない（`board/shownTabUrl.ts`。移る途中に元の欄のタブを閉じても、移る先を上書きしない）。
 
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
-- チャットのタブは、サイドバーに出ているチャット（欄の `chats.useChats` = `useLinkedTabs`）に、一覧が届いてから欄の ext `linkedChatsExt` でそろえる。
+- チャットのタブは、サイドバーに出ているチャット（欄の `sync` = `useLinkedTabs`）に、一覧が届いてから欄の ext `linkedChatsExt` でそろえる。札の数と一覧は `usePanelChats`。
+- タブはチャットを持たず ID で `useKnownChat` から引く（タブの列は欄の状態でしか描き直らないので、名前は Face が返す）。
 - 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は panel の reducer の `"sync"` のコメント）。
 - 表示だけ消したタブは `dismissed` に覚えて出し直さず、一覧にないのに開いたチャットは `extra` で残す。アーカイブ・削除のあとは覚えない。
 - 一覧のペインのタブはサイドバーと同じ並び（`orderLikeSidebar`）で、落とすと手動の並びを変える。アーカイブ済みはタブの列だけの設定 `chatPanel:show-archived`。

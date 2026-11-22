@@ -54,7 +54,7 @@ export function useOpenWithMenu(panel: PanelController, targets: readonly Termin
   /** ターミナルを開く（新しいタブ・外のターミナル）。場所が決まらなければ、開く場所を選ぶメニューを at に出す */
   const openTerminalIn = (paneId: string, mode: "tab" | "external", at: Placement, app?: ExternalTerminalId, icon = false) => {
     const shown = shownTab(paneId);
-    const target = terminalTargetOf(shown && kindOf(shown).workplaceOf?.(shown, panel.chatOf(shown)), targets);
+    const target = terminalTargetOf(shown && kindOf(shown).workplaceOf?.(shown), targets);
     if (!target) return picker.openAt(at, { mode, app, icon });
     if (mode === "tab") openTab(panel.key, terminalTab(target));
     else terminal.open(target.cwd, app);

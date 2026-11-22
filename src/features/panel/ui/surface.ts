@@ -87,10 +87,6 @@ export interface SavedTabs {
   layout: PaneLayout;
 }
 
-/** 欄のチャットを読む口（SurfaceSpec.chats） */
-export interface SurfaceChats {
-  useChats(key: string, scope: PanelScope): PanelController["chats"];
-}
 
 export interface SurfaceSpec<E = unknown> {
   id: PanelSurface;
@@ -153,11 +149,8 @@ export interface SurfaceSpec<E = unknown> {
   slide?: boolean;
   /** 欄の持ち主だけが読む値（サイドバーとの連動。なければチャットのタブをサイドバーの一覧にそろえない） */
   ext?: SurfaceExt<E>;
-  /**
-   * 欄のチャットのタブのチャットを読む口（チャットを出す欄の持ち主が渡す。タブのチャットの状態・まとまりの数もこれで数え、連動するならタブもそろえる）。
-   * usePanel が欄ごとに useChats を 1 回だけ呼ぶ（欄は描いている間に変わらない）。なければチャットを読まない
-   */
-  chats?: SurfaceChats;
+  /** 欄を描いている間、持ち主がタブをそろえる hook（チャットのパネルはサイドバーに出ているチャットに）。usePanel が欄ごとに 1 回だけ呼ぶ（欄は描いている間に変わらない） */
+  sync?: { useSync(key: string, scope: PanelScope): void };
 }
 
 /** タブに出す項目とグループの引き方（並べ方が決める。なければどの項目も出し、グループは付けない） */

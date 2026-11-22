@@ -6,7 +6,7 @@ import { newChatDraft } from "@/features/composer/ui";
 import { databaseView, describeTab, editorView, githubView, noteView, userViewTabs } from "@/features/userView/ui";
 
 export const userViewTabItems = [
-  describeTab("chat", (t) => ({ kind: "chat", chat_id: t.id, title: t.title ?? t.chat?.title ?? knownChat(t.id)?.title ?? "", project_id: t.projectId })),
+  describeTab("chat", (t) => ({ kind: "chat", chat_id: t.id, title: t.title ?? knownChat(t.id)?.title ?? "", project_id: t.projectId })),
   describeTab("new", (t) => ({ kind: "new_chat", project_id: newChatDraft(t.key)?.projectId ?? 0 })),
   describeTab("subagent", (t) => ({ kind: "subagent", title: t.title })),
   describeTab("child", (t) => ({ kind: "child_chat", chat_id: t.childId, title: t.title, project_id: t.projectId })),

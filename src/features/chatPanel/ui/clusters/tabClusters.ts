@@ -8,7 +8,7 @@ export const OTHER_CLUSTER: BucketHead = { key: "other", kind: "other", label: "
 
 /** タブのまとまりを決めるのに使うもの（useTabClusters が、いまのまとめ方・サイドバーのチャット・ワークツリーの一覧から作る） */
 export interface ClusterResolver {
-  /** ID のチャット（サイドバーの一覧から。なければ undefined） */
+  /** ID のチャット（知っているチャットから。なければ undefined） */
   chatById: (id: number) => Chat | undefined;
   /** チャットが入るまとまり（サイドバー・ボードと同じ決め方） */
   ofChat: (chat: Chat) => BucketHead;
@@ -26,7 +26,7 @@ export interface ClusterResolver {
  */
 export function tabClusterOf(tab: PanelTab, resolve: ClusterResolver): BucketHead {
   if (tab.kind === "chat") {
-    const chat = resolve.chatById(tab.id) ?? tab.chat;
+    const chat = resolve.chatById(tab.id);
     return chat ? resolve.ofChat(chat) : resolve.ofTarget(tab.projectId);
   }
   if (tab.kind === "new") {

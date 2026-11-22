@@ -22,14 +22,6 @@ export interface TabGroupBadge {
 /** プロジェクトのグループを引く（なければ undefined） */
 export type TabGroupLookup = (projectId: number, groupId: number | null | undefined) => TabGroupBadge | undefined;
 
-/** タブの名前・作業場所に使うチャットの値（サイドバーの一覧にあれば最新のもの） */
-export interface TabChat {
-  title: string;
-  group_id: number | null;
-  project_id: number;
-  worktree_path: string | null;
-}
-
 /** タブの中身に渡すもの */
 export interface TabPageProps<T extends TabBase> {
   tab: T;
@@ -132,12 +124,12 @@ export interface TabKind<T extends TabBase> {
   BadgeText?: ComponentType<{ tab: T }>;
   /** アイコンの代わりに名前の前に置く部品（ファイルの種類のアイコン・ブラウザの AI 操作中の印。状態の印は Face が出す） */
   Lead?: ComponentType<{ tab: T }>;
-  /** タブに出す名前（chat はタブのチャット（サイドバーの一覧にあれば最新のもの）） */
-  label(tab: T, chat: TabChat | undefined): string;
+  /** タブに出す名前（店を読んで変わる名前は Face でも返す。PaneTab は欄の状態が変わったときだけ描き直る） */
+  label(tab: T): string;
   /** マウスを乗せたときの説明（なければ名前とグループ名） */
   hint?(tab: T): string;
   /** 名前の後ろに控えめに添えるグループ名（groupOf はプロジェクトのグループ名を引く） */
-  group?(tab: T, chat: TabChat | undefined, groupOf: TabGroupLookup): TabGroupBadge | undefined;
+  group?(tab: T, groupOf: TabGroupLookup): TabGroupBadge | undefined;
   /** どのプロジェクトのタブか（まとまり・グループ名を引くのに使う。ブラウザはどれにも入らない） */
   projectOf(tab: T): number | undefined;
   /** どのチャットのタブか（そのチャットを消したら閉じる。チャット・サブエージェントなど） */
@@ -145,7 +137,7 @@ export interface TabKind<T extends TabBase> {
   /** 中身を作る時（shown = 初めて表示したとき。チャットのタブはサイドバーと連動して自動で増えるので、見ていないチャットまで読み込まない。既定は mounted） */
   createWhen?: "shown" | "mounted";
   /** タブが見せている作業場所（タブの列からターミナルを開く場所。チャットはその作業場所）。なければ開く場所を選ぶ */
-  workplaceOf?(tab: T, chat: TabChat | undefined): WorkplaceAt;
+  workplaceOf?(tab: T): WorkplaceAt;
   /** 外のブラウザで開くページ（▾ の「外部で開く」。ブラウザはいまのページ）。なければブラウザを開くだけ */
   externalUrl?(tab: T): string;
   /** 自分で開き直したとき（もう開いていた）に変える中身（reopenOf → openTab の reopen。なければ開いていたタブをそのまま表示する） */

@@ -30,13 +30,16 @@ const activityOf = (chatId: number | undefined, show: (field: string) => boolean
   chatId !== undefined && (show("state") || show("children")) ? <ChildActivityMark chatId={chatId} moving={show("state")} always={show("children")} /> : undefined;
 
 /** チャットのタブ: 乗せたときの説明はプロジェクト・グループ・作業場所まで（useChatTabHint）、作業場所の札はそのチャットの作業場所 */
-export function ChatTabFace({ tab, panel, show, base, render }: FaceOf<"chat">) {
-  const chat = panel.chatOf(tab);
-  const agent = useTabAgentState(panel, tab);
+export function ChatTabFace({ tab, show, base, groupOf, render }: FaceOf<"chat">) {
+  const chat = useKnownChat(tab.id);
+  const agent = useTabAgentState(tab);
   const title = useChatTabHint(chat, base.label, base.group?.name);
   const tag = show("worktree") && chat ? <TabWorkplaceBadge chat={chat} /> : undefined;
   return render({
     ...stateFace(agent, show),
+    // 名前とグループはいまのチャットから（タブの列は欄の状態が変わったときだけ描き直る）
+    label: chat ? chatTitle(chat.title) : undefined,
+    group: chat ? groupOf(tab.projectId, chat.group_id) : undefined,
     title,
     after: activityOf(chat?.id, show),
     tag,
@@ -63,9 +66,9 @@ export function NewChatTabFace({ tab: t, show, groupOf, render }: FaceOf<"new">)
 }
 
 /** 子チャットのタブ: 名前はいまの子チャットの名前（タブに覚えた名前は開いたときのもので、名前を変えると古いまま残った） */
-export function ChildTabFace({ tab, panel, show, render }: FaceOf<"child">) {
+export function ChildTabFace({ tab, show, render }: FaceOf<"child">) {
   const child = useKnownChat(tab.childId);
-  const agent = useTabAgentState(panel, tab);
+  const agent = useTabAgentState(tab);
   return render({
     ...stateFace(agent, show),
     label: child ? chatTitle(child.title) : undefined,
@@ -75,6 +78,6 @@ export function ChildTabFace({ tab, panel, show, render }: FaceOf<"child">) {
 }
 
 /** サブエージェントのタブ: 状態の印だけ */
-export function SubagentTabFace({ tab, panel, show, render }: FaceOf<"subagent">) {
-  return render(stateFace(useTabAgentState(panel, tab), show));
+export function SubagentTabFace({ tab, show, render }: FaceOf<"subagent">) {
+  return render(stateFace(useTabAgentState(tab), show));
 }
