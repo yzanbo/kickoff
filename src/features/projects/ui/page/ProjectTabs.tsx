@@ -7,7 +7,7 @@ import { storage } from "@/features/projects/ui/storage";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { availableProjectViews, projectViewGroups, type ProjectViewDef } from "@/features/projects/ui/projectViews";
+import { availableProjectViews, projectViewGroups, type ProjectViewBadge, type ProjectViewBadgeProps, type ProjectViewDef } from "@/features/projects/ui/projectViews";
 import { useChatPlacement } from "./chatPlacement";
 import { useProjectTabOrder } from "./useProjectTabOrder";
 import { useMemo } from "react";
@@ -27,6 +27,9 @@ export interface TabBadgeSource {
   worktree: string | null;
   loading: boolean;
 }
+
+/** 数のない画面の口（数を読む hook を、口のオブジェクトから毎回同じに呼ぶため。hook を値で選んで呼ぶ・条件つきで呼ぶと React Compiler が外す） */
+const NO_BADGE: { useBadge(props: ProjectViewBadgeProps): ProjectViewBadge | undefined } = { useBadge: () => undefined };
 
 /** タブ 1 つ（数は画面の表の useBadge。badgeDef が変わるときは key を変えて作り直す） */
 function ProjectTab({
@@ -48,7 +51,8 @@ function ProjectTab({
   attrs: object;
   props: object;
 }) {
-  const shown = badgeDef?.useBadge?.({ projectId, worktree: badge.worktree, vertical, loading: badge.loading });
+  const source = badgeDef?.useBadge ? (badgeDef as Required<Pick<ProjectViewDef, "useBadge">>) : NO_BADGE;
+  const shown = source.useBadge({ projectId, worktree: badge.worktree, vertical, loading: badge.loading });
   const { label, tip, icon: Icon } = def;
   const count = shown?.label ?? null;
   return (
