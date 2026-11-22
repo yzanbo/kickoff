@@ -5,8 +5,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { CHILD_CHAT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
-import { openChatSplit } from "@/features/chatPanel/ui/board/openChatSplit";
-import { openChat } from "@/features/chat/ui";
+import { openChat, openChatTab } from "@/features/chat/ui";
 import { ChatMenuItems } from "./ChatMenuItems";
 
 /**
@@ -50,10 +49,10 @@ export function ChatMenu({
           ) : (
             chat.note_path === null && (
             <>
-              <MenuItem onSelect={() => openChatSplit(chat, "row")}>
+              <MenuItem onSelect={() => openChatTab(chat, { split: "row" })}>
                 <Columns2 size={14} /> 右に分けて開く
               </MenuItem>
-              <MenuItem onSelect={() => openChatSplit(chat, "column")}>
+              <MenuItem onSelect={() => openChatTab(chat, { split: "column" })}>
                 <Rows2 size={14} /> 下に分けて開く
               </MenuItem>
             </>

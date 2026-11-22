@@ -5,7 +5,6 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { TICK_ACTIVITY, useTicker } from "@/foundation/ui/hooks/useTicker";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
-import { useShownInAgentPanel } from "@/features/chatPanel/ui/agents/agentTabs";
 import { ClaudeMark } from "@/features/ai/ui";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import {
@@ -16,10 +15,12 @@ import {
   useOptionalSubagentNav,
   usePlaceCaps,
   usePortValue,
+  useShownInChatSide,
   useTimelineOpen,
   type RenderScope,
   type ToolCall,
 } from "@/features/chat/ui";
+import { agentTabKey } from "@/features/panel/ui";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
 import { SubagentWindow } from "./SubagentWindow";
@@ -64,7 +65,7 @@ function SubagentCardView({ call, rel, renderScope }: CardProps) {
   // 見出しを押したときの開き方（設定。右の欄を置けない画面では、いつも流れの中）
   const [openIn] = useSetting(SUBAGENT_OPEN_IN);
   const { canWindow } = usePlaceCaps();
-  const inSide = useShownInAgentPanel(view?.chatId ?? 0, key);
+  const inSide = useShownInChatSide(view?.chatId ?? 0, agentTabKey(key));
   if (!view || !entry) return <PlainCard call={call} />;
 
   const path = pathOf(view.tree, key);

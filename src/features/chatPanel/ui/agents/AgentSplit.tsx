@@ -9,7 +9,8 @@ import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { usePanel } from "@/features/panel/ui/usePanel";
 import { SideSelectionAttach } from "@/features/conversation/ui/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/ui/screen/mainChat";
-import { panelKey, type DraftScope } from "@/features/panel/ui";
+import type { DraftScope } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui";
 import { DraftSideContext } from "./draftSide";
 import { AgentPanelFind } from "./AgentPanelFind";
 
@@ -89,11 +90,11 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
       {Host && (panel.panelOpen || panel.tabs.length > 0) && (
         <MainChatContext.Provider value={chatId}>
           <Host panel={panel} frame={frame} />
-          {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />}
+          {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${chatSidePanel(chatId)}"]`)} />}
         </MainChatContext.Provider>
       )}
       {/* ⌘F でタブの中の文字を探す（右の欄の中にピントがあるとき） */}
-      {Host && panel.tabs.length > 0 && <AgentPanelFind panelKey={panelKey("agents", scope)} />}
+      {Host && panel.tabs.length > 0 && <AgentPanelFind panelKey={chatSidePanel(scope)} />}
     </div>
   );
 }

@@ -3,8 +3,8 @@ import { createCell } from "@/foundation/ui/store";
 import { readSetting } from "@/foundation/ui/storage";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
-import { openTab, panelKey, subagentTab } from "@/features/panel/ui";
-import { openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
+import { openTab, subagentTab } from "@/features/panel/ui";
+import { chatSidePanel, openKey, resolveOpenPlace, setOpen, timelineView, type SubagentNav } from "@/features/chat/ui";
 import { chatSubagents, pathOf } from "@/features/subagents/ui";
 import { jumpToEvent } from "@/features/conversation/ui/timeline/jumpToEvent";
 
@@ -55,7 +55,7 @@ export function createSubagentNav({ chatId, canOpenSide, release, reveal }: Suba
       // サブエージェントの中で起動したもの（入れ子）は、タブに外側からの道筋を持たせる（名前の前の「↳」と、乗せたときの道筋）
       const path = pathOf(tree(), key);
       openTab(
-        panelKey("agents", chatId),
+        chatSidePanel(chatId),
         subagentTab({
           chatId,
           agentKey: key,

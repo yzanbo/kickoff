@@ -1,7 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { useRoute } from "@/foundation/ui/navigation/router";
 import { leavesOf } from "@/features/panel/ui/layout/paneTree";
-import { panelKey, panelStateOf, subscribePanels } from "@/features/panel/ui";
+import { panelStateOf, subscribePanels } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui";
 
 const NONE: ReadonlySet<number> = new Set();
 
@@ -13,7 +14,7 @@ export function useShownChildChats(): ReadonlySet<number> {
   const route = useRoute();
   const chatId = route.name === "chat" ? route.chatId : null;
   // チャットを開いていなければ読まない（ない欄の状態を作らない）
-  const state = useSyncExternalStore(subscribePanels, () => (chatId === null ? null : panelStateOf(panelKey("agents", chatId))));
+  const state = useSyncExternalStore(subscribePanels, () => (chatId === null ? null : panelStateOf(chatSidePanel(chatId))));
   return useMemo(() => {
     if (!state?.open) return NONE;
     const shown = new Set(leavesOf(state.layout.root).map((p) => p.active));

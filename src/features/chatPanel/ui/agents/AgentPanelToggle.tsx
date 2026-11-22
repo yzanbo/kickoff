@@ -1,6 +1,7 @@
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { panelKey, togglePanel, usePanelOpen } from "@/features/panel/ui";
+import { togglePanel, usePanelOpen } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui";
 
 /**
  * チャットの見出しの右端の、右の欄（そのチャットのサブエージェント・変更・ファイル・ノート・子チャットのタブ）を開く・閉じるボタン。
@@ -8,7 +9,7 @@ import { panelKey, togglePanel, usePanelOpen } from "@/features/panel/ui";
  * 開いているかは向きで分かるので、色はほかの見出しのボタンと同じ（アクセントの色にしない）。タブがなくても開け、そのときは何を開けるかの案内を出す（SURFACES.agents の emptyHint）
  */
 export function AgentPanelToggle({ chatId }: { chatId: number }) {
-  const key = panelKey("agents", chatId);
+  const key = chatSidePanel(chatId);
   const open = usePanelOpen(key);
   return (
     <IconButton

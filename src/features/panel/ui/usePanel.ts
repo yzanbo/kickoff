@@ -10,7 +10,7 @@ import { panelKey, type PanelScope, type PanelSurface } from "./surface";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { browserTab, chatKey, chatTab } from "@/features/panel/ui/tabs/tabData";
 
-export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+export type { PanelTab, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/ui/tabs/panelTypes";
 
 export type PanelController = ReturnType<typeof usePanel>;

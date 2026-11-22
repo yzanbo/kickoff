@@ -2,7 +2,8 @@ import type { Chat } from "@shared/chat/types";
 import { open } from "@/foundation/ui/navigation/open";
 import { usePanelDrafts, type PanelDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui";
-import type { NewChatTarget, PanelController } from "@/features/panel/ui/usePanel";
+import type { PanelController } from "@/features/panel/ui";
+import type { NewChatPlace } from "@/features/chat/ui";
 import type { useBoardPanel } from "./useBoardPanel";
 
 /**
@@ -19,7 +20,7 @@ export interface BoardChats {
   /** カード・行・右クリックの「開く」 */
   open: (chat: Chat) => void;
   /** グループの列の＋など、作成先を決めた新しいチャット */
-  openNew: (target: NewChatTarget) => void;
+  openNew: (target: NewChatPlace) => void;
 }
 
 /** ボードの右のパネルで開く */

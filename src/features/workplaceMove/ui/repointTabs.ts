@@ -4,7 +4,8 @@ import type { WorkplaceRef } from "@shared/chat/chatEvent";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { isFileTabDirty } from "@/features/files/ui/fileTabs";
-import { changesTab, databaseTab, fileTab, panelKey, panelStateOf, projectViewTab, replaceTab } from "@/features/panel/ui";
+import { changesTab, databaseTab, fileTab, panelStateOf, projectViewTab, replaceTab } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 
 type Place = Pick<WorkplaceRef, "project_id" | "worktree_path">;
@@ -42,7 +43,7 @@ export function repointPlan(tabs: readonly PanelTab[], chatId: number, from: Pla
 
 /** チャットの右の欄のタブを付け替える（区切りの記録が届いたとき） */
 function repointSideTabs(chatId: number, from: Place, to: Place) {
-  const key = panelKey("agents", chatId);
+  const key = chatSidePanel(chatId);
   const plan = repointPlan(panelStateOf(key).tabs, chatId, from, to, (tabKey) => isFileTabDirty(key, tabKey));
   for (const [old, tab] of plan.replace) replaceTab(key, old, tab);
   if (plan.kept.length > 0) {

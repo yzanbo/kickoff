@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
-import type { NewChatTarget } from "@/features/panel/ui/usePanel";
+import type { NewChatPlace } from "@/features/chat/ui";
 import { ArchivedFold, splitArchived } from "@/foundation/ui/kit/ArchivedFold";
 import { UNGROUPED_SORT_ID } from "@/features/groups/ui/groups";
 import { DraftCards } from "./DraftCards";
@@ -37,7 +37,7 @@ export function GroupSections({
   buckets: readonly ChatBucket<PanelDraft>[];
   board: GroupBoardState;
   /** グループの列の＋（そのグループで新しいチャットを始める。開く先はボードのチャットの置き方で決まる） */
-  onNewChat: (target: NewChatTarget) => void;
+  onNewChat: (target: NewChatPlace) => void;
   /** カード（ボード）・行（リスト）の描き方 */
   render: (chat: Chat) => ReactNode;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード） */

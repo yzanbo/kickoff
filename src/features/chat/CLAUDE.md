@@ -14,6 +14,7 @@
 | `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方 |
 | `core/routes/` | 受け口（取り決めは `@shared/chat/contract.ts`） |
 | `ui/store/` | 画面のチャットの店・知っているチャット `knownChats.ts`（一覧 ∪ 詳細で見たもの）・回答待ち `approvals.ts`・取り出し口 `defineChatSelector` |
+| `ui/places.ts` | 右の欄・パネルの住所と開く口 |
 | ほか | 下の同じ名前の節 |
 
 - 作業中（`isBusy`）= `phase` が `idle` でない（準備・作業の終わりにすることも）。`chats.status` の結果は `idle` に戻るときに書く。作業中にできない操作は `requireIdle` で 409。用意して確定する流れ（巻き戻し・移動など）は `withIdleChat`（`run/idle.ts`）。
@@ -107,8 +108,8 @@
 
 ## 操作・名前・メニュー（`ui/`）
 
-- アーカイブ・削除・移動などは `ui/chatActions.ts` を通す。アーカイブ・削除は既定の閉じ方でも必ず確かめる（取り消しの通知で代えない）。確かめは 1 件もまとめても `confirmArchiveChats`・`confirmDeleteChats`。
+- アーカイブ・削除・移動などは `ui/chatActions.ts` を通す。アーカイブ・削除は既定の閉じ方でも必ず確かめる（取り消しの通知で代えない。`confirmArchiveChats`・`confirmDeleteChats`）。
 - 削除したチャットの書きかけは composer が `chat_deleted` で消す。
 - 名前は `useChatRename` ＋ `ChatTitleInput` で変える（ダイアログなし）。上限は `CHAT_TITLE_MAX`。
-- 「新しいチャット」の作成先の札は `useNewChatPlace` ＋ `NewChatPlaceBadges`。まとまりからの作成先は `@/features/chatList/ui/buckets.ts` の `newChatPlaceOf`。
+- 「新しいチャット」の作成先の札は `useNewChatPlace` ＋ `NewChatPlaceBadges`（まとまりからは chatList の `newChatPlaceOf`）。
 - ✕ は `closeChatWithChoice`（既定は `chat:close-action`）。Esc・タブの「閉じる」は聞かずに閉じる。

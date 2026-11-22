@@ -3,6 +3,8 @@ import { storage } from "./storage";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "./tabs/panelTypes";
 export type { PaneLeaf, SplitDir } from "./layout/paneTree";
+export { isTabVisible, paneOfTab } from "./layout/paneTree";
+export { forwardPanelOp } from "./state/panelMirror";
 export type { DraftScope, PanelScope, PanelSurface, StripProps, TabLook, ViewScope } from "./surface";
 export type { PanelController } from "./usePanel";
 export type { TabGroupLookup } from "./kind";

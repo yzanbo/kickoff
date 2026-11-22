@@ -10,7 +10,8 @@ import { readSetting } from "@/foundation/ui/storage";
 import { addChat, knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { isScreenShown } from "@/features/chat/ui/screen/chatScreens";
-import { childTab, newChildTab, openTab, panelKey } from "@/features/panel/ui";
+import { childTab, newChildTab, openTab } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui/places";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
 
 /** 子チャットで聞くときに渡すもの（どのチャットの、どの記録から、どの文を。openAskChild） */
@@ -43,7 +44,7 @@ function showRoot(chatId: number): Chat | undefined {
 export function openInRootSide(chatId: number, open: (rootId: number, side: string) => void): boolean {
   const root = showRoot(chatId);
   if (!root) return false;
-  open(root.id, panelKey("agents", root.id));
+  open(root.id, chatSidePanel(root.id));
   return true;
 }
 

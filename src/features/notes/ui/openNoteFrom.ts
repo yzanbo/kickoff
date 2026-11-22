@@ -7,8 +7,8 @@ import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { NOTE_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { openInRootSide } from "@/features/chat/ui";
-import { noteTab, openTab, panelKey, type DraftScope } from "@/features/panel/ui";
+import { chatSidePanel, openInRootSide } from "@/features/chat/ui";
+import { noteTab, openTab, type DraftScope } from "@/features/panel/ui";
 import { baseName } from "./notePaths";
 
 export function openNoteFromChat({
@@ -27,7 +27,7 @@ export function openNoteFromChat({
 }) {
   // place を渡すと設定によらずその場所に（入力欄の上のノートの一覧の行のボタン）
   if ((place ?? readSetting(NOTE_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "note", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — ノート`);
-  if (chatId === null && draftSide !== null) return openTab(panelKey("agents", draftSide), noteTab({ chatId: null, projectId, path }));
+  if (chatId === null && draftSide !== null) return openTab(chatSidePanel(draftSide), noteTab({ chatId: null, projectId, path }));
   if (parsePopout(location.hash)) return postToMainWindow("openNote", { projectId, path, chatId });
   // ノートのチャット（ノートのタブの中で開いたもの）からは、ノートのタブで開く（ノートのチャットは右の欄を持たない）
   const from = chatId !== null && !knownChat(chatId)?.note_path ? chatId : null;

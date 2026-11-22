@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
-import { draftScope, movePanel, panelKey, type DraftScope } from "@/features/panel/ui";
+import { draftScope, movePanel, type DraftScope } from "@/features/panel/ui";
+import { chatSidePanel } from "@/features/chat/ui";
 
 /**
  * 送る前の新しいチャット（下書きのタブ）の右の欄（入力欄の上のノートのピルから開いても、
@@ -15,5 +16,5 @@ export const useDraftSide = (): DraftScope | null => useContext(DraftSideContext
  * チャットなしで開いたノートのタブは、できたチャットのもの（「チャットに入れる」の行き先）にする
  */
 export function moveDraftSidePanel(tabKey: string, chatId: number): void {
-  movePanel(panelKey("agents", draftScope(tabKey)), panelKey("agents", chatId), (tab) => (tab.kind === "note" && tab.chatId === null ? { ...tab, chatId } : tab));
+  movePanel(chatSidePanel(draftScope(tabKey)), chatSidePanel(chatId), (tab) => (tab.kind === "note" && tab.chatId === null ? { ...tab, chatId } : tab));
 }

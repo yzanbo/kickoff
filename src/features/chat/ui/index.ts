@@ -37,6 +37,7 @@ export { openAll, openKey, setOpen, timelineView, useTimelineOpen } from "./time
 export { TimelineBusyContext, useTimelineBusy } from "./timeline/timelineBusy";
 export type { RenderScope, ToolCall } from "./timeline/toolCall";
 export { useMainChat } from "./screen/mainChat";
+export { chatSidePanel, chatsPanel, openChatTab, useShownInChatSide } from "./places";
 export { createdChildPlace, openAskChild, openChat, type AskChildTarget, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
 export { addChats, knownChat } from "./store/knownChats";
 export { appendBlock } from "./quote";

@@ -3,7 +3,8 @@
 import { PanelRightClose } from "lucide-react";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { chatKey, defineSurface, linkedChatsExt, panelKey } from "@/features/panel/ui";
+import { chatsPanel } from "@/features/chat/ui";
+import { chatKey, defineSurface, linkedChatsExt } from "@/features/panel/ui";
 import { AgentPanelAdds, AgentPanelEmpty } from "./agents/AgentPanelAdds";
 import { ChatPanelAdds, ChatPanelEmpty } from "./ChatPanelAdds";
 import { ChatTabStrip } from "./ChatTabStrip";
@@ -62,7 +63,7 @@ const chatWindowSurface = defineSurface({
   ViewMenu: ChatViewMenu,
   EmptyHint: ChatPanelEmpty,
   // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
-  onChatCreated: (chat) => postWindowMessage("tabMovedOut", { panel: panelKey("kanban", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
+  onChatCreated: (chat) => postWindowMessage("tabMovedOut", { panel: chatsPanel(chat.project_id), key: chatKey(chat.id), kind: "chat" }),
 });
 
 export const CHAT_SURFACES = [chatsSurface, chatSideSurface, chatWindowSurface];
