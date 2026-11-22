@@ -2,7 +2,7 @@
 // アプリを開いたときに 1 回読み、答えた・送信待ちが変わった・チャットを消したはサーバーの知らせで直す（確かめを待つチャットは起動したときにしかできない）
 import type { RestartResume } from "@shared/chat/chatLive";
 import type { ServerEvent } from "@/foundation/ui/api/events";
-import type { ReduceTable } from "@/foundation/ui/store";
+import { createCell, useCell, type ReduceTable } from "@/foundation/ui/store";
 import { queueApi } from "@/features/queue/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
@@ -45,3 +45,11 @@ export const restartResumesStore = createStore<RestartResume[]>({ load: () => qu
 
 /** 起動したときの再開の確かめを待っているチャット（届くまでは空） */
 export const useRestartResumes = (): RestartResume[] => useStore(restartResumesStore).data ?? NONE;
+
+const dialogOpen = createCell(false);
+/** 確かめのダイアログを開いているか（メインのウィンドウの RestartResumeHost が描く。自動で開く・下の帯のボタンが開く） */
+export const restartResumeDialog = {
+  open: () => dialogOpen.set(true),
+  close: () => dialogOpen.set(false),
+  useOpen: () => useCell(dialogOpen),
+};

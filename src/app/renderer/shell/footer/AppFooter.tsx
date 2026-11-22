@@ -16,7 +16,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode } from "@/foundation/ui/shell/footerMode";
-import { RestartResumeFooterButton } from "@/features/queue/ui/restartResume/RestartResumeDialog";
+import { RestartResumeFooterButton } from "@/features/queue/ui";
 import { PortsButton, PortsFallback } from "@/features/ports/ui/PortsButton";
 import { portsAvailable } from "@/features/ports/ui/portsStore";
 

@@ -1,15 +1,14 @@
-import { ArrowUpRight, ChevronRight, History, OctagonPause } from "lucide-react";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, ChevronRight, OctagonPause } from "lucide-react";
+import { Fragment, useState } from "react";
 import type { RestartResume, RestartResumeAction } from "@shared/chat/chatLive";
 import { queueApi } from "@/features/queue/ui/api";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatMessageTime } from "@/foundation/ui/lib/time";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { autoOpenRestartResumes, restartResumesStore, useRestartResumes } from "./restartResumes";
+import { restartResumesStore } from "./restartResumes";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
@@ -19,36 +18,8 @@ import { queueActionOf } from "@shared/chat/queueActions";
 import { nextQueuedText } from "@/features/queue/ui/queuedHint";
 import { defaultResumeChoice, resumeActionsFor, resumeChoiceLabel, resumeChoiceTip, type RestartResumeChoice } from "./restartResumeChoices";
 
-/** ダイアログを開き直す知らせ（下の帯の「決めていない再開」から） */
-const OPEN_RESTART_RESUMES_EVENT = "kickoff:open-restart-resumes";
-
-/** 起動したときの再開の確かめのダイアログを開き直す */
-function openRestartResumes() {
-  window.dispatchEvent(new Event(OPEN_RESTART_RESUMES_EVENT));
-}
-
 /** 選んだ答えの内訳の名前（チャットごとの名前は送信待ちがあるかで変わるので、内訳は短い共通の名前にする） */
 const SUMMARY_LABELS: Record<RestartResumeChoice, string> = { send: "送る", continue: "続ける", pause: "止めておく", later: "あとで" };
-
-/**
- * 起動したときの再開の確かめ（App がメインウィンドウにだけ置く）。前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットがあれば、
- * ダイアログを出す（まだ見せていないチャットが届いたときだけ。コアのプロセスを作り直したあとに新しく止まったチャットでも開く）。
- * 閉じても決めていないものは残り（コアは続けず・送らない）、下の帯の「決めていない再開」から開き直せる
- */
-export function RestartResumeHost() {
-  const resumes = useRestartResumes();
-  const [open, setOpen] = useState(false);
-  // 前に見せた一覧のチャット（見せたものは、閉じたあとは下の帯から開き直す）
-  const shown = useRef<ReadonlySet<number>>(new Set());
-  useEffect(() => {
-    const next = autoOpenRestartResumes(shown.current, resumes);
-    shown.current = next.shown;
-    if (next.open) setOpen(true);
-  }, [resumes]);
-  useWindowEvent(OPEN_RESTART_RESUMES_EVENT, () => setOpen(true));
-  if (!open || resumes.length === 0) return null;
-  return <RestartResumeDialog resumes={resumes} onClose={() => setOpen(false)} />;
-}
 
 /**
  * ダイアログ「前回の終了で止まったチャットがあります」: チャットごとに、止まったところ（最後の指示・AI の最後の返答・最後のツール）・
@@ -56,7 +27,7 @@ export function RestartResumeHost() {
  * 止めておく・止めたまま / あとで を選ぶ。「チャットで見て決める」でそのチャットを開いて閉じる（そのチャットの入力欄の上の帯で決められる）。
  * 「あとで決める」・Esc は何も送らずに閉じる（決めていないものはそのまま残る）
  */
-function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; onClose: () => void }) {
+export function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; onClose: () => void }) {
   // 選んでいる途中で、背景を押して閉じない
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
   const [choices, setChoices] = useState<Record<number, RestartResumeChoice>>({});
@@ -257,21 +228,5 @@ function RestartResumeDetails({ resume: r }: { resume: RestartResume }) {
         </section>
       )}
     </div>
-  );
-}
-
-/** 下の帯の入口: 決めていない再開がある間だけ出し、押すと確かめのダイアログを開き直す */
-export function RestartResumeFooterButton() {
-  const resumes = useRestartResumes();
-  if (resumes.length === 0) return null;
-  return (
-    <button
-      type="button"
-      className="footer-button restart-resume-footer"
-      title="前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットです。決めるまで続けず、送りません。押すと、中身を見て決めるダイアログを開きます"
-      onClick={openRestartResumes}
-    >
-      <History size={13} aria-hidden /> 決めていない再開 {resumes.length} 件
-    </button>
   );
 }

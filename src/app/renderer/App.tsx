@@ -24,7 +24,7 @@ import { HoverTip } from "@/foundation/ui/kit/HoverTip";
 import { NoteProgress } from "@/features/notes/ui/NoteProgress";
 import { ToastHost } from "@/foundation/ui/kit/toast";
 import { GitHubDialogHost } from "@/features/github/ui/GitHubDialogHost";
-import { RestartResumeHost } from "@/features/queue/ui/restartResume/RestartResumeDialog";
+import { RestartResumeHost } from "@/features/queue/ui";
 import { PrNoticeHost } from "@/features/github/ui/prNotice/PrNoticeDialog";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/ui/Sidebar";
 import { useFallbackProject } from "@/features/projects/ui/currentProject";
