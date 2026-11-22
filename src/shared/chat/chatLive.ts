@@ -86,35 +86,6 @@ export interface ChatLive {
   /** AI が返答の図（kickoff_chat の show_visual・update_visual）の中身を書いている途中か（書き終えると図の行が出る。画面は「図を描いています…」） */
   drawing_visual: boolean;
   /**
-   * 圧縮後指示（post_compact。圧縮が終わったら、いまのやり取りに最初に伝える）と、圧縮前指示から圧縮後指示のやり取りが終わるまで
-   * （どちらもなければ、圧縮からそのあとのやり取りが終わるまで）に「いま」で送った指示（送った順）。自分の指示はいまのやり取りに足さず、
-   * そのやり取りが終わってから送る（送信待ちより先。作業ごと送れない終わり方をしたら、送信待ちの先頭に入れる）。
-   * 圧縮の前後に足すと、圧縮前指示の作業・圧縮後指示のやり取りに混ざり、要約したあとの会話に入ったかも分からないため
-   */
-  after_compact: QueuedMessage[];
-  /**
-   * 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に伝えた（その作業が最後まで終わったら圧縮する）。送信待ちに圧縮の行を置かないので、
-   * 画面はこれで「いまの作業が終わったら圧縮します」を出す（もう一度頼めるように見せない）
-   */
-  compact_after_turn: boolean;
-  /**
-   * 圧縮前指示を送ってから、会話の圧縮が終わるまで（圧縮前指示の作業中も含む）。この間の「いま」は after_compact に預かり、
-   * 圧縮が終わってから伝える（圧縮前指示の作業に混ざる・圧縮より前の会話に入るのを防ぐため）
-   */
-  awaiting_compact: boolean;
-  /**
-   * 会話を圧縮したやり取りの途中（自動の圧縮があった作業・手で圧縮したあとの圧縮後指示の作業。終わるまで）。この間の「いま」も after_compact に預かり、
-   * このやり取りが終わってから送る
-   */
-  compacted_turn: boolean;
-  /**
-   * いまの作業に「いま」を足せなくなった（Claude Code が手を空けて入力を閉じたあと、作業が終わるまで）。この間の「いま」は after_compact に預かり、
-   * 作業の終わりに送信待ちより先に送る（画面は預かった指示に「この作業が終わったら送ります」と添える）
-   */
-  tells_closed: boolean;
-  /** 子チャットで親の会話を写している（動かし始める前。親の記録が大きいと数十秒かかる。作業中の行に「親の会話を引き継いでいます」） */
-  inheriting: boolean;
-  /**
    * 起動したときの再開の確かめを待っている（前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残った。答えるまで続けない・送らない。なければ null）。
    * interrupted: 前回の終了で、作業の途中で止まったか（「続ける」を選べる）。queued: 起動すると送り始める送信待ちがあるか（「送る」を選べる）
    */
@@ -136,11 +107,28 @@ export interface ChatLive {
   compact_by: CompactTrigger | null;
   /** 「いま」を預かっている理由（預かっていなければ null） */
   hold: HoldReason | null;
-  /** 出す箱の now の列（預かり・圧縮後指示・移動の続き。いまは after_compact と同じ） */
+  /**
+   * 出す箱の now の列（送った順）: 圧縮後指示と、圧縮前指示から圧縮のあとのやり取りが終わるまで・入力が閉じたあとに「いま」で送った指示（預かり）・移動の続き。
+   * 自分の指示はいまのやり取りに足さず、そのやり取りが終わってから送る（送信待ちより先。作業ごと送れない終わり方をしたら、送信待ちの先頭に入れる）
+   */
   now: QueuedMessage[];
   /** 作業の終わりの予約（いまは AI が予約した作業場所の移動だけ） */
   turn_end: { kind: (typeof TURN_END_KINDS)[number]; label: string }[];
-  // 中間の姿: after_compact・compact_after_turn・awaiting_compact・compacted_turn・tells_closed・inheriting は、新しい欄と同じ状態から作って出し続ける（画面が新しい欄を読むようになったら消す）
+  /** 作業の中の圧縮の様子（段階と重なるもの。圧縮中は compacting） */
+  compaction: LiveCompaction;
+  /** いまの作業の入力が閉じた（Claude Code が手を空けて入力を閉じたあと、作業が終わるまで。この間の「いま」は預かり、作業の終わりに送信待ちより先に送る） */
+  input_closed: boolean;
+}
+
+/**
+ * 作業の中の圧縮の様子。同じ作業の中で重なり、段階（phase）からは読めない:
+ * awaiting = 圧縮前指示を送ってから圧縮が終わるまで（圧縮中も立つ）/ after_turn = 作業中に手で頼んだ圧縮の圧縮前指示を伝えた（この作業が最後まで終わったら圧縮する。画面は「いまの作業が終わったら圧縮します」）/
+ * done = 圧縮したやり取りの途中（手で圧縮する実行の終わりまで段階が awaiting_compact のままでも立つ。この間の「いま」も預かる）
+ */
+export interface LiveCompaction {
+  awaiting: boolean;
+  after_turn: boolean;
+  done: boolean;
 }
 
 /** 送信待ちが空で、待っていない様子 */
@@ -155,12 +143,6 @@ export const EMPTY_CHAT_LIVE: ChatLive = {
   compacting: null,
   stopping: false,
   drawing_visual: false,
-  after_compact: [],
-  awaiting_compact: false,
-  compact_after_turn: false,
-  compacted_turn: false,
-  tells_closed: false,
-  inheriting: false,
   restart_resume: null,
   workplace_move: null,
   phase: "idle",
@@ -171,6 +153,8 @@ export const EMPTY_CHAT_LIVE: ChatLive = {
   hold: null,
   now: [],
   turn_end: [],
+  compaction: { awaiting: false, after_turn: false, done: false },
+  input_closed: false,
 };
 
 /** AI が予約した作業場所の移動の様子（ChatLive の workplace_move） */

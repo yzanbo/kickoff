@@ -8,10 +8,10 @@ import type { ChatLive } from "@shared/chat/chatLive";
 export type CompactHold = "compacting" | "awaiting" | "post" | null;
 
 /** 作業中の段階から、「いま」を預かる間か */
-export function compactHoldOf(live: Pick<ChatLive, "phase" | "compacted_turn">): CompactHold {
+export function compactHoldOf(live: Pick<ChatLive, "phase" | "compaction">): CompactHold {
   if (live.phase === "compacting") return "compacting";
   // 圧縮が済んだあと（手で圧縮する実行の終わりまでは段階が awaiting_compact のまま）は、圧縮のあとのやり取りとして案内する
-  if (live.phase === "compacted" || live.compacted_turn) return "post";
+  if (live.phase === "compacted" || live.compaction.done) return "post";
   return live.phase === "awaiting_compact" ? "awaiting" : null;
 }
 

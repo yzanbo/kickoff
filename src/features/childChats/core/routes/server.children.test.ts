@@ -39,7 +39,7 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
   await until(() => !runner.isBusy(parentId) && !runner.isBusy(child.id));
 });
 
-test("子チャット: 親の会話を写すのを待たずに作って最初の発言を残し、写している間は作業中（inheriting）。写し終えたらそのセッションで動かす", async () => {
+test("子チャット: 親の会話を写すのを待たずに作って最初の発言を残し、写している間は作業中（送る準備の理由が inherit）。写し終えたらそのセッションで動かす", async () => {
   const ctx = setup();
   const { call, store, provider, runner } = ctx;
   const parentId = await finishedChat(ctx);
@@ -50,7 +50,7 @@ test("子チャット: 親の会話を写すのを待たずに作って最初の
   // まだ写している: 発言は残り、作業中で、引き継ぎ中の様子を配る。プロバイダーはまだ動かさない
   assert.deepEqual(store.events.list(child.id).map((e) => e.type), ["notice", "user"]);
   assert.equal(runner.isBusy(child.id), true);
-  assert.equal(runner.live(child.id).inheriting, true);
+  assert.equal(runner.live(child.id).preparing_for, "inherit");
   assert.equal(child.session_id, null);
   const turnsBefore = provider.resumes.length;
   // 写している間の「いま」は預かる
@@ -60,7 +60,7 @@ test("子チャット: 親の会話を写すのを待たずに作って最初の
   release();
   await until(() => provider.resumes.includes("fork-1"));
   assert.equal(store.chats.get(child.id)?.session_id !== null, true);
-  assert.equal(runner.live(child.id).inheriting, false);
+  assert.notEqual(runner.live(child.id).preparing_for, "inherit");
   // 預かった「いま」は、動かし始めた作業に伝える
   await until(() => provider.told.includes("ついでに"));
   releaseTurn();

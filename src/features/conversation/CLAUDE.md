@@ -88,7 +88,7 @@
 - 作業の札（`WorkingExecution`）は今回の `init` の通知か送ったときの選択から（`executionSettings.ts`）。前の作業の通知を使わない。
 - 動いているかは最後に何かが届いた時刻で決める（`@/features/chat/ui/state/stall.ts`。Claude Code に問い合わせる手段はない）。子孫が動いている間は、待っている祖先を動きなしにしない。
 - 中断は、裏のサブエージェント・コマンドも止まることを確かめてから（`confirmStopAgents`）。停止中は Esc でも止め直さない。
-- 作業中の「会話を圧縮」は、圧縮前指示があればいまの作業へ伝え（`compact_after_turn`）、なければ送信待ちのいちばん上に予約する（`reservedAction`）。
+- 作業中の「会話を圧縮」は、圧縮前指示があればいまの作業へ伝え（`compaction.after_turn`）、なければ送信待ちのいちばん上に予約する（`reserved`）。
 - ToDo は `todo/todoList.ts` の `collectTodoList`。セッションが替わると Task の番号が振り直されるので、それまでの分を締める。
 
 ## 失敗した作業の直す操作（`rewind/`）

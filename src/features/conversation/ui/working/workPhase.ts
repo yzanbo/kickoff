@@ -12,10 +12,10 @@ export const isWaitingCompact = (live: Pick<ChatLive, "phase">): boolean => live
  * 作業中に預かった「いま」の指示をいつ送るか（圧縮を待つ間 = 圧縮のあと / いまの作業に足せなくなったあと = 作業の終わり /
  * 圧縮したやり取りの途中 = そのやり取りの終わり / ほか = 作業の終わり）。作業していなければ呼ぶ側が next
  */
-export function afterCompactUntilOf(live: Pick<ChatLive, "phase" | "tells_closed" | "compacted_turn">): AfterCompactUntil {
+export function afterCompactUntilOf(live: Pick<ChatLive, "phase" | "input_closed" | "compaction">): AfterCompactUntil {
   if (isWaitingCompact(live)) return "compact";
-  return live.tells_closed ? "closed" : live.compacted_turn ? "exchange" : "turn";
+  return live.input_closed ? "closed" : live.compaction.done ? "exchange" : "turn";
 }
 
 /** 作業中に手で頼んだ圧縮を、いまの作業が終わったら行うか（チャット欄のメーターの「いまの作業が終わったら圧縮します」） */
-export const compactsAfterTurn = (live: Pick<ChatLive, "compact_after_turn">): boolean => live.compact_after_turn;
+export const compactsAfterTurn = (live: Pick<ChatLive, "compaction">): boolean => live.compaction.after_turn;

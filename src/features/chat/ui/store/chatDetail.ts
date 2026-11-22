@@ -34,12 +34,6 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     compacting: next.compacting,
     stopping: next.stopping,
     drawing_visual: next.drawing_visual,
-    after_compact: keep(prev.after_compact, next.after_compact),
-    awaiting_compact: next.awaiting_compact,
-    compact_after_turn: next.compact_after_turn,
-    compacted_turn: next.compacted_turn,
-    tells_closed: next.tells_closed,
-    inheriting: next.inheriting,
     restart_resume: keep(prev.restart_resume, next.restart_resume),
     workplace_move: keep(prev.workplace_move, next.workplace_move),
     phase: next.phase,
@@ -50,6 +44,8 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     hold: next.hold,
     now: keep(prev.now, next.now),
     turn_end: keep(prev.turn_end, next.turn_end),
+    compaction: keep(prev.compaction, next.compaction),
+    input_closed: next.input_closed,
   };
 }
 

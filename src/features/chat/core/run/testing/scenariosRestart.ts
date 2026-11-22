@@ -145,7 +145,7 @@ export const RESTART_SCENARIOS: Scenario[] = [
       end("completed", "turn"),
       end("completed", "turn"),
       { provider: "tellReady" },
-      { await: { told: ["C"], held: [], live: { tells_closed: false } } },
+      { await: { told: ["C"], held: [], live: { input_closed: false } } },
       end("completed", "idle"),
     ],
     expect: { runs: ["1", "A", "B"], told: ["C"] },

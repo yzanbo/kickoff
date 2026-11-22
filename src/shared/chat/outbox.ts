@@ -5,7 +5,7 @@ import type { MessageMarks } from "./chatEvent";
 import type { Attachment, ChatOptionsPatch, QueueAction, QueuedMessage } from "./types";
 
 /**
- * 出す箱。now = 預かり（いまのやり取りが終わったら送信待ちより先に送る。圧縮後指示・移動の続きも。画面の after_compact）、
+ * 出す箱。now = 預かり（いまのやり取りが終わったら送信待ちより先に送る。圧縮後指示・移動の続きも。ChatLive の now）、
  * later = 送信待ち（いまの作業が終わったら先頭から 1 件ずつ送る）。stops・paused は later の印:
  * 「ここまで送ったら止めます」の線の位置（0 = 1 件目の上、n = n 件目のあと。小さい順。同じ位置に何本でも）と、終わっても自動で送らずに止めておくか
  * （列が空になったら自動で送るに戻す）。どの操作も、変えないときは同じ箱を返す（呼ぶ側は箱が変わったときだけ保存して配る）

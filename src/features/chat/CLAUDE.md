@@ -43,7 +43,7 @@
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`。古い欄も同じ状態から）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後も）。
+- 画面に配る形は `ChatLive`（段階 `phase`・預かる理由 `hold`・圧縮 `compaction`）。詳細の `live` と SSE の `chat_live` は同じ形で、変わるたびに丸ごと配る（`status` が変われば `chat` の直後も）。
 - `cancel` の `stopping` は、プロセスがサブエージェントごと終わるまで立てる。準備の間に止めたら、済んでも動かさない。
 
 ## 送信待ち（`core/run/queueWindow.ts`・`requests.ts`）

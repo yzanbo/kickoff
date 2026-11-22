@@ -7,7 +7,7 @@ test("「いま」を預かる間: 圧縮前指示の作業中 → 圧縮中 →
   assert.equal(compactHoldOf(makeChatLive({})), null);
   assert.equal(compactHoldOf(makeChatLive({ phase: "running" })), null);
   assert.equal(compactHoldOf(makeChatLive({ phase: "awaiting_compact" })), "awaiting");
-  assert.equal(compactHoldOf(makeChatLive({ phase: "compacting", compacted_turn: true })), "compacting");
-  assert.equal(compactHoldOf(makeChatLive({ phase: "awaiting_compact", compacted_turn: true })), "post");
-  assert.equal(compactHoldOf(makeChatLive({ phase: "compacted", compacted_turn: true })), "post");
+  assert.equal(compactHoldOf(makeChatLive({ phase: "compacting", compaction: { awaiting: false, after_turn: false, done: true } })), "compacting");
+  assert.equal(compactHoldOf(makeChatLive({ phase: "awaiting_compact", compaction: { awaiting: false, after_turn: false, done: true } })), "post");
+  assert.equal(compactHoldOf(makeChatLive({ phase: "compacted", compaction: { awaiting: false, after_turn: false, done: true } })), "post");
 });

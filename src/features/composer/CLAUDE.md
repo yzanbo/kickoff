@@ -21,7 +21,7 @@
 ### 作業中の送り方（いま / あとで）
 
 - 作業中の扱いは `composer:queue-mode`（コアの `when` と同じ `now` = いま / `later` = あとで）とキー（⌘Enter / ⌘⇧Enter。`sendModeOf`）。作業していなくて送信待ちが残るときは「すぐ送る / ためておく」にする（`send.holdsQueue`）。
-- 「いま」は `when: now`。伝えられないとき（`tells_closed`）と圧縮を待つ間（`awaiting_compact`・`compacting`・`compacted_turn`）はコアが預かり（`after_compact`）、作業の終わりに送信待ちより先に送る。
+- 「いま」は `when: now`。伝えられないとき（`input_closed`）と圧縮を待つ間（`phase`・`compaction.done`）はコアが預かり（`now`）、作業の終わりに送信待ちより先に送る。
 - 圧縮後指示は送信待ちに入らない。預かった指示の書き直しは `@/features/compact/ui/HeldEditComposer.tsx`（状態は `@/features/compact/ui/heldEdit.ts`）。
 - 書き直している間は `useEditHold` で `PUT …/queue/editing`（`lane: now`）を知らせ直す（送信待ちと同じ）。保存の前に送られたら、書いた文をふつうのチャット欄に移す。
 - 会話の圧縮中は停止のボタンを出さない（`send.compacting`）。止めるのは Esc 2 回。

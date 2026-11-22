@@ -12,19 +12,19 @@ test("親の会話を写しているのは、送る準備の段階で理由が�
 test("圧縮を待つ間は、圧縮前指示の作業中と圧縮中（圧縮したあとのやり取りは含めない）", () => {
   assert.equal(isWaitingCompact(makeChatLive({ phase: "awaiting_compact" })), true);
   assert.equal(isWaitingCompact(makeChatLive({ phase: "compacting" })), true);
-  assert.equal(isWaitingCompact(makeChatLive({ phase: "compacted", compacted_turn: true })), false);
+  assert.equal(isWaitingCompact(makeChatLive({ phase: "compacted", compaction: { awaiting: false, after_turn: false, done: true } })), false);
   assert.equal(isWaitingCompact(makeChatLive({ phase: "running" })), false);
 });
 
 test("預かった「いま」の指示を送る時: 圧縮を待つ間 → 足せなくなったあと → 圧縮したやり取りの途中 → 作業の終わりの順", () => {
-  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacting", tells_closed: true })), "compact");
-  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "awaiting_compact", compacted_turn: true })), "compact");
-  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacted", compacted_turn: true, tells_closed: true })), "closed");
-  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacted", compacted_turn: true })), "exchange");
+  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacting", input_closed: true })), "compact");
+  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "awaiting_compact", compaction: { awaiting: false, after_turn: false, done: true } })), "compact");
+  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacted", compaction: { awaiting: false, after_turn: false, done: true }, input_closed: true })), "closed");
+  assert.equal(afterCompactUntilOf(makeChatLive({ phase: "compacted", compaction: { awaiting: false, after_turn: false, done: true } })), "exchange");
   assert.equal(afterCompactUntilOf(makeChatLive({ phase: "running" })), "turn");
 });
 
-test("作業中に頼んだ圧縮の予約は compact_after_turn から", () => {
-  assert.equal(compactsAfterTurn(makeChatLive({ compact_after_turn: true })), true);
+test("作業中に頼んだ圧縮の予約は compaction の after_turn から", () => {
+  assert.equal(compactsAfterTurn(makeChatLive({ compaction: { awaiting: true, after_turn: true, done: false } })), true);
   assert.equal(compactsAfterTurn(makeChatLive({})), false);
 });

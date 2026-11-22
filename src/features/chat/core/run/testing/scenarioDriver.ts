@@ -197,7 +197,7 @@ export class Driver {
   /** 行の ID とどちらの列か（いまの送信待ち・預かりから探し、なければ覚えたもの） */
   async row(alias: ChatAlias, label: string): Promise<{ id: string; lane: "now" | "later" }> {
     const { live } = await this.detail(alias);
-    const found = live.queue.messages.find((m) => rowLabel(m) === label) ?? live.after_compact.find((m) => rowLabel(m) === label);
+    const found = live.queue.messages.find((m) => rowLabel(m) === label) ?? live.now.find((m) => rowLabel(m) === label);
     if (found)
       this.rows.set(`${alias}:${label}`, {
         id: found.id,

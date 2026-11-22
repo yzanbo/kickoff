@@ -6,7 +6,7 @@ import type { ChatLive, QueueState, WorkPhase } from "@shared/chat/chatLive";
 import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
 import type { ChatRun } from "@/features/chat/core/run/chatRun";
 
-/** 画面に配る形。古い欄（after_compact・awaiting_compact…）も同じ状態から作る */
+/** 画面に配る形 */
 export function liveOf(runtime: ChatRun): ChatLive {
   const s = runtime.run;
   const { phase: p } = s;
@@ -23,12 +23,6 @@ export function liveOf(runtime: ChatRun): ChatLive {
     compacting: compaction.running,
     stopping: p.kind !== "idle" && p.stopRequested,
     drawing_visual: drawingVisual,
-    after_compact: s.outbox.now,
-    awaiting_compact: compaction.awaiting,
-    compact_after_turn: compaction.afterTurn,
-    compacted_turn: compaction.done,
-    tells_closed: turn?.tell === "closed",
-    inheriting: p.kind === "preparing" && p.why === "inherit",
     restart_resume: s.gates.restart,
     workplace_move: move,
     phase,
@@ -39,6 +33,8 @@ export function liveOf(runtime: ChatRun): ChatLive {
     hold: holdOf(s),
     now: s.outbox.now,
     turn_end: move ? [{ kind: "workplace_move", label: move.label }] : [],
+    compaction: { awaiting: compaction.awaiting, after_turn: compaction.afterTurn, done: compaction.done },
+    input_closed: turn?.tell === "closed",
   };
 }
 

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { ChatDetail } from "@shared/chat/detail";
 import type { QueuedMessage } from "@shared/chat/types";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import type { RestartResume } from "@shared/chat/chatLive";
+import type { LiveCompaction, RestartResume } from "@shared/chat/chatLive";
 import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, RESTART_RESUME_PROMPT, RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { AgentProvider } from "@/features/ai/core/index";
 import type { ChatAlias, LiveExpect, ScenarioExpect } from "./types";
@@ -93,7 +93,7 @@ export function actual(want: ScenarioExpect, o: Observed): Partial<Record<keyof 
     stops: () => live.queue.stops,
     paused: () => live.queue.paused,
     waitingEdit: () => live.queue.waiting_edit,
-    held: () => live.after_compact.map(rowLabel),
+    held: () => live.now.map(rowLabel),
     live: () => liveOf(want.live ?? {}, detail, o.sinceAlias),
     status: () => chat.status,
     unread: () => chat.unread,
@@ -112,10 +112,8 @@ export function actual(want: ScenarioExpect, o: Observed): Partial<Record<keyof 
 function liveOf(want: LiveExpect, detail: ChatDetail, sinceAlias: (since: string) => string): LiveExpect {
   const { live } = detail;
   const all: Required<LiveExpect> = {
-    tells_closed: live.tells_closed,
-    awaiting_compact: live.awaiting_compact,
-    compact_after_turn: live.compact_after_turn,
-    compacted_turn: live.compacted_turn,
+    input_closed: live.input_closed,
+    compaction: Object.fromEntries(Object.keys(want.compaction ?? {}).map((key) => [key, live.compaction[key as keyof LiveCompaction]])),
     compacting: live.compacting && { trigger: live.compacting.trigger, since: sinceAlias(live.compacting.since) },
     stopping: live.stopping,
     restart_resume: live.restart_resume,

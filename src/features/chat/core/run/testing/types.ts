@@ -2,7 +2,7 @@
 // 行は 01 の 8 章（保たなければならない振る舞い）の番号を持ち、外から見えるもの（AI に送った指示・記録・送信待ち・作業中の様子・API の状態コード）だけを比べる
 import type { AgentEvent } from "@shared/ai/turnEvents";
 import type { ChatStatus, QueueAction } from "@shared/chat/types";
-import type { RestartResumeAction } from "@shared/chat/chatLive";
+import type { LiveCompaction, RestartResumeAction } from "@shared/chat/chatLive";
 
 /** 筋書きの中のチャットの呼び名（a が既定） */
 export type ChatAlias = "a" | "b" | "c";
@@ -83,10 +83,9 @@ export type ScenarioStep =
 
 /** 作業中の様子のうち比べるもの（compacting は始めた時刻を出てきた順の t1・t2… に置き換える） */
 export interface LiveExpect {
-  tells_closed?: boolean;
-  awaiting_compact?: boolean;
-  compact_after_turn?: boolean;
-  compacted_turn?: boolean;
+  input_closed?: boolean;
+  /** 圧縮の様子のうち書いた欄 */
+  compaction?: Partial<LiveCompaction>;
   compacting?: { trigger: "auto" | "manual"; since: string } | null;
   stopping?: boolean;
   restart_resume?: { interrupted: boolean; queued: boolean } | null;
@@ -121,7 +120,7 @@ export interface ScenarioExpect {
   stops?: number[];
   paused?: boolean;
   waitingEdit?: boolean;
-  /** 預かり（now。いまの after_compact）。圧縮後指示は 後: */
+  /** 預かり（ChatLive の now）。圧縮後指示は 後: */
   held?: Row[];
   live?: LiveExpect;
   /** worktree は作業場所のフォルダの名前（本体なら null） */

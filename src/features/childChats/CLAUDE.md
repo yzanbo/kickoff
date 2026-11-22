@@ -8,7 +8,7 @@
 ## 決まり
 
 - 子チャットは `parent_chat_id`・`parent_event_id` を持つふつうのチャット。親が作業中でも作れる。選択は親から引き継がず設定どおり（`resolveChatOptions`）。
-- 引き継ぐときは、親の最後まで終わった作業からプロバイダーの `fork` で写す。写すのは作ってから（`inheritThenExecute`）で、その間は `inheriting` で作業中に数え「いま」は預かる。
+- 引き継ぐときは、親の最後まで終わった作業からプロバイダーの `fork` で写す。写すのは作ってから（`inheritThenExecute`）で、その間は準備（`preparing_for: inherit`）で作業中に数え「いま」は預かる。
 - 写せない・起点がない・親と違う AI なら、お知らせを残して引き継がずに動かす。写すのは直近の区切りだけ（`CHILD_FORK_KEEP`）。
 - 親子の文脈は送るたびに指示に添える（システムプロンプトにしない理由は JSDoc）。
 - 移動・削除・アーカイブは子孫ごと（どれかが作業中なら 409）。アーカイブは `store.chats.archive` だけで変え、戻すのは `archived_with_parent` の印のあるものだけ。確かめの文は `chatActions.ts` の `childNote`、数は `knownDescendantCount`。

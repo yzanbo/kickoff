@@ -52,8 +52,8 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   await runner.queueMessage(chat.id, "4");
   await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id);
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
-  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["4"]);
-  assert.equal(runner.live(chat.id).tells_closed, true);
+  assert.deepEqual(runner.live(chat.id).now.map((m) => m.text), ["4"]);
+  assert.equal(runner.live(chat.id).input_closed, true);
   assert.equal(gates.length, 2);
   // 送信待ちを止めていても、預かった指示は送る
   await runner.setQueuePaused(chat.id, true);
@@ -64,8 +64,8 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   gates[1]();
   await until(() => gates.length === 3);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
-  assert.deepEqual(runner.live(chat.id).after_compact, []);
-  assert.equal(runner.live(chat.id).tells_closed, false);
+  assert.deepEqual(runner.live(chat.id).now, []);
+  assert.equal(runner.live(chat.id).input_closed, false);
   gates[2]();
   await until(() => store.chats.get(chat.id)?.status === "completed");
   // 送信待ちは止めたまま残る
@@ -152,17 +152,17 @@ test("足せなかった「いま」は預かった順に送る: 作業の終わ
   assert.equal(await runner.tell(chat.id, "A"), "held");
   // 足せないと分かったあとの「いま」は、足そうとせずに後ろへ預かる
   assert.equal(await runner.tell(chat.id, "B"), "held");
-  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["A", "B"]);
+  assert.deepEqual(runner.live(chat.id).now.map((m) => m.text), ["A", "B"]);
   assert.deepEqual(runner.live(chat.id).queue.messages, []);
   releases[0]();
   // A を新しい作業として送り、B はその作業にも足せないので預かりの先頭に残る
-  await until(() => releases.length === 2 && runner.live(chat.id).tells_closed);
+  await until(() => releases.length === 2 && runner.live(chat.id).input_closed);
   await tick();
-  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["B"]);
+  assert.deepEqual(runner.live(chat.id).now.map((m) => m.text), ["B"]);
   releases[1]();
   await until(() => releases.length === 3);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "A", "B"]);
-  assert.deepEqual(runner.live(chat.id).after_compact, []);
+  assert.deepEqual(runner.live(chat.id).now, []);
   releases[2]();
   await until(() => !runner.isBusy(chat.id));
 });
@@ -188,8 +188,8 @@ test("動かし始めたばかりで足す口がまだないときの「いま�
   openControl!();
   await until(() => told.length === 1);
   assert.deepEqual(told, ["すぐあと"]);
-  assert.equal(runner.live(chat.id).tells_closed, false);
-  assert.deepEqual(runner.live(chat.id).after_compact, []);
+  assert.equal(runner.live(chat.id).input_closed, false);
+  assert.deepEqual(runner.live(chat.id).now, []);
   await until(() => release !== undefined);
   release!();
   await until(() => !runner.isBusy(chat.id));
