@@ -13,7 +13,7 @@ test("byManual: まだ並べていない新しいチャットがいちばん上�
 test("bucketScopes: いちばん外のまとまりのキー（中の段も同じ）。まとまりのアーカイブ済みはそのキー", () => {
   const groups = [makeGroup(4, { position: 1 })];
   const chats = [makeChat(1, { group_id: 4, status: "running" }), makeChat(2, { group_id: 4 }), makeChat(3, { group_id: 4, archived_at: "x" }), makeChat(5, { pinned: true }), makeChat(6)];
-  const buckets = bucketChats(chats, { pending: approvalIndex([]), groupsOf: () => groups, by: ["group", "status"], project: 1, pinned: true, archived: "nested" });
+  const buckets = bucketChats(chats, { pending: approvalIndex([]), groupsOf: () => groups, by: ["group", "status"], project: 1, pinned: true, archived: "perBucket" });
   const scopes = bucketScopes(buckets);
   assert.equal(scopes.get(1), "p1/g4");
   assert.equal(scopes.get(2), "p1/g4");
@@ -25,7 +25,7 @@ test("bucketScopes: いちばん外のまとまりのキー（中の段も同じ
 test("bucketScopes: 所属先の中でも固定と通常は別の範囲（状態順・最近順で共通）", () => {
   const chats = [makeChat(1, { group_id: 4, pinned: true }), makeChat(2, { group_id: 4, status: "running" }), makeChat(3, { group_id: 4 }), makeChat(4, { group_id: 4, pinned: true, archived_at: "x" }), makeChat(5, { pinned: true })];
   for (const by of [["group"], ["group", "status"]] as const) {
-    const list = bucketChats(chats, { pending: approvalIndex([]), groupsOf: () => [makeGroup(4)], by, project: 1, pinned: "nested", archived: "nested" });
+    const list = bucketChats(chats, { pending: approvalIndex([]), groupsOf: () => [makeGroup(4)], by, project: 1, pinned: "nested", archived: "perBucket" });
     const scopes = bucketScopes(list);
     assert.equal(scopes.get(1), "p1/g4/pinned");
     assert.equal(scopes.get(2), "p1/g4");

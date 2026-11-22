@@ -60,7 +60,7 @@ export function useTabClusters(
     const title = TITLES[head.kind] ?? head.title;
     return { ...head, title, label: many && head.projectId !== undefined ? `${projectName(head.projectId)} · ${label}` : label };
   };
-  const clusterOfChat = (chat: Chat): BucketHead => present(chatHead(chat, by, ctx, { pinned: true, archived: "bucket" }) ?? OTHER_CLUSTER);
+  const clusterOfChat = (chat: Chat): BucketHead => present(chatHead(chat, by, ctx, { pinned: true, archived: "tail" }) ?? OTHER_CLUSTER);
   const resolve: ClusterResolver = {
     chatById: knownChat,
     draftOf: (key) => drafts.find((d) => d.key === key),

@@ -103,7 +103,7 @@ export function chatHead(
   const scope = by === "status" || by === undefined ? project : chat.project_id;
   if (chat.archived_at) {
     if (archived === "drop") return undefined;
-    if (archived === "bucket") return archivedHead(scope);
+    if (archived === "tail") return archivedHead(scope);
   } else if (pinned && chat.pinned && (pinned !== "nested" || by === "status" || by === undefined)) {
     return pinnedHead(scope, parent);
   }

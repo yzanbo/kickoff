@@ -18,7 +18,7 @@ export function chatListOptions(grouping: ChatGrouping, order: ChatOrder): { by:
   return {
     by: [...(grouping === "none" ? [] : [grouping]), ...(order === "status" ? (["status"] as const) : [])],
     pinned: grouping === "none" ? true : "nested",
-    archived: grouping === "none" ? "bucket" : "nested",
+    archived: grouping === "none" ? "tail" : "perBucket",
     sort: order === "manual" ? byManual : undefined,
   };
 }

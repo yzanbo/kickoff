@@ -30,7 +30,7 @@ test("bucketChats: nested の固定はグループから抜き出さず、その
     chat(6, { group_id: 77, pinned: true }),
     chat(7),
   ];
-  const opts = { ...ctx, by: "group" as const, project: 1, pinned: "nested" as const, archived: "nested" as const };
+  const opts = { ...ctx, by: "group" as const, project: 1, pinned: "nested" as const, archived: "perBucket" as const };
   const list = bucketChats(chats, opts);
   assert.deepEqual(shape(list), [["p1/g4", [2, 1, 4, 3]], ["p1/g5", [5]], ["p1/ungrouped", [6, 7]]]);
   assert.deepEqual(shape(bucketChats(chats, { ...opts, sort: byManual })), [["p1/g4", [1, 2, 3, 4]], ["p1/g5", [5]], ["p1/ungrouped", [6, 7]]]);
@@ -47,7 +47,7 @@ test("bucketChats: nested の固定はグループ内の状態見出しより前
     chat(4, { group_id: 4, pinned: true, archived_at: "x" }),
     chat(5, { pinned: true }),
   ];
-  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: "nested", archived: "nested" });
+  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: "nested", archived: "perBucket" });
   assert.deepEqual(list.map((b) => b.key), ["p1/g4", "p1/ungrouped"]);
   assert.deepEqual(shape(list[0].children!), [["p1/g4/pinned", [1]], ["p1/g4/status:running", [2]], ["p1/g4/status:read", [3]]]);
   assert.deepEqual(shape(list[1].children!), [["p1/ungrouped/pinned", [5]]]);
@@ -59,7 +59,7 @@ test("bucketChats: nested の固定はグループ内の状態見出しより前
 test("bucketChats: nested の固定は作業場所の中。本体・ワークツリーの並びは変えない。前のブランチが違っても本体", () => {
   const worktreesOf = () => [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/wt/a", { branch: "feature" })];
   const chats = [chat(1, { pinned: true }), chat(2), chat(3, { worktree_path: "/wt/a", pinned: true }), chat(4, { worktree_path: "/wt/a", status: "running" }), chat(5, { branch: "old", pinned: true })];
-  const opts = { ...ctx, worktreesOf, project: 1, pinned: "nested" as const, archived: "nested" as const };
+  const opts = { ...ctx, worktreesOf, project: 1, pinned: "nested" as const, archived: "perBucket" as const };
   const recent = bucketChats(chats, { ...opts, by: "worktree" });
   assert.deepEqual(shape(recent), [["p1/w:main", [5, 1, 2]], ["p1/w:/wt/a", [3, 4]]]);
   const status = bucketChats(chats, { ...opts, by: ["worktree", "status"] });
@@ -173,7 +173,7 @@ test("bucketChats: アーカイブ済みは keep = 列に入れたまま / bucke
     ["status:running", [3]],
     ["status:read", [2, 1]],
   ]);
-  assert.deepEqual(shape(bucketChats(chats, { pending, by: "status", archived: "bucket" })), [
+  assert.deepEqual(shape(bucketChats(chats, { pending, by: "status", archived: "tail" })), [
     ["status:read", [1]],
     ["archived", [3, 2]],
   ]);
@@ -189,7 +189,7 @@ test("bucketChats: 固定はプロジェクトごとにいちばん前、アー�
     chat(5, { pinned: true, archived_at: "x" }),
     chat(6, { project_id: 2 }),
   ];
-  const list = bucketChats(chats, { ...ctx, by: "group", pinned: true, archived: "bucket", projects: [project(2), project(1)] });
+  const list = bucketChats(chats, { ...ctx, by: "group", pinned: true, archived: "tail", projects: [project(2), project(1)] });
   assert.deepEqual(shape(list), [
     ["p2/pinned", [3]],
     ["p2/ungrouped", [6]],
@@ -202,7 +202,7 @@ test("bucketChats: 固定はプロジェクトごとにいちばん前、アー�
 
 test("bucketChats: 中の段のキーは親につなぐ。固定は中を分けず、アーカイブ済みの中はグループを除いた段で分ける", () => {
   const chats = [chat(1, { group_id: 4, status: "running" }), chat(2, { group_id: 4 }), chat(3, { pinned: true }), chat(4, { archived_at: "x", group_id: 4 })];
-  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "bucket" });
+  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "tail" });
   assert.deepEqual(
     list.map((b) => [b.key, b.children?.map((c) => c.key)]),
     [
@@ -225,7 +225,7 @@ test("bucketChats: archived が nested なら、いちばん外の段のまと�
     chat(5, { pinned: true }),
     chat(6, { group_id: 4, archived_at: "x" }),
   ];
-  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "nested" });
+  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "perBucket" });
   assert.deepEqual(
     list.map((b) => [b.key, b.chats.map((c) => c.id), b.archived?.key ?? null, b.archived?.chats.map((c) => c.id) ?? null]),
     [
@@ -240,7 +240,7 @@ test("bucketChats: archived が nested なら、いちばん外の段のまと�
   assert.deepEqual(list[1].children?.map((c) => c.key), ["p1/g4/status:running"]);
   assert.equal(list[1].archived?.kind, "archived");
   // まとめないときは、「アーカイブ済み」に抜き出す
-  assert.deepEqual(shape(bucketChats([chat(1), chat(2, { archived_at: "x" })], { pending, by: [], project: 1, archived: "nested" })), [
+  assert.deepEqual(shape(bucketChats([chat(1), chat(2, { archived_at: "x" })], { pending, by: [], project: 1, archived: "perBucket" })), [
     ["p1/all", [1]],
     ["p1/archived", [2]],
   ]);
@@ -274,7 +274,7 @@ test("bucketChats: プロジェクトは渡した並びの順で、並びにな�
 });
 
 test("chatHead / draftHead: パネルのタブと同じ決め方（アーカイブ済み → 固定 → 分け方）。状態で分けるときの下書きはどこにも入れない", () => {
-  const opts = { pinned: true, archived: "bucket" as const };
+  const opts = { pinned: true, archived: "tail" as const };
   assert.equal(chatHead(chat(1, { archived_at: "x", pinned: true }), "group", ctx, opts)?.key, "p1/archived");
   assert.equal(chatHead(chat(1, { pinned: true }), "group", ctx, opts)?.key, "p1/pinned");
   assert.equal(chatHead(chat(1, { group_id: 9, project_id: 2 }), "group", ctx, opts)?.key, "p2/g9");
@@ -306,10 +306,10 @@ test("flattenBucketChats: 画面に並ぶ順の 1 列にする（固定 → ま�
     chat(5, { group_id: 5 }),
     chat(6),
   ];
-  const nested = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "nested" });
+  const nested = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "perBucket" });
   assert.deepEqual(flattenBucketChats(nested).map((c) => c.id), [4, 1, 2, 3, 5, 6]);
   // まとめないときは、最後に動いた順のあとにアーカイブ済み
-  const flat = bucketChats(chats, { ...ctx, by: [], project: 1, pinned: true, archived: "bucket" });
+  const flat = bucketChats(chats, { ...ctx, by: [], project: 1, pinned: true, archived: "tail" });
   assert.deepEqual(flattenBucketChats(flat).map((c) => c.id), [4, 6, 5, 2, 1, 3]);
 });
 

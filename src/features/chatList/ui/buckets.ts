@@ -15,10 +15,10 @@
  * - 並び: プロジェクトの順（渡した並び → ほかは出てきた順）、その中は 固定 → グループ（サイドバーと同じ並び）・作業場所（本体 → ワークツリー
  *   （名前順）→ フォルダなし）・状態（作業中 → 回答待ち → 未読 → 既読）→ グループなし、いちばん後ろにアーカイブ済み → その他。
  *   まとまりの中のチャットは最後に動いた順
- * - アーカイブ済みを各まとまりの中に入れる（archived: "nested"）ときは、いちばん外の段のまとまりの archived に、そのまとまりのアーカイブ済み
+ * - アーカイブ済みを各まとまりの中に入れる（archived: "perBucket"）ときは、いちばん外の段のまとまりの archived に、そのまとまりのアーカイブ済み
  *   （キーは "p3/g5/archived"）を入れる。アーカイブ済みだけのまとまり（消えたワークツリーなど）も、そのために作る
  */
-import { BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/chat/types";
+import { BOARD_COLUMNS, type AgentState, type BoardColumn, type Chat } from "@shared/chat/types";
 import type { GitWorktree } from "@shared/git/types";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
@@ -33,9 +33,9 @@ export type BucketBy = "project" | "group" | "worktree" | "status";
 /**
  * まとまりの種類。group = 自分で作ったグループ / ungrouped = グループなし / worktree = 作業場所（ブランチ）/ status = 状態（カンバンの列）/
  * project = プロジェクト / pinned = 固定（抜き出したもの）/ archived = アーカイブ済み（抜き出したもの）/ all = まとめないときの見出しのないまとまり /
- * other = どのまとまりにも入らないもの（パネルのブラウザのタブなど。bucketChats は作らない）
+ * other = どのまとまりにも入らないもの（パネルのブラウザのタブなど。bucketChats は作らない）/ waiting = 要対応（サイドバーが作る。bucketChats は作らない）
  */
-type BucketKind = "project" | "group" | "ungrouped" | "worktree" | "status" | "pinned" | "archived" | "all" | "other";
+export type BucketKind = "project" | "group" | "ungrouped" | "worktree" | "status" | "pinned" | "archived" | "all" | "other" | "waiting";
 
 /** 下書き（送る前の新しいチャット）の作成先 */
 export interface DraftTarget {
@@ -66,6 +66,8 @@ export interface BucketHead {
   hue?: number;
   /** status のときの列 */
   column?: BoardColumn;
+  /** 要対応の状態の見出し（サイドバーの要対応。列にない failed もある） */
+  state?: AgentState;
 }
 
 /** チャットを入れたまとまり */
@@ -78,7 +80,7 @@ export interface ChatBucket<D extends DraftTarget = DraftTarget> extends BucketH
   counts: StateCounts;
   /** 中の段のまとまり（2 段以上で分けたとき） */
   children?: ChatBucket<D>[];
-  /** このまとまりのアーカイブ済み（archived: "nested" のとき、いちばん外の段だけ。なければ undefined。中は分けない） */
+  /** このまとまりのアーカイブ済み（archived: "perBucket" のとき、いちばん外の段だけ。なければ undefined。中は分けない） */
   archived?: ChatBucket<D>;
 }
 
@@ -104,11 +106,11 @@ export interface BucketOptions<D extends DraftTarget = DraftTarget> extends Buck
   /** true = プロジェクトごとの「固定」に抜き出す / nested = 所属するグループ・作業場所の先頭（状態で分けるときは、その手前の「固定」） */
   pinned?: boolean | "nested";
   /**
-   * アーカイブ済みのチャット: keep = ほかと同じく分ける（既定）/ bucket = 「アーカイブ済み」に抜き出す（いちばん後ろ。中はグループを除いた段で分ける）/
-   * nested = いちばん外の段のまとまりごとに、その中の archived に入れる（サイドバーのグループ別・作業場所別。段がなければ bucket と同じ）/
+   * アーカイブ済みのチャット: keep = ほかと同じく分ける（既定）/ tail = 「アーカイブ済み」に抜き出す（いちばん後ろ。中はグループを除いた段で分ける）/
+   * perBucket = いちばん外の段のまとまりごとに、その中の archived に入れる（サイドバーのグループ別・作業場所別。段がなければ tail と同じ）/
    * drop = 入れない
    */
-  archived?: "keep" | "bucket" | "nested" | "drop";
+  archived?: "keep" | "tail" | "perBucket" | "drop";
   /** 下書き。作成先のまとまりに入れる（いちばん外の段だけ） */
   drafts?: readonly D[];
   /** まとまりの中のチャットの並び（既定は最後に動いた順 byActive。ボードの並び順 chatComparator） */
@@ -153,46 +155,21 @@ const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (t
 
 /**
  * チャット（と下書き）をまとまりに分ける（純粋な関数。決まりはファイルの先頭）。
- * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: "nested", archived: "nested", ... })、
+ * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: "nested", archived: "perBucket", ... })、
  * ボードの列 = bucketChats(chats, { by: "status", keepEmpty: true })、⌘⇧A = bucketChats(chats, { by: "status", columns: COUNTED_COLUMNS, archived: "drop" })
  */
 export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly Chat[], options: BucketOptions<D>): ChatBucket<D>[] {
   const own = (projectId: number) => options.project === undefined || projectId === options.project;
   const levels = levelsOf(options.by);
-  const mine = chats.filter((c) => own(c.project_id));
-  const drafts = (options.drafts ?? []).filter((d) => own(d.projectId));
-  const top = { top: true, scope: options.project };
-  if (options.archived !== "nested") return bucketLevel(mine, drafts, levels, options, top);
-  // 段がなければ（まとめない）、「アーカイブ済み」に抜き出す
-  if (levels.length === 0) return bucketLevel(mine, drafts, levels, { ...options, archived: "bucket" }, top);
-  const list = bucketLevel(
-    mine.filter((c) => !c.archived_at),
-    drafts,
+  // 段がなければ（まとめない）、まとまりごとのアーカイブ済みは「アーカイブ済み」に抜き出す
+  const opts = options.archived === "perBucket" && levels.length === 0 ? { ...options, archived: "tail" as const } : options;
+  return bucketLevel(
+    chats.filter((c) => own(c.project_id)),
+    (options.drafts ?? []).filter((d) => own(d.projectId)),
     levels,
-    { ...options, archived: "drop" },
-    top,
+    opts,
+    { top: true, scope: options.project },
   );
-  // アーカイブ済みは、いちばん外の段だけで分けて（固定も抜き出さない）、同じキーのまとまりに入れる
-  const archived = bucketLevel(
-    mine.filter((c) => c.archived_at),
-    [],
-    levels.slice(0, 1),
-    { ...options, pinned: false, archived: "keep", keepEmpty: false },
-    top,
-  );
-  if (archived.length === 0) return list;
-  const byKey = new Map(list.map((b) => [b.key, b]));
-  for (const bucket of archived) {
-    let owner = byKey.get(bucket.key);
-    if (!owner) {
-      // アーカイブ済みだけのまとまり（中身は空のまま。中の段も作らない）
-      owner = { ...bucket, chats: [], drafts: [], counts: ZERO_COUNTS, children: undefined };
-      byKey.set(bucket.key, owner);
-      list.push(owner);
-    }
-    owner.archived = { ...bucket, key: `${bucket.key}/archived`, kind: "archived", label: "アーカイブ済み", title: "アーカイブ済みのチャット", counts: ZERO_COUNTS };
-  }
-  return sortBuckets(list, options.projects?.map((p) => p.id));
 }
 
 function bucketLevel<D extends DraftTarget>(
@@ -212,8 +189,19 @@ function bucketLevel<D extends DraftTarget>(
     if (!bucket) buckets.set(head.key, (bucket = { ...head, chats: [], drafts: [], counts: ZERO_COUNTS }));
     return bucket;
   };
+  // まとまりごとのアーカイブ済み（いちばん外の段だけ）: 固定も抜き出さずにこの段で分け、同じキーのまとまりの archived に入れる
+  // （アーカイブ済みだけのまとまりも作る。中身は空のまま、中の段も作らない）
+  const perBucket = options.archived === "perBucket";
+  const archivedOf = new Map<ChatBucket<D>, Chat[]>();
   for (const head of seedHeads(by, options, columns, at.top, at.scope, at.parent)) if (keep(head)) add(head);
   for (const chat of chats) {
+    if (perBucket && chat.archived_at) {
+      const head = chatHead(chat, by, options, { columns, project: at.scope }, at.parent);
+      if (!head) continue;
+      const owner = add(head);
+      archivedOf.set(owner, [...(archivedOf.get(owner) ?? []), chat]);
+      continue;
+    }
     const head = chatHead(chat, by, options, { ...options, columns, project: at.scope }, at.parent);
     if (head) add(head).chats.push(chat);
   }
@@ -222,8 +210,11 @@ function bucketLevel<D extends DraftTarget>(
     if (head) add(head).drafts.push(draft);
   }
   const list = sortBuckets([...buckets.values()], options.projects?.map((p) => p.id));
+  const sort = options.sort ?? byActive;
   for (const bucket of list) {
-    const sort = options.sort ?? byActive;
+    const archived = archivedOf.get(bucket);
+    if (archived) bucket.archived = { ...bucket, key: `${bucket.key}/archived`, kind: "archived", label: "アーカイブ済み", title: "アーカイブ済みのチャット", chats: archived.sort(sort), drafts: [], counts: ZERO_COUNTS };
+    if (archived && bucket.chats.length === 0 && bucket.drafts.length === 0 && !keep(bucket)) continue;
     bucket.chats.sort(options.pinned === "nested" ? (a, b) => Number(b.pinned && !b.archived_at) - Number(a.pinned && !a.archived_at) || sort(a, b) : sort);
     bucket.counts = stateCounts(bucket.chats, options.pending);
     // 固定はまとめずに並べ、アーカイブ済みの中はグループを除いた段で分ける（グループに関係なく並べる）

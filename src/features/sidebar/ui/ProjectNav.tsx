@@ -5,8 +5,7 @@ import type { ChatGroup } from "@shared/groups/types";
 import { tagLabel } from "@/features/projects/ui/projectTagFilter";
 import { SelectionBar, useChatSelection } from "@/features/chatList/ui";
 import { FOLD_ROW, FoldHead } from "@/foundation/ui/kit/FoldHead";
-import { ProjectSlides } from "./ProjectSlides";
-import { ProjectStack } from "./ProjectStack";
+import { ProjectList } from "./ProjectList";
 import { useProjectNav } from "./useProjectNav";
 import { WaitingInbox } from "./WaitingInbox";
 import { waitingAxes } from "./waitingAxes";
@@ -21,8 +20,8 @@ interface Props {
 
 /**
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
- * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える（ProjectSlides）か、
- * 縦に並べる（ProjectStack）。状態と操作は useProjectNav。
+ * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替えるか、
+ * 縦に並べる（ProjectList）。状態と操作は useProjectNav。
  * タグで絞り込んで合うプロジェクトがないとき・要対応がないときは、その旨と戻すボタンを出す（waitingEmpty）
  */
 export function ProjectNav({ chats, groups, onNewProject }: Props) {
@@ -87,8 +86,5 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   }
   // 一覧の上に: 一覧の上に待っているチャットのまとまり（並べ方は状態順 / プロジェクト別）を置き、その下はすべてのプロジェクト（プロジェクト内の上には WorkspacePage が置く）
   const topInbox = waitingOnly && waitingScope === "top" && !tagEmpty ? <WaitingInbox variant="top" order={waitingOrder} /> : null;
-  if (nav.layout === "stack") {
-    return <ProjectStack nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
-  }
-  return <ProjectSlides nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
+  return <ProjectList nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
 }

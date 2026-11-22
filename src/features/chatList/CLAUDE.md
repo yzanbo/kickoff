@@ -7,6 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `ui/buckets.ts`・`useChatBuckets.ts` | 分ける純粋な関数 `bucketChats`・並び `sortBuckets`・画面の口 |
+| `ui/BucketTree.tsx`・`ChatRowList.tsx` | まとまりの木（見出しは使う側の表 `HeadTable`。開閉・最初に描く行の上限の配り・固定の小見出し）・行の一覧 |
 | `ui/bucketHeads.ts`・`bucketHues.ts` | まとまりのキーと見出し・色 |
 | `ui/chatLayout.ts`・`chatOrder.ts`・`manualOrder.ts` | まとめ方と並び順（`useChatLayout`・`useChatOrder`）・手動の並び |
 | `ui/chatGrouping.ts` | まとめ方の選択肢（要対応・太字の決まりは `@shared/chat/state.ts` の `needsAttention`・`showsBold`） |
@@ -14,7 +15,7 @@
 | `ui/StateCornerCounts`・`StateChatsPopover`・`StateChip` | 角の数・状態ごとの一覧・状態の札 |
 | `ui/activeChats/` | ⌘⇧A（中身は純粋な `activeChatGroups`。下書きと開き方は chatPanel の `ActiveChatsDialog` が渡す） |
 
-行の部品 `ChatRow`・`ChatRowList` は `@/features/sidebar/ui/`。
+行の部品 `ChatRow` は `@/features/sidebar/ui/`。
 
 ## 決まり
 

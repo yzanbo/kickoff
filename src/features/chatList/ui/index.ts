@@ -3,6 +3,7 @@ import { storage } from "./storage";
 
 export { askNewGroup, MoveToGroupItem, MoveToProjectItem } from "./menu/MoveItems";
 export { ChatMenuItems } from "./menu/ChatMenuItems";
+export { ChatMenu } from "./menu/ChatMenu";
 export { BucketColorItem } from "./BucketColorItem";
 export type { DraftTabSpot } from "./manualOrder";
 export { ChatSelectionContext, useChatSelection, useChatSelectionState, visibleRows, type ChatSelection } from "./selection/chatSelection";
@@ -10,6 +11,11 @@ export { SelectionBar } from "./selection/SelectionBar";
 export { ActiveChatsPalette } from "./activeChats/ActiveChatsPalette";
 export { chatListOptions, useChatOrder, useManualChatReorder } from "./chatOrder";
 export { StateCornerCounts, stateCountsSummary } from "./StateCornerCounts";
+export { BucketTree, type HeadSpec, type HeadTable } from "./BucketTree";
+export { newChatPlaceOf, type BucketHead, type ChatBucket } from "./buckets";
+export { pinnedKey, projectKey } from "./bucketHeads";
+export { useChatBuckets } from "./useChatBuckets";
+export { useChatLayout } from "./chatLayout";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatListSettings = {

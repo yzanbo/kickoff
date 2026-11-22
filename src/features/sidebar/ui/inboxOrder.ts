@@ -1,6 +1,8 @@
 // 要対応のチャットを、状態順（プロジェクトをまたいで急ぐもの順）・プロジェクト別に並べる（要対応の表示の並べ方）
 import type { Approval } from "@shared/chat/approvalTypes";
 import { needsAttention } from "@shared/chat/state";
+import { STATE_LOOKS } from "@shared/chat/stateLooks";
+import type { Project } from "@shared/projects/types";
 import type { AgentState, Chat } from "@shared/chat/types";
 
 /** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読（どれも要対応 = needsAttention） */
@@ -66,4 +68,14 @@ export function inboxByProject<P extends { id: number }>(
     const chats = inboxSections(chatsOf(project.id), stateOf, since).flatMap((s) => s.chats);
     return chats.length ? [{ project, chats }] : [];
   });
+}
+
+const ZERO = { running: 0, needs_input: 0, unread: 0 };
+
+/** 要対応の見出しを、まとまりの木（BucketTree）の形にする（開閉は状態ごと `waiting:<状態>`・プロジェクトごと `waiting:project:<ID>` に覚える） */
+export function inboxBuckets(sections: readonly InboxSection[], byProject: readonly InboxProjectSection<Project>[]) {
+  return [
+    ...sections.map((s) => ({ key: `waiting:${s.state}`, kind: "status" as const, label: STATE_LOOKS[s.state].label, state: s.state, chats: s.chats, drafts: [], counts: ZERO })),
+    ...byProject.map((s) => ({ key: `waiting:project:${s.project.id}`, kind: "project" as const, label: s.project.name, project: s.project, chats: s.chats, drafts: [], counts: ZERO })),
+  ];
 }

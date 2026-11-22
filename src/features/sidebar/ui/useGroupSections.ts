@@ -18,7 +18,7 @@ import { groupsSettings } from "@/features/groups/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { restoreDroppedChat } from "./ArchivedBucketFold";
+import { restoreDroppedChat } from "./useWorkspaceDrops";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {

@@ -21,7 +21,7 @@ export const bucketTone = (bucket: Pick<BucketHead, "column">): StateTone => (bu
  * all なら既読と、いちばん下にアーカイブ済みも並べ、渡したチャットをすべて出す（右のパネルのタブのまとまりの札。そのまとまりのチャットの一覧）
  */
 export function chatsByState(chats: readonly Chat[], pending: ApprovalIndex, { all = false }: { all?: boolean } = {}): ChatBucket[] {
-  return bucketChats(chats, { pending, by: "status", columns: all ? BOARD_COLUMNS : COUNTED_COLUMNS, archived: all ? "bucket" : "drop" });
+  return bucketChats(chats, { pending, by: "status", columns: all ? BOARD_COLUMNS : COUNTED_COLUMNS, archived: all ? "tail" : "drop" });
 }
 
 /**

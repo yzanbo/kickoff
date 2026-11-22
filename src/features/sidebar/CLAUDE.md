@@ -7,10 +7,11 @@
 | `Sidebar`・`useSidebar` | 殻・開閉と幅 |
 | `useProjectNav`・`ProjectNav` | プロジェクトの並び・切り替え（いま選んでいるものは `@/features/projects/ui/currentProject.ts`） |
 | `ProjectListHead`・`SidebarViewTuner`・`sidebarViews.ts` | 一覧の上の見出し（ビュー・⚙ の窓・タグ） |
+| `ProjectList` | プロジェクトの一覧（縦並び / スライド） |
 | `waitingAxes.ts`・`inboxOrder.ts`・`WaitingInbox` | 要対応 |
-| `WorkspacePage`・`WorkspaceHead`・`useWorkspaceRows` | 1 プロジェクトのページと見出し |
-| `GroupedChatRows`・`ChatRow`・`ChatRowList`・`ChildChatRows` | まとめた行・行・子チャットの行 |
-| `CustomGroupSection`・`UngroupedHead`・`DraftRows` | グループの見出し・下書きの行 |
+| `WorkspacePage`・`WorkspaceHead`・`useWorkspaceRows` | 1 プロジェクトのページと見出し・上から並ぶまとまり |
+| `sidebarHeads.tsx`・`useWorkspaceDrops.ts`・`useChatRowRenderer.tsx` | まとまりの見出しの表（木は chatList の `BucketTree`）・落とし先・行の配線（メニュー・名前の変更） |
+| `ChatRow`・`ChildChatRows`・`DraftRows` | 行・子チャットの行・下書きの行 |
 
 ## 見出しとビュー（`ProjectListHead`）
 

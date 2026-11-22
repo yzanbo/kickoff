@@ -66,3 +66,5 @@ export { LineageTrail } from "./parts/LineageTrail";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatSettings = { childOpenOnCreate: storage.settings.childOpenOnCreate };
+export { busyBlockReason } from "./state/chatBusy";
+export { useChatRename } from "./useChatRename";
