@@ -1,7 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { Pencil } from "lucide-react";
 import type { Attachment, Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { alert } from "@/foundation/ui/kit/ask";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
@@ -12,7 +11,7 @@ import { endHeldEdit, type HeldEdit } from "./heldEdit";
 /**
  * 預かった指示（「このやり取りが終わったら送ります」の吹き出し）を書き直すチャット欄。吹き出しの鉛筆で、ふつうのチャット欄と入れ替わって出る
  * （ふつうの欄は隠して残し、書きかけの文・添付はそのまま。終えたら戻る）。チャット欄と同じ部品なので、画像の添付・定型文・ほかのチャットの参照・
- * 音声入力がそのまま使える。保存（Enter・送信ボタン）すると、その吹き出しの中身だけを差し替え、送る順は変えない（api.updateAfterCompact）。
+ * 音声入力がそのまま使える。保存（Enter・送信ボタン）すると、その吹き出しの中身だけを差し替え、送る順は変えない（送信待ちの口の edit の命令）。
  * 書き直している間は、送る順が来てもその指示から後ろを送らずに待つ（預かりの書き直しを useEditHold で知らせ直す。送信待ちの書き直しと同じ）。
  * やめる（帯のボタン・Esc）と何も変えずに戻る。保存する前に送られてしまった（持ち時間で外れた・消した）ときは、書いた文と添付をふつうのチャット欄に移す
  */
@@ -39,7 +38,7 @@ export function HeldEditComposer({ chat, edit, gone }: { chat: Chat; edit: HeldE
   const save = async (text: string, attachments: Attachment[]) => {
     if (gone) return moveToComposer(text, attachments);
     try {
-      await api.updateAfterCompact(chat.id, edit.id, text, attachments);
+      await chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId: chat.id }, body: { commands: [{ op: "edit", id: edit.id, text, attachments }] } });
       endHeldEdit(chat.id);
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return moveToComposer(text, attachments);

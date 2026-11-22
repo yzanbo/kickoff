@@ -15,6 +15,19 @@ function reject(s: ChatRunState, effects: Effect[], status: 400 | 404 | 409, mes
 
 const MISSING = "待ちの指示が見つかりません";
 const HANDOFF_PENDING = "AI の引き継ぎを確認するまで送信できません";
+const TELLING = "圧縮のあとで順に伝えている途中です。少し待ってからやり直してください";
+
+/**
+ * 預かりの行を外す・書き直すのを、いまの作業に足している途中なので断るか（足している途中に預かりを変えると、別の指示を飛ばしうる）。
+ * 書き直している行の書き直しは通す（保存すると書き直し中の印が外れて送る順が来る）
+ */
+function changesNowWhileTelling(s: ChatRunState, cmd: QueueCommand): boolean {
+  const { phase, outbox, editing } = s;
+  if (phase.kind !== "turn" || phase.telling === null) return false;
+  const held = (id: string) => outbox.now.some((m) => m.id === id);
+  if (cmd.op === "remove") return cmd.ids.some(held);
+  return cmd.op === "edit" && held(cmd.id) && !editing.now.includes(cmd.id);
+}
 
 /** いまのやり取りが終わったら、すぐ行う（送信待ちのいちばん上に入れる。@shared/chat/outbox の reserve） */
 const reserveAction = (s: ChatRunState, action: QueueAction, env: Env): ChatRunState => ({ ...s, outbox: reserve(s.outbox, action, env) });
@@ -69,7 +82,8 @@ function sendNow(s: ChatRunState, item: QueuedMessage, env: Env, effects: Effect
 
 /**
  * 列を変える。並び・線を変えて、作業が終わって先頭の上の線で待っていたのにその線がなくなったら次を送る。自動で送るに戻したら、起動したときの確かめにも
- * 答えたことにし、Kickoff の門も外して次を送る。預かりの行を書き直したら、書き直し中の印も外して送る順が来ていれば送る
+ * 答えたことにし、Kickoff の門も外して次を送る。預かりの行を書き直したら、書き直し中の印も外して送る順が来ていれば送る。
+ * 預かりの行を外す・書き直すのは、いまの作業に足している途中なら 409（列にない・書き直せないの答えが先）
  */
 export function queueOf(s: ChatRunState, cmd: QueueCommand, env: Env, effects: Effect[]): ChatRunState {
   const before = s.outbox;
@@ -80,6 +94,7 @@ export function queueOf(s: ChatRunState, cmd: QueueCommand, env: Env, effects: E
   }
   const outbox = applyQueueCommand(s.outbox, cmd, env);
   if (isQueueReject(outbox)) return reject(s, effects, outbox.reject, outbox.message);
+  if (changesNowWhileTelling(s, cmd)) return reject(s, effects, 409, TELLING);
   s = { ...s, outbox };
   if (cmd.op === "move" || cmd.op === "set_stops" || cmd.op === "stop_after") {
     return before.stops[0] === 0 && outbox.stops[0] !== 0 && !queuePaused(s) && !isBusy(s) ? pumpLater(s, env, effects) : s;

@@ -1,9 +1,8 @@
 import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { QueuedMessage } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { useOptionalChatScreen } from "@/features/chat/ui";
+import { chatQueueApi, useOptionalChatScreen } from "@/features/chat/ui";
 import { AttachmentChips } from "@/features/attachments/ui/AttachmentChip";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CompactPromptMark } from "./CompactPromptMark";
@@ -50,7 +49,8 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
   /** 送らずに外す */
   const remove = (m: QueuedMessage) => {
     if (!screen) return;
-    void api.removeAfterCompact(screen.chatId, m.id).catch(reportFailure("指示を取り消せませんでした"));
+    const { chatId } = screen;
+    void chatQueueApi("POST /api/chats/:chatId/queue", { params: { chatId }, body: { commands: [{ op: "remove", ids: [m.id] }] } }).catch(reportFailure("指示を取り消せませんでした"));
   };
   return (
     <>

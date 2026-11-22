@@ -116,6 +116,18 @@ test("書き直し: 次に送る指示を書き直している間は送らず、
   assert.deepEqual(kinds(run(held.s, [{ type: "queue", commands: [{ op: "edit", id: "い", text: "直した" }] }]).effects), ["edit_timer", "start:message:直した:held"]);
 });
 
+test("預かりの行を外す・書き直すのは、いまの作業に足している途中なら 409（列にない・書き直せないが先。書き直している行の保存は通す）", () => {
+  const telling = { ...turn({ telling: "い" }), outbox: { ...EMPTY_OUTBOX, now: [row("い"), row("う")], later: [row("2")] } };
+  const conflict = { do: "reject", status: 409, message: "圧縮のあとで順に伝えている途中です。少し待ってからやり直してください" };
+  assert.deepEqual(run(telling, [{ type: "queue", commands: [{ op: "remove", ids: ["う"] }] }]).effects, [conflict]);
+  assert.deepEqual(run(telling, [{ type: "queue", commands: [{ op: "edit", id: "う", text: "直した" }] }]).effects, [conflict]);
+  assert.deepEqual(kinds(run(telling, [{ type: "queue", commands: [{ op: "remove", ids: ["x"] }] }]).effects), ["reject"]);
+  assert.deepEqual(run(telling, [{ type: "queue", commands: [{ op: "edit", id: "う", text: " " }] }]).effects, [{ do: "reject", status: 400, message: "メッセージか添付ファイルが必要です" }]);
+  assert.deepEqual(texts(run(telling, [{ type: "queue", commands: [{ op: "remove", ids: ["2"] }] }]).s, "later"), []);
+  const editing = { ...telling, editing: { now: ["う"], later: [] } };
+  assert.deepEqual(texts(run(editing, [{ type: "queue", commands: [{ op: "edit", id: "う", text: "直した" }] }]).s, "now"), ["い", "直した"]);
+});
+
 test("すぐ送る: 作業中の指示は止めずに伝え、圧縮・消去の行はすぐ行う（作業していなくて会話がなければ 409 で列に残す）。すべて送るはまとめて 1 件にする（S04・S35）", () => {
   const box = { ...EMPTY_OUTBOX, later: [row("2"), row("3"), row("[消去]", { clear: true })] };
   assert.deepEqual(kinds(run({ ...turn(), outbox: box }, [{ type: "queue_send", mode: "now", id: "3" }]).effects), ["reply:pending", "tell:3"]);

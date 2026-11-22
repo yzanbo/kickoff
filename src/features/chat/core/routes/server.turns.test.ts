@@ -464,7 +464,7 @@ test("圧縮中に預かった「いま」は、送れない終わり方（通�
   assert.deepEqual(provider.told, []);
 });
 
-test("圧縮中に預かった指示は、送る前なら送らずに消せる（消した指示を返し、もう送った・ない指示は 404）", async () => {
+test("圧縮中に預かった指示は、送る前なら送らずに消せる（命令の remove。もう送った・ない指示は 404）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
   provider.compacting = true;
@@ -473,11 +473,11 @@ test("圧縮中に預かった指示は、送る前なら送らずに消せる�
   await call("POST", `/api/chats/${chatId}/tell`, { text: "あ" });
   await call("POST", `/api/chats/${chatId}/tell`, { text: "い" });
   const [first] = runner.live(chatId).now;
-  const removed = await call("DELETE", `/api/chats/${chatId}/after-compact/${first!.id}`);
+  const remove = () => call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "remove", ids: [first!.id] }] });
+  const removed = await remove();
   assert.equal(removed.status, 200);
-  assert.equal(removed.body.text, "あ");
-  assert.deepEqual(runner.live(chatId).now.map((m) => m.text), ["い"]);
-  assert.equal((await call("DELETE", `/api/chats/${chatId}/after-compact/${first!.id}`)).status, 404);
+  assert.deepEqual(removed.body.now.map((m: { text: string }) => m.text), ["い"]);
+  assert.equal((await remove()).status, 404);
   // 圧縮したやり取りが終わったら、残した指示だけを送る
   provider.finishCompacting();
   provider.compacting = false;
@@ -487,7 +487,7 @@ test("圧縮中に預かった指示は、送る前なら送らずに消せる�
   assert.deepEqual(runner.live(chatId).now, []);
 });
 
-test("預かった指示を書き直している間は、送る順が来てもそこで止め、書き直すと同じ順のまま送る（もう送ったものは 404）", async () => {
+test("預かった指示を書き直している間は、送る順が来てもそこで止め、書き直す（命令の edit）と同じ順のまま送る（もう送ったものは 404）", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
   provider.compacting = true;
@@ -509,9 +509,9 @@ test("預かった指示を書き直している間は、送る順が来ても�
   } finally {
     clearInterval(keep);
   }
-  const edited = await call("PATCH", `/api/chats/${chatId}/after-compact/${second.id}`, { text: " い（直した） ", attachments: [] });
+  const edit = (text: string) => call("POST", `/api/chats/${chatId}/queue`, { commands: [{ op: "edit", id: second.id, text, attachments: [] }] });
+  const edited = await edit(" い（直した） ");
   assert.equal(edited.status, 200);
-  assert.equal(edited.body.text, "い（直した）");
   // 書き直すと書き直し中の印も外れ、同じ順のまま送る
   await until(() => runner.live(chatId).now.length === 0 && !runner.isBusy(chatId));
   const users = store.events
@@ -519,7 +519,7 @@ test("預かった指示を書き直している間は、送る順が来ても�
     .filter((e) => e.type === "user")
     .map((e) => (e.data as { text: string }).text);
   assert.deepEqual(users, ["1", "あ", "い（直した）", "う"]);
-  assert.equal((await call("PATCH", `/api/chats/${chatId}/after-compact/${second.id}`, { text: "x", attachments: [] })).status, 404);
+  assert.equal((await edit("x")).status, 404);
 });
 
 test("圧縮後指示: 圧縮が終わったら札付きで伝え、預かった「いま」は圧縮後指示のやり取りが終わってから送る（手で圧縮したときは圧縮の実行のあとに圧縮後指示を新しい作業として送る）", async () => {

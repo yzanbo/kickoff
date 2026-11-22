@@ -1,6 +1,6 @@
 import type { FileRewindResult } from "@shared/ai/types";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
-import type { Attachment, Chat, ChatOptionsPatch, MessageBody, QueuedMessage } from "@shared/chat/types";
+import type { Chat, ChatOptionsPatch, MessageBody } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
 import type { ProviderHandoffStatus, ProviderSwitchPreview, ProviderSwitchResult } from "@shared/providerSwitch/types";
 import type { ProviderId } from "@shared/settings/types";
@@ -15,11 +15,6 @@ export const turnsApi = {
   providerHandoffRecord: (chatId: number, eventId: number) => request<{ event: ChatEventOf<"provider_switched">; pending: Pick<ProviderHandoffStatus, "state" | "error"> | null }>("GET", `/api/chats/${chatId}/provider-handoff/${eventId}`),
   retryProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/retry`, { event_id: eventId }),
   confirmResendProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/confirm-resend`, { event_id: eventId, confirm_duplicate_risk: true }),
-  /** 圧縮のあとのやり取りが終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */
-  removeAfterCompact: (chatId: number, messageId: string) => request<QueuedMessage>("DELETE", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`),
-  /** 預かった指示をその場で書き直す（送る順はそのまま。書き直し中の印も外れる。書き直した指示を返す。もう伝えたなら 404） */
-  updateAfterCompact: (chatId: number, messageId: string, text: string, attachments: Attachment[]) =>
-    request<QueuedMessage>("PATCH", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`, { text, attachments }),
   /**
    * 送る口 1 本（POST /api/chats/:chatId/messages）。when: now = 止めずに伝える（作業していなければすぐ送る。足せなければ預かる）/
    * later = 作業中なら送信待ちに入れる（hold なら作業していなくても列の最後）。省けば続きを送る（作業中は 409。答えはチャット）。
