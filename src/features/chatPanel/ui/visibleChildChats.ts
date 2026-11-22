@@ -10,7 +10,7 @@ const NONE: ReadonlySet<number> = new Set();
  * いま開いているチャットの画面の右の欄で、見えている子チャットのタブ（孫・ひ孫も同じ欄に並ぶ）。
  * サイドバーの子チャットの行を、いちばん上のチャットの行と同じ「開いている」見た目にするのに使う（右の欄を閉じていれば空。分けたペインなら、それぞれの表のタブ）
  */
-export function useShownChildChats(): ReadonlySet<number> {
+export function useVisibleChildChats(): ReadonlySet<number> {
   const route = useRoute();
   const chatId = route.name === "chat" ? route.chatId : null;
   // チャットを開いていなければ読まない（ない欄の状態を作らない）

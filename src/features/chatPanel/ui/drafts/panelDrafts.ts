@@ -148,7 +148,7 @@ export function restoreDraftTabs(): void {
  * 下書きのタブの、その欄の一覧のペイン（サイドバーと連動したチャットのタブが入るペイン）での位置（サイドバーの手動の並びで、下書きの行を
  * タブの位置に合わせる）。一覧のペインにない（分けたペインへ移した）なら null
  */
-export function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
+function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
   const state = allPanels().get(draft.panel);
   if (!state) return null;
   const keys = homePane(state.layout).tabs;
@@ -160,6 +160,15 @@ export function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
   });
   const chatIds = (list: (number | null)[]) => list.filter((id): id is number => id !== null);
   return { chatIds: chatIds(ids), before: chatIds(ids.slice(0, at)).length };
+}
+
+/**
+ * 下書きのタブの、その欄の一覧のペインでの位置（draftTabSpot。サイドバーの手動の並びで下書きの行を置く）。
+ * タブの列が変わったときだけ新しい配列にする（位置は文字にして比べる）。on でなければ読まず空
+ */
+export function useDraftTabSpots(drafts: readonly DraftRef[], on: boolean): readonly (DraftTabSpot | null)[] {
+  const sig = useSyncExternalStore(subscribePanels, () => (on ? JSON.stringify(drafts.map(draftTabSpot)) : ""));
+  return useMemo(() => (sig === "" ? [] : (JSON.parse(sig) as (DraftTabSpot | null)[])), [sig]);
 }
 
 /** 下書きを開く。その欄が画面になければ、その画面（ボード・チャット欄ならそのプロジェクト）へ移ってから開く */

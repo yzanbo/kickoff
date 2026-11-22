@@ -45,7 +45,7 @@ import { inboxSections, waitingSince } from "./inboxOrder";
 import { waitingAxes } from "./waitingAxes";
 import { useWaitingView } from "./waitingView";
 import { huedHeadProps, useSidebarBucketColors } from "./bucketColor";
-import { useShownChildChats } from "@/features/chatPanel/ui/visibleChildChats";
+import { useVisibleChildChats } from "@/features/chatPanel/ui";
 import { ChatRowList } from "./ChatRowList";
 import { BucketChatRows } from "./BucketChatRows";
 import { RowBudgetScope, useProgressivePage } from "@/foundation/ui/hooks/useProgressiveRows";
@@ -76,7 +76,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 }) {
   const route = useRoute();
   // 右の欄で見えている子チャットも、開いている行にする（タブと同じく、どれを開いているか分かるように）
-  const shownChildren = useShownChildChats();
+  const shownChildren = useVisibleChildChats();
   // まとめ方（まとめない / グループ / 作業場所）。グループの見出しは「グループ」のときだけ出す
   const { grouping, setGrouping, order } = useChatLayout();
   // 見出しのクリックでチャット一覧を開閉する

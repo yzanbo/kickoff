@@ -19,7 +19,7 @@ import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownCha
 import { ChatRow } from "./ChatRow";
 import { inboxByProject, inboxSections, waitingSince, type InboxSection } from "./inboxOrder";
 import type { WaitingOrder } from "./waitingAxes";
-import { useShownChildChats } from "@/features/chatPanel/ui/visibleChildChats";
+import { useVisibleChildChats } from "@/features/chatPanel/ui";
 
 /**
  * 要対応のチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。
@@ -32,7 +32,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
   const chats = useChatsWithChildrenByProject();
   const route = useRoute();
   // 右の欄で見えている子チャットも、開いている行にする（タブと同じく、どれを開いているか分かるように）
-  const shownChildren = useShownChildChats();
+  const shownChildren = useVisibleChildChats();
   const { stateOf, approvals } = useChatStates();
   const { visible } = useVisibleProjects();
   // 並べ方ごとの見出し（状態順 = 状態の見出し / プロジェクト別 = プロジェクトの見出し。使わない方は空）

@@ -1,8 +1,7 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import type { Chat } from "@shared/chat/types";
-import { draftAnchor, type DraftTabSpot } from "@/features/chatList/ui/manualOrder";
-import { draftTabSpot, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { subscribePanels } from "@/features/panel/ui";
+import { draftAnchor } from "@/features/chatList/ui/manualOrder";
+import { useDraftTabSpots, type PlacedDraft } from "@/features/chatPanel/ui";
 import { useSidebarChatOrder } from "@/features/chatList/ui/chatOrder";
 
 /** 下書きと、その下書きを並べるまとまりのチャット（match があれば、そのうち下書きと同じまとまりに出すものだけ） */
@@ -27,10 +26,9 @@ export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly C
   const on = enabled && drafts.length > 0;
   // タブの列と同じ並び（一覧のペインのチャットのタブは、この並びに並べ替えて見せている）
   const order = useSidebarChatOrder(chats, projectId, on);
-  const spots = useSyncExternalStore(subscribePanels, () => (on ? JSON.stringify(drafts.map(draftTabSpot)) : ""));
+  const list = useDraftTabSpots(drafts, on);
   return useMemo(() => {
     if (!on) return NO_PLACEMENT;
-    const list = JSON.parse(spots) as (DraftTabSpot | null)[];
     const after = new Map<number, PlacedDraft[]>();
     let i = 0;
     for (const slot of slots) {
@@ -46,7 +44,7 @@ export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly C
       }
     }
     return after.size === 0 ? NO_PLACEMENT : after;
-  }, [on, spots, slots, order]);
+  }, [on, list, slots, order]);
 }
 
 /** 下書きのうち、チャットの行の後ろに置かないもの（まとまりのいちばん上に置く）。どれも置くなら同じ配列 */

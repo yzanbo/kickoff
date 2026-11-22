@@ -10,4 +10,5 @@ declare module "@/foundation/ui/shell/points" {
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatPanelSettings = { projectBrowserSession: storage.settings.projectBrowserSession } as const;
-export { restoreDraftTabs } from "./drafts/panelDrafts";
+export { restoreDraftTabs, useDraftTabSpots, type PlacedDraft } from "./drafts/panelDrafts";
+export { useVisibleChildChats } from "./visibleChildChats";
