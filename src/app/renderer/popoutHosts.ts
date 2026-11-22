@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { handSidePanelsOut, ownSidePanelsAgain, takeSidePanelsBack } from "@/features/panel/ui/state/panelHandOff";
 import { panelKey, setPanelOpen } from "@/features/panel/ui";
+import { holdChatsElsewhere } from "@/features/chatPanel/ui";
 import { popoutKey, popoutPath, publishFollow } from "@/foundation/ui/navigation/popout";
 import { href, routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 import { onWindowMessage, postWindowMessage } from "@/foundation/ui/navigation/windowBus";
@@ -25,6 +26,8 @@ export function usePopoutHosts(route: Route): { sideHeld: boolean } {
   useEffect(() => {
     const offs = [
       onWindowMessage("sidebarWindow", (m) => setSidebar(m.open ? nextOpened() : 0)),
+      // チャットの別ウィンドウにあるチャットは、チャットのパネルに出し直さない
+      onWindowMessage("chatWindowTabs", (m) => holdChatsElsewhere(m.chats)),
       onWindowMessage("sideWindow", (m) => {
         if (m.open) handSidePanelsOut(m.holding);
         else ownSidePanelsAgain();

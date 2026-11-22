@@ -71,3 +71,11 @@ test("チャットのパネルの欄の連動: 利用者が閉じたチャット
   const again = linkedChatsExt.sync!([chatTab(2)], closed, [makeChat(1), makeChat(2)]);
   assert.deepEqual(ids(again.tabs), ["chat:2"]);
 });
+
+test("別ウィンドウにあるチャット: 知らされたら表示だけ消したことにし、あとで一覧が届いても足さない（メインのウィンドウを読み込み直したとき）", () => {
+  const held = linkedChatsExt.sync!([], NO_LINKS, { held: [2] });
+  assert.deepEqual(held.ext.dismissed, [2]);
+  const loaded = linkedChatsExt.sync!(held.tabs, held.ext, [makeChat(1), makeChat(2)]);
+  assert.deepEqual(ids(loaded.tabs), ["chat:1"]);
+  assert.deepEqual(loaded.ext.dismissed, [2]);
+});

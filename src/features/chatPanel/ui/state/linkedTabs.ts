@@ -56,6 +56,15 @@ export function syncLinkedTabs(tabs: readonly PanelTab[], linked: readonly Chat[
   return { tabs: nextTabs, links: same ? links : { linked: nextLinked, dismissed: nextDismissed, extra } };
 }
 
+/** 別ウィンドウにあるチャット（知らされたとき）: 連動で足し直さないよう、表示だけ消したことにする（一覧が届く前でも覚える） */
+export function heldLinks(links: LinkState, chatIds: readonly number[]): LinkState {
+  const dismissed = [...new Set([...links.dismissed, ...chatIds])];
+  return dismissed.length === links.dismissed.length ? links : { ...links, dismissed };
+}
+
+/** 欄の sync に渡すもの: サイドバーの一覧（useLinkedTabs）か、別ウィンドウにあるチャット（windowChats.ts の holdChatsElsewhere） */
+export type LinkInput = readonly Chat[] | { held: readonly number[] };
+
 /**
  * チャットのパネルの連動（サイドバーに出ているチャットのタブをそろえる。チャットのパネルの欄の ext）。
  * 覚えるのは、連動したチャット・× で閉じたチャット・一覧にないのに自分で開いたチャット
@@ -65,7 +74,9 @@ export const linkedChatsExt: SurfaceExt<LinkState> = {
   onOpen: (links, tab) => (tab.kind === "chat" ? openedLinks(links, tab.id) : links),
   onClose: (links, closed, dismiss) => closedLinks(links, closed.flatMap((t) => (t.kind === "chat" ? [t.id] : [])), dismiss),
   linked: (links, tab) => tab.kind === "chat" && links.linked.includes(tab.id),
-  sync: (tabs, links, input) => {
+  sync: (tabs, links, raw) => {
+    const input = raw as LinkInput;
+    if (!Array.isArray(input)) return { tabs, ext: heldLinks(links, (input as { held: readonly number[] }).held) };
     const next = syncLinkedTabs(tabs, input as readonly Chat[], links);
     return { tabs: next.tabs, ext: next.links };
   },

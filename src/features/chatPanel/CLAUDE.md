@@ -9,23 +9,23 @@
 ## 欄（`ui/chatSurfaces.ts`）
 
 - チャットのパネル `kanban`・右の欄 `agents`・チャットの別ウィンドウ `cwin` の決まり。並べ方は 3 つとも `ChatTabStrip`、新しいタブのボタンと空の案内は `ChatPanelAdds`・`AgentPanelAdds`、「表示」のメニューは `ChatViewMenu`。
-- 新しいチャットは `startNewChat`（欄のプロジェクトで始める。決まらなければ案内）。送ってできたチャットの後は欄の `onChatCreated`（URL にする・メインのウィンドウに知らせる）。
+- 新しいチャットは `startNewChat`（欄のプロジェクトで。決まらなければ案内）。送ってできたチャットの後は欄の `onChatCreated`（URL にする・メインのウィンドウに知らせる）。
 - チャットのパネルの表示中のタブは URL にする（`useShownChatInUrl`）。URL がもうほかのプロジェクトの画面なら書かない（`board/shownTabUrl.ts`。移る途中に元の欄のタブを閉じても、移る先を上書きしない）。
 
 ## サイドバーとの連動（`ui/state/linkedTabs.ts`）
 
 - チャットのタブは、サイドバーに出ているチャット（欄の `sync` = `useLinkedTabs`）に、一覧が届いてから欄の ext `linkedChatsExt` でそろえる。札の数と一覧は `usePanelChats`。
 - タブはチャットを持たず ID で `useKnownChat` から引く（名前は Face が返す。知らないチャットは行を 1 回取る）。
-- 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は panel の reducer の `"sync"` のコメント）。
-- 表示だけ消したタブは `dismissed` に覚えて出し直さず、一覧にないのに開いたチャットは `extra` で残す。アーカイブ・削除のあとは覚えない。
+- 足すのは一覧のペイン（`PaneLayout.home`）だけ（理由は panel の reducer の `"sync"`）。
+- 表示だけ消したタブ（別窓のチャットも。`windowChats.ts`）は `dismissed` に覚えて出し直さず、一覧にないのに開いたチャットは `extra` で残す。アーカイブ・削除のあとは覚えない。
 - 一覧のペインのタブはサイドバーと同じ並び（`orderLikeSidebar`）で、落とすと手動の並びを変える。アーカイブ済みはタブの列だけの設定 `chatPanel:show-archived`。
 
 ## タブのまとまり（`ui/clusters/`）
 
-- まとめ方は欄ごとに覚え（`useTabGrouping(surface)`）、チャットのタブにだけ効く。
+- まとめ方は欄ごとに覚え（`useTabGrouping(surface)`）、チャットのタブだけに効く。
 - 入るまとまりは `useTabClusters` で、サイドバー・ボードと同じ `bucketChats` の決め方・キー・色にする。並びは `clusterTabs`（`sortBuckets` と同じ順）。
 - 描くのは欄の `Strip` の `ChatTabStrip`（土台の `TabBar` の骨に `bar(並べたタブ, 並び)` で入れる）。札を出すのは一覧のペインだけ（`useTabStrip` の `home`）。畳んだまとまりは表示中のタブだけを残す（`visibleClusterTabs`）。
-- 札の並べ替え `useClusterReorder` とタブをグループへ落とす `useClusterTabDrop` は同じ枠で受けるので、`joinDropHandlers` でつなぐ。
+- 札の並べ替え `useClusterReorder` とタブをグループへ落とす `useClusterTabDrop` は同じ枠なので `joinDropHandlers` でつなぐ。
 - 札の右クリックの項目は「表示」のメニューと同じ部品（`HiddenGroupItems`・`BucketColorItem`・`ClusterShortItem`・`ArchivedChatsItem`）。
 
 ## 下書き（送る前の新しいチャット）
