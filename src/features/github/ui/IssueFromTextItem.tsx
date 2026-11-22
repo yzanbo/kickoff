@@ -14,3 +14,8 @@ export function IssueFromTextItem({ projectId, body }: { projectId: number; body
     </MenuItem>
   );
 }
+
+/** 発言の右クリックの「issue にする」（会話の画面の messageActions に登録する形。text は選んだ部分、なければ発言の全体） */
+export function IssueFromMessageItem({ projectId, text }: { projectId: number; text: string }) {
+  return <IssueFromTextItem projectId={projectId} body={() => text} />;
+}

@@ -8,6 +8,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
 import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
 import { cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "@/features/attachments/ui/longSelection";
+import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
 /** 小さなボタンの幅の目安（画面の右端からはみ出さないように寄せる） */
 const BUTTON_WIDTH = 150;
@@ -65,7 +66,7 @@ export function useTerminalSelectionMenu({ projectId, cwd, term, screen }: { pro
     element: (
       <>
         {anchor && !shown && (
-          <div className="selection-attach floating terminal-selection-attach" style={{ left: anchor.x, top: anchor.y }}>
+          <SelectionBox at={anchor} className="terminal-selection-attach">
             <button
               type="button"
               className="btn selection-attach-button"
@@ -80,7 +81,7 @@ export function useTerminalSelectionMenu({ projectId, cwd, term, screen }: { pro
             >
               <AddToChat size={13} /> チャットに追加 <ChevronDown size={12} aria-hidden />
             </button>
-          </div>
+          </SelectionBox>
         )}
         {shown && (
           <PopupMenu at={shown.at} label="ターミナルの操作" onClose={menu.close}>

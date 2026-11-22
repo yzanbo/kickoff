@@ -1,16 +1,15 @@
-import type { MouseEvent, ReactNode } from "react";
+import { Suspense, useEffect, type MouseEvent, type ReactNode } from "react";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { copyRich } from "@/features/conversation/ui/richCopy";
 import { useOptionalChatScreen } from "@/features/chat/ui";
-import { NoteMenuItems } from "@/features/notes/ui/NoteMenuItems";
-import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";
 import { MessageSquarePlus } from "lucide-react";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
 import { AddToChatItems } from "./AddToChatItems";
+import { menuActions, preloadMessageActions } from "./messageActions";
 import { onEditable, quoteBlockAt, selectionWithin } from "./quotable";
 import { quoteComment } from "@/features/chat/ui/quote";
 
@@ -39,7 +38,7 @@ interface Selected {
  * 書式付き（ほかのアプリに貼っても見出し・表が崩れない。書式を受け取れない所には Markdown の文）でコピーするのは、AI の返答とその選択部分
  * （描いた表示を Markdown に戻してから `selectionToMarkdown`）と、全部のやり取り。
  * いちばん上に「チャットに追加」（AddToChatItems。右の欄・別ウィンドウでは「メインのチャット」の組）、チャットの画面の中なら「新しい子チャットで聞く」「ノート」も
- * 並べ、その下に「issue にする」（GitHub の新しい issue。IssueFromTextItem）（どれも選んでいる部分、なければ項目の全体を使う）。リンク・コードブロックの上などでも、Electron の既定のメニューに任せず、この 1 つにそろえる。
+ * 並べ、その下に「issue にする」（GitHub の新しい issue。ノート・issue は上の機能が messageActions に登録）（どれも選んでいる部分、なければ項目の全体を使う）。リンク・コードブロックの上などでも、Electron の既定のメニューに任せず、この 1 つにそろえる。
  * - openFor(e, source): 発言など、項目が自分で開く（その項目の中で選んでいれば選択部分、なければ項目の全体）
  * - openInRegion(e): 流れ全体（`data-quotable` の入れ物）で受ける。項目が自分のメニューを開いていなければ、選んでいる部分か、
  *   右クリックした所の丸ごと足せるまとまり（`data-quote-text`）で開く。どちらもなければ開かない（開いたかを返す。開かなければ、呼ぶ側がほかのメニューを開ける）
@@ -48,6 +47,8 @@ export function useQuoteMenu(extra?: ReactNode) {
   const menu = useContextMenu<{ source: QuoteSource; selected: Selected | null }>();
   const at = menu.menu;
   const screen = useOptionalChatScreen();
+  // 上の機能の項目の部品を先に読む（右クリックで読み込みを待たずに出す）
+  useEffect(() => preloadMessageActions(), []);
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
   const copyTranscript = (chatId: number) =>
@@ -90,8 +91,13 @@ export function useQuoteMenu(extra?: ReactNode) {
             </MenuItem>
           </>
         )}
-        {screen && <NoteMenuItems projectId={screen.projectId} chatId={screen.chatId} text={quoted} />}
-        {screen && <IssueFromTextItem projectId={screen.projectId} body={() => quoted} />}
+        {/* 上の機能の項目（ノート・issue にする。messageActions） */}
+        {screen &&
+          menuActions().map((Items, i) => (
+            <Suspense key={i} fallback={null}>
+              <Items projectId={screen.projectId} chatId={screen.chatId} text={quoted} />
+            </Suspense>
+          ))}
       </PopupMenu>
     );
   }

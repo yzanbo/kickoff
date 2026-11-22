@@ -62,9 +62,9 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 
 ## 共有部品（`kit/`。手書きしない）
 
-- アイコンだけのボタンは `IconButton` / `CloseButton` / `RefreshButton`（`label` が名前と説明）。`<button className="icon-button">` を手で書かない。
+- アイコンだけのボタンは `IconButton` / `CloseButton` / `RefreshButton`（`label` が名前と説明）。
 - マウスを乗せたときの説明は `data-tip`（`data-tip-title`・`data-tip-keys`・`data-tip-side`）。App の `HoverTip` が出す。title と重ねない。
-- 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。
+- 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。選んだ文の上のボタンは `SelectionBox`。
 - メニューは `PopupMenu` ＋ `MenuItem`（選択肢は `checked`、子は `MenuSub`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
 - ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`。
 - 確認・入力・選ぶは `kit/ask.ts`（`confirm`・`prompt`・`choose`・`alert`）。骨組みは `Dialog`、ボタンの行は `DialogActions`。

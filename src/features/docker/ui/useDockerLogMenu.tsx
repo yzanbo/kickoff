@@ -11,6 +11,7 @@ import type { HandOffItem } from "@/features/attachments/ui/handoff/handOff";
 import { HandOffItems } from "@/features/attachments/ui/handoff/HandOffMenu";
 import { isLongSelection } from "@/features/attachments/ui/longSelection";
 import { aroundRow, logCaptureLabel, logQuote, rowText, type LogContainerInfo, type LogRow } from "./dockerLogView";
+import { SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
 /** 小さなボタンの幅の目安（画面の右端からはみ出さないように寄せる） */
 const BUTTON_WIDTH = 150;
@@ -117,7 +118,7 @@ export function useDockerLogMenu({
     element: (
       <>
         {anchor && !shown && (
-          <div className="selection-attach floating" style={{ left: anchor.x, top: anchor.y }}>
+          <SelectionBox at={anchor}>
             <button
               type="button"
               className="btn selection-attach-button"
@@ -132,7 +133,7 @@ export function useDockerLogMenu({
             >
               <AddToChat size={13} /> チャットに追加 <ChevronDown size={12} aria-hidden />
             </button>
-          </div>
+          </SelectionBox>
         )}
         {shown && (
           <PopupMenu at={shown.at} label="ログの操作" onClose={menu.close}>

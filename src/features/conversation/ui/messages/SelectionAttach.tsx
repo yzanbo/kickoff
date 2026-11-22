@@ -1,19 +1,21 @@
 import { MessagesSquare, SquarePen, type LucideIcon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
 import { addToChat } from "@/features/composer/ui/addToChat";
-import { askInNewChatOf, useChatScreen, useComposerPort } from "@/features/chat/ui";
+import { askInNewChatOf, chatRoleOf, useChatScreen, useComposerPort } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { SelectionNoteButton } from "@/features/notes/ui/SelectionNoteButton";
 import { focusedCodeSelection } from "@/foundation/ui/code/codeSelection";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "@/features/chat/ui/quote";
 import { SelectionTargetButton } from "./SelectionTargetButton";
+import { addTargetsOf } from "./addTargets";
+import { preloadMessageActions, selectionActions, type SelectionContext } from "./messageActions";
+import { placeAbove, SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
 /** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（ノートにするとき）） */
 export interface Picked {
@@ -42,14 +44,6 @@ export interface AddTarget {
 
 /** ボタンを画面の端からはみ出さないように寄せるときの、ボタン 1 つの幅 */
 const BUTTON_WIDTH = 140;
-
-/** 選んだ範囲（画面の位置）の上に、幅 width のボタンを出す位置 */
-function placeAbove(rect: Picked["rect"], width: number): { x: number; y: number } {
-  return {
-    x: Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8)),
-    y: Math.max(8, rect.top - 38),
-  };
-}
 
 /** 選んでいる範囲（なければ undefined） */
 function currentRange(): { selection: Selection; range: Range; element: Element | null } | undefined {
@@ -95,8 +89,16 @@ export function pickedInCode(root: Element | null): Picked | undefined {
   return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }), code: { text: code, lines: { from: range.from, to: range.to } } };
 }
 
-/** チャットの画面（右の欄・別ウィンドウの外）の会話で選んだときの、このチャットに足すボタン */
-const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
+/** 上の機能のボタン（「ノート ▾」。出す先がなければ null） */
+function SelectionActions(props: SelectionContext) {
+  const buttons = selectionActions();
+  if (buttons.length === 0) return null;
+  return buttons.map((Button, i) => (
+    <Suspense key={i} fallback={null}>
+      <Button {...props} />
+    </Suspense>
+  ));
+}
 
 /**
  * チャットの画面の会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上にボタンを並べる:
@@ -113,7 +115,11 @@ export function SelectionAttach() {
   const inSide = useMainChat() !== null;
   if (inSide) return null;
   const targets = (): AddTarget[] => [
-    { ...ADD_TO_THIS_CHAT, onAdd: (text) => composer?.fill(text, { append: true }) },
+    ...addTargetsOf({ chatId, mainChatId: null, role: screen.role, mainName: "" }).map((t) => ({
+      label: `${t.name}に追加`,
+      title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）",
+      onAdd: (text: string) => composer?.fill(text, { append: true }),
+    })),
     {
       label: "新しい子チャットで聞く",
       title: "選択部分を引用した子チャットを作り、このチャットの作業を止めずに横で聞きます（送るのは自分で）",
@@ -135,15 +141,10 @@ export function SelectionAttach() {
     <SelectionAttachBox
       pick={() => pickedInQuotable(root.current)}
       targets={targets}
-      extra={(picked, controls) => (
-        <SelectionNoteButton projectId={projectId} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
-      )}
+      extra={(picked, controls) => <SelectionActions projectId={projectId} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />}
     />
   );
 }
-
-/** 右の欄・別ウィンドウの中のチャットの画面の種類ごとの、そのチャットに足すボタンの名前 */
-const INNER_LABELS: Record<string, string> = { child: "子チャットに追加", note: "ノートのチャットに追加" };
 
 /**
  * 右の欄・別ウィンドウ（container の中）で、会話の文（子チャットの流れ・サブエージェントの画面の手順）・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
@@ -159,7 +160,8 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
     const page = currentRange()?.element?.closest<HTMLElement>(".chat-page[data-chat-id]");
     const chatId = Number(page?.dataset.chatId);
     if (!page || !root?.contains(page) || chatId === mainChatId) return undefined;
-    return { chatId, role: page.dataset.chatRole ?? "" };
+    const chat = knownChat(chatId);
+    return { chatId, role: chat ? chatRoleOf(chat) : null };
   };
   // 会話の文なら、ノートの出どころのチャットも覚える（ノートのチャットの中は除く）
   const pick = (): Picked | undefined => {
@@ -175,23 +177,17 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
       pick={pick}
       targets={() => {
         const inner = innerChat();
-        const name = chatTargetName(knownChat(mainChatId));
-        const main: AddTarget = {
-          label: `${name}に追加`,
-          title: `選択部分を引用して、${name}の入力欄に足します（送るのは自分で）`,
-          onAdd: (text) => addToChat(mainChatId, text),
-        };
-        if (!inner) return [main];
-        return [
-          main,
-          { label: INNER_LABELS[inner.role] ?? "このチャットに追加", title: "選択部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) },
-        ];
+        return addTargetsOf({ chatId: inner?.chatId ?? null, mainChatId, role: inner?.role ?? null, mainName: chatTargetName(knownChat(mainChatId)) }).map((t) => ({
+          label: `${t.name}に追加`,
+          title: `選択部分を引用して、${t.kind === "main" ? t.name : "このチャット"}の入力欄に足します（送るのは自分で）`,
+          onAdd: (text: string) => addToChat(t.chatId, text),
+        }));
       }}
       extra={(picked, controls) => {
         const from = picked.noteChatId;
         const projectId = from === undefined ? undefined : (knownChat(from) ?? knownChat(mainChatId))?.project_id;
         if (from === undefined || projectId === undefined) return null;
-        return <SelectionNoteButton projectId={projectId} chatId={from} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />;
+        return <SelectionActions projectId={projectId} chatId={from} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />;
       }}
     />
   );
@@ -230,6 +226,8 @@ export function SelectionAttachBox({
       setShown(picked ? { picked, targets: targets() } : undefined);
     });
   };
+  // 上の機能のボタンの部品を先に読む（選んだときに読み込みを待たずに出す）
+  useEffect(() => preloadMessageActions(), []);
   useWindowEvent("mouseup", check);
   useWindowEvent("keyup", (e) => e.shiftKey && check(e));
   // スクロールしたら位置がずれるので消す
@@ -240,11 +238,11 @@ export function SelectionAttachBox({
   const extraNode = extra?.(shown.picked, { hold: setHeld, done: finish });
   const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * (shown.targets.length + (extraNode ? 1 : 0)));
   return (
-    <div ref={boxRef} className="selection-attach floating" style={{ left: at.x, top: at.y }}>
+    <SelectionBox ref={boxRef} at={at}>
       {shown.targets.map((target) => (
         <SelectionTargetButton key={target.label} target={target} picked={shown.picked} controls={{ hold: setHeld, done: finish }} />
       ))}
       {extraNode}
-    </div>
+    </SelectionBox>
   );
 }

@@ -33,8 +33,8 @@
       "brokenRefs": 0
     },
     "src/features/conversation/CLAUDE.md": {
-      "bytes": 15152,
-      "ancestors": 25340,
+      "bytes": 15140,
+      "ancestors": 25328,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -54,15 +54,15 @@
       "brokenRefs": 0
     },
     "src/foundation/ui/CLAUDE.md": {
-      "bytes": 16930,
-      "ancestors": 27118,
+      "bytes": 16922,
+      "ancestors": 27110,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 6576,
-      "ancestors": 33694,
+      "ancestors": 33686,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

@@ -7,7 +7,7 @@ export { chatLog, defineChatSelector, useChatDetail, useChatOf, useOpenChat, use
 export { chatTail, chatWindow, latestAnswer } from "./store/selectors";
 export { PastWorkplacesProvider, useBeforeWorkplaceMove } from "./screen/pastWorkplace";
 export { setSendExtras, withSendExtras } from "./send/sendExtras";
-export { chatRoleOf, type ChatHost, type NewChatPlace, type NewChatSeed } from "./screen/chatHost";
+export { chatRoleOf, type ChatHost, type ChatRole, type NewChatPlace, type NewChatSeed } from "./screen/chatHost";
 export { NewChatItem, NewChatPlaceBadges, useNewChatPlace } from "./open/NewChatItem";
 export { askInNewChatOf, ChatScreenContext, useChatScreen, useOptionalChatScreen, type ChatScreenValue } from "./screen/chatScreen";
 export { isScreenShown, lastPressedElement, lastPressedScreen, screenOfChat, setMissingFill, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
