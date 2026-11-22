@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
-import type { DraftTabSpot } from "@/features/chatList/ui";
+import type { DraftRef, DraftTabSpot } from "@/features/chatList/ui";
 import { paneOfTab, type SplitDir } from "@/features/panel/ui/layout/paneTree";
 import {
   dispatchPanel,
@@ -49,7 +49,7 @@ export interface PlacedDraft extends NewChatDraft {
 export { draftTitleOf };
 
 /** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか。タブのキーは下書きのキー） */
-export type DraftRef = Pick<PlacedDraft, "panel" | "key">;
+export type { DraftRef };
 
 /** 下書きを指す値だけを取り出す（サイドバーの別ウィンドウからメインのウィンドウに頼むとき） */
 const refOf = (draft: DraftRef): DraftRef => ({ panel: draft.panel, key: draft.key });

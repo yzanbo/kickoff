@@ -12,7 +12,7 @@ import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { Collapse } from "@/foundation/ui/kit/Collapse";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { RowBudgetScope, useProgressivePage } from "@/foundation/ui/hooks/useProgressiveRows";
-import { useChatDragging } from "@/features/groups/ui";
+import { useChatDragging } from "@/features/chatList/ui";
 import { NO_CHATS, stateCounts, useChatStates, useChatsWithChildrenByProject, useChildChats } from "@/features/chat/ui";
 import { BucketTree, chatListSettings, pinnedKey, useChatLayout, type ChatBucket } from "@/features/chatList/ui";
 import type { PlacedDraft } from "@/features/chatPanel/ui";
@@ -61,7 +61,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const { pending } = useChatStates();
   // まとまりの見出しの色（「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色）と、見出しの右クリックでの切り替え
   const colors = useSidebarBucketColors(grouping, project.id);
-  const sections = useGroupSections({ project, groups, chats, menuExtra: colors.menuItem });
+  const sections = useGroupSections({ project, groups, menuExtra: colors.menuItem });
   const list = useWorkspaceRows({ projectId: project.id, chats, counted, groupIds: groups.map((g) => g.id), ungroupedAt: sections.ungroupedAt, searchAll, collapsed });
   const { query, setQuery, keyword, stateFilter, setStateFilter, filtering } = list.filter;
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）

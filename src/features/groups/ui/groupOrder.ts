@@ -31,3 +31,6 @@ export function splitAtUngrouped<G>(shown: readonly G[], idOf: (g: G) => number,
   }
   return { before, after };
 }
+
+/** 全プロジェクトのボードのグループの列・サイドバーで、並べ替えの並びの中の「No Group」の ID（グループの ID は 1 から） */
+export const UNGROUPED_SORT_ID = 0;

@@ -4,7 +4,8 @@ import { api } from "@/foundation/ui/api";
 import { addChats } from "@/features/chat/ui/store/knownChats";
 import { flattenBucketChats, type BucketBy, type BucketOptions } from "./buckets";
 import type { ChatGrouping } from "./chatGrouping";
-import { bucketScopes, byManual, insertNear, moveChatInOrder } from "./manualOrder";
+import { bucketScopes, byManual, insertNear } from "./manualOrder";
+import { moveInList } from "@/foundation/ui/lib/moveInList";
 import { useChatBuckets } from "./useChatBuckets";
 import { useVisibleProjects } from "@/features/projects/ui/useVisibleProjects";
 import { useChatLayout, type ChatOrder } from "./chatLayout";
@@ -73,7 +74,7 @@ export function useManualChatReorder(order: ChatListOrder) {
   const move = useCallback(
     (projectId: number, moved: number, target: number, side: "before" | "after") => {
       if (!canMove(moved, target)) return;
-      const next = moveChatInOrder(order.ids, moved, target, side);
+      const next = moveInList(order.ids, moved, target, side);
       if (!next) return;
       if (current !== "manual") setOrder("manual");
       void api.reorderChats(projectId, next).then(addChats);

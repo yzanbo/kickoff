@@ -3,7 +3,7 @@ import type { Project } from "@shared/projects/types";
 import { api } from "@/foundation/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { busyBlockReason, confirmArchiveChats } from "@/features/chat/ui";
-import { useChatDropTarget } from "@/features/groups/ui";
+import { restoreDroppedChat, useChatDropTarget } from "@/features/chatList/ui";
 import { isForeignChat, useProjectChatDrops } from "./projectChatDrop";
 
 /**
@@ -17,16 +17,6 @@ async function archiveDroppedChat(chat: Chat, groupId?: number | null) {
     if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
   } catch (e) {
     reportFailure("アーカイブできませんでした")(e);
-  }
-}
-
-/** ドラッグで落としたアーカイブ済みのチャットを戻す（確かめてから。confirmArchiveChats）。groupId を渡すと、そのグループへも移す */
-export async function restoreDroppedChat(chat: Chat, groupId?: number | null) {
-  try {
-    if (!chat.archived_at || !(await confirmArchiveChats(chat))) return;
-    if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);
-  } catch (e) {
-    reportFailure("アーカイブから戻せませんでした")(e);
   }
 }
 

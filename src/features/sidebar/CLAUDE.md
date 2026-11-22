@@ -22,7 +22,7 @@
 
 ## プロジェクトの並びと見出し（`useProjectNav`・`WorkspaceHead`）
 
-- 並べ替えは `useProjectReorder` で共通（カード・丸・全プロジェクトのボード）。落とすと手動の並びに切り替える。
+- 並べ替えは `kit/drag` の `useReorder`（カード・丸・全プロジェクトのボード）。落とすと手動の並びに切り替える。
 - 押し方はサイドバー全体で同じ: 名前より左（`pressedLeftOfName`）は開閉だけ、ほかは選び直して開く。
 - 乗せたときだけ出す操作は作らない。操作はまず右クリックの `useProjectMenu` に足す。
 - ショートカットは、チャットが先に受けたら見ない（`defaultPrevented`）。

@@ -23,6 +23,8 @@ export { useChatBuckets } from "./useChatBuckets";
 export { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "./chatLayout";
 export { CHAT_GROUPINGS } from "./chatGrouping";
 export { confirmRemoveView, NamedViewTabs } from "./NamedViewTabs";
+export { draggingChat, GROUP_DRAG_TYPE, PROJECT_DRAG_TYPE, startChatDrag, startDraftDrag, useChatDragging, useChatDropTarget, useChatDropTargets, type DraftRef } from "./drag";
+export { restoreDroppedChat, useGroupDrop } from "./groupDrop";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */
 export const chatListSettings = {

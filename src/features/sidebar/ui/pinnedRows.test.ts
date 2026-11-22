@@ -8,7 +8,6 @@ import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ChatRow } from "./ChatRow";
 import { DraftRow } from "./DraftRows";
 
-vi.mock("@/features/groups/ui/groups", () => ({ startChatDrag: () => {}, startDraftDrag: () => {} }));
 vi.mock("@/features/groups/ui/GroupChip", () => ({ GroupChip: () => null }));
 vi.mock("@/foundation/ui/workplace/WorktreeChip", () => ({ WorktreeChip: () => null }));
 vi.mock("@/features/chat/ui/currentWorkStore", () => ({ useChatActivity: () => null }));

@@ -6,7 +6,7 @@ import type { AgentState, Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { anchorPlacement, type Placement } from "@/foundation/ui/lib/floating";
-import { startChatDrag } from "@/features/groups/ui/groups";
+import { startChatDrag } from "@/features/chatList/ui";
 import type { ChatTitleEditor } from "@/features/chat/ui/useChatRename";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { href } from "@/foundation/ui/navigation/router";

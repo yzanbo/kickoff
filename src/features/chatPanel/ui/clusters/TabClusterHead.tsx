@@ -4,7 +4,7 @@ import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { askNewGroupName, confirmDeleteGroup } from "@/features/groups/ui/groups";
+import { askNewGroupName, confirmDeleteGroup } from "@/features/groups/ui";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { cx } from "@/foundation/ui/lib/cx";

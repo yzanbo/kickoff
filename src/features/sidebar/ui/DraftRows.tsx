@@ -2,7 +2,7 @@ import { Paperclip, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { startDraftDrag } from "@/features/groups/ui/groups";
+import { startDraftDrag } from "@/features/chatList/ui";
 import { draftTitleOf, hasDraftAttachments, openDraft, useAllDrafts, type PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chatPanel/ui/drafts/DraftMenuItems";
 import { useRoute } from "@/foundation/ui/navigation/router";

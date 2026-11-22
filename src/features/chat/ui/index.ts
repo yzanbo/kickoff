@@ -45,7 +45,7 @@ export { chatTargetName, chatTitle, NEW_CHAT_TITLE } from "./chatTitle";
 export { closeChatWithChoice } from "./closeChat";
 export { chatPaneSlot } from "./screen/ports";
 export { ancestorsOf, descendantStates, rootChatOf } from "./state/descendants";
-export { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, markChatsSeen, moveChatsToGroup, togglePinChat } from "./chatActions";
+export { confirmArchiveChats, confirmDeleteChats, confirmMoveChatToProject, markChatsSeen, moveChatsToGroup, moveDroppedChatToProject, togglePinChat } from "./chatActions";
 export { aiToolViews, toolText } from "./tools/toolText";
 export { SNAP_PX, scrollsUpKey, snapTarget } from "./parts/followScroll";
 export { useFollowScroll } from "./parts/useFollowScroll";

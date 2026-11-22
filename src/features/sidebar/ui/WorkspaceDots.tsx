@@ -5,7 +5,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { initialOf } from "@/features/projects/ui/projectColor";
 import type { StateCounts } from "@/features/chat/ui/state/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/ui/StateCornerCounts";
-import type { ProjectReorder } from "./useProjectReorder";
+import type { ProjectReorder } from "./useProjectNav";
 import { useProjectChatDrops } from "./projectChatDrop";
 
 /**
@@ -67,7 +67,7 @@ export function WorkspaceDots({
     >
       {projects.map((p, i) => {
         const counts = countsOf(p.id);
-        const draggable = reorder.draggable(p.id);
+        const draggable = !isArchived(p.id);
         const summary = stateCountsSummary(counts);
         // 固定したプロジェクトの丸と、残りの丸の間に区切りを入れる
         const divider = i > 0 && projects[i - 1].pinned && !p.pinned;

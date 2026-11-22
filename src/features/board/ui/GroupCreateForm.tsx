@@ -3,7 +3,7 @@ import { useState } from "react";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { askNewGroupName } from "@/features/groups/ui/groups";
+import { askNewGroupName } from "@/features/groups/ui";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { InlineName } from "@/foundation/ui/kit/InlineName";
 

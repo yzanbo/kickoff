@@ -19,7 +19,11 @@ import { useAllDrafts } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { chatListSettings } from "@/features/chatList/ui";
 import { waitingChats } from "@/features/chat/ui";
 import { useChatsWithChildrenByProject } from "@/features/chat/ui/store/knownChats";
-import { useProjectReorder } from "./useProjectReorder";
+import { api } from "@/foundation/ui/api";
+import { useReorder } from "@/foundation/ui/kit/drag/useReorder";
+import { ensureAllRows } from "@/foundation/ui/hooks/useProgressiveRows";
+import { moveInList } from "@/foundation/ui/lib/moveInList";
+import { PROJECT_DRAG_TYPE } from "@/features/chatList/ui";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /**
@@ -62,10 +66,18 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // ドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通。しまったものは除く）。
   // タグで絞り込んでいても、隠れたものを含む並び全体の中で動かす（隠れたものの位置を崩さない）。
   // 最近動いた順でも並べ替えられ、落とすと手動の並びに切り替える（見えている並びのまま、動かしたものだけが動く）
-  const reorder = useProjectReorder({
-    ids: sorted.map((p) => p.id),
-    isArchived,
-    onManual: projectOrder === "manual" ? undefined : () => setProjectOrder("manual"),
+  const projectIds = sorted.map((p) => p.id);
+  const reorder = useReorder({
+    keys: projectIds,
+    type: PROJECT_DRAG_TYPE,
+    axis: "y",
+    sideBy: "order",
+    can: (id) => !isArchived(id),
+    onStart: ensureAllRows,
+    onMove: (from, to, side) => {
+      void api.reorderProjects(moveInList(projectIds, from, to, side) ?? projectIds);
+      if (projectOrder !== "manual") setProjectOrder("manual");
+    },
   });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
@@ -185,3 +197,6 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
 }
 
 export type ProjectNavController = ReturnType<typeof useProjectNav>;
+
+/** プロジェクトのドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通。しまったものはつかめず、落とす先にもならない） */
+export type ProjectReorder = ProjectNavController["reorder"];

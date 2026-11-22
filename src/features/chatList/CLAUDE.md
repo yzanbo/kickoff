@@ -38,4 +38,4 @@
 - `useFolds` の開閉は購読した snapshot から読む（保存先を直接読むと React Compiler が描画を使い回す）。
 - アーカイブ済みを出すかは、サイドバー・タブの列・ボードで別の設定（つなげない）。
 - 作業中のチャット（子孫も）は、ほかのプロジェクトへの移動・アーカイブの落とし先に落とせない（`busyBlockReason`）。
-- 落とし先は `startChatDrag` が覚えた ID を `accepts` で見る（dragover ではデータを読めない）。受けないものは `passThrough` で外へ渡す。
+- ドラッグの種類は `drag.ts`。グループへ落とすのは `useGroupDrop`（`classifyDrop` の種類で表を引く）。受けないものは外へ渡す。

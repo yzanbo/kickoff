@@ -1,5 +1,4 @@
 import { createElement, useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
-import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Project } from "@shared/projects/types";
 import { moveDroppedChatToProject } from "@/features/chat/ui/chatActions";
@@ -12,13 +11,11 @@ import { api } from "@/foundation/ui/api";
 import { NewChatItem } from "@/features/chat/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
-import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/groups/ui/groups";
-import { ungroupedPosition } from "@/features/groups/ui/groupOrder";
-import { groupsSettings } from "@/features/groups/ui";
+import { confirmDeleteGroup, groupsSettings, UNGROUPED_SORT_ID, ungroupedPosition } from "@/features/groups/ui";
+import { restoreDroppedChat, useGroupDrop } from "@/features/chatList/ui";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useGroupMenu } from "@/features/groups/ui/GroupMenu";
 import { setDraftGroup } from "@/features/chatPanel/ui/drafts/panelDrafts";
-import { restoreDroppedChat } from "./useWorkspaceDrops";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {
@@ -29,7 +26,7 @@ export interface GroupSectionProps {
   /** ドロップ先・並べ替えの見た目（チャットと下書きを受け取る） */
   dropClass?: string;
   dropProps: Record<string, unknown>;
-  dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
+  dragProps?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }
 
 /**
@@ -39,7 +36,7 @@ export interface GroupSectionProps {
  * 全プロジェクトのボードのグループの列と同じ設定（groupsSettings.ungroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
  * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
  */
-export function useGroupSections({ project, groups, chats, menuExtra }: { project: Project; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {
+export function useGroupSections({ project, groups, menuExtra }: { project: Project; groups: ChatGroup[]; menuExtra?: ReactNode }) {
   const projectId = project.id;
   const [renaming, setRenaming] = useState<number>();
   const removeGroup = async (group: ChatGroup) => {
@@ -59,31 +56,30 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
   const { reorder, over, blocked, dropProps } = useGroupDrop({
     projectId,
     groups,
-    chats,
     ungroupedAt,
     onReorder: (ids, at) => {
       if (at !== undefined && at !== ungroupedAt) setUngroupedAt(at);
       if (ids.some((id, i) => id !== groups[i]?.id)) void api.reorderGroups(projectId, ids);
     },
-    onMoveChat: (chat, groupId) => void api.setChatGroup(chat.id, groupId),
-    // アーカイブ済みのチャット（まとまりのいちばん下の「アーカイブ済み」の行）を落としたら、確かめて戻し、そのグループへ移す
-    onRestoreChat: (chat, groupId) => void restoreDroppedChat(chat, groupId),
-    // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）
-    // ほかのプロジェクトのチャットは、確かめてからこのプロジェクトへ移し、落としたグループへ入れる（No Group ならグループなし）
-    onForeignChat: (chat, groupId) => {
-      const group = groups.find((g) => g.id === groupId);
-      moveDroppedChatToProject(chat, project, group && { id: group.id, name: group.name });
+    on: {
+      chat: (chat, groupId) => void api.setChatGroup(chat.id, groupId),
+      // アーカイブ済みのチャット（まとまりのいちばん下の「アーカイブ済み」の行）を落としたら、確かめて戻し、そのグループへ移す
+      archived: (chat, groupId) => void restoreDroppedChat(chat, groupId),
+      // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）
+      draft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
+      // ほかのプロジェクトのチャットは、確かめてからこのプロジェクトへ移し、落としたグループへ入れる（No Group ならグループなし）
+      foreign: (chat, groupId) => {
+        const group = groups.find((g) => g.id === groupId);
+        moveDroppedChatToProject(chat, project, group && { id: group.id, name: group.name });
+      },
+      // 同じプロジェクトの子チャットは、確かめてから親から外し、落としたグループへ入れる（No Group ならグループなし）
+      child: (chat, groupId) =>
+        void detachChild(chat, { parentId: null, groupId, groupName: groups.find((g) => g.id === groupId)?.name ?? NO_GROUP_LABEL }).catch((e: unknown) =>
+          alert("親から外せませんでした", errorMessage(e)),
+        ),
     },
-    // 作業中のチャット（子孫も）は別のプロジェクトへ移せないので、落とせないことを見せる
-    foreignBlockedBy: (chat) => busyBlockReason(chat.id, "移動"),
-    // 同じプロジェクトの子チャットは、確かめてから親から外し、落としたグループへ入れる（No Group ならグループなし）
-    onChildChat: (chat, groupId) =>
-      void detachChild(chat, { parentId: null, groupId, groupName: groups.find((g) => g.id === groupId)?.name ?? NO_GROUP_LABEL }).catch((e: unknown) =>
-        alert("親から外せませんでした", errorMessage(e)),
-      ),
-    // 作業中の子チャットは外せないので、落とせないことを見せる
-    childBlockedBy: detachBlockReason,
-    onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
+    // 作業中のチャット（子孫も）は別のプロジェクトへ移せない・作業中の子チャットは親から外せないので、落とせないことを見せる
+    blockedBy: { foreign: (chat) => busyBlockReason(chat.id, "移動"), child: detachBlockReason },
   });
   return {
     sectionProps: (group: ChatGroup): GroupSectionProps => ({

@@ -1,4 +1,5 @@
 import type { Chat } from "@shared/chat/types";
+import { moveInList, type DropSide } from "@/foundation/ui/lib/moveInList";
 import type { ChatBucket } from "./buckets";
 
 /**
@@ -27,15 +28,6 @@ export function bucketScopes(buckets: readonly ChatBucket[]): Map<number, string
   return scopes;
 }
 
-/** order（チャットの ID の並び）の moved を target の前（before）か後ろ（after）へ動かした並び。動かせない・変わらないなら null */
-export function moveChatInOrder(order: readonly number[], moved: number, target: number, side: "before" | "after"): number[] | null {
-  if (moved === target || !order.includes(moved) || !order.includes(target)) return null;
-  const rest = order.filter((id) => id !== moved);
-  const at = rest.indexOf(target) + (side === "after" ? 1 : 0);
-  const next = [...rest.slice(0, at), moved, ...rest.slice(at)];
-  return next.every((id, i) => id === order[i]) ? null : next;
-}
-
 /** 下書きのタブの、一覧のペインでの位置（チャットのタブのチャットの ID をペインの並びで・下書きのタブより前にあるチャットのタブの数） */
 export interface DraftTabSpot {
   chatIds: readonly number[];
@@ -56,11 +48,9 @@ export function draftAnchor(spot: DraftTabSpot, orderOf: ReadonlyMap<number, num
   return null;
 }
 
-/** 親のないチャットにした moved を、並び ids の target の前後へ入れた並び（target がなければ null） */
-export function insertNear(ids: readonly number[], moved: number, target: number, side: "before" | "after"): number[] | null {
-  const rest = ids.filter((id) => id !== moved);
-  const at = rest.indexOf(target);
-  if (at < 0) return null;
-  const to = at + (side === "after" ? 1 : 0);
-  return [...rest.slice(0, to), moved, ...rest.slice(to)];
+/** 親のないチャットにした moved を、並び ids の target の前後へ入れた並び（ids になければ足す。target がなければ null） */
+export function insertNear(ids: readonly number[], moved: number, target: number, side: DropSide): number[] | null {
+  if (moved === target || !ids.includes(target)) return null;
+  const list = ids.includes(moved) ? ids : [...ids, moved];
+  return moveInList(list, moved, target, side) ?? [...list];
 }

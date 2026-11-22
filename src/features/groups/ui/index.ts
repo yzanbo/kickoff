@@ -5,6 +5,6 @@ import { storage } from "./storage";
 export const groupsSettings = { ungroupedAt: storage.settings.ungroupedAt } as const;
 
 export { GroupPickFlyout } from "./GroupPickFlyout";
-export { askNewGroupName, useChatDragging, useChatDropTarget } from "./groups";
+export { askNewGroupName, confirmDeleteGroup } from "./groupDialogs";
 export { NO_GROUPS, useGroupsOf } from "./stores/groups";
-export { splitAtUngrouped } from "./groupOrder";
+export { orderGroupBuckets, splitAtUngrouped, UNGROUPED_SORT_ID, ungroupedPosition } from "./groupOrder";
