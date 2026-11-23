@@ -8,7 +8,7 @@ import { CommitInput } from "@/foundation/ui/kit/CommitInput";
 import { Field } from "@/foundation/ui/kit/Field";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/projects/ui/GitInitNotice";
-import { useGitStatus } from "@/features/git/ui/useGitStatus";
+import { useProjectGitState } from "@/features/projects/ui/projectGit";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { settingsItemsOf } from "@/features/settings/ui";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
@@ -70,8 +70,8 @@ function ColorField({ project }: { project: Project }) {
 /** プロジェクトフォルダ（本体）。「変更…」で選び直す（確かめてから変える） */
 function FolderRow({ project }: { project: Project }) {
   // git で管理していなければ、ここからも始められるようにする（ファイル・変更・履歴のタブと同じ）
-  const git = useGitStatus(useWorkplace(project.id));
-  const plain = git.status?.repo === false;
+  const git = useProjectGitState(useWorkplace(project.id));
+  const { plain } = git;
   return (
     <Field
       as="div"
@@ -92,7 +92,7 @@ function FolderRow({ project }: { project: Project }) {
         )}
         {plain && (
           <button type="button" className="btn" onClick={async () => {
-              if (await startProjectGit(project.id)) void git.refresh();
+              if (await startProjectGit(project.id)) git.refresh();
             }}>
             git の管理を始める…
           </button>

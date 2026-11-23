@@ -16,6 +16,7 @@ export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats
 export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
 export { useEditedProject } from "./settings/editedProject";
+export { projectGit, type ProjectGit } from "./projectGit";
 export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";
 
 /** ほかの機能も読む保存の設定（宣言は ./storage.ts） */

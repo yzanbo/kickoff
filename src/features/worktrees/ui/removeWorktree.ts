@@ -1,7 +1,8 @@
 import type { GitWorktree } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { choose, confirm } from "@/foundation/ui/kit/ask";
-import { worktreeEnvOf, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import { worktreeEnvOf } from "./envStore";
 import { removalChecks } from "./worktreeEnvText";
 
 /**

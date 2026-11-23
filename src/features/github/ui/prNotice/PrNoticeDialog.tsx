@@ -10,13 +10,13 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
-import { useWorktreeEnv, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { downVolumesCheck, dropConnectionsCheck } from "@/features/worktrees/ui/worktreeEnvText";
+import { downVolumesCheck, dropConnectionsCheck, useWorktreeEnv } from "@/features/worktrees/ui";
 import {
   PR_CHAT_ACTIONS,
   PR_CHAT_ACTION_LABELS,
