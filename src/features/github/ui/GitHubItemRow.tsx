@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from "react";
-import { Check, CircleDashed, MessageSquare, MessagesSquare, X, type LucideIcon } from "lucide-react";
+import { MessageSquare, MessagesSquare } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import type { CiState } from "@shared/github/ciTypes";
 import type { GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
@@ -7,6 +7,7 @@ import { open } from "@/foundation/ui/navigation/open";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
+import { CheckStateIcon } from "./CheckStateIcon";
 import { GitHubStateIcon } from "./GitHubStateIcon";
 
 /** ラベルの札（GitHub の色の点 ＋ 名前） */
@@ -23,19 +24,8 @@ export function GitHubLabels({ labels }: { labels: GitHubLabel[] }) {
   );
 }
 
-/** まとめの成否の印（まとめに出るのは通った・落ちた・途中だけ） */
-const CHECKS_MARK: Partial<Record<CiState, { text: string; Icon: LucideIcon }>> = {
-  success: { text: "チェックが通った", Icon: Check },
-  failure: { text: "チェックが落ちた", Icon: X },
-  pending: { text: "チェックの途中", Icon: CircleDashed },
-};
-
-/** CI の成否の印（PR の一覧・中身） */
-function GitHubChecksMark({ state }: { state: CiState | null }) {
-  const mark = state ? CHECKS_MARK[state] : undefined;
-  if (!mark) return null;
-  return <mark.Icon size={13} className="github-checks" data-ci={state} aria-label={mark.text} data-tip={mark.text} />;
-}
+/** まとめの成否の印の名前（まとめに出るのは通った・落ちた・途中だけ） */
+const CHECKS_MARK_LABELS: Partial<Record<CiState, string>> = { success: "チェックが通った", failure: "チェックが落ちた", pending: "チェックの途中" };
 
 export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { approved: "承認済み", changes_requested: "変更の依頼あり", review_required: "レビュー待ち" };
 
@@ -72,7 +62,7 @@ export const GitHubItemRow = memo(function GitHubItemRow({
           <span>更新 {relativeTime(item.updated_at, { style: "ago" })}</span>
           {item.assignees.length > 0 && <span className="github-item-assignees">担当 {item.assignees.map((a) => a.login).join("、")}</span>}
           {item.review_decision && <span className={`github-review github-review-${item.review_decision}`}>{REVIEW_DECISION_LABELS[item.review_decision]}</span>}
-          <GitHubChecksMark state={item.checks} />
+          {item.checks && CHECKS_MARK_LABELS[item.checks] && <CheckStateIcon state={item.checks} size={13} label={CHECKS_MARK_LABELS[item.checks]} />}
           {item.comments > 0 && (
             <span className="github-item-comments" aria-label={`コメント ${item.comments} 件`}>
               <MessageSquare size={12} aria-hidden />

@@ -8,7 +8,7 @@ import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ansiSpans, markSpans } from "@/foundation/ui/ansi/ansi";
 import { AnsiText } from "@/foundation/ui/ansi/AnsiText";
-import { CiStateIcon } from "./CiStateIcon";
+import { CheckStateIcon } from "@/features/github/ui/CheckStateIcon";
 import { ciLogLine, stepsWithLogs, stepToOpen } from "./ciView";
 
 /**
@@ -37,7 +37,7 @@ export function CiJobSection({
       <div className="ci-job-head">
         <button type="button" className="ci-job-toggle" aria-expanded={open} onClick={onToggle}>
           <Chevron open={open} size={14} />
-          <CiStateIcon state={job.state} />
+          <CheckStateIcon ci state={job.state} />
           <span className="ci-job-name">{job.name}</span>
           {duration && <span className="muted small">{duration}</span>}
         </button>
@@ -116,7 +116,7 @@ function CiStepBlock({
     <div ref={ref} className={cx("ci-step", open && "open")}>
       <button type="button" className="ci-step-toggle" aria-expanded={open} disabled={lines.length === 0} onClick={() => setOpen(!open)}>
         <Chevron open={open} size={13} />
-        {step ? <CiStateIcon state={step.state} size={13} /> : <span className="ci-state-space" />}
+        {step ? <CheckStateIcon ci state={step.state} size={13} /> : <span className="ci-state-space" />}
         <span className="ci-step-name">{name}</span>
         <span className="muted small">{lines.length > 0 ? `${lines.length.toLocaleString()} 行` : logsReady ? "ログなし" : ""}</span>
       </button>

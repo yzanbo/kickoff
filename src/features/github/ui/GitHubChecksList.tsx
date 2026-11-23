@@ -1,20 +1,13 @@
-import { Check, CircleDashed, CircleMinus, ExternalLink, ScrollText, X, type LucideIcon } from "lucide-react";
-import { CI_STATE_LABELS, type CiState } from "@shared/github/ciTypes";
+import { ExternalLink, ScrollText } from "lucide-react";
+import { CI_STATE_LABELS } from "@shared/github/ciTypes";
 import type { GitHubCheck } from "@shared/github/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
+import { CheckStateIcon, ciTone } from "./CheckStateIcon";
 import { checkDuration } from "./githubChecks";
 
-/** チェックの状態の印と名前（名前は添え書き detail があればそれ。時間切れ・対応が要るなど） */
-const LOOKS: Record<CiState, { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral"; label: string }> = {
-  success: { icon: Check, tone: "success", label: "通った" },
-  failure: { icon: X, tone: "failure", label: "落ちた" },
-  pending: { icon: CircleDashed, tone: "pending", label: "途中" },
-  skipped: { icon: CircleMinus, tone: "neutral", label: "飛ばした" },
-  cancelled: { icon: CircleMinus, tone: "neutral", label: "取り消した" },
-  neutral: { icon: CircleMinus, tone: "neutral", label: CI_STATE_LABELS.neutral },
-};
-const stateOf = (c: GitHubCheck) => ({ ...LOOKS[c.state], label: c.detail ?? LOOKS[c.state].label });
+/** チェックの状態の名前（添え書き detail があればそれ。時間切れ・対応が要るなど。途中は「途中」） */
+const checkLabel = (c: GitHubCheck) => c.detail ?? (c.state === "pending" ? "途中" : CI_STATE_LABELS[c.state]);
 
 /** 並べる順（落ちた → 途中 → 通った → ほか） */
 const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
@@ -25,12 +18,12 @@ const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
  */
 export function GitHubChecksList({ projectId, checks }: { projectId: number; checks: GitHubCheck[] }) {
   if (checks.length === 0) return <p className="muted small github-checks-empty">この PR の最新のコミットにはチェックがありません。</p>;
-  const rows = checks.map((c) => ({ c, s: stateOf(c) })).sort((a, b) => ORDER[a.s.tone] - ORDER[b.s.tone]);
+  const rows = checks.map((c) => ({ c, tone: ciTone(c.state) })).sort((a, b) => ORDER[a.tone] - ORDER[b.tone]);
   return (
     <ul className="github-checks-list">
-      {rows.map(({ c, s }, i) => (
+      {rows.map(({ c }, i) => (
         <li key={`${c.workflow ?? ""}/${c.name}/${i}`} className="github-check">
-          <s.icon size={14} className="github-checks" data-ci={s.tone} aria-label={s.label} data-tip={s.label} />
+          <CheckStateIcon state={c.state} label={checkLabel(c)} />
           <span className="github-check-name">
             {c.workflow && <span className="muted">{c.workflow} / </span>}
             {c.name}

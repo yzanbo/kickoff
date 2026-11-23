@@ -3,14 +3,14 @@ import { ExternalLink } from "lucide-react";
 import type { CiExternalCheck, CiRun } from "@shared/github/ciTypes";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
-import { CiStateIcon } from "./CiStateIcon";
+import { CheckStateIcon } from "@/features/github/ui/CheckStateIcon";
 import { runName } from "./ciView";
 
 /** 実行の一覧の 1 行（状態・題・ワークフロー #番号・ブランチ・きっかけ・PR・起こした人・時刻） */
 export const CiRunRow = memo(function CiRunRow({ run, selected, watched, onOpen }: { run: CiRun; selected: boolean; watched: boolean; onOpen: (run: CiRun) => void }) {
   return (
     <button type="button" className={cx("github-item ci-run-row", selected && "selected")} aria-current={selected || undefined} onClick={() => onOpen(run)}>
-      <CiStateIcon state={run.state} />
+      <CheckStateIcon ci state={run.state} />
       <span className="github-item-main">
         <span className="github-item-title">
           <span className="github-item-title-text">{run.title}</span>
@@ -36,7 +36,7 @@ export const CiRunRow = memo(function CiRunRow({ run, selected, watched, onOpen 
 export function CiExternalRow({ check }: { check: CiExternalCheck }) {
   return (
     <div className="github-item ci-external-row">
-      <CiStateIcon state={check.state} />
+      <CheckStateIcon ci state={check.state} />
       <span className="github-item-main">
         <span className="github-item-title">
           <span className="github-item-title-text">{check.name}</span>
