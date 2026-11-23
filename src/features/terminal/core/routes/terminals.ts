@@ -24,6 +24,8 @@ const openSchema = z.object({
   start: z.object({ command: z.string().max(20_000).nullable(), env: z.record(z.string(), z.string()).nullable() }).nullable(),
   meta: z.object({ project_id: z.number().int().nullable(), title: z.string().max(500) }).nullable(),
 }) satisfies z.ZodType<TerminalOpenBody>;
+/** 一覧のクエリ（project_id でそのプロジェクトのものだけ。番号でなければ 400） */
+const listQuery = z.object({ project_id: z.coerce.number().int().positive().optional() });
 const ownerSchema = z.object({ owner: z.string().regex(/^wc:\d+$/) }) satisfies z.ZodType<TerminalOwnerBody>;
 const clientMessage = z.union([z.object({ type: z.literal("input"), data: z.string().max(100_000) }), z.object({ type: z.literal("resize"), cols: size, rows: size })]) satisfies z.ZodType<TerminalClientMessage>;
 
@@ -49,9 +51,9 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pi
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）
   app.get("/api/terminals", (c) => {
-    const projectId = c.req.query("project_id");
+    const { project_id: projectId } = listQuery.parse({ project_id: c.req.query("project_id") || undefined });
     const tabs: TerminalTab[] = terminals.list();
-    return c.json(projectId ? tabs.filter((t) => t.project_id === Number(projectId)) : tabs);
+    return c.json(projectId !== undefined ? tabs.filter((t) => t.project_id === projectId) : tabs);
   });
 
   // 新しいシェルを、プロジェクトの作業場所（本体・ワークツリー）で始める → キー（このキーで WebSocket につなぐ）

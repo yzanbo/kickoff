@@ -30,6 +30,8 @@ test("ターミナル: 端末はプロジェクトの作業場所でシェルを
   const { key } = (await created.json()) as TerminalCreated;
   assert.equal(terminalFake.spawned[0].cwd, project.repo_path);
   const tabs = (await (await app.request(`/api/terminals?project_id=${project.id}`, { headers: bearer(READ_TOKEN) })).json()) as TerminalTab[];
+  // 番号でない project_id は 400（絞らずに全部を返さない）
+  assert.equal((await app.request("/api/terminals?project_id=abc", { headers: bearer(READ_TOKEN) })).status, 400);
   assert.deepEqual(
     tabs.map((t) => [t.key, t.title]),
     [[key, "ターミナル（Pixel）"]],
