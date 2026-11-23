@@ -1,3 +1,4 @@
+import "./GitHubMarkdownField.css";
 import { useState, type KeyboardEvent, type RefObject } from "react";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";

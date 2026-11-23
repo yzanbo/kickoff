@@ -1,3 +1,4 @@
+import "./BrowserFind.css";
 import type { WebviewTag } from "electron";
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";

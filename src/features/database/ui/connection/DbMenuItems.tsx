@@ -1,3 +1,4 @@
+import "./DbMenuItems.css";
 import { Database, Plus } from "lucide-react";
 import { DB_ENVIRONMENT_LABELS } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";

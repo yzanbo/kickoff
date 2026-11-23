@@ -1,3 +1,4 @@
+import "./CiRunRow.css";
 import { memo } from "react";
 import { ExternalLink } from "lucide-react";
 import type { CiExternalCheck, CiRun } from "@shared/github/ciTypes";

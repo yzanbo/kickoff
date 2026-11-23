@@ -1,3 +1,4 @@
+import "./GitHubDetail.css";
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
 import type { GitHubKind, GitHubPullDetail } from "@shared/github/types";

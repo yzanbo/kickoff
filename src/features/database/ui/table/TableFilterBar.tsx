@@ -1,3 +1,4 @@
+import "./TableFilterBar.css";
 import { Filter, Plus, X } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { DB_FILTER_OP_LABELS, DB_FILTER_OPS, type DbFilter, type DbFilterOp, type DbRowFilter } from "@shared/database/types";

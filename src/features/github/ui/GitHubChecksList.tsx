@@ -1,3 +1,4 @@
+import "./GitHubChecksList.css";
 import { ExternalLink, ScrollText } from "lucide-react";
 import { CI_STATE_LABELS } from "@shared/github/ciTypes";
 import type { GitHubCheck } from "@shared/github/types";

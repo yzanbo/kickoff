@@ -1,3 +1,4 @@
+import "./TableView.css";
 import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/database/types";

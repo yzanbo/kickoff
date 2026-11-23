@@ -1,3 +1,4 @@
+import "./LinkedItemChip.css";
 import { CircleDot, GitPullRequest } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import { canOpenExternal } from "@/foundation/ui/external/native";

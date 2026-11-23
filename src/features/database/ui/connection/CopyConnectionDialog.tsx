@@ -1,3 +1,4 @@
+import "./CopyConnectionDialog.css";
 import { useState, type FormEvent } from "react";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { dbApi } from "@/features/database/ui/api";

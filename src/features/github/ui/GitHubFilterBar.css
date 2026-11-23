@@ -1,0 +1,64 @@
+/* ==== 一覧の絞り込み（GitHubFilterBar） ==== */
+@layer feature {
+  /* 絞り込みの帯 */
+
+  .github-filter-bar {
+    flex-direction: column;
+    align-items: normal;
+    padding: 6px var(--gutter) 8px;
+  }
+
+  .github-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .github-filter-count {
+    margin-left: auto;
+  }
+
+  .github-search {
+    margin: 0;
+  }
+
+  .github-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .github-filter-chip,
+  .github-filter-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 22px;
+    padding: 0 7px;
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .github-filter-chip:hover,
+  .github-filter-clear:hover {
+    --pill-bg: var(--bg-hover);
+    --pill-fg: var(--text);
+  }
+
+  .github-filter-chip.active {
+    --pill-border: color-mix(in srgb, var(--accent) 60%, transparent);
+    --pill-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+    --pill-fg: var(--accent-fg);
+  }
+
+  .github-filter-clear {
+    border-style: dashed;
+  }
+
+  .github-label-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+}

@@ -1,0 +1,24 @@
+/* ==== テーブルのデータの編集の帯（TableEditBar。書き直しの欄・セルの印は DataGrid.css、CSV は CsvImportDialog.css） ==== */
+@layer feature {
+  /* 編集の帯（行を足す・CSV・保存していない変更の数・取り消す・保存） */
+
+  .db-edit-bar {
+    flex: none;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 4px var(--gutter);
+  }
+
+  .db-edit-bar .btn {
+    gap: 4px;
+  }
+
+  .db-edit-spacer {
+    flex: 1;
+  }
+
+  .db-edit-count {
+    color: var(--warn);
+    font-weight: 600;
+  }
+}

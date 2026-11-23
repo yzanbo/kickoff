@@ -1,3 +1,4 @@
+import "./GitHubStateIcon.css";
 import { CircleCheck, CircleDot, CircleSlash, GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft, type LucideIcon } from "lucide-react";
 import type { GitHubItem } from "@shared/github/types";
 import { PR_STATE_LABELS, prStateOf, type PrState } from "@shared/git/prState";

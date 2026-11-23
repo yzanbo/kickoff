@@ -1,0 +1,87 @@
+/* ==== 接続のダイアログ（ConnectionDialog・ConnectionBasicFields・ConnectionSshFields） ==== */
+@layer feature {
+  /* 接続のダイアログ */
+
+  .db-connection-dialog {
+    --dialog-w: 560px;
+  }
+
+  /* 種類・環境の切り替えの名前を折り返さない */
+
+  .db-connection-dialog .segmented > button {
+    white-space: nowrap;
+  }
+
+  .db-connection-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    /* 説明のある欄と並べても、隣の入力欄を縦に伸ばさない */
+    align-items: start;
+  }
+
+  .db-test-result {
+    margin: 0;
+    font-size: var(--fs-12);
+  }
+
+  .db-test-result.ok {
+    color: var(--ok);
+  }
+
+  .db-test-result.ng {
+    color: var(--ng);
+  }
+
+  /* SSH トンネルの欄（チェックの下に字下げして並べる） */
+
+  /* 接続のダイアログの DB の種類のタイル（印・名前・一言） */
+
+  .db-engine-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .db-engine-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .db-engine-tile:hover {
+    background: var(--bg-hover);
+  }
+
+  .db-engine-tile.active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-elev));
+  }
+
+  .db-engine-tile-name {
+    font-weight: 600;
+  }
+
+  .db-ssh-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+
+  .db-ssh-key-button {
+    align-self: flex-start;
+    justify-self: start;
+    width: fit-content;
+  }
+}

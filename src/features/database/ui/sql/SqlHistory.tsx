@@ -1,3 +1,4 @@
+import "./SqlHistory.css";
 import { Bot, History } from "lucide-react";
 import { useRef, useState } from "react";
 import type { DbConnection, DbQueryHistoryEntry } from "@shared/database/types";

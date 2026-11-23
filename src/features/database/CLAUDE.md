@@ -12,7 +12,7 @@
 | `ui/state/` | 接続の一覧 `connectionsStore.ts`・操作 `useDbClient`・置き場所 `DbSurface`・外からの頼み `requestDbClient` |
 | `ui/connection/`・`ui/tree/`・`ui/table/`・`ui/sql/`・`ui/write/`・`ui/er/`・`ui/ai/` | 接続（登録・失敗・準備・手順ノート・パスワードを聞く）・木・テーブル・SQL・書き込む・ER 図・AI |
 
-呼び手は `ui/api.ts` の `dbApi`、CSS は `@/app/renderer/styles/database/`。サブフォルダは state → write → connection → tree・ai → table → sql・er → client の向きに読む。
+呼び手は `ui/api.ts` の `dbApi`、CSS は部品の隣。サブフォルダは state → write → connection → tree・ai → table → sql・er → client の向きに読む。
 
 ## 決まり
 

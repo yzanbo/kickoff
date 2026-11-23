@@ -1,3 +1,4 @@
+import "./GitHubHandoffMenu.css";
 import { Wrench } from "lucide-react";
 import type { GitHubIssueDetail, GitHubPullDetail } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";

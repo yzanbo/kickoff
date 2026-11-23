@@ -1,3 +1,4 @@
+import "./GitHubReview.css";
 import { useState, type ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraftComment, type GitHubReviewEvent } from "@shared/github/types";

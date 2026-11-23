@@ -1,0 +1,111 @@
+/* ==== ログの行（DockerLogRow） ==== */
+@layer feature {
+  .docker-log-row {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    padding: 0 var(--gutter) 0 0;
+    /* 見えていない行は描かない（1 万行まで持つため） */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 18px;
+  }
+
+  .docker-log-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .docker-logs-body.is-nowrap .docker-log-row {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .docker-log-level {
+    flex: none;
+    width: 3px;
+  }
+
+  .docker-log-row.level-error .docker-log-level {
+    background: var(--ng);
+  }
+
+  .docker-log-row.level-warn .docker-log-level {
+    background: var(--warn);
+  }
+
+  .docker-log-time {
+    flex: none;
+    color: var(--extra-muted);
+  }
+
+  .docker-log-label {
+    flex: none;
+    min-width: 6ch;
+    color: var(--log-hue);
+  }
+
+  .docker-log-text {
+    flex: 1;
+    min-width: 0;
+    white-space: pre;
+  }
+
+  .docker-logs-body.is-wrap .docker-log-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .docker-log-row.is-json .docker-log-text {
+    cursor: pointer;
+  }
+
+  .docker-log-json {
+    margin: 2px 0 4px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    font: inherit;
+    white-space: pre;
+    overflow-x: auto;
+    cursor: text;
+  }
+
+  /* エラーの行に乗せたときの「AI に聞く」（行の右に重ねる） */
+
+  .docker-log-ask {
+    position: sticky;
+    right: var(--gutter);
+    flex: none;
+    align-self: flex-start;
+    display: none;
+    height: 18px;
+    padding: 0 8px;
+    font-family: var(--sans);
+    font-size: var(--fs-11);
+  }
+
+  .docker-log-row:hover .docker-log-ask {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .docker-log-sep {
+    padding: 4px var(--gutter);
+    color: var(--muted);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .docker-log-sep.is-stopped {
+    color: var(--state-failed);
+  }
+
+  .docker-log-match {
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--warn) 40%, transparent);
+  }
+
+  .docker-log-match.is-current {
+    background: color-mix(in srgb, var(--warn) 85%, transparent);
+    color: var(--bg);
+  }
+}

@@ -1,0 +1,21 @@
+/* ==== 状態の印（GitHubStateIcon） ==== */
+@layer feature {
+  /* 状態の印（issue: 開いている = 緑・完了 = 紫・やらない = 灰 / PR: 開いている = 緑・下書き = 灰・マージ = 紫・閉じた = 赤） */
+
+  .github-state,
+  .github-state-chip {
+    color: var(--pr-color);
+  }
+
+  .github-state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 9px;
+    --tag-border: currentcolor;
+    --tag-fg: currentcolor;
+    font-size: var(--fs-12);
+    font-weight: 600;
+  }
+}

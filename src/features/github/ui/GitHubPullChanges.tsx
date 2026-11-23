@@ -1,3 +1,4 @@
+import "./GitHubPullChanges.css";
 import { memo, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
 import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/github/types";

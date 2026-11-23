@@ -1,4 +1,5 @@
 // compose の最後の失敗の欄（何ができなかったか・ターミナルで流し直す・閉じる・どの行にも当たらないポートの相手・エラーの末尾）
+import "./DockerFailure.css";
 import type { DockerActionBody, DockerCompose, DockerFailure as Failure } from "@shared/docker/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";
 import { openTab, panelKey, terminalTab } from "@/features/panel/ui";

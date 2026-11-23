@@ -1,0 +1,31 @@
+/* ==== DB クライアント（プロジェクトの「DB」タブ・右の欄・別ウィンドウ。左に接続の一覧と木、右にタブ） ==== */
+@layer feature {
+  .db-client {
+    position: relative;
+    display: flex;
+    flex: 1;
+    /* 右の欄のタブの中身（ブロックの入れ物）でも高さいっぱいに */
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    container-type: inline-size;
+  }
+
+  /* 右: タブの列と中身 */
+
+  .db-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .db-tab-body {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+}

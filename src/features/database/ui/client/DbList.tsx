@@ -1,3 +1,4 @@
+import "./DbList.css";
 import { Copy, FolderInput, PanelLeftClose, Plus, Search } from "lucide-react";
 import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbConnection } from "@shared/database/types";

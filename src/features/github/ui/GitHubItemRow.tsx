@@ -1,3 +1,4 @@
+import "./GitHubItemRow.css";
 import { memo, type CSSProperties } from "react";
 import { MessageSquare, MessagesSquare } from "lucide-react";
 import type { Chat } from "@shared/chat/types";

@@ -1,0 +1,46 @@
+/* ==== ブラウザの拡張機能の一覧（BrowserExtensions） ==== */
+@layer feature {
+  /* 設定: ブラウザの拡張機能（BrowserExtensions） */
+
+  .ext-list {
+    display: grid;
+    gap: 4px;
+    margin: 8px 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ext-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+  }
+
+  .ext-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* よく使う拡張機能の説明・読み込めなかった理由は名前の下の行に */
+
+  .ext-description,
+  .ext-error {
+    display: block;
+  }
+
+  .ext-error {
+    color: var(--ng);
+    overflow-wrap: anywhere;
+  }
+
+  .ext-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}

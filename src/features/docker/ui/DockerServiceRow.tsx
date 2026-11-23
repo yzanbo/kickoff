@@ -1,3 +1,4 @@
+import "./DockerServiceRow.css";
 import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
 import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerServiceInfo, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_MARK_LABELS } from "@shared/docker/types";

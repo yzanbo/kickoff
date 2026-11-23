@@ -1,3 +1,4 @@
+import "./TableData.css";
 import { PanelRight } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { isFileDb } from "@shared/database/connectionShape";

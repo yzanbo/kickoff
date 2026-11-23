@@ -1,3 +1,4 @@
+import "./CheckStateIcon.css";
 import { Check, CircleDashed, CircleMinus, X, type LucideIcon } from "lucide-react";
 import { CI_STATE_LABELS, type CiState } from "@shared/github/ciTypes";
 import { cx } from "@/foundation/ui/lib/cx";

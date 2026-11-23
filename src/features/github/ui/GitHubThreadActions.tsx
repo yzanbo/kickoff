@@ -1,3 +1,4 @@
+import "./GitHubThreadActions.css";
 import { useState } from "react";
 import type { GitHubReviewThread } from "@shared/github/types";
 import { useAction } from "@/foundation/ui/hooks/useAction";

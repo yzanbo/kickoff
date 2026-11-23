@@ -1,3 +1,4 @@
+import "./CiJobLog.css";
 import { memo, useEffect, useRef, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import type { CiJob, CiStep, CiStepLog } from "@shared/github/ciTypes";

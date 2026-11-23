@@ -1,0 +1,26 @@
+/* ==== 内蔵ターミナル（右のパネルのタブ） ==== */
+@layer feature {
+  .terminal-pane {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6px 4px 4px var(--gutter);
+    background: var(--bg);
+  }
+
+  .terminal-screen {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* 決まったコマンドのタブ（Docker のシェルなど）が終わったときの［もう一度流す］。右下に重ねる */
+  .terminal-rerun {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}

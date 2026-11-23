@@ -1,3 +1,4 @@
+import "./DbFailureDialog.css";
 import { NotebookPen, Play, RotateCcw, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { appendDbNoteFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbNoteFixEntry } from "./dbFailure";

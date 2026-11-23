@@ -1,0 +1,95 @@
+/* ==== DB の表の絞り込み（TableFilterBar） ==== */
+@layer feature {
+  /* 絞り込みの帯（条件 / WHERE を書く） */
+
+  .db-filter-bar {
+    flex: none;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .db-filter-mode {
+    flex: none;
+    grid-auto-columns: auto;
+  }
+
+  .db-filter-mode button {
+    padding: 3px 10px;
+    font-size: var(--fs-12);
+  }
+
+  .db-filter-rows {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    min-width: 0;
+  }
+
+  .db-filter-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .db-filter-row select,
+  .db-filter-row input[type="text"],
+  .db-filter-where input[type="text"] {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-size: var(--fs-12);
+  }
+
+  .db-filter-row select {
+    width: auto;
+    max-width: 180px;
+    padding-right: 24px;
+    background-position: right 6px center;
+  }
+
+  .db-filter-row input[type="text"] {
+    width: 140px;
+    font-family: var(--mono);
+  }
+
+  .db-filter-rows .link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .db-filter-where {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .db-filter-where-head {
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .db-filter-where input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+  }
+
+  .db-filter-actions {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .db-filter-actions .btn,
+  .db-table-foot .btn {
+    gap: 4px;
+  }
+}

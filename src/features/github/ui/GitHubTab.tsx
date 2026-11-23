@@ -1,3 +1,4 @@
+import "./GitHubTab.css";
 import { useCallback } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
 import type { GitHubItem, GitHubListFilter } from "@shared/github/types";

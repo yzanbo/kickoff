@@ -25,7 +25,7 @@ export const browserTabKind = defineTabKind<BrowserTab>({
   Face: BrowserTabFace,
   // 復元したタブは欄を初めて開くまで読み込まない
   deferUntilPanelOpen: (t) => t.restored === true,
-  // AI が操作しているタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
+  // AI が操作しているタブは、表に出ていなくても見えない形で並べる（撮る・押すため。panel の Panel.css）
   pageClass: agentBrowsingClass,
   // いまのページを別ウィンドウで開き直す（webview はウィンドウをまたげないので、戻る・進むの履歴は引き継がない）
   // 外のブラウザで開くのはいまのページ

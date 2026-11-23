@@ -1,0 +1,12 @@
+/* ==== PR の操作（GitHubPullActions） ==== */
+@layer feature {
+  .github-pull-actions {
+    display: inline-flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .github-pull-actions .btn {
+    gap: 4px;
+  }
+}

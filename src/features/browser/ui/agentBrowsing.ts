@@ -1,5 +1,5 @@
 // AI（チャットのエージェント）が操作しているブラウザのタブ（タブのキー）。メインプロセスの知らせ（agentBrowser.onActivity）で変わり、
-// タブに「AI 操作中」の印を出し、表に出ていないタブも見えない形で並べる（撮る・押すため。styles/browser/browser.css）
+// タブに「AI 操作中」の印を出し、表に出ていないタブも見えない形で並べる（撮る・押すため。panel の Panel.css）
 import type { WebviewTag } from "electron";
 import { useEffect, useSyncExternalStore, type RefObject } from "react";
 import { createCell } from "@/foundation/ui/store";

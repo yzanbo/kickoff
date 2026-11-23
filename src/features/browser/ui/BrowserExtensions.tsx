@@ -1,3 +1,4 @@
+import "./BrowserExtensions.css";
 import { Download, FolderOpen, Puzzle, Trash2, X } from "lucide-react";
 import { KNOWN_EXTENSION_KEYS, KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/foundation/ipc";
 import { useAction } from "@/foundation/ui/hooks/useAction";

@@ -1,3 +1,4 @@
+import "./GitHubHtml.css";
 import DOMPurify from "dompurify";
 import { useMemo } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";

@@ -1,0 +1,41 @@
+/* ==== 接続の前の準備の欄（ConnectionPrepFields） ==== */
+@layer feature {
+  .db-prep-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+
+  .db-prep-fields textarea {
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    resize: vertical;
+  }
+
+  .db-prep-fields input:not([type="date"]) {
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+  }
+
+  .db-prep-placeholders {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 10px;
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .db-prep-placeholders div {
+    display: contents;
+  }
+
+  .db-prep-placeholders dt {
+    font-family: var(--mono);
+  }
+
+  .db-prep-placeholders dd {
+    margin: 0;
+  }
+}

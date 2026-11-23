@@ -1,3 +1,4 @@
+import "./DockerTab.css";
 import { useRef, useState, type CSSProperties } from "react";
 import { Container, ShieldCheck } from "lucide-react";
 import type { DockerList } from "@shared/docker/types";

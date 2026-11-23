@@ -1,3 +1,4 @@
+import "./CiRunDetail.css";
 import { useState } from "react";
 import { ArrowLeft, ExternalLink, GitPullRequest, RotateCcw } from "lucide-react";
 import { CI_STATE_LABELS, type CiJob, type CiRunDetail } from "@shared/github/ciTypes";

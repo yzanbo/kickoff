@@ -1,4 +1,5 @@
 // ER 図のタブ（@xyflow/react の図。DatabaseClient が lazy で読み、使わない間は読み込まない）
+import "./ErView.css";
 import "./vendor.css";
 import { Background, ConnectionMode, Controls, MiniMap, ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Edge, type NodeMouseHandler, type OnNodeDrag } from "@xyflow/react";
 import { Network } from "lucide-react";

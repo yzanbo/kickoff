@@ -1,3 +1,4 @@
+import "./GitHubTimeline.css";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, GitCommitHorizontal } from "lucide-react";
 import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/github/types";

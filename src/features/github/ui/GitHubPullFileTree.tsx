@@ -1,4 +1,5 @@
 // PR の「変更」の左のファイルの木（変更タブ・履歴の詳細と同じ ChangedFiles の木と印。押すとそのファイルの差分へ移る）
+import "./GitHubPullFileTree.css";
 import { useState } from "react";
 import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";

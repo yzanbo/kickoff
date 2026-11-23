@@ -1,3 +1,4 @@
+import "./NewIssueDialog.css";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { api } from "@/foundation/ui/api";

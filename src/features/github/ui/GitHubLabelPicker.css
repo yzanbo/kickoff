@@ -1,0 +1,10 @@
+/* ==== ラベルを選ぶ（GitHubLabelPicker） ==== */
+@layer feature {
+  /* ラベル・担当の札・PR の操作 */
+
+  .github-label-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+}

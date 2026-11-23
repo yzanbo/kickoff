@@ -1,3 +1,4 @@
+import "./GitHubCommentBox.css";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { GITHUB_CLOSE_REASONS, GITHUB_CLOSE_REASON_LABELS, type GitHubCloseReason, type GitHubIssueDetail } from "@shared/github/types";

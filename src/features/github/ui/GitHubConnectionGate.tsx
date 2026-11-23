@@ -1,3 +1,4 @@
+import "./GitHubConnectionGate.css";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";

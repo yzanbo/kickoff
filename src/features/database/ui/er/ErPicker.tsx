@@ -1,3 +1,4 @@
+import "./ErPicker.css";
 import { useState } from "react";
 import { DB_ER_MAX } from "@shared/database/types";
 import { SearchField } from "@/foundation/ui/kit/SearchField";

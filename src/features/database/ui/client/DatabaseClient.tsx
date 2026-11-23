@@ -1,3 +1,4 @@
+import "./DatabaseClient.css";
 import { PanelLeftOpen } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { DbConnection } from "@shared/database/types";

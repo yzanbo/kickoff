@@ -1,3 +1,5 @@
+import "./SqlEditor.unlayered.css";
+import "./SqlEditor.css";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { MySQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";

@@ -1,3 +1,4 @@
+import "./BrowserTabLead.css";
 import { Bot, Globe } from "lucide-react";
 import { useAgentBrowsing } from "./agentBrowsing";
 

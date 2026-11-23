@@ -1,3 +1,4 @@
+import "./DbPrepDialog.css";
 import { Play, RotateCcw, ShieldAlert, Square } from "lucide-react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/database/types";

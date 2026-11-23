@@ -1,3 +1,4 @@
+import "./DockerComposeBlock.css";
 import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
 import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";

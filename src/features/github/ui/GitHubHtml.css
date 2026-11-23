@@ -1,0 +1,25 @@
+/* ==== GitHub の本文（GitHubHtml） ==== */
+@layer feature {
+  /* 本文の GitHub だけの部品（チェックリスト・画像・折りたたみ） */
+
+  .github-html img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .github-html .task-list-item {
+    list-style: none;
+  }
+
+  .github-html .task-list-item input {
+    margin: 0 6px 0 -18px;
+  }
+
+  .github-html details > summary {
+    cursor: pointer;
+  }
+
+  .github-html-empty {
+    margin: 0;
+  }
+}

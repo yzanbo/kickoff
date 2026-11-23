@@ -1,0 +1,12 @@
+/* ==== スレッドの操作（GitHubThreadActions） ==== */
+@layer feature {
+  /* 行のスレッドの返信・解決 */
+
+  .github-thread-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid var(--border);
+  }
+}

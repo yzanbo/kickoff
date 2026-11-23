@@ -1,3 +1,4 @@
+import "./MergeDialog.css";
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { GITHUB_MERGE_METHOD_LABELS, type GitHubMergeMethod, type GitHubPullDetail } from "@shared/github/types";

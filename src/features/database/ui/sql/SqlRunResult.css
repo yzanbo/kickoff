@@ -1,0 +1,85 @@
+/* ==== SQL の結果（SqlRunResult） ==== */
+@layer feature {
+  /* 結果の「メッセージ」: 文ごとの結果を 1 行ずつ */
+
+  .db-sql-messages {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 8px var(--gutter);
+    overflow: auto;
+    list-style: none;
+  }
+
+  .db-sql-messages li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+  }
+
+  .db-sql-message-sql {
+    min-width: 0;
+    max-width: 60ch;
+    overflow: hidden;
+    font-family: var(--mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-sql-messages li.failed .db-sql-message-error {
+    flex-basis: 100%;
+    color: var(--ng);
+  }
+
+  .db-sql-messages li.skipped {
+    color: var(--extra-muted);
+  }
+
+  /* 結果の下の帯の環境の一文 */
+
+  .db-sql-env-note {
+    color: color-mix(in srgb, var(--db-env, var(--muted)) 70%, var(--text));
+  }
+
+  .db-sql-result {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .db-sql-note {
+    margin: 0;
+    padding: 10px var(--gutter);
+  }
+
+  .db-sql-error {
+    padding: 8px var(--gutter);
+    overflow: auto;
+  }
+
+  .db-sql-failed-statement {
+    margin: 6px 0 0;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    white-space: pre-wrap;
+  }
+
+  .db-sql-truncated {
+    color: var(--warn);
+  }
+
+  /* 結果の下の帯の右の「書き出す」「コピー」 */
+
+  .db-sql-result-tools {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+}

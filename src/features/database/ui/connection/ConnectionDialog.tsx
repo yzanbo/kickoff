@@ -1,3 +1,4 @@
+import "./ConnectionDialog.css";
 import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { isAiVisible } from "@shared/database/aiVisibility";

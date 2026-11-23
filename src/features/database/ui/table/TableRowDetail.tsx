@@ -1,3 +1,4 @@
+import "./TableRowDetail.css";
 import { ArrowUpRight, CornerDownLeft, KeyRound, Link } from "lucide-react";
 import type { DbColumnInfo, DbTableDetail, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";

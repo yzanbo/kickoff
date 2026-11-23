@@ -79,7 +79,7 @@ function TabPageFrameBody({
     }),
     [popOutable, panel, tab.key, outer],
   );
-  // 種類が足すクラス（AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる。撮る・押すため。browser.css）
+  // 種類が足すクラス（AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる。撮る・押すため。panel の Panel.css）
   const pageClass = useSyncExternalStore(kind.pageClass?.subscribe ?? noSubscribe, () => kind.pageClass?.of(tab));
   // 表示中か（外のタブ（右の欄を持つチャットのタブ）が裏に回っていれば、自分のペインで選んでいても表示していない）
   const visible = useContext(TabVisibleContext) && panelOpen && active;

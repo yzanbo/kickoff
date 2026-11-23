@@ -1,3 +1,4 @@
+import "./EngineMark.css";
 import { DB_ENGINE_LABELS, type DbEngine } from "@shared/database/types";
 
 /** DB の種類の短い印（商標のロゴは使わない） */

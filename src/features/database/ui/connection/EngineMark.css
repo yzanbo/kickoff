@@ -1,0 +1,42 @@
+/* ==== DB の種類の印（EngineMark）と環境の色（接続の点・タブの点・SQL のタブの帯で共通） ==== */
+@layer feature {
+  /* 環境の色（接続の点・タブの点・SQL のタブの帯で共通。ローカルは灰・開発は緑・ステージングは琥珀・本番は赤） */
+
+  .db-env-local {
+    --db-env: var(--extra-muted);
+  }
+
+  .db-env-dev {
+    --db-env: var(--ok);
+  }
+
+  .db-env-staging {
+    --db-env: var(--warn);
+  }
+
+  .db-env-production {
+    --db-env: var(--ng);
+  }
+
+  .db-env-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--db-env, var(--extra-muted));
+  }
+
+  /* DB の種類の短い印（Pg / My / Lt） */
+
+  .db-engine-mark {
+    flex: none;
+    padding: 0 4px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: var(--fs-10);
+    font-weight: 600;
+    line-height: 16px;
+  }
+}

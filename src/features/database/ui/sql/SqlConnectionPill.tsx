@@ -1,3 +1,4 @@
+import "./SqlConnectionPill.css";
 import { ChevronDown } from "lucide-react";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";

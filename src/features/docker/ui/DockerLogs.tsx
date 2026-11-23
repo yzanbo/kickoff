@@ -1,3 +1,4 @@
+import "./DockerLogs.css";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { ArrowDown, Clock, Search, TriangleAlert, WrapText } from "lucide-react";
 import type { DockerCompose } from "@shared/docker/types";

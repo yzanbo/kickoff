@@ -1,3 +1,4 @@
+import "./GitHubFilterBar.css";
 import { useEffect, useEffectEvent, useState, type MouseEvent } from "react";
 import { ChevronDown, Plus, X } from "lucide-react";
 import { GITHUB_KIND_LABELS, GITHUB_KINDS, GITHUB_MINE_FILTER_LABELS, GITHUB_SORT_LABELS, GITHUB_SORTS, GITHUB_STATE_FILTER_LABELS, GITHUB_STATE_FILTERS, type GitHubKind, type GitHubListFilter, type GitHubMineFilter, type GitHubRepoMeta } from "@shared/github/types";

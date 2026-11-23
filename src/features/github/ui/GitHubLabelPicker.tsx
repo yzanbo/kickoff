@@ -1,3 +1,4 @@
+import "./GitHubLabelPicker.css";
 import { useState } from "react";
 import { Tag, UserRound } from "lucide-react";
 import { api } from "@/foundation/ui/api";

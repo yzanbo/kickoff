@@ -1,0 +1,44 @@
+/* ==== Markdown の欄（GitHubMarkdownField） ==== */
+@layer feature {
+  /* 書く｜プレビューの欄 */
+
+  .github-md-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .segmented.github-md-mode {
+    align-self: flex-start;
+  }
+
+  .github-md-input {
+    width: 100%;
+    min-height: 4.5em;
+    max-height: 50vh;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: inherit;
+    font: inherit;
+    font-size: var(--fs-13);
+    line-height: 1.5;
+    resize: vertical;
+    field-sizing: content;
+  }
+
+  .github-md-input:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  .github-md-preview {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: auto;
+    max-height: 50vh;
+  }
+}

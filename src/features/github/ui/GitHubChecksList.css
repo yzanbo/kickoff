@@ -1,0 +1,57 @@
+/* ==== チェックの一覧（GitHubChecksList） ==== */
+@layer feature {
+  /* チェック */
+
+  .github-checks-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .github-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-13);
+  }
+
+  .github-check-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .github-check-desc {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 所要時間（説明がなくても右に寄せる。続くボタンは時間のすぐ右に） */
+
+  .github-check-time {
+    flex-shrink: 0;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .github-check-time ~ .github-check-log,
+  .github-check-time ~ .github-check-link {
+    margin-left: 0;
+  }
+
+  .github-check-link {
+    display: inline-grid;
+    place-items: center;
+    margin-left: auto;
+    color: var(--muted);
+  }
+
+  .github-checks-empty,
+  .github-updating {
+    margin: 0;
+  }
+}

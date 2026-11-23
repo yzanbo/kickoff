@@ -1,4 +1,5 @@
 // サービスの行の下の、使い捨てのコンテナ（docker compose run で作ったもの）の畳んだ一覧
+import "./DockerOneoffs.css";
 import { useState } from "react";
 import type { DockerContainer, DockerServiceInfo } from "@shared/docker/types";
 import { cx } from "@/foundation/ui/lib/cx";

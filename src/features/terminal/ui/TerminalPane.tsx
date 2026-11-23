@@ -1,4 +1,5 @@
 // xterm の CSS は層の外のまま読む（vendor の層に入れると、ui の入力欄の基底が補助の textarea の隠し方に勝つ）
+import "./TerminalPane.css";
 import "@xterm/xterm/css/xterm.css";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";

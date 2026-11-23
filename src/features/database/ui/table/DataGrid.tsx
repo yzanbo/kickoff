@@ -1,3 +1,4 @@
+import "./DataGrid.css";
 import { ArrowDown, ArrowUp, ArrowUpRight, KeyRound } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { DbColumnInfo, DbSort, DbValue } from "@shared/database/types";

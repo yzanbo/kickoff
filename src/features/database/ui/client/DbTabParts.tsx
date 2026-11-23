@@ -1,3 +1,4 @@
+import "./DbTabParts.css";
 import { Network, SquareTerminal, StickyNote } from "lucide-react";
 import type { ReactNode } from "react";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";

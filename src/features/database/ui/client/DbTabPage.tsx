@@ -1,3 +1,4 @@
+import "./DbTabPage.css";
 import { lazy, Suspense } from "react";
 import type { DbConnection } from "@shared/database/types";
 import type { ReactNode } from "react";

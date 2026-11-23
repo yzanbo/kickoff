@@ -1,3 +1,4 @@
+import "./CiTab.css";
 import { useCallback, useMemo } from "react";
 import { ExternalLink, Workflow } from "lucide-react";
 import type { CiRun, CiRunList } from "@shared/github/ciTypes";

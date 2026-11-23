@@ -1,3 +1,4 @@
+import "./BrowserPane.css";
 import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RefreshCw, Wrench, X } from "lucide-react";
 import { useCallback, useEffectEvent, useRef, useState, type FormEvent } from "react";

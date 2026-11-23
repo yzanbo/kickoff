@@ -1,0 +1,70 @@
+/* ==== CSV の取り込み（CsvImportDialog） ==== */
+@layer feature {
+  /* CSV の取り込みのダイアログの幅 */
+
+  .db-csv-dialog {
+    --dialog-w: 720px;
+  }
+
+  .db-csv-source,
+  .db-csv-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+  }
+
+  .db-csv-source .btn {
+    gap: 4px;
+  }
+
+  .db-csv-options label:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .db-csv-text {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 96px;
+    max-height: 200px;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    resize: vertical;
+  }
+
+  .db-csv-preview p {
+    margin: 0 0 6px;
+  }
+
+  .db-csv-table {
+    max-height: 180px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .db-csv-table table {
+    border-collapse: collapse;
+    font-family: var(--mono);
+  }
+
+  .db-csv-table th,
+  .db-csv-table td {
+    max-width: 200px;
+    padding: 2px 8px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .db-csv-table th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-elev);
+  }
+}

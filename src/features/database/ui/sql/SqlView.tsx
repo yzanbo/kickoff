@@ -1,3 +1,4 @@
+import "./SqlView.css";
 import type { SQLNamespace } from "@codemirror/lang-sql";
 import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";

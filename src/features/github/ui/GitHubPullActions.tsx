@@ -1,3 +1,4 @@
+import "./GitHubPullActions.css";
 import { GitBranch, GitMerge } from "lucide-react";
 import type { GitHubPullDetail } from "@shared/github/types";
 import { checkoutPull, useMainRunningChats } from "./githubCheckout";

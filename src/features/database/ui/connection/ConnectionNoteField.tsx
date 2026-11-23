@@ -1,3 +1,4 @@
+import "./ConnectionNoteField.css";
 import { DB_NOTE_DIR } from "./dbFailure";
 import type { DbConnection } from "@shared/database/types";
 import { useNoteList } from "@/features/notes/ui";

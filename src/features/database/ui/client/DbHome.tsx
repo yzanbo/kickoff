@@ -1,3 +1,4 @@
+import "./DbHome.css";
 import { Lock, Plus, Sparkles, StickyNote } from "lucide-react";
 import { isAiVisible } from "@shared/database/aiVisibility";
 import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/database/types";
