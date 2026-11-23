@@ -7,6 +7,7 @@ import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
+import { useTabs } from "@/foundation/ui/kit/tabs/useTabs";
 import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
 import { readSetting } from "@/foundation/ui/storage";
 import { deferredSetting } from "@/foundation/ui/storage/deferredSetting";
@@ -22,6 +23,9 @@ import { useSqlRun } from "./useSqlRun";
 import { SqlHistoryButton } from "./SqlHistory";
 import { useSqlPending } from "@/features/database/ui/state/sqlSessions";
 import { useSqlWrite } from "@/features/database/ui/write/useSqlWrite";
+
+/** 結果のタブの「メッセージ」のキー */
+const MESSAGES = "messages";
 
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
 const DRAFT_DELAY = 400;
@@ -73,6 +77,13 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const run = (all: boolean) => void execute(pickStatements(all));
 
   const current = runs[shown];
+  // 結果のタブ（文ごと ＋ メッセージ）。←→ で移る
+  const resultTabs = useTabs({
+    keys: [...runs.map((_, i) => String(i)), MESSAGES],
+    value: shown === runs.length ? MESSAGES : String(shown),
+    onChange: (key) => setShown(key === MESSAGES ? runs.length : Number(key)),
+    label: "文ごとの結果",
+  });
 
   return (
     <div className={cx("db-sql-view", `db-env-${connection.environment}`, write.on && "writing")}>
@@ -145,22 +156,14 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       <div className="pane-resizer db-sql-resizer" {...height.handle} />
       <div className="db-sql-results">
         {runs.length > 0 && (
-          <div className="db-result-tabs bar" role="tablist">
+          <div className="db-result-tabs bar" {...resultTabs.listProps}>
             {runs.map((r, i) => (
-              <button
-                key={i}
-                type="button"
-                role="tab"
-                aria-selected={i === shown}
-                className={cx("db-result-tab", i === shown && "active", r.error && "failed", r.skipped && "skipped")}
-                title={r.sql}
-                onClick={() => setShown(i)}
-              >
+              <button key={i} type="button" {...resultTabs.tabProps(String(i))} className={cx("db-result-tab", i === shown && "active", r.error && "failed", r.skipped && "skipped")} title={r.sql}>
                 {runTabLabel(r, i)}
               </button>
             ))}
             {/* 文ごとの結果を並べた「メッセージ」（shown が runs.length のとき） */}
-            <button type="button" role="tab" aria-selected={shown === runs.length} className={cx("db-result-tab", shown === runs.length && "active")} onClick={() => setShown(runs.length)}>
+            <button type="button" {...resultTabs.tabProps(MESSAGES)} className={cx("db-result-tab", shown === runs.length && "active")}>
               メッセージ
             </button>
           </div>

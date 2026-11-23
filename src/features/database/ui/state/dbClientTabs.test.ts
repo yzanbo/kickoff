@@ -1,33 +1,37 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openNoteTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, pinDbTab, renameNoteTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
+import { closeTab, keepTab, openTab } from "@/foundation/ui/kit/tabs/tabList";
+import { closeConnectionTabs, erTabKey, nextSqlTitle, NO_DB_TABS, openErTab, openNoteTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, renameNoteTab, setTableFilter, tableTabKey, type DbClientTab, type DbClientTabs, updateErTab } from "./dbClientTabs";
+
+/** 仮でなく開く（reduce に渡すので引数を 2 つに絞る） */
+const openDb = (s: DbClientTabs, tab: DbClientTab) => openTab(s, tab);
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
 const sql = (key: string, title: string, connection_id = 1): DbClientTab => ({ key, kind: "sql", connection_id, title });
 
-test("openDbTab: 同じキーは選ぶだけ、新しいタブは表示中のタブの右", () => {
-  let s = openDbTab(NO_DB_TABS, table("a"));
-  s = openDbTab(s, table("b"));
+test("openDb: 同じキーは選ぶだけ、新しいタブは表示中のタブの右", () => {
+  let s = openDb(NO_DB_TABS, table("a"));
+  s = openDb(s, table("b"));
   s = { ...s, active: s.tabs[0].key };
-  s = openDbTab(s, table("c"));
+  s = openDb(s, table("c"));
   assert.deepEqual(
     s.tabs.map((t) => (t.kind === "table" ? t.name : t.kind === "sql" ? t.title : t.key)),
     ["a", "c", "b"],
   );
-  const again = openDbTab(s, table("b"));
+  const again = openDb(s, table("b"));
   assert.equal(again.tabs.length, 3);
   assert.equal(again.active, table("b").key);
 });
 
-test("closeDbTab: 表示中なら右隣、右がなければ左隣。接続のタブをまとめて閉じる", () => {
-  let s = [table("a"), table("b"), table("c")].reduce(openDbTab, NO_DB_TABS);
+test("closeTab: 表示中なら右隣、右がなければ左隣。接続のタブをまとめて閉じる", () => {
+  let s = [table("a"), table("b"), table("c")].reduce(openDb, NO_DB_TABS);
   s = { ...s, active: table("b").key };
-  assert.equal(closeDbTab(s, table("b").key).active, table("c").key);
+  assert.equal(closeTab(s, table("b").key).active, table("c").key);
   s = { ...s, active: table("c").key };
-  assert.equal(closeDbTab(s, table("c").key).active, table("b").key);
-  assert.equal(closeDbTab(s, "nope"), s);
-  const mixed = [table("a", 1), sql("q", "SQL 1", 2), table("b", 1)].reduce(openDbTab, NO_DB_TABS);
+  assert.equal(closeTab(s, table("c").key).active, table("b").key);
+  assert.equal(closeTab(s, "nope"), s);
+  const mixed = [table("a", 1), sql("q", "SQL 1", 2), table("b", 1)].reduce(openDb, NO_DB_TABS);
   assert.deepEqual(
     closeConnectionTabs(mixed, 1).tabs.map((t) => t.key),
     ["q"],
@@ -41,7 +45,7 @@ test("tableTabKey: テーブルとビューは同じキー、関数・列挙型�
 });
 
 test("nextSqlTitle: 使っていないいちばん小さい番号", () => {
-  const s = [sql("a", "SQL 1"), sql("b", "SQL 3")].reduce(openDbTab, NO_DB_TABS);
+  const s = [sql("a", "SQL 1"), sql("b", "SQL 3")].reduce(openDb, NO_DB_TABS);
   assert.equal(nextSqlTitle(s), "SQL 2");
   assert.equal(nextSqlTitle(NO_DB_TABS), "SQL 1");
 });
@@ -57,7 +61,7 @@ test("parseDbClientTabs: 形の合わないタブを捨て、表示中がなけ�
 });
 
 test("openErTab: 接続・場所ごとに 1 つ。開き直すと focus を付け替えて選び、絞り込みは updateErTab で変える。保存した値も読める", () => {
-  let s = openDbTab(NO_DB_TABS, table("a"));
+  let s = openDb(NO_DB_TABS, table("a"));
   s = openErTab(s, 1, path, null);
   const key = erTabKey(1, path);
   assert.equal(s.active, key);
@@ -103,9 +107,9 @@ test("openNoteTab / renameNoteTab: 手順ノートはノートごとに 1 つ。
   assert.equal(parseDbClientTabs({ tabs: [{ key: "note:", kind: "note", connection_id: 1, path: "" }], active: null })?.tabs.length, 0);
 });
 
-test("openPreviewTab / pinDbTab: 仮のタブは次の仮のタブで同じ場所に置き換わり、固定したもの・変更のあるものは残る。固定して開く・絞り込みでも固定", () => {
+test("openPreviewTab / keepTab: 仮のタブは次の仮のタブで同じ場所に置き換わり、固定したもの・変更のあるものは残る。固定して開く・絞り込みでも固定", () => {
   const preview = (name: string) => table(name) as Extract<DbClientTab, { kind: "table" }>;
-  let s = openDbTab(NO_DB_TABS, table("a"));
+  let s = openDb(NO_DB_TABS, table("a"));
   s = openPreviewTab(s, preview("b"));
   s = openPreviewTab(s, preview("c"));
   const names = (x: typeof s) => x.tabs.map((t) => (t.kind === "table" ? `${t.name}${t.preview ? "*" : ""}` : t.key));
@@ -114,7 +118,7 @@ test("openPreviewTab / pinDbTab: 仮のタブは次の仮のタブで同じ場�
   // もうあるタブは選ぶだけ（固定したものは仮にしない）
   assert.deepEqual(names(openPreviewTab(s, preview("a"))), ["a", "c*"]);
   // 固定すると、次の仮のタブは右に足す
-  s = pinDbTab(s, table("c").key);
+  s = keepTab(s, table("c").key);
   s = openPreviewTab(s, preview("d"));
   assert.deepEqual(names(s), ["a", "c", "d*"]);
   // 変更のある仮のタブは固定して残す

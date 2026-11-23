@@ -1,4 +1,4 @@
-{"hash":"#/projects/1/db","theme":"dark","size":[1358,880],"count":420,"items":[
+{"hash":"#/projects/1/db","theme":"light","size":[1358,880],"count":420,"items":[
 {"role":"complementary","name":"","depth":0,"visible":true},
 {"role":"separator","name":"サイドバーの幅を変える","depth":1,"visible":true},
 {"role":"button","name":"サイドバーを別ウィンドウで開く","depth":1,"visible":true},
@@ -319,7 +319,7 @@
 {"role":"text","name":"チャットの AI に見せる接続: サンプル","depth":2,"visible":true},
 {"role":"separator","name":"ドラッグで幅を変える（ダブルクリックで元に戻す）","depth":2,"visible":true},
 {"role":"section","name":"","depth":1,"visible":true},
-{"role":"tablist","name":"","depth":2,"visible":true},
+{"role":"tablist","name":"DB のタブ","depth":2,"visible":true},
 {"role":"heading","name":"このプロジェクトの DB","depth":2,"visible":true},
 {"role":"text","name":"1 つの接続","depth":2,"visible":true},
 {"role":"button","name":"接続を足す","depth":2,"visible":true},

@@ -686,7 +686,6 @@
       "src/features/childChats/core/routes/server.children.test.ts": 466,
       "src/features/conversation/ui/streaming/markdownReveal.ts": 435,
       "src/features/database/core/routes/server.databases.test.ts": 852,
-      "src/features/database/ui/client/DatabaseClient.tsx": 311,
       "src/features/database/worker/drivers.dbtest.ts": 409,
       "src/features/git/core/routes/server.git.test.ts": 470,
       "src/features/notes/ui/NoteTab.tsx": 341,

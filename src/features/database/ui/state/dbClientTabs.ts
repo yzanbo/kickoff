@@ -1,6 +1,7 @@
 // DB クライアントの右のタブ（テーブル・SQL・ER 図・手順ノート）の並びと、表示中のタブ。置き場所（プロジェクトの DB タブ・右の欄・別ウィンドウ）ごとに覚える（保存は storageKeys の dbClientTabs）。
 // 形の確かめと、開く・閉じる・選ぶを純粋関数で持つ（React に依らない）
 import { DB_FILTER_OPS, DB_OBJECT_KINDS, type DbFilterOp, type DbObjectKind, type DbObjectPath, type DbRowFilter } from "@shared/database/types";
+import { closeTab, keepTab, openTab, type TabListState } from "@/foundation/ui/kit/tabs/tabList";
 
 /** テーブル・ビューのタブ（同じ接続・場所・名前は 1 つ） */
 export interface DbTableTab {
@@ -49,10 +50,8 @@ interface DbNoteTab {
 
 export type DbClientTab = DbTableTab | DbSqlTab | DbErTab | DbNoteTab;
 
-export interface DbClientTabs {
-  tabs: DbClientTab[];
-  active: string | null;
-}
+/** タブの並びと表示中のタブ（開く・閉じる・仮のタブは土台の tabList の openTab・closeTab・keepTab） */
+export type DbClientTabs = TabListState<DbClientTab>;
 
 export const NO_DB_TABS: DbClientTabs = Object.freeze({ tabs: [], active: null }) as DbClientTabs;
 
@@ -100,45 +99,25 @@ export function parseDbClientTabs(value: unknown): DbClientTabs | undefined {
 export const tableTabKey = (connectionId: number, path: DbObjectPath, name: string, object: DbObjectKind = "table") =>
   `${object === "function" ? "f" : object === "enum" ? "e" : "t"}:${connectionId}:${path.database ?? ""}:${path.schema ?? ""}:${name}`;
 
-/** タブを開く（同じキーがあれば選ぶだけ。新しいタブは表示中のタブの右に足す） */
-export function openDbTab(state: DbClientTabs, tab: DbClientTab): DbClientTabs {
-  if (state.tabs.some((t) => t.key === tab.key)) return { ...state, active: tab.key };
-  const at = state.tabs.findIndex((t) => t.key === state.active);
-  const tabs = [...state.tabs];
-  tabs.splice(at < 0 ? tabs.length : at + 1, 0, tab);
-  return { tabs, active: tab.key };
-}
-
 /** テーブルのタブを固定して開く（もうある仮のタブも固定する。filter を渡せば、もうあるタブもその絞り込みにする） */
 export function openTableTab(state: DbClientTabs, tab: DbTableTab): DbClientTabs {
-  const opened = pinDbTab(openDbTab(state, tab), tab.key);
+  const opened = openTab(state, tab);
   if (!tab.filter) return opened;
   return { ...opened, tabs: opened.tabs.map((t) => (t.key === tab.key && t.kind === "table" ? { ...t, filter: tab.filter } : t)) };
 }
 
 /**
- * テーブルのタブを仮のタブで開く（木で 1 回押したとき）: 同じキーがあれば選ぶだけ。いまの仮のタブを同じ場所で置き換え、なければ表示中のタブの右に足す。
+ * テーブルのタブを仮のタブで開く（木で 1 回押したとき。土台の openTab の preview）。
  * keep が true の仮のタブ（保存していない変更がある）は置き換えずに固定して、新しい仮のタブを足す
  */
 export function openPreviewTab(state: DbClientTabs, tab: DbTableTab, keep: (key: string) => boolean = () => false): DbClientTabs {
-  if (state.tabs.some((t) => t.key === tab.key)) return { ...state, active: tab.key };
-  const next: DbTableTab = { ...tab, preview: true };
   const current = state.tabs.find((t) => t.kind === "table" && t.preview);
-  if (current && !keep(current.key)) return { tabs: state.tabs.map((t) => (t === current ? next : t)), active: next.key };
-  return openDbTab(current ? pinDbTab(state, current.key) : state, next);
-}
-
-/** 仮のタブを固定する（仮でなければそのまま） */
-export function pinDbTab(state: DbClientTabs, key: string): DbClientTabs {
-  const found = state.tabs.find((t) => t.key === key);
-  if (!found || found.kind !== "table" || !found.preview) return state;
-  const { preview: _drop, ...pinned } = found;
-  return { ...state, tabs: state.tabs.map((t) => (t === found ? pinned : t)) };
+  return openTab(current && keep(current.key) ? keepTab(state, current.key) : state, tab, { preview: true });
 }
 
 /** テーブルのタブの絞り込みを変える（null なら外す。仮のタブは固定する） */
 export function setTableFilter(state: DbClientTabs, key: string, filter: DbRowFilter | null): DbClientTabs {
-  const pinned = pinDbTab(state, key);
+  const pinned = keepTab(state, key);
   return {
     ...pinned,
     tabs: pinned.tabs.map((t) => {
@@ -150,18 +129,9 @@ export function setTableFilter(state: DbClientTabs, key: string, filter: DbRowFi
   };
 }
 
-/** タブを閉じる（表示中なら右隣、なければ左隣を表示） */
-export function closeDbTab(state: DbClientTabs, key: string): DbClientTabs {
-  const at = state.tabs.findIndex((t) => t.key === key);
-  if (at < 0) return state;
-  const tabs = state.tabs.filter((t) => t.key !== key);
-  const active = state.active === key ? (tabs[at]?.key ?? tabs[at - 1]?.key ?? null) : state.active;
-  return { tabs, active };
-}
-
 /** 消した接続のタブを閉じる */
 export function closeConnectionTabs(state: DbClientTabs, connectionId: number): DbClientTabs {
-  return state.tabs.filter((t) => t.connection_id === connectionId).reduce((s, t) => closeDbTab(s, t.key), state);
+  return state.tabs.filter((t) => t.connection_id === connectionId).reduce((s, t) => closeTab(s, t.key), state);
 }
 
 /** 新しい SQL のタブの名前（「SQL 1」「SQL 2」…。いま使っていないいちばん小さい番号） */
@@ -177,7 +147,7 @@ const newSqlKey = () => `sql-${Date.now().toString(36)}-${Math.random().toString
 
 /** 接続の新しい SQL のタブを開く（DB クライアントの中と、右の欄の ▾ のメニューから） */
 export const openNewSqlTab = (state: DbClientTabs, connectionId: number): DbClientTabs =>
-  openDbTab(state, { key: newSqlKey(), kind: "sql", connection_id: connectionId, title: nextSqlTitle(state) });
+  openTab(state, { key: newSqlKey(), kind: "sql", connection_id: connectionId, title: nextSqlTitle(state) });
 
 /** SQL のタブで流す接続を替える（入力欄の SQL はそのまま。タブのキー = ワーカーの中の接続の名前は変えない） */
 export function setSqlConnection(state: DbClientTabs, key: string, connectionId: number): DbClientTabs {
@@ -198,7 +168,7 @@ export function openErTab(state: DbClientTabs, connectionId: number, path: DbObj
     const names = focus && found.names && !found.names.includes(focus) ? null : found.names;
     return { tabs: state.tabs.map((t) => (t === found ? { ...found, focus, names } : t)), active: key };
   }
-  return openDbTab(state, { key, kind: "er", connection_id: connectionId, path, focus, depth: 1, names: null });
+  return openTab(state, { key, kind: "er", connection_id: connectionId, path, focus, depth: 1, names: null });
 }
 
 /** ER 図のタブの絞り込み（focus・段の数・描くテーブル）を変える */
@@ -211,13 +181,13 @@ export const noteTabKey = (path: string) => `note:${path}`;
 
 /** 手順ノートのタブを開く（もう開いていれば選ぶだけ） */
 export const openNoteTab = (state: DbClientTabs, connectionId: number, path: string): DbClientTabs =>
-  openDbTab(state, { key: noteTabKey(path), kind: "note", connection_id: connectionId, path });
+  openTab(state, { key: noteTabKey(path), kind: "note", connection_id: connectionId, path });
 
 /** 手順ノートの名前が変わったら、タブのパスとキーを付け替える（同じノートのタブがほかにあれば、そちらを残してこれを閉じる） */
 export function renameNoteTab(state: DbClientTabs, key: string, path: string): DbClientTabs {
   const next = noteTabKey(path);
   if (next === key) return state;
-  if (state.tabs.some((t) => t.key === next)) return { ...closeDbTab(state, key), active: next };
+  if (state.tabs.some((t) => t.key === next)) return { ...closeTab(state, key), active: next };
   return {
     tabs: state.tabs.map((t) => (t.key === key && t.kind === "note" ? { ...t, key: next, path } : t)),
     active: state.active === key ? next : state.active,

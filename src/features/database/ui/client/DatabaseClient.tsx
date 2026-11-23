@@ -1,43 +1,36 @@
 import { PanelLeftOpen } from "lucide-react";
-import { lazy, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import type { DbConnection, DbImportCandidate } from "@shared/database/types";
+import { useEffect, useEffectEvent, useState } from "react";
+import type { DbConnection } from "@shared/database/types";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { cx } from "@/foundation/ui/lib/cx";
 import { hasAppModifier } from "@/foundation/ui/lib/keys";
-import { closeConnectionTabs, closeDbTab, openErTab, openNoteTab, openNewSqlTab, openPreviewTab, openTableTab, pinDbTab, renameNoteTab, setSqlConnection, setTableFilter, tableTabKey, updateErTab, type DbClientTab } from "@/features/database/ui/state/dbClientTabs";
+import { closeTab, keepTab } from "@/foundation/ui/kit/tabs/tabList";
+import { useTabs } from "@/foundation/ui/kit/tabs/useTabs";
+import { closeConnectionTabs, openErTab, openNoteTab, openNewSqlTab, openPreviewTab, openTableTab, setSqlConnection, tableTabKey, type DbClientTab } from "@/features/database/ui/state/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { useDbConnections } from "@/features/database/ui/state/connectionsStore";
 import { SideNote } from "@/features/notes/ui/SideNote";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
-import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
-import { confirm } from "@/foundation/ui/kit/ask";
+import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { ConnectionDialog } from "@/features/database/ui/connection/ConnectionDialog";
 import { ConnectionMenu } from "@/features/database/ui/connection/ConnectionMenu";
-import { CopyConnectionDialog } from "@/features/database/ui/connection/CopyConnectionDialog";
-import { ImportConnectionDialog } from "@/features/database/ui/connection/ImportConnectionDialog";
-import { DbClientContext, type DbClientActions, type DbFailure, type DbPrepTarget } from "@/features/database/ui/state/dbClientContext";
-import { DbFailureDialog } from "@/features/database/ui/connection/DbFailureDialog";
-import { DbFindPalette } from "./DbFindPalette";
+import { DbClientContext, type DbClientActions } from "@/features/database/ui/state/dbClientContext";
+import { DbClientDialogs, type DbDialog } from "./DbClientDialogs";
 import { DbHome } from "./DbHome";
 import { DbList } from "./DbList";
-import { DbPrepDialog } from "@/features/database/ui/connection/DbPrepDialog";
+import { DbTabPages } from "./DbTabPage";
+import { canCloseDbTab } from "./dbTabClose";
 import { dbSurfaceKey, type DbSurface } from "@/features/database/ui/state/surface";
 import { treeKey } from "@/features/database/ui/tree/treeKeys";
 import { useDbClientTabs } from "@/features/database/ui/state/useDbClientTabs";
 import { useDbClientRequests } from "@/features/database/ui/state/dbClientRequests";
 import { createConnectionNote } from "@/features/database/ui/connection/dbNote";
-import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
-import { DefinitionView } from "@/features/database/ui/table/DefinitionView";
+import { DbBreadcrumb, DbTabStrip } from "./DbTabParts";
 import { finishSession } from "@/features/database/ui/state/sqlSessions";
-import { SqlView } from "@/features/database/ui/sql/SqlView";
 import { unsavedKey, unsavedTables } from "@/features/database/ui/state/tabFlags";
-import { TableView } from "@/features/database/ui/table/TableView";
-
-/** ER 図（@xyflow/react と elkjs は ER 図を開いたときだけ読む） */
-const ErView = lazy(() => import("@/features/database/ui/er/ErView"));
 
 /** 左の一覧を自動で隠す幅（これより狭い所では一覧を重ねて出し、右にパンくず。テーブルの表示の切り替えはアイコンだけ・行の詳細は下に重ねる） */
 const NARROW_WIDTH = 720;
@@ -50,34 +43,21 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
   const surfaceKey = dbSurfaceKey(surface);
   const connections = useDbConnections(projectId);
   const list = connections.data ?? [];
-  const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
+  const byId = new Map(list.map((c) => [c.id, c]));
   const { state, update } = useDbClientTabs(surfaceKey);
   const [hidden, setHidden] = useSetting(storage.settings.listHidden);
-  const [treeOpen, setTreeOpen] = useSetting(storage.settings.treeOpen(surfaceKey));
-  const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
-  const [copying, setCopying] = useState(false);
-  const [importing, setImporting] = useState<{ preselect: DbImportCandidate | null } | null>(null); // 取り込みの画面（Docker タブの「DB で開く」からは、その DB の案を選んだ形で）
-  const [finding, setFinding] = useState(false);
-  const [failure, setFailure] = useState<DbFailure | null>(null);
-  const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
+  const [dialog, setDialog] = useState<DbDialog | null>(null);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
   const menu = useContextMenu<DbConnection>();
   const width = useDragSize({ setting: storage.settings.listWidth, min: 180, keep: 320 });
-  const root = useRef<HTMLDivElement>(null);
-  const [narrow, setNarrow] = useState(false);
+  const { ref: root, narrow } = useNarrowerThan<HTMLDivElement>(NARROW_WIDTH);
   const [overlay, setOverlay] = useState(false);
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => setNarrow(el.clientWidth < NARROW_WIDTH));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const tabs = useTabs({ keys: state.tabs.map((t) => t.key), value: state.active, onChange: (key) => update((s) => ({ ...s, active: key })), label: "DB のタブ" });
 
   /** 接続を選ぶ（木で開いて一覧を出す） */
   const focusConnection = (connectionId: number) => {
     const open = readSetting(storage.settings.treeOpen(surfaceKey));
-    if (!open.includes(treeKey.connection(connectionId))) setTreeOpen([...open, treeKey.connection(connectionId)]);
+    if (!open.includes(treeKey.connection(connectionId))) writeSetting(storage.settings.treeOpen(surfaceKey), [...open, treeKey.connection(connectionId)]);
     // 描いたばかり（預けた頼み）だと narrow がまだ測れていないので、その場で幅を測る
     if ((root.current?.clientWidth ?? Infinity) < NARROW_WIDTH) setOverlay(true);
     else setHidden(false);
@@ -85,8 +65,8 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
 
   // 右の欄の ▾ の「DB ▸」から: 接続を選ぶ・接続を足す。Docker タブの「DB で開く」から: 接続を選ぶ・案を選んで取り込みの画面を開く
   useDbClientRequests(surfaceKey, (r) => {
-    if (r.kind === "add") return setEditing(null);
-    if (r.kind === "import") return setImporting({ preselect: r.candidate });
+    if (r.kind === "add") return setDialog({ kind: "edit", connection: null });
+    if (r.kind === "import") return setDialog({ kind: "import", preselect: r.candidate });
     focusConnection(r.connectionId);
   });
 
@@ -130,10 +110,10 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
       update((s) => openErTab(s, c.id, path, focus));
       setOverlay(false);
     },
-    editConnection: (c) => setEditing(c),
+    editConnection: (connection) => setDialog({ kind: "edit", connection }),
     openNote: (c) => void openConnectionNote(c),
-    showFailure: setFailure,
-    showPrep: setPrepFor,
+    showFailure: (failure) => setDialog({ kind: "failure", failure }),
+    showPrep: (target) => setDialog({ kind: "prep", target }),
   };
 
   /** 接続の手順ノートをタブで開く（なければ作ってから。作るのをやめたら何もしない） */
@@ -145,26 +125,12 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
     setOverlay(false);
   };
 
-  /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す。テーブルのタブは保存していない変更があれば捨てるか聞く） */
-  const closeTab = async (tab: DbClientTab) => {
-    if (tab.kind === "table" && unsavedTables.has(unsavedKey(surfaceKey, tab.key))) {
-      const ok = await confirm({ title: "保存していない変更があります", message: `「${tab.name}」の変更を保存せずに閉じますか？変更は捨てます。`, confirmLabel: "捨てて閉じる", danger: true });
-      if (!ok) return;
-    }
-    if (tab.kind === "sql") {
-      const c = byId.get(tab.connection_id);
-      if (c) {
-        const ok = await finishSession(projectId, c, tab.key);
-        if (!ok) return;
-      }
-      writeSetting(storage.settings.sqlDraft(`${surfaceKey}:${tab.key}`), "");
-    }
-    update((s) => closeDbTab(s, tab.key));
+  /** タブを閉じる（閉じる前の確かめは種類ごと。やめたら閉じない） */
+  const closeDbTab = async (tab: DbClientTab) => {
+    if (await canCloseDbTab({ projectId, surfaceKey, connection: byId.get(tab.connection_id) }, tab)) update((s) => closeTab(s, tab.key));
   };
 
   const active = state.tabs.find((t) => t.key === state.active) ?? null;
-  /** タブにいくつもの接続が混ざるとき、タブの名前の前に接続の名前を添える */
-  const mixedConnections = new Set(state.tabs.map((t) => t.connection_id)).size > 1;
   const listShown = narrow ? overlay : !hidden;
 
   return (
@@ -176,7 +142,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
         onKeyDown={(e) => {
           if (hasAppModifier(e) && e.shiftKey && !e.altKey && e.code === "KeyO" && list.length > 0) {
             e.preventDefault();
-            setFinding(true);
+            setDialog({ kind: "find" });
           }
         }}
       >
@@ -188,123 +154,42 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
             error={connections.error}
             narrow={narrow}
             width={width}
-            onAdd={() => setEditing(null)}
-            onImport={() => setImporting({ preselect: null })}
-            onCopy={() => setCopying(true)}
-            onFind={() => setFinding(true)}
+            onAdd={() => setDialog({ kind: "edit", connection: null })}
+            onImport={() => setDialog({ kind: "import", preselect: null })}
+            onCopy={() => setDialog({ kind: "copy" })}
+            onFind={() => setDialog({ kind: "find" })}
             onHide={() => (narrow ? setOverlay(false) : setHidden(true))}
             onConnectionMenu={(e, c) => menu.open(e, c)}
           />
         )}
         <section className="db-main">
-          <div className="db-tabs" role="tablist">
-            {!listShown && <IconButton icon={PanelLeftOpen} label="接続の一覧を表示" onClick={() => (narrow ? setOverlay(true) : setHidden(false))} />}
-            {state.tabs.map((t) => {
-              const c = byId.get(t.connection_id);
-              return (
-                <div key={t.key} className={cx("db-tab", t.key === state.active && "active", t.kind === "table" && t.preview && "preview", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
-                  <button
-                    type="button"
-                    className="db-tab-name"
-                    title={t.kind === "table" && t.preview ? `${tabTitle(t, c)}\n仮のタブ（ダブルクリックで固定）` : tabTitle(t, c)}
-                    onClick={() => update((s) => ({ ...s, active: t.key }))}
-                    onDoubleClick={() => update((s) => pinDbTab(s, t.key))}
-                  >
-                    <span className="db-env-dot" aria-hidden />
-                    <DbTabIcon tab={t} />
-                    {mixedConnections && c && <span className="db-tab-conn">{c.name}</span>}
-                    <span className="db-tab-label">{tabLabel(t)}</span>
-                    {t.kind === "sql" && <PendingMark tabKey={t.key} />}
-                    {t.kind === "table" && <UnsavedMark flagKey={unsavedKey(surfaceKey, t.key)} />}
-                  </button>
-                  <CloseButton size="xs" label="タブを閉じる" iconSize={12} className="db-tab-close" onClick={() => void closeTab(t)} />
-                </div>
-              );
-            })}
-            {/* 右の欄では「別ウィンドウで開く」（ほかのタブの中身と同じく右端） */}
-            <span className="db-tabs-end">
-              <PopOutTabButton />
-            </span>
-          </div>
-          {active && narrow && (
-            <button type="button" className="db-breadcrumb small" title="接続の一覧を重ねて出す" onClick={() => setOverlay(true)}>
-              {breadcrumbOf(active, byId.get(active.connection_id))}
-            </button>
-          )}
-          {/* 広い幅でも、テーブル・関数・列挙型のタブの上には接続から数えたパンくず（どの接続のどの DB か取り違えないように。一覧は横に見えているので押せない） */}
-          {active && !narrow && active.kind === "table" && <div className="db-breadcrumb static small">{breadcrumbOf(active, byId.get(active.connection_id))}</div>}
+          <DbTabStrip
+            tabs={tabs}
+            state={state}
+            connectionOf={(id) => byId.get(id)}
+            surfaceKey={surfaceKey}
+            start={!listShown && <IconButton icon={PanelLeftOpen} label="接続の一覧を表示" onClick={() => (narrow ? setOverlay(true) : setHidden(false))} />}
+            // 右の欄では「別ウィンドウで開く」（ほかのタブの中身と同じく右端）
+            end={<PopOutTabButton />}
+            onPin={(key) => update((s) => keepTab(s, key))}
+            onClose={(t) => void closeDbTab(t)}
+          />
+          {active && <DbBreadcrumb tab={active} connection={byId.get(active.connection_id)} narrow={narrow} onOverlay={() => setOverlay(true)} />}
           <div className="db-tab-body">
-            {state.tabs.map((t) => {
-              const c = byId.get(t.connection_id);
-              if (!c) return null;
-              return (
-                <div key={t.key} className="db-tab-page" hidden={t.key !== state.active}>
-                  {t.kind === "note" ? (
-                    <SideNote
-                      projectId={projectId}
-                      path={t.path}
-                      chatId={null}
-                      noteTabButton
-                      // 接続の note_path はコアが付け替えて知らせる
-                      onRenamed={(to) => update((s) => renameNoteTab(s, t.key, to))}
-                    />
-                  ) : t.kind === "sql" ? (
-                    <SqlView tab={t} connection={c} active={t.key === state.active} />
-                  ) : t.kind === "er" ? (
-                    <Suspense fallback={<p className="db-er-loading small muted">読み込み中…</p>}>
-                      <ErView tab={t} connection={c} active={t.key === state.active} onChange={(patch) => update((s) => updateErTab(s, t.key, patch))} />
-                    </Suspense>
-                  ) : t.object === "function" || t.object === "enum" ? (
-                    <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
-                  ) : (
-                    <TableView tab={t} connection={c} active={t.key === state.active} onFilter={(filter) => update((s) => setTableFilter(s, t.key, filter))} />
-                  )}
-                </div>
-              );
-            })}
+            <DbTabPages tabs={tabs} state={state} connectionOf={(id) => byId.get(id)} update={update} note={(path, onRenamed) => <SideNote projectId={projectId} path={path} chatId={null} noteTabButton onRenamed={onRenamed} />} />
             {!active && connections.data && (
               <DbHome
                 projectId={projectId}
                 connections={list}
-                onOpen={(c) => {
-                  // 左の木でその接続を開く（一覧を隠していれば出す）
-                  const key = treeKey.connection(c.id);
-                  if (!treeOpen.includes(key)) setTreeOpen([...treeOpen, key]);
-                  if (narrow) setOverlay(true);
-                  else setHidden(false);
-                }}
+                onOpen={(c) => focusConnection(c.id)}
                 onMenu={(e, c) => menu.open(e, c)}
-                onAdd={() => setEditing(null)}
+                onAdd={() => setDialog({ kind: "edit", connection: null })}
               />
             )}
           </div>
         </section>
         {menu.menu && <ConnectionMenu at={menu.menu.at} connection={menu.menu.value} onClose={menu.close} />}
-        {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
-        {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
-        {finding && <DbFindPalette connections={list} activeTab={active} onClose={() => setFinding(false)} />}
-        {importing && <ImportConnectionDialog projectId={projectId} preselect={importing.preselect} onImported={(c) => focusConnection(c.id)} onClose={() => setImporting(null)} />}
-        {failure && (
-          <DbFailureDialog
-            projectId={projectId}
-            // 一覧が取り直されたら（手順ノートを結んだなど）新しい方で
-            connection={byId.get(failure.connection.id) ?? failure.connection}
-            error={failure.error}
-            onNote={() => void openConnectionNote(byId.get(failure.connection.id) ?? failure.connection)}
-            onRetry={failure.retry}
-            onPrep={() => setPrepFor({ connection: failure.connection, retry: failure.retry })}
-            onClose={() => setFailure(null)}
-          />
-        )}
-        {prepFor && (
-          <DbPrepDialog
-            projectId={projectId}
-            // 確かめたら一覧が取り直されるので、新しい方で
-            connection={byId.get(prepFor.connection.id) ?? prepFor.connection}
-            onRetry={prepFor.retry}
-            onClose={() => setPrepFor(null)}
-          />
-        )}
+        <DbClientDialogs dialog={dialog} onChange={setDialog} projectId={projectId} worktree={worktree} connections={list} activeTab={active} onImported={(c) => focusConnection(c.id)} onNote={(c) => void openConnectionNote(c)} />
       </div>
     </DbClientContext.Provider>
   );
