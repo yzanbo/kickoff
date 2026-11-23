@@ -1,34 +1,17 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/database/types";
 import { errorMessage } from "@shared/foundation/errors";
+import type { TreeNode } from "@/foundation/ui/kit/list/tree";
 import { ApiError } from "@/foundation/ui/api";
-import { cx } from "@/foundation/ui/lib/cx";
-import { Chevron } from "@/foundation/ui/kit/Chevron";
-import { useDbClient } from "@/features/database/ui/state/dbClientContext";
+import { useDbClient, type DbClientActions } from "@/features/database/ui/state/dbClientContext";
 import { SshHostKeyDialog } from "@/features/database/ui/connection/SshHostKeyDialog";
+import type { TreeGet, TreeLoad } from "./useTreeLoads";
 
 /**
- * 木の 1 行（開閉の矢印・アイコン・名前・添える文）。押すと開閉か、葉なら onOpen。
+ * 木の 1 行の見た目と操作（開閉の矢印・アイコン・名前・添える文）。押すと開閉か、葉なら onOpen。
  * openOnClick（テーブル・ビュー）は、名前を押すと開き（onOpen）、矢印を押す・→ / ← で中の段を開閉する
  */
-export function TreeRow({
-  depth,
-  open,
-  icon,
-  label,
-  note,
-  mark,
-  title,
-  className,
-  openOnClick,
-  onToggle,
-  onOpen,
-  onPin,
-  onContextMenu,
-}: {
-  depth: number;
-  /** 開閉できる段なら開いているか（葉は undefined） */
-  open?: boolean;
+export interface DbRowLook {
   icon: ReactNode;
   label: string;
   note?: string;
@@ -37,53 +20,38 @@ export function TreeRow({
   title?: string;
   className?: string;
   openOnClick?: boolean;
-  onToggle?: () => void;
   onOpen?: () => void;
   /** ダブルクリック（テーブル・ビュー・関数・列挙型は、1 回押すと仮のタブ・ダブルクリックで固定） */
   onPin?: () => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={cx("list-item db-tree-row tree-indent", className)}
-      style={{ "--depth": depth } as CSSProperties}
-      aria-expanded={open}
-      title={title}
-      onClick={(e) => {
-        if (openOnClick && !(e.target instanceof Element && e.target.closest(".db-tree-chevron"))) return onOpen?.();
-        if (onToggle) onToggle();
-        else onOpen?.();
-      }}
-      onDoubleClick={onPin ?? (!openOnClick && onToggle && onOpen ? onOpen : undefined)}
-      onKeyDown={(e) => {
-        if (!onToggle || open === undefined) return;
-        if ((e.key === "ArrowRight" && !open) || (e.key === "ArrowLeft" && open)) {
-          e.preventDefault();
-          onToggle();
-        }
-      }}
-      onContextMenu={onContextMenu}
-    >
-      <span className="db-tree-chevron">{open !== undefined && <Chevron open={open} size={12} />}</span>
-      {icon}
-      <span className="db-tree-label">{label}</span>
-      {mark}
-      {note && <span className="db-tree-note">{note}</span>}
-    </button>
-  );
+  onMenu?: (e: React.MouseEvent) => void;
+}
+
+/** 木の 1 つ（読み込み中・空の案内 hint と、失敗の行 error も行にする） */
+export interface DbTreeNode extends TreeNode<string> {
+  children?: DbTreeNode[] | "lazy";
+  row: DbRowLook | { hint: string } | { error: unknown; connection: DbConnection; retry: () => void };
+}
+
+/** 案内の行（読み込み中・空など） */
+export const hintNode = (parent: string, hint: string): DbTreeNode => ({ key: `${parent}:hint`, row: { hint } });
+
+/** 段の読み込みの行: 失敗なら失敗の行、届くまでは「読み込み中…」、届いたら build */
+export function loadedNodes<T>(parent: string, load: TreeLoad<T>, connection: DbConnection, build: (data: T) => DbTreeNode[]): DbTreeNode[] {
+  if (load.error !== undefined) return [{ key: `${parent}:error`, row: { error: load.error, connection, retry: load.reload } }];
+  if (load.data === undefined) return [hintNode(parent, "読み込み中…")];
+  return build(load.data);
 }
 
 /**
  * 読み込みの失敗の行（ワークツリーにファイルがなければ、本体のものを開くボタン。ほかの失敗は「直し方を見る」でつながらないときの案内。
  * onRetry: 案内の「つなぎ直す」で、この段を読み直す）
  */
-export function TreeError({ depth, error, connection, onRetry }: { depth: number; error: unknown; connection: DbConnection; onRetry?: () => void }) {
+export function TreeError({ error, connection, onRetry }: { error: unknown; connection: DbConnection; onRetry: () => void }) {
   const client = useDbClient();
   const [checkingKey, setCheckingKey] = useState(false);
   const code = error instanceof ApiError ? error.code : undefined;
   return (
-    <div className="db-tree-error tree-indent" style={{ "--depth": depth } as CSSProperties}>
+    <>
       <span>{errorMessage(error)}</span>
       {code === DB_NOT_IN_WORKTREE ? (
         <button type="button" className="link-button small" onClick={() => client.openMain(connection.id)}>
@@ -105,18 +73,9 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
         </button>
       )}
       {checkingKey && connection.ssh && (
-        <SshHostKeyDialog projectId={client.projectId} ssh={connection.ssh} onAccepted={() => onRetry?.()} onClose={() => setCheckingKey(false)} />
+        <SshHostKeyDialog projectId={client.projectId} ssh={connection.ssh} onAccepted={onRetry} onClose={() => setCheckingKey(false)} />
       )}
-    </div>
-  );
-}
-
-/** 読み込み中・空などの案内の行 */
-export function TreeHint({ depth, children }: { depth: number; children: ReactNode }) {
-  return (
-    <div className="db-tree-hint tree-indent" style={{ "--depth": depth } as CSSProperties}>
-      {children}
-    </div>
+    </>
   );
 }
 
@@ -127,9 +86,10 @@ export interface TreeMenuTarget {
   table: { name: string; kind: DbObjectKind } | null;
 }
 
-/** 木の段の開閉（開いている段は置き場所ごとに覚える）と、DB・スキーマ・テーブルの右クリック */
-export interface TreeOpen {
-  isOpen: (key: string) => boolean;
-  toggle: (key: string) => void;
-  menu: (e: React.MouseEvent, target: TreeMenuTarget) => void;
+/** 木を組むときに段の部品が使うもの（段の読み込み・開き具合・タブの開き方・右クリック） */
+export interface DbTreeBuild {
+  get: TreeGet;
+  client: DbClientActions;
+  isOpen(key: string): boolean;
+  menu(e: React.MouseEvent, target: TreeMenuTarget): void;
 }

@@ -25,7 +25,7 @@
 
 /*
  * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 行ごとに、段の数だけ親のフォルダの開閉の矢印の下に線を引く
- * （行の左の余白 6px ＋ 段ごとの 12px ＋ 開閉の矢印（幅 14px）の真ん中）。一覧にマウスを乗せている間だけ全部を薄く出し、
+ * （行の左の余白 6px ＋ 段ごとの 12px ＋ 開閉の矢印（幅 14px）の真ん中。字下げの違う木は --tree-guide-left・--tree-guide-step で合わせる）。一覧にマウスを乗せている間だけ全部を薄く出し、
  * 選んでいる行（--guide-sel）・ピントのある行（--guide-focus。木にピントがある間）の段の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40%）
  */
 .tree-view .tree-row {
@@ -38,7 +38,7 @@
 .tree-view .tree-row[data-guide]::after {
   position: absolute;
   inset-block: 0;
-  left: 13px;
+  left: var(--tree-guide-left, 13px);
   /* 中の段の行の地より上に重ねる */
   z-index: 1;
   content: "";
@@ -47,8 +47,8 @@
 
 .tree-view .tree-row::before {
   --tree-guide: color-mix(in srgb, var(--extra-muted) 40%, transparent);
-  width: calc(var(--depth, 0) * 12px);
-  background: linear-gradient(to right, var(--tree-guide) 1px, transparent 1px) 0 0 / 12px 100% repeat-x;
+  width: calc(var(--depth, 0) * var(--tree-guide-step, 12px));
+  background: linear-gradient(to right, var(--tree-guide) 1px, transparent 1px) 0 0 / var(--tree-guide-step, 12px) 100% repeat-x;
   opacity: 0;
   transition: opacity 0.1s linear;
 }
@@ -61,14 +61,14 @@
   --tree-guide-strong: linear-gradient(var(--extra-muted), var(--extra-muted));
   right: 0;
   background:
-    var(--tree-guide-strong) calc(var(--guide-sel, -99) * 12px) 0 / 1px 100% no-repeat,
+    var(--tree-guide-strong) calc(var(--guide-sel, -99) * var(--tree-guide-step, 12px)) 0 / 1px 100% no-repeat,
     var(--tree-guide-strong) -99px 0 / 1px 100% no-repeat;
 }
 
 .tree-view:focus .tree-row[data-guide]::after {
   background-position:
-    calc(var(--guide-sel, -99) * 12px) 0,
-    calc(var(--guide-focus, -99) * 12px) 0;
+    calc(var(--guide-sel, -99) * var(--tree-guide-step, 12px)) 0,
+    calc(var(--guide-focus, -99) * var(--tree-guide-step, 12px)) 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

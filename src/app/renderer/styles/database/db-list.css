@@ -6,6 +6,19 @@
   contain-intrinsic-size: auto var(--row-tight);
 }
 
+/* 縦の線は開閉の矢印（左の余白 6px ＋ 幅 12px）の真ん中に、段ごとに 14px */
+.db-tree {
+  --tree-guide-left: 12px;
+  --tree-guide-step: 14px;
+}
+
+/* 案内・失敗の行は押せる行に見せない */
+.db-tree-error:hover,
+.db-tree-hint:hover {
+  background: transparent;
+  cursor: default;
+}
+
 .db-tree-row > svg.db-tree-pin {
   color: var(--accent);
 }

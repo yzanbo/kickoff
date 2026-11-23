@@ -26,3 +26,16 @@ export function parseTreeKey(key: string): { level: "database" | "schema"; conne
   if (kind === "s" && schema !== undefined) return { level: "schema", connectionId: Number(id), path: { database: unpart(database), schema: unpart(schema) } };
   return null;
 }
+
+/** 種類ごとの段は閉じた段だけを覚えるので、覚えた一覧の読み方が逆 */
+const remembersClosed = (key: string) => key.startsWith("k:");
+
+/** 覚えた開き具合（treeOpen）で、その段が開いているか */
+export const isTreeKeyOpen = (list: readonly string[], key: string): boolean => list.includes(key) !== remembersClosed(key);
+
+/** 段を開く / 閉じたあとの、覚える開き具合（変わらなければ同じ配列） */
+export function withTreeKeyOpen(list: readonly string[], key: string, open: boolean): readonly string[] {
+  const keep = open !== remembersClosed(key);
+  if (list.includes(key) === keep) return list;
+  return keep ? [...list, key] : list.filter((k) => k !== key);
+}

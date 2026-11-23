@@ -1,11 +1,9 @@
 import { ArrowDownAZ, Columns3, Eye, KeyRound, Link, ListOrdered, SquareFunction, Table2, Zap, type LucideIcon } from "lucide-react";
 import { DB_OBJECT_KIND_LABELS, DB_OBJECT_KINDS, type DbConnection, type DbObject, type DbObjectKind, type DbObjectPath, type DbTableDetail } from "@shared/database/types";
 import { treeKey as treeKeys } from "./treeKeys";
-import { useQuery } from "@/foundation/ui/query";
 import { dbApi, dbAt } from "@/features/database/ui/api";
-import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { estimatedRowsLabel } from "@/features/database/ui/dbFormat";
-import { TreeError, TreeHint, TreeRow, type TreeOpen } from "./DbTreeRow";
+import { hintNode, loadedNodes, type DbTreeBuild, type DbTreeNode } from "./DbTreeRow";
 
 const OBJECT_ICONS: Record<DbObjectKind, LucideIcon> = { table: Table2, view: Eye, function: SquareFunction, enum: ListOrdered };
 
@@ -19,121 +17,76 @@ export function TabObjectIcon({ object }: { object: DbObjectKind }) {
  * テーブル・ビュー・関数・列挙型の一覧（種類ごとの段に数を添えて分ける）。名前を押すとタブを開く。
  * テーブル・ビューは矢印（→ / ←）で中の段（列・インデックス・外部キー・トリガー）を開く
  */
-export function ObjectsNode({ connection: c, depth, path, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; tree: TreeOpen }) {
-  const client = useDbClient();
-  const worktree = client.worktreeOf(c.id);
-  const objects = useQuery(["DbTree.objects", c.id, path.database, path.schema, worktree], () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/objects", { ...dbAt(client.projectId, c.id, worktree), body: { path } }));
-  if (objects.loading) return <TreeHint depth={depth}>読み込み中…</TreeHint>;
-  if (objects.error) return <TreeError depth={depth} error={objects.error} connection={c} onRetry={() => void objects.reload()} />;
-  if (objects.data?.length === 0) return <TreeHint depth={depth}>テーブルがありません</TreeHint>;
-  // 種類ごとの段（テーブル 12・ビュー 3 …）に分ける。中身のない種類は出さない。初めは開いておく（閉じた段だけ覚える）
-  return (
-    <>
-      {DB_OBJECT_KINDS.map((kind) => {
-        const items = objects.data?.filter((o) => o.kind === kind) ?? [];
-        if (items.length === 0) return null;
-        const closedKey = treeKeys.kindClosed(c.id, path, kind);
-        const open = !tree.isOpen(closedKey);
-        const Icon = OBJECT_ICONS[kind];
-        return (
-          <div key={kind}>
-            <TreeRow depth={depth} open={open} icon={<Icon size={12} aria-hidden />} label={DB_OBJECT_KIND_LABELS[kind]} note={items.length.toLocaleString()} className="db-tree-group" onToggle={() => tree.toggle(closedKey)} />
-            {open && items.map((o) => <ObjectNode key={`${o.kind}:${o.name}`} connection={c} depth={depth + 1} path={path} object={o} tree={tree} />)}
-          </div>
-        );
-      })}
-    </>
-  );
+export function objectNodes(b: DbTreeBuild, c: DbConnection, parent: string, path: DbObjectPath): DbTreeNode[] {
+  const worktree = b.client.worktreeOf(c.id);
+  const objects = b.get(JSON.stringify(["objects", c.id, path.database, path.schema, worktree]), () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/objects", { ...dbAt(b.client.projectId, c.id, worktree), body: { path } }));
+  return loadedNodes(parent, objects, c, (list) => {
+    if (list.length === 0) return [hintNode(parent, "テーブルがありません")];
+    // 種類ごとの段（テーブル 12・ビュー 3 …）に分ける。中身のない種類は出さない。初めは開いておく（閉じた段だけ覚える）
+    return DB_OBJECT_KINDS.flatMap((kind) => {
+      const items = list.filter((o) => o.kind === kind);
+      if (items.length === 0) return [];
+      const key = treeKeys.kindClosed(c.id, path, kind);
+      const Icon = OBJECT_ICONS[kind];
+      const row = { icon: <Icon size={12} aria-hidden />, label: DB_OBJECT_KIND_LABELS[kind], note: items.length.toLocaleString(), className: "db-tree-group" };
+      return [{ key, row, children: b.isOpen(key) ? items.map((o) => objectNode(b, c, path, o)) : "lazy" } satisfies DbTreeNode];
+    });
+  });
 }
 
-function ObjectNode({ connection: c, depth, path, object: o, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; object: DbObject; tree: TreeOpen }) {
-  const client = useDbClient();
+function objectNode(b: DbTreeBuild, c: DbConnection, path: DbObjectPath, o: DbObject): DbTreeNode {
   const Icon = OBJECT_ICONS[o.kind];
-  // 1 回押すと仮のタブ、ダブルクリックで固定
-  const preview = () => client.openTable(c, path, o.name, o.kind, undefined, true);
-  const open = () => client.openTable(c, path, o.name, o.kind);
-  if (o.kind !== "table" && o.kind !== "view") {
-    return <TreeRow depth={depth} icon={<Icon size={13} aria-hidden />} label={o.name} className="db-tree-object" onOpen={preview} onPin={open} />;
-  }
   const key = treeKeys.table(c.id, path, o.name);
-  const isOpen = tree.isOpen(key);
+  // 1 回押すと仮のタブ、ダブルクリックで固定
+  const onOpen = () => b.client.openTable(c, path, o.name, o.kind, undefined, true);
+  const onPin = () => b.client.openTable(c, path, o.name, o.kind);
+  if (o.kind !== "table" && o.kind !== "view") return { key: `${key}:${o.kind}`, row: { icon: <Icon size={13} aria-hidden />, label: o.name, className: "db-tree-object", onOpen, onPin } };
   // おおよその行数（DB の統計）を薄く添える
   const rows = estimatedRowsLabel(o.estimated_rows);
-  return (
-    <>
-      <TreeRow
-        depth={depth}
-        open={isOpen}
-        openOnClick
-        icon={<Icon size={13} aria-hidden />}
-        label={o.name}
-        note={rows ?? undefined}
-        title={rows ? `${o.name}（おおよそ ${o.estimated_rows!.toLocaleString()} 行。DB の統計から）` : undefined}
-        className="db-tree-object"
-        onToggle={() => tree.toggle(key)}
-        onOpen={preview}
-        onPin={open}
-        onContextMenu={(e) => tree.menu(e, { connection: c, path, table: { name: o.name, kind: o.kind } })}
-      />
-      {isOpen && <TableChildren connection={c} depth={depth + 1} path={path} name={o.name} treeKey={key} tree={tree} onOpen={open} />}
-    </>
-  );
+  return {
+    key,
+    row: {
+      icon: <Icon size={13} aria-hidden />,
+      label: o.name,
+      note: rows ?? undefined,
+      title: rows ? `${o.name}（おおよそ ${o.estimated_rows!.toLocaleString()} 行。DB の統計から）` : undefined,
+      className: "db-tree-object",
+      openOnClick: true,
+      onOpen,
+      onPin,
+      onMenu: (e) => b.menu(e, { connection: c, path, table: { name: o.name, kind: o.kind } }),
+    },
+    children: b.isOpen(key) ? tableNodes(b, c, path, o.name, key, onPin) : "lazy",
+  };
 }
 
 /** テーブル・ビューの中の段: 列をそのまま並べ、インデックス・外部キー・トリガーは、あるときだけ開閉のまとまりに */
-function TableChildren({
-  connection: c,
-  depth,
-  path,
-  name,
-  treeKey,
-  tree,
-  onOpen,
-}: {
-  connection: DbConnection;
-  depth: number;
-  path: DbObjectPath;
-  name: string;
-  treeKey: string;
-  tree: TreeOpen;
-  onOpen: () => void;
-}) {
-  const client = useDbClient();
-  const worktree = client.worktreeOf(c.id);
-  const detail = useQuery(["DbTree.table", c.id, path.database, path.schema, name, worktree], () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/table", { ...dbAt(client.projectId, c.id, worktree), body: { path, name } }));
-  if (detail.loading) return <TreeHint depth={depth}>読み込み中…</TreeHint>;
-  if (detail.error) return <TreeError depth={depth} error={detail.error} connection={c} onRetry={() => void detail.reload()} />;
-  const d = detail.data;
-  if (!d) return null;
-  return (
-    <>
-      {d.columns.map((col) => (
-        <TreeRow
-          key={col.name}
-          depth={depth}
-          icon={col.primary_key ? <KeyRound size={12} aria-hidden className="db-tree-pk" /> : <Columns3 size={12} aria-hidden />}
-          label={col.name}
-          note={`${col.type}${col.nullable ? "" : " · NOT NULL"}`}
-          title={[`${col.name} ${col.type}`, col.primary_key ? "主キー" : null, col.default !== null ? `既定 ${col.default}` : null, col.comment].filter(Boolean).join("\n")}
-          className="db-tree-leaf"
-          onOpen={onOpen}
-        />
-      ))}
-      {groupsOf(d).map((g) => {
-        const key = treeKeys.tableGroup(treeKey, g.id);
-        const open = tree.isOpen(key);
-        return (
-          <div key={g.id}>
-            <TreeRow depth={depth} open={open} icon={<g.icon size={12} aria-hidden />} label={g.label} note={String(g.items.length)} className="db-tree-group" onToggle={() => tree.toggle(key)} />
-            {open &&
-              g.items.map((item) => (
-                <TreeRow key={item.label} depth={depth + 1} icon={<g.icon size={12} aria-hidden />} label={item.label} note={item.note} title={item.title} className="db-tree-leaf" onOpen={onOpen} />
-              ))}
-          </div>
-        );
-      })}
-    </>
-  );
+function tableNodes(b: DbTreeBuild, c: DbConnection, path: DbObjectPath, name: string, tableKey: string, onOpen: () => void): DbTreeNode[] {
+  const worktree = b.client.worktreeOf(c.id);
+  const detail = b.get(JSON.stringify(["table", c.id, path.database, path.schema, name, worktree]), () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/table", { ...dbAt(b.client.projectId, c.id, worktree), body: { path, name } }));
+  return loadedNodes(tableKey, detail, c, (d) => [
+    ...d.columns.map((col): DbTreeNode => ({
+      key: `${tableKey}:col:${encodeURIComponent(col.name)}`,
+      row: {
+        icon: col.primary_key ? <KeyRound size={12} aria-hidden className="db-tree-pk" /> : <Columns3 size={12} aria-hidden />,
+        label: col.name,
+        note: `${col.type}${col.nullable ? "" : " · NOT NULL"}`,
+        title: [`${col.name} ${col.type}`, col.primary_key ? "主キー" : null, col.default !== null ? `既定 ${col.default}` : null, col.comment].filter(Boolean).join("\n"),
+        className: "db-tree-leaf",
+        onOpen,
+      },
+    })),
+    ...groupsOf(d).map((g): DbTreeNode => {
+      const key = treeKeys.tableGroup(tableKey, g.id);
+      return {
+        key,
+        row: { icon: <g.icon size={12} aria-hidden />, label: g.label, note: String(g.items.length), className: "db-tree-group" },
+        children: b.isOpen(key)
+          ? g.items.map((item) => ({ key: `${key}:${encodeURIComponent(item.label)}`, row: { icon: <g.icon size={12} aria-hidden />, label: item.label, note: item.note, title: item.title, className: "db-tree-leaf", onOpen } }))
+          : "lazy",
+      };
+    }),
+  ]);
 }
 
 interface TreeGroup {
