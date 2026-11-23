@@ -3,7 +3,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { DbConnection } from "@shared/database/types";
 import { dbApi, dbAt, dbOne } from "@/features/database/ui/api";
 import type { Placement } from "@/foundation/ui/lib/floating";
-import { dbConnectionsStore, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection, forgetConnection, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
 import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
@@ -34,7 +34,7 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
   const duplicate = async () => {
     try {
       const copied = await dbApi("POST /api/projects/:projectId/db-connections/copy", { params: { projectId: client.projectId }, body: { from_id: c.id, copy_password: true } });
-      dbConnectionsStore.invalidate(client.projectId);
+      applyConnection(copied);
       client.editConnection(copied);
     } catch (e) {
       await alert("接続を写せませんでした", errorMessage(e));
@@ -51,7 +51,7 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
     if (!ok) return;
     try {
       await dbApi("DELETE /api/projects/:projectId/db-connections/:connectionId", dbOne(client.projectId, c.id));
-      dbConnectionsStore.invalidate(client.projectId);
+      forgetConnection(client.projectId, c.id);
     } catch (e) {
       await alert("接続を消せませんでした", errorMessage(e));
     }

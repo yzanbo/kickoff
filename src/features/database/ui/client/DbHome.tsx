@@ -7,7 +7,7 @@ import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
-import { dbConnectionsStore, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 import { connectionScope, ENGINE_MARKS } from "@/features/database/ui/dbFormat";
@@ -103,8 +103,8 @@ function Candidate({ projectId, candidate: c }: { projectId: number; candidate: 
     setBusy(true);
     setError(undefined);
     try {
-      await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: [{ key: c.key, name: c.name, environment: c.environment }] } });
-      dbConnectionsStore.invalidate(projectId);
+      const created = await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: [{ key: c.key, name: c.name, environment: c.environment }] } });
+      created.forEach(applyConnection);
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);

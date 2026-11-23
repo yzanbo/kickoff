@@ -6,7 +6,7 @@ import { DB_AI_ACCESSES, DB_AI_ACCESS_LABELS, DB_DEFAULT_PORTS, DB_ENVIRONMENTS,
 import type { DbConnectionTestResult } from "@shared/database/api";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
@@ -92,11 +92,10 @@ export function ConnectionDialog({
     e.preventDefault();
     setSaving(true);
     setError(undefined);
+    // React Compiler は try の中の条件式を扱えないので、保存の仕方は外で決める
+    const save = (body: ReturnType<typeof bodyOf>) => (editing ? dbApi("PATCH /api/projects/:projectId/db-connections/:connectionId", { ...dbOne(projectId, connection.id), body }) : dbApi("POST /api/projects/:projectId/db-connections", { params: { projectId }, body }));
     try {
-      const body = bodyOf(form, editing);
-      if (editing) await dbApi("PATCH /api/projects/:projectId/db-connections/:connectionId", { ...dbOne(projectId, connection.id), body });
-      else await dbApi("POST /api/projects/:projectId/db-connections", { params: { projectId }, body });
-      dbConnectionsStore.invalidate(projectId);
+      applyConnection(await save(bodyOf(form, editing)));
       dialog.close();
     } catch (e) {
       setError(errorMessage(e));

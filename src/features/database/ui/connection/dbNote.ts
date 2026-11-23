@@ -6,7 +6,7 @@ import type { NoteEntry } from "@shared/notes/types";
 import { api } from "@/foundation/ui/api";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { alert, confirm, prompt } from "@/foundation/ui/kit/ask";
 
 // 接続の手順ノート: ノートのフォルダの DB/ の下のノートを、つなぎ方（経路）ごとに 1 つ作り、いくつもの接続で使う
@@ -52,8 +52,7 @@ export async function createDbNoteFile(projectId: number, c: Pick<DbConnection, 
 /** 接続の手順ノートを選び直す（null で外す）。結んだパスを返す */
 async function linkConnectionNote(projectId: number, c: DbConnection, path: string | null): Promise<string | null> {
   try {
-    await dbApi("PATCH /api/projects/:projectId/db-connections/:connectionId", { ...dbOne(projectId, c.id), body: { note_path: path } });
-    dbConnectionsStore.invalidate(projectId);
+    applyConnection(await dbApi("PATCH /api/projects/:projectId/db-connections/:connectionId", { ...dbOne(projectId, c.id), body: { note_path: path } }));
     return path;
   } catch (e) {
     await alert("手順ノートを結べませんでした", errorMessage(e));

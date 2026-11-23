@@ -7,18 +7,7 @@ import { isCancelKey, isComposing, isKey, isSubmitKey } from "@/foundation/ui/li
 import { cellKind, cellText } from "@/features/database/ui/dbFormat";
 import type { ColumnKeys } from "./dbRowTools";
 import { editableText, type TableCellState, type TableRowState } from "./tableEdits";
-
-/** 行の高さ（見えている所だけ描くので、どの行も同じ高さにする） */
-const ROW_HEIGHT = 26;
-/** 見えている所の前後に余分に描く行の数 */
-const OVERSCAN = 12;
-/** 見えている所の左右に余分に描く列の数（列も見えている所だけ描く。何百列でも重くしない） */
-const COL_OVERSCAN = 3;
-/** 列の幅 */
-const COLUMN_WIDTH = 180;
-const INDEX_WIDTH = 52;
-/** 列の見出しの高さ（上に貼り付くので、選んだセルを見せるときに除く） */
-const HEAD_HEIGHT = 28;
+import { COLUMN_WIDTH, INDEX_WIDTH, ROW_HEIGHT, colLeft, scrollToReveal, visibleRange } from "./gridWindow";
 
 /** 行の番号の列はいつもグリッドの 1 列目 */
 const INDEX_PLACE: CSSProperties = { gridColumn: 1 };
@@ -94,10 +83,7 @@ export function DataGrid({
   }, [rows.length, picked]);
   useEffect(() => onPickRow?.(picked?.row ?? null), [picked?.row, onPickRow]);
 
-  const first = Math.max(0, Math.floor(view.top / ROW_HEIGHT) - OVERSCAN);
-  const last = Math.min(rows.length, Math.ceil((view.top + view.height) / ROW_HEIGHT) + OVERSCAN);
-  const colFirst = Math.max(0, Math.floor((view.left - INDEX_WIDTH) / COLUMN_WIDTH) - COL_OVERSCAN);
-  const colLast = Math.min(columns.length, Math.ceil((view.left + view.width) / COLUMN_WIDTH) + COL_OVERSCAN);
+  const { first, last, colFirst, colLast } = visibleRange(view, rows.length, columns.length);
   /** 描く列（グリッドの何列目かを指定するので、描かない列の場所は空いたまま幅を保つ） */
   const shownCols = Array.from({ length: Math.max(0, colLast - colFirst) }, (_, i) => colFirst + i);
   const template = { "--db-grid-cols": `${INDEX_WIDTH}px repeat(${columns.length}, ${COLUMN_WIDTH}px)` } as CSSProperties;
@@ -106,12 +92,9 @@ export function DataGrid({
   const reveal = (row: number, col: number) => {
     const el = scroller.current;
     if (!el) return;
-    const top = row * ROW_HEIGHT;
-    if (top < el.scrollTop) el.scrollTop = top;
-    else if (HEAD_HEIGHT + top + ROW_HEIGHT > el.scrollTop + el.clientHeight) el.scrollTop = HEAD_HEIGHT + top + ROW_HEIGHT - el.clientHeight;
-    const left = col * COLUMN_WIDTH;
-    if (left < el.scrollLeft) el.scrollLeft = left;
-    else if (INDEX_WIDTH + left + COLUMN_WIDTH > el.scrollLeft + el.clientWidth) el.scrollLeft = INDEX_WIDTH + left + COLUMN_WIDTH - el.clientWidth;
+    const next = scrollToReveal({ top: el.scrollTop, height: el.clientHeight, left: el.scrollLeft, width: el.clientWidth }, row, col);
+    if (next.top !== el.scrollTop) el.scrollTop = next.top;
+    if (next.left !== el.scrollLeft) el.scrollLeft = next.left;
   };
 
   // 頼まれたときだけ（行が増えたあとに描かれる）
@@ -261,7 +244,7 @@ export function DataGrid({
         {editing && (
           <textarea
             className="db-grid-editor"
-            style={{ top: editing.row * ROW_HEIGHT, left: INDEX_WIDTH + editing.col * COLUMN_WIDTH, minWidth: COLUMN_WIDTH, maxWidth: COLUMN_WIDTH * 3 }}
+            style={{ top: editing.row * ROW_HEIGHT, left: INDEX_WIDTH + colLeft(editing.col), minWidth: COLUMN_WIDTH, maxWidth: COLUMN_WIDTH * 3 }}
             aria-label={`${columns[editing.col]?.name ?? ""} を書き直す`}
             value={editing.text}
             rows={1}

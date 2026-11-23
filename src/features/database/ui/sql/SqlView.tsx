@@ -1,10 +1,9 @@
 import type { SQLNamespace } from "@codemirror/lang-sql";
 import { Play, PlayCircle, Square } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
-import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
-import { dbApi, dbAt, dbSession } from "@/features/database/ui/api";
+import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -12,17 +11,16 @@ import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
 import { readSetting } from "@/foundation/ui/storage";
 import { deferredSetting } from "@/foundation/ui/storage/deferredSetting";
 import { storage } from "@/features/database/ui/storage";
-import { alert } from "@/foundation/ui/kit/ask";
 import { SqlAssistButton } from "./SqlAssistButton";
 import { SqlConnectionPill } from "./SqlConnectionPill";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { DbWriteBand } from "@/features/database/ui/write/DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
-import { RunMessages, RunResult, type StatementRun } from "./SqlRunResult";
+import { RunMessages, RunResult } from "./SqlRunResult";
 import { envSentence, runTabLabel } from "./sqlResultLabels";
-import { useIdleFinish, useSqlResultBudget } from "./useSqlTabLife";
+import { useSqlRun } from "./useSqlRun";
 import { SqlHistoryButton } from "./SqlHistory";
-import { setSqlPending, useSqlPending } from "@/features/database/ui/state/sqlSessions";
+import { useSqlPending } from "@/features/database/ui/state/sqlSessions";
 import { useSqlWrite } from "@/features/database/ui/write/useSqlWrite";
 
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
@@ -41,13 +39,9 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const initial = useMemo(() => readSetting(draftKey), [draftKey]);
   // 書きかけは止まってから書く（窓を閉じる・読み込み直す前には書き出す）。タブを閉じたら消すので、外れたときは書かずに捨てる
   const draft = useMemo(() => deferredSetting(draftKey, DRAFT_DELAY), [draftKey]);
-  const [runs, setRuns] = useState<StatementRun[]>([]);
-  const [shown, setShown] = useState(0);
-  const [running, setRunning] = useState(false);
-  const stopRequested = useRef(false);
   const pending = useSqlPending(tab.key);
-  const [finishing, setFinishing] = useState(false);
   const write = useSqlWrite(connection, pending);
+  const { runs, shown, setShown, running, loadingMore, finishing, activity, execute, more, stop, finish } = useSqlRun({ tab, connection, worktree, active, pending, write });
   const { paneRef: heightPaneRef, ...height } = useDragSize<HTMLDivElement>({ setting: storage.settings.sqlEditorHeight, axis: "y", unit: "%", min: 15, max: 85 });
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
@@ -56,20 +50,6 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
     () => (outline.data ? Object.fromEntries(outline.data.map((t) => [t.name, t.columns])) : undefined),
     [outline.data],
   );
-
-  // 開いたときに、DB 側の接続がトランザクションの途中かを読み直す（画面を読み込み直しても印を戻す）
-  useEffect(() => {
-    void dbApi("GET /api/projects/:projectId/db-connections/:connectionId/sessions/:session", dbSession(client.projectId, connection.id, tab.key))
-      .then((s) => setSqlPending(tab.key, s.in_transaction))
-      .catch(() => {});
-  }, [client.projectId, connection.id, tab.key]);
-
-  // 何かした（打つ・流す・続きを読む）。トランザクションの途中で 10 分何もしなければ、コミットか取り消しを聞いて切る
-  const markActive = useIdleFinish(pending, connection, tab.key);
-  const activity = () => {
-    markActive();
-    write.touch();
-  };
 
   const saveDraft = (text: string) => {
     activity();
@@ -90,87 +70,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
     return one ? [one] : [];
   };
 
-  const execute = async (all: boolean) => {
-    if (running) return;
-    const statements = pickStatements(all);
-    if (statements.length === 0) return;
-    activity();
-    if (!(await write.confirmRun(statements))) return;
-    // 押したときに書き込む間だったか（流している途中に戻っても、この回は同じ様子で流す）
-    const writing = write.on;
-    stopRequested.current = false;
-    setRunning(true);
-    const done: StatementRun[] = [];
-    setRuns([]);
-    setShown(0);
-    for (const s of statements) {
-      if (stopRequested.current) break;
-      const run: StatementRun = { sql: s.text, write: writing };
-      try {
-        run.result = await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/sql", { ...dbAt(client.projectId, connection.id, worktree), body: { session: tab.key, sql: s.text, write: writing } });
-        setSqlPending(tab.key, run.result.in_transaction);
-      } catch (e) {
-        if (stopRequested.current) run.stopped = true;
-        else run.error = errorMessage(e);
-      }
-      done.push(run);
-      setRuns([...done]);
-      setShown(done.length - 1);
-      // 失敗した文・止めた文で止める（後ろの文は流さず、「流していません」として並べる）
-      if (run.error || run.stopped) {
-        const rest = statements.slice(statements.indexOf(s) + 1).map((r): StatementRun => ({ sql: r.text, write: writing, skipped: true }));
-        if (rest.length > 0) setRuns([...done, ...rest]);
-        break;
-      }
-    }
-    // 失敗のあとは、トランザクションの途中かを DB 側に聞き直す
-    if (done.some((r) => r.error || r.stopped)) {
-      await dbApi("GET /api/projects/:projectId/db-connections/:connectionId/sessions/:session", dbSession(client.projectId, connection.id, tab.key))
-        .then((st) => setSqlPending(tab.key, st.in_transaction))
-        .catch(() => {});
-    }
-    setRunning(false);
-    activity();
-  };
-
-  /** 「さらに読む」: 同じ文を流し直し、読んだ行の数だけ飛ばして続きの DB_SQL_MAX_ROWS 行を足す（読み取りの文だけ） */
-  const [loadingMore, setLoadingMore] = useState(false);
-  const more = async (index: number) => {
-    const run = runs[index];
-    if (!run?.result || running || loadingMore) return;
-    activity();
-    setLoadingMore(true);
-    let next: StatementRun;
-    try {
-      const page = await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/sql", { ...dbAt(client.projectId, connection.id, worktree), body: { session: tab.key, sql: run.sql, write: run.write, offset: run.result.rows.length } });
-      setSqlPending(tab.key, page.in_transaction);
-      next = { ...run, moreError: undefined, result: { ...page, rows: [...run.result.rows, ...page.rows], duration_ms: run.result.duration_ms + page.duration_ms } };
-    } catch (e) {
-      next = { ...run, moreError: errorMessage(e) };
-    }
-    setRuns((all) => all.map((r) => (r === run ? next : r)));
-    setLoadingMore(false);
-  };
-
-  const stop = () => {
-    stopRequested.current = true;
-    void dbApi("POST /api/projects/:projectId/db-connections/:connectionId/sessions/:session/cancel", dbSession(client.projectId, connection.id, tab.key)).catch(() => {});
-  };
-
-  const finish = async (how: "commit" | "rollback") => {
-    setFinishing(true);
-    const request = how === "commit" ? dbApi("POST /api/projects/:projectId/db-connections/:connectionId/sessions/:session/commit", dbSession(client.projectId, connection.id, tab.key)) : dbApi("POST /api/projects/:projectId/db-connections/:connectionId/sessions/:session/rollback", dbSession(client.projectId, connection.id, tab.key));
-    const failTitle = how === "commit" ? "コミットできませんでした" : "取り消せませんでした";
-    await request.then(
-      // 何かした（10 分を数え直す）に数えない。時間が来てトランザクションの終わりを待っていたら、ここで読み取り専用に戻す
-      (st) => setSqlPending(tab.key, st.in_transaction),
-      (e: unknown) => alert(failTitle, errorMessage(e)),
-    );
-    setFinishing(false);
-  };
-
-  // 裏のタブの結果が多すぎれば捨て、戻ったら読み取りの文だけ流し直す
-  useSqlResultBudget({ tab, connection, worktree, active, busy: running || loadingMore, runs, setRuns });
+  const run = (all: boolean) => void execute(pickStatements(all));
 
   const current = runs[shown];
 
@@ -187,10 +87,10 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       <div ref={heightPaneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar bar">
           <SqlConnectionPill connection={connection} tabKey={tab.key} disabled={running || write.on} />
-          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
+          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => run(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
             <Play size={13} aria-hidden /> 流す
           </button>
-          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => void execute(true)} data-tip="すべての文を順に流す（失敗した文で止める）" data-tip-keys="⇧⌘↵">
+          <button type="button" className="btn" data-size="sm" disabled={running} onClick={() => run(true)} data-tip="すべての文を順に流す（失敗した文で止める）" data-tip-keys="⇧⌘↵">
             <PlayCircle size={13} aria-hidden /> すべて流す
           </button>
           {running && (
@@ -237,8 +137,8 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
           initialValue={initial}
           schema={schema}
           onChange={saveDraft}
-          onRun={() => void execute(false)}
-          onRunAll={() => void execute(true)}
+          onRun={() => run(false)}
+          onRunAll={() => run(true)}
           handleRef={editor}
         />
       </div>

@@ -4,7 +4,7 @@ import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@sha
 import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -32,8 +32,7 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
     if (picked === null) return;
     setSaving(true);
     try {
-      await dbApi("POST /api/projects/:projectId/db-connections/copy", { params: { projectId }, body: { from_id: picked, copy_password: withPassword } });
-      dbConnectionsStore.invalidate(projectId);
+      applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/copy", { params: { projectId }, body: { from_id: picked, copy_password: withPassword } }));
       dialog.close();
     } catch (err) {
       setError(errorMessage(err));

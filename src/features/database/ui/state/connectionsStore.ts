@@ -15,6 +15,16 @@ export const dbConnectionsStore = createKeyedStore<number, DbConnection[]>({
 /** そのプロジェクトの DB の接続（active が false なら読みに行かない） */
 export const useDbConnections = (projectId: number, active = true) => useKeyedStore(dbConnectionsStore, projectId, { active });
 
+/** 書いた応答の接続をすぐ一覧に入れる（知らせでの取り直しを待たずに画面をそろえる。新しい接続は末尾 = 並び順の position） */
+export function applyConnection(c: DbConnection): void {
+  dbConnectionsStore.update(c.project_id, (list) => (list.some((x) => x.id === c.id) ? list.map((x) => (x.id === c.id ? c : x)) : [...list, c]));
+}
+
+/** 消した接続をすぐ一覧から外す */
+export function forgetConnection(projectId: number, id: number): void {
+  dbConnectionsStore.update(projectId, (list) => list.filter((x) => x.id !== id));
+}
+
 /** 知らせ（db_connection_state）で、つないでいる接続の ID の一覧を変える（変わらなければ同じ配列） */
 export const reduceConnectedIds: ReduceTable<number[], number> = {
   db_connection_state: (ids, e, projectId) => {

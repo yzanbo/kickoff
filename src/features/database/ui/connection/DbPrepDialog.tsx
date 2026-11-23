@@ -6,7 +6,7 @@ import { dbApi, dbOne } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
@@ -54,8 +54,7 @@ export function DbPrepDialog({
     setError(undefined);
     try {
       if (!c.prep_confirmed) {
-        await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prep/confirm", dbOne(projectId, c.id));
-        dbConnectionsStore.invalidate(projectId);
+        applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prep/confirm", dbOne(projectId, c.id)));
       }
       await then();
     } catch (e) {

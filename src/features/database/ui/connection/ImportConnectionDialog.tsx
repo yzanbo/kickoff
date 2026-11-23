@@ -5,7 +5,7 @@ import { dbApi } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { cx } from "@/foundation/ui/lib/cx";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
+import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { connectionScope } from "@/features/database/ui/dbFormat";
@@ -65,7 +65,7 @@ export function ImportConnectionDialog({
       setSaving(false);
       return;
     }
-    dbConnectionsStore.invalidate(projectId);
+    created.forEach(applyConnection);
     dialog.close();
     // 作った接続は選んだ順に返る
     const opened = preselect ? created[chosen.findIndex((c) => c.key === preselect.key)] : undefined;
