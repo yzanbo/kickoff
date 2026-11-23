@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { onTestFinished, test } from "vitest";
-import { confirmLeave, dirtyUnder, flushDrafts, registerUnsaved, saveAll, useUnsaved, type UnsavedEntry } from "./unsaved";
+import { confirmLeave, dirtyUnder, flushDrafts, hasUnsaved, registerUnsaved, saveAll, useUnsaved, type UnsavedEntry } from "./unsaved";
 
 /** 登録簿に出す（テストが終わったら外す） */
 function open(entry: Partial<UnsavedEntry> & Pick<UnsavedEntry, "key">): () => void {
@@ -63,4 +63,14 @@ test("dirtyUnder: 置き場所を問わず、その作業場所のファイル�
   assert.equal(dirtyUnder("1:", "src/a.ts"), null);
   assert.equal(dirtyUnder("1:", "docs"), null);
   assert.equal(dirtyUnder("1:/wt", ""), "src/c.ts");
+});
+
+test("hasUnsaved: 置いたタブ（tab）で引き、書きかけのあるものだけを数える", () => {
+  let dirty = false;
+  open({ key: "1::a.ts", tab: "files:1\npfile:1:a.ts", dirty: () => dirty });
+  const inTab = (e: UnsavedEntry) => e.tab === "files:1\npfile:1:a.ts";
+  assert.equal(hasUnsaved(inTab), false);
+  dirty = true;
+  assert.equal(hasUnsaved(inTab), true);
+  assert.equal(hasUnsaved((e) => e.tab === "files:1\npfile:1:b.ts"), false);
 });

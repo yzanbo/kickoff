@@ -6,7 +6,7 @@ import { isUnder, remapPrefix } from "@shared/foundation/path";
 import { dirtyUnder } from "@/foundation/ui/document/unsaved";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { workplaceKey } from "@/foundation/ui/workplace/workplace";
-import { fileTabOf, openFileTab, selectionOf, setFileTabDirty } from "./fileTabs";
+import { fileTabOf, openFileTab, selectionOf } from "./fileTabs";
 
 /**
  * ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（files。ノートのタブの右と同じく、タブのドラッグ・右クリック・⌘\ で上下・左右に分けられる）と、
@@ -31,24 +31,12 @@ export function useFileTabs(projectId: number, scope: PanelScope) {
     relocate: (from: string, to: string) =>
       mapTabs(
         "projectFile",
-        (t) => {
-          if (!isUnder(t.path, from)) return t;
-          setFileTabDirty(key, t.key, false);
-          return fileTabOf(projectId, { ...selectionOf(t), path: remapPrefix(t.path, from, to) });
-        },
+        (t) => (isUnder(t.path, from) ? fileTabOf(projectId, { ...selectionOf(t), path: remapPrefix(t.path, from, to) }) : t),
         [key],
       ),
     /** ゴミ箱に入れたファイル・フォルダ（path）のタブを閉じる（確かめない。保存していない変更も捨てる） */
     forget: (path: string) =>
-      mapTabs(
-        "projectFile",
-        (t) => {
-          if (!isUnder(t.path, path)) return t;
-          setFileTabDirty(key, t.key, false);
-          return null;
-        },
-        [key],
-      ),
+      mapTabs("projectFile", (t) => (isUnder(t.path, path) ? null : t), [key]),
   };
 }
 

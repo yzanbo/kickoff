@@ -2,7 +2,8 @@ import { useImperativeHandle, useMemo, useRef, type MutableRefObject } from "rea
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
-import { noteAssetBase, noteLinkPath, withBaseHref } from "./htmlPage";
+import { withBaseHref } from "@/foundation/ui/document/htmlPage";
+import { noteAssetBase, noteLinkPath } from "./htmlPage";
 import { parentOf } from "./notePaths";
 
 /**

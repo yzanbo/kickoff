@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useRef } from "react";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
 import { FileView } from "./FileView";
-import { registerFileTabSaver, selectionOf, setFileTabDirty, type FileTab } from "./fileTabs";
+import { fileTabPlace, selectionOf, type FileTab } from "./fileTabs";
 import { filesGitImpl, type FilesGitStatus } from "./filesGit";
 import type { Selection } from "./tabSelection";
 
@@ -28,10 +28,6 @@ export function ProjectFileTab({ tab, panelKey }: { tab: FileTab; panelKey: stri
   const env = useContext(FileTabsContext);
   const ref = useRef<HTMLDivElement>(null);
   const find = usePageFind(ref, { native: openEditorFind, placeholder: "このファイルを検索", className: "page-find" });
-  // 中身がなくなったら（タブを閉じた・別の画面へ移った）、書きかけも一緒になくなるので、保存していない印も外す
-  useEffect(() => () => setFileTabDirty(panelKey, tab.key, false), [panelKey, tab.key]);
-  // タブの × で「保存」を選んだときの保存のしかた（⌘S と同じ）
-  const registerSave = useCallback((save: () => Promise<boolean>) => registerFileTabSaver(panelKey, tab.key, save), [panelKey, tab.key]);
   if (!env) return null;
   const { projectId, repoPath, git } = env;
   const { DiffTab, tabChange } = filesGitImpl();
@@ -39,16 +35,14 @@ export function ProjectFileTab({ tab, panelKey }: { tab: FileTab; panelKey: stri
   const shown = tabChange(git, selected);
   const change = shown?.kind === "diff" ? shown.change : undefined;
   const edited = shown?.kind === "edit" ? shown.change : undefined;
-  // ファイルの中身の表示・編集に渡すもの（保存していない変更は、タブごとに覚える）
+  // ファイルの中身の表示・編集に渡すもの（保存していない変更は、未保存の登録簿にタブの置き場所で出す。タブの「●」・× の確かめが引く）
   const fileViewProps = {
     projectId,
     repoPath,
     path: selected.path,
     git,
-    version: git.version,
     onSaved: () => void git.refresh(),
-    onDirtyChange: (dirty: boolean) => setFileTabDirty(panelKey, tab.key, dirty),
-    registerSave,
+    tab: fileTabPlace(panelKey, tab.key),
     autoFocus: selected.focus,
   };
   return (

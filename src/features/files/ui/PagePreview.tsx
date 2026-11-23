@@ -1,6 +1,5 @@
-import { useMemo, useRef } from "react";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
-import { withBaseHref } from "@/features/notes/ui/htmlPage";
+import { HtmlFrame } from "@/foundation/ui/document/HtmlFrame";
 import { projectAssetBase, type PagePreviewKind } from "./filePreview";
 
 /**
@@ -17,33 +16,18 @@ export function PagePreview({ projectId, worktree, path, kind, content }: { proj
       </div>
     );
   }
-  return <HtmlPreview projectId={projectId} worktree={worktree} path={path} html={content} />;
+  return (
+    <HtmlFrame
+      className="page-preview page-preview-html"
+      title={`${path} のプレビュー`}
+      html={content}
+      base={projectAssetBase(location.origin, projectId, worktree, path)}
+      onLink={openOutside}
+    />
+  );
 }
 
-function HtmlPreview({ projectId, worktree, path, html }: { projectId: number; worktree: string | null; path: string; html: string }) {
-  const frame = useRef<HTMLIFrameElement>(null);
-  const scroll = useRef({ x: 0, y: 0 });
-  const srcDoc = useMemo(() => withBaseHref(html, projectAssetBase(location.origin, projectId, worktree, path)), [html, projectId, worktree, path]);
-
-  // 読み込むたびに（中身が変わると文書が作り直される）、スクロールの位置を戻し、リンクを中で開かないようにする
-  const attach = () => {
-    const win = frame.current?.contentWindow;
-    const doc = frame.current?.contentDocument;
-    if (!win || !doc) return;
-    win.scrollTo(scroll.current.x, scroll.current.y);
-    win.addEventListener("scroll", () => {
-      scroll.current = { x: win.scrollX, y: win.scrollY };
-    });
-    doc.addEventListener("click", (e) => {
-      // iframe の中の要素は別の世界のものなので instanceof で見分けない
-      const anchor = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null | undefined;
-      if (!anchor) return;
-      e.preventDefault();
-      const raw = anchor.getAttribute("href") ?? "";
-      if (raw.startsWith("#")) doc.getElementById(decodeURIComponent(raw.slice(1)))?.scrollIntoView({ block: "start" });
-      else if (/^(https?|mailto):/i.test(anchor.href) && !anchor.href.startsWith(`${location.origin}/`)) window.open(anchor.href, "_blank", "noopener");
-    });
-  };
-
-  return <iframe ref={frame} className="page-preview page-preview-html" title={`${path} のプレビュー`} sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} />;
+/** 外のサイト（http・https・mailto）だけをブラウザで開く（ほかは何もしない） */
+function openOutside(url: string) {
+  if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
 }

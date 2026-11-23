@@ -1,16 +1,16 @@
 // プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files。開いたファイル・差分をタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { openInFocusedPane, panelStateOf } from "@/features/panel/ui";
-import { baseName } from "@/foundation/ui/lib/format";
-import { choose } from "@/foundation/ui/kit/ask";
+import { confirmLeave as confirmUnsavedLeave, hasUnsaved, useHasUnsaved, type UnsavedEntry } from "@/foundation/ui/document/unsaved";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { beginExternalTabDrag, endExternalTabDrag, EXTERNAL_TAB_MIME } from "@/features/panel/ui/layout/externalTabDrag";
-import { useCallback, useSyncExternalStore, type DragEvent } from "react";
+import type { DragEvent } from "react";
 import type { Selection } from "./tabSelection";
 
 export type FileTab = Extract<PanelTab, { kind: "projectFile" }>;
 
 const isFileTab = (t: PanelTab): t is FileTab => t.kind === "projectFile";
+const fileTabsOf = (panelKey: string) => panelStateOf(panelKey).tabs.filter(isFileTab);
 
 /**
  * タブのキー: 中身（エクスプローラー・検索の行から）はファイルごとに 1 つ（検索の別の行から開いても同じタブで、その行へ移る）。
@@ -40,66 +40,28 @@ export const selectionOf = (t: FileTab): Selection => ({
   ...(t.focus ? { focus: true } : {}),
 });
 
-// 保存していない変更のあるタブ（欄の覚える名前とタブのキー。FileView の onDirtyChange から）。タブの「●」が読むので、変わったら知らせる
-const dirtyTabs = new Set<string>();
-const dirtyListeners = new Set<() => void>();
-const dirtyId = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
+/** 未保存の登録簿の、タブの置き場所（欄の覚える名前とタブのキー。FileView が tab に入れる） */
+export const fileTabPlace = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
 
-export function setFileTabDirty(panelKey: string, tabKey: string, dirty: boolean) {
-  const id = dirtyId(panelKey, tabKey);
-  if (dirty === dirtyTabs.has(id)) return;
-  if (dirty) dirtyTabs.add(id);
-  else dirtyTabs.delete(id);
-  for (const listener of dirtyListeners) listener();
-}
-
-const isDirty = (panelKey: string, tabKey: string) => dirtyTabs.has(dirtyId(panelKey, tabKey));
-/** そのタブに保存していない変更があるか（作業場所を移したときに、書きかけのファイルのタブを付け替えずに残す） */
-export const isFileTabDirty = isDirty;
-const fileTabsOf = (panelKey: string) => panelStateOf(panelKey).tabs.filter(isFileTab);
-
-const subscribeDirty = (listener: () => void) => {
-  dirtyListeners.add(listener);
-  return () => void dirtyListeners.delete(listener);
+const inTab = (panelKey: string, tabKey: string) => {
+  const place = fileTabPlace(panelKey, tabKey);
+  return (e: UnsavedEntry) => e.tab === place;
 };
 
+/** そのタブに保存していない変更があるか（作業場所を移したときに、書きかけのファイルのタブを付け替えずに残す） */
+export const isFileTabDirty = (panelKey: string, tabKey: string) => hasUnsaved(inTab(panelKey, tabKey));
+
 /** そのタブに保存していない変更があるか（タブの × の代わりに「●」を出す。VS Code と同じ） */
-export function useFileTabDirty(panelKey: string, tabKey: string | null): boolean {
-  const read = useCallback(() => tabKey !== null && isDirty(panelKey, tabKey), [panelKey, tabKey]);
-  return useSyncExternalStore(subscribeDirty, read);
-}
-
-// タブの中身の保存のしかた（FileView の ⌘S と同じ。閉じる・入れ替える前の「保存」で呼ぶ）
-const savers = new Map<string, () => Promise<boolean>>();
-
-/** タブの中身の保存のしかたを知らせる（中身がなくなったら返した関数で外す） */
-export function registerFileTabSaver(panelKey: string, tabKey: string, save: () => Promise<boolean>): () => void {
-  const id = dirtyId(panelKey, tabKey);
-  savers.set(id, save);
-  return () => {
-    if (savers.get(id) === save) savers.delete(id);
-  };
+export function useFileTabDirty(panelKey: string, tabKey: string): boolean {
+  return useHasUnsaved(inTab(panelKey, tabKey));
 }
 
 /**
- * 保存していない変更があれば、VS Code と同じく 保存 / 保存しない / キャンセル を選んでもらう（ないならそのまま true）。
- * 保存なら保存できたときだけ、保存しないなら印を外して true。キャンセル・保存できなかった（上書きをやめたなど）なら false
+ * 保存していない変更があれば、VS Code と同じく 保存 / 保存しない / キャンセル を選んでもらう（ないならそのまま true。未保存の登録簿の confirmLeave）。
+ * 保存なら保存できたときだけ、保存しないなら書きかけを捨てて true。キャンセル・保存できなかった（ほかで変わっていたなど）なら false
  */
-async function confirmLeave(panelKey: string, tab: FileTab, action: "開く" | "閉じる"): Promise<boolean> {
-  if (!isDirty(panelKey, tab.key)) return true;
-  const picked = await choose({
-    title: `「${baseName(tab.path)}」への変更を保存しますか？`,
-    message: action === "開く" ? "このタブで別のファイルを開きます。保存しないと、変更は消えます。" : "保存しないと、変更は消えます。",
-    choices: [
-      { value: "discard", label: "保存しない" },
-      { value: "save", label: "保存", primary: true },
-    ],
-  }).then((r) => r?.value ?? null);
-  if (picked === null) return false;
-  if (picked === "save") return (await savers.get(dirtyId(panelKey, tab.key))?.()) ?? false;
-  setFileTabDirty(panelKey, tab.key, false);
-  return true;
-}
+const confirmLeave = (panelKey: string, tab: FileTab, action: "開く" | "閉じる"): Promise<boolean> =>
+  confirmUnsavedLeave(inTab(panelKey, tab.key), action === "開く" ? { action: "このタブで別のファイルを開きます。" } : {});
 
 /** タブを閉じてよいか（×。保存していない変更があれば、保存するかを聞く） */
 export async function confirmCloseFileTab(panelKey: string, tabKey: string): Promise<boolean> {

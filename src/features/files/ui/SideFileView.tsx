@@ -1,11 +1,11 @@
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { open } from "@/foundation/ui/navigation/open";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { FileView } from "./FileView";
-import { setFileTabDirty } from "./fileTabs";
+import { fileTabPlace } from "./fileTabs";
 import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useFilesGitStatus } from "./filesGit";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
@@ -36,9 +36,6 @@ export function SideFileView(props: Props) {
 }
 
 function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
-  const panelKey = tabOf?.panelKey;
-  const tabKey = tabOf?.tabKey;
-  useEffect(() => (panelKey && tabKey ? () => setFileTabDirty(panelKey, tabKey, false) : undefined), [panelKey, tabKey]);
   const { projectsById } = useProjects();
   const git = useFilesGitStatus({ projectId, worktree: worktree ?? null }, false);
   const links = useContext(FileLinkContext);
@@ -73,7 +70,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
         line={line}
         git={git}
         onSaved={() => void git.refresh()}
-        onDirtyChange={panelKey && tabKey ? (dirty) => setFileTabDirty(panelKey, tabKey, dirty) : undefined}
+        tab={tabOf && fileTabPlace(tabOf.panelKey, tabOf.tabKey)}
       />
       {codeMenu.element}
     </div>

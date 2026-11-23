@@ -33,8 +33,8 @@ interface Props {
   path: string;
   /** 開いたときの中身 */
   initialValue: string;
-  /** 保存した中身と違うか（未保存の印に使う） */
-  onDirtyChange: (dirty: boolean) => void;
+  /** 中身が変わったとき（打った・ほかで変わって読み直した） */
+  onChange: (value: string) => void;
   /** ⌘S（保存ボタンと同じ） */
   onSave: (content: string) => void;
   /** 外から中身を読むための入れ物（保存ボタンで使う） */
@@ -75,7 +75,7 @@ interface Props {
 export default function CodeEditor({
   path,
   initialValue,
-  onDirtyChange,
+  onChange,
   onSave,
   valueRef,
   cursorRef,
@@ -94,7 +94,7 @@ export default function CodeEditor({
   const diffRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
   // Monaco から呼ばれる処理が読むいまの値（描く中では書かない。useLatest）
   const saved = useLatest(savedValue);
-  const latest = useLatest({ onDirtyChange, onSave });
+  const latest = useLatest({ onChange, onSave });
   // Git との違いの帯: 元の中身と、付け直す関数（部品を作ったときに入る）
   const quickBase = useLatest(quickDiffBase);
   const refreshQuickDiff = useRef<(() => void) | null>(null);
@@ -161,7 +161,7 @@ export default function CodeEditor({
         const selection = s && !s.isEmpty() ? { from_line: s.startLineNumber, from_column: s.startColumn, to_line: s.endLineNumber, to_column: s.endColumn } : null;
         return { line: position.lineNumber, selection };
       };
-    const dirtySub = model.onDidChangeContent(() => latest.current.onDirtyChange(model.getValue() !== saved.current));
+    const changeSub = model.onDidChangeContent(() => latest.current.onChange(model.getValue()));
     const ctx: AttachContext = {
       host,
       diffing: originalModel !== null,
@@ -178,7 +178,7 @@ export default function CodeEditor({
     return () => {
       // 付け足しは付けたのと逆の順に外す
       for (const a of attached.reverse()) a.dispose();
-      dirtySub.dispose();
+      changeSub.dispose();
       // 差分の編集では、左右の部品は差分の部品が一緒に片付ける
       (diffRef.current ?? editor).dispose();
       model.dispose();
@@ -222,8 +222,7 @@ export default function CodeEditor({
     refreshQuickDiff.current?.();
   }, [quickDiffBase]);
 
-  // 保存した・ほかで変わって読み直したら、未保存の印を付け直す。
-  // 読み直したときに書いている中身が前の保存した中身のまま（自分では変えていない）なら、新しい中身に差し替える
+  // ほかで変わって読み直したとき、書いている中身が前の保存した中身のまま（自分では変えていない）なら、新しい中身に差し替える
   const previousSaved = useRef(savedValue);
   useEffect(() => {
     const editor = editorRef.current;
@@ -236,7 +235,6 @@ export default function CodeEditor({
       model.pushEditOperations([], [{ range: model.getFullModelRange(), text: savedValue }], () => null);
       if (view) editor.restoreViewState(view);
     }
-    latest.current.onDirtyChange(editor.getValue() !== savedValue);
     refreshBlame.current?.();
   }, [savedValue]);
 

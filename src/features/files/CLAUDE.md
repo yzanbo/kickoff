@@ -11,7 +11,7 @@
 | `ui/EditorTab` | タブの殻（同じ部品のまま切り替え、開いたタブ・検索・操作の様子を共有） |
 | `ui/FilesPane`・`FileTree`・`useFileActions` | ファイルの木・右クリック・名前の変更・作る・ゴミ箱 |
 | `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（`Panel` の欄 `files`） |
-| `ui/FileView`・`CodeEditor`・`monacoEditor.ts` | 中身（Monaco）・差分を見ながら編集・プレビュー |
+| `ui/FileView`・`useFileDocument`・`FileHeader`・`usePreviewMode`・`CodeEditor`・`monacoEditor.ts` | 中身（文書の土台 `useDocument` の上。Monaco の付け足しは `codeEditorParts.ts` の `attach…`）・差分を見ながら編集・プレビュー |
 | `ui/useProjectSearch`・`useSearchReplace` | 検索と置換 |
 | `ui/SideFileView` | チャットの右の欄のファイル |
 | `ui/links/` | 返答のファイルのチップ（`FileLinksProvider`・`FileMenu`・`fileIndexStore.ts`） |
@@ -29,7 +29,8 @@
 
 ## 落とし穴
 
-- 保存は開いたときの指紋（`hash`）と比べる。保存した直後の古い中身はほかでの変更と見ない（`ignoreHash`）。
+- 保存・読み直し・未保存の印は `useDocument`（409 とほかでの変更は conflict の帯）。タブの「●」・× の確かめは未保存の登録簿の `tab`（`fileTabPlace`）で引く（モジュールの変数に持たない）。
+- Monaco のモデルの住所は部品ごと（`editorModels.ts`。同じ住所を 2 つ作ると画面ごと落ちる）。
 - Monaco は作り直さず `updateOptions` で変える。上げたときは `monacoEditor.ts` の頭のとおり入口を作り直す。
 - Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。
 - 木は土台の `TreeView`（ピントは木そのもの。縦の線と貼り付けは `ui/types/tree.css`）。ノートの木はまだ入れ子の `.file-tree`（`editor-explorer.css`）。

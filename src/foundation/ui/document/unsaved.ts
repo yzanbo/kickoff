@@ -20,6 +20,8 @@ export interface UnsavedEntry {
   discard?(): void;
   /** 書きかけを待たずに残す（残す文書だけ。ウィンドウを閉じる前・pagehide） */
   flush?(): void;
+  /** 置いたタブ（パネルの欄のキーとタブのキー。タブの「●」・閉じる前の確かめが引く） */
+  tab?: string;
   /** 作業場所の中のファイル（root = 作業場所の見分け workplaceKey。名前の変更・ゴミ箱・置換の前の確かめが dirtyUnder で引く） */
   file?: { root: string; path: string };
 }
@@ -30,6 +32,19 @@ const entries = createCell<readonly UnsavedEntry[]>([]);
 export function registerUnsaved(entry: UnsavedEntry): () => void {
   entries.set((list) => [...list, entry]);
   return () => entries.set((list) => list.filter((e) => e !== entry));
+}
+
+/** 書きかけの有無が変わったことを知らせる（useHasUnsaved が読み直す。開いた・閉じたものの一覧は変わらない） */
+export function notifyUnsavedChange(): void {
+  entries.set((list) => [...list]);
+}
+
+/** filter に当てはまる文書に、まだ保存していない書きかけがあるか（いまの値） */
+export const hasUnsaved = (filter: (entry: UnsavedEntry) => boolean): boolean => entries.get().some((e) => filter(e) && e.dirty());
+
+/** hasUnsaved を描く中で読む（書きかけの有無が変わると描き直す。タブの「●」） */
+export function useHasUnsaved(filter: (entry: UnsavedEntry) => boolean): boolean {
+  return useCell(entries, (list) => list.some((e) => filter(e) && e.dirty()));
 }
 
 const sameItems = (a: readonly UnsavedEntry[], b: readonly UnsavedEntry[]) => a.length === b.length && a.every((e, i) => e === b[i]);

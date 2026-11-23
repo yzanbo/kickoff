@@ -231,6 +231,8 @@ export default {
       "src/foundation/ui/diff/**", // 差分の土台（git も使うようにするのは分冊 08 の P8-1）
       "src/foundation/ui/kit/drag/**", // ドラッグの仕組み（分冊 04 の kit/drag。種類と中身は機能が宣言する）
       "src/foundation/ui/kit/list/TreeView.tsx", // 木の部品（ノートの木・DB の木も分冊 09 の P8-4・P8-5 で乗せる）
+      "src/foundation/ui/document/useDocument.ts", // 文書の土台（ノートも分冊 09 の P8-5 で乗せる）
+      "src/foundation/ui/document/HtmlFrame.tsx", // HTML の文書の iframe（HTML のノートも分冊 09 の P8-5d で乗せる）
     ],
   },
 };

@@ -5,33 +5,46 @@ import { useQuery, type QueryOptions } from "@/foundation/ui/query/useQuery";
 import { toError } from "@/foundation/ui/query/queryState";
 import { readSetting, writeSetting, type SettingFamily } from "@/foundation/ui/storage";
 import { draftOf, freshAction, startDocument, statusAfterEdit, type DocumentDraft, type DocumentFile, type DocumentStatus } from "./documentState";
-import { registerUnsaved } from "./unsaved";
+import { notifyUnsavedChange, registerUnsaved, type UnsavedEntry } from "./unsaved";
 
-/** 文書の読み書きの口（ファイル・ノートが渡す） */
-export interface DocumentSource {
-  /** いまの中身（SSE・窓に戻ったときに取り直す） */
-  read(signal: AbortSignal): Promise<DocumentFile>;
+/** 文書の読み書きの口（ファイル・ノートが渡す。F は読んだ中身の形で、中身と指紋のほかを持ってよい） */
+export interface DocumentSource<F extends DocumentFile = DocumentFile> {
+  /** いまの中身（SSE・窓に戻ったとき・deps が変わったときに取り直す） */
+  read(signal: AbortSignal): Promise<F>;
   /** 保存。expectedHash が null なら指紋なしで上書き。ほかで変わっていれば 409 の ApiError を投げる */
   write(content: string, expectedHash: string | null): Promise<{ hash: string }>;
 }
 
-export interface UseDocumentOptions {
+export interface UseDocumentOptions<F extends DocumentFile = DocumentFile> {
   /** 文書の見分け（"<projectId>:<path>" など。替わったら開き直す） */
   key: string;
-  source: DocumentSource;
+  source: DocumentSource<F>;
   /** 取り直す SSE の種類（useQuery の refetchOn と同じ形） */
-  refetchOn?: QueryOptions<DocumentFile>["refetchOn"];
+  refetchOn?: QueryOptions<F>["refetchOn"];
+  /** 変わったら取り直す値（useQuery の deps。ファイルは Git の状態を取り直した回） */
+  deps?: readonly unknown[];
+  /** 窓に戻ったら取り直す（既定 true） */
+  refetchOnFocus?: boolean;
+  /** 保存できたとき（どこから保存しても。⌘⇧S・閉じる前の確かめも） */
+  onSaved?(): void;
   /** 書きかけを保存に残す（ノートは残す・ファイルは渡さない＝残さない） */
   draft?: SettingFamily<DocumentDraft | null>;
   /** 未保存の登録簿に出す名前・置き場所 */
   title: string;
   surface: string;
+  /** 未保存の登録簿の置いたタブ・作業場所のファイル（UnsavedEntry の tab・file） */
+  tab?: string;
+  file?: UnsavedEntry["file"];
 }
 
-export interface DocumentState {
+export interface DocumentState<F extends DocumentFile = DocumentFile> {
   status: DocumentStatus;
+  /** いま読み込んである中身（取り直すと替わる。読み込むまでは undefined） */
+  file: F | undefined;
   /** 開いたとき（保存したとき）の中身と指紋（読み込むまでは null） */
   base: DocumentFile | null;
+  /** まだ保存していない書きかけがあるか */
+  dirty: boolean;
   /** 書き始めの中身（編集の部品を作るときに渡す。読み込むまでは null） */
   initial: string | null;
   /** 編集の部品に中身を入れ直す番号（読み直したら増える） */
@@ -62,10 +75,23 @@ interface Opened {
  * draft を渡せば、書きかけを離れても・アプリを閉じても残し、開き直したら戻す（指紋が同じなら dirty、違えば conflict）。
  * 未保存の登録簿（unsaved.ts）に出すので、⌘⇧S・離れる前の確かめが置き場所を問わず数える
  */
-export function useDocument({ key, source, refetchOn, draft, title, surface }: UseDocumentOptions): DocumentState {
-  const loaded = useQuery<DocumentFile>(key, (signal) => source.read(signal), {
+export function useDocument<F extends DocumentFile = DocumentFile>({
+  key,
+  source,
+  refetchOn,
+  deps,
+  refetchOnFocus = true,
+  onSaved,
+  draft,
+  title,
+  surface,
+  tab,
+  file: place,
+}: UseDocumentOptions<F>): DocumentState<F> {
+  const loaded = useQuery<F>(key, (signal) => source.read(signal), {
     refetchOn,
-    refetchOnFocus: true,
+    deps,
+    refetchOnFocus,
     same: (a, b) => a.hash === b.hash && a.content === b.content,
   });
   const [opened, setOpened] = useState<Opened | null>(null);
@@ -74,6 +100,7 @@ export function useDocument({ key, source, refetchOn, draft, title, surface }: U
   const [status, setStatus] = useState<DocumentStatus>("loading");
   const [changedOnDisk, setChangedOnDisk] = useState(false);
   const [saveError, setSaveError] = useState<Error | undefined>(undefined);
+  const [dirty, setDirty] = useState(false);
   // いま書いてある中身と、開いている文書（描き直しを待たずに読む。保存してすぐ閉じたときも、保存したあとの中身と比べるように）
   const text = useRef<string | null>(null);
   const current = useRef<Opened | null>(null);
@@ -93,6 +120,7 @@ export function useDocument({ key, source, refetchOn, draft, title, surface }: U
     changeBase(o);
     text.current = body;
     setInitial(body);
+    setDirty(body !== o.base.content);
     setStatus(next);
     setChangedOnDisk(next === "conflict");
     setSaveError(undefined);
@@ -120,37 +148,45 @@ export function useDocument({ key, source, refetchOn, draft, title, surface }: U
     if (file) onFile(file);
   }, [file]);
 
+  const afterSave = useEffectEvent(() => onSaved?.());
   const save = async ({ force = false }: { force?: boolean } = {}): Promise<boolean> => {
     const now = current.current;
     const content = text.current;
     if (!now || content === null) return true;
     if (content === now.base.content && !force) return true;
     setStatus("saving");
-    try {
-      const saved = await source.write(content, force ? null : now.base.hash);
-      const next = { key: now.key, base: { content, hash: saved.hash } };
-      // 保存している間に別の文書へ移っていれば、前の文書の指紋は入れない（残した書きかけが保存したものと同じなら消す）
-      if (current.current?.key !== now.key) {
-        if (draft && readSetting(draft(now.key))?.text === content) writeSetting(draft(now.key), null);
-        return true;
-      }
-      writeDraft(next);
-      changeBase(next);
-      setStatus(text.current === content ? "saved" : "dirty");
-      setChangedOnDisk(false);
-      setSaveError(undefined);
-      return true;
-    } catch (e) {
-      if (current.current?.key !== now.key) return false;
-      if (e instanceof ApiError && e.status === 409) {
+    // 書く・失敗の受け取りと、そのあとの様子の入れ直しを分ける（try の中に条件の式を置くと React Compiler が外す）
+    const expected = force ? null : now.base.hash;
+    const written = await source.write(content, expected).then(
+      (saved) => ({ saved }),
+      (error: unknown) => ({ error }),
+    );
+    const moved = current.current?.key !== now.key;
+    if ("error" in written) {
+      if (moved) return false;
+      if (written.error instanceof ApiError && written.error.status === 409) {
         setStatus("conflict");
         setChangedOnDisk(true);
       } else {
         setStatus("error");
-        setSaveError(toError(e));
+        setSaveError(toError(written.error));
       }
       return false;
     }
+    const next = { key: now.key, base: { content, hash: written.saved.hash } };
+    // 保存している間に別の文書へ移っていれば、前の文書の指紋は入れない（残した書きかけが保存したものと同じなら消す）
+    if (moved) {
+      if (draft && readSetting(draft(now.key))?.text === content) writeSetting(draft(now.key), null);
+      return true;
+    }
+    writeDraft(next);
+    changeBase(next);
+    setDirty(text.current !== content);
+    setStatus(text.current === content ? "saved" : "dirty");
+    setChangedOnDisk(false);
+    setSaveError(undefined);
+    afterSave();
+    return true;
   };
   const saveNow = useEffectEvent(() => save());
 
@@ -158,6 +194,7 @@ export function useDocument({ key, source, refetchOn, draft, title, surface }: U
     text.current = value;
     const now = current.current;
     if (!now) return;
+    setDirty(value !== now.base.content);
     setStatus((s) => statusAfterEdit(s, value, now.base));
     if (!draft) return;
     clearTimeout(draftTimer.current);
@@ -196,17 +233,24 @@ export function useDocument({ key, source, refetchOn, draft, title, surface }: U
           // 書いたものを保存したものに戻す（閉じるときに、捨てた書きかけをまた残さないように）
           const now = current.current;
           if (now?.key === key) text.current = now.base.content;
+          setDirty(false);
           if (draft) writeSetting(draft(key), null);
         },
         flush: draft ? () => flush(key) : undefined,
+        tab,
+        file: place && { root: place.root, path: place.path },
       }),
-    [key, surface, title, draft],
+    [key, surface, title, draft, tab, place?.root, place?.path],
   );
+  // タブの「●」など、書きかけの有無を読む所に知らせる
+  useEffect(() => notifyUnsavedChange(), [dirty]);
 
   const mine = opened?.key === key;
   return {
     status: mine ? status : loaded.error ? "error" : "loading",
+    file: loaded.data,
     base: mine ? opened.base : null,
+    dirty: mine && dirty,
     initial: mine ? initial : null,
     revision,
     changedOnDisk: mine && changedOnDisk,

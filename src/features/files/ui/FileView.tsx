@@ -1,31 +1,21 @@
-import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
-import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
-import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
-import { ApiError, workdirInput } from "@/foundation/ui/api";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
 import { cx } from "@/foundation/ui/lib/cx";
-import { registerUnsaved } from "@/foundation/ui/document/unsaved";
-import { baseName } from "@/foundation/ui/lib/format";
 import { registerEditorCursor, type EditorCursor } from "@/foundation/ui/lib/viewDetails";
-import { confirm } from "@/foundation/ui/kit/ask";
-import { useAction } from "@/foundation/ui/hooks/useAction";
-import { errorText, useQuery } from "@/foundation/ui/query";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
+import { useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
-import { workplaceKey } from "@/foundation/ui/workplace/workplace";
-import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
+import { useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
-import { pagePreviewKind } from "./filePreview";
-import { PreviewToggle, WrapToggle } from "./FileViewButtons";
 import { PagePreview } from "./PagePreview";
 import { ReadOnlyCode } from "./ReadOnlyCode";
+import { FileHeader } from "./FileHeader";
+import { usePreviewMode } from "./usePreviewMode";
+import { useFileDocument } from "./useFileDocument";
 import { filesGitImpl, useBlame, useQuickDiffBase, type FileChange, type FilesGitStatus } from "./filesGit";
-import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
-import { filesApi } from "./api";
 
 // 編集の部品（Monaco）は大きいので、ファイルの中身を初めて開いたときに読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -43,233 +33,91 @@ interface Props {
   diffBase?: FileChange;
   /** 保存したとき（変更の一覧を取り直す） */
   onSaved?: () => void;
-  /** 保存していない変更があるか（別のファイルを開く前に確かめる） */
-  onDirtyChange?: (dirty: boolean) => void;
-  /** 保存のしかたを知らせる（ファイルのタブの × の「保存」で呼ぶ。返した関数で外す） */
-  registerSave?: (save: () => Promise<boolean>) => () => void;
+  /** 置いたタブ（未保存の登録簿の tab。タブの「●」・閉じる前の確かめが引く） */
+  tab?: string;
   /** 開いたら編集の部品にピントを置く（差分の「編集」から来たとき。チャット欄・一覧のピントを奪わないよう、ふだんは置かない） */
   autoFocus?: boolean;
 }
 
-/** 編集の始まりの中身と指紋。ignoreHash = 保存した直後の、まだ取り直す前の古い中身の指紋（ほかで変わったと見ない） */
-interface EditBase {
-  key: string;
-  content: string;
-  hash: string;
-  ignoreHash?: string;
-}
+const message = (text: string) => <p className="muted small diff-message">{text}</p>;
 
 /**
- * ファイルの中身。VS Code と同じく、開いたらすぐ書ける編集の部品（CodeEditor）で出し、⌘S・保存ボタンで保存する（見出しに「● 未保存」）。
- * 行番号の横に、Git との違い（ステージした中身、なければコミットの中身と比べて、足した行・変えた行・消した所）を色の帯で出す。
- * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く。
- * 開いている間にほかで変わったら、未保存の変更がなければそのまま読み直し、あれば知らせて読み直すか選ばせる。
- * バイナリ・大きすぎて途中までのファイルは、読むだけの表で出す。
- * 画像（png・jpg・gif・webp・ico・icns など）はプレビュー（ImagePreview）で出す。SVG・Markdown・HTML はプレビューとコードを見出しのボタンで切り替える
- * （SVG は初めはプレビュー、Markdown・HTML は最後に選んだ方。検索の行・差分・新しいファイルから来たときはコード。書きかけの中身もプレビューに出す）。
- * 横幅に入らない行を折り返すかは、見出しのボタン・エディタの中の ⌥Z で切り替える（storage.ts の wordWrap）。
- * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
+ * ファイルの中身。開く・保存・ほかで変わったときの読み直し・未保存の登録は文書の土台（useFileDocument → useDocument）で、ここはどれを描くかだけ。
+ * 開いたらすぐ書ける編集の部品（CodeEditor。⌘S・保存ボタン）、行番号の横に Git との違いの帯。ほかで変わったのに書きかけがあれば conflict の帯で選ばせる。
+ * 途中までのファイルは読むだけの表、画像はプレビュー、SVG・Markdown・HTML はプレビューとコードを切り替える（usePreviewMode）。
+ * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身）
  */
-export function FileView({ projectId, repoPath, path, line, git, diffBase, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
-  const { version } = git;
+export function FileView({ projectId, repoPath, path, line, git, diffBase, onSaved, tab, autoFocus = false }: Props) {
   const target = useWorkplace(projectId); // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
-  const key = `${workplaceKey(target)}:${path}`;
-  // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
-  const loaded = useQuery(key, () => filesApi("GET /api/projects/:projectId/file", workdirInput(target, { path })), { deps: [version] });
-  const [stored, setBase] = useState<EditBase | null>(null);
-  const [dirty, setDirty] = useState(false);
-  // 保存している間と、その結果（保存しました・失敗の理由）
-  const saving = useAction<"save">();
-  const [editorKey, setEditorKey] = useState(0);
-  const getValue = useRef<(() => string) | null>(null);
+  const { key, doc, file, base, readOnly, loadError, state, revision, change, reload } = useFileDocument({ target, path, line, git, onSaved, tab });
   // カーソルと選んでいる範囲（利用者が見ているものの知らせが読む。AI の get_user_view）
   const cursor = useRef<(() => EditorCursor | null) | null>(null);
   useEffect(() => registerEditorCursor(projectId, path, () => cursor.current?.() ?? null), [projectId, path]);
   const goToDiff = useRef<((target: "next" | "previous") => void) | null>(null);
+  const getValue = useRef<(() => string) | null>(null);
   const layout = useDiffLayout();
   // 右の欄・別ウィンドウでは、右クリックをチャットに足すメニューに任せる
   const inSide = useMainChat() !== null;
   // 差分の元の中身は開いたときに一度だけ読む（保存して差分がなくなっても、比べる相手はそのまま）。
   // undefined = 読み込み中、null = 差分なしで編集する（差分から来ていない・元がバイナリ・大きすぎる・読めない）
   const [diffOf] = useState(diffBase);
-  const [original, setOriginal] = useState<string | null | undefined>(diffOf ? undefined : null);
-  // 開いたときだけ（同じファイル・同じ作業場所の間は FileView が作り直されない）
-  const readOriginal = useEffectEvent((isAlive: () => boolean) => {
-    if (!diffOf) return;
-    filesGitImpl().readOriginal(target, diffOf).then(
-      (text) => isAlive() && setOriginal(text),
-      () => isAlive() && setOriginal(null),
-    );
-  });
-  useEffect(() => {
-    let alive = true;
-    readOriginal(() => alive);
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const originalQuery = useQuery(diffOf ? ["fileOriginal", key, diffOf.staged] : null, () => (diffOf ? filesGitImpl().readOriginal(target, diffOf) : Promise.resolve(null)));
+  const original = !diffOf ? null : originalQuery.loaded ? (originalQuery.data ?? null) : undefined;
   const diffing = typeof original === "string";
-  // 画像: SVG 以外はプレビューだけ。SVG・Markdown・HTML はプレビューとコードを切り替える（コードの編集の部品は、初めてコードを出すまで作らない）
-  const raster = imageFileType(path) !== null && !isSvgFile(path);
-  const svg = isSvgFile(path);
-  const pageKind = pagePreviewKind(path);
-  const [pagePreview, setPagePreview] = useSetting(storage.settings.pagePreview);
+  const preview = usePreviewMode(path, line !== undefined || Boolean(diffBase) || autoFocus);
+  const { previewing, kind } = preview;
   const [wrap, setWrap] = useSetting(storage.settings.wordWrap);
-  const [showCode, setShowCode] = useState(() => line !== undefined || Boolean(diffBase) || autoFocus || (pageKind !== null && !pagePreview));
-  const [codeMounted, setCodeMounted] = useState(showCode);
-  // プレビューに切り替えたときの、書きかけの中身（保存していなければ、これをプレビューに出す）
-  const [draft, setDraft] = useState<string | null>(null);
-  const previewing = (svg || pageKind !== null) && !showCode;
-  const toggleCode = () => {
-    if (showCode) setDraft(getValue.current?.() ?? null);
-    else setCodeMounted(true);
-    // Markdown・HTML は、次に開くファイルも同じ出し方にする
-    if (pageKind) setPagePreview(showCode);
-    setShowCode(!showCode);
-  };
-  const current = loaded.loaded ? { file: loaded.data, error: errorText(loaded.error) } : undefined;
-  const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
-  // 編集の始まり: 読み込んだ中身（作業場所が変わったら、その作業場所の中身から始め直す）
-  const base: EditBase | null = stored?.key === key ? stored : editable && current?.file ? { key, content: current.file.content, hash: current.file.hash } : null;
-  useEffect(() => {
-    if (base && stored !== base) setBase(base);
-  }, [base, stored]);
-
-  const change = git.changeOf(path);
-  const quickDiffBase = useQuickDiffBase(target, path, git, base ? (current?.file?.content ?? null) : null);
+  const quickDiffBase = useQuickDiffBase(target, path, git, base ? (file?.content ?? null) : null);
   const blame = useBlame(target, path, git, base?.hash ?? null);
-
-  const changeDirty = (next: boolean) => {
-    setDirty(next);
-    if (next) saving.reset();
-    onDirtyChange?.(next);
-  };
-
-  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。未保存の登録簿 document/unsaved）
-  const savable = useLatest({ dirty, saveCurrent: async () => (getValue.current ? Boolean(await save(getValue.current())) : false) });
-  useEffect(() => registerUnsaved({ key, surface: "files", title: baseName(path), dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent(), file: { root: workplaceKey(target), path } }), [key, path]);
-  useEffect(() => registerSave?.(() => savable.current.saveCurrent()), [registerSave]);
-
-  // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す
-  const save = (content: string) =>
-    base &&
-    saving.run(
-      "save",
-      async () => {
-        const write = (hash: string | null) => filesApi("PUT /api/projects/:projectId/file", { ...workdirInput(target), body: { path, content, base_hash: hash } });
-        let saved: { hash: string };
-        try {
-          saved = await write(base.hash);
-        } catch (e) {
-          if (!(e instanceof ApiError && e.status === 409)) throw e;
-          const overwrite = await confirm({
-            title: "ほかでファイルが変わっています",
-            message: "開いたあとで、エージェントなどがこのファイルを変えました。上書きすると、その変更は消えます。",
-            confirmLabel: "上書きする",
-            danger: true,
-          });
-          if (!overwrite) throw new Error("保存していません（ほかでの変更を確かめてください）");
-          saved = await write(null);
-        }
-        // 取り直すまでの間、読み込み済みの古い中身をほかでの変更と見ない
-        setBase({ key, content, hash: saved.hash, ignoreHash: current?.file?.hash });
-        onSaved?.();
-      },
-      { done: "保存しました" },
-    );
-
-  // 開いている間に、ほかでファイルが変わった
-  const changedOnDisk = Boolean(base && current?.file && current.file.hash !== base.hash && current.file.hash !== base.ignoreHash);
-  // 未保存の変更がなければ、そのまま読み直す（CodeEditor が書いている中身を差し替える）
-  useEffect(() => {
-    if (changedOnDisk && !dirty && current?.file) setBase({ key, content: current.file.content, hash: current.file.hash });
-  }, [changedOnDisk, dirty, current?.file, key]);
-
-  // ほかで変わった中身を読み直して、編集をやり直す（自分の変更は捨てる）
-  const reloadFromDisk = async () => {
-    if (dirty && !(await confirm({ title: "保存していない変更を捨てて読み直しますか？", confirmLabel: "読み直す", danger: true }))) return;
-    if (!current?.file) return;
-    setBase({ key, content: current.file.content, hash: current.file.hash });
-    setEditorKey((n) => n + 1);
-    changeDirty(false);
-    saving.reset();
-  };
-
-  // 読むだけの表（途中まで）
-  const readOnly = !base && Boolean(current?.file && !current.file.binary);
+  const diffTitle = `左は${diffOf?.staged ? "コミット（HEAD）の中身" : "ステージした中身（なければコミットの中身）"}。右を編集すると、差分がその場で変わります`;
   // プレビューに出す中身（書きかけがあればそれ。読むだけの表なら読み込んだ途中までの中身。まだ読んでいなければ null）
-  const previewSource = base ? (dirty && draft !== null ? draft : base.content) : readOnly ? (current?.file?.content ?? null) : null;
+  const previewSource = base ? (doc.dirty && preview.draft !== null ? preview.draft : base.content) : readOnly ? (file?.content ?? null) : null;
 
   return (
     <div className="diff-view">
-      <header className="diff-head bar">
-        <span className="diff-path" title={path}>
-          {path}
-        </span>
-        <span
-          className={cx("diff-state", saving.error && "error", dirty && !saving.result && "unsaved")}
-          title={base && diffing ? (diffOf?.staged ? "左はコミット（HEAD）の中身。右を編集すると、差分がその場で変わります" : "左はステージした中身（なければコミットの中身）。右を編集すると、差分がその場で変わります") : undefined}
-        >
-          {saving.result?.text ?? (dirty ? "● 未保存" : [line !== undefined && `${line} 行目`, git.repo && (change ? "変更あり" : "変更なし")].filter(Boolean).join("・"))}
-        </span>
-        <span className="spacer" />
-        {canOpenExternal() && (
-          <button className="btn" data-size="sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${target.worktree ?? repoPath}/${path}`, line })}>
-            <ExternalLink size={13} aria-hidden /> VS Code で開く
-          </button>
-        )}
-        {!raster && !previewing && (base || readOnly) && <WrapToggle wrap={wrap} onChange={setWrap} />}
-        {(svg || pageKind) && <PreviewToggle kind={pageKind ?? "svg"} showCode={showCode} onClick={toggleCode} />}
-        {base && diffing && (
-          <>
-            <IconButton icon={ArrowUp} iconSize={14} label="前の変更へ" onClick={() => goToDiff.current?.("previous")} />
-            <IconButton icon={ArrowDown} iconSize={14} label="次の変更へ" onClick={() => goToDiff.current?.("next")} />
-            <DiffLayoutToggle />
-          </>
-        )}
-        {base && (
-          <button className="btn btn-primary" data-size="sm" disabled={!dirty || saving.busy !== null} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
-            <Save size={13} aria-hidden /> {saving.busy ? "保存中…" : "保存"}
-          </button>
-        )}
-      </header>
-      {changedOnDisk && dirty && (
-        <div className="file-changed-notice" role="status">
+      <FileHeader
+        path={path}
+        absolutePath={`${target.worktree ?? repoPath}/${path}`}
+        line={line}
+        state={{ ...state, title: base && diffing ? diffTitle : undefined }}
+        wrap={{ shown: kind !== "raster" && !previewing && Boolean(base || readOnly), on: wrap, set: setWrap }}
+        preview={preview}
+        onTogglePreview={() => preview.toggle(getValue.current?.() ?? null)}
+        goToDiff={base && diffing ? goToDiff : null}
+        save={base && { dirty: doc.dirty, busy: doc.status === "saving", run: () => void doc.save() }}
+      />
+      {base && doc.status === "conflict" && (
+        <DocumentConflictBar onReload={reload} onOverwrite={() => void doc.save({ force: true })}>
           開いたあとで、ほかでこのファイルが変わりました。
-          <button className="btn" data-size="sm" onClick={() => void reloadFromDisk()}>
-            読み直す
-          </button>
-        </div>
+        </DocumentConflictBar>
       )}
-      <div className={cx("diff-body", (base || raster || previewing) && "editing")}>
-        {raster && <ImagePreview projectId={projectId} path={path} version={version} />}
-        {previewing && svg && <ImagePreview projectId={projectId} path={path} version={version} source={base ? (previewSource ?? undefined) : undefined} />}
+      <div className={cx("diff-body", (base || kind === "raster" || previewing) && "editing")}>
+        {kind === "raster" && <ImagePreview projectId={projectId} path={path} version={git.version} />}
+        {previewing && kind === "svg" && <ImagePreview projectId={projectId} path={path} version={git.version} source={base ? (previewSource ?? undefined) : undefined} />}
         {previewing &&
-          pageKind &&
+          (kind === "markdown" || kind === "html") &&
           (previewSource !== null ? (
-            <PagePreview projectId={projectId} worktree={target.worktree} path={path} kind={pageKind} content={previewSource} />
-          ) : current?.error ? (
-            <ErrorText message={current.error} className="diff-message" />
+            <PagePreview projectId={projectId} worktree={target.worktree} path={path} kind={kind} content={previewSource} />
+          ) : loadError ? (
+            <ErrorText message={loadError} className="diff-message" />
           ) : (
-            <p className="muted small diff-message">{current?.file?.binary ? "バイナリのファイルなので、プレビューできません。" : "読み込み中…"}</p>
+            message(file?.binary ? "バイナリのファイルなので、プレビューできません。" : "読み込み中…")
           ))}
         {/* コード（プレビューしている間は、書きかけの編集の部品を残したまま隠す） */}
-        {!raster && (!previewing || codeMounted) && (
+        {kind !== "raster" && (!previewing || preview.codeMounted) && (
           <div className="file-code" hidden={previewing}>
-            {base && original === undefined ? (
-              <p className="muted small diff-message">編集の準備中…</p>
-            ) : base ? (
-              <Suspense fallback={<p className="muted small diff-message">編集の準備中…</p>}>
+            {base && original !== undefined ? (
+              <Suspense fallback={message("編集の準備中…")}>
                 <CodeEditor
-                  key={`${key}:${editorKey}`}
+                  key={`${key}:${revision}`}
                   path={path}
-                  initialValue={base.content}
+                  initialValue={doc.initial ?? base.content}
                   savedValue={base.content}
                   line={line}
                   valueRef={getValue}
                   cursorRef={cursor}
-                  onDirtyChange={changeDirty}
-                  onSave={(content) => void save(content)}
+                  onChange={change}
+                  onSave={() => void doc.save()}
                   original={original ?? undefined}
                   layout={layout}
                   goToDiffRef={goToDiff}
@@ -279,16 +127,18 @@ export function FileView({ projectId, repoPath, path, line, git, diffBase, onSav
                   autoFocus={autoFocus}
                 />
               </Suspense>
-            ) : !current ? (
-              <p className="muted small diff-message">読み込み中…</p>
-            ) : current.error ? (
-              <ErrorText message={current.error} className="diff-message" />
-            ) : current.file?.binary ? (
-              <p className="muted small diff-message">バイナリのファイルなので、中身は表示できません。</p>
+            ) : base ? (
+              message("編集の準備中…")
+            ) : loadError ? (
+              <ErrorText message={loadError} className="diff-message" />
+            ) : file?.binary ? (
+              message("バイナリのファイルなので、中身は表示できません。")
+            ) : readOnly && file ? (
+              <ReadOnlyCode path={path} content={file.content} line={line} wrap={wrap} />
             ) : (
-              current.file && <ReadOnlyCode path={path} content={current.file.content} line={line} wrap={wrap} />
+              message("読み込み中…")
             )}
-            {readOnly && current?.file?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています（編集はできません）。</p>}
+            {readOnly && message("大きいため、途中までを表示しています（編集はできません）。")}
           </div>
         )}
       </div>
