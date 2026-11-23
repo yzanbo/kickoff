@@ -1,7 +1,7 @@
 import type { DbConnection } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbTableTab } from "@/features/database/ui/dbClientTabs";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";

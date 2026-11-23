@@ -5,6 +5,8 @@ import { DEFAULT_GITHUB_FILTERS, parseGitHubFilters } from "./githubFilters";
 import { EMPTY_REVIEW_DRAFT, isEmptyReviewDraft, parseReviewDraft } from "./githubReviewDraft";
 
 export const storage = defineSettings("github", {
+  /** GitHub タブで開いている issue・PR（プロジェクトごと。「issue:12」「pr:5」の形。プロジェクトのタブと右の欄で同じ値） */
+  selected: family(text(), { ids: true }),
   /** GitHub タブの一覧の絞り込み（プロジェクトごと。issue と PR で別々に、いま見ている種類も） */
   filters: family(json(parseGitHubFilters, DEFAULT_GITHUB_FILTERS), { ids: true }),
   /** PR のマージで前回選んだ方式（プロジェクトごと。確認の初めの選択） */

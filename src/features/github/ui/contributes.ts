@@ -12,6 +12,8 @@ import { workplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
 import { githubHosts, prNoticeDecor } from "./appHosts";
 import { branchMenuItems } from "@/features/git/ui";
 import { pushPrItem } from "./pushPrItem";
+import { viewDescribers } from "@/foundation/ui/shell/viewDescribers";
+import { githubDescriber } from "./viewDescriber";
 
 export const contributes = [
   openTargets.item(githubItemTarget),
@@ -27,4 +29,6 @@ export const contributes = [
   workplaceDecor.item(prNoticeDecor),
   // 履歴の手元のブランチの右クリックの「プッシュして PR を作る」
   branchMenuItems.item(pushPrItem),
+  // AI の get_user_view に返す、開いている issue・PR
+  viewDescribers.item(githubDescriber),
 ];

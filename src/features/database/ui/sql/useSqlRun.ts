@@ -5,7 +5,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { DbConnection } from "@shared/database/types";
 import { dbApi, dbAt, dbSession } from "@/features/database/ui/api";
 import { alert } from "@/foundation/ui/kit/ask";
-import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbSqlTab } from "@/features/database/ui/dbClientTabs";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { setSqlPending } from "@/features/database/ui/state/sqlSessions";
 import type { useSqlWrite } from "@/features/database/ui/write/useSqlWrite";

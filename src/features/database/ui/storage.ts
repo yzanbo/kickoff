@@ -1,8 +1,11 @@
 // database の画面の保存（キーは kickoff:database:<名前の kebab>。ほかの機能が読むものは ui/index.ts から出す）
 import { defineSettings, family, flag, json, list, number, text } from "@/foundation/ui/storage";
 import { parseDbPins } from "./dbPins";
+import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
 
 export const storage = defineSettings("database", {
+  /** DB クライアントの右のタブと表示中のタブ（置き場所ごと: プロジェクトの DB タブ project-<ID>・チャットの右の欄と別ウィンドウ chat-<ID>） */
+  tabs: family(json(parseDbClientTabs, NO_DB_TABS, (v) => v.tabs.length === 0), { ids: true }),
   /** DB クライアントの左の木で開いている段（置き場所ごと。段のキーの列） */
   treeOpen: family(list(), { ids: true }),
   /** DB クライアントの左の木のピン留め（プロジェクトごと。どの置き場所でも同じ。留めた順） */

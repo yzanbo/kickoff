@@ -6,7 +6,7 @@ import { errorText, useQuery } from "@/foundation/ui/query";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { formatBytes } from "@shared/foundation/text/bytes";
-import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbTableTab } from "@/features/database/ui/dbClientTabs";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented, type SegmentOption } from "@/foundation/ui/kit/Segmented";

@@ -5,7 +5,7 @@ import { isReadOnlyStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_SESSION_IDLE_MS, type DbConnection } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
-import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbSqlTab } from "@/features/database/ui/dbClientTabs";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { estimateRowsBytes, useResultBudget } from "@/features/database/ui/state/resultBudget";
 import type { StatementRun } from "./SqlRunResult";

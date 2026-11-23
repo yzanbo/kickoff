@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import type { DbConnection } from "@shared/database/types";
 import type { ReactNode } from "react";
 import type { Tabs } from "@/foundation/ui/kit/tabs/useTabs";
-import { renameNoteTab, setTableFilter, updateErTab, type DbClientTab, type DbClientTabs } from "@/features/database/ui/state/dbClientTabs";
+import { renameNoteTab, setTableFilter, updateErTab, type DbClientTab, type DbClientTabs } from "@/features/database/ui/dbClientTabs";
 import { SqlView } from "@/features/database/ui/sql/SqlView";
 import { DefinitionView } from "@/features/database/ui/table/DefinitionView";
 import { TableView } from "@/features/database/ui/table/TableView";

@@ -41,7 +41,7 @@ export { addTargetsOf } from "./screen/addTargets";
 export { chatFileLinks, chatFileLinksPort, ChatFileLinksContext, openByClick, useChatFileLinks, useChatFileSource, type ChatFileLinks, type ChatFileLinksPort, type ChatFilePlace, type ChatFileSource } from "./screen/fileLinks";
 export { chatSidePanel, chatsPanel, openChatTab, useShownInChatSide } from "./places";
 export { createdChildPlace, openAskChild, openChat, type AskChildTarget, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
-export { addChats, knownChat } from "./store/knownChats";
+export { addChat, addChats, knownChat } from "./store/knownChats";
 export { appendBlock, quoteCode } from "./quote";
 export { chatTargetName, chatTitle, NEW_CHAT_TITLE } from "./chatTitle";
 export { closeChatWithChoice } from "./closeChat";

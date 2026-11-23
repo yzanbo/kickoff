@@ -7,7 +7,7 @@ import { formatFullStamp, relativeTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
-import { chatTitle } from "@/features/chat/ui/chatTitle";
+import { chatTitle } from "@/features/chat/ui";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 
 /** 履歴の 1 行の結果の文（行数・時間、失敗なら失敗の文） */

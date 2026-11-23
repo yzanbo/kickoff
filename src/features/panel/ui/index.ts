@@ -9,6 +9,7 @@ export { reconcileLayout } from "./layout/paneLayout";
 export { forwardPanelOp } from "./state/panelMirror";
 export type { DraftScope, PanelScope, PanelSurface, SavedTabs, StripProps, SurfaceExt, TabLook, ViewScope } from "./surface";
 export { usePanel, type PanelController } from "./usePanel";
+export { PopOutTabButton } from "./tabs/PopOutTabButton";
 export { BrowserAdds, TerminalAdds } from "./openWith/OpenWithAdds";
 export { Panel } from "./Panel";
 export { MaximizeButton, type PanelFrame } from "./PanelTools";

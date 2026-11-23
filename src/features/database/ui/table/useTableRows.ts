@@ -4,7 +4,7 @@ import type { DbConnection, DbQueryResult, DbRowFilter, DbSort, DbValue } from "
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useQuery } from "@/foundation/ui/query";
-import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbTableTab } from "@/features/database/ui/dbClientTabs";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { nextSort } from "@/features/database/ui/dbFormat";
 import { hasLongValue, hasUnreadImage, rowKeyFilters } from "./dbRowTools";

@@ -5,7 +5,7 @@ import { useQuery } from "@/foundation/ui/query";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { useProjects } from "@/features/projects/ui";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";

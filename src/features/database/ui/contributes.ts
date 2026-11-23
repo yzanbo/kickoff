@@ -11,6 +11,9 @@ import { appHosts } from "@/foundation/ui/shell/points";
 import { dbUnlockHost } from "@/features/database/ui/connection/appHosts";
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { dockerDbTarget } from "@/features/database/ui/client/dockerDbTarget";
+import { viewDescribers } from "@/foundation/ui/shell/viewDescribers";
+import { databaseSqlTarget } from "@/features/database/ui/ai/openSqlInChat";
+import { databaseDescriber } from "@/features/database/ui/client/viewDescriber";
 
 export const contributes = [
   projectViews.item(databaseView),
@@ -26,4 +29,8 @@ export const contributes = [
   appHosts.item(dbUnlockHost),
   // Docker タブの「DB で開く」
   openTargets.item(dockerDbTarget),
+  // チャットの AI が開くよう頼んだ SQL（open_sql）
+  openTargets.item(databaseSqlTarget),
+  // AI の get_user_view に返す、開いている DB のタブ
+  viewDescribers.item(databaseDescriber),
 ];

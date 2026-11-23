@@ -4,7 +4,7 @@ import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbConnection, type DbErPositions, type 
 import { erNeighborhood, erScope, erRelations } from "./erDiagram";
 import { errorMessage } from "@shared/foundation/errors";
 import { dbApi, dbAt, dbOne } from "@/features/database/ui/api";
-import type { DbErTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbErTab } from "@/features/database/ui/dbClientTabs";
 import { useQuery } from "@/foundation/ui/query";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { erAutoLayout, erColumnsOf, erNodeSize, type ErDetail } from "./erLayout";

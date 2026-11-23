@@ -1,15 +1,21 @@
 // GitHub タブで issue・PR を開く（チャットの見出し・ボードのカードの札は行き先 githubItem で、本文のリンクは直に呼ぶ）
 import type { GitHubLink } from "@shared/chat/types";
+import type { GitHubKind } from "@shared/github/types";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "./storage";
-import { githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { isSideViewShown, showSideView } from "@/features/projects/ui";
 
 /** GitHub タブで開いているものをその issue・PR にする（一覧を issue｜PR のその種類にし、中身にそれを出す。プロジェクトのタブと右の欄で同じ値） */
 export function selectGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
   writeSetting(storage.settings.filters(projectId), { ...readSetting(storage.settings.filters(projectId)), kind: link.kind });
-  writeSetting(githubSelected(projectId), `${link.kind}:${link.number}`);
+  writeSetting(storage.settings.selected(projectId), `${link.kind}:${link.number}`);
+}
+
+/** 保存した開いているもの（「issue:12」「pr:5」）を読む（読めなければ null） */
+export function parseGitHubSelected(text: string): { kind: GitHubKind; number: number } | null {
+  const m = /^(issue|pr):(\d+)$/.exec(text);
+  return m ? { kind: m[1] as GitHubKind, number: Number(m[2]) } : null;
 }
 
 /** プロジェクトの GitHub タブへ移って、その issue・PR を開く */

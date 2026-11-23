@@ -3,7 +3,7 @@ import { editKeyColumns, editStatements } from "@shared/database/dbEdit";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbRowEdit, type DbTableDetail } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
-import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbTableTab } from "@/features/database/ui/dbClientTabs";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { registerUnsaved } from "@/foundation/ui/document/unsaved";

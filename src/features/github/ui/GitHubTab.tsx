@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
-import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
+import type { GitHubItem, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -9,7 +9,6 @@ import { useListDetail } from "@/foundation/ui/kit/layout/useListDetail";
 import { useWhenVisible } from "./useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
-import { githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { useChatsLinkedTo } from "@/features/chat/ui";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -22,17 +21,13 @@ import { openNewIssue } from "./NewIssueDialog";
 import { GitHubItemRow } from "./GitHubItemRow";
 import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";
+import { parseGitHubSelected } from "./openGitHubItem";
 import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など。CI のタブも同じ） */
 export const DETAIL_MIN_WIDTH = 440;
 
 /** 開いているもの（「issue:12」「pr:5」）を読む */
-function parseSelected(text: string): { kind: GitHubKind; number: number } | null {
-  const m = /^(issue|pr):(\d+)$/.exec(text);
-  return m ? { kind: m[1] as GitHubKind, number: Number(m[2]) } : null;
-}
-
 /**
  * プロジェクトの「GitHub」タブ: 左に issue｜PR の一覧と絞り込み、右に開いたものの中身。
  * 連携先・アカウントはプロジェクトの設定の「GitHub」のとおり。使えなければ（remote がない・gh がない・ログインしていない）理由と直し方を出す
@@ -52,8 +47,8 @@ export function GitHubTab({ projectId }: { projectId: number }) {
 
 function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
   const [filters, setFilters] = useSetting(storage.settings.filters(projectId));
-  const [selectedText, setSelectedText] = useSetting(githubSelected(projectId));
-  const selected = parseSelected(selectedText);
+  const [selectedText, setSelectedText] = useSetting(storage.settings.selected(projectId));
+  const selected = parseGitHubSelected(selectedText);
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter);
   const meta = useQuery(["github.meta", projectId], () => api.githubMeta(projectId));

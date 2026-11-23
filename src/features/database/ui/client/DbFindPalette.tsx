@@ -6,7 +6,7 @@ import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
 import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import type { DbClientTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbClientTab } from "@/features/database/ui/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";
 import { useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";

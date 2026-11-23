@@ -8,7 +8,7 @@ import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useTabs } from "@/foundation/ui/kit/tabs/useTabs";
-import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbSqlTab } from "@/features/database/ui/dbClientTabs";
 import { readSetting } from "@/foundation/ui/storage";
 import { deferredSetting } from "@/foundation/ui/storage/deferredSetting";
 import { storage } from "@/features/database/ui/storage";

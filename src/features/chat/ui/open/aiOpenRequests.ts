@@ -1,13 +1,20 @@
+import type { Chat } from "@shared/chat/types";
 import type { OpenViewRequest } from "@shared/chat/openView";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
-import { openSqlInChat } from "@/features/database/ui/ai/openSqlInChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
+
+declare module "@/foundation/ui/navigation/open" {
+  interface OpenTargetMap {
+    /** そのチャット（子チャットなら、いちばん上の親）の右の欄の DB クライアントの新しい SQL のタブに sql を入れて開く（受け手は database） */
+    databaseSql: { chat: Pick<Chat, "id" | "project_id" | "parent_chat_id" | "worktree_path">; connectionId: number; sql: string };
+  }
+}
 
 /** 系譜のうち、まだ読み込んでいないチャットを一覧に入れる（親をたどって、いちばん上の親の右の欄に開けるように） */
 function learnLineage(lineage: OpenViewRequest["lineage"]) {
@@ -50,7 +57,7 @@ function openRequested(request: OpenViewRequest) {
   const target = request.lineage.at(-1);
   if (!target) return;
   // SQL は、頼んだチャットの右の欄の DB クライアントの新しい SQL のタブ（ツールの行の「SQL のタブで開く」と同じ）
-  if (request.kind === "sql") return openSqlInChat(target, { id: request.connection_id }, request.sql);
+  if (request.kind === "sql") return void open({ kind: "databaseSql", chat: target, connectionId: request.connection_id, sql: request.sql });
   // 子チャットは選んだ場所（省けば設定の開き方）、親のないチャットはチャットのパネル
   open({ kind: "chat", projectId: target.project_id, chatId: target.id, place: target.parent_chat_id !== null ? (request.place ?? "auto") : "tab" });
 }

@@ -4,10 +4,8 @@ import { api } from "@/foundation/ui/api";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { open } from "@/foundation/ui/navigation/open";
-import { addChat } from "@/features/chat/ui/store/knownChats";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { openChat } from "@/features/chat/ui";
+import { addChat, chatTargetName, openChat } from "@/features/chat/ui";
 
 /** チャットを開く（別ウィンドウの中なら、メインのウィンドウに頼む） */
 function openDbChat(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {

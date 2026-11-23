@@ -4,7 +4,7 @@ import { CopyConnectionDialog } from "@/features/database/ui/connection/CopyConn
 import { DbFailureDialog } from "@/features/database/ui/connection/DbFailureDialog";
 import { DbPrepDialog } from "@/features/database/ui/connection/DbPrepDialog";
 import { ImportConnectionDialog } from "@/features/database/ui/connection/ImportConnectionDialog";
-import type { DbClientTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbClientTab } from "@/features/database/ui/dbClientTabs";
 import type { DbFailure, DbPrepTarget } from "@/features/database/ui/state/dbClientContext";
 import { DbFindPalette } from "./DbFindPalette";
 

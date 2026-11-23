@@ -1,11 +1,10 @@
 // パネルのタブの種類ごとの、AI の get_user_view に返す説明（contributes.ts が userViewTabs に入れる）。
-// プロジェクトの画面のタブは、DB・GitHub のほか（ファイル・検索・履歴・CI・Docker・ゴミ箱）を画面の名前の画面として説明する。
+// プロジェクトの画面のタブは、持ち主が viewDescribers に出した説明（DB・GitHub）のほか（ファイル・検索・履歴・CI・Docker・ゴミ箱）を画面の名前の画面として説明する。
 // 種類の持ち主（chatPanel・files・notes など）は userView より上なので、説明は userView がまとめて持つ（読むのは下の chat・composer・projects だけ）
 import { knownChat } from "@/features/chat/ui";
 import { newChatDraft } from "@/features/composer/ui";
 import { projectViewOf } from "@/features/projects/ui";
-import { describeTab, editorView, githubView, noteView, userViewTabs } from "./tabDescribers";
-import { databaseView } from "./userViewCollect";
+import { describeTab, editorView, noteView, projectViewTab, userViewTabs } from "./tabDescribers";
 
 export const userViewTabItems = [
   describeTab("chat", (t) => ({ kind: "chat", chat_id: t.id, title: t.title ?? knownChat(t.id)?.title ?? "", project_id: t.projectId })),
@@ -17,13 +16,7 @@ export const userViewTabItems = [
   describeTab("file", (t) => editorView(t.projectId, t.path, t.worktree ?? null, t.line)),
   describeTab("projectFile", (t) => editorView(t.projectId, t.path, null, t.line)),
   describeTab("note", (t) => noteView(t.projectId, t.path)),
-  describeTab("projectView", (t) =>
-    t.view === "db"
-      ? databaseView(t.projectId, `chat-${t.chatId}`)
-      : t.view === "github"
-        ? githubView(t.projectId)
-        : { kind: "page", label: projectViewOf(t.view)?.label ?? t.view, project_id: t.projectId },
-  ),
+  describeTab("projectView", (t) => projectViewTab(t.view, { projectId: t.projectId, surface: `chat-${t.chatId}` }, projectViewOf(t.view)?.label ?? t.view)),
   describeTab("browser", (t) => ({ kind: "browser", url: t.current ?? t.url, title: t.title })),
   describeTab("terminal", (t) => ({ kind: "terminal", label: t.title ?? t.label, project_id: t.projectId })),
 ].map((d) => userViewTabs.item(d));

@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { defineSettings, family, single } from "./groups";
 import { installMemoryStorage } from "./memoryStorage";
-import { choice, optionalFlag, readSetting, record } from "./settings";
+import { choice, optionalFlag, readSetting, record, text } from "./settings";
 import { storage as legacyKeys } from "./legacyKeys";
 import { storage as shellStorage } from "./storage";
-import { githubSelected, projectChatOpen } from "./storageKeys";
+import { projectChatOpen } from "./storageKeys";
 import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
@@ -15,23 +15,25 @@ const extra = defineSettings("tPrepare", {
   fold: family(optionalFlag(), { ids: true }),
   lastHashes: single(record(), { ids: true, session: true }),
   queueMode: choice(["queue", "tell"], "tell"),
+  picked: family(text(), { ids: true }),
 });
 const GROUPS = [shellStorage, legacyKeys, extra];
 const DATABASE_ID = shellStorage.settings.databaseId;
 const fold = extra.settings.fold;
+const picked = extra.settings.picked;
 
 /** ID を含むもの（まとまりの開閉・チャット欄の開閉・選んだ PR・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
 function rememberSome() {
   local.setItem(fold("sidebar:p1/g3").key, "0");
   local.setItem(projectChatOpen(1).key, "1");
-  local.setItem(githubSelected(7).key, "pr:8");
+  local.setItem(picked(7).key, "pr:8");
   local.setItem(fold("panel:p1/g2").key, "0");
   session.setItem(extra.settings.lastHashes.key, JSON.stringify({ 1: "#/projects/1" }));
   local.setItem(shellStorage.settings.theme.key, "light");
   local.setItem(extra.settings.queueMode.key, "queue");
 }
 
-const ID_KEYS = [fold("sidebar:p1/g3").key, projectChatOpen(1).key, githubSelected(7).key, fold("panel:p1/g2").key];
+const ID_KEYS = [fold("sidebar:p1/g3").key, projectChatOpen(1).key, picked(7).key, fold("panel:p1/g2").key];
 
 /** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
 function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {
@@ -92,9 +94,9 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   serveStatus("db-new", new Promise<void>((resolve) => (answer = resolve)));
   await prepareStorage(GROUPS, { timeoutMs: 5 });
   // まだ届いていないので、捨てていない
-  assert.notEqual(local.getItem(githubSelected(7).key), null);
+  assert.notEqual(local.getItem(picked(7).key), null);
   answer();
   for (let i = 0; i < 500 && reloaded === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
-  assert.equal(local.getItem(githubSelected(7).key), null);
+  assert.equal(local.getItem(picked(7).key), null);
   assert.equal(reloaded, 1);
 });

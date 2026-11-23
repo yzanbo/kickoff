@@ -6,10 +6,7 @@ import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { allPanels, isPanelMounted, kindOf, leavesOf, parsePanelKey, surfaceOf, terminalTitle, type PanelTab } from "@/features/panel/ui";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
-import { readSetting } from "@/foundation/ui/storage";
-import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
-import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
-import { editorView, githubView, noteView, userViewTabs } from "./tabDescribers";
+import { editorView, noteView, projectViewTab, userViewTabs } from "./tabDescribers";
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */
 const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {
@@ -27,14 +24,6 @@ const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {
   trash: "ゴミ箱",
 };
 
-/** DB クライアントで前に出しているタブの接続とテーブル（place は DB クライアントの置き場所。DB のタブの説明（database の userViewTabs）も使う） */
-export function databaseView(projectId: number, place: string): UserViewTab {
-  const state = readSetting(dbClientTabs(place));
-  const active = state.tabs.find((t) => t.key === state.active) ?? null;
-  const connection = active ? (dbConnectionsStore.get(projectId).data?.find((c) => c.id === active.connection_id)?.name ?? `接続 ${active.connection_id}`) : null;
-  return { kind: "database", connection, table: active?.kind === "table" ? active.name : null, project_id: projectId };
-}
-
 /** パネルのタブ 1 つの中身（種類の持ち主が userViewTabs に出した説明。なければ種類の名前の画面: プロジェクトの画面と同じ CI・Docker・ゴミ箱・ファイル・検索・履歴） */
 function describePanelTab(tab: PanelTab): UserViewTab {
   const describer = userViewTabs.items().find((d) => d.kind === tab.kind);
@@ -48,9 +37,7 @@ function describePanelTab(tab: PanelTab): UserViewTab {
 function projectTabPane(route: Route): UserViewPane | null {
   if (route.name !== "project" || route.tab === "chats") return null;
   const id = route.id;
-  const tab: UserViewTab =
-    route.tab === "github" ? githubView(id) : route.tab === "db" ? databaseView(id, `project-${id}`) : { kind: "page", label: PROJECT_TAB_LABELS[route.tab], project_id: id };
-  return { area: "プロジェクトのタブ", tab };
+  return { area: "プロジェクトのタブ", tab: projectViewTab(route.tab, { projectId: id, surface: `project-${id}` }, PROJECT_TAB_LABELS[route.tab]) };
 }
 
 /** 画面に出ている欄（閉じた欄・裏のプロジェクトの欄は入れない）のペインごとの前のタブと、右の欄に開いているもの */
@@ -94,7 +81,7 @@ export function collectPopoutView(route: PopoutRoute): UserView {
           : route.kind === "changes"
             ? { kind: "changes", worktree: route.worktree ?? null, focus: route.focus ?? null, project_id: route.projectId }
             : route.kind === "database"
-              ? databaseView(route.projectId, `chat-${route.chatId}`)
+              ? projectViewTab("db", { projectId: route.projectId, surface: `chat-${route.chatId}` }, "DB")
               : route.kind === "sidebar"
                 ? { kind: "page", label: "サイドバー" }
                 : route.kind === "side"

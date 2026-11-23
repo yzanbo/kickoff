@@ -1,11 +1,20 @@
 // パネルのタブの中身を AI に説明する口（get_user_view）: タブの種類の持ち主が ui/contributes.ts で userViewTabs.item({ kind, describe }) を出す。
-// 説明の形を作る補助（エディタ・ノート・GitHub。DB は userViewCollect.ts）は、パネルのタブと別ウィンドウ・プロジェクトのタブで共通
+// 説明の形を作る補助（エディタ・ノート）は、パネルのタブと別ウィンドウ・プロジェクトのタブで共通。プロジェクトの画面（DB・GitHub）の中身は持ち主が土台の viewDescribers に出す
 import { USER_VIEW_TEXT_MAX, type UserViewTab } from "@shared/userView/types";
 import { definePoint } from "@/foundation/ui/points";
-import { readSetting } from "@/foundation/ui/storage";
-import { githubSelected } from "@/foundation/ui/storage/storageKeys";
+import { describeView, type ViewAt } from "@/foundation/ui/shell/viewDescribers";
 import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
 import type { PanelTab } from "@/features/panel/ui";
+
+declare module "@/foundation/ui/shell/viewDescribers" {
+  interface ViewDescriptionMap {
+    /** プロジェクトの画面の説明は get_user_view のタブ 1 つの形 */
+    userView: UserViewTab;
+  }
+}
+
+/** 画面の説明（持ち主が viewDescribers に出していなければ、名前の画面） */
+export const projectViewTab = (view: string, at: ViewAt, label: string): UserViewTab => describeView(view, at) ?? { kind: "page", label, project_id: at.projectId };
 
 /** 種類のタブ 1 つの説明（kind はタブの種類。中身の型は describeTab で種類に合わせる） */
 export interface UserViewTabDescriber {
@@ -24,12 +33,6 @@ export const describeTab = <K extends PanelTab["kind"]>(kind: K, describe: (tab:
 
 /** 選んだ文は長ければ切る */
 const clip = (s: string | null) => (s !== null && s.length > USER_VIEW_TEXT_MAX ? `${s.slice(0, USER_VIEW_TEXT_MAX)}…` : s);
-
-/** GitHub のタブ・右の欄で開いている issue・PR（「issue:12」「pr:5」） */
-export function githubView(projectId: number): UserViewTab {
-  const m = /^(issue|pr):(\d+)$/.exec(readSetting(githubSelected(projectId)));
-  return { kind: "github", item: m ? { kind: m[1] as "issue" | "pr", number: Number(m[2]) } : null, project_id: projectId };
-}
 
 /** エディタのタブ（カーソルと選んでいる範囲は開いている部品から） */
 export function editorView(projectId: number, path: string, worktree: string | null, line: number | undefined): UserViewTab {

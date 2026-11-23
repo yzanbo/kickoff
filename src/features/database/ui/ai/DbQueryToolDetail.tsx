@@ -1,6 +1,6 @@
 import { SquareTerminal } from "lucide-react";
 import { useDbConnections } from "@/features/database/ui/state/connectionsStore";
-import { useKnownChat } from "@/features/chat/ui/store/knownChats";
+import { useKnownChat } from "@/features/chat/ui";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { aiQueryConnection } from "./aiQuery";
 import { openSqlInChat } from "./openSqlInChat";

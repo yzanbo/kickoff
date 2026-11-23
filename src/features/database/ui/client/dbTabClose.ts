@@ -2,7 +2,7 @@
 import type { DbConnection } from "@shared/database/types";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { writeSetting } from "@/foundation/ui/storage";
-import type { DbClientTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbClientTab } from "@/features/database/ui/dbClientTabs";
 import { finishSession } from "@/features/database/ui/state/sqlSessions";
 import { unsavedKey, unsavedTables } from "@/features/database/ui/state/tabFlags";
 import { storage } from "@/features/database/ui/storage";

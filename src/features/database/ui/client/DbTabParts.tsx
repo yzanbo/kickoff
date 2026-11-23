@@ -4,7 +4,7 @@ import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import type { Tabs } from "@/foundation/ui/kit/tabs/useTabs";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { DbClientTab, DbClientTabs } from "@/features/database/ui/state/dbClientTabs";
+import type { DbClientTab, DbClientTabs } from "@/features/database/ui/dbClientTabs";
 import { TabObjectIcon } from "@/features/database/ui/tree/DbTreeObjects";
 import { objectPathLabel } from "@/features/database/ui/dbFormat";
 import { useSqlPending } from "@/features/database/ui/state/sqlSessions";

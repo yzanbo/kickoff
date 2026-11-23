@@ -1,6 +1,6 @@
 import { DB_NOTE_DIR } from "./dbFailure";
 import type { DbConnection } from "@shared/database/types";
-import { useNoteList } from "@/features/notes/ui/stores/notes";
+import { useNoteList } from "@/features/notes/ui";
 import { Field } from "@/foundation/ui/kit/Field";
 import { createDbNoteFile, noteChoices } from "./dbNote";
 

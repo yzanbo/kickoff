@@ -6,7 +6,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection, type DbErPositions } from "@shared/database/types";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { DbErTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbErTab } from "@/features/database/ui/dbClientTabs";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";

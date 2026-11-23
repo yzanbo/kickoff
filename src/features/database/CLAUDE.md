@@ -8,8 +8,8 @@
 |---|---|
 | `core/service.ts` | 組み立て: 登録 `connections`・つなぐ先 `target`（場所 `DbScope`）・木 `browse`・SQL のタブ `sqlTabs`・AI の SQL `aiQuery`（ツール `tools`）・金庫 `secrets` |
 | `core/workerClient.ts`・`worker/` | 呼び手 `DbWorkerClient`・ワーカー（`handler.ts`・`connect.ts`・SSH `tunnel.ts`）。ドライバは流し方 `DbConn` と読み方 `DbCatalog`（`postgres/`・`mysql/`・`sqlite.ts`）を `driverOf` で組む |
-| `ui/client/` | 殻 `DatabaseClient`（左に一覧、右にタブ）・登録する画面・Docker タブからの頼み |
-| `ui/state/` | タブ `dbClientTabs.ts`・接続の一覧 `connectionsStore.ts`・操作 `useDbClient`・置き場所 `DbSurface`・外からの頼み `requestDbClient` |
+| `ui/client/` | 殻 `DatabaseClient`（左に一覧、右にタブ。並びは `ui/dbClientTabs.ts`）・登録する画面・Docker タブからの頼み |
+| `ui/state/` | 接続の一覧 `connectionsStore.ts`・操作 `useDbClient`・置き場所 `DbSurface`・外からの頼み `requestDbClient` |
 | `ui/connection/`・`ui/tree/`・`ui/table/`・`ui/sql/`・`ui/write/`・`ui/er/`・`ui/ai/` | 接続（登録・失敗・準備・手順ノート・パスワードを聞く）・木・テーブル・SQL・書き込む・ER 図・AI |
 
 呼び手は `ui/api.ts` の `dbApi`、CSS は `@/app/renderer/styles/database/`。サブフォルダは state → write → connection → tree・ai → table → sql・er → client の向きに読む。

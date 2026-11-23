@@ -5,7 +5,7 @@ import { erMermaid, erScope } from "./erDiagram";
 import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
-import type { DbErTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbErTab } from "@/features/database/ui/dbClientTabs";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Popover } from "@/foundation/ui/kit/Popover";

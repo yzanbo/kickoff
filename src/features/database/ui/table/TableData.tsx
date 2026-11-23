@@ -8,7 +8,7 @@ import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, typ
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
-import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import type { DbTableTab } from "@/features/database/ui/dbClientTabs";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
