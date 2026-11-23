@@ -5,6 +5,7 @@ import { api } from "@/foundation/ui/api";
 import { showToast } from "@/foundation/ui/kit/toast";
 import type { HandOffItem } from "@/features/attachments/ui";
 import { consoleDocument, consoleLabelOf, pageLinkOf, screenLabelOf } from "./consoleDocument";
+import { nativeAgentBrowser } from "./native";
 
 /** コンソールの時刻（秒まで） */
 const clock = (iso: string) => new Date(iso).toLocaleTimeString("ja-JP");
@@ -14,7 +15,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString("ja-JP");
  * （どちらもなければ失敗にする）
  */
 async function captureTab(webContentsId: number, page: { url: string; title: string }): Promise<Attachment[]> {
-  const native = window.kickoff?.agentBrowser;
+  const native = nativeAgentBrowser();
   if (!native) throw new Error("ブラウザの画面はデスクトップアプリでのみ取れます");
   const taken = await native.handOffCapture(webContentsId);
   const url = pageLinkOf(page.url);

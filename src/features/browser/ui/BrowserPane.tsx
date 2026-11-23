@@ -1,6 +1,6 @@
 import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RefreshCw, Wrench, X } from "lucide-react";
-import { useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { normalizeUrl } from "@/foundation/ui/lib/url";
@@ -14,6 +14,8 @@ import { browserHandOffItem } from "./browserHandOff";
 import { useBrowserFind } from "./BrowserFind";
 import { BrowserPageMenu, useBrowserPageMenu } from "./BrowserPageMenu";
 import { useBrowserTextMenu } from "./useBrowserTextMenu";
+import { isDesktopApp } from "./native";
+import { useWebviewEvents } from "./useWebviewEvents";
 
 interface Props {
   url: string;
@@ -57,9 +59,8 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
   const textMenu = useBrowserTextMenu(visible);
   const notifyChange = useEffectEvent((page: { url: string; title: string }) => onChange?.(page));
 
-  useEffect(() => {
-    const view = ref.current;
-    if (!view) return;
+  // ページの移動・題・読み込みの様子をアドレス欄・戻る進む・タブの表示に写す
+  useWebviewEvents(ref, (view) => {
     const sync = () => {
       const url = view.getURL();
       if (!url) return;
@@ -69,38 +70,29 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
       setNav({ back: view.canGoBack(), forward: view.canGoForward() });
       notifyChange({ url, title: view.getTitle() });
     };
-    const onStart = () => {
-      setLoading(true);
-      setError(undefined);
-    };
-    const onStop = () => {
-      setLoading(false);
-      sync();
-    };
-    const onFail = (e: Electron.DidFailLoadEvent) => {
+    return {
+      "did-start-loading": () => {
+        setLoading(true);
+        setError(undefined);
+      },
+      "did-stop-loading": () => {
+        setLoading(false);
+        sync();
+      },
+      "did-navigate": sync,
+      "did-navigate-in-page": sync,
+      "page-title-updated": sync,
       // -3 は読み込みの中断（別のページへ移った）なのでエラーにしない
-      if (e.isMainFrame && e.errorCode !== -3) setError(`${e.errorDescription}（${e.validatedURL}）`);
+      "did-fail-load": (e) => {
+        if (e.isMainFrame && e.errorCode !== -3) setError(`${e.errorDescription}（${e.validatedURL}）`);
+      },
     };
-    view.addEventListener("did-start-loading", onStart);
-    view.addEventListener("did-stop-loading", onStop);
-    view.addEventListener("did-navigate", sync);
-    view.addEventListener("did-navigate-in-page", sync);
-    view.addEventListener("page-title-updated", sync);
-    view.addEventListener("did-fail-load", onFail);
-    return () => {
-      view.removeEventListener("did-start-loading", onStart);
-      view.removeEventListener("did-stop-loading", onStop);
-      view.removeEventListener("did-navigate", sync);
-      view.removeEventListener("did-navigate-in-page", sync);
-      view.removeEventListener("page-title-updated", sync);
-      view.removeEventListener("did-fail-load", onFail);
-    };
-  }, []);
+  });
 
   // AI に操作させるため、準備ができたら webview をメインプロセスに登録する（閉じたら外す）
   useAgentRegistration(ref, agentTarget?.tabKey ?? null, agentTarget?.projectId ?? null);
 
-  if (!window.kickoff) {
+  if (!isDesktopApp()) {
     return (
       <div className="browser-unavailable">
         <Globe size={22} />

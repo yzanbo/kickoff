@@ -9,6 +9,7 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { browserSelectionItem } from "./browserHandOff";
 import { browserMenuContext } from "./browserMenuContext";
+import { nativeBrowserTab } from "./native";
 
 const separator = <div className="menu-separator" role="separator" />;
 type PagePoint = { x: number; y: number };
@@ -57,7 +58,7 @@ export function BrowserPageMenu({ shown, close, view, currentUrl, projectId, nav
 }) {
   const p = shown.value;
   const { linkUrl, linkAddress, password, selection, copyImage, mediaLabel, mediaUrl, downloadUrl, pageActions } = browserMenuContext(p);
-  const copyBitmap = () => void window.kickoff?.browser.copyImageAt(view.getWebContentsId(), p.x, p.y).catch(reportFailure("画像をコピーできませんでした"));
+  const copyBitmap = () => void nativeBrowserTab()?.copyImageAt(view.getWebContentsId(), p.x, p.y).catch(reportFailure("画像をコピーできませんでした"));
   const pageUrl = webUrlOf(currentUrl)?.href ?? null;
   // 選んだ文の出どころは、入れ子のページならそのフレーム
   const sourceUrl = webUrlOf(p.frameURL)?.href ?? currentUrl;

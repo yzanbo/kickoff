@@ -229,7 +229,6 @@
       "feature-entry:src/features/board/ui/useProjectLaneReorder.ts -> src/features/chatList/ui/buckets.ts",
       "feature-entry:src/features/board/ui/useProjectLaneReorder.ts -> src/features/chatPanel/ui/drafts/panelDrafts.ts",
       "feature-entry:src/features/board/ui/useProjectLaneReorder.ts -> src/features/projects/ui/useVisibleProjects.ts",
-      "feature-entry:src/features/browser/ui/BrowserTabLead.tsx -> src/features/panel/ui/tabs/panelTypes.ts",
       "feature-entry:src/features/chat/core/approvals.ts -> src/features/ai/core/providers/types.ts",
       "feature-entry:src/features/chat/core/db/chatProviderHandoffs.test.ts -> src/features/ai/core/testing/fakeProvider.ts",
       "feature-entry:src/features/chat/core/db/chatProviderSessions.test.ts -> src/features/ai/core/testing/fakeProvider.ts",
@@ -710,15 +709,6 @@
       "src/shared/foundation/apiTypes.ts": 372
     },
     "native": [
-      "src/features/browser/ui/BrowserExtensions.tsx",
-      "src/features/browser/ui/BrowserFind.tsx",
-      "src/features/browser/ui/BrowserPageMenu.tsx",
-      "src/features/browser/ui/BrowserPane.tsx",
-      "src/features/browser/ui/agentBrowser.ts",
-      "src/features/browser/ui/agentBrowsing.ts",
-      "src/features/browser/ui/browserHandOff.ts",
-      "src/features/browser/ui/useDevtools.ts",
-      "src/features/browser/ui/useDockedDevtools.ts",
       "src/features/chat/ui/open/aiOpenRequests.ts",
       "src/features/chatPanel/ui/popout/PopoutChildChat.tsx",
       "src/features/database/ui/DbQueryToolDetail.tsx",

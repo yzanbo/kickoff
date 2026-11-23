@@ -2,6 +2,7 @@ import type { WebviewTag } from "electron";
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
 import { registerPageFind } from "@/foundation/ui/kit/pageFind";
+import { nativeBrowserTab } from "./native";
 
 /** ページの外の ⌘F はアプリ全体の検索から、webview の中ではメインプロセスから受け取る */
 export function useBrowserFind({ paneRef, view, visible, tabKey }: {
@@ -19,13 +20,13 @@ export function useBrowserFind({ paneRef, view, visible, tabKey }: {
       return;
     }
     const pane = paneRef.current;
-    const api = window.kickoff;
+    const api = nativeBrowserTab();
     if (!pane || !view || !api) return;
     // タブの名前のボタンにピントがあるときも、そのタブのブラウザで開く
     const unregister = registerPageFind(pane, open, (target) =>
       tabKey !== null && target.closest<HTMLElement>(".panel-tab.active[data-browser-tab-key]")?.dataset.browserTabKey === tabKey,
     );
-    const off = api.browser.onFindRequested((id) => {
+    const off = api.onFindRequested((id) => {
       if (!pane.checkVisibility() || pane.closest("[inert]")) return;
       try {
         if (view.getWebContentsId() === id) open();

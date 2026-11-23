@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { setAgentBrowsing } from "./agentBrowsing";
 import { addTabBehind, allPanels, browserTab, isPanelMounted, isTabShown, openTab, panelKey, panelOfTab, showTab } from "@/features/panel/ui";
 import { showSideBrowser } from "@/features/browser/ui/panel/openBrowserTab";
+import { nativeAgentBrowser } from "./native";
 
 /** いまの欄の状態（画面に出ている欄だけを数える） */
 const panelsView = () => ({ panels: allPanels(), mounted: isPanelMounted });
@@ -17,7 +18,7 @@ const mayReveal = (after: string | null) => after === null || isTabShown(panelsV
  */
 export function useAgentBrowserBridge() {
   useEffect(() => {
-    const api = window.kickoff?.agentBrowser;
+    const api = nativeAgentBrowser();
     if (!api) return;
     const offOpen = api.onOpenRequest((requestId, projectId, url, reveal, after) => {
       const key = panelKey("side", projectId);

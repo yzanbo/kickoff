@@ -5,6 +5,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { SettingValue } from "@/foundation/ui/storage";
 import { storage } from "./storage";
 import { useDockedDevtools } from "./useDockedDevtools";
+import { nativeDevtools } from "./native";
 
 /** 開発者ツールを出す場所: 右・下（ブラウザのタブの中）・別のウィンドウ */
 export const DEVTOOLS_DOCKS = storage.settings.devtoolsDock.choices;
@@ -66,7 +67,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>, visible: bool
   // 別のウィンドウを利用者が閉じたら、閉じた状態にする
   useEffect(
     () =>
-      window.kickoff?.devtools.onWindowClosed((targetId) => {
+      nativeDevtools()?.onWindowClosed((targetId) => {
         if (targetId === webContentsIdOf(viewRef.current)) setShown((now) => (now === "window" ? null : now));
       }),
     [viewRef],
@@ -78,7 +79,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>, visible: bool
     return () => {
       // すでになくなっていれば ID は読めない
       const id = webContentsIdOf(view);
-      if (id !== undefined) void window.kickoff?.devtools.close(id);
+      if (id !== undefined) void nativeDevtools()?.close(id);
     };
   }, [viewRef]);
 
@@ -88,7 +89,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>, visible: bool
     if (where === "window") {
       inspectOnOpen.current = null;
       setShown("window");
-      void window.kickoff?.devtools.openWindow(id, inspect).catch(() => setShown(null));
+      void nativeDevtools()?.openWindow(id, inspect).catch(() => setShown(null));
     } else {
       // タブの中に出していれば並べ方だけを変え、そうでなければ新しく開く
       if (!embedded) {
@@ -102,7 +103,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>, visible: bool
   const close = () => {
     inspectOnOpen.current = null;
     const id = viewId();
-    if (id !== undefined) void window.kickoff?.devtools.close(id);
+    if (id !== undefined) void nativeDevtools()?.close(id);
     setShown(null);
   };
 

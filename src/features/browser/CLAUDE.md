@@ -4,7 +4,7 @@
 
 - `desktop/`: メインの部品 `browserDesktop`（`index.ts`）。webview の守り `hardenWebviews`・`isOurWebview`（`browser.ts`）・開発者ツール・拡張・AI の操作 `agent/`（登録簿・画面への頼み・ページの操作）。
 - `core/`: AI のブラウザのツール（`tools.ts`。最後に使ったタブはチャットごと）・タブを表に出す `browserReveal.ts`・「ブラウザ」の節の contributor（`turnParts.ts`）。
-- `ui/`: ブラウザのタブ（`BrowserPane`。種類は `panel/tabKind.ts`・欄 `side`・`win` は `panel/browserSurfaces.ts`）・開く行き先 `openTargets.ts`（`open({ kind: "browser", projectId, url })`）・開発者ツールの重ね `devtoolsBox.ts`。
+- `ui/`: ブラウザのタブ（`BrowserPane`。種類は `panel/tabKind.ts`・欄 `side`・`win` は `panel/browserSurfaces.ts`）・開く行き先 `openTargets.ts`（`open({ kind: "browser", projectId, url })`）・開発者ツールの重ね `devtoolsBox.ts`・webview のイベント `useWebviewEvents.ts`・AI 操作中の店 `agentBrowsing.ts`・`window.kickoff` は `native.ts`。
 
 ## 決まり
 

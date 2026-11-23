@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { DevtoolsBounds } from "@shared/foundation/ipc";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { boxesOverlap, intersectBoxes, sameBox } from "./devtoolsBox";
+import { nativeDevtools } from "./native";
 
 type Point = { x: number; y: number };
 
@@ -71,7 +72,7 @@ export function useDockedDevtools({ targetId, active, openKey, visible, resizing
   const fail = useEffectEvent(onFail);
 
   useEffect(() => {
-    const api = window.kickoff?.devtools;
+    const api = nativeDevtools();
     if (!active || !slot || !api) return;
     let stopped = false;
     let frame = 0;

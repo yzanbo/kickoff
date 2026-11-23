@@ -5,6 +5,7 @@ import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useQuery } from "@/foundation/ui/query/useQuery";
 import { errorMessage } from "@shared/foundation/errors";
+import { nativeBrowserExtensions } from "./native";
 
 const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
   webstore: "ウェブストアから取得",
@@ -17,7 +18,7 @@ type ExtensionAction = `install:${KnownExtensionKey}` | `import:${KnownExtension
 
 /** 埋め込みブラウザの拡張機能（設定画面） */
 export function BrowserExtensions() {
-  const api = window.kickoff?.browserExtensions;
+  const api = nativeBrowserExtensions();
   // 読めなければ空の一覧のまま、読めなかったことを出す
   const query = useQuery(api ? "BrowserExtensions.list" : null, () => api!.list());
   const list = query.data ?? [];
