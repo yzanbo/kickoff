@@ -5,6 +5,7 @@ import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { GitHubMark } from "@/features/git/ui/GitHubMark";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
+import { openWebLink } from "@/foundation/ui/external/linkOpen";
 import { RefBadges } from "./CommitRefBadges";
 import type { RefTarget } from "./refTarget";
 
@@ -33,6 +34,7 @@ const longDate = (iso: string) =>
  * 親を押すとそのコミットを表で選び、ファイルを押すと「変更」タブでその差分を開く
  */
 export function CommitSummary({
+  projectId,
   commit,
   detail,
   known,
@@ -43,6 +45,7 @@ export function CommitSummary({
   onOpenFile,
   onRefMenu,
 }: {
+  projectId: number;
   commit: GitCommit;
   detail: GitCommitDetail | undefined;
   known: GitRefs | undefined;
@@ -89,7 +92,7 @@ export function CommitSummary({
         <span className="mono">{commit.hash}</span>
         <CopyButton label="SHA をコピー" text={commit.hash} iconSize={12} />
         {githubUrl && (
-          <button type="button" className="icon-button commit-github" title="GitHub でこのコミットを開く" aria-label="GitHub でこのコミットを開く" onClick={() => window.open(githubUrl)}>
+          <button type="button" className="icon-button commit-github" title="GitHub でこのコミットを開く" aria-label="GitHub でこのコミットを開く" onClick={(e) => void openWebLink(githubUrl, githubUrl, { invert: e.metaKey || e.ctrlKey, projectId })}>
             <GitHubMark size={13} />
           </button>
         )}

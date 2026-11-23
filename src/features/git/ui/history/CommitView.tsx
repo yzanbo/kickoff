@@ -92,6 +92,7 @@ export function CommitView({
       <ErrorText message={errorText(loaded.error)} className="code-search-message" />
       {tab === "commit" ? (
         <CommitSummary
+          projectId={projectId}
           commit={commit}
           detail={detail}
           known={known}
