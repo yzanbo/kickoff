@@ -82,3 +82,30 @@ test("TerminalSessions: 持ち主のシェルだけを止める。フォルダ�
   sessions.closeAll();
   assert.deepEqual(sessions.list(), []);
 });
+
+test("TerminalSessions.attach: ないキーには始めずに null（WebSocket は終わったシェルをホームで始め直さない）", async () => {
+  const { sessions, fake, client } = setup();
+  assert.equal(await sessions.attach("none", client("w").client), null);
+  assert.equal(fake.spawned.length, 0);
+  assert.equal(sessions.has("none"), false);
+});
+
+test("TerminalSessions.attach: snapshot を待つ間に detach したら足さない（つないですぐ切った WebSocket を残さない）", async () => {
+  const { sessions, fake, client } = setup();
+  const dir = tempDir();
+  const a = client("a");
+  await sessions.open({ key: "k", cwd: dir, cols: 80, rows: 24, client: a.client });
+  const w = client("w");
+  const attached = sessions.attach("k", w.client);
+  sessions.detach("k", "w");
+  assert.equal(await attached, null);
+  fake.spawned[0].emit("after");
+  await wait(30);
+  assert.deepEqual(w.got.data, []);
+  // ふつうにつなげば snapshot を返し、そのあとの出力が届く
+  const v = client("v");
+  assert.equal(typeof (await sessions.attach("k", v.client))?.snapshot, "string");
+  fake.spawned[0].emit("more");
+  await wait(30);
+  assert.ok(v.got.data.includes("more"));
+});

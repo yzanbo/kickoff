@@ -116,8 +116,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pi
         return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().remote_enabled;
       };
       let unsubscribe = () => {};
-      const cols = Number(c.req.query("cols")) || 80;
-      const rows = Number(c.req.query("rows")) || 24;
+      let closed = false;
       return {
         onOpen(_event, ws) {
           // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
@@ -135,7 +134,11 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pi
               ws.close();
             },
           };
-          void terminals.open({ key, cwd: "", cols, rows, client }).then(({ snapshot }) => send({ type: "snapshot", data: snapshot }));
+          // あるシェルにつなぐだけ（終わったシェルを始め直さない。つないですぐ切ったら足さない）
+          void terminals.attach(key, client).then((attached) => {
+            if (attached) send({ type: "snapshot", data: attached.snapshot });
+            else if (!closed) ws.close();
+          });
         },
         onMessage(event) {
           let parsed: TerminalClientMessage;
@@ -152,6 +155,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pi
           if (canType() && (caller.kind === "host" || terminals.ownerOf(key) === ownerOf(caller))) terminals.resize(key, parsed.cols, parsed.rows);
         },
         onClose() {
+          closed = true;
           unsubscribe();
           terminals.detach(key, clientId);
         },

@@ -107,6 +107,8 @@ function baseEnv(): Record<string, string> {
 
 export class TerminalSessions implements TerminalControl {
   private readonly sessions = new Map<string, Session>();
+  /** attach で snapshot を待っている人（値は、待つ間に detach されたか） */
+  private readonly attaching = new Map<string, boolean>();
   private readonly spawn: SpawnTerminal;
 
   constructor(private readonly opts: SessionsOptions) {
@@ -139,6 +141,24 @@ export class TerminalSessions implements TerminalControl {
     const snapshot = await session.output.snapshot();
     session.clients.set(client.id, client);
     return { snapshot, created: true };
+  }
+
+  /**
+   * あるシェルにつなぐ（WebSocket はこれだけを使う）。なければ始めずに null。いまの画面の内容を返し、そのあとの出力は client に届く。
+   * snapshot を待つ間に detach された（つないですぐ切った）・シェルが終わったときは足さずに null
+   */
+  async attach(key: string, client: TerminalClient): Promise<{ snapshot: string } | null> {
+    const session = this.sessions.get(key);
+    if (!session) return null;
+    this.attaching.set(client.id, false);
+    // ほかの人にまだ送っていない出力を先に送る（新しい人の分は snapshot に入る）
+    session.output.flush();
+    const snapshot = await session.output.snapshot();
+    const detached = this.attaching.get(client.id);
+    this.attaching.delete(client.id);
+    if (detached || this.sessions.get(key) !== session) return null;
+    session.clients.set(client.id, client);
+    return { snapshot };
   }
 
   /** そのシェルがあるか */
@@ -175,6 +195,7 @@ export class TerminalSessions implements TerminalControl {
 
   /** 離れる（シェルは止めない。スマホが閉じた・つなぎ直す） */
   detach(key: string, clientId: string): void {
+    if (this.attaching.has(clientId)) this.attaching.set(clientId, true);
     this.sessions.get(key)?.clients.delete(clientId);
   }
 
