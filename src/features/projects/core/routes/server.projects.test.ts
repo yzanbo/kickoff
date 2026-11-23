@@ -10,7 +10,7 @@ import { setup, until } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("設定: リンクの開き先（既定は Kickoff のブラウザ）と、確認を省くドメイン（小文字にそろえ、重ねない・使えない名前は 400）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const initial = (await call("GET", "/api/settings")).body;
   assert.equal(initial.link_open_in, "kickoff");
   assert.deepEqual(initial.trusted_link_domains, []);
@@ -22,7 +22,7 @@ test("設定: リンクの開き先（既定は Kickoff のブラウザ）と、
 });
 
 test("設定・プロジェクトの API", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 3 })).body.auto_archive_days, 3);
   const invalid = await call("PUT", "/api/settings", { auto_archive_days: 999 });
   assert.equal(invalid.status, 400);
@@ -84,7 +84,7 @@ test("設定・プロジェクトの API", async () => {
 });
 
 test("新しいプロジェクト: フォルダを Git のリポジトリとして作り、説明（description。取り込み・編集と同じキー）を README の「アイデア」にも書く", async () => {
-  const { call, store } = setup();
+  const { call, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const parent = tempDir();
   const created = await call("POST", "/api/projects", { name: "Todo", description: "やることを管理したい", parent_dir: parent, folder_name: "todo" });
   assert.equal(created.status, 201);
@@ -104,7 +104,7 @@ test("新しいプロジェクト: フォルダを Git のリポジトリとし�
 });
 
 test("新しいプロジェクト・取り込みのノートの保存先: note_folder は使える名前にして重なれば「名前-2」、note_dir は別の場所、省けば決めない", async () => {
-  const { call, store } = setup();
+  const { call, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const parent = tempDir();
   const first = (await call("POST", "/api/projects", { name: "A", parent_dir: parent, folder_name: "a", note_folder: "ノート/a" })).body;
   assert.deepEqual([first.note_folder, first.note_dir], ["ノート-a", null]);
@@ -122,7 +122,7 @@ test("新しいプロジェクト・取り込みのノートの保存先: note_f
 });
 
 test("プロジェクトを上に固定する・しまう（アーカイブ）・戻す", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const pinned = (await call("PATCH", `/api/projects/${project.id}`, { pinned: true })).body;
   assert.equal(pinned.pinned, true);
   const archived = (await call("PATCH", `/api/projects/${project.id}`, { archived: true })).body;
@@ -135,7 +135,7 @@ test("プロジェクトを上に固定する・しまう（アーカイブ）�
 });
 
 test("プロジェクトのタグ: 前後の空白と重複を除いて置き換える。長さ・数の上限を超えたら 400", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   assert.deepEqual(project.tags, []);
   const tagged = (await call("PATCH", `/api/projects/${project.id}`, { tags: [" 仕事 ", "クライアント A", "仕事"] })).body;
   assert.deepEqual(tagged.tags, ["仕事", "クライアント A"]);
@@ -153,14 +153,14 @@ test("プロジェクトのタグ: 前後の空白と重複を除いて置き換
 });
 
 test("プロジェクトの色: 一覧の色だけに変えられる", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   assert.ok(typeof project.hue === "number");
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 222 })).body.hue, 222);
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 100 })).status, 400);
 });
 
 test("プロジェクトのフォルダを変える: 取り込みと同じ決まりで確かめ、ほかのプロジェクトのフォルダ・作業中のチャットがあれば 409", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const url = `/api/projects/${project.id}/repo-path`;
   const { dir: moved } = gitRepo({ files: { "a.txt": "a" } });
   const real = fs.realpathSync(moved);
@@ -209,7 +209,7 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
 });
 
 test("git で管理しない新しいプロジェクト・取り込み、あとから git の管理を始める（もう管理していれば 409）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const parent = tempDir();
   const created = await call("POST", "/api/projects", { name: "Plain", parent_dir: parent, folder_name: "plain", init_git: false });
   assert.equal(created.status, 201);
@@ -232,7 +232,7 @@ test("git で管理しない新しいプロジェクト・取り込み、あと�
 });
 
 test("プロジェクトを削除するとゴミ箱に入り、3 日たって本当に消すとき、中のチャットのエージェントの会話記録も消すよう頼む（作業中のチャットがあれば 409 で消さない）", async () => {
-  const { call, project, store, runner, provider, trashBin, trashClock } = setup();
+  const { call, project, store, runner, provider, trashBin, trashClock } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -254,7 +254,7 @@ test("プロジェクトを削除するとゴミ箱に入り、3 日たって本
 });
 
 test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と、AI ごとの既定（設定・プロジェクト）を保存し、新しいチャットに当てる（メモの仕様書「0028」の 9 節）。プロジェクトの説明の空は null", async () => {
-  const { call, project, runner, bus } = setup();
+  const { call, project, runner, bus } = setup({ features: ["projects", "chat", "git", "settings", "childChats", "workplaceMove"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const codex = { model: null, effort: "low", permission_mode: "auto", fast_mode: false };

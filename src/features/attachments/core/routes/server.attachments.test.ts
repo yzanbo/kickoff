@@ -11,7 +11,7 @@ import { AUTH, setup, until } from "@/app/core/testing/testServer";
 const issue = { type: "github_issue", label: "o/r#12 ログインで落ちる", url: "https://github.com/o/r/issues/12" } as const;
 
 test("captures: 鍵らしい値を伏せて保存し、送るときは出どころ・時刻・外から来た注意を見出しに書く（中身は書かない）", async () => {
-  const { app, call, project, provider, store, uploads } = setup();
+  const { app, call, project, provider, store, uploads } = setup({ features: ["attachments", "chat", "notes"] });
   const res = await call("POST", "/api/captures", { name: "issue-12.md", text: "本文 AKIAIOSFODNN7EXAMPLE と postgres://a:pw@h/db", source: issue });
   assert.equal(res.status, 201);
   const capture = res.body as CaptureAttachment;
@@ -40,7 +40,7 @@ test("captures: 鍵らしい値を伏せて保存し、送るときは出どこ�
 });
 
 test("captures: ブラウザで選んだ文章は外から来た添付として渡す", async () => {
-  const { call, project, provider, store } = setup();
+  const { call, project, provider, store } = setup({ features: ["attachments", "chat", "notes"] });
   const source = { type: "browser_selection", label: "example.test", url: "https://example.test/article" } as const;
   const saved = await call("POST", "/api/captures", { name: "browser-selection.txt", mime: "text/plain", text: "選んだ文章", source });
   assert.equal(saved.status, 201);
@@ -51,7 +51,7 @@ test("captures: ブラウザで選んだ文章は外から来た添付として�
 });
 
 test("captures: 添付の上限を超えた中身は頭と終わりを残して切り、見出しに元の大きさを書く", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["attachments", "chat", "notes"] });
   const text = `${"a".repeat(MAX_UPLOAD_BYTES)}${"z".repeat(1000)}`;
   const capture = (await call("POST", "/api/captures", { name: "log.txt", mime: "text/plain", text, source: { type: "db_failure", label: "本番", url: null }, tail_share: 0.8 })).body as CaptureAttachment;
   assert.equal(capture.truncated, true);
@@ -60,7 +60,7 @@ test("captures: 添付の上限を超えた中身は頭と終わりを残して�
 });
 
 test("captures: 画像（ブラウザの画面）はそのまま保存し、見出しは外から来た注意付き。文と画像の両方・形式の違う画像・大きすぎる画像は断る", async () => {
-  const { app, call, project, provider, store } = setup();
+  const { app, call, project, provider, store } = setup({ features: ["attachments", "chat", "notes"] });
   const screen = { type: "browser_screen", label: "ログイン（localhost:5173）", url: "http://localhost:5173/login" } as const;
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
   const res = await call("POST", "/api/captures", { name: "screen.png", mime: "image/png", image_base64: png.toString("base64"), source: screen });
@@ -92,7 +92,7 @@ test("captures: 画像（ブラウザの画面）はそのまま保存し、見�
 });
 
 test("note/snapshot: 付けたときの中身を写し、送るときは写しと元のノートのパスを伝える（あとで書き換えても写しはそのまま）", async () => {
-  const { call, project, provider, store, uploads } = setup();
+  const { call, project, provider, store, uploads } = setup({ features: ["attachments", "chat", "notes"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "設計/DB.md", content: "# 初め\n" });
   const noteDir = ((await call("GET", `${base}/notes`)).body as NoteList).dir;

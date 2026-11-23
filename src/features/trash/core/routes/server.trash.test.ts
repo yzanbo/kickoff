@@ -18,7 +18,7 @@ import { deferred } from "@shared/foundation/testing/async";
 const execFileAsync = promisify(execFile);
 
 test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻せる。入れた・戻したら知らせる", async () => {
-  const { call, project, trashBin, bus } = setup();
+  const { call, project, trashBin, bus } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const dir = tempDir();
@@ -52,7 +52,7 @@ test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻
 });
 
 test("ゴミ箱: 元の場所に同じ名前があれば上書きせずに断り、rename なら「名前 2」で戻す", async () => {
-  const { call, project, trashBin } = setup();
+  const { call, project, trashBin } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "古い");
@@ -71,7 +71,7 @@ test("ゴミ箱: 元の場所に同じ名前があれば上書きせずに断り
 });
 
 test("ゴミ箱: フォルダも入れて戻せ、大きさを数える", async () => {
-  const { project, trashBin, store } = setup();
+  const { project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = path.join(tempDir(), "node_modules");
   fs.mkdirSync(path.join(dir, "x"), { recursive: true });
   fs.writeFileSync(path.join(dir, "x", "b.js"), "12345");
@@ -85,7 +85,7 @@ test("ゴミ箱: フォルダも入れて戻せ、大きさを数える", async 
 });
 
 test("ゴミ箱: AI の kickoff-trash が置いたもの（origin・chat・at と item/）を、一覧を読むときに取り込む。途中で止まったものは古くなったら消す", async () => {
-  const { call, project, trashBin, store, trashClock } = setup();
+  const { call, project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const chat = store.chats.create({ project_id: project.id, title: "掃除", provider: "claude", status: "completed" });
   const id = "0b7f6a2e-1c3d-4e5f-8a9b-0c1d2e3f4a5b";
   const folder = path.join(trashBin.dir, id);
@@ -116,7 +116,7 @@ test("ゴミ箱: AI の kickoff-trash が置いたもの（origin・chat・at �
 });
 
 test("ゴミ箱: 3 日たったものは片付けで本当に消え、種類ごとの扱いも呼ぶ", async () => {
-  const { project, trashBin, store, trashClock } = setup();
+  const { project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const file = path.join(tempDir(), "a.txt");
   fs.writeFileSync(file, "x");
   const put = await trashBin.putPath(file, { projectId: project.id });
@@ -137,7 +137,7 @@ test("ゴミ箱: 3 日たったものは片付けで本当に消え、種類ご�
 });
 
 test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、消したチャットのプロジェクトのゴミ箱に出て、元に戻せる", async () => {
-  const { call, project, trashBin, store } = setup();
+  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const chat = store.chats.create({ project_id: project.id, title: "片付け", provider: "claude", status: "completed" });
   const bin = await installTrashCommand(tempDir());
   // 中身が同じなら書き直さない
@@ -184,7 +184,7 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
 });
 
 test("ゴミ箱: AI が kickoff-trash でノートを消したら、ノートのチャットも同じ行に入り、戻すと一緒に戻る", async () => {
-  const { call, project, trashBin, store, runner } = setup();
+  const { call, project, trashBin, store, runner } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "案.md", content: "# 案" });
   const noteDir = (await call("GET", `${base}/notes`)).body.dir as string;
@@ -203,7 +203,7 @@ test("ゴミ箱: AI が kickoff-trash でノートを消したら、ノートの
 });
 
 test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外れ、同じフォルダの登録は戻すよう断る。戻すとチャットも戻り、3 日たてば本当に消える", async () => {
-  const { call, store, trashBin, trashClock, provider } = setup();
+  const { call, store, trashBin, trashClock, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const repo = tempDir();
   const project = (await call("POST", "/api/projects/import", { path: repo, name: "消す", provider: "claude" })).body;
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "中のチャット", status: "completed" });
@@ -244,7 +244,7 @@ test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外
 });
 
 test("アーカイブ済みのチャットの整理: 日数より前から動いていないものの数と、まとめてゴミ箱へ入れる（子チャットも一緒。新しいもの・アーカイブしていないものは残す）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const make = (title: string, parent: number | null = null) => store.chats.create({ project_id: project.id, title, provider: "claude", status: "completed", parent_chat_id: parent });
   const old = make("古い");
   const child = make("古い子", old.id);
@@ -272,7 +272,7 @@ test("アーカイブ済みのチャットの整理: 日数より前から動い
 });
 
 test("どのチャットも使っていない会話記録: 一覧（チャットが使うもの・Kickoff が覚えたものは除く）と、選んだものをゴミ箱へ（作業フォルダのプロジェクトに出る。外のものはプロジェクトのない一覧へ）", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = (id: string) => {
     const p = path.join(dir, `${id}.jsonl`);
@@ -313,7 +313,7 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
 });
 
 test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォルダ）も置き場へ移し、大きさに数え、戻すと元の場所へ戻る", async () => {
-  const { call, project, trashBin, store } = setup();
+  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const file = path.join(dir, "s.jsonl");
   const companion = path.join(dir, "s");
@@ -329,7 +329,7 @@ test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォ
 });
 
 test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待ってからもう一度流す（頼んだときに 3 日たっていたものを残さない）", async () => {
-  const { project, trashBin, store, trashClock } = setup();
+  const { project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   // A は 1 つ目の片付けで消える古いもの。消している途中で止めておく
   const purging = deferred<void>();
   const held = deferred<void>();
@@ -356,7 +356,7 @@ test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待
 });
 
 test("ゴミ箱: 入れた時刻は片付けと同じ時計で付ける（本物の時計とずれていても、入れてから 3 日たてば消える）", async () => {
-  const { project, trashBin, store, trashClock } = setup();
+  const { project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   // 片付けの時計を本物より 10 分遅らせる（テストの準備から入れるまでに時間がかかったのと同じ）
   trashClock.now = Date.now() - 10 * 60_000;
   const file = path.join(tempDir(), "a.txt");
@@ -371,7 +371,7 @@ test("ゴミ箱: 入れた時刻は片付けと同じ時計で付ける（本物
 });
 
 test("ゴミ箱: 3 日を待たずに 1 件を完全に消せる（置き場の中身も消え、チャットは会話記録ごと消える。もうないものは 404）", async () => {
-  const { call, project, trashBin, store, provider } = setup();
+  const { call, project, trashBin, store, provider } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const file = path.join(tempDir(), "a.txt");
   fs.writeFileSync(file, "x");
   const put = await trashBin.putPath(file, { projectId: project.id });
@@ -395,7 +395,7 @@ test("ゴミ箱: 3 日を待たずに 1 件を完全に消せる（置き場の�
 });
 
 test("ゴミ箱: まとめて完全に消す（渡した ID だけ。もうないものは飛ばして消した数を返す）", async () => {
-  const { call, project, trashBin, store } = setup();
+  const { call, project, trashBin, store } = setup({ features: ["trash", "chat", "projects", "notes"] });
   const dir = tempDir();
   const puts = [];
   for (const name of ["a.txt", "b.txt", "c.txt"]) {
@@ -420,7 +420,7 @@ test("ゴミ箱: まとめて完全に消す（渡した ID だけ。もうな�
 });
 
 test("ゴミ箱: 片付けと「完全に消す」が重なっても、種類ごとの扱いは 1 回だけ流す", async () => {
-  const { project, trashBin, store, trashClock } = setup();
+  const { project, trashBin, store, trashClock } = setup({ features: ["trash", "chat", "projects", "notes"] });
   let calls = 0;
   const held = deferred<void>();
   trashBin.registerKind({

@@ -7,7 +7,7 @@ import { setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("定型文: 作る・変える・範囲を切り替える・並べ替える・消す。変えたら知らせる", async () => {
-  const { call, project, bus } = setup();
+  const { call, project, bus } = setup({ features: ["snippets"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
 
@@ -46,7 +46,7 @@ test("定型文: 作る・変える・範囲を切り替える・並べ替える
 });
 
 test("定型文: 本文が空白だけ・ないプロジェクトは断り、プロジェクトを消すとそのプロジェクトだけのものも消える", async () => {
-  const { call, store } = setup();
+  const { call, store } = setup({ features: ["snippets"] });
   assert.equal((await call("POST", "/api/snippets", { project_id: null, label: null, text: " \n " })).status, 400);
   assert.equal((await call("POST", "/api/snippets", { project_id: 9999, label: null, text: "a" })).status, 404);
 

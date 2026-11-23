@@ -21,7 +21,7 @@ const approval = (chatId: number, projectId: number, patch: Partial<Approval> = 
 });
 
 function withChat() {
-  const ctx = setup();
+  const ctx = setup({ features: ["notifications", "chat", "devices", "settings", "worktrees", "userView"] });
   // 端末から見ているものを知らせるテストのため、スマホ連携をオンにする
   ctx.store.settings.update({ mobile_enabled: true });
   const chat = ctx.store.chats.create({ project_id: ctx.project.id, provider: "claude", title: "調査", status: "running" });
@@ -105,7 +105,7 @@ test("通知: Expo が「宛先がもう使えない」と答えたら、その�
 });
 
 test("見ているものの知らせ: 形が違えば 400", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["notifications", "chat", "devices", "settings", "worktrees", "userView"] });
   assert.equal((await call("PUT", "/api/viewing", { chat_id: "1", ci_project_id: null })).status, 400);
   assert.equal((await call("PUT", "/api/viewing", {})).status, 400);
 });
@@ -145,7 +145,7 @@ test("AI からの知らせ（notify_user）: 見ていなければ Mac の通�
 });
 
 test("AI からの知らせ（notify_user）: 組み立てが通知の組を集め、チャットの実行に kickoff_chat のツールとして渡す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["notifications", "chat", "devices", "settings", "worktrees", "userView"] });
   const tools = watchTools(ctx, ctx.mcpTools);
   const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "調べて" })).body.id;
   await until(() => ctx.store.chats.get(id)?.status === "completed");

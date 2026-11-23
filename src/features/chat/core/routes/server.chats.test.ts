@@ -10,7 +10,7 @@ import { AUTH, setup, until } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("チャットの一覧: 件数で黙って切らず、最後に動いた順に返す。?archived=1 はアーカイブ済みだけ", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const ids: number[] = [];
   for (let i = 0; i < 305; i++) ids.push(store.chats.create({ project_id: i % 2 ? project.id : other.id, provider: "claude", title: `c${i}`, status: "completed" }).id);
@@ -32,7 +32,7 @@ test("チャットの一覧: 件数で黙って切らず、最後に動いた順
 });
 
 test("チャット・グループの API", async () => {
-  const { call, project, store, runner } = setup();
+  const { call, project, store, runner } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = await call("POST", `/api/projects/${project.id}/groups`, { name: "g" });
   assert.equal(group.status, 201);
@@ -129,7 +129,7 @@ test("チャット・グループの API", async () => {
 });
 
 test("チャットの手動の並び: ids の順に position を振り、ほかのプロジェクトのチャットは無視する。最後に動いた時刻は進めない", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const a = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
   const b = store.chats.create({ project_id: project.id, provider: "claude", title: "b", status: "completed" });
@@ -151,7 +151,7 @@ test("チャットの手動の並び: ids の順に position を振り、ほか�
 });
 
 test("新しいチャットの名前: 送る前に付けた名前（前後の空白を除く）で作り、AI に名前を付けてもらわない。空白だけ・長すぎる名前は断る", async () => {
-  const { call, project, runner, store } = setup();
+  const { call, project, runner, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const started = await call("POST", `/api/projects/${project.id}/chats`, { text: "最初の指示", title: "  送る前の名前  " });
   assert.equal(started.status, 201);
   assert.equal(started.body.title, "送る前の名前");
@@ -162,7 +162,7 @@ test("新しいチャットの名前: 送る前に付けた名前（前後の空
 });
 
 test("作業中のチャットはアーカイブ・削除できない（409）。断るときはほかの項目も変えない", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -178,7 +178,7 @@ test("作業中のチャットはアーカイブ・削除できない（409）�
 });
 
 test("チャットを別のプロジェクトへ移す: グループ・作業場所・ブランチを外し、並び順は変えない。作業中・知らないプロジェクトは断る", async () => {
-  const { call, project, store, runner } = setup();
+  const { call, project, store, runner } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body;
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは", group_id: group.id })).body.id;
@@ -206,7 +206,7 @@ test("チャットを別のプロジェクトへ移す: グループ・作業場
 });
 
 test("作業フォルダが変わると（別のプロジェクトへ移す）: 会話を新しいセッションに写して区切りを置く。区切りより前へは巻き戻し・分岐・ファイルを戻すができず、移したあと最初の実行にだけ知らせを添える（0025）", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは" })).body.id;
   await until(() => !runner.isBusy(chatId));
@@ -250,7 +250,7 @@ test("作業フォルダが変わると（別のプロジェクトへ移す）: 
 });
 
 test("添付・承認依頼・プロバイダー・使用枠の API", async () => {
-  const { app, call, approvals, project } = setup();
+  const { app, call, approvals, project } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   assert.deepEqual(await call("POST", "/api/uploads"), { status: 400, body: { error: "ファイルがありません" } });
   const form = new FormData();
   form.append("file", new File(["hello"], "a.txt", { type: "text/plain" }));
@@ -317,7 +317,7 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
 });
 
 test("チャット欄の / のコマンド: プロジェクトの作業場所で調べる。プロジェクトがなければ 404", async () => {
-  const { call, project, provider } = setup();
+  const { call, project, provider } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   provider.commandList = [{ name: "review", description: "コードを見直す", argument_hint: "" }];
   const res = await call("GET", `/api/projects/${project.id}/commands`);
   assert.equal(res.status, 200);
@@ -327,7 +327,7 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
 });
 
 test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（未読・固定はしない）。設定で日数を選ぶ", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const finish = async (prompt: string) => {
     const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: prompt })).body;
     await until(() => store.chats.get(chat.id)?.status === "completed");
@@ -357,7 +357,7 @@ test("自動のアーカイブ: 完了して日数がたったチャットだけ
 });
 
 test("チャットの記録の API: ほかのチャットのやり取りを Markdown の添付ファイルにして返す（そのまま添付として送れる）", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const source = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の話" })).body.id;
   await until(() => store.chats.get(source)?.status === "completed");
   const res = await call("POST", `/api/chats/${source}/transcript`);
@@ -372,7 +372,7 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
 });
 
 test("チャットのやり取りの記録の API: 全部のやり取りを Markdown で返す（コピー用。断り書きは入れない）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const id = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の話" })).body.id;
   await until(() => store.chats.get(id)?.status === "completed");
   const res = await call("GET", `/api/chats/${id}/transcript`);
@@ -386,7 +386,7 @@ test("チャットのやり取りの記録の API: 全部のやり取りを Mark
 test("既定の推論の深さの API: 作業フォルダの Claude Code の設定から求める", async () => {
   // 環境変数で決めている環境ではそちらが先になるので、どの環境でも設定のファイルから求めるよう外す
   vi.stubEnv("CLAUDE_CODE_EFFORT_LEVEL", undefined);
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   fs.mkdirSync(path.join(project.repo_path, ".claude"), { recursive: true });
   fs.writeFileSync(path.join(project.repo_path, ".claude", "settings.local.json"), JSON.stringify({ modelSettings: { "claude-opus-5": { effortLevel: "high" } } }));
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/effort-default?model=claude-opus-5`)).body, { effort: "high", source: "local" });
@@ -394,7 +394,7 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
 });
 
 test("ツールの結果の画像: 作業場所などの中の画像だけを、いまの中身と最後に変えた時刻で返す", async () => {
-  const { app, project, store } = setup();
+  const { app, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "画像", status: "completed" });
   const file = path.join(project.repo_path, "画面.png");
   fs.writeFileSync(file, new Uint8Array([137, 80, 78, 71]));
@@ -418,7 +418,7 @@ test("ツールの結果の画像: 作業場所などの中の画像だけを、
 });
 
 test("フィード: チャットごとにメインエージェントの最新の返答 1 件（子チャット・ノートのチャット・サブエージェントの返答は除く）を、返答の新しい順に返す", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const a = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
   const b = store.chats.create({ project_id: project.id, provider: "claude", title: "b", status: "completed" });
   const quiet = store.chats.create({ project_id: project.id, provider: "claude", title: "まだ返答なし", status: "completed" });
@@ -449,7 +449,7 @@ test("フィード: チャットごとにメインエージェントの最新の
 });
 
 test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELETE で外す（形が違えば 400・最後に動いた時刻は進めない）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const created = await call("POST", `/api/projects/${project.id}/chats`, { text: "直して", github: { repo: "o/r", number: 12, kind: "issue" } });
   assert.equal(created.status, 201);
   assert.deepEqual([created.body.github_repo, created.body.github_number, created.body.github_kind], ["o/r", 12, "issue"]);
@@ -469,7 +469,7 @@ test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELE
 });
 
 test("チャットを削除するとゴミ箱に入り（会話記録はまだ消さない）、3 日たって本当に消すとき、残ったチャットが使っていない会話記録を消すよう頼む（分岐したチャットが写した元のセッションは残す）", async () => {
-  const { call, project, store, runner, provider, trashBin, trashClock } = setup();
+  const { call, project, store, runner, provider, trashBin, trashClock } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed" && !runner.isBusy(chatId));
   const result = store.events.list(chatId).find((e) => e.type === "result")!;
@@ -492,7 +492,7 @@ test("チャットを削除するとゴミ箱に入り（会話記録はまだ�
 });
 
 test("チャットのゴミ箱: 子チャットごと戻せ、戻したら一覧に戻る。親がもう消えていれば親のないチャットとして戻す。本当に消すとき、ほかで使っていない添付も消す", async () => {
-  const { call, project, store, trashBin, trashClock, uploads } = setup();
+  const { call, project, store, trashBin, trashClock, uploads } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const parent = store.chats.create({ project_id: project.id, provider: "claude", title: "親", status: "completed" });
   const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", parent_chat_id: parent.id });
   const kept = await uploads.save({ name: "a.png", type: "image/png", bytes: new Uint8Array([1]) });
@@ -528,7 +528,7 @@ test("チャットのゴミ箱: 子チャットごと戻せ、戻したら一覧
 });
 
 test("AI 切り替え用の長文ファイルはアーカイブ・ゴミ箱で保持し、チャットの完全削除後に片付ける", async () => {
-  const { call, project, store, trashBin, trashClock, uploads } = setup();
+  const { call, project, store, trashBin, trashClock, uploads } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "切り替え", status: "completed" });
   const file = await uploads.save({ name: "long.txt", type: "text/plain", bytes: new TextEncoder().encode("長い会話") });
   store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex", handoff_attachments: [file] });
@@ -544,7 +544,7 @@ test("AI 切り替え用の長文ファイルはアーカイブ・ゴミ箱で�
 });
 
 test("チャットの詳細の記録: クエリがなければすべて・after でそれより新しい分・limit で終わりから・before と limit でさかのぼる。after の記録が消えていれば after_missing", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
   const ids = Array.from({ length: 6 }, (_, i) => store.events.add(chat.id, { type: "text", text: `返答${i}` }).id);
   type Detail = { events: { id: number }[]; has_earlier: boolean; after_missing: boolean };
@@ -576,7 +576,7 @@ test("チャットの詳細の記録: クエリがなければすべて・after 
 });
 
 test("チャットの詳細の tail_turns: 末尾をターン（作業の終わりを境目）で数えて読み、その前は索引で返す。ほかのクエリと一緒なら 400", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
   const ends: number[] = [];
   const firsts: number[] = [];
@@ -604,7 +604,7 @@ test("チャットの詳細の tail_turns: 末尾をターン（作業の終わ�
 });
 
 test("記録の一部分（/events）の 5 つの形と、検索の本文（/texts）。誤った組み合わせは 400", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
   const ends: number[] = [];
   for (let n = 0; n < 5; n++) {
@@ -633,7 +633,7 @@ test("記録の一部分（/events）の 5 つの形と、検索の本文（/tex
 });
 
 test("チャットの詳細に書きかけの返答（SSE で流した途中の文をつないだもの）と長さが入り、確定したら null になる", async () => {
-  const { call, project, store, bus, runner } = setup();
+  const { call, project, store, bus, runner } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは" })).body.id;
   await until(() => !runner.isBusy(chatId));
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.streaming_text, null);
@@ -656,7 +656,7 @@ test("チャットの詳細に書きかけの返答（SSE で流した途中の�
 });
 
 test("Claude Code 以外の AI のチャット: Claude Code の既定（モデル・深さ・権限）を当てず、その AI の一覧にないモデルは外して動かす（メモの仕様書「0028」の G1・G2）", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
   store.settings.update({ provider_chat_defaults: { claude: { model: "opus", effort: "high", permission_mode: "auto", fast_mode: false } } });
   const plain = await call("POST", `/api/projects/${project.id}/chats`, { text: "1", provider: "codex" });
   assert.equal(plain.status, 201);

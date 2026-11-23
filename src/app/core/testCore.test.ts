@@ -13,3 +13,14 @@ test("createTestCore: 偽の Claude の SDK を渡すと、API から送った�
   assert.equal(sdk.queries.filter((q) => q.received.some((m) => m.message.content === "調べて")).length, 1);
   assert.equal(provider.prompts.length, 0);
 });
+
+test("createTestCore: features で絞ると、その機能と作るのに要る機能だけを組み立てる。組み立てていない機能の口は読むと足す機能を言って落ち、広げても読まない", async () => {
+  const core = setup({ features: ["snippets"] });
+  assert.equal((await core.call("GET", "/api/snippets")).status, 200);
+  assert.equal((await core.call("GET", "/api/settings")).status, 404);
+  assert.throws(() => core.runner, /runner は機能 chat の口（createTestCore の features に "chat" を足す）/);
+  const spread = { ...core };
+  assert.equal("runner" in spread, false);
+  // chat を組み立てなければ、店は組み立てる前のもの（同じ DB）
+  assert.equal(core.store.projects.get(core.project.id)?.name, "p");
+});

@@ -4,7 +4,7 @@ import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("引き継ぎの状態を返し、古い区切りや未確認の再送を断る", async () => {
-  const { call, store, project, provider } = setup();
+  const { call, store, project, provider } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const switched = store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "会話の資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
   store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex");
@@ -27,7 +27,7 @@ test("引き継ぎの状態を返し、古い区切りや未確認の再送を�
 });
 
 test("準備に失敗した引き継ぎは同じ区切りで再試行できる", async () => {
-  const { call, store, project } = setup();
+  const { call, store, project } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const switched = store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "Git の状態だけ", state: "blocked", error: "準備に失敗", attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/retry`, { event_id: switched.event.id + 1 })).status, 409);
@@ -36,7 +36,7 @@ test("準備に失敗した引き継ぎは同じ区切りで再試行できる",
 });
 
 test("AI の切り替えは確認した条件が変わったら拒否し、再確認後に確定する", async () => {
-  const { call, store, runner, project, provider } = setup();
+  const { call, store, runner, project, provider } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const url = `/api/chats/${chat.id}/provider-switch`;
   const first = await call("GET", `${url}?target=codex`);
@@ -58,7 +58,7 @@ test("AI の切り替えは確認した条件が変わったら拒否し、再�
 });
 
 test("切り替えの準備中に権限の既定が変わったら確定しない", async () => {
-  const { call, store, project, provider } = setup();
+  const { call, store, project, provider } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const url = `/api/chats/${chat.id}/provider-switch`;
   const preview = await call("GET", `${url}?target=codex`);
@@ -78,7 +78,7 @@ test("切り替えの準備中に権限の既定が変わったら確定しな�
 });
 
 test("同じチャットで AI を切り替えて続け、元の AI に戻したときは前のセッションを再開する", async () => {
-  const { call, store, runner, project, provider } = setup();
+  const { call, store, runner, project, provider } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const send = async (text: string, count: number) => {
     assert.equal((await call("POST", `/api/chats/${chat.id}/messages`, { text })).status, 200);
@@ -104,7 +104,7 @@ test("同じチャットで AI を切り替えて続け、元の AI に戻した
 });
 
 test("切り替えたあと何も送っていなければ、確認して元の AI に戻せる（受信不明なら断る）", async () => {
-  const { call, store, project, provider } = setup();
+  const { call, store, project, provider } = setup({ features: ["providerSwitch"] });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const url = `/api/chats/${chat.id}/provider-switch`;
   const toCodex = await call("GET", `${url}?target=codex`);

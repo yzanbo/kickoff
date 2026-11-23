@@ -6,7 +6,7 @@ import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {
-  const { call, project, runner, provider, network, store } = setup();
+  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -34,7 +34,7 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
 });
 
 test("通信の切断: つながるのを待っている間にアプリを終えたら、起動したときの再開の確かめの印を付ける（使用枠の上限を待つものは付けない）", async () => {
-  const { call, project, runner, provider, network, store } = setup();
+  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -47,7 +47,7 @@ test("通信の切断: つながるのを待っている間にアプリを終え
 });
 
 test("通信の切断: 通信で止まったサブエージェントは、自動で再開するときに名前と ID を添えて続きから再開を頼む（自分で止めたものは頼まない）", async () => {
-  const { call, project, runner, provider, network, store } = setup();
+  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   network.online = false;
   provider.networkFailures = 1;
   // 裏で動かした 2 件: 調査は通信で親ごと止まり、レビューは自分で止めた
@@ -80,7 +80,7 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
 });
 
 test("通信の切断: 続けて何度も止まったら、再開するかを聞き（回答待ち）、再開するで数え直して送る", async () => {
-  const { call, project, runner, provider, network, approvals } = setup();
+  const { call, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
   network.online = true;
   // 最初の作業と、自動の再開の 3 回がすべて通信で失敗する
   provider.networkFailures = 1 + MAX_AUTO_RESUMES;
@@ -98,7 +98,7 @@ test("通信の切断: 続けて何度も止まったら、再開するかを聞
 });
 
 test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるかを聞く（勝手に再開しない）。続けるで再開し、終わったら送信待ちを戻す", async () => {
-  const { call, project, runner, provider, approvals, store } = setup();
+  const { call, project, runner, provider, approvals, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -123,7 +123,7 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
 });
 
 test("使用枠の上限: 戻る前は聞かず、その間に自分で送ったら聞くのをやめる。やめるを選んだら送信待ちは止めたまま", async () => {
-  const { call, project, runner, provider, approvals } = setup();
+  const { call, project, runner, provider, approvals } = setup({ features: ["chat", "settings"] });
   // 枠が戻るのはまだ先
   provider.usageLimits = [new Date(Date.now() + 3_600_000).toISOString()];
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -150,7 +150,7 @@ test("使用枠の上限: 戻る前は聞かず、その間に自分で送った
 });
 
 test("通信の切断: 自動で再開しない設定・「自動で再開しない」・自分で送ったときは待たない", async () => {
-  const { call, project, runner, provider, network, store } = setup();
+  const { call, project, runner, provider, network, store } = setup({ features: ["chat", "settings"] });
   network.online = false;
   // 設定で切ると、止まったことだけを知らせて待たない
   await call("PUT", "/api/settings", { auto_resume_on_reconnect: false });
@@ -184,7 +184,7 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
 });
 
 test("通信の切断のあとに使用枠の上限で止まっても、止めた送信待ちは再開した作業が最後まで終わったら戻して送る", async () => {
-  const { call, project, runner, provider, network, approvals } = setup();
+  const { call, project, runner, provider, network, approvals } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -214,7 +214,7 @@ test("通信の切断のあとに使用枠の上限で止まっても、止め�
 });
 
 test("使用枠の上限のあとに通信の切断で止まっても、止めた送信待ちを自分で止めたものとみなさず、つながったら自動で再開する", async () => {
-  const { call, project, runner, provider, network, approvals, store } = setup();
+  const { call, project, runner, provider, network, approvals, store } = setup({ features: ["chat", "settings"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);

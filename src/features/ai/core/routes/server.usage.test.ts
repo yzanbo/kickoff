@@ -4,7 +4,7 @@ import { test } from "vitest";
 import { setup } from "@/app/core/testing/testServer";
 
 test("使用状況: Claude と各サービスを並べ、失敗したサービスは error にしてほかは出す。取り直しは更新のときだけ", async () => {
-  const { call, codexCalls } = setup();
+  const { call, codexCalls } = setup({ features: ["ai"] });
   const first = await call("GET", "/api/usage");
   assert.equal(first.status, 200);
   assert.deepEqual(
@@ -25,7 +25,7 @@ test("使用状況: Claude と各サービスを並べ、失敗したサービ�
 });
 
 test("使用状況: provider を渡せばその AI の分だけ読み・取り直す（ほかの AI は取りに行かない）", async () => {
-  const { call, codexCalls } = setup();
+  const { call, codexCalls } = setup({ features: ["ai"] });
   const plan = await call("GET", "/api/usage?provider=claude");
   assert.deepEqual(plan.body.map((s: { provider: string }) => s.provider), ["claude"]);
   const refreshed = await call("POST", "/api/usage/refresh", { provider: "codex", force: true });

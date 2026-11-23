@@ -7,7 +7,7 @@ const texts = (body: { messages: { text: string }[] }) => body.messages.map((m) 
 
 /** 作業中のチャット（偽のプロバイダーは release まで終わらない） */
 async function busyChat() {
-  const ctx = setup();
+  const ctx = setup({ features: ["chat"] });
   const release = ctx.provider.hold();
   const chatId = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "1" })).body.id as number;
   await until(() => ctx.provider.prompts.length === 1);
@@ -74,7 +74,7 @@ test("送信待ちをすぐ送る口: now はその 1 件を伝え、all はま�
 });
 
 test("送信中: 送信待ちから取り出した指示は、発言を記録するまで sending に出し、発言の知らせのあとに外す", async () => {
-  const { call, project, runner, provider, bus } = setup();
+  const { call, project, runner, provider, bus } = setup({ features: ["chat"] });
   const seen: string[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") seen.push(`live:${e.live.queue.sending.map((m) => m.text).join()}`);

@@ -5,7 +5,7 @@ import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("AI の切り替え前には巻き戻し・分岐・ファイル復元を許可しない", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の発言" })).body.id;
   await until(() => !runner.isBusy(chatId));
   const before = store.events.list(chatId);
@@ -26,7 +26,7 @@ test("AI の切り替え前には巻き戻し・分岐・ファイル復元を�
 });
 
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
@@ -59,7 +59,7 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
 });
 
 test("巻き戻し・分岐は、止めた作業の終わりを起点にしない（その時点のメッセージはセッションに残らないことがある）", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const completed = store.events.list(chatId).find((e) => e.type === "result")!;
@@ -74,7 +74,7 @@ test("巻き戻し・分岐は、止めた作業の終わりを起点にしな�
 });
 
 test("巻き戻しの API: 自分の発言の手前まで戻し、書き直した文で送り直す（添付は引き継ぐ）", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const attachment = { kind: "file", id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
@@ -145,7 +145,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
 });
 
 test("巻き戻すと、消した記録の頭（巻き戻した発言の ID）を SSE の chat_events_deleted で 1 回だけ知らせる", async () => {
-  const { call, project, store, runner, provider, bus } = setup();
+  const { call, project, store, runner, provider, bus } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
@@ -159,7 +159,7 @@ test("巻き戻すと、消した記録の頭（巻き戻した発言の ID）�
 });
 
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。戻せない・作業中は断る", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const [user] = store.events.list(chatId).filter((e) => e.type === "user");
@@ -193,7 +193,7 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
 });
 
 test("巻き戻しの API: restore_files なら、分岐する前にファイルも戻す（ファイルの記録は元のセッションにあるため）", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
@@ -218,7 +218,7 @@ test("巻き戻しの API: restore_files なら、分岐する前にファイル
 });
 
 test("巻き戻しの API: 分岐に対応していないプロバイダーなら 400（最初の発言なら分岐しないので送れる）", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "childChats"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });

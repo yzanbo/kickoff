@@ -6,7 +6,7 @@ import { EMPTY_CHAT_LIVE, EMPTY_QUEUE_STATE, type ChatLive, type CompactingState
 import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   // ツールの実行・サブエージェントの返答では未読にしない
   provider.emits = [
     { type: "tool_use", id: "t1", name: "Read", input: {} },
@@ -40,7 +40,7 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
 });
 
 test("裏で動いている作業: 作業中はチャットの詳細で返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
-  const { call, project, runner, provider, bus } = setup();
+  const { call, project, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const seen: unknown[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") seen.push(e.live.background);
@@ -58,7 +58,7 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
 });
 
 test("圧縮: 圧縮している間はチャットの詳細で始めた時刻ときっかけ（ふつうの指示の途中なら自動）を返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
-  const { call, project, runner, provider, bus } = setup();
+  const { call, project, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const seen: (CompactingState | null)[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") seen.push(e.live.compacting);
@@ -81,7 +81,7 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻と
 });
 
 test("圧縮の直後: 作業の終わりを待たずに、要約したあとのコンテキストの大きさをチャットに書いて SSE で知らせる", async () => {
-  const { call, project, store, runner, provider, bus } = setup();
+  const { call, project, store, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
   store.chats.update(chatId, { context_tokens: 180_000, context_window: 200_000 });
@@ -101,7 +101,7 @@ test("圧縮の直後: 作業の終わりを待たずに、要約したあとの
 });
 
 test("圧縮の予約: 作業中の POST /compact は送信待ちのいちばん上に圧縮の行を入れ、行を消せばやめられる", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "続けて" })).body.id;
   await until(() => runner.isBusy(chatId));
@@ -116,7 +116,7 @@ test("圧縮の予約: 作業中の POST /compact は送信待ちのいちばん
 });
 
 test("手でコンテキストを消去（POST /clear）: 作業していなければその場で消去して区切りを残し、作業中なら終わったらすぐ消去する予約（行を消せばやめられる）。会話がなければ 409", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   const cleared = await call("POST", `/api/chats/${chatId}/clear`);
@@ -143,7 +143,7 @@ test("手でコンテキストを消去（POST /clear）: 作業していなけ�
 });
 
 test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェクトの指示を札付きの発言として送り、その作業が終わってから /compact を送る", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
   await call("PUT", "/api/settings", { pre_compact_prompt: " 共通の指示 " });
@@ -194,7 +194,7 @@ test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェク�
 });
 
 test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキストウィンドウが分かってから渡し、足したら記録して、圧縮するまで渡さない", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   await call("PUT", "/api/settings", { pre_compact_prompt: "ノートを書いて" });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
@@ -219,7 +219,7 @@ test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキス
 });
 
 test("圧縮前指示から圧縮が終わるまで: 「いま」は預かって圧縮のあとに送り、区切りまで圧縮が来なければ作業の終わりで続けて圧縮する", async () => {
-  const { call, project, store, runner, provider, bus } = setup();
+  const { call, project, store, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const triggers: string[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live" && e.live.compacting && triggers.at(-1) !== e.live.compacting.trigger) triggers.push(e.live.compacting.trigger);
@@ -276,7 +276,7 @@ test("圧縮前指示から圧縮が終わるまで: 「いま」は預かって
 });
 
 test("作業中の様子: チャットの詳細の live と SSE の chat_live は同じ形で、どれかが変わったときだけ丸ごと届く", async () => {
-  const { call, project, runner, provider, bus } = setup();
+  const { call, project, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const lives: ChatLive[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") lives.push(JSON.parse(JSON.stringify(e.live)));
@@ -305,7 +305,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
 });
 
 test("再試行: AI の API への通信を再試行している間はチャットの詳細でも返し、作業が終わったら消す", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const retry = { attempt: 2, max_retries: 10, retry_delay_ms: 4000, at: new Date().toISOString() };
   provider.retry = retry;
   const release = provider.hold();
@@ -318,7 +318,7 @@ test("再試行: AI の API への通信を再試行している間はチャッ�
 });
 
 test("停止: 止めるよう頼んでから作業が終わるまでは、詳細と SSE の chat_live で停止中を知らせる", async () => {
-  const { call, project, runner, provider, bus } = setup();
+  const { call, project, runner, provider, bus } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const seen: boolean[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") seen.push(e.live.stopping);
@@ -343,7 +343,7 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
 });
 
 test("作業の終わり: 終わりの知らせがないまま止まったサブエージェントは、通信以外ならお知らせを残す", async () => {
-  const { call, project, provider, store } = setup();
+  const { call, project, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   provider.emits = [
     { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査" } },
     { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.", is_error: false },
@@ -359,7 +359,7 @@ test("作業の終わり: 終わりの知らせがないまま止まったサブ
 });
 
 test("届かなかったサブエージェントの報告: 次に送る指示に本文を添えて渡し、自分の発言に印を残す（渡したら次からは添えない）", async () => {
-  const { call, project, provider, store } = setup();
+  const { call, project, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった
   provider.emits = [
     { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査" } },
@@ -385,7 +385,7 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
 });
 
 test("圧縮中に止めずに伝える: 預かって作業中の様子に出し、圧縮したやり取りが終わってから送った順に送る（圧縮のあとも、そのやり取りの間は預かる）。作業ごと終わったら送信待ちより先に送る", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   provider.compacting = true;
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -443,7 +443,7 @@ test("圧縮中に止めずに伝える: 預かって作業中の様子に出し
 });
 
 test("圧縮中に預かった「いま」は、送れない終わり方（通信の切断）で作業ごと終わったら、送信待ちの先頭に入れる（前からの送信待ちより先・送った順・出どころの印も残す）", async () => {
-  const { call, project, runner, provider, network } = setup();
+  const { call, project, runner, provider, network } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   provider.compacting = true;
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -465,7 +465,7 @@ test("圧縮中に預かった「いま」は、送れない終わり方（通�
 });
 
 test("圧縮中に預かった指示は、送る前なら送らずに消せる（命令の remove。もう送った・ない指示は 404）", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   provider.compacting = true;
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -488,7 +488,7 @@ test("圧縮中に預かった指示は、送る前なら送らずに消せる�
 });
 
 test("預かった指示を書き直している間は、送る順が来てもそこで止め、書き直す（命令の edit）と同じ順のまま送る（もう送ったものは 404）", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   provider.compacting = true;
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -523,7 +523,7 @@ test("預かった指示を書き直している間は、送る順が来ても�
 });
 
 test("圧縮後指示: 圧縮が終わったら札付きで伝え、預かった「いま」は圧縮後指示のやり取りが終わってから送る（手で圧縮したときは圧縮の実行のあとに圧縮後指示を新しい作業として送る）", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   await call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });
   await call("PATCH", `/api/projects/${project.id}`, { post_compact_prompt: "ノートを読み直す" });
   const text = "共通のあと\n\nノートを読み直す";
@@ -593,7 +593,7 @@ test("圧縮後指示: 圧縮が終わったら札付きで伝え、預かった
 });
 
 test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中に手で圧縮すると、圧縮前指示をいまの作業に伝え、終わったら送信待ちより先に圧縮して圧縮後指示を送る", async () => {
-  const { call, project, store, runner, provider } = setup();
+  const { call, project, store, runner, provider } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
   await call("PUT", "/api/settings", { pre_compact_prompt: "ノートを書いて", post_compact_prompt: "ノートを読んで" });
@@ -624,7 +624,7 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
 });
 
 test("圧縮後指示は送信待ちに入れない: いまの作業に足せなければ足せるまで待ち、作業が終わっていれば送信待ち（止めていても）より先に送る。送れない終わり方なら次に送った作業に伝える", async () => {
-  const { call, project, runner, provider, network } = setup();
+  const { call, project, runner, provider, network } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   await call("PUT", "/api/settings", { post_compact_prompt: "読み直す" });
   const post = postCompactMessage("読み直す");
   const queueTexts = () => runner.live(chatId).queue.messages.map((m) => m.text);
@@ -682,7 +682,7 @@ test("圧縮後指示は送信待ちに入れない: いまの作業に足せな
 });
 
 test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ預かって作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -727,7 +727,7 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
 });
 
 test("発言の印（依頼文の頼み・子チャットから渡した依頼）は、送る・送信待ちに入れる・送信待ちから送るのどの道でも発言の記録に残る", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "compact", "settings", "subagents"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   const users = () => store.events.list(chatId).filter((e) => e.type === "user").map((e) => (e.type === "user" ? [e.data.text, e.data.handoff_request ?? null, e.data.handoff_from?.chat_id ?? null] : []));

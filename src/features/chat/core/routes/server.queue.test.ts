@@ -9,7 +9,7 @@ import { setup, until } from "@/app/core/testing/testServer";
 import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
 
 test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
-  const { call, project, runner, provider } = setup(), release = provider.hold();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] }), release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { when: "later" })).status, 400);
@@ -61,7 +61,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
 });
 
 test("待ちの列は再起動しても残る: 自動で送るのまま読み戻し、起動したときの確かめに並べる（答えるまで送らない）", async () => {
-  const { call, project, runner, provider, store } = setup();
+  const { call, project, runner, provider, store } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -80,7 +80,7 @@ test("待ちの列は再起動しても残る: 自動で送るのまま読み戻
 });
 
 test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -115,7 +115,7 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
 });
 
 test("待ちの列の書き直し: 次に送る指示を書き直している間は送らず、終わったら送る。ほかの指示の書き直し・知らせが途絶えたときは止めない", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -154,7 +154,7 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
 });
 
 test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件にし（列の順に空行でつなぐ）、選んだうちのいちばん上の位置に残す", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -177,7 +177,7 @@ test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件に�
 });
 
 test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発言として順に送り、止めておく・「ここまで」の印があっても最後まで送る", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -199,7 +199,7 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
 });
 
 test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送ったら線の所で待ち（止めておくにはしない）、その線を消すと次の印まで送る", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -241,7 +241,7 @@ test("「ここまで送ったら止めます」: 印は列の中の位置で持
 });
 
 test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めずに伝える）", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -261,7 +261,7 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
 });
 
 test("待ちの列の API: 選んだものだけ、まとめて送る・消す・いちばん上か下へ移す（ほかは並びを保つ）", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -315,7 +315,7 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
 });
 
 test("質問として送る（pause_after）: その指示の作業が終わったら送信待ちを自動で送らずに一時停止する。来なければ印は外れる", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   let release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -366,7 +366,7 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
 });
 
 test("送信待ちの圧縮の行（命令の add_action）: いちばん下・指示のすぐあとに足す。書き直せず、まとめない。すぐ送ると圧縮する", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -409,7 +409,7 @@ test("送信待ちの圧縮の行（命令の add_action）: いちばん下・�
 });
 
 test("送信待ちのコンテキスト消去の行（命令の add_action）: 足して、書き直せず、作業していないときにすぐ送ると消去して記録に残す", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -436,7 +436,7 @@ test("送信待ちのコンテキスト消去の行（命令の add_action）: �
 });
 
 test("チャット欄の /clear: Claude Code に送らず、作業していなければその場で消去（区切りを残す）、作業中なら終わったらすぐ消去する予約、あとで送るなら消去の行", async () => {
-  const { call, project, runner, provider } = setup();
+  const { call, project, runner, provider } = setup({ features: ["chat", "queue"] });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   const labels = (body: { messages: { text: string; clear?: boolean }[] }) => body.messages.map((m) => (m.clear ? "消去" : m.text));
@@ -467,7 +467,7 @@ test("チャット欄の /clear: Claude Code に送らず、作業していな�
 });
 
 test("起動したときの再開の確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["chat", "queue"] });
   assert.deepEqual((await call("GET", "/api/restart-resumes")).body, []);
   assert.equal((await call("POST", "/api/restart-resumes", {})).status, 400);
   assert.equal((await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 1, action: "later" }] })).status, 400);
@@ -478,13 +478,12 @@ test("起動したときの再開の確かめの API: 一覧と答え（チャ�
 
 test("起動したときの再開の確かめの API: 途中で止まったチャットを送信待ちがなくても一覧に出し、送信待ちのないチャットへの「送る」は 400（どれも変えない）", async () => {
   const ids: Record<string, number> = {};
+  // 前回の起動: 作業中のまま落ちたチャットが 2 つと、自動で送るまま送信待ちが残ったチャット
   const { call, store, runner, provider } = setup({
-    // 前回の起動: 作業中のまま落ちたチャットが 2 つと、自動で送るまま送信待ちが残ったチャット
+    features: ["chat", "queue"],
     beforeStart: (store, project) => {
       const make = (title: string, status: "running" | "completed") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null }).id;
-      ids.crashed = make("落ちた", "running");
-      ids.later = make("あとで", "running");
-      ids.queued = make("送信待ち", "completed");
+      [ids.crashed, ids.later, ids.queued] = [make("落ちた", "running"), make("あとで", "running"), make("送信待ち", "completed")];
       store.events.add(ids.crashed, { type: "user", text: "調べて", message_uuid: randomUUID() });
       store.outbox.save(ids.queued, { now: [], later: [{ id: "q1", text: "次", options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" }], paused: false, stops: [] });
       return store.chats.recoverInterrupted("アプリの終了により中断しました");

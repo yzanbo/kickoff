@@ -6,7 +6,7 @@ import type { ChatGroup } from "@shared/groups/types";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("グループ: 作る・並べ替える・名前を変える。名前は前後の空白を除き、空・ほかの形は 400、ないプロジェクト・グループは 404", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["groups", "chat"] });
   const a = (await call("POST", `/api/projects/${project.id}/groups`, { name: "  レビュー " })).body as ChatGroup;
   assert.equal(a.name, "レビュー");
   const b = (await call("POST", `/api/projects/${project.id}/groups`, { name: "調べもの" })).body as ChatGroup;
@@ -23,7 +23,7 @@ test("グループ: 作る・並べ替える・名前を変える。名前は前
 });
 
 test("グループ: 消すと中のチャットをグループなしに戻し、そのあと group_deleted を知らせる", async () => {
-  const { call, project, store, runner, bus } = setup();
+  const { call, project, store, runner, bus } = setup({ features: ["groups", "chat"] });
   const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body as ChatGroup;
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは", group_id: group.id })).body.id;
   await until(() => !runner.isBusy(chatId));

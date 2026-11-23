@@ -30,7 +30,7 @@ async function connect(app: ReturnType<typeof setup>["app"], endpoint: ToolEndpo
 }
 
 test("MCP: 実行ごとの鍵で、その実行のツールと使い方を出す", async () => {
-  const { app, mcpTools } = setup();
+  const { app, mcpTools } = setup({ features: ["chat"] });
   const session = mcpTools.open([echoServer()]);
   const [endpoint] = session.endpoints;
   assert.equal(endpoint.name, "kickoff_test");
@@ -48,7 +48,7 @@ test("MCP: 実行ごとの鍵で、その実行のツールと使い方を出す
 });
 
 test("MCP: 鍵がない・違う・捨てた・ほかのサーバーの名前は 401", async () => {
-  const { app, mcpTools } = setup();
+  const { app, mcpTools } = setup({ features: ["chat"] });
   const session = mcpTools.open([echoServer()]);
   const [endpoint] = session.endpoints;
   const init = (headers: Record<string, string>) => ({
@@ -65,14 +65,14 @@ test("MCP: 鍵がない・違う・捨てた・ほかのサーバーの名前は
 });
 
 test("MCP: 出すサーバーがなければ口を作らない", () => {
-  const { mcpTools } = setup();
+  const { mcpTools } = setup({ features: ["chat"] });
   const session = mcpTools.open([]);
   assert.deepEqual(session.endpoints, []);
   assert.equal(mcpTools.openSessions, 0);
 });
 
 test("MCP: 実行ごとの鍵は別々で、ほかの実行のツールは使えない", async () => {
-  const { app, mcpTools } = setup();
+  const { app, mcpTools } = setup({ features: ["chat"] });
   const a = mcpTools.open([echoServer("kickoff_a")]);
   const b = mcpTools.open([echoServer("kickoff_b")]);
   assert.notEqual(a.endpoints[0].headers.Authorization, b.endpoints[0].headers.Authorization);
@@ -88,7 +88,7 @@ test("MCP: 実行ごとの鍵は別々で、ほかの実行のツールは使え
 });
 
 test("MCP: 承認を待つツールは答えが出るまで返らない（待ち時間で切らない）", async () => {
-  const { app, mcpTools } = setup();
+  const { app, mcpTools } = setup({ features: ["chat"] });
   let release!: () => void;
   const gate = new Promise<void>((resolve) => (release = resolve));
   const server: ToolServer = {

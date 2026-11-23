@@ -16,7 +16,7 @@ const viewOf = (projectId: number, path: string): UserView => ({
 });
 
 test("見ているもの: この Mac の画面のウィンドウが知らせ、AI はそのチャットのウィンドウのいまの様子と、送ったときの様子を読む", async () => {
-  const { call, store, project, runner, userViews } = setup();
+  const { call, store, project, runner, userViews } = setup({ features: ["userView", "devices"] });
   const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: "見て", user_view: viewOf(project.id, "sent.ts") })).body;
   await until(() => !runner.isBusy(chat.id));
   assert.equal((await call("PUT", "/api/user-view", { window_id: "w1", view: viewOf(project.id, "now.ts"), chat_ids: [chat.id], focused: true })).status, 204);
@@ -39,7 +39,7 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
 });
 
 test("見ているもの: スマホ（端末）は知らせられず、端末から送った指示の様子は覚えない", async () => {
-  const { app, call, store, project, runner, userViews } = setup();
+  const { app, call, store, project, runner, userViews } = setup({ features: ["userView", "devices"] });
   store.settings.update({ mobile_enabled: true });
   store.devices.create("Pixel", DEVICE_TOKEN);
   const put = await app.request("/api/user-view", { method: "PUT", headers: DEVICE, body: JSON.stringify({ window_id: "phone", view: viewOf(project.id, "x.ts"), chat_ids: [], focused: true }) });

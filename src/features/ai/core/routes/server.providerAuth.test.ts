@@ -17,7 +17,7 @@ const reverseCipher: SecretCipher = {
 };
 
 test("AI の一覧: 5 つの AI と、できること・ログインの仕方・API キーを置いたかを返す（キーそのものは返さない）", async () => {
-  const { call } = setup({ secretCipher: reverseCipher });
+  const { call } = setup({ features: ["ai", "chat", "settings", "childChats"], secretCipher: reverseCipher });
   const before = (await call("GET", "/api/providers")).body as ProviderStatus[];
   // テストの偽のプロバイダーはどの AI として呼ばれても同じもの（数だけ見る）
   assert.equal(before.length, PROVIDER_IDS.length);
@@ -63,7 +63,7 @@ test("Claude Code に渡す API キー: API キーのときだけ、子プロセ
 type ChatWithAi = { id: number; provider: ProviderId };
 
 test("新しいチャット: AI を選べ（省けばプロジェクトの AI）、子チャットの既定は親と同じ。違う AI の子チャットは会話を引き継がない", async () => {
-  const { call, store, project } = setup();
+  const { call, store, project } = setup({ features: ["ai", "chat", "settings", "childChats"] });
   const plain = (await call("POST", `/api/projects/${project.id}/chats`, { text: "x" })).body as ChatWithAi;
   assert.equal(plain.provider, "claude");
   const codex = (await call("POST", `/api/projects/${project.id}/chats`, { text: "y", provider: "codex" })).body as ChatWithAi;
@@ -81,7 +81,7 @@ test("新しいチャット: AI を選べ（省けばプロジェクトの AI）
 });
 
 test("ブラウザでのログイン: 始めると開く URL を返し、終わり・失敗・やめたを provider_login で知らせる（ログインを持たない AI は 400）", async () => {
-  const { call, bus, provider } = setup();
+  const { call, bus, provider } = setup({ features: ["ai", "chat", "settings", "childChats"] });
   assert.equal((await call("POST", "/api/providers/codex/login")).status, 400);
 
   const events: unknown[] = [];

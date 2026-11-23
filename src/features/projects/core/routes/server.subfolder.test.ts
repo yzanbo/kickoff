@@ -9,7 +9,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 
 /** app/ と other/ を持つリポジトリと、app/ を本体にしたプロジェクト */
 function subfolderSetup() {
-  const ctx = setup();
+  const ctx = setup({ features: ["projects", "chat", "git", "worktrees", "files"] });
   const { dir: top, git } = gitRepo({ dir: tempDir({ real: true }), files: { "app/a.txt": "a\n", "other/o.txt": "o\n", "root.txt": "r\n" } });
   const app = path.join(top, "app");
   const project = ctx.store.projects.create({ name: "app", repo_path: app, provider: "claude" });

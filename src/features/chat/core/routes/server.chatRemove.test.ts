@@ -24,7 +24,7 @@ async function doneChild(ctx: Ctx, parentId: number, text: string) {
 const notices = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
 
 test("archive_chat: 同じプロジェクトのほかの家系のチャットを子チャットごとアーカイブする。もうアーカイブ済み・ほかのプロジェクト・ないチャットは変えない", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["chat", "childChats"] });
   const { store, chatRemover } = ctx;
   const me = await doneChat(ctx, "わたし");
   const target = await doneChat(ctx, "片付ける");
@@ -44,7 +44,7 @@ test("archive_chat: 同じプロジェクトのほかの家系のチャットを
 });
 
 test("delete_chat: 子チャットごと Kickoff のゴミ箱に入れ（消したチャットを覚える）、戻せる。作業中のチャットが含まれていれば待たずに断る", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["chat", "childChats"] });
   const { call, project, store, provider, runner, chatRemover } = ctx;
   const me = await doneChat(ctx, "わたし");
   const target = await doneChat(ctx, "消す");
@@ -69,7 +69,7 @@ test("delete_chat: 子チャットごと Kickoff のゴミ箱に入れ（消し�
 });
 
 test("自分のアーカイブ: 作業中は予約だけして、作業が終わったらアーカイブし、送信待ちは止めてお知らせを残す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["chat", "childChats"] });
   const { call, store, provider, runner, chatRemover } = ctx;
   const me = await doneChat(ctx, "わたし");
   const release = provider.hold();
@@ -89,7 +89,7 @@ test("自分のアーカイブ: 作業中は予約だけして、作業が終わ
 });
 
 test("祖先の削除: 子チャットから親を頼まれたら、子の作業が終わってから子孫ごとゴミ箱に入れる", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["chat", "childChats"] });
   const { call, store, provider, runner, chatRemover } = ctx;
   const parent = await doneChat(ctx, "親");
   const child = await doneChild(ctx, parent, "子");

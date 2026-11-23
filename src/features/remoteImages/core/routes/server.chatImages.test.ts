@@ -20,7 +20,7 @@ async function chatOf(ctx: ReturnType<typeof setup>) {
 const imageUrl = (chatId: number, url: string) => `/api/chats/${chatId}/remote-image?url=${encodeURIComponent(url)}`;
 
 test("表示を許可したホスト: 許可・一覧・取り消し（小文字にそろえ、変わるたびに chat_image_hosts を知らせる）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { call, bus } = ctx;
   const chatId = await chatOf(ctx);
   const events: BusEvent[] = [];
@@ -45,7 +45,7 @@ test("表示を許可したホスト: 許可・一覧・取り消し（小文字
 });
 
 test("許可したホストの画像だけを返し、2 回目からは覚えた画像を返す（取り消すと覚えも消える）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { app, call, imageFake } = ctx;
   const chatId = await chatOf(ctx);
   const url = "https://images.example.com/a.png";
@@ -82,7 +82,7 @@ test("許可したホストの画像だけを返し、2 回目からは覚えた
 });
 
 test("分岐すると、表示の許可と覚えた画像を新しいチャットに写す（取りに行き直さない）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { app, call, store, imageFake } = ctx;
   const chatId = await chatOf(ctx);
   const url = "https://images.example.com/b.png";
@@ -100,7 +100,7 @@ test("分岐すると、表示の許可と覚えた画像を新しいチャッ�
 });
 
 test("チャットを本当に消すと、表示の許可と覚えた画像のフォルダも消える", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { app, call, store, imageFake, trashBin, trashClock, k } = ctx;
   const chatId = await chatOf(ctx);
   const url = "https://images.example.com/c.png";
@@ -118,7 +118,7 @@ test("チャットを本当に消すと、表示の許可と覚えた画像の�
 });
 
 test("手元の画像（返答の `![](docs/a.png)`）は、相対パスならチャットの作業場所から読む（作業場所の外は断る）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { app, project } = ctx;
   const chatId = await chatOf(ctx);
   fs.mkdirSync(path.join(project.repo_path, "docs"), { recursive: true });
@@ -131,7 +131,7 @@ test("手元の画像（返答の `![](docs/a.png)`）は、相対パスなら�
 });
 
 test("作業場所を移したチャットでは、区切りより前の記録（at）の画像は、そのときの作業場所から読む（メモの仕様書「0025」の H5）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["remoteImages"] });
   const { app, project, store } = ctx;
   const chatId = await chatOf(ctx);
   const before = store.events.list(chatId).at(-1)!.id;

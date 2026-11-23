@@ -15,6 +15,7 @@ import { callTool, toolNames } from "@/foundation/core/testing/toolCalls";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { ToolServer } from "@/foundation/core/aiTools/tool";
 import type { Bus } from "@/foundation/core/bus";
+import type { FeatureName } from "@/foundation/core/feature";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { AgentProvider, GuardMaterials, ToolGateFactory } from "@/features/ai/core/providers/types";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
@@ -57,16 +58,34 @@ function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string,
   return { k, store, project: store.projects.create({ name: "p", repo_path: repo, provider: "claude" }) };
 }
 
+/** 組み立てた機能の口を値で、組み立てていない機能の口は読むと何を足すかを言って落ちる口で並べる（広げても読まない） */
+function featureParts<T extends Record<string, unknown>>(built: (name: FeatureName) => boolean, table: { [K in keyof T]: [FeatureName, () => T[K]] }): T {
+  const out = {} as T;
+  for (const key of Object.keys(table) as (keyof T & string)[]) {
+    const [name, get] = table[key];
+    if (built(name)) out[key] = get();
+    else
+      Object.defineProperty(out, key, {
+        enumerable: false,
+        get: () => {
+          throw new Error(`${key} は機能 ${name} の口（createTestCore の features に "${name}" を足す）`);
+        },
+      });
+  }
+  return out;
+}
+
 /**
- * 偽物で全部の機能を組み立てた API のアプリ（待ち受けない。見張りは ports だけ動かし、テストが終わったら機能を止める）。
+ * 偽物で機能を組み立てた API のアプリ（待ち受けない。見張りは ports だけ動かし、テストが終わったら機能を止める）。
+ * features を渡すと、その機能と作るのに要る下の機能だけを組み立てる（省けば全部。機能をまたぐ筋書きと網だけ）。
  * 起動し直しを試すときは、同じ dbFile と fakes を渡してもう一度組み立てる（プロジェクトは組み立てるたびに 1 つ足す）
  */
-export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeStart; dbFile?: string; fakes?: TestFakes } & Omit<TestEnvOptions, "secretCipher"> & { secretCipher?: SecretCipher } = {}) {
+export function createTestCore(opts: { features?: readonly FeatureName[]; staticDir?: string; beforeStart?: BeforeStart; dbFile?: string; fakes?: TestFakes } & Omit<TestEnvOptions, "secretCipher"> & { secretCipher?: SecretCipher } = {}) {
   const dataDir = tempDir();
   const fakes = opts.fakes ?? testFakes(dataDir);
   const { k, store, project } = testKernel(dataDir, testPlatform(fakes), opts.staticDir, opts.dbFile);
   opts.beforeStart?.(store, project);
-  const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk, provider: opts.provider, chat: opts.chat }));
+  const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk, provider: opts.provider, chat: opts.chat }), undefined, opts.features);
   const browserLogin = new BrowserLogin();
   const { app, routes } = appOf(k, assembled, { token: TOKEN, browserLogin });
   // 止めるのは 1 回だけ（テストの途中で止めて確かめたあと、テストの終わりにもう一度呼ばれる）
@@ -85,13 +104,32 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, ai, uploads, userViews, devices, notifications, chat, docker, worktrees, github, notes } = assembled.apis;
+  const built = (name: FeatureName) => assembled.features.some((f) => f.name === name);
+  const { apis } = assembled;
   // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
-  const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
-  // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）
-  const parts = { store: withFeatureStores(chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)), bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
-  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.aiFinish, prWatch: github.prWatch, notes };
-  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, terminals: assembled.terminals, notifications, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  const parts = featureParts(built, {
+    runner: ["chat", () => apis.chat.runner],
+    approvals: ["chat", () => apis.chat.approvals],
+    streamingText: ["chat", () => apis.chat.streamingText],
+    mcpTools: ["chat", () => apis.chat.mcpTools],
+    chatRemover: ["chat", () => apis.chat.chatRemover],
+    sessionsElsewhere: ["chat", () => apis.chat.sessionsElsewhere],
+    providers: ["ai", () => apis.ai.providers],
+    uploads: ["attachments", () => apis.uploads],
+    userViews: ["userView", () => apis.userViews],
+    docker: ["docker", () => apis.docker],
+    worktreeEnvs: ["worktrees", () => apis.worktrees.envs],
+    worktreeFinisher: ["worktrees", () => apis.worktrees.aiFinish],
+    prWatch: ["github", () => apis.github.prWatch],
+    notes: ["notes", () => apis.notes],
+    terminals: ["terminal", () => assembled.terminals],
+    notifications: ["notifications", () => apis.notifications],
+    trashBin: ["trash", () => apis.trash],
+    pairing: ["devices", () => apis.devices.pairing],
+  });
+  // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）。chat を組み立てないときは組み立てる前の店
+  const featureStore = built("chat") ? withFeatureStores(apis.chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)) : store;
+  return Object.assign(parts, { ...fakes, store: featureStore, bus: k.bus, k, app, routes, project, call, browserLogin, close, codexCalls: () => fakes.counts.codex });
 }
 
 /**

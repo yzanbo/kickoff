@@ -13,7 +13,7 @@ async function finishedChat(ctx: ReturnType<typeof setup>, text = "親の質問"
 }
 
 test("子チャット: 親の会話を引き継ぐと、親の最後まで終わった作業の時点から会話を写して始める（親が作業中でも）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner, project } = ctx;
   const parentId = await finishedChat(ctx);
   const answer = store.events.list(parentId).find((e) => e.type === "result")!;
@@ -40,7 +40,7 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
 });
 
 test("子チャット: 親の会話を写すのを待たずに作って最初の発言を残し、写している間は作業中（送る準備の理由が inherit）。写し終えたらそのセッションで動かす", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner } = ctx;
   const parentId = await finishedChat(ctx);
   const release = provider.holdFork();
@@ -68,7 +68,7 @@ test("子チャット: 親の会話を写すのを待たずに作って最初の
 });
 
 test("子チャット: 親の会話を写している間に止めると、写し終えたところでプロバイダーを動かさずに中断で終える", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner } = ctx;
   const parentId = await finishedChat(ctx);
   const release = provider.holdFork();
@@ -84,7 +84,7 @@ test("子チャット: 親の会話を写している間に止めると、写し
 });
 
 test("子チャット: 親の会話を写せなければ、お知らせを残して引き継がずに動かす", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner } = ctx;
   const parentId = await finishedChat(ctx);
   provider.forkError = "ENOSPC: no space left on device";
@@ -98,7 +98,7 @@ test("子チャット: 親の会話を写せなければ、お知らせを残し
 });
 
 test("子チャット: 文の頭に引用を入れて送ると、引用はそのまま指示に入り、名前は引用のあとの文から付ける", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const parentId = await finishedChat(ctx);
   const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "> 選んだ文\n>\n> 2 行目\n\nここを直したい", quote: null, inherit: false })).body;
   assert.equal(child.title, "ここを直したい");
@@ -118,7 +118,7 @@ test("子チャット: 文の頭に引用を入れて送ると、引用はその
 });
 
 test("子チャット: 引き継がない・引き継げる会話がないときは、選んだ文と質問だけで始める", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const fresh = (await call("POST", `/api/chats/${parentId}/children`, { text: "質問", inherit: false })).body;
@@ -140,7 +140,7 @@ test("子チャット: 引き継がない・引き継げる会話がないとき
 });
 
 test("子チャット: 聞くことなしで会話を引き継ぐと、親の会話を写した子チャットを作るだけで動かさず、最初に送った文から名前を付ける", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner } = ctx;
   const parentId = await finishedChat(ctx);
   const answer = store.events.list(parentId).find((e) => e.type === "result")!;
@@ -177,7 +177,7 @@ test("子チャット: 聞くことなしで会話を引き継ぐと、親の会
 });
 
 test("子チャット: チャット欄から送るときは添付も渡せ（文が空でも添付があれば作れる）、指示に添付のパスが添えられる", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider } = ctx;
   const parentId = await finishedChat(ctx);
   const file = (await call("POST", `/api/chats/${parentId}/transcript`)).body;
@@ -189,7 +189,7 @@ test("子チャット: チャット欄から送るときは添付も渡せ（文
 });
 
 test("子チャット: 親をアーカイブ・移動・削除すると、子孫（子・孫）も一緒に扱う", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, runner } = ctx;
   const parentId = await finishedChat(ctx);
   const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "子", inherit: false })).body;
@@ -241,7 +241,7 @@ async function firstMessage(ctx: ReturnType<typeof setup>, childId: number) {
 }
 
 test("サブエージェントに子チャットで聞く: 会話の記録を Claude Code から読んで添付にし、起動した呼び出しから子チャットを始める（会話は引き継がない）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const parentId = await chatWithSubagent(ctx);
   ctx.provider.subagentLogs.a1 = [
     { kind: "user", text: "src の構成を調べて" },
@@ -272,7 +272,7 @@ test("サブエージェントに子チャットで聞く: 会話の記録を Cl
 });
 
 test("サブエージェントに子チャットで聞く: Claude Code から記録が読めなければ Kickoff に残っている分（依頼・報告）を添える。知らないサブエージェントは 400", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const parentId = await chatWithSubagent(ctx);
   const child = (await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "どうだった？" })).body;
   const { markdown } = await firstMessage(ctx, child.id);
@@ -301,7 +301,7 @@ async function childWithReply(ctx: ReturnType<typeof setup>, parentId: number) {
 }
 
 test("親チャットに渡す: 作業の最後の返答を、引用・見出しなしで親に送る・送信待ちに足す・入力欄用に返し、親の発言には出どころ、子には渡した記録を残す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, runner } = ctx;
   const parentId = await finishedChat(ctx);
   const { child, end } = await childWithReply(ctx, parentId);
@@ -336,7 +336,7 @@ test("親チャットに渡す: 作業の最後の返答を、引用・見出し
 });
 
 test("親チャットに渡す: 親のないチャット・作業の終わりでない記録・止めた作業は 400、親がアーカイブ済みなら 409", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store } = ctx;
   const parentId = await finishedChat(ctx);
   const { child, end } = await childWithReply(ctx, parentId);
@@ -368,7 +368,7 @@ async function family(ctx: ReturnType<typeof setup>) {
 }
 
 test("親から外す: 親のないチャットにしてグループへ入れる。聞いた発言・一緒にアーカイブした印を消し、お知らせを残す。子孫はついていく", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, project } = ctx;
   const { root, child, grandchild, great } = await family(ctx);
   const group = store.groups.create(project.id, "本筋");
@@ -390,7 +390,7 @@ test("親から外す: 親のないチャットにしてグループへ入れる
 });
 
 test("親から外す: 孫・ひ孫は自分の先祖の子に上げられる（いまの親・先祖でないチャット・親のないチャットは 400）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store } = ctx;
   const { root, child, grandchild, great } = await family(ctx);
   const other = await finishedChat(ctx, "ほか");
@@ -412,7 +412,7 @@ test("親から外す: 孫・ひ孫は自分の先祖の子に上げられる（
 });
 
 test("親から外す: 作業中なら 409（その下の孫が作業中でも、外すのは子だけなので外せる）。ほかのプロジェクトのグループは 400", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store, provider, runner } = ctx;
   const { child, grandchild } = await family(ctx);
   const elsewhere = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
@@ -434,7 +434,7 @@ test("親から外す: 作業中なら 409（その下の孫が作業中でも�
 });
 
 test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["childChats", "settings", "workplaceMove"] });
   assert.equal((await call("GET", "/api/settings")).body.ai_create_chat, "ask");
   assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "allow" })).body.ai_create_chat, "allow");
   assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "off" })).body.ai_create_chat, "off");
@@ -442,7 +442,7 @@ test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回
 });
 
 test("AI が作る子チャット: 親の会話を引き継げたら、親の最後まで終わった作業から写して始め、引き継いだことを AI に返す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const tools = watchTools(ctx, ctx.mcpTools);
   const parentId = await finishedChat(ctx);
   assert.ok(tools.names().includes("create_chat"), "親のないチャットにはチャットを作るツールを渡す");
@@ -455,7 +455,7 @@ test("AI が作る子チャット: 親の会話を引き継げたら、親の最
 });
 
 test("子チャット: 聞かずに開く子チャットは、プロジェクトの AI ではなく親と同じ AI で作る（親の会話を写すため。メモの仕様書「0028」の G5）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["childChats", "settings", "workplaceMove"] });
   const { call, store } = ctx;
   const parentId: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "親の質問", provider: "codex" })).body.id;
   await until(() => store.chats.get(parentId)?.status === "completed");

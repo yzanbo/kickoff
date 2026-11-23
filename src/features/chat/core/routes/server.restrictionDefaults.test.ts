@@ -3,7 +3,7 @@ import { test } from "vitest";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("制限の既定を API で保存し、新しいチャットにだけ適用する", async () => {
-  const { call, project, runner } = setup();
+  const { call, project, runner } = setup({ features: ["chat", "childChats", "settings"] });
   const defaults = (await call("GET", "/api/settings")).body;
   assert.equal(defaults.sandbox_enabled_by_default, true);
   assert.equal(defaults.edit_scope_enabled_by_default, true);
@@ -28,7 +28,7 @@ test("制限の既定を API で保存し、新しいチャットにだけ適用
 });
 
 test("分岐は現在のアプリ既定ではなく元のチャットの制限を引き継ぐ", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat", "childChats", "settings"] });
   await call("PUT", "/api/settings", { sandbox_enabled_by_default: false, edit_scope_enabled_by_default: false });
   const started = await call("POST", `/api/projects/${project.id}/chats`, { text: "分岐元" });
   await until(() => store.chats.get(started.body.id)?.status === "completed");

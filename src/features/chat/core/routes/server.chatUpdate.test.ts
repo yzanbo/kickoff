@@ -4,7 +4,7 @@ import { test } from "vitest";
 import { setup } from "@/app/core/testing/testServer";
 
 test("PATCH /api/chats/:id: 子チャットはグループに入れられない（400。グループは変わらない）。親のないチャットは入れられる", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["chat"] });
   const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body;
   const parent = store.chats.create({ project_id: project.id, provider: "claude", title: "親", status: "completed" });
   const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", parent_chat_id: parent.id });

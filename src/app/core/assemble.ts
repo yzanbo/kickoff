@@ -1,5 +1,6 @@
-// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。並べた順に作って始め、先に止める機能（stopPhase）のあとは逆の順に止める
-import type { AssembledCore } from "@/foundation/core/feature";
+// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。並べた順に作って始め、先に止める機能（stopPhase）のあとは逆の順に止める。
+// テストは機能を名前で絞れる（その機能と、作るのに要る下の機能だけを作る）
+import type { AssembledCore, CoreFeature, FeatureName } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { createSettings } from "@/features/settings/core/index";
 import { createTrash, type TrashApi } from "@/features/trash/core/index";
@@ -62,62 +63,139 @@ export interface AppAssembly extends AssembledCore {
 /** 端末の SSE に届ける知らせの種類（機能の表の access） */
 const deviceTypes = deviceEventTypes(ALL_EVENT_TABLES);
 
-/** 機能を作って並べる（待つものは prepareCore で先に済ませる。テストの偽物は何も待たない） */
-export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = { relay: null }): AppAssembly {
-  const settings = createSettings(k, { schemas: SETTING_SCHEMAS });
+/** 機能を作る口（初めて呼んだときに作る。作ったかは built） */
+interface Slot<T> {
+  (): T;
+  readonly label: string;
+  readonly built: boolean;
+}
+
+function slot<T>(label: string, make: () => T): Slot<T> {
+  let value: T | undefined;
+  let built = false;
+  const get = () => {
+    if (!built) {
+      value = make();
+      built = true;
+    }
+    return value as T;
+  };
+  return Object.defineProperties(get, { label: { value: label }, built: { get: () => built } }) as Slot<T>;
+}
+
+/** 作ってある機能（下の機能が、あとで作る上の機能を呼ばれたときに引く所。絞って組み立てたテストで作っていなければ落とす） */
+function existing<T>(s: Slot<T>): T {
+  if (!s.built) throw new Error(`機能 ${s.label} を組み立てていません（テストなら createTestCore の features に足す）`);
+  return s();
+}
+
+/**
+ * 機能を作って並べる（待つものは prepareCore で先に済ませる。テストの偽物は何も待たない）。
+ * only を渡すと、その機能と作るのに要る機能だけを作る（テストだけ。省けば全部を本物と同じ順に作る）
+ */
+export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = { relay: null }, only?: readonly FeatureName[]): AppAssembly {
+  const settings = slot("settings", () => createSettings(k, { schemas: SETTING_SCHEMAS }));
   // 下の機能があとで作る上の機能の店を読む所は、呼ばれたときに引く関数を渡す（仮の口。作る順は止める順も決めるので変えない）
-  const trash = createTrash(k, { projects: () => projects.api.store }, env.trash);
-  const projects = createProjects(k, { trash: trash.api, noteFolderName: projectNoteFolder });
-  const groups = createGroups(k, { projects: projects.api });
-  const ai = createAi(k, { projects: projects.api }, { ...env.ai, secretCipher: env.secretCipher });
-  const attachments = createAttachments(k, { trash: trash.api, chatStore: () => chat.api.store }, env.attachments);
-  const snippets = createSnippets(k, { projects: projects.api, chatOf: (chatId) => chat.api.store.chats.get(chatId) });
-  const notifications = createNotifications(k, { chatStore: () => chat.api.store, projects: projects.api.store }, env.notifications);
-  const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
-  const devices = createDevices(k, { notifications: notifications.api }, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
+  const trash: Slot<ReturnType<typeof createTrash>> = slot("trash", () => createTrash(k, { projects: () => existing(projects).api.store }, env.trash));
+  const projects: Slot<ReturnType<typeof createProjects>> = slot("projects", () => createProjects(k, { trash: trash().api, noteFolderName: projectNoteFolder }));
+  const groups = slot("groups", () => createGroups(k, { projects: projects().api }));
+  const ai = slot("ai", () => createAi(k, { projects: projects().api }, { ...env.ai, secretCipher: env.secretCipher }));
+  const attachments: Slot<ReturnType<typeof createAttachments>> = slot("attachments", () => createAttachments(k, { trash: trash().api, chatStore: () => existing(chat).api.store }, env.attachments));
+  const snippets: Slot<ReturnType<typeof createSnippets>> = slot("snippets", () => createSnippets(k, { projects: projects().api, chatOf: (chatId) => existing(chat).api.store.chats.get(chatId) }));
+  const notifications: Slot<ReturnType<typeof createNotifications>> = slot("notifications", () => createNotifications(k, { chatStore: () => existing(chat).api.store, projects: projects().api.store }, env.notifications));
+  const voice = slot("voice", () => createVoice(k, { speech: env.platformParts.speech, ...env.voice }));
+  const devices = slot("devices", () => createDevices(k, { notifications: notifications().api }, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices }));
   const { trashCommandFile } = prepared;
   // AI を替えたあとの引き継ぎ（providerSwitch の表。起動したときの確かめが chat を作る中で読むので、chat の前に作って両方に渡す）
-  const providerHandoffs = createProviderHandoffs(k.db);
-  const chat = createChat(k, { trash: trash.api, projects: projects.api, groups: groups.api, snippets: snippets.api.store, ai: ai.api, attachments: attachments.api.forChat, providerHandoff: providerHandoffs.port, aiTools: () => features.flatMap((f) => f.aiTools ?? []) }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl });
-  const { runner } = chat.api;
+  const providerHandoffs = slot("providerSwitch", () => createProviderHandoffs(k.db));
+  const chat: Slot<ReturnType<typeof createChat>> = slot("chat", () =>
+    createChat(k, { trash: trash().api, projects: projects().api, groups: groups().api, snippets: snippets().api.store, ai: ai().api, attachments: attachments().api.forChat, providerHandoff: providerHandoffs().port, aiTools: () => features.flatMap((f) => f.aiTools ?? []) }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl }),
+  );
   // 利用者が見ているもの（並びは通知の前のまま。送ったときの様子をチャットの送る口から受けるので、チャットのあとに作る）
-  const userView = createUserView({ chat: chat.api });
+  const userView = slot("userView", () => createUserView({ chat: chat().api }));
   // ここからはチャットの上の機能
-  const guard = createGuard({ trash: trash.api, ai: ai.api, chat: chat.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self });
-  const compact = createCompact({ chat: chat.api });
-  const subagents = createSubagents({ chat: chat.api });
-  const childChats = createChildChats({ chat: chat.api, ai: ai.api, uploads: attachments.api.uploads, workplace: k.workplace });
-  const visuals = createVisuals({ chat: chat.api });
-  const remoteImages = createRemoteImages(k, { chat: chat.api, childChats: childChats.api }, env.remoteImages);
-  const providerSwitch = createProviderSwitch(k, { chat: chat.api, uploads: attachments.api.uploads, providerHandoffs });
-  const workplaceMove = createWorkplaceMove(k, { chat: chat.api, ai: ai.api, projects: projects.api });
-  const queue = createQueue({ chat: chat.api });
-  const files = createFiles(k, { trash: trash.api, projects: projects.api, chat: chat.api });
-  const git = createGit(k, { projects: projects.api, chat: chat.api });
-  // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
-  const docker = createDocker(k, { projects: projects.api, guard: guard.api }, { engine: env.platformParts.dockerEngine, ...env.docker });
-  const worktrees = createWorktrees(k, { trash: trash.api, projects: projects.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api });
-  const github = createGitHub(k, { git: git.api, worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
-  const notes = createNotes(k, { trash: trash.api, projects: projects.api, ai: ai.api, chat: chat.api, attachments: attachments.api }, env.notes);
-  const database = createDatabase(k, { projects: projects.api, ai: ai.api, chat: chat.api, notes: notes.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
-  const terminal = createTerminal(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, devices: devices.api.store, workplaceMove: workplaceMove.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
-  const browser = createBrowser(k, { chat: chat.api }, { control: env.browser });
+  const guard = slot("guard", () => createGuard({ trash: trash().api, ai: ai().api, chat: chat().api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile, self: env.guard.self }));
+  const compact = slot("compact", () => createCompact({ chat: chat().api }));
+  const subagents = slot("subagents", () => createSubagents({ chat: chat().api }));
+  const childChats = slot("childChats", () => createChildChats({ chat: chat().api, ai: ai().api, uploads: attachments().api.uploads, workplace: k.workplace }));
+  const visuals = slot("visuals", () => createVisuals({ chat: chat().api }));
+  const remoteImages = slot("remoteImages", () => createRemoteImages(k, { chat: chat().api, childChats: childChats().api }, env.remoteImages));
+  const providerSwitch = slot("providerSwitch", () => createProviderSwitch(k, { chat: chat().api, uploads: attachments().api.uploads, providerHandoffs: providerHandoffs() }));
+  const workplaceMove = slot("workplaceMove", () => createWorkplaceMove(k, { chat: chat().api, ai: ai().api, projects: projects().api }));
+  const queue = slot("queue", () => createQueue({ chat: chat().api }));
+  const files = slot("files", () => createFiles(k, { trash: trash().api, projects: projects().api, chat: chat().api }));
+  const git = slot("git", () => createGit(k, { projects: projects().api, chat: chat().api }));
+  const docker = slot("docker", () => createDocker(k, { projects: projects().api, guard: guard().api }, { engine: env.platformParts.dockerEngine, ...env.docker }));
+  const worktrees = slot("worktrees", () => createWorktrees(k, { trash: trash().api, projects: projects().api, ai: ai().api, docker: docker().api, chat: chat().api, workplaceMove: workplaceMove().api }));
+  const github = slot("github", () => createGitHub(k, { git: git().api, worktrees: worktrees().api, projects: projects().api, chat: chat().api, ai: ai().api }, env.github));
+  const notes = slot("notes", () => createNotes(k, { trash: trash().api, projects: projects().api, ai: ai().api, chat: chat().api, attachments: attachments().api }, env.notes));
+  const database = slot("database", () => createDatabase(k, { projects: projects().api, ai: ai().api, chat: chat().api, notes: notes().api, docker: docker().api, worktrees: worktrees().api, guard: guard().api }, { ...env.database, secretCipher: env.secretCipher }));
+  const terminal = slot("terminal", () => createTerminal(k, { worktrees: worktrees().api, projects: projects().api, chat: chat().api, devices: devices().api.store, workplaceMove: workplaceMove().api }, { shell: env.platformParts.terminalShell(), ...env.terminal }));
+  const browser = slot("browser", () => createBrowser(k, { chat: chat().api }, { control: env.browser }));
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）
-  chat.api.runner.onTurnEnded((chatId, outcome) => notifications.api.turnEnded(chatId, outcome.status));
-  const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api }, { selfPid: env.hostPid, ...env.ports });
-  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, queue, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
-  const terminals = terminal.api;
+  const turnEndNotices = slot("notifications", () => chat().api.runner.onTurnEnded((chatId, outcome) => notifications().api.turnEnded(chatId, outcome.status)));
+  const ports = slot("ports", () => createPorts(k, { worktrees: worktrees().api, projects: projects().api, chat: chat().api }, { selfPid: env.hostPid, ...env.ports }));
+  /** 並べる順（始める順・止める順の元） */
+  const listed: Slot<CoreFeature>[] = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, queue, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
+  if (only) {
+    for (const name of only) {
+      const found = listed.find((s) => s.label === name);
+      if (!found) throw new Error(`機能 ${name} は組み立てにありません`);
+      found();
+    }
+    if (chat.built && notifications.built) turnEndNotices();
+  } else {
+    // 作る順（並べる順と違う所がある: 通知・端末はチャットより先に作り、利用者が見ているものはチャットのあと）
+    for (const make of [settings, trash, projects, groups, ai, attachments, snippets, notifications, voice, devices, providerHandoffs, chat, userView, guard, compact, subagents, childChats, visuals, remoteImages, providerSwitch, workplaceMove, queue, files, git, docker, worktrees, github, notes, database, terminal, browser, turnEndNotices, ports]) make();
+  }
+  const features = listed.filter((s) => s.built).map((s) => s());
   return {
     features,
     hooks: {
-      deviceAuth: devices.api.auth,
+      ...(devices.built ? { deviceAuth: devices().api.auth } : {}),
       deviceMaySee: (event) => deviceTypes.has(event.type),
-      status: () => ({ mobile_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
-      mcp: chat.api.mcpTools,
+      status: () => ({ mobile_enabled: devices.built && devices().api.mobileEnabled(), agents: chat.built ? chat().api.runner.stats() : { running: 0 } }),
+      ...(chat.built ? { mcp: chat().api.mcpTools } : {}),
     },
-    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, notifications: notifications.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, notes: notes.api },
-    runningChats: () => runner.busyChats(),
-    awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
-    terminals,
+    apis: {
+      get trash() {
+        return existing(trash).api;
+      },
+      get ai() {
+        return existing(ai).api;
+      },
+      get uploads() {
+        return existing(attachments).api.uploads;
+      },
+      get userViews() {
+        return existing(userView).api;
+      },
+      get devices() {
+        return existing(devices).api;
+      },
+      get notifications() {
+        return existing(notifications).api;
+      },
+      get chat() {
+        return existing(chat).api;
+      },
+      get docker() {
+        return existing(docker).api;
+      },
+      get worktrees() {
+        return existing(worktrees).api;
+      },
+      get github() {
+        return existing(github).api;
+      },
+      get notes() {
+        return existing(notes).api;
+      },
+    },
+    runningChats: () => (chat.built ? chat().api.runner.busyChats() : []),
+    awakeNeeds: () => ({ running: chat.built ? chat().api.runner.stats().running : 0, mobileEnabled: devices.built && devices().api.mobileEnabled() }),
+    get terminals() {
+      return existing(terminal).api;
+    },
   };
 }
