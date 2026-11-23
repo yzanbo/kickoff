@@ -72,6 +72,12 @@ function askpass(): string {
   return askpassFile;
 }
 
+/** askpass のスクリプトを消す（ワーカーを止めるとき。一時フォルダに残さない。また要れば作り直す） */
+function removeAskpass() {
+  if (askpassFile) fs.rmSync(askpassFile, { force: true });
+  askpassFile = null;
+}
+
 const lastLines = (text: string) => text.trim().split("\n").filter(Boolean).slice(-3).join(" / ");
 
 /** ssh の失敗の文を、画面に出す文にする（初めてのサーバーは DB_SSH_UNKNOWN_HOST の印を頭に付ける。コアが見分ける） */
@@ -192,6 +198,7 @@ export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, o
     closeAll() {
       for (const entry of tunnels.values()) killTree(entry.proc?.pid);
       tunnels.clear();
+      removeAskpass();
     },
   };
 }
