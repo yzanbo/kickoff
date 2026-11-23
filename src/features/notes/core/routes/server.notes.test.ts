@@ -15,7 +15,7 @@ import { canWatchDirectory } from "@/foundation/core/testing/canWatchDirectory";
 import { NOTE_SNAPSHOT_HEADING } from "@/features/attachments/core/attachmentNotes";
 
 test("ノートの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
-  const { call, project, store, noteFake } = setup();
+  const { call, project, store, noteFake } = setup({ features: ["notes", "settings", "trash", "database"] });
   assert.deepEqual((await call("GET", "/api/notes/defaults")).body, { default_dir: noteFake.defaultDir });
   const list = (await call("GET", `/api/projects/${project.id}/notes`)).body as NoteList;
   assert.equal(list.dir, path.join(noteFake.defaultDir, project.name));
@@ -60,7 +60,7 @@ test("ノートの保存先: 既定は親フォルダの下のプロジェクト
 });
 
 test("ノート: 作る・一覧・読む・保存（ほかで変わっていれば 409）・動かす・ゴミ箱。変えるたびに知らせる", async () => {
-  const { call, project, bus, store } = setup();
+  const { call, project, bus, store } = setup({ features: ["notes", "settings", "trash", "database"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const base = `/api/projects/${project.id}`;
@@ -102,7 +102,7 @@ test("ノート: 作る・一覧・読む・保存（ほかで変わっていれ
 });
 
 test("ノート: 作る・動かす先の途中のフォルダが、リンクで外を指していれば 400（外にファイルを作らない）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "a.md", content: "a" });
   const { dir } = (await call("GET", `${base}/notes`)).body as NoteList;
@@ -121,7 +121,7 @@ test("ノート: 監視からの外部変更を知らせ、隠しファイルは
   watcher.unref = () => watcher;
   const watch = vi.spyOn(fs, "watch").mockReturnValue(watcher);
   try {
-    const { call, project, bus } = setup();
+    const { call, project, bus } = setup({ features: ["notes", "settings", "trash", "database"] });
     const base = `/api/projects/${project.id}`;
     await call("POST", `${base}/notes`, { path: "初め.md" });
     const list = (await call("GET", `${base}/notes`)).body as NoteList;
@@ -141,7 +141,7 @@ test("ノート: 監視からの外部変更を知らせ、隠しファイルは
 
 test("ノート: Kickoff の外（Finder・ほかのアプリ）での変更も、一覧を読んだあとは知らせる（隠しファイルは知らせない）", async (t) => {
   if (!(await canWatchDirectory({ recursive: true }))) t.skip("この環境では OS のファイル監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
-  const { call, project, bus } = setup();
+  const { call, project, bus } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "初め.md" });
   const list = (await call("GET", `${base}/notes`)).body as NoteList;
@@ -163,7 +163,7 @@ test("ノート: Kickoff の外（Finder・ほかのアプリ）での変更も�
 });
 
 test("チャットの文からノート: 「<チャット名> チャットノート<n>」で作り、追記・要約もできる", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   const chat = store.chats.create({ project_id: project.id, title: "ログイン画面", provider: "claude", status: "completed" });
   const first = await call("POST", `${base}/notes/from-chat`, { chat_id: chat.id, text: "認証は Cookie で持つ", summarize: false, append_to: null, folder: null });
@@ -195,7 +195,7 @@ test("チャットの文からノート: 「<チャット名> チャットノー
 });
 
 test("チャットの文を既存のノートと AI でまとめる: ノート全体を AI の答えで書き換える（まとめる先がない・答えが空なら 400 で変えない）", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   const chat = store.chats.create({ project_id: project.id, title: "ログイン画面", provider: "claude", status: "completed" });
   await call("POST", `${base}/notes`, { path: "設計.md", content: "# 設計\n\n認証は Cookie\n" });
@@ -220,7 +220,7 @@ test("チャットの文を既存のノートと AI でまとめる: ノート�
 });
 
 test("HTML のノートが読むファイル: ノートのフォルダのファイルをそのまま返し（種類と sandbox の CSP 付き）、フォルダの外は読ませない", async () => {
-  const { app, call, project } = setup();
+  const { app, call, project } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "資料/ページ.html", content: "<link rel=stylesheet href=\"style.css\">" });
   await call("POST", `${base}/notes`, { path: "資料/見た目 #1.css", content: "body { color: red }" });
@@ -241,7 +241,7 @@ test("HTML のノートが読むファイル: ノートのフォルダのファ�
 });
 
 test("ノートのチャット: ノートごとに 1 つのふつうのチャット。ノートのフォルダも読めるようにし、名前の変更・移動で付け替え、ゴミ箱でアーカイブする", async () => {
-  const { call, project, provider, store, bus, noteFake } = setup();
+  const { call, project, provider, store, bus, noteFake } = setup({ features: ["notes", "settings", "trash", "database"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const base = `/api/projects/${project.id}`;
@@ -289,7 +289,7 @@ test("ノートのチャット: ノートごとに 1 つのふつうのチャッ
 });
 
 test("ノートの添付: 入力欄に添付したノートの写しは、写しと元のノートのパスを AI に伝え、ノートのフォルダを読み書きできる場所に足す（外・隠しファイルは 400）", async () => {
-  const { call, project, provider, store } = setup();
+  const { call, project, provider, store } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "設計/DB.md", content: "# DB\n" });
   const noteDir = ((await call("GET", `${base}/notes`)).body as NoteList).dir;
@@ -317,7 +317,7 @@ test("ノートの添付: 入力欄に添付したノートの写しは、写し
 });
 
 test("ノートの AI: フォルダの整理案は使える案だけを返し、動かさない（ノートがなければ AI に聞かない）", async () => {
-  const { call, project, provider } = setup();
+  const { call, project, provider } = setup({ features: ["notes", "settings", "trash", "database"] });
   const base = `/api/projects/${project.id}`;
   assert.deepEqual((await call("POST", `${base}/notes/ai-plan`, { instruction: null })).body, { moves: [], skipped: 0 });
   assert.equal(provider.asked.length, 0);
@@ -335,7 +335,7 @@ test("ノートの AI: フォルダの整理案は使える案だけを返し、
 });
 
 test("ノートの中の文を探す: すべてのプロジェクトのノート（.md・.html）の行を返す。アーカイブ・ノートのフォルダを決めていないプロジェクトは探さない", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["notes", "settings", "trash", "database"] });
   await call("POST", `/api/projects/${project.id}/notes`, { path: "設計/DB.md", content: "# DB\n  索引は Chat ごとに張る\n関係ない行\n" });
   await call("POST", `/api/projects/${project.id}/notes`, { path: "画面.html", content: "<p>chat の一覧</p>\n" });
   const other = store.projects.create({ name: "ほか", repo_path: tempDir(), provider: "claude" });

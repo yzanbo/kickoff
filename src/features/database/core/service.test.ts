@@ -10,7 +10,7 @@ import { databaseServiceOf } from "./testing";
 const sqliteBody = (name: string): NewDbConnectionBody => ({ name, engine: "sqlite", environment: "local", host: null, port: null, database: null, username: null, file_path: "app.db", ssl: null, read_only: false, ai_access: "allow" });
 
 test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる。ほかの接続はそのまま", async () => {
-  const core = setup();
+  const core = setup({ features: ["database"] });
   const { store, project } = core;
   new DatabaseSync(path.join(project.repo_path, "app.db")).close();
   const databases = databaseServiceOf(core);

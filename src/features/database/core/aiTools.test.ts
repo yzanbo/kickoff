@@ -30,7 +30,7 @@ const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBo
 
 /** テストのコアと、同じ DB の上に組んだ DB クライアントのサービス（AI のツールが使う物） */
 function withService(secretCipher: SecretCipher | null = null) {
-  const ctx = setup();
+  const ctx = setup({ features: ["database"] });
   return { ...ctx, databases: databaseServiceOf(ctx, { secretCipher }) };
 }
 

@@ -39,7 +39,7 @@ const body = (over: Partial<NewDbConnectionBody> = {}): NewDbConnectionBody => (
 });
 
 test("DB のパスワード: 暗号化して置き、復号は起動している間だけ覚える（同時に読んでもキーチェーンには 1 回）", async () => {
-  const { store, project } = setup();
+  const { store, project } = setup({ features: ["database"] });
   const { cipher, state } = fakeCipher();
   const vault = new DbSecretVault(store, cipher);
   const c = store.dbConnections.create(project.id, await vault.seal({ ...body(), password: "s3cret", ai_password: null, ssh_password: "ssh-p" }));
@@ -60,7 +60,7 @@ test("DB のパスワード: 暗号化して置き、復号は起動している
 });
 
 test("DB のパスワード: 暗号化の口がなければ暗号化せずに置く（単体のコア・テスト）", async () => {
-  const { store, project } = setup();
+  const { store, project } = setup({ features: ["database"] });
   const vault = new DbSecretVault(store, null);
   const c = store.dbConnections.create(project.id, await vault.seal({ ...body(), password: "plain" }));
   assert.equal(store.dbConnections.storedSecret(c.id, "password"), "plain");
@@ -68,7 +68,7 @@ test("DB のパスワード: 暗号化の口がなければ暗号化せずに置
 });
 
 test("DB のパスワード: キーチェーンで拒否されたら 409（db_password_locked）。その場で入れた値を使い、保存した値は消さない", async () => {
-  const { store, project } = setup();
+  const { store, project } = setup({ features: ["database"] });
   const { cipher, state } = fakeCipher();
   const vault = new DbSecretVault(store, cipher);
   const c = store.dbConnections.create(project.id, await vault.seal({ ...body(), password: "s3cret", ssh_password: "ssh-p" }));

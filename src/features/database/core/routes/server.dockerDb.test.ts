@@ -24,7 +24,7 @@ const target = async (s: ReturnType<typeof setup>, compose: string, service: str
   s.call("GET", `/api/projects/${s.project.id}/docker/db?compose=${encodeURIComponent(compose)}&service=${service}`);
 
 test("Docker の DB で開く: 登録していなければ取り込みの案（パスワードは返さない）、ポートを出していなければ押せない理由", async () => {
-  const s = setup();
+  const s = setup({ features: ["database"] });
   const compose = await withDbCompose(s);
   const res = await target(s, compose, "db");
   assert.equal(res.status, 200);
@@ -45,7 +45,7 @@ test("Docker の DB で開く: 登録していなければ取り込みの案（�
 });
 
 test("Docker の DB で開く: 案の key で取り込むと作られ（パスワードも compose から）、次からはその接続を指す", async () => {
-  const s = setup();
+  const s = setup({ features: ["database"] });
   const compose = await withDbCompose(s);
   const { candidate } = (await target(s, compose, "db")).body as DockerDbTarget;
   assert.ok(candidate);
@@ -65,7 +65,7 @@ test("Docker の DB で開く: 案の key で取り込むと作られ（パス�
 });
 
 test("Docker の DB で開く: 同じ種類・この Mac の中のホスト・ポートの登録済みの接続があれば、それを指す", async () => {
-  const s = setup();
+  const s = setup({ features: ["database"] });
   const compose = await withDbCompose(s);
   const res = await s.call("POST", `/api/projects/${s.project.id}/db-connections`, { name: "手で登録", engine: "postgres", environment: "local", host: "127.0.0.1", port: 5433, database: "other", username: "app", file_path: null, ssl: null, read_only: false, ai_access: "allow" });
   assert.equal(res.status, 201);
@@ -73,7 +73,7 @@ test("Docker の DB で開く: 同じ種類・この Mac の中のホスト・�
 });
 
 test("Docker の DB で開く: ワークツリーの DB から作った接続は、そのワークツリーを覚える（消すとき一緒に消せる）", async () => {
-  const s = setup();
+  const s = setup({ features: ["database"] });
   gitRepo({ dir: s.project.repo_path, files: { "compose.yaml": "services: {}\n", ".gitignore": ".env\n" } });
   s.dockerFake.set([{ match: "config --format json", stdout: JSON.stringify({ name: "app", services: { db: pg } }) }]);
   const made = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees`, { branch: "feat/x" });

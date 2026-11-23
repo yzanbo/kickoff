@@ -15,7 +15,7 @@ async function transcribe(app: ReturnType<typeof setup>["app"], fields: Record<s
 }
 
 test("文字起こし: 音声入力がオフ・音声がないときは 400 で理由を返し、文字起こしは呼ばない", async () => {
-  const { app, voiceFake } = setup();
+  const { app, voiceFake } = setup({ features: ["voice", "settings"] });
   const off = await transcribe(app);
   assert.equal(off.status, 400);
   assert.match(off.body.error, /音声入力がオフ/);
@@ -25,7 +25,7 @@ test("文字起こし: 音声入力がオフ・音声がないときは 400 で�
 });
 
 test("文字起こし（この Mac）: コマンド・モデルがなければ 400 で brew の案内、モデルを落とせば whisper に振り分け、言語は指定 → 設定の順", async () => {
-  const { app, call, bus, voiceFake } = setup();
+  const { app, call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "local", voice_model: "base", voice_language: "ja" });
@@ -71,7 +71,7 @@ test("文字起こし（この Mac）: コマンド・モデルがなければ 4
 });
 
 test("モデルのダウンロード: 失敗したら理由を残して知らせ、もう一度落とせる", async () => {
-  const { call, bus, voiceFake } = setup();
+  const { call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   voiceFake.download = async () => new Response("not found", { status: 404 });
@@ -87,7 +87,7 @@ test("モデルのダウンロード: 失敗したら理由を残して知らせ
 });
 
 test("文字起こし（macOS の音声認識）: コマンド・モデル・キーなしで振り分け、言語は指定 → 設定の順。この Mac で使えなければ 400 で理由", async () => {
-  const { app, call, voiceFake } = setup();
+  const { app, call, voiceFake } = setup({ features: ["voice", "settings"] });
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "macos", voice_language: "ja" });
   voiceFake.tools = { whisper: null, ffmpeg: null };
   const status = (await call("GET", "/api/voice")).body as VoiceStatus;
@@ -110,7 +110,7 @@ test("文字起こし（macOS の音声認識）: コマンド・モデル・キ
 });
 
 test("文字起こし（OpenAI）: キーがなければ 400、保存したら OpenAI に振り分ける。キーは応答・設定・配信のどこにも出さず、空で消せる", async () => {
-  const { app, call, bus, voiceFake } = setup();
+  const { app, call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: string[] = [];
   bus.subscribe((e) => events.push(JSON.stringify(e)));
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "openai", voice_openai_model: "whisper-1", voice_openai_base_url: "https://example.test/v1" });
@@ -135,7 +135,7 @@ test("文字起こし（OpenAI）: キーがなければ 400、保存したら O
 });
 
 test("設定: 音声入力の項目を検証する（知らない方法・モデル・http(s) 以外の URL は 400）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["voice", "settings"] });
   assert.equal((await call("PUT", "/api/settings", { voice_provider: "google" })).status, 400);
   assert.equal((await call("PUT", "/api/settings", { voice_model: "huge" })).status, 400);
   assert.equal((await call("PUT", "/api/settings", { voice_openai_base_url: "file:///etc" })).status, 400);
@@ -146,7 +146,7 @@ test("設定: 音声入力の項目を検証する（知らない方法・モデ
 });
 
 test("読み上げ（OpenAI）: 音声入力がオフ・キーがない・文が空なら 400、あれば設定の声と速さで mp3 を返す", async () => {
-  const { app, call, voiceFake } = setup();
+  const { app, call, voiceFake } = setup({ features: ["voice", "settings"] });
   const speak = async (text: string) => app.request("/api/speech", { method: "POST", headers: { ...AUTH, "content-type": "application/json" }, body: JSON.stringify({ text }) });
   const off = await speak("こんにちは");
   assert.equal(off.status, 400);
@@ -166,7 +166,7 @@ test("読み上げ（OpenAI）: 音声入力がオフ・キーがない・文が
 });
 
 test("設定: 読み上げの項目を検証する（知らない方法・声・範囲の外の速さは 400）", async () => {
-  const { call } = setup();
+  const { call } = setup({ features: ["voice", "settings"] });
   assert.equal((await call("PUT", "/api/settings", { voice_tts_provider: "google" })).status, 400);
   assert.equal((await call("PUT", "/api/settings", { voice_tts_openai_voice: "robot" })).status, 400);
   assert.equal((await call("PUT", "/api/settings", { voice_tts_rate: 3 })).status, 400);

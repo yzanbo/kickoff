@@ -1,5 +1,5 @@
 // API のテスト: DB クライアント（接続の登録・パスワードの扱い・写す・試す・木とテーブル・SQL のタブ・読み取り専用）
-// DB ワーカーは同じプロセスで動かす（testing/testServer.ts の setup()）。本物のプロセスでの起動は core/workerClient.test.ts
+// DB ワーカーは同じプロセスで動かす（testing/testServer.ts の setup({ features: ["database"] })）。本物のプロセスでの起動は core/workerClient.test.ts
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -48,7 +48,7 @@ const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBo
 });
 
 test("DB の接続: 作る・一覧・変える・並べ替える・消す。パスワードは保存したかだけ返し、消すと秘密の値も消える", async () => {
-  const { call, project, store, bus } = setup();
+  const { call, project, store, bus } = setup({ features: ["database"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   makeSqlite(project.repo_path);
@@ -92,7 +92,7 @@ test("DB の接続: 作る・一覧・変える・並べ替える・消す。パ
 });
 
 test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは断り、ほかのプロジェクトの接続は 404。プロジェクトを消すと秘密の値も消える", async () => {
-  const { call, project, store, dbFake } = setup();
+  const { call, project, store, dbFake } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   assert.equal((await call("POST", base, sqliteBody({ file_path: null }))).status, 400);
   assert.equal((await call("POST", base, sqliteBody({ engine: "mysql", file_path: null }))).status, 400);
@@ -120,7 +120,7 @@ test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは�
 });
 
 test("DB の接続: 書き込む前の確かめ（省けば環境の既定・選んだ値・変える・写すときも同じ）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const base = `/api/projects/${project.id}/db-connections`;
   const local = (await call("POST", base, sqliteBody())).body as DbConnection;
@@ -138,7 +138,7 @@ test("DB の接続: 書き込む前の確かめ（省けば環境の既定・選
 });
 
 test("DB の接続: ほかのプロジェクトから写す（パスワードは選んだときだけ）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const from = store.dbConnections.create(other.id, { ...sqliteBody({ engine: "postgres", host: "h", file_path: null }), password: "p" });
   const without = (await call("POST", `/api/projects/${project.id}/db-connections/copy`, { from_id: from.id, copy_password: false })).body as DbConnection;
@@ -150,7 +150,7 @@ test("DB の接続: ほかのプロジェクトから写す（パスワードは
 });
 
 test("DB の接続: 同じプロジェクトの中で写すと、名前に「のコピー」を付けて手順ノートも同じものを指す", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   const from = (await call("POST", base, sqliteBody({ name: "開発", note_path: "DB/開発.md" }))).body as DbConnection;
   const copied = (await call("POST", `${base}/copy`, { from_id: from.id, copy_password: false })).body as DbConnection;
@@ -160,7 +160,7 @@ test("DB の接続: 同じプロジェクトの中で写すと、名前に「の
 });
 
 test("DB の接続: プロジェクトから取り込む（案にパスワードは出さず、取り込むときに読み直す。登録済みの印・環境の既定・ないものは 404）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections/import`;
   makeSqlite(project.repo_path);
   fs.writeFileSync(path.join(project.repo_path, ".env"), "DATABASE_URL=postgres://app:s3cret@db.example.com/shop\n");
@@ -196,7 +196,7 @@ test("DB の接続: プロジェクトから取り込む（案にパスワード
 });
 
 test("DB の接続: 手順ノート（ノートのフォルダからの相対パス。外を指すものは断り、ノートの名前の変更・フォルダの移動で付け替え、写すときは外す）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   makeSqlite(project.repo_path);
   assert.equal((await call("POST", base, { ...sqliteBody(), note_path: "../x.md" })).status, 400);
@@ -220,7 +220,7 @@ test("DB の接続: 手順ノート（ノートのフォルダからの相対パ
 });
 
 test("DB の接続: AI 用のユーザーとパスワード（パスワードは保存したかだけ返す・写すのは選んだときだけ・消すと秘密の値も消える）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   const body = { ...sqliteBody({ engine: "postgres", host: "h", file_path: null }), ai_username: "ai_reader", ai_password: "ai-s3cret" };
   const created = (await call("POST", base, body)).body as DbConnection;
@@ -247,7 +247,7 @@ test("DB の接続: AI 用のユーザーとパスワード（パスワードは
 });
 
 test("DB の接続: SSH トンネル（パスワードは保存したかだけ返す・写すのは選んだときだけ・「-」で始まるホストは断る・~/.ssh/config の Host の一覧）", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   const ssh = { host: "bastion", port: 2222, user: "ec2-user", identity_file: "~/.ssh/id_ed25519" };
   const body = { ...sqliteBody({ engine: "postgres", host: "db.internal", file_path: null }), ssh, ssh_password: "ssh-s3cret" };
@@ -281,7 +281,7 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
 });
 
 test("DB の接続: 準備のコマンド（確かめるまで流さない・流す様子と記録・失敗で止める・中身を変えたら確かめ直す・消す / 止めると後片付け）", async () => {
-  const { call, project, close } = setup();
+  const { call, project, close } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const base = `/api/projects/${project.id}/db-connections`;
   const dir = tempDir();
@@ -367,7 +367,7 @@ test("DB の接続: 準備のコマンド（確かめるまで流さない・流
 });
 
 test("DB の接続: つなぐときのコマンド（パスワードを取る）は確かめるまで流さず、流したら記録に残す（出力は残さない）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   const body = { ...sqliteBody({ engine: "postgres", host: "127.0.0.1", port: 1, file_path: null }), prep: { prepare: [], cleanup: [], tunnel: null, password: "printf s3cret", my_ip_url: null } };
   const conn = (await call("POST", base, body)).body as DbConnection;
@@ -392,7 +392,7 @@ test("DB の接続: つなぐときのコマンド（パスワードを取る）
 });
 
 test("DB の接続: つながるか試す（保存しない）。ないファイルは失敗を返す", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const base = `/api/projects/${project.id}/db-connections`;
   const ok = (await call("POST", `${base}/test`, { ...sqliteBody(), name: undefined })).body;
@@ -409,7 +409,7 @@ test("DB の接続: つながるか試す（保存しない）。ないファイ
 });
 
 test("DB の木とテーブル: DB・テーブルとビュー・構造・行（並べ替え・続き）・数・補完の名前", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const file = makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -490,7 +490,7 @@ test("DB の木とテーブル: DB・テーブルとビュー・構造・行（�
 });
 
 test("テーブルの行: 長い文字は頭だけ返し、行を指す条件で 1 行を全体のまま読み直せる（当たらなければ 404）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const file = makeSqlite(project.repo_path);
   const long = "あ".repeat(DB_VALUE_HEAD_CHARS + 5);
   const db = new DatabaseSync(file);
@@ -515,7 +515,7 @@ test("テーブルの行: 長い文字は頭だけ返し、行を指す条件で
 });
 
 test("ER 図: テーブル・ビューの構造（一意の組・外部キー）と、選んだものだけ。動かした位置は接続と場所ごとに覚えて消せる", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -550,7 +550,7 @@ test("ER 図: テーブル・ビューの構造（一意の組・外部キー）
 });
 
 test("SQL のタブ: 文を流す・トランザクションの途中の印・コミットと取り消し・閉じると取り消す", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const file = makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -594,7 +594,7 @@ test("SQL のタブ: 文を流す・トランザクションの途中の印・�
 });
 
 test("SQL のタブ: 「さらに読む」は読み取りの文を流し直して頭を飛ばし、続きの 1000 行を返す（書く文は断る・履歴に残さない）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const file = makeSqlite(project.repo_path);
   const db = new DatabaseSync(file);
   db.exec("CREATE TABLE nums (n INTEGER PRIMARY KEY); WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 2500) INSERT INTO nums SELECT x FROM c;");
@@ -617,7 +617,7 @@ test("SQL のタブ: 「さらに読む」は読み取りの文を流し直し�
 });
 
 test("接続を切る: コミットしていない SQL のタブがあれば切らずに返し、force なら取り消して切る。次に使えばつなぎ直す", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -634,7 +634,7 @@ test("接続を切る: コミットしていない SQL のタブがあれば切�
 });
 
 test("接続の状態: 木・SQL のタブの接続を開いたらつないだ、すべて閉じたら切れたと知らせる（AI・行の保存の接続は数えない）", async () => {
-  const { call, project, bus } = setup();
+  const { call, project, bus } = setup({ features: ["database"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => e.type === "db_connection_state" && events.push(e));
   makeSqlite(project.repo_path);
@@ -656,7 +656,7 @@ test("接続の状態: 木・SQL のタブの接続を開いたらつないだ�
 });
 
 test("SQL の「AI に頼む」: テーブルと列の名前と頼みを AI に渡して SQL を返す。AI に見せない接続は断る", async () => {
-  const { call, project, provider } = setup();
+  const { call, project, provider } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -675,7 +675,7 @@ test("SQL の「AI に頼む」: テーブルと列の名前と頼みを AI に�
 });
 
 test("接続を消しても、ほかの接続の SQL のタブの途中のトランザクションはそのまま（消した接続の分を閉じるのは service.test.ts）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const other = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ name: "ほか" }))).body as DbConnection;
@@ -688,7 +688,7 @@ test("接続を消しても、ほかの接続の SQL のタブの途中のトラ
 });
 
 test("SQL の履歴: 利用者が流した文は成功も失敗も新しい順に残り、判定で断った文は残さない", async () => {
-  const { call, project, store } = setup();
+  const { call, project, store } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const c = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ read_only: true }))).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${c.id}`;
@@ -713,7 +713,7 @@ test("SQL の履歴: 利用者が流した文は成功も失敗も新しい順�
 });
 
 test("SQL のタブ: 読み取り専用の接続は書く文を断り、「書き込む」の間だけ流せる", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ environment: "production", read_only: true, ai_access: "none" }))).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
@@ -731,7 +731,7 @@ test("SQL のタブ: 読み取り専用の接続は書く文を断り、「書�
 });
 
 test("SQLite のファイルはワークツリーではその中の同じパスを開き、なければ code 付きの 404", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   gitRepo({ dir: project.repo_path, files: { "README.md": "x" } });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
@@ -747,7 +747,7 @@ test("SQLite のファイルはワークツリーではその中の同じパス�
 });
 
 test("DB の接続: テーブルの行の変更をまとめて保存する（1 つのトランザクション・行が合わなければすべて取り消す・読み取り専用は書き込むの間だけ・履歴）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["database"] });
   const file = makeSqlite(project.repo_path);
   const base = `/api/projects/${project.id}/db-connections`;
   const conn = (await call("POST", base, sqliteBody())).body as DbConnection;
@@ -817,7 +817,7 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
       return Buffer.from(sealed, "base64").toString();
     },
   };
-  const { call, store, project } = setup({ secretCipher });
+  const { call, store, project } = setup({ features: ["database"], secretCipher });
   const vault = dbVaultOf({ store }, secretCipher); // 同じ秘密の値を読む金庫（その場で入れた値の覚えは secrets.test.ts）
   const base = `/api/projects/${project.id}/db-connections`;
   const pgBody = { ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, database: "app", username: "u", file_path: null }), password: "s3cret", ssh_password: null };
