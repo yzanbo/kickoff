@@ -1,6 +1,6 @@
 import { SquarePen } from "lucide-react";
 import type { MutableRefObject } from "react";
-import { SelectionAttachBox } from "@/features/conversation/ui/messages/SelectionAttach";
+import { SelectionAttachBox } from "@/features/conversation/ui";
 import { lineLocation } from "@/foundation/ui/lib/pathCopy";
 import type { HtmlNotePageHandle } from "./HtmlNotePage";
 import { noteQuote } from "./noteAttachment";
@@ -42,9 +42,7 @@ export function NoteSelectionAttach({
     <SelectionAttachBox
       pick={pick}
       targets={() => [
-        ...[targets.main, targets.note].flatMap((target) =>
-          target ? [{ label: `${target.name}に追加`, title: `選択部分を引用して、${target.name}の入力欄に足します（送るのは自分で）`, onAdd: target.addQuote }] : [],
-        ),
+        ...targets.chats.map((target) => ({ label: `${target.name}に追加`, title: `選択部分を引用して、${target.name}の入力欄に足します（送るのは自分で）`, onAdd: target.addQuote })),
         { label: "新しいチャットで始める", title: "選択部分の引用を入力欄に入れた新しいチャットを開きます（送るのは自分で）", icon: SquarePen, onAdd: targets.newChat.startQuote },
       ]}
     />

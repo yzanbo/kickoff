@@ -3,6 +3,7 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
 import { NoteOverlapNotice } from "./NoteOverlapNotice";
+import { canPickFolder, pickFolder } from "@/features/notes/ui/native";
 
 /**
  * ノートのフォルダの指定（設定の親フォルダ・プロジェクトごとの別の場所で共通）。空なら fallback（既定）を使う。
@@ -36,12 +37,12 @@ export function NoteFolderField({
     <Field as="div" label={label} help={help}>
       <div className="input-row">
         <input type="text" aria-label={label} value={typed} placeholder={fallback} onChange={(e) => setTyped(e.target.value)} />
-        {window.kickoff && (
+        {canPickFolder() && (
           <button
             type="button"
             className="btn"
             onClick={async () => {
-              const picked = await window.kickoff?.dialog.pickFolder(label);
+              const picked = await pickFolder(label);
               if (picked) setTyped(picked);
             }}
           >

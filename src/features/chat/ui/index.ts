@@ -42,7 +42,7 @@ export { chatFileLinks, chatFileLinksPort, ChatFileLinksContext, openByClick, us
 export { chatSidePanel, chatsPanel, openChatTab, useShownInChatSide } from "./places";
 export { createdChildPlace, openAskChild, openChat, type AskChildTarget, openCreatedChild, openInRootSide, resolveOpenPlace } from "./open/openChat";
 export { addChat, addChats, knownChat } from "./store/knownChats";
-export { appendBlock, quoteCode } from "./quote";
+export { appendBlock, quoteCode, quoteComment } from "./quote";
 export { chatTargetName, chatTitle, NEW_CHAT_TITLE } from "./chatTitle";
 export { closeChatWithChoice } from "./closeChat";
 export { chatPaneSlot } from "./screen/ports";

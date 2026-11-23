@@ -6,7 +6,7 @@ import { notesApi } from "@/features/notes/ui/api";
 import { notesStore } from "@/features/notes/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { showProgressToast } from "@/foundation/ui/kit/toast";
-import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNote";
 
 /**
  * ノートへの入れ方: new = 選択部分をそのまま新しいノートにする / summarize = AI で要約して新しいノートにする /

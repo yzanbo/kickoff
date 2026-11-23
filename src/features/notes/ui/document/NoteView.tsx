@@ -18,7 +18,7 @@ import { alert, reportFailure } from "@/foundation/ui/kit/ask";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { usePageFind } from "@/foundation/ui/kit/usePageFind";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
-import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
+import { PopOutTabButton } from "@/features/panel/ui";
 import { HtmlNotePage, type HtmlNotePageHandle } from "./HtmlNotePage";
 import type { NoteEditorHandle } from "./NoteEditor";
 import { NoteChat, type NoteChatHandle } from "@/features/notes/ui/chat/NoteChat";

@@ -7,6 +7,7 @@ export { addProject, currentProjectsIndex, useProjects } from "./stores/projects
 export { sidebarOrder } from "./projectOrder";
 export { ProjectPickFlyout } from "./ProjectPickFlyout";
 export { InspectionList } from "./InspectionList";
+export { noteOverlapLines } from "./folderOverlaps";
 export { ACTIVE_CHATS_LABEL } from "./ProjectMenu";
 export { ProjectMark } from "./ProjectMark";
 export { useProjectHue } from "./projectColor";
@@ -15,6 +16,7 @@ export { canShowProjectView, projectViewOf, projectViews } from "./projectViews"
 export { projectHeaderStats, type ProjectHeaderStat } from "./projectHeaderStats";
 export type { ProjectViewBadge, ProjectViewBadgeProps, ProjectViewContext, ProjectViewDef } from "./projectViews";
 export { openNewProject, openNoProjectsGuide } from "./new/openNewProject";
+export { newProjectNoteField, type NewProjectNoteFieldProps } from "./new/NoteDirField";
 export { useEditedProject } from "./settings/editedProject";
 export { projectGit, type ProjectGit } from "./projectGit";
 export { projectInView, useFallbackProject, useExistingProject } from "./currentProject";

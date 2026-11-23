@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Project } from "@shared/projects/types";
 import { notesApi } from "@/features/notes/ui/api";
-import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui";
-import { noteOverlapLines } from "@/features/projects/ui/folderOverlaps";
-import { InspectionList } from "@/features/projects/ui";
+import { InspectionList, noteOverlapLines, useProjects } from "@/features/projects/ui";
 
 /**
  * ノートフォルダがほかのプロジェクト（except を除く）と同じなら知らせる（被っていても使える。新しいプロジェクトのダイアログ・基本情報・プロジェクトの設定のノート）。

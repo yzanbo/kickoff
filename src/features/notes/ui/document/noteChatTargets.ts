@@ -1,16 +1,16 @@
-// ノートの本文の右クリック・本文で選んだときの上のボタン・見出しのボタンから、ノートを足す先のチャット（開いたチャット・ノートのチャット）と、選んだ文で始める新しいチャット
+// ノートの本文の右クリック・本文で選んだときの上のボタン・見出しのボタンから、ノートを足す先のチャット（開いたチャット・ノートのチャット）と、選んだ文で始める新しいチャット。
+// 足す先は並べる順の配列（chats）まで作り、3 か所はそれを描くだけ
 import type { MutableRefObject } from "react";
 import type { Attachment } from "@shared/chat/types";
 import { lineLocation } from "@/foundation/ui/lib/pathCopy";
 import { alert, reportFailure } from "@/foundation/ui/kit/ask";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
-import { chatTargetName } from "@/features/chat/ui/chatTitle";
+import { chatTargetName, knownChat } from "@/features/chat/ui";
 import { attachNoteToChat } from "@/features/notes/ui/links/attachNote";
 import { noteQuote } from "./noteAttachment";
 import type { NoteChatHandle } from "@/features/notes/ui/chat/NoteChat";
 import type { NoteChatTarget, NoteChatTargets, NoteNewChat } from "./useNoteEditMenu";
 import { notesApi } from "@/features/notes/ui/api";
-import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
+import { openSeededChat } from "@/features/chatPanel/ui";
 
 /**
  * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければノート全体の写しを札で足す（AI は保存したファイルを読むので、
@@ -66,7 +66,7 @@ export function useNoteChatTargets({
     },
     startQuote,
   };
-  if (attachTo === null) return { note, newChat };
+  if (attachTo === null) return { chats: [note], newChat };
   const main: NoteChatTarget = {
     name: chatTargetName(knownChat(attachTo)),
     add: async (selection, lines) => {
@@ -76,5 +76,5 @@ export function useNoteChatTargets({
     addQuote: (quote) => attachNoteToChat(attachTo, projectId, path, quote),
     addPath: () => attachNoteToChat(attachTo, projectId, path, file),
   };
-  return { main, note, newChat };
+  return { main, chats: [main, note], newChat };
 }

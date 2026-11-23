@@ -7,11 +7,11 @@ import { panelSurfaces, panelTabs } from "@/features/panel/ui";
 import { noteFromVisualTarget, noteTarget } from "./openTargets";
 import { noteTabKind } from "./noteTabKind";
 import { noteSurface } from "./noteSurface";
-import { projectViews } from "@/features/projects/ui";
+import { newProjectNoteField, projectViews } from "@/features/projects/ui";
 import { chatSideAdds } from "@/features/chatPanel/ui";
 import { notesChatSideAdd, notesView } from "./projectViews";
 import { settingsItems, settingsSections } from "@/features/settings/ui";
-import { noteDirItem } from "./settings/settingsItems";
+import { newProjectNoteDir, noteDirItem } from "./settings/settingsItems";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { notePopout } from "./popoutKinds";
 import { paletteSources } from "@/features/palette/ui";
@@ -32,6 +32,8 @@ export const contributes = [
   messageActions.item({ kind: "selection", id: "notes.selection", order: 10, Button: lazyPart<SelectionContext>(() => import("@/features/notes/ui/links/SelectionNoteButton").then((m) => ({ default: m.SelectionNoteButton }))) }),
   // プロジェクトの設定の基本情報の「ノートフォルダ」
   settingsItems.item(noteDirItem),
+  // 新しいプロジェクトのダイアログの「ノートの保存先」
+  newProjectNoteField.item(newProjectNoteDir),
   popoutKinds.item(notePopout),
   // ⌘K のノートとノート内の文言
   paletteSources.item(notePaletteSource),

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNoteList } from "./store";
 import { confirmLeaveNote } from "./noteLeave";
 import { NoteView } from "@/features/notes/ui/document/NoteView";
-import { openInNoteTab } from "./openNoteFrom";
+import { openInNoteTab } from "./openNote";
 
 /**
  * チャットの画面の右の欄・別ウィンドウで開いたノート（ノートのタブの右と同じ。⌘S で保存）。

@@ -4,7 +4,6 @@ import { useServerEvent } from "@/foundation/ui/api/events";
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
-import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
@@ -50,7 +49,7 @@ function openRequested(request: OpenViewRequest) {
   if (request.kind === "note") {
     // 頼んだチャット（子チャットなら、いちばん上の親の右の欄。ノートのチャットならノートのタブ）から開くのと同じ
     const from = request.lineage.at(-1);
-    openNoteFromChat({ projectId: request.project_id, path: request.path, chatId: from?.id ?? null, place: request.place ?? undefined });
+    open({ kind: "note", projectId: request.project_id, path: request.path, ...(request.place ? { place: request.place } : {}) }, { fromChatId: from?.id ?? null });
     return;
   }
   if (request.kind === "file" || request.kind === "diff") return openWorkFile(request);

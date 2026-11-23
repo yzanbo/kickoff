@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import type { AppHost } from "@/foundation/ui/shell/points";
 import { onWindowMessage } from "@/foundation/ui/navigation/windowBus";
-import { openNoteFromChat } from "./openNoteFrom";
+import { openNoteFromChat } from "./openNote";
 
 /** 別ウィンドウ（チャット・ノートの「ノートで開く」）から頼まれたノートを、このウィンドウで開く */
 function useNoteWindowMessages() {

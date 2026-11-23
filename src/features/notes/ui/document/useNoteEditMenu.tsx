@@ -36,10 +36,10 @@ export interface NoteNewChat {
   startQuote: (quote: string) => void;
 }
 
-/** ノートから足す先（開いたチャットはあるときだけ）と、新しいチャットで始める口 */
+/** ノートから足す先（main = 開いたチャット。あるときだけ）・並べる順の足す先（chats = 開いたチャット → ノートのチャット）と、新しいチャットで始める口 */
 export interface NoteChatTargets {
   main?: NoteChatTarget;
-  note: NoteChatTarget;
+  chats: NoteChatTarget[];
   newChat: NoteNewChat;
 }
 
@@ -69,7 +69,6 @@ export function useNoteEditMenu(
   const selected = shown?.value.text ?? "";
   const insert = shown?.value.insert ?? null;
   const copyText = selected || shown?.value.copyAll || "";
-  const chatTargets = [targets.main, targets.note].filter((t): t is NoteChatTarget => t !== undefined);
   // 足すものの組（選択部分は選んでいるときだけ）
   const groups: { key: string; label: string; title: (name: string) => string; run: (target: NoteChatTarget) => void }[] = [
     ...(selected.trim()
@@ -105,7 +104,7 @@ export function useNoteEditMenu(
         {groups.map((group) => (
           <Fragment key={group.key}>
             <div className="menu-label">{group.label}</div>
-            {chatTargets.map((target) => (
+            {targets.chats.map((target) => (
               <MenuItem key={target.name} title={group.title(target.name)} onSelect={() => group.run(target)}>
                 {target.name}に追加
               </MenuItem>

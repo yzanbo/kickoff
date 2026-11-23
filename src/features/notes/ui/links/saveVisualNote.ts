@@ -4,7 +4,7 @@ import { visualNoteHtml } from "@shared/visuals/visualDocument";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
 import { notesApi } from "@/features/notes/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNote";
 
 /** 同じ名前があったときに番号を付けて試す回数 */
 const NAME_TRIES = 20;

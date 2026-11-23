@@ -9,3 +9,4 @@ export { useChatSending } from "./screen/useChatSending";
 export { useTimelineScrollHandle } from "./timeline/timelineScroll";
 export { toolRowViews, type ToolRowProps } from "./tools/toolRowViews";
 export { messageActions, type MessageMenuContext, type SelectionContext } from "./messages/messageActions";
+export { SelectionAttachBox } from "./messages/SelectionAttach";

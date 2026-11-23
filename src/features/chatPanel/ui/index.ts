@@ -15,3 +15,5 @@ export { useVisibleChildChats } from "./visibleChildChats";
 export { panelFollow } from "./panelFollow";
 export { holdChatsElsewhere } from "./state/windowChats";
 export { chatSideAdds, type ChatSideAdd, type ChatSideAddProps } from "./chatSideAdds";
+export { useDraftSide } from "./agents/draftSide";
+export { openSeededChat } from "./openSeededChat";
