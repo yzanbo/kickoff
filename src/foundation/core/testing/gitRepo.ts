@@ -34,3 +34,26 @@ export function gitRepo({ dir = tempDir(), files }: { dir?: string; files?: Reco
   }
   return { dir, git };
 }
+
+/** 裸のリモート（src を渡せば、その作業場所を写したもの。省けば main の空のもの）のフォルダ */
+export function bareRemote(src?: string): string {
+  const dir = path.join(tempDir(), "origin.git");
+  if (src) execFileSync("git", ["clone", "-q", "--bare", src, dir]);
+  else execFileSync("git", ["init", "-q", "--bare", "-b", "main", dir]);
+  return dir;
+}
+
+/** remote を写した作業場所（dir を省くと一時フォルダ）。git で、その作業場所で git を動かす */
+export function cloneOf(remote: string, dir = tempDir()) {
+  execFileSync("git", ["clone", "-q", remote, dir]);
+  return { dir, git: gitIn(dir) };
+}
+
+/** ファイルを書き、すべてステージしてコミットする */
+export function commitFile(dir: string, file: string, content: string, message: string) {
+  fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+  fs.writeFileSync(path.join(dir, file), content);
+  const git = gitIn(dir);
+  git("add", "-A");
+  git("commit", "-q", "-m", message);
+}

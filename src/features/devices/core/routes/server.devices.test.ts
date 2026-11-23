@@ -6,6 +6,7 @@ import { test } from "vitest";
 import type { TailscaleStatus } from "@shared/devices/tailscale";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
 import type { Device, PairingClaimResult, PairingPollResult, PairingState } from "@shared/devices/types";
+import { openSse, sseType } from "@/foundation/core/testing/sse";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
 
@@ -75,22 +76,17 @@ test("端末: 見るだけの端末は、見る口・見ているものの知ら
 
 test("SSE: 端末には開いた口の知らせだけを届け、この Mac の画面への頼み・閉じた口の知らせは届けない", async () => {
   const { app, bus, project } = withDevice();
+  // 3 つの知らせを流し、最後の notes が届くまでに届いた知らせの種類（ports_changed・docker_changed は notes より先に流す）
   const read = async (headers: Record<string, string>) => {
-    const res = await app.request("/api/events", { headers });
-    const reader = res.body!.getReader();
-    await reader.read(); // 最初の ping
+    const sse = await openSse(app, headers);
     bus.publish({ type: "ports_changed", count: 1, fresh: 0 });
     bus.publish({ type: "docker_changed", project_id: project.id });
     bus.publish({ type: "notes", project_id: project.id, path: null });
-    const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
-    await reader.cancel();
-    return chunk === "timeout" ? "" : new TextDecoder().decode(chunk.value);
+    return (await sse.read((m) => sseType(m) === "notes")).map(sseType);
   };
-  const deviceText = await read(DEVICE);
-  assert.match(deviceText, /"type":"notes"/);
-  assert.doesNotMatch(deviceText, /ports_changed|docker_changed/);
+  assert.deepEqual(await read(DEVICE), ["notes"]);
   // この Mac の画面にはすべて届く
-  assert.match(await read(AUTH), /ports_changed/);
+  assert.deepEqual(await read(AUTH), ["ports_changed", "docker_changed", "notes"]);
 });
 
 /** 番号で頼み、Mac で答え、結果を聞くまで（認証の外の口） */
@@ -202,20 +198,11 @@ test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先
 
 test("SSE: 端末にも、続けて流した途中の返答は 1 通（つないだ文）で、そのあとの知らせより前に届く", async () => {
   const { app, bus, project } = withDevice();
-  const res = await app.request("/api/events", { headers: DEVICE });
-  const reader = res.body!.getReader();
-  await reader.read(); // hello
+  const sse = await openSse(app, DEVICE);
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "途中" });
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "の文" });
   bus.publish({ type: "notes", project_id: project.id, path: null });
-  let text = "";
-  while (!text.includes('"notes"')) {
-    const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
-    if (chunk === "timeout" || chunk.done) break;
-    text += new TextDecoder().decode(chunk.value);
-  }
-  await reader.cancel();
-  const events = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
+  const events = (await sse.read((m) => sseType(m) === "notes")).map((m) => m.data as { type: string; text?: string });
   assert.deepEqual(
     events.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
     ["delta:途中の文", "notes"],
@@ -226,13 +213,9 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
   const { app, call, store, device } = withDevice();
   const res = await app.request("/api/projects", { headers: DEVICE });
   assert.equal(res.status, 200);
-  const sse = await app.request("/api/events", { headers: DEVICE });
-  const reader = sse.body!.getReader();
-  await reader.read(); // hello
+  const sse = await openSse(app, DEVICE);
   await call("PUT", "/api/settings", { mobile_enabled: false });
-  const end = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
-  assert.notEqual(end, "timeout");
-  if (end !== "timeout") assert.equal(end.done, true);
+  assert.equal(await sse.next(), "end");
   const off = await app.request("/api/projects", { headers: DEVICE });
   assert.equal(off.status, 403);
   assert.equal(((await off.json()) as { code: string }).code, MOBILE_DISABLED);
@@ -245,26 +228,18 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
 });
 
 test("端末を取り消したら、その端末のつながったままの SSE をそこで切る（ほかの端末・この Mac の画面は切らない）", async () => {
-  const { app, call, device, store } = withDevice();
+  const { app, bus, call, device, project, store } = withDevice();
   const other = store.devices.create("タブレット", "o".repeat(43));
-  const open = async (headers: Record<string, string>) => {
-    const res = await app.request("/api/events", { headers });
-    const reader = res.body!.getReader();
-    await reader.read(); // hello
-    return reader;
-  };
-  const mine = await open(DEVICE);
-  const theirs = await open({ authorization: `Bearer ${"o".repeat(43)}` });
-  const host = await open(AUTH);
+  const mine = await openSse(app, DEVICE);
+  const theirs = await openSse(app, { authorization: `Bearer ${"o".repeat(43)}` });
+  const host = await openSse(app, AUTH);
   await call("DELETE", `/api/devices/${device.id}`);
-  assert.equal((await mine.read()).done, true);
-  const pending = (r: ReadableStreamDefaultReader<Uint8Array>) => Promise.race([r.read().then(() => "data"), new Promise((res) => setTimeout(() => res("open"), 200))]);
-  assert.equal(await pending(theirs), "open");
-  // この Mac の画面には、端末の一覧が変わった知らせが届く（切れない）
-  assert.equal(await pending(host), "data");
+  assert.equal(await mine.next(), "end");
+  // この Mac の画面には、端末の一覧が変わった知らせが届く（切れない）。ほかの端末は切れておらず、あとの知らせも届く
+  assert.equal(await host.next(), "data");
+  bus.publish({ type: "notes", project_id: project.id, path: null });
+  assert.equal((await theirs.read((m) => sseType(m) === "notes")).map(sseType).at(-1), "notes");
   assert.ok(store.devices.get(other.id));
-  await theirs.cancel();
-  await host.cancel();
 });
 
 test("Tailscale の様子: 入っていなければ installed: false と始めるコマンド。入っていれば名前と Serve の URL。端末には開かない", async () => {

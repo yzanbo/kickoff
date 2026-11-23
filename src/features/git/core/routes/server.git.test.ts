@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
-import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
+import { gitIn, gitRepo, bareRemote, cloneOf, commitFile } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitLog } from "../history";
 import { chatOf } from "@/features/chat/core/testing";
@@ -299,8 +299,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   fs.rmSync(path.join(repo, "untracked.txt"));
   assert.equal((await call("GET", `/api/projects/${project.id}/git/blame?path=../outside.txt`)).status, 400);
   assert.equal((await call("POST", `/api/projects/${project.id}/git/push`)).status, 400);
-  const remote = tempDir();
-  execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);
+  const remote = bareRemote();
   git("remote", "add", "origin", remote);
   st = (await call("POST", `/api/projects/${project.id}/git/push`)).body;
   assert.equal(st.has_origin, true);
@@ -355,13 +354,9 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(fs.existsSync(wt.path), false);
 
   // プル: ほかの手元から押されたコミットを、早送りで取り込む
-  const other = tempDir();
-  execFileSync("git", ["clone", "-q", remote, other]);
-  fs.writeFileSync(path.join(other, "from-other.txt"), "x\n");
-  const gitOther = gitIn(other);
-  gitOther("add", ".");
-  gitOther("commit", "-q", "-m", "ほかから");
-  gitOther("push", "-q");
+  const other = cloneOf(remote);
+  commitFile(other.dir, "from-other.txt", "x\n", "ほかから");
+  other.git("push", "-q");
   // フェッチで、遅れている数がわかる
   assert.equal((await call("POST", `/api/projects/${project.id}/git/fetch`)).body.behind, 1);
   const pulled = await call("POST", `/api/projects/${project.id}/git/pull`);

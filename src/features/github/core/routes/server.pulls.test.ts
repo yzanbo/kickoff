@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { PullRequestInfo } from "@shared/git/types";
 import { setup } from "@/app/core/testing/testServer";
-import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
-import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitIn, gitRepo, bareRemote } from "@/foundation/core/testing/gitRepo";
 import { fakeGh } from "@/features/github/core/testing/fakeGh";
 
 const PR = { number: 7, url: "https://github.com/o/r/pull/7", title: "直す", state: "OPEN", isDraft: false };
@@ -19,8 +18,7 @@ const ghWithPr = () => fakeGh([
 function prSetup() {
   const ctx = setup({ features: ["github"] });
   const { dir, git } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
-  const bare = tempDir();
-  gitIn(bare)("init", "-q", "--bare");
+  const bare = bareRemote();
   git("remote", "add", "origin", "https://github.com/o/r.git");
   git("config", "remote.origin.pushurl", bare);
   return { ...ctx, dir, git, bare, base: `/api/projects/${ctx.project.id}/git/pr` };

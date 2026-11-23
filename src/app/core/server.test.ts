@@ -7,6 +7,7 @@ import { test } from "vitest";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 import { readIndexHtml } from "@/foundation/core/http/static";
 import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
+import { openSse, sseType } from "@/foundation/core/testing/sse";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { ServerHello } from "@shared/foundation/server";
 import { makeEvent } from "@shared/chat/testing";
@@ -59,43 +60,22 @@ test("URL の :id は正の整数でなければ 400（クエリの ID と同じ
 
 test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 hello（本体の版・API の版・本体の ID）を送る", async () => {
   const { app, store } = setup();
-  const res = await app.request("/api/events", { headers: AUTH });
-  assert.equal(res.headers.get("content-type"), "text/event-stream");
-  const reader = res.body!.getReader();
-  const first = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
-  assert.notEqual(first, "timeout", "最初の行が届きませんでした");
-  if (first !== "timeout") {
-    const text = new TextDecoder().decode(first.value);
-    assert.match(text, /^event: hello\ndata: /);
-    const hello = JSON.parse(text.split("data: ")[1]) as ServerHello;
-    assert.deepEqual(hello, { core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId });
-  }
-  await reader.cancel();
+  const sse = await openSse(app, AUTH);
+  assert.equal(sse.response.headers.get("content-type"), "text/event-stream");
+  assert.equal(sse.first?.event, "hello", "最初の行が届きませんでした");
+  const hello: ServerHello = { core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId };
+  assert.deepEqual(sse.first?.data, hello);
 });
 
 test("SSE: 書いている途中の返答を続けて流すと 1 通（つないだ文）で届き、そのあとの記録の知らせより前に来る（バスでまとめる。窓がいくつでも同じ）", async () => {
   const { app, bus, project } = setup();
-  const open = async () => {
-    const res = await app.request("/api/events", { headers: AUTH });
-    const reader = res.body!.getReader();
-    await reader.read(); // hello
-    return reader;
-  };
-  const windows = [await open(), await open()];
+  const windows = [await openSse(app, AUTH), await openSse(app, AUTH)];
   for (const text of ["こん", "にち", "は"]) bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text });
   bus.publish({ type: "chat_event", project_id: project.id, event: makeEvent(1, "text", { text: "こんにちは" }, { chat_id: 7 }) });
-  for (const reader of windows) {
-    let text = "";
-    const deadline = Date.now() + 1000;
-    while (!text.includes('"chat_event"') && Date.now() < deadline) {
-      const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
-      if (chunk === "timeout" || chunk.done) break;
-      text += new TextDecoder().decode(chunk.value);
-    }
-    await reader.cancel();
-    const types = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
+  for (const sse of windows) {
+    const events = (await sse.read((m) => sseType(m) === "chat_event")).map((m) => m.data as { type: string; text?: string });
     assert.deepEqual(
-      types.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
+      events.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
       ["delta:こんにちは", "chat_event"],
     );
   }
@@ -106,13 +86,11 @@ test("サーバーを止めるときは、開いたままのリアルタイム�
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
   const { port } = server.address() as AddressInfo;
   // 応答ヘッダーがすぐ届く（届かないと fetch が返らない）
-  const res = await fetch(`http://127.0.0.1:${port}/api/events`, { headers: AUTH });
-  assert.equal(res.status, 200);
-  const reader = res.body!.getReader();
-  await reader.read();
+  const sse = await openSse({ request: (url, init) => fetch(`http://127.0.0.1:${port}${url}`, init) }, AUTH);
+  assert.equal(sse.response.status, 200);
+  assert.equal(sse.first?.event, "hello");
   const stopped = await Promise.race([stopHttpServer(server).then(() => "stopped"), new Promise((r) => setTimeout(() => r("timeout"), 2000))]);
   assert.equal(stopped, "stopped");
-  await reader.cancel().catch(() => {});
 });
 
 test("画面のファイル: /assets/ の下は 1 年・変わらない（ETag なし）、index.html と SPA のパスは no-cache と ETag で、同じ ETag なら 304。ない JS・CSS は 404、ほかのパスは index.html", async () => {

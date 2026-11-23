@@ -7,8 +7,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { TRASH_KEEP_MS } from "@shared/trash/types";
 import { setup, until } from "@/app/core/testing/testServer";
-import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
-import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitIn, gitRepo, bareRemote } from "@/foundation/core/testing/gitRepo";
 import { chatOf, eventsOf, isBusy, liveOf, noticesOf, sendAndWait } from "@/features/chat/core/testing";
 
 type Ctx = ReturnType<typeof setup>;
@@ -109,8 +108,7 @@ test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら
   const ctx = setup();
   const { project, store, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
-  const remote = tempDir();
-  execFileSync("git", ["init", "-q", "--bare", remote]);
+  const remote = bareRemote();
   gitIn(repo)("remote", "add", "origin", remote);
   const { wt } = await worktreeChat(ctx, "feat/gh");
   fs.writeFileSync(path.join(wt, "g.txt"), "g\n");
@@ -143,8 +141,7 @@ test("AI の後始末: リモートの名前に / があっても、追いかけ
   const ctx = setup();
   const { project, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
-  const remote = tempDir();
-  execFileSync("git", ["init", "-q", "--bare", remote]);
+  const remote = bareRemote();
   gitIn(repo)("remote", "add", "my/fork", remote);
   const { wt } = await worktreeChat(ctx, "feat/slash");
   gitIn(wt)("commit", "-q", "--allow-empty", "-m", "s");

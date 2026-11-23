@@ -1,6 +1,5 @@
 // API のテスト: CI の結果（実行の一覧と外の CI・中身・ジョブのログ・失敗したステップのログ・やり直し・直すチャットの作業場所・失敗の見張り。GitHub の答えは testServer の ghFake）
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
@@ -8,8 +7,7 @@ import type { CiFailedLog, CiJobLog, CiRunDetail, CiRunList, CiRunWorktree } fro
 import type { BusEvent } from "@shared/foundation/contract";
 import { Invalid } from "@/foundation/core/errors";
 import { setup } from "@/app/core/testing/testServer";
-import { gitRepo } from "@/foundation/core/testing/gitRepo";
-import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitRepo, bareRemote, cloneOf } from "@/foundation/core/testing/gitRepo";
 
 const NOW = new Date().toISOString();
 const rawRun = (id: number, branch: string, conclusion: string | null, extra: Record<string, unknown> = {}) => ({
@@ -52,9 +50,8 @@ function answer(runs: ReturnType<typeof rawRun>[]) {
 function cloneProject(repoPath: string) {
   const src = gitRepo({ files: { "a.txt": "a\n" } });
   src.git("branch", "fix");
-  const bare = path.join(tempDir(), "o-r.git");
-  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
-  execFileSync("git", ["clone", "-q", bare, repoPath]);
+  const bare = bareRemote(src.dir);
+  cloneOf(bare, repoPath);
   return bare;
 }
 

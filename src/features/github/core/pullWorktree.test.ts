@@ -1,11 +1,10 @@
 // PR のブランチのワークツリー（取り出し方の決め方と、本物の git での取り出し）
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { GitHubRemote } from "@shared/git/types";
-import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
+import { gitRepo, bareRemote, cloneOf } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { git } from "@/foundation/core/workplace/git";
 import { forgetWorktrees, listWorktrees } from "@/foundation/core/workplace/worktrees";
@@ -38,8 +37,7 @@ function setupRemote() {
   fs.writeFileSync(path.join(src.dir, "a.txt"), "fixed\n");
   src.git("commit", "-q", "-am", "fix");
   src.git("checkout", "-q", "main");
-  const bare = path.join(tempDir(), "origin.git");
-  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
+  const bare = bareRemote(src.dir);
   // ほかの人の fork の PR（ブランチは連携先にない。refs/pull/9/head だけがある）
   src.git("checkout", "-q", "-b", "theirs");
   fs.writeFileSync(path.join(src.dir, "b.txt"), "theirs\n");
@@ -47,9 +45,8 @@ function setupRemote() {
   src.git("commit", "-q", "-m", "theirs");
   src.git("push", "-q", bare, "theirs:refs/pull/9/head");
   const theirs = src.git("rev-parse", "HEAD").trim();
-  const local = path.join(tempDir(), "app");
-  execFileSync("git", ["clone", "-q", bare, local]);
-  return { local, theirs, git: gitIn(local) };
+  const { dir: local, git } = cloneOf(bare, path.join(tempDir(), "app"));
+  return { local, theirs, git };
 }
 
 test("ワークツリー: 同じリポジトリの PR は元のブランチを追いかける同じ名前で、ほかの人の fork は pr-N で作り、2 回目はあるものを返す", async () => {

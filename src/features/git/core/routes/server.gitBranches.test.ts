@@ -4,8 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import { setup } from "@/app/core/testing/testServer";
-import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
-import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitIn, gitRepo, bareRemote, cloneOf, commitFile } from "@/foundation/core/testing/gitRepo";
 
 /** プロジェクトのフォルダに main と最初のコミットを作り、ブランチの操作を呼ぶ口を返す */
 function branchSetup(files: Record<string, string> = { "a.txt": "one\n" }) {
@@ -17,11 +16,7 @@ function branchSetup(files: Record<string, string> = { "a.txt": "one\n" }) {
   const refs = async () => (await call("GET", `${base}/refs`)).body;
   const status = async () => (await call("GET", `${base}/status`)).body;
   /** ファイルを書いてコミットする */
-  const commit = (file: string, content: string, message: string) => {
-    fs.writeFileSync(path.join(dir, file), content);
-    git("add", "-A");
-    git("commit", "-q", "-m", message);
-  };
+  const commit = (file: string, content: string, message: string) => commitFile(dir, file, content, message);
   return { ...ctx, dir, git, base, act, refs, status, commit };
 }
 
@@ -76,8 +71,7 @@ test("ブランチの操作: 作る・チェックアウト・名前の変更・
 
 test("リモートとのやり取り: プッシュ（追いかけ先を作る）・追跡の設定・早送り・プル・リモートのブランチの削除・チェックアウト", async () => {
   const { act, refs, status, commit, dir } = branchSetup();
-  const remote = tempDir();
-  gitIn(remote)("init", "-q", "--bare", "-b", "main");
+  const remote = bareRemote();
   gitIn(dir)("remote", "add", "origin", remote);
 
   // 追いかけ先がなければ origin に公開して追いかける
@@ -85,12 +79,9 @@ test("リモートとのやり取り: プッシュ（追いかけ先を作る）
   assert.equal((await refs()).branches.find((b: { name: string }) => b.name === "main").upstream, "origin/main");
 
   // 別の場所で進めてから取ってくる
-  const other = tempDir();
-  gitIn(other)("clone", "-q", remote, ".");
-  fs.writeFileSync(path.join(other, "c.txt"), "sea\n");
-  gitIn(other)("add", "-A");
-  gitIn(other)("commit", "-q", "-m", "c を足す");
-  gitIn(other)("push", "-q", "origin", "main");
+  const other = cloneOf(remote);
+  commitFile(other.dir, "c.txt", "sea\n", "c を足す");
+  other.git("push", "-q", "origin", "main");
   gitIn(dir)("fetch", "-q");
 
   // いまのブランチでないブランチの早送り（作業場所は変えない）
@@ -120,8 +111,8 @@ test("リモートとのやり取り: プッシュ（追いかけ先を作る）
   assert.ok(!(await refs()).remotes[0].branches.some((b: { name: string }) => b.name === "origin/work"));
 
   // リモートのブランチから追いかける手元のブランチを作る
-  gitIn(other)("switch", "-q", "-c", "topic");
-  gitIn(other)("push", "-q", "-u", "origin", "topic");
+  other.git("switch", "-q", "-c", "topic");
+  other.git("push", "-q", "-u", "origin", "topic");
   gitIn(dir)("fetch", "-q");
   const tracked = await act({ action: "checkout_remote", remote_branch: "origin/topic", name: "topic" });
   assert.equal(tracked.status, 200);
@@ -131,17 +122,13 @@ test("リモートとのやり取り: プッシュ（追いかけ先を作る）
 
 test("フェッチ: 自動（auto）は前の自動のフェッチから間がなければ飛ばして今の状態を返し、押したフェッチはいつでも取ってくる", async () => {
   const { call, base, act, dir } = branchSetup();
-  const remote = tempDir();
-  gitIn(remote)("init", "-q", "--bare", "-b", "main");
+  const remote = bareRemote();
   gitIn(dir)("remote", "add", "origin", remote);
   await act({ action: "push", branch: "main" });
-  const other = tempDir();
-  gitIn(other)("clone", "-q", remote, ".");
+  const { dir: other } = cloneOf(remote);
   /** 別の場所でコミットしてプッシュする */
   const pushFromOther = (file: string) => {
-    fs.writeFileSync(path.join(other, file), "x\n");
-    gitIn(other)("add", "-A");
-    gitIn(other)("commit", "-q", "-m", file);
+    commitFile(other, file, "x\n", file);
     gitIn(other)("push", "-q", "origin", "main");
   };
   pushFromOther("b.txt");

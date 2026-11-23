@@ -8,8 +8,7 @@ import type { GitHubPullWorktree } from "@shared/foundation/apiTypes";
 import type { GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubPullDetail, GitHubPullFiles } from "@shared/github/types";
 import { Invalid } from "@/foundation/core/errors";
 import { setup, TOKEN } from "@/app/core/testing/testServer";
-import { gitRepo } from "@/foundation/core/testing/gitRepo";
-import { tempDir } from "@/foundation/core/testing/tempDir";
+import { gitRepo, bareRemote, cloneOf } from "@/foundation/core/testing/gitRepo";
 
 const searchAnswer = (numbers: number[]) => ({
   search: {
@@ -191,9 +190,8 @@ test("GitHub タブ: PR のブランチのワークツリー（PR の元のブ�
   // 連携先の代わりの bare のリポジトリ（ブランチ fix）を clone したものをプロジェクトフォルダにする
   const src = gitRepo({ files: { "a.txt": "a\n" } });
   src.git("branch", "fix");
-  const bare = path.join(tempDir(), "o-r.git");
-  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
-  execFileSync("git", ["clone", "-q", bare, project.repo_path]);
+  const bare = bareRemote(src.dir);
+  cloneOf(bare, project.repo_path);
   ghFake.remotes = [{ name: "origin", host: "github.com", repo: "o/r", url: bare }];
   ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
 
@@ -351,9 +349,8 @@ test("GitHub タブ: PR のチェックアウト（本体なら本体のブラ�
   const { call, project, ghFake } = setup({ features: ["github"] });
   const src = gitRepo({ files: { "a.txt": "a\n" } });
   src.git("branch", "fix");
-  const bare = path.join(tempDir(), "o-r.git");
-  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
-  execFileSync("git", ["clone", "-q", bare, project.repo_path]);
+  const bare = bareRemote(src.dir);
+  cloneOf(bare, project.repo_path);
   ghFake.remotes = [{ name: "origin", host: "github.com", repo: "o/r", url: bare }];
   ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
 
