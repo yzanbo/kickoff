@@ -1,3 +1,4 @@
+import "./PagePreview.css";
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { HtmlFrame } from "@/foundation/ui/document/HtmlFrame";
 import { projectAssetBase, type PagePreviewKind } from "./filePreview";

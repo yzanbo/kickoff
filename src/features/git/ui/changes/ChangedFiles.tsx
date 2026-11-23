@@ -1,3 +1,4 @@
+import "./ChangedFiles.css";
 import type { ReactNode } from "react";
 import type { GitFileChange } from "@shared/git/types";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";

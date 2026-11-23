@@ -1,3 +1,4 @@
+import "./DocumentConflictBar.css";
 import type { ReactNode } from "react";
 
 /**

@@ -1,3 +1,4 @@
+import "./ChipPicker.css";
 import { ChevronDown, type LucideIcon } from "lucide-react";
 import { useId, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

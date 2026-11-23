@@ -1,3 +1,4 @@
+import "./SideChanges.css";
 import { Check, ChevronRight, FileCheck2, SquareArrowOutUpRight } from "lucide-react";
 import { useRef } from "react";
 import type { GitFileChange } from "@shared/git/types";

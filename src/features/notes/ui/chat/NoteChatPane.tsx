@@ -1,3 +1,4 @@
+import "./NoteChatPane.css";
 import type { MutableRefObject, RefObject } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { NoteChat, type NoteChatHandle } from "./NoteChat";

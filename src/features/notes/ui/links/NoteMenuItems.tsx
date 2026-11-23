@@ -1,3 +1,4 @@
+import "./NoteMenuItems.css";
 import { ChevronRight, FilePlus, NotebookPen, Sparkles, WandSparkles, type LucideIcon } from "lucide-react";
 import { baseName } from "@shared/foundation/path";
 import { useMemo } from "react";

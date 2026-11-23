@@ -1,3 +1,5 @@
+import "@/foundation/ui/kit/ChipPicker.css";
+import "./WorktreeChip.css";
 import type { CSSProperties } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";

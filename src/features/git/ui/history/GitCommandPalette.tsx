@@ -1,3 +1,4 @@
+import "./GitCommandPalette.css";
 import { Search } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

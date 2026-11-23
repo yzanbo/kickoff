@@ -1,3 +1,4 @@
+import "./SearchView.css";
 import { CaseUpper, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Ellipsis, EyeOff, ListX, ReplaceAll } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { hasModifiers, isComposing, isKey } from "@/foundation/ui/lib/keys";

@@ -1,4 +1,6 @@
 // このファイルは FileView から使うときだけ読み込む（Monaco は大きいので、普段の起動に含めない）
+import "./CodeEditor.unlayered.css";
+import "./CodeEditor.css";
 import * as monaco from "./monacoEditor";
 import type { EditorCursor } from "@/features/userView/ui";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";

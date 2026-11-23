@@ -1,3 +1,4 @@
+import "./HtmlNotePage.css";
 import { useImperativeHandle, useRef, type MutableRefObject } from "react";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";

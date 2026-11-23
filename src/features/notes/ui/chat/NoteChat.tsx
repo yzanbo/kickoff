@@ -1,3 +1,4 @@
+import "./NoteChat.css";
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
 import { useImperativeHandle, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/chat/types";

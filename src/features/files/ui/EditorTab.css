@@ -1,0 +1,117 @@
+/* ==== エディタタブの枠（左に一覧・右に中身。EditorTab。git の履歴・ノートのタブも同じ枠） ==== */
+@layer feature {
+  /* プロジェクトの「エディタ」タブ（VS Code のソース管理と同じく、左にファイルの一覧、右に差分） */
+
+  .changes {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* 一覧の幅を変えている間は、文字を選んだり差分の側が反応したりしないようにする */
+
+  .changes.resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  .changes-list {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    width: 300px;
+    /* 狭いとき（チャット欄を広げた）も、右の差分・中身を残す（覚えた幅より優先） */
+    max-width: 50%;
+    /* 見出し（.changes-head）と探す欄は残し、その下（.changes-scroll・ファイルの木の .files-pane）だけを流す（VS Code のビューと同じ） */
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+    background: var(--bg-sidebar);
+  }
+
+  /* 左の一覧の、見出しと探す欄の下の流れる部分（変更・検索・履歴・ノート。ファイルの木は .files-pane） */
+
+  .changes-scroll {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .changes-head {
+    flex: none;
+    padding: 6px 6px 6px 12px;
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  /* 見出しの先頭のアイコン（ブランチ）は、名前が長くても縮めない */
+
+  .changes-head > svg {
+    flex: none;
+  }
+
+  /* 見出しのアイコンのボタン（VS Code のビューの見出しと同じ 22px の枠に 16px のアイコン。ファイル・変更で共通） */
+
+  .changes-head .icon-button {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ボタンどうしは詰めて並べる（狭い一覧でもブランチの名前を残す） */
+
+  .changes-head .icon-button + .icon-button {
+    margin-left: -4px;
+  }
+
+  .changes-branch {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .changes-sync {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    font-size: var(--fs-11);
+  }
+
+  .changes-empty,
+  .changes-hint,
+  .diff-message {
+    margin: 16px 12px;
+  }
+
+  /* エディタタブの上の行（作業場所の切り替え）。ワークツリーが本体だけなら中が空なので隠す */
+
+  .changes-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: var(--fs-12);
+  }
+
+  .changes-bar:empty {
+    display: none;
+  }
+
+  /* ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（SURFACES の files）。ノートのタブの右と同じく、いつも見せて右いっぱいに広げる */
+
+  .changes > .board-panel.file-panel {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* タブの中身（.panel-tab-page はブロックの箱）の高さいっぱいに、ファイルの見出しと中身を並べる */
+
+  .file-panel .panel-tab-page > .changes-diff {
+    height: 100%;
+  }
+}

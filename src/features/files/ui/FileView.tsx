@@ -1,3 +1,4 @@
+import "./FileView.css";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
 import { cx } from "@/foundation/ui/lib/cx";

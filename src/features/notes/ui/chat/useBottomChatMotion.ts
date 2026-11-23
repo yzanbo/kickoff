@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 /**
- * ノートのチャットを本文の下に置いたときの開け閉めの動き（styles/editor/note-chat.css の `.chat-bottom.chat-moved`）。
+ * ノートのチャットを本文の下に置いたときの開け閉めの動き（NoteChatPane.css の `.chat-bottom.chat-moved`）。
  * 下の入力欄は同じ場所に止めたまま、上の会話の部分だけを伸び縮みさせる: 開くときはノートの下の入力欄（NoteQuickChat）をすぐ隠し、
  * 欄をその入力欄の高さから伸ばす（欄の入力欄がちょうど同じ所に出る）。閉じるときは欄をその高さまで縮めてから入れ替える。
  * - quickRef: ノートの下の入力欄の入れ物（高さを測る。畳んでいる間も中身は描いたままなので測れる）

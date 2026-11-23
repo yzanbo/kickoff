@@ -45,3 +45,18 @@
   font-size: var(--fs-12);
 }
 
+/* ボタンの組の数（変更のあるファイルの数など） */
+
+.segmented-badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: var(--fs-10);
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  background: var(--info);
+}
+

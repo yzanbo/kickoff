@@ -1,3 +1,4 @@
+import "./NoteChip.css";
 import { ChevronsDownUp, ChevronsUpDown, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";

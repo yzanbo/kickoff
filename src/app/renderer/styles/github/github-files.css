@@ -97,8 +97,8 @@
   flex: none;
 }
 
-/* 差分はファイルの高さのまま並べる */
-.github-file-diff {
+/* 差分はファイルの高さのまま並べる（差分の枠 .diff-view の上書き。読む順に頼らないよう組で書く） */
+.github-file-diff.diff-view {
   flex: none;
 }
 

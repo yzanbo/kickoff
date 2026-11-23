@@ -1,0 +1,33 @@
+/* ==== ワークツリーの作業の流れ（WorktreeBar） ==== */
+@layer feature {
+  /* ワークツリーの作業の流れ（エディタタブの作業場所の右: PR を作る・PR の状態・片付ける） */
+
+  .worktree-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ワークツリーの実行環境の注意（ポートを分けられない・整えきれていない所。押すと中身） */
+
+  .worktree-bar .worktree-env-warn {
+    color: var(--warn);
+  }
+
+  .pr-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    --tag-border: var(--border-strong);
+    --tag-fg: currentcolor;
+    font-size: var(--fs-12);
+  }
+
+  /* PR の状態の色（GitHub と同じ: 開いている = 緑、マージ済み = 紫、閉じた = 赤） */
+
+  .pr-chip[data-pr-state] {
+    --tag-border: color-mix(in srgb, var(--pr-color) 60%, transparent);
+    --tag-fg: var(--pr-color);
+  }
+}

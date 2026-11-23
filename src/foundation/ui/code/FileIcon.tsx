@@ -1,3 +1,4 @@
+import "./FileIcon.css";
 import { File, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";

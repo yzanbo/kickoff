@@ -53,3 +53,9 @@ kbd {
   color: var(--muted);
 }
 
+/* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
+
+.warn-text {
+  color: var(--warn);
+}
+

@@ -1,0 +1,9 @@
+/* ==== ノートの編集（CodeMirror。features/note/NoteEditor）: Markdown 表示（ライブプレビュー）とそのまま表示 ==== */
+@layer feature {
+  /* 本文の上に AI の案を出すときは、残りの高さを使う */
+
+  .md-editor {
+    flex: 1;
+    min-height: 0;
+  }
+}

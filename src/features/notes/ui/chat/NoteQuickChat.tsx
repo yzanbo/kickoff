@@ -1,3 +1,4 @@
+import "./NoteQuickChat.css";
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/chat/types";

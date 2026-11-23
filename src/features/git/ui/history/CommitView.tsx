@@ -1,3 +1,4 @@
+import "./CommitView.css";
 import { List, ListTree } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";

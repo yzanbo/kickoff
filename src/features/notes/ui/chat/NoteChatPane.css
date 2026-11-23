@@ -1,0 +1,203 @@
+/* ==== ノートの下・右のチャットの欄（NoteChatPane） ==== */
+@layer feature {
+  /*
+   * 会話の欄の入れ物。閉じても描いたまま置き、開け閉めは flex-basis をほかの欄と同じ動きでスライドさせる（styles/types/slide-pane.css。
+   * 中身は開いたときの幅のまま置いて切り取るので、動いている間に並べ直さない。つまみで変えている間は動かさない）。
+   * 閉じ終えたら見えなくする（ピントも入らない。NoteView が inert を付ける）。
+   * 見せる幅: 覚えた幅（--note-chat-w。つまみで変える）のまま、本文を 280px 残すところまで（260px より狭くはしない）
+   */
+
+  .note-chat-slot {
+    --pane-shown: max(260px, min(var(--note-chat-w), 100cqw - 280px));
+    --pane-motion: flex-basis var(--panel-motion-duration) var(--panel-motion-ease),;
+
+    display: flex;
+    flex: 0 0 0;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .note-chat-slot.open {
+    flex-basis: var(--pane-shown);
+  }
+
+  .note-chat {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-height: 0;
+    border-left: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .note-chat-slot {
+      transition: none;
+    }
+  }
+
+  /* ドラッグ中は、本文の文字を選ばない */
+
+  .note-body.resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  /*
+   * 本文の下に置く（欄の見出しで選ぶ。notes:chat-place）。高さは --note-chat-h（本文と欄を合わせた高さの %。上下のつまみで変える）。
+   */
+
+  .note-body.with-chat.chat-bottom {
+    flex-direction: column;
+  }
+
+  .note-body.with-chat.chat-bottom.chat-open .note-chat-slot {
+    flex-basis: var(--note-chat-h);
+  }
+
+  .note-body.chat-bottom .note-chat {
+    width: 100%;
+    border-top: 1px solid var(--border);
+    border-left: none;
+  }
+
+  /*
+   * 下に置いたときの開け閉め（useBottomChatMotion が開け閉めしたあとに .chat-moved を付ける）: 欄の入力欄は下に止めたまま、上の会話の部分だけを
+   * 伸び縮みさせる。欄はノートの下の入力欄の高さ（--note-quick-h）から伸び、閉じるときはその高さまで縮んでから入れ替わる（NoteQuickChat.css）。
+   * 動いている間だけ、中身を開き終えたときの高さ（本文と欄を合わせた高さ × --note-chat-h-num %。cqh は .chat-bottom の .note-body）のまま
+   * 欄の下にそろえて置き、入りきらない上の分（見出しと会話）を切る（動いている間に中身を並べ直さない）
+   */
+
+  .note-body.with-chat.chat-bottom {
+    container-type: size;
+  }
+
+  .note-body.chat-bottom.chat-moved .note-chat-slot {
+    transition: none;
+  }
+
+  .note-body.chat-bottom.chat-moved.chat-open .note-chat-slot {
+    animation: note-chat-open-y var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  .note-body.chat-bottom.chat-moved:not(.chat-open) .note-chat-slot {
+    animation: note-chat-close-y var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  /* 開くときと閉じるときで名前を変える（同じ名前だと、切り替えても動きがやり直されない） */
+
+  .note-body.chat-bottom.chat-moved.chat-open .note-chat {
+    animation: note-chat-hold-open var(--panel-motion-duration) linear;
+  }
+
+  .note-body.chat-bottom.chat-moved:not(.chat-open) .note-chat {
+    animation: note-chat-hold-close var(--panel-motion-duration) linear;
+  }
+
+  @keyframes note-chat-open-y {
+    from {
+      flex-basis: var(--note-quick-h);
+    }
+  }
+
+  /* 閉じ終えるまでは見せたまま、ノートの下の入力欄の高さまで縮める（終わると 0・見えなくなり、ノートの下の入力欄が同じ所に出る） */
+
+  @keyframes note-chat-close-y {
+    from {
+      flex-basis: var(--note-chat-h);
+      visibility: visible;
+    }
+
+    to {
+      flex-basis: var(--note-quick-h);
+      visibility: visible;
+    }
+  }
+
+  @keyframes note-chat-hold-open {
+    from,
+    to {
+      align-self: flex-end;
+      height: calc(var(--note-chat-h-num) * 1cqh);
+    }
+  }
+
+  @keyframes note-chat-hold-close {
+    from,
+    to {
+      align-self: flex-end;
+      height: calc(var(--note-chat-h-num) * 1cqh);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .note-body.chat-bottom.chat-moved .note-chat-slot,
+    .note-body.chat-bottom.chat-moved .note-chat {
+      animation: none;
+    }
+  }
+
+  .note-body.chat-bottom.resizing {
+    cursor: row-resize;
+  }
+
+  /*
+   * 入れ物。ノートのチャットの欄を開いても描いたまま置き、欄の開け閉めと同じ動きで高さを畳む・戻す（欄が伸びるのと入れ替わりに縮むので、
+   * 間に空きができない）。畳み終えたら見えなくする（ピントも入らない。NoteView が inert を付ける）
+   */
+
+  .note-quick-slot {
+    display: grid;
+    flex: none;
+    grid-template-rows: 1fr;
+    min-height: 0;
+    transition: grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  .note-quick-slot.folded {
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition:
+      grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease),
+      visibility 0s linear var(--panel-motion-duration);
+  }
+
+  /* 畳むときに切り取る段（入力欄の余白・枠ごと 0 まで縮める） */
+
+  .note-quick-clip {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /*
+   * ノートのチャットを下に置いたときの開け閉め（NoteChatPane の .chat-moved）: すぐ入れ替える。開くときはすぐ畳み、
+   * 閉じるときは欄がこの入力欄の高さまで縮み終えるまで畳んだまま待ってから出す（入力欄が同じ所に止まって見える）
+   */
+
+  .note-quick-slot.chat-bottom.chat-moved {
+    transition: none;
+  }
+
+  .note-quick-slot.chat-bottom.chat-moved:not(.folded) {
+    animation: note-quick-wait var(--panel-motion-duration) step-end;
+  }
+
+  @keyframes note-quick-wait {
+    from,
+    to {
+      grid-template-rows: 0fr;
+      visibility: hidden;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .note-quick-slot,
+    .note-quick-slot.folded {
+      transition: none;
+    }
+
+    .note-quick-slot.chat-bottom.chat-moved:not(.folded) {
+      animation: none;
+    }
+  }
+}

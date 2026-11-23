@@ -1,3 +1,4 @@
+import "./EditorTab.css";
 import { useEffect, useEffectEvent, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";

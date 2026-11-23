@@ -1,3 +1,4 @@
+import "./NoteTab.css";
 import { FileCode2, FilePlus, FolderOpen, StickyNote } from "lucide-react";
 import { useEffect, useEffectEvent, useState, type MouseEvent } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
@@ -69,7 +70,6 @@ export function NoteTab({
   const highlighted = picked ?? selected;
   const [remembered, setRemembered] = useSetting(storage.settings.selected(projectId));
   const folders = useNoteFolders(projectId);
-  const { open } = folders;
   const [query, setQuery] = useState("");
   const menu = useContextMenu<NoteMenuTarget>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
@@ -89,7 +89,7 @@ export function NoteTab({
   const dir = list.data?.dir ?? "";
   // ⌘ / Shift ＋クリックで選んだいくつかの行（Finder と同じ。範囲は見えている並び = 探していれば見つかった順、ふだんは開いているフォルダの中までの木の順）
   const allPaths = (entries ?? []).map((e) => e.path);
-  const multi = useMultiSelect(allPaths, () => (found ? found.map((e) => e.path) : visibleTreePaths(tree, open)));
+  const multi = useMultiSelect(allPaths, () => (found ? found.map((e) => e.path) : visibleTreePaths(tree, folders.open)));
   const isSelected = (path: string) => (multi.selected.length > 0 ? multi.has(path) : highlighted === path);
   const nodesOf = (paths: readonly string[]) => paths.map((path) => ({ path, dir: entries?.find((e) => e.path === path)?.dir ?? false }));
 
@@ -235,9 +235,9 @@ export function NoteTab({
             refreshing={list.loading}
             folds={{
               hasFolders: dirs.length > 0,
-              anyOpen: dirs.some((d) => open.has(d)),
+              anyOpen: dirs.some((d) => folders.open.has(d)),
               // 開いているものがあればすべて閉じ（もうないフォルダの覚えも外す）、すべて閉じていればすべて開く
-              toggle: () => (dirs.some((d) => open.has(d)) ? folders.closeAll() : folders.expand(dirs)),
+              toggle: () => (dirs.some((d) => folders.open.has(d)) ? folders.closeAll() : folders.expand(dirs)),
             }}
             onCreate={(kind) => void actions.createNote(folderForNew(null), kind)}
             onCreateFolder={() => void actions.createFolder(folderForNew(null))}
@@ -262,7 +262,7 @@ export function NoteTab({
             ) : (
               <NoteTree
                 nodes={tree}
-                open={open}
+                open={folders.open}
                 onToggle={folders.toggle}
                 isSelected={isSelected}
                 onRowClick={(node, e) => rowClick(node.path, node.dir, e)}

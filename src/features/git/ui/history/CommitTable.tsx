@@ -1,3 +1,4 @@
+import "./CommitTable.css";
 import { useEffect, useRef, type MouseEvent } from "react";
 import type { GitCommit } from "@shared/git/types";
 import { cx } from "@/foundation/ui/lib/cx";

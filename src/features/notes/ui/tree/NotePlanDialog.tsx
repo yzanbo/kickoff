@@ -1,3 +1,4 @@
+import "./NotePlanDialog.css";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import type { NotePlan } from "@shared/notes/types";

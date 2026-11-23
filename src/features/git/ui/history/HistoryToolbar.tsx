@@ -1,3 +1,4 @@
+import "./HistoryToolbar.css";
 import {
   Archive,
   ArrowDownToLine,
@@ -78,7 +79,7 @@ type MenuKind = "stash" | "branch" | "switch" | "open";
 /**
  * 履歴タブの上の帯（よく使う Git の操作を名前つきのボタンで並べる）: 一覧の開閉・Git の操作の窓 ｜ フェッチ・プル（遅れの数）・プッシュ（進みの数）・退避 ▾ ｜
  * 真ん中にプロジェクト名といまのブランチ ▾（押すとほかのブランチへ切り替える）と作業場所の切り替え ｜ ブランチ ▾ ｜ 右に外で開く。
- * 狭ければ名前を隠してアイコンだけにする（styles/editor/editor-history-toolbar.css のコンテナクエリ）
+ * 狭ければ名前を隠してアイコンだけにする（HistoryToolbar.css のコンテナクエリ）
  */
 export function HistoryToolbar({ ops, projectName, worktreePicker }: { ops: HistoryOps; projectName: string; worktreePicker: ReactNode }) {
   const menu = useContextMenu<MenuKind>();

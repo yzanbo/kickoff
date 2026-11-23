@@ -1,0 +1,98 @@
+/* ==== チャットの札（グループ・AI。ChipPicker・GroupChip）・作業場所の札と共通の名前と種類。札に機能のクラスも付くので機能と同じ feature の層 ==== */
+@layer feature {
+  /*
+   * どのグループのチャットか（グループの色。タブの名前の後ろの札・グループ別のまとまりの札と同じ色 --hue。形はブランチの印と同じ小さなピル）。
+   */
+
+  .chat-group-chip {
+    --group-color: hsl(var(--hue) var(--hue-fg-group));
+
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    max-width: 160px;
+    --tag-color: var(--group-color);
+    overflow: hidden;
+    font-size: var(--fs-11);
+    line-height: 17px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-group-chip svg {
+    flex: none;
+  }
+
+  /* ブランチの印・グループの札の名前（札が狭いときは「…」で省く。札は inline-flex なので、文字を包んだ要素で省く） */
+
+  :is(.worktree-chip, .chat-group-chip) .chip-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /*
+   * 作業場所の印（WorktreeChip・WorkplacePicker）の「本体｜main」: 先頭の作業場所の名前（本体・WT）は省かずに出し、ブランチ名は細い区切りの後ろに
+   * 少し薄く出す補足（狭いときはブランチ名だけを「…」で省く）。区切りは札の色を薄くした線
+   */
+
+  .chip-kind {
+    flex: none;
+    font-weight: 600;
+  }
+
+  /* （区切りは名前の側に付けると、名前を省くときに一緒に隠れるので、作業場所の名前の後ろに付ける。ブランチ名がなければ付けない） */
+
+  .chip-kind::after {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 10px;
+    margin-left: 4px;
+    vertical-align: -1px;
+    background: currentColor;
+    opacity: 0.4;
+  }
+
+  .chip-kind:has(+ .chip-name:empty)::after,
+  .chip-kind + .chip-name:empty {
+    display: none;
+  }
+
+  .chip-kind + .chip-name {
+    margin-left: 1px;
+    opacity: 0.8;
+  }
+
+  /*
+   * 選べる札（ChipPicker。新しいチャットの見出しの作成先のグループ・作業場所）: 形と色はグループの札・ブランチの印のまま、名前の右に ▾。
+   * 乗せた・開いているときは札の色で薄く塗る。グループなし（is-empty）は色を付けず控えめに
+   */
+
+  .chip-picker {
+    margin: 0;
+    padding: 0 4px 0 6px;
+    font-family: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .chip-picker:hover,
+  .chip-picker[aria-expanded="true"] {
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  /* （札の枠は色相から作るので、色相のない札は枠ごと書き直す） */
+
+  .chip-picker.is-empty {
+    border: 1px solid var(--border-strong);
+    color: var(--muted);
+  }
+
+  .chip-picker-caret {
+    opacity: 0.8;
+  }
+}

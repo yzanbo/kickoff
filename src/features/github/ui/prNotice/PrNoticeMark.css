@@ -1,0 +1,28 @@
+/* ==== PR の知らせの印（PrNoticeMark） ==== */
+@layer feature {
+  .pr-notice-mark {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 3px;
+    --tag-color: var(--pr-color);
+    --tag-edge: 60%;
+    --tag-bg: color-mix(in srgb, var(--pr-color) 12%, transparent);
+    font-size: var(--fs-11);
+    line-height: 17px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .pr-notice-mark:hover {
+    --tag-bg: color-mix(in srgb, var(--pr-color) 24%, transparent);
+  }
+
+  /* アイコンだけ（サイドバーのチャットの行） */
+
+  .pr-notice-mark.icon-only {
+    justify-content: center;
+    width: 19px;
+    --tag-pad: 0;
+  }
+}

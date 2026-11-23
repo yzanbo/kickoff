@@ -1,3 +1,4 @@
+import "./WorktreeBar.css";
 import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
 import type { PullRequestInfo } from "@shared/git/types";
 import { PR_STATE_LABELS, prStateOf } from "@shared/git/prState";

@@ -1,0 +1,64 @@
+/* ==== 差分の表（DiffTable。読むだけのコード ReadOnlyCode も同じ表） ==== */
+@layer ui {
+  .diff-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    line-height: 1.55;
+  }
+
+  .diff-col-no {
+    width: 48px;
+  }
+
+  .diff-no {
+    padding: 0 8px;
+    text-align: right;
+    vertical-align: top;
+    color: var(--extra-muted);
+    user-select: none;
+  }
+
+  .diff-code {
+    padding: 0 10px;
+    vertical-align: top;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .diff-sign {
+    display: inline-block;
+    width: 1.2em;
+    color: var(--muted);
+    user-select: none;
+  }
+
+  .diff-hunk td {
+    padding: 3px 10px;
+    color: var(--info);
+    background: color-mix(in srgb, var(--info) 8%, transparent);
+  }
+
+  /* 差分の行（タイムラインの編集内容の .diff-add / .diff-del とは別の名前にする） */
+
+  .diff-table .line-add {
+    background: color-mix(in srgb, var(--ok) 16%, transparent);
+  }
+
+  .diff-table .line-del {
+    background: color-mix(in srgb, var(--ng) 16%, transparent);
+  }
+
+  /* 左右に並べたとき、片側にしかない行の反対側 */
+
+  .diff-table .line-empty {
+    background: color-mix(in srgb, var(--text) 3%, transparent);
+  }
+
+  .diff-table .line-note {
+    font-style: italic;
+    color: var(--muted);
+  }
+}

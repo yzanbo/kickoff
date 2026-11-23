@@ -1,3 +1,4 @@
+import "./RefList.css";
 import { useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";

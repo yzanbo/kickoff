@@ -1,0 +1,21 @@
+/* ==== ファイルタブの木（FilesPane） ==== */
+@layer feature {
+  /* ファイル・変更・履歴・ノートの木は土台の TreeView（線と貼り付けは styles/types/tree.css） */
+
+  .files-pane > .tree-view {
+    padding: 4px 0 8px;
+  }
+
+  /*
+   * ファイルタブの木と、その下の空いている所（右クリックで新しいファイル・フォルダー）。木だけを流し、上の見出し（.changes-head）は
+   * いつも出す（VS Code のエクスプローラーと同じ。下の開いたフォルダの行を貼り付ける位置の基準にもなる）
+   */
+
+  .files-pane {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}

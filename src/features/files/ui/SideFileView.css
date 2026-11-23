@@ -1,0 +1,18 @@
+/* ==== 右サイドバーのファイル（SideFileView。変更の SideChanges.css も同じ枠） ==== */
+@layer feature {
+  .side-file {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* 上の帯（件数・表示のしかた・取り直し / 差分を見る・エディタタブで開く） */
+
+  .side-file-bar {
+    flex: none;
+    gap: 8px;
+    font-size: var(--fs-12);
+  }
+}

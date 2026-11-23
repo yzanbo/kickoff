@@ -34,5 +34,5 @@
 - Monaco は作り直さず `updateOptions` で変える。上げたときは `monacoEditor.ts` の頭のとおり入口を作り直す。
 - Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。右の欄の行の右クリックは `useCodeQuoteMenu`（attachments の `HandOffItems`）で、出すか（`inSide`）を `FileView` の `inSide` にも渡す（ファイルの画面はチャットの右の欄のときだけ）。
 - ファイルの一覧は作業場所ごとの店 `ui/filesStore.ts` 1 つ（木とチップが読む。取り直しは Git の version・チャットの状態）。
-- 木は土台の `TreeView`（ピントは木そのもの。縦の線と貼り付けは `styles/types/tree.css`）。ノートの木はまだ入れ子の `.file-tree`（`editor-explorer.css`）。
+- 木は土台の `TreeView`（ピントは木そのもの。縦の線と貼り付けは `styles/types/tree.css`）。木の行の見た目は土台の `kit/list/TreeView.css`。
 - チップの開く関数は同じものにして返答の Markdown を描き直させない。remark の差し込みは一覧を受け取らずにパスらしい文字に印を付け、開けるかはリンクの部品が `createFileLookup` から自分の分だけ読む（一覧を取り直しても解析し直さない）。

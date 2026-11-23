@@ -1,3 +1,4 @@
+import "./SideNote.css";
 import { useState } from "react";
 import { useNoteList } from "./store";
 import { confirmLeaveNote } from "./noteLeave";

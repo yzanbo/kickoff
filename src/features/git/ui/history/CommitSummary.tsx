@@ -1,3 +1,4 @@
+import "./CommitSummary.css";
 import type { CSSProperties, MouseEvent } from "react";
 import type { GitCommit, GitCommitDetail, GitFileChange, GitRefs } from "@shared/git/types";
 import { baseName } from "@/foundation/ui/lib/format";

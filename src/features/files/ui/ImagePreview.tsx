@@ -1,3 +1,4 @@
+import "./ImagePreview.css";
 import { useState } from "react";
 import { useQuery } from "@/foundation/ui/query";
 import { useObjectUrl } from "@/foundation/ui/hooks/useObjectUrl";

@@ -1,3 +1,4 @@
+import "./NoteFoundList.css";
 import type { MouseEvent } from "react";
 import { baseName } from "@shared/foundation/path";
 import type { NoteEntry } from "@shared/notes/types";

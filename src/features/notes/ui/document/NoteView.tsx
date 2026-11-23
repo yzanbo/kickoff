@@ -1,3 +1,4 @@
+import "./NoteView.css";
 import { StickyNote } from "lucide-react";
 import { baseName } from "@shared/foundation/path";
 import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";

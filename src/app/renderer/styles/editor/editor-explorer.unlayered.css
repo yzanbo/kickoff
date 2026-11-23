@@ -1,7 +1,0 @@
-/* ==== 履歴の欄の Monaco の上書き（層の外。Monaco は実行時に層の外の style を差す） ==== */
-
-/* エディタのいまの行の右の、その行をいつ誰が変えたか（VS Code の GitLens と同じ薄い斜体。CodeEditor の行の変更の記録） */
-.monaco-editor .blame-inline {
-  font-style: italic;
-  color: var(--extra-muted);
-}

@@ -1,3 +1,4 @@
+import "./NoteChatToggle.css";
 import { Check, ChevronDown, MessageSquare, MessageSquareOff } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

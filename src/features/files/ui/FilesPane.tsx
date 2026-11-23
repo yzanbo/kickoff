@@ -1,3 +1,4 @@
+import "./FilesPane.css";
 import { ChevronsDownUp, ChevronsUpDown, FilePlus, FolderPlus } from "lucide-react";
 import { useMemo, type ComponentProps } from "react";
 import { isCancelKey } from "@/foundation/ui/lib/keys";

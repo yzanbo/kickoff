@@ -1,0 +1,20 @@
+/* ==== 読むだけのコード（ReadOnlyCode。表は土台の DiffTable.css） ==== */
+@layer feature {
+  /* 検索の結果から開いた行 */
+
+  .diff-table .line-focus {
+    background: color-mix(in srgb, var(--warn) 18%, transparent);
+  }
+
+  /* 読むだけの表（FileView の ReadOnlyCode）を折り返さないとき: 表を中身の幅まで広げ、欄ごと横にスクロールする */
+
+  .diff-table.no-wrap {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .diff-table.no-wrap .diff-code {
+    white-space: pre;
+    overflow-wrap: normal;
+  }
+}

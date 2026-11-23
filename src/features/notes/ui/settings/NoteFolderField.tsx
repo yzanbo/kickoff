@@ -1,3 +1,4 @@
+import "./NoteFolderField.css";
 import { useEffect, useState } from "react";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";

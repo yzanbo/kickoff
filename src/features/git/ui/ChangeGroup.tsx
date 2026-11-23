@@ -1,3 +1,4 @@
+import "@/features/git/ui/changes/ChangedFiles.css";
 import { Minus, Plus, Undo2 } from "lucide-react";
 import type { GitFileChange } from "@shared/git/types";
 import { baseName } from "@/foundation/ui/lib/format";

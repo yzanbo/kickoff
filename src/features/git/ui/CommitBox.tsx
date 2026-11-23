@@ -1,3 +1,4 @@
+import "./CommitBox.css";
 import { ArrowDown, ArrowUp, Check, ChevronDown, UploadCloud } from "lucide-react";
 import type { GitStatus } from "@shared/git/types";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

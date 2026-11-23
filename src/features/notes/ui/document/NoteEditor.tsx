@@ -1,3 +1,5 @@
+import "./NoteEditor.unlayered.css";
+import "./NoteEditor.css";
 import { html } from "@codemirror/lang-html";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";

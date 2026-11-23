@@ -1,3 +1,4 @@
+import "./HistoryView.css";
 import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { GitRefs, GitWorktree } from "@shared/git/types";

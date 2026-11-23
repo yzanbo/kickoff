@@ -1,3 +1,4 @@
+import "./CommitRefBadges.css";
 import { Check, Cloud, Tag } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { GitRefs } from "@shared/git/types";

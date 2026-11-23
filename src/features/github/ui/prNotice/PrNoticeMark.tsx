@@ -1,3 +1,4 @@
+import "./PrNoticeMark.css";
 import { GitMerge, GitPullRequestClosed } from "lucide-react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";

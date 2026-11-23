@@ -96,7 +96,7 @@
     overflow-y: auto;
   }
 
-  /* ---- ピルの列（基底より後ろ）。ノートの下の入力欄の上の 1 行（note-quick-chat.css）の詰め方は、そちらを勝たせる ---- */
+  /* ---- ピルの列（基底より後ろ）。ノートの下の入力欄の上の 1 行（notes の NoteQuickChat.css）の詰め方は、そちらを勝たせる ---- */
 
   .composer-chips.compact {
     gap: 4px;

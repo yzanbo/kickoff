@@ -1,3 +1,4 @@
+import "./SideFileView.css";
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
 import { open } from "@/foundation/ui/navigation/open";
 import { useProjects } from "@/features/projects/ui/stores/projects";

@@ -1,3 +1,4 @@
+import "./PrNoticeDialog.css";
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";

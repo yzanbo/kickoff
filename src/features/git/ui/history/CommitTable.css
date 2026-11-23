@@ -1,0 +1,142 @@
+/* ==== 履歴のコミットの表とブランチの線（CommitTable） ==== */
+@layer feature {
+  /* 「エディタ」タブの履歴（左にブランチの線、右に件名・作者・日時） */
+
+  .history-list {
+    container: history-list / inline-size;
+    margin: 0;
+    padding: 4px 0 8px;
+    list-style: none;
+  }
+
+  .history-row {
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px 0 6px;
+    font-size: var(--fs-13);
+  }
+
+  .graph-cell {
+    flex: none;
+    overflow: hidden;
+  }
+
+  .graph-cell path {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .graph-cell circle {
+    stroke-width: 2;
+  }
+
+  .history-more {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-12);
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .history-more:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  /* 履歴の表の列（件名・作者・コミットの番号・日時） */
+
+  .history-subject {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /*
+   * 件名の前の札。狭いときは件名の文を先に縮め（3em まで）、それでも入らなければ札の名前を「…」で詰める
+   * （札と文を 1 つの欄で切ると、狭いと札の途中で切れ、ブランチが見えなくなる）
+   */
+
+  .history-refs {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .history-refs > .ref-badge,
+  .history-refs > .ref-badge-group,
+  .history-refs > .ref-badge-group > .ref-badge {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    vertical-align: 0;
+  }
+
+  /* 札が縮んでも、✓・マークとリモートのマークだけの札は残して、名前だけを詰める */
+
+  .history-refs > .ref-badge-group > .ref-badge.remote {
+    flex: none;
+  }
+
+  .history-refs .ref-badge-name {
+    min-width: 2em;
+  }
+
+  .history-subject-text {
+    flex: 1 1 0;
+    min-width: 3em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-author,
+  .history-hash,
+  .history-date {
+    flex: none;
+    overflow: hidden;
+    font-size: var(--fs-12);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+  }
+
+  .history-author {
+    width: 130px;
+  }
+
+  .history-hash {
+    width: 64px;
+    font-family: var(--mono);
+  }
+
+  .history-date {
+    width: 118px;
+  }
+
+  /* 狭いときは、作者 → コミットの番号 → 日時の順に列を隠し、件名と札の幅を残す */
+
+  @container history-list (width < 600px) {
+    .history-author {
+      display: none;
+    }
+  }
+
+  @container history-list (width < 460px) {
+    .history-hash {
+      display: none;
+    }
+  }
+
+  @container history-list (width < 340px) {
+    .history-date {
+      display: none;
+    }
+  }
+}

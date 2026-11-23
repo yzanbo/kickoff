@@ -1,3 +1,4 @@
+import "./FileTree.css";
 import type { DragEvent, MouseEvent, ReactNode } from "react";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";

@@ -1,4 +1,5 @@
 // 差分の表（git diff と同じ 1 列 / 左右に並べる）。コードのセルの data-no・data-side は外から読む取り決め（diffModel.ts の DIFF_ROW_ATTRS）
+import "./DiffTable.css";
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { CodeToken } from "@/foundation/ui/code/highlight";

@@ -1,3 +1,4 @@
+import "./SearchResults.css";
 import { Copy, Replace, ReplaceAll, X } from "lucide-react";
 import { useMemo, type MouseEvent } from "react";
 import type { SearchMatch } from "@shared/files/types";
