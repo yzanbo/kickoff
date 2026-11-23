@@ -5,7 +5,7 @@ import { storage } from "@/features/conversation/ui/storage";
 
 /**
  * 会話の文字の大きさ（5 段階）。会話に出るもの（発言・返答・ツール・カード・動き）の文字だけを変え、見出し・入力欄・ピル・メニューは変えない。
- * 倍率は <html> の CSS 変数 --chat-font-scale にし、会話の入れ物が --chat-scale として使う（chat.css）
+ * 倍率は <html> の CSS 変数 --chat-font-scale にし、会話の入れ物が --chat-scale として使う（Timeline.css）
  */
 export type ChatFontSize = SettingValue<typeof storage.settings.fontSize>;
 export const CHAT_FONT_SIZES = storage.settings.fontSize.choices;

@@ -1,3 +1,4 @@
+import "./QuestionItem.css";
 import { Check, Pencil } from "lucide-react";
 import { hasPreviews } from "@shared/chat/questionPreviews";
 import type { Question } from "@shared/chat/approvalTypes";

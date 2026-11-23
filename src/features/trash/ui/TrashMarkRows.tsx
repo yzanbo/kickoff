@@ -1,3 +1,4 @@
+import "./TrashMarkRows.css";
 import { useState } from "react";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";

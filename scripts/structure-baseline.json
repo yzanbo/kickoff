@@ -558,12 +558,7 @@
       "siblings:src:app,features,foundation"
     ],
     "size": {
-      "src/app/renderer/styles/chat/activity.css": 316,
-      "src/app/renderer/styles/chat/chat.css": 348,
       "src/app/renderer/styles/chat/child-chats.css": 355,
-      "src/app/renderer/styles/chat/composer.css": 309,
-      "src/app/renderer/styles/chat/context-meter.css": 473,
-      "src/app/renderer/styles/chat/queued.css": 598,
       "src/app/renderer/styles/chat/subagent-card.css": 301,
       "src/app/renderer/styles/database/db-client.css": 378,
       "src/app/renderer/styles/database/db-sql.css": 507,

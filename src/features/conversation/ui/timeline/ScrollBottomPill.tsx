@@ -1,3 +1,4 @@
+import "./ScrollBottomPill.css";
 import { ArrowDown } from "lucide-react";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";

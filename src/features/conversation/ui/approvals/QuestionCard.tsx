@@ -1,3 +1,4 @@
+import "./QuestionCard.css";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { cx } from "@/foundation/ui/lib/cx";

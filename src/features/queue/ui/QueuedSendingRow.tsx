@@ -1,3 +1,4 @@
+import "./QueuedSendingRow.css";
 import type { QueuedMessage } from "@shared/chat/types";
 import { relayOf } from "@shared/chat/prompts";
 import { AttachmentPeek } from "@/features/attachments/ui";

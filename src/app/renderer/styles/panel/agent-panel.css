@@ -76,7 +76,8 @@
  * 外側のパネルを分けているときの、ピントのあるペインの印（チャット欄の枠の色。side-panel-split.css）は、右の欄の中の入力欄には付けない。
  * 右の欄の中を分けたときは、右の欄の中のピントのあるペインの入力欄にだけ付ける
  */
-.panel-tab-page.pane-focused .agent-panel .composer {
+.panel-tab-page.pane-focused .agent-panel .composer,
+.panel-tab-page.pane-focused .agent-panel .queued-messages + .held-edit > .composer:focus-within {
   border-color: var(--border-strong);
 }
 

@@ -1,3 +1,4 @@
+import "./ApprovalCard.css";
 import { Suspense, useState } from "react";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { REMEMBER_SCOPE_LABELS } from "@shared/ai/approvals";

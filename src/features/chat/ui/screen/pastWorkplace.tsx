@@ -1,5 +1,6 @@
 // 作業場所を移した区切りより前の行:
 // その行のファイルのチップ・変更カード・「差分を見る」・ツールの行・読んだ画像を、その発言のときの作業場所から開く
+import "./pastWorkplace.css";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceBoundary, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";

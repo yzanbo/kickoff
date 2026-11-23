@@ -1,3 +1,4 @@
+import "./Timeline.css";
 import type { ReactNode } from "react";
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";

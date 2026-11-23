@@ -1,3 +1,4 @@
+import "./OptionChoice.css";
 import type { ModelOption } from "@shared/ai/types";
 import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";

@@ -1,3 +1,5 @@
+import "@/features/conversation/ui/screen/ChatColumn.css";
+import "@/features/conversation/ui/timeline/Timeline.css";
 import { Bot } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -85,7 +87,7 @@ function ScreenView({ entry, view, nav }: { entry: SubagentEntry; view: Subagent
   // 手順・頼んだ内容・報告の文の右クリック（会話の流れと同じメニュー）
   const quoteMenu = useQuoteMenu();
   return (
-    // chat-panel: 発言・入力欄の見た目を、パネルの中のチャットと同じにする（side-panel.css・messages.css の .chat-panel の規則）
+    // chat-panel: 発言・入力欄の見た目を、パネルの中のチャットと同じにする（side-panel.css・UserMessage.css の .chat-panel の規則）
     <div
       className="subagent-screen chat-panel"
       style={agentHueStyle(view.hues.get(entry.key))}

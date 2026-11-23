@@ -1,3 +1,5 @@
+import "./ActivityView.css";
+import "@/features/conversation/ui/timeline/Timeline.css";
 import { MessageSquare, PanelRight } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type UIEvent } from "react";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

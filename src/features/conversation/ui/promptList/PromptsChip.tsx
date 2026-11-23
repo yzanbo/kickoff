@@ -1,3 +1,4 @@
+import "./PromptsChip.css";
 import { CornerDownLeft, Eraser, History, MessageCircleQuestion } from "lucide-react";
 import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

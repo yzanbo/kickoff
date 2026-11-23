@@ -1,3 +1,4 @@
+import "./ToolGroup.css";
 import { ChevronRight } from "lucide-react";
 import { useContext } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

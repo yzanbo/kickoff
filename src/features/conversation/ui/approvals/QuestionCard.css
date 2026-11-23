@@ -1,0 +1,235 @@
+/* ==== AI からの質問のカード（QuestionCard。1 問ずつ / すべて・たたむ・「その他」の複数行の欄と添付） ==== */
+@layer feature {
+  /*
+   * 質問のカードの形: 選択肢は枠で囲まず、細い区切り線で並べた行。丸の代わりに番号の箱
+   * （選ぶと青。複数選ぶ質問ではチェック）、名前と説明を 1 行に（入らなければ折り返す）。最後の行は鉛筆と「その他の回答」
+   */
+
+  .question-card {
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .question-card:focus {
+    outline: none;
+  }
+
+  .question-card .question-options {
+    gap: 0;
+  }
+
+  /* 乗せた・選んだときも枠の色は変えない（QuestionItem.css の .question-option:hover・.checked より強く） */
+  .question-card .question-option,
+  .question-card .question-option:is(:hover, .checked) {
+    position: relative;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 4px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .question-card .question-option:last-child {
+    border-bottom: none;
+  }
+
+  .question-card .question-option:hover {
+    background: var(--bg-hover);
+  }
+
+  .question-card .question-option.checked {
+    background: color-mix(in srgb, var(--info) 8%, transparent);
+  }
+
+  .question-card .question-option > span:last-child {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 8px;
+  }
+
+  /* 丸・四角は見えなくして（キーボードと読み上げのために残す）、番号の箱で示す */
+
+  .question-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .question-card .question-key,
+  .question-card .question-other-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+    background: var(--bg-hover);
+  }
+
+  .question-option.checked .question-key {
+    color: #fff;
+    background: var(--info);
+  }
+
+  :where(:root:not([data-modality="pointer"])) .question-option:has(.question-input:focus-visible) .question-key {
+    outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
+    outline-offset: 1px;
+  }
+
+  .question-card .question-title {
+    margin-bottom: 4px;
+  }
+
+  /* 1 問ずつ・たたんだときに隠す欄（.approval-actions などの display より強くする） */
+
+  .question-card [hidden] {
+    display: none;
+  }
+
+  /* たたむ・開く（見出しのバッジごと押せる。たたむと、いまの質問の文を 1 行で添える） */
+
+  .question-fold {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    font: inherit;
+    color: var(--muted);
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .question-fold:hover {
+    color: var(--text);
+  }
+
+  .question-folded-text {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--chat-fs-13);
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 質問の文・選択肢の説明は、AI が入れた改行のまま見せる */
+
+  .question-text,
+  .question-description {
+    white-space: pre-wrap;
+  }
+
+  /* 質問が複数あるときの出し方（1 問ずつ / すべて）。カードの見出しの右端に小さく */
+
+  .question-layout {
+    flex: none;
+    margin-left: auto;
+  }
+
+  .question-layout button {
+    font-size: var(--chat-fs-11);
+  }
+
+  /* 1 問ずつのときの、質問の見出しの並び（いまの質問は枠の色、答えたものはチェック。押すとその質問へ） */
+
+  .question-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .question-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 200px;
+    height: 24px;
+    padding: 0 10px 0 6px;
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    cursor: pointer;
+  }
+
+  .question-step:hover {
+    --pill-fg: var(--text);
+  }
+
+  .question-step.active {
+    --pill-border: var(--info);
+    --pill-fg: var(--text);
+    --pill-bg: color-mix(in srgb, var(--info) 10%, transparent);
+  }
+
+  .question-step.done svg {
+    color: var(--ok);
+  }
+
+  .question-step-number {
+    display: grid;
+    place-items: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    font-size: var(--chat-fs-10);
+    background: var(--bg-hover);
+  }
+
+  .question-step-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ボタンの行は右に寄せる（主ボタンが右端。戻るがあれば左端に残し、進み具合から右をまとめて右に寄せる） */
+
+  .question-card .question-actions {
+    justify-content: flex-end;
+  }
+
+  .question-progress {
+    align-self: center;
+    margin-left: auto;
+    margin-right: 4px;
+  }
+
+  /* 「その他」の行: 鉛筆の箱と、枠のない「その他の回答」の欄 */
+
+  .question-card .question-other-row {
+    align-items: flex-start;
+    cursor: text;
+  }
+
+  /* 「すべて」のときは、質問ごとに番号を付け、上の境界線で分ける（枠で囲むと縦に場所を取るため） */
+
+  .question-card.all .question ~ .question {
+    margin-top: 6px;
+    padding-top: 12px;
+    /* 太さは選択肢の行の区切りと同じ 1px のまま、色を濃くして、質問どうしの境目をはっきりさせる */
+    border-top: 1px solid var(--divider-strong);
+  }
+
+  .question-number {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    border-radius: 50%;
+    font-size: var(--chat-fs-11);
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-active);
+    vertical-align: 1px;
+  }
+}

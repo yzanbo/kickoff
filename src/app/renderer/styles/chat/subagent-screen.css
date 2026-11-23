@@ -132,7 +132,7 @@
 
 /*
  * この画面の主役はそのサブエージェントなので、その返答はメインの返答と同じ見た目にする（メインの流れの中では、サブエージェントの返答に
- * 左の線と薄い文字を付けて見分けている。chat.css の .assistant.sub）
+ * 左の線と薄い文字を付けて見分けている。UserMessage.css の .assistant.sub）
  */
 .subagent-screen-content > .timeline-row > .assistant.sub {
   padding-left: 0;

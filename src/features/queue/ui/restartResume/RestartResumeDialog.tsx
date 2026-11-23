@@ -1,3 +1,4 @@
+import "./RestartResume.css";
 import { ArrowUpRight, ChevronRight, OctagonPause } from "lucide-react";
 import { Fragment, useState } from "react";
 import type { RestartResume, RestartResumeAction } from "@shared/chat/chatLive";

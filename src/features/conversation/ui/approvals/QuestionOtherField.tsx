@@ -1,3 +1,4 @@
+import "./QuestionOtherField.css";
 import { useEffect, useEffectEvent } from "react";
 import type { OtherFiles } from "./questionAnswers";
 import { cx } from "@/foundation/ui/lib/cx";

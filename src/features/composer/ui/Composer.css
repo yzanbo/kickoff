@@ -1,0 +1,187 @@
+/* ==== 入力欄 ==== */
+@layer feature {
+  .composer {
+    position: relative;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+  }
+
+  .composer.dragging {
+    border-color: var(--accent);
+    border-style: dashed;
+  }
+
+  /* 書いた分だけ伸びる（空なら 1 行。案内が折り返せばその分。上限を超えたら中でスクロール）。
+     高さはブラウザに任せる（JS で scrollHeight を測ると、1 文字ごとにページ全体のレイアウトをやり直させてしまう） */
+
+  .composer textarea {
+    display: block;
+    field-sizing: content;
+    min-height: 42px;
+    max-height: 240px;
+    padding: 12px 14px 2px;
+    font-size: var(--fs-14);
+    border: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: transparent;
+    resize: none;
+  }
+
+  .composer textarea:focus {
+    outline: none;
+  }
+
+  .composer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 10px 8px;
+    /* 1 行に入らないときは、下の .fit-narrow で詰めて 1 行に収める（useComposerBarFit。中身の幅を測るので container-type は付けない） */
+  }
+
+  .composer-tools,
+  .chat-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+  }
+
+  /*
+   * 下の行が 1 行に入らないとき（useComposerBarFit の 1 段目。欄の幅ではなく、実際に入るかで決める）: 折り返さずに詰め、▾ を消し、
+   * 推論の深さ・権限モードはアイコンだけにする（いまの値は、乗せると説明に出る）。2 段目 .fit-tight は QueueModeToggle.css
+   */
+
+  .composer-bar.fit-narrow .composer-tools,
+  .composer-bar.fit-narrow .chat-options {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .composer-bar.fit-narrow .option-chevron {
+    display: none;
+  }
+
+  .composer-bar.fit-narrow .option-button {
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .composer-bar.fit-narrow .chat-options .option-menu:not(.model-menu) .option-label {
+    display: none;
+  }
+
+  .composer-error {
+    margin: 0;
+    padding: 0 16px 10px;
+  }
+
+  .composer-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 12px 0;
+  }
+
+  .composer-attachment {
+    display: grid;
+    gap: 2px;
+  }
+
+  .drop-hint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius);
+    font-weight: 600;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--bg-elev) 85%, transparent);
+    pointer-events: none;
+  }
+
+  .attach-button {
+    border-radius: 50%;
+  }
+
+  /* 作業中に Esc を 1 回押したとき: もう一度押すと中断する、と中断ボタンの横に出す（composerKeys.ts） */
+
+  .composer-stop-hint {
+    align-self: center;
+    font-size: var(--fs-12);
+    color: var(--warn);
+    white-space: nowrap;
+  }
+
+  .composer-stop-hint.stopping {
+    color: var(--muted);
+  }
+
+  /*
+   * コンパクト表示（設定の「表示」→「チャット欄」）: 文字・余白・下の道具を小さくして、縦の幅を抑える。
+   * 送信・中断のボタン（ComposerActions.css）・推論の深さなどの選択（OptionChoice.css）は後ろのファイルにあるので、
+   * .composer.compact を付けて詳細度で勝たせる
+   */
+
+  .composer.compact textarea {
+    min-height: 32px;
+    padding: 7px 12px 0;
+    font-size: var(--fs-12);
+  }
+
+  .composer.compact .composer-bar {
+    gap: 6px;
+    padding: 0 6px 4px;
+  }
+
+  .composer.compact .option-button {
+    gap: 4px;
+    height: 24px;
+    padding: 0 6px;
+    font-size: var(--fs-12);
+  }
+
+  .composer.compact .option-button svg,
+  .composer.compact .attach-button svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .composer.compact .attach-button,
+  .composer.compact .send-button,
+  .composer.compact .context-ring-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  .composer.compact .send-button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .composer.compact .send-button.stop svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .composer.compact .view-toggle button {
+    padding: 2px 6px;
+  }
+
+  /* チャット欄の上（ピルの列のさらに上）に分けて出す知らせ（同じ作業場所で、ほかのチャットも作業中など）。押して開くピルとは役割が違うので混ぜない */
+
+  .composer-notice {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin: 0;
+    padding: 0 2px 6px;
+    line-height: 1.45;
+  }
+
+  .composer-notice svg {
+    flex: none;
+  }
+}

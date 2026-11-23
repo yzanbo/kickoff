@@ -1,3 +1,4 @@
+import "./ChatFind.css";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { consumeKey, isKey } from "@/foundation/ui/lib/keys";

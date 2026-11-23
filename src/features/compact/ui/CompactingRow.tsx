@@ -1,3 +1,4 @@
+import "./CompactingRow.css";
 import { Shrink } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import type { CompactTrigger } from "@shared/ai/turnEvents";

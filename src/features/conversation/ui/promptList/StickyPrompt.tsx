@@ -1,3 +1,4 @@
+import "./StickyPrompt.css";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/chat/types";

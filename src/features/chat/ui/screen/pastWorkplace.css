@@ -1,0 +1,12 @@
+/* ==== 前の作業場所が消えたときの印（pastWorkplace） ==== */
+@layer feature {
+  /* 作業場所を移した区切りより前の行で、そのときの作業場所がもうないとき（Timeline の PastWorkplace）: 行の形は変えず、ファイルのチップ・変更カードのファイル・ツールの行のファイルを薄くする（押すと開けないと知らせる） */
+
+  .past-workplace-gone {
+    display: contents;
+  }
+
+  .past-workplace-gone :is(.file-link, .tool-file-link, .turn-change-file) {
+    opacity: 0.55;
+  }
+}

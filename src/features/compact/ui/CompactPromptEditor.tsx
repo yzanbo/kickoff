@@ -1,3 +1,4 @@
+import "./CompactPromptEditor.css";
 import { useState } from "react";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { useFold } from "@/foundation/ui/hooks/useFold";

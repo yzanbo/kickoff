@@ -1,0 +1,21 @@
+/* ==== 作業場所を移している間の行（WorkplaceMoveRow） ==== */
+@layer feature {
+  /* AI が作業場所を移す予約の行（流れのいちばん下。作業が終わったら移る。取り消せる） */
+
+  .workplace-move-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    --notice-tone: var(--accent);
+    --notice-tint: 8%;
+    font-size: var(--chat-fs-13);
+    color: var(--text);
+  }
+
+  .workplace-move-row svg {
+    flex: none;
+    color: var(--accent-fg);
+  }
+}

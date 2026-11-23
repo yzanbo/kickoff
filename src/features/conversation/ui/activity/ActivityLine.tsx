@@ -1,3 +1,4 @@
+import "./ActivityLine.css";
 import { ChevronRight, MessageSquare, PanelRight } from "lucide-react";
 import { memo, type MouseEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

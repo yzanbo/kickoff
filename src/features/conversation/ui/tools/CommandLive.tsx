@@ -1,3 +1,4 @@
+import "./CommandLive.css";
 import { useLayoutEffect, useRef } from "react";
 import { BashCommandSection } from "./BashOutput";
 

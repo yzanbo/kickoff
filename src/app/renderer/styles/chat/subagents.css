@@ -275,3 +275,23 @@
 .chip-short-icon {
   display: none;
 }
+
+/* ---- ピルの列（基底より後ろ）。ノートの下の入力欄の上の 1 行（note-quick-chat.css）の詰め方は、そちらを勝たせる ---- */
+
+.composer-chips.compact {
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+:where(.composer-chips.compact) .composer-chip {
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: var(--fs-11);
+}
+
+/* 列の右端に置いた一番下へ戻るボタンも、ピルと同じ高さに（列の高さを変えない） */
+
+.composer-chips.compact .composer-chips-dock .scroll-bottom.guide {
+  height: 22px;
+}

@@ -4,7 +4,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/conversation/ui/storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 
-/** 発言の流れ・チャット欄の幅の上限（chat.css の .timeline-inner の max-width と同じ）。流れがこれより狭ければ、広げても変わらない */
+/** 発言の流れ・チャット欄の幅の上限（ChatColumn.css の .timeline-inner の max-width と同じ）。流れがこれより狭ければ、広げても変わらない */
 const TEXT_MAX_WIDTH = 820;
 
 /**

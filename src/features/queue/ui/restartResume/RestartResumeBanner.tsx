@@ -1,3 +1,4 @@
+import "./RestartResumeBanner.css";
 import { History } from "lucide-react";
 import type { RestartResumeAction, RestartResumeState } from "@shared/chat/chatLive";
 import { queueApi } from "@/features/queue/ui/api";

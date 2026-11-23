@@ -1,0 +1,132 @@
+/* ==== 圧縮の前に送る指示の欄（CompactPromptEditor） ==== */
+@layer feature {
+  /* 圧縮前指示（開閉の行に、いま送る指示の範囲を添える。開くと範囲の切り替え・書く欄・保存） */
+
+  .context-pre-compact {
+    display: grid;
+    gap: 6px;
+  }
+
+  .context-pre-compact-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 22px;
+    margin: 0 -6px;
+    padding: 3px 6px;
+    box-sizing: content-box;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    color: var(--text);
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .context-pre-compact-toggle:hover {
+    background: var(--bg-hover);
+  }
+
+  .context-pre-compact-label {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .context-pre-compact-summary {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-12);
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .context-pre-compact-body {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    --card-bg: transparent;
+  }
+
+  /* 範囲（共通 / プロジェクト）を左、選んでいる方のオン / オフを右端に */
+
+  .context-pre-compact-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .context-pre-compact-switch {
+    flex: none;
+  }
+
+  /*
+   * プロジェクトのボタンはプロジェクト名なので、長ければ省略する（名前の全体はマウスを乗せたときの説明に出る）。
+   * ボタンは同じ幅にせず中身の幅にし（.segmented の 1fr を上書き）、「共通」の余りを名前に回す
+   */
+
+  .context-pre-compact-scope {
+    max-width: 100%;
+    box-sizing: border-box;
+    grid-auto-columns: minmax(0, auto);
+  }
+
+  .context-pre-compact-scope button {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /*
+   * 書く欄。詳細はチャット欄（.composer）の中に描かれるので、チャット欄の書く欄の決まり（枠なし・透明・伸びる）を
+   * 打ち消して、ふつうの入力欄の見た目に戻す（詳細度で勝たせる）
+   */
+
+  .context-popover .context-pre-compact-body textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 64px;
+    max-height: 160px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--fs-12);
+    background: var(--bg);
+    resize: vertical;
+  }
+
+  .context-popover .context-pre-compact-body textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -1px;
+  }
+
+  .context-pre-compact-body .context-sub {
+    font-size: var(--fs-11);
+    line-height: 1.5;
+  }
+
+  /* 説明を左、保存を右端に */
+
+  .context-pre-compact-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-12);
+  }
+
+  .context-pre-compact-actions .context-sub {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .context-pre-compact-actions .btn {
+    flex: none;
+  }
+}

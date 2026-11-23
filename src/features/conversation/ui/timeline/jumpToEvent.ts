@@ -1,4 +1,5 @@
 /** なめらかに動かすときも、これより遠い（流れの高さの何倍か）ときは近くまで一気に寄せてから動かす（長いチャットで長い時間スクロールさせない） */
+import "./jumpFlash.css";
 const SMOOTH_MAX_SCREENS = 1.5;
 /** スクロールの終わり（scrollend）が届かないときに、強調を始めるまでの上限 */
 const SETTLE_TIMEOUT_MS = 1200;
@@ -96,7 +97,7 @@ function flash(target: HTMLElement) {
   target.classList.remove("flash");
   void target.offsetWidth; // アニメーションをやり直すため
   target.classList.add("flash");
-  // 光り終えたら外す（光っている間だけ、その行の描くのを省くのをやめているため。timeline-row.css）
+  // 光り終えたら外す（光っている間だけ、その行の描くのを省くのをやめているため。Timeline.css）
   const end = (e: AnimationEvent) => {
     if (e.target !== target || e.animationName !== "jump-flash") return;
     target.classList.remove("flash");

@@ -1,3 +1,4 @@
+import "./ComposerActions.css";
 import { ChevronDown, SendHorizontal, Square, type LucideIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

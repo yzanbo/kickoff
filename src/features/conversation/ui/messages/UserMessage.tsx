@@ -1,3 +1,4 @@
+import "./UserMessage.css";
 import { ChevronRight, ClipboardPenLine, GitBranch, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";

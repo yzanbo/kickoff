@@ -1,3 +1,4 @@
+import "./TodoChip.css";
 import { CheckCircle2, Circle, CircleDashed, CircleDot, EyeOff, ListChecks, ListTodo, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

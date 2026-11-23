@@ -1,0 +1,279 @@
+/* ==== 送信待ちの見出しの行（件数・すべて表示 ｜ 操作のまとまり: 追加・送り方・すべて消す / 選んでいるときは並べ替え・選んだものへの操作） ==== */
+@layer feature {
+  .queued-head-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    margin-bottom: 3px;
+  }
+
+  /*
+   * 右の操作のまとまりの入れ物。件数の側と同じ行に入るなら右に寄せて詰める（余りの幅は件数の側が取る）。
+   * 入らなければまるごと 2 行目へ回って横幅いっぱいに広がり、最初のまとまり（追加・並べ替え）を左端、残りを右端に置く。
+   * 2 行目にも 1 行で入らない狭い欄では、左寄せで最初のまとまりだけの行と残りの行に分ける（下の @container。ボタンの文字は隠さない）
+   */
+
+  .queued-head-tools {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+    min-width: 0;
+  }
+
+  .queued-head-tools > :first-child {
+    margin-right: auto;
+  }
+
+  /* まとまりの中は折り返さない（1 つのまとまりだけでも欄に入らないときに限り、まとまりの中で折り返す） */
+
+  .queued-head-group {
+    display: flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  /* 「＋追加」のまとまりの見出し（押すと列に 1 行足す物だと分かるように。ボタンではない） */
+
+  .queued-head-group-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 1px;
+    font-size: var(--fs-11);
+    color: var(--extra-muted);
+    white-space: nowrap;
+    cursor: default;
+  }
+
+  /* 余白・文字は小さいボタン（data-size="sm"）のまま */
+
+  .queued-head-btn {
+    flex: none;
+    gap: 4px;
+    height: 20px;
+    /* 行の高さを文字の大きさにそろえる（既定の行の高さはボタンの内側より高く、文字が上に寄って見えるため） */
+    line-height: 1;
+  }
+
+  /* 選んでいるときの並べ替えのまとまり（いちばん上へ・いちばん下へ。行の ↑↓ と同じアイコンだけ） */
+
+  .queued-head-group.queued-head-moves {
+    gap: 2px;
+  }
+
+  /* 止めているとき（終わっても送らない）: 黄で目立たせる */
+
+  .queued-head-btn.queued-mode.paused {
+    border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+    color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 14%, transparent);
+  }
+
+  /* 「ここまで送ったら止めます」の印を置く: 線と同じ注意の色の枠のボタン（押せないときは薄く） */
+
+  .queued-add-stop {
+    --btn-tone: var(--warn);
+  }
+
+  .queued-add-stop:disabled {
+    opacity: 0.45;
+  }
+
+  /*
+   * 挟む行の色（queueActionLooks の tone。行の文と見出しの「＋追加」のボタンで同じ色）:
+   * 会話の圧縮 = 圧縮中の行と同じアクセントの色、コンテキストの消去 = 青（一時停止の黄・消すの赤と見分ける）
+   */
+
+  .queued-action-compact {
+    --queued-tone: var(--accent-fg);
+    --queued-tone-line: var(--accent);
+  }
+
+  .queued-action-clear {
+    --queued-tone: var(--info);
+    --queued-tone-line: var(--info);
+  }
+
+  /* 会話の圧縮・コンテキストの消去の行を足す: 足す行と同じ色の枠のボタン（QueuedMessages.css の --queued-tone） */
+
+  .queued-add-action {
+    --btn-tone: var(--queued-tone);
+    --btn-line: var(--queued-tone-line);
+  }
+
+  .queued-remove {
+    --btn-tone: var(--ng);
+    --btn-edge: 55%;
+  }
+
+  /*
+   * 左の件数の側（件数・案内・次: の見出しと「すべて表示」）。操作と同じ行に並ぶかを 240px として決め
+   * （それより狭くなるなら操作が 2 行目へ回る）、余りの幅まで伸びる（長い「次: …」で操作を押し出さない）。
+   * 伸びる割合を大きくして、同じ行にあるときの余りの幅をほぼすべて取る（操作は右に詰めたまま）
+   */
+
+  .queued-head-main {
+    display: flex;
+    flex: 9999 1 0;
+    align-items: center;
+    gap: 6px;
+    min-width: min(100%, 240px);
+  }
+
+  .queued-head {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 1px 6px 1px 2px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-12);
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .queued-head:hover {
+    color: var(--text);
+  }
+
+  .queued-chevron {
+    flex: none;
+    transform: rotate(90deg);
+    transition: transform 0.15s;
+  }
+
+  .queued-count {
+    flex: none;
+    font-weight: 600;
+  }
+
+  .queued-hint {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--extra-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 止める予定を伝える案内（「1 件目のあとで止めます」）: 「ここまで送ったら止めます」の印と同じ色とアイコンで、ひと目で分かるように */
+
+  .queued-hint.stop {
+    color: var(--warn);
+  }
+
+  .queued-hint.stop svg,
+  .queued-hint.ready svg {
+    margin-right: 3px;
+    vertical-align: -1px;
+  }
+
+  /* 次の指示を書き直しているので送らずに待っている案内: 作業が終わって送信の準備ができたら、アクセントの色で知らせる（見出しに 1 か所だけ） */
+
+  .queued-hint.ready {
+    color: var(--accent-bright);
+  }
+
+  /* 畳んだ 1 行の「次: 次に送る指示」（いちばん先に省く。件数と止める位置は残す） */
+
+  .queued-next {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 畳んだ 1 行の止める位置などの案内は省かない（短い文なので、先に「次: …」を省く） */
+
+  .queued-messages.collapsed .queued-hint {
+    flex: none;
+  }
+
+  /* 畳んだ 1 行の区切り（件数 · 案内 · 次: …） */
+
+  .queued-messages.collapsed .queued-hint::before,
+  .queued-next::before {
+    content: "·";
+    margin-right: 4px;
+    color: var(--extra-muted);
+  }
+
+  /* 畳んだとき（枠の上下の余白は QueuedMessages.css） */
+
+  .queued-messages.collapsed .queued-head-row {
+    margin-bottom: 0;
+  }
+
+  .queued-messages.collapsed .queued-chevron {
+    transform: none;
+  }
+
+  /*
+   * 操作のまとまりが 1 行に入らない欄（追加・送り方・すべて消すを並べた幅 約 670px。止めていますの長い方でも入るよう少し広めに）:
+   * 途中で折り返して右端と左端に散らばらないよう、左寄せにして、最初のまとまり（追加。選んでいるときは並べ替え）だけで 1 行、
+   * 残り（送り方・すべて消す）は次の行に横に並べる（入らないときだけ、まとまりごと折り返す。1 行に 1 つずつ縦に並べると、
+   * すべて消すが空いている横に入らず 1 行増える）
+   */
+
+  @container queued (max-width: 690px) {
+    /* いつも件数の下の行に回す */
+    .queued-head-tools {
+      flex-basis: 100%;
+      justify-content: flex-start;
+    }
+
+    .queued-head-tools > :first-child {
+      flex-basis: 100%;
+      margin-right: 0;
+    }
+  }
+
+  /* いちばん狭い欄: 案内を隠す（件数を残す） */
+
+  @container queued (max-width: 440px) {
+    .queued-messages:not(.collapsed) .queued-hint {
+      display: none;
+    }
+  }
+
+  /* 「すべて送る」のメニュー（SendAllMenu）: 送り方の名前と、何が起きるかの短い説明 */
+
+  .send-all-menu {
+    width: 300px;
+  }
+
+  /* 説明が折り返してもアイコンを縮めない（文字の左端をそろえる） */
+
+  .send-all-menu svg {
+    flex: none;
+  }
+
+  .send-all-option {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .send-all-note {
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+
+  .queued-pause-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

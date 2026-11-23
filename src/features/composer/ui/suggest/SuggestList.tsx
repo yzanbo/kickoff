@@ -1,3 +1,4 @@
+import "./SuggestList.css";
 import { File, SquareSlash } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { PathParts } from "@/foundation/ui/kit/PathParts";

@@ -1,3 +1,4 @@
+import "./QueuedRow.css";
 import { Check, SendHorizontal, X } from "lucide-react";
 import type { Attachment } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";

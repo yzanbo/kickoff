@@ -1,3 +1,4 @@
+import "./streamReveal.css";
 import type { Element, ElementContent, Root, RootContent } from "hast";
 
 /**

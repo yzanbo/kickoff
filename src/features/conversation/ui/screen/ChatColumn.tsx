@@ -1,3 +1,4 @@
+import "./ChatColumn.css";
 import { memo, useState, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";

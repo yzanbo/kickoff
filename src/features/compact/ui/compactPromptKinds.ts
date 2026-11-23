@@ -11,7 +11,7 @@ export const COMPACT_PROMPT_KINDS: Record<
   {
     label: string;
     icon: LucideIcon;
-    /** 会話の札・帯の札・吹き出しに付けるクラス（`pre-compact` / `post-compact`。色は messages.css） */
+    /** 会話の札・帯の札・吹き出しに付けるクラス（`pre-compact` / `post-compact`。色は UserMessage.css） */
     className: string;
     /** 会話の札に乗せたときの説明 */
     sentTitle: string;

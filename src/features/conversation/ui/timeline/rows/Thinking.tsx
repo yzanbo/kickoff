@@ -1,3 +1,4 @@
+import "./Thinking.css";
 import { ChevronRight } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { formatDuration, formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";

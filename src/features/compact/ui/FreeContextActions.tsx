@@ -1,3 +1,4 @@
+import "./FreeContextActions.css";
 import { Hourglass, X } from "lucide-react";
 import type { CompactingState } from "@shared/chat/chatLive";
 import type { Chat, QueueAction, QueuedMessage } from "@shared/chat/types";

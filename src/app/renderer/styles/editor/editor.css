@@ -182,7 +182,7 @@
   min-height: 0;
 }
 
-/* ページの ⌘F（chat/chat-find.css の .page-find）を右上に浮かせる（ファイル・検索・変更の右側・履歴の詳細） */
+/* ページの ⌘F（ChatFind.css の .page-find）を右上に浮かせる（ファイル・検索・変更の右側・履歴の詳細） */
 .changes-diff,
 .history-detail {
   position: relative;

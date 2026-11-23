@@ -195,7 +195,7 @@
 
 /*
  * 入力欄のすぐ上の送信待ち（ノートのチャットの画面が chipsPortal で .note-quick-queue の中に描く）。入れ物を挟むので、
- * 入力欄とつなげて 1 枚の枠に見せる決まり（queued.css の .queued-messages + .composer）をここでも当てる
+ * 入力欄とつなげて 1 枚の枠に見せる決まり（QueuedMessages.css の .queued-messages + .composer）をここでも当てる
  */
 .note-quick-queue:has(+ .composer.compact) > .queued-messages {
   border-radius: var(--radius) var(--radius) 0 0;

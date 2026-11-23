@@ -1,3 +1,5 @@
+import "./DraftChatPage.css";
+import "./ChatColumn.css";
 import { useContext, useId, useRef, type ReactNode } from "react";
 import type { ProviderId } from "@shared/settings/types";
 import { TabVisibleContext } from "@/features/panel/ui/tabs/tabPageContext";

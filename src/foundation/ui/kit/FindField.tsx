@@ -37,7 +37,7 @@ export interface FindReplace {
  * 検索の欄（⌘F）。どこの検索でも同じ見た目と操作にする: 枠の中に、虫眼鏡・入力・探し方（「Aa」「ab」「.*」。⌥⌘C / ⌥⌘W / ⌥⌘R）・
  * 件数・前へ・次へ・閉じる。Enter / ↓ で次、Shift+Enter / ↑ で前、Esc で onEscape（なければ閉じる）。
  * replace があれば、左に置き換えの行の開閉（▸）、開いていれば下に置き換えの行（Enter で 1 つ、⌘Enter ですべて）。
- * 置き場所（浮かせる・見出しの行に置く）は使う側の className で決める（styles/chat/chat-find.css の .find-box が見た目）。
+ * 置き場所（浮かせる・見出しの行に置く）は使う側の className で決める（styles/ChatFind.css の .find-box が見た目）。
  */
 export function FindField({
   inputRef,

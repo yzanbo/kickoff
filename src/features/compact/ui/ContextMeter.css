@@ -1,0 +1,185 @@
+/* ==== コンテキストウィンドウのメーター・手で圧縮するボタン・圧縮している間の作業中の行 ==== */
+@layer feature {
+  /* コンテキストウィンドウのメーター */
+
+  .context-meter {
+    position: relative;
+  }
+
+  .context-ring-button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .context-ring-button:hover {
+    background: var(--bg-hover);
+  }
+
+  .context-ring-track {
+    fill: none;
+    stroke: var(--border-strong);
+    stroke-width: 2.5;
+  }
+
+  .context-ring-fill {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s;
+  }
+
+  /* 自動圧縮が始まるところを指す矢印（設定で決めたとき） */
+
+  .context-ring-mark {
+    fill: var(--text);
+  }
+
+  .context-ring.tone-warn .context-ring-fill {
+    stroke: var(--warn);
+  }
+
+  .context-ring.tone-danger .context-ring-fill {
+    stroke: var(--dot-failed);
+  }
+
+  /*
+   * 会話を圧縮している間: 短い弧を作業中の色（--dot-running。ほかの回る印と同じ）で回す（同じファイルの使用率の色の後ろで上書きする。弧の長さの変化はなめらかにしない）
+   */
+
+  .context-ring.compacting {
+    animation: spin 0.9s linear infinite;
+  }
+
+  .context-ring.compacting .context-ring-fill {
+    stroke: var(--dot-running);
+    transition: none;
+  }
+
+  /*
+   * メーターの上に開く詳細（右端をメーターにそろえる。枠と地は .popover）。
+   * 使っている量 → 圧縮の設定 → 会話を圧縮 の 3 つのまとまりを区切り線で分ける
+   */
+
+  .context-popover {
+    width: 300px;
+    padding: 0 16px;
+    font-size: var(--fs-13);
+    color: var(--text);
+  }
+
+  .context-section {
+    display: grid;
+    gap: 8px;
+    padding: 14px 0;
+  }
+
+  .context-section + .context-section {
+    border-top: 1px solid var(--border);
+  }
+
+  .context-title {
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* 大きな % と「使用」、右にトークン数（下の線をそろえる） */
+
+  .context-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: -4px;
+  }
+
+  .context-pct {
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .context-pct small {
+    margin-left: 1px;
+    font-size: var(--fs-15);
+    font-weight: 500;
+  }
+
+  .context-pct-label {
+    color: var(--muted);
+  }
+
+  .context-tokens {
+    margin-left: auto;
+    font-size: var(--fs-12);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .context-sub {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  /* ターン数と API 換算（名前を上・値を下にして 2 つ横に並べる） */
+
+  .context-stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px;
+    margin: 2px 0 0;
+  }
+
+  .context-stats div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .context-stats dt {
+    font-size: var(--fs-11);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .context-stats dd {
+    margin: 0;
+    font-size: var(--fs-13);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 自動圧縮を始める量の選択（見出しの文字と小さな選択欄を 1 行に） */
+
+  .context-auto-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 28px;
+  }
+
+  .context-auto-compact label {
+    flex: none;
+    color: var(--muted);
+    cursor: default;
+  }
+
+  .context-auto-compact select {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 190px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: var(--fs-12);
+  }
+}

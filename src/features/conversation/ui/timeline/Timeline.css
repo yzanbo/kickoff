@@ -1,0 +1,263 @@
+/* ==== チャット画面 ==== */
+@layer feature {
+  /*
+   * 会話の文字の大きさ（チャットの見出しの右クリックの「チャット画面表示」・設定の「表示」→「会話の文字の大きさ」。chatFontSize.ts が <html> に --chat-font-scale を与える）。
+   * 会話に出るもの（発言・返答・ツール・サブエージェントのカード・承認と質問のカード・動き）の CSS は、文字の大きさを var(--chat-fs-N)、ほかの値を
+   * calc(… * var(--chat-scale, 1)) で書き、倍率は会話の入れ物（流れ・動きの行・右の欄のサブエージェントの手順）にだけ入れる。
+   * 見出し・入力欄・ピル・メニュー・ポップオーバーは 1 のまま。--chat-fs-* は :root で倍率 1 に解けているので、入れ物で解き直す（tokens.css）
+   */
+
+  .timeline-wrap,
+  .activity,
+  .subagent-screen-scroll {
+    --chat-scale: var(--chat-font-scale, 1);
+    --chat-fs-10: calc(10px * var(--chat-scale)); --chat-fs-11: calc(11px * var(--chat-scale)); --chat-fs-12: calc(12px * var(--chat-scale));
+    --chat-fs-13: calc(13px * var(--chat-scale)); --chat-fs-14: calc(14px * var(--chat-scale)); --chat-fs-15: calc(15px * var(--chat-scale));
+  }
+
+  /* タイムラインの枠。上の段に指示の帯（.sticky-prompt。出さないときは高さ 0）、下の段に発言の流れ。一番下へ戻るボタンを中身の上に重ねる */
+
+  .timeline-wrap {
+    position: relative;
+    display: grid;
+    /* 列は枠の幅に固定する（既定の auto だと、上に貼り付ける指示の 1 行の長い文に合わせて列が広がり、流れごと右へはみ出した） */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  /* チャット全体は横にスクロールさせない（幅のある表・コード・図は、その場所だけで横にスクロールする） */
+
+  .timeline {
+    grid-row: 2;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* 会話の流れ（ChatTimeline）は、流れの中の変化（書いている途中の文が伸びる・行が増える）を、流れの外のレイアウトと描画に及ぼさない。
+     大きさは .timeline-wrap の格子（minmax(0, 1fr)）で決まり、中身によらない（送る前のチャット・ノートのチャットの案内の .timeline は中身で高さが決まるので付けない） */
+
+  .timeline-wrap > .timeline {
+    contain: strict;
+  }
+
+  /* 遠い記録を読むのが長引いているときの印（流れの上の真ん中に重ねる。いまの位置のまま待ち、読めたらなめらかに移る） */
+
+  .timeline-jumping {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    --pill-bg: var(--bg-elev);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+    font-size: var(--fs-12);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+
+  /* 前・後ろの記録を読んでいる間だけ出す 1 行（流れの上・途中の一部分の下・動きの下。高さを決めておき、出し入れで読んでいる所がずれる量を一定にする） */
+
+  .timeline-loading {
+    align-self: center;
+    text-align: center;
+    height: calc(20px * var(--chat-scale, 1));
+    line-height: calc(20px * var(--chat-scale, 1));
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  /* 窓の外の行の代わりの箱（高さだけ。測った高さか見積もり。features/chat/timeline の TimelineRows） */
+
+  .timeline-box {
+    flex: none;
+  }
+
+  .working {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--chat-fs-13);
+    color: var(--muted);
+  }
+
+  /* 実行設定は狭い欄では折り返し、サブエージェントの作業中の行には影響させない。 */
+
+  .working-with-details {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .working-execution {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .working-execution-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: var(--chat-fs-11);
+    line-height: 1.5;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  /* 作業中の経過時間（桁が変わっても横に揺れないよう、数字の幅をそろえる） */
+
+  .working-elapsed {
+    color: var(--extra-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dots {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  /* 跳ねる点も作業中の色（回る印と同じ --dot-running） */
+
+  .dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--dot-running);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+
+  .dots span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .dots span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes bounce {
+    0%,
+    80%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.8);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .event-note {
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+  }
+
+  .event-note.error {
+    color: var(--ng);
+  }
+
+  /* ==== 流れの行の包み（Timeline.tsx の .timeline-row。会話の流れ・サブエージェントのカードの中身・右の欄のサブエージェントの画面で同じ） ==== */
+
+  /*
+   * 流れの 1 項目の包み（測る・content-visibility を当てる単位）。見た目を変えない:
+   * 中の項目の並べ方は包みの外の並びと同じ（自分の発言の align-self・作業の終わりの変更カードと行の間の gap を保つ）。
+   * 間隔は親の gap をそのまま使う（会話の流れ .timeline-inner は 4px、カードの中の手順の窓・カードの中身は grid の 8px）。
+   * 項目を指す選択子は .timeline-inner > .timeline-row > … の形にし、入れ子のカードの中の行に当てない
+   */
+
+  .timeline-row {
+    --row-ink: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+    /* 項目の外にはみ出して描く飾り（ピントの枠・サブエージェントのカードの左上の線）の場所。内側に余白を取り、同じだけ外へ戻して並びを変えない */
+    margin: calc(-1 * var(--row-ink));
+    padding: var(--row-ink);
+    /* 重なった余白の所で、隣の行の押せる所を奪わない */
+    pointer-events: none;
+  }
+
+  .timeline-row > * {
+    pointer-events: auto;
+  }
+
+  /* 何も描かない項目（null を返す記録）は場所を取らない（間隔も生まない） */
+
+  .timeline-row:empty {
+    display: none;
+  }
+
+  /*
+   * 画面から離れた行は、レイアウトと描画を省く（content-visibility は描くのを省くとき箱の外を切るので、項目ではなく包みに当てる。
+   * 包みの余白に飾りが収まる）。大きさは一度描いた大きさを覚え（auto）、まだ描いていない行は窓（hooks/useRowWindow.ts）が置いた --row-est
+   * （見え方の店の測った高さ、なければ rowEstimate の見積もり。中身の高さで、包みの余白は含まない）。--row-est のない所（カードの中身など）は初めの値の 120px
+   */
+
+  @property --row-est {
+    /* 中の行（サブエージェントのカードの手順）へ外の行の値を受け継がせない */
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 120px;
+  }
+
+  .timeline-row {
+    content-visibility: auto;
+    contain-intrinsic-block-size: auto var(--row-est);
+  }
+
+  /* いまの作業の行（実行中のツール・流れ続けるコマンドの出力・動いているサブエージェントのカード。data-live）は省かない（頻繁に変わり、いつも見えているため） */
+
+  .timeline-row[data-live] {
+    content-visibility: visible;
+  }
+
+  /* 移ったときの輪（外側 28px の光）は包みの余白からもはみ出すので、光っている間だけ省くのをやめる（省くと箱の外が切れる） */
+
+  .timeline-row:has(.flash) {
+    content-visibility: visible;
+  }
+
+  /*
+   * カードの中身は右（深い入れ子は左も）の余白が 0 なので、包みをはみ出させない（カードの中のカードは自分の線を中に持ち、外へ描く飾りがない）。
+   * 余白がないので描くのも省かない（省くと、中の項目のピントの枠が包みの箱で切れる）
+   */
+
+  .subagent-card-body > .timeline-row {
+    --row-ink: 0px;
+    content-visibility: visible;
+  }
+
+  /* チャットの流れは押すとピントが入る（↑↓ でスクロールするため）が、枠は出さない */
+
+  .timeline:focus {
+    outline: none;
+  }
+
+  /* 送信待ちの「コンテキストを消去」で新しい会話にした境目（Timeline の context_cleared）: 送信待ちの消去の行と同じ青の線と文。
+     作業場所を移した区切り（workplace_moved）も同じ形で、色だけアクセントにする */
+
+  .context-cleared-divider,
+  .workplace-moved-divider {
+    margin: 6px 0;
+    font-size: var(--chat-fs-11);
+  }
+
+  .workplace-moved-divider {
+    --divider-tone: var(--accent-fg);
+  }
+
+  .workplace-moved-divider span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+}

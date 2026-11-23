@@ -1,3 +1,4 @@
+import "./ToolStatusIcon.css";
 import { Check, Minus, X } from "lucide-react";
 import { TOOL_STATUS_LABELS, type ToolStatus } from "./toolStatus";
 

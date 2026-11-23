@@ -1,3 +1,4 @@
+import "./WorkplaceMoveRow.css";
 import { GitBranch } from "lucide-react";
 import type { WorkplaceMoveReservation } from "@shared/chat/chatLive";
 import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";

@@ -1,3 +1,4 @@
+import "./Timeline.css";
 import type { CSSProperties, ReactNode } from "react";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { RenderScope } from "@/features/chat/ui";

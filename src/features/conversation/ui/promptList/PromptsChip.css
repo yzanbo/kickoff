@@ -1,0 +1,115 @@
+/* ==== 指示の履歴（PromptsChip） ==== */
+@layer feature {
+  /*
+   * 指示の履歴の行の札（ui/Tag の内側の線の札。同じ形で色だけ違う）: 「圧縮前指示」「圧縮後指示」は圧縮の行と同じアクセントの色、
+   * 「質問への回答」は吹き出しの「質問への回答」の札と同じ控えめな灰色、「コンテキスト消去」は会話の流れの消去の境目の行と同じ --info
+   */
+
+  .compact-prompt-tag,
+  .question-answer-tag,
+  .context-cleared-tag {
+    display: inline-flex;
+    flex: none;
+    align-self: center;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--chat-fs-10);
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  .compact-prompt-tag {
+    --tag-color: var(--accent);
+    --tag-fg: var(--accent-fg);
+    --tag-tint: 10%;
+  }
+
+  .question-answer-tag {
+    --tag-color: var(--text);
+    --tag-fg: var(--muted);
+    --tag-tint: 6%;
+    --tag-ring: var(--border-strong);
+  }
+
+  .context-cleared-tag {
+    --tag-color: var(--info);
+    --tag-tint: 10%;
+  }
+
+  /* 自分の発言の一覧（チャット欄の上のピル「発言 n」から上に開く。行を押すとその発言へ、右のボタンで入力欄に入れる） */
+
+  .prompt-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .prompt-row:hover {
+    background: var(--bg-hover);
+  }
+
+  .prompt-jump {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 8px;
+    border: none;
+    font: inherit;
+    font-size: var(--chat-fs-13);
+    text-align: left;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .prompt-index {
+    flex: none;
+    min-width: 16px;
+    font-size: var(--chat-fs-11);
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .prompt-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .prompt-time {
+    flex: none;
+    font-size: var(--chat-fs-11);
+    color: var(--muted);
+  }
+
+  /* 入力欄に入れるボタンのない行で、ボタンの場所を空ける（.icon-button と同じ幅） */
+
+  .prompt-reuse-space {
+    flex: none;
+    width: 26px;
+  }
+
+  /* 指示の履歴の絞り込みの欄（一覧をスクロールしても上に残す）と、↑↓ で選んでいる行 */
+
+  .prompts-search {
+    position: sticky;
+    top: -6px;
+    z-index: 1;
+    margin: -6px -6px 0;
+    padding: 6px 6px 6px;
+    background: var(--bg-elev);
+  }
+
+  .prompts-search .search-field {
+    margin: 0;
+  }
+
+  .prompt-row.active {
+    background: var(--bg-hover);
+  }
+}

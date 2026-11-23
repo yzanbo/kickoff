@@ -1,3 +1,4 @@
+import "./TurnEnd.css";
 import { ClipboardPenLine, GitBranch } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { LOCKED_LABELS } from "@shared/chat/boundaries";

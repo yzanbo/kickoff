@@ -1,0 +1,135 @@
+/* ==== 送信待ちの指示（QueuedMessages。チャット欄のすぐ上（ピルの列の下）の待ちの列・たたむ・書き直す・添付のサムネイル） ==== */
+@layer feature {
+  .queued-messages {
+    position: relative;
+    /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
+    container: queued / inline-size;
+    /* 入力欄とつなげて 1 枚の枠に見せる: 枠は入力欄と同じ色・角で、下の辺は入力欄の上の辺（区切り線）に任せる */
+    padding: 4px 8px 3px;
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: var(--bg-elev);
+  }
+
+  /* つなげた入力欄: 上の角を落とし、上の辺は区切り線にする（太さは 1px のまま、見分けやすいよう濃い色。ピントがあっても区切り線のまま） */
+
+  .queued-messages + .composer,
+  .queued-messages + .composer:focus-within,
+  .queued-messages + .composer.dragging {
+    border-top-color: var(--divider-strong);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .queued-messages .icon-button {
+    width: 22px;
+    height: 22px;
+  }
+
+  /*
+   * 増えたら一覧の中でスクロールする（チャット欄を押し上げすぎない）。高さの上限は画面が style で与える
+   * （初めは 5 件ほど。上端のつまみのドラッグで変え、見出しの「すべて表示」で外す）
+   */
+
+  .queued-list {
+    /* いちばん上・下に入るときの線と丸（行の端から 4px はみ出す）を、中でスクロールさせる枠で切らないための余白 */
+    padding-block: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* 上端のつまみ: 上へドラッグで一覧を高く、下へで低く（ダブルクリックで元の高さ）。乗せると線を出す */
+
+  .queued-resizer {
+    position: absolute;
+    top: -5px;
+    right: 0;
+    left: 0;
+    z-index: 2;
+    height: 8px;
+    cursor: row-resize;
+  }
+
+  .queued-resizer:hover,
+  .queued-messages.resizing .queued-resizer {
+    background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+  }
+
+  /* ドラッグ中は文字を選ばない */
+
+  .queued-messages.resizing {
+    cursor: row-resize;
+    user-select: none;
+  }
+
+  /* 畳んだとき: 見出しの行だけになるので、行を枠の上下の真ん中に置く（一覧との間の余白・見出しの下側だけの詰め物を外す） */
+
+  .queued-messages.collapsed {
+    padding-block: 4px;
+  }
+
+  /* 送信待ちは空で、いまの作業が終わったら一時停止する予定だけがあるときの 1 行（質問として送った）。一時停止の印と同じ色とアイコン */
+
+  .queued-messages.queued-pause-notice {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 3px 6px 3px 12px;
+    color: var(--warn);
+    font-size: var(--fs-11);
+  }
+
+  /*
+   * チャット欄のコンパクト表示（composer の保存 compact。設定の「表示」→「チャット欄」）を、入力欄の上の送信待ちとピルの列にも効かせる。
+   * 入力欄そのものは Composer.css の末尾（.composer.compact）。送信待ち（QueuedMessages・QueuedPauseNotice）とピルの列（ChatComposerArea）は、
+   * ノートの下の入力欄の上へ描くこともあるので、入力欄の兄弟で見分けず、それぞれの要素に付けた .compact で決める
+   */
+
+  /* ---- 送信待ち（QueuedMessages.css の前・QueuedHeadActions.css の基底より後ろ。.queued-messages.compact で詳細度を上げる） ---- */
+
+  .queued-messages.compact {
+    padding: 2px 6px;
+  }
+
+  .queued-messages.compact.collapsed {
+    padding-block: 2px;
+  }
+
+  .queued-messages.compact.queued-pause-notice {
+    padding: 2px 6px 2px 10px;
+  }
+
+  .queued-messages.compact .queued-list {
+    padding-block: 2px;
+  }
+
+  .queued-messages.compact .queued-head {
+    font-size: var(--fs-11);
+  }
+
+  .queued-messages.compact .queued-text,
+  .queued-messages.compact .queued-editor {
+    font-size: var(--fs-12);
+  }
+
+  .queued-messages.compact .icon-button {
+    width: 20px;
+    height: 20px;
+  }
+
+  .queued-messages.compact .queued-head-btn {
+    height: 18px;
+    padding: 0 6px;
+    font-size: 10.5px;
+  }
+
+  .queued-messages.compact .queued-stop-line {
+    min-height: 18px;
+    font-size: 10.5px;
+  }
+
+  .queued-messages.compact .queued-editor-body {
+    --queued-editor-line-height: 26px;
+  }
+}

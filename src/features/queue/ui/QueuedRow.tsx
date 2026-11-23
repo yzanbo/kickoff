@@ -1,3 +1,4 @@
+import "./QueuedRow.css";
 import { GripVertical, Pencil, SendHorizontal, Trash2 } from "lucide-react";
 import type { MouseEvent } from "react";
 import { QUEUE_ACTION_LABELS, type QueuedMessage } from "@shared/chat/types";

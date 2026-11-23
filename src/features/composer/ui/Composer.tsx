@@ -1,3 +1,4 @@
+import "./Composer.css";
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { markInteractive } from "@/foundation/ui/lib/bootMarks";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -105,7 +106,7 @@ export function Composer({ place, draft, send, options, history, voiceMode, head
     textareaRef,
     keepHeldOnBlur: true,
   });
-  // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる（打つたびに測らない）
+  // 書いた分だけ高さを伸ばすのは CSS（Composer.css の field-sizing: content と max-height）に任せる（打つたびに測らない）
   const sender = useComposerSend({
     text,
     files: attach,

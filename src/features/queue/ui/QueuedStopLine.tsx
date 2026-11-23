@@ -1,3 +1,4 @@
+import "./QueuedRow.css";
 import { GripVertical, OctagonPause, X } from "lucide-react";
 import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

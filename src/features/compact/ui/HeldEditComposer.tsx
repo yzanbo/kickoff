@@ -1,3 +1,4 @@
+import "./HeldEditComposer.css";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { Pencil } from "lucide-react";
 import type { Attachment, Chat } from "@shared/chat/types";

@@ -1,3 +1,4 @@
+import "./RestartResumeBanner.css";
 import { History } from "lucide-react";
 import { restartResumeDialog, useRestartResumes } from "./restartResumes";
 

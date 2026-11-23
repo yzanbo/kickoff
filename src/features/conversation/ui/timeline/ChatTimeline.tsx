@@ -1,3 +1,4 @@
+import "./Timeline.css";
 import { useLayoutEffect } from "react";
 import type { Chat } from "@shared/chat/types";
 import { TimelineBusyContext, useChatScreen, useTimelineNav } from "@/features/chat/ui";
@@ -165,7 +166,7 @@ export function ChatTimeline({
   );
 }
 
-/** 前・後ろの記録を読んでいる間の 1 行（高さは決めた値。styles/chat/chat.css の .timeline-loading） */
+/** 前・後ろの記録を読んでいる間の 1 行（高さは決めた値。styles/chat/Timeline.css の .timeline-loading） */
 function TimelineLoading() {
   return (
     <div className="timeline-loading" role="status">

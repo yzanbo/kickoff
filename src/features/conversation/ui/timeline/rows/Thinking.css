@@ -1,0 +1,37 @@
+/* ==== 思考の行（Thinking） ==== */
+@layer feature {
+  /* 思考の行（「8秒間思考しました」。中身があれば開ける） */
+
+  .thinking {
+    padding: 2px 0;
+  }
+
+  .thinking > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+  }
+
+  .thinking > summary:hover {
+    color: var(--text);
+  }
+
+  /* 思考の行の後ろの、考え始めた時刻 */
+
+  .event-time {
+    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .thinking > summary .event-time {
+    margin-left: 2px;
+  }
+
+  .thinking-body {
+    margin: 4px 0 4px 6px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+    white-space: pre-wrap;
+  }
+}

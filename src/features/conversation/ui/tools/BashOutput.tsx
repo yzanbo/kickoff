@@ -1,3 +1,4 @@
+import "./BashOutput.css";
 import { useState } from "react";
 import { trashMarksIn } from "@shared/trash/marks";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";

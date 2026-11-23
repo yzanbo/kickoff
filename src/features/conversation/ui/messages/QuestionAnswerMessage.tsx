@@ -1,3 +1,4 @@
+import "./QuestionAnswerMessage.css";
 import { MessageCircleQuestion } from "lucide-react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { formatFullDateTime, formatMessageTime } from "@/foundation/ui/lib/time";

@@ -1,3 +1,4 @@
+import "./QueuedMessages.css";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatLive, QueueState } from "@shared/chat/chatLive";
 import { RestartResumeBanner } from "@/features/queue/ui/restartResume/RestartResumeBanner";
@@ -39,7 +40,7 @@ const MIN_LIST_HEIGHT = 36;
  * 見出しの「自動で送る / 止めています」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
  * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
  * 初めは畳み、「送信待ち n 件・止める位置・次: 次に送る指示の初めの行」の 1 行だけにする（ためるほど流れが狭くなるため。見出しを押すと開き、どのチャットでも同じに覚える）。
- * 入力欄のすぐ上に区切り線だけでつなげ、1 枚の枠に見せる（queued.css）
+ * 入力欄のすぐ上に区切り線だけでつなげ、1 枚の枠に見せる（QueuedMessages.css）
  */
 export function QueuedMessages({
   queue,
@@ -64,7 +65,7 @@ export function QueuedMessages({
   const { sending } = queue;
   const { messages, stops } = view;
   const [collapsed, setCollapsed] = useSetting(storage.settings.collapsed);
-  // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）
+  // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。QueuedMessages.css）
   const [compact] = useSetting(composerSettings.compact);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useSetting(storage.settings.expanded);

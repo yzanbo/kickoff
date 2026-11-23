@@ -103,7 +103,7 @@ export function ChatComposerArea({
   };
   // ノートのチャットの欄を閉じている間は、ピルの列と送信待ちをノートの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
-  // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）
+  // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。QueuedMessages.css）
   const [compact] = useSetting(composerSettings.compact);
   const chips = (
     <div className={cx("composer-chips", compact && "compact")}>
@@ -144,7 +144,7 @@ export function ChatComposerArea({
       {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}
       {portal?.queueTarget ? createPortal(queuedList, portal.queueTarget) : queuedList}
       {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.now.some((m) => m.id === heldEdit.id)} />}
-      {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}
+      {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。ChatColumn.css の .chat-composer:has(> .held-edit)） */}
       <Composer
         place={{
           projectId: chat.project_id,

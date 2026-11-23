@@ -1,0 +1,266 @@
+/* ==== 送信待ちの 1 行・止める線・書き直しの欄（QueuedRow・QueuedStopLine） ==== */
+@layer feature {
+  .queued-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 0 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .queued-row:hover {
+    background: var(--bg-hover);
+  }
+
+  /*
+   * 「ここまで送ったら止めます」の印（指示とは別の行。送信待ちの行と同じく、つまみのドラッグ・↑↓・右クリックで動かす。1 件目の上にも置ける）。
+   * 黄の破線に文を添え、↑↓・ごみ箱は行のボタンと同じ列に置く（間を .queued-stop-space で空ける）
+   */
+
+  .queued-stop-line {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 20px;
+    margin: 2px 0;
+    /* つまみを行のつまみと同じ位置にそろえる（.queued-row の左の詰め物と同じ） */
+    padding-left: 6px;
+    font-size: var(--fs-11);
+    color: var(--warn);
+  }
+
+  .queued-stop-line .queued-stop-grip {
+    color: color-mix(in srgb, var(--warn) 70%, transparent);
+  }
+
+  /* 指示を線のすぐ上・下に落とす（線の上なら送ってから止める側、下なら止めたあとの側に入る）: 線（styles/state.css）は外の 2px の隙間いっぱいに */
+
+  .queued-stop-line {
+    --drop-offset: -2px;
+    --drop-inset: 0;
+    --drop-radius: 0;
+    --drop-glow: none;
+    --drop-anim: none;
+    --drop-z: auto;
+  }
+
+  .queued-stop-line[data-drop] {
+    position: relative;
+  }
+
+  .queued-stop-label {
+    display: flex;
+    flex: none;
+    gap: 4px;
+    align-items: center;
+    margin-left: 4px;
+  }
+
+  .queued-stop-rule {
+    flex: 1;
+    min-width: 12px;
+    margin: 0 6px;
+    border-top: 1px dashed color-mix(in srgb, var(--warn) 60%, transparent);
+  }
+
+  .queued-stop-space {
+    flex: none;
+    width: 22px;
+  }
+
+  /*
+   * 行・止める線の右の操作の 2 つのまとまり: 並べ替え（↑↓）｜ この指示への操作（書き直す・送る・消す）。
+   * 間を縦線で区切り、行と止める線で同じ列にそろえる
+   */
+
+  .queued-row-moves,
+  .queued-row-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .queued-row-moves {
+    padding-right: 4px;
+    margin-right: 2px;
+    border-right: 1px solid var(--border);
+  }
+
+  .queued-stop-line .icon-button {
+    color: var(--warn);
+  }
+
+  /* ⌘ / Shift ＋クリックで選んだ行 */
+
+  .queued-row.selected {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  /* ドラッグで並べ替え: 左のつまみからだけ（文は選べる）。動かしている行は薄く、入る位置に線を出す */
+
+  .queued-grip {
+    display: flex;
+    flex: none;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    margin-left: -6px;
+    border-radius: var(--radius-sm);
+    color: var(--extra-muted);
+    cursor: grab;
+  }
+
+  .queued-grip:hover {
+    color: var(--text);
+  }
+
+  .queued-index {
+    flex: none;
+    min-width: 16px;
+    margin-right: 4px;
+    font-size: var(--fs-11);
+    font-weight: 600;
+    color: var(--muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 書き直している行: つまみと同じ幅を空け（.queued-grip の幅）、番号を入力欄の 1 行目にそろえる */
+
+  .queued-grip-space {
+    cursor: default;
+  }
+
+  .queued-row.editing .queued-index {
+    margin-top: 5px;
+  }
+
+  /* 入る位置の線（styles/state.css）: 左端に丸を付けて、行の境目の線と見分けやすくする（行の上に重ね、ほかの行を押し動かさない） */
+
+  .queued-row {
+    --drop-offset: -4px;
+    --drop-inset: 2px 4px;
+    --drop-size: 8px;
+    --drop-radius: 0;
+    --drop-bg:
+      radial-gradient(circle at 4px 50%, var(--accent-bright) 3px, transparent 3.5px),
+      linear-gradient(var(--accent-bright), var(--accent-bright)) 0 50% / 100% 2px no-repeat;
+    --drop-glow: none;
+    --drop-anim: none;
+    --drop-z: 1;
+  }
+
+  .queued-text {
+    flex: 1;
+    cursor: text;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--fs-13);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 挟む行（QueuedRow の会話の圧縮・コンテキストの消去）: 文ではなく列に挟む物なので、色（QueuedHeadActions.css の --queued-tone）とアイコンで見分ける */
+
+  /* サブエージェントに「あとで」伝える指示の宛先の札（QueuedRow。AI への前置きは隠し、宛先をここで示す） */
+
+  .queued-relay-tag {
+    flex: none;
+    --tag-bg: var(--bg-hover);
+    font-size: var(--fs-11);
+    line-height: 16px;
+    white-space: nowrap;
+  }
+
+  .queued-text.queued-action {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: default;
+    color: var(--queued-tone);
+  }
+
+  .queued-text.queued-action svg {
+    flex: none;
+  }
+
+  .queued-row.editing {
+    align-items: flex-start;
+  }
+
+  .queued-editor-body {
+    /* 1 行の入力欄の高さ（ボタンの列の高さに使う） */
+    --queued-editor-line-height: 30px;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* 入力欄とその右のボタン（添付があっても入力欄の横）。入力欄が縦に伸びたら、ボタンは入力欄の上にそろえる */
+
+  .queued-editor-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  /* ボタンの列の高さを 1 行の入力欄と同じにして、1 行のときは入力欄の真ん中に並べる */
+
+  .queued-editor-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    height: var(--queued-editor-line-height);
+  }
+
+  /*
+   * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。乗せたときは外して灰の地（.icon-button:hover）に任せる。
+   * ⌘ を押している間の青（QueueModeToggle.css の .queued-editor-send.held）は 2 つのクラスで上書きする
+   */
+
+  .queued-editor-ok:where(:not(:hover)),
+  .queued-editor-send:where(:not(:hover)) {
+    color: var(--accent-bright);
+  }
+
+  /* 書き直す欄は、折り返した行も含めて文の終わりまで見せる（中でスクロールさせない。ごく長い文だけ画面の 4 割で止める） */
+
+  .queued-editor {
+    flex: 1;
+    min-width: 0;
+    max-height: 40vh;
+    padding: 4px 6px;
+    font-size: var(--fs-13);
+    resize: none;
+    field-sizing: content;
+  }
+
+  /* ==== 送信待ちの指示の添付（書き直しの欄。行の添付は attachments.css の AttachmentPeek） ==== */
+
+  /* 書き直している間の添付（チャット欄と同じチップを並べ、× で外す。欄の中の余白は詰める） */
+
+  .queued-editor-attachments.composer-attachments {
+    gap: 6px;
+    padding: 2px 0 6px;
+  }
+
+  /* 書き直している間にファイルを持ってきたとき（落とすと添付に足す。チャット欄と同じ点線） */
+
+  .queued-row.editing.file-over .queued-editor {
+    border-color: var(--accent);
+    border-style: dashed;
+  }
+
+  /* 狭い欄: 行の ↑↓ を隠す（並べ替えはつまみと右クリックで。見出しは QueuedHeadActions.css） */
+  @container queued (max-width: 440px) {
+    .queued-row-moves {
+      display: none;
+    }
+  }
+}

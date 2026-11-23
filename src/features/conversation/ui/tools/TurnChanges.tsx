@@ -1,3 +1,4 @@
+import "./TurnChanges.css";
 import { ChevronRight, FileDiff } from "lucide-react";
 import { baseName } from "@/foundation/ui/lib/format";
 import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";

@@ -1,3 +1,4 @@
+import "./OptionChoice.css";
 import { Brain, Shield, Zap } from "lucide-react";
 import type { EffortDefault } from "@shared/ai/types";
 import { providerCan } from "@shared/ai/providers";

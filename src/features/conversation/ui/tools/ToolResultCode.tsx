@@ -1,3 +1,4 @@
+import "./ToolResultCode.css";
 import { Fragment, useState, type ReactNode } from "react";
 import { useHighlight } from "@/foundation/ui/hooks/useHighlight";
 import { languageOf } from "@/foundation/ui/code/languages";

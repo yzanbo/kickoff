@@ -1,3 +1,4 @@
+import "./OpenPlaceControls.css";
 import { AppWindow, type LucideIcon, MessageSquare, PanelRight } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";

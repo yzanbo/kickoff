@@ -1,3 +1,4 @@
+import "./QueueModeToggle.css";
 import { ListPlus, MessageSquarePlus } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";

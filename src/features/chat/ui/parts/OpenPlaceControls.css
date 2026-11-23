@@ -1,0 +1,53 @@
+/* ==== 入力欄の上の一覧（サブエージェント・ノート）の開き方: 行の右のボタンと、上の「行を押したとき」の切り替え（OpenPlaceControls） ==== */
+@layer feature {
+  .open-place-buttons {
+    display: inline-flex;
+    flex: none;
+    align-self: center;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .open-place-button:not(:hover) {
+    color: var(--extra-muted);
+  }
+
+  /* 一覧の行: アーカイブのボタンはボタンの組のすぐ右 */
+
+  .agent-list-row .open-place-buttons + .agent-list-row-action {
+    margin-left: 0;
+  }
+
+  .open-place-default {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  .open-place-default-label {
+    flex: none;
+  }
+
+  /* ほかの物と 1 行に並べるとき（ノートの一覧の上の行。余白と線は行が持つ。DefaultOpenPlace の inline） */
+
+  .open-place-default[data-variant="inline"] {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  /* 一覧の上なので小さい組（size="sm"）。文字は折り返さない */
+
+  .open-place-switch button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+}

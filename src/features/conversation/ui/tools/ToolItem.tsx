@@ -1,3 +1,4 @@
+import "./ToolGroup.css";
 import { Suspense } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { visibleToolResult } from "@shared/chat/toolText";

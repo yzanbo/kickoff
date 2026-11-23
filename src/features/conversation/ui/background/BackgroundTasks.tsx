@@ -1,3 +1,4 @@
+import "./BackgroundTasks.css";
 import { Bot, Square, SquareTerminal } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
