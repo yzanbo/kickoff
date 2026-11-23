@@ -1,3 +1,4 @@
+import "./PaneTab.css";
 import type { HTMLAttributes } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { PanelController } from "@/features/panel/ui/usePanel";

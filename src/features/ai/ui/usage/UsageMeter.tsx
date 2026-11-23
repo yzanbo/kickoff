@@ -1,3 +1,4 @@
+import "./UsageMeter.css";
 import type { UsageWindow } from "@shared/ai/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatReset, resetInShort } from "@/foundation/ui/lib/time";

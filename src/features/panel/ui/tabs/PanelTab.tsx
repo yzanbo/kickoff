@@ -1,3 +1,4 @@
+import "./PanelTab.css";
 import { Pin, type LucideIcon } from "lucide-react";
 import type { CSSProperties, HTMLAttributes, ReactNode, RefObject } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

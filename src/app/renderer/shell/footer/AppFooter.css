@@ -1,0 +1,105 @@
+/* ==== フッター ==== */
+@layer feature {
+  .app-footer {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 16px;
+    /* 起動直後の骨組み index.html の .boot-footer と同じ値（app/bootScript.test.ts が確かめる） */
+    height: 24px;
+    padding: 0 12px;
+    border-top: 1px solid var(--border);
+    font-size: var(--fs-12);
+    background: var(--bg-sidebar);
+  }
+
+  @media (max-width: 720px) {
+    .app-footer {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  /* 下端に寄せたときだけ出す（設定の「表示」→「下の帯」）: 画面の上に重ね、ふだんは下端の 4px だけを残して透明にする（寄せると出る）。
+     乗せている間・キーでピントを移している間・中の詳細（接続・使用状況）を開いている間は出したまま */
+
+  .app-footer.auto-hide {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-raised-bar);
+    opacity: 0;
+    transform: translateY(calc(100% - 4px));
+    transition:
+      transform var(--panel-motion-duration) var(--panel-motion-ease),
+      opacity var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  .app-footer.auto-hide:hover,
+  :where(:root:not([data-modality="pointer"])) .app-footer.auto-hide:has(:focus-visible),
+  .app-footer.auto-hide:has([aria-expanded="true"]) {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* 左下の設定（歯車だけ）。フッターの高さに収まる大きさにする */
+
+  .footer-settings {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin-left: -6px;
+  }
+
+  /* 下の帯の文字のボタン（接続・ターミナル） */
+
+  .footer-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 100%;
+    padding: 0 6px;
+    border: none;
+    font: inherit;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .footer-button:hover,
+  .footer-button.active {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  /* サーバーとの接続の札（つながらないときだけ出す。歯車のすぐ右） */
+
+  .conn {
+    margin-left: -6px;
+  }
+
+  /* ネットワークにつながっていない・サーバーとの接続が切れた（黄。押せる札は乗せても黄のまま） */
+
+  .footer-button.conn-down {
+    color: var(--warn);
+  }
+
+  .footer-offline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 6px;
+    color: var(--warn);
+  }
+
+  /* 歯車のすぐ右に来ることもある（接続の札はつながらないときだけ出す）ので、札と同じだけ寄せる */
+
+  .footer-branch {
+    margin-left: -6px;
+    max-width: 220px;
+    overflow: hidden;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

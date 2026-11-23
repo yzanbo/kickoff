@@ -1,3 +1,4 @@
+import "./PanelEmpty.css";
 import type { ReactNode } from "react";
 import { Globe, SquareTerminal } from "lucide-react";
 import type { PanelKind } from "./surface";

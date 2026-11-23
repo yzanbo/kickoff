@@ -1,3 +1,4 @@
+import "./DiagnosticsPath.css";
 import { FolderOpen } from "lucide-react";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

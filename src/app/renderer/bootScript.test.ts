@@ -14,7 +14,7 @@ const bootScript = read("./public/boot.js");
 const indexHtml = read("./index.html");
 const tokensCss = read("../../foundation/ui/styles/tokens.css");
 const sidebarCss = read("./styles/sidebar/sidebar.css");
-const footerCss = read("./styles/footer/footer.css");
+const footerCss = read("./shell/footer/AppFooter.css");
 
 /** boot.js が文字で読む 4 つのキー（宣言と同じ） */
 const THEME = shellStorage.settings.theme.key;
@@ -117,7 +117,7 @@ test("下の帯の出し方: show・hover・hide をそのまま、未保存と�
   assert.equal(runBoot({ stored: { [FOOTER]: "big" } }).footer, "show");
 });
 
-test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは sidebar.css の上限 40dvh", () => {
+test("骨組みの大きさは本物と同じ: 下の帯は AppFooter.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは sidebar.css の上限 40dvh", () => {
   assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 24px/);
   assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 24px/);
   assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 24px\); \}/);

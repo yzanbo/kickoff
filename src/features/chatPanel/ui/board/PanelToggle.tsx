@@ -1,3 +1,4 @@
+import "./PanelToggle.css";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import type { PanelController } from "@/features/panel/ui";

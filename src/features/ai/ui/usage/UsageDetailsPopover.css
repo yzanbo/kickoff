@@ -1,0 +1,28 @@
+/* ==== 使用状況の詳細の窓（UsageDetailsPopover） ==== */
+@layer feature {
+  /* 右下からふわっと出る使用状況の詳細（押した使用状況の右端にそろえて上に出す。枠と地は .popover） */
+
+  .usage-popover {
+    width: 320px;
+    padding: 12px 14px;
+    transform-origin: bottom right;
+    animation: popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .usage-popover-body {
+    display: grid;
+    gap: 14px;
+  }
+
+  /* 詳細の見出し（AI の札 ＋ 名前） */
+
+  .usage-popover-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .usage-popover-foot {
+    margin: 0;
+  }
+}

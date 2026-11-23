@@ -1,3 +1,4 @@
+import "./TabBar.css";
 import { Columns2, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

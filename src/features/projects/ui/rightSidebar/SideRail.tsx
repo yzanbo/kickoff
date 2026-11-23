@@ -1,3 +1,4 @@
+import "./SideRail.css";
 import { AppWindow, GripHorizontal, type LucideIcon } from "lucide-react";
 import { useMemo, type ComponentProps } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";

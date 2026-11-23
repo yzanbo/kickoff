@@ -36,4 +36,17 @@
   .usage-service .card-grid {
     margin: 10px 0 6px;
   }
+
+  .plan-chip {
+    padding: 0 7px;
+    --tag-color: var(--accent-bright);
+    --tag-border: var(--border-strong);
+    --tag-radius: var(--radius-sm);
+    font-size: var(--fs-11);
+    font-weight: 600;
+  }
+
+  :root[data-theme="light"] .plan-chip {
+    --tag-color: var(--accent);
+  }
 }

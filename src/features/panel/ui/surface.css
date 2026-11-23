@@ -1,0 +1,76 @@
+/* ==== 置き場所ごとのパネルの形（surface の .as-sidebar・.in-footer） ==== */
+@layer feature {
+  /*
+   * 中身はボードの右のパネルと同じもの（開閉の動きなし）。欄いっぱいに広げる。
+   * 下のタブの列の規則は子セレクタで欄の根の自分のタブの列（直の子か、分けたペインの子）だけに当て、チャットのタブの中に入れ子で置く右の欄
+   * （.agent-panel。サブエージェントの欄）のタブの列には効かせない（効かせると、内側のタブの列までウィンドウのドラッグ領域になる）。
+   * 間の段は :where() にして、詳細度は子孫セレクタのときと同じにする
+   */
+
+  .board-panel.as-sidebar {
+    flex: 1;
+  }
+
+  /* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域（下のパネル）。右端は右上のレイアウトの開閉のために空ける */
+
+  .board-panel.as-sidebar > .panel-tabs,
+  .board-panel.as-sidebar > :where(.split-view) > :where(.split-pane) > .panel-tabs {
+    min-height: 40px;
+    padding-right: 100px;
+    -webkit-app-region: drag;
+  }
+
+  /* タブは全体を押せるので、ボタンの隙間（枠・閉じるの周り）もウィンドウのドラッグにしない */
+
+  .board-panel.as-sidebar .panel-tabs :is(button, .panel-tab) {
+    -webkit-app-region: no-drag;
+  }
+
+  /*
+   * ペインを分けたとき: タブの列の高さは信号機ボタンの行にそろえ、ドラッグ領域は上の段のペインだけ。
+   * 右上のレイアウトの開閉のために空けるのは、右上のペインだけ
+   */
+
+  /* タブの列を隠したとき（Panel.css の .tabs-hidden > .panel-content.split-view。同じ詳細度）も 40px のまま */
+  .board-panel.as-sidebar > .split-view,
+  .board-panel.as-sidebar.tabs-hidden > .panel-content.split-view {
+    --split-tabs-h: 40px;
+  }
+
+  .board-panel.as-sidebar > :where(.split-view) > .split-pane > .panel-tabs {
+    padding-right: var(--gutter);
+  }
+
+  .board-panel.as-sidebar > :where(.split-view) > .split-pane:not(.top-row) > .panel-tabs {
+    -webkit-app-region: no-drag;
+  }
+
+  .board-panel.as-sidebar > :where(.split-view) > .split-pane.top-right > .panel-tabs {
+    padding-right: 100px;
+  }
+
+  /*
+   * 右サイドバー（ブラウザだけ）とブラウザの別ウィンドウ: タブの列は上の行（信号機ボタン・右上のレイアウトの開閉と同じ行。.panel-window-titlebar）の下に 1 段で、
+   * 左からタブ・すぐ右に新しいブラウザのタブのボタン。
+   * 上の行ではないので、ウィンドウのドラッグ領域にせず、右端も空けない
+   */
+
+  .board-panel.as-sidebar:not(.in-footer) > .panel-tabs,
+  .board-panel.as-sidebar:not(.in-footer) > :where(.split-view) > :where(.split-pane) > .panel-tabs,
+  .board-panel.as-sidebar:not(.in-footer) > :where(.split-view) > .split-pane.top-right > .panel-tabs {
+    /*
+     * 高さはタブ 1 つ分（上の余白 6px ＋ タブ 30px ＋ 境目の 1px。分けたペインの --split-tabs-h と同じ）にそろえ、タブがないときも変えない
+     * （信号機ボタンの行の高さ 40px にすると、タブの下に 3px の隙間ができて表示中のタブが下のページとつながって見えず、
+     * 下限をなくすとタブがない間だけ 2px 低くなる）
+     */
+    min-height: 37px;
+    padding-right: var(--gutter);
+    -webkit-app-region: no-drag;
+  }
+
+  /* 分けたペインのタブの中身を下げる高さも、ほかのパネルと同じ（Panel.css の 37px） */
+
+  .board-panel.as-sidebar:not(.in-footer) > .split-view {
+    --split-tabs-h: 37px;
+  }
+}

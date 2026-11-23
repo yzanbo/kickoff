@@ -1,3 +1,4 @@
+import "./DiagnosticsSettings.css";
 import { Activity, FolderOpen } from "lucide-react";
 import { useQuery } from "@/foundation/ui/query";
 import { DiagnosticsPath } from "@/features/diagnostics/ui/DiagnosticsPath";

@@ -43,7 +43,7 @@
   transform: translateX(-50%);
 }
 
-/* ==== ボードの中身と右のパネルを並べる格子（BoardShell・useBoardPanel。パネルは panel/side-panel.css） ==== */
+/* ==== ボードの中身と右のパネルを並べる格子（BoardShell・useBoardPanel。パネルは Panel.css） ==== */
 
 .board-body {
   display: grid;
@@ -88,7 +88,7 @@
   flex: 1;
 }
 
-/* 幅 720px 以下の画面では、パネルを全面に重ねる（列は開いても 0。パネルは panel/side-panel.css） */
+/* 幅 720px 以下の画面では、パネルを全面に重ねる（列は開いても 0。パネルは Panel.css） */
 @media (max-width: 720px) {
   .board-body.with-panel {
     grid-template-columns: minmax(0, 1fr) 0px;

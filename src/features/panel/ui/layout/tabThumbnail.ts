@@ -1,6 +1,7 @@
 // タブをドラッグするときに付いて動く小さなサムネイル。
 // ウィンドウの外へ離すと別ウィンドウで開くタブ（種類の表の popout）だけ。ウィンドウの外でも見えるよう、画面の中に重ねる写し（startDragGhost）ではなく
 // OS のドラッグの絵（setDragImage）にする。OS のドラッグの絵は dragstart の時点で決まるので、タブを押した時点（pointerdown）で中身を撮っておく
+import "./tabThumbnail.css";
 
 /** 用意したサムネイル（タブのキーと、画面の外に置いたカードの要素） */
 let prepared: { key: string; card: HTMLElement } | null = null;

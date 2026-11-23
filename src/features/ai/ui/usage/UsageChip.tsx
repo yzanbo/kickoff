@@ -1,3 +1,4 @@
+import "./UsageChip.css";
 import type { ProviderStatus } from "@shared/ai/types";
 import type { ProviderUsage } from "@shared/ai/usage";
 import type { ProviderId } from "@shared/settings/types";

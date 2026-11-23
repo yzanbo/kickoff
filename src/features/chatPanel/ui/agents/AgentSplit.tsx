@@ -1,3 +1,4 @@
+import "./AgentSplit.css";
 import { useImperativeHandle, useMemo, type MutableRefObject, type ReactNode } from "react";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";

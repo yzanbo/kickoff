@@ -1,3 +1,4 @@
+import "./UsageDetailsPopover.css";
 import type { RefObject } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
 import type { ProviderUsage } from "@shared/ai/usage";

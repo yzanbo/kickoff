@@ -53,7 +53,7 @@
 
 - 並べ方は欄の `Strip`（なければ `PlainStrip`）で、並べたタブを `bar(中身, 並び)` で骨に入れる。タブのすぐ右のボタンは欄の `Adds`。
 - 分けるボタンと ⌘\ は `splitShownTab`。「表示」のメニューの項目を足したら `usePanelViewReset` にも足す。
-- 色のあるタブは `--tab-color` で示す（タブと画面の面は `side-panel-tab-sheet.css`）。
+- 色のあるタブは `--tab-color` で示す（タブと画面の面は `TabBar.css`）。
 - タブの列を隠す欄（`hideableTabs`）では、隠している間は覚えた横幅いっぱいを効かせない（`usePanelWidth` の `maximizable`）。
 
 ## 欄の殻

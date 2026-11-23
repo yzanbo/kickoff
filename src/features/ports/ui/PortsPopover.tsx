@@ -1,3 +1,4 @@
+import "./PortsPopover.css";
 import { useEffect, useState, type RefObject } from "react";
 import { TriangleAlert } from "lucide-react";
 import { PORT_ORIGIN_HINTS, type PortProcess } from "@shared/ports/types";

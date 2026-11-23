@@ -2,7 +2,7 @@ import { useCoverableWidth } from "@/features/panel/ui/useCoverableWidth";
 import { panelSettings } from "@/features/panel/ui";
 
 const MIN_PANEL_WIDTH = 360;
-/** ボードとパネルの間隔（side-panel.css の .board-body.with-panel の gap） */
+/** ボードとパネルの間隔（Panel.css の .board-body.with-panel の gap） */
 const PANEL_GAP = 12;
 /**
  * パネルの横に残るボードがこれより狭くなるなら、パネルでボードを覆う（列が 1 本も入らない細い帯を残さない）。

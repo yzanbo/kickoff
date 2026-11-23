@@ -1,3 +1,4 @@
+import "./DiagnosticsIndicator.css";
 import { Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DiagnosticsState } from "@shared/foundation/ipc";

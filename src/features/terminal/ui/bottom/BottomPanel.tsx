@@ -1,3 +1,4 @@
+import "./BottomPanel.css";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Panel, usePanel } from "@/features/panel/ui";
 import type { BottomPanelController } from "./useBottomPanel";

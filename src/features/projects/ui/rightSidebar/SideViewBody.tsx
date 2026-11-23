@@ -1,3 +1,4 @@
+import "./SideViewBody.css";
 import { useEffect, useEffectEvent } from "react";
 import { MaximizeButton, type PanelFrame } from "@/features/panel/ui";
 import type { Project } from "@shared/projects/types";

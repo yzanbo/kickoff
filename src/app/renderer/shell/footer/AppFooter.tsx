@@ -1,3 +1,4 @@
+import "./AppFooter.css";
 import { useCommandKeys } from "@/foundation/ui/commands";
 import { ChoiceMenu } from "@/foundation/ui/kit/ChoiceMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";

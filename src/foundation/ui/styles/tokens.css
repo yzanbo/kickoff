@@ -7,7 +7,7 @@
   color-scheme: dark;
   --bg: #141818; /* 画面の地 */
   --bg-sidebar: #0f1313; /* サイドバーの地 */
-  --tab-strip-bg: color-mix(in srgb, #000 35%, var(--bg-sidebar)); /* パネルのタブの列の、表示中でないタブの地（side-panel-tab-sheet.css） */
+  --tab-strip-bg: color-mix(in srgb, #000 35%, var(--bg-sidebar)); /* パネルのタブの列の、表示中でないタブの地（TabBar.css） */
   --bg-elev: #191f1f; /* カード・入力欄 */
   --bg-hover: #212727; /* 乗せたとき */
   --bg-active: #3b4343; /* 自分の吹き出し・選択中 */

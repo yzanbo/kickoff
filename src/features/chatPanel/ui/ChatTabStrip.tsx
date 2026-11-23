@@ -1,3 +1,4 @@
+import "./ChatTabStrip.css";
 import type { CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

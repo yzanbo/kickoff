@@ -1,3 +1,4 @@
+import "./OverageBadge.css";
 import { useEffect, useRef } from "react";
 import { CODEX_CREDIT_STATE_HINTS, codexCreditStateOf, OVERAGE_STATE_HINTS, overageStateOf, type OverageState } from "@shared/ai/overage";
 import type { PayAsYouGo } from "@shared/ai/usage";

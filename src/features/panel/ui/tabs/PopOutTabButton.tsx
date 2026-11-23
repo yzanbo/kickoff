@@ -1,3 +1,4 @@
+import "./PopOutTabButton.css";
 import { AppWindow } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useTabPage } from "./tabPageContext";

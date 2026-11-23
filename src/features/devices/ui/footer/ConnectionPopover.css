@@ -1,0 +1,59 @@
+/* ==== 下の帯の接続の詳細（ConnectionPopover） ==== */
+@layer feature {
+  /* 左下から出る接続の詳細（使用状況の詳細と同じ見た目。押した接続の表示の左端にそろえて上に出す） */
+
+  .usage-popover.connection-popover {
+    width: 360px;
+    transform-origin: bottom left;
+  }
+
+  .conn-section {
+    display: grid;
+    gap: 6px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .conn-row-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-13);
+    font-weight: 600;
+  }
+
+  .conn-help {
+    margin: 0;
+  }
+
+  .conn-tool {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: var(--fs-12);
+  }
+
+  .conn-tool-name {
+    flex: none;
+  }
+
+  .conn-tool-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .conn-settings-link {
+    display: inline-block;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+  }
+
+  .conn-settings-link:hover {
+    color: var(--text);
+  }
+}

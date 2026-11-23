@@ -1,3 +1,4 @@
+import "./PaneSash.css";
 import type { CSSProperties, RefObject } from "react";
 import { startPointerDrag } from "@/foundation/ui/kit/drag/useDragSize";
 import { resizeAt, type FracRect, type Sash } from "./paneGeometry";

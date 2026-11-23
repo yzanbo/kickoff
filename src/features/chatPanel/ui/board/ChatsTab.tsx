@@ -1,3 +1,4 @@
+import "./ChatsTab.css";
 import type { ReopenRoute } from "@/foundation/ui/navigation/router";
 import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";

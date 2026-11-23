@@ -15,7 +15,7 @@
 
 /*
  * チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行）。色は作業場所の色（--hue。workplaceHue）で、
- * タブを作業場所別にまとめたときのまとまりの札・タブの線と同じ色（明るさも side-panel-tab-groups.css の --group-color と同じ）。
+ * タブを作業場所別にまとめたときのまとまりの札・タブの線と同じ色（明るさも ChatTabStrip.css の --group-color と同じ）。
  */
 .worktree-chip {
   --chip-color: hsl(var(--hue) var(--hue-fg-group));

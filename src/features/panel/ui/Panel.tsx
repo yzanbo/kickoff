@@ -1,3 +1,4 @@
+import "./Panel.css";
 import { memo, useEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

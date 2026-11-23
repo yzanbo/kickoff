@@ -1,0 +1,24 @@
+/* ==== 超過分の印（OverageBadge） ==== */
+@layer feature {
+  /* Claude の札の横の、超過分（追加の使用枠）の印。いま超過分で動いていれば赤く塗り（意図せず課金していないかを一目で）、
+     追加の使用枠がオン（上限を超えると課金される）なら枠線だけ。札と同じ高さ・文字の大きさ */
+
+  .footer-usage-overage {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    height: 16px;
+    padding: 0 5px;
+    --tag-border: currentcolor;
+    --tag-radius: var(--radius-sm);
+    --tag-color: var(--warn);
+    font-size: var(--fs-11);
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .footer-usage-overage[data-state="in_use"] {
+    --tag-color: var(--ng);
+    --tag-bg: color-mix(in srgb, var(--ng) 16%, transparent);
+  }
+}

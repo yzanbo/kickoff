@@ -1,3 +1,4 @@
+import "./ServerInfo.css";
 import type { ServerStatus } from "@shared/foundation/server";
 
 export const serverTimeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });

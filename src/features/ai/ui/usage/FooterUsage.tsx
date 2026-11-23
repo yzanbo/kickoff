@@ -1,3 +1,4 @@
+import "./FooterUsage.css";
 import { Fragment } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { paysByCredits, planWindows, type ProviderUsage } from "@shared/ai/usage";

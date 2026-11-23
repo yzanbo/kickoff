@@ -1,3 +1,4 @@
+import "./TabClusterHead.css";
 import type { ReactNode } from "react";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import type { Chat } from "@shared/chat/types";

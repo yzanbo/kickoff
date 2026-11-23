@@ -1,3 +1,4 @@
+import "./RightSidebar.css";
 import { useMemo, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { PanelFrame } from "@/features/panel/ui";

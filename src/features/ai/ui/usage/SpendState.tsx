@@ -1,3 +1,4 @@
+import "./SpendState.css";
 import {
   CODEX_CREDIT_STATE_HINTS,
   CODEX_CREDIT_STATE_LABELS,

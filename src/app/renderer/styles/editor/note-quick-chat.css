@@ -203,7 +203,8 @@
 }
 
 .note-quick-queue:has(> .queued-messages) + .composer,
-.note-quick-queue:has(> .queued-messages) + .composer:focus-within {
+.note-quick-queue:has(> .queued-messages) + .composer:focus-within,
+.split-view > .panel-tab-page.pane-focused .note-quick-queue:has(> .queued-messages) + .composer:focus-within:not(.agent-panel *) {
   border-top-color: var(--divider-strong);
   border-top-left-radius: 0;
   border-top-right-radius: 0;

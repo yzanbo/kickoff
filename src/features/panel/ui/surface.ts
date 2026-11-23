@@ -1,5 +1,6 @@
 // 欄の口: 欄ごとの決まり（入れる種類・Esc・ボタン・札・空になったとき）を 1 つの項目にまとめ、拡張点 panelSurfaces で受ける。
 // 状態は panelKey(欄, 範囲) の住所ごとに店が覚える
+import "./surface.css";
 import type { LucideIcon } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { definePoint } from "@/foundation/ui/points";

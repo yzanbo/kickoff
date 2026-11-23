@@ -1,3 +1,4 @@
+import "./CoreStatusBand.css";
 import { useEffect, useState } from "react";
 import { CORE_STATE_LABELS, type CoreState } from "@shared/foundation/ipc";
 import { errorMessage } from "@shared/foundation/errors";

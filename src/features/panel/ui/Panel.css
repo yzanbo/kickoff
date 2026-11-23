@@ -1,0 +1,235 @@
+/* ==== ボードの右のパネル（カードを開く。タブ・パネルの見出し）。開くとカンバンが狭くなる（並べる格子 .board-body は board/board.css） ==== */
+@layer feature {
+  /* 幅をドラッグで変えている間は、アニメーションを止めて指に追従させる */
+
+  .board-body.resizing,
+  .board-body.resizing .board-panel {
+    transition: none;
+    user-select: none;
+  }
+
+  /* タブの入れ物（Panel の根。ボードの右のパネル・チャットタブ・ノート・ファイル・右サイドバー・下のパネル・別ウィンドウ） */
+
+  .board-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /*
+   * ボードの右のパネル（SURFACES の slide。開閉は styles/types/slide-pane.css で、幅は .board-body の格子の列）。閉じると透明にし、閉じ終えたら隠す。
+   * 外枠は付けず、ボードとの境目に左の 1 本線だけを引く（チャットはなるべく広く使いたいので、枠と、その外の画面の右・下の余白の分も中身に回す）。
+   * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--panel-shown に、右の余白まで伸ばした分を足し、左の線の分を引く）のまま左端にそろえて置き、
+   * パネルの枠で右側を切り取る。列が左へ広がるのに合わせて、中身が右から左へ滑り込んでくる（閉じるときは右へ抜けていく）
+   */
+
+  .board-panel.slide-pane {
+    --pane-shown: calc(var(--panel-shown, calc(100% - var(--gutter) + 1px)) + var(--gutter) - 1px);
+    --pane-motion: opacity var(--panel-motion-duration) ease, border-color var(--panel-motion-duration),;
+
+    border-left: 1px solid transparent;
+    opacity: 0;
+  }
+
+  /* 開いたパネルは、画面の右・下の余白（.page の --gutter）まで伸ばして端に付ける（閉じているときは伸ばさない。幅 0 の見えない箱が余白を押さえないように） */
+
+  .board-panel.slide-pane.open {
+    margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--gutter)) 0;
+    border-left-color: var(--border);
+    opacity: 1;
+  }
+
+  /*
+   * 幅をドラッグで変えている間は、指の位置どおりの枠いっぱいに広げる（--panel-shown は離したときに直る）。
+   * 横幅いっぱいを切り替えている間（stretching。usePanelWidth）も枠に合わせる: 右端は動かず左端だけが伸び縮みするので、
+   * 開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた
+   */
+
+  .board-body.resizing .board-panel > .panel-tabs,
+  .board-body.resizing .board-panel > .panel-content,
+  .board-body.stretching .board-panel > .panel-tabs,
+  .board-body.stretching .board-panel > .panel-content {
+    width: auto;
+  }
+
+  /* 左端の幅を変えるつまみ。上に貼り付く自分の指示（z-index 2）より上に置き、乗せたときの線を隠さない */
+
+  .panel-resizer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 6;
+    width: 6px;
+    cursor: col-resize;
+  }
+
+  /* 幅 720px 以下の画面では、パネルを全面に重ねる */
+
+  @media (max-width: 720px) {
+    .board-body.with-panel .board-panel {
+      position: fixed;
+      inset: 0;
+      z-index: var(--z-raised-bar);
+      margin: 0;
+    }
+
+    /* 全面に重ねるので、中身は開き終えたときの幅ではなく画面いっぱいに */
+    .board-body.with-panel .board-panel > .panel-tabs,
+    .board-body.with-panel .board-panel > .panel-content {
+      width: auto;
+    }
+  }
+
+  .panel-content {
+    /* 2 行のタブで高くなった分（分けたペインのタブの中身を下げる高さに足す。欄ごとに決め、入れ子の欄に受け継がせない） */
+    --tab-lines-extra: 0px;
+
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel-content.tabs-two-line {
+    --tab-lines-extra: 10px;
+  }
+
+  .panel-tab-page {
+    height: 100%;
+  }
+
+  /*
+   * AI が操作しているブラウザのタブ（.agent-browsing。TabPageFrame が features/browser/agentBrowsing.ts の状態で付ける）。
+   * 表に出ていないタブも、見えない形で欄いっぱいに並べる（大きさがないとページを撮れず、位置で押せないため）。
+   * 透明にして後ろに置き、押せないようにする（見ているタブの操作を邪魔しない）
+   */
+
+  .panel-content:has(> .panel-tab-page.agent-browsing[hidden]) {
+    position: relative;
+  }
+
+  .panel-tab-page.agent-browsing[hidden] {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-hidden);
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ==== ボードの右のパネルのペインの分割（Panel・PaneTabBar・PaneSash・useTabDrag） ==== */
+
+  /*
+   * 分けているときは、中身の中にペイン（タブの列と、タブがないときの画面）・タブの中身・境目のつまみを、割合の位置で重ねる。
+   * タブの中身はペインの外（中身の直下）にあり、ペインのタブの列の高さ（--split-tabs-h）だけ下げて置く
+   */
+
+  .panel-content.split-view {
+    --split-tabs-h: 37px;
+    /* タブの列の高さ（欄ごとの --split-tabs-h に、2 行のタブの分 --tab-lines-extra を足したもの。入れ子の欄には外側の値を受け継がせない） */
+    --split-tabs-total: calc(var(--split-tabs-h) + var(--tab-lines-extra));
+
+    position: relative;
+  }
+
+  .split-pane {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .split-pane > .panel-tabs {
+    height: var(--split-tabs-total);
+  }
+
+  .split-pane > .panel-empty {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ピントのあるペイン（新しく開くタブが入る）は、分けているときだけ、そのペインのチャット欄の枠の色で控えめに示す
+     （タブの列の下線にはしない。チャット・新しいチャットのタブだけ。Composer.css の枠より後ろ・詳細度が高いので勝つ） */
+
+  .split-view > .panel-tab-page.pane-focused .composer,
+  .split-view > .panel-tab-page.pane-focused .queued-messages {
+    border-color: color-mix(in srgb, var(--info) 60%, var(--border-strong));
+  }
+
+  /* 送信待ちとつなげた入力欄は、上の辺を区切り線のままにする（QueuedMessages.css） */
+
+  .split-view > .panel-tab-page.pane-focused .queued-messages + .composer,
+  .split-view > .panel-tab-page.pane-focused .queued-messages + .held-edit > .composer {
+    border-top-color: var(--divider-strong);
+  }
+
+  .split-view > .panel-tab-page {
+    position: absolute;
+  }
+
+  /* ドラッグ中は、中身（webview・ターミナル）にポインターを奪われず、文字も選ばない */
+
+  .panel-content.resizing {
+    user-select: none;
+  }
+
+  .panel-content.resizing > .panel-tab-page {
+    pointer-events: none;
+  }
+
+  /* ドラッグ中だけ中身の上に置く透明の覆い（分けていなければ中身いっぱい） */
+
+  .panel-content:has(> .split-drop-cover) {
+    position: relative;
+  }
+
+  .split-drop-cover {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+  }
+
+  .split-view > .split-drop-cover {
+    inset: auto;
+  }
+
+  /* 落とすと置かれる範囲（端なら半分、真ん中ならペインいっぱい） */
+
+  .split-drop-hint {
+    position: absolute;
+    inset: 0;
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    pointer-events: none;
+  }
+
+  .split-hint-left {
+    right: 50%;
+  }
+
+  .split-hint-right {
+    left: 50%;
+  }
+
+  .split-hint-top {
+    bottom: 50%;
+  }
+
+  .split-hint-bottom {
+    top: 50%;
+  }
+
+  /* タブの列を隠しているとき（チャットのパネル。panel の保存 chatTabRowHidden）は、ペインのタブの中身をタブの列の高さだけ下げない */
+
+  .tabs-hidden > .panel-content.split-view {
+    --split-tabs-h: 0px;
+    --tab-lines-extra: 0px;
+  }
+}

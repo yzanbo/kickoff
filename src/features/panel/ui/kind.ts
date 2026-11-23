@@ -125,7 +125,7 @@ export interface TabKind<T extends TabBase> {
   iconClass?: string;
   /**
    * 名前の前に置く種類の札（チャットの画面の右の欄に並ぶノート・サブエージェント・子チャットを、タブを見ただけで見分ける）。札があるタブは、
-   * 上の 1px の線と表示中の枠も同じ形で、色だけ種類ごとに変える（CSS の panel/side-panel-tab-kinds.css）
+   * 上の 1px の線と表示中の枠も同じ形で、色だけ種類ごとに変える（CSS の PaneTab.css）
    */
   badge?: string;
   /** 札の文をタブごとに変えるときの部品（子チャットの深さ「子 / 孫 / ひ孫」。なければ badge の文） */
