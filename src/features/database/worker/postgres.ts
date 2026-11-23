@@ -4,8 +4,8 @@ import pg from "pg";
 import Cursor from "pg-cursor";
 import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
-import type { DbOutlineTable, DbTarget } from "@shared/database/workerProtocol";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbOutlineTable, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
+import type { DbTarget } from "@shared/database/workerProtocol";
 import type { DbColumns, DbDriver } from "./driver";
 
 /** 結果をすべて読むとき（CSV の書き出し）に 1 回でカーソルから読む行の数 */

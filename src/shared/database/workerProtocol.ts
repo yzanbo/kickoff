@@ -2,7 +2,7 @@
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
 import type { DbEditParam } from "./dbEdit";
 import type { DbPrepVars } from "./dbPrep";
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail, DbValue } from "@shared/database/types";
+import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbOutlineTable, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail, DbValue } from "@shared/database/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -81,12 +81,6 @@ interface PrepRunEvent {
   kind: DbPrepKind;
   command: string;
   ok: boolean;
-}
-
-/** 補完に使う、スキーマの中のテーブルと列の名前 */
-export interface DbOutlineTable {
-  name: string;
-  columns: string[];
 }
 
 /** 接続を使う頼みの共通の項目（session: ワーカーの中の接続の名前。同じ名前なら同じ接続を使い回す） */

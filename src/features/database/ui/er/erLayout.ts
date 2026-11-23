@@ -2,7 +2,7 @@
 import ELK from "elkjs/lib/elk-api";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import type { DbErPositions, DbErTable } from "@shared/database/types";
-import type { ErRelation } from "@shared/database/erDiagram";
+import type { ErRelation } from "./erDiagram";
 import { ER_HEAD_HEIGHT, ER_PAD, ER_ROW_HEIGHT } from "./erBox";
 
 /** 列の出し方（すべて / 主キーと外部キーだけ / テーブル名だけ） */

@@ -1,4 +1,4 @@
-import type { ErCardinality } from "@shared/database/erDiagram";
+import type { ErCardinality } from "./erDiagram";
 
 /** 線の端の印（カラスの足の記法）: ||（必ず 1）・|o（0 か 1）・o{（0 以上の多）。強く見せる線は -lit の色違い */
 const MARKS = ["er-one", "er-zero-one", "er-zero-many"] as const;

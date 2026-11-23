@@ -1,13 +1,7 @@
-import type { DbConnection, DbDatabases, DbDefinition, DbErPositions, DbErSchema, DbImportCandidate, DbObject, DbObjectPath, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbRowFilter, DbSsh, DbSshHostKey, DbTableDetail } from "@shared/database/types";
-import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbConnectionTestResult, DbConnectedIds, DbSqlAssistBody, DbSqlAssistResult, DbDisconnectResult, DbEditsBody, DbEditsResult, DbEnteredPasswordsBody, DbFullRow, DbFullRowBody, DbImportBody, DbRowsBody, DbSqlBody, NewDbConnectionBody } from "@shared/foundation/apiTypes";
+import type { DbConnection, DbDatabases, DbDefinition, DbErPositions, DbErSchema, DbImportCandidate, DbObject, DbObjectPath, DbOutlineTable, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbRowFilter, DbSsh, DbSshHostKey, DbTableDetail } from "@shared/database/types";
+import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbConnectionTestResult, DbConnectedIds, DbSqlAssistBody, DbSqlAssistResult, DbDisconnectResult, DbEditsBody, DbEditsResult, DbEnteredPasswordsBody, DbFullRow, DbFullRowBody, DbImportBody, DbRowsBody, DbSqlBody, NewDbConnectionBody } from "@shared/database/api";
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
 import { ApiError, request, withQuery } from "@/foundation/ui/api/http";
-
-/** 補完に使う、スキーマの中のテーブルと列の名前 */
-export interface DbOutlineTable {
-  name: string;
-  columns: string[];
-}
 
 const base = (projectId: number) => `/api/projects/${projectId}/db-connections`;
 const one = (projectId: number, id: number) => `${base(projectId)}/${id}`;

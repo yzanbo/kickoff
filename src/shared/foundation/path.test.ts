@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { ancestorsOf, baseName, buildPathTree, isUnder, joinPath, parentPath, remapPrefix, topLevelPaths } from "./path";
+import { ancestorsOf, baseName, buildPathTree, expandHomeWith, isUnder, joinPath, parentPath, remapPrefix, topLevelPaths } from "./path";
 
 test("親・名前・つなぐ・中か・親をたどる", () => {
   assert.equal(parentPath("a/b/c.md"), "a/b");
@@ -35,4 +35,12 @@ test("buildPathTree: 途中のフォルダも出し、フォルダを先に名�
   ]);
   const show = (nodes: typeof tree): unknown[] => nodes.map((n) => (n.dir ? { [n.path]: show(n.children) } : n.path));
   assert.deepEqual(show(tree), [{ b: ["b/file2.md", "b/file10.md"] }, { empty: [] }, "a.md", "B.md"]);
+});
+
+test("expandHomeWith: ~ と ~/… だけを展開する", () => {
+  assert.equal(expandHomeWith("~", "/Users/me"), "/Users/me");
+  assert.equal(expandHomeWith("~/.ssh/id", "/Users/me"), "/Users/me/.ssh/id");
+  assert.equal(expandHomeWith("~/.ssh/id", "/Users/me/"), "/Users/me/.ssh/id");
+  assert.equal(expandHomeWith("/keys/a.pem", "/Users/me"), "/keys/a.pem");
+  assert.equal(expandHomeWith("~other/a", "/Users/me"), "~other/a");
 });

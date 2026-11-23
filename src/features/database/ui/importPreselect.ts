@@ -1,5 +1,5 @@
 // Docker タブの「DB で開く」から取り込みの画面を開いたとき、その DB の案を選んだ形で並べる（純粋な関数）
-import { sameLocalServer } from "@shared/database/dbServer";
+import { sameLocalServer } from "@shared/database/endpoint";
 import type { DbImportCandidate } from "@shared/database/types";
 
 /**

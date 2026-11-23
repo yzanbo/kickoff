@@ -1,7 +1,7 @@
 // Docker タブの「DB で開く」: compose の DB のサービスから、DB クライアントの登録済みの接続か、取り込みの案を決める（純粋な関数）。
 // 案の作り方は DB クライアントの「プロジェクトからの取り込み」と同じ（candidatesFromCompose）で、compose に聞いた設定（変数を埋めたもの）から読む
 import path from "node:path";
-import { sameLocalServer } from "@shared/database/dbServer";
+import { sameLocalServer } from "@shared/database/endpoint";
 import type { DbConnection } from "@shared/database/types";
 import { DOCKER_DB_NO_PORT, type DockerCompose } from "@shared/docker/types";
 import type { Project } from "@shared/projects/types";

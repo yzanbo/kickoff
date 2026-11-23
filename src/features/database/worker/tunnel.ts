@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { expandPrepCommand, type DbPrepVars } from "@shared/database/dbPrep";
 import { DB_SSH_UNKNOWN_HOST, type DbSsh } from "@shared/database/types";
-import { isChangedHostKey, isUnknownHostKey, sshTargetArgs } from "@/features/database/core/sshArgs";
+import { isChangedHostKey, isUnknownHostKey, sshTargetArgs } from "@shared/database/sshArgs";
 import { killTree, spawnShell } from "./shell";
 import { spawnTracked } from "./children";
 
@@ -99,7 +99,7 @@ function spawnSsh(spec: TunnelSpec, port: number): ChildProcess {
     Object.assign(env, { SSH_ASKPASS: askpass(), SSH_ASKPASS_REQUIRE: "force", DISPLAY: env.DISPLAY ?? ":0", KICKOFF_SSH_PASSWORD: spec.ssh.password });
     options.push("-o", "NumberOfPasswordPrompts=1");
   } else options.push("-o", "BatchMode=yes");
-  return spawnTracked("ssh", ["-N", "-L", `127.0.0.1:${port}:${spec.remote_host}:${spec.remote_port}`, ...options, ...sshTargetArgs(spec.ssh)], { stdio: ["ignore", "ignore", "pipe"], env });
+  return spawnTracked("ssh", ["-N", "-L", `127.0.0.1:${port}:${spec.remote_host}:${spec.remote_port}`, ...options, ...sshTargetArgs(spec.ssh, os.homedir())], { stdio: ["ignore", "ignore", "pipe"], env });
 }
 
 export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, ok: boolean) => void } = {}) {

@@ -1,6 +1,6 @@
 import { NotebookPen, Play, RotateCcw, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
-import { appendDbNoteFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbNoteFixEntry } from "@shared/database/dbFailure";
+import { appendDbNoteFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbNoteFixEntry } from "@/features/database/ui/connection/dbFailure";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";

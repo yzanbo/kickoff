@@ -1,7 +1,7 @@
 // DB の種類ごとの接続（ワーカーの中だけで使う）。テーブルなどの場所 path は種類ごとに読み替える
 import type { DbDatabases, DbDefinition, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail } from "@shared/database/types";
 import type { DbEditParam } from "@shared/database/dbEdit";
-import type { DbOutlineTable } from "@shared/database/workerProtocol";
+import type { DbOutlineTable } from "@shared/database/types";
 
 /** 結果の列 */
 export type DbColumns = DbQueryResult["columns"];

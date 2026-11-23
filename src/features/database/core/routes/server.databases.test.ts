@@ -6,7 +6,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { DB_SQL_MAX_ROWS, DB_VALUE_HEAD_CHARS, type DbConnection, type DbErSchema, type DbImportCandidate, type DbPrepRun, type DbPrepState, type DbQueryHistoryEntry, type DbQueryResult, type DbTableDetail } from "@shared/database/types";
-import type { DbFullRow, NewDbConnectionBody } from "@shared/foundation/apiTypes";
+import type { DbFullRow, NewDbConnectionBody } from "@shared/database/api";
 import type { BusEvent } from "@shared/foundation/contract";
 import { setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";

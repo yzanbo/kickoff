@@ -1,17 +1,23 @@
 // 踏み台のサーバーの鍵（初めてつなぐサーバーは、指紋を画面で確かめてから ~/.ssh/known_hosts に足す。ターミナルの ssh と同じ場所）
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { DbSsh, DbSshHostKey } from "@shared/database/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { runCommand } from "@/foundation/core/system/exec";
-import { knownHostsName, parseKeyscan, parseSshConfigDump, parseSshConfigHosts, sshFingerprint, sshTargetArgs } from "./sshArgs";
+import { knownHostsName, parseKeyscan, parseSshConfigDump, parseSshConfigHosts, sshTargetArgs } from "@shared/database/sshArgs";
 
 const sshDir = () => path.join(os.homedir(), ".ssh");
 
+/** 公開鍵（base64）の指紋（ssh-keygen -l と同じ SHA256:…。末尾の = は付けない） */
+export function sshFingerprint(base64Key: string): string {
+  return `SHA256:${crypto.createHash("sha256").update(Buffer.from(base64Key, "base64")).digest("base64").replace(/=+$/, "")}`;
+}
+
 /** ~/.ssh/config を解いた、つなぐ先のホスト名・ポート・known_hosts の名前 */
 async function resolve(ssh: DbSsh): Promise<{ hostname: string; port: number; name: string }> {
-  const dump = parseSshConfigDump(await runCommand("ssh", ["-G", ...sshTargetArgs(ssh)]));
+  const dump = parseSshConfigDump(await runCommand("ssh", ["-G", ...sshTargetArgs(ssh, os.homedir())]));
   const proxy = dump.get("proxyjump") ?? dump.get("proxycommand");
   if (proxy && proxy !== "none") {
     throw new Invalid(`踏み台（${proxy}）を通るサーバーの鍵は、ここでは確かめられません。ターミナルで一度「ssh ${ssh.host}」でつなぎ、鍵を受け入れてからつないでください`);

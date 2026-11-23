@@ -1,5 +1,11 @@
 // 「/」区切りの相対パスと木の補助（純粋な関数。コアのフォルダの中のファイル・画面のエディタとノートの木・スマホが同じものを使う）
 
+/** "~" と "~/..." をホームフォルダ home に展開する（それ以外はそのまま。コアは expandHome が OS のホームを渡す） */
+export function expandHomeWith(p: string, home: string): string {
+  if (p === "~") return home;
+  return p.startsWith("~/") ? `${home.replace(/\/+$/, "")}${p.slice(1)}` : p;
+}
+
 /** 親フォルダ（いちばん上の段なら null） */
 export function parentPath(rel: string): string | null {
   const i = rel.lastIndexOf("/");

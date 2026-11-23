@@ -1,5 +1,5 @@
 // ER 図を 1 つの SVG の文にする（「画像で保存」の SVG と、PNG の元。画面の図（@xyflow/react の HTML）を写すのではなく、箱の位置・大きさと関係から描き直す）。React に依らない
-import type { ErCardinality } from "@shared/database/erDiagram";
+import type { ErCardinality } from "./erDiagram";
 import { ER_HEAD_HEIGHT, ER_PAD, ER_ROW_HEIGHT } from "./erBox";
 
 interface ErSvgColumn {

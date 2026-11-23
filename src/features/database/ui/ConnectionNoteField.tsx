@@ -1,4 +1,4 @@
-import { DB_NOTE_DIR } from "@shared/database/dbFailure";
+import { DB_NOTE_DIR } from "@/features/database/ui/connection/dbFailure";
 import type { DbConnection } from "@shared/database/types";
 import { useNoteList } from "@/features/notes/ui/stores/notes";
 import { Field } from "@/foundation/ui/kit/Field";

@@ -1,13 +1,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { expandHomeWith } from "@shared/foundation/path";
 
 // パスの判定（リポジトリの中か・~ の展開・リンクの解決）。各所で同じ形を書かない
 
 /** "~" と "~/..." をホームフォルダに展開する（それ以外はそのまま） */
-export function expandHome(p: string): string {
-  return p === "~" || p.startsWith("~/") ? path.join(os.homedir(), p.slice(1)) : p;
-}
+export const expandHome = (p: string): string => expandHomeWith(p, os.homedir());
 
 /**
  * target が dir の中（dir 自身を含む）か。どちらも絶対パスにそろえてから比べる。

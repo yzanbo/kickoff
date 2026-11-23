@@ -1,4 +1,4 @@
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "./types";
+import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 
 // DB につながらなかったときの案内: 失敗の文から種類を見分け、よくある原因と直し方を出す。
 // 本番などの DB は、セキュリティのためにわざと「手順を踏まないとつながらない」ようにしてあることが多いので、原因にそれを入れる

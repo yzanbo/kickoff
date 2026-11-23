@@ -2,7 +2,7 @@ import type { Context, Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import { DB_AI_ACCESSES, DB_ENVIRONMENT_DEFAULTS, DB_WRITE_CHECKS, DB_CONNECTION_NAME_MAX, DB_ENGINES, DB_ENVIRONMENTS, DB_EDITS_MAX, DB_ER_MAX, DB_FILTER_OPS, DB_HISTORY_MAX, type DbConnection, type DbRowFilter } from "@shared/database/types";
-import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbEditsBody, DbEnteredPasswordsBody, DbConnectedIds, DbErBody, DbErLayoutBody, DbImportBody, DbRowsBody, DbFullRowBody, DbSqlAssistBody, DbSqlAssistResult, DbSqlBody, DbSshHostKeyBody, NewDbConnectionBody } from "@shared/foundation/apiTypes";
+import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbEditsBody, DbEnteredPasswordsBody, DbConnectedIds, DbErBody, DbErLayoutBody, DbImportBody, DbRowsBody, DbFullRowBody, DbSqlAssistBody, DbSqlAssistResult, DbSqlBody, DbSshHostKeyBody, NewDbConnectionBody } from "@shared/database/api";
 import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { AiApi } from "@/features/ai/core/index";

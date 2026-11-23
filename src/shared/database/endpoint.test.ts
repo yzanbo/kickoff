@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { sameLocalServer } from "./dbServer";
+import { sameLocalServer } from "./endpoint";
 
 test("sameLocalServer: 種類・この Mac の中のホスト・ポート（書いていなければ既定）が同じ", () => {
   const pg = { engine: "postgres" as const, host: "localhost", port: 5432 };

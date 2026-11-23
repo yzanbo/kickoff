@@ -1,15 +1,13 @@
-// SSH トンネルの ssh に渡す引数と、ssh の出力の読み方（コアの鍵の確かめと、DB ワーカーのトンネルで共通）
-import crypto from "node:crypto";
-import os from "node:os";
-import path from "node:path";
-import type { DbSsh } from "@shared/database/types";
+// SSH トンネルの ssh に渡す引数と、ssh の出力の読み方（コアの鍵の確かめと、DB ワーカーのトンネルで共通。純粋。ホームフォルダは呼ぶ側が渡す）
+import { expandHomeWith } from "@shared/foundation/path";
+import type { DbSsh } from "./types";
 
-/** つなぐ先の引数（ポート・ユーザー・鍵のファイル・ホスト。省いたものは ~/.ssh/config と ssh の既定） */
-export function sshTargetArgs(ssh: DbSsh): string[] {
+/** つなぐ先の引数（ポート・ユーザー・鍵のファイル（~ は home に展開）・ホスト。省いたものは ~/.ssh/config と ssh の既定） */
+export function sshTargetArgs(ssh: DbSsh, home: string): string[] {
   const args: string[] = [];
   if (ssh.port) args.push("-p", String(ssh.port));
   if (ssh.user) args.push("-l", ssh.user);
-  if (ssh.identity_file) args.push("-i", ssh.identity_file.startsWith("~") ? path.join(os.homedir(), ssh.identity_file.slice(1)) : ssh.identity_file);
+  if (ssh.identity_file) args.push("-i", expandHomeWith(ssh.identity_file, home));
   args.push(ssh.host);
   return args;
 }
@@ -28,11 +26,6 @@ export function parseSshConfigDump(text: string): Map<string, string> {
 export function knownHostsName(hostname: string, port: number, alias: string | null): string {
   if (alias) return alias;
   return port === 22 ? hostname : `[${hostname}]:${port}`;
-}
-
-/** 公開鍵（base64）の指紋（ssh-keygen -l と同じ SHA256:…。末尾の = は付けない） */
-export function sshFingerprint(base64Key: string): string {
-  return `SHA256:${crypto.createHash("sha256").update(Buffer.from(base64Key, "base64")).digest("base64").replace(/=+$/, "")}`;
 }
 
 /** ssh-keyscan の出力の行（ホスト 種類 鍵）。コメント・空の行は飛ばす */

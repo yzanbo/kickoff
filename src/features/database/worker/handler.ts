@@ -1,6 +1,7 @@
 // DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
-import { erTableOf } from "@shared/database/erDiagram";
+import { erTableOf } from "@shared/database/erTable";
 import { errorMessage } from "@shared/foundation/errors";
+import { parseSession } from "@shared/database/session";
 import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/database/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { DbDriver } from "./driver";
@@ -122,11 +123,8 @@ interface OpenSession {
   fingerprint: string;
 }
 
-/** 接続（セッション）の名前から、どの接続のものか（shared: / sql: / ai: / edit: の次の段。分からなければ null） */
-function connectionIdOfSession(name: string): number | null {
-  const id = Number(name.split(":")[1]);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+/** 接続（セッション）の名前から、どの接続のものか（分からなければ null） */
+const connectionIdOfSession = (name: string): number | null => parseSession(name)?.connectionId ?? null;
 
 type Handlers = { [M in WorkerMethod]: (params: WorkerMethods[M]["params"], id: number) => Promise<WorkerMethods[M]["result"]> };
 

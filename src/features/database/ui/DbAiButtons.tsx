@@ -1,6 +1,6 @@
 import { Sparkles, SquareTerminal } from "lucide-react";
 import { useState } from "react";
-import { dbAskPrompt } from "@shared/database/dbAsk";
+import { dbAskPrompt } from "@/features/database/ui/ai/dbAsk";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { qualifiedTable, quoteName } from "@shared/database/dbEdit";
 import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/database/types";

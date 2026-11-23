@@ -6,8 +6,9 @@ import path from "node:path";
 import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
+import { countsAsConnected, parseSession, sessionName } from "@shared/database/session";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS, type DbConnection, type DbEngine, type DbFilter, type DbObjectPath, type DbPrep, type DbRowFilter, type DbSort } from "@shared/database/types";
-import type { DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbDisconnectResult, DbFullRow, DbSqlBody } from "@shared/foundation/apiTypes";
+import type { DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbDisconnectResult, DbFullRow, DbSqlBody } from "@shared/database/api";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { errorMessage } from "@shared/foundation/errors";
@@ -60,9 +61,6 @@ interface Options {
   publish?: (event: BusEvent) => void;
 }
 
-/** 数える接続（セッション）の種類（木・テーブルのタブと SQL のタブ。AI・行の保存の接続は 1 回ずつ開いて閉じるので数えない） */
-const COUNTED_SESSION = /^(?:shared|sql):(\d+):/;
-
 /** AI の SQL の DB の側の時間の上限を、手元で止める時間より長くする分（手元の方が先に止めて「時間切れ」の文を返すため） */
 const DB_SIDE_TIMEOUT_MARGIN_MS = 5_000;
 
@@ -114,9 +112,10 @@ export class DatabaseService {
 
   /** 開いた・閉じた接続（セッション）を数え、つないでいるかが変わったら知らせる */
   private countSession(name: string, open: boolean) {
-    const m = COUNTED_SESSION.exec(name);
-    if (!m) return;
-    const id = Number(m[1]);
+    // 数えるのは木・テーブルのタブと SQL のタブ（AI・行の保存の接続は 1 回ずつ開いて閉じるので数えない）
+    const session = parseSession(name);
+    if (!session || !countsAsConnected(session)) return;
+    const id = session.connectionId;
     const before = this.openCounts.get(id) ?? 0;
     const after = Math.max(0, before + (open ? 1 : -1));
     if (after === 0) this.openCounts.delete(id);
@@ -221,11 +220,11 @@ export class DatabaseService {
 
   /** テーブルのタブ・木で共有する接続の名前（接続・作業場所・DB ごとに 1 本） */
   private sharedSession(connection: DbConnection, workdir: Workdir, database: string | null) {
-    return `shared:${connection.id}:${workdir ?? "-"}:${database ?? "-"}`;
+    return sessionName({ kind: "shared", connectionId: connection.id, key: `${workdir ?? "-"}:${database ?? "-"}` });
   }
 
   private sqlSession(connection: DbConnection, session: string) {
-    return `sql:${connection.id}:${session}`;
+    return sessionName({ kind: "sql", connectionId: connection.id, key: session });
   }
 
   /** ワーカーの失敗を「その操作はできない」（400）にする（初めての SSH のサーバーは 409 と印 DB_SSH_UNKNOWN_HOST。画面が鍵を確かめさせる） */
@@ -398,7 +397,7 @@ export class DatabaseService {
     const statements = editStatements(connection.engine, body.path, body.table, body.edits);
     if (statements.length === 0) return { affected: [], duration_ms: 0 };
     const target = await this.target(connection, project, workdir, { write: body.write, database: connection.engine === "postgres" ? body.path.database : null });
-    const session = `edit:${connection.id}:${randomUUID()}`;
+    const session = sessionName({ kind: "edit", connectionId: connection.id, key: randomUUID() });
     const sql = statements.map((s) => `${s.preview};`).join("\n");
     const started = Date.now();
     try {
@@ -438,7 +437,7 @@ export class DatabaseService {
     // DB の側にも時間の上限を付ける（ワーカーが落ちても DB の中で流れ続けない）。手元で止める方が先に効くよう少し長く（止めたときの文を「時間切れ」にするため）
     const target = { ...(await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true }).catch((e: unknown) => { forget(); throw e; })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
     if (controller.signal.aborted) { forget(); throw new Invalid(TURN_STOPPED); }
-    const session = `ai:${connection.id}:${randomUUID()}`;
+    const session = sessionName({ kind: "ai", connectionId: connection.id, key: randomUUID() });
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, limitMs);
     const started = Date.now();
@@ -518,7 +517,7 @@ export class DatabaseService {
   /** 消した接続のワーカーの接続（木・SQL のタブ・AI）をすべて閉じる（SSH トンネルも残さない） */
   async forgetConnection(id: number) {
     if (!this.opts.client.running) return;
-    await this.opts.client.request("closeMatching", { prefixes: ["shared", "sql", "ai"].map((kind) => `${kind}:${id}:`), cleanup_for: id });
+    await this.opts.client.request("closeMatching", { prefixes: (["shared", "sql", "ai"] as const).map((kind) => sessionName({ kind, connectionId: id, key: "" })), cleanup_for: id });
   }
 
   /**

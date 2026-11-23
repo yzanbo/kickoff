@@ -1,7 +1,7 @@
 import { Clipboard, FileText, LayoutGrid, ListChecks, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection } from "@shared/database/types";
-import { erMermaid, erPlace } from "@shared/database/erDiagram";
+import { erMermaid, erPlace } from "./erDiagram";
 import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";

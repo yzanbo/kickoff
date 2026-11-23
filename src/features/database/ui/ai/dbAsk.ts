@@ -1,5 +1,5 @@
 // DB クライアントの「AI に聞く」（テーブルのタブ・ER 図の選んだテーブル）で、新しいチャットに送る文
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "./types";
+import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 
 /**
  * テーブルについて AI に聞く文: 接続の名前（AI のツールで指す名前）・場所・テーブルと、利用者の問い。

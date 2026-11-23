@@ -1,4 +1,4 @@
-import { DB_NOTE_DIR, dbNoteTemplate, suggestDbNoteName } from "@shared/database/dbFailure";
+import { DB_NOTE_DIR, dbNoteTemplate, suggestDbNoteName } from "@/features/database/ui/connection/dbFailure";
 import { errorMessage } from "@shared/foundation/errors";
 import { safeNoteName } from "@shared/notes/names";
 import type { DbConnection } from "@shared/database/types";

@@ -128,13 +128,9 @@ export interface DbPrepState {
   finished_at: string | null;
 }
 
-/** DB の接続（db_connections の表。パスワードは秘密の値に置き、ここには保存したかだけ） */
-export interface DbConnection {
-  id: number;
-  project_id: number;
-  name: string;
+/** つなぐ先の欄の組（接続・作る本文・試す本文・取り込みの案・URL を読んだ結果が同じ欄を持つ） */
+export interface DbEndpoint {
   engine: DbEngine;
-  environment: DbEnvironment;
   host: string | null;
   port: number | null;
   database: string | null;
@@ -142,6 +138,14 @@ export interface DbConnection {
   /** SQLite のファイル（プロジェクトフォルダからの相対。外のファイルは絶対パス。ワークツリーではその中の同じパスを開く） */
   file_path: string | null;
   ssl: DbSsl | null;
+}
+
+/** DB の接続（db_connections の表。パスワードは秘密の値に置き、ここには保存したかだけ） */
+export interface DbConnection extends DbEndpoint {
+  id: number;
+  project_id: number;
+  name: string;
+  environment: DbEnvironment;
   read_only: boolean;
   /** 書き込む前の確かめ（読み取り専用でないときに効く） */
   write_check: DbWriteCheck;
@@ -200,7 +204,7 @@ export type DbImportSource = (typeof DB_IMPORT_SOURCES)[number];
 export const DB_IMPORT_SOURCE_LABELS: Record<DbImportSource, string> = { env: ".env", compose: "docker compose", prisma: "Prisma", file: "SQLite のファイル" };
 
 /** プロジェクトの中で見つけた接続の案（GET …/db-connections/import。パスワードは返さず、あるかだけ） */
-export interface DbImportCandidate {
+export interface DbImportCandidate extends DbEndpoint {
   /** 見つけた所の印（取り込むときに指す。例: env:.env:DATABASE_URL） */
   key: string;
   source: DbImportSource;
@@ -208,14 +212,6 @@ export interface DbImportCandidate {
   origin: string;
   /** 名前の案 */
   name: string;
-  engine: DbEngine;
-  host: string | null;
-  port: number | null;
-  database: string | null;
-  username: string | null;
-  /** SQLite のファイル（プロジェクトフォルダからの相対） */
-  file_path: string | null;
-  ssl: DbSsl | null;
   /** 推した環境（ファイルの名前・ホストから。分からない外のホストは本番） */
   environment: DbEnvironment;
   has_password: boolean;
@@ -467,4 +463,10 @@ export interface DockerDbTarget {
   connection_id: number | null;
   candidate: DbImportCandidate | null;
   blocked: string | null;
+}
+
+/** 補完に使う、スキーマの中のテーブルと列の名前（POST …/:cid/outline） */
+export interface DbOutlineTable {
+  name: string;
+  columns: string[];
 }

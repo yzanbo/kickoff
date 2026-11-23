@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import tls from "node:tls";
 import os from "node:os";
-import path from "node:path";
+import { expandHomeWith } from "@shared/foundation/path";
 import type { DbTarget } from "@shared/database/workerProtocol";
 
 /** つなぐのを待つ時間（ミリ秒） */
@@ -22,8 +22,7 @@ export function tlsOptions(target: DbTarget): false | tls.ConnectionOptions {
   const via: tls.ConnectionOptions = target.tls_host ? { servername: target.tls_host, checkServerIdentity: (_host, cert) => tls.checkServerIdentity(target.tls_host!, cert) } : {};
   if (ssl.mode === "require") return { rejectUnauthorized: false, ...(target.tls_host ? { servername: target.tls_host } : {}) };
   if (!ssl.ca_path) return { rejectUnauthorized: true, ...via };
-  const file = ssl.ca_path.startsWith("~") ? path.join(os.homedir(), ssl.ca_path.slice(1)) : ssl.ca_path;
-  return { rejectUnauthorized: true, ca: fs.readFileSync(file, "utf8"), ...via };
+  return { rejectUnauthorized: true, ca: fs.readFileSync(expandHomeWith(ssl.ca_path, os.homedir()), "utf8"), ...via };
 }
 
 /** トリガーの定義の文から、いつ（BEFORE など）と何で（INSERT など）を読む */

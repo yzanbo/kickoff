@@ -57,7 +57,6 @@
       "feature-worker:database:src/features/database/worker/handler.test.ts -> src/foundation/core/testing/tempDir.ts",
       "feature-worker:database:src/features/database/worker/main.ts -> src/foundation/core/platform/macos/shell.ts",
       "feature-worker:database:src/features/database/worker/shell.ts -> src/foundation/core/platform/types.ts",
-      "feature-worker:database:src/features/database/worker/tunnel.ts -> src/features/database/core/sshArgs.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/chat/types.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/github/types.ts",
       "foundation-core:src/foundation/core/db/types.ts -> src/shared/settings/types.ts",
@@ -132,7 +131,6 @@
       "foundation-ui:src/foundation/ui/workplace/workplaceHue.ts -> src/shared/projects/colors.ts",
       "foundation-ui:src/foundation/ui/workplace/worktreesStore.ts -> src/shared/git/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/chat/types.ts",
-      "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/database/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/github/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/projects/types.ts",
       "shared-foundation:src/shared/foundation/apiTypes.ts -> src/shared/settings/types.ts",
@@ -659,14 +657,14 @@
       "siblings:src/features/ai/core/providers:acp,cursor,gemini",
       "siblings:src/features/ai/core:providers,testing",
       "siblings:src/features/conversation/ui:activity,find,promptList,rewind,screen,timeline,working",
-      "siblings:src/features/database:core,testing,worker",
+      "siblings:src/features/database:core,testing",
       "siblings:src/features/panel/ui:layout,state,tabs",
       "siblings:src/features:ai,attachments,chat,chatList,chatPanel,childChats,compact,composer,conversation,database,devices,docker,files,git,github,groups,guard,notes,notifications,projects,providerSwitch,queue,remoteImages,snippets,subagents,trash,visuals,voice,workplaceMove,worktrees",
       "siblings:src/foundation/core:db,system",
       "siblings:src/foundation/desktop:app,diagnostics,ipc,notifications,platform,terminal",
       "siblings:src/foundation/ui:code,hooks,lib,theme",
       "siblings:src/foundation/ui:kit,markdown",
-      "siblings:src/shared:ai,chat,database,foundation,git,github,groups,projects,settings,snippets,visuals,worktrees",
+      "siblings:src/shared:ai,chat,foundation,git,github,groups,projects,settings,snippets,visuals,worktrees",
       "siblings:src:app,features,foundation"
     ],
     "size": {
@@ -693,7 +691,7 @@
       "src/features/conversation/ui/streaming/markdownReveal.ts": 435,
       "src/features/database/core/routes/databases.ts": 451,
       "src/features/database/core/routes/server.databases.test.ts": 852,
-      "src/features/database/core/service.ts": 547,
+      "src/features/database/core/service.ts": 546,
       "src/features/database/ui/DatabaseClient.tsx": 324,
       "src/features/database/worker/drivers.dbtest.ts": 409,
       "src/features/database/worker/mysql.ts": 406,
@@ -705,8 +703,7 @@
       "src/features/trash/core/service.ts": 334,
       "src/foundation/desktop/app/coreProcess.ts": 342,
       "src/shared/chat/subagents.ts": 301,
-      "src/shared/database/sqlStatements.ts": 318,
-      "src/shared/foundation/apiTypes.ts": 372
+      "src/shared/database/sqlStatements.ts": 318
     },
     "native": [
       "src/features/chat/ui/open/aiOpenRequests.ts",

@@ -1,23 +1,10 @@
-// ER 図の決まり（純粋な関数。画面の図と Mermaid の書き出しで共通）: テーブルの形・関係（外部キーと、制約のない関係の推測）・多さ・まわりの絞り込み
-import type { DbErTable, DbObjectPath, DbTableDetail } from "@shared/database/types";
+// ER 図の決まり（純粋な関数。画面の図と Mermaid の書き出しで共通）: 関係（外部キーと、制約のない関係の推測）・多さ・まわりの絞り込み。
+// テーブルの形はワーカーが作る（@shared/database/erTable.ts）
+import type { DbErTable, DbObjectPath } from "@shared/database/types";
 
 /** ER 図の配置を覚える場所のキー（DB とスキーマ。SQLite などで両方なければ main） */
 export function erPlace(path: DbObjectPath): string {
   return [path.database, path.schema].filter(Boolean).join(".") || "main";
-}
-
-/** テーブルの詳細から ER 図の形を作る（ワーカーが木と同じ詳細から作る） */
-export function erTableOf(name: string, detail: DbTableDetail): DbErTable {
-  const pk = detail.columns.filter((c) => c.primary_key).map((c) => c.name);
-  const uniques = detail.indexes.filter((i) => i.unique && !i.primary && i.columns.length > 0).map((i) => i.columns);
-  return {
-    name,
-    kind: detail.kind,
-    comment: detail.comment,
-    columns: detail.columns.map((c) => ({ name: c.name, type: c.type, nullable: c.nullable, primary_key: c.primary_key })),
-    foreign_keys: detail.foreign_keys,
-    unique_sets: pk.length > 0 ? [pk, ...uniques] : uniques,
-  };
 }
 
 /** 多さ: 子の側（外部キーを持つ側）が 1 か多か、親の側が必ずあるか（NULL を許せば 0 か 1） */
