@@ -144,15 +144,3 @@ export interface GitHubMergeResult {
 export interface GitHubCheckoutBody {
   place: GitHubCheckoutPlace;
 }
-
-// ---- 応答 ----
-
-/** 録った音声を文にした結果（POST /api/transcribe） */
-export interface Transcription {
-  text: string;
-}
-
-/** 秘密の値（OpenAI の API キーなど）を保存した結果（PUT /api/voice/openai-key）。値そのものは返さず、保存してあるかだけ */
-export interface SecretSaved {
-  saved: boolean;
-}

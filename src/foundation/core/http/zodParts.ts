@@ -1,5 +1,6 @@
 // 受け口で共通に使う、機能に依らない zod の部品（検証の失敗の 400 は http/app.ts の onError）
 import { z } from "zod";
+import type { FormBody } from "@shared/foundation/contract";
 
 /** ?project_id= などの、省略できる ID（数でなければ 400。NaN を SQL に入れない） */
 export const optionalId = z.coerce.number().int().positive().optional();
@@ -23,3 +24,6 @@ export const workdirQuery = z.object({ worktree: z.string().optional() });
 
 /** ?staged=1 などの切り替えを真偽にする（省けば fallback） */
 export const flagOn = (fallback: "0" | "1") => flag.default(fallback).transform((v) => v === "1");
+
+/** form の本文（multipart の項目をそのまま渡す。項目の中身は受け口が確かめる） */
+export const formFields = z.custom<FormBody>((v) => typeof v === "object" && v !== null).transform((v) => v as unknown as Record<string, unknown>);

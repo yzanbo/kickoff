@@ -1,10 +1,10 @@
 import type { Kernel } from "@/foundation/core/kernel";
-import type { SecretSaved } from "@shared/foundation/apiTypes";
-import type { VoiceStatus } from "@shared/voice/types";
+import type { SecretSaved, VoiceStatus } from "@shared/voice/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { ModelDownloads } from "./downloads";
 import { transcribeLocal } from "./local";
-import { modelFile, WHISPER_MODELS } from "./models";
+import { WHISPER_MODELS } from "@shared/voice/models";
+import { modelFile } from "./models";
 import { transcribeOpenAi } from "./openai";
 import { synthesizeOpenAi } from "./speech";
 import { voiceUnreadyReason } from "./readiness";
