@@ -44,8 +44,8 @@ POST /api/projects/:id/notes device
 POST /api/projects/:id/notes/ai-plan device
 POST /api/projects/:id/notes/from-chat device
 POST /api/projects/:id/notes/move device
-POST /api/projects/:id/terminals device
 POST /api/projects/:projectId/chats device
+POST /api/projects/:projectId/terminals device
 POST /api/restart-resumes device
 POST /api/uploads device
 PUT /api/chats/:chatId/queue/editing device

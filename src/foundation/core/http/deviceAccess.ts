@@ -13,11 +13,6 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   // 自分（名前・できること）と、自分のプッシュの宛先を登録する・外す
   ["GET", "/api/devices/self"],
   ["PUT", "/api/devices/self/push"],
-  // ターミナル（一覧・始める・止める・WebSocket でつなぐ。見るだけの端末は見るだけ）
-  ["GET", "/api/terminals"],
-  ["POST", "/api/projects/:id/terminals"],
-  ["DELETE", "/api/terminals/:key"],
-  ["GET", "/api/terminals/:key/ws"],
   // 添付・ツールの結果の画像
   ["POST", "/api/uploads"],
   ["GET", "/api/uploads/:id"],

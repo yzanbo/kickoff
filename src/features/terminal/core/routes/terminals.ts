@@ -1,12 +1,13 @@
+// 内蔵ターミナルの受け口（取り決め @shared/terminal/contract.ts）。WebSocket は、あるシェルにつなぐだけ（TerminalSessions.attach）
 import { randomUUID } from "node:crypto";
-import type { Hono } from "hono";
-import { upgradeWebSocket } from "@hono/node-server";
 import { z } from "zod";
-import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage, TerminalTab } from "@shared/terminal/types";
-import { callerOf, type Caller } from "@/foundation/core/http/caller";
-import { Invalid, NotFound } from "@/foundation/core/errors";
+import { terminalContract } from "@shared/terminal/contract";
+import type { Project } from "@shared/projects/types";
+import type { TerminalClientMessage, TerminalCreateBody, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage } from "@shared/terminal/types";
+import type { Caller } from "@/foundation/core/http/caller";
+import { Invalid } from "@/foundation/core/errors";
+import { implement, textParam, type Param } from "@/foundation/core/http/implement";
 import { jsonBody } from "@/foundation/core/http/input";
-import { lookups } from "@/foundation/core/http/lookups";
 import { resolveWorkdir } from "@/foundation/core/workplace/worktrees";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Bus } from "@/foundation/core/bus";
@@ -46,122 +47,122 @@ export interface TerminalDevices {
   get(id: number): { name: string; access: string } | null;
 }
 
-export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Pick<ChatStoreDeps, "settings" | "projects" | "chats" | "groups"> & { devices: TerminalDevices }; terminals: TerminalSessions; bus: Bus }) {
-  const { withProject } = lookups(store);
+export interface TerminalRouteDeps {
+  projectParam: Param<Project>;
+  store: Pick<ChatStoreDeps, "settings"> & { devices: TerminalDevices };
+  terminals: TerminalSessions;
+  bus: Bus;
+}
 
-  // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）
-  app.get("/api/terminals", (c) => {
-    const { project_id: projectId } = listQuery.parse({ project_id: c.req.query("project_id") || undefined });
-    const tabs: TerminalTab[] = terminals.list();
-    return c.json(projectId !== undefined ? tabs.filter((t) => t.project_id === projectId) : tabs);
-  });
-
-  // 新しいシェルを、プロジェクトの作業場所（本体・ワークツリー）で始める → キー（このキーで WebSocket につなぐ）
-  app.post("/api/projects/:id/terminals", withProject, async (c) => {
-    const body = createSchema.parse(await jsonBody(c));
-    const project = c.var.project;
-    const cwd = await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
-    const key = `api:${randomUUID()}`;
-    const caller = callerOf(c);
-    const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;
-    // 作るだけ（出力は、あとでつなぐ WebSocket に届く。それまでの分は snapshot に入る）
-    const placeholder = { id: `create:${key}`, data: () => {}, exit: () => {} };
-    await terminals.open({ key, cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: ownerOf(caller), meta: { projectId: project.id, title: device ? `ターミナル（${device.name}）` : "ターミナル" } });
-    terminals.detach(key, placeholder.id);
-    return c.json({ key } satisfies TerminalCreated, 201);
-  });
-
-  // この Mac の画面のタブのシェルを用意する（あればつなぎ直し = meta・持ち主を覚え直す。なければ cwd で始める）。出力はこのあと WebSocket で受ける。
-  // 端末からは使えない（端末に開かない。好きなフォルダ・コマンドで始められるため）
-  app.post("/api/terminals", async (c) => {
-    const body = openSchema.parse(await jsonBody(c));
-    const placeholder = { id: `open:${body.key}`, data: () => {}, exit: () => {} };
-    const start = body.start ? { command: body.start.command ?? undefined, env: body.start.env ?? undefined } : undefined;
-    const meta = body.meta ? { projectId: body.meta.project_id, title: body.meta.title } : undefined;
-    const { created } = await terminals.open({ key: body.key, cwd: body.cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
-    terminals.detach(body.key, placeholder.id);
-    return c.json({ created } satisfies TerminalOpened, created ? 201 : 200);
-  });
-
-  // この Mac の画面のタブのシェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。移す元の画面が閉じても止めさせない）。
-  // シェルがなければ 404 で、始めない（終わったコマンドのタブを流し直さないため）。端末からは使えない（端末に開かない）
-  app.put("/api/terminals/:key/owner", async (c) => {
-    const key = c.req.param("key");
-    const body = ownerSchema.parse(await jsonBody(c));
-    if (!terminals.setOwner(key, body.owner)) throw new NotFound("ターミナルが見つかりません（もう終わったかもしれません）");
-    return c.body(null, 204);
-  });
-
-  // シェルを止める（端末は自分が作ったものだけ）
-  app.delete("/api/terminals/:key", (c) => {
-    const key = c.req.param("key");
-    if (!terminals.has(key)) throw new NotFound("ターミナルが見つかりません（もう終わったかもしれません）");
-    if (!mayClose(callerOf(c), terminals.ownerOf(key))) throw new Invalid("この Mac で開いたターミナルは、この Mac で閉じてください");
-    terminals.close(key);
-    return c.body(null, 204);
-  });
-
-  // つなぐ（WebSocket）。最初にいまの画面の内容（snapshot）、そのあと出力（data）・終わり（exit）が届く
-  app.get(
-    "/api/terminals/:key/ws",
-    async (c, next) => {
-      if (!terminals.has(c.req.param("key"))) throw new NotFound("ターミナルが見つかりません（もう終わったかもしれません）");
-      return next();
+export function terminalRoutes({ projectParam, store, terminals, bus }: TerminalRouteDeps) {
+  const keyParam = textParam(z.string().min(1), (key) => (terminals.has(key) ? key : undefined), "ターミナルが見つかりません（もう終わったかもしれません）");
+  return implement(terminalContract, {
+    context: { projectId: projectParam, key: keyParam },
+    // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）
+    "GET /api/terminals": {
+      query: listQuery,
+      run: ({ query }) => {
+        const tabs = terminals.list();
+        return query.project_id !== undefined ? tabs.filter((t) => t.project_id === query.project_id) : tabs;
+      },
     },
-    upgradeWebSocket((c) => {
-      const key = c.req.param("key")!;
-      const caller = callerOf(c);
-      const clientId = `ws:${randomUUID()}`;
-      // 打てるかは送るたびに読み直す（つないだあとで「見るだけ」に変えた・取り消した端末の入力は捨てる）
-      const canType = () => {
-        if (caller.kind === "host") return true;
-        return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().remote_enabled;
-      };
-      let unsubscribe = () => {};
-      let closed = false;
-      return {
-        onOpen(_event, ws) {
-          // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
-          if (caller.kind === "device") {
-            unsubscribe = bus.subscribe((e) => {
-              if ((e.type === "devices" && !store.devices.get(caller.deviceId)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
+    // 新しいシェルを、プロジェクトの作業場所（本体・ワークツリー）で始める → キー（このキーで WebSocket につなぐ）
+    "POST /api/projects/:projectId/terminals": {
+      body: createSchema,
+      run: async ({ projectId: project, body, caller }) => {
+        const cwd = await resolveWorkdir(project.repo_path, body.worktree_path ?? undefined);
+        const key = `api:${randomUUID()}`;
+        const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;
+        // 作るだけ（出力は、あとでつなぐ WebSocket に届く。それまでの分は snapshot に入る）
+        const placeholder = { id: `create:${key}`, data: () => {}, exit: () => {} };
+        await terminals.open({ key, cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: ownerOf(caller), meta: { projectId: project.id, title: device ? `ターミナル（${device.name}）` : "ターミナル" } });
+        terminals.detach(key, placeholder.id);
+        return { key };
+      },
+    },
+    // この Mac の画面のタブのシェルを用意する（あればつなぎ直し = meta・持ち主を覚え直す。なければ cwd で始める）。出力はこのあと WebSocket で受ける。
+    // 端末からは使えない（端末に開かない。好きなフォルダ・コマンドで始められるため）
+    "POST /api/terminals": {
+      run: async ({ raw: c }) => {
+        const body = openSchema.parse(await jsonBody(c));
+        const placeholder = { id: `open:${body.key}`, data: () => {}, exit: () => {} };
+        const start = body.start ? { command: body.start.command ?? undefined, env: body.start.env ?? undefined } : undefined;
+        const meta = body.meta ? { projectId: body.meta.project_id, title: body.meta.title } : undefined;
+        const { created } = await terminals.open({ key: body.key, cwd: body.cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
+        terminals.detach(body.key, placeholder.id);
+        return c.json({ created } satisfies TerminalOpened, created ? 201 : 200);
+      },
+    },
+    // この Mac の画面のタブのシェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。移す元の画面が閉じても止めさせない）。
+    // シェルがなければ 404 で、始めない（終わったコマンドのタブを流し直さないため）。端末からは使えない（端末に開かない）
+    "PUT /api/terminals/:key/owner": {
+      body: ownerSchema,
+      run: ({ key, body }) => {
+        terminals.setOwner(key, body.owner);
+      },
+    },
+    // シェルを止める（端末は自分が作ったものだけ）
+    "DELETE /api/terminals/:key": {
+      run: ({ key, caller }) => {
+        if (!mayClose(caller, terminals.ownerOf(key))) throw new Invalid("この Mac で開いたターミナルは、この Mac で閉じてください");
+        terminals.close(key);
+      },
+    },
+    // つなぐ（WebSocket）。最初にいまの画面の内容（snapshot）、そのあと出力（data）・終わり（exit）が届く
+    "GET /api/terminals/:key/ws": {
+      run: ({ key, caller }) => {
+        const clientId = `ws:${randomUUID()}`;
+        // 打てるかは送るたびに読み直す（つないだあとで「見るだけ」に変えた・取り消した端末の入力は捨てる）
+        const canType = () => {
+          if (caller.kind === "host") return true;
+          return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().remote_enabled;
+        };
+        let unsubscribe = () => {};
+        let closed = false;
+        return {
+          onOpen(_event, ws) {
+            // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
+            if (caller.kind === "device") {
+              unsubscribe = bus.subscribe((e) => {
+                if ((e.type === "devices" && !store.devices.get(caller.deviceId)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
+              });
+            }
+            const send = (message: TerminalServerMessage) => ws.send(JSON.stringify(message));
+            const client = {
+              id: clientId,
+              data: (data: string) => send({ type: "data", data }),
+              exit: (exitCode: number) => {
+                send({ type: "exit", exit_code: exitCode });
+                ws.close();
+              },
+            };
+            // あるシェルにつなぐだけ（終わったシェルを始め直さない。つないですぐ切ったら足さない）
+            void terminals.attach(key, client).then((attached) => {
+              if (attached) send({ type: "snapshot", data: attached.snapshot });
+              else if (!closed) ws.close();
             });
-          }
-          const send = (message: TerminalServerMessage) => ws.send(JSON.stringify(message));
-          const client = {
-            id: clientId,
-            data: (data: string) => send({ type: "data", data }),
-            exit: (exitCode: number) => {
-              send({ type: "exit", exit_code: exitCode });
-              ws.close();
-            },
-          };
-          // あるシェルにつなぐだけ（終わったシェルを始め直さない。つないですぐ切ったら足さない）
-          void terminals.attach(key, client).then((attached) => {
-            if (attached) send({ type: "snapshot", data: attached.snapshot });
-            else if (!closed) ws.close();
-          });
-        },
-        onMessage(event) {
-          let parsed: TerminalClientMessage;
-          try {
-            parsed = clientMessage.parse(JSON.parse(String(event.data)));
-          } catch {
-            return;
-          }
-          if (parsed.type === "input") {
-            if (canType()) terminals.write(key, parsed.data);
-            return;
-          }
-          // 大きさを変えるのは、この Mac の画面と、シェルの持ち主の端末だけ（この Mac の画面のタブを、スマホの小さな画面に合わせて崩さない）
-          if (canType() && (caller.kind === "host" || terminals.ownerOf(key) === ownerOf(caller))) terminals.resize(key, parsed.cols, parsed.rows);
-        },
-        onClose() {
-          closed = true;
-          unsubscribe();
-          terminals.detach(key, clientId);
-        },
-      };
-    }),
-  );
+          },
+          onMessage(event) {
+            let parsed: TerminalClientMessage;
+            try {
+              parsed = clientMessage.parse(JSON.parse(String(event.data)));
+            } catch {
+              return;
+            }
+            if (parsed.type === "input") {
+              if (canType()) terminals.write(key, parsed.data);
+              return;
+            }
+            // 大きさを変えるのは、この Mac の画面と、シェルの持ち主の端末だけ（この Mac の画面のタブを、スマホの小さな画面に合わせて崩さない）
+            if (canType() && (caller.kind === "host" || terminals.ownerOf(key) === ownerOf(caller))) terminals.resize(key, parsed.cols, parsed.rows);
+          },
+          onClose() {
+            closed = true;
+            unsubscribe();
+            terminals.detach(key, clientId);
+          },
+        };
+      },
+    },
+  });
 }
