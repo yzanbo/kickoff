@@ -1,7 +1,7 @@
 import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
-import type { ConnectionForm } from "./connectionForm";
+import type { SetPart, SshForm } from "./connectionForm";
 import { SecretField } from "./SecretField";
 
 /**
@@ -10,33 +10,33 @@ import { SecretField } from "./SecretField";
  */
 export function ConnectionSshFields({
   projectId,
-  form,
+  ssh,
   hasPassword,
   set,
 }: {
   projectId: number;
-  form: ConnectionForm;
+  ssh: SshForm;
   /** 保存した SSH のパスワードがあるか（編集のときだけ） */
   hasPassword: boolean;
-  set: <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => void;
+  set: SetPart<SshForm>;
 }) {
-  const hosts = useQuery(["ConnectionSshFields.hosts", projectId, form.ssh_on], () => (form.ssh_on ? dbApi("GET /api/projects/:projectId/db-connections/ssh-hosts", { params: { projectId } }) : Promise.resolve([])), { keepPrevious: true });
+  const hosts = useQuery(["ConnectionSshFields.hosts", projectId, ssh.on], () => (ssh.on ? dbApi("GET /api/projects/:projectId/db-connections/ssh-hosts", { params: { projectId } }) : Promise.resolve([])), { keepPrevious: true });
   return (
     <>
       <CheckField
         label="SSH トンネルを通す"
         help="踏み台のサーバーに ssh でつなぎ、そこから DB につなぎます（ホストは踏み台から見た DB の場所）。この Mac の ssh・~/.ssh/config・ssh-agent をそのまま使います"
-        checked={form.ssh_on}
-        onChange={(v) => set("ssh_on", v)}
+        checked={ssh.on}
+        onChange={(v) => set("on", v)}
       />
-      {form.ssh_on && (
+      {ssh.on && (
         <div className="db-ssh-fields">
           <div className="db-connection-row">
             <Field label="踏み台" help="~/.ssh/config の Host の名前か、ホスト名">
-              <input value={form.ssh_host} onChange={(e) => set("ssh_host", e.target.value)} required list="db-ssh-hosts" placeholder="bastion" spellCheck={false} />
+              <input value={ssh.host} onChange={(e) => set("host", e.target.value)} required list="db-ssh-hosts" placeholder="bastion" spellCheck={false} />
             </Field>
             <Field label="ポート">
-              <input value={form.ssh_port} onChange={(e) => set("ssh_port", e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="22" />
+              <input value={ssh.port} onChange={(e) => set("port", e.target.value.replace(/\D/g, ""))} inputMode="numeric" placeholder="22" />
             </Field>
           </div>
           <datalist id="db-ssh-hosts">
@@ -46,21 +46,21 @@ export function ConnectionSshFields({
           </datalist>
           <div className="db-connection-row">
             <Field label="ユーザー（任意）">
-              <input value={form.ssh_user} onChange={(e) => set("ssh_user", e.target.value)} spellCheck={false} autoComplete="off" placeholder="ec2-user" />
+              <input value={ssh.user} onChange={(e) => set("user", e.target.value)} spellCheck={false} autoComplete="off" placeholder="ec2-user" />
             </Field>
             <Field label="鍵のファイル（任意）">
-              <input value={form.ssh_identity_file} onChange={(e) => set("ssh_identity_file", e.target.value)} spellCheck={false} placeholder="~/.ssh/id_ed25519" />
+              <input value={ssh.identity_file} onChange={(e) => set("identity_file", e.target.value)} spellCheck={false} placeholder="~/.ssh/id_ed25519" />
             </Field>
           </div>
           <SecretField
             label="SSH のパスワード（任意）"
             help={hasPassword ? "保存してあります（変えるときだけ入力）" : "鍵でログインできないときだけ。この Mac の Kickoff の中だけに保存し、画面・AI には出しません"}
             saved={hasPassword}
-            value={form.ssh_password}
-            clear={form.clearSshPassword}
+            value={ssh.password}
+            clear={ssh.clearPassword}
             clearLabel="保存した SSH のパスワードを消す"
-            onChange={(v) => set("ssh_password", v)}
-            onClear={(v) => set("clearSshPassword", v)}
+            onChange={(v) => set("password", v)}
+            onClear={(v) => set("clearPassword", v)}
           />
         </div>
       )}

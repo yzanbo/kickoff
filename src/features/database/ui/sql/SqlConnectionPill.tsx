@@ -5,7 +5,7 @@ import { useDbConnections } from "@/features/database/ui/state/connectionsStore"
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
-import { ENGINE_MARKS } from "@/features/database/ui/dbFormat";
+import { EngineMark } from "@/features/database/ui/connection/EngineMark";
 
 /** ピルに出す場所（DB の名前、SQLite はファイルの名前） */
 const placeOf = (c: DbConnection) => c.database ?? c.file_path?.split("/").at(-1) ?? null;
@@ -30,7 +30,7 @@ export function SqlConnectionPill({ connection: c, tabKey, disabled }: { connect
         data-tip={disabled ? "流し終わってから替えられます" : "このタブで流す接続を替える"}
       >
         <span className="db-env-dot" aria-hidden />
-        <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
+        <EngineMark engine={c.engine} />
         <span className="db-sql-pill-name">{c.name}</span>
         {place && <span className="db-sql-pill-place">· {place}</span>}
         <ChevronDown size={12} aria-hidden />

@@ -1,5 +1,5 @@
 import { PanelRight } from "lucide-react";
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { isFileDb } from "@shared/database/connectionShape";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { DB_DIALECTS } from "@shared/database/dialect";
@@ -71,15 +71,14 @@ export function TableData({
   const [pickRequest, setPickRequest] = useState<{ row: number; col: number } | null>(null);
   const filterKey = JSON.stringify(tab.filter ?? null);
   useEffect(() => setExact(null), [tab.key, filterKey]);
-  const onPickRow = useCallback((row: number | null) => setPickedRow(row), []);
 
-  const columns = useMemo(() => detail?.columns.map((c) => c.name) ?? data.result?.columns.map((c) => c.name) ?? [], [detail, data.result]);
+  const columns = detail?.columns.map((c) => c.name) ?? data.result?.columns.map((c) => c.name) ?? [];
   // 見出しの 🔑 主キー・↗ 外部キー
-  const keys = useMemo(() => (detail ? columnKeysOf(detail) : undefined), [detail]);
+  const keys = detail ? columnKeysOf(detail) : undefined;
   const result = data.result;
   const { edits, keyColumns, writable } = edit;
-  const display = useMemo(() => (result ? displayRows(result.columns, result.rows, keyColumns, edits) : null), [result, keyColumns, edits]);
-  // edit.change は描き直しごとに作り直すが、中で読むのはいちばん新しい変更なので、表は中身が変わったときだけ作り直す（決めたときにいまの change を呼ぶ）
+  const display = result ? displayRows(result.columns, result.rows, keyColumns, edits) : null;
+  // 残す: edit.change は描き直しごとに作り直すが、中で読むのはいちばん新しい変更なので、表は中身が変わったときだけ作り直す（決めたときにいまの change を呼ぶ）
   const changeRef = useLatest(edit.change);
   const gridEdit = useMemo((): DataGridEdit | undefined => {
     if (!display || !result) return undefined;
@@ -150,7 +149,7 @@ export function TableData({
             rows={display.rows}
             sort={data.sort}
             onSort={data.sortBy}
-            onPickRow={onPickRow}
+            onPickRow={setPickedRow}
             onCellMenu={(e, row, col) => menu.open(e, { row, col })}
             edit={gridEdit}
             pickRequest={pickRequest}

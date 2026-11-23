@@ -1,5 +1,5 @@
 // DB クライアントの表示の補助（セルの文・接続の行の説明・列の並べ替えの切り替え）。React に依らない
-import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@shared/database/types";
+import type { DbConnection, DbObjectPath, DbSort, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { formatBytes } from "@shared/foundation/text/bytes";
 import { isFileDb } from "@shared/database/connectionShape";
@@ -24,9 +24,6 @@ export function cellKind(value: DbValue): "null" | "binary" | "empty" | "number"
   if (typeof value === "number") return "number";
   return "text";
 }
-
-/** DB の種類の短い印（木・接続のホーム。商標のロゴは使わない） */
-export const ENGINE_MARKS: Record<DbEngine, string> = { postgres: "Pg", mysql: "My", sqlite: "Lt" };
 
 /** 接続の行に添える場所（SQLite はファイル、ほかは ユーザー@ホスト:ポート/DB） */
 export function connectionScope(c: Pick<DbConnection, "engine" | "host" | "port" | "database" | "username" | "file_path">): string {

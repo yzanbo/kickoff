@@ -9,7 +9,8 @@ import { relativeTime } from "@/foundation/ui/lib/time";
 import { applyConnection, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
-import { connectionScope, ENGINE_MARKS } from "@/features/database/ui/dbFormat";
+import { connectionScope } from "@/features/database/ui/dbFormat";
+import { EngineMark } from "@/features/database/ui/connection/EngineMark";
 
 /**
  * 接続のホーム（タブを開いていないとき）: このプロジェクトの接続を環境の色のカードで並べ（押すと左の木でその接続を開く・右クリックは接続のメニュー）、
@@ -46,7 +47,7 @@ export function DbHome({
           {connections.map((c) => (
             <button key={c.id} type="button" className={cx("db-home-card", `db-env-${c.environment}`)} onClick={() => onOpen(c)} onContextMenu={(e) => onMenu(e, c)} title={`${c.name}（左の木で開く。右クリックで接続のメニュー）`}>
               <span className="db-home-card-top">
-                <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
+                <EngineMark engine={c.engine} />
                 <span className="db-home-card-name">{c.name}</span>
                 {connected?.includes(c.id) && (
                   <span data-tip="つないでいます" aria-label="つないでいます">
@@ -101,7 +102,7 @@ function Candidate({ projectId, candidate: c }: { projectId: number; candidate: 
   const add = () => action.run("add", async () => (await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: [{ key: c.key, name: c.name, environment: c.environment }] } })).forEach(applyConnection), { keepBusy: true });
   return (
     <li className={cx("db-home-found-item", `db-env-${c.environment}`)}>
-      <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
+      <EngineMark engine={c.engine} />
       <span className="db-home-found-text">
         <span>{c.origin}</span>
         <span className="small muted">

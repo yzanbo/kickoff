@@ -30,11 +30,7 @@ const MESSAGES = "messages";
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
 const DRAFT_DELAY = 400;
 
-/**
- * SQL のタブ。上に入力欄（⌘↵ でカーソルの文か選んだ範囲、⇧⌘↵ ですべての文）、下に文ごとの結果のタブ。
- * 文は 1 つずつ送り、失敗した文で止める。タブごとに DB の接続を 1 本持ち、トランザクションの途中ならコミット / 取り消すを出す。
- * 読み取り専用の接続は「書き込む」でこのタブだけ外せる（useSqlWrite。外している間は赤い帯）
- */
+/** SQL のタブ。上に入力欄（⌘↵ でカーソルの文か選んだ範囲、⇧⌘↵ ですべての文）、下に文ごとの結果のタブ。タブごとに DB の接続を 1 本持つ */
 export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection: DbConnection; active: boolean }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);

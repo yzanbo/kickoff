@@ -7,15 +7,14 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { formatBytes } from "@shared/foundation/text/bytes";
 import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
-import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented, type SegmentOption } from "@/foundation/ui/kit/Segmented";
 import { AskAiButton, OpenAsSqlButton } from "@/features/database/ui/ai/DbAiButtons";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { objectPathLabel } from "@/features/database/ui/dbFormat";
 import { DbWriteBand } from "@/features/database/ui/write/DbWriteBand";
+import { DbDdlBlock, DbInfoTable, DbViewHead } from "./DbDetailParts";
 import { TableData } from "./TableData";
 import { useTableRows } from "./useTableRows";
 import { estimateRowsBytes, useResultBudget } from "@/features/database/ui/state/resultBudget";
@@ -32,11 +31,7 @@ const VIEWS: SegmentOption<View>[] = [
 /** 狭い所ではアイコンだけ（名前は乗せたときの説明と読み上げ） */
 const ICON_VIEWS = VIEWS.map((v) => ({ ...v, iconOnly: true }));
 
-/**
- * テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。データは 100 行ずつ読み（続きは「さらに読む」）、列の見出しで並べ替え（ORDER BY を付けて取り直す）、
- * 絞り込みはタブに覚える（onFilter）。全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す。
- * セルの書き換えなどの保存していない変更は、表示を切り替えても残るようここで持ち（useTableEdits）、⌘S で保存する
- */
+/** テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。保存していない変更は表示を切り替えても残るようここで持ち、⌘S で保存する */
 export function TableView({
   tab,
   connection,
@@ -74,11 +69,7 @@ export function TableView({
       }}
     >
       {edit.write.on && <DbWriteBand connection={connection} what="保存する" blocked={edit.saving ? "保存し終わってから戻せます" : null} onRevert={edit.write.revert} />}
-      <div className="db-view-head bar">
-        <span className="db-view-title" title={label}>
-          {label}
-        </span>
-        <span className="db-view-kind">{DB_OBJECT_KIND_LABELS[tab.object]}</span>
+      <DbViewHead label={label} kind={tab.object}>
         <Segmented className="db-view-switch" label="表示" value={view} options={client.narrow ? ICON_VIEWS : VIEWS} onChange={setView} />
         <span className="db-view-actions">
           <AskAiButton connection={connection} path={tab.path} tables={[tab.name]} />
@@ -92,25 +83,12 @@ export function TableView({
             data.reload();
           }}
         />
-      </div>
+      </DbViewHead>
       <ErrorText message={errorText(detail.error)} />
       {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} edit={edit} onFilter={onFilter} />}
       {view === "structure" && detail.data && <TableStructure detail={detail.data} />}
       {view === "relations" && detail.data && <TableRelations detail={detail.data} />}
-      {view === "ddl" && detail.data && (
-        <div className="db-ddl">
-          {detail.data.ddl ? (
-            <>
-              <CopyButton label="DDL をコピー" text={detail.data.ddl} className="db-ddl-copy" />
-              <pre>
-                <HighlightedCode code={detail.data.ddl} lang="sql" />
-              </pre>
-            </>
-          ) : (
-            <p className="muted small">この DB からは作る文を読めませんでした</p>
-          )}
-        </div>
-      )}
+      {view === "ddl" && detail.data && <DbDdlBlock className="db-ddl" ddl={detail.data.ddl} missing="この DB からは作る文を読めませんでした" />}
       {view === "info" && detail.data && <TableInfo detail={detail.data} label={label} />}
     </div>
   );
@@ -226,16 +204,7 @@ function TableInfo({ detail, label }: { detail: DbTableDetail; label: string }) 
   ];
   return (
     <div className="db-detail">
-      <table className="db-detail-table db-info-table">
-        <tbody>
-          {rows.map(([k, v]) => (
-            <tr key={k}>
-              <th>{k}</th>
-              <td>{v}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DbInfoTable rows={rows} />
     </div>
   );
 }

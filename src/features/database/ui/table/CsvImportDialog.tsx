@@ -1,7 +1,7 @@
 import { FileUp } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
-import { errorMessage } from "@shared/foundation/errors";
 import { DB_EDITS_MAX, type DbEditValue } from "@shared/database/types";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -38,7 +38,7 @@ export function CsvImportDialog({
   const [delimiter, setDelimiter] = useState<CsvDelimiter | "auto">("auto");
   const [header, setHeader] = useState(true);
   const [emptyAsNull, setEmptyAsNull] = useState(true);
-  const [error, setError] = useState<string>();
+  const action = useAction<"read">();
 
   const used = delimiter === "auto" ? detectDelimiter(text) : delimiter;
   const mapped = text ? mapCsvRows(parseDelimited(text, used), columns, header, emptyAsNull) : null;
@@ -48,14 +48,11 @@ export function CsvImportDialog({
 
   const pick = async (f: File | undefined) => {
     if (!f) return;
-    setError(undefined);
-    if (f.size > CSV_MAX_BYTES) return setError(`${Math.round(CSV_MAX_BYTES / 1024 / 1024)} MB より大きいファイルは読み込めません`);
-    try {
+    await action.run("read", async () => {
+      if (f.size > CSV_MAX_BYTES) throw new Error(`${Math.round(CSV_MAX_BYTES / 1024 / 1024)} MB より大きいファイルは読み込めません`);
       setText(await f.text());
       setSource(f.name);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
+    });
   };
 
   const submit = (e: FormEvent) => {
@@ -137,7 +134,7 @@ export function CsvImportDialog({
             )}
           </div>
         )}
-        <ErrorText message={error} />
+        <ErrorText message={action.error} />
         <DialogActions onCancel={() => dialog.close()} submit={{ label: count > 0 ? `${count.toLocaleString()} 行を足す` : "足す", disabled: count === 0 || over || targets.length === 0 }} />
       </form>
     </dialog>

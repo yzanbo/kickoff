@@ -13,7 +13,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ConnectionSslFields, EngineTiles } from "./ConnectionBasicFields";
-import { bodyOf, formOf, testResultText, type ConnectionForm } from "./connectionForm";
+import { bodyOf, formOf, testResultText, type ConnectionForm, type PrepForm, type SetPart, type SshForm } from "./connectionForm";
 import { ConnectionNoteField } from "./ConnectionNoteField";
 import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
@@ -47,7 +47,9 @@ export function ConnectionDialog({
   const action = useAction<"submit">();
   /** 鍵を確かめている踏み台（初めてのサーバーで試すのに失敗したとき） */
   const [hostKey, setHostKey] = useState<DbSsh | null>(null);
-  const set = <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const set: SetPart<ConnectionForm> = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const setSsh: SetPart<SshForm> = (key, value) => setForm((f) => ({ ...f, ssh: { ...f.ssh, [key]: value } }));
+  const setPrep: SetPart<PrepForm> = (key, value) => setForm((f) => ({ ...f, prep: { ...f.prep, [key]: value } }));
   const sqlite = isFileDb(form.engine);
 
   const chooseEnvironment = (environment: DbEnvironment) =>
@@ -144,7 +146,7 @@ export function ConnectionDialog({
               onClear={(v) => set("clearPassword", v)}
             />
             <ConnectionSslFields form={form} set={set} />
-            <ConnectionSshFields projectId={projectId} form={form} hasPassword={!!connection?.has_ssh_password} set={set} />
+            <ConnectionSshFields projectId={projectId} ssh={form.ssh} hasPassword={!!connection?.has_ssh_password} set={setSsh} />
           </>
         )}
         <Field label="環境" as="div" help="環境ごとに色を付け、本番は初めから読み取り専用にします">
@@ -207,7 +209,7 @@ export function ConnectionDialog({
         {!sqlite && isAiVisible(form) && connection?.has_ai_password && (
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
-        <ConnectionPrepFields form={form} set={set} />
+        <ConnectionPrepFields form={form} set={set} setPrep={setPrep} />
         <ConnectionNoteField projectId={projectId} value={form.note_path} from={{ engine: form.engine, environment: form.environment, host: form.host.trim() || null }} onChange={(v) => set("note_path", v)} />
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, sqlite ? null : form.ssl)}</p>

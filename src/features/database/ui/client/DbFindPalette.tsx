@@ -4,7 +4,7 @@ import type { DbConnection, DbObjectPath } from "@shared/database/types";
 import { useQuery } from "@/foundation/ui/query";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useRovingList } from "@/foundation/ui/kit/list/useRovingList";
-import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
+import { PaletteDialog, usePaletteDialog } from "@/foundation/ui/kit/floating/PaletteDialog";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import type { DbClientTab } from "@/features/database/ui/state/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";
@@ -25,7 +25,7 @@ const MAX_PLACES = 10;
  */
 export function DbFindPalette({ connections, activeTab, onClose }: { connections: DbConnection[]; activeTab: DbClientTab | null; onClose: () => void }) {
   const client = useDbClient();
-  const { ref: dialogRef, ...dialog } = useModalDialog();
+  const modal = usePaletteDialog();
   const [treeOpen] = useSetting(storage.settings.treeOpen(client.surfaceKey));
   const connected = useDbConnectedIds(client.projectId).data;
   const [query, setQuery] = useState("");
@@ -72,54 +72,52 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
   const go = (item: DbFindItem | undefined) => {
     const c = item && byId.get(item.connection_id);
     if (!item || !c) return;
-    dialog.close();
+    modal.close();
     client.openTable(c, item.path, item.table, item.kind);
   };
   const nav = useRovingList({ mode: "activeDescendant", keys: items, onPick: go });
   useEffect(() => nav.setIndex(0), [query, loaded]);
-  useEffect(() => {
-    dialogRef.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
-  }, [nav.index, dialogRef]);
   // 接続の名前・場所は、探す元に 2 つ以上あるときだけ添える
   const manyConnections = new Set(loaded?.sources.map((s) => s.connection_id)).size > 1;
   const manyPlaces = (loaded?.sources.length ?? 0) > 1;
 
   return (
-    <dialog ref={dialogRef} className="palette floating" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
-      <div className="palette-input bar">
-        <Search size={16} className="muted" aria-hidden />
-        <input autoFocus value={query} placeholder="テーブル・列の名前（「表.列」で列を絞る）" aria-label="テーブル・列の名前" onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} aria-activedescendant={nav.activeId} />
-      </div>
-      <ul className="palette-list" role="listbox">
-        {!loaded ? (
-          <li className="palette-empty">読み込み中…</li>
-        ) : loaded.sources.length === 0 ? (
-          <li className="palette-empty">{loaded.failed > 0 ? "読めませんでした（木で接続を開き直してください）" : "つないでいる接続がありません（左の木で接続を開くと探せます）"}</li>
-        ) : (
-          items.length === 0 && <li className="palette-empty">見つかりません</li>
-        )}
-        {items.map((item, i) => (
-          <li key={item.key} role="option" {...nav.optionProps(i)}>
-            <button type="button" className={`palette-item ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
-              {item.column ? <Columns3 size={13} className="muted" aria-hidden /> : <TabObjectIcon object={item.kind} />}
-              <span className="palette-label">
-                {item.column ? (
-                  <>
-                    <span className="muted">{item.table}.</span>
-                    {item.column}
-                  </>
-                ) : (
-                  item.table
-                )}
-              </span>
-              <span className="palette-hint">
-                <span className="palette-hint-text">{[manyConnections ? byId.get(item.connection_id)?.name : null, manyPlaces ? objectPathLabel(item.path) : null].filter(Boolean).join(" · ")}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {loaded && loaded.failed > 0 && loaded.sources.length > 0 && <p className="db-find-note small muted">{loaded.failed} か所は読めませんでした</p>}
-    </dialog>
+    <PaletteDialog
+      modal={modal}
+      nav={nav}
+      label="テーブル・列を探す"
+      icon={<Search size={16} className="muted" aria-hidden />}
+      input={{ value: query, onChange: setQuery, placeholder: "テーブル・列の名前（「表.列」で列を絞る）", label: "テーブル・列の名前" }}
+      footer={loaded && loaded.failed > 0 && loaded.sources.length > 0 && <p className="db-find-note small muted">{loaded.failed} か所は読めませんでした</p>}
+      onClose={onClose}
+    >
+      {!loaded ? (
+        <li className="palette-empty">読み込み中…</li>
+      ) : loaded.sources.length === 0 ? (
+        <li className="palette-empty">{loaded.failed > 0 ? "読めませんでした（木で接続を開き直してください）" : "つないでいる接続がありません（左の木で接続を開くと探せます）"}</li>
+      ) : (
+        items.length === 0 && <li className="palette-empty">見つかりません</li>
+      )}
+      {items.map((item, i) => (
+        <li key={item.key} role="option" {...nav.optionProps(i)}>
+          <button type="button" className={`palette-item ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
+            {item.column ? <Columns3 size={13} className="muted" aria-hidden /> : <TabObjectIcon object={item.kind} />}
+            <span className="palette-label">
+              {item.column ? (
+                <>
+                  <span className="muted">{item.table}.</span>
+                  {item.column}
+                </>
+              ) : (
+                item.table
+              )}
+            </span>
+            <span className="palette-hint">
+              <span className="palette-hint-text">{[manyConnections ? byId.get(item.connection_id)?.name : null, manyPlaces ? objectPathLabel(item.path) : null].filter(Boolean).join(" · ")}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </PaletteDialog>
   );
 }

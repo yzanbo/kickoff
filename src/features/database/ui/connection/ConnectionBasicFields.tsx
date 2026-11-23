@@ -1,8 +1,8 @@
 import { DB_ENGINE_LABELS, DB_ENGINES, DB_SSL_MODE_LABELS, type DbEngine, type DbSslMode } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
-import type { ConnectionForm } from "./connectionForm";
-import { ENGINE_MARKS } from "@/features/database/ui/dbFormat";
+import type { ConnectionForm, SetPart } from "./connectionForm";
+import { EngineMark } from "./EngineMark";
 
 /** 種類のタイルに添える一言 */
 const ENGINE_NOTES: Record<DbEngine, string> = { sqlite: "手元のファイル", postgres: "サーバー", mysql: "サーバー" };
@@ -13,9 +13,7 @@ export function EngineTiles({ value, onChange }: { value: DbEngine; onChange: (e
     <div className="db-engine-tiles" role="radiogroup" aria-label="DB の種類">
       {DB_ENGINES.map((e) => (
         <button key={e} type="button" role="radio" aria-checked={value === e} className={cx("db-engine-tile", value === e && "active")} onClick={() => onChange(e)}>
-          <span className="db-engine-mark" aria-hidden>
-            {ENGINE_MARKS[e]}
-          </span>
+          <EngineMark engine={e} read="hidden" />
           <span className="db-engine-tile-name">{DB_ENGINE_LABELS[e]}</span>
           <span className="db-engine-tile-note small muted">{ENGINE_NOTES[e]}</span>
         </button>
@@ -28,7 +26,7 @@ export function EngineTiles({ value, onChange }: { value: DbEngine; onChange: (e
  * 接続のダイアログの「SSL」: SSH トンネルと同じく、チェックを入れたときだけ欄を開く（確かめ方・CA の証明書）。
  * チェックを入れると「暗号化する（証明書は確かめない）」から
  */
-export function ConnectionSslFields({ form, set }: { form: ConnectionForm; set: <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => void }) {
+export function ConnectionSslFields({ form, set }: { form: ConnectionForm; set: SetPart<ConnectionForm> }) {
   const on = form.ssl !== "off";
   return (
     <>

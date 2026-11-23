@@ -1,12 +1,13 @@
 import { Database, Plus } from "lucide-react";
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS } from "@shared/database/types";
+import { DB_ENVIRONMENT_LABELS } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDbConnectedIds, useDbConnections } from "@/features/database/ui/state/connectionsStore";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 import { requestDbClient } from "@/features/database/ui/state/dbClientRequests";
 import { dbSurfaceKey, type DbSurface } from "@/features/database/ui/state/surface";
-import { connectionScope, ENGINE_MARKS } from "@/features/database/ui/dbFormat";
+import { connectionScope } from "@/features/database/ui/dbFormat";
+import { EngineMark } from "./EngineMark";
 
 /**
  * 右の欄の ▾ の「DB ▸」の中身: DB クライアントを開く ｜ 接続ごとの行（環境の色・DB の種類の印・名前・つないでいる緑の点。押すとその接続を木で開いた DB クライアント）。
@@ -45,9 +46,7 @@ export function DbMenuItems({ projectId, surface, onOpen }: { projectId: number;
         >
           <span className={cx("db-menu-connection", `db-env-${c.environment}`)}>
             <span className="db-env-dot" aria-hidden />
-            <span className="db-engine-mark" aria-label={DB_ENGINE_LABELS[c.engine]}>
-              {ENGINE_MARKS[c.engine]}
-            </span>
+            <EngineMark engine={c.engine} read="name" />
             <span className="db-menu-connection-name">{c.name}</span>
             {connected?.includes(c.id) && (
               <span className="db-menu-connected" aria-label="つないでいます">

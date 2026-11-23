@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { editKeyColumns, editStatements } from "@shared/database/dbEdit";
 import { errorMessage } from "@shared/foundation/errors";
-import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDetail } from "@shared/database/types";
+import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbRowEdit, type DbTableDetail } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import type { DbTableTab } from "@/features/database/ui/state/dbClientTabs";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { confirm } from "@/foundation/ui/kit/ask";
@@ -21,8 +22,8 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
   const [edits, setEdits] = useState<TableEdits>(NO_EDITS);
   // 保存は、書き直している欄を決めた直後のいちばん新しい変更で（描き直しを待たない）
   const latest = useRef(edits);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const action = useAction<"save">();
+  const saving = action.busy === "save";
   const write = useSqlWrite(connection, false);
   const keyColumns = detail ? editKeyColumns(detail) : null;
   const counts = editCounts(edits);
@@ -37,12 +38,12 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     const next = f(latest.current);
     latest.current = next;
     setEdits(next);
-    setError(undefined);
+    action.reset();
     write.touch();
   };
 
-  /** 流す SQL を見せて確かめてから保存する（保存の本体。失敗は投げる。やめたら false） */
-  const saveConfirmed = async (current: TableEdits, n: number): Promise<boolean> => {
+  /** 流す SQL を見せて確かめる（保存する変更の一覧を返す。やめたら null。組めなければ投げる） */
+  const confirmSave = async (current: TableEdits, n: number): Promise<DbRowEdit[] | null> => {
     const list = buildEdits(current, keyColumns);
     const sql = editStatements(connection.engine, tab.path, tab.name, list)
       .map((s) => `${s.preview};`)
@@ -54,14 +55,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
       !write.on && connection.write_check === "env_name"
         ? await confirmByEnvName(connection, title, message, "保存")
         : await confirm({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
-    if (!ok) return false;
-    setSaving(true);
-    await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/edits", { ...dbAt(client.projectId, connection.id, worktree), body: { path: tab.path, table: tab.name, edits: list, write: write.on } });
-    latest.current = NO_EDITS;
-    setEdits(NO_EDITS);
-    write.touch();
-    onSaved();
-    return true;
+    return ok ? list : null;
   };
 
   const save = async (): Promise<boolean> => {
@@ -72,19 +66,25 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     const n = editCounts(current).total;
     if (n === 0 || saving) return true;
     if (connection.read_only && !write.on) {
-      setError("読み取り専用の接続です。保存するには、上の「書き込む…」で読み取り専用を外してください");
+      action.setError("読み取り専用の接続です。保存するには、上の「書き込む…」で読み取り専用を外してください");
       return false;
     }
     if (n > DB_EDITS_MAX) {
-      setError(`1 回に保存できる変更は ${DB_EDITS_MAX.toLocaleString()} 件までです（いま ${n.toLocaleString()} 件）`);
+      action.setError(`1 回に保存できる変更は ${DB_EDITS_MAX.toLocaleString()} 件までです（いま ${n.toLocaleString()} 件）`);
       return false;
     }
-    const saved = await saveConfirmed(current, n).catch((e: unknown) => {
-      setError(errorMessage(e));
-      return false;
+    const list = await confirmSave(current, n).catch((e: unknown) => {
+      action.setError(errorMessage(e));
+      return null;
     });
-    setSaving(false);
-    return saved;
+    if (!list) return false;
+    return action.run("save", async () => {
+      await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/edits", { ...dbAt(client.projectId, connection.id, worktree), body: { path: tab.path, table: tab.name, edits: list, write: write.on } });
+      latest.current = NO_EDITS;
+      setEdits(NO_EDITS);
+      write.touch();
+      onSaved();
+    });
   };
 
   /** 変更をすべて捨てる（確かめてから） */
@@ -94,7 +94,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     if (!ok) return;
     latest.current = NO_EDITS;
     setEdits(NO_EDITS);
-    setError(undefined);
+    action.reset();
   };
 
   // ⌘⇧S のすべて保存にも知らせる
@@ -111,7 +111,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     isTable,
     write,
     saving,
-    error,
+    error: action.error,
     change,
     save,
     discard,

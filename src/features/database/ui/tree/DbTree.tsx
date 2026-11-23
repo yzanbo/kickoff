@@ -15,7 +15,8 @@ import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
-import { connectionScope, ENGINE_MARKS } from "@/features/database/ui/dbFormat";
+import { connectionScope } from "@/features/database/ui/dbFormat";
+import { EngineMark } from "@/features/database/ui/connection/EngineMark";
 import { isPinned, togglePin, type DbPin } from "@/features/database/ui/dbPins";
 import { objectNodes } from "./DbTreeObjects";
 import { pinNodes } from "./DbTreePins";
@@ -23,9 +24,8 @@ import { loadedNodes, TreeError, type DbTreeBuild, type DbTreeNode, type TreeMen
 import { useTreeLoads } from "./useTreeLoads";
 
 /**
- * 左の木（土台の TreeView の上）: 接続 → DB → スキーマ（PostgreSQL だけ）→ テーブル / ビュー / 関数 / 列挙型 → 列・インデックス・外部キー・トリガー（DbTreeObjects）。
- * 開いた段だけ読む（useTreeLoads。開いている段は置き場所ごとに覚える）。名前を押すとタブを開く。接続の右クリックは onConnectionMenu、
- * DB・スキーマの右クリックは「ER 図」、テーブル・ビューは「開く」「ピン留め（接続のすぐ下に並べる）」「この表のまわりの ER 図」
+ * 左の木（土台の TreeView の上）: 接続 → DB → スキーマ（PostgreSQL だけ）→ テーブル / ビュー / 関数 / 列挙型 → 列など（DbTreeObjects）。
+ * 開いた段だけ読む（useTreeLoads）。名前を押すとタブを開く。接続の右クリックは onConnectionMenu
  */
 export function DbTree({ connections, onConnectionMenu }: { connections: DbConnection[]; onConnectionMenu: (e: MouseEvent, connection: DbConnection) => void }) {
   const client = useDbClient();
@@ -126,11 +126,7 @@ function connectionNode(b: DbTreeBuild, c: DbConnection, connected: boolean, pin
     row: {
       // 左の色の線が環境、頭の短い印が DB の種類（Pg / My / Lt。商標のロゴは使わない）
       className: cx("db-tree-connection", `db-env-${c.environment}`),
-      icon: (
-        <span className="db-engine-mark" aria-label={DB_ENGINE_LABELS[c.engine]}>
-          {ENGINE_MARKS[c.engine]}
-        </span>
-      ),
+      icon: <EngineMark engine={c.engine} read="name" />,
       label: c.name,
       mark: (
         <>

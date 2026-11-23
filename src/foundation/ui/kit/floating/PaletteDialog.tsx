@@ -11,7 +11,7 @@ export const usePaletteDialog = (): PaletteModal => useModalDialog();
 
 /**
  * 探す窓の骨組み（⌘K・⌘⇧A・全文検索）: 入力欄の行（icon・入力欄・その後ろの物）・絞り込みの行（bars）・role="listbox" の一覧（children に role="option" の行）。
- * 入力欄の ↑↓・Enter は nav（useRovingList の activeDescendant）。onKeyDown が true を返したキーは nav に渡さない（Tab で絞り込みを回すなど）。
+ * 一覧の下の添え書きは footer。入力欄の ↑↓・Enter は nav（useRovingList の activeDescendant）。onKeyDown が true を返したキーは nav に渡さない（Tab で絞り込みを回すなど）。
  * ↑↓ で選んだ行を見える所へ動かす
  */
 export function PaletteDialog({
@@ -23,6 +23,7 @@ export function PaletteDialog({
   input,
   inputAfter,
   bars,
+  footer,
   onClose,
   children,
 }: {
@@ -34,6 +35,7 @@ export function PaletteDialog({
   input: { value: string; onChange(value: string): void; placeholder: string; label?: string; onKeyDown?(e: KeyboardEvent<HTMLInputElement>): boolean };
   inputAfter?: ReactNode;
   bars?: ReactNode;
+  footer?: ReactNode;
   onClose(): void;
   children: ReactNode;
 }) {
@@ -61,6 +63,7 @@ export function PaletteDialog({
       <ul className="palette-list" role="listbox">
         {children}
       </ul>
+      {footer}
     </dialog>
   );
 }
