@@ -103,7 +103,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const worktrees = createWorktrees(k, { trash: trash.api, projects: projects.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api });
   const github = createGitHub(k, { git: git.api, worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
-  const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
+  const database = createDatabase(k, { projects: projects.api, ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, devices: devices.api.store, workplaceMove: workplaceMove.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser(k, { chat: chat.api }, { control: env.browser });
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）

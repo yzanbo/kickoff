@@ -534,14 +534,14 @@ test("ER 図: テーブル・ビューの構造（一意の組・外部キー）
   assert.equal(picked.names.length, 3);
 
   const layout = `${base}/er-layout`;
-  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, {});
-  assert.equal((await call("PUT", layout, { place: "main", positions: { users: { x: 10, y: 20.5 } } })).status, 204);
-  assert.equal((await call("PUT", layout, { place: "other", positions: { posts: { x: 0, y: 0 } } })).status, 204);
-  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, { users: { x: 10, y: 20.5 } });
-  assert.equal((await call("PUT", layout, { place: "main", positions: { users: { x: "a", y: 0 } } })).status, 400);
+  assert.deepEqual((await call("GET", `${layout}?scope=main`)).body, {});
+  assert.equal((await call("PUT", layout, { scope: "main", positions: { users: { x: 10, y: 20.5 } } })).status, 204);
+  assert.equal((await call("PUT", layout, { scope: "other", positions: { posts: { x: 0, y: 0 } } })).status, 204);
+  assert.deepEqual((await call("GET", `${layout}?scope=main`)).body, { users: { x: 10, y: 20.5 } });
+  assert.equal((await call("PUT", layout, { scope: "main", positions: { users: { x: "a", y: 0 } } })).status, 400);
   assert.equal((await call("GET", layout)).status, 400);
-  assert.equal((await call("DELETE", `${layout}?place=main`)).status, 204);
-  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, {});
+  assert.equal((await call("DELETE", `${layout}?scope=main`)).status, 204);
+  assert.deepEqual((await call("GET", `${layout}?scope=main`)).body, {});
   assert.deepEqual(store.dbErLayouts.get(conn.id, "other"), { posts: { x: 0, y: 0 } });
   // 接続を消すと位置も消える
   await call("DELETE", base);

@@ -689,7 +689,6 @@
       "src/features/chat/ui/store/chatStore.ts": 359,
       "src/features/childChats/core/routes/server.children.test.ts": 466,
       "src/features/conversation/ui/streaming/markdownReveal.ts": 435,
-      "src/features/database/core/routes/databases.ts": 343,
       "src/features/database/core/routes/server.databases.test.ts": 852,
       "src/features/database/ui/DatabaseClient.tsx": 324,
       "src/features/database/worker/drivers.dbtest.ts": 409,

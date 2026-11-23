@@ -123,9 +123,9 @@ export interface DbErBody {
   names: string[] | null;
 }
 
-/** ER 図で動かしたテーブルの位置を覚える（PUT …/db-connections/:cid/er-layout）。place: 場所のキー（erPlace） */
+/** ER 図で動かしたテーブルの位置を覚える（PUT …/db-connections/:cid/er-layout）。scope: DB の場所のキー（erPlace） */
 export interface DbErLayoutBody {
-  place: string;
+  scope: string;
   positions: DbErPositions;
 }
 

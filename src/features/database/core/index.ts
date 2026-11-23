@@ -6,6 +6,7 @@ import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { DockerApi } from "@/features/docker/core/index";
 import type { GuardApi } from "@/features/guard/core/index";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { DbWorkerClient, type WorkerChannel } from "./workerClient";
@@ -13,7 +14,6 @@ import { DbSecretVault } from "./secrets";
 import { createDatabaseService, type DatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
 import { databaseRoutes } from "./routes/databases";
-import { dockerDbRoutes } from "./routes/dockerDb";
 import { dbToolGroup, openSqlToolGroup } from "./tools";
 
 export type { DatabaseService } from "./service";
@@ -22,6 +22,8 @@ export { devWorkerEntry, forkWorker, type WorkerChannel } from "./workerClient";
 export { createDatabaseStores } from "./db/stores";
 
 export interface DatabaseDeps {
+  /** パスの :projectId の引き当て */
+  projects: Pick<ProjectsApi, "param">;
   /** SQL の案を AI に聞く */
   ai: AiApi;
   /** チャットを本当に消したら、AI の SQL の結果の CSV も消す・履歴にチャットの名前を添える */
@@ -65,7 +67,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   return {
     name: "database",
     api: databases,
-    routes: [{ legacy: (app) => databaseRoutes(app, { store, databases }) }, { legacy: (app) => dockerDbRoutes(app, { store, docker: deps.docker }) }],
+    routes: [databaseRoutes({ projectParam: deps.projects.param, databases, docker: deps.docker })],
     aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, dbConnectionsOf: (projectId) => stores.dbConnections.list(projectId), publish: (e) => k.bus.publish(e) })],
     stop: () => databases.close(),
   };

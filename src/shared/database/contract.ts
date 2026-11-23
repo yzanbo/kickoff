@@ -1,4 +1,4 @@
-// DB クライアントの取り決め（受け口はいま src/features/database/core/routes/databases.ts・dockerDb.ts。この Mac のアプリの中だけで、どれも端末には開かない）。
+// DB クライアントの取り決め（受け口は src/features/database/core/routes/databases.ts。この Mac のアプリの中だけで、どれも端末には開かない）。
 // workdir: true は ?worktree= を作業場所に解くルート。marks.locked は、保存したパスワードをキーチェーンで開けないと 409 ＋ DB_PASSWORD_LOCKED を返しうるルート
 // （画面はパスワードを聞いてやり直す）
 import { empty, route, type Contract, type WorkdirQuery } from "@shared/foundation/contract";
@@ -46,8 +46,8 @@ import type {
 
 /** キーチェーンで開けなければ 409 を返しうる、作業場所のルート（つなぐルート） */
 const connecting = <B = never, R = unknown, Q extends WorkdirQuery = WorkdirQuery>() => route<B, R, Q>({ workdir: true, marks: { locked: true } });
-/** ER 図の配置を覚える場所（erPlace） */
-type ErLayoutQuery = { place: string };
+/** ER 図の配置を覚える DB の場所（erPlace のキー） */
+type ErLayoutQuery = { scope: string };
 
 const base = "/api/projects/:projectId/db-connections";
 const one = `${base}/:connectionId`;
@@ -80,9 +80,9 @@ export const databaseContract = {
   [`POST ${one}/definition`]: connecting<{ path: DbObjectPath; kind: "function" | "enum"; name: string }, DbDefinition>(),
   [`POST ${one}/rows`]: connecting<DbRowsBody, DbQueryResult>(),
   /** 接続を切る（コミットしていない SQL のタブがあれば、force でなければ切らずに返す） */
-  [`POST ${one}/disconnect`]: route<{ force: boolean }, DbDisconnectResult>(),
+  [`POST ${one}/disconnect`]: route<{ force?: boolean }, DbDisconnectResult>(),
   [`POST ${one}/full-row`]: connecting<DbFullRowBody, DbFullRow>(),
-  [`POST ${one}/count`]: connecting<{ path: DbObjectPath; name: string; filter: DbRowFilter }, { count: number }>(),
+  [`POST ${one}/count`]: connecting<{ path: DbObjectPath; name: string; filter?: DbRowFilter }, { count: number }>(),
   [`POST ${one}/outline`]: connecting<{ path: DbObjectPath }, DbOutlineTable[]>(),
   [`POST ${one}/sql-assist`]: connecting<DbSqlAssistBody, DbSqlAssistResult>(),
   [`POST ${one}/er`]: connecting<DbErBody, DbErSchema>(),
