@@ -1,4 +1,4 @@
-/* CI のタブ（features/ci）: 一覧と中身の枠は GitHub タブの github-list / github-item / github-detail を使い、ここは CI だけの部分（外の CI の行・ブランチの札・ジョブとステップの開閉・ログ） */
+/* CI のタブ（features/ci）: 一覧と中身の枠は土台の list-detail と GitHub タブの github-item / github-detail を使い、ここは CI だけの部分（外の CI の行・ブランチの札・ジョブとステップの開閉・ログ） */
 
 .ci-state {
   flex: none;

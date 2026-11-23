@@ -2,6 +2,7 @@
 @import "./base/tokens.css" layer(tokens);
 @import "./base/base.css" layer(base);
 @import "./base/layout.css" layer(feature);
+@import "./base/list-detail.css" layer(feature);
 @import "./base/navigation.css" layer(feature);
 @import "./base/maximized-header.css" layer(feature);
 @import "./base/scrollbar.css" layer(base);

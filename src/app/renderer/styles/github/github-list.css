@@ -13,30 +13,6 @@
   padding: 16px var(--gutter);
 }
 
-.github-list {
-  position: relative;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  min-height: 0;
-  border-right: 1px solid var(--border);
-  background: var(--bg-sidebar);
-}
-
-.github-browser.narrow .github-list {
-  flex: 1;
-  width: auto;
-  border-right: 0;
-}
-
-.github-list-resizer {
-  position: absolute;
-  top: 0;
-  right: -3px;
-  bottom: 0;
-  margin: 0;
-}
-
 .github-list-repo {
   display: flex;
   align-items: center;

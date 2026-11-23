@@ -26,7 +26,7 @@
 - AI に渡すのは入力欄に入れるだけ。札は外から来た中身（`api.capture`）。選んだ文は引用にして札にしない。
 - 書くボタンは GitHub が許すときだけ出す（`viewer`・`can_*`）。マージはいつも確認し、見ていた `head_sha` で頼む。
 - ダイアログは `githubDialogs.ts` で頼み、App と別ウィンドウに 1 つずつの `GitHubDialogHost` が描く。
-- CI の枠と行は GitHub タブのクラスと `DETAIL_MIN_WIDTH` を使う（CI だけの見た目は `@/app/renderer/styles/ci/ci.css`）。ログの色は Docker と同じ土台の `ansiSpans`・`AnsiText`。
+- 2 欄は土台の `ListDetail`（中身の最小の幅 `DETAIL_MIN_WIDTH`）。CI の行は GitHub タブのクラス（CI だけは `@/app/renderer/styles/ci/ci.css`）。ログの色は土台の `AnsiText`。
 
 ## 落とし穴
 

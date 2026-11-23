@@ -4,14 +4,14 @@ import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
-import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { ListDetail } from "@/foundation/ui/kit/layout/ListDetail";
+import { useListDetail } from "@/foundation/ui/kit/layout/useListDetail";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "@/features/github/ui/storage";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { ListHideButton, ListRail } from "@/foundation/ui/kit/ListRail";
+import { ListHideButton } from "@/foundation/ui/kit/ListRail";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { GitHubConnectionGate } from "@/features/github/ui/GitHubConnectionGate";
 import { DETAIL_MIN_WIDTH } from "@/features/github/ui/GitHubTab";
@@ -52,20 +52,20 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   useServerEvent("ci_failed", (e) => {
     if (e.failure.project_id === projectId) list.reload();
   });
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.ciListWidth, min: 260, keep: 360 });
-  const { ref: root, narrow } = useNarrowerThan<HTMLDivElement>(width.size + DETAIL_MIN_WIDTH);
+  // 左の一覧を隠せる（広いときだけ。狭いときは一覧と中身を切り替えて 1 つずつ出す）
+  const layout = useListDetail({ width: storage.settings.ciListWidth, hidden: storage.settings.ciListHidden, min: 260, keep: 360, detailMin: DETAIL_MIN_WIDTH, hasSelection: !!selected });
+  const { narrow } = layout;
   const open = useCallback((run: CiRun) => setSelectedText(ciSelectedText(run.id)), [setSelectedText]);
   const watched = useMemo(() => new Set([...(data?.workplace_branches ?? []), ...(data?.default_branch ? [data.default_branch] : [])]), [data]);
-  // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
-  const [listHidden, setListHidden] = useSetting(storage.settings.ciListHidden);
-  const showList = narrow ? !selected : !listHidden;
-  const showDetail = !narrow || selected;
   const actionsUrl = `${githubRepoUrl(host, repo)}/actions`;
 
   return (
-    <div ref={root} className={cx("github-tab github-browser ci-tab tool-frame", narrow && "narrow")}>
-      {showList && (
-        <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
+    <ListDetail
+      state={layout}
+      className="ci-tab tool-frame"
+      listLabel="実行の一覧を表示"
+      list={
+        <>
           <div className="github-list-repo small">
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}
@@ -75,7 +75,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
             {!narrow && (
               <>
                 <span className="spacer" />
-                <ListHideButton size={13} label="実行の一覧を隠す" onHide={() => setListHidden(true)} />
+                <ListHideButton size={13} label="実行の一覧を隠す" onHide={layout.hide} />
               </>
             )}
           </div>
@@ -104,31 +104,27 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
               <CiRunRow key={run.id} run={run} selected={selected?.runId === run.id} watched={run.branch !== null && watched.has(run.branch)} onOpen={open} />
             ))}
           </div>
-          {!narrow && <div className="pane-resizer github-list-resizer" {...width.handle} />}
-        </aside>
-      )}
-      {!narrow && listHidden && <ListRail label="実行の一覧を表示" onShow={() => setListHidden(false)} />}
-      {showDetail && (
-        <div className="github-main">
-          {selected ? (
-            <CiRunDetailView
-              key={selected.runId}
-              projectId={projectId}
-              repo={repo}
-              runId={selected.runId}
-              jobId={selected.jobId}
-              defaultBranch={data?.default_branch ?? null}
-              onChanged={list.reload}
-              onBack={narrow ? () => setSelectedText("") : undefined}
-            />
-          ) : (
-            <EmptyState icon={Workflow} title="実行を選んでください">
-              <p>左の一覧から選ぶと、ジョブとステップのログをここに出します。落ちた実行は、落ちたステップを開いて見せます。</p>
-              <p className="muted small">動いている実行がある間は 15 秒ごと、ほかは 1 分ごとに GitHub から取り直します。</p>
-            </EmptyState>
-          )}
-        </div>
-      )}
-    </div>
+        </>
+      }
+      detail={
+        selected ? (
+          <CiRunDetailView
+            key={selected.runId}
+            projectId={projectId}
+            repo={repo}
+            runId={selected.runId}
+            jobId={selected.jobId}
+            defaultBranch={data?.default_branch ?? null}
+            onChanged={list.reload}
+            onBack={narrow ? () => setSelectedText("") : undefined}
+          />
+        ) : (
+          <EmptyState icon={Workflow} title="実行を選んでください">
+            <p>左の一覧から選ぶと、ジョブとステップのログをここに出します。落ちた実行は、落ちたステップを開いて見せます。</p>
+            <p className="muted small">動いている実行がある間は 15 秒ごと、ほかは 1 分ごとに GitHub から取り直します。</p>
+          </EmptyState>
+        )
+      }
+    />
   );
 }

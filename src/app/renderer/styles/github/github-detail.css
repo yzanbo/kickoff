@@ -1,13 +1,5 @@
 /* GitHub タブ（features/github）: 右の中身の枠と見出し（題名・状態・ブランチ・増減・衝突・PR の切り替え） */
 
-.github-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
 .github-detail {
   display: flex;
   flex: 1;

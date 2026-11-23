@@ -4,9 +4,9 @@ import type { Chat } from "@shared/chat/types";
 import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
-import { useNarrowerThan } from "@/foundation/ui/hooks/useNarrowerThan";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { ListDetail } from "@/foundation/ui/kit/layout/ListDetail";
+import { useListDetail } from "@/foundation/ui/kit/layout/useListDetail";
 import { useWhenVisible } from "./useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
@@ -14,7 +14,7 @@ import { githubSelected } from "@/foundation/ui/storage/storageKeys";
 import { useChats } from "@/features/chat/ui/store/knownChats";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { ListHideButton, ListRail } from "@/foundation/ui/kit/ListRail";
+import { ListHideButton } from "@/foundation/ui/kit/ListRail";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { GitHubConnectionGate } from "./GitHubConnectionGate";
 import { GitHubDetail } from "./GitHubDetail";
@@ -57,8 +57,9 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter, true);
   const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
-  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.listWidth, min: 260, keep: 360 });
-  const { ref: root, narrow } = useNarrowerThan<HTMLDivElement>(width.size + DETAIL_MIN_WIDTH);
+  // 左の一覧を隠せる（広いときだけ。狭いときは一覧と中身を切り替えて 1 つずつ出す）
+  const layout = useListDetail({ width: storage.settings.listWidth, hidden: storage.settings.listHidden, min: 260, keep: 360, detailMin: DETAIL_MIN_WIDTH, hasSelection: !!selected });
+  const { narrow } = layout;
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);
@@ -75,15 +76,14 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
     }
     return map;
   }, [chats, repo]);
-  // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
-  const [listHidden, setListHidden] = useSetting(storage.settings.listHidden);
-  const showList = narrow ? !selected : !listHidden;
-  const showDetail = !narrow || selected;
 
   return (
-    <div ref={root} className={cx("github-tab github-browser tool-frame", narrow && "narrow")}>
-      {showList && (
-        <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
+    <ListDetail
+      state={layout}
+      className="tool-frame"
+      listLabel="issue・PR の一覧を表示"
+      list={
+        <>
           {/* リポジトリの名前は GitHub のリポジトリのページへ、右の印はいまの絞り込みの一覧を GitHub で開く（外のブラウザ） */}
           <div className="github-list-repo small">
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
@@ -94,7 +94,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             {!narrow && (
               <>
                 <span className="spacer" />
-                <ListHideButton size={13} label="issue・PR の一覧を隠す" onHide={() => setListHidden(true)} />
+                <ListHideButton size={13} label="issue・PR の一覧を隠す" onHide={layout.hide} />
               </>
             )}
           </div>
@@ -132,21 +132,17 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
               </button>
             )}
           </div>
-          {!narrow && <div className="pane-resizer github-list-resizer" {...width.handle} />}
-        </aside>
-      )}
-      {!narrow && listHidden && <ListRail label="issue・PR の一覧を表示" onShow={() => setListHidden(false)} />}
-      {showDetail && (
-        <div className="github-main">
-          {selected ? (
-            <GitHubDetail key={selectedText} projectId={projectId} kind={selected.kind} number={selected.number} onBack={narrow ? () => setSelectedText("") : undefined} />
-          ) : (
-            <EmptyState icon={GitPullRequest} title="issue・PR を選んでください">
-              <p>左の一覧から選ぶと、本文と会話をここに出します。開いている間は 1 分ごとに GitHub から取り直します。</p>
-            </EmptyState>
-          )}
-        </div>
-      )}
-    </div>
+        </>
+      }
+      detail={
+        selected ? (
+          <GitHubDetail key={selectedText} projectId={projectId} kind={selected.kind} number={selected.number} onBack={narrow ? () => setSelectedText("") : undefined} />
+        ) : (
+          <EmptyState icon={GitPullRequest} title="issue・PR を選んでください">
+            <p>左の一覧から選ぶと、本文と会話をここに出します。開いている間は 1 分ごとに GitHub から取り直します。</p>
+          </EmptyState>
+        )
+      }
+    />
   );
 }
