@@ -241,7 +241,7 @@
     field-sizing: content;
   }
 
-  /* ==== 送信待ちの指示の添付（書き直しの欄。行の添付は attachments.css の AttachmentPeek） ==== */
+  /* ==== 送信待ちの指示の添付（書き直しの欄。行の添付は AttachmentPeek.css の AttachmentPeek） ==== */
 
   /* 書き直している間の添付（チャット欄と同じチップを並べ、× で外す。欄の中の余白は詰める） */
 

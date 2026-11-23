@@ -1,3 +1,4 @@
+import "./ProviderSwitchRecord.css";
 import { useState } from "react";
 import type { ProviderHandoffStatus } from "@shared/providerSwitch/types";
 import { useChatDetail } from "@/features/chat/ui";

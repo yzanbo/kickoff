@@ -1,3 +1,4 @@
+import "./VoiceLocalSetup.css";
 import { useEffect, useRef, useState } from "react";
 import { Square, Volume2 } from "lucide-react";
 import type { AppSettings } from "@shared/foundation/contract/settings";

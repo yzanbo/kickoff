@@ -1,0 +1,142 @@
+/* ==== 音声入力: チャット欄・質問の「その他」の欄のマイクのボタン（録音中・文字起こし中・失敗）。設定の「音声入力」は voice-settings.css ==== */
+@layer feature {
+  /* 準備ができていないとき（押すと設定を開く）は、ほかの道具より薄く */
+
+  .dictation-button.unready {
+    opacity: 0.55;
+  }
+
+  /*
+   * 録音中: 赤く塗り、マイクの音量（--mic-level 0〜1。DictationButton の useMicLevel）で外側の輪を広げる。
+   * 音に関係なく脈打たせると、声を拾っているかが分からない
+   */
+
+  .dictation-recording {
+    --mic-level: 0;
+  }
+
+  .dictation-button.recording,
+  .dictation-button.recording:hover {
+    color: #fff;
+    background: var(--ng);
+    box-shadow: 0 0 0 calc(1px + var(--mic-level) * 6px) color-mix(in srgb, var(--ng) 30%, transparent);
+    transition: box-shadow 60ms linear;
+  }
+
+  /* 音量の棒（5 本。真ん中ほど高く伸びる。黙っていれば低い点の並び） */
+
+  .dictation-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 16px;
+    margin-left: 4px;
+  }
+
+  .dictation-level i {
+    width: 3px;
+    height: 16px;
+    background: var(--ng);
+    border-radius: 2px;
+    transform: scaleY(min(1, calc(0.18 + var(--mic-level) * var(--bar, 1))));
+    transition: transform 60ms linear;
+  }
+
+  .dictation-level i:nth-child(1),
+  .dictation-level i:nth-child(5) {
+    --bar: 0.55;
+  }
+
+  .dictation-level i:nth-child(2),
+  .dictation-level i:nth-child(4) {
+    --bar: 0.9;
+  }
+
+  .dictation-level i:nth-child(3) {
+    --bar: 1.25;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dictation-button.recording,
+    .dictation-level i {
+      transition: none;
+    }
+  }
+
+  .dictation-recording,
+  .dictation-status {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dictation-time {
+    min-width: 32px;
+    font-size: var(--fs-12);
+    font-variant-numeric: tabular-nums;
+    color: var(--ng);
+  }
+
+  .dictation-status {
+    padding: 0 6px;
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+
+  .dictation-status .spinner {
+    margin-right: 2px;
+  }
+
+  /* 失敗の文と「もう一度」（入力欄の下。.composer-error と同じ余白） */
+
+  .dictation-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 8px 16px;
+  }
+
+  .dictation-error .error {
+    flex: 1;
+    margin: 0;
+  }
+
+  /* AI からの質問の「その他」の欄・送信待ちの書き直す欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */
+
+  .question-other-field .dictation-error {
+    padding: 0;
+  }
+
+  .queued-editor-body .dictation-error {
+    padding: 4px 0 0;
+  }
+
+  /* マイクと右の ▾（音声入力の設定のメニュー。右クリックでも開く）。▾ はマイクに寄せた細いボタン */
+
+  .dictation-control {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  .dictation-more {
+    width: 16px;
+    height: 28px;
+    margin-left: -2px;
+    color: var(--muted);
+  }
+
+  .dictation-more.open {
+    color: var(--text);
+  }
+
+  /* 送信ボタンのすぐ左の音声の道具（マイク・▾・音声モードの波形）を 1 組に詰める */
+
+  .composer-voice {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
+  }
+}

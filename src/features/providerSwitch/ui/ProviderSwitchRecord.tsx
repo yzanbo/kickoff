@@ -1,3 +1,4 @@
+import "./ProviderSwitchRecord.css";
 import { useState } from "react";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { providerSwitchLine } from "@shared/providerSwitch/providerSwitch";

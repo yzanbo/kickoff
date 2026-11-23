@@ -120,7 +120,8 @@
   flex: none;
 }
 
-.note-quick-chips .composer-chips {
+.note-quick-chips .composer-chips,
+.note-quick-chips .composer-chips.compact {
   flex-wrap: nowrap;
   padding: 0;
 }

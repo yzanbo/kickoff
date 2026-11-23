@@ -1,3 +1,4 @@
+import "./SubagentEndNote.css";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatFullStamp, formatStamp } from "@/foundation/ui/lib/time";

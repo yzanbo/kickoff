@@ -1,3 +1,4 @@
+import "./SubagentStatusText.css";
 import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/foundation/ui/api";

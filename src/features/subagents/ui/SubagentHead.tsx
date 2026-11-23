@@ -1,3 +1,4 @@
+import "./SubagentHead.css";
 import { CornerDownRight, GitBranch, MessageSquare, PanelRight, Reply } from "lucide-react";
 import { useMemo } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";

@@ -1,3 +1,4 @@
+import "./VoiceSettings.css";
 import { Mic } from "lucide-react";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { VOICE_LANGUAGES, VOICE_PROVIDERS, type VoiceStatus } from "@shared/voice/types";

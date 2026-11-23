@@ -1,0 +1,16 @@
+/* ==== 渡したものの印（HandBackMarks） ==== */
+@layer feature {
+  /* 渡したことの印（HandBackMarks。子チャットの作業の終わりの行の「渡しました · 入力欄へ · 5分前」）: 終わりの行の文字と同じ薄い色の小さな札 */
+
+  .handoff-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 7px;
+    --tag-color: var(--accent);
+    --tag-fg: var(--muted);
+    --tag-tint: 10%;
+    font-size: var(--chat-fs-11);
+    line-height: 18px;
+  }
+}

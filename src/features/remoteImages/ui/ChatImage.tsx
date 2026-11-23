@@ -1,3 +1,4 @@
+import "./ChatImage.css";
 import { useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Lock } from "lucide-react";

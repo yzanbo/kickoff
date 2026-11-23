@@ -1,3 +1,4 @@
+import "./VoiceLocalSetup.css";
 import type { VoiceStatus } from "@shared/voice/types";
 import { voiceStatusStore } from "@/features/voice/ui/store";
 import { CommandLine } from "@/foundation/ui/kit/CommandLine";

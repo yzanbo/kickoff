@@ -1,3 +1,4 @@
+import "./ChatHeaderTitle.css";
 import type { Chat } from "@shared/chat/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ui/ChatTitleInput";

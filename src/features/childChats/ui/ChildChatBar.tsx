@@ -1,3 +1,4 @@
+import "./ChildChatBar.css";
 import { ArrowUpLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { childDepthLabel } from "@shared/childChats/childDepth";

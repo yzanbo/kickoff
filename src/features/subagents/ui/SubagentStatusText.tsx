@@ -1,3 +1,4 @@
+import "./SubagentStatusText.css";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/foundation/ui/lib/cx";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "@/features/subagents/ui/model/subagentList";

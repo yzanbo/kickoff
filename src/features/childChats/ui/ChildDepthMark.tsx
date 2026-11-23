@@ -1,3 +1,4 @@
+import "./ChildDepthMark.css";
 import { childDepthLabel, childDepthShort } from "@shared/childChats/childDepth";
 import type { Chat } from "@shared/chat/types";
 import { chatTitle, ancestorsOf } from "@/features/chat/ui";

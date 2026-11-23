@@ -1,3 +1,4 @@
+import "./SubagentCard.css";
 import { ChevronRight } from "lucide-react";
 import { memo } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";

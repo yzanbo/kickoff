@@ -1,0 +1,27 @@
+/* ==== チャット・子チャットの名前の欄（ChatHeaderTitle・ChildChatBar） ==== */
+@layer feature {
+  /* 子チャットの名前（親のないチャットの見出しの行の名前 .chat-header-title も同じ見せ方） */
+
+  .child-chat-bar-title,
+  .chat-header-title {
+    overflow: hidden;
+    min-width: 4em;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .child-chat-bar-title.editing,
+  .chat-header-title.editing {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 12em;
+    overflow: visible;
+  }
+
+  input[type="text"]:is(.child-chat-title-input, .chat-header-title-input) {
+    height: 22px;
+    padding: 0 6px;
+    font-size: var(--fs-12);
+  }
+}

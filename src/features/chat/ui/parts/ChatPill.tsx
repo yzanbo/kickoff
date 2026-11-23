@@ -1,3 +1,4 @@
+import "./ChatPill.css";
 import { ChevronUp } from "lucide-react";
 import type { ReactNode, Ref } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

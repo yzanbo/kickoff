@@ -1,3 +1,4 @@
+import "./HandBackFromChip.css";
 import { MessagesSquare } from "lucide-react";
 import type { HandoffFrom } from "@shared/chat/chatEvent";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

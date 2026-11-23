@@ -1,3 +1,4 @@
+import "./VisualItem.css";
 import { CodeXml, Eye, Maximize2, RotateCcw, StickyNote, TriangleAlert } from "lucide-react";
 import { memo, useState } from "react";
 import { AI_UPDATE_VISUAL_TOOL, VISUAL_KIND_LABELS, type ChatVisual } from "@shared/visuals/aiVisual";

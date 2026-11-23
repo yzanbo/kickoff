@@ -1,3 +1,4 @@
+import "./VoiceLocalSetup.css";
 import type { VoiceModelInfo } from "@shared/voice/types";
 import { voiceApi } from "@/features/voice/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";

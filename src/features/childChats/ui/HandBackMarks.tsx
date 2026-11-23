@@ -1,3 +1,4 @@
+import "./HandBackMarks.css";
 import { Inbox } from "lucide-react";
 import { HANDOFF_VIA_MARKS, type ChatEventOf } from "@shared/chat/chatEvent";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";

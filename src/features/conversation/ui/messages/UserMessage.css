@@ -166,4 +166,64 @@
     gap: 6px;
     margin-top: 8px;
   }
+
+  /* 依頼文の頼みの発言（handoff_request）: 頼み方の文は決まった長い文なので、1 行「親への依頼文を頼みました」にたたむ（押すと全文） */
+
+  .user-message.handoff-request.folded .bubble.user {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .handoff-request-toggle {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--chat-fs-12);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .handoff-request-toggle:hover {
+    color: var(--text);
+  }
+
+  .user-message.handoff-request:not(.folded) .handoff-request-toggle {
+    margin-bottom: 6px;
+  }
+
+  .handoff-request-chevron {
+    transition: transform 0.15s;
+  }
+
+  /* 頼みに添えた追加の指示（たたんでいる間だけ、1 行の下にそのまま出す） */
+
+  .handoff-request-extra {
+    margin-top: 4px;
+    padding-left: 18px;
+    font-size: var(--chat-fs-13);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .handoff-request-toggle[aria-expanded="true"] .handoff-request-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* 送った発言の下（吹き出しと同じ右寄せ） */
+
+  .message-handoff-from {
+    display: flex;
+    justify-content: flex-end;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  .message-handoff-from .handoff-from-open {
+    font-size: var(--chat-fs-11);
+  }
 }

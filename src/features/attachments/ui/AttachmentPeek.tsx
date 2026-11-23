@@ -1,3 +1,4 @@
+import "./AttachmentPeek.css";
 import { FileInput, FileText, StickyNote } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Attachment } from "@shared/chat/types";

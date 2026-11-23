@@ -1,3 +1,4 @@
+import "./VoiceLocalSetup.css";
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { OPENAI_TRANSCRIBE_MODELS, type VoiceStatus } from "@shared/voice/types";
 import { cx } from "@/foundation/ui/lib/cx";

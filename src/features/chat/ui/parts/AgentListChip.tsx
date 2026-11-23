@@ -1,3 +1,4 @@
+import "./AgentListChip.css";
 import { Archive, ArchiveRestore, type LucideIcon, Trash2 } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

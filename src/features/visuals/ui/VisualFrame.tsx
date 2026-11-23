@@ -1,3 +1,4 @@
+import "./VisualItem.css";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { VISUAL_MESSAGES, VISUAL_PROMPT_MAX, visualDocument } from "@shared/visuals/visualDocument";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";

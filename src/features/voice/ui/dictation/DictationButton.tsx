@@ -1,3 +1,4 @@
+import "./DictationButton.css";
 import { ChevronDown, Mic } from "lucide-react";
 import { useRef, type PointerEvent } from "react";
 import { useLevelVar } from "@/features/voice/ui/capture/levelChannel";

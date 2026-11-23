@@ -1,3 +1,4 @@
+import "./ChatHeaderTitle.css";
 import "./DraftChatPage.css";
 import "./ChatColumn.css";
 import { useContext, useId, useRef, type ReactNode } from "react";

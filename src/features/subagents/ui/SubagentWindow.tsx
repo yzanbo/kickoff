@@ -1,3 +1,4 @@
+import "./SubagentWindow.css";
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useFollowScroll, openKey, useOptionalSubagentNav, useTimelineOpen } from "@/features/chat/ui";

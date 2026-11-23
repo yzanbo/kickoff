@@ -1,3 +1,4 @@
+import "./SnippetBar.css";
 import { Plus, Settings } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { Snippet } from "@shared/snippets/types";

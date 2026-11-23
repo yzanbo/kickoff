@@ -1,3 +1,4 @@
+import "./ChatLinkChip.css";
 import { MessagesSquare } from "lucide-react";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { Chat } from "@shared/chat/types";

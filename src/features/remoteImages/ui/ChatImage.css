@@ -1,0 +1,235 @@
+/*
+ * ==== 返答の中の画像（ChatImage・ImageHostButton） ====
+ * 外の画像は押すまで出さず「host から画像を n 件表示」のボタン。許可したホストの画像はコアが取ってきたものを出し、最初の 1 枚の下にどのサイトのものかを添える
+ */
+@layer feature {
+  /* 画像 1 枚の入れ物（段落の中に入るので span。画像と下の行を縦に並べる） */
+
+  .chat-image {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    max-width: 100%;
+    vertical-align: top;
+  }
+
+  /* 押すと大きく見る（ボタンの見た目は消して、画像だけを見せる） */
+
+  .chat-image-thumb {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: none;
+    overflow: hidden;
+    cursor: zoom-in;
+  }
+
+  .chat-image-thumb:hover {
+    border-color: var(--border-strong);
+  }
+
+  .chat-image-img {
+    display: block;
+    max-width: 100%;
+    max-height: 480px;
+    object-fit: contain;
+  }
+
+  /* まだ許可していないホストのボタンと「URL を見る」 */
+
+  .chat-image-gate {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    max-width: 100%;
+    vertical-align: middle;
+  }
+
+  .chat-image-show {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 4px;
+    max-width: 100%;
+    padding: 4px 10px;
+    border: 1px dashed var(--divider-strong);
+    border-radius: var(--radius);
+    background: var(--bg-elev);
+    color: var(--text);
+    font-size: var(--fs-12);
+    line-height: 1.5;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .chat-image-show:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-style: solid;
+  }
+
+  .chat-image-show:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .chat-image-show-host {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .chat-image-show-first {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  /* https でない画像の印（注意の色） */
+
+  .chat-image-insecure {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--warn);
+    font-size: var(--fs-11);
+  }
+
+  .chat-image-urls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--muted);
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .chat-image-urls:hover,
+  .chat-image-urls[aria-expanded="true"] {
+    background: var(--bg-hover);
+    color: var(--text);
+  }
+
+  /* 許可したホストの最初の画像の下: どのサイトか・暗号化なし・件数・URL を見る */
+
+  .chat-image-host-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    color: var(--muted);
+    font-size: var(--fs-12);
+  }
+
+  .chat-image-host {
+    overflow-wrap: anywhere;
+  }
+
+  /* URL の一覧（ポップオーバー） */
+
+  .chat-image-url-list {
+    width: min(560px, calc(100vw - 32px));
+    padding: 12px 14px;
+  }
+
+  .chat-image-url-list ul {
+    max-height: 320px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .chat-image-url-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chat-image-url {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: var(--fs-12);
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  .chat-image-url .chat-image-insecure {
+    margin-right: 4px;
+    vertical-align: -1px;
+  }
+
+  .chat-image-url-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .chat-image-url-actions:empty {
+    display: none;
+  }
+
+  .chat-image-revoke {
+    padding: 4px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--ng);
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .chat-image-revoke:hover:not(:disabled) {
+    background: var(--bg-hover);
+  }
+
+  /* 読めなかったとき・読み込み中・画像として出さないもの */
+
+  .chat-image-error {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--ng);
+    font-size: var(--fs-12);
+  }
+
+  .chat-image-error-url {
+    color: var(--muted);
+    font-family: var(--mono);
+    overflow-wrap: anywhere;
+  }
+
+  .chat-image-wait {
+    display: inline-block;
+    padding: 4px 0;
+  }
+
+  .chat-image-text {
+    color: var(--muted);
+  }
+
+  /* body に出したダイアログ・メニューの入れ物（形を持たない） */
+
+  .chat-image-detached {
+    display: contents;
+  }
+
+  .chat-image-gate-error {
+    flex-basis: 100%;
+  }
+}

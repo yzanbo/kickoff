@@ -1,3 +1,4 @@
+import "./SideChildChat.css";
 import { useEffect, useEffectEvent } from "react";
 import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
 import { useChatOf, useMainChat } from "@/features/chat/ui";

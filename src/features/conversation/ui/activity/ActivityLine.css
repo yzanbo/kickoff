@@ -231,4 +231,38 @@
   .activity-row.running .activity-rail-node {
     animation: pulse-dim 1.4s ease-in-out infinite;
   }
+
+  /*
+   * 動きのサブエージェントの行の右端の 2 つのボタン（会話の流れの中で見る / 右の欄で開く。ActivityLine）。行が多いので、
+   * 乗せた行・ピントのある行にだけ出し、行の右端（かかった時間）の上に重ねる（出し入れで行の文の幅を変えない）
+   */
+
+  .activity-open-actions {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    display: flex;
+    gap: 2px;
+    padding-left: 12px;
+    background: linear-gradient(to right, transparent, var(--bg-hover) 12px);
+    transform: translateY(-50%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .activity-open-actions .icon-button {
+    width: 24px;
+    height: 22px;
+  }
+
+  .activity-head:is(:hover, :focus-within) > .activity-open-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ボタンに乗せている間も、行は乗せたときの地のまま */
+
+  .activity-head:hover > .activity-line {
+    background: var(--bg-hover);
+  }
 }

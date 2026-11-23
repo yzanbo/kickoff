@@ -1,3 +1,4 @@
+import "./CaptureAttachmentChip.css";
 import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TextSelect, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LOOKS } from "@shared/attachments/sources";

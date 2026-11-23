@@ -1,3 +1,4 @@
+import "./VoiceModePanel.css";
 import { useRef, type ReactNode } from "react";
 import { useLevelVar } from "@/features/voice/ui/capture/levelChannel";
 import { AudioLines, SendHorizontal, SkipForward, TextCursorInput, X } from "lucide-react";

@@ -1,3 +1,4 @@
+import "./SideChildChat.css";
 import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Attachment, Chat } from "@shared/chat/types";

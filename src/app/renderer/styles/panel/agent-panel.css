@@ -1,4 +1,4 @@
-/* ==== チャットの画面の右の欄（サブエージェントの欄。AgentSplit と Panel の agents。中身は chat/subagent-screen.css） ==== */
+/* ==== チャットの画面の右の欄（サブエージェントの欄。AgentSplit と Panel の agents。中身は conversation の SubagentScreen.css） ==== */
 
 /*
  * 左にメインの会話、右に右の欄を横に並べる。右の欄の列の幅は --agents-w（左端のつまみのドラッグ。useCoverableWidth）で、

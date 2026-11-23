@@ -1,3 +1,4 @@
+import "./SubagentTell.css";
 import { Reply } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import type { Attachment } from "@shared/chat/types";

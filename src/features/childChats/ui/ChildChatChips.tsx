@@ -1,3 +1,4 @@
+import "./ChildChatChips.css";
 import { MessagesSquare } from "lucide-react";
 import { STATE_LOOKS, summarizeStates } from "@shared/chat/stateLooks";
 import type { AgentState, Chat } from "@shared/chat/types";

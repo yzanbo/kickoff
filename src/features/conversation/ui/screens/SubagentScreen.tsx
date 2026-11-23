@@ -1,3 +1,4 @@
+import "./SubagentScreen.css";
 import "@/features/conversation/ui/screen/ChatColumn.css";
 import "@/features/conversation/ui/timeline/Timeline.css";
 import { Bot } from "lucide-react";
