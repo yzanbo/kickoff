@@ -101,6 +101,11 @@
 }
 
 
+/* CodeMirror のエディタ（ノート・SQL）の ⌘F の欄（kit/codemirror/codeFindPanel。置き場所は code-find.unlayered.css） */
+.code-find {
+  box-shadow: var(--shadow-1);
+}
+
 /*
  * ページの ⌘F（usePageFind）: ページの要素（position: relative。ファイル・検索・変更の右側・履歴の詳細・ノート・別ウィンドウ）の右上
  * （見出しの行のすぐ下）に浮かせる。見た目は右の欄の検索の欄と同じ。置き場所ごとのずらしは持ち主の CSS

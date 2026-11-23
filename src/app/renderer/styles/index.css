@@ -49,6 +49,7 @@
 @import "./ui/collapse.css" layer(ui);
 @import "./ui/tab-strip.css" layer(ui);
 @import "./ui/find.css" layer(ui);
+@import "./ui/code-find.unlayered.css";
 @import "./ui/selection-bar.css" layer(ui);
 @import "./ui/checklist.css" layer(ui);
 @import "./ui/ansi.css" layer(ui);

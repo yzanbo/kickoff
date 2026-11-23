@@ -6,10 +6,6 @@
   min-height: 0;
 }
 
-.note-find {
-  box-shadow: var(--shadow-1);
-}
-
 /*
  * HTML のノートのページの表示（HtmlNotePage）。中身のページの見た目のまま描くので、ページの既定と同じ白地に置く。
  * 配色は明るい側に決める: iframe の中のページは、この要素の color-scheme を「周りの配色」として受け継ぐので、アプリのダーク

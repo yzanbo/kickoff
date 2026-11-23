@@ -1,12 +1,12 @@
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { MySQL, PostgreSQL, SQLite, sql, type SQLNamespace } from "@codemirror/lang-sql";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { Prec } from "@codemirror/state";
-import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import type { MutableRefObject } from "react";
 import type { DbEngine } from "@shared/database/types";
+import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useCodeMirror } from "@/foundation/ui/hooks/useCodeMirror";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { runTargetMark } from "./sqlRunMark";
@@ -34,7 +34,7 @@ export interface SqlEditorHandle {
 }
 
 /**
- * SQL のタブの入力欄（CodeMirror ＋ テーブル名・列名の補完）。⌘↵ で onRun、⇧⌘↵ で onRunAll（どちらも入力欄にピントがあるとき）。
+ * SQL のタブの入力欄（CodeMirror ＋ テーブル名・列名の補完）。⌘↵ で onRun、⇧⌘↵ で onRunAll（どちらも入力欄にピントがあるとき）。⌘F で検索の欄。
  * schema は補完に使うテーブル → 列の名前（届いたら差し替える）。initialValue は作ったときだけ読む
  */
 export function SqlEditor({
@@ -65,8 +65,9 @@ export function SqlEditor({
     dynamic: language,
     dynamicDeps: [engine, schema],
     extensions: () => [
-      history(),
-      drawSelection(),
+      // 補完の選び方のキーを、共通のキー（Enter の改行など）より先に
+      keymap.of(completionKeymap),
+      baseExtensions({ findPlaceholder: "この SQL を検索" }),
       placeholder("SQL を書いて ⌘↵ で流します（⇧⌘↵ ですべての文）"),
       syntaxHighlighting(sqlHighlight),
       // ⌘↵ で流れる文の行の左に緑の線
@@ -78,7 +79,6 @@ export function SqlEditor({
           { key: "Shift-Mod-Enter", run: () => (handlers.current.onRunAll(), true) },
         ]),
       ),
-      keymap.of([...completionKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.lineWrapping,
     ],
     onCreate: (editor) => {

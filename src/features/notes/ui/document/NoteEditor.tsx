@@ -1,40 +1,17 @@
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { html } from "@codemirror/lang-html";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { search, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
-import { drawSelection, EditorView, keymap } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import type { MutableRefObject } from "react";
 import type { NoteKind } from "@shared/notes/kinds";
 import { useCodeMirror } from "@/foundation/ui/hooks/useCodeMirror";
-import { readFindOptions } from "@/foundation/ui/hooks/useFindOptions";
+import { baseExtensions } from "@/foundation/ui/kit/codemirror/baseExtensions";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { cx } from "@/foundation/ui/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 import { liveRich } from "./liveRich";
 import type { NoteLines } from "./noteAttachment";
-import { createNoteFindPanel, noteSearchConfig } from "./noteFindPanel";
-
-/** 検索の欄の文言（CodeMirror の英語を、アプリの言い方にそろえる） */
-const SEARCH_PHRASES: Record<string, string> = {
-  Find: "検索",
-  Replace: "置き換え",
-  next: "次へ",
-  previous: "前へ",
-  all: "すべて",
-  "match case": "大文字・小文字を区別",
-  regexp: "正規表現",
-  "by word": "単語単位",
-  replace: "置き換え",
-  "replace all": "すべて置き換え",
-  close: "閉じる",
-  "current match": "いまの一致",
-  "replaced match": "置き換えた一致",
-  "replaced $ matches": "$ 件を置き換えました",
-  "on line": "行",
-};
 
 /** 外から編集の部品を動かす口（右クリックのメニュー。選んだ文を読む・選んだ所に入れる） */
 export interface NoteEditorHandle {
@@ -81,13 +58,6 @@ const htmlHighlight = HighlightStyle.define([
   { tag: tags.documentMeta, color: "var(--muted)" },
 ]);
 
-/** 選んだ範囲の色（ピントがあってもなくても同じ。drawSelection の層） */
-const selectionTheme = EditorView.theme({
-  "& .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
-    background: "color-mix(in srgb, var(--accent) 28%, transparent)",
-  },
-});
-
 /**
  * ノートの編集（CodeMirror 6）。HTML のノートは HTML のソースをそのまま書く（色分けと、タグを閉じる補助。ページの見た目は NoteView が別に描く）。
  * Markdown のノートの Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
@@ -106,28 +76,7 @@ export default function NoteEditor({ initialValue, kind, live, hidden = false, o
     dynamic: live && kind === "markdown" ? [liveRich, livePreview] : [],
     dynamicDeps: [live, kind],
     extensions: () => [
-      history(),
-      // 選んだ範囲を、ピントが外れても（右クリックのメニュー・チャットの欄に移っても）見えるように描く。色は CodeMirror の既定（明るい紫）より
-      // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
-      drawSelection(),
-      selectionTheme,
-      keymap.of([
-        {
-          key: "Mod-s",
-          preventDefault: true,
-          run: () => {
-            handlers.current.onSave();
-            return true;
-          },
-        },
-        indentWithTab,
-        ...searchKeymap,
-        ...defaultKeymap,
-        ...historyKeymap,
-      ]),
-      // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）。欄はページ・チャットの検索と同じ見た目と探し方（noteFindPanel）
-      search({ top: true, createPanel: createNoteFindPanel, ...noteSearchConfig(readFindOptions()) }),
-      EditorState.phrases.of(SEARCH_PHRASES),
+      baseExtensions({ findPlaceholder: "このノートを検索", onSave: () => handlers.current.onSave() }),
       kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "ノート（HTML のソース）" : "ノート" }),

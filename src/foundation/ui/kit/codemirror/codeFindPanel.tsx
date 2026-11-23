@@ -8,19 +8,19 @@ import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
 import type { FindOptions } from "@/foundation/ui/lib/textFind";
 import { FindField, findCountText } from "@/foundation/ui/kit/FindField";
 
-/** 数える一致の上限（大きなノートで打つたびに数えすぎない） */
+/** 数える一致の上限（大きな文で打つたびに数えすぎない） */
 const MAX_COUNT = 10_000;
 
 /** エディタごとの置き換えの行（閉じて開き直しても、開いているか・書いた文を残す。VS Code と同じ） */
 const replaceMemory = new WeakMap<EditorView, { open: boolean; text: string }>();
 
 /** 打った文・置き換える文と探し方から、CodeMirror の検索の形を作る（正規表現でなければ打ったまま。\n も文字のまま） */
-function noteSearchQuery(search: string, replace: string, options: FindOptions): SearchQuery {
-  return new SearchQuery({ search, replace, ...noteSearchConfig(options) });
+function codeSearchQuery(search: string, replace: string, options: FindOptions): SearchQuery {
+  return new SearchQuery({ search, replace, ...codeSearchConfig(options) });
 }
 
 /** 初めて開くときの検索の形（search() の設定。開いたあとは欄が探し方をそろえる） */
-export function noteSearchConfig(options: FindOptions) {
+export function codeSearchConfig(options: FindOptions) {
   return { caseSensitive: options.caseSensitive, wholeWord: options.wholeWord, regexp: options.regex, literal: !options.regex };
 }
 
@@ -41,11 +41,11 @@ function countMatches(state: EditorState): { total: number; current: number | nu
 }
 
 /**
- * ノートのエディタ（CodeMirror）の ⌘F の検索の欄。ほかの検索の欄と同じ部品（ui/FindField）・探し方（「Aa」「ab」「.*」。useFindOptions）で、
- * 本文の右上に浮かせる（.note-find）。VS Code と同じく左の ▸ で置き換えの行を開く（Enter で 1 つ、⌘Enter ですべて置き換える）。
+ * CodeMirror のエディタ（ノート・SQL）の ⌘F の検索の欄。ほかの検索の欄と同じ部品（ui/FindField）・探し方（「Aa」「ab」「.*」。useFindOptions）で、
+ * 本文の右上に浮かせる（.code-find）。VS Code と同じく左の ▸ で置き換えの行を開く（Enter で 1 つ、⌘Enter ですべて置き換える）。
  * 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
  */
-function NoteFindPanel({ view, state, initialFocus }: { view: EditorView; state: EditorState; initialFocus: boolean }) {
+function CodeFindPanel({ view, state, initialFocus, placeholder }: { view: EditorView; state: EditorState; initialFocus: boolean; placeholder: string }) {
   // 描く中では view.state（同じ view のまま書き換わる外の値）ではなく、渡された state（CodeMirror の更新ごとに新しい物）を読む
   // （React Compiler が view が同じ間の結果を使い回しても、state が替われば読み直す）
   const { options, toggle } = useFindOptions();
@@ -72,7 +72,7 @@ function NoteFindPanel({ view, state, initialFocus }: { view: EditorView; state:
   }
 
   const push = (search: string, replaceText: string, opts: FindOptions) => {
-    view.dispatch({ effects: setSearchQuery.of(noteSearchQuery(search, replaceText, opts)) });
+    view.dispatch({ effects: setSearchQuery.of(codeSearchQuery(search, replaceText, opts)) });
   };
 
   // CodeMirror の検索の形を、欄の探し方・置き換える文にそろえる（探し方をほかの検索の欄で切り替えたとき・開いたとき。
@@ -111,7 +111,7 @@ function NoteFindPanel({ view, state, initialFocus }: { view: EditorView; state:
         setText(v);
         push(v, replace, options);
       }}
-      placeholder="このノートを検索"
+      placeholder={placeholder}
       inputProps={{ "main-field": "true" }}
       invalid={invalid}
       options={options}
@@ -133,17 +133,17 @@ function NoteFindPanel({ view, state, initialFocus }: { view: EditorView; state:
         onReplaceAll: () => replaceAll(view),
         canReplace: total > 0,
       }}
-      className="note-find"
+      className="code-find"
     />
   );
 }
 
-/** CodeMirror の search({ createPanel }) に渡す、検索の欄の作り方（中を React で描く） */
-export function createNoteFindPanel(view: EditorView): Panel {
+/** CodeMirror の search({ createPanel }) に渡す、検索の欄の作り方（中を React で描く。placeholder は入力欄の薄い文） */
+export function createCodeFindPanel(view: EditorView, placeholder: string): Panel {
   const dom = document.createElement("div");
   dom.className = "find-panel-host";
   const root = createRoot(dom);
-  const render = (initialFocus: boolean) => root.render(<NoteFindPanel view={view} state={view.state} initialFocus={initialFocus} />);
+  const render = (initialFocus: boolean) => root.render(<CodeFindPanel view={view} state={view.state} initialFocus={initialFocus} placeholder={placeholder} />);
   return {
     dom,
     top: true,
