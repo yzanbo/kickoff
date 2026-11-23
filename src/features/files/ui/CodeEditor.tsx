@@ -15,6 +15,7 @@ import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "@/foundation/ui/diff/DiffTable";
 import type { BlameLines } from "./filesGit";
 import { quickDiff } from "@/foundation/ui/diff/quickDiff";
+import { editorModelUris } from "./editorModels";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };
@@ -119,8 +120,9 @@ export default function CodeEditor({
 
   // エディタを作る（作るときの中身・設定は、作る時点の値を読む。同じファイルの間は作り直さないので、effect の依存にしない）
   const create = useEffectEvent((host: HTMLDivElement) => {
-    // ファイル名から言語を決める（拡張子ごとの色付けの定義は、使うときに読み込まれる）
-    const model = monaco.editor.createModel(initialValue, undefined, monaco.Uri.file(path));
+    // ファイル名から言語を決める（拡張子ごとの色付けの定義は、使うときに読み込まれる）。住所は部品ごと（同じファイルを 2 か所で開いても重ならない）
+    const uris = editorModelUris(path);
+    const model = monaco.editor.createModel(initialValue, undefined, monaco.Uri.from(uris.modified));
     const options = {
       automaticLayout: true,
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue("--mono").trim(),
@@ -130,8 +132,8 @@ export default function CodeEditor({
       contextmenu: nativeContextMenu,
       wordWrap: wrap ? ("on" as const) : ("off" as const),
     };
-    // 差分の編集: 元の中身は同じ言語で色付けし、読むだけにする（URI は編集する中身と被らないよう別の形）
-    const originalModel = original === undefined ? null : monaco.editor.createModel(original, model.getLanguageId(), monaco.Uri.from({ scheme: "kickoff-original", path: `/${path}` }));
+    // 差分の編集: 元の中身は同じ言語で色付けし、読むだけにする
+    const originalModel = original === undefined ? null : monaco.editor.createModel(original, model.getLanguageId(), monaco.Uri.from(uris.original));
     let editor: monaco.editor.IStandaloneCodeEditor;
     if (originalModel) {
       const diff = monaco.editor.createDiffEditor(host, {
