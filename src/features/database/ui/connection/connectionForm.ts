@@ -99,14 +99,21 @@ function prepOf(form: ConnectionForm): DbPrep | null {
   });
 }
 
-/** 送る形（使わない欄は null。パスワードは書いたときだけ・消すなら null・省けばそのまま） */
+/** 秘密の値の送り方（消すなら null・書いたらその値・編集で書かなければ省いてそのまま・新しく作るなら null） */
+export function secretOf(value: string, clear: boolean, editing: boolean): string | null | undefined {
+  if (clear) return null;
+  if (value) return value;
+  return editing ? undefined : null;
+}
+
+/** 送る形（使わない欄は null。パスワードは secretOf） */
 export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionBody {
   const sqlite = isFileDb(form.engine);
   const text = (v: string) => v.trim() || null;
-  const password = form.clearPassword ? null : form.password ? form.password : editing ? undefined : null;
-  const aiPassword = form.clearAiPassword ? null : form.ai_password ? form.ai_password : editing ? undefined : null;
+  const password = secretOf(form.password, form.clearPassword, editing);
+  const aiPassword = secretOf(form.ai_password, form.clearAiPassword, editing);
   const ssh = !sqlite && form.ssh_on && form.ssh_host.trim();
-  const sshPassword = !ssh || form.clearSshPassword ? null : form.ssh_password ? form.ssh_password : editing ? undefined : null;
+  const sshPassword = ssh ? secretOf(form.ssh_password, form.clearSshPassword, editing) : null;
   return {
     name: form.name.trim(),
     engine: form.engine,

@@ -19,12 +19,12 @@ const previewOf = (statements: SqlStatement[]) => clipSql(statements.map((s, i) 
  * 環境の名前を打たせて確かめる（書き込む前の確かめが「環境の名前を打たないと流せない」の接続。打ったものが違えば流さない）。
  * テーブルの変更の保存でも使う
  */
-export async function confirmByEnvName(connection: DbConnection, title: string, message: string, confirmLabel: string): Promise<boolean> {
+export async function confirmByEnvName(connection: DbConnection, title: string, message: string, confirmLabel: string, kept = "流していません。"): Promise<boolean> {
   const env = DB_ENVIRONMENT_LABELS[connection.environment];
   const typed = await prompt({ title, message, label: `確かめのため、環境の名前「${env}」を入れてください`, placeholder: env, confirmLabel }).then((r) => r?.value ?? null);
   if (typed === null) return false;
   if (typed === env) return true;
-  await alert("環境の名前が違います", `「${env}」と入れてください。流していません。`);
+  await alert("環境の名前が違います", `「${env}」と入れてください。${kept}`);
   return false;
 }
 
@@ -63,15 +63,8 @@ export function useSqlWrite(connection: DbConnection, pending: boolean) {
   }, [on]);
 
   const start = async () => {
-    const typed = await prompt({
-      title: `「${connection.name}」に書き込む`,
-      message: `このタブだけ読み取り専用を外します（接続の設定は変えません）。外している間は、流す・保存するたびに SQL を見せて確かめます。\n10 分何もしないか、タブを閉じると読み取り専用に戻ります。`,
-      label: `確かめのため、環境の名前「${env}」を入れてください`,
-      placeholder: env,
-      confirmLabel: "書き込む",
-    }).then((r) => r?.value ?? null);
-    if (typed === null) return;
-    if (typed !== env) return alert("環境の名前が違います", `「${env}」と入れてください。読み取り専用のままにしました。`);
+    const message = `このタブだけ読み取り専用を外します（接続の設定は変えません）。外している間は、流す・保存するたびに SQL を見せて確かめます。\n10 分何もしないか、タブを閉じると読み取り専用に戻ります。`;
+    if (!(await confirmByEnvName(connection, `「${connection.name}」に書き込む`, message, "書き込む", "読み取り専用のままにしました。"))) return;
     setExpired(false);
     setOn(true);
   };

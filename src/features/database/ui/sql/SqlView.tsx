@@ -40,8 +40,10 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const worktree = client.worktreeOf(connection.id);
   const draftKey = storage.settings.sqlDraft(`${client.surfaceKey}:${tab.key}`);
   const editor = useRef<SqlEditorHandle | null>(null);
+  // 残す: 書きかけは開いたときに 1 回だけ読む（打つたびに読み直して入力欄を戻さない）
   const initial = useMemo(() => readSetting(draftKey), [draftKey]);
   // 書きかけは止まってから書く（窓を閉じる・読み込み直す前には書き出す）。タブを閉じたら消すので、外れたときは書かずに捨てる
+  // 残す: 遅らせる書き込みはキーごとに 1 つ（作り直すと待っている書き込みを捨てる）
   const draft = useMemo(() => deferredSetting(draftKey, DRAFT_DELAY), [draftKey]);
   const pending = useSqlPending(tab.key);
   const write = useSqlWrite(connection, pending);
@@ -50,10 +52,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
   const outline = useQuery(["SqlView.outline", connection.id, worktree], () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/outline", { ...dbAt(client.projectId, connection.id, worktree), body: { path: { database: connection.database, schema: null } } }), { keepPrevious: true });
-  const schema = useMemo<SQLNamespace | undefined>(
-    () => (outline.data ? Object.fromEntries(outline.data.map((t) => [t.name, t.columns])) : undefined),
-    [outline.data],
-  );
+  const schema: SQLNamespace | undefined = outline.data ? Object.fromEntries(outline.data.map((t) => [t.name, t.columns])) : undefined;
 
   const saveDraft = (text: string) => {
     activity();

@@ -1,6 +1,7 @@
 // タブごとのオン / オフの印（SQL のタブの「コミットしていない」・テーブルのタブの「保存していない」）。
 // タブの列の印と、タブの中身・閉じるときの確かめで共通に読む。画面の中だけ（ウィンドウを閉じれば消える）
-import { useSyncExternalStore } from "react";
+import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
+import { useKeyedStore } from "@/foundation/ui/store/useStore";
 
 export interface TabFlags {
   /** 印を付ける / 外す（変わったときだけ知らせる） */
@@ -9,22 +10,18 @@ export interface TabFlags {
   useFlag: (key: string) => boolean;
 }
 
+/** 読み込まない店（createKeyedStore）に、付いている印だけを持つ */
 export function createTabFlags(): TabFlags {
-  const on = new Set<string>();
-  const listeners = new Set<() => void>();
-  const subscribe = (l: () => void) => {
-    listeners.add(l);
-    return () => void listeners.delete(l);
-  };
+  const flags = createKeyedStore<string, true>();
+  const has = (key: string) => flags.get(key).data === true;
   return {
-    set: (key, value) => {
-      if (on.has(key) === value) return;
-      if (value) on.add(key);
-      else on.delete(key);
-      for (const l of listeners) l();
+    set: (key, on) => {
+      if (has(key) === on) return;
+      if (on) flags.set(key, true);
+      else flags.drop(key);
     },
-    has: (key) => on.has(key),
-    useFlag: (key) => useSyncExternalStore(subscribe, () => on.has(key)),
+    has,
+    useFlag: (key) => useKeyedStore(flags, key).data === true,
   };
 }
 

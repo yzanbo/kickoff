@@ -20,8 +20,8 @@ export interface TableEdits {
 
 export const NO_EDITS: TableEdits = { changes: {}, deletes: [], inserts: [] };
 
-/** 行を指すキー（キーの列の値の並びの JSON）。キーの列がない・値がバイナリなら null（その行は書き換えられない） */
-export function rowKey(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): string | null {
+/** キーの列の値の並び（キーの列がない・行にない・値がバイナリや頭だけの文字なら null。保存と全体の読み直しで共通） */
+export function keyValuesOf(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): DbKeyValue[] | null {
   if (!keyColumns) return null;
   const values: DbKeyValue[] = [];
   for (const name of keyColumns) {
@@ -31,7 +31,13 @@ export function rowKey(columns: DbColumnInfo[], row: DbValue[], keyColumns: stri
     if (v !== null && typeof v === "object") return null;
     values.push(v);
   }
-  return JSON.stringify(values);
+  return values;
+}
+
+/** 行を指すキー（キーの列の値の並びの JSON）。書き換えられない行は null */
+export function rowKey(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): string | null {
+  const values = keyValuesOf(columns, row, keyColumns);
+  return values && JSON.stringify(values);
 }
 
 /** 書き直すときに欄に入れる文（NULL は空。バイナリは書き換えられないので null） */

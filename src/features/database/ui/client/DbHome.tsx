@@ -1,10 +1,9 @@
 import { Lock, Plus, Sparkles, StickyNote } from "lucide-react";
-import { useState } from "react";
-import { errorMessage } from "@shared/foundation/errors";
 import { isAiVisible } from "@shared/database/aiVisibility";
 import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/database/types";
 import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";
 import { relativeTime } from "@/foundation/ui/lib/time";
 import { applyConnection, useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
@@ -97,19 +96,9 @@ export function DbHome({
 
 /** 未登録の DB の候補の 1 行（「＋ 足す」で、名前と環境は案のまま取り込む） */
 function Candidate({ projectId, candidate: c }: { projectId: number; candidate: DbImportCandidate }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const add = async () => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      const created = await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: [{ key: c.key, name: c.name, environment: c.environment }] } });
-      created.forEach(applyConnection);
-    } catch (e) {
-      setError(errorMessage(e));
-      setBusy(false);
-    }
-  };
+  const action = useAction<"add">();
+  // 足せたら一覧から消えるので、押せないまま待つ
+  const add = () => action.run("add", async () => (await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: [{ key: c.key, name: c.name, environment: c.environment }] } })).forEach(applyConnection), { keepBusy: true });
   return (
     <li className={cx("db-home-found-item", `db-env-${c.environment}`)}>
       <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
@@ -118,9 +107,9 @@ function Candidate({ projectId, candidate: c }: { projectId: number; candidate: 
         <span className="small muted">
           （{connectionScope(c)} · {DB_ENVIRONMENT_LABELS[c.environment]}）
         </span>
-        <ErrorText message={error} />
+        <ErrorText message={action.error} />
       </span>
-      <button type="button" className="btn" data-size="sm" disabled={busy} onClick={() => void add()} title={`「${c.name}」として${DB_ENVIRONMENT_LABELS[c.environment]}の接続に足す`}>
+      <button type="button" className="btn" data-size="sm" disabled={action.busy !== null} onClick={() => void add()} title={`「${c.name}」として${DB_ENVIRONMENT_LABELS[c.environment]}の接続に足す`}>
         <Plus size={13} aria-hidden /> 足す
       </button>
     </li>

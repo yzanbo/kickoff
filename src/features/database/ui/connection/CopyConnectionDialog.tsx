@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -22,22 +22,16 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
   const lists = useQuery(["CopyConnectionDialog.lists", others.map((p) => p.id).join(",")], () => Promise.all(others.map(async (p) => ({ project: p, connections: await dbApi("GET /api/projects/:projectId/db-connections", { params: { projectId: p.id } }).catch(() => [] as DbConnection[]) }))), { keepPrevious: true });
   const [picked, setPicked] = useState<number | null>(null);
   const [withPassword, setWithPassword] = useState(false);
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
+  const action = useAction<"submit">();
   const groups = (lists.data ?? []).filter((g) => g.connections.length > 0);
   const pickedConnection = groups.flatMap((g) => g.connections).find((c) => c.id === picked);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (picked === null) return;
-    setSaving(true);
-    try {
-      applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/copy", { params: { projectId }, body: { from_id: picked, copy_password: withPassword } }));
-      dialog.close();
-    } catch (err) {
-      setError(errorMessage(err));
-      setSaving(false);
-    }
+    // 送れたら閉じる（押し直したら前の失敗の文は消える）
+    const ok = await action.run("submit", async () => applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/copy", { params: { projectId }, body: { from_id: picked, copy_password: withPassword } })), { keepBusy: true });
+    if (ok) dialog.close();
   };
 
   return (
@@ -69,8 +63,8 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
           disabled={!pickedConnection?.has_password}
           onChange={setWithPassword}
         />
-        <ErrorText message={error} />
-        <DialogActions onCancel={() => dialog.close()} submit={{ label: "写す", busyLabel: "写しています…", busy: saving, disabled: picked === null }} />
+        <ErrorText message={action.error} />
+        <DialogActions onCancel={() => dialog.close()} submit={{ label: "写す", busyLabel: "写しています…", busy: action.busy === "submit", disabled: picked === null }} />
       </form>
     </dialog>
   );

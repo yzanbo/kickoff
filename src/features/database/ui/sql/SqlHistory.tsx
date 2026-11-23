@@ -1,5 +1,5 @@
 import { Bot, History } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { DbConnection, DbQueryHistoryEntry } from "@shared/database/types";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -56,11 +56,9 @@ function SqlHistoryList({ connection, onPick }: { connection: DbConnection; onPi
   const client = useDbClient();
   const [query, setQuery] = useState("");
   const history = useQuery(["SqlHistory.history", client.projectId, connection.id], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/history", dbOne(client.projectId, connection.id)), { keepPrevious: true });
-  const shown = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const list = history.data ?? [];
-    return needle ? list.filter((e) => e.sql.toLowerCase().includes(needle) || (e.chat_title ?? "").toLowerCase().includes(needle)) : list;
-  }, [history.data, query]);
+  const needle = query.trim().toLowerCase();
+  const list = history.data ?? [];
+  const shown = needle ? list.filter((e) => e.sql.toLowerCase().includes(needle) || (e.chat_title ?? "").toLowerCase().includes(needle)) : list;
 
   return (
     <div className="db-sql-history-body">

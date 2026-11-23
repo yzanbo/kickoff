@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { testResultText } from "./connectionForm";
+import { secretOf, testResultText } from "./connectionForm";
 
 test("testResultText: つながった（版・SSL・時間）・SQLite は SSL を出さない・失敗は時間を後ろに", () => {
   assert.equal(testResultText({ ok: true, server_version: "PostgreSQL 16.4", error: null, duration_ms: 1234 }, "verify"), "つながりました（PostgreSQL 16.4 · SSL（証明書も確かめる） · 1,234 ms）");
@@ -8,4 +8,11 @@ test("testResultText: つながった（版・SSL・時間）・SQLite は SSL �
   assert.equal(testResultText({ ok: true, server_version: "SQLite 3.50", error: null, duration_ms: 1 }, null), "つながりました（SQLite 3.50 · 1 ms）");
   assert.equal(testResultText({ ok: false, server_version: null, error: "timeout", duration_ms: 10000 }, "require"), "つながりません: timeout（10,000 ms）");
   assert.equal(testResultText({ ok: false, server_version: null, error: "名前がありません", duration_ms: null }, null), "つながりません: 名前がありません");
+});
+
+test("secretOf: 消すなら null・書いたらその値・編集で空なら省く・新しく作るなら null", () => {
+  assert.equal(secretOf("pw", true, true), null);
+  assert.equal(secretOf("pw", false, false), "pw");
+  assert.equal(secretOf("", false, true), undefined);
+  assert.equal(secretOf("", false, false), null);
 });

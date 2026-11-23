@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { errorMessage } from "@shared/foundation/errors";
 import type { DbConnection } from "@shared/database/types";
 import type { DbEnteredPasswordsBody } from "@shared/database/api";
 import { useCell } from "@/foundation/ui/store";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { attachDbPasswordHost, dbPasswordQueue, finishDbPassword, type DbPasswordRequest } from "./askDbPassword";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useDbConnections } from "@/features/database/ui/state/connectionsStore";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
@@ -37,23 +37,16 @@ function UnlockDialog({ request, onFinish }: { request: DbPasswordRequest; onFin
   const fields = connection ? FIELDS.filter((f) => f.has(connection)) : [];
   const [values, setValues] = useState<DbEnteredPasswordsBody>({});
   const [entered, setEntered] = useState(false);
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
+  const action = useAction<"submit">();
   const ready = fields.length > 0 && fields.every((f) => f.optional || values[f.key]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!ready) return;
-    setSaving(true);
-    try {
-      const body = Object.fromEntries(fields.filter((f) => values[f.key]).map((f) => [f.key, values[f.key]]));
-      await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/entered-passwords", { ...dbOne(request.projectId, request.connectionId), body });
-      setEntered(true);
-      dialog.close();
-    } catch (err) {
-      setError(errorMessage(err));
-      setSaving(false);
-    }
+    const body = Object.fromEntries(fields.filter((f) => values[f.key]).map((f) => [f.key, values[f.key]]));
+    if (!(await action.run("submit", () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/entered-passwords", { ...dbOne(request.projectId, request.connectionId), body }), { keepBusy: true }))) return;
+    setEntered(true);
+    dialog.close();
   };
 
   return (
@@ -77,8 +70,8 @@ function UnlockDialog({ request, onFinish }: { request: DbPasswordRequest; onFin
           入れたパスワードは Kickoff を終えるまで覚え、この接続のほかのタブと AI のツールでも使います（保存したパスワードは変えません）。Kickoff
           を起動し直すと、もう一度キーチェーンの許可を聞きます。
         </p>
-        <ErrorText message={error} />
-        <DialogActions onCancel={() => dialog.close()} cancelLabel="やめる" submit={{ label: "接続", busyLabel: "接続しています…", busy: saving, disabled: !ready }} />
+        <ErrorText message={action.error} />
+        <DialogActions onCancel={() => dialog.close()} cancelLabel="やめる" submit={{ label: "接続", busyLabel: "接続しています…", busy: action.busy === "submit", disabled: !ready }} />
       </form>
     </dialog>
   );

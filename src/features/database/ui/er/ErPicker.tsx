@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { DB_ER_MAX } from "@shared/database/types";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 
@@ -9,10 +9,8 @@ import { SearchField } from "@/foundation/ui/kit/SearchField";
 export function ErPicker({ names, initial, onPick, onAll }: { names: string[]; initial: string[]; onPick: (names: string[]) => void; onAll: (() => void) | null }) {
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<ReadonlySet<string>>(() => new Set(initial));
-  const shown = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return needle ? names.filter((n) => n.toLowerCase().includes(needle)) : names;
-  }, [names, query]);
+  const needle = query.trim().toLowerCase();
+  const shown = needle ? names.filter((n) => n.toLowerCase().includes(needle)) : names;
   const toggle = (name: string) =>
     setPicked((s) => {
       const next = new Set(s);

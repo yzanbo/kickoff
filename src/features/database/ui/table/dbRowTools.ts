@@ -2,6 +2,7 @@
 import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbTableDetail, type DbValue } from "@shared/database/types";
 import { dbImageType, isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { EMPTY_TEXT_LABEL } from "@/features/database/ui/dbFormat";
+import { keyValuesOf } from "./tableEdits";
 
 /** 絞り込みの値にする文（NULL は null、バイナリ・頭だけの長い文字は絞れないので undefined） */
 function filterValueOf(value: DbValue): string | null | undefined {
@@ -42,16 +43,9 @@ export const hasUnreadImage = (row: DbValue[]) => row.some((v) => isDbBinary(v) 
 
 /** 行を指すキーの列の条件（全体を読み直すとき。キーの列がない・値がバイナリや頭だけの文字なら null） */
 export function rowKeyFilters(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): DbFilter[] | null {
-  if (!keyColumns || keyColumns.length === 0) return null;
-  const filters: DbFilter[] = [];
-  for (const name of keyColumns) {
-    const at = columns.findIndex((c) => c.name === name);
-    if (at < 0) return null;
-    const v = filterValueOf(row[at]);
-    if (v === undefined) return null;
-    filters.push(v === null ? { column: name, op: "is_null", value: "" } : { column: name, op: "eq", value: v });
-  }
-  return filters;
+  const values = keyColumns && keyColumns.length > 0 ? keyValuesOf(columns, row, keyColumns) : null;
+  if (!keyColumns || !values) return null;
+  return keyColumns.map((column, i) => (values[i] === null ? { column, op: "is_null", value: "" } : { column, op: "eq", value: String(values[i]) }));
 }
 
 /** 列 → その列を含む外部キー（セルの右クリック・行の詳細で参照先へ移る） */

@@ -5,6 +5,7 @@ import { parseDbUrl } from "@shared/database/dbUrl";
 import { DB_AI_ACCESSES, DB_AI_ACCESS_LABELS, DB_DEFAULT_PORTS, DB_ENVIRONMENTS, DB_ENVIRONMENT_DEFAULTS, DB_ENVIRONMENT_LABELS, DB_SSH_UNKNOWN_HOST, DB_WRITE_CHECKS, DB_WRITE_CHECK_LABELS, type DbAiAccess, type DbConnection, type DbEngine, type DbEnvironment, type DbSsh, type DbWriteCheck } from "@shared/database/types";
 import type { DbConnectionTestResult } from "@shared/database/api";
 import { dbApi, dbOne } from "@/features/database/ui/api";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
@@ -17,6 +18,7 @@ import { ConnectionNoteField } from "./ConnectionNoteField";
 import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
 import { DbFailureHelp } from "./DbFailureDialog";
+import { SecretField } from "./SecretField";
 import { SshHostKeyDialog } from "./SshHostKeyDialog";
 import { isFileDb } from "@shared/database/connectionShape";
 
@@ -42,8 +44,7 @@ export function ConnectionDialog({
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string>();
   const [test, setTest] = useState<DbConnectionTestResult | "testing" | null>(null);
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
+  const action = useAction<"submit">();
   /** 鍵を確かめている踏み台（初めてのサーバーで試すのに失敗したとき） */
   const [hostKey, setHostKey] = useState<DbSsh | null>(null);
   const set = <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -90,17 +91,9 @@ export function ConnectionDialog({
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setError(undefined);
-    // React Compiler は try の中の条件式を扱えないので、保存の仕方は外で決める
     const save = (body: ReturnType<typeof bodyOf>) => (editing ? dbApi("PATCH /api/projects/:projectId/db-connections/:connectionId", { ...dbOne(projectId, connection.id), body }) : dbApi("POST /api/projects/:projectId/db-connections", { params: { projectId }, body }));
-    try {
-      applyConnection(await save(bodyOf(form, editing)));
-      dialog.close();
-    } catch (e) {
-      setError(errorMessage(e));
-      setSaving(false);
-    }
+    // 送れたら閉じる
+    if (await action.run("submit", async () => applyConnection(await save(bodyOf(form, editing))), { keepBusy: true })) dialog.close();
   };
 
   return (
@@ -140,20 +133,16 @@ export function ConnectionDialog({
                 <input value={form.username} onChange={(e) => set("username", e.target.value)} spellCheck={false} autoComplete="off" />
               </Field>
             </div>
-            <Field
+            <SecretField
               label="パスワード"
               help={connection?.has_password ? "保存してあります（変えるときだけ入力）。保存した値は画面・AI には出しません" : "この Mac の Kickoff の中だけに保存し、画面・AI には出しません"}
-            >
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => set("password", e.target.value)}
-                disabled={form.clearPassword}
-                autoComplete="new-password"
-                placeholder={connection?.has_password ? "••••••••" : ""}
-              />
-            </Field>
-            {connection?.has_password && <CheckField label="保存したパスワードを消す" checked={form.clearPassword} onChange={(v) => set("clearPassword", v)} />}
+              saved={!!connection?.has_password}
+              value={form.password}
+              clear={form.clearPassword}
+              clearLabel="保存したパスワードを消す"
+              onChange={(v) => set("password", v)}
+              onClear={(v) => set("clearPassword", v)}
+            />
             <ConnectionSslFields form={form} set={set} />
             <ConnectionSshFields projectId={projectId} form={form} hasPassword={!!connection?.has_ssh_password} set={set} />
           </>
@@ -204,16 +193,15 @@ export function ConnectionDialog({
             <Field label="AI 用のユーザー（任意）" help="AI が SQL を流すときだけ、このユーザーでつなぎます（読み取りの権限だけのユーザーを作っておくと、より安全です）">
               <input value={form.ai_username} onChange={(e) => set("ai_username", e.target.value)} spellCheck={false} autoComplete="off" />
             </Field>
-            <Field label="AI 用のパスワード" help={connection?.has_ai_password ? "保存してあります（変えるときだけ入力）" : undefined}>
-              <input
-                type="password"
-                value={form.ai_password}
-                onChange={(e) => set("ai_password", e.target.value)}
-                disabled={form.clearAiPassword || !form.ai_username.trim()}
-                autoComplete="new-password"
-                placeholder={connection?.has_ai_password ? "••••••••" : ""}
-              />
-            </Field>
+            <SecretField
+              label="AI 用のパスワード"
+              help={connection?.has_ai_password ? "保存してあります（変えるときだけ入力）" : undefined}
+              saved={!!connection?.has_ai_password}
+              value={form.ai_password}
+              clear={form.clearAiPassword}
+              disabled={!form.ai_username.trim()}
+              onChange={(v) => set("ai_password", v)}
+            />
           </div>
         )}
         {!sqlite && isAiVisible(form) && connection?.has_ai_password && (
@@ -230,8 +218,8 @@ export function ConnectionDialog({
           </button>
         )}
         {test && test !== "testing" && !test.ok && test.error && test.code !== DB_SSH_UNKNOWN_HOST && <DbFailureHelp error={test.error} />}
-        <ErrorText message={error} />
-        <DialogActions onCancel={() => dialog.close()} submit={{ label: editing ? "保存" : "追加", busyLabel: "保存中…", busy: saving }}>
+        <ErrorText message={action.error} />
+        <DialogActions onCancel={() => dialog.close()} submit={{ label: editing ? "保存" : "追加", busyLabel: "保存中…", busy: action.busy === "submit" }}>
           <button type="button" className="btn" disabled={test === "testing"} onClick={() => void runTest()}>
             {test === "testing" ? "試しています…" : "つながるか試す"}
           </button>

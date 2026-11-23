@@ -1,9 +1,9 @@
 import { Play, RotateCcw, ShieldAlert, Square } from "lucide-react";
-import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/database/types";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
@@ -40,28 +40,20 @@ export function DbPrepDialog({
     interval: (d) => (d?.running ? POLL_MS : undefined),
   });
   const state = prepState.data ?? null;
-  const [actError, setError] = useState<string>();
-  const error = actError ?? (prepState.error ? errorMessage(prepState.error) : undefined);
-  const [busy, setBusy] = useState(false);
+  const action = useAction<"act">();
+  const error = action.error ?? (prepState.error ? errorMessage(prepState.error) : undefined);
+  const busy = action.busy !== null;
   const runs = useQuery(["DbPrepDialog.runs", projectId, c.id, state?.finished_at], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/prep-runs", dbOne(projectId, c.id)), { keepPrevious: true });
   const prep = c.prep;
   const hasPrepare = (prep?.prepare.length ?? 0) > 0;
   const running = state?.running ?? false;
 
   /** 確かめていなければ確かめてから（then: 確かめたあとにすること） */
-  const act = async (then: () => Promise<void>) => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      if (!c.prep_confirmed) {
-        applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prep/confirm", dbOne(projectId, c.id)));
-      }
+  const act = (then: () => Promise<void>) =>
+    action.run("act", async () => {
+      if (!c.prep_confirmed) applyConnection(await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prep/confirm", dbOne(projectId, c.id)));
       await then();
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-    setBusy(false);
-  };
+    });
 
   const start = () =>
     act(async () => {
@@ -144,7 +136,7 @@ export function DbPrepDialog({
             閉じる
           </button>
           {running ? (
-            <button type="button" className="btn" onClick={() => void dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prepare/cancel", dbOne(projectId, c.id)).catch((e: unknown) => setError(errorMessage(e)))}>
+            <button type="button" className="btn" onClick={() => void dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prepare/cancel", dbOne(projectId, c.id)).catch((e: unknown) => action.setError(errorMessage(e)))}>
               <Square size={14} aria-hidden /> 止める
             </button>
           ) : succeeded && onRetry ? (

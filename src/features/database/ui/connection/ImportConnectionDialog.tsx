@@ -1,8 +1,8 @@
-import { useEffect, useEffectEvent, useMemo, useState, type FormEvent } from "react";
-import { errorMessage } from "@shared/foundation/errors";
+import { useEffect, useEffectEvent, useState, type FormEvent } from "react";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbConnection, type DbEnvironment, type DbImportCandidate } from "@shared/database/types";
 import { dbApi } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { cx } from "@/foundation/ui/lib/cx";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
@@ -37,9 +37,8 @@ export function ImportConnectionDialog({
   const { ref: dialogRef, ...dialog } = useModalDialog();
   const found = useQuery(["ImportConnectionDialog.found", projectId], () => dbApi("GET /api/projects/:projectId/db-connections/import", { params: { projectId } }), { keepPrevious: true });
   const [picks, setPicks] = useState<Record<string, ImportChoice>>({});
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
-  const list = useMemo(() => (found.data && preselect ? withPreselect(found.data, preselect) : (found.data ?? [])), [found.data, preselect]);
+  const action = useAction<"submit">();
+  const list = found.data && preselect ? withPreselect(found.data, preselect) : (found.data ?? []);
 
   // 届いたら、まだ登録していないもの（Docker タブからならその DB の案だけ）を選んだ形で始める
   const startPicks = useEffectEvent(() => {
@@ -56,15 +55,10 @@ export function ImportConnectionDialog({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (chosen.length === 0) return;
-    setSaving(true);
-    let created: DbConnection[];
-    try {
-      created = await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items: chosen.map((c) => ({ key: c.key, name: picks[c.key].name.trim(), environment: picks[c.key].environment })) } });
-    } catch (err) {
-      setError(errorMessage(err));
-      setSaving(false);
-      return;
-    }
+    const items = chosen.map((c) => ({ key: c.key, name: picks[c.key].name.trim(), environment: picks[c.key].environment }));
+    let created: DbConnection[] = [];
+    const ok = await action.run("submit", async () => (created = await dbApi("POST /api/projects/:projectId/db-connections/import", { params: { projectId }, body: { items } })), { keepBusy: true });
+    if (!ok) return;
     created.forEach(applyConnection);
     dialog.close();
     // 作った接続は選んだ順に返る
@@ -85,10 +79,10 @@ export function ImportConnectionDialog({
             <ImportRow key={c.key} candidate={c} pick={picks[c.key]} onChange={(patch) => update(c.key, patch)} />
           ))}
         </div>
-        <ErrorText message={error} />
+        <ErrorText message={action.error} />
         <DialogActions
           onCancel={() => dialog.close()}
-          submit={{ label: chosen.length > 0 ? `${chosen.length} 件を取り込む` : "取り込む", busyLabel: "取り込んでいます…", busy: saving, disabled: chosen.length === 0 }}
+          submit={{ label: chosen.length > 0 ? `${chosen.length} 件を取り込む` : "取り込む", busyLabel: "取り込んでいます…", busy: action.busy === "submit", disabled: chosen.length === 0 }}
         />
       </form>
     </dialog>

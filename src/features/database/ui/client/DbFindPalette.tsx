@@ -1,5 +1,5 @@
 import { Columns3, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { DbConnection, DbObjectPath } from "@shared/database/types";
 import { useQuery } from "@/foundation/ui/query";
 import { dbApi, dbAt } from "@/features/database/ui/api";
@@ -29,7 +29,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
   const [treeOpen] = useSetting(storage.settings.treeOpen(client.surfaceKey));
   const connected = useDbConnectedIds(client.projectId).data;
   const [query, setQuery] = useState("");
-  const byId = useMemo(() => new Map(connections.map((c) => [c.id, c])), [connections]);
+  const byId = new Map(connections.map((c) => [c.id, c]));
 
   // 開いたときに 1 回だけ読む（開いたときの接続・木の開き方で。あとで変わっても読み直さない）
   const loadSources = async (): Promise<{ sources: DbFindSource[]; failed: number }> => {
@@ -68,7 +68,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
   };
   const loaded = useQuery(["DbFindPalette.sources", client.surfaceKey], loadSources).data ?? null;
 
-  const items = useMemo(() => findDbItems(loaded?.sources ?? [], query), [loaded, query]);
+  const items = findDbItems(loaded?.sources ?? [], query);
   const go = (item: DbFindItem | undefined) => {
     const c = item && byId.get(item.connection_id);
     if (!item || !c) return;

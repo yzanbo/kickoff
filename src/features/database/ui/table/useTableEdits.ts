@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { editKeyColumns, editStatements } from "@shared/database/dbEdit";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDetail } from "@shared/database/types";
@@ -24,7 +24,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const write = useSqlWrite(connection, false);
-  const keyColumns = useMemo(() => (detail ? editKeyColumns(detail) : null), [detail]);
+  const keyColumns = detail ? editKeyColumns(detail) : null;
   const counts = editCounts(edits);
   const flag = unsavedKey(client.surfaceKey, tab.key);
   const dirty = counts.total > 0;

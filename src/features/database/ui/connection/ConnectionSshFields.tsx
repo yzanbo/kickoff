@@ -2,6 +2,7 @@ import { dbApi } from "@/features/database/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import type { ConnectionForm } from "./connectionForm";
+import { SecretField } from "./SecretField";
 
 /**
  * 接続のダイアログの「SSH トンネル」: 踏み台（~/.ssh/config の Host かホスト名）・ポート・ユーザー・鍵のファイル・パスワード。
@@ -51,20 +52,16 @@ export function ConnectionSshFields({
               <input value={form.ssh_identity_file} onChange={(e) => set("ssh_identity_file", e.target.value)} spellCheck={false} placeholder="~/.ssh/id_ed25519" />
             </Field>
           </div>
-          <Field
+          <SecretField
             label="SSH のパスワード（任意）"
             help={hasPassword ? "保存してあります（変えるときだけ入力）" : "鍵でログインできないときだけ。この Mac の Kickoff の中だけに保存し、画面・AI には出しません"}
-          >
-            <input
-              type="password"
-              value={form.ssh_password}
-              onChange={(e) => set("ssh_password", e.target.value)}
-              disabled={form.clearSshPassword}
-              autoComplete="new-password"
-              placeholder={hasPassword ? "••••••••" : ""}
-            />
-          </Field>
-          {hasPassword && <CheckField label="保存した SSH のパスワードを消す" checked={form.clearSshPassword} onChange={(v) => set("clearSshPassword", v)} />}
+            saved={hasPassword}
+            value={form.ssh_password}
+            clear={form.clearSshPassword}
+            clearLabel="保存した SSH のパスワードを消す"
+            onChange={(v) => set("ssh_password", v)}
+            onClear={(v) => set("clearSshPassword", v)}
+          />
         </div>
       )}
     </>

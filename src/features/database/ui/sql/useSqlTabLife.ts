@@ -1,6 +1,6 @@
 // SQL のタブの、使っていない間の扱い: トランザクションの途中で 10 分何もしなければ聞いて切る（useIdleFinish）・
 // 裏のタブの結果が多すぎれば捨て、戻ったら読み取りの文だけ流し直す（useSqlResultBudget）
-import { useEffect, useEffectEvent, useMemo, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { isReadOnlyStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_SESSION_IDLE_MS, type DbConnection } from "@shared/database/types";
@@ -64,7 +64,7 @@ export function useSqlResultBudget({
   setRuns: (runs: StatementRun[] | ((all: StatementRun[]) => StatementRun[])) => void;
 }) {
   const client = useDbClient();
-  const bytes = useMemo(() => runs.reduce((sum, r) => sum + (r.result ? estimateRowsBytes(r.result.rows) : 0), 0), [runs]);
+  const bytes = runs.reduce((sum, r) => sum + (r.result ? estimateRowsBytes(r.result.rows) : 0), 0);
   useResultBudget(`${client.surfaceKey}:${tab.key}`, busy ? 0 : bytes, active, () =>
     setRuns((all) => all.map((r) => (r.result && r.result.columns.length > 0 ? { sql: r.sql, write: r.write, evicted: true } : r))),
   );

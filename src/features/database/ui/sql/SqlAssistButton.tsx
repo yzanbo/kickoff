@@ -1,8 +1,8 @@
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
 import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbConnection } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { prompt, reportFailure } from "@/foundation/ui/kit/ask";
 import { AI_HIDDEN_TIP } from "@/features/database/ui/ai/DbAiButtons";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
@@ -11,7 +11,8 @@ import type { SqlEditorHandle } from "./SqlEditor";
 /** SQL のタブの「AI に頼む」: 頼みを入れてもらい、接続の既定の場所のテーブルと列の名前（値は渡さない）といまの SQL から、AI に書いてもらった SQL を入力欄の終わりに足す */
 export function SqlAssistButton({ connection, editor }: { connection: DbConnection; editor: React.RefObject<SqlEditorHandle | null> }) {
   const client = useDbClient();
-  const [busy, setBusy] = useState(false);
+  const action = useAction<"ask">();
+  const busy = action.busy !== null;
   const hidden = !isAiVisible(connection);
   const run = async () => {
     const request = await prompt({
@@ -22,9 +23,8 @@ export function SqlAssistButton({ connection, editor }: { connection: DbConnecti
       confirmLabel: "頼む",
     }).then((r) => r?.value ?? null);
     if (!request?.trim()) return;
-    setBusy(true);
-    await askAi(request).catch((e: unknown) => void reportFailure("AI に頼めませんでした")(e));
-    setBusy(false);
+    // 失敗はお知らせで出す
+    await action.run("ask", () => askAi(request).catch((e: unknown) => void reportFailure("AI に頼めませんでした")(e)));
   };
   /** AI に書いてもらった SQL を入力欄の終わりに足す（失敗は投げる） */
   const askAi = async (request: string) => {

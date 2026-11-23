@@ -1,5 +1,5 @@
 import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -56,7 +56,7 @@ export function TableView({
   const data = useTableRows(tab, connection, worktree);
   const edit = useTableEdits(tab, connection, detail.data, worktree, data.reload);
   // 保存していない変更があるタブの結果は捨てない（変更は読んだ行に重ねて見せるため）
-  const bytes = useMemo(() => (data.result && edit.counts.total === 0 ? estimateRowsBytes(data.result.rows) : 0), [data.result, edit.counts.total]);
+  const bytes = data.result && edit.counts.total === 0 ? estimateRowsBytes(data.result.rows) : 0;
   useResultBudget(`${client.surfaceKey}:${tab.key}`, bytes, active, data.evict);
   const reloadRows = useEffectEvent(() => data.reload());
   useEffect(() => {

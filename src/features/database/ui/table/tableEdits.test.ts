@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { DbColumnInfo, DbValue } from "@shared/database/types";
-import { addInserts, buildEdits, displayRows, editableText, editCounts, NO_EDITS, removeInsert, revertCell, rowKey, setCell, setInsertCell, toggleDelete } from "./tableEdits";
+import { addInserts, buildEdits, displayRows, editableText, editCounts, keyValuesOf, NO_EDITS, removeInsert, revertCell, rowKey, setCell, setInsertCell, toggleDelete } from "./tableEdits";
 
 const cols: DbColumnInfo[] = [
   { name: "id", type: "integer" },
@@ -76,4 +76,11 @@ test("displayRows: 書き換えを重ね、足す行を後ろに。行とセル�
   assert.deepEqual([d.cellState(0, 1), d.cellState(0, 0), d.cellState(2, 0), d.cellState(2, 1)], ["changed", null, "default", "changed"]);
   // 何も変えていなければ読んだ行をそのまま
   assert.equal(displayRows(cols, rows, null, NO_EDITS).rows[0], rows[0]);
+});
+
+test("keyValuesOf: キーの列の値の並び。キーの列がない・行にない・バイナリなら null", () => {
+  assert.deepEqual(keyValuesOf(cols, [1, null, null], ["id", "name"]), [1, null]);
+  assert.equal(keyValuesOf(cols, [1, "a", bin], ["blob"]), null);
+  assert.equal(keyValuesOf(cols, [1, "a", null], ["nope"]), null);
+  assert.equal(keyValuesOf(cols, [1, "a", null], null), null);
 });

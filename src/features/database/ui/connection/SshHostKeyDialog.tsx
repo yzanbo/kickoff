@@ -1,8 +1,8 @@
-import { useState, type FormEvent } from "react";
-import { errorMessage } from "@shared/foundation/errors";
+import type { FormEvent } from "react";
 import type { DbSsh } from "@shared/database/types";
 import { dbApi } from "@/features/database/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -14,22 +14,15 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { projectId: number; ssh: DbSsh; onAccepted: () => void; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const scan = useQuery(["SshHostKeyDialog.scan", projectId, ssh.host, ssh.port, ssh.user, ssh.identity_file], () => dbApi("POST /api/projects/:projectId/db-connections/ssh-host-key", { params: { projectId }, body: { ssh } }), { keepPrevious: true });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
+  const action = useAction<"accept">();
 
   const accept = async (e: FormEvent) => {
     e.preventDefault();
     if (!scan.data) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      await dbApi("POST /api/projects/:projectId/db-connections/ssh-host-key/accept", { params: { projectId }, body: { ssh, fingerprints: scan.data.keys.map((k) => k.fingerprint) } });
-      dialog.close();
-      onAccepted();
-    } catch (err) {
-      setError(errorMessage(err));
-      setBusy(false);
-    }
+    const fingerprints = scan.data.keys.map((k) => k.fingerprint);
+    if (!(await action.run("accept", () => dbApi("POST /api/projects/:projectId/db-connections/ssh-host-key/accept", { params: { projectId }, body: { ssh, fingerprints } }), { keepBusy: true }))) return;
+    dialog.close();
+    onAccepted();
   };
 
   return (
@@ -64,8 +57,8 @@ export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { proj
             </ul>
           </>
         )}
-        <ErrorText message={error} />
-        <DialogActions onCancel={() => dialog.close()} submit={{ label: "受け入れてつなぐ", busyLabel: "足しています…", busy, disabled: !scan.data }} />
+        <ErrorText message={action.error} />
+        <DialogActions onCancel={() => dialog.close()} submit={{ label: "受け入れてつなぐ", busyLabel: "足しています…", busy: action.busy === "accept", disabled: !scan.data }} />
       </form>
     </dialog>
   );

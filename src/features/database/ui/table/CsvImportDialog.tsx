@@ -1,5 +1,5 @@
 import { FileUp } from "lucide-react";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_EDITS_MAX, type DbEditValue } from "@shared/database/types";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
@@ -41,7 +41,7 @@ export function CsvImportDialog({
   const [error, setError] = useState<string>();
 
   const used = delimiter === "auto" ? detectDelimiter(text) : delimiter;
-  const mapped = useMemo(() => (text ? mapCsvRows(parseDelimited(text, used), columns, header, emptyAsNull) : null), [text, used, columns, header, emptyAsNull]);
+  const mapped = text ? mapCsvRows(parseDelimited(text, used), columns, header, emptyAsNull) : null;
   const targets = mapped?.mapping.filter((c): c is string => c !== null) ?? [];
   const count = mapped?.rows.length ?? 0;
   const over = count > room;
