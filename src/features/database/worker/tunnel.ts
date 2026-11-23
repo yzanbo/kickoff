@@ -9,6 +9,7 @@ import path from "node:path";
 import { expandPrepCommand, type DbPrepVars } from "@shared/database/dbPrep";
 import { DB_SSH_UNKNOWN_HOST, type DbSsh } from "@shared/database/types";
 import { isChangedHostKey, isUnknownHostKey, sshTargetArgs } from "@shared/database/sshArgs";
+import { DbWorkerError } from "@shared/database/workerProtocol";
 import { killTree, spawnShell } from "./shell";
 import { spawnTracked } from "./children";
 
@@ -80,15 +81,15 @@ function removeAskpass() {
 
 const lastLines = (text: string) => text.trim().split("\n").filter(Boolean).slice(-3).join(" / ");
 
-/** ssh の失敗の文を、画面に出す文にする（初めてのサーバーは DB_SSH_UNKNOWN_HOST の印を頭に付ける。コアが見分ける） */
-export function tunnelError(host: string, stderr: string): string {
+/** ssh の失敗を、画面に出す文の失敗にする（初めてのサーバーは印 DB_SSH_UNKNOWN_HOST を付ける。コアが見分ける） */
+export function tunnelError(host: string, stderr: string): DbWorkerError {
   const detail = lastLines(stderr);
   if (isChangedHostKey(stderr)) {
-    return `踏み台（${host}）のサーバーの鍵が、前に受け入れたものと違います。サーバーを入れ替えたのでなければつながないでください（入れ替えたなら ~/.ssh/known_hosts の古い鍵を消してください）`;
+    return new DbWorkerError(`踏み台（${host}）のサーバーの鍵が、前に受け入れたものと違います。サーバーを入れ替えたのでなければつながないでください（入れ替えたなら ~/.ssh/known_hosts の古い鍵を消してください）`);
   }
-  if (isUnknownHostKey(stderr)) return `${DB_SSH_UNKNOWN_HOST}: 踏み台（${host}）は初めてつなぐサーバーです。サーバーの鍵の指紋を確かめてから受け入れてください`;
-  if (/Permission denied/i.test(stderr)) return `踏み台（${host}）にログインできません（鍵・ユーザー・パスワード・ssh-agent を確かめてください）: ${detail}`;
-  return `SSH トンネルを開けませんでした（${host}）: ${detail || "ssh が終わりました"}`;
+  if (isUnknownHostKey(stderr)) return new DbWorkerError(`踏み台（${host}）は初めてつなぐサーバーです。サーバーの鍵の指紋を確かめてから受け入れてください`, DB_SSH_UNKNOWN_HOST);
+  if (/Permission denied/i.test(stderr)) return new DbWorkerError(`踏み台（${host}）にログインできません（鍵・ユーザー・パスワード・ssh-agent を確かめてください）: ${detail}`);
+  return new DbWorkerError(`SSH トンネルを開けませんでした（${host}）: ${detail || "ssh が終わりました"}`);
 }
 
 /** SSH で転送する ssh を起動する */
@@ -106,7 +107,7 @@ export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, o
   const tunnels = new Map<string, OpenTunnel>();
 
   /** 起動して、手元のポートにつながるまで待つ（先に終わったら errorOf の文で失敗） */
-  const start = (key: string, launch: (port: number) => ChildProcess, errorOf: (output: string) => string, timeoutMs: number): OpenTunnel => {
+  const start = (key: string, launch: (port: number) => ChildProcess, errorOf: (output: string) => Error, timeoutMs: number): OpenTunnel => {
     const entry = { users: 0, stderr: "" } as OpenTunnel;
     entry.ready = (async () => {
       const port = await freePort();
@@ -127,12 +128,12 @@ export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, o
       });
       const end = Date.now() + timeoutMs;
       while (Date.now() < end) {
-        if (exited) throw new Error(errorOf(entry.stderr));
+        if (exited) throw errorOf(entry.stderr);
         if (await canConnect(port)) return port;
         await new Promise((r) => setTimeout(r, 150));
       }
       killTree(proc.pid);
-      throw new Error(`${errorOf("")}（${timeoutMs / 1000} 秒たってもつながりません）`);
+      throw new Error(`${errorOf("").message}（${timeoutMs / 1000} 秒たってもつながりません）`);
     })();
     // 開けなければ、次の頼みで開き直す
     entry.ready.catch(() => {
@@ -170,7 +171,7 @@ export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, o
         const entry = start(
           key,
           (port) => spawnShell(expandPrepCommand(spec.command, { ...spec.vars, local_port: String(port) })),
-          (out) => `ポートを転送するコマンドで、手元のポートにつながりませんでした${out ? `: ${lastLines(out)}` : ""}`,
+          (out) => new Error(`ポートを転送するコマンドで、手元のポートにつながりませんでした${out ? `: ${lastLines(out)}` : ""}`),
           COMMAND_TIMEOUT_MS,
         );
         entry.ready.then(

@@ -1,82 +1,14 @@
 // DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
-import { erTableOf } from "@shared/database/erTable";
 import { errorMessage } from "@shared/foundation/errors";
 import { parseSession } from "@shared/database/session";
-import { DB_DEFAULT_PORTS, DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/database/types";
-import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
+import { DB_SESSION_IDLE_MS } from "@shared/database/types";
+import { DbWorkerError, type DbTarget, type WorkerMethod, type WorkerMethods, type WorkerRequest, type WorkerResponse } from "@shared/database/workerProtocol";
+import { erSchema } from "./common";
+import { openVia, testTarget } from "./connect";
 import type { DbDriver } from "./driver";
-import { openSqlite, testSqlite } from "./sqlite";
-import { createPrep, type EmitRun, type Prep } from "./prep";
+import { createPrep, type EmitRun } from "./prep";
 import { createTunnels } from "./tunnel";
 import { exportQuery } from "./csvExport";
-
-type Tunnels = ReturnType<typeof createTunnels>;
-
-/**
- * つなぐ。パスワードを取るコマンドがあれば流してパスワードにし、ポートを転送するコマンド・SSH トンネルを使う接続は、
- * トンネルを開いて手元のポートへ（ポートを転送するコマンドが先）。使ったトンネルの key も返す
- */
-async function openVia(target: DbTarget, tunnels: Tunnels, prep: Prep): Promise<{ driver: DbDriver; tunnel: string | null }> {
-  if (target.engine === "sqlite") return { driver: await openDriver(target), tunnel: null };
-  const commands = target.commands ?? null;
-  const base: DbTarget = { ...target, password: commands?.password ? await prep.password(commands) : target.password, commands: null, ssh: null };
-  const remote = `${target.host ?? "localhost"}:${target.port ?? "既定のポート"}`;
-  let acquired: { key: string; port: number } | null = null;
-  let via: string;
-  if (commands?.tunnel) {
-    acquired = await tunnels.acquireCommand({ connection_id: commands.connection_id, command: commands.tunnel, vars: await prep.varsFor(commands, commands.tunnel) });
-    via = `ポートを転送するコマンドは流れましたが、その先の DB（${remote}）につながりません`;
-  } else if (target.ssh) {
-    acquired = await tunnels.acquire({ ssh: target.ssh, remote_host: target.host ?? "localhost", remote_port: target.port ?? DB_DEFAULT_PORTS[target.engine] ?? 0 });
-    via = `SSH トンネルは開きましたが、踏み台から DB（${remote}）につながりません（ホスト・ポートは踏み台から見た場所です）`;
-  } else return { driver: await openDriver(base), tunnel: null };
-  try {
-    return { driver: await openDriver({ ...base, host: "127.0.0.1", port: acquired.port, tls_host: target.host }), tunnel: acquired.key };
-  } catch (e) {
-    // トンネルの先の DB につなげないと、DB のドライバには「切れた」としか届かない。トンネルの文が遅れて届くのを少し待って添える
-    await new Promise((r) => setTimeout(r, 300));
-    const failure = tunnels.forwardFailure(acquired.key);
-    tunnels.release(acquired.key);
-    if (failure) throw new Error(`${via}: ${failure}`);
-    throw e;
-  }
-}
-
-/** 種類ごとの開き方（pg・mysql2 は使うときに読む。SQLite だけ使う間はワーカーの起動で読み込まない） */
-async function openDriver(target: DbTarget): Promise<DbDriver> {
-  switch (target.engine) {
-    case "sqlite":
-      return openSqlite(target);
-    case "postgres":
-      return (await import("./postgres")).openPostgres(target);
-    case "mysql":
-      return (await import("./mysql")).openMysql(target);
-  }
-}
-
-async function testTarget(target: DbTarget, tunnels: Tunnels, prep: Prep): Promise<string | null> {
-  if (target.engine === "sqlite") return testSqlite(target);
-  const { driver, tunnel } = await openVia(target, tunnels, prep);
-  try {
-    return await driver.serverVersion();
-  } finally {
-    await driver.close();
-    if (tunnel) tunnels.release(tunnel);
-  }
-}
-
-/**
- * ER 図の中身: 場所のテーブル・ビューの名前すべてと、描くものの構造（names が null なら DB_ER_AUTO_MAX 以下のときだけすべて。
- * 多すぎれば空で返し、画面が選ばせる。描くのは DB_ER_MAX まで）
- */
-async function erSchema(d: DbDriver, path: DbObjectPath, names: string[] | null): Promise<DbErSchema> {
-  const all = (await d.objects(path)).filter((o) => o.kind === "table" || o.kind === "view").map((o) => o.name);
-  const known = new Set(all);
-  const pick = names ? names.filter((n) => known.has(n)) : all.length <= DB_ER_AUTO_MAX ? all : [];
-  const tables = [];
-  for (const name of pick.slice(0, DB_ER_MAX)) tables.push(erTableOf(name, await d.table(path, name)));
-  return { names: all, tables };
-}
 
 /** 当たった行の数が違うときの文 */
 function expectError(index: number, affected: number) {
@@ -277,7 +209,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
         const result = await (handlers[req.method] as (p: unknown, id: number) => Promise<unknown>)(req.params, req.id);
         return { id: req.id, ok: true, result };
       } catch (e) {
-        return { id: req.id, ok: false, error: errorMessage(e) };
+        return { id: req.id, ok: false, error: errorMessage(e), ...(e instanceof DbWorkerError && e.code ? { code: e.code } : {}) };
       } finally {
         running.delete(req.id);
         pending.delete(req.id);

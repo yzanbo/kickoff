@@ -24,9 +24,3 @@ export function tlsOptions(target: DbTarget): false | tls.ConnectionOptions {
   if (!ssl.ca_path) return { rejectUnauthorized: true, ...via };
   return { rejectUnauthorized: true, ca: fs.readFileSync(expandHomeWith(ssl.ca_path, os.homedir()), "utf8"), ...via };
 }
-
-/** トリガーの定義の文から、いつ（BEFORE など）と何で（INSERT など）を読む */
-export function triggerHead(definition: string): { timing: string | null; event: string | null } {
-  const head = /\b(BEFORE|AFTER|INSTEAD\s+OF)\s+(INSERT|UPDATE|DELETE|TRUNCATE)\b/i.exec(definition);
-  return { timing: head?.[1]?.toUpperCase().replace(/\s+/, " ") ?? null, event: head?.[2]?.toUpperCase() ?? null };
-}

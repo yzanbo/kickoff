@@ -1,4 +1,4 @@
-// DB から読んだ値を、JSON で送れるセルの値（DbValue）にする（どの種類のドライバでも同じ形にする）
+// DB から読んだ値を、JSON で送れるセルの値（DbValue）にする（どの種類のドライバでも同じ形にする）。トリガーの定義の読み方も種類によらず 1 つ
 import { dbImageType } from "@shared/database/dbValue";
 import { DB_IMAGE_PREVIEW_BYTES, DB_VALUE_HEAD_CHARS, type DbValue } from "@shared/database/types";
 
@@ -34,4 +34,12 @@ export function toDbValue(value: unknown, full = false): DbValue {
     }
   }
   return clip(String(value), full);
+}
+
+/** トリガーの定義の文から、いつ（BEFORE など）と何で（INSERT など）を読む（いつを書かない SQLite の定義は、何でだけ） */
+export function triggerHead(definition: string): { timing: string | null; event: string | null } {
+  const head = /\b(BEFORE|AFTER|INSTEAD\s+OF)\s+(INSERT|UPDATE|DELETE|TRUNCATE)\b/i.exec(definition);
+  if (head) return { timing: head[1]!.toUpperCase().replace(/\s+/, " "), event: head[2]!.toUpperCase() };
+  const event = /\b(INSERT|UPDATE|DELETE)\b/i.exec(definition);
+  return { timing: null, event: event?.[1]?.toUpperCase() ?? null };
 }

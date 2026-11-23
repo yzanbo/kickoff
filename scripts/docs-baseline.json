@@ -8,7 +8,7 @@
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 65512,
+      "bytes": 65490,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
@@ -47,22 +47,22 @@
       "brokenRefs": 0
     },
     "src/foundation/core/CLAUDE.md": {
-      "bytes": 10825,
-      "ancestors": 21013,
+      "bytes": 10802,
+      "ancestors": 20990,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/CLAUDE.md": {
-      "bytes": 16865,
-      "ancestors": 27053,
+      "bytes": 16862,
+      "ancestors": 27050,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 6576,
-      "ancestors": 33629,
+      "ancestors": 33626,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -79,7 +79,6 @@
     "src/features/conversation/ui/messages/UserMessage.tsx": 1,
     "src/features/conversation/ui/promptList/promptNav.ts": 1,
     "src/features/database/ui/ConnectionNoteField.tsx": 1,
-    "src/features/database/worker/postgres.ts": 1,
     "src/features/docker/ui/useDockerLogs.ts": 2,
     "src/features/projects/ui/stores/projects.ts": 1,
     "src/features/voice/ui/recorder.ts": 1,

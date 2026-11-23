@@ -4,7 +4,7 @@ import { fork } from "node:child_process";
 import { errorMessage } from "@shared/foundation/errors";
 import type { DbEngine } from "@shared/database/types";
 import { DB_DIALECTS } from "@shared/database/dialect";
-import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
+import { DbWorkerError, type WorkerCancel, type WorkerEvent, type WorkerMethod, type WorkerMethods, type WorkerRequest, type WorkerResponse } from "@shared/database/workerProtocol";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
 
 /** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`。それはドライバを読むので、ここから import しない = コアの起動を遅くしない） */
@@ -147,7 +147,7 @@ export class DbWorkerClient {
     if (!p) return;
     this.pending.delete(res.id);
     if (res.ok) p.resolve(res.result);
-    else p.reject(new Error(res.error));
+    else p.reject(new DbWorkerError(res.error, res.code));
     this.scheduleIdle();
   }
 

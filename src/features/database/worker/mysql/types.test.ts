@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import mysql from "mysql2";
-import { mysqlTypeName } from "./mysql";
+import { mysqlTypeName } from "./types";
 
 const UTF8MB4 = 255;
 const BINARY = 63;

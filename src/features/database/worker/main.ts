@@ -39,15 +39,13 @@ const receive = (message: Message) => {
 };
 
 if (parentPort) {
+  // parentPort に届くのはコアと直結する口だけ（頼みはその口で受ける）
   parentPort.on("message", (e) => {
     const port = e.ports?.[0];
-    if ("t" in e.data && e.data.t === "port" && port) {
-      corePort = port;
-      port.on("message", (m) => receive(m.data as Message));
-      port.start?.();
-      return;
-    }
-    receive(e.data as Message);
+    if (!("t" in e.data) || e.data.t !== "port" || !port) return;
+    corePort = port;
+    port.on("message", (m) => receive(m.data as Message));
+    port.start?.();
   });
 }
 else {

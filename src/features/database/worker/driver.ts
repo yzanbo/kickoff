@@ -1,4 +1,4 @@
-// DB の種類ごとの接続（ワーカーの中だけで使う）。テーブルなどの場所 path は種類ごとに読み替える
+// ワーカーの中で使う接続の口（種類ごとの流し方と読み方から common.ts の driverOf が組む）。テーブルなどの場所 path は種類ごとに読み替える
 import type { DbDatabases, DbDefinition, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail } from "@shared/database/types";
 import type { DbEditParam } from "@shared/database/dbEdit";
 import type { DbOutlineTable } from "@shared/database/types";

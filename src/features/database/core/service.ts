@@ -8,7 +8,7 @@ import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatem
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
 import { countsAsConnected, parseSession, sessionName } from "@shared/database/session";
 import { DB_DIALECTS } from "@shared/database/dialect";
-import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS, type DbConnection, type DbEngine, type DbFilter, type DbObjectPath, type DbPrep, type DbRowFilter, type DbSort } from "@shared/database/types";
+import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_TABLE_PAGE_ROWS, type DbConnection, type DbEngine, type DbFilter, type DbObjectPath, type DbPrep, type DbRowFilter, type DbSort } from "@shared/database/types";
 import type { DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbDisconnectResult, DbFullRow, DbSqlBody } from "@shared/database/api";
 import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
@@ -18,16 +18,10 @@ import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { DbWorkerClient } from "./client";
-import type { DbTarget, DbTargetCommands } from "@shared/database/workerProtocol";
+import { DbWorkerError, type DbTarget, type DbTargetCommands } from "@shared/database/workerProtocol";
 import type { DbSecretVault } from "./secrets";
 import { AI_EXPORT_KEEP_MS, aiExportFile, aiExportRoot, cleanAiExports, removeChatExports } from "./aiExports";
 import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat";
-
-/** ワーカーの失敗の文の頭の印（「db_ssh_unknown_host: …」）を分ける */
-function splitCode(text: string): { message: string; code: string | null } {
-  const m = new RegExp(`^(${DB_SSH_UNKNOWN_HOST}): `).exec(text);
-  return m ? { message: text.slice(m[0].length), code: m[1] } : { message: text, code: null };
-}
 
 /** コマンドの {host}・{port}・{database}・{user} に入れる値 */
 const prepVarsOf = (c: Pick<DbConnection, "host" | "port" | "database" | "username">): DbPrepVars => ({
@@ -234,9 +228,8 @@ export class DatabaseService {
       return await fn();
     } catch (e) {
       if (e instanceof Invalid || e instanceof NotFound || e instanceof Conflict) throw e;
-      const { message, code } = splitCode(errorMessage(e));
-      if (code) throw new Conflict(message, code);
-      throw new Invalid(message);
+      if (e instanceof DbWorkerError && e.code) throw new Conflict(e.message, e.code);
+      throw new Invalid(errorMessage(e));
     }
   }
 
@@ -274,8 +267,8 @@ export class DatabaseService {
       if (saved) this.opts.store.dbConnections.touchConnected(saved.id);
       return { ok: true, server_version, error: null, duration_ms: elapsed() };
     } catch (e) {
-      const { message, code } = splitCode(errorMessage(e));
-      return { ok: false, server_version: null, error: message, ...(code ? { code } : {}), duration_ms: elapsed() };
+      const code = e instanceof DbWorkerError ? e.code : undefined;
+      return { ok: false, server_version: null, error: errorMessage(e), ...(code ? { code } : {}), duration_ms: elapsed() };
     }
   }
 

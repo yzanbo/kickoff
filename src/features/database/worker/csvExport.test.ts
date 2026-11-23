@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { csvCell, exportQuery } from "./csvExport";
-import { openSqlite } from "./sqlite";
+import { openDriver } from "./connect";
 
 test("csvCell: NULL は空・バイナリは \\x と 16 進のすべて・区切りや改行や頭の空白を含むものだけ囲む", () => {
   assert.equal(csvCell(null), "");
@@ -21,7 +21,7 @@ test("csvCell: NULL は空・バイナリは \\x と 16 進のすべて・区切
   assert.equal(csvCell(true), "true");
 });
 
-function sqliteWith(rows: number) {
+async function sqliteWith(rows: number) {
   const dir = tempDir();
   const file = path.join(dir, "t.db");
   const db = new DatabaseSync(file);
@@ -29,11 +29,11 @@ function sqliteWith(rows: number) {
   const insert = db.prepare("INSERT INTO t VALUES (?, ?, ?)");
   for (let i = 1; i <= rows; i++) insert.run(i, i === 2 ? "x,y" : `n${i}`, i === 1 ? new Uint8Array([1, 2]) : null);
   db.close();
-  return { dir, driver: openSqlite({ engine: "sqlite", host: null, port: null, database: null, username: null, password: null, file, ssl: null, read_only: true }) };
+  return { dir, driver: await openDriver({ engine: "sqlite", host: null, port: null, database: null, username: null, password: null, file, ssl: null, read_only: true }) };
 }
 
 test("exportQuery: 頭の行で収まればファイルを作らず、超えたらすべての行（1 行目は列の名前）を書き出す", async () => {
-  const small = sqliteWith(3);
+  const small = await sqliteWith(3);
   const out = path.join(small.dir, "out", "small.csv");
   const few = await exportQuery(small.driver, "SELECT id, name FROM t ORDER BY id", out, 5);
   assert.equal(few.file, null);
@@ -46,7 +46,7 @@ test("exportQuery: 頭の行で収まればファイルを作らず、超えた�
   assert.equal(fs.existsSync(out), false);
   await small.driver.close();
 
-  const big = sqliteWith(250);
+  const big = await sqliteWith(250);
   const file = path.join(big.dir, "out", "big.csv");
   const many = await exportQuery(big.driver, "SELECT * FROM t ORDER BY id", file, 100);
   assert.equal(many.file, file);
@@ -65,7 +65,7 @@ test("exportQuery: 頭の行で収まればファイルを作らず、超えた�
 });
 
 test("exportQuery: 失敗したら書きかけのファイルを残さない", async () => {
-  const { dir, driver } = sqliteWith(150);
+  const { dir, driver } = await sqliteWith(150);
   const file = path.join(dir, "fail.csv");
   // 121 行目を読むときに失敗する文（壊れた JSON を読む。100 行を超えてファイルを作ったあと）
   await assert.rejects(exportQuery(driver, "SELECT id, CASE WHEN id > 120 THEN json_extract('{bad', '$') END FROM t ORDER BY id", file, 100), /JSON/);

@@ -2,7 +2,7 @@
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
 import type { DbEditParam } from "./dbEdit";
 import type { DbPrepVars } from "./dbPrep";
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbOutlineTable, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail, DbValue } from "@shared/database/types";
+import type { DB_SSH_UNKNOWN_HOST, DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbOutlineTable, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail, DbValue } from "@shared/database/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -134,7 +134,20 @@ export interface WorkerRequest<M extends WorkerMethod = WorkerMethod> {
   params: WorkerMethods[M]["params"];
 }
 
-export type WorkerResponse = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+/** 失敗の印（いまは初めての SSH のサーバーだけ。コアが 409 と同じ印にして、画面が鍵を確かめさせる） */
+export type DbWorkerCode = typeof DB_SSH_UNKNOWN_HOST;
+
+export type WorkerResponse = { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string; code?: DbWorkerCode };
+
+/** 印の付いたワーカーの失敗（ワーカーが投げ、答えの code で運び、コアの呼び手がまた投げる） */
+export class DbWorkerError extends Error {
+  constructor(
+    message: string,
+    readonly code?: DbWorkerCode,
+  ) {
+    super(message);
+  }
+}
 
 export interface WorkerCancel {
   cancel: number;

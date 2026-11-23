@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `core/service.ts`・`core/secrets.ts` | 接続・パスワードの金庫 `DbSecretVault`・AI の SQL `aiQuery`（ツール `tools.ts`・CSV `aiExports.ts`・文 `aiFormat.ts`） |
-| `core/client.ts`・`worker/` | ワーカーの呼び手 `DbWorkerClient`・ワーカー（頼みを流す `handler.ts`・ドライバ・SSH `tunnel.ts`・子 `children.ts`） |
+| `core/client.ts`・`worker/` | 呼び手 `DbWorkerClient`・ワーカー（`handler.ts`・`connect.ts`・SSH `tunnel.ts`）。ドライバは流し方 `DbConn` と読み方 `DbCatalog`（`postgres/`・`mysql/`・`sqlite.ts`）を `driverOf` で組む |
 | `ui/DatabaseClient`・`ui/dbClientContext.ts` | 殻（左に一覧、右にタブ）・操作 `useDbClient` |
 | `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbNote.ts` | 接続の登録・編集・写す・取り込む・失敗の案内・準備・手順ノート |
 | `ui/TableView`・`ui/SqlView`・`ui/DefinitionView`・`ui/er/` | テーブル・SQL・関数と列挙型のタブ・ER 図 |
@@ -34,8 +34,8 @@
   - AI: 呼び出しごとの新しい接続・AI 用のユーザー・時間の上限 2 段（止めたら流さない）・見せない接続は名前も出さない・つなぐときにコマンドを流す接続は使わない（`aiTools.test.ts`・`tools.test.ts`・`hiddenDb.test.ts`）・`<db_data>` で包む（`aiFormat.test.ts`）
   - パスワードの暗号化（`secrets.test.ts`）・Kickoff 自身の DB を登録させない（`server.databases.test.ts`）。ほかに端末に開かない（`server.devices.test.ts`）・日時と大きな整数は文字（`values.test.ts`）
 - 文の判定は SELECT の中の関数を見ない（`pg_terminate_backend` は READ ONLY でも通る。AI 用の読み取り専用ユーザーを勧める理由）。
-- コアはドライバと `yaml` を読み込まない（`testing/inProcessWorker.ts` を `core/client.ts` から import しない。ドライバは使うときに `import()`）。ssh・シェルは `spawnTracked` で起こす。
-- 同じ接続の名前（`shared:` / `sql:` など）への頼みは `handler.ts` の `serial` で 1 つずつ流す（並べると接続を二重に開く）。
+- コアはドライバと `yaml` を読み込まない（`testing/inProcessWorker.ts` を core から読まない。ドライバは使うときに `import()`）。ssh・シェルは `spawnTracked` で起こす。
+- 同じ接続の名前への頼みは `handler.ts` の `serial` で 1 つずつ流す（並べると二重に開く）。
 - キーチェーンで開けなければ 409 `db_password_locked`。DB タブはつなぐ API を `connecting` で包んで `DbUnlockHost` に聞き、メモリにだけ持つ（つなぐ API を足したら包む）。AI のツールは失敗にする。
 - 準備のコマンド（`prep`）は確かめるまで流さない。止めるときは子孫ごと。後片付けは接続を消した・自動で切れた・ワーカーを止めるときに流す。
 - SSH トンネルはパスワードをファイルに書かず、同じ踏み台・同じ DB は 1 本を使い回す。known_hosts には画面で見せた指紋と合うときだけ足す（`sshHostKey.ts`）。
