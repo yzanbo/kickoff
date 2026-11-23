@@ -6,14 +6,16 @@ Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる
 
 | ファイル | 中身 |
 |---|---|
-| `core/service.ts` | `TrashService`（入れる `putPath` / `addRecord`・種類ごとの戻す・消す `register(kind, …)`・本当に消す `purge`）。覚え書きは表 `trash_items` |
+| `core/service.ts` | `TrashService`（入れる `putPath` / `addRecord`・種類ごとの戻す・消す `registerKind(def)`・本当に消す `purge`）。覚え書きは表 `trash_items`（`details` は種類ごとの形 `TrashDetailsByKind`） |
 | `core/command.ts` | AI の kickoff-trash（自分で置き場に書き、`importInbox` が取り込む） |
 | `ui/stores/trash.ts`・`ui/api/trash.ts` | 一覧の店（プロジェクトごと・ゴミ箱のプロジェクト・どこにも出ないもの）・API |
 | `ui/TrashTab.tsx`・`ui/TrashSettings.tsx` | プロジェクトの「ゴミ箱」タブ・設定の「ゴミ箱と整理」（使っていない会話記録は `@/features/chat/ui/trash/OrphanSessions.tsx`） |
 | `ui/TrashMarkRows.tsx` | コマンドの出力の下の［元に戻す］（印の読み方は `@shared/trash/marks`） |
 | `ui/trashActions.ts`・`ui/trashText.ts` | 戻す・完全に消す・消した直後の知らせ `showTrashedToast`・残り時間と確認の文 |
 
-種類を登録するのは `@/features/chat/core/sessions/`（チャット・プロジェクト。消したチャットの名前は `useChats`）・`@/features/worktrees/core/trash.ts`。AI の kickoff-trash で入れたものの元の場所の引き当て（`addOriginResolver`）は projects（本体）とノート（ノートのフォルダ）が、取り込んだあと（`addImportHook`）はノートが登録する（`core/index.ts` の `createTrash`）。
+種類を登録するのは `@/features/chat/core/sessions/`（`chatTrashKinds`・`projectTrashKind`。プロジェクトの中のチャットごと戻す・消すので chat。消したチャットの名前は `useChats`）・`@/features/worktrees/core/trash.ts`。取り決めは `@shared/trash/contract.ts`（整理・持ち主のない会話記録の口は chat が受ける）。
+
+AI の kickoff-trash で入れたものの元の場所の引き当て（`addOriginResolver`）は projects（本体）とノート（ノートのフォルダ）が、取り込んだあと（`addImportHook`）はノートが登録する（`core/index.ts` の `createTrash`）。
 
 ## 決まり
 

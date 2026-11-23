@@ -1,15 +1,15 @@
-import type { Hono } from "hono";
 import { z } from "zod";
+import { trashContract } from "@shared/trash/contract";
 import type { TrashItem, TrashPurgeBody, TrashRestoreBody } from "@shared/trash/types";
 import type { StoredTrashItem, TrashStore } from "@/features/trash/core/db/trash";
 import type { TrashService } from "@/features/trash/core/service";
-import { jsonBody } from "@/foundation/core/http/input";
-import { lookups, type ProjectFinder } from "@/foundation/core/http/lookups";
+import { implement, type Param } from "@/foundation/core/http/implement";
 import { NotFound } from "@/foundation/core/errors";
 
 const restoreSchema = z.object({ rename: z.boolean().optional() }) satisfies z.ZodType<TrashRestoreBody>;
 // まとめて完全に消す ID（画面に出していたもの。ゴミ箱の ID は uuid）
 const purgeSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(5000) }) satisfies z.ZodType<TrashPurgeBody>;
+const GONE = "ゴミ箱にありません（もう消えたか、戻したあとです）";
 
 /** 画面に返す形（種類ごとの覚え書き details は出さない） */
 const toApi = ({ details: _details, ...item }: StoredTrashItem): TrashItem => item;
@@ -18,39 +18,30 @@ const toApi = ({ details: _details, ...item }: StoredTrashItem): TrashItem => it
  * Kickoff のゴミ箱。一覧はプロジェクトごと（AI が kickoff-trash で入れたばかりのものも取り込んでから返す）、
  * 元に戻すは戻した場所（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら別の名前で戻す）。3 日で消えるのを待たずに、1 件・まとめて完全に消せる
  */
-export function trashRoutes(app: Hono, { store, items, trashBin }: { store: { projects: ProjectFinder }; items: TrashStore; trashBin: TrashService }) {
-  const { withProject } = lookups(store);
-
-  app.get("/api/projects/:id/trash", withProject, async (c) => c.json((await trashBin.list(c.var.project.id)).map(toApi)));
-
-  // ゴミ箱のプロジェクト（プロジェクトそのものを消したもの。プロジェクトの「ゴミ箱」タブには出せないので別に読む）
-  app.get("/api/trash/projects", (c) => c.json(items.ofKind("project").map(toApi)));
-
-  // どのプロジェクトにも出ないもの（プロジェクトの外の会話記録など。設定の「ゴミ箱と整理」）
-  app.get("/api/trash/unassigned", (c) => c.json(items.unassigned().map(toApi)));
-
-  // 1 件（会話の中の kickoff-trash の行の「戻す」が、まだ戻せるかを見る。AI が入れたばかりのものも取り込んでから。なければ 404）
-  app.get("/api/trash/:itemId", async (c) => {
-    await trashBin.importInbox().catch(() => 0);
-    const item = items.get(c.req.param("itemId"));
-    if (!item) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
-    return c.json(toApi(item));
-  });
-
-  // 3 日を待たずに完全に消す: まとめて（「ゴミ箱を空にする」。画面に出していたものだけ。もうないものは飛ばす）と 1 件（もうなければ 404）
-  app.post("/api/trash/purge", async (c) => {
-    const body = purgeSchema.parse(await jsonBody(c));
-    return c.json({ purged: await trashBin.purgeNow(body.ids) });
-  });
-  app.delete("/api/trash/:itemId", async (c) => {
-    const id = c.req.param("itemId");
-    if (!items.get(id)) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
-    await trashBin.purgeNow([id]);
-    return c.body(null, 204);
-  });
-
-  app.post("/api/trash/:itemId/restore", async (c) => {
-    const body = restoreSchema.parse(await jsonBody(c));
-    return c.json(await trashBin.restore(c.req.param("itemId"), body));
+export function trashRoutes<P extends { id: number }>({ projectParam, items, trashBin }: { projectParam: Param<P>; items: TrashStore; trashBin: TrashService }) {
+  return implement(trashContract, {
+    context: { projectId: projectParam, itemId: { parse: (raw: string) => raw } },
+    "GET /api/projects/:projectId/trash": { run: async ({ projectId: project }) => (await trashBin.list(project.id)).map(toApi) },
+    // ゴミ箱のプロジェクト（プロジェクトそのものを消したもの。プロジェクトの「ゴミ箱」タブには出せないので別に読む）
+    "GET /api/trash/projects": { run: () => items.ofKind("project").map(toApi) },
+    // どのプロジェクトにも出ないもの（プロジェクトの外の会話記録など。設定の「ゴミ箱と整理」）
+    "GET /api/trash/unassigned": { run: () => items.unassigned().map(toApi) },
+    // 1 件（会話の中の kickoff-trash の行の「戻す」が、まだ戻せるかを見る。AI が入れたばかりのものも取り込んでから）
+    "GET /api/trash/:itemId": {
+      run: async ({ itemId }) => {
+        await trashBin.importInbox().catch(() => 0);
+        const item = items.get(itemId);
+        if (!item) throw new NotFound(GONE);
+        return toApi(item);
+      },
+    },
+    "POST /api/trash/purge": { body: purgeSchema, run: async ({ body }) => ({ purged: await trashBin.purgeNow(body.ids) }) },
+    "DELETE /api/trash/:itemId": {
+      run: async ({ itemId }) => {
+        if (!items.get(itemId)) throw new NotFound(GONE);
+        await trashBin.purgeNow([itemId]);
+      },
+    },
+    "POST /api/trash/:itemId/restore": { body: restoreSchema, run: ({ itemId, body }) => trashBin.restore(itemId, body) },
   });
 }

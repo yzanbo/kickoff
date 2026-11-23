@@ -1,4 +1,4 @@
-import type { TrashDetails } from "@shared/trash/types";
+import type { TrashDetails, TrashKind } from "@shared/trash/types";
 import { col, table } from "@/foundation/core/db/table";
 
 /**
@@ -24,13 +24,13 @@ CREATE INDEX idx_trash_items_project ON trash_items(project_id, trashed_at);
 CREATE INDEX idx_trash_items_trashed ON trash_items(trashed_at);
 `;
 
-/** trash_items の表の列（kind は知らない値もそのまま読み、店がファイルとして扱う） */
+/** trash_items の表の列 */
 export const trashItemsTable = table(
   "trash_items",
   {
     id: col.text(),
     project_id: col.int().nullable(),
-    kind: col.text(),
+    kind: col.text<TrashKind>(),
     label: col.text(),
     origin: col.text().nullable(),
     is_dir: col.bool(),

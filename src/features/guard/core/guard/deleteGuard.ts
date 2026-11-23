@@ -4,6 +4,7 @@
 // rmdir（空のフォルダしか消せない）・git rm（コミット済みなら Git から戻せる）は断らない。抜け道（完全に消す例外）は作らない。
 // うっかりを防ぐもので、スクリプトのファイル・Python の os.remove など、わざと避ける書き方までは見抜けない
 import path from "node:path";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { commandWords, gitParts, scanCommands, type Word } from "@/foundation/core/shell/shellWords";
 import type { DenyVerdict, GuardRule } from "@/features/guard/core/rules";
 import { TRASH_COMMAND } from "@/features/trash/core/index";
@@ -47,7 +48,7 @@ function findInWords(segment: Word[]): Found | null {
 
 /** 断るときに AI に返す文（コマンドの書き方と、ゴミ箱に入って 3 日は戻せること） */
 function deleteDeniedReason(found: Found): string {
-  const how = `代わりに ${TRASH_COMMAND} <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます`;
+  const how = `代わりに ${TRASH_COMMAND} <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、${TRASH_KEEP_DAYS} 日は利用者が元に戻せます`;
   if (found.kind === "git_clean") {
     return `Kickoff では git clean を使えません（Git にない新しいファイルを、戻せない形で消すため）。git clean -n で消えるものの一覧を見てから、${how}`;
   }

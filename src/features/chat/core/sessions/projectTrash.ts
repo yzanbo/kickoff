@@ -1,11 +1,12 @@
 // プロジェクトのゴミ箱の行を戻す・本当に消す（中のチャットを一緒に戻す・片付けるので chat が登録する。入れるのは projects の trashProject）。
 // 3 日たったら、チャットの分を片付けてからプロジェクトの行を消す
-import type { TrashApi } from "@/features/trash/core/index";
+import type { TrashApi, TrashKindDef } from "@/features/trash/core/index";
 import { purgeChatsOf, restoreChatsOf, type ChatPurgeDeps } from "./chatTrash";
 
-/** ゴミ箱にプロジェクトの扱いを登録する */
-export function registerProjectTrash(trashBin: TrashApi, deps: ChatPurgeDeps): void {
-  trashBin.register("project", {
+/** ゴミ箱の種類 project の扱い（createChat が trash の registerKind に渡す） */
+export function projectTrashKind(trashBin: Pick<TrashApi, "purge">, deps: ChatPurgeDeps): TrashKindDef {
+  return {
+    kind: "project",
     restore: (item) => {
       if (item.project_id === null) return;
       deps.store.projects.setTrashed(item.project_id, null);
@@ -20,5 +21,5 @@ export function registerProjectTrash(trashBin: TrashApi, deps: ChatPurgeDeps): v
       await purgeChatsOf(deps, item.id);
       deps.store.projects.delete(item.project_id);
     },
-  });
+  };
 }

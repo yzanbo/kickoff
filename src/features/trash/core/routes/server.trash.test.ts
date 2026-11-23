@@ -13,6 +13,7 @@ import { trashMarksIn } from "@shared/trash/marks";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { deferred } from "@shared/foundation/testing/async";
 
 const execFileAsync = promisify(execFile);
 
@@ -120,7 +121,7 @@ test("ゴミ箱: 3 日たったものは片付けで本当に消え、種類ご�
   fs.writeFileSync(file, "x");
   const put = await trashBin.putPath(file, { projectId: project.id });
   const purged: string[] = [];
-  trashBin.register("chat", { purge: (item) => void purged.push(item.label) });
+  trashBin.registerKind({ kind: "chat", purge: (item) => void purged.push(item.label) });
   const record = trashBin.addRecord({ project_id: project.id, kind: "chat", label: "古いチャット", chat_id: 1 });
 
   trashClock.now += TRASH_KEEP_MS - 60_000;
@@ -330,14 +331,13 @@ test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォ
 test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待ってからもう一度流す（頼んだときに 3 日たっていたものを残さない）", async () => {
   const { project, trashBin, store, trashClock } = setup();
   // A は 1 つ目の片付けで消える古いもの。消している途中で止めておく
-  let started = () => {};
-  const purging = new Promise<void>((resolve) => (started = resolve));
-  let release = () => {};
-  const held = new Promise<void>((resolve) => (release = resolve));
-  trashBin.register("chat", {
+  const purging = deferred<void>();
+  const held = deferred<void>();
+  trashBin.registerKind({
+    kind: "chat",
     purge: async () => {
-      started();
-      await held;
+      purging.resolve();
+      await held.promise;
     },
   });
   trashBin.addRecord({ project_id: project.id, kind: "chat", label: "古いチャット", chat_id: 1 });
@@ -345,12 +345,12 @@ test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待
   // B は 1 つ目の片付けが数えた時点ではまだ 3 日たっていない（入れた時刻をいまの時計にする）
   const b = trashBin.addRecord({ project_id: project.id, kind: "chat", label: "新しいチャット", chat_id: 2, trashed_at: new Date(trashClock.now).toISOString() });
   const running = trashBin.sweep();
-  await purging;
+  await purging.promise;
   // 1 つ目が数え終えてから時計を進めて頼む
   trashClock.now += TRASH_KEEP_MS + 60_000;
   const asked = trashBin.sweep();
   const askedAgain = trashBin.sweep();
-  release();
+  held.resolve();
   await Promise.all([running, asked, askedAgain]);
   assert.equal(store.trash.get(b.id), null);
 });
@@ -422,12 +422,12 @@ test("ゴミ箱: まとめて完全に消す（渡した ID だけ。もうな�
 test("ゴミ箱: 片付けと「完全に消す」が重なっても、種類ごとの扱いは 1 回だけ流す", async () => {
   const { project, trashBin, store, trashClock } = setup();
   let calls = 0;
-  let release = () => {};
-  const held = new Promise<void>((resolve) => (release = resolve));
-  trashBin.register("chat", {
+  const held = deferred<void>();
+  trashBin.registerKind({
+    kind: "chat",
     purge: async () => {
       calls++;
-      await held;
+      await held.promise;
     },
   });
   const record = trashBin.addRecord({ project_id: project.id, kind: "chat", label: "古いチャット", chat_id: 1 });
@@ -435,7 +435,7 @@ test("ゴミ箱: 片付けと「完全に消す」が重なっても、種類ご
   const sweeping = trashBin.sweep();
   await until(() => calls === 1);
   const now = trashBin.purgeNow([record.id]);
-  release();
+  held.resolve();
   await Promise.all([sweeping, now]);
   assert.equal(calls, 1);
   assert.equal(store.trash.get(record.id), null);

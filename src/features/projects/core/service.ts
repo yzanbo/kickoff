@@ -5,6 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { ImportProjectBody, NewProjectBody, ProjectPatch, ProjectRepoPathBody } from "@shared/foundation/apiTypes";
 import type { FolderInspection, Project } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import type { Kernel } from "@/foundation/core/kernel";
 import { expandHome, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
@@ -55,7 +56,7 @@ function projectAt(ctx: ProjectsCtx, realPath: string, except?: number) {
   const same = (p: Project) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath);
   // 同じフォルダのプロジェクトがゴミ箱にあれば、新しく登録せず戻してもらう（フォルダは 1 つのプロジェクトにだけ登録できる）
   const trashed = trashedProjectAt(ctx.projects, same);
-  if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（3 日で消えます）。設定の「ゴミ箱と整理」から戻してください`);
+  if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（${TRASH_KEEP_DAYS} 日で消えます）。設定の「ゴミ箱と整理」から戻してください`);
   return ctx.projects.list().find(same);
 }
 

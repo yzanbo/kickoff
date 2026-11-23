@@ -15,9 +15,6 @@ interface Finder<T> {
 /** 引き当てるプロジェクト（使う欄だけ） */
 type LookupProject = ScopedProject & { repo_path: string };
 
-/** プロジェクトの店の形（上の機能の店を形だけで受けるルート） */
-export type ProjectFinder = Finder<LookupProject>;
-
 const found = <T>(value: T | undefined, what: string): T => {
   if (value === undefined) throw new NotFound(`${what}が見つかりません`);
   return value;

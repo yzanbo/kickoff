@@ -7,21 +7,37 @@
 export const TRASH_KINDS = ["file", "chat", "project", "session", "worktree"] as const;
 export type TrashKind = (typeof TRASH_KINDS)[number];
 
-/** ゴミ箱に入れてから本当に消すまで（3 日。AI の rm も画面から消したものも同じ） */
-export const TRASH_KEEP_MS = 3 * 24 * 60 * 60 * 1000;
+/** ゴミ箱に入れてから本当に消すまでの日数（AI の rm も画面から消したものも同じ。画面・AI への「3 日」の文はここから作る） */
+export const TRASH_KEEP_DAYS = 3;
+export const TRASH_KEEP_MS = TRASH_KEEP_DAYS * 24 * 60 * 60 * 1000;
 
-/**
- * 種類ごとの覚え書き（店の中だけ。画面には出さない）。ほかの種類（ワークツリーの控えの印など）は、登録した機能が自分の形で読み書きする
- */
-export interface TrashDetails {
-  /** 一緒に入れたチャット（チャット） */
-  chat_ids?: number[];
+/** ファイル・フォルダ（会話記録も）の覚え書き */
+export interface FileTrashDetails {
   /** ノートのフォルダからのパス（ノートと、一緒に入れたノートのチャット） */
   note?: string;
   /** 一緒に入れたもの（会話記録と同じ名前のフォルダなど）の元の場所（サービスが付ける。戻すときは元の場所へ戻す） */
   companions?: string[];
-  [key: string]: unknown;
 }
+
+/** 消したワークツリーの控えの覚え書き（worktrees が書き、戻すときに読む） */
+export interface WorktreeTrashDetails {
+  branch: string | null;
+  /** 消したときのワークツリーの HEAD（ブランチの控えがないときに作り直す元） */
+  head: string | null;
+  has_branch_ref: boolean;
+  has_changes_ref: boolean;
+}
+
+/** 種類ごとの覚え書き（店の中だけ。画面には出さない） */
+export interface TrashDetailsByKind {
+  file: FileTrashDetails;
+  /** 一緒に入れたチャット（子チャットも） */
+  chat: { chat_ids?: number[] };
+  project: Record<string, never>;
+  session: FileTrashDetails;
+  worktree: WorktreeTrashDetails;
+}
+export type TrashDetails = TrashDetailsByKind[TrashKind];
 
 /** ゴミ箱に入れたもの（trash_items の表） */
 export interface TrashItem {

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { TRASH_KEEP_MS, TRASH_KINDS, type TrashDetails, type TrashItem, type TrashKind } from "@shared/trash/types";
+import { TRASH_KEEP_MS, type TrashDetails, type TrashItem, type TrashKind } from "@shared/trash/types";
 import type { Notify } from "@/foundation/core/db/common";
 import type { RowOf } from "@/foundation/core/db/table";
 import { trashItemsTable } from "@/features/trash/core/schema";
@@ -34,9 +34,6 @@ export interface TrashChats {
 
 export type TrashStore = ReturnType<typeof createTrashStore>;
 
-/** 知らない種類（あとの版で足したものなど）はファイルとして読む */
-const kindOf = (value: string): TrashKind => ((TRASH_KINDS as readonly string[]).includes(value) ? (value as TrashKind) : "file");
-
 /** Kickoff のゴミ箱（trash_items の表）。中身のファイルは trash/TrashService が置き場に置き、ここは覚え書きだけ */
 export function createTrashStore(db: DatabaseSync, onChange: Notify) {
   const rows = trashItemsTable.on(db);
@@ -49,7 +46,6 @@ export function createTrashStore(db: DatabaseSync, onChange: Notify) {
       const title = r.by_chat_id === null ? null : (titles?.get(r.by_chat_id) ?? null);
       return {
         ...r,
-        kind: kindOf(r.kind),
         by_chat_id: titles && title === null ? null : r.by_chat_id,
         by_chat_title: title,
         expires_at: new Date(Date.parse(r.trashed_at) + TRASH_KEEP_MS).toISOString(),

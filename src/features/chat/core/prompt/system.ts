@@ -1,5 +1,6 @@
 import { TRASH_COMMAND } from "@/features/trash/core/index";
 import type { Project } from "@shared/projects/types";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { PromptSection } from "./sections";
 
 /**
@@ -58,7 +59,7 @@ export const TRASH_SECTION: PromptSection = {
   order: 210,
   heading: null,
   lines: [
-    `- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）。`,
+    `- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、${TRASH_KEEP_DAYS} 日は利用者が元に戻せます。rm などは Kickoff が断ります。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）。`,
   ],
 };
 

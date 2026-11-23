@@ -4,6 +4,7 @@ import path from "node:path";
 import type { GitWorktree } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
+import type { WorktreeTrashDetails } from "@shared/trash/types";
 import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
 import type { ComposeReader } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
@@ -19,7 +20,6 @@ import type { WorktreeEnvService } from "./env/service";
 import type { WorktreeEvents } from "./events";
 import { inspectWorktree, type MergeCheck } from "./inspect";
 import { finishedText, lossText, type FinishOutcome } from "./report";
-import type { WorktreeTrashDetails } from "./trash";
 
 /** 消し方（画面の「消す」の選択と、AI の後始末の決まった選び方） */
 export interface FinishOptions {

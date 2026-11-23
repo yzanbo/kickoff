@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type TrashDetails, type TrashKind, type TrashRestoreResult } from "@shared/trash/types";
+import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type FileTrashDetails, type TrashKind, type TrashRestoreResult } from "@shared/trash/types";
 import type { NewTrashItem, StoredTrashItem, TrashChats, TrashStore } from "@/features/trash/core/db/trash";
+import { systemClock, type Clock } from "@/foundation/core/clock";
 import { Conflict, NotFound } from "@/foundation/core/errors";
+import { createPoller, type Poller } from "@/foundation/core/watch/poller";
 import { isTrashId, restoreName } from "./names";
+import type { TrashKindDef, TrashKindHandler } from "./kinds";
 import { exists, measure, move, readText } from "./trashFiles";
 
 /** 片付け（期限の来たものを本当に消す・AI が kickoff-trash で入れたものを覚える）を流す間隔 */
@@ -19,23 +22,14 @@ const TRASH_ITEM_DIR = "item";
 /** 一緒に入れたもの（会話記録と同じ名前のフォルダ = サブエージェントの記録など）を置くフォルダの名前。戻すときは元の場所へ戻す（覚え書きの details.companions） */
 const TRASH_COMPANION_DIR = "with";
 
-/**
- * 種類ごとの扱い（チャット・プロジェクトなど、置き場にファイルを置かないもの・戻すときに一緒に戻すものがある種類）。
- * 行を消す・置き場のフォルダを消すのはサービスがする
- */
-export interface TrashKindHandler {
-  /** 元に戻す（ファイルの種類は、ファイルを戻したあとに呼ぶ。restoredPath は戻した場所 = 同じ名前があって別の名前で戻したなら元の場所と違う） */
-  restore?(item: StoredTrashItem, restoredPath: string | null): void | Promise<void>;
-  /** 本当に消す */
-  purge?(item: StoredTrashItem): void | Promise<void>;
-}
-
 export interface TrashServiceDeps {
   items: TrashStore;
   /** 置き場（データのフォルダの trash/） */
   dir: string;
   /** いまの時刻（テストで差し替える） */
   now?: () => number;
+  /** 片付けの間隔を数える時計（省けば本物の時計） */
+  clock?: Clock;
 }
 
 /**
@@ -46,14 +40,17 @@ export interface TrashServiceDeps {
  */
 export class TrashService {
   private readonly handlers = new Map<TrashKind, TrashKindHandler>();
-  private timer: ReturnType<typeof setInterval> | null = null;
+  /** 起動したときと 1 時間ごとの片付け */
+  private readonly poller: Poller;
   private sweeping: Promise<void> | null = null;
   /** 動いている片付けのあとに、もう一度流す片付け（待っている頼みは 1 つにまとめる） */
   private sweepAgain: Promise<void> | null = null;
   /** いま本当に消している途中のもの */
   private readonly purging = new Set<string>();
 
-  constructor(private readonly deps: TrashServiceDeps) {}
+  constructor(private readonly deps: TrashServiceDeps) {
+    this.poller = createPoller({ intervalMs: SWEEP_INTERVAL_MS, runAtStart: true, run: () => this.sweep(), clock: deps.clock ?? systemClock });
+  }
 
   /** 覚え書きの店（chat がチャットの行の中身を書く）と置き場 */
   get items(): TrashStore { return this.deps.items; }
@@ -85,8 +82,8 @@ export class TrashService {
     this.sweepSteps.push(step);
   }
 
-  /** 種類ごとの扱いを登録する（チャット・プロジェクトなど） */
-  register(kind: TrashKind, handler: TrashKindHandler): void {
+  /** 種類ごとの扱いを登録する（チャット・プロジェクトなど。trash は種類の中身を知らない） */
+  registerKind({ kind, ...handler }: TrashKindDef): void {
     this.handlers.set(kind, handler);
   }
 
@@ -100,7 +97,7 @@ export class TrashService {
   /** ファイル・フォルダを置き場へ移して覚える（なければ 404） */
   async putPath(
     target: string,
-    opts: { projectId: number | null; byChatId?: number | null; details?: TrashDetails; label?: string; kind?: TrashKind; companions?: string[] },
+    opts: { projectId: number | null; byChatId?: number | null; details?: FileTrashDetails; label?: string; kind?: "file" | "session"; companions?: string[] },
   ): Promise<StoredTrashItem> {
     const abs = path.resolve(target);
     const st = await fs.lstat(abs).catch(() => null);
@@ -247,7 +244,8 @@ export class TrashService {
 
   /** 一緒に入れたものを元の場所へ戻す（元の場所にもう何かあれば戻さない = 消える） */
   private async restoreCompanions(item: StoredTrashItem): Promise<void> {
-    for (const [i, origin] of (item.details.companions ?? []).entries()) {
+    const companions = "companions" in item.details ? (item.details.companions ?? []) : [];
+    for (const [i, origin] of companions.entries()) {
       const from = path.join(this.deps.dir, item.id, TRASH_COMPANION_DIR, String(i), path.basename(origin));
       if (!(await exists(from)) || (await exists(origin))) continue;
       await fs.mkdir(path.dirname(origin), { recursive: true });
@@ -322,13 +320,10 @@ export class TrashService {
 
   /** 起動したときと 1 時間ごとに片付ける */
   start(): void {
-    void this.sweep();
-    this.timer = setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS);
-    this.timer.unref?.();
+    this.poller.start();
   }
 
   close(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
+    this.poller.stop();
   }
 }

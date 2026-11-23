@@ -5,6 +5,7 @@
 import type { TurnEndTask } from "@/features/chat/core/turnEnd";
 import { errorMessage } from "@shared/foundation/errors";
 import { chatName, type Chat } from "@shared/chat/types";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { TrashApi } from "@/features/trash/core/index";
 import { toolChat } from "./context";
@@ -53,7 +54,7 @@ export class ChatRemover {
     runner.reserveAtTurnEnd(chatId, { kind: action === "archive" ? "archive_chat" : "delete_chat", key: String(targetId), order: 30, label: `${label}の${ACTION_LABELS[action]}`, when: "any", pauseQueue: true, run: async () => this.runReserved(chatId, action, targetId) });
     return [
       `予約しました。このチャットの作業が終わったら、Kickoff が${label}${withOthers(family.length - 1)}を${ACTION_LABELS[action]}します。`,
-      action === "archive" ? "利用者はサイドバーのアーカイブから戻せます。" : "3 日間はプロジェクトの「ゴミ箱」タブから戻せます。",
+      action === "archive" ? "利用者はサイドバーのアーカイブから戻せます。" : `${TRASH_KEEP_DAYS} 日間はプロジェクトの「ゴミ箱」タブから戻せます。`,
       "送信待ちが残っていれば止めておきます。予約したら、結果を返答で伝えて作業を終えてください。",
     ].join("\n");
   }
@@ -75,7 +76,7 @@ export class ChatRemover {
       return `${label}${others}をアーカイブしました。利用者はサイドバーのアーカイブから戻せます。`;
     }
     trashChat({ store, trashBin, runner }, target, { byChatId });
-    return `${label}${others}を Kickoff のゴミ箱に入れました。3 日間はプロジェクトの「ゴミ箱」タブから戻せます。`;
+    return `${label}${others}を Kickoff のゴミ箱に入れました。${TRASH_KEEP_DAYS} 日間はプロジェクトの「ゴミ箱」タブから戻せます。`;
   }
 
   /** 予約を行う（頼んだチャットと一緒に扱うチャットがどれも作業中でなくなったら。結果は頼んだチャットのお知らせに残す） */

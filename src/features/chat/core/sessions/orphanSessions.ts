@@ -6,7 +6,7 @@ import type { OrphanSession } from "@shared/trash/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider, SessionFileInfo } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
-import type { TrashService } from "@/features/trash/core/service";
+import type { TrashApi } from "@/features/trash/core/index";
 import { sessionCompanion, sessionLabel } from "./sessionTrash";
 import { realPathLoose } from "@/foundation/core/system/paths";
 
@@ -15,7 +15,7 @@ export interface OrphanSessionDeps {
   askDir?: string | null;
   store: Pick<ChatStoreDeps, "events" | "agentSessions" | "db" | "trash">;
   providers: Record<ProviderId, AgentProvider>;
-  trashBin: Pick<TrashService, "putPath">;
+  trashBin: Pick<TrashApi, "putPath">;
   sessionsElsewhere: SessionsUsedElsewhere;
   /** 作業フォルダを含むプロジェクト（なければ null） */
   projectOfPath: (cwd: string) => number | null;

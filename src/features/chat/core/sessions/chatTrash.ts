@@ -6,22 +6,22 @@ import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
+import type { FileTrashDetails } from "@shared/trash/types";
 import type { ProviderId } from "@shared/settings/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import { descendantsOf } from "@/features/chat/core/family";
-import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatAttachments } from "@/features/chat/core/ports";
 import { collectChatSessions, discardUnusedSessions, type RememberedSessions } from "./sessionCleanup";
 import { tx } from "@/foundation/core/db/tx";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import type { TrashService } from "@/features/trash/core/service";
+import type { StoredTrashItem, TrashApi, TrashKindDef } from "@/features/trash/core/index";
 
 /** チャットをゴミ箱に入れるときに使うもの（作業中か確かめる・作業中の状態を捨てる） */
 export interface ChatTrashDeps {
   store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "logRevisions" | "db" | "projects" | "groups" | "trash">;
-  trashBin: Pick<TrashService, "addRecord">;
+  trashBin: Pick<TrashApi, "addRecord">;
   runner: { requireIdle(chatId: number, action: string): void; forget(chatId: number): void };
 }
 
@@ -94,7 +94,7 @@ export function trashNoteChatsOnImport(
   const dir = realPathLoose(deps.noteDirOf(project));
   if (!isInside(dir, item.origin) || item.origin === dir) return;
   const note = path.relative(dir, item.origin).split(path.sep).join("/");
-  deps.store.trash.setDetails(item.id, { ...item.details, note });
+  deps.store.trash.setDetails(item.id, { ...(item.details as FileTrashDetails), note });
   trashNoteChats(deps, project.id, note, item.id);
   deps.publish({ type: "notes", project_id: project.id, path: null });
 }
@@ -123,21 +123,22 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
 }
 
 /**
- * ゴミ箱にチャットの扱いを登録する（チャットの行・ノート・プロジェクトのどれから戻しても、一緒に入れたチャットを戻し、本当に消すときは一緒に消す）。
- * ノートを別の名前で戻したら、ノートのチャットの note_path も付け替える
+ * ゴミ箱の種類のうちチャットが扱うもの（チャットの行・ノート・プロジェクトのどれから戻しても、一緒に入れたチャットを戻し、本当に消すときは一緒に消す）。
+ * ノートを別の名前で戻したら、ノートのチャットの note_path も付け替える。createChat が 1 つずつ trash の registerKind に渡す
  */
-export function registerChatTrash(trashBin: TrashService, deps: ChatPurgeDeps): void {
+export function chatTrashKinds(deps: ChatPurgeDeps): TrashKindDef[] {
   const purge = (item: StoredTrashItem) => purgeChatsOf(deps, item.id);
-  trashBin.register("chat", { restore: (item) => void restoreChatsOf(deps.store, item.id), purge });
-  trashBin.register("file", {
+  const file: TrashKindDef = {
+    kind: "file",
     restore: (item, restoredPath) => {
       const restored = restoreChatsOf(deps.store, item.id);
-      const note = typeof item.details.note === "string" ? item.details.note : null;
+      const note = "note" in item.details ? (item.details.note ?? null) : null;
       if (!note || !item.origin || !restoredPath || restoredPath === item.origin || item.project_id === null || restored.length === 0) return;
       // 元の場所からノートのフォルダを割り出し、戻した名前で付け替える
       const noteDir = item.origin.slice(0, item.origin.length - note.length).replace(/\/+$/, "");
       deps.store.chats.remapNotePath(item.project_id, note, path.relative(noteDir, restoredPath).split(path.sep).join("/"));
     },
     purge,
-  });
+  };
+  return [{ kind: "chat", restore: (item) => void restoreChatsOf(deps.store, item.id), purge }, file];
 }

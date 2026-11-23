@@ -6,7 +6,7 @@ import type { ProviderId } from "@shared/settings/types";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { SessionsUsedElsewhere } from "./siblingSessions";
-import type { TrashService } from "@/features/trash/core/service";
+import type { TrashApi } from "@/features/trash/core/index";
 
 /** 覚えてからこれだけたったものだけを見る（作ったばかりで、まだチャット・記録に書いていないものを片付けないように） */
 export const SESSION_SWEEP_GRACE_MS = 60 * 60 * 1000;
@@ -14,7 +14,7 @@ export const SESSION_SWEEP_GRACE_MS = 60 * 60 * 1000;
 export interface SessionSweepDeps {
   store: Pick<ChatStoreDeps, "chats" | "events" | "agentSessions" | "projects">;
   providers: Record<ProviderId, AgentProvider>;
-  trashBin: Pick<TrashService, "putPath">;
+  trashBin: Pick<TrashApi, "putPath">;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（それは片付けず、覚えからだけ外す） */
   sessionsElsewhere: SessionsUsedElsewhere;
   now?: () => number;

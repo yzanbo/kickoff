@@ -1,6 +1,7 @@
 // 作業場所を移した区切り（記録の workplace_moved）の決まり。
 // コア（巻き戻し・分岐・起点・AI への知らせ）と画面（区切りの 1 行・ボタン・ファイルのチップ）とスマホで同じものを使う
 import type { ChatEvent, ChatEventDataOf, ChatEventOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/chat/chatEvent";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 
 type MoveData = ChatEventDataOf<"workplace_moved">;
 
@@ -83,7 +84,7 @@ function fromTo(data: MoveData): string {
 export function workplaceMoveLine(data: MoveData): string {
   const notes: string[] = [];
   if (data.carried) notes.push("コミットしていない変更も持っていきました");
-  if (data.backed_up) notes.push("コミットしていない変更は控えに入れました。3 日はゴミ箱から戻せます");
+  if (data.backed_up) notes.push(`コミットしていない変更は控えに入れました。${TRASH_KEEP_DAYS} 日はゴミ箱から戻せます`);
   notes.push(...situationNotes(data));
   return `${REASON_HEADS[data.reason]}: ${fromTo(data)}${notes.length ? `（${notes.join("。")}）` : ""}`;
 }

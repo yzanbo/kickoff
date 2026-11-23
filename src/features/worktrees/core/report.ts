@@ -1,4 +1,5 @@
 // ワークツリーの後始末の結果の文（純粋な関数。AI に返す文とチャットのお知らせで同じものを使う）
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 
 /** 取り込み済みか（ローカルで本体のブランチに入っている / GitHub で PR がマージ済み / どちらでもない = null） */
 type MergeState = { via: "local"; into: string } | { via: "github"; pr: number } | null;
@@ -39,7 +40,7 @@ export function plannedText(facts: FinishFacts): string {
   const name = facts.branch ? `ブランチ ${facts.branch}` : "ブランチなし";
   const loss = lossText(facts);
   const merged = facts.merged ? `取り込み済み（${mergedText(facts.merged)}）です。` : "まだ本体に取り込まれていません。";
-  return `${name} は${merged}${loss ? `${loss}は控えに入れてから消し、3 日間は Kickoff のゴミ箱から戻せます。` : "失うものはありません。"}`;
+  return `${name} は${merged}${loss ? `${loss}は控えに入れてから消し、${TRASH_KEEP_DAYS} 日間は Kickoff のゴミ箱から戻せます。` : "失うものはありません。"}`;
 }
 
 /** 後始末の結果の文（AI に返す文とチャットのお知らせ） */
@@ -48,8 +49,8 @@ export function finishedText(o: FinishOutcome): string {
   const loss = lossText(o);
   const lines: string[] = [];
   if (o.merged && !loss) lines.push(`取り込み済み（${mergedText(o.merged)}）の${name}を片付けました。`);
-  else if (o.merged) lines.push(`取り込み済み（${mergedText(o.merged)}）の${name}を片付けました。${loss}を控えに入れて消しました。3 日間はゴミ箱から戻せます。`);
-  else if (loss) lines.push(`${name}を片付けました。${loss}を控えに入れて消しました。3 日間はゴミ箱から戻せます。`);
+  else if (o.merged) lines.push(`取り込み済み（${mergedText(o.merged)}）の${name}を片付けました。${loss}を控えに入れて消しました。${TRASH_KEEP_DAYS} 日間はゴミ箱から戻せます。`);
+  else if (loss) lines.push(`${name}を片付けました。${loss}を控えに入れて消しました。${TRASH_KEEP_DAYS} 日間はゴミ箱から戻せます。`);
   else lines.push(`${name}を片付けました（失うものはありませんでした）。`);
   if (o.docker === "removed") lines.push("Docker のコンテナとデータ（ボリューム）も消しました（戻せません）。");
   if (o.docker === "kept_shared") lines.push("Docker の組の名前を本体などと共有しているので、Docker のデータは消さずに残しました。");

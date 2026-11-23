@@ -14,8 +14,8 @@ import { chatTitlesOf } from "./db/chatTitles";
 import { chatDeltaStage } from "./deltaStage";
 import { endInterruptedTurns } from "./run/turn/result";
 import { createChatRunner, type ChatRunner, type RunnerDeps } from "./run/runner";
-import { registerChatTrash, type ChatPurgeDeps } from "./sessions/chatTrash";
-import { registerProjectTrash } from "./sessions/projectTrash";
+import { chatTrashKinds, type ChatPurgeDeps } from "./sessions/chatTrash";
+import { projectTrashKind } from "./sessions/projectTrash";
 import { sweepUnusedSessions } from "./sessions/sessionTrash";
 import type { SessionsUsedElsewhere, SiblingSessionCheck } from "./sessions/siblingSessions";
 import type { SessionTrash } from "./sessionSwitch";
@@ -172,8 +172,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       for (const fn of purged) await Promise.resolve().then(() => fn(ids)).catch(() => {});
     },
   };
-  registerChatTrash(trashBin, purgeDeps);
-  registerProjectTrash(trashBin, purgeDeps);
+  for (const def of [...chatTrashKinds(purgeDeps), projectTrashKind(trashBin, purgeDeps)]) trashBin.registerKind(def);
   // ゴミ箱が読むチャット（消したチャットの名前・AI の kickoff-trash で入れたものを出すプロジェクト）
   const titlesOf = chatTitlesOf(k.db);
   trashBin.useChats({ titlesOf, projectOf: (chatId) => store.chats.get(chatId)?.project_id ?? null });
@@ -221,7 +220,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       queueRoutes(routeDeps),
       approvalRoutes(routeDeps),
       archiveCleanupRoutes(routeDeps),
-      { legacy: (app) => orphanSessionRoutes(app, routeDeps) },
+      orphanSessionRoutes(routeDeps),
     ],
     start: () => {
       stopAutoArchive = startAutoArchive(store, bus, k.clock);
