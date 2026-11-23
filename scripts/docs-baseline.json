@@ -74,7 +74,7 @@
     "src/features/database/ui/connection/ConnectionNoteField.tsx": 1,
     "src/features/docker/ui/useDockerLogs.ts": 2,
     "src/features/projects/ui/stores/projects.ts": 1,
-    "src/features/voice/ui/recorder.ts": 1,
+    "src/features/voice/ui/capture/recorder.ts": 1,
     "src/foundation/ui/lib/progressive.ts": 2,
     "src/foundation/ui/lib/textFind.ts": 1,
     "src/foundation/ui/lib/time.ts": 3,

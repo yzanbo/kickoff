@@ -15,7 +15,6 @@ import { providersApi } from "@/features/ai/ui/api/providers";
 import { settingsApi } from "@/features/settings/ui/api/settings";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { uploadsApi } from "@/features/attachments/ui/api/uploads";
-import { voiceApi } from "@/features/voice/ui/api/voice";
 import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 
 export const api = {
@@ -32,7 +31,6 @@ export const api = {
   ...gitShared,
   ...filesShared,
   ...worktreesApi,
-  ...voiceApi,
   ...githubApi,
   ...ciApi,
 };

@@ -1,5 +1,5 @@
 import { readSetting } from "@/foundation/ui/storage";
-import { storage } from "./storage";
+import { storage } from "@/features/voice/ui/storage";
 
 /** 録音中の音声（止めると録った音声の区切りの一覧、やめると捨てる。release なら、どちらでもマイクを放す） */
 export interface Recording {

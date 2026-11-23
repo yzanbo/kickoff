@@ -87,6 +87,8 @@ export interface FieldVoiceMode {
 export interface ComposerVoiceHooks {
   useField: (bridge: FieldBridge) => FieldVoice;
   useMode: (bridge: FieldBridge, input: ComposerVoiceModeInput) => FieldVoiceMode;
+  /** 送る前の新しいチャットから作ったチャット（音声モードの間に送ったなら、そのチャットで続ける） */
+  claimHandoff?: (chatId: number) => void;
 }
 
 export type ComposerSlot =
@@ -134,6 +136,9 @@ export const composerParts = (): ComposerParts => parts ?? NO_PARTS;
 
 /** 入力欄の上のピル（ノート）。ピルの列を描く側（会話の画面・新しいチャット・新しい子チャット）が並べる */
 export const composerPills = (): readonly ComponentType<ComposerPillProps>[] => composerParts().pills;
+
+/** 新しいチャットのタブがチャットを作れた（音声モードの間に送ったなら、できたチャットのチャット欄が音声モードを続ける） */
+export const claimVoiceHandoff = (chatId: number): void => composerParts().voice.claimHandoff?.(chatId);
 
 /** 欄 1 つの音声入力（登録した機能の hook を呼ぶ） */
 export function useFieldVoice(bridge: FieldBridge): FieldVoice {

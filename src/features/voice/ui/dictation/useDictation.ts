@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/foundation/ui/api";
+import { transcribeAudio } from "@/features/voice/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { errorMessage } from "@shared/foundation/errors";
-import { openSettings } from "@/features/settings/ui";
 import { micErrorMessage, transcribeParts } from "./dictationText";
-import { openMic, recordStream, watchLevel, type Recording } from "./recorder";
-import { useVoiceStatus, voiceStatusStore } from "@/features/voice/ui/stores/voice";
-import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
+import { openMic, recordStream, watchLevel, type Recording } from "@/features/voice/ui/capture/recorder";
+import { useVoiceStatus } from "@/features/voice/ui/store";
+import { ensureVoiceReady } from "@/features/voice/ui/capture/ensureVoiceReady";
+import { createLevelChannel } from "@/features/voice/ui/capture/levelChannel";
+import { useKeepAliveHold } from "@/features/chat/ui";
 
 /** これより長く押していたら長押し（離したところで止めて起こす）。短ければ 1 回押し（もう一度押すまで録る） */
 const HOLD_MS = 400;
@@ -21,9 +22,6 @@ export type DictationState =
 
 export type Dictation = ReturnType<typeof useDictation>;
 
-/** マイクの音量を受け取る相手（録音中の音量の表示。React の描き直しをせずに大きさを変える） */
-export type LevelListener = (level: number) => void;
-
 /**
  * チャット欄の音声入力。1 回押して話し、話し終わったらもう一度押す（toggle）か、押したまま話して離す（press / release）。
  * onText に起こした文を渡す（send なら、入れてそのまま送る）。準備ができていなければ、設定の「音声入力」を開く。
@@ -36,7 +34,7 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   const recording = useRef<Recording | null>(null);
   // 音量の見張り（録音中だけ）と、受け取る相手
   const stopWatch = useRef<(() => void) | null>(null);
-  const levelListeners = useRef(new Set<LevelListener>());
+  const [levels] = useState(createLevelChannel);
   // 押し始めた時刻（長押しの見分け）と、押したときに録音中だったか
   const pressed = useRef<{ at: number; wasRecording: boolean } | null>(null);
   // 始める・やめる・閉じるたびに進める（マイクや文字起こしを待つ間にやめた・閉じたら、届いたものを捨てる）
@@ -68,7 +66,7 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   async function transcribe(audio: Blob[], send: boolean, id: number) {
     setState({ kind: "transcribing" });
     try {
-      const text = await transcribeParts(audio, async (part) => (await api.transcribe(part)).text);
+      const text = await transcribeParts(audio, transcribeAudio);
       if (id !== attempt.current) return;
       if (!text.trim()) return setState({ kind: "error", message: "聞き取れる声がありませんでした。" });
       setState({ kind: "idle" });
@@ -81,20 +79,16 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   async function start() {
     const id = ++attempt.current;
     setState({ kind: "starting" });
-    // 準備ができていなければ（取ってある状態が古いこともあるので取り直して確かめ）、設定を開いて案内する
-    const fresh = status?.ready ? status : await voiceStatusStore.reload().catch(() => undefined);
+    // 準備ができていなければ、設定を開いて案内する
+    const ready = await ensureVoiceReady(status, { wanted: () => id === attempt.current });
     if (id !== attempt.current) return;
-    if (!fresh?.ready) {
-      setState({ kind: "idle" });
-      openSettings("voice");
-      return;
-    }
+    if (!ready) return setState({ kind: "idle" });
     try {
       const stream = await openMic();
       const rec = recordStream(stream, { release: true });
       if (id !== attempt.current) return rec.cancel();
       recording.current = rec;
-      stopWatch.current = watchLevel(stream, (level) => levelListeners.current.forEach((f) => f(level)));
+      stopWatch.current = watchLevel(stream, levels.emit);
       setState({ kind: "recording", startedAt: Date.now() });
     } catch (e) {
       if (id === attempt.current) setState({ kind: "error", message: micErrorMessage(e) });
@@ -163,9 +157,6 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     },
     dismiss: () => setState({ kind: "idle" }),
     /** 録音中のマイクの音量を受け取る（返した関数でやめる） */
-    subscribeLevel: (listener: LevelListener) => {
-      levelListeners.current.add(listener);
-      return () => void levelListeners.current.delete(listener);
-    },
+    subscribeLevel: levels.subscribe,
   };
 }

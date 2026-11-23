@@ -3,7 +3,7 @@ import type { AppSettings } from "@shared/foundation/contract/settings";
 import { VOICE_LANGUAGES, VOICE_PROVIDERS, type VoiceStatus } from "@shared/voice/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useVoiceStatus } from "@/features/voice/ui/stores/voice";
+import { useVoiceStatus } from "@/features/voice/ui/store";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 import { StatusDot } from "@/foundation/ui/kit/StatusDot";

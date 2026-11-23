@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { VoiceModelInfo, VoiceStatus } from "@shared/voice/types";
-import { reduceVoiceStatus } from "./voice";
+import { reduceVoiceStatus } from "./store";
 import { reduceBy } from "@/foundation/ui/store";
 
 const model = (id: string) => ({ id, download: null, downloaded: false }) as unknown as VoiceModelInfo;

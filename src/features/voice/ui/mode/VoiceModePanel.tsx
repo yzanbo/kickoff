@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useLevelVar } from "@/features/voice/ui/capture/levelChannel";
 import { AudioLines, SendHorizontal, SkipForward, TextCursorInput, X } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -62,16 +63,7 @@ export function VoiceModeButton({ voice }: { voice: VoiceMode }) {
  */
 export function VoiceModePanel({ voice, queueToggle }: { voice: VoiceMode; queueToggle?: ReactNode }) {
   const orb = useRef<HTMLSpanElement>(null);
-  // 受け取る先はチャット欄が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
-  const subscribeLevel = useEffectEvent((listener: (level: number) => void) => voice.subscribeLevel(listener));
-  useEffect(
-    () =>
-      subscribeLevel((level) => {
-        // 話し声の RMS はおよそ 0.02〜0.2。0〜1 に広げて丸の大きさにする
-        orb.current?.style.setProperty("--voice-level", String(Math.min(1, level * 8)));
-      }),
-    [],
-  );
+  useLevelVar(voice.subscribeLevel, "--voice-level", orb);
   const { state } = voice;
   const fill = voice.delivery === "fill";
   return (

@@ -2,7 +2,7 @@
 // 設定が変わったら取り直し、モデルのダウンロードの進み具合はその場で直す（終わったら取り直して、準備の状態も直す）
 import type { VoiceStatus } from "@shared/voice/types";
 import type { ReduceTable } from "@/foundation/ui/store";
-import { api } from "@/foundation/ui/api";
+import { voiceApi } from "./api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -16,7 +16,7 @@ export const reduceVoiceStatus: ReduceTable<VoiceStatus> = {
 
 /** ダウンロード・削除の応答（そのあとの状態）は set で入れる */
 export const voiceStatusStore = createStore<VoiceStatus>({
-  load: () => api.voiceStatus(),
+  load: () => voiceApi("GET /api/voice"),
   reduce: reduceVoiceStatus,
   reloadOn: { settings: true, voice_model: (e) => e.download === null },
 });

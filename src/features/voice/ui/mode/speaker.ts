@@ -1,7 +1,7 @@
 // 音声モードの読み上げ（この Mac の声 = Web Speech の speechSynthesis / OpenAI の声 = コアの /api/speech の mp3 を再生）
 import type { AppSettings } from "@shared/foundation/contract/settings";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { voiceApi } from "@/features/voice/ui/api";
 import { speakableText, splitSpeech } from "./speechText";
 
 /** 読み上げに使う設定 */
@@ -15,7 +15,7 @@ interface Chunk {
 
 /** OpenAI の声の音声を頼む（stop で signal を止める。やめて使わなくなったものの失敗は、知らせずに捨てる） */
 function requestAudio(text: string, signal: AbortSignal): Promise<Blob> {
-  const audio = api.speech(text, signal);
+  const audio = voiceApi("POST /api/speech", { body: { text } }, { signal }).then((r) => r.blob);
   audio.catch(() => undefined);
   return audio;
 }

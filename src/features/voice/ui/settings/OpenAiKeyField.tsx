@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { api } from "@/foundation/ui/api";
+import { voiceApi } from "@/features/voice/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { voiceStatusStore } from "@/features/voice/ui/stores/voice";
+import { voiceStatusStore } from "@/features/voice/ui/store";
 import { Field } from "@/foundation/ui/kit/Field";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
 
@@ -15,7 +15,7 @@ export function OpenAiKeyField({ saved, label }: { saved: boolean | undefined; l
   const save = useAction<"save">();
   const store = (value: string) =>
     save.run("save", async () => {
-      await api.saveOpenAiKey(value);
+      await voiceApi("PUT /api/voice/openai-key", { body: { key: value } });
       setKey("");
       await voiceStatusStore.reload();
     }, { done: "保存しました" });

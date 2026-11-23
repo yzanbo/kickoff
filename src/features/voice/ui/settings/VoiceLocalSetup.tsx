@@ -1,5 +1,5 @@
 import type { VoiceStatus } from "@shared/voice/types";
-import { voiceStatusStore } from "@/features/voice/ui/stores/voice";
+import { voiceStatusStore } from "@/features/voice/ui/store";
 import { CommandLine } from "@/foundation/ui/kit/CommandLine";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";

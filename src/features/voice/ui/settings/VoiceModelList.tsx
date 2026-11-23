@@ -1,9 +1,9 @@
 import type { VoiceModelInfo } from "@shared/voice/types";
-import { api } from "@/foundation/ui/api";
+import { voiceApi } from "@/features/voice/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { voiceStatusStore } from "@/features/voice/ui/stores/voice";
+import { voiceStatusStore } from "@/features/voice/ui/store";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { formatModelSize } from "./voiceOptions";
 
@@ -32,11 +32,11 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
   const action = useAction();
   if (!models) return <p className="muted small">読み込み中…</p>;
 
-  const download = (m: VoiceModelInfo) => action.guard(async () => voiceStatusStore.set(await api.downloadVoiceModel(m.id)));
+  const download = (m: VoiceModelInfo) => action.guard(async () => voiceStatusStore.set(await voiceApi("POST /api/voice/models/:modelId/download", { params: { modelId: m.id } })));
   const remove = async (m: VoiceModelInfo) => {
     const downloading = Boolean(m.download && !m.download.error);
     if (!downloading && !(await confirm({ title: `モデル（${m.label}）を削除しますか？`, message: "使うときは、もう一度ダウンロードします。", confirmLabel: "削除", danger: true }))) return;
-    await action.guard(async () => voiceStatusStore.set(await api.deleteVoiceModel(m.id)));
+    await action.guard(async () => voiceStatusStore.set(await voiceApi("DELETE /api/voice/models/:modelId", { params: { modelId: m.id } })));
   };
 
   return (

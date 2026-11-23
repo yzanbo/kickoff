@@ -13,15 +13,13 @@ import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsN
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
 import { chooseBusyWorkplaceAction, currentChats, useChats } from "@/features/chat/ui";
-import { appendDraft, Composer, composerPills, focusDraft, newChatComposerDraft, patchNewChatDraft, useNewChatDraft, type NewChatDraft } from "@/features/composer/ui";
+import { appendDraft, claimVoiceHandoff, Composer, composerPills, focusDraft, newChatComposerDraft, patchNewChatDraft, useNewChatDraft, type NewChatDraft, type VoiceReply } from "@/features/composer/ui";
 import { groupNameIn, useGroups } from "@/features/groups/ui/stores/groups";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { GroupPicker } from "@/features/groups/ui/GroupPicker";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
-import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
-import type { VoiceReply } from "@/features/voice/ui/voiceSession";
 import { draftScope } from "@/features/panel/ui";
 import type { SidePanelHandle } from "@/features/chat/ui";
 

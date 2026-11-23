@@ -1,20 +1,20 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { useKeepAliveHold } from "@/features/chat/ui/screen/keepAlive";
+import { useKeepAliveHold } from "@/features/chat/ui";
 import { defaultsOf } from "@shared/foundation/contract/settings";
 import { voiceSettings } from "@shared/voice/settings";
-import { api } from "@/foundation/ui/api";
+import { transcribeAudio } from "@/features/voice/ui/api";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "./storage";
-import { useVoiceStatus, voiceStatusStore } from "@/features/voice/ui/stores/voice";
-import { openSettings, useAppSettings } from "@/features/settings/ui";
+import { storage } from "@/features/voice/ui/storage";
+import { useVoiceStatus } from "@/features/voice/ui/store";
+import { useAppSettings } from "@/features/settings/ui";
+import { ensureVoiceReady } from "@/features/voice/ui/capture/ensureVoiceReady";
+import { createLevelChannel } from "@/features/voice/ui/capture/levelChannel";
 import { armVoiceHandoff, disarmVoiceHandoff, RETURN_MS, returnVoiceHandoff, takeVoiceHandoff } from "./voiceHandoff";
-import { VoiceSession, type VoiceModeState, type VoiceReply } from "./voiceSession";
+import type { VoiceReply } from "@/features/composer/ui";
+import { VoiceSession, type VoiceModeState } from "./voiceSession";
 
 export type VoiceMode = ReturnType<typeof useVoiceMode>;
-
-/** 音量を受け取る相手（パネルの丸。React の描き直しをせずに大きさを変える） */
-type LevelListener = (level: number) => void;
 
 /** 話し終わったときの扱い（すぐ送る / チャット欄に入れる） */
 export type VoiceDelivery = "send" | "fill";
@@ -51,7 +51,7 @@ export function useVoiceMode({
   const [muted, setMuted] = useState(false);
   const [delivery, setDelivery] = useSetting(storage.settings.modeDelivery);
   const session = useRef<VoiceSession | null>(null);
-  const levelListeners = useRef(new Set<LevelListener>());
+  const [levels] = useState(createLevelChannel);
   const latest = useLatest({ replies, busy, send, fill, settings, delivery });
   // 音声モードの間は、タブを裏に回しても会話の欄を止めない（裏でも聞き続け、届いた返答を読み上げる。止めると下の片付けで終わる）
   const hold = useKeepAliveHold("voice");
@@ -64,13 +64,8 @@ export function useVoiceMode({
     if (session.current) return;
     // 準備を確かめている間にタブを裏に回しても止めないよう、待つ前に立てる
     hold(true);
-    // 準備ができていなければ（取ってある状態が古いこともあるので取り直して確かめ）、設定を開いて案内する
-    const fresh = status?.ready ? status : await voiceStatusStore.reload().catch(() => undefined);
-    const ttsReady = latest.current.settings?.voice_tts_provider !== "openai" || fresh?.openai.key_saved;
-    if (!fresh?.ready || !ttsReady) {
-      hold(false);
-      return openSettings("voice");
-    }
+    // 準備ができていなければ（OpenAI の声で読むなら API キーも）、設定を開いて案内する
+    if (!(await ensureVoiceReady(status, { openaiTts: latest.current.settings?.voice_tts_provider === "openai" }))) return hold(false);
     setError(null);
     setHeard(null);
     setMuted(false);
@@ -82,12 +77,12 @@ export function useVoiceMode({
         await latest.current.send(text);
         s.noteSent();
       },
-      transcribe: async (audio) => (await api.transcribe(audio)).text,
+      transcribe: transcribeAudio,
       speakerSettings: () => latest.current.settings ?? defaultsOf(voiceSettings),
       onState: setState,
       onHeard: setHeard,
       onError: setError,
-      onLevel: (level) => levelListeners.current.forEach((f) => f(level)),
+      onLevel: levels.emit,
       onMuted: setMuted,
       onEnd: () => {
         if (session.current !== s) return;
@@ -150,9 +145,6 @@ export function useVoiceMode({
     noteSent: () => session.current?.noteSent(),
     dismissError: () => setError(null),
     /** マイクの音量を受け取る（返した関数でやめる） */
-    subscribeLevel: (listener: LevelListener) => {
-      levelListeners.current.add(listener);
-      return () => void levelListeners.current.delete(listener);
-    },
+    subscribeLevel: levels.subscribe,
   };
 }

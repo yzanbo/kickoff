@@ -3,19 +3,14 @@
 // 話している途中・文字にしている間に届いた返答は、渡し終えてから読む。読み上げ中に話すと、読み上げを止めて聞き始め、
 // 次に送るか作業が終わるまで読まない。マイクは会話の間ずっと開いたままにし、話すたびに録音を作り直す
 import { errorMessage } from "@shared/foundation/errors";
-import { micErrorMessage, transcribeParts } from "./dictationText";
-import { openMic, recordStream, watchLevel, type Recording } from "./recorder";
+import type { VoiceReply } from "@/features/composer/ui";
+import { micErrorMessage, transcribeParts } from "@/features/voice/ui/dictation/dictationText";
+import { openMic, recordStream, watchLevel, type Recording } from "@/features/voice/ui/capture/recorder";
 import { Speaker, type SpeakerSettings } from "./speaker";
-import { BARGE_IN_VAD, initialVad, LISTEN_VAD, vadStep, type VadState } from "./vad";
+import { BARGE_IN_VAD, initialVad, LISTEN_VAD, vadStep, type VadState } from "@/features/voice/ui/capture/vad";
 
 /** 音声モードの様子（聞いている → 文字起こし中 → 聞いている、の間に読み上げが入る） */
 export type VoiceModeState = { kind: "off" } | { kind: "starting" } | { kind: "listening"; heard: boolean } | { kind: "transcribing" } | { kind: "speaking" };
-
-/** 読み上げる候補の返答（メインエージェントの文章の記録） */
-export interface VoiceReply {
-  id: number;
-  text: string;
-}
 
 export interface VoiceSessionDeps {
   /** 起こした文を渡す（すぐ送る・入力欄に入れる。送ったなら呼ぶ側が noteSent を呼ぶ） */

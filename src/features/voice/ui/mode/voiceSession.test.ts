@@ -10,7 +10,7 @@ const fake = vi.hoisted(() => ({
   stops: 0,
   onSpeaking: null as ((speaking: boolean) => void) | null,
 }));
-vi.mock("./recorder", () => ({
+vi.mock("@/features/voice/ui/capture/recorder", () => ({
   openMic: async () => ({ getTracks: () => [] }),
   watchLevel: (_stream: unknown, fn: (level: number, now: number) => void) => {
     fake.level = fn;

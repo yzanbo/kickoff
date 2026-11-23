@@ -1,5 +1,6 @@
 import { ChevronDown, Mic } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, type PointerEvent } from "react";
+import { useRef, type PointerEvent } from "react";
+import { useLevelVar } from "@/features/voice/ui/capture/levelChannel";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -30,16 +31,7 @@ const LEVEL_DECAY = 0.8;
  */
 function useMicLevel(dictation: Dictation) {
   const ref = useRef<HTMLSpanElement>(null);
-  // 受け取る先は useDictation が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
-  const subscribeLevel = useEffectEvent((listener: (level: number) => void) => dictation.subscribeLevel(listener));
-  useEffect(() => {
-    let shown = 0;
-    return subscribeLevel((level) => {
-      // 話し声の RMS はおよそ 0.02〜0.2。0〜1 に広げ、下がるときはゆっくり戻す
-      shown = Math.max(Math.min(1, level * 8), shown * LEVEL_DECAY);
-      ref.current?.style.setProperty("--mic-level", shown.toFixed(3));
-    });
-  }, []);
+  useLevelVar(dictation.subscribeLevel, "--mic-level", ref, { decay: LEVEL_DECAY, digits: 3 });
   return ref;
 }
 

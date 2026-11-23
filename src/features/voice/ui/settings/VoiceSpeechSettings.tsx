@@ -6,7 +6,7 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Field } from "@/foundation/ui/kit/Field";
-import { Speaker, systemVoices } from "@/features/voice/ui/speaker";
+import { Speaker, systemVoices } from "@/features/voice/ui/mode/speaker";
 import { OpenAiKeyField } from "./OpenAiKeyField";
 import { VOICE_TTS_PROVIDER_INFO, VOICE_TTS_RATES } from "./voiceOptions";
 import { VoiceProviderCard } from "./VoiceProviderCard";

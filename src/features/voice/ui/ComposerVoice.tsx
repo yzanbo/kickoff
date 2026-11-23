@@ -2,11 +2,12 @@
 import type { KeyboardEvent } from "react";
 import { consumeKey, hasModifiers, isCancelKey } from "@/foundation/ui/lib/keys";
 import type { ComposerVoiceHooks, ComposerVoiceModeInput, FieldBridge, FieldVoice, FieldVoiceMode } from "@/features/composer/ui";
-import { DictationButton, DictationError } from "./DictationButton";
-import { insertDictation } from "./dictationText";
-import { useDictation } from "./useDictation";
-import { useVoiceMode } from "./useVoiceMode";
-import { VoiceModeButton, VoiceModePanel } from "./VoiceModePanel";
+import { DictationButton, DictationError } from "@/features/voice/ui/dictation/DictationButton";
+import { insertDictation } from "@/features/voice/ui/dictation/dictationText";
+import { useDictation } from "@/features/voice/ui/dictation/useDictation";
+import { useVoiceMode } from "@/features/voice/ui/mode/useVoiceMode";
+import { claimVoiceHandoff } from "@/features/voice/ui/mode/voiceHandoff";
+import { VoiceModeButton, VoiceModePanel } from "@/features/voice/ui/mode/VoiceModePanel";
 
 /** 起こした文を欄のキャレットの位置（選んでいればその範囲）に入れる */
 function insertSpoken(bridge: FieldBridge, spoken: string, sendNow: boolean) {
@@ -68,4 +69,4 @@ function useComposerVoiceMode(bridge: FieldBridge, input: ComposerVoiceModeInput
 }
 
 /** 入力欄に差し込む音声の hooks */
-export const composerVoice: ComposerVoiceHooks = { useField: useComposerFieldVoice, useMode: useComposerVoiceMode };
+export const composerVoice: ComposerVoiceHooks = { useField: useComposerFieldVoice, useMode: useComposerVoiceMode, claimHandoff: claimVoiceHandoff };

@@ -2,11 +2,11 @@ import { useState, type MouseEvent } from "react";
 import { Check, Settings } from "lucide-react";
 import { VOICE_LANGUAGES } from "@shared/voice/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "./storage";
+import { storage } from "@/features/voice/ui/storage";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { applySettings, openSettings, useAppSettings } from "@/features/settings/ui";
-import { listMics } from "./recorder";
+import { listMics } from "@/features/voice/ui/capture/recorder";
 
 /** ▾ を押したときに、開いているメニューを外側のクリックとして閉じない（押したボタンの側で開閉する） */
 const OPENER = ".dictation-more";

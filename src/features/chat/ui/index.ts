@@ -13,7 +13,7 @@ export { chatRoleOf, type ChatHost, type NewChatPlace, type NewChatSeed, type Si
 export { NewChatItem, NewChatPlaceBadges, useNewChatPlace } from "./open/NewChatItem";
 export { askInNewChatOf, ChatScreenContext, useChatScreen, useOptionalChatScreen, type ChatScreenValue } from "./screen/chatScreen";
 export { isScreenShown, lastPressedElement, lastPressedScreen, screenAt, screenOfChat, shownChatIds, useRegisterScreen, type ScreenPorts } from "./screen/chatScreens";
-export { clearKeepAlive, KeepAliveContext, setKeepAlive, useKeepAlive } from "./screen/keepAlive";
+export { clearKeepAlive, KeepAliveContext, setKeepAlive, useKeepAlive, useKeepAliveHold } from "./screen/keepAlive";
 export { Elapsed } from "./parts/Elapsed";
 export {
   ActivityNavContext,
