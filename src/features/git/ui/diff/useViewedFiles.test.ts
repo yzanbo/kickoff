@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitStatus } from "@shared/git/types";
 import { changedFiles, changeOf } from "@/features/git/ui/changes/changeGroups";
-import { diffFingerprint, pruneViewed, viewedStateOf } from "./sideFile";
+import { diffFingerprint, pruneViewed, viewedStateOf } from "./useViewedFiles";
 
 const status = (parts: Partial<Extract<GitStatus, { repo: true }>>): GitStatus => ({
   repo: true,

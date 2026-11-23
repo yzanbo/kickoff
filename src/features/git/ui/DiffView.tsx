@@ -18,15 +18,25 @@ export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined 
 
 /**
  * 1 つのファイルの差分を読む（作業場所は WorkplaceProvider。version が変わったら取り直し、取り直している間は前の差分を出しておく。
- * 同じファイルのとき・ちらつかないように）。active: false なら読まない
+ * 同じファイルのとき・ちらつかないように）。active: false なら読まない。onLoad は読めたら差分、読めなかったら undefined で呼ぶ
  */
-export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {
+export function useFileDiff({ projectId, file, staged, version, commit, active = true, onLoad }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean; onLoad?: (diff: GitDiff | undefined) => void }): LoadedDiff {
   const target = useWorkplace(projectId);
   const at = workplaceKey(target);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
-  const loaded = useQuery(key, () => (commit
-        ? gitApi("GET /api/projects/:projectId/git/commits/:hash/diff", { params: { ...workdirInput(target).params, hash: commit }, query: workdirInput(target, { path: file.path, old: file.old_path }).query })
-        : gitApi("GET /api/projects/:projectId/git/diff", workdirInput(target, { path: file.path, old: file.old_path, staged }))), { deps: [version], enabled: active });
+  const load = (signal: AbortSignal) =>
+    (commit
+      ? gitApi("GET /api/projects/:projectId/git/commits/:hash/diff", { params: { ...workdirInput(target).params, hash: commit }, query: workdirInput(target, { path: file.path, old: file.old_path }).query })
+      : gitApi("GET /api/projects/:projectId/git/diff", workdirInput(target, { path: file.path, old: file.old_path, staged }))
+    ).then(
+      (diff) => (onLoad?.(diff), diff),
+      (e: unknown) => {
+        // 取り下げた（取り直した・なくなった）ときは前の差分のまま
+        if (!signal.aborted) onLoad?.(undefined);
+        throw e;
+      },
+    );
+  const loaded = useQuery(key, load, { deps: [version], enabled: active });
   return loaded.loaded ? { diff: loaded.data, error: errorText(loaded.error) } : undefined;
 }
 

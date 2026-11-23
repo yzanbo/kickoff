@@ -1,19 +1,11 @@
 import { Minus, Plus, Undo2 } from "lucide-react";
-import { useMemo } from "react";
 import type { GitFileChange } from "@shared/git/types";
-import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
-import { isRenameKey } from "@/foundation/ui/lib/keys";
-import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { PathParts } from "@/foundation/ui/kit/PathParts";
-import { GIT_CHANGE_LABELS } from "@shared/git/labels";
-import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import { FileTree, siblingNameError, type FileRename, type TreeMulti } from "@/features/files/ui";
-import { buildTree, folderPaths, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
-import { kindMaps } from "./changes/changeMarks";
+import type { FileRename, TreeMulti } from "@/features/files/ui";
+import { ChangedFiles, toggleFolder } from "./changes/ChangedFiles";
 
 export type GitAction = "stage" | "unstage" | "discard";
 
@@ -65,9 +57,6 @@ export async function confirmDiscard(paths: string[]): Promise<boolean> {
  */
 export function ChangeGroup({ title, files, staged, tree, selected, onSelect, multi, picked, onAction, rename, fold, onFoldChange }: Props) {
   const { open, closed } = fold;
-  const nodes = useMemo(() => (tree ? buildTree({ files: files.map((f) => f.path), ignored: [] }) : []), [tree, files]);
-  const marks = useMemo(() => kindMaps(files), [files]);
-  const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
 
   const run = async (action: GitAction, paths: string[]) => {
     if (paths.length === 0) return;
@@ -84,7 +73,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
         <IconButton icon={Plus} label={`${scope}をステージする`} iconSize={14} onClick={() => void run("stage", paths)} />
       </>
     );
-  const pathsUnder = (node: TreeNode) => (node.dir ? files.filter((f) => f.path.startsWith(node.path + "/")).map((f) => f.path) : [node.path]);
+  const pathsUnder = (dir: string) => files.filter((f) => f.path.startsWith(dir + "/")).map((f) => f.path);
   // 選んだいくつかの行の 1 つなら、選んでいるものすべてのボタンにする
   const rowButtons = (path: string, name: string) => (picked.length > 1 && picked.includes(path) ? buttons(picked, `選んだ ${picked.length} 件`) : buttons([path], `「${name}」`));
   // 右クリックのメニューに、どちらのまとまりの行かを添える（「新しいタブで開く」でそのまとまりの差分を開く）
@@ -103,79 +92,19 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
         </span>
       </div>
       {/* 中身がなければ一覧を置かない（空の一覧の余白で、開閉のたびに高さが変わらないように） */}
-      {open &&
-        files.length > 0 &&
-        (tree ? (
-          <FileTree
-            nodes={nodes}
-            open={openFolders}
-            onToggle={(path) => {
-              const next = new Set(closed);
-              if (!next.delete(path)) next.add(path);
-              onFoldChange({ ...fold, closed: next });
-            }}
-            selected={selected?.staged === staged ? selected.path : undefined}
-            onSelect={(path, newTab) => onSelect({ path, staged }, newTab)}
-            multi={multi}
-            marks={marks}
-            actions={(node) => (node.dir ? buttons(pathsUnder(node), `「${node.name}」の中`) : rowButtons(node.path, node.name))}
-            rename={groupRename}
-            // 変更の一覧ではファイルだけ（フォルダには変更のないファイルも入っているので）。消したファイルは変えられない
-            canRename={(node) => !node.dir && marks.files.get(node.path)?.kind !== "D"}
-          />
-        ) : (
-          <ul className="change-files">
-            {files.map((file) => {
-              const name = baseName(file.path);
-              const isSelected = multi.any ? multi.has(file.path) : selected?.staged === staged && selected.path === file.path;
-              const renamable = rename && file.kind !== "D";
-              if (rename?.renaming === file.path) {
-                // 名前を変えている行（同じ名前のほかのファイルの確かめは、変更の一覧にないものもあるのでコアに任せる）
-                return (
-                  <li key={file.path} className="change-item">
-                    <div className="list-item change-file renaming">
-                      <FileIcon name={name} />
-                      <InlineName className="tree-rename" maxLength={255} initial={name} validate={siblingNameError([], file.path)} onSubmit={(next) => rename.submit(file.path, next)} onCancel={rename.cancel} />
-                    </div>
-                  </li>
-                );
-              }
-              return (
-                <li key={file.path} className="change-item">
-                  <button
-                    className={cx("list-item change-file", isSelected && "selected")}
-                    aria-current={isSelected || undefined}
-                    title={`${file.path}（${GIT_CHANGE_LABELS[file.kind]}）`}
-                    onClick={(e) => {
-                      if (!multi.click(e, file.path)) onSelect({ path: file.path, staged });
-                    }}
-                    // 行にピントがあるときの Enter で名前を変える（ファイルタブの木と同じ）
-                    onKeyDown={(e) => {
-                      if (!renamable || !isRenameKey(e)) return;
-                      e.preventDefault();
-                      rename.start(file.path);
-                    }}
-                    onContextMenu={(e) => {
-                      if (!groupRename) return;
-                      // 消したファイルは名前を変えられないので、選んだいくつかの 1 つのときだけメニューを出す
-                      const many = multi.manyFor(file.path);
-                      if (!many && !renamable) return;
-                      e.preventDefault();
-                      groupRename.openMenu(e, file.path, {}, many);
-                    }}
-                  >
-                    <FileIcon name={name} />
-                    <PathParts path={file.path} nameClass={cx("change-name", file.kind === "D" && "deleted")} dirClass="change-dir" />
-                    <span className="change-kind" data-kind={file.kind} aria-label={GIT_CHANGE_LABELS[file.kind]}>
-                      {file.kind}
-                    </span>
-                  </button>
-                  <span className="row-actions">{rowButtons(file.path, name)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        ))}
+      {open && files.length > 0 && (
+        <ChangedFiles
+          files={files}
+          tree={tree}
+          selected={selected?.staged === staged ? selected.path : undefined}
+          onSelect={(path, newTab) => onSelect({ path, staged }, newTab)}
+          multi={multi}
+          actions={(node) => (node.dir ? buttons(pathsUnder(node.path), `「${node.name}」の中`) : rowButtons(node.path, node.name))}
+          rename={groupRename}
+          closed={closed}
+          onToggleFolder={(path) => onFoldChange({ ...fold, closed: toggleFolder(closed, path) })}
+        />
+      )}
     </section>
   );
 }

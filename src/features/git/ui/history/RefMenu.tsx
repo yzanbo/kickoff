@@ -73,10 +73,10 @@ function MergeItems({ name, actions, self }: { name: string; actions: BranchActi
   const reason = !current ? "ブランチから外れています（ブランチをチェックアウトしてから）" : self ? "いまのブランチです" : undefined;
   return (
     <>
-      <MenuItem disabled={Boolean(reason)} title={reason} onSelect={() => void actions.merge(name)}>
+      <MenuItem disabled={Boolean(reason)} title={reason} onSelect={() => void actions.perform("merge", name)}>
         {current ? `「${current}」に「${name}」をマージ…` : "マージ…"}
       </MenuItem>
-      <MenuItem disabled={Boolean(reason)} title={reason} onSelect={() => void actions.rebase(name)}>
+      <MenuItem disabled={Boolean(reason)} title={reason} onSelect={() => void actions.perform("rebase", name)}>
         {current ? `「${current}」を「${name}」の上にリベース…` : "リベース…"}
       </MenuItem>
     </>
@@ -96,26 +96,26 @@ function BranchItems({ name, refs, actions }: { name: string; refs: GitRefs | un
   const remoteBranches = refs?.remotes.flatMap((r) => r.branches.map((b) => b.name)) ?? [];
   return (
     <>
-      <MenuItem disabled={isCurrent || Boolean(elsewhere)} title={isCurrent ? "いまのブランチです" : elsewhere} onSelect={() => void actions.checkout(name)}>
+      <MenuItem disabled={isCurrent || Boolean(elsewhere)} title={isCurrent ? "いまのブランチです" : elsewhere} onSelect={() => void actions.perform("checkout", name)}>
         チェックアウト…
       </MenuItem>
       <MenuItem disabled={Boolean(branch?.worktree)} title={branch?.worktree ? `「${branch.worktree}」で取り出しています` : undefined} onSelect={() => void actions.checkoutAsWorktree(name)}>
         ワークツリーとしてチェックアウト…
       </MenuItem>
       <Separator />
-      <MenuItem disabled={Boolean(cannotFf)} title={cannotFf} onSelect={() => void actions.fastForward(name)}>
+      <MenuItem disabled={Boolean(cannotFf)} title={cannotFf} onSelect={() => void actions.perform("fast_forward", name)}>
         {upstream ? `「${upstream}」へ早送り` : "早送り"}
       </MenuItem>
-      <MenuItem disabled={Boolean(noUpstream)} title={noUpstream ?? (isCurrent ? "取ってきて、分かれていればマージします" : "取ってきて、早送りだけします（作業場所は変えません）")} onSelect={() => void actions.pull(name)}>
+      <MenuItem disabled={Boolean(noUpstream)} title={noUpstream ?? (isCurrent ? "取ってきて、分かれていればマージします" : "取ってきて、早送りだけします（作業場所は変えません）")} onSelect={() => void actions.perform("pull", name)}>
         {upstream ? `「${upstream}」をプル` : "プル"}
       </MenuItem>
-      <MenuItem onSelect={() => void actions.push(name)}>{`「${remoteOfUpstream}」へプッシュ…`}</MenuItem>
-      <MenuItem onSelect={() => void actions.pushAndCreatePr(name)}>{`プッシュして「${remoteOfUpstream}」に PR を作る`}</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("push", name)}>{`「${remoteOfUpstream}」へプッシュ…`}</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("push_pr", name)}>{`プッシュして「${remoteOfUpstream}」に PR を作る`}</MenuItem>
       <Separator />
       <MergeItems name={name} actions={actions} self={isCurrent} />
       <Separator />
-      <MenuItem onSelect={() => void actions.createBranch(name)}>新しいブランチ…</MenuItem>
-      <MenuItem onSelect={() => void actions.createTag(name)}>新しいタグ…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("create_branch", name)}>新しいブランチ…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("create_tag", name)}>新しいタグ…</MenuItem>
       <Separator />
       <button {...tracking.trigger} disabled={remoteBranches.length === 0 && !upstream} title={remoteBranches.length === 0 && !upstream ? "リモートのブランチがありません" : undefined}>
         <span className="project-switch-item">追跡</span>
@@ -138,7 +138,7 @@ function BranchItems({ name, refs, actions }: { name: string; refs: GitRefs | un
           )}
         </MenuFlyout>
       )}
-      <MenuItem onSelect={() => void actions.rename(name)}>名前を変更…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("rename_branch", name)}>名前を変更…</MenuItem>
       <MenuItem danger disabled={isCurrent || Boolean(elsewhere)} title={isCurrent ? "いまのブランチは消せません（ほかのブランチをチェックアウトしてから）" : elsewhere} onSelect={() => void actions.deleteBranch(name)}>
         削除…
       </MenuItem>
@@ -156,10 +156,10 @@ function RemoteItems({ name, refs, actions }: { name: string; refs: GitRefs | un
       <Separator />
       <MergeItems name={name} actions={actions} self={false} />
       <Separator />
-      <MenuItem onSelect={() => void actions.createBranch(name)}>新しいブランチ…</MenuItem>
-      <MenuItem onSelect={() => void actions.createTag(name)}>新しいタグ…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("create_branch", name)}>新しいブランチ…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("create_tag", name)}>新しいタグ…</MenuItem>
       <Separator />
-      <MenuItem danger onSelect={() => void actions.deleteRemoteBranch(name)}>
+      <MenuItem danger onSelect={() => void actions.perform("delete_remote_branch", name)}>
         リモートのブランチを削除…
       </MenuItem>
       <Separator />
@@ -171,13 +171,13 @@ function RemoteItems({ name, refs, actions }: { name: string; refs: GitRefs | un
 function TagItems({ name, actions }: { name: string; actions: BranchActions }) {
   return (
     <>
-      <MenuItem onSelect={() => void actions.checkoutDetached(name)}>チェックアウト（ブランチから外れる）…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("checkout_detached", name)}>チェックアウト（ブランチから外れる）…</MenuItem>
       <Separator />
       <MergeItems name={name} actions={actions} self={false} />
       <Separator />
-      <MenuItem onSelect={() => void actions.createBranch(name)}>新しいブランチ…</MenuItem>
-      <MenuItem onSelect={() => void actions.pushTag(name)}>「origin」へプッシュ…</MenuItem>
-      <MenuItem danger onSelect={() => void actions.deleteTag(name)}>
+      <MenuItem onSelect={() => void actions.perform("create_branch", name)}>新しいブランチ…</MenuItem>
+      <MenuItem onSelect={() => void actions.perform("push_tag", name)}>「origin」へプッシュ…</MenuItem>
+      <MenuItem danger onSelect={() => void actions.perform("delete_tag", name)}>
         削除…
       </MenuItem>
       <Separator />

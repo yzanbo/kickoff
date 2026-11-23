@@ -67,21 +67,21 @@ export function useHistoryOps({
     },
     /** プルできない理由（できれば null） */
     pullBlocked: noBranch ?? (upstream ? null : "追いかけているリモートのブランチがありません"),
-    pull: () => current && branch.pull(current),
+    pull: () => current && branch.perform("pull", current),
     pushBlocked: noBranch ?? (status?.has_origin || upstream ? null : "プッシュ先のリモート（origin）がありません"),
-    push: () => current && branch.push(current),
+    push: () => current && branch.perform("push", current),
     stashSave: stash.save,
     /** 最新の退避を戻す・適用する（なければ知らせる） */
     stashPopLatest: () => (latestStash ? stash.pop(latestStash) : stash.none()),
     stashApplyLatest: () => (latestStash ? stash.apply(latestStash) : stash.none()),
     hasStash: Boolean(latestStash),
     /** いまのコミット（HEAD）から新しいブランチ・タグ */
-    newBranch: () => branch.createBranch("HEAD", current ?? "いまのコミット"),
-    newTag: () => branch.createTag("HEAD", current ?? "いまのコミット"),
+    newBranch: () => branch.perform("create_branch", "HEAD", current ?? "いまのコミット"),
+    newTag: () => branch.perform("create_tag", "HEAD", current ?? "いまのコミット"),
     newWorktree: () => void worktreeActions.createWorktree(),
-    checkout: branch.checkout,
-    merge: branch.merge,
-    rebase: branch.rebase,
+    checkout: (name: string) => branch.perform("checkout", name),
+    merge: (name: string) => branch.perform("merge", name),
+    rebase: (name: string) => branch.perform("rebase", name),
     /** 見ている作業場所を外のアプリで開く（Mac のアプリだけ） */
     canOpenOutside: canOpenExternal() && Boolean(folder),
     openFinder: () => folder && void openExternal({ kind: "path", path: folder }),

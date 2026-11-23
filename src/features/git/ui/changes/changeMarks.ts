@@ -16,7 +16,7 @@ export function changeKinds(status: GitStatus | undefined): ChangeMarks {
 }
 
 /** 変更の一覧から、ファイルとフォルダの記号と名前を作る（後ろにあるものほど優先する） */
-export function kindMaps(changes: GitFileChange[]): ChangeMarks {
+export function kindMaps(changes: readonly GitFileChange[]): ChangeMarks {
   const files = new Map<string, GitChangeKind>();
   const folders = new Map<string, GitChangeKind>();
   for (const change of changes) files.set(change.path, change.kind);

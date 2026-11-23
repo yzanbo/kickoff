@@ -1,27 +1,21 @@
 import { List, ListTree } from "lucide-react";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/foundation/codeHost";
 import type { GitCommit, GitFileChange, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
-import { cx } from "@/foundation/ui/lib/cx";
-import { baseName } from "@/foundation/ui/lib/format";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "@/features/git/ui/storage";
+import { cx } from "@/foundation/ui/lib/cx";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
-import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { DiffView } from "@/features/git/ui/DiffView";
-import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import { FileTree } from "@/features/files/ui";
-import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
-import { kindMaps } from "@/features/git/ui/changes/changeMarks";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { workplaceKey } from "@/foundation/ui/workplace/workplace";
+import { ChangedFiles, toggleFolder } from "@/features/git/ui/changes/ChangedFiles";
 import { CommitSummary } from "./CommitSummary";
 import type { RefTarget } from "./refTarget";
 import { gitApi } from "@/features/git/ui/api";
@@ -69,12 +63,9 @@ export function CommitView({
 
   // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
   useEffect(() => setFile(detail?.files[0]), [detail]);
-  const files = useMemo(() => detail?.files ?? [], [detail]);
-  const nodes = useMemo(() => buildTree({ files: files.map((f) => f.path), ignored: [] }), [files]);
-  const marks = useMemo(() => kindMaps(files), [files]);
+  const files = detail?.files ?? [];
   // 木で閉じたフォルダ（初めは全部開いておく）
-  const [closed, setClosed] = useState<Set<string>>(() => new Set());
-  const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
 
   return (
     <div className="commit-view">
@@ -124,44 +115,14 @@ export function CommitView({
             </div>
             {/* 見出し（ファイルの数と表示の切り替え）は止めたまま、一覧だけを流す */}
             <div className="commit-files-body">
-              {list ? (
-                <ul className="change-files">
-                  {files.map((f) => {
-                    const selected = file?.path === f.path;
-                    return (
-                      <li key={f.path}>
-                        <button
-                          className={cx("list-item change-file", selected && "selected")}
-                          aria-current={selected || undefined}
-                          title={`${f.path}（${GIT_CHANGE_LABELS[f.kind]}）`}
-                          onClick={() => setFile(f)}
-                        >
-                          <FileIcon name={baseName(f.path)} />
-                          <PathParts path={f.path} nameClass={cx("change-name", f.kind === "D" && "deleted")} dirClass="change-dir" />
-                          <span className="change-kind" data-kind={f.kind}>
-                            {f.kind}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <FileTree
-                  nodes={nodes}
-                  open={openFolders}
-                  onToggle={(path) =>
-                    setClosed((prev) => {
-                      const next = new Set(prev);
-                      if (!next.delete(path)) next.add(path);
-                      return next;
-                    })
-                  }
-                  selected={file?.path}
-                  onSelect={(path) => setFile(files.find((f) => f.path === path))}
-                  marks={marks}
-                />
-              )}
+              <ChangedFiles
+                files={files}
+                tree={!list}
+                selected={file?.path}
+                onSelect={(path) => setFile(files.find((f) => f.path === path))}
+                closed={closed}
+                onToggleFolder={(path) => setClosed((prev) => toggleFolder(prev, path))}
+              />
             </div>
           </aside>
           <div className="pane-resizer" aria-label="ファイルの一覧の幅を変える" {...filesPane.handle} />
