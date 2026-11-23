@@ -6,8 +6,8 @@ export interface Poller {
   start(): void;
   /** 止める（流している途中の 1 回は最後まで流す） */
   stop(): void;
-  /** すぐ取り直す（流している途中ならその 1 回を待つ。minGapMs 以内に流したばかりなら流さない = 続けての頼みをまとめる） */
-  refresh(): Promise<void>;
+  /** すぐ取り直す（流している途中ならその 1 回を待つ。minGapMs 以内に流したばかりなら流さない = 続けての頼みをまとめる。force ならまとめずに流す） */
+  refresh(opts?: { force?: boolean }): Promise<void>;
   /** 始めてから止めるまで */
   readonly running: boolean;
 }
@@ -57,10 +57,10 @@ export function createPoller(opts: PollerOptions): Poller {
       clock.clearInterval(timer);
       timer = null;
     },
-    refresh() {
+    refresh({ force = false } = {}) {
       if (inflight) return inflight;
       const gap = opts.minGapMs ?? 0;
-      if (gap > 0 && lastAt !== null && clock.now() - lastAt < gap) return Promise.resolve();
+      if (!force && gap > 0 && lastAt !== null && clock.now() - lastAt < gap) return Promise.resolve();
       return runOnce();
     },
     get running() {

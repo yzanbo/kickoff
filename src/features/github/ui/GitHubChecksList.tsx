@@ -1,29 +1,20 @@
 import { Check, CircleDashed, CircleMinus, ExternalLink, ScrollText, X, type LucideIcon } from "lucide-react";
+import { CI_STATE_LABELS, type CiState } from "@shared/github/ciTypes";
 import type { GitHubCheck } from "@shared/github/types";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { checkDuration } from "./githubChecks";
 
-/** チェックの状態の印と名前（GitHub の conclusion を小文字にしたもの） */
-function stateOf(state: string): { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral"; label: string } {
-  switch (state) {
-    case "success":
-      return { icon: Check, tone: "success", label: "通った" };
-    case "failure":
-    case "timed_out":
-    case "startup_failure":
-    case "action_required":
-      return { icon: X, tone: "failure", label: state === "timed_out" ? "時間切れ" : state === "action_required" ? "対応が要る" : "落ちた" };
-    case "pending":
-      return { icon: CircleDashed, tone: "pending", label: "途中" };
-    case "skipped":
-      return { icon: CircleMinus, tone: "neutral", label: "飛ばした" };
-    case "cancelled":
-      return { icon: CircleMinus, tone: "neutral", label: "取り消した" };
-    default:
-      return { icon: CircleMinus, tone: "neutral", label: state };
-  }
-}
+/** チェックの状態の印と名前（名前は添え書き detail があればそれ。時間切れ・対応が要るなど） */
+const LOOKS: Record<CiState, { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral"; label: string }> = {
+  success: { icon: Check, tone: "success", label: "通った" },
+  failure: { icon: X, tone: "failure", label: "落ちた" },
+  pending: { icon: CircleDashed, tone: "pending", label: "途中" },
+  skipped: { icon: CircleMinus, tone: "neutral", label: "飛ばした" },
+  cancelled: { icon: CircleMinus, tone: "neutral", label: "取り消した" },
+  neutral: { icon: CircleMinus, tone: "neutral", label: CI_STATE_LABELS.neutral },
+};
+const stateOf = (c: GitHubCheck) => ({ ...LOOKS[c.state], label: c.detail ?? LOOKS[c.state].label });
 
 /** 並べる順（落ちた → 途中 → 通った → ほか） */
 const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
@@ -34,7 +25,7 @@ const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
  */
 export function GitHubChecksList({ projectId, checks }: { projectId: number; checks: GitHubCheck[] }) {
   if (checks.length === 0) return <p className="muted small github-checks-empty">この PR の最新のコミットにはチェックがありません。</p>;
-  const rows = checks.map((c) => ({ c, s: stateOf(c.state) })).sort((a, b) => ORDER[a.s.tone] - ORDER[b.s.tone]);
+  const rows = checks.map((c) => ({ c, s: stateOf(c) })).sort((a, b) => ORDER[a.s.tone] - ORDER[b.s.tone]);
   return (
     <ul className="github-checks-list">
       {rows.map(({ c, s }, i) => (

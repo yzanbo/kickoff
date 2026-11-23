@@ -1,4 +1,5 @@
 // PR のマージ・チェックアウトの確認で出す注意と、マージの方式の決め方（純粋な関数）
+import type { CiState } from "@shared/github/ciTypes";
 import type { GitHubMergeMethod, GitHubPullDetail } from "@shared/github/types";
 
 /** 確認の中で目立たせる注意（danger = マージできない見込みが高い・取り返しにくい / warn = 確かめてほしい） */
@@ -7,8 +8,8 @@ export interface MergeWarning {
   text: string;
 }
 
-/** 落ちたとみなすチェックの状態 */
-const FAILED = new Set(["failure", "error", "cancelled", "timed_out", "action_required", "startup_failure"]);
+/** 落ちたとみなすチェックの状態（時間切れ・対応が要る・起動の失敗は failure に入っている） */
+const FAILED: ReadonlySet<CiState> = new Set(["failure", "cancelled"]);
 
 /** CI が落ちている・途中・承認がない・変更依頼・ブランチが古い・衝突・保護ルール・下書きを、確認で目立たせる注意にする */
 export function mergeWarnings(detail: Pick<GitHubPullDetail, "checks" | "mergeable" | "merge_state" | "item">): MergeWarning[] {

@@ -1,37 +1,11 @@
 // CI の結果（GitHub Actions の REST の応答・gh run view のログ）を画面の形にする（純粋な関数。テストは ciNormalize.test.ts）
-import type { CiExternalCheck, CiJob, CiRun, CiState, CiStepLog } from "@shared/github/ciTypes";
+import type { CiExternalCheck, CiJob, CiRun, CiStepLog } from "@shared/github/ciTypes";
+import { ciStateOf, commitStatusState } from "@shared/github/checks";
 
 // GitHub の答えは形が決まらないので、読むところだけ any で受ける
 type Raw = any;
 
 const str = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
-
-/** GitHub の status と conclusion（check run・workflow run・job・step 共通）を 1 つの状態にする */
-export function ciStateOf(status: unknown, conclusion: unknown): CiState {
-  if (status !== "completed") return "pending";
-  switch (conclusion) {
-    case "success":
-      return "success";
-    case "failure":
-    case "timed_out":
-    case "startup_failure":
-    case "action_required":
-      return "failure";
-    case "cancelled":
-      return "cancelled";
-    case "skipped":
-      return "skipped";
-    default:
-      return "neutral";
-  }
-}
-
-/** commit status の state（error / failure / pending / success）を状態にする */
-function commitStatusState(state: unknown): CiState {
-  if (state === "success") return "success";
-  if (state === "failure" || state === "error") return "failure";
-  return "pending";
-}
 
 /** REST の workflow run 1 つ */
 export function toCiRun(raw: Raw): CiRun {

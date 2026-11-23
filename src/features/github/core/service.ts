@@ -36,7 +36,6 @@ interface CachedPage {
   page: GitHubItemPage;
   /** そのとき聞いた「リポジトリの issue・PR の最新」の ETag */
   etag: string | null;
-  at: number;
 }
 
 interface GitHubServiceOptions {
@@ -52,10 +51,13 @@ interface GitHubServiceOptions {
 }
 
 export class GitHubService {
-  private readonly lists = new Map<string, CachedPage>();
+  /** 時計（テストは opts.now を差し替える） */
+  private readonly clock = { now: () => this.now() };
+  /** 覚える一覧（新しい 100 件まで。5 分たてば変わっていなくても聞き直す） */
+  private readonly lists = ttlCache<string, CachedPage>({ ms: LIST_KEEP_MS, max: 100, clock: this.clock });
   private readonly metas = ttlCache<string, GitHubRepoMeta>({ ms: 5 * 60_000 });
   /** 最後に取った中身（キーはプロジェクト・アカウント・選んだ remote・種類・番号） */
-  private readonly details = new Map<string, { detail: GitHubIssueDetail | GitHubPullDetail; at: number }>();
+  private readonly details = ttlCache<string, GitHubIssueDetail | GitHubPullDetail>({ ms: DETAIL_KEEP_MS, max: DETAIL_KEEP_MAX, clock: this.clock });
 
   /** remoteGit は PR のブランチを取ってくる git（Kernel.workplace.git。CI のタブの「（ブランチ名）で直す」も使う） */
   constructor(private readonly opts: GitHubServiceOptions, readonly remoteGit: RemoteGit) {}
@@ -126,13 +128,12 @@ export class GitHubService {
       const cacheKey = `${ctx.key}:${q}`;
       const cached = this.lists.get(cacheKey);
       const probePath = `repos/${ctx.repo}/issues?state=all&sort=updated&direction=desc&per_page=1`;
-      if (cached && !opts.refresh && this.now() - cached.at < LIST_KEEP_MS && cached.etag) {
+      if (cached && !opts.refresh && cached.etag) {
         const probe = await ctx.api.rest(probePath, { etag: cached.etag });
-        if (probe.status === 304) return { ...cached.page, fetched_at: new Date(this.now()).toISOString() };
+        if (probe.status === 304) return { ...cached.page, fetched_at: this.fetchedAt() };
       }
       const [page, probe] = await Promise.all([this.search(ctx, q, null), ctx.api.rest(probePath).catch(() => null)]);
-      this.lists.set(cacheKey, { page, etag: probe?.etag ?? null, at: this.now() });
-      this.trimLists();
+      this.lists.set(cacheKey, { page, etag: probe?.etag ?? null });
       return page;
     });
   }
@@ -143,13 +144,13 @@ export class GitHubService {
       items: (data.search.nodes ?? []).map(toItem).filter((i): i is GitHubItem => i !== null),
       total: data.search.issueCount ?? 0,
       cursor: nextCursor(data.search),
-      fetched_at: new Date(this.now()).toISOString(),
+      fetched_at: this.fetchedAt(),
     };
   }
 
-  /** 覚える一覧は新しい 100 件まで */
-  private trimLists() {
-    while (this.lists.size > 100) this.lists.delete(this.lists.keys().next().value as string);
+  /** 取った時刻（応答の fetched_at） */
+  private fetchedAt(): string {
+    return new Date(this.now()).toISOString();
   }
 
   /** issue か PR の中身（種類が違えば 404。出来事は 300 件まで） */
@@ -166,20 +167,12 @@ export class GitHubService {
    * 同時に頼んだ中身（issue / pull）が届いたら差し替える
    */
   cachedDetail(project: Project, kind: GitHubKind, number: number): GitHubIssueDetail | GitHubPullDetail | null {
-    const key = detailKey(project, kind, number);
-    const hit = this.details.get(key);
-    if (!hit) return null;
-    if (this.now() - hit.at < DETAIL_KEEP_MS) return hit.detail;
-    this.details.delete(key);
-    return null;
+    return this.details.get(detailKey(project, kind, number)) ?? null;
   }
 
   private detail(project: Project, number: number, kind: "issue" | "pr"): Promise<GitHubIssueDetail | GitHubPullDetail> {
     return this.fetchDetail(project, number, kind).then((detail) => {
-      const key = detailKey(project, kind, number);
-      this.details.delete(key);
-      this.details.set(key, { detail, at: this.now() });
-      while (this.details.size > DETAIL_KEEP_MAX) this.details.delete(this.details.keys().next().value as string);
+      this.details.set(detailKey(project, kind, number), detail);
       return detail;
     });
   }
@@ -201,7 +194,7 @@ export class GitHubService {
         items.push(...connectionNodes(conn));
         cursor = nextCursor(conn);
       }
-      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, linked_pulls: kind === "issue" ? toLinkedPulls(raw.closedByPullRequestsReferences) : [], viewer: toViewer(raw), fetched_at: new Date(this.now()).toISOString() };
+      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, linked_pulls: kind === "issue" ? toLinkedPulls(raw.closedByPullRequestsReferences) : [], viewer: toViewer(raw), fetched_at: this.fetchedAt() };
       if (kind === "issue") return { ...base, timeline: toTimeline(items) };
       const { threads, threadReview } = toThreads(raw.reviewThreads);
       const statusCommit = connectionNodes(raw.statusCommits)[0] as { commit?: { statusCheckRollup?: { contexts?: unknown } } } | undefined;
@@ -257,7 +250,7 @@ export class GitHubService {
   /** 書き込み（中身は writes.ts。ルートが渡す）。書いたら、このプロジェクトの覚えた一覧を捨てる */
   write<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
     return this.within(project, fn).finally(() => {
-      for (const key of [...this.lists.keys()]) if (key.startsWith(`${project.id}:`)) this.lists.delete(key);
+      this.lists.deleteWhere((key) => key.startsWith(`${project.id}:`));
     });
   }
 
@@ -294,7 +287,7 @@ export class GitHubService {
   pullFiles(project: Project, number: number): Promise<GitHubPullFiles> {
     return this.within(project, async ({ api, repo }) => {
       const { items, truncated } = await api.restPages(`repos/${repo}/pulls/${number}/files`, FILE_PAGES);
-      return { files: items.map(toPullFile), truncated, fetched_at: new Date(this.now()).toISOString() };
+      return { files: items.map(toPullFile), truncated, fetched_at: this.fetchedAt() };
     });
   }
 }

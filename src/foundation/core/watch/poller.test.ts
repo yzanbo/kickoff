@@ -60,3 +60,15 @@ test("Poller: 同時には 1 回だけ流し、minGapMs 以内の refresh はま
     ["落ちた", "落ちた"],
   );
 });
+
+test("Poller: force の refresh は minGapMs 以内でも流し、そこからまとめる間を数え直す", async () => {
+  const clock = manualClock();
+  let runs = 0;
+  const poller = createPoller({ intervalMs: 60_000, minGapMs: 500, clock, run: async () => void runs++ });
+  await poller.refresh();
+  await poller.refresh({ force: true });
+  assert.equal(runs, 2);
+  await clock.advance(400);
+  await poller.refresh();
+  assert.equal(runs, 2);
+});

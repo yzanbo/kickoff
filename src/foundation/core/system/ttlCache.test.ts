@@ -67,3 +67,12 @@ test("ttlCache の take・delete・clear: 取ったら消す（期限が切れ�
   cache.clear();
   assert.equal(cache.get("d"), undefined);
 });
+
+test("ttlCache の deleteWhere: 当てはまるキーだけ捨てる", () => {
+  const cache = ttlCache<string, number>({ ms: 1000 });
+  cache.set("1:a", 1);
+  cache.set("1:b", 2);
+  cache.set("2:a", 3);
+  cache.deleteWhere((key) => key.startsWith("1:"));
+  assert.deepEqual(["1:a", "1:b", "2:a"].map((k) => cache.get(k)), [undefined, undefined, 3]);
+});

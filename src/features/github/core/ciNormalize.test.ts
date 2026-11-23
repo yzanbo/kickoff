@@ -1,18 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { CiRun } from "@shared/github/ciTypes";
-import { ciStateOf, failuresToNotify, parseRunLog, stepLogsOf, stripAnsi, toCiJob, toCiRun, toExternalChecks } from "./ciNormalize";
-
-test("ciStateOf: 終わっていなければ実行中、終わっていれば conclusion から（時間切れ・起動の失敗も落ちた）", () => {
-  assert.equal(ciStateOf("in_progress", null), "pending");
-  assert.equal(ciStateOf("queued", null), "pending");
-  assert.equal(ciStateOf("completed", "success"), "success");
-  assert.equal(ciStateOf("completed", "timed_out"), "failure");
-  assert.equal(ciStateOf("completed", "startup_failure"), "failure");
-  assert.equal(ciStateOf("completed", "cancelled"), "cancelled");
-  assert.equal(ciStateOf("completed", "skipped"), "skipped");
-  assert.equal(ciStateOf("completed", "stale"), "neutral");
-});
+import { failuresToNotify, parseRunLog, stepLogsOf, stripAnsi, toCiJob, toCiRun, toExternalChecks } from "./ciNormalize";
 
 test("toCiRun: REST の workflow run を、題・ブランチ・PR の番号・状態にする", () => {
   const run = toCiRun({

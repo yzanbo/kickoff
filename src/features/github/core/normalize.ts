@@ -1,5 +1,6 @@
 // GitHub の GraphQL・REST の答えを、GitHub タブの API の形（@shared/github/types の GitHub…）にする（どれも純粋な関数）
-import type { GitHubCheck, GitHubChecksState, GitHubItem, GitHubItemState, GitHubLabel, GitHubLinkedPull, GitHubMergeMethod, GitHubMergeState, GitHubPullFile, GitHubReviewDecision, GitHubReviewThread, GitHubTimelineEntry, GitHubUser, GitHubViewerAbilities } from "@shared/github/types";
+import type { GitHubCheck, GitHubItem, GitHubItemState, GitHubLabel, GitHubLinkedPull, GitHubMergeMethod, GitHubMergeState, GitHubPullFile, GitHubReviewDecision, GitHubReviewThread, GitHubTimelineEntry, GitHubUser, GitHubViewerAbilities } from "@shared/github/types";
+import { checkDetail, ciStateOf, commitStatusState, rollupStateOf } from "@shared/github/checks";
 import { GITHUB_MERGE_STATES } from "@shared/github/types";
 
 /** GitHub の答え（形は 1 つずつ確かめながら読む） */
@@ -14,22 +15,6 @@ export function toUser(raw: Raw): GitHubUser | null {
 }
 
 const toLabel = (raw: Raw): GitHubLabel => ({ name: String(raw.name ?? ""), color: String(raw.color ?? "ededed") });
-
-/** CI のまとめの状態（statusCheckRollup.state） */
-export function checksStateOf(state: unknown): GitHubChecksState | null {
-  switch (state) {
-    case "SUCCESS":
-      return "success";
-    case "FAILURE":
-    case "ERROR":
-      return "failure";
-    case "PENDING":
-    case "EXPECTED":
-      return "pending";
-    default:
-      return null;
-  }
-}
 
 /** 一覧の 1 件（Issue / PullRequest のどちらでもない・番号のないものは null） */
 export function toItem(raw: Raw): GitHubItem | null {
@@ -53,7 +38,7 @@ export function toItem(raw: Raw): GitHubItem | null {
     closed_at: typeof raw.closedAt === "string" ? raw.closedAt : null,
     is_draft: pr && raw.isDraft === true,
     review_decision: pr ? (lower(raw.reviewDecision) as GitHubReviewDecision | null) : null,
-    checks: pr ? checksStateOf(nodes(raw.commits)[0]?.commit?.statusCheckRollup?.state) : null,
+    checks: pr ? rollupStateOf(nodes(raw.commits)[0]?.commit?.statusCheckRollup?.state) : null,
     head_ref: pr && typeof raw.headRefName === "string" ? raw.headRefName : null,
     base_ref: pr && typeof raw.baseRefName === "string" ? raw.baseRefName : null,
   };
@@ -169,14 +154,14 @@ export function toThreads(conn: Raw): { threads: GitHubReviewThread[]; threadRev
 /** チェック 1 つ（CheckRun = GitHub Actions など / StatusContext = 外の CI の状態） */
 export function toCheck(raw: Raw): GitHubCheck | null {
   if (raw?.__typename === "CheckRun") {
-    const state = raw.status === "COMPLETED" ? (lower(raw.conclusion) ?? "neutral") : "pending";
     // GitHub Actions のチェックだけ実行とジョブの ID を持つ（Kickoff の中でログを開く。外の CI の check run は workflowRun がない）
     const runId = Number(raw.checkSuite?.workflowRun?.databaseId ?? 0) || null;
     const jobId = runId ? Number(raw.databaseId ?? 0) || null : null;
     return {
       name: String(raw.name ?? ""),
       workflow: raw.checkSuite?.workflowRun?.workflow?.name ?? null,
-      state,
+      state: ciStateOf(raw.status, raw.conclusion),
+      detail: raw.status === "COMPLETED" ? checkDetail(raw.conclusion) : null,
       description: raw.title ?? null,
       url: raw.detailsUrl ?? null,
       run_id: runId,
@@ -186,8 +171,7 @@ export function toCheck(raw: Raw): GitHubCheck | null {
     };
   }
   if (raw?.__typename === "StatusContext") {
-    const s = lower(raw.state) ?? "pending";
-    return { name: String(raw.context ?? ""), workflow: null, state: s === "error" ? "failure" : s === "expected" ? "pending" : s, description: raw.description ?? null, url: raw.targetUrl ?? null, run_id: null, job_id: null, started_at: null, completed_at: null };
+    return { name: String(raw.context ?? ""), workflow: null, state: commitStatusState(raw.state), detail: null, description: raw.description ?? null, url: raw.targetUrl ?? null, run_id: null, job_id: null, started_at: null, completed_at: null };
   }
   return null;
 }

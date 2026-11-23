@@ -12,6 +12,8 @@ export interface TtlCache<K, V> {
   get(key: K): V | undefined;
   set(key: K, value: V): void;
   delete(key: K): void;
+  /** 当てはまるキーの覚えを捨てる（プロジェクトのものをまとめて、など） */
+  deleteWhere(match: (key: K) => boolean): void;
   /** 覚えた値と、取りに行っている途中の分も捨てる（次の getOrLoad で取り直す。途中の分の結果は覚えない）。key を省けば全部 */
   invalidate(key?: K): void;
   clear(): void;
@@ -51,6 +53,9 @@ export function ttlCache<K, V>({ ms, max = Infinity, clock = systemClock }: TtlC
     get: (key) => fresh(key)?.value,
     set,
     delete: (key) => void entries.delete(key),
+    deleteWhere(match) {
+      for (const key of [...entries.keys()]) if (match(key)) entries.delete(key);
+    },
     invalidate,
     clear: () => invalidate(),
     take(key) {

@@ -79,6 +79,7 @@ export function createGitHub(k: Kernel, deps: { git: Pick<GitApi, "status" | "pu
   const prWatch = new WorktreePrWatch({
     store,
     publish: (e) => bus.publish(e),
+    clock: k.clock,
     listWorktrees,
     ...env.prWatch,
     alsoCheck: async (project) => {

@@ -1,7 +1,8 @@
 import { memo, type CSSProperties } from "react";
-import { Check, CircleDashed, MessageSquare, MessagesSquare, X } from "lucide-react";
+import { Check, CircleDashed, MessageSquare, MessagesSquare, X, type LucideIcon } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
-import type { GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
+import type { CiState } from "@shared/github/ciTypes";
+import type { GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/github/types";
 import { open } from "@/foundation/ui/navigation/open";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -22,14 +23,18 @@ export function GitHubLabels({ labels }: { labels: GitHubLabel[] }) {
   );
 }
 
-const CHECKS_TEXT: Record<GitHubChecksState, string> = { success: "チェックが通った", failure: "チェックが落ちた", pending: "チェックの途中" };
-const CHECKS_ICON = { success: Check, failure: X, pending: CircleDashed };
+/** まとめの成否の印（まとめに出るのは通った・落ちた・途中だけ） */
+const CHECKS_MARK: Partial<Record<CiState, { text: string; Icon: LucideIcon }>> = {
+  success: { text: "チェックが通った", Icon: Check },
+  failure: { text: "チェックが落ちた", Icon: X },
+  pending: { text: "チェックの途中", Icon: CircleDashed },
+};
 
 /** CI の成否の印（PR の一覧・中身） */
-function GitHubChecksMark({ state }: { state: GitHubChecksState | null }) {
-  if (!state) return null;
-  const Icon = CHECKS_ICON[state];
-  return <Icon size={13} className="github-checks" data-ci={state} aria-label={CHECKS_TEXT[state]} data-tip={CHECKS_TEXT[state]} />;
+function GitHubChecksMark({ state }: { state: CiState | null }) {
+  const mark = state ? CHECKS_MARK[state] : undefined;
+  if (!mark) return null;
+  return <mark.Icon size={13} className="github-checks" data-ci={state} aria-label={mark.text} data-tip={mark.text} />;
 }
 
 export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { approved: "承認済み", changes_requested: "変更の依頼あり", review_required: "レビュー待ち" };

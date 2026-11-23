@@ -9,6 +9,8 @@ import type { BranchPullRequest } from "./pulls";
 import { runAsGitHubAccount } from "./account";
 import { resolveGitHubTarget, type GitHubTarget } from "./target";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
+import type { Clock } from "@/foundation/core/clock";
+import { createPoller, type Poller } from "@/foundation/core/watch/poller";
 
 /** 見張る間隔（5 分。ほかに、画面の窓に戻ったときも取り直す） */
 const PR_WATCH_INTERVAL_MS = 5 * 60_000;
@@ -47,6 +49,7 @@ interface WatchOptions {
   /** 自分の表の店（確認を閉じた PR）と、見張るプロジェクト */
   store: Pick<GitHubStores, "prNotices"> & Pick<ChatStoreDeps, "projects">;
   publish: (event: BusEvent) => void;
+  clock: Clock;
   /** ワークツリーの一覧（git worktree list）と、PR の一覧（gh pr list）。テストでは差し替える */
   listWorktrees: (repo: string) => Promise<GitWorktree[]>;
   listPullRequests: (repo: string, target: GitHubTarget) => Promise<BranchPullRequest[]>;
@@ -72,23 +75,20 @@ export class WorktreePrWatch {
   private readonly notices = new Map<number, WorktreePrNotice[]>();
   /** プロジェクトごとに最後に取った PR の一覧と、手元のブランチのプッシュ先の持ち主（ワークツリーを消したときの作り直しに使う） */
   private readonly prs = new Map<number, { prs: BranchPullRequest[]; headOwner: string }>();
-  private timer: ReturnType<typeof setInterval> | null = null;
-  private running: Promise<void> | null = null;
-  private lastRun = 0;
+  /** 5 分ごと（始めたらすぐ 1 回）。窓に戻ったときの取り直しは 30 秒以内ならまとめる */
+  private readonly poller: Poller;
 
   constructor(opts: WatchOptions) {
     this.opts = opts;
+    this.poller = createPoller({ intervalMs: PR_WATCH_INTERVAL_MS, minGapMs: REFRESH_MIN_MS, runAtStart: true, run: () => this.runAll(), clock: opts.clock });
   }
 
   start() {
-    void this.checkAll();
-    this.timer = setInterval(() => void this.checkAll(), PR_WATCH_INTERVAL_MS);
-    this.timer.unref?.();
+    this.poller.start();
   }
 
   stop() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
+    this.poller.stop();
   }
 
   /** いまの知らせ（すべてのプロジェクト） */
@@ -98,23 +98,20 @@ export class WorktreePrWatch {
 
   /** 画面が窓に戻ったとき（30 秒以内の続けての取り直しはまとめる）。取り直したあとの知らせを返す */
   async refresh(): Promise<WorktreePrNotice[]> {
-    if (this.running) await this.running;
-    else if (Date.now() - this.lastRun >= REFRESH_MIN_MS) await this.checkAll();
+    await this.poller.refresh();
     return this.list();
   }
 
-  /** すべてのプロジェクトを GitHub に聞いて確かめる（同時に頼まれても 1 回） */
+  /** すべてのプロジェクトを GitHub に聞いて確かめる（同時に頼まれても 1 回。窓に戻ったときの 30 秒は、ここから数える） */
   checkAll(): Promise<void> {
-    this.running ??= (async () => {
-      this.lastRun = Date.now();
-      const projects = this.opts.store.projects.list().filter((p) => p.archived_at === null);
-      const alive = new Set(projects.map((p) => p.id));
-      for (const id of [...this.notices.keys()]) if (!alive.has(id)) this.set(id, []);
-      for (const project of projects) await this.check(project, true).catch(() => undefined);
-    })().finally(() => {
-      this.running = null;
-    });
-    return this.running;
+    return this.poller.refresh({ force: true });
+  }
+
+  private async runAll(): Promise<void> {
+    const projects = this.opts.store.projects.list().filter((p) => p.archived_at === null);
+    const alive = new Set(projects.map((p) => p.id));
+    for (const id of [...this.notices.keys()]) if (!alive.has(id)) this.set(id, []);
+    for (const project of projects) await this.check(project, true).catch(() => undefined);
   }
 
   /** ワークツリーを消したあと: GitHub に聞き直さず、覚えた PR の一覧で、いまのワークツリーから知らせを作り直す（すべてのプロジェクト） */

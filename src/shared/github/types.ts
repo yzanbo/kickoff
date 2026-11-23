@@ -1,4 +1,5 @@
 // GitHub タブ（プロジェクトの連携先のリポジトリの issue・PR を読む）の形。中身は DB に持たず、開くたびに GitHub に聞く
+import type { CiState } from "./ciTypes";
 
 /** 一覧の種類（issue と PR は切り替えて別々の一覧にする） */
 export const GITHUB_KINDS = ["issue", "pr"] as const;
@@ -55,9 +56,6 @@ export interface GitHubLabel {
 /** issue・PR の状態（merged は PR だけ） */
 export type GitHubItemState = "open" | "closed" | "merged";
 
-/** CI の成否（チェックがなければ null） */
-export type GitHubChecksState = "success" | "failure" | "pending";
-
 /** PR のレビューの決まり（必要なレビューがない・設定していなければ null） */
 export type GitHubReviewDecision = "approved" | "changes_requested" | "review_required";
 
@@ -81,7 +79,8 @@ export interface GitHubItem {
   /** PR だけ（issue は false・null） */
   is_draft: boolean;
   review_decision: GitHubReviewDecision | null;
-  checks: GitHubChecksState | null;
+  /** CI のまとめの成否（success・failure・pending。チェックがなければ null） */
+  checks: CiState | null;
   head_ref: string | null;
   base_ref: string | null;
 }
@@ -157,8 +156,9 @@ export interface GitHubCheck {
   name: string;
   /** ワークフローの名前（GitHub Actions のとき） */
   workflow: string | null;
-  /** success / failure / pending / skipped / neutral / cancelled など */
-  state: string;
+  state: CiState;
+  /** 状態だけでは分からない終わり方（時間切れ・対応が要る・知らない conclusion。なければ null） */
+  detail: string | null;
   description: string | null;
   url: string | null;
   /** GitHub Actions の実行とジョブの ID（Kickoff の中でログを開く。外の CI は null） */

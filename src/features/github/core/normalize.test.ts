@@ -5,7 +5,7 @@ import { CommandError } from "@/foundation/core/system/exec";
 import { ghApiHostArgs, githubWriteError, parseIncludeOutput } from "./ghApi";
 import { GH_LOGGED_OUT, GH_MISSING, ghFailureMessage } from "./gh";
 import { reviewPayload } from "./writes";
-import { checksStateOf, eventText, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toViewer } from "./normalize";
+import { eventText, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toViewer } from "./normalize";
 
 const user = (login: string) => ({ login, avatarUrl: `https://a/${login}` });
 
@@ -120,10 +120,10 @@ test("eventText: 閉じ方・マージ・レビュー依頼・知らない種類
   assert.equal(eventText({ __typename: "DeployedEvent" }), null);
 });
 
-test("toCheck・checksStateOf・toPullFile", () => {
+test("toCheck・toPullFile", () => {
   assert.deepEqual(
     toCheck({ __typename: "CheckRun", databaseId: 31, name: "test", status: "IN_PROGRESS", conclusion: null, detailsUrl: "d", title: null, checkSuite: { workflowRun: { databaseId: 7, workflow: { name: "CI" } } } }),
-    { name: "test", workflow: "CI", state: "pending", description: null, url: "d", run_id: 7, job_id: 31, started_at: null, completed_at: null },
+    { name: "test", workflow: "CI", state: "pending", detail: null, description: null, url: "d", run_id: 7, job_id: 31, started_at: null, completed_at: null },
   );
   // 外の CI の check run（workflowRun がない）は、ログを開けないので ID を持たない
   assert.deepEqual(
@@ -133,8 +133,11 @@ test("toCheck・checksStateOf・toPullFile", () => {
   assert.equal(toCheck({ __typename: "CheckRun", name: "lint", status: "COMPLETED", conclusion: "FAILURE" })?.state, "failure");
   assert.equal(toCheck({ __typename: "StatusContext", context: "ci/x", state: "ERROR", targetUrl: "t", description: "落ちた" })?.state, "failure");
   assert.equal(toCheck({ __typename: "Other" }), null);
-  assert.equal(checksStateOf("EXPECTED"), "pending");
-  assert.equal(checksStateOf(null), null);
+  // 時間切れは落ちたに入り、添え書きに残す
+  assert.deepEqual(
+    [toCheck({ __typename: "CheckRun", name: "e2e", status: "COMPLETED", conclusion: "TIMED_OUT" })].map((c) => [c?.state, c?.detail]),
+    [["failure", "時間切れ"]],
+  );
   assert.deepEqual(toPullFile({ filename: "b.ts", previous_filename: "a.ts", status: "renamed", additions: 1, deletions: 2 }), {
     path: "b.ts",
     previous_path: "a.ts",
