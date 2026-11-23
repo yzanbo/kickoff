@@ -7,7 +7,7 @@ import type { Project } from "@shared/projects/types";
 import type { GitHubStores } from "./db/stores";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { checkoutPullWorktree } from "./pullWorktree";
-import { readGitHubRemotes } from "./githubTarget";
+import { readGitHubRemotes } from "./target";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { ttlCache } from "@/foundation/core/system/ttlCache";

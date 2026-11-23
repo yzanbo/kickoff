@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitWorktree } from "@shared/git/types";
 import { makeWorktree } from "@shared/foundation/testing/factories";
-import type { BranchPullRequest } from "./github";
+import type { BranchPullRequest } from "./pulls";
 import { noticesFor } from "./prWatch";
 
 const worktree = (branch: string | null, extra: Partial<GitWorktree> = {}) => makeWorktree(`/w/${branch}`, { branch, head: "abc", ...extra });

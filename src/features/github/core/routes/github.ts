@@ -7,7 +7,8 @@ import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import type { GitHubService } from "@/features/github/core/service";
-import { githubStatus } from "@/features/github/core/github";
+import { githubStatus } from "@/features/github/core/gh";
+import { createIssue, mergePull, postComment, replaceLabels, replyToThread, resolveThread, setState, submitReview } from "@/features/github/core/writes";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 
@@ -133,36 +134,49 @@ export function githubRoutes(
 
   // ---- 書き込み。様子が変わるだけのものは 204（画面が中身を取り直す） ----
   app.post("/api/projects/:id/github/items/:number/comments", withProject, async (c) => {
-    await github.comment(c.var.project, idParam(c, "number"), commentBody.parse(await jsonBody(c)).body);
+    const [number, { body }] = [idParam(c, "number"), commentBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => postComment(ctx, number, body));
     return c.body(null, 204);
   });
   app.post("/api/projects/:id/github/issues/:number/state", withProject, async (c) => {
-    await github.setState(c.var.project, "issue", idParam(c, "number"), stateBody.parse(await jsonBody(c)));
+    const [number, input] = [idParam(c, "number"), stateBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => setState(ctx, "issue", number, input));
     return c.body(null, 204);
   });
   app.post("/api/projects/:id/github/pulls/:number/state", withProject, async (c) => {
-    await github.setState(c.var.project, "pr", idParam(c, "number"), stateBody.parse(await jsonBody(c)));
+    const [number, input] = [idParam(c, "number"), stateBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => setState(ctx, "pr", number, input));
     return c.body(null, 204);
   });
-  app.put("/api/projects/:id/github/items/:number/labels", withProject, async (c) => c.json(await github.setLabels(c.var.project, idParam(c, "number"), labelsBody.parse(await jsonBody(c)))));
-  app.post("/api/projects/:id/github/issues", withProject, async (c) => c.json(await github.createIssue(c.var.project, newIssueBody.parse(await jsonBody(c))), 201));
+  app.put("/api/projects/:id/github/items/:number/labels", withProject, async (c) => {
+    const [number, input] = [idParam(c, "number"), labelsBody.parse(await jsonBody(c))];
+    return c.json(await github.write(c.var.project, (ctx) => replaceLabels(ctx, number, input)));
+  });
+  app.post("/api/projects/:id/github/issues", withProject, async (c) => {
+    const input = newIssueBody.parse(await jsonBody(c));
+    return c.json(await github.write(c.var.project, (ctx) => createIssue(ctx, input)), 201);
+  });
   app.post("/api/projects/:id/github/pulls/:number/reviews", withProject, async (c) => {
-    await github.review(c.var.project, idParam(c, "number"), reviewBody.parse(await jsonBody(c)));
+    const [number, input] = [idParam(c, "number"), reviewBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => submitReview(ctx, number, input));
     return c.body(null, 204);
   });
   app.post("/api/projects/:id/github/pulls/:number/threads/:thread/replies", withProject, async (c) => {
     idParam(c, "number");
-    await github.replyToThread(c.var.project, threadParam(c), replyBody.parse(await jsonBody(c)).body);
+    const [thread, { body }] = [threadParam(c), replyBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => replyToThread(ctx, thread, body));
     return c.body(null, 204);
   });
   app.post("/api/projects/:id/github/pulls/:number/threads/:thread/resolve", withProject, async (c) => {
     idParam(c, "number");
-    await github.resolveThread(c.var.project, threadParam(c), resolveBody.parse(await jsonBody(c)));
+    const [thread, input] = [threadParam(c), resolveBody.parse(await jsonBody(c))];
+    await github.write(c.var.project, (ctx) => resolveThread(ctx, thread, input));
     return c.body(null, 204);
   });
   // マージしたら、ワークツリーの PR の見張りにその場で聞き直させる（ワークツリーがあれば片付けの確認が出る）
   app.post("/api/projects/:id/github/pulls/:number/merge", withProject, async (c) => {
-    const result = await github.merge(c.var.project, idParam(c, "number"), mergeBody.parse(await jsonBody(c)));
+    const [number, input] = [idParam(c, "number"), mergeBody.parse(await jsonBody(c))];
+    const result = await github.write(c.var.project, (ctx) => mergePull(ctx, number, input));
     void prWatch.checkProject(c.var.project.id);
     return c.json(result);
   });

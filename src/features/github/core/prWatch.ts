@@ -5,9 +5,9 @@ import type { Project } from "@shared/projects/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { GitHubStores } from "./db/stores";
-import type { BranchPullRequest } from "./github";
-import { runAsGitHubAccount } from "./githubAccount";
-import { resolveGitHubTarget, type GitHubTarget } from "./githubTarget";
+import type { BranchPullRequest } from "./pulls";
+import { runAsGitHubAccount } from "./account";
+import { resolveGitHubTarget, type GitHubTarget } from "./target";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 
 /** 見張る間隔（5 分。ほかに、画面の窓に戻ったときも取り直す） */

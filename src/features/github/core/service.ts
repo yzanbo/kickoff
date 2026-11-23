@@ -1,9 +1,9 @@
 // GitHub タブ（読む・書く）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
 // 中身は DB に持たない（正しいのはいつも GitHub）。一覧は少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す。
 // issue・PR の中身も最後に取ったものを少しの間覚え、開き直したときのつなぎに出す（開いたときは必ず GitHub に聞き直す）
-import type { GitHubCreatedIssue, GitHubLabelsBody, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody, GitHubThreadResolveBody } from "@shared/foundation/apiTypes";
+import type { GitHubPullWorktree } from "@shared/foundation/apiTypes";
 import type { GitHubRemote, GitWorktree } from "@shared/git/types";
-import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItem, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta, GitHubUser } from "@shared/github/types";
+import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItem, GitHubItemPage, GitHubKind, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta, GitHubUser } from "@shared/github/types";
 import type { Project } from "@shared/projects/types";
 import { githubSearchQuery } from "@shared/github/searchQuery";
 import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";
@@ -11,14 +11,13 @@ import { imageFileType, isIcnsFile } from "@shared/files/imageFiles";
 import { errorMessage } from "@shared/foundation/errors";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
-import { runAsGitHubAccount } from "./githubAccount";
-import { readGitHubRemotes, resolveGitHubTarget, type GitHubTarget } from "./githubTarget";
+import { runAsGitHubAccount } from "./account";
+import { readGitHubRemotes, resolveGitHubTarget, type GitHubTarget } from "./target";
 import { isGitWorkTree } from "@/foundation/core/workplace/reads";
 import { checkoutPullMain, checkoutPullWorktree } from "./pullWorktree";
 import { ttlCache } from "@/foundation/core/system/ttlCache";
 import { ghApi, type GitHubApi, type GitHubContext } from "./ghApi";
 import { DETAIL_QUERY, META_QUERY, SEARCH_QUERY, TIMELINE_MAX_PAGES, TIMELINE_MORE_QUERY, VIEWER_QUERY } from "./queries";
-import { createIssue, mergePull, postComment, replaceLabels, replyToThread, resolveThread, setState, submitReview } from "./writes";
 import { approvalCount, connectionNodes, nextCursor, toCheck, toItem, toLinkedPulls, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toUser, toViewer } from "./normalize";
 
 /** 一覧の 1 回の件数 */
@@ -83,9 +82,8 @@ export class GitHubService {
 
   /** 連携の状態（GitHub タブの頭。使えなくても失敗にせず、理由と直し方を返す） */
   async connection(project: Project): Promise<GitHubConnection> {
-    const target = await runAsGitHubAccount(project.github_account, () =>
-      (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote).catch(() => null),
-    );
+    // 連携先は git の remote から決める（gh を呼ばないのでアカウントで包まない。聞くのは within の中）
+    const target = await (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote).catch(() => null);
     if (!target) return { host: null, repo: null, account: project.github_account, reason: NO_REMOTE };
     try {
       const login = await this.within(project, async ({ api }) => (await api.graphql<{ viewer: { login: string } }>(VIEWER_QUERY, {})).viewer.login);
@@ -256,41 +254,8 @@ export class GitHubService {
     });
   }
 
-  // ---- 書き込み（writes.ts）。書いたら、このプロジェクトの覚えた一覧を捨てる ----
-
-  comment(project: Project, number: number, body: string): Promise<void> {
-    return this.write(project, (ctx) => postComment(ctx, number, body));
-  }
-
-  setState(project: Project, kind: GitHubKind, number: number, input: GitHubStateBody): Promise<void> {
-    return this.write(project, (ctx) => setState(ctx, kind, number, input));
-  }
-
-  setLabels(project: Project, number: number, input: GitHubLabelsBody): Promise<GitHubLabel[]> {
-    return this.write(project, (ctx) => replaceLabels(ctx, number, input));
-  }
-
-  createIssue(project: Project, input: GitHubNewIssueBody): Promise<GitHubCreatedIssue> {
-    return this.write(project, (ctx) => createIssue(ctx, input));
-  }
-
-  review(project: Project, number: number, input: GitHubReviewBody): Promise<void> {
-    return this.write(project, (ctx) => submitReview(ctx, number, input));
-  }
-
-  replyToThread(project: Project, threadId: string, body: string): Promise<void> {
-    return this.write(project, (ctx) => replyToThread(ctx, threadId, body));
-  }
-
-  resolveThread(project: Project, threadId: string, input: GitHubThreadResolveBody): Promise<void> {
-    return this.write(project, (ctx) => resolveThread(ctx, threadId, input));
-  }
-
-  merge(project: Project, number: number, input: GitHubMergeBody): Promise<GitHubMergeResult> {
-    return this.write(project, (ctx) => mergePull(ctx, number, input));
-  }
-
-  private write<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
+  /** 書き込み（中身は writes.ts。ルートが渡す）。書いたら、このプロジェクトの覚えた一覧を捨てる */
+  write<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
     return this.within(project, fn).finally(() => {
       for (const key of [...this.lists.keys()]) if (key.startsWith(`${project.id}:`)) this.lists.delete(key);
     });

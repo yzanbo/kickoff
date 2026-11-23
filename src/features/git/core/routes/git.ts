@@ -1,4 +1,3 @@
-import type { Hono } from "hono";
 import { z } from "zod";
 import type { GitApi } from "@/features/git/core/index";
 import { gitBlame } from "@/features/git/core/blame";
@@ -6,15 +5,10 @@ import { mergePreview, pushBranch, resolveConflict, runBranchAction, runOperatio
 import { commitStaged, discardPaths, fetchRemote, gitDiff, gitOriginal, pullBranch, stagePaths, unstagePaths } from "@/features/git/core/changes";
 import { gitCommitDetail, gitCommitDiff, gitLog, gitRefs } from "@/features/git/core/history";
 import { gitStatus } from "@/features/git/core/status";
-import { createPullRequest, pullRequestFor } from "@/features/github/core/github";
-import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
 import { gitContract } from "@shared/git/contract";
 import type { Project } from "@shared/projects/types";
-import type { ChatStoreDeps } from "@/features/chat/core/index";
-import { Invalid } from "@/foundation/core/errors";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
 import { implement, type Param } from "@/foundation/core/http/implement";
-import { lookups } from "@/foundation/core/http/lookups";
 import { branchName, flagOn, repoPath, workdirQuery } from "@/foundation/core/http/zodParts";
 
 const diffQuerySchema = workdirQuery.extend({ path: repoPath, old: repoPath.optional(), staged: flagOn("0") });
@@ -23,18 +17,6 @@ const diffQuerySchema = workdirQuery.extend({ path: repoPath, old: repoPath.opti
 async function gitAction(dir: string, action: () => Promise<void>) {
   await action();
   return gitStatus(dir);
-}
-
-/**
- * PR を作るとき閉じる issue: この作業場所（本体なら worktree_path が null）で作業している、アーカイブしていないチャットが結び付いた、連携先の issue の番号
- */
-function closingIssues(store: Pick<ChatStoreDeps, "chats">, project: Project, dir: string, target: GitHubTarget | null): number[] {
-  if (!target) return [];
-  const worktree = dir === project.repo_path ? null : dir;
-  return store.chats
-    .list({ projectId: project.id })
-    .filter((c) => c.worktree_path === worktree && c.github_kind === "issue" && c.github_number !== null && c.github_repo?.toLowerCase() === target.repo.toLowerCase())
-    .map((c) => c.github_number!);
 }
 
 /** ブランチ・タグの名前（手元・リモート・タグ・コミットの番号）。「-」で始まる名前はコアが断る */
@@ -50,7 +32,6 @@ const branchActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("fast_forward"), branch: refName }),
   z.object({ action: z.literal("pull"), branch: refName }),
   z.object({ action: z.literal("push"), branch: refName }),
-  z.object({ action: z.literal("push_pr"), branch: refName }),
   z.object({ action: z.literal("merge"), branch: refName }),
   z.object({ action: z.literal("rebase"), branch: refName }),
   z.object({ action: z.literal("create_branch"), name: branchName, from: refName, checkout: z.boolean() }),
@@ -76,8 +57,7 @@ const hashParam: Param<string> = { parse: (raw) => raw };
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・ブランチの操作）。操作するフォルダは取り決めの workdir: true が ?worktree= から解く。
  * ファイルの一覧・中身は files の routes/files.ts、ワークツリーは worktrees の routes/worktrees.ts
  */
-export function gitRoutes({ store, remoteGit, projectParam, withRepoLock, autoFetch }: {
-  store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">;
+export function gitRoutes({ remoteGit, projectParam, withRepoLock, autoFetch }: {
   remoteGit: RemoteGit;
   projectParam: Param<Project>;
   withRepoLock: GitApi["withRepoLock"];
@@ -126,13 +106,9 @@ export function gitRoutes({ store, remoteGit, projectParam, withRepoLock, autoFe
     "POST /api/projects/:projectId/git/branch-action": {
       query: workdirQuery,
       body: branchActionSchema,
-      run: ({ projectId: project, workdir: dir, body }) => withRepoLock(dir, "user", async () => {
+      run: ({ workdir: dir, body }) => withRepoLock(dir, "user", async () => {
         const { conflicts } = await runBranchAction(dir, body, remoteGit);
-        const status = await gitStatus(dir);
-        if (body.action !== "push_pr") return { status, conflicts };
-        // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
-        const target = await resolveGitHubTarget(dir, project.github_remote);
-        return { status, conflicts, pr: await createPullRequest(dir, body.branch, target, closingIssues(store, project, dir, target)) };
+        return { status: await gitStatus(dir), conflicts };
       }),
     },
     // マージ・リベースの前の見込み（取り込むものがあるか・早送りで済むか・衝突しそうなファイル）
@@ -152,28 +128,5 @@ export function gitRoutes({ store, remoteGit, projectParam, withRepoLock, autoFe
       body: z.object({ path: repoPath, how: z.enum(["ours", "theirs", "mark"]) }),
       run: ({ workdir: dir, body }) => userAction(dir, () => resolveConflict(dir, body.path, body.how)),
     },
-  });
-}
-
-/** 作業場所のブランチの PR（まだ取り決めの外。P8-2d で github へ） */
-export function gitPrRoutes(app: Hono, { store, push, withRepoLock }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; push: GitApi["push"]; withRepoLock: GitApi["withRepoLock"] }) {
-  const { withWorkdir } = lookups(store);
-
-  // 作業場所のブランチの PR（GitHub。gh を使う）。なければ null
-  app.get("/api/projects/:id/git/pr", withWorkdir, async (c) => {
-    const dir = c.var.workdir;
-    const status = await gitStatus(dir);
-    if (!status.repo || !status.branch || !status.has_origin) return c.json(null);
-    return c.json(await pullRequestFor(dir, status.branch, await resolveGitHubTarget(dir, c.var.project.github_remote)));
-  });
-
-  // PR を作る（まだプッシュしていなければ、先にプッシュする）
-  app.post("/api/projects/:id/git/pr", withWorkdir, async (c) => {
-    const dir = c.var.workdir;
-    const status = await gitStatus(dir);
-    if (!status.repo || !status.branch) throw new Invalid("PR にするブランチがありません");
-    if (!status.upstream || status.ahead > 0) await withRepoLock(dir, "user", () => push(dir));
-    const target = await resolveGitHubTarget(dir, c.var.project.github_remote);
-    return c.json(await createPullRequest(dir, status.branch, target, closingIssues(store, c.var.project, dir, target)), 201);
   });
 }

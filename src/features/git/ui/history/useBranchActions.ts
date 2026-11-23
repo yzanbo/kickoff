@@ -13,6 +13,7 @@ import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import type { GitLogController } from "./useGitLog";
 import { gitApi } from "@/features/git/ui/api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
+import type { BranchMenuItem } from "./branchMenuItems";
 import { BRANCH_ACTION_UI, fileList, type BranchActionContext, type PreparedBranchAction } from "./branchActionUi";
 
 /**
@@ -91,8 +92,26 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   const perform = async (kind: PreparedBranchAction, name: string, label = name) => {
     const body = await BRANCH_ACTION_UI[kind].prepare(ctx, name, label);
     if (!body) return;
-    const result = await run(body);
-    if (body.action === "push_pr" && result?.pr) await alert(`PR #${result.pr.number} を作りました`, `${result.pr.title}\n${result.pr.url}`);
+    await run(body);
+  };
+
+  /** ほかの機能が足した項目（branchMenuItems）を、確かめてから送る（実行中の名前・失敗の知らせ・取り直しは表の操作と同じ） */
+  const performItem = async (item: BranchMenuItem, branch: string) => {
+    if (!(await item.confirm(branch))) return;
+    setBusy(item.busyLabel);
+    const notice = await item.send(target, branch).then(
+      (n) => ({ ok: true as const, n }),
+      async (e: unknown) => {
+        await alert(`${item.busyLabel}できませんでした`, errorMessage(e));
+        return { ok: false as const, n: null };
+      },
+    );
+    if (notice.ok) {
+      await git.refresh();
+      log.refresh();
+    }
+    setBusy(null);
+    if (notice.n) await alert(notice.n.title, notice.n.message);
   };
 
   /** ブランチをワークツリーとして取り出し、作ったら見ている作業場所をそこへ切り替えるか聞く（失敗は投げる） */
@@ -130,6 +149,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     /** 操作を 1 つ送る（退避の操作 useStashActions も使う） */
     run,
     perform,
+    performItem,
     remotes: refs?.remotes ?? [],
     /** リモートのブランチをチェックアウト（追いかける手元のブランチを作る。もう追いかけているブランチがあれば、それをチェックアウト） */
     checkoutRemote: async (remoteBranch: string, remote: string) => {

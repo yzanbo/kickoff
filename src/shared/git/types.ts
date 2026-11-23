@@ -181,7 +181,6 @@ export type GitBranchAction =
   | { action: "fast_forward"; branch: string }
   | { action: "pull"; branch: string }
   | { action: "push"; branch: string }
-  | { action: "push_pr"; branch: string }
   | { action: "merge"; branch: string }
   | { action: "rebase"; branch: string }
   | { action: "create_branch"; name: string; from: string; checkout: boolean }
@@ -198,11 +197,10 @@ export type GitBranchAction =
   | { action: "stash_apply"; ref: string }
   | { action: "stash_drop"; ref: string };
 
-/** ブランチ・タグの操作の結果（操作のあとの状態。衝突したら conflicts に衝突したファイル、PR を作ったら pr） */
+/** ブランチ・タグの操作の結果（操作のあとの状態。衝突したら conflicts に衝突したファイル） */
 export interface GitBranchActionResult {
   status: GitStatus;
   conflicts: string[];
-  pr?: PullRequestInfo;
 }
 
 /** マージ・リベースの前の見込み（up_to_date: 取り込むものがない / fast_forward: 早送りで済む / conflicts: 衝突しそうなファイル） */

@@ -2,10 +2,20 @@ import type { Chat, GitHubLink } from "@shared/chat/types";
 import type { GitHubCreatedIssue, GitHubMergeBody, GitHubMergeResult, GitHubNewIssueBody, GitHubPullWorktree, GitHubReviewBody, GitHubStateBody } from "@shared/foundation/apiTypes";
 import type { GitHubCheckoutPlace, GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubKind, GitHubLabel, GitHubListFilter, GitHubPullDetail, GitHubPullFiles, GitHubRepoMeta } from "@shared/github/types";
 import type { ProjectGitHub } from "@shared/git/types";
+import { githubPrContract } from "@shared/github/contract";
+import { client } from "@/foundation/ui/api/client";
 import { request, withQuery } from "@/foundation/ui/api/http";
+import { workdirInput, type GitTarget } from "@/foundation/ui/api/workdir";
+
+/** 作業場所のブランチの PR の呼び手（取り決めは @shared/github/contract.ts） */
+const prApi = client(githubPrContract);
 
 /** GitHub タブ（連携先のリポジトリの issue・PR を読む。コアの routes/github.ts）。中身はいつも GitHub に聞き直したもの */
 export const githubApi = {
+  /** 作業場所のブランチの PR（なければ null） */
+  pullRequest: (target: GitTarget) => prApi("GET /api/projects/:projectId/git/pr", workdirInput(target)),
+  /** PR を作る（branch を省けばいまのブランチで、まだプッシュしていなければ先にプッシュする。branch があれば、そのブランチをプッシュしてから） */
+  createPullRequest: (target: GitTarget, branch?: string) => prApi("POST /api/projects/:projectId/git/pr", { ...workdirInput(target), body: branch ? { branch } : {} }),
   /** プロジェクトの GitHub の連携（設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動の連携先・いまの連携先） */
   projectGitHub: (projectId: number) => request<ProjectGitHub>("GET", `/api/projects/${projectId}/github`),
   /** 連携の状態（使えなければ reason に理由と直し方） */

@@ -94,7 +94,7 @@ const local = async (repo: string, args: string[]) => {
   return DONE;
 };
 
-/** ブランチ・タグの操作の表（履歴の左の一覧・コミットの札の右クリック）。push_pr は push と同じ（PR を作るのは受け口） */
+/** ブランチ・タグの操作の表（履歴の左の一覧・コミットの札の右クリック。プッシュして PR を作るのは github の POST …/git/pr） */
 export const BRANCH_ACTIONS: { [A in GitBranchAction["action"]]: BranchActionRunner<A> } = {
   checkout: (repo, a) => local(repo, ["switch", "-q", assertRefName(a.branch)]),
   checkout_remote: async (repo, a) => {
@@ -120,10 +120,6 @@ export const BRANCH_ACTIONS: { [A in GitBranchAction["action"]]: BranchActionRun
     return DONE;
   },
   push: async (repo, a, net) => {
-    await pushTo(repo, assertRefName(a.branch), net);
-    return DONE;
-  },
-  push_pr: async (repo, a, net) => {
     await pushTo(repo, assertRefName(a.branch), net);
     return DONE;
   },

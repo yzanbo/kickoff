@@ -7,7 +7,7 @@ import type { ChatApi } from "@/features/chat/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
 import { pushBranch } from "./branches";
 import { createRepoLock, type RepoLockKind } from "./repoLock";
-import { gitPrRoutes, gitRoutes } from "./routes/git";
+import { gitRoutes } from "./routes/git";
 import { gitStatus } from "./status";
 import { openDiffToolGroup } from "./tools";
 
@@ -25,7 +25,7 @@ export interface GitApi {
   withRepoLock<T>(dir: string, kind: RepoLockKind, run: () => Promise<T>): Promise<T>;
 }
 
-/** 作業場所の Git（状態・変更・コミット・履歴・ブランチ・PR の受け口） */
+/** 作業場所の Git（状態・変更・コミット・履歴・ブランチの受け口。ブランチの PR は github の prRoutes.ts） */
 export function createGit(k: Kernel, deps: { projects: Pick<ProjectsApi, "param">; chat: Pick<ChatApi, "store"> }): CoreFeature<GitApi> {
   const lock = createRepoLock(k.clock, { autoFetchMinMs: AUTO_FETCH_MIN_MS });
   // 鍵は共通の .git（Git でなければ、そのフォルダ）
@@ -43,10 +43,7 @@ export function createGit(k: Kernel, deps: { projects: Pick<ProjectsApi, "param"
   return {
     name: "git",
     api,
-    routes: [
-      gitRoutes({ store: deps.chat.store, remoteGit: k.workplace.git, projectParam: deps.projects.param, withRepoLock: api.withRepoLock, autoFetch }),
-      { legacy: (app) => gitPrRoutes(app, { store: deps.chat.store, push: api.push, withRepoLock: api.withRepoLock }) },
-    ],
+    routes: [gitRoutes({ remoteGit: k.workplace.git, projectParam: deps.projects.param, withRepoLock: api.withRepoLock, autoFetch })],
     aiTools: [openDiffToolGroup({ store: deps.chat.store, publish: (e) => k.bus.publish(e) })],
   };
 }

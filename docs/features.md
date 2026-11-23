@@ -793,7 +793,7 @@
 ### PR
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| GH-020 | プッシュして PR を作る | github | T:github |
+| GH-020 | プッシュして PR を作る | github | T:server.pulls |
 | GH-021 | PR をマージする | github | M |
 | GH-022 | PR をチェックアウトする | github | M |
 | GH-023 | マージ・クローズを知らせて片付ける | github | T:prWatch,server.worktreePrs |

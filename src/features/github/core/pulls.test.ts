@@ -1,7 +1,7 @@
 // gh の応答の読み方
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { toPullRequestInfo, withClosingRefs } from "./github";
+import { toPullRequestInfo, withClosingRefs } from "./pulls";
 
 test("PR の JSON: gh の camelCase（isDraft）を API の is_draft にする（ないときは下書きでない）", () => {
   const base = { number: 3, url: "https://github.com/o/r/pull/3", title: "直す", state: "OPEN" as const };

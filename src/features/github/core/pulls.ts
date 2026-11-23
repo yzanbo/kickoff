@@ -1,17 +1,11 @@
+// ブランチの PR（gh pr view・list・create。gh を動かすのは gh.ts）
 import { errorMessage } from "@shared/foundation/errors";
-import { CommandError, nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
-import type { GitHubStatus } from "@shared/foundation/server";
+import { CommandError } from "@/foundation/core/system/exec";
 import type { PullRequestInfo } from "@shared/git/types";
 import { isDefaultGitHubHost } from "@shared/foundation/codeHost";
 import { Invalid } from "@/foundation/core/errors";
-import { githubEnv } from "./githubAccount";
-import { ownerOf, type GitHubTarget } from "./githubTarget";
-
-const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
-
-/** gh を実行する（認証などを聞かれても待たない。プロジェクトで選んだアカウントがあれば、そのトークンで。host = 連携先のホスト。失敗は CommandError） */
-const runGh = async (args: string[], opts: { cwd?: string; timeout: number; host?: string }) =>
-  runCommand("gh", args, { cwd: opts.cwd, timeout: opts.timeout, env: { ...nonInteractiveEnv(), ...(await githubEnv(opts.host)) } });
+import { knownGhFailure, runGh } from "./gh";
+import { ownerOf, type GitHubTarget } from "./target";
 
 /** 連携先を gh に渡す引数（github.com でなければ「ホスト/持ち主/名前」。決まっていなければ、gh がフォルダの remote から決める。純粋な関数） */
 export const repoArgs = (target: GitHubTarget | null) => (target ? ["--repo", isDefaultGitHubHost(target.host) ? target.repo : `${target.host}/${target.repo}`] : []);
@@ -19,31 +13,13 @@ export const repoArgs = (target: GitHubTarget | null) => (target ? ["--repo", is
 /** ブランチを gh に渡す形（連携先が fork の元なら「持ち主:ブランチ」。手元のブランチは origin にあるため） */
 const headRef = (branch: string, target: GitHubTarget | null) => (target && ownerOf(target.repo).toLowerCase() !== target.headOwner.toLowerCase() ? `${target.headOwner}:${branch}` : branch);
 
-/** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
-export async function githubStatus(): Promise<GitHubStatus> {
-  try {
-    await runGh(["--version"], { timeout: 10_000 });
-  } catch {
-    return { installed: false, logged_in: false, detail: GH_MISSING };
-  }
-  try {
-    const account = (await runGh(["api", "user", "--jq", ".login"], { timeout: 20_000 })).trim();
-    return { installed: true, logged_in: true, account, detail: `${account} でログイン済み` };
-  } catch {
-    return { installed: true, logged_in: false, detail: "未ログインです。ターミナルで `gh auth login` を実行してください" };
-  }
-}
-
-/** 作業場所で gh を実行する（host = 連携先のホスト。失敗したら、よくある理由は分かる文にする。ほかは gh の説明のまま） */
+/** 作業場所で gh を実行する（host = 連携先のホスト。失敗は、よくある理由なら分かる文の Invalid。ほかは gh の説明のまま） */
 async function gh(cwd: string, args: string[], host?: string): Promise<string> {
   try {
     return await runGh(args, { cwd, timeout: 60_000, host });
   } catch (e) {
-    if (e instanceof CommandError) {
-      if (e.code === "ENOENT") throw new Invalid(GH_MISSING);
-      if (/known GitHub host/i.test(e.stderr)) throw new Invalid("プッシュ先が GitHub ではないので、PR は作れません");
-      if (/gh auth login/i.test(e.stderr)) throw new Invalid("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
-    }
+    const known = e instanceof CommandError ? knownGhFailure(e, null) : null;
+    if (known) throw new Invalid(known);
     throw e;
   }
 }

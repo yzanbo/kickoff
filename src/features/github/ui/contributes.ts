@@ -10,6 +10,8 @@ import { githubSettingsSection } from "./settings/settingsSections";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { workplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
 import { githubHosts, prNoticeDecor } from "./appHosts";
+import { branchMenuItems } from "@/features/git/ui";
+import { pushPrItem } from "./pushPrItem";
 
 export const contributes = [
   openTargets.item(githubItemTarget),
@@ -22,4 +24,6 @@ export const contributes = [
   // アプリの根に置く物と、作業場所の飾り（ワークツリーの PR の知らせ）
   ...githubHosts.map((h) => appHosts.item(h)),
   workplaceDecor.item(prNoticeDecor),
+  // 履歴の手元のブランチの右クリックの「プッシュして PR を作る」
+  branchMenuItems.item(pushPrItem),
 ];

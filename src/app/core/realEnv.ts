@@ -6,7 +6,7 @@ import { siblingSessionCheck } from "@/features/chat/core/sessions/siblingSessio
 import { forkWorker } from "@/features/database/core/client";
 import { devWorkerEntry } from "@/features/database/core/entry";
 import { expoPushSender } from "@/features/devices/core/push";
-import { listPullRequests } from "@/features/github/core/github";
+import { listPullRequests } from "@/features/github/core/pulls";
 import { currentSelf } from "@/features/guard/core/guard/selfProtection";
 import { defaultNotesDir } from "@/features/notes/core/defaultDir";
 import type { CoreEnv, CoreOptions } from "./types";

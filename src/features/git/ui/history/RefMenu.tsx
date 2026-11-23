@@ -4,6 +4,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import type { BranchActions } from "./useBranchActions";
+import { branchMenuItems } from "./branchMenuItems";
 import type { RefTarget } from "./refTarget";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
@@ -110,7 +111,11 @@ function BranchItems({ name, refs, actions }: { name: string; refs: GitRefs | un
         {upstream ? `「${upstream}」をプル` : "プル"}
       </MenuItem>
       <MenuItem onSelect={() => void actions.perform("push", name)}>{`「${remoteOfUpstream}」へプッシュ…`}</MenuItem>
-      <MenuItem onSelect={() => void actions.perform("push_pr", name)}>{`プッシュして「${remoteOfUpstream}」に PR を作る`}</MenuItem>
+      {branchMenuItems.items().map((item) => (
+        <MenuItem key={item.id} onSelect={() => void actions.performItem(item, name)}>
+          {item.label(name, remoteOfUpstream)}
+        </MenuItem>
+      ))}
       <Separator />
       <MergeItems name={name} actions={actions} self={isCurrent} />
       <Separator />

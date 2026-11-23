@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { CommandError } from "@/foundation/core/system/exec";
-import { GH_LOGGED_OUT, GH_MISSING, ghApiHostArgs, ghFailureMessage, githubWriteError, parseIncludeOutput } from "./ghApi";
+import { ghApiHostArgs, githubWriteError, parseIncludeOutput } from "./ghApi";
+import { GH_LOGGED_OUT, GH_MISSING, ghFailureMessage } from "./gh";
 import { reviewPayload } from "./writes";
 import { checksStateOf, eventText, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toViewer } from "./normalize";
 

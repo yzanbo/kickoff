@@ -2,9 +2,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitHubRemote } from "@shared/git/types";
-import { autoGitHubRemote, parseGitHubRemotes, parseGitHubUrl, pickGitHubTarget } from "./githubTarget";
-import { githubHostEnv, parseGhAccounts } from "./githubAccount";
-import { repoArgs } from "./github";
+import { autoGitHubRemote, parseGitHubRemotes, parseGitHubUrl, pickGitHubTarget } from "./target";
+import { githubHostEnv, parseGhAccounts } from "./account";
+import { repoArgs } from "./pulls";
 
 const gh = (repo: string) => ({ host: "github.com", repo });
 

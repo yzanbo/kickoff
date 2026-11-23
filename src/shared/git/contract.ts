@@ -1,5 +1,5 @@
 // Git の取り決め（作業場所の状態・差分・ステージ・コミット・プッシュ・プル・履歴・ブランチの操作）。受け口は src/features/git/core/routes/git.ts
-// 変える操作は、終わったあとの状態（GitStatus）を返す。作業場所のブランチの PR（GET・POST …/git/pr）はまだ取り決めの外（P8-2d で github へ）
+// 変える操作は、終わったあとの状態（GitStatus）を返す。作業場所のブランチの PR（GET・POST …/git/pr）は github の取り決め（@shared/github/contract.ts）
 import { route, type Contract, type WorkdirQuery } from "@shared/foundation/contract";
 import type {
   GitBlame,
@@ -45,7 +45,7 @@ export const gitContract = {
   "POST /api/projects/:projectId/git/fetch": route<{ auto?: boolean }, GitStatus, WorkdirQuery>({ workdir: true }),
   /** プル（早送りで最新にする） */
   "POST /api/projects/:projectId/git/pull": route<never, GitStatus, WorkdirQuery>({ workdir: true }),
-  /** ブランチ・タグの操作。衝突して止まったら conflicts に衝突したファイル（push_pr なら作った PR も） */
+  /** ブランチ・タグの操作。衝突して止まったら conflicts に衝突したファイル */
   "POST /api/projects/:projectId/git/branch-action": route<GitBranchAction, GitBranchActionResult, WorkdirQuery>({ workdir: true }),
   /** マージ・リベースの前の見込み（取り込むものがあるか・早送りで済むか・衝突しそうなファイル） */
   "GET /api/projects/:projectId/git/merge-preview": route<never, GitMergePreview, WorkdirQuery & { branch: string }>({ workdir: true }),

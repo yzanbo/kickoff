@@ -1,14 +1,13 @@
-// GitHub タブが GitHub に聞く口（gh api。プロジェクトで選んだアカウントのトークンは githubAccount の runAsGitHubAccount の中で渡る）。
-// 失敗は、よくある理由（gh がない・ログインしていない・リポジトリが見えない・使用量の上限）を分かる文にする。
+// GitHub タブが GitHub に聞く口（gh api。gh を動かすのは gh.ts。プロジェクトで選んだアカウントのトークンは account.ts の runAsGitHubAccount の中で渡る）。
+// 失敗は gh.ts の ghFailureMessage で分かる文にする。
 // 書き込みは JSON の本文を一時ファイルから --input で渡し、GitHub が断った理由（保護ルールなど）をそのまま文にする
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { CommandError, nonInteractiveEnv, runCommand } from "@/foundation/core/system/exec";
 import { Invalid } from "@/foundation/core/errors";
 import { GITHUB_DEFAULT_HOST, isDefaultGitHubHost } from "@shared/foundation/codeHost";
-import { githubEnv } from "./githubAccount";
+import { GH_LOGGED_OUT, ghFailureMessage, runGh } from "./gh";
 
 /** GraphQL の変数（文字は -f でそのまま渡し、@ で始まってもファイルとして読ませない） */
 export type GraphqlVars = Record<string, string | number | boolean | null>;
@@ -48,22 +47,6 @@ export interface GitHubContext {
 
 export type WriteMethod = "POST" | "PATCH" | "PUT" | "DELETE";
 
-export const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
-export const GH_LOGGED_OUT = "GitHub にログインしていません。ターミナルで `gh auth login` を実行してください";
-
-/** gh の失敗を、分かる文にする（純粋な関数。repo は連携先） */
-export function ghFailureMessage(e: unknown, repo: string | null): string {
-  const stderr = e instanceof CommandError ? e.stderr : e instanceof Error ? e.message : String(e);
-  if (e instanceof CommandError && e.code === "ENOENT") return GH_MISSING;
-  if (/gh auth login|Bad credentials|HTTP 401|authentication required|not logged/i.test(stderr)) return GH_LOGGED_OUT;
-  if (/Could not resolve to a Repository|HTTP 404/i.test(stderr))
-    return repo ? `連携先のリポジトリ「${repo}」が見つからないか、このアカウントでは見られません` : "GitHub で見つかりませんでした";
-  if (/rate limit|HTTP 403|secondary rate/i.test(stderr)) return "GitHub の使用量の上限に達したか、権限がありません。しばらくしてから取り直してください";
-  if (/timed out|ETIMEDOUT|ENOTFOUND|ECONNRESET|network/i.test(stderr)) return "GitHub につながりませんでした。ネットワークを確かめてください";
-  const line = stderr.split("\n").find((l) => l.trim()) ?? "";
-  return `GitHub に聞けませんでした: ${line.replace(/^gh: /, "").slice(0, 300)}`;
-}
-
 /**
  * 書き込みを GitHub が断ったときの文（純粋な関数）。GitHub の答えの message と errors（保護ルール・入力の誤りの説明）を添える。
  * 401 はログインの案内、404 は見えない・書き込めない
@@ -86,12 +69,7 @@ export const ghApiHostArgs = (host: string): string[] => (isDefaultGitHubHost(ho
 /** gh api を動かす（host = 聞く先のホスト。okCodes の終了コードも成功として出力を返す） */
 async function runGhApi(args: string[], repo: string | null, host: string, okCodes: number[] = []): Promise<string> {
   try {
-    return await runCommand("gh", ["api", ...ghApiHostArgs(host), ...args], {
-      timeout: 60_000,
-      env: { ...nonInteractiveEnv(), ...(await githubEnv(host)) },
-      okCodes,
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    return await runGh(["api", ...ghApiHostArgs(host), ...args], { host, timeout: 60_000, okCodes, maxBuffer: 64 * 1024 * 1024 });
   } catch (e) {
     if (e instanceof Invalid) throw e;
     throw new Invalid(ghFailureMessage(e, repo));
@@ -162,11 +140,7 @@ export function ghApi(repo: string | null, host: string = GITHUB_DEFAULT_HOST): 
     },
     async cli(args) {
       try {
-        return await runCommand("gh", [...args, "-R", isDefaultGitHubHost(host) ? repo ?? "" : `${host}/${repo ?? ""}`], {
-          timeout: 120_000,
-          env: { ...nonInteractiveEnv(), ...(await githubEnv(host)) },
-          maxBuffer: 64 * 1024 * 1024,
-        });
+        return await runGh([...args, "-R", isDefaultGitHubHost(host) ? repo ?? "" : `${host}/${repo ?? ""}`], { host, timeout: 120_000, maxBuffer: 64 * 1024 * 1024 });
       } catch (e) {
         throw new Invalid(ghFailureMessage(e, repo));
       }

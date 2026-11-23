@@ -7,7 +7,9 @@
 | ファイル | 中身 |
 |---|---|
 | `core/index.ts` | チャットの実行の環境変数（order 20。選んだアカウント） |
-| `core/service.ts`・`core/ghApi.ts` | `GitHubService`（プロジェクトのアカウントで `gh api`。問い合わせ `queries.ts`・形の変換は純粋な `normalize.ts`）。CI の `CiService`（`ci.ts`・`ciNormalize.ts`）も同じ口 |
+| `core/gh.ts`・`account.ts` | gh を動かす唯一の口（トークン・失敗の文 `ghFailureMessage`）・アカウントの文脈 `runAsGitHubAccount` |
+| `core/service.ts`・`core/ghApi.ts` | `GitHubService`（`gh api`。書き込みは `write` に `writes.ts` の関数を渡す。問い合わせ `queries.ts`・純粋な `normalize.ts`）。CI の `CiService`（`ci.ts`・`ciNormalize.ts`）も同じ口 |
+| `core/pulls.ts`・`routes/pulls.ts` | ブランチの PR（取り決め `@shared/github/contract.ts`）。履歴の「プッシュして PR を作る」は `ui/pushPrItem.ts`（git の `branchMenuItems`） |
 | `core/prWatch.ts` | PR の見張り `WorktreePrWatch`（CI の失敗も見る） |
 | `ui/GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文との行き来は `@shared/github/searchQuery`） |
 | `ui/useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges`・`GitHubHtml` | 中身・PR の変更・本文の表示 |

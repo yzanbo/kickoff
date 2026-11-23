@@ -8,15 +8,18 @@ import type { ProjectsApi } from "@/features/projects/core/index";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
+import type { GitApi } from "@/features/git/core/index";
 import { CiService } from "./ci";
-import { mergedPullRequestOf, type MergedPullRequest } from "./github";
-import { activeGhToken, githubEnvForGit, listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
-import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes, resolveGitHubTarget } from "./githubTarget";
+import { mergedPullRequestOf, type MergedPullRequest } from "./pulls";
+import { runAsGitHubAccount } from "./account";
+import { activeGhToken, githubEnvForGit, listGitHubAccounts } from "./gh";
+import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes, resolveGitHubTarget } from "./target";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
 import { ciRoutes } from "./routes/ci";
 import { githubRoutes } from "./routes/github";
 import { worktreePrRoutes } from "./routes/worktreePrs";
+import { prRoutes } from "./routes/pulls";
 import { createGitHubStores } from "./db/stores";
 
 export type { WorktreePrWatch } from "./prWatch";
@@ -52,7 +55,7 @@ export interface GitHubApi {
 const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_remote", "pr_watch", "ci_watch", "archived"]);
 
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
-export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store" | "addTurnContributor">; ai: Pick<AiApi, "provideGhToken"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
+export function createGitHub(k: Kernel, deps: { git: Pick<GitApi, "status" | "push" | "withRepoLock">; worktrees: WorktreesApi; projects: ProjectsApi; chat: Pick<ChatApi, "store" | "addTurnContributor">; ai: Pick<AiApi, "provideGhToken"> }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { bus } = k;
   const stores = createGitHubStores(k.db);
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
@@ -102,6 +105,7 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
     name: "github",
     api: { prWatch },
     routes: [
+      prRoutes({ store, git: deps.git, projectParam: deps.projects.param }),
       {
         legacy: (app) => {
           worktreePrRoutes(app, { store, prWatch });

@@ -113,11 +113,6 @@ export const BRANCH_ACTION_UI: { [K in BranchActionKind]: K extends PreparedBran
       );
     },
   },
-  push_pr: {
-    label: "PR の作成",
-    prepare: (_, branch) =>
-      confirmed(confirm({ title: `「${branch}」をプッシュして PR を作る`, message: "プッシュしてから、GitHub に PR を作ります（タイトルと本文はコミットから）。", confirmLabel: "PR を作る" }), { action: "push_pr", branch }),
-  },
   merge: { label: "マージ", operation: "merge", prepare: (ctx, branch) => confirmed(confirmMerge(ctx, "merge", branch), { action: "merge", branch }) },
   rebase: { label: "リベース", operation: "rebase", prepare: (ctx, branch) => confirmed(confirmMerge(ctx, "rebase", branch), { action: "rebase", branch }) },
   /** 新しいブランチ（name から。作ったらチェックアウトするかも選ぶ） */
