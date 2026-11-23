@@ -125,8 +125,7 @@ export function TableData({
     const long = result.rows.flatMap((r, i) => (hasLongValue(r) ? [i] : []));
     return long.length > 0 ? ((await data.fill(long, keyColumns)) ?? result.rows) : result.rows;
   };
-  const quote = connection.engine === "mysql" ? (n: string) => `\`${n.replaceAll("`", "``")}\`` : (n: string) => `"${n.replaceAll('"', '""')}"`;
-  const sql = previewRowsSql(tab.name, data.filter, data.sort, quote, DB_TABLE_PAGE_ROWS);
+  const sql = previewRowsSql(tab.name, data.filter, data.sort, connection.engine, DB_TABLE_PAGE_ROWS);
   const shown = result?.rows.length ?? 0;
   const filtered = Boolean(tab.filter);
   const detailRow = showDetail && pickedRow !== null && display ? display.rows[pickedRow] : undefined;

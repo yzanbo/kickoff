@@ -2,17 +2,16 @@
 import fs from "node:fs";
 import { constants as sqliteCodes, DatabaseSync, type StatementSync } from "node:sqlite";
 import type { DbEditParam } from "@shared/database/dbEdit";
-import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbOutlineTable, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
+import { filterDialect, filterSql } from "@shared/database/dbFilter";
+import { DB_DIALECTS } from "@shared/database/dialect";
+import { DB_OUTLINE_TABLES, type DbDatabases, type DbDefinition, type DbForeignKey, type DbIndex, type DbObject, type DbObjectPath, type DbOutlineTable, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail, type DbValue } from "@shared/database/types";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import type { DbColumns, DbDriver } from "./driver";
-import { quoteIdent, toDbValue } from "./values";
+import { toDbValue } from "./values";
 
 /** 絞り込みの書き方（? と LIKE） */
-const DIALECT: FilterDialect = { quote: quoteIdent, placeholder: () => "?", like: plainLike };
-
-/** 補完のために読むテーブルの数の上限 */
-const OUTLINE_TABLES = 500;
+const DIALECT = filterDialect("sqlite");
+const { quoteIdent } = DB_DIALECTS.sqlite;
 
 type Rows = Record<string, unknown>[];
 
@@ -208,7 +207,7 @@ class SqliteDriver implements DbDriver {
 
   async outline(path: DbObjectPath): Promise<DbOutlineTable[]> {
     const schema = this.schemaOf(path);
-    return (await this.objects(path)).slice(0, OUTLINE_TABLES).map((o) => ({
+    return (await this.objects(path)).slice(0, DB_OUTLINE_TABLES).map((o) => ({
       name: o.name,
       columns: this.all(`PRAGMA ${schema}.table_info(${quoteIdent(o.name)})`).map((r) => String(r.name)),
     }));

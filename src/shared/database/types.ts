@@ -4,6 +4,8 @@
 export const DB_ENGINES = ["sqlite", "postgres", "mysql"] as const;
 export type DbEngine = (typeof DB_ENGINES)[number];
 export const DB_ENGINE_LABELS: Record<DbEngine, string> = { sqlite: "SQLite", postgres: "PostgreSQL", mysql: "MySQL / MariaDB" };
+/** 補完のために読むテーブルの数の上限（3 種類のドライバが同じ数で切る） */
+export const DB_OUTLINE_TABLES = 500;
 /** 種類ごとの既定のポート（SQLite はファイルなのでなし） */
 export const DB_DEFAULT_PORTS: Record<DbEngine, number | null> = { sqlite: null, postgres: 5432, mysql: 3306 };
 

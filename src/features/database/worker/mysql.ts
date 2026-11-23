@@ -1,16 +1,14 @@
 // MySQL / MariaDB の接続（mysql2。1 つの接続で DB を名前で指す。流している文は、別の接続から KILL QUERY で止める）
 import mysql, { type Connection, type ConnectionOptions, type FieldPacket, type ResultSetHeader } from "mysql2";
 import type { DbEditParam } from "@shared/database/dbEdit";
-import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbOutlineTable, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
+import { filterDialect, filterSql } from "@shared/database/dbFilter";
+import { DB_DIALECTS } from "@shared/database/dialect";
+import { DB_DEFAULT_PORTS, DB_OUTLINE_TABLES, type DbDatabases, type DbDefinition, type DbForeignKey, type DbIndex, type DbObject, type DbObjectPath, type DbOutlineTable, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail, type DbValue } from "@shared/database/types";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import type { DbColumns, DbDriver } from "./driver";
 import { CONNECT_TIMEOUT_MS, tlsOptions, dbTimeoutMs } from "./network";
 import { mysqlDefinition, mysqlRoutineObjects } from "./mysqlRoutines";
 import { toDbValue } from "./values";
-
-/** 補完のために読むテーブルの数の上限 */
-const OUTLINE_TABLES = 500;
 
 /** サーバーの様子の印のうち、トランザクションの途中（SERVER_STATUS_IN_TRANS） */
 const IN_TRANS = 1;
@@ -21,10 +19,10 @@ const QUERY_INTERRUPTED = 1317;
 type Row = Record<string, unknown>;
 
 /** 識別子を `…` で囲む（中の ` は 2 つにする） */
-const quoteName = (name: string) => `\`${name.replaceAll("`", "``")}\``;
+const quoteName = DB_DIALECTS.mysql.quoteIdent;
 
 /** 絞り込みの書き方（? と LIKE。照合順序が大文字と小文字を区別しなければ区別しない） */
-const DIALECT: FilterDialect = { quote: quoteName, placeholder: () => "?", like: plainLike };
+const DIALECT = filterDialect("mysql");
 
 /** mysql2 の型の名前のうち、SQL の型の名前と違うもの（DECIMAL は NEWDECIMAL、INT は LONG で届く） */
 const SQL_TYPE_NAMES: Record<string, string> = {
@@ -60,7 +58,7 @@ function connectionOptions(target: DbTarget): ConnectionOptions {
   const tls = tlsOptions(target);
   return {
     host: target.host ?? "localhost",
-    port: target.port ?? 3306,
+    port: target.port ?? DB_DEFAULT_PORTS.mysql ?? undefined,
     user: target.username ?? undefined,
     password: target.password ?? undefined,
     database: target.database ?? undefined,
@@ -297,7 +295,7 @@ class MysqlDriver implements DbDriver {
     const byTable = new Map<string, string[]>();
     for (const r of await this.run("SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME, ORDINAL_POSITION", [db])) {
       const table = String(r.t);
-      if (!byTable.has(table) && byTable.size >= OUTLINE_TABLES) break;
+      if (!byTable.has(table) && byTable.size >= DB_OUTLINE_TABLES) break;
       byTable.set(table, [...(byTable.get(table) ?? []), String(r.c)]);
     }
     return [...byTable].map(([name, columns]) => ({ name, columns }));

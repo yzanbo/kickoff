@@ -3,6 +3,7 @@
 import { fork } from "node:child_process";
 import { errorMessage } from "@shared/foundation/errors";
 import type { DbEngine } from "@shared/database/types";
+import { DB_DIALECTS } from "@shared/database/dialect";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
 
@@ -204,7 +205,7 @@ export class DbWorkerClient {
   private cancel(id: number) {
     const p = this.pending.get(id);
     if (!p || !this.channel) return;
-    if (p.engine === "sqlite") {
+    if (p.engine && DB_DIALECTS[p.engine].cancel === "kill_worker") {
       this.pending.delete(id);
       p.reject(new Error("止めました"));
       this.stop("止めた文と同じ DB ワーカーで動いていたため、途中の頼みも止めました（SQLite の文は、ワーカーごと止めて止めます）");

@@ -7,6 +7,7 @@ import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
 import { countsAsConnected, parseSession, sessionName } from "@shared/database/session";
+import { DB_DIALECTS } from "@shared/database/dialect";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS, type DbConnection, type DbEngine, type DbFilter, type DbObjectPath, type DbPrep, type DbRowFilter, type DbSort } from "@shared/database/types";
 import type { DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbDisconnectResult, DbFullRow, DbSqlBody } from "@shared/database/api";
 import type { Project } from "@shared/projects/types";
@@ -302,7 +303,7 @@ export class DatabaseService {
     extra: Record<string, unknown>,
   ) {
     // PostgreSQL は DB ごとにつなぐ。ほかは 1 本の接続で DB を名前で指す
-    const database = connection.engine === "postgres" ? objectPath.database : null;
+    const database = DB_DIALECTS[connection.engine].databasePerConnection ? objectPath.database : null;
     const target = await this.target(connection, project, workdir, { database });
     const session = this.sharedSession(connection, workdir, target.database);
     return this.run(() => this.opts.client.request(method, { session, target, path: objectPath, ...extra } as never, { engine: target.engine }));
@@ -396,7 +397,7 @@ export class DatabaseService {
     if (connection.read_only && !body.write) throw new Invalid("読み取り専用の接続なので保存できません（テーブルのタブの「書き込む」を押してから保存してください）");
     const statements = editStatements(connection.engine, body.path, body.table, body.edits);
     if (statements.length === 0) return { affected: [], duration_ms: 0 };
-    const target = await this.target(connection, project, workdir, { write: body.write, database: connection.engine === "postgres" ? body.path.database : null });
+    const target = await this.target(connection, project, workdir, { write: body.write, database: DB_DIALECTS[connection.engine].databasePerConnection ? body.path.database : null });
     const session = sessionName({ kind: "edit", connectionId: connection.id, key: randomUUID() });
     const sql = statements.map((s) => `${s.preview};`).join("\n");
     const started = Date.now();
@@ -435,7 +436,7 @@ export class DatabaseService {
     // つなぐ先を組む間（キーチェーンの許可を待つことがある）に止めても流さないよう、待つ前から受ける
     input.signal?.addEventListener("abort", stopTurn, { once: true });
     // DB の側にも時間の上限を付ける（ワーカーが落ちても DB の中で流れ続けない）。手元で止める方が先に効くよう少し長く（止めたときの文を「時間切れ」にするため）
-    const target = { ...(await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true }).catch((e: unknown) => { forget(); throw e; })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
+    const target = { ...(await this.target(connection, project, workdir, { database: DB_DIALECTS[connection.engine].databasePerConnection ? input.database : null, ai: true }).catch((e: unknown) => { forget(); throw e; })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
     if (controller.signal.aborted) { forget(); throw new Invalid(TURN_STOPPED); }
     const session = sessionName({ kind: "ai", connectionId: connection.id, key: randomUUID() });
     let timedOut = false;
@@ -444,9 +445,8 @@ export class DatabaseService {
     // MySQL は DB を名前で指すので、指されたら先に切り替える（同じ接続の中だけ。終わったら閉じる）
     const sql = input.sql;
     try {
-      if (connection.engine === "mysql" && input.database) {
-        await this.opts.client.request("query", { session, target, sql: `USE \`${input.database.replaceAll("`", "``")}\``, max_rows: 1 }, { signal: controller.signal, engine: target.engine });
-      }
+      const use = DB_DIALECTS[connection.engine].useDatabase;
+      if (use && input.database) await this.opts.client.request("query", { session, target, sql: use(input.database), max_rows: 1 }, { signal: controller.signal, engine: target.engine });
       const file = aiExportFile(this.exportRoot, input.chatId, connection.name);
       const result = await this.opts.client.request("export", { session, target, sql, file, head_rows: DB_AI_MAX_ROWS }, { signal: controller.signal, engine: target.engine });
       this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.total_rows : result.affected });

@@ -1,3 +1,4 @@
+import { DB_DIALECTS } from "./dialect";
 import type { DbEngine, DbWriteCheck } from "./types";
 
 // SQL の文の分け方と、読むだけの文かの判定（SQL のタブの ⌘↵ / ⇧⌘↵ と、読み取り専用の接続の 1 段目の守り）。
@@ -43,7 +44,7 @@ function blockCommentEnd(sql: string, from: number, nested: boolean): number {
 /** SQL を字句に分ける（空白は捨てる） */
 function tokenize(sql: string, engine: DbEngine): Token[] {
   const tokens: Token[] = [];
-  const mysql = engine === "mysql";
+  const lex = DB_DIALECTS[engine].lexical;
   let i = 0;
   const n = sql.length;
   // MySQL の /*! … * / の中か（閉じる印は飛ばす）
@@ -72,7 +73,7 @@ function tokenize(sql: string, engine: DbEngine): Token[] {
       i += 2;
       continue;
     }
-    const execHead = mysql && !inExecComment ? /^\/\*M?!\d{0,6}/.exec(sql.slice(i, i + 10)) : null;
+    const execHead = lex.versionComment && !inExecComment ? /^\/\*M?!\d{0,6}/.exec(sql.slice(i, i + 10)) : null;
     if (execHead) {
       // 版の番号に関わらず、中身はいつも流れるものとして読む（守りの側に倒す）
       inExecComment = true;
@@ -80,36 +81,36 @@ function tokenize(sql: string, engine: DbEngine): Token[] {
       continue;
     }
     // MySQL の -- は後ろに空白（か終わり）があるときだけコメント（1--1 は引き算）
-    if (c === "-" && sql[i + 1] === "-" && (!mysql || i + 2 >= n || /\s/.test(sql[i + 2]))) {
+    if (c === "-" && sql[i + 1] === "-" && (!lex.dashNeedsSpace || i + 2 >= n || /\s/.test(sql[i + 2]))) {
       const nl = sql.indexOf("\n", i);
       i = nl === -1 ? n : nl;
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
-    } else if (c === "#" && mysql) {
+    } else if (c === "#" && lex.hashComment) {
       const nl = sql.indexOf("\n", i);
       i = nl === -1 ? n : nl;
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
     } else if (c === "/" && sql[i + 1] === "*") {
-      i = blockCommentEnd(sql, i, engine === "postgres");
+      i = blockCommentEnd(sql, i, lex.nestedComments);
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
     } else if (c === "'") {
       // PostgreSQL の E'…'（\ でエスケープする文字列。E'\'' は ' 1 文字）。前の E の語は文字列に含める
       const prev = tokens.at(-1);
-      const escaped = engine === "postgres" && prev?.kind === "word" && prev.end === i && /^[eE]$/.test(prev.text);
-      i = until("'", i + 1, mysql || escaped);
+      const escaped = lex.escapeStrings && prev?.kind === "word" && prev.end === i && /^[eE]$/.test(prev.text);
+      i = until("'", i + 1, lex.backslashInStrings || escaped);
       if (escaped) tokens.pop();
       const from = escaped ? start - 1 : start;
       tokens.push({ kind: "string", text: sql.slice(from, i), start: from, end: i });
     } else if (c === '"') {
-      i = until('"', i + 1, mysql);
-      tokens.push({ kind: mysql ? "string" : "ident", text: sql.slice(start, i), start, end: i });
+      i = until('"', i + 1, lex.backslashInStrings);
+      tokens.push({ kind: lex.doubleQuoteIsString ? "string" : "ident", text: sql.slice(start, i), start, end: i });
     } else if (c === "`") {
       i = until("`", i + 1, false);
       tokens.push({ kind: "ident", text: sql.slice(start, i), start, end: i });
-    } else if (c === "[" && engine === "sqlite") {
+    } else if (c === "[" && lex.bracketIdent) {
       const close = sql.indexOf("]", i + 1);
       i = close === -1 ? n : close + 1;
       tokens.push({ kind: "ident", text: sql.slice(start, i), start, end: i });
-    } else if (c === "$" && engine === "postgres" && /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.test(sql.slice(i, i + 64))) {
+    } else if (c === "$" && lex.dollarQuote && /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.test(sql.slice(i, i + 64))) {
       // PostgreSQL のドル記号の文字列（$$ … $$ / $tag$ … $tag$。関数の中身）
       const tag = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sql.slice(i, i + 64))![0];
       const close = sql.indexOf(tag, i + tag.length);
@@ -158,7 +159,7 @@ export function splitStatements(sql: string, engine: DbEngine): SqlStatement[] {
       return;
     }
     current.push(t);
-    if (engine === "postgres" || t.kind !== "word") return;
+    if (!DB_DIALECTS[engine].lexical.triggerBlocks || t.kind !== "word") return;
     const w = upper(t);
     const prev = words.at(-1);
     words.push(w);
@@ -243,7 +244,7 @@ export function isReadOnlyStatement(text: string, engine: DbEngine): boolean {
     case "RELEASE":
       return !has("WRITE");
     case "PRAGMA": {
-      if (engine !== "sqlite") return false;
+      if (!DB_DIALECTS[engine].lexical.pragma) return false;
       // PRAGMA [schema.]name … の name
       const name = tokens[2]?.text === "." ? upper(tokens[3] ?? tokens[1]) : upper(tokens[1]);
       if (tokens.some((t) => t.kind === "symbol" && t.text === "=")) return false;
@@ -259,11 +260,7 @@ export function isReadOnlyStatement(text: string, engine: DbEngine): boolean {
 /** 危険な文でなく、確かめずに流してよい書く文の頭の語（「危険な文だけ確かめる」の接続で。ここにない語は判定できない文として確かめる） */
 const PLAIN_WRITE_WORDS = new Set(["INSERT", "UPDATE", "DELETE", "CREATE", "REPLACE", "UPSERT", "SET", "USE", "ANALYZE", "COMMENT"]);
 /** いつも危険な文の頭の語と、その理由 */
-const DANGER_WORDS: Record<string, string> = {
-  DROP: "DROP（消す）",
-  TRUNCATE: "TRUNCATE（中身をすべて消す）",
-  ALTER: "ALTER（テーブルなどの形を変える）",
-};
+const DANGER_WORDS: Record<string, string> = { DROP: "DROP（消す）", TRUNCATE: "TRUNCATE（中身をすべて消す）", ALTER: "ALTER（テーブルなどの形を変える）" };
 
 /**
  * 危険な文ならその理由（書き込む前の確かめの「危険な文だけ確かめる」。読むだけの文・ふつうの書く文なら null）。

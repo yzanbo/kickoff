@@ -1,6 +1,8 @@
 // PostgreSQL の関数・列挙型（木の段と、開いたタブの定義）。postgres.ts から問い合わせの口を受けて使う
 import type { DbDefinition, DbObject } from "@shared/database/types";
-import { quoteIdent } from "./values";
+import { DB_DIALECTS } from "@shared/database/dialect";
+
+const { quoteIdent, literal } = DB_DIALECTS.postgres;
 
 type Row = Record<string, unknown>;
 type Query = (sql: string, values?: unknown[]) => Promise<Row[]>;
@@ -54,7 +56,6 @@ export async function pgDefinition(all: Query, schema: string | null, kind: "fun
   );
   if (!type) throw new Error(`列挙型が見つかりません: ${name}`);
   const values = (await all("SELECT enumlabel FROM pg_enum WHERE enumtypid = $1 ORDER BY enumsortorder", [type.oid])).map((r) => String(r.enumlabel));
-  const literal = (v: string) => `'${v.replaceAll("'", "''")}'`;
   return {
     kind,
     arguments: null,

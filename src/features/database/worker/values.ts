@@ -35,6 +35,3 @@ export function toDbValue(value: unknown, full = false): DbValue {
   }
   return clip(String(value), full);
 }
-
-/** 識別子を "…" で囲む（中の " は 2 つにする。SQLite・PostgreSQL） */
-export const quoteIdent = (name: string) => `"${name.replaceAll('"', '""')}"`;

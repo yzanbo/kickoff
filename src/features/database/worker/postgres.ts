@@ -3,8 +3,9 @@ import type { EventEmitter } from "node:events";
 import pg from "pg";
 import Cursor from "pg-cursor";
 import type { DbEditParam } from "@shared/database/dbEdit";
-import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbOutlineTable, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/database/types";
+import { filterDialect, filterSql } from "@shared/database/dbFilter";
+import { DB_DIALECTS } from "@shared/database/dialect";
+import { DB_DEFAULT_PORTS, DB_OUTLINE_TABLES, type DbDatabases, type DbDefinition, type DbForeignKey, type DbIndex, type DbObject, type DbObjectPath, type DbOutlineTable, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail, type DbValue } from "@shared/database/types";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import type { DbColumns, DbDriver } from "./driver";
 
@@ -12,17 +13,11 @@ import type { DbColumns, DbDriver } from "./driver";
 const STREAM_BATCH = 1000;
 import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead, dbTimeoutMs } from "./network";
 import { pgDefinition, pgRoutineObjects } from "./postgresRoutines";
-import { quoteIdent, toDbValue } from "./values";
+import { toDbValue } from "./values";
 
 /** 絞り込みの書き方（$1 … と、文字列にして ILIKE。数・日時の列でも含むで探せる） */
-const DIALECT: FilterDialect = {
-  quote: quoteIdent,
-  placeholder: (n) => `$${n + 1}`,
-  like: (column, not, param) => `CAST(${column} AS text) ${not ? "NOT ILIKE" : "ILIKE"} ${param} ESCAPE '!'`,
-};
-
-/** 補完のために読むテーブルの数の上限 */
-const OUTLINE_TABLES = 500;
+const DIALECT = filterDialect("postgres");
+const { quoteIdent, literal } = DB_DIALECTS.postgres;
 
 /** 日付・時刻の型は文字列のまま受け取る（Date にするとこの Mac の時間帯でずれて見える）。date・time・timestamp・timestamptz・interval・timetz */
 const RAW_TYPES = new Set([1082, 1083, 1114, 1184, 1186, 1266]);
@@ -51,7 +46,7 @@ function pgError(e: unknown): Error {
 function clientConfig(target: DbTarget): pg.ClientConfig {
   return {
     host: target.host ?? "localhost",
-    port: target.port ?? 5432,
+    port: target.port ?? DB_DEFAULT_PORTS.postgres ?? undefined,
     database: target.database ?? undefined,
     user: target.username ?? undefined,
     password: target.password ?? undefined,
@@ -259,7 +254,7 @@ class PostgresDriver implements DbDriver {
     const parts = [`CREATE TABLE ${qualified} (\n${lines.join(",\n")}\n);`];
     for (const i of indexRows) if (!i.by_constraint) parts.push(`${String(i.def)};`);
     if (hasTriggers) for (const t of await this.all("SELECT pg_get_triggerdef(oid, true) AS def FROM pg_trigger WHERE tgrelid = $1 AND NOT tgisinternal ORDER BY tgname", [rel.oid])) parts.push(`${String(t.def)};`);
-    if (rel.comment) parts.push(`COMMENT ON TABLE ${qualified} IS '${rel.comment.replaceAll("'", "''")}';`);
+    if (rel.comment) parts.push(`COMMENT ON TABLE ${qualified} IS ${literal(rel.comment)};`);
     return parts.join("\n\n");
   }
 
@@ -300,7 +295,7 @@ class PostgresDriver implements DbDriver {
     const rows = await this.all(
       `SELECT c.relname, ARRAY(SELECT a.attname::text FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum) AS cols
        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-       WHERE n.nspname = COALESCE($1, current_schema()) AND c.relkind IN ${RELKINDS} AND NOT c.relispartition ORDER BY c.relname LIMIT ${OUTLINE_TABLES}`,
+       WHERE n.nspname = COALESCE($1, current_schema()) AND c.relkind IN ${RELKINDS} AND NOT c.relispartition ORDER BY c.relname LIMIT ${DB_OUTLINE_TABLES}`,
       [path.schema],
     );
     return rows.map((r) => ({ name: String(r.relname), columns: (r.cols as string[]) ?? [] }));

@@ -2,7 +2,7 @@
 import { erTableOf } from "@shared/database/erTable";
 import { errorMessage } from "@shared/foundation/errors";
 import { parseSession } from "@shared/database/session";
-import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/database/types";
+import { DB_DEFAULT_PORTS, DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/database/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { DbDriver } from "./driver";
 import { openSqlite, testSqlite } from "./sqlite";
@@ -27,7 +27,7 @@ async function openVia(target: DbTarget, tunnels: Tunnels, prep: Prep): Promise<
     acquired = await tunnels.acquireCommand({ connection_id: commands.connection_id, command: commands.tunnel, vars: await prep.varsFor(commands, commands.tunnel) });
     via = `ポートを転送するコマンドは流れましたが、その先の DB（${remote}）につながりません`;
   } else if (target.ssh) {
-    acquired = await tunnels.acquire({ ssh: target.ssh, remote_host: target.host ?? "localhost", remote_port: target.port ?? (target.engine === "postgres" ? 5432 : 3306) });
+    acquired = await tunnels.acquire({ ssh: target.ssh, remote_host: target.host ?? "localhost", remote_port: target.port ?? DB_DEFAULT_PORTS[target.engine] ?? 0 });
     via = `SSH トンネルは開きましたが、踏み台から DB（${remote}）につながりません（ホスト・ポートは踏み台から見た場所です）`;
   } else return { driver: await openDriver(base), tunnel: null };
   try {

@@ -694,8 +694,8 @@
       "src/features/database/core/service.ts": 546,
       "src/features/database/ui/DatabaseClient.tsx": 324,
       "src/features/database/worker/drivers.dbtest.ts": 409,
-      "src/features/database/worker/mysql.ts": 406,
-      "src/features/database/worker/postgres.ts": 426,
+      "src/features/database/worker/mysql.ts": 404,
+      "src/features/database/worker/postgres.ts": 421,
       "src/features/git/core/routes/server.git.test.ts": 470,
       "src/features/notes/ui/NoteTab.tsx": 341,
       "src/features/notes/ui/NoteView.tsx": 365,
@@ -703,7 +703,7 @@
       "src/features/trash/core/service.ts": 334,
       "src/foundation/desktop/app/coreProcess.ts": 342,
       "src/shared/chat/subagents.ts": 301,
-      "src/shared/database/sqlStatements.ts": 318
+      "src/shared/database/sqlStatements.ts": 315
     },
     "native": [
       "src/features/chat/ui/open/aiOpenRequests.ts",

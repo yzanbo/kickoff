@@ -2,7 +2,7 @@ import { Sparkles, SquareTerminal } from "lucide-react";
 import { useState } from "react";
 import { dbAskPrompt } from "@/features/database/ui/ai/dbAsk";
 import { previewRowsSql } from "@shared/database/dbFilter";
-import { qualifiedTable, quoteName } from "@shared/database/dbEdit";
+import { qualifiedTable } from "@shared/database/dialect";
 import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
@@ -22,7 +22,7 @@ const AI_HIDDEN_TIP = "この接続は AI に見せない設定です（接続�
 export function OpenAsSqlButton({ connection, tab, filter, sort }: { connection: DbConnection; tab: DbTableTab; filter: DbRowFilter; sort: DbSort[] }) {
   const client = useDbClient();
   const open = () => {
-    const sql = previewRowsSql(tab.name, filter, sort, (n) => quoteName(connection.engine, n), DB_TABLE_PAGE_ROWS, qualifiedTable(connection.engine, tab.path, tab.name));
+    const sql = previewRowsSql(tab.name, filter, sort, connection.engine, DB_TABLE_PAGE_ROWS, qualifiedTable(connection.engine, tab.path, tab.name));
     client.openSql(connection, `${sql};`);
   };
   return (
