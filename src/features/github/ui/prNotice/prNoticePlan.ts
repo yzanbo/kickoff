@@ -1,6 +1,7 @@
 // ワークツリーの PR の知らせの確認で選ぶもの（ワークツリー・チャットの扱い）と、確認に出す注意（純粋な関数）
 import type { Chat } from "@shared/chat/types";
 import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
+import { removalNotes } from "@/features/worktrees/ui";
 
 /** ワークツリーの扱い（both = ワークツリーとブランチを消す / worktree = ワークツリーだけ消す / keep = 残す。名前は削除の確認と同じ） */
 export const PR_WORKTREE_ACTIONS = ["both", "worktree", "keep"] as const;
@@ -28,16 +29,14 @@ export function rootChatIds(chats: Pick<Chat, "id" | "parent_chat_id">[]): numbe
 }
 
 /**
- * 確認に出す注意（作業中のチャット・コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット）。
+ * 確認に出す注意（作業中のチャット・消すときの注意 removalNotes・チャットの削除）。
  * 消さないなら、ワークツリーの中身の注意は出さない
  */
 export function prNoticeWarnings(info: WorktreeRemovalInfo | undefined, running: number, action: PrWorktreeAction, chatAction: PrChatAction): string[] {
   const removing = action !== "keep";
   return [
     running > 0 && (removing || chatAction !== "keep") && `作業中のチャットが ${running} 件あります。終わってから片付けてください。`,
-    removing && info && info.changes > 0 && `コミットしていない変更が ${info.changes} ファイルあります。ワークツリーを消すとなくなります。`,
-    removing && info?.has_remote && info.unpushed > 0 && `GitHub にプッシュしていないコミットが ${info.unpushed} 件あります。`,
-    action === "both" && info && info.only_here > 0 && `このブランチにしかないコミットが ${info.only_here} 件あります。ブランチも消すと元に戻せません。`,
+    ...(removing && info ? removalNotes(info, { deleteBranch: action === "both" }) : []),
     chatAction === "delete" && "チャットを削除すると、元に戻せません。",
   ].filter((w): w is string => Boolean(w));
 }

@@ -1,9 +1,51 @@
-import type { GitWorktree } from "@shared/git/types";
+// ワークツリーを消す流れ（画面から消す所はどれもここを通る: 消す確認・WorktreeBar の「片付ける」・PR の知らせ・マージのあとの片付け）
+import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { choose, confirm } from "@/foundation/ui/kit/ask";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { worktreeEnvOf } from "./envStore";
 import { removalChecks } from "./worktreeEnvText";
+
+/**
+ * 消す前に知らせる注意（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット）。
+ * deleteBranch: "ask" はブランチも消すかをこれから選ぶ確認（まだプッシュしていないブランチも知らせる）、false ならブランチを残すので
+ * このブランチにしかないコミットの注意は出さない
+ */
+export function removalNotes(info: WorktreeRemovalInfo, { deleteBranch }: { deleteBranch: boolean | "ask" }): string[] {
+  return [
+    info.changes > 0 && `コミットしていない変更が ${info.changes} ファイルあります。ワークツリーを消すとなくなります。`,
+    deleteBranch === "ask" && info.has_remote && info.branch && !info.pushed && "このブランチは、まだ GitHub にプッシュしていません。",
+    info.has_remote && info.unpushed > 0 && `GitHub にプッシュしていないコミットが ${info.unpushed} 件あります。`,
+    deleteBranch !== false && info.only_here > 0 && `このブランチにしかないコミットが ${info.only_here} 件あります。ブランチも消すと、これらのコミットもなくなります。`,
+  ].filter((note): note is string => Boolean(note));
+}
+
+export interface RemoveWorktreeOptions {
+  /** コミットしていない変更があっても消す（知らせたうえで消すとき） */
+  force: boolean;
+  deleteBranch: boolean;
+  downVolumes: boolean;
+  dropDbConnections: boolean;
+  /** 消したあと本体を最新にする（PR がマージされたあとの片付け） */
+  pullMain: boolean;
+}
+
+/**
+ * ワークツリーを消し、作業場所の一覧を入れ直す。pullMain なら本体を最新にする（できなければ pullError に理由。消すのは済んでいる）。
+ * 消すのに失敗したら投げる
+ */
+export async function removeWorktreeAndRefresh(
+  projectId: number,
+  path: string,
+  { pullMain, ...opts }: RemoveWorktreeOptions,
+): Promise<{ list: GitWorktree[]; pullError: string | null }> {
+  const list = await api.removeWorktree(projectId, path, opts);
+  worktreesStore.set(projectId, list);
+  worktreesStore.invalidate(projectId);
+  const pullError = pullMain ? await api.gitPull(projectId).then(() => null, (e: unknown) => errorMessage(e)) : null;
+  return { list, pullError };
+}
 
 /**
  * ワークツリーを消す（確かめてから）。消す前に、コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットを調べて知らせ、
@@ -14,12 +56,7 @@ import { removalChecks } from "./worktreeEnvText";
  */
 export async function confirmRemoveWorktree(projectId: number, worktree: Pick<GitWorktree, "path" | "branch">, label: string): Promise<GitWorktree[] | null> {
   const info = await api.worktreeRemovalInfo(projectId, worktree.path);
-  const notes = [
-    info.changes > 0 && `・コミットしていない変更が ${info.changes} ファイルあります。消すとなくなります。`,
-    info.has_remote && info.branch && !info.pushed && "・このブランチは、まだ GitHub にプッシュしていません。",
-    info.has_remote && info.unpushed > 0 && `・GitHub にプッシュしていないコミットが ${info.unpushed} 件あります。`,
-    info.only_here > 0 && `・このブランチにしかないコミットが ${info.only_here} 件あります。ブランチも消すと、これらのコミットもなくなります。`,
-  ].filter((note): note is string => Boolean(note));
+  const notes = removalNotes(info, { deleteBranch: "ask" }).map((note) => `・${note}`);
   const message = [
     `${worktree.path} のフォルダを消します。ここで作業していたチャットは、続きを本体で進めます。`,
     ...(info.branch ? [`ブランチ「${info.branch}」は、「ブランチも消す」を選ばなければ残ります。`] : []),
@@ -51,8 +88,6 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
     if (!ok) return null;
   }
   // コミットしていない変更は、上で知らせたうえで消すので force で消す
-  const list = await api.removeWorktree(projectId, worktree.path, { force: info.changes > 0, deleteBranch, ...read(picked.checked) });
-  worktreesStore.set(projectId, list);
-  worktreesStore.invalidate(projectId);
+  const { list } = await removeWorktreeAndRefresh(projectId, worktree.path, { force: info.changes > 0, deleteBranch, ...read(picked.checked), pullMain: false });
   return list;
 }

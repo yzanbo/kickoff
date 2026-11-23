@@ -10,6 +10,7 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListRail } from "@/foundation/ui/kit/ListRail";
 import { codeSearchFocus } from "./codeSearchFocus";
 import { WorktreePicker } from "@/foundation/ui/workplace/WorktreePicker";
+import { WorkplaceBars } from "@/foundation/ui/workplace/workplaceDecor";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
@@ -28,7 +29,6 @@ import { FileTreeMenu } from "./FileTreeMenu";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { useSearchReplace } from "./useSearchReplace";
-import { WorktreeBar } from "@/features/worktrees/ui/WorktreeBar";
 
 /** 右のファイルのタブの欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
 const FIXED_FRAME: PanelFrame = { fixed: true };
@@ -139,8 +139,8 @@ export function EditorTab({
     {/* 作業場所（本体・ワークツリー）の切り替え。ワークツリーが本体だけなら空（CSS で隠す） */}
     <div className="changes-bar">
       <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
-      {/* ワークツリーの作業の流れ（PR を作る・PR の状態・マージされたら片付ける） */}
-      {worktree && <WorktreeBar projectId={projectId} worktree={worktree} onFinished={() => onWorktreeChange(undefined)} />}
+      {/* ワークツリーの作業の流れ（PR を作る・PR の状態・マージされたら片付ける。worktrees が作業場所の飾りに登録する） */}
+      {worktree && <WorkplaceBars projectId={projectId} path={worktree} onFinished={() => onWorktreeChange(undefined)} />}
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
       {listHidden ? (

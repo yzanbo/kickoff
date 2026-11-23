@@ -1,7 +1,6 @@
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
@@ -10,13 +9,12 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
-import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { downVolumesCheck, dropConnectionsCheck, useWorktreeEnv } from "@/features/worktrees/ui";
+import { downVolumesCheck, dropConnectionsCheck, removeWorktreeAndRefresh, useWorktreeEnv } from "@/features/worktrees/ui";
 import {
   PR_CHAT_ACTIONS,
   PR_CHAT_ACTION_LABELS,
@@ -120,17 +118,15 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
     let pullError: string | null = null;
     const ok = await action.run("submit", async () => {
       if (worktreeAction !== "keep") {
-        // コミットしていない変更は、確認の中で知らせたうえで消すので force で消す
-        const list = await api.removeWorktree(projectId, notice.worktree, {
+        // コミットしていない変更は、確認の中で知らせたうえで消すので force で消す。マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
+        const removed = await removeWorktreeAndRefresh(projectId, notice.worktree, {
           force: (info.data?.changes ?? 0) > 0,
           deleteBranch: worktreeAction === "both",
           downVolumes: volumes !== null && downVolumes,
           dropDbConnections: connections !== null && dropConnections,
+          pullMain: merged,
         });
-        worktreesStore.set(projectId, list);
-        worktreesStore.invalidate(projectId);
-        // マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
-        if (merged) await api.gitPull(projectId).catch((e: unknown) => (pullError = errorMessage(e)));
+        pullError = removed.pullError;
       }
       for (const id of ids) await (effectiveChatAction === "delete" ? api.deleteChat(id) : api.archiveChat(id));
     });

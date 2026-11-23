@@ -2,16 +2,16 @@ import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Tra
 import type { PullRequestInfo } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
-import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { baseName } from "@/foundation/ui/lib/format";
-import { confirmRemoveWorktree } from "./removeWorktree";
+import { confirmRemoveWorktree, removeWorktreeAndRefresh } from "./removeWorktreeFlow";
 import { useGitStatus } from "@/features/git/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
+import type { WorkplaceBarProps } from "@/foundation/ui/workplace/workplaceDecor";
 import { useWorktreeEnv } from "./envStore";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
@@ -29,16 +29,7 @@ const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オ�
  * 分けられない理由・整えきれていない所を出す（押すと中身）。［AI で整える］は、手順で直せなかった所を、このワークツリーの新しいチャット
  * 「実行環境を整える（ブランチ）」の AI に Git で管理していないファイルだけで直してもらう（覚えのないワークツリー（Kickoff の外で作ったものなど）は、先にコアが手順を流す）
  */
-export function WorktreeBar({
-  projectId,
-  worktree,
-  onFinished,
-}: {
-  projectId: number;
-  worktree: string;
-  /** 片付けたあと（作業場所を本体に戻す） */
-  onFinished: () => void;
-}) {
+export function WorktreeBar({ projectId, path: worktree, onFinished }: WorkplaceBarProps) {
   const target = { projectId, worktree };
   const git = useGitStatus(target);
   const env = useWorktreeEnv(projectId, worktree);
@@ -82,11 +73,9 @@ export function WorktreeBar({
     const answer = checks.length ? await askConfirm({ ...confirm, checks }) : (await askConfirm(confirm)) && { checked: [] };
     if (!answer) return;
     await action.run("finish", async () => {
-      // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）
-      await api.removeWorktree(projectId, worktree, { deleteBranch: true, ...read(answer.checked) });
-      worktreesStore.invalidate(projectId);
-      // 本体を最新にする（手元に変更があってできなければ、そう伝える）
-      await api.gitPull(projectId).catch((e: unknown) => void alert("本体を最新にできませんでした", errorMessage(e)));
+      // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）。そのあと本体を最新にする（手元に変更があってできなければ、そう伝える）
+      const { pullError } = await removeWorktreeAndRefresh(projectId, worktree, { force: false, deleteBranch: true, ...read(answer.checked), pullMain: true });
+      if (pullError) void alert("本体を最新にできませんでした", pullError);
       onFinished();
     });
   };

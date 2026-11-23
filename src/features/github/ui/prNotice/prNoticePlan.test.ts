@@ -36,7 +36,7 @@ test("PR の知らせ: 注意は消すものに合わせて出す（残すなら
   assert.deepEqual(prNoticeWarnings(all, 0, "both", "archive"), [
     "コミットしていない変更が 2 ファイルあります。ワークツリーを消すとなくなります。",
     "GitHub にプッシュしていないコミットが 1 件あります。",
-    "このブランチにしかないコミットが 3 件あります。ブランチも消すと元に戻せません。",
+    "このブランチにしかないコミットが 3 件あります。ブランチも消すと、これらのコミットもなくなります。",
   ]);
   assert.equal(prNoticeWarnings(all, 0, "worktree", "archive").length, 2);
   assert.deepEqual(prNoticeWarnings(all, 0, "keep", "keep"), []);
