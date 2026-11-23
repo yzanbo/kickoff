@@ -1,5 +1,6 @@
 import { ArrowDownAZ, Columns3, Eye, KeyRound, Link, ListOrdered, SquareFunction, Table2, Zap, type LucideIcon } from "lucide-react";
 import { DB_OBJECT_KIND_LABELS, DB_OBJECT_KINDS, type DbConnection, type DbObject, type DbObjectKind, type DbObjectPath, type DbTableDetail } from "@shared/database/types";
+import { treeKey as treeKeys } from "./treeKeys";
 import { useQuery } from "@/foundation/ui/query";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
@@ -31,7 +32,7 @@ export function ObjectsNode({ connection: c, depth, path, tree }: { connection: 
       {DB_OBJECT_KINDS.map((kind) => {
         const items = objects.data?.filter((o) => o.kind === kind) ?? [];
         if (items.length === 0) return null;
-        const closedKey = `k:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${kind}:closed`;
+        const closedKey = treeKeys.kindClosed(c.id, path, kind);
         const open = !tree.isOpen(closedKey);
         const Icon = OBJECT_ICONS[kind];
         return (
@@ -54,7 +55,7 @@ function ObjectNode({ connection: c, depth, path, object: o, tree }: { connectio
   if (o.kind !== "table" && o.kind !== "view") {
     return <TreeRow depth={depth} icon={<Icon size={13} aria-hidden />} label={o.name} className="db-tree-object" onOpen={preview} onPin={open} />;
   }
-  const key = `t:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${o.name}`;
+  const key = treeKeys.table(c.id, path, o.name);
   const isOpen = tree.isOpen(key);
   // おおよその行数（DB の統計）を薄く添える
   const rows = estimatedRowsLabel(o.estimated_rows);
@@ -119,7 +120,7 @@ function TableChildren({
         />
       ))}
       {groupsOf(d).map((g) => {
-        const key = `${treeKey}:${g.id}`;
+        const key = treeKeys.tableGroup(treeKey, g.id);
         const open = tree.isOpen(key);
         return (
           <div key={g.id}>

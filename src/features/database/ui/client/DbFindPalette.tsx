@@ -9,6 +9,7 @@ import type { DbClientTab } from "@/features/database/ui/state/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";
 import { useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
+import { treeKey } from "@/features/database/ui/tree/treeKeys";
 import { findDbItems, openTreePaths, type DbFindItem, type DbFindSource } from "./dbFind";
 import { objectPathLabel } from "@/features/database/ui/dbFormat";
 import { TabObjectIcon } from "@/features/database/ui/tree/DbTreeObjects";
@@ -32,7 +33,7 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
 
   // 開いたときに 1 回だけ読む（開いたときの接続・木の開き方で。あとで変わっても読み直さない）
   const loadSources = useEffectEvent((isAlive: () => boolean) => {
-    const targets = connections.filter((c) => treeOpen.includes(`c:${c.id}`) || connected?.includes(c.id) || activeTab?.connection_id === c.id);
+    const targets = connections.filter((c) => treeOpen.includes(treeKey.connection(c.id)) || connected?.includes(c.id) || activeTab?.connection_id === c.id);
     void (async () => {
       const places: { c: DbConnection; path: DbObjectPath }[] = [];
       let failed = 0;

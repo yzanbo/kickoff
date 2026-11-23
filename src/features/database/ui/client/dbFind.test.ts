@@ -45,10 +45,11 @@ test("findDbItems: limit で切る・key は接続と場所ごとに別", () => 
 });
 
 test("openTreePaths: PostgreSQL はスキーマの段、ほかは DB の段。ほかの接続・テーブルの段は見ない", () => {
-  const keys = ["c:1", "d:1:app", "s:1:app:public", "s:1:app:audit", "t:1:app:public:users", "d:2:shop", "s:12:x:y"];
+  const keys = ["c:1", "d:1:app", "s:1:app:public", "s:1:app:audit", "t:1:app:public:users", "d:2:shop", "s:12:x:y", "s:1:a%3Ab:c"];
   assert.deepEqual(openTreePaths(keys, 1, "postgres"), [
     { database: "app", schema: "public" },
     { database: "app", schema: "audit" },
+    { database: "a:b", schema: "c" },
   ]);
   assert.deepEqual(openTreePaths(keys, 2, "mysql"), [{ database: "shop", schema: null }]);
   assert.deepEqual(openTreePaths(keys, 3, "sqlite"), []);

@@ -2,6 +2,7 @@ import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, Server, St
 import { isCheckDue, localToday } from "@shared/database/dbPrep";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { dbApi, dbAt, dbOne } from "@/features/database/ui/api";
+import { treeKey } from "./treeKeys";
 import { useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -65,7 +66,7 @@ interface NodeProps extends TreeOpen {
 
 function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu }: NodeProps & { connected: boolean; onMenu: (e: React.MouseEvent) => void }) {
   const client = useDbClient();
-  const key = `c:${c.id}`;
+  const key = treeKey.connection(c.id);
   const open = isOpen(key);
   const worktree = client.worktreeOf(c.id);
   const dbs = useQuery(["DbTree.databases", c.id, c.updated_at, worktree], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/databases", dbAt(client.projectId, c.id, worktree)), { enabled: open });
@@ -144,7 +145,7 @@ function DatabaseList({
     <DatabaseNode key={d} connection={c} database={d} depth={depth} current={d === current} hasSchemas={hasSchemas} isOpen={isOpen} toggle={toggle} menu={menu} />
   );
   if (!hasSchemas || !current || !databases.includes(current)) return <>{databases.map((d) => node(d, 1))}</>;
-  const key = `o:${c.id}`;
+  const key = treeKey.others(c.id);
   const open = isOpen(key);
   return (
     <>
@@ -176,7 +177,7 @@ function DatabaseNode({
   menu,
 }: NodeProps & { database: string; depth: number; current: boolean; hasSchemas: boolean }) {
   const client = useDbClient();
-  const key = `d:${c.id}:${database}`;
+  const key = treeKey.database(c.id, database);
   const open = isOpen(key);
   const worktree = client.worktreeOf(c.id);
   const schemas = useQuery(["DbTree.schemas", c.id, database, worktree], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/schemas", { ...dbOne(client.projectId, c.id), query: { database: database ?? undefined, worktree: worktree ?? undefined } }), { enabled: open && hasSchemas });
@@ -197,7 +198,7 @@ function DatabaseNode({
       {open && schemas.error && <TreeError depth={depth + 1} error={schemas.error} connection={c} onRetry={() => void schemas.reload()} />}
       {open &&
         schemas.data?.map((s) => {
-          const sKey = `s:${c.id}:${database}:${s}`;
+          const sKey = treeKey.schema(c.id, database, s);
           const sOpen = isOpen(sKey);
           return (
             <div key={s}>

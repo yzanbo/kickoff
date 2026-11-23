@@ -1,4 +1,5 @@
 // 「テーブル・列を探す」（⌘⇧O）の候補の並べ方。React に依らない
+import { parseTreeKey } from "@/features/database/ui/tree/treeKeys";
 import type { DbEngine, DbObject, DbObjectPath } from "@shared/database/types";
 
 /** 探す元: 1 つの接続の 1 つの場所のテーブル・ビュー（objects）と、その列の名前（columns。テーブルの名前ごと） */
@@ -65,18 +66,11 @@ export function findDbItems(sources: readonly DbFindSource[], query: string, lim
     .map((h) => h.item);
 }
 
-/**
- * 左の木で開いている場所（接続ごとの DB・スキーマの段のキー。DbTree の `d:<接続>:<DB>` / `s:<接続>:<DB>:<スキーマ>`）。
- * PostgreSQL はスキーマの段、ほかは DB の段。名前に「:」があればスキーマの名前の方を短く読む
- */
+/** 左の木で開いている場所（接続ごとの段のキー。PostgreSQL はスキーマの段、ほかは DB の段） */
 export function openTreePaths(openKeys: readonly string[], connectionId: number, engine: DbEngine): DbObjectPath[] {
-  const prefix = engine === "postgres" ? `s:${connectionId}:` : `d:${connectionId}:`;
-  return openKeys
-    .filter((k) => k.startsWith(prefix))
-    .map((k) => {
-      const rest = k.slice(prefix.length);
-      if (engine !== "postgres") return { database: rest, schema: null };
-      const at = rest.lastIndexOf(":");
-      return { database: rest.slice(0, at), schema: rest.slice(at + 1) };
-    });
+  const level = engine === "postgres" ? "schema" : "database";
+  return openKeys.flatMap((k) => {
+    const at = parseTreeKey(k);
+    return at && at.connectionId === connectionId && at.level === level ? [at.path] : [];
+  });
 }

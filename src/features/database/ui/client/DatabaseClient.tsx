@@ -25,6 +25,7 @@ import { DbHome } from "./DbHome";
 import { DbList } from "./DbList";
 import { DbPrepDialog } from "@/features/database/ui/connection/DbPrepDialog";
 import { dbSurfaceKey, type DbSurface } from "@/features/database/ui/state/surface";
+import { treeKey } from "@/features/database/ui/tree/treeKeys";
 import { useDbClientTabs } from "@/features/database/ui/state/useDbClientTabs";
 import { useDbClientRequests } from "@/features/database/ui/state/dbClientRequests";
 import { createConnectionNote } from "@/features/database/ui/connection/dbNote";
@@ -75,9 +76,8 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
 
   /** 接続を選ぶ（木で開いて一覧を出す） */
   const focusConnection = (connectionId: number) => {
-    const key = `c:${connectionId}`;
     const open = readSetting(storage.settings.treeOpen(surfaceKey));
-    if (!open.includes(key)) setTreeOpen([...open, key]);
+    if (!open.includes(treeKey.connection(connectionId))) setTreeOpen([...open, treeKey.connection(connectionId)]);
     // 描いたばかり（預けた頼み）だと narrow がまだ測れていないので、その場で幅を測る
     if ((root.current?.clientWidth ?? Infinity) < NARROW_WIDTH) setOverlay(true);
     else setHidden(false);
@@ -268,7 +268,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
                 connections={list}
                 onOpen={(c) => {
                   // 左の木でその接続を開く（一覧を隠していれば出す）
-                  const key = `c:${c.id}`;
+                  const key = treeKey.connection(c.id);
                   if (!treeOpen.includes(key)) setTreeOpen([...treeOpen, key]);
                   if (narrow) setOverlay(true);
                   else setHidden(false);
