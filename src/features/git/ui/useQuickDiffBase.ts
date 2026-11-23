@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@/foundation/ui/query";
 import type { GitFileChange, GitStatus } from "@shared/git/types";
 import type { GitTarget } from "@/foundation/ui/api";
 import { gitApi } from "./api";
@@ -29,28 +30,21 @@ export function useQuickDiffBase({
   content: string | null;
 }): string | null {
   const unstaged = change && !change.staged && change.file.kind !== "U" ? change.file : null;
-  const [fetched, setFetched] = useState<{ key: string; text: string | null }>();
-  // 変更のあるファイル・作業場所・取り直した回で読み直す
-  const readOriginal = useEffectEvent((file: GitFileChange, isAlive: () => boolean) => {
-    gitApi("GET /api/projects/:projectId/git/original", workdirInput(target, { path: file.path, old: file.old_path, staged: false })).then(
-      (o) => isAlive() && setFetched({ key, text: o.binary || o.truncated ? null : o.content }),
-      () => isAlive() && setFetched({ key, text: null }),
-    );
-  });
-  useEffect(() => {
-    if (!unstaged) return;
-    let alive = true;
-    readOriginal(unstaged, () => alive);
-    return () => {
-      alive = false;
-    };
-  }, [key, unstaged?.path, unstaged?.old_path, version]);
+  // 変更のあるファイル・作業場所・取り直した回で読み直す（取り直している間は前の値）
+  const fetched = useQuery(
+    unstaged ? ["quickDiffBase", key, unstaged.path, unstaged.old_path ?? null] : null,
+    (signal) =>
+      gitApi("GET /api/projects/:projectId/git/original", workdirInput(target, { path: unstaged?.path ?? "", old: unstaged?.old_path, staged: false }), { signal }).then((o) =>
+        o.binary || o.truncated ? null : o.content,
+      ),
+    { deps: [version] },
+  );
 
   // 最後に出した値（描く中で ref を読み書きしない。変わったときだけ覚え直す）
   const [last, setLast] = useState<{ key: string; text: string | null } | null>(null);
   let value: string | null | undefined;
   if (!gitStatus?.repo || change?.file.kind === "U") value = null;
-  else if (unstaged) value = fetched?.key === key ? fetched.text : undefined;
+  else if (unstaged) value = fetched.error ? null : fetched.data;
   else value = content;
   // まだ読めていなければ、同じファイルの前の値のまま
   if (value === undefined) return last?.key === key ? last.text : null;

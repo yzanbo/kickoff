@@ -1,4 +1,6 @@
-import { useEffect, useEffectEvent, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@/foundation/ui/query";
+import { useObjectUrl } from "@/foundation/ui/hooks/useObjectUrl";
 import { errorMessage } from "@shared/foundation/errors";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
@@ -17,37 +19,21 @@ import { workdirInput } from "@/foundation/ui/api/workdir";
 export function ImagePreview({ projectId, path, version, source }: { projectId: number; path: string; version: number; source?: string }) {
   const target = useWorkplace(projectId);
   const key = workplaceKey(target);
-  const [image, setImage] = useState<{ url: string; bytes: number }>();
-  const [error, setError] = useState<string>();
+  const [broken, setBroken] = useState<string | null>(null);
   const [dims, setDims] = useState<{ width: number; height: number }>();
   const [viewing, setViewing] = useState(false);
   const name = path.slice(path.lastIndexOf("/") + 1);
 
-  // 読み直すのは、作業場所（key で表す）・ファイル・版・書きかけの中身が変わったときだけ
-  const readImage = useEffectEvent(() => (source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : filesApi("GET /api/projects/:projectId/file/image", workdirInput(target, { path })).then((r) => r.blob)));
-  useEffect(() => {
-    let alive = true;
-    let url: string | undefined;
-    // 読み直している間も前の画像を出したまま（ちらつかせない）
-    setError(undefined);
-    const blob = readImage();
-    blob.then(
-      (b) => {
-        if (!alive) return;
-        url = URL.createObjectURL(b);
-        setImage({ url, bytes: b.size });
-      },
-      (e: unknown) => alive && setError(errorMessage(e)),
-    );
-    return () => {
-      alive = false;
-      // 次の画像を出すまで前の URL を使うので、少し待ってから捨てる
-      if (url) {
-        const old = url;
-        setTimeout(() => URL.revokeObjectURL(old), 1000);
-      }
-    };
-  }, [key, path, version, source]);
+  // 読み直すのは、作業場所（key で表す）・ファイル・版・書きかけの中身が変わったときだけ。読み直している間も前の画像を出したまま（ちらつかせない）
+  const blob = useQuery(
+    ["fileImage", key, path, source ?? null],
+    (signal) => (source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : filesApi("GET /api/projects/:projectId/file/image", workdirInput(target, { path }), { signal }).then((r) => r.blob)),
+    { deps: [version], keepPrevious: true },
+  );
+  const url = useObjectUrl(blob.data);
+  const image = url && blob.data ? { url, bytes: blob.data.size } : undefined;
+  // 読めなかった・画像として描けなかった（描けなかったのは、その URL の間だけ）
+  const error = blob.error ? errorMessage(blob.error) : broken !== null && broken === url ? "この画像は表示できません（形式が壊れているか、対応していない形です）" : undefined;
 
   if (error) return <ErrorText message={error} className="diff-message" />;
   if (!image) return <p className="muted small diff-message">読み込み中…</p>;
@@ -59,7 +45,7 @@ export function ImagePreview({ projectId, path, version, source }: { projectId: 
             src={image.url}
             alt={name}
             onLoad={(e) => setDims({ width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
-            onError={() => setError("この画像は表示できません（形式が壊れているか、対応していない形です）")}
+            onError={() => setBroken(image.url)}
           />
         </button>
       </div>

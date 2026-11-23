@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useQuery } from "@/foundation/ui/query";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
 import type { ProjectSearchResult } from "@shared/files/types";
 import { errorMessage } from "@shared/foundation/errors";
@@ -14,6 +16,14 @@ const DEBOUNCE_MS = 300;
 
 type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
 
+/** 表示している結果と、そのときの探し方（印・置換に使う） */
+interface SearchResult {
+  query: ProjectSearchQuery;
+  value: ProjectSearchResult;
+}
+
+const NO_DISMISSED: DismissedResults = new Set();
+
 /**
  * プロジェクトのファイルの中を探す（VS Code の検索と同じく、打つと探し直す。表示を切り替えても残す）。
  * 探し方の切り替え・含める / 除外するファイル（詳細）・置換の欄の中身・結果から外したもの・検索の履歴も持つ
@@ -28,72 +38,48 @@ export function useProjectSearch(projectId: number) {
   const [replace, setReplace] = useState("");
   const [showReplace, setShowReplace] = useState(false);
   const [preserveCase, setPreserveCase] = useState(false);
-  const [result, setResult] = useState<{ query: ProjectSearchQuery; value: ProjectSearchResult }>();
-  const [dismissed, setDismissed] = useState<DismissedResults>(new Set());
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(false);
   const [history, setHistory] = useSetting(storage.settings.searchHistory);
   // 履歴をたどっている位置（-1 = 打っている文字）。打ったら戻す
   const historyIndex = useRef(-1);
-  const latest = useRef(0);
 
-  // 探す関数は作業場所が変わったときだけ作り直す（target は作業場所ごとに同じもの）
-  const run = useCallback(
-    async (search: ProjectSearchQuery) => {
-      const request = ++latest.current;
-      setLoading(true);
-      await filesApi(
-        "GET /api/projects/:projectId/search",
-        workdirInput(target, {
-          q: search.query,
-          case: search.case_sensitive,
-          word: search.whole_word,
-          regex: search.regex,
-          include: search.include,
-          exclude: search.exclude,
-          ignore: search.use_ignore,
-        }),
-      ).then(
-        (value) => {
-          if (request !== latest.current) return;
-          setResult({ query: search, value });
-          // 探し直したら、外したものは忘れる（VS Code と同じ）
-          setDismissed(new Set());
-          setError(undefined);
-        },
-        (e: unknown) => {
-          if (request === latest.current) setError(errorMessage(e));
-        },
-      );
-      if (request === latest.current) setLoading(false);
-    },
-    [target],
-  );
-
+  // 探し方ごとに探す（打つのが止まってから。空なら待たずに結果を消す）。古い応答は捨て、探している間は前の結果を出したまま
   const current: ProjectSearchQuery = { query, ...options, include, exclude };
-  useEffect(() => {
-    if (!query) {
-      latest.current++;
-      setResult(undefined);
-      setError(undefined);
-      setLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => void run({ query, ...options, include, exclude }), DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [query, options, include, exclude, run]);
+  const searched = useQuery<SearchResult | null>(
+    ["projectSearch", workplaceKey(target), JSON.stringify(current)],
+    (signal) =>
+      current.query
+        ? filesApi(
+            "GET /api/projects/:projectId/search",
+            workdirInput(target, {
+              q: current.query,
+              case: current.case_sensitive,
+              word: current.whole_word,
+              regex: current.regex,
+              include: current.include,
+              exclude: current.exclude,
+              ignore: current.use_ignore,
+            }),
+            { signal },
+          ).then((value) => ({ query: current, value }))
+        : Promise.resolve(null),
+    { delay: query ? DEBOUNCE_MS : 0, keepPrevious: true },
+  );
+  const result = searched.data ?? undefined;
+  // 探し直したら、外したものは忘れる（VS Code と同じ。外したものは、その結果のときだけ効く）
+  const [dismissedOf, setDismissedOf] = useState<{ of: SearchResult | undefined; paths: DismissedResults }>({ of: undefined, paths: new Set() });
+  const dismissed = dismissedOf.of === result ? dismissedOf.paths : NO_DISMISSED;
 
   // 探した文字を履歴に残す（打っている途中の文字ではなく、結果が出たもの）
   const resultQuery = result?.query.query;
   // 結果が変わったときだけ（履歴が変わっても足し直さない）
-  const remember = useEffectEvent((searched: string) => {
-    if (historyIndex.current < 0) setHistory(pushHistory(history, searched));
+  const remember = useEffectEvent((text: string) => {
+    if (historyIndex.current < 0) setHistory(pushHistory(history, text));
   });
   useEffect(() => {
     if (resultQuery) remember(resultQuery);
   }, [resultQuery]);
 
-  const files = useMemo(() => visibleResults(result?.value.files ?? [], dismissed), [result, dismissed]);
+  const files = visibleResults(result?.value.files ?? [], dismissed);
 
   return {
     query,
@@ -119,16 +105,15 @@ export function useProjectSearch(projectId: number) {
     result,
     /** 結果から外したものを除いたファイル */
     files,
-    error,
-    loading,
-    rerun: () => query && void run(current),
+    error: searched.error ? errorMessage(searched.error) : undefined,
+    loading: Boolean(query) && searched.loading,
+    rerun: () => query && void searched.reload(),
     /** 結果からファイル（line なし）・行を外す */
-    dismiss: (path: string, line?: number) => setDismissed((prev) => new Set(prev).add(line === undefined ? path : lineKey(path, line))),
+    dismiss: (path: string, line?: number) => setDismissedOf({ of: result, paths: new Set(dismissed).add(line === undefined ? path : lineKey(path, line)) }),
     /** 検索の文字と結果を消す */
     clear: () => {
       historyIndex.current = -1;
       setQueryState("");
-      setDismissed(new Set());
     },
     /** 入力欄の ↑（older）・↓ で履歴をたどる。たどれなければ false */
     stepHistory: (older: boolean): boolean => {
