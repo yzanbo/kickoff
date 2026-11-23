@@ -8,18 +8,18 @@ import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { GitHubBodyContext, GitHubHtml } from "./GitHubHtml";
+import { GitHubHtml } from "./GitHubHtml";
 import { GitHubChecksList } from "./GitHubChecksList";
 import { GitHubLinkedPulls, GitHubMergeBadges } from "./GitHubDetailBadges";
 import { GitHubPullChanges } from "./GitHubPullChanges";
 import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
 import { GitHubStateChip } from "./GitHubStateIcon";
-import { GitHubAuthor, GitHubTime, GitHubTimeline, ThreadHandoffContext } from "./GitHubTimeline";
+import { GitHubAuthor, GitHubTime, GitHubTimeline } from "./GitHubTimeline";
 import { GitHubHandoffMenu } from "./GitHubHandoffMenu";
 import { GitHubCommentBox } from "./GitHubCommentBox";
 import { GitHubLabelPicker } from "./GitHubLabelPicker";
 import { GitHubPullActions } from "./GitHubPullActions";
-import { ThreadActionsContext, type ThreadActions } from "./GitHubThreadActions";
+import { GitHubDetailProvider, type GitHubDetailValue, type ThreadActions } from "./githubDetailContext";
 import { fixReviewComments } from "./githubHandoff";
 import { linkOf } from "./githubPrompt";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
@@ -130,9 +130,13 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
       <ErrorText message={detail.error ?? undefined} />
       {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
       {data && (
-        <ThreadHandoffContext.Provider value={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}>
-        <ThreadActionsContext.Provider value={isPull(data) ? threadActions : null}>
-        <DetailBody projectId={projectId} detail={data} files={isPull(data) && view === "files"}>
+        <DetailBody
+          projectId={projectId}
+          detail={data}
+          files={isPull(data) && view === "files"}
+          threadActions={isPull(data) ? threadActions : null}
+          handOffThread={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}
+        >
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList projectId={projectId} checks={data.checks} />
           ) : isPull(data) && view === "files" ? (
@@ -151,8 +155,6 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
             </>
           )}
         </DetailBody>
-        </ThreadActionsContext.Provider>
-        </ThreadHandoffContext.Provider>
       )}
     </section>
   );
@@ -162,14 +164,21 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
  * 中身の本文の入れ物（本文の中のこのリポジトリの #番号 のリンクは Kickoff の中で開き、選んだ文は右クリックでチャットに追加。useGitHubBodyActions）。
  * files は PR の「変更」（入れ物は流さず、中のファイルの木と差分がそれぞれ流れる）
  */
-function DetailBody({ projectId, detail, files = false, children }: { projectId: number; detail: Detail; files?: boolean; children: ReactNode }) {
+function DetailBody({
+  projectId,
+  detail,
+  files = false,
+  threadActions,
+  handOffThread,
+  children,
+}: { projectId: number; detail: Detail; files?: boolean; children: ReactNode } & Omit<GitHubDetailValue, "place">) {
   const actions = useGitHubBodyActions(projectId, detail);
   return (
-    <GitHubBodyContext.Provider value={actions.place}>
+    <GitHubDetailProvider value={{ place: actions.place, threadActions, handOffThread }}>
       <div className={cx("github-detail-body", files && "files")} onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
         {children}
         {actions.menu}
       </div>
-    </GitHubBodyContext.Provider>
+    </GitHubDetailProvider>
   );
 }

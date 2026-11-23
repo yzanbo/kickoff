@@ -1,20 +1,13 @@
-import { createContext, useContext, useState } from "react";
+import { useState } from "react";
 import type { GitHubReviewThread } from "@shared/github/types";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { useGitHubDetailContext } from "./githubDetailContext";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
-
-/** 行のスレッドへの返信と解決（PR の中身が渡す。返信・解決済みにするのは人） */
-export interface ThreadActions {
-  reply: (thread: GitHubReviewThread, body: string) => Promise<void>;
-  resolve: (thread: GitHubReviewThread, resolved: boolean) => Promise<void>;
-}
-
-export const ThreadActionsContext = createContext<ThreadActions | null>(null);
 
 /** スレッドの下の「返信」（押すと書く欄を開く）と「解決済みにする / 解決を戻す」（どちらもそのアカウントにできるときだけ）。PR の中身の外（渡されていない所）では出さない */
 export function GitHubThreadActions({ thread }: { thread: GitHubReviewThread }) {
-  const actions = useContext(ThreadActionsContext);
+  const actions = useGitHubDetailContext().threadActions;
   const [writing, setWriting] = useState(false);
   const [text, setText] = useState("");
   const action = useAction<"reply" | "resolve">();

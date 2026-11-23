@@ -1,8 +1,9 @@
-import { createContext, useContext, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, ChevronRight, GitCommitHorizontal } from "lucide-react";
 import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/github/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { formatFullStamp, relativeTime } from "@/foundation/ui/lib/time";
+import { useGitHubDetailContext } from "./githubDetailContext";
 import { GitHubHtml } from "./GitHubHtml";
 import { GitHubThreadActions } from "./GitHubThreadActions";
 
@@ -34,9 +35,6 @@ const REVIEW_TEXT: Record<string, string> = {
   pending: "レビューを書いています",
 };
 
-/** スレッドごとの「AI に渡す」（PR の中身が渡す。そのスレッドだけでレビューコメントで直す。ないところでは出さない） */
-export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) => void) | null>(null);
-
 /**
  * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント・返信と解決（PR の中身の中だけ））。
  * 解決済みのものは畳んでおき（見出しとコメントの数だけ）、見出しの ▸ で開く。解決を戻した・解決したら、また既定の開き方に戻す。
@@ -44,7 +42,7 @@ export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) 
  */
 export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {
   const line = thread.line ?? thread.original_line;
-  const handoff = useContext(ThreadHandoffContext);
+  const handoff = useGitHubDetailContext().handOffThread;
   // 手で開け閉めした覚え（解決済みかが変わったら捨てる）
   const [manual, setManual] = useState<{ resolved: boolean; open: boolean } | null>(null);
   const open = manual && manual.resolved === thread.resolved ? manual.open : !thread.resolved;
