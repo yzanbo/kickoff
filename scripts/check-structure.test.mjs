@@ -13,7 +13,8 @@ import {
   checkSqlTables,
   compareWithBaseline,
   countLines,
-  cssClassesIn,
+  cssSelectorsIn,
+  firstCssClass,
   findSiblingCycles,
   globToRegExp,
   parseImports,
@@ -320,33 +321,38 @@ test("SQL の表の持ち主: 持ち主の外で書けば違反。ignoreNames �
   assert.deepEqual(keys(checkSqlTables(sources, config)), ["sql:src/core/board/list.ts:chats"]);
 });
 
-test("CSS のクラスを拾う: 子孫・:hover・:not()・@media の中。コメント・文字・url()・宣言の値は拾わない", () => {
+test("CSS のセレクター: カンマで分ける（括弧の中は分けない）。@media の中も拾い、@keyframes の中・コメント・文字・url()・宣言は拾わない", () => {
   const css = [
     "/* .commented { } */",
-    ".chat-row:hover .x, .chat-row.is-open { color: red; margin: .5rem; }",
-    "@media (max-width: 600px) { .a:not(.b) > .c { background: url(./img.d.png); } }",
-    '.e::before { content: ".f"; }',
+    ".chat-row:hover .x, :is(.a, .b) > .c { color: red; margin: .5rem; }",
+    "@media (max-width: 600px) { .d { background: url(./img.e.png); } }",
+    "@keyframes spin { 0% { opacity: .5; } }",
+    '.f::before { content: ".g"; }',
   ].join("\n");
-  assert.deepEqual(cssClassesIn(css), ["chat-row", "x", "is-open", "a", "b", "c", "e"]);
+  assert.deepEqual(cssSelectorsIn(css), [".chat-row:hover .x", ":is(.a, .b) > .c", ".d", ".f::before"]);
 });
 
-test("CSS のクラスの持ち主: いちばん長い頭の持ち主だけ。頭のないクラスは free の CSS だけ", () => {
+test("CSS の最初のクラス: 括弧の外を先に、外になければ括弧の中。クラスがなければ null", () => {
+  const selectors = [".menu.option-menu button", "html .agent-panel .composer", ":where(.compact) .chip", ".dot:is(.row *)", ":is(.head)", "textarea[hidden]"];
+  assert.deepEqual(selectors.map(firstCssClass), ["menu", "agent-panel", "chip", "dot", "head", null]);
+});
+
+test("CSS のクラスの持ち主: 最初のクラスを 2 つの領域が書くと、書いた CSS がどれも違反。中の部品・:is() の中・同じ領域は見逃す", () => {
   const sources = new Map([
-    ["src/chat/a.css", ".chat-row {} .chat-list-row {} .btn {}"],
-    ["src/list/b.css", ".chat-list-row {}"],
-    ["src/ui/c.css", ".btn {} .chat-row {}"],
+    ["src/features/chat/ui/a.css", ".chat-row {} .user-message .chip {} .chip:is(.user-message *) {}"],
+    ["src/features/chat/ui/b.css", ".chat-row.open {}"],
+    ["src/features/talk/ui/c.css", ".user-message {} .chat-row .x {}"],
+    ["src/foundation/ui/d.css", ".btn {}"],
+    ["src/features/talk/ui/e.css", ".talk .btn {}"],
   ]);
-  const config = {
-    cssClasses: {
-      files: ["src/**/*.css"],
-      owners: [
-        { prefix: "chat-", owner: ["src/chat/**"] },
-        { prefix: "chat-list-", owner: ["src/list/**"] },
-      ],
-      free: ["src/ui/**"],
-    },
-  };
-  assert.deepEqual(keys(checkCssClasses(sources, config)), ["css:src/chat/a.css:chat-list-row", "css:src/chat/a.css:btn", "css:src/ui/c.css:chat-row"]);
+  const config = { cssClasses: { files: ["src/**/*.css"], areas: ["src/features/*", "src/foundation"] } };
+  assert.deepEqual(keys(checkCssClasses(sources, config)).sort(), [
+    "css:src/features/chat/ui/a.css:chat-row",
+    "css:src/features/chat/ui/a.css:user-message",
+    "css:src/features/chat/ui/b.css:chat-row",
+    "css:src/features/talk/ui/c.css:chat-row",
+    "css:src/features/talk/ui/c.css:user-message",
+  ]);
 });
 
 test("禁じる書き方: 呼び出し・参照・引数なしの new・型の引数の合う new を数える。コメント・文字・allow・テストは数えない", () => {

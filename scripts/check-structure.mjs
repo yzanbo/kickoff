@@ -15,7 +15,7 @@ import { checkCssClasses, checkPatterns, checkSqlTables } from "./structure/cont
 
 export { buildGraph, expandLayers, globToRegExp, matchesAny, parseImports, resolveSpecifier } from "./structure/parse.mjs";
 export { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles, findSingleUse } from "./structure/checks.mjs";
-export { checkCssClasses, checkPatterns, checkSqlTables, countForbidden, cssClassesIn, sqlTablesIn } from "./structure/content.mjs";
+export { checkCssClasses, checkPatterns, checkSqlTables, countForbidden, cssSelectorsIn, firstCssClass, sqlTablesIn } from "./structure/content.mjs";
 
 /** 違反の種類（基準線の並び順）。値を持つ種類は、基準線に { 鍵: 値 } で載せ、値が増えたら落とす */
 export const KINDS = ["import", "public", "cycle", "size", "native", "sql", "css", "pattern", "placement"];

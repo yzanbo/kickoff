@@ -8,3 +8,4 @@
 @import "@/foundation/ui/styles/types/index.css" layer(ui);
 @import "@/foundation/ui/styles/types/manage-list.css" layer(feature);
 @import "@/foundation/ui/styles/state.css" layer(state);
+/* 機能の CSS は各部品が import する（この順に頼らない） */

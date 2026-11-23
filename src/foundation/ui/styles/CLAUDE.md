@@ -1,9 +1,9 @@
 # CSS の決まり
 
-入口 `@/app/renderer/styles/index.css` が土台とまだ移していない機能の CSS を読み、ほかは部品が import する。
+入口 `@/app/renderer/styles/index.css` は土台の CSS だけを読み、機能の CSS は部品が import する。
 
 ## 層と順
-- `index.css` は `@layer …;` と `@import … layer(…)` だけ。1 ファイル 300 行以内。部品の CSS は `@layer feature { … }`（土台は `ui`）で包む。
+- `index.css` は `@layer …;` と `@import … layer(…)` だけ。部品の CSS は `@layer feature { … }`（土台は `ui`）で包む。
 - 層は前から `tokens`（`tokens.css`。末尾に画面のコードが与える変数）・`base`（リセット・ピント・スクロールバー）・`vendor`（部品の隣の `*.vendor.css`）・`ui`・`feature`（機能と殻の `layout.css` ほか）・`state`（`state.css` の状態の印）。後ろの層が詳細度によらず勝つ。
 - 実行時に style を差す CodeMirror・Monaco の上書きは層の外の `*.unlayered.css`。xterm・codicon の CSS も層の外（直に import）。
 - 別のファイルの同じ詳細度の規則を上書きしない（部品の CSS は読む順が決まらない）。上書きは詳細度か、同じファイルの後ろで。
@@ -11,17 +11,17 @@
 ## 置き場所
 - 規則は部品の隣の `<部品>.css` に書き、部品の先頭で import（複数の部品が使うなら外側の部品）。素のクラスでどこでも使う見た目（`.menu`・`.dialog`・入力欄）は `types/`。
 - 基底を上書きする `@media` / `@container` は、その基底と同じファイルの後ろに置く。
+- セレクタの最初のクラスは 1 つの領域（機能・土台・殻）の CSS だけが書く。ほかの領域の中だけで変えるなら、入れ物の持ち主の CSS か `.自分:is(.入れ物 *)`。
 
 ## 書き方
 - 同じ宣言のブロックを増やさない（省略の `overflow` `text-overflow` `white-space` は各規則に書いてよい）。
 - 札・ピル・カード・浮く窓・帯・ボタン・切り替え・行・木・開閉・空の文ほかは `types/` の型を付け、色・枠・角・影は型の変数で入れる。機能のクラスには大きさと並べ方を書く。
 - 並べ替えの線と動かしている物は `dragAttrs`（`data-drop`・`data-drag-source`。形は `--drop-*`）。
-- 効かない指定を書かない。
 - 大きさを決めたボタンは `padding: 0` にし、中身は `place-items: center` で真ん中に置く（負の `margin` で合わせない）。アイコンだけなら `IconButton`（大きさは `size`、ほかは className で幅と高さだけ）。
 - 色の地のボタン（`.btn-primary`・`.btn-danger`）は乗せると同じ色で少し暗く（それぞれに `:hover:not(:disabled)`）。
-- ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側。`.panel-split-button`）。
-- 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、一番下へのボタンの状態）。
-- 新しいクラス名は CSS と組み立てるクラスを探し、領域の頭を付ける（1 語は避ける）。
+- ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側）。
+- 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `provider-` `head-`）。
+- 新しいクラス名は領域の頭を付ける（1 語は避ける）。
 - 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。Git・PR・CI は属性（`types/state-colors.css`）。プロジェクトの札の色は `ProjectMark.css`。アクセントの色の文字は `--accent-fg`。
 - 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
 - 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中はボタンの文字の色）。

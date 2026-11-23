@@ -61,8 +61,7 @@
  *
  * @typedef {Object} CssRule
  * @property {string[]} files            見る CSS
- * @property {{ prefix: string, owner: string[] }[]} owners  クラスの頭 → そのクラスを書いてよい CSS の glob（いちばん長い頭を当てる）
- * @property {string[]} free             どの頭の持ち主でもないクラスを書いてよい CSS（土台の共通の型）
+ * @property {string[]} areas            領域のフォルダの glob（例 "src/features/*"。* が 1 つの機能に当たる）。最初のクラスを書く CSS の領域が 1 つか見る
  *
  * @typedef {Object} PatternRule
  * @property {string} name
@@ -191,7 +190,8 @@ export default {
   // window.kickoff（IPC）を直に触ってよいのは、画面の土台と機能の ui/native.ts だけ
   nativeAccess: { files: RENDERER, allow: ["src/foundation/ui/**", "src/features/*/ui/native.ts"] },
   sqlTables: { files: [], owners: {} },
-  cssClasses: { files: [], owners: [], free: [] },
+  // セレクターの最初のクラスは 1 つの領域（機能・土台・殻）の CSS だけが書く（ほかの領域の要素の中だけで変えるなら、入れ物の持ち主の CSS か .自分:is(.入れ物 *)）
+  cssClasses: { files: ["src/**/*.css"], areas: ["src/features/*", "src/foundation", "src/app"] },
   patterns: [
     // 時間に頼る処理は Clock（@/foundation/core/clock）を受ける。テストの時計（manualClock）で進められるように
     {

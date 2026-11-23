@@ -45,7 +45,7 @@ export function checkFileSizes(lineCounts, config) {
 }
 
 /** ファイルの祖先のフォルダ（外側から） */
-function ancestors(file) {
+export function ancestors(file) {
   const parts = file.split("/").slice(0, -1);
   return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
 }

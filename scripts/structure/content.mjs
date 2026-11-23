@@ -2,7 +2,7 @@
 // コードは構文木（oxc-parser）で読み、コメントを拾わない
 import { Visitor } from "oxc-parser";
 import { expandLayers, isCodeFile, matchesAny, parseCode } from "./parse.mjs";
-import { skipsTest } from "./checks.mjs";
+import { ancestors, skipsTest } from "./checks.mjs";
 
 /**
  * SQL の表の名前の前に来る言葉。このリポジトリの SQL は大文字で書くので、言葉は大文字だけを見る
@@ -49,37 +49,91 @@ export function checkSqlTables(sources, config) {
   return out;
 }
 
-/** CSS のクラスのセレクターの名前（コメント・文字・url() と、宣言の中の値は見ない。:not(.x) の中も拾う） */
-export function cssClassesIn(css) {
+/** CSS の規則のセレクター（コメント・文字・url() と宣言は見ない。@media などの中も拾い、@keyframes の中は拾わない。カンマで分けて返す） */
+export function cssSelectorsIn(css) {
   const text = css
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""')
     .replace(/url\([^)]*\)/g, "url()");
-  const found = new Set();
+  const selectors = [];
+  const keyframes = [];
   let chunk = "";
   for (const c of text) {
     if (c === "{") {
       // 「{」の前はセレクターか @ の規則の前置き
-      for (const m of chunk.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) found.add(m[1]);
+      const head = chunk.trim().replace(/\s+/g, " ");
+      const inKeyframes = keyframes.includes(true);
+      keyframes.push(/^@(-webkit-)?keyframes\b/.test(head));
+      if (!head.startsWith("@") && !inKeyframes) selectors.push(...splitTopLevel(head));
       chunk = "";
-    } else if (c === ";" || c === "}") chunk = "";
+    } else if (c === "}") {
+      keyframes.pop();
+      chunk = "";
+    } else if (c === ";") chunk = "";
     else chunk += c;
   }
-  return [...found];
+  return selectors;
 }
 
-/** CSS のクラスの持ち主: いちばん長い頭の持ち主の CSS だけがそのクラスを書く。どの頭にも合わないクラスは free の CSS だけ */
+/** 括弧の外のカンマで分ける（:is(.a, .b) の中では分けない） */
+function splitTopLevel(selector) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const c of selector) {
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    if (c === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+    } else current += c;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+const CLASS_NAME = /^\.(-?[_a-zA-Z][\w-]*)/;
+
+/** セレクターの最初のクラス。括弧の外を先に見て、外になければ括弧の中の最初（:where(.a) .b は b、:is(.a) は a）。クラスがなければ null */
+export function firstCssClass(selector) {
+  let depth = 0;
+  for (let i = 0; i < selector.length; i++) {
+    const c = selector[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    else if (c === "." && depth === 0) {
+      const m = CLASS_NAME.exec(selector.slice(i));
+      if (m) return m[1];
+    }
+  }
+  const m = /\.(-?[_a-zA-Z][\w-]*)/.exec(selector);
+  return m ? m[1] : null;
+}
+
+/**
+ * CSS のクラスの持ち主: セレクターの最初のクラスは、1 つの領域（areas に合うフォルダ。機能・土台・殻）の CSS だけが書く。
+ * ほかの領域の要素の中だけで変える規則は、入れ物の持ち主の CSS へ移すか、`.自分:is(.入れ物 *)` と書く
+ */
 export function checkCssClasses(sources, config) {
   const rule = config.cssClasses ?? {};
-  const owners = [...(rule.owners ?? [])].sort((a, b) => b.prefix.length - a.prefix.length);
-  const out = [];
+  const writers = new Map();
   for (const [file, source] of sources) {
     if (!file.endsWith(".css") || !matchesAny(file, rule.files ?? [])) continue;
-    for (const name of cssClassesIn(source)) {
-      const owner = owners.find((o) => name.startsWith(o.prefix));
-      if (owner ? matchesAny(file, owner.owner) : matchesAny(file, rule.free ?? [])) continue;
-      const why = owner ? `頭 ${owner.prefix} の持ち主（${owner.owner.join("・")}）の CSS だけが書く` : "どの頭の持ち主でもないクラスは土台の共通の型の CSS だけが書く";
-      out.push({ kind: "css", key: `css:${file}:${name}`, message: `${file}: .${name} は${why}` });
+    const area = ancestors(file).find((dir) => matchesAny(dir, rule.areas ?? [])) ?? file;
+    for (const selector of cssSelectorsIn(source)) {
+      const name = firstCssClass(selector);
+      if (name === null) continue;
+      if (!writers.has(name)) writers.set(name, new Map());
+      const files = writers.get(name);
+      if (!files.has(file)) files.set(file, area);
+    }
+  }
+  const out = [];
+  for (const [name, files] of writers) {
+    const areas = [...new Set(files.values())];
+    if (areas.length < 2) continue;
+    for (const [file] of files) {
+      out.push({ kind: "css", key: `css:${file}:${name}`, message: `${file}: .${name} を最初のクラスに書く領域が 2 つある（${areas.join("・")}）。入れ物の持ち主の CSS へ移すか、.自分:is(.${name} *) と書く` });
     }
   }
   return out;
