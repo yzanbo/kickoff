@@ -118,7 +118,9 @@ export function ghApi(repo: string | null, host: string = GITHUB_DEFAULT_HOST): 
       const items: unknown[] = [];
       for (let page = 1; page <= maxPages; page++) {
         const sep = path.includes("?") ? "&" : "?";
-        const out = JSON.parse(await runGhApi([`${path}${sep}per_page=100&page=${page}`], repo, host)) as unknown[];
+        const out: unknown = JSON.parse(await runGhApi([`${path}${sep}per_page=100&page=${page}`], repo, host));
+        // 一覧を頼んだのに配列でない（エラーの本文など）なら、続けずに止める
+        if (!Array.isArray(out)) throw new Invalid(`GitHub の答えが一覧ではありませんでした（${path}）`);
         items.push(...out);
         if (out.length < 100) return { items, truncated: false };
       }

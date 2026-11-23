@@ -1,31 +1,19 @@
-// API のテスト: 作業場所のブランチの PR（GET・POST …/git/pr）。gh は PATH に置いた偽物（呼ばれた引数を書き残し、決まった答えを返す）
+// API のテスト: 作業場所のブランチの PR（GET・POST …/git/pr）。gh は PATH に置いた偽物（testing/fakeGh.ts）
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { test, vi } from "vitest";
+import { test } from "vitest";
 import type { PullRequestInfo } from "@shared/git/types";
 import { setup } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { fakeGh } from "@/features/github/core/testing/fakeGh";
 
 const PR = { number: 7, url: "https://github.com/o/r/pull/7", title: "直す", state: "OPEN", isDraft: false };
 
-/** 偽の gh を PATH の先頭に置き、呼ばれた引数（1 回 1 行）を読む口を返す */
-function fakeGh() {
-  const bin = tempDir();
-  const log = path.join(bin, "calls.log");
-  const script = [
-    "#!/bin/sh",
-    `echo "$*" >> '${log}'`,
-    'case "$*" in',
-    `  "pr view 7 "*"--json body") echo '{"body":"本文"}' ;;`,
-    `  "pr view "*) echo '${JSON.stringify(PR)}' ;;`,
-    "esac",
-  ].join("\n");
-  fs.writeFileSync(path.join(bin, "gh"), `${script}\n`, { mode: 0o755 });
-  vi.stubEnv("PATH", `${bin}${path.delimiter}${process.env.PATH ?? ""}`);
-  return () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").trim().split("\n") : []);
-}
+/** 偽の gh（PR の中身・本文を返す） */
+const ghWithPr = () => fakeGh([
+  ['"pr view 7 "*"--json body"', '{"body":"本文"}'],
+  ['"pr view "*', JSON.stringify(PR)],
+]);
 
 /** GitHub の remote（取ってくる側）と、プッシュ先の手元の裸のリポジトリを持つプロジェクト */
 function prSetup() {
@@ -39,7 +27,7 @@ function prSetup() {
 }
 
 test("ブランチの PR: origin がなければ null、あれば gh pr view の答え（連携先を --repo で渡す）", async () => {
-  const calls = fakeGh();
+  const calls = ghWithPr();
   const { call, project, git } = prSetup();
   git("remote", "remove", "origin");
   assert.equal((await call("GET", `/api/projects/${project.id}/git/pr`)).body, null);
@@ -51,7 +39,7 @@ test("ブランチの PR: origin がなければ null、あれば gh pr view の
 });
 
 test("PR を作る: branch を渡すとそのブランチをプッシュしてから gh pr create、結び付いた issue があれば Closes を足す", async () => {
-  const calls = fakeGh();
+  const calls = ghWithPr();
   const { call, base, store, project, bare, git } = prSetup();
   git("switch", "-q", "-c", "feature/x");
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "issue のチャット", status: "completed", model: null });
