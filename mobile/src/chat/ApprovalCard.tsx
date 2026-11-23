@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import type { Approval, ApprovalDecision, Question } from "@shared/chat/approvalTypes";
-import { toolSummary } from "../lib/timeline";
+import { toolText } from "../lib/timeline";
 import { Button } from "../ui/Button";
 import { colors, ui } from "../ui/theme";
 
@@ -30,7 +30,7 @@ export function ApprovalCard({ approval, canAnswer, onResolve }: Props) {
   return (
     <View style={[ui.card, { borderColor: colors.warn }]}>
       <Text style={ui.title}>{title}</Text>
-      {approval.kind === "permission" && <Text style={[ui.muted, { fontFamily: "monospace" }]}>{toolSummary(approval.tool_name, approval.input)}</Text>}
+      {approval.kind === "permission" && <Text style={[ui.muted, { fontFamily: "monospace" }]}>{toolText.describeApprovalInput(approval.tool_name, approval.input)}</Text>}
       {approval.description && <Text style={ui.muted}>{approval.description}</Text>}
       {canAnswer ? (
         <View style={[ui.row, { marginTop: 6 }]}>

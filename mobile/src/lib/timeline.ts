@@ -6,6 +6,8 @@ import type { BusEvent } from "@shared/foundation/contract";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/visuals/aiVisual";
 import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
 import { providerAtEvent, providerBoundaries, providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
+import { createToolText } from "@shared/chat/toolText";
+import { AI_TOOL_VIEWS } from "@/app/shared/aiToolViews";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =
@@ -34,15 +36,10 @@ export function applyEventToLog(events: readonly ChatEvent[], chatId: number, e:
   return events as ChatEvent[];
 }
 
-/** ツールの呼び出しの 1 行の説明（コマンド・パス・頼みの文など、入力のうち分かりやすいもの 1 つ） */
-export function toolSummary(name: string, input: unknown): string {
-  const i = (input ?? {}) as Record<string, unknown>;
-  const pick = ["command", "file_path", "path", "pattern", "url", "description", "query", "prompt"].map((k) => i[k]).find((v) => typeof v === "string" && v.trim());
-  const text = typeof pick === "string" ? pick.replace(/\s+/g, " ").trim() : "";
-  return text.length > 120 ? `${text.slice(0, 119)}…` : text || name;
-}
+/** ツールの名前と 1 行の説明（デスクトップと同じ表と決まり） */
+export const toolText = createToolText(AI_TOOL_VIEWS);
 
-const END_LABELS: Record<TurnEndStatus, string> = { completed: "終わりました", failed: "失敗しました", cancelled: "止めました" };
+const TURN_END_LABELS: Record<TurnEndStatus, string> = { completed: "終わりました", failed: "失敗しました", cancelled: "止めました" };
 
 /** 記録から画面の行を作る（サブエージェントの中の発言・ツール・思考・セッションの始まりは出さない） */
 export function timelineOf(events: readonly ChatEvent[], currentProvider?: ProviderId): TimelineItem[] {
@@ -72,7 +69,7 @@ export function timelineOf(events: readonly ChatEvent[], currentProvider?: Provi
           visualCalls.set(e.data.id, item);
           items.push(item);
         } else if (!e.data.parent) {
-          const item = { kind: "tool" as const, id: e.id, name: e.data.name, summary: toolSummary(e.data.name, e.data.input), state: "running" as const };
+          const item = { kind: "tool" as const, id: e.id, name: toolText.toolLabel(e.data.name), summary: toolText.describeToolInput(e.data.name, (e.data.input ?? {}) as Record<string, unknown>).replace(/\s+/g, " ").trim(), state: "running" as const };
           tools.set(e.data.id, item);
           items.push(item);
         }
@@ -98,7 +95,7 @@ export function timelineOf(events: readonly ChatEvent[], currentProvider?: Provi
         }
         break;
       case "result":
-        items.push({ kind: "end", id: e.id, status: END_LABELS[e.data.status], text: e.data.status === "failed" ? (e.data.text ?? null) : null });
+        items.push({ kind: "end", id: e.id, status: TURN_END_LABELS[e.data.status], text: e.data.status === "failed" ? (e.data.text ?? null) : null });
         break;
       case "error":
         items.push({ kind: "notice", id: e.id, text: e.data.message });

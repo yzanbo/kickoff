@@ -4,12 +4,12 @@ Android から Tailscale 経由で本体（Mac の Kickoff）のチャットを�
 
 ## 置き場所と依存
 - 別の npm のまとまり（`package.json`・`node_modules` も別。本体と React の版・依存が違うので混ぜない）。本体からは import しない。
-- `@shared/*` は `tsconfig.json` の `paths` と `metro.config.js` の `watchFolders`。本体のコードは `@shared` のほかを読まない。
+- `@shared/*`・`@/app/shared/*` は `tsconfig.json` の `paths` と `metro.config.js` の `watchFolders`。本体のコードはこの 2 つのほかを読まない（構造の検査）。
 - Expo は版ごとに API が変わる。書く前に `package.json` の版の文書と `https://docs.expo.dev/llms.txt` を読む。部品は `npx expo install`。
 - 画面は Expo Router（`src/app/` の 1 ファイル = 1 画面）。画面でないものは `src/app/` の外に置く。
 
 ## 中身
-- `src/lib/`: 純粋な関数（本体の `npm test` が流す。API `client.ts`・SSE `sse.ts`・つながり `connection.ts`・版 `version.ts`）。
+- `src/lib/`: 純粋な関数（本体の `npm test` が流す。API `hostApi.ts`（端末に開いた口の取り決めの `createClient`）・SSE `sse.ts`・つながり `connection.ts`・版 `version.ts`）。
 - `src/state/`: 本体ごとのつながり・本体の一覧（SecureStore）・プッシュ。`src/chat/`: 会話の部品。色は `src/ui/colors.ts`。
 - パソコンと同じ決まりは `@shared` の関数を使い、写さない（書いている途中の返答・作業場所の区切り・数式・図）。
 - 見るだけの端末は、送る・答える・作る操作を出さない（本体も断る）。本体は本体の ID で分ける。

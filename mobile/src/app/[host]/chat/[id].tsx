@@ -4,9 +4,10 @@ import { Alert, FlatList, KeyboardAvoidingView, Pressable, Text, View } from "re
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ApprovalCard } from "../../../chat/ApprovalCard";
 import { Composer } from "../../../chat/Composer";
+import { QueueCard } from "../../../chat/QueueCard";
+import { WorkplaceMoveCard } from "../../../chat/WorkplaceMoveCard";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
-import { workplaceMoveReservationText } from "@shared/workplaceMove/aiWorkplace";
 import { PROVIDER_LABELS } from "@shared/settings/types";
 import { restrictionNotice } from "@shared/chat/restrictionNotice";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
@@ -33,40 +34,16 @@ export default function ChatScreen() {
         data={items}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
         contentContainerStyle={{ padding: 12, gap: 10 }}
-        renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => confirmPrompt(t, () => void client.queue(chatId, t)) : undefined} />}
+        renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => confirmPrompt(t, () => void client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t, when: "later" } })) : undefined} />}
         ListHeaderComponent={
           <View style={{ gap: 10 }}>
             {streaming ? <Text style={[ui.text, { opacity: 0.8 }]}>{streaming}</Text> : running ? <Text style={ui.muted}>作業中…</Text> : null}
             {approvals.map((a) => (
-              <ApprovalCard key={a.id} approval={a} canAnswer={canWrite} onResolve={(d) => (client ? client.resolveApproval(a.id, d) : Promise.resolve())} />
+              <ApprovalCard key={a.id} approval={a} canAnswer={canWrite} onResolve={(d) => (client ? client.api("POST /api/approvals/:approvalId", { params: { approvalId: a.id }, body: d }) : Promise.resolve())} />
             ))}
-            {/* AI が作業場所を移す予約（取り消すと移らない。見るだけの端末は見えるだけ） */}
-            {live?.workplace_move && (
-              <View style={[ui.card, ui.row]}>
-                <Text style={[ui.text, { flex: 1 }]}>{workplaceMoveReservationText(live.workplace_move)}</Text>
-                {canWrite && (
-                  <Pressable onPress={() => void client?.cancelWorkplaceMove(chatId).catch((e: unknown) => Alert.alert("取り消せませんでした", e instanceof Error ? e.message : String(e)))} hitSlop={8}>
-                    <Text style={{ color: colors.ng }}>移らない</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
+            {live?.workplace_move && <WorkplaceMoveCard move={live.workplace_move} onCancel={canWrite && client ? () => client.api("DELETE /api/chats/:chatId/workplace-move", { params: { chatId } }) : null} />}
             {live && live.queue.messages.length > 0 && (
-              <View style={ui.card}>
-                <Text style={ui.muted}>送信待ち {live.queue.messages.length} 件{live.queue.paused ? "（一時停止中）" : ""}</Text>
-                {live.queue.messages.map((m) => (
-                  <View key={m.id} style={ui.row}>
-                    <Text style={[ui.text, { flex: 1 }]} numberOfLines={2}>
-                      {m.text || "（添付だけ）"}
-                    </Text>
-                    {canWrite && (
-                      <Pressable onPress={() => void client?.removeQueued(chatId, m.id)} hitSlop={8}>
-                        <Text style={{ color: colors.ng }}>外す</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                ))}
-              </View>
+              <QueueCard queue={live.queue} onRemove={canWrite && client ? (queueId) => void client.api("POST /api/chats/:chatId/queue", { params: { chatId }, body: { commands: [{ op: "remove", ids: [queueId] }] } }) : null} />
             )}
           </View>
         }
@@ -83,10 +60,10 @@ export default function ChatScreen() {
         <Composer
           running={running}
           stopping={live?.stopping ?? false}
-          onSend={async (t) => void (await client.send(chatId, t))}
-          onTell={async (t) => void (await client.tell(chatId, t))}
-          onQueue={async (t) => void (await client.queue(chatId, t))}
-          onCancel={() => client.cancel(chatId)}
+          onSend={async (t) => void (await client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t } }))}
+          onTell={async (t) => void (await client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t, when: "now" } }))}
+          onQueue={async (t) => void (await client.api("POST /api/chats/:chatId/messages", { params: { chatId }, body: { text: t, when: "later" } }))}
+          onCancel={() => client.api("POST /api/chats/:chatId/cancel", { params: { chatId } })}
         />
       ) : (
         <Text style={[ui.muted, { padding: 12 }]}>この端末は「見るだけ」です（Mac の Kickoff の設定の「スマホ連携」で変えられます）</Text>
@@ -129,7 +106,7 @@ function Item({ item, onPrompt }: { item: TimelineItem; onPrompt?: (text: string
     case "tool":
       return (
         <Text style={[ui.muted, { fontFamily: "monospace" }]} numberOfLines={2}>
-          {item.state === "running" ? "…" : item.state === "ok" ? "✓" : "✕"} {item.name}: {item.summary}
+          {item.state === "running" ? "…" : item.state === "ok" ? "✓" : "✕"} {item.summary ? `${item.name}: ${item.summary}` : item.name}
         </Text>
       );
     case "answer":

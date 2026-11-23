@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Device from "expo-device";
 import type { PairingClaimResult } from "@shared/devices/types";
-import { HostClient } from "../lib/client";
+import { createHostApi } from "../lib/hostApi";
 import { hostNameOf } from "../lib/hosts";
 import { claimPairing, normalizeHostUrl, parsePairingLink, pollPairing, type PairingTarget } from "../lib/pairing";
 import { useHosts } from "../state/hosts";
@@ -49,7 +49,7 @@ export default function PairScreen() {
         if (result.status === "pending") return void setTimeout(() => alive && void tick(), POLL_MS);
         if (result.status === "approved") {
           // できること（使える / 見るだけ）は Mac の画面で選んだもの
-          const self = await new HostClient({ url: step.target.url, token: result.token }).self().catch(() => null);
+          const self = await createHostApi({ url: step.target.url, token: result.token }).api("GET /api/devices/self").catch(() => null);
           await registry.add(
             { host_id: result.host_id, url: step.target.url, name: hostNameOf(step.target.url), device_id: result.device_id, access: self?.access ?? "full", paired_at: new Date().toISOString() },
             result.token,

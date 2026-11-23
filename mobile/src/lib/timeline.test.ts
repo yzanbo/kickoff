@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeEvent } from "@shared/foundation/testing/factories";
-import { applyEventToLog, lastEventId, mergeEvents, timelineOf, toolSummary } from "./timeline";
+import { applyEventToLog, lastEventId, mergeEvents, timelineOf, toolText } from "./timeline";
 
 test("AI 切り替えの前後の返答は、それぞれの AI を表示する", () => {
   const items = timelineOf([
@@ -29,7 +29,7 @@ test("timelineOf: 自分の発言・メインの返答・ツールの 1 行（�
   ];
   assert.deepEqual(timelineOf(events), [
     { kind: "user", id: 1, text: "直して", note: null },
-    { kind: "tool", id: 3, name: "Bash", summary: "npm test", state: "error" },
+    { kind: "tool", id: 3, name: "コマンド", summary: "npm test", state: "error" },
     { kind: "assistant", id: 6, text: "直しました", math: false },
     { kind: "end", id: 8, status: "終わりました", text: null },
   ]);
@@ -77,8 +77,7 @@ test("mergeEvents・applyEventToLog: 同じ ID は置き換えて順に並べ、
   assert.deepEqual(rewound.map((e) => e.id), [1, 2]);
 });
 
-test("toolSummary: 分かりやすい入力を 1 行に（長ければ切る）。なければツールの名前", () => {
-  assert.equal(toolSummary("Edit", { file_path: "/x.ts", old_string: "a" }), "/x.ts");
-  assert.equal(toolSummary("Task", {}), "Task");
-  assert.equal(toolSummary("Bash", { command: "x".repeat(200) }).length, 120);
+test("toolText: スマホのツールの行もデスクトップと同じ表（名前の札と入力の 1 行）", () => {
+  assert.equal(toolText.describeToolInput("Edit", { file_path: "/x.ts", old_string: "a" }), "/x.ts");
+  assert.equal(toolText.toolLabel("mcp__kickoff_chat__get_user_view"), "画面を見る");
 });

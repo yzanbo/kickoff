@@ -18,7 +18,7 @@ test("applyHostEvent: チャット・プロジェクト・回答待ちを足す�
   assert.deepEqual([s.chats.length, s.approvals.length], [0, 0]);
 });
 
-test("chatSections: プロジェクトごとに、回答待ち → 作業中 → 未読 → 最後に動いた順。アーカイブ・子チャット・ノートのチャット・しまったプロジェクトは出さない", () => {
+test("chatSections: プロジェクトごとに、ボードと同じ急ぐ順（作業中 → 回答待ち → 未読 → 既読）→ 最後に動いた順。アーカイブ・子チャット・ノートのチャット・しまったプロジェクトは出さない", () => {
   const state = {
     projects: [makeProject(1), makeProject(2, { archived_at: "2026-01-01T00:00:00Z" })],
     chats: [
@@ -36,8 +36,8 @@ test("chatSections: プロジェクトごとに、回答待ち → 作業中 →
   const sections = chatSections(state);
   assert.equal(sections.length, 1);
   assert.deepEqual(sections[0].rows.map((r) => [r.chat.id, r.state]), [
-    [4, "needs_input"],
     [2, "running"],
+    [4, "needs_input"],
     [3, "unread"],
     [1, "read"],
   ]);

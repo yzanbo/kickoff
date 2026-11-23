@@ -5,7 +5,8 @@
     "noUnusedLocals": true,
     "types": ["node"],
     "paths": {
-      "@shared/*": ["../src/shared/*"]
+      "@shared/*": ["../src/shared/*"],
+      "@/app/shared/*": ["../src/app/shared/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "../src/shared/**/*.ts", "../src/app/shared/**/*.ts"],

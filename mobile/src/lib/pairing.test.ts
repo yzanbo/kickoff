@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { pairingLink } from "@shared/devices/pairing";
 import { API_VERSION_HEADER } from "@shared/foundation/api/version";
-import { ApiError, HostClient, withQuery } from "./client";
+import { ApiError, createHostApi } from "./hostApi";
 import { claimPairing, normalizeHostUrl, parsePairingLink } from "./pairing";
 import { hostMismatch } from "./version";
 
@@ -30,7 +30,7 @@ test("hostMismatch: 本体が受けるアプリの下限より古ければアプ
   assert.equal(hostMismatch({ api_version: 0, min_client_api_version: 0 }), "host_too_old");
 });
 
-test("HostClient: トークンと API の版の見出しを付けて呼び、断られたら状態と印の ApiError", async () => {
+test("createHostApi: 取り決めのキーで、トークンと API の版の見出しを付けて呼び、断られたら状態と印の ApiError", async () => {
   const calls: { url: string; init: RequestInit }[] = [];
   const fakeFetch = (async (url: string, init: RequestInit) => {
     calls.push({ url, init });
@@ -38,16 +38,15 @@ test("HostClient: トークンと API の版の見出しを付けて呼び、断
     if (url.endsWith("/cancel")) return new Response(null, { status: 204 });
     return new Response(JSON.stringify([{ id: 1 }]), { status: 200 });
   }) as unknown as typeof fetch;
-  const client = new HostClient({ url: "https://mac.ts.net", token: "t" }, fakeFetch);
-  assert.deepEqual(await client.projects(), [{ id: 1 }]);
+  const client = createHostApi({ url: "https://mac.ts.net", token: "t" }, fakeFetch);
+  assert.deepEqual(await client.api("GET /api/projects"), [{ id: 1 }]);
   const headers = calls[0].init.headers as Record<string, string>;
   assert.equal(headers.authorization, "Bearer t");
   assert.equal(headers[API_VERSION_HEADER], "1");
-  assert.equal(await client.cancel(1), undefined);
-  await assert.rejects(client.send(1, "hi"), (e: unknown) => e instanceof ApiError && e.status === 403 && e.code === "device_read_only");
+  assert.equal(await client.api("POST /api/chats/:chatId/cancel", { params: { chatId: 1 } }), undefined);
+  await assert.rejects(client.api("POST /api/chats/:chatId/messages", { params: { chatId: 1 }, body: { text: "hi" } }), (e: unknown) => e instanceof ApiError && e.status === 403 && e.code === "device_read_only");
   assert.equal(JSON.parse(String(calls[2].init.body)).text, "hi");
   assert.equal(client.terminalSocketUrl("api:x", 40, 12), "wss://mac.ts.net/api/terminals/api%3Ax/ws?cols=40&rows=12");
-  assert.equal(withQuery("/a", { b: 1, c: undefined }), "/a?b=1");
 });
 
 test("claimPairing: 番号と名前で頼み、断られたら本体の文で失敗", async () => {

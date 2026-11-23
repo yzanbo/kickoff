@@ -33,10 +33,10 @@ export function useChat(session: HostSession | null, chatId: number) {
     streamingReplay.current = [];
     try {
       const last = lastEventId(eventsRef.current);
-      const detail = await session.client.chatDetail(chatId, last === null ? { limit: PAGE } : { after: last });
+      const detail = await session.client.api("GET /api/chats/:chatId", { params: { chatId }, query: last === null ? { limit: PAGE } : { after: last } });
       if (detail.after_missing) {
         // 巻き戻しで消えた記録のあとから読もうとした: 読み直す
-        const fresh = await session.client.chatDetail(chatId, { limit: PAGE });
+        const fresh = await session.client.api("GET /api/chats/:chatId", { params: { chatId }, query: { limit: PAGE } });
         setEvents(fresh.events);
         setHasEarlier(fresh.has_earlier);
       } else if (last === null) {
@@ -51,7 +51,7 @@ export function useChat(session: HostSession | null, chatId: number) {
       setLive(detail.live);
       setApprovals(detail.approvals);
       setError(null);
-      if (detail.chat.unread) void session.client.markSeen(chatId).catch(() => {});
+      if (detail.chat.unread) void session.client.api("POST /api/chats/:chatId/seen", { params: { chatId } }).catch(() => {});
     } catch (e) {
       streamingReplay.current = null;
       setError(e instanceof Error ? e.message : String(e));
@@ -61,7 +61,7 @@ export function useChat(session: HostSession | null, chatId: number) {
   const loadEarlier = useCallback(async () => {
     const first = eventsRef.current[0]?.id;
     if (!session || first === undefined) return;
-    const detail = await session.client.chatDetail(chatId, { before: first, limit: PAGE });
+    const detail = await session.client.api("GET /api/chats/:chatId", { params: { chatId }, query: { before: first, limit: PAGE } });
     setEvents((e) => mergeEvents(e, detail.events));
     setHasEarlier(detail.has_earlier);
   }, [session, chatId]);
@@ -81,7 +81,7 @@ export function useChat(session: HostSession | null, chatId: number) {
       if (e.type === "chat" && e.chat.id === chatId) {
         setChat(e.chat);
         // 見ている間に終わったら既読にする
-        if (e.chat.unread && AppState.currentState === "active") void session.client.markSeen(chatId).catch(() => {});
+        if (e.chat.unread && AppState.currentState === "active") void session.client.api("POST /api/chats/:chatId/seen", { params: { chatId } }).catch(() => {});
       }
       if (e.type === "chat_live" && e.chat_id === chatId) setLive(e.live);
       if (e.type === "approval" && e.approval.chat_id === chatId) setApprovals((a) => [...a.filter((x) => x.id !== e.approval.id), e.approval]);
@@ -97,14 +97,14 @@ export function useChat(session: HostSession | null, chatId: number) {
   useFocusEffect(
     useCallback(() => {
       if (!session) return;
-      const report = () => void session.client.reportViewing({ chat_id: AppState.currentState === "active" ? chatId : null, ci_project_id: null }).catch(() => {});
+      const report = () => void session.client.api("PUT /api/viewing", { body: { chat_id: AppState.currentState === "active" ? chatId : null, ci_project_id: null } }).catch(() => {});
       report();
       const timer = setInterval(report, VIEWING_TTL_MS / 3);
       const sub = AppState.addEventListener("change", report);
       return () => {
         clearInterval(timer);
         sub.remove();
-        void session.client.reportViewing({ chat_id: null, ci_project_id: null }).catch(() => {});
+        void session.client.api("PUT /api/viewing", { body: { chat_id: null, ci_project_id: null } }).catch(() => {});
       };
     }, [session, chatId]),
   );
