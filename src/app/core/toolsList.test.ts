@@ -3,7 +3,7 @@
 import { test } from "vitest";
 import type { BrowserControl } from "@shared/browser/control";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import type { DatabaseService } from "@/features/database/core/service";
+import type { DatabaseService } from "@/features/database/core/index";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { browserToolGroup } from "@/features/browser/core/index";
 import { dbToolGroup, openSqlToolGroup } from "@/features/database/core/tools";

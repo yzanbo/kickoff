@@ -17,6 +17,7 @@ import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
 import { DbFailureHelp } from "./DbFailureDialog";
 import { SshHostKeyDialog } from "./SshHostKeyDialog";
+import { isFileDb } from "@shared/database/connectionShape";
 
 /**
  * DB の接続を登録・編集するダイアログ。URL を貼れば欄が埋まり、「つながるか試す」の結果をその場に出す。
@@ -45,7 +46,7 @@ export function ConnectionDialog({
   /** 鍵を確かめている踏み台（初めてのサーバーで試すのに失敗したとき） */
   const [hostKey, setHostKey] = useState<DbSsh | null>(null);
   const set = <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const sqlite = form.engine === "sqlite";
+  const sqlite = isFileDb(form.engine);
 
   const chooseEnvironment = (environment: DbEnvironment) =>
     setForm((f) => (editing ? { ...f, environment } : { ...f, environment, ...DB_ENVIRONMENT_DEFAULTS[environment] }));
@@ -220,7 +221,7 @@ export function ConnectionDialog({
         <ConnectionPrepFields form={form} set={set} />
         <ConnectionNoteField projectId={projectId} value={form.note_path} from={{ engine: form.engine, environment: form.environment, host: form.host.trim() || null }} onChange={(v) => set("note_path", v)} />
         {test && test !== "testing" && (
-          <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, form.engine === "sqlite" ? null : form.ssl)}</p>
+          <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, sqlite ? null : form.ssl)}</p>
         )}
         {test && test !== "testing" && !test.ok && test.code === DB_SSH_UNKNOWN_HOST && (
           <button type="button" className="btn db-ssh-key-button" data-size="sm" onClick={() => setHostKey(bodyOf(form, editing).ssh ?? null)}>

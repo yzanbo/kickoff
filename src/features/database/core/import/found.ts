@@ -3,6 +3,7 @@ import { isLocalHost } from "@shared/foundation/net";
 import { parseDbUrl, type ParsedDbUrl } from "@shared/database/dbUrl";
 import { DB_CONNECTION_NAME_MAX, type DbEngine, type DbEnvironment, type DbImportCandidate } from "@shared/database/types";
 import { expandHome, realPathLoose } from "@/foundation/core/system/paths";
+import { isFileDb } from "@shared/database/connectionShape";
 
 /** 見つけた接続の案（コアの中だけ。パスワードも持つ。画面へは DbImportCandidate にして has_password だけ） */
 export type FoundDb = Omit<DbImportCandidate, "has_password" | "existing_id"> & { password: string | null };
@@ -16,7 +17,7 @@ const word = (name: string, words: string) => new RegExp(`(^|[._-])(${words})([.
 export function guessEnvironment(fileName: string, engine: DbEngine, host: string | null): DbEnvironment {
   if (word(fileName, "production|prod")) return "production";
   if (word(fileName, "staging|stage|stg")) return "staging";
-  if (engine === "sqlite" || isLocalHost(host)) return "local";
+  if (isFileDb(engine) || isLocalHost(host)) return "local";
   if (word(fileName, "development|dev|test|local")) return "dev";
   return "production";
 }
@@ -29,7 +30,7 @@ export const candidateName = (main: string, where: string) => `${main}（${where
 
 /** 同じ接続かを比べる印（SQLite は実体のパス、ほかは種類・ホスト（この Mac の中は 1 つ）・ポート・DB） */
 export function identityOf(c: { engine: DbEngine; host: string | null; port: number | null; database: string | null; file_path: string | null }, root: string): string {
-  if (c.engine === "sqlite") {
+  if (isFileDb(c.engine)) {
     const file = expandHome(c.file_path ?? "");
     // リンクを解いた実体で比べる（/tmp と /private/tmp のように、登録したパスとプロジェクトのフォルダの書き方が違っても同じファイル）
     return `sqlite:${realPathLoose(path.resolve(root, file))}`;
@@ -49,12 +50,12 @@ export function fromUrl(url: string, base: string, at: Pick<FoundDb, "key" | "so
 
 export function fromParsed(parsed: ParsedDbUrl, base: string, at: Pick<FoundDb, "key" | "source" | "origin"> & { fileName: string; where: string }): FoundDb | null {
   let file = parsed.file_path;
-  if (parsed.engine === "sqlite") {
+  if (isFileDb(parsed.engine)) {
     if (!file || file === ":memory:") return null;
     if (!path.isAbsolute(file) && !file.startsWith("~")) file = path.normalize(path.join(base, file));
   }
   const environment = guessEnvironment(at.fileName, parsed.engine, parsed.host);
-  const main = parsed.engine === "sqlite" ? path.basename(file ?? "") : (parsed.database ?? parsed.host ?? parsed.engine);
+  const main = isFileDb(parsed.engine) ? path.basename(file ?? "") : (parsed.database ?? parsed.host ?? parsed.engine);
   return {
     key: at.key,
     source: at.source,

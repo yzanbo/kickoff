@@ -6,6 +6,7 @@ import type { DbDriver } from "./driver";
 import type { Prep } from "./prep";
 import { openSqlite, sqliteCatalog } from "./sqlite";
 import type { createTunnels } from "./tunnel";
+import { isFileDb } from "@shared/database/connectionShape";
 
 type Tunnels = ReturnType<typeof createTunnels>;
 
@@ -30,7 +31,7 @@ export async function openDriver(target: DbTarget): Promise<DbDriver> {
  * トンネルを開いて手元のポートへ（ポートを転送するコマンドが先）。使ったトンネルの key も返す
  */
 export async function openVia(target: DbTarget, tunnels: Tunnels, prep: Prep): Promise<{ driver: DbDriver; tunnel: string | null }> {
-  if (target.engine === "sqlite") return { driver: await openDriver(target), tunnel: null };
+  if (isFileDb(target.engine)) return { driver: await openDriver(target), tunnel: null };
   const commands = target.commands ?? null;
   const base: DbTarget = { ...target, password: commands?.password ? await prep.password(commands) : target.password, commands: null, ssh: null };
   const remote = `${target.host ?? "localhost"}:${target.port ?? "既定のポート"}`;

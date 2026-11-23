@@ -2,6 +2,7 @@
 import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@shared/database/types";
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { formatBytes } from "@shared/foundation/text/bytes";
+import { isFileDb } from "@shared/database/connectionShape";
 
 /** セルに出す文（NULL・バイナリの札・空文字は「（空文字）」・真偽値・長い文字は頭と「…」） */
 export function cellText(value: DbValue): string {
@@ -29,7 +30,7 @@ export const ENGINE_MARKS: Record<DbEngine, string> = { postgres: "Pg", mysql: "
 
 /** 接続の行に添える場所（SQLite はファイル、ほかは ユーザー@ホスト:ポート/DB） */
 export function connectionPlace(c: Pick<DbConnection, "engine" | "host" | "port" | "database" | "username" | "file_path">): string {
-  if (c.engine === "sqlite") return c.file_path ?? "";
+  if (isFileDb(c.engine)) return c.file_path ?? "";
   const host = c.host ? `${c.host}${c.port ? `:${c.port}` : ""}` : "";
   return `${c.username ? `${c.username}@` : ""}${host}${c.database ? `/${c.database}` : ""}`;
 }

@@ -8,6 +8,7 @@ import { candidatesFromEnv } from "./fromEnv";
 import { candidateFromPrisma, parsePrismaConfig, parsePrismaSchema, type PrismaUrl } from "./fromPrisma";
 import { findSqliteFiles } from "./sqliteFiles";
 import { candidateName, guessEnvironment, identityOf, type FoundDb } from "./found";
+import { isFileDb } from "@shared/database/connectionShape";
 
 // プロジェクトから DB の接続を取り込む: .env の DATABASE_URL など・docker compose の DB のサービス・
 // Prisma の設定・SQLite のファイルを探して案にする。読むだけで、プロジェクトの中は変えない
@@ -69,7 +70,7 @@ async function prismaCandidates(root: string, vars: Map<string, string>): Promis
 
 /** .env・Prisma の URL のホストが compose のサービス名なら、この Mac から入る localhost とポートに読み替える */
 function mapComposeHost(c: FoundDb, hosts: ComposeHosts, fileName: string): FoundDb {
-  if (c.engine === "sqlite" || !c.host || !hosts.has(c.host)) return c;
+  if (isFileDb(c.engine) || !c.host || !hosts.has(c.host)) return c;
   const port = hosts.get(c.host) ?? null;
   if (port === null) return { ...c, note: `compose の中の名前「${c.host}」なので、この Mac からはつなげないかもしれません（compose で ports を外に出してください）` };
   const environment = guessEnvironment(fileName, c.engine, "localhost");
@@ -127,7 +128,7 @@ export async function scanProjectDbs(root: string, allowFile: (absolute: string)
     const id = identityOf(c, root);
     if (seen.has(id)) continue;
     seen.add(id);
-    if (c.engine === "sqlite") {
+    if (isFileDb(c.engine)) {
       const absolute = path.resolve(root, expandHome(c.file_path ?? ""));
       if (!allowFile(absolute)) continue;
       const exists = await fs.stat(absolute).then((s) => s.isFile(), () => false);

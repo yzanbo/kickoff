@@ -1,21 +1,16 @@
 import type { Context, Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
-import { DB_AI_ACCESSES, DB_ENVIRONMENT_DEFAULTS, DB_WRITE_CHECKS, DB_CONNECTION_NAME_MAX, DB_ENGINES, DB_ENVIRONMENTS, DB_EDITS_MAX, DB_ER_MAX, DB_FILTER_OPS, DB_HISTORY_MAX, type DbConnection, type DbRowFilter } from "@shared/database/types";
-import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbEditsBody, DbEnteredPasswordsBody, DbConnectedIds, DbErBody, DbErLayoutBody, DbImportBody, DbRowsBody, DbFullRowBody, DbSqlAssistBody, DbSqlAssistResult, DbSqlBody, DbSshHostKeyBody, NewDbConnectionBody } from "@shared/database/api";
+import { DB_AI_ACCESSES, DB_WRITE_CHECKS, DB_CONNECTION_NAME_MAX, DB_ENGINES, DB_ENVIRONMENTS, DB_EDITS_MAX, DB_ER_MAX, DB_FILTER_OPS, DB_HISTORY_MAX, type DbConnection, type DbRowFilter } from "@shared/database/types";
+import type { CopyDbConnectionBody, DbConnectionPatch, DbConnectionTestBody, DbEditsBody, DbEnteredPasswordsBody, DbConnectedIds, DbErBody, DbErLayoutBody, DbImportBody, DbRowsBody, DbFullRowBody, DbSqlAssistBody, DbSqlBody, DbSshHostKeyBody, NewDbConnectionBody } from "@shared/database/api";
 import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
-import type { AiApi } from "@/features/ai/core/index";
 import type { DatabaseService } from "@/features/database/core/service";
-import type { DockerApi } from "@/features/docker/core/index";
-import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
+import type { DbScope } from "@/features/database/core/scope";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { requireWorktree } from "@/foundation/core/workplace/worktrees";
-import { scanProjectDbs, toImportCandidates } from "@/features/database/core/import/index";
-import { dockerDbTarget, parseDockerDbKey } from "@/features/database/core/import/dockerTarget";
 import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "@/features/database/core/sshHostKey";
-import { parseSqlAnswer, sqlAssistPrompt } from "@/features/database/core/sqlAssist";
 
 // ---- 入力の形 ----
 
@@ -157,122 +152,41 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<ChatStoreDeps, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: Pick<DockerApi, "dbCandidate"> }) {
+export function databaseRoutes(app: Hono, { store, databases }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; databases: DatabaseService }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */
   const withConnection = createMiddleware<{ Variables: { project: Project; connection: DbConnection } }>(async (c, next) => {
-    const connection = store.dbConnections.get(idParam(c, "cid"));
-    if (!connection || connection.project_id !== c.var.project.id) throw new NotFound("DB の接続が見つかりません");
-    c.set("connection", connection);
+    c.set("connection", databases.of(c.var.project, idParam(c, "cid")));
     await next();
   });
   /** ?worktree= の作業場所のフォルダ（なければ本体 = null） */
   const workdirOf = async (c: Context, project: Project) => (await requireWorktree(project.repo_path, queryOf(c, "worktree")))?.path ?? null;
-  /** 種類ごとに要る項目の確かめ（SQLite はファイル、ほかはホスト） */
-  const checkFields = (project: Project, body: Pick<NewDbConnectionBody, "engine" | "host" | "file_path" | "ssh" | "prep">) => {
-    if (body.engine === "sqlite") {
-      if (!body.file_path) throw new Invalid("SQLite のファイルを指定してください");
-      databases.checkFile(body.file_path, project);
-    } else if (!body.host) throw new Invalid("ホストを指定してください");
-    if (body.ssh && body.prep?.tunnel?.trim()) throw new Invalid("SSH トンネルとポートを転送するコマンドは、どちらか 1 つにしてください");
-  };
+  /** 接続・プロジェクト・作業場所（DB の場所） */
+  const scopeOf = async (c: Context<{ Variables: { project: Project; connection: DbConnection } }>): Promise<DbScope> => ({
+    connection: c.var.connection,
+    project: c.var.project,
+    workdir: await workdirOf(c, c.var.project),
+  });
 
   const base = "/api/projects/:id/db-connections";
 
-  app.get(base, withProject, (c) => c.json(store.dbConnections.list(c.var.project.id)));
+  app.get(base, withProject, (c) => c.json(databases.list(c.var.project.id)));
 
   // つないでいる接続（DB タブの左の一覧の印。変わったら SSE の db_connection_state）
   app.get(`${base}/connected`, withProject, (c) => c.json({ ids: databases.connectedIds(c.var.project.id) } satisfies DbConnectedIds));
 
-  app.post(base, withProject, async (c) => {
-    const body = newConnectionSchema.parse(await jsonBody(c));
-    checkFields(c.var.project, body);
-    return c.json(store.dbConnections.create(c.var.project.id, await databases.vault.seal(body)), 201);
-  });
+  app.post(base, withProject, async (c) => c.json(await databases.create(c.var.project, newConnectionSchema.parse(await jsonBody(c))), 201));
 
   // ほかのプロジェクトの接続を写す（パスワードは選んだときだけ）
   app.post(`${base}/copy`, withProject, async (c) => {
     const { from_id, copy_password } = copySchema.parse(await jsonBody(c));
-    const from = store.dbConnections.get(from_id);
-    if (!from) throw new NotFound("写す接続が見つかりません");
-    const {
-      id: _id,
-      project_id: _p,
-      position: _pos,
-      has_password: _h,
-      has_ai_password: _ha,
-      has_ssh_password: _hs,
-      prep_confirmed: _pc,
-      last_connected_at: _l,
-      created_at: _c,
-      updated_at: _u,
-      ...fields
-    } = from;
-    // パスワードは暗号化したまま写す
-    const password = copy_password ? store.dbConnections.password(from.id) : null;
-    // 手順ノートはプロジェクトごとのノートのフォルダにあるので、ほかのプロジェクトへは写さない（同じプロジェクトの中なら同じノートを指す）。
-    // 準備のコマンドは写すが、写した先で確かめ直す。同じプロジェクトの中で写したら、名前に「のコピー」を付けて見分ける
-    const same = from.project_id === c.var.project.id;
-    const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
-    const ssh_password = copy_password ? store.dbConnections.sshPassword(from.id) : null;
-    const name = same ? `${from.name} のコピー` : from.name;
-    const note_path = same ? from.note_path : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, name, note_path, password, ai_password, ssh_password }), 201);
+    return c.json(databases.copy(c.var.project, from_id, copy_password), 201);
   });
 
   // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）
-  const scanImports = (project: Project) =>
-    scanProjectDbs(project.repo_path, (absolute) => {
-      try {
-        databases.checkFile(absolute, project);
-        return true;
-      } catch {
-        return false;
-      }
-    });
-  app.get(`${base}/import`, withProject, async (c) => {
-    const found = await scanImports(c.var.project);
-    return c.json(toImportCandidates(found, store.dbConnections.list(c.var.project.id), c.var.project.repo_path));
-  });
-  app.post(`${base}/import`, withProject, async (c) => {
-    const { items } = importSchema.parse(await jsonBody(c));
-    const found = new Map((await scanImports(c.var.project)).map((f) => [f.key, f]));
-    // Docker タブの「DB で開く」の案（docker:…）は、compose に聞き直して作る（ワークツリーの DB なら、そのワークツリーを覚える）
-    const worktreeOf = new Map<string, string | null>();
-    for (const item of items) {
-      const target = parseDockerDbKey(item.key);
-      if (!target) continue;
-      const result = await dockerDbTarget(docker, c.var.project, target.composeKey, target.service);
-      if ("blocked" in result) throw new Invalid(result.blocked);
-      found.set(item.key, result.found);
-      worktreeOf.set(item.key, result.worktree_path ?? null);
-    }
-    const picked = items.map((item) => {
-      const f = found.get(item.key);
-      if (!f) throw new NotFound("取り込む接続が見つかりません。プロジェクトの中が変わったかもしれないので、開き直してください");
-      return { item, f };
-    });
-    const created = picked.map(({ item, f }) => {
-      const body: NewDbConnectionBody = {
-        name: item.name,
-        engine: f.engine,
-        environment: item.environment,
-        host: f.host,
-        port: f.port,
-        database: f.database,
-        username: f.username,
-        file_path: f.file_path,
-        ssl: f.ssl,
-        ...DB_ENVIRONMENT_DEFAULTS[item.environment],
-        password: f.password,
-      };
-      checkFields(c.var.project, body);
-      return { body, worktreePath: worktreeOf.get(item.key) ?? null };
-    });
-    const sealed = await Promise.all(created.map(async ({ body, worktreePath }) => ({ body: await databases.vault.seal(body), worktreePath })));
-    return c.json(sealed.map(({ body, worktreePath }) => store.dbConnections.create(c.var.project.id, body, worktreePath)), 201);
-  });
+  app.get(`${base}/import`, withProject, async (c) => c.json(await databases.importCandidates(c.var.project)));
+  app.post(`${base}/import`, withProject, async (c) => c.json(await databases.importConnections(c.var.project, importSchema.parse(await jsonBody(c)).items), 201));
 
   // 踏み台のサーバーの鍵: 見る（初めてのサーバーの指紋を画面で確かめる）・受け入れて ~/.ssh/known_hosts に足す
   app.post(`${base}/ssh-host-key`, withProject, async (c) => {
@@ -292,20 +206,11 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     return c.json(await databases.test(c.var.project, body, await workdirOf(c, c.var.project)));
   });
 
-  app.patch(`${base}/:cid`, withProject, withConnection, async (c) => {
-    const patch = connectionPatchSchema.parse(await jsonBody(c));
-    const merged = { ...c.var.connection, ...patch };
-    checkFields(c.var.project, merged);
-    const updated = store.dbConnections.update(c.var.connection.id, await databases.vault.seal(patch));
-    // パスワードを保存し直したら、キーチェーンで開けなかったときに入れた値は使わない
-    if (patch.password !== undefined || patch.ai_password !== undefined || patch.ssh_password !== undefined) databases.vault.forget(c.var.connection.id);
-    return c.json(updated);
-  });
+  app.patch(`${base}/:cid`, withProject, withConnection, async (c) => c.json(await databases.update(c.var, connectionPatchSchema.parse(await jsonBody(c)))));
 
   // 保存したパスワードをキーチェーンで開けなかったときに、利用者が入れたパスワード（Kickoff を終えるまでコアのメモリにだけ持つ。保存した値は変えない）
   app.post(`${base}/:cid/entered-passwords`, withProject, withConnection, async (c) => {
-    const body = enteredPasswordsSchema.parse(await jsonBody(c));
-    databases.vault.enter(c.var.connection.id, body);
+    databases.enterPasswords(c.var.connection, enteredPasswordsSchema.parse(await jsonBody(c)));
     return c.body(null, 204);
   });
 
@@ -316,32 +221,28 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
 
   // ---- 木・テーブル（接続ごとに共有の 1 本） ----
 
-  app.get(`${base}/:cid/databases`, withProject, withConnection, async (c) =>
-    c.json(await databases.databases(c.var.connection, c.var.project, await workdirOf(c, c.var.project))),
-  );
+  app.get(`${base}/:cid/databases`, withProject, withConnection, async (c) => c.json(await databases.databases(await scopeOf(c))));
 
-  app.get(`${base}/:cid/schemas`, withProject, withConnection, async (c) =>
-    c.json(await databases.schemas(c.var.connection, c.var.project, await workdirOf(c, c.var.project), queryOf(c, "database") ?? null)),
-  );
+  app.get(`${base}/:cid/schemas`, withProject, withConnection, async (c) => c.json(await databases.schemas(await scopeOf(c), queryOf(c, "database") ?? null)));
 
   app.post(`${base}/:cid/objects`, withProject, withConnection, async (c) => {
     const { path } = z.object({ path: objectPath }).parse(await jsonBody(c));
-    return c.json(await databases.objects(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path));
+    return c.json(await databases.objects(await scopeOf(c), path));
   });
 
   app.post(`${base}/:cid/table`, withProject, withConnection, async (c) => {
     const { path, name } = z.object({ path: objectPath, name: objectName }).parse(await jsonBody(c));
-    return c.json(await databases.table(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, name));
+    return c.json(await databases.table(await scopeOf(c), path, name));
   });
 
   app.post(`${base}/:cid/definition`, withProject, withConnection, async (c) => {
     const { path, kind, name } = z.object({ path: objectPath, kind: z.enum(["function", "enum"]), name: objectName }).parse(await jsonBody(c));
-    return c.json(await databases.definition(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, kind, name));
+    return c.json(await databases.definition(await scopeOf(c), path, kind, name));
   });
 
   app.post(`${base}/:cid/rows`, withProject, withConnection, async (c) => {
     const body = rowsSchema.parse(await jsonBody(c));
-    return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset, body.filter));
+    return c.json(await databases.rows(await scopeOf(c), body));
   });
 
   app.post(`${base}/:cid/disconnect`, withProject, withConnection, async (c) => {
@@ -351,52 +252,43 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
 
   app.post(`${base}/:cid/full-row`, withProject, withConnection, async (c) => {
     const body = fullRowSchema.parse(await jsonBody(c));
-    return c.json(await databases.fullRow(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.filters));
+    return c.json(await databases.fullRow(await scopeOf(c), body));
   });
 
   app.post(`${base}/:cid/count`, withProject, withConnection, async (c) => {
     const { path, name, filter } = z.object({ path: objectPath, name: objectName, filter: rowFilter.default(noFilter) }).parse(await jsonBody(c));
-    return c.json(await databases.count(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, name, filter));
+    return c.json(await databases.count(await scopeOf(c), path, name, filter));
   });
 
   app.post(`${base}/:cid/outline`, withProject, withConnection, async (c) => {
     const { path } = z.object({ path: objectPath }).parse(await jsonBody(c));
-    return c.json(await databases.outline(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path));
+    return c.json(await databases.outline(await scopeOf(c), path));
   });
 
-  // SQL のタブの「AI に頼む」: テーブルと列の名前（値は渡さない）・いまの SQL・頼みから、プロジェクトの AI に 1 回だけ SQL を書いてもらう。
-  // 「AI に見せない」接続は断る
+  // SQL のタブの「AI に頼む」: テーブルと列の名前（値は渡さない）・いまの SQL・頼みから、プロジェクトの AI に 1 回だけ SQL を書いてもらう
   app.post(`${base}/:cid/sql-assist`, withProject, withConnection, async (c) => {
     const body = z.object({ path: objectPath, request: z.string().trim().min(1).max(2000), sql: z.string().max(20_000) }).parse(await jsonBody(c)) satisfies DbSqlAssistBody;
-    const { connection, project } = c.var;
-    if (connection.ai_access === "none") throw new Invalid("この接続は AI に見せない設定なので、AI に頼めません（接続の編集で変えられます）");
-    const provider = providers[project.provider];
-    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、SQL を書くのに対応していません");
-    const tables = await databases.outline(connection, project, await workdirOf(c, project), body.path);
-    const answer = await provider.ask(sqlAssistPrompt({ engine: connection.engine, tables, request: body.request, current: body.sql }), { model: "standard" }).catch(asInvalid);
-    const sql = parseSqlAnswer(answer);
-    if (!sql) throw new Invalid("AI から答えがありませんでした");
-    return c.json({ sql } satisfies DbSqlAssistResult);
+    return c.json(await databases.sqlAssist(await scopeOf(c), body));
   });
 
   // ---- ER 図 ----
 
   app.post(`${base}/:cid/er`, withProject, withConnection, async (c) => {
     const { path, names } = erSchema.parse(await jsonBody(c));
-    return c.json(await databases.er(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, names));
+    return c.json(await databases.er(await scopeOf(c), path, names));
   });
 
   // 動かしたテーブルの位置（接続と場所ごと。消すと「自動で並べ直す」）
-  app.get(`${base}/:cid/er-layout`, withProject, withConnection, (c) => c.json(store.dbErLayouts.get(c.var.connection.id, erPlace.parse(queryOf(c, "place")))));
+  app.get(`${base}/:cid/er-layout`, withProject, withConnection, (c) => c.json(databases.erLayouts.get(c.var.connection.id, erPlace.parse(queryOf(c, "place")))));
 
   app.put(`${base}/:cid/er-layout`, withProject, withConnection, async (c) => {
     const { place, positions } = erLayoutSchema.parse(await jsonBody(c));
-    store.dbErLayouts.set(c.var.connection.id, place, positions);
+    databases.erLayouts.set(c.var.connection.id, place, positions);
     return c.body(null, 204);
   });
 
   app.delete(`${base}/:cid/er-layout`, withProject, withConnection, (c) => {
-    store.dbErLayouts.delete(c.var.connection.id, erPlace.parse(queryOf(c, "place")));
+    databases.erLayouts.delete(c.var.connection.id, erPlace.parse(queryOf(c, "place")));
     return c.body(null, 204);
   });
 
@@ -404,24 +296,24 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
 
   app.post(`${base}/:cid/sql`, withProject, withConnection, async (c) => {
     const body = sqlSchema.parse(await jsonBody(c));
-    return c.json(await databases.sql(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
+    return c.json(await databases.sql(await scopeOf(c), body));
   });
 
   // テーブルの行の変更をまとめて保存する（1 つのトランザクション）
   app.post(`${base}/:cid/edits`, withProject, withConnection, async (c) => {
     const body = editsSchema.parse(await jsonBody(c));
-    return c.json(await databases.applyEdits(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
+    return c.json(await databases.applyEdits(await scopeOf(c), body));
   });
 
   // つなぐ前の準備: 中身を確かめた・流す（待たずに 202。様子は GET で）・止める・記録（いつ・どのコマンド・成功 / 失敗）
-  app.post(`${base}/:cid/prep/confirm`, withProject, withConnection, (c) => c.json(store.dbConnections.confirmPrep(c.var.connection.id)));
-  app.post(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prepare(c.var.connection), 202));
-  app.get(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prepState(c.var.connection)));
+  app.post(`${base}/:cid/prep/confirm`, withProject, withConnection, (c) => c.json(databases.prep.confirm(c.var.connection)));
+  app.post(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prep.prepare(c.var.connection), 202));
+  app.get(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prep.state(c.var.connection)));
   app.post(`${base}/:cid/prepare/cancel`, withProject, withConnection, async (c) => {
-    await databases.prepCancel(c.var.connection);
+    await databases.prep.cancel(c.var.connection);
     return c.body(null, 204);
   });
-  app.get(`${base}/:cid/prep-runs`, withProject, withConnection, (c) => c.json(store.dbPrepRuns.list(c.var.connection.id)));
+  app.get(`${base}/:cid/prep-runs`, withProject, withConnection, (c) => c.json(databases.prep.runs(c.var.connection)));
   // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）
   app.get(`${base}/:cid/history`, withProject, withConnection, (c) =>
     c.json(databases.history(c.var.connection, historyLimit.parse(queryOf(c, "limit") ?? undefined))),

@@ -9,7 +9,7 @@ import { setup } from "@/app/core/testing/testServer";
 import { DbWorkerClient } from "./workerClient";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import type { DbTarget } from "@shared/database/workerProtocol";
-import { DatabaseService } from "./service";
+import { createDatabaseService } from "./service";
 import { DbSecretVault } from "./secrets";
 import { createDbAiTools, hasAiConnections, type DbAiApprove } from "./aiTools";
 
@@ -103,7 +103,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
     calls.push({ method, session: params.session, target: params.target });
     return request(method as never, params as never, opts as never);
   }) as typeof client.request;
-  const databases = new DatabaseService({ store, client, vault: new DbSecretVault(store, null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot });
+  const databases = createDatabaseService({ store, client, vault: new DbSecretVault(store, null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const c = store.dbConnections.create(project.id, { ...sqliteBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });

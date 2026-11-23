@@ -2,13 +2,14 @@ import { DB_PREP_PLACEHOLDERS, DB_PREP_PLACEHOLDER_LABELS, usesMyIp } from "@sha
 import { DB_MY_IP_URL } from "@shared/database/types";
 import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import type { ConnectionForm } from "./connectionForm";
+import { isFileDb } from "@shared/database/connectionShape";
 
 /**
  * 接続のダイアログの「つなぐ前の準備」: 準備・後片付けのコマンド（1 行に 1 つ）・ポートを転送するコマンド・パスワードを取るコマンドと、
  * 中で使える {名前}。コマンドはこの Mac のログインシェルで流れるので、初めて・中身を変えたあとは流す前に中身を確かめさせる（DbPrepDialog）
  */
 export function ConnectionPrepFields({ form, set }: { form: ConnectionForm; set: <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => void }) {
-  const sqlite = form.engine === "sqlite";
+  const sqlite = isFileDb(form.engine);
   const myIp = usesMyIp([form.prep_prepare, form.prep_cleanup, form.prep_tunnel, form.prep_password]);
   return (
     <>

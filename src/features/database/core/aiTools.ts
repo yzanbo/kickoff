@@ -5,7 +5,8 @@ import type { DbConnection } from "@shared/database/types";
 import type { Project } from "@shared/projects/types";
 import { Invalid } from "@/foundation/core/errors";
 import { formatAiConnections, formatAiObjects, formatAiQueryResult, formatAiTable } from "./aiFormat";
-import { assertAiSql, type DatabaseService } from "./service";
+import { assertAiSql } from "./aiQuery";
+import type { DatabaseService } from "./service";
 import { DbPasswordLocked } from "./secrets";
 
 /**
@@ -65,7 +66,7 @@ export function createDbAiTools(databases: DatabaseService, { project, workdir, 
 
   /** DB とスキーマの既定（DB はつないでいるもの、スキーマは PostgreSQL なら public） */
   const placeOf = async (connection: DbConnection, database?: string, schema?: string) => {
-    const dbs = await databases.databases(connection, project, workdir);
+    const dbs = await databases.databases({ connection, project, workdir });
     const db = database || dbs.current || dbs.databases[0] || null;
     if (database && !dbs.databases.includes(database)) throw new Invalid(`DB「${database}」はありません（${dbs.databases.join(", ")}）`);
     return { dbs, path: { database: db, schema: dbs.has_schemas ? schema || "public" : null } };
@@ -80,14 +81,14 @@ export function createDbAiTools(databases: DatabaseService, { project, workdir, 
       askUserIfLocked(async () => {
         const c = resolve(connection);
         const { dbs, path } = await placeOf(c, database, schema);
-        return formatAiObjects(await databases.objects(c, project, workdir, path), label(c, path), dbs, search);
+        return formatAiObjects(await databases.objects({ connection: c, project, workdir }, path), label(c, path), dbs, search);
       }),
 
     describe: ({ connection, table, database, schema }) =>
       askUserIfLocked(async () => {
         const c = resolve(connection);
         const { path } = await placeOf(c, database, schema);
-        return formatAiTable(table, await databases.table(c, project, workdir, path, table));
+        return formatAiTable(table, await databases.table({ connection: c, project, workdir }, path, table));
       }),
 
     query: ({ connection, sql, database, timeout_minutes }, approve, signal) =>
@@ -99,7 +100,7 @@ export function createDbAiTools(databases: DatabaseService, { project, workdir, 
           const denied = await approve({ connection: c.name, sql, ...(timeout_minutes ? { timeout_minutes } : {}) });
           if (denied !== null) throw new Invalid(denied);
         }
-        const result = await databases.aiQuery(c, project, workdir, { sql, database: database || null, chatId, timeoutMinutes: timeout_minutes ?? null, signal });
+        const result = await databases.aiQuery({ connection: c, project, workdir }, { sql, database: database || null, chatId, timeoutMinutes: timeout_minutes ?? null, signal });
         return formatAiQueryResult(c.name, result);
       }),
   };

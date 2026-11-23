@@ -10,7 +10,7 @@ import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { DbWorkerClient, type WorkerChannel } from "./workerClient";
 import { DbSecretVault } from "./secrets";
-import { DatabaseService } from "./service";
+import { createDatabaseService, type DatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
 import { databaseRoutes } from "./routes/databases";
 import { dockerDbRoutes } from "./routes/dockerDb";
@@ -51,7 +51,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   const stores = createDatabaseStores(k.db, (e) => bus.publish(e), k.secrets, deps.chat.titlesOf);
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
   const vault = new DbSecretVault(k, env.secretCipher);
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(env.worker), vault, dataDir: k.paths.dataDir, appDataRoot: k.paths.appDataRoot, exportRoot: env.exportRoot, publish: (e) => bus.publish(e) });
+  const databases = createDatabaseService({ store, client: new DbWorkerClient(env.worker), vault, dataDir: k.paths.dataDir, appDataRoot: k.paths.appDataRoot, exportRoot: env.exportRoot, publish: (e) => bus.publish(e), providers: deps.ai.providers, docker: deps.docker });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   if (env.cleanExports) databases.cleanExports();
   deps.chat.onChatsPurged((ids) => databases.forgetChatExports(ids));
@@ -65,7 +65,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   return {
     name: "database",
     api: databases,
-    routes: [{ legacy: (app) => databaseRoutes(app, { store, databases, providers: deps.ai.providers, docker: deps.docker }) }, { legacy: (app) => dockerDbRoutes(app, { store, docker: deps.docker }) }],
+    routes: [{ legacy: (app) => databaseRoutes(app, { store, databases }) }, { legacy: (app) => dockerDbRoutes(app, { store, docker: deps.docker }) }],
     aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, dbConnectionsOf: (projectId) => stores.dbConnections.list(projectId), publish: (e) => k.bus.publish(e) })],
     stop: () => databases.close(),
   };

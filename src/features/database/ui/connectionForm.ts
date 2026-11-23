@@ -1,6 +1,7 @@
 import { normalizePrep } from "@shared/database/dbPrep";
 import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode } from "@shared/database/types";
 import type { NewDbConnectionBody, DbConnectionTestResult } from "@shared/database/api";
+import { isFileDb } from "@shared/database/connectionShape";
 
 // 接続の登録・編集のダイアログ（ConnectionDialog）の入力欄の値と、送る形への直し方
 
@@ -92,15 +93,15 @@ function prepOf(form: ConnectionForm): DbPrep | null {
     prepare: form.prep_prepare.split("\n"),
     cleanup: form.prep_cleanup.split("\n"),
     // SQLite はつなぐ先がない。SSH トンネルとポートの転送は一緒に使えない
-    tunnel: form.engine === "sqlite" || form.ssh_on ? null : form.prep_tunnel,
-    password: form.engine === "sqlite" ? null : form.prep_password,
+    tunnel: isFileDb(form.engine) || form.ssh_on ? null : form.prep_tunnel,
+    password: isFileDb(form.engine) ? null : form.prep_password,
     my_ip_url: form.prep_my_ip_url,
   });
 }
 
 /** 送る形（使わない欄は null。パスワードは書いたときだけ・消すなら null・省けばそのまま） */
 export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionBody {
-  const sqlite = form.engine === "sqlite";
+  const sqlite = isFileDb(form.engine);
   const text = (v: string) => v.trim() || null;
   const password = form.clearPassword ? null : form.password ? form.password : editing ? undefined : null;
   const aiPassword = form.clearAiPassword ? null : form.ai_password ? form.ai_password : editing ? undefined : null;

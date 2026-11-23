@@ -2,6 +2,7 @@ import path from "node:path";
 import type { DbConnection } from "@shared/database/types";
 import { expandHome } from "@/foundation/core/system/paths";
 import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
+import { isFileDb } from "@shared/database/connectionShape";
 
 /**
  * プロジェクトの接続のうち「見せない」もののつなぎ先。SQLite のファイルは作業場所と本体の両方で解き、
@@ -13,12 +14,12 @@ export function hiddenDbTargets(connections: DbConnection[], dirs: string[]): Hi
     .filter((c) => c.ai_access === "none")
     .map((c) => {
       let file: HiddenDbTarget["file"] = null;
-      if (c.engine === "sqlite" && c.file_path) {
+      if (isFileDb(c.engine) && c.file_path) {
         const expanded = expandHome(c.file_path);
         const absolute = [...new Set(path.isAbsolute(expanded) ? [path.resolve(expanded)] : dirs.map((d) => path.resolve(d, expanded)))];
         const base = path.basename(expanded);
         file = { names: [...absolute, ...(c.file_path !== base ? [c.file_path] : []), ...(visibleNames.has(base) ? [] : [base])], absolute };
       }
-      return { name: c.name, engine: c.engine, host: c.engine === "sqlite" ? null : c.host, port: c.port, file };
+      return { name: c.name, engine: c.engine, host: isFileDb(c.engine) ? null : c.host, port: c.port, file };
     });
 }

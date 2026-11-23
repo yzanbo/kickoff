@@ -7,12 +7,45 @@ export type ComposeHosts = Map<string, number | null>;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** イメージの名前から DB の種類（postgres・postgis・timescaledb・mysql・mariadb。bitnami なども） */
-function composeEngine(image: string): DbEngine | null {
+/** compose の DB のイメージの読み方（イメージの名前・中のポートの変数・ログインの環境変数）。種類の if を書かずに、ここを引く */
+interface ComposeImage {
+  engine: DbEngine;
+  /** イメージの名前（postgres・postgis・timescaledb・mysql・mariadb。bitnami なども） */
+  name: RegExp;
+  /** 中で待つポートを変える環境変数 */
+  portEnv: string;
+  login(env: Map<string, string>): { username: string; database: string | null; password: string | null };
+}
+
+const COMPOSE_IMAGES: ComposeImage[] = [
+  {
+    engine: "postgres",
+    name: /postgres|postgis|timescale/,
+    portEnv: "PGPORT",
+    login: (env) => {
+      const username = env.get("POSTGRES_USER") || "postgres";
+      return { username, database: env.get("POSTGRES_DB") || username, password: env.get("POSTGRES_PASSWORD") || null };
+    },
+  },
+  {
+    engine: "mysql",
+    name: /mysql|mariadb/,
+    portEnv: "MYSQL_TCP_PORT",
+    login: (env) => {
+      const user = env.get("MYSQL_USER") || env.get("MARIADB_USER") || null;
+      return {
+        username: user ?? "root",
+        database: env.get("MYSQL_DATABASE") || env.get("MARIADB_DATABASE") || null,
+        password: (user ? env.get("MYSQL_PASSWORD") || env.get("MARIADB_PASSWORD") : env.get("MYSQL_ROOT_PASSWORD") || env.get("MARIADB_ROOT_PASSWORD")) || null,
+      };
+    },
+  },
+];
+
+/** イメージの名前から DB のイメージの読み方（DB でなければ null） */
+function composeImage(image: string): ComposeImage | null {
   const name = image.toLowerCase().split("@")[0].split(":")[0];
-  if (/postgres|postgis|timescale/.test(name)) return "postgres";
-  if (/mysql|mariadb/.test(name)) return "mysql";
-  return null;
+  return COMPOSE_IMAGES.find((i) => i.name.test(name)) ?? null;
 }
 
 /** environment（{ K: V } か ["K=V"]）を読む */
@@ -62,26 +95,15 @@ export function candidatesFromCompose(fileRel: string, doc: unknown, vars: Map<s
   const found: FoundDb[] = [];
   for (const [service, raw] of Object.entries(services)) {
     if (!isObject(raw) || typeof raw.image !== "string") continue;
-    const engine = composeEngine(interpolate(raw.image, lookup));
-    if (!engine) continue;
+    const image = composeImage(interpolate(raw.image, lookup));
+    if (!image) continue;
+    const { engine } = image;
     const env = environmentOf(raw.environment, lookup);
-    const target = Number(env.get(engine === "postgres" ? "PGPORT" : "MYSQL_TCP_PORT")) || (DB_DEFAULT_PORTS[engine] as number);
+    const target = Number(env.get(image.portEnv)) || (DB_DEFAULT_PORTS[engine] as number);
     const port = publishedPort(raw.ports, target, lookup);
     hosts.set(service, port);
     if (typeof raw.container_name === "string") hosts.set(raw.container_name, port);
-    let username: string;
-    let database: string | null;
-    let password: string | null;
-    if (engine === "postgres") {
-      username = env.get("POSTGRES_USER") || "postgres";
-      database = env.get("POSTGRES_DB") || username;
-      password = env.get("POSTGRES_PASSWORD") || null;
-    } else {
-      const user = env.get("MYSQL_USER") || env.get("MARIADB_USER") || null;
-      username = user ?? "root";
-      database = env.get("MYSQL_DATABASE") || env.get("MARIADB_DATABASE") || null;
-      password = (user ? env.get("MYSQL_PASSWORD") || env.get("MARIADB_PASSWORD") : env.get("MYSQL_ROOT_PASSWORD") || env.get("MARIADB_ROOT_PASSWORD")) || null;
-    }
+    const { username, database, password } = image.login(env);
     found.push({
       key: `compose:${fileRel}:${service}`,
       source: "compose",

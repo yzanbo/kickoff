@@ -1,4 +1,5 @@
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
+import { isFileDb } from "@shared/database/connectionShape";
 
 // DB につながらなかったときの案内: 失敗の文から種類を見分け、よくある原因と直し方を出す。
 // 本番などの DB は、セキュリティのためにわざと「手順を踏まないとつながらない」ようにしてあることが多いので、原因にそれを入れる
@@ -65,7 +66,7 @@ export const DB_NOTE_DIR = "DB";
 
 /** 手順ノートの名前の案（接続の名前ではなく、つなぎ方（経路）の名前をすすめる: 「本番（db.example.com）」「ローカル（SQLite）」） */
 export function suggestDbNoteName(c: Pick<DbConnection, "engine" | "environment" | "host">): string {
-  const where = c.engine === "sqlite" ? "SQLite" : (c.host ?? DB_ENGINE_LABELS[c.engine]);
+  const where = isFileDb(c.engine) ? DB_ENGINE_LABELS[c.engine] : (c.host ?? DB_ENGINE_LABELS[c.engine]);
   return `${DB_ENVIRONMENT_LABELS[c.environment]}（${where}）`;
 }
 

@@ -1,7 +1,11 @@
 // SQL のタブの「AI に頼む」: 頼みの文とスキーマのテーブル・列の名前から、1 回だけ AI に SQL を書いてもらう頼み方と答えの読み方（中身の値は渡さない）
-import type { DbEngine } from "@shared/database/types";
+import type { DbEngine, DbObjectPath } from "@shared/database/types";
 import { DB_ENGINE_LABELS } from "@shared/database/types";
 import type { DbOutlineTable } from "@shared/database/types";
+import type { DbSqlAssistBody, DbSqlAssistResult } from "@shared/database/api";
+import type { AiApi } from "@/features/ai/core/index";
+import { asInvalid, Invalid } from "@/foundation/core/errors";
+import type { DbScope } from "./scope";
 
 /** 頼みに入れるテーブルと列の名前の上限（文字数。超えたら後ろのテーブルを省く） */
 export const SQL_ASSIST_SCHEMA_CHARS = 30_000;
@@ -41,4 +45,19 @@ export function sqlAssistPrompt(input: { engine: DbEngine; tables: DbOutlineTabl
 export function parseSqlAnswer(answer: string): string {
   const m = /```[a-zA-Z]*\n([\s\S]*?)```/.exec(answer);
   return (m ? m[1] : answer).trim();
+}
+
+/** SQL のタブの「AI に頼む」（プロジェクトの AI に 1 回だけ聞く。「AI に見せない」接続は断る。テーブルと列の名前は outline で読む） */
+export function createSqlAssist(providers: Partial<AiApi["providers"]>, outline: (scope: DbScope, path: DbObjectPath) => Promise<DbOutlineTable[]>) {
+  return async (scope: DbScope, body: DbSqlAssistBody): Promise<DbSqlAssistResult> => {
+    const { connection, project } = scope;
+    if (connection.ai_access === "none") throw new Invalid("この接続は AI に見せない設定なので、AI に頼めません（接続の編集で変えられます）");
+    const provider = providers[project.provider];
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、SQL を書くのに対応していません");
+    const tables = await outline(scope, body.path);
+    const answer = await provider.ask(sqlAssistPrompt({ engine: connection.engine, tables, request: body.request, current: body.sql }), { model: "standard" }).catch(asInvalid);
+    const sql = parseSqlAnswer(answer);
+    if (!sql) throw new Invalid("AI から答えがありませんでした");
+    return { sql };
+  };
 }
