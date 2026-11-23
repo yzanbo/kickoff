@@ -95,7 +95,7 @@ export function NoteTab({
   const isSelected = (path: string) => (multi.selected.length > 0 ? multi.has(path) : highlighted === path);
   const nodesOf = (paths: readonly string[]) => paths.map((path) => ({ path, dir: entries?.find((e) => e.path === path)?.dir ?? false }));
 
-  const openFolders = (paths: string[]) => setOpenList([...new Set([...openList, ...paths])]);
+  const openFolders = (paths: string[]) => setOpenList([...new Set([...readSetting(storage.settings.openFolders(projectId)), ...paths])]); // 待ったあとにも呼ぶので、いまの値に足す
   // ノートを開く（newTab = 新しいタブ。ふだんはピントのあるペインで表示中のノートを入れ替える。そのときは書きかけをどうするか聞く）
   const select = async (path: string, newTab = false) => {
     await openNoteInPanel(projectId, path, newTab, panelKeyOf);

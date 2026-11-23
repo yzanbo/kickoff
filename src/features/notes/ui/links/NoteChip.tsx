@@ -4,6 +4,7 @@ import { canPopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { readSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
 import { useNoteList } from "@/features/notes/ui/store";
 import { usePopover } from "@/foundation/ui/kit/Popover";
@@ -106,7 +107,8 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
               nodes={tree}
               open={openFolders}
               onToggle={toggleFolder}
-              onExpand={(path) => !openFolders.has(path) && setOpenList([...openList, path])}
+              // ドラッグを重ねて待ったあとに開くので、いま覚えている値に足す
+              onExpand={(path) => !openFolders.has(path) && setOpenList([...readSetting(storage.settings.openFolders(projectId)), path])}
               onDropInto={dropInto}
               dropTarget={dropTarget}
               onDropTarget={setDropTarget}
