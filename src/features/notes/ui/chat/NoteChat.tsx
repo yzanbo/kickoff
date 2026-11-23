@@ -2,16 +2,13 @@ import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react"
 import { useImperativeHandle, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/chat/types";
 import { notesApi } from "@/features/notes/ui/api";
-import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { appendDraft, appendToDraft, Composer, focusDraft, memoryDraft, type ComposerDraft } from "@/features/composer/ui";
 import { useChatOptions } from "@/features/ai/ui";
-import { useWideText } from "@/features/conversation/ui/screen/TextWidthToggle";
 import { cx } from "@/foundation/ui/lib/cx";
-import { ChatScreen } from "@/features/conversation/ui/screen/ChatScreen";
-import { screenOfChat } from "@/features/chat/ui";
-import type { ChipsPortal } from "@/features/chat/ui/screen/chipsPortal";
+import { ChatScreen, useWideText } from "@/features/conversation/ui";
+import { screenOfChat, useNoteChatOf, type ChipsPortal } from "@/features/chat/ui";
 
 /** 外からノートのチャットの欄を動かす口（本文の右クリックの「ノートのチャット」の組） */
 export interface NoteChatHandle {
