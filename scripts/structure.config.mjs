@@ -36,6 +36,7 @@
  * @property {string} name
  * @property {string} dirs               口を持つフォルダの glob（例 "src/features/*\/core"。* が 1 つの機能に当たる）
  * @property {string[]} entry            外から読んでよいファイル（dirs からの相対。例 ["index.ts"]）
+ * @property {string[]} [testEntry]      外のテスト（tests）からだけ読んでよいファイル（例 ["core/testing.ts"]）
  * @property {string[]} [except]         決まりを当てない読み手（glob。例 app）
  *
  * @typedef {Object} CycleRule
@@ -174,8 +175,8 @@ export default {
     { name: "app-renderer", from: ["src/app/renderer/**"], allow: ["src/shared/**", "src/foundation/ui/**", "src/features/*/ui/**", "src/app/shared/**", "src/app/renderer/**"], message: "app/renderer は画面のものだけを読む" },
     { name: "mobile-shared-only", from: ["mobile/src/**"], allow: ["src/shared/**", "src/app/shared/**", "mobile/**"], message: "スマホが読んでよいのは src/shared と src/app/shared だけ" },
   ],
-  // ほかの機能を読むのは、その機能の core/index.ts・ui/index.ts からだけ（app は全部を知る）
-  publicApi: [{ name: "feature-entry", dirs: "src/features/*", entry: ["core/index.ts", "ui/index.ts"], except: ["src/app/**"] }],
+  // ほかの機能を読むのは、その機能の core/index.ts・ui/index.ts からだけ（app は全部を知る。テストは補助の core/testing.ts・ui/testing.ts も）
+  publicApi: [{ name: "feature-entry", dirs: "src/features/*", entry: ["core/index.ts", "ui/index.ts"], testEntry: ["core/testing.ts", "ui/testing.ts"], except: ["src/app/**"] }],
   // どの階層でも、兄弟のフォルダどうしは循環させない
   siblingCycles: [{ name: "siblings", parents: ["src", "src/**"] }],
   fileSize: {

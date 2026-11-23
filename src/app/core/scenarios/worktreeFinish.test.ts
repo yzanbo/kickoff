@@ -1,4 +1,5 @@
-// ワークツリーの後始末（画面の「消す」と AI の finish_worktree）: 確かめ・控え（ゴミ箱に 3 日）・予約・戻す
+// 機能をまたぐ筋書き: ワークツリーの後始末（worktrees）× PR のマージ済み（github）× 控え（trash）× チャットの作業場所・予約（chat）。
+// 画面の「消す」と AI の finish_worktree: 確かめ・控え（ゴミ箱に 3 日）・予約・戻す
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -8,31 +9,25 @@ import { TRASH_KEEP_MS } from "@shared/trash/types";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { chatOf, eventsOf, isBusy, liveOf, noticesOf, sendAndWait } from "@/features/chat/core/testing";
 
 type Ctx = ReturnType<typeof setup>;
 
 /** Git のプロジェクトと、新しいワークツリーで動かして終わったチャット */
 async function worktreeChat(ctx: Ctx, branch: string) {
-  const { call, project, store } = ctx;
-  const created = (await call("POST", `/api/projects/${project.id}/chats`, { text: "並行で", new_worktree_branch: branch })).body;
-  await until(() => store.chats.get(created.id)?.status === "completed");
-  return { chatId: created.id as number, wt: created.worktree_path as string };
+  const chatId = await sendAndWait(ctx, { projectId: ctx.project.id, text: "並行で", body: { new_worktree_branch: branch } });
+  return { chatId, wt: (await chatOf(ctx, chatId)).worktree_path! };
 }
 
 /** 本体で動かして終わったチャット */
-async function mainChat(ctx: Ctx) {
-  const created = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "本体で" })).body;
-  await until(() => ctx.store.chats.get(created.id)?.status === "completed");
-  return created.id as number;
-}
+const mainChat = (ctx: Ctx) => sendAndWait(ctx, { projectId: ctx.project.id, text: "本体で" });
 
-const notices = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
 /** 作業場所を移した区切り（片付けて本体に戻した） */
-const moves = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "workplace_moved" ? [e.data] : []));
+const moves = async (ctx: Ctx, chatId: number) => (await eventsOf(ctx, chatId)).flatMap((e) => (e.type === "workplace_moved" ? [e.data] : []));
 const refs = (repo: string) => execFileSync("git", ["for-each-ref", "--format=%(refname)", "refs/kickoff/"], { cwd: repo }).toString().trim();
 
 test("画面の「消す」: 失うもの（force の変更・delete_branch の取り込んでいないコミット）は控えに入れてゴミ箱に 3 日残り、戻すと同じ名前で作り直して変更も戻る", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
+  const ctx = setup();
   const { call, project, store } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n", "gone.txt": "x\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/d");
@@ -48,7 +43,7 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
   assert.equal(store.chats.get(chatId)?.worktree_path, null);
   assert.equal(store.chats.get(chatId)?.finished_worktree_branch, "feat/d");
   // 本体に戻した区切りを置く（片付けた理由・コミットしていない変更は控えに入れたこと）
-  const [moved] = moves(ctx, chatId);
+  const [moved] = await moves(ctx, chatId);
   assert.deepEqual([moved.reason, moved.from.worktree_path, moved.from.branch, moved.to.worktree_path, moved.backed_up], ["worktree_finished", wt, "feat/d", null, true]);
   const [item] = (await call("GET", `/api/projects/${project.id}/trash`)).body;
   assert.equal(item.kind, "worktree");
@@ -67,7 +62,7 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
 });
 
 test("画面の「消す」: 失うものがなければ控えを作らない。控えは 3 日たったら参照ごと消える", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
+  const ctx = setup();
   const { call, project, trashBin, trashClock } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/clean");
@@ -89,7 +84,7 @@ test("画面の「消す」: 失うものがなければ控えを作らない。
 });
 
 test("AI の後始末（本体のチャットから）: ローカルで取り込み済みなら控えなしでその場で消し、結果をお知らせと AI に返す文に出す", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
+  const ctx = setup();
   const { project, store, worktreeFinisher } = ctx;
   const { dir: repo, git } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId: wtChat, wt } = await worktreeChat(ctx, "feat/m");
@@ -103,7 +98,7 @@ test("AI の後始末（本体のチャットから）: ローカルで取り込
   const text = await worktreeFinisher.finishFromChat(main, "feat/m");
   assert.match(text, /取り込み済み（ローカル（main））のワークツリー（ブランチ feat\/m）を片付けました。/);
   assert.match(text, /チャット 1 件は、次から本体で動きます/);
-  assert.equal(notices(ctx, main).at(-1), text);
+  assert.equal((await noticesOf(ctx, main)).at(-1), text);
   assert.equal(store.chats.get(wtChat)?.worktree_path, null);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/m"], { cwd: repo }).toString().trim(), "");
@@ -111,7 +106,7 @@ test("AI の後始末（本体のチャットから）: ローカルで取り込
 });
 
 test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら取り込み済みとし、リモートのブランチも消す。取り込んでいなければ控えに入れたことをはっきり書く", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
+  const ctx = setup();
   const { project, store, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const remote = tempDir();
@@ -145,7 +140,7 @@ test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら
 });
 
 test("AI の後始末: リモートの名前に / があっても、追いかけている先のリモートのブランチを消す（最初の / で割らない）", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
+  const ctx = setup();
   const { project, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const remote = tempDir();
@@ -161,8 +156,8 @@ test("AI の後始末: リモートの名前に / があっても、追いかけ
 });
 
 test("AI の後始末（ワークツリー自身のチャットから）: 予約して作業の終わりに消し、送信待ちは止めておく。ほかのワークツリーのチャットからは消せない", async () => {
-  const ctx = setup({ features: ["worktrees", "github"] });
-  const { call, project, store, provider, runner, worktreeFinisher } = ctx;
+  const ctx = setup();
+  const { call, project, store, provider, worktreeFinisher } = ctx;
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/self");
   const { chatId: otherChat } = await worktreeChat(ctx, "feat/other");
@@ -171,7 +166,7 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   const main = await mainChat(ctx);
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "実装して" });
-  await until(() => runner.isBusy(chatId));
+  await until(() => isBusy(ctx, chatId));
   await assert.rejects(worktreeFinisher.finishFromChat(main, "feat/self"), /作業中のチャットがあるので消せません/);
   // 自分のワークツリー: 予約だけして、作業中は消さない
   const text = await worktreeFinisher.finishFromChat(chatId, undefined);
@@ -183,11 +178,11 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   await until(() => store.chats.get(chatId)?.worktree_path === null);
   assert.equal(fs.existsSync(wt), false);
   // 頼んだチャット自身にも本体に戻した区切りを置き、そのあとに結果のお知らせ
-  assert.deepEqual(moves(ctx, chatId).map((m) => [m.reason, m.backed_up]), [["worktree_finished", undefined]]);
-  assert.match(notices(ctx, chatId).at(-1) ?? "", /ワークツリー（ブランチ feat\/self）を片付けました/);
+  assert.deepEqual((await moves(ctx, chatId)).map((m) => [m.reason, m.backed_up]), [["worktree_finished", undefined]]);
+  assert.match((await noticesOf(ctx, chatId)).at(-1) ?? "", /ワークツリー（ブランチ feat\/self）を片付けました/);
   // 送信待ちは止めたまま（本体で勝手に動かない）
-  const queue = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;
+  const { queue } = await liveOf(ctx, chatId);
   assert.equal(queue.paused, true);
   assert.equal(queue.messages.length, 1);
-  assert.equal(runner.isBusy(chatId), false);
+  assert.equal(await isBusy(ctx, chatId), false);
 });

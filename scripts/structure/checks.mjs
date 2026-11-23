@@ -50,7 +50,7 @@ export function ancestors(file) {
   return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
 }
 
-/** 公開の口: dirs に合うフォルダの中のファイルを、そのフォルダの外から読むとき、行き先が entry か */
+/** 公開の口: dirs に合うフォルダの中のファイルを、そのフォルダの外から読むとき、行き先が entry か（テストからは testEntry も） */
 export function checkPublicApi(graph, config) {
   const out = [];
   for (const rule of config.publicApi ?? []) {
@@ -61,6 +61,7 @@ export function checkPublicApi(graph, config) {
         if (!edge.path) continue;
         const dir = ancestors(edge.path).find((d) => matchesAny(d, dirs));
         if (!dir || file.startsWith(`${dir}/`) || matchesAny(edge.path.slice(dir.length + 1), rule.entry)) continue;
+        if (rule.testEntry && matchesAny(file, config.tests ?? []) && matchesAny(edge.path.slice(dir.length + 1), rule.testEntry)) continue;
         out.push({ kind: "public", key: `public:${rule.name}:${file} -> ${edge.path}`, message: `${file}: ${dir} の中は ${rule.entry.join("・")} からだけ読む` });
       }
     }

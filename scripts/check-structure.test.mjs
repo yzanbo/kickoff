@@ -254,16 +254,18 @@ test("基準線と比べる: 基準線がなければ、いまの違反が全部
 
 const keys = (violations) => violations.map((v) => v.key);
 
-test("公開の口: 外からは entry だけ。中どうしと except は見ない", () => {
+test("公開の口: 外からは entry だけ（テストからは testEntry も）。中どうしと except は見ない", () => {
   const graph = graphOf([
-    ["src/features/board/core/x.ts", ["src/features/chat/core/index.ts", "src/features/chat/core/inner.ts", "src/features/chat/core/run/deep.ts", "zod"]],
+    ["src/features/board/core/x.ts", ["src/features/chat/core/index.ts", "src/features/chat/core/inner.ts", "src/features/chat/core/run/deep.ts", "src/features/chat/core/testing.ts", "zod"]],
+    ["src/features/board/core/x.test.ts", ["src/features/chat/core/testing.ts"]],
     ["src/features/chat/core/run/a.ts", ["src/features/chat/core/inner.ts"]],
     ["src/app/core/start.ts", ["src/features/chat/core/inner.ts"]],
   ]);
-  const config = { publicApi: [{ name: "feature-core", dirs: "src/features/*/core", entry: ["index.ts"], except: ["src/app/**"] }] };
+  const config = { tests: ["**/*.test.ts"], publicApi: [{ name: "feature-core", dirs: "src/features/*/core", entry: ["index.ts"], testEntry: ["testing.ts"], except: ["src/app/**"] }] };
   assert.deepEqual(keys(checkPublicApi(graph, config)), [
     "public:feature-core:src/features/board/core/x.ts -> src/features/chat/core/inner.ts",
     "public:feature-core:src/features/board/core/x.ts -> src/features/chat/core/run/deep.ts",
+    "public:feature-core:src/features/board/core/x.ts -> src/features/chat/core/testing.ts",
   ]);
 });
 
