@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CORE_STATE_LABELS, type CoreState } from "@shared/foundation/ipc";
 import { errorMessage } from "@shared/foundation/errors";
+import { coreNative } from "./native";
 
 /**
  * Kickoff のコア（別のプロセス）が落ちた・応答しないときの、画面の上の細い帯。
@@ -14,7 +15,7 @@ export function CoreStatusBand() {
   useEffect(() => setError(null), [state]);
   const label = state ? CORE_STATE_LABELS[state] : null;
   if (!state || !label) return null;
-  const core = window.kickoff?.core;
+  const core = coreNative();
   const act = (fn: (() => Promise<void>) | undefined) => () => void fn?.().catch((e: unknown) => setError(errorMessage(e)));
   return (
     <div className={`core-status-band floating core-${state}`} role="alert">
@@ -39,7 +40,7 @@ export function CoreStatusBand() {
 function useCoreState(): CoreState | null {
   const [state, setState] = useState<CoreState | null>(null);
   useEffect(() => {
-    const core = window.kickoff?.core;
+    const core = coreNative();
     if (!core) return;
     let live = true;
     const off = core.onState((status) => {

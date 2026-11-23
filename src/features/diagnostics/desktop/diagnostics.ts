@@ -6,7 +6,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { logsDir } from "@/foundation/desktop/app/logs";
 import { mainWindow } from "@/foundation/desktop/app/window";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
-import { startProcessRecording } from "@/features/diagnostics/core/processRecording";
+import { startProcessRecording } from "@/foundation/core/diagnostics/processRecording";
 import type { CoreDiagnostics } from "@/foundation/core/host/protocol";
 import type { CoreProcess } from "@/foundation/desktop/app/coreProcess";
 import { recentCoreStalls, recentStalls } from "@/foundation/desktop/diagnostics/stalls";
@@ -65,7 +65,7 @@ export const diagnosticsHandlers: IpcHandlers["diagnostics"] = {
 };
 
 let running = false;
-/** コアのプロセス（記録の 10 秒の間、コアの分も RPC で取る。index.ts がコアを作ったあとに渡す） */
+/** コアのプロセス（記録の 10 秒の間、コアの分も RPC で取る。部品の ready で渡す） */
 let core: Pick<CoreProcess, "call"> | null = null;
 
 /** 診断で記録するコアのプロセスを渡す */

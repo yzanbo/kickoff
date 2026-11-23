@@ -2,7 +2,6 @@ import inspector from "node:inspector";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
-import type { DatabaseStats } from "@shared/chat/databaseStats";
 import { sseDataOf } from "@/foundation/core/http/sseData";
 import { startCpuProfile, topSelfTime, type CpuProfile } from "@/foundation/core/system/cpuProfile";
 
@@ -10,10 +9,10 @@ import { startCpuProfile, topSelfTime, type CpuProfile } from "@/foundation/core
 // （HTTP サーバー・DB・エージェントの実行）がそれぞれ自分の中で取る（inspector の CPU プロファイルは、そのプロセスの中でしか取れない）。
 // コアの分には、画面へ送った知らせの数と量・SSE の数・DB の様子も入れる。画面が速くても、コアが詰まると SSE の知らせ・API の応答が遅れる
 
-/** コアの分だけ: 送った知らせを数えるバスと、DB の様子 */
+/** コアの分だけ: 送った知らせを数えるバスと、DB の様子（中身はそのまま summary の db に入れる） */
 interface CoreParts {
   bus: Bus;
-  databaseStats: () => DatabaseStats;
+  databaseStats: () => unknown;
 }
 
 /** イベントループの遅れを測る間隔（ms）。測った値にはこの間隔が含まれるので、差し引いて遅れた分だけにする */

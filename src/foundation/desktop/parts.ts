@@ -1,4 +1,5 @@
 // メインプロセスの機能の部品の形（機能の desktop/index.ts が出し、src/app/desktop/index.ts が土台へ渡す。土台は機能を読まない）
+import type { MenuItemConstructorOptions } from "electron";
 import type { CoreProcess, HostHandlers } from "@/foundation/desktop/app/coreProcess";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 
@@ -7,6 +8,8 @@ export interface DesktopPart {
   name: string;
   /** その部品の IPC の処理（まとまり → 名前 → 処理） */
   ipc?: Partial<IpcHandlers>;
+  /** アプリのメニューの「ヘルプ」に足す項目 */
+  menu?: MenuItemConstructorOptions[];
   /** コア → メインの RPC の処理（browser.* など） */
   hostMethods?: Partial<HostHandlers>;
   /** 起動の初め、窓を作る前に呼ぶ（webview の守り・見張りなど） */

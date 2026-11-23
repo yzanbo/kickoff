@@ -1,25 +1,17 @@
-import { Menu } from "electron";
-import { DIAGNOSTICS_SECONDS, openDiagnosticsRoot, startDiagnostics } from "@/features/diagnostics/desktop/diagnostics";
-import { mainWindow } from "./window";
+import { Menu, type MenuItemConstructorOptions } from "electron";
 
 /**
  * アプリのメニュー。Electron の既定のメニュー（アプリ・ファイル・編集・表示・ウィンドウ）と同じものに、
- * ヘルプの「性能の記録を取る」を足す（重いときに、再起動せずその場で記録を取るため。表示の「開発者ツールの切り替え」も残る）
+ * ヘルプへ機能の部品の項目（診断の「性能の記録を取る」など。重いときに、再起動せずその場で記録を取るため）を足す（表示の「開発者ツールの切り替え」も残る）
  */
-export function setAppMenu() {
+export function setAppMenu(helpItems: MenuItemConstructorOptions[]) {
   const menu = Menu.buildFromTemplate([
     { role: "appMenu" },
     { role: "fileMenu" },
     { role: "editMenu" },
     { role: "viewMenu" },
     { role: "windowMenu" },
-    {
-      role: "help",
-      submenu: [
-        { label: `性能の記録を取る（${DIAGNOSTICS_SECONDS} 秒）`, click: () => void startDiagnostics(mainWindow()) },
-        { label: "性能の記録の保存先を開く", click: () => void openDiagnosticsRoot() },
-      ],
-    },
+    { role: "help", submenu: helpItems },
   ]);
   Menu.setApplicationMenu(menu);
 }

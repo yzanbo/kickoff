@@ -4,7 +4,7 @@ import path from "node:path";
 import { test } from "vitest";
 import type { StallRecord } from "@/foundation/core/system/stallWatch";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import type { BootRecord } from "./bootTimeline";
+import type { BootRecord } from "@/foundation/desktop/diagnostics/bootTimeline";
 import { lastLaunch, parseJsonl, readLogOverview, summarizeStalls } from "./logOverview";
 
 const now = new Date("2026-11-16T12:00:00.000Z");

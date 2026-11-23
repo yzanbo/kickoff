@@ -3,17 +3,18 @@ import { useQuery } from "@/foundation/ui/query";
 import { DiagnosticsPath } from "@/features/diagnostics/ui/DiagnosticsPath";
 import { overviewLines } from "@/features/diagnostics/ui/overviewLines";
 import { Field } from "@/foundation/ui/kit/Field";
+import { diagnosticsNative, inDesktopApp } from "@/features/diagnostics/ui/native";
 
 /**
  * 診断: 重いときに、再起動せずその場で性能の記録を取る（10 秒）。押すと設定を閉じ、記録の間も操作を続けられる
  * （様子は画面の右下の DiagnosticsIndicator に出る）。アプリのメニューの「ヘルプ → 性能の記録を取る」と同じ
  */
 export function DiagnosticsSettings({ onClose }: { onClose?: () => void }) {
-  const available = Boolean(window.kickoff);
+  const available = inDesktopApp();
   // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
-  const folders = useQuery("DiagnosticsSettings.folders", async () => (await window.kickoff?.diagnostics.folders()) ?? null);
+  const folders = useQuery("DiagnosticsSettings.folders", diagnosticsNative.folders);
   // いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻）
-  const overview = useQuery("DiagnosticsSettings.overview", async () => (await window.kickoff?.diagnostics.overview()) ?? null);
+  const overview = useQuery("DiagnosticsSettings.overview", diagnosticsNative.overview);
   return (
     <section className="section">
       <h2>診断</h2>
@@ -29,7 +30,7 @@ export function DiagnosticsSettings({ onClose }: { onClose?: () => void }) {
             disabled={!available}
             onClick={() => {
               onClose?.();
-              void window.kickoff?.diagnostics.start();
+              diagnosticsNative.start();
             }}
           >
             <Activity size={14} aria-hidden />
@@ -49,7 +50,7 @@ export function DiagnosticsSettings({ onClose }: { onClose?: () => void }) {
               ))}
             </ul>
             <div>
-              <button type="button" className="btn" onClick={() => void window.kickoff?.diagnostics.openLogs()}>
+              <button type="button" className="btn" onClick={diagnosticsNative.openLogs}>
                 <FolderOpen size={14} aria-hidden />
                 記録の場所を開く
               </button>
@@ -62,7 +63,7 @@ export function DiagnosticsSettings({ onClose }: { onClose?: () => void }) {
             label="保存先"
             help="記録ごとに、日時の名前のフォルダ（summary.json と、Chrome の開発者ツールで開ける profile.cpuprofile（画面）・main.cpuprofile（メインプロセス））を作ります。"
           >
-            <DiagnosticsPath dir={folders.data.root} onOpen={() => void window.kickoff?.diagnostics.openRoot()} />
+            <DiagnosticsPath dir={folders.data.root} onOpen={diagnosticsNative.openRoot} />
           </Field>
         )}
         {folders.data && folders.data.records.length > 0 && (

@@ -14,7 +14,7 @@ import { logLaunch, startupLog, watchChildProcesses } from "@/foundation/desktop
 import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundation/desktop/app/hangWatch";
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
 import { browserDesktop } from "@/features/browser/desktop";
-import { diagnosticsHandlers, setDiagnosticsCore } from "@/features/diagnostics/desktop/diagnostics";
+import { diagnosticsDesktop } from "@/features/diagnostics/desktop";
 import { watchMainStalls } from "@/foundation/desktop/diagnostics/stalls";
 import { markMain, startMetricsLog } from "@/foundation/desktop/diagnostics/bootRecorder";
 import { registerIpc } from "@/foundation/desktop/ipc/ipc";
@@ -61,14 +61,15 @@ async function start() {
   const url = devUrl ?? `http://127.0.0.1:${port}`;
   const coreProcess = createCoreProcess({ port, devUrl, hostMethods: browserDesktop.hostMethods });
   browserDesktop.connectCore(coreProcess);
+  diagnosticsDesktop.connectCore(coreProcess);
   core = coreProcess;
   markMain("coreForked");
   const ready = coreProcess.start();
   // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
   logDisplayEvents();
   setMainWindowUrl(url);
-  registerIpc(url, { core: coreIpcHandlers(coreProcess), diagnostics: diagnosticsHandlers, ...browserDesktop.ipc });
-  setAppMenu();
+  registerIpc(url, { core: coreIpcHandlers(coreProcess), ...diagnosticsDesktop.ipc, ...browserDesktop.ipc });
+  setAppMenu([...diagnosticsDesktop.menu]);
   // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる
   const session = ready.then(async (r) => {
     await prepareAppSession(url, r.token);
@@ -94,7 +95,7 @@ async function start() {
     return;
   }
   await session;
-  setDiagnosticsCore(coreProcess);
+  diagnosticsDesktop.ready();
   // 60 秒ごとにプロセスと画面とコアのメモリを metrics.jsonl に書く
   startMetricsLog(() => coreProcess.call("metrics"));
   // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）

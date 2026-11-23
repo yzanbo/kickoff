@@ -8,7 +8,7 @@ import type { Core, CoreOptions } from "./types";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { CorePlatformParts } from "./platform";
 import { waitForShellPath } from "@/foundation/core/system/exec";
-import { startProcessRecording } from "@/features/diagnostics/core/processRecording";
+import { startProcessRecording } from "@/foundation/core/diagnostics/processRecording";
 import { startStallWatch, type StallRecord } from "@/foundation/core/system/stallWatch";
 import { RPC_TIMEOUTS, timeoutOf, type AwakeNeeds, type CoreEvents, type CoreInit, type CoreMethods, type CoreToHost, type HostEvents, type HostMethods } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";

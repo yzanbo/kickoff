@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { test } from "vitest";
 import { startCpuProfile, topSelfTime, type CpuProfile } from "@/foundation/core/system/cpuProfile";
-import { diagnosticsFolderName, perSecond } from "./profileSummary";
+import { diagnosticsFolderName, perSecond, RENDERER_PROBE } from "./profileSummary";
 
 test("性能の記録: 自分の中で時間を使った関数を、同じ関数ごとにまとめて多い順に並べる（空き時間は数えない）", () => {
   const profile: CpuProfile = {
@@ -37,4 +39,16 @@ test("CPU プロファイル: 画面とメインプロセスで同じ命令で�
   assert.deepEqual(sent[1][1], { interval: 1000 });
   assert.equal(await stop(), profile);
   assert.equal(sent.at(-1)?.[0], "Profiler.stop");
+});
+
+test("RENDERER_PROBE: 数える画面のクラス名は、どれも画面の部品の className にある（CSS の名前を変えたら、ここで落ちて気づく）", () => {
+  // 外のパッケージが付けるクラス（xterm・Monaco）は数えない
+  const vendor = new Set(["xterm", "monaco-editor"]);
+  const selectors = [...RENDERER_PROBE.matchAll(/querySelectorAll\("([^"]+)"\)/g)].map((m) => m[1]);
+  const classes = [...new Set(selectors.flatMap((s) => [...s.matchAll(/\.([a-z][a-z0-9-]*)/g)].map((m) => m[1])))].filter((c) => !vendor.has(c));
+  assert.ok(classes.length >= 6, `クラス名を読めていません: ${classes.join(", ")}`);
+  const files = execFileSync("git", ["ls-files", "src/features/*.tsx", "src/foundation/ui/*.tsx"], { encoding: "utf8" }).split("\n").filter(Boolean);
+  const texts = files.map((f) => readFileSync(f, "utf8"));
+  const used = (c: string) => texts.some((text) => new RegExp(`className=[^>]*(?<![\\w-])${c}(?![\\w-])`).test(text));
+  assert.deepEqual(classes.filter((c) => !used(c)), [], "RENDERER_PROBE のクラス名が画面の部品にない（profileSummary.ts を直す）");
 });

@@ -3,7 +3,7 @@ import type { BootReport, RendererMemory } from "@shared/foundation/ipc";
 import { rotatingLog } from "@/foundation/desktop/app/logFiles";
 import { openedAtLogin } from "@/foundation/desktop/app/loginItem";
 import { startupLog } from "@/foundation/desktop/app/startupLog";
-import { bootLogLine, buildBootRecord, metricsRow, type BootRecord, type MainMarks, type MainStage, type MetricsRow } from "@/features/diagnostics/desktop/bootTimeline";
+import { bootLogLine, buildBootRecord, metricsRow, type BootRecord, type MainMarks, type MainStage, type MetricsRow } from "./bootTimeline";
 
 // 起動の時刻と画面のメモリ（定期）の記録。組み立ては bootTimeline.ts。
 // ~/Library/Logs/<アプリ名>/boot.jsonl（1 回の読み込みで 1 行）と metrics.jsonl（60 秒ごとに 1 行）に書き、起動の時刻は startup.log にも 1 行書く

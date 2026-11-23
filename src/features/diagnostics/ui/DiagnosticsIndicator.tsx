@@ -5,6 +5,7 @@ import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { DiagnosticsPath } from "./DiagnosticsPath";
+import { diagnosticsNative } from "./native";
 
 /**
  * 性能の記録の様子（画面の右下の小さな印）。記録はメニューの「ヘルプ → 性能の記録を取る」か設定の「診断」から始まり、
@@ -12,7 +13,7 @@ import { DiagnosticsPath } from "./DiagnosticsPath";
  */
 export function DiagnosticsIndicator() {
   const [state, setState] = useState<DiagnosticsState | null>(null);
-  useEffect(() => window.kickoff?.diagnostics.onState(setState), []);
+  useEffect(() => diagnosticsNative.onState(setState), []);
   if (!state) return null;
   return (
     <div className={`diagnostics-indicator floating ${state.state}`} role="status">

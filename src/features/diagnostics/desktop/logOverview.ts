@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { DiagnosticsOverview, StallDigest } from "@shared/foundation/ipc";
 import type { StallRecord } from "@/foundation/core/system/stallWatch";
-import type { BootRecord } from "./bootTimeline";
+import type { BootRecord } from "@/foundation/desktop/diagnostics/bootTimeline";
 
 // 設定の「診断」に出す、いつも取っている記録のまとめ。
 // ログの場所の stalls.jsonl と boot.jsonl を、回した 1 世代（.1）も含めて読んで集める。Electron に依らない
