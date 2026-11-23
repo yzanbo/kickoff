@@ -1,5 +1,6 @@
 // 未保存の登録簿: このウィンドウで開いている文書（ファイル・ノート・DB の表の変更など）が、自分の様子と保存のしかたをここに出す。
 // ⌘⇧S（saveAll）・離れる前の確かめ（confirmLeave）・書きかけをすぐ残す（flushDrafts）が、置き場所を問わずここから読む
+import { createContext, useContext } from "react";
 import { createCell, useCell } from "@/foundation/ui/store";
 import { choose } from "@/foundation/ui/kit/ask";
 import { isUnder } from "@shared/foundation/path";
@@ -25,6 +26,12 @@ export interface UnsavedEntry {
   /** 作業場所の中のファイル（root = 作業場所の見分け workplaceKey。名前の変更・ゴミ箱・置換の前の確かめが dirtyUnder で引く） */
   file?: { root: string; path: string };
 }
+
+/** 入れ物（プロジェクトの画面など）が中の文書に渡す置き場所の名前（離れる前にその名前で聞く） */
+export const UnsavedSurfaceContext = createContext<string | null>(null);
+
+/** 中の文書が出す置き場所の名前（入れ物が渡していればそれ、なければ fallback） */
+export const useUnsavedSurface = (fallback: string): string => useContext(UnsavedSurfaceContext) ?? fallback;
 
 const entries = createCell<readonly UnsavedEntry[]>([]);
 

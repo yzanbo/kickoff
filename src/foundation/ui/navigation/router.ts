@@ -3,6 +3,7 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage as shellStorage } from "@/foundation/ui/storage/storage";
 import { createSignal } from "@/foundation/ui/store";
+import { definePoint } from "@/foundation/ui/points";
 
 /** プロジェクトの画面（タブ）の ID。知っている ID は app/renderer/registry.ts が configureRouter で入れる */
 export type ProjectViewId = string;
@@ -109,8 +110,17 @@ export function useHashRoute(onChange?: (route: Route, replace: boolean) => void
   const [route, setRoute] = useState(() => parse(location.hash));
   useWindowEvent("hashchange", (event) => {
     const next = parse(location.hash);
+    const replace = Boolean((event as RouteChangeEvent).routeReplace);
+    // 書きかけのある画面を離れるなら、聞いている間は URL を元に戻し、移ってよければ移り直す（確かめ済みの移動は聞き直さない）
+    const asking = confirmedHash === href(next) ? null : askRouteLeave(route, next);
+    confirmedHash = null;
+    if (asking) {
+      history.replaceState(null, "", href(route));
+      void asking.then((ok) => ok && navigate(next, { replace, confirmed: true }));
+      return;
+    }
     // 画面を描くと、子の部品が URL を置き換えることがある。必ず描く前に元の移動を履歴へ積む
-    onChange?.(next, Boolean((event as RouteChangeEvent).routeReplace));
+    onChange?.(next, replace);
     setRoute(next);
   });
   // 最後に見ていた画面を覚える（次に起動したときに開く。restoreLastRoute）
@@ -164,11 +174,29 @@ export interface RouteChangeEvent extends HashChangeEvent {
   routeReplace?: boolean;
 }
 
-export function navigate(route: Route, options: { replace?: boolean } = {}) {
+/** 画面を移る前の確かめ（持ち主が ui/contributes.ts で登録する。聞くことがなければ null、あれば移ってよいか） */
+export type RouteLeaveGuard = (from: Route, to: Route) => Promise<boolean> | null;
+export const routeLeaveGuards = definePoint<RouteLeaveGuard>("routeLeaveGuards");
+
+/** from から to へ移る前に聞くこと（初めに聞く確かめ。聞くことがなければ null） */
+export function askRouteLeave(from: Route, to: Route): Promise<boolean> | null {
+  for (const guard of routeLeaveGuards.items()) {
+    const asking = guard(from, to);
+    if (asking) return asking;
+  }
+  return null;
+}
+
+/** 移る前の確かめを済ませた移動（URL の購読が聞き直さない） */
+let confirmedHash: string | null = null;
+
+/** confirmed: 移る前の確かめを済ませた（戻る・進むが先に聞いた） */
+export function navigate(route: Route, options: { replace?: boolean; confirmed?: boolean } = {}) {
   if (location.hash === href(route) && (route.name === "chat" || route.name === "newChat")) {
     reopened.emit(route);
     return;
   }
+  if (options.confirmed) confirmedHash = href(route);
   if (options.replace) {
     // 履歴に残さず置き換える（新しいチャット画面 → 作成されたチャットへ移るとき）
     history.replaceState(null, "", href(route));

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import { configureRouter, href, lastingRoute, navigate, parse, reopened, routeProjectId, type Route, type RouteChangeEvent } from "./router";
+import { useTestContributions } from "@/foundation/ui/testing/contributions";
+import { askRouteLeave, configureRouter, href, lastingRoute, navigate, parse, reopened, routeLeaveGuards, routeProjectId, type Route, type RouteChangeEvent } from "./router";
 
 // 知っているプロジェクトの画面（本物は app/renderer/registry.ts が入れる）
 configureRouter({ projectViews: ["board", "chats", "files", "search", "changes", "history", "notes"], defaultView: "board" });
@@ -120,4 +121,16 @@ test("navigate: 同じチャット・新しいチャットを開き直したら�
   navigate({ name: "project", id: 3, tab: "board" });
   off();
   assert.deepEqual(got, [{ name: "chat", projectId: 3, chatId: 9 }]);
+});
+
+test("askRouteLeave: 登録した確かめのうち、初めに聞くものを返す（どれも聞かなければ null）", async () => {
+  const from: Route = { name: "project", id: 3, tab: "files" };
+  const seen: string[] = [];
+  useTestContributions([
+    routeLeaveGuards.item((a, b) => (seen.push(`${href(a)}>${href(b)}`), null)),
+    routeLeaveGuards.item((_, to) => (to.name === "allProjects" ? Promise.resolve(false) : null)),
+  ]);
+  assert.equal(askRouteLeave(from, { name: "project", id: 4, tab: "files" }), null);
+  assert.equal(await askRouteLeave(from, { name: "allProjects" }), false);
+  assert.deepEqual(seen, ["#/projects/3/files>#/projects/4/files", "#/projects/3/files>#/"]);
 });

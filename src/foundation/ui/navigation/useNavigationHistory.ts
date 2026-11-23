@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { navigate } from "./router";
+import { askRouteLeave, navigate } from "./router";
 import type { createNavigationHistory } from "./navigationHistory";
 
 /** 左上のボタンと ⌘[ / ⌘] で、Kickoff の前の画面・次の画面へ移る */
@@ -7,11 +7,19 @@ export function useNavigationHistory(history: ReturnType<typeof createNavigation
   const state = useSyncExternalStore(history.subscribe, history.getSnapshot);
 
   const move = (step: -1 | 1) => {
-    const route = history.move(step);
+    const { entries, index } = history.getSnapshot();
+    const route = entries[index + step];
     if (!route) return;
-    revealPage();
-    // 履歴をたどる移動は、新しい移動として積み直さない
-    navigate(route, { replace: true });
+    const go = () => {
+      history.move(step);
+      revealPage();
+      // 履歴をたどる移動は、新しい移動として積み直さない
+      navigate(route, { replace: true, confirmed: true });
+    };
+    // 書きかけのある画面を離れるなら先に聞く（やめたら履歴の位置も動かさない）
+    const asking = askRouteLeave(entries[index], route);
+    if (asking) void asking.then((ok) => ok && go());
+    else go();
   };
   return {
     canGoBack: state.index > 0,

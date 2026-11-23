@@ -1,9 +1,9 @@
 import { CodeXml, Eye, Save, StickyNote } from "lucide-react";
 import { baseName } from "@shared/foundation/path";
 import { noteExtensionOf, noteKindOf, type NoteKind } from "@shared/notes/kinds";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { registerUnsaved } from "@/foundation/ui/document/unsaved";
+import { registerUnsaved, useUnsavedSurface } from "@/foundation/ui/document/unsaved";
 import { registerNoteSelection } from "@/foundation/ui/lib/viewDetails";
 import { isCancelKey, isComposing, isKey } from "@/foundation/ui/lib/keys";
 import { storage } from "@/features/notes/ui/storage";
@@ -103,10 +103,7 @@ export function NoteView({
   const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
   const [queueHost, setQueueHost] = useState<HTMLDivElement | null>(null);
   const [queued, setQueued] = useState(false);
-  const chipsPortal = useMemo(
-    () => (chatOpen ? null : { target: chipsHost, queueTarget: queueHost, onQueued: setQueued, reveal: () => setChatOpen(true) }),
-    [chatOpen, chipsHost, queueHost, setChatOpen],
-  );
+  const chipsPortal = chatOpen ? null : { target: chipsHost, queueTarget: queueHost, onQueued: setQueued, reveal: () => setChatOpen(true) };
   // 足す先のチャット（開いたチャット・ノートのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの「…に追加」のボタンから
   const file = `${dir}/${path}`;
   const targets = useNoteChatTargets({ projectId, file, path, attachTo, save: doc.save, noteChat: chat, openNoteChat: () => setChatOpen(true) });
@@ -174,7 +171,8 @@ export function NoteView({
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
   // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。未保存の登録簿 document/unsaved）
   const savable = useLatest({ unsaved, saveDoc });
-  useEffect(() => registerUnsaved({ key: `${projectId}:${path}`, surface: "notes", title: baseName(path), dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), [projectId, path]);
+  const surface = useUnsavedSurface("notes");
+  useEffect(() => registerUnsaved({ key: `${projectId}:${path}`, surface, title: baseName(path), dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), [projectId, path, surface]);
   // 選んでいる文（利用者が見ているものの知らせが読む。AI の get_user_view）
   useEffect(() => registerNoteSelection(projectId, path, () => editor.current?.selectedText() ?? ""), [projectId, path]);
 

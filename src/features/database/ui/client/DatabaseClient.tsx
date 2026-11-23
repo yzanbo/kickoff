@@ -24,6 +24,7 @@ import { DbList } from "./DbList";
 import { DbTabPages } from "./DbTabPage";
 import { canCloseDbTab } from "./dbTabClose";
 import { dbSurfaceKey, type DbSurface } from "@/features/database/ui/state/surface";
+import { useUnsavedSurface } from "@/foundation/ui/document/unsaved";
 import { treeKey } from "@/features/database/ui/tree/treeKeys";
 import { useDbClientTabs } from "@/features/database/ui/state/useDbClientTabs";
 import { useDbClientRequests } from "@/features/database/ui/state/dbClientRequests";
@@ -38,10 +39,11 @@ const NARROW_WIDTH = 720;
 /**
  * DB クライアント（左に接続の一覧と木、右にタブ（テーブル・SQL））。プロジェクトの「DB」タブ・チャットの右の欄・別ウィンドウで同じものを使い、
  * 開いているタブと木の開き具合は置き場所（surface）ごとに覚える。worktree: SQLite のファイルを開く作業場所（null なら本体）。狭い所では左の一覧を隠し（左上のボタンで重ねて出す）、タブの上にパンくずを出す。
- * unsavedSurface: 表の変更を出す未保存の登録簿の置き場所の名前（入れ物が離れる前に聞く。なければ置き場所ごとの名前）
+ * 表の変更は、入れ物が渡す未保存の登録簿の置き場所の名前（UnsavedSurfaceContext。なければ置き場所ごとの名前）で出す（入れ物が離れる前に聞く）
  */
-export function DatabaseClient({ projectId, surface, worktree, unsavedSurface }: { projectId: number; surface: DbSurface; worktree: string | null; unsavedSurface?: string }) {
+export function DatabaseClient({ projectId, surface, worktree }: { projectId: number; surface: DbSurface; worktree: string | null }) {
   const surfaceKey = dbSurfaceKey(surface);
+  const unsavedSurface = useUnsavedSurface(`database:${surfaceKey}`);
   const connections = useDbConnections(projectId);
   const list = connections.data ?? [];
   const byId = new Map(list.map((c) => [c.id, c]));
@@ -83,7 +85,7 @@ export function DatabaseClient({ projectId, surface, worktree, unsavedSurface }:
   const actions: DbClientActions = {
     projectId,
     surfaceKey,
-    unsavedSurface: unsavedSurface ?? `database:${surfaceKey}`,
+    unsavedSurface,
     narrow,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     openMain: (id) => setMainOnly((s) => new Set([...s, id])),

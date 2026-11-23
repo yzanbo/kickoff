@@ -5,7 +5,7 @@ import { useQuery, type QueryOptions } from "@/foundation/ui/query/useQuery";
 import { toError } from "@/foundation/ui/query/queryState";
 import { readSetting, writeSetting, type SettingFamily } from "@/foundation/ui/storage";
 import { draftOf, freshAction, startDocument, statusAfterEdit, type DocumentDraft, type DocumentFile, type DocumentStatus } from "./documentState";
-import { notifyUnsavedChange, registerUnsaved, type UnsavedEntry } from "./unsaved";
+import { notifyUnsavedChange, registerUnsaved, useUnsavedSurface, type UnsavedEntry } from "./unsaved";
 
 /** 文書の読み書きの口（ファイル・ノートが渡す。F は読んだ中身の形で、中身と指紋のほかを持ってよい） */
 export interface DocumentSource<F extends DocumentFile = DocumentFile> {
@@ -29,7 +29,7 @@ export interface UseDocumentOptions<F extends DocumentFile = DocumentFile> {
   onSaved?(): void;
   /** 書きかけを保存に残す（ノートは残す・ファイルは渡さない＝残さない） */
   draft?: SettingFamily<DocumentDraft | null>;
-  /** 未保存の登録簿に出す名前・置き場所 */
+  /** 未保存の登録簿に出す名前・置き場所（入れ物が UnsavedSurfaceContext で渡していればそちら） */
   title: string;
   surface: string;
   /** 未保存の登録簿の置いたタブ・作業場所のファイル（UnsavedEntry の tab・file） */
@@ -84,10 +84,11 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
   onSaved,
   draft,
   title,
-  surface,
+  surface: ownSurface,
   tab,
   file: place,
 }: UseDocumentOptions<F>): DocumentState<F> {
+  const surface = useUnsavedSurface(ownSurface);
   const loaded = useQuery<F>(key, (signal) => source.read(signal), {
     refetchOn,
     deps,

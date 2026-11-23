@@ -17,6 +17,8 @@ import { projectPaletteSource } from "./paletteSources";
 import { projectsDisplayItems } from "./page/displaySettings";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { projectsHosts } from "./appHosts";
+import { routeLeaveGuards } from "@/foundation/ui/navigation/router";
+import { leaveProjectView } from "./viewLeave";
 
 export const contributes = [
   openTargets.item(projectViewTarget),
@@ -26,6 +28,7 @@ export const contributes = [
   settingsSections.item(referencesSection),
   settingsSections.item(deleteSection),
   popoutKinds.item(sidePopout),
+  routeLeaveGuards.item(leaveProjectView),
   paletteSources.item(projectPaletteSource),
   // ⌥ を押すと文字が変わるので、キーの位置で見る。エディタが先に受けても効く
   commands.item({
