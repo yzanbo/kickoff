@@ -1,4 +1,4 @@
-import { useId, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useId, useState, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { isComposing } from "@/foundation/ui/lib/keys";
 import { flattenTree, treeKeyMove, type OpenState, type TreeNode, type TreeRow } from "./tree";
 
@@ -25,25 +25,35 @@ export interface Tree<K, N extends TreeNode<K> = TreeNode<K>> {
   /** 開く・閉じる（"lazy" の子は開いたときに読み込む） */
   setOpen(key: K, open: boolean): void;
   selection: { has(key: K): boolean } | undefined;
-  containerProps: { role: "tree"; "aria-label": string; "aria-activedescendant"?: string; tabIndex: 0; onKeyDown(e: KeyboardEvent): void };
+  containerProps: {
+    role: "tree";
+    "aria-label": string;
+    "aria-activedescendant"?: string;
+    tabIndex: 0;
+    onKeyDown(e: KeyboardEvent): void;
+    onFocus(e: FocusEvent): void;
+  };
   rowProps(key: K): { id: string; role: "treeitem"; "aria-level": number; "aria-expanded"?: boolean; "aria-selected": boolean; onClick(e: MouseEvent): void };
 }
 
 /**
  * 木の状態と操作: 開いているフォルダの中だけを行に並べ、木そのものにピントを置いたまま行を移る（aria-activedescendant）。
- * キーは treeKeyMove（↑↓・Home / End・→ で開く / 子へ・← で閉じる / 親へ・Space で開く・Enter で名前の変更）
+ * キーは treeKeyMove（↑↓・Home / End・→ で開く / 子へ・← で閉じる / 親へ・Space で開く・Enter で名前の変更）で、
+ * 木そのものにピントがあるときだけ受ける（行の中の名前の欄・ボタンのキーはその部品のもの）。木に入ったときは選んでいる行（なければ先頭）にピントを置く
  */
 export function useTree<K, N extends TreeNode<K>>(o: UseTreeOptions<K, N>): Tree<K, N> {
   const rows = flattenTree<K, N>(o.roots, o.open);
   const [focused, setFocused] = useState<K | null>(null);
   const baseId = useId();
-  const idOf = (key: K) => `${baseId}-${rows.findIndex((r) => r.key === key)}`;
+  const indexOf = new Map(rows.map((r, i) => [r.key, i]));
+  const rowOf = (key: K | null) => (key === null ? undefined : rows[indexOf.get(key) ?? -1]);
+  const idOf = (key: K) => `${baseId}-${indexOf.get(key) ?? -1}`;
   const setOpen = (key: K, open: boolean) => {
     o.open.set(key, open);
-    if (open && rows.find((r) => r.key === key)?.node.children === "lazy") o.onLoadChildren?.(key);
+    if (open && rowOf(key)?.node.children === "lazy") o.onLoadChildren?.(key);
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    if (isComposing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target !== e.currentTarget || isComposing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     const move = treeKeyMove(rows, focused, e.key);
     if (!move) return;
     e.preventDefault();
@@ -52,16 +62,20 @@ export function useTree<K, N extends TreeNode<K>>(o: UseTreeOptions<K, N>): Tree
     else if (move.type === "rename" && o.onRename) o.onRename(move.key);
     else o.onActivate(move.key, e);
   };
-  const focusedRow = rows.some((r) => r.key === focused) ? focused : null;
+  const focusedRow = rowOf(focused) ? focused : null;
+  const onFocus = (e: FocusEvent) => {
+    if (e.target !== e.currentTarget || focusedRow !== null || rows.length === 0) return;
+    setFocused((rows.find((r) => o.selection?.has(r.key)) ?? rows[0]).key);
+  };
   return {
     rows,
     focused: focusedRow,
     setFocused,
     setOpen,
     selection: o.selection,
-    containerProps: { role: "tree", "aria-label": o.label, "aria-activedescendant": focusedRow === null ? undefined : idOf(focusedRow), tabIndex: 0, onKeyDown },
+    containerProps: { role: "tree", "aria-label": o.label, "aria-activedescendant": focusedRow === null ? undefined : idOf(focusedRow), tabIndex: 0, onKeyDown, onFocus },
     rowProps: (key) => {
-      const row = rows.find((r) => r.key === key);
+      const row = rowOf(key);
       return {
         id: idOf(key),
         role: "treeitem",

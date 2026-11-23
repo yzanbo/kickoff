@@ -107,7 +107,7 @@ export function FilesPane({
       >
         <ErrorText message={files.error} />
         {files.tree ? (
-          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} multi={multi} kinds={kinds} rename={rename} create={create} fileDrag={fileDrag} />
+          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} multi={multi} kinds={kinds} rename={rename} create={create} fileDrag={fileDrag} sticky label="すべてのファイル" />
         ) : (
           !files.error && <p className="muted small changes-empty">読み込み中…</p>
         )}

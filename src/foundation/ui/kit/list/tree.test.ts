@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { flattenTree, treeKeyMove, type TreeNode } from "./tree";
+import { flattenTree, guideLevels, subtreeEnds, treeKeyMove, type TreeNode } from "./tree";
 
 const roots: TreeNode<string>[] = [
   { key: "a", children: [{ key: "a/x" }, { key: "a/y", children: "lazy" }] },
@@ -58,4 +58,22 @@ test("treeKeyMove: Space で開く・Enter で名前の変更（行を選んで�
   assert.deepEqual(treeKeyMove(rows, "c", "Enter"), { type: "rename", key: "c" });
   assert.equal(treeKeyMove(rows, null, "Enter"), null);
   assert.equal(treeKeyMove(rows, "c", "x"), null);
+});
+
+const deep: TreeNode<string>[] = [{ key: "a", children: [{ key: "a/b", children: [{ key: "a/b/c" }] }, { key: "a/d" }] }, { key: "e" }];
+
+test("guideLevels: 選んだ行の親の段（中身の見える開いたフォルダなら中身の段）を、その段の中の行に付ける", () => {
+  const rows = flattenTree(deep, openOf("a", "a/b"));
+  // a, a/b, a/b/c, a/d, e
+  assert.deepEqual(guideLevels(rows, (k) => k === "a/b/c"), [null, null, 1, null, null]);
+  assert.deepEqual(guideLevels(rows, (k) => k === "a/d"), [null, 0, 0, 0, null]);
+  // 開いたフォルダを選べば、その中身の段
+  assert.deepEqual(guideLevels(rows, (k) => k === "a/b"), [null, null, 1, null, null]);
+  // いちばん上の段の行・閉じたフォルダは親の段がない
+  assert.deepEqual(guideLevels(flattenTree(deep, openOf()), (k) => k === "a"), [null, null]);
+});
+
+test("subtreeEnds: 中身の見える開いたフォルダの行だけ、中身の最後の行の位置", () => {
+  assert.deepEqual(subtreeEnds(flattenTree(deep, openOf("a", "a/b"))), [3, 2, null, null, null]);
+  assert.deepEqual(subtreeEnds(flattenTree(roots, openOf("a", "b"))), [2, null, null, null, null]);
 });

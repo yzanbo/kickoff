@@ -76,3 +76,33 @@ export function treeKeyMove<K>(rows: readonly TreeRow<K, TreeNode<K>>[], focused
   }
   return null;
 }
+
+/**
+ * 縦の線を濃くする段（行ごと。なければ null）: active な行（選んだ・ピントのある行）の親の段、その行が中身の見える開いたフォルダなら中身の段。
+ * 行が入っているそうした段のうち、いちばん深いもの（線は段の親のフォルダの開閉の矢印の下）
+ */
+export function guideLevels<K>(rows: readonly TreeRow<K, TreeNode<K>>[], active: (key: K) => boolean): (number | null)[] {
+  const groups = new Set<K>();
+  rows.forEach((row, i) => {
+    if (!active(row.key)) return;
+    const group = row.open && rows[i + 1]?.parent === row.key ? row.key : row.parent;
+    if (group !== null) groups.add(group);
+  });
+  const ancestors: K[] = [];
+  return rows.map((row) => {
+    ancestors.length = row.depth;
+    const level = ancestors.findLastIndex((key) => groups.has(key));
+    ancestors.push(row.key);
+    return level < 0 ? null : level;
+  });
+}
+
+/** 開いたフォルダの行（中身が見えるもの）の、中身の最後の行の位置（行を上に貼り付けるときの下の限り。ほかの行は null） */
+export function subtreeEnds<K>(rows: readonly TreeRow<K, TreeNode<K>>[]): (number | null)[] {
+  return rows.map((row, i) => {
+    if (!row.open || rows[i + 1]?.parent !== row.key) return null;
+    let end = i + 1;
+    while (end + 1 < rows.length && rows[end + 1].depth > row.depth) end++;
+    return end;
+  });
+}

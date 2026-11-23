@@ -10,3 +10,98 @@
   --tree-left: calc(var(--tree-pad, 6px) + var(--depth, 0) * var(--tree-indent, 12px));
   padding-left: var(--tree-left);
 }
+
+/*
+ * 木（TreeView の .tree-view）: ピントは木そのものに置き、キーで動かしている行（.focused）に枠を出す（Tab で入ったときだけ。base/focus.css と同じ枠）
+ */
+.tree-view:focus {
+  outline: none;
+}
+
+:where(:root:not([data-modality="pointer"])) .tree-view:focus-visible .tree-row.focused {
+  outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/*
+ * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 行ごとに、段の数だけ親のフォルダの開閉の矢印の下に線を引く
+ * （行の左の余白 6px ＋ 段ごとの 12px ＋ 開閉の矢印（幅 14px）の真ん中）。一覧にマウスを乗せている間だけ全部を薄く出し、
+ * 選んでいる行（--guide-sel）・ピントのある行（--guide-focus。木にピントがある間）の段の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40%）
+ */
+.tree-view .tree-row {
+  position: relative;
+  /* ボタンの行と同じく、Shift ＋クリックで文字を選ばない */
+  user-select: none;
+}
+
+.tree-view .tree-row::before,
+.tree-view .tree-row[data-guide]::after {
+  position: absolute;
+  inset-block: 0;
+  left: 13px;
+  /* 中の段の行の地より上に重ねる */
+  z-index: 1;
+  content: "";
+  pointer-events: none;
+}
+
+.tree-view .tree-row::before {
+  --tree-guide: color-mix(in srgb, var(--extra-muted) 40%, transparent);
+  width: calc(var(--depth, 0) * 12px);
+  background: linear-gradient(to right, var(--tree-guide) 1px, transparent 1px) 0 0 / 12px 100% repeat-x;
+  opacity: 0;
+  transition: opacity 0.1s linear;
+}
+
+:is(.changes-list, .tree-view):hover .tree-row::before {
+  opacity: 1;
+}
+
+.tree-view .tree-row[data-guide]::after {
+  --tree-guide-strong: linear-gradient(var(--extra-muted), var(--extra-muted));
+  right: 0;
+  background:
+    var(--tree-guide-strong) calc(var(--guide-sel, -99) * 12px) 0 / 1px 100% no-repeat,
+    var(--tree-guide-strong) -99px 0 / 1px 100% no-repeat;
+}
+
+.tree-view:focus .tree-row[data-guide]::after {
+  background-position:
+    calc(var(--guide-sel, -99) * 12px) 0,
+    calc(var(--guide-focus, -99) * 12px) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-view .tree-row::before {
+    transition: none;
+  }
+}
+
+/*
+ * 開いたフォルダの行を上に貼り付ける（TreeView の sticky。VS Code のエクスプローラーの Sticky Scroll と同じ）: 中身を流している間、
+ * 入っているフォルダの行を段の順に上へ積み、そのフォルダの中身が流れ切ると次の行に押し出される（--tree-scroll は部品が入れる、行の箱の上端から見たスクロールの量）。
+ * 浅い段ほど上に重ね（押し出される深い段がその下へ潜る）、縦の線より上に出す。地は流れる行を隠すため不透明に
+ */
+.tree-view[data-sticky] {
+  --tree-row-height: 22px;
+}
+
+.tree-view .tree-row[data-sticky] {
+  z-index: max(2, calc(20 - var(--depth, 0)));
+  background: var(--bg-sidebar);
+  transform: translateY(
+    clamp(
+      0px,
+      var(--tree-scroll, 0px) + (var(--depth, 0) - var(--row-index)) * var(--tree-row-height),
+      (var(--row-last) - var(--row-index)) * var(--tree-row-height)
+    )
+  );
+}
+
+.tree-view .tree-row[data-sticky]:hover {
+  background: var(--bg-hover);
+}
+
+.tree-view .tree-row[data-sticky].selected {
+  background: var(--bg-active);
+}

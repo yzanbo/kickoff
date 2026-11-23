@@ -1,7 +1,8 @@
 // 変更のタブでまだコミットしていないファイル（決まったデータの src/util.ts。1 行足してある）を選ぶと、差分が開き、足した行が 1 行出る
 import assert from "node:assert/strict";
 
-const FILE = `[...document.querySelectorAll("button")].find((b) => (b.getAttribute("aria-label") || b.title) === "src/util.ts（変更）")`;
+// 木の行（TreeView の行。名前と変更の種類は title）
+const FILE = `[...document.querySelectorAll(".tree-row")].find((row) => row.title === "src/util.ts（変更）")`;
 
 export default {
   name: "open-diff",

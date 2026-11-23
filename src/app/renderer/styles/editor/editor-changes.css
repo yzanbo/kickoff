@@ -170,19 +170,24 @@
 
 .change-group-row:is(:hover, :focus-within) > .row-actions,
 .change-item:is(:hover, :focus-within, :has(> .change-file.selected)) > .row-actions,
-.change-group .tree-item:hover:not(:has(.tree-item:hover)) > .row-actions,
-.change-group .tree-item:is(:has(> .tree-row:is(.selected, :focus-visible)), :has(> .row-actions:focus-within)) > .row-actions {
+.change-group .tree-row:is(:hover, .selected, :has(> .row-actions:focus-within)) > .row-actions,
+.change-group .tree-view:focus-visible .tree-row.focused > .row-actions {
   display: flex;
 }
 
+/* 木の行の中の操作（行の右の余白の外に、行の端まで寄せる。ボタンの間は押せる行にしない） */
+.tree-row > .row-actions {
+  /* 記号との間は行の右の余白と同じ 10px（行の gap 4px ＋ 6px） */
+  margin-inline: 6px -10px;
+  cursor: auto;
+}
+
 /* 乗せた行は、操作のボタンの所まで行の地を伸ばす（ボタンに乗せている間も行を乗せた色のまま。選んだ行は選んだ色） */
-.change-item:hover > :is(.change-file:not(.selected), .row-actions),
-.change-group .tree-item:hover:not(:has(.tree-item:hover)) > :is(.tree-row:not(.selected), .row-actions) {
+.change-item:hover > :is(.change-file:not(.selected), .row-actions) {
   background: var(--bg-hover);
 }
 
-.change-item:has(> .change-file.selected) > .row-actions,
-.change-group .tree-item:has(> .tree-row.selected) > .row-actions {
+.change-item:has(> .change-file.selected) > .row-actions {
   background: var(--bg-active);
 }
 

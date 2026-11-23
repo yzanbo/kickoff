@@ -230,6 +230,7 @@ export default {
       "src/foundation/ui/hooks/useBusyBadge.ts", // 汎用の hook（分冊 04 の 2.10）
       "src/foundation/ui/diff/**", // 差分の土台（git も使うようにするのは分冊 08 の P8-1）
       "src/foundation/ui/kit/drag/**", // ドラッグの仕組み（分冊 04 の kit/drag。種類と中身は機能が宣言する）
+      "src/foundation/ui/kit/list/TreeView.tsx", // 木の部品（ノートの木・DB の木も分冊 09 の P8-4・P8-5 で乗せる）
     ],
   },
 };

@@ -14,7 +14,7 @@
   background: var(--info);
 }
 
-/* エクスプローラーのフォルダの木 */
+/* ノートの木（入れ子の .file-tree。ファイル・変更・履歴の木は土台の TreeView で、線と貼り付けは ui/types/tree.css） */
 .file-tree {
   margin: 0;
   padding: 0;
@@ -22,7 +22,7 @@
 }
 
 .changes-list > .file-tree,
-.files-pane > .file-tree {
+.files-pane > .tree-view {
   padding: 4px 0 8px;
 }
 
@@ -39,31 +39,10 @@
 }
 
 /*
- * 開いたフォルダの行を上に貼り付ける（VS Code のエクスプローラーの Sticky Scroll と同じ）: 中身を流している間、
- * 入っているフォルダの行を深さの順に上へ積み、そのフォルダの中身が流れ切ると、次のフォルダの行に押し出される（sticky は親の li の中だけで効く）。
- * 浅い段ほど上に重ね（押し出される深い段がその下へ潜る）、縦の線（z-index 1）より上に出す。地は流れる行を隠すため不透明に
- */
-.files-pane .tree-item[aria-expanded="true"] > .tree-row {
-  --tree-row-height: 22px;
-  position: sticky;
-  top: calc(var(--depth, 0) * var(--tree-row-height));
-  z-index: max(2, calc(20 - var(--depth, 0)));
-  background: var(--bg-sidebar);
-}
-
-.files-pane .tree-item[aria-expanded="true"] > .tree-row:hover {
-  background: var(--bg-hover);
-}
-
-.files-pane .tree-item[aria-expanded="true"] > .tree-row.selected {
-  background: var(--bg-active);
-}
-
-/*
  * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 開いたフォルダの中身の段に、
  * 親のフォルダの開閉の矢印の下から縦の線を引く。一覧にマウスを乗せている間だけ全部を薄く出し、選んでいる行・ピントのある行の親の段
  * （その行が開いたフォルダなら、その中身の段）の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40% の
- * tree.inactiveIndentGuidesStroke）。ファイル・変更（木）・履歴の詳細・ノートの木（.file-tree）と、検索の結果のファイルの中の行（.code-search-lines）
+ * tree.inactiveIndentGuidesStroke）。ノートの木（.file-tree）と、検索の結果のファイルの中の行（.code-search-lines）
  */
 .file-tree[role="group"],
 .code-search-lines {
