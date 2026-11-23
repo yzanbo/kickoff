@@ -584,7 +584,6 @@
       "src/features/notes/ui/tree/NoteTab.tsx": 338,
       "src/features/trash/core/routes/server.trash.test.ts": 442,
       "src/features/trash/core/service.ts": 329,
-      "src/foundation/desktop/app/coreProcess.ts": 326,
       "src/shared/chat/subagents.ts": 301,
       "src/shared/database/sqlStatements.ts": 315
     },

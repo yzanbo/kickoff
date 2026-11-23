@@ -1,80 +1,37 @@
-// コアのプロセス（utilityProcess）の見張り役: 起動して ready を待ち、RPC をつなぎ、落ちたら子を止めてから作り直し、応答しなければ知らせ、終わらせる。
-// コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
-import { MessageChannelMain, utilityProcess, type MessagePortMain, type UtilityProcess } from "electron";
+// コアのプロセス（utilityProcess）の見張り役: 起動して ready を待ち、落ちたら子を止めてから作り直し、応答しなければ知らせ、終わらせる（1 つ分の起動は coreChild.ts・
+// 応答の見張りは coreWatchdog.ts・様子の移り変わりは coreState.ts・DB ワーカーは dbWorkers.ts・残った子は leftovers.ts）。コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
+import type { UtilityProcess } from "electron";
 import { errorMessage } from "@shared/foundation/errors";
 import { sleep } from "@shared/foundation/time";
 import type { CoreState } from "@shared/foundation/ipc";
-import type { AwakeNeeds, CoreEvents, CoreInit, CoreMethods, CoreReady, HostEvents, HostMethods, HostToCore, RecoveredReason } from "@/foundation/core/host/protocol";
+import { createSignal, type Signal } from "@shared/foundation/signal";
+import type { AwakeNeeds, CoreEvents, CoreMethods, CoreReady, RecoveredReason } from "@/foundation/core/host/protocol";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
-import { RPC_TIMEOUTS, timeoutOf } from "@/foundation/core/host/protocol";
-import type { RpcPort } from "@/foundation/core/host/ports";
-import { createRpc, type CoreRpc } from "@/foundation/core/host/rpc";
-import type { HostPlatform } from "@/foundation/core/platform/types";
-import { applyChildNote, childrenToStop, type CoreChildren } from "./coreChildren";
-import { restartDelay } from "./coreRestart";
-import { signalProcess, stopProcesses } from "./processes";
+import type { CoreRpc } from "@/foundation/core/host/rpc";
+import { applyChildNote, type CoreChildren } from "./coreChildren";
+import { CRASH_HISTORY_MS, restartDelay } from "./coreRestart";
+import { coreStateAfter, type CoreStateEvent } from "./coreState";
+import { forkCore, killCore, type CoreProcessOptions } from "./coreChild";
 
-/** 応答の見張りの間隔と、知らせるまでの長さ（一時の重さ = 大きな SQL などで知らせない） */
-const PING_EVERY_MS = 5_000;
-const UNRESPONSIVE_MS = 30_000;
-/** 子を SIGTERM で止めてから SIGKILL を送るまで */
-const CHILD_KILL_WAIT_MS = 2_000;
-/** 応答しないコアを SIGTERM で止めてから SIGKILL を送るまで */
-const CORE_KILL_WAIT_MS = 3_000;
+export type { HostHandlers } from "./coreChild";
+import { CORE_PING_EVERY_MS, CORE_UNRESPONSIVE_MS, createWatchdog, type Watchdog } from "./coreWatchdog";
+import { DbWorkerPool } from "./dbWorkers";
+import { stopLeftovers } from "./leftovers";
 
-/** コア → メインの呼び出し（埋め込みブラウザ・キーチェーンの鍵）の中身。DB ワーカーは見張り役が持つ */
-export type HostHandlers = Omit<HostMethods, "dbWorker.spawn" | "dbWorker.kill">;
-
-interface CoreProcessOptions {
-  /** ビルドの out/main/core.js */
-  file: string;
-  /** 起動の引数（コンパイルキャッシュの場所） */
-  args: string[];
-  /** DB ワーカー（out/main/dbWorker.js。作るのはメイン、話すのはコア） */
-  dbWorkerFile: string;
-  /** 起動の値（作り直すたびに作る。recoveredReason は前のコアの終わり方） */
-  init: (recoveredReason: RecoveredReason) => CoreInit;
-  handlers: HostHandlers;
-  /** 様子が変わった（画面の帯・眠らせない・起動の記録） */
-  onState: (state: CoreState) => void;
-  /** 起動の記録に書く */
-  log: (message: string) => void;
-  /** プロセスの表と生き死に（落ちたときに止める子を確かめる・止める） */
-  host: Pick<HostPlatform, "processTable" | "alive">;
-}
-
-type Listener<K extends keyof CoreEvents> = (payload: CoreEvents[K]) => void;
-
-/** utilityProcess の子を RpcPort の形に包む（メインの側。閉じた = 子が終わった） */
-function childPort(child: UtilityProcess): RpcPort {
-  return {
-    post: (message, transfer) => child.postMessage(message, (transfer ?? []) as MessagePortMain[]),
-    onMessage: (fn) => {
-      const listener = (m: unknown) => fn(m, []);
-      child.on("message", listener);
-      return () => void child.off("message", listener);
-    },
-    onClose: (fn) => {
-      child.once("exit", () => fn());
-      return () => {};
-    },
-  };
-}
-
+/** コアからの知らせのうち、メインの部品へ配るもの */
+const FORWARDED = ["notify", "awake", "browser.touch", "stall", "children"] as const;
 
 export class CoreProcess {
   state: CoreState = "starting";
   private child: UtilityProcess | null = null;
   private rpc: CoreRpc | null = null;
   private exited: Promise<void> = Promise.resolve();
-  private readonly listeners = new Map<string, Set<(payload: unknown) => void>>();
-  private readonly stateListeners = new Set<(state: CoreState) => void>();
+  private readonly events = new Map<string, Signal<unknown>>(FORWARDED.map((name) => [name, createSignal<unknown>()]));
+  private readonly states = createSignal<CoreState>();
   private readonly children: CoreChildren = new Map();
-  private readonly dbWorkers = new Map<number, UtilityProcess>();
-  private nextWorkerId = 1;
+  private readonly dbWorkers: DbWorkerPool;
+  private readonly watchdog: Watchdog;
   private crashTimes: number[] = [];
-  private lastPong = Date.now();
-  private pingTimer: ReturnType<typeof setInterval> | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
   private closing = false;
   /** ready を受けたコアの pid（落ちたあと、止める子の親として確かめる） */
@@ -83,20 +40,31 @@ export class CoreProcess {
   /** コアから届いた最後の眠らせない理由（落ちたら null） */
   lastAwake: AwakeNeeds | null = null;
 
-  constructor(private readonly opts: CoreProcessOptions) {}
+  constructor(private readonly opts: CoreProcessOptions) {
+    this.dbWorkers = new DbWorkerPool(opts.dbWorkerFile, (workerId, reason) => this.rpc?.emit("dbWorker.exit", { workerId, reason }));
+    this.watchdog = createWatchdog({
+      ping: () => (this.rpc && !this.closing ? this.rpc.call("ping") : null),
+      everyMs: CORE_PING_EVERY_MS,
+      limitMs: CORE_UNRESPONSIVE_MS,
+      onResponded: () => {
+        if (this.state === "unresponsive") this.opts.log("コアが応答するようになりました");
+        this.transition("responded");
+      },
+      onSilent: (silentMs) => {
+        if (this.state === "ready") this.opts.log(`コアが ${Math.round(silentMs / 1000)} 秒応答しません`);
+        this.transition("silent");
+      },
+    });
+  }
 
   /** コアからの知らせを受ける（作り直しても受け続ける） */
-  on<K extends keyof CoreEvents>(name: K, fn: Listener<K>): () => void {
-    const set = this.listeners.get(name) ?? new Set();
-    set.add(fn as (payload: unknown) => void);
-    this.listeners.set(name, set);
-    return () => void set.delete(fn as (payload: unknown) => void);
+  on<K extends (typeof FORWARDED)[number]>(name: K, fn: (payload: CoreEvents[K]) => void): () => void {
+    return this.events.get(name)!.subscribe(fn as (payload: unknown) => void);
   }
 
   /** 様子の変化を受ける（眠らせない仕組みなど） */
   onState(fn: (state: CoreState) => void): () => void {
-    this.stateListeners.add(fn);
-    return () => void this.stateListeners.delete(fn);
+    return this.states.subscribe(fn);
   }
 
   /** コアを呼ぶ（いまのコアがなければ失敗） */
@@ -110,163 +78,74 @@ export class CoreProcess {
     return this.spawn("quit");
   }
 
-  private setState(state: CoreState) {
-    if (this.state === state) return;
-    this.state = state;
-    this.opts.onState(state);
-    for (const fn of [...this.stateListeners]) fn(state);
-  }
-
-  private emit(name: string, payload: unknown) {
-    for (const fn of [...(this.listeners.get(name) ?? [])]) fn(payload);
+  private transition(event: CoreStateEvent) {
+    const next = coreStateAfter(this.state, event);
+    if (this.state === next) return;
+    this.state = next;
+    this.opts.onState(next);
+    this.states.emit(next);
   }
 
   /** fork → init → ready / failed / exit を待つ */
   private spawn(recoveredReason: RecoveredReason): Promise<CoreReady> {
-    const child = utilityProcess.fork(this.opts.file, this.opts.args, {
-      serviceName: "Kickoff Core",
-      stdio: "inherit",
-      env: process.env,
-      execArgv: ["--disable-warning=ExperimentalWarning"],
-    });
-    this.child = child;
-    const port = childPort(child);
-    const rpc = createRpc<HostMethods, CoreMethods, HostEvents, CoreEvents>(port, {
-      timeoutOf: (method) => timeoutOf(RPC_TIMEOUTS, method),
-      handlers: {
+    const core = forkCore({
+      file: this.opts.file,
+      args: this.opts.args,
+      init: this.opts.init(recoveredReason),
+      handlers: (child) => ({
         ...this.opts.handlers,
-        "dbWorker.spawn": async (env) => this.spawnDbWorker(child, env),
-        "dbWorker.kill": async (workerId) => this.killDbWorker(workerId),
-      },
-    });
-    this.rpc = rpc;
-    for (const name of ["notify", "awake", "browser.touch", "stall", "children"] as const) rpc.on(name, (payload) => this.emit(name, payload));
-    rpc.on("children", (note: ChildProcessNote) => applyChildNote(this.children, note));
-    rpc.on("awake", (needs) => (this.lastAwake = needs));
-    let resolveExit!: () => void;
-    this.exited = new Promise((resolve) => (resolveExit = resolve));
-
-    return new Promise<CoreReady>((resolve, reject) => {
-      let settled = false;
-      port.onMessage((m) => {
-        const msg = m as { t?: string; ready?: CoreReady; message?: string };
-        if (settled) return;
-        if (msg.t === "ready" && msg.ready) {
-          settled = true;
-          this.ready = msg.ready;
-          this.corePid = msg.ready.pid;
-          this.lastPong = Date.now();
-          this.startPing();
-          this.setState("ready");
-          resolve(msg.ready);
-        } else if (msg.t === "failed") {
-          settled = true;
-          reject(new Error(msg.message ?? "コアを起動できません"));
-        }
-      });
-      child.once("exit", (code) => {
-        resolveExit();
-        if (this.child === child) {
+        "dbWorker.spawn": async (env) => this.dbWorkers.spawn(child, env),
+        "dbWorker.kill": async (workerId) => this.dbWorkers.kill(workerId),
+      }),
+      onExit: (code, afterReady) => {
+        if (this.child === core.child) {
           this.child = null;
           this.rpc = null;
         }
-        if (!settled) {
-          settled = true;
-          reject(new Error(`コアのプロセスが起動の途中で終わりました（終了コード ${code}）`));
-          return;
-        }
-        // 終了の途中・自分で止めたときは作り直さない（作り直すときは呼んだ側が続ける）
-        if (this.closing || this.state === "restarting") return;
+        // 起動の途中で終わった・終了の途中・自分で止めたときは作り直さない（作り直すときは呼んだ側が続ける）
+        if (!afterReady || this.closing || this.state === "restarting") return;
         this.opts.log(`コアのプロセスが落ちました 終了コード ${code}`);
         void this.recover();
-      });
-      child.postMessage({ t: "init", init: this.opts.init(recoveredReason) } satisfies HostToCore);
+      },
     });
-  }
-
-  /** DB ワーカーを作り、コアと直結する MessagePort を両方に渡す（番号を返す） */
-  private spawnDbWorker(core: UtilityProcess, env: Record<string, string>): number {
-    const workerId = this.nextWorkerId++;
-    const worker = utilityProcess.fork(this.opts.dbWorkerFile, [], { serviceName: "Kickoff DB Worker", execArgv: ["--disable-warning=ExperimentalWarning"], stdio: "inherit", env });
-    this.dbWorkers.set(workerId, worker);
-    const { port1, port2 } = new MessageChannelMain();
-    worker.postMessage({ t: "port" }, [port1]);
-    core.postMessage({ t: "port", purpose: "dbWorker", workerId } satisfies HostToCore, [port2]);
-    const exit = (reason: string) => {
-      if (!this.dbWorkers.has(workerId)) return;
-      this.dbWorkers.delete(workerId);
-      this.rpc?.emit("dbWorker.exit", { workerId, reason });
-    };
-    worker.once("exit", (code) => exit(`終了コード ${code}`));
-    worker.on("error", (type, location) => exit(`${type}${location ? ` (${location})` : ""}`));
-    return workerId;
-  }
-
-  /** JS の受け口は使わない（SQLite の文を流している間は動けない）。OS が SIGTERM で止める */
-  private killDbWorker(workerId: number) {
-    const worker = this.dbWorkers.get(workerId);
-    this.dbWorkers.delete(workerId);
-    worker?.kill();
-  }
-
-  private startPing() {
-    this.stopPing();
-    this.pingTimer = setInterval(() => {
-      if (!this.rpc || this.closing) return;
-      this.rpc.call("ping").then(
-        () => {
-          this.lastPong = Date.now();
-          if (this.state === "unresponsive") {
-            this.opts.log("コアが応答するようになりました");
-            this.setState("ready");
-          }
-        },
-        () => {},
-      );
-      if (this.state === "ready" && Date.now() - this.lastPong > UNRESPONSIVE_MS) {
-        this.opts.log(`コアが ${Math.round((Date.now() - this.lastPong) / 1000)} 秒応答しません`);
-        this.setState("unresponsive");
-      }
-    }, PING_EVERY_MS);
-    this.pingTimer.unref();
-  }
-
-  private stopPing() {
-    if (this.pingTimer) clearInterval(this.pingTimer);
-    this.pingTimer = null;
+    this.child = core.child;
+    this.rpc = core.rpc;
+    this.exited = core.exited;
+    for (const name of FORWARDED) core.rpc.on(name, (payload) => this.events.get(name)?.emit(payload));
+    core.rpc.on("children", (note: ChildProcessNote) => applyChildNote(this.children, note));
+    core.rpc.on("awake", (needs) => (this.lastAwake = needs));
+    return core.ready.then((ready) => {
+      this.ready = ready;
+      this.corePid = ready.pid;
+      this.watchdog.reset();
+      this.watchdog.start();
+      this.transition("ready");
+      return ready;
+    });
   }
 
   /** 応答しないまま待つ（また 30 秒応答しなければ知らせる） */
   wait() {
     if (this.state !== "unresponsive") return;
-    this.lastPong = Date.now();
-    this.setState("ready");
+    this.watchdog.reset();
+    this.transition("waited");
   }
 
-  /** 残った子（エージェントの CLI・DB ワーカーとその ssh・シェル）を止める（古い子が会話記録・作業場所を書いている間に、作り直したコアで再開が走ると食い違う） */
+  /** 残った子を止める（親として確かめるのは落ちたコアと DB ワーカー。ワーカーも止める） */
   private async stopLeftovers() {
-    const parents = [this.corePid, ...[...this.dbWorkers.values()].map((w) => w.pid)].filter((p): p is number => typeof p === "number");
-    for (const id of [...this.dbWorkers.keys()]) this.killDbWorker(id);
-    let targets: { pid: number; group: boolean }[] = [];
-    try {
-      targets = childrenToStop(this.children, await this.opts.host.processTable(), parents);
-    } catch (e) {
-      this.opts.log(`残った子を調べられません: ${errorMessage(e)}`);
-    }
-    this.children.clear();
-    if (targets.length === 0) return;
-    this.opts.log(`残ったコアの子を止めます ${targets.map((t) => t.pid).join(",")}`);
-    await stopProcesses(targets, { waitMs: CHILD_KILL_WAIT_MS, killAfter: true }, this.opts.host);
+    const parents = [...(this.corePid !== null ? [this.corePid] : []), ...this.dbWorkers.pids()];
+    this.dbWorkers.killAll();
+    await stopLeftovers(this.children, parents, this.opts.host, this.opts.log);
   }
 
   /** 落ちたあと: 子を止め、待ってから作り直す（5 分に 3 回落ちたら止める） */
   private async recover() {
-    this.stopPing();
+    this.watchdog.stop();
     this.lastAwake = null;
     const now = Date.now();
-    this.crashTimes = [...this.crashTimes.filter((t) => now - t < 30 * 60_000), now];
+    this.crashTimes = [...this.crashTimes.filter((t) => now - t < CRASH_HISTORY_MS), now];
     const delay = restartDelay(this.crashTimes, now);
-    this.setState(delay === null ? "failed" : "restarting");
+    this.transition(delay === null ? "gaveUp" : "restarting");
     await this.stopLeftovers();
     if (delay === null) {
       this.opts.log("コアが続けて落ちたので、作り直すのを止めました");
@@ -278,7 +157,7 @@ export class CoreProcess {
   private async respawn() {
     this.restartTimer = null;
     if (this.closing) return;
-    this.setState("restarting");
+    this.transition("restarting");
     try {
       await this.spawn("crash");
       this.opts.log("コアを作り直しました");
@@ -296,15 +175,9 @@ export class CoreProcess {
     this.opts.log(`利用者がコアを起動し直します（${this.state}）`);
     this.crashTimes = [];
     if (this.restartTimer) clearTimeout(this.restartTimer);
-    this.setState("restarting");
-    this.stopPing();
-    const child = this.child;
-    if (child) {
-      child.kill();
-      const done = await Promise.race([this.exited.then(() => true), sleep(CORE_KILL_WAIT_MS).then(() => false)]);
-      if (!done && child.pid) signalProcess({ pid: child.pid, group: false }, "SIGKILL");
-      await this.exited;
-    }
+    this.transition("restarting");
+    this.watchdog.stop();
+    if (this.child) await killCore(this.child, this.exited);
     await this.stopLeftovers();
     await this.respawn();
   }
@@ -312,7 +185,7 @@ export class CoreProcess {
   /** 終了: close を頼み、exit を待つ。timeoutMs を過ぎたら kill（SIGTERM）して待たずに返す */
   async close(timeoutMs: number): Promise<void> {
     this.closing = true;
-    this.stopPing();
+    this.watchdog.stop();
     if (this.restartTimer) clearTimeout(this.restartTimer);
     const child = this.child;
     if (child) {
@@ -321,6 +194,6 @@ export class CoreProcess {
       const done = await Promise.race([this.exited.then(() => true), sleep(Math.max(0, deadline - Date.now())).then(() => false)]);
       if (!done) child.kill();
     }
-    for (const id of [...this.dbWorkers.keys()]) this.killDbWorker(id);
+    this.dbWorkers.killAll();
   }
 }

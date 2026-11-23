@@ -4,6 +4,8 @@
 const RESTART_DELAYS_MS = [500, 2_000, 5_000] as const;
 /** この間に落ちた回数を数える */
 const CRASH_WINDOW_MS = 5 * 60_000;
+/** 落ちた時刻を覚えておく長さ（続けて落ちた長さを数えるので、数える窓より長く覚える） */
+export const CRASH_HISTORY_MS = 30 * 60_000;
 /** この間に何回落ちたら作り直さずに止めるか（落ち続けるのに作り直すと、毎回 Claude Code・シェルが起動して止まるだけになる） */
 const CRASH_LIMIT = 3;
 
