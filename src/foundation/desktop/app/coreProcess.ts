@@ -2,9 +2,9 @@
 // 応答の見張りは coreWatchdog.ts・様子の移り変わりは coreState.ts・DB ワーカーは dbWorkers.ts・残った子は leftovers.ts）。コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
 import type { UtilityProcess } from "electron";
 import { errorMessage } from "@shared/foundation/errors";
-import { sleep } from "@shared/foundation/time";
 import type { CoreState } from "@shared/foundation/ipc";
 import { createSignal, type Signal } from "@shared/foundation/signal";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { AwakeNeeds, CoreEvents, CoreMethods, CoreReady, RecoveredReason } from "@/foundation/core/host/protocol";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import type { CoreRpc } from "@/foundation/core/host/rpc";
@@ -32,7 +32,8 @@ export class CoreProcess {
   private readonly dbWorkers: DbWorkerPool;
   private readonly watchdog: Watchdog;
   private crashTimes: number[] = [];
-  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private restartTimer: TimerHandle | null = null;
+  private readonly clock: Clock;
   private closing = false;
   /** ready を受けたコアの pid（落ちたあと、止める子の親として確かめる） */
   private corePid: number | null = null;
@@ -41,6 +42,7 @@ export class CoreProcess {
   lastAwake: AwakeNeeds | null = null;
 
   constructor(private readonly opts: CoreProcessOptions) {
+    this.clock = opts.clock ?? systemClock;
     this.dbWorkers = new DbWorkerPool(opts.dbWorkerFile, (workerId, reason) => this.rpc?.emit("dbWorker.exit", { workerId, reason }));
     this.watchdog = createWatchdog({
       ping: () => (this.rpc && !this.closing ? this.rpc.call("ping") : null),
@@ -54,6 +56,7 @@ export class CoreProcess {
         if (this.state === "ready") this.opts.log(`コアが ${Math.round(silentMs / 1000)} 秒応答しません`);
         this.transition("silent");
       },
+      clock: this.clock,
     });
   }
 
@@ -142,7 +145,7 @@ export class CoreProcess {
   private async recover() {
     this.watchdog.stop();
     this.lastAwake = null;
-    const now = Date.now();
+    const now = this.clock.now();
     this.crashTimes = [...this.crashTimes.filter((t) => now - t < CRASH_HISTORY_MS), now];
     const delay = restartDelay(this.crashTimes, now);
     this.transition(delay === null ? "gaveUp" : "restarting");
@@ -151,7 +154,7 @@ export class CoreProcess {
       this.opts.log("コアが続けて落ちたので、作り直すのを止めました");
       return;
     }
-    this.restartTimer = setTimeout(() => void this.respawn(), delay);
+    this.restartTimer = this.clock.setTimeout(() => void this.respawn(), delay);
   }
 
   private async respawn() {
@@ -174,7 +177,7 @@ export class CoreProcess {
     if (this.closing || (this.state !== "failed" && this.state !== "unresponsive")) return;
     this.opts.log(`利用者がコアを起動し直します（${this.state}）`);
     this.crashTimes = [];
-    if (this.restartTimer) clearTimeout(this.restartTimer);
+    this.clock.clearTimeout(this.restartTimer);
     this.transition("restarting");
     this.watchdog.stop();
     if (this.child) await killCore(this.child, this.exited);
@@ -186,12 +189,12 @@ export class CoreProcess {
   async close(timeoutMs: number): Promise<void> {
     this.closing = true;
     this.watchdog.stop();
-    if (this.restartTimer) clearTimeout(this.restartTimer);
+    this.clock.clearTimeout(this.restartTimer);
     const child = this.child;
     if (child) {
-      const deadline = Date.now() + timeoutMs;
-      await Promise.race([this.call("close").catch(() => {}), sleep(timeoutMs)]);
-      const done = await Promise.race([this.exited.then(() => true), sleep(Math.max(0, deadline - Date.now())).then(() => false)]);
+      const deadline = this.clock.now() + timeoutMs;
+      await Promise.race([this.call("close").catch(() => {}), this.clock.sleep(timeoutMs)]);
+      const done = await Promise.race([this.exited.then(() => true), this.clock.sleep(Math.max(0, deadline - this.clock.now())).then(() => false)]);
       if (!done) child.kill();
     }
     this.dbWorkers.killAll();

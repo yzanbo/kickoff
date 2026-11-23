@@ -3,6 +3,7 @@
 // 種類は持ち主の機能が ui/popoutKinds.ts で PopoutParamsMap に足し、URL の項目の表を popoutKinds に入れる
 import type { ComponentType } from "react";
 import { definePoint } from "@/foundation/ui/points";
+import { realTimers, type Timers } from "@shared/foundation/time";
 import { onWindowMessage, postToMainWindow, postWindowMessage, type WindowMessageMap } from "./windowBus";
 
 /** 機能が足していく別ウィンドウの種類の表（declare module "@/foundation/ui/navigation/popout" で足す。値は URL に載せる項目） */
@@ -229,21 +230,25 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
 const FOLLOW_DELAY_MS = 50;
 
 /** メインのウィンドウ: 種類の follow の写しを送り、元が変わるたびに（まとめて）送り直す。やめるときは返り値を呼ぶ */
-export function publishFollow(kind: PopoutKindId, post: (message: WindowMessageMap["popoutFollow"]) => void = (m) => postWindowMessage("popoutFollow", m)): () => void {
+export function publishFollow(
+  kind: PopoutKindId,
+  post: (message: WindowMessageMap["popoutFollow"]) => void = (m) => postWindowMessage("popoutFollow", m),
+  timers: Pick<Timers, "timer"> = realTimers,
+): () => void {
   const follow = popoutKindOf(kind)?.follow;
   if (!follow) return () => {};
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let cancel: (() => void) | undefined;
   const send = () => {
-    timer = undefined;
+    cancel = undefined;
     post({ kind, snapshot: follow.publish() });
   };
   send();
   const off = follow.watch(() => {
-    timer ??= setTimeout(send, FOLLOW_DELAY_MS);
+    cancel ??= timers.timer(send, FOLLOW_DELAY_MS);
   });
   return () => {
     off();
-    clearTimeout(timer);
+    cancel?.();
   };
 }
 
@@ -267,12 +272,17 @@ export const DOCK_WAIT_MS = 3000;
 /** このウィンドウを閉じる（閉じ方を聞かない。デスクトップアプリでなければ、ふつうに閉じる） */
 export const closeSelf = (): void => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
 
-/** 戻し終えた知らせ（key の docked）が届いたら・waitMs たったら、このウィンドウを閉じる（onDocked は知らせの受け方。テストが差し替える） */
-export function closeWhenDocked(key: string, waitMs = DOCK_WAIT_MS, onDocked: (handler: (m: { key: string }) => void) => () => void = (handler) => onWindowMessage("docked", handler)): void {
-  const timer = setTimeout(closeSelf, waitMs);
+/** 戻し終えた知らせ（key の docked）が届いたら・waitMs たったら、このウィンドウを閉じる（onDocked は知らせの受け方・timers は時計。テストが差し替える） */
+export function closeWhenDocked(
+  key: string,
+  waitMs = DOCK_WAIT_MS,
+  onDocked: (handler: (m: { key: string }) => void) => () => void = (handler) => onWindowMessage("docked", handler),
+  timers: Pick<Timers, "timer"> = realTimers,
+): void {
+  const cancel = timers.timer(closeSelf, waitMs);
   const off = onDocked((m) => {
     if (m.key !== key) return;
-    clearTimeout(timer);
+    cancel();
     off();
     closeSelf();
   });

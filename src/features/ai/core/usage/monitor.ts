@@ -1,5 +1,6 @@
 // 使用状況の見張り（AI ごとの使用状況 ProviderUsage を 1 つの形で持つ。取り方は各 AI のフォルダの usage.ts で、作るときに受ける）
 import type { Bus } from "@/foundation/core/bus";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { errorMessage } from "@shared/foundation/errors";
 import { providerCan } from "@shared/ai/providers";
 import { exhaustedResetOf, limitReachedOf, type PayAsYouGo, type ProviderUsage, type SpendingNote } from "@shared/ai/usage";
@@ -17,7 +18,7 @@ const MIN_INTERVAL_MS = 15_000;
 const isPlan = (id: ProviderId) => providerCan(id, "plan_usage");
 
 /** 取れなかったときの結果（前の値がないとき） */
-const failedUsage = (provider: ProviderId, message: string): ProviderUsage => ({
+const failedUsage = (provider: ProviderId, message: string, at: string): ProviderUsage => ({
   provider,
   status: "error",
   plan: null,
@@ -26,7 +27,7 @@ const failedUsage = (provider: ProviderId, message: string): ProviderUsage => ({
   notes: [],
   pay_as_you_go: null,
   message,
-  fetched_at: new Date().toISOString(),
+  fetched_at: at,
 });
 
 /** 支払いの様子（引かれているか・確かめた時刻）を取得の結果に重ねる */
@@ -53,20 +54,21 @@ export class UsageMonitor {
   private readonly lastFetch = new Map<ProviderId, number>();
   private list: { at: number; usages: ProviderUsage[] } | undefined;
   private listInflight: { force: boolean; loading: Promise<ProviderUsage[]> } | undefined;
-  private timer: NodeJS.Timeout | undefined;
+  private timer: TimerHandle | undefined;
 
   constructor(
     private readonly bus: Pick<Bus, "publish"> | undefined,
     private readonly fetchers: UsageFetchers,
+    private readonly clock: Clock = systemClock,
   ) {}
 
   start() {
     this.refreshPolled();
-    this.timer = setInterval(() => this.refreshPolled(), USAGE_REFRESH_MS);
+    this.timer = this.clock.setInterval(() => this.refreshPolled(), USAGE_REFRESH_MS);
   }
 
   stop() {
-    if (this.timer) clearInterval(this.timer);
+    this.clock.clearInterval(this.timer);
   }
 
   /** 見張っている AI（プランの枠）を取り直す（実行のあとなど、使用量が変わりそうなとき） */
@@ -89,7 +91,7 @@ export class UsageMonitor {
     const running = this.inflight.get(id);
     if (running) return running;
     const latest = this.latest.get(id);
-    if (!force && latest && Date.now() - (this.lastFetch.get(id) ?? 0) < MIN_INTERVAL_MS) return Promise.resolve(latest);
+    if (!force && latest && this.clock.now() - (this.lastFetch.get(id) ?? 0) < MIN_INTERVAL_MS) return Promise.resolve(latest);
     const fetching = this.fetch(id).finally(() => this.inflight.delete(id));
     this.inflight.set(id, fetching);
     return fetching;
@@ -97,7 +99,7 @@ export class UsageMonitor {
 
   /** すべての AI の使用状況（1 分以内は前の一覧。そのあとに取り直した・知らせを重ねた AI は、その最新の値） */
   all(): Promise<ProviderUsage[]> {
-    if (this.list && Date.now() - this.list.at < USAGE_REFRESH_MS) return Promise.resolve(this.list.usages.map((u) => this.latest.get(u.provider) ?? u));
+    if (this.list && this.clock.now() - this.list.at < USAGE_REFRESH_MS) return Promise.resolve(this.list.usages.map((u) => this.latest.get(u.provider) ?? u));
     return this.refreshAll(false);
   }
 
@@ -117,7 +119,7 @@ export class UsageMonitor {
 
   /** 実行中の支払いの知らせを重ねる。引かれていなかったのが引かれ始めたかを返す（チャットのお知らせに残すかを決めるため） */
   noteSpending(id: ProviderId, note: SpendingNote): boolean {
-    const step = applySpending(this.spend.get(id) ?? null, note, new Date().toISOString());
+    const step = applySpending(this.spend.get(id) ?? null, note, this.clock.iso());
     this.spend.set(id, step.next);
     const latest = this.latest.get(id);
     if (step.changed && latest) this.publish(isPlan(id) ? withSpending(latest, step.next) : { ...latest, pay_as_you_go: step.next });
@@ -134,7 +136,7 @@ export class UsageMonitor {
   }
 
   private async loadAll(force: boolean): Promise<ProviderUsage[]> {
-    const startedAt = Date.now();
+    const startedAt = this.clock.now();
     const ids = PROVIDER_IDS.filter((id) => this.fetchers[id]);
     const usages = await Promise.all(ids.map((id) => (isPlan(id) ? (force ? this.refresh(id, true) : this.current(id)) : this.fetch(id))));
     // あとから始めた取得（「更新」）が先に終わっていたら、古い一覧で上書きしない
@@ -143,7 +145,7 @@ export class UsageMonitor {
   }
 
   private async fetch(id: ProviderId): Promise<ProviderUsage> {
-    this.lastFetch.set(id, Date.now());
+    this.lastFetch.set(id, this.clock.now());
     let usage: ProviderUsage;
     try {
       const fetcher = this.fetchers[id];
@@ -153,7 +155,7 @@ export class UsageMonitor {
       const message = errorMessage(e);
       const previous = this.latest.get(id);
       // プランの枠は、取得に失敗しても直前の値は残し、理由だけ添える
-      usage = isPlan(id) ? (previous ? { ...previous, error: message } : failedUsage(id, message)) : failedUsage(id, `取得できませんでした（${message}）`);
+      usage = isPlan(id) ? (previous ? { ...previous, error: message } : failedUsage(id, message, this.clock.iso())) : failedUsage(id, `取得できませんでした（${message}）`, this.clock.iso());
     }
     const settled = this.settle(id, usage);
     if (settled.publish) this.publish(settled.usage);
@@ -177,7 +179,7 @@ export class UsageMonitor {
     const pay = usage.status === "ok" ? usage.pay_as_you_go : null;
     if (!pay) return { usage, publish: false };
     const note = { has_credits: pay.enabled, unlimited: pay.unlimited, balance: pay.balance, limit_reached: limitReachedOf(usage.windows.map((w) => w.utilization)) };
-    const step = applySpending(spend, note, new Date().toISOString());
+    const step = applySpending(spend, note, this.clock.iso());
     this.spend.set(id, step.next);
     return { usage: { ...usage, pay_as_you_go: step.next }, publish: step.changed };
   }

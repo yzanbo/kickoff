@@ -7,6 +7,7 @@ import { RPC_TIMEOUTS, timeoutOf } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
 import { createRpc, type CoreRpc } from "@/foundation/core/host/rpc";
 import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { Clock } from "@/foundation/core/clock";
 import { signalProcess } from "./processes";
 
 /** 応答しないコアを SIGTERM で止めてから SIGKILL を送るまで */
@@ -32,6 +33,8 @@ export interface CoreProcessOptions {
   log: (message: string) => void;
   /** プロセスの表と生き死に（落ちたときに止める子を確かめる・止める） */
   host: Pick<HostPlatform, "processTable" | "alive">;
+  /** 時計（作り直しの待ち・応答の見張り・終わりの待ち。既定は本物） */
+  clock?: Clock;
 }
 
 

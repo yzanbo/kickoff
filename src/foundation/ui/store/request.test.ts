@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { onTestFinished, test, vi } from "vitest";
+import { test } from "vitest";
+import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { createRequest } from "./request";
 
 test("createRequest: 頼むと聞いている受け手に知らせ、受け取ったら消える", () => {
@@ -18,12 +19,11 @@ test("createRequest: 頼むと聞いている受け手に知らせ、受け取�
 });
 
 test("createRequest: 受け取られないまま時間を過ぎた頼みは捨てる", () => {
-  vi.useFakeTimers();
-  onTestFinished(() => void vi.useRealTimers());
-  const request = createRequest(3000);
+  const clock = createFakeScheduler();
+  const request = createRequest(3000, clock);
   request.ask(true);
-  vi.advanceTimersByTime(3000);
+  clock.advance(3000);
   assert.equal(request.peek(), true);
-  vi.advanceTimersByTime(1);
+  clock.advance(1);
   assert.equal(request.take(), undefined);
 });

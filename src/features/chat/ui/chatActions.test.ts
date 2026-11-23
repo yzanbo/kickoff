@@ -31,13 +31,10 @@ function answerAll(): AskRequest[] {
     fake.deleted.push(id);
     return { trash_id: String(id) };
   });
-  // まとめて消したときの知らせの時計を残さない
-  vi.useFakeTimers();
   onTestFinished(() => {
     setAskHost(undefined);
     archive.mockRestore();
     remove.mockRestore();
-    vi.useRealTimers();
   });
   return asked;
 }

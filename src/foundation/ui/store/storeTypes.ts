@@ -1,5 +1,6 @@
 // 店（stores/）の形: 部品が読む様子（StoreState）・作るときの指定・できること（KeyedStore / Store）
 import type { AnyServerEvent, ServerEvent, ServerEventType } from "@/foundation/ui/api/events";
+import type { Timers } from "@shared/foundation/time";
 
 /** 知らせの種類ごとの直し方（関係なければ data をそのまま返す。表にある種類だけを購読する） */
 export type ReduceTable<T, K = undefined> = { readonly [E in ServerEventType]?: (data: T, event: ServerEvent<E>, key: K) => T };
@@ -53,6 +54,8 @@ export interface KeyedStoreOptions<K, T> {
   refreshAfterMaxAge?: boolean;
   /** ウィンドウに戻ったとき、使っている値が古ければ取り直す。"always" は新しくても取り直す */
   refreshOnFocus?: boolean | "always";
+  /** 時計（取り直しの予約と古さ。既定は本物。テストは偽の時計） */
+  timers?: Timers;
 }
 
 /** key（プロジェクトの ID など）ごとに値を持つ店 */
@@ -86,6 +89,7 @@ export interface StoreOptions<T> {
   reloadOn?: ReloadTable;
   maxAge?: number;
   refreshOnFocus?: KeyedStoreOptions<number, T>["refreshOnFocus"];
+  timers?: Timers;
 }
 
 /** 値を 1 つだけ持つ店（できることは KeyedStore と同じ） */

@@ -1,5 +1,6 @@
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { isUsageLimitError } from "./usageLimit";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** 承認カードの答えを待つ長さ（秒。7 日。フック・MCP のツールの待ち時間。答える前に閉じると拒否になるため長く） */
 export const APPROVAL_WAIT_S = 7 * 24 * 60 * 60;
@@ -15,21 +16,24 @@ export interface Stopper {
 
 /**
  * 止める合図を受ける（Codex・Copilot・ACP の実行が同じ形で使う）。合図が来たら interrupt を呼び、graceMs 待って onForced を呼ぶ。
- * 足したときにもう止められていれば、すぐ同じことをする（止めたあとに足した abort の受け手は呼ばれないため）
+ * 足したときにもう止められていれば、すぐ同じことをする（止めたあとに足した abort の受け手は呼ばれないため）。clock は既定で本物の時計
  */
-export function createStopper(signal: AbortSignal, opts: { interrupt: () => void; graceMs?: number; onForced: () => void }): Stopper {
-  let timer: ReturnType<typeof setTimeout> | null = null;
+export function createStopper(
+  signal: AbortSignal,
+  opts: { interrupt: () => void; graceMs?: number; onForced: () => void; clock?: Pick<Clock, "setTimeout" | "clearTimeout"> },
+): Stopper {
+  const clock = opts.clock ?? systemClock;
+  let timer: TimerHandle | null = null;
   const stop = () => {
     opts.interrupt();
-    timer = setTimeout(opts.onForced, opts.graceMs ?? STOP_GRACE_MS);
-    timer.unref?.();
+    timer = clock.setTimeout(opts.onForced, opts.graceMs ?? STOP_GRACE_MS);
   };
   if (signal.aborted) stop();
   else signal.addEventListener("abort", stop, { once: true });
   return {
     dispose: () => {
       signal.removeEventListener("abort", stop);
-      if (timer) clearTimeout(timer);
+      clock.clearTimeout(timer);
     },
   };
 }

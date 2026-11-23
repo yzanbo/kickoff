@@ -11,13 +11,14 @@ import type { ReduceTable, ReloadTable, Store, StoreOptions } from "./storeTypes
 const ONLY = 0;
 
 /** 値を 1 つだけ持つ店を作る（設定・音声入力の準備・プロバイダーの状態など。key がないほかは createKeyedStore と同じ） */
-export function createStore<T>({ load, reduce, reloadOn, maxAge, refreshOnFocus }: StoreOptions<T> = {}): Store<T> {
+export function createStore<T>({ load, reduce, reloadOn, maxAge, refreshOnFocus, timers }: StoreOptions<T> = {}): Store<T> {
   const keyed = createKeyedStore<typeof ONLY, T>({
     load: load && (() => load()),
     reduce: reduce as ReduceTable<T, typeof ONLY> | undefined,
     reloadOn: reloadOn as ReloadTable<typeof ONLY> | undefined,
     maxAge,
     refreshOnFocus,
+    timers,
   });
   return {
     loads: keyed.loads,

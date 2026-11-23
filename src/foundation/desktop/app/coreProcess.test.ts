@@ -1,7 +1,9 @@
 // コアの見張り役: 落ちたら残った子を止めてから作り直し、5 分に 3 回落ちたら止める（Electron の utilityProcess は偽の子）
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { onTestFinished, test, vi } from "vitest";
+import { test, vi } from "vitest";
+import { manualClock } from "@/foundation/core/testing/manualClock";
+import { settle } from "@shared/foundation/testing/async";
 import type { CoreState } from "@shared/foundation/ipc";
 
 /** 偽のコアのプロセス（init を受けたら ready を返す。exit で落ちたことにする） */
@@ -23,8 +25,7 @@ vi.mock("electron", () => ({
 }));
 
 test("CoreProcess: 落ちたら残った子を（親を確かめてから）止めて作り直し、続けて落ちたら failed で止める", async () => {
-  vi.useFakeTimers();
-  onTestFinished(() => void vi.useRealTimers());
+  const clock = manualClock();
   const { CoreProcess } = await import("./coreProcess");
   const states: CoreState[] = [];
   const killed: number[] = [];
@@ -36,6 +37,7 @@ test("CoreProcess: 落ちたら残った子を（親を確かめてから）止�
     handlers: {} as never,
     onState: (s) => states.push(s),
     log: () => {},
+    clock,
     // 覚えた子 77 は落ちたコアの子としてプロセスの表にある。止めたら終わる
     host: { processTable: async () => new Map([[77, { pid: 77, ppid: 1000, elapsed: null, command: "claude" }]]), alive: (pid) => !killed.includes(pid) },
   });
@@ -45,15 +47,21 @@ test("CoreProcess: 落ちたら残った子を（親を確かめてから）止�
   forked[0].emit("message", { t: "event", name: "children", payload: { state: "started", pid: 77, group: false } });
   // 落ちる → 子を止める → 0.5 秒待って作り直す
   forked[0].emit("exit", 1);
-  await vi.advanceTimersByTimeAsync(600);
+  await settle();
+  await clock.advance(600);
+  await settle();
   assert.deepEqual(killed, [77]);
   assert.equal(forked.length, 2);
   assert.equal(core.state, "ready");
   // 5 分のうちに続けて 2 回落ちたら、3 回目で作り直さない
   forked[1].emit("exit", 1);
-  await vi.advanceTimersByTimeAsync(2_100);
+  await settle();
+  await clock.advance(2_100);
+  await settle();
   forked[2].emit("exit", 1);
-  await vi.advanceTimersByTimeAsync(10_000);
+  await settle();
+  await clock.advance(10_000);
+  await settle();
   assert.equal(forked.length, 3);
   assert.deepEqual(states, ["ready", "restarting", "ready", "restarting", "ready", "failed"]);
   await core.close(10);

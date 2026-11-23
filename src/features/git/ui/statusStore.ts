@@ -4,6 +4,7 @@
 // 裏で取ってくるよう頼む（POST fetch { auto: true }。前から間がない・操作中なら飛ばすのはコアの鍵。別ウィンドウ・スマホとも共有）
 import type { GitStatus } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
+import { realTimers, type Timers } from "@shared/foundation/time";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import type { StoreState } from "@/foundation/ui/store/storeTypes";
 import { workplaceKey, type WorkplaceRef } from "@/foundation/ui/workplace/workplace";
@@ -37,6 +38,8 @@ export interface GitStatusDeps {
   load(ref: WorkplaceRef): Promise<GitStatus>;
   /** 自動のフェッチを頼む（飛ばすか・失敗はコアが決め、今の状態を返す） */
   autoFetch(ref: WorkplaceRef): Promise<GitStatus>;
+  /** 時計（取り直しの間隔・まとめる待ち。既定は本物） */
+  timers?: Timers;
 }
 
 interface Watch {
@@ -44,20 +47,31 @@ interface Watch {
   /** 読んでいる部品の数と、そのうち active の数 */
   users: number;
   active: number;
-  poll?: ReturnType<typeof setInterval>;
-  fetchTimer?: ReturnType<typeof setInterval>;
-  chatTimer?: ReturnType<typeof setTimeout>;
-  dropTimer?: ReturnType<typeof setTimeout>;
+  /** 予約を外す関数（一定の間隔の取り直し・自動のフェッチ・チャットが動いたあとの取り直し・捨てる前の待ち） */
+  poll?: () => void;
+  fetchTimer?: () => void;
+  chatTimer?: () => void;
+  dropTimer?: () => void;
 }
 
 export function createGitStatusStore(deps: GitStatusDeps) {
+  const timers = deps.timers ?? realTimers;
+  /** ms ごとに fn を呼ぶ（外す関数を返す） */
+  const every = (fn: () => void, ms: number) => {
+    let cancel = timers.timer(function tick() {
+      cancel = timers.timer(tick, ms);
+      fn();
+    }, ms);
+    return () => cancel();
+  };
   const watches = new Map<string, Watch>();
   let version = 0;
   const statuses = createKeyedStore<string, LoadedGitStatus>({
     // 取り直すのは読んでいる作業場所だけ（refresh が確かめる）
     load: (key) => deps.load(watches.get(key)!.ref).then((value) => ({ value, version: ++version })),
+    timers: deps.timers,
   });
-  const flags = createKeyedStore<string, GitStatusFlags>();
+  const flags = createKeyedStore<string, GitStatusFlags>({ timers: deps.timers });
   const flagsOf = (key: string) => flags.get(key).data ?? NO_FLAGS;
   function setFlags(key: string, patch: Partial<GitStatusFlags>) {
     const now = flagsOf(key);
@@ -93,9 +107,9 @@ export function createGitStatusStore(deps: GitStatusDeps) {
   function release(key: string, watch: Watch) {
     if (watch.users > 0 || watch.active > 0) return;
     // 描き直しで外してすぐ付け直す（StrictMode など）間は捨てない
-    watch.dropTimer = setTimeout(() => {
+    watch.dropTimer = timers.timer(() => {
       if (watches.get(key) !== watch || watch.users > 0 || watch.active > 0) return;
-      clearTimeout(watch.chatTimer);
+      watch.chatTimer?.();
       watches.delete(key);
       statuses.drop(key);
       flags.drop(key);
@@ -106,7 +120,7 @@ export function createGitStatusStore(deps: GitStatusDeps) {
     const key = workplaceKey(ref);
     let watch = watches.get(key);
     if (!watch) watches.set(key, (watch = { ref, users: 0, active: 0 }));
-    clearTimeout(watch.dropTimer);
+    watch.dropTimer?.();
     return [key, watch];
   }
 
@@ -132,14 +146,14 @@ export function createGitStatusStore(deps: GitStatusDeps) {
     activate(ref: WorkplaceRef): () => void {
       const [key, watch] = entry(ref);
       if (++watch.active === 1) {
-        watch.poll = setInterval(() => void refresh(key, true), POLL_MS);
+        watch.poll = every(() => void refresh(key, true), POLL_MS);
         autoFetch(key);
-        watch.fetchTimer = setInterval(() => autoFetch(key), FETCH_MS);
+        watch.fetchTimer = every(() => autoFetch(key), FETCH_MS);
       }
       return () => {
         if (--watch.active === 0) {
-          clearInterval(watch.poll);
-          clearInterval(watch.fetchTimer);
+          watch.poll?.();
+          watch.fetchTimer?.();
         }
         release(key, watch);
       };
@@ -170,7 +184,7 @@ export function createGitStatusStore(deps: GitStatusDeps) {
         if (watch.ref.projectId !== projectId) continue;
         setFlags(key, { refreshing: true });
         if (watch.chatTimer !== undefined) continue;
-        watch.chatTimer = setTimeout(() => {
+        watch.chatTimer = timers.timer(() => {
           watch.chatTimer = undefined;
           void refresh(key);
         }, CHAT_ACTIVITY_DELAY_MS);

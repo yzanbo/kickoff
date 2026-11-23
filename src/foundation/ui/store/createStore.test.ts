@@ -1,32 +1,37 @@
 import assert from "node:assert/strict";
-import { test, vi } from "vitest";
+import { test } from "vitest";
 import type { ChatGroup } from "@shared/groups/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { fakeLoader } from "@shared/foundation/testing/async";
+import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { busEvent, TEST_TIME } from "@shared/foundation/testing/data";
 import { publishServerEvent, publishServerOpen } from "@/foundation/ui/api/events";
 import { createStore } from "./createStore";
 import { createKeyedStore } from "./keyedStore";
 
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+
 test("期限で自動更新する店: 使用中のキーだけ、古くなったら値を出したまま取り直す", async () => {
-  vi.useFakeTimers();
+  const clock = createFakeScheduler();
   const calls: number[] = [];
-  const store = createKeyedStore<number, number>({ load: async (key) => { calls.push(key); return calls.length; }, maxAge: 30_000, refreshAfterMaxAge: true });
+  const store = createKeyedStore<number, number>({ load: async (key) => { calls.push(key); return calls.length; }, maxAge: 30_000, refreshAfterMaxAge: true, timers: clock });
   const release = store.retain(1);
   const releaseOther = store.retain(2);
-  await vi.advanceTimersByTimeAsync(0);
+  await flush();
   releaseOther();
-  await vi.advanceTimersByTimeAsync(29_999);
+  clock.advance(29_999);
+  await flush();
   assert.deepEqual(calls, [1, 2]);
-  await vi.advanceTimersByTimeAsync(1);
+  clock.advance(1);
+  await flush();
   assert.deepEqual(calls, [1, 2, 1]);
   assert.equal(store.get(1).data, 3);
   release();
-  await vi.advanceTimersByTimeAsync(30_000);
+  clock.advance(30_000);
+  await flush();
   assert.deepEqual(calls, [1, 2, 1]);
 });
 
-const flush = () => new Promise((resolve) => setImmediate(resolve));
 // 土台のテストなので機能（groups）の補助は読まず、形だけで作る
 const group = (id: number, project_id = 1): ChatGroup => ({ id, project_id, name: `g${id}`, position: id, hue: 0, created_at: TEST_TIME });
 const groupEvent = (g: ChatGroup) => busEvent("group", { group: g });
@@ -72,22 +77,22 @@ test("店: 失敗は覚えず（前の値は残す）、取り直すまでの間
 });
 
 test("店: 使っている値の読み込みに失敗したら、間隔を伸ばしながら自動で取り直す（読めたら間隔を戻す）", async () => {
-  vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
+  const clock = createFakeScheduler();
   const { calls, load } = fakeLoader<void, number>();
-  const store = createStore({ load });
+  const store = createStore({ load, timers: clock });
   const release = store.retain();
   calls[0].reject(new Error("失敗"));
   await flush();
-  vi.advanceTimersByTime(1999);
+  clock.advance(1999);
   assert.equal(calls.length, 1);
-  vi.advanceTimersByTime(1);
+  clock.advance(1);
   assert.equal(calls.length, 2);
   calls[1].reject(new Error("失敗"));
   await flush();
   // 2 回続けて失敗したら 4 秒
-  vi.advanceTimersByTime(2000);
+  clock.advance(2000);
   assert.equal(calls.length, 2);
-  vi.advanceTimersByTime(2000);
+  clock.advance(2000);
   assert.equal(calls.length, 3);
   calls[2].resolve(1);
   await flush();
@@ -96,7 +101,7 @@ test("店: 使っている値の読み込みに失敗したら、間隔を伸ば
   void store.reload();
   calls[3].reject(new Error("失敗"));
   await flush();
-  vi.advanceTimersByTime(60_000);
+  clock.advance(60_000);
   assert.equal(calls.length, 4);
   store.retain()();
   assert.equal(calls.length, 5);

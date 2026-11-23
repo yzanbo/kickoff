@@ -1,4 +1,5 @@
 import { createSignal } from "@shared/foundation/signal";
+import { realTimers, type Timers } from "@shared/foundation/time";
 
 /**
  * 一度きりの頼み（ピントを置く・その行へ移るなど）。開いている受け手には知らせで、これから開く受け手は描いたときに take で受け取る。
@@ -15,13 +16,13 @@ export interface Request<T> {
   subscribe(listener: () => void): () => void;
 }
 
-export function createRequest<T = true>(ttlMs: number): Request<T> {
+export function createRequest<T = true>(ttlMs: number, { now }: Pick<Timers, "now"> = realTimers): Request<T> {
   let pending: { value: T; at: number } | undefined;
   const asked = createSignal();
-  const peek = () => (pending && Date.now() - pending.at <= ttlMs ? pending.value : undefined);
+  const peek = () => (pending && now() - pending.at <= ttlMs ? pending.value : undefined);
   return {
     ask: (value) => {
-      pending = { value, at: Date.now() };
+      pending = { value, at: now() };
       asked.emit();
     },
     take: () => {

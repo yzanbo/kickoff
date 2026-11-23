@@ -5,6 +5,7 @@ import type { Outbox } from "@shared/chat/outbox";
 import type { QueueSendBody } from "@shared/chat/send";
 import type { QueuedMessage } from "@shared/chat/types";
 import { createSignal } from "@/foundation/ui/store";
+import { realTimers, type Timers } from "@shared/foundation/time";
 
 /** 画面に出す送信待ち（コアの並びに、まだ届いていない自分の並べ替えを重ねたもの） */
 export interface QueueView {
@@ -38,7 +39,8 @@ interface Pending {
   /** 送った時点のコアの並びの印 */
   base: string;
   resolved: boolean;
-  timer: ReturnType<typeof setTimeout>;
+  /** しばらくで捨てる予約を外す */
+  cancel: () => void;
 }
 
 export interface QueueControllerDeps {
@@ -48,6 +50,8 @@ export interface QueueControllerDeps {
   send(body: QueueSendBody): Promise<unknown>;
   /** 失敗の知らせ */
   failed(e: unknown): void;
+  /** 時計（先回りを捨てる予約。既定は本物） */
+  timers?: Pick<Timers, "timer">;
 }
 
 export type QueueController = ReturnType<typeof createQueueController>;
@@ -57,6 +61,7 @@ export type QueueController = ReturnType<typeof createQueueController>;
  * 先回りは、応答が届いてコアの並びが変わったら・失敗したら・しばらくたったら捨てる
  */
 export function createQueueController(deps: QueueControllerDeps) {
+  const { timer } = deps.timers ?? realTimers;
   let pending: Pending[] = [];
   let snapshot: readonly QueueCommand[] = [];
   let key = "";
@@ -68,7 +73,7 @@ export function createQueueController(deps: QueueControllerDeps) {
   };
   const drop = (p: Pending) => {
     if (!pending.includes(p)) return;
-    clearTimeout(p.timer);
+    p.cancel();
     pending = pending.filter((x) => x !== p);
     publish();
   };
@@ -86,7 +91,8 @@ export function createQueueController(deps: QueueControllerDeps) {
     run(command: QueueCommand, failed = deps.failed): Promise<boolean> {
       let p: Pending | null = null;
       if (PREDICTED.has(command.op)) {
-        const item: Pending = { command, base: key, resolved: false, timer: setTimeout(() => drop(item), PREDICTION_MS) };
+        const item: Pending = { command, base: key, resolved: false, cancel: () => {} };
+        item.cancel = timer(() => drop(item), PREDICTION_MS);
         p = item;
         pending = [...pending, item];
         publish();

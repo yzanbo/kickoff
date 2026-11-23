@@ -28,6 +28,8 @@ export interface VoiceSessionDeps {
   onMuted: (muted: boolean) => void;
   /** マイクを開けずに終わった */
   onEnd: () => void;
+  /** いまの時刻（声の見分けの起点。既定は Date.now） */
+  now?: () => number;
 }
 
 /** 声が聞こえないまま、これだけたったら録音を作り直す（黙っている間の音声を溜めて送らない） */
@@ -38,8 +40,9 @@ export class VoiceSession {
   private stream: MediaStream | null = null;
   private unwatch: (() => void) | null = null;
   private recording: Recording | null = null;
-  private vad: VadState = initialVad(Date.now());
-  private barge: VadState = initialVad(Date.now());
+  private readonly now: () => number;
+  private vad: VadState;
+  private barge: VadState;
   private listenStartedAt = 0;
   private readonly speaker: Speaker;
   /** もう見た返答（始めたときにあったもの・読んだもの・止めている間に届いたもの） */
@@ -52,6 +55,9 @@ export class VoiceSession {
   private ended = false;
 
   constructor(private readonly deps: VoiceSessionDeps) {
+    this.now = deps.now ?? (() => Date.now());
+    this.vad = initialVad(this.now());
+    this.barge = initialVad(this.now());
     this.speaker = new Speaker(deps.speakerSettings, (speaking) => this.onSpeaking(speaking), deps.onError);
   }
 
@@ -155,7 +161,7 @@ export class VoiceSession {
     if (this.ended || !this.stream) return;
     this.recording?.cancel();
     this.recording = recordStream(this.stream, { release: false });
-    const now = Date.now();
+    const now = this.now();
     this.vad = initialVad(now, this.vad.noise);
     this.listenStartedAt = now;
     this.setState({ kind: "listening", heard: false });
@@ -217,7 +223,7 @@ export class VoiceSession {
       // 読み上げている間は録らない（スピーカーの音を送らない）。割り込みだけ見張る
       this.recording?.cancel();
       this.recording = null;
-      this.barge = initialVad(Date.now(), this.vad.noise);
+      this.barge = initialVad(this.now(), this.vad.noise);
       this.setState({ kind: "speaking" });
       return;
     }

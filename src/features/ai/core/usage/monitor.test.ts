@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { test, vi } from "vitest";
+import { test } from "vitest";
 import type { PayAsYouGo, ProviderUsage } from "@shared/ai/usage";
 import { Bus } from "@/foundation/core/bus";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { UsageMonitor } from "./monitor";
 
 const claude = (patch: Partial<ProviderUsage> = {}): ProviderUsage => ({
@@ -21,27 +22,26 @@ const claude = (patch: Partial<ProviderUsage> = {}): ProviderUsage => ({
 const codex = (patch: Partial<ProviderUsage> = {}): ProviderUsage => ({ ...claude(), provider: "codex", windows: [], ...patch });
 
 test("Claude の使用状況を 1 分ごとに取得して下の帯へ知らせ、停止後は取り直さない", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let calls = 0;
   const bus = new Bus();
   const events: string[] = [];
   bus.subscribe((event) => {
     if (event.type === "usage") events.push(event.usage.fetched_at);
   });
-  const monitor = new UsageMonitor(bus, { claude: async () => (calls++, claude()) });
+  const monitor = new UsageMonitor(bus, { claude: async () => (calls++, claude({ fetched_at: clock.iso() })) }, clock);
   try {
     monitor.start();
-    await vi.advanceTimersByTimeAsync(0);
+    await clock.advance(0);
     assert.equal(calls, 1);
-    await vi.advanceTimersByTimeAsync(59_999);
+    await clock.advance(59_999);
     assert.equal(calls, 1);
-    await vi.advanceTimersByTimeAsync(1);
+    await clock.advance(1);
     assert.equal(calls, 2);
     assert.equal(events.length, 2);
     assert.notEqual(events[0], events[1]);
     monitor.stop();
-    await vi.advanceTimersByTimeAsync(60_000);
+    await clock.advance(60_000);
     assert.equal(calls, 2);
   } finally {
     monitor.stop();
@@ -49,17 +49,20 @@ test("Claude の使用状況を 1 分ごとに取得して下の帯へ知らせ�
 });
 
 test("Claude の枠: 15 秒以内の続けての取得はまとめ、失敗しても直前の値を残して理由を添える", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let fail = false;
   let calls = 0;
-  const monitor = new UsageMonitor(undefined, {
-    claude: async () => {
-      calls++;
-      if (fail) throw new Error("timeout");
-      return claude();
+  const monitor = new UsageMonitor(
+    undefined,
+    {
+      claude: async () => {
+        calls++;
+        if (fail) throw new Error("timeout");
+        return claude();
+      },
     },
-  });
+    clock,
+  );
   await monitor.refresh("claude");
   await monitor.refresh("claude");
   assert.equal(calls, 1);
@@ -68,40 +71,42 @@ test("Claude の枠: 15 秒以内の続けての取得はまとめ、失敗し�
   assert.deepEqual([calls, failed.status, failed.error, failed.windows.length], [2, "ok", "timeout", 2]);
   assert.equal((await monitor.current("claude")).error, "timeout");
   // 前の値がなければ失敗として出す
-  const empty = new UsageMonitor(undefined, { claude: async () => Promise.reject(new Error("boom")) });
+  const empty = new UsageMonitor(undefined, { claude: async () => Promise.reject(new Error("boom")) }, clock);
   assert.deepEqual([(await empty.current("claude")).status, (await empty.current("claude")).message], ["error", "boom"]);
 });
 
 test("Codex などの使用状況は 1 分以内は共有し、1 分後に取り直す", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let calls = 0;
-  const monitor = new UsageMonitor(undefined, { claude: async () => claude(), codex: async () => (calls++, codex()) });
+  const monitor = new UsageMonitor(undefined, { claude: async () => claude(), codex: async () => (calls++, codex()) }, clock);
   await Promise.all([monitor.all(), monitor.all()]);
   assert.equal(calls, 1);
-  await vi.advanceTimersByTimeAsync(59_999);
+  await clock.advance(59_999);
   await monitor.all();
   assert.equal(calls, 1);
-  await vi.advanceTimersByTimeAsync(1);
+  await clock.advance(1);
   await monitor.all();
   assert.equal(calls, 2);
 });
 
 test("サービスの取得が遅くても、取得開始から 1 分後にはキャッシュを更新する。1 つが失敗してもほかは出す", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let calls = 0;
-  const monitor = new UsageMonitor(undefined, {
-    claude: async () => claude(),
-    codex: async () => {
-      calls++;
-      if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 5_000));
-      return codex();
+  const monitor = new UsageMonitor(
+    undefined,
+    {
+      claude: async () => claude(),
+      codex: async () => {
+        calls++;
+        if (calls === 1) await clock.sleep(5_000);
+        return codex();
+      },
+      cursor: async () => Promise.reject(new Error("つながりません")),
     },
-    cursor: async () => Promise.reject(new Error("つながりません")),
-  });
+    clock,
+  );
   const initial = monitor.refreshAll(true);
-  await vi.advanceTimersByTimeAsync(5_000);
+  await clock.advance(5_000);
   assert.deepEqual(
     (await initial).map((s) => [s.provider, s.status, s.message ?? null]),
     [
@@ -110,7 +115,7 @@ test("サービスの取得が遅くても、取得開始から 1 分後には�
       ["cursor", "error", "取得できませんでした（つながりません）"],
     ],
   );
-  await vi.advanceTimersByTimeAsync(55_000);
+  await clock.advance(55_000);
   await monitor.all();
   assert.equal(calls, 2);
 });
@@ -174,35 +179,41 @@ test("使い切った枠の戻る時刻: その AI の取った値から（ま�
 });
 
 test("「更新」（force）は、進んでいるふつうの取得に相乗りせず、Claude の枠も取り直す", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let claudeCalls = 0;
   let codexCalls = 0;
-  const monitor = new UsageMonitor(undefined, {
-    claude: async () => (claudeCalls++, claude()),
-    codex: async () => {
-      codexCalls++;
-      await new Promise((resolve) => setTimeout(resolve, 5_000));
-      return codex();
+  const monitor = new UsageMonitor(
+    undefined,
+    {
+      claude: async () => (claudeCalls++, claude()),
+      codex: async () => {
+        codexCalls++;
+        await clock.sleep(5_000);
+        return codex();
+      },
     },
-  });
+    clock,
+  );
   await monitor.refresh("claude");
   // 設定を開いた（Claude はとっておいた値・Codex は取りに行って遅い）ところで「更新」を押す
   const opened = monitor.all();
   const refreshed = monitor.refreshAll(true);
-  await vi.advanceTimersByTimeAsync(5_000);
+  await clock.advance(5_000);
   await Promise.all([opened, refreshed]);
   assert.deepEqual([claudeCalls, codexCalls], [2, 2]);
 });
 
 test("1 分以内の一覧でも、そのあとに取り直した・知らせを重ねた AI は最新の値を返す（SSE の usage と同じ値）", async () => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-11-17T00:00:00Z"));
+  const clock = manualClock(Date.parse("2026-11-17T00:00:00Z"));
   let percent = 10;
-  const monitor = new UsageMonitor(undefined, {
-    claude: async () => claude({ windows: [{ key: "five_hour", label: "5時間", utilization: percent, resets_at: null }] }),
-    codex: async () => codex({ pay_as_you_go: { enabled: true, unlimited: false, balance: 150, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null } }),
-  });
+  const monitor = new UsageMonitor(
+    undefined,
+    {
+      claude: async () => claude({ windows: [{ key: "five_hour", label: "5時間", utilization: percent, resets_at: null }] }),
+      codex: async () => codex({ pay_as_you_go: { enabled: true, unlimited: false, balance: 150, utilization: null, used: null, limit: null, currency: null, spending: null, checked_at: null } }),
+    },
+    clock,
+  );
   await monitor.all();
   percent = 30;
   await monitor.refresh("claude", true);

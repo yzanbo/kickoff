@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
+import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { closeWhenDocked, DOCK_WAIT_MS, parsePopout, popoutKey, popoutKinds, popoutPath, publishFollow, type PopoutKind } from "./popout";
 import type { WindowMessageMap } from "./windowBus";
 
@@ -53,39 +54,34 @@ test("popoutKey: keyIgnores の項目を外して見分ける", () => {
 function stubWindow() {
   const closed = vi.fn();
   vi.stubGlobal("window", { kickoff: { windows: { closeSelf: closed } } });
-  vi.useFakeTimers();
-  onTestFinished(() => {
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-  });
-  return closed;
+  onTestFinished(() => void vi.unstubAllGlobals());
+  return { closed, clock: createFakeScheduler() };
 }
 
 test("closeWhenDocked: 自分の key の docked が届いたら閉じ、ほかの key では閉じない", () => {
-  const closed = stubWindow();
+  const { closed, clock } = stubWindow();
   let deliver: (m: { key: string }) => void = () => {};
-  closeWhenDocked("/popout/side", DOCK_WAIT_MS, (handler) => ((deliver = handler), () => {}));
+  closeWhenDocked("/popout/side", DOCK_WAIT_MS, (handler) => ((deliver = handler), () => {}), clock);
   deliver({ key: "/popout/sidebar" });
   assert.equal(closed.mock.calls.length, 0);
   deliver({ key: "/popout/side" });
   assert.equal(closed.mock.calls.length, 1);
   // 届いたあとは時間がたっても閉じ直さない
-  vi.advanceTimersByTime(DOCK_WAIT_MS);
+  clock.advance(DOCK_WAIT_MS);
   assert.equal(closed.mock.calls.length, 1);
 });
 
 test("closeWhenDocked: docked が来なくても waitMs たったら閉じる（メインのウィンドウが応えないとき）", () => {
-  const closed = stubWindow();
-  closeWhenDocked("/popout/side", 500, () => () => {});
-  vi.advanceTimersByTime(499);
+  const { closed, clock } = stubWindow();
+  closeWhenDocked("/popout/side", 500, () => () => {}, clock);
+  clock.advance(499);
   assert.equal(closed.mock.calls.length, 0);
-  vi.advanceTimersByTime(1);
+  clock.advance(1);
   assert.equal(closed.mock.calls.length, 1);
 });
 
 test("publishFollow: いまの写しを送り、元が変わったらまとめて送り直す。やめたら送らない", () => {
-  vi.useFakeTimers();
-  onTestFinished(() => void vi.useRealTimers());
+  const clock = createFakeScheduler();
   let value = 1;
   const listeners = new Set<() => void>();
   const change = (next: number) => {
@@ -95,17 +91,17 @@ test("publishFollow: いまの写しを送り、元が変わったらまとめ�
   const follow = { publish: () => value, watch: (l: () => void) => (listeners.add(l), () => void listeners.delete(l)), begin: () => () => {}, apply: () => {} };
   useTestContributions([popoutKinds.item({ ...sidebar, follow })]);
   const sent: WindowMessageMap["popoutFollow"][] = [];
-  const stop = publishFollow("sidebar", (m) => sent.push(m));
+  const stop = publishFollow("sidebar", (m) => sent.push(m), clock);
   onTestFinished(stop);
   assert.deepEqual(sent, [{ kind: "sidebar", snapshot: 1 }]);
   // 続けて変えても 1 回にまとめる
   change(2);
   change(3);
   assert.equal(sent.length, 1);
-  vi.advanceTimersByTime(100);
+  clock.advance(100);
   assert.deepEqual(sent[1], { kind: "sidebar", snapshot: 3 });
   stop();
   change(4);
-  vi.advanceTimersByTime(100);
+  clock.advance(100);
   assert.equal(sent.length, 2);
 });

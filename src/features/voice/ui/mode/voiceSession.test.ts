@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { onTestFinished, test, vi } from "vitest";
+import { test, vi } from "vitest";
+import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { VoiceSession, type VoiceModeState } from "./voiceSession";
 
 // 偽の録音・マイク・読み上げ（本物のマイクと声は使わない）
@@ -42,17 +43,19 @@ const flush = async () => {
   for (let i = 0; i < 20; i++) await Promise.resolve();
 };
 
+/** 声の見分けの時計（session() が作り直す） */
+let clock = createFakeScheduler();
+
 /** ms の間、50ms ごとにその音量を渡す */
 function feed(level: number, ms: number) {
   for (let t = 0; t < ms; t += 50) {
-    vi.advanceTimersByTime(50);
-    fake.level?.(level, Date.now());
+    clock.advance(50);
+    fake.level?.(level, clock.now());
   }
 }
 
 async function session() {
-  vi.useFakeTimers();
-  onTestFinished(() => void vi.useRealTimers());
+  clock = createFakeScheduler(1_000_000);
   Object.assign(fake, { level: null, recordings: [], spoken: [], stops: 0, onSpeaking: null });
   const delivered: string[] = [];
   const states: VoiceModeState[] = [];
@@ -67,6 +70,7 @@ async function session() {
     onLevel: () => {},
     onMuted: (m) => void (muted = m),
     onEnd: () => {},
+    now: clock.now,
   });
   await s.start([{ id: 1, text: "前からある返答" }], true);
   return { s, delivered, state: () => states.at(-1), muted: () => muted };

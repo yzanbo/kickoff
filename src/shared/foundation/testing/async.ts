@@ -1,6 +1,6 @@
 // 非同期のテストの補助（待っている続きを流す・外から解決する Promise・偽の読み込み。テストからだけ使う）。Node・DOM に依存しない
 
-/** 待っている Promise の続きを流す（setTimeout 0 を 1 回。vi.useFakeTimers で setTimeout を偽にしている間は進まない） */
+/** 待っている Promise の続きを流す（本物の setTimeout 0 を 1 回。偽の時計 fakeScheduler を進めたあとに呼ぶ） */
 export function settle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }

@@ -1,6 +1,7 @@
 // key（プロジェクトの ID など）ごとに値を持つ店の仕組み（値を 1 つだけ持つ店 createStore も、これを 1 つの key で使う）。
 // 店の考え方（読み込み・失敗・知らせ・つながったとき）は createStore.ts の先頭に、形（様子・指定・できること）は storeTypes.ts に書く
 import { errorMessage } from "@shared/foundation/errors";
+import type { Timers } from "@shared/foundation/time";
 import { onServerEvent, onServerOpen, type AnyServerEvent, type ServerEventType } from "@/foundation/ui/api/events";
 import { EMPTY_STATE, reduceBy, reloadsBy, type KeyedStore, type KeyedStoreOptions, type StoreState } from "./storeTypes";
 
@@ -8,6 +9,16 @@ import { EMPTY_STATE, reduceBy, reloadsBy, type KeyedStore, type KeyedStoreOptio
 const RETRY_FIRST_MS = 2_000;
 const RETRY_MAX_MS = 60_000;
 const retryDelay = (failures: number) => Math.min(RETRY_MAX_MS, RETRY_FIRST_MS * 2 ** (failures - 1));
+
+/** 本物の時計（テスト（Node）では、待っている取り直しのためにプロセスを残さない） */
+const storeTimers: Timers = {
+  timer: (fn, ms) => {
+    const id = setTimeout(fn, ms);
+    (id as { unref?: () => void }).unref?.();
+    return () => clearTimeout(id);
+  },
+  now: () => Date.now(),
+};
 
 interface Entry<T> {
   state: StoreState<T>;
@@ -24,14 +35,14 @@ interface Entry<T> {
   /** 続けて失敗した数と、それまでは使い始めても取り直さない時刻・自動の取り直しの時計 */
   failures: number;
   retryAt: number;
-  retryTimer: ReturnType<typeof setTimeout> | undefined;
-  refreshTimer?: ReturnType<typeof setTimeout>;
+  retryTimer: (() => void) | undefined;
+  refreshTimer?: () => void;
   /** reload を待っているもの */
   waiters: { resolve: (data: T) => void; reject: (error: unknown) => void }[];
 }
 
 export function createKeyedStore<K extends string | number, T>(options: KeyedStoreOptions<K, T> = {}): KeyedStore<K, T> {
-  const { load, reduce, reloadOn, dropOn, maxAge, refreshOnFocus, refreshAfterMaxAge } = options;
+  const { load, reduce, reloadOn, dropOn, maxAge, refreshOnFocus, refreshAfterMaxAge, timers = storeTimers } = options;
   const entries = new Map<K, Entry<T>>();
   const listeners = new Map<K, Set<() => void>>();
   // 使っている部品の数（key ごと。値を捨てて作り直しても数は残す）
@@ -66,38 +77,35 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
   }
 
   function stopRetry(entry: Entry<T>) {
-    clearTimeout(entry.retryTimer);
+    entry.retryTimer?.();
     entry.retryTimer = undefined;
   }
 
   function stopRefresh(entry: Entry<T>) {
-    clearTimeout(entry.refreshTimer);
+    entry.refreshTimer?.();
     entry.refreshTimer = undefined;
   }
 
   function scheduleRefresh(key: K, entry: Entry<T>) {
     stopRefresh(entry);
     if (!load || !refreshAfterMaxAge || !maxAge || !inUse(key) || !entry.state.loaded || entry.state.loading || entry.stale) return;
-    entry.refreshTimer = setTimeout(() => {
+    entry.refreshTimer = timers.timer(() => {
       entry.refreshTimer = undefined;
       if (entries.get(key) !== entry || !inUse(key)) return;
       ensure(key);
       if (fresh(entry)) scheduleRefresh(key, entry);
-    }, Math.max(1, maxAge - (Date.now() - entry.loadedAt)));
-    (entry.refreshTimer as { unref?: () => void }).unref?.();
+    }, Math.max(1, maxAge - (timers.now() - entry.loadedAt)));
   }
 
   /** 失敗を覚えずに、しばらくしてから取り直す（使っていれば。使っていなければ、次に使うときに） */
   function scheduleRetry(key: K, entry: Entry<T>) {
     entry.failures++;
     const delay = retryDelay(entry.failures);
-    entry.retryAt = Date.now() + delay;
-    entry.retryTimer = setTimeout(() => {
+    entry.retryAt = timers.now() + delay;
+    entry.retryTimer = timers.timer(() => {
       entry.retryTimer = undefined;
       if (entries.get(key) === entry && entry.stale && inUse(key) && !entry.state.loading) start(key, entry);
     }, delay);
-    // テスト（Node）では、待っている取り直しのためにプロセスを残さない
-    (entry.retryTimer as { unref?: () => void }).unref?.();
   }
 
   function start(key: K, entry: Entry<T>) {
@@ -121,7 +129,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
         if (!current()) return;
         const data = (entry.replay ?? []).reduce((d, apply) => apply(d), value);
         entry.replay = null;
-        entry.loadedAt = Date.now();
+        entry.loadedAt = timers.now();
         entry.failures = 0;
         entry.retryAt = 0;
         if (entry.again) {
@@ -154,12 +162,12 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     else start(key, entry);
   }
 
-  const fresh = (entry: Entry<T>) => entry.state.loaded && !entry.stale && (maxAge === undefined || Date.now() - entry.loadedAt < maxAge);
+  const fresh = (entry: Entry<T>) => entry.state.loaded && !entry.stale && (maxAge === undefined || timers.now() - entry.loadedAt < maxAge);
 
   function ensure(key: K) {
     if (!load) return;
     const entry = entryOf(key);
-    if (!entry.state.loading && !fresh(entry) && Date.now() >= entry.retryAt) start(key, entry);
+    if (!entry.state.loading && !fresh(entry) && timers.now() >= entry.retryAt) start(key, entry);
   }
 
   function update(key: K, apply: (data: T) => T) {
@@ -262,7 +270,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
       const entry = entryOf(key);
       entry.request++;
       stopRetry(entry);
-      Object.assign(entry, { replay: null, again: false, stale: false, failures: 0, retryAt: 0, loadedAt: Date.now() });
+      Object.assign(entry, { replay: null, again: false, stale: false, failures: 0, retryAt: 0, loadedAt: timers.now() });
       change(key, entry, { data: value, error: undefined, loading: false });
       scheduleRefresh(key, entry);
       settle(entry, { data: value });

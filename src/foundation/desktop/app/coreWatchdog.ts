@@ -1,4 +1,5 @@
 // コアの応答の見張り: everyMs ごとに ping し、limitMs より長く答えなければ onSilent、答えたら onResponded を呼ぶ（様子を決めるのは呼ぶ側の coreStateAfter）
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** コアの応答の見張りの間隔と、知らせるまでの長さ（一時の重さ = 大きな SQL などで知らせない） */
 export const CORE_PING_EVERY_MS = 5_000;
@@ -19,32 +20,34 @@ export function createWatchdog(opts: {
   onResponded: () => void;
   /** silentMs: 最後に答えてからの長さ */
   onSilent: (silentMs: number) => void;
+  /** 時計（既定は本物） */
+  clock?: Clock;
 }): Watchdog {
-  let lastPong = Date.now();
-  let timer: ReturnType<typeof setInterval> | null = null;
+  const clock = opts.clock ?? systemClock;
+  let lastPong = clock.now();
+  let timer: TimerHandle | null = null;
   const stop = () => {
-    if (timer) clearInterval(timer);
+    clock.clearInterval(timer);
     timer = null;
   };
   return {
     start() {
       stop();
-      timer = setInterval(() => {
+      timer = clock.setInterval(() => {
         const pong = opts.ping();
         if (!pong) return;
         pong.then(
           () => {
-            lastPong = Date.now();
+            lastPong = clock.now();
             opts.onResponded();
           },
           () => {},
         );
-        const silent = Date.now() - lastPong;
+        const silent = clock.now() - lastPong;
         if (silent > opts.limitMs) opts.onSilent(silent);
       }, opts.everyMs);
-      timer.unref();
     },
     stop,
-    reset: () => void (lastPong = Date.now()),
+    reset: () => void (lastPong = clock.now()),
   };
 }

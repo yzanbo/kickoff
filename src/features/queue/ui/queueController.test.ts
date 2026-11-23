@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { onTestFinished, test, vi } from "vitest";
+import { test } from "vitest";
+import { createFakeScheduler } from "@shared/foundation/testing/fakeScheduler";
 import { EMPTY_QUEUE_STATE, type QueueState } from "@shared/chat/chatLive";
 import type { QueueCommand } from "@shared/chat/queueCommand";
 import { makeQueuedMessage } from "@shared/chat/testing";
@@ -9,16 +10,16 @@ const stateOf = (ids: string[], stops: number[] = []): QueueState => ({ ...EMPTY
 
 /** 偽の口: 送った命令を覚え、resolve / reject を外から決める */
 function setup() {
-  vi.useFakeTimers();
-  onTestFinished(() => void vi.useRealTimers());
+  const clock = createFakeScheduler();
   const calls: { commands: QueueCommand[]; resolve: () => void; reject: (e: unknown) => void }[] = [];
   const failures: unknown[] = [];
   const c = createQueueController({
     run: (commands) => new Promise<void>((resolve, reject) => void calls.push({ commands, resolve, reject })),
     send: () => Promise.resolve(),
     failed: (e) => void failures.push(e),
+    timers: clock,
   });
-  return { c, calls, failures };
+  return { c, calls, failures, clock };
 }
 
 test("並べ替えは応答を待たずに出し、応答が届いてコアの並びが変わったら先回りを捨てる", async () => {
@@ -36,7 +37,7 @@ test("並べ替えは応答を待たずに出し、応答が届いてコアの�
 });
 
 test("失敗したら先回りを戻して知らせる・応答がなくてもしばらくで戻す", async () => {
-  const { c, calls, failures } = setup();
+  const { c, calls, failures, clock } = setup();
   c.settle(stateOf(["a", "b"]));
   const done = c.run({ op: "set_stops", stops: [1] });
   calls[0].reject(new Error("x"));
@@ -45,7 +46,7 @@ test("失敗したら先回りを戻して知らせる・応答がなくても�
   assert.equal(failures.length, 1);
   void c.run({ op: "set_stops", stops: [0] });
   assert.equal(c.pending().length, 1);
-  vi.advanceTimersByTime(3000);
+  clock.advance(3000);
   assert.equal(c.pending().length, 0);
 });
 

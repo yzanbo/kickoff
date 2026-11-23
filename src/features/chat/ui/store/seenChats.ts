@@ -2,6 +2,7 @@
 // チャットを引けるように、チャットの店（chatStore.ts）が詳細の応答で入れ（タブが指すだけのチャットは行を 1 回取って入れ）、持っている間は知らせ・操作の応答で直し、店が中身を捨てたら一緒に捨てる
 import type { Chat } from "@shared/chat/types";
 import { createSignal } from "@/foundation/ui/store";
+import { realTimers, type Timers } from "@shared/foundation/time";
 
 export interface SeenChats {
   get(id: number): Chat | undefined;
@@ -24,7 +25,7 @@ export interface SeenChats {
 /** 一覧の外のチャットの行を取るまで待つ時間（ミリ秒） */
 const ROW_FETCH_DELAY_MS = 1000;
 
-export function createSeenChats(): SeenChats {
+export function createSeenChats({ timer }: Pick<Timers, "timer"> = realTimers): SeenChats {
   const chats = new Map<number, Chat>();
   // 行を取りに行っている・取れなかった ID
   const fetching = new Set<number>();
@@ -45,7 +46,7 @@ export function createSeenChats(): SeenChats {
       if (chats.delete(id)) notify();
     },
     fetch(id, load, delayMs = ROW_FETCH_DELAY_MS) {
-      const timer = setTimeout(() => {
+      return timer(() => {
         if (chats.has(id) || fetching.has(id)) return;
         fetching.add(id);
         load().then(
@@ -56,7 +57,6 @@ export function createSeenChats(): SeenChats {
           () => undefined,
         );
       }, delayMs);
-      return () => clearTimeout(timer);
     },
     forgetProject(projectId) {
       let removed = false;

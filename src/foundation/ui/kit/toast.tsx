@@ -2,6 +2,7 @@ import "./toast.css";
 import { createCell, useCell } from "@/foundation/ui/store";
 import { CloseButton } from "./IconButton";
 import { useOverlayOpen } from "./overlayCount";
+import { realTimers, type Timers } from "@shared/foundation/time";
 
 /** 画面の下に少しの間だけ出す知らせ（「〇〇に追加しました［開く］」など。画面は移さない） */
 interface Toast {
@@ -34,13 +35,13 @@ export interface ProgressToast {
   fail(message: string): void;
 }
 
-/** 進行中の知らせを出す（回る印つき。閉じるまで、または done / fail まで出したまま） */
-export function showProgressToast(message: string): ProgressToast {
+/** 進行中の知らせを出す（回る印つき。閉じるまで、または done / fail まで出したまま。timers は消す時の予約） */
+export function showProgressToast(message: string, timers: Pick<Timers, "timer"> = realTimers): ProgressToast {
   const id = nextId++;
   toasts.set((list) => [...list.slice(-2), { id, message, busy: true }]);
   const finish = (next: Omit<Toast, "id">) => {
     toasts.set((list) => list.map((t) => (t.id === id ? { id, ...next } : t)));
-    setTimeout(() => dismiss(id), TOAST_MS);
+    timers.timer(() => dismiss(id), TOAST_MS);
   };
   return { done: (text, action) => finish({ message: text, action }), fail: (text) => finish({ message: text }) };
 }

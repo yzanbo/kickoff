@@ -11,20 +11,22 @@ test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年
 });
 
 test("relativeTime の short: サイドバー向けの短い経過時間（「前」は付けない）", () => {
-  const ago = (s: number) => new Date(Date.now() - s * 1000).toISOString();
-  assert.equal(relativeTime(ago(10), { style: "short" }), "今");
-  assert.equal(relativeTime(ago(5 * 60), { style: "short" }), "5分");
-  assert.equal(relativeTime(ago(23 * 3600), { style: "short" }), "23時間");
-  assert.equal(relativeTime(ago(3 * 86400), { style: "short" }), "3日");
-  assert.match(relativeTime(ago(10 * 86400), { style: "short" }), /^\d{1,2}\/\d{1,2}$/);
+  const now = Date.parse("2026-11-03T00:00:00Z");
+  const ago = (s: number) => new Date(now - s * 1000).toISOString();
+  assert.equal(relativeTime(ago(10), { style: "short", now }), "今");
+  assert.equal(relativeTime(ago(5 * 60), { style: "short", now }), "5分");
+  assert.equal(relativeTime(ago(23 * 3600), { style: "short", now }), "23時間");
+  assert.equal(relativeTime(ago(3 * 86400), { style: "short", now }), "3日");
+  assert.match(relativeTime(ago(10 * 86400), { style: "short", now }), /^\d{1,2}\/\d{1,2}$/);
 });
 
 test("relativeTime: たった今・分前・時間前、1 日より前は日付", () => {
-  const ago = (sec: number) => new Date(Date.now() - sec * 1000).toISOString();
-  assert.equal(relativeTime(ago(5)), "たった今");
-  assert.equal(relativeTime(ago(5 * 60 + 10)), "5分前");
-  assert.equal(relativeTime(ago(3 * 3600 + 10)), "3時間前");
-  assert.match(relativeTime(ago(3 * 86400)), /^\d{1,2}\/\d{1,2}$/);
+  const now = Date.parse("2026-11-03T00:00:00Z");
+  const ago = (sec: number) => new Date(now - sec * 1000).toISOString();
+  assert.equal(relativeTime(ago(5), { now }), "たった今");
+  assert.equal(relativeTime(ago(5 * 60 + 10), { now }), "5分前");
+  assert.equal(relativeTime(ago(3 * 3600 + 10), { now }), "3時間前");
+  assert.match(relativeTime(ago(3 * 86400), { now }), /^\d{1,2}\/\d{1,2}$/);
 });
 
 test("resetInShort: 分・時間・日の単位で丸める。null なら null", () => {
@@ -159,14 +161,12 @@ test("時刻の整形の作り置き: 不正な日時は toLocale*String と同�
 test("時刻の整形の作り置き: 時間帯が変わったら作り直し、夏時間のある時間帯でも同じ文字になる", () => {
   // 作り置きはモジュールに残るので、ほかのファイルのテストに New York の書式を残さない
   onTestFinished(resetDateFormats);
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-06-01T00:00:00Z"));
-  formatClock(new Date().toISOString()); // いまの時間帯で作り置く
+  // 見直しの間隔は Date.now で測るので、時刻だけを進める（restoreMocks でテストのあとに戻る）
+  const start = Date.parse("2026-06-01T00:00:00Z");
+  const now = vi.spyOn(Date, "now").mockReturnValue(start);
+  formatClock("2026-06-01T00:00:00Z"); // いまの時間帯で作り置く
   vi.stubEnv("TZ", "America/New_York");
-  vi.advanceTimersByTime(ZONE_CHECK_MS);
+  now.mockReturnValue(start + ZONE_CHECK_MS);
   // 夏時間の切り替え（3 月・11 月）の前後
   const around = (iso: string) => Array.from({ length: 48 }, (_, i) => new Date(Date.parse(iso) + (i - 24) * 30 * 60_000));
   assertSameAsToLocale([...around("2026-03-08T07:00:00Z"), ...around("2026-11-01T06:00:00Z")]);
