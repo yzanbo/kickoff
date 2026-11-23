@@ -1,6 +1,6 @@
-import { ipcEntries, type NativeApi } from "@shared/foundation/ipc";
+import { ipcEntries, type IpcTable, type NativeApi } from "@shared/foundation/ipc";
 
-// 画面に出すネイティブ機能（window.kickoff）を、IPC の取り決めの表（shared/ipc/contract.ts）から作る。
+// 画面に出すネイティブ機能（window.kickoff）を、IPC の取り決めの表（src/app/shared/ipc.ts の NATIVE_API）から作る。
 // Electron に依らない（ipcRenderer は渡してもらう。テストでは偽物を渡す）
 
 type Listener = (event: unknown, ...args: unknown[]) => void;
@@ -17,9 +17,9 @@ export interface RendererIpc {
  * 表の項目ごとに、画面から呼ぶ関数を作る: invoke は返事を待つ・send は送るだけ・知らせ（on…）は受け取る関数を登録し、
  * 受け取りをやめる関数を返す。チャンネル名は表から作ったものだけを使う（手書きしない）
  */
-export function createNativeApi(ipc: RendererIpc): NativeApi {
+export function createNativeApi(ipc: RendererIpc, table: IpcTable): NativeApi {
   const api: Record<string, Record<string, unknown>> = {};
-  for (const { group, method, kind, channel } of ipcEntries()) {
+  for (const { group, method, kind, channel } of ipcEntries(table)) {
     api[group] ??= {};
     api[group][method] =
       kind === "invoke"

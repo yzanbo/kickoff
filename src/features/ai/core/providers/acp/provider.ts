@@ -9,7 +9,8 @@ import { acpEnv } from "./config";
 import type { ContentBlock, RequestPermissionRequest, SessionNotification, SessionResponse } from "./protocol";
 import { openAgent, runAcpTurn, type AcpAgentSpec } from "./turn";
 import { cliVersion } from "@/features/ai/core/providers/shared/process";
-import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { withTimeout } from "@shared/foundation/time";
+import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 
 export interface AcpProviderOpts {

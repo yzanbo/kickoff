@@ -1,17 +1,16 @@
 // コアのプロセスを組み立てる: 起動の値（init）・コアから呼ばれるメインの口（キーチェーンの鍵と、機能の部品の口 = 埋め込みブラウザ）・コアからの知らせの行き先
 // （通知・詰まり）・様子の配り先（画面の帯の IPC core.onState）
 import path from "node:path";
-import { app, BrowserWindow } from "electron";
-import type { CoreState } from "@shared/foundation/ipc";
+import { app } from "electron";
 import { recordCoreStall } from "@/foundation/desktop/diagnostics/stalls";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
-import { sendEvent } from "@/foundation/desktop/ipc/register";
 import { notifyFromCore } from "@/foundation/desktop/notifications/notifications";
 import { hostPlatform } from "@/foundation/desktop/platform/index";
 import { COMPILE_CACHE_ARG } from "@/foundation/core/system/compileCache";
 import { prefixedHandlers, type Prefixed } from "@/foundation/core/host/protocol";
 import { SECRET_METHODS, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 import { prepareCoreCompileCache } from "./compileCache";
+import { broadcast } from "./popouts";
 import { CoreProcess, type HostHandlers } from "./coreProcess";
 import { CORE_FILE, DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER } from "./environment";
 import { logsDir } from "./logs";
@@ -19,12 +18,7 @@ import { safeStorageCipher } from "./secretCipher";
 import { startupLog } from "./startupLog";
 
 /** コアから呼ばれるメインの口のうち、機能の部品が出すもの（埋め込みブラウザの操作。土台が持つのは DB のパスワード・API キーの暗号化） */
-export type FeatureHostHandlers = Omit<HostHandlers, keyof Prefixed<"secret", SecretCipher>>;
-
-/** 開いている画面（メインの窓・別ウィンドウ）すべてに、コアの様子を知らせる */
-function broadcastState(state: CoreState) {
-  for (const win of BrowserWindow.getAllWindows()) sendEvent(win.webContents, "core", "onState", { state });
-}
+type FeatureHostHandlers = Omit<HostHandlers, keyof Prefixed<"secret", SecretCipher>>;
 
 /** コアのプロセスの起動の引数（コンパイルキャッシュの場所。保存先の compile-cache の下の、いまの版・ビルドのフォルダ） */
 function coreCacheArgs(): string[] {
@@ -33,7 +27,7 @@ function coreCacheArgs(): string[] {
 }
 
 /** コアのプロセスを作る（まだ起動しない。start で fork する） */
-export function createCoreProcess(opts: { port: number; devUrl: string | undefined; hostMethods: FeatureHostHandlers }): CoreProcess {
+export function createCoreProcess(opts: { port: number; devUrl: string | undefined; hostMethods: Partial<FeatureHostHandlers> }): CoreProcess {
   const core = new CoreProcess({
     file: CORE_FILE,
     // コアのコンパイルキャッシュの場所（init は本体を読んだあとに届くので、起動の引数で渡す）
@@ -52,13 +46,15 @@ export function createCoreProcess(opts: { port: number; devUrl: string | undefin
       hostStartedAt: performance.timeOrigin,
       recoveredReason,
     }),
-    handlers: { ...opts.hostMethods, ...prefixedHandlers("secret", safeStorageCipher, SECRET_METHODS) },
+    // 機能の口は部品を合わせたもの（mergeParts。並べ忘れた口は、呼ばれたときに RPC が「知らない呼び出し」で断る）
+    handlers: { ...opts.hostMethods, ...prefixedHandlers("secret", safeStorageCipher, SECRET_METHODS) } as HostHandlers,
     onState: (state) => {
       startupLog(`コアの様子: ${state}`);
-      broadcastState(state);
+      // 開いている画面（メインの窓・別ウィンドウ）すべてに知らせる
+      broadcast("core", "onState", { state });
     },
     log: startupLog,
-    processTable: () => hostPlatform.processTable(),
+    host: hostPlatform,
   });
   // 通知を出すかはコアが決め、Mac の通知はここで出す（notifications/notifications.ts）
   core.on("notify", notifyFromCore);
@@ -66,7 +62,7 @@ export function createCoreProcess(opts: { port: number; devUrl: string | undefin
   return core;
 }
 
-/** 画面の上の帯の操作（IPC の core） */
+/** 画面の上の帯の操作（IPC の core。foundationPart.ts の coreDesktop） */
 export function coreIpcHandlers(core: CoreProcess): IpcHandlers["core"] {
   return {
     state: () => ({ state: core.state }),

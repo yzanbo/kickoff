@@ -4,7 +4,7 @@ Electron のメインプロセスと preload（`preload/`）の土台。窓・OS
 
 ## 構成と起動
 - `@/app/desktop/index.ts` は起動の順番だけを書く（順と理由はそのコメント）。中身は `app/`（環境・コアのプロセス・窓・別ウィンドウ `popouts.ts`・メニュー・終了・子の Electron・セッションと権限・起動の記録）/ `ipc/` / `terminal/` / `notifications/` / `diagnostics/` / `platform/`。埋め込みブラウザ・診断の記録は各機能の `desktop/`（`src/features/browser/CLAUDE.md`・`src/features/diagnostics/CLAUDE.md`）。
-- 機能のメインの部品は `parts.ts` の `DesktopPart`（app が `registerIpc`・`createCoreProcess` に渡す）。
+- メインの部品は `parts.ts` の `DesktopPart`（土台・コアの帯は `foundationPart.ts`、機能は `desktop/index.ts`）。app が `mergeParts` で並べて `registerIpc`・`createCoreProcess`・メニューに渡す（同じまとまりが 2 つなら起動で投げる）。窓は `app/window.ts` の `createAppWindow`、別ウィンドウの種類ごとの違いは `app/popouts.ts` の `POPOUT_KINDS`、全窓への知らせは `broadcast`、ほかのプロセスを止めるのは `app/processes.ts`。
 - OS ごとの処理は `platform/` の口（`hostPlatform`・`desktopPlatform`）に集め、`platform/index.ts` で選ぶ。DB ワーカーのシェルの口だけはワーカーの入口が選ぶ（OS を足すときは両方）。
 - Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`ipc/register.ts` など）。
 - メインはログインシェルの PATH を読まない（読むのはコア）。
@@ -16,8 +16,8 @@ Electron のメインプロセスと preload（`preload/`）の土台。窓・OS
 - 子の Electron はメインプロセスにだけ先に SIGTERM を送る（`app/childApps.ts`。シェルを先に止めると開発版の localStorage が消える）。
 
 ## IPC
-- 取り決めは `@shared/foundation/ipc` の `NATIVE_API`（`src/shared/CLAUDE.md` の「IPC の取り決め」）。登録は `ipc/register.ts` を通す（送り手と引数の zod をそこで確かめ、処理で繰り返さない）。
-- 画面から届いたパスは信じない（解決してから比べる）。足すときは `NATIVE_API` → `IPC_ARGS`（`ipc/args.ts`）→ 処理の順。
+- 取り決めは土台の `FOUNDATION_IPC` と機能の `@shared/<機能>/ipc.ts` を並べた `@/app/shared/ipc.ts` の `NATIVE_API`（`src/shared/CLAUDE.md` の「IPC の取り決め」）。登録は `ipc/register.ts` を通す（送り手と引数の zod をそこで確かめ、処理で繰り返さない）。
+- 画面から届いたパスは信じない（解決してから比べる）。足すときは表 → 引数の形（土台は `ipc/args.ts`、機能は `desktop/ipcArgs.ts`。末尾の `Same` で表と比べる）→ 処理の順。
 
 ## 画面のセッションと権限
 - 子のプロセスは `utilityProcess` で起動する。`ELECTRON_RUN_AS_NODE` の形を足さない（製品版は fuses で切る。`electron-builder.yml`）。

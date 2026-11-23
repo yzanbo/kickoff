@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ipcEntries, type IpcKind } from "@shared/foundation/ipc";
+import { browserArgs } from "@/features/browser/desktop/ipcArgs";
+import { diagnosticsArgs } from "@/features/diagnostics/desktop/ipcArgs";
+import { foundationArgs } from "@/foundation/desktop/ipc/args";
+import { fromApp, IpcRejected, registerIpcHandlers, sendEvent, type IpcArgSchemas, type IpcHandlers, type MainIpc } from "@/foundation/desktop/ipc/register";
 import { createNativeApi, type RendererIpc } from "@/foundation/desktop/preload/nativeApi";
-import { IPC_ARGS } from "./args";
-import { fromApp, IpcRejected, registerIpcHandlers, sendEvent, type IpcHandlers, type MainIpc } from "./register";
+import { NATIVE_API } from "@/app/shared/ipc";
+
+// 全部のまとまりを並べた IPC の表（NATIVE_API）と、土台・機能の引数の形を合わせたものを、登録の土台（register.ts）と preload の作り方で確かめる
+const ALL_ARGS = { ...foundationArgs, ...browserArgs, ...diagnosticsArgs } satisfies IpcArgSchemas;
 
 const APP_URL = "http://127.0.0.1:4318";
 const fromScreen = { senderFrame: { url: `${APP_URL}/#/projects/1` } };
@@ -26,14 +32,14 @@ function registerMain() {
   };
   const calls: { name: string; args: unknown[] }[] = [];
   const warnings: string[] = [];
-  const groups = [...new Set(ipcEntries().map((e) => e.group))];
+  const groups = [...new Set(ipcEntries(NATIVE_API).map((e) => e.group))];
   const handlers = Object.fromEntries(
     groups.map((group) => [
       group,
       new Proxy({}, { get: (_t, method) => (_event: unknown, ...args: unknown[]) => (calls.push({ name: `${group}.${String(method)}`, args }), "ok") }),
     ]),
   ) as unknown as IpcHandlers;
-  registerIpcHandlers(ipc, { schemas: IPC_ARGS, handlers, trusted: fromApp(APP_URL), warn: (m) => warnings.push(m) });
+  registerIpcHandlers(ipc, { table: NATIVE_API, schemas: ALL_ARGS, handlers, trusted: fromApp(APP_URL), warn: (m) => warnings.push(m) });
   return { handled, listened, calls, warnings };
 }
 
@@ -46,8 +52,8 @@ function preloadChannels() {
     on: (channel) => used.event.push(channel),
     off: (channel) => used.off.push(channel),
   };
-  const api = createNativeApi(ipc) as unknown as Record<string, Record<string, (...args: unknown[]) => unknown>>;
-  for (const { group, method, kind } of ipcEntries()) {
+  const api = createNativeApi(ipc, NATIVE_API) as unknown as Record<string, Record<string, (...args: unknown[]) => unknown>>;
+  for (const { group, method, kind } of ipcEntries(NATIVE_API)) {
     const fn = api[group][method];
     if (kind === "event") (fn(() => {}) as () => void)();
     else void fn();
@@ -65,15 +71,15 @@ test("IPC: メインが登録するチャンネルと、preload が使うチャ�
   // 知らせ: メインが送るチャンネル（sendEvent）を、preload が受け取っている。受け取りをやめるときも同じチャンネル
   const emitted: string[] = [];
   const screen = { isDestroyed: () => false, send: (channel: string) => void emitted.push(channel) };
-  for (const { group, method, kind } of ipcEntries()) if (kind === "event") sendEvent(screen, group as never, method as never, ...([] as never));
+  for (const { group, method, kind } of ipcEntries(NATIVE_API)) if (kind === "event") sendEvent(screen, group as never, method as never, ...([] as never));
   assert.deepEqual(sorted(emitted), sorted(preload.event));
   assert.deepEqual(sorted(preload.off), sorted(preload.event));
   // 表のすべての項目が、どれか 1 つに入っている
-  assert.equal(preload.invoke.length + preload.send.length + preload.event.length, ipcEntries().length);
+  assert.equal(preload.invoke.length + preload.send.length + preload.event.length, ipcEntries(NATIVE_API).length);
 });
 
 test("IPC のチャンネル名: 「種類:まとまり.名前」で重ならない。知らせの名前は on… で、ほかは on で始めない", () => {
-  const entries = ipcEntries();
+  const entries = ipcEntries(NATIVE_API);
   assert.equal(new Set(entries.map((e) => e.channel)).size, entries.length);
   for (const { group, method, kind, channel } of entries) {
     assert.equal(channel, `${kind}:${group}.${method}`);
@@ -134,4 +140,11 @@ test("画面への知らせ: 画面がない・閉じていれば送らない", 
   sendEvent(screen(true), "notifications", "onOpenChat", 1, 3);
   sendEvent(undefined, "notifications", "onOpenCi", 1, 4);
   assert.deepEqual(sent, [["event:notifications.onOpenChat", 1, 2]]);
+});
+
+test("IPC の登録: 処理か引数の形のないまとまりがあれば（部品の並べ忘れ）登録のときに投げる", () => {
+  const ipc: MainIpc = { handle: () => {}, on: () => {} };
+  const { diagnostics: _, ...withoutDiagnostics } = ALL_ARGS;
+  const handlers = new Proxy({}, { get: () => new Proxy({}, { get: () => () => "ok" }) }) as unknown as IpcHandlers;
+  assert.throws(() => registerIpcHandlers(ipc, { table: NATIVE_API, schemas: withoutDiagnostics as unknown as IpcArgSchemas, handlers, trusted: () => true }), /invoke:diagnostics\.start: 引数の形か処理がありません/);
 });

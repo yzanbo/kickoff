@@ -2,14 +2,13 @@
 // 決まりは keepAwakeRules.ts。作業中の数とスマホ連携のオン・オフはコアのプロセスの知らせ（awake。変わったときだけ届く）から、
 // 電源はこの Mac の powerMonitor から読む。コアが落ちたら外し、作り直したコアの最初の知らせで付け直す
 import { powerMonitor, powerSaveBlocker } from "electron";
-import type { CoreState } from "@shared/foundation/ipc";
 import type { AwakeNeeds } from "@/foundation/core/host/protocol";
 import type { CoreProcess } from "./coreProcess";
 import { startupLog } from "./startupLog";
 import { keepAwakeReason, type KeepAwakeReason } from "./keepAwakeRules";
 
 /** 眠らせない仕組みを始める（チャットの状態・設定・電源・コアの様子が変わるたびに付け外しする）。止める関数を返す */
-export function startKeepAwake(core: Pick<CoreProcess, "on" | "lastAwake">, onCoreState: (fn: (state: CoreState) => void) => () => void): () => void {
+export function startKeepAwake(core: Pick<CoreProcess, "on" | "lastAwake" | "onState">): () => void {
   let blocker: number | null = null;
   let reason: KeepAwakeReason = null;
   /** コアから届いた最後の値（落ちている間は作業がないので null） */
@@ -29,7 +28,7 @@ export function startKeepAwake(core: Pick<CoreProcess, "on" | "lastAwake">, onCo
     needs = value;
     update();
   });
-  const offState = onCoreState((state) => {
+  const offState = core.onState((state) => {
     if (state === "ready" || state === "unresponsive") return;
     needs = null;
     update();

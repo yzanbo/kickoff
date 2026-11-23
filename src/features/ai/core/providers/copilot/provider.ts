@@ -8,7 +8,8 @@ import { runtimeEnv } from "./config";
 import { sdkClientFactory, type CopilotClientFactory, type CopilotClientLike } from "./sdk";
 import { runCopilotTurn } from "./turn";
 import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
-import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { withTimeout } from "@shared/foundation/time";
+import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
 
 
 export interface CopilotProviderOpts {

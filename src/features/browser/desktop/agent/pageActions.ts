@@ -1,7 +1,7 @@
 // 埋め込みブラウザのページへの操作（WebContents を受ける。待つ・動かす・撮る・キーを押す）
 import { nativeImage, webContents, type WebContents } from "electron";
 import type { BrowserHandOffCapture } from "@shared/foundation/ipc";
-import { sleep, withTimeout } from "@/foundation/desktop/app/wait";
+import { sleep, withTimeout } from "@shared/foundation/time";
 import { isOurWebview } from "@/features/browser/desktop/browser";
 import { flattenOnWhite } from "@/features/browser/desktop/flatten";
 import { browserKeyCode } from "@/features/browser/desktop/keys";

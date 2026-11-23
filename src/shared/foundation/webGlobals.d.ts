@@ -23,5 +23,7 @@ declare global {
   var TextEncoder: { prototype: TextEncoder; new (): TextEncoder };
   interface TextDecoder { decode(input?: Uint8Array, options?: { stream?: boolean }): string }
   var TextDecoder: { prototype: TextDecoder; new (label?: string, options?: { fatal?: boolean }): TextDecoder };
+  function setTimeout(fn: () => void, ms?: number): unknown;
+  function clearTimeout(id: unknown): void;
 }
 export {};

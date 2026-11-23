@@ -3,6 +3,7 @@ import type { CoreProcess } from "./coreProcess";
 import { desktopPlatform, hostPlatform } from "@/foundation/desktop/platform/index";
 import { stopChildElectronApps } from "./childApps";
 import { quitConfirmText } from "./quitConfirm";
+import { sleep } from "@shared/foundation/time";
 
 /** 片付けの上限（この中にコアの終わりも収める） */
 const SHUTDOWN_MS = 5000;
@@ -35,7 +36,7 @@ export function registerShutdown(core: () => CoreProcess | undefined) {
   const closeAndExit = (coreToClose: CoreProcess) => {
     closing = true;
     const deadline = Date.now() + SHUTDOWN_MS;
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, SHUTDOWN_MS));
+    const timeout = sleep(SHUTDOWN_MS);
     const cleanup = async () => {
       await stopChildElectronApps(3000, hostPlatform, desktopPlatform);
       // ターミナルのシェルもコアが止める（core.close）。残りの時間で終わらなければ SIGTERM
@@ -92,9 +93,9 @@ async function exitKeepingNotifications() {
     session.defaultSession.flushStorageData();
     await Promise.race([
       session.defaultSession.cookies.flushStore(),
-      new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+      sleep(1000),
     ]);
-    await new Promise<void>((resolve) => setTimeout(resolve, STORAGE_FLUSH_WAIT_MS));
+    await sleep(STORAGE_FLUSH_WAIT_MS);
   } catch (err) {
     console.error("[main] 終了前の保存の書き出しに失敗しました", err);
   }

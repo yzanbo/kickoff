@@ -11,7 +11,7 @@
     "src/foundation/ui/storage/memoryStorage.ts",
     "src/app/renderer/global.d.ts",
     "vitest.setup.ts",
-    "src/shared/*/events.ts",
+    "src/shared/*/events.ts", "src/shared/*/ipc.ts",
     "src/features/*/ui/openTargets.ts",
     "src/features/*/ui/popoutKinds.ts",
     "src/features/*/ui/windowMessages.ts",

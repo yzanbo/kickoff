@@ -11,7 +11,7 @@
     "src/features/*/ui/**/*.tsx",
     "src/app/renderer/**/*.ts",
     "src/app/renderer/**/*.tsx",
-    "src/shared/*/events.ts",
+    "src/shared/*/events.ts", "src/shared/*/ipc.ts",
     "src/app/shared/settings.ts",
     "src/app/shared/aiToolViews.ts"
   ],

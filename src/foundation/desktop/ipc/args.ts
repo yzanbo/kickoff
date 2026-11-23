@@ -1,27 +1,22 @@
 import path from "node:path";
 import { z } from "zod";
-import { BOOT_MARKS, BOOT_WINDOWS, EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, KNOWN_EXTENSIONS, type KnownExtensionKey } from "@shared/foundation/ipc";
+import type { Same } from "@shared/foundation/contract";
+import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, FOUNDATION_IPC } from "@shared/foundation/ipc";
 import { THEME_CHOICES } from "@shared/foundation/theme/backgrounds";
-import { defineArgSchemas } from "./register";
+import type { ArgSchemasFor, ArgsOfTable, ZodArgsOf } from "./register";
 
-// 画面から届く IPC の引数の形（zod）。取り決め（shared/ipc/contract.ts）の引数と同じ形にし、違えば typecheck で分かる。
+// 画面から届く IPC の引数の形（zod）のうち、土台のまとまりの分（機能の分は機能の desktop/ipcArgs.ts）。取り決め（FOUNDATION_IPC）の引数と同じ形にし、違えば typecheck で分かる。
 // 形だけを確かめる（ファイルがあるか・範囲に丸めるなどは、それぞれの処理で行う）。Electron に依らないので、テストできる
 
-const none = z.tuple([]);
+/** 引数なし（機能の ipcArgs.ts も使う） */
+export const none = z.tuple([]);
 /** 絶対パス */
-const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "絶対パスではありません" });
-/** 埋め込みブラウザ（WebContents）の ID */
-const webContentsId = z.number().int().nonnegative();
-const coordinate = z.int32();
-const inspectPoint = z.object({ x: coordinate, y: coordinate }).optional();
-/** 右・下に並べた開発者ツールの置き場所（画面の CSS の px） */
-const devtoolsBounds = z.object({ x: z.number().finite(), y: z.number().finite(), width: z.number().finite().nonnegative(), height: z.number().finite().nonnegative() });
-const positiveInt = z.number().int().positive();
+export const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "絶対パスではありません" });
+export const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
-const extensionKey = z.enum(Object.keys(KNOWN_EXTENSIONS) as KnownExtensionKey[]);
 
-export const IPC_ARGS = defineArgSchemas({
+export const foundationArgs = {
   dialog: {
     pickFolder: z.tuple([
       z.string().max(200).optional(),
@@ -45,30 +40,6 @@ export const IPC_ARGS = defineArgSchemas({
     openTerminal: z.tuple([absolutePath, terminalId.optional()]),
     browsers: none,
     openBrowser: z.tuple([z.string().optional(), browserId.optional()]),
-  },
-  browser: {
-    copyImageAt: z.tuple([webContentsId, coordinate, coordinate]),
-  },
-  devtools: {
-    openIn: z.tuple([webContentsId, devtoolsBounds, inspectPoint]),
-    place: z.tuple([webContentsId, devtoolsBounds.nullable()]),
-    snapshot: z.tuple([webContentsId]),
-    openWindow: z.tuple([webContentsId, inspectPoint]),
-    close: z.tuple([webContentsId]),
-  },
-  agentBrowser: {
-    register: z.tuple([webContentsId, z.string().min(1).max(200), positiveInt.nullable()]),
-    unregister: z.tuple([webContentsId]),
-    opened: z.tuple([positiveInt, z.string().min(1).max(200).nullable(), z.boolean(), z.string().max(1000).nullable()]),
-    revealed: z.tuple([positiveInt, z.boolean()]),
-    handOffCapture: z.tuple([webContentsId]),
-  },
-  browserExtensions: {
-    list: none,
-    install: z.tuple([extensionKey]),
-    importFromChrome: z.tuple([extensionKey]),
-    addFolder: none,
-    remove: z.tuple([absolutePath]),
   },
   terminal: {
     owner: none,
@@ -97,20 +68,5 @@ export const IPC_ARGS = defineArgSchemas({
     restart: none,
     wait: none,
   },
-  diagnostics: {
-    start: none,
-    folders: none,
-    openRoot: none,
-    overview: none,
-    openLogs: none,
-    reportBoot: z.tuple([
-      z.object({
-        window: z.enum(BOOT_WINDOWS),
-        timeOrigin: z.number(),
-        marks: z.partialRecord(z.enum(BOOT_MARKS), z.number().nullable()),
-        assets: z.object({ count: z.number(), refetched: z.number(), encodedKB: z.number() }).nullable(),
-      }),
-    ]),
-    reportMemory: z.tuple([z.object({ window: z.enum(BOOT_WINDOWS), jsHeapMB: z.number().nullable(), domNodes: z.number() })]),
-  },
-});
+} satisfies ArgSchemasFor<typeof FOUNDATION_IPC>;
+true satisfies Same<ArgsOfTable<typeof FOUNDATION_IPC>, ZodArgsOf<typeof foundationArgs>>;

@@ -1,7 +1,7 @@
 // AI が操作できる埋め込みブラウザのタブの登録簿（画面のブラウザのタブは、webview の準備ができたら自分を登録する。タブのキーとプロジェクト）
 import { webContents, type IpcMainEvent, type WebContents } from "electron";
 import type { BrowserTabInfo, RevealRequest } from "@shared/browser/control";
-import { withTimeout } from "@/foundation/desktop/app/wait";
+import { withTimeout } from "@shared/foundation/time";
 import { isOurWebview } from "@/features/browser/desktop/browser";
 
 export interface Entry {

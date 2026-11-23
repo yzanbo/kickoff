@@ -1,8 +1,7 @@
 // 画面（メインのウィンドウ・別ウィンドウ）への頼みと知らせ。どの画面にタブ・チャット欄があるか分からないので、すべての画面に送る
 import type { WebContents } from "electron";
-import { appWindows } from "@/foundation/desktop/app/popouts";
-import { withTimeout } from "@/foundation/desktop/app/wait";
-import { sendEvent } from "@/foundation/desktop/ipc/register";
+import { appWindows, broadcast } from "@/foundation/desktop/app/popouts";
+import { withTimeout } from "@shared/foundation/time";
 import { gatherReplies } from "@/features/browser/desktop/gatherReplies";
 
 /** 最後の操作から、これだけたったら「AI 操作中」の印を消す */
@@ -35,12 +34,12 @@ export function answerWindow<T>(requestId: number, reply: T) {
 /** AI がこのタブを操作した（すべての画面に「AI 操作中」の印を出させ、しばらく操作がなければ消させる。タブのない画面は何もしない） */
 export function touchTab(tabKey: string) {
   clearTimeout(activity.get(tabKey));
-  for (const win of appWindows()) sendEvent(win.webContents, "agentBrowser", "onActivity", tabKey, true);
+  broadcast("agentBrowser", "onActivity", tabKey, true);
   activity.set(
     tabKey,
     setTimeout(() => {
       activity.delete(tabKey);
-      for (const win of appWindows()) sendEvent(win.webContents, "agentBrowser", "onActivity", tabKey, false);
+      broadcast("agentBrowser", "onActivity", tabKey, false);
     }, ACTIVITY_MS),
   );
 }

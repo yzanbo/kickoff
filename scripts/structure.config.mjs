@@ -141,7 +141,7 @@ export default {
     { name: "renderer-not-node", from: ["renderer"], tests: "exclude", denyModules: ["node:*"], message: "画面は node: を読まない" },
     { name: "renderer-not-electron", from: ["src/foundation/ui/**", "src/app/renderer/**", ...FEATURES.filter((f) => f !== "browser").map((f) => `src/features/${f}/ui/**`)], tests: "exclude", denyModules: ["electron"], message: "画面は electron を読まない（IPC の型は @shared/foundation/ipc）" },
     { name: "browser-ui-electron-types", from: ["src/features/browser/ui/**"], tests: "exclude", typeOnlyAllowed: true, denyModules: ["electron"], message: "埋め込みブラウザの画面が electron から読むのは型だけ" },
-    { name: "preload-narrow", from: ["preload"], tests: "exclude", allow: ["preload", "src/shared/foundation/ipc/**"], allowModules: ["electron"], message: "preload は electron と @shared/foundation/ipc だけを読む" },
+    { name: "preload-narrow", from: ["preload"], tests: "exclude", allow: ["preload", "src/shared/foundation/ipc/**", "src/app/shared/ipc.ts"], allowModules: ["electron"], message: "preload は electron と @shared/foundation/ipc・IPC の表（@/app/shared/ipc）だけを読む" },
     // 共有（純粋な取り決め）
     { name: "shared-foundation", from: SHARED_BASE, allow: SHARED_BASE, message: "shared/foundation は機能の取り決め（shared/<機能>）を読まない" },
     ...FEATURES.map((f) => ({ name: `shared-order:${f}`, from: [`src/shared/${f}/**`], allow: sharedUpTo(f), message: `取り決め（shared/${f}）は、土台と自分と下の機能の取り決めだけを読む` })),
@@ -171,7 +171,7 @@ export default {
     // 機能の testing/（ワーカーの中身を同じプロセスで動かす偽物など）は、テストだけが読む（コアの起動でドライバを読み込まない）
     { name: "feature-testing-reader", from: ["src/features/*/core/**", "src/app/core/**"], tests: "exclude", deny: ["src/features/*/testing/**"], message: "機能の testing/ を読むのはテストだけ（コアから読むと、ワーカーの中身・ドライバまで読み込む）" },
     { name: "app-core", from: ["src/app/core/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/features/*/{core,testing}/**", "src/app/shared/**", "src/app/core/**"], message: "app/core はコアのプロセスのものだけを読む" },
-    { name: "app-desktop", from: ["src/app/desktop/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/desktop/**"], message: "app/desktop はメインのプロセスのものだけを読む" },
+    { name: "app-desktop", from: ["src/app/desktop/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/shared/**", "src/app/desktop/**"], message: "app/desktop はメインのプロセスのものだけを読む" },
     { name: "app-renderer", from: ["src/app/renderer/**"], allow: ["src/shared/**", "src/foundation/ui/**", "src/features/*/ui/**", "src/app/shared/**", "src/app/renderer/**"], message: "app/renderer は画面のものだけを読む" },
     { name: "mobile-shared-only", from: ["mobile/src/**"], allow: ["src/shared/**", "src/app/shared/**", "mobile/**"], message: "スマホが読んでよいのは src/shared と src/app/shared だけ" },
   ],

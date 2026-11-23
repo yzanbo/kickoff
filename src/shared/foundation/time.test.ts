@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { withTimeout } from "./wait";
+import { withTimeout } from "./time";
 
 test("withTimeout: 間に合えば値を返し、間に合わなければ決めた文のエラーにする", async () => {
   vi.useFakeTimers();

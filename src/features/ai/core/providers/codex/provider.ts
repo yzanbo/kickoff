@@ -12,7 +12,8 @@ import { withSession } from "./session";
 import { runCodexTurn } from "./turn";
 import { CodexUpdateCheck } from "./update";
 import { parseCodexVersion } from "@shared/ai/cliUpdates";
-import { ASK_TIMEOUT_MS, withTimeout } from "@/features/ai/core/providers/shared/turnLifecycle";
+import { withTimeout } from "@shared/foundation/time";
+import { ASK_TIMEOUT_MS } from "@/features/ai/core/providers/shared/turnLifecycle";
 import { PROVIDERS } from "@shared/ai/providers";
 
 /** モデルの一覧を読む頁の上限（安全のため） */

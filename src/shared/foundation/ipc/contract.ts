@@ -1,12 +1,8 @@
-// Electron の IPC の取り決め: 画面に出すネイティブ機能（window.kickoff）の一覧。まとまり・名前・種類・引数・戻り値・知らせの形を
-// ここ 1 か所で決め、チャンネル名もここから作る（channelOf）。preload はこの表から window.kickoff を作り（preload/nativeApi.ts）、
-// メインはこの表の型どおりに登録する（main/ipc/register.ts）。名前や形が食い違えば typecheck で分かる。
-// 値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
-import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
-import type { BrowserHandOffCapture } from "./browserHandOff";
-import type { BootReport, DiagnosticsFolders, DiagnosticsOverview, DiagnosticsState, RendererMemory } from "./diagnostics";
+// Electron の IPC の取り決め: 画面に出すネイティブ機能（window.kickoff）の表の部品と、土台のまとまりの表 FOUNDATION_IPC。
+// 機能のまとまりは src/shared/<機能>/ipc.ts の表（IpcTableMap に declare module で型を足す）、全部を並べた NATIVE_API は src/app/shared/ipc.ts。
+// preload はその表から window.kickoff を作り（foundation/desktop/preload/nativeApi.ts）、メインは表の型どおりに登録する（foundation/desktop/ipc/register.ts）。
+// 名前や形が食い違えば typecheck で分かる。値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
 import type { CoreStatus } from "./core";
-import type { DevtoolsBounds } from "./devtools";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
@@ -31,17 +27,19 @@ export interface SendSpec<A extends unknown[] = unknown[]> {
 }
 
 /** メインから画面への知らせ（webContents.send ↔ ipcRenderer.on）。画面の名前は on… */
-interface EventSpec<A extends unknown[] = unknown[]> {
+export interface EventSpec<A extends unknown[] = unknown[]> {
   readonly kind: "event";
   readonly [types]?: { args: A };
 }
 
 type Spec = InvokeSpec | SendSpec | EventSpec;
+/** まとまり → 名前 → 種類の表（土台と機能の ipc.ts が satisfies で書く） */
+export type IpcTable = Record<string, Record<string, Spec>>;
 
 // 型の引数は必ず書く（省くと、表の型（satisfies）から unknown[] と推論されてしまう）
-const invoke = <A extends unknown[], R = void>(): InvokeSpec<A, R> => ({ kind: "invoke" });
-const send = <A extends unknown[]>(): SendSpec<A> => ({ kind: "send" });
-const event = <A extends unknown[]>(): EventSpec<A> => ({ kind: "event" });
+export const invoke = <A extends unknown[], R = void>(): InvokeSpec<A, R> => ({ kind: "invoke" });
+export const send = <A extends unknown[]>(): SendSpec<A> => ({ kind: "send" });
+export const event = <A extends unknown[]>(): EventSpec<A> => ({ kind: "event" });
 
 /** フォルダを選ぶ窓の文（message: 窓の上に出す説明。省けば title / buttonLabel: 決めるボタンの名前 / defaultPath: 初めに開くフォルダ） */
 interface PickFolderOptions {
@@ -50,8 +48,8 @@ interface PickFolderOptions {
   defaultPath?: string;
 }
 
-/** 画面に出すネイティブ機能の一覧（まとまり → 名前）。デスクトップアプリでだけある（スマホのブラウザでは window.kickoff がない） */
-const NATIVE_API = {
+/** 土台が処理を持つネイティブ機能の一覧（まとまり → 名前）。デスクトップアプリでだけある（スマホのブラウザでは window.kickoff がない） */
+export const FOUNDATION_IPC = {
   /** ネイティブのダイアログ */
   dialog: {
     /** フォルダを 1 つ選ぶ（やめたら null）。macOS の窓は title を出さないので、何のために選ぶかは options.message（窓の上の文）と buttonLabel で伝える */
@@ -97,66 +95,6 @@ const NATIVE_API = {
     /** 外部のブラウザ（省くと Chrome）でページを開く（url がない・http(s) でなければ空の新しいタブ） */
     openBrowser: invoke<[url?: string, browser?: ExternalBrowserId]>(),
   },
-  /** 埋め込みブラウザ（<webview>）のページ内検索・右クリックの操作 */
-  browser: {
-    /** ページの中で ⌘F が押された（その WebContents の ID） */
-    onFindRequested: event<[webContentsId: number]>(),
-    /** 右クリックした場所の画像をコピーする。座標は webview が知らせた値 */
-    copyImageAt: invoke<[webContentsId: number, x: number, y: number]>(),
-  },
-  /** 埋め込みブラウザ（<webview>）の開発者ツール。targetId・devtoolsId は埋め込みブラウザの WebContents の ID */
-  devtools: {
-    /** 開発者ツールを、呼んだ画面のウィンドウに重ねた表示（WebContentsView）の中に出す（右・下に並べる。置き場所は bounds） */
-    openIn: invoke<[targetId: number, bounds: DevtoolsBounds, inspect?: { x: number; y: number }]>(),
-    /** 右・下に並べた開発者ツールの置き場所を変える（null は隠す。タブが裏にある・メニューなどが上に重なるとき） */
-    place: invoke<[targetId: number, bounds: DevtoolsBounds | null]>(),
-    /** 右・下に並べた開発者ツールの見た目を撮る（隠している間に代わりに見せる。JPEG の data URL。撮れなければ null） */
-    snapshot: invoke<[targetId: number], string | null>(),
-    /** 開発者ツールを、別のウィンドウで開く */
-    openWindow: invoke<[targetId: number, inspect?: { x: number; y: number }]>(),
-    /** 開発者ツールを閉じる（別のウィンドウも） */
-    close: invoke<[targetId: number]>(),
-    /** 開発者ツールの別のウィンドウを、利用者が閉じた */
-    onWindowClosed: event<[targetId: number]>(),
-  },
-  /**
-   * AI（チャットのエージェント）による埋め込みブラウザの操作（src/features/browser/desktop/agent/）。
-   * 画面のブラウザのタブは webview の準備ができたら登録し、AI が新しいタブを開くときはメインが画面に頼む
-   */
-  agentBrowser: {
-    /** ブラウザのタブの webview を登録する（webContentsId: その WebContents の ID / tabKey: パネルのタブのキー / projectId: どのプロジェクトのパネルか） */
-    register: send<[webContentsId: number, tabKey: string, projectId: number | null]>(),
-    /** タブを閉じた */
-    unregister: send<[webContentsId: number]>(),
-    /** 開く頼み（onOpenRequest）の返事（足したタブのキー・表に出したか。開けなければ null と理由） */
-    opened: send<[requestId: number, tabKey: string | null, revealed: boolean, error: string | null]>(),
-    /**
-     * AI が新しいタブを開く: そのプロジェクトのチャット欄にブラウザのタブを足して opened で返す。reveal なら欄を開いて表に出す
-     * （after は、この作業で前に表に出したタブのキー。あれば、利用者がまだそれを見ているときだけ表に出す）。キーボードのピントは動かさない
-     */
-    onOpenRequest: event<[requestId: number, projectId: number, url: string, reveal: boolean, after: string | null]>(),
-    /** 表に出す頼み（onRevealRequest）の返事（表に出したか） */
-    revealed: send<[requestId: number, shown: boolean]>(),
-    /** AI が作業の初めにタブを使う: そのタブのある欄を開いて表示中にし、revealed で返す（after は onOpenRequest と同じ。キーボードのピントは動かさない） */
-    onRevealRequest: event<[requestId: number, tabKey: string, after: string | null]>(),
-    /** AI がタブを操作している・しばらく操作していない（タブに「AI 操作中」の印を出す・消す） */
-    onActivity: event<[tabKey: string, active: boolean]>(),
-    /** タブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を取る（webContentsId はそのタブの webview） */
-    handOffCapture: invoke<[webContentsId: number], BrowserHandOffCapture>(),
-  },
-  /** 埋め込みブラウザの拡張機能（React DevTools など）。どれも、そのあとの一覧を返す */
-  browserExtensions: {
-    /** 保存してある拡張機能（読み込めなかったものも） */
-    list: invoke<[], BrowserExtensionInfo[]>(),
-    /** よく使う拡張機能を Chrome ウェブストアから取得する（Chrome から写した同じものは消す） */
-    install: invoke<[key: KnownExtensionKey], BrowserExtensionInfo[]>(),
-    /** よく使う拡張機能を、Chrome にインストール済みのものから写す（ウェブストアから取った同じものは消す） */
-    importFromChrome: invoke<[key: KnownExtensionKey], BrowserExtensionInfo[]>(),
-    /** 展開済みの拡張機能のフォルダを選んで読み込む */
-    addFolder: invoke<[], BrowserExtensionInfo[]>(),
-    /** 消す（取得・写したものはフォルダごと消す。フォルダを指定したものは一覧から外すだけで、フォルダは残す） */
-    remove: invoke<[path: string], BrowserExtensionInfo[]>(),
-  },
   /**
    * 内蔵ターミナル（パネルのタブ）。シェルはコアで動き、画面はコアの API（POST /api/terminals・WebSocket）で直接つなぐ。
    * メインプロセスは画面の生き死にだけを見る（このまとまりがあることが、Mac のアプリでターミナルを使える印）
@@ -200,27 +138,13 @@ const NATIVE_API = {
     /** 様子が変わった */
     onState: event<[status: CoreStatus]>(),
   },
-  /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
-  diagnostics: {
-    start: invoke<[]>(),
-    /** 保存先と最近の記録のフォルダ（新しい順） */
-    folders: invoke<[], DiagnosticsFolders>(),
-    /** 保存先を Finder で開く（まだなければ作る） */
-    openRoot: invoke<[]>(),
-    /** いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。設定の「診断」に出す） */
-    overview: invoke<[], DiagnosticsOverview>(),
-    /** ログの場所（~/Library/Logs/<アプリ名>）を Finder で開く（まだなければ作る） */
-    openLogs: invoke<[]>(),
-    /** 記録の様子（記録中・保存中・保存した・失敗） */
-    onState: event<[state: DiagnosticsState]>(),
-    /** 画面の起動の時刻（読み込みごとに 1 回。メインが startup.log・boot.jsonl に書く） */
-    reportBoot: send<[report: BootReport]>(),
-    /** 画面のメモリ（60 秒ごと。メインが metrics.jsonl に書く） */
-    reportMemory: send<[memory: RendererMemory]>(),
-  },
-} satisfies Record<string, Record<string, Spec>>;
+} satisfies IpcTable;
 
-type Api = typeof NATIVE_API;
+type FoundationIpc = typeof FOUNDATION_IPC;
+/** 画面に出すネイティブ機能の型の表（土台のまとまりに、機能の ipc.ts が declare module で足す） */
+export interface IpcTableMap extends FoundationIpc {}
+
+type Api = IpcTableMap;
 
 /** まとまり（window.kickoff の 1 段目） */
 export type IpcGroup = keyof Api;
@@ -254,18 +178,16 @@ export interface IpcEntry {
   channel: string;
 }
 
-const table = NATIVE_API as Record<string, Record<string, Spec>>;
-
 /** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.owner・send:notifications.setBadge・event:notifications.onOpenChat） */
 const channelName = (kind: IpcKind, group: string, method: string) => `${kind}:${group}.${method}`;
 
-/** 表の項目のチャンネル名（ほかで手書きしない） */
-export function channelOf<G extends IpcGroup>(group: G, method: IpcMethod<G>): string {
-  return channelName(table[group][method].kind, group, method);
+/** 知らせ（event）のチャンネル名（ほかで手書きしない） */
+export function eventChannelOf<G extends IpcGroup>(group: G, method: IpcMethodOf<G, "event">): string {
+  return channelName("event", group, method);
 }
 
 /** 表のすべての項目（preload が window.kickoff を作る・メインが登録する・テストで突き合わせる） */
-export function ipcEntries(): IpcEntry[] {
+export function ipcEntries(table: IpcTable): IpcEntry[] {
   return Object.entries(table).flatMap(([group, methods]) =>
     Object.entries(methods).map(([method, { kind }]) => ({ group, method, kind, channel: channelName(kind, group, method) })),
   );

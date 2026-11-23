@@ -2,15 +2,17 @@
 // コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
 import { MessageChannelMain, utilityProcess, type MessagePortMain, type UtilityProcess } from "electron";
 import { errorMessage } from "@shared/foundation/errors";
+import { sleep } from "@shared/foundation/time";
 import type { CoreState } from "@shared/foundation/ipc";
 import type { AwakeNeeds, CoreEvents, CoreInit, CoreMethods, CoreReady, HostEvents, HostMethods, HostToCore, RecoveredReason } from "@/foundation/core/host/protocol";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { RPC_TIMEOUTS, timeoutOf } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
 import { createRpc, type CoreRpc } from "@/foundation/core/host/rpc";
-import type { ProcessRow } from "@/foundation/core/platform/types";
+import type { HostPlatform } from "@/foundation/core/platform/types";
 import { applyChildNote, childrenToStop, type CoreChildren } from "./coreChildren";
 import { restartDelay } from "./coreRestart";
+import { signalProcess, stopProcesses } from "./processes";
 
 /** 応答の見張りの間隔と、知らせるまでの長さ（一時の重さ = 大きな SQL などで知らせない） */
 const PING_EVERY_MS = 5_000;
@@ -37,8 +39,8 @@ interface CoreProcessOptions {
   onState: (state: CoreState) => void;
   /** 起動の記録に書く */
   log: (message: string) => void;
-  /** プロセスの表（落ちたときに止める子を確かめる） */
-  processTable: () => Promise<ReadonlyMap<number, ProcessRow>>;
+  /** プロセスの表と生き死に（落ちたときに止める子を確かめる・止める） */
+  host: Pick<HostPlatform, "processTable" | "alive">;
 }
 
 type Listener<K extends keyof CoreEvents> = (payload: CoreEvents[K]) => void;
@@ -59,22 +61,6 @@ function childPort(child: UtilityProcess): RpcPort {
   };
 }
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-const alive = (pid: number) => {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    return (e as NodeJS.ErrnoException).code === "EPERM";
-  }
-};
-const signal = (pid: number, group: boolean, sig: NodeJS.Signals) => {
-  try {
-    process.kill(group ? -pid : pid, sig);
-  } catch {
-    // もう終わっている
-  }
-};
 
 export class CoreProcess {
   state: CoreState = "starting";
@@ -263,16 +249,14 @@ export class CoreProcess {
     for (const id of [...this.dbWorkers.keys()]) this.killDbWorker(id);
     let targets: { pid: number; group: boolean }[] = [];
     try {
-      targets = childrenToStop(this.children, await this.opts.processTable(), parents);
+      targets = childrenToStop(this.children, await this.opts.host.processTable(), parents);
     } catch (e) {
       this.opts.log(`残った子を調べられません: ${errorMessage(e)}`);
     }
     this.children.clear();
     if (targets.length === 0) return;
     this.opts.log(`残ったコアの子を止めます ${targets.map((t) => t.pid).join(",")}`);
-    for (const t of targets) signal(t.pid, t.group, "SIGTERM");
-    await sleep(CHILD_KILL_WAIT_MS);
-    for (const t of targets) if (alive(t.pid)) signal(t.pid, t.group, "SIGKILL");
+    await stopProcesses(targets, { waitMs: CHILD_KILL_WAIT_MS, killAfter: true }, this.opts.host);
   }
 
   /** 落ちたあと: 子を止め、待ってから作り直す（5 分に 3 回落ちたら止める） */
@@ -318,7 +302,7 @@ export class CoreProcess {
     if (child) {
       child.kill();
       const done = await Promise.race([this.exited.then(() => true), sleep(CORE_KILL_WAIT_MS).then(() => false)]);
-      if (!done && child.pid) signal(child.pid, false, "SIGKILL");
+      if (!done && child.pid) signalProcess({ pid: child.pid, group: false }, "SIGKILL");
       await this.exited;
     }
     await this.stopLeftovers();

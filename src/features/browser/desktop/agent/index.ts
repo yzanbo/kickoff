@@ -6,7 +6,7 @@
 // 作業の初めに使うタブは、画面に頼んで欄を開いて表に出させ（onRevealRequest。キーボードのピントは動かさない）、並び終えるのを待ってから操作する
 
 import type { BrowserControl, HistoryAction, PageSnapshot } from "@shared/browser/control";
-import { sleep } from "@/foundation/desktop/app/wait";
+import { sleep } from "@shared/foundation/time";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { webviewConsoleOf } from "@/features/browser/desktop/webviewConsole";
 import { clickScript, pointScript, scrollScript, SNAPSHOT_SCRIPT, typeScript } from "@/features/browser/desktop/pageScripts";

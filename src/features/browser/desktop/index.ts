@@ -8,11 +8,13 @@ import { hardenWebviews } from "./browser";
 import { browserContextHandlers } from "./contextMenu";
 import { devtoolsHandlers } from "./devtools";
 import { browserExtensionHandlers, loadSavedExtensions } from "./extensions";
+import { browserArgs } from "./ipcArgs";
 import { watchWebviewConsoles } from "./webviewConsole";
 
 export const browserDesktop = defineDesktopPart({
   name: "browser",
   ipc: { browser: browserContextHandlers, devtools: devtoolsHandlers, agentBrowser: agentBrowserHandlers, browserExtensions: browserExtensionHandlers },
+  argSchemas: browserArgs,
   // コアのプロセスから呼ばれる口（RPC の "browser.<名前>"。AI が操作した印 touch はコアからの知らせで受ける）
   hostMethods: prefixedHandlers("browser", agentBrowser, BROWSER_METHODS),
   start() {

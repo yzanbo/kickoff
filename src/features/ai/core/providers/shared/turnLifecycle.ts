@@ -34,13 +34,6 @@ export function createStopper(signal: AbortSignal, opts: { interrupt: () => void
   };
 }
 
-/** 待つ約束に時間の上限を付ける（過ぎたら message の失敗にする） */
-export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(message)), ms)));
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
-
 /**
  * 失敗の文から、結果に添える印（使用枠の上限 usageLimit・通信の切断 network）を作る。hints は CLI が種類で知らせたもの。
  * 使用枠の上限なら通信の切断にはしない（再開の決まりが違うため）
