@@ -8,7 +8,7 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { baseName } from "@/foundation/ui/lib/format";
-import { confirmRemoveWorktree, removeWorktreeAndRefresh } from "./removeWorktreeFlow";
+import { confirmRemoveWorktree, removalNotes, removeWorktreeAndRefresh } from "./removeWorktreeFlow";
 import { useGitStatus } from "@/features/git/ui";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import type { WorkplaceBarProps } from "@/foundation/ui/workplace/workplaceDecor";
@@ -61,20 +61,25 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
   const prNotice = useWorktreePrLookup()(worktree);
   const finish = async () => {
     if (prNotice) return openPrNotice(prNotice);
+    // 消す前に失うもの（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット）を調べて知らせる
+    // Kickoff が組の名前を割り当てたワークツリーならコンテナとデータも、このワークツリーの DB から作った接続があればそれも消すかを一緒に選ぶ
+    const info = await api.worktreeRemovalInfo(projectId, worktree).catch(() => null);
+    const notes = info ? removalNotes(info, { deleteBranch: true }).map((note) => `・${note}`) : [];
     const confirm = {
       title: "ワークツリーを片付けますか？",
-      message: `PR がマージされたので、${worktree} のフォルダと、手元のブランチ「${status?.branch ?? ""}」を消します。そのあと本体を最新にします。このワークツリーで作業していたチャットは、続きを本体で進めます。`,
+      message: [
+        `PR がマージされたので、${worktree} のフォルダと、手元のブランチ「${status?.branch ?? ""}」を消します。そのあと本体を最新にします。このワークツリーで作業していたチャットは、続きを本体で進めます。`,
+        ...(notes.length > 0 ? ["", "注意:", ...notes] : []),
+      ].join("\n"),
       confirmLabel: "片付ける",
       danger: true,
     };
-    // Kickoff が組の名前を割り当てたワークツリーならコンテナとデータも、このワークツリーの DB から作った接続があればそれも消すかを一緒に選ぶ
-    const info = await api.worktreeRemovalInfo(projectId, worktree).catch(() => null);
     const { checks, read } = removalChecks(env, info?.db_connections ?? []);
     const answer = checks.length ? await askConfirm({ ...confirm, checks }) : (await askConfirm(confirm)) && { checked: [] };
     if (!answer) return;
     await action.run("finish", async () => {
-      // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）。そのあと本体を最新にする（手元に変更があってできなければ、そう伝える）
-      const { pullError } = await removeWorktreeAndRefresh(projectId, worktree, { force: false, deleteBranch: true, ...read(answer.checked), pullMain: true });
+      // 片付け = ブランチも消す「消す」（コミットしていない変更は、上で知らせたうえで消すので force で消す）。そのあと本体を最新にする（手元に変更があってできなければ、そう伝える）
+      const { pullError } = await removeWorktreeAndRefresh(projectId, worktree, { force: (info?.changes ?? 0) > 0, deleteBranch: true, ...read(answer.checked), pullMain: true });
       if (pullError) void alert("本体を最新にできませんでした", pullError);
       onFinished();
     });
