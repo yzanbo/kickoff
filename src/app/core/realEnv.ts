@@ -38,7 +38,6 @@ export function realEnv(opts: CoreOptions): CoreEnv {
     terminal: { env: opts.terminalEnv },
     remoteImages: {},
     github: { service: {}, ci: {}, prWatch: { listPullRequests } },
-    worktrees: {},
     // DB ワーカー（Electron のアプリはメインが起動する。渡されなければソースの worker を node ＋ tsx で fork）
     database: { worker: opts.dbWorker ?? (() => forkWorker(devWorkerEntry())), cleanExports: true },
     guard: { sandbox: true, relay: true, self },

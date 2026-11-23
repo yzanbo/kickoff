@@ -11,6 +11,7 @@ import type { GuardApi } from "@/features/guard/core/index";
 import { dockerRuleSource } from "./guardFacts";
 
 export type { DockerService } from "./service";
+export { findComposeFiles } from "./compose";
 
 export interface DockerEnv {
   /** macOS の Docker のエンジンの起こし方 */

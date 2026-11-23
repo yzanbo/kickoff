@@ -1,10 +1,10 @@
-// ワークツリーが実行に足すもの: AI のツール finish_worktree（kickoff_chat の order 90。確かめ・控え・予約は finish.ts の WorktreeFinisher。ここはツールを呼んだチャットを渡すだけ）と、
+// ワークツリーが実行に足すもの: AI のツール finish_worktree（kickoff_chat の order 90。確かめ・予約は aiFinish.ts、消すのは remove.ts。ここはツールを呼んだチャットを渡すだけ）と、
 // 作業場所がポートの帯を持つワークツリーなら開発サーバーの番号 PORT（contributor "worktrees"・order 10）
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import type { TurnContributor } from "@/features/chat/core/index";
 import type { WorktreeEnvService } from "./env/service";
-import type { WorktreeFinisher } from "./finish";
+import type { AiWorktreeFinish } from "./aiFinish";
 
 /** ワークツリーを片付けるツールの使い方（MCP の instructions として AI に渡す） */
 const WORKTREE_INSTRUCTIONS = [
@@ -19,7 +19,7 @@ const WORKTREE_INSTRUCTIONS = [
  * ワークツリーを片付けるツールの組（カードなし。どのチャットにも渡し、本体のチャットはどのワークツリーでも、ワークツリーのチャットは自分のものだけ。
  * 消せないチャットからは理由の文で断る）
  */
-export function worktreeToolGroup(finisher: WorktreeFinisher): AiToolGroup {
+export function worktreeToolGroup(finisher: AiWorktreeFinish): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 90,

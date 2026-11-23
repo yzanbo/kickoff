@@ -9,8 +9,9 @@ import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { CiService } from "./ci";
+import { mergedPullRequestOf, type MergedPullRequest } from "./github";
 import { activeGhToken, githubEnvForGit, listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
-import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "./githubTarget";
+import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes, resolveGitHubTarget } from "./githubTarget";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
 import { ciRoutes } from "./routes/ci";
@@ -30,6 +31,14 @@ export interface GitHubEnv {
   prWatch: Pick<OptionsOf<typeof WorktreePrWatch>, "resolveTarget" | "listPullRequests">;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。省けば gh auth status） */
   accounts?: () => Promise<GitHubAccount[]>;
+  /** ブランチのマージ済みの PR（ワークツリーの後始末の「取り込み済みか」。テストは偽物。省けば gh に聞く） */
+  mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
+}
+
+/** ブランチのマージ済みの PR を gh に聞く（GitHub の remote がない・聞けなければ null） */
+async function askMergedPr(project: Project, branch: string): Promise<MergedPullRequest | null> {
+  const target = await resolveGitHubTarget(project.repo_path, project.github_remote).catch(() => null);
+  return target ? mergedPullRequestOf(project.repo_path, target, branch).catch(() => null) : null;
 }
 
 export { createGitHubStores } from "./db/stores";
@@ -74,7 +83,9 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
     },
   });
   // ワークツリーを消した・戻したら、その PR の知らせ・印を作り直す（GitHub には聞き直さない）
-  deps.worktrees.finisher.afterChange(() => prWatch.recomputeAll());
+  deps.worktrees.onChanged(() => prWatch.recomputeAll());
+  // ワークツリーの後始末の「取り込み済みか」に、マージ済みの PR を足す（PR の最後のコミットが手元の先と同じか祖先なら取り込み済み）
+  deps.worktrees.mergeChecks.register({ mergedPull: env.mergedPr ?? askMergedPr });
   // プロジェクトの GitHub の連携・アーカイブを変えたら、ワークツリーの PR の見張りをそのプロジェクトだけ聞き直す（待たない）
   deps.projects.afterUpdate((project, changed) => {
     if (changed.some((key) => PR_WATCH_KEYS.has(key))) void prWatch.checkProject(project.id);

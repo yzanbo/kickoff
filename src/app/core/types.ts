@@ -20,7 +20,6 @@ import type { ChatEnv } from "@/features/chat/core/index";
 import type { DockerEnv } from "@/features/docker/core/index";
 import type { PortsEnv } from "@/features/ports/core/index";
 import type { GitHubEnv } from "@/features/github/core/index";
-import type { WorktreesEnv } from "@/features/worktrees/core/index";
 import type { RemoteImageServiceOptions } from "@/features/remoteImages/core/service";
 import type { DatabaseEnv } from "@/features/database/core/index";
 import type { WorkerChannel } from "@/features/database/core/client";
@@ -117,7 +116,6 @@ export interface CoreEnv {
   terminal: Omit<TerminalEnv, "shell">;
   remoteImages: Pick<RemoteImageServiceOptions, "fetcher">;
   github: GitHubEnv;
-  worktrees: WorktreesEnv;
   /** 暗号化の口は secretCipher から渡す */
   database: Omit<DatabaseEnv, "secretCipher">;
 

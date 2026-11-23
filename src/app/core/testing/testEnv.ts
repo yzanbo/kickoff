@@ -244,8 +244,8 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider
         },
       },
       accounts: async () => f.githubFake.accounts,
+      mergedPr: async (_project, branch) => f.prFake.merged[branch] ?? null,
     },
-    worktrees: { mergedPr: async (_project, branch) => f.prFake.merged[branch] ?? null },
     // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ）
     database: { worker: inProcessWorker, exportRoot: tempDir(), cleanExports: false },
     guard: { sandbox: false, relay: false },

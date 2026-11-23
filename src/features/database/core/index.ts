@@ -55,8 +55,8 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   deps.guard.addRuleSource(hiddenDbRuleSource((projectId) => stores.dbConnections.list(projectId)));
   // ワークツリーを消したら、その DB から作った接続を、選ばれていれば消し、残すなら結び付きだけ外す
   deps.worktrees.useDbConnections((folder) => stores.dbConnections.ofWorktree(folder).map((conn) => ({ id: conn.id, name: conn.name })));
-  deps.worktrees.finisher.afterRemove((folder, dropConnections) => {
-    if (dropConnections) for (const conn of stores.dbConnections.ofWorktree(folder)) databases.removeConnection(conn.id);
+  deps.worktrees.onRemoved(({ path: folder, drop_db_connections }) => {
+    if (drop_db_connections) for (const conn of stores.dbConnections.ofWorktree(folder)) databases.removeConnection(conn.id);
     else stores.dbConnections.clearWorktree(folder);
   });
   return {

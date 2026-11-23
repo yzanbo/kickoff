@@ -2,9 +2,9 @@
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
+import type { GitWorktree } from "@shared/git/types";
 import { git } from "./git";
-import { changedCount, gitPrefix, hasRef, isBranchName, listRemotes } from "./reads";
+import { gitPrefix, hasRef, isBranchName } from "./reads";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
 import { timed } from "@/foundation/core/system/stallWatch";
@@ -163,29 +163,6 @@ export async function worktreeMoves(oldRepo: string, newRepo: string): Promise<M
   forgetWorktrees(oldRepo);
   forgetWorktrees(newRepo);
   return moves;
-}
-
-/** ワークツリーを消す前の確かめ（コミットしていない変更の数・どのリモートにもないコミットの数・プッシュしたことがあるか） */
-export async function worktreeRemovalInfo(repo: string, target: string): Promise<Omit<WorktreeRemovalInfo, "db_connections">> {
-  const worktree = (await listWorktrees(repo, { fresh: true })).find((w) => w.path === target);
-  if (!worktree) throw new NotFound("ワークツリーが見つかりません");
-  // ワークツリーは一番上ごと消えるので、変更も一番上から数える
-  const changes = worktree.prunable ? 0 : await changedCount(worktree.root).catch(() => 0);
-  const hasRemote = (await listRemotes(repo).catch(() => [])).length > 0;
-  const branch = worktree.branch;
-  const ref = `refs/heads/${branch}`;
-  const unpushed = branch && hasRemote ? await git(repo).maybe(["rev-list", "--count", ref, "--not", "--remotes"]) : "0";
-  // --branches と組む --exclude は refs/heads/ を付けない名前で書く
-  const onlyHere = branch ? await git(repo).maybe(["rev-list", "--count", ref, "--not", `--exclude=${branch}`, "--branches", "--remotes"]) : "0";
-  const upstream = branch ? await git(repo).maybe(["rev-parse", "--abbrev-ref", `${branch}@{upstream}`]) : "";
-  return {
-    branch,
-    changes,
-    unpushed: Number(unpushed.trim()) || 0,
-    only_here: Number(onlyHere.trim()) || 0,
-    pushed: Boolean(upstream.trim()),
-    has_remote: hasRemote,
-  };
 }
 
 /**

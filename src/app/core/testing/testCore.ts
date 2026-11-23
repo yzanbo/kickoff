@@ -87,7 +87,7 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
   const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
   // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）
   const parts = { store: withFeatureStores(chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)), bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
-  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
+  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.aiFinish, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
   return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, notifications, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 

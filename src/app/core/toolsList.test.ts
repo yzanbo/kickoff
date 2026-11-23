@@ -25,7 +25,7 @@ import type { TerminalControl } from "@/features/terminal/core/control";
 import { UserViewRegistry } from "@/features/userView/core/registry";
 import { userViewToolGroup } from "@/features/userView/core/tools";
 import { visualToolGroup } from "@/features/visuals/core/tools";
-import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
+import type { AiWorktreeFinish } from "@/features/worktrees/core/index";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
@@ -91,7 +91,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
     sandboxDiagnostics: { processes: async () => [], denials: async () => [] },
     ...options,
   });
-  const finisher = unused<WorktreeFinisher>("worktreeFinisher");
+  const finisher = unused<AiWorktreeFinish>("worktreeFinisher");
   const { store, runner } = core;
   const noteTools = { store, notes: unused<NoteService>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
   core.runner.provide({
