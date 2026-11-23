@@ -8,8 +8,8 @@ export interface ServerStatus extends HostApiVersion {
   /** 待ち受けているアドレス（127.0.0.1 ならこの Mac からだけ） */
   host: string;
   port: number;
-  /** スマホ連携がオンか（設定の remote_enabled。スマホからつなげるか） */
-  remote_enabled: boolean;
+  /** スマホ連携がオンか（設定の mobile_enabled。スマホからつなげるか） */
+  mobile_enabled: boolean;
   /** 作業中のチャットの数 */
   agents: { running: number };
   /** DB を作ったときに決めた ID（画面が覚えている ID 入りの表示の状態を、DB を作り直したら捨てる目印）。スマホ連携の本体の ID も兼ねる */

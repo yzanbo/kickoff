@@ -8,10 +8,10 @@ export function deviceAuth(store: { devices: DeviceStore; settings: Kernel["sett
     authenticate: (token) => {
       const device = store.devices.byToken(token);
       if (!device) return null;
-      if (!store.settings.get().remote_enabled) return "mobile_off";
+      if (!store.settings.get().mobile_enabled) return "mobile_disabled";
       return { kind: "device", deviceId: device.id, readOnly: device.access !== "full" };
     },
     touched: (deviceId) => store.devices.touch(deviceId),
-    alive: (deviceId) => store.settings.get().remote_enabled && store.devices.get(deviceId) !== null,
+    alive: (deviceId) => store.settings.get().mobile_enabled && store.devices.get(deviceId) !== null,
   };
 }

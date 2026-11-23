@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono, MiddlewareHandler } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, MOBILE_OFF_MESSAGE } from "@shared/devices/types";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED, MOBILE_DISABLED_MESSAGE } from "@shared/foundation/api/deviceRefusals";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { ttlCache, type TtlCache } from "@/foundation/core/system/ttlCache";
 import { setCaller, type Caller } from "./caller";
@@ -35,8 +35,8 @@ export function tokenMatches(expected: string, given: string | undefined | null)
 
 /** 端末のトークンを呼び主にする（devices が実装して組み立てが渡す） */
 export interface DeviceAuth {
-  /** トークンが端末のものなら呼び主。スマホ連携がオフなら "mobile_off"。知らないトークンなら null */
-  authenticate(token: string): Extract<Caller, { kind: "device" }> | "mobile_off" | null;
+  /** トークンが端末のものなら呼び主。スマホ連携がオフなら "mobile_disabled"。知らないトークンなら null */
+  authenticate(token: string): Extract<Caller, { kind: "device" }> | "mobile_disabled" | null;
   /** 使った時刻を書く */
   touched(deviceId: number): void;
   /** この端末がまだ使えるか（取り消した・スマホ連携をオフにしたら false。SSE を切る判定） */
@@ -56,10 +56,10 @@ export function authMiddleware(token: string, deviceAuth: DeviceAuth | undefined
     }
     const device = given.map((t) => deviceAuth?.authenticate(t) ?? null).find((d) => d !== null);
     if (!device) return c.json({ error: "unauthorized" }, 401);
-    if (device === "mobile_off") return c.json({ error: MOBILE_OFF_MESSAGE, code: MOBILE_OFF }, 403);
+    if (device === "mobile_disabled") return c.json({ error: MOBILE_DISABLED_MESSAGE, code: MOBILE_DISABLED }, 403);
     deviceAuth?.touched(device.deviceId);
     setCaller(c, device);
-    const use = deviceMayUse(c.req.method, c.req.path, device.readOnly ? "read" : "full");
+    const use = deviceMayUse(c.req.method, c.req.path, device.readOnly);
     if (use === "forbidden") return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
     if (use === "read_only") return c.json({ error: "この端末は「見るだけ」です（Mac の Kickoff の設定の「スマホ連携」で変えられます）", code: DEVICE_READ_ONLY }, 403);
     return next();

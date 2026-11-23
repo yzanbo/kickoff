@@ -29,12 +29,12 @@ export interface Device {
   access: DeviceAccess;
 }
 
-/** 端末のできることを変える本文（PATCH /api/devices/:id。この Mac の画面だけ） */
+/** 端末のできることを変える本文（PATCH /api/devices/:deviceId。この Mac の画面だけ） */
 export interface DeviceUpdateBody {
   access: DeviceAccess;
 }
 
-/** つなぐときの本文（POST /api/pairing/requests/:id/approve。省けば full） */
+/** つなぐときの本文（POST /api/pairing/requests/:requestId/approve。省けば full） */
 export interface PairingApproveBody {
   access?: DeviceAccess;
 }
@@ -42,11 +42,10 @@ export interface PairingApproveBody {
 /** プッシュの宛先（端末の表にだけ置く。Android のアプリは Expo Push、iPhone の Web は Web Push） */
 export type DevicePush = { kind: "expo"; token: string } | { kind: "web"; endpoint: string; keys: { p256dh: string; auth: string } };
 
-/** 端末に開いていない口を端末から呼んだときの 403 の印（スマホの画面が「Mac で操作してください」と出す） */
-export const DEVICE_FORBIDDEN = "device_forbidden";
-
-/** 「見るだけ」の端末が、見る以外の口を呼んだときの 403 の印 */
-export const DEVICE_READ_ONLY = "device_read_only";
+/** 端末が自分のプッシュの宛先を登録する・外す本文（PUT /api/devices/self/push。null で外す） */
+export interface DevicePushBody {
+  push: DevicePush | null;
+}
 
 /** ペアリングの使い捨ての番号の有効な時間（5 分） */
 export const PAIRING_CODE_TTL_MS = 5 * 60_000;
@@ -85,7 +84,12 @@ export interface PairingClaimResult {
   host_id: string;
 }
 
-/** 頼みの結果（POST /pairing/requests/:id。approved のときだけ端末のトークンを 1 回だけ渡す） */
+/** 結果を聞く本文（POST /pairing/requests/:requestId。頼んだときに受け取った鍵） */
+export interface PairingPollBody {
+  secret: string;
+}
+
+/** 頼みの結果（POST /pairing/requests/:requestId。approved のときだけ端末のトークンを 1 回だけ渡す） */
 export type PairingPollResult =
   | { status: "pending" }
   | { status: "approved"; token: string; device_id: number; host_id: string }
@@ -105,8 +109,3 @@ export interface ViewingBody {
 
 /** 見ているものの知らせを覚えておく時間（画面は前に出している間、これより短い間隔で知らせ直す） */
 export const VIEWING_TTL_MS = 90_000;
-
-/** スマホ連携がオフのときに、端末からの頼み・ペアリングを断る印 */
-export const MOBILE_OFF = "mobile_off";
-/** スマホ連携がオフのときの断りの文 */
-export const MOBILE_OFF_MESSAGE = "スマホ連携がオフです。Mac の Kickoff の設定「スマホ連携」でオンにしてください";

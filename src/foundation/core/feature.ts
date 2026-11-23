@@ -39,7 +39,7 @@ export interface ServeHooks {
   /** 端末の SSE に届けてよい知らせか（機能の SSE の表の access。この Mac の画面への頼み・閉じた口の知らせは届けない） */
   deviceMaySee(event: BusEvent): boolean;
   /** /api/status の機能の分（作業中の数・スマホ連携のオン） */
-  status(): Pick<ServerStatus, "agents" | "remote_enabled">;
+  status(): Pick<ServerStatus, "agents" | "mobile_enabled">;
   /** AI の操作ツールの MCP の口（/mcp/<名前>。実行ごとの鍵で受ける） */
   mcp?: { handle(server: string, req: Request): Response | Promise<Response> };
 }

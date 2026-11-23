@@ -40,7 +40,7 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
 
 test("見ているもの: スマホ（端末）は知らせられず、端末から送った指示の様子は覚えない", async () => {
   const { app, call, store, project, runner, userViews } = setup();
-  store.settings.update({ remote_enabled: true });
+  store.settings.update({ mobile_enabled: true });
   store.devices.create("Pixel", DEVICE_TOKEN);
   const put = await app.request("/api/user-view", { method: "PUT", headers: DEVICE, body: JSON.stringify({ window_id: "phone", view: viewOf(project.id, "x.ts"), chat_ids: [], focused: true }) });
   assert.equal(put.status, 403);

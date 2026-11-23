@@ -4,7 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { TailscaleStatus } from "@shared/devices/tailscale";
-import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/devices/types";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
+import type { Device, PairingClaimResult, PairingPollResult, PairingState } from "@shared/devices/types";
 import { deviceRoutes, LEGACY_DEVICE_ROUTES, LEGACY_READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
 import { matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";
@@ -16,7 +17,7 @@ const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}` };
 /** スマホ連携をオンにした準備（オフの既定では、端末からの頼みもペアリングも断る） */
 function mobileSetup() {
   const ctx = setup();
-  ctx.store.settings.update({ remote_enabled: true });
+  ctx.store.settings.update({ mobile_enabled: true });
   return ctx;
 }
 
@@ -289,18 +290,18 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
   const sse = await app.request("/api/events", { headers: DEVICE });
   const reader = sse.body!.getReader();
   await reader.read(); // hello
-  await call("PUT", "/api/settings", { remote_enabled: false });
+  await call("PUT", "/api/settings", { mobile_enabled: false });
   const end = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
   assert.notEqual(end, "timeout");
   if (end !== "timeout") assert.equal(end.done, true);
   const off = await app.request("/api/projects", { headers: DEVICE });
   assert.equal(off.status, 403);
-  assert.equal(((await off.json()) as { code: string }).code, MOBILE_OFF);
+  assert.equal(((await off.json()) as { code: string }).code, MOBILE_DISABLED);
   const start = await call("POST", "/api/pairing");
   assert.equal(start.status, 409);
-  assert.equal((start.body as { code: string }).code, MOBILE_OFF);
+  assert.equal((start.body as { code: string }).code, MOBILE_DISABLED);
   assert.equal(store.devices.get(device.id)?.name, "Pixel 8");
-  await call("PUT", "/api/settings", { remote_enabled: true });
+  await call("PUT", "/api/settings", { mobile_enabled: true });
   assert.equal((await app.request("/api/projects", { headers: DEVICE })).status, 200);
 });
 

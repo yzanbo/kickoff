@@ -115,7 +115,7 @@ export function terminalRoutes({ projectParam, store, terminals, bus }: Terminal
         // 打てるかは送るたびに読み直す（つないだあとで「見るだけ」に変えた・取り消した端末の入力は捨てる）
         const canType = () => {
           if (caller.kind === "host") return true;
-          return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().remote_enabled;
+          return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().mobile_enabled;
         };
         let unsubscribe = () => {};
         let closed = false;
@@ -124,7 +124,7 @@ export function terminalRoutes({ projectParam, store, terminals, bus }: Terminal
             // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
             if (caller.kind === "device") {
               unsubscribe = bus.subscribe((e) => {
-                if ((e.type === "devices" && !store.devices.get(caller.deviceId)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
+                if ((e.type === "devices" && !store.devices.get(caller.deviceId)) || (e.type === "settings" && !e.settings.mobile_enabled)) ws.close();
               });
             }
             const send = (message: TerminalServerMessage) => ws.send(JSON.stringify(message));

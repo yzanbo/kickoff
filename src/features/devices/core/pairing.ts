@@ -1,7 +1,8 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
 // 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は devices の店に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { MOBILE_OFF, MOBILE_OFF_MESSAGE, PAIRING_CODE_TTL_MS, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/devices/types";
+import { PAIRING_CODE_TTL_MS, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/devices/types";
+import { MOBILE_DISABLED, MOBILE_DISABLED_MESSAGE } from "@shared/foundation/api/deviceRefusals";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { Kernel } from "@/foundation/core/kernel";
 import type { DeviceStore } from "./db/devices";
@@ -149,7 +150,7 @@ export class PairingCenter {
 
   /** スマホ連携がオンか（オフなら 409。端末の登録を受け付けない） */
   private requireMobile(): void {
-    if (!this.settings.get().remote_enabled) throw new Conflict(MOBILE_OFF_MESSAGE, MOBILE_OFF);
+    if (!this.settings.get().mobile_enabled) throw new Conflict(MOBILE_DISABLED_MESSAGE, MOBILE_DISABLED);
   }
 
   private pendingRequest(id: string): PendingRequest {

@@ -23,7 +23,7 @@ export function MobileSettings() {
   const switches = useMobileSwitches();
   const tailscale = useQuery("MobileSettings.tailscale", () => api.tailscaleStatus());
   if (!settings) return null;
-  const off = !settings.remote_enabled;
+  const off = !settings.mobile_enabled;
   const saveUrl = (url: string | null) =>
     void saveSettings({ mobile_url: url }).catch((e: unknown) => pairing.action.setError(errorMessage(e)));
   return (

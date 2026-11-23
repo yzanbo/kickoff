@@ -116,7 +116,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
     hooks: {
       deviceAuth: devices.api.auth,
       deviceMaySee: (event) => deviceTypes.has(event.type),
-      status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
+      status: () => ({ mobile_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: chat.api.mcpTools,
     },
     apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, notifications: notifications.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },

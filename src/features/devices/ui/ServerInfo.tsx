@@ -15,7 +15,7 @@ export function ServerInfoRows({ server }: { server: ServerStatus }) {
       <dt>エージェント</dt>
       <dd>実行中 {server.agents.running}</dd>
       <dt>スマホ連携</dt>
-      <dd>{server.remote_enabled ? "オン（つないだスマホから使えます）" : "オフ（スマホからはつなげません）"}</dd>
+      <dd>{server.mobile_enabled ? "オン（つないだスマホから使えます）" : "オフ（スマホからはつなげません）"}</dd>
     </>
   );
 }

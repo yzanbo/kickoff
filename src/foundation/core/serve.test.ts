@@ -27,7 +27,7 @@ function fixture() {
     stop: async () => void order.push(`stop:${name}`),
   });
   const features = [feature("trash"), feature("chat", "first"), feature("docker"), feature("notifications", "first"), feature("voice")];
-  return { k, order, assembled: { features, hooks: { deviceMaySee: () => false, status: () => ({ remote_enabled: false, agents: { running: 0 } }) } } };
+  return { k, order, assembled: { features, hooks: { deviceMaySee: () => false, status: () => ({ mobile_enabled: false, agents: { running: 0 } }) } } };
 }
 
 test("serveCore: 待ち受けたら作った順に start、close は先に止める機能 → 流れ続けている外部コマンド → 残りを作った順の逆 → DB", async () => {

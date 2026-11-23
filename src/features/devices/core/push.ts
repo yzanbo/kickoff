@@ -2,7 +2,7 @@
 // （Expo の「アクセストークン必須」は使わない。本体ごとに秘密を配ることになるため）。
 // 文は短く（チャット名と状態）、会話の中身は載せない（Expo と Google のサーバーを通るため）。押したら本体の ID とチャットの ID で開く
 import type { DevicePush } from "@shared/devices/types";
-import type { PushMessage, PushResult, PushSender } from "@/features/notifications/core/center";
+import type { PushMessage, PushResult, PushSender } from "@/features/notifications/core/index";
 
 /** Expo Push の送り先 */
 export const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";

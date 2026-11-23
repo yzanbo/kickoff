@@ -28,7 +28,7 @@ function useOnBattery(): boolean {
 }
 
 /**
- * 設定の「スマホ連携」のいちばん上の 2 つ: スマホからつなぐ（設定の remote_enabled）とログイン時に起動（Mac のアプリだけ。IPC の loginItem）。
+ * 設定の「スマホ連携」のいちばん上の 2 つ: スマホからつなぐ（設定の mobile_enabled）とログイン時に起動（Mac のアプリだけ。IPC の loginItem）。
  * スマホからつなぐをオンにしたとき、ログイン時に起動がオフなら、あわせてオンにするかを聞く（提案だけで、勝手にはオンにしない）
  */
 export function useMobileSwitches() {
@@ -44,7 +44,7 @@ export function useMobileSwitches() {
   const setLogin = (open: boolean) => action.run("login", async () => setLoginItem((await window.kickoff?.loginItem.set(open)) ?? null));
 
   const setMobile = async (on: boolean) => {
-    const ok = await action.run("mobile", () => saveSettings({ remote_enabled: on }));
+    const ok = await action.run("mobile", () => saveSettings({ mobile_enabled: on }));
     if (!ok || !on || !loginItem?.available || loginItem.openAtLogin) return;
     const also = await confirm({
       title: "ログイン時に Kickoff を起動しますか？",
@@ -54,5 +54,5 @@ export function useMobileSwitches() {
     if (also) await setLogin(true);
   };
 
-  return { mobileEnabled: settings?.remote_enabled ?? false, loginItem, onBattery, action, setMobile, setLogin };
+  return { mobileEnabled: settings?.mobile_enabled ?? false, loginItem, onBattery, action, setMobile, setLogin };
 }

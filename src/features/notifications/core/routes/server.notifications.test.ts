@@ -23,7 +23,7 @@ const approval = (chatId: number, projectId: number, patch: Partial<Approval> = 
 function withChat() {
   const ctx = setup();
   // 端末から見ているものを知らせるテストのため、スマホ連携をオンにする
-  ctx.store.settings.update({ remote_enabled: true });
+  ctx.store.settings.update({ mobile_enabled: true });
   const chat = ctx.store.chats.create({ project_id: ctx.project.id, provider: "claude", title: "調査", status: "running" });
   // 1 回の実行が終わった（殻の onTurnEnded が通知に渡すのと同じ口）
   const finish = (status: "completed" | "failed" = "completed") => {

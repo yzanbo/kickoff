@@ -5,7 +5,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { deviceAuth } from "./auth";
 import { createDeviceStore, type DeviceStore } from "./db/devices";
 import { PairingCenter } from "./pairing";
-import { deviceRoutes, pairingClaimRoutes } from "./routes/devices";
+import { deviceRoutes } from "./routes/devices";
 
 export interface DevicesEnv {
   /** tailscale のコマンドの場所（入っていなければ null。設定の Tailscale Serve の案内） */
@@ -33,10 +33,7 @@ export function createDevices(k: Kernel, env: DevicesEnv): CoreFeature<DevicesAp
   const listen = k.paths.port ? { host: k.paths.host, port: k.paths.port } : undefined;
   return {
     name: "devices",
-    api: { store: devices, auth: deviceAuth({ devices, settings: k.settings }), mobileEnabled: () => k.settings.get().remote_enabled, pairing },
-    routes: [
-      { access: "public", legacy: (app) => pairingClaimRoutes(app, { pairing }) },
-      { legacy: (app) => deviceRoutes(app, { pairing, devices, bus: k.bus, tailscaleCli: env.tailscaleCli, listen }) },
-    ],
+    api: { store: devices, auth: deviceAuth({ devices, settings: k.settings }), mobileEnabled: () => k.settings.get().mobile_enabled, pairing },
+    routes: [deviceRoutes({ pairing, devices, bus: k.bus, tailscaleCli: env.tailscaleCli, listen })],
   };
 }

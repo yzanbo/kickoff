@@ -5,6 +5,7 @@ import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { ProjectStore } from "@/features/projects/core/index";
 import type { ChatStatus } from "@shared/chat/types";
 import { NotificationCenter, type DesktopNotify, type PushSender, type PushTargets } from "./center";
+export type { PushMessage, PushResult, PushSender } from "./center";
 import { notifyToolGroup } from "./tools";
 import { viewingRoutes } from "./routes/viewing";
 import { ViewingRegistry } from "./viewing";
