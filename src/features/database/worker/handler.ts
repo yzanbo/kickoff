@@ -151,6 +151,9 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
   };
   /** 流している頼み（id → 使っている接続。止めるときに使う） */
   const running = new Map<number, DbDriver>();
+  /** 受けてまだ終わっていない頼みの id と、順番を待つ間に止めた頼みの id（順番が来ても流さない） */
+  const pending = new Set<number>();
+  const cancelled = new Set<number>();
 
   /** 名前の接続を返す（なければ開く。つなぐ先が変わっていれば、トランザクションの途中でなければ開き直す） */
   const sessionOf = async (name: string, target: DbTarget): Promise<DbDriver> => {
@@ -193,6 +196,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
   /** 接続を使う頼み（流している間は止められるよう覚える） */
   const use = <T>(id: number, name: string, target: DbTarget, fn: (d: DbDriver) => Promise<T>) =>
     serial(name, async () => {
+      if (cancelled.delete(id)) throw new Error("止めました");
       const driver = await sessionOf(name, target);
       running.set(id, driver);
       return fn(driver);
@@ -270,6 +274,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
   return {
     closeIdle,
     async handle(req: WorkerRequest): Promise<WorkerResponse> {
+      pending.add(req.id);
       try {
         const result = await (handlers[req.method] as (p: unknown, id: number) => Promise<unknown>)(req.params, req.id);
         return { id: req.id, ok: true, result };
@@ -277,11 +282,15 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
         return { id: req.id, ok: false, error: errorMessage(e) };
       } finally {
         running.delete(req.id);
+        pending.delete(req.id);
+        cancelled.delete(req.id);
       }
     },
-    /** 流している頼みを止める（DB に止めるよう頼む。止められない種類は何もしない） */
+    /** 流している頼みを止める（DB に止めるよう頼む。止められない種類は何もしない）。順番を待っている頼みは、順番が来ても流さない */
     async cancel(id: number) {
-      await running.get(id)?.cancel();
+      const driver = running.get(id);
+      if (driver) await driver.cancel();
+      else if (pending.has(id)) cancelled.add(id);
     },
     closeAll,
   };

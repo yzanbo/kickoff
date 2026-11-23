@@ -109,3 +109,25 @@ test("DB ワーカー: 読み取り専用の SQLite は ATTACH を DB の側で�
   assert.ok((await query("ro", "SELECT a FROM t", true)).ok);
   assert.ok((await query("rw", `ATTACH DATABASE '${other}' AS other`, false)).ok);
 });
+
+test("DB ワーカー: 順番を待つ頼みを止めたら、前の頼みが終わって順番が来ても流さずに失敗する", async (t) => {
+  const handler = createWorkerHandler();
+  t.onTestFinished(() => handler.closeAll());
+  const target = sqliteTarget();
+  const query = (id: number, sql: string) => handler.handle({ id, method: "query", params: { session: "s", target, sql, max_rows: 10 } } as WorkerRequest);
+  // まだない接続に 2 つ頼む（2 つ目は 1 つ目が接続を開いて流し終わるのを待つ）
+  const first = query(1, "select a from t");
+  const second = query(2, "insert into t values (2)");
+  await handler.cancel(2);
+  assert.ok((await first).ok);
+  const stopped = await second;
+  assert.equal(stopped.ok, false);
+  assert.match(stopped.ok ? "" : stopped.error, /止めました/);
+  // 書く文は流れていない。止めたあとの頼みは流れる（止めた印を残さない）
+  const rows = await query(3, "select count(*) as n from t");
+  assert.ok(rows.ok);
+  assert.deepEqual((rows.result as { rows: unknown[][] }).rows, [[1]]);
+  // 終わった頼みを止めても、同じ id の次の頼みには残らない
+  await handler.cancel(3);
+  assert.ok((await query(3, "select 1")).ok);
+});
