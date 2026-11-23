@@ -298,14 +298,10 @@ test("DB の接続: 準備のコマンド（確かめるまで流さない・流
   assert.equal(refused.body.code, "db_prep_unconfirmed");
   assert.equal(((await call("POST", `${one}/prep/confirm`)).body as DbConnection).prep_confirmed, true);
 
+  const prepState = async (url = one) => (await call("GET", `${url}/prepare`)).body as DbPrepState | null;
   const waitDone = async () => {
-    let state: DbPrepState | null = null;
-    for (let i = 0; i < 200; i++) {
-      state = (await call("GET", `${one}/prepare`)).body as DbPrepState | null;
-      if (state && !state.running) break;
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    return state!;
+    await until(async () => (await prepState())?.running === false, 10_000);
+    return (await prepState())!;
   };
   assert.equal((await call("POST", `${one}/prepare`)).status, 202);
   const done = await waitDone();
@@ -361,7 +357,7 @@ test("DB の接続: 準備のコマンド（確かめるまで流さない・流
   const other = (await call("POST", base, { ...sqliteBody({ name: "止めるとき" }), prep: { ...prep, cleanup: [`touch ${dir}/closed`] } })).body as DbConnection;
   await call("POST", `${base}/${other.id}/prep/confirm`);
   await call("POST", `${base}/${other.id}/prepare`);
-  for (let i = 0; i < 200 && ((await call("GET", `${base}/${other.id}/prepare`)).body as DbPrepState | null)?.running !== false; i++) await new Promise((r) => setTimeout(r, 50));
+  await until(async () => (await prepState(`${base}/${other.id}`))?.running === false, 10_000);
   await close();
   assert.ok(fs.existsSync(path.join(dir, "closed")));
 });
