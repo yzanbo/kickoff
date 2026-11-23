@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { formatClock, formatDayTime, formatDuration, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatReset, relativeTime, resetDateFormats, resetInShort, ZONE_CHECK_MS } from "./time";
+import { formatClock, formatDayTime, formatDuration, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatReset, relativeTime, resetDateFormats, resetInShort, ZONE_CHECK_MS, elapsedBetween } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -171,4 +171,12 @@ test("時刻の整形の作り置き: 時間帯が変わったら作り直し、
   const around = (iso: string) => Array.from({ length: 48 }, (_, i) => new Date(Date.parse(iso) + (i - 24) * 30 * 60_000));
   assertSameAsToLocale([...around("2026-03-08T07:00:00Z"), ...around("2026-11-01T06:00:00Z")]);
   assert.equal(formatClock("2026-03-08T07:30:00Z"), "03:30");
+});
+
+test("elapsedBetween: 始まりから終わり（なければ今）まで。始まりがない・おかしい・負なら null", () => {
+  assert.equal(elapsedBetween("2026-01-01T00:00:00Z", "2026-01-01T00:01:30Z"), 90_000);
+  assert.equal(elapsedBetween("2026-01-01T00:00:00Z", null, Date.parse("2026-01-01T00:00:10Z")), 10_000);
+  assert.equal(elapsedBetween(null, "2026-01-01T00:00:00Z"), null);
+  assert.equal(elapsedBetween("x", null), null);
+  assert.equal(elapsedBetween("2026-01-01T00:01:00Z", "2026-01-01T00:00:00Z"), null);
 });

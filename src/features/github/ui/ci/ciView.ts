@@ -1,6 +1,7 @@
 // CI のタブの純粋な部分（開いている実行の読み書き・自動で取り直すか・開くジョブとステップ・「AI に渡す」の札の中身と一言）
 import type { GitHubLink } from "@shared/chat/types";
 import type { CiFailedLog, CiJob, CiRun, CiRunList } from "@shared/github/ciTypes";
+import { fenceFor } from "@shared/foundation/markdown/fence";
 
 /** 開いている実行（ciSelected の「実行の ID」か「実行の ID:ジョブの ID」） */
 export interface CiSelection {
@@ -36,12 +37,6 @@ export function ciLinkOf(run: CiRun, repo: string): GitHubLink | undefined {
 
 /** 札のファイル名（ci-CI-12-failed.md。ファイル名に使えない文字は - に） */
 export const ciCaptureName = (run: Pick<CiRun, "workflow" | "number">) => `ci-${run.workflow.replace(/[^\p{L}\p{N}_.-]+/gu, "-")}-${run.number}-failed.md`;
-
-/** 中身に含まれるいちばん長い ` の並びより長い囲み（ログに ``` があっても囲みが切れないように） */
-function fenceFor(text: string): string {
-  const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map((m) => m[0].length));
-  return "`".repeat(Math.max(3, longest + 1));
-}
 
 /** 札の中身（実行の様子と、落ちたステップのログ。gh run view --log-failed の範囲） */
 export function ciFailedDocument(log: CiFailedLog): string {

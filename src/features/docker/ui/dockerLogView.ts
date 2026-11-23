@@ -1,6 +1,7 @@
 // Docker のログの画面の純粋な関数: 行の並べ方（時刻の順に混ぜる・上限）・札・エラーと警告の見分け・JSON の整え・区切りの文・AI に渡す文
 import type { DockerCompose, DockerLogSource } from "@shared/docker/types";
 import { stripAnsi } from "@/foundation/ui/ansi/ansi";
+import { fenceFor } from "@shared/foundation/markdown/fence";
 import { workplaceText } from "@shared/foundation/workplace";
 
 /** 画面に持つ行の数（超えたら古い行から捨てる。さかのぼればまた読める） */
@@ -129,9 +130,6 @@ export function containerInfos(compose: Pick<DockerCompose, "services">, sources
   const names = new Map(compose.services.flatMap((s) => [...s.containers, ...s.oneoffs].map((c) => [c.id, c.name] as const)));
   return new Map(sources.map((s) => [s.container, { label: s.label, service: s.service, name: names.get(s.container) ?? null }]));
 }
-
-/** 文の中の ``` より長い囲み */
-const fenceFor = (text: string) => "`".repeat(Math.max(3, ...[...text.matchAll(/`{3,}/g)].map((m) => m[0].length + 1)));
 
 /**
  * AI に渡す文: 頭に「Docker のログ: 本体 | main・compose.yaml・db（myapp-db-1）・12:01:03〜12:01:09」の文脈、続けてコードのブロック。

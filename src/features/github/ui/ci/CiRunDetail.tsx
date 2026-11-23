@@ -4,7 +4,7 @@ import { CI_STATE_LABELS, type CiJob, type CiRunDetail } from "@shared/github/ci
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
-import { formatDayTime, formatDuration, relativeTime } from "@/foundation/ui/lib/time";
+import { elapsedBetween, formatDayTime, formatDuration, relativeTime } from "@/foundation/ui/lib/time";
 import { CopyButton } from "@/foundation/ui/kit/CopyButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -19,8 +19,8 @@ import { jobToOpen, runName } from "./ciView";
 
 /** ジョブのかかった時間（終わっていなければ空） */
 function jobDuration(job: CiJob): string | null {
-  if (!job.started_at || !job.completed_at) return null;
-  return formatDuration(new Date(job.completed_at).getTime() - new Date(job.started_at).getTime());
+  const ms = job.completed_at ? elapsedBetween(job.started_at, job.completed_at) : null;
+  return ms === null ? null : formatDuration(ms);
 }
 
 /**

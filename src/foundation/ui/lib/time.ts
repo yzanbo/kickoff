@@ -131,6 +131,13 @@ export function formatFullDateTime(iso: string): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${formatClock(iso)}`;
 }
 
+/** 始まりから終わり（なければ now）までのミリ秒（始まりがない・時刻がおかしい・負なら null。チェック・ジョブの所要時間） */
+export function elapsedBetween(start: string | null, end: string | null, now = Date.now()): number | null {
+  if (!start) return null;
+  const ms = (end ? Date.parse(end) : now) - Date.parse(start);
+  return Number.isFinite(ms) && ms >= 0 ? ms : null;
+}
+
 /**
  * かかった時間。既定は短く、ちょうどのときは下の単位を付けない（"8秒" / "1分23秒" / "1分" / "1時間5分"。作業中の経過時間・作業にかかった時間）。
  * full はいちばん大きい単位から下をすべて出す（"1分0秒" / "1時間2分5秒"。処理の実行時間）
