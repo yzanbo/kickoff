@@ -4,7 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { useWorktrees } from "./worktreesStore";
 import { useChatWorkplace } from "./useWorkplace";
 import { WORKPLACE_SHORT_LABELS, type WorkplaceChat } from "./workplace";
-import { workplaceDecor, workplaceDecorLines } from "./workplaceDecor";
+import { WorkplaceMarks, workplaceDecorLines } from "./workplaceDecor";
 
 /**
  * チャットの作業場所とブランチの印（すべてのチャットに出す）。「本体｜main」「WT｜ブランチ名」のように、作業場所（本体・ワークツリー）を先に出し、
@@ -29,7 +29,7 @@ export function WorktreeChip({ chat, markIconOnly }: { chat: WorkplaceChat & Pic
         <span className="chip-kind">{WORKPLACE_SHORT_LABELS[place.kind]}</span>
         <span className="chip-name">{place.name}</span>
       </span>
-      {workplaceDecor.items().map(({ id, Mark }) => Mark && <Mark key={id} projectId={chat.project_id} path={chat.worktree_path} iconOnly={markIconOnly} />)}
+      <WorkplaceMarks projectId={chat.project_id} path={chat.worktree_path} iconOnly={markIconOnly} />
     </>
   );
 }

@@ -11,8 +11,8 @@ import { RefItem, RefSection } from "./RefList";
 import type { GitLogController } from "./useGitLog";
 import type { RefTarget } from "./refTarget";
 import { groupBranches } from "./refGroups";
-import type { WorktreeActions } from "@/features/worktrees/ui/useWorktreeActions";
-import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";
+import type { WorktreeOps } from "./useWorktreeOps";
+import { WorkplaceMarks } from "@/foundation/ui/workplace/workplaceDecor";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 
 /** 追いかけているリモートとの進み・遅れ（どちらもなければ出さない） */
@@ -104,6 +104,7 @@ function FolderButtons({ path }: { path: string }) {
  * busy は実行中のブランチの操作
  */
 export function HistorySidebar({
+  projectId,
   log,
   busy,
   worktreeActions,
@@ -112,9 +113,10 @@ export function HistorySidebar({
   onRefMenu,
   onStashMenu,
 }: {
+  projectId: number;
   log: GitLogController;
   busy: string | null;
-  worktreeActions: WorktreeActions;
+  worktreeActions: WorktreeOps;
   /** 表で選んでいるコミット（押した行がまだそのコミットを選んでいる間だけ、その行を選んでいる見た目にする） */
   selectedHash?: string;
   onPick: (hash: string) => void;
@@ -194,7 +196,7 @@ export function HistorySidebar({
                   "なくなっています"
                 ) : (
                   <>
-                    <WorktreePrMark worktree={w.path} iconOnly />
+                    <WorkplaceMarks projectId={projectId} path={w.path} iconOnly />
                     <SyncNote branch={branch} />
                   </>
                 )

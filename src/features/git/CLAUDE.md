@@ -4,7 +4,7 @@
 
 - `core/index.ts` が入口（`GitApi`。状態 `status.ts`・差分とコミット `changes.ts`・`blame.ts`・`history.ts`・ブランチの操作の表 `branches.ts`・操作の順番 `repoLock.ts`）。受け口は取り決め `@shared/git/contract.ts`（PR の 2 本だけまだ外）、画面は `ui/api.ts`。ファイルと検索は `@/features/files/core/`、プロジェクトの作成と取り込みは `@/features/projects/core/workspace.ts`。
 - `core/tools.ts`: AI の `open_diff`（パスは files の `workPathIn`）。
-- `ui/`: files の口の実装 `filesGit.ts`・変更・差分・コミット（`ChangesPane`・`DiffView`。表は土台 `diff/`）と、履歴（`ui/history/`。操作の窓 `GitCommandPalette`・途中の帯 `OperationBanner`）。
+- `ui/`: files の口の実装 `filesGit.ts`・変更・差分・コミット（`ChangesPane`・`DiffView`。表は土台 `diff/`）と、履歴（`ui/history/`。操作の窓 `GitCommandPalette`・途中の帯 `OperationBanner`。ワークツリーを作る・消す・印は土台の `workplaceDecor`）。
 
 ## 決まり
 
@@ -21,7 +21,7 @@
 
 ## 落とし穴
 
-- Git の状態は作業場所ごとの店 `ui/statusStore.ts` 1 つ（読む所が何か所でも取得は 1 回。タブの殻 `EditorTab`・`HistoryTab` とバッジがそれぞれ `useGitStatus` で読む）。知らせが続いても最初の知らせから 1.5 秒で取り直す（届くたびに待ち直さない）。
+- Git の状態は作業場所ごとの店 `ui/statusStore.ts` 1 つ（読む所が何か所でも取得は 1 回）。知らせが続いても最初の知らせから 1.5 秒で取り直す（届くたびに待ち直さない）。
 - 差分の表の行のクラスは `line-add` など（タイムラインの `.diff-add` とは別）。`ui:diff-layout` は差分のどこでも共通。
 - Git の外・未追跡には行の横の帯・変更の記録を出さない。記録は保存した中身で取るので、未保存の間は出さない。
 - 確認済みの印は差分の指紋（`diffFingerprint`）で覚え、差分が変わったら外す。

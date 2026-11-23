@@ -4,7 +4,7 @@ import { storage } from "@/features/git/ui/storage";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useExternalTerminal } from "@/foundation/ui/external/externalApps";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
-import type { WorktreeActions } from "@/features/worktrees/ui/useWorktreeActions";
+import type { WorktreeOps } from "./useWorktreeOps";
 import type { BranchActions } from "./useBranchActions";
 import type { GitLogController } from "./useGitLog";
 import type { StashActions } from "./useStashActions";
@@ -30,7 +30,7 @@ export function useHistoryOps({
   log: GitLogController;
   branch: BranchActions;
   stash: StashActions;
-  worktreeActions: WorktreeActions;
+  worktreeActions: WorktreeOps;
 }) {
   const [listHidden, setListHidden] = useSetting(storage.settings.historyListHidden);
   const [fetching, setFetching] = useState(false);

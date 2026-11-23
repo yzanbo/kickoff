@@ -14,7 +14,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { RefMenu } from "./RefMenu";
 import type { RefTarget } from "./refTarget";
 import { useBranchActions } from "./useBranchActions";
-import { useWorktreeActions } from "@/features/worktrees/ui/useWorktreeActions";
+import { useWorktreeOps } from "./useWorktreeOps";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { HistoryToolbar } from "./HistoryToolbar";
@@ -50,7 +50,7 @@ export function HistoryTab({
   const branchActions = useBranchActions(projectId, log, git, onWorktreeChange);
   const refMenu = useContextMenu<RefTarget>();
   // ワークツリーの作成・削除（左の一覧の「ワークツリー」と、その行の右クリック）
-  const worktreeActions = useWorktreeActions(projectId, log);
+  const worktreeActions = useWorktreeOps(projectId, log);
   const menuTree = refMenu.menu?.value.worktree ? log.worktrees?.find((w) => w.path === refMenu.menu?.value.worktree) : undefined;
   // 退避（帯の「退避」・左の一覧の退避の行の右クリック）と、帯の操作
   const stashActions = useStashActions(projectId, branchActions, log);
@@ -82,6 +82,7 @@ export function HistoryTab({
           <>
             <aside ref={listPaneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
               <HistorySidebar
+                projectId={projectId}
                 log={log}
                 busy={ops.busy}
                 worktreeActions={worktreeActions}
