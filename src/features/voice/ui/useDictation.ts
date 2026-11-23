@@ -64,8 +64,8 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     stopWatch.current = null;
   }
 
-  async function transcribe(audio: Blob[], send: boolean) {
-    const id = ++attempt.current;
+  /** 起こして入れる（id は頼んだときの回。待つ間にやめた・閉じた・ほかを始めたら、届いた文を捨てる） */
+  async function transcribe(audio: Blob[], send: boolean, id: number) {
     setState({ kind: "transcribing" });
     try {
       const text = await transcribeParts(audio, async (part) => (await api.transcribe(part)).text);
@@ -107,8 +107,12 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     if (!current) return;
     recording.current = null;
     unwatch();
+    // 録音を閉じるのを待つ間に取り消されたら起こさない（止めた時点の回で数える）
+    const id = ++attempt.current;
     setState({ kind: "transcribing" });
-    void transcribe(await current.stop(), send);
+    const audio = await current.stop();
+    if (id !== attempt.current) return;
+    void transcribe(audio, send, id);
   }
 
   /** 録音・文字起こしをやめる（何も入れない） */
@@ -153,7 +157,9 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     cancel,
     /** 失敗したとき、録った音声で起こし直す */
     retry: () => {
-      if (state.kind === "error" && state.audio) void transcribe(state.audio, Boolean(state.send));
+      if (state.kind !== "error" || !state.audio) return;
+      attempt.current += 1;
+      void transcribe(state.audio, Boolean(state.send), attempt.current);
     },
     dismiss: () => setState({ kind: "idle" }),
     /** 録音中のマイクの音量を受け取る（返した関数でやめる） */
