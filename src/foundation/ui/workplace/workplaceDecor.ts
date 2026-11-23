@@ -11,8 +11,8 @@ type Worktree = NonNullable<WorktreeList>[number];
 
 /** ワークツリーを作る・消す（履歴の左の一覧の「ワークツリー」が使う。どちらも済んだら true、やめたら false。失敗は投げる） */
 export interface WorkplaceActions {
-  /** 名前を聞いて作る（repoName はリポジトリの一番上の名前。隣のフォルダの名前に使う） */
-  create(projectId: number, repoName: string): Promise<boolean>;
+  /** 名前を聞いて作る */
+  create(projectId: number): Promise<boolean>;
   /** 確かめてから消す */
   remove(projectId: number, worktree: Worktree): Promise<boolean>;
 }
