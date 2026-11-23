@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { GitCommit, GitLog, GitRefs } from "@shared/git/types";
+import type { GitCommit, GitRefs } from "@shared/git/types";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWorktrees, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { layoutGraph } from "./commitGraph";
+import { appendPage, readLogRange, sameLogStart } from "./gitLogPages";
 import { gitApi } from "@/features/git/ui/api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
@@ -12,7 +13,7 @@ const NO_COMMITS: GitCommit[] = [];
 
 /**
  * 履歴（すべてのブランチ）とグラフ。active（履歴を表示している）の間だけ読み、version が変わったら
- * （変更の一覧を取り直したら）読み直す。中身が同じなら描き直さない。「さらに読み込む」で続きを足す
+ * （変更の一覧を取り直したら）読み込んだ範囲ごと読み直す。中身が同じなら描き直さない。「さらに読み込む」で続きを足す
  */
 export function useGitLog(projectId: number, active: boolean, version: number) {
   // 履歴・ブランチは作業場所ごと（ワークツリーの一覧はプロジェクトで共通）
@@ -20,10 +21,13 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   const at = workplaceKey(target);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reload, setReload] = useState(0);
+  // 読み込んだ範囲（コミットの数。作業場所ごと。0 = 1 ページ）
+  const [range, setRange] = useState({ at, count: 0 });
   // ブランチ・リモート・タグ・stash（左の一覧）。取れなくても履歴は出す
   const refs = useQuery(at, () => gitApi("GET /api/projects/:projectId/git/refs", workdirInput(target)), { enabled: active, deps: [version, reload], same: sameJson });
-  // 読み込んだところまで（初めは 1 ページ）を読み直す。先頭のページが同じなら描き直さない（読み込んだ続きも残す）
-  const log = useQuery(at, () => gitApi("GET /api/projects/:projectId/git/log", workdirInput(target, { skip: 0 })), { enabled: active, deps: [version, reload], same: sameFirstPage });
+  // 読み込んだところまで（初めは 1 ページ）を読み直す。先頭が同じなら描き直さない（読み込んだ続きも残す）
+  const readPage = (skip: number) => gitApi("GET /api/projects/:projectId/git/log", workdirInput(target, { skip }));
+  const log = useQuery(at, () => readLogRange(readPage, range.at === at ? range.count : 0), { enabled: active, deps: [version, reload], same: sameLogStart });
   // ワークツリー（プロジェクトで共通の一覧。作る・消すと取り直される）。見ている間は、古くなっていれば取り直す
   const worktrees = useWorktrees(projectId);
   useEffect(() => {
@@ -31,10 +35,16 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   }, [projectId, active, version, reload]);
   const loaded = log.data?.commits.length ?? 0;
 
+  // 続きを足す（読む間に取り直しが先に返って一覧が変わったら足さない）
   const loadMore = async () => {
+    const base = log.data;
+    if (!base) return;
     setLoadingMore(true);
-    await gitApi("GET /api/projects/:projectId/git/log", workdirInput(target, { skip: loaded }))
-      .then((page) => log.setData((prev) => ({ ...prev, commits: [...prev.commits, ...page.commits], more: page.more })))
+    await readPage(loaded)
+      .then((page) => {
+        log.setData((prev) => appendPage(prev, base, page));
+        setRange({ at, count: loaded + page.commits.length });
+      })
       .finally(() => setLoadingMore(false));
   };
 
@@ -45,10 +55,5 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
 }
 
 const sameJson = (a: GitRefs, b: GitRefs) => JSON.stringify(a) === JSON.stringify(b);
-
-/** 描き直しが要るかを比べるための、コミットとその印 */
-const key = (c: GitCommit) => `${c.hash}:${c.refs.join("|")}`;
-/** 先頭のページ（取り直した分）が同じなら、前の一覧のまま */
-const sameFirstPage = (prev: GitLog, next: GitLog) => prev.commits.slice(0, next.commits.length).map(key).join() === next.commits.map(key).join();
 
 export type GitLogController = ReturnType<typeof useGitLog>;
