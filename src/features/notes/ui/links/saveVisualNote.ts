@@ -2,9 +2,9 @@
 import type { ChatVisual } from "@shared/visuals/aiVisual";
 import { visualNoteHtml } from "@shared/visuals/visualDocument";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { openNoteFromChat } from "./openNoteFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 
 /** 同じ名前があったときに番号を付けて試す回数 */
 const NAME_TRIES = 20;
@@ -26,7 +26,7 @@ export async function saveVisualToNote(visual: ChatVisual, chatId: number | null
   for (let n = 1; n <= NAME_TRIES; n++) {
     const path = `${n === 1 ? base : `${base}-${n}`}${ext}`;
     try {
-      const ref = await api.createNote(projectId, path, { content });
+      const ref = await notesApi("POST /api/projects/:projectId/notes", { params: { projectId }, body: { path, content } });
       openNoteFromChat({ projectId, path: ref.path, chatId });
       return;
     } catch (e) {

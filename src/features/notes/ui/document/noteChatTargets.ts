@@ -5,11 +5,11 @@ import { lineLocation } from "@/foundation/ui/lib/pathCopy";
 import { alert, reportFailure } from "@/foundation/ui/kit/ask";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { attachNoteToChat } from "./attachNote";
+import { attachNoteToChat } from "@/features/notes/ui/links/attachNote";
 import { noteQuote } from "./noteAttachment";
-import type { NoteChatHandle } from "./NoteChat";
+import type { NoteChatHandle } from "@/features/notes/ui/chat/NoteChat";
 import type { NoteChatTarget, NoteChatTargets, NoteNewChat } from "./useNoteEditMenu";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
 
 /**
@@ -53,7 +53,7 @@ export function useNoteChatTargets({
     add: async (selection, lines) => {
       if (selection.trim()) toNoteChat(quoteOf(selection, lines));
       else if (await savedForAttach()) {
-        await api.noteSnapshot(projectId, path).then((a) => toNoteChat("", [a]), reportFailure("ノートをチャットに追加できませんでした"));
+        await notesApi("POST /api/projects/:projectId/note/snapshot", { params: { projectId }, body: { path } }).then((a) => toNoteChat("", [a]), reportFailure("ノートをチャットに追加できませんでした"));
       }
     },
     addQuote: (quote) => toNoteChat(quote),

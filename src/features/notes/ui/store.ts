@@ -1,7 +1,7 @@
 // プロジェクトごとのノートの一覧（フォルダとファイル）。ノートのタブ・「ノートに追加」の追記先で共通に読む。
 // 変わったら知らせ（notes）で取り直す（Finder・ほかのアプリでの変更も、コアがフォルダを見張って知らせる）。見張れなかったときのために、ウィンドウに戻ったとき・30 秒たって使ったときにも取り直す
 import type { NoteList } from "@shared/notes/types";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 
@@ -9,7 +9,7 @@ import { useKeyedStore } from "@/foundation/ui/store/useStore";
 const MAX_AGE_MS = 30_000;
 
 export const notesStore = createKeyedStore<number, NoteList>({
-  load: (projectId) => api.notes(projectId),
+  load: (projectId) => notesApi("GET /api/projects/:projectId/notes", { params: { projectId } }),
   maxAge: MAX_AGE_MS,
   refreshOnFocus: true,
   // ノートを変えた・プロジェクトのノートの場所を変えた・親フォルダ（設定）を変えた

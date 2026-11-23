@@ -10,7 +10,7 @@ import { gitShared } from "@/features/git/ui/api/git";
 import { githubApi } from "@/features/github/ui/api/github";
 import { ciApi } from "@/features/github/ui/api/ci";
 import { groupsApi } from "@/features/groups/ui/api/groups";
-import { notesApi } from "@/features/notes/ui/api/notes";
+import { notesShared } from "@/features/notes/ui/api";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { settingsApi } from "@/features/settings/ui/api/settings";
@@ -35,7 +35,7 @@ export const api = {
   ...filesShared,
   ...worktreesApi,
   ...voiceApi,
-  ...notesApi,
+  ...notesShared,
   ...githubApi,
   ...ciApi,
   ...trashApi,

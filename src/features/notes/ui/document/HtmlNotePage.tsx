@@ -4,7 +4,7 @@ import { useServerEvent } from "@/foundation/ui/api/events";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
 import { withBaseHref } from "@/foundation/ui/document/htmlPage";
 import { noteAssetBase, noteLinkPath } from "./htmlPage";
-import { parentOf } from "./notePaths";
+import { parentOf } from "@/features/notes/ui/notePaths";
 
 /**
  * HTML のノートをページとして描く（ここでは書けない。書くのはソースの表示）。iframe の srcdoc に中身をそのまま入れ、

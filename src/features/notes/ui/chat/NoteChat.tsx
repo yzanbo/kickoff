@@ -1,7 +1,7 @@
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
 import { useImperativeHandle, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
@@ -102,7 +102,7 @@ export function NoteChat({
             draft={startDraft}
             onStart={async (text, attachments, options) => {
               await beforeSend();
-              const chat = await api.startNoteChat(projectId, { path, text, options, attachments });
+              const chat = await notesApi("POST /api/projects/:projectId/note/chat", { params: { projectId }, body: { path, text, options, attachments } });
               setCreated({ path, id: chat.id });
             }}
           />

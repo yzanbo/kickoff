@@ -5,7 +5,7 @@ import { useQuery } from "@/foundation/ui/query";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui";
 import { Field } from "@/foundation/ui/kit/Field";
-import { NoteOverlapNotice } from "@/features/notes/ui/NoteOverlapNotice";
+import { NoteOverlapNotice } from "@/features/notes/ui/settings/NoteOverlapNotice";
 
 /**
  * 新しいプロジェクト・取り込むプロジェクトのノートの保存先を送る形。手で決めた場所（custom）があれば別の場所（note_dir）、

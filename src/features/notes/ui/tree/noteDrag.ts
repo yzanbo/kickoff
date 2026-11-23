@@ -1,6 +1,6 @@
 import { useEffect, useRef, type DragEvent, type HTMLAttributes } from "react";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
-import { parentOf } from "./notePaths";
+import { parentOf } from "@/features/notes/ui/notePaths";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 
 /** ドラッグで運ぶノートのパスの種類（ほかのドラッグと見分ける。中身はパスの JSON の配列） */

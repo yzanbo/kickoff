@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { FileContent } from "@shared/foundation/fileTypes";
-import { api, ApiError } from "@/foundation/ui/api";
+import { ApiError } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { errorMessage } from "@shared/foundation/errors";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { storage } from "./storage";
+import { storage } from "@/features/notes/ui/storage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { safeNoteName } from "@shared/notes/names";
-import { notesStore } from "@/features/notes/ui/stores/notes";
-import { registerNoteGuard } from "./noteGuards";
-import { renamedPath } from "./notePaths";
+import { notesStore } from "@/features/notes/ui/store";
+import { registerNoteGuard } from "@/features/notes/ui/noteGuards";
+import { renamedPath } from "@/features/notes/ui/notePaths";
 
 /** 開いたとき（保存したとき）のノートの中身と指紋 */
 interface NoteBase {
@@ -40,7 +41,7 @@ export type NoteSaveState = "saved" | "dirty" | "saving" | "conflict" | "error";
  */
 export function useNoteDocument(projectId: number, path: string) {
   const key = `${projectId}:${path}`;
-  const loaded = useQuery<FileContent>(key, () => api.note(projectId, path));
+  const loaded = useQuery<FileContent>(key, () => notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path } }));
   // 開いたとき（保存したとき）の中身と指紋（どのノートのものかも持つ。保存している間に別のノートへ移っても、前のノートへ保存できるように）
   const [base, setBase] = useState<NoteBase | null>(null);
   // 書き始めの中身（編集の部品を作るときに渡す）と、部品を作り直す番号（読み直したとき、中身を入れ直す）
@@ -100,8 +101,7 @@ export function useNoteDocument(projectId: number, path: string) {
       if (content === b.content && !force) return true;
       setState("saving");
       const expectedHash = force ? null : b.hash;
-      return api
-        .saveNote(b.projectId, b.path, content, expectedHash)
+      return notesApi("PUT /api/projects/:projectId/note", { params: { projectId: b.projectId }, body: { path: b.path, content, base_hash: expectedHash } })
         .then((saved) => {
           const next = { ...b, content, hash: saved.hash };
           writeDraft(next);
@@ -148,7 +148,7 @@ export function useNoteDocument(projectId: number, path: string) {
     if (!b) return null;
     const to = renamedPath(b.path, false, safeNoteName(name));
     if (to === b.path) return null;
-    await api.moveNote(b.projectId, b.path, to);
+    await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId: b.projectId }, body: { from: b.path, to } });
     clearTimeout(draftTimer.current);
     const body = text.current;
     writeSetting(storage.settings.draft(b.key), null);
@@ -162,7 +162,7 @@ export function useNoteDocument(projectId: number, path: string) {
   /** いまのノートを読み直す（書きかけは捨てる） */
   const reload = useCallback(async () => {
     clearTimeout(draftTimer.current);
-    const fresh = await api.note(projectId, path);
+    const fresh = await notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path } });
     writeSetting(storage.settings.draft(key), null);
     startFrom({ key, projectId, path, content: fresh.content, hash: fresh.hash }, fresh.content, "saved");
   }, [projectId, path, key, startFrom]);
@@ -204,7 +204,7 @@ export function useNoteDocument(projectId: number, path: string) {
   const checkFresh = () => {
     const b = current.current.base;
     if (!b || b.key !== key) return;
-    void api.note(projectId, path).then(
+    void notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path } }).then(
       (fresh) => {
         const now = current.current.base;
         if (now?.key !== key || fresh.hash === now.hash) return;

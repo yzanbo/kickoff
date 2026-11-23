@@ -4,23 +4,23 @@ import { canPopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { storage } from "./storage";
-import { useNoteList } from "@/features/notes/ui/stores/notes";
+import { storage } from "@/features/notes/ui/storage";
+import { useNoteList } from "@/features/notes/ui/store";
 import { usePopover } from "@/foundation/ui/kit/Popover";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { folderPaths } from "@/foundation/ui/kit/list/treeModel";
 import { ChipWord, ComposerChip, DefaultOpenPlace, useMainChat } from "@/features/chat/ui";
 import { attachNoteToChat } from "./attachNote";
-import { noteListDropProps } from "./noteDrag";
-import { confirmLeaveNotesUnder } from "./noteGuards";
-import { NoteChipTree } from "./NoteChipTree";
-import { buildNoteFileTree } from "./notePaths";
-import { openNoteFromChat } from "./openNoteFrom";
+import { noteListDropProps } from "@/features/notes/ui/tree/noteDrag";
+import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteGuards";
+import { NoteChipTree } from "@/features/notes/ui/tree/NoteChipTree";
+import { buildNoteFileTree } from "@/features/notes/ui/notePaths";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { useDraftSide } from "@/features/chatPanel/ui/agents/draftSide";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { ComposerPillProps } from "@/features/composer/ui";
-import { followMovedNote, useNoteActions } from "./useNoteActions";
+import { followMovedNote, useNoteActions } from "@/features/notes/ui/tree/useNoteActions";
 
 /**
  * 入力欄の上の「ノート」（指示の履歴・子チャットと同じピルの列）。押すとノートのフォルダの木（ノートのタブと同じ並び・同じ開いているフォルダ。
@@ -137,5 +137,5 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
 
 /** 入力欄の差し込み（composerSlots の pill）: ノートのピル。送る前の欄では、選んだノートの写しを attach で下書きに足す */
 export function ComposerNotePill({ projectId, chatId, attach }: ComposerPillProps) {
-  return <NoteChip projectId={projectId} chatId={chatId} onAttach={attach && ((path) => void api.noteSnapshot(projectId, path).then(attach, reportFailure("ノートを添付できませんでした")))} />;
+  return <NoteChip projectId={projectId} chatId={chatId} onAttach={attach && ((path) => void notesApi("POST /api/projects/:projectId/note/snapshot", { params: { projectId }, body: { path } }).then(attach, reportFailure("ノートを添付できませんでした")))} />;
 }

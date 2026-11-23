@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection } from "@shared/database/types";
 import { erMermaid, erScope } from "./erDiagram";
 import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui";
 import { open } from "@/foundation/ui/navigation/open";
 import type { DbErTab } from "@/features/database/ui/dbClientTabs";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
@@ -49,13 +49,13 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const copy = () => copyText(() => navigator.clipboard.writeText(mermaid()));
   /** 見えているものを Mermaid の文にしてノートに書き出す（失敗は投げる） */
   const writeNote = async () => {
-    const list = await api.notes(client.projectId);
+    const list = await notesApi("GET /api/projects/:projectId/notes", { params: { projectId: client.projectId } });
     const taken = list.entries.filter((e) => !e.dir && !e.path.includes("/")).map((e) => e.path.replace(/\.md$/i, ""));
     const name = uniqueNoteName(safeNoteName(title), taken);
     const where = [connection.name, tab.path.database, tab.path.schema].filter(Boolean).join(" / ");
     const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
     const path = `${name}.md`;
-    await api.createNote(client.projectId, path, { content });
+    await notesApi("POST /api/projects/:projectId/notes", { params: { projectId: client.projectId }, body: { path, content } });
     if (await confirm({ title: "ノートに書き出しました", message: `ノート「${path}」に Mermaid の ER 図を書き出しました。ノートのタブで開きますか？`, confirmLabel: "開く" })) {
       open({ kind: "note", projectId: client.projectId, path: path });
     }

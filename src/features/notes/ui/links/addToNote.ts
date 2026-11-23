@@ -2,11 +2,11 @@
 // 画面は移らず（続けてほかの文もノートできるように）、画面の下に様子を出す（NoteProgress。要約は数秒かかる）。
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのノートを開ける（openNoteFromChat）
 import { useSyncExternalStore } from "react";
-import { api } from "@/foundation/ui/api";
-import { notesStore } from "@/features/notes/ui/stores/notes";
+import { notesApi } from "@/features/notes/ui/api";
+import { notesStore } from "@/features/notes/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { baseName } from "./notePaths";
-import { openNoteFromChat } from "./openNoteFrom";
+import { baseName } from "@/features/notes/ui/notePaths";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 
 /** 終わった知らせを出しておく時間（ミリ秒） */
 const DONE_SHOWN_MS = 6000;
@@ -79,14 +79,14 @@ export async function addToNote({ projectId, chatId, text, mode, target }: AddTo
   const existing = needsTargetNote(mode);
   setProgress({ kind: "busy", text: texts.busy });
   try {
-    const ref = await api.noteFromChat(projectId, {
+    const ref = await notesApi("POST /api/projects/:projectId/notes/from-chat", { params: { projectId }, body: {
       chat_id: chatId,
       text,
       summarize: mode === "summarize",
       merge: mode === "merge",
       append_to: existing ? target : null,
       folder: null,
-    });
+    } });
     notesStore.invalidate(projectId);
     setProgress({
       kind: "done",

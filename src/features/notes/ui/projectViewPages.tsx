@@ -2,8 +2,8 @@
 import type { ProjectViewContext } from "@/features/projects/ui";
 import type { ChatSideAddProps } from "@/features/chatPanel/ui";
 import { noteTab, openTab } from "@/features/panel/ui";
-import { NoteTab } from "./NoteTab";
-import { RecentNoteItems } from "./NoteMenuItems";
+import { NoteTab } from "@/features/notes/ui/tree/NoteTab";
+import { RecentNoteItems } from "@/features/notes/ui/links/NoteMenuItems";
 import { sideNoteScope } from "./notePanel";
 
 /** 別のプロジェクトを読み込んでいる途中は、URL で来たノートを渡さない。右サイドバーは、真ん中のノートのタブとは別の右のタブの欄 */

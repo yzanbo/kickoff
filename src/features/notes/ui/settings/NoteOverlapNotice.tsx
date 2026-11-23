@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Project } from "@shared/projects/types";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { useAppSettings } from "@/features/settings/ui";
 import { noteOverlapLines } from "@/features/projects/ui/folderOverlaps";
@@ -23,8 +23,7 @@ function useNoteDirUsers(dir: string | undefined, except?: number): Project[] {
     if (!target) return setIds([]);
     let alive = true;
     const timer = setTimeout(() => {
-      api
-        .noteDirUsers(target, except)
+      notesApi("GET /api/notes/users", { query: { path: target, except } })
         .then((r) => alive && setIds(r.project_ids))
         .catch(() => alive && setIds([]));
     }, 300);

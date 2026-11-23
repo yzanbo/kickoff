@@ -2,12 +2,12 @@
 // 別ウィンドウの中からは、メインのウィンドウのそのチャットに知らせる（appendToDraft）
 import { appendToDraft } from "@/features/composer/ui";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 
 /** ノート全体（text がなければ。付けたときの写し）か、文（選択部分の引用・パス）を、チャットの入力欄の後ろに足す（送るのは自分で） */
 export function attachNoteToChat(chatId: number, projectId: number, path: string, text: string | null = null) {
   if (text) return appendToDraft(chatId, text);
-  void api.noteSnapshot(projectId, path)
+  void notesApi("POST /api/projects/:projectId/note/snapshot", { params: { projectId }, body: { path } })
     .then((attachment) => appendToDraft(chatId, "", [attachment]))
     .catch(reportFailure("ノートをチャットに追加できませんでした"));
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNoteList } from "@/features/notes/ui/stores/notes";
+import { useNoteList } from "./store";
 import { confirmLeaveNote } from "./noteGuards";
-import { NoteView } from "./NoteView";
+import { NoteView } from "@/features/notes/ui/document/NoteView";
 import { openInNoteTab } from "./openNoteFrom";
 
 /**

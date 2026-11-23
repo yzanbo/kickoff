@@ -1,7 +1,7 @@
 import { api } from "@/foundation/ui/api";
 import { useEditedProject } from "@/features/projects/ui";
-import { useNoteList } from "@/features/notes/ui/stores/notes";
-import { NoteFolderField } from "@/features/notes/ui/NoteFolderField";
+import { useNoteList } from "@/features/notes/ui/store";
+import { NoteFolderField } from "./NoteFolderField";
 
 /**
  * プロジェクトの設定の基本情報の「ノートフォルダ」。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。

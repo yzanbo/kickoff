@@ -9,7 +9,7 @@ import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { isDraggingNote, useNoteRowDrag } from "./noteDrag";
-import { noteTitle } from "./notePaths";
+import { noteTitle } from "@/features/notes/ui/notePaths";
 
 /** 一覧の行で名前を変えているノート・フォルダ（initial: 書き直してもらうときの、前に書いた名前。round: 書き直すたびに増やして欄を作り直す） */
 export interface NoteRenaming {

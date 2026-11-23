@@ -1,11 +1,11 @@
 import { ChevronRight, FilePlus, NotebookPen, Sparkles, WandSparkles, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
 import type { NoteKind } from "@shared/notes/kinds";
-import { useNoteList } from "@/features/notes/ui/stores/notes";
+import { useNoteList } from "@/features/notes/ui/store";
 import { MenuFlyout, useSubmenu } from "@/foundation/ui/kit/MenuFlyout";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
 import { addToNote, NOTE_ADD_MODE_LABELS, type NoteAddMode } from "./addToNote";
-import { baseName, parentOf, recentNotes } from "./notePaths";
+import { baseName, parentOf, recentNotes } from "@/features/notes/ui/notePaths";
 
 /** 「既存のノートに追記 ▸」「既存のノートに AI で組み込んで書き直す ▸」・入力欄の上のノートの一覧に並べる数（最近変えた順） */
 const RECENT_NOTES = 12;

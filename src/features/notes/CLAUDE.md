@@ -7,12 +7,11 @@
 | ファイル | 中身 |
 |---|---|
 | `core/service.ts`・`noteDir.ts`・`noteAi.ts`・`noteChat.ts`・`noteWatcher.ts` | 一覧・読み書き・移動・ゴミ箱・場所（書く前に `ensureNoteDir`）・AI・チャット・外の変更 |
-| `ui/NoteTab`・`NoteTree`・`noteDrag.ts`・`useNoteActions` | ノートのタブ（一覧・右のタブ 欄 `notes`）・木・操作 |
-| `ui/NoteView`・`NoteEditor`・`livePreview*.ts`・`useNoteDocument` | 開いたノート・編集（CodeMirror）・保存 |
-| `ui/HtmlNotePage`・`htmlPage.ts` | HTML のノートのページ（読むファイルは `@/foundation/core/http/assets.ts` の `assetResponse`） |
-| `ui/NoteChat`・`addToNote.ts`・`openNoteFrom.ts`・`attachNote.ts` | ノートのチャット・チャットの文をノートにする・チャットから開く・ノートを足す |
+| `ui/tree/` | ノートのタブ `NoteTab`（一覧・右のタブ 欄 `notes`）・木 `NoteTree`・`noteDrag.ts`・操作 `useNoteActions` |
+| `ui/document/` | 開いたノート `NoteView`・編集 `NoteEditor`（CodeMirror）・保存 `useNoteDocument`・HTML のページ `HtmlNotePage`（読むファイルは `@/foundation/core/http/assets.ts` の `assetResponse`） |
+| `ui/chat/`・`ui/links/` | ノートのチャット `NoteChat`・チャットの文をノートにする `addToNote.ts`・ノートを足す `attachNote.ts`（チャットから開くのは `ui/openNoteFrom.ts`） |
 
-一覧は `ui/stores/notes.ts` の `notesStore`。操作のあとは知らせを待たずに `invalidate` する。
+一覧は `ui/store.ts` の `notesStore`。操作のあとは知らせを待たずに `invalidate` する。
 
 ## 決まり
 

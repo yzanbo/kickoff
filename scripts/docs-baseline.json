@@ -8,7 +8,7 @@
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 65490,
+      "bytes": 65508,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
@@ -35,13 +35,6 @@
     "src/features/conversation/CLAUDE.md": {
       "bytes": 15084,
       "ancestors": 25272,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/features/notes/CLAUDE.md": {
-      "bytes": 4108,
-      "ancestors": 14296,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0

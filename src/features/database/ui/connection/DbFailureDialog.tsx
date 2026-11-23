@@ -6,6 +6,7 @@ import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
@@ -51,8 +52,8 @@ async function appendFixToNote(projectId: number, path: string, error: string): 
     confirmLabel: "追記する",
   }).then((r) => r?.value ?? null);
   if (!fix?.trim()) return false;
-  const now = await api.note(projectId, path);
-  await api.saveNote(projectId, path, appendDbNoteFix(now.content, dbNoteFixEntry(localToday(), error, fix)), now.hash);
+  const now = await notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path } });
+  await notesApi("PUT /api/projects/:projectId/note", { params: { projectId }, body: { path, content: appendDbNoteFix(now.content, dbNoteFixEntry(localToday(), error, fix)), base_hash: now.hash } });
   return true;
 }
 
@@ -83,7 +84,7 @@ export function DbFailureDialog({
   const { ref: dialogRef, ...dialog } = useModalDialog();
   // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
   useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
-  const note = useQuery(["DbFailureDialog.note", projectId, c.note_path], () => (c.note_path ? api.note(projectId, c.note_path) : Promise.resolve(null)), { keepPrevious: true });
+  const note = useQuery(["DbFailureDialog.note", projectId, c.note_path], () => (c.note_path ? notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path: c.note_path } }) : Promise.resolve(null)), { keepPrevious: true });
   const then = (run: () => void) => () => {
     dialog.close();
     run();

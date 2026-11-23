@@ -3,7 +3,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import { safeNoteName } from "@shared/notes/names";
 import type { DbConnection } from "@shared/database/types";
 import type { NoteEntry } from "@shared/notes/types";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui";
 import { dbApi, dbOne } from "@/features/database/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
 import { applyConnection } from "@/features/database/ui/state/connectionsStore";
@@ -37,7 +37,7 @@ export async function createDbNoteFile(projectId: number, c: Pick<DbConnection, 
   if (!name) return null;
   const path = `${DB_NOTE_DIR}/${safeNoteName(name)}.md`;
   try {
-    await api.createNote(projectId, path, { content: dbNoteTemplate(name, new Date().toLocaleDateString("sv-SE")) });
+    await notesApi("POST /api/projects/:projectId/notes", { params: { projectId }, body: { path, content: dbNoteTemplate(name, new Date().toLocaleDateString("sv-SE")) } });
   } catch (e) {
     if (!(e instanceof ApiError && e.status === 409)) {
       await alert("手順ノートを作れませんでした", errorMessage(e));

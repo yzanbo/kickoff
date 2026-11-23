@@ -1,5 +1,5 @@
 import type { PaletteNamedSource, PaletteTextSource } from "@/features/palette/ui";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { currentProjectsIndex } from "@/features/projects/ui";
 import { noteTextItem, usePaletteNotes } from "./paletteSource";
 
@@ -15,5 +15,5 @@ export const noteTextPaletteSource: PaletteTextSource = {
   id: "noteText",
   label: "ノート内の文言",
   order: 50,
-  search: (q) => api.searchNotes(q).then((r) => r.hits.map((h) => noteTextItem(h, currentProjectsIndex().projectName))),
+  search: (q) => notesApi("GET /api/notes/search", { query: { q } }).then((r) => r.hits.map((h) => noteTextItem(h, currentProjectsIndex().projectName))),
 };

@@ -1,7 +1,7 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
 import { addChat, useNoteChatOf } from "@/features/chat/ui/store/knownChats";
 import { chatComposerDraft, Composer } from "@/features/composer/ui";
@@ -169,7 +169,7 @@ function NoteQuickComposer({
   // まだチャットがなければ、送るとノートのチャットを作る（一覧の知らせを待たずに入れ、様子の行・チャットの欄がすぐこのチャットを指すように）
   const start = async (text: string, attachments: Attachment[]) => {
     await beforeSend();
-    addChat(await api.startNoteChat(projectId, { path, text, options: options.options, attachments }));
+    addChat(await notesApi("POST /api/projects/:projectId/note/chat", { params: { projectId }, body: { path, text, options: options.options, attachments } }));
   };
   return (
     <div className="chat-composer">

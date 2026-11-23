@@ -2,7 +2,7 @@ import { FileCode2, StickyNote } from "lucide-react";
 import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";
 import type { NoteSearchHit } from "@shared/notes/types";
 import { Highlight } from "@/foundation/ui/kit/Highlight";
-import { notesStore } from "@/features/notes/ui/stores/notes";
+import { notesStore } from "./store";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
 import type { PaletteItem } from "@/features/palette/ui";

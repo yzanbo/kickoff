@@ -1,16 +1,16 @@
 import { NOTE_KIND_EXTENSIONS, noteExtensionOf, newHtmlNote, type NoteKind } from "@shared/notes/kinds";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
-import { notesStore } from "@/features/notes/ui/stores/notes";
+import { notesStore } from "@/features/notes/ui/store";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
-import { storage } from "./storage";
+import { storage } from "@/features/notes/ui/storage";
 import { remapPrefix } from "@shared/foundation/path";
-import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "./notePaths";
+import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "@/features/notes/ui/notePaths";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
-import { movedNoteTab } from "./notePanel";
+import { movedNoteTab } from "@/features/notes/ui/notePanel";
 import { mapTabs } from "@/features/panel/ui";
 
 /** 新しく作るノート・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。ノートは頭に作った日の日付を付ける（datedNoteName） */
@@ -50,7 +50,7 @@ export function useNoteActions(
   const createNote = async (folder: string, kind: NoteKind = "markdown") => {
     const html = kind === "html";
     const path = untitledPath(entries(), folder, datedNoteName(UNTITLED_NOTE, new Date()), NOTE_KIND_EXTENSIONS[kind]);
-    await api.createNote(projectId, path, html ? { content: newHtmlNote(noteTitle(path)) } : {}).then(() => {
+    await notesApi("POST /api/projects/:projectId/notes", { params: { projectId }, body: { path, ...(html ? { content: newHtmlNote(noteTitle(path)) } : {}) } }).then(() => {
       refresh();
       onCreated?.(path, false);
     }, reportFailure("ノートを作れませんでした"));
@@ -58,7 +58,7 @@ export function useNoteActions(
 
   const createFolder = async (folder: string) => {
     const path = untitledPath(entries(), folder, UNTITLED_FOLDER);
-    await api.createNote(projectId, path, { dir: true }).then(() => {
+    await notesApi("POST /api/projects/:projectId/notes", { params: { projectId }, body: { path, dir: true } }).then(() => {
       refresh();
       onCreated?.(path, true);
     }, reportFailure("フォルダを作れませんでした"));
@@ -66,7 +66,7 @@ export function useNoteActions(
 
   const move = async (from: string, to: string) => {
     if (from === to || !(await beforeChange(from))) return;
-    await api.moveNote(projectId, from, to).then(() => {
+    await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from, to } }).then(() => {
       refresh();
       onMoved(from, to);
     }, reportFailure("動かせませんでした"));
@@ -76,8 +76,8 @@ export function useNoteActions(
   const retitleHtml = async (from: string, to: string) => {
     if (noteExtensionOf(to) !== NOTE_KIND_EXTENSIONS.html) return;
     try {
-      const file = await api.note(projectId, to);
-      if (file.content === newHtmlNote(noteTitle(from))) await api.saveNote(projectId, to, newHtmlNote(noteTitle(to)), file.hash);
+      const file = await notesApi("GET /api/projects/:projectId/note", { params: { projectId }, query: { path: to } });
+      if (file.content === newHtmlNote(noteTitle(from))) await notesApi("PUT /api/projects/:projectId/note", { params: { projectId }, body: { path: to, content: newHtmlNote(noteTitle(to)), base_hash: file.hash } });
     } catch {
       // 題名を付け直せなくても、名前の変更はできている
     }
@@ -94,7 +94,7 @@ export function useNoteActions(
       return "taken";
     }
     if (!(await beforeChange(path))) return "done";
-    await api.moveNote(projectId, path, to).then(async () => {
+    await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from: path, to } }).then(async () => {
       await retitleHtml(path, to);
       refresh();
       onMoved(path, to);
@@ -116,7 +116,7 @@ export function useNoteActions(
       danger: true,
     });
     if (!ok || !(await beforeChange(path))) return;
-    await api.trashNote(projectId, path).then(({ trash_id }) => {
+    await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } }).then(({ trash_id }) => {
       refresh();
       onTrashed?.(path);
       showTrashedToast(trash_id, baseName(path));
@@ -133,7 +133,7 @@ export function useNoteActions(
     for (const m of moves) {
       if (!(await beforeChange(m.from))) continue;
       try {
-        await api.moveNote(projectId, m.from, m.to);
+        await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from: m.from, to: m.to } });
         onMoved(m.from, m.to);
         moved++;
       } catch (e) {
@@ -168,7 +168,7 @@ export function useNoteActions(
       }
       if (!(await beforeChange(from))) continue;
       try {
-        await api.moveNote(projectId, from, to);
+        await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from, to } });
         onMoved(from, to);
       } catch (e) {
         failed.push(`${baseName(from)}: ${errorMessage(e)}`);
@@ -199,7 +199,7 @@ export function useNoteActions(
     for (const { path } of targets) {
       if (!(await beforeChange(path))) continue;
       try {
-        await api.trashNote(projectId, path);
+        await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } });
         onTrashed?.(path);
       } catch (e) {
         failed.push(`${baseName(path)}: ${errorMessage(e)}`);

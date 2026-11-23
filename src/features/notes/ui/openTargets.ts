@@ -6,7 +6,7 @@ import { trySideOpen } from "@/features/projects/ui";
 import type { OpenTargetHandler } from "@/foundation/ui/navigation/open";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { openNoteFromChat } from "./openNoteFrom";
-import { saveVisualToNote } from "./saveVisualNote";
+import { saveVisualToNote } from "@/features/notes/ui/links/saveVisualNote";
 
 declare module "@/foundation/ui/navigation/open" {
   interface OpenTargetMap {

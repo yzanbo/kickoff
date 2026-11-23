@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import type { NotePlan } from "@shared/notes/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { notesApi } from "@/features/notes/ui/api";
 import { useEditKeys } from "@/foundation/ui/hooks/useEditKeys";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { alert } from "@/foundation/ui/kit/ask";
@@ -33,7 +33,7 @@ export function NotePlanDialog({
     if (busy) return;
     setBusy(true);
     setError(undefined);
-    const request = api.aiPlanNotes(projectId, instruction.trim() || null);
+    const request = notesApi("POST /api/projects/:projectId/notes/ai-plan", { params: { projectId }, body: { instruction: instruction.trim() || null } });
     await request.then(
       (next) => {
         setPlan(next);
