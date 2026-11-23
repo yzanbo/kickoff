@@ -1,40 +1,35 @@
-import type { Hono } from "hono";
+// チャット欄の外の画像の受け口（取り決め @shared/remoteImages/contract.ts）
 import { z } from "zod";
-import type { ChatStoreDeps } from "@/features/chat/core/index";
+import type { Chat } from "@shared/chat/types";
+import { remoteImagesContract } from "@shared/remoteImages/contract";
 import type { RemoteImageService } from "@/features/remoteImages/core/service";
-import { lookups } from "@/foundation/core/http/lookups";
-import { jsonBody } from "@/foundation/core/http/input";
+import { implement, type Param } from "@/foundation/core/http/implement";
 
 const hostSchema = z.string().trim().min(1).max(300);
 
 /**
  * チャット欄の外の画像: 表示を許可したホストの一覧・許可・取り消しと、許可したホストの画像。
- * どれも端末には開かない（http/deviceAccess.ts の一覧に入れない）
+ * どれも端末には開かない（取り決めに access を書かない）
  */
-export function chatImageRoutes(app: Hono, { store, remoteImages }: { store: Pick<ChatStoreDeps, "projects" | "chats" | "groups">; remoteImages: RemoteImageService }) {
-  const { withChat } = lookups(store);
-
-  app.get("/api/chats/:id/image-hosts", withChat, (c) => c.json({ hosts: remoteImages.hosts(c.var.chat.id) }));
-
-  app.put("/api/chats/:id/image-hosts", withChat, async (c) => {
-    const { host } = z.object({ host: hostSchema }).parse(await jsonBody(c));
-    return c.json({ hosts: remoteImages.allow(c.var.chat, host) });
-  });
-
-  app.delete("/api/chats/:id/image-hosts", withChat, async (c) => {
-    const host = hostSchema.parse(c.req.query("host"));
-    return c.json({ hosts: await remoteImages.revoke(c.var.chat, host) });
-  });
-
-  // 許可したホストの画像（コアが代わりに取る。2 回目からは覚えた画像を返す）。ページとして開かれても何も動かないよう sandbox の CSP を付ける
-  app.get("/api/chats/:id/remote-image", withChat, async (c) => {
-    const url = z.string().min(1).max(8192).parse(c.req.query("url"));
-    const image = await remoteImages.image(c.var.chat, url);
-    return c.body(new Uint8Array(image.body), 200, {
-      "content-type": image.contentType,
-      "content-security-policy": "sandbox",
-      "x-content-type-options": "nosniff",
-      "cache-control": "private, max-age=3600",
-    });
+export function chatImageRoutes({ chatParam, remoteImages }: { chatParam: Param<Chat>; remoteImages: RemoteImageService }) {
+  return implement(remoteImagesContract, {
+    context: { chatId: chatParam },
+    "GET /api/chats/:chatId/image-hosts": { run: ({ chatId: chat }) => ({ hosts: remoteImages.hosts(chat.id) }) },
+    "PUT /api/chats/:chatId/image-hosts": {
+      body: z.object({ host: hostSchema }),
+      run: ({ chatId: chat, body }) => ({ hosts: remoteImages.allow(chat, body.host) }),
+    },
+    "DELETE /api/chats/:chatId/image-hosts": {
+      query: z.object({ host: hostSchema }),
+      run: async ({ chatId: chat, query }) => ({ hosts: await remoteImages.revoke(chat, query.host) }),
+    },
+    // ページとして開かれても何も動かないよう sandbox の CSP を付ける（fileResponse）
+    "GET /api/chats/:chatId/remote-image": {
+      query: z.object({ url: z.string().min(1).max(8192) }),
+      run: async ({ chatId: chat, query }) => {
+        const image = await remoteImages.image(chat, query.url);
+        return { bytes: new Uint8Array(image.body), type: image.contentType, cache: "private, max-age=3600" };
+      },
+    },
   });
 }

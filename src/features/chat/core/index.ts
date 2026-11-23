@@ -111,7 +111,7 @@ export interface ChatApi {
   onForget(fn: (chatId: number) => void): void;
   /** 送る指示を受けたとき（本文の user_view はそのまま渡す。形を確かめるのは聞く側。fromHost = この Mac の画面から送った） */
   onUserSend(fn: (chatId: number, extras: { user_view: unknown; fromHost: boolean }) => void): void;
-  /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。database は AI の SQL の CSV、remoteImages は外の画像の覚えを消す） */
+  /** チャットを本当に消したあとの後片付けを足す（上の機能が登録する。AI の SQL の CSV・外の画像の覚えを消すなど） */
   onChatsPurged(fn: (chatIds: number[]) => void | Promise<void>): void;
   /** ルートの :chatId の引き当て（番号でなければ 400・なければ 404「チャットが見つかりません」。ゴミ箱のチャットは見えない） */
   chatParam: Param<Chat>;

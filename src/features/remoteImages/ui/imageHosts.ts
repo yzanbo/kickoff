@@ -1,13 +1,13 @@
 // チャットで外の画像の表示を許可したホスト（チャットごと。コアの DB に覚え、変わったら知らせ chat_image_hosts で入れ替える）
 import { useMemo } from "react";
 import type { ChatImageHost } from "@shared/chat/types";
-import { api } from "@/foundation/ui/api";
+import { remoteImagesApi } from "./api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { forgetRemoteImages } from "./remoteImageCache";
 
 const imageHostsStore = createKeyedStore<number, ChatImageHost[]>({
-  load: (chatId) => api.imageHosts(chatId),
+  load: (chatId) => remoteImagesApi("GET /api/chats/:chatId/image-hosts", { params: { chatId } }).then((r) => r.hosts),
   reduce: { chat_image_hosts: (data, event, chatId) => (event.chat_id === chatId ? event.hosts : data) },
   dropOn: { chat_deleted: (event) => event.id },
 });
@@ -27,11 +27,11 @@ export function useAllowedHosts(chatId: number): ReadonlySet<string> {
 
 /** ホストの表示を許可する（押した「host から画像を n 件表示」） */
 export async function allowImageHost(chatId: number, host: string): Promise<void> {
-  imageHostsStore.set(chatId, await api.allowImageHost(chatId, host));
+  imageHostsStore.set(chatId, (await remoteImagesApi("PUT /api/chats/:chatId/image-hosts", { params: { chatId }, body: { host } })).hosts);
 }
 
 /** 許可を外す（そのホストの画像は出さなくなり、コアの覚えも消える） */
 export async function revokeImageHost(chatId: number, host: string): Promise<void> {
-  imageHostsStore.set(chatId, await api.revokeImageHost(chatId, host));
+  imageHostsStore.set(chatId, (await remoteImagesApi("DELETE /api/chats/:chatId/image-hosts", { params: { chatId }, query: { host } })).hosts);
   forgetRemoteImages(chatId, host);
 }

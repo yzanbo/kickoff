@@ -1,5 +1,5 @@
 // 許可したホストの画像を、画面で使う URL（blob:）にして覚える（流れの窓で行が外れて戻っても読み直さない）。コアもディスクに覚えているので、捨てても取り直しは手元から
-import { api } from "@/foundation/ui/api";
+import { remoteImagesApi } from "./api";
 import { createLruMap } from "@/foundation/ui/lib/lruMap";
 
 /** 覚える画像の数（超えたら、いちばん長く使っていないものから捨てる） */
@@ -19,7 +19,7 @@ export function loadRemoteImage(chatId: number, host: string, url: string): Prom
   const key = keyOf(chatId, url);
   const hit = held.get(key);
   if (hit) return hit.url;
-  const pending = api.remoteImage(chatId, url).then((blob) => URL.createObjectURL(blob));
+  const pending = remoteImagesApi("GET /api/chats/:chatId/remote-image", { params: { chatId }, query: { url } }).then((r) => URL.createObjectURL(r.blob));
   held.set(key, { host, url: pending });
   pending.catch(() => held.peek(key)?.url === pending && held.delete(key));
   return pending;

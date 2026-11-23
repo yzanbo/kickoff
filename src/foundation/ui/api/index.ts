@@ -3,7 +3,6 @@
 // 取り決めから呼ぶ口は client.ts（乗せ替えた機能は ui/api.ts に client(<機能>Contract)）、通信の土台（失敗・クエリの組み立て）は http.ts、SSE の接続は serverConnection.ts（殻で 1 回）、受け取ったイベントを各画面へ配るのは events.ts
 import { approvalsApi } from "@/features/chat/ui/api/approvals";
 import { chatsApi } from "@/features/chat/ui/api/chats";
-import { chatImagesApi } from "@/features/remoteImages/ui/api/chatImages";
 import { filesShared } from "@/features/files/ui/api/files";
 import { gitShared } from "@/features/git/ui/api/git";
 import { githubApi } from "@/features/github/ui/api/github";
@@ -20,7 +19,6 @@ export const api = {
   ...settingsApi,
   ...projectsApi,
   ...chatsApi,
-  ...chatImagesApi,
   ...turnsApi,
   ...groupsApi,
   ...uploadsApi,
