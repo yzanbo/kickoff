@@ -169,6 +169,8 @@ export class DbWorkerClient {
 
   /** 頼む（signal で止める。engine は止め方を決めるのに使う。SQLite はワーカーごと止める） */
   request<M extends WorkerMethod>(method: M, params: WorkerMethods[M]["params"], opts: { signal?: AbortSignal; engine?: DbEngine } = {}): Promise<WorkerMethods[M]["result"]> {
+    // もう止めた頼みは送らない（止めた signal に受け口を付けても呼ばれないので、流れてしまう）
+    if (opts.signal?.aborted) return Promise.reject(new Error("止めました"));
     const channel = this.ensure();
     const id = this.nextId++;
     if (this.idleTimer) clearTimeout(this.idleTimer);

@@ -430,17 +430,17 @@ export class DatabaseService {
     // 承認を待つ間にチャットの作業を止めていたら流さない
     if (input.signal?.aborted) throw new Invalid(TURN_STOPPED);
     const limitMs = input.timeoutMinutes ? input.timeoutMinutes * 60_000 : DB_AI_TIMEOUT_MS;
-    // DB の側にも時間の上限を付ける（ワーカーが落ちても DB の中で流れ続けない）。手元で止める方が先に効くよう少し長く（止めたときの文を「時間切れ」にするため）
-    const target = { ...(await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
-    const session = `ai:${connection.id}:${randomUUID()}`;
     const controller = new AbortController();
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, limitMs);
     const stopTurn = () => controller.abort();
+    const forget = () => input.signal?.removeEventListener("abort", stopTurn);
+    // つなぐ先を組む間（キーチェーンの許可を待つことがある）に止めても流さないよう、待つ前から受ける
     input.signal?.addEventListener("abort", stopTurn, { once: true });
+    // DB の側にも時間の上限を付ける（ワーカーが落ちても DB の中で流れ続けない）。手元で止める方が先に効くよう少し長く（止めたときの文を「時間切れ」にするため）
+    const target = { ...(await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true }).catch((e: unknown) => { forget(); throw e; })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
+    if (controller.signal.aborted) { forget(); throw new Invalid(TURN_STOPPED); }
+    const session = `ai:${connection.id}:${randomUUID()}`;
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, limitMs);
     const started = Date.now();
     // MySQL は DB を名前で指すので、指されたら先に切り替える（同じ接続の中だけ。終わったら閉じる）
     const sql = input.sql;
@@ -460,7 +460,7 @@ export class DatabaseService {
       throw new Invalid(error);
     } finally {
       clearTimeout(timer);
-      input.signal?.removeEventListener("abort", stopTurn);
+      forget();
       if (this.opts.client.running) await this.opts.client.request("close", { session }).catch(() => {});
     }
   }

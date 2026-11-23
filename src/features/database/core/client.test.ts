@@ -126,3 +126,15 @@ test("DB ワーカー: 開いた接続の知らせを覚え、ワーカーが落
   exited("終了コード 1");
   assert.deepEqual(seen, ["a:true", "b:true", "a:false", "b:false"]);
 });
+
+test("DB ワーカー: もう止めた signal の頼みは送らずに失敗する（ワーカーも起こさない）", async () => {
+  const sent: unknown[] = [];
+  let started = 0;
+  const channel: WorkerChannel = { send: (m) => sent.push(m), onMessage: () => {}, onExit: () => {}, kill: () => {} };
+  const client = new DbWorkerClient(() => (started++, channel));
+  const stopped = new AbortController();
+  stopped.abort();
+  await assert.rejects(client.request("query", { session: "s", target: sqliteTarget(), sql: "select 1", max_rows: 1 }, { signal: stopped.signal, engine: "postgres" }), /止めました/);
+  assert.equal(started, 0);
+  assert.deepEqual(sent, []);
+});

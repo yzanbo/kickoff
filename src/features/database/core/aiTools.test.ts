@@ -197,3 +197,31 @@ test("AI の DB のツール: timeout_minutes を付けたら、自由に見せ�
   await assert.rejects(tools.query({ sql: "select 3" }, allow, stopped.signal), /チャットの作業を止めたので、SQL も止めました/);
   assert.equal(store.dbQueryHistory.list(c.id, 10).length, before);
 });
+
+test("AI の DB のツール: キーチェーンの許可を待つ間にチャットを止めたら、SQL を送らず履歴にも残さない", async () => {
+  let asked!: () => void;
+  const waiting = new Promise<void>((r) => (asked = r));
+  let release!: () => void;
+  const released = new Promise<void>((r) => (release = r));
+  // 復号はキーチェーンの許可を待つ（止めるまで返さない）
+  const secretCipher = {
+    encrypt: async (plain: string) => plain,
+    decrypt: async (sealed: string) => {
+      asked();
+      await released;
+      return sealed;
+    },
+  };
+  const { store, project, databases } = setup({ secretCipher });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
+  const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
+  const c = store.dbConnections.create(project.id, body);
+  const stop = new AbortController();
+  const running = tools.query({ sql: "select 1" }, allow, stop.signal);
+  await waiting;
+  stop.abort();
+  release();
+  await assert.rejects(running, /チャットの作業を止めたので、SQL も止めました/);
+  assert.deepEqual(store.dbQueryHistory.list(c.id, 10), []);
+});
