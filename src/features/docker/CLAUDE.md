@@ -6,7 +6,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `core/service.ts`・`core/cli.ts` | compose のサービスを見て操作する（呼び方は `DockerCli`。覚えは `ComposeConfigCache`） |
+| `core/service.ts`・`core/cli.ts` | compose のサービスを見て操作する（呼び方は `DockerCli`。覚えは `ComposeConfigCache`。worktrees には `compose`・`portProbe` だけを出す） |
 | `core/actions.ts`・`core/listing.ts` | 操作のコマンド `planDockerAction`・一覧の見出し（どちらも純粋） |
 | `core/guardFacts.ts`・`core/guard/` | AI の守りが見る様子・守り（`src/features/guard/CLAUDE.md`） |
 | `ui/useDocker.ts` | 状態と操作・「見ています」・取り直し |

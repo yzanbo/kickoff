@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { worktreeSlotLabel, type WorktreePortSlot } from "@shared/worktrees/envTypes";
 import { assignSlots, bandOf, pickBand } from "./bands";
 import { composePortsOf, overrideYaml, portSpec } from "./composeOverride";
-import { commentOutKeys, rewriteEnvPorts, withKickoffBlock, withoutKickoffBlock } from "./envRewrite";
+import { KICKOFF_BLOCK_END, KICKOFF_BLOCK_START, commentOutKeys, mapOutsideBlock, rewriteEnvPorts, withKickoffBlock, withoutKickoffBlock } from "./envRewrite";
 import { browserHostOf, composeProjectNameOf } from "./names";
 import { envSetupPrompt, envSetupTitle } from "./setupPrompt";
 
@@ -107,6 +107,12 @@ test("Kickoff の区切り: 足し直しても 1 つ、中は書き換えない"
   assert.equal(withKickoffBlock("", "h", ["X=1"]), "# >>> Kickoff（h）\nX=1\n# <<< Kickoff\n");
   const inBlock = rewriteEnvPorts("# >>> Kickoff（h）\nDB_PORT=5432\n# <<< Kickoff\nDB_PORT=5432", new Map([[5432, 20101]]));
   assert.equal(inBlock.text, "# >>> Kickoff（h）\nDB_PORT=5432\n# <<< Kickoff\nDB_PORT=20101");
+});
+
+test("mapOutsideBlock: 区切りの外の行だけを書き換え、区切りの始まり・中・終わりの行はそのまま", () => {
+  const text = ["a", `${KICKOFF_BLOCK_START}（x）`, "b", KICKOFF_BLOCK_END, "c"].join("\n");
+  assert.equal(mapOutsideBlock(text, (line) => line.toUpperCase()), ["A", `${KICKOFF_BLOCK_START}（x）`, "b", KICKOFF_BLOCK_END, "C"].join("\n"));
+  assert.equal(withoutKickoffBlock(text), "a\nc");
 });
 
 test("commentOutKeys: 区切りの外の COMPOSE_FILE などをコメントにして、元の値を返す（作り直しても引き継ぐ）", () => {

@@ -5,7 +5,7 @@ import type { GitWorktree } from "@shared/git/types";
 import type { Project } from "@shared/projects/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { ChatRunPort, ChatStoreDeps } from "@/features/chat/core/index";
-import { findComposeFiles } from "@/features/docker/core/index";
+import type { ComposeReader } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
@@ -49,6 +49,8 @@ export interface WorktreeRemoverDeps {
   runner: ChatRunPort;
   moveWorkplace: WorkplaceMoveApi["move"];
   envs: WorktreeEnvService;
+  /** compose のファイルがあるか（「コンテナとデータも消す」で組を共有していたかの見分け） */
+  compose: Pick<ComposeReader, "findFiles">;
   trashBin: TrashApi;
   workplace: Pick<WorkplaceKit, "git" | "projectScopes">;
   mergeChecks: readonly MergeCheck[];
@@ -149,7 +151,7 @@ export class WorktreeRemover {
     const upstream = opts.deleteMergedRemote && facts.merged?.via === "github" && facts.branch ? await this.remoteBranchOf(repo, facts.branch) : null;
     const envBefore = store.worktreeEnvs.get(folder);
     const ownCompose = (envBefore?.compose_names.length ?? 0) > 0;
-    const hasCompose = !target.prunable && findComposeFiles(target.path).length > 0;
+    const hasCompose = !target.prunable && this.deps.compose.findFiles(target.path).length > 0;
     const moved = users.flatMap((u) => store.chats.inWorktree(u.projectId, u.path));
     // そこで作業していたチャットを本体に戻す。作業フォルダが変わるので、作業場所を移すのと同じく会話を新しいセッションに写して区切りを置く
     // （区切りの 1 行と AI への知らせに、片付けたことと控えに入れたかを書く）。ゴミ箱のチャットは付け替えるだけ

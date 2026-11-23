@@ -12,14 +12,14 @@ import { realPathOrSelf } from "@/foundation/core/system/paths";
 import type { StreamedCommand } from "@/foundation/core/system/stream";
 import { planDockerAction, startedServices, type DockerStep } from "./actions";
 import { DockerCli, shellWord } from "./cli";
-import { ComposeConfigCache, findComposeFiles, upFilesFor, type ComposeRead } from "./compose";
+import { ComposeConfigCache, composeReader, findComposeFiles, upFilesFor, type ComposeReader } from "./compose";
 import { dockerDbCandidate, type DockerDbCandidate } from "@/features/database/core/import/dockerTarget";
 import { DockerEvents } from "./events";
 import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing";
 import { DOCKER_LOG_TAIL, readLog } from "./logs";
 import { PS_FORMAT, parsePs, type RawContainer } from "./parse";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict";
-import { DockerPorts } from "./ports";
+import { DockerPorts, type PortProbe } from "./ports";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { DockerEngineStarters } from "./engine";
 
@@ -57,6 +57,10 @@ export class DockerService {
   private readonly failures = new Map<string, DockerFailure>();
   /** 静かなぶつかりを調べる口（テストでは probe を差し替える） */
   readonly ports: DockerPorts;
+  /** compose の口（ワークツリーの実行環境と後始末が読む） */
+  readonly compose: ComposeReader;
+  /** 待っているソケット（ワークツリーの実行環境が空いている帯を選ぶ。テストの差し替えは ports.probe のまま） */
+  readonly portProbe: Pick<PortProbe, "listeningSockets"> = { listeningSockets: () => this.ports.probe.listeningSockets() };
 
   constructor(
     private readonly bus: Bus,
@@ -67,6 +71,7 @@ export class DockerService {
     this.ports = new DockerPorts(host.listeningSockets);
     this.cli = cli;
     this.configs = new ComposeConfigCache(cli);
+    this.compose = composeReader(this.configs, cli);
     this.events = new DockerEvents(cli, (projectIds) => projectIds.forEach((id) => this.changed(id)));
   }
 
@@ -79,11 +84,6 @@ export class DockerService {
     const list = await this.list(project);
     this.events.lease(project.id);
     return list;
-  }
-
-  /** compose の設定を聞く（覚えた答えを使う。ワークツリーの実行環境が、公開ポートと組の名前を読む） */
-  readCompose(files: string[]): Promise<ComposeRead> {
-    return this.configs.read(files, false);
   }
 
   /** ［↻］: 覚えた compose の設定を捨てて取り直す */

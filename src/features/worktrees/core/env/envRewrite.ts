@@ -1,10 +1,10 @@
 // ワークツリーに写した .env の書き換え（純粋な関数）: 接続先のポートを帯の番号にし、後ろに Kickoff の区切りを足す
-import { isLocalHost } from "@shared/database/dbServer";
+import { parseEnvLine, unquoteEnv } from "@shared/foundation/envFile";
+import { isLocalHost } from "@shared/foundation/net";
 
 export const KICKOFF_BLOCK_START = "# >>> Kickoff";
 export const KICKOFF_BLOCK_END = "# <<< Kickoff";
 
-const LINE = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_.-]*)(\s*=\s*)(.*)$/;
 /** URL の中の「スキーム://（ユーザー@）ホスト:ポート」 */
 const URL_PORT = /([a-z][a-z0-9+.-]*:\/\/)((?:[^\s@/"'#?]*@)?)(\[[0-9a-fA-F:.]+\]|[A-Za-z0-9._-]+):(\d{1,5})(?=[/?#"'\s,;]|$)/gi;
 /** 名前が _PORT で終わる変数の値（囲み・行末のコメントがあってもよい） */
@@ -12,16 +12,29 @@ const PORT_VALUE = /^(["']?)(\d{1,5})\1(\s+#.*)?\s*$/;
 
 const hostOf = (raw: string) => raw.replace(/^\[|\]$/g, "");
 
-/** Kickoff の区切り（前に書いたもの）を外す */
-export function withoutKickoffBlock(text: string): string {
-  const out: string[] = [];
+/** 行ごとに Kickoff の区切りの中か（始まりと終わりの行も中）を付けて fn を呼び、返した行（null は落とす）でつなぎ直す */
+function mapLines(text: string, fn: (line: string, inside: boolean) => string | null): string {
   let inside = false;
+  const out: string[] = [];
   for (const line of text.split("\n")) {
-    if (line.startsWith(KICKOFF_BLOCK_START)) inside = true;
-    else if (inside && line.startsWith(KICKOFF_BLOCK_END)) inside = false;
-    else if (!inside) out.push(line);
+    const start = line.startsWith(KICKOFF_BLOCK_START);
+    const end = !start && inside && line.startsWith(KICKOFF_BLOCK_END);
+    if (start) inside = true;
+    const mapped = fn(line, inside);
+    if (end) inside = false;
+    if (mapped !== null) out.push(mapped);
   }
   return out.join("\n");
+}
+
+/** Kickoff の区切りの外の行だけを fn で書き換える（区切りの中はそのまま） */
+export function mapOutsideBlock(text: string, fn: (line: string) => string): string {
+  return mapLines(text, (line, inside) => (inside ? line : fn(line)));
+}
+
+/** Kickoff の区切り（前に書いたもの）を外す */
+export function withoutKickoffBlock(text: string): string {
+  return mapLines(text, (line, inside) => (inside ? null : line));
 }
 
 /** 後ろに Kickoff の区切りを足す（前の区切りは外してから。終わりは改行 1 つ） */
@@ -50,13 +63,10 @@ export function rewriteEnvPorts(text: string, portMap: ReadonlyMap<number, numbe
   const leftovers: string[] = [];
   const localUrls: string[] = [];
   const bandPorts = new Set(portMap.values());
-  let inside = false;
-  const lines = text.split("\n").map((line) => {
-    if (line.startsWith(KICKOFF_BLOCK_START)) inside = true;
-    else if (inside && line.startsWith(KICKOFF_BLOCK_END)) inside = false;
-    const m = inside ? null : LINE.exec(line);
+  const out = mapOutsideBlock(text, (line) => {
+    const m = parseEnvLine(line);
     if (!m) return line;
-    const [, head, key, eq, raw] = m;
+    const { head, key, eq, value: raw } = m;
     let value = raw;
     if (/_PORT$/i.test(key)) {
       const pm = PORT_VALUE.exec(value);
@@ -84,7 +94,7 @@ export function rewriteEnvPorts(text: string, portMap: ReadonlyMap<number, numbe
     }
     return `${head}${key}${eq}${value}`;
   });
-  return { text: lines.join("\n"), rewritten, leftovers, localUrls };
+  return { text: out, rewritten, leftovers, localUrls };
 }
 
 /** コメントにした行の終わりの印 */
@@ -96,17 +106,13 @@ const COMMENTED_MARK = "  # Kickoff が下の区切りで決め直していま�
  */
 export function commentOutKeys(text: string, keys: readonly string[]): { text: string; values: Map<string, string> } {
   const values = new Map<string, string>();
-  let inside = false;
-  const lines = text.split("\n").map((line) => {
-    if (line.startsWith(KICKOFF_BLOCK_START)) inside = true;
-    else if (inside && line.startsWith(KICKOFF_BLOCK_END)) inside = false;
-    if (inside) return line;
+  const out = mapOutsideBlock(text, (line) => {
     // 前にコメントにした行（作り直すときも、元の値を引き継ぐ）
-    const done = line.startsWith("# ") && line.endsWith(COMMENTED_MARK) ? LINE.exec(line.slice(2, -COMMENTED_MARK.length)) : null;
-    const m = done ?? LINE.exec(line);
-    if (!m || !keys.includes(m[2])) return line;
-    values.set(m[2], m[4].replace(/\s+#.*$/, "").trim().replace(/^(['"])(.*)\1$/, "$2"));
+    const done = line.startsWith("# ") && line.endsWith(COMMENTED_MARK) ? parseEnvLine(line.slice(2, -COMMENTED_MARK.length)) : null;
+    const m = done ?? parseEnvLine(line);
+    if (!m || !keys.includes(m.key)) return line;
+    values.set(m.key, unquoteEnv(m.value.replace(/\s+#.*$/, "").trim()));
     return done ? line : `# ${line.trim()}${COMMENTED_MARK}`;
   });
-  return { text: lines.join("\n"), values };
+  return { text: out, values };
 }

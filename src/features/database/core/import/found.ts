@@ -1,5 +1,5 @@
 import path from "node:path";
-import { isLocalHost } from "@shared/database/dbServer";
+import { isLocalHost } from "@shared/foundation/net";
 import { parseDbUrl, type ParsedDbUrl } from "@shared/database/dbUrl";
 import { DB_CONNECTION_NAME_MAX, type DbEngine, type DbEnvironment, type DbImportCandidate } from "@shared/database/types";
 import { expandHome, realPathLoose } from "@/foundation/core/system/paths";

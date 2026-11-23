@@ -2,6 +2,7 @@
 // 作業場所への振り分け・override と COMPOSE_FILE の選び方（テストは parse.test.ts）
 import path from "node:path";
 import type { DockerContainerState, DockerMark, DockerPort } from "@shared/docker/types";
+import { composeFileList, readEnvVars } from "@shared/foundation/envFile";
 
 /** docker ps の 1 行（必要なラベルだけをテンプレートで取り出したもの） */
 export interface RawContainer {
@@ -172,19 +173,10 @@ export function overrideNamesFor(file: string): string[] {
 
 /** .env の中身から COMPOSE_FILE の並び（絶対パス）を読み、見つけたファイルがその中にあれば返す（なければ null） */
 export function composeFilesFromEnv(envText: string, file: string): string[] | null {
-  const vars = new Map<string, string>();
-  for (const raw of envText.split("\n")) {
-    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(raw);
-    if (!m) continue;
-    vars.set(m[1], m[2].replace(/^(['"])(.*)\1$/, "$2"));
-  }
-  const list = vars.get("COMPOSE_FILE");
+  const list = composeFileList(readEnvVars(envText));
   if (!list) return null;
   const dir = path.dirname(file);
-  const files = list
-    .split(vars.get("COMPOSE_PATH_SEPARATOR") || ":")
-    .filter(Boolean)
-    .map((f) => path.resolve(dir, f));
+  const files = list.map((f) => path.resolve(dir, f));
   return files.includes(file) ? files : null;
 }
 

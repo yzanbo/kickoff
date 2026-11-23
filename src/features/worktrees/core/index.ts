@@ -33,7 +33,8 @@ export interface WorktreesDeps {
   projects: Pick<ProjectsApi, "param">;
   /** ブランチの名前の案を AI に聞く */
   ai: AiApi;
-  docker: DockerService;
+  /** compose の口と待っているソケット（実行環境・後始末） */
+  docker: Pick<DockerService, "compose" | "portProbe">;
   /** 作業中か・送信待ち・作業場所を移す・実行に足すもの（PORT）を登録する */
   chat: { runner: ChatRunPort; store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "trash">; addTurnContributor(c: TurnContributor): void };
   /** 片付けたワークツリーのチャットを本体へ移す */
@@ -77,7 +78,7 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps): CoreFeature<Wor
   // 消す（消す前の確かめ・控え（ゴミ箱に 3 日）・チャットを本体へ・実行環境を空ける）と、AI の後始末（ワークツリー自身のチャットからは予約）
   const worktreeEvents = createWorktreeEvents();
   const mergeChecks: MergeCheck[] = [];
-  const remover = new WorktreeRemover({ store: { ...stores, projects, chats, trash }, runner: deps.chat.runner, moveWorkplace: deps.workplaceMove.move, envs, trashBin: deps.trash, workplace: k.workplace, mergeChecks, events: worktreeEvents });
+  const remover = new WorktreeRemover({ store: { ...stores, projects, chats, trash }, runner: deps.chat.runner, moveWorkplace: deps.workplaceMove.move, envs, compose: deps.docker.compose, trashBin: deps.trash, workplace: k.workplace, mergeChecks, events: worktreeEvents });
   const aiFinish = new AiWorktreeFinish({ store: { projects, chats, events }, runner: deps.chat.runner, remover });
   // ゴミ箱から戻す: 同じ名前でワークツリーを作り直し、ブランチと途中の変更を戻す。3 日たったら控えの参照を消す
   registerWorktreeTrash(deps.trash, { projects, create, events: worktreeEvents });

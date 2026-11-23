@@ -63,6 +63,18 @@ export function upFilesFor(file: string): string[] {
   return override ? [file, override] : [file];
 }
 
+/** compose の口（ワークツリーの実行環境と後始末が、Docker の機能の入口から読む） */
+export interface ComposeReader {
+  /** 設定を聞く（覚えた答えを使う） */
+  read(files: string[]): Promise<ComposeRead>;
+  /** 組の名前で片付ける（volumes ならデータも消す） */
+  down(project: string, opts: { volumes: boolean; cwd: string }): Promise<void>;
+  findFiles(dir: string): string[];
+  upFilesFor(file: string): string[];
+  /** 決まった名前の compose か（override を重ねる・2 段下まで探す名前） */
+  isStandardName(file: string): boolean;
+}
+
 /** 読んだ設定（読めなければ error） */
 export interface ComposeRead {
   config: ComposeConfig | null;
@@ -123,4 +135,15 @@ export class ComposeConfigCache {
       return { config: null, error: message.split("\n").slice(-6).join("\n").trim(), hashes: null, doc: null };
     }
   }
+}
+
+/** compose の口の中身（設定は覚えた答えを使う。片付けは組の名前で / から流す） */
+export function composeReader(configs: ComposeConfigCache, cli: DockerCli): ComposeReader {
+  return {
+    read: (files) => configs.read(files, false),
+    down: async (name, { volumes, cwd }) => void (await cli.run(["compose", "-p", name, "down", ...(volumes ? ["-v"] : []), "--remove-orphans"], { cwd, timeout: 120_000 })),
+    findFiles: findComposeFiles,
+    upFilesFor,
+    isStandardName: (file) => (STANDARD_COMPOSE_NAMES as readonly string[]).includes(path.basename(file)),
+  };
 }
