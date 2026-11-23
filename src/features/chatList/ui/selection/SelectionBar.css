@@ -1,0 +1,51 @@
+/* ==== 複数選んだチャット・カードをまとめて操作する欄（SelectionBar。サイドバーの一覧の下・ボードの下の真ん中に浮かせる .board-selection） ==== */
+@layer feature {
+  /* 複数選んだチャットをまとめて操作する欄（一覧の下、下の行の上） */
+
+  .selection-bar {
+    display: grid;
+    flex: none;
+    gap: 6px;
+    padding: 8px var(--gutter);
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  .selection-bar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--fs-12);
+  }
+
+  .selection-bar-count {
+    font-weight: 600;
+  }
+
+  /* link-button の font: inherit より強くするため、同じ要素に付く class を連結して詳細度を上げる */
+
+  .link-button.selection-bar-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--fs-11);
+  }
+
+  .selection-bar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .selection-bar .selection-bar-delete:hover:not(:disabled) {
+    color: var(--ng);
+  }
+
+  /* ボードの下に浮かせるとき（置き場所は board/board.css の .board-selection） */
+
+  .board-selection .selection-bar {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+  }
+}

@@ -36,7 +36,7 @@
 
 /*
  * 右の欄の根（パネルの根。外側の欄の .board-panel の規則が効かないよう別の名前）。メインとの境目に左の 1 本線。
- * 開閉は ui/types/slide-pane.css（幅は .chat-split の格子の列。閉じたら閉じ終えてから隠す）。
+ * 開閉は styles/types/slide-pane.css（幅は .chat-split の格子の列。閉じたら閉じ終えてから隠す）。
  * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--agents-shown から左の線の分を引く）のまま左端にそろえて置き、
  * 右の欄の枠で切り取る（右から滑り込んでくる）
  */
@@ -67,7 +67,7 @@
   width: auto;
 }
 
-/* 左端のつまみ: ドラッグしている間も、乗せたときと同じ青い線を出す（base/layout.css の .panel-resizer:hover と同じ） */
+/* 左端のつまみ: ドラッグしている間も、乗せたときと同じ青い線を出す（foundation/ui/styles/layout.css の .panel-resizer:hover と同じ） */
 .chat-split.resizing > .agent-panel > .panel-resizer {
   background: linear-gradient(var(--info), var(--info)) left / 2px 100% no-repeat;
 }

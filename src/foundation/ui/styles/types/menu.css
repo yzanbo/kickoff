@@ -1,0 +1,174 @@
+/* ==== 右クリック・「…」のメニュー ==== */
+/* メニューの中の見出し（新しいチャットの作成先・タブの列の＋のターミナル） */
+
+.menu-label {
+  padding: 6px 10px 4px;
+  font-size: var(--fs-11);
+  color: var(--muted);
+}
+
+/* メニュー全体の題名（「チャット画面表示」。下の組の見出し .menu-label より一段上に見えるよう、本文の色の太字にする） */
+
+.menu-label.menu-title {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/*
+ * 右クリックメニュー（PopupMenu）。popover で top layer に出すので、ブラウザの既定（真ん中に置く・はみ出しのスクロール・文字の色）を消す。
+ * 位置は画面が自分の大きさを測ってから left / top で与える（useFloating。測るまでは左上に置いて、幅を狭めずに測る）。項目が多くて
+ * 画面の高さに入らないメニューは、画面の高さに収めて中でスクロールする（横に開く子のメニューも top layer なので、親のスクロールで切れない）
+ */
+
+.menu {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: var(--z-menu);
+  display: grid;
+  min-width: 200px;
+  margin: 0;
+  padding: 4px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  color: inherit;
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--fs-13);
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+/* 押せない項目（MenuItem の disabled。理由は乗せたときの説明に） */
+
+.menu button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* ↑↓ で移った項目は、乗せたときと同じ地の色で示す（ボタンの共通のピントの枠は出さない）。メニューそのもの（開いた直後のピント）にも枠を出さない */
+
+.menu:focus,
+:where(:root:not([data-modality="pointer"])) .menu button:focus-visible {
+  outline: none;
+}
+
+:where(:root:not([data-modality="pointer"])) .menu button:focus-visible {
+  background: var(--bg-hover);
+}
+
+.menu button.danger {
+  color: var(--ng);
+}
+
+/* メニューの項目をまとめて出す部品の入れ物（チャットの項目・チャットの画面の表示。並びはメニューの grid のまま） */
+
+.menu-items {
+  display: contents;
+}
+
+/* 横に子のメニューを開く項目（useSubmenu。「プロジェクトを変更」など）: 右端に › を出す。横に開いている間は、乗せたときと同じ色のまま */
+
+.menu .menu-submenu-chevron {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.menu .menu-submenu.open {
+  background: var(--bg-hover);
+}
+
+/* 子のメニューを開く項目の右に添える、いまの様子（「表示するグループ」の「2 件を隠し中」など） */
+
+.menu .menu-submenu-note {
+  margin-left: auto;
+  font-size: var(--fs-11);
+  color: var(--extra-muted);
+}
+
+.menu .menu-submenu-note + .menu-submenu-chevron {
+  margin-left: 6px;
+}
+
+/* 「プロジェクトを変更」の横に開く一覧（ProjectPickFlyout: 検索欄・新規プロジェクト・一覧） */
+
+.project-pick {
+  width: 280px;
+  min-width: 0;
+}
+
+.menu .project-pick-search {
+  padding: 8px 10px 10px;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  font-size: var(--fs-13);
+  background: transparent;
+}
+
+.menu .project-pick-search:focus {
+  outline: none;
+}
+
+.project-pick-list {
+  display: grid;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+}
+
+.project-pick-check {
+  flex: none;
+  color: var(--accent);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-strong);
+}
+
+/*
+ * ドラッグで並べ替えられる項目（「見出しに出す項目」）: 左のつまみの印は乗せたときだけ濃く、動かしている項目は薄く、
+ * 落とす先の前・後ろの隙間にまっすぐな線（落としても並びが変わらない所には出さない。useHeaderItemDrag）
+ */
+
+.menu button[draggable="true"] {
+  --drop-radius: 1px;
+  --drop-glow: none;
+  --drop-anim: none;
+  --drop-z: auto;
+
+  position: relative;
+}
+
+.menu-grip {
+  flex: none;
+  margin: 0 -4px 0 -6px;
+  color: var(--extra-muted);
+  cursor: grab;
+}
+
+.menu button:hover > .menu-grip {
+  color: var(--muted);
+}
+
+/* 並べ替えない項目（まとまりに 1 つだけ）は、印を出さずに幅だけ空けて、ほかの項目と文字の位置をそろえる */
+
+.menu-grip.space {
+  visibility: hidden;
+}
+

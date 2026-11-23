@@ -1,0 +1,44 @@
+/*
+ * ビューのタブ（.view-tab。サイドバーのビュー・ボードの保存したビュー）: 高さ 24px・小さい角・灰の文字。乗せると地、選んでいる（.active）は枠と地。
+ * 横の余白は --view-tab-pad。並べ替えの線（ui/state.css）はタブの間の隙間に縦に引く
+ */
+@property --view-tab-pad { syntax: "*"; inherits: false; }
+
+.view-tab {
+  --drop-offset: -3px;
+  --drop-inset: 0;
+  --drop-radius: 1px;
+  --drop-glow: none;
+  --drop-anim: none;
+  --drop-z: auto;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: var(--view-tab-pad, 0 8px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-12);
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.view-tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.view-tab.active {
+  border-color: var(--border-strong);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.view-tab[data-drop] {
+  position: relative;
+}
+

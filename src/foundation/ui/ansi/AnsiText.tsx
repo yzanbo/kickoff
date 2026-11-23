@@ -1,3 +1,4 @@
+import "./AnsiText.css";
 import type { CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { MarkedSpan } from "./ansi";

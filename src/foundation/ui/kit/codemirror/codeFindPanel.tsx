@@ -1,3 +1,4 @@
+import "./codeFind.unlayered.css";
 import { closeSearchPanel, findNext, findPrevious, getSearchQuery, replaceAll, replaceNext, SearchQuery, setSearchQuery } from "@codemirror/search";
 import type { EditorState } from "@codemirror/state";
 import { runScopeHandlers, type EditorView, type Panel, type ViewUpdate } from "@codemirror/view";

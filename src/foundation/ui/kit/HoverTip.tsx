@@ -1,3 +1,4 @@
+import "./HoverTip.css";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { placeFloating } from "@/foundation/ui/lib/floating";

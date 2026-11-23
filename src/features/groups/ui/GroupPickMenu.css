@@ -1,0 +1,11 @@
+/* ==== グループを選ぶメニュー（GroupPickMenu） ==== */
+@layer feature {
+  .group-pick-menu {
+    min-width: 200px;
+  }
+
+  .group-pick-menu .muted-item {
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+}

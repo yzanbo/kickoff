@@ -35,7 +35,7 @@
   overflow: clip;
 }
 
-/* タブの形は ui/types/view-tab.css（字は入れ物から受け継ぐので、選んでいるタブの太さもここで） */
+/* タブの形は styles/types/view-tab.css（字は入れ物から受け継ぐので、選んでいるタブの太さもここで） */
 .sidebar-view-tab {
   flex: none;
   max-width: 100%;

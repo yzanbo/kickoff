@@ -1,0 +1,27 @@
+/* ==== メニューの項目の名前・説明と、右に添える札 ==== */
+@layer ui {
+  /* 選択肢の名前（ChoiceMenu。広がって ✓ を右端へ押す）と、名前の下の説明（チャット欄のモデルなど） */
+
+  .menu-item-label,
+  .menu-item-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .menu-item-label,
+  .menu-item-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .menu-item-text {
+    display: grid;
+    gap: 1px;
+  }
+
+  .menu-item-desc {
+    font-size: var(--fs-11);
+    color: var(--muted);
+  }
+}

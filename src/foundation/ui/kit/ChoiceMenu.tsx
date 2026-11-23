@@ -1,3 +1,4 @@
+import "./ChoiceMenu.css";
 import type { LucideIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import type { Placement } from "@/foundation/ui/lib/floating";

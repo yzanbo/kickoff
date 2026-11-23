@@ -82,7 +82,7 @@ button.chat-row {
   position: relative;
 }
 
-/* チャットの行のドラッグでの並べ替え（手動の並び）の入る位置の線は ui/state.css の既定の形（data-drop） */
+/* チャットの行のドラッグでの並べ替え（手動の並び）の入る位置の線は styles/state.css の既定の形（data-drop） */
 
 /* 子チャットの行を先祖の行に重ねたとき（その子に上げる）: 行（子の行を除いた自分の行）を点線の枠で囲む（グループの落とし先と同じ見た目） */
 .chat-row-item[data-drop="into"] > .chat-row {
@@ -118,7 +118,7 @@ button.chat-row {
 }
 
 /*
- * 開いているチャットの行（色は --bg-row-active。base/tokens.css）。乗せている間・メニューを開いている間も、
+ * 開いているチャットの行（色は --bg-row-active。foundation/ui/styles/tokens.css）。乗せている間・メニューを開いている間も、
  * 乗せたときの地（--bg-elev）に戻さずこの地のまま（開いている行がどれか分からなくならないように）
  */
 .chat-row.active,

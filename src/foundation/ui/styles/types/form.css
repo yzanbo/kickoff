@@ -1,0 +1,97 @@
+/* ==== フォーム（ボタンは ui/types/button.css） ==== */
+input[type="text"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+}
+
+textarea {
+  resize: vertical;
+}
+
+/*
+ * 選択欄: 既定の ▾ は右端に詰まって左右の余白がそろわないので、▾ は自前で描き、その分だけ右を空ける
+ * （左の余白と ▾ の外側の余白をそろえる）。開いたときの一覧は OS のまま。小さい選択欄は ▾ の位置と右の余白だけを詰める
+ */
+
+select {
+  appearance: none;
+  padding-right: 30px;
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  cursor: pointer;
+}
+
+select:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  max-width: 520px;
+  margin-bottom: 28px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.field-label {
+  font-weight: 500;
+}
+
+.field-help {
+  font-size: var(--fs-12);
+  color: var(--muted);
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.check input {
+  margin-top: 4px;
+}
+
+.check > span {
+  display: grid;
+  gap: 2px;
+}
+
+.badge {
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-11);
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+

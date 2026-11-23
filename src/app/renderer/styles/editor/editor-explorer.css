@@ -14,7 +14,7 @@
   background: var(--info);
 }
 
-/* ファイル・変更・履歴・ノートの木は土台の TreeView（線と貼り付けは ui/types/tree.css） */
+/* ファイル・変更・履歴・ノートの木は土台の TreeView（線と貼り付けは styles/types/tree.css） */
 .files-pane > .tree-view {
   padding: 4px 0 8px;
 }
@@ -35,7 +35,7 @@
  * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 開いたフォルダの中身の段に、
  * 親のフォルダの開閉の矢印の下から縦の線を引く。一覧にマウスを乗せている間だけ全部を薄く出し、選んでいる行・ピントのある行の親の段
  * （その行が開いたフォルダなら、その中身の段）の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40% の
- * tree.inactiveIndentGuidesStroke）。検索の結果のファイルの中の行（.code-search-lines。木の行は ui/types/tree.css）
+ * tree.inactiveIndentGuidesStroke）。検索の結果のファイルの中の行（.code-search-lines。木の行は styles/types/tree.css）
  */
 .code-search-lines {
   position: relative;

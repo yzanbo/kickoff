@@ -1,0 +1,6 @@
+/* 一覧の中の空の文（.empty-note。「なし」「一致するものはありません」など）: 小さい灰の文字。余白は使う所のクラスで決める。画面全体の空は .empty-state（EmptyState） */
+.empty-note {
+  font-size: var(--fs-12);
+  color: var(--muted);
+}
+

@@ -1,0 +1,20 @@
+/*
+ * カード（枠と角と地の面。設定の状態・会話の中の承認や結果・ダイアログの中のまとまり）: 枠の色は --card-tone（既定は --border）、
+ * 地は --card-bg（既定は --bg-elev）、角は --card-radius、余白は --card-pad（.card だけなら 14px 16px）。並べ方は使う所のクラスで決める。
+ * 変数は受け継がない（カードの中のカードに外の色が移らない）
+ */
+@property --card-tone { syntax: "*"; inherits: false; }
+
+@property --card-bg { syntax: "*"; inherits: false; }
+
+@property --card-radius { syntax: "*"; inherits: false; }
+
+@property --card-pad { syntax: "*"; inherits: false; }
+
+.card {
+  padding: var(--card-pad, 14px 16px);
+  border: 1px solid var(--card-tone, var(--border));
+  border-radius: var(--card-radius, var(--radius));
+  background: var(--card-bg, var(--bg-elev));
+}
+

@@ -1,3 +1,4 @@
+import "./FindField.css";
 import { CaseSensitive, Regex, WholeWord } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

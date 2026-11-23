@@ -1,3 +1,4 @@
+import "./TabbedDialog.css";
 import type { LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

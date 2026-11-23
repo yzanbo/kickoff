@@ -1,3 +1,4 @@
+import "./NewProjectNoteDirField.css";
 import { projectNoteFolder } from "@shared/notes/names";
 import { useQuery } from "@/foundation/ui/query";
 import { useProjects, type NewProjectNoteFieldProps } from "@/features/projects/ui";

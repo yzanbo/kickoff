@@ -112,7 +112,7 @@ function useStickyScroll(box: RefObject<HTMLElement | null>, on: boolean) {
 /**
  * 木を描く（状態と操作は useTree）。rowHeight を渡すと固定の高さの窓で見えている行だけを描く（渡さなければすべて）。
  * 行は --depth（段）を持つ。renderRow が行の中身（名前を変えている行は state.nameField を名前の代わりに置く）、trailing が行の右の飾り、rowProps が行の属性。
- * 縦の線は行ごとに段の数だけ描き、選んだ行（--guide-sel）・ピントのある行（--guide-focus）の段の線を濃くする（ui/types/tree.css）。
+ * 縦の線は行ごとに段の数だけ描き、選んだ行（--guide-sel）・ピントのある行（--guide-focus）の段の線を濃くする（styles/types/tree.css）。
  * sticky なら開いたフォルダの行を、中身を流している間だけ上に段の順に積む（rowHeight とは一緒に使わない。行の高さは CSS の --tree-row-height）
  */
 export function TreeView<K, N extends TreeNode<K>>({

@@ -178,7 +178,7 @@
   padding-top: 4px;
 }
 
-/* タグのドラッグでの並べ替え（ビューのタブと同じく、入る位置に縦の線（ui/state.css）・動かしているタグは薄く） */
+/* タグのドラッグでの並べ替え（ビューのタブと同じく、入る位置に縦の線（styles/state.css）・動かしているタグは薄く） */
 .tag-filter-pill {
   --drop-offset: -4px;
   --drop-inset: 0;

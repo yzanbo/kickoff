@@ -1,3 +1,4 @@
+import "./dragGhost.css";
 import { createPortal } from "react-dom";
 import { Ban } from "lucide-react";
 import { createCell, useCell } from "@/foundation/ui/store";

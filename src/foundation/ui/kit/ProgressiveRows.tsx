@@ -1,3 +1,4 @@
+import "./ProgressiveRows.css";
 import type { CSSProperties, ReactNode } from "react";
 import { useProgressiveRows } from "@/foundation/ui/hooks/useProgressiveRows";
 

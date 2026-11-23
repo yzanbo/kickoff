@@ -1,3 +1,4 @@
+import "./OpenWithMenu.css";
 import type { LucideIcon } from "lucide-react";
 import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";

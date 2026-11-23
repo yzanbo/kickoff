@@ -1,0 +1,24 @@
+/* ==== ウィンドウの左上の操作（サイドバーの開閉・画面移動） ==== */
+@layer feature {
+  /* ウィンドウ全体の画面移動。見出しの表示設定・欄の最大表示とは独立して常に残す */
+
+  .navigation-buttons {
+    position: fixed;
+    top: 8px;
+    left: var(--app-navigation-left);
+    z-index: var(--z-chrome);
+    display: flex;
+    gap: 2px;
+    -webkit-app-region: no-drag;
+  }
+
+  .navigation-buttons .icon-button {
+    -webkit-app-region: no-drag;
+  }
+
+  @media (max-width: 720px) {
+    .navigation-buttons {
+      top: max(8px, env(safe-area-inset-top));
+    }
+  }
+}

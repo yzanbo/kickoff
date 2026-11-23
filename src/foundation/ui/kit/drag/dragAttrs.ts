@@ -3,7 +3,7 @@ import type { DropSide } from "@/foundation/ui/lib/moveInList";
 /** 入る位置の印（before / after は線、into は中へ入れる枠、end は入りきらない物を入れた ▾ の枠） */
 export type DropMark = DropSide | "into" | "end";
 
-/** 並べ替える物に付ける属性（見た目は styles/ui/state.css。ない印は付けない） */
+/** 並べ替える物に付ける属性（見た目は styles/state.css。ない印は付けない） */
 export interface DragAttrs {
   "data-drop"?: DropMark;
   /** 縦の線（横に並んだ物）。入る位置があるときだけ */

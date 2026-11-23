@@ -1,0 +1,33 @@
+/* ==== 小さな切り替えの組（Segmented の look="toggle"・ToggleButtons） ==== */
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: none;
+  font: inherit;
+  font-size: var(--fs-11);
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.view-toggle button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* それぞれをオン・オフする組（ToggleButtons。role="group"）は、両方オンでも 1 つのボタンに見えないよう、間を画面の地の色で区切る（--border はオンの地と見分けられない） */
+
+.view-toggle[role="group"] button + button {
+  border-left: 2px solid var(--bg);
+}
+

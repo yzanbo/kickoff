@@ -1,3 +1,4 @@
+import "./WorktreePicker.css";
 import { GitBranch } from "lucide-react";
 import { useEffect } from "react";
 import type { GitWorktree } from "@shared/git/types";

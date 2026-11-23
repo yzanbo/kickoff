@@ -1,3 +1,4 @@
+import "./BasicInfo.css";
 import type { CSSProperties } from "react";
 import { PROJECT_HUES } from "@shared/projects/colors";
 import type { Project } from "@shared/projects/types";

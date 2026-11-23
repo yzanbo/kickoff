@@ -1,0 +1,20 @@
+/* ==== アプリ全体の確認・入力のダイアログの入力欄と「覚える」（AskHost） ==== */
+@layer ui {
+  /* 何行も書ける入力（promptDialog の multiline）: 書いた分だけ伸び、画面の 4 割を超えたら中でスクロール */
+
+  .app-dialog-textarea {
+    field-sizing: content;
+    min-height: calc(3lh + 16px);
+    max-height: 40vh;
+    resize: none;
+    line-height: 1.6;
+  }
+
+  /* 「次からはこれにする」のチェック（選択肢のボタンの上） */
+
+  .app-dialog-remember {
+    margin-top: 12px;
+    font-size: var(--fs-12);
+    color: var(--muted);
+  }
+}

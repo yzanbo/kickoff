@@ -1,3 +1,4 @@
+import "./dragGhost.css";
 import type { DragEvent } from "react";
 
 /**
@@ -23,7 +24,7 @@ function blankImage(): HTMLImageElement {
   return blank;
 }
 
-/** 動かしている物の印（styles/ui/state.css で薄くする。React が付けない物にも付き、ドラッグ中に描き直されても消えない） */
+/** 動かしている物の印（styles/state.css で薄くする。React が付けない物にも付き、ドラッグ中に描き直されても消えない） */
 const SOURCE_ATTR = "data-drag-source";
 
 /** 写しから外す、その場の様子のクラス（選んでいる・落とし先の印）と属性（動かしている・入る位置の線。state.css と合わせる） */

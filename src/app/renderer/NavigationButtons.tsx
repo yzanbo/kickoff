@@ -1,3 +1,4 @@
+import "./NavigationButtons.css";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { useCommandKeys } from "@/foundation/ui/commands";

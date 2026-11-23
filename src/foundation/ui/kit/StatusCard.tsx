@@ -1,3 +1,4 @@
+import "./StatusCard.css";
 import type { ReactNode } from "react";
 import { StatusDot, toneOf } from "./StatusDot";
 

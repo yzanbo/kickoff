@@ -57,7 +57,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
   const split = leaves.length > 1;
-  // 開閉で幅が動く欄（ui/types/slide-pane.css。画面そのものとして置くときは動かさない）
+  // 開閉で幅が動く欄（styles/types/slide-pane.css。画面そのものとして置くときは動かさない）
   const slide = rules.slide === true && !frame?.fixed;
   const { panes, sashes } = layoutRects(layout.root);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）

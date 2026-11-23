@@ -1,3 +1,4 @@
+import "./ListDetail.css";
 import type { ReactNode } from "react";
 import { ListRail } from "@/foundation/ui/kit/ListRail";
 import { cx } from "@/foundation/ui/lib/cx";

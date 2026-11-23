@@ -1,3 +1,4 @@
+import "./Markdown.css";
 import { createContext, Fragment, memo, useContext, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { createBlockSplitter, splitBlocks } from "@/foundation/ui/markdown/streaming/markdownBlocks";

@@ -1,3 +1,4 @@
+import "./ToneChip.css";
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { StatusDot } from "./StatusDot";

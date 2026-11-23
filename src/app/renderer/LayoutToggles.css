@@ -1,0 +1,14 @@
+/* ==== 右上の開閉ボタンの並び（LayoutToggles） ==== */
+@layer feature {
+  /* 右上のレイアウトの開閉（VS Code と同じ。信号機ボタンと同じ高さ） */
+
+  .layout-toggles {
+    position: fixed;
+    top: 8px;
+    right: 10px;
+    z-index: var(--z-chrome);
+    display: flex;
+    gap: 2px;
+    -webkit-app-region: no-drag;
+  }
+}

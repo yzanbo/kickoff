@@ -1,3 +1,4 @@
+import "./ImageViewer.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, type ReactNode, type SyntheticEvent } from "react";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

@@ -33,7 +33,7 @@ const selectionTheme = EditorView.theme({
 
 /**
  * アプリの CodeMirror のエディタ（ノート・SQL）に共通の拡張: 元に戻す履歴・選んだ範囲の描き方と色・キー（Tab で字下げ・既定・履歴・検索）・
- * ⌘F の検索の欄（codeFindPanel。本文の右上に浮かせる。見た目は styles/ui/code-find.unlayered.css）・検索の欄の日本語の文言。
+ * ⌘F の検索の欄（codeFindPanel。本文の右上に浮かせる。見た目は kit/codemirror/codeFind.unlayered.css）・検索の欄の日本語の文言。
  * onSave を渡せば ⌘S で呼ぶ。findPlaceholder は検索の欄の薄い文。使う側の keymap を先に並べれば、そちらが勝つ
  */
 export function baseExtensions({ findPlaceholder, onSave }: { findPlaceholder: string; onSave?: () => void }): Extension {

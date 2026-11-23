@@ -1,3 +1,4 @@
+import "./CommandLine.css";
 import { CopyButton } from "./CopyButton";
 
 /** ターミナルで流してもらうコマンドの 1 行と、そのコピーのボタン（設定の手順の中に出す） */

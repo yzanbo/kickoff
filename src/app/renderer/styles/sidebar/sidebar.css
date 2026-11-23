@@ -1,5 +1,47 @@
 /* ==== サイドバー ==== */
 
+/* 欄の枠・閉じたとき・幅のつまみ（レイアウトの格子は foundation/ui/styles/layout.css） */
+
+.layout.sidebar-collapsed .sidebar {
+  border-right-color: transparent;
+}
+
+.sidebar {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 閉じても中身の幅は変えず、はみ出た分を隠す（開閉中に中身が崩れないように） */
+
+.sidebar > :not(.sidebar-resizer) {
+  min-width: var(--sidebar-w, 260px);
+}
+
+/* 幅を変えている間はアニメーションを止める */
+
+.layout.resizing-sidebar {
+  transition: none;
+  user-select: none;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 5px;
+  cursor: col-resize;
+  -webkit-app-region: no-drag;
+}
+
+@media (max-width: 720px) {
+  .layout.sidebar-collapsed .sidebar {
+    display: none;
+  }
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;

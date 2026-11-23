@@ -1,3 +1,4 @@
+import "./FindField.css";
 import { ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAll, Search } from "lucide-react";
 import type { KeyboardEvent, PointerEvent, ReactNode, Ref } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

@@ -1,0 +1,79 @@
+/* ==== 設定の「AI の既定」（AiDefaultsSettings・ChatDefaultsFields） ==== */
+@layer feature {
+  /* 設定の「AI の既定」: 適用範囲を先に示し、AI ごとの選択をカードにまとめる。 */
+
+  .ai-defaults-settings { max-width: 860px; }
+
+  .ai-defaults-intro { margin-bottom: 24px; }
+
+  .ai-defaults-intro h2 { margin-bottom: 4px; }
+
+  .ai-defaults-intro p, .ai-defaults-heading p, .ai-defaults-project-copy p, .ai-defaults-card-head p {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--fs-12);
+    line-height: 1.55;
+  }
+
+  .ai-defaults-intro > p:first-of-type { color: var(--text); font-size: var(--fs-13); }
+
+  .ai-defaults-intro .ai-defaults-scope { margin-top: 6px; }
+
+  .ai-defaults-project {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 1fr);
+    gap: 18px 28px;
+    align-items: start;
+    --card-pad: 18px 20px;
+    --card-tone: var(--border-strong);
+  }
+
+  .ai-defaults-project-copy h3, .ai-defaults-heading h3, .ai-defaults-card-head h3 {
+    margin: 0 0 3px;
+    font-size: var(--fs-14);
+    line-height: 1.4;
+  }
+
+  .tabbed-dialog-content .ai-defaults-project .form { margin: 0; }
+
+  .ai-defaults-heading { margin: 28px 0 12px; }
+
+  .ai-defaults-cards { display: grid; gap: 12px; }
+
+  .ai-defaults-card {
+    min-width: 0;
+    --card-pad: 18px 20px 20px;
+    --card-tone: var(--border-strong);
+  }
+
+  .ai-defaults-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+
+  .ai-defaults-card-icon {
+    display: grid;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    color: var(--accent-fg);
+    background: color-mix(in srgb, var(--accent) 12%, var(--bg-elev));
+    border: 1px solid color-mix(in srgb, var(--accent) 23%, var(--border));
+    border-radius: var(--radius-sm);
+  }
+
+  .tabbed-dialog-content .ai-defaults-card-form { gap: 16px; margin: 0; }
+
+  .ai-defaults-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+  .ai-defaults-grid .field { min-width: 0; }
+
+  .ai-defaults-grid select, .ai-defaults-project select { width: 100%; min-width: 0; }
+
+  .ai-defaults-fast { padding-top: 14px; border-top: 1px solid var(--border-strong); }
+
+  .ai-defaults-settings > .dialog-actions { margin-top: 20px; }
+
+  @media (max-width: 700px) {
+    .ai-defaults-project { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .ai-defaults-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+}

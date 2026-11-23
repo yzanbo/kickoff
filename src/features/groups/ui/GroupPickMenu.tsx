@@ -1,3 +1,4 @@
+import "./GroupPickMenu.css";
 import { Folder, Inbox, SquarePen } from "lucide-react";
 import type { ChatGroup } from "@shared/groups/types";
 import type { Placement } from "@/foundation/ui/lib/floating";

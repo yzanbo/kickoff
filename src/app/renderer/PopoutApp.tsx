@@ -1,3 +1,4 @@
+import "./PopoutApp.css";
 import { useLayoutEffect, useRef, type ComponentType } from "react";
 import { bootMark } from "@/foundation/ui/lib/bootMarks";
 import { useServerConnection } from "@/foundation/ui/api/serverConnection";

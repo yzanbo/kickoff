@@ -6,7 +6,7 @@
   gap: 10px;
 }
 
-/* 全体表示中の共通ヘッダー（base/maximized-header.css）に移した名前の行: サイドバーの開閉中も、戻る・進むの上へ通過させない */
+/* 全体表示中の共通ヘッダー（shell/WindowHeaderContent.css）に移した名前の行: サイドバーの開閉中も、戻る・進むの上へ通過させない */
 .maximized-header > .project-title-row:not(.auto-hide) {
   transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
 }

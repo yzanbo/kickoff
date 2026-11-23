@@ -1,4 +1,5 @@
 /** 状態の色: 使える・使えない・確認中・対応予定 */
+import "./StatusDot.css";
 export type StatusTone = "ok" | "ng" | "pending" | "na";
 
 /** ok: true = 使える / false = 使えない / null = 対応予定 / undefined = 確認中 */

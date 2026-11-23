@@ -183,7 +183,7 @@
   padding: 0 0 6px;
 }
 
-/* ビューのタブの形は ui/types/view-tab.css */
+/* ビューのタブの形は styles/types/view-tab.css */
 .board-view-tab {
   --view-tab-pad: 0 10px;
 }

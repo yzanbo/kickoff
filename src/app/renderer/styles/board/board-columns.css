@@ -8,7 +8,7 @@
   overflow-x: auto;
 }
 
-/* グループの列の並べ替えの線（ui/state.css）は縦: 列の間の隙間の真ん中・上下を少し空けて、太さ 3px */
+/* グループの列の並べ替えの線（styles/state.css）は縦: 列の間の隙間の真ん中・上下を少し空けて、太さ 3px */
 .board-column {
   --drop-offset: -7px;
   --drop-inset: 8px;
@@ -43,7 +43,7 @@
   padding-bottom: 8px;
 }
 
-/* 列・まとまりの見出しの札は共通の ToneChip（ui/tone-chip.css）。ボードの見出しだけ、名前を少し大きく太く、札を少し高くする */
+/* 列・まとまりの見出しの札は共通の ToneChip（kit/ToneChip.css）。ボードの見出しだけ、名前を少し大きく太く、札を少し高くする */
 .column-head .tone-chip {
   padding: 2px 9px;
 }
@@ -64,7 +64,7 @@
   overflow-y: auto;
 }
 
-/* 全プロジェクトのボードのプロジェクトの段の並べ替えの線（ui/state.css）: 段の間の隙間に、幅いっぱい */
+/* 全プロジェクトのボードのプロジェクトの段の並べ替えの線（styles/state.css）: 段の間の隙間に、幅いっぱい */
 .board-lane {
   --drop-offset: -4px;
   --drop-inset: 0;
@@ -83,7 +83,7 @@
   background: var(--bg-elev);
 }
 
-/* 全プロジェクトのボードのプロジェクトの段の並べ替え: 動かしている段は薄く、入る位置に線を出す（サイドバーのプロジェクトと同じ。ui/state.css） */
+/* 全プロジェクトのボードのプロジェクトの段の並べ替え: 動かしている段は薄く、入る位置に線を出す（サイドバーのプロジェクトと同じ。styles/state.css） */
 .board-lane-head[draggable="true"] {
   cursor: grab;
 }

@@ -1,0 +1,20 @@
+/* ==== 状態カード（StatusCard） ==== */
+@layer ui {
+  /* 状態カード */
+
+  .status-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+  }
+
+  .status-title .status-dot {
+    margin-right: 8px;
+  }
+
+  .status-detail {
+    margin-top: 4px;
+    font-size: var(--fs-13);
+    color: var(--muted);
+  }
+}

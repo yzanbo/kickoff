@@ -1,3 +1,4 @@
+import "./Collapse.css";
 import { useEffect, useState, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 

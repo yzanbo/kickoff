@@ -1,4 +1,4 @@
-/* ==== 設定の「音声入力」の準備（VoiceLocalSetup・VoiceOpenAiSetup）: 手順の形は ui/steps.css。brew のコマンド・ツールの行・モデルの一覧（精度と速さの目盛り・料金）・詳しい設定。voice-settings.css が 300 行を超えたので分けた ==== */
+/* ==== 設定の「音声入力」の準備（VoiceLocalSetup・VoiceOpenAiSetup）: 手順の形は kit/Steps.css。brew のコマンド・ツールの行・モデルの一覧（精度と速さの目盛り・料金）・詳しい設定。voice-settings.css が 300 行を超えたので分けた ==== */
 
 .voice-tools {
   display: grid;

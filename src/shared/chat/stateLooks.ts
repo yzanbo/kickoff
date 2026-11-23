@@ -3,7 +3,7 @@ import { STATE_STRENGTH } from "@shared/chat/state";
 import type { AgentState, BoardColumn } from "@shared/chat/types";
 
 /**
- * 色の名前。画面の CSS は [data-state="<tone>"] が変数 --state-color を決める（styles/ui/status-slot.css）。
+ * 色の名前。画面の CSS は [data-state="<tone>"] が変数 --state-color を決める（styles/types/status-slot.css）。
  * スマホは同じ名前から色の値を引く
  */
 export type StateTone = "needs-input" | "running" | "failed" | "unread" | "read" | "draft";

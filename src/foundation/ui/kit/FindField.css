@@ -1,0 +1,137 @@
+/* ==== 検索の欄（ui/FindField。チャット・ページ・ノート・ファイルのエディタの ⌘F で同じ見た目。置き場所は下の .chat-find・.pane-find などで決める） ==== */
+@layer ui {
+  /* 枠の中に、虫眼鏡・入力・探し方（Aa・ab・.*）・件数・前後・閉じる。ピントがあればアクセントの枠、正規表現として読めなければ赤い枠 */
+
+  .find-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 0 4px 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elev);
+    cursor: text;
+  }
+
+  .find-box:focus-within {
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  }
+
+  .find-box.invalid {
+    border-color: color-mix(in srgb, var(--ng) 70%, var(--border));
+  }
+
+  /* 置き換えの行があるとき（エディタ）: 左に開閉の ▸ を置くので、左の余白を詰める */
+
+  .find-box.has-replace {
+    padding-left: 2px;
+  }
+
+  .find-box-toggle {
+    flex: none;
+    width: 20px;
+    height: 28px;
+  }
+
+  .find-box-rows {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .find-box-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 28px;
+    min-width: 0;
+  }
+
+  .find-box-icon {
+    flex: none;
+    color: var(--muted);
+  }
+
+  .find-box input {
+    flex: 1;
+    min-width: 0;
+    padding: 0 4px;
+    border: none;
+    font: inherit;
+    font-size: var(--fs-12);
+    color: var(--text);
+    background: transparent;
+    outline: none;
+  }
+
+  .find-box-controls {
+    display: contents;
+  }
+
+  .find-box-count {
+    flex: none;
+    min-width: 36px;
+    padding: 0 2px;
+    font-size: var(--fs-11);
+    text-align: center;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .find-box-count.invalid {
+    color: var(--ng);
+  }
+
+  /* 浮かせる検索の欄（ui/FindBar。チャットの画面の右の欄の ⌘F・ページの ⌘F）: 欄の右上（タブの列のすぐ下）に浮かせる。印はチャットの検索と同じ色 */
+
+  .pane-find {
+    position: absolute;
+    z-index: 5;
+    top: 42px;
+    right: 12px;
+    width: min(400px, calc(100% - 24px));
+    box-shadow: var(--shadow-1);
+  }
+
+  ::highlight(pane-find) {
+    background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  }
+
+  ::highlight(pane-find-current) {
+    color: #000;
+    background-color: var(--warn);
+  }
+
+  /* CodeMirror のエディタ（ノート・SQL）の ⌘F の欄（kit/codemirror/codeFindPanel。置き場所は code-find.unlayered.css） */
+
+  .code-find {
+    box-shadow: var(--shadow-1);
+  }
+
+  /*
+   * ページの ⌘F（usePageFind）: ページの要素（position: relative。ファイル・検索・変更の右側・履歴の詳細・ノート・別ウィンドウ）の右上
+   * （見出しの行のすぐ下）に浮かせる。見た目は右の欄の検索の欄と同じ。置き場所ごとのずらしは持ち主の CSS
+   */
+
+  .pane-find.page-find {
+    top: 40px;
+  }
+
+  /* 検索で見つかった文字（パレットの検索の結果ほか） */
+
+  mark {
+    padding: 0 2px;
+    border-radius: 3px;
+    color: var(--text);
+    background: color-mix(in srgb, var(--warn) 40%, transparent);
+  }
+
+  /* 検索の欄の探し方の切り替え（「Aa」「ab」「.*」。VS Code と同じ。ui/FindOptionButtons）。入れているときは枠とアクセントの色で示す */
+
+  .find-option.on {
+    color: var(--accent-fg);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bright) 55%, transparent);
+  }
+}

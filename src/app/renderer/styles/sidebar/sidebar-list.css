@@ -14,7 +14,7 @@
   overflow: visible;
 }
 
-/* プロジェクトの並べ替え（動かしているものは薄く、入る位置に線。ui/state.css）: 縦並びはまとまりの境目の線 */
+/* プロジェクトの並べ替え（動かしているものは薄く、入る位置に線。styles/state.css）: 縦並びはまとまりの境目の線 */
 .stack-item {
   --drop-offset: 0;
   --drop-inset: 10px;
@@ -91,7 +91,7 @@
   opacity: 0.45;
 }
 
-/* 並べ替えの線（ui/state.css）は丸の間の隙間に（横スライドは縦の線・縦スライドは横の線。向きは部品が付ける） */
+/* 並べ替えの線（styles/state.css）は丸の間の隙間に（横スライドは縦の線・縦スライドは横の線。向きは部品が付ける） */
 .workspace-dot {
   --hue: 20;
   --drop-offset: -5px;
@@ -212,7 +212,7 @@
   outline-offset: 2px;
 }
 
-/* 落とせない丸（ほかの落とし先と同じ赤い点線。ui/drag-ghost.css の .chat-drop-blocked の枠を丸の外に） */
+/* 落とせない丸（ほかの落とし先と同じ赤い点線。kit/dragGhost.css の .chat-drop-blocked の枠を丸の外に） */
 .workspace-dot.chat-drop-blocked {
   outline: 2px dashed var(--ng);
   outline-offset: 2px;

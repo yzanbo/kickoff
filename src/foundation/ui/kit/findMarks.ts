@@ -1,6 +1,7 @@
 // ページの中の文字を探す欄（FindBar）の、文字を集めて印を付ける部分。
 // ページの中の同じオリジンの iframe（HTML のノートのページなど）の中の文字も探し、印はそれぞれの文書に付ける
 // （CSS Custom Highlight API は文書ごとなので、iframe の中には印の色の CSS も置く）
+import "./FindField.css";
 
 /** 印の名前（CSS の ::highlight(pane-find) / ::highlight(pane-find-current)） */
 const ALL = "pane-find";

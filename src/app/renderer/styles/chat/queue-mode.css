@@ -10,7 +10,7 @@
 
 /*
  * 送り方の切り替え（伝える / ためておく・すぐ送る / ためておく）: 隣の丸いボタン（文脈のメーター・送信）と同じ 28px の丸いピルにし、
- * 選んでいる方は一段明るい丸い地で浮かせ、選んでいない方は薄くする（形は .view-toggle。ui/view-toggle.css）
+ * 選んでいる方は一段明るい丸い地で浮かせ、選んでいない方は薄くする（形は .view-toggle。styles/types/view-toggle.css）
  */
 .queue-mode {
   align-self: center;

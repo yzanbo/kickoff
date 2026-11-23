@@ -1,3 +1,4 @@
+import "./ListRail.css";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { IconButton } from "./IconButton";
 

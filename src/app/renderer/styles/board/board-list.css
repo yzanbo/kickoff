@@ -15,7 +15,7 @@
   --progressive-row: 31px;
 }
 
-/* グループのリスト表示の並べ替えの線（ui/state.css）: グループの間の隙間に */
+/* グループのリスト表示の並べ替えの線（styles/state.css）: グループの間の隙間に */
 .list-group {
   --drop-offset: -7px;
   --drop-anim: none;

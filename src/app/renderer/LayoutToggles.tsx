@@ -1,3 +1,4 @@
+import "./LayoutToggles.css";
 import { PanelBottomClose, PanelBottomOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { cx } from "@/foundation/ui/lib/cx";

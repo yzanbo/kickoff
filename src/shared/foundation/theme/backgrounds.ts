@@ -5,7 +5,7 @@
 export const THEME_CHOICES = ["dark", "light", "system"] as const;
 export type ThemeChoice = (typeof THEME_CHOICES)[number];
 
-/** 画面の地の色（styles/base/tokens.css の --bg と同じ値。テストで確かめる） */
+/** 画面の地の色（foundation/ui/styles/tokens.css の --bg と同じ値。テストで確かめる） */
 export const THEME_BACKGROUNDS = { dark: "#141818", light: "#ffffff" } as const;
 
 /** 出ているテーマがダークか（画面の app/theme.ts・public/boot.js と同じ決め方） */

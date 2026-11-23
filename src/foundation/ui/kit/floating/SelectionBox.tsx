@@ -1,3 +1,4 @@
+import "./SelectionBox.css";
 import type { ReactNode, Ref } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 

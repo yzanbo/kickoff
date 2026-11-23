@@ -1,3 +1,4 @@
+import "./InlineName.css";
 import { Check, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { consumeKey, isCancelKey, isComposing } from "@/foundation/ui/lib/keys";

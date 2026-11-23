@@ -4,7 +4,7 @@ import { PR_STATE_LABELS, prStateOf, type PrState } from "@shared/git/prState";
 
 const PR_STATE_ICONS: Record<PrState, LucideIcon> = { open: GitPullRequest, draft: GitPullRequestDraft, merged: GitMerge, closed: GitPullRequestClosed };
 
-/** issue・PR の状態の印の種類（色は data-pr-state。ui/types/state-colors.css） */
+/** issue・PR の状態の印の種類（色は data-pr-state。styles/types/state-colors.css） */
 function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft">): { icon: LucideIcon; tone: "open" | "done" | "skipped" | "merged" | "closed" | "draft"; label: string } {
   if (item.kind === "issue") {
     if (item.state === "open") return { icon: CircleDot, tone: "open", label: "開いている" };

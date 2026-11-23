@@ -1,0 +1,19 @@
+/* ==== 添付の札の骨組み（AttachmentCard） ==== */
+@layer feature {
+  .chip-remove {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .chip-remove:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+}

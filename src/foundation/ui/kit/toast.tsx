@@ -1,3 +1,4 @@
+import "./toast.css";
 import { createCell, useCell } from "@/foundation/ui/store";
 import { CloseButton } from "./IconButton";
 import { useOverlayOpen } from "./overlayCount";

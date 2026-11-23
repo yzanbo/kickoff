@@ -1,3 +1,4 @@
+import "./NotificationSettings.css";
 import { errorMessage } from "@shared/foundation/errors";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { CheckField } from "@/foundation/ui/kit/Field";

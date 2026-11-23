@@ -1,0 +1,8 @@
+/* ==== 「ほかのアプリで開く」のメニュー（OpenWithMenu） ==== */
+@layer feature {
+  /* パネルのブラウザ・ターミナルの ▾ のメニュー（OpenWithMenu） */
+
+  .open-with-menu {
+    width: 240px;
+  }
+}

@@ -1,3 +1,4 @@
+import "./NewChatItem.css";
 import { SquarePen } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useGroup } from "@/features/groups/ui/stores/groups";

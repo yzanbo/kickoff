@@ -1,3 +1,4 @@
+import "./PromptAssist.css";
 import { useState, type RefObject } from "react";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { cx } from "@/foundation/ui/lib/cx";

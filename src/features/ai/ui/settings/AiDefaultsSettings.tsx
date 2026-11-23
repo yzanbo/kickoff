@@ -1,3 +1,4 @@
+import "./AiDefaultsSettings.css";
 import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type ChatOptions, type ProviderId } from "@shared/settings/types";
 import { useProviders } from "@/features/ai/ui/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/ai/ui/provider/providerChoice";

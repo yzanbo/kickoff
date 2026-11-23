@@ -1,6 +1,6 @@
 /* ==== 下のパネル（どの画面でも開けるターミナル。VS Code と同じ） ==== */
 
-/* 開閉の動きは ui/types/slide-pane.css（高さが --bottom-h まで動く） */
+/* 開閉の動きは styles/types/slide-pane.css（高さが --bottom-h まで動く） */
 .bottom-panel {
   --pane-shown: var(--bottom-h);
 

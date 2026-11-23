@@ -1,3 +1,4 @@
+import "./ServiceUsageDetails.css";
 import { providerCan, PROVIDERS } from "@shared/ai/providers";
 import { paysByCredits, usageErrorOf, type ProviderUsage } from "@shared/ai/usage";
 import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";

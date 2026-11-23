@@ -1,4 +1,5 @@
 // 添付の札の骨組み（ファイル・ノート・「AI に渡す」で取ったものの 3 種類で同じ形: 左に角丸のアイコンの地かサムネイル、右に名前と 2 行目。styles/chat/attachments.css）
+import "./AttachmentCard.css";
 import type { MouseEvent, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 

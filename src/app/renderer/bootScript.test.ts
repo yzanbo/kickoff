@@ -12,7 +12,7 @@ import { storage as sidebarStorage } from "@/features/sidebar/ui/storage";
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
 const bootScript = read("./public/boot.js");
 const indexHtml = read("./index.html");
-const tokensCss = read("./styles/base/tokens.css");
+const tokensCss = read("../../foundation/ui/styles/tokens.css");
 const sidebarCss = read("./styles/sidebar/sidebar.css");
 const footerCss = read("./styles/footer/footer.css");
 

@@ -1,0 +1,18 @@
+/*
+ * 押せるピル（丸い枠のボタン・絞り込み・浮く知らせ。ui/Pill）: 枠の色は --pill-border（既定は --border）、文字は --pill-fg（既定は --muted）、
+ * 地は --pill-bg（既定は透明）。乗せた・選んだときは使う所のクラスで変数を入れ替える。並べ方・大きさ（高さ・余白・文字）も使う所のクラスで決める。
+ * 変数は受け継がない
+ */
+@property --pill-border { syntax: "*"; inherits: false; }
+
+@property --pill-fg { syntax: "*"; inherits: false; }
+
+@property --pill-bg { syntax: "*"; inherits: false; }
+
+.pill {
+  border: 1px solid var(--pill-border, var(--border));
+  border-radius: 999px;
+  color: var(--pill-fg, var(--muted));
+  background: var(--pill-bg, transparent);
+}
+

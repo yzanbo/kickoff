@@ -1,0 +1,91 @@
+/*
+ * 状態だけを書く規則（state の層。どの層の規則にも勝つので、ここには状態の印だけを置き、形は使う所の変数で受ける）
+ */
+/*
+ * 入る位置の線（並べ替えの落とす先。物に data-drop="before" | "after"）: 前の線は ::before、後ろの線は ::after（data-drop-line="after" の物は
+ * 前の線も ::after に引く。::before をほかの印に使う物）。既定は横の線（前は上・後ろは下）、data-drop-axis="x" は縦の線（前は左・後ろは右）。
+ * 形は物に置く変数で決める: 外へのずらし --drop-offset（既定 -1px）・線の両端の空き --drop-inset（既定 6px。inset-inline / inset-block の値）・
+ * 太さ --drop-size（2px）・角 --drop-radius（2px）・塗り --drop-bg（--accent-bright）・光 --drop-glow（3px の薄い輪）・出る動き --drop-anim・重なり --drop-z（2）。
+ * 変数は受け継がない（中の物の線に移らない）。疑似要素が物の値を inherit で読む
+ */
+
+@property --drop-offset { syntax: "*"; inherits: false; }
+
+@property --drop-inset { syntax: "*"; inherits: false; }
+
+@property --drop-size { syntax: "*"; inherits: false; }
+
+@property --drop-radius { syntax: "*"; inherits: false; }
+
+@property --drop-bg { syntax: "*"; inherits: false; }
+
+@property --drop-glow { syntax: "*"; inherits: false; }
+
+@property --drop-anim { syntax: "*"; inherits: false; }
+
+@property --drop-z { syntax: "*"; inherits: false; }
+
+[data-drop="before"]:not([data-drop-line="after"])::before,
+:is([data-drop="after"], [data-drop="before"][data-drop-line="after"])::after {
+  --drop-offset: inherit;
+  --drop-inset: inherit;
+  --drop-size: inherit;
+  --drop-radius: inherit;
+  --drop-bg: inherit;
+  --drop-glow: inherit;
+  --drop-anim: inherit;
+  --drop-z: inherit;
+
+  position: absolute;
+  z-index: var(--drop-z, 2);
+  border-radius: var(--drop-radius, 2px);
+  background: var(--drop-bg, var(--accent-bright));
+  box-shadow: var(--drop-glow, 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent));
+  content: "";
+  pointer-events: none;
+  animation: var(--drop-anim, drop-line-in 0.12s ease-out);
+}
+
+:not([data-drop-axis="x"])[data-drop="before"]:not([data-drop-line="after"])::before,
+:not([data-drop-axis="x"]):is([data-drop="after"], [data-drop="before"][data-drop-line="after"])::after {
+  inset-inline: var(--drop-inset, 6px);
+  height: var(--drop-size, 2px);
+}
+
+:not([data-drop-axis="x"])[data-drop="before"]:not([data-drop-line="after"])::before,
+:not([data-drop-axis="x"])[data-drop="before"][data-drop-line="after"]::after {
+  top: var(--drop-offset, -1px);
+}
+
+:not([data-drop-axis="x"])[data-drop="after"]::after {
+  bottom: var(--drop-offset, -1px);
+}
+
+[data-drop-axis="x"][data-drop="before"]:not([data-drop-line="after"])::before,
+[data-drop-axis="x"]:is([data-drop="after"], [data-drop="before"][data-drop-line="after"])::after {
+  inset-block: var(--drop-inset, 6px);
+  width: var(--drop-size, 2px);
+}
+
+[data-drop-axis="x"][data-drop="before"]:not([data-drop-line="after"])::before,
+[data-drop-axis="x"][data-drop="before"][data-drop-line="after"]::after {
+  left: var(--drop-offset, -1px);
+}
+
+[data-drop-axis="x"][data-drop="after"]::after {
+  right: var(--drop-offset, -1px);
+}
+
+/*
+ * 動かしている物（startDragGhost がドラッグの間だけ付ける・並べ替えの部品が付ける data-drag-source）は薄く（濃さ --drag-source-opacity）。
+ * まとまりごと薄くしている中（グループの並べ替えでつかんだ見出し）では重ねて薄くしない
+ */
+
+[data-drag-source] {
+  opacity: var(--drag-source-opacity);
+}
+
+[data-drag-source] [data-drag-source] {
+  opacity: 1;
+}
+

@@ -1,0 +1,26 @@
+/* ==== ダイアログ・コマンドパレット ==== */
+/*
+ * 開いたダイアログ（画像の全画面表示など）は、下にあるウィンドウのドラッグ領域（.page-header など）に重なっても、
+ * 押したものが効くようにする（打ち消さないと、上端のボタンを押してもウィンドウのドラッグになる）
+ */
+
+dialog[open] {
+  -webkit-app-region: no-drag;
+}
+
+.dialog,
+.palette {
+  padding: 0;
+  --floating-border: var(--border);
+  --floating-shadow: var(--shadow-3);
+  color: var(--text);
+}
+
+/* 幅は --dialog-w（Dialog の size か、使う所のクラスで入れる）。狭いウィンドウでは左右に 16px ずつ空ける */
+
+@property --dialog-w { syntax: "*"; inherits: false; }
+
+.dialog {
+  width: min(var(--dialog-w, 560px), calc(100vw - 32px));
+}
+

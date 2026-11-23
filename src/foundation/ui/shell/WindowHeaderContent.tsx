@@ -1,3 +1,4 @@
+import "./WindowHeaderContent.css";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useMediaQuery } from "@/foundation/ui/kit/layout/useMediaQuery";

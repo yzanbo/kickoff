@@ -1,3 +1,4 @@
+import "./SelectionBar.css";
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
 import type { Chat } from "@shared/chat/types";
 import type { ChatGroup } from "@shared/groups/types";

@@ -1,3 +1,4 @@
+import "./ProviderAuthSettings.css";
 import { useState } from "react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";
