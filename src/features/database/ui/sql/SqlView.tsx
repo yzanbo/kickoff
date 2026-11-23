@@ -9,7 +9,8 @@ import { useQuery } from "@/foundation/ui/query";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { DbSqlTab } from "@/features/database/ui/state/dbClientTabs";
-import { readSetting, writeSetting } from "@/foundation/ui/storage";
+import { readSetting } from "@/foundation/ui/storage";
+import { deferredSetting } from "@/foundation/ui/storage/deferredSetting";
 import { storage } from "@/features/database/ui/storage";
 import { alert } from "@/foundation/ui/kit/ask";
 import { SqlAssistButton } from "./SqlAssistButton";
@@ -38,7 +39,8 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const draftKey = storage.settings.sqlDraft(`${client.surfaceKey}:${tab.key}`);
   const editor = useRef<SqlEditorHandle | null>(null);
   const initial = useMemo(() => readSetting(draftKey), [draftKey]);
-  const draftTimer = useRef<number | undefined>(undefined);
+  // 書きかけは止まってから書く（窓を閉じる・読み込み直す前には書き出す）。タブを閉じたら消すので、外れたときは書かずに捨てる
+  const draft = useMemo(() => deferredSetting(draftKey, DRAFT_DELAY), [draftKey]);
   const [runs, setRuns] = useState<StatementRun[]>([]);
   const [shown, setShown] = useState(0);
   const [running, setRunning] = useState(false);
@@ -71,10 +73,9 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
 
   const saveDraft = (text: string) => {
     activity();
-    window.clearTimeout(draftTimer.current);
-    draftTimer.current = window.setTimeout(() => writeSetting(draftKey, text), DRAFT_DELAY);
+    draft.write(text);
   };
-  useEffect(() => () => window.clearTimeout(draftTimer.current), []);
+  useEffect(() => () => draft.cancel(), [draft]);
 
   /** 流す文を決める（選んだ範囲があればその中の文、all ならすべて、そうでなければカーソルの文） */
   const pickStatements = (all: boolean): SqlStatement[] => {
