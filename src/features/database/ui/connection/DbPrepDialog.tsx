@@ -1,5 +1,5 @@
 import { Play, RotateCcw, ShieldAlert, Square } from "lucide-react";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/database/types";
 import { dbApi, dbOne } from "@/features/database/ui/api";
@@ -35,37 +35,18 @@ export function DbPrepDialog({
   onClose: () => void;
 }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
-  const [state, setState] = useState<DbPrepState | null>(null);
-  const [error, setError] = useState<string>();
+  // 開いたら前の様子を読み（流している途中なら続きを見せる）、流している間は読み直す
+  const prepState = useQuery(["DbPrepDialog.state", projectId, c.id], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/prepare", dbOne(projectId, c.id)), {
+    interval: (d) => (d?.running ? POLL_MS : undefined),
+  });
+  const state = prepState.data ?? null;
+  const [actError, setError] = useState<string>();
+  const error = actError ?? (prepState.error ? errorMessage(prepState.error) : undefined);
   const [busy, setBusy] = useState(false);
   const runs = useQuery(["DbPrepDialog.runs", projectId, c.id, state?.finished_at], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/prep-runs", dbOne(projectId, c.id)), { keepPrevious: true });
   const prep = c.prep;
   const hasPrepare = (prep?.prepare.length ?? 0) > 0;
   const running = state?.running ?? false;
-
-  // 開いたら前の様子を読み（流している途中なら続きを見せる）、流している間は読み直す（読んだ様子が変わっても流し直さない）
-  const notRead = useEffectEvent(() => state === null);
-  useEffect(() => {
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const poll = async () => {
-      let next: DbPrepState | null;
-      try {
-        next = await dbApi("GET /api/projects/:projectId/db-connections/:connectionId/prepare", dbOne(projectId, c.id));
-      } catch (e) {
-        if (alive) setError(errorMessage(e));
-        return;
-      }
-      if (!alive) return;
-      setState(next);
-      if (next?.running) timer = setTimeout(() => void poll(), POLL_MS);
-    };
-    if (running || notRead()) void poll();
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [projectId, c.id, running]);
 
   /** 確かめていなければ確かめてから（then: 確かめたあとにすること） */
   const act = async (then: () => Promise<void>) => {
@@ -86,7 +67,8 @@ export function DbPrepDialog({
   const start = () =>
     act(async () => {
       await dbApi("POST /api/projects/:projectId/db-connections/:connectionId/prepare", dbOne(projectId, c.id));
-      setState({ running: true, steps: [], error: null, finished_at: null });
+      const started: DbPrepState = { running: true, steps: [], error: null, finished_at: null };
+      prepState.setData(started);
     });
 
   const retry = () => {
