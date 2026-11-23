@@ -2,16 +2,16 @@ import { useEffect, useState, type RefObject } from "react";
 import { TriangleAlert } from "lucide-react";
 import { PORT_ORIGIN_HINTS, type PortProcess } from "@shared/ports/types";
 import { workplaceText } from "@shared/foundation/workplace";
-import { api } from "@/foundation/ui/api";
 import { navigate, routeProjectId, useRoute } from "@/foundation/ui/navigation/router";
 import { open } from "@/foundation/ui/navigation/open";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { useProjects } from "@/features/projects/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { portsApi } from "./api/ports";
 import { refreshPorts, usePorts } from "./portsStore";
 import { bandText, originText, portUrl, stopTargetText, uptimeText } from "./portsText";
 
@@ -61,7 +61,7 @@ export function PortsPopover({ anchor, onClose }: Props) {
     }
     setStops((s) => ({ ...s, [p.pid]: "stopping" }));
     try {
-      const { stopped } = await api.stopPortProcess({ pid: p.pid, command: p.command_full, force });
+      const { stopped } = await portsApi.stopPortProcess({ pid: p.pid, command: p.command_full, force });
       setStops((s) => (stopped ? withoutPid(s, p.pid) : { ...s, [p.pid]: "stuck" }));
     } catch (e) {
       setStops((s) => withoutPid(s, p.pid));

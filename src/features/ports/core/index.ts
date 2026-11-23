@@ -23,5 +23,5 @@ export interface PortsEnv {
 export function createPorts(k: Kernel, deps: { worktrees: WorktreesApi; projects: ProjectsApi; chat: ChatApi }, env: PortsEnv): CoreFeature<PortWatch> {
   const service = new PortProcessService({ store: { projects: deps.projects.store, worktreeEnvs: deps.worktrees.stores.worktreeEnvs }, probe: k.platform, selfPid: env.selfPid, selfBundle: k.platform.appBundleOf(process.execPath), stopWaitMs: env.stopWaitMs });
   const ports = new PortWatch(k.bus, deps.chat.runner, service, env.afterTurnMs);
-  return { name: "ports", api: ports, routes: [{ legacy: (app) => portsRoutes(app, { ports }) }], start: () => ports.start(), stop: () => ports.close() };
+  return { name: "ports", api: ports, routes: [portsRoutes({ ports })], start: () => ports.start(), stop: () => ports.close() };
 }

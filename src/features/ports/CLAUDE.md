@@ -3,7 +3,8 @@
 ## 地図
 
 - `core/service.ts`: プロジェクトのフォルダでポートを待っているプロセスを調べる・止める（`PortProcessService`。DB には持たない。OS の読み取りは `ProcessProbe`）。調べる時は `watch.ts`。
-- `ui/`: 下の帯の項目（`footerItems.ts`）と一覧（`portsStore.ts`）。帯を隠しているときの窓は `PortsFallback`。
+- `ui/`: 下の帯の項目（`footerItems.ts`）と一覧（`portsStore.ts`。⌘K から窓を開く頼みは `portsOpenRequests`）。帯を隠しているときの窓は `PortsFallback`。使えるか（Mac のアプリの中か）は `native.ts`。
+- 受け口は取り決め `@shared/ports/contract.ts`（2 本）。
 
 ## 決まり
 
@@ -13,4 +14,5 @@
 
 ## 落とし穴
 
+- 調べるのは 1 つずつ（`watch.ts` の約束の鎖）。止めたあとの調べ直しは前の調べが終わってから流す（終わる前の一覧を返さない）。
 - テストは `core/routes/server.ports.test.ts`（`portsFake`）。

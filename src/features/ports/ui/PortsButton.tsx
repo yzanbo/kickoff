@@ -1,8 +1,8 @@
 import { Network } from "lucide-react";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
+import { useEffect } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { usePopover } from "@/foundation/ui/kit/Popover";
-import { OPEN_PORTS_EVENT, usePorts, usePortsDot } from "./portsStore";
+import { portsOpenRequests, usePorts, usePortsDot } from "./portsStore";
 import { PortsPopover } from "./PortsPopover";
 
 /**
@@ -13,7 +13,7 @@ export function PortsButton() {
   const { anchor: popoverAnchor, ...popover } = usePopover();
   const { data } = usePorts();
   const dot = usePortsDot();
-  useWindowEvent(OPEN_PORTS_EVENT, () => popover.setOpen(true));
+  useEffect(() => portsOpenRequests.subscribe(() => popover.setOpen(true)), [popover.setOpen]);
   const count = data?.length ?? 0;
   if (count === 0 && !popover.open) return null;
   const detached = data?.filter((p) => p.origin === "detached").length ?? 0;
@@ -38,7 +38,7 @@ export function PortsButton() {
 /** 下の帯を隠しているときの置き場所（⌘K から開いたら、画面の左下から窓を出す） */
 export function PortsFallback() {
   const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
-  useWindowEvent(OPEN_PORTS_EVENT, () => popover.setOpen(true));
+  useEffect(() => portsOpenRequests.subscribe(() => popover.setOpen(true)), [popover.setOpen]);
   if (!popover.open) return null;
   return (
     <>
