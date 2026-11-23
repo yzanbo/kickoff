@@ -23,7 +23,7 @@
 - 名前を変えたら開いているタブを `relocate`、ゴミ箱に入れたら `forget`。
 - 新しいファイルは名前を書いてから作る（作業場所に仮の名前のファイルを残さない）。空のフォルダはコアの `empty_dirs` から出す。
 - ピントは差分の「編集」・新しいファイルから来たときだけ置く（チャット欄・一覧のピントを奪わない）。
-- ⌘F はエディタがあれば `MonacoFindBar`（Monaco の検索を使う）、ほかは `@/foundation/ui/kit/FindBar.tsx`。探し方はほかの欄とそろえる。
+- ⌘F はエディタがあれば `MonacoFindBar`（Monaco の検索を使う）、ほかは `@/foundation/ui/kit/FindBar.tsx`。探し方は検索タブもほかの欄とそろえる。
 - 印と置き換えはコアと同じ `@shared/foundation/search/searchMatch`。置換は結果の行だけをコアが置き換える（探したあとで変わった行はしない）。
 - チップにするのはチャットのパネルの中（`FileLinksProvider`）だけ。開き方は `open` 1 つで、チップ・変更カード・ツールの行で共有する。`FileMenu` は 1 つだけ描く。
 

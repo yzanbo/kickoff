@@ -5,6 +5,8 @@ import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
 import type { ProjectSearchResult } from "@shared/files/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
+import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
+import type { FindOptionName } from "@/foundation/ui/lib/textFind";
 import { storage } from "./storage";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
@@ -15,6 +17,9 @@ import { workdirInput } from "@/foundation/ui/api/workdir";
 const DEBOUNCE_MS = 300;
 
 type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
+
+/** 探し方の名前（検索の指定の形）と、ほかの検索の欄と共有する探し方の名前 */
+const FIND_OPTION_OF: Record<Exclude<SearchOption, "use_ignore">, FindOptionName> = { case_sensitive: "caseSensitive", whole_word: "wholeWord", regex: "regex" };
 
 /** 表示している結果と、そのときの探し方（印・置換に使う） */
 interface SearchResult {
@@ -31,7 +36,10 @@ const NO_DISMISSED: DismissedResults = new Set();
 export function useProjectSearch(projectId: number) {
   const target = useWorkplace(projectId);
   const [query, setQueryState] = useState("");
-  const [options, setOptions] = useState<Record<SearchOption, boolean>>({ case_sensitive: false, whole_word: false, regex: false, use_ignore: true });
+  // 「Aa」「ab」「.*」はほかの検索の欄（⌘F）と同じ値。除外設定を使うかだけは、この検索のもの
+  const find = useFindOptions();
+  const [useIgnore, setUseIgnore] = useState(true);
+  const options: Record<SearchOption, boolean> = { case_sensitive: find.options.caseSensitive, whole_word: find.options.wholeWord, regex: find.options.regex, use_ignore: useIgnore };
   const [include, setInclude] = useState("");
   const [exclude, setExclude] = useState("");
   const [showDetails, setShowDetails] = useState(false);
@@ -88,7 +96,7 @@ export function useProjectSearch(projectId: number) {
       setQueryState(next);
     },
     options,
-    toggle: (key: SearchOption) => setOptions((prev) => ({ ...prev, [key]: !prev[key] })),
+    toggle: (key: SearchOption) => (key === "use_ignore" ? setUseIgnore(!useIgnore) : find.toggle(FIND_OPTION_OF[key])),
     include,
     setInclude,
     exclude,
