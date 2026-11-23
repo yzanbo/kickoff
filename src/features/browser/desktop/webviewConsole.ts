@@ -1,7 +1,7 @@
 import { app } from "electron";
 import type { BrowserConsoleEntry } from "@shared/foundation/ipc";
 
-// 埋め込みブラウザ（webview）のコンソールの出力を、作られたときから覚えておく（AI の browser_console・タブの「AI に渡す」。agentBrowser.ts）。
+// 埋め込みブラウザ（webview）のコンソールの出力を、作られたときから覚えておく（AI の browser_console・タブの「AI に渡す」。agent/）。
 // 画面がタブを登録するのはページの準備ができてからなので、そこから聞き始めると読み込み中の出力を取りこぼすため。
 // 読み直し・ページの移動の前の出力も残し、どのページで出たかを URL で覚える（「AI に渡す」で行ごとに書き添える）
 

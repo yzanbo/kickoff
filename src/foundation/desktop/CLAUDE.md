@@ -4,6 +4,7 @@ Electron のメインプロセスと preload（`preload/`）の土台。窓・OS
 
 ## 構成と起動
 - `@/app/desktop/index.ts` は起動の順番だけを書く（順と理由はそのコメント）。中身は `app/`（環境・コアのプロセス・窓・別ウィンドウ `popouts.ts`・メニュー・終了・子の Electron・セッションと権限・起動の記録）/ `ipc/` / `terminal/` / `notifications/` / `diagnostics/` / `platform/`。埋め込みブラウザ・診断の記録は各機能の `desktop/`（`src/features/browser/CLAUDE.md`・`src/features/diagnostics/CLAUDE.md`）。
+- 機能のメインの部品は `parts.ts` の `DesktopPart`（app が `registerIpc`・`createCoreProcess` に渡す）。
 - OS ごとの処理は `platform/` の口（`hostPlatform`・`desktopPlatform`）に集め、`platform/index.ts` で選ぶ。DB ワーカーのシェルの口だけはワーカーの入口が選ぶ（OS を足すときは両方）。
 - Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`ipc/register.ts` など）。
 - メインはログインシェルの PATH を読まない（読むのはコア）。

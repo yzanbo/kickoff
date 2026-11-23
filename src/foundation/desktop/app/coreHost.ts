@@ -1,17 +1,16 @@
-// コアのプロセスを組み立てる: 起動の値（init）・コアから呼ばれるメインの口（埋め込みブラウザ・キーチェーンの鍵）・コアからの知らせの行き先
-// （通知・ブラウザの操作の印・詰まり）・様子の配り先（画面の帯の IPC core.onState）
+// コアのプロセスを組み立てる: 起動の値（init）・コアから呼ばれるメインの口（キーチェーンの鍵と、機能の部品の口 = 埋め込みブラウザ）・コアからの知らせの行き先
+// （通知・詰まり）・様子の配り先（画面の帯の IPC core.onState）
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import type { CoreState } from "@shared/foundation/ipc";
-import { agentBrowser, agentBrowserHostMethods } from "@/features/browser/desktop/agentBrowser";
 import { recordCoreStall } from "@/foundation/desktop/diagnostics/stalls";
 import type { IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { sendEvent } from "@/foundation/desktop/ipc/register";
 import { notifyFromCore } from "@/foundation/desktop/notifications/notifications";
 import { hostPlatform } from "@/foundation/desktop/platform/index";
 import { COMPILE_CACHE_ARG } from "@/foundation/core/system/compileCache";
-import { prefixedHandlers } from "@/foundation/core/host/protocol";
-import { SECRET_METHODS } from "@/foundation/core/system/sealedSecret";
+import { prefixedHandlers, type Prefixed } from "@/foundation/core/host/protocol";
+import { SECRET_METHODS, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 import { prepareCoreCompileCache } from "./compileCache";
 import { CoreProcess, type HostHandlers } from "./coreProcess";
 import { CORE_FILE, DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER } from "./environment";
@@ -19,8 +18,8 @@ import { logsDir } from "./logs";
 import { safeStorageCipher } from "./secretCipher";
 import { startupLog } from "./startupLog";
 
-/** コアから呼ばれるメインの口（埋め込みブラウザの操作と、DB のパスワード・API キーの暗号化） */
-const hostHandlers: HostHandlers = { ...agentBrowserHostMethods, ...prefixedHandlers("secret", safeStorageCipher, SECRET_METHODS) };
+/** コアから呼ばれるメインの口のうち、機能の部品が出すもの（埋め込みブラウザの操作。土台が持つのは DB のパスワード・API キーの暗号化） */
+export type FeatureHostHandlers = Omit<HostHandlers, keyof Prefixed<"secret", SecretCipher>>;
 
 /** 開いている画面（メインの窓・別ウィンドウ）すべてに、コアの様子を知らせる */
 function broadcastState(state: CoreState) {
@@ -34,7 +33,7 @@ function coreCacheArgs(): string[] {
 }
 
 /** コアのプロセスを作る（まだ起動しない。start で fork する） */
-export function createCoreProcess(opts: { port: number; devUrl: string | undefined }): CoreProcess {
+export function createCoreProcess(opts: { port: number; devUrl: string | undefined; hostMethods: FeatureHostHandlers }): CoreProcess {
   const core = new CoreProcess({
     file: CORE_FILE,
     // コアのコンパイルキャッシュの場所（init は本体を読んだあとに届くので、起動の引数で渡す）
@@ -53,7 +52,7 @@ export function createCoreProcess(opts: { port: number; devUrl: string | undefin
       hostStartedAt: performance.timeOrigin,
       recoveredReason,
     }),
-    handlers: hostHandlers,
+    handlers: { ...opts.hostMethods, ...prefixedHandlers("secret", safeStorageCipher, SECRET_METHODS) },
     onState: (state) => {
       startupLog(`コアの様子: ${state}`);
       broadcastState(state);
@@ -63,8 +62,6 @@ export function createCoreProcess(opts: { port: number; devUrl: string | undefin
   });
   // 通知を出すかはコアが決め、Mac の通知はここで出す（notifications/notifications.ts）
   core.on("notify", notifyFromCore);
-  // AI が操作したタブの印（画面の「AI 操作中」）
-  core.on("browser.touch", (tabId) => agentBrowser.touch(tabId));
   core.on("stall", recordCoreStall);
   return core;
 }

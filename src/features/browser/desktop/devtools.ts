@@ -1,13 +1,10 @@
 import { BrowserWindow, WebContentsView, webContents, type WebContents } from "electron";
 import type { DevtoolsBounds } from "@shared/foundation/ipc";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
-import { browserSession } from "./browser";
+import { browserSession, isOurWebview } from "./browser";
 import { viewBoundsOf } from "./devtoolsBounds";
 
 // 埋め込みブラウザ（<webview>）の開発者ツール。どこに出しているかは画面の側で持つ（Electron の知らせは遅れて届く）
-
-/** 頼んできた画面の中の埋め込みブラウザか */
-export const isOurWebview = (host: WebContents, c: WebContents | undefined): c is WebContents => Boolean(c && c.getType() === "webview" && c.hostWebContents === host);
 
 // 開発者ツールを出す WebContents は、どれも埋め込みブラウザのセッションで作る。開発者ツールは、出す先のセッションにある拡張機能のパネル
 // （React DevTools など）を読み込むため（既定のセッションだと拡張機能のページが ERR_BLOCKED_BY_CLIENT で断られる）

@@ -6,6 +6,9 @@ import { isBrowserFindKey } from "./keys";
 
 // 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは devtools.ts、拡張機能は extensions.ts
 
+/** 頼んできた画面の中の埋め込みブラウザか */
+export const isOurWebview = (host: WebContents, c: WebContents | undefined): c is WebContents => Boolean(c && c.getType() === "webview" && c.hostWebContents === host);
+
 /** 埋め込みブラウザ用のセッション（ログイン状態は保持するが、Kickoff 本体とは分ける） */
 const BROWSER_PARTITION = "persist:kickoff-browser";
 

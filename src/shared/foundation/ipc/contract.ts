@@ -120,7 +120,7 @@ const NATIVE_API = {
     onWindowClosed: event<[targetId: number]>(),
   },
   /**
-   * AI（チャットのエージェント）による埋め込みブラウザの操作（main/browser/agentBrowser.ts）。
+   * AI（チャットのエージェント）による埋め込みブラウザの操作（src/features/browser/desktop/agent/）。
    * 画面のブラウザのタブは webview の準備ができたら登録し、AI が新しいタブを開くときはメインが画面に頼む
    */
   agentBrowser: {

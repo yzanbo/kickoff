@@ -10,7 +10,7 @@ const panelsView = () => ({ panels: allPanels(), mounted: isPanelMounted });
 const mayReveal = (after: string | null) => after === null || isTabShown(panelsView(), after);
 
 /**
- * AI（チャットのエージェント）による埋め込みブラウザの操作の、画面の側の受け口（メインプロセスの browser/agentBrowser.ts と対）。
+ * AI（チャットのエージェント）による埋め込みブラウザの操作の、画面の側の受け口（メインプロセスの browser/desktop/agent/ と対）。
  * 新しいタブを頼まれたら、そのプロジェクトのチャット欄にブラウザのタブを足して返す。作業の初めに使うタブは、その欄を開いて表示中にする
  * （利用者が AI の操作に気づけるように。別のチャットを見ていても開く。キーボードのピントは動かさない。裏でと頼まれた・利用者が
  * ほかのタブに切り替えた・欄を閉じたあとは、見ているタブ・欄の開閉を変えない）。操作しているタブの知らせで「AI 操作中」の印を出す・消す

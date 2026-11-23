@@ -13,10 +13,8 @@ import { openedAtLogin } from "@/foundation/desktop/app/loginItem";
 import { logLaunch, startupLog, watchChildProcesses } from "@/foundation/desktop/app/startupLog";
 import { allowHangStacks, enableHangStacks, logDisplayEvents } from "@/foundation/desktop/app/hangWatch";
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "@/foundation/desktop/app/window";
-import { hardenWebviews } from "@/features/browser/desktop/browser";
-import { loadSavedExtensions } from "@/features/browser/desktop/extensions";
-import { watchWebviewConsoles } from "@/features/browser/desktop/webviewConsole";
-import { setDiagnosticsCore } from "@/features/diagnostics/desktop/diagnostics";
+import { browserDesktop } from "@/features/browser/desktop";
+import { diagnosticsHandlers, setDiagnosticsCore } from "@/features/diagnostics/desktop/diagnostics";
 import { watchMainStalls } from "@/foundation/desktop/diagnostics/stalls";
 import { markMain, startMetricsLog } from "@/foundation/desktop/diagnostics/bootRecorder";
 import { registerIpc } from "@/foundation/desktop/ipc/ipc";
@@ -38,10 +36,8 @@ watchChildProcesses();
 enableHangStacks();
 // 2. 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
 timed("boot:seedDevData", seedDevDataOnce)();
-// 3. 埋め込みブラウザの安全設定は、ウィンドウを作る前に登録しておく
-hardenWebviews();
-// AI が読む埋め込みブラウザのコンソールの出力は、webview ができたときから覚える
-watchWebviewConsoles();
+// 3. 機能の部品の起動の初めの分（埋め込みブラウザの安全設定・コンソールの見張りは、ウィンドウを作る前に登録しておく）
+browserDesktop.start();
 
 let core: CoreProcess | undefined;
 
@@ -63,14 +59,15 @@ async function start() {
   startupLog("whenReady");
   // 開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る（URL はポートから先に分かる）
   const url = devUrl ?? `http://127.0.0.1:${port}`;
-  const coreProcess = createCoreProcess({ port, devUrl });
+  const coreProcess = createCoreProcess({ port, devUrl, hostMethods: browserDesktop.hostMethods });
+  browserDesktop.connectCore(coreProcess);
   core = coreProcess;
   markMain("coreForked");
   const ready = coreProcess.start();
   // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
   logDisplayEvents();
   setMainWindowUrl(url);
-  registerIpc(url, { core: coreIpcHandlers(coreProcess) });
+  registerIpc(url, { core: coreIpcHandlers(coreProcess), diagnostics: diagnosticsHandlers, ...browserDesktop.ipc });
   setAppMenu();
   // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる
   const session = ready.then(async (r) => {
@@ -105,7 +102,7 @@ async function start() {
   // 内蔵ターミナルのシェルはコアで動き、画面はコアの WebSocket でつなぐ。画面が消えたら、その画面のシェルを止める（terminal/terminals.ts）
   setTerminalCloser((owner) => void coreProcess.call("terminal.closeOwnedBy", owner).catch(() => {}));
   // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
-  void loadSavedExtensions().then((errors) => errors.forEach((e) => console.warn("[browser] 拡張機能を読み込めません:", e)));
+  browserDesktop.ready();
   // Mac では、ウィンドウを閉じたあとに Dock を押したら作り直す
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) openMainWindow(url);
