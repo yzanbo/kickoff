@@ -19,12 +19,13 @@ export function descendantElectronMains(table: ReadonlyMap<number, ProcessRow>, 
   return found;
 }
 
+/** まだ動いているか（権限がないだけ（EPERM）なら、まだ動いている） */
 const isAlive = (pid: number) => {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === "EPERM";
   }
 };
 

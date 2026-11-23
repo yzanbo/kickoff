@@ -64,8 +64,8 @@ const alive = (pid: number) => {
   try {
     process.kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === "EPERM";
   }
 };
 const signal = (pid: number, group: boolean, sig: NodeJS.Signals) => {
