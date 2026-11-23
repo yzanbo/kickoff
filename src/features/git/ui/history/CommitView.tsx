@@ -20,7 +20,8 @@ import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileTree } from "@/features/files/ui/FileTree";
 import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
 import { kindMaps } from "@/features/git/ui/changes/changeMarks";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { CommitSummary } from "./CommitSummary";
 import type { RefTarget } from "./refTarget";
 import { gitApi } from "@/features/git/ui/api";
@@ -52,7 +53,8 @@ export function CommitView({
   onPick: (hash: string) => void;
   onRefMenu?: (e: MouseEvent, target: RefTarget) => void;
 }) {
-  const { target, key: at } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
+  const at = workplaceKey(target);
   // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
   const loaded = useQuery(commit.hash, () => gitApi("GET /api/projects/:projectId/git/commits/:hash", { params: { ...workdirInput(target).params, hash: commit.hash }, query: workdirInput(target).query }), { deps: [at] });
   const detail = loaded.data;

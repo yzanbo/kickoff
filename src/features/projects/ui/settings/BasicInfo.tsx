@@ -9,6 +9,7 @@ import { Field } from "@/foundation/ui/kit/Field";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/projects/ui/GitInitNotice";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { settingsItemsOf } from "@/features/settings/ui";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
 import { TagEditor } from "./TagEditor";
@@ -69,7 +70,7 @@ function ColorField({ project }: { project: Project }) {
 /** プロジェクトフォルダ（本体）。「変更…」で選び直す（確かめてから変える） */
 function FolderRow({ project }: { project: Project }) {
   // git で管理していなければ、ここからも始められるようにする（ファイル・変更・履歴のタブと同じ）
-  const git = useGitStatus(project.id, false);
+  const git = useGitStatus(useWorkplace(project.id));
   const plain = git.status?.repo === false;
   return (
     <Field

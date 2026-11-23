@@ -583,7 +583,7 @@
 | CODE-029 | コミットの詳細と差分を見る | git | M |
 | CODE-030 | ブランチ・タグ・退避の一覧 | git | M |
 | CODE-031 | 履歴の帯から Git を操作する | git | M |
-| CODE-032 | 履歴を開いた・窓に戻ったときにリモートの最新を取ってくる | git | T:gitAutoFetch |
+| CODE-032 | 履歴を開いた・窓に戻ったときにリモートの最新を取ってくる | git | T:repoLock,T:statusStore |
 | CODE-033 | ブランチをチェックアウトする | git | M |
 | CODE-034 | ブランチ・タグを作る | git | M |
 | CODE-035 | マージ・リベースする | git | T:server.gitBranches |

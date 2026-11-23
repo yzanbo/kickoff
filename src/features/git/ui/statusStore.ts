@@ -1,6 +1,7 @@
 // Git の状態を作業場所ごとに 1 つ持つ店（読む部品が何か所あっても、取りに行くのは 1 回）。部品は useGitStatus（useGitStatus.ts）で読む。
 // 取り直す決まりはここに 1 つだけ持つ: 初めて読んだとき・窓に戻ったとき・このプロジェクトのチャットが動いてから 1.5 秒・
-// active（変更・履歴のタブを開いている）の部品がある間は 5 秒ごと。リモートの情報も、active になったとき・窓に戻ったとき・3 分ごとに裏で取ってくる
+// active（変更・履歴のタブを開いている）の部品がある間は 5 秒ごと。リモートの情報も、active になったとき・窓に戻ったとき・3 分ごとに
+// 裏で取ってくるよう頼む（POST fetch { auto: true }。前から間がない・操作中なら飛ばすのはコアの鍵。別ウィンドウ・スマホとも共有）
 import type { GitStatus } from "@shared/git/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
@@ -34,9 +35,8 @@ const NO_FLAGS: GitStatusFlags = Object.freeze({ refreshing: false, autoFetching
 
 export interface GitStatusDeps {
   load(ref: WorkplaceRef): Promise<GitStatus>;
-  fetch(ref: WorkplaceRef): Promise<unknown>;
-  /** 自動のフェッチの順番の取り決め（gitAutoFetch。飛ばしたら false） */
-  autoFetcher: { fetch(key: string, run: () => Promise<unknown>): Promise<boolean> };
+  /** 自動のフェッチを頼む（飛ばすか・失敗はコアが決め、今の状態を返す） */
+  autoFetch(ref: WorkplaceRef): Promise<GitStatus>;
 }
 
 interface Watch {
@@ -74,18 +74,20 @@ export function createGitStatusStore(deps: GitStatusDeps) {
     );
   }
 
-  /** 裏でリモートの情報を取ってきて、取ってきたら取り直す（変わった参照が履歴にも出る。失敗は知らせない） */
+  /** 裏でリモートの情報を取ってきてもらい、返った状態を出す（変わった参照が履歴にも出る。失敗は知らせない） */
   function autoFetch(key: string) {
     const watch = watches.get(key);
     if (!watch) return;
-    void deps.autoFetcher
-      .fetch(String(watch.ref.projectId), async () => {
-        setFlags(key, { autoFetching: true });
-        await deps.fetch(watch.ref).finally(() => setFlags(key, { autoFetching: false }));
-      })
-      .then((ran) => {
-        if (ran) void refresh(key, true);
-      });
+    setFlags(key, { autoFetching: true });
+    deps.autoFetch(watch.ref).then(
+      (value) => {
+        setFlags(key, { autoFetching: false });
+        if (watches.get(key) !== watch) return;
+        statuses.set(key, { value, version: ++version });
+        setFlags(key, { refreshing: false, fetchError: undefined });
+      },
+      () => setFlags(key, { autoFetching: false }),
+    );
   }
 
   function release(key: string, watch: Watch) {

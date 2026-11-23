@@ -1,6 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import type { GitTarget } from "@/foundation/ui/api";
-import { workplaceKey, type WorkplaceRef } from "./workplace";
+import type { WorkplaceRef } from "./workplace";
 
 const WorkplaceContext = createContext<WorkplaceRef | null>(null);
 
@@ -15,14 +14,4 @@ export function useWorkplace(projectId: number, worktree?: string | null): Workp
   const fromContext = useContext(WorkplaceContext);
   const path = worktree === undefined ? (fromContext?.worktree ?? null) : worktree;
   return { projectId, worktree: path };
-}
-
-/**
- * いま見ている作業場所に向けた、Git・ファイル・検索の操作先（useWorkplace の上の、前の形。worktree は undefined = 本体）。
- * key は作業場所が変わったら読み直すための文字（effect の依存や、覚えた結果の見分けに使う）
- */
-export function useGitTarget(projectId: number, worktreeArg?: string) {
-  const ref = useWorkplace(projectId, worktreeArg);
-  const worktree = ref.worktree ?? undefined;
-  return { target: { projectId: ref.projectId, worktree } as GitTarget, key: workplaceKey(ref), worktree };
 }

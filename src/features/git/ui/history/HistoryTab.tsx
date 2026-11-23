@@ -37,7 +37,7 @@ export function HistoryTab({
   onWorktreeChange: (worktree: string | undefined) => void;
 }) {
   // Git の状態（開いている間は一定の間隔でも取り直す。同じ作業場所の変更のタブのバッジとは同じ購読）
-  const git = useGitStatus(projectId, true, worktree ?? null);
+  const git = useGitStatus({ projectId, worktree: worktree ?? null }, { active: true });
   const { status } = git;
   const log = useGitLog(projectId, Boolean(status?.repo), git.version);
   const [picked, setPicked] = useState<{ projectId: number; commit: GitCommit }>();

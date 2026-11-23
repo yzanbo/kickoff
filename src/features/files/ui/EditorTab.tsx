@@ -65,7 +65,7 @@ export function EditorTab({
 }) {
   const rootName = baseName(worktree ?? repoPath);
   // Git の変更（一覧と差分。開いている間は一定の間隔でも取り直す。同じ作業場所のタブのバッジとは同じ購読）
-  const git = useGitStatus(projectId, true, worktree ?? null);
+  const git = useGitStatus({ projectId, worktree: worktree ?? null }, { active: true });
   const { status } = git;
   const selection = useFileTabs(projectId, panelScope ?? projectId);
   const { selected, setSelected } = selection;

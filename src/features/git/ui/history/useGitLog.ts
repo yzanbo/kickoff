@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { GitCommit, GitLog, GitRefs } from "@shared/git/types";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWorktrees, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { layoutGraph } from "./commitGraph";
 import { gitApi } from "@/features/git/ui/api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
@@ -15,7 +16,8 @@ const NO_COMMITS: GitCommit[] = [];
  */
 export function useGitLog(projectId: number, active: boolean, version: number) {
   // 履歴・ブランチは作業場所ごと（ワークツリーの一覧はプロジェクトで共通）
-  const { target, key: at } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
+  const at = workplaceKey(target);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reload, setReload] = useState(0);
   // ブランチ・リモート・タグ・stash（左の一覧）。取れなくても履歴は出す

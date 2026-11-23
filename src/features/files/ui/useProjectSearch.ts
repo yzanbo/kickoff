@@ -4,7 +4,7 @@ import type { ProjectSearchResult } from "@shared/files/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
 import { filesApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
@@ -19,7 +19,7 @@ type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
  * 探し方の切り替え・含める / 除外するファイル（詳細）・置換の欄の中身・結果から外したもの・検索の履歴も持つ
  */
 export function useProjectSearch(projectId: number) {
-  const { target } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
   const [query, setQueryState] = useState("");
   const [options, setOptions] = useState<Record<SearchOption, boolean>>({ case_sensitive: false, whole_word: false, regex: false, use_ignore: true });
   const [include, setInclude] = useState("");

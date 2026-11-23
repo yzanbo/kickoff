@@ -11,7 +11,6 @@ import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { baseName } from "@/foundation/ui/lib/format";
 import { confirmRemoveWorktree } from "./removeWorktree";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
-import { runGitOperation } from "@/features/git/ui/gitAutoFetch";
 import { useWorktreeEnv, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
@@ -87,7 +86,7 @@ export function WorktreeBar({
       await api.removeWorktree(projectId, worktree, { deleteBranch: true, ...read(answer.checked) });
       worktreesStore.invalidate(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
-      await runGitOperation(projectId, () => api.gitPull(projectId)).catch((e: unknown) => void alert("本体を最新にできませんでした", errorMessage(e)));
+      await api.gitPull(projectId).catch((e: unknown) => void alert("本体を最新にできませんでした", errorMessage(e)));
       onFinished();
     });
   };

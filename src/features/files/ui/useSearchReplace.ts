@@ -4,7 +4,7 @@ import type { ProjectSearchQuery } from "@shared/foundation/search/searchMatch";
 import { ApiError } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHits";
 import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
@@ -30,7 +30,7 @@ function replaceMessage(r: ProjectReplaceResult): string {
  * 置換したら探し直し・Git の状態を取り直し、置換する前の中身を覚えて「元に戻す」で戻せる（そのあとほかで変わったファイルは戻さない）
  */
 export function useSearchReplace(projectId: number, { search, selection, git }: { search: ProjectSearchController; selection: ChangesSelection; git: GitStatusController }) {
-  const { target } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<LastReplace | null>(null);
 

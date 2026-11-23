@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/git/types";
 import { onServerEvent } from "@/foundation/ui/api/events";
-import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
-import { workplaceKey } from "@/foundation/ui/workplace/workplace";
-import { gitAutoFetch, runGitOperation } from "./gitAutoFetch";
-import { createGitStatusStore } from "./gitStatusStore";
+import { workplaceKey, type WorkplaceRef } from "@/foundation/ui/workplace/workplace";
+import { createGitStatusStore } from "./statusStore";
 import { gitApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
 /** files の木が読む変更の記号（files ⇄ git の口 filesGit を作る P8-1g で消す） */
 export { changeKinds, type ChangeKinds } from "./changes/changeMarks";
 
-/** 画面全体で 1 つの Git の状態の店（作業場所ごとに 1 つの購読。取り直す決まりは gitStatusStore.ts） */
-const gitStatuses = createGitStatusStore({ load: (ref) => gitApi("GET /api/projects/:projectId/git/status", workdirInput(ref)), fetch: (ref) => gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref)), autoFetcher: gitAutoFetch });
+/** 画面全体で 1 つの Git の状態の店（作業場所ごとに 1 つの購読。取り直す決まりは statusStore.ts） */
+const gitStatuses = createGitStatusStore({
+  load: (ref) => gitApi("GET /api/projects/:projectId/git/status", workdirInput(ref)),
+  autoFetch: (ref) => gitApi("POST /api/projects/:projectId/git/fetch", { ...workdirInput(ref), body: { auto: true } }),
+});
 
 // チャットが動いた（送った・終わった）か、作業中にツールの結果が届いた（ファイルを変えたかもしれない）。
 // 作業中はチャットの行が変わらないので、ツールの結果も見ないと、差分が作業の終わりまで追いつかない
@@ -24,12 +25,11 @@ if (typeof window !== "undefined") window.addEventListener("focus", () => gitSta
 
 /**
  * 作業場所の Git の状態（読む所が何か所あっても、同じ作業場所なら取りに行くのは 1 回）。active（変更・履歴のタブを開いている）の間は、
- * 一定の間隔でも取り直し、リモートの情報も裏で取ってくる（間を空ける・押した操作とぶつけないのは gitAutoFetch）。count はタブのバッジに出す変更のあるファイルの数。
- * worktree は作業場所（ワークツリーのフォルダ。null なら本体、省けば WorkplaceProvider の作業場所）
+ * 一定の間隔でも取り直し、リモートの情報も裏で取ってきてもらう（間を空ける・押した操作とぶつけないのはコアの鍵）。count はタブのバッジに出す変更のあるファイルの数。
+ * ref は作業場所（useWorkplace で WorkplaceProvider の作業場所を読める）
  */
-export function useGitStatus(projectId: number, active: boolean, worktree?: string | null) {
-  const ref = useWorkplace(projectId, worktree);
-  const path = ref.worktree;
+export function useGitStatus(ref: WorkplaceRef, { active = false }: { active?: boolean } = {}) {
+  const { projectId, worktree: path } = ref;
   const key = workplaceKey(ref);
   const subscribe = useCallback((listener: () => void) => gitStatuses.subscribe(key, listener), [key]);
   const state = useSyncExternalStore(subscribe, () => gitStatuses.state(key));
@@ -42,11 +42,11 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(gitApi(`POST /api/projects/:projectId/git/${action}`, { ...workdirInput(ref), body: { paths } }));
   /** コミット（amend は直前のコミットに足して書き直す「コミット (修正)」） */
   const commit = (message: string, amend = false) => apply(gitApi("POST /api/projects/:projectId/git/commit", { ...workdirInput(ref), body: { message, amend } }));
-  // リモートとやり取りする操作は、自動のフェッチの途中なら終わるのを待ってから（runGitOperation）
-  const push = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/push", workdirInput(ref))));
-  const pull = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/pull", workdirInput(ref))));
+  // リモートとやり取りする操作（自動のフェッチの途中なら、終わるのをコアが待つ）
+  const push = () => apply(gitApi("POST /api/projects/:projectId/git/push", workdirInput(ref)));
+  const pull = () => apply(gitApi("POST /api/projects/:projectId/git/pull", workdirInput(ref)));
   /** リモートの情報を取ってきてから取り直す（遅れている数を出すため。取り直しのボタンで使う） */
-  const fetchRemote = () => apply(runGitOperation(projectId, () => gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref)))).catch((e: unknown) => gitStatuses.fetchFailed(ref, e));
+  const fetchRemote = () => apply(gitApi("POST /api/projects/:projectId/git/fetch", workdirInput(ref))).catch((e: unknown) => gitStatuses.fetchFailed(ref, e));
 
   const value = state.data?.value;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;

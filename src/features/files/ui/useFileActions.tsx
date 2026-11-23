@@ -8,7 +8,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { confirmDiscard, type GitAction } from "@/features/git/ui/ChangeGroup";
 import type { PickedEntry } from "./FileTree";
 import { joinTreePath, parentPath, topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
@@ -87,7 +87,7 @@ export function useFileActions(
     gitRun: (action: GitAction, paths: string[]) => void;
   },
 ) {
-  const { target } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [creating, setCreating] = useState<FileCreate["creating"]>(null);
   const menu = useContextMenu<MenuTarget>();

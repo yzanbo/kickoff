@@ -9,7 +9,7 @@ import { projectAssetBase, type PagePreviewKind } from "./filePreview";
  * （<base> をコアのファイルの口 projectAssetBase へ向ける）。sandbox は allow-same-origin だけで、中の JavaScript・フォームは動かさない。
  * リンクは中で開かない（ページ内の # は飛び、外のサイトはブラウザで開く。ほかは何もしない）
  */
-export function PagePreview({ projectId, worktree, path, kind, content }: { projectId: number; worktree?: string; path: string; kind: PagePreviewKind; content: string }) {
+export function PagePreview({ projectId, worktree, path, kind, content }: { projectId: number; worktree: string | null; path: string; kind: PagePreviewKind; content: string }) {
   if (kind === "markdown") {
     return (
       <div className="page-preview page-preview-markdown">
@@ -20,7 +20,7 @@ export function PagePreview({ projectId, worktree, path, kind, content }: { proj
   return <HtmlPreview projectId={projectId} worktree={worktree} path={path} html={content} />;
 }
 
-function HtmlPreview({ projectId, worktree, path, html }: { projectId: number; worktree?: string; path: string; html: string }) {
+function HtmlPreview({ projectId, worktree, path, html }: { projectId: number; worktree: string | null; path: string; html: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const scroll = useRef({ x: 0, y: 0 });
   const srcDoc = useMemo(() => withBaseHref(html, projectAssetBase(location.origin, projectId, worktree, path)), [html, projectId, worktree, path]);

@@ -3,7 +3,8 @@ import { errorMessage } from "@shared/foundation/errors";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { formatBytes } from "@shared/foundation/text/bytes";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { filesApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
@@ -14,7 +15,8 @@ import { workdirInput } from "@/foundation/ui/api/workdir";
  * （SVG のコードを書きかけのとき。保存していない中身も見える）。version が変わるたびに読み直す（ほかで変わったとき）
  */
 export function ImagePreview({ projectId, path, version, source }: { projectId: number; path: string; version: number; source?: string }) {
-  const { target, key } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
+  const key = workplaceKey(target);
   const [image, setImage] = useState<{ url: string; bytes: number }>();
   const [error, setError] = useState<string>();
   const [dims, setDims] = useState<{ width: number; height: number }>();

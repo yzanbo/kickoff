@@ -16,7 +16,8 @@ import { storage } from "./storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
 import { pagePreviewKind } from "./filePreview";
@@ -74,9 +75,8 @@ interface EditBase {
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
 export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
-  // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
-  const { target, key: at, worktree } = useGitTarget(projectId);
-  const key = `${at}:${path}`;
+  const target = useWorkplace(projectId); // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
+  const key = `${workplaceKey(target)}:${path}`;
   // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
   const loaded = useQuery(key, () => filesApi("GET /api/projects/:projectId/file", workdirInput(target, { path })), { deps: [version] });
   const [stored, setBase] = useState<EditBase | null>(null);
@@ -217,7 +217,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
         </span>
         <span className="spacer" />
         {canOpenExternal() && (
-          <button className="btn" data-size="sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${worktree ?? repoPath}/${path}`, line })}>
+          <button className="btn" data-size="sm" title="VS Code でこのファイルを開く" onClick={() => void openExternal({ kind: "vscode", path: `${target.worktree ?? repoPath}/${path}`, line })}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}
@@ -250,7 +250,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
         {previewing &&
           pageKind &&
           (previewSource !== null ? (
-            <PagePreview projectId={projectId} worktree={worktree} path={path} kind={pageKind} content={previewSource} />
+            <PagePreview projectId={projectId} worktree={target.worktree} path={path} kind={pageKind} content={previewSource} />
           ) : current?.error ? (
             <ErrorText message={current.error} className="diff-message" />
           ) : (

@@ -1,6 +1,6 @@
 # ファイル（`src/features/files`）
 
-プロジェクトの画面の「ファイル」「検索」タブと、チャットの右の欄のファイル・返答のファイルのチップ。変更・履歴は `src/features/git/CLAUDE.md`。見る作業場所は `WorktreePicker`、操作先は `useGitTarget`（どちらも `@/foundation/ui/workplace/`。API は `?worktree=`）。
+プロジェクトの画面の「ファイル」「検索」タブと、チャットの右の欄のファイル・返答のファイルのチップ。変更・履歴は `src/features/git/CLAUDE.md`。見る作業場所は `WorktreePicker`、操作先は `useWorkplace`（どちらも `@/foundation/ui/workplace/`。API は `?worktree=`）。
 
 ## 地図
 

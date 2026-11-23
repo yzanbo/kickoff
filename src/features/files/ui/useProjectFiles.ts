@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { buildTree } from "@/foundation/ui/kit/list/treeModel";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { filesApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
@@ -11,7 +12,8 @@ import { workdirInput } from "@/foundation/ui/api/workdir";
  * version が変わったら（変更の一覧を取り直したら）読み直す。中身が同じなら描き直さない
  */
 export function useProjectFiles(projectId: number, active: boolean, version: number) {
-  const { target, key } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
+  const key = workplaceKey(target);
   const { data: files, error } = useQuery(key, () => filesApi("GET /api/projects/:projectId/files", workdirInput(target)), { enabled: active, deps: [version], same: sameFiles });
   const tree = useMemo(() => (files ? buildTree(files) : undefined), [files]);
   return { tree, truncated: Boolean(files?.truncated), error: errorText(error) };

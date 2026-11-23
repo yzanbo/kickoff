@@ -49,7 +49,7 @@ export function SideChanges(props: Props) {
 }
 
 function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
-  const git = useGitStatus(projectId, false, worktree);
+  const git = useGitStatus({ projectId, worktree: worktree ?? null });
   // 差分の行の右クリックは「メインのチャット」に足すメニュー（パスは作業場所のフルパス）
   const { projectsById } = useProjects();
   const codeMenu = useCodeQuoteMenu(worktree ?? projectsById.get(projectId)?.repo_path);

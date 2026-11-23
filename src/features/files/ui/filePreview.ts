@@ -16,7 +16,7 @@ export function pagePreviewKind(path: string): PagePreviewKind | null {
  * （GET /api/projects/:id/file/asset/<作業場所>/<フォルダ>/。作業場所は本体なら "-"、ワークツリーならフォルダを 1 段に符号化したもの。
  * 相対パスで解くとクエリは落ちるので、作業場所もパスに入れる）
  */
-export function projectAssetBase(origin: string, projectId: number, worktree: string | undefined, file: string): string {
+export function projectAssetBase(origin: string, projectId: number, worktree: string | null, file: string): string {
   const folder = file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : "";
   const place = worktree ? encodeURIComponent(worktree) : "-";
   const encoded = folder ? `${folder.split("/").map(encodeURIComponent).join("/")}/` : "";

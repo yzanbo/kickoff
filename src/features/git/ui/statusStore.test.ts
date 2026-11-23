@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import type { GitStatus } from "@shared/git/types";
-import { createAutoFetcher } from "./gitAutoFetch";
-import { createGitStatusStore } from "./gitStatusStore";
+import { createGitStatusStore } from "./statusStore";
 
 const main = { projectId: 1, worktree: null };
 const tree = { projectId: 1, worktree: "/w/a" };
@@ -18,8 +17,10 @@ function setup() {
       loads.push(ref.worktree ?? "main");
       return { repo: false } satisfies GitStatus;
     },
-    fetch: async (ref) => void fetches.push(ref.worktree ?? "main"),
-    autoFetcher: createAutoFetcher({ minInterval: 0 }),
+    autoFetch: async (ref) => {
+      fetches.push(ref.worktree ?? "main");
+      return { repo: false } satisfies GitStatus;
+    },
   });
   return { store, loads, fetches };
 }
@@ -85,4 +86,17 @@ test("Git の状態の店: 操作の応答は取り直しを待たずにその�
   await vi.advanceTimersByTimeAsync(0);
   assert.equal(store.state("1:").data?.value, applied);
   assert.equal(store.state("1:").loading, false);
+});
+
+test("Git の状態の店: 自動のフェッチはコアに頼み、返った状態をそのまま出す（届くまで回る印）", async () => {
+  const { store, fetches } = setup();
+  store.watch(main);
+  await vi.advanceTimersByTimeAsync(0);
+  const version = store.state("1:").data?.version ?? 0;
+  store.autoFetch(main);
+  assert.equal(store.flags("1:").autoFetching, true);
+  await vi.advanceTimersByTimeAsync(0);
+  assert.deepEqual(fetches, ["main"]);
+  assert.equal(store.flags("1:").autoFetching, false);
+  assert.equal(store.state("1:").data?.version, version + 1);
 });

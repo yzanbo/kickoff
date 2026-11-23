@@ -10,7 +10,7 @@ export const HistoryViewPage = ({ project, worktree, setWorktree }: ProjectViewC
 
 /** 変更のタブの数（変更のあるファイル。取り直している最中は数の代わりに更新中の印） */
 export function useChangesBadge({ projectId, worktree, vertical }: ProjectViewBadgeProps): ProjectViewBadge {
-  const git = useGitStatus(projectId, false, worktree);
+  const git = useGitStatus({ projectId, worktree });
   const refreshing = useBusyBadge(git.refreshing);
   const label = `変更のあるファイル ${git.count} 件`;
   return {

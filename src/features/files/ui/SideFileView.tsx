@@ -41,7 +41,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const tabKey = tabOf?.tabKey;
   useEffect(() => (panelKey && tabKey ? () => setFileTabDirty(panelKey, tabKey, false) : undefined), [panelKey, tabKey]);
   const { projectsById } = useProjects();
-  const git = useGitStatus(projectId, false, worktree);
+  const git = useGitStatus({ projectId, worktree: worktree ?? null });
   const links = useContext(FileLinkContext);
   const changed = changeOf(git.status, path) !== undefined;
   const ref = { path, ...(line ? { line } : {}) };

@@ -8,7 +8,8 @@ import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayout
 import { parseDiff } from "@/foundation/ui/diff/diffModel";
 import { SPLIT_MIN_WIDTH, SplitDiff, UnifiedDiff } from "@/foundation/ui/diff/DiffTable";
 import { useDiffHighlight } from "@/foundation/ui/diff/useDiffHighlight";
-import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { gitApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
@@ -23,7 +24,8 @@ export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined 
  * 同じファイルのとき・ちらつかないように）。active: false なら読まない
  */
 export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {
-  const { target, key: at } = useGitTarget(projectId);
+  const target = useWorkplace(projectId);
+  const at = workplaceKey(target);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   const loaded = useQuery(key, () => (commit
         ? gitApi("GET /api/projects/:projectId/git/commits/:hash/diff", { params: { ...workdirInput(target).params, hash: commit }, query: workdirInput(target, { path: file.path, old: file.old_path }).query })

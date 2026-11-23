@@ -16,7 +16,6 @@ import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { runGitOperation } from "@/features/git/ui/gitAutoFetch";
 import { downVolumesCheck, dropConnectionsCheck } from "@/features/worktrees/ui/worktreeEnvText";
 import {
   PR_CHAT_ACTIONS,
@@ -131,7 +130,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
         worktreesStore.set(projectId, list);
         worktreesStore.invalidate(projectId);
         // マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
-        if (merged) await runGitOperation(projectId, () => api.gitPull(projectId)).catch((e: unknown) => (pullError = errorMessage(e)));
+        if (merged) await api.gitPull(projectId).catch((e: unknown) => (pullError = errorMessage(e)));
       }
       for (const id of ids) await (effectiveChatAction === "delete" ? api.deleteChat(id) : api.archiveChat(id));
     });
