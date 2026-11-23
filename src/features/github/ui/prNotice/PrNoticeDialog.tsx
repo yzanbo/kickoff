@@ -24,6 +24,7 @@ import {
   prNoticeTitle,
   prNoticeWarnings,
   rootChatIds,
+  tryEach,
   type PrChatAction,
   type PrWorktreeAction,
 } from "./prNoticePlan";
@@ -128,7 +129,10 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
         });
         pullError = removed.pullError;
       }
-      for (const id of ids) await (effectiveChatAction === "delete" ? api.deleteChat(id) : api.archiveChat(id));
+      // チャットは全部を試してから、失敗をまとめて知らせる（途中の失敗で残りを止めない）
+      const failures = await tryEach(ids, (id) => (effectiveChatAction === "delete" ? api.deleteChat(id) : api.archiveChat(id)));
+      if (failures.length > 0)
+        throw new Error(`チャット ${failures.length} 件を${PR_CHAT_ACTION_LABELS[effectiveChatAction]}できませんでした: ${failures.join(" / ")}`);
     });
     if (!ok) return;
     dialog.close();

@@ -1,5 +1,6 @@
 // ワークツリーの PR の知らせの確認で選ぶもの（ワークツリー・チャットの扱い）と、確認に出す注意（純粋な関数）
 import type { Chat } from "@shared/chat/types";
+import { errorMessage } from "@shared/foundation/errors";
 import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
 import { removalNotes } from "@/features/worktrees/ui";
 
@@ -39,4 +40,11 @@ export function prNoticeWarnings(info: WorktreeRemovalInfo | undefined, running:
     ...(removing && info ? removalNotes(info, { deleteBranch: action === "both" }) : []),
     chatAction === "delete" && "チャットを削除すると、元に戻せません。",
   ].filter((w): w is string => Boolean(w));
+}
+
+/** items を順に fn で試し、失敗した理由の文を返す（途中で失敗しても残りを試す。チャットのアーカイブ・削除） */
+export async function tryEach<T>(items: readonly T[], fn: (item: T) => Promise<unknown>): Promise<string[]> {
+  const failures: string[] = [];
+  for (const item of items) await fn(item).catch((e: unknown) => failures.push(errorMessage(e)));
+  return failures;
 }

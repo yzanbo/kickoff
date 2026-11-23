@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
-import { defaultWorktreeAction, prNoticeMarkLabel, prNoticeTitle, prNoticeWarnings, rootChatIds } from "./prNoticePlan";
+import { defaultWorktreeAction, prNoticeMarkLabel, prNoticeTitle, prNoticeWarnings, rootChatIds, tryEach } from "./prNoticePlan";
 
 const notice = (state: "MERGED" | "CLOSED"): WorktreePrNotice => ({
   project_id: 1,
@@ -42,4 +42,15 @@ test("PR の知らせ: 注意は消すものに合わせて出す（残すなら
   assert.deepEqual(prNoticeWarnings(all, 0, "keep", "keep"), []);
   assert.deepEqual(prNoticeWarnings(info(), 1, "keep", "archive"), ["作業中のチャットが 1 件あります。終わってから片付けてください。"]);
   assert.deepEqual(prNoticeWarnings(undefined, 0, "keep", "delete"), ["チャットを削除すると、元に戻せません。"]);
+});
+
+test("PR の知らせ: チャットの片付けは途中で失敗しても残りを試し、失敗をまとめて返す", async () => {
+  const done: number[] = [];
+  const failures = await tryEach([1, 2, 3], async (id) => {
+    if (id === 2) throw new Error("見つかりません");
+    done.push(id);
+  });
+  assert.deepEqual(done, [1, 3]);
+  assert.deepEqual(failures, ["見つかりません"]);
+  assert.deepEqual(await tryEach([], async () => undefined), []);
 });
