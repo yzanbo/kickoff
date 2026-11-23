@@ -2,9 +2,10 @@ import { test } from "vitest";
 import { openDb } from "@/foundation/core/db/db";
 import { matchRecord } from "@/foundation/core/testing/record";
 import { MIGRATIONS } from "./migrations";
+import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
 
 test("スキーマの記録（表・索引・トリガー・ビューの作る文と、印と版。作り直すまで変わらない）", async () => {
-  const db = openDb(":memory:", MIGRATIONS);
+  const db = openDb(MEMORY_DB, MIGRATIONS);
   try {
     const pragma = (name: string) => Object.values(db.prepare(`PRAGMA ${name}`).get() as Record<string, number>)[0];
     const rows = db.prepare("SELECT type, name, tbl_name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all() as { sql: string | null }[];

@@ -1,6 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { makeChat, makeEvent, makeProject } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
+import { makeProject } from "@shared/projects/testing";
 import type { TurnContext, TurnContributor, TurnParts } from "./contributor";
 import { emptyMarks } from "@/features/chat/core/run/machine/marks";
 import { collectTurnParts } from "./params";

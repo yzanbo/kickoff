@@ -9,7 +9,7 @@ import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, 
 
 /** 一時の DB にチャットを 2 つ作り、記録を交互に足す（記録の ID はチャットをまたいで振るので、ID が続かない形で確かめる） */
 function seeded(events: readonly ChatEvent[]) {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed", model: null });
   const other = store.chats.create({ project_id: project.id, provider: "claude", title: "ほか", status: "completed", model: null });
@@ -43,7 +43,7 @@ test("覆う索引から読んだ軽い形は記録から作ったものと同�
 });
 
 test("軽い形を読む SQL は覆う索引だけを使い、作業の終わりの ID も索引で引く", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const plan = (sql: string) => (store.db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(1, 0, 100) as { detail: string }[]).map((r) => r.detail).join(" / ");
   const metas = `SELECT id, type, json_extract(data, '$.id'), json_extract(data, '$.name'), json_extract(data, '$.parent'), json_extract(data, '$.tool_use_id'),
     json_extract(data, '$.task_id'), json_extract(data, '$.status'), length(data) FROM chat_events WHERE chat_id = ? AND id >= ? AND id < ? ORDER BY id`;
@@ -51,7 +51,7 @@ test("軽い形を読む SQL は覆う索引だけを使い、作業の終わり
 });
 
 test("tailStart: 作業の終わりを境目にターンを数え、作業中に伝えた発言では切らない", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chatId = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null }).id;
   const ends = [1, 2, 3, 4].map((n) => turn(store, chatId, n, { tell: true }));
@@ -68,7 +68,7 @@ test("tailStart: 作業の終わりを境目にターンを数え、作業中に
 });
 
 test("tailStart: 大きさの上限を超えたら新しい方へずらし（最新の 1 ターンは残す）、最新のメインの返答が前にあればそのターンまで広げる", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chatId = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null }).id;
   const ends = [1, 2, 3].map((n) => turn(store, chatId, n, { bigBytes: n === 2 ? 5000 : 0 }));
@@ -83,7 +83,7 @@ test("tailStart: 大きさの上限を超えたら新しい方へずらし（最
 });
 
 test("tailStart: 最新の 1 ターンが大きすぎれば、終わりから上限までにして headPartial", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chatId = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null }).id;
   turn(store, chatId, 1);
@@ -96,7 +96,7 @@ test("tailStart: 最新の 1 ターンが大きすぎれば、終わりから上
 });
 
 test("pageBefore・pageSince・pageAround・pageAfter・scopeEvents・mainTexts", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chatId = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null }).id;
   const ends = Array.from({ length: 10 }, (_, i) => turn(store, chatId, i + 1));

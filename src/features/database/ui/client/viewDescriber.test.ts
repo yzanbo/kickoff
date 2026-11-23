@@ -3,7 +3,7 @@ import { test } from "vitest";
 import type { DbConnection } from "@shared/database/types";
 import { describeView, viewDescribers } from "@/foundation/ui/shell/viewDescribers";
 import { writeSetting } from "@/foundation/ui/storage";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { NO_DB_TABS, openNewSqlTab, openTableTab, tableTabKey } from "@/features/database/ui/dbClientTabs";
 import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";

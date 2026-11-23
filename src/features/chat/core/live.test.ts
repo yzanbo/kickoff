@@ -68,7 +68,7 @@ const CASES: { name: string; arrange: (r: ChatRun) => void; want: Partial<Return
 
 for (const c of CASES) {
   test(`作業中の様子: ${c.name}の段階・預かる理由・圧縮の様子`, () => {
-    const store = testStore(":memory:");
+    const store = testStore();
     const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
     const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
     const runtimes = new ChatRuns({ store });

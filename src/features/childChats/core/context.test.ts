@@ -5,7 +5,7 @@ import { chatContextNote, chatContextOf } from "./context";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 function setup() {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "a", repo_path: "/tmp/a", provider: "claude" });
   const chat = (title: string, parent: { id: number; eventId?: number } | null = null) =>
     store.chats.create({

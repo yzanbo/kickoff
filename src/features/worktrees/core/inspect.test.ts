@@ -1,7 +1,7 @@
 // AI が指したワークツリーの引き当てと、選んでもらう一覧の文
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import { findNamedWorktree, worktreeNames } from "./inspect";
 
 const list = [

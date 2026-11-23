@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Approval } from "@shared/chat/approvalTypes";
-import { makeChat, makeProject } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeProject } from "@shared/projects/testing";
 import { applyHostEvent, chatSections, emptyHostState } from "./hostState";
 
 const approval = (id: string, chatId: number): Approval => ({ id, chat_id: chatId, project_id: 1, kind: "question", tool_name: "AskUserQuestion", input: {}, can_remember: false, created_at: "2026-11-14T00:00:00Z" });

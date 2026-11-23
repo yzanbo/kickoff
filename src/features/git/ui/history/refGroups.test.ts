@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitRefs } from "@shared/git/types";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import { groupBranches } from "./refGroups";
 
 const branch = (name: string, current = false): GitRefs["branches"][number] => ({ name, hash: name, current, upstream: null, ahead: 0, behind: 0, worktree: null });

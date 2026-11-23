@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderStatus } from "@shared/ai/types";
-import { makeProviderStatus } from "@shared/foundation/testing/factories";
+import { makeProviderStatus } from "@shared/ai/testing";
 import { canBrowserLogin } from "./ProviderLoginButton";
 
 const codex = (extra: Partial<ProviderStatus>) => makeProviderStatus("codex", { logged_in: false, capabilities: ["login"], ...extra });

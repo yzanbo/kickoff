@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { makeChat } from "@shared/chat/testing";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { chatTab, openTab, panelStateOf } from "@/features/panel/ui";
 import { useChatPanelTestStore } from "@/features/chatPanel/ui/testing";
 import { holdChatsElsewhere } from "./windowChats";

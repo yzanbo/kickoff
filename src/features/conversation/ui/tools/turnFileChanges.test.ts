@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEventOf } from "@shared/chat/chatEvent";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import { changesOf, lineDelta, type EditCall } from "./turnFileChanges";
 
 const ev = eventSequence();

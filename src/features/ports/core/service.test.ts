@@ -18,7 +18,7 @@ const CORE = 101;
 
 function setup() {
   const repo = tempDir({ real: true });
-  const store = testStore(":memory:");
+  const store = testStore();
   afterTest(() => store.close());
   const project = store.projects.create({ name: "p", repo_path: repo, provider: "claude" });
   const rows: ProcessRow[] = [

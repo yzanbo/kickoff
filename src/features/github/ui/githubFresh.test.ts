@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitHubItem } from "@shared/github/types";
-import { makePullDetail } from "@shared/foundation/testing/factories";
+import { makePullDetail } from "@shared/github/testing";
 import { freshItemNumbers } from "./githubFresh";
 
 const item = (number: number, updated_at: string): GitHubItem => ({ ...makePullDetail().item, number, updated_at });

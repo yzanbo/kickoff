@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { agentTabKey, chatTab, subagentTab } from "@/features/panel/ui";
 import { chatTabKind, chatTabLabel, chatTabWorkplace, subagentTabKind } from "./chatTabKinds";
 

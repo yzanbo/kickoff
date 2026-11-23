@@ -37,7 +37,7 @@ test("AI の一覧: 5 つの AI と、できること・ログインの仕方・
 });
 
 test("API キー: 暗号化して置き、設定が API キーのときだけ開いて渡す", async () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const vault = new ProviderKeyVault(store, reverseCipher);
   await vault.set("claude", "  sk-ant-1  ");
   assert.equal(store.secrets.get("provider_api_key:claude"), "safe:v1:1-tna-ks");

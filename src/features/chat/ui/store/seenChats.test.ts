@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { createSeenChats } from "./seenChats";
 
 test("詳細を読んだチャット: 入れたものだけを直し、忘れる・プロジェクトごと捨てるときに知らせる", () => {

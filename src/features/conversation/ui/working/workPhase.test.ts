@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChatLive } from "@shared/foundation/testing/factories";
+import { makeChatLive } from "@shared/chat/testing";
 import { afterCompactUntilOf, isInheriting, isWaitingCompact } from "./workPhase";
 
 test("親の会話を写しているのは、送る準備の段階で理由が引き継ぎのときだけ", () => {

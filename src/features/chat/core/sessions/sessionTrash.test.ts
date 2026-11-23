@@ -6,7 +6,7 @@ import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { SESSION_SWEEP_GRACE_MS, sessionLabel, sweepUnusedSessions } from "./sessionTrash";
 
 test("使われなくなったセッションの片付け: 覚えたもののうち、どのチャットも使わず、ほかの Kickoff も使わないものだけをゴミ箱へ入れて忘れる", async () => {
-  const store = testStore(":memory:", () => {});
+  const store = testStore();
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });
   // チャットに入れたセッションは覚える

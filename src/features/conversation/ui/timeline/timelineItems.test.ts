@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { groupEvents } from "./timelineItems";
 
 test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果は呼び出しにぶら下げる。init・thinking などは出さない", () => {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { byActive } from "@/features/chat/ui/store/knownChats";
 import { chatComparator, DEFAULT_CHAT_SORT, nextChatSort, parseChatSort, type ChatSortContext } from "./chatSort";
 

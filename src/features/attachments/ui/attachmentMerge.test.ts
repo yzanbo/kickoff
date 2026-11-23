@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { AttachmentSourceType } from "@shared/chat/types";
-import { makeAttachment } from "@shared/foundation/testing/factories";
+import { makeAttachment } from "@shared/chat/testing";
 import { mergeAttachments } from "./attachmentMerge";
 
 const note = (id: string, path: string) => makeAttachment(id, { kind: "note", name: path, mime: "text/markdown", note: path, taken_at: "2026-11-13T00:00:00Z" });

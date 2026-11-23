@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { FeedItem } from "@shared/chat/types";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { feedItemOf, feedPlainText, upsertFeedItem, upsertFeedItems } from "./feed";
 
 const textEvent = (id: number, chatId: number, text: string, parent?: string) =>

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitWorktree } from "@shared/git/types";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import type { BranchPullRequest } from "./pulls";
 import { noticesFor } from "./prWatch";
 

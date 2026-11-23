@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence, makeSubagent } from "@shared/foundation/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/chat/testing";
 import { childrenOf, flattenTree, latestActivity, pathOf, scopeOf, subagentTree } from "./subagentTree";
 
 test("subagentTree: 子は起動した順、親が一覧にないものはメインが起動したものとして扱う", () => {

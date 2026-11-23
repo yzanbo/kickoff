@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { groupLinkedChats } from "./linkedChats";
 
 test("groupLinkedChats: そのリポジトリの issue・PR に結び付いたチャットを「種類:番号」ごとに並びのまま（大文字・小文字は区別しない）", () => {

@@ -18,7 +18,7 @@ export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => s
  * 「最近動いた順」のサイドバーの並び: 固定したものが先、そのあとプロジェクトのチャット（アーカイブしたものを除く）が最後に動いた順
  * （チャットがなければ作った時刻）。chats は最後に動いた順（店の一覧の並び）
  */
-export function recentOrder(projects: Project[], chats: readonly Chat[]): Project[] {
+export function recentOrder(projects: Project[], chats: readonly Pick<Chat, "project_id" | "active_at" | "archived_at">[]): Project[] {
   const latest = new Map<number, string>();
   for (const chat of chats) if (!chat.archived_at && !latest.has(chat.project_id)) latest.set(chat.project_id, chat.active_at);
   return sidebarOrder(projects, (p) => latest.get(p.id) ?? p.created_at);

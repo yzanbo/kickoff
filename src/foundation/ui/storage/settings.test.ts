@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { installMemoryStorage } from "./memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import {
   choice,
   defineSetting,

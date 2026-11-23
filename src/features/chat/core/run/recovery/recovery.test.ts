@@ -13,7 +13,7 @@ import { ChatRecovery } from "./recovery";
 
 test("通信の切断で止まったチャットのつながったかは、そのチャットの AI の先で確かめ、届いたチャットにだけ online を渡す（6 章 A4）", async () => {
   const bus = new Bus();
-  const store = testStore(":memory:", (e) => bus.publish(e));
+  const store = testStore({ onChange: (e) => bus.publish(e) });
   const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
   const chatOf = (provider: ProviderId) => store.chats.create({ project_id: project.id, provider, title: provider, status: "failed", model: null });
   const runs = new ChatRuns({ store, bus });

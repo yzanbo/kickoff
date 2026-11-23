@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { CHAT_TAIL_TURNS } from "@shared/chat/detail";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { settle } from "@shared/foundation/testing/async";
 import { OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS } from "./chatStoreTypes";
 import { added, chatOf, delta, detail, opened, setup, text , openedTail } from "./storeTesting";

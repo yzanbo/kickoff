@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PROJECT_HUES } from "@shared/projects/colors";
-import { makeGroup, makeWorktree } from "@shared/foundation/testing/factories";
+import { makeGroup } from "@shared/groups/testing";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import type { BucketHead } from "./buckets";
 import { bucketHueOf, bucketHuesOf, projectBucketHues, spreadHues } from "./bucketHues";
 import { workplaceHue } from "@/foundation/ui/workplace/workplaceHue";

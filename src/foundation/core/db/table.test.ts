@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { col, table, type TableChange } from "./table";
+import { memoryDb } from "@/foundation/core/testing/memoryDb";
 
 const items = table(
   "items",
@@ -22,7 +22,7 @@ const items = table(
 );
 
 function setup(base: 0 | 1 = 0) {
-  const db = new DatabaseSync(":memory:");
+  const db = memoryDb();
   db.exec(`CREATE TABLE items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -139,7 +139,7 @@ test("table: pruneKeep は新しい順に keep 件だけ残す（group ごと・
 });
 
 test("table: 同じ SQL の文は 1 回だけ prepare する", () => {
-  const db = new DatabaseSync(":memory:");
+  const db = memoryDb();
   db.exec("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0, done INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT '') STRICT");
   let prepared = 0;
   const counting = { prepare: (sql: string) => (prepared++, db.prepare(sql)) };

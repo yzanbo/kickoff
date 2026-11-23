@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { chatItemProps, type ChatItemOptions } from "./chatItemProps";
 
 /** 呼ばれた操作を順に記録する */

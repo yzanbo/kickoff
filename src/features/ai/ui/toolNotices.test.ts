@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeProviderStatus } from "@shared/foundation/testing/factories";
+import { makeProviderStatus } from "@shared/ai/testing";
 import { toolNotices } from "./toolNotices";
 
 const claude = (installed: boolean, logged_in: boolean) => makeProviderStatus("claude", { installed, logged_in, detail: "d" });

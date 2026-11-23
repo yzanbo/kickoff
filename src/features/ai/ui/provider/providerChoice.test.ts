@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ProviderStatus } from "@shared/ai/types";
-import { makeProviderStatus } from "@shared/foundation/testing/factories";
+import { makeProviderStatus } from "@shared/ai/testing";
 import { featureBlock, paysPerUse, providerChipName, providerPickBlock, providerSwitchBlock } from "./providerChoice";
 
 /** Claude Code（分岐・ファイルを戻す・モデルの一覧ができる・サブスクで動かす） */

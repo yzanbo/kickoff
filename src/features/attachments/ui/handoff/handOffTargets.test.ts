@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { handOffChatOf, visibleHandOffTargets, type HandOffItem, type HandOffPlace, type HandOffTarget, type HandOffTargetId } from "./handOffTargets";
 
 /** 足す先のチャットがあるときだけ出す渡し先（this・child の形）と、いつも出す渡し先 */

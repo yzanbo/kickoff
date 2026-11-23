@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { defineSettings, family, single } from "./groups";
-import { installMemoryStorage } from "./memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { choice, optionalFlag, readSetting, record, text } from "./settings";
 import { storage as legacyKeys } from "./legacyKeys";
 import { storage as shellStorage } from "./storage";

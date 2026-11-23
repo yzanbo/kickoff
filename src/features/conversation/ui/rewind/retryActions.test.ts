@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { failedTurnOf, lowerEffort } from "./retryActions";
 
 

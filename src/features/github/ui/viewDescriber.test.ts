@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { describeView, viewDescribers } from "@/foundation/ui/shell/viewDescribers";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { selectGitHubItem } from "./openGitHubItem";
 import { githubDescriber } from "./viewDescriber";

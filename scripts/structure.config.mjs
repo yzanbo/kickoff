@@ -122,7 +122,7 @@ const featureImports = FEATURES.flatMap((f) => [
 /** @type {StructureConfig} */
 export default {
   files: ["src/**/*.{ts,tsx,css}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],
-  tests: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**", "vitest.setup.ts", "src/foundation/ui/storage/memoryStorage.ts"],
+  tests: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**", "**/testing.ts", "vitest.setup.ts"],
   aliases: { "@shared/": "src/shared/", "@/": "src/" },
   // プロセスの層（コア・メイン・preload・画面・共有）
   layers: {

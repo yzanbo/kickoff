@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Approval } from "@shared/chat/approvalTypes";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { indexApprovals } from "./chatStates";
 
 const approval = (chat_id: number) => ({ chat_id }) as Approval;

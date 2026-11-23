@@ -26,7 +26,7 @@ function append(store: ChatStoreDeps, chatId: number, other: number, events: rea
 const reference = (store: ChatStoreDeps, chatId: number, start: number, ctx: IndexContext) => indexOfEvents(store.events.list(chatId), start, ctx);
 
 test("覚えた索引は、始まりが前後に動いても・外の ID が変わっても・記録が増えても、全件から作ったものと同じ", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const chatId = newChat(store);
   const other = newChat(store, "ほか");
   const all = scenarioChat({ turns: 40, seed: 7 });
@@ -46,7 +46,7 @@ test("覚えた索引は、始まりが前後に動いても・外の ID が変�
 });
 
 test("同じ始まりなら読み直さず、記録が増えたら増えた分の軽い形と、まだ持っていない行だけを読む", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const chatId = newChat(store);
   const other = newChat(store, "ほか");
   const all = scenarioChat({ turns: 30, seed: 3 });
@@ -73,7 +73,7 @@ test("同じ始まりなら読み直さず、記録が増えたら増えた分�
 });
 
 test("巻き戻し・セッションの付け替え・チャットの削除で、そのチャットの覚えを捨てる", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const chatId = newChat(store);
   const other = newChat(store, "ほか");
   store.events.add(chatId, { type: "init", session_id: "s-old" } as ChatEventData);
@@ -102,7 +102,7 @@ test("巻き戻し・セッションの付け替え・チャットの削除で�
 });
 
 test("覚えるチャットの数を超えたら、最後に読んだのが古いものから捨てる", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const chats = [newChat(store, "a"), newChat(store, "b"), newChat(store, "c")];
   for (const id of chats) append(store, id, chats[0] === id ? chats[1] : chats[0], scenarioChat({ turns: 3, seed: id }));
   const cache = new ChatIndexCache(store, 2);

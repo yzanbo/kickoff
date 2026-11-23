@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeGroup } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeGroup } from "@shared/groups/testing";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
 import { clusterGroupOf, clusterTabDrop } from "./clusterTabDrop";

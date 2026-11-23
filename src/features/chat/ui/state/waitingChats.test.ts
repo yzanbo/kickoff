@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { needsAttention } from "@shared/chat/state";
 import { approvalIndex, waitingChats } from "./chatState";
 

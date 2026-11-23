@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeProject } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeProject } from "@shared/projects/testing";
 import { dockBadgeCount } from "./dockBadge";
 
 test("dockBadgeCount: アーカイブしていないプロジェクトの回答待ち・未読のチャットを数え、作業中・既読・アーカイブ済みは数えない", () => {

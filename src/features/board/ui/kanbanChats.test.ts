@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { kanbanChats } from "./useKanbanChats";
 
 const chat = (id: number, extra: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-01-0${id}`, title: `c${id}`, ...extra });

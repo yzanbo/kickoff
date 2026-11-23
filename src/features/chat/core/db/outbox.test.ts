@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { testStore } from "@/app/core/testing/testStore";
 import { EMPTY_OUTBOX, type Outbox } from "@shared/chat/outbox";
-import type { QueuedMessage } from "@shared/chat/types";
+import { makeAttachment, makeQueuedMessage } from "@shared/chat/testing";
 
-const row = (id: string): QueuedMessage => ({ id, text: id, options: { model: "opus" }, attachments: [{ kind: "file", id: "u1", name: "a.png", mime: "image/png", size: 10 }], created_at: "2026-11-22T00:00:00.000Z" });
+const row = (id: string) => makeQueuedMessage(id, { options: { model: "opus" }, attachments: [makeAttachment("u1", { name: "a.png", size: 10 })], created_at: "2026-11-22T00:00:00.000Z" });
 
 function setup() {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
   return { store, chat };

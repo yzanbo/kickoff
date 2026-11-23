@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeProject } from "@shared/foundation/testing/factories";
+import { makeProject } from "@shared/projects/testing";
 import { indexProjects, reduceProjects } from "./projects";
 import { reduceBy } from "@/foundation/ui/store";
 

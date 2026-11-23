@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { childRowDrop } from "./childRowDrop";
 
 // 根 1 → 子 2 → 孫 3 → ひ孫 4、根 1 の下の子 5（兄弟）、ほかの家系の 6・固定の 7・アーカイブ済みの 8・ほかのプロジェクトの 9

@@ -1,7 +1,7 @@
 // AI がほかのチャットの会話を読むツール（read_chat）のやり取りの分け方と、読む範囲の選び方
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import { conversationTurns, formatConversation } from "./conversation";
 
 test("conversationTurns: 発言ごとに分け、メインの AI の文だけを集める（サブエージェントの文は省き、ツールは数だけ。最初の発言より前は入れない）", () => {

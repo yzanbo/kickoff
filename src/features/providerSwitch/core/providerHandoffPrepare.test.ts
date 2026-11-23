@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { test } from "vitest";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { UploadStore } from "@/features/attachments/core/uploads";
 import { prepareProviderHandoff } from "./providerHandoffPrepare";

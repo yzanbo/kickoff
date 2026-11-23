@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { cardFieldSections, cardStatText, toggleCardField } from "./cardFields";
 
 test("cardFieldSections: プロジェクトは全プロジェクトのボードだけ", () => {

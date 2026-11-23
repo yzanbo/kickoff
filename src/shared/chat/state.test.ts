@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { agentStateOf, boardColumnOf } from "./state";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import type { Chat } from "./types";
 
 /** 作業中・既読のチャットと、項目を変えたチャットを作る補助 */

@@ -8,7 +8,7 @@ import { UNUSED_UPLOAD_KEEP_MS, sweepUnusedUploads } from "./attachmentsCleanup"
 import { UploadStore } from "./uploads";
 
 test("送らなかった添付: 保存してから 30 日たち、記録（ゴミ箱のチャットも）・送信待ちのどれも使っていないものだけを消す", async () => {
-  const store = testStore(":memory:", () => {});
+  const store = testStore();
   const uploads = new UploadStore(tempDir());
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });

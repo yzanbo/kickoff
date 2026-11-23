@@ -21,6 +21,7 @@ import { createTrashStore } from "@/features/trash/core/db/trash";
 import { createWorktreeStores } from "@/features/worktrees/core/index";
 import { createProviderHandoffStores, createProviderSwitchStore } from "@/features/providerSwitch/core/index";
 import { MIGRATIONS } from "@/app/core/migrations";
+import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
 
 /** 土台の店（設定・秘密の値・DB の ID） */
 type BaseStores = Pick<Kernel, "settings" | "secrets"> & { databaseId: string };
@@ -69,6 +70,6 @@ export function openTestStores(db: DatabaseSync, onChange: Notify = () => {}, ba
 }
 
 /** file を省くとメモリの DB。ファイルを渡すと、開き直したときも同じ版で開く */
-export function testStore(file = ":memory:", onChange?: Notify): TestStores {
+export function testStore({ file = MEMORY_DB, onChange }: { file?: string; onChange?: Notify } = {}): TestStores {
   return openTestStores(openDb(file, MIGRATIONS), onChange);
 }

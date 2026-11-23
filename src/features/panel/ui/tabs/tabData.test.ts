@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
 import { browserTab, chatTab, newChatTab, newTabKey, terminalTab } from "./tabData";
 import { repointedAt } from "@/features/panel/ui/kind";
 
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
 
 test("タブのキー: チャットは中身から決まり（同じものは 1 つのタブ）、新しいチャットは下書きのキー、ブラウザ・ターミナルは開くたびに別のキー", () => {
-  assert.equal(chatTab(makeChat(5)).key, chatTab(makeChat(5)).key);
+  assert.equal(chatTab({ id: 5, project_id: 1 }).key, chatTab({ id: 5, project_id: 1 }).key);
   assert.notEqual(newTabKey("new"), newTabKey("new"));
   assert.equal(newChatTab("new:1").key, "new:1");
   assert.notEqual(terminalTab(target).key, terminalTab(target).key);

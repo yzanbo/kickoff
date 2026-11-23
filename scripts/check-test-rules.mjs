@@ -23,7 +23,7 @@ const IGNORE = "test-rules-ignore:";
 /** 見張るファイルか（テストのファイルと、テストからだけ使う補助） */
 export function isTestSource(file) {
   const p = file.split(path.sep).join("/");
-  return /\.(test|dbtest)\.(ts|tsx|mjs)$/.test(p) || /(^|\/)testing\/[^/]+\.(ts|tsx|mjs)$/.test(p) || p === "vitest.setup.ts";
+  return /\.(test|dbtest)\.(ts|tsx|mjs)$/.test(p) || /(^|\/)testing(\/[^/]+)?\.(ts|tsx|mjs)$/.test(p) || p === "vitest.setup.ts";
 }
 
 /** 1 つのファイルの違反（行の番号は 1 から） */

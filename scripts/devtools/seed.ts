@@ -91,7 +91,7 @@ sample.close();
 
 // --- Kickoff の DB
 // 新しいスキーマの空の DB に入れる（置き場所は毎回作り直すので、前の版の DB は残らない）
-const store = testStore(path.join(dataDir, DB_FILE));
+const store = testStore({ file: path.join(dataDir, DB_FILE) });
 const { db } = store;
 db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });

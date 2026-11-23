@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeSnippet } from "@shared/foundation/testing/factories";
+import { makeSnippet } from "@shared/snippets/testing";
 import { reduceSnippets } from "./store";
 import { reduceBy } from "@/foundation/ui/store";
 

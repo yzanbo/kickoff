@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { AgentState } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { inboxByProject, inboxSections, waitingSince } from "./inboxOrder";
 
 const at = (min: number) => new Date(Date.UTC(2026, 10, 5, 0, min)).toISOString();

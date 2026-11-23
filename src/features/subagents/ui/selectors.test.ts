@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { collectSubagents } from "@shared/chat/subagents";
-import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Approval } from "@shared/chat/approvalTypes";
 import { type ChatSource } from "@/features/chat/ui";

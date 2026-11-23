@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeGroup } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeGroup } from "@shared/groups/testing";
 import { approvalIndex } from "@/features/chat/ui/state/chatState";
 import { bucketChats } from "./buckets";
 import { bucketScopes, byManual, draftAnchor, insertNear } from "./manualOrder";

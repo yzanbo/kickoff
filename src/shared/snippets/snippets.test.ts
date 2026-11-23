@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { makeSnippet } from "@shared/foundation/testing/factories";
+import { makeSnippet } from "@shared/snippets/testing";
 import { moveWithin, snippetLabel, snippetsFor } from "./snippets";
 
 test("snippetLabel: 名前があれば名前、なければ本文の空でない最初の行を切って出す", () => {

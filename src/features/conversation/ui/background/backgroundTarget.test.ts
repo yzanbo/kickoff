@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { BackgroundTask } from "@shared/ai/turnEvents";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import { backgroundCallTarget } from "./backgroundTarget";
 
 const ev = eventSequence();

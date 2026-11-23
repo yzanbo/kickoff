@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { useChatPanelTestStore } from "./testing";
 import { childTab, openTab, setPanelOpen } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";

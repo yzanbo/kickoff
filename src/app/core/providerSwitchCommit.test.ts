@@ -4,7 +4,7 @@ import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/settings/types";
 import { testStore } from "./testing/testStore";
 
 function setup() {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "既存", status: "completed", sandbox_enabled: false, edit_scope_enabled: true });
   store.chats.update(chat.id, { session_id: "claude-session" });

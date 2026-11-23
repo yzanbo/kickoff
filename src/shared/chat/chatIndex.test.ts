@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { collectVisuals } from "@shared/visuals/aiVisual";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";

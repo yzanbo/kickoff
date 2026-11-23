@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, onTestFinished, test, vi } from "vitest";
 import { publishServerEvent } from "@/foundation/ui/api/events";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { projectChatOpen } from "@/foundation/ui/storage/storageKeys";
 import { closePane, closeTab, openTab, patchTab, setPanelOpen, splitPane, togglePanel } from "./actions";

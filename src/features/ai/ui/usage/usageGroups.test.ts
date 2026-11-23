@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ProviderUsage } from "@shared/ai/usage";
-import { makeProviderStatus } from "@shared/foundation/testing/factories";
+import { makeProviderStatus } from "@shared/ai/testing";
 import { usageGroups } from "./usageGroups";
 
 const service = (provider: ProviderUsage["provider"], patch: Partial<ProviderUsage> = {}): ProviderUsage => ({

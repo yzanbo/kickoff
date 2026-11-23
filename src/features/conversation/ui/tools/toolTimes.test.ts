@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import type { ToolCall } from "@/features/chat/ui";
 import { callDuration, toolSpan } from "./toolTimes";
 

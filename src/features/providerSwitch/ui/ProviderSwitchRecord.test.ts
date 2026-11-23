@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { ProviderSwitchRecord } from "./ProviderSwitchRecord";
 
 test("AI の区切りは準備した資料と応答を受け取った資料を区別して表示する", () => {

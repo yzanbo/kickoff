@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { chatsByProject, childChatsOf, NO_CHATS, reduceChats, selectChats, upsertChat } from "./knownChats";
 import { reduceBy } from "@/foundation/ui/store";
 

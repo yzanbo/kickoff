@@ -33,6 +33,7 @@ import { MIGRATIONS } from "@/app/core/migrations";
 import { ALL_SETTINGS } from "@/app/shared/settings";
 import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform, type TestEnvOptions, type TestFakes } from "./testEnv";
 import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
+import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
 
 export { tick, until } from "@/foundation/core/testing/until";
 
@@ -47,7 +48,7 @@ export const AUTH = { authorization: `Bearer ${TOKEN}` };
 export type BeforeStart = (store: TestStores, project: Project) => unknown;
 
 /** メモリの DB（dbFile を渡せばそのファイル）の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
-function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string, dbFile = ":memory:"): { k: Kernel; store: TestStores; project: Project } {
+function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string, dbFile = MEMORY_DB): { k: Kernel; store: TestStores; project: Project } {
   const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile, migrations: MIGRATIONS, settings: ALL_SETTINGS });
   // 組み立てる前（前回のデータを入れる・実行だけのテスト）の店。土台の設定・秘密の値は Kernel のもの
   const store = openTestStores(k.db, (e) => k.bus.publish(e), { databaseId: k.paths.databaseId, settings: k.settings, secrets: k.secrets });

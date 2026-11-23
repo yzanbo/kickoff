@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatDetail, ChatEventPage } from "@shared/chat/detail";
-import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
 import { indexOfEvents, type IndexContext } from "@shared/chat/chatIndex";
 import { promptListOf } from "@/features/conversation/ui/promptList/promptHistory";

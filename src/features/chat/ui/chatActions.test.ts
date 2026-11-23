@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { api } from "@/foundation/ui/api";
 import { setAskHost, type AskRequest } from "@/foundation/ui/kit/ask";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { confirmArchiveChats, confirmDeleteChats } from "./chatActions";
 
 installMemoryStorage();

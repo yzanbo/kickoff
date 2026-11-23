@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { describeActivity, workingFor } from "./currentWork";
 
 const tool = (name: string, input: Record<string, unknown>, sub = false) => makeEvent(1, "tool_use", { id: "t", name, input, ...(sub ? { parent: "agent1" } : {}) });

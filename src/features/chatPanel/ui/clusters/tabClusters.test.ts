@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeGroup } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeGroup } from "@shared/groups/testing";
 import { browserTab, chatTab, newChatTab, terminalTab, type PanelTab } from "@/features/panel/ui";
 import type { BucketHead } from "@/features/chatList/ui/buckets";
 import { OTHER_CLUSTER, clusterInitial, tabClusterOf, type ClusterResolver, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";

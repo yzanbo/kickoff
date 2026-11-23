@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { AgentState } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { ancestorsOf, descendantStates, rootChatOf } from "./descendants";
 
 const states = new Map<number, AgentState>([

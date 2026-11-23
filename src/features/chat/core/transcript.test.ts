@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeEvent, makeProject } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
+import { makeProject } from "@shared/projects/testing";
 import { chatTranscript, transcriptFileName } from "./transcript";
 
 const chat = makeChat(1, { title: "ログイン画面の修正", branch: "main", created_at: "2026-11-04T01:00:00Z" });

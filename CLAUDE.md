@@ -62,8 +62,8 @@
 - これらと文書・構造・テストの書き方の検査（`scripts/check-docs.mjs`・`check-structure.mjs`・`check-test-rules.mjs`）を、コミットと push のたびに git のフック（`.githooks/`）が流す（文書の検査は `.md` だけのコミットでも）。落ちたら原因を直してからコミット・push し直す。
 - フックは作業場所のファイルを確かめるので、コミットしない変更が混ざると止まる。フックを飛ばす書き方（`--no-verify`・`git commit -n`・`core.hooksPath` の書き換え）は使わない（Kickoff の守りと `.claude/settings.json` が断る）。
 - テストは Vitest。作業中は `npm run test:changed`（変えたファイルに関係するもの）、全体は `npm test`（順番を毎回入れ替える）。どちらも `:isolated` を付けるとファイルごとのプロセスで流す。
-- 純粋な関数にはテストを書く（対象の隣に `*.test.ts`。`import { test } from "vitest"` と `node:assert/strict`）。データは `@shared/foundation/testing/factories`、一時フォルダ・Git の作業場所は `src/foundation/core/testing`、コアの準備は `src/app/core/testing` の補助を使う（テストごとに書き直さない）。API を変えたら、その機能の `core/routes/server.<領域>.test.ts` にテストを足す。
-- テストは同じプロセスで続けて流れるので、値をほかのファイルに残さない: グローバルは `vi.stubGlobal`、環境変数は `vi.stubEnv`（`globalThis.x = …`・`process.env.X = …` と直接書かない）、保存は `@/foundation/ui/storage/memoryStorage` の `installMemoryStorage`、偽の時計は `vi.useFakeTimers`（あとで本物へ戻す）。
+- 純粋な関数にはテストを書く（対象の隣に `*.test.ts`。`import { test } from "vitest"` と `node:assert/strict`）。データは `@shared/<機能>/testing`、一時フォルダ・Git の作業場所は `src/foundation/core/testing`、コアの準備は `src/app/core/testing` の補助を使う（テストごとに書き直さない）。API を変えたら、その機能の `core/routes/server.<領域>.test.ts` にテストを足す。
+- テストは同じプロセスで続けて流れるので、値をほかのファイルに残さない: グローバルは `vi.stubGlobal`、環境変数は `vi.stubEnv`（`globalThis.x = …`・`process.env.X = …` と直接書かない）、保存は `@/foundation/ui/testing/memoryStorage` の `installMemoryStorage`、偽の時計は `vi.useFakeTimers`（あとで本物へ戻す）。
 - 作ったもの（見張り・サーバー・一時フォルダ）の後片付けは `onTestFinished` か `src/foundation/core/testing/afterTest.ts` の `afterTest`。共通の準備は `vitest.setup.ts`、組と設定は `vitest.config.ts`。直接書き換える書き方は見張りが落とす（要る行は、その行か 1 つ上に `test-rules-ignore: 理由`）。
 - 画面の変更は開発版（`npm run dev:cdp`。CDP は 9333。AI は砂場の外で起動するよう、前に VAR=値・後ろにパイプ・リダイレクトを付けず単独で流す）で動かして確かめる。ボタンの見た目は `node scripts/ui-audit-buttons.mjs`、見た目を変えないはずの変更は `node scripts/ui-snapshot.mjs take <名前>` の前後を `diff` で比べる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。

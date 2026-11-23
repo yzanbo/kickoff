@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { cleanupBefore, staleArchivedFamilies } from "./archiveCleanup";
 
 const OLD = "2026-01-01T00:00:00.000Z";

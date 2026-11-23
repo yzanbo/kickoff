@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createSelectorKit, memoLast, type ChatSource, type SelectorStore } from "./chatSelector";
 import type { ChatEvent } from "@shared/chat/chatEvent";
-import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
 import { EMPTY_DETAIL } from "./chatDetail";
 import { EMPTY_LOG, EMPTY_PROGRESS, type ChatDetailView, type ChatLogView, type ChatProgressView } from "./chatStoreTypes";
 

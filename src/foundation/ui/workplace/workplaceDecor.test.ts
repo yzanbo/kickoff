@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { onTestFinished, test } from "vitest";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import { swapContributions } from "@/foundation/ui/points";
 import { useWorkplaceNotes, workplaceDecor, workplaceDecorLines } from "./workplaceDecor";
 

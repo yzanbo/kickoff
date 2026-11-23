@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { boundaryAfter } from "@shared/chat/boundaries";
 import { test } from "vitest";
 import type { WorkplaceRef } from "@shared/chat/chatEvent";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import {
   latestWorkplaceMove,
   workplaceAt,

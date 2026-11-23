@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
 import type { BusInput } from "@shared/foundation/contract";
 import { StreamingTexts } from "./streamingTexts";
 

@@ -5,7 +5,8 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat } from "@shared/chat/types";
 import type { ChatDetail } from "@shared/chat/detail";
 import type { BusEvent } from "@shared/foundation/contract";
-import { busEvent, makeChat, makeChatLive, makeEvent } from "@shared/foundation/testing/factories";
+import { busEvent } from "@shared/foundation/testing/data";
+import { makeChat, makeChatLive, makeEvent } from "@shared/chat/testing";
 import { chatAfter, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 import { EMPTY_RANGE } from "./chatLog";
 

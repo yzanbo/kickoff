@@ -4,7 +4,7 @@ import type { ChatEvent } from "@shared/chat/chatEvent";
 import { collectSubagents } from "@shared/chat/subagents";
 import { relayMessage, relayedText } from "@shared/chat/prompts";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import { eventSequence, makeEvent } from "@shared/foundation/testing/factories";
+import { eventSequence, makeEvent } from "@shared/chat/testing";
 import { groupEvents } from "@/features/conversation/ui/timeline/timelineItems";
 import { subagentEvents } from "./subagentEvents";
 import { scopeOf } from "./subagentTree";

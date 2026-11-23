@@ -3,7 +3,7 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, test, vi } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { FOLD_ROW } from "@/foundation/ui/kit/FoldHead";
 import type { HeadTable } from "./BucketTree";
 import type { ChatBucket } from "./buckets";

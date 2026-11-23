@@ -7,7 +7,7 @@ import { ChatRuns } from "./chatRuns";
 const env = { now: "2026-11-22T00:00:00.000Z", newId: () => "q2" };
 
 test("作業中の状態を作り直すと、保存した出す箱を読み戻す（ゴミ箱から戻したチャットの送信待ちを空に見せず、変えても前の指示を失わない）", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "completed", model: null });
   const runtimes = new ChatRuns({ store });

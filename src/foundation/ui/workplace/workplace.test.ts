@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeWorktree } from "@shared/foundation/testing/data";
 import { compareWorkplaces, countBusyAt, sameWorkplace, workplaceKey, workplaceOf, workplacePath } from "./workplace";
 
 const list = [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/repo-worktrees/feat-a", { branch: "feat/a" }), makeWorktree("/repo-worktrees/gone", { branch: "feat/gone", prunable: true })];

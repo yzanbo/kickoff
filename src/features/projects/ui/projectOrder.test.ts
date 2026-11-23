@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Project } from "@shared/projects/types";
-import { makeChat, makeProject } from "@shared/foundation/testing/factories";
+import { makeProject } from "@shared/projects/testing";
 import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";
 
 const project = (id: number, patch: Partial<Project> = {}) => makeProject(id, { name: `p${id}`, created_at: `2026-01-0${id}T00:00:00Z`, ...patch });
@@ -25,8 +25,7 @@ test("sidebarOrder: lastActive を渡すと、固定したものの次は最近�
 
 test("recentOrder: 固定したものが先、そのあとチャット（アーカイブしたものを除く）が最後に動いた順。チャットがなければ作った時刻", () => {
   const projects = [project(1), project(2), project(3, { pinned: true }), project(4)];
-  let ids = 0;
-  const chat = (projectId: number, active_at: string, archived = false) => makeChat(++ids, { project_id: projectId, active_at, archived_at: archived ? "x" : null });
+  const chat = (projectId: number, active_at: string, archived = false) => ({ project_id: projectId, active_at, archived_at: archived ? "x" : null });
   // 店の一覧と同じく、最後に動いた順に並べて渡す
   const chats = [chat(2, "2026-03-09", true), chat(1, "2026-03-05"), chat(3, "2026-03-01"), chat(2, "2026-01-01")];
   assert.deepEqual(

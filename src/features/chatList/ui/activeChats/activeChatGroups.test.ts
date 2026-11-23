@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat, makeProject } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
+import { makeProject } from "@shared/projects/testing";
 import { approvalIndex } from "@/features/chat/ui";
 import { ACTIVE_STATES, activeChatGroups, type ActiveChatsInput, type ActiveDraft } from "./activeChatGroups";
 

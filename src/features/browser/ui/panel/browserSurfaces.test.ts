@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
 import { Globe } from "lucide-react";
 import { publishServerEvent } from "@/foundation/ui/api/events";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import {
   activeTabOf,
   browserTab,

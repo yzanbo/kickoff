@@ -3,7 +3,7 @@ import { test, vi } from "vitest";
 import type { ChatGroup } from "@shared/groups/types";
 import type { BusEvent } from "@shared/foundation/contract";
 import { fakeLoader } from "@shared/foundation/testing/async";
-import { busEvent, makeGroup } from "@shared/foundation/testing/factories";
+import { busEvent, TEST_TIME } from "@shared/foundation/testing/data";
 import { publishServerEvent, publishServerOpen } from "@/foundation/ui/api/events";
 import { createStore } from "./createStore";
 import { createKeyedStore } from "./keyedStore";
@@ -27,7 +27,8 @@ test("期限で自動更新する店: 使用中のキーだけ、古くなった
 });
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
-const group = (id: number, project_id = 1) => makeGroup(id, { project_id, name: `g${id}` });
+// 土台のテストなので機能（groups）の補助は読まず、形だけで作る
+const group = (id: number, project_id = 1): ChatGroup => ({ id, project_id, name: `g${id}`, position: id, hue: 0, created_at: TEST_TIME });
 const groupEvent = (g: ChatGroup) => busEvent("group", { group: g });
 
 test("店: 同時に何度頼まれても読み込みは 1 回で、届いたら値を出す", async () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/foundation/testing/factories";
+import { eventSequence } from "@shared/chat/testing";
 import { HANDOFF_MAX_CHARS, selectProviderHandoff } from "./providerHandoffSelection";
 
 test("AI への引き継ぎは直近 10 往復の利用者とメイン AI の文だけを順番のまま選ぶ", () => {

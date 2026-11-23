@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { applyEventToLog, lastEventId, mergeEvents, timelineOf, toolText } from "./timeline";
 
 test("AI 切り替えの前後の返答は、それぞれの AI を表示する", () => {

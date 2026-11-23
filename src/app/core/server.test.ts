@@ -9,7 +9,7 @@ import { readIndexHtml } from "@/foundation/core/http/static";
 import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { ServerHello } from "@shared/foundation/server";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 
 test("API はトークン（Bearer・Cookie）がないと 401", async () => {

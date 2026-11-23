@@ -5,7 +5,7 @@ import { dockerRule, type DockerGuard } from "@/features/docker/core/guard/docke
 import { toolGateFactory } from "@/features/guard/core/gate";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { GuardRuleSource } from "@/features/guard/core/index";
-import { makeProject } from "@shared/foundation/testing/factories";
+import { makeProject } from "@shared/projects/testing";
 
 /** テストの守りの材料（見せない DB のつなぎ先・Docker の守りは直に渡す。本物は database・docker がプロジェクトから引く） */
 export type TestGuardMaterials = Partial<GuardMaterials> & { hiddenDb?: HiddenDbTarget[]; dockerGuard?: DockerGuard | null };

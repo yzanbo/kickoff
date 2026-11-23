@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import type { AgentState } from "@shared/chat/types";
 import { childActivityOf, descendantRows, handBackText } from "./childChats";
 

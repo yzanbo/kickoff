@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { estimateMarkdown, nextCorrection, textLines, wrappedLines, type EstimateContext } from "./rowEstimate";
 import { estimateItem } from "./rowKinds";
 import type { TimelineItem } from "./timelineItems";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makePullDetail, makeReviewThread } from "@shared/foundation/testing/factories";
+import { makePullDetail, makeReviewThread } from "@shared/github/testing";
 import { captureNameOf, handOffText, itemDocument, linkOf, quotePrompt, reviewDocument, reviewFixText, sourceOf, worktreeBranchOf } from "./githubPrompt";
 
 const user = { login: "alice", avatar_url: null };

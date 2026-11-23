@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeSubagent } from "@shared/foundation/testing/factories";
+import { makeSubagent } from "@shared/chat/testing";
 import { isSubagentHalted, showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 
 const done = (patch = {}) => makeSubagent("a", { status: "completed", ...patch });

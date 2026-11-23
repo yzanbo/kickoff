@@ -18,7 +18,7 @@ function buildSystemPrompt(p: Project, workdir = p.repo_path, opts: { trash?: bo
 }
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
-  const store = testStore(":memory:");
+  const store = testStore();
   const p = store.projects.create({ name: "a", description: "ノートアプリ", repo_path: "/tmp/a", provider: "claude" });
   return store.projects.update(p.id, { reference_paths: references });
 }

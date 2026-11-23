@@ -14,7 +14,7 @@ test("ほかの Kickoff の DB が使っているセッションだけを返す�
   const dev = appDataDir(root, "development");
   fs.mkdirSync(prod, { recursive: true });
   fs.mkdirSync(dev, { recursive: true });
-  const store = testStore(path.join(prod, DB_FILE), () => {});
+  const store = testStore({ file: path.join(prod, DB_FILE) });
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });
   store.chats.update(chat.id, { session_id: "s-chat" });

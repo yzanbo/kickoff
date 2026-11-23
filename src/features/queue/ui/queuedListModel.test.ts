@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { QueuedMessage } from "@shared/chat/types";
+import { makeQueuedMessage } from "@shared/chat/testing";
 import { collapsedNext, queuedListItems, queuedShape } from "./queuedListModel";
 
-const row = (id: string, patch: Partial<QueuedMessage> = {}): QueuedMessage => ({ id, text: `${id} の文\n2 行目`, options: {}, attachments: [], created_at: "", ...patch });
+const row = (id: string, patch: Partial<QueuedMessage> = {}) => makeQueuedMessage(id, { text: `${id} の文\n2 行目`, ...patch });
 const shapeOf = (items: ReturnType<typeof queuedListItems>) => items.map((x) => (x.kind === "stop" ? `|${x.at}:${x.nth}/${x.here}` : `${x.message.id}${x.editing ? "*" : ""}`));
 
 test("一覧の並び: 行の前にその位置の印の線（重なれば本数ぶん）、最後にすべて送ったあとの線、書き直している行は印", () => {

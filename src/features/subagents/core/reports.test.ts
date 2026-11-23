@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { collectSubagents } from "@shared/chat/subagents";
-import { makeEvent } from "@shared/foundation/testing/factories";
+import { makeEvent } from "@shared/chat/testing";
 import { undeliveredReports, undeliveredReportsNote } from "./reports";
 
 // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった

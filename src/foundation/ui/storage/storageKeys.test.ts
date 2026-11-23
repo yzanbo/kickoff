@@ -35,7 +35,7 @@ test("保存は機能・土台の storage.ts の defineSettings で宣言する�
 
 test("localStorage・sessionStorage は storage/settings.ts の外で直接読み書きしない（値がそろわなくなる）", () => {
   const direct = roots.flatMap(sources).filter((file) => {
-    if (/storage[\\/](settings|memoryStorage)\.ts$/.test(file)) return false;
+    if (/(storage[\\/]settings|testing[\\/]memoryStorage)\.ts$/.test(file)) return false;
     // コメントの中の言葉は数えない
     const code = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
     return /\b(localStorage|sessionStorage)\b/.test(code);

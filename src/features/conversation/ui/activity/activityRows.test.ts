@@ -3,7 +3,7 @@ import { beforeEach, test } from "vitest";
 import { swapContributions } from "@/foundation/ui/points";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
-import { eventSequence, makeSubagent } from "@shared/foundation/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/chat/testing";
 import { collectSubagents } from "@shared/chat/subagents";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import { subagentTree } from "@/features/subagents/ui/model/subagentTree";

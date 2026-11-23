@@ -4,9 +4,10 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { tx } from "./tx";
+import { memoryDb } from "@/foundation/core/testing/memoryDb";
 
 function setup() {
-  const db = new DatabaseSync(":memory:");
+  const db = memoryDb();
   db.exec("CREATE TABLE t (v TEXT NOT NULL) STRICT");
   const values = () => (db.prepare("SELECT v FROM t ORDER BY rowid").all() as { v: string }[]).map((r) => r.v);
   const add = (v: string) => db.prepare("INSERT INTO t (v) VALUES (?)").run(v);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { takeSidePanelsBack } from "./panelHandOff";
 import { openTab } from "./actions";
 import { terminalTab } from "@/features/panel/ui/tabs/tabData";

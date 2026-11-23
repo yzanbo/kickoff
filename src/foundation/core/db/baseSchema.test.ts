@@ -5,12 +5,13 @@ import { createSettingsStore } from "@/foundation/core/settings/settingsStore";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { BASE_SCHEMA_V1 } from "./baseSchema";
 import { openDb, readDatabaseId } from "./db";
+import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
 
 // 土台の表（設定・秘密の値・meta）とその店（settings の店は何の設定かを知らないので、例の形で確かめる）
 
 /** 土台の表だけの DB（メモリ） */
 function baseDb() {
-  const db = openDb(":memory:", [{ version: 1, sql: BASE_SCHEMA_V1 }]);
+  const db = openDb(MEMORY_DB, [{ version: 1, sql: BASE_SCHEMA_V1 }]);
   afterTest(() => db.close());
   return db;
 }

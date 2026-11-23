@@ -6,7 +6,7 @@ import type { BusEvent } from "@shared/foundation/contract";
 
 function setup() {
   const events: BusEvent[] = [];
-  const store = testStore(":memory:", (e) => events.push(e));
+  const store = testStore({ onChange: (e) => events.push(e) });
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   return { store, events, project };
 }
@@ -286,7 +286,7 @@ test("秘密の値は設定とは別の表に置き、設定の一覧には出�
   store.secrets.set("openai_transcribe_key", "");
   assert.equal(store.secrets.get("openai_transcribe_key"), null);
   assert.match(store.databaseId, /^[0-9a-f]{32}$/);
-  assert.notEqual(testStore(":memory:").databaseId, store.databaseId);
+  assert.notEqual(testStore().databaseId, store.databaseId);
 });
 
 test("設定: 既定とマージし、AI ごとのチャットの選択の既定は AI・項目が欠けても既定で埋める。変えるのは送った AI の分だけ", () => {
@@ -347,7 +347,7 @@ test("自動のアーカイブ: 親のないチャットだけを見て、子孫
 });
 
 test("端末: トークンの hash で引き、プッシュの宛先は一覧に出さない。最後に使った時刻は間を空けて書く。取り消したら引けない", () => {
-  const store = testStore(":memory:");
+  const store = testStore();
   const pixel = store.devices.create("Pixel 8", "hash-a");
   assert.deepEqual(pixel, { id: pixel.id, name: "Pixel 8", created_at: pixel.created_at, last_used_at: null, has_push: false, access: "full" });
   // できることは選べ、あとで変えられる

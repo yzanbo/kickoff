@@ -13,7 +13,7 @@
 - 型は持ち主のファイルから名指しで読む（束ねはない）。本文と応答の型は持ち主の `<機能>/`（送る形。乗せていない機能は `foundation/apiTypes.ts`）。
 - `chat/`: チャットの決まり（下の節）と、AI のツールの名前・引数・記録の行の文（`ai*.ts`）。
 - 機能ごと: `project/`・`note/`・`snippet/`・`search/`・`database/`・`attachment/`・`secrets/`・`markdown/`・`links/`・`files/`・`docker/`・`github/`・`api/`（版の互換）・`devices/`・`theme/`・`ipc/`。同じものを使う側は各ファイルの頭のコメント。
-- `testing/`: テストからだけ使う補助（`factories.ts`・`chatScenarios.ts`・`fakeScheduler.ts`・`async.ts`）。
+- `foundation/testing/`・`<機能>/testing.ts`: テストからだけ使う補助（`data.ts`・`fakeScheduler.ts`・`async.ts`・`make…`）。
 
 ## 記録（ChatEvent）
 <!-- 行き先: src/features/chat/ -->

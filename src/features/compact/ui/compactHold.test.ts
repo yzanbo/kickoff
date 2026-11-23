@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { EMPTY_QUEUE_STATE } from "@shared/chat/chatLive";
-import type { QueuedMessage } from "@shared/chat/types";
-import { makeChatLive } from "@shared/foundation/testing/factories";
+import { makeChatLive, makeQueuedMessage } from "@shared/chat/testing";
 import { compactHoldOf, compactingLabel, compactsAfterTurn, reservedRow } from "./compactHold";
 
 test("「いま」を預かる間: 圧縮前指示の作業中 → 圧縮中 → 圧縮のあとのやり取り（手で圧縮する実行の終わりまで段階が awaiting_compact のままでも）→ 預からない", () => {
@@ -20,7 +19,7 @@ test("作業中に頼んだ圧縮の予約は compaction の after_turn から",
 });
 
 test("reservedRow: コアが予約とした（reserved）ときだけ、送信待ちのいちばん上の行", () => {
-  const row = (text: string, action?: "compact" | "clear"): QueuedMessage => ({ id: text, text, options: {}, attachments: [], created_at: "", ...(action ? { [action]: true } : {}) });
+  const row = (text: string, action?: "compact" | "clear") => makeQueuedMessage(text, action ? { [action]: true } : {});
   const compact = row("", "compact");
   const queue = { ...EMPTY_QUEUE_STATE, messages: [compact, row("2")] };
   assert.equal(reservedRow({ ...queue, reserved: "compact" }), compact);

@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test, vi } from "vitest";
 import type { Chat } from "@shared/chat/types";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { ChatRow } from "./ChatRow";
 import { DraftRow } from "./DraftRows";

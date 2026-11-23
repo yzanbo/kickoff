@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makePullDetail } from "@shared/foundation/testing/factories";
+import { makePullDetail } from "@shared/github/testing";
 import { mainCheckoutNotes, mergeWarnings, pickMergeMethod } from "./githubMerge";
 
 test("マージの注意: 何もなければ空、落ちた・途中のチェック・変更依頼・承認なし・古いブランチ・衝突・下書きを出す", () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { createNewChatDraft, discardNewChatDraft, draftTitleOf, newChatComposerDraft, newChatDraft, patchNewChatDraft, readNewChatDrafts } from "./newChatDrafts";
 import { storage } from "./storage";
 

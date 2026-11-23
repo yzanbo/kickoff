@@ -57,8 +57,9 @@ test("見張るのはテストのファイルとテストの補助だけ", () =>
   assert.equal(isTestSource("scripts/check-test-rules.test.mjs"), true);
   assert.equal(isTestSource("src/features/database/worker/drivers.dbtest.ts"), true);
   assert.equal(isTestSource("src/foundation/core/testing/quietShell.ts"), true);
-  assert.equal(isTestSource("src/shared/foundation/testing/factories.ts"), true);
+  assert.equal(isTestSource("src/shared/foundation/testing/data.ts"), true);
+  assert.equal(isTestSource("src/shared/chat/testing.ts"), true);
   assert.equal(isTestSource("vitest.setup.ts"), true);
   assert.equal(isTestSource("src/features/chat/core/send.ts"), false);
-  assert.equal(isTestSource("src/foundation/ui/storage/memoryStorage.ts"), false);
+  assert.equal(isTestSource("src/foundation/ui/storage/storage.ts"), false);
 });

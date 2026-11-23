@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { EMPTY_QUEUE_STATE, type QueueState } from "@shared/chat/chatLive";
 import type { QueueCommand } from "@shared/chat/queueCommand";
-import type { QueuedMessage } from "@shared/chat/types";
+import { makeQueuedMessage } from "@shared/chat/testing";
 import { createQueueController, queueViewOf } from "./queueController";
 
-const row = (id: string): QueuedMessage => ({ id, text: id, options: {}, attachments: [], created_at: "" });
-const stateOf = (ids: string[], stops: number[] = []): QueueState => ({ ...EMPTY_QUEUE_STATE, messages: ids.map(row), stops });
+const stateOf = (ids: string[], stops: number[] = []): QueueState => ({ ...EMPTY_QUEUE_STATE, messages: ids.map((id) => makeQueuedMessage(id)), stops });
 
 /** 偽の口: 送った命令を覚え、resolve / reject を外から決める */
 function setup() {

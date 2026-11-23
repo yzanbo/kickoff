@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Attachment, QueuedMessage } from "@shared/chat/types";
-import { makeAttachment } from "@shared/foundation/testing/factories";
+import type { Attachment } from "@shared/chat/types";
+import { makeAttachment, makeQueuedMessage } from "@shared/chat/testing";
 import { seedOf } from "./askInNewChat";
 
-const message = (id: string, text: string, attachments: Attachment[] = []): QueuedMessage => ({ id, text, attachments, options: {}, created_at: "" }) as QueuedMessage;
+const message = (id: string, text: string, attachments: Attachment[] = []) => makeQueuedMessage(id, { text, attachments });
 
 test("送信待ちの指示から新しいチャットの初めの入力を作る: 列の順に、文は空行でつなぎ、添付は順に並べる", () => {
   const queue = [message("a", " 1 つ目 ", [makeAttachment("x")]), message("b", ""), message("c", "3 つ目", [makeAttachment("y"), makeAttachment("z")])];

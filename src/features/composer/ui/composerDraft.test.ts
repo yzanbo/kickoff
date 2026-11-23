@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import type { Attachment } from "@shared/chat/types";
-import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
+import { makeAttachment } from "@shared/chat/testing";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { appendDraft, chatComposerDraft, forgetChatDraft, memoryDraft } from "./composerDraft";
@@ -9,8 +9,8 @@ import { appendToDraft } from "./appendToDraft";
 
 installMemoryStorage();
 
-const file = (id: string): Attachment => ({ kind: "file", id, name: `${id}.png`, mime: "image/png", size: 1 });
-const note = (id: string, path: string): Attachment => ({ kind: "note", id, name: path, mime: "text/markdown", size: 1, note: path, taken_at: "2026-11-22T00:00:00Z" });
+const file = (id: string) => makeAttachment(id);
+const note = (id: string, path: string) => makeAttachment(id, { kind: "note", name: path, mime: "text/markdown", note: path, taken_at: "2026-11-22T00:00:00Z" });
 
 test("チャットの下書き: 同じチャットには同じ店を返し、書いたら同じ残す先のほかの入力欄にも知らせる", () => {
   const draft = chatComposerDraft(1);

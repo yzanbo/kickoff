@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
-import { installMemoryStorage } from "./memoryStorage";
+import { installMemoryStorage } from "@/foundation/ui/testing/memoryStorage";
 import { deferredSetting } from "./deferredSetting";
 import { defineSettings } from "./groups";
 import { readSetting, text } from "./settings";

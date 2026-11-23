@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test } from "vitest";
-import { makeChat, makeEvent } from "@shared/foundation/testing/factories";
+import { makeChat, makeEvent } from "@shared/chat/testing";
 import { modelDefaultEffortOf, WorkingExecutionBadges } from "./WorkingExecution";
 import { workingExecutionOf } from "./executionSettings";
 

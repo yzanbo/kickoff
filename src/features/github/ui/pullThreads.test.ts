@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeReviewThread } from "@shared/foundation/testing/factories";
+import { makeReviewThread } from "@shared/github/testing";
 import { parseDiff } from "@/foundation/ui/diff/diffModel";
 import { placeThreads, threadsAt } from "./pullThreads";
 

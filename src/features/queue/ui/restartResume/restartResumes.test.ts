@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { EMPTY_QUEUE_STATE, type ChatLive, type RestartResume } from "@shared/chat/chatLive";
-import { makeChatLive } from "@shared/foundation/testing/factories";
+import { makeChatLive } from "@shared/chat/testing";
 import { autoOpenRestartResumes, reduceRestartResumes } from "./restartResumes";
 import { reduceBy } from "@/foundation/ui/store";
 

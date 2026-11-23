@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeChat } from "@shared/foundation/testing/factories";
+import { makeChat } from "@shared/chat/testing";
 import { providerSwitchMenu } from "./ProviderSwitchChip";
 
 test("Claude Code・Codex は切り替えを選べ、作業中・アーカイブ中・切り替え中は選べない", () => {

@@ -15,5 +15,5 @@
     "src/app/shared/settings.ts",
     "src/app/shared/aiToolViews.ts"
   ],
-  "exclude": ["**/*.test.ts", "src/**/testing/**", "src/foundation/ui/storage/memoryStorage.ts"]
+  "exclude": ["**/*.test.ts", "src/**/testing/**", "src/**/testing.ts"]
 }

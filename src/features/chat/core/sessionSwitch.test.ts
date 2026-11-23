@@ -5,7 +5,7 @@ import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { switchAfterCompact } from "./sessionSwitch";
 
 function setup() {
-  const store = testStore(":memory:", () => {});
+  const store = testStore();
   const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, title: "長い", provider: "claude", status: "completed" });
   store.chats.update(chat.id, { session_id: "old" });

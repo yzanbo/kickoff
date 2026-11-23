@@ -5,7 +5,7 @@ import { collectSubagents } from "@shared/chat/subagents";
 import { endInterruptedTurns, stoppedSubagentsNotice } from "./result";
 
 function setup() {
-  const store = testStore(":memory:");
+  const store = testStore();
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = (title: string, status: "running" | "cancelled") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null });
   const say = (chatId: number, text: string) => store.events.add(chatId, { type: "user", text, message_uuid: crypto.randomUUID() });
