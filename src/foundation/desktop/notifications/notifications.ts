@@ -1,7 +1,6 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
 import { Notification, app, shell } from "electron";
-import type { NotifyRequest, NotifyResult } from "@shared/foundation/ipc";
-import type { Notice } from "@/features/notifications/core/notices";
+import type { Notice, NotifyRequest, NotifyResult } from "@shared/foundation/ipc";
 import { mainWindow, showMainWindow } from "@/foundation/desktop/app/window";
 import { sendEvent, type IpcHandlers } from "@/foundation/desktop/ipc/register";
 import { chatOfNotificationId, ciOfNotificationId, notificationIdOf } from "./notificationIds";
@@ -41,7 +40,7 @@ function keep(n: Notification) {
 }
 
 /**
- * コアが決めた通知（チャットの完了・失敗・回答待ち・CI の失敗。出すか = だれも見ていないか・設定は、コアの notifications/center.ts が決める）を
+ * コアが決めた通知（チャットの完了・失敗・回答待ち・CI の失敗。出すか = だれも見ていないか・設定は、コアの通知の機能の center.ts が決める）を
  * Mac の通知で出す。コアのプロセスの知らせ notify で呼ぶ（app/coreHost.ts）
  */
 export function notifyFromCore(notice: Notice): void {

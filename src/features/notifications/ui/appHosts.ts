@@ -5,7 +5,8 @@ import { useRoute } from "@/foundation/ui/navigation/router";
 import { useAppSettings } from "@/features/settings/ui";
 import { useProjects } from "@/features/projects/ui";
 import { useChatStates } from "@/features/chat/ui";
-import { useNotificationTargets, useViewingReport } from "./notifications";
+import { useNotificationTargets } from "./notificationClicks";
+import { useViewingReport } from "./viewingReport";
 import { useDockBadge } from "./dockBadge";
 
 function useNotificationsHost() {

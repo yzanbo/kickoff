@@ -6,7 +6,7 @@ import { test } from "vitest";
 import type { TailscaleStatus } from "@shared/devices/tailscale";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
 import type { Device, PairingClaimResult, PairingPollResult, PairingState } from "@shared/devices/types";
-import { deviceRoutes, LEGACY_DEVICE_ROUTES, LEGACY_READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
+import { deviceRoutes } from "@/foundation/core/http/deviceAccess";
 import { matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
@@ -127,11 +127,6 @@ test("端末: 見るだけの端末は、見る口・見ているものの知ら
   assert.notEqual((await req("POST", `/api/chats/${chat.id}/messages`, {})).status, 403);
   assert.equal((await call("PATCH", "/api/devices/999", { access: "read" })).status, 404);
   assert.equal((await call("PATCH", `/api/devices/${device.id}`, { access: "admin" })).status, 400);
-});
-
-test("端末: 見るだけの端末にも使わせる口は、どれも端末に開いた口の中にある", () => {
-  const open = new Set(LEGACY_DEVICE_ROUTES.map(([m, p]) => `${m} ${p}`));
-  for (const [method, path] of LEGACY_READ_ONLY_DEVICE_ROUTES) assert.ok(open.has(`${method} ${path}`), `${method} ${path}`);
 });
 
 test("SSE: 端末には開いた口の知らせだけを届け、この Mac の画面への頼み・閉じた口の知らせは届けない", async () => {

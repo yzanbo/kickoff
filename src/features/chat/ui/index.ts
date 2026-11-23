@@ -62,7 +62,7 @@ export { StatusSlot } from "./state/StatusSlot";
 export { summaryState } from "./state/chatState";
 export { useChatStates } from "./state/chatStates";
 export { approvalIndex, stateCounts, waitingChats, type ApprovalIndex } from "./state/chatState";
-export { currentChats, NO_CHATS, useChats, useChatsWithChildrenByProject, useChildChats, useKnownChat, useNoteChatOf } from "./store/knownChats";
+export { currentChats, NO_CHATS, useChats, useChatsWithChildren, useChatsWithChildrenByProject, useChildChats, useKnownChat, useNoteChatOf } from "./store/knownChats";
 export type { ChipsPortal } from "./screen/chipsPortal";
 export { useChatsLinkedTo } from "./store/linkedChats";
 export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";

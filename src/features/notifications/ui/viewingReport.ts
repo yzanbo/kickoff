@@ -1,18 +1,15 @@
 import { useEffect } from "react";
 import { VIEWING_TTL_MS, type ViewingBody } from "@shared/notifications/types";
-import { api } from "@/foundation/ui/api";
-import { viewingApi } from "./api";
+import { notificationsApi, reportLeaving } from "./api";
 import { onServerOpen } from "@/foundation/ui/api/events";
-import { openChat } from "@/features/chat/ui";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
-import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { type Route } from "@/foundation/ui/navigation/router";
 
 /**
  * 通知（チャットの完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める（src/features/notifications/core/center.ts。だれも見ていなければ、
- * この Mac の通知とつないだ端末のプッシュへ）。画面がするのは 2 つだけ: いま見ているものをコアに知らせる（useViewingReport）と、
- * Mac の通知が押されたら、そのチャット・CI の実行を開く（useNotificationTargets）。
+ * この Mac の通知とつないだ端末のプッシュへ）。画面がするのは 2 つだけ: いま見ているものをコアに知らせる（ここの useViewingReport）と、
+ * Mac の通知が押されたら、そのチャット・CI の実行を開く（notificationClicks.ts の useNotificationTargets）。
  * ブラウザで開いた画面の通知は、Web Push を作るまで出さない
  */
 
@@ -32,11 +29,11 @@ function viewingOf(route: Route, focused: boolean): ViewingBody {
 export function useViewingReport(route: Route) {
   const focused = useWindowFocused();
   // 窓を閉じた・読み込み直したら、見ていないことをすぐ知らせる（知らせないと、古くなるまでの間そのチャットの通知が止まる）
-  useWindowEvent("pagehide", () => viewingApi.reportLeaving());
+  useWindowEvent("pagehide", () => reportLeaving());
   const { chat_id: chatId, ci_project_id: ciProjectId } = viewingOf(route, focused);
   useEffect(() => {
     const body: ViewingBody = { chat_id: chatId, ci_project_id: ciProjectId };
-    const send = () => void viewingApi.reportViewing(body).catch(() => {});
+    const send = () => void notificationsApi("PUT /api/viewing", { body }).catch(() => {});
     send();
     const off = onServerOpen(send);
     // 何も見ていないなら送り直さない（コアは古い知らせを忘れる）
@@ -46,27 +43,4 @@ export function useViewingReport(route: Route) {
       clearInterval(timer);
     };
   }, [chatId, ciProjectId]);
-}
-
-/** Mac の通知が押されたら開く（チャットは子チャット・ノートのチャットならその開き方で。Kickoff を起動し直したあとに前の通知が押されたときも） */
-export function useNotificationTargets() {
-  useEffect(() => {
-    const offChat = window.kickoff?.notifications.onOpenChat((projectId, chatId) => void openNotifiedChat(projectId, chatId));
-    const offCi = window.kickoff?.notifications.onOpenCi((projectId, runId) => openTarget({ kind: "ciRun", projectId, runId }));
-    return () => {
-      offChat?.();
-      offCi?.();
-    };
-  }, []);
-}
-
-/** 通知のチャットを開く（子チャットなら設定の開き方、ノートのチャットならそのノート。読めなければいちばん上のチャットとして） */
-async function openNotifiedChat(projectId: number, chatId: number) {
-  const chat = await api.chatDetail(chatId, { limit: 1 }).then(
-    (d) => d.chat,
-    () => null,
-  );
-  if (!chat) return openTarget({ kind: "chat", projectId: projectId, chatId: chatId });
-  if (chat.note_path !== null) return openTarget({ kind: "note", projectId: chat.project_id, path: chat.note_path });
-  openChat(chat);
 }

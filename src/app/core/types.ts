@@ -6,7 +6,8 @@ import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import type { BrowserControl } from "@shared/browser/control";
 import type { SecretCipher } from "@/features/database/core/secrets";
-import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
+import type { DesktopNotify } from "@/features/notifications/core/index";
+import type { PushSender } from "@/features/devices/core/push";
 import type { TerminalEnv, TerminalSessions } from "@/features/terminal/core/index";
 import type { ChatRunPort } from "@/features/chat/core/index";
 import type { CorePlatformParts } from "./platform";
@@ -42,9 +43,9 @@ export interface CoreOptions {
   dbWorker?: () => WorkerChannel;
   /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
   secretCipher?: SecretCipher;
-  /** この Mac の通知を出す口（Mac のアプリのメインプロセスが渡す。出すかはコアが決める = notifications/center.ts。単体のコアにはない） */
+  /** この Mac の通知を出す口（Mac のアプリのメインプロセスが渡す。出すかはコアが決める = notifications の center.ts。単体のコアにはない） */
   notify?: DesktopNotify;
-  /** スマホのプッシュを送る口（省けば Expo Push = notifications/expoPush.ts。Web Push はまだ送らない） */
+  /** スマホのプッシュを送る口（省けば Expo Push = devices の push.ts。Web Push はまだ送らない） */
   push?: PushSender;
   /** Electron のメインプロセスの pid（コアのプロセスで動くとき。自分を守る仕組みとポートの一覧がメインも自分として扱う。省けば process.pid = 単体のコア・テスト） */
   hostPid?: number;

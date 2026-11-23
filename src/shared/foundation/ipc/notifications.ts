@@ -24,3 +24,20 @@ export interface NotifyRequest {
 
 /** 通知を出した結果（届かなかったら理由。Mac の設定で許可していないときなど） */
 export type NotifyResult = { ok: true } | { ok: false; error: string };
+
+/** コアが決めた知らせの、押したときに開くもの（チャットか CI の実行） */
+export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };
+
+/** 何が起きたか */
+export type NoticeKind = "completed" | "failed" | "approval" | "ci_failed" | "ai_notice";
+
+/** コアが決めた知らせ（この Mac の通知はメインプロセスが出し、スマホのプッシュは短い文だけを使う） */
+export interface Notice {
+  kind: NoticeKind;
+  target: NoticeTarget;
+  /** この Mac の通知の文（プロジェクト名・失敗の理由を含む） */
+  title: string;
+  body: string;
+  /** スマホのプッシュの短い文（チャットの名前と状態だけ） */
+  push: { title: string; body: string };
+}

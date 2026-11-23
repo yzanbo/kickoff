@@ -2,24 +2,7 @@
 // スマホのプッシュには会話の中身を載せない（チャットの名前と状態・本体の ID とチャットの ID だけ。押したら本体から読む）
 import type { Approval } from "@shared/chat/approvalTypes";
 import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
-import type { CiFailure } from "@shared/github/ciTypes";
-
-/** 押したときに開くもの */
-export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };
-
-/** 何が起きたか */
-type NoticeKind = "completed" | "failed" | "approval" | "ci_failed" | "ai_notice";
-
-/** この Mac の通知（Mac のアプリのメインプロセスが出す）とスマホのプッシュの両方の元 */
-export interface Notice {
-  kind: NoticeKind;
-  target: NoticeTarget;
-  /** この Mac の通知の文（プロジェクト名・失敗の理由を含む） */
-  title: string;
-  body: string;
-  /** スマホのプッシュの短い文（チャットの名前と状態だけ） */
-  push: { title: string; body: string };
-}
+import type { Notice, NoticeKind, NoticeTarget } from "@shared/foundation/ipc/notifications";
 
 /** 知らせに出すチャットの名前（子チャットは「子チャット: 」、ノートのチャットは「ノート: 」を頭に） */
 export function noticeChatName(chat: Pick<Chat, "title" | "parent_chat_id" | "note_path">): string {
@@ -81,8 +64,18 @@ export function aiNotice(chat: Chat, message: string, projectName: string): Noti
   };
 }
 
+/** 落ちた CI の実行（github の知らせ ci_failed の中身のうち、知らせに使う欄。github は通知より上の機能なので形だけで受ける） */
+interface CiFailureFacts {
+  project_id: number;
+  run_id: number;
+  workflow: string;
+  number: number;
+  branch: string;
+  title: string;
+}
+
 /** 見張っているブランチの CI が落ちた */
-export function ciNotice(failure: CiFailure, projectName: string): Notice {
+export function ciNotice(failure: CiFailureFacts, projectName: string): Notice {
   return {
     kind: "ci_failed",
     target: { kind: "ci", project_id: failure.project_id, run_id: failure.run_id },

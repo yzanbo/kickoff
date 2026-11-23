@@ -2,7 +2,23 @@
 // （Expo の「アクセストークン必須」は使わない。本体ごとに秘密を配ることになるため）。
 // 文は短く（チャット名と状態）、会話の中身は載せない（Expo と Google のサーバーを通るため）。押したら本体の ID とチャットの ID で開く
 import type { DevicePush } from "@shared/devices/types";
-import type { PushMessage, PushResult, PushSender } from "@/features/notifications/core/index";
+import type { Notice } from "@shared/foundation/ipc/notifications";
+
+/** プッシュで送る中身（短い文と、本体の ID・押したときに開くもの。会話の中身は載せない） */
+export interface PushMessage {
+  title: string;
+  body: string;
+  host_id: string;
+  target: Notice["target"];
+}
+
+/** 送った結果（sent: 送った / gone: 宛先がもう使えない（表から外す）/ skipped: この種類の宛先にはまだ送らない） */
+export type PushResult = "sent" | "gone" | "skipped";
+
+/** スマホのプッシュの送り手（Expo Push は下の expoPushSender。Web Push はまだ） */
+export interface PushSender {
+  send(push: DevicePush, message: PushMessage): Promise<PushResult>;
+}
 
 /** Expo Push の送り先 */
 export const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";

@@ -76,9 +76,9 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const ai = createAi(k, { projects: projects.api }, { ...env.ai, secretCipher: env.secretCipher });
   const attachments = createAttachments(k, { trash: trash.api, chatStore: () => chat.api.store }, env.attachments);
   const snippets = createSnippets(k, { projects: projects.api, chatOf: (chatId) => chat.api.store.chats.get(chatId) });
-  const notifications = createNotifications(k, { chatStore: () => chat.api.store, devices: () => devices.api.store, projects: projects.api.store }, env.notifications);
+  const notifications = createNotifications(k, { chatStore: () => chat.api.store, projects: projects.api.store }, env.notifications);
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
-  const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
+  const devices = createDevices(k, { notifications: notifications.api }, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
   // AI を替えたあとの引き継ぎ（providerSwitch の表。起動したときの確かめが chat を作る中で読むので、chat の前に作って両方に渡す）
   const providerHandoffs = createProviderHandoffs(k.db);

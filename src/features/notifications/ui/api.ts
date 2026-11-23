@@ -1,10 +1,10 @@
-// いま見ているものを知らせる口（コアの受け口は core/routes/viewing.ts。この Mac の画面も端末も使う）
+// 通知の API の呼び手（取り決めは @shared/notifications/contract.ts。コアの受け口は core/routes/viewing.ts）
+import { notificationsContract } from "@shared/notifications/contract";
 import type { ViewingBody } from "@shared/notifications/types";
-import { request } from "@/foundation/ui/api/http";
+import { client } from "@/foundation/ui/api/client";
 
-export const viewingApi = {
-  /** いま見ているもの（だれかが見ているチャット・CI のタブの知らせは通知しない） */
-  reportViewing: (body: ViewingBody) => request<void>("PUT", "/api/viewing", body),
-  /** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */
-  reportLeaving: () => void request<void>("PUT", "/api/viewing", { chat_id: null, ci_project_id: null } satisfies ViewingBody, { keepalive: true }).catch(() => {}),
-};
+export const notificationsApi = client(notificationsContract);
+
+/** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */
+export const reportLeaving = () =>
+  void notificationsApi("PUT /api/viewing", { body: { chat_id: null, ci_project_id: null } satisfies ViewingBody }, { keepalive: true }).catch(() => {});

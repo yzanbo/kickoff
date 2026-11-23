@@ -4,8 +4,8 @@
 import { BROWSER_METHODS, type BrowserControl } from "@shared/browser/control";
 import type { WorkerChannel } from "@/features/database/core/index";
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
-import type { DesktopNotify } from "@/features/notifications/core/center";
-import type { Notice } from "@/features/notifications/core/notices";
+import type { Notice } from "@shared/foundation/ipc/notifications";
+import type { DesktopNotify } from "@/features/notifications/core/index";
 import { SECRET_METHODS, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 import { shellPathSettled } from "@/foundation/core/system/exec";
 import { errorMessage } from "@shared/foundation/errors";

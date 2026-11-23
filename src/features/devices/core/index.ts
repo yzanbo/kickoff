@@ -2,9 +2,12 @@
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
 import type { Kernel } from "@/foundation/core/kernel";
+import type { NotificationsApi } from "@/features/notifications/core/index";
 import { deviceAuth } from "./auth";
 import { createDeviceStore, type DeviceStore } from "./db/devices";
 import { PairingCenter } from "./pairing";
+import type { PushSender } from "./push";
+import { pushSink } from "./pushSink";
 import { deviceRoutes } from "./routes/devices";
 
 export interface DevicesEnv {
@@ -12,6 +15,8 @@ export interface DevicesEnv {
   tailscaleCli: () => string | null;
   /** ペアリングの番号の期限の時計（省けば本物の時計） */
   pairingNow?: () => number;
+  /** スマホのプッシュを送る口（本物は Expo Push = push.ts の expoPushSender） */
+  push: PushSender;
 }
 
 export interface DevicesApi {
@@ -25,11 +30,12 @@ export interface DevicesApi {
   pairing: PairingCenter;
 }
 
-/** スマホ連携（ペアリング・端末・Tailscale の案内）。まだトークンを持たない端末の口は認証の外 */
-export function createDevices(k: Kernel, env: DevicesEnv): CoreFeature<DevicesApi> {
+/** スマホ連携（ペアリング・端末・Tailscale の案内・通知のプッシュの届け先）。まだトークンを持たない端末の口は認証の外 */
+export function createDevices(k: Kernel, deps: { notifications: NotificationsApi }, env: DevicesEnv): CoreFeature<DevicesApi> {
   const devices = createDeviceStore(k.db);
   const pairing = new PairingCenter({ devices, settings: k.settings, hostId: k.paths.databaseId, publish: (e) => k.bus.publish(e), now: env.pairingNow });
   // ポート 0（テスト。待ち受けない）なら、頼みの URL のポート
+  deps.notifications.addSink(pushSink({ devices, sender: env.push, hostId: k.paths.databaseId }));
   const listen = k.paths.port ? { host: k.paths.host, port: k.paths.port } : undefined;
   return {
     name: "devices",

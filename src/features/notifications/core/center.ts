@@ -1,50 +1,36 @@
-// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ち・AI からの知らせ（notify_user）と CI の失敗を見つけ、それを見ていない人にだけ送る:
-// この Mac の通知（メインプロセスが startCore({ notify }) で渡す口）と、つないだ端末のプッシュ（PushSender。中身はあとで足す。CI の失敗は送らない）
+// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ち・AI からの知らせ（notify_user）と CI の失敗を見つけ、
+// それを見ていない人にだけ、登録された届け先へ渡す: この Mac の通知（desktop。Mac のアプリのメインプロセスの口）と、つないだ端末のプッシュ（push。devices が登録する）
 import type { ChatStatus } from "@shared/chat/types";
-import type { DevicePush } from "@shared/devices/types";
 import type { BusEvent } from "@shared/foundation/contract";
+import type { Notice } from "@shared/foundation/ipc/notifications";
 import type { Bus } from "@/foundation/core/bus";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { Kernel } from "@/foundation/core/kernel";
-import { aiNotice, approvalNotice, chatNotice, ciNotice, type Notice } from "./notices";
+import { aiNotice, approvalNotice, chatNotice, ciNotice } from "./notices";
 import type { Viewer, ViewingRegistry } from "./viewing";
 
+/**
+ * 知らせの届け先。desktop = この Mac の通知（設定でオン・この Mac の画面で見ていないときだけ渡す）、
+ * push = つないだ端末のプッシュ（CI の失敗は渡さない = CI のタブは端末に開いていない。どの端末が見ているかは届け先が seen で聞く）
+ */
+export interface NoticeSink {
+  name: "desktop" | "push";
+  /** 知らせる（seen = その人がその知らせのチャット・CI のタブを見ているか。返すのを待たない） */
+  deliver(notice: Notice, seen: (viewer: Viewer) => boolean): void;
+}
+
 /** この Mac の通知を出す口（Mac のアプリのメインプロセス。単体のコアにはない） */
-/** プッシュを送る端末（devices の店。通知より上の機能なので形だけで受ける） */
-export interface PushTargets {
-  list(): { id: number; has_push: boolean }[];
-  push(id: number): DevicePush | null;
-  setPush(id: number, push: DevicePush | null): unknown;
-}
-
 export type DesktopNotify = (notice: Notice) => void;
-
-/** プッシュで送る中身（短い文と、本体の ID・押したときに開くもの。会話の中身は載せない） */
-export interface PushMessage {
-  title: string;
-  body: string;
-  host_id: string;
-  target: Notice["target"];
-}
-
-/** 送った結果（sent: 送った / gone: 宛先がもう使えない（表から外す）/ skipped: この種類の宛先にはまだ送らない） */
-export type PushResult = "sent" | "gone" | "skipped";
-
-/** スマホのプッシュ（Expo Push は notifications/expoPush.ts。Web Push はまだ） */
-export interface PushSender {
-  send(push: DevicePush, message: PushMessage): Promise<PushResult>;
-}
 
 interface CenterOptions {
   bus: Bus;
-  store: Pick<ChatStoreDeps, "chats" | "projects"> & { settings: Kernel["settings"]; databaseId: string; devices: PushTargets };
+  store: Pick<ChatStoreDeps, "chats" | "projects"> & { settings: Kernel["settings"] };
   viewing: ViewingRegistry;
-  desktop?: DesktopNotify;
-  push?: PushSender;
 }
 
 export class NotificationCenter {
   private readonly unsubscribe: () => void;
+  private readonly sinks: NoticeSink[] = [];
 
   constructor(private readonly opts: CenterOptions) {
     this.unsubscribe = opts.bus.subscribe((e) => this.onEvent(e));
@@ -52,6 +38,10 @@ export class NotificationCenter {
 
   close(): void {
     this.unsubscribe();
+  }
+
+  addSink(sink: NoticeSink): void {
+    this.sinks.push(sink);
   }
 
   /** チャットの 1 回の実行が終わった（組み立てが chat の殻の onTurnEnded から渡す）: 最後まで終わった・失敗したら知らせる */
@@ -66,10 +56,15 @@ export class NotificationCenter {
 
   private deliver(notice: Notice | null): void {
     if (!notice) return;
+    const seen = (viewer: Viewer) => this.viewing(viewer, notice);
     // この Mac の通知は、この Mac の画面で見ていなければ（設定でオンのとき）
-    if (this.opts.store.settings.get().desktop_notifications && !this.viewing("host", notice)) this.opts.desktop?.(notice);
+    if (this.opts.store.settings.get().desktop_notifications && !seen("host")) this.to("desktop", notice, seen);
     // CI の失敗はこの Mac だけ（CI のタブは端末に開いていない）
-    if (notice.kind !== "ci_failed") this.sendPush(notice);
+    if (notice.kind !== "ci_failed") this.to("push", notice, seen);
+  }
+
+  private to(name: NoticeSink["name"], notice: Notice, seen: (viewer: Viewer) => boolean): void {
+    for (const sink of this.sinks) if (sink.name === name) sink.deliver(notice, seen);
   }
 
   /** その人が、その知らせのチャット・CI のタブを見ているか */
@@ -87,21 +82,5 @@ export class NotificationCenter {
       return chat ? aiNotice(chat, e.message, projectName(chat.project_id)) : null;
     }
     return null;
-  }
-
-  /** プッシュの宛先を登録した端末のうち、そのチャットを見ていない端末へ（送れなくても、ほかの端末・この Mac の通知は止めない） */
-  private sendPush(notice: Notice): void {
-    const sender = this.opts.push;
-    if (!sender) return;
-    const { store } = this.opts;
-    for (const device of store.devices.list()) {
-      const push = device.has_push && !this.viewing(device.id, notice) ? store.devices.push(device.id) : null;
-      if (!push) continue;
-      void sender.send(push, { ...notice.push, host_id: store.databaseId, target: notice.target }).then(
-        // 宛先がもう使えなければ表から外す（その間に端末が登録し直していれば、新しい宛先は残す）
-        (result) => result === "gone" && JSON.stringify(store.devices.push(device.id)) === JSON.stringify(push) && store.devices.setPush(device.id, null),
-        (e: unknown) => console.warn("[notifications] プッシュを送れません:", e),
-      );
-    }
   }
 }

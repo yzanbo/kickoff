@@ -21,8 +21,8 @@ import { macosDockerEngine } from "@/features/docker/core/macosEngine";
 import type { BranchPullRequest, MergedPullRequest } from "@/features/github/core/pulls";
 import type { GraphqlVars, RestResponse, WriteMethod } from "@/features/github/core/ghApi";
 import { readGitHubRemotes, type GitHubTarget } from "@/features/github/core/target";
-import type { PushResult } from "@/features/notifications/core/center";
-import type { Notice } from "@/features/notifications/core/notices";
+import type { PushResult } from "@/features/devices/core/push";
+import type { Notice } from "@shared/foundation/ipc/notifications";
 import type { FetchedImage } from "@/features/remoteImages/core/fetchImage";
 import { fakeTerminals } from "@/features/terminal/core/testing/fakeTerminal";
 import type { VoiceTools } from "@/features/voice/core/tools";
@@ -177,9 +177,8 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider
       findTools: async () => f.voiceFake.tools,
       fetch: () => f.voiceFake.download(),
     },
-    devices: { pairingNow: () => f.pairingClock.now },
-    notifications: {
-      notify: (n) => void f.notifyFake.notified.push(n),
+    devices: {
+      pairingNow: () => f.pairingClock.now,
       push: {
         send: async (push, m) => {
           f.notifyFake.pushed.push({ push, title: m.title, body: m.body, host_id: m.host_id });
@@ -187,6 +186,7 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider
         },
       },
     },
+    notifications: { notify: (n) => void f.notifyFake.notified.push(n) },
     docker: {
       cli: new DockerCli(() => (f.dockerFake.missing ? null : f.dockerFake.bin)),
       portProbe: {
