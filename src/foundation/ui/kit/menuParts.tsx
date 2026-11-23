@@ -1,5 +1,6 @@
-// メニューの小さな部品（組の間の線・空の項目・押すと下に開くボタン・出す項目を選ぶチェックの一覧）
+// メニューの小さな部品（組の間の線・空の項目・選んでいるかを ✓ で出す項目・押すと下に開くボタン・出す項目を選ぶチェックの一覧）
 import { createElement, Fragment, type ReactNode } from "react";
+import { Check } from "lucide-react";
 import type { FloatingAlign } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "./PopupMenu";
 import { useContextMenu } from "./useContextMenu";
@@ -26,6 +27,30 @@ export function MenuEmpty({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+interface ChoiceItemProps {
+  label: ReactNode;
+  checked: boolean;
+  onSelect: () => void;
+  /** 名前の前に置く物（ラベルの色の点など） */
+  lead?: ReactNode;
+}
+
+function ChoiceItem({ label, checked, onSelect, lead, multi }: ChoiceItemProps & { multi: boolean }) {
+  return (
+    <MenuItem role={multi ? "menuitemcheckbox" : "menuitemradio"} checked={checked} keepOpen={multi} onSelect={onSelect}>
+      {lead}
+      <span className="project-switch-item">{label}</span>
+      {checked && <Check size={14} aria-hidden />}
+    </MenuItem>
+  );
+}
+
+/** いくつも選べる項目（選んでいれば右に ✓。押しても閉じない） */
+export const CheckItem = (props: ChoiceItemProps) => <ChoiceItem {...props} multi />;
+
+/** 1 つを選ぶ項目（選んでいれば右に ✓。押すと閉じる） */
+export const RadioItem = (props: ChoiceItemProps) => <ChoiceItem {...props} multi={false} />;
 
 /**
  * 押すと下にメニューを開くボタン（もう一度押すと閉じる）。items はメニューの中身（閉じる関数を受ける）。

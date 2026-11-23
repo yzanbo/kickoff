@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Check, Tag, UserRound } from "lucide-react";
+import { Tag, UserRound } from "lucide-react";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
+import { CheckItem } from "@/foundation/ui/kit/menuParts";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 
@@ -76,11 +77,13 @@ export function GitHubLabelPicker({
           {items.map((l) => {
             const on = picked.includes(l.name);
             return (
-              <MenuItem key={l.name} role="menuitemcheckbox" checked={on} keepOpen onSelect={() => setPicked(on ? picked.filter((x) => x !== l.name) : [...picked, l.name])}>
-                {l.color && <span className="github-label-dot" style={{ background: `#${l.color}` }} aria-hidden />}
-                <span className="project-switch-item">{l.name}</span>
-                {on && <Check size={14} aria-hidden />}
-              </MenuItem>
+              <CheckItem
+                key={l.name}
+                lead={l.color && <span className="github-label-dot" style={{ background: `#${l.color}` }} aria-hidden />}
+                label={l.name}
+                checked={on}
+                onSelect={() => setPicked(on ? picked.filter((x) => x !== l.name) : [...picked, l.name])}
+              />
             );
           })}
         </PopupMenu>
