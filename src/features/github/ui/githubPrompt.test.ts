@@ -9,6 +9,12 @@ test("結び付き: URL の持ち主/名前と番号・種類", () => {
   assert.deepEqual(linkOf(makePullDetail()), { repo: "o/r", number: 5, kind: "pr" });
 });
 
+test("結び付き: GitHub Enterprise のホストの URL でも持ち主/名前を読む", () => {
+  const detail = makePullDetail();
+  const ghe = { ...detail, item: { ...detail.item, url: "https://ghe.example.com/o/r/pull/5" } };
+  assert.deepEqual(linkOf(ghe), { repo: "o/r", number: 5, kind: "pr" });
+});
+
 test("issue・PR の札の中身: 題名と URL・本文・コメントとレビューの本文（空のレビューは除く）・解決していない行のコメント", () => {
   const detail = makePullDetail({
     timeline: [

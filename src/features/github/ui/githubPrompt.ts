@@ -11,10 +11,19 @@ const day = (iso: string) => iso.slice(0, 10);
 /** 本文（空なら「（本文なし）」） */
 const bodyOf = (markdown: string) => markdown.trim() || "（本文なし）";
 
+/** URL の「持ち主/名前」（ホストは問わない = GitHub Enterprise も。読めなければ ""） */
+function repoOfUrl(url: string): string {
+  try {
+    const [owner, name] = new URL(url).pathname.split("/").filter(Boolean);
+    return owner && name ? `${owner}/${name}` : "";
+  } catch {
+    return "";
+  }
+}
+
 /** 結び付ける issue・PR（URL の「持ち主/名前」と番号・種類） */
 export function linkOf(detail: GitHubIssueDetail): GitHubLink {
-  const m = /github\.com\/([^/]+\/[^/]+)\//.exec(detail.item.url);
-  return { repo: m ? m[1] : "", number: detail.item.number, kind: detail.item.kind };
+  return { repo: repoOfUrl(detail.item.url), number: detail.item.number, kind: detail.item.kind };
 }
 
 /** 見出しの 1 行（「issue #12「題名」（URL）」） */
