@@ -9,7 +9,7 @@ import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
 import { ancestorsOf, baseName, joinPath, remapPrefix } from "@shared/foundation/path";
 import { noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "@/features/notes/ui/notePaths";
-import { showTrashedToast } from "@/features/trash/ui/trashActions";
+import { showTrashedManyToast, showTrashedToast } from "@/features/trash/ui";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
 import { movedNoteTab } from "@/features/notes/ui/notePanel";
 import { mapTabs } from "@/features/panel/ui";
@@ -184,13 +184,18 @@ export function useNoteActions(
       danger: true,
     });
     if (!ok) return;
+    const trashed: { id: string; label: string }[] = [];
     const { failed } = await runEach(targets, async ({ path }) => {
       if (!(await beforeChange(path))) return false;
-      await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } });
+      const { trash_id } = await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } });
+      trashed.push({ id: trash_id, label: baseName(path) });
       onTrashed?.(path);
       return true;
     });
     refresh();
+    // 入れたものは「元に戻す」でまとめて戻せる（1 件だけなら 1 件のときと同じ知らせ）
+    if (trashed.length === 1 && trashed[0]) showTrashedToast(trashed[0].id, trashed[0].label);
+    else if (trashed.length > 1) showTrashedManyToast(trashed);
     await reportMany("ゴミ箱に入れられなかったものがあります", failed.map(({ item, error }) => `${baseName(item.path)}: ${errorMessage(error)}`));
   };
 

@@ -482,7 +482,6 @@
       "feature-entry:src/features/notes/ui/settings/NoteOverlapNotice.tsx -> src/features/projects/ui/stores/projects.ts",
       "feature-entry:src/features/notes/ui/tree/NoteTab.tsx -> src/features/panel/ui/PanelTools.tsx",
       "feature-entry:src/features/notes/ui/tree/NoteTab.tsx -> src/features/panel/ui/layout/paneTree.ts",
-      "feature-entry:src/features/notes/ui/tree/useNoteActions.ts -> src/features/trash/ui/trashActions.ts",
       "feature-entry:src/features/notifications/ui/dockBadge.ts -> src/features/chat/ui/state/chatState.ts",
       "feature-entry:src/features/notifications/ui/dockBadge.ts -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/projects/ui/ProjectsEmpty.tsx -> src/features/trash/ui/stores/trash.ts",
