@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { commandHandler, useCommandHandler } from "@/foundation/ui/commands";
+import { isDesktopApp, nativeTerminal } from "@/features/terminal/ui/native";
 import { panelKey, panelSettings, terminalTab, togglePanel, type PanelScope, type TerminalTarget, usePanelOpen } from "@/features/panel/ui";
 
 const MIN_HEIGHT = 120;
@@ -33,14 +34,14 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     write: "--bottom-h",
     onStart: () => setMaximized(false),
   });
-  const available = Boolean(window.kickoff);
+  const available = isDesktopApp();
   // 閉じたら最大化をやめる（閉じるボタン・最後のタブを閉じた・⌃` のどれで閉じても、次は元の高さで開く）
   useEffect(() => {
     if (!open) setMaximized(false);
   }, [open]);
 
   /** 開閉。開くときにタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
-  const toggle = () => togglePanel(key, { emptyTab: targets.length === 1 && window.kickoff?.terminal ? terminalTab(targets[0]) : undefined });
+  const toggle = () => togglePanel(key, { emptyTab: targets.length === 1 && nativeTerminal() ? terminalTab(targets[0]) : undefined });
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉（コマンドの表は ../contributes.ts。ターミナルの中で押しても効くよう、ほかより先に受け取る）
   useCommandHandler(bottomToggles, toggle, available);
@@ -52,7 +53,7 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     maximized,
     targets,
     /** タブの列・タブがないときに開けるターミナルの場所（ターミナルの使える Mac のアプリでだけ） */
-    terminals: window.kickoff?.terminal ? targets : [],
+    terminals: nativeTerminal() ? targets : [],
     toggle,
     toggleMaximized: () => setMaximized((m) => !m),
     /** 上の端のつまみに渡す */

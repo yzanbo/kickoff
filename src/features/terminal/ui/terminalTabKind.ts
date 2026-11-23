@@ -1,6 +1,7 @@
 // ターミナルのタブの種類（フッター）。ui/contributes.ts が panelTabs に入れる
 import { SquareTerminal } from "lucide-react";
-import { api } from "@/foundation/ui/api";
+import { terminalsApi } from "./api/terminals";
+import { nativeTerminal } from "./native";
 import { defineTabKind, terminalTitle } from "@/features/panel/ui";
 import { claimTerminal } from "./terminalOwner";
 import { TerminalPage, type TerminalTab } from "./terminalTabPage";
@@ -12,7 +13,7 @@ export const terminalTabKind = defineTabKind<TerminalTab>({
   hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
   projectOf: (t) => t.projectId,
   // シェルを止める（コアの API。もう終わっていれば 404 なので、失敗は捨てる）
-  dispose: (t) => void (globalThis.window?.kickoff?.terminal && api.closeTerminal(t.key).catch(() => {})),
+  dispose: (t) => void (nativeTerminal() && terminalsApi.closeTerminal(t.key).catch(() => {})),
   // 同じシェルに別ウィンドウからつなぎ直す（移すときはシェルを止めない。popOutTab の keep）
   popout: (t, panel) => {
     const { key, kind: _kind, ...target } = t;

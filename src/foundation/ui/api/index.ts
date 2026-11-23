@@ -15,7 +15,6 @@ import { notesApi } from "@/features/notes/ui/api/notes";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { settingsApi } from "@/features/settings/ui/api/settings";
-import { terminalsApi } from "@/features/terminal/ui/api/terminals";
 import { trashApi } from "@/features/trash/ui/api/trash";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { uploadsApi } from "@/features/attachments/ui/api/uploads";
@@ -24,7 +23,6 @@ import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 
 export const api = {
   ...settingsApi,
-  ...terminalsApi,
   ...devicesApi,
   ...projectsApi,
   ...chatsApi,
