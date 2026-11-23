@@ -1,8 +1,8 @@
 import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, Server, StickyNote, Table2 } from "lucide-react";
-import { useState } from "react";
 import { isCheckDue, localToday } from "@shared/database/dbPrep";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
 import { dbApi, dbAt, dbOne } from "@/features/database/ui/api";
+import { useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useDbConnectedIds } from "@/features/database/ui/state/connectionsStore";
@@ -15,7 +15,7 @@ import { connectionScope, ENGINE_MARKS } from "@/features/database/ui/dbFormat";
 import { isPinned, togglePin } from "@/features/database/ui/dbPins";
 import { ObjectsNode } from "./DbTreeObjects";
 import { PinnedObjects } from "./DbTreePins";
-import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeMenuTarget, type TreeOpen } from "./DbTreeRow";
+import { TreeError, TreeHint, TreeRow, type TreeMenuTarget, type TreeOpen } from "./DbTreeRow";
 
 /**
  * 左の木: 接続 → DB → スキーマ（PostgreSQL だけ）→ テーブル / ビュー / 関数 / 列挙型 → 列・インデックス・外部キー・トリガー（DbTreeObjects）。
@@ -68,9 +68,7 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
   const key = `c:${c.id}`;
   const open = isOpen(key);
   const worktree = client.worktreeOf(c.id);
-  // つながらないときの案内の「つなぎ直す」で増やして読み直す
-  const [attempt, setAttempt] = useState(0);
-  const dbs = useNodeLoad(open, () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/databases", dbAt(client.projectId, c.id, worktree)), [c.id, c.updated_at, worktree, attempt]);
+  const dbs = useQuery(["DbTree.databases", c.id, c.updated_at, worktree], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/databases", dbAt(client.projectId, c.id, worktree)), { enabled: open });
   return (
     <>
       <TreeRow
@@ -115,14 +113,14 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
       />
       {open && <PinnedObjects connection={c} tree={{ isOpen, toggle, menu }} />}
       {open && dbs.loading && <TreeHint depth={1}>読み込み中…</TreeHint>}
-      {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} onRetry={() => setAttempt((n) => n + 1)} />}
+      {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} onRetry={() => void dbs.reload()} />}
       {open &&
-        dbs.value &&
+        dbs.data &&
         // DB が 1 つだけ（SQLite の main など）なら段を飛ばしてテーブルを出す
-        (dbs.value.databases.length === 1 && !dbs.value.has_schemas ? (
-          <ObjectsNode connection={c} depth={1} path={{ database: dbs.value.databases[0], schema: null }} tree={{ isOpen, toggle, menu }} />
+        (dbs.data.databases.length === 1 && !dbs.data.has_schemas ? (
+          <ObjectsNode connection={c} depth={1} path={{ database: dbs.data.databases[0], schema: null }} tree={{ isOpen, toggle, menu }} />
         ) : (
-          <DatabaseList connection={c} databases={dbs.value.databases} current={dbs.value.current} hasSchemas={dbs.value.has_schemas} isOpen={isOpen} toggle={toggle} menu={menu} />
+          <DatabaseList connection={c} databases={dbs.data.databases} current={dbs.data.current} hasSchemas={dbs.data.has_schemas} isOpen={isOpen} toggle={toggle} menu={menu} />
         ))}
     </>
   );
@@ -181,7 +179,7 @@ function DatabaseNode({
   const key = `d:${c.id}:${database}`;
   const open = isOpen(key);
   const worktree = client.worktreeOf(c.id);
-  const schemas = useNodeLoad(open && hasSchemas, () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/schemas", { ...dbOne(client.projectId, c.id), query: { database: database ?? undefined, worktree: worktree ?? undefined } }), [c.id, database, worktree]);
+  const schemas = useQuery(["DbTree.schemas", c.id, database, worktree], () => dbApi("GET /api/projects/:projectId/db-connections/:connectionId/schemas", { ...dbOne(client.projectId, c.id), query: { database: database ?? undefined, worktree: worktree ?? undefined } }), { enabled: open && hasSchemas });
   return (
     <>
       <TreeRow
@@ -196,9 +194,9 @@ function DatabaseNode({
       />
       {open && !hasSchemas && <ObjectsNode connection={c} depth={depth + 1} path={{ database, schema: null }} tree={{ isOpen, toggle, menu }} />}
       {open && schemas.loading && <TreeHint depth={depth + 1}>読み込み中…</TreeHint>}
-      {open && schemas.error && <TreeError depth={depth + 1} error={schemas.error} connection={c} />}
+      {open && schemas.error && <TreeError depth={depth + 1} error={schemas.error} connection={c} onRetry={() => void schemas.reload()} />}
       {open &&
-        schemas.value?.map((s) => {
+        schemas.data?.map((s) => {
           const sKey = `s:${c.id}:${database}:${s}`;
           const sOpen = isOpen(sKey);
           return (

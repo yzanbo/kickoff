@@ -1,9 +1,10 @@
 import { ArrowDownAZ, Columns3, Eye, KeyRound, Link, ListOrdered, SquareFunction, Table2, Zap, type LucideIcon } from "lucide-react";
 import { DB_OBJECT_KIND_LABELS, DB_OBJECT_KINDS, type DbConnection, type DbObject, type DbObjectKind, type DbObjectPath, type DbTableDetail } from "@shared/database/types";
+import { useQuery } from "@/foundation/ui/query";
 import { dbApi, dbAt } from "@/features/database/ui/api";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { estimatedRowsLabel } from "@/features/database/ui/dbFormat";
-import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeOpen } from "./DbTreeRow";
+import { TreeError, TreeHint, TreeRow, type TreeOpen } from "./DbTreeRow";
 
 const OBJECT_ICONS: Record<DbObjectKind, LucideIcon> = { table: Table2, view: Eye, function: SquareFunction, enum: ListOrdered };
 
@@ -20,15 +21,15 @@ export function TabObjectIcon({ object }: { object: DbObjectKind }) {
 export function ObjectsNode({ connection: c, depth, path, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; tree: TreeOpen }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(c.id);
-  const objects = useNodeLoad(true, () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/objects", { ...dbAt(client.projectId, c.id, worktree), body: { path } }), [c.id, path.database, path.schema, worktree]);
+  const objects = useQuery(["DbTree.objects", c.id, path.database, path.schema, worktree], () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/objects", { ...dbAt(client.projectId, c.id, worktree), body: { path } }));
   if (objects.loading) return <TreeHint depth={depth}>読み込み中…</TreeHint>;
-  if (objects.error) return <TreeError depth={depth} error={objects.error} connection={c} />;
-  if (objects.value?.length === 0) return <TreeHint depth={depth}>テーブルがありません</TreeHint>;
+  if (objects.error) return <TreeError depth={depth} error={objects.error} connection={c} onRetry={() => void objects.reload()} />;
+  if (objects.data?.length === 0) return <TreeHint depth={depth}>テーブルがありません</TreeHint>;
   // 種類ごとの段（テーブル 12・ビュー 3 …）に分ける。中身のない種類は出さない。初めは開いておく（閉じた段だけ覚える）
   return (
     <>
       {DB_OBJECT_KINDS.map((kind) => {
-        const items = objects.value?.filter((o) => o.kind === kind) ?? [];
+        const items = objects.data?.filter((o) => o.kind === kind) ?? [];
         if (items.length === 0) return null;
         const closedKey = `k:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${kind}:closed`;
         const open = !tree.isOpen(closedKey);
@@ -98,10 +99,10 @@ function TableChildren({
 }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(c.id);
-  const detail = useNodeLoad(true, () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/table", { ...dbAt(client.projectId, c.id, worktree), body: { path, name } }), [c.id, path.database, path.schema, name, worktree]);
+  const detail = useQuery(["DbTree.table", c.id, path.database, path.schema, name, worktree], () => dbApi("POST /api/projects/:projectId/db-connections/:connectionId/table", { ...dbAt(client.projectId, c.id, worktree), body: { path, name } }));
   if (detail.loading) return <TreeHint depth={depth}>読み込み中…</TreeHint>;
-  if (detail.error) return <TreeError depth={depth} error={detail.error} connection={c} />;
-  const d = detail.value;
+  if (detail.error) return <TreeError depth={depth} error={detail.error} connection={c} onRetry={() => void detail.reload()} />;
+  const d = detail.data;
   if (!d) return null;
   return (
     <>

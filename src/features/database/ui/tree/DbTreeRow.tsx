@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/database/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { ApiError } from "@/foundation/ui/api";
@@ -109,29 +109,6 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
       )}
     </div>
   );
-}
-
-/** 開いた段の中身を読む（開いている間だけ。失敗は例外のまま持ち、行に出す。ワークツリーにないときの印 code を残すため） */
-export function useNodeLoad<T>(open: boolean, load: () => Promise<T>, deps: unknown[]) {
-  const [state, setState] = useState<{ value?: T; error?: unknown; loading: boolean }>({ loading: open });
-  // deps のどれかが変わったら（React の依存と同じく Object.is で比べる）読み直す回を進める
-  const [seen, setSeen] = useState({ deps, round: 0 });
-  if (deps.length !== seen.deps.length || deps.some((d, i) => !Object.is(d, seen.deps[i]))) setSeen({ deps, round: seen.round + 1 });
-  const loadNow = useEffectEvent(load);
-  const round = seen.round;
-  useEffect(() => {
-    if (!open) return;
-    let alive = true;
-    setState((s) => ({ ...s, loading: true }));
-    loadNow().then(
-      (value) => alive && setState({ value, loading: false }),
-      (error: unknown) => alive && setState({ error, loading: false }),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [open, round]);
-  return state;
 }
 
 /** 読み込み中・空などの案内の行 */
