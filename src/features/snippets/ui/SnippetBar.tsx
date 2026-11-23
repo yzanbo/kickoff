@@ -5,22 +5,21 @@ import { snippetLabel } from "@shared/snippets/snippets";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { cx } from "@/foundation/ui/lib/cx";
-import { useProjectSnippets } from "@/features/snippets/ui/stores/snippets";
+import { useProjectSnippets } from "@/features/snippets/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { SendCancelled } from "@/features/composer/ui/useComposerSend";
-import { useComposerInsert, type ComposerBandProps } from "@/features/composer/ui";
+import { SendCancelled, useComposerInsert, type ComposerBandProps } from "@/features/composer/ui";
 import { confirmDeleteSnippet } from "./snippetActions";
 import { SnippetDialog } from "./SnippetDialog";
 import type { SnippetEditing } from "./SnippetManager";
-import { useHorizontalScroller } from "./useHorizontalScroller";
+import { useHorizontalScroller } from "@/foundation/ui/hooks/useHorizontalScroller";
+import { hasAppModifier } from "@/foundation/ui/lib/keys";
+import { truncate } from "@shared/foundation/text/truncate";
 
 /** ピルに乗せたときに見せる本文の長さの上限 */
 const TIP_MAX = 400;
-
-const tipOf = (text: string) => (text.length > TIP_MAX ? `${text.slice(0, TIP_MAX)}…` : text);
 
 /**
  * 入力欄の上の定型文の帯。このプロジェクトで使う定型文（共通とこのプロジェクトだけのもの）を横に並べ、入りきらなければ横にスクロールする
@@ -52,7 +51,7 @@ export function SnippetBar({
     void (onSend ? onSend(s.text) : Promise.resolve(insert(s))).catch((e: unknown) => {
       if (!(e instanceof SendCancelled)) void reportFailure("定型文を送れませんでした")(e);
     });
-  const onChipClick = (e: MouseEvent, s: Snippet) => (e.metaKey ? send(s) : insert(s));
+  const onChipClick = (e: MouseEvent, s: Snippet) => (hasAppModifier(e) ? send(s) : insert(s));
 
   return (
     <>
@@ -67,7 +66,7 @@ export function SnippetBar({
               key={s.id}
               type="button"
               className="snippet-chip pill"
-              data-tip={tipOf(s.text)}
+              data-tip={truncate(s.text, TIP_MAX)}
               data-tip-title={`${snippetLabel(s)}（押すと入力欄に入れる・⌘クリックで送る）`}
               onClick={(e) => onChipClick(e, s)}
               onContextMenu={(e) => {

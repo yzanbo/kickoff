@@ -96,10 +96,10 @@ export function heldMetaOf(e: KeyInput): HeldMeta {
 export const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
 /**
- * アプリのショートカットの修飾キー（⌘K など）を押しているか: Mac は ⌘ だけ（Control は付けない）、ほかは Ctrl だけ。
+ * アプリのショートカットの修飾キー（⌘K・⌘クリックなど）を押しているか: Mac は ⌘ だけ（Control は付けない）、ほかは Ctrl だけ。
  * Mac の Control は入力欄の編集のキー（⌃K 行末まで消す・⌃F / ⌃B / ⌃N カーソルを動かす・⌃T 入れ替えなど）なので、アプリで受けない
  */
-export function hasAppModifier(e: KeyInput, mac = IS_MAC): boolean {
+export function hasAppModifier(e: Pick<KeyInput, "metaKey" | "ctrlKey">, mac = IS_MAC): boolean {
   return mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
 }
 

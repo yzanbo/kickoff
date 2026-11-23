@@ -1,6 +1,5 @@
 // 定型文の一覧（すべての画面で 1 つ。チャット欄の中の帯・設定で共通）。使い始めたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。
 // プロジェクトを消すと、そのプロジェクトだけの定型文もコアで一緒に消えるので、project_deleted でも外す
-import { useMemo } from "react";
 import type { Snippet } from "@shared/snippets/types";
 import type { ReduceTable } from "@/foundation/ui/store";
 import { bySnippetPosition, snippetsFor } from "@shared/snippets/snippets";
@@ -29,6 +28,5 @@ export const useAllSnippets = (): Snippet[] => useStore(snippetsStore).data ?? N
 
 /** そのプロジェクトで使える定型文（共通とそのプロジェクトだけのもの） */
 export function useProjectSnippets(projectId: number): Snippet[] {
-  const all = useAllSnippets();
-  return useMemo(() => snippetsFor(all, projectId), [all, projectId]);
+  return snippetsFor(useAllSnippets(), projectId);
 }

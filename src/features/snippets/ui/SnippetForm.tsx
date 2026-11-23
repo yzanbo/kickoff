@@ -1,8 +1,8 @@
 import { useState, type KeyboardEvent } from "react";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type NewSnippetBody } from "@shared/snippets/types";
-import { errorMessage } from "@shared/foundation/errors";
 import { consumeKey, isCancelKey, isKey } from "@/foundation/ui/lib/keys";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { useAction } from "@/foundation/ui/hooks/useAction";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 
@@ -36,20 +36,14 @@ export function SnippetForm({
   const [label, setLabel] = useState(initial.label ?? "");
   const [text, setText] = useState(initial.text);
   const [scope, setScope] = useState(scopeKey(initial.project_id));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
+  const action = useAction<"save">();
+  const busy = action.busy !== null;
   const canSave = text.trim() !== "" && !busy;
+  // 保存できたら呼ぶ側が欄を閉じるので、実行中のままにする（失敗したら戻して押し直せる）
   const save = async () => {
     if (!canSave) return;
-    setBusy(true);
-    setError(undefined);
     const body = { label: label.trim() || null, text, project_id: scopeOf(scope) };
-    try {
-      await onSave(body);
-    } catch (e) {
-      setError(errorMessage(e));
-      setBusy(false);
-    }
+    await action.run("save", () => onSave(body), { keepBusy: true });
   };
   const onKeyDown = (e: KeyboardEvent) => {
     if (isKey(e, "Enter", { meta: true })) {
@@ -90,7 +84,7 @@ export function SnippetForm({
           </select>
         )}
       </Field>
-      <ErrorText message={error} />
+      <ErrorText message={action.error} />
       <div className="snippet-form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           キャンセル

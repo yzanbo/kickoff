@@ -1,7 +1,7 @@
 // 定型文の操作（作る・変える・並べ替える・消す）。応答はすぐ店に入れ、知らせを待たずに画面をそろえる
 import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/snippets/types";
 import { snippetLabel } from "@shared/snippets/snippets";
-import { reduceSnippets, snippetsStore } from "@/features/snippets/ui/stores/snippets";
+import { reduceSnippets, snippetsStore } from "@/features/snippets/ui/store";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { reduceBy } from "@/foundation/ui/store";
 import { snippetsApi } from "./api";

@@ -1,9 +1,9 @@
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
 import { moveWithin, snippetLabel, snippetsFor } from "@shared/snippets/snippets";
-import { useAllSnippets } from "@/features/snippets/ui/stores/snippets";
-import { useProjects } from "@/features/projects/ui/stores/projects";
+import { useAllSnippets } from "@/features/snippets/ui/store";
+import { useProjects } from "@/features/projects/ui";
 import { cx } from "@/foundation/ui/lib/cx";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
@@ -23,17 +23,14 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
   const all = useAllSnippets();
   const { projects, projectName } = useProjects();
   const [editing, setEditing] = useState<SnippetEditing>(initialEditing);
-  const shown = useMemo(() => (projectId === null ? all : snippetsFor(all, projectId)), [all, projectId]);
-  const scopes: SnippetScope[] = useMemo(
-    () =>
-      projectId !== null
+  const shown = projectId === null ? all : snippetsFor(all, projectId);
+  const scopes: SnippetScope[] =
+    projectId !== null
         ? [
             { value: null, label: "共通（すべてのプロジェクト）" },
             { value: projectId, label: "このプロジェクトだけ" },
           ]
-        : [{ value: null, label: "共通（すべてのプロジェクト）" }, ...projects.filter((p) => !p.archived_at).map((p) => ({ value: p.id, label: p.name }))],
-    [projectId, projects],
-  );
+        : [{ value: null, label: "共通（すべてのプロジェクト）" }, ...projects.filter((p) => !p.archived_at).map((p) => ({ value: p.id, label: p.name }))];
   const nameOf = (id: number) => projectName(id) || undefined;
   const move = (id: number, delta: number) => {
     const ids = moveWithin(

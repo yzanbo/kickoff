@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeSnippet } from "@shared/foundation/testing/factories";
-import { reduceSnippets } from "./snippets";
+import { reduceSnippets } from "./store";
 import { reduceBy } from "@/foundation/ui/store";
 
 test("reduceSnippets: 作った・変えたものは並び順の位置へ、消した・消したプロジェクトのものは外す。関係なければ同じ一覧", () => {
