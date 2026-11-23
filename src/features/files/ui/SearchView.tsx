@@ -13,6 +13,8 @@ import type { SearchReplaceController } from "./useSearchReplace";
 
 interface Props {
   search: ProjectSearchController;
+  /** 作業場所のフォルダ（絶対パス。結果の右クリック） */
+  root: string;
   replacer: SearchReplaceController;
   /** 選んでいる結果（ファイルと行） */
   selected?: { path: string; line?: number };
@@ -32,7 +34,7 @@ function Toggle({ icon, label, on, onClick }: { icon: typeof CaseUpper; label: s
  * 見出しに、探し直す・すべて閉じる / 開く・結果を消す。結果（SearchResults）の行を選ぶと、そのファイルのその行を右に出す。
  * ⌘⇧F（VS Code と同じ）で、このタブへ移って検索の欄にピントを置き、書いてある文を選ぶ（codeSearchFocus.ts）
  */
-export function SearchView({ search, replacer, selected, onSelect, onHideList }: Props) {
+export function SearchView({ search, root, replacer, selected, onSelect, onHideList }: Props) {
   const { result } = search;
   const counts = resultCounts(search.files);
   // 閉じているファイル（探し直したら、すべて開いた状態に戻す）
@@ -175,6 +177,7 @@ export function SearchView({ search, replacer, selected, onSelect, onHideList }:
         {search.query && result && (
           <SearchResults
             search={search}
+            root={root}
             replacer={replacer}
             collapsed={collapsed}
             onToggleFile={(path) =>

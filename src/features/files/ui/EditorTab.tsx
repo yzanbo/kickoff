@@ -23,7 +23,8 @@ import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import type { PanelScope } from "@/features/panel/ui";
 import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
-import { useFileActions } from "./useFileActions";
+import { useFileOps } from "./useFileOps";
+import { FileTreeMenu } from "./FileTreeMenu";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { useSearchReplace } from "./useSearchReplace";
@@ -75,25 +76,16 @@ export function EditorTab({
   // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
   const gitAction = useAction();
   // ファイル・フォルダの操作（ファイルタブ・変更タブの Enter・右クリック。新しいファイル・ゴミ箱はファイルタブだけ）。フォルダの名前を変えたら、開いていたフォルダも付け替える
-  const { rename, create, menuElement: fileMenu } = useFileActions(projectId, {
-    root: worktree ?? repoPath,
-    explorer: view === "files",
+  const fileOps = useFileOps(projectId, {
     selection,
     git,
     onMoved: (from, to) =>
       setOpenFolders((prev) => new Set([...prev].map((p) => (p === from || p.startsWith(`${from}/`) ? to + p.slice(from.length) : p)))),
     // 名前の欄・作ったものを見せるため、そのフォルダーとその上を開く
     onReveal: (folder) => setOpenFolders((prev) => new Set([...prev, folder, ...parentFolders(folder)])),
-    // フォルダーの右クリックの「フォルダー内を検索」: 含めるファイルをそのフォルダーにして、検索タブへ
-    onFindInFolder: (folder) => {
-      search.findInFolder(folder);
-      navigate({ name: "project", id: projectId, tab: "search" });
-    },
-    // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
-    openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection(git, { path, staged }), true),
-    openInFilesTab: (path) => open({ kind: "file", projectId, path, worktree }),
     gitRun: (action, paths) => void gitAction.guard(() => git.act(action, paths)),
   });
+  const { rename, create } = fileOps;
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）
   const replacer = useSearchReplace(projectId, { search, selection, git });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
@@ -159,7 +151,7 @@ export function EditorTab({
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
       >
         {view === "search" ? (
-          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line, newTab) => void setSelected({ path, line }, newTab)} onHideList={hideList} />
+          <SearchView search={search} root={worktree ?? repoPath} replacer={replacer} selected={selected} onSelect={(path, line, newTab) => void setSelected({ path, line }, newTab)} onHideList={hideList} />
         ) : view === "files" ? (
           <FilesPane
             rootName={rootName}
@@ -186,7 +178,19 @@ export function EditorTab({
         <Panel panel={selection.panel} frame={FIXED_FRAME} />
       </FileTabsContext.Provider>
     </div>
-    {fileMenu}
+    <FileTreeMenu
+      ops={fileOps}
+      root={worktree ?? repoPath}
+      explorer={view === "files"}
+      // フォルダーの右クリックの「フォルダー内を検索」: 含めるファイルをそのフォルダーにして、検索タブへ
+      onFindInFolder={(folder) => {
+        search.findInFolder(folder);
+        navigate({ name: "project", id: projectId, tab: "search" });
+      }}
+      // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
+      openTab={(path, staged) => void setSelected(staged === undefined ? { path } : changeSelection(git, { path, staged }), true)}
+      openInFilesTab={(path) => open({ kind: "file", projectId, path, worktree })}
+    />
     </>
   );
 }

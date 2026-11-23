@@ -54,7 +54,7 @@ App・起動・下の帯は `@/app/renderer/`。
 - 選ぶ: ↑↓ ←→ は `useRovingList`、木は `useTree` ＋ `TreeView`、タブは `kit/tabs/`、複数選択は `useMultiSelect`。
 - 大きさ: つまみは `useDragSize`、一覧＋詳細は `useListDetail`、狭いかは `useNarrowerThan`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。
-- 外で開くのは `external/native.ts` の `openExternal`。
+- 外で開くのは `external/native.ts`、パスのメニューは `PathMenuItems`。
 - 編集の部品は `hooks/useCodeMirror`（部品ごとに `new EditorView` を組み立てない）。
 - 文書の保存は `document/useDocument`（⌘⇧S・離れる前の確かめは `registerUnsaved`）。
 - 例外の文は `errorMessage`、class 名は `cx`、トークン数は `formatTokens`、パスは `splitPath` ＋ `PathParts`。
@@ -117,7 +117,7 @@ App・起動・下の帯は `@/app/renderer/`。
 - 記録をたどる計算は、チャットの店の取り出し口（`defineChatSelector`）に置く。
 - 書いている途中の返答（`chat_delta`）は React の state に入れない（店の途中の文の口に当て、`useStreamReveal` が rAF で読む）。
 - `Markdown` に毎回新しい値（その場で作った配列など）を渡さない。react-markdown の版を上げたら `markdownProcessor.test.ts` を流す。
-- 変わる値（ファイルのリンクの一覧など）を Markdown の解析に入れない（すべての返答を解析し直す。`@/features/files/ui/links/fileRefs.ts`）。
+- 変わる値（ファイルのリンクの一覧など）を Markdown の解析に入れない（すべての返答を解析し直す）。
 - 長い一覧は描く範囲を絞る。チャットの流れは窓 `@/features/conversation/ui/timeline/rowWindow/useRowWindow.ts`、サイドバー・ボードは開いた直後だけ段階に分ける（`useProgressiveRows.ts`）。
 - 行の DOM を読む操作（キーでの移動・範囲の選択・ドラッグ）では、先に `ensureAllRows()` を呼ぶ（描いている途中・effect の中では呼ばない）。
 - 一番下への付いていきは、大きさの知らせでずれたときだけ寄せる（`@/features/chat/ui/parts/followScroll.ts`）。effect で `scrollTop = scrollHeight` を書かない。

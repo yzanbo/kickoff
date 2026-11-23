@@ -9,7 +9,7 @@
 | `core/files.ts`・`core/search.ts`・`core/routes/files.ts` | ファイルの読み書き（土台の `workplaceFiles`。ほかの機能へは `FilesApi`）・検索と置換・受け口（取り決め `@shared/files/contract.ts`。画面の呼び手は `ui/api.ts`、作業場所は `workdirInput`） |
 | `core/tools.ts` | AI の `open_file`（作業場所の中だけ） |
 | `ui/EditorTab` | タブの殻（同じ部品のまま切り替え、開いたタブ・検索・操作の様子を共有） |
-| `ui/FilesPane`・`FileTree`・`useFileActions` | ファイルの木・右クリック・名前の変更・作る・ゴミ箱 |
+| `ui/FilesPane`・`FileTree`・`useFileOps`・`fileMenuItems`・`FileTreeMenu` | ファイルの木・名前の変更・作る・ゴミ箱・右クリック（外のアプリとパスのコピーは土台の `PathMenuItems`） |
 | `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（`Panel` の欄 `files`） |
 | `ui/FileView`・`useFileDocument`・`FileHeader`・`usePreviewMode`・`CodeEditor`・`monacoEditor.ts` | 中身（文書の土台 `useDocument` の上。Monaco の付け足しは `codeEditorParts.ts` の `attach…`）・差分を見ながら編集・プレビュー |
 | `ui/useProjectSearch`・`useSearchReplace` | 検索と置換 |

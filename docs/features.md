@@ -533,8 +533,8 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | CODE-001 | ファイルの木を見る | files | M |
-| CODE-002 | 新しいファイル・フォルダを作る | files | T:useFileActions |
-| CODE-003 | ファイル・フォルダの名前を変える | files | T:useFileActions |
+| CODE-002 | 新しいファイル・フォルダを作る | files | T:fileMenuItems |
+| CODE-003 | ファイル・フォルダの名前を変える | files | T:fileMenuItems |
 | CODE-004 | ゴミ箱・パスのコピー・Finder で表示 | files | M |
 | CODE-005 | いくつも選んでまとめて扱う | files | M |
 | CODE-006 | タブで開く・分けて並べる | files | T:fileTabs |

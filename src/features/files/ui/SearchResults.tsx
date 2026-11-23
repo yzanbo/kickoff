@@ -4,10 +4,11 @@ import type { SearchMatch } from "@shared/files/types";
 import { searchPattern, splitMatches, splitReplacements } from "@shared/foundation/search/searchMatch";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
-import { lineLocation } from "@/foundation/ui/lib/pathCopy";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { menuGroups } from "@/foundation/ui/kit/menuParts";
+import { PathMenuItems } from "@/foundation/ui/external/PathMenuItems";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
@@ -17,6 +18,8 @@ import type { SearchReplaceController } from "./useSearchReplace";
 
 interface Props {
   search: ProjectSearchController;
+  /** 作業場所のフォルダ（絶対パス。外のアプリで開く・絶対パスをコピー） */
+  root: string;
   replacer: SearchReplaceController;
   /** 閉じているファイル */
   collapsed: ReadonlySet<string>;
@@ -34,9 +37,9 @@ const copy = (text: string) => void navigator.clipboard.writeText(text);
 
 /**
  * 検索の結果（ファイルごとにまとめ、見つかった部分に印を付ける。置換の欄を開いていれば、置き換えたあとの形を並べて見せる）。
- * 行・ファイルの右に、置換（置換の欄を開いているとき）と結果から外すボタン（乗せたとき・選んでいるときに出す）。同じ操作とコピーを右クリックにも置く
+ * 行・ファイルの右に、置換（置換の欄を開いているとき）と結果から外すボタン（乗せたとき・選んでいるときに出す）。同じ操作とコピー・外のアプリ（PathMenuItems）を右クリックにも置く
  */
-export function SearchResults({ search, replacer, collapsed, onToggleFile, selected, onSelect }: Props) {
+export function SearchResults({ search, root, replacer, collapsed, onToggleFile, selected, onSelect }: Props) {
   const { result } = search;
   // 結果を出したときの探し方で印を付ける（打っている途中の文字ではなく）
   const pattern = useMemo(() => (result ? searchPattern(result.query) : null), [result]);
@@ -109,31 +112,31 @@ export function SearchResults({ search, replacer, collapsed, onToggleFile, selec
       })}
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label={menu.menu.value.match ? `${menu.menu.value.match.line} 行目` : `「${baseName(menu.menu.value.file.path)}」`} onClose={menu.close}>
-          {(({ file, match }) => (
-            <>
-              {preview && (
-                <MenuItem disabled={replacer.busy} onSelect={() => (match ? replacer.replaceLine(file, match.line) : replacer.replaceFile(file))}>
-                  {match ? <Replace size={14} aria-hidden /> : <ReplaceAll size={14} aria-hidden />} {match ? "この行を置換" : "このファイルですべて置換"}
-                </MenuItem>
-              )}
-              <MenuItem onSelect={() => search.dismiss(file.path, match?.line)}>
-                <X size={14} aria-hidden /> 結果から外す
-              </MenuItem>
-              {match && (
-                <MenuItem onSelect={() => copy(match.text.trim())}>
-                  <Copy size={14} aria-hidden /> 行をコピー
-                </MenuItem>
-              )}
-              <MenuItem onSelect={() => copy(match ? lineLocation(file.path, { from: match.line, to: match.line }) : file.path)}>
-                <Copy size={14} aria-hidden /> {match ? "パスと行番号をコピー" : "パスをコピー"}
-              </MenuItem>
-              {!match && (
-                <MenuItem onSelect={() => copy(file.matches.map((m) => `${m.line}: ${m.text.trim()}`).join("\n"))}>
-                  <Copy size={14} aria-hidden /> このファイルの結果をコピー
-                </MenuItem>
-              )}
-            </>
-          ))(menu.menu.value)}
+          {(({ file, match }) =>
+            menuGroups([
+              [
+                preview && (
+                  <MenuItem key="replace" disabled={replacer.busy} onSelect={() => (match ? replacer.replaceLine(file, match.line) : replacer.replaceFile(file))}>
+                    {match ? <Replace size={14} aria-hidden /> : <ReplaceAll size={14} aria-hidden />} {match ? "この行を置換" : "このファイルですべて置換"}
+                  </MenuItem>
+                ),
+                <MenuItem key="dismiss" onSelect={() => search.dismiss(file.path, match?.line)}>
+                  <X size={14} aria-hidden /> 結果から外す
+                </MenuItem>,
+              ],
+              [
+                match ? (
+                  <MenuItem key="line" onSelect={() => copy(match.text.trim())}>
+                    <Copy size={14} aria-hidden /> 行をコピー
+                  </MenuItem>
+                ) : (
+                  <MenuItem key="results" onSelect={() => copy(file.matches.map((m) => `${m.line}: ${m.text.trim()}`).join("\n"))}>
+                    <Copy size={14} aria-hidden /> このファイルの結果をコピー
+                  </MenuItem>
+                ),
+              ],
+              [<PathMenuItems key="paths" root={root} paths={[file.path]} line={match?.line} />],
+            ]))(menu.menu.value)}
         </PopupMenu>
       )}
     </>

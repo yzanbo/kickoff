@@ -7,7 +7,7 @@ import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { ListHideButton } from "@/foundation/ui/kit/ListRail";
 import { FileTree, type TreeMulti } from "./FileTree";
 import { folderPaths, parentPath, treePaths, visibleTreePaths } from "@/foundation/ui/kit/list/treeModel";
-import type { FileCreate, FileRename } from "./useFileActions";
+import type { FileCreate, FileRename } from "./useFileOps";
 import type { ChangeMarks, FilesGitStatus } from "./filesGit";
 import type { useProjectFiles } from "./useProjectFiles";
 

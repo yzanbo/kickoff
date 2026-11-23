@@ -6,7 +6,7 @@ import { TreeView, type TreeRenaming, type TreeRowAttrs } from "@/foundation/ui/
 import { newEntryNameError, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { useTree } from "@/foundation/ui/kit/list/useTree";
 import type { ChangeMarks } from "./filesGit";
-import type { FileCreate, FileRename } from "./useFileActions";
+import type { FileCreate, FileRename } from "./useFileOps";
 
 /** 選んだいくつかの行の 1 つ（右クリックのメニューに渡す。staged は変更の一覧のどちらのまとまりか。ファイルタブでは持たない） */
 export interface PickedEntry {

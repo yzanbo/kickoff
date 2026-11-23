@@ -12,4 +12,4 @@ export { filesGit } from "./filesGit";
 export type { BlameLines, ChangeMark, ChangeMarks, FileChange, FilesChangesPaneProps, FilesDiffTabProps, FilesGit, FilesGitStatus } from "./filesGit";
 export type { Selection } from "./tabSelection";
 export { FileTree, siblingNameError, type TreeMulti } from "./FileTree";
-export type { FileRename } from "./useFileActions";
+export type { FileRename } from "./useFileOps";

@@ -4,7 +4,7 @@ import type { ActionState } from "@/foundation/ui/hooks/useAction";
 import { definePoint } from "@/foundation/ui/points";
 import type { WorkplaceRef } from "@/foundation/ui/workplace/workplace";
 import type { Selection } from "./tabSelection";
-import type { FileRename } from "./useFileActions";
+import type { FileRename } from "./useFileOps";
 
 /** 変更の記号（M・A など）と名前（変更・追加 など）。色は CSS が data-kind で付ける */
 export interface ChangeMark {
