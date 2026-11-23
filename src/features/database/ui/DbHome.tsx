@@ -1,6 +1,7 @@
 import { Lock, Plus, Sparkles, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import { DB_AI_ACCESS_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection, type DbImportCandidate } from "@shared/database/types";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
@@ -66,7 +67,7 @@ export function DbHome({
                     <Lock size={11} aria-hidden /> 読み取り専用
                   </span>
                 )}
-                {c.ai_access !== "none" && (
+                {isAiVisible(c) && (
                   <span className="db-home-tag">
                     <Sparkles size={11} aria-hidden /> AI に{DB_AI_ACCESS_LABELS[c.ai_access]}
                   </span>

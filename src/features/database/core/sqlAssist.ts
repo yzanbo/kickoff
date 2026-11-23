@@ -1,4 +1,5 @@
 // SQL のタブの「AI に頼む」: 頼みの文とスキーマのテーブル・列の名前から、1 回だけ AI に SQL を書いてもらう頼み方と答えの読み方（中身の値は渡さない）
+import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbEngine, DbObjectPath } from "@shared/database/types";
 import { DB_ENGINE_LABELS } from "@shared/database/types";
 import type { DbOutlineTable } from "@shared/database/types";
@@ -51,7 +52,7 @@ export function parseSqlAnswer(answer: string): string {
 export function createSqlAssist(providers: Partial<AiApi["providers"]>, outline: (scope: DbScope, path: DbObjectPath) => Promise<DbOutlineTable[]>) {
   return async (scope: DbScope, body: DbSqlAssistBody): Promise<DbSqlAssistResult> => {
     const { connection, project } = scope;
-    if (connection.ai_access === "none") throw new Invalid("この接続は AI に見せない設定なので、AI に頼めません（接続の編集で変えられます）");
+    if (!isAiVisible(connection)) throw new Invalid("この接続は AI に見せない設定なので、AI に頼めません（接続の編集で変えられます）");
     const provider = providers[project.provider];
     if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、SQL を書くのに対応していません");
     const tables = await outline(scope, body.path);

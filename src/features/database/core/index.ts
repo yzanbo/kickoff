@@ -57,7 +57,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   if (env.cleanExports) databases.cleanExports();
   deps.chat.onChatsPurged((ids) => databases.forgetChatExports(ids));
-  deps.guard.addRuleSource(hiddenDbRuleSource((projectId) => stores.dbConnections.list(projectId)));
+  deps.guard.addRuleSource(hiddenDbRuleSource(databases.hiddenTargets));
   // ワークツリーを消したら、その DB から作った接続を、選ばれていれば消し、残すなら結び付きだけ外す
   deps.worktrees.useDbConnections((folder) => stores.dbConnections.ofWorktree(folder).map((conn) => ({ id: conn.id, name: conn.name })));
   deps.worktrees.onRemoved(({ path: folder, drop_db_connections }) => {
@@ -68,7 +68,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
     name: "database",
     api: databases,
     routes: [databaseRoutes({ projectParam: deps.projects.param, databases, docker: deps.docker })],
-    aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, dbConnectionsOf: (projectId) => stores.dbConnections.list(projectId), publish: (e) => k.bus.publish(e) })],
+    aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, databases, publish: (e) => k.bus.publish(e) })],
     stop: () => databases.close(),
   };
 }

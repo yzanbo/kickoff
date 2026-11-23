@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/foundation/errors";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import { parseDbUrl } from "@shared/database/dbUrl";
 import { DB_AI_ACCESSES, DB_AI_ACCESS_LABELS, DB_DEFAULT_PORTS, DB_ENVIRONMENTS, DB_ENVIRONMENT_DEFAULTS, DB_ENVIRONMENT_LABELS, DB_SSH_UNKNOWN_HOST, DB_WRITE_CHECKS, DB_WRITE_CHECK_LABELS, type DbAiAccess, type DbConnection, type DbEngine, type DbEnvironment, type DbSsh, type DbWriteCheck } from "@shared/database/types";
 import type { DbConnectionTestResult } from "@shared/database/api";
@@ -198,7 +199,7 @@ export function ConnectionDialog({
             ))}
           </select>
         </Field>
-        {!sqlite && form.ai_access !== "none" && (
+        {!sqlite && isAiVisible(form) && (
           <div className="db-connection-row">
             <Field label="AI 用のユーザー（任意）" help="AI が SQL を流すときだけ、このユーザーでつなぎます（読み取りの権限だけのユーザーを作っておくと、より安全です）">
               <input value={form.ai_username} onChange={(e) => set("ai_username", e.target.value)} spellCheck={false} autoComplete="off" />
@@ -215,7 +216,7 @@ export function ConnectionDialog({
             </Field>
           </div>
         )}
-        {!sqlite && form.ai_access !== "none" && connection?.has_ai_password && (
+        {!sqlite && isAiVisible(form) && connection?.has_ai_password && (
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
         <ConnectionPrepFields form={form} set={set} />

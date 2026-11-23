@@ -7,6 +7,7 @@ import type { DatabaseService } from "@/features/database/core/index";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
 import { browserToolGroup } from "@/features/browser/core/index";
 import { dbToolGroup, openSqlToolGroup } from "@/features/database/core/tools";
+import { createAiConnections } from "@/features/database/core/aiConnections";
 import { terminalToolGroup } from "@/features/terminal/core/tools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { diagnosticToolGroup } from "@/features/guard/core/index";
@@ -103,7 +104,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
       openFileToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       openDiffToolGroup({ store, publish: (e) => core.bus.publish(e) }),
       snippetToolGroup({ snippets: store.snippets, chatOf: (id) => store.chats.get(id) }),
-      openSqlToolGroup({ store, dbConnectionsOf: (id) => store.dbConnections.list(id), publish: (e) => core.bus.publish(e) }),
+      openSqlToolGroup({ store, databases: createAiConnections((id) => store.dbConnections.list(id)), publish: (e) => core.bus.publish(e) }),
       terminalToolGroup({ store, terminals }),
       usageToolGroup(core.usage),
       createChatToolGroup({ store, startChat: unused("startChat"), workplace: unused("workplace") }),
@@ -186,7 +187,7 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
       {},
       // DB のツールを出すかは database の店の接続で決める（ツールの中身は呼ばない）
       (core) => {
-        const databases = { stores: core.store } as unknown as DatabaseService;
+        const databases = createAiConnections((id) => core.store.dbConnections.list(id)) as unknown as DatabaseService;
         return [dbToolGroup(databases, core.store)];
       },
     ),

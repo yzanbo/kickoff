@@ -1,6 +1,7 @@
 import { Sparkles, SquareTerminal } from "lucide-react";
 import { useState } from "react";
 import { dbAskPrompt } from "@/features/database/ui/ai/dbAsk";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { qualifiedTable } from "@shared/database/dialect";
 import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/database/types";
@@ -41,7 +42,7 @@ const ASK_CHAT_CHOICES = 15;
  */
 export function AskAiButton({ connection, path, tables, label = "AI に聞く" }: { connection: DbConnection; path: DbObjectPath; tables: string[]; label?: string }) {
   const client = useDbClient();
-  const hidden = connection.ai_access === "none";
+  const hidden = !isAiVisible(connection);
   const mainChatId = useMainChat();
   const mainChat = useKnownChat(mainChatId ?? 0);
   const { chats } = useChats({ projectId: client.projectId });
@@ -81,7 +82,7 @@ export function AskAiButton({ connection, path, tables, label = "AI に聞く" }
 export function SqlAssistButton({ connection, editor }: { connection: DbConnection; editor: React.RefObject<SqlEditorHandle | null> }) {
   const client = useDbClient();
   const [busy, setBusy] = useState(false);
-  const hidden = connection.ai_access === "none";
+  const hidden = !isAiVisible(connection);
   const run = async () => {
     const request = await prompt({
       title: "AI に SQL を書いてもらう",

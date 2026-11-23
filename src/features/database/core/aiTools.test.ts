@@ -11,7 +11,7 @@ import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import { createDatabaseService } from "./service";
 import { DbSecretVault } from "./secrets";
-import { createDbAiTools, hasAiConnections, type DbAiApprove } from "./aiTools";
+import { createDbAiTools, type DbAiApprove } from "./aiTools";
 
 const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBody => ({
   name: "開発",
@@ -46,14 +46,14 @@ const allow: DbAiApprove = async () => null;
 
 test("AI の DB のツール: 見せない接続は一覧に出さず名前でも使えない。1 つだけなら名前を省ける", async () => {
   const { store, project, tools, databases } = prepare();
-  assert.equal(hasAiConnections(databases, project.id), false);
+  assert.equal(databases.hasAiConnections(project.id), false);
   store.dbConnections.create(project.id, sqliteBody({ name: "本番", ai_access: "none" }));
-  assert.equal(hasAiConnections(databases, project.id), false);
+  assert.equal(databases.hasAiConnections(project.id), false);
   assert.match(tools.connections(), /AI に見せる DB の接続がありません/);
   await assert.rejects(tools.objects({ connection: "本番" }), /AI に見せる接続はありません/);
 
   store.dbConnections.create(project.id, sqliteBody());
-  assert.equal(hasAiConnections(databases, project.id), true);
+  assert.equal(databases.hasAiConnections(project.id), true);
   const list = tools.connections();
   assert.match(list, /開発/);
   assert.ok(!list.includes("本番") && !list.includes("app.db"));

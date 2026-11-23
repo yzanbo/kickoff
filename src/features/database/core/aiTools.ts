@@ -1,6 +1,5 @@
-// チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、MCP のツールは mcp/dbTools.ts が組み立てる。
-// 接続は呼ぶたびに店から引き直す（作業の途中で利用者が許可を変えたら、次の呼び出しから効く）
-import { hasConnectCommands } from "@shared/database/dbPrep";
+// チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、ツールの宣言は tools.ts。
+// 接続は呼ぶたびに引き直す（作業の途中で利用者が許可を変えたら、次の呼び出しから効く）
 import type { DbConnection } from "@shared/database/types";
 import type { Project } from "@shared/projects/types";
 import { Invalid } from "@/foundation/core/errors";
@@ -39,30 +38,11 @@ async function askUserIfLocked<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** プロジェクトに AI に見せる接続があるか（なければツールを出さない） */
-export function hasAiConnections(databases: DatabaseService, projectId: number): boolean {
-  return databases.stores.dbConnections.list(projectId).some((c) => c.ai_access !== "none");
-}
-
 /**
  * 1 回の実行に渡す DB のツールの中身。workdir はチャットの作業場所（SQLite のファイルをワークツリーの中から開く。null なら本体）
  */
 export function createDbAiTools(databases: DatabaseService, { project, workdir, chatId }: { project: Project; workdir: string | null; chatId: number }): DbAiTools {
-  const visible = () => databases.stores.dbConnections.list(project.id).filter((c) => c.ai_access !== "none");
-
-  /** 名前で接続を引く（1 つしかなければ省いてよい。見せない接続は名前を出さずに断る） */
-  const resolve = (name: string | undefined): DbConnection => {
-    const shown = visible();
-    if (!name) {
-      if (shown.length === 1) return resolve(shown[0].name);
-      throw new Invalid(shown.length === 0 ? "このプロジェクトには、AI に見せる DB の接続がありません。" : "connection に接続の名前を渡してください（db_connections で一覧）。");
-    }
-    const hit = shown.find((c) => c.name === name) ?? shown.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (!hit) throw new Invalid(`「${name}」という AI に見せる接続はありません（db_connections で一覧。利用者が AI に見せないと決めた接続は使えません）。`);
-    // つなぐときにコマンド（ポートの転送・パスワードを取る）を流す接続は、AI からはつながない（準備のコマンドは利用者が押したときだけ流す）
-    if (hasConnectCommands(hit.prep)) throw new Invalid(`「${hit.name}」はつなぐときにコマンドを流す接続なので、AI からは使えません。利用者に DB クライアントで見てもらってください。`);
-    return hit;
-  };
+  const resolve = (name: string | undefined) => databases.findAiConnection(project.id, name, { connecting: true });
 
   /** DB とスキーマの既定（DB はつないでいるもの、スキーマは PostgreSQL なら public） */
   const placeOf = async (connection: DbConnection, database?: string, schema?: string) => {
@@ -75,7 +55,7 @@ export function createDbAiTools(databases: DatabaseService, { project, workdir, 
     [connection.name, path.database, path.schema].filter(Boolean).join(" / ");
 
   return {
-    connections: () => formatAiConnections(visible()),
+    connections: () => formatAiConnections(databases.aiConnections(project.id)),
 
     objects: ({ connection, database, schema, search }) =>
       askUserIfLocked(async () => {

@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbConnection } from "@shared/database/types";
 import { expandHome } from "@/foundation/core/system/paths";
 import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
@@ -9,9 +10,9 @@ import { isFileDb } from "@shared/database/connectionShape";
  * ファイル名だけでも探す（見せる接続に同じファイル名があれば、取り違えないよう名前だけでは探さない）
  */
 export function hiddenDbTargets(connections: DbConnection[], dirs: string[]): HiddenDbTarget[] {
-  const visibleNames = new Set(connections.filter((c) => c.ai_access !== "none" && c.file_path).map((c) => path.basename(c.file_path ?? "")));
+  const visibleNames = new Set(connections.filter((c) => isAiVisible(c) && c.file_path).map((c) => path.basename(c.file_path ?? "")));
   return connections
-    .filter((c) => c.ai_access === "none")
+    .filter((c) => !isAiVisible(c))
     .map((c) => {
       let file: HiddenDbTarget["file"] = null;
       if (isFileDb(c.engine) && c.file_path) {

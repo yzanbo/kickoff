@@ -1,6 +1,7 @@
 import { NotebookPen, Play, RotateCcw, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
 import { appendDbNoteFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbNoteFixEntry } from "@/features/database/ui/connection/dbFailure";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/database/types";
@@ -147,7 +148,7 @@ export function DbFailureDialog({
           )}
         </section>
         <DialogActions className="db-failure-actions">
-          {c.ai_access !== "none" && <HandOffButton item={failureItem(projectId, c, error)} small={false} onPick={() => dialog.close()} />}
+          {isAiVisible(c) && <HandOffButton item={failureItem(projectId, c, error)} small={false} onPick={() => dialog.close()} />}
           {c.prep && c.prep.prepare.length > 0 && (
             <button type="button" className="btn" onClick={then(onPrep)}>
               <Play size={14} aria-hidden /> 準備を流す…

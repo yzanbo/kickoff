@@ -4,6 +4,7 @@ import { countsAsConnected, parseSession } from "@shared/database/session";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerApi } from "@/features/docker/core/index";
+import { createAiConnections } from "./aiConnections";
 import { createAiQuery } from "./aiQuery";
 import { aiExportRoot } from "./aiExports";
 import { createBrowse } from "./browse";
@@ -69,6 +70,7 @@ export function createDatabaseService(opts: Options) {
     /** パスワードの暗号化・復号 */
     vault,
     ...createConnections(parts, opts.docker),
+    ...createAiConnections((projectId) => store.dbConnections.list(projectId)),
     ...browse,
     ...sqlTabs,
     ...createAiQuery(parts, opts.exportRoot ?? aiExportRoot(opts.dataDir)),

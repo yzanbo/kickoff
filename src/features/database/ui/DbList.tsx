@@ -1,4 +1,5 @@
 import { Copy, FolderInput, PanelLeftClose, Plus, Search } from "lucide-react";
+import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbConnection } from "@shared/database/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
@@ -72,7 +73,7 @@ export function DbList({
 function ListFoot({ projectId, connections }: { projectId: number; connections: DbConnection[] }) {
   const connected = useDbConnectedIds(projectId).data ?? [];
   const live = connections.filter((c) => connected.includes(c.id)).length;
-  const shown = connections.filter((c) => c.ai_access !== "none");
+  const shown = connections.filter(isAiVisible);
   return (
     <div className="db-list-foot small muted">
       <span title="木・テーブル・SQL のタブでいまつないでいる接続の数">{live} つ接続中</span>

@@ -101,7 +101,7 @@ test("見せない接続: 見せる接続と同じファイル名なら名前だ
 
 test("守りを出す口: 実行のたびにプロジェクトの接続を引き、見せない接続があるときだけ守りを付ける（SQLite は作業場所と本体の両方で解く）", async () => {
   const byProject: Record<number, DbConnection[]> = { 1: [conn({ engine: "sqlite", host: null, port: null, file_path: "db/app.sqlite3" })], 2: [conn({ ai_access: "ask" })] };
-  const source = hiddenDbRuleSource((projectId) => byProject[projectId] ?? []);
+  const source = hiddenDbRuleSource((projectId, dirs) => hiddenDbTargets(byProject[projectId] ?? [], dirs));
   const materials = testMaterials({ cwd: "/wt" });
   const [rule, ...rest] = source.rulesFor({ ...materials, project: { ...materials.project, id: 1, repo_path: "/repo" } });
   assert.equal(rest.length, 0);

@@ -1,4 +1,5 @@
 // チャットの AI の db_query（kickoff_db）の入力を、DB クライアントの接続に結び付ける。React に依らない
+import { isAiVisible } from "@shared/database/aiVisibility";
 import type { DbConnection } from "@shared/database/types";
 
 /** db_query の結果の文の頭「接続「名前」の結果。」（core/databases/aiFormat.ts）から、流した接続の名前を読む */
@@ -13,6 +14,6 @@ function nameFromResult(result: string | undefined): string | undefined {
 export function aiQueryConnection(connections: readonly DbConnection[], name: string | undefined, result?: string): DbConnection | null {
   const named = name ?? nameFromResult(result);
   if (named) return connections.find((c) => c.name === named) ?? null;
-  const shown = connections.filter((c) => c.ai_access !== "none");
+  const shown = connections.filter(isAiVisible);
   return shown.length === 1 ? shown[0] : null;
 }

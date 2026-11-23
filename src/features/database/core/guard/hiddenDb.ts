@@ -1,8 +1,7 @@
-import { DB_DEFAULT_PORTS, type DbConnection, type DbEngine } from "@shared/database/types";
+import { DB_DEFAULT_PORTS, type DbEngine } from "@shared/database/types";
 import { normalizeCommand } from "@/features/guard/core/guard/selfProtection";
 import type { DenyVerdict, GuardRule, GuardRuleSource } from "@/features/guard/core/index";
 import { claudeToolOf } from "@shared/ai/claudeTools";
-import { hiddenDbTargets } from "@/features/database/core/hiddenTargets";
 
 /** 利用者が「チャットの AI に見せない」と決めた DB の接続の、つなぎ先（ホスト・ポート・SQLite のファイル） */
 export interface HiddenDbTarget {
@@ -85,11 +84,11 @@ export function hiddenDbRule(targets: HiddenDbTarget[]): GuardRule {
  * 見せない DB の守りを出す口（createDatabase が guard に登録する）。実行のたびにプロジェクトの接続を引き、
  * 見せない接続があるときだけ守りを付ける（SQLite のファイルは作業場所と本体の両方で解く）
  */
-export function hiddenDbRuleSource(connectionsOf: (projectId: number) => DbConnection[]): GuardRuleSource {
+export function hiddenDbRuleSource(targetsOf: (projectId: number, dirs: string[]) => HiddenDbTarget[]): GuardRuleSource {
   return {
     name: "hiddenDb",
     rulesFor: (m) => {
-      const targets = hiddenDbTargets(connectionsOf(m.project.id), [m.cwd, m.project.repo_path]);
+      const targets = targetsOf(m.project.id, [m.cwd, m.project.repo_path]);
       return targets.length > 0 ? [hiddenDbRule(targets)] : [];
     },
   };
