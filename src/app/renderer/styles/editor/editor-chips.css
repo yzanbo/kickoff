@@ -159,7 +159,7 @@
   font-size: var(--fs-12);
 }
 
-/* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
+/* PR の状態の色（GitHub と同じ: 開いている = 緑、マージ済み = 紫、閉じた = 赤） */
 .pr-chip[data-pr-state] {
   --tag-border: color-mix(in srgb, var(--pr-color) 60%, transparent);
   --tag-fg: var(--pr-color);

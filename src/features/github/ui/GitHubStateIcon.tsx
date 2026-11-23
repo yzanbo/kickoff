@@ -1,5 +1,8 @@
 import { CircleCheck, CircleDot, CircleSlash, GitMerge, GitPullRequest, GitPullRequestClosed, GitPullRequestDraft, type LucideIcon } from "lucide-react";
 import type { GitHubItem } from "@shared/github/types";
+import { PR_STATE_LABELS, prStateOf, type PrState } from "@shared/git/prState";
+
+const PR_STATE_ICONS: Record<PrState, LucideIcon> = { open: GitPullRequest, draft: GitPullRequestDraft, merged: GitMerge, closed: GitPullRequestClosed };
 
 /** issue・PR の状態の印の種類（色は data-pr-state。ui/types/state-colors.css） */
 function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft">): { icon: LucideIcon; tone: "open" | "done" | "skipped" | "merged" | "closed" | "draft"; label: string } {
@@ -9,10 +12,8 @@ function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" 
       return { icon: CircleSlash, tone: "skipped", label: item.state_reason === "duplicate" ? "重複として閉じた" : "やらないことにして閉じた" };
     return { icon: CircleCheck, tone: "done", label: "完了して閉じた" };
   }
-  if (item.state === "merged") return { icon: GitMerge, tone: "merged", label: "マージ済み" };
-  if (item.state === "closed") return { icon: GitPullRequestClosed, tone: "closed", label: "マージせずに閉じた" };
-  if (item.is_draft) return { icon: GitPullRequestDraft, tone: "draft", label: "下書き" };
-  return { icon: GitPullRequest, tone: "open", label: "開いている" };
+  const state = prStateOf(item.state, item.is_draft);
+  return { icon: PR_STATE_ICONS[state], tone: state, label: PR_STATE_LABELS[state] };
 }
 
 /** issue・PR の状態の印（一覧の行・中身の見出し） */

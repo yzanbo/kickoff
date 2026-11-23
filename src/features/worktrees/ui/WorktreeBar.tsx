@@ -1,5 +1,6 @@
 import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert, WandSparkles } from "lucide-react";
 import type { PullRequestInfo } from "@shared/git/types";
+import { PR_STATE_LABELS, prStateOf } from "@shared/git/prState";
 import { api } from "@/foundation/ui/api";
 import { alert, confirm as askConfirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
@@ -17,8 +18,6 @@ import { appAddress, removalChecks } from "./worktreeEnvText";
 import { openPrNotice, useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
 import { addChat } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
-
-const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 
 /**
  * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。
@@ -108,7 +107,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
       ) : value ? (
         <>
           <span className="pr-chip tag" data-look="outline" data-pr-state={value.state.toLowerCase()} title={value.title}>
-            <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.is_draft ? "下書き" : PR_STATE_LABELS[value.state]}
+            <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{PR_STATE_LABELS[prStateOf(value.state, value.is_draft)]}
           </span>
           <button className="btn" data-size="sm" onClick={() => window.open(value.url)}>
             <ExternalLink size={12} aria-hidden /> PR を開く

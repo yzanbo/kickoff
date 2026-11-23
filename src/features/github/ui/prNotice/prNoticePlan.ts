@@ -1,6 +1,7 @@
 // ワークツリーの PR の知らせの確認で選ぶもの（ワークツリー・チャットの扱い）と、確認に出す注意（純粋な関数）
 import type { Chat } from "@shared/chat/types";
 import { errorMessage } from "@shared/foundation/errors";
+import { PR_STATE_LABELS, prStateOf } from "@shared/git/prState";
 import type { WorktreePrNotice, WorktreeRemovalInfo } from "@shared/git/types";
 import { removalNotes } from "@/features/worktrees/ui";
 
@@ -18,7 +19,7 @@ export const PR_CHAT_ACTION_LABELS: Record<PrChatAction, string> = { archive: "�
 export const prNoticeTitle = (notice: WorktreePrNotice) => `PR #${notice.pr.number} が${notice.pr.state === "MERGED" ? "マージされました" : "マージされずに閉じられました"}`;
 
 /** 印の短い名前 */
-export const prNoticeMarkLabel = (notice: WorktreePrNotice) => (notice.pr.state === "MERGED" ? "マージ済み" : "閉じた");
+export const prNoticeMarkLabel = (notice: WorktreePrNotice) => PR_STATE_LABELS[prStateOf(notice.pr.state, false)];
 
 /** ワークツリーの扱いの初めの値（マージされたら片付け、閉じられたら作業を失わないようブランチは残す。ブランチのないワークツリーはフォルダだけ） */
 export const defaultWorktreeAction = (notice: WorktreePrNotice): PrWorktreeAction => (notice.pr.state === "MERGED" ? "both" : "worktree");
