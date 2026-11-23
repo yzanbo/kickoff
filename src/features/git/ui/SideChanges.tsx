@@ -53,7 +53,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   const git = useGitStatus({ projectId, worktree: worktree ?? null });
   // 差分の行の右クリックは「メインのチャット」に足すメニュー（パスは作業場所のフルパス）
   const { projectsById } = useProjects();
-  const codeMenu = useCodeQuoteMenu(worktree ?? projectsById.get(projectId)?.repo_path);
+  const codeMenu = useCodeQuoteMenu({ projectId, dir: worktree ?? projectsById.get(projectId)?.repo_path });
   const files = useMemo(() => changedFiles(git.status), [git.status]);
   // 自分で開閉したファイル（ないものは、確認済みなら畳み、そうでなければファイルが少なければ開き、多ければ移る先のファイルだけ開く）
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());

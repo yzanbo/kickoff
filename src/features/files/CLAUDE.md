@@ -32,7 +32,7 @@
 - 保存・読み直し・未保存の印は `useDocument`（409 とほかでの変更は conflict の帯）。タブの「●」・× の確かめは未保存の登録簿の `tab`（`fileTabPlace`）で引く（モジュールの変数に持たない）。
 - Monaco のモデルの住所は部品ごと（`editorModels.ts`。同じ住所を 2 つ作ると画面ごと落ちる）。
 - Monaco は作り直さず `updateOptions` で変える。上げたときは `monacoEditor.ts` の頭のとおり入口を作り直す。
-- Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。
+- Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。右の欄の行の右クリックは `useCodeQuoteMenu`（attachments の `HandOffItems`）で、出すか（`inSide`）を `FileView` の `inSide` にも渡す（ファイルの画面はチャットの右の欄のときだけ）。
 - ファイルの一覧は作業場所ごとの店 `ui/filesStore.ts` 1 つ（木とチップが読む。取り直しは Git の version・チャットの状態）。
 - 木は土台の `TreeView`（ピントは木そのもの。縦の線と貼り付けは `ui/types/tree.css`）。ノートの木はまだ入れ子の `.file-tree`（`editor-explorer.css`）。
 - チップの開く関数は同じものにして返答の Markdown を描き直させない。remark の差し込みは一覧を受け取らずにパスらしい文字に印を付け、開けるかはリンクの部品が `createFileLookup` から自分の分だけ読む（一覧を取り直しても解析し直さない）。

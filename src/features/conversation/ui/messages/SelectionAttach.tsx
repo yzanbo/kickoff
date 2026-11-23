@@ -5,16 +5,14 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { MAX_ASK_CHILD_QUOTE } from "@/features/childChats/ui/childChats";
 import { openAskChild } from "@/features/chat/ui";
 import { appendToDraft } from "@/features/composer/ui";
-import { askInNewChatOf, chatRoleOf, useChatScreen } from "@/features/chat/ui";
+import { addTargetsOf, askInNewChatOf, chatRoleOf, useChatScreen } from "@/features/chat/ui";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { focusedCodeSelection } from "@/foundation/ui/code/codeSelection";
-import { DIFF_ROW_ATTRS, diffCellOf } from "@/foundation/ui/diff/diffModel";
 import { selectionWithin } from "./quotable";
-import { quoteCode, quoteComment } from "@/features/chat/ui/quote";
+import { quoteComment } from "@/features/chat/ui/quote";
+import { currentRange, pickedInCode } from "@/features/attachments/ui";
 import { SelectionTargetButton } from "./SelectionTargetButton";
-import { addTargetsOf } from "./addTargets";
 import { preloadMessageActions, selectionActions, type SelectionContext } from "./messageActions";
 import { placeAbove, SelectionBox } from "@/foundation/ui/kit/floating/SelectionBox";
 
@@ -46,48 +44,12 @@ export interface AddTarget {
 /** ボタンを画面の端からはみ出さないように寄せるときの、ボタン 1 つの幅 */
 const BUTTON_WIDTH = 140;
 
-/** 選んでいる範囲（なければ undefined） */
-function currentRange(): { selection: Selection; range: Range; element: Element | null } | undefined {
-  const selection = window.getSelection();
-  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return undefined;
-  const range = selection.getRangeAt(0);
-  const common = range.commonAncestorContainer;
-  return { selection, range, element: common instanceof Element ? common : common.parentElement };
-}
-
 /** 選んでいる文が、root の中の「チャットに追加できる所」（会話の流れ・サブエージェントの画面の手順。`data-quotable`）にあれば、その引用と位置 */
 function pickedInQuotable(root: Element | null): Picked | undefined {
   const selected = selectionWithin(root, { quotable: true });
   if (!selected) return undefined;
   // 返答の Markdown の表示の中なら Markdown に戻したものも持つ（ノートには書式のまま残す。右クリックの「ノート」と同じ）
   return { rect: selected.range.getBoundingClientRect(), quote: quoteComment(selected.text.trim(), ""), markdown: selected.markdown };
-}
-
-/**
- * 選んでいる範囲が、root の中の 1 つのファイルのコードの行（右の欄・別ウィンドウの「変更」の差分・「ファイル」の中身。`[data-quote-path]` の中の
- * `.diff-code[data-no]`。ファイルの中身を編集の部品で開いていれば、その部品で選んだ行）にあれば、その行と位置（パスと行番号付きでコードを引用する）。差分は、変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う
- * （左右に並べた表では、行ごと選ばれて両側が入るため）。ファイルの中身の行には側がない
- */
-export function pickedInCode(root: Element | null): Picked | undefined {
-  // 編集の部品（Monaco）で選んでいれば、その行（ページの選択にならないので、部品が置いた読み方で読む）
-  const editing = root ? focusedCodeSelection(root) : undefined;
-  if (editing) {
-    const { from, to, code, rect } = editing.selection;
-    return { rect, quote: quoteCode({ path: editing.section.dataset.quotePath ?? "", from, to, side: null, code, comment: "" }), code: { text: code, lines: { from, to } } };
-  }
-  const at = currentRange();
-  const section = at?.element?.closest<HTMLElement>("[data-quote-path]");
-  if (!at || !root || !section || !root.contains(section)) return undefined;
-  const cells = [...section.querySelectorAll<HTMLElement>(DIFF_ROW_ATTRS.cell)].filter((cell) => at.range.intersectsNode(cell));
-  const side: "new" | "old" | null = cells.some((c) => diffCellOf(c).side === "new") ? "new" : cells.some((c) => diffCellOf(c).side === "old") ? "old" : null;
-  const picked = cells.filter((c) => diffCellOf(c).side === side);
-  if (picked.length === 0) return undefined;
-  // 1 列の表の行の頭の +・- は、コードに入れない
-  const codeOf = (cell: HTMLElement) => (cell.textContent ?? "").slice(cell.querySelector(".diff-sign")?.textContent?.length ?? 0);
-  const numbers = picked.map((c) => diffCellOf(c).no);
-  const code = picked.map(codeOf).join("\n");
-  const range = { path: section.dataset.quotePath ?? "", from: Math.min(...numbers), to: Math.max(...numbers), side };
-  return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }), code: { text: code, lines: { from: range.from, to: range.to } } };
 }
 
 /** 上の機能のボタン（「ノート ▾」。出す先がなければ null） */

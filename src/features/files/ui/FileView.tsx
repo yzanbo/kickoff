@@ -6,7 +6,6 @@ import { useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
@@ -37,6 +36,8 @@ interface Props {
   tab?: string;
   /** 開いたら編集の部品にピントを置く（差分の「編集」から来たとき。チャット欄・一覧のピントを奪わないよう、ふだんは置かない） */
   autoFocus?: boolean;
+  /** チャットの右の欄・別ウィンドウ（右クリックは置く側のチャットに足すメニュー useCodeQuoteMenu に任せ、編集の部品のメニューを出さない） */
+  inSide?: boolean;
 }
 
 const message = (text: string) => <p className="muted small diff-message">{text}</p>;
@@ -47,7 +48,7 @@ const message = (text: string) => <p className="muted small diff-message">{text}
  * 途中までのファイルは読むだけの表、画像はプレビュー、SVG・Markdown・HTML はプレビューとコードを切り替える（usePreviewMode）。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身）
  */
-export function FileView({ projectId, repoPath, path, line, git, diffBase, onSaved, tab, autoFocus = false }: Props) {
+export function FileView({ projectId, repoPath, path, line, git, diffBase, onSaved, tab, autoFocus = false, inSide = false }: Props) {
   const target = useWorkplace(projectId); // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const { key, doc, file, base, readOnly, loadError, state, revision, change, reload } = useFileDocument({ target, path, line, git, onSaved, tab });
   // カーソルと選んでいる範囲（利用者が見ているものの知らせが読む。AI の get_user_view）
@@ -56,8 +57,6 @@ export function FileView({ projectId, repoPath, path, line, git, diffBase, onSav
   const goToDiff = useRef<((target: "next" | "previous") => void) | null>(null);
   const getValue = useRef<(() => string) | null>(null);
   const layout = useDiffLayout();
-  // 右の欄・別ウィンドウでは、右クリックをチャットに足すメニューに任せる
-  const inSide = useMainChat() !== null;
   // 差分の元の中身は開いたときに一度だけ読む（保存して差分がなくなっても、比べる相手はそのまま）。
   // undefined = 読み込み中、null = 差分なしで編集する（差分から来ていない・元がバイナリ・大きすぎる・読めない）
   const [diffOf] = useState(diffBase);

@@ -22,6 +22,8 @@ export function EditorViewPage({ view, place, project, chatId, worktree, setWork
       // 別のプロジェクトを読み込んでいる途中・作業場所を切り替えるまでは渡さない
       openFile={!stale && openFile?.worktree === path ? openFile : undefined}
       panelScope={panelScope}
+      // チャットの右の欄の中（その右の欄を持つチャットが足す先。送る前のチャットにはない）
+      inSide={place === "chatSide" && chatId !== undefined}
     />
   );
 }

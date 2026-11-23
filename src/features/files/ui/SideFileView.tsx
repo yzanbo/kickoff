@@ -42,7 +42,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const changed = git.changeOf(path) !== null;
   const ref = { path, ...(line ? { line } : {}) };
   const repoPath = projectsById.get(projectId)?.repo_path ?? "";
-  const codeMenu = useCodeQuoteMenu(worktree ?? (repoPath || undefined));
+  const codeMenu = useCodeQuoteMenu({ projectId, dir: worktree ?? (repoPath || undefined) });
   return (
     <div className="side-file" onContextMenu={codeMenu.onContextMenu}>
       <div className="side-file-bar bar">
@@ -71,6 +71,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
         git={git}
         onSaved={() => void git.refresh()}
         tab={tabOf && fileTabPlace(tabOf.panelKey, tabOf.tabKey)}
+        inSide={codeMenu.inSide}
       />
       {codeMenu.element}
     </div>

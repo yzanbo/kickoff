@@ -12,6 +12,8 @@ export interface FileTabsEnv {
   repoPath: string;
   /** Git の状態（差分のタブがどの差分を出すか・帯・保存したあとの取り直し） */
   git: FilesGitStatus;
+  /** チャットの右の欄の中（FileView の inSide） */
+  inSide: boolean;
   /** ファイルを開く（差分の「編集」。同じタブの中身を替える） */
   open: (next: Selection) => void;
 }
@@ -44,6 +46,7 @@ export function ProjectFileTab({ tab, panelKey }: { tab: FileTab; panelKey: stri
     onSaved: () => void git.refresh(),
     tab: fileTabPlace(panelKey, tab.key),
     autoFocus: selected.focus,
+    inSide: env.inSide,
   };
   return (
     <div ref={ref} className="changes-diff">

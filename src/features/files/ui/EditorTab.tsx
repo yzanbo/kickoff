@@ -49,6 +49,7 @@ export function EditorTab({
   onWorktreeChange,
   openFile,
   panelScope,
+  inSide = false,
 }: {
   /** 左の一覧の表示（いまのタブ） */
   view: ChangesView;
@@ -61,6 +62,8 @@ export function EditorTab({
   openFile?: FileTarget;
   /** 右のファイルのタブを覚える範囲（なければプロジェクト。チャットの右の欄の中では、その部品ごとの名前） */
   panelScope?: PanelScope;
+  /** チャットの右の欄の中（開いたファイルの編集の部品の右クリックのメニューを出さない） */
+  inSide?: boolean;
 }) {
   const rootName = baseName(worktree ?? repoPath);
   // Git の変更（一覧と差分。開いている間は一定の間隔でも取り直す。同じ作業場所のタブのバッジとは同じ購読）
@@ -117,7 +120,7 @@ export function EditorTab({
   }
   if (!git.repo && view === "changes") return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
-  const env: FileTabsEnv = { projectId, repoPath, git, open: (next) => void setSelected(next) };
+  const env: FileTabsEnv = { projectId, repoPath, git, inSide, open: (next) => void setSelected(next) };
   const folders = {
     open: openFolders,
     toggle: (path: string) =>

@@ -10,7 +10,7 @@ const canAskChild = (chat: Chat | null): chat is Chat => chat !== null && !chat.
 export const childChatHandOff: HandOffTarget = {
   id: "child",
   order: 30,
-  label: (mainChat) => (canAskChild(mainChat) ? "新しい子チャットで聞く" : null),
+  label: ({ mainChat }) => (canAskChild(mainChat) ? "新しい子チャットで聞く" : null),
   title: (item, chat) => `${item.what}を入れた新しい子チャット（「${chatTitle(chat?.title)}」の子）を右の欄に開く`,
   async run(item, chat) {
     if (!chat) return;

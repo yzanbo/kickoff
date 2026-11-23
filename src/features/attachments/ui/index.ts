@@ -3,6 +3,7 @@ export { mergeAttachments } from "./attachmentMerge";
 export { AttachmentChip, AttachmentChips } from "./AttachmentChip";
 export { AttachmentPeek } from "./AttachmentPeek";
 export { useAttachmentViewer } from "./useAttachmentViewer";
+export { currentRange, pickedInCode, type PickedCode } from "./codePick";
 export { cleanSelection, isLongSelection, lineCount, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "./longSelection";
 export { captureOf, handOffTargets, linkChat, type HandOffItem, type HandOffTarget } from "./handoff/handOffTargets";
 export { HandOffButton, HandOffItems } from "./handoff/HandOffMenu";

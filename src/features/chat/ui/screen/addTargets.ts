@@ -1,5 +1,5 @@
-// 選んだ文・右クリックの項目を足す先のチャットの決め方（純粋。右クリックの AddToChatItems と選んだときのボタン SelectionAttach が同じものを使う）
-import type { ChatRole } from "@/features/chat/ui";
+// 選んだ文・右クリックの項目を足す先のチャットの決め方（純粋。会話の右クリックの AddToChatItems・選んだときのボタン SelectionAttach・「AI に渡す」の HandOffItems が同じものを使う）
+import type { ChatRole } from "./chatHost";
 
 /** 足す先（main = 右の欄・別ウィンドウの足す先のチャット / inner = その中の子チャット・ノートのチャット / this = チャットの画面のこのチャット） */
 export interface ChatAddTarget {
