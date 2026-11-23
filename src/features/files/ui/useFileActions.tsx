@@ -240,14 +240,14 @@ export function useFileActions(
         </MenuItem>
       )}
       {(outside || value?.dir) && <div className="menu-separator" role="separator" />}
-      <MenuItem title="フルパスをコピーします" onSelect={() => void navigator.clipboard.writeText(absolute(value?.path ?? ""))}>
-        <Copy size={14} aria-hidden /> パスをコピー
-      </MenuItem>
       {value && (
         <MenuItem title="作業場所のフォルダーから見たパスをコピーします" onSelect={() => void navigator.clipboard.writeText(value.path)}>
-          <Copy size={14} aria-hidden /> 相対パスをコピー
+          <Copy size={14} aria-hidden /> パスをコピー
         </MenuItem>
       )}
+      <MenuItem title="フルパスをコピーします" onSelect={() => void navigator.clipboard.writeText(absolute(value?.path ?? ""))}>
+        <Copy size={14} aria-hidden /> 絶対パスをコピー
+      </MenuItem>
       {value && (
         <>
           <div className="menu-separator" role="separator" />
@@ -320,11 +320,11 @@ function ManyMenu({
         </MenuItem>
       )}
       <div className="menu-separator" role="separator" />
-      <MenuItem title="フルパスを 1 行に 1 つずつコピーします" onSelect={() => copy(many.map((n) => absolute(n.path)).join("\n"))}>
+      <MenuItem title="作業場所のフォルダーから見たパスを 1 行に 1 つずつコピーします" onSelect={() => copy(many.map((n) => n.path).join("\n"))}>
         <Copy size={14} aria-hidden /> パスをコピー（{many.length} 件）
       </MenuItem>
-      <MenuItem title="作業場所のフォルダーから見たパスを 1 行に 1 つずつコピーします" onSelect={() => copy(many.map((n) => n.path).join("\n"))}>
-        <Copy size={14} aria-hidden /> 相対パスをコピー（{many.length} 件）
+      <MenuItem title="フルパスを 1 行に 1 つずつコピーします" onSelect={() => copy(many.map((n) => absolute(n.path)).join("\n"))}>
+        <Copy size={14} aria-hidden /> 絶対パスをコピー（{many.length} 件）
       </MenuItem>
       {explorer && (
         <>
