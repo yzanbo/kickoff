@@ -10,6 +10,7 @@ import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
+import { useCopied } from "@/foundation/ui/kit/useCopied";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { AskAiButton } from "@/features/database/ui/ai/DbAiButtons";
 import { useDbClient } from "@/features/database/ui/state/dbClientContext";
@@ -38,17 +39,14 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const client = useDbClient();
   const pickAnchor = useRef<HTMLButtonElement>(null);
   const [picking, setPicking] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyText } = useCopied();
   const names = er.schema?.names ?? [];
 
   // 書き出すノート・画像の名前
   const title = `ER 図 ${connection.name} ${erScope(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`;
   const mermaid = () => erMermaid(er.shown, er.shownRelations, er.detail);
-  const copy = async () => {
-    await navigator.clipboard.writeText(mermaid());
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
-  };
+  // 失敗はお知らせで出す
+  const copy = () => copyText(() => navigator.clipboard.writeText(mermaid()));
   /** 見えているものを Mermaid の文にしてノートに書き出す（失敗は投げる） */
   const writeNote = async () => {
     const list = await api.notes(client.projectId);
@@ -94,7 +92,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
       <button type="button" className="btn" data-size="sm" onClick={() => void er.relayout()} data-tip="動かした位置を忘れて、自動で並べ直す">
         <LayoutGrid size={13} aria-hidden /> 自動で並べ直す
       </button>
-      <button type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} onClick={() => void copy()} data-tip="見えているテーブルを Mermaid の erDiagram の文でコピー">
+      <button type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} onClick={copy} data-tip="見えているテーブルを Mermaid の erDiagram の文でコピー">
         <Clipboard size={13} aria-hidden /> {copied ? "コピーしました" : "Mermaid でコピー"}
       </button>
       <button type="button" className="btn" data-size="sm" disabled={er.shown.length === 0} onClick={() => void exportNote()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのノートに書き出す">
