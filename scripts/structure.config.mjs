@@ -100,7 +100,7 @@ const sharedUpTo = (f) => [...SHARED_BASE, `src/shared/${upTo(f)}/**`];
 /** 機能 f のコアが読んでよい先 */
 const coreAllow = (f) => [...sharedUpTo(f), "src/foundation/core/**", `src/features/${upTo(f)}/{core,testing}/**`];
 /** 機能 f のコアのテスト（テストは組み立てたコア src/app/core/testing と、自分の別プロセスの中身を読んでよい） */
-const coreTests = (f) => [`src/features/${f}/core/**/*.test.{ts,tsx}`, `src/features/${f}/core/**/*.dbtest.ts`, `src/features/${f}/core/**/testing/**`, `src/features/${f}/testing/**`];
+const coreTests = (f) => [`src/features/${f}/core/**/*.test.{ts,tsx}`, `src/features/${f}/core/**/testing.ts`, `src/features/${f}/core/**/*.dbtest.ts`, `src/features/${f}/core/**/testing/**`, `src/features/${f}/testing/**`];
 const RENDERER = ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/renderer/**"];
 /** 拡張点への登録（機能の ui/contributes.ts と、殻がまとめて出すもの） */
 const CONTRIBUTES = ["src/features/*/ui/contributes.ts", "src/app/renderer/**/contributes.ts"];

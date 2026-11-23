@@ -25,12 +25,12 @@ import { createGit } from "@/features/git/core/index";
 import { createDocker, type DockerApi, type DockerParts } from "@/features/docker/core/index";
 import { createWorktrees, type WorktreesApi } from "@/features/worktrees/core/index";
 import { createGitHub, type GitHubApi } from "@/features/github/core/index";
-import { createTerminal, type TerminalSessions } from "@/features/terminal/core/index";
-import { createPorts, type PortWatch } from "@/features/ports/core/index";
+import { createTerminal, type TerminalApi } from "@/features/terminal/core/index";
+import { createPorts } from "@/features/ports/core/index";
 import { createVisuals } from "@/features/visuals/core/index";
-import { createRemoteImages, type RemoteImageService } from "@/features/remoteImages/core/index";
+import { createRemoteImages } from "@/features/remoteImages/core/index";
 import { createNotes, projectNoteFolder, type NotesApi } from "@/features/notes/core/index";
-import { createDatabase, type DatabaseService } from "@/features/database/core/index";
+import { createDatabase } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
 import { deviceEventTypes } from "@shared/foundation/contract";
 import { ALL_EVENT_TABLES } from "@/app/shared/contracts";
@@ -52,15 +52,11 @@ export interface AppAssembly extends AssembledCore {
     docker: DockerApi & { parts: DockerParts };
     worktrees: WorktreesApi;
     github: GitHubApi;
-    terminals: TerminalSessions;
-    ports: PortWatch;
     notes: NotesApi;
-    databases: DatabaseService;
-    remoteImages: RemoteImageService;
   };
   runningChats(): { id: number; title: string | null }[];
   awakeNeeds(): { running: number; mobileEnabled: boolean };
-  terminals: TerminalSessions;
+  terminals: TerminalApi;
 }
 
 /** 端末の SSE に届ける知らせの種類（機能の表の access） */
@@ -119,7 +115,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
       status: () => ({ mobile_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: chat.api.mcpTools,
     },
-    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, notifications: notifications.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
+    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, notifications: notifications.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, notes: notes.api },
     runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,

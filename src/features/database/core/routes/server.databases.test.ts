@@ -14,6 +14,7 @@ import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { until } from "@/app/core/testing/testCore";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { quietShell } from "@/foundation/core/testing/quietShell";
+import { dbVaultOf } from "@/features/database/core/testing";
 
 quietShell();
 
@@ -280,7 +281,7 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
 });
 
 test("DB の接続: 準備のコマンド（確かめるまで流さない・流す様子と記録・失敗で止める・中身を変えたら確かめ直す・消す / 止めると後片付け）", async () => {
-  const { call, project, databases } = setup();
+  const { call, project, close } = setup();
   makeSqlite(project.repo_path);
   const base = `/api/projects/${project.id}/db-connections`;
   const dir = tempDir();
@@ -349,20 +350,20 @@ test("DB の接続: 準備のコマンド（確かめるまで流さない・流
   await call("DELETE", one);
   await until(() => fs.existsSync(path.join(dir, "cleaned")));
 
-  // アプリを止めるときも、準備が済んだ接続の後片付けを流してから止める
-  const other = (await call("POST", base, { ...sqliteBody({ name: "止めるとき" }), prep: { ...prep, cleanup: [`touch ${dir}/closed`] } })).body as DbConnection;
-  await call("POST", `${base}/${other.id}/prep/confirm`);
-  await call("POST", `${base}/${other.id}/prepare`);
-  for (let i = 0; i < 200 && ((await call("GET", `${base}/${other.id}/prepare`)).body as DbPrepState | null)?.running !== false; i++) await new Promise((r) => setTimeout(r, 50));
-  await databases.close();
-  assert.ok(fs.existsSync(path.join(dir, "closed")));
-
   // 空の準備は null・SSH と一緒のポートの転送は断る・日付の形
   assert.equal(((await call("POST", base, { ...sqliteBody({ name: "空" }), prep: { ...prep, prepare: [" "], cleanup: [] } })).body as DbConnection).prep, null);
   const pg = sqliteBody({ engine: "postgres", host: "h", file_path: null });
   assert.equal((await call("POST", base, { ...pg, ssh: { host: "b", port: null, user: null, identity_file: null }, prep: { ...prep, tunnel: "x {local_port}" } })).status, 400);
   assert.equal((await call("POST", base, { ...pg, check_on: "12/01" })).status, 400);
   assert.equal((await call("POST", base, { ...pg, prep: { ...prep, prepare: ["a\nb"] } })).status, 400);
+
+  // アプリを止めるときも、準備が済んだ接続の後片付けを流してから止める（コアの機能を止めるので最後に確かめる）
+  const other = (await call("POST", base, { ...sqliteBody({ name: "止めるとき" }), prep: { ...prep, cleanup: [`touch ${dir}/closed`] } })).body as DbConnection;
+  await call("POST", `${base}/${other.id}/prep/confirm`);
+  await call("POST", `${base}/${other.id}/prepare`);
+  for (let i = 0; i < 200 && ((await call("GET", `${base}/${other.id}/prepare`)).body as DbPrepState | null)?.running !== false; i++) await new Promise((r) => setTimeout(r, 50));
+  await close();
+  assert.ok(fs.existsSync(path.join(dir, "closed")));
 });
 
 test("DB の接続: つなぐときのコマンド（パスワードを取る）は確かめるまで流さず、流したら記録に残す（出力は残さない）", async () => {
@@ -673,19 +674,17 @@ test("SQL の「AI に頼む」: テーブルと列の名前と頼みを AI に�
   assert.equal((await call("POST", `${base}/sql-assist`, { path: { database: "main", schema: null }, request: "x", sql: "" })).status, 400);
 });
 
-test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {
-  const { call, project, databases } = setup();
+test("接続を消しても、ほかの接続の SQL のタブの途中のトランザクションはそのまま（消した接続の分を閉じるのは service.test.ts）", async () => {
+  const { call, project } = setup();
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const other = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ name: "ほか" }))).body as DbConnection;
-  const sql = (c: DbConnection, s: string) => call("POST", `/api/projects/${project.id}/db-connections/${c.id}/sql`, { session: "tab1", sql: s, write: false });
-  await sql(conn, "begin");
-  await sql(other, "begin");
-  assert.equal(databases.inTransaction(conn, "tab1"), true);
-  await call("DELETE", `/api/projects/${project.id}/db-connections/${conn.id}`);
-  await until(() => !databases.inTransaction(conn, "tab1"));
-  // ほかの接続はそのまま
-  assert.equal(databases.inTransaction(other, "tab1"), true);
+  const one = (c: DbConnection) => `/api/projects/${project.id}/db-connections/${c.id}`;
+  const inTransaction = async (c: DbConnection) => (await call("GET", `${one(c)}/sessions/tab1`)).body?.in_transaction ?? null;
+  for (const c of [conn, other]) await call("POST", `${one(c)}/sql`, { session: "tab1", sql: "begin", write: false });
+  assert.equal(await inTransaction(conn), true);
+  await call("DELETE", one(conn));
+  assert.deepEqual([await inTransaction(conn), await inTransaction(other)], [null, true]); // 消した接続は 404・ほかはそのまま
 });
 
 test("SQL の履歴: 利用者が流した文は成功も失敗も新しい順に残り、判定で断った文は残さない", async () => {
@@ -818,21 +817,23 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
       return Buffer.from(sealed, "base64").toString();
     },
   };
-  const { call, store, project, databases } = setup({ secretCipher });
+  const { call, store, project } = setup({ secretCipher });
+  const vault = dbVaultOf({ store }, secretCipher); // 同じ秘密の値を読む金庫（その場で入れた値の覚えは secrets.test.ts）
   const base = `/api/projects/${project.id}/db-connections`;
   const pgBody = { ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, database: "app", username: "u", file_path: null }), password: "s3cret", ssh_password: null };
   const pg = (await call("POST", base, pgBody)).body as DbConnection;
   assert.equal(pg.has_password, true);
   const stored = store.dbConnections.storedSecret(pg.id, "password")!;
   assert.equal(stored, `safe:v1:${Buffer.from("s3cret").toString("base64")}`);
-  assert.equal(await databases.vault.read(pg, "password"), "s3cret");
+  assert.equal(await vault.read(pg, "password"), "s3cret");
+  assert.equal((await call("GET", `${base}/${pg.id}/databases`)).status, 400); // つなぎに行くと開いて覚える（つなぎ先はない）
 
   const copied = (await call("POST", `${base}/copy`, { from_id: pg.id, copy_password: true })).body as DbConnection;
   assert.equal(store.dbConnections.storedSecret(copied.id, "password"), stored);
 
   await call("PATCH", `${base}/${pg.id}`, { password: "next" });
   assert.match(store.dbConnections.storedSecret(pg.id, "password")!, /^safe:v1:/);
-  assert.equal(await databases.vault.read(pg, "password"), "next");
+  assert.equal(await vault.read(pg, "password"), "next");
 
   // 一度開いた値は起動している間覚えているので、拒否されても聞き直さない。まだ開いていない値は 409
   deny = true;
@@ -845,8 +846,7 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
   // その場で入れたパスワードで先へ進む（ここではつなぎ先がないので接続の失敗になる）。保存した値は変えない
   const storedFresh = store.dbConnections.storedSecret(fresh.id, "password");
   assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "typed" })).status, 204);
-  assert.equal((await call("GET", `${base}/${fresh.id}/databases`)).status, 400);
-  assert.equal(await databases.vault.read(fresh, "password"), "typed");
+  assert.equal((await call("GET", `${base}/${fresh.id}/databases`)).status, 400); // 409 でない = 入れた値でつなぎに行った
   assert.equal(store.dbConnections.storedSecret(fresh.id, "password"), storedFresh);
   assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "" })).status, 400);
 });

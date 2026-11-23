@@ -104,14 +104,14 @@ test("会話を写せなければ移さない（G6）: 作ったワークツリ�
 
 test("Git でないプロジェクトは移せない（I4）。移す前の確かめは、元の場所で動いているターミナルを知らせる（Q5）", async () => {
   const ctx = setup();
-  const { call, project, store, terminals } = ctx;
+  const { call, project, store } = ctx;
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed" });
   const check: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chat.id}/workplace`)).body;
   assert.match(check.blocked ?? "", /Git で管理していない/);
   assert.equal((await call("POST", `/api/chats/${chat.id}/workplace`, { worktree_path: null, new_worktree_branch: "feat/a" })).status, 400);
 
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
-  await terminals.open({ key: "t1", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "c1", data: () => {}, exit: () => {} }, start: { command: "npm run dev" }, meta: { projectId: project.id, title: "dev" } });
+  await call("POST", "/api/terminals", { key: "t1", cwd: project.repo_path, cols: 80, rows: 24, owner: "wc:1", start: { command: "npm run dev", env: null }, meta: { project_id: project.id, title: "dev" } });
   const after: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chat.id}/workplace`)).body;
   assert.equal(after.blocked, null);
   assert.deepEqual(after.terminals, [{ title: "dev", command: "npm run dev" }]);

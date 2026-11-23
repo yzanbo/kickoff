@@ -22,8 +22,15 @@ function withDevices() {
 
 const json = (headers: Record<string, string>) => ({ ...headers, "content-type": "application/json" });
 
+/** この Mac の画面のタブのシェルを用意する（POST /api/terminals。持ち主は画面の印） */
+const hostOpen = (app: ReturnType<typeof setup>["app"], body: { key: string; cwd: string; owner: string; meta?: { project_id: number; title: string } }) =>
+  app.request("/api/terminals", { method: "POST", headers: json(AUTH), body: JSON.stringify({ cols: 80, rows: 24, start: null, meta: null, ...body }) });
+
+/** 動いているシェルのタブ（GET /api/terminals） */
+const tabsOf = async (app: ReturnType<typeof setup>["app"]) => (await (await app.request("/api/terminals", { headers: AUTH })).json()) as TerminalTab[];
+
 test("ターミナル: 端末はプロジェクトの作業場所でシェルを始めて一覧に出せる。見るだけの端末は始められない。止められるのは自分が始めたものだけ", async () => {
-  const { app, project, terminals, terminalFake } = withDevices();
+  const { app, project, terminalFake } = withDevices();
   const body = JSON.stringify({ worktree_path: null, cols: 60, rows: 20 });
   const created = await app.request(`/api/projects/${project.id}/terminals`, { method: "POST", headers: json(bearer(FULL_TOKEN)), body });
   assert.equal(created.status, 201);
@@ -38,7 +45,7 @@ test("ターミナル: 端末はプロジェクトの作業場所でシェルを
   );
   assert.equal((await app.request(`/api/projects/${project.id}/terminals`, { method: "POST", headers: json(bearer(READ_TOKEN)), body })).status, 403);
   // この Mac の画面のタブ（IPC で作ったもの）は、端末からは止められない
-  await terminals.open({ key: "host-tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1", meta: { projectId: project.id, title: "ターミナル" } });
+  assert.equal((await hostOpen(app, { key: "host-tab", cwd: project.repo_path, owner: "wc:1", meta: { project_id: project.id, title: "ターミナル" } })).status, 201);
   assert.equal((await app.request("/api/terminals/host-tab", { method: "DELETE", headers: bearer(FULL_TOKEN) })).status, 400);
   assert.equal((await app.request(`/api/terminals/${key}`, { method: "DELETE", headers: bearer(FULL_TOKEN) })).status, 204);
   assert.equal(terminalFake.spawned[0].killed, true);
@@ -48,11 +55,11 @@ test("ターミナル: 端末はプロジェクトの作業場所でシェルを
 });
 
 test("ターミナル: WebSocket でつなぐと画面の内容と出力が届き、打った文字はシェルへ。見るだけの端末の入力は捨て、持ち主でない人は大きさを変えられない", async (t) => {
-  const { app, project, terminals, terminalFake } = withDevices();
+  const { app, project, terminalFake } = withDevices();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
   t.onTestFinished(() => stopHttpServer(server));
   const port = (server.address() as AddressInfo).port;
-  await terminals.open({ key: "tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1" });
+  assert.equal((await hostOpen(app, { key: "tab", cwd: project.repo_path, owner: "wc:1" })).status, 201);
   const shell = terminalFake.spawned[0];
   shell.emit("before\r\n");
 
@@ -99,11 +106,11 @@ test("ターミナル: WebSocket でつなぐと画面の内容と出力が届�
 });
 
 test("ターミナル: つないだあとで見るだけに変えた端末の入力は捨て、取り消した端末の WebSocket は切る", async (t) => {
-  const { app, project, store, terminals, terminalFake, full, call } = withDevices();
+  const { app, project, store, terminalFake, full, call } = withDevices();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
   t.onTestFinished(() => stopHttpServer(server));
   const port = (server.address() as AddressInfo).port;
-  await terminals.open({ key: "tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1" });
+  assert.equal((await hostOpen(app, { key: "tab", cwd: project.repo_path, owner: "wc:1" })).status, 201);
   const shell = terminalFake.spawned[0];
   const ws = new WebSocket(`ws://127.0.0.1:${port}/api/terminals/tab/ws`, { headers: bearer(FULL_TOKEN) });
   await new Promise((r) => ws.once("open", r));
@@ -136,8 +143,7 @@ test("ターミナル: この Mac の画面は POST /api/terminals でキー・�
   assert.equal(shell.cwd, project.repo_path);
   assert.deepEqual(shell.args, ["-c", "docker compose exec web sh"]);
   assert.equal(shell.env.A, "1");
-  assert.deepEqual(terminals.list(), [{ key: "side:1:t1", project_id: project.id, title: "web", cwd: project.repo_path, command: "docker compose exec web sh" }]);
-  assert.equal(terminals.ownerOf("side:1:t1"), "wc:7");
+  assert.deepEqual(await tabsOf(app), [{ key: "side:1:t1", project_id: project.id, title: "web", cwd: project.repo_path, command: "docker compose exec web sh" }]);
   shell.emit("hello\r\n");
 
   // 同じキーはつなぎ直し（流し直さない。名前と持ち主だけ覚え直す）
@@ -145,8 +151,10 @@ test("ターミナル: この Mac の画面は POST /api/terminals でキー・�
   assert.equal(again.status, 200);
   assert.deepEqual(await again.json(), { created: false });
   assert.equal(terminalFake.spawned.length, 1);
-  assert.equal(terminals.ownerOf("side:1:t1"), "wc:8");
-  assert.equal(terminals.list()[0].title, "web 2");
+  // 持ち主は覚え直した（前の持ち主の画面が消えても止まらない）
+  terminals.closeOwnedBy("wc:7");
+  assert.equal(shell.killed, false);
+  assert.equal((await tabsOf(app))[0].title, "web 2");
 
   // つなぐと、それまでの出力が画面の内容で届く。この Mac は持ち主の印が違っても大きさを変えられる
   const messages: TerminalServerMessage[] = [];
@@ -164,6 +172,9 @@ test("ターミナル: この Mac の画面は POST /api/terminals でキー・�
   assert.equal((await open({ key: "x" }, bearer(FULL_TOKEN))).status, 403);
   assert.equal((await open({ key: "y", owner: "device:1" })).status, 400);
   assert.equal(terminalFake.spawned.length, 1);
+  // いまの持ち主の画面が消えたら止まる
+  terminals.closeOwnedBy("wc:8");
+  assert.equal(shell.killed, true);
 });
 
 test("ターミナル: 画面が消えた・読み込み直したときの closeOwnedBy は、その持ち主のシェルだけを止める", async () => {
@@ -178,7 +189,7 @@ test("ターミナル: 画面が消えた・読み込み直したときの close
     [true, false],
   );
   assert.deepEqual(
-    terminals.list().map((tab) => tab.key),
+    (await tabsOf(app)).map((tab) => tab.key),
     ["b"],
   );
 });
@@ -190,14 +201,16 @@ test("ターミナル: PUT /api/terminals/:key/owner は持ち主だけを替え
   const put = (key: string, owner: string, headers: Record<string, string> = AUTH) =>
     app.request(`/api/terminals/${key}/owner`, { method: "PUT", headers: json(headers), body: JSON.stringify({ owner }) });
   assert.equal((await put("t", "wc:2")).status, 204);
-  assert.equal(terminals.ownerOf("t"), "wc:2");
   // 前の持ち主の画面が消えても止まらない
   terminals.closeOwnedBy("wc:1");
-  assert.equal(terminals.has("t"), true);
+  assert.deepEqual((await tabsOf(app)).map((tab) => tab.key), ["t"]);
   assert.equal((await put("gone", "wc:2")).status, 404);
-  assert.equal(terminals.has("gone"), false);
   assert.equal(terminalFake.spawned.length, 1);
   assert.equal((await put("t", "device:1")).status, 400);
   assert.equal((await put("t", "wc:3", bearer(FULL_TOKEN))).status, 403);
-  assert.equal(terminals.ownerOf("t"), "wc:2");
+  // 持ち主は wc:2 のまま（その画面が消えたら止まる）
+  terminals.closeOwnedBy("wc:3");
+  assert.equal(terminalFake.spawned[0].killed, false);
+  terminals.closeOwnedBy("wc:2");
+  assert.equal(terminalFake.spawned[0].killed, true);
 });

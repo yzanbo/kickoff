@@ -11,7 +11,8 @@ import type { TerminalShell } from "./shell";
 import { terminalToolGroup } from "./tools";
 import { terminalRoutes, type TerminalDevices } from "./routes/terminals";
 
-export type { TerminalSessions } from "./sessions";
+/** ほかに出す口（コアのプロセスが、閉じた画面のシェルを止める） */
+export type TerminalApi = Pick<TerminalSessions, "closeOwnedBy">;
 
 export interface TerminalEnv {
   /** ログインのシェル（macOS は $SHELL -l） */
@@ -27,7 +28,7 @@ export function createTerminal(
   k: Kernel,
   deps: { worktrees: WorktreesApi; projects: Pick<ProjectsApi, "param">; chat: Pick<ChatApi, "store">; devices: TerminalDevices; workplaceMove: Pick<WorkplaceMoveApi, "provideRunningTerminals"> },
   env: TerminalEnv,
-): CoreFeature<TerminalSessions> {
+): CoreFeature<TerminalApi> {
   const terminals = new TerminalSessions({ shell: env.shell, env: env.env, envOf: (cwd) => deps.worktrees.envs.envFor(cwd), spawn: env.spawn });
   // 作業場所を移す前に、元の作業場所（とその中）で動いているシェルを見せる（そのプロジェクトか、プロジェクトのないもの）
   deps.workplaceMove.provideRunningTerminals({

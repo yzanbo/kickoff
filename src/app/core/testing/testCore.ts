@@ -69,10 +69,12 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
   const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk, provider: opts.provider, chat: opts.chat }));
   const browserLogin = new BrowserLogin();
   const { app, routes } = appOf(k, assembled, { token: TOKEN, browserLogin });
-  const close = () => stopFeatures(k, assembled.features);
+  // 止めるのは 1 回だけ（テストの途中で止めて確かめたあと、テストの終わりにもう一度呼ばれる）
+  let closing: Promise<void> | undefined;
+  const close = () => (closing ??= stopFeatures(k, assembled.features));
   afterTest(close);
   // 見張りのうちポートを使っているプロセスだけは始める（実行が終わったときの見張りを確かめる。ほかは start しない）
-  assembled.apis.ports.start();
+  assembled.features.find((f) => f.name === "ports")?.start?.();
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
     const res = await app.request(url, {
@@ -83,13 +85,13 @@ export function createTestCore(opts: { staticDir?: string; beforeStart?: BeforeS
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, ai, uploads, userViews, devices, notifications, chat, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
+  const { trash, ai, uploads, userViews, devices, notifications, chat, docker, worktrees, github, notes } = assembled.apis;
   // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
   const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
   // 組み立てたあとの店は chat の束（記録を変えた知らせ logRevisions を実行と同じものにする）
   const parts = { store: withFeatureStores(chat.store, { databaseId: k.paths.databaseId, secrets: k.secrets }, (e) => k.bus.publish(e)), bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
-  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.aiFinish, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
-  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, notifications, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.aiFinish, prWatch: github.prWatch, notes };
+  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, terminals: assembled.terminals, notifications, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 
 /**

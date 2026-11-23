@@ -12,12 +12,11 @@ import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { DbWorkerClient, type WorkerChannel } from "./workerClient";
 import { DbSecretVault } from "./secrets";
-import { createDatabaseService, type DatabaseService } from "./service";
+import { createDatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
 import { databaseRoutes } from "./routes/databases";
 import { dbToolGroup, openSqlToolGroup } from "./tools";
 
-export type { DatabaseService } from "./service";
 /** ワーカーのつなぎ（組み立てが渡す。単体のコア・テストはソースの worker/main.ts を fork する） */
 export { devWorkerEntry, forkWorker, type WorkerChannel } from "./workerClient";
 export { createDatabaseStores } from "./db/stores";
@@ -51,7 +50,7 @@ export interface DatabaseEnv {
 }
 
 /** DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる。パスワードはキーチェーンの鍵で暗号化） */
-export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv): CoreFeature<DatabaseService> {
+export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv): CoreFeature<null> {
   const { bus } = k;
   const stores = createDatabaseStores(k.db, (e) => bus.publish(e), k.secrets, deps.chat.titlesOf);
   const store = { ...stores, projects: deps.chat.store.projects, chats: deps.chat.store.chats, groups: deps.chat.store.groups };
@@ -70,7 +69,8 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   });
   return {
     name: "database",
-    api: databases,
+    // ほかの機能に出す口はない（サービスはルートと AI のツールだけが使う。テストは core/testing.ts）
+    api: null,
     routes: [databaseRoutes({ projectParam: deps.projects.param, databases, docker: deps.docker })],
     aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, databases, publish: (e) => k.bus.publish(e) })],
     stop: () => databases.close(),

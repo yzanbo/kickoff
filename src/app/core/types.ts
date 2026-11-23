@@ -8,7 +8,7 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify } from "@/features/notifications/core/index";
 import type { PushSender } from "@/features/devices/core/push";
-import type { TerminalEnv, TerminalSessions } from "@/features/terminal/core/index";
+import type { TerminalApi, TerminalEnv } from "@/features/terminal/core/index";
 import type { ChatRunPort } from "@/features/chat/core/index";
 import type { CorePlatformParts } from "./platform";
 import type { TrashEnv } from "@/features/trash/core/index";
@@ -74,7 +74,7 @@ export interface Core {
   /** チャットの作業を動かし始めた・1 回の実行が終わった知らせ（chat の殻） */
   turns: Pick<ChatRunPort, "onTurnStarted" | "onTurnEnded">;
   /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */
-  terminals: TerminalSessions;
+  terminals: TerminalApi;
   close(): Promise<void>;
 }
 

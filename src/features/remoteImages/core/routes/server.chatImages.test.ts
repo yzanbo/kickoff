@@ -6,6 +6,7 @@ import { test } from "vitest";
 import type { BusEvent } from "@shared/foundation/contract";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { remoteImageCacheDir } from "@/features/remoteImages/core/index";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
@@ -100,13 +101,13 @@ test("分岐すると、表示の許可と覚えた画像を新しいチャッ�
 
 test("チャットを本当に消すと、表示の許可と覚えた画像のフォルダも消える", async () => {
   const ctx = setup();
-  const { app, call, store, imageFake, remoteImages, trashBin, trashClock } = ctx;
+  const { app, call, store, imageFake, trashBin, trashClock, k } = ctx;
   const chatId = await chatOf(ctx);
   const url = "https://images.example.com/c.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
   await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
   await app.request(imageUrl(chatId, url), { headers: AUTH });
-  const folder = path.join(remoteImages.dir, String(chatId));
+  const folder = path.join(remoteImageCacheDir(k.paths.dataDir), String(chatId));
   assert.equal(fs.existsSync(folder), true);
 
   assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 200);

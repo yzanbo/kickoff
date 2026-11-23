@@ -9,9 +9,9 @@ import { setup } from "@/app/core/testing/testServer";
 import { DbWorkerClient } from "./workerClient";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import type { DbTarget } from "@shared/database/workerProtocol";
-import { createDatabaseService } from "./service";
-import { DbSecretVault } from "./secrets";
 import { createDbAiTools, type DbAiApprove } from "./aiTools";
+import type { SecretCipher } from "./secrets";
+import { databaseServiceOf } from "./testing";
 
 const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBody => ({
   name: "開発",
@@ -28,8 +28,14 @@ const sqliteBody = (patch: Partial<NewDbConnectionBody> = {}): NewDbConnectionBo
   ...patch,
 });
 
-function prepare() {
+/** テストのコアと、同じ DB の上に組んだ DB クライアントのサービス（AI のツールが使う物） */
+function withService(secretCipher: SecretCipher | null = null) {
   const ctx = setup();
+  return { ...ctx, databases: databaseServiceOf(ctx, { secretCipher }) };
+}
+
+function prepare() {
+  const ctx = withService();
   const db = new DatabaseSync(path.join(ctx.project.repo_path, "app.db"));
   db.exec(`
     CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
@@ -95,7 +101,8 @@ test("AI の DB のツール: 読み取りの 1 文だけ流し、結果をデ�
 });
 
 test("AI の DB のツール: 読み取り専用でない接続でも DB 側は読み取り専用で、呼び出しごとに新しい接続を開いて閉じる。AI 用のユーザーがあればそれでつなぐ", async () => {
-  const { store, project, dbFake } = prepare();
+  const ctx = prepare();
+  const { store, project } = ctx;
   const client = new DbWorkerClient(inProcessWorker);
   const calls: { method: string; session?: string; target?: DbTarget }[] = [];
   const request = client.request.bind(client);
@@ -103,7 +110,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
     calls.push({ method, session: params.session, target: params.target });
     return request(method as never, params as never, opts as never);
   }) as typeof client.request;
-  const databases = createDatabaseService({ store, client, vault: new DbSecretVault(store, null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot });
+  const databases = databaseServiceOf(ctx, { client });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const c = store.dbConnections.create(project.id, { ...sqliteBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });
@@ -145,7 +152,7 @@ test("AI の DB のツール: 承認して見せる接続は、流す前に聞�
 
 test("AI の DB のツール: 保存したパスワードをキーチェーンで開けなければ、利用者に DB タブから接続し直してもらうよう返す", async () => {
   const secretCipher = { encrypt: async (plain: string) => plain, decrypt: async () => Promise.reject(new Error("User denied")) };
-  const { store, project, databases } = setup({ secretCipher });
+  const { store, project, databases } = withService(secretCipher);
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
@@ -212,7 +219,7 @@ test("AI の DB のツール: キーチェーンの許可を待つ間にチャ�
       return sealed;
     },
   };
-  const { store, project, databases } = setup({ secretCipher });
+  const { store, project, databases } = withService(secretCipher);
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const tools = createDbAiTools(databases, { project, workdir: null, chatId: chat.id });
   const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
