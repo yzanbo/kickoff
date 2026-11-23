@@ -312,12 +312,13 @@ class MysqlDriver implements DbDriver {
       // 「さらに読む」: 頭の skip 行は受けて捨てる
       let skipped = 0;
       let truncated = false;
+      let killing: Promise<void> = Promise.resolve(); // 上限に届いたら KILL QUERY で続きを止める（止め終わってから返す。先に返すと、遅れて届いた KILL が次の文を止める）
       let affected: number | null = null;
       let settled = false;
       const finish = () => {
         if (settled) return;
         settled = true;
-        resolve({ columns, rows, truncated, affected, duration_ms: performance.now() - started, in_transaction: this.inTransaction() });
+        void killing.then(() => resolve({ columns, rows, truncated, affected, duration_ms: performance.now() - started, in_transaction: this.inTransaction() }));
       };
       const q = this.conn.query({ sql, rowsAsArray: true });
       // 行を返さない文でも fields は来る（中身は undefined）
@@ -336,9 +337,8 @@ class MysqlDriver implements DbDriver {
         } else if (rows.length < maxRows) {
           rows.push(row.map((v) => toDbValue(v)));
         } else if (!truncated) {
-          // 上限に届いた。続きは送らせない
           truncated = true;
-          void this.cancel().catch(() => {});
+          killing = this.cancel().catch(() => {});
         }
       });
       q.on("error", (err: Error & { errno?: number }) => {
