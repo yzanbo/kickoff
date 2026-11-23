@@ -5,6 +5,8 @@
  * （一覧が変わっても返答の Markdown を解析し直さないため）
  */
 
+import { createSignal } from "@shared/foundation/signal";
+
 /** 開くファイル（作業場所からの相対パスと、あれば行） */
 export interface FileRef {
   path: string;
@@ -175,4 +177,31 @@ export function markFilePaths(node: MdNode, root: string): void {
 /** remark のプラグイン（remarkPlugins に [remarkFileLinks, 作業場所の絶対パス] で渡す。一覧が変わっても同じ設定のまま） */
 export function remarkFileLinks(root: string) {
   return (tree: unknown) => markFilePaths(tree as MdNode, root);
+}
+
+/**
+ * 返答のリンクが一覧を引き当てる口（FileLinksProvider が 1 つ持つ）。リンクは自分のパスを引き当てた結果だけを選んで読む
+ * （useSyncExternalStore）ので、一覧が変わっても描き直るのは結果の変わったリンクだけ（新しくできたファイルも、一覧に入ればあとから押せる）
+ */
+export interface FileLookup {
+  /** 一覧を入れ替える（知らせは出さない。描き直しの最中に呼べるように） */
+  replace: (index: FileIndex | undefined) => void;
+  /** 一覧が変わったことを読んでいるリンクに知らせる（描いたあとに呼ぶ） */
+  notify: () => void;
+  subscribe: (onChange: () => void) => () => void;
+  /** パスらしい文字を一覧に引き当てる（一覧にない・決まらない・一覧がまだなければ undefined） */
+  resolve: (path: string) => string | undefined;
+}
+
+export function createFileLookup(): FileLookup {
+  let index: FileIndex | undefined;
+  const changed = createSignal();
+  return {
+    replace: (next) => {
+      index = next;
+    },
+    notify: () => changed.emit(),
+    subscribe: changed.subscribe,
+    resolve: (path) => (index ? resolveFilePath(path, index) : undefined),
+  };
 }

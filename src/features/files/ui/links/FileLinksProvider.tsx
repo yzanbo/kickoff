@@ -4,15 +4,14 @@ import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/foundation/u
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { FileLinkContext, openByClick, type FileLinks } from "./fileLinkContext";
 import { FileMenu } from "./FileMenu";
-import { createFileIndexStore } from "./fileIndexStore";
-import { remarkFileLinks, type FileRef } from "./fileRefs";
+import { createFileLookup, remarkFileLinks, type FileRef } from "./fileRefs";
 import type { ChatFileLinks } from "./useFileLinks";
 
 /**
  * チャットのパネルの中で、返答のファイルのパス（Markdown）・ターンの変更カード・ツールの行・右の欄の変更を、押して開けるようにする。
  * 右クリックのメニュー（FileMenu）はここで 1 つだけ描く。
  * 返答の Markdown に渡すもの（MarkdownFileLinksContext）は、作業場所が同じ間は同じ物にする: remark の差し込みは作業場所のフォルダだけで
- * パスらしい文字に印を付け、開けるかはリンクがファイルの一覧の小さな店（fileIndexStore）からパスごとに選んで読む
+ * パスらしい文字に印を付け、開けるかはリンクがファイルの一覧を引き当てる口（createFileLookup）からパスごとに選んで読む
  * （作業が終わるたびに一覧を取り直しても、すべての返答を解析し直さない）
  */
 export function FileLinksProvider({ value, children }: { value: ChatFileLinks | undefined; children: ReactNode }) {
@@ -21,8 +20,8 @@ export function FileLinksProvider({ value, children }: { value: ChatFileLinks | 
   const openMenu = useLatest(menu.open);
   const showMenu = useCallback((e: MouseEvent, ref: FileRef) => openMenu.current(e, ref), [openMenu]);
   const links = useMemo<FileLinks | undefined>(() => (value ? { ...value, showMenu } : undefined), [value, showMenu]);
-  // ファイルの一覧の店。一覧はこの描き直しのうちに入れ（同じ描き直しで描くリンクが読む）、知らせは描いたあとに出す（memo して描き直らないリンクのため）
-  const [store] = useState(createFileIndexStore);
+  // ファイルの一覧を引き当てる口。一覧はこの描き直しのうちに入れ（同じ描き直しで描くリンクが読む）、知らせは描いたあとに出す（memo して描き直らないリンクのため）
+  const [store] = useState(createFileLookup);
   const index = links?.index;
   store.replace(index);
   useLayoutEffect(() => store.notify(), [store, index]);

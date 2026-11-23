@@ -8,7 +8,7 @@ import { navigate, type FileTarget } from "@/foundation/ui/navigation/router";
 import { storage } from "./storage";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListRail } from "@/foundation/ui/kit/ListRail";
-import { peekCodeSearchFocus, subscribeCodeSearchFocus } from "./codeSearchFocus";
+import { codeSearchFocus } from "./codeSearchFocus";
 import { WorktreePicker } from "@/foundation/ui/workplace/WorktreePicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { FilesPane } from "./FilesPane";
@@ -106,8 +106,8 @@ export function EditorTab({
     if (listHidden) setListHidden(false);
   });
   useEffect(() => {
-    if (peekCodeSearchFocus()) showListForSearch();
-    return subscribeCodeSearchFocus(showListForSearch);
+    if (codeSearchFocus.peek()) showListForSearch();
+    return codeSearchFocus.subscribe(showListForSearch);
   }, []);
   // チャットの返答のファイルのチップから来たとき（ファイルタブ）: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）

@@ -2,40 +2,15 @@
 // もう開いている検索欄には知らせで、これから開く検索欄（タブを移った直後）は描いたときに受け取る
 
 import { commands } from "@/foundation/ui/commands";
+import { createRequest } from "@/foundation/ui/store";
 import { open } from "@/foundation/ui/navigation/open";
 import { openNoProjectsGuide, projectInView } from "@/features/projects/ui";
-
-type Listener = () => void;
 
 /** 頼みを覚えておく時間（検索タブが開かなかったとき、あとで開いた検索欄で急に文を選ばないように） */
 const TTL_MS = 3000;
 
-let pendingAt = 0;
-const listeners = new Set<Listener>();
-
-/** 検索欄にピントを置いて、書いてある文を選ぶよう頼む（開いている検索欄に知らせる） */
-export function requestCodeSearchFocus() {
-  pendingAt = Date.now();
-  for (const listener of listeners) listener();
-}
-
-/** 頼みを受け取る（受け取ったら消す） */
-export function takeCodeSearchFocus(): boolean {
-  const had = peekCodeSearchFocus();
-  pendingAt = 0;
-  return had;
-}
-
-/** 受け取らずに、まだ頼みがあるかだけを見る（一覧を隠している EditorTab が、検索の欄を出すかを決める） */
-export function peekCodeSearchFocus(): boolean {
-  return pendingAt > 0 && Date.now() - pendingAt <= TTL_MS;
-}
-
-/** 頼みを聞く（開いている SearchView。戻り値で聞くのをやめる） */
-export function subscribeCodeSearchFocus(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => void listeners.delete(listener);
-}
+/** 検索欄にピントを置いて、書いてある文を選ぶ頼み（take で受け取る・peek は一覧を隠している EditorTab が検索の欄を出すかを決める） */
+export const codeSearchFocus = createRequest(TTL_MS);
 
 /** ⌘⇧F: 開いている（なければサイドバーで選んでいる）プロジェクトの検索タブへ移り、検索の欄にピントを置く（チャットの中の文言の全文検索は palette.contentSearch） */
 export const codeSearchCommand = commands.item({
@@ -46,6 +21,6 @@ export const codeSearchCommand = commands.item({
     const target = projectInView(projectId);
     if (target === undefined) return openNoProjectsGuide();
     open({ kind: "projectView", projectId: target, view: "search" });
-    requestCodeSearchFocus();
+    codeSearchFocus.ask(true);
   },
 });

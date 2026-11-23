@@ -51,7 +51,7 @@
   outline: none;
 }
 
-.code-search-box .code-search-toggle {
+.code-search-box :is(.code-search-toggle, .find-option) {
   width: 24px;
   height: 24px;
 }

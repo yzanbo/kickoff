@@ -6,7 +6,6 @@ import type { ProjectSearchResult } from "@shared/files/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useFindOptions } from "@/foundation/ui/hooks/useFindOptions";
-import type { FindOptionName } from "@/foundation/ui/lib/textFind";
 import { storage } from "./storage";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
@@ -17,9 +16,6 @@ import { workdirInput } from "@/foundation/ui/api/workdir";
 const DEBOUNCE_MS = 300;
 
 type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
-
-/** 探し方の名前（検索の指定の形）と、ほかの検索の欄と共有する探し方の名前 */
-const FIND_OPTION_OF: Record<Exclude<SearchOption, "use_ignore">, FindOptionName> = { case_sensitive: "caseSensitive", whole_word: "wholeWord", regex: "regex" };
 
 /** 表示している結果と、そのときの探し方（印・置換に使う） */
 interface SearchResult {
@@ -96,7 +92,11 @@ export function useProjectSearch(projectId: number) {
       setQueryState(next);
     },
     options,
-    toggle: (key: SearchOption) => (key === "use_ignore" ? setUseIgnore(!useIgnore) : find.toggle(FIND_OPTION_OF[key])),
+    /** 「Aa」「ab」「.*」（ほかの検索の欄と同じ値）と切り替え */
+    findOptions: find.options,
+    toggleFind: find.toggle,
+    /** 除外設定と .gitignore を使うか（この検索だけ）を切り替える */
+    toggleIgnore: () => setUseIgnore(!useIgnore),
     include,
     setInclude,
     exclude,

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { buildFileIndex, markFilePaths, parseFileRef, parsePathCandidate, resolveFileRef, splitAbsolutePaths, type MdNode } from "./fileRefs";
-import { createFileIndexStore } from "./fileIndexStore";
+import { buildFileIndex, createFileLookup, markFilePaths, parseFileRef, parsePathCandidate, resolveFileRef, splitAbsolutePaths, type MdNode } from "./fileRefs";
 
 const ROOT = "/Users/me/app";
 const index = buildFileIndex(
@@ -127,13 +126,12 @@ test("markFilePaths: インラインコード・リンク・地の文の絶対�
   assert.deepEqual(tree.children?.[1], { type: "code", value: "src/a.ts" });
 });
 
-test("createFileIndexStore: 一覧を入れ替えて知らせると、新しくできたファイルが引き当たる", () => {
-  const store = createFileIndexStore();
+test("createFileLookup: 一覧を入れ替えて知らせると、新しくできたファイルが引き当たる", () => {
+  const store = createFileLookup();
   assert.equal(store.resolve("src/a.ts"), undefined);
   let calls = 0;
   const off = store.subscribe(() => calls++);
-  assert.equal(store.replace(index), true);
-  assert.equal(store.replace(index), false);
+  store.replace(index);
   store.notify();
   assert.equal(calls, 1);
   assert.equal(store.resolve("Markdown.tsx"), "src/renderer/src/components/Markdown.tsx");

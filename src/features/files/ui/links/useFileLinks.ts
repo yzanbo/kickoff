@@ -1,16 +1,12 @@
 import { useMemo } from "react";
 import type { ProjectFiles } from "@shared/foundation/fileTypes";
-import { api } from "@/foundation/ui/api";
-import { useQuery } from "@/foundation/ui/query";
 import { open } from "@/foundation/ui/navigation/open";
 import { filesGitImpl } from "@/features/files/ui/filesGit";
+import { useWorkplaceFiles } from "@/features/files/ui/filesStore";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";
 import type { FileLinks } from "./fileLinkContext";
 import { buildFileIndex, type FileRef } from "./fileRefs";
-
-/** 取り直した一覧が前と同じか（同じなら描き直さない） */
-const sameFiles = (a: ProjectFiles, b: ProjectFiles) => a.truncated === b.truncated && a.files.join("\n") === b.files.join("\n");
 
 /** useFileLinks が返すもの（右クリックのメニューは FileLinksProvider が足す） */
 export type ChatFileLinks = Omit<FileLinks, "showMenu">;
@@ -41,10 +37,7 @@ export function useFileLinks(
   const chatId = chat.id;
   const worktree = chat.worktree_path || undefined;
   const root = worktree ?? repoPath;
-  const { data } = useQuery(`${projectId}:${worktree ?? ""}`, () => api.projectFiles({ projectId, worktree }), {
-    deps: [chat.status],
-    same: sameFiles,
-  });
+  const { data } = useWorkplaceFiles({ projectId, worktree: worktree ?? null }, { version: chat.status });
   return useMemo(() => (data && root ? fileLinksFor({ files: data, root, projectId, worktree, chatId, side }) : undefined), [data, root, projectId, worktree, chatId, side]);
 }
 

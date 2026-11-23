@@ -14,7 +14,7 @@
 | `ui/FileView`・`useFileDocument`・`FileHeader`・`usePreviewMode`・`CodeEditor`・`monacoEditor.ts` | 中身（文書の土台 `useDocument` の上。Monaco の付け足しは `codeEditorParts.ts` の `attach…`）・差分を見ながら編集・プレビュー |
 | `ui/useProjectSearch`・`useSearchReplace` | 検索と置換 |
 | `ui/SideFileView` | チャットの右の欄のファイル |
-| `ui/links/` | 返答のファイルのチップ（`FileLinksProvider`・`FileMenu`・`fileIndexStore.ts`） |
+| `ui/links/` | 返答のファイルのチップ（`FileLinksProvider`・`FileMenu`・引き当ての口 `fileRefs.ts`） |
 
 ## 決まり
 
@@ -33,5 +33,6 @@
 - Monaco のモデルの住所は部品ごと（`editorModels.ts`。同じ住所を 2 つ作ると画面ごと落ちる）。
 - Monaco は作り直さず `updateOptions` で変える。上げたときは `monacoEditor.ts` の頭のとおり入口を作り直す。
 - Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。
+- ファイルの一覧は作業場所ごとの店 `ui/filesStore.ts` 1 つ（木とチップが読む。取り直しは Git の version・チャットの状態）。
 - 木は土台の `TreeView`（ピントは木そのもの。縦の線と貼り付けは `ui/types/tree.css`）。ノートの木はまだ入れ子の `.file-tree`（`editor-explorer.css`）。
-- チップの開く関数は同じものにして返答の Markdown を描き直させない。remark の差し込みは一覧を受け取らずにパスらしい文字に印を付け、開けるかはリンクの部品が `fileIndexStore.ts` から自分の分だけ読む（一覧を取り直しても解析し直さない）。
+- チップの開く関数は同じものにして返答の Markdown を描き直させない。remark の差し込みは一覧を受け取らずにパスらしい文字に印を付け、開けるかはリンクの部品が `createFileLookup` から自分の分だけ読む（一覧を取り直しても解析し直さない）。
