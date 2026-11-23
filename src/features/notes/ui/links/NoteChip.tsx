@@ -12,7 +12,7 @@ import { folderPaths } from "@/foundation/ui/kit/list/treeModel";
 import { ChipWord, ComposerChip, DefaultOpenPlace, useMainChat } from "@/features/chat/ui";
 import { attachNoteToChat } from "./attachNote";
 import { noteListDropProps } from "@/features/notes/ui/tree/noteDrag";
-import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteGuards";
+import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteLeave";
 import { NoteChipTree } from "@/features/notes/ui/tree/NoteChipTree";
 import { buildNoteFileTree } from "@/features/notes/ui/notePaths";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";

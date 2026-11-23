@@ -1,42 +1,12 @@
 // チャットの文をノートにする（新しいノートを作る・AI で要約して新しいノートを作る・既存のノートに追記・既存のノートに AI で組み込んで書き直す）。
-// 画面は移らず（続けてほかの文もノートできるように）、画面の下に様子を出す（NoteProgress。要約は数秒かかる）。
-// 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのノートを開ける（openNoteFromChat）
-import { useSyncExternalStore } from "react";
+// 画面は移らず（続けてほかの文もノートできるように）、画面の下に進行中の知らせを出す（要約は数秒かかる）。
+// 終わったら知らせの「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのノートを開ける（openNoteFromChat）
 import { baseName } from "@shared/foundation/path";
 import { notesApi } from "@/features/notes/ui/api";
 import { notesStore } from "@/features/notes/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
+import { showProgressToast } from "@/foundation/ui/kit/toast";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
-
-/** 終わった知らせを出しておく時間（ミリ秒） */
-const DONE_SHOWN_MS = 6000;
-
-/** 画面の下に出す様子（busy = 追加している / done = 追加した（開ける）） */
-type NoteProgressState = { kind: "busy"; text: string } | { kind: "done"; text: string; open: () => void };
-
-let progress: NoteProgressState | null = null;
-let hideTimer: ReturnType<typeof setTimeout> | undefined;
-const listeners = new Set<() => void>();
-const setProgress = (next: NoteProgressState | null) => {
-  clearTimeout(hideTimer);
-  progress = next;
-  listeners.forEach((l) => l());
-  if (next?.kind === "done") hideTimer = setTimeout(() => setProgress(null), DONE_SHOWN_MS);
-};
-
-/** 追加している様子（NoteProgress が読む） */
-export function useNoteProgress(): NoteProgressState | null {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => void listeners.delete(listener);
-    },
-    () => progress,
-  );
-}
-
-/** 知らせを閉じる */
-export const dismissNoteProgress = () => setProgress(null);
 
 /**
  * ノートへの入れ方: new = 選択部分をそのまま新しいノートにする / summarize = AI で要約して新しいノートにする /
@@ -77,7 +47,7 @@ interface AddToNoteInput {
 export async function addToNote({ projectId, chatId, text, mode, target }: AddToNoteInput): Promise<void> {
   const texts = MODE_TEXTS[mode];
   const existing = needsTargetNote(mode);
-  setProgress({ kind: "busy", text: texts.busy });
+  const progress = showProgressToast(texts.busy);
   try {
     const ref = await notesApi("POST /api/projects/:projectId/notes/from-chat", { params: { projectId }, body: {
       chat_id: chatId,
@@ -88,16 +58,9 @@ export async function addToNote({ projectId, chatId, text, mode, target }: AddTo
       folder: null,
     } });
     notesStore.invalidate(projectId);
-    setProgress({
-      kind: "done",
-      text: texts.done(baseName(ref.path)),
-      open: () => {
-        setProgress(null);
-        openNoteFromChat({ projectId, path: ref.path, chatId });
-      },
-    });
+    progress.done(texts.done(baseName(ref.path)), { label: "開く", run: () => openNoteFromChat({ projectId, path: ref.path, chatId }) });
   } catch (e) {
-    setProgress(null);
+    progress.fail(texts.failed);
     void reportFailure(texts.failed)(e);
   }
 }

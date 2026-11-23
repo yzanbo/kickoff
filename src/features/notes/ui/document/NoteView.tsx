@@ -28,7 +28,10 @@ import { useNoteChatTargets } from "./noteChatTargets";
 import { NoteSelectionAttach } from "./NoteSelectionAttach";
 import { noteTitle, parentOf } from "@/features/notes/ui/notePaths";
 import { subscribeNoteReveal, takeNoteReveal } from "@/features/notes/ui/noteReveal";
-import { useNoteDocument, type NoteSaveState } from "./useNoteDocument";
+import { useNoteDocument } from "./useNoteDocument";
+import type { DocumentStatus } from "@/foundation/ui/document/documentState";
+import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
+import { noteDocKey } from "@/features/notes/ui/noteLeave";
 import { useBottomChatMotion } from "@/features/notes/ui/chat/useBottomChatMotion";
 import { useNoteEditMenu } from "./useNoteEditMenu";
 import { openExternal } from "@/foundation/ui/external/native";
@@ -51,7 +54,8 @@ const VIEW_LABELS: Record<NoteKind, { preview: string; edit: string }> = {
 };
 
 /** 保存の様子の文（見出しの右） */
-const SAVE_LABELS: Record<NoteSaveState, string> = {
+const SAVE_LABELS: Record<DocumentStatus, string> = {
+  loading: "",
   saved: "保存済み",
   dirty: "未保存（⌘S で保存）",
   saving: "保存中…",
@@ -168,11 +172,11 @@ export function NoteView({
   // 題名の後ろに続ける拡張子（題名 ＋ 拡張子 ＝ ファイル名）
   const extension = noteExtensionOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
-  const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
-  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。未保存の登録簿 document/unsaved）
-  const savable = useLatest({ unsaved, saveDoc });
+  const unsaved = doc.status === "dirty" || doc.status === "conflict" || doc.status === "error" || titleChanged;
+  // ⌘⇧S・離れる前の確かめで、題名の書き換えも数える（本文は useDocument が未保存の登録簿に出す。同じ key なので 1 度だけ聞く）
+  const savable = useLatest({ titleChanged, saveDoc });
   const surface = useUnsavedSurface("notes");
-  useEffect(() => registerUnsaved({ key: `${projectId}:${path}`, surface, title: baseName(path), dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), [projectId, path, surface]);
+  useEffect(() => registerUnsaved({ key: noteDocKey(projectId, path), surface, title: baseName(path), dirty: () => savable.current.titleChanged, save: () => savable.current.saveDoc() }), [projectId, path, surface]);
   // 選んでいる文（利用者が見ているものの知らせが読む。AI の get_user_view）
   useEffect(() => registerNoteSelection(projectId, path, () => editor.current?.selectedText() ?? ""), [projectId, path]);
 
@@ -230,10 +234,10 @@ export function NoteView({
           {folder && <span className="note-head-folder">{folder}</span>}
         </div>
         <span className={cx("note-save-state", unsaved && "warn")} role="status">
-          {doc.initial !== null && SAVE_LABELS[titleChanged && doc.state === "saved" ? "dirty" : doc.state]}
+          {doc.initial !== null && SAVE_LABELS[titleChanged && doc.status === "saved" ? "dirty" : doc.status]}
         </span>
         {doc.initial !== null && !unreadable && (
-          <IconButton icon={Save} label="保存" keys="⌘S" disabled={(doc.state === "saved" && !titleChanged) || doc.state === "saving"} onClick={saveNow} />
+          <IconButton icon={Save} label="保存" keys="⌘S" disabled={(doc.status === "saved" && !titleChanged) || doc.status === "saving"} onClick={saveNow} />
         )}
         <Segmented
           look="toggle"
@@ -256,18 +260,12 @@ export function NoteView({
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
       </header>
-      {doc.state === "conflict" && (
-        <div className="file-changed-notice" role="status">
+      {doc.status === "conflict" && (
+        <DocumentConflictBar onReload={() => void doc.reload()} onOverwrite={() => void doc.save({ force: true })}>
           開いたあとで、ほかでこのノートが変わりました（チャットからの追記・ほかのアプリなど）。
-          <button className="btn" data-size="sm" onClick={() => void doc.reload()}>
-            読み直す（書いたものは捨てる）
-          </button>
-          <button className="btn" data-size="sm" onClick={doc.overwrite}>
-            書いたもので上書き
-          </button>
-        </div>
+        </DocumentConflictBar>
       )}
-      {doc.error && <ErrorText message={doc.error} className="note-message" />}
+      {doc.saveError && <ErrorText message={doc.saveError} className="note-message" />}
       <div
         ref={body}
         className={cx(
@@ -296,7 +294,7 @@ export function NoteView({
                 kind={kind}
                 live={view === "preview"}
                 hidden={page}
-                onChange={doc.change}
+                onChange={doc.setText}
                 onSave={saveNow}
                 handleRef={editor}
                 onContextMenu={editMenu.open}

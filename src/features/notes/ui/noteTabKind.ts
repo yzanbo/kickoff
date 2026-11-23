@@ -2,7 +2,7 @@
 import { StickyNote } from "lucide-react";
 import { baseName } from "@/foundation/ui/lib/format";
 import { defineTabKind } from "@/features/panel/ui";
-import { confirmLeaveNote } from "./noteGuards";
+import { confirmLeaveNote } from "./noteLeave";
 import { NotePage, type NoteTab } from "./noteTabPage";
 
 export const noteTabKind = defineTabKind<NoteTab>({

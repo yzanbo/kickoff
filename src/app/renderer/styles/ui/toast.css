@@ -1,4 +1,4 @@
-/* 画面の下の真ん中に少しの間だけ出す知らせ（ui/toast.tsx。ノートの追加の様子 .note-progress と同じ形） */
+/* 画面の下の真ん中に少しの間だけ出す知らせ（ui/toast.tsx。ノートの追加の様子も） */
 .toast-stack {
   position: fixed;
   bottom: 56px;

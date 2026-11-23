@@ -1,7 +1,7 @@
 // プロジェクトの「ノート」タブの右の欄（パネルの notes。開いたノートをタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import { isUnder, remapPrefix } from "@shared/foundation/path";
 import { noteTab, openInFocusedPane, panelKey, type PanelScope, type PanelTab, type ViewScope } from "@/features/panel/ui";
-import { confirmLeaveNote } from "./noteGuards";
+import { confirmLeaveNote } from "./noteLeave";
 
 /** 右サイドバーのノートの右のタブの欄の範囲（真ん中のノートのタブとは別に覚える） */
 export const sideNoteScope = (projectId: number): ViewScope => `view-side-${projectId}`;

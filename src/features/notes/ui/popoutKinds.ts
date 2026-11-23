@@ -3,7 +3,7 @@ import type { PopoutKind } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { knownChat, openInRootSide, rootChatOf, shownChatIds } from "@/features/chat/ui";
 import { noteTab, openTab } from "@/features/panel/ui";
-import { flushNoteDrafts } from "./noteGuards";
+import { flushDrafts } from "@/foundation/ui/document/unsaved";
 import { NotePopoutPage } from "./NotePopoutPage";
 
 declare module "@/foundation/ui/navigation/popout" {
@@ -22,7 +22,7 @@ export const notePopout: PopoutKind<"note"> = {
   label: "ノート",
   Page: NotePopoutPage,
   // 書きかけは残してから閉じる（右の欄で未保存のまま続きを書ける）
-  beforeDock: flushNoteDrafts,
+  beforeDock: flushDrafts,
   dock: (route) => {
     // 開いたチャット（なければ、いま見えているチャットのうち、そのプロジェクトのもの。子チャットなら、いちばん上の親）の右の欄。チャットが見えていなければノートのタブ
     const shown =

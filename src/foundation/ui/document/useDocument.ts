@@ -59,6 +59,8 @@ export interface DocumentState<F extends DocumentFile = DocumentFile> {
   save(o?: { force?: boolean }): Promise<boolean>;
   /** ほかで変わった中身を読み直す（書きかけを捨てる） */
   reload(): Promise<void>;
+  /** 書きかけを捨てる（書いたものを保存したものに戻し、残した書きかけも消す。閉じるときにまた残さない） */
+  discard(): void;
 }
 
 /** 書いたものを書きかけとして残すまで（ミリ秒。打つたびに書かない） */
@@ -217,6 +219,16 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
   useEffect(() => () => flush(key), [key]);
   useWindowEvent("pagehide", () => flush(key), Boolean(draft));
 
+  const discard = () => {
+    clearTimeout(draftTimer.current);
+    // 書いたものを保存したものに戻す（閉じるときに、捨てた書きかけをまた残さないように）
+    const now = current.current;
+    if (now?.key === key) text.current = now.base.content;
+    setDirty(false);
+    if (draft) writeSetting(draft(key), null);
+  };
+  const discardNow = useEffectEvent(discard);
+
   // ⌘⇧S・離れる前の確かめが数えるよう、この文書の様子と操作を登録簿に出す
   useEffect(
     () =>
@@ -229,14 +241,7 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
           return now?.key === key && text.current !== null && text.current !== now.base.content;
         },
         save: () => saveNow(),
-        discard: () => {
-          clearTimeout(draftTimer.current);
-          // 書いたものを保存したものに戻す（閉じるときに、捨てた書きかけをまた残さないように）
-          const now = current.current;
-          if (now?.key === key) text.current = now.base.content;
-          setDirty(false);
-          if (draft) writeSetting(draft(key), null);
-        },
+        discard: () => discardNow(),
         flush: draft ? () => flush(key) : undefined,
         tab,
         file: place && { root: place.root, path: place.path },
@@ -260,5 +265,6 @@ export function useDocument<F extends DocumentFile = DocumentFile>({
     setText,
     save,
     reload,
+    discard,
   };
 }

@@ -26,7 +26,7 @@ import { NoteListHead } from "./NoteListHead";
 import { NoteListMenu, type NoteMenuTarget } from "./NoteListMenu";
 import { noteListDropProps } from "./noteDrag";
 import { NoteTree, type NoteRenaming } from "./NoteTree";
-import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteGuards";
+import { confirmLeaveNotesUnder } from "@/features/notes/ui/noteLeave";
 import { notePanelKey, openNoteInPanel, trashedNoteTab } from "@/features/notes/ui/notePanel";
 import { requestNoteReveal } from "@/features/notes/ui/noteReveal";
 import { NotePlanDialog } from "./NotePlanDialog";
