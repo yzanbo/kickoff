@@ -4,12 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { test, vi } from "vitest";
-import { makeWorktree } from "@shared/foundation/testing/factories";
+import { makeProject, makeWorktree } from "@shared/foundation/testing/factories";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
-import { HeadWatch } from "./headWatch";
+import { HeadWatch, unwatchedProject } from "./headWatch";
 
 const worktree = (path: string, head: string, main = false) => makeWorktree(path, { branch: main ? "main" : null, head, main, locked: !main });
 
@@ -60,4 +60,33 @@ test("作りかけのワークツリーがあれば 1 秒ほどで取り直さ�
   await watch.watch(7, dir, [main]);
   await new Promise((r) => setTimeout(r, 1300));
   assert.deepEqual(changed, [7]);
+});
+
+test("消した・アーカイブしたプロジェクトは見張りを外し、そのあとの HEAD の変化を知らせない（B07-6）", async () => {
+  const watchers = new Map<string, fs.FSWatcher & { closed?: boolean }>();
+  const mockedWatch = vi.spyOn(fs, "watch").mockImplementation((dir, listener) => {
+    const emitter = new EventEmitter();
+    // 閉じた見張りは、本物と同じくもう呼ばない
+    const watcher = Object.assign(emitter, { closed: false, close() { watcher.closed = true; emitter.removeAllListeners(); }, unref() { return watcher; } }) as unknown as fs.FSWatcher & { closed?: boolean };
+    if (typeof listener === "function") watcher.on("change", listener);
+    watchers.set(String(dir), watcher);
+    return watcher;
+  });
+  afterTest(() => mockedWatch.mockRestore());
+  const { dir } = gitRepo({ files: { "a.txt": "a\n" } });
+  const changed: number[] = [];
+  const watch = new HeadWatch((id) => changed.push(id));
+  afterTest(() => watch.close());
+  await watch.watch(7, dir, [worktree(dir, "1".repeat(40), true)]);
+  const common = gitIn(dir)("rev-parse", "--absolute-git-dir").trim();
+  watch.unwatch(7);
+  assert.equal(watchers.get(common)!.closed, true);
+  watchers.get(common)!.emit("change", "rename", "HEAD");
+  await new Promise((r) => setTimeout(r, 200));
+  assert.deepEqual(changed, []);
+  // 見張りを外すのは、消した・アーカイブしたプロジェクトの知らせだけ
+  assert.equal(unwatchedProject({ type: "project_deleted", id: 7 }), 7);
+  assert.equal(unwatchedProject({ type: "project", project: makeProject(8, { archived_at: "2026-11-23T00:00:00Z" }) }), 8);
+  assert.equal(unwatchedProject({ type: "project", project: makeProject(8, { archived_at: null }) }), null);
+  assert.equal(unwatchedProject({ type: "worktrees_changed", project_id: 7 }), null);
 });

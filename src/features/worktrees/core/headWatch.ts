@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { BusEvent } from "@shared/foundation/contract";
 import type { GitWorktree } from "@shared/git/types";
 import { git } from "@/foundation/core/workplace/git";
 
@@ -80,6 +81,16 @@ export class HeadWatch {
     this.timers.set(projectId, timer);
   }
 
+  /** プロジェクトの見張りを外す（消した・アーカイブしたプロジェクト。次に一覧の API が呼ばれたら付け直す） */
+  unwatch(projectId: number): void {
+    this.generations.set(projectId, (this.generations.get(projectId) ?? 0) + 1);
+    clearTimeout(this.timers.get(projectId));
+    this.timers.delete(projectId);
+    this.retries.delete(projectId);
+    for (const watcher of this.watches.get(projectId)?.values() ?? []) watcher.close();
+    this.watches.delete(projectId);
+  }
+
   close(): void {
     this.closed = true;
     for (const timer of this.timers.values()) clearTimeout(timer);
@@ -87,4 +98,11 @@ export class HeadWatch {
     this.timers.clear();
     this.watches.clear();
   }
+}
+
+/** 見張りを外すプロジェクト（消した・アーカイブした知らせなら、その ID。ほかは null） */
+export function unwatchedProject(event: BusEvent): number | null {
+  if (event.type === "project_deleted") return event.id;
+  if (event.type === "project" && event.project.archived_at !== null) return event.project.id;
+  return null;
 }

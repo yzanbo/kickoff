@@ -12,7 +12,7 @@ import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { baseOf } from "./create";
-import { HeadWatch } from "./headWatch";
+import { HeadWatch, unwatchedProject } from "./headWatch";
 import { WorktreeService } from "./service";
 import { worktreeRoutes } from "./routes/worktrees";
 import { createWorktreeStores, type WorktreeStores } from "./db/stores";
@@ -62,6 +62,11 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
     if (project) forgetWorktrees(project.repo_path);
     k.bus.publish({ type: "worktrees_changed", project_id });
   });
+  // 消した・アーカイブしたプロジェクトは見張りを外す
+  const stopUnwatch = k.bus.subscribe((event) => {
+    const id = unwatchedProject(event);
+    if (id !== null) headWatch.unwatch(id);
+  });
   const service = new WorktreeService({ store: { ...stores, chats }, envs, headWatch, runner: deps.chat.runner, providers: deps.ai.providers });
   const create = service.create.bind(service);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
@@ -85,6 +90,7 @@ export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEn
     aiTools: [worktreeToolGroup(finisher)],
     routes: [worktreeRoutes({ projectParam: deps.projects.param, service, finisher, connectionsIn: (folder) => connectionsIn(folder) })],
     stop: () => {
+      stopUnwatch();
       headWatch.close();
     },
   };
