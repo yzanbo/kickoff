@@ -57,6 +57,20 @@ test("端末: 開いた口だけ使え、ほかは 403 と印で断る（DB・Do
   assert.equal((await app.request("/api/chats/999/rewind", { method: "POST", headers: DEVICE })).status, 403);
 });
 
+test("端末: DB のルートはどれも端末に開かない（403 と印。LAN は暗号化なしなので、接続の情報・SQL を端末に通さない）", async () => {
+  const { app, project } = withDevice();
+  const keys = app.routes.filter((r) => r.method !== "ALL" && (r.path.includes("/db-connections") || r.path.endsWith("/docker/db"))).map((r) => `${r.method} ${r.path}`);
+  const dbRoutes = [...new Set(keys)].map((k) => ({ method: k.slice(0, k.indexOf(" ")), path: k.slice(k.indexOf(" ") + 1) }));
+  // 取り決めに乗せ替えても、数え漏れで素通りしないように（いまは 42 本 = 接続の 41 本と Docker の「DB で開く」）
+  assert.ok(dbRoutes.length >= 42, `DB のルートが ${dbRoutes.length} 本しか見つかりません`);
+  for (const { method, path: route } of dbRoutes) {
+    const url = route.replace(/:\w+/g, String(project.id));
+    const res = await app.request(url, { method, headers: DEVICE });
+    assert.equal(res.status, 403, `${method} ${route}`);
+    assert.equal(((await res.json()) as { code: string }).code, DEVICE_FORBIDDEN, `${method} ${route}`);
+  }
+});
+
 test("端末: 知らないトークン・取り消した端末は 401。Tailscale などの見出しでは呼び主にならない。使ったら最後に使った時刻を書く", async () => {
   const { app, store, device } = withDevice();
   assert.equal(store.devices.get(device.id)!.last_used_at, null);
