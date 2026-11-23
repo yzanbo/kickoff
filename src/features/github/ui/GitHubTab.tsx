@@ -1,6 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
-import type { Chat } from "@shared/chat/types";
 import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -11,7 +10,7 @@ import { useWhenVisible } from "./useWhenVisible";
 import { cx } from "@/foundation/ui/lib/cx";
 import { storage } from "./storage";
 import { githubSelected } from "@/foundation/ui/storage/storageKeys";
-import { useChats } from "@/features/chat/ui/store/knownChats";
+import { useChatsLinkedTo } from "@/features/chat/ui";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ListHideButton } from "@/foundation/ui/kit/ListRail";
@@ -66,16 +65,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const page = list.page;
   const moreRef = useWhenVisible<HTMLButtonElement>(list.loadMore, !!page?.cursor && !list.loadingMore && !list.loading, page?.items.length);
   // この一覧のリポジトリの issue・PR に結び付いたチャット（「種類:番号」→ 最近動いた順）
-  const { chats } = useChats({ projectId });
-  const linked = useMemo(() => {
-    const map = new Map<string, Chat[]>();
-    for (const c of chats) {
-      if (c.github_number === null || c.github_kind === null || c.github_repo?.toLowerCase() !== repo.toLowerCase()) continue;
-      const key = `${c.github_kind}:${c.github_number}`;
-      map.set(key, [...(map.get(key) ?? []), c]);
-    }
-    return map;
-  }, [chats, repo]);
+  const linked = useChatsLinkedTo(projectId, repo);
 
   return (
     <ListDetail

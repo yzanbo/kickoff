@@ -63,6 +63,7 @@ export { summaryState } from "./state/chatState";
 export { useChatStates } from "./state/chatStates";
 export { approvalIndex, stateCounts, waitingChats, type ApprovalIndex } from "./state/chatState";
 export { currentChats, NO_CHATS, useChats, useChatsWithChildrenByProject, useChildChats, useKnownChat } from "./store/knownChats";
+export { useChatsLinkedTo } from "./store/linkedChats";
 export { chooseBusyWorkplaceAction } from "./workplace/busyWorkplace";
 export { LineageTrail } from "./parts/LineageTrail";
 
