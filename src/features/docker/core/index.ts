@@ -1,17 +1,41 @@
 // Docker の機能のコアの入口（ほかの機能はここだけを読む）
+import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
-import type { DockerCli } from "./cli";
-import type { DockerEngineStarters } from "./engine";
-import type { PortProbe } from "./ports";
-import { DockerService } from "./service";
 import type { ChatApi } from "@/features/chat/core/index";
-import { dockerRoutes, type DockerRouteDeps } from "./routes/docker";
 import type { GuardApi } from "@/features/guard/core/index";
-import { dockerRuleSource } from "./guardFacts";
+import { DockerCli } from "./cli";
+import { ComposeConfigCache, composeReader, type ComposeReader } from "./compose";
+import type { DockerEngineStarters } from "./engine";
+import { dockerFacts, dockerRuleSource } from "./facts";
+import type { DockerGuardFacts } from "./guard/dockerGuard";
+import { DockerLister, type DockerDbSource } from "./list";
+import { DockerOperations } from "./operations";
+import { DockerPorts, type PortProbe } from "./ports";
+import { dockerRoutes } from "./routes/docker";
+import { DockerWatch } from "./watch";
 
-export type { DockerService } from "./service";
 export type { ComposeReader } from "./compose";
+export type { DockerDbSource } from "./list";
+
+/** ほかの機能が読む Docker の口 */
+export interface DockerApi {
+  /** 「DB で開く」の材料（compose に聞いた設定とポート）。案にするのは database */
+  dbCandidate(project: Project, composeKey: string, service: string): Promise<DockerDbSource>;
+  /** compose の口（ワークツリーの実行環境と後始末） */
+  compose: ComposeReader;
+  /** 待っているソケット（ワークツリーの実行環境が空いている帯を選ぶ） */
+  portProbe: Pick<PortProbe, "listeningSockets">;
+  /** AI の Docker の守りが見る様子（作業場所 cwd のチャット） */
+  facts(project: Project, cwd: string): DockerGuardFacts;
+}
+
+/** Docker の中の 3 つ（読み・操作・見ている間の流れ。受け口とテストが使う） */
+export interface DockerParts {
+  lister: DockerLister;
+  operations: DockerOperations;
+  watch: DockerWatch;
+}
 
 export interface DockerEnv {
   /** macOS の Docker のエンジンの起こし方 */
@@ -23,10 +47,28 @@ export interface DockerEnv {
 }
 
 /** Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く） */
-export function createDocker(k: Kernel, deps: Pick<DockerRouteDeps, "dbConnectionsOf"> & { chat: Pick<ChatApi, "store">; guard: Pick<GuardApi, "addRuleSource"> }, env: DockerEnv): CoreFeature<DockerService> {
-  const docker = new DockerService(k.bus, { listeningSockets: k.platform.listeningSockets, dockerEngine: env.engine }, env.cli);
+export function createDocker(k: Kernel, deps: { chat: Pick<ChatApi, "store">; guard: Pick<GuardApi, "addRuleSource"> }, env: DockerEnv): CoreFeature<DockerApi & { parts: DockerParts }> {
+  const cli = env.cli ?? new DockerCli();
+  const ports = new DockerPorts(k.platform.listeningSockets);
+  if (env.portProbe) ports.probe = env.portProbe;
+  const configs = new ComposeConfigCache(cli);
+  const lister = new DockerLister(cli, configs, ports, env.engine);
+  // 変わったら覚えた一覧のもとを捨ててから知らせる（画面が取り直す）
+  const changed = (projectId: number) => {
+    lister.invalidate(projectId);
+    k.bus.publish({ type: "docker_changed", project_id: projectId });
+  };
+  const operations = new DockerOperations(lister, ports, changed);
+  const watch = new DockerWatch(lister, (projectIds) => projectIds.forEach(changed));
+  const facts = (project: Project, cwd: string) => dockerFacts(lister, project, cwd);
   // ほかの作業場所・プロジェクトの Docker の守りを登録する
-  deps.guard.addRuleSource(dockerRuleSource(docker));
-  if (env.portProbe) docker.ports.probe = env.portProbe;
-  return { name: "docker", api: docker, routes: [{ legacy: (app) => dockerRoutes(app, { store: deps.chat.store, docker, bus: k.bus, dbConnectionsOf: deps.dbConnectionsOf }) }], stop: () => docker.close() };
+  deps.guard.addRuleSource(dockerRuleSource(facts));
+  const api = {
+    dbCandidate: (project: Project, composeKey: string, service: string) => lister.dbSource(project, composeKey, service),
+    compose: composeReader(configs, cli),
+    portProbe: { listeningSockets: () => ports.probe.listeningSockets() },
+    facts,
+    parts: { lister, operations, watch },
+  };
+  return { name: "docker", api, routes: [{ legacy: (app) => dockerRoutes(app, { store: deps.chat.store, parts: api.parts, bus: k.bus }) }], stop: () => watch.close() };
 }

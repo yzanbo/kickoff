@@ -4,7 +4,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import type { SecretCipher } from "@/foundation/core/system/sealedSecret";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
-import type { DockerService } from "@/features/docker/core/index";
+import type { DockerApi } from "@/features/docker/core/index";
 import type { GuardApi } from "@/features/guard/core/index";
 import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
@@ -13,6 +13,7 @@ import { DbSecretVault } from "./secrets";
 import { DatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
 import { databaseRoutes } from "./routes/databases";
+import { dockerDbRoutes } from "./routes/dockerDb";
 import { dbToolGroup, openSqlToolGroup } from "./tools";
 
 export type { DatabaseService } from "./service";
@@ -24,7 +25,7 @@ export interface DatabaseDeps {
   /** チャットを本当に消したら、AI の SQL の結果の CSV も消す・履歴にチャットの名前を添える */
   chat: Pick<ChatApi, "onChatsPurged" | "titlesOf" | "store">;
   /** Docker タブの「DB で開く」の案 */
-  docker: DockerService;
+  docker: Pick<DockerApi, "dbCandidate">;
   /** ワークツリーを消したら、その DB から作った接続を片付ける */
   worktrees: WorktreesApi;
   /** 見せない DB の守りを登録する */
@@ -62,7 +63,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
   return {
     name: "database",
     api: databases,
-    routes: [{ legacy: (app) => databaseRoutes(app, { store, databases, providers: deps.ai.providers, docker: deps.docker }) }],
+    routes: [{ legacy: (app) => databaseRoutes(app, { store, databases, providers: deps.ai.providers, docker: deps.docker }) }, { legacy: (app) => dockerDbRoutes(app, { store, docker: deps.docker }) }],
     aiTools: [dbToolGroup(databases, store), openSqlToolGroup({ store: deps.chat.store, dbConnectionsOf: (projectId) => stores.dbConnections.list(projectId), publish: (e) => k.bus.publish(e) })],
     stop: () => databases.close(),
   };

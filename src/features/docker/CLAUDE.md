@@ -6,14 +6,14 @@
 
 | ファイル | 中身 |
 |---|---|
-| `core/service.ts`・`core/cli.ts` | compose のサービスを見て操作する（呼び方は `DockerCli`。覚えは `ComposeConfigCache`。worktrees には `compose`・`portProbe` だけを出す） |
+| `core/list.ts`・`operations.ts`・`watch.ts` | 読み `DockerLister`（一覧のもとは同時 1 回＋1 秒）・操作 `DockerOperations`・events とログ `DockerWatch`。呼び方は `DockerCli`、compose の覚えは `ComposeConfigCache`。ほかの機能には `DockerApi`（`compose`・`portProbe`・`dbCandidate`・`facts`）だけ |
 | `core/actions.ts`・`core/listing.ts` | 操作のコマンド `planDockerAction`・一覧の見出し（どちらも純粋） |
-| `core/guardFacts.ts`・`core/guard/` | AI の守りが見る様子・守り（`src/features/guard/CLAUDE.md`） |
+| `core/facts.ts`・`core/guard/` | AI の守りが見る様子・守り（`src/features/guard/CLAUDE.md`） |
 | `ui/useDocker.ts` | 状態と操作・「見ています」・取り直し |
 | `ui/DockerTab`・`ui/DockerComposeBlock`・`ui/DockerServiceRow` | 一覧 |
 | `ui/DockerLogs`・`ui/useDockerLogs.ts`・`ui/useDockerLog*.ts*` | ログの画面（流れ・⌘F・AI に渡す） |
 | `ui/dockerView.ts`・`ui/dockerLogView.ts` | 表示の文と行の形（純粋。テストは隣） |
-| `ui/useOpenDockerDb.ts` | 「DB で開く」 |
+| `ui/useOpenDockerDb.ts` | 「DB で開く」（行き先の受け口と案は database） |
 
 ## 決まり
 
@@ -31,4 +31,5 @@
 - 「見ています」は 20 秒ごと（コアは 45 秒届かなければ `docker events` を止める）。重なった取り直しは 1 回にまとめる。
 - ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
 - ログの色は土台の `ansi/`（`ansiSpans`・`AnsiText`）。CI のタブのログも使う（変えたら CI のログも見る）。
-- テストは `server.docker.test.ts`・`server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。
+- 操作の前後・docker events の変化では、覚えた一覧のもとを捨ててから `docker_changed` を出す（`createDocker` の `changed`）。
+- テストは `server.docker.test.ts`・database の `server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

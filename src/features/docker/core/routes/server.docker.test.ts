@@ -71,7 +71,7 @@ test("Docker: すべて起動は作ってあるものを start（/ で）、作�
   // 始めたあとの一覧を返す（画面がそのまま出す）
   assert.equal((res.body as DockerList).composes[0].key, c.key);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const calls = s.dockerFake.calls().filter((x) => x.args[0] === "compose" && !x.args.includes("config"));
   assert.deepEqual(calls[0], { args: ["compose", "-p", "app", "start", "db"], cwd: "/" });
   assert.deepEqual(calls[1].args, ["compose", "-p", "app", "-f", path.join(fs.realpathSync(s.project.repo_path), "compose.yaml"), "up", "-d", "--no-deps", "redis"]);
@@ -96,7 +96,7 @@ test("Docker: 失敗は標準エラーの最後の行と流し直すコマンド
   withCompose(s, [{ match: "up -d", code: 1, stderr: "pulling...\nError: image not found\n" }]);
   const [c] = (await list(s)).composes;
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const failed = (await list(s)).composes[0].failure;
   assert.match(failed?.message ?? "", /image not found/);
   assert.match(failed?.command ?? "", /^docker compose -p app -f .* up -d$/);
@@ -117,7 +117,7 @@ test("Docker: 流れ続ける up -d は［中止］で止まり、失敗にし�
   assert.equal(again.status, 409);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "cancel", compose: c.key })).status, 204);
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const after = (await list(s)).composes[0];
   assert.equal(after.operation, null);
   assert.equal(after.failure, null);
@@ -133,9 +133,9 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
   const [c] = (await list(s)).composes;
   s.dockerFake.clearCalls();
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_all", compose: c.key });
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "down", compose: c.key });
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const ran = s.dockerFake
     .calls()
     .filter((x) => !["version", "context", "ps"].includes(x.args[0]) && !x.args.includes("config"))
@@ -147,7 +147,7 @@ test("Docker: 見ていますで docker events を立てる。どこからも見
   const s = setup();
   await s.call("POST", `/api/projects/${s.project.id}/docker/watch`);
   await until(() => s.dockerFake.calls().some((x) => x.args[0] === "events"));
-  const events = s.docker["events"];
+  const events = s.docker.parts.watch["events"];
   assert.equal(events.running, true);
   events.stop();
   assert.equal(events.running, false);
@@ -181,7 +181,7 @@ test("Docker: ログの流れは最新の 500 行を追い、止まったら区�
   const events: DockerLogEvent[] = [];
   let running = true;
   const source = () => [{ container: "abcdef012345", service: "web", label: "web", running, exit_code: running ? null : 1 }];
-  const session = new DockerLogSession(s.docker.cli, async () => source(), (e) => events.push(e));
+  const session = new DockerLogSession(s.docker.parts.lister.cli, async () => source(), (e) => events.push(e));
   try {
     await session.sync();
     await until(() => events.some((e) => e.type === "lines"));
@@ -202,7 +202,7 @@ test("Docker: ログの流れは、何も作っていない compose（コンテ�
   s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z ready\n", hang: true }]);
   const events: DockerLogEvent[] = [];
   let sources: { container: string; service: string; label: string; running: boolean; exit_code: number | null }[] = [];
-  const session = new DockerLogSession(s.docker.cli, async () => sources, (e) => events.push(e));
+  const session = new DockerLogSession(s.docker.parts.lister.cli, async () => sources, (e) => events.push(e));
   try {
     await session.sync();
     assert.deepEqual(events, [{ type: "sources", sources: [] }]);
@@ -225,7 +225,7 @@ test("Docker: ログの流れは、作り直された（同じ札の新しいコ
   const events: DockerLogEvent[] = [];
   let id = "aaaaaaaaaaaa";
   const source = () => [{ container: id, service: "db", label: "db", running: true, exit_code: null }];
-  const session = new DockerLogSession(s.docker.cli, async () => source(), (e) => events.push(e));
+  const session = new DockerLogSession(s.docker.parts.lister.cli, async () => source(), (e) => events.push(e));
   try {
     await session.sync();
     // 初めて開いたときは区切りを入れない
@@ -251,11 +251,11 @@ test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   assert.equal(s.dockerFake.calls().filter((x) => x.args.includes("up")).length, 1, "up は 1 回だけ流れる");
   await s.call("POST", url, { action: "cancel", compose: c.key });
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   // エンジンが止まっていて断った操作は予約を残さず、動いたら同じ compose の操作を受ける
   s.dockerFake.set([{ match: "version", code: 1, stderr: "Cannot connect to the Docker daemon" }]);
   assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 400);
-  assert.equal(s.docker["reserved"].size, 0);
+  assert.equal(s.docker.parts.operations["reserved"].size, 0);
   withCompose(s, [{ match: "up -d", code: 0 }]);
   assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 202);
 });
@@ -268,7 +268,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
   ]);
   const [c] = (await list(s)).composes;
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const failure = (await list(s)).composes[0].failure;
   assert.deepEqual(
     failure?.conflicts.map((x) => [x.port, x.container_id, x.label]),
@@ -283,7 +283,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
   s.dockerFake.clearCalls();
   const res = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key });
   assert.equal(res.status, 202);
-  await until(() => !s.docker["operations"].size);
+  await until(() => !s.docker.parts.operations["running"].size);
   const ran = s.dockerFake.calls().filter((x) => x.args[0] === "stop" || x.args.includes("up")).map((x) => x.args.join(" "));
   assert.equal(ran[0], "stop x1 x2");
   // ぶつかったサービスは作り直す（ポートで失敗したコンテナは、あとで起動してもポートを出さないため）。そのあと元の起動をやり直す

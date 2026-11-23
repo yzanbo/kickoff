@@ -22,7 +22,7 @@ import { createWorkplaceMove } from "@/features/workplaceMove/core/index";
 import { createQueue } from "@/features/queue/core/index";
 import { createFiles } from "@/features/files/core/index";
 import { createGit } from "@/features/git/core/index";
-import { createDocker, type DockerService } from "@/features/docker/core/index";
+import { createDocker, type DockerApi, type DockerParts } from "@/features/docker/core/index";
 import { createWorktrees, type WorktreesApi } from "@/features/worktrees/core/index";
 import { createGitHub, type GitHubApi } from "@/features/github/core/index";
 import { createTerminal, type TerminalSessions } from "@/features/terminal/core/index";
@@ -49,7 +49,7 @@ export interface AppAssembly extends AssembledCore {
     devices: DevicesApi;
     notifications: NotificationsApi;
     chat: ChatApi;
-    docker: DockerService;
+    docker: DockerApi & { parts: DockerParts };
     worktrees: WorktreesApi;
     github: GitHubApi;
     terminals: TerminalSessions;
@@ -99,7 +99,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const files = createFiles(k, { trash: trash.api, projects: projects.api, chat: chat.api });
   const git = createGit(k, { projects: projects.api, chat: chat.api });
   // 「DB で開く」の接続は database の店（database はあとに作るので、呼ばれたときに引く）
-  const docker = createDocker(k, { chat: chat.api, guard: guard.api, dbConnectionsOf: (projectId) => database.api.stores.dbConnections.list(projectId) }, { engine: env.platformParts.dockerEngine, ...env.docker });
+  const docker = createDocker(k, { chat: chat.api, guard: guard.api }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, projects: projects.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api });
   const github = createGitHub(k, { git: git.api, worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);

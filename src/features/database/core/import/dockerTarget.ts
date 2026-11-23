@@ -4,6 +4,9 @@ import path from "node:path";
 import { sameLocalServer } from "@shared/database/dbServer";
 import type { DbConnection } from "@shared/database/types";
 import { DOCKER_DB_NO_PORT, type DockerCompose } from "@shared/docker/types";
+import type { Project } from "@shared/projects/types";
+import { Invalid } from "@/foundation/core/errors";
+import type { DockerApi } from "@/features/docker/core/index";
 import { candidatesFromCompose } from "./fromCompose";
 import { candidateName, type FoundDb } from "./found";
 
@@ -54,4 +57,12 @@ export function dockerDbCandidate(input: {
 export function sameServerConnection(connections: readonly DbConnection[], found: Pick<FoundDb, "engine" | "host" | "port" | "database">): DbConnection | undefined {
   const same = connections.filter((c) => sameLocalServer(c, found));
   return same.find((c) => (c.database ?? null) === (found.database ?? null)) ?? same[0];
+}
+
+/** Docker タブの「DB で開く」の案: docker に材料（compose に聞いた設定とポート）を聞き、取り込みと同じ読み方で案にする（DB のイメージでなければ投げる） */
+export async function dockerDbTarget(docker: Pick<DockerApi, "dbCandidate">, project: Project, composeKey: string, service: string): Promise<DockerDbCandidate> {
+  const source = await docker.dbCandidate(project, composeKey, service);
+  const found = dockerDbCandidate(source);
+  if (!found) throw new Invalid("DB のサービスではありません");
+  return "found" in found ? { ...found, worktree_path: source.compose.worktree_path } : found;
 }

@@ -2,8 +2,7 @@
 // 聞いた結果は、-f に渡すファイルと同じフォルダの .env の更新日時を鍵に覚え、変わったときだけ聞き直す
 import fs from "node:fs";
 import path from "node:path";
-import { errorMessage } from "@shared/foundation/errors";
-import { CommandError } from "@/foundation/core/system/exec";
+import { commandMessage } from "@/foundation/core/system/exec";
 import type { DockerCli } from "./cli";
 import { STANDARD_COMPOSE_NAMES, composeFilesFromEnv, isAltComposeName, overrideNamesFor, parseComposeConfig, parseConfigHashes, type ComposeConfig } from "./parse";
 
@@ -92,15 +91,58 @@ const mtimeOf = (p: string) => {
   }
 };
 
+/** 覚えて、上限を超えたら古い順に捨てる */
+function remember<V>(memo: Map<string, V>, key: string, value: V) {
+  memo.delete(key);
+  memo.set(key, value);
+  for (const oldest of memo.keys()) {
+    if (memo.size <= MEMO_MAX) break;
+    memo.delete(oldest);
+  }
+}
+
+/** 覚える設定の数の上限（超えたら古い順に捨てる） */
+const MEMO_MAX = 64;
+
+/** AI のコマンドの compose の指定（流すフォルダ・サブコマンドより前の -p・-f などと環境変数） */
+export interface ComposeCall {
+  cwd: string;
+  options: string[];
+  env: Record<string, string>;
+}
+
 /** compose の設定を聞いて覚える（鍵は -f のファイルとそのフォルダの .env の更新日時。［↻］で clear） */
 export class ComposeConfigCache {
   private readonly memo = new Map<string, { stamp: string; read: Promise<ComposeRead> }>();
+  private readonly names = new Map<string, { stamp: string; name: Promise<string | null> }>();
 
   constructor(private readonly cli: DockerCli) {}
 
   /** すべて捨てる（［↻］。include・extends・env_file の先を書き換えたときのため） */
   clear() {
     this.memo.clear();
+    this.names.clear();
+  }
+
+  /**
+   * AI のコマンドのとおりに compose に聞いた組の名前（Docker の守り。聞けなければ null で、null は覚えない）。
+   * 鍵はフォルダ・指定・環境変数、覚えを使うのはフォルダの compose・.env と指定のファイルの更新日時が同じ間
+   */
+  projectName(call: ComposeCall, timeoutMs: number): Promise<string | null> {
+    const key = JSON.stringify([call.cwd, call.options, call.env]);
+    const files = listDir(call.cwd).filter((e) => e.isFile() && (e.name === ".env" || e.name.includes("compose"))).map((e) => path.join(call.cwd, e.name));
+    const stamp = [...files, ...call.options.map((o) => path.resolve(call.cwd, o))].map((f) => `${f}:${mtimeOf(f)}`).join(",");
+    const hit = this.names.get(key);
+    if (hit && hit.stamp === stamp) return hit.name;
+    const name = this.cli
+      .run(["compose", ...call.options, "config", "--format", "json"], { cwd: call.cwd, timeout: timeoutMs, env: call.env })
+      .then((out) => parseComposeConfig(out)?.name ?? null)
+      .catch(() => null);
+    remember(this.names, key, { stamp, name });
+    void name.then((n) => {
+      if (n === null && this.names.get(key)?.name === name) this.names.delete(key);
+    });
+    return name;
   }
 
   /** files（-f に渡す並び）の設定と、指紋（withHash のときだけ） */
@@ -111,7 +153,7 @@ export class ComposeConfigCache {
     const hit = this.memo.get(key);
     if (hit && hit.stamp === stamp) return hit.read;
     const read = this.load(files, withHash);
-    this.memo.set(key, { stamp, read });
+    remember(this.memo, key, { stamp, read });
     return read;
   }
 
@@ -131,7 +173,7 @@ export class ComposeConfigCache {
       }
       return { config, error: null, hashes, doc: JSON.parse(out) as unknown };
     } catch (e) {
-      const message = e instanceof CommandError ? e.stderr || e.message : errorMessage(e);
+      const message = commandMessage(e);
       return { config: null, error: message.split("\n").slice(-6).join("\n").trim(), hashes: null, doc: null };
     }
   }

@@ -5,7 +5,7 @@ import { Conflict, NotFound } from "@/foundation/core/errors";
 import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
-import type { DockerService } from "@/features/docker/core/index";
+import type { DockerApi } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ChatRunPort, TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
@@ -34,7 +34,7 @@ export interface WorktreesDeps {
   /** ブランチの名前の案を AI に聞く */
   ai: AiApi;
   /** compose の口と待っているソケット（実行環境・後始末） */
-  docker: Pick<DockerService, "compose" | "portProbe">;
+  docker: Pick<DockerApi, "compose" | "portProbe">;
   /** 作業中か・送信待ち・作業場所を移す・実行に足すもの（PORT）を登録する */
   chat: { runner: ChatRunPort; store: Pick<ChatStoreDeps, "chats" | "events" | "projects" | "trash">; addTurnContributor(c: TurnContributor): void };
   /** 片付けたワークツリーのチャットを本体へ移す */

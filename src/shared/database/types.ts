@@ -458,3 +458,13 @@ export interface DbErSchema {
 
 /** ER 図で動かしたテーブルの位置（テーブル名 → 左上の座標） */
 export type DbErPositions = Record<string, { x: number; y: number }>;
+
+/**
+ * 「DB で開く」の行き先（GET …/docker/db?compose=&service=）。登録済みの同じ DB（種類・localhost・ポート）があればその接続、
+ * なければ取り込みの案（パスワードは has_password だけ。登録は POST …/db-connections/import にこの案の key を渡す）、Mac にポートを出していなければ押せない理由
+ */
+export interface DockerDbTarget {
+  connection_id: number | null;
+  candidate: DbImportCandidate | null;
+  blocked: string | null;
+}

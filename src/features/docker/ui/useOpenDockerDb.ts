@@ -2,9 +2,8 @@
 // 動いていなければ確かめてから起動し、動き出したら開く（起動に失敗したら開かない。失敗は見出しに出る）
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { DockerCompose, DockerServiceInfo } from "@shared/docker/types";
-import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
-import { requestDbClient } from "@/features/database/ui/dbClientRequests";
+import { fetchDockerDbTarget, requestDbClient } from "@/features/database/ui/dbClientRequests";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 
@@ -16,7 +15,7 @@ export function useOpenDockerDb(projectId: number, compose: DockerCompose, servi
 
   const open = async () => {
     try {
-      const target = await api.dockerDbTarget(projectId, compose.key, service.name);
+      const target = await fetchDockerDbTarget(projectId, compose.key, service.name);
       if (target.blocked) return showToast(target.blocked);
       const place = `project-${projectId}`;
       if (target.connection_id !== null) requestDbClient(place, { kind: "focus", connectionId: target.connection_id });

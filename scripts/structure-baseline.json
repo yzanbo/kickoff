@@ -4,11 +4,7 @@
     "import": [
       "feature-core-tests:attachments:src/features/attachments/core/routes/server.attachments.test.ts -> src/shared/notes/types.ts",
       "feature-core-tests:chat:src/features/chat/core/runner.test.ts -> src/features/guard/core/guard/writeScope.ts",
-      "feature-core-tests:docker:src/features/docker/core/routes/server.dockerDb.test.ts -> src/shared/database/types.ts",
       "feature-core-tests:notifications:src/features/notifications/core/notifications.test.ts -> src/shared/devices/types.ts",
-      "feature-core:docker:src/features/docker/core/routes/docker.ts -> src/features/database/core/import/dockerTarget.ts",
-      "feature-core:docker:src/features/docker/core/routes/docker.ts -> src/features/database/core/import/index.ts",
-      "feature-core:docker:src/features/docker/core/service.ts -> src/features/database/core/import/dockerTarget.ts",
       "feature-core:groups:src/features/groups/core/db/groups.ts -> src/shared/chat/types.ts",
       "feature-core:notifications:src/features/notifications/core/center.ts -> src/shared/devices/types.ts",
       "feature-core:notifications:src/features/notifications/core/notices.ts -> src/shared/github/ciTypes.ts",
@@ -167,7 +163,6 @@
       "shared-order:chat:src/shared/chat/chatIndex.test.ts -> src/shared/visuals/aiVisual.ts",
       "shared-order:chat:src/shared/chat/testing/chatScenarios.ts -> src/shared/visuals/aiVisual.ts",
       "shared-order:chat:src/shared/chat/types.ts -> src/shared/github/types.ts",
-      "shared-order:docker:src/shared/docker/types.ts -> src/shared/database/types.ts",
       "shared-order:git:src/shared/git/types.ts -> src/shared/worktrees/envTypes.ts"
     ],
     "public": [
@@ -474,9 +469,6 @@
       "feature-entry:src/features/database/ui/dbChat.ts -> src/features/chat/ui/chatTitle.ts",
       "feature-entry:src/features/database/ui/dbChat.ts -> src/features/chat/ui/store/knownChats.ts",
       "feature-entry:src/features/devices/core/push.ts -> src/features/notifications/core/center.ts",
-      "feature-entry:src/features/docker/core/routes/docker.ts -> src/features/database/core/import/dockerTarget.ts",
-      "feature-entry:src/features/docker/core/routes/docker.ts -> src/features/database/core/import/index.ts",
-      "feature-entry:src/features/docker/core/service.ts -> src/features/database/core/import/dockerTarget.ts",
       "feature-entry:src/features/docker/ui/DockerServiceRow.tsx -> src/features/projects/ui/stores/projects.ts",
       "feature-entry:src/features/docker/ui/useOpenDockerDb.ts -> src/features/database/ui/dbClientRequests.ts",
       "feature-entry:src/features/files/ui/EditorTab.tsx -> src/features/panel/ui/Panel.tsx",
@@ -736,7 +728,6 @@
       "src/features/database/worker/drivers.dbtest.ts": 409,
       "src/features/database/worker/mysql.ts": 406,
       "src/features/database/worker/postgres.ts": 426,
-      "src/features/docker/core/service.ts": 304,
       "src/features/git/core/routes/server.git.test.ts": 470,
       "src/features/notes/ui/NoteTab.tsx": 341,
       "src/features/notes/ui/NoteView.tsx": 365,

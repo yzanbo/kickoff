@@ -7,13 +7,13 @@ import type { Project } from "@shared/projects/types";
 import type { ChatStoreDeps } from "@/features/chat/core/index";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DatabaseService } from "@/features/database/core/service";
-import type { DockerService } from "@/features/docker/core/index";
+import type { DockerApi } from "@/features/docker/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { requireWorktree } from "@/foundation/core/workplace/worktrees";
 import { scanProjectDbs, toImportCandidates } from "@/features/database/core/import/index";
-import { parseDockerDbKey } from "@/features/database/core/import/dockerTarget";
+import { dockerDbTarget, parseDockerDbKey } from "@/features/database/core/import/dockerTarget";
 import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "@/features/database/core/sshHostKey";
 import { parseSqlAnswer, sqlAssistPrompt } from "@/features/database/core/sqlAssist";
 
@@ -157,7 +157,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<ChatStoreDeps, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: DatabaseService["stores"] & Pick<ChatStoreDeps, "projects" | "chats" | "groups">; databases: DatabaseService; providers: AiApi["providers"]; docker: Pick<DockerApi, "dbCandidate"> }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */
@@ -243,7 +243,7 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     for (const item of items) {
       const target = parseDockerDbKey(item.key);
       if (!target) continue;
-      const result = await docker.dbCandidate(c.var.project, target.composeKey, target.service);
+      const result = await dockerDbTarget(docker, c.var.project, target.composeKey, target.service);
       if ("blocked" in result) throw new Invalid(result.blocked);
       found.set(item.key, result.found);
       worktreeOf.set(item.key, result.worktree_path ?? null);

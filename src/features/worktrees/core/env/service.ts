@@ -8,7 +8,7 @@ import type { Project } from "@shared/projects/types";
 import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeComposeName, type WorktreeEnv, type WorktreePortSlot } from "@shared/worktrees/envTypes";
 import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
 import type { StoredWorktreeEnv } from "@/features/worktrees/core/db/worktreeEnvs";
-import type { ComposeReader, DockerService } from "@/features/docker/core/index";
+import type { ComposeReader, DockerApi } from "@/features/docker/core/index";
 import { isInside } from "@/foundation/core/system/paths";
 import { isIgnored, isTracked } from "@/foundation/core/workplace/reads";
 import { assignSlots, pickBand, type DockerSlotWant } from "./bands";
@@ -157,7 +157,7 @@ async function rewriteEnvFiles(here: string, written: string[], band: number, sl
 export class WorktreeEnvService {
   constructor(
     private readonly store: Pick<WorktreeStores, "worktreeEnvs">,
-    private readonly docker: Pick<DockerService, "compose" | "portProbe">,
+    private readonly docker: Pick<DockerApi, "compose" | "portProbe">,
   ) {}
 
   /**

@@ -1,10 +1,9 @@
 // AI の Docker の守りが見る Docker の様子（docker ps・compose の組の名前・ボリューム）。どれも 3 秒で打ち切り、答えなければ通す側に倒す
 import type { Project } from "@shared/projects/types";
-import { dockerRule, judgeDockerCommand, type DockerGuard, type DockerGuardFacts } from "@/features/docker/core/guard/dockerGuard";
+import { dockerRule, judgeDockerCommand, type DockerGuardFacts } from "@/features/docker/core/guard/dockerGuard";
 import type { GuardRuleSource } from "@/features/guard/core/index";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
-import { PS_FORMAT, parseComposeConfig, parsePs } from "./parse";
-import type { DockerService } from "./service";
+import type { DockerLister } from "./list";
 
 /** 守りの問い合わせの待ち時間（Docker が答えないときは、AI のコマンドもどうせ失敗するので通す） */
 const GUARD_TIMEOUT_MS = 3_000;
@@ -22,33 +21,17 @@ async function within<T>(work: Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-/** チャットの実行 1 回分の守り（作業場所 workdir のチャット）。docker の文がなければ何も問い合わせない */
-export function createDockerGuard(docker: DockerService, project: Project, workdir: string): DockerGuard {
-  const cli = docker.cli;
-  const facts: DockerGuardFacts = {
+/** 作業場所 workdir のチャットの守りが見る様子。docker の文がなければ何も問い合わせない */
+export function dockerFacts(lister: DockerLister, project: Project, workdir: string): DockerGuardFacts {
+  return {
     workdir: realPathOrSelf(workdir),
     // 作業場所が分からなければ、チャットの作業場所の中のものだけを自分のものとみなす（dockerGuard の isMine）
-    workplaces: () => within(docker.workplacesOf(project), []),
-    containers: async () => {
-      try {
-        const out = await cli.run(["ps", "-a", "--format", PS_FORMAT], { timeout: GUARD_TIMEOUT_MS });
-        return parsePs(out).map((c) => ({ ...c, dir: c.dir ? realPathOrSelf(c.dir) : null }));
-      } catch {
-        return null;
-      }
-    },
-    composeProject: async (intent) => {
-      if (intent.cwd === null) return null;
-      try {
-        const out = await cli.run(["compose", ...intent.options, "config", "--format", "json"], { cwd: intent.cwd, timeout: GUARD_TIMEOUT_MS, env: intent.env });
-        return parseComposeConfig(out)?.name ?? null;
-      } catch {
-        return null;
-      }
-    },
+    workplaces: () => within(lister.workplaces(project), []),
+    containers: () => lister.containers({ timeoutMs: GUARD_TIMEOUT_MS }).catch(() => null),
+    composeProject: async (intent) => (intent.cwd === null ? null : lister.configs.projectName({ cwd: intent.cwd, options: intent.options, env: intent.env }, GUARD_TIMEOUT_MS)),
     volumes: async () => {
       try {
-        const out = await cli.run(["volume", "ls", "--format", '{{.Name}}\t{{.Label "com.docker.compose.project"}}'], { timeout: GUARD_TIMEOUT_MS });
+        const out = await lister.cli.run(["volume", "ls", "--format", '{{.Name}}\t{{.Label "com.docker.compose.project"}}'], { timeout: GUARD_TIMEOUT_MS });
         return out
           .split("\n")
           .filter(Boolean)
@@ -61,12 +44,17 @@ export function createDockerGuard(docker: DockerService, project: Project, workd
       }
     },
     // compose の設定を覚えていなければ compose に聞く（20 秒まで待つ）ので、守りでは 3 秒で打ち切る
-    composeNames: () => within(docker.composeNames(project), []),
+    composeNames: () => within(lister.composeNames(project), []),
   };
-  return { check: (command) => judgeDockerCommand(command, facts) };
 }
 
 /** Docker の守りを出す口（createDocker が guard に登録する。実行のたびにプロジェクトと作業フォルダの守りを作る） */
-export function dockerRuleSource(docker: DockerService): GuardRuleSource {
-  return { name: "docker", rulesFor: (m) => [dockerRule(createDockerGuard(docker, m.project, m.cwd))] };
+export function dockerRuleSource(facts: (project: Project, cwd: string) => DockerGuardFacts): GuardRuleSource {
+  return {
+    name: "docker",
+    rulesFor: (m) => {
+      const known = facts(m.project, m.cwd);
+      return [dockerRule({ check: (command) => judgeDockerCommand(command, known) })];
+    },
+  };
 }

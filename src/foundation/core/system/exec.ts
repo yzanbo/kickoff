@@ -30,6 +30,11 @@ export class CommandError extends Error {
   }
 }
 
+/** 失敗の文（コマンドの失敗なら標準エラー、なければその文） */
+export function commandMessage(e: unknown): string {
+  return e instanceof CommandError ? e.stderr || e.message : errorMessage(e);
+}
+
 interface RunOptions {
   signal?: AbortSignal;
   cwd?: string;
