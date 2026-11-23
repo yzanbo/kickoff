@@ -19,9 +19,12 @@ import { notePaletteSource, noteTextPaletteSource } from "./paletteSources";
 import { notesSection, noteOpenItem } from "./settings/appSettings";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { notesHosts } from "./appHosts";
+import { describeTab, noteView, userViewTabs } from "@/features/userView/ui";
 
 export const contributes = [
   panelTabs.item(noteTabKind),
+  // AI の get_user_view に返すノートのタブの説明（選んでいる文は NoteView が置く）
+  userViewTabs.item(describeTab("note", (t) => noteView(t.projectId, t.path))),
   panelSurfaces.item(noteSurface),
   openTargets.item(noteTarget),
   openTargets.item(noteFromVisualTarget),

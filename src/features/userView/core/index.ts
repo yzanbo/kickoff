@@ -1,9 +1,9 @@
 // 利用者が見ているものの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { ChatApi } from "@/features/chat/core/index";
-import { userViewSchema } from "@/foundation/core/http/schemas";
 import { UserViewRegistry } from "./registry";
 import { userViewRoutes } from "./routes/userView";
+import { userViewSchema } from "./schemas";
 import { userViewToolGroup } from "./tools";
 
 export type { UserViewRegistry } from "./registry";
@@ -16,5 +16,5 @@ export function createUserView(deps: { chat: Pick<ChatApi, "store" | "onUserSend
     const view = user_view === undefined ? null : userViewSchema.safeParse(user_view);
     if (fromHost && view?.success) userViews.rememberSent(chatId, view.data);
   });
-  return { name: "userView", api: userViews, aiTools: [userViewToolGroup({ store: deps.chat.store, userViews })], routes: [{ legacy: (app) => userViewRoutes(app, { userViews }) }] };
+  return { name: "userView", api: userViews, aiTools: [userViewToolGroup({ store: deps.chat.store, userViews })], routes: [userViewRoutes({ userViews })] };
 }

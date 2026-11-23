@@ -1,12 +1,12 @@
 // このウィンドウで利用者が見ているもの（AI の get_user_view）を集める:
 // 見ているプロジェクト・プロジェクトのタブ・画面に出ている欄（パネル）のペインごとの前のタブ・チャットの画面の右の欄に開いているもの。
-// タブの中身の説明は種類の持ち主が userViewTabs に出す（tabDescribers.ts。エディタのカーソル・ノートで選んでいる文は lib/viewDetails から読む）
+// タブの中身の説明は種類の持ち主が userViewTabs に出す（points.ts。エディタのカーソル・ノートで選んでいる文は viewDetails.ts から読む）
 import type { UserView, UserViewPane, UserViewTab } from "@shared/userView/types";
-import { knownChat } from "@/features/chat/ui/store/knownChats";
+import { knownChat } from "@/features/chat/ui";
 import { allPanels, isPanelMounted, kindOf, leavesOf, parsePanelKey, surfaceOf, terminalTitle, type PanelTab } from "@/features/panel/ui";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
-import { editorView, noteView, projectViewTab, userViewTabs } from "./tabDescribers";
+import { editorView, noteView, projectViewTab, userViewTabs } from "./points";
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */
 const PROJECT_TAB_LABELS: Readonly<Record<string, string>> = {

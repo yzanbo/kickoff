@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { DocumentConflictBar } from "@/foundation/ui/document/DocumentConflictBar";
 import { cx } from "@/foundation/ui/lib/cx";
-import { registerEditorCursor, type EditorCursor } from "@/foundation/ui/lib/viewDetails";
+import { registerEditorCursor, type EditorCursor } from "@/features/userView/ui";
 import { useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";

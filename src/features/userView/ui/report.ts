@@ -3,7 +3,7 @@
 // 窓を閉じる・読み込み直すときは「閉じた」を知らせる。送る指示にも、送った時点の様子を添える（chat の setSendExtras）
 import { useEffect } from "react";
 import { USER_VIEW_REPORT_MS, type UserView } from "@shared/userView/types";
-import { userViewApi } from "./api";
+import { reportUserViewClosed, userViewApi } from "./api";
 import { onServerOpen } from "@/foundation/ui/api/events";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -26,13 +26,13 @@ export function useUserViewReport(collect: () => UserView, chatIds: (view: UserV
   // 送る指示に添える様子
   useEffect(() => setSendExtras(() => ({ user_view: latest.current.collect() })), []);
   // 窓を閉じた・読み込み直したら、このウィンドウを忘れてもらう（ページが消えても届くよう keepalive）
-  useWindowEvent("pagehide", () => userViewApi.reportUserViewClosed(WINDOW_ID));
+  useWindowEvent("pagehide", () => reportUserViewClosed(WINDOW_ID));
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const send = () => {
       clearTimeout(timer);
       const view = latest.current.collect();
-      void userViewApi.reportUserView({ window_id: WINDOW_ID, view, chat_ids: latest.current.chatIds(view), focused: document.hasFocus() }).catch(() => {});
+      void userViewApi("PUT /api/user-view", { body: { window_id: WINDOW_ID, view, chat_ids: latest.current.chatIds(view), focused: document.hasFocus() } }).catch(() => {});
     };
     const schedule = () => {
       clearTimeout(timer);

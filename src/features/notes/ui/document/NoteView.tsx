@@ -4,7 +4,7 @@ import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerUnsaved, useUnsavedSurface } from "@/foundation/ui/document/unsaved";
-import { registerNoteSelection } from "@/foundation/ui/lib/viewDetails";
+import { registerNoteSelection } from "@/features/userView/ui";
 import { storage } from "@/features/notes/ui/storage";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

@@ -1,9 +1,9 @@
-// パネルのタブの中身を AI に説明する口（get_user_view）: タブの種類の持ち主が ui/contributes.ts で userViewTabs.item({ kind, describe }) を出す。
+// パネルのタブの中身を AI に説明する口（get_user_view）: タブの種類の持ち主が ui/contributes.ts で userViewTabs.item(describeTab(kind, describe)) を出す。
 // 説明の形を作る補助（エディタ・ノート）は、パネルのタブと別ウィンドウ・プロジェクトのタブで共通。プロジェクトの画面（DB・GitHub）の中身は持ち主が土台の viewDescribers に出す
 import { USER_VIEW_TEXT_MAX, type UserViewTab } from "@shared/userView/types";
 import { definePoint } from "@/foundation/ui/points";
 import { describeView, type ViewAt } from "@/foundation/ui/shell/viewDescribers";
-import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
+import { editorCursorOf, noteSelectionOf } from "./viewDetails";
 import type { PanelTab } from "@/features/panel/ui";
 
 declare module "@/foundation/ui/shell/viewDescribers" {
@@ -22,7 +22,7 @@ export interface UserViewTabDescriber {
   describe(tab: PanelTab): UserViewTab;
 }
 
-/** タブの説明の拡張点（説明のない種類は、種類の名前の画面（page）として説明する。userViewCollect.ts） */
+/** タブの説明の拡張点（説明のない種類は、種類の名前の画面（page）として説明する。collect.ts） */
 export const userViewTabs = definePoint<UserViewTabDescriber>("userViewTabs", { key: (d) => d.kind });
 
 /** 種類 K のタブの説明を 1 つ作る（登録はしない） */

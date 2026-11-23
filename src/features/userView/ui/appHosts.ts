@@ -3,8 +3,8 @@ import { useState } from "react";
 import type { AppHost } from "@/foundation/ui/shell/points";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { useRoute } from "@/foundation/ui/navigation/router";
-import { chatIdsOf, collectPopoutView, collectUserView, popoutChatIds } from "./userViewCollect";
-import { useUserViewReport } from "./userViewReport";
+import { chatIdsOf, collectPopoutView, collectUserView, popoutChatIds } from "./collect";
+import { useUserViewReport } from "./report";
 
 function useMainUserViewReport() {
   const route = useRoute();

@@ -5,7 +5,6 @@ import { type Attachment, type AttachmentSource, type ChatOptionsPatch, type Git
 import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
 import { GITHUB_KINDS } from "@shared/github/types";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
-import { USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/userView/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { branchName, folderPath } from "./zodParts";
 
@@ -111,38 +110,6 @@ export const attachmentsSchema = z.array(attachmentSchema).max(MAX_ATTACHMENTS);
 
 /** 送る指示の文（前後の空白は除く） */
 export const messageText = z.string().trim().max(MAX_MESSAGE_CHARS);
-
-/** 画面の文字（名前・パス・URL など。長すぎるものは断る） */
-const viewText = z.string().max(4000);
-const viewProject = { project_id: z.number().int().positive().optional() };
-/** 画面のタブ 1 つの中身（利用者が見ているもの。AI の get_user_view） */
-const userViewTabSchema = z.union([
-  z.object({ kind: z.literal("chat"), chat_id: z.number().int().positive(), title: viewText, ...viewProject }),
-  z.object({ kind: z.literal("child_chat"), chat_id: z.number().int().positive(), title: viewText, ...viewProject }),
-  z.object({ kind: z.literal("new_chat"), ...viewProject }),
-  z.object({ kind: z.literal("subagent"), title: viewText, ...viewProject }),
-  z.object({
-    kind: z.literal("editor"),
-    path: viewText,
-    worktree: viewText.nullable(),
-    line: z.number().int().positive().nullable(),
-    selection: z.object({ from_line: z.number().int(), from_column: z.number().int(), to_line: z.number().int(), to_column: z.number().int() }).nullable(),
-    ...viewProject,
-  }),
-  z.object({ kind: z.literal("changes"), worktree: viewText.nullable(), focus: viewText.nullable(), ...viewProject }),
-  z.object({ kind: z.literal("note"), path: viewText, selected_text: z.string().max(USER_VIEW_TEXT_MAX * 2).nullable(), ...viewProject }),
-  z.object({ kind: z.literal("browser"), url: viewText, title: viewText, ...viewProject }),
-  z.object({ kind: z.literal("github"), item: z.object({ kind: z.enum(["issue", "pr"]), number: z.number().int().positive() }).nullable(), ...viewProject }),
-  z.object({ kind: z.literal("database"), connection: viewText.nullable(), table: viewText.nullable(), ...viewProject }),
-  z.object({ kind: z.literal("terminal"), label: viewText, ...viewProject }),
-  z.object({ kind: z.literal("page"), label: viewText, ...viewProject }),
-]) satisfies z.ZodType<UserViewTab>;
-/** 利用者が見ているもの（1 つのウィンドウ。ペインと右の欄は 30 まで） */
-export const userViewSchema = z.object({
-  project_id: z.number().int().positive().nullable(),
-  panes: z.array(z.object({ area: viewText, tab: userViewTabSchema.nullable() })).max(30),
-  side: z.array(userViewTabSchema).max(30),
-}) satisfies z.ZodType<UserView>;
 
 // 送る指示（文・選択・添付。@shared/chat/types の MessageBody）。新しいチャット・続き・止めずに伝える・送信待ちで同じ形にし、ルートごとの項目だけを足す。本文が空でも、添付があれば送れる。
 // user_view は送った時点の画面の様子（この Mac の画面から送ったときだけ）。形は userView が onUserSend で確かめて覚える（形が違えば覚えないだけで、送るのは断らない）
