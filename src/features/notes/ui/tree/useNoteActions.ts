@@ -1,3 +1,4 @@
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { NOTE_KIND_EXTENSIONS, noteExtensionOf, newHtmlNote, type NoteKind } from "@shared/notes/kinds";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
 import { notesApi } from "@/features/notes/ui/api";
@@ -112,7 +113,7 @@ export function useNoteActions(
   const trash = async (path: string, dir: boolean) => {
     const ok = await confirm({
       title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
-      message: dir ? "中のノートもすべてゴミ箱に入ります。Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。" : "Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。",
+      message: dir ? `中のノートもすべてゴミ箱に入ります。Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。` : `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -179,7 +180,7 @@ export function useNoteActions(
     if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
     const ok = await confirm({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
-      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のノートもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のノートもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });

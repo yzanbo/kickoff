@@ -2,4 +2,4 @@
 import { TrashTab } from "@/features/trash/ui";
 import type { ProjectViewContext } from "./projectViews";
 
-export const TrashViewPage = ({ project }: ProjectViewContext) => <TrashTab key={project.id} projectId={project.id} />;
+export const TrashViewPage = ({ project }: ProjectViewContext) => <TrashTab key={project.id} projectId={project.id} repoPath={project.repo_path} />;

@@ -1,8 +1,9 @@
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { OrphanSession } from "@shared/trash/types";
 import { formatBytes } from "@shared/foundation/text/bytes";
-import { api } from "@/foundation/ui/api";
+import { orphanSessionsApi } from "./api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { confirm } from "@/foundation/ui/kit/ask";
@@ -20,7 +21,7 @@ export function OrphanSessions() {
   const pickedSize = useMemo(() => (list ?? []).filter((s) => picked.has(s.session_id)).reduce((sum, s) => sum + s.size, 0), [list, picked]);
   const search = () =>
     run("search", async () => {
-      setList(await api.orphanSessions());
+      setList(await orphanSessionsApi("GET /api/orphan-sessions"));
       setPicked(new Set());
     });
   const toggle = (id: string) =>
@@ -34,14 +35,14 @@ export function OrphanSessions() {
     run("trash", async () => {
       const ok = await confirm({
         title: `会話記録 ${picked.size} 件（${formatBytes(pickedSize)}）をゴミ箱に入れますか？`,
-        message: "3 日はゴミ箱から戻せ、3 日たつと本当に消えます。ターミナルで直接使った Claude Code の記録も一覧に出るので、続けたいものは選ばないでください。",
+        message: `${TRASH_KEEP_DAYS} 日はゴミ箱から戻せ、${TRASH_KEEP_DAYS} 日たつと本当に消えます。ターミナルで直接使った Claude Code の記録も一覧に出るので、続けたいものは選ばないでください。`,
         confirmLabel: "ゴミ箱に入れる",
         danger: true,
       });
       if (!ok) return;
-      const result = await api.trashOrphanSessions([...picked]);
+      const result = await orphanSessionsApi("POST /api/orphan-sessions/trash", { body: { session_ids: [...picked] } });
       showToast(`会話記録 ${result.trashed} 件をゴミ箱に入れました（作業フォルダのプロジェクトの「ゴミ箱」、なければ下の「プロジェクトのないもの」から戻せます）`);
-      setList(await api.orphanSessions());
+      setList(await orphanSessionsApi("GET /api/orphan-sessions"));
       setPicked(new Set());
     });
   const total = (list ?? []).reduce((sum, s) => sum + s.size, 0);

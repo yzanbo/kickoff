@@ -8,7 +8,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { ProjectMark } from "@/features/projects/ui/ProjectMark";
-import { useTrashedProjects } from "@/features/trash/ui/stores/trash";
+import { useTrashedProjects } from "@/features/trash/ui";
 import { openSettings } from "@/features/settings/ui";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */

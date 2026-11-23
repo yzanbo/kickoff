@@ -8,8 +8,9 @@ Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる
 |---|---|
 | `core/service.ts` | `TrashService`（入れる `putPath` / `addRecord`・種類ごとの戻す・消す `registerKind(def)`・本当に消す `purge`）。覚え書きは表 `trash_items`（`details` は種類ごとの形 `TrashDetailsByKind`） |
 | `core/command.ts` | AI の kickoff-trash（自分で置き場に書き、`importInbox` が取り込む） |
-| `ui/stores/trash.ts`・`ui/api/trash.ts` | 一覧の店（プロジェクトごと・ゴミ箱のプロジェクト・どこにも出ないもの）・API |
-| `ui/TrashTab.tsx`・`ui/TrashSettings.tsx` | プロジェクトの「ゴミ箱」タブ・設定の「ゴミ箱と整理」（使っていない会話記録は `@/features/chat/ui/trash/OrphanSessions.tsx`） |
+| `ui/stores/trash.ts`・`ui/api.ts` | 一覧の店（プロジェクトごと・ゴミ箱のプロジェクト・どこにも出ないもの）・`trashApi` |
+| `ui/TrashTab.tsx`・`ui/TrashRow.tsx`・`ui/points.ts` | プロジェクトの「ゴミ箱」タブ・1 行（アイコンと「誰が消したか」は種類の持ち主が `trashKinds` に登録） |
+| `ui/TrashSettings.tsx` | 設定の「ゴミ箱と整理」（中身は `settingsItems` の `section: "trash"`。プロジェクトは projects、整理と会話記録は chat が入れる） |
 | `ui/TrashMarkRows.tsx` | コマンドの出力の下の［元に戻す］（印の読み方は `@shared/trash/marks`） |
 | `ui/trashActions.ts`・`ui/trashText.ts` | 戻す・完全に消す・消した直後の知らせ `showTrashedToast`・残り時間と確認の文 |
 

@@ -13,7 +13,6 @@ import { groupsApi } from "@/features/groups/ui/api/groups";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { settingsApi } from "@/features/settings/ui/api/settings";
-import { trashApi } from "@/features/trash/ui/api/trash";
 import { turnsApi } from "@/features/chat/ui/api/turns";
 import { uploadsApi } from "@/features/attachments/ui/api/uploads";
 import { voiceApi } from "@/features/voice/ui/api/voice";
@@ -36,7 +35,6 @@ export const api = {
   ...voiceApi,
   ...githubApi,
   ...ciApi,
-  ...trashApi,
 };
 
 export { ApiError } from "./http";

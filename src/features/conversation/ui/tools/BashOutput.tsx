@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trashMarksIn } from "@shared/trash/marks";
 import { HighlightedCode } from "@/foundation/ui/kit/HighlightedCode";
-import { TrashMarkRows } from "@/features/trash/ui/TrashMarkRows";
+import { TrashMarkRows } from "@/features/trash/ui";
 import { clipLines, parseBashResult } from "./bashResult";
 import { outputLanguage } from "./toolResultParse";
 

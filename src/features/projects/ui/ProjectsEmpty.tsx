@@ -1,7 +1,8 @@
 import { FolderGit2, FolderInput, FolderSearch, Inbox, LayoutGrid, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { href } from "@/foundation/ui/navigation/router";
 import { EmptyState } from "@/foundation/ui/kit/EmptyState";
-import { useTrashedProjects } from "@/features/trash/ui/stores/trash";
+import { useTrashedProjects } from "@/features/trash/ui";
 import { openSettings } from "@/features/settings/ui";
 import { useVisibleProjects } from "./useVisibleProjects";
 import { ProjectMark } from "./ProjectMark";
@@ -83,7 +84,7 @@ export function NoProjectsWelcome({ archived = 0, forNewChat = false, onPick }: 
       {archived > 0 && <p className="empty-state-note">アーカイブしたプロジェクトが {archived} 件あります（サイドバーの見出しの「アーカイブ」で表示して戻せます）。</p>}
       {trashed > 0 && (
         <p className="empty-state-note">
-          ゴミ箱にプロジェクトが {trashed} 件あります（削除してから 3 日は戻せます）。{" "}
+          ゴミ箱にプロジェクトが {trashed} {`件あります（削除してから ${TRASH_KEEP_DAYS} 日は戻せます）。`}{" "}
           <button
             type="button"
             className="link-button"

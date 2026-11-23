@@ -1,5 +1,5 @@
 // ゴミ箱の一覧の文（純粋な関数）
-import type { TrashKind } from "@shared/trash/types";
+import { TRASH_KEEP_DAYS, type TrashKind } from "@shared/trash/types";
 
 /** 消えるまでの残り（「あと 2 日 5 時間」「あと 3 時間」「あと 12 分」） */
 export function remainingText(expiresAt: string, now = Date.now()): string {
@@ -22,5 +22,5 @@ const PURGE_EXTRAS: Partial<Record<TrashKind, string>> = {
 /** 完全に消す前の確かめの文（1 件なら種類ごとに一緒に消えるもの、いくつもなら入っている種類の分を添える） */
 export function purgeMessage(kinds: readonly TrashKind[]): string {
   const extras = [...new Set(kinds)].flatMap((kind) => PURGE_EXTRAS[kind] ?? []);
-  return ["3 日を待たずに、いますぐ消します。元に戻せません。", ...extras].join("");
+  return [`${TRASH_KEEP_DAYS} 日を待たずに、いますぐ消します。元に戻せません。`, ...extras].join("");
 }

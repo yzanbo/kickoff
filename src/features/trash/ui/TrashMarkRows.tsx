@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { TrashMark } from "@shared/trash/marks";
-import { api, ApiError } from "@/foundation/ui/api";
+import { ApiError } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
+import { trashApi } from "./api";
 import { restoreFromTrash } from "./trashActions";
 import { remainingText } from "./trashText";
 
@@ -27,7 +29,7 @@ function TrashMarkRow({ mark, active, rel }: { mark: TrashMark; active: boolean;
   const [restored, setRestored] = useState(false);
   const { busy, run } = useAction();
   const label = mark.origin.split("/").pop() || mark.origin;
-  const query = useQuery(["TrashMarkRow", mark.id], () => api.trashItem(mark.id), { enabled: active && !restored });
+  const query = useQuery(["TrashMarkRow", mark.id], () => trashApi("GET /api/trash/:itemId", { params: { itemId: mark.id } }), { enabled: active && !restored });
   const gone = !restored && query.error instanceof ApiError && query.error.status === 404;
   const failed = !restored && !gone && query.error ? errorText(query.error) : null;
   const item = restored ? undefined : query.data;
@@ -38,7 +40,7 @@ function TrashMarkRow({ mark, active, rel }: { mark: TrashMark; active: boolean;
         ゴミ箱に入れました: <span className="trash-mark-path">{rel(mark.origin)}</span>
       </span>
       {item && <span className="trash-mark-note muted">{remainingText(item.expires_at)}</span>}
-      {gone && <span className="trash-mark-note muted">もうゴミ箱にありません（戻したか、3 日たって消えました）</span>}
+      {gone && <span className="trash-mark-note muted">{`もうゴミ箱にありません（戻したか、${TRASH_KEEP_DAYS} 日たって消えました）`}</span>}
       {failed && (
         <>
           <span className="trash-mark-note muted">ゴミ箱にあるか確かめられませんでした: {failed}</span>

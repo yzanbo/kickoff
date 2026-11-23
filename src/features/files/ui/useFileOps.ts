@@ -1,3 +1,4 @@
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { useState, type MouseEvent } from "react";
 import { baseName } from "@/foundation/ui/lib/format";
 import { showToast } from "@/foundation/ui/kit/toast";
@@ -113,7 +114,7 @@ export function useFileOps(
     const unsaved = selection.dirtyUnder(path) !== null;
     const ok = await confirm({
       title: dir ? `フォルダー「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
-      message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
+      message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -135,7 +136,7 @@ export function useFileOps(
     const unsaved = targets.some((n) => selection.dirtyUnder(n.path) !== null);
     const ok = await confirm({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
-      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダーの中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダーの中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -150,7 +151,7 @@ export function useFileOps(
       }
     }
     void git.refresh();
-    if (failed.length < targets.length) showToast(`${targets.length - failed.length} 件をゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
+    if (failed.length < targets.length) showToast(`${targets.length - failed.length} 件をゴミ箱に入れました（${TRASH_KEEP_DAYS} 日はプロジェクトの「ゴミ箱」から戻せます）`);
     if (failed.length > 0) await alert("ゴミ箱に入れられなかったものがあります", failed.join("\n"));
   };
 

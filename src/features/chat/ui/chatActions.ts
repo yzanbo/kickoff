@@ -1,3 +1,4 @@
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import type { Chat } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
 import { chatTitle } from "./chatTitle";
@@ -7,7 +8,7 @@ import { knownDescendantCount } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
 import { parse } from "@/foundation/ui/navigation/router";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { showTrashedToast } from "@/features/trash/ui/trashActions";
+import { showTrashedToast } from "@/features/trash/ui";
 
 /** 子チャットがあれば、アーカイブ・戻す・削除の確かめに添える文（子孫も一緒に扱う） */
 function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "delete"): string {
@@ -103,8 +104,8 @@ export async function confirmDeleteChats(target: Pick<Chat, "id" | "title"> | re
   const ok = await confirm({
     title: one ? `チャット「${chatTitle(one.title)}」を削除しますか？` : `${chats.length} 件のチャットを削除しますか？`,
     message: one
-      ? `Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（3 日たつと会話の記録・添付ごと消えます）。${childNote(one, "delete")}残しておきたいときはアーカイブを使ってください。`
-      : "Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（3 日たつと会話の記録・添付ごと消えます）。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
+      ? `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（${TRASH_KEEP_DAYS} 日たつと会話の記録・添付ごと消えます）。${childNote(one, "delete")}残しておきたいときはアーカイブを使ってください。`
+      : `Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間はプロジェクトの「ゴミ箱」から戻せます（${TRASH_KEEP_DAYS} 日たつと会話の記録・添付ごと消えます）。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。`,
     confirmLabel: "削除",
     danger: true,
   }).then((r) => r !== null);
@@ -115,7 +116,7 @@ export async function confirmDeleteChats(target: Pick<Chat, "id" | "title"> | re
     return true;
   }
   await eachChat(chats, "削除", (r) => deleteChat(r.id));
-  showToast(`${chats.length} 件のチャットをゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
+  showToast(`${chats.length} 件のチャットをゴミ箱に入れました（${TRASH_KEEP_DAYS} 日はプロジェクトの「ゴミ箱」から戻せます）`);
   return true;
 }
 

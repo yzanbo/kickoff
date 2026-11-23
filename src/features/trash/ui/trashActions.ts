@@ -1,7 +1,8 @@
 // Kickoff のゴミ箱の操作（元に戻す・3 日を待たずに完全に消す・ゴミ箱に入れた直後の「元に戻す」の知らせ）。プロジェクトの「ゴミ箱」タブ・
 // 会話の中の kickoff-trash の行・ゴミ箱のプロジェクト・ファイル / ノート / チャット / プロジェクトを消したあとの知らせで共通に使う
-import { TRASH_RESTORE_EXISTS, type TrashKind } from "@shared/trash/types";
-import { api, ApiError } from "@/foundation/ui/api";
+import { TRASH_KEEP_DAYS, TRASH_RESTORE_EXISTS, type TrashKind } from "@shared/trash/types";
+import { ApiError } from "@/foundation/ui/api";
+import { trashApi } from "./api";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { purgeMessage } from "./trashText";
@@ -12,14 +13,15 @@ import { purgeMessage } from "./trashText";
  */
 export async function restoreFromTrash(item: { id: string; label: string }, { quiet = false } = {}): Promise<boolean> {
   try {
-    const result = await api.restoreTrash(item.id).catch(async (e: unknown) => {
+    const restore = (rename: boolean) => trashApi("POST /api/trash/:itemId/restore", { params: { itemId: item.id }, body: { rename } });
+    const result = await restore(false).catch(async (e: unknown) => {
       if (!(e instanceof ApiError) || e.code !== TRASH_RESTORE_EXISTS) throw e;
       const ok = await confirm({
         title: `元の場所に「${item.label}」があります`,
         message: "上書きせずに、「名前 2」のような別の名前で戻しますか？",
         confirmLabel: "別の名前で戻す",
       });
-      return ok ? api.restoreTrash(item.id, true) : null;
+      return ok ? restore(true) : null;
     });
     if (!result) return false;
     if (quiet) return true;
@@ -33,12 +35,12 @@ export async function restoreFromTrash(item: { id: string; label: string }, { qu
 
 /** ゴミ箱に入れた直後の知らせ（「元に戻す」で、その場で戻せる） */
 export function showTrashedToast(trashId: string, label: string) {
-  showToast(`「${label}」をゴミ箱に入れました（3 日は元に戻せます）`, { label: "元に戻す", run: () => void restoreFromTrash({ id: trashId, label }) });
+  showToast(`「${label}」をゴミ箱に入れました（${TRASH_KEEP_DAYS} 日は元に戻せます）`, { label: "元に戻す", run: () => void restoreFromTrash({ id: trashId, label }) });
 }
 
 /** まとめてゴミ箱に入れた直後の知らせ（「元に戻す」で、入れたものを順に戻し、戻せた数を知らせる） */
 export function showTrashedManyToast(items: readonly { id: string; label: string }[]) {
-  showToast(`${items.length} 件をゴミ箱に入れました（3 日は元に戻せます）`, {
+  showToast(`${items.length} 件をゴミ箱に入れました（${TRASH_KEEP_DAYS} 日は元に戻せます）`, {
     label: "元に戻す",
     run: async () => {
       let restored = 0;
@@ -53,7 +55,7 @@ export async function purgeFromTrash(item: { id: string; label: string; kind: Tr
   const ok = await confirm({ title: `「${item.label}」を完全に消しますか？`, message: purgeMessage([item.kind]), confirmLabel: "完全に消す", danger: true });
   if (!ok) return false;
   try {
-    await api.purgeTrash(item.id);
+    await trashApi("DELETE /api/trash/:itemId", { params: { itemId: item.id } });
     showToast(`「${item.label}」を完全に消しました`);
     return true;
   } catch (e) {
@@ -71,7 +73,7 @@ export async function emptyTrash(items: readonly { id: string; kind: TrashKind }
   const ok = await confirm({ title, message: purgeMessage(items.map((i) => i.kind)), confirmLabel: "完全に消す", danger: true });
   if (!ok) return false;
   try {
-    const { purged } = await api.purgeTrashItems(items.map((i) => i.id));
+    const { purged } = await trashApi("POST /api/trash/purge", { body: { ids: items.map((i) => i.id) } });
     showToast(`${purged} 件を完全に消しました`);
     return true;
   } catch (e) {

@@ -1,13 +1,13 @@
 // Kickoff のゴミ箱。プロジェクトごとの一覧（プロジェクトの「ゴミ箱」タブ）と、ゴミ箱のプロジェクト・どのプロジェクトにも出ないもの（設定の「ゴミ箱と整理」）。
 // 入れた・戻した・消えたら知らせ（trash）で取り直す。期限（3 日）で消えたものも片付けの知らせで届く
 import type { TrashItem } from "@shared/trash/types";
-import { api } from "@/foundation/ui/api";
+import { trashApi } from "@/features/trash/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useStore } from "@/foundation/ui/store/useStore";
 
 const projectTrashStore = createKeyedStore<number, TrashItem[]>({
-  load: (projectId) => api.projectTrash(projectId),
+  load: (projectId) => trashApi("GET /api/projects/:projectId/trash", { params: { projectId } }),
   // AI の kickoff-trash で入れたものは、コアが一覧を読むときに取り込むので、戻ったときにも取り直す
   refreshOnFocus: true,
   reloadOn: { trash: (e, projectId) => e.project_id === projectId || e.project_id === null },
@@ -15,12 +15,12 @@ const projectTrashStore = createKeyedStore<number, TrashItem[]>({
 });
 
 const trashedProjectsStore = createStore<TrashItem[]>({
-  load: () => api.trashedProjects(),
+  load: () => trashApi("GET /api/trash/projects"),
   reloadOn: { trash: true, project_deleted: true, project: true },
 });
 
 const unassignedTrashStore = createStore<TrashItem[]>({
-  load: () => api.unassignedTrash(),
+  load: () => trashApi("GET /api/trash/unassigned"),
   reloadOn: { trash: (e) => e.project_id === null },
 });
 

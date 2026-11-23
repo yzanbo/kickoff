@@ -1,9 +1,10 @@
+import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { showTrashedToast } from "@/features/trash/ui/trashActions";
+import { showTrashedToast } from "@/features/trash/ui";
 import { useEditedProject } from "./editedProject";
 
 export function DeleteProject() {
@@ -12,7 +13,7 @@ export function DeleteProject() {
   const remove = async () => {
     const ok = await confirm({
       title: `プロジェクト「${project.name}」を削除しますか？`,
-      message: `チャット・グループなどの Kickoff 上の記録ごと Kickoff のゴミ箱に 3 日入り、その間は戻せます（3 日たつと会話の記録・添付ごと消えます）。フォルダとリポジトリ（${project.repo_path}）は削除されません。作業中のチャットがあると削除できません。`,
+      message: `チャット・グループなどの Kickoff 上の記録ごと Kickoff のゴミ箱に ${TRASH_KEEP_DAYS} 日入り、その間は戻せます（${TRASH_KEEP_DAYS} 日たつと会話の記録・添付ごと消えます）。フォルダとリポジトリ（${project.repo_path}）は削除されません。作業中のチャットがあると削除できません。`,
       confirmLabel: "削除",
       danger: true,
     });
@@ -26,9 +27,7 @@ export function DeleteProject() {
   return (
     <section className="section danger-zone">
       <h2>プロジェクトの削除</h2>
-      <p className="muted small">
-        Kickoff 上の記録（チャット・グループなど）をゴミ箱に入れます（3 日は戻せます）。フォルダとリポジトリは削除されないので、あとから取り込み直せます。
-      </p>
+      <p className="muted small">{`Kickoff 上の記録（チャット・グループなど）をゴミ箱に入れます（${TRASH_KEEP_DAYS} 日は戻せます）。フォルダとリポジトリは削除されないので、あとから取り込み直せます。`}</p>
       <button className="btn btn-danger" onClick={() => void remove()}>
         プロジェクトを削除
       </button>
