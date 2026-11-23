@@ -1,8 +1,7 @@
 import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
-import type { GitFileChange, GitStatus } from "@shared/git/types";
-import { api, ApiError, workdirInput } from "@/foundation/ui/api";
+import { ApiError, workdirInput } from "@/foundation/ui/api";
 import { cx } from "@/foundation/ui/lib/cx";
 import { registerUnsaved } from "@/foundation/ui/document/unsaved";
 import { baseName } from "@/foundation/ui/lib/format";
@@ -24,9 +23,7 @@ import { pagePreviewKind } from "./filePreview";
 import { PreviewToggle, WrapToggle } from "./FileViewButtons";
 import { PagePreview } from "./PagePreview";
 import { ReadOnlyCode } from "./ReadOnlyCode";
-import { changeOf } from "@/features/git/ui/diff/sideFile";
-import { useGitBlame } from "@/features/git/ui/useGitBlame";
-import { useQuickDiffBase } from "@/features/git/ui/useQuickDiffBase";
+import { filesGitImpl, useBlame, useQuickDiffBase, type FileChange, type FilesGitStatus } from "./filesGit";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 import { filesApi } from "./api";
 
@@ -40,11 +37,10 @@ interface Props {
   path: string;
   /** 開く行（検索の結果から開いたとき。その行へ移る） */
   line?: number;
-  /** 作業場所の Git の状態（見出しの「変更あり」と、行の横の Git との違いの帯に使う。まだ読んでいなければ undefined） */
-  gitStatus?: GitStatus;
+  /** 作業場所の Git の状態（見出しの「変更あり」・行の横の Git との違いの帯・取り直した回 version） */
+  git: FilesGitStatus;
   /** 差分の「編集」から来たときの差分。編集しながら、その元の中身（ステージ済みなら HEAD、未ステージならステージした中身）を左に並べる */
-  diffBase?: { file: GitFileChange; staged: boolean };
-  version: number;
+  diffBase?: FileChange;
   /** 保存したとき（変更の一覧を取り直す） */
   onSaved?: () => void;
   /** 保存していない変更があるか（別のファイルを開く前に確かめる） */
@@ -74,7 +70,8 @@ interface EditBase {
  * 横幅に入らない行を折り返すかは、見出しのボタン・エディタの中の ⌥Z で切り替える（storage.ts の wordWrap）。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
-export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
+export function FileView({ projectId, repoPath, path, line, git, diffBase, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
+  const { version } = git;
   const target = useWorkplace(projectId); // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const key = `${workplaceKey(target)}:${path}`;
   // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
@@ -99,8 +96,8 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   // 開いたときだけ（同じファイル・同じ作業場所の間は FileView が作り直されない）
   const readOriginal = useEffectEvent((isAlive: () => boolean) => {
     if (!diffOf) return;
-    api.gitOriginal(target, diffOf.file, diffOf.staged).then(
-      (o) => isAlive() && setOriginal(o.binary || o.truncated ? null : o.content),
+    filesGitImpl().readOriginal(target, diffOf).then(
+      (text) => isAlive() && setOriginal(text),
       () => isAlive() && setOriginal(null),
     );
   });
@@ -138,9 +135,9 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     if (base && stored !== base) setBase(base);
   }, [base, stored]);
 
-  const change = changeOf(gitStatus, path);
-  const quickDiffBase = useQuickDiffBase({ target, key, gitStatus, change, version, content: base ? (current?.file?.content ?? null) : null });
-  const blame = useGitBlame({ target, key, path, hash: base?.hash ?? null, version, enabled: Boolean(gitStatus?.repo) && change?.file.kind !== "U" });
+  const change = git.changeOf(path);
+  const quickDiffBase = useQuickDiffBase(target, path, git, base ? (current?.file?.content ?? null) : null);
+  const blame = useBlame(target, path, git, base?.hash ?? null);
 
   const changeDirty = (next: boolean) => {
     setDirty(next);
@@ -213,7 +210,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
           className={cx("diff-state", saving.error && "error", dirty && !saving.result && "unsaved")}
           title={base && diffing ? (diffOf?.staged ? "左はコミット（HEAD）の中身。右を編集すると、差分がその場で変わります" : "左はステージした中身（なければコミットの中身）。右を編集すると、差分がその場で変わります") : undefined}
         >
-          {saving.result?.text ?? (dirty ? "● 未保存" : [line !== undefined && `${line} 行目`, gitStatus?.repo && (change ? "変更あり" : "変更なし")].filter(Boolean).join("・"))}
+          {saving.result?.text ?? (dirty ? "● 未保存" : [line !== undefined && `${line} 行目`, git.repo && (change ? "変更あり" : "変更なし")].filter(Boolean).join("・"))}
         </span>
         <span className="spacer" />
         {canOpenExternal() && (

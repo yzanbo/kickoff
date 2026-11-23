@@ -3,7 +3,7 @@ import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { api } from "@/foundation/ui/api";
 import { useQuery } from "@/foundation/ui/query";
 import { open } from "@/foundation/ui/navigation/open";
-import { changeOf } from "@/features/git/ui/diff/sideFile";
+import { filesGitImpl } from "@/features/files/ui/filesGit";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";
 import type { FileLinks } from "./fileLinkContext";
@@ -21,10 +21,9 @@ export type ChatFileLinks = Omit<FileLinks, "showMenu">;
  */
 export function openFileRef(ref: FileRef, place: { projectId: number; worktree?: string }, to: { file: (ref: FileRef) => void; changes: (focus: string) => void }) {
   if (ref.line) return to.file(ref);
-  api.gitStatus(place).then(
-    (status) => (changeOf(status, ref.path) ? to.changes(ref.path) : to.file(ref)),
-    () => to.file(ref),
-  );
+  void filesGitImpl()
+    .hasChange({ projectId: place.projectId, worktree: place.worktree ?? null }, ref.path)
+    .then((changed) => (changed ? to.changes(ref.path) : to.file(ref)));
 }
 
 /**

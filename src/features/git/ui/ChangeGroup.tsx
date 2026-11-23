@@ -11,10 +11,9 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import { FileTree, siblingNameError, type TreeMulti } from "@/features/files/ui/FileTree";
+import { FileTree, siblingNameError, type FileRename, type TreeMulti } from "@/features/files/ui";
 import { buildTree, folderPaths, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { kindMaps } from "./changes/changeMarks";
-import type { FileRename } from "@/features/files/ui/useFileActions";
 
 export type GitAction = "stage" | "unstage" | "discard";
 
@@ -67,7 +66,7 @@ export async function confirmDiscard(paths: string[]): Promise<boolean> {
 export function ChangeGroup({ title, files, staged, tree, selected, onSelect, multi, picked, onAction, rename, fold, onFoldChange }: Props) {
   const { open, closed } = fold;
   const nodes = useMemo(() => (tree ? buildTree({ files: files.map((f) => f.path), ignored: [] }) : []), [tree, files]);
-  const kinds = useMemo(() => kindMaps(files), [files]);
+  const marks = useMemo(() => kindMaps(files), [files]);
   const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
 
   const run = async (action: GitAction, paths: string[]) => {
@@ -118,11 +117,11 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
             selected={selected?.staged === staged ? selected.path : undefined}
             onSelect={(path, newTab) => onSelect({ path, staged }, newTab)}
             multi={multi}
-            kinds={kinds}
+            marks={marks}
             actions={(node) => (node.dir ? buttons(pathsUnder(node), `「${node.name}」の中`) : rowButtons(node.path, node.name))}
             rename={groupRename}
             // 変更の一覧ではファイルだけ（フォルダには変更のないファイルも入っているので）。消したファイルは変えられない
-            canRename={(node) => !node.dir && kinds.files.get(node.path) !== "D"}
+            canRename={(node) => !node.dir && marks.files.get(node.path)?.kind !== "D"}
           />
         ) : (
           <ul className="change-files">

@@ -10,7 +10,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { baseName } from "@/foundation/ui/lib/format";
 import { confirmRemoveWorktree } from "./removeWorktree";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import { useGitStatus } from "@/features/git/ui";
 import { useWorktreeEnv, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { appAddress, removalChecks } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
@@ -31,16 +31,15 @@ const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オ�
 export function WorktreeBar({
   projectId,
   worktree,
-  git,
   onFinished,
 }: {
   projectId: number;
   worktree: string;
-  git: GitStatusController;
   /** 片付けたあと（作業場所を本体に戻す） */
   onFinished: () => void;
 }) {
   const target = { projectId, worktree };
+  const git = useGitStatus(target);
   const env = useWorktreeEnv(projectId, worktree);
   const status = git.status?.repo ? git.status : undefined;
 

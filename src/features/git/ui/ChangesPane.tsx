@@ -15,8 +15,8 @@ import { useCommitActions, type CommitBusy } from "./useCommitActions";
 import { OperationBanner } from "./OperationBanner";
 import { useChangeSelection } from "./useChangeSelection";
 import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
-import type { ChangeGroups, Selection } from "@/features/git/ui/changes/fileSelection";
-import type { FileRename } from "@/features/files/ui/useFileActions";
+import type { ChangeGroups } from "./changes/changeGroups";
+import type { FileRename, Selection } from "@/features/files/ui";
 import type { GitStatusController } from "./useGitStatus";
 
 /**

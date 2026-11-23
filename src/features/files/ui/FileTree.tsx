@@ -1,12 +1,11 @@
 import type { DragEvent, MouseEvent, ReactNode } from "react";
-import type { GitChangeKind } from "@shared/git/types";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
-import { CHANGE_LABELS } from "@/features/git/ui/DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode as RowNode } from "@/foundation/ui/kit/list/tree";
 import { TreeView, type TreeRenaming, type TreeRowAttrs } from "@/foundation/ui/kit/list/TreeView";
 import { newEntryNameError, type TreeNode } from "@/foundation/ui/kit/list/treeModel";
 import { useTree } from "@/foundation/ui/kit/list/useTree";
+import type { ChangeMarks } from "./filesGit";
 import type { FileCreate, FileRename } from "./useFileActions";
 
 /** 選んだいくつかの行の 1 つ（右クリックのメニューに渡す。staged は変更の一覧のどちらのまとまりか。ファイルタブでは持たない） */
@@ -41,7 +40,7 @@ interface Props {
   /** ⌘ / Shift ＋クリックの複数選択（ファイルタブの木・変更の一覧。なければ ⌘クリックは新しいタブ） */
   multi?: TreeMulti;
   /** 変更の記号（ファイルとフォルダ。VS Code と同じく、変更のあるものだけ色を変える） */
-  kinds: { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
+  marks: ChangeMarks;
   /** 行の右に出す操作（ステージ・元に戻すなど。マウスを乗せたときに出す） */
   actions?: (node: TreeNode) => ReactNode;
   /** 名前の変更（行にピントがあるときの Enter・右クリック。canRename が false の行は変えない） */
@@ -88,10 +87,10 @@ function fileRows(nodes: TreeNode[], creating: FileCreate["creating"] | undefine
  * エクスプローラーのフォルダの木（土台の TreeView の上。開いているフォルダの中だけ描く）。
  * 押す・Space で開く / 開閉、Enter で名前の変更（Finder・ノートの木と同じ）、↑↓←→ で行を移る・開閉する
  */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kinds, actions, rename, canRename, create, fileDrag, sticky, label = "ファイル" }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, marks, actions, rename, canRename, create, fileDrag, sticky, label = "ファイル" }: Props) {
   const creating = create?.creating ?? null;
   const { roots, childrenOf, levelOf, nodeOf } = fileRows(nodes, creating);
-  const kindOf = (node: TreeNode) => (node.dir ? kinds.folders.get(node.path) : kinds.files.get(node.path));
+  const markOf = (node: TreeNode) => (node.dir ? marks.folders : marks.files).get(node.path);
   const renamable = (node: TreeNode) => Boolean(rename) && (canRename?.(node) ?? true);
   const activate = (path: string, e: Modifiers) => {
     const node = nodeOf(path);
@@ -135,11 +134,11 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
   const rowProps = (row: { node: FileRow }): TreeRowAttrs => {
     const node = row.node.file;
     if (!node) return {};
-    const kind = kindOf(node);
+    const mark = markOf(node);
     return {
       className: node.ignored ? "ignored" : undefined,
-      "data-kind": kind,
-      title: kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path,
+      "data-kind": mark?.kind,
+      title: mark ? `${node.path}（${mark.label}）` : node.path,
       ...(!node.dir && fileDrag ? fileDrag(node.path) : {}),
       onContextMenu:
         rename && renamable(node)
@@ -167,14 +166,14 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
             </>
           );
         }
-        const kind = kindOf(node);
+        const mark = markOf(node);
         return (
           <>
             <span className="tree-chevron">{row.hasChildren && <Chevron open={row.open} />}</span>
             <FileIcon name={node.name} dir={node.dir} open={row.open} />
             {nameField ?? <span className="tree-name">{node.name}</span>}
             {/* ファイルは記号、フォルダは点（中に変更がある） */}
-            {!nameField && kind && <span className="tree-kind">{node.dir ? "•" : kind}</span>}
+            {!nameField && mark && <span className="tree-kind">{node.dir ? "•" : mark.kind}</span>}
           </>
         );
       }}

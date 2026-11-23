@@ -2,8 +2,8 @@ import type { HTMLAttributes } from "react";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
 import { useMultiSelect } from "@/foundation/ui/hooks/useMultiSelect";
 import type { ChangeFold } from "./ChangeGroup";
-import type { ChangeGroups, Selection } from "@/features/git/ui/changes/fileSelection";
-import type { TreeMulti } from "@/features/files/ui/FileTree";
+import type { ChangeGroups } from "./changes/changeGroups";
+import type { Selection, TreeMulti } from "@/features/files/ui";
 import { buildTree, folderPaths, visibleTreePaths } from "@/foundation/ui/kit/list/treeModel";
 
 /** 選ぶ印（同じファイルがステージ済みと未ステージの両方にあるので、まとまりも入れる） */

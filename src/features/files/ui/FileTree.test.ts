@@ -11,10 +11,10 @@ vi.resetModules();
 const { FileTree } = await import("./FileTree");
 
 const nodes = buildTree({ files: ["src/a.ts", "src/b.ts", "README.md"], ignored: [{ path: "node_modules", dir: true }] });
-const kinds = { files: new Map([["src/a.ts", "M" as const]]), folders: new Map([["src", "M" as const]]) };
+const marks = { files: new Map([["src/a.ts", { kind: "M", label: "変更" }]]), folders: new Map([["src", { kind: "M", label: "変更" }]]) };
 
 test("FileTree: 開いたフォルダの中と変更の記号を描き、無視しているフォルダは開けない行にする", () => {
-  const html = renderToString(createElement(FileTree, { nodes, open: new Set(["src"]), onToggle: () => {}, onSelect: () => {}, kinds, selected: "src/b.ts" }));
+  const html = renderToString(createElement(FileTree, { nodes, open: new Set(["src"]), onToggle: () => {}, onSelect: () => {}, marks, selected: "src/b.ts" }));
   assert.deepEqual([...html.matchAll(/class="tree-name">([^<]+)/g)].map((m) => m[1]), ["node_modules", "src", "a.ts", "b.ts", "README.md"]);
   assert.match(html, /aria-selected="false" data-kind="M" title="src\/a\.ts（変更）"/);
   assert.match(html, /aria-selected="true" title="src\/b\.ts" class="list-item tree-row tree-indent selected"/);
@@ -24,6 +24,6 @@ test("FileTree: 開いたフォルダの中と変更の記号を描き、無視�
 
 test("FileTree: 新しいファイルの名前の欄は、作るフォルダの中のいちばん上に出す", () => {
   const create = { creating: { parent: "src", dir: false }, start: () => {}, submit: () => {}, cancel: () => {} };
-  const html = renderToString(createElement(FileTree, { nodes, open: new Set(["src"]), onToggle: () => {}, onSelect: () => {}, kinds, create }));
+  const html = renderToString(createElement(FileTree, { nodes, open: new Set(["src"]), onToggle: () => {}, onSelect: () => {}, marks, create }));
   assert.match(html, /tree-name">src<.*placeholder="ファイル名".*tree-name">a\.ts</);
 });

@@ -7,7 +7,7 @@ import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
 import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHits";
 import type { ChangesSelection } from "./useFileTabs";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import type { FilesGitStatus } from "./filesGit";
 import type { ProjectSearchController } from "./useProjectSearch";
 import { filesApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
@@ -29,7 +29,7 @@ function replaceMessage(r: ProjectReplaceResult): string {
  * （探したあとで変わった行は置換しない）。すべて置換は確かめてから。開いているファイルに保存していない変更があれば先に保存してもらう。
  * 置換したら探し直し・Git の状態を取り直し、置換する前の中身を覚えて「元に戻す」で戻せる（そのあとほかで変わったファイルは戻さない）
  */
-export function useSearchReplace(projectId: number, { search, selection, git }: { search: ProjectSearchController; selection: ChangesSelection; git: GitStatusController }) {
+export function useSearchReplace(projectId: number, { search, selection, git }: { search: ProjectSearchController; selection: ChangesSelection; git: Pick<FilesGitStatus, "refresh"> }) {
   const target = useWorkplace(projectId);
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<LastReplace | null>(null);

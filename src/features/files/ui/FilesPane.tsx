@@ -8,7 +8,7 @@ import { ListHideButton } from "@/foundation/ui/kit/ListRail";
 import { FileTree, type TreeMulti } from "./FileTree";
 import { folderPaths, parentPath, treePaths, visibleTreePaths } from "@/foundation/ui/kit/list/treeModel";
 import type { FileCreate, FileRename } from "./useFileActions";
-import type { ChangeKinds, GitStatusController } from "@/features/git/ui/useGitStatus";
+import type { ChangeMarks, FilesGitStatus } from "./filesGit";
 import type { useProjectFiles } from "./useProjectFiles";
 
 /**
@@ -23,7 +23,7 @@ export function FilesPane({
   rootName,
   git,
   files,
-  kinds,
+  marks,
   folders,
   selected,
   onSelect,
@@ -33,9 +33,9 @@ export function FilesPane({
   onHideList,
 }: {
   rootName: string;
-  git: GitStatusController;
+  git: Pick<FilesGitStatus, "loading" | "refresh">;
   files: ReturnType<typeof useProjectFiles>;
-  kinds: ChangeKinds;
+  marks: ChangeMarks;
   folders: { open: Set<string>; toggle: (path: string) => void; openAll: () => void; closeAll: () => void };
   /** 選んでいるファイルのパス */
   selected?: string;
@@ -107,7 +107,7 @@ export function FilesPane({
       >
         <ErrorText message={files.error} />
         {files.tree ? (
-          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} multi={multi} kinds={kinds} rename={rename} create={create} fileDrag={fileDrag} sticky label="すべてのファイル" />
+          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} multi={multi} marks={marks} rename={rename} create={create} fileDrag={fileDrag} sticky label="すべてのファイル" />
         ) : (
           !files.error && <p className="muted small changes-empty">読み込み中…</p>
         )}

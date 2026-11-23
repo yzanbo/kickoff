@@ -1,8 +1,7 @@
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { baseName } from "@/foundation/ui/lib/format";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import type { CommitBusy } from "@/features/git/ui/useCommitActions";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { open } from "@/foundation/ui/navigation/open";
 import { navigate, type FileTarget } from "@/foundation/ui/navigation/router";
@@ -12,18 +11,17 @@ import { ListRail } from "@/foundation/ui/kit/ListRail";
 import { peekCodeSearchFocus, subscribeCodeSearchFocus } from "./codeSearchFocus";
 import { WorktreePicker } from "@/foundation/ui/workplace/WorktreePicker";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
-import { ChangesPane } from "@/features/git/ui/ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { openableFolders, parentFolders } from "@/foundation/ui/kit/list/treeModel";
-import { changeSelection, groupsOf, type ChangesView } from "@/features/git/ui/changes/fileSelection";
+import type { ChangesView } from "./tabSelection";
+import { filesGitImpl, useFilesGitStatus } from "./filesGit";
 import { FileTabsContext, type FileTabsEnv } from "./ProjectFileTab";
 import { useFileTabs } from "./useFileTabs";
 import { fileDragProps } from "./fileTabs";
 import { Panel } from "@/features/panel/ui/Panel";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import type { PanelScope } from "@/features/panel/ui";
-import { changeKinds, useGitStatus } from "@/features/git/ui/useGitStatus";
 import { GitInitNotice } from "@/features/projects/ui/GitInitNotice";
 import { useFileActions } from "./useFileActions";
 import { useProjectFiles } from "./useProjectFiles";
@@ -65,18 +63,17 @@ export function EditorTab({
 }) {
   const rootName = baseName(worktree ?? repoPath);
   // Git の変更（一覧と差分。開いている間は一定の間隔でも取り直す。同じ作業場所のタブのバッジとは同じ購読）
-  const git = useGitStatus({ projectId, worktree: worktree ?? null }, { active: true });
-  const { status } = git;
+  const git = useFilesGitStatus({ projectId, worktree: worktree ?? null }, true);
+  const { ChangesPane, changeSelection } = filesGitImpl();
   const selection = useFileTabs(projectId, panelScope ?? projectId);
   const { selected, setSelected } = selection;
   // エクスプローラーで開いているフォルダ（表示を切り替えても残す）
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
   // Git で管理していないフォルダでも、ファイルの一覧と検索は出す（変更だけ Git の案内にする）
-  const files = useProjectFiles(projectId, view === "files" && Boolean(status), git.version);
-  const kinds = useMemo(() => changeKinds(status), [status]);
+  const files = useProjectFiles(projectId, view === "files" && git.repo !== null, git.version);
   const search = useProjectSearch(projectId);
   // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
-  const gitAction = useAction<CommitBusy>();
+  const gitAction = useAction();
   // ファイル・フォルダの操作（ファイルタブ・変更タブの Enter・右クリック。新しいファイル・ゴミ箱はファイルタブだけ）。フォルダの名前を変えたら、開いていたフォルダも付け替える
   const { rename, create, menuElement: fileMenu } = useFileActions(projectId, {
     root: worktree ?? repoPath,
@@ -93,7 +90,7 @@ export function EditorTab({
       navigate({ name: "project", id: projectId, tab: "search" });
     },
     // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
-    openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection({ path, staged }, groupsOf(git.status)), true),
+    openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection(git, { path, staged }), true),
     openInFilesTab: (path) => open({ kind: "file", projectId, path, worktree }),
     gitRun: (action, paths) => void gitAction.guard(() => git.act(action, paths)),
   });
@@ -123,14 +120,12 @@ export function EditorTab({
     if (openFile) revealOpenFile(openFile.path, openFile.line);
   }, [openFile]);
 
-  if (!status) {
+  if (git.repo === null) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
   }
-  if (!status.repo && view === "changes") return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
+  if (!git.repo && view === "changes") return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
-  const groups = groupsOf(status);
-  const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
-  const env: FileTabsEnv = { projectId, repoPath, git, groups, open: (next) => void setSelected(next) };
+  const env: FileTabsEnv = { projectId, repoPath, git, open: (next) => void setSelected(next) };
   const folders = {
     open: openFolders,
     toggle: (path: string) =>
@@ -150,7 +145,7 @@ export function EditorTab({
     <div className="changes-bar">
       <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
       {/* ワークツリーの作業の流れ（PR を作る・PR の状態・マージされたら片付ける） */}
-      {worktree && <WorktreeBar projectId={projectId} worktree={worktree} git={git} onFinished={() => onWorktreeChange(undefined)} />}
+      {worktree && <WorktreeBar projectId={projectId} worktree={worktree} onFinished={() => onWorktreeChange(undefined)} />}
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
       {listHidden ? (
@@ -170,7 +165,7 @@ export function EditorTab({
             rootName={rootName}
             git={git}
             files={files}
-            kinds={kinds}
+            marks={git.marks}
             folders={folders}
             selected={selected?.path}
             onSelect={(path, newTab) => void setSelected({ path }, newTab)}
@@ -180,19 +175,7 @@ export function EditorTab({
             onHideList={hideList}
           />
         ) : (
-          status.repo && (
-            <ChangesPane
-              status={status}
-              git={git}
-              groups={groups}
-              empty={empty}
-              action={gitAction}
-              selected={selected}
-              onSelect={(next, newTab) => void setSelected(changeSelection(next, groups), newTab)}
-              rename={rename}
-              onHideList={hideList}
-            />
-          )
+          <ChangesPane status={git} action={gitAction} selected={selected} onSelect={(next, newTab) => void setSelected(next, newTab)} rename={rename} onHideList={hideList} />
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />

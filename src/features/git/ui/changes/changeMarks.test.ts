@@ -18,9 +18,9 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
     conflicts: [{ path: "docs/x.md", kind: "!" }],
     operation: null,
   });
-  assert.equal(files.get("src/a.ts"), "M");
-  assert.equal(files.get("src/lib/new.ts"), "U");
-  assert.equal(folders.get("src"), "M");
-  assert.equal(folders.get("src/lib"), "U");
-  assert.equal(folders.get("docs"), "!");
+  assert.deepEqual(files.get("src/a.ts"), { kind: "M", label: "変更" });
+  assert.equal(files.get("src/lib/new.ts")?.kind, "U");
+  assert.equal(folders.get("src")?.kind, "M");
+  assert.equal(folders.get("src/lib")?.kind, "U");
+  assert.equal(folders.get("docs")?.kind, "!");
 });

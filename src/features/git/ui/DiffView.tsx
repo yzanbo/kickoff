@@ -13,9 +13,6 @@ import { workplaceKey } from "@/foundation/ui/workplace/workplace";
 import { gitApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
 
-/** files の FileTree が読む変更の種類の名前（files ⇄ git の口 filesGit を作る P8-1g で消す） */
-export { GIT_CHANGE_LABELS as CHANGE_LABELS } from "@shared/git/labels";
-
 /** 読み込んだ差分（まだ読み込んでいなければ undefined） */
 export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined } | undefined;
 

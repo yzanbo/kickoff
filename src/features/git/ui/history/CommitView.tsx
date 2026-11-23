@@ -17,7 +17,7 @@ import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
 import { DiffView } from "@/features/git/ui/DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import { FileTree } from "@/features/files/ui/FileTree";
+import { FileTree } from "@/features/files/ui";
 import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
 import { kindMaps } from "@/features/git/ui/changes/changeMarks";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
@@ -71,7 +71,7 @@ export function CommitView({
   useEffect(() => setFile(detail?.files[0]), [detail]);
   const files = useMemo(() => detail?.files ?? [], [detail]);
   const nodes = useMemo(() => buildTree({ files: files.map((f) => f.path), ignored: [] }), [files]);
-  const kinds = useMemo(() => kindMaps(files), [files]);
+  const marks = useMemo(() => kindMaps(files), [files]);
   // 木で閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
   const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
@@ -159,7 +159,7 @@ export function CommitView({
                   }
                   selected={file?.path}
                   onSelect={(path) => setFile(files.find((f) => f.path === path))}
-                  kinds={kinds}
+                  marks={marks}
                 />
               )}
             </div>

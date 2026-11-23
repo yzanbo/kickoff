@@ -6,9 +6,8 @@ import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { FileView } from "./FileView";
 import { setFileTabDirty } from "./fileTabs";
-import { changeOf } from "@/features/git/ui/diff/sideFile";
 import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
-import { useGitStatus } from "@/features/git/ui/useGitStatus";
+import { useFilesGitStatus } from "./filesGit";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 
 interface Props {
@@ -41,9 +40,9 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const tabKey = tabOf?.tabKey;
   useEffect(() => (panelKey && tabKey ? () => setFileTabDirty(panelKey, tabKey, false) : undefined), [panelKey, tabKey]);
   const { projectsById } = useProjects();
-  const git = useGitStatus({ projectId, worktree: worktree ?? null });
+  const git = useFilesGitStatus({ projectId, worktree: worktree ?? null }, false);
   const links = useContext(FileLinkContext);
-  const changed = changeOf(git.status, path) !== undefined;
+  const changed = git.changeOf(path) !== null;
   const ref = { path, ...(line ? { line } : {}) };
   const repoPath = projectsById.get(projectId)?.repo_path ?? "";
   const codeMenu = useCodeQuoteMenu(worktree ?? (repoPath || undefined));
@@ -72,8 +71,7 @@ function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
         repoPath={repoPath}
         path={path}
         line={line}
-        gitStatus={git.status}
-        version={git.version}
+        git={git}
         onSaved={() => void git.refresh()}
         onDirtyChange={panelKey && tabKey ? (dirty) => setFileTabDirty(panelKey, tabKey, dirty) : undefined}
       />

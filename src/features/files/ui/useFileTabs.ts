@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { mapTabs, usePanel, type PanelScope } from "@/features/panel/ui";
-import type { Selection } from "@/features/git/ui/changes/fileSelection";
+import type { Selection } from "./tabSelection";
 import { isUnder, remapPrefix } from "@shared/foundation/path";
 import { dirtyFilePaths, dirtyFileUnder, fileTabOf, openFileTab, selectionOf, setFileTabDirty } from "./fileTabs";
 

@@ -3,7 +3,6 @@ import * as monaco from "./monacoEditor";
 import type { EditorCursor } from "@/foundation/ui/lib/viewDetails";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { GitBlame } from "@shared/git/types";
 import { useAppliedTheme } from "@/foundation/ui/hooks/useAppliedTheme";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
@@ -14,7 +13,7 @@ import { quickDiffDecorations, readSelection } from "./codeEditorParts";
 import { MonacoFindBar } from "./MonacoFindBar";
 import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "@/foundation/ui/diff/DiffTable";
-import { blameAt, blameHover, blameLabel } from "@/features/git/ui/blameText";
+import type { BlameLines } from "./filesGit";
 import { quickDiff } from "@/foundation/ui/diff/quickDiff";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
@@ -64,7 +63,7 @@ interface Props {
   /** 開いたらピントを置く（差分の「編集」から来たとき。ふだんはチャット欄などのピントを奪わない） */
   autoFocus?: boolean;
   /** 行ごとの変更の記録（いまの行の右に、いつ誰が変えたかを出す。null なら出さない） */
-  blame?: GitBlame | null;
+  blame?: BlameLines | null;
 }
 
 /**
@@ -184,7 +183,7 @@ export default function CodeEditor({
     const blameDecorations = editor.createDecorationsCollection();
     const paintBlame = () => {
       const position = editor.getPosition();
-      const commit = position && model.getValue() === saved.current ? blameAt(blameRef.current, position.lineNumber, model.getLineCount()) : null;
+      const commit = position && model.getValue() === saved.current ? (blameRef.current?.at(position.lineNumber, model.getLineCount()) ?? null) : null;
       if (!position || !commit) return blameDecorations.clear();
       const column = model.getLineMaxColumn(position.lineNumber);
       blameDecorations.set([
@@ -193,8 +192,8 @@ export default function CodeEditor({
           options: {
             // 幅のない範囲の差し込みの文字は、showIfCollapsed がないと描かれない
             showIfCollapsed: true,
-            after: { content: `\u2003${blameLabel(commit)}`, inlineClassName: "blame-inline", cursorStops: monaco.editor.InjectedTextCursorStops.None },
-            hoverMessage: { value: blameHover(commit) },
+            after: { content: `\u2003${commit.label}`, inlineClassName: "blame-inline", cursorStops: monaco.editor.InjectedTextCursorStops.None },
+            hoverMessage: { value: commit.hover },
           },
         },
       ]);

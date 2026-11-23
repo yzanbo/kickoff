@@ -7,7 +7,7 @@ import { choose } from "@/foundation/ui/kit/ask";
 import { startDragGhost } from "@/foundation/ui/kit/dragGhost";
 import { beginExternalTabDrag, endExternalTabDrag, EXTERNAL_TAB_MIME } from "@/features/panel/ui/layout/externalTabDrag";
 import { useCallback, useSyncExternalStore, type DragEvent } from "react";
-import type { Selection } from "@/features/git/ui/changes/fileSelection";
+import type { Selection } from "./tabSelection";
 
 export type FileTab = Extract<PanelTab, { kind: "projectFile" }>;
 

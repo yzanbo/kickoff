@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { storage } from "./storage";
-import { FileTree } from "@/features/files/ui/FileTree";
+import { FileTree } from "@/features/files/ui";
 import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
 import { kindMaps } from "@/features/git/ui";
 import { pullFileChanges } from "./pullFiles";
@@ -12,7 +12,7 @@ import { pullFileChanges } from "./pullFiles";
 export function GitHubPullFileTree({ files, selected, onSelect }: { files: GitHubPullFile[]; selected: string | null; onSelect: (path: string) => void }) {
   const changes = useMemo(() => pullFileChanges(files), [files]);
   const nodes = useMemo(() => buildTree({ files: changes.map((c) => c.path), ignored: [] }), [changes]);
-  const kinds = useMemo(() => kindMaps(changes), [changes]);
+  const marks = useMemo(() => kindMaps(changes), [changes]);
   // 閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
   const open = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
@@ -33,7 +33,7 @@ export function GitHubPullFileTree({ files, selected, onSelect }: { files: GitHu
           }
           selected={selected ?? undefined}
           onSelect={onSelect}
-          kinds={kinds}
+          marks={marks}
         />
       </aside>
       <div className="pane-resizer" aria-label="ファイルの木の幅を変える" {...width.handle} />

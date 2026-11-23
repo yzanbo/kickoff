@@ -9,11 +9,10 @@ import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
-import { confirmDiscard, type GitAction } from "@/features/git/ui/ChangeGroup";
 import type { PickedEntry } from "./FileTree";
 import { joinTreePath, parentPath, topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
 import type { ChangesSelection } from "./useFileTabs";
-import type { GitStatusController } from "@/features/git/ui/useGitStatus";
+import { filesGitImpl, type FileGitAction, type FilesGitStatus } from "./filesGit";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";
 import { filesApi } from "./api";
 import { workdirInput } from "@/foundation/ui/api/workdir";
@@ -74,7 +73,7 @@ export function useFileActions(
     /** ファイルタブ（エクスプローラー）の右クリックか（新しいファイル・ゴミ箱を出す） */
     explorer: boolean;
     selection: ChangesSelection;
-    git: GitStatusController;
+    git: Pick<FilesGitStatus, "refresh">;
     onMoved?: (from: string, to: string) => void;
     /** そのフォルダーとその上を開く（名前の欄・作ったものを見せる） */
     onReveal?: (folder: string) => void;
@@ -84,7 +83,7 @@ export function useFileActions(
     /** 変更の一覧から、プロジェクトのファイルタブに移って実際のファイルを開く */
     openInFilesTab: (path: string) => void;
     /** 変更の一覧で選んだもののステージ・ステージの取り消し・元に戻す */
-    gitRun: (action: GitAction, paths: string[]) => void;
+    gitRun: (action: FileGitAction, paths: string[]) => void;
   },
 ) {
   const target = useWorkplace(projectId);
@@ -181,8 +180,8 @@ export function useFileActions(
   };
 
   /** 変更の一覧で選んだもののステージ・取り消し・元に戻す（元に戻すは確かめてから） */
-  const runGitMany = async (action: GitAction, paths: string[]) => {
-    if (action === "discard" && !(await confirmDiscard(paths))) return;
+  const runGitMany = async (action: FileGitAction, paths: string[]) => {
+    if (action === "discard" && !(await filesGitImpl().confirmDiscard(paths))) return;
     gitRun(action, paths);
   };
 
@@ -285,7 +284,7 @@ function ManyMenu({
   absolute: (path: string) => string;
   onClose: () => void;
   openTab: (path: string, staged?: boolean) => void;
-  onGit: (action: GitAction, paths: string[]) => void;
+  onGit: (action: FileGitAction, paths: string[]) => void;
   onTrash: (entries: PickedEntry[]) => void;
 }) {
   const files = many.filter((n) => !n.dir);
