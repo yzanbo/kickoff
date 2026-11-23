@@ -87,18 +87,22 @@ export class NoteService {
 
   /**
    * プロジェクトのノートのフォルダ（このプロジェクトだけ別の場所にしていればそこ、なければ親フォルダの下のフォルダ）。
-   * フォルダ名をまだ決めていなければ、プロジェクト名から決めて覚える（ほかのプロジェクトのフォルダ名とは重ねない）
+   * フォルダ名をまだ決めていなければ、決めるならこうなる名前で返す（読むだけでは覚えない。覚えるのは書く前の ensureNoteDir）
    */
   dirOf(project: Project): string {
     if (project.note_dir) return expandHome(project.note_dir);
-    let folder = project.note_folder;
-    if (!folder) {
-      // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに、2 つのプロジェクトが同じノートのフォルダを指さないように）
-      folder = projectNoteFolder(project.name, [...this.opts.store.projects.list(), ...this.opts.store.projects.trashed()], project.id);
-      this.opts.store.projects.update(project.id, { note_folder: folder });
-    }
-    return path.join(this.rootDir(), folder);
+    return path.join(this.rootDir(), project.note_folder ?? this.plannedFolder(project));
   }
+
+  /** 書く前に（ノートを作る・書く・動かす・ゴミ箱へ・チャットの実行）: フォルダ名をまだ決めていなければ、プロジェクト名から決めて覚え、フォルダを返す */
+  ensureNoteDir(project: Project): string {
+    const current = this.opts.store.projects.get(project.id) ?? project;
+    if (!current.note_dir && !current.note_folder) this.opts.store.projects.update(current.id, { note_folder: this.plannedFolder(current) });
+    return this.dirOf(this.opts.store.projects.get(project.id) ?? current);
+  }
+
+  /** まだ決めていないフォルダ名（ほかのプロジェクトのフォルダ名と重ねない。ゴミ箱のものとも = 戻したときに 2 つが同じフォルダを指さないように） */
+  private plannedFolder = (p: Project) => projectNoteFolder(p.name, [...this.opts.store.projects.list(), ...this.opts.store.projects.trashed()], p.id);
 
   /** フォルダとファイルの一覧（隠しファイル・リンクは除く。フォルダがまだなければ空） */
   async list(project: Project): Promise<NoteList> {
@@ -160,7 +164,7 @@ export class NoteService {
 
   /** ノートを保存する（開いたときの指紋 baseHash といまの中身が違えば 409。null なら上書き） */
   async write(project: Project, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
-    const saved = await noteFiles(await this.existingDir(project)).write(file, content, baseHash);
+    const saved = await noteFiles(await this.existingDir(project, true)).write(file, content, baseHash);
     this.changed(project, file);
     return saved;
   }
@@ -168,7 +172,7 @@ export class NoteService {
   /** 新しいノート・フォルダを作る（同じ名前があれば 409。途中のフォルダも作る。いまある途中のフォルダのリンクが外を指せば 400） */
   async create(project: Project, file: string, kind: { dir: boolean; content?: string }): Promise<NoteRef> {
     // ノートのフォルダがまだなければ作る
-    const dir = this.dirOf(project);
+    const dir = this.ensureNoteDir(project);
     await fs.mkdir(dir, { recursive: true });
     await noteFiles(dir).create(file, kind);
     this.changed(project, file);
@@ -177,7 +181,7 @@ export class NoteService {
 
   /** 名前を変える・ほかのフォルダへ動かす（行き先に同じ名前があれば 409） */
   async move(project: Project, from: string, to: string): Promise<NoteRef> {
-    await noteFiles(await this.existingDir(project)).move(from, to);
+    await noteFiles(await this.existingDir(project, true)).move(from, to);
     // ノートのチャットも新しい名前へ付け替える（フォルダなら中のノートのものも）
     this.opts.store.chats.remapNotePath(project.id, from, to);
     // DB の接続の手順ノートも付け替える
@@ -188,7 +192,7 @@ export class NoteService {
 
   /** Kickoff のゴミ箱へ入れる（3 日は元に戻せる）。入れたゴミ箱の ID を返す（画面の「元に戻す」） */
   async trash(project: Project, file: string): Promise<string> {
-    const files = noteFiles(await this.existingDir(project));
+    const files = noteFiles(await this.existingDir(project, true));
     const item = await files.trash(file, (target) => this.opts.trashBin.putPath(target, { projectId: project.id, details: { note: file } }));
     // ノートのチャットもノートと一緒にゴミ箱へ（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える。作業中のものはそのまま）
     this.opts.trashNoteChats?.(project.id, file, item.id);
@@ -261,9 +265,9 @@ export class NoteService {
     return summary;
   }
 
-  /** ノートのフォルダ（なければ 404） */
-  private async existingDir(project: Project): Promise<string> {
-    const dir = this.dirOf(project);
+  /** ノートのフォルダ（なければ 404。write なら書く前なのでフォルダ名を決めて覚える） */
+  private async existingDir(project: Project, write = false): Promise<string> {
+    const dir = write ? this.ensureNoteDir(project) : this.dirOf(project);
     if (!(await isDirectory(dir))) throw new NotFound("ノートのフォルダがありません");
     return dir;
   }
@@ -274,17 +278,9 @@ export class NoteService {
 }
 
 /** 相対パスの親フォルダ（直下なら ""） */
-function parentOf(file: string): string {
-  const i = file.lastIndexOf("/");
-  return i < 0 ? "" : file.slice(0, i);
-}
+const parentOf = (file: string): string => file.slice(0, Math.max(file.lastIndexOf("/"), 0));
 
-async function isDirectory(dir: string): Promise<boolean> {
-  return fs.stat(dir).then(
-    (s) => s.isDirectory(),
-    () => false,
-  );
-}
+const isDirectory = (dir: string): Promise<boolean> => fs.stat(dir).then((s) => s.isDirectory(), () => false);
 
 /** ノートの書き出し（整理案を作るときに見せる。読めなければ空） */
 async function readHead(file: string): Promise<string> {

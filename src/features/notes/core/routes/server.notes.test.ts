@@ -21,12 +21,19 @@ test("ノートの保存先: 既定は親フォルダの下のプロジェクト
   assert.equal(list.dir, path.join(noteFake.defaultDir, project.name));
   assert.equal(list.exists, false);
   assert.deepEqual(list.entries, []);
+  // 一覧を読むだけでは名前を決めない（チャットを送る・ノートを作るなど書くときに決める）
+  assert.equal(store.projects.get(project.id)?.note_folder, null);
+  assert.equal((await call("GET", `/api/projects/${project.id}/note?path=a.md`)).status, 404);
+  assert.equal(store.projects.get(project.id)?.note_folder, null);
+  assert.equal((await call("POST", `/api/projects/${project.id}/notes`, { path: "a.md" })).status, 201);
+  assert.equal(store.projects.get(project.id)?.note_folder, project.name);
   // 一度決めたフォルダ名は覚える（プロジェクト名を変えても変わらない）
   await call("PATCH", `/api/projects/${project.id}`, { name: "改名" });
   assert.equal(((await call("GET", `/api/projects/${project.id}/notes`)).body as NoteList).dir, list.dir);
   // 同じ名前のほかのプロジェクトは「名前-2」
   const other = store.projects.create({ name: project.name, repo_path: tempDir(), provider: "claude" });
   assert.equal(((await call("GET", `/api/projects/${other.id}/notes`)).body as NoteList).dir, `${list.dir}-2`);
+  await call("POST", `/api/projects/${other.id}/notes`, { path: "b.md" });
   // 名前に空白のあるプロジェクトは空白のままのフォルダ
   const spaced = store.projects.create({ name: "My App", repo_path: tempDir(), provider: "claude" });
   assert.equal(((await call("GET", `/api/projects/${spaced.id}/notes`)).body as NoteList).dir, path.join(noteFake.defaultDir, "My App"));

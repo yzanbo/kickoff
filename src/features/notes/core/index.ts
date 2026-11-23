@@ -47,7 +47,7 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   deps.attachments.addImageDir((p) => notes.dirOf(p));
   deps.attachments.useNoteDir((p) => notes.dirOf(p));
   // チャットの実行に、ノートのフォルダ・「ノート」の節・ノートのチャットの知らせを足す
-  chat.addTurnContributor(noteTurnParts({ dirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }));
+  chat.addTurnContributor(noteTurnParts({ dirOf: (p) => notes.ensureNoteDir(p), publish: (e) => bus.publish(e) }));
   const toolDeps = { store, notes, publish: (e: Parameters<typeof bus.publish>[0]) => bus.publish(e) };
   return {
     name: "notes",
