@@ -2,8 +2,8 @@
 import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
-import type { ChatApi } from "@/features/chat/core/index";
 import type { GuardApi } from "@/features/guard/core/index";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import { DockerCli } from "./cli";
 import { ComposeConfigCache, composeReader, type ComposeReader } from "./compose";
 import type { DockerEngineStarters } from "./engine";
@@ -47,7 +47,7 @@ export interface DockerEnv {
 }
 
 /** Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く） */
-export function createDocker(k: Kernel, deps: { chat: Pick<ChatApi, "store">; guard: Pick<GuardApi, "addRuleSource"> }, env: DockerEnv): CoreFeature<DockerApi & { parts: DockerParts }> {
+export function createDocker(k: Kernel, deps: { projects: Pick<ProjectsApi, "param">; guard: Pick<GuardApi, "addRuleSource"> }, env: DockerEnv): CoreFeature<DockerApi & { parts: DockerParts }> {
   const cli = env.cli ?? new DockerCli();
   const ports = new DockerPorts(k.platform.listeningSockets);
   if (env.portProbe) ports.probe = env.portProbe;
@@ -59,7 +59,7 @@ export function createDocker(k: Kernel, deps: { chat: Pick<ChatApi, "store">; gu
     k.bus.publish({ type: "docker_changed", project_id: projectId });
   };
   const operations = new DockerOperations(lister, ports, changed);
-  const watch = new DockerWatch(lister, (projectIds) => projectIds.forEach(changed));
+  const watch = new DockerWatch(lister, (projectIds) => projectIds.forEach(changed), k.clock);
   const facts = (project: Project, cwd: string) => dockerFacts(lister, project, cwd);
   // ほかの作業場所・プロジェクトの Docker の守りを登録する
   deps.guard.addRuleSource(dockerRuleSource(facts));
@@ -70,5 +70,5 @@ export function createDocker(k: Kernel, deps: { chat: Pick<ChatApi, "store">; gu
     facts,
     parts: { lister, operations, watch },
   };
-  return { name: "docker", api, routes: [{ legacy: (app) => dockerRoutes(app, { store: deps.chat.store, parts: api.parts, bus: k.bus }) }], stop: () => watch.close() };
+  return { name: "docker", api, routes: [dockerRoutes({ projectParam: deps.projects.param, parts: api.parts, bus: k.bus, clock: k.clock })], stop: () => watch.close() };
 }

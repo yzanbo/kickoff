@@ -32,4 +32,5 @@
 - ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
 - ログの色は土台の `ansi/`（`ansiSpans`・`AnsiText`）。CI のタブのログも使う（変えたら CI のログも見る）。
 - 操作の前後・docker events の変化では、覚えた一覧のもとを捨ててから `docker_changed` を出す（`createDocker` の `changed`）。
+- 受け口は取り決め `@shared/docker/contract.ts`（`GET …/docker/db` だけ database）。docker events の貸し出しは土台の `Lease`。
 - テストは `server.docker.test.ts`・database の `server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

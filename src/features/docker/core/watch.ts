@@ -1,6 +1,7 @@
 // Docker タブを見ている間の流れ: docker events（見ている画面があるときだけ。events.ts）と、ログの画面のセッション（logs.ts）
 import type { DockerList, DockerLogEvent } from "@shared/docker/types";
 import type { Project } from "@shared/projects/types";
+import type { Clock } from "@/foundation/core/clock";
 import { DockerEvents } from "./events";
 import type { DockerLister } from "./list";
 import { DockerLogSession } from "./logs";
@@ -12,8 +13,9 @@ export class DockerWatch {
     private readonly lister: DockerLister,
     /** docker events が変化を知らせたとき（見ているプロジェクトへ） */
     changed: (projectIds: number[]) => void,
+    clock: Clock,
   ) {
-    this.events = new DockerEvents(lister.cli, changed);
+    this.events = new DockerEvents(lister.cli, changed, { clock });
   }
 
   /** 見ています（画面が 20 秒ごとに送る）。docker events を立て、今の一覧を返す */

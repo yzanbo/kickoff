@@ -42,7 +42,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 本文は `http/input.ts` の `jsonBody`、クエリは `queryOf` で読み、zod で確かめる（共通の部品は `http/zodParts.ts`）。本文の型は持ち主の `@shared/<機能>/`（乗せていない機能は `apiTypes.ts`）。
 - 送る指示（文・選択・添付）は、新しいチャット・続き・伝える・送信待ちで同じ形。応答は、変えたら変えたあとの資源・作ったら 201・待たずに始めたら 202・返すものがなければ 204。
 - API・SSE の形は 1.0 から「足すだけ」にし、壊すなら `@shared/foundation/api/version` の `API_VERSION` を上げる。下限より古いアプリは認証より前に 426。
-- SSE の JSON は `http/sseData.ts` の `sseDataOf` で知らせごとに 1 回だけ作る。つないだらすぐ hello を送る（書くまで応答ヘッダーが届かない）。`onAbort` は最初の `await` より前に登録する。
+- SSE の JSON は `http/sseData.ts` の `sseDataOf` で知らせごとに 1 回だけ作る。つないだらすぐ hello を送る（書くまで応答ヘッダーが届かない）。受け口は `http/sseStream.ts`。
 - SSE の種類は `@shared/<機能>/events.ts` に足す（端末に届けるなら `access: "device"`）。
 - 図の枠のページ `/visual-frame` は画面の CSP を引き継がないよう別のページにする。画面の配信と HTTP サーバーの止め方は `src/foundation/desktop/CLAUDE.md`。
 

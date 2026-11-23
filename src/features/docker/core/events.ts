@@ -1,7 +1,9 @@
 // docker events は「Docker」タブを見ている画面があるときだけ 1 本立てる（画面が 20 秒ごとに「見ています」を送る貸し出し。
 // どこからも 45 秒届かなければ止める）。変わったら 300ms まとめて知らせる。events が終わったら（エンジンが止まった）5 秒ごとに調べて立て直す
 import type { DockerCli } from "./cli";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { StreamedCommand } from "@/foundation/core/system/stream";
+import { createLease, type Lease } from "@/foundation/core/watch/lease";
 
 /** 「見ています」が届かなくなってから止めるまで */
 const WATCH_LEASE_MS = 45_000;
@@ -13,25 +15,24 @@ const ENGINE_POLL_MS = 5_000;
 const SWEEP_MS = 10_000;
 
 export class DockerEvents {
-  /** プロジェクトの ID → 最後に「見ています」が届いた時刻 */
-  private readonly leases = new Map<number, number>();
+  /** 見ているプロジェクトの ID（最初の 1 つで立て、全部が外れたら止める） */
+  private readonly leases: Lease<number>;
   private stream: StreamedCommand | null = null;
-  private debounce: NodeJS.Timeout | null = null;
-  private sweepTimer: NodeJS.Timeout | null = null;
-  private pollTimer: NodeJS.Timeout | null = null;
-
-  private readonly now: () => number;
+  private debounce: TimerHandle | null = null;
+  private pollTimer: TimerHandle | null = null;
   private readonly enginePollMs: number;
+  private readonly clock: Clock;
 
   constructor(
     private readonly cli: Pick<DockerCli, "stream" | "engineUp">,
     /** 変わったときに、見ているプロジェクトへ知らせる */
     private readonly onChange: (projectIds: number[]) => void,
     /** テストで差し替える（時計・エンジンを調べ直す間隔） */
-    timing: { now?: () => number; enginePollMs?: number } = {},
+    timing: { clock?: Clock; enginePollMs?: number } = {},
   ) {
-    this.now = timing.now ?? Date.now;
+    this.clock = timing.clock ?? systemClock;
     this.enginePollMs = timing.enginePollMs ?? ENGINE_POLL_MS;
+    this.leases = createLease<number>({ ttlMs: WATCH_LEASE_MS, sweepMs: SWEEP_MS, clock: this.clock, onFirst: () => {}, onEmpty: () => this.halt() });
   }
 
   /** いま docker events を受けているか（テストと確かめ用） */
@@ -41,17 +42,8 @@ export class DockerEvents {
 
   /** 見ています（期限を延ばし、止まっていれば立てる） */
   lease(projectId: number) {
-    this.leases.set(projectId, this.now());
-    this.sweepTimer ??= setInterval(() => this.sweep(), SWEEP_MS);
-    this.sweepTimer.unref();
+    this.leases.touch(projectId);
     if (!this.stream && !this.pollTimer) this.start();
-  }
-
-  /** 期限の切れた貸し出しを消し、だれも見ていなければ止める */
-  sweep() {
-    const limit = this.now() - WATCH_LEASE_MS;
-    for (const [id, at] of this.leases) if (at < limit) this.leases.delete(id);
-    if (this.leases.size === 0) this.stop();
   }
 
   private start() {
@@ -61,7 +53,7 @@ export class DockerEvents {
     void stream.done.then(({ stopped }) => {
       if (this.stream !== stream) return;
       this.stream = null;
-      if (stopped || this.leases.size === 0) return;
+      if (stopped || this.leases.active.size === 0) return;
       // エンジンが止まった: 画面に知らせて「Docker が動いていません」を出させ、戻るまで 5 秒ごとに調べる
       this.notify();
       this.poll();
@@ -69,36 +61,40 @@ export class DockerEvents {
   }
 
   private poll() {
-    this.pollTimer = setTimeout(async () => {
+    this.pollTimer = this.clock.setTimeout(async () => {
       this.pollTimer = null;
-      if (this.leases.size === 0) return;
+      if (this.leases.active.size === 0) return;
       if (await this.cli.engineUp()) {
         this.notify();
         this.start();
       } else this.poll();
     }, this.enginePollMs);
-    this.pollTimer.unref();
   }
 
   private schedule() {
     if (this.debounce) return;
-    this.debounce = setTimeout(() => {
+    this.debounce = this.clock.setTimeout(() => {
       this.debounce = null;
       this.notify();
     }, DEBOUNCE_MS);
   }
 
   private notify() {
-    if (this.leases.size) this.onChange([...this.leases.keys()]);
+    if (this.leases.active.size) this.onChange([...this.leases.active]);
   }
 
-  /** 止める（だれも見ていない・コアを閉じる） */
-  stop() {
-    this.leases.clear();
+  /** だれも見ていない: docker events と待ちを止める */
+  private halt() {
     this.stream?.stop();
     this.stream = null;
-    for (const t of [this.debounce, this.pollTimer]) if (t) clearTimeout(t);
-    if (this.sweepTimer) clearInterval(this.sweepTimer);
-    this.debounce = this.pollTimer = this.sweepTimer = null;
+    this.clock.clearTimeout(this.debounce);
+    this.clock.clearTimeout(this.pollTimer);
+    this.debounce = this.pollTimer = null;
+  }
+
+  /** 止める（コアを閉じる。貸し出しを全部返す） */
+  stop() {
+    for (const id of [...this.leases.active]) this.leases.release(id);
+    this.halt();
   }
 }
