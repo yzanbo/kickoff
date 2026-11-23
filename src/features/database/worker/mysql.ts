@@ -85,12 +85,12 @@ const connect = (options: ConnectionOptions) =>
 export async function openMysql(target: DbTarget): Promise<DbDriver> {
   const options = connectionOptions(target);
   const driver = new MysqlDriver(await connect(options), options);
-  if (target.read_only) await driver.run("SET SESSION TRANSACTION READ ONLY");
-  if (target.timeout_ms) {
-    const ms = dbTimeoutMs(target.timeout_ms);
-    // MySQL は max_execution_time（ミリ秒・SELECT だけ）、MariaDB にはないので max_statement_time（秒）
-    await driver.run(`SET SESSION max_execution_time = ${ms}`).catch(() => driver.run(`SET SESSION max_statement_time = ${ms / 1000}`));
-  }
+  const ms = target.timeout_ms ? dbTimeoutMs(target.timeout_ms) : null;
+  // 読み取り専用・時間の上限（MySQL は max_execution_time = ミリ秒・SELECT だけ、MariaDB は max_statement_time = 秒）にできなければ、閉じてから失敗にする（開いたまま残さない）
+  try {
+    if (target.read_only) await driver.run("SET SESSION TRANSACTION READ ONLY");
+    if (ms) await driver.run(`SET SESSION max_execution_time = ${ms}`).catch(() => driver.run(`SET SESSION max_statement_time = ${ms / 1000}`));
+  } catch (e) { await driver.close().catch(() => {}); throw e; }
   return driver;
 }
 
