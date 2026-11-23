@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { noteAssetBase, noteLinkPath } from "./htmlPage";
+import { noteAssetBase, noteLinkPath, pageMayRead } from "./htmlPage";
 
 test("noteAssetBase: ノートのフォルダを段ごとに URL の形にする（直下ならフォルダなし）", () => {
   assert.equal(noteAssetBase("http://x", 3, ""), "http://x/api/projects/3/note/file/");
@@ -16,4 +16,9 @@ test("noteLinkPath: ノートのフォルダの中のパスに戻す（? と # �
   assert.equal(noteLinkPath("http://x/api/projects/4/note/file/b.md", root), null);
   assert.equal(noteLinkPath(`${root}a%2Fb.md`, root), null);
   assert.equal(noteLinkPath(`${root}%E0%A4%A.md`, root), null);
+});
+
+test("pageMayRead: ページが読むかもしれないファイル（CSS・画像・ページ・分からない）だけ読み直し、ほかの Markdown のノートでは読み直さない", () => {
+  for (const path of ["style.css", "資料/図.PNG", "b.html", "a.js", "font.woff2", null]) assert.equal(pageMayRead(path), true, String(path));
+  for (const path of ["メモ.md", "資料/計画.markdown", "note.txt"]) assert.equal(pageMayRead(path), false, path);
 });

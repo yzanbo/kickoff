@@ -24,3 +24,9 @@ export function noteLinkPath(url: string, root: string): string | null {
     return null;
   }
 }
+
+/** ページが読むかもしれないファイルの拡張子（ページ・CSS・スクリプト・画像・フォント） */
+const PAGE_ASSET = /\.(html?|css|m?js|svg|png|jpe?g|gif|webp|avif|ico|bmp|woff2?|ttf|otf)$/i;
+
+/** ノートのフォルダで変わったファイル（null は分からない）が、HTML のページが読むかもしれないものか（ほかの Markdown のノートの保存では読み直さない） */
+export const pageMayRead = (path: string | null): boolean => path === null || PAGE_ASSET.test(path);

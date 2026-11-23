@@ -3,7 +3,7 @@ import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { runPageFind } from "@/foundation/ui/kit/pageFind";
 import { withBaseHref } from "@/foundation/ui/document/htmlPage";
-import { noteAssetBase, noteLinkPath } from "./htmlPage";
+import { noteAssetBase, noteLinkPath, pageMayRead } from "./htmlPage";
 import { parentOf } from "@/features/notes/ui/notePaths";
 
 /**
@@ -45,9 +45,9 @@ export function HtmlNotePage({
   const srcDoc = useMemo(() => withBaseHref(html, noteAssetBase(location.origin, projectId, parentOf(path))), [html, projectId, path]);
 
   // ノートのフォルダのほかのファイル（ページが読む CSS・画像など）が変わったら、描き直して読み直す（ファイルの口は no-cache なので、変わったものを取り直す）。
-  // このノート自体の変更は、読み直した中身が html で届いて描き直す
+  // ほかの Markdown のノートの保存では読み直さない。このノート自体の変更は、読み直した中身が html で届いて描き直す
   useServerEvent("notes", (e) => {
-    if (e.project_id === projectId && e.path !== path) frame.current?.contentWindow?.location.reload();
+    if (e.project_id === projectId && e.path !== path && pageMayRead(e.path)) frame.current?.contentWindow?.location.reload();
   });
 
   // 読み込むたびに（中身が変わると文書が作り直される）、中の文書に手を付け直す
