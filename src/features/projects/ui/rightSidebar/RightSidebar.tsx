@@ -6,6 +6,9 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { ProjectChatController } from "./useRightSidebar";
 import { SideViewBody, SideViewContent } from "./SideViewBody";
 import { useSideView } from "./sideView";
+import { writeSetting } from "@/foundation/ui/storage";
+import { storage } from "@/features/projects/ui/storage";
+import { projectViewSurface, useLeaveGuard } from "@/features/projects/ui/viewLeave";
 
 /**
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで。画面の文言では「右サイドバー」）。ブラウザのタブはボードの右のパネルと同じタブ（Panel）で、
@@ -43,7 +46,13 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
  * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
  */
 export function SideBody({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
-  const view = useSideView(projectId);
+  // ほかの中身へ移る前に、いまの中身の書きかけ（DB の表の変更など）を聞く（やめたら覚えた中身を元に戻す）
+  const view = useLeaveGuard(
+    useSideView(projectId),
+    (v) => projectViewSurface({ place: "rightSidebar", projectId, view: v }),
+    (v) => writeSetting(storage.settings.sideView(projectId), v),
+    "右サイドバーの中身を切り替えます。",
+  );
   const project = useProjects().projectsById.get(projectId);
   if (!project) return null;
   const views = availableProjectViews("rightSidebar");

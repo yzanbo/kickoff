@@ -7,10 +7,11 @@ import { useProjectData } from "./useProjectData";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
-import type { FileTarget, ProjectViewId, ReopenRoute } from "@/foundation/ui/navigation/router";
+import { navigate, type FileTarget, type ProjectViewId, type ReopenRoute } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
 import { resolveProjectView } from "@/features/projects/ui/projectViews";
 import { ProjectViewHost } from "@/features/projects/ui/ProjectViewHost";
+import { projectViewSurface, useLeaveGuard } from "@/features/projects/ui/viewLeave";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
 interface ProjectPageProps {
@@ -43,9 +44,17 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す。DB・GitHub・Docker・CI のタブはこの Mac のアプリの中だけ
   // （ブラウザ・スマホから開いたらボード）。知らない画面の名前もボード
   const [placement] = useChatPlacement();
-  const view = resolveProjectView(routeTab, placement === "separate");
-  const tab: ProjectViewId = view?.id ?? "board";
+  const separate = placement === "separate";
   const { data: shown, error, loading } = useProjectData(id);
+  // 別のタブへ移る前に、いまの画面の書きかけ（DB の表の変更など）を聞く（やめたら URL を元のタブへ戻す）
+  const shownId = shown?.project.id ?? id;
+  const tab: ProjectViewId = useLeaveGuard(
+    resolveProjectView(routeTab, separate)?.id ?? "board",
+    (t) => projectViewSurface({ place: "center", projectId: shownId, view: t }),
+    (t) => navigate({ name: "project", id, tab: t }, { replace: true }),
+    "画面を切り替えます。",
+  );
+  const view = resolveProjectView(tab, separate);
   const [editing, setEditing] = useState(false);
   // ファイル・検索・変更・履歴・DB のタブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [storedWorktree, storeWorktree] = useSetting(storage.settings.workplace(id));

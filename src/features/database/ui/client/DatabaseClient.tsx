@@ -37,9 +37,10 @@ const NARROW_WIDTH = 720;
 
 /**
  * DB クライアント（左に接続の一覧と木、右にタブ（テーブル・SQL））。プロジェクトの「DB」タブ・チャットの右の欄・別ウィンドウで同じものを使い、
- * 開いているタブと木の開き具合は置き場所（surface）ごとに覚える。worktree: SQLite のファイルを開く作業場所（null なら本体）。狭い所では左の一覧を隠し（左上のボタンで重ねて出す）、タブの上にパンくずを出す
+ * 開いているタブと木の開き具合は置き場所（surface）ごとに覚える。worktree: SQLite のファイルを開く作業場所（null なら本体）。狭い所では左の一覧を隠し（左上のボタンで重ねて出す）、タブの上にパンくずを出す。
+ * unsavedSurface: 表の変更を出す未保存の登録簿の置き場所の名前（入れ物が離れる前に聞く。なければ置き場所ごとの名前）
  */
-export function DatabaseClient({ projectId, surface, worktree }: { projectId: number; surface: DbSurface; worktree: string | null }) {
+export function DatabaseClient({ projectId, surface, worktree, unsavedSurface }: { projectId: number; surface: DbSurface; worktree: string | null; unsavedSurface?: string }) {
   const surfaceKey = dbSurfaceKey(surface);
   const connections = useDbConnections(projectId);
   const list = connections.data ?? [];
@@ -82,6 +83,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
   const actions: DbClientActions = {
     projectId,
     surfaceKey,
+    unsavedSurface: unsavedSurface ?? `database:${surfaceKey}`,
     narrow,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     openMain: (id) => setMainOnly((s) => new Set([...s, id])),

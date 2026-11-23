@@ -5,6 +5,7 @@ import type { ProjectViewDef } from "@/features/projects/ui/projectViews";
 import { ProjectViewHost } from "@/features/projects/ui/ProjectViewHost";
 import { takeSideOpenRequest, useSideOpenRequest } from "./sideOpenRequests";
 import { useSideWorktree } from "./useSideWorktree";
+import { projectViewSurface, useLeaveGuard } from "@/features/projects/ui/viewLeave";
 
 /**
  * 右サイドバーの中身 1 つ（プロジェクトのタブと同じ画面をそのまま描く。ProjectViewHost）。
@@ -14,7 +15,9 @@ import { useSideWorktree } from "./useSideWorktree";
  */
 export function SideViewContent({ project, def, frame }: { project: Project; def: ProjectViewDef; frame?: PanelFrame }) {
   const projectId = project.id;
-  const [worktree, setWorktree] = useSideWorktree(projectId);
+  const [following, setWorktree] = useSideWorktree(projectId);
+  // 作業場所を替える前に（中の切り替え・真ん中のチャットに付いていくとき）、中の書きかけ（DB の表の変更など）を聞く（やめたら元の作業場所のまま）
+  const worktree = useLeaveGuard(following, () => projectViewSurface({ place: "rightSidebar", projectId, view: def.id }), setWorktree, "作業場所を切り替えます。");
   const note = useSideOpenRequest(projectId, "note");
   // ほかから開くよう頼まれたファイル（別の作業場所のものなら、先にその作業場所へ切り替える）
   const openFile = useSideOpenRequest(projectId, "file")?.file;

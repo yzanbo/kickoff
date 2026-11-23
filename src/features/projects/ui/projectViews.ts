@@ -52,6 +52,8 @@ export interface ProjectViewContext {
   chatId?: number;
   /** 欄の殻から渡すもの（右サイドバーの横幅いっぱいの切り替え） */
   frame?: PanelFrame;
+  /** 書きかけを出す未保存の登録簿の置き場所の名前（registerUnsaved の surface。入れ物が画面・作業場所を替える・閉じる前に聞く。viewLeave.ts） */
+  unsavedSurface: string;
 }
 
 /** チャットの右の欄のタブにするときの違い（places に chatSide がある画面） */

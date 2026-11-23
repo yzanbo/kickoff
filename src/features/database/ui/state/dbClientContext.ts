@@ -6,6 +6,8 @@ export interface DbClientActions {
   projectId: number;
   /** 置き場所の保存のキー（dbSurfaceKey。タブ・木の開き具合・書きかけの SQL を置き場所ごとに覚える） */
   surfaceKey: string;
+  /** 表の変更を出す未保存の登録簿の置き場所の名前（入れ物が離れる前に聞く） */
+  unsavedSurface: string;
   /** DB クライアントの幅が狭い（720px 未満。一覧を重ねて出し、テーブルの表示の切り替えはアイコンだけ・行の詳細は下に重ねる） */
   narrow: boolean;
   /** その接続を開く作業場所（SQLite のファイルをワークツリーで開く。本体を選び直した接続は null） */

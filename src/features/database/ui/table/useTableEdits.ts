@@ -97,9 +97,24 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     action.reset();
   };
 
-  // ⌘⇧S のすべて保存にも知らせる
+  // 未保存の登録簿に出す（⌘⇧S のすべて保存・入れ物が離れる前の確かめ。「保存しない」なら確かめずに捨てる）
   const saveRef = useLatest(save);
-  useEffect(() => registerUnsaved({ key: tab.key, surface: "database", title: tab.name, dirty: () => editCounts(latest.current).total > 0, save: () => saveRef.current() }), [tab.key, tab.name]);
+  const surface = client.unsavedSurface;
+  useEffect(
+    () =>
+      registerUnsaved({
+        key: flag,
+        surface,
+        title: tab.name,
+        dirty: () => editCounts(latest.current).total > 0,
+        save: () => saveRef.current(),
+        discard: () => {
+          latest.current = NO_EDITS;
+          setEdits(NO_EDITS);
+        },
+      }),
+    [flag, surface, tab.name],
+  );
 
   const isTable = detail?.kind === "table";
   return {

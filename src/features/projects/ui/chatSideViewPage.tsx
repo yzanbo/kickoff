@@ -4,6 +4,7 @@ import type { PanelTab, TabPageProps } from "@/features/panel/ui";
 import { projectViewOf } from "./projectViews";
 import { ProjectViewHost } from "./ProjectViewHost";
 import { useProjects } from "./stores/projects";
+import { projectViewSurface, useLeaveGuard } from "./viewLeave";
 
 type ProjectViewTab = Extract<PanelTab, { kind: "projectView" }>;
 
@@ -18,7 +19,9 @@ export function ChatSideViewLead({ tab }: { tab: ProjectViewTab }) {
  * 開いたファイルのタブ・DB の開いているタブは、プロジェクトのタブとは別にチャットごとに覚える（画面の部品が chatId から決める）
  */
 export function ChatSideViewPage({ tab }: TabPageProps<ProjectViewTab>) {
-  const [worktree, setWorktree] = useState(tab.worktree ?? null);
+  const [wanted, setWorktree] = useState(tab.worktree ?? null);
+  // 作業場所を替える前に、中の書きかけ（DB の表の変更など）を聞く（やめたら元の作業場所のまま）
+  const worktree = useLeaveGuard(wanted, () => projectViewSurface({ place: "chatSide", projectId: tab.projectId, chatId: tab.chatId, view: tab.view }), setWorktree, "作業場所を切り替えます。");
   const project = useProjects().projectsById.get(tab.projectId);
   const def = projectViewOf(tab.view);
   if (!def) return null;

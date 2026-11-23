@@ -4,6 +4,7 @@ import { baseName } from "@/foundation/ui/lib/format";
 import { defineTabKind, repointedAt, type PanelTab } from "@/features/panel/ui";
 import { projectViewOf } from "./projectViews";
 import { ChatSideViewLead, ChatSideViewPage } from "./chatSideViewPage";
+import { confirmLeaveView, projectViewSurface } from "./viewLeave";
 
 type ProjectViewTab = Extract<PanelTab, { kind: "projectView" }>;
 
@@ -38,6 +39,8 @@ export const projectViewTabKind = defineTabKind<ProjectViewTab>({
     const popout = projectViewOf(t.view)?.chatSide?.popout;
     return popout?.({ chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) }, whereOf(t.worktree));
   },
+  // 中の書きかけ（DB の表の変更など）があれば、閉じる前に保存するかを聞く
+  confirmClose: (t) => confirmLeaveView(projectViewSurface({ place: "chatSide", projectId: t.projectId, chatId: t.chatId, view: t.view }), "タブを閉じます。"),
   // 作業場所に付く画面は、作業場所を移したら新しい作業場所から見る
   repoint: (t, move) => {
     if (!projectViewOf(t.view)?.followsWorkplace) return null;
