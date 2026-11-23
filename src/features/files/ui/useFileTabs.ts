@@ -3,8 +3,10 @@ import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import { mapTabs, usePanel, type PanelScope } from "@/features/panel/ui";
 import type { Selection } from "./tabSelection";
 import { isUnder, remapPrefix } from "@shared/foundation/path";
-import { dirtyFilePaths, dirtyFileUnder, fileTabOf, openFileTab, selectionOf, setFileTabDirty } from "./fileTabs";
-
+import { dirtyUnder } from "@/foundation/ui/document/unsaved";
+import { useWorkplace } from "@/foundation/ui/workplace/workplaceContext";
+import { workplaceKey } from "@/foundation/ui/workplace/workplace";
+import { fileTabOf, openFileTab, selectionOf, setFileTabDirty } from "./fileTabs";
 
 /**
  * ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（files。ノートのタブの右と同じく、タブのドラッグ・右クリック・⌘\ で上下・左右に分けられる）と、
@@ -14,6 +16,7 @@ export function useFileTabs(projectId: number, scope: PanelScope) {
   // 右の欄はいつも開いておく（タブがなければ案内。欄の決まりの alwaysOpen）
   const panel = usePanel("files", scope);
   const { key } = panel;
+  const root = workplaceKey(useWorkplace(projectId));
   const focused = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
   const selected = useMemo(() => (focused?.kind === "projectFile" ? selectionOf(focused) : undefined), [focused]);
   return {
@@ -22,10 +25,8 @@ export function useFileTabs(projectId: number, scope: PanelScope) {
     selected,
     /** ファイルを開く（newTab = ⌘クリック・新しく作ったとき・チャットから来たとき。確かめてやめることがあるので async。画面からは void で呼ぶ） */
     setSelected: (next: Selection, newTab = false) => openFileTab(key, projectId, next, newTab),
-    /** そのファイル・フォルダの中の、保存していない変更のあるタブのファイル（名前を変える・ゴミ箱に入れる前に確かめる。なければ null） */
-    dirtyUnder: (path: string) => dirtyFileUnder(key, path),
-    /** 保存していない変更のあるタブのファイル（置換の前に確かめる） */
-    dirtyPaths: () => dirtyFilePaths(key),
+    /** そのファイル・フォルダの中の、保存していない変更のあるファイル（チャットの右の欄に開いたものも。名前を変える・ゴミ箱に入れる・置換の前に確かめる。なければ null） */
+    dirtyUnder: (path: string) => dirtyUnder(root, path),
     /** 名前を変えたファイル・フォルダ（from）のタブを、新しいパス（to）に付け替える（確かめない。先に保存してもらっている） */
     relocate: (from: string, to: string) =>
       mapTabs(

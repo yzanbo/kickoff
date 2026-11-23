@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { onTestFinished, test } from "vitest";
-import { confirmLeave, flushDrafts, registerUnsaved, saveAll, useUnsaved, type UnsavedEntry } from "./unsaved";
+import { confirmLeave, dirtyUnder, flushDrafts, registerUnsaved, saveAll, useUnsaved, type UnsavedEntry } from "./unsaved";
 
 /** 登録簿に出す（テストが終わったら外す） */
 function open(entry: Partial<UnsavedEntry> & Pick<UnsavedEntry, "key">): () => void {
@@ -52,4 +52,15 @@ test("useUnsaved: 開いている文書のうち当てはまるものを読む",
   open({ key: "b", surface: "files" });
   const Probe = () => useUnsaved((e) => e.surface === "notes").map((e) => e.key).join(",");
   assert.equal(renderToString(createElement(Probe)), "a");
+});
+
+test("dirtyUnder: 置き場所を問わず、その作業場所のファイル・フォルダの中の書きかけのあるファイルを返す（右の欄のファイルも数える）", () => {
+  open({ key: "1::src/a.ts", surface: "files", file: { root: "1:", path: "src/a.ts" } });
+  open({ key: "1::src/b.ts", surface: "agents", dirty: () => true, file: { root: "1:", path: "src/b.ts" } });
+  open({ key: "1:/wt:src/c.ts", surface: "files", dirty: () => true, file: { root: "1:/wt", path: "src/c.ts" } });
+  assert.equal(dirtyUnder("1:", "src"), "src/b.ts");
+  assert.equal(dirtyUnder("1:", "src/b.ts"), "src/b.ts");
+  assert.equal(dirtyUnder("1:", "src/a.ts"), null);
+  assert.equal(dirtyUnder("1:", "docs"), null);
+  assert.equal(dirtyUnder("1:/wt", ""), "src/c.ts");
 });

@@ -37,7 +37,7 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
   const replace = async (files: readonly SearchFileResult[], scope: "all" | "file" | "line") => {
     const result = search.result;
     if (!result || files.length === 0 || busy) return;
-    const open = selection.dirtyPaths().find((p) => files.some((f) => f.path === p));
+    const open = files.map((f) => selection.dirtyUnder(f.path)).find((p) => p !== null);
     if (open) {
       void alert("保存していない変更があります", `「${baseName(open)}」を保存してから置換してください。`);
       return;

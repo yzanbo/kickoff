@@ -2,6 +2,7 @@
 // ⌘⇧S（saveAll）・離れる前の確かめ（confirmLeave）・書きかけをすぐ残す（flushDrafts）が、置き場所を問わずここから読む
 import { createCell, useCell } from "@/foundation/ui/store";
 import { choose } from "@/foundation/ui/kit/ask";
+import { isUnder } from "@shared/foundation/path";
 
 /** 開いている文書 1 つ（同じ文書を 2 か所で開けば、同じ key の項目が 2 つ） */
 export interface UnsavedEntry {
@@ -19,6 +20,8 @@ export interface UnsavedEntry {
   discard?(): void;
   /** 書きかけを待たずに残す（残す文書だけ。ウィンドウを閉じる前・pagehide） */
   flush?(): void;
+  /** 作業場所の中のファイル（root = 作業場所の見分け workplaceKey。名前の変更・ゴミ箱・置換の前の確かめが dirtyUnder で引く） */
+  file?: { root: string; path: string };
 }
 
 const entries = createCell<readonly UnsavedEntry[]>([]);
@@ -73,6 +76,11 @@ export async function saveAll(): Promise<{ saved: number; failed: number }> {
     else failed++;
   }
   return { saved, failed };
+}
+
+/** その作業場所のファイル・フォルダ（path。"" は全部）の中で、書きかけのあるファイル（置き場所を問わない。なければ null） */
+export function dirtyUnder(root: string, path: string): string | null {
+  return entries.get().find((e) => e.file?.root === root && isUnder(e.file.path, path) && e.dirty())?.file?.path ?? null;
 }
 
 /** 開いている文書の書きかけを、待たずに残す（別ウィンドウを閉じて右の欄で開き直す前・pagehide） */

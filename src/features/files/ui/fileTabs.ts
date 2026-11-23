@@ -1,6 +1,5 @@
 // プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files。開いたファイル・差分をタブで並べ、ドラッグで上下・左右に分けられる）の操作
 import type { PanelTab } from "@/features/panel/ui/tabs/panelTypes";
-import { isUnder } from "@shared/foundation/path";
 import { openInFocusedPane, panelStateOf } from "@/features/panel/ui";
 import { baseName } from "@/foundation/ui/lib/format";
 import { choose } from "@/foundation/ui/kit/ask";
@@ -121,12 +120,6 @@ export function openFileTab(panelKey: string, projectId: number, sel: Selection,
     confirmReplace: (current) => confirmLeave(panelKey, current, "開く"),
   });
 }
-
-/** 保存していない変更のあるタブのファイル（名前の変更・ゴミ箱・置換の前に確かめる） */
-export const dirtyFilePaths = (panelKey: string): string[] => fileTabsOf(panelKey).filter((t) => isDirty(panelKey, t.key)).map((t) => t.path);
-
-/** そのファイル・フォルダの中の、保存していない変更のあるタブのファイル（なければ null） */
-export const dirtyFileUnder = (panelKey: string, path: string): string | null => dirtyFilePaths(panelKey).find((p) => isUnder(p, path)) ?? null;
 
 /**
  * ファイルタブの木のファイルの行のドラッグ（VS Code と同じく、右のファイルのタブの欄へ落として開く。タブの列ならその位置、中身の端ならその側に分けて開く。

@@ -147,7 +147,7 @@ export function FileView({ projectId, repoPath, path, line, git, diffBase, onSav
 
   // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。未保存の登録簿 document/unsaved）
   const savable = useLatest({ dirty, saveCurrent: async () => (getValue.current ? Boolean(await save(getValue.current())) : false) });
-  useEffect(() => registerUnsaved({ key, surface: "files", title: baseName(path), dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), [key, path]);
+  useEffect(() => registerUnsaved({ key, surface: "files", title: baseName(path), dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent(), file: { root: workplaceKey(target), path } }), [key, path]);
   useEffect(() => registerSave?.(() => savable.current.saveCurrent()), [registerSave]);
 
   // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す
