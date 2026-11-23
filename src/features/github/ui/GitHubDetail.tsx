@@ -39,7 +39,7 @@ const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
  * 書いたら中身を取り直す
  */
 export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: number; kind: GitHubKind; number: number; onBack?: () => void }) {
-  const detail = useGitHubDetail(projectId, kind, number, true);
+  const detail = useGitHubDetail(projectId, kind, number);
   const [view, setView] = useState<PrView>("conversation");
   const data = detail.data;
   const refresh = detail.refresh;

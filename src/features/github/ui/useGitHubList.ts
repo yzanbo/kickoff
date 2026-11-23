@@ -1,19 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubItem, GitHubItemPage, GitHubListFilter } from "@shared/github/types";
+import { useEffect, useRef, useState } from "react";
+import type { GitHubItemPage, GitHubListFilter } from "@shared/github/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { api } from "@/foundation/ui/api";
-import { useLatest } from "@/foundation/ui/hooks/useLatest";
+import { errorText, useCursorPages, useQuery } from "@/foundation/ui/query";
 import { freshItemNumbers, GITHUB_FRESH_MS } from "./githubFresh";
-import { useGitHubRefresh } from "./useGitHubRefresh";
-
-interface ListState {
-  page: GitHubItemPage | null;
-  error: string | null;
-  /** GitHub に聞いている最中（前の一覧は「更新中」の印を付けて出したまま） */
-  loading: boolean;
-  /** 続きを読んでいる最中 */
-  loadingMore: boolean;
-}
+import { githubRefresh } from "./githubRefresh";
 
 const NO_FRESH: ReadonlySet<number> = new Set();
 
@@ -22,15 +13,12 @@ const NO_FRESH: ReadonlySet<number> = new Set();
  * 聞いている間は、前に取った一覧を「更新中」の印を付けて出しておく。古い頼みの答えは捨てる。
  * 同じ絞り込みで取り直して新しくなった行（更新された・新しく入った）は、少しの間だけ fresh に入れる（行に色を付ける）
  */
-export function useGitHubList(projectId: number, filter: GitHubListFilter, active: boolean) {
-  const [state, setState] = useState<ListState>({ page: null, error: null, loading: true, loadingMore: false });
-  const seq = useRef(0);
-  const filterKey = JSON.stringify(filter);
-  // 読むときのいまのプロジェクト・絞り込み（load は作り直さない）
-  const currentRef = useLatest({ projectId, filter });
-  // 前に読んだ一覧（同じプロジェクト・絞り込みのときだけ比べる）
-  const shown = useRef<{ key: string; items: GitHubItem[] } | null>(null);
+export function useGitHubList(projectId: number, filter: GitHubListFilter) {
+  // 取り直しのボタンは、コアの覚えを使わずに聞き直す
+  const force = useRef(false);
   const [fresh, setFresh] = useState<ReadonlySet<number>>(NO_FRESH);
+  // 出している同じ絞り込みの一覧（続きも足したもの。取り直しの答えと比べる）
+  const shown = useRef<GitHubItemPage | null>(null);
 
   useEffect(() => {
     if (fresh.size === 0) return;
@@ -38,46 +26,33 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter, activ
     return () => clearTimeout(timer);
   }, [fresh]);
 
-  const load = useCallback((refresh: boolean) => {
-    const id = ++seq.current;
-    const { projectId: p, filter: f } = currentRef.current;
-    const key = `${p}:${JSON.stringify(f)}`;
-    setState((s) => ({ ...s, loading: true }));
-    api.githubItems(p, f, { refresh }).then(
-      (page) => {
-        if (id !== seq.current) return;
-        const changed = freshItemNumbers(shown.current?.key === key ? shown.current.items : null, page.items);
-        shown.current = { key, items: page.items };
-        if (changed.length > 0) setFresh(new Set(changed));
-        setState({ page, error: null, loading: false, loadingMore: false });
-      },
-      (e: unknown) => id === seq.current && setState((s) => ({ ...s, error: errorMessage(e), loading: false, loadingMore: false })),
-    );
-  }, [currentRef]);
-
-  // 開いた・プロジェクトか絞り込みの中身が変わったら読む
+  const list = useQuery<GitHubItemPage>(
+    ["github.items", projectId, JSON.stringify(filter)],
+    async (signal) => {
+      const refresh = force.current;
+      force.current = false;
+      const page = await api.githubItems(projectId, filter, { refresh });
+      const changed = signal.aborted ? [] : freshItemNumbers(shown.current?.items ?? null, page.items);
+      if (changed.length > 0) setFresh(new Set(changed));
+      return page;
+    },
+    { keepPrevious: true, ...githubRefresh() },
+  );
   useEffect(() => {
-    if (active) load(false);
-  }, [projectId, filterKey, active, load]);
+    shown.current = list.stale ? null : (list.data ?? null);
+  });
+  const pages = useCursorPages(list, (cursor) => api.githubItems(projectId, filter, { cursor }), (a, b) => a.number === b.number);
 
-  useGitHubRefresh(() => load(false), active);
-
-  const loadMore = () => {
-    const cursor = state.page?.cursor;
-    if (!cursor || state.loadingMore) return;
-    const id = seq.current;
-    setState((s) => ({ ...s, loadingMore: true }));
-    api.githubItems(projectId, filter, { cursor }).then(
-      (more) =>
-        id === seq.current &&
-        setState((s) => {
-          const page = s.page ? { ...s.page, items: [...s.page.items, ...more.items.filter((i) => !s.page?.items.some((x) => x.number === i.number))], cursor: more.cursor } : more;
-          if (shown.current) shown.current = { ...shown.current, items: page.items };
-          return { ...s, loadingMore: false, page };
-        }),
-      (e: unknown) => id === seq.current && setState((s) => ({ ...s, loadingMore: false, error: errorMessage(e) })),
-    );
+  return {
+    page: list.data ?? null,
+    error: errorText(list.error) ?? (pages.moreError ? errorMessage(pages.moreError) : null),
+    loading: list.loading,
+    loadingMore: pages.loadingMore,
+    fresh,
+    refresh: () => {
+      force.current = true;
+      void list.reload();
+    },
+    loadMore: pages.loadMore,
   };
-
-  return { ...state, fresh, refresh: () => load(true), loadMore };
 }

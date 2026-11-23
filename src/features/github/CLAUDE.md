@@ -15,7 +15,7 @@
 | `ui/useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges`・`GitHubHtml` | 中身・PR の変更・本文の表示 |
 | `ui/githubHandoff.ts`・`githubPrompt.ts` | AI に渡す（文と札は純粋。テストは隣） |
 | `ui/MergeDialog`・`githubCheckout.ts`・`GitHubReview.tsx` | 書く（マージ・チェックアウト・レビュー） |
-| `ui/useGitHubRefresh.ts` | 取り直し（CI のタブも使う。古い応答は捨てる） |
+| `ui/githubRefresh.ts` | 取り直し方（`useQuery` に渡す。CI のタブも） |
 | `ui/ci/`・`ui/prNotice/` | CI のタブ（開くのは `ciLinks.ts` の `openCiRun`）・PR の知らせ |
 
 ## 決まり

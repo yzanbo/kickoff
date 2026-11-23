@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { onServerOpen, useServerEvent, type AnyServerEvent, type ServerEvent, type ServerEventType } from "@/foundation/ui/api/events";
-import { EMPTY_QUERY, queryView, replaceData, settleData, settleError, startFetch, toError, type QueryState } from "./queryState";
+import { EMPTY_QUERY, queryView, replaceData, seedData, settleData, settleError, startFetch, toError, type QueryState } from "./queryState";
 
 export type QueryKey = string | readonly (string | number | boolean | null | undefined)[];
 
@@ -11,8 +12,10 @@ export interface QueryOptions<T> {
   deps?: readonly unknown[];
   /** 届いたら取り直す SSE の種類（関数なら当てはまるときだけ） */
   refetchOn?: { readonly [E in ServerEventType]?: true | ((event: ServerEvent<E>) => boolean) };
-  /** この間隔（ms）で取り直す。窓が見えている間だけ（document.hidden の間は止める） */
-  interval?: number;
+  /** この間隔（ms）で取り直す。窓が見えている間だけ（document.hidden の間は止める）。関数なら届いている値から決める */
+  interval?: number | ((data: T | undefined) => number | undefined);
+  /** interval の取り直しを、窓がほかのアプリの後ろにある間も止める（前に戻ったら数え直す。既定 false） */
+  pauseWhenBlurred?: boolean;
   /** 窓に戻ったら取り直す（既定 false） */
   refetchOnFocus?: boolean;
   /** SSE がつながったら取り直す（既定: refetchOn があれば true、なければ false） */
@@ -21,6 +24,8 @@ export interface QueryOptions<T> {
   keepPrevious?: boolean;
   /** 取り直した結果が前と同じなら前の値のまま（中身が同じなら描き直さない） */
   same?: (prev: T, next: T) => boolean;
+  /** このキーの値がまだないとき、答えが届くまでのつなぎの値（コアが覚えた中身など。null なら出さない。失敗は見ない） */
+  seed?: (signal: AbortSignal) => Promise<T | null>;
   /** 取りに行く前に待つ時間（ms。入力中のフォルダの点検など。待つ間も読み込み中で、その間にキーが変われば取りに行かない） */
   delay?: number;
 }
@@ -46,15 +51,17 @@ export interface QueryResult<T> {
  * key が null なら取りに行かない。古いキー・古い取り直しの応答は捨てる（取り下げたら signal を abort する）
  */
 export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) => Promise<T>, options: QueryOptions<T> = {}): QueryResult<T> {
-  const { enabled = true, deps = [], refetchOn, interval, refetchOnFocus = false, keepPrevious = false, delay = 0 } = options;
+  const { enabled = true, deps = [], refetchOn, interval, pauseWhenBlurred = false, refetchOnFocus = false, keepPrevious = false, delay = 0 } = options;
   const keyText = key === null ? null : JSON.stringify(key);
   const depsText = JSON.stringify(deps);
   const [state, setState] = useState<QueryState<T>>(EMPTY_QUERY);
   const [nonce, setNonce] = useState(0);
+  const latestState = useLatest(state);
   // reload() を待っている呼び手（次に結果が届いたら返す）
   const waiters = useRef<(() => void)[]>([]);
   // 取り直すきっかけは key・enabled・deps・reload だけ（load と same は描くたびに作られるので、依存に入れず最新のものを使う）
   const startLoad = useEffectEvent((signal: AbortSignal) => load(signal));
+  const startSeed = useEffectEvent((signal: AbortSignal) => options.seed?.(signal));
   const currentSame = useEffectEvent(() => options.same);
   const live = keyText !== null && enabled;
 
@@ -67,6 +74,12 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
       for (const resolve of waiters.current.splice(0)) resolve();
     };
     setState((s) => startFetch(s, keyText));
+    // つなぎの値は、ほかのキーから移ってきたときだけ聞く（同じキーの取り直しでは聞かない）
+    if (latestState.current.key !== keyText)
+      startSeed(controller.signal)?.then(
+        (data) => data != null && !controller.signal.aborted && setState((s) => seedData(s, keyText, data)),
+        () => undefined,
+      );
     const fetchNow = () =>
       startLoad(controller.signal).then(
         (data) => {
@@ -103,14 +116,32 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
     return () => window.removeEventListener("focus", onFocus);
   }, [live, refetchOnFocus]);
 
+  const view = queryView(state, keyText, { enabled, keepPrevious });
+  const every = typeof interval === "function" ? interval(view.data) : interval;
   useEffect(() => {
-    if (!live || !interval) return;
-    const timer = setInterval(() => document.hidden || refetch(), interval);
-    return () => clearInterval(timer);
-  }, [live, interval]);
+    if (!live || !every) return;
+    if (!pauseWhenBlurred) {
+      const timer = setInterval(() => document.hidden || refetch(), every);
+      return () => clearInterval(timer);
+    }
+    // 窓が前にある間だけ数える（前に戻ったら初めから）
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const restart = () => {
+      clearInterval(timer);
+      timer = document.hasFocus() ? setInterval(refetch, every) : undefined;
+    };
+    restart();
+    window.addEventListener("focus", restart);
+    window.addEventListener("blur", restart);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", restart);
+      window.removeEventListener("blur", restart);
+    };
+  }, [live, every, pauseWhenBlurred]);
 
   return {
-    ...queryView(state, keyText, { enabled, keepPrevious }),
+    ...view,
     reload: () =>
       live
         ? new Promise<void>((resolve) => {

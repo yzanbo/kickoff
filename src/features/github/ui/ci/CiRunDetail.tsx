@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, ExternalLink, GitPullRequest, RotateCcw } from "lucide-react";
-import { CI_STATE_LABELS, type CiJob } from "@shared/github/ciTypes";
+import { CI_STATE_LABELS, type CiJob, type CiRunDetail } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { errorText, useQuery } from "@/foundation/ui/query";
@@ -10,7 +10,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { openGitHubItem } from "@/features/github/ui/openGitHubItem";
-import { GITHUB_REFRESH_MS, useGitHubRefresh } from "@/features/github/ui/useGitHubRefresh";
+import { GITHUB_REFRESH_MS, githubRefresh } from "@/features/github/ui/githubRefresh";
 import { CiHandoffMenu } from "./CiHandoffMenu";
 import { CiJobSection } from "./CiJobLog";
 import { CiStateIcon, ciTone } from "./CiStateIcon";
@@ -44,10 +44,12 @@ export function CiRunDetailView({
   onChanged: () => void;
   onBack?: () => void;
 }) {
-  const detail = useQuery(["CiRunDetail.detail", projectId, runId], () => api.ciRun(projectId, runId), { keepPrevious: true });
+  const detail = useQuery(["CiRunDetail.detail", projectId, runId], () => api.ciRun(projectId, runId), {
+    keepPrevious: true,
+    ...githubRefresh<CiRunDetail>((d) => (d?.run.state === "pending" ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS)),
+  });
   const data = detail.data;
   const run = data?.run;
-  useGitHubRefresh(detail.reload, true, run?.state === "pending" ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS);
   const action = useAction<"failed" | "all">();
   // 初めに開くジョブ（中身が届いたときに 1 回だけ決める。あとは開閉を利用者に任せる）
   const [opened, setOpened] = useState<Set<number> | null>(null);

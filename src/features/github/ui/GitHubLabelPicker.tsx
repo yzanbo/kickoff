@@ -28,7 +28,7 @@ export function GitHubLabelPicker({
   disabled?: boolean;
 }) {
   const menu = useContextMenu<null>();
-  const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
+  const meta = useQuery(["github.meta", projectId], () => api.githubMeta(projectId));
   const [picked, setPicked] = useState<string[]>(selected);
   const open = menu.menu !== null;
   const close = () => {

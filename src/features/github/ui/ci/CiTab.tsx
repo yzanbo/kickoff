@@ -1,8 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { ExternalLink, Workflow } from "lucide-react";
-import type { CiRun } from "@shared/github/ciTypes";
+import type { CiRun, CiRunList } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
-import { useServerEvent } from "@/foundation/ui/api/events";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { ListDetail } from "@/foundation/ui/kit/layout/ListDetail";
@@ -16,7 +15,7 @@ import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { GitHubConnectionGate } from "@/features/github/ui/GitHubConnectionGate";
 import { DETAIL_MIN_WIDTH } from "@/features/github/ui/GitHubTab";
 import { githubRepoUrl } from "@/features/github/ui/githubLinks";
-import { GITHUB_REFRESH_MS, useGitHubRefresh } from "@/features/github/ui/useGitHubRefresh";
+import { GITHUB_REFRESH_MS, githubRefresh } from "@/features/github/ui/githubRefresh";
 import { CiRunDetailView } from "./CiRunDetail";
 import { CiExternalRow, CiRunRow } from "./CiRunRow";
 import { ciSelectedText, hasPending, parseCiSelected } from "./ciView";
@@ -44,14 +43,15 @@ export function CiTab({ projectId }: { projectId: number }) {
 function CiBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
   const [selectedText, setSelectedText] = useSetting(storage.settings.ciSelected(projectId));
   const selected = parseCiSelected(selectedText);
-  const list = useQuery(["CiTab.list", projectId], () => api.ciRuns(projectId), { keepPrevious: true });
-  const data = list.data;
-  const pending = hasPending(data);
-  useGitHubRefresh(list.reload, true, pending ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS);
-  // 見張りが落ちた実行を見つけたら、一覧も取り直す
-  useServerEvent("ci_failed", (e) => {
-    if (e.failure.project_id === projectId) list.reload();
+  const list = useQuery(["CiTab.list", projectId], () => api.ciRuns(projectId), {
+    keepPrevious: true,
+    // 動いている実行がある間は短く
+    ...githubRefresh<CiRunList>((d) => (hasPending(d) ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS)),
+    // 見張りが落ちた実行を見つけたら、一覧も取り直す
+    refetchOn: { ci_failed: (e) => e.failure.project_id === projectId },
+    refetchOnOpen: false,
   });
+  const data = list.data;
   // 左の一覧を隠せる（広いときだけ。狭いときは一覧と中身を切り替えて 1 つずつ出す）
   const layout = useListDetail({ width: storage.settings.ciListWidth, hidden: storage.settings.ciListHidden, min: 260, keep: 360, detailMin: DETAIL_MIN_WIDTH, hasSelection: !!selected });
   const { narrow } = layout;

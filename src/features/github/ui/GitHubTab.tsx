@@ -55,8 +55,8 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const [selectedText, setSelectedText] = useSetting(githubSelected(projectId));
   const selected = parseSelected(selectedText);
   const filter = filters[filters.kind];
-  const list = useGitHubList(projectId, filter, true);
-  const meta = useQuery(String(projectId), () => api.githubMeta(projectId));
+  const list = useGitHubList(projectId, filter);
+  const meta = useQuery(["github.meta", projectId], () => api.githubMeta(projectId));
   // 左の一覧を隠せる（広いときだけ。狭いときは一覧と中身を切り替えて 1 つずつ出す）
   const layout = useListDetail({ width: storage.settings.listWidth, hidden: storage.settings.listHidden, min: 260, keep: 360, detailMin: DETAIL_MIN_WIDTH, hasSelection: !!selected });
   const { narrow } = layout;

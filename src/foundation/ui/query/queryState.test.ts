@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { EMPTY_QUERY, errorText, queryView, replaceData, settleData, settleError, startFetch, type QueryState } from "./queryState";
+import { EMPTY_QUERY, errorText, queryView, replaceData, seedData, settleData, settleError, startFetch, type QueryState } from "./queryState";
 
 const settled = <T>(key: string, data: T): QueryState<T> => settleData(startFetch(EMPTY_QUERY as QueryState<T>, key), key, data);
 const view = <T>(state: QueryState<T>, key: string | null, keepPrevious = false) => queryView(state, key, { enabled: true, keepPrevious });
@@ -50,4 +50,25 @@ test("replaceData: 関数はいまのキーの値があるときだけ当て、�
 test("errorText: 失敗の文（失敗していなければ undefined）", () => {
   assert.equal(errorText(new Error("読めません")), "読めません");
   assert.equal(errorText(undefined), undefined);
+});
+
+test("settleData・settleError: ほかのキーを取りに行っている間に届いた古い答えは捨てる（GitHub の絞り込みを素早く 3 回変えたとき）", () => {
+  const shown = settled("a", [1]);
+  const fetchingC = startFetch(startFetch(startFetch(shown, "b"), "c"), "c");
+  assert.equal(settleData(fetchingC, "b", [2]), fetchingC);
+  assert.equal(settleError(fetchingC, "b", new Error("x"), true), fetchingC);
+  // いまのキーの答えは入る
+  assert.deepEqual(settleData(fetchingC, "c", [3]).data, [3]);
+});
+
+test("seedData: まだ値のないキーを取りに行っている間だけ、つなぎの値を出す（届いた印は付けない）", () => {
+  const fetching = startFetch(EMPTY_QUERY as QueryState<number[]>, "a");
+  const seeded = seedData(fetching, "a", [0]);
+  assert.deepEqual(view(seeded, "a"), { data: [0], error: undefined, loading: true, loaded: false, stale: false });
+  // 答えが届いたら置き換わり、そのあとに届いたつなぎは使わない
+  const settledA = settleData(seeded, "a", [1]);
+  assert.deepEqual(settledA.data, [1]);
+  assert.equal(seedData(startFetch(settledA, "a"), "a", [0]).data, settledA.data);
+  // 取りに行っていないキー（ほかへ移った）のつなぎも使わない
+  assert.equal(seedData(startFetch(settledA, "b"), "a", [0]).data, settledA.data);
 });

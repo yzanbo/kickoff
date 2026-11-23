@@ -16,8 +16,18 @@ export const EMPTY_QUERY: QueryState<never> = Object.freeze({ key: null, data: u
 /** 取りに行き始めた */
 export const startFetch = <T>(state: QueryState<T>, key: string): QueryState<T> => (state.fetching === key ? state : { ...state, fetching: key });
 
+/** ほかのキーを取りに行っている間に届いた古い答えか（絞り込みを素早く変えたときなど。捨てる） */
+const outdated = <T>(state: QueryState<T>, key: string) => state.fetching !== null && state.fetching !== key;
+
+/** つなぎの値（コアが覚えた中身など）を出す。このキーを取りに行っていて、まだこのキーの値がないときだけ（届いた印は付けない） */
+export function seedData<T>(state: QueryState<T>, key: string, data: T): QueryState<T> {
+  if (state.fetching !== key || (state.key === key && state.data !== undefined)) return state;
+  return { key, data, error: undefined, loaded: false, fetching: key };
+}
+
 /** 値が届いた（同じキーで same が同じと言えば、前の値のまま。中身が同じなら描き直さない） */
 export function settleData<T>(state: QueryState<T>, key: string, data: T, same?: (prev: T, next: T) => boolean): QueryState<T> {
+  if (outdated(state, key)) return state;
   const fetching = state.fetching === key ? null : state.fetching;
   if (state.key === key && state.data !== undefined && state.error === undefined && same?.(state.data, data)) {
     return state.loaded && state.fetching === fetching ? state : { ...state, loaded: true, fetching };
@@ -27,6 +37,7 @@ export function settleData<T>(state: QueryState<T>, key: string, data: T, same?:
 
 /** 失敗した（keepPrevious なら前の値を残す。そうでなければ、このキーの値は捨てる） */
 export function settleError<T>(state: QueryState<T>, key: string, error: Error, keepPrevious: boolean): QueryState<T> {
+  if (outdated(state, key)) return state;
   return { key, data: keepPrevious ? state.data : undefined, error, loaded: true, fetching: state.fetching === key ? null : state.fetching };
 }
 
