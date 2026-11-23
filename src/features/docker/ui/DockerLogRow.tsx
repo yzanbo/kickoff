@@ -1,6 +1,7 @@
-import { memo, type CSSProperties } from "react";
+import { memo } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
-import { ansiSpans, markSpans, type MarkedSpan } from "@/foundation/ui/ansi/ansi";
+import { ansiSpans, markSpans } from "@/foundation/ui/ansi/ansi";
+import { AnsiText } from "@/foundation/ui/ansi/AnsiText";
 import { clockOf, separatorText, type LogLevel, type LogRow } from "./dockerLogView";
 
 /** 1 行を描くのに要るもの（変わらない限り描き直さない） */
@@ -25,29 +26,6 @@ export interface LogRowProps {
   onAsk: (index: number, at: { x: number; y: number }) => void;
 }
 
-/** 色のまとまり 1 つ（16 色は CSS の決まった色、ほかは style。CI のタブのログも使う） */
-export function SpanView({ span }: { span: MarkedSpan }) {
-  const style: CSSProperties = {};
-  if (typeof span.fg === "string") style.color = span.fg;
-  if (typeof span.bg === "string") style.backgroundColor = span.bg;
-  const className = cx(
-    typeof span.fg === "number" && `ansi-fg-${span.fg}`,
-    typeof span.bg === "number" && `ansi-bg-${span.bg}`,
-    span.bold && "ansi-bold",
-    span.dim && "ansi-dim",
-    span.italic && "ansi-italic",
-    span.underline && "ansi-underline",
-    span.mark === 1 && "docker-log-match",
-    span.mark === 2 && "docker-log-match is-current",
-  );
-  if (!className && !span.fg && !span.bg) return <>{span.text}</>;
-  return (
-    <span className={className || undefined} style={style}>
-      {span.text}
-    </span>
-  );
-}
-
 /**
  * ログの 1 行（エラー・警告の印・時刻・札・文）か、止まった・起動したの区切りの行。
  * エラーの行に乗せると「AI に聞く」（前後 20 行）。JSON の行は押すと整えて開く
@@ -67,7 +45,7 @@ export const DockerLogRow = memo(function DockerLogRow({ row, index, label, hue,
       {showLabel && <span className={`docker-log-label docker-log-c${hue}`}>{label}</span>}
       <span className="docker-log-text" onClick={json ? () => onToggleJson(row.id) : undefined} data-tip={json && !pretty ? "押すと JSON を整えて開く" : undefined}>
         {spans.map((s, i) => (
-          <SpanView key={i} span={s} />
+          <AnsiText key={i} span={s} matchClass="docker-log-match" />
         ))}
         {pretty && <pre className="docker-log-json">{pretty}</pre>}
       </span>

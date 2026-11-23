@@ -30,5 +30,5 @@
 - AI の守りが見る様子は時間で打ち切り、答えなければ通す側に倒す。
 - 「見ています」は 20 秒ごと（コアは 45 秒届かなければ `docker events` を止める）。重なった取り直しは 1 回にまとめる。
 - ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
-- `ansi.ts` と `DockerLogRow` の `SpanView` は CI のタブのログも使う（変えたら CI のログも見る）。
+- ログの色は土台の `ansi/`（`ansiSpans`・`AnsiText`）。CI のタブのログも使う（変えたら CI のログも見る）。
 - テストは `server.docker.test.ts`・`server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

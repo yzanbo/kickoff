@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import { ExternalLink, Workflow } from "lucide-react";
-import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
 import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
@@ -14,6 +13,7 @@ import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ListHideButton, ListRail } from "@/foundation/ui/kit/ListRail";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
+import { GitHubConnectionGate } from "@/features/github/ui/GitHubConnectionGate";
 import { DETAIL_MIN_WIDTH } from "@/features/github/ui/GitHubTab";
 import { githubRepoUrl } from "@/features/github/ui/githubLinks";
 import { GITHUB_REFRESH_MS, useGitHubRefresh } from "@/features/github/ui/useGitHubRefresh";
@@ -29,28 +29,16 @@ export const CI_PENDING_REFRESH_MS = 15_000;
  * 連携先・アカウントは GitHub タブと同じ（プロジェクトの設定の「GitHub」）。使えなければ理由と直し方を出す
  */
 export function CiTab({ projectId }: { projectId: number }) {
-  const connection = useQuery(["CiTab.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
-  const conn = connection.data;
-  if (connection.error) return <div className="github-tab"><ErrorText message={errorText(connection.error)} /></div>;
-  if (!conn) return <div className="github-tab muted small github-tab-loading">確認中…</div>;
-  if (conn.reason)
-    return (
-      <div className="github-tab">
-        <EmptyState
-          icon={Workflow}
-          title={conn.repo ? `${conn.repo} の CI を見られません` : "GitHub のリポジトリにつながっていません"}
-          actions={
-            <button type="button" className="btn" data-size="sm" onClick={connection.reload}>
-              もう一度確かめる
-            </button>
-          }
-        >
-          <p>{conn.reason}</p>
-          <p className="muted small">CI のタブは、GitHub タブと同じアカウント・連携先のリポジトリの GitHub Actions を読みます。プロジェクトの設定の「GitHub」で選べます。</p>
-        </EmptyState>
-      </div>
-    );
-  return <CiBrowser projectId={projectId} host={conn.host ?? GITHUB_DEFAULT_HOST} repo={conn.repo ?? ""} />;
+  return (
+    <GitHubConnectionGate
+      projectId={projectId}
+      icon={Workflow}
+      title={(repo) => `${repo} の CI を見られません`}
+      note="CI のタブは、GitHub タブと同じアカウント・連携先のリポジトリの GitHub Actions を読みます。プロジェクトの設定の「GitHub」で選べます。"
+    >
+      {({ host, repo }) => <CiBrowser projectId={projectId} host={host} repo={repo} />}
+    </GitHubConnectionGate>
+  );
 }
 
 function CiBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {

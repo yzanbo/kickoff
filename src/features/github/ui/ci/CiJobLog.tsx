@@ -7,7 +7,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ansiSpans, markSpans } from "@/foundation/ui/ansi/ansi";
-import { SpanView } from "@/features/docker/ui/DockerLogRow";
+import { AnsiText } from "@/foundation/ui/ansi/AnsiText";
 import { CiStateIcon } from "./CiStateIcon";
 import { ciLogLine, stepsWithLogs, stepToOpen } from "./ciView";
 
@@ -139,7 +139,7 @@ const CiLogLines = memo(function CiLogLines({ lines }: { lines: string[] }) {
             </span>
             <span className="ci-log-text">
               {markSpans(ansiSpans(view.text), []).map((span, j) => (
-                <SpanView key={j} span={span} />
+                <AnsiText key={j} span={span} />
               ))}
             </span>
           </div>

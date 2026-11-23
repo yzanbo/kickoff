@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
-import { GITHUB_DEFAULT_HOST } from "@shared/foundation/codeHost";
 import type { Chat } from "@shared/chat/types";
 import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
@@ -17,6 +16,7 @@ import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ListHideButton, ListRail } from "@/foundation/ui/kit/ListRail";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { GitHubConnectionGate } from "./GitHubConnectionGate";
 import { GitHubDetail } from "./GitHubDetail";
 import { GitHubFilterBar } from "./GitHubFilterBar";
 import { openNewIssue } from "./githubDialogs";
@@ -38,28 +38,16 @@ function parseSelected(text: string): { kind: GitHubKind; number: number } | nul
  * 連携先・アカウントはプロジェクトの設定の「GitHub」のとおり。使えなければ（remote がない・gh がない・ログインしていない）理由と直し方を出す
  */
 export function GitHubTab({ projectId }: { projectId: number }) {
-  const connection = useQuery(["GitHubTab.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
-  const conn = connection.data;
-  if (connection.error) return <div className="github-tab"><ErrorText message={errorText(connection.error)} /></div>;
-  if (!conn) return <div className="github-tab muted small github-tab-loading">確認中…</div>;
-  if (conn.reason)
-    return (
-      <div className="github-tab">
-        <EmptyState
-          icon={GitPullRequest}
-          title={conn.repo ? `${conn.repo} を見られません` : "GitHub のリポジトリにつながっていません"}
-          actions={
-            <button type="button" className="btn" data-size="sm" onClick={connection.reload}>
-              もう一度確かめる
-            </button>
-          }
-        >
-          <p>{conn.reason}</p>
-          <p className="muted small">使うアカウントと連携先のリポジトリは、プロジェクトの設定の「GitHub」で選べます。</p>
-        </EmptyState>
-      </div>
-    );
-  return <GitHubBrowser projectId={projectId} host={conn.host ?? GITHUB_DEFAULT_HOST} repo={conn.repo ?? ""} />;
+  return (
+    <GitHubConnectionGate
+      projectId={projectId}
+      icon={GitPullRequest}
+      title={(repo) => `${repo} を見られません`}
+      note="使うアカウントと連携先のリポジトリは、プロジェクトの設定の「GitHub」で選べます。"
+    >
+      {({ host, repo }) => <GitHubBrowser projectId={projectId} host={host} repo={repo} />}
+    </GitHubConnectionGate>
+  );
 }
 
 function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {

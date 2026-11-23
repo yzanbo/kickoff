@@ -2,10 +2,10 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
-import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { useGitHubConnection } from "./GitHubConnectionGate";
 import { GitHubLabelPicker } from "./GitHubLabelPicker";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
 
@@ -16,7 +16,7 @@ import { GitHubMarkdownField } from "./GitHubMarkdownField";
  */
 export function NewIssueDialog({ projectId, initialBody, onCreated, onClose }: { projectId: number; initialBody: string; onCreated?: (number: number) => void; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
-  const connection = useQuery(["NewIssueDialog.connection", projectId], () => api.githubConnection(projectId), { keepPrevious: true });
+  const connection = useGitHubConnection(projectId);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState(initialBody);
   const [labels, setLabels] = useState<string[]>([]);
