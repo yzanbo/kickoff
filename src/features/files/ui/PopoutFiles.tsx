@@ -7,19 +7,19 @@ import { SideScope } from "@/features/conversation/ui";
 import { SideFileView } from "./SideFileView";
 import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
 import type { FileRef } from "@/features/files/ui/links/fileRefs";
-import { openFileRef, useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
+import { openFileRef, useFileLinks, type FileLinkSource } from "@/features/files/ui/links/useFileLinks";
 
 /**
  * 別ウィンドウのファイル（作業場所の変更・中身）の開き方: 変更・中身は別ウィンドウで開き、「ファイルタブで開く」はメインのウィンドウで開く
  * （このウィンドウには、ファイルタブがないため）
  */
-export function usePopoutFileLinks(base: ChatFileLinks | undefined, place: { chatId: number; projectId: number; worktree?: string }): ChatFileLinks | undefined {
+export function usePopoutFileLinks(base: FileLinkSource | undefined, place: { chatId: number; projectId: number; worktree?: string }): FileLinkSource | undefined {
   const { chatId, projectId, worktree } = place;
   return useMemo(() => (base ? popoutFileLinks(base, { chatId, projectId, worktree }) : undefined), [base, chatId, projectId, worktree]);
 }
 
 /** 別ウィンドウの開き方に直す（作業場所を移す前の区間の開き方にも使う。PastWorkplacesProvider の adapt） */
-export function popoutFileLinks(base: ChatFileLinks, { chatId, projectId, worktree }: { chatId: number; projectId: number; worktree?: string }): ChatFileLinks {
+export function popoutFileLinks(base: FileLinkSource, { chatId, projectId, worktree }: { chatId: number; projectId: number; worktree?: string }): FileLinkSource {
   const at = { projectId, ...(worktree ? { worktree } : {}) };
   const openChanges = (focus?: string) => openPopout({ kind: "changes", chatId, ...at, ...(focus ? { focus } : {}) }, `変更 — ${worktree ? `ワークツリー ${baseName(worktree)}` : "本体"}`);
   const openFile = (ref: FileRef) => openPopout({ kind: "file", chatId, ...at, ...ref }, ref.path);
@@ -35,11 +35,11 @@ export function popoutFileLinks(base: ChatFileLinks, { chatId, projectId, worktr
 /** 別ウィンドウの変更・ファイルの枠: ファイルのリンクを別ウィンドウの開き方にし、右の欄と同じく開いたチャットを「メインのチャット」にする（SideScope） */
 export function PopoutFilesFrame({ chatId, projectId, worktree, children }: { chatId: number; projectId: number; worktree?: string; children: ReactNode }) {
   const { projectsById } = useProjects();
-  const base = useFileLinks({ id: chatId, project_id: projectId, worktree_path: worktree ?? null, status: "" }, projectsById.get(projectId)?.repo_path, false);
+  const base = useFileLinks({ chatId, projectId, worktree, root: worktree ?? projectsById.get(projectId)?.repo_path, side: false }, "");
   const links = usePopoutFileLinks(base, { chatId, projectId, worktree });
   return (
     <SideScope mainChatId={chatId}>
-      <FileLinksProvider value={links}>
+      <FileLinksProvider source={links}>
         <div className="popout-body">{children}</div>
       </FileLinksProvider>
     </SideScope>

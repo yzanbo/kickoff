@@ -1,12 +1,10 @@
 import { ChevronRight, FileDiff } from "lucide-react";
-import { useContext } from "react";
 import { baseName } from "@/foundation/ui/lib/format";
 import { LazyDetails } from "@/foundation/ui/kit/LazyDetails";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
-import { FileLinkContext, openByClick } from "@/features/files/ui/links/fileLinkContext";
 import type { FileChange } from "./turnFileChanges";
-import { openKey, useTimelineOpen } from "@/features/chat/ui";
+import { openByClick, openKey, useChatFileLinks, useTimelineOpen } from "@/features/chat/ui";
 
 /** 足した行・消した行（＋12 −3）。書き直しは消した行が分からないので足した行だけ */
 function ChangeCounts({ added, removed }: { added: number; removed: number }) {
@@ -26,10 +24,10 @@ function ChangeCounts({ added, removed }: { added: number; removed: number }) {
 export function TurnChanges({ files, chatId, resultId }: { files: FileChange[]; chatId: number; resultId: number }) {
   // 開閉は流れの見え方の店（キーは作業の終わりの記録 ID）
   const [open, setOpen] = useTimelineOpen(chatId, openKey.turnChanges(resultId));
-  const links = useContext(FileLinkContext);
+  const links = useChatFileLinks();
   const added = files.reduce((n, f) => n + f.added, 0);
   const removed = files.reduce((n, f) => n + f.removed, 0);
-  const root = links ? `${links.index.root}/` : undefined;
+  const root = links ? `${links.root}/` : undefined;
   const relOf = (path: string) => (root && path.startsWith(root) ? path.slice(root.length) : undefined);
   // 作業場所の中で変えた最初のファイル（見出しの「差分を見る」で、その位置へ移る）
   const first = files.map((f) => relOf(f.path)).find((p) => p !== undefined);

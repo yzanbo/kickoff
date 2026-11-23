@@ -1,6 +1,6 @@
 # ファイル（`src/features/files`）
 
-プロジェクトの画面の「ファイル」「検索」タブと、チャットの右の欄のファイル・返答のファイルのチップ。変更・履歴は `src/features/git/CLAUDE.md`。Git の状態・飾り・変更の一覧・差分のタブは口 `ui/filesGit.ts` で受ける（git が登録。files は git を読まない）。見る作業場所は `WorktreePicker`、操作先は `useWorkplace`（どちらも `@/foundation/ui/workplace/`。API は `?worktree=`）。
+プロジェクトの「ファイル」「検索」と、チャットの右の欄のファイル・返答のファイルのチップ。変更・履歴は `src/features/git/CLAUDE.md`。Git の状態・飾り・変更の一覧・差分のタブは口 `ui/filesGit.ts` で受ける（git が登録。files は git を読まない）。見る作業場所は `WorktreePicker`、操作先は `useWorkplace`（どちらも `@/foundation/ui/workplace/`。API は `?worktree=`）。
 
 ## 地図
 
@@ -10,11 +10,11 @@
 | `core/tools.ts` | AI の `open_file`（作業場所の中だけ） |
 | `ui/EditorTab` | タブの殻（同じ部品のまま切り替え、開いたタブ・検索・操作の様子を共有） |
 | `ui/FilesPane`・`FileTree`・`useFileOps`・`fileMenuItems`・`FileTreeMenu` | ファイルの木・名前の変更・作る・ゴミ箱・右クリック（外のアプリとパスのコピーは土台の `PathMenuItems`） |
-| `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（`Panel` の欄 `files`） |
+| `ui/useFileTabs`・`fileTabs.ts`・`ProjectFileTab` | 右のファイルのタブ（欄 `files`） |
 | `ui/FileView`・`useFileDocument`・`FileHeader`・`usePreviewMode`・`CodeEditor`・`monacoEditor.ts` | 中身（文書の土台 `useDocument` の上。Monaco の付け足しは `codeEditorParts.ts` の `attach…`）・差分を見ながら編集・プレビュー |
 | `ui/useProjectSearch`・`useSearchReplace` | 検索と置換 |
-| `ui/SideFileView` | チャットの右の欄のファイル |
-| `ui/links/` | 返答のファイルのチップ（`FileLinksProvider`・`FileMenu`・引き当ての口 `fileRefs.ts`） |
+| `ui/SideFileView` | 右の欄のファイル |
+| `ui/links/` | 返答のファイルのチップ（chat の口 `chatFileLinks` の実装 `chatFileLinksPort.ts`・`FileMenu`・引き当て `fileRefs.ts`） |
 
 ## 決まり
 
@@ -25,7 +25,7 @@
 - ピントは差分の「編集」・新しいファイルから来たときだけ置く（チャット欄・一覧のピントを奪わない）。
 - ⌘F はエディタがあれば `MonacoFindBar`（Monaco の検索を使う）、ほかは `@/foundation/ui/kit/FindBar.tsx`。探し方は検索タブもほかの欄とそろえる。
 - 印と置き換えはコアと同じ `@shared/foundation/search/searchMatch`。置換は結果の行だけをコアが置き換える（探したあとで変わった行はしない）。
-- チップにするのはチャットのパネルの中（`FileLinksProvider`）だけ。開き方は `open` 1 つで、チップ・変更カード・ツールの行で共有する。`FileMenu` は 1 つだけ描く。
+- チップにするのはチャットの画面の中（口の `Provider`）だけ。読む側は chat の `useChatFileLinks`。開き方は `open` 1 つで、チップ・変更カード・ツールの行で共有。`FileMenu` は 1 つだけ描く。
 
 ## 落とし穴
 

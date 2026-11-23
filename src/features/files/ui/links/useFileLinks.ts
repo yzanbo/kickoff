@@ -5,11 +5,13 @@ import { filesGitImpl } from "@/features/files/ui/filesGit";
 import { useWorkplaceFiles } from "@/features/files/ui/filesStore";
 import { changesTab, fileTab, openTab, reopenOf } from "@/features/panel/ui";
 import { chatSidePanel } from "@/features/chat/ui";
-import type { FileLinks } from "./fileLinkContext";
-import { buildFileIndex, type FileRef } from "./fileRefs";
+import type { ChatFileLinks, ChatFilePlace, ChatFileSource } from "@/features/chat/ui";
+import { buildFileIndex, type FileIndex, type FileRef } from "./fileRefs";
 
-/** useFileLinks が返すもの（右クリックのメニューは FileLinksProvider が足す） */
-export type ChatFileLinks = Omit<FileLinks, "showMenu">;
+/** リンクの元（チャットの口の ChatFileSource の中身）: 作業場所のファイルの一覧（ここにあるものだけをチップにする。root は作業場所のフォルダ）と開き方。右クリックのメニューは FileLinksProvider が足す */
+export interface FileLinkSource extends ChatFileSource, Pick<ChatFileLinks, "open" | "openInEditor" | "openChanges"> {
+  index: FileIndex;
+}
 
 /**
  * 押したファイルの開き方を決める（右の欄・別ウィンドウで共通）: 行の番号があれば中身（その行を目立たせる）、作業場所にコミットしていない変更があれば
@@ -23,21 +25,14 @@ export function openFileRef(ref: FileRef, place: { projectId: number; worktree?:
 }
 
 /**
- * チャットの中のファイルを押して開くための情報（FileLinkContext に入れる）。
+ * チャットの中のファイルを押して開くための情報（FileLinksProvider に渡す）。
  * チャットの作業場所（ワークツリーならそのフォルダ、なければ本体）のファイルの一覧を読み、作業が終わるたびに読み直す（新しく作ったファイルもチップにする）。
  * side（チャットの画面の右の欄を置ける）なら、押したファイルを右の欄に開き、会話は左に残す（コミットしていない変更があれば変更のタブのその位置、
  * なければ・行の番号があればファイルのタブ）。置けなければファイルタブ。一覧が読めない（フォルダが消えたなど）間は undefined（チップにしない）
  */
-export function useFileLinks(
-  chat: { id: number; project_id: number; worktree_path: string | null; status: string },
-  repoPath: string | undefined,
-  side: boolean,
-): ChatFileLinks | undefined {
-  const projectId = chat.project_id;
-  const chatId = chat.id;
-  const worktree = chat.worktree_path || undefined;
-  const root = worktree ?? repoPath;
-  const { data } = useWorkplaceFiles({ projectId, worktree: worktree ?? null }, { version: chat.status });
+export function useFileLinks(place: ChatFilePlace, version: unknown): FileLinkSource | undefined {
+  const { chatId, projectId, worktree, root, side } = place;
+  const { data } = useWorkplaceFiles({ projectId, worktree: worktree ?? null }, { version });
   return useMemo(() => (data && root ? fileLinksFor({ files: data, root, projectId, worktree, chatId, side }) : undefined), [data, root, projectId, worktree, chatId, side]);
 }
 
@@ -59,7 +54,7 @@ export function fileLinksFor({
   worktree: string | undefined;
   chatId: number;
   side: boolean;
-}): ChatFileLinks {
+}): FileLinkSource {
   const place = { projectId, ...(worktree ? { worktree } : {}) };
   const openInEditor = (ref: FileRef) => open({ kind: "file", projectId, ...ref, worktree });
   const sidePanel = chatSidePanel(chatId);

@@ -1,8 +1,7 @@
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
-import { useContext } from "react";
 import { open } from "@/foundation/ui/navigation/open";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
+import { useChatFileLinks } from "@/features/chat/ui";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { FileView } from "./FileView";
 import { fileTabPlace } from "./fileTabs";
@@ -38,7 +37,7 @@ export function SideFileView(props: Props) {
 function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
   const { projectsById } = useProjects();
   const git = useFilesGitStatus({ projectId, worktree: worktree ?? null }, false);
-  const links = useContext(FileLinkContext);
+  const links = useChatFileLinks();
   const changed = git.changeOf(path) !== null;
   const ref = { path, ...(line ? { line } : {}) };
   const repoPath = projectsById.get(projectId)?.repo_path ?? "";

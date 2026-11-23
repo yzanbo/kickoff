@@ -2,9 +2,8 @@ import { useInsertionEffect, useRef, useState } from "react";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { useOpenChat } from "@/features/chat/ui/store/useChatStore";
-import { useFileLinks } from "@/features/files/ui/links/useFileLinks";
+import { chatFileLinksPort, useChatFileSource } from "@/features/chat/ui";
 import { SubagentScreen, windowSubagentNav } from "@/features/conversation/ui/screens/SubagentScreen";
-import { popoutFileLinks, usePopoutFileLinks } from "@/features/files/ui/PopoutFiles";
 import { SideScope } from "@/features/conversation/ui";
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { ChatEnvironment, createRewindActions, useChatSending, useTimelineScrollHandle } from "@/features/conversation/ui";
@@ -41,8 +40,11 @@ function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; cha
   useInsertionEffect(() => {
     nav.rewind.setSend({ options, sendOther: send.sendOther });
   });
-  const fileLinks = useFileLinks(chat, project?.repo_path, false);
-  const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
+  const port = chatFileLinksPort();
+  const worktree = chat.worktree_path || undefined;
+  const fileLinks = useChatFileSource({ chatId: chat.id, projectId: chat.project_id, worktree, root: worktree ?? project?.repo_path, side: false }, chat.status);
+  // 別ウィンドウの開き方に直す（作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く）
+  const links = fileLinks && port.popout(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     // チャットの画面と同じものを配る（作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く）
     <ChatEnvironment
@@ -53,7 +55,7 @@ function PopoutSubagentView({ agentKey, chat, project }: { agentKey: string; cha
       rewind={nav.rewind.actions}
       links={links}
       side={false}
-      adaptPast={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}
+      adaptPast={(l, place) => port.popout(l, { chatId: chat.id, ...place })}
     >
       <div className="popout-body">
         <SubagentScreen chatId={chat.id} agentKey={agentKey} />

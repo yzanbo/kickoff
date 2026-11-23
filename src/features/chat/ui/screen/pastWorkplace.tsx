@@ -8,8 +8,7 @@ import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { showToast } from "@/foundation/ui/kit/toast";
-import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
-import { fileLinksFor, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
+import { chatFileLinksPort, type ChatFileSource } from "./fileLinks";
 import { memoLast } from "@/features/chat/ui/store/chatSelector";
 import { defineChatSelector } from "@/features/chat/ui/store/useChatStore";
 
@@ -35,7 +34,7 @@ interface PastPlace {
   /** 画像の口に渡す記録の ID（区間の終わり。コアはこれより後ろの最初の区切りの「移す前」から読む） */
   at: number;
   /** ファイルを押して開く情報（読めるまでは undefined = チップにしない） */
-  links: ChatFileLinks | undefined;
+  links: ChatFileSource | undefined;
   /** そのときの作業場所がもうない（チップを薄く出し、押したら開けないと知らせる） */
   gone: boolean;
 }
@@ -59,15 +58,6 @@ const pastFiles = createKeyedStore<string, ProjectFiles>({
 });
 
 /**
- * そのときの作業場所がもうないときの開き方: チップはいまの一覧の名前で出し（作業場所のフォルダはそのときのもの。変更カードの絶対パスも
- * 作業場所の中として読む）、押すと開けないと知らせる
- */
-function goneLinks(current: ChatFileLinks, root: string, label: string): ChatFileLinks {
-  const tell = () => showToast(workplaceGoneText(label));
-  return { index: { ...current.index, root }, side: current.side, open: tell, openInEditor: tell, openChanges: tell };
-}
-
-/**
  * チャットの画面に、作業場所を移した区切りより前の区間ごとの開き方を配る（区切りがなければ何もしない）。
  * 移す前の作業場所のファイルの一覧は、区間ごとではなく作業場所ごとに 1 回だけ読む。current はいまの作業場所の開き方
  */
@@ -79,10 +69,10 @@ export function PastWorkplacesProvider({
   children,
 }: {
   chatId: number;
-  current: ChatFileLinks | undefined;
+  current: ChatFileSource | undefined;
   side: boolean;
   /** 開き方を直す（別ウィンドウ: そのときの作業場所の別ウィンドウで開く） */
-  adapt?: (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => ChatFileLinks;
+  adapt?: (links: ChatFileSource, place: { projectId: number; worktree?: string }) => ChatFileSource;
   children: ReactNode;
 }) {
   const boundaries = workplaceBoundaries.useFor(chatId);
@@ -95,7 +85,8 @@ export function PastWorkplacesProvider({
   const value = useMemo(() => {
     if (boundaries.length === 0) return null;
     const map = new Map<number, PastPlace>();
-    const adaptLinks = (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => (adapt ? adapt(links, place) : links);
+    const port = chatFileLinksPort();
+    const adaptLinks = (links: ChatFileSource, place: { projectId: number; worktree?: string }) => (adapt ? adapt(links, place) : links);
     for (const b of boundaries) {
       const state = stateOf(placeKey(b.from));
       const worktree = b.from.worktree_path ?? undefined;
@@ -103,9 +94,10 @@ export function PastWorkplacesProvider({
       const gone = state.data === undefined && state.error !== undefined;
       const links =
         state.data && root
-          ? adaptLinks(fileLinksFor({ files: state.data, root, projectId: b.from.project_id, worktree, chatId, side }), { projectId: b.from.project_id, ...(worktree ? { worktree } : {}) })
+          ? adaptLinks(port.sourceFor({ chatId, projectId: b.from.project_id, worktree, root, side }, state.data), { projectId: b.from.project_id, ...(worktree ? { worktree } : {}) })
           : gone && current
-            ? goneLinks(current, root ?? current.index.root, b.fromLabel)
+            ? // そのときの作業場所がもうない: チップはいまの一覧の名前で出し、押すと開けないと知らせる
+              port.goneSource(current, root, () => showToast(workplaceGoneText(b.fromLabel)))
             : undefined;
       map.set(b.id, { at: b.id - 1, links, gone });
     }
@@ -126,9 +118,10 @@ export function PastWorkplace({ eventId, children }: { eventId: number | undefin
     }
   }
   if (!place) return children;
+  const FileLinks = chatFileLinksPort().Provider;
   return (
     <PastWorkplaceAtContext.Provider value={place.at}>
-      <FileLinksProvider value={place.links}>{place.gone ? <div className="past-workplace-gone">{children}</div> : children}</FileLinksProvider>
+      <FileLinks source={place.links}>{place.gone ? <div className="past-workplace-gone">{children}</div> : children}</FileLinks>
     </PastWorkplaceAtContext.Provider>
   );
 }

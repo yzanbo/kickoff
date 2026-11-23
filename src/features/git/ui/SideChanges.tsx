@@ -1,5 +1,5 @@
 import { Check, ChevronRight, FileCheck2, SquareArrowOutUpRight } from "lucide-react";
-import { useContext, useRef } from "react";
+import { useRef } from "react";
 import type { GitFileChange } from "@shared/git/types";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -8,7 +8,7 @@ import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
-import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
+import { useChatFileLinks } from "@/features/chat/ui";
 import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { DiffLayoutToggle } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { GIT_CHANGE_LABELS } from "@shared/git/labels";
@@ -54,8 +54,8 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   // 確認済みにしたファイル（作業場所ごとに覚える。もう変更のないファイルの印は外す）
   const viewed = useViewedFiles(`${projectId}:${worktree ?? ""}`, git.status ? files.map((f) => f.path) : null);
   const scroller = useRef<HTMLDivElement>(null);
-  // ファイルの右クリックのメニュー（開き方・外のアプリ・パスのコピー。チャットの画面の FileLinksProvider のもの）
-  const links = useContext(FileLinkContext);
+  // ファイルの右クリックのメニュー（開き方・外のアプリ・パスのコピー。チャットの画面のファイルのリンクの口のもの）
+  const links = useChatFileLinks();
 
   if (git.status && !git.status.repo) {
     return <GitInitNotice projectId={projectId} onStarted={git.refresh} className="side-changes-empty" />;
@@ -129,7 +129,7 @@ function ChangeSection({ projectId, worktree, file, staged, version, fold, viewe
   const source = useFileDiff({ projectId, file, staged, version, active: state !== "none" || (fold.override ?? fold.byDefault), onLoad: (diff) => viewed.noteDiff(file.path, diff) });
   const fingerprint = viewed.fingerprintOf(file.path);
   const open = fold.override ?? (state === "viewed" ? false : fold.byDefault || state === "changed");
-  const links = useContext(FileLinkContext);
+  const links = useChatFileLinks();
   const openInEditor = () => (links ? links.openInEditor({ path: file.path }) : openTarget({ kind: "file", projectId, path: file.path, worktree }));
   const mark = (on: boolean) => {
     if (on) {

@@ -17,10 +17,11 @@ import {
   type ChatScreenValue,
   type ScreenPorts,
   type TimelineNav,
+  chatFileLinksPort,
+  useChatFileSource,
+  type ChatFileSource,
 } from "@/features/chat/ui";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
-import { FileLinksProvider } from "@/features/files/ui/links/FileLinksProvider";
-import { useFileLinks, type ChatFileLinks } from "@/features/files/ui/links/useFileLinks";
 import { ChatImagesProvider } from "@/features/remoteImages/ui";
 import { ChatProviderContext, useProviderStatus } from "@/features/ai/ui";
 import { useForegroundProvider } from "./useForegroundProvider";
@@ -86,7 +87,8 @@ function ChatShell({ chat, project, host, focus, visible }: { chat: Chat; projec
   // 登録簿（タブの右クリックの会話 / 動き・別ウィンドウからの知らせ・最後に押した画面）。隠れた画面で移る・動きを開くを受けたら、先にこのタブを表に出す
   useRegisterScreen(chat.id, shell.ports, host.slot, host.bringToFront);
   // 返答の中のファイルのパス・変更カード・ツールの行のファイルを、押して右の欄（置けなければファイルタブ）で開けるようにする（作業場所のファイルだけ）
-  const fileLinks = useFileLinks(chat, project?.repo_path, canOpenSide);
+  const worktree = chat.worktree_path || undefined;
+  const fileLinks = useChatFileSource({ chatId: chat.id, projectId: chat.project_id, worktree, root: worktree ?? project?.repo_path, side: canOpenSide }, chat.status);
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
   useProviderStatus(chat.provider, { load: true });
   // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）
@@ -125,11 +127,11 @@ interface ChatEnvironmentProps {
   /** 書き直し・再試行の口 */
   rewind: RewindActions | null;
   /** 返答の中のファイルのパスを押して開く口（作業場所のファイルだけ） */
-  links: ChatFileLinks | undefined;
+  links: ChatFileSource | undefined;
   /** 右の欄に開けるか（作業場所を移す前の行の開き方） */
   side: boolean;
   /** 作業場所を移す前の行の開き方を直す（別ウィンドウ） */
-  adaptPast?: (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => ChatFileLinks;
+  adaptPast?: (links: ChatFileSource, place: { projectId: number; worktree?: string }) => ChatFileSource;
   children: ReactNode;
 }
 
@@ -139,9 +141,10 @@ interface ChatEnvironmentProps {
  */
 export function ChatEnvironment({ chat, host, ports, timeline, rewind, links, side, adaptPast, children }: ChatEnvironmentProps) {
   const screen: ChatScreenValue = { chatId: chat.id, projectId: chat.project_id, role: chatRoleOf(chat), host, root: ports.root };
+  const FileLinks = chatFileLinksPort().Provider;
   return (
     <ChatProviderContext.Provider value={chat.provider}>
-      <FileLinksProvider value={links}>
+      <FileLinks source={links}>
         <PastWorkplacesProvider chatId={chat.id} current={links} side={side} adapt={adaptPast}>
           <ChatImagesProvider chatId={chat.id}>
             <ChatScreenContext.Provider value={screen}>
@@ -157,7 +160,7 @@ export function ChatEnvironment({ chat, host, ports, timeline, rewind, links, si
             </ChatScreenContext.Provider>
           </ChatImagesProvider>
         </PastWorkplacesProvider>
-      </FileLinksProvider>
+      </FileLinks>
     </ChatProviderContext.Provider>
   );
 }

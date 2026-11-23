@@ -2,10 +2,10 @@ import { useCallback, useLayoutEffect, useMemo, useState, type MouseEvent, type 
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/foundation/ui/kit/markdown/markdownFileLinks";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { FileLinkContext, openByClick, type FileLinks } from "./fileLinkContext";
+import { ChatFileLinksContext, openByClick, type ChatFileLinks, type ChatFileSource } from "@/features/chat/ui";
 import { FileMenu } from "./FileMenu";
 import { createFileLookup, remarkFileLinks, type FileRef } from "./fileRefs";
-import type { ChatFileLinks } from "./useFileLinks";
+import type { FileLinkSource } from "./useFileLinks";
 
 /**
  * チャットのパネルの中で、返答のファイルのパス（Markdown）・ターンの変更カード・ツールの行・右の欄の変更を、押して開けるようにする。
@@ -14,15 +14,17 @@ import type { ChatFileLinks } from "./useFileLinks";
  * パスらしい文字に印を付け、開けるかはリンクがファイルの一覧を引き当てる口（createFileLookup）からパスごとに選んで読む
  * （作業が終わるたびに一覧を取り直しても、すべての返答を解析し直さない）
  */
-export function FileLinksProvider({ value, children }: { value: ChatFileLinks | undefined; children: ReactNode }) {
+export function FileLinksProvider({ source, children }: { source: ChatFileSource | undefined; children: ReactNode }) {
+  // 口の元は files が作ったもの（useFileLinks・fileLinksFor）だけ
+  const value = source as FileLinkSource | undefined;
   const menu = useContextMenu<FileRef>();
   // 返答の Markdown を描き直させないよう、メニューを開く関数は同じものにする（中身はいつも最新）
   const openMenu = useLatest(menu.open);
   const showMenu = useCallback((e: MouseEvent, ref: FileRef) => openMenu.current(e, ref), [openMenu]);
-  const links = useMemo<FileLinks | undefined>(() => (value ? { ...value, showMenu } : undefined), [value, showMenu]);
+  const links = useMemo<ChatFileLinks | undefined>(() => (value ? { root: value.index.root, side: value.side, open: value.open, openInEditor: value.openInEditor, openChanges: value.openChanges, showMenu } : undefined), [value, showMenu]);
   // ファイルの一覧を引き当てる口。一覧はこの描き直しのうちに入れ（同じ描き直しで描くリンクが読む）、知らせは描いたあとに出す（memo して描き直らないリンクのため）
   const [store] = useState(createFileLookup);
-  const index = links?.index;
+  const index = value?.index;
   store.replace(index);
   useLayoutEffect(() => store.notify(), [store, index]);
   // 押したときは、いまの開き方を使う（下の値を一覧の取り直しで作り直さないため）
@@ -46,9 +48,9 @@ export function FileLinksProvider({ value, children }: { value: ChatFileLinks | 
     [root, side, store, latest],
   );
   return (
-    <FileLinkContext.Provider value={links}>
+    <ChatFileLinksContext.Provider value={links}>
       <MarkdownFileLinksContext.Provider value={markdown}>{children}</MarkdownFileLinksContext.Provider>
       {links && menu.menu && <FileMenu at={menu.menu.at} file={menu.menu.value} links={links} onClose={menu.close} />}
-    </FileLinkContext.Provider>
+    </ChatFileLinksContext.Provider>
   );
 }
