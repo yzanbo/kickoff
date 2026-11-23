@@ -44,6 +44,12 @@ function blockedV6(ip: string): boolean {
   // IPv4 を写した形（::ffff:a.b.c.d・::a.b.c.d）は IPv4 として見る
   const mapped = lower.match(/^(?:::ffff:|::)(\d{1,3}(?:\.\d{1,3}){3})$/);
   if (mapped) return blockedV4(mapped[1]);
+  // URL の正規化で 16 進になった形（::ffff:7f00:1 = 127.0.0.1）も IPv4 として見る
+  const hex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (hex) {
+    const [hi, lo] = [parseInt(hex[1], 16), parseInt(hex[2], 16)];
+    return blockedV4(`${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`);
+  }
   if (lower === "::" || lower === "::1") return true;
   const head = parseInt(lower.split(":")[0] || "0", 16);
   if (Number.isNaN(head)) return true;

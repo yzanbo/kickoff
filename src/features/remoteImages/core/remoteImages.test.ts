@@ -11,10 +11,10 @@ test("isBlockedAddress: この Mac の中・手元のネットワーク・リン
   for (const ip of ["127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.1.10", "169.254.169.254", "100.64.0.1", "0.0.0.0", "224.0.0.1", "255.255.255.255"]) {
     assert.equal(isBlockedAddress(ip), true, ip);
   }
-  for (const ip of ["::1", "::", "fe80::1", "fd00::1", "fc00::1", "ff02::1", "::ffff:127.0.0.1", "::ffff:192.168.0.1"]) {
+  for (const ip of ["::1", "::", "fe80::1", "fd00::1", "fc00::1", "ff02::1", "::ffff:127.0.0.1", "::ffff:192.168.0.1", "::ffff:7f00:1", "[::ffff:7f00:1]", "::ffff:a9fe:a9fe"]) {
     assert.equal(isBlockedAddress(ip), true, ip);
   }
-  for (const ip of ["93.184.216.34", "172.32.0.1", "8.8.8.8", "2606:4700::1111", "::ffff:8.8.8.8"]) {
+  for (const ip of ["93.184.216.34", "172.32.0.1", "8.8.8.8", "2606:4700::1111", "::ffff:8.8.8.8", "::ffff:808:808"]) {
     assert.equal(isBlockedAddress(ip), false, ip);
   }
   assert.equal(isBlockedAddress("not-an-ip"), true);
