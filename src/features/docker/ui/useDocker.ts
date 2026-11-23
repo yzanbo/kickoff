@@ -22,6 +22,8 @@ export function useDocker(projectId: number) {
   const [error, setError] = useState<string | null>(null);
   const loading = useRef(false);
   const again = useRef(false);
+  // 送った順の番号（［↻］は重なっても待たずに送るので、あとから届いた古い一覧で新しい一覧を上書きしない）
+  const sent = useRef(0);
 
   /** 取り直す（重なった頼みは 1 回にまとめ、終わってからもう 1 回だけ） */
   const reload = useCallback(
@@ -36,12 +38,14 @@ export function useDocker(projectId: number) {
       let more = true;
       while (more) {
         const request = current.watch ? api.dockerWatch(projectId) : api.dockerList(projectId, current.refresh);
+        const id = ++sent.current;
         await request.then(
           (next) => {
+            if (id !== sent.current) return;
             setList(next);
             setError(null);
           },
-          (e: unknown) => setError(errorMessage(e)),
+          (e: unknown) => id === sent.current && setError(errorMessage(e)),
         );
         more = again.current;
         again.current = false;
