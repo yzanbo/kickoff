@@ -1,4 +1,5 @@
 import { CodeXml, Eye, Save, StickyNote } from "lucide-react";
+import { baseName } from "@shared/foundation/path";
 import { noteExtensionOf, noteKindOf, type NoteKind } from "@shared/notes/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
@@ -25,7 +26,7 @@ import { NoteQuickChat } from "@/features/notes/ui/chat/NoteQuickChat";
 import { NoteChatToggle } from "@/features/notes/ui/chat/NoteChatToggle";
 import { useNoteChatTargets } from "./noteChatTargets";
 import { NoteSelectionAttach } from "./NoteSelectionAttach";
-import { baseName, noteTitle, parentOf } from "@/features/notes/ui/notePaths";
+import { noteTitle, parentOf } from "@/features/notes/ui/notePaths";
 import { subscribeNoteReveal, takeNoteReveal } from "@/features/notes/ui/noteReveal";
 import { useNoteDocument, type NoteSaveState } from "./useNoteDocument";
 import { useBottomChatMotion } from "@/features/notes/ui/chat/useBottomChatMotion";
@@ -35,8 +36,7 @@ import { openExternal } from "@/foundation/ui/external/native";
 // 編集の部品（CodeMirror）は大きいので、ノートを開いたときに初めて読み込む
 const NoteEditor = lazy(() => import("./NoteEditor"));
 
-/** 題名の欄に書ける長さ（文字） */
-const TITLE_MAX = 120;
+const TITLE_MAX = 120; // 題名の欄に書ける長さ（文字）
 
 /** 表示の切り替えの説明（種類ごと。preview = 整えて見せる / edit = 中身をそのまま） */
 const VIEW_LABELS: Record<NoteKind, { preview: string; edit: string }> = {

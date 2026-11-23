@@ -2,10 +2,10 @@
 // 画面は移らず（続けてほかの文もノートできるように）、画面の下に様子を出す（NoteProgress。要約は数秒かかる）。
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのノートを開ける（openNoteFromChat）
 import { useSyncExternalStore } from "react";
+import { baseName } from "@shared/foundation/path";
 import { notesApi } from "@/features/notes/ui/api";
 import { notesStore } from "@/features/notes/ui/store";
 import { reportFailure } from "@/foundation/ui/kit/ask";
-import { baseName } from "@/features/notes/ui/notePaths";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 
 /** 終わった知らせを出しておく時間（ミリ秒） */

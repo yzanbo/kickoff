@@ -1,9 +1,10 @@
 import type { MouseEvent } from "react";
+import { baseName } from "@shared/foundation/path";
 import type { NoteEntry } from "@shared/notes/types";
 import { cx } from "@/foundation/ui/lib/cx";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
-import { baseName, parentOf } from "@/features/notes/ui/notePaths";
+import { parentOf } from "@/features/notes/ui/notePaths";
 
 interface Props {
   found: readonly NoteEntry[];

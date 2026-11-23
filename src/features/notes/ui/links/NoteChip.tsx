@@ -1,10 +1,9 @@
 import { ChevronsDownUp, ChevronsUpDown, StickyNote } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { canPopout } from "@/foundation/ui/navigation/popout";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { readSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
 import { useNoteList } from "@/features/notes/ui/store";
 import { usePopover } from "@/foundation/ui/kit/Popover";
@@ -22,6 +21,7 @@ import { notesApi } from "@/features/notes/ui/api";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { ComposerPillProps } from "@/features/composer/ui";
 import { followMovedNote, useNoteActions } from "@/features/notes/ui/tree/useNoteActions";
+import { useNoteFolders } from "@/features/notes/ui/tree/useNoteFolders";
 
 /**
  * 入力欄の上の「ノート」（指示の履歴・子チャットと同じピルの列）。押すとノートのフォルダの木（ノートのタブと同じ並び・同じ開いているフォルダ。
@@ -41,10 +41,10 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
   // 送る前の新しいチャットなら、そのタブの右の欄
   const draftSide = useDraftSide();
   const [openIn, setOpenIn] = useSetting(storage.settings.openIn);
-  const tree = useMemo(() => buildNoteFileTree(list.data?.entries ?? []), [list.data]);
+  const tree = buildNoteFileTree(list.data?.entries ?? []);
   // 開いているフォルダは、ノートのタブの木と同じものを覚える（どちらで開け閉めしても、もう一方も同じになる）
-  const [openList, setOpenList] = useSetting(storage.settings.openFolders(projectId));
-  const openFolders = useMemo(() => new Set(openList), [openList]);
+  const folders = useNoteFolders(projectId);
+  const openFolders = folders.open;
   // ドラッグを重ねている落とす先のフォルダ（"" は直下 = 一覧ごと示す。null は重ねていない）
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   // 動かすのはノートのタブと同じ操作（開いているノートの書きかけは動かす前に聞き、ノートのタブで選んでいるノート・開いているフォルダを付け替える）
@@ -54,11 +54,10 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
   });
   const dropInto = (paths: string[], folder: string) => void actions.moveAllInto(paths, folder);
   // 木のフォルダ（ノートの入ったものだけ）。すべて開く・すべて閉じるに使う
-  const dirs = useMemo(() => folderPaths(tree), [tree]);
+  const dirs = folderPaths(tree);
   if (tree.length === 0) return null;
   const allOpen = dirs.every((d) => openFolders.has(d));
   const anyOpen = dirs.some((d) => openFolders.has(d));
-  const toggleFolder = (path: string) => setOpenList(openFolders.has(path) ? openList.filter((p) => p !== path) : [...openList, path]);
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
   const open = (path: string, place?: "side" | "window") => {
@@ -93,10 +92,10 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
                       iconSize={14}
                       label="フォルダをすべて開く"
                       disabled={allOpen}
-                      onClick={() => setOpenList([...new Set([...openList, ...dirs])])}
+                      onClick={() => folders.expand(dirs)}
                     />
                     {/* ノートのタブの「フォルダをすべて閉じる」と同じく、ノートのタブの木だけにあるフォルダ（ノートの入っていないもの）も閉じる */}
-                    <IconButton type="button" icon={ChevronsDownUp} iconSize={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
+                    <IconButton type="button" icon={ChevronsDownUp} iconSize={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={folders.closeAll} />
                   </span>
                 )}
               </div>
@@ -106,9 +105,8 @@ export function NoteChip({ projectId, chatId, onAttach }: { projectId: number; c
             <NoteChipTree
               nodes={tree}
               open={openFolders}
-              onToggle={toggleFolder}
-              // ドラッグを重ねて待ったあとに開くので、いま覚えている値に足す
-              onExpand={(path) => !openFolders.has(path) && setOpenList([...readSetting(storage.settings.openFolders(projectId)), path])}
+              onToggle={folders.toggle}
+              onExpand={(path) => folders.expand([path])}
               onDropInto={dropInto}
               dropTarget={dropTarget}
               onDropTarget={setDropTarget}

@@ -1,13 +1,13 @@
-import type { CSSProperties, MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { noteDatePrefixLength } from "@shared/notes/names";
-import { cx } from "@/foundation/ui/lib/cx";
-import { isRenameKey } from "@/foundation/ui/lib/keys";
+import { isUnder } from "@shared/foundation/path";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
-import { Collapse } from "@/foundation/ui/kit/Collapse";
-import { InlineName } from "@/foundation/ui/kit/InlineName";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
+import type { TreeNode as RowNode } from "@/foundation/ui/kit/list/tree";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
+import { TreeView, type TreeRenaming } from "@/foundation/ui/kit/list/TreeView";
+import { useTree } from "@/foundation/ui/kit/list/useTree";
 import { isDraggingNote, useNoteRowDrag } from "./noteDrag";
 import { noteTitle } from "@/features/notes/ui/notePaths";
 
@@ -18,122 +18,114 @@ export interface NoteRenaming {
   round: number;
 }
 
+/** 押した・Space の修飾キー（⌘ / Shift ＋クリックで選ぶ） */
+type Modifiers = Pick<MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">;
+
 interface Props {
   nodes: TreeNode[];
-  open: Set<string>;
+  open: ReadonlySet<string>;
+  /** フォルダを開く・閉じる（← →） */
+  onToggle: (path: string) => void;
   /** 閉じたフォルダを開く（ドラッグを重ねて待ったとき） */
   onExpand: (path: string) => void;
   /** 選んでいる行か（背景の色。⌘ / Shift ＋クリックで選んだいくつかの行も） */
   isSelected: (path: string) => boolean;
-  /** 行を押した（修飾キーを見て、選ぶ・開く・開閉するかは一覧（NoteTab）が決める） */
-  onRowClick: (node: TreeNode, e: MouseEvent) => void;
+  /** 行を押した・Space（修飾キーを見て、選ぶ・開く・開閉するかは一覧（NoteTab）が決める） */
+  onRowClick: (node: TreeNode, e: Modifiers) => void;
   /** 行の右クリック（行のメニュー） */
   onMenu: (e: MouseEvent, node: TreeNode) => void;
   /** ノート・フォルダ（まとめて運んだらいくつも）を、フォルダ（"" は直下）へ落とした */
   onDropInto: (paths: string[], folder: string) => void;
   /** その行をつかんだときに運ぶもの（選んだ行をつかめば、選んだものすべて） */
   dragPaths: (node: TreeNode) => string[];
-  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。木の段をまたいで 1 つなので、一覧（NoteTab）が持つ */
+  /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。一覧の空いている所でも付くので、一覧（NoteTab）が持つ */
   dropTarget: string | null;
   onDropTarget: (folder: string | null) => void;
   /** 名前を変えている行 */
   renaming: NoteRenaming | null;
-  /** 行で名前を変え始める（ダブルクリック） */
+  /** 行で名前を変え始める（ダブルクリック・Enter） */
   onStartRename: (node: TreeNode) => void;
   /** 書いた名前に変える（Enter・ピントを外す） */
   onRename: (node: TreeNode, name: string) => void;
   /** 名前を変えるのをやめた（Esc・名前を変えずに決めた） */
   onRenameEnd: () => void;
-  depth?: number;
 }
 
-/**
- * ノートのフォルダの木（エディタの木と同じ見た目。開いているフォルダの中だけ描き、開閉は高さをなめらかに変える `Collapse`）。行をドラッグしてフォルダへ落とすと動かす
- * （ファイルの行に落とすと、そのファイルのあるフォルダへ。閉じたフォルダに重ねて待つと開く）。右クリックで行のメニュー。
- * ダブルクリック・行にピントがあるときの Enter（と右クリックの「名前を変更」・新しく作ったとき）で、行の名前の所がそのまま入力欄になる（ノートは拡張子を除いた部分を書く）
- */
-export function NoteTree(props: Props) {
-  const { nodes, open, onExpand, isSelected, onRowClick, onMenu, onDropInto, dragPaths, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd, depth = 0 } = props;
-  // 行のドラッグ（落とす先の印・閉じたフォルダに重ねて待つと開く。入力欄の上の「ノート」の木と共通）
-  const { rowProps } = useNoteRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget, dragPaths });
+interface NoteRow extends RowNode<string> {
+  note: TreeNode;
+  children?: NoteRow[];
+}
 
+const rowsOf = (nodes: readonly TreeNode[], byPath: Map<string, TreeNode>): NoteRow[] =>
+  nodes.map((note) => {
+    byPath.set(note.path, note);
+    return { key: note.path, note, children: note.dir ? rowsOf(note.children, byPath) : undefined };
+  });
+
+/**
+ * ノートのフォルダの木（土台の TreeView の上。開いているフォルダの中だけ描く）。行をドラッグしてフォルダへ落とすと動かす
+ * （ファイルの行に落とすと、そのファイルのあるフォルダへ。閉じたフォルダに重ねて待つと開く。落とす先のフォルダは行と中身を染める）。右クリックで行のメニュー。
+ * 押す・Space で開く / 開閉、↑↓←→ で行を移る・開閉する。ダブルクリック・Enter（と右クリックの「名前を変更」・新しく作ったとき）で、
+ * 行の名前の所がそのまま入力欄になる（ノートは拡張子を除いた部分を書く）
+ */
+export function NoteTree({ nodes, open, onToggle, onExpand, isSelected, onRowClick, onMenu, onDropInto, dragPaths, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd }: Props) {
+  const byPath = new Map<string, TreeNode>();
+  const roots = rowsOf(nodes, byPath);
+  // 行のドラッグ（落とす先の印・閉じたフォルダに重ねて待つと開く。入力欄の上の「ノート」の木と共通）
+  const { rowProps: dragProps } = useNoteRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget, dragPaths });
+  const tree = useTree<string, NoteRow>({
+    roots,
+    open: { isOpen: (path) => open.has(path), set: (path, next) => open.has(path) !== next && onToggle(path) },
+    selection: { has: isSelected },
+    onActivate: (path, e) => {
+      const node = byPath.get(path);
+      if (node) onRowClick(node, e);
+    },
+    onRename: (path) => {
+      const node = byPath.get(path);
+      if (node) onStartRename(node);
+    },
+    label: "ノート",
+  });
+  const renamingNode = renaming ? byPath.get(renaming.path) : undefined;
+  const initial = renaming && renamingNode ? (renaming.initial ?? (renamingNode.dir ? renamingNode.name : noteTitle(renamingNode.path))) : "";
+  const treeRenaming: TreeRenaming<string> | null =
+    renaming && renamingNode
+      ? {
+          key: renaming.path,
+          round: renaming.round,
+          initial,
+          // 頭の日付（「2026-11-09 」）は残し、後ろだけを選ぶ（すぐ書けば日付付きの名前になる）。ノートの拡張子は欄の右に添えて、書き換えさせない
+          selectFrom: renamingNode.dir ? 0 : noteDatePrefixLength(initial),
+          suffix: renamingNode.dir ? undefined : (noteExtensionOf(renamingNode.path) ?? undefined),
+          maxLength: 200,
+          submit: (name) => onRename(renamingNode, name),
+          cancel: onRenameEnd,
+        }
+      : null;
   return (
-    // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（エディタの木と同じ。--guide-depth は親のフォルダの段）
-    <ul className="file-tree" role={depth === 0 ? "tree" : "group"} style={depth > 0 ? ({ "--guide-depth": depth - 1 } as CSSProperties) : undefined}>
-      {nodes.map((node) => {
-        const isOpen = node.dir && open.has(node.path);
-        // 落とす先のフォルダは、行と中身をまとめて囲む（どのフォルダに入るかを、中のノートに重ねているときも分かるように）
-        const isDropTarget = node.dir && dropTarget === node.path;
-        const editing = renaming?.path === node.path;
-        const renamingName = editing ? (renaming.initial ?? (node.dir ? node.name : noteTitle(node.path))) : "";
-        const style = { "--depth": depth } as CSSProperties;
-        const selected = isSelected(node.path);
-        const head = (
-          <>
-            <span className="tree-chevron">{node.dir && <Chevron open={isOpen} />}</span>
-            <FileIcon name={node.name} dir={node.dir} open={isOpen || isDropTarget} />
-          </>
-        );
-        return (
-          <li
-            key={node.path}
-            role="treeitem"
-            aria-expanded={node.dir ? isOpen : undefined}
-            aria-selected={selected}
-            className={cx("tree-item", isDropTarget && "drop-target")}
-            // 中身のある開いたフォルダ（縦の線を濃くするのはこの中身の段。エディタの木と同じ）
-            data-open-group={(isOpen && node.children.length > 0) || undefined}
-          >
-            {editing ? (
-              // 名前の所を入力欄に（Enter・ピントを外すと決め、Esc でやめる。ノートの拡張子は欄の右に添えて、書き換えさせない）
-              <div className={cx("list-item tree-row tree-indent", "renaming", selected && "selected")} style={style}>
-                {head}
-                <InlineName
-                  key={renaming.round}
-                  initial={renamingName}
-                  // 頭の日付（「2026-11-09 」）は残し、後ろだけを選ぶ（すぐ書けば日付付きの名前になる）
-                  selectFrom={node.dir ? 0 : noteDatePrefixLength(renamingName)}
-                  suffix={node.dir ? undefined : (noteExtensionOf(node.path) ?? undefined)}
-                  maxLength={200}
-                  buttons={false}
-                  className="note-rename"
-                  onSubmit={(name) => onRename(node, name)}
-                  onCancel={onRenameEnd}
-                />
-              </div>
-            ) : (
-              <button
-                className={cx("list-item tree-row tree-indent", selected && "selected")}
-                data-drag-source={isDraggingNote(node.path) ? "" : undefined}
-                style={style}
-                title={node.path}
-                {...rowProps(node)}
-                onClick={(e) => onRowClick(node, e)}
-                onDoubleClick={() => onStartRename(node)}
-                // 行にピントがあるときの Enter は名前の変更（Finder と同じ。開く・開閉は押す・Space）
-                onKeyDown={(e) => {
-                  if (!isRenameKey(e)) return;
-                  e.preventDefault();
-                  onStartRename(node);
-                }}
-                onContextMenu={(e) => {
-                  e.stopPropagation();
-                  onMenu(e, node);
-                }}
-              >
-                {head}
-                <span className="tree-name">{node.name}</span>
-              </button>
-            )}
-            {/* 開閉で高さをなめらかに変える（サイドバーのまとまりと同じ動き。閉じきったら中身を外す） */}
-            {node.dir && node.children.length > 0 && (
-              <Collapse open={isOpen}>
-                <NoteTree {...props} nodes={node.children} depth={depth + 1} />
-              </Collapse>
-            )}
-          </li>
-        );
+    <TreeView<string, NoteRow>
+      tree={tree}
+      className="note-tree"
+      renaming={treeRenaming}
+      rowProps={({ key, node: { note } }) => ({
+        ...dragProps(note),
+        title: key,
+        className: dropTarget ? (key === dropTarget ? "drop-target" : isUnder(key, dropTarget) ? "drop-inside" : undefined) : undefined,
+        "data-drag-source": isDraggingNote(key) || undefined,
+        onDoubleClick: () => onStartRename(note),
+        onContextMenu: (e) => {
+          e.stopPropagation();
+          onMenu(e, note);
+        },
       })}
-    </ul>
+      renderRow={(row, { nameField }) => (
+        <>
+          <span className="tree-chevron">{row.hasChildren && <Chevron open={row.open} />}</span>
+          <FileIcon name={row.node.note.name} dir={row.node.note.dir} open={row.open || row.key === dropTarget} />
+          {nameField ?? <span className="tree-name">{row.node.note.name}</span>}
+        </>
+      )}
+    />
   );
 }

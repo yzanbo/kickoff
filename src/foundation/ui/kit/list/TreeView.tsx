@@ -29,6 +29,8 @@ export interface TreeRenaming<K> {
   /** 欄のすぐ右に添える文（拡張子など。名前には含めない） */
   suffix?: string;
   selectFrom?: number;
+  /** 書き直してもらうたびに増やす（欄を作り直す。使えない名前を決めたあと、書いた名前のまま開き直すとき） */
+  round?: number;
 }
 
 /** 行に足す属性（右クリック・外へのドラッグ・title・data-* など。className は行のクラスに足す） */
@@ -171,6 +173,7 @@ export function TreeView<K, N extends TreeNode<K>>({
           const nameField =
             renaming?.key === row.key ? (
               <InlineName
+                key={renaming.round ?? 0}
                 className="tree-rename"
                 buttons={false}
                 initial={renaming.initial}

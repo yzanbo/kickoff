@@ -1,11 +1,11 @@
 import { FileCode2, FilePlus, FolderOpen, StickyNote } from "lucide-react";
-import { useEffect, useEffectEvent, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useEffectEvent, useState, type MouseEvent } from "react";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { cx } from "@/foundation/ui/lib/cx";
 import { isCancelKey } from "@/foundation/ui/lib/keys";
-import { readSetting } from "@/foundation/ui/storage";
 import { filesSettings } from "@/features/files/ui";
 import { storage } from "@/features/notes/ui/storage";
+import { useNoteFolders } from "./useNoteFolders";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { useMultiSelect } from "@/foundation/ui/hooks/useMultiSelect";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -19,8 +19,8 @@ import { folderPaths, topLevelPaths, visibleTreePaths, type TreeNode } from "@/f
 import { focusedPane } from "@/features/panel/ui/layout/paneTree";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { mapTabs, Panel, usePanel, type PanelScope } from "@/features/panel/ui";
-import { isUnder } from "@shared/foundation/path";
-import { ancestorsOf, buildNoteTree, filterNotes, parentOf } from "@/features/notes/ui/notePaths";
+import { ancestorsOf } from "@shared/foundation/path";
+import { buildNoteTree, filterNotes, parentOf } from "@/features/notes/ui/notePaths";
 import { NoteFoundList } from "./NoteFoundList";
 import { NoteListHead } from "./NoteListHead";
 import { NoteListMenu, type NoteMenuTarget } from "./NoteListMenu";
@@ -70,8 +70,8 @@ export function NoteTab({
   useEffect(() => setPicked(null), [selected]);
   const highlighted = picked ?? selected;
   const [remembered, setRemembered] = useSetting(storage.settings.selected(projectId));
-  const [openList, setOpenList] = useSetting(storage.settings.openFolders(projectId));
-  const open = useMemo(() => new Set(openList), [openList]);
+  const folders = useNoteFolders(projectId);
+  const { open } = folders;
   const [query, setQuery] = useState("");
   const menu = useContextMenu<NoteMenuTarget>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
@@ -84,22 +84,21 @@ export function NoteTab({
   const startRename = (path: string) => setRenaming({ path, round: 0 });
 
   const entries = list.data?.entries;
-  const tree = useMemo(() => buildNoteTree(entries ?? []), [entries]);
+  const tree = buildNoteTree(entries ?? []);
   // 木のフォルダ（すべて開く・閉じるの切り替えに使う。覚えた開閉には、もうないフォルダも残っていることがあるので木から数える）
-  const dirs = useMemo(() => folderPaths(tree), [tree]);
-  const found = useMemo(() => (query.trim() ? filterNotes(entries ?? [], query) : null), [entries, query]);
+  const dirs = folderPaths(tree);
+  const found = (query.trim() ? filterNotes(entries ?? [], query) : null);
   const dir = list.data?.dir ?? "";
   // ⌘ / Shift ＋クリックで選んだいくつかの行（Finder と同じ。範囲は見えている並び = 探していれば見つかった順、ふだんは開いているフォルダの中までの木の順）
-  const allPaths = useMemo(() => (entries ?? []).map((e) => e.path), [entries]);
+  const allPaths = (entries ?? []).map((e) => e.path);
   const multi = useMultiSelect(allPaths, () => (found ? found.map((e) => e.path) : visibleTreePaths(tree, open)));
   const isSelected = (path: string) => (multi.selected.length > 0 ? multi.has(path) : highlighted === path);
   const nodesOf = (paths: readonly string[]) => paths.map((path) => ({ path, dir: entries?.find((e) => e.path === path)?.dir ?? false }));
 
-  const openFolders = (paths: string[]) => setOpenList([...new Set([...readSetting(storage.settings.openFolders(projectId)), ...paths])]); // 待ったあとにも呼ぶので、いまの値に足す
   // ノートを開く（newTab = 新しいタブ。ふだんはピントのあるペインで表示中のノートを入れ替える。そのときは書きかけをどうするか聞く）
   const select = async (path: string, newTab = false) => {
     await openNoteInPanel(projectId, path, newTab, panelKeyOf);
-    openFolders(ancestorsOf(path));
+    folders.expand(ancestorsOf(path));
   };
 
   // 最後に表示したノートを覚え、タブがないまま開いたら（アプリを開き直したとき）そのノートを開き直す（覚え直すのは表示したノートが変わったときだけ。開き直すのは一覧が届いたときだけ）
@@ -140,7 +139,7 @@ export function NoteTab({
       setQuery("");
       setListHidden(false);
       if (isDir) {
-        openFolders(ancestorsOf(path));
+        folders.expand(ancestorsOf(path));
         setPicked(path);
       } else void select(path, true);
       startRename(path);
@@ -151,7 +150,7 @@ export function NoteTab({
     onTrashed: (path) => {
       mapTabs("note", trashedNoteTab(projectId, path));
       // まとめてゴミ箱に入れると続けて呼ばれるので、いま覚えている値から外す
-      setOpenList(readSetting(storage.settings.openFolders(projectId)).filter((p) => !isUnder(p, path)));
+      folders.forget(path);
     },
   });
 
@@ -165,7 +164,6 @@ export function NoteTab({
   const [planning, setPlanning] = useState(false);
   const hasNotes = Boolean(entries?.some((e) => !e.dir));
 
-  const toggle = (path: string) => setOpenList(open.has(path) ? openList.filter((p) => p !== path) : [...openList, path]);
   // 新しいノート・フォルダを作る場所: 右クリックした行（フォルダならその中、ノートならその入ったフォルダ）、なければ一覧で選んでいる行
   // （フォルダならその中、ノートならその入ったフォルダ。何も選んでいなければ、いちばん外側）
   const folderForNew = (node: TreeNode | null) => {
@@ -176,11 +174,11 @@ export function NoteTab({
   const reveal = (path: string) => openExternal({ kind: "reveal", path: path ? `${dir}/${path}` : dir });
 
   // 行を押した: ⌘ / Shift なら選ぶだけ（まだ何も選んでいなければ、いま選んでいる行も入れる）。ふつうのクリックは選んだものを外し、ノートは開き、フォルダは開閉して選ぶ
-  const rowClick = (path: string, isDir: boolean, e: MouseEvent) => {
+  const rowClick = (path: string, isDir: boolean, e: Pick<MouseEvent, "metaKey" | "ctrlKey" | "shiftKey">) => {
     if (multi.click(e, path, highlighted || null)) return;
     if (isDir) {
       setPicked(path);
-      toggle(path);
+      folders.toggle(path);
     } else {
       setPicked(null);
       void select(path);
@@ -241,7 +239,7 @@ export function NoteTab({
               hasFolders: dirs.length > 0,
               anyOpen: dirs.some((d) => open.has(d)),
               // 開いているものがあればすべて閉じ（もうないフォルダの覚えも外す）、すべて閉じていればすべて開く
-              toggle: () => setOpenList(dirs.some((d) => open.has(d)) ? [] : dirs),
+              toggle: () => (dirs.some((d) => open.has(d)) ? folders.closeAll() : folders.expand(dirs)),
             }}
             onCreate={(kind) => void actions.createNote(folderForNew(null), kind)}
             onCreateFolder={() => void actions.createFolder(folderForNew(null))}
@@ -267,10 +265,11 @@ export function NoteTab({
               <NoteTree
                 nodes={tree}
                 open={open}
+                onToggle={folders.toggle}
                 isSelected={isSelected}
                 onRowClick={(node, e) => rowClick(node.path, node.dir, e)}
                 onMenu={rowMenu}
-                onExpand={(path) => openFolders([path])}
+                onExpand={(path) => folders.expand([path])}
                 onDropInto={dropInto}
                 dragPaths={dragPaths}
                 dropTarget={dropTarget}

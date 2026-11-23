@@ -22,17 +22,17 @@
   color: var(--extra-muted);
 }
 
-/*
- * ノート・フォルダをドラッグして落とす先。フォルダは行と中身をまとめてアクセントの枠で囲み、薄く染める（中のノートに重ねていても、
- * どのフォルダに入るかが分かるように）。名前もアクセントの色。ノートのタブの木（.tree-item）と入力欄の上の木（.note-chip-item）で同じ見た目
- */
-:is(.tree-item, .note-chip-item).drop-target {
+/* ノート・フォルダを落とす先: フォルダの行と中身を染め、名前をアクセントの色に（タブの木は TreeView の平らな行で中身は .drop-inside、入力欄の上の木は枠で囲む） */
+.note-tree .tree-row:is(.drop-target, .drop-inside) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.note-chip-item.drop-target {
   position: relative;
   isolation: isolate;
 }
 
-/* 囲みは一覧の左右の端から少し離して描く（行の中身は動かさない） */
-:is(.tree-item, .note-chip-item).drop-target::before {
+.note-chip-item.drop-target::before {
   position: absolute;
   z-index: var(--z-hidden);
   inset: 0 4px;
@@ -43,11 +43,11 @@
   content: "";
 }
 
-:is(.tree-item, .note-chip-item).drop-target > :is(.tree-row, .note-chip-row) {
+.note-chip-item.drop-target > .note-chip-row {
   background: transparent;
 }
 
-.tree-item.drop-target > .tree-row .tree-name,
+.note-tree .tree-row.drop-target .tree-name,
 .note-chip-item.drop-target > .note-chip-row .note-chip-title {
   font-weight: 600;
   color: var(--accent-fg);

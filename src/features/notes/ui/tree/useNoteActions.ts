@@ -1,13 +1,14 @@
 import { NOTE_KIND_EXTENSIONS, noteExtensionOf, newHtmlNote, type NoteKind } from "@shared/notes/kinds";
 import { datedNoteName, safeNoteName } from "@shared/notes/names";
 import { notesApi } from "@/features/notes/ui/api";
+import { runEach } from "./runEach";
 import { errorMessage } from "@shared/foundation/errors";
 import { notesStore } from "@/features/notes/ui/store";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/notes/ui/storage";
-import { remapPrefix } from "@shared/foundation/path";
-import { ancestorsOf, baseName, joinNotePath, noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "@/features/notes/ui/notePaths";
+import { ancestorsOf, baseName, joinPath, remapPrefix } from "@shared/foundation/path";
+import { noteTitle, parentOf, pathTaken, renamedPath, untitledPath } from "@/features/notes/ui/notePaths";
 import { showTrashedToast } from "@/features/trash/ui/trashActions";
 import { topLevelPaths } from "@/foundation/ui/kit/list/treeModel";
 import { movedNoteTab } from "@/features/notes/ui/notePanel";
@@ -105,7 +106,7 @@ export function useNoteActions(
   /** フォルダ（folder。"" は直下）へ動かす（同じ場所・自分の中へは動かさない） */
   const moveInto = async (path: string, folder: string) => {
     if (parentOf(path) === folder || folder === path || folder.startsWith(`${path}/`)) return;
-    await move(path, joinNotePath(folder, baseName(path)));
+    await move(path, joinPath(folder, baseName(path)));
   };
 
   const trash = async (path: string, dir: boolean) => {
@@ -128,20 +129,14 @@ export function useNoteActions(
    * 開いているノートの書きかけは、ほかの操作と同じく動かす前に聞く（やめたものは動かさない）
    */
   const moveMany = async (moves: readonly { from: string; to: string }[]) => {
-    const failed: string[] = [];
-    let moved = 0;
-    for (const m of moves) {
-      if (!(await beforeChange(m.from))) continue;
-      try {
-        await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from: m.from, to: m.to } });
-        onMoved(m.from, m.to);
-        moved++;
-      } catch (e) {
-        failed.push(`${m.from}: ${errorMessage(e)}`);
-      }
-    }
+    const { done, failed } = await runEach(moves, async (m) => {
+      if (!(await beforeChange(m.from))) return false;
+      await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from: m.from, to: m.to } });
+      onMoved(m.from, m.to);
+      return true;
+    });
     refresh();
-    return { moved, failed };
+    return { moved: done.length, failed: failed.map(({ item, error }) => `${item.from}: ${errorMessage(error)}`) };
   };
 
   /** 失敗したものを最後にまとめて知らせる（まとめて動かす・ゴミ箱に入れる） */
@@ -159,23 +154,17 @@ export function useNoteActions(
       if (targets[0] !== undefined) await moveInto(targets[0], folder);
       return;
     }
-    const failed: string[] = [];
-    for (const from of targets) {
-      const to = joinNotePath(folder, baseName(from));
-      if (pathTaken(entries(), to, from)) {
-        failed.push(`${baseName(from)}: 「${folder || "いちばん上"}」に同じ名前があります`);
-        continue;
-      }
-      if (!(await beforeChange(from))) continue;
-      try {
-        await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from, to } });
-        onMoved(from, to);
-      } catch (e) {
-        failed.push(`${baseName(from)}: ${errorMessage(e)}`);
-      }
-    }
+    // 同じ名前があるものは飛ばして、最後にまとめて知らせる
+    const { failed } = await runEach(targets, async (from) => {
+      const to = joinPath(folder, baseName(from));
+      if (pathTaken(entries(), to, from)) throw new Error(`「${folder || "いちばん上"}」に同じ名前があります`);
+      if (!(await beforeChange(from))) return false;
+      await notesApi("POST /api/projects/:projectId/notes/move", { params: { projectId }, body: { from, to } });
+      onMoved(from, to);
+      return true;
+    });
     refresh();
-    await reportMany("動かせなかったものがあります", failed);
+    await reportMany("動かせなかったものがあります", failed.map(({ item, error }) => `${baseName(item)}: ${errorMessage(error)}`));
   };
 
   /** 一覧で選んだいくつかのノート・フォルダを、1 回だけ確かめてからまとめてゴミ箱に入れる（1 つなら trash と同じ） */
@@ -195,18 +184,14 @@ export function useNoteActions(
       danger: true,
     });
     if (!ok) return;
-    const failed: string[] = [];
-    for (const { path } of targets) {
-      if (!(await beforeChange(path))) continue;
-      try {
-        await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } });
-        onTrashed?.(path);
-      } catch (e) {
-        failed.push(`${baseName(path)}: ${errorMessage(e)}`);
-      }
-    }
+    const { failed } = await runEach(targets, async ({ path }) => {
+      if (!(await beforeChange(path))) return false;
+      await notesApi("DELETE /api/projects/:projectId/note", { params: { projectId }, query: { path } });
+      onTrashed?.(path);
+      return true;
+    });
     refresh();
-    await reportMany("ゴミ箱に入れられなかったものがあります", failed);
+    await reportMany("ゴミ箱に入れられなかったものがあります", failed.map(({ item, error }) => `${baseName(item.path)}: ${errorMessage(error)}`));
   };
 
   return { createNote, createFolder, renameTo, moveInto, moveAllInto, moveMany, trash, trashMany };

@@ -2,6 +2,7 @@
 // 別ウィンドウ。送る前の新しいチャット（draftSide）なら、その下書きのタブの右の欄。チャットが分からない・ノートのチャットならノートのタブ。
 // 別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む
 import { canPopout, openPopout, parsePopout } from "@/foundation/ui/navigation/popout";
+import { baseName } from "@shared/foundation/path";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
 import { storage } from "./storage";
@@ -9,7 +10,6 @@ import { readSetting } from "@/foundation/ui/storage";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatSidePanel, openInRootSide } from "@/features/chat/ui";
 import { noteTab, openTab, type DraftScope } from "@/features/panel/ui";
-import { baseName } from "./notePaths";
 
 export function openNoteFromChat({
   projectId,

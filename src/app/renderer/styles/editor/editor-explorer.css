@@ -14,14 +14,7 @@
   background: var(--info);
 }
 
-/* ノートの木（入れ子の .file-tree。ファイル・変更・履歴の木は土台の TreeView で、線と貼り付けは ui/types/tree.css） */
-.file-tree {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.changes-list > .file-tree,
+/* ファイル・変更・履歴・ノートの木は土台の TreeView（線と貼り付けは ui/types/tree.css） */
 .files-pane > .tree-view {
   padding: 4px 0 8px;
 }
@@ -42,14 +35,12 @@
  * 木の縦の線（インデントガイド。VS Code の既定 renderIndentGuides: onHover と同じ）: 開いたフォルダの中身の段に、
  * 親のフォルダの開閉の矢印の下から縦の線を引く。一覧にマウスを乗せている間だけ全部を薄く出し、選んでいる行・ピントのある行の親の段
  * （その行が開いたフォルダなら、その中身の段）の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40% の
- * tree.inactiveIndentGuidesStroke）。ノートの木（.file-tree）と、検索の結果のファイルの中の行（.code-search-lines）
+ * tree.inactiveIndentGuidesStroke）。検索の結果のファイルの中の行（.code-search-lines。木の行は ui/types/tree.css）
  */
-.file-tree[role="group"],
 .code-search-lines {
   position: relative;
 }
 
-.file-tree[role="group"]::before,
 .code-search-lines::before {
   --tree-guide: color-mix(in srgb, var(--extra-muted) 40%, transparent);
   position: absolute;
@@ -71,21 +62,17 @@
   left: 14px;
 }
 
-:is(.changes-list, .file-tree[role="tree"]):hover :is(.file-tree[role="group"], .code-search-lines)::before {
+.changes-list:hover .code-search-lines::before {
   opacity: 1;
 }
 
-/* 濃くするのは、選んでいる・ピントのある行の親の段。その行が中身のある開いたフォルダ（data-open-group）なら、その中身の段（ノートの木は Collapse の中） */
-.file-tree[role="group"]:has(> .tree-item:not([data-open-group]) > .tree-row:is(.selected, :focus))::before,
-.tree-item[data-open-group]:has(> .tree-row:is(.selected, :focus)) > .file-tree::before,
-.tree-item[data-open-group]:has(> .tree-row:is(.selected, :focus)) > .collapse > .collapse-inner > .file-tree::before,
+/* 濃くするのは、選んでいる行のあるファイルの段 */
 .code-search-lines:has(> .code-search-row.selected)::before {
   --tree-guide: var(--extra-muted);
   opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .file-tree[role="group"]::before,
   .code-search-lines::before {
     transition: none;
   }

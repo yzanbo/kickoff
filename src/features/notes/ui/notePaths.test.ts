@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { ancestorsOf } from "@shared/foundation/path";
 import { test } from "vitest";
 import type { NoteEntry } from "@shared/notes/types";
-import { ancestorsOf, buildNoteFileTree, buildNoteTree, filterNotes, noteTitle, pathTaken, recentNotes, renamedPath, untitledPath } from "./notePaths";
+import { buildNoteFileTree, buildNoteTree, filterNotes, noteTitle, pathTaken, recentNotes, renamedPath, untitledPath } from "./notePaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): NoteEntry => ({ path, dir, modified_at });
 

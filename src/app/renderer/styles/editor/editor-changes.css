@@ -133,16 +133,6 @@
   min-width: 0;
 }
 
-.tree-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.tree-item > .file-tree,
-.tree-item > .collapse {
-  grid-column: 1 / -1;
-}
-
 /* 行の右の操作のボタン（ステージ・元に戻す・Finder で開くなど）。いつも薄い色で出し、乗せたボタンだけ濃くする */
 .row-actions {
   display: flex;

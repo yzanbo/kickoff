@@ -1,4 +1,5 @@
 import { FileCode2, StickyNote } from "lucide-react";
+import { baseName } from "@shared/foundation/path";
 import { noteExtensionOf, noteKindOf } from "@shared/notes/kinds";
 import type { NoteSearchHit } from "@shared/notes/types";
 import { Highlight } from "@/foundation/ui/kit/Highlight";
@@ -6,7 +7,7 @@ import { notesStore } from "./store";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui";
 import type { PaletteItem } from "@/features/palette/ui";
-import { baseName, parentOf } from "./notePaths";
+import { parentOf } from "./notePaths";
 
 /** ノートの印（HTML のノートは別の印） */
 const noteIcon = (path: string) => (noteKindOf(path) === "html" ? <FileCode2 size={15} aria-label="HTML のノート" /> : <StickyNote size={15} aria-label="ノート" />);

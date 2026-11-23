@@ -1,6 +1,7 @@
 // ノートのタブの木と、パスの補助（純粋な関数。パスはノートのフォルダからの相対で、区切りは /）
 import { noteExtensionOf, noteKindOf, type NoteKind } from "@shared/notes/kinds";
 import { uniqueNoteName } from "@shared/notes/names";
+import { baseName, joinPath, parentPath } from "@shared/foundation/path";
 import type { NoteEntry } from "@shared/notes/types";
 import type { TreeNode } from "@/foundation/ui/kit/list/treeModel";
 
@@ -39,20 +40,7 @@ export function buildNoteFileTree(entries: readonly NoteEntry[]): TreeNode[] {
 }
 
 /** 親フォルダ（直下なら ""） */
-export function parentOf(path: string): string {
-  const i = path.lastIndexOf("/");
-  return i < 0 ? "" : path.slice(0, i);
-}
-
-/** 名前（最後の部分） */
-export function baseName(path: string): string {
-  return path.slice(path.lastIndexOf("/") + 1);
-}
-
-/** フォルダとその中の名前をつなぐ（folder が "" なら直下） */
-export function joinNotePath(folder: string, name: string): string {
-  return folder ? `${folder}/${name}` : name;
-}
+export const parentOf = (path: string): string => parentPath(path) ?? "";
 
 /** ノートの題名（ファイル名からノートの拡張子 .md・.html などを除いたもの。ほかのファイルは名前のまま） */
 export function noteTitle(path: string): string {
@@ -81,21 +69,14 @@ export function untitledPath(entries: readonly NoteEntry[], folder: string, base
     .map((e) => baseName(e.path))
     .filter((name) => name.toLowerCase().endsWith(suffix))
     .map((name) => name.slice(0, name.length - suffix.length));
-  return joinNotePath(folder, `${uniqueNoteName(base, taken)}${ext}`);
+  return joinPath(folder, `${uniqueNoteName(base, taken)}${ext}`);
 }
 
 /** 名前を変えたあとのパス（ノートは元の拡張子 .md・.html などを付け直す。ほかのファイルは書いた名前のまま） */
 export function renamedPath(path: string, dir: boolean, name: string): string {
   const ext = dir ? null : noteExtensionOf(path);
   const keepAsTyped = !dir && !ext && baseName(path).includes(".");
-  return joinNotePath(parentOf(path), dir || keepAsTyped ? name : `${name}${ext ?? ".md"}`);
-}
-
-/** path を見せるために開くフォルダ（親をたどったもの。直下なら空） */
-export function ancestorsOf(path: string): string[] {
-  const out: string[] = [];
-  for (let p = parentOf(path); p; p = parentOf(p)) out.unshift(p);
-  return out;
+  return joinPath(parentOf(path), dir || keepAsTyped ? name : `${name}${ext ?? ".md"}`);
 }
 
 /** 名前で絞り込んだファイル（大文字・小文字を区別しない。新しく変えた順） */

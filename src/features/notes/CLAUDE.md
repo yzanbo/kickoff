@@ -34,5 +34,5 @@
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。
-- 開いているフォルダ `openFolders` はノートのタブと入力欄の上の `NoteChipTree` で、ドラッグの決まりは `noteDrag.ts` で共通。
+- 開いているフォルダ（`useNoteFolders`）とドラッグの決まり（`noteDrag.ts`）は、タブの木（TreeView）と入力欄の上の `NoteChipTree` で共通。
 - テスト: `core/routes/server.notes.test.ts`（`noteFake`）。
