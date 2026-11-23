@@ -1,11 +1,11 @@
 // ER 図のタブの状態と操作: 構造と覚えた位置を読み、絞り込み（名前・まわりの段・表示の細かさ・推測の関係）を当て、足りない位置を自動で並べる
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbConnection, type DbErPositions, type DbErSchema } from "@shared/database/types";
-import { erNeighborhood, erPlace, erRelations } from "./erDiagram";
+import { erNeighborhood, erScope, erRelations } from "./erDiagram";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
-import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";
-import { useDbClient } from "@/features/database/ui/dbClientContext";
+import { dbApi, dbAt, dbOne } from "@/features/database/ui/api";
+import type { DbErTab } from "@/features/database/ui/state/dbClientTabs";
+import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { erAutoLayout, erColumnsOf, erNodeSize, type ErDetail } from "./erLayout";
 
 export type ErTabPatch = Partial<Pick<DbErTab, "focus" | "depth" | "names">>;
@@ -16,7 +16,7 @@ export const ER_ALL_DEPTH = 99;
 export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (patch: ErTabPatch) => void) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
-  const place = erPlace(tab.path);
+  const scope = erScope(tab.path);
   const [schema, setSchema] = useState<DbErSchema | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
   const namesKey = tab.names?.join("\n") ?? null;
   const loadSchema = useEffectEvent((isAlive: () => boolean) => {
     setLoading(true);
-    api.dbEr(client.projectId, connection.id, tab.path, tab.names, worktree).then(
+    dbApi("POST /api/projects/:projectId/db-connections/:connectionId/er", { ...dbAt(client.projectId, connection.id, worktree), body: { path: tab.path, names: tab.names } }).then(
       (s) => {
         if (!isAlive()) return;
         setSchema(s);
@@ -55,19 +55,19 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
 
   useEffect(() => {
     let alive = true;
-    api.dbErLayout(client.projectId, connection.id, place).then(
+    dbApi("GET /api/projects/:projectId/db-connections/:connectionId/er-layout", { ...dbOne(client.projectId, connection.id), query: { scope } }).then(
       (p) => alive && setSaved(p),
       () => alive && setSaved({}),
     );
     return () => {
       alive = false;
     };
-  }, [client.projectId, connection.id, place]);
+  }, [client.projectId, connection.id, scope]);
 
   // 多い DB で「この表のまわり」から開いたら、そのテーブルと直接つながるテーブルを選んで描く
   const tooMany = schema !== null && tab.names === null && schema.tables.length === 0 && schema.names.length > DB_ER_AUTO_MAX;
   const pickAround = useEffectEvent((focus: string, isAlive: () => boolean) => {
-    api.dbTable(client.projectId, connection.id, tab.path, focus, worktree).then(
+    dbApi("POST /api/projects/:projectId/db-connections/:connectionId/table", { ...dbAt(client.projectId, connection.id, worktree), body: { path: tab.path, name: focus } }).then(
       (d) => {
         if (!isAlive()) return;
         const near = [focus, ...d.foreign_keys.map((f) => f.ref_table), ...d.referenced_by.filter((r) => r.schema === tab.path.schema || r.schema === null).map((r) => r.table)];
@@ -143,17 +143,17 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
         if (p) next[t.name] = p;
       }
       setSaved(next);
-      void api.saveDbErLayout(client.projectId, connection.id, place, next).catch(() => {});
+      void dbApi("PUT /api/projects/:projectId/db-connections/:connectionId/er-layout", { ...dbOne(client.projectId, connection.id), body: { scope, positions: next } }).catch(() => {});
     },
-    [saved, shown, positionOf, client.projectId, connection.id, place],
+    [saved, shown, positionOf, client.projectId, connection.id, scope],
   );
 
   /** 「自動で並べ直す」: 覚えた位置を消して並べ直す */
   const relayout = useCallback(async () => {
-    await api.resetDbErLayout(client.projectId, connection.id, place).catch(() => {});
+    await dbApi("DELETE /api/projects/:projectId/db-connections/:connectionId/er-layout", { ...dbOne(client.projectId, connection.id), query: { scope } }).catch(() => {});
     setAuto({});
     setSaved({});
-  }, [client.projectId, connection.id, place]);
+  }, [client.projectId, connection.id, scope]);
 
   return {
     schema,

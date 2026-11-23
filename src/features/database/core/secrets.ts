@@ -2,7 +2,7 @@
 // AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため。
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
-import { DB_SECRET_KINDS, dbSecretKey, type DbSecretKey, type DbSecretKind } from "@/features/database/core/secretKeys";
+import { DB_SECRET_KINDS, dbSecretKey, type DbSecretKey, type DbSecretKind } from "./secretKeys";
 import { Conflict } from "@/foundation/core/errors";
 import { openSecret, SEALED, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { takePendingNote } from "./turn/execute";
 import { followupPrompt, nameOnFirstMessage } from "@/features/chat/core/input";
 import type { Effect } from "@/features/chat/core/run/machine/types";
-import { recordEvent } from "@/features/chat/core/run/record";
+import { recordEvent } from "./record";
 import { errorMessage } from "@shared/foundation/errors";
 import { manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
 import { marksOf } from "@shared/chat/handoff";

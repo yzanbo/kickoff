@@ -29,7 +29,7 @@ export function cellKind(value: DbValue): "null" | "binary" | "empty" | "number"
 export const ENGINE_MARKS: Record<DbEngine, string> = { postgres: "Pg", mysql: "My", sqlite: "Lt" };
 
 /** 接続の行に添える場所（SQLite はファイル、ほかは ユーザー@ホスト:ポート/DB） */
-export function connectionPlace(c: Pick<DbConnection, "engine" | "host" | "port" | "database" | "username" | "file_path">): string {
+export function connectionScope(c: Pick<DbConnection, "engine" | "host" | "port" | "database" | "username" | "file_path">): string {
   if (isFileDb(c.engine)) return c.file_path ?? "";
   const host = c.host ? `${c.host}${c.port ? `:${c.port}` : ""}` : "";
   return `${c.username ? `${c.username}@` : ""}${host}${c.database ? `/${c.database}` : ""}`;

@@ -9,7 +9,7 @@ import { startTurn, tellItem } from "./turnStart";
 import { step } from "@/features/chat/core/run/machine/step";
 import { isBusy, isTellPending } from "@/features/chat/core/run/machine/state";
 import type { ChatRunState, Effect, Env, RunEvent, TurnKind, TurnOutcome } from "@/features/chat/core/run/machine/types";
-import { recordEvent } from "@/features/chat/core/run/record";
+import { recordEvent } from "./record";
 import { preCompactSent } from "@/features/chat/core/run/machine/marks";
 import type { ChatRecovery } from "@/features/chat/core/run/recovery/recovery";
 import type { Clock } from "@/foundation/core/clock";

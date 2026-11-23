@@ -4,7 +4,6 @@
 import { approvalsApi } from "@/features/chat/ui/api/approvals";
 import { chatsApi } from "@/features/chat/ui/api/chats";
 import { chatImagesApi } from "@/features/remoteImages/ui/api/chatImages";
-import { databasesApi } from "@/features/database/ui/api/databases";
 import { devicesApi } from "@/features/devices/ui/api/devices";
 import { filesShared } from "@/features/files/ui/api/files";
 import { gitShared } from "@/features/git/ui/api/git";
@@ -37,7 +36,6 @@ export const api = {
   ...worktreesApi,
   ...voiceApi,
   ...notesApi,
-  ...databasesApi,
   ...githubApi,
   ...ciApi,
   ...trashApi,

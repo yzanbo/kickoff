@@ -3,7 +3,7 @@ import { test, vi } from "vitest";
 import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { indexOfEvents, type IndexContext } from "@shared/chat/chatIndex";
 import { scenarioChat } from "@shared/chat/testing/chatScenarios";
-import type { ChatStoreDeps } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "./stores";
 import { testStore } from "@/app/core/testing/testStore";
 import { ChatIndexCache } from "./chatIndexCache";
 

@@ -1,5 +1,5 @@
 import { isNetworkError } from "@shared/ai/networkErrors";
-import { isUsageLimitError } from "@/features/ai/core/providers/shared/usageLimit";
+import { isUsageLimitError } from "./usageLimit";
 
 /** 承認カードの答えを待つ長さ（秒。7 日。フック・MCP のツールの待ち時間。答える前に閉じると拒否になるため長く） */
 export const APPROVAL_WAIT_S = 7 * 24 * 60 * 60;

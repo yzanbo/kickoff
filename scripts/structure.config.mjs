@@ -208,7 +208,7 @@ export default {
       allow: [
         "src/foundation/ui/store/**",
         // まだ乗せ替えていない機能の手書きの店（持ち主の段で乗せ替えて、ここから外す。分冊 04 の P4-1b の表）
-        ...["database/ui/tabFlags.ts", "notes/ui/addToNote.ts", "panel/ui/state/panelStore.ts", "projects/ui/rightSidebar/useSideWorktree.ts"].map((f) => `src/features/${f}`),
+        ...["database/ui/state/tabFlags.ts", "notes/ui/addToNote.ts", "panel/ui/state/panelStore.ts", "projects/ui/rightSidebar/useSideWorktree.ts"].map((f) => `src/features/${f}`),
       ],
       forbid: [{ new: "Set", typeArgs: "() => void" }],
       message: "知らせの受け手の Set を手で持たない（@/foundation/ui/store の createCell・createSignal・createRegistry か、店 createStore を使う）",

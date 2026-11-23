@@ -3,8 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { Bus } from "@/foundation/core/bus";
-import { systemClock, type Clock } from "@/foundation/core/clock";
+import { Bus } from "./bus";
+import { systemClock, type Clock } from "./clock";
 import { DB_FILE, openDb, readDatabaseId, type Migration } from "@/foundation/core/db/db";
 import { createSecretStore, type SecretStore } from "@/foundation/core/settings/secretStore";
 import { openAppSettings, type SettingsStore } from "@/foundation/core/settings/settingsStore";

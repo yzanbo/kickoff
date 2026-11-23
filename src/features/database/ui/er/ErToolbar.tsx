@@ -1,18 +1,18 @@
 import { Clipboard, FileText, LayoutGrid, ListChecks, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection } from "@shared/database/types";
-import { erMermaid, erPlace } from "./erDiagram";
+import { erMermaid, erScope } from "./erDiagram";
 import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
-import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";
+import type { DbErTab } from "@/features/database/ui/state/dbClientTabs";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { Popover } from "@/foundation/ui/kit/Popover";
 import { SearchField } from "@/foundation/ui/kit/SearchField";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
-import { AskAiButton } from "@/features/database/ui/DbAiButtons";
-import { useDbClient } from "@/features/database/ui/dbClientContext";
+import { AskAiButton } from "@/features/database/ui/ai/DbAiButtons";
+import { useDbClient } from "@/features/database/ui/state/dbClientContext";
 import { ErImageButton } from "./ErImageButton";
 import { ErPicker } from "./ErPicker";
 import type { ErDetail } from "./erLayout";
@@ -42,7 +42,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const names = er.schema?.names ?? [];
 
   // 書き出すノート・画像の名前
-  const title = `ER 図 ${connection.name} ${erPlace(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`;
+  const title = `ER 図 ${connection.name} ${erScope(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`;
   const mermaid = () => erMermaid(er.shown, er.shownRelations, er.detail);
   const copy = async () => {
     await navigator.clipboard.writeText(mermaid());

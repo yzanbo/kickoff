@@ -1,6 +1,6 @@
 import type { Bus } from "@/foundation/core/bus";
 import type { Clock } from "@/foundation/core/clock";
-import type { ChatStoreDeps } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "./stores";
 
 /** 自動のアーカイブを確かめる間隔 */
 const CHECK_MS = 60 * 60_000;

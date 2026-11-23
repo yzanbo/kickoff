@@ -1,6 +1,6 @@
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ChatRunner } from "@/features/chat/core/run/runner";
-import type { ChatStoreDeps } from "@/features/chat/core/stores";
+import type { ChatStoreDeps } from "./stores";
 import { providerFeatureMissing, type FileRewindResult } from "@shared/ai/types";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { Chat, ChatOptionsPatch } from "@shared/chat/types";

@@ -8,7 +8,7 @@ import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { routeProjectId, type Route } from "@/foundation/ui/navigation/router";
 import { readSetting } from "@/foundation/ui/storage";
 import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
-import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
+import { dbConnectionsStore } from "@/features/database/ui/state/connectionsStore";
 import { editorView, githubView, noteView, userViewTabs } from "./tabDescribers";
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */

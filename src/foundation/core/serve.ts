@@ -1,7 +1,7 @@
 // 組み立てた機能を HTTP で出す: 受け口を登録し（http/app.ts）、待ち受けを始めて機能の start を呼ぶ。止めるときは決まった順に止める
 import type { Hono } from "hono";
-import type { AssembledCore, CoreFeature } from "@/foundation/core/feature";
-import { closeKernel, type Kernel } from "@/foundation/core/kernel";
+import type { AssembledCore, CoreFeature } from "./feature";
+import { closeKernel, type Kernel } from "./kernel";
 import { createHttpApp, type HttpApp } from "@/foundation/core/http/app";
 import { BrowserLogin, loadOrCreateToken } from "@/foundation/core/http/auth";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";

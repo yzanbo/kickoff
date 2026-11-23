@@ -1,7 +1,7 @@
 // 記録を足す口: 店に足し、足した記録でチャットの作業中の状態の印（marks）を進める（実行の受付・1 回の実行・再開の段取りはここから足す）
 import type { ChatEvent, ChatEventData } from "@shared/chat/chatEvent";
 import { advanceMarks } from "@/features/chat/core/run/machine/marks";
-import type { ChatRun } from "@/features/chat/core/run/chatRun";
+import type { ChatRun } from "./chatRun";
 import type { ChatStoreDeps } from "@/features/chat/core/stores";
 
 export function recordEvent(store: Pick<ChatStoreDeps, "events">, runtime: ChatRun, event: ChatEventData): ChatEvent {

@@ -1,5 +1,5 @@
 // 失敗したときに戻す手順を足していき、まとめて流す（用意 → 確定 → 失敗なら戻す、の「戻す」。チャットの withIdleChat が使う）
-import type { Log } from "@/foundation/core/kernel";
+import type { Log } from "./kernel";
 
 export class Undo {
   private steps: (() => Promise<void> | void)[] = [];

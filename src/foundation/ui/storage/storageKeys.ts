@@ -5,7 +5,7 @@
  * プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる）
  */
 import { choice, defineSetting, defineSettingFamily, flag, json, text } from "./settings";
-import { NO_DB_TABS, parseDbClientTabs } from "@/features/database/ui/client/dbClientTabs";
+import { NO_DB_TABS, parseDbClientTabs } from "@/features/database/ui/state/dbClientTabs";
 
 /**
  * プロジェクトのチャットを開く場所（separate = ボードと分けた「チャット」タブで横幅いっぱいに / together = ボードの右のパネル。設定の「表示」）。

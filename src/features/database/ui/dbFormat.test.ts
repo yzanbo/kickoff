@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { cellKind, cellText, connectionPlace, durationLabel, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
+import { cellKind, cellText, connectionScope, durationLabel, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
 
 test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellText(null), "NULL");
@@ -18,11 +18,11 @@ test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellKind(""), "empty");
 });
 
-test("connectionPlace: SQLite はファイル、ほかはユーザー@ホスト:ポート/DB（ないものは省く）", () => {
+test("connectionScope: SQLite はファイル、ほかはユーザー@ホスト:ポート/DB（ないものは省く）", () => {
   const base = { host: null, port: null, database: null, username: null, file_path: null };
-  assert.equal(connectionPlace({ ...base, engine: "sqlite", file_path: "db/dev.sqlite3" }), "db/dev.sqlite3");
-  assert.equal(connectionPlace({ ...base, engine: "postgres", host: "h", port: 5432, database: "app", username: "u" }), "u@h:5432/app");
-  assert.equal(connectionPlace({ ...base, engine: "mysql", host: "h" }), "h");
+  assert.equal(connectionScope({ ...base, engine: "sqlite", file_path: "db/dev.sqlite3" }), "db/dev.sqlite3");
+  assert.equal(connectionScope({ ...base, engine: "postgres", host: "h", port: 5432, database: "app", username: "u" }), "u@h:5432/app");
+  assert.equal(connectionScope({ ...base, engine: "mysql", host: "h" }), "h");
 });
 
 test("nextSort: 昇順 → 降順 → なし、ほかの列は昇順から", () => {

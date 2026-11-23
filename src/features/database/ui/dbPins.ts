@@ -9,36 +9,31 @@ export interface DbPin {
   kind: "table" | "view";
 }
 
-/** 保存する形（1 つのピンを 1 つの文字に。接続・DB・スキーマ・種類・名前の JSON の配列） */
-export function pinId(pin: DbPin): string {
-  return JSON.stringify([pin.connection_id, pin.path.database, pin.path.schema, pin.kind, pin.name]);
+const nullableText = (x: unknown) => x === null || typeof x === "string";
+
+function isPin(x: unknown): x is DbPin {
+  if (typeof x !== "object" || x === null) return false;
+  const p = x as Partial<DbPin>;
+  return typeof p.connection_id === "number" && typeof p.name === "string" && (p.kind === "table" || p.kind === "view") && typeof p.path === "object" && p.path !== null && nullableText(p.path.database) && nullableText(p.path.schema);
 }
 
-/** 保存した文字からピンに（壊れたものは捨てる） */
-export function parsePin(id: string): DbPin | null {
-  try {
-    const v: unknown = JSON.parse(id);
-    if (!Array.isArray(v) || v.length !== 5) return null;
-    const [cid, database, schema, kind, name] = v as unknown[];
-    const nullableText = (x: unknown) => x === null || typeof x === "string";
-    if (typeof cid !== "number" || !nullableText(database) || !nullableText(schema) || (kind !== "table" && kind !== "view") || typeof name !== "string") return null;
-    return { connection_id: cid, path: { database: database as string | null, schema: schema as string | null }, name, kind };
-  } catch {
-    return null;
-  }
+/** 保存した値からピンの列に（配列でなければ読めない。壊れたピンは捨てる） */
+export function parseDbPins(value: unknown): DbPin[] | undefined {
+  return Array.isArray(value) ? value.filter(isPin) : undefined;
 }
+
+const samePin = (a: DbPin, b: DbPin) => a.connection_id === b.connection_id && a.path.database === b.path.database && a.path.schema === b.path.schema && a.kind === b.kind && a.name === b.name;
 
 /** その接続のピン（留めた順） */
-export function pinsOf(ids: readonly string[], connectionId: number): DbPin[] {
-  return ids.map(parsePin).filter((p): p is DbPin => p !== null && p.connection_id === connectionId);
+export function pinsOf(pins: readonly DbPin[], connectionId: number): DbPin[] {
+  return pins.filter((p) => p.connection_id === connectionId);
 }
 
-export function isPinned(ids: readonly string[], pin: DbPin): boolean {
-  return ids.includes(pinId(pin));
+export function isPinned(pins: readonly DbPin[], pin: DbPin): boolean {
+  return pins.some((p) => samePin(p, pin));
 }
 
 /** 留める / 外す（留めるものは後ろに足す） */
-export function togglePin(ids: readonly string[], pin: DbPin): string[] {
-  const id = pinId(pin);
-  return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+export function togglePin(pins: readonly DbPin[], pin: DbPin): DbPin[] {
+  return isPinned(pins, pin) ? pins.filter((p) => !samePin(p, pin)) : [...pins, pin];
 }

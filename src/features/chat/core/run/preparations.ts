@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { TurnRequest } from "@/features/chat/core/run/turn/contributor";
 import { createChat, followupPrompt, type StartChatInput } from "@/features/chat/core/input";
 import { holdOf, queuePaused } from "@/features/chat/core/run/machine/state";
-import { recordEvent } from "@/features/chat/core/run/record";
+import { recordEvent } from "./record";
 import { Conflict } from "@/foundation/core/errors";
 import { errorMessage } from "@shared/foundation/errors";
 import { providerCan } from "@shared/ai/providers";

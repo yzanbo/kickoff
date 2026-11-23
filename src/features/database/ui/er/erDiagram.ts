@@ -3,7 +3,7 @@
 import type { DbErTable, DbObjectPath } from "@shared/database/types";
 
 /** ER 図の配置を覚える場所のキー（DB とスキーマ。SQLite などで両方なければ main） */
-export function erPlace(path: DbObjectPath): string {
+export function erScope(path: DbObjectPath): string {
   return [path.database, path.schema].filter(Boolean).join(".") || "main";
 }
 

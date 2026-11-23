@@ -8,12 +8,11 @@
 |---|---|
 | `core/service.ts` | 組み立て: 登録 `connections`・つなぐ先 `target`（場所 `DbScope`）・木 `browse`・SQL のタブ `sqlTabs`・AI の SQL `aiQuery`（ツール `tools`）・金庫 `secrets` |
 | `core/workerClient.ts`・`worker/` | 呼び手 `DbWorkerClient`・ワーカー（`handler.ts`・`connect.ts`・SSH `tunnel.ts`）。ドライバは流し方 `DbConn` と読み方 `DbCatalog`（`postgres/`・`mysql/`・`sqlite.ts`）を `driverOf` で組む |
-| `ui/DatabaseClient`・`ui/dbClientContext.ts` | 殻（左に一覧、右にタブ）・操作 `useDbClient` |
-| `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbNote.ts` | 接続の登録・編集・写す・取り込む・失敗の案内・準備・手順ノート |
-| `ui/TableView`・`ui/SqlView`・`ui/DefinitionView`・`ui/er/` | テーブル・SQL・関数と列挙型のタブ・ER 図 |
-| `ui/dbClientRequests.ts`・`ui/openSqlFromChat.ts`・`ui/dockerDbTarget.ts` | 外（右の欄・Docker タブ・チャット）からの頼み |
+| `ui/client/` | 殻 `DatabaseClient`（左に一覧、右にタブ）・登録する画面・Docker タブからの頼み |
+| `ui/state/` | タブ `dbClientTabs.ts`・接続の一覧 `connectionsStore.ts`・操作 `useDbClient`・置き場所 `DbSurface`・外からの頼み `requestDbClient` |
+| `ui/connection/`・`ui/tree/`・`ui/table/`・`ui/sql/`・`ui/write/`・`ui/er/`・`ui/ai/` | 接続（登録・失敗・準備・手順ノート・パスワードを聞く）・木・テーブル・SQL・書き込む・ER 図・AI |
 
-開いているタブと形は `ui/client/dbClientTabs.ts`、接続の一覧は `ui/client/connectionsStore.ts`、CSS は `@/app/renderer/styles/database/`。
+呼び手は `ui/api.ts` の `dbApi`、CSS は `@/app/renderer/styles/database/`。サブフォルダは state → write → connection → tree・ai → table → sql・er → client の向きに読む。
 
 ## 決まり
 
@@ -25,7 +24,7 @@
 - SQL は 1 回に 1 文。画面は `splitStatements` で分けて送り、失敗・止めた文で止める。
 - 絞り込み・行の変更の SQL は共有の `dbFilter.ts` / `dbEdit.ts` が組み立てる（値はいつも params。WHERE の式は `assertWhere`）。行の変更は 1 つのトランザクションで、1 行に当たらなければすべて取り消す。
 - AI の SQL の結果は頭の行だけ（多ければ OS の一時フォルダに CSV）。見せない接続では AI に渡す・聞く・頼むのボタンを押せなくする。
-- タブの状態は置き場所（`place`）ごとに覚える。外からの頼みは `requestDbClient`（描く前なら預ける）。
+- タブの状態は置き場所（`DbSurface`）ごとに覚える。外からの頼みは `requestDbClient`（描く前なら預ける）。
 
 ## 落とし穴
 
@@ -36,7 +35,7 @@
 - 文の判定は SELECT の中の関数を見ない（`pg_terminate_backend` は READ ONLY でも通る。AI 用の読み取り専用ユーザーを勧める理由）。
 - コアはドライバと `yaml` を読み込まない（`testing/inProcessWorker.ts` を core から読まない。ドライバは使うときに `import()`）。ssh・シェルは `spawnTracked` で起こす。
 - 同じ接続の名前への頼みは `handler.ts` の `serial` で 1 つずつ流す（並べると二重に開く）。
-- キーチェーンで開けなければ 409 `db_password_locked`。DB タブはつなぐ API を `connecting` で包んで `DbUnlockHost` に聞き、メモリにだけ持つ。AI のツールは失敗にする。
+- キーチェーンで開けなければ 409 `db_password_locked`。DB タブは `dbApi` が locked のルートで `askDbPassword` に聞き、メモリにだけ持つ。AI のツールは失敗にする。
 - 準備のコマンド（`prep`）は確かめるまで流さない。止めるときは子孫ごと。後片付けは接続を消した・自動で切れた・ワーカーを止めるときに流す。
 - SSH トンネルはパスワードをファイルに書かず、同じ踏み台・同じ DB は 1 本を使い回す。known_hosts には画面で見せた指紋と合うときだけ足す（`sshHostKey.ts`）。
 - 「書き込む」を戻す時計にコミット・取り消しを数えない（`useSqlWrite.ts`）。接続を替える・タブを閉じる・切るとき、トランザクションの途中なら `finishSession` で聞く。

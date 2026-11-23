@@ -3,7 +3,7 @@ import { useServerEvent } from "@/foundation/ui/api/events";
 import { addChats, knownChat } from "@/features/chat/ui/store/knownChats";
 import { openInRootSide } from "./openChat";
 import { rootChatOf } from "@/features/chat/ui/state/descendants";
-import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
+import { openSqlInChat } from "@/features/database/ui/ai/openSqlInChat";
 import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { open } from "@/foundation/ui/navigation/open";
@@ -50,7 +50,7 @@ function openRequested(request: OpenViewRequest) {
   const target = request.lineage.at(-1);
   if (!target) return;
   // SQL は、頼んだチャットの右の欄の DB クライアントの新しい SQL のタブ（ツールの行の「SQL のタブで開く」と同じ）
-  if (request.kind === "sql") return openSqlFromChat(target, { id: request.connection_id }, request.sql);
+  if (request.kind === "sql") return openSqlInChat(target, { id: request.connection_id }, request.sql);
   // 子チャットは選んだ場所（省けば設定の開き方）、親のないチャットはチャットのパネル
   open({ kind: "chat", projectId: target.project_id, chatId: target.id, place: target.parent_chat_id !== null ? (request.place ?? "auto") : "tab" });
 }
