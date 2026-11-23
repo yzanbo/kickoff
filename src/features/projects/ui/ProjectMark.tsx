@@ -1,3 +1,4 @@
+import "./ProjectMark.css";
 import { LayoutGrid } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { hueStyle, initialOf, useProjectHue } from "./projectColor";

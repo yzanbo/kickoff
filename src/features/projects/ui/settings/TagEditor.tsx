@@ -1,3 +1,4 @@
+import "./TagEditor.css";
 import { Plus, Tag } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags, validateTagAdd } from "@shared/projects/tags";

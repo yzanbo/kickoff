@@ -1,3 +1,4 @@
+import "./GitInitField.css";
 import type { ReactNode } from "react";
 import { Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";

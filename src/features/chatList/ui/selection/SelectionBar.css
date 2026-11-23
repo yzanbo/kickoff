@@ -41,7 +41,7 @@
     color: var(--ng);
   }
 
-  /* ボードの下に浮かせるとき（置き場所は board/board.css の .board-selection） */
+  /* ボードの下に浮かせるとき（置き場所は BoardShell.css の .board-selection） */
 
   .board-selection .selection-bar {
     border: 1px solid var(--border);

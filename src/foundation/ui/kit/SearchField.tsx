@@ -1,3 +1,4 @@
+import "./SearchField.css";
 import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

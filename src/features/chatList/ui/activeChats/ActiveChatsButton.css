@@ -1,0 +1,32 @@
+/* ==== 作業中のチャットのボタン（ActiveChatsButton） ==== */
+@layer feature {
+  /* 見出しの「作業中・待ちのチャットを一覧」のボタン（ActiveChatsButton。すべてのプロジェクト）と、右上に重ねるすべてのプロジェクトの要対応の数（未読の緑。回答待ちがあればオレンジ） */
+
+  .active-chats-button {
+    position: relative;
+    display: inline-grid;
+  }
+
+  .active-chats-badge {
+    position: absolute;
+    top: -3px;
+    right: -5px;
+    display: grid;
+    place-items: center;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border: 2px solid var(--bg);
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    background: var(--dot-unread);
+    pointer-events: none;
+  }
+
+  .active-chats-badge.urgent {
+    background: var(--dot-needs-input);
+  }
+}

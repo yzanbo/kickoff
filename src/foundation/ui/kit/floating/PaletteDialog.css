@@ -1,0 +1,199 @@
+/* ==== コマンドパレット ==== */
+@layer feature {
+  .palette {
+    width: min(600px, calc(100vw - 32px));
+    margin-top: 12vh;
+  }
+
+  .palette-input {
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .palette-input input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    font-size: var(--fs-15);
+    background: transparent;
+  }
+
+  .palette-input input:focus {
+    outline: none;
+  }
+
+  .palette-list {
+    max-height: 50vh;
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .palette-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .palette-item.active {
+    background: var(--bg-hover);
+  }
+
+  /* チャットの行の左の状態の印（サイドバーの行と同じ StatusSlot）。作業中のまま未読の緑の点の縁は、一覧の地の色 */
+
+  .palette-item {
+    --slot-ring: var(--bg-elev);
+  }
+
+  .palette-label {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 名前のすぐ後ろのグループと作業場所の札（サイドバーの行と同じ札。狭ければ札の名前を省く。札がなければ詰める） */
+
+  .palette-chips {
+    display: inline-flex;
+    flex: 0 1 auto;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .palette-chips:empty {
+    display: none;
+  }
+
+  .palette-chips :is(.worktree-chip, .chat-group-chip) {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 140px;
+  }
+
+  /* 右の薄い文（プロジェクト名など）。前にサイドバーと同じプロジェクトの印を置く。右端に寄せる */
+
+  .palette-hint {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 6px;
+    /* チャットの中の文言の行は「チャット名 · プロジェクト」と長くなるので、本文を残して省く */
+    max-width: 40%;
+    min-width: 0;
+    margin-left: auto;
+    font-size: var(--fs-12);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .palette-hint-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .palette-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  /* ⌘⇧A の一覧の、状態ごとのまとまりの見出し（色はカンバンの列と同じ） */
+
+  .palette-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px 4px;
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* ⌘⇧A のプロジェクトでの絞り込み（入力欄の下の行。多ければ折り返す）と、右端のアーカイブ済みのプロジェクトの切り替え */
+
+  .palette-filters {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .palette-projects {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .palette-project,
+  .palette-archived-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 180px;
+    height: 24px;
+    padding: 0 8px;
+    font: inherit;
+    font-size: var(--fs-12);
+    cursor: pointer;
+  }
+
+  .palette-project:hover,
+  .palette-archived-toggle:hover {
+    --pill-fg: var(--text);
+    --pill-bg: var(--bg-hover);
+  }
+
+  .palette-project.active,
+  .palette-archived-toggle.active {
+    --pill-border: var(--accent);
+    --pill-fg: var(--text);
+    --pill-bg: var(--bg-active);
+  }
+
+  .palette-project.archived .palette-project-name {
+    font-style: italic;
+  }
+
+  .palette-project-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .palette-project-count {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .palette-archived-toggle {
+    flex: none;
+  }
+
+  /* ⌘⇧A の状態での絞り込み（プロジェクトの行のすぐ下。2 つの行を 1 つの帯に見せる） */
+
+  .palette-filters:has(+ .palette-state-filters) {
+    padding-bottom: 4px;
+    border-bottom: none;
+  }
+
+  .palette-state-filters {
+    padding-top: 4px;
+  }
+}

@@ -1,3 +1,4 @@
+import "./ChatCard.css";
 import { busyWithUnread } from "@shared/chat/state";
 import type { AgentState, Chat, FeedItem } from "@shared/chat/types";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";

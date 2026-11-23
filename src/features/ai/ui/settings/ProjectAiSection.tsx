@@ -1,3 +1,4 @@
+import "./ProjectAiSection.css";
 import { Check } from "lucide-react";
 import type { ProviderStatus } from "@shared/ai/types";
 import { PROVIDERS } from "@shared/ai/providers";

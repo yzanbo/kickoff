@@ -1,3 +1,4 @@
+import "./ReferenceEditor.css";
 import { FileText, Folder, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
 import type { Project, ProjectReference } from "@shared/projects/types";

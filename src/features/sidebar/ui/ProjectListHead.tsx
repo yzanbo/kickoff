@@ -1,3 +1,4 @@
+import "./ProjectListHead.css";
 import { ChevronsDownUp, ChevronsUpDown, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { NamedViewTabs } from "@/features/chatList/ui";

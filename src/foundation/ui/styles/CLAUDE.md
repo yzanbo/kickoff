@@ -22,7 +22,7 @@
 - ダイアログの幅は `--dialog-w`。2 つを 1 つに見せる組は `.split-button`（乗せたときの地は外側。`.panel-split-button`）。
 - 使わないクラスは消す。組み立てて付けるクラスに気をつける（頭 `state-` `status-` `tone-` `meter-` `conn-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、一番下へのボタンの状態）。
 - 新しいクラス名は CSS と組み立てるクラスを探し、領域の頭を付ける（1 語は避ける）。
-- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。Git・PR・CI は属性（`types/state-colors.css`）。プロジェクトの札の色は `project-mark.css`。アクセントの色の文字は `--accent-fg`。
+- 状態の色: 印は `--dot-*`、状態の文字は `--state-*`（`--ok` / `--ng` / `--warn` は使わない）。Git・PR・CI は属性（`types/state-colors.css`）。プロジェクトの札の色は `ProjectMark.css`。アクセントの色の文字は `--accent-fg`。
 - 下線は使わない（押せる名前は `.link-button.hover-bg`、行・カードは `--bg-hover`、リンクは色だけ）。打ち消し線はよい。
 - 回る印と跳ねる点は、どこでも `--dot-running`（押せるボタンの中はボタンの文字の色）。
 - `:focus-visible` の規則の頭には `:where(:root:not([data-modality="pointer"]))` を付ける（マウスの操作中は枠を出さない。`inputModality.ts`）。

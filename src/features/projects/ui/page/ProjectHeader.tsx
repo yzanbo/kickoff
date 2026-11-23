@@ -1,3 +1,4 @@
+import "./ProjectHeader.css";
 import { ArchiveRestore, Settings } from "lucide-react";
 import { useCommandKeys } from "@/foundation/ui/commands";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

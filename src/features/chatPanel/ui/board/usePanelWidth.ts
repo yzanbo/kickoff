@@ -6,7 +6,7 @@ const MIN_PANEL_WIDTH = 360;
 const PANEL_GAP = 12;
 /**
  * パネルの横に残るボードがこれより狭くなるなら、パネルでボードを覆う（列が 1 本も入らない細い帯を残さない）。
- * 狭いボードは列を 1 本ずつめくる表示になる（board-columns.css の @container）ので、1 本が収まる幅にする
+ * 狭いボードは列を 1 本ずつめくる表示になる（KanbanBody.css の @container）ので、1 本が収まる幅にする
  */
 const MIN_BOARD_WIDTH = 200;
 

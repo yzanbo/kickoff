@@ -1,3 +1,4 @@
+import "./ChatRow.css";
 import { Ellipsis } from "lucide-react";
 import { STATE_LOOKS } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";

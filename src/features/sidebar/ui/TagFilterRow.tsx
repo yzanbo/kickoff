@@ -1,3 +1,4 @@
+import "./TagFilterRow.css";
 import { Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { MAX_TAG_LENGTH, UNTAGGED } from "@shared/projects/tags";

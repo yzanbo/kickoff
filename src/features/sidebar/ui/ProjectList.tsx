@@ -1,3 +1,4 @@
+import "./ProjectList.css";
 import { Plus } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";

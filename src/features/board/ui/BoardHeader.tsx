@@ -1,3 +1,4 @@
+import "./BoardHeader.css";
 import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
 import { useCommandKeys } from "@/foundation/ui/commands";
 import type { ReactNode } from "react";

@@ -11,4 +11,23 @@
     gap: 2px;
     -webkit-app-region: no-drag;
   }
+
+  /*
+   * 右上のレイアウトの開閉も、見出しの名前の行と一緒に出し入れする（置き場所はそのまま）。隠している間は押せなくする
+   * （名前の行がない分、下の画面（チャット欄のタブの列の右端のボタンなど）が上に詰まり、見えない開閉のボタンが重なって押せなくなるため）。
+   * 上端に寄せて名前の行を出すと押せるようになり、開閉に乗せている間は名前の行も出したまま
+   */
+
+  .layout-toggles.auto-hide {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  .layout-toggles.auto-hide:hover,
+  :where(:root:not([data-modality="pointer"])) .layout-toggles.auto-hide:has(:focus-visible),
+  :root:has(.project-title-row.auto-hide:hover, .project-title-row.auto-hide [aria-expanded="true"]) .layout-toggles.auto-hide {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

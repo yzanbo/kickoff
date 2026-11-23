@@ -11,7 +11,7 @@
   --bg-elev: #191f1f; /* カード・入力欄 */
   --bg-hover: #212727; /* 乗せたとき */
   --bg-active: #3b4343; /* 自分の吹き出し・選択中 */
-  --bg-row-active: var(--bg-hover); /* サイドバーの開いているチャットの行（sidebar-rows.css） */
+  --bg-row-active: var(--bg-hover); /* サイドバーの開いているチャットの行（ChatRow.css） */
   --border: #1e2626;
   --border-strong: #283131; /* 目立たせる枠 */
   /* 中のまとまりを分ける濃い区切り線（送信待ちとチャット欄・AI からの質問どうし）。文字の色から作るので、ライトでもそのまま濃く見える */

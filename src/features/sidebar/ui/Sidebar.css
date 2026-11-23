@@ -1,0 +1,269 @@
+/* ==== サイドバー ==== */
+@layer feature {
+  /* 欄の枠・閉じたとき・幅のつまみ（レイアウトの格子は foundation/ui/styles/layout.css） */
+
+  .layout.sidebar-collapsed .sidebar {
+    border-right-color: transparent;
+  }
+
+  .sidebar {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* 閉じても中身の幅は変えず、はみ出た分を隠す（開閉中に中身が崩れないように） */
+
+  .sidebar > :not(.sidebar-resizer) {
+    min-width: var(--sidebar-w, 260px);
+  }
+
+  /* 幅を変えている間はアニメーションを止める */
+
+  .layout.resizing-sidebar {
+    transition: none;
+    user-select: none;
+  }
+
+  .sidebar-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    width: 5px;
+    cursor: col-resize;
+    -webkit-app-region: no-drag;
+  }
+
+  @media (max-width: 720px) {
+    .layout.sidebar-collapsed .sidebar {
+      display: none;
+    }
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg-sidebar);
+  }
+
+  .sidebar-header {
+    /* macOS の信号機ボタンの行。開閉ボタン以外はウィンドウのドラッグ領域 */
+    position: relative;
+    height: 44px;
+    -webkit-app-region: drag;
+  }
+
+  /* 縦 1 列の画面（幅 720px 以下）では上に置く（高さの上限は起動直後の骨組み index.html と同じ） */
+
+  @media (max-width: 720px) {
+    .sidebar {
+      max-height: 40dvh;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      padding: max(10px, env(safe-area-inset-top)) 12px 6px;
+    }
+  }
+
+  /* 開いているときの開閉ボタンは、信号機ボタンの横ではなく行の右端に置く（閉じているときの「開く」は左上のまま） */
+
+  .sidebar-header .titlebar-toggle {
+    right: var(--gutter);
+    left: auto;
+  }
+
+  /* 「別ウィンドウで開く」は開閉ボタンのすぐ左 */
+
+  .sidebar-header .titlebar-toggle.sidebar-popout-button {
+    right: calc(var(--gutter) + 26px);
+  }
+
+  /*
+   * サイドバーの別ウィンドウ（PopoutSidebar）: ウィンドウいっぱいに出す。信号機ボタンはウィンドウの枠の行にあるので、その行は置かない。
+   * 中身の幅はメインのウィンドウの幅（--sidebar-w）に縛らず、ウィンドウの幅に合わせる
+   */
+
+  .sidebar.sidebar-window {
+    /* 細いウィンドウでも、縦 1 列の規則（上の @media の max-height・下の線）は効かせない */
+    max-height: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .sidebar.sidebar-window > * {
+    min-width: 0;
+  }
+
+  .sidebar.sidebar-window .nav-rows {
+    padding-top: 8px;
+  }
+
+  .sidebar-section {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* 上部のメニュー行（新規・履歴・検索の並び） */
+
+  .nav-rows {
+    /* 「新しいチャット」の札を、サイドバーの幅に合わせて詰める（下の @container） */
+    container: nav-rows / inline-size;
+    display: grid;
+    gap: 1px;
+    padding: 0 var(--gutter) 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--row-tight);
+    padding: 0 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .nav-row:hover,
+  .nav-row.active {
+    color: var(--text);
+    background: var(--bg-elev);
+  }
+
+  .nav-row kbd {
+    margin-left: auto;
+  }
+
+  /* 「新しいチャット」の札（いまどんなチャットができるか。グループ・作業場所）。狭ければグループの札の名前だけを省き
+     （「新しいチャット」の文字・アイコン・作業場所の札「本体」「WT」は縮めない）、⌘N は札のすぐ右に */
+
+  .new-chat-row {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .new-chat-row > svg {
+    flex: none;
+  }
+
+  .new-chat-row .menu-place-badges {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding-left: 4px;
+  }
+
+  .new-chat-row .menu-place-badge:first-child {
+    min-width: 0;
+  }
+
+  .new-chat-row .menu-place-badge + .menu-place-badge {
+    flex: none;
+  }
+
+  /* 札がすべて入らない幅では、先に ⌘N を隠し（乗せたときの説明にある）、さらに狭ければグループの札も隠して作業場所の札だけにする */
+
+  @container nav-rows (width < 270px) {
+    .new-chat-row kbd {
+      display: none;
+    }
+  }
+
+  @container nav-rows (width < 215px) {
+    .new-chat-row .menu-place-badge:first-child:not(:last-child) {
+      display: none;
+    }
+  }
+
+  .new-chat-row .menu-place-badges + kbd {
+    margin-left: 0;
+  }
+
+  /* 要対応だけを出していて、ひとつもないとき */
+
+  .waiting-empty {
+    padding: 4px var(--gutter);
+  }
+
+  /* 縦並びの一覧の中ではスクロールバーの場所を空けているので、そのぶん右を減らす */
+
+  .workspace-stack > .waiting-empty {
+    padding-right: calc(var(--gutter) - var(--scrollbar-w));
+  }
+
+  /* チャットを 1 行で出す（見出しの「チャット」の行の「表示」）: 2 行目のブランチを隠し、行を詰める */
+
+  .workspaces.compact .chat-row {
+    align-items: center;
+    min-height: 28px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  .workspaces.compact .chat-row-meta {
+    display: none;
+  }
+
+  /* サイドバーのチャットの行では、作業場所の印とグループの札を小さく（狭ければ、それぞれ名前を省いて 1 行に収める） */
+
+  .chat-row-meta :is(.worktree-chip, .chat-group-chip) {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 110px;
+    font-size: var(--fs-10);
+    line-height: 14px;
+  }
+
+  /* 1 行の行の高さ 28px（画面の外の行の見積もりは上下の余白 6px を引いた中身の高さ・まだ作っていない行の空の箱は間の 1px を足す。sidebar-rows.css） */
+
+  .workspaces.compact {
+    --progressive-row: 29px;
+  }
+
+  .workspaces.compact .chat-row-item > a.chat-row {
+    contain-intrinsic-block-size: auto 22px;
+  }
+
+  /* プロジェクトのカードを 1 行で出す（見出しの「プロジェクト」の行の「表示」。チャットの行とは別）: 名前を 1 行にして、チャット数の行は出さない */
+
+  .workspaces.compact-projects .workspace-head {
+    margin-bottom: 6px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  .workspaces.compact-projects .workspace-name {
+    font-size: var(--fs-13);
+  }
+
+  .workspaces.compact-projects .workspace-sub {
+    display: none;
+  }
+
+  .workspaces.compact .chat-row-actions {
+    top: 3px;
+  }
+
+  /* アーカイブ済みのチャットの行（ChatRow。ボードのカード・リストの行と同じ薄さ。動かしても濃さを変えない） */
+
+  .chat-row.archived {
+    --drag-source-opacity: 0.55;
+
+    opacity: 0.55;
+  }
+}

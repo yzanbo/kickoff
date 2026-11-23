@@ -1,3 +1,4 @@
+import "./BoardShell.css";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { cx } from "@/foundation/ui/lib/cx";

@@ -1,0 +1,146 @@
+/* ==== サイドバーの自分で作ったグループ（並べ替え・見出し・開閉の矢印） ==== */
+@layer feature {
+  /* 自分で作ったグループ（サイドバー） */
+
+  /* グループの並べ替え（動かしているグループは薄く、入る位置に線。styles/state.css）: 線はグループの間の隙間に出す */
+
+  .custom-group {
+    --drop-offset: -2px;
+
+    position: relative;
+    border-radius: var(--radius);
+    transition: opacity 0.15s;
+  }
+
+  .custom-group.drop-target,
+  .custom-group-head.drop-target,
+  .chat-rows.drop-target,
+  .archive-drop.drop-target,
+  .restore-drop.drop-target {
+    outline: 1px dashed var(--accent);
+    outline-offset: -1px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .custom-group-head.editing {
+    padding-left: 20px;
+  }
+
+  /* 自分で作ったグループの見出しは、矢印以外のところを押すと選ぶ */
+
+  .custom-group > .custom-group-head {
+    cursor: pointer;
+  }
+
+  /* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（大きさと色はアイコンボタンと同じ） */
+
+  .group-menu-button,
+  .custom-group-add {
+    flex: none;
+  }
+
+  /* 「No Group」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
+
+  .group-menu-spacer {
+    flex: none;
+    width: 26px;
+  }
+
+  /*
+   * サイドバーの「アーカイブ済み」へチャットをドラッグしているとき（落とすと、確かめてからアーカイブする。色は上のドロップ先と同じ）と、
+   * アーカイブ済みのチャットを一覧へドラッグしているとき（落とすと、確かめてから戻す .restore-drop）
+   */
+
+  .archive-drop.drop-target,
+  .restore-drop.drop-target {
+    border-radius: var(--radius);
+  }
+
+  /* ==== サイドバーのチャットのまとまりの見出し（印・名前・件数） ==== */
+
+  /* サイドバーのチャットのまとまりの見出し（印・名前・件数。ボードの列の見出しと同じ形） */
+
+  .status-group-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--row-tight);
+    margin-top: 4px;
+    padding: 0 8px 0 2px;
+    font-size: var(--fs-12);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* 見出しの名前の部分（押すと開閉する） */
+
+  .status-group-name {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .status-group-dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--state-color);
+  }
+
+  .status-group-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .status-group-extra {
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .status-group-count {
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .status-group-worktree {
+    color: var(--info);
+  }
+
+  /*
+   * 「まとまりを色付きで表示」のときの見出し（グループ別 = 自分で作ったグループ・No Group・固定・アーカイブ済み、作業場所別 = 作業場所・固定・アーカイブ済み）:
+   * 見出しのアイコン（フォルダ・ブランチ・ピン・アーカイブ）と名前を、タブの列のまとまりと同じ色（--hue。bucketHues.ts）にする。濃さはタブのまとまりの札と同じ
+   */
+
+  .bucket-hued {
+    --group-color: hsl(var(--hue) var(--hue-fg-group));
+  }
+
+  .bucket-hued .custom-group-icon,
+  .bucket-hued .custom-group-name,
+  .bucket-hued .status-group-name > svg,
+  .bucket-hued .status-group-label {
+    color: var(--group-color);
+  }
+
+  .custom-group-head.bucket-hued:hover .custom-group-name {
+    color: var(--group-color);
+  }
+
+  /* フォルダの見つからないワークツリー（薄い灰） */
+
+  .status-group-gone {
+    color: var(--extra-muted);
+  }
+}

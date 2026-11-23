@@ -1,3 +1,4 @@
+import "./TagFilterNotice.css";
 import { Tag } from "lucide-react";
 import { tagLabel, type ProjectTagFilter } from "./projectTagFilter";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";

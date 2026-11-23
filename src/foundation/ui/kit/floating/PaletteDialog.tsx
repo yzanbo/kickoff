@@ -1,3 +1,4 @@
+import "./PaletteDialog.css";
 import { useEffect, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";

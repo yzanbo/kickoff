@@ -1,3 +1,4 @@
+import "./TrashTab.css";
 import { Trash2 } from "lucide-react";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { useProjectTrash } from "@/features/trash/ui/stores/trash";

@@ -172,3 +172,11 @@
   visibility: hidden;
 }
 
+/* メニューの項目の名前（長ければ「…」で省く。プロジェクトの切り替え・並べ方・表示の項目など、どのメニューでも素のクラスで書く） */
+.project-switch-item {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

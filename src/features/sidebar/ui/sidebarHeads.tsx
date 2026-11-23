@@ -1,3 +1,4 @@
+import "./sidebarHeads.css";
 import { Archive, Folder, GitBranch, Inbox, Pin, SquarePen } from "lucide-react";
 import type { HTMLAttributes, MouseEvent, ReactNode } from "react";
 import { COLUMN_LOOKS, STATE_LOOKS } from "@shared/chat/stateLooks";

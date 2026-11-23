@@ -1,3 +1,4 @@
+import "./FlatTasks.css";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/chat/types";
 import { ArchivableItems } from "@/features/chatList/ui";

@@ -1,3 +1,4 @@
+import "./DeleteProject.css";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { api } from "@/foundation/ui/api";
 import { confirm } from "@/foundation/ui/kit/ask";

@@ -1,3 +1,4 @@
+import "./ProjectTags.css";
 import { X } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { IconButton } from "@/foundation/ui/kit/IconButton";

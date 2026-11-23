@@ -1,0 +1,33 @@
+/* ==== 定型文の欄（SnippetForm） ==== */
+@layer feature {
+  /* 編集欄（新しく作る・行を直す） */
+
+  .snippet-form {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    --card-tone: var(--border-strong);
+  }
+
+  .snippet-form input[type="text"],
+  .snippet-form select {
+    width: 100%;
+  }
+
+  .snippet-form-text {
+    width: 100%;
+    min-height: 84px;
+    max-height: 320px;
+    resize: vertical;
+    font: inherit;
+    font-size: var(--fs-13);
+    line-height: 1.6;
+    field-sizing: content;
+  }
+
+  .snippet-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

@@ -1,4 +1,5 @@
 // ゴミ箱の 1 行と操作（プロジェクトの「ゴミ箱」タブ・設定の「ゴミ箱と整理」のプロジェクトとプロジェクトのないもの）。種類ごとの違いは trashKinds の登録から
+import "./TrashRow.css";
 import { Bot, File, RotateCcw, Trash2, User } from "lucide-react";
 import type { TrashItem } from "@shared/trash/types";
 import { formatBytes } from "@shared/foundation/text/bytes";

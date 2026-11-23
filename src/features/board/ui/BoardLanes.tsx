@@ -98,7 +98,7 @@ function laneGrouping(lanes: readonly ChatBucket<PlacedDraft>[]): ChatGrouping {
 
 /**
  * 段の見出しの地の色（サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷く）。プロジェクトの段はプロジェクトの色（--hue。
- * 地は project-mark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--hue。bucketHues.ts）。色のない段は灰色の地
+ * 地は ProjectMark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--hue。bucketHues.ts）。色のない段は灰色の地
  */
 function useLaneTint(lanes: readonly ChatBucket<PlacedDraft>[]): (lane: ChatBucket<PlacedDraft>) => { className: string; style?: CSSProperties } {
   const projectIds = [...new Set(lanes.flatMap((l) => (l.projectId === undefined ? [] : [l.projectId])))];

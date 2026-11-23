@@ -1,3 +1,4 @@
+import "./HeadMenu.css";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";

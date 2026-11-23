@@ -1,3 +1,4 @@
+import "./ProjectPage.css";
 import { useEffect, useEffectEvent, useState } from "react";
 import { useChatPlacement } from "./chatPlacement";
 import { ProjectEditDialog } from "@/features/projects/ui/settings/ProjectEditDialog";

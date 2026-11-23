@@ -30,8 +30,8 @@ export function SidebarViewSettings() {
       <p className="muted small">
         サイドバーの上に並べるビューです。ビューは、プロジェクト・チャット・要対応の見え方の組に名前を付けたもので、タブを押すとその見え方になります。見出しの ⚙ でいまの見え方を変えて、ビューに上書き・今のビューを新規保存することもできます。
       </p>
-      <div className="snippet-manager">
-        <div className="snippet-manager-head">
+      <div className="manage-list">
+        <div className="manage-list-head">
           <span className="muted small">{views.views.length} 件</span>
           <button type="button" className="btn" title="いまのサイドバーの見え方から新しいビューを作る" onClick={add}>
             <Plus size={14} aria-hidden /> 新しいビュー
@@ -40,15 +40,15 @@ export function SidebarViewSettings() {
         {views.views.length === 0 ? (
           <p className="muted small">ビューがありません。「新しいビュー」で、いまのサイドバーの見え方から作れます。</p>
         ) : (
-          <ul className="snippet-manager-list">
+          <ul className="manage-list-items">
             {views.views.map((view, i) => (
-              <li key={view.id} className={cx("snippet-manager-row sidebar-view-setting", editing === view.id && "editing")}>
-                <div className="snippet-manager-moves">
+              <li key={view.id} className={cx("manage-list-row sidebar-view-setting", editing === view.id && "editing")}>
+                <div className="manage-list-moves">
                   <IconButton icon={ArrowUp} iconSize={13} label="1 つ上へ" disabled={i === 0} onClick={() => views.move(view.id, views.views[i - 1].id, "before")} />
                   <IconButton icon={ArrowDown} iconSize={13} label="1 つ下へ" disabled={i === views.views.length - 1} onClick={() => views.move(view.id, views.views[i + 1].id, "after")} />
                 </div>
-                <div className="snippet-manager-body">
-                  <div className="snippet-manager-title">
+                <div className="manage-list-body">
+                  <div className="manage-list-title">
                     {renaming === view.id ? (
                       <InlineName
                         className="sidebar-view-name"
@@ -61,15 +61,15 @@ export function SidebarViewSettings() {
                         onCancel={() => setRenaming(null)}
                       />
                     ) : (
-                      <span className="snippet-manager-name" onDoubleClick={() => setRenaming(view.id)}>
+                      <span className="manage-list-name" onDoubleClick={() => setRenaming(view.id)}>
                         {view.name}
                       </span>
                     )}
-                    {views.active?.id === view.id && <span className="snippet-scope tag common" data-look="outline">表示中</span>}
+                    {views.active?.id === view.id && <span className="manage-list-scope tag common" data-look="outline">表示中</span>}
                   </div>
-                  {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="snippet-manager-text">{describeSidebarView(view.state)}</p>}
+                  {editing === view.id ? <ViewStateForm view={view} views={views} /> : <p className="manage-list-text">{describeSidebarView(view.state)}</p>}
                 </div>
-                <div className="snippet-manager-actions">
+                <div className="manage-list-actions">
                   <IconButton icon={Pencil} iconSize={13} label="名前を変更" title="名前を変更（名前のダブルクリックでも）" onClick={() => setRenaming(view.id)} />
                   <IconButton
                     icon={editing === view.id ? Check : SlidersHorizontal}

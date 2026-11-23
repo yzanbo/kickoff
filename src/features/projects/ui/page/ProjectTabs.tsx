@@ -1,3 +1,4 @@
+import "./ProjectTabs.css";
 import { GripHorizontal, GripVertical } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";

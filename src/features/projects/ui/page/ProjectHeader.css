@@ -1,0 +1,172 @@
+/* ==== プロジェクトの見出し（ProjectHeader。全プロジェクトの画面も同じクラス） ==== */
+@layer feature {
+  /* プロジェクトの見出しの設定の歯車（左下のアプリの設定と同じ大きさ） */
+
+  .project-edit-button {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    color: var(--muted);
+  }
+
+  .project-edit-button:hover {
+    color: var(--text);
+  }
+
+  /* ==== 全プロジェクト・プロジェクトの画面 ==== */
+
+  .project-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* 全体表示中の共通ヘッダー（shell/WindowHeaderContent.css）に移した名前の行: サイドバーの開閉中も、戻る・進むの上へ通過させない */
+
+  .maximized-header > .project-title-row:not(.auto-hide) {
+    transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  .maximized-header .project-title-row.auto-hide {
+    transition:
+      transform var(--panel-motion-duration) var(--panel-motion-ease),
+      opacity var(--panel-motion-duration) var(--panel-motion-ease),
+      padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  /* 名前の行の右に並べる（ほかの部品と上下の中央をそろえるため、上の余白は付けない） */
+
+  .project-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .project-header {
+    /* 見出しの下は、中身の枠のまわりの左右・下と同じ --gutter */
+    margin-bottom: var(--gutter);
+  }
+
+  /*
+   * プロジェクト・全プロジェクトの画面の名前の行は 24px にし、上から 9px に置く。行の真ん中（21px）は左上の戻る・進むと右上の開閉のボタンの
+   * 真ん中のまま、下の画面は 9 ＋ 24 ＋ 見出しの下の --gutter（6px）= 39px から始まり、中身の枠の線 1px の下のタブの列が、右サイドバーの上の行（40px）の下と
+   * 同じ高さになる。名前のボタン・行のアイコンのボタンも 24px に
+   */
+
+  .page-board:has(> .project-header:not(.title-out)) {
+    padding-top: 9px;
+  }
+
+  .project-header > .project-title-row {
+    height: 24px;
+    min-height: 24px;
+  }
+
+  .project-title-row .icon-button {
+    width: 24px;
+    height: 24px;
+  }
+
+  .project-title-row .state-stats-button {
+    padding: 0 2px;
+  }
+
+  /* 名前の行を寄せたときだけ表示・非表示にしているときは、見出しの下を空けない（タブの列だけが残るときは、タブの列の下の線で区切る） */
+
+  .project-header.title-out {
+    margin-bottom: var(--gutter);
+  }
+
+  .project-header.title-out:not(:has(.project-tabs-row)) {
+    margin-bottom: 0;
+  }
+
+  /*
+   * 名前の行を上端に寄せたときだけ出す（設定の「表示」→「プロジェクトの見出し」。下の帯と同じ）: 画面の上に重ね（縦の幅を取らない）、
+   * ふだんは上端の 6px だけを残して透明にする（そこにマウスを寄せると出る）。乗せている間・キーでピントを移している間・中の一覧やメニューを開いている間・
+   * 右上のレイアウトの開閉に乗せている間は出したまま。ウィンドウのドラッグ領域にはしない（ドラッグ領域にはマウスの動きが届かず、乗せても出せないため）
+   */
+
+  .page-board:has(> .project-header .project-title-row.auto-hide) {
+    position: relative;
+  }
+
+  .project-title-row.auto-hide {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: var(--z-sticky-head);
+    padding: 6px 100px 6px var(--page-x);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    opacity: 0;
+    transform: translateY(calc(-100% + 6px));
+    transition:
+      transform var(--panel-motion-duration) var(--panel-motion-ease),
+      opacity var(--panel-motion-duration) var(--panel-motion-ease);
+    -webkit-app-region: no-drag;
+  }
+
+  .sidebar-collapsed .project-title-row.auto-hide {
+    padding-left: var(--app-titlebar-left-end);
+  }
+
+  .project-title-row.auto-hide:hover,
+  :where(:root:not([data-modality="pointer"])) .project-title-row.auto-hide:has(:focus-visible),
+  .project-title-row.auto-hide:has([aria-expanded="true"]),
+  :root:has(.layout-toggles.auto-hide:hover) .project-title-row.auto-hide {
+    opacity: 1;
+    transform: none;
+  }
+
+  /*
+   * サイドバーを閉じているときは、名前の行がなくても信号機ボタンと開くボタンの下から始める（重ならないように）。
+   * 空いた帯はウィンドウのドラッグ領域にする（ほかにドラッグできる所がなくなるため。寄せたときだけ表示の上端の帯は、後ろにある名前の行が優先される）
+   */
+
+  .sidebar-collapsed .page-board:has(> .project-header.title-out),
+  .sidebar-collapsed .page-board:not(:has(> .project-header)) {
+    position: relative;
+    padding-top: 34px;
+  }
+
+  .sidebar-collapsed .page-board:has(> .project-header.title-out)::before,
+  .sidebar-collapsed .page-board:not(:has(> .project-header))::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 34px;
+    content: "";
+    -webkit-app-region: drag;
+  }
+
+  /* タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（タブの地が名前のカードにくっつかないように。高さは取りすぎない）。下の線はこの行に引く */
+
+  .project-tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .project-tabs-row .tabs {
+    flex: 1;
+    min-width: 0;
+    border-bottom: none;
+  }
+
+  .project-tabs-row .tab {
+    margin-bottom: 0;
+  }
+
+  /* 画面の見出しの名前（隣の歯車・戻る / 進む・右上の開閉のボタンと高さがそろうよう、h1 の既定より小さくする） */
+
+  .project-title-row h1 {
+    min-width: 0;
+    font-size: var(--fs-14);
+    line-height: 1.3;
+  }
+}

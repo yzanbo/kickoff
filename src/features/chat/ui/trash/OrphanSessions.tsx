@@ -1,3 +1,4 @@
+import "./OrphanSessions.css";
 import { TRASH_KEEP_DAYS } from "@shared/trash/types";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";

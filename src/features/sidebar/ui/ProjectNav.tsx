@@ -1,3 +1,4 @@
+import "./ProjectNav.css";
 import { Archive, Plus } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";
 import type { Chat } from "@shared/chat/types";

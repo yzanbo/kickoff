@@ -1,3 +1,4 @@
+import "./FeedList.css";
 import type { ReactNode } from "react";
 import { MessageSquare } from "lucide-react";
 import type { Chat, FeedItem } from "@shared/chat/types";

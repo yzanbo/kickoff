@@ -1,3 +1,4 @@
+import "./Sidebar.css";
 import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { KeyHint, useCommandKeys } from "@/foundation/ui/commands";
 import { useLayoutEffect } from "react";

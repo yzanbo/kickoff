@@ -1,3 +1,4 @@
+import "./StateStats.css";
 import type { Chat } from "@shared/chat/types";
 import type { Project } from "@shared/projects/types";
 import { NO_CHATS, openChat, useChatStates, useChatsWithChildrenByProject } from "@/features/chat/ui";

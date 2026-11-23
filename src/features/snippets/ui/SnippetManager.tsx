@@ -1,3 +1,4 @@
+import "./SnippetManager.css";
 import { ArrowDown, ArrowUp, MessageSquareQuote, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { NewSnippetBody, Snippet } from "@shared/snippets/types";
@@ -53,8 +54,8 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
     project_id: projectId,
   };
   return (
-    <div className="snippet-manager">
-      <div className="snippet-manager-head">
+    <div className="manage-list">
+      <div className="manage-list-head">
         <span className="muted small">
           {projectId === null ? `すべての定型文 ${all.length} 件` : `このプロジェクトで使う定型文 ${shown.length} 件（共通を含む）`}
         </span>
@@ -80,26 +81,26 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
           よく送る指示を定型文にしておくと、チャット欄の中の帯から押すだけで入力欄に入れられます。共通にしたものは、すべてのプロジェクトで使えます。
         </EmptyState>
       ) : (
-        <ul className="snippet-manager-list">
+        <ul className="manage-list-items">
           {shown.map((s, i) =>
             editing === s.id ? (
               <li key={s.id}>
                 <SnippetForm initial={s} scopes={scopes} saveLabel="保存" onSave={(body) => save(s, body)} onCancel={() => setEditing(null)} />
               </li>
             ) : (
-              <li key={s.id} className="snippet-manager-row" onDoubleClick={() => setEditing(s.id)}>
-                <div className="snippet-manager-moves">
+              <li key={s.id} className="manage-list-row" onDoubleClick={() => setEditing(s.id)}>
+                <div className="manage-list-moves">
                   <IconButton icon={ArrowUp} iconSize={13} label="1 つ上へ" disabled={i === 0} onClick={() => move(s.id, -1)} />
                   <IconButton icon={ArrowDown} iconSize={13} label="1 つ下へ" disabled={i === shown.length - 1} onClick={() => move(s.id, 1)} />
                 </div>
-                <div className="snippet-manager-body">
-                  <div className="snippet-manager-title">
-                    <span className="snippet-manager-name">{snippetLabel(s)}</span>
-                    <span className={cx("snippet-scope tag", s.project_id === null && "common")} data-look="outline">{scopeLabel(s, nameOf, projectId)}</span>
+                <div className="manage-list-body">
+                  <div className="manage-list-title">
+                    <span className="manage-list-name">{snippetLabel(s)}</span>
+                    <span className={cx("manage-list-scope tag", s.project_id === null && "common")} data-look="outline">{scopeLabel(s, nameOf, projectId)}</span>
                   </div>
-                  <p className="snippet-manager-text">{s.text}</p>
+                  <p className="manage-list-text">{s.text}</p>
                 </div>
-                <div className="snippet-manager-actions">
+                <div className="manage-list-actions">
                   <IconButton icon={Pencil} iconSize={13} label="編集" title="編集（ダブルクリックでも）" onClick={() => setEditing(s.id)} />
                   <IconButton icon={Trash2} iconSize={13} label="削除" onClick={() => void confirmDeleteSnippet(s).catch(reportFailure("削除できませんでした"))} />
                 </div>

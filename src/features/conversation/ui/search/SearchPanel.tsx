@@ -1,3 +1,4 @@
+import "./SearchPanel.css";
 import { Bot, Search, User } from "lucide-react";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import type { SearchHit } from "@shared/chat/types";

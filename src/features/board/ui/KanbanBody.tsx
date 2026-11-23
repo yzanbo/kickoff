@@ -1,3 +1,4 @@
+import "./KanbanBody.css";
 import type { ChatBucket } from "@/features/chatList/ui/buckets";
 import type { PlacedDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { useBoard } from "./BoardContext";

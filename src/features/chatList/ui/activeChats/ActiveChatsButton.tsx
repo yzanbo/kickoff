@@ -1,3 +1,4 @@
+import "./ActiveChatsButton.css";
 import { Activity } from "lucide-react";
 import { useCommandKeys } from "@/foundation/ui/commands";
 import type { Project } from "@shared/projects/types";

@@ -1,3 +1,4 @@
+import "./NoProjectsGuide.css";
 import { CloseButton } from "@/foundation/ui/kit/IconButton";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { useVisibleProjects } from "./useVisibleProjects";

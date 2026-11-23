@@ -1,3 +1,4 @@
+import "./HeadCounts.css";
 import { COLUMN_LOOKS } from "@shared/chat/stateLooks";
 import { cx } from "@/foundation/ui/lib/cx";
 import { COUNTED_COLUMNS, type CountedColumn, type StateCounts } from "@/features/chat/ui/state/chatState";

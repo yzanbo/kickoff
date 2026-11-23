@@ -37,7 +37,7 @@
   }
 
   /*
-   * アイコンの並び。プロジェクトの左の縦のタブと同じクラス（.tabs.project-side-tabs・.project-tab-group・.tab。project/project-tabs.css）で描くので、
+   * アイコンの並び。プロジェクトの左の縦のタブと同じクラス（.tabs.project-side-tabs・.project-tab-group・.tab。ProjectTabs.css）で描くので、
    * まとまりの地・つまみ・間隔・選んでいる印の線・並べ替えの線は左と同じ。ここでは、アイコンが多いときに縦に流すことだけを足す
    */
 

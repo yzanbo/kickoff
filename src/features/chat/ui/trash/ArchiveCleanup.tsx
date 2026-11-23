@@ -1,4 +1,5 @@
 // 設定の「ゴミ箱と整理」のアーカイブ済みのチャットの整理（日数を選んで、それより動いていないものをまとめてゴミ箱へ）
+import "./ArchiveCleanup.css";
 import { useState } from "react";
 import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, TRASH_KEEP_DAYS, type ArchiveCleanupDays } from "@shared/trash/types";
 import { formatBytes } from "@shared/foundation/text/bytes";

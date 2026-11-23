@@ -1,3 +1,4 @@
+import "./ChildChatRows.css";
 import { MessagesSquare } from "lucide-react";
 import { STATE_LOOKS, summarizeStates } from "@shared/chat/stateLooks";
 import type { ReactNode } from "react";

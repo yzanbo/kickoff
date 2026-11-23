@@ -1,3 +1,4 @@
+import "./StateChatsPopover.css";
 import type { ReactNode, RefObject } from "react";
 import type { Chat } from "@shared/chat/types";
 import { ACTIVE_URGENCY, URGENCY_ORDER } from "@shared/chatList/urgency";

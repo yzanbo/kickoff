@@ -1,0 +1,58 @@
+/* ==== プロジェクトのタグの編集（TagEditor） ==== */
+@layer feature {
+  /* 編集の「タグ」の欄: 入力欄（候補はその下に重ねる）→ 付いているタグ */
+
+  .tag-editor {
+    display: grid;
+    gap: 8px;
+    max-width: 480px;
+  }
+
+  .tag-editor .project-tag {
+    font-size: var(--fs-12);
+    line-height: 20px;
+    --tag-fg: var(--text);
+  }
+
+  .tag-editor-input {
+    position: relative;
+  }
+
+  .tag-suggest {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    z-index: var(--z-overlay);
+    display: grid;
+    max-height: 220px;
+    padding: 4px;
+    overflow-y: auto;
+    --floating-radius: var(--radius);
+  }
+
+  .tag-suggest-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--fs-13);
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .tag-suggest-item.active {
+    background: var(--bg-hover);
+  }
+
+  .tag-suggest-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

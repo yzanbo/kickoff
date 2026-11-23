@@ -1,3 +1,4 @@
+import "./SnippetForm.css";
 import { useState, type KeyboardEvent } from "react";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type NewSnippetBody } from "@shared/snippets/types";
 import { consumeKey, isCancelKey, isKey } from "@/foundation/ui/lib/keys";
