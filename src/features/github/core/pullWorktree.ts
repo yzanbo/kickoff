@@ -4,7 +4,7 @@ import { Invalid } from "@/foundation/core/errors";
 import { git } from "@/foundation/core/workplace/git";
 import { hasRef } from "@/foundation/core/workplace/reads";
 import type { RemoteGit } from "@/foundation/core/workplace/kit";
-import { addWorktree, listWorktrees } from "@/foundation/core/workplace/worktrees";
+import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 
 /** 取り出す PR（head_repo は元のブランチのあるリポジトリの「持ち主/名前」。消された fork なら null） */
 export interface PullHead {
@@ -35,15 +35,14 @@ export function pullCheckoutOf(pr: PullHead, remotes: GitHubRemote[]): PullCheck
 /**
  * PR のブランチのワークツリー（本体も含む）を返す。そのブランチを取り出している作業場所があればそれを、
  * なければブランチを用意して（手元になければ取ってくる。あれば手元のものをそのまま使い、書き換えない）ワークツリーを作る。
- * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）。取ってくるのは remoteGit（Kernel.workplace.git）。onCreated は新しく作ったときに呼ぶ（addWorktree と同じ）
+ * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）。取ってくるのは remoteGit（Kernel.workplace.git）。作るのは create（worktrees の WorktreesApi.create）
  */
-export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, remoteGit: RemoteGit, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree> {
+export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, remoteGit: RemoteGit, create: (branch: string) => Promise<GitWorktree | undefined>): Promise<GitWorktree> {
   const { branch } = pullCheckoutOf(pr, remotes);
   const found = (await listWorktrees(repo)).find((w) => w.branch === branch && !w.prunable);
   if (found) return found;
   await ensurePullBranch(repo, pr, remotes, targetRemote, remoteGit);
-  const list = await addWorktree(repo, branch, onCreated);
-  const made = list.find((w) => w.branch === branch);
+  const made = await create(branch);
   if (!made) throw new Error(`ワークツリーを作れませんでした: ${branch}`);
   return made;
 }

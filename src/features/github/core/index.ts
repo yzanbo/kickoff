@@ -25,7 +25,7 @@ type OptionsOf<C extends abstract new (...args: never[]) => unknown> = NonNullab
 
 export interface GitHubEnv {
   /** GitHub に聞く口・連携先（テストは偽物） */
-  service: Omit<OptionsOf<typeof GitHubService>, "onWorktreeCreated">;
+  service: Omit<OptionsOf<typeof GitHubService>, "createWorktree">;
   ci: NonNullable<ConstructorParameters<typeof CiService>[1]>;
   prWatch: Pick<OptionsOf<typeof WorktreePrWatch>, "resolveTarget" | "listPullRequests">;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。省けば gh auth status） */
@@ -60,7 +60,7 @@ export function createGitHub(k: Kernel, deps: { worktrees: WorktreesApi; project
     contribute: async ({ project }) => (project.github_account ? { env: await runAsGitHubAccount(project.github_account, githubEnvForGit) } : null),
   });
   // PR のブランチのワークツリーを作ったら、実行環境を整える
-  const github = new GitHubService({ ...env.service, onWorktreeCreated: (project, worktree) => deps.worktrees.envs.prepare(project, worktree) }, k.workplace.git);
+  const github = new GitHubService({ ...env.service, createWorktree: deps.worktrees.create }, k.workplace.git);
   const ci = new CiService(github, env.ci);
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）。
   // CI の失敗の見張りも相乗りする（ワークツリーのないプロジェクトでも。落ちたら SSE の ci_failed）

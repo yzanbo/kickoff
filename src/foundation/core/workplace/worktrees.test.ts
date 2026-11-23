@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { addWorktree, deepestWorkplace, forgetWorktrees, listWorktrees, removeWorktree, requireWorktree, resolveWorkdir } from "./worktrees";
+import { deepestWorkplace, forgetWorktrees, listWorktrees, removeWorktree, requireWorktree, resolveWorkdir } from "./worktrees";
 
 test("deepestWorkplace: いちばん深い作業場所。末尾の / や似た名前のフォルダで間違えない", () => {
   const wps = [{ path: "/r/app" }, { path: "/r/app/.wt/feat" }, { path: "/r/app-2" }];
@@ -23,8 +23,10 @@ test("一覧は作った・消したとき・forgetWorktrees で取り直す。?
   git("worktree", "add", "-q", "-b", "outside", outside);
   forgetWorktrees(repo);
   assert.equal((await listWorktrees(repo)).length, 2);
-  // Kickoff で作った・消したら、すぐ一覧に出る・消える
-  const made = (await addWorktree(repo, "feat/x")).find((w) => w.branch === "feat/x")!;
+  // 作ったら forgetWorktrees で一覧に出る（作るのは worktrees の機能の create.ts）。消したら、すぐ一覧から消える
+  git("worktree", "add", "-q", "-b", "feat/x", path.join(path.dirname(repo), "feat-x"));
+  forgetWorktrees(repo);
+  const made = (await listWorktrees(repo)).find((w) => w.branch === "feat/x")!;
   assert.ok(made);
   assert.equal((await listWorktrees(repo)).length, 3);
   assert.equal(await resolveWorkdir(repo, made.path), made.path);

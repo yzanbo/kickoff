@@ -8,7 +8,9 @@ import type { Chat } from "@shared/chat/types";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
-import { createWorktreeFrom } from "@/foundation/core/workplace/worktrees";
+import { git } from "@/foundation/core/workplace/git";
+import { headSha } from "@/foundation/core/workplace/reads";
+import { forgetWorktrees, worktreePathFor } from "@/foundation/core/workplace/worktrees";
 import type { UploadStore } from "@/features/attachments/core/index";
 import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import type { AiCreateChatDecision, AiCreateChatRequest } from "./aiCreateChat";
@@ -16,8 +18,17 @@ import { canCreateChat } from "./aiCreateChat";
 import { depthOf } from "@/features/chat/core/index";
 import { createChildChats } from "./index";
 
-/** ワークツリーを作る人（本物は worktrees が実行環境も整える。ここは作るだけ） */
-const workplace = { creator: () => ({ createWorktree: (target: { repoPath: string }, branch: string, fromDir: string) => createWorktreeFrom(target.repoPath, branch, fromDir) }) };
+/** ワークツリーを作る人（本物は worktrees が node_modules の複製・実行環境も整える。ここは同じ置き場所に fromDir のいまのコミットから作るだけ） */
+const workplace = {
+  creator: () => ({
+    createWorktree: async (target: { repoPath: string }, branch: string, fromDir: string) => {
+      const folder = await worktreePathFor(target.repoPath, branch);
+      await git(target.repoPath).run(["worktree", "add", "-b", branch, folder, (await headSha(fromDir)) ?? "HEAD"]);
+      forgetWorktrees(target.repoPath);
+      return { folder };
+    },
+  }),
+};
 
 /** すぐ終わる偽のプロバイダーで組み立て、実行に渡した AI の操作ツールを見張る */
 function setup() {

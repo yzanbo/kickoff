@@ -11,7 +11,7 @@ import { findComposeFiles } from "@/features/docker/core/compose";
 import { git } from "@/foundation/core/workplace/git";
 import { mergedPullRequestOf, type MergedPullRequest } from "@/features/github/core/github";
 import { resolveGitHubTarget } from "@/features/github/core/githubTarget";
-import { addWorktree, findWorktree, listWorktrees, removeWorktree } from "@/foundation/core/workplace/worktrees";
+import { findWorktree, listWorktrees, removeWorktree } from "@/foundation/core/workplace/worktrees";
 import { changedCount, hasRef, isAncestor, isGitWorkTree, listRemotes, upstreamOf } from "@/foundation/core/workplace/reads";
 import type { WorkplaceKit } from "@/foundation/core/workplace/kit";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
@@ -66,6 +66,7 @@ export interface WorktreeFinisherDeps {
   runner: ChatRunPort;
   moveWorkplace: import("@/features/workplaceMove/core/index").WorkplaceMoveApi["move"];
   worktreeEnvs: WorktreeEnvService;
+  create: import("./service").WorktreeService["create"];
   trashBin: TrashService;
   workplace: Pick<WorkplaceKit, "git" | "projectScopes">;
   /** ブランチのマージ済みの PR（GitHub で取り込んだかの見分け。テストでは差し替える。省けば gh に聞く） */
@@ -315,8 +316,7 @@ export class WorktreeFinisher {
       if (!from) throw new Invalid("ワークツリーのブランチの先が分からないので戻せません");
       await git(repo).run(["branch", details.branch, from]);
     }
-    const list = await addWorktree(repo, details.branch, (made) => this.deps.worktreeEnvs.prepare(project, made));
-    const made = list.find((w) => w.branch === details.branch && !w.main);
+    const { worktree: made } = await this.deps.create(project, details.branch);
     if (made && details.has_changes_ref) await applySnapshot(made.root, trashRef(item.id, "changes"));
     await dropTrashRefs(repo, item.id);
     for (const fn of this.changed) await fn();

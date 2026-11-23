@@ -1,134 +1,70 @@
-import type { Hono } from "hono";
+// ワークツリーの受け口（取り決め @shared/worktrees/contract.ts）。手続きは WorktreeService、消すのは WorktreeFinisher
 import { z } from "zod";
-import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeRemovalInfo } from "@shared/git/types";
-import type { WorktreeEnvSetupBody, WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
-import { gitRefs } from "@/features/git/core/index";
-import { isGitWorkTree } from "@/foundation/core/workplace/reads";
-import { addWorktree, listWorktrees, worktreeRemovalInfo } from "@/foundation/core/workplace/worktrees";
-import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
-import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";
-import type { ChatStoreDeps } from "@/features/chat/core/index";
-import type { WorktreeStores } from "@/features/worktrees/core/db/stores";
-import type { AiApi } from "@/features/ai/core/index";
-import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
+import type { Project } from "@shared/projects/types";
+import type { BranchSuggestBody } from "@shared/git/types";
+import { worktreesContract } from "@shared/worktrees/contract";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
-import type { ChatRunPort } from "@/features/chat/core/index";
-import type { HeadWatch } from "@/features/worktrees/core/headWatch";
-import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
-import { jsonBody } from "@/foundation/core/http/input";
-import { lookups } from "@/foundation/core/http/lookups";
+import type { WorktreeService } from "@/features/worktrees/core/service";
+import { implement, type Param } from "@/foundation/core/http/implement";
 import { branchName, folderPath } from "@/foundation/core/http/zodParts";
-import { attachWorktreeHues } from "@/features/worktrees/core/colors";
+import { worktreeRemovalInfo } from "@/foundation/core/workplace/worktrees";
+
 /** ブランチ名の案を頼む本文（やりたいことの概要） */
 const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(4000) }) satisfies z.ZodType<BranchSuggestBody>;
 
 /** 受け口が使うもの */
 interface WorktreeRouteDeps {
-  store: Pick<WorktreeStores, "worktreeColors"> & Pick<ChatStoreDeps, "projects" | "chats" | "groups">;
+  projectParam: Param<Project>;
+  service: WorktreeService;
+  finisher: WorktreeFinisher;
   /** ワークツリーの DB から作った接続（database が登録する。名前だけ） */
   connectionsIn: (folder: string) => { id: number; name: string }[];
-  runner: ChatRunPort;
-  providers: AiApi["providers"];
-  worktreeEnvs: WorktreeEnvService;
-  worktreeFinisher: WorktreeFinisher;
-  headWatch: HeadWatch;
 }
 
 /**
- * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
+ * ワークツリー（一覧・作る・消す）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, connectionsIn, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: WorktreeRouteDeps) {
-  const { withProject } = lookups(store);
-  /** 画面に返す一覧（ワークツリーの実行環境と作業場所の色を付ける） */
-  const present = (projectId: number, list: GitWorktree[]) => attachWorktreeHues(store, projectId, worktreeEnvs.attach(projectId, list));
-
-  // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
-  app.get("/api/projects/:id/git/worktrees", withProject, async (c) => {
-    const { project } = c.var;
-    if (!(await isGitWorkTree(project.repo_path))) return c.json([]);
-    const list = await listWorktrees(project.repo_path);
-    // HEAD の見張りを一覧に合わせる（ブランチを替えた・ワークツリーを足した消したら worktrees_changed で知らせ、画面が取り直す）
-    await headWatch.watch(project.id, project.repo_path, list);
-    // ワークツリーの実行環境（ポートの帯・組の名前）と作業場所の色も付ける
-    return c.json(present(project.id, list));
-  });
-
-  // やりたいことの概要から、ブランチ名の案を AI に出してもらう（軽いモデルで 1 回だけ。いまあるブランチと同じ名前は除く。案が作れなければ 400）
-  app.post("/api/projects/:id/git/branch-suggestions", withProject, async (c) => {
-    const { summary } = branchSuggestSchema.parse(await jsonBody(c));
-    const project = c.var.project;
-    const provider = providers[project.provider];
-    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、ブランチ名の提案に対応していません");
-    const taken = (await isGitWorkTree(project.repo_path)) ? (await gitRefs(project.repo_path)).branches.map((b) => b.name) : [];
-    const answer = await provider.ask(branchSuggestPrompt(summary, taken), { model: "light" }).catch(asInvalid);
-    const branches = parseBranchSuggestions(answer, taken);
-    if (branches.length === 0) throw new Invalid("ブランチ名の案を作れませんでした。やりたいことを少し詳しく書いて、もう一度試してください");
-    return c.json({ branches } satisfies BranchSuggestions);
-  });
-
-  app.post("/api/projects/:id/git/worktrees", withProject, async (c) => {
-    const { branch } = z.object({ branch: branchName }).parse(await jsonBody(c));
-    const { project } = c.var;
+export function worktreeRoutes({ projectParam, service, finisher, connectionsIn }: WorktreeRouteDeps) {
+  return implement(worktreesContract, {
+    context: { projectId: projectParam },
+    "GET /api/projects/:projectId/git/worktrees": { run: ({ projectId }) => service.list(projectId) },
+    "POST /api/projects/:projectId/git/branch-suggestions": { body: branchSuggestSchema, run: ({ projectId, body }) => service.suggestBranches(projectId, body.summary) },
     // 作ったら、ポートの帯と組の名前を割り当てる（ワークツリーの実行環境）
-    const list = await addWorktree(project.repo_path, branch, (made) => worktreeEnvs.prepare(project, made));
-    return c.json(present(project.id, list), 201);
-  });
-
-  /**
-   * ［AI で整える］（利用者が押したときだけ）: 覚えのないワークツリー（Kickoff の外で作ったものなど）なら先に手順を流し、
-   * そのワークツリーで新しいチャット「実行環境を整える（ブランチ）」を始める（Git で管理していないファイルだけを書ける。選択はプロジェクトの既定）。
-   * 同じワークツリーの［AI で整える］のチャットが作業中なら 409
-   */
-  app.post("/api/projects/:id/git/worktrees/env-setup", withProject, async (c) => {
-    const { project } = c.var;
-    const { path: folder } = z.object({ path: folderPath }).parse(await jsonBody(c)) satisfies WorktreeEnvSetupBody;
-    const list = await listWorktrees(project.repo_path);
-    const worktree = list.find((w) => w.path === folder && !w.main);
-    if (!worktree) throw new Invalid("このプロジェクトのワークツリーではありません");
-    if (store.chats.inWorktree(project.id, folder).some((r) => r.untracked_only && runner.isBusy(r.id))) {
-      throw new Conflict("このワークツリーの実行環境を整えるチャットが作業中です。終わってから押してください");
-    }
-    const input = await worktreeEnvs.setupInput(project, worktree);
-    const chat = await runner.start({ projectId: project.id, prompt: envSetupPrompt(input), title: envSetupTitle(input.label), worktreePath: folder, untrackedOnly: true });
-    return c.json({ chat, worktrees: present(project.id, list) } satisfies WorktreeEnvSetupResult, 201);
-  });
-
-  // 消す前の確かめ（コミットしていない変更・プッシュしていないコミット）
-  app.get("/api/projects/:id/git/worktrees/info", withProject, async (c) => {
-    const { path: folder } = z.object({ path: folderPath }).parse({ path: c.req.query("path") });
-    const info = await worktreeRemovalInfo(c.var.project.repo_path, folder);
-    // このワークツリーの DB から作った接続（消す確認の「この接続も消す」。名前だけ）
-    const connections = connectionsIn(folder);
-    return c.json({ ...info, db_connections: connections } satisfies WorktreeRemovalInfo);
-  });
-
-  /**
-   * ワークツリーを消す（force: コミットしていない変更があっても消す。delete_branch: 取り出していたブランチも消す = PR がマージされたあとの片付け。
-   * down_volumes: Kickoff が組の名前を割り当てたワークツリーなら、その組のコンテナとデータも docker compose down -v で消す。
-   * drop_db_connections: Docker タブの「DB で開く」でこのワークツリーの DB から作った接続も消す。消さなければ、どのワークツリーのものかだけ外す）。ポートの帯は空ける。
-   * 中身は AI の finish_worktree と同じ worktrees/finish.ts（失うもの = force で消すコミットしていない変更・delete_branch で消す取り込んでいないコミットは、
-   * Kickoff のゴミ箱に 3 日残る控えに入れてから消す。そこで作業していたチャットは本体に戻してお知らせを残す）。残ったワークツリーの一覧を返す
-   */
-  app.post("/api/projects/:id/git/worktrees/remove", withProject, async (c) => {
-    const { project } = c.var;
-    const { path: folder, force, delete_branch, down_volumes, drop_db_connections } = z
-      .object({
+    "POST /api/projects/:projectId/git/worktrees": {
+      body: z.object({ branch: branchName }),
+      run: async ({ projectId: project, body }) => service.present(project.id, (await service.create(project, body.branch)).list),
+    },
+    "POST /api/projects/:projectId/git/worktrees/env-setup": { body: z.object({ path: folderPath }), run: ({ projectId, body }) => service.startEnvSetup(projectId, body.path) },
+    // 消す前の確かめ（コミットしていない変更・プッシュしていないコミット）と、このワークツリーの DB から作った接続（消す確認の「この接続も消す」。名前だけ）
+    "GET /api/projects/:projectId/git/worktrees/info": {
+      query: z.object({ path: folderPath }),
+      run: async ({ projectId, query }) => ({ ...(await worktreeRemovalInfo(projectId.repo_path, query.path)), db_connections: connectionsIn(query.path) }),
+    },
+    /**
+     * ワークツリーを消す（down_volumes: Kickoff が組の名前を割り当てたワークツリーなら、その組のコンテナとデータも docker compose down -v で消す。
+     * drop_db_connections: 消さなければ、どのワークツリーのものかだけ外す）。ポートの帯は空ける。中身は AI の finish_worktree と同じ WorktreeFinisher
+     * （失うものは Kickoff のゴミ箱に 3 日残る控えに入れてから消す。そこで作業していたチャットは本体に戻してお知らせを残す）。残ったワークツリーの一覧を返す
+     */
+    "POST /api/projects/:projectId/git/worktrees/remove": {
+      body: z.object({
         path: folderPath,
         force: z.boolean().default(false),
         delete_branch: z.boolean().default(false),
         down_volumes: z.boolean().default(false),
         drop_db_connections: z.boolean().default(false),
-      })
-      .parse(await jsonBody(c));
-    const { worktrees } = await worktreeFinisher.remove(project, folder, {
-      force,
-      deleteBranch: delete_branch,
-      downVolumes: down_volumes,
-      dropDbConnections: drop_db_connections,
-      deleteMergedRemote: false,
-      byChatId: null,
-    });
-    return c.json(present(project.id, worktrees));
+      }),
+      run: async ({ projectId: project, body }) => {
+        const { worktrees } = await finisher.remove(project, body.path, {
+          force: body.force,
+          deleteBranch: body.delete_branch,
+          downVolumes: body.down_volumes,
+          dropDbConnections: body.drop_db_connections,
+          deleteMergedRemote: false,
+          byChatId: null,
+        });
+        return service.present(project.id, worktrees);
+      },
+    },
   });
 }

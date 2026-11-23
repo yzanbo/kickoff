@@ -770,7 +770,7 @@
       "src/features/database/worker/postgres.ts": 426,
       "src/features/docker/core/service.ts": 304,
       "src/features/git/core/routes/server.git.test.ts": 470,
-      "src/features/github/core/service.ts": 341,
+      "src/features/github/core/service.ts": 340,
       "src/features/notes/ui/NoteTab.tsx": 341,
       "src/features/notes/ui/NoteView.tsx": 365,
       "src/features/trash/core/routes/server.trash.test.ts": 442,

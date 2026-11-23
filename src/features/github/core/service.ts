@@ -47,8 +47,8 @@ interface GitHubServiceOptions {
   api?: (repo: string, host: string) => GitHubApi;
   /** GitHub の remote の一覧（テストでは差し替える） */
   remotes?: (repo: string) => Promise<GitHubRemote[]>;
-  /** PR のブランチのワークツリーを新しく作ったとき（ワークツリーの実行環境を整える） */
-  onWorktreeCreated?: (project: Project, worktree: GitWorktree) => Promise<void>;
+  /** PR のブランチのワークツリーを作る（worktrees の WorktreesApi.create。新しく作ったら実行環境も整える） */
+  createWorktree: (project: Project, branch: string) => Promise<{ worktree: GitWorktree | undefined }>;
   now?: () => number;
 }
 
@@ -61,10 +61,9 @@ export class GitHubService {
   /** remoteGit は PR のブランチを取ってくる git（Kernel.workplace.git。CI のタブの「（ブランチ名）で直す」も使う） */
   constructor(private readonly opts: GitHubServiceOptions, readonly remoteGit: RemoteGit) {}
 
-  /** ワークツリーを新しく作ったときに呼ぶもの（CI のタブの「（ブランチ名）で直す」も同じ） */
-  worktreeCreated(project: Project): ((worktree: GitWorktree) => Promise<void>) | undefined {
-    const hook = this.opts.onWorktreeCreated;
-    return hook && ((worktree) => hook(project, worktree));
+  /** プロジェクトのワークツリーを作る口（CI のタブの「（ブランチ名）で直す」も同じ） */
+  worktreeCreator(project: Project): (branch: string) => Promise<GitWorktree | undefined> {
+    return async (branch) => (await this.opts.createWorktree(project, branch)).worktree;
   }
 
   private now() {
@@ -252,7 +251,7 @@ export class GitHubService {
       if (!target) throw new Invalid(`連携先（${repo}）の remote が見つかりません`);
       const pr = { number, head_ref: head.ref, head_repo: typeof head.repo?.full_name === "string" ? head.repo.full_name : null };
       if (place === "main") return { worktree_path: null, branch: await checkoutPullMain(project.repo_path, pr, remotes, target.name, this.remoteGit) };
-      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name, this.remoteGit, this.worktreeCreated(project));
+      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name, this.remoteGit, this.worktreeCreator(project));
       return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? head.ref };
     });
   }

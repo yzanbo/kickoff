@@ -1,15 +1,19 @@
 // ワークツリーの機能のコアの入口（ほかの機能はここだけを読む）
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
-import { createWorktreeFrom, forgetWorktrees } from "@/foundation/core/workplace/worktrees";
+import { Conflict, NotFound } from "@/foundation/core/errors";
+import { forgetWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { AiApi } from "@/features/ai/core/index";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { ChatRunPort, TurnContributor, ChatStoreDeps } from "@/features/chat/core/index";
 import type { WorkplaceMoveApi } from "@/features/workplaceMove/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
+import { baseOf } from "./create";
 import { HeadWatch } from "./headWatch";
+import { WorktreeService } from "./service";
 import { worktreeRoutes } from "./routes/worktrees";
 import { createWorktreeStores, type WorktreeStores } from "./db/stores";
 import { worktreeToolGroup, worktreeTurnParts } from "./tools";
@@ -20,6 +24,8 @@ export { createWorktreeStores, type WorktreeStores } from "./db/stores";
 
 export interface WorktreesDeps {
   trash: TrashApi;
+  /** 受け口の :projectId の引き当て */
+  projects: Pick<ProjectsApi, "param">;
   /** ブランチの名前の案を AI に聞く */
   ai: AiApi;
   docker: DockerService;
@@ -32,6 +38,8 @@ export interface WorktreesDeps {
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr">;
 
 export interface WorktreesApi {
+  /** ワークツリーを作る（新しく作ったときだけ実行環境を整える。PR の取り出しが使う） */
+  create: WorktreeService["create"];
   /** 実行環境（ポートの帯・Docker の組の名前。チャットの AI とターミナルには PORT を渡す） */
   envs: WorktreeEnvService;
   /** 後始末（画面の「消す」と AI の finish_worktree） */
@@ -46,31 +54,36 @@ export interface WorktreesApi {
 export function createWorktrees(k: Kernel, deps: WorktreesDeps, env: WorktreesEnv): CoreFeature<WorktreesApi> {
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる）
   const stores = createWorktreeStores(k.db);
-  const { projects, chats, events, trash, groups } = deps.chat.store;
+  const { projects, chats, events, trash } = deps.chat.store;
   const envs = new WorktreeEnvService(stores, deps.docker);
-  // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, moveWorkplace: deps.workplaceMove.move, worktreeEnvs: envs, trashBin: deps.trash, workplace: k.workplace, ...env });
-  // ワークツリーを作る人（新しいチャット・AI の create_chat・作業場所の移動が、作業場所の土台から呼ぶ。作ったら実行環境を整える）
-  k.workplace.provideCreator({
-    createWorktree: (target, branch, fromDir) => {
-      const project = projects.get(target.projectId);
-      return createWorktreeFrom(target.repoPath, branch, fromDir, project ? (made) => envs.prepare(project, made) : undefined);
-    },
-  });
-  // 作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す
-  deps.chat.addTurnContributor(worktreeTurnParts(envs));
-  let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   // ブランチを替えた・ワークツリーを足した消したら、一覧の覚えを捨ててから知らせる（画面が取り直す）
   const headWatch = new HeadWatch((project_id) => {
     const project = projects.get(project_id);
     if (project) forgetWorktrees(project.repo_path);
     k.bus.publish({ type: "worktrees_changed", project_id });
   });
+  const service = new WorktreeService({ store: { ...stores, chats }, envs, headWatch, runner: deps.chat.runner, providers: deps.ai.providers });
+  const create = service.create.bind(service);
+  // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
+  const finisher = new WorktreeFinisher({ store: { ...stores, projects, chats, events, trash }, runner: deps.chat.runner, moveWorkplace: deps.workplaceMove.move, worktreeEnvs: envs, create, trashBin: deps.trash, workplace: k.workplace, ...env });
+  // ワークツリーを作る人（新しいチャット・AI の create_chat・作業場所の移動が、作業場所の土台から呼ぶ。作ったら実行環境を整える）
+  k.workplace.provideCreator({
+    createWorktree: async (target, branch, fromDir) => {
+      const project = projects.get(target.projectId);
+      if (!project) throw new NotFound("プロジェクトが見つかりません");
+      const { worktree } = await create(project, branch, { base: await baseOf(fromDir) });
+      if (!worktree) throw new Conflict(`ワークツリー（${branch}）を作れませんでした`);
+      return { folder: worktree.path };
+    },
+  });
+  // 作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す
+  deps.chat.addTurnContributor(worktreeTurnParts(envs));
+  let connectionsIn: (folder: string) => { id: number; name: string }[] = () => [];
   return {
     name: "worktrees",
-    api: { envs, finisher, stores, useDbConnections: (fn) => void (connectionsIn = fn) },
+    api: { create, envs, finisher, stores, useDbConnections: (fn) => void (connectionsIn = fn) },
     aiTools: [worktreeToolGroup(finisher)],
-    routes: [{ legacy: (app) => worktreeRoutes(app, { store: { ...stores, projects, chats, groups }, connectionsIn: (folder) => connectionsIn(folder), runner: deps.chat.runner, providers: deps.ai.providers, worktreeEnvs: envs, worktreeFinisher: finisher, headWatch }) }],
+    routes: [worktreeRoutes({ projectParam: deps.projects.param, service, finisher, connectionsIn: (folder) => connectionsIn(folder) })],
     stop: () => {
       headWatch.close();
     },

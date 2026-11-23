@@ -19,7 +19,7 @@ export const worktreesApi = {
       down_volumes: downVolumes,
       drop_db_connections: dropDbConnections,
     }),
-  /** ［AI で整える］: この機能より前に作ったワークツリーなら手順を流し、そのワークツリーで「実行環境を整える（ブランチ）」のチャットを始める */
+  /** ［AI で整える］: 覚えのないワークツリー（Kickoff の外で作ったものなど）なら手順を流し、そのワークツリーで「実行環境を整える（ブランチ）」のチャットを始める */
   setupWorktreeEnv: (projectId: number, path: string) => request<WorktreeEnvSetupResult>("POST", `/api/projects/${projectId}/git/worktrees/env-setup`, { path }),
   /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
   worktreeRemovalInfo: (projectId: number, path: string) =>

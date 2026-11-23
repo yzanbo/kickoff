@@ -132,11 +132,11 @@ test("帯を使い切ったら、分けずに作って知らせる。docker が�
   assert.ok(wt.env?.issues.some((i) => i.startsWith("compose の設定を読めませんでした")));
 });
 
-test("［AI で整える］: この機能より前に作ったワークツリーは先に手順を流し、Git で管理していないファイルだけを書ける新しいチャットを始める", async () => {
+test("［AI で整える］: 覚えのないワークツリーは先に手順を流し、Git で管理していないファイルだけを書ける新しいチャットを始める", async () => {
   const s = setup();
   withRepo(s);
   const wt = await create(s, "feat/old");
-  // この機能より前に作ったワークツリー（覚えがない）にする
+  // 覚えのないワークツリー（Kickoff の外で作ったものなど）にする
   s.store.worktreeEnvs.remove(wt.path);
   const res = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: wt.path });
   assert.equal(res.status, 201);
