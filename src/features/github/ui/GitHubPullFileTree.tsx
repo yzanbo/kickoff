@@ -1,40 +1,20 @@
-// PR の「変更」の左のファイルの木（変更タブ・履歴の詳細と同じ FileTree と印。押すとそのファイルの差分へ移る）
-import { useMemo, useState } from "react";
+// PR の「変更」の左のファイルの木（変更タブ・履歴の詳細と同じ ChangedFiles の木と印。押すとそのファイルの差分へ移る）
+import { useState } from "react";
 import type { GitHubPullFile } from "@shared/github/types";
 import { useDragSize } from "@/foundation/ui/kit/drag/useDragSize";
 import { storage } from "./storage";
-import { FileTree } from "@/features/files/ui";
-import { buildTree, folderPaths } from "@/foundation/ui/kit/list/treeModel";
-import { kindMaps } from "@/features/git/ui";
+import { ChangedFiles, toggleFolder } from "@/features/git/ui";
 import { pullFileChanges } from "./pullFiles";
 
 /** 左のファイルの木（初めはすべてのフォルダを開く。幅は境目をドラッグで変える） */
 export function GitHubPullFileTree({ files, selected, onSelect }: { files: GitHubPullFile[]; selected: string | null; onSelect: (path: string) => void }) {
-  const changes = useMemo(() => pullFileChanges(files), [files]);
-  const nodes = useMemo(() => buildTree({ files: changes.map((c) => c.path), ignored: [] }), [changes]);
-  const marks = useMemo(() => kindMaps(changes), [changes]);
-  // 閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
-  const open = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
   const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: storage.settings.filesWidth, min: 160, keep: 360 });
 
   return (
     <>
       <aside ref={widthPaneRef} className="github-files-tree" style={{ width: width.size }} aria-label="変更したファイル">
-        <FileTree
-          nodes={nodes}
-          open={open}
-          onToggle={(path) =>
-            setClosed((prev) => {
-              const next = new Set(prev);
-              if (!next.delete(path)) next.add(path);
-              return next;
-            })
-          }
-          selected={selected ?? undefined}
-          onSelect={onSelect}
-          marks={marks}
-        />
+        <ChangedFiles files={pullFileChanges(files)} tree selected={selected ?? undefined} onSelect={(path) => onSelect(path)} closed={closed} onToggleFolder={(path) => setClosed((prev) => toggleFolder(prev, path))} />
       </aside>
       <div className="pane-resizer" aria-label="ファイルの木の幅を変える" {...width.handle} />
     </>

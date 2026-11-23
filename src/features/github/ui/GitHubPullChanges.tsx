@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
+import { memo, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
 import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
@@ -15,13 +15,14 @@ import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { UnifiedDiff } from "@/foundation/ui/diff/DiffTable";
 import { useDiffHighlight } from "@/foundation/ui/diff/useDiffHighlight";
 import { parseDiff } from "@/foundation/ui/diff/diffModel";
+import { DiffStack, type StackFold } from "@/features/git/ui";
 import { GitHubThread } from "./GitHubTimeline";
 import { GitHubPullFileTree } from "./GitHubPullFileTree";
 import { GitHubReviewBar, ReviewCommentEditor, ReviewDraftComment, useReviewDraft } from "./GitHubReview";
 import { placeThreads, threadsAt } from "./pullThreads";
 import { isTargetLine, reviewTargetAt, targetLabel, type ReviewTarget } from "./reviewLines";
 
-/** これより多いファイルの PR は、初めはすべて畳んでおく（開いた分だけ差分を描く） */
+/** これより多いファイルの PR は、初めはすべて畳んでおく（開いた分だけ差分を描く。木で押したファイルは開く） */
 const OPEN_ALL_MAX = 20;
 /** これより狭い欄では、左のファイルの木を出さない（差分の幅を残す） */
 const TREE_MIN_WIDTH = 560;
@@ -51,20 +52,19 @@ interface ReviewHandlers {
 const PullFile = memo(function PullFile({
   file,
   threads,
-  open,
-  onToggle,
+  fold,
   drafts,
   composing,
   review,
 }: {
   file: GitHubPullFile;
   threads: GitHubReviewThread[];
-  open: boolean;
-  onToggle: (path: string) => void;
+  fold: StackFold;
   drafts: GitHubReviewDraftComment[];
   composing: ReviewTarget | null;
   review: ReviewHandlers;
 }) {
+  const open = fold.override ?? fold.byDefault;
   const lines = useMemo(() => (open && file.patch ? parseDiff(file.patch) : []), [open, file.patch]);
   const placed = useMemo(() => placeThreads(threads, file.path, lines), [threads, file.path, lines]);
   const tokensOf = useDiffHighlight(lines, file.path, file.previous_path);
@@ -73,7 +73,7 @@ const PullFile = memo(function PullFile({
 
   return (
     <section className="github-file" data-path={file.path}>
-      <button type="button" className="github-file-head" aria-expanded={open} onClick={() => onToggle(file.path)}>
+      <button type="button" className="github-file-head" aria-expanded={open} onClick={() => fold.set(!open)}>
         <Chevron open={open} />
         <FileIcon name={name} />
         <span className="github-file-path" data-tip={file.path}>
@@ -159,17 +159,6 @@ export function GitHubPullChanges({
   onChanged: () => void;
 }) {
   const loaded = useQuery(`${projectId}:${number}`, () => api.githubPullFiles(projectId, number), { deps: [version] });
-  // 開閉は「既定から変えたファイル」だけ覚える（既定はファイルの数で決まる）
-  const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
-  const toggle = useCallback(
-    (path: string) =>
-      setToggled((prev) => {
-        const next = new Set(prev);
-        if (!next.delete(path)) next.add(path);
-        return next;
-      }),
-    [],
-  );
   // レビュー: ためた行のコメント（画面の保存）と、いま書いている行
   const [draft, setDraft] = useReviewDraft(projectId, number);
   const [composing, setComposing] = useState<ReviewTarget | null>(null);
@@ -178,7 +167,7 @@ export function GitHubPullChanges({
   const [treeHidden, setTreeHidden] = useSetting(storage.settings.filesTreeHidden);
   const { ref: layoutRef, ...layout } = useNarrowerThan<HTMLDivElement>(TREE_MIN_WIDTH);
   const main = useRef<HTMLDivElement>(null);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<{ path: string; at: number } | null>(null);
   const review = useMemo<ReviewHandlers>(
     () => ({
       save: (target, body) => {
@@ -204,14 +193,7 @@ export function GitHubPullChanges({
   const data = loaded.data;
   if (!data) return <p className="muted small github-detail-loading">読み込み中…</p>;
   if (data.files.length === 0) return <p className="muted small">この PR には変更したファイルがありません。</p>;
-  const openByDefault = data.files.length <= OPEN_ALL_MAX;
   const showTree = !treeHidden && !layout.narrow;
-  // 木で押したファイルの差分へ移る（畳んでいれば開いてから）
-  const goTo = (path: string) => {
-    setPicked(path);
-    if (openByDefault === toggled.has(path)) toggle(path);
-    requestAnimationFrame(() => main.current?.querySelector(`.github-file[data-path="${CSS.escape(path)}"]`)?.scrollIntoView({ block: "start" }));
-  };
 
   return (
     <div className="github-files" onContextMenu={onContextMenu}>
@@ -227,21 +209,28 @@ export function GitHubPullChanges({
         }
       />
       <div ref={layoutRef} className="github-files-layout">
-      {showTree && <GitHubPullFileTree files={data.files} selected={picked} onSelect={goTo} />}
+      {/* 木で押したファイルの差分へ移る（畳んでいれば開いてから） */}
+      {showTree && <GitHubPullFileTree files={data.files} selected={picked?.path ?? null} onSelect={(path) => setPicked({ path, at: Date.now() })} />}
       <div ref={main} className="github-files-main">
-      {!openByDefault && <p className="muted small">ファイルが多いので畳んでいます。見出し・左の木を押すと差分を開きます。</p>}
-      {data.files.map((f) => (
-        <PullFile
-          key={f.path}
-          file={f}
-          threads={threads}
-          open={openByDefault !== toggled.has(f.path)}
-          onToggle={toggle}
-          drafts={draft.comments.filter((c) => c.path === f.path)}
-          composing={composing?.path === f.path ? composing : null}
-          review={review}
-        />
-      ))}
+      {data.files.length > OPEN_ALL_MAX && <p className="muted small">ファイルが多いので畳んでいます。見出し・左の木を押すと差分を開きます。</p>}
+      <DiffStack
+        files={data.files}
+        scroller={main}
+        focus={picked?.path}
+        focusAt={picked?.at}
+        pathAttr="data-path"
+        openAllMax={OPEN_ALL_MAX}
+        section={(f, fold) => (
+          <PullFile
+            file={f}
+            threads={threads}
+            fold={fold}
+            drafts={draft.comments.filter((c) => c.path === f.path)}
+            composing={composing?.path === f.path ? composing : null}
+            review={review}
+          />
+        )}
+      />
       {data.truncated && <p className="muted small">ファイルが多いので、初めの {data.files.length.toLocaleString()} 件までを出しています。続きは GitHub で見てください。</p>}
       </div>
       </div>
