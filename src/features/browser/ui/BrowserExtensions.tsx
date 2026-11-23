@@ -1,8 +1,10 @@
 import { Download, FolderOpen, Puzzle, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
 import { KNOWN_EXTENSION_KEYS, KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/foundation/ipc";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { ResultMessage } from "@/foundation/ui/kit/SaveActions";
+import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { useQuery } from "@/foundation/ui/query/useQuery";
+import { errorMessage } from "@shared/foundation/errors";
 
 const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
   webstore: "ウェブストアから取得",
@@ -16,19 +18,17 @@ type ExtensionAction = `install:${KnownExtensionKey}` | `import:${KnownExtension
 /** 埋め込みブラウザの拡張機能（設定画面） */
 export function BrowserExtensions() {
   const api = window.kickoff?.browserExtensions;
-  const [list, setList] = useState<BrowserExtensionInfo[]>([]);
+  // 読めなければ空の一覧のまま、読めなかったことを出す
+  const query = useQuery(api ? "BrowserExtensions.list" : null, () => api!.list());
+  const list = query.data ?? [];
   const action = useAction<ExtensionAction>();
   const busy = action.busy;
-
-  useEffect(() => {
-    void api?.list().then(setList);
-  }, [api]);
 
   if (!api) return <p className="muted small">ブラウザの拡張機能はデスクトップアプリでのみ設定できます。</p>;
 
   /** 拡張機能を足す・消す（そのあとの一覧が返る。終わったら結果の文を出す） */
   const run = (name: ExtensionAction, fn: () => Promise<BrowserExtensionInfo[]>, done: string) =>
-    action.run(name, async () => setList(await fn()), { done });
+    action.run(name, async () => query.setData(await fn()), { done });
 
   const added = new Set(list.map((e) => e.key));
   const addable = KNOWN_EXTENSION_KEYS.filter((k) => !added.has(k));
@@ -40,6 +40,7 @@ export function BrowserExtensions() {
         の機能を多く使う拡張は動きません（そのようなページは「Chrome で開く」を使ってください）。足した・消したあとは、ページを読み込み直して開発者ツールを開き直すと反映されます。
       </p>
       <h3>追加した拡張機能</h3>
+      <ErrorText message={query.error && `拡張機能の一覧を読み込めませんでした: ${errorMessage(query.error)}`} />
       {list.length === 0 ? (
         <p className="muted small">追加した拡張機能はありません。</p>
       ) : (
