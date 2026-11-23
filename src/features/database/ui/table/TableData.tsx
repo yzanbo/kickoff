@@ -1,6 +1,8 @@
 import { PanelRight } from "lucide-react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { isFileDb } from "@shared/database/connectionShape";
 import { previewRowsSql } from "@shared/database/dbFilter";
+import { DB_DIALECTS } from "@shared/database/dialect";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbRowFilter, type DbTableDetail } from "@shared/database/types";
 import { dbApi, dbAt } from "@/features/database/ui/api";
@@ -34,9 +36,8 @@ export interface RowLink {
 /** つながった行の場所（PostgreSQL は参照先のスキーマ、MySQL は参照先の DB、SQLite は同じ場所） */
 function linkPath(connection: DbConnection, path: DbObjectPath, schema: string | null): DbObjectPath {
   if (!schema) return path;
-  if (connection.engine === "postgres") return { database: path.database, schema };
-  if (connection.engine === "mysql") return { database: schema, schema: null };
-  return path;
+  if (DB_DIALECTS[connection.engine].hasSchemas) return { database: path.database, schema };
+  return isFileDb(connection.engine) ? path : { database: schema, schema: null };
 }
 
 /**

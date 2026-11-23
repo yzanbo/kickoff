@@ -1,4 +1,5 @@
 // 「テーブル・列を探す」（⌘⇧O）の候補の並べ方。React に依らない
+import { DB_DIALECTS } from "@shared/database/dialect";
 import { parseTreeKey } from "@/features/database/ui/tree/treeKeys";
 import type { DbEngine, DbObject, DbObjectPath } from "@shared/database/types";
 
@@ -68,7 +69,7 @@ export function findDbItems(sources: readonly DbFindSource[], query: string, lim
 
 /** 左の木で開いている場所（接続ごとの段のキー。PostgreSQL はスキーマの段、ほかは DB の段） */
 export function openTreePaths(openKeys: readonly string[], connectionId: number, engine: DbEngine): DbObjectPath[] {
-  const level = engine === "postgres" ? "schema" : "database";
+  const level = DB_DIALECTS[engine].hasSchemas ? "schema" : "database";
   return openKeys.flatMap((k) => {
     const at = parseTreeKey(k);
     return at && at.connectionId === connectionId && at.level === level ? [at.path] : [];
