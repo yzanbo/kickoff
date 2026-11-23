@@ -9,7 +9,7 @@
 
 /* 新しい子チャットのタブでは入力欄との間を空ける */
 
-.chat-composer > .inherit-choice {
+.inherit-choice:is(.chat-composer > *) {
   margin-bottom: 6px;
 }
 

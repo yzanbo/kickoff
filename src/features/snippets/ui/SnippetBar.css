@@ -14,15 +14,15 @@
 
   /* 帯の下の文を書く欄: 帯との間を詰める（帯がないときは入力欄の既定の余白のまま） */
 
-  .composer > .snippet-bar ~ textarea {
+  .snippet-bar:is(.composer > *) ~ textarea {
     padding-top: 6px;
   }
 
-  .composer.compact > .snippet-bar {
+  .snippet-bar:is(.composer.compact > *) {
     padding: 5px 6px 0 10px;
   }
 
-  .composer.compact > .snippet-bar ~ textarea {
+  .snippet-bar:is(.composer.compact > *) ~ textarea {
     padding-top: 4px;
   }
 

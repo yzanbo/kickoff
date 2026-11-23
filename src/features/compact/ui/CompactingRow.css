@@ -6,7 +6,7 @@
    * 終わったあとの記録の行（CompactedRow。.compacted）も同じ枠のまま残す（.working の文字の大きさ・色もそろえる）
    */
 
-  .working.compacting,
+  .compacting.working,
   .compacted {
     display: grid;
     font-size: var(--chat-fs-13);

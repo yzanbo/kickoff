@@ -12,11 +12,11 @@
 
   /* メインの流れのカードは少し右へ寄せ、上から曲がって入る線で、メインから枝分かれした配下だと見せる（線はそのサブエージェントの色） */
 
-  .timeline-inner > .timeline-row > .subagent-card {
+  .subagent-card:is(.timeline-inner > .timeline-row > *) {
     margin-left: 18px;
   }
 
-  .timeline-inner > .timeline-row > .subagent-card::before {
+  .subagent-card:is(.timeline-inner > .timeline-row > *)::before {
     position: absolute;
     top: -6px;
     left: -16px;
@@ -65,8 +65,7 @@
 
   /* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--hue は AgentListChip・回答待ちのカードの ApprovalFrom が入れる） */
 
-  .agent-list-row .agent-dot,
-  .approval-from .agent-dot {
+  .agent-dot:is(.agent-list-row *, .approval-from *) {
     display: inline-block;
     width: 8px;
     height: 8px;
@@ -75,7 +74,7 @@
     background: hsl(var(--hue, 25) var(--hue-fg));
   }
 
-  .agent-list-row .agent-dot {
+  .agent-dot:is(.agent-list-row *) {
     margin-right: 6px;
   }
 }

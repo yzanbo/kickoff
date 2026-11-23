@@ -2,7 +2,7 @@
 @layer feature {
   /* 欄の枠・閉じたとき・幅のつまみ（レイアウトの格子は foundation/ui/styles/layout.css） */
 
-  .layout.sidebar-collapsed .sidebar {
+  .sidebar:is(.layout.sidebar-collapsed *) {
     border-right-color: transparent;
   }
 
@@ -20,7 +20,7 @@
 
   /* 幅を変えている間はアニメーションを止める */
 
-  .layout.resizing-sidebar {
+  .resizing-sidebar.layout {
     transition: none;
     user-select: none;
   }
@@ -36,8 +36,15 @@
     -webkit-app-region: no-drag;
   }
 
+  /* 乗せる・ドラッグ中は青い 2px の線（右端の境目の上。つかめる幅は広いまま） */
+
+  .sidebar-resizer:hover,
+  .resizing-sidebar .sidebar-resizer {
+    background: linear-gradient(var(--info), var(--info)) right / 2px 100% no-repeat;
+  }
+
   @media (max-width: 720px) {
-    .layout.sidebar-collapsed .sidebar {
+    .sidebar:is(.layout.sidebar-collapsed *) {
       display: none;
     }
   }

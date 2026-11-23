@@ -1,3 +1,4 @@
+import "./ProjectChip.css";
 import type { ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { hueStyle, useProjectHue } from "./projectColor";

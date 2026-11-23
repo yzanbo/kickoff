@@ -10,7 +10,7 @@
     align-items: center;
   }
 
-  .turn-footer .handoff-split:not(.prominent) .handoff-more {
+  .handoff-split:is(.turn-footer *):not(.prominent) .handoff-more {
     width: 14px;
   }
 

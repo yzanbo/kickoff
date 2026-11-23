@@ -48,12 +48,12 @@
 
   /* まとまりの中のタブ（ChatTabStrip.css の .panel-tab-group:not(.plain) .panel-tab。同じ詳細度）でも、深さの色にする */
   .panel-tab.tab-kind-child:has(.child-depth-mark-2),
-  .panel-tab-group:not(.plain) .panel-tab.tab-kind-child:has(.child-depth-mark-2) {
+  .panel-tab.tab-kind-child:has(.child-depth-mark-2):is(.panel-tab-group:not(.plain) *) {
     --tab-color: var(--child-depth-2);
   }
 
   .panel-tab.tab-kind-child:has(.child-depth-mark-3),
-  .panel-tab-group:not(.plain) .panel-tab.tab-kind-child:has(.child-depth-mark-3) {
+  .panel-tab.tab-kind-child:has(.child-depth-mark-3):is(.panel-tab-group:not(.plain) *) {
     --tab-color: var(--child-depth-3);
   }
 

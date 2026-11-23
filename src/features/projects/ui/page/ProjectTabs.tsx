@@ -1,3 +1,4 @@
+import "./tabStrip.css";
 import "./ProjectTabs.css";
 import { GripHorizontal, GripVertical } from "lucide-react";
 import { cx } from "@/foundation/ui/lib/cx";

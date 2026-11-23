@@ -2,7 +2,7 @@
 @layer feature {
   /* git の管理の欄: 始める / 始めないのボタンの組は中身の幅、もう管理されているときはその旨の 1 行 */
 
-  .segmented.git-init-choice {
+  .git-init-choice.segmented {
     justify-self: start;
   }
 

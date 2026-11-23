@@ -35,11 +35,4 @@
     margin-right: -4px;
     border-radius: 999px;
   }
-
-  /* サイドバーのカード: チャット数の後ろに 1 行で並べる（折り返さず、はみ出した分は .workspace-sub で省略） */
-
-  .workspace-sub .project-tags {
-    flex-wrap: nowrap;
-    margin-left: 6px;
-  }
 }

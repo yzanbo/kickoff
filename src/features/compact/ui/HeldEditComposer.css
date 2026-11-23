@@ -1,16 +1,12 @@
 /*
- * 預かった指示を書き直している間（features/chat/status/HeldEditComposer）: ふつうのチャット欄は隠して残し（書きかけの文・添付はそのまま）、
+ * 預かった指示を書き直している間（HeldEditComposer）: ふつうのチャット欄は隠して残し（書きかけの文・添付はそのまま。隠すのは conversation の ChatColumn.css）、
  * 書き直しの欄を同じ場所（送信待ちのすぐ下）に出す
  */
 @layer feature {
-  .chat-composer:has(> .held-edit) > .composer {
-    display: none;
-  }
-
   /* 送信待ちとつなげる（QueuedMessages.css の .queued-messages + .composer と同じ。コンパクト表示の角は QueuedMessages.css） */
 
-  .queued-messages + .held-edit > .composer,
-  .queued-messages + .held-edit > .composer:focus-within {
+  .held-edit:is(.queued-messages + *) > .composer,
+  .held-edit:is(.queued-messages + *) > .composer:focus-within {
     border-top-color: var(--divider-strong);
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -42,12 +38,12 @@
 
   /* 書き直している吹き出し: 薄くせず、点線の枠をアクセントの色にして、どれを直しているか分かるように */
 
-  .user-message.after-compact.held-editing .bubble.user {
+  .held-editing.user-message.after-compact .bubble.user {
     opacity: 1;
     outline-color: var(--accent);
   }
 
-  .user-message.after-compact.held-editing .message-meta {
+  .held-editing.user-message.after-compact .message-meta {
     color: var(--accent-fg);
   }
 }

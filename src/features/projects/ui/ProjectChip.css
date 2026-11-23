@@ -1,0 +1,19 @@
+/* ==== プロジェクトのバッジ（ProjectChip）。印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地（地と枠の色は ProjectMark.css で共通） ==== */
+@layer feature {
+  .project-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 160px;
+    padding: 1px 7px 1px 2px;
+    overflow: hidden;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-11);
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+}

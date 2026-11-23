@@ -191,7 +191,9 @@
     white-space: nowrap;
   }
 
-  :is(.subagent-card-head, .subagent-screen-title) > .tool-time {
+  /* 時間（画面の見出しの時間は conversation の SubagentScreen.css） */
+
+  .subagent-card-head > .tool-time {
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -203,8 +205,7 @@
    * 入らない札から順に隠す: 種類 → 「右の欄で表示中」→「サブエージェント」の札と「中に n 件」の文字（点は残す）
    */
 
-  .subagent-card,
-  .subagent-screen-head {
+  .subagent-card {
     container: subagent-head / inline-size;
   }
 

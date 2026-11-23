@@ -62,7 +62,7 @@
 
   /* 送信待ちの行（文の前。長い名前は詰める） */
 
-  .queued-row .handoff-from {
+  .handoff-from:is(.queued-row *) {
     max-width: 40%;
   }
 }

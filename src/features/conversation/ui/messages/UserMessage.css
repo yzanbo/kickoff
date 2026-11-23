@@ -226,4 +226,10 @@
   .message-handoff-from .handoff-from-open {
     font-size: var(--chat-fs-11);
   }
+
+  /* 発言から聞いた子チャットの札（chat の ChatLinkChip）は右に寄せる */
+
+  .user-message .child-chat-marks {
+    justify-content: flex-end;
+  }
 }

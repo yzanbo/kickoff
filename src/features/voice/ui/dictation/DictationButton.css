@@ -104,11 +104,11 @@
 
   /* AI からの質問の「その他」の欄・送信待ちの書き直す欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */
 
-  .question-other-field .dictation-error {
+  .dictation-error:is(.question-other-field *) {
     padding: 0;
   }
 
-  .queued-editor-body .dictation-error {
+  .dictation-error:is(.queued-editor-body *) {
     padding: 4px 0 0;
   }
 

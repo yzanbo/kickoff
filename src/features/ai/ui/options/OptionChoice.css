@@ -43,12 +43,12 @@
 
   /* 選択欄の上に開くメニュー（OptionChoice。行は .menu の項目） */
 
-  .menu.option-choice-menu {
+  .option-choice-menu.menu {
     min-width: 220px;
     max-height: min(420px, 60vh);
   }
 
-  .menu.model-menu-choices {
+  .model-menu-choices.menu {
     width: 280px;
   }
 

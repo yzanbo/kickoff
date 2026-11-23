@@ -79,13 +79,13 @@
 
   /* すべてのプロジェクト / このプロジェクトの切り替え（プロジェクトの見出しの右端のボタンの一覧。AllStateChats） */
 
-  .segmented.state-chats-scope {
+  .state-chats-scope.segmented {
     display: grid;
     grid-auto-columns: minmax(0, 1fr);
     margin-bottom: 10px;
   }
 
-  .segmented.state-chats-scope button {
+  .state-chats-scope.segmented button {
     overflow: hidden;
     padding: 4px 10px;
     font-size: var(--fs-12);

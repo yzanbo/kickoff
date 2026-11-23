@@ -2,7 +2,7 @@
 @layer feature {
   /* 左下から出る接続の詳細（使用状況の詳細と同じ見た目。押した接続の表示の左端にそろえて上に出す） */
 
-  .usage-popover.connection-popover {
+  .connection-popover.usage-popover {
     width: 360px;
     transform-origin: bottom left;
   }

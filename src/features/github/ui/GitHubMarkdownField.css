@@ -9,7 +9,7 @@
     min-width: 0;
   }
 
-  .segmented.github-md-mode {
+  .github-md-mode.segmented {
     align-self: flex-start;
   }
 

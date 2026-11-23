@@ -85,8 +85,8 @@
    * 頭の html は詳細度を要素 1 つの分だけ上げる（Panel.css の .split-view の規則と同じクラスの数なので読む順によらず勝ち、クラスが 1 つ多い送信待ちとつなげた上の辺の規則には負ける）
    */
 
-  html .panel-tab-page.pane-focused .agent-panel .composer,
-  .panel-tab-page.pane-focused .agent-panel .queued-messages + .held-edit > .composer:focus-within {
+  html .agent-panel:is(.panel-tab-page.pane-focused *) .composer,
+  .agent-panel:is(.panel-tab-page.pane-focused *) .queued-messages + .held-edit > .composer:focus-within {
     border-color: var(--border-strong);
   }
 

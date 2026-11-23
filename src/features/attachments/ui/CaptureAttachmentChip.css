@@ -23,7 +23,7 @@
     color: var(--warn);
   }
 
-  .dialog.app-dialog.capture-viewer {
+  .capture-viewer.dialog.app-dialog {
     display: grid;
     gap: 8px;
     --dialog-w: 760px;

@@ -247,7 +247,7 @@
     margin-top: 2px;
   }
 
-  .segmented.restart-resume-choice button {
+  .restart-resume-choice.segmented button {
     padding: 3px 12px;
     font-size: var(--fs-12);
   }

@@ -43,16 +43,15 @@
     gap: 6px;
   }
 
-  /* 小さな操作のボタン（サブエージェントの再開など・失敗した作業の直す操作 FailedTurnActions） */
+  /* 小さな操作のボタン（サブエージェントの再開など。失敗した作業の直す操作 FailedTurnActions も同じ大きさ = ToolGroup.css の .turn-retry .btn） */
 
-  .subagent-recovery .btn,
-  .turn-retry .btn {
+  .subagent-recovery .btn {
     gap: 4px;
     padding: 2px 8px;
     font-size: var(--chat-fs-12);
   }
 
-  .agent-list-text .subagent-recovery {
+  .subagent-recovery:is(.agent-list-text *) {
     margin-top: 6px;
   }
 

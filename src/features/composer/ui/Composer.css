@@ -28,6 +28,12 @@
     resize: none;
   }
 
+  /* hidden の欄は出さない（音声モードの間など。書きかけの文は残す。上の display: block に勝たせる） */
+
+  .composer textarea[hidden] {
+    display: none;
+  }
+
   .composer textarea:focus {
     outline: none;
   }

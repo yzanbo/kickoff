@@ -13,7 +13,7 @@
   }
 
   .custom-group.drop-target,
-  .custom-group-head.drop-target,
+  .drop-target.custom-group-head,
   .chat-rows.drop-target,
   .archive-drop.drop-target,
   .restore-drop.drop-target {
@@ -22,7 +22,7 @@
     background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
-  .custom-group-head.editing {
+  .editing.custom-group-head {
     padding-left: 20px;
   }
 
@@ -134,7 +134,7 @@
     color: var(--group-color);
   }
 
-  .custom-group-head.bucket-hued:hover .custom-group-name {
+  .bucket-hued.custom-group-head:hover .custom-group-name {
     color: var(--group-color);
   }
 

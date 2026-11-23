@@ -24,7 +24,7 @@
 
   /* link-button の font: inherit より強くするため、同じ要素に付く class を連結して詳細度を上げる */
 
-  .link-button.selection-bar-clear {
+  .selection-bar-clear.link-button {
     display: inline-flex;
     align-items: center;
     gap: 3px;
@@ -39,13 +39,5 @@
 
   .selection-bar .selection-bar-delete:hover:not(:disabled) {
     color: var(--ng);
-  }
-
-  /* ボードの下に浮かせるとき（置き場所は BoardShell.css の .board-selection） */
-
-  .board-selection .selection-bar {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-2);
   }
 }

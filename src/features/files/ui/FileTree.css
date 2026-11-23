@@ -20,7 +20,7 @@
 
   /* 木の行の中の操作（行の右の余白の外に、行の端まで寄せる。ボタンの間は押せる行にしない） */
 
-  .tree-row > .row-actions {
+  .row-actions:is(.tree-row > *) {
     /* 記号との間は行の右の余白と同じ 10px（行の gap 4px ＋ 6px） */
     margin-inline: 6px -10px;
     cursor: auto;

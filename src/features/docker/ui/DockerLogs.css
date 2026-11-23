@@ -11,7 +11,7 @@
   }
 
   .docker-log-resizer:hover,
-  .resizing > .docker-log-resizer {
+  .docker-log-resizer:is(.resizing > *) {
     background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
   }
 

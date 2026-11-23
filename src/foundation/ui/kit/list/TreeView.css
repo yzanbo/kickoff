@@ -16,6 +16,12 @@
     opacity: 0.5;
   }
 
+  /* 変更の種類（data-kind。ファイルの木の行に付く）の色（styles/types/state-colors.css の --kind-color）を、名前と記号に付ける */
+
+  .tree-row[data-kind] {
+    color: var(--kind-color);
+  }
+
   .tree-row svg {
     flex: none;
     color: var(--muted);

@@ -172,25 +172,6 @@
     font-size: var(--fs-10);
   }
 
-  /* プロジェクトのバッジ（ProjectChip）。印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地（地と枠の色は project-mark.css で共通） */
-
-  .project-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    max-width: 160px;
-    padding: 1px 7px 1px 2px;
-    overflow: hidden;
-    border-width: 1px;
-    border-style: solid;
-    border-radius: var(--radius-sm);
-    font-size: var(--fs-11);
-    font-weight: 600;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: var(--text);
-  }
-
   /* 詳細・日時の行（表示項目でたくさん出したときは、カードの幅からはみ出さずに折り返す） */
 
   .card-foot {

@@ -1,3 +1,4 @@
+import "@/features/projects/ui/page/tabStrip.css";
 import "./SideRail.css";
 import { AppWindow, GripHorizontal, type LucideIcon } from "lucide-react";
 import { useMemo, type ComponentProps } from "react";

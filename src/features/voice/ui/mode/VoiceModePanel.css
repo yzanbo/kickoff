@@ -12,12 +12,6 @@
     background: var(--accent);
   }
 
-  /* 音声モードの間は文を書く欄を隠す（書きかけの文は残す。.composer textarea の display: block に勝たせる） */
-
-  .composer textarea[hidden] {
-    display: none;
-  }
-
   /* 帯: 上の行が丸・様子・操作、下の行が話し終わったときの扱いと作業中の送り方 */
 
   .voice-mode {

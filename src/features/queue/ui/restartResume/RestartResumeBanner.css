@@ -42,7 +42,7 @@
 
   /* 下の帯の入口（決めていない再開）。注意の色（乗せた・押している間は下の帯のボタンの色） */
 
-  .footer-button.restart-resume-footer:where(:not(:hover, .active)) {
+  .restart-resume-footer.footer-button:where(:not(:hover, .active)) {
     color: var(--warn);
   }
 }

@@ -2,8 +2,7 @@
 @layer feature {
   /* 幅をドラッグで変えている間は、アニメーションを止めて指に追従させる */
 
-  .board-body.resizing,
-  .board-body.resizing .board-panel {
+  .board-panel:is(.board-body.resizing *) {
     transition: none;
     user-select: none;
   }
@@ -49,10 +48,10 @@
    * 開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた
    */
 
-  .board-body.resizing .board-panel > .panel-tabs,
-  .board-body.resizing .board-panel > .panel-content,
-  .board-body.stretching .board-panel > .panel-tabs,
-  .board-body.stretching .board-panel > .panel-content {
+  .board-panel:is(.board-body.resizing *) > .panel-tabs,
+  .board-panel:is(.board-body.resizing *) > .panel-content,
+  .board-panel:is(.board-body.stretching *) > .panel-tabs,
+  .board-panel:is(.board-body.stretching *) > .panel-content {
     width: auto;
   }
 
@@ -68,10 +67,17 @@
     cursor: col-resize;
   }
 
+  /* 乗せる・ドラッグ中は青い 2px の線（左端の境目の上。つかめる幅は広いまま） */
+
+  .panel-resizer:hover,
+  .panel-resizer:is(.board-body.resizing *) {
+    background: linear-gradient(var(--info), var(--info)) left / 2px 100% no-repeat;
+  }
+
   /* 幅 720px 以下の画面では、パネルを全面に重ねる */
 
   @media (max-width: 720px) {
-    .board-body.with-panel .board-panel {
+    .board-panel:is(.board-body.with-panel *) {
       position: fixed;
       inset: 0;
       z-index: var(--z-raised-bar);
@@ -79,8 +85,8 @@
     }
 
     /* 全面に重ねるので、中身は開き終えたときの幅ではなく画面いっぱいに */
-    .board-body.with-panel .board-panel > .panel-tabs,
-    .board-body.with-panel .board-panel > .panel-content {
+    .board-panel:is(.board-body.with-panel *) > .panel-tabs,
+    .board-panel:is(.board-body.with-panel *) > .panel-content {
       width: auto;
     }
   }

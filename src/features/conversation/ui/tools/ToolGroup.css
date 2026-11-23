@@ -178,4 +178,12 @@
     gap: 6px;
     margin: 2px 0 6px;
   }
+
+  /* 直す操作の小さなボタン（サブエージェントの再開のボタン SubagentStatusText.css の .subagent-recovery .btn と同じ大きさ） */
+
+  .turn-retry .btn {
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: var(--chat-fs-12);
+  }
 }

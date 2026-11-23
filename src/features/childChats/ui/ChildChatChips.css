@@ -41,7 +41,7 @@
    * アクセントの色の枠と地で 2 回明滅させ、そのあと元の見た目に戻す（開かない設定でも、作ったことと置き場所が分かるように）
    */
 
-  .composer-chip.child-chats-new {
+  .child-chats-new.composer-chip {
     animation: child-chats-new 2.4s ease-out;
   }
 
@@ -62,7 +62,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     /* 動きを減らす設定では明滅させず、色だけ付けて戻す */
-    .composer-chip.child-chats-new {
+    .child-chats-new.composer-chip {
       animation-name: child-chats-new-still;
     }
 

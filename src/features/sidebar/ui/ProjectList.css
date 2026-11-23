@@ -63,6 +63,13 @@
     border-radius: var(--radius);
     /* 外枠の中を押すとカンバンを開く */
     cursor: pointer;
+    /* 地はプロジェクトの色の薄い地（projects の ProjectMark.css の札と同じ色。枠の線は出さない） */
+    background: hsl(var(--hue, 150) var(--hue-tint));
+  }
+
+  .workspace-head:hover,
+  .workspace-head.active {
+    background: hsl(var(--hue, 150) var(--hue-tint-hover));
   }
 
   .workspace-title {
@@ -86,6 +93,13 @@
     color: var(--muted);
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  /* プロジェクトのタグ（ProjectTags）: チャット数の後ろに 1 行で並べる（折り返さず、はみ出した分は .workspace-sub で省略） */
+
+  .workspace-sub .project-tags {
+    flex-wrap: nowrap;
+    margin-left: 6px;
   }
 
   /* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない） */

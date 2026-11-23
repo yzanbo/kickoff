@@ -231,7 +231,7 @@
    * 余白がないので描くのも省かない（省くと、中の項目のピントの枠が包みの箱で切れる）
    */
 
-  .subagent-card-body > .timeline-row {
+  .timeline-row:is(.subagent-card-body > *) {
     --row-ink: 0px;
     content-visibility: visible;
   }

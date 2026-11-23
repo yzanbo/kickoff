@@ -34,7 +34,7 @@
     line-height: 1.4;
   }
 
-  .tabbed-dialog-content .ai-defaults-project .form { margin: 0; }
+  .ai-defaults-project:is(.tabbed-dialog-content *) .form { margin: 0; }
 
   .ai-defaults-heading { margin: 28px 0 12px; }
 
@@ -60,7 +60,7 @@
     border-radius: var(--radius-sm);
   }
 
-  .tabbed-dialog-content .ai-defaults-card-form { gap: 16px; margin: 0; }
+  .ai-defaults-card-form:is(.tabbed-dialog-content *) { gap: 16px; margin: 0; }
 
   .ai-defaults-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 

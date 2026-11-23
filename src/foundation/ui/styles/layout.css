@@ -27,27 +27,13 @@
 }
 
 /*
- * 幅を変えるつまみ（サイドバー・右のパネル・「エディタ」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す。
- * つかめる幅は広いまま、線は 2px にする（サイドバーは右端、パネルは左端の境目の上に、欄の境目は真ん中に）
+ * 欄の境目の幅を変えるつまみ（「エディタ」タブの一覧など）。VS Code・Cursor と同じく、乗せると青い線を出す。
+ * つかめる幅は広いまま、線は 2px にして境目の真ん中に引く（サイドバー・右のパネルのつまみは Sidebar.css・Panel.css で端に引く）
  */
 
-.sidebar-resizer:hover,
-.resizing-sidebar .sidebar-resizer,
-.panel-resizer:hover,
-.board-body.resizing .panel-resizer,
 .pane-resizer:hover,
-.resizing > .pane-resizer {
+.pane-resizer:is(.resizing > *) {
   background: linear-gradient(var(--info), var(--info)) center / 2px 100% no-repeat;
-}
-
-.sidebar-resizer:hover,
-.resizing-sidebar .sidebar-resizer {
-  background-position: right;
-}
-
-.panel-resizer:hover,
-.board-body.resizing .panel-resizer {
-  background-position: left;
 }
 
 /* 左右の欄の境目のつまみ（エディタの一覧と差分・履歴のファイルと差分。線の上に重ねる） */
@@ -73,7 +59,7 @@
 }
 
 .pane-resizer-y:hover,
-.resizing > .pane-resizer-y {
+.pane-resizer-y:is(.resizing > *) {
   background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
 }
 
@@ -97,7 +83,7 @@
   padding-right: 100px;
 }
 
-.sidebar-collapsed .page-header > :first-child {
+.page-header:is(.sidebar-collapsed *) > :first-child {
   /* 画面移動と開閉ボタンの右に置く。画面の左右の余白の分を差し引く */
   padding-left: calc(var(--app-titlebar-left-end) - var(--page-x));
   transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);

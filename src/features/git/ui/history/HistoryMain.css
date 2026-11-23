@@ -22,7 +22,10 @@
     border-bottom: 1px solid var(--border);
   }
 
+  /* ページの ⌘F（.page-find）を右上に浮かせる基準にもする */
+
   .history-detail {
+    position: relative;
     display: flex;
     flex: 1;
     flex-direction: column;

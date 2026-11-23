@@ -88,10 +88,9 @@
     font-weight: 700;
   }
 
-  /* 変更の種類の色（styles/types/state-colors.css の --kind-color）。変更の一覧では記号、エクスプローラーでは変更のあるファイル・フォルダの名前と記号に付ける */
+  /* 変更の種類の色（styles/types/state-colors.css の --kind-color）。変更の一覧では記号に付ける（エクスプローラーの行は土台の TreeView.css の .tree-row[data-kind]） */
 
-  .change-kind,
-  .tree-row[data-kind] {
+  .change-kind {
     color: var(--kind-color);
   }
 

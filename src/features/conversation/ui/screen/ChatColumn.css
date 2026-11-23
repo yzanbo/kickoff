@@ -102,6 +102,12 @@
     padding: 4px var(--gutter) 10px;
   }
 
+  /* 預かった指示を書き直している間（compact の HeldEditComposer）は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま） */
+
+  .chat-composer:has(> .held-edit) > .composer {
+    display: none;
+  }
+
   /* 発言の流れの中身の幅（Timeline の中） */
   .timeline-inner {
     display: flex;

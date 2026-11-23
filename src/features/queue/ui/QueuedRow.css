@@ -221,12 +221,20 @@
 
   /*
    * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。乗せたときは外して灰の地（.icon-button:hover）に任せる。
-   * ⌘ を押している間の青（QueueModeToggle.css の .queued-editor-send.held）は 2 つのクラスで上書きする
+   * ⌘ を押している間の青（下の .queued-editor-send.held）は 2 つのクラスで上書きする
    */
 
   .queued-editor-ok:where(:not(:hover)),
   .queued-editor-send:where(:not(:hover)) {
     color: var(--accent-bright);
+  }
+
+  /* ⌘ を押している間は、⌘Enter で使われる「保存していま送る」を青で光らせる（チャット欄の送り方のボタン QueueModeToggle.css と同じ青） */
+
+  .queued-editor-send.held {
+    color: var(--info);
+    background: color-mix(in srgb, var(--info) 22%, transparent);
+    box-shadow: inset 0 0 0 1px var(--info);
   }
 
   /* 書き直す欄は、折り返した行も含めて文の終わりまで見せる（中でスクロールさせない。ごく長い文だけ画面の 4 割で止める） */

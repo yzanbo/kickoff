@@ -1,6 +1,6 @@
 /* ==== ノートの検索の結果（NoteFoundList） ==== */
 @layer feature {
-  .changes-scroll > .note-found {
+  .note-found:is(.changes-scroll > *) {
     margin: 0;
     padding: 4px 0 8px;
     list-style: none;

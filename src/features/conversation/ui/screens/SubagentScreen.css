@@ -27,6 +27,8 @@
     box-shadow: inset 4px 0 0 var(--agent-color);
     font-size: var(--chat-fs-13);
     background: var(--bg);
+    /* 札を隠すかを見出しの幅で決める（SubagentHead.css の @container subagent-head） */
+    container: subagent-head / inline-size;
   }
 
   /* 見出しの 1 行目: 階層と、右の欄のタブのときだけ右端の「別ウィンドウで開く」 */
@@ -102,6 +104,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* 狭いときは名前より先に縮める（カードの見出しの時間 SubagentHead.css の .subagent-card-head > .tool-time と同じ） */
+
+  .subagent-screen-title > .tool-time {
+    flex: 0 1 auto;
+    min-width: 0;
   }
 
   /* いまの動き（終わったものはまとめ）と操作。狭ければ操作を次の行へ折り返す */

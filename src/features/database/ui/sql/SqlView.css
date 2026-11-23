@@ -76,7 +76,7 @@
   }
 
   .db-sql-resizer:hover,
-  .resizing > .db-sql-resizer {
+  .db-sql-resizer:is(.resizing > *) {
     background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
   }
 
