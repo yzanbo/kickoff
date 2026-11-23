@@ -11,7 +11,7 @@
 | `ui/DatabaseClient`・`ui/dbClientContext.ts` | 殻（左に接続の一覧、右にタブ）・下の部品が読む操作 `useDbClient` |
 | `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbNote.ts` | 接続の登録・編集・写す・取り込む・つながらないときの案内・準備・手順ノート |
 | `ui/TableView`・`ui/SqlView`・`ui/DefinitionView`・`ui/er/` | テーブル・SQL・関数と列挙型のタブ・ER 図 |
-| `ui/dbClientRequests.ts`・`ui/openSqlFromChat.ts` | 外（右の欄・Docker タブ・チャット）からの頼み |
+| `ui/dbClientRequests.ts`・`ui/openSqlFromChat.ts`・`ui/dockerDbTarget.ts` | 外（右の欄・Docker タブ・チャット）からの頼み |
 
 開いているタブと形は `ui/client/dbClientTabs.ts`、接続の一覧は `ui/client/connectionsStore.ts`、CSS は `@/app/renderer/styles/database/`。
 

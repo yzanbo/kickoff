@@ -28,6 +28,11 @@ export interface QueryOptions<T> {
   seed?: (signal: AbortSignal) => Promise<T | null>;
   /** 取りに行く前に待つ時間（ms。入力中のフォルダの点検など。待つ間も読み込み中で、その間にキーが変われば取りに行かない） */
   delay?: number;
+  /**
+   * 取り直しが重なったとき。既定は前の頼みを捨てて取り直す。"trailing" は前の頼みを待ち、その間のきっかけは
+   * 終わってから 1 回にまとめて取り直す（頼むたびにコアが動くもの。reload() はまとめた 1 回が終わるまで待つ）
+   */
+  dedupe?: "trailing";
 }
 
 export interface QueryResult<T> {
@@ -51,7 +56,7 @@ export interface QueryResult<T> {
  * key が null なら取りに行かない。古いキー・古い取り直しの応答は捨てる（取り下げたら signal を abort する）
  */
 export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) => Promise<T>, options: QueryOptions<T> = {}): QueryResult<T> {
-  const { enabled = true, deps = [], refetchOn, interval, pauseWhenBlurred = false, refetchOnFocus = false, keepPrevious = false, delay = 0 } = options;
+  const { enabled = true, deps = [], refetchOn, interval, pauseWhenBlurred = false, refetchOnFocus = false, keepPrevious = false, delay = 0, dedupe } = options;
   const keyText = key === null ? null : JSON.stringify(key);
   const depsText = JSON.stringify(deps);
   const [state, setState] = useState<QueryState<T>>(EMPTY_QUERY);
@@ -59,6 +64,9 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
   const latestState = useLatest(state);
   // reload() を待っている呼び手（次に結果が届いたら返す）
   const waiters = useRef<(() => void)[]>([]);
+  // dedupe: "trailing" の、取りに行っている最中か・その間に取り直しを頼まれたか
+  const inFlight = useRef(false);
+  const queued = useRef(false);
   // 取り直すきっかけは key・enabled・deps・reload だけ（load と same は描くたびに作られるので、依存に入れず最新のものを使う）
   const startLoad = useEffectEvent((signal: AbortSignal) => load(signal));
   const startSeed = useEffectEvent((signal: AbortSignal) => options.seed?.(signal));
@@ -71,8 +79,17 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
     const done = (next: (s: QueryState<T>) => QueryState<T>) => {
       if (controller.signal.aborted) return;
       setState(next);
+      inFlight.current = false;
+      // 最中に頼まれた取り直しは、ここでまとめて 1 回（待っている reload() はその 1 回の結果で返す）
+      if (queued.current) {
+        queued.current = false;
+        setNonce((n) => n + 1);
+        return;
+      }
       for (const resolve of waiters.current.splice(0)) resolve();
     };
+    inFlight.current = true;
+    queued.current = false;
     setState((s) => startFetch(s, keyText));
     // つなぎの値は、ほかのキーから移ってきたときだけ聞く（同じキーの取り直しでは聞かない）
     if (latestState.current.key !== keyText)
@@ -95,10 +112,14 @@ export function useQuery<T>(key: QueryKey | null, load: (signal: AbortSignal) =>
     return () => {
       clearTimeout(timer);
       controller.abort();
+      inFlight.current = false;
     };
   }, [keyText, enabled, nonce, depsText, keepPrevious, delay]);
 
-  const refetch = () => setNonce((n) => n + 1);
+  const refetch = () => {
+    if (dedupe === "trailing" && inFlight.current) queued.current = true;
+    else setNonce((n) => n + 1);
+  };
   const onEvent = useEffectEvent((event: AnyServerEvent) => {
     const when = refetchOn?.[event.type] as true | ((e: AnyServerEvent) => boolean) | undefined;
     if (live && (when === true || (when !== undefined && when(event)))) refetch();

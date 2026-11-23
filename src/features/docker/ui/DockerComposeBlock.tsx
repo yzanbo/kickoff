@@ -2,14 +2,16 @@ import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
 import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/docker/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/docker/types";
 import { open } from "@/foundation/ui/navigation/open";
-import { openTab, panelKey, terminalTab } from "@/features/panel/ui";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { confirm } from "@/foundation/ui/kit/ask";
-import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
-import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
+import { IconButton } from "@/foundation/ui/kit/IconButton";
+import { PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
+import { DockerActionItems } from "./DockerActionItems";
+import { composeActions, specOf, type ComposeActionId } from "./dockerActions";
+import { DockerFailure } from "./DockerFailure";
 import { DockerServiceRow } from "./DockerServiceRow";
-import { conflictText, conflictsByService, shareText, stopOthersLabel } from "./dockerView";
+import { conflictsByService, shareText, stopOthersLabel } from "./dockerView";
 
 export type DockerAct = (body: DockerActionBody) => Promise<void>;
 
@@ -55,7 +57,15 @@ export function DockerComposeBlock({
     if (await confirmed(compose, action)) send(action);
   };
   const openFile = () => compose.file && open({ kind: "file", projectId, path: compose.file, worktree: compose.worktree_path });
-  const anyRunning = compose.services.some((s) => s.running > 0 || s.oneoffs.some((c) => c.state === "running"));
+  // 押せる条件と理由は操作の表（見出しのボタンもメニューもここを読む）
+  const specs = composeActions(compose);
+  const spec = (id: ComposeActionId) => specOf(specs, id);
+  const perform = (id: ComposeActionId) => {
+    if (id === "recreate" || id === "down") void guarded(id);
+    else if (id === "logs") onLogs(null);
+    else if (id === "file") openFile();
+    else send(id);
+  };
   const failure = compose.failure;
   // ポートの取り合いの相手は、ぶつかったサービスの行に出す（［相手を止めて起動］は最初の行に 1 つだけ。どの行にも当たらない相手は失敗の中に）
   const conflicts = failure && failure.conflicts.length > 0 ? conflictsByService(compose.services, failure) : null;
@@ -89,19 +99,19 @@ export function DockerComposeBlock({
           ) : (
             <>
               {compose.config_changed && (
-                <button type="button" className="btn" data-size="sm" onClick={() => void guarded("recreate")} data-tip="設定が変わっています">
+                <button type="button" className="btn" data-size="sm" disabled={spec("recreate")?.disabled} onClick={() => perform("recreate")} data-tip="設定が変わっています">
                   作り直して起動
                 </button>
               )}
-              <button type="button" className="btn" data-size="sm" disabled={compose.start_blocked !== null} title={compose.start_blocked ?? undefined} onClick={() => send("start_all")}>
+              <button type="button" className="btn" data-size="sm" disabled={spec("start_all")?.disabled} title={spec("start_all")?.title} onClick={() => perform("start_all")}>
                 すべて起動
               </button>
-              <button type="button" className="btn" data-size="sm" disabled={!anyRunning} onClick={() => send("stop_all")}>
+              <button type="button" className="btn" data-size="sm" disabled={spec("stop_all")?.disabled} onClick={() => perform("stop_all")}>
                 すべて停止
               </button>
             </>
           )}
-          <button type="button" className="btn" data-size="sm" data-tip={compose.created ? "すべてのサービスのログを、時刻の順に一覧の下に出す" : "すべてのサービスのログを一覧の下に出す（まだ起動していません。起動したら流れ始めます）"} onClick={() => onLogs(null)}>
+          <button type="button" className="btn" data-size="sm" data-tip={compose.created ? "すべてのサービスのログを、時刻の順に一覧の下に出す" : "すべてのサービスのログを一覧の下に出す（まだ起動していません。起動したら流れ始めます）"} onClick={() => perform("logs")}>
             <ScrollText size={13} aria-hidden /> ログ
           </button>
           <IconButton icon={Ellipsis} label="compose の操作" className="docker-compose-more" onClick={(e) => menu.toggle(e)} />
@@ -122,37 +132,7 @@ export function DockerComposeBlock({
           </div>
         </div>
       )}
-      {failure && (
-        <div className="docker-failure small" role="alert">
-          <div className="docker-failure-head">
-            <span>{DOCKER_ACTION_BUSY_LABELS[failure.action].replace(/中…$/, "")}できませんでした{failure.service ? `（${failure.service}）` : ""}</span>
-            <button
-              type="button"
-              className="btn"
-              data-size="sm"
-              onClick={() =>
-                openTab(panelKey("bottom", projectId), terminalTab({ cwd: failure.cwd, label: compose.file ?? "compose", projectId, command: failure.command, title: "docker compose" }))
-              }
-            >
-              ターミナルで流し直す
-            </button>
-            <CloseButton label="閉じる" iconSize={14} onClick={() => send("dismiss")} />
-          </div>
-          {conflicts && conflicts.rest.length > 0 && (
-            <div className="docker-conflicts">
-              {conflicts.rest.map((c) => (
-                <div key={`${c.container_id}:${c.port}`}>{conflictText(c)}</div>
-              ))}
-              {conflicts.rows.length === 0 && (
-                <button type="button" className="btn" data-size="sm" disabled={busy} data-tip={stopOthersTip} onClick={() => send("stop_others_and_start")}>
-                  {stopOthers}
-                </button>
-              )}
-            </div>
-          )}
-          <pre className="docker-stderr">{failure.message}</pre>
-        </div>
-      )}
+      {failure && <DockerFailure projectId={projectId} compose={compose} failure={failure} conflicts={conflicts} stopOthers={stopOthers} stopOthersTip={stopOthersTip} busy={busy} send={send} />}
       <div className="docker-services">
         {compose.services.map((s) => {
           const row = conflicts?.rows.findIndex((r) => r.service === s.name) ?? -1;
@@ -174,30 +154,7 @@ export function DockerComposeBlock({
       </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="compose の操作" ignore=".docker-compose-more" onClose={menu.close}>
-          <MenuItem disabled={busy || compose.start_blocked !== null} title={compose.start_blocked ?? undefined} onSelect={() => send("start_all")}>
-            すべて起動
-          </MenuItem>
-          <MenuItem disabled={busy || !anyRunning} onSelect={() => send("stop_all")}>
-            すべて停止
-          </MenuItem>
-          <MenuItem disabled={busy || !anyRunning} onSelect={() => send("restart_all")}>
-            すべて再起動
-          </MenuItem>
-          {compose.config_changed && (
-            <MenuItem disabled={busy} onSelect={() => void guarded("recreate")}>
-              作り直して起動…
-            </MenuItem>
-          )}
-          <MenuItem danger disabled={busy || !compose.created || compose.down_blocked !== null} title={compose.down_blocked ?? undefined} onSelect={() => void guarded("down")}>
-            片付け…
-          </MenuItem>
-          <div className="menu-separator" role="separator" />
-          <MenuItem onSelect={() => onLogs(null)}>
-            ログ
-          </MenuItem>
-          <MenuItem disabled={!compose.file} onSelect={openFile}>
-            compose のファイルを開く
-          </MenuItem>
+          <DockerActionItems specs={specs} run={perform} />
         </PopupMenu>
       )}
     </section>

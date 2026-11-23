@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { ArrowDown, Clock, Search, TriangleAlert, WrapText } from "lucide-react";
 import type { DockerCompose } from "@shared/docker/types";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
@@ -10,34 +10,12 @@ import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { registerPageFind } from "@/foundation/ui/kit/pageFind";
 import { stripAnsi } from "@/foundation/ui/ansi/ansi";
 import { DockerLogRow } from "./DockerLogRow";
-import { chipOf, containerInfos, logChips, logLevelOf, prettyJson, separatorText, type LogLevel, type LogRow } from "./dockerLogView";
+import { chipOf, prettyJson, separatorText, type LogRow } from "./dockerLogView";
 import { useDockerLogFind } from "./useDockerLogFind";
 import { useDockerLogMenu } from "./useDockerLogMenu";
 import { useDockerLogs } from "./useDockerLogs";
-
-/** いちばん下を見ているとみなす、下端からの距離 */
-const FOLLOW_SLACK_PX = 24;
-/** サービスの色の数（CSS の .docker-log-c0〜） */
-const HUES = 8;
-
-/** 行ごとのエラー・警告と JSON か（行は作り直さないので、行ごとに 1 回だけ見分ける） */
-const rowFacts = new WeakMap<LogRow, { level: LogLevel | null; json: boolean }>();
-function factsOf(row: LogRow) {
-  let facts = rowFacts.get(row);
-  if (!facts) {
-    facts = row.kind === "line" ? { level: logLevelOf(row.text), json: prettyJson(row.text) !== null } : { level: null, json: false };
-    rowFacts.set(row, facts);
-  }
-  return facts;
-}
-
-/** 開いているログの画面（どの compose の、どの札で開いたか。nonce が変わったら札を選び直す） */
-export interface DockerLogsRequest {
-  compose: string;
-  /** 付ける札（null = すべて） */
-  chips: string[] | null;
-  nonce: number;
-}
+import { HUES, factsOf, useLogFilters, type DockerLogsRequest } from "./useLogFilters";
+import { useLogFollow } from "./useLogFollow";
 
 /**
  * Docker タブのログの画面（一覧の下）: compose 全体のログを時刻の順に並べ、サービスの札で絞り込む。いちばん下にいる間は流れ、上へ戻すと止まって
@@ -48,54 +26,22 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
   const logs = useDockerLogs(projectId, compose.key);
   const [showTime, setShowTime] = useSetting(storage.settings.logTimestamps);
   const [wrap, setWrap] = useSetting(storage.settings.logWrap);
-  const [problemsOnly, setProblemsOnly] = useState(false);
   const [matchesOnly, setMatchesOnly] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
-  const chips = useMemo(() => logChips(compose, logs.sources), [compose, logs.sources]);
-  const [picked, setPicked] = useState<ReadonlySet<string> | null>(request.chips && new Set(request.chips));
-  useEffect(() => setPicked(request.chips && new Set(request.chips)), [request.nonce, request.chips]);
-  const isPicked = useCallback((chip: string) => picked === null || picked.has(chip), [picked]);
-  const infos = useMemo(() => containerInfos(compose, logs.sources), [compose, logs.sources]);
-  const chipOfContainer = useMemo(() => new Map(logs.sources.map((s) => [s.container, chipOf(s)])), [logs.sources]);
-  const labelOf = useCallback((row: LogRow) => infos.get(row.container)?.label ?? row.container.slice(0, 12), [infos]);
-  const hueOf = useCallback((row: LogRow) => Math.max(0, chips.indexOf(chipOfContainer.get(row.container) ?? "")) % HUES, [chips, chipOfContainer]);
-
-  // 札・エラーの絞り込みのあとの行
-  const base = useMemo(
-    () => logs.rows.filter((r) => isPicked(chipOfContainer.get(r.container) ?? "") && (!problemsOnly || r.kind !== "line" || factsOf(r).level !== null)),
-    [logs.rows, isPicked, chipOfContainer, problemsOnly],
-  );
+  const filters = useLogFilters(compose, logs, request);
+  const { chips, isPicked, infos, labelOf, hueOf, containers, problemsOnly } = filters;
+  const base = filters.rows;
   const textOf = useCallback((row: LogRow) => (row.kind === "line" ? stripAnsi(row.text) : separatorText(row, labelOf(row))), [labelOf]);
   const find = useDockerLogFind(base, textOf);
   const shown = useMemo(() => (find.open && matchesOnly && find.needle ? base.filter((r) => find.marks.has(r.id)) : base), [base, find.open, find.needle, find.marks, matchesOnly]);
-  const containers = useMemo(() => logs.sources.filter((s) => isPicked(chipOf(s))).map((s) => s.container), [logs.sources, isPicked]);
   const multi = new Set(shown.map((r) => r.container)).size > 1 || containers.length > 1;
 
-  // いちばん下にいる間は付いていく。上へ戻したら止めて、それまでに見た行の ID を覚える（新しい行の数）
-  const bodyRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLElement>(null);
+  const { bodyRef, following, newCount, toLatest, pause, onScroll: followScroll } = useLogFollow(logs, shown, { wrap, showTime });
   const menu = useDockerLogMenu({ projectId, compose, rows: shown, infos, labelOf, body: bodyRef });
-  const [following, setFollowing] = useState(true);
-  const [seen, setSeen] = useState({ id: 0, ts: "" });
   const onScroll = () => {
-    const el = bodyRef.current;
-    if (!el) return;
-    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK_PX;
-    if (bottom !== following) {
-      setFollowing(bottom);
-      logs.setHold(!bottom);
-      if (!bottom) setSeen({ id: Math.max(0, ...logs.rows.map((r) => r.id)), ts: shown[shown.length - 1]?.ts ?? "" });
-    }
+    followScroll();
     menu.handlers.onScroll();
-  };
-  useLayoutEffect(() => {
-    if (following && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
-  }, [shown, following, wrap, showTime]);
-  // 新しい行 = 止めたあとに届いた、止めたときの最後の行より新しい行（さかのぼって読んだ行は数えない）
-  const newCount = following ? 0 : shown.filter((r) => r.id > seen.id && r.ts >= seen.ts).length;
-  const toLatest = () => {
-    setFollowing(true);
-    logs.setHold(false);
   };
 
   // ⌘F: ログの画面にピントがある・最後に押したのがログの画面なら、ログの中を探す
@@ -114,19 +60,18 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
   // ↑↓ で移った一致を真ん中に（新しい行が届いても動かさない）
   const current = find.current;
   const indexOfShown = useEffectEvent((id: number) => shown.findIndex((r) => r.id === id));
-  const { setHold } = logs;
+  const pauseFollow = useEffectEvent(() => pause());
   useEffect(() => {
     if (!current) return;
     const index = indexOfShown(current.id);
     if (index < 0) return;
-    setFollowing(false);
-    setHold(true);
+    pauseFollow();
     bodyRef.current?.querySelector(`[data-row="${index}"]`)?.scrollIntoView({ block: "center" });
-  }, [find.index, current?.id, current?.nth, setHold]);
+  }, [find.index, current?.id, current?.nth]);
 
   const toggleJson = useCallback((id: number) => setExpanded((s) => new Set(s.has(id) ? [...s].filter((x) => x !== id) : [...s, id])), []);
   const canReadBefore = containers.length > 0 && logs.canReadBefore(containers);
-  const title = picked === null || picked.size === chips.length ? "すべて" : [...picked].join("・") || "（札なし）";
+  const title = filters.title;
   // 選んだ札のサービスがどれもまだ起動していない（何も作っていない compose を開いた）なら、起動したら流れ始めると添える
   const emptyText =
     !logs.connected && logs.rows.length === 0
@@ -151,7 +96,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
                 className={cx("docker-log-chip pill", `docker-log-c${i % HUES}`, absent && "is-absent")}
                 aria-pressed={isPicked(chip)}
                 data-tip={absent ? "まだ起動していません（起動したら流れ始めます）" : "押すと出す・隠す"}
-                onClick={() => setPicked(new Set(chips.filter((c) => (c === chip ? !isPicked(c) : isPicked(c)))))}
+                onClick={() => filters.toggleChip(chip)}
               >
                 {chip}
                 {isPicked(chip) && " ✓"}
@@ -160,7 +105,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
           })}
         </span>
         <span className="docker-logs-tools">
-          <IconButton icon={TriangleAlert} label="エラー・警告だけ出す" aria-pressed={problemsOnly} active={problemsOnly} onClick={() => setProblemsOnly((v) => !v)} />
+          <IconButton icon={TriangleAlert} label="エラー・警告だけ出す" aria-pressed={problemsOnly} active={problemsOnly} onClick={() => filters.setProblemsOnly((v) => !v)} />
           <IconButton icon={Clock} label="行の頭に時刻を出す" aria-pressed={showTime} active={showTime} onClick={() => setShowTime(!showTime)} />
           <IconButton icon={WrapText} label="長い行を折り返す" aria-pressed={wrap} active={wrap} onClick={() => setWrap(!wrap)} />
           <IconButton icon={Search} label="ログの中を探す" keys="⌘F" aria-pressed={find.open} active={find.open} onClick={() => (find.open ? find.close() : find.show())} />

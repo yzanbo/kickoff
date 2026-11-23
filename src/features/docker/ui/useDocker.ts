@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import type { DockerActionBody, DockerList } from "@shared/docker/types";
 import { DOCKER_SHARED_PROJECT } from "@shared/docker/types";
-import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
 import { ApiError } from "@/foundation/ui/api/http";
-import { useServerEvent } from "@/foundation/ui/api/events";
+import { errorText, useQuery } from "@/foundation/ui/query";
 import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
+import { dockerApi } from "./api/docker";
 
 /** 「見ています」を送る間隔（コアは 45 秒届かなければ docker events を止める） */
 const WATCH_INTERVAL_MS = 20_000;
@@ -13,101 +12,93 @@ const WATCH_INTERVAL_MS = 20_000;
 const ENGINE_POLL_MS = 2_000;
 const ENGINE_POLL_LIMIT_MS = 30_000;
 
+/** 次の取り直しの頼み方（重なったら強いほう: ［↻］ > 見ています > ふつう） */
+type LoadMode = "list" | "watch" | "refresh";
+const MODE_RANK: Record<LoadMode, number> = { list: 0, watch: 1, refresh: 2 };
+
 /**
- * Docker タブの状態と操作: 開いている間は 20 秒ごとに「見ています」を送り（ウィンドウが隠れている間は送らない）、
- * SSE の docker_changed で取り直す。操作は待たずに始まり、別の作業場所と同じ組になる起動は確かめてから送り直す
+ * Docker タブの状態と操作: 開いている間は 20 秒ごとに「見ています」を送り（ウィンドウが隠れている間は送らず、戻ったらすぐ送る）、
+ * SSE の docker_changed で取り直す（重なった取り直しは 1 回にまとめ、終わってからもう 1 回）。
+ * 操作は待たずに始まり、別の作業場所と同じ組になる起動は確かめてから送り直す
  */
 export function useDocker(projectId: number) {
-  const [list, setList] = useState<DockerList | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const loading = useRef(false);
-  const again = useRef(false);
-  // 送った順の番号（［↻］は重なっても待たずに送るので、あとから届いた古い一覧で新しい一覧を上書きしない）
-  const sent = useRef(0);
-
-  /** 取り直す（重なった頼みは 1 回にまとめ、終わってからもう 1 回だけ） */
-  const reload = useCallback(
-    async (opts: { refresh?: boolean; watch?: boolean } = {}) => {
-      if (loading.current && !opts.refresh) {
-        again.current = true;
-        return;
-      }
-      loading.current = true;
-      // 読んでいる間に頼まれていたら、終わってからもう 1 回（ふつうの取り直しで）読む
-      let current = opts;
-      let more = true;
-      while (more) {
-        const request = current.watch ? api.dockerWatch(projectId) : api.dockerList(projectId, current.refresh);
-        const id = ++sent.current;
-        await request.then(
-          (next) => {
-            if (id !== sent.current) return;
-            setList(next);
-            setError(null);
-          },
-          (e: unknown) => id === sent.current && setError(errorMessage(e)),
-        );
-        more = again.current;
-        again.current = false;
-        current = {};
-      }
-      loading.current = false;
+  // 次の取り直しで送る頼み（開いた瞬間は「見ています」。取りに行くときに読んでふつうに戻す）
+  const mode = useRef<LoadMode>("watch");
+  const query = useQuery<DockerList>(
+    ["docker", projectId],
+    () => {
+      const next = mode.current;
+      mode.current = "list";
+      return next === "watch" ? dockerApi.dockerWatch(projectId) : dockerApi.dockerList(projectId, next === "refresh");
     },
-    [projectId],
+    {
+      dedupe: "trailing",
+      keepPrevious: true,
+      refetchOn: { docker_changed: (e) => e.project_id === projectId },
+      refetchOnOpen: false,
+    },
   );
+  const { setData } = query;
 
-  // 開いた瞬間に「見ています」を送り（今の一覧も返る）、20 秒ごとに送り続ける。隠れていたウィンドウに戻ったらすぐ送る
+  /** 取り直す（refresh = 覚えた compose の設定も読み直す ［↻］・watch = 「見ています」として送る） */
+  const reload = (opts: { refresh?: boolean; watch?: boolean } = {}) => {
+    const want: LoadMode = opts.refresh ? "refresh" : opts.watch ? "watch" : "list";
+    if (MODE_RANK[want] > MODE_RANK[mode.current]) mode.current = want;
+    return query.reload();
+  };
+
+  // 20 秒ごとに「見ています」を送る。隠れている間は送らず、隠れていたウィンドウに戻ったらすぐ送る
+  const watchNow = useEffectEvent(() => {
+    if (!document.hidden) void reload({ watch: true });
+  });
   useEffect(() => {
-    void reload({ watch: true });
-    const timer = setInterval(() => {
-      if (!document.hidden) void reload({ watch: true });
-    }, WATCH_INTERVAL_MS);
-    const onVisible = () => {
-      if (!document.hidden) void reload({ watch: true });
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    const timer = setInterval(watchNow, WATCH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", watchNow);
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", watchNow);
     };
-  }, [reload]);
-
-  useServerEvent("docker_changed", (e) => {
-    if (e.project_id === projectId) void reload();
-  });
+  }, []);
 
   /** 操作を送る（別の作業場所と同じ組になる起動は、確かめてから confirm_shared で送り直す） */
-  const act = useCallback(
-    async (body: DockerActionBody) => {
-      // 始めたあとの一覧が届けばそのまま出し、届かなければ（cancel・dismiss・失敗）取り直す
-      const show = (next: DockerList | undefined | void) => (next ? setList(next) : void reload());
-      try {
-        show(await api.dockerAction(projectId, body));
-      } catch (e) {
-        if (e instanceof ApiError && e.code === DOCKER_SHARED_PROJECT) {
-          const ok = await confirm({ title: "同じ組の名前です", message: e.message, confirmLabel: "起動する" });
-          if (ok) show(await api.dockerAction(projectId, { ...body, confirm_shared: true }).catch(reportFailure("起動できませんでした")));
-          return;
-        }
-        reportFailure("Docker の操作ができませんでした")(e);
-        void reload();
+  const act = async (body: DockerActionBody) => {
+    // 始めたあとの一覧が届けばそのまま出し、届かなければ（cancel・dismiss・失敗）取り直す
+    const show = (next: DockerList | undefined | void) => (next ? setData(next) : void reload());
+    try {
+      show(await dockerApi.dockerAction(projectId, body));
+    } catch (e) {
+      if (e instanceof ApiError && e.code === DOCKER_SHARED_PROJECT) {
+        const ok = await confirm({
+          title: "同じ組の名前です",
+          message: e.message,
+          confirmLabel: "起動する",
+        });
+        if (ok) show(await dockerApi.dockerAction(projectId, { ...body, confirm_shared: true }).catch(reportFailure("起動できませんでした")));
+        return;
       }
-    },
-    [projectId, reload],
-  );
+      reportFailure("Docker の操作ができませんでした")(e);
+      void reload();
+    }
+  };
 
   /** エンジンを開き（OrbStack・Docker Desktop）、2 秒ごとに 30 秒まで調べ直す */
-  const openEngine = useCallback(async () => {
-    await api.dockerOpenEngine(projectId).catch(reportFailure("開けませんでした"));
+  const openEngine = async () => {
+    await dockerApi.dockerOpenEngine(projectId).catch(reportFailure("開けませんでした"));
     const until = Date.now() + ENGINE_POLL_LIMIT_MS;
     const poll = async () => {
-      const next = await api.dockerList(projectId).catch(() => null);
-      if (next) setList(next);
+      const next = await dockerApi.dockerList(projectId).catch(() => null);
+      if (next) setData(next);
       if (next?.engine === "ok") return void reload({ watch: true });
       if (Date.now() < until) setTimeout(() => void poll(), ENGINE_POLL_MS);
     };
     setTimeout(() => void poll(), ENGINE_POLL_MS);
-  }, [projectId, reload]);
+  };
 
-  return { list, error, reload, act, openEngine };
+  return {
+    list: query.data ?? null,
+    error: query.error ? errorText(query.error) : null,
+    reload,
+    act,
+    openEngine,
+  };
 }

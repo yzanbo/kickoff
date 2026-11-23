@@ -1,11 +1,16 @@
-// Docker タブの「DB で開く」: DB のサービスを DB タブで開く。登録済みの同じ DB ならその接続を選び、なければ取り込みの画面をその案を選んだ形で開く。
+// Docker タブの「DB で開く」: DB のサービスを DB タブで開く（open({ kind: "dockerDb" })。受け手は database: 登録済みの同じ DB ならその接続、なければ取り込みの画面）。
 // 動いていなければ確かめてから起動し、動き出したら開く（起動に失敗したら開かない。失敗は見出しに出る）
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { DockerCompose, DockerServiceInfo } from "@shared/docker/types";
-import { navigate } from "@/foundation/ui/navigation/router";
-import { fetchDockerDbTarget, requestDbClient } from "@/features/database/ui/dbClientRequests";
-import { confirm, reportFailure } from "@/foundation/ui/kit/ask";
-import { showToast } from "@/foundation/ui/kit/toast";
+import { open as openTarget } from "@/foundation/ui/navigation/open";
+import { confirm } from "@/foundation/ui/kit/ask";
+
+declare module "@/foundation/ui/navigation/open" {
+  interface OpenTargetMap {
+    /** compose の DB のサービスを DB タブで開く（受け手は database） */
+    dockerDb: { projectId: number; compose: string; service: string };
+  }
+}
 
 export function useOpenDockerDb(projectId: number, compose: DockerCompose, service: DockerServiceInfo, start: () => void) {
   const [waiting, setWaiting] = useState(false);
@@ -13,19 +18,7 @@ export function useOpenDockerDb(projectId: number, compose: DockerCompose, servi
   const failureAtStart = useRef<string | null>(null);
   const sawOperation = useRef(false);
 
-  const open = async () => {
-    try {
-      const target = await fetchDockerDbTarget(projectId, compose.key, service.name);
-      if (target.blocked) return showToast(target.blocked);
-      const place = `project-${projectId}`;
-      if (target.connection_id !== null) requestDbClient(place, { kind: "focus", connectionId: target.connection_id });
-      else if (target.candidate) requestDbClient(place, { kind: "import", candidate: target.candidate });
-      else return;
-      navigate({ name: "project", id: projectId, tab: "db" });
-    } catch (e) {
-      reportFailure(`${service.name} を DB で開けませんでした`)(e);
-    }
-  };
+  const open = () => openTarget({ kind: "dockerDb", projectId, compose: compose.key, service: service.name });
 
   const request = async () => {
     if (service.running > 0) return void open();

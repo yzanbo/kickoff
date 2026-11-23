@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DockerLogEvent, DockerLogLine, DockerLogSource } from "@shared/docker/types";
 import { errorMessage } from "@shared/foundation/errors";
-import { api } from "@/foundation/ui/api";
+import { dockerApi } from "./api/docker";
 import { fillTs, LOG_ROW_LIMIT, mergeRows, normTs, type LogRow } from "./dockerLogView";
 
 /** さかのぼるとき 1 回に読む行の数（コアの DOCKER_LOG_TAIL と同じ。これより少なければ、もう前はない） */
@@ -68,7 +68,7 @@ export function useDockerLogs(projectId: number, composeKey: string) {
     reset();
     setSources([]);
     let opened = false;
-    const source = new EventSource(api.dockerLogsUrl(projectId, composeKey));
+    const source = new EventSource(dockerApi.dockerLogsUrl(projectId, composeKey));
     source.onopen = () => {
       if (opened) reset();
       opened = true;
@@ -104,7 +104,7 @@ export function useDockerLogs(projectId: number, composeKey: string) {
           .map(async (container) => {
             const until = rowsRef.current.find((r) => r.container === container && r.kind === "line")?.ts ?? rowsRef.current[0]?.ts;
             if (!until) return exhausted.current.add(container);
-            const { lines } = await api.dockerLogsBefore(projectId, composeKey, container, until);
+            const { lines } = await dockerApi.dockerLogsBefore(projectId, composeKey, container, until);
             if (lines.length < BEFORE_LINES) exhausted.current.add(container);
             added.push(...fillTs(lines, until).map((l): LogRow => ({ id: nextId.current++, kind: "line", container, ts: l.ts, text: l.text })));
           }),

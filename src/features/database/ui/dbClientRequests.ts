@@ -1,8 +1,7 @@
 // DB クライアントの外（右の欄の ▾ の「DB ▸」・Docker タブの「DB で開く」）から、開いた DB クライアントに頼むこと（接続を選ぶ・接続を足す・取り込みの案を選んで取り込みの画面を開く）。
 // DB クライアントは開いたときに読む（React.lazy）ので、まだ描いていなければ置き場所ごとに預け、描いたときに受け取る
 import { useEffect, useEffectEvent } from "react";
-import type { DbImportCandidate, DockerDbTarget } from "@shared/database/types";
-import { request, withQuery } from "@/foundation/ui/api/http";
+import type { DbImportCandidate } from "@shared/database/types";
 
 export type DbClientRequest = { kind: "focus"; connectionId: number } | { kind: "add" } | { kind: "import"; candidate: DbImportCandidate };
 
@@ -32,7 +31,3 @@ export function useDbClientRequests(place: string, onRequest: (request: DbClient
     };
   }, [place]);
 }
-
-/** Docker タブの「DB で開く」の行き先（登録済みの同じ DB の接続・取り込みの案・押せない理由。受け口は database のコア） */
-export const fetchDockerDbTarget = (projectId: number, compose: string, service: string) =>
-  request<DockerDbTarget>("GET", withQuery(`/api/projects/${projectId}/docker/db`, { compose, service }));

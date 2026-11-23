@@ -9,7 +9,8 @@ import { EmptyState } from "@/foundation/ui/kit/EmptyState";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { DockerComposeBlock } from "./DockerComposeBlock";
-import { DockerLogs, type DockerLogsRequest } from "./DockerLogs";
+import { DockerLogs } from "./DockerLogs";
+import type { DockerLogsRequest } from "./useLogFilters";
 import { othersTip } from "./dockerView";
 import { useDocker } from "./useDocker";
 

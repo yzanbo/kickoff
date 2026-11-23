@@ -9,11 +9,12 @@
 | `core/list.ts`・`operations.ts`・`watch.ts` | 読み `DockerLister`（一覧のもとは同時 1 回＋1 秒）・操作 `DockerOperations`・events とログ `DockerWatch`。呼び方は `DockerCli`、compose の覚えは `ComposeConfigCache`。ほかの機能には `DockerApi`（`compose`・`portProbe`・`dbCandidate`・`facts`）だけ |
 | `core/actions.ts`・`core/listing.ts` | 操作のコマンド `planDockerAction`・一覧の見出し（どちらも純粋） |
 | `core/facts.ts`・`core/guard/` | AI の守りが見る様子・守り（`src/features/guard/CLAUDE.md`） |
-| `ui/useDocker.ts` | 状態と操作・「見ています」・取り直し |
-| `ui/DockerTab`・`ui/DockerComposeBlock`・`ui/DockerServiceRow` | 一覧 |
-| `ui/DockerLogs`・`ui/useDockerLogs.ts`・`ui/useDockerLog*.ts*` | ログの画面（流れ・⌘F・AI に渡す） |
+| `ui/useDocker.ts` | 状態と操作・「見ています」・取り直し（`useQuery` の `dedupe: "trailing"`） |
+| `ui/dockerActions.ts`・`ui/DockerActionItems.tsx` | 操作の表（見出し・サービス・使い捨て。押せる条件と理由はここだけ）と、そのメニューの項目 |
+| `ui/DockerTab`・`ui/DockerComposeBlock`・`ui/DockerServiceRow` | 一覧（ポート・静かなぶつかりは `DockerPorts`、使い捨ては `DockerOneoffs`、失敗の欄は `DockerFailure`） |
+| `ui/DockerLogs`・`ui/useDockerLogs.ts`・`ui/useDockerLog*.ts*`・`ui/useLog*.ts` | ログの画面（流れ・⌘F・AI に渡す・絞り込み・付いていくスクロール） |
 | `ui/dockerView.ts`・`ui/dockerLogView.ts` | 表示の文と行の形（純粋。テストは隣） |
-| `ui/useOpenDockerDb.ts` | 「DB で開く」（行き先の受け口と案は database） |
+| `ui/useOpenDockerDb.ts` | 「DB で開く」（`open({ kind: "dockerDb" })`。受け手・受け口・案は database） |
 
 ## 決まり
 
@@ -32,5 +33,5 @@
 - ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
 - ログの色は土台の `ansi/`（`ansiSpans`・`AnsiText`）。CI のタブのログも使う（変えたら CI のログも見る）。
 - 操作の前後・docker events の変化では、覚えた一覧のもとを捨ててから `docker_changed` を出す（`createDocker` の `changed`）。
-- 受け口は取り決め `@shared/docker/contract.ts`（`GET …/docker/db` だけ database）。docker events の貸し出しは土台の `Lease`。
+- 受け口は `@shared/docker/contract.ts`（`…/docker/db` は database）。events の貸し出しは土台の `Lease`。
 - テストは `server.docker.test.ts`・database の `server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

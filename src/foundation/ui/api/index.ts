@@ -9,7 +9,6 @@ import { devicesApi } from "@/features/devices/ui/api/devices";
 import { filesShared } from "@/features/files/ui/api/files";
 import { gitShared } from "@/features/git/ui/api/git";
 import { githubApi } from "@/features/github/ui/api/github";
-import { dockerApi } from "@/features/docker/ui/api/docker";
 import { ciApi } from "@/features/github/ui/api/ci";
 import { portsApi } from "@/features/ports/ui/api/ports";
 import { groupsApi } from "@/features/groups/ui/api/groups";
@@ -43,7 +42,6 @@ export const api = {
   ...notesApi,
   ...databasesApi,
   ...githubApi,
-  ...dockerApi,
   ...ciApi,
   ...portsApi,
   ...trashApi,

@@ -9,6 +9,8 @@ import { popoutKinds } from "@/foundation/ui/navigation/popout";
 import { databasePopout } from "./popoutKinds";
 import { appHosts } from "@/foundation/ui/shell/points";
 import { dbUnlockHost } from "./appHosts";
+import { openTargets } from "@/foundation/ui/navigation/open";
+import { dockerDbTarget } from "./dockerDbTarget";
 
 export const contributes = [
   projectViews.item(databaseView),
@@ -22,4 +24,6 @@ export const contributes = [
     ApprovalBody: lazyPart<{ input: Record<string, unknown>; name: string }>(() => import("./dbQueryRowView").then((m) => ({ default: m.DbQuerySql }))),
   }),
   appHosts.item(dbUnlockHost),
+  // Docker タブの「DB で開く」
+  openTargets.item(dockerDbTarget),
 ];
