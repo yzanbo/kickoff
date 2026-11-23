@@ -1,7 +1,7 @@
 import { GitBranch, GitMerge } from "lucide-react";
 import type { GitHubPullDetail } from "@shared/github/types";
 import { checkoutPull, useMainRunningChats } from "./githubCheckout";
-import { openMergeDialog } from "./githubDialogs";
+import { openMergeDialog } from "./MergeDialog";
 
 /**
  * PR の見出しの操作: 「チェックアウト」（新しいワークツリー / 本体を選んで取り出す。githubCheckout.ts）と、

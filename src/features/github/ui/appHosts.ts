@@ -2,15 +2,12 @@
 import { createElement } from "react";
 import type { AppHost } from "@/foundation/ui/shell/points";
 import type { WorkplaceDecor } from "@/foundation/ui/workplace/workplaceDecor";
-import { GitHubDialogHost } from "./GitHubDialogHost";
-import { PrNoticeHost } from "./prNotice/PrNoticeDialog";
+import { PrNoticeHost } from "./prNotice/PrNoticeHost";
 import { WorktreePrMark } from "./prNotice/PrNoticeMark";
 import { prNoticeMarkLabel } from "./prNotice/prNoticePlan";
 import { worktreePrsStore } from "./prNotice/prNoticeStore";
 
 export const githubHosts: AppHost[] = [
-  // GitHub の新しい issue・マージの確認（GitHub タブとノート・チャットの「issue にする」から）
-  { id: "githubDialogs", windows: "both", order: 150, Host: GitHubDialogHost },
   // ワークツリーの PR がマージされた・閉じられた知らせ（片付けとチャットの扱いを 1 つの確認で聞く）
   { id: "prNotice", windows: "main", order: 170, Host: PrNoticeHost },
 ];

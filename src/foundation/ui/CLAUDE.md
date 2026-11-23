@@ -67,7 +67,7 @@ App・起動・下の帯は `@/app/renderer/`。
 - 押すと開く一覧は `Popover` ＋ `usePopover`、外側のクリックと Esc で閉じるのは `useDismiss`。選んだ文の上のボタンは `SelectionBox`。
 - メニューは `PopupMenu` ＋ `MenuItem`（選択肢は `checked`、子は `MenuSub`、開閉は `useContextMenu`）。呼ぶ側で大きさを見積もらない。
 - ↑↓ は `PopupMenu` が効かせるので重ねて呼ばない。1 つ選ぶのは `ChoiceMenu` / `ChipPicker`。
-- 確認・入力・選ぶは `kit/ask.ts`（`confirm`・`prompt`・`choose`・`alert`）。骨組みは `Dialog`、ボタンの行は `DialogActions`。
+- 確認・入力・選ぶは `kit/ask.ts`、部品の外から開くのは `kit/openDialog`。骨組みは `Dialog`、ボタンは `DialogActions`。
 - フォームは `Field`・`CheckField`・`SearchField`・`InlineName`・`CommitInput`、失敗の文は `ErrorText`、結果は `ResultMessage`。
 - 左の一覧は `kit/ListRail.tsx` で開閉し、どれも隠せる。
 - 空の画面は `EmptyState`。文 1 行で済ませず、なぜ空かと次にできることを出す。

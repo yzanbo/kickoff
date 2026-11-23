@@ -1,14 +1,12 @@
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
-import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useChatsWithChildren } from "@/features/chat/ui/store/knownChats";
 import { useProjects } from "@/features/projects/ui/stores/projects";
-import { useWorktreePrNotices, worktreePrsStore } from "./prNoticeStore";
 import { alert } from "@/foundation/ui/kit/ask";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
@@ -29,62 +27,13 @@ import {
   type PrWorktreeAction,
 } from "./prNoticePlan";
 
-/** 確認を開く知らせ（印から。detail は知らせのキー） */
-const OPEN_PR_NOTICE_EVENT = "kickoff:open-pr-notice";
-
-/** 知らせを見分けるキー（プロジェクト・ワークツリー・PR の番号） */
-const noticeKey = (n: WorktreePrNotice) => `${n.project_id}:${n.worktree}:${n.pr.number}`;
-
-/** 印から確認を開き直す */
-export function openPrNotice(notice: WorktreePrNotice) {
-  window.dispatchEvent(new CustomEvent(OPEN_PR_NOTICE_EVENT, { detail: noticeKey(notice) }));
-}
-
-/** GitHub に聞き直してもらう（コアが 30 秒以内の続けての頼みはまとめる。聞けなくても前の知らせのまま） */
-const refreshNotices = () =>
-  void api
-    .refreshWorktreePrs()
-    .then((list) => worktreePrsStore.set(list))
-    .catch(() => undefined);
-
-/**
- * ワークツリーの PR の知らせ（App がメインウィンドウにだけ置く）。開いたとき・窓に戻ったときに GitHub に聞き直してもらい、
- * まだ確認を閉じていない知らせがあれば、1 つずつ確認を開く（閉じると DB に覚え、どの窓でも出し直さない。印から開き直せる）
- */
-export function PrNoticeHost() {
-  const notices = useWorktreePrNotices();
-  // 開いている確認の知らせ（片付けて一覧から消えても、閉じるまでは開いたときのものを出す）
-  const [opened, setOpened] = useState<WorktreePrNotice | null>(null);
-  // この窓で一度開いた知らせ（閉じたあと、DB に覚えるのが届く前に開き直さない）
-  const shown = useRef(new Set<string>());
-  useEffect(refreshNotices, []);
-  useWindowEvent("focus", refreshNotices);
-  useEffect(() => {
-    if (opened) return;
-    const next = notices.find((n) => !n.dismissed && !shown.current.has(noticeKey(n)));
-    if (!next) return;
-    shown.current.add(noticeKey(next));
-    setOpened(next);
-  }, [notices, opened]);
-  useWindowEvent(OPEN_PR_NOTICE_EVENT, (e) => {
-    const key = (e as CustomEvent<string>).detail;
-    const notice = notices.find((n) => noticeKey(n) === key);
-    if (!notice) return;
-    shown.current.add(key);
-    setOpened(notice);
-  });
-  if (!opened) return null;
-  const current = notices.find((n) => noticeKey(n) === noticeKey(opened));
-  return <PrNoticeDialog key={noticeKey(opened)} notice={current ?? opened} gone={!current} onClose={() => setOpened(null)} />;
-}
-
 /**
  * 確認「PR #12 がマージされました」: ワークツリー（ブランチも消す / ワークツリーだけ消す / 残す）と、
  * そのワークツリーのチャット（子チャットも。アーカイブ / 削除 / そのまま）の扱いを 1 つで選ぶ。
  * 作業中のチャット・コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットは、確認の中で知らせる
  * （作業中のチャットがあれば、消す・アーカイブはできない）。マージされたときは、片付けたあと本体を最新にする（プル）
  */
-function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; gone: boolean; onClose: () => void }) {
+export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; gone: boolean; onClose: () => void }) {
   const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
   const projectId = notice.project_id;
   const { projectName } = useProjects();

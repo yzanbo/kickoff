@@ -1,6 +1,6 @@
 import { CircleDot } from "lucide-react";
 import { MenuItem } from "@/foundation/ui/kit/PopupMenu";
-import { openNewIssue } from "./githubDialogs";
+import { openNewIssue } from "./NewIssueDialog";
 
 /**
  * 右クリックのメニューの「issue にする」（ノートの本文・チャットの発言）: 選んだ文（なければ全体）を本文に入れた新しい issue のダイアログを開く

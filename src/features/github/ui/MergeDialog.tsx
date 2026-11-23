@@ -11,8 +11,13 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { reportFailure } from "@/foundation/ui/kit/ask";
+import { openDialog } from "@/foundation/ui/kit/openDialog";
 import { confirmRemoveWorktree } from "@/features/worktrees/ui";
 import { mergeWarnings, pickMergeMethod } from "./githubMerge";
+
+/** PR のマージの確認を開く（onMerged はマージできたとき） */
+export const openMergeDialog = (projectId: number, detail: GitHubPullDetail, onMerged: () => void) =>
+  openDialog((close) => <MergeDialog projectId={projectId} detail={detail} onMerged={onMerged} onClose={close} />);
 
 /**
  * PR のマージの確認（取り消せないので、いつもこの確認を挟む）: 方式（リポジトリが許すものだけ。前回の方式を覚える）を選び、

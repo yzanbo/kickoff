@@ -19,7 +19,7 @@ import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { GitHubConnectionGate } from "./GitHubConnectionGate";
 import { GitHubDetail } from "./GitHubDetail";
 import { GitHubFilterBar } from "./GitHubFilterBar";
-import { openNewIssue } from "./githubDialogs";
+import { openNewIssue } from "./NewIssueDialog";
 import { GitHubItemRow } from "./GitHubItemRow";
 import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";

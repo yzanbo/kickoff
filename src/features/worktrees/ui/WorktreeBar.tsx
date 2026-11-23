@@ -14,10 +14,9 @@ import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import type { WorkplaceBarProps } from "@/foundation/ui/workplace/workplaceDecor";
 import { useWorktreeEnv } from "./envStore";
 import { appAddress, removalChecks } from "./worktreeEnvText";
-import { useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
+import { openPrNotice, useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
 import { addChat } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
-import { openPrNotice } from "@/features/github/ui/prNotice/PrNoticeDialog";
 
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 

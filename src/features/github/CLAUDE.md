@@ -25,7 +25,7 @@
 - 絞り込みと開いているものはプロジェクトごとに覚え、タブと右の欄で同じ値（`github:filters`・`githubSelected`）。
 - AI に渡すのは入力欄に入れるだけ。札は外から来た中身（`api.capture`）。選んだ文は引用にして札にしない。
 - 書くボタンは GitHub が許すときだけ出す（`viewer`・`can_*`）。マージはいつも確認し、見ていた `head_sha` で頼む。
-- ダイアログは `githubDialogs.ts` で頼み、App と別ウィンドウに 1 つずつの `GitHubDialogHost` が描く。
+- ダイアログは `openNewIssue`・`openMergeDialog`（土台の `openDialog`。タブの外からも開ける）。
 - 2 欄は土台の `ListDetail`（中身の最小の幅 `DETAIL_MIN_WIDTH`）。CI の行は GitHub タブのクラス（CI だけは `@/app/renderer/styles/ci/ci.css`）。ログの色は土台の `AnsiText`。
 
 ## 落とし穴

@@ -53,7 +53,7 @@ test("アプリの根: 置く物が前の App・PopoutApp の並び（order）�
   const { appHosts } = await import("@/foundation/ui/shell/points");
   const placed = (w: "main" | "popout") => appHosts.items().filter((h) => (h.Host || h.dialog) && (h.windows === "both" || h.windows === w)).map((h) => h.id);
   // メインは開くボタン・戻る進む・レイアウトの開閉（order 200）の前後に分けて置く（土台の説明・お知らせ・聞く・落とせない理由は AppShell が足す）
-  assert.deepEqual(placed("main"), ["newProject", "noProjectsGuide", "settings", "diagnosticsIndicator", "coreStatusBand", "noteProgress", "githubDialogs", "restartResume", "prNotice", "dbUnlock", "commandPalette", "activeChats", "contentSearch"]);
-  assert.deepEqual(placed("popout"), ["coreStatusBand", "noteProgress", "githubDialogs", "dbUnlock"]);
+  assert.deepEqual(placed("main"), ["newProject", "noProjectsGuide", "settings", "diagnosticsIndicator", "coreStatusBand", "noteProgress", "restartResume", "prNotice", "dbUnlock", "commandPalette", "activeChats", "contentSearch"]);
+  assert.deepEqual(placed("popout"), ["coreStatusBand", "noteProgress", "dbUnlock"]);
   assert.deepEqual(appHosts.items().flatMap((h) => (h.dialog ? [h.dialog.id] : [])).sort(), ["activeChats", "commandPalette", "contentSearch", "newProject", "noProjectsGuide", "settings"]);
 });

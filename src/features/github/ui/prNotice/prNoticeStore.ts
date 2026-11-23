@@ -2,7 +2,7 @@
 // 見張りはコア（5 分ごと）で、アプリを開いたときに 1 回読み、変わったらサーバーの知らせ（プロジェクトの分を丸ごと）で入れ替える
 import { useMemo } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import type { ReduceTable } from "@/foundation/ui/store";
+import { createCell, type ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
@@ -28,3 +28,12 @@ export function useWorktreePrLookup(): (worktree: string | null | undefined) => 
     return (worktree) => (worktree ? byPath.get(worktree) : undefined);
   }, [notices]);
 }
+
+/** 知らせを見分けるキー（プロジェクト・ワークツリー・PR の番号） */
+export const noticeKey = (n: WorktreePrNotice) => `${n.project_id}:${n.worktree}:${n.pr.number}`;
+
+/** 印から確認を開き直す頼み（知らせのキー。PrNoticeHost が受けて空に戻す） */
+export const prNoticeRequest = createCell<string | null>(null);
+
+/** 印から確認を開き直す */
+export const openPrNotice = (notice: WorktreePrNotice) => prNoticeRequest.set(noticeKey(notice));

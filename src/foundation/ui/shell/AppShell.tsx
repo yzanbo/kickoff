@@ -6,6 +6,7 @@ import { useCommandShortcuts } from "@/foundation/ui/commands";
 import { LinkOpenerProvider } from "@/foundation/ui/external/LinkOpenerProvider";
 import { AskHost } from "@/foundation/ui/kit/AskHost";
 import { DropHintHost } from "@/foundation/ui/kit/DropHint";
+import { DialogHost } from "@/foundation/ui/kit/openDialog";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
 import { ToastHost } from "@/foundation/ui/kit/toast";
 import { dockPopout, popoutKey } from "@/foundation/ui/navigation/popout";
@@ -20,6 +21,8 @@ const BUILT_IN: readonly AppHost[] = [
   // マウスを乗せたときの説明（data-tip を付けた要素。ウィンドウ全体で 1 つ）
   { id: "hoverTip", windows: "both", order: 120, Host: HoverTip },
   { id: "toast", windows: "both", order: 140, Host: ToastHost },
+  // 部品の外から開いたダイアログ（openDialog）
+  { id: "dialog", windows: "both", order: 150, Host: DialogHost },
   { id: "ask", windows: "both", order: 210, Host: AskHost },
   // ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など）
   { id: "dropHint", windows: "main", order: 230, Host: DropHintHost },

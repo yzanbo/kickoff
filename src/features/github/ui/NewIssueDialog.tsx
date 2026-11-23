@@ -5,9 +5,14 @@ import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { openDialog } from "@/foundation/ui/kit/openDialog";
 import { useGitHubConnection } from "./GitHubConnectionGate";
 import { GitHubLabelPicker } from "./GitHubLabelPicker";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
+
+/** 新しい issue のダイアログを開く（body は初めに入れておく本文。ノート・チャットの「issue にする」は選んだ文か全体） */
+export const openNewIssue = (projectId: number, opts: { body?: string; onCreated?: (number: number) => void } = {}) =>
+  openDialog((close) => <NewIssueDialog projectId={projectId} initialBody={opts.body ?? ""} onCreated={opts.onCreated} onClose={close} />);
 
 /**
  * 新しい issue（GitHub タブの「新しい issue」と、ノート・チャットの発言の右クリックの「issue にする」から）:
