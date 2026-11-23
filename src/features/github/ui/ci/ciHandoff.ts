@@ -3,13 +3,9 @@
 import type { Attachment } from "@shared/chat/types";
 import type { CiRun } from "@shared/github/ciTypes";
 import { api } from "@/foundation/ui/api";
-import { open } from "@/foundation/ui/navigation/open";
-import { currentChats } from "@/features/chat/ui";
-import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { reportFailure } from "@/foundation/ui/kit/ask";
 import type { HandOffItem } from "@/features/attachments/ui";
-import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
-import { appendToDraft } from "@/features/composer/ui";
+import { handOffToWorkplaceChat } from "@/features/github/ui/githubHandoff";
 import { ciCaptureName, ciFailedDocument, ciFixText, ciHandOffText, ciLinkOf, runName } from "./ciView";
 
 /** 押した時点の落ちたステップのログを札にする（外から来た中身。鍵らしい値はコアが伏せる。長ければ終わりを多めに残す） */
@@ -54,16 +50,5 @@ export async function fixCiRun(projectId: number, run: CiRun, repo: string) {
     }),
   ]);
   if (!place || !attachment) return;
-  worktreesStore.invalidate(projectId);
-  const text = ciFixText(run);
-  const link = ciLinkOf(run, repo);
-  const here = currentChats({ projectId }).filter((c) => c.worktree_path === place.worktree_path && c.archived_at === null);
-  const chat = (link && here.find((c) => c.github_kind === "pr" && c.github_number === link.number && c.github_repo === link.repo)) || here[0];
-  if (!chat) {
-    openSeededChat(projectId, place.worktree_path ? { kind: "existing", path: place.worktree_path } : { kind: "main" }, { text, attachments: [attachment], link });
-    return;
-  }
-  appendToDraft(chat.id, text, [attachment]);
-  open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
-  if (link && chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
+  handOffToWorkplaceChat(projectId, place.worktree_path, ciFixText(run), attachment, ciLinkOf(run, repo));
 }

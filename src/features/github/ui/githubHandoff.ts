@@ -1,6 +1,6 @@
 // GitHub の PR の「レビューコメントで直す」: PR のブランチのワークツリーで作業するチャットの入力欄に、一言とレビューコメントの札を入れる。
 // 送るのは自分で。ほかの渡し先（新しいチャット・このチャット・子チャット・ほかのチャット）は共通の「AI に渡す」（features/chat/handoff）
-import type { GitHubLink } from "@shared/chat/types";
+import type { Attachment, GitHubLink } from "@shared/chat/types";
 import type { GitHubPullDetail, GitHubReviewThread } from "@shared/github/types";
 import { api } from "@/foundation/ui/api";
 import { open } from "@/foundation/ui/navigation/open";
@@ -31,16 +31,23 @@ export async function fixReviewComments(projectId: number, detail: GitHubPullDet
       }),
   ]);
   if (!place || !attachment) return;
+  handOffToWorkplaceChat(projectId, place.worktree_path, reviewFixText(detail), attachment, link);
+}
+
+/**
+ * そのブランチの作業場所のチャットの入力欄に、一言と札を入れて開く（GitHub の「レビューコメントで直す」・CI の「（ブランチ名）で直す」）。
+ * チャットはその作業場所のアーカイブしていないもの（link の PR に結び付いたもの → 最近動いたもの）。なければ、その作業場所で新しいチャットのタブを開く。
+ * まだ結び付いていなければ link に結び付ける
+ */
+export function handOffToWorkplaceChat(projectId: number, worktreePath: string | null, text: string, attachment: Attachment, link: GitHubLink | undefined) {
   worktreesStore.invalidate(projectId);
-  const text = reviewFixText(detail);
-  // そのワークツリーのチャット（この PR に結び付いたもの → 最近動いたもの）
-  const here = currentChats({ projectId }).filter((c) => c.worktree_path === place.worktree_path && c.archived_at === null);
-  const chat = here.find((c) => c.github_kind === "pr" && c.github_number === link.number && c.github_repo === link.repo) ?? here[0];
+  const here = currentChats({ projectId }).filter((c) => c.worktree_path === worktreePath && c.archived_at === null);
+  const chat = (link && here.find((c) => c.github_kind === "pr" && c.github_number === link.number && c.github_repo === link.repo)) || here[0];
   if (!chat) {
-    openSeededChat(projectId, place.worktree_path ? { kind: "existing", path: place.worktree_path } : { kind: "main" }, { text, attachments: [attachment], link });
+    openSeededChat(projectId, worktreePath ? { kind: "existing", path: worktreePath } : { kind: "main" }, { text, attachments: [attachment], link });
     return;
   }
   appendToDraft(chat.id, text, [attachment]);
   open({ kind: "chat", projectId: chat.project_id, chatId: chat.id });
-  if (chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
+  if (link && chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }
