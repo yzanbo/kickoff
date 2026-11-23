@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
+import { settle } from "@shared/foundation/testing/async";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { tempDir } from "@/foundation/core/testing/tempDir";
+import { until } from "@/foundation/core/testing/until";
 import { cleanPath, SHELL_PATH_FILE, startShellPath } from "./shellPath";
 
 /** 手で答える読み直し */
@@ -50,13 +52,14 @@ test("PATH: 読み直しが終わらなくても、打ち切りの時間で read
   const { ready } = startShellPath({ dataDir, read: shell.read, env, clock, timeoutMs: 5000 });
   let settled = false;
   void ready.then(() => (settled = true));
-  await new Promise((r) => setTimeout(r, 5));
+  // 打ち切りの時間の手前では解けない
+  await clock.advance(4999);
+  await settle();
   assert.equal(settled, false);
-  clock.fireAll();
+  await clock.advance(1);
   await ready;
   shell.resolve("/late/bin");
-  await new Promise((r) => setTimeout(r, 5));
-  assert.equal(env.PATH, "/late/bin:/usr/bin");
+  await until(() => env.PATH === "/late/bin:/usr/bin");
 });
 
 test("cleanPath: : で区切った絶対パスだけを、重なりを除いて残す", () => {

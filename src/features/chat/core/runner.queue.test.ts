@@ -4,7 +4,8 @@ import { test } from "vitest";
 import { NotFound } from "@/foundation/core/errors";
 import { createChatRunner } from "@/features/chat/core/run/runner";
 import { gatedScript, ScriptedProvider, type Script } from "@/features/ai/core/testing/fakeProvider";
-import { setupCore, tick, until } from "@/app/core/testing/testCore";
+import { settle } from "@shared/foundation/testing/async";
+import { setupCore, until } from "@/app/core/testing/testCore";
 
 const setup = (script: Script) => setupCore(new ScriptedProvider(script));
 
@@ -80,7 +81,7 @@ test("待ちの列: アプリを終えるときは送らない", async () => {
   await runner.message(chat.id, { text: "2", when: "later" });
   runner.shutdown();
   await until(() => !runner.isBusy(chat.id));
-  await tick();
+  await settle();
   assert.equal(provider.calls.length, 1);
 });
 
@@ -90,7 +91,7 @@ test("送信待ちを送っている途中に「いま」で送っても、同�
   const { store, runner, provider, project } = setup(async () => {
     running++;
     maxRunning = Math.max(maxRunning, running);
-    await tick();
+    await settle();
     running--;
     return { status: "completed", sessionId: "s1" };
   });
@@ -98,10 +99,7 @@ test("送信待ちを送っている途中に「いま」で送っても、同�
   await until(() => store.chats.get(chat.id)?.status === "completed");
   // 送信待ちの次の指示を送っている（送る準備の途中）ところへ、「いま」で送る
   const results = await Promise.allSettled([runner.message(chat.id, { text: "送信待ちの指示" }), runner.message(chat.id, { text: "いまの指示", when: "now" })]);
-  assert.deepEqual(
-    results.map((r) => r.status),
-    ["fulfilled", "fulfilled"],
-  );
+  assert.deepEqual(results.map((r) => r.status), ["fulfilled", "fulfilled"]);
   await until(() => !runner.isBusy(chat.id) && provider.calls.length === 3);
   assert.equal(maxRunning, 1);
   // どちらの指示も、別々の実行として Claude Code に渡っている
@@ -157,7 +155,7 @@ test("足せなかった「いま」は預かった順に送る: 作業の終わ
   releases[0]();
   // A を新しい作業として送り、B はその作業にも足せないので預かりの先頭に残る
   await until(() => releases.length === 2 && runner.live(chat.id).input_closed);
-  await tick();
+  await settle();
   assert.deepEqual(runner.live(chat.id).now.map((m) => m.text), ["B"]);
   releases[1]();
   await until(() => releases.length === 3);
@@ -369,7 +367,7 @@ test("起動したときの再開の確かめ: 止めておくか・線は保ち
     ],
   );
   // 答えるまでは送らない
-  await tick();
+  await settle();
   assert.equal(provider.calls.length, before);
 
   await restarted.resolveRestartResumes([
@@ -415,7 +413,7 @@ test("起動したときの再開の確かめ: 答えるまでは、線を外す
   // 線を外す・並べ替えても送らない（中身を見て直している途中に送り始めない）
   await restarted.queue(chat.id, [{ op: "set_stops", stops: [] }]);
   await restarted.queue(chat.id, [{ op: "move", ids: ["b"], to: { index: 0 } }]);
-  await tick();
+  await settle();
   assert.equal(provider.calls.length, before);
   assert.deepEqual(restarted.live(chat.id).queue.messages.map((m) => m.id), ["b", "a"]);
   // 見出しの「止めています」を押したら、送信待ちには答えたことにする（作業を続けるかは聞き続ける）
@@ -520,7 +518,7 @@ test("起動したときの再開の確かめ: アーカイブしたら（子チ
   assert.equal(restarted.live(child.id).restart_resume, null);
   // 送信待ちは消さず、送り始めもしない
   assert.deepEqual(restarted.live(parent.id).queue.messages.map((m) => m.text), ["次"]);
-  await tick();
+  await settle();
   assert.equal(provider.calls.length, 0);
   // DB の印も外れる: 戻しても、次の起動でも聞かない
   store.chats.archive(parent.id, false);

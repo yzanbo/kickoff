@@ -47,8 +47,9 @@ export function testFakes(dataDir: string) {
   return {
     provider: new FakeProvider(),
     counts,
-    // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
-    network: { online: true },
+    // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）。
+    // checks は止まったあとの見張りが確かめた回数（online = つながったか・clock = 枠が戻ったか。「見張っても送らない」をその回数で見る）
+    network: { online: true, checks: { online: 0, clock: 0 } },
     // 音声入力: 文字起こしとコマンドの探し方・ダウンロードを偽物にする（呼ばれた方法と値を覚える）
     voiceFake: {
       tools: { whisper: "/fake/whisper-cli", ffmpeg: "/fake/ffmpeg" } as VoiceTools,
@@ -164,7 +165,13 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk, provider
       },
     },
     // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない・書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
-    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, sessionsElsewhere: null, ...chat },
+    chat: {
+      reconnect: { check: async () => (f.network.checks.online++, f.network.online), intervalMs: 5 },
+      usageLimit: { checkMs: 5, now: () => (f.network.checks.clock++, Date.now()) },
+      editHoldTtlMs: 300,
+      sessionsElsewhere: null,
+      ...chat,
+    },
     trash: { now: () => f.trashClock.now, installCommand: false, projectOfPath: (origin, projects) => projects.find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null },
     notes: { defaultDir: f.noteFake.defaultDir },
     attachments: { dir: tempDir() },

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { GitWorktree } from "@shared/git/types";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { git } from "@/foundation/core/workplace/git";
 
 /** 続けて変わったら（git の書き換えは HEAD.lock を作ってから名前を変える）まとめて 1 回知らせる */
@@ -21,13 +22,17 @@ const unborn = (w: GitWorktree) => !w.main && !w.prunable && /^0+$/.test(w.head)
  */
 export class HeadWatch {
   private watches = new Map<number, Map<string, fs.FSWatcher>>();
-  private timers = new Map<number, ReturnType<typeof setTimeout>>();
+  private timers = new Map<number, TimerHandle>();
   /** プロジェクトごとの何回目の watch か（Git に聞いている間に次の watch が来たら、古い方は付け外ししない） */
   private generations = new Map<number, number>();
   /** 作りかけのワークツリーのために続けて取り直させた回数 */
   private retries = new Map<number, number>();
   private closed = false;
-  constructor(private changed: (projectId: number) => void) {}
+  constructor(
+    private changed: (projectId: number) => void,
+    /** まとめて知らせる・取り直させるまでの時計（既定は本物。タイマーは unref） */
+    private clock: Pick<Clock, "setTimeout" | "clearTimeout"> = systemClock,
+  ) {}
 
   async watch(projectId: number, repo: string, worktrees: GitWorktree[]): Promise<void> {
     const generation = (this.generations.get(projectId) ?? 0) + 1;
@@ -72,19 +77,18 @@ export class HeadWatch {
   }
 
   private notifySoon(projectId: number, ms = SETTLE_MS): void {
-    clearTimeout(this.timers.get(projectId));
-    const timer = setTimeout(() => {
+    this.clock.clearTimeout(this.timers.get(projectId));
+    const timer = this.clock.setTimeout(() => {
       this.timers.delete(projectId);
       this.changed(projectId);
     }, ms);
-    timer.unref();
     this.timers.set(projectId, timer);
   }
 
   /** プロジェクトの見張りを外す（消した・アーカイブしたプロジェクト。次に一覧の API が呼ばれたら付け直す） */
   unwatch(projectId: number): void {
     this.generations.set(projectId, (this.generations.get(projectId) ?? 0) + 1);
-    clearTimeout(this.timers.get(projectId));
+    this.clock.clearTimeout(this.timers.get(projectId));
     this.timers.delete(projectId);
     this.retries.delete(projectId);
     for (const watcher of this.watches.get(projectId)?.values() ?? []) watcher.close();
@@ -93,7 +97,7 @@ export class HeadWatch {
 
   close(): void {
     this.closed = true;
-    for (const timer of this.timers.values()) clearTimeout(timer);
+    for (const timer of this.timers.values()) this.clock.clearTimeout(timer);
     for (const watches of this.watches.values()) for (const watcher of watches.values()) watcher.close();
     this.timers.clear();
     this.watches.clear();

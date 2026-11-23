@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { setup } from "@/app/core/testing/testServer";
+import { setup, until } from "@/app/core/testing/testServer";
 import type { ToolServer } from "@/foundation/core/aiTools/tool";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 
@@ -91,6 +91,7 @@ test("MCP: 承認を待つツールは答えが出るまで返らない（待ち
   const { app, mcpTools } = setup({ features: ["chat"] });
   let release!: () => void;
   const gate = new Promise<void>((resolve) => (release = resolve));
+  let entered = false;
   const server: ToolServer = {
     name: "kickoff_wait",
     instructions: "",
@@ -101,6 +102,7 @@ test("MCP: 承認を待つツールは答えが出るまで返らない（待ち
         description: "答えが出るまで待つ",
         shape: {},
         handler: async () => {
+          entered = true;
           await gate;
           return { content: [{ type: "text", text: "done" }] };
         },
@@ -114,7 +116,8 @@ test("MCP: 承認を待つツールは答えが出るまで返らない（待ち
     finished = true;
     return r;
   });
-  await new Promise((r) => setTimeout(r, 50));
+  // ツールの中まで届いて待っている間は返らない
+  await until(() => entered);
   assert.equal(finished, false);
   release();
   assert.deepEqual((await call).content, [{ type: "text", text: "done" }]);

@@ -36,7 +36,7 @@ function channel() {
 test("RPC: 呼び出しと返事・失敗の文・知らせが両方向に届く", async () => {
   const { a, b } = channel();
   const sideA = createRpc<A, B, AEvents, BEvents>(a, { handlers: { add: async (x, y) => x + y, fail: async () => Promise.reject(new Error("タブが見つかりません")) } });
-  let release!: () => void;
+  let release: (() => void) | undefined;
   const sideB = createRpc<B, A, BEvents, AEvents>(b, { handlers: { hello: async (name) => `こんにちは ${name}`, slow: () => new Promise<void>((r) => (release = r)) } });
   assert.equal(await sideB.call("add", 2, 3), 5);
   assert.equal(await sideA.call("hello", "コア"), "こんにちは コア");
@@ -55,10 +55,13 @@ test("RPC: 呼び出しと返事・失敗の文・知らせが両方向に届く
   assert.deepEqual(ticks, [1, 2]);
 
   // 待っている呼び出しは、答えが届くまで返らない
-  const slow = sideA.call("slow");
-  await new Promise((r) => setTimeout(r, 10));
-  release();
+  let returned = false;
+  const slow = sideA.call("slow").then(() => void (returned = true));
+  await until(() => release !== undefined);
+  assert.equal(returned, false);
+  release!();
   await slow;
+  assert.equal(returned, true);
 });
 
 test("RPC: 時間の上限を過ぎたら失敗にする（時計は引数）。上限なしのものは待ち続ける", async () => {

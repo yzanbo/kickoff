@@ -5,6 +5,7 @@ import { StringDecoder } from "node:string_decoder";
 import type { SDKMessage } from "./wire";
 import type { CommandOutput } from "@shared/ai/turnEvents";
 import { outputTail } from "@/features/ai/core/providers/shared/events";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { commandOutputRoots } from "./internals";
 
 /*
@@ -54,7 +55,7 @@ interface Watch {
   raw: string;
   sent: string;
   startedAt: number;
-  timer: NodeJS.Timeout | null;
+  timer: TimerHandle | null;
   reading: boolean;
 }
 
@@ -62,6 +63,8 @@ export interface CommandOutputWatcherOptions {
   roots?: string[];
   pollMs?: number;
   findTimeoutMs?: number;
+  /** 読み直しの間隔と探すのをあきらめる時刻の時計（既定は本物） */
+  clock?: Clock;
 }
 
 /**
@@ -72,12 +75,13 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
   const roots = opts.roots ?? commandOutputRoots(os.tmpdir());
   const pollMs = opts.pollMs ?? POLL_MS;
   const findTimeoutMs = opts.findTimeoutMs ?? FIND_TIMEOUT_MS;
+  const clock = opts.clock ?? systemClock;
   const watches = new Map<string, Watch>();
 
   const stop = (taskId: string) => {
     const w = watches.get(taskId);
     if (!w) return;
-    if (w.timer) clearTimeout(w.timer);
+    clock.clearTimeout(w.timer);
     watches.delete(taskId);
   };
 
@@ -86,7 +90,7 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
     if (!w.file) {
       w.file = findOutputFile(roots, w.sessionId, taskId);
       if (!w.file) {
-        if (Date.now() - w.startedAt > findTimeoutMs) stop(taskId);
+        if (clock.now() - w.startedAt > findTimeoutMs) stop(taskId);
         return;
       }
     }
@@ -112,7 +116,7 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
   };
 
   const schedule = (taskId: string, w: Watch) => {
-    w.timer = setTimeout(async () => {
+    w.timer = clock.setTimeout(async () => {
       if (watches.get(taskId) !== w || w.reading) return;
       w.reading = true;
       try {
@@ -139,7 +143,7 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
           decoder: new StringDecoder("utf8"),
           raw: "",
           sent: "",
-          startedAt: Date.now(),
+          startedAt: clock.now(),
           timer: null,
           reading: false,
         };

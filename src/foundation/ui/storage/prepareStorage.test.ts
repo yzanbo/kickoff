@@ -96,7 +96,7 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   // まだ届いていないので、捨てていない
   assert.notEqual(local.getItem(picked(7).key), null);
   answer();
-  for (let i = 0; i < 500 && reloaded === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
+  await vi.waitFor(() => assert.equal(reloaded, 1), { timeout: 5000, interval: 10 });
   assert.equal(local.getItem(picked(7).key), null);
   assert.equal(reloaded, 1);
 });

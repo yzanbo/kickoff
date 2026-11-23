@@ -5,7 +5,8 @@ import path from "node:path";
 import type { SDKMessage } from "./wire";
 import type { CommandOutput } from "@shared/ai/turnEvents";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { until } from "@/app/core/testing/testCore";
+import { manualClock, type ManualClock } from "@/foundation/core/testing/manualClock";
+import { until } from "@/foundation/core/testing/until";
 import { createCommandOutputWatcher, findOutputFile } from "./commandOutput";
 
 const sdk = (msg: Record<string, unknown>) => msg as unknown as SDKMessage;
@@ -29,53 +30,72 @@ test("出力ファイルは、作業場所のフォルダ名によらずセッ�
   assert.equal(findOutputFile([root], "s2", "b1"), null);
 });
 
+/** 読み直しを 1 回進め、読み終えて次を予約する（watching 個のファイルを見ている）まで待つ */
+async function pollOnce(clock: ManualClock, watching = 1) {
+  await clock.advance(10);
+  await until(() => clock.pending === watching);
+}
+
 test("実行中のコマンドの出力: 増えるたびに最後の行を知らせ、終わりの知らせで読むのをやめる", async () => {
   const root = tempDir();
   const file = outputFile(root, "b1");
   const got: CommandOutput[] = [];
-  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10 });
+  const clock = manualClock();
+  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10, clock });
   watcher.handle(started("b1", "tu1"));
   fs.appendFileSync(file, "line1\n");
-  await until(() => got.at(-1)?.text === "line1");
+  await pollOnce(clock);
+  assert.equal(got.at(-1)?.text, "line1");
   fs.appendFileSync(file, "\x1b[31mline2\x1b[0m\n");
-  await until(() => got.at(-1)?.text === "line1\nline2");
+  await pollOnce(clock);
   assert.deepEqual(got.at(-1), { tool_use_id: "tu1", task_id: "b1", text: "line1\nline2" });
   // 変わらなければ知らせない
   const count = got.length;
-  await new Promise((r) => setTimeout(r, 50));
+  await pollOnce(clock);
   assert.equal(got.length, count);
-  // 終わったら、増えても知らせない
+  // 終わったら読むのをやめ（予約が残らない）、増えても知らせない
   watcher.handle(sdk({ type: "system", subtype: "task_notification", task_id: "b1", status: "completed", output_file: "", summary: "", session_id: "s1" }));
+  assert.equal(clock.pending, 0);
   fs.appendFileSync(file, "line3\n");
-  await new Promise((r) => setTimeout(r, 50));
+  await clock.advance(10);
   assert.equal(got.length, count);
 });
 
 test("実行中のコマンドの出力: コマンドでない作業は読まず、まだないファイルは現れるまで探し、作業の終わりですべてやめる", async () => {
   const root = tempDir();
   const got: CommandOutput[] = [];
-  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10 });
+  const clock = manualClock();
+  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10, clock });
   watcher.handle(started("a1", "tu-agent", "local_agent"));
   watcher.handle(started("b2", "tu2"));
-  await new Promise((r) => setTimeout(r, 30));
+  // まだファイルがない間も探し続ける（見ているのはコマンドの 1 つだけ）
+  await pollOnce(clock);
   const file = outputFile(root, "b2");
   fs.appendFileSync(file, "late\n");
-  await until(() => got.at(-1)?.text === "late");
+  await pollOnce(clock);
+  assert.equal(got.at(-1)?.text, "late");
   assert.ok(got.every((o) => o.tool_use_id === "tu2"));
   watcher.stopAll();
+  assert.equal(clock.pending, 0);
   const count = got.length;
   fs.appendFileSync(file, "after\n");
-  await new Promise((r) => setTimeout(r, 50));
+  await clock.advance(10);
   assert.equal(got.length, count);
 });
 
 test("実行中のコマンドの出力: ファイルが見つからないまま時間が過ぎたら、あきらめる", async () => {
   const root = tempDir();
   const got: CommandOutput[] = [];
-  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10, findTimeoutMs: 20 });
+  const clock = manualClock();
+  const watcher = createCommandOutputWatcher((o) => got.push(o), { roots: [root], pollMs: 10, findTimeoutMs: 20, clock });
   watcher.handle(started("b3", "tu3"));
-  await new Promise((r) => setTimeout(r, 60));
+  // 20ms まではまだ探す
+  await pollOnce(clock);
+  await pollOnce(clock);
+  // 20ms を過ぎた読み直しで、あきらめて予約をやめる
+  await clock.advance(10);
+  await until(() => clock.pending === 0);
   fs.appendFileSync(outputFile(root, "b3"), "too late\n");
-  await new Promise((r) => setTimeout(r, 50));
+  await clock.advance(10);
   assert.equal(got.length, 0);
 });

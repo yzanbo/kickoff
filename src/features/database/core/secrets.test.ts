@@ -1,6 +1,7 @@
 // DB のパスワードの暗号化（偽の暗号化の口で）: 保存の形・復号の覚え・拒否されたとき・その場で入れた値
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { settle } from "@shared/foundation/testing/async";
 import type { NewDbConnectionBody } from "@shared/database/api";
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
 import { setup } from "@/app/core/testing/testServer";
@@ -15,7 +16,8 @@ function fakeCipher() {
     },
     async decrypt(sealed) {
       state.decrypts++;
-      await new Promise((r) => setTimeout(r, 5));
+      // 鍵を開けるのに少しかかる（同時に頼んだものが重なる）
+      await settle();
       if (state.deny) throw new Error("User denied");
       return [...Buffer.from(sealed, "base64").toString()].reverse().join("");
     },

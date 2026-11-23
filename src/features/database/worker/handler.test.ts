@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "vitest";
+import { test, vi } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { DbTarget, WorkerRequest } from "@shared/database/workerProtocol";
 import { macosShell } from "@/foundation/core/platform/macos/shell";
@@ -78,8 +78,7 @@ test("DB ワーカー: 何もしないで閉じたとき、その接続の接続
     const s = await call("prepState", { connection_id: 7 });
     return s.ok && !(s.result as { running: boolean }).running;
   };
-  for (let i = 0; i < 750 && !(await prepDone()); i++) await new Promise((r) => setTimeout(r, 20));
-  assert.ok(await prepDone(), "準備が済みませんでした");
+  await vi.waitFor(async () => assert.ok(await prepDone(), "準備が済みませんでした"), { timeout: 15_000, interval: 20 });
   const query = (session: string) => call("query", { session, target, sql: "select 1", max_rows: 10 });
   assert.ok((await query("shared:7:-:-")).ok);
   assert.ok((await query("sql:7:tab")).ok);

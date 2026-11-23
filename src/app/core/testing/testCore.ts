@@ -5,7 +5,7 @@ import path from "node:path";
 import { vi } from "vitest";
 import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { Project } from "@shared/projects/types";
-import { systemClock } from "@/foundation/core/clock";
+import { systemClock, type Clock } from "@/foundation/core/clock";
 import { BrowserLogin } from "@/foundation/core/http/auth";
 import { createKernel, type Kernel } from "@/foundation/core/kernel";
 import type { HostPlatform } from "@/foundation/core/platform/types";
@@ -36,7 +36,7 @@ import { offlineUsage, sameProvider, testEnv, testFakes, testPlatform, type Test
 import { openTestStores, withFeatureStores, type TestStores } from "./testStore";
 import { MEMORY_DB } from "@/foundation/core/testing/memoryDb";
 
-export { tick, until } from "@/foundation/core/testing/until";
+export { until } from "@/foundation/core/testing/until";
 
 /** API のテストの本体のトークン */
 export const TOKEN = "t".repeat(32);
@@ -49,8 +49,8 @@ export const AUTH = { authorization: `Bearer ${TOKEN}` };
 export type BeforeStart = (store: TestStores, project: Project) => unknown;
 
 /** メモリの DB（dbFile を渡せばそのファイル）の土台と、一時フォルダの中のプロジェクト（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える） */
-function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string, dbFile = MEMORY_DB): { k: Kernel; store: TestStores; project: Project } {
-  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile, migrations: MIGRATIONS, settings: ALL_SETTINGS });
+function testKernel(dataDir: string, platform: HostPlatform, staticDir?: string, dbFile = MEMORY_DB, clock?: Clock): { k: Kernel; store: TestStores; project: Project } {
+  const k = createKernel({ dataDir, port: 0, platform, staticDir, dbFile, migrations: MIGRATIONS, settings: ALL_SETTINGS, clock });
   // 組み立てる前（前回のデータを入れる・実行だけのテスト）の店。土台の設定・秘密の値は Kernel のもの
   const store = openTestStores(k.db, (e) => k.bus.publish(e), { databaseId: k.paths.databaseId, settings: k.settings, secrets: k.secrets });
   const repo = path.join(tempDir(), "repo");
@@ -80,10 +80,10 @@ function featureParts<T extends Record<string, unknown>>(built: (name: FeatureNa
  * features を渡すと、その機能と作るのに要る下の機能だけを組み立てる（省けば全部。機能をまたぐ筋書きと網だけ）。
  * 起動し直しを試すときは、同じ dbFile と fakes を渡してもう一度組み立てる（プロジェクトは組み立てるたびに 1 つ足す）
  */
-export function createTestCore(opts: { features?: readonly FeatureName[]; staticDir?: string; beforeStart?: BeforeStart; dbFile?: string; fakes?: TestFakes } & Omit<TestEnvOptions, "secretCipher"> & { secretCipher?: SecretCipher } = {}) {
+export function createTestCore(opts: { features?: readonly FeatureName[]; staticDir?: string; beforeStart?: BeforeStart; dbFile?: string; fakes?: TestFakes; clock?: Clock } & Omit<TestEnvOptions, "secretCipher"> & { secretCipher?: SecretCipher } = {}) {
   const dataDir = tempDir();
   const fakes = opts.fakes ?? testFakes(dataDir);
-  const { k, store, project } = testKernel(dataDir, testPlatform(fakes), opts.staticDir, opts.dbFile);
+  const { k, store, project } = testKernel(dataDir, testPlatform(fakes), opts.staticDir, opts.dbFile, opts.clock);
   opts.beforeStart?.(store, project);
   const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk, provider: opts.provider, chat: opts.chat }), undefined, opts.features);
   const browserLogin = new BrowserLogin();

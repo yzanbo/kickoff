@@ -52,13 +52,27 @@ test("HEAD の見張り: 本体・ワークツリーのブランチ切り替え�
   const changed = () => events.filter((e) => e.type === "worktrees_changed" && e.project_id === ctx.project.id).length;
   // OS のフォルダの見張りの知らせは、負荷が高いと 2 秒を超えて遅れる（2.8 秒かかって落ちた）ので長く待つ
   const changedSince = (before: number) => until(() => changed() > before, 10_000);
+  /**
+   * dir の HEAD の見張りが知らせを受けられるようになるまで待つ（macOS の FSEvents は見張りを始めた直後の変化を取りこぼすことがある）。
+   * 同じ値で HEAD を書き直し、知らせが来るまで 1 秒ごとに書き直す（続けて書くと、まとめる間が延びて知らせが出ない）
+   */
+  const watching = async (dir: string) => {
+    const before = changed();
+    for (let i = 0; i < 10 && changed() === before; i++) {
+      gitIn(dir)("symbolic-ref", "HEAD", gitIn(dir)("symbolic-ref", "HEAD").trim());
+      await until(() => changed() > before, 1000).catch(() => {});
+    }
+    assert.ok(changed() > before, `${dir} の HEAD の見張りが知らせません`);
+  };
   await list(ctx);
+  await watching(repo);
   git("switch", "-q", "-c", "other");
   await changedSince(0);
   let before = changed();
   git("worktree", "add", "-q", "-b", "feat/w", wt);
   await changedSince(before);
   assert.equal((await list(ctx)).find((w) => w.path === wt)?.branch, "feat/w");
+  await watching(wt);
   before = changed();
   gitIn(wt)("switch", "-q", "-c", "feat/w2");
   await changedSince(before);

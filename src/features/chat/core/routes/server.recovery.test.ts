@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { MAX_AUTO_RESUMES } from "@/features/chat/core/run/machine/recovery";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
+import { settle } from "@shared/foundation/testing/async";
 import { setup, until } from "@/app/core/testing/testServer";
 
 test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {
@@ -21,8 +22,9 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["次"]);
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
-  // つながらない間は何も送らない（送信待ちも送らない）
-  await new Promise((r) => setTimeout(r, 30));
+  // つながらない間は何も送らない（送信待ちも送らない）。見張りが 2 回確かめても送っていない
+  const checked = network.checks.online;
+  await until(() => network.checks.online >= checked + 2);
   assert.deepEqual(provider.prompts, ["1"]);
 
   // つながったら「続けて」を送り、終わったら止めておいた送信待ちを戻して送る
@@ -123,12 +125,14 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
 });
 
 test("使用枠の上限: 戻る前は聞かず、その間に自分で送ったら聞くのをやめる。やめるを選んだら送信待ちは止めたまま", async () => {
-  const { call, project, runner, provider, approvals } = setup({ features: ["chat", "settings"] });
+  const { call, project, runner, provider, approvals, network } = setup({ features: ["chat", "settings"] });
   // 枠が戻るのはまだ先
   provider.usageLimits = [new Date(Date.now() + 3_600_000).toISOString()];
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  // 見張りが 2 回時刻を確かめても、まだ戻らないので聞かない
+  const checked = network.checks.clock;
+  await until(() => network.checks.clock >= checked + 2);
   assert.equal(approvals.list({ chatId }).length, 0);
   // 自分で送った: 待つのをやめる（送ったものは普通に動く）
   await call("POST", `/api/chats/${chatId}/messages`, { text: "自分で続ける" });
@@ -143,7 +147,7 @@ test("使用枠の上限: 戻る前は聞かず、その間に自分で送った
   release();
   await until(() => approvals.list({ chatId }).length === 1);
   await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "deny" });
-  await new Promise((resolve) => setTimeout(resolve, 30));
+  await settle();
   assert.equal(provider.prompts.length, 3);
   assert.equal(runner.live(chatId).queue.paused, true);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["あとで"]);
@@ -167,7 +171,8 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   await until(() => runner.live(b).reconnect !== null);
   assert.equal((await call("DELETE", `/api/chats/${b}/reconnect`)).status, 204);
   network.online = true;
-  await new Promise((r) => setTimeout(r, 30));
+  // 待つのをやめたので見張りは止まっている（つながっても送らない）
+  await settle();
   assert.equal(provider.prompts.includes(RESUME_PROMPT), false);
 
   // 自分で送ったら、待つのをやめてそのまま送る
@@ -179,7 +184,7 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   assert.equal(runner.live(c).reconnect, null);
   await until(() => !runner.isBusy(c));
   network.online = true;
-  await new Promise((r) => setTimeout(r, 30));
+  await settle();
   assert.equal(provider.prompts.includes(RESUME_PROMPT), false);
 });
 

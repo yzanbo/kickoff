@@ -6,6 +6,7 @@ import { errorMessage } from "@shared/foundation/errors";
 import type { DbEngine } from "@shared/database/types";
 import { DB_DIALECTS } from "@shared/database/dialect";
 import { DbWorkerError, type WorkerCancel, type WorkerEvent, type WorkerMethod, type WorkerMethods, type WorkerRequest, type WorkerResponse } from "@shared/database/workerProtocol";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
 
 /** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `testing/inProcessWorker.ts`。それはドライバを読むので、コアから import しない = コアの起動を遅くしない） */
@@ -87,7 +88,7 @@ export class DbWorkerClient {
   private readonly pending = new Map<number, Pending>();
   /** トランザクションの途中の接続（あれば何もしなくても止めない。止めると取り消されるため） */
   private readonly inTransaction = new Set<string>();
-  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private idleTimer: TimerHandle | null = null;
   /** ワーカーが起動して、まだ動いている子のプロセス（ssh・シェル。ワーカーを止めるときに一緒に止める） */
   private readonly children = new Set<number>();
   /** ワーカーの中で開いている接続（セッション）の名前。ワーカーが止まったら、閉じた知らせを出して空にする */
@@ -99,6 +100,8 @@ export class DbWorkerClient {
     private readonly spawn: () => WorkerChannel,
     private readonly idleMs = IDLE_MS,
     private readonly killChild: (pid: number) => void = killGroup,
+    /** 使っていないので止めるまでの時計（既定は本物。タイマーは unref） */
+    private readonly clock: Pick<Clock, "setTimeout" | "clearTimeout"> = systemClock,
   ) {}
 
   /** ワーカーが動いているか */
@@ -165,13 +168,12 @@ export class DbWorkerClient {
   }
 
   private scheduleIdle() {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.clock.clearTimeout(this.idleTimer);
     this.idleTimer = null;
     if (this.pending.size > 0 || !this.channel) return;
-    this.idleTimer = setTimeout(() => {
+    this.idleTimer = this.clock.setTimeout(() => {
       if (this.pending.size === 0 && this.inTransaction.size === 0) void this.shutdown(undefined, { idle: true });
     }, this.idleMs);
-    this.idleTimer.unref?.();
   }
 
   /** 頼む（signal で止める。engine は止め方を決めるのに使う。SQLite はワーカーごと止める） */
@@ -180,7 +182,7 @@ export class DbWorkerClient {
     if (opts.signal?.aborted) return Promise.reject(new Error("止めました"));
     const channel = this.ensure();
     const id = this.nextId++;
-    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.clock.clearTimeout(this.idleTimer);
     const promise = new Promise<unknown>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, engine: opts.engine ?? null });
     });
@@ -241,7 +243,7 @@ export class DbWorkerClient {
 
   /** ワーカーを止める（待っている頼みは失敗にする） */
   stop(message = "DB ワーカーを止めました") {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.clock.clearTimeout(this.idleTimer);
     this.idleTimer = null;
     const channel = this.channel;
     this.channel = null;

@@ -13,8 +13,8 @@ test("チャットの一覧: 件数で黙って切らず、最後に動いた順
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const ids: number[] = [];
   for (let i = 0; i < 305; i++) ids.push(store.chats.create({ project_id: i % 2 ? project.id : other.id, provider: "claude", title: `c${i}`, status: "completed" }).id);
-  // いちばん古いチャットが動いた（状態が変わると、最後に動いた時刻が進んで並びの先頭へ）。アーカイブ済みは別に読む
-  await new Promise((resolve) => setTimeout(resolve, 5));
+  // いちばん古いチャットが、最後に作ったチャットより後の時刻（同じだと ID の順）に動いた（状態が変わると、最後に動いた時刻が進んで並びの先頭へ）。アーカイブ済みは別に読む
+  await until(() => Date.now() > Date.parse(store.chats.get(ids.at(-1)!)!.active_at));
   store.chats.update(ids[0], { status: "running" });
   store.chats.archive(ids[1], true);
 

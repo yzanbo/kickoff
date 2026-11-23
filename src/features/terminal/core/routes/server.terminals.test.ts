@@ -84,6 +84,7 @@ test("ターミナル: WebSocket でつなぐと画面の内容と出力が届�
   read.ws.send(JSON.stringify({ type: "input", data: "rm -rf /\r" }));
   full.ws.send(JSON.stringify({ type: "resize", cols: 30, rows: 8 }));
   await until(() => shell.written.length > 0);
+  // test-rules-ignore: 捨てた入力には知らせも答えもないので、届くはずの間だけ待つ（来ないことを見る口がない）
   await new Promise((r) => setTimeout(r, 50));
   assert.deepEqual(shell.written, ["ls\r"]);
   assert.deepEqual([shell.cols, shell.rows], [80, 24]);
@@ -119,6 +120,7 @@ test("ターミナル: つないだあとで見るだけに変えた端末の入
   // 見るだけに変えたら、開いたままでも打てない
   await call("PATCH", `/api/devices/${full.id}`, { access: "read" });
   ws.send(JSON.stringify({ type: "input", data: "b" }));
+  // test-rules-ignore: 捨てた入力には知らせも答えもないので、届くはずの間だけ待つ（来ないことを見る口がない）
   await new Promise((r) => setTimeout(r, 50));
   assert.deepEqual(shell.written, ["a"]);
   // 取り消したら、つながったままの WebSocket も切る

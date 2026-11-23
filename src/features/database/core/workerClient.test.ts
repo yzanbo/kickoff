@@ -3,7 +3,9 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "vitest";
+import { test, vi } from "vitest";
+import { settle } from "@shared/foundation/testing/async";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
 import { DbWorkerClient, devWorkerEntry, forkWorker, killGroup, type WorkerChannel } from "./workerClient";
@@ -58,17 +60,38 @@ test("DB ワーカー: SQLite の文を止めるとワーカーごと止め、�
   assert.deepEqual(again.rows, [[3]]);
 });
 
-test("DB ワーカー: 何もしない状態が続いたら止まる（トランザクションの途中なら止めない）。止めると途中の印も消える", async () => {
+test("DB ワーカー: 何もしない状態が続いたら止まる（トランザクションの途中・準備のコマンドを流している間は止めない）。止めると途中の印も消える", async () => {
   let channel: WorkerChannel | null = null;
-  const client = new DbWorkerClient(() => (channel = forkWorker(devWorkerEntry())), 300);
+  const clock = manualClock();
+  const client = new DbWorkerClient(() => (channel = forkWorker(devWorkerEntry())), 300, undefined, clock);
+  // 使っていないので止める頼み（shutdown）の答えを覚える（答えを待ってから止まったかを見る）
+  const shutdowns: Promise<unknown>[] = [];
+  const request = client.request.bind(client);
+  vi.spyOn(client, "request").mockImplementation((method, params, opts) => {
+    const answer = request(method, params, opts);
+    if (method === "shutdown") shutdowns.push(answer.catch(() => null));
+    return answer;
+  });
+  /** 使っていない時間を 300ms 進め、止める頼みを送ったら、その答えまで待つ */
+  const idle = async () => {
+    const sent = shutdowns.length;
+    await clock.advance(300);
+    if (shutdowns.length === sent) return;
+    await shutdowns[sent];
+    await settle();
+  };
   const target = sqliteTarget();
   await client.request("query", { session: "s", target, sql: "select 1", max_rows: 1 });
-  // 何もしないと止まる（止まるのを待つ。決め打ちで待つと、負荷が高いときに止まる前に比べて落ちた）
-  await until(() => !client.running, 15_000);
+  // 何もしないと止まる（299ms ではまだ止めない）
+  await clock.advance(299);
+  assert.equal(shutdowns.length, 0);
+  await idle();
+  assert.equal(client.running, false);
 
   // トランザクションの途中なら止めない
   await client.request("query", { session: "s", target, sql: "begin", max_rows: 1 });
-  await new Promise((r) => setTimeout(r, 600));
+  await idle();
+  assert.equal(shutdowns.length, 1, "止める頼みを送らない");
   assert.equal(client.running, true);
   client.stop();
   assert.equal(client.isInTransaction("s"), false);
@@ -76,9 +99,10 @@ test("DB ワーカー: 何もしない状態が続いたら止まる（トラン
 
   // 準備のコマンドを流している間も止めない（終われば止まる）
   await client.request("prepare", { connection_id: 1, commands: ["sleep 1"], cleanup: [], vars: {}, my_ip_url: null });
-  await new Promise((r) => setTimeout(r, 700));
+  await idle();
+  assert.equal(shutdowns.length, 2);
   assert.equal(client.running, true);
-  await until(() => !client.running, 15_000);
+  await until(async () => (await idle(), !client.running), 15_000);
 });
 
 test("DB ワーカー: 止めると、ワーカーが起動したシェル（準備のコマンド）も止める", async () => {

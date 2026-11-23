@@ -129,9 +129,10 @@ test("hostDbWorker: メインがワーカーの終わりを知らせたら onExi
     extra.port1.close();
     extra.port2.close();
   });
+  let spawned = false;
   const host = createRpc<HostMethods, CoreMethods, HostEvents, CoreEvents>(hostPort, {
     handlers: {
-      "dbWorker.spawn": async () => (hostPort.post({ t: "port", purpose: "dbWorker", workerId: 3 }, [extra.port1]), 3),
+      "dbWorker.spawn": async () => (hostPort.post({ t: "port", purpose: "dbWorker", workerId: 3 }, [extra.port1]), (spawned = true), 3),
       "dbWorker.kill": async () => {},
     } as never,
   });
@@ -140,7 +141,8 @@ test("hostDbWorker: メインがワーカーの終わりを知らせたら onExi
   const reasons: string[] = [];
   channel.onExit((r) => reasons.push(r));
   channel.send({ id: 1, method: "ping", params: {} } as never);
-  await new Promise((r) => setTimeout(r, 20));
+  // 起こした答え（ワーカーの番号）を返してから終わりを知らせる（同じポートなので答えが先に届く）
+  await until(() => spawned);
   host.emit("dbWorker.exit", { workerId: 4, reason: "ほかのワーカー" });
   host.emit("dbWorker.exit", { workerId: 3, reason: "終了コード 9" });
   await until(() => reasons.length === 1);

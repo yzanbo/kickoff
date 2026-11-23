@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { StreamResult } from "@/foundation/core/system/stream";
+import { settle } from "@shared/foundation/testing/async";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { until } from "@/app/core/testing/testCore";
 import { DockerEvents } from "./events";
 
@@ -51,10 +53,13 @@ test("DockerEvents: エンジンが止まったら知らせ、戻るまで調べ
 
 test("DockerEvents: だれも見ていなければ止まったあとも調べ直さない・止めたときは立て直さない", async () => {
   const { cli, streams, state } = fakeCli();
-  const events = new DockerEvents(cli, () => {}, { enginePollMs: 10 });
+  const clock = manualClock();
+  const events = new DockerEvents(cli, () => {}, { clock, enginePollMs: 10 });
   events.lease(1);
   events.stop();
-  await new Promise((r) => setTimeout(r, 40));
+  // 調べ直しの間隔を何回分も進めても、調べ直さない・立て直さない
+  await clock.advance(40);
+  await settle();
   assert.equal(streams.length, 1);
   assert.equal(state.engineChecks, 0);
 });
