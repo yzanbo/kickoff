@@ -13,9 +13,9 @@ interface Chunk {
   audio?: Promise<Blob>;
 }
 
-/** OpenAI の声の音声を頼む（やめて使わなくなったものの失敗は、知らせずに捨てる） */
-function requestAudio(text: string): Promise<Blob> {
-  const audio = api.speech(text);
+/** OpenAI の声の音声を頼む（stop で signal を止める。やめて使わなくなったものの失敗は、知らせずに捨てる） */
+function requestAudio(text: string, signal: AbortSignal): Promise<Blob> {
+  const audio = api.speech(text, signal);
   audio.catch(() => undefined);
   return audio;
 }
@@ -45,6 +45,8 @@ export class Speaker {
   /** stop のたびに進める（やめる前に始めた読み上げの続きを捨てる） */
   private generation = 0;
   private current: (() => void) | null = null;
+  /** 頼んだ OpenAI の声の音声（stop で、先に頼んだ分も取り消す） */
+  private requests = new AbortController();
 
   constructor(
     private readonly settings: () => SpeakerSettings,
@@ -68,6 +70,8 @@ export class Speaker {
   stop() {
     this.generation++;
     this.queue = [];
+    this.requests.abort();
+    this.requests = new AbortController();
     this.current?.();
     this.current = null;
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
@@ -88,10 +92,11 @@ export class Speaker {
       const settings = this.settings();
       try {
         if (settings.voice_tts_provider === "openai") {
-          chunk.audio ??= requestAudio(chunk.text);
+          const { signal } = this.requests;
+          chunk.audio ??= requestAudio(chunk.text, signal);
           // 読んでいる間に次の区切りの音声を頼んでおく（区切りの間を空けない）
           const next = this.queue[0];
-          if (next) next.audio ??= requestAudio(next.text);
+          if (next) next.audio ??= requestAudio(next.text, signal);
           await this.playAudio(await chunk.audio, generation);
         } else {
           await this.playSystem(chunk.text, settings, generation);
