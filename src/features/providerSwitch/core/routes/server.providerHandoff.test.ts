@@ -44,8 +44,8 @@ test("AI の切り替えは確認した条件が変わったら拒否し、再�
   assert.equal(first.body.from, "claude");
   assert.equal(first.body.to, "codex");
   assert.equal(first.body.queued_ids.length, 0);
-  await runner.queueMessage(chat.id, "待ち", {}, [], { hold: true });
-  await runner.setQueuePaused(chat.id, true);
+  await runner.message(chat.id, { text: "待ち", hold: true, when: "later" });
+  await runner.queue(chat.id, [{ op: "set_paused", paused: true }]);
   assert.equal((await call("POST", url, { target: "codex", confirmation: first.body.confirmation })).status, 409);
   assert.equal(store.chats.get(chat.id)?.provider, "claude");
   const next = await call("GET", `${url}?target=codex`);

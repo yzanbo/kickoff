@@ -58,7 +58,7 @@ test("withIdleChat: watchQueue なら用意している間に送信待ちが変�
       "switch_provider",
       "AI の切り替え",
       async ({ still }) => {
-        await runner.queueMessage(chat.id, "準備の間に足した");
+        await runner.message(chat.id, { text: "準備の間に足した", when: "later" });
         still();
       },
       { watchQueue: true, conflict: "送信待ちが変わった" },

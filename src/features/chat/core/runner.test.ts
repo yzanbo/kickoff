@@ -27,7 +27,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
   // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
   assert.equal(store.settings.get().provider_chat_defaults.claude.model, "opus");
 
-  await runner.send(chat.id, "続き", { permission_mode: "plan" });
+  await runner.message(chat.id, { text: "続き", options: { permission_mode: "plan" } });
   await until(() => store.chats.get(chat.id)?.num_turns === 2);
   assert.equal(provider.calls[1].resumeSessionId, "s1");
   assert.equal(provider.calls[1].permissionMode, "plan");
@@ -156,14 +156,14 @@ test("作業が終わると未読になり、続けて送ると消える。中�
   await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.equal(store.chats.get(chat.id)?.unread, true);
 
-  await runner.send(chat.id, "続き");
+  await runner.message(chat.id, { text: "続き" });
   assert.equal(store.chats.get(chat.id)?.unread, false);
   release();
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.unread === true);
 
   // 中断したときは未読を付けない
   store.chats.update(chat.id, { unread: false });
-  await runner.send(chat.id, "もう一度");
+  await runner.message(chat.id, { text: "もう一度" });
   await until(() => store.chats.get(chat.id)?.status === "running");
   runner.cancel(chat.id);
   await until(() => store.chats.get(chat.id)?.status === "cancelled");
@@ -282,7 +282,7 @@ test("圧縮のきっかけ: 手で圧縮した（ボタン・/compact を送っ
   const chat = await runner.start({ projectId: project.id, prompt: "続けて" });
   chatId = chat.id;
   await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
-  await runner.send(chat.id, "/compact 決めたことを残して");
+  await runner.message(chat.id, { text: "/compact 決めたことを残して" });
   await until(() => seen.length === 2 && !runner.isBusy(chat.id));
   await runner.compact(chat.id);
   await until(() => seen.length === 3 && !runner.isBusy(chat.id));
@@ -315,13 +315,13 @@ test("超過分（追加の使用枠）で動き始めたら、その作業の�
   await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
   assert.deepEqual(notices(chat.id), ["Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています"]);
   // 超過分のまま次の作業: もう知らせてあるので残さない
-  await runner.send(chat.id, "まだ超えている");
+  await runner.message(chat.id, { text: "まだ超えている" });
   await until(() => store.chats.get(chat.id)?.num_turns === 2 && !runner.isBusy(chat.id));
   assert.equal(notices(chat.id).length, 1);
   // 枠に戻ったあと、また超えたら残す
-  await runner.send(chat.id, "枠の中");
+  await runner.message(chat.id, { text: "枠の中" });
   await until(() => store.chats.get(chat.id)?.num_turns === 3 && !runner.isBusy(chat.id));
-  await runner.send(chat.id, "また超えた");
+  await runner.message(chat.id, { text: "また超えた" });
   await until(() => store.chats.get(chat.id)?.num_turns === 4 && !runner.isBusy(chat.id));
   assert.equal(notices(chat.id).length, 2);
 });
@@ -338,11 +338,11 @@ test("Codex のクレジットの残りが減り始めたら、その作業の�
   await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
   // 初めて見た残りでは比べる相手がないので残さない
   assert.deepEqual(notices(chat.id), []);
-  await runner.send(chat.id, "減った");
+  await runner.message(chat.id, { text: "減った" });
   await until(() => store.chats.get(chat.id)?.num_turns === 2 && !runner.isBusy(chat.id));
   assert.deepEqual(notices(chat.id), ["Codex のプランの使用枠の上限を超えたため、ここからクレジットから引かれて動いています"]);
   // 減り続けても、もう知らせてあるので残さない
-  await runner.send(chat.id, "まだ減る");
+  await runner.message(chat.id, { text: "まだ減る" });
   await until(() => store.chats.get(chat.id)?.num_turns === 3 && !runner.isBusy(chat.id));
   assert.equal(notices(chat.id).length, 1);
 });
@@ -411,10 +411,10 @@ test("作業の途中で AI がブランチを替えたら、作業の終わり�
   const chat = await runner.start({ projectId: project.id, prompt: "feat/x" });
   // 結果を書く前に覚え直す
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/x");
-  await runner.send(chat.id, "feat/fail");
+  await runner.message(chat.id, { text: "feat/fail" });
   await until(() => store.chats.get(chat.id)?.status === "failed" && store.chats.get(chat.id)?.branch === "feat/fail");
   // ブランチから外れた場所で始めても、取り出したブランチを覚える
   gitIn(project.repo_path)("switch", "-q", "--detach");
-  await runner.send(chat.id, "feat/from-detached");
+  await runner.message(chat.id, { text: "feat/from-detached" });
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/from-detached");
 });

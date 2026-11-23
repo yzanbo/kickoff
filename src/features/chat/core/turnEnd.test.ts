@@ -15,7 +15,7 @@ test("作業の終わりの予約: 送信待ちを先に止め、order の順に
   runner.reserveAtTurnEnd(chat.id, { kind: "move_workplace", order: 20, label: "m", when: "completed", pauseQueue: false, run: async ({ done }) => (ran.push(`move:${done.join()}`), "done") });
   runner.reserveAtTurnEnd(chat.id, { kind: "finish_worktree", order: 10, label: "f", when: "any", pauseQueue: true, folder: "/w", run: async () => (ran.push("finish"), "done") });
   assert.deepEqual([...runner.reservedFolders()], ["/w"]);
-  await runner.queueMessage(chat.id, "次");
+  await runner.message(chat.id, { text: "次", when: "later" });
   provider.end(provider.runs[0], "completed", { session: "s1", at });
   await until(() => ran.length === 3 && !runner.isBusy(chat.id));
   assert.deepEqual(ran, ["finish", "move:finish_worktree", "archive"]);

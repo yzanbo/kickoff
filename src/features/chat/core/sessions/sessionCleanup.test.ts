@@ -27,7 +27,7 @@ test("コンテキスト消去時は、別の AI に戻しても古いセッシ�
   await until(() => !runner.isBusy(chat.id));
   store.chatProviderSessions.save(chat.id, "codex", "codex-1", null);
   assert.equal(store.chatProviderSessions.list(chat.id).length, 1);
-  runner.clearContext(chat.id);
+  runner.clear(chat.id);
   assert.deepEqual(store.chatProviderSessions.list(chat.id), []);
   assert.equal(store.chats.get(chat.id)?.session_id, null);
 });

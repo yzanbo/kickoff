@@ -139,7 +139,7 @@ function storedChat({ store, project }: Core, input: { title: string; parent?: n
 /** 店に作ったチャットに続きを送る */
 async function sendTo(core: Core, input: Parameters<typeof storedChat>[1]) {
   const id = storedChat(core, input);
-  await core.runner.send(id, "x");
+  await core.runner.message(id, { text: "x" });
   return id;
 }
 

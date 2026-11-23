@@ -29,7 +29,7 @@ test("既定を変えても既存のチャットは変わらず、新規だけ�
   const existing = await runner.start({ projectId: project.id, prompt: "既存" });
   await until(() => store.chats.get(existing.id)?.status === "completed");
   store.settings.update({ sandbox_enabled_by_default: false, edit_scope_enabled_by_default: false });
-  await runner.send(existing.id, "続き");
+  await runner.message(existing.id, { text: "続き" });
   await until(() => store.chats.get(existing.id)?.status === "completed" && provider.calls.length === 2);
   assert.equal(provider.calls[1].sandboxOff, false);
   assert.ok(gateMaterials[1].writeScope);
@@ -38,7 +38,7 @@ test("既定を変えても既存のチャットは変わらず、新規だけ�
   assert.equal(provider.calls[2].sandboxOff, true);
   assert.equal(gateMaterials[2].writeScope, null);
   store.settings.update({ sandbox_enabled_by_default: true, edit_scope_enabled_by_default: true });
-  await runner.send(created.id, "続き");
+  await runner.message(created.id, { text: "続き" });
   await until(() => store.chats.get(created.id)?.status === "completed" && provider.calls.length === 4);
   assert.equal(provider.calls[3].sandboxOff, true);
   assert.equal(gateMaterials[3].writeScope, null);

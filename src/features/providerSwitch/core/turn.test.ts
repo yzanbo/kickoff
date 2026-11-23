@@ -16,13 +16,13 @@ function switched(provider: ScriptedProvider, state: "ready" | "blocked" = "read
 test("切り替え後の最初の指示に会話を添え、完了後は保留を外す（いまの AI のセッションは chats.session_id）", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "codex-1", lastMessageId: "answer", result: "完了" }));
   const { store, runner, chatId } = switched(provider);
-  await runner.send(chatId, "続けて");
+  await runner.message(chatId, { text: "続けて" });
   await until(() => !runner.isBusy(chatId) && provider.calls.length === 1);
   assert.match(provider.calls[0].turnContext ?? "", /引き継ぐ会話/);
   assert.equal(store.chatProviderHandoffs.get(chatId), undefined);
   assert.equal(store.chats.get(chatId)?.session_id, "codex-1");
   assert.equal(store.chatProviderSessions.get(chatId, "codex"), undefined);
-  await runner.send(chatId, "もう一度");
+  await runner.message(chatId, { text: "もう一度" });
   await until(() => !runner.isBusy(chatId) && provider.calls.length === 2);
   assert.doesNotMatch(provider.calls[1].turnContext ?? "", /引き継ぐ会話/);
 });
@@ -30,11 +30,11 @@ test("切り替え後の最初の指示に会話を添え、完了後は保留�
 test("引き継ぎ準備が失敗中なら、送信待ちを取り出したり指示を送ったりしない", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
   const { store, runner, chatId } = switched(provider, "blocked");
-  await runner.queueMessage(chatId, "待ち", {}, [], { hold: true });
+  await runner.message(chatId, { text: "待ち", hold: true, when: "later" });
   const queued = runner.queueState(chatId).messages[0];
-  await assert.rejects(runner.sendQueuedNow(chatId, queued.id), /引き継ぎを確認/);
-  await assert.rejects(runner.send(chatId, "新しい指示"), /引き継ぎを確認/);
-  await assert.rejects(runner.sendQueuedInOrder(chatId), /引き継ぎを確認/);
+  await assert.rejects(runner.queueSend(chatId, { mode: "now", ids: [queued.id] }), /引き継ぎを確認/);
+  await assert.rejects(runner.message(chatId, { text: "新しい指示" }), /引き継ぎを確認/);
+  await assert.rejects(runner.queueSend(chatId, { mode: "in_order" }), /引き継ぎを確認/);
   assert.equal(runner.queueState(chatId).messages[0].id, queued.id);
   assert.equal(store.chatProviderHandoffs.get(chatId)?.state, "blocked");
   assert.equal(provider.calls.length, 0);
@@ -43,13 +43,13 @@ test("引き継ぎ準備が失敗中なら、送信待ちを取り出したり�
 test("引き継ぎが完了する前の圧縮・コンテキスト消去は待ちの列から取り出さない", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
   const { runner, chatId } = switched(provider);
-  runner.queueAction(chatId, "clear");
+  runner.queue(chatId, [{ op: "add_action", action: "clear", after: null }]);
   const queued = runner.queueState(chatId).messages[0];
-  await assert.rejects(runner.sendQueuedNow(chatId, queued.id), /引き継ぎが終わるまで/);
-  await runner.setQueuePaused(chatId, false);
+  await assert.rejects(runner.queueSend(chatId, { mode: "now", ids: [queued.id] }), /引き継ぎが終わるまで/);
+  await runner.queue(chatId, [{ op: "set_paused", paused: false }]);
   assert.equal(runner.queueState(chatId).messages[0].id, queued.id);
   await assert.rejects(runner.compact(chatId), /引き継ぎが終わるまで/);
-  assert.throws(() => runner.clearContext(chatId), /引き継ぎが終わるまで/);
+  assert.throws(() => runner.clear(chatId), /引き継ぎが終わるまで/);
   assert.equal(provider.calls.length, 0);
 });
 
@@ -57,12 +57,12 @@ test("切り替え前の送信待ちは元の AI の設定を外し、切り替�
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "codex-1", result: "完了" }));
   const { store, runner, project } = setupCore(provider);
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  await runner.queueMessage(chat.id, "旧 AI で予約", { permission_mode: "auto" }, [], { hold: true });
+  await runner.message(chat.id, { text: "旧 AI で予約", options: { permission_mode: "auto" }, hold: true, when: "later" });
   const old = runner.queueState(chat.id).messages[0];
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], queuedIds: [old.id], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
-  await runner.queueMessage(chat.id, "新 AI で予約", { permission_mode: "acceptEdits" }, [], { hold: true });
-  await runner.setQueuePaused(chat.id, true);
-  await runner.sendQueuedNow(chat.id, old.id);
+  await runner.message(chat.id, { text: "新 AI で予約", options: { permission_mode: "acceptEdits" }, hold: true, when: "later" });
+  await runner.queue(chat.id, [{ op: "set_paused", paused: true }]);
+  await runner.queueSend(chat.id, { mode: "now", ids: [old.id] });
   await until(() => !runner.isBusy(chat.id) && provider.calls.length === 1);
   assert.equal(provider.calls[0].permissionMode, "default");
   assert.equal(runner.queueState(chat.id).messages[0].options.permission_mode, "acceptEdits");
@@ -71,12 +71,12 @@ test("切り替え前の送信待ちは元の AI の設定を外し、切り替�
 test("引き継ぎ送信中に通信が切れたら、受信不明にして自動再送・次の送信待ちを止める", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "failed", sessionId: "codex-1", error: "切断", network: true }));
   const { store, runner, chatId } = switched(provider);
-  await runner.queueMessage(chatId, "後の指示", {}, [], { hold: true });
-  await runner.send(chatId, "最初の指示");
+  await runner.message(chatId, { text: "後の指示", hold: true, when: "later" });
+  await runner.message(chatId, { text: "最初の指示" });
   await until(() => !runner.isBusy(chatId) && store.chatProviderHandoffs.get(chatId)?.state === "uncertain");
   assert.equal(provider.calls.length, 1);
   assert.equal(runner.queueState(chatId).messages.length, 1);
-  await assert.rejects(runner.send(chatId, "再送"), /引き継ぎを確認/);
+  await assert.rejects(runner.message(chatId, { text: "再送" }), /引き継ぎを確認/);
   assert.equal(provider.calls.length, 1);
 });
 
@@ -86,7 +86,7 @@ test("受信不明では確認せず再送せず、利用者が対象の切り�
   const { store, runner, project } = setupCore(provider, { uploads: new UploadStore(tempDir()) });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const switched = store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
-  await runner.send(chat.id, "最初の指示");
+  await runner.message(chat.id, { text: "最初の指示" });
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "uncertain");
   await assert.rejects(runner.retryProviderHandoff(chat.id), /再試行できる/);
   await assert.rejects(runner.confirmResendProviderHandoff(chat.id, switched.event.id + 1), /状態が変わりました/);
@@ -105,7 +105,7 @@ test("以前のセッションが存在しないと確定した場合だけ、�
   const before = store.events.add(chat.id, { type: "user", text: "前の AI に話した大事な内容", message_uuid: "old" });
   store.chatProviderSessions.save(chat.id, "codex", "missing-session", before.id);
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "差分だけ", state: "ready", error: null, attachments: [], expectedLastEventId: before.id, afterEventId: before.id, currentLastEventId: null, queueWasPaused: false });
-  await runner.send(chat.id, "続けて");
+  await runner.message(chat.id, { text: "続けて" });
   await until(() => !runner.isBusy(chat.id) && provider.calls.length === 2);
   assert.equal(provider.calls[0].resumeSessionId, "missing-session");
   assert.equal(provider.calls[1].resumeSessionId, null);
@@ -123,7 +123,7 @@ test("セッション消失と確定していない失敗は新規セッショ�
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   store.chatProviderSessions.save(chat.id, "codex", "old", null);
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
-  await runner.send(chat.id, "続けて");
+  await runner.message(chat.id, { text: "続けて" });
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "uncertain");
   assert.equal(provider.calls.length, 1);
   assert.equal(store.chats.get(chat.id)?.session_id, "old");
@@ -138,7 +138,7 @@ test("セッション消失後に会話を作り直せなければ、指示を�
   const old = store.events.add(chat.id, { type: "user", text: "長".repeat(20_001), message_uuid: "old" });
   store.chatProviderSessions.save(chat.id, "codex", "missing-session", old.id);
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "差分", state: "ready", error: null, attachments: [], expectedLastEventId: old.id, afterEventId: old.id, currentLastEventId: null, queueWasPaused: false });
-  await runner.send(chat.id, "続けて");
+  await runner.message(chat.id, { text: "続けて" });
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
   assert.equal(provider.calls.length, 1);
   assert.equal(store.chats.get(chat.id)?.session_id, null);
@@ -150,8 +150,8 @@ test("AI を呼ぶ前に準備が失敗した場合は、引き継ぎを blocked
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
   const { store, project, runner, chatId } = switched(provider);
   store.projects.update(project.id, { repo_path: "/private/tmp/kickoff-missing-workdir-for-handoff-test" });
-  await runner.queueMessage(chatId, "後の指示", {}, [], { hold: true });
-  await runner.send(chatId, "最初の指示");
+  await runner.message(chatId, { text: "後の指示", hold: true, when: "later" });
+  await runner.message(chatId, { text: "最初の指示" });
   await until(() => !runner.isBusy(chatId) && store.chatProviderHandoffs.get(chatId)?.state === "blocked");
   assert.equal(provider.calls.length, 0);
   assert.equal(runner.queueState(chatId).messages.length, 1);
@@ -164,7 +164,7 @@ test("送信前の失敗を再試行すると元の発言を重複させず同�
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
   store.projects.update(project.id, { repo_path: "/private/tmp/kickoff-missing-workdir-for-handoff-test" });
-  await runner.send(chat.id, "最初の指示");
+  await runner.message(chat.id, { text: "最初の指示" });
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
   store.projects.update(project.id, { repo_path: project.repo_path });
   await runner.retryProviderHandoff(chat.id);
@@ -180,7 +180,7 @@ test("再試行時に送信中の印を取った後でも AI の起動前に失�
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   store.providerSwitch.commit({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
   store.projects.update(project.id, { repo_path: "/private/tmp/kickoff-missing-workdir-for-handoff-test" });
-  await runner.send(chat.id, "最初の指示");
+  await runner.message(chat.id, { text: "最初の指示" });
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
   await runner.retryProviderHandoff(chat.id);
   await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");

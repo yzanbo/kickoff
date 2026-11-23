@@ -26,8 +26,8 @@
 
 ## 送る・伝える
 
-- 送る口は `message`（`POST …/messages` の `when`）1 本で、`send`・`tell`・`queueMessage` は殻の中の別名。`start` は作ってすぐ動かし、`when` なしは作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
-- `tell` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`（口がまだなら置いた時点で `held`）。
+- 送る口は `message`（`POST …/messages` の `when`）1 本、送信待ちは `queue`・`queueSend`。`start` は作ってすぐ動かし、`when` なしは作業中なら 409。名前は 1 行目で付け、AI にも付けてもらう（その間に変われば置き換えない）。
+- `when: now` は作業中なら預かりに置き、口ができたら頭から足す（`pumpNow`）。結果は `told` / `queued` / `sent` / `held`（口がまだなら置いた時点で `held`）。
 - 足せなければ預かり、作業の終わりに送信待ちより先に送る（以後の「いま」も `closed` で預かる）。理由は `holdOf` 1 つ（`machine/state.ts`）。
 - 発言の印（`MessageMarks`）はどの道も `marksOf`（`@shared/chat/handoff`）で通す。自分の発言 `user` には `message_uuid`（ファイルを戻す目印）を残す。
 - 自分で送ったら再開の段取りをやめる。質問として送る（`pause_after`）は `pauseAtHead` か `setStopAfter` の印にする。

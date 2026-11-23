@@ -221,7 +221,7 @@ const CASES: Record<string, () => Promise<string>> = {
     const chat = await runner.start({ projectId: project.id, prompt: "ページを開いて" });
     await until(() => store.chats.get(chat.id)?.status === "completed");
     store.settings.update({ link_open_in: "browser" });
-    await runner.send(chat.id, "もう一度開いて");
+    await runner.message(chat.id, { text: "もう一度開いて" });
     await until(() => store.chats.get(chat.id)?.status === "completed" && provider.calls.length === 2);
     return promptRecord({ "systemPrompt（Kickoff のブラウザ）": provider.calls[0].systemPrompt, "systemPrompt（既定のブラウザ）": provider.calls[1].systemPrompt }, [chat.id]);
   },

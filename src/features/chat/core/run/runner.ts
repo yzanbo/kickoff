@@ -22,10 +22,9 @@ import type { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import type { Log } from "@/foundation/core/kernel";
 import type { ChatLive, PrepareReason, QueueState } from "@shared/chat/chatLive";
-import type { Attachment, Chat, ChatOptionsPatch } from "@shared/chat/types";
+import type { Chat } from "@shared/chat/types";
 import type { SendBody, SendResult } from "@shared/chat/send";
 import type { ProviderId } from "@shared/settings/types";
-import type { SendOpts } from "./queueWindow";
 import { compactPromptFor } from "@shared/chat/prompts";
 
 /** 殻と 1 回の実行が使うもの（createChat が組む。上の機能の口は登録で受ける） */
@@ -89,8 +88,6 @@ export interface ChatRunPort {
   start(input: StartChatInput): Promise<Chat>;
   /** 送る口 1 本（when: now = 止めずに伝える / later = 作業中なら送信待ちへ / 省けば作業中は 409） */
   message(chatId: number, body: SendBody): Promise<SendResult>;
-  send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
-  setQueuePaused(chatId: number, paused: boolean): Promise<boolean>;
   /** 作業中でないと確かめてから準備の段階で用意して確定する（失敗なら戻す。idle.ts。作業場所の移動が使う） */
   withIdleChat<T>(chatId: number, why: PrepareReason, action: string, fn: (h: IdleChat) => Promise<T>, opts?: IdleChatOptions): Promise<T>;
   /** 作業の終わりに行う予約（turnEnd.ts） */
@@ -140,7 +137,7 @@ export function createChatRunner(deps: RunnerDeps) {
   const forgetHooks: ((chatId: number) => void)[] = [];
   // 1 回の実行に渡すもの（上の機能の口は attach で両方に足す）
   shell.turnDeps = { ...shell.deps };
-  shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.send(chatId, text), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
+  shell.recovery = new ChatRecovery({ store: deps.store, approvals: deps.approvals, runs: shell.runs, clock: shell.deps.clock, dispatch: (chatId, event) => shell.dispatch(chatId, event), send: (chatId, text) => window.message(chatId, { text }), usage: deps.usage, reconnect: deps.reconnect, usageLimit: deps.usageLimit });
   // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
   deps.providerHandoff?.onBoot();
   // 再起動しても送信待ちの列は残す（読み戻した列は止めておく）。作業の途中で止まった・自動で送るまま残ったチャットは、利用者に聞く

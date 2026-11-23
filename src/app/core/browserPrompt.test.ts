@@ -17,7 +17,7 @@ test("ブラウザの開き先を Claude Code と Codex に共通で伝え、同
     assert.equal(store.chats.get(chat.id)?.provider, id);
     assert.match(provider.calls[0].systemPrompt, /既定の開き先は「Kickoff のブラウザ」/);
     store.settings.update({ link_open_in: "browser" });
-    await runner.send(chat.id, "もう一度開いて");
+    await runner.message(chat.id, { text: "もう一度開いて" });
     await until(() => store.chats.get(chat.id)?.status === "completed" && provider.calls.length === 2);
     assert.match(provider.calls[1].systemPrompt, /既定の開き先は「既定のブラウザ」/);
     assert.doesNotMatch(provider.calls[1].systemPrompt, /既定の開き先は「Kickoff のブラウザ」/);

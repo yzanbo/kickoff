@@ -14,7 +14,7 @@ test("新しいチャットを作っている間（最初の発言の下ごし�
     const made = create(input);
     queueMicrotask(() => {
       busy = runner.isBusy(made.id);
-      during = runner.send(made.id, "2");
+      during = runner.message(made.id, { text: "2" });
     });
     return made;
   });

@@ -7,8 +7,8 @@ test("Runner の切り替えは待っている指示の ID と停止状態を保
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
   const { store, runner, project } = setupCore(provider, { uploads: testUploads() });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  await runner.queueMessage(chat.id, "後で送る", { permission_mode: "auto" }, [], { hold: true });
-  await runner.setQueuePaused(chat.id, true);
+  await runner.message(chat.id, { text: "後で送る", options: { permission_mode: "auto" }, hold: true, when: "later" });
+  await runner.queue(chat.id, [{ op: "set_paused", paused: true }]);
   const queued = runner.queueState(chat.id).messages[0];
   const result = await runner.switchProvider(chat.id, "claude", "codex");
   assert.equal(result.chat.provider, "codex");
@@ -29,13 +29,13 @@ test("切り替え準備中の割り込み送信は待ちの指示を消さず�
   provider.status = async () => { await gate; return originalStatus(); };
   const { store, runner, project } = setupCore(provider, { uploads: testUploads() });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
-  await runner.queueMessage(chat.id, "待つ", {}, [], { hold: true });
-  await runner.setQueuePaused(chat.id, true);
+  await runner.message(chat.id, { text: "待つ", hold: true, when: "later" });
+  await runner.queue(chat.id, [{ op: "set_paused", paused: true }]);
   const first = runner.queueState(chat.id).messages[0];
   const switching = runner.switchProvider(chat.id, "claude", "codex");
-  await assert.rejects(runner.sendQueuedNow(chat.id, first.id), /引き継ぎを確認/);
-  await assert.rejects(runner.tell(chat.id, "いま"), /切り替え中/);
-  await runner.queueMessage(chat.id, "追加", {}, [], { hold: true });
+  await assert.rejects(runner.queueSend(chat.id, { mode: "now", ids: [first.id] }), /引き継ぎを確認/);
+  await assert.rejects(runner.message(chat.id, { text: "いま", when: "now" }), /切り替え中/);
+  await runner.message(chat.id, { text: "追加", hold: true, when: "later" });
   release();
   await assert.rejects(switching, /送信待ちやチャットの状態が変わった/);
   assert.equal(store.chats.get(chat.id)?.provider, "claude");
@@ -63,7 +63,7 @@ test("切り替え中に増えた指示は、切り替え中止後に元の AI �
   const { store, runner, project } = setupCore(provider, { uploads: testUploads() });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const switching = runner.switchProvider(chat.id, "claude", "codex");
-  await runner.queueMessage(chat.id, "切り替え中の指示");
+  await runner.message(chat.id, { text: "切り替え中の指示", when: "later" });
   release();
   await assert.rejects(switching, /送信待ちやチャットの状態が変わった/);
   assert.equal(runner.queueState(chat.id).paused, true);

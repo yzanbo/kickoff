@@ -195,7 +195,7 @@ test("チャットを作るツール: 子チャットは孫チャットまで（
 
 /** チャットにもう 1 回送り、その実行に渡したツール */
 async function turnOf(ctx: Ctx, chatId: number) {
-  await ctx.runner.send(chatId, "続き");
+  await ctx.runner.message(chatId, { text: "続き" });
   await until(() => !ctx.runner.isBusy(chatId) && ctx.provider.calls.at(-1)?.prompt.includes("続き") === true);
   return { createChat: createChatOf(ctx) };
 }
