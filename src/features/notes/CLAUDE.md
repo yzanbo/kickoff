@@ -6,7 +6,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `core/notes.ts`・`noteWatcher.ts` | 一覧・読み書き・移動・ゴミ箱（フォルダは `NoteService.dirOf`）・外の変更の知らせ |
+| `core/service.ts`・`noteDir.ts`・`noteAi.ts`・`noteChat.ts`・`noteWatcher.ts` | 一覧・読み書き・移動・ゴミ箱・場所（書く前に `ensureNoteDir`）・AI・チャット・外の変更 |
 | `ui/NoteTab`・`NoteTree`・`noteDrag.ts`・`useNoteActions` | ノートのタブ（一覧・右のタブ 欄 `notes`）・木・操作 |
 | `ui/NoteView`・`NoteEditor`・`livePreview*.ts`・`useNoteDocument` | 開いたノート・編集（CodeMirror）・保存 |
 | `ui/HtmlNotePage`・`htmlPage.ts` | HTML のノートのページ（読むファイルは `@/foundation/core/http/assets.ts` の `assetResponse`） |
@@ -31,7 +31,7 @@
 
 ## 落とし穴
 
-- ノートの名前を変える・動かすと、ノートのチャットと DB の手順ノートを `remapNotePath` で付け替える。ゴミ箱に入れると、ノートのチャットも同じ行に入れる（`trashNoteChats`。kickoff-trash でも）。
+- 動かす・ゴミ箱に入れると `onMoved`・`onTrashed` で知らせ、ノートのチャット（chat の `noteChats`）と DB の手順ノートを付け替える・同じ行に入れる。
 - 外の変更の知らせは重なって届くので、画面は指紋で読み直しを省く。保存は開いたときの指紋と比べ、取りこぼしても古いまま見せないよう窓に戻ったときも確かめる（`checkFresh`）。
 - HTML のノートのページは iframe の srcdoc。sandbox は `allow-same-origin` だけ（中の JavaScript・フォームを動かさない）。配色は明るい側に決める（理由は `note-editor.css`）。中の押下・キー（⌘F・⌘S）は親に届かないので、`HtmlNotePage` が受けて伝え直す。
 - ノートのチャットの欄とノートの下の入力欄は同じ下書き（`chatComposerDraft`）。欄は閉じても描いたまま置く。

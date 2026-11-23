@@ -12,7 +12,6 @@ import { terminalToolGroup } from "@/features/terminal/core/tools";
 import { notifyToolGroup } from "@/features/notifications/core/tools";
 import { diagnosticToolGroup } from "@/features/guard/core/index";
 import { moveNoteToolGroup, openNoteToolGroup } from "@/features/notes/core/tools";
-import type { NoteService } from "@/features/notes/core/notes";
 import { openFileToolGroup } from "@/features/files/core/tools";
 import { openDiffToolGroup } from "@/features/git/core/tools";
 import { snippetToolGroup } from "@/features/snippets/core/tools";
@@ -94,7 +93,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   });
   const finisher = unused<AiWorktreeFinish>("worktreeFinisher");
   const { store, runner } = core;
-  const noteTools = { store, notes: unused<NoteService>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
+  const noteTools = { store, notes: unused<Parameters<typeof openNoteToolGroup>[0]["notes"]>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
   core.runner.provide({
     chatRemover: unused<ChatRemover>("chatRemover"),
     aiTools: () => [

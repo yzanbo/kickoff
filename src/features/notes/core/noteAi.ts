@@ -1,7 +1,19 @@
-// ノートの AI の、AI に送る文と答えの読み方（純粋関数）: フォルダの整理案（案を返すだけで、ノートは動かさない。動かすかは画面で決める）と、
-// 既存のノートにチャットの文を取り込んだまとめ直し
+// ノートの AI: チャットの文からノートを作る・足す（要約・既存のノートとのまとめ直し）と、フォルダの整理案（案を返すだけで、ノートは動かさない。動かすかは画面で決める）。
+// AI に送る文と答えの読み方は純粋関数（テストは noteAi.test.ts）
+import fs from "node:fs/promises";
 import path from "node:path";
-import type { NoteEntry, NotePlan, NotePlanMove } from "@shared/notes/types";
+import { noteKindOf } from "@shared/notes/kinds";
+import { chatNoteName } from "@shared/notes/names";
+import { UNTITLED_CHAT_TITLE, type Chat } from "@shared/chat/types";
+import { NOTE_EXTENSION, type NoteEntry, type NotePlan, type NotePlanMove, type NoteRef } from "@shared/notes/types";
+import type { Project } from "@shared/projects/types";
+import type { ProviderId } from "@shared/settings/types";
+import { asInvalid, Invalid } from "@/foundation/core/errors";
+import { askSummary, canAsk, type AgentProvider } from "@/features/ai/core/index";
+import type { NoteService } from "./service";
+
+/** チャットから作るノートの元の文の上限（文字） */
+export const MAX_NOTE_SOURCE_CHARS = 200_000;
 
 /** 整理案を作るときに見せるノートの数・1 つのノートの書き出しの長さ・整理案の数の上限 */
 const MAX_PLAN_FILES = 300;
@@ -114,4 +126,83 @@ export function parseMergedNote(answer: string): string | null {
   const fenced = /^```(?:markdown|md)?\n([\s\S]*?)\n```$/.exec(trimmed);
   const body = (fenced ? fenced[1] : trimmed).trim();
   return body ? `${body}\n` : null;
+}
+
+/** チャットから作る・足すときに、文の前に置く出どころの行（どのチャットの、いつの文か） */
+export function noteSourceLine(chat: Chat, at: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  return `> チャット「${chat.title || UNTITLED_CHAT_TITLE}」から（${time}）`;
+}
+
+/** ノートの AI（プロジェクトのプロバイダーに聞く。対応していない・答えがなければ 400） */
+export function createNoteAi(d: { notes: Pick<NoteService, "list" | "read" | "write" | "create">; providers: Record<ProviderId, AgentProvider> }) {
+  /** 1 回だけ聞く（質が要るので sonnet） */
+  const ask = async (project: Project, prompt: string): Promise<string> => {
+    const provider = d.providers[project.provider];
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、ノートの整理・まとめに対応していません");
+    const answer = await provider.ask(prompt, { model: "standard" }).catch(asInvalid);
+    if (!answer.trim()) throw new Invalid("AI から答えがありませんでした");
+    return answer;
+  };
+  const summarize = async (project: Project, text: string): Promise<string> => {
+    const provider = d.providers[project.provider];
+    if (!canAsk(provider)) throw new Invalid("このプロジェクトの AI は、要約に対応していません");
+    const summary = await askSummary(provider, text).catch(asInvalid);
+    if (!summary) throw new Invalid("要約できませんでした");
+    return summary;
+  };
+  return {
+    /**
+     * チャットの文からノートを作る・足す。summarize なら要約してから。appendTo があれば、そのノートの最後に区切り線を挟んで足す
+     * （merge なら、AI がそのノートと合わせてノート全体をまとめ直して書き換える）。なければ folder（null なら直下）に「<チャット名> チャットノート<n>.md」を作る
+     */
+    async fromChat(project: Project, chat: Chat, input: { text: string; summarize: boolean; merge: boolean; appendTo: string | null; folder: string | null }): Promise<NoteRef> {
+      if (input.merge && !input.appendTo) throw new Invalid("組み込むノートを選んでください");
+      const source = noteSourceLine(chat, new Date());
+      const body = input.summarize && !input.merge ? await summarize(project, input.text) : input.text.trim();
+      const block = `${source}\n\n${body}\n`;
+      if (input.appendTo) {
+        // HTML のノートの最後に Markdown の文を足すと、ページの外（</html> のあと）に出てしまうので足さない
+        if (noteKindOf(input.appendTo) !== "markdown") throw new Invalid("HTML のノートには追記できません（Markdown のノートを選んでください）");
+        const current = await d.notes.read(project, input.appendTo);
+        if (current.binary || current.truncated) throw new Invalid("このノートには足せません（大きすぎるか、文字のファイルではありません）");
+        const merged = input.merge ? parseMergedNote(await ask(project, noteMergePrompt(current.content, body, source))) : null;
+        if (input.merge && !merged) throw new Invalid("AI がノートをまとめられませんでした");
+        const content = merged ?? `${current.content.replace(/\s+$/, "")}\n\n---\n\n${block}`;
+        await d.notes.write(project, input.appendTo, content, current.hash);
+        return { path: input.appendTo };
+      }
+      const folder = input.folder ?? "";
+      const { entries } = await d.notes.list(project);
+      const names = entries
+        .filter((e) => !e.dir && e.path.slice(0, Math.max(e.path.lastIndexOf("/"), 0)) === folder && e.path.endsWith(NOTE_EXTENSION))
+        .map((e) => path.posix.basename(e.path, NOTE_EXTENSION));
+      const name = chatNoteName(chat.title || UNTITLED_CHAT_TITLE, names);
+      const file = folder ? `${folder}/${name}${NOTE_EXTENSION}` : `${name}${NOTE_EXTENSION}`;
+      return d.notes.create(project, file, { dir: false, content: `# ${name}\n\n${block}` });
+    },
+    /** ノートのフォルダの整理案（名前の変更・移動。AI に一覧と書き出しを見せて作り、使える案だけを返す。動かしはしない） */
+    async aiPlan(project: Project, instruction: string | null): Promise<NotePlan> {
+      const list = await d.notes.list(project);
+      const files = list.entries.filter((e) => !e.dir);
+      if (files.length === 0) return { moves: [], skipped: 0 };
+      const heads: PlanFile[] = await Promise.all(files.slice(0, MAX_PLAN_FILES).map(async (e) => ({ path: e.path, head: await readHead(path.join(list.dir, e.path)) })));
+      const dirs = list.entries.filter((e) => e.dir).map((e) => e.path);
+      return parseNotePlan(await ask(project, notePlanPrompt(heads, dirs, instruction)), list.entries);
+    },
+  };
+}
+
+/** ノートの書き出し（整理案を作るときに見せる。読めなければ空） */
+async function readHead(file: string): Promise<string> {
+  const handle = await fs.open(file, "r").catch(() => null);
+  if (!handle) return "";
+  try {
+    const buf = Buffer.alloc(1024);
+    const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+    return buf.subarray(0, bytesRead).toString("utf8").replace(/\uFFFD+$/, "");
+  } finally {
+    await handle.close();
+  }
 }

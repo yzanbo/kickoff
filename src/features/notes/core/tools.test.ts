@@ -5,12 +5,11 @@ import path from "node:path";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/foundation/contract";
 import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
-import type { AgentProvider } from "@/features/ai/core/index";
-import type { ProviderId } from "@shared/settings/types";
 import { testStore } from "@/app/core/testing/testStore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { callDef, testTurn } from "@/foundation/core/testing/toolCalls";
-import { NoteService } from "./notes";
+import { createNoteDirs } from "./noteDir";
+import { NoteService } from "./service";
 import { moveNoteToolGroup, notePathIn, openNoteToolGroup } from "./tools";
 
 /** 組のツールを chatId のチャットから呼ぶ */
@@ -25,9 +24,12 @@ function setup() {
   const root = store.chats.create({ ...base, title: "根", parent_chat_id: null });
   const child = store.chats.create({ ...base, title: "子", parent_chat_id: root.id });
   const grandchild = store.chats.create({ ...base, title: "孫", parent_chat_id: child.id });
-  // ノートの案を AI に聞く口は使わない
-  const notes = new NoteService({ store, defaultDir: tempDir(), providers: {} as Record<ProviderId, AgentProvider>, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
-  const dir = notes.dirOf(store.projects.get(project.id)!);
+  const dirs = createNoteDirs({ projects: store.projects, notesDir: () => null, defaultDir: tempDir() });
+  const service = new NoteService({ dirs, projects: store.projects, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
+  // 動かしたらノートのチャットを付け替える（組み立てと同じ）
+  service.onMoved((e) => store.chats.remapNotePath(e.project_id, e.from, e.to));
+  const notes = { dirOf: dirs.dirOf, move: service.move.bind(service) };
+  const dir = dirs.dirOf(store.projects.get(project.id)!);
   fs.mkdirSync(path.join(dir, "機能の仕様"), { recursive: true });
   fs.mkdirSync(path.join(dir, "済"), { recursive: true });
   fs.writeFileSync(path.join(dir, "機能の仕様", "図.html"), "<h1>図</h1>");

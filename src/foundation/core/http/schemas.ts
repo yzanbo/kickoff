@@ -2,13 +2,12 @@ import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "@/foundation/core/system/paths";
 import { type Attachment, type AttachmentSource, type ChatOptionsPatch, type GitHubLink, ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX } from "@shared/chat/types";
-import type { NoteChatBody } from "@shared/foundation/apiTypes";
 import { HANDOFF_VIAS } from "@shared/chat/chatEvent";
 import { GITHUB_KINDS } from "@shared/github/types";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS } from "@shared/settings/types";
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/userView/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
-import { branchName, folderPath, repoPath } from "./zodParts";
+import { branchName, folderPath } from "./zodParts";
 
 // ルートで共通に使う zod の形と上限のうち、機能の言葉を持つもの（機能に依らない部品は zodParts.ts。検証の失敗の 400 は http/app.ts の onError）
 
@@ -147,7 +146,7 @@ export const userViewSchema = z.object({
 
 // 送る指示（文・選択・添付。@shared/chat/types の MessageBody）。新しいチャット・続き・止めずに伝える・送信待ちで同じ形にし、ルートごとの項目だけを足す。本文が空でも、添付があれば送れる。
 // user_view は送った時点の画面の様子（この Mac の画面から送ったときだけ）。形は userView が onUserSend で確かめて覚える（形が違えば覚えないだけで、送るのは断らない）
-const messageShape = { text: messageText.default(""), options: chatOptionsSchema, attachments: attachmentsSchema.default([]), user_view: z.unknown().optional() };
+export const messageShape = { text: messageText.default(""), options: chatOptionsSchema, attachments: attachmentsSchema.default([]), user_view: z.unknown().optional() };
 /** 発言の印（子チャットに親への依頼文を頼む・子チャットから渡した依頼）。送る・伝える・送信待ちで同じ */
 const marksShape = {
   handoff_request: z.boolean().optional(),
@@ -178,9 +177,6 @@ export const newChatSchema = z
     provider: z.enum(PROVIDER_IDS).optional(),
   })
   .refine(hasContent, CONTENT_REQUIRED);
-
-/** ノートのチャットの最初の指示（どのノートについてのチャットか） */
-export const noteChatSchema = z.object({ ...messageShape, path: repoPath }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NoteChatBody>;
 
 /** 子チャットで聞く（文か添付が要る。選んだ文の引用は任意。inherit なら親の会話を引き継ぐ） */
 export const childChatSchema = z

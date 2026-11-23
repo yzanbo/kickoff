@@ -64,7 +64,8 @@ function register(app: Hono, entry: MountEntry, context: Readonly<Record<string,
   if (entry.spec.workdir && !names.includes("projectId")) throw new Error(`workdir はパスに :projectId があるルートだけです: ${entry.key}`);
 
   app.on(method, path, async (c, next) => {
-    const ctx: Record<string, unknown> = { raw: c };
+    let also = false;
+    const ctx: Record<string, unknown> = { raw: c, useAlsoStatus: () => void (also = true) };
     const arounds: ((run: () => Promise<Response>) => Promise<Response>)[] = [];
     for (const name of names) {
       const param = context[name];
@@ -88,7 +89,8 @@ function register(app: Hono, entry: MountEntry, context: Readonly<Record<string,
     const handle = async (): Promise<Response> => {
       ctx.body = await bodyOf(c, entry);
       ctx.query = entry.query ? entry.query.parse(queryOf(c, entry.query)) : undefined;
-      return respond(c, next, entry.spec, await entry.run(ctx));
+      const reply = await entry.run(ctx);
+      return respond(c, next, entry.spec, reply, also);
     };
     // 引数の包み（プロジェクトの GitHub のアカウントなど）を、パスの順に外から当てる
     return arounds.reduceRight<() => Promise<Response>>((inner, around) => () => around(inner), handle)();
@@ -120,7 +122,7 @@ const isArray = (t: z.ZodType): boolean =>
   t instanceof z.ZodOptional || t instanceof z.ZodNullable || t instanceof z.ZodDefault ? isArray(t.unwrap() as z.ZodType) : t instanceof z.ZodArray;
 
 /** 受け口の戻り値を種類ごとの応答にする（失敗は投げるだけ。http/app.ts の onError がまとめる） */
-async function respond(c: Context, next: Next, spec: MountEntry["spec"], reply: unknown): Promise<Response> {
+async function respond(c: Context, next: Next, spec: MountEntry["spec"], reply: unknown, also: boolean): Promise<Response> {
   switch (spec.kind) {
     case "blob":
       return fileResponse(c, reply as FileReply);
@@ -131,7 +133,7 @@ async function respond(c: Context, next: Next, spec: MountEntry["spec"], reply: 
     case "raw":
       return reply as Response;
     default: {
-      const status = reply === undefined && spec.alsoStatus ? spec.alsoStatus : spec.status;
+      const status = (reply === undefined || also) && spec.alsoStatus ? spec.alsoStatus : spec.status;
       return status === 204 ? c.body(null, 204) : c.json(reply ?? null, status);
     }
   }

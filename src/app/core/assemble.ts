@@ -29,7 +29,7 @@ import { createTerminal, type TerminalSessions } from "@/features/terminal/core/
 import { createPorts, type PortWatch } from "@/features/ports/core/index";
 import { createVisuals } from "@/features/visuals/core/index";
 import { createRemoteImages, type RemoteImageService } from "@/features/remoteImages/core/index";
-import { createNotes, projectNoteFolder, type NoteService } from "@/features/notes/core/index";
+import { createNotes, projectNoteFolder, type NotesApi } from "@/features/notes/core/index";
 import { createDatabase, type DatabaseService } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
 import { deviceEventTypes } from "@shared/foundation/contract";
@@ -54,7 +54,7 @@ export interface AppAssembly extends AssembledCore {
     github: GitHubApi;
     terminals: TerminalSessions;
     ports: PortWatch;
-    notes: NoteService;
+    notes: NotesApi;
     databases: DatabaseService;
     remoteImages: RemoteImageService;
   };
@@ -102,8 +102,8 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const docker = createDocker(k, { projects: projects.api, guard: guard.api }, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, projects: projects.api, ai: ai.api, docker: docker.api, chat: chat.api, workplaceMove: workplaceMove.api });
   const github = createGitHub(k, { git: git.api, worktrees: worktrees.api, projects: projects.api, chat: chat.api, ai: ai.api }, env.github);
-  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api, remapDbNotes: (projectId, from, to) => database.api.stores.dbConnections.remapNotePath(projectId, from, to) }, env.notes);
-  const database = createDatabase(k, { projects: projects.api, ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
+  const notes = createNotes(k, { trash: trash.api, projects: projects.api, ai: ai.api, chat: chat.api, attachments: attachments.api }, env.notes);
+  const database = createDatabase(k, { projects: projects.api, ai: ai.api, chat: chat.api, notes: notes.api, docker: docker.api, worktrees: worktrees.api, guard: guard.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api, projects: projects.api, chat: chat.api, devices: devices.api.store, workplaceMove: workplaceMove.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser(k, { chat: chat.api }, { control: env.browser });
   // チャットの 1 回の実行が終わったら、通知の判断へ（通知は chat より下の機能なので、組み立てがつなぐ）

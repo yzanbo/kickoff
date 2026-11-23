@@ -66,6 +66,8 @@ export type HandlerCtx<K, Zb, Zq, Ctx> = { [N in ParamNames<PathOf<K & string>>]
   query: Out<Zq>;
   readonly caller: Caller;
   readonly workdir: string;
+  /** 成功の状態コードを取り決めの alsoStatus にする（作った 201 と、足した 200 のように返す値のある 2 つを分けるルート） */
+  readonly useAlsoStatus: () => void;
   raw: Context;
 };
 

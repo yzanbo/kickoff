@@ -33,6 +33,7 @@ import type { DatabaseStats } from "@shared/chat/databaseStats";
 import type { Chat } from "@shared/chat/types";
 import { createChatStores, type ChatStoreDeps } from "./stores";
 import { descendantsOf } from "./family";
+import { createNoteChatLink, type NoteChatLink } from "./notesLink";
 import type { GroupsApi } from "@/features/groups/core/index";
 
 export type { ChatRunner, ChatRunPort } from "./run/runner";
@@ -50,7 +51,7 @@ export { forkFrom, resumePointBefore } from "./sessionPoints";
 export { replaceSession, type SessionTrash } from "./sessionSwitch";
 export type { ChatAttachments, ChatDetachPort, ProviderHandoffPort, ProviderSwitchPort } from "./ports";
 export type { ChatStoreDeps, ChatStores } from "./stores";
-export { trashNoteChats, trashNoteChatsOnImport } from "./sessions/chatTrash";
+export type { NoteChatLink } from "./notesLink";
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
 const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
@@ -95,6 +96,8 @@ export interface ChatApi {
   mcpTools: McpToolHost;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat） */
   chatRemover: ChatRemover;
+  /** ノートとノートのチャットの行き来（notes が呼ぶ。動かした・ゴミ箱へ入れたノートのチャットを付け替える・一緒に入れる） */
+  noteChats: NoteChatLink;
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（ほかの Kickoff が使っていれば入れない。作業場所を移すときも） */
   sessionTrash: SessionTrash;
@@ -199,6 +202,7 @@ export function createChat(k: Kernel, deps: ChatDeps, env: ChatEnv): CoreFeature
       streamingText: deltas.streamingText,
       mcpTools,
       chatRemover,
+      noteChats: createNoteChatLink({ store, runner, publish: (e) => bus.publish(e) }),
       sessionsElsewhere,
       sessionTrash,
       provideDetach: (port) => runner.provide({ detach: port }),

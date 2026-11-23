@@ -267,9 +267,11 @@ test("ノートのチャット: ノートごとに 1 つのふつうのチャッ
   await until(() => events.some((e) => e.type === "notes" && e.path === null));
   provider.emits = [];
   await until(() => store.chats.get(created.body.id)?.status === "completed");
-  // フォルダの名前を変えると、中のノートのチャットも付け替える
+  // フォルダの名前を変えると、中のノートのチャットと DB の接続の手順ノートも付け替える
+  const conn = store.dbConnections.create(project.id, { name: "DB", engine: "sqlite", environment: "local", host: null, port: null, database: null, username: null, file_path: "app.db", ssl: null, read_only: false, ai_access: "allow", note_path: "設計/画面.md", password: null });
   await call("POST", `${base}/notes/move`, { from: "設計", to: "仕様" });
   assert.equal(store.chats.get(created.body.id)?.note_path, "仕様/画面.md");
+  assert.equal(store.dbConnections.get(conn.id)?.note_path, "仕様/画面.md");
   // ゴミ箱に入れたら、そのノートのチャットも同じ行でゴミ箱へ（一覧は 1 行）。別の名前で戻すと、チャットも戻って付け替わる
   const trashed = await call("DELETE", `${base}/note?path=${encodeURIComponent("仕様/画面.md")}`);
   assert.equal(store.chats.get(created.body.id), undefined);

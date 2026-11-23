@@ -15,7 +15,7 @@ type SuccessStatus = 200 | 201 | 202 | 204;
 export interface RouteSpec<B = never, R = unknown, Q = never, K extends RouteKind = RouteKind> {
   readonly kind: K;
   readonly status: SuccessStatus;
-  /** 成功の状態コードがもう 1 つある（受け口が undefined を返したときの状態コード。応答の型 R に | undefined を書く） */
+  /** 成功の状態コードがもう 1 つある（受け口が undefined を返したか useAlsoStatus を呼んだときの状態コード。undefined を返すなら応答の型 R に | undefined を書く） */
   readonly alsoStatus?: SuccessStatus;
   readonly access?: Access;
   /** ?worktree= を作業場所に解く（パスに :projectId があるルートだけ） */

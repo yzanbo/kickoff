@@ -10,7 +10,8 @@ import type { BusEvent } from "@shared/foundation/contract";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { OPEN_PLACE_LABELS } from "@shared/chat/openView";
 import { lineageOf, openPlaceInput, toolChat, type ChatStoreDeps } from "@/features/chat/core/index";
-import type { NoteService } from "./notes";
+import type { NoteDirs } from "./noteDir";
+import type { NoteService } from "./service";
 
 /**
  * AI が渡したパスを、ノートのフォルダからの相対パス（「/」区切り）にする。絶対パスはノートのフォルダの中だけ（リンクを解いた形でも比べる）。
@@ -31,7 +32,7 @@ export function notePathIn(dir: string, given: string): string {
 interface NoteToolDeps {
   /** チャットの店（chat はノートより先に作る） */
   store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">;
-  notes: Pick<NoteService, "dirOf" | "move">;
+  notes: Pick<NoteDirs, "dirOf"> & Pick<NoteService, "move">;
   /** 画面に頼む（SSE） */
   publish: (event: BusEvent) => void;
 }

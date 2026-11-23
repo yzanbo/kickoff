@@ -1,5 +1,5 @@
 import type { Chat, NoteAttachment } from "@shared/chat/types";
-import type { NoteChatBody, NoteFromChatBody } from "@shared/foundation/apiTypes";
+import type { NoteChatBody, NoteFromChatBody } from "@shared/notes/api";
 import type { FileContent, SavedFile } from "@shared/foundation/fileTypes";
 import type { NoteDefaults, NoteDirUsers, NoteList, NotePlan, NoteRef, NoteSearchResult } from "@shared/notes/types";
 import type { TrashedResult } from "@shared/trash/types";

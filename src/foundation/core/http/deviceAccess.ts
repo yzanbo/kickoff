@@ -17,21 +17,6 @@ export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/uploads"],
   ["GET", "/api/uploads/:id"],
   ["GET", "/api/chats/:id/tool-image"],
-  // ノート（一覧・読む・書く・作る・動かす・ゴミ箱・ノートのチャット・探す）
-  ["GET", "/api/notes/defaults"],
-  ["GET", "/api/notes/users"],
-  ["GET", "/api/notes/search"],
-  ["GET", "/api/projects/:id/notes"],
-  ["GET", "/api/projects/:id/note"],
-  ["GET", "/api/projects/:id/note/file/*"],
-  ["PUT", "/api/projects/:id/note"],
-  ["DELETE", "/api/projects/:id/note"],
-  ["POST", "/api/projects/:id/notes"],
-  ["POST", "/api/projects/:id/notes/move"],
-  ["POST", "/api/projects/:id/note/snapshot"],
-  ["POST", "/api/projects/:id/note/chat"],
-  ["POST", "/api/projects/:id/notes/ai-plan"],
-  ["POST", "/api/projects/:id/notes/from-chat"],
 ];
 
 /**

@@ -1,6 +1,6 @@
 // HTTP API の本文と応答の形（コアのルートと画面で同じものを使う）。型のみ
 // 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く（取り決めに乗せた機能の形は src/shared/<機能>/ へ移した）
-import type { AttachmentSource, MessageBody } from "@shared/chat/types";
+import type { AttachmentSource } from "@shared/chat/types";
 import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "@shared/github/types";
 import type { Project, ProjectReference } from "@shared/projects/types";
 import type { ProviderId } from "@shared/settings/types";
@@ -143,53 +143,6 @@ export interface GitHubMergeResult {
 /** PR のチェックアウト（POST …/github/pulls/:number/checkout。応答は GitHubPullWorktree） */
 export interface GitHubCheckoutBody {
   place: GitHubCheckoutPlace;
-}
-
-/** ノートを保存する（PUT /api/projects/:id/note。base_hash は開いたときの指紋。null なら確かめずに上書き） */
-export interface NoteWriteBody {
-  path: string;
-  content: string;
-  base_hash: string | null;
-}
-
-/** 新しいノート・フォルダ（POST /api/projects/:id/notes。dir ならフォルダ） */
-export interface NoteCreateBody {
-  path: string;
-  dir?: boolean;
-  content?: string;
-}
-
-/** ノートの名前を変える・動かす（POST /api/projects/:id/notes/move） */
-export interface NoteMoveBody {
-  from: string;
-  to: string;
-}
-
-/**
- * チャットの文からノートを作る・足す（POST /api/projects/:id/notes/from-chat）。summarize なら AI で要約してから。
- * append_to があればそのノートに足し、なければ folder（null なら直下）に「<チャット名> チャットノート<n>」を作る。
- * merge なら append_to のノートと AI でまとめ直し、ノート全体を書き換える（summarize は見ない）
- */
-export interface NoteFromChatBody {
-  chat_id: number;
-  text: string;
-  summarize: boolean;
-  merge?: boolean;
-  append_to: string | null;
-  folder: string | null;
-}
-
-/**
- * ノートのチャットを始める（POST /api/projects/:id/note/chat。最初の指示）。path はどのノートについてのチャットか（ノートのフォルダからの相対パス）。
- * 続きはふつうのチャットと同じく POST /api/chats/:id/messages
- */
-export interface NoteChatBody extends MessageBody {
-  path: string;
-}
-
-/** AI でノートのフォルダの整理案を作る（POST /api/projects/:id/notes/ai-plan）。instruction は頼み（null ならおまかせ） */
-export interface NoteAiPlanBody {
-  instruction: string | null;
 }
 
 // ---- 応答 ----
