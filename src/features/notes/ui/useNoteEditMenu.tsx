@@ -2,7 +2,7 @@ import { Fragment, type MutableRefObject, type ReactNode } from "react";
 import { ClipboardItems } from "@/foundation/ui/kit/ClipboardItems";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { IssueFromTextItem } from "@/features/github/ui/IssueFromTextItem";
+import { IssueFromTextItem } from "@/features/github/ui";
 import type { NoteLines } from "./noteAttachment";
 import type { NoteEditorHandle } from "./NoteEditor";
 import { canOpenExternal, openExternal } from "@/foundation/ui/external/native";

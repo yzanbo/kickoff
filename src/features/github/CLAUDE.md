@@ -8,15 +8,15 @@
 |---|---|
 | `core/index.ts` | チャットの実行の環境変数（order 20。選んだアカウント） |
 | `core/gh.ts`・`account.ts` | gh を動かす唯一の口（トークン・失敗の文 `ghFailureMessage`）・アカウントの文脈 `runAsGitHubAccount` |
-| `core/service.ts`・`core/ghApi.ts` | `GitHubService`（`gh api`。書き込みは `write` に `writes.ts` の関数を渡す。問い合わせ `queries.ts`・純粋な `normalize.ts`）。CI の `CiService`（`ci.ts`・`ciNormalize.ts`）も同じ口 |
+| `core/service.ts`・`core/ghApi.ts` | `GitHubService`（`gh api`。書き込みは `write`）・CI の `CiService`（`ci.ts`） |
 | `core/pulls.ts`・`routes/pulls.ts` | ブランチの PR（取り決め `@shared/github/contract.ts`）。履歴の「プッシュして PR を作る」は `ui/pushPrItem.ts`（git の `branchMenuItems`） |
 | `core/prWatch.ts` | PR の見張り `WorktreePrWatch`（CI の失敗も見る） |
-| `ui/GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文との行き来は `@shared/github/searchQuery`） |
-| `ui/useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges`・`GitHubHtml` | 中身・PR の変更・本文の表示 |
-| `ui/githubHandoff.ts`・`githubPrompt.ts` | AI に渡す（文と札は純粋。テストは隣） |
+| `ui/GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文は `@shared/github/searchQuery`） |
+| `ui/useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges`・`GitHubHtml` | 中身・PR の変更（git の `DiffStack`・`ChangedFiles`）・本文 |
+| `ui/githubHandoff.ts`・`githubPrompt.ts` | AI に渡す |
 | `ui/MergeDialog`・`githubCheckout.ts`・`GitHubReview.tsx` | 書く（マージ・チェックアウト・レビュー） |
-| `ui/githubRefresh.ts` | 取り直し方（`useQuery` に渡す。CI のタブも） |
-| `ui/ci/`・`ui/prNotice/` | CI のタブ（開くのは `ciLinks.ts` の `openCiRun`）・PR の知らせ |
+| `ui/githubRefresh.ts` | 取り直しの間隔（CI も） |
+| `ui/ci/`・`ui/prNotice/` | CI のタブ・PR の知らせ。ほかの機能が開くのは行き先 `githubItem`・`ciRun`（`ui/openTargets.ts`） |
 
 ## 決まり
 
@@ -30,9 +30,11 @@
 
 ## 落とし穴
 
-- `gh api` の文字の変数は `-f`、数は `-F`（`-F` は `@` で始まる値をファイルとして読む）。REST の書き込みの本文は一時ファイルから渡す（`send`）。gh は 304 で終わり値 1 なので状態の行で見分ける。
+- `gh api` の文字の変数は `-f`、数は `-F`（`-F` は `@` で始まる値をファイルとして読む）。REST の書き込みの本文は一時ファイルから渡す（`send`）。304 は終わり値 1 なので状態の行で見分ける。
 - GitHub の項目・`ci_watch`・アーカイブを変えたら `prWatch.checkProject` で聞き直す。
 - 本文の HTML は `GitHubHtml` が DOMPurify で整える。画像は CSP の `img-src` のホストだけ（GitHub Enterprise はそのホストも足す）。非公開の画像はコアの口から読む。
 - 覚えた中身（`api.githubCachedDetail`）は、頼みの番号でなく、まだ何も出していない同じものかで受ける。
 - 動いている実行がある間は短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。失敗を知らせるかは `src/features/notifications/CLAUDE.md`。
-- テストは `setup()` の `ghFake`（`server.github.test.ts`・`server.ci.test.ts`）と `ciView.test.ts`（開くジョブとステップ・札の中身・ログの行）。
+- PR の状態の名前は `@shared/git/prState` の `PR_STATE_LABELS`（帯・知らせ・印で同じ。gh の大文字は `prStateOf`）。
+- レビューの行は `reviewLines.ts` が差分の表の `DIFF_ROW_ATTRS` で読む。
+- テストは `setup()` の `ghFake`（`server.github.test.ts`・`server.ci.test.ts`）と `ciView.test.ts`。

@@ -3,7 +3,7 @@ import { navigate } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage";
 import { storage } from "@/features/github/ui/storage";
 import { ciSelectedText } from "./ciView";
-import { isSideViewShown, showSideView } from "@/features/projects/ui/rightSidebar/sideView";
+import { isSideViewShown, showSideView } from "@/features/projects/ui";
 
 /** CI のタブで開いている実行をそれにする（jobId を渡すと、そのジョブを開く） */
 function selectCiRun(projectId: number, runId: number, jobId: number | null = null) {

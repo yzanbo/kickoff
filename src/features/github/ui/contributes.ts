@@ -2,7 +2,7 @@
 import { messageActions, type MessageMenuContext } from "@/features/conversation/ui";
 import { openTargets } from "@/foundation/ui/navigation/open";
 import { lazyPart } from "@/foundation/ui/points";
-import { githubItemTarget } from "./openTargets";
+import { ciRunTarget, githubItemTarget } from "./openTargets";
 import { projectViews } from "@/features/projects/ui";
 import { ciView, githubView } from "./projectViews";
 import { settingsSections } from "@/features/settings/ui";
@@ -15,6 +15,7 @@ import { pushPrItem } from "./pushPrItem";
 
 export const contributes = [
   openTargets.item(githubItemTarget),
+  openTargets.item(ciRunTarget),
   projectViews.item(githubView),
   projectViews.item(ciView),
   // プロジェクトの設定の「GitHub」の節

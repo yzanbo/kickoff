@@ -3,7 +3,6 @@ import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
 import { api } from "@/foundation/ui/api";
 import { onServerOpen } from "@/foundation/ui/api/events";
 import { openChat } from "@/features/chat/ui";
-import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
 import { open as openTarget } from "@/foundation/ui/navigation/open";
@@ -52,7 +51,7 @@ export function useViewingReport(route: Route) {
 export function useNotificationTargets() {
   useEffect(() => {
     const offChat = window.kickoff?.notifications.onOpenChat((projectId, chatId) => void openNotifiedChat(projectId, chatId));
-    const offCi = window.kickoff?.notifications.onOpenCi((projectId, runId) => openCiRun(projectId, runId));
+    const offCi = window.kickoff?.notifications.onOpenCi((projectId, runId) => openTarget({ kind: "ciRun", projectId, runId }));
     return () => {
       offChat?.();
       offCi?.();
