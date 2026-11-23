@@ -112,7 +112,9 @@
 
   /* 右サイドバーの別ウィンドウ: 中身と右端の列を横に並べる */
 
-  .popout-side-chat {
+  /* 別ウィンドウの枠（PopoutApp.css の .popout-body。同じ詳細度）より強く、横に並べる */
+  .popout-side-chat,
+  .popout-body.popout-side-chat {
     display: flex;
     flex-direction: row;
   }
