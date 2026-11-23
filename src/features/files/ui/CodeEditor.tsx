@@ -8,20 +8,17 @@ import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { storage } from "./storage";
 import type { AppliedTheme } from "@/foundation/ui/theme/appliedTheme";
-import { registerCodeSelection } from "@/foundation/ui/code/codeSelection";
-import { quickDiffDecorations, readSelection } from "./codeEditorParts";
+import { attachBlame, attachFind, attachQuickDiff, attachSaveKeys, attachSelection, type AttachContext, type EditorAttachment } from "./codeEditorParts";
 import { MonacoFindBar } from "./MonacoFindBar";
-import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "@/foundation/ui/diff/DiffTable";
 import type { BlameLines } from "./filesGit";
-import { quickDiff } from "@/foundation/ui/diff/quickDiff";
 import { editorModelUris } from "./editorModels";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };
 
-/** 打つのが止まってから、Git との違いの帯を付け直すまでの時間 */
-const QUICK_DIFF_DELAY_MS = 200;
+/** 作ったエディタへの付け足し（この順に付け、逆の順に外す） */
+const ATTACHMENTS: EditorAttachment[] = [attachSaveKeys, attachQuickDiff, attachBlame, attachSelection, attachFind];
 
 /** アプリの地の色に合わせた VS Code の配色（Dark+ / Light+） */
 function applyTheme(theme: AppliedTheme) {
@@ -164,62 +161,24 @@ export default function CodeEditor({
         const selection = s && !s.isEmpty() ? { from_line: s.startLineNumber, from_column: s.startColumn, to_line: s.endLineNumber, to_column: s.endColumn } : null;
         return { line: position.lineNumber, selection };
       };
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => latest.current.onSave(editor.getValue()));
-    // ⌥Z で折り返しを切り替える（VS Code と同じキー）
-    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, () => wrapRef.current.setWrap(!wrapRef.current.wrap));
-    // Git との違いの帯（差分の編集では、差分そのものが出ているので付けない）
-    const decorations = editor.createDecorationsCollection();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const paintQuickDiff = () => {
-      const base = quickBase.current;
-      decorations.set(base === null || originalModel ? [] : quickDiffDecorations(quickDiff(base, model.getValue())));
+    const dirtySub = model.onDidChangeContent(() => latest.current.onDirtyChange(model.getValue() !== saved.current));
+    const ctx: AttachContext = {
+      host,
+      diffing: originalModel !== null,
+      saved: () => saved.current,
+      quickBase: () => quickBase.current,
+      blame: () => blameRef.current,
+      save: (content) => latest.current.onSave(content),
+      toggleWrap: () => wrapRef.current.setWrap(!wrapRef.current.wrap),
+      showFind: (e) => setFindEditor(e && { editor: e, host }),
+      setRefresh: (kind, refresh) => void ((kind === "quickDiff" ? refreshQuickDiff : refreshBlame).current = refresh),
     };
-    refreshQuickDiff.current = paintQuickDiff;
-    paintQuickDiff();
-    const sub = model.onDidChangeContent(() => {
-      latest.current.onDirtyChange(model.getValue() !== saved.current);
-      clearTimeout(timer);
-      timer = setTimeout(paintQuickDiff, QUICK_DIFF_DELAY_MS);
-    });
-    // いまの行の変更の記録（行の終わりのあとに薄い字で足す。カーソルはそこに止まらない）
-    const blameDecorations = editor.createDecorationsCollection();
-    const paintBlame = () => {
-      const position = editor.getPosition();
-      const commit = position && model.getValue() === saved.current ? (blameRef.current?.at(position.lineNumber, model.getLineCount()) ?? null) : null;
-      if (!position || !commit) return blameDecorations.clear();
-      const column = model.getLineMaxColumn(position.lineNumber);
-      blameDecorations.set([
-        {
-          range: { startLineNumber: position.lineNumber, startColumn: column, endLineNumber: position.lineNumber, endColumn: column },
-          options: {
-            // 幅のない範囲の差し込みの文字は、showIfCollapsed がないと描かれない
-            showIfCollapsed: true,
-            after: { content: `\u2003${commit.label}`, inlineClassName: "blame-inline", cursorStops: monaco.editor.InjectedTextCursorStops.None },
-            hoverMessage: { value: commit.hover },
-          },
-        },
-      ]);
-    };
-    refreshBlame.current = paintBlame;
-    paintBlame();
-    const cursorSub = editor.onDidChangeCursorPosition(paintBlame);
-    const blameContentSub = model.onDidChangeContent(paintBlame);
-    const unregister = registerCodeSelection(host, () => readSelection(editor));
-    // ⌘F の検索の欄（ほかの検索の欄と同じ部品。エディタの中の ⌘F・ページの ⌘F は MonacoFindBar が受け取る）
-    setFindEditor({ editor, host });
-    // 検索の欄の「Aa」「ab」「.*」は、ほかの検索の欄と同じ値にそろえる
-    const unsyncFind = syncMonacoFindOptions(editor);
+    const attached = ATTACHMENTS.map((attach) => attach(editor, model, ctx));
     if (autoFocus) editor.focus();
     return () => {
-      clearTimeout(timer);
-      sub.dispose();
-      cursorSub.dispose();
-      blameContentSub.dispose();
-      refreshBlame.current = null;
-      unregister();
-      setFindEditor(null);
-      unsyncFind();
-      refreshQuickDiff.current = null;
+      // 付け足しは付けたのと逆の順に外す
+      for (const a of attached.reverse()) a.dispose();
+      dirtySub.dispose();
       // 差分の編集では、左右の部品は差分の部品が一緒に片付ける
       (diffRef.current ?? editor).dispose();
       model.dispose();
