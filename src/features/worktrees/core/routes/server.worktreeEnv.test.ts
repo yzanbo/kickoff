@@ -8,6 +8,7 @@ import type { Project } from "@shared/projects/types";
 import type { WorktreeEnvSetupResult } from "@shared/worktrees/envTypes";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setup, until } from "@/app/core/testing/testServer";
+import { chatOf } from "@/features/chat/core/testing";
 
 const COMPOSE_CONFIG = JSON.stringify({
   name: "myapp",
@@ -145,7 +146,7 @@ test("［AI で整える］: 覚えのないワークツリーは先に手順を
   assert.equal(chat.title, "実行環境を整える（feat/old）");
   assert.equal(chat.worktree_path, wt.path);
   assert.equal(chat.untracked_only, true);
-  await until(() => s.store.chats.get(chat.id)?.status === "completed");
+  await until(async () => (await chatOf(s, chat.id)).status === "completed");
   // Git で管理しているファイル（compose.yaml）への書き込みを門が断る
   const writeTracked = { name: "Write", input: { file_path: path.join(wt.path, "compose.yaml") } };
   assert.ok(await s.provider.lastGate?.deny(writeTracked));
@@ -159,7 +160,7 @@ test("［AI で整える］: 覚えのないワークツリーは先に手順を
   assert.equal((await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: s.project.repo_path })).status, 400);
   // ふつうのチャットは書き込みを守らない
   const plain = await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "hi", worktree_path: wt.path });
-  await until(() => s.store.chats.get(plain.body.id)?.status === "completed");
+  await until(async () => (await chatOf(s, plain.body.id)).status === "completed");
   assert.equal(await s.provider.lastGate?.deny(writeTracked), null);
 });
 

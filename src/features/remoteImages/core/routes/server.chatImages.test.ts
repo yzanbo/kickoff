@@ -4,25 +4,22 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/foundation/contract";
-import { AUTH, setup, until } from "@/app/core/testing/testServer";
+import { AUTH, setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { remoteImageCacheDir } from "@/features/remoteImages/core/index";
+import { eventsOf, sendAndWait } from "@/features/chat/core/testing";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
 /** チャットを 1 つ作って作業の終わりまで待つ */
-async function chatOf(ctx: ReturnType<typeof setup>) {
-  const id = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "画像を見せて" })).body.id as number;
-  await until(() => ctx.store.chats.get(id)?.status === "completed");
-  return id;
-}
+const doneChat = (ctx: ReturnType<typeof setup>) => sendAndWait(ctx, { projectId: ctx.project.id, text: "画像を見せて" });
 
 const imageUrl = (chatId: number, url: string) => `/api/chats/${chatId}/remote-image?url=${encodeURIComponent(url)}`;
 
 test("表示を許可したホスト: 許可・一覧・取り消し（小文字にそろえ、変わるたびに chat_image_hosts を知らせる）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
   const { call, bus } = ctx;
-  const chatId = await chatOf(ctx);
+  const chatId = await doneChat(ctx);
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
 
@@ -47,7 +44,7 @@ test("表示を許可したホスト: 許可・一覧・取り消し（小文字
 test("許可したホストの画像だけを返し、2 回目からは覚えた画像を返す（取り消すと覚えも消える）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
   const { app, call, imageFake } = ctx;
-  const chatId = await chatOf(ctx);
+  const chatId = await doneChat(ctx);
   const url = "https://images.example.com/a.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
 
@@ -83,14 +80,14 @@ test("許可したホストの画像だけを返し、2 回目からは覚えた
 
 test("分岐すると、表示の許可と覚えた画像を新しいチャットに写す（取りに行き直さない）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
-  const { app, call, store, imageFake } = ctx;
-  const chatId = await chatOf(ctx);
+  const { app, call, imageFake } = ctx;
+  const chatId = await doneChat(ctx);
   const url = "https://images.example.com/b.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
   await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
   await app.request(imageUrl(chatId, url), { headers: AUTH });
 
-  const result = store.events.list(chatId).find((e) => e.type === "result")!;
+  const result = (await eventsOf(ctx, chatId)).find((e) => e.type === "result")!;
   const forked = await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id });
   assert.equal(forked.status, 201);
   assert.deepEqual((await call("GET", `/api/chats/${forked.body.id}/image-hosts`)).body.hosts.map((h: { host: string }) => h.host), ["images.example.com"]);
@@ -102,7 +99,7 @@ test("分岐すると、表示の許可と覚えた画像を新しいチャッ�
 test("チャットを本当に消すと、表示の許可と覚えた画像のフォルダも消える", async () => {
   const ctx = setup({ features: ["remoteImages"] });
   const { app, call, store, imageFake, trashBin, trashClock, k } = ctx;
-  const chatId = await chatOf(ctx);
+  const chatId = await doneChat(ctx);
   const url = "https://images.example.com/c.png";
   imageFake.images[url] = { contentType: "image/png", body: PNG };
   await call("PUT", `/api/chats/${chatId}/image-hosts`, { host: "images.example.com" });
@@ -120,7 +117,7 @@ test("チャットを本当に消すと、表示の許可と覚えた画像の�
 test("手元の画像（返答の `![](docs/a.png)`）は、相対パスならチャットの作業場所から読む（作業場所の外は断る）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
   const { app, project } = ctx;
-  const chatId = await chatOf(ctx);
+  const chatId = await doneChat(ctx);
   fs.mkdirSync(path.join(project.repo_path, "docs"), { recursive: true });
   fs.writeFileSync(path.join(project.repo_path, "docs", "a.png"), PNG);
   const res = await app.request(`/api/chats/${chatId}/tool-image?path=${encodeURIComponent("docs/a.png")}`, { headers: AUTH });
@@ -133,8 +130,8 @@ test("手元の画像（返答の `![](docs/a.png)`）は、相対パスなら�
 test("作業場所を移したチャットでは、区切りより前の記録（at）の画像は、そのときの作業場所から読む（メモの仕様書「0025」の H5）", async () => {
   const ctx = setup({ features: ["remoteImages"] });
   const { app, project, store } = ctx;
-  const chatId = await chatOf(ctx);
-  const before = store.events.list(chatId).at(-1)!.id;
+  const chatId = await doneChat(ctx);
+  const before = (await eventsOf(ctx, chatId)).at(-1)!.id;
   // 移す前の作業場所（もう店のチャットからは引けない場所）に画像を置き、区切りを残す
   const old = tempDir();
   fs.mkdirSync(path.join(old, "docs"), { recursive: true });

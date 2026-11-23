@@ -13,6 +13,7 @@ import { AUTH, setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { canWatchDirectory } from "@/foundation/core/testing/canWatchDirectory";
 import { NOTE_SNAPSHOT_HEADING } from "@/features/attachments/core/attachmentNotes";
+import { chatOf, eventsOf } from "@/features/chat/core/testing";
 
 test("ノートの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, project, store, noteFake } = setup({ features: ["notes", "settings", "trash", "database"] });
@@ -241,7 +242,8 @@ test("HTML のノートが読むファイル: ノートのフォルダのファ�
 });
 
 test("ノートのチャット: ノートごとに 1 つのふつうのチャット。ノートのフォルダも読めるようにし、名前の変更・移動で付け替え、ゴミ箱でアーカイブする", async () => {
-  const { call, project, provider, store, bus, noteFake } = setup({ features: ["notes", "settings", "trash", "database"] });
+  const ctx = setup({ features: ["notes", "settings", "trash", "database"] });
+  const { call, project, provider, store, bus, noteFake } = ctx;
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const base = `/api/projects/${project.id}`;
@@ -252,7 +254,7 @@ test("ノートのチャット: ノートごとに 1 つのふつうのチャッ
   const created = await call("POST", `${base}/note/chat`, { path: "設計/画面.md", text: "構成を相談したい" });
   assert.equal(created.status, 201);
   assert.equal(created.body.note_path, "設計/画面.md");
-  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  await until(async () => (await chatOf(ctx, created.body.id)).status === "completed");
   // 作業場所はプロジェクトのまま、ノートのフォルダも読み書きできる場所に足し、どのノートかを伝える
   const noteDir = path.join(noteFake.defaultDir, project.name);
   assert.equal(provider.lastCwd, project.repo_path);
@@ -266,11 +268,11 @@ test("ノートのチャット: ノートごとに 1 つのふつうのチャッ
   await call("POST", `/api/chats/${created.body.id}/messages`, { text: "反映して" });
   await until(() => events.some((e) => e.type === "notes" && e.path === null));
   provider.emits = [];
-  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  await until(async () => (await chatOf(ctx, created.body.id)).status === "completed");
   // フォルダの名前を変えると、中のノートのチャットと DB の接続の手順ノートも付け替える
   const conn = store.dbConnections.create(project.id, { name: "DB", engine: "sqlite", environment: "local", host: null, port: null, database: null, username: null, file_path: "app.db", ssl: null, read_only: false, ai_access: "allow", note_path: "設計/画面.md", password: null });
   await call("POST", `${base}/notes/move`, { from: "設計", to: "仕様" });
-  assert.equal(store.chats.get(created.body.id)?.note_path, "仕様/画面.md");
+  assert.equal((await chatOf(ctx, created.body.id)).note_path, "仕様/画面.md");
   assert.equal(store.dbConnections.get(conn.id)?.note_path, "仕様/画面.md");
   // ゴミ箱に入れたら、そのノートのチャットも同じ行でゴミ箱へ（一覧は 1 行）。別の名前で戻すと、チャットも戻って付け替わる
   const trashed = await call("DELETE", `${base}/note?path=${encodeURIComponent("仕様/画面.md")}`);
@@ -279,17 +281,18 @@ test("ノートのチャット: ノートごとに 1 つのふつうのチャッ
   assert.equal((await call("GET", `/api/projects/${project.id}/trash`)).body.length, 1);
   await call("POST", `${base}/notes`, { path: "仕様/画面.md", content: "新しい" });
   await call("POST", `/api/trash/${trashed.body.trash_id}/restore`, { rename: true });
-  assert.equal(store.chats.get(created.body.id)?.note_path, "仕様/画面 2.md");
+  assert.equal((await chatOf(ctx, created.body.id)).note_path, "仕様/画面 2.md");
   // HTML のノートなら、HTML と CSS で書くことを伝える
   assert.match(provider.lastSystemPrompt, /ノートは Markdown のファイルです/);
   await call("POST", `${base}/notes`, { path: "資料.html", content: "<p>x</p>" });
   const html = await call("POST", `${base}/note/chat`, { path: "資料.html", text: "見た目を整えて" });
-  await until(() => store.chats.get(html.body.id)?.status === "completed");
+  await until(async () => (await chatOf(ctx, html.body.id)).status === "completed");
   assert.match(provider.lastSystemPrompt, /ノートは HTML のファイルです/);
 });
 
 test("ノートの添付: 入力欄に添付したノートの写しは、写しと元のノートのパスを AI に伝え、ノートのフォルダを読み書きできる場所に足す（外・隠しファイルは 400）", async () => {
-  const { call, project, provider, store } = setup({ features: ["notes", "settings", "trash", "database"] });
+  const ctx = setup({ features: ["notes", "settings", "trash", "database"] });
+  const { call, project, provider } = ctx;
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/notes`, { path: "設計/DB.md", content: "# DB\n" });
   const noteDir = ((await call("GET", `${base}/notes`)).body as NoteList).dir;
@@ -301,17 +304,17 @@ test("ノートの添付: 入力欄に添付したノートの写しは、写し
   // 文がなくても、ノートの添付だけで送れる
   const created = await call("POST", `${base}/chats`, { text: "", attachments: [snapshot] });
   assert.equal(created.status, 201);
-  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  await until(async () => (await chatOf(ctx, created.body.id)).status === "completed");
   assert.ok(provider.prompts.at(-1)!.startsWith(`${NOTE_SNAPSHOT_HEADING}:\n- `));
   assert.ok(provider.prompts.at(-1)!.includes(path.join(noteDir, "設計/DB.md")));
   assert.ok(provider.lastDirs.includes(noteDir));
   // 記録には添付のまま残す（画面がノートの札で出す）
-  const user = store.events.list(created.body.id).find((e) => e.type === "user");
+  const user = (await eventsOf(ctx, created.body.id)).find((e) => e.type === "user");
   const first = user?.type === "user" ? user.data.attachments?.[0] : undefined;
   assert.equal(first?.kind === "note" && first.note, "設計/DB.md");
   // 続きの指示でも。写しが見つからない添付は書かない
   await call("POST", `/api/chats/${created.body.id}/messages`, { text: "続きを書いて", attachments: [snapshot, { ...snapshot, id: randomUUID() }] });
-  await until(() => provider.prompts.length === 2 && store.chats.get(created.body.id)?.status === "completed");
+  await until(async () => provider.prompts.length === 2 && (await chatOf(ctx, created.body.id)).status === "completed");
   assert.equal(provider.prompts[1].split("\n- ").length, 2);
   assert.ok(provider.prompts[1].startsWith(`続きを書いて\n\n${NOTE_SNAPSHOT_HEADING}`));
 });

@@ -84,7 +84,7 @@ test("チャットの実行が終わったら少し待って調べ、前にな�
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
   // チャットの 1 回の実行が終わった（偽のプロバイダーはすぐ終わる）
-  await s.runner.start({ projectId: s.project.id, prompt: "サーバーを立てて" });
+  await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "サーバーを立てて" });
   await until(() => events.some((e) => e.type === "ports_changed"));
   assert.deepEqual(events.find((e) => e.type === "ports_changed"), { type: "ports_changed", count: 3, fresh: 1 });
   const list = (await s.call("GET", "/api/ports?cached=1")).body as { processes: PortProcess[] };

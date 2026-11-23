@@ -6,25 +6,22 @@ import { test } from "vitest";
 import type { WorkplaceMoveCheck } from "@shared/workplaceMove/types";
 import { setup, until } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
+import { chatOf, eventsOf, isBusy, untilIdle } from "@/features/chat/core/testing";
+import { mainChat as mainChatWith } from "@/features/workplaceMove/core/testing";
 
 type Ctx = ReturnType<typeof setup>;
 
-/** 本体に Git の最初のコミットを作り、本体で 1 回話したチャットを返す */
-async function mainChat(ctx: Ctx) {
-  gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n", "b.txt": "b\n" } });
-  const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "こんにちは" })).body.id;
-  await until(() => !ctx.runner.isBusy(id));
-  return id;
-}
+/** 本体に Git の最初のコミット（a.txt・b.txt）を作り、本体で 1 回話したチャットを返す */
+const mainChat = (ctx: Ctx) => mainChatWith(ctx, { "a.txt": "a\n", "b.txt": "b\n" });
 
-const boundaryOf = (ctx: Ctx, chatId: number) => {
-  const e = ctx.store.events.list(chatId).findLast((x) => x.type === "workplace_moved");
+const boundaryOf = async (ctx: Ctx, chatId: number) => {
+  const e = (await eventsOf(ctx, chatId)).findLast((x) => x.type === "workplace_moved");
   return e?.type === "workplace_moved" ? e.data : null;
 };
 
 test("新しいワークツリーへ移す: いまのコミットから作り、変更を持っていく（ステージしたかも保つ・まだ Git にないファイルも）。区切りは利用者が移した印で、移した先のブランチを書く", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project, store } = ctx;
+  const { call, project } = ctx;
   const chatId = await mainChat(ctx);
   const git = gitIn(project.repo_path);
   fs.writeFileSync(path.join(project.repo_path, "a.txt"), "a changed\n");
@@ -48,14 +45,14 @@ test("新しいワークツリーへ移す: いまのコミットから作り、
   assert.equal(git("status", "--porcelain").trim(), "");
   // stash の一覧に持っていった跡を残さない
   assert.equal(git("stash", "list").trim(), "");
-  const data = boundaryOf(ctx, chatId);
+  const data = await boundaryOf(ctx, chatId);
   assert.deepEqual([data?.reason, data?.carried, data?.from.worktree_path, data?.to.worktree_path, data?.to.branch], ["user", true, null, wt, "feat/move"]);
-  assert.equal(store.chats.get(chatId)?.session_id, "moved-1");
+  assert.equal((await chatOf(ctx, chatId)).session_id, "moved-1");
 });
 
 test("いまあるワークツリー・本体へ移す: 変更は持っていかず元の場所に残る。同じ場所・持っていく指定・作業中・実行環境を整えるチャットは断る", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project, store, runner } = ctx;
+  const { call, project, store } = ctx;
   const chatId = await mainChat(ctx);
   const list = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/x" })).body as { path: string; main: boolean }[];
   const wt = list.find((w) => !w.main)!.path;
@@ -66,16 +63,19 @@ test("いまあるワークツリー・本体へ移す: 変更は持っていか
   const moved = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt });
   assert.equal(moved.body.worktree_path, wt);
   assert.equal(fs.readFileSync(path.join(project.repo_path, "a.txt"), "utf8"), "dirty\n");
-  assert.equal(boundaryOf(ctx, chatId)?.carried, undefined);
+  assert.equal((await boundaryOf(ctx, chatId))?.carried, undefined);
   // 本体へ戻す
   const back = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null });
   assert.equal(back.body.worktree_path, null);
-  assert.equal(store.events.list(chatId).filter((e) => e.type === "workplace_moved").length, 2);
+  assert.equal((await eventsOf(ctx, chatId)).filter((e) => e.type === "workplace_moved").length, 2);
 
   // 作業中は 409
+  const release = ctx.provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "続き" });
-  if (runner.isBusy(chatId)) assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt })).status, 409);
-  await until(() => !runner.isBusy(chatId));
+  await until(() => isBusy(ctx, chatId));
+  assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt })).status, 409);
+  release();
+  await untilIdle(ctx, chatId);
 
   // 実行環境を整えるチャット
   const setupChat = store.chats.create({ project_id: project.id, provider: "claude", title: "整える", status: "completed", worktree_path: wt, untracked_only: true });
@@ -87,19 +87,19 @@ test("いまあるワークツリー・本体へ移す: 変更は持っていか
 
 test("会話を写せなければ移さない（G6）: 作ったワークツリーを消し、持っていった変更を元の場所に戻す", async () => {
   const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
-  const { call, project, store, provider } = ctx;
+  const { call, project, provider } = ctx;
   const chatId = await mainChat(ctx);
   fs.writeFileSync(path.join(project.repo_path, "a.txt"), "keep me\n");
   provider.copyError = "壊れています";
   const res = await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: null, new_worktree_branch: "feat/fail", carry: true });
   assert.equal(res.status, 400);
   assert.match(res.body.error, /会話を新しいセッションに写せなかった/);
-  assert.equal(store.chats.get(chatId)?.worktree_path, null);
+  assert.equal((await chatOf(ctx, chatId)).worktree_path, null);
   assert.equal(fs.readFileSync(path.join(project.repo_path, "a.txt"), "utf8"), "keep me\n");
   const git = gitIn(project.repo_path);
   assert.equal(git("branch", "--list", "feat/fail").trim(), "");
   assert.equal(git("stash", "list").trim(), "");
-  assert.equal(boundaryOf(ctx, chatId), null);
+  assert.equal((await boundaryOf(ctx, chatId)), null);
 });
 
 test("Git でないプロジェクトは移せない（I4）。移す前の確かめは、元の場所で動いているターミナルを知らせる（Q5）", async () => {

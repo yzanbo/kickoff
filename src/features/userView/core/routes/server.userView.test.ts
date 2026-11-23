@@ -4,7 +4,8 @@ import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/userView/tools";
 import type { UserView } from "@shared/userView/types";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
-import { setup, until } from "@/app/core/testing/testServer";
+import { setup } from "@/app/core/testing/testServer";
+import { untilIdle } from "@/features/chat/core/testing";
 
 const DEVICE_TOKEN = "u".repeat(43);
 const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}`, "content-type": "application/json" };
@@ -16,9 +17,10 @@ const viewOf = (projectId: number, path: string): UserView => ({
 });
 
 test("見ているもの: この Mac の画面のウィンドウが知らせ、AI はそのチャットのウィンドウのいまの様子と、送ったときの様子を読む", async () => {
-  const { call, store, project, runner, userViews } = setup({ features: ["userView", "devices"] });
+  const ctx = setup({ features: ["userView", "devices"] });
+  const { call, store, project, userViews } = ctx;
   const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: "見て", user_view: viewOf(project.id, "sent.ts") })).body;
-  await until(() => !runner.isBusy(chat.id));
+  await untilIdle(ctx, chat.id);
   assert.equal((await call("PUT", "/api/user-view", { window_id: "w1", view: viewOf(project.id, "now.ts"), chat_ids: [chat.id], focused: true })).status, 204);
   const tools = createAiUserViewTools({ store, userViews }, chat.id);
   const text = tools.read();
@@ -27,7 +29,7 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
   assert.match(text, /送ったとき.*の様子:\n- プロジェクトのファイル: エディタ: sent\.ts/);
   // 続きを送ると、送ったときの様子が変わる（送信待ち・止めずに伝えるも同じ）
   await call("POST", `/api/chats/${chat.id}/messages`, { text: "続き", user_view: viewOf(project.id, "second.ts") });
-  await until(() => !runner.isBusy(chat.id));
+  await untilIdle(ctx, chat.id);
   assert.match(tools.read(), /送ったとき.*の様子:\n- プロジェクトのファイル: エディタ: second\.ts/);
   await call("POST", `/api/chats/${chat.id}/messages`, { text: "あとで", user_view: viewOf(project.id, "queued.ts"), when: "later" });
   assert.match(tools.read(), /queued\.ts/);
@@ -39,15 +41,16 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
 });
 
 test("見ているもの: スマホ（端末）は知らせられず、端末から送った指示の様子は覚えない", async () => {
-  const { app, call, store, project, runner, userViews } = setup({ features: ["userView", "devices"] });
+  const ctx = setup({ features: ["userView", "devices"] });
+  const { app, call, store, project, userViews } = ctx;
   store.settings.update({ mobile_enabled: true });
   store.devices.create("Pixel", DEVICE_TOKEN);
   const put = await app.request("/api/user-view", { method: "PUT", headers: DEVICE, body: JSON.stringify({ window_id: "phone", view: viewOf(project.id, "x.ts"), chat_ids: [], focused: true }) });
   assert.equal(put.status, 403);
   const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: "見て" })).body;
-  await until(() => !runner.isBusy(chat.id));
+  await untilIdle(ctx, chat.id);
   const sent = await app.request(`/api/chats/${chat.id}/messages`, { method: "POST", headers: DEVICE, body: JSON.stringify({ text: "スマホから", user_view: viewOf(project.id, "phone.ts") }) });
   assert.equal(sent.status, 200);
-  await until(() => !runner.isBusy(chat.id));
+  await untilIdle(ctx, chat.id);
   assert.equal(userViews.sentFor(chat.id), null);
 });

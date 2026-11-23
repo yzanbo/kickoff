@@ -7,6 +7,7 @@ import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
 import { callTool, testTurn } from "@/foundation/core/testing/toolCalls";
 import { until } from "@/app/core/testing/testCore";
 import { setup, watchTools } from "@/app/core/testing/testServer";
+import { chatOf, noticesOf } from "@/features/chat/core/testing";
 
 const approval = (chatId: number, projectId: number, patch: Partial<Approval> = {}): Approval => ({
   id: `a${chatId}`,
@@ -117,7 +118,8 @@ function notifyIn(group: ReturnType<typeof notifyToolGroup>, chatId: number) {
 }
 
 test("AI からの知らせ（notify_user）: 見ていなければ Mac の通知に本文を出し、スマホのプッシュには本文を載せない。流れに記録を残し、1 回の作業で 3 回まで", async () => {
-  const { chat, bus, store, notifyFake, call } = withChat();
+  const ctx = withChat();
+  const { chat, bus, store, notifyFake, call } = ctx;
   const token = "e".repeat(40);
   const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
@@ -130,8 +132,7 @@ test("AI からの知らせ（notify_user）: 見ていなければ Mac の通�
   );
   await until(() => notifyFake.pushed.length === 1);
   assert.deepEqual([notifyFake.pushed[0].title, notifyFake.pushed[0].body], ["調査", "AI からの知らせ"]);
-  const notices = store.events.list(chat.id).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
-  assert.deepEqual(notices, ["AI からの知らせ: 移行の 1 段目が済みました"]);
+  assert.deepEqual(await noticesOf(ctx, chat.id), ["AI からの知らせ: 移行の 1 段目が済みました"]);
   // この Mac でそのチャットを見ていれば、Mac の通知は出さない
   assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
   await notify("2 回目");
@@ -148,7 +149,7 @@ test("AI からの知らせ（notify_user）: 組み立てが通知の組を集�
   const ctx = setup({ features: ["notifications", "chat", "devices", "settings", "worktrees", "userView"] });
   const tools = watchTools(ctx, ctx.mcpTools);
   const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "調べて" })).body.id;
-  await until(() => ctx.store.chats.get(id)?.status === "completed");
+  await until(async () => (await chatOf(ctx, id)).status === "completed");
   const names = tools.names();
   assert.ok(names.includes("notify_user"));
   // 並びは使い方の順（ワークツリーの片付けの次・画面を見るの前）

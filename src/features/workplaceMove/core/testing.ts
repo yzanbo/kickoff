@@ -7,9 +7,9 @@ import { eventsOf, isBusy, sendAndWait } from "@/features/chat/core/testing";
 
 type Ctx = ReturnType<typeof createTestCore>;
 
-/** 本体に Git の最初のコミットを作り、本体で 1 回話したチャットを返す */
-export function mainChat(ctx: Ctx) {
-  gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
+/** 本体に Git の最初のコミット（files）を作り、本体で 1 回話したチャットを返す */
+export function mainChat(ctx: Ctx, files: Record<string, string> = { "a.txt": "a\n" }) {
+  gitRepo({ dir: ctx.project.repo_path, files });
   return sendAndWait(ctx, { projectId: ctx.project.id, text: "こんにちは" });
 }
 
