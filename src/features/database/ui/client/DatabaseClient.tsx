@@ -7,7 +7,6 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { hasAppModifier } from "@/foundation/ui/lib/keys";
 import { closeConnectionTabs, closeDbTab, openErTab, openNoteTab, openNewSqlTab, openPreviewTab, openTableTab, pinDbTab, renameNoteTab, setSqlConnection, setTableFilter, tableTabKey, updateErTab, type DbClientTab } from "@/features/database/ui/state/dbClientTabs";
 import { storage } from "@/features/database/ui/storage";
-import { dbClientTabs } from "@/foundation/ui/storage/storageKeys";
 import { readSetting, writeSetting } from "@/foundation/ui/storage";
 import { useDbConnections } from "@/features/database/ui/state/connectionsStore";
 import { SideNote } from "@/features/notes/ui/SideNote";
@@ -26,6 +25,7 @@ import { DbHome } from "./DbHome";
 import { DbList } from "./DbList";
 import { DbPrepDialog } from "@/features/database/ui/connection/DbPrepDialog";
 import { dbSurfaceKey, type DbSurface } from "@/features/database/ui/state/surface";
+import { useDbClientTabs } from "@/features/database/ui/state/useDbClientTabs";
 import { useDbClientRequests } from "@/features/database/ui/state/dbClientRequests";
 import { createConnectionNote } from "@/features/database/ui/connection/dbNote";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
@@ -50,13 +50,12 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
   const connections = useDbConnections(projectId);
   const list = connections.data ?? [];
   const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
-  const [state, setState] = useSetting(dbClientTabs(surfaceKey));
+  const { state, update } = useDbClientTabs(surfaceKey);
   const [hidden, setHidden] = useSetting(storage.settings.listHidden);
   const [treeOpen, setTreeOpen] = useSetting(storage.settings.treeOpen(surfaceKey));
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
-  // 取り込みの画面（Docker タブの「DB で開く」からは、その DB の案を選んだ形で）
-  const [importing, setImporting] = useState<{ preselect: DbImportCandidate | null } | null>(null);
+  const [importing, setImporting] = useState<{ preselect: DbImportCandidate | null } | null>(null); // 取り込みの画面（Docker タブの「DB で開く」からは、その DB の案を選んだ形で）
   const [finding, setFinding] = useState(false);
   const [failure, setFailure] = useState<DbFailure | null>(null);
   const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
@@ -94,7 +93,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
   // 消した接続のタブは閉じる（一覧が届いてから。タブが変わっても見直さない）
   const closeGoneTabs = useEffectEvent(() => {
     const gone = state.tabs.filter((t) => !byId.has(t.connection_id)).map((t) => t.connection_id);
-    if (gone.length > 0) setState(gone.reduce(closeConnectionTabs, state));
+    if (gone.length > 0) update((s) => gone.reduce(closeConnectionTabs, s));
   });
   useEffect(() => {
     if (connections.data) closeGoneTabs();
@@ -109,25 +108,26 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
     openTable: (c, path, name, object, filter, preview) => {
       const tab = { key: tableTabKey(c.id, path, name, object), kind: "table" as const, connection_id: c.id, path, name, object, ...(filter ? { filter } : {}) };
       // 仮のタブは、保存していない変更があれば置き換えずに残す
-      setState(preview ? openPreviewTab(state, tab, (key) => unsavedTables.has(unsavedKey(surfaceKey, key))) : openTableTab(state, tab));
+      update((s) => (preview ? openPreviewTab(s, tab, (key) => unsavedTables.has(unsavedKey(surfaceKey, key))) : openTableTab(s, tab)));
       setOverlay(false);
     },
     openSql: (c, sql) => {
-      const next = openNewSqlTab(state, c.id);
-      // SQL のタブは開いたときに書きかけを読むので、先に書いておく
-      if (sql && next.active) writeSetting(storage.settings.sqlDraft(`${surfaceKey}:${next.active}`), sql);
-      setState(next);
+      update((s) => {
+        const next = openNewSqlTab(s, c.id); // SQL のタブは開いたときに書きかけを読むので、タブを足す前に書いておく
+        if (sql && next.active) writeSetting(storage.settings.sqlDraft(`${surfaceKey}:${next.active}`), sql);
+        return next;
+      });
       setOverlay(false);
     },
     switchSqlConnection: async (tabKey, c) => {
-      const tab = readSetting(dbClientTabs(surfaceKey)).tabs.find((t) => t.key === tabKey);
+      const tab = state.tabs.find((t) => t.key === tabKey);
       const old = tab && byId.get(tab.connection_id);
       if (old && !(await finishSession(projectId, old, tabKey))) return;
       // 聞いている間にタブが変わっていてもよいよう、いまの値から替える
-      setState(setSqlConnection(readSetting(dbClientTabs(surfaceKey)), tabKey, c.id));
+      update((s) => setSqlConnection(s, tabKey, c.id));
     },
     openEr: (c, path, focus) => {
-      setState(openErTab(state, c.id, path, focus));
+      update((s) => openErTab(s, c.id, path, focus));
       setOverlay(false);
     },
     editConnection: (c) => setEditing(c),
@@ -141,7 +141,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
     const path = c.note_path ?? (await createConnectionNote(projectId, c));
     if (!path) return;
     // 作るダイアログの間にタブが変わっていてもよいよう、いまの値から開く
-    setState(openNoteTab(readSetting(dbClientTabs(surfaceKey)), c.id, path));
+    update((s) => openNoteTab(s, c.id, path));
     setOverlay(false);
   };
 
@@ -159,7 +159,7 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
       }
       writeSetting(storage.settings.sqlDraft(`${surfaceKey}:${tab.key}`), "");
     }
-    setState(closeDbTab(state, tab.key));
+    update((s) => closeDbTab(s, tab.key));
   };
 
   const active = state.tabs.find((t) => t.key === state.active) ?? null;
@@ -207,8 +207,8 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
                     type="button"
                     className="db-tab-name"
                     title={t.kind === "table" && t.preview ? `${tabTitle(t, c)}\n仮のタブ（ダブルクリックで固定）` : tabTitle(t, c)}
-                    onClick={() => setState({ ...state, active: t.key })}
-                    onDoubleClick={() => setState(pinDbTab(state, t.key))}
+                    onClick={() => update((s) => ({ ...s, active: t.key }))}
+                    onDoubleClick={() => update((s) => pinDbTab(s, t.key))}
                   >
                     <span className="db-env-dot" aria-hidden />
                     <DbTabIcon tab={t} />
@@ -246,18 +246,18 @@ export function DatabaseClient({ projectId, surface, worktree }: { projectId: nu
                       chatId={null}
                       noteTabButton
                       // 接続の note_path はコアが付け替えて知らせる
-                      onRenamed={(to) => setState(renameNoteTab(readSetting(dbClientTabs(surfaceKey)), t.key, to))}
+                      onRenamed={(to) => update((s) => renameNoteTab(s, t.key, to))}
                     />
                   ) : t.kind === "sql" ? (
                     <SqlView tab={t} connection={c} active={t.key === state.active} />
                   ) : t.kind === "er" ? (
                     <Suspense fallback={<p className="db-er-loading small muted">読み込み中…</p>}>
-                      <ErView tab={t} connection={c} active={t.key === state.active} onChange={(patch) => setState(updateErTab(state, t.key, patch))} />
+                      <ErView tab={t} connection={c} active={t.key === state.active} onChange={(patch) => update((s) => updateErTab(s, t.key, patch))} />
                     </Suspense>
                   ) : t.object === "function" || t.object === "enum" ? (
                     <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
                   ) : (
-                    <TableView tab={t} connection={c} active={t.key === state.active} onFilter={(filter) => setState(setTableFilter(state, t.key, filter))} />
+                    <TableView tab={t} connection={c} active={t.key === state.active} onFilter={(filter) => update((s) => setTableFilter(s, t.key, filter))} />
                   )}
                 </div>
               );
