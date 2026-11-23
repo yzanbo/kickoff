@@ -1,60 +1,15 @@
 // Claude のプロバイダーの実行（run）を偽の SDK で確かめる（本物の Claude Code・アカウントは使わない）
 import { test, vi } from "vitest";
-import { permissionOnlyGate } from "@/features/ai/core/permissionMode";
 import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
-import type { ApiRetryInfo } from "@shared/ai/turnEvents";
 import { PERMISSION_MODES } from "@shared/settings/types";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
 import { withGate } from "@/app/core/testing/testGate";
-import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { ApprovalRequest } from "@/features/ai/core/providers/types";
+import { recorder, turnParams } from "@/features/ai/core/providers/testing/contract";
 import { ClaudeProvider } from "./provider";
-
-/** 実行の指定（どのプロバイダーの確かめにも使える最小の形。patch で足す・替える） */
-export function turnParams(patch: Partial<ProviderTurnParams> = {}): ProviderTurnParams {
-  return {
-    cwd: "/w",
-    prompt: "やって",
-    promptId: "u-1",
-    compact: false,
-    systemPrompt: "Kickoff の文脈",
-    resumeSessionId: null,
-    model: null,
-    effort: null,
-    permissionMode: "default",
-    fastMode: false,
-    autoCompactPct: null,
-    additionalDirectories: [],
-    sandbox: null,
-    sandboxOff: false,
-    gate: permissionOnlyGate({ permissionMode: patch.permissionMode ?? "default", cb: { requestApproval: async () => ({ action: "deny", message: "" }) }, signal: new AbortController().signal }),
-    ...patch,
-  };
-}
-
-/** 知らせを覚え、承認には answer で答えるコールバック */
-export function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
-  const events: Parameters<ProviderCallbacks["emit"]>[0][] = [];
-  const approvals: ApprovalRequest[] = [];
-  const contexts: number[] = [];
-  const retries: (ApiRetryInfo | null)[] = [];
-  let control: TurnControl | null = null;
-  const cb: ProviderCallbacks = {
-    emit: (e) => events.push(e),
-    requestApproval: async (req) => {
-      approvals.push(req);
-      return answer(req);
-    },
-    context: (tokens) => contexts.push(tokens),
-    retry: (info) => retries.push(info),
-    control: (c) => {
-      control = c;
-    },
-  };
-  return { cb, events, approvals, contexts, retries, control: () => control };
-}
 
 const provider = (fake: FakeClaudeSdk) => new ClaudeProvider({ sdk: fake.sdk, executable: "claude" });
 const signal = () => new AbortController().signal;

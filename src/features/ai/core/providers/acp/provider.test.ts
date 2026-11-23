@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import type { ApprovalReply } from "@shared/ai/approvals";
 import { fakeAcpAgent, type FakeAcpAgent } from "@/features/ai/core/testing/fakeStdioServer";
 import { until } from "@/app/core/testing/testCore";
-import type { AgentProvider, ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { chatToolEndpoint, recorder, turnParams } from "@/features/ai/core/providers/testing/contract";
 import { cursorProvider } from "@/features/ai/core/providers/cursor/provider";
 import { GEMINI_NEEDS_API_KEY, geminiProvider } from "@/features/ai/core/providers/gemini/provider";
 
@@ -13,43 +14,8 @@ import { GEMINI_NEEDS_API_KEY, geminiProvider } from "@/features/ai/core/provide
 const guardedRun = (provider: AgentProvider, p: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal, materials: TestGuardMaterials = {}) =>
   provider.run(withGate(p, cb.requestApproval, signal, materials), cb, signal);
 
-const params = (extra: Partial<ProviderTurnParams> = {}) =>
-  ({
-    cwd: "/w",
-    prompt: "やって",
-    promptId: "u-1",
-    systemPrompt: "Kickoff の文脈",
-    policy: { allowedCommands: [], web: true },
-    resumeSessionId: null,
-    model: null,
-    effort: null,
-    permissionMode: "default",
-    fastMode: false,
-    autoCompactPct: null,
-    additionalDirectories: [],
-    tools: [{ name: "kickoff_chat", url: "http://127.0.0.1:9/mcp/kickoff_chat", headers: { Authorization: "Bearer secret-key" }, autoAllow: ["list_family_chats"] }],
-    ...extra,
-  }) as ProviderTurnParams;
-
-/** 知らせを覚え、承認には answer で答えるコールバック */
-function recorder(answer: (req: ApprovalRequest) => ApprovalReply = () => ({ action: "allow" })) {
-  const events: any[] = [];
-  const approvals: ApprovalRequest[] = [];
-  const streamed: string[] = [];
-  let control: TurnControl | null = null;
-  const cb: ProviderCallbacks = {
-    emit: (e) => events.push(e),
-    stream: (t) => streamed.push(t),
-    requestApproval: async (req) => {
-      approvals.push(req);
-      return answer(req);
-    },
-    control: (c) => {
-      control = c;
-    },
-  };
-  return { cb, events, approvals, streamed, control: () => control };
-}
+/** このプロバイダーの確かめの実行の指定（AI の操作ツールの口を渡す） */
+const params = (extra: Partial<ProviderTurnParams> = {}) => turnParams({ tools: [chatToolEndpoint(["list_family_chats"])], ...extra });
 
 const update = (s: FakeAcpAgent, u: Record<string, unknown>, sessionId = "ses-1") => s.notify("session/update", { sessionId, update: u });
 

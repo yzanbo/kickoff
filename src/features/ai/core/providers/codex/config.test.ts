@@ -2,14 +2,14 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { turnParams } from "@/features/ai/core/providers/testing/contract";
 import { appServerLaunch, codexEffort, codexSandboxPolicy, mcpServerOverrides, threadOverrides, turnInput, CODEX_MCP_TOOL_TIMEOUT_S } from "./config";
 import { changeAsTool, diffEdits } from "./items";
 import { askModelOf, creditsNoteOf, toModelOptions } from "./catalog";
 import { turnResult } from "./turn";
 import type { CodexModel } from "./protocol";
 
-const params = (extra: Partial<ProviderTurnParams> = {}) =>
-  ({ cwd: "/w", prompt: "やって", systemPrompt: "文脈", model: null, effort: null, permissionMode: "default", tools: [], ...extra }) as unknown as ProviderTurnParams;
+const params = (extra: Partial<ProviderTurnParams> = {}) => turnParams({ systemPrompt: "文脈", tools: [], ...extra });
 
 test("推論の深さ: max は xhigh、null は指定しない", () => {
   assert.equal(codexEffort(null), null);
