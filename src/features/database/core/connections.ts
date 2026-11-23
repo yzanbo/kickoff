@@ -10,6 +10,7 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { dockerDbTarget, parseDockerDbKey } from "./import/dockerTarget";
 import { scanProjectDbs, toImportCandidates } from "./import/index";
 import type { DbServiceParts } from "./parts";
+import type { DbSecretKind } from "./secretKeys";
 import type { DbScope } from "./scope";
 
 export function createConnections({ store, client, vault, targets }: DbServiceParts, docker: Pick<DockerApi, "dbCandidate"> | undefined) {
@@ -65,15 +66,15 @@ export function createConnections({ store, client, vault, targets }: DbServicePa
       const from = store.dbConnections.get(fromId);
       if (!from) throw new NotFound("写す接続が見つかりません");
       const { id: _id, project_id: _p, position: _pos, has_password: _h, has_ai_password: _ha, has_ssh_password: _hs, prep_confirmed: _pc, last_connected_at: _l, created_at: _c, updated_at: _u, ...fields } = from;
-      const secret = (read: (id: number) => string | null) => (copyPassword ? read(from.id) : null);
+      const secret = (kind: DbSecretKind) => (copyPassword ? store.dbConnections.storedSecret(from.id, kind) : null);
       const same = from.project_id === project.id;
       return store.dbConnections.create(project.id, {
         ...fields,
         name: same ? `${from.name} のコピー` : from.name,
         note_path: same ? from.note_path : null,
-        password: secret(store.dbConnections.password),
-        ai_password: secret(store.dbConnections.aiPassword),
-        ssh_password: secret(store.dbConnections.sshPassword),
+        password: secret("password"),
+        ai_password: secret("ai_password"),
+        ssh_password: secret("ssh_password"),
       });
     },
 

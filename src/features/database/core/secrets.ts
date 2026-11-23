@@ -2,20 +2,11 @@
 // AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため。
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/database/types";
-import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey, type DbSecretKey } from "@/features/database/core/db/dbConnections";
+import { DB_SECRET_KINDS, dbSecretKey, type DbSecretKey, type DbSecretKind } from "@/features/database/core/secretKeys";
 import { Conflict } from "@/foundation/core/errors";
 import { openSecret, SEALED, sealSecret, type SecretCipher } from "@/foundation/core/system/sealedSecret";
 
 export type { SecretCipher } from "@/foundation/core/system/sealedSecret";
-
-const DB_SECRET_KINDS = ["password", "ai_password", "ssh_password"] as const;
-export type DbSecretKind = (typeof DB_SECRET_KINDS)[number];
-
-const KEY_OF: Record<DbSecretKind, (id: number) => DbSecretKey> = {
-  password: dbPasswordKey,
-  ai_password: dbAiPasswordKey,
-  ssh_password: dbSshPasswordKey,
-};
 
 /** パスワードの欄（undefined はそのまま・null と空は消す） */
 type PasswordFields = Partial<Record<DbSecretKind, string | null>>;
@@ -64,7 +55,7 @@ export class DbSecretVault {
   async read(connection: { id: number; name: string }, kind: DbSecretKind): Promise<string | null> {
     const entered = this.entered.get(connection.id)?.[kind];
     if (entered !== undefined) return entered;
-    const stored = this.store.secrets.get(KEY_OF[kind](connection.id));
+    const stored = this.store.secrets.get(dbSecretKey(connection.id, kind));
     if (stored === null || !stored.startsWith(SEALED)) return stored;
     return this.open(stored).catch(() => {
       throw new DbPasswordLocked(connection.name);

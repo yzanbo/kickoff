@@ -43,10 +43,10 @@ test("DB のパスワード: 暗号化して置き、復号は起動している
   const { cipher, state } = fakeCipher();
   const vault = new DbSecretVault(store, cipher);
   const c = store.dbConnections.create(project.id, await vault.seal({ ...body(), password: "s3cret", ai_password: null, ssh_password: "ssh-p" }));
-  const stored = store.dbConnections.password(c.id)!;
+  const stored = store.dbConnections.storedSecret(c.id, "password")!;
   assert.match(stored, /^safe:v1:/);
   assert.ok(!stored.includes("s3cret"));
-  assert.equal(store.dbConnections.aiPassword(c.id), null);
+  assert.equal(store.dbConnections.storedSecret(c.id, "ai_password"), null);
   assert.equal(c.has_password, true);
 
   const [a, b] = await Promise.all([vault.read(c, "password"), vault.read(c, "password")]);
@@ -63,7 +63,7 @@ test("DB のパスワード: 暗号化の口がなければ暗号化せずに置
   const { store, project } = setup();
   const vault = new DbSecretVault(store, null);
   const c = store.dbConnections.create(project.id, await vault.seal({ ...body(), password: "plain" }));
-  assert.equal(store.dbConnections.password(c.id), "plain");
+  assert.equal(store.dbConnections.storedSecret(c.id, "password"), "plain");
   assert.equal(await vault.read(c, "password"), "plain");
 });
 
@@ -83,7 +83,7 @@ test("DB のパスワード: キーチェーンで拒否されたら 409（db_pa
   vault.enter(c.id, { password: "typed" });
   assert.equal(await vault.read(c, "password"), "typed");
   await assert.rejects(vault.read(c, "ssh_password"), DbPasswordLocked);
-  assert.match(store.dbConnections.password(c.id)!, /^safe:v1:/);
+  assert.match(store.dbConnections.storedSecret(c.id, "password")!, /^safe:v1:/);
 
   // 開けなかったものは覚えないので、許可されれば次の頼みで開ける。忘れたら保存した値に戻る
   state.deny = false;

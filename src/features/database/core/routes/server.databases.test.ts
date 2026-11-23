@@ -67,7 +67,7 @@ test("DB の接続: 作る・一覧・変える・並べ替える・消す。パ
   assert.equal(pg.has_password, true);
   assert.deepEqual(pg.ssl, { mode: "require", ca_path: null });
   assert.ok(!JSON.stringify(pg).includes("s3cret"));
-  assert.equal(store.dbConnections.password(pg.id), "s3cret");
+  assert.equal(store.dbConnections.storedSecret(pg.id, "password"), "s3cret");
   // 知らせには中身を載せない
   assert.ok(events.some((e) => e.type === "db_connections" && e.project_id === project.id));
   assert.ok(!JSON.stringify(events).includes("db.example.com"));
@@ -86,7 +86,7 @@ test("DB の接続: 作る・一覧・変える・並べ替える・消す。パ
   await call("PATCH", `/api/projects/${project.id}/db-connections/${pg.id}`, { password: "again" });
 
   assert.equal((await call("DELETE", `/api/projects/${project.id}/db-connections/${pg.id}`)).status, 204);
-  assert.equal(store.dbConnections.password(pg.id), null);
+  assert.equal(store.dbConnections.storedSecret(pg.id, "password"), null);
   assert.equal((await call("DELETE", `/api/projects/${project.id}/db-connections/${pg.id}`)).status, 404);
 });
 
@@ -115,7 +115,7 @@ test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは�
   assert.equal((await call("PATCH", `${base}/${theirs.id}`, { name: "x" })).status, 404);
   store.projects.delete(other.id);
   assert.equal(store.dbConnections.get(theirs.id), undefined);
-  assert.equal(store.dbConnections.password(theirs.id), null);
+  assert.equal(store.dbConnections.storedSecret(theirs.id, "password"), null);
 });
 
 test("DB の接続: 書き込む前の確かめ（省けば環境の既定・選んだ値・変える・写すときも同じ）", async () => {
@@ -145,7 +145,7 @@ test("DB の接続: ほかのプロジェクトから写す（パスワードは
   assert.equal(without.host, "h");
   assert.equal(without.has_password, false);
   const withPassword = (await call("POST", `/api/projects/${project.id}/db-connections/copy`, { from_id: from.id, copy_password: true })).body as DbConnection;
-  assert.equal(store.dbConnections.password(withPassword.id), "p");
+  assert.equal(store.dbConnections.storedSecret(withPassword.id, "password"), "p");
 });
 
 test("DB の接続: 同じプロジェクトの中で写すと、名前に「のコピー」を付けて手順ノートも同じものを指す", async () => {
@@ -187,7 +187,7 @@ test("DB の接続: プロジェクトから取り込む（案にパスワード
   assert.equal(conn.read_only, false);
   assert.equal(conn.has_password, true);
   assert.ok(!JSON.stringify(created.body).includes("s3cret"));
-  assert.equal(store.dbConnections.password(conn.id), "s3cret");
+  assert.equal(store.dbConnections.storedSecret(conn.id, "password"), "s3cret");
   assert.equal(((await call("GET", base)).body as DbImportCandidate[])[0].existing_id, conn.id);
 
   assert.equal((await call("POST", base, { items: [{ key: "env:.env:NOPE", name: "x", environment: "local" }] })).status, 404);
@@ -227,7 +227,7 @@ test("DB の接続: AI 用のユーザーとパスワード（パスワードは
   assert.equal(created.has_ai_password, true);
   assert.equal(created.has_password, false);
   assert.ok(!JSON.stringify(created).includes("ai-s3cret"));
-  assert.equal(store.dbConnections.aiPassword(created.id), "ai-s3cret");
+  assert.equal(store.dbConnections.storedSecret(created.id, "ai_password"), "ai-s3cret");
   // 省けばそのまま、null で消す
   assert.equal(((await call("PATCH", `${base}/${created.id}`, { name: "x" })).body as DbConnection).has_ai_password, true);
   assert.equal(((await call("PATCH", `${base}/${created.id}`, { ai_password: null })).body as DbConnection).has_ai_password, false);
@@ -239,10 +239,10 @@ test("DB の接続: AI 用のユーザーとパスワード（パスワードは
   assert.equal(other.ai_username, "ai_reader");
   assert.equal(other.has_ai_password, false);
   const copied = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: true })).body as DbConnection;
-  assert.equal(store.dbConnections.aiPassword(copied.id), "again");
+  assert.equal(store.dbConnections.storedSecret(copied.id, "ai_password"), "again");
 
   await call("DELETE", `${base}/${created.id}`);
-  assert.equal(store.dbConnections.aiPassword(created.id), null);
+  assert.equal(store.dbConnections.storedSecret(created.id, "ai_password"), null);
 });
 
 test("DB の接続: SSH トンネル（パスワードは保存したかだけ返す・写すのは選んだときだけ・「-」で始まるホストは断る・~/.ssh/config の Host の一覧）", async () => {
@@ -255,7 +255,7 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
   assert.equal(created.has_ssh_password, true);
   assert.equal(created.has_password, false);
   assert.ok(!JSON.stringify(created).includes("ssh-s3cret"));
-  assert.equal(store.dbConnections.sshPassword(created.id), "ssh-s3cret");
+  assert.equal(store.dbConnections.storedSecret(created.id, "ssh_password"), "ssh-s3cret");
   // 省けばそのまま、null で消す。ssh: null でトンネルをやめる
   assert.equal(((await call("PATCH", `${base}/${created.id}`, { name: "x" })).body as DbConnection).has_ssh_password, true);
   assert.equal(((await call("PATCH", `${base}/${created.id}`, { ssh_password: null })).body as DbConnection).has_ssh_password, false);
@@ -266,7 +266,7 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
   assert.deepEqual(other.ssh, ssh);
   assert.equal(other.has_ssh_password, false);
   const copied = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: true })).body as DbConnection;
-  assert.equal(store.dbConnections.sshPassword(copied.id), "again");
+  assert.equal(store.dbConnections.storedSecret(copied.id, "ssh_password"), "again");
 
   // ssh のオプションと取り違えるホスト・ユーザー・空白入りは断る
   for (const bad of [{ host: "-oProxyCommand=touch /tmp/x" }, { host: "a b" }, { user: "-oX" }]) {
@@ -276,7 +276,7 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
   assert.ok(Array.isArray((await call("GET", `${base}/ssh-hosts`)).body));
 
   await call("DELETE", `${base}/${created.id}`);
-  assert.equal(store.dbConnections.sshPassword(created.id), null);
+  assert.equal(store.dbConnections.storedSecret(created.id, "ssh_password"), null);
 });
 
 test("DB の接続: 準備のコマンド（確かめるまで流さない・流す様子と記録・失敗で止める・中身を変えたら確かめ直す・消す / 止めると後片付け）", async () => {
@@ -823,15 +823,15 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
   const pgBody = { ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, database: "app", username: "u", file_path: null }), password: "s3cret", ssh_password: null };
   const pg = (await call("POST", base, pgBody)).body as DbConnection;
   assert.equal(pg.has_password, true);
-  const stored = store.dbConnections.password(pg.id)!;
+  const stored = store.dbConnections.storedSecret(pg.id, "password")!;
   assert.equal(stored, `safe:v1:${Buffer.from("s3cret").toString("base64")}`);
   assert.equal(await databases.vault.read(pg, "password"), "s3cret");
 
   const copied = (await call("POST", `${base}/copy`, { from_id: pg.id, copy_password: true })).body as DbConnection;
-  assert.equal(store.dbConnections.password(copied.id), stored);
+  assert.equal(store.dbConnections.storedSecret(copied.id, "password"), stored);
 
   await call("PATCH", `${base}/${pg.id}`, { password: "next" });
-  assert.match(store.dbConnections.password(pg.id)!, /^safe:v1:/);
+  assert.match(store.dbConnections.storedSecret(pg.id, "password")!, /^safe:v1:/);
   assert.equal(await databases.vault.read(pg, "password"), "next");
 
   // 一度開いた値は起動している間覚えているので、拒否されても聞き直さない。まだ開いていない値は 409
@@ -843,10 +843,10 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
   assert.equal((locked.body as { code: string }).code, "db_password_locked");
 
   // その場で入れたパスワードで先へ進む（ここではつなぎ先がないので接続の失敗になる）。保存した値は変えない
-  const storedFresh = store.dbConnections.password(fresh.id);
+  const storedFresh = store.dbConnections.storedSecret(fresh.id, "password");
   assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "typed" })).status, 204);
   assert.equal((await call("GET", `${base}/${fresh.id}/databases`)).status, 400);
   assert.equal(await databases.vault.read(fresh, "password"), "typed");
-  assert.equal(store.dbConnections.password(fresh.id), storedFresh);
+  assert.equal(store.dbConnections.storedSecret(fresh.id, "password"), storedFresh);
   assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "" })).status, 400);
 });

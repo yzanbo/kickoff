@@ -1,147 +1,80 @@
-import type { DatabaseSync, SQLInputValue } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
 import { normalizePrep, prepConfirmKey } from "@shared/database/dbPrep";
-import { DB_ENVIRONMENT_DEFAULTS, type DbConnection, type DbPrep, type DbSsh, type DbSsl } from "@shared/database/types";
+import { DB_ENVIRONMENT_DEFAULTS, type DbConnection } from "@shared/database/types";
 import type { DbConnectionPatch, NewDbConnectionBody } from "@shared/database/api";
 import { NOW } from "@/foundation/core/db/db";
-import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
+import type { Notify } from "@/foundation/core/db/common";
+import type { RowOf } from "@/foundation/core/db/table";
+import type { SecretStore } from "@/foundation/core/settings/secretStore";
+import { dbConnectionsTable } from "@/features/database/core/schema";
+import { DB_SECRET_KINDS, dbSecretKey, type DbSecretKey, type DbSecretKind } from "@/features/database/core/secretKeys";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
 const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "note_path", "ssh", "prep", "check_on", "check_note"] as const;
 
-type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
-  ssl: string | null;
-  ssh: string | null;
-  prep: string | null;
-  prep_confirmed: string | null;
-  read_only: number;
-  has_password: number;
-  has_ai_password: number;
-  has_ssh_password: number;
-};
+type Row = RowOf<(typeof dbConnectionsTable)["columns"]>;
 
-const SELECT = `SELECT c.*,
-  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':password') AS has_password,
-  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ai_password') AS has_ai_password,
-  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ssh_password') AS has_ssh_password
-  FROM db_connections AS c`;
-
-const toConnection = (row: Row): DbConnection => {
-  const prep = row.prep ? (JSON.parse(row.prep) as DbPrep) : null;
-  return {
-    ...row,
-    ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
-    ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
-    prep,
-    // 確かめた中身の写しといまの中身が同じ間だけ確かめ済み（中身を変えたら確かめ直す）
-    prep_confirmed: prep !== null && row.prep_confirmed === prepConfirmKey(prep),
-    read_only: row.read_only === 1,
-    has_password: row.has_password === 1,
-    has_ai_password: row.has_ai_password === 1,
-    has_ssh_password: row.has_ssh_password === 1,
-  };
-};
-
-/** 保存する準備のコマンド（空の行・欄を落とし、何もなければ null） */
-function prepText(prep: DbPrep | null): string | null {
-  const normalized = normalizePrep(prep);
-  return normalized ? JSON.stringify(normalized) : null;
+/** 本文のうち変えられる列だけ（準備のコマンドは空の行・欄を落とし、何もなければ null） */
+function columnsOf(body: DbConnectionPatch): Partial<Row> {
+  const out: Record<string, unknown> = {};
+  for (const c of COLUMNS) if (body[c] !== undefined) out[c] = body[c];
+  if (body.prep !== undefined) out.prep = normalizePrep(body.prep);
+  return out as Partial<Row>;
 }
-
-/** DB の接続のパスワードの秘密の値の名前（接続を消したら、表のトリガーで消える） */
-export type DbSecretKey = `db_connection:${number}:password` | `db_connection:${number}:ai_password` | `db_connection:${number}:ssh_password`;
-
-/** 接続のパスワードの秘密の値の名前 */
-export const dbPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:password`;
-/** AI 用のユーザーのパスワードの秘密の値の名前 */
-export const dbAiPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ai_password`;
-/** SSH のパスワードの秘密の値の名前 */
-export const dbSshPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ssh_password`;
 
 /**
  * DB クライアントの接続（db_connections の表。プロジェクトごとの並び position）。パスワードは秘密の値（secrets）に置き
  * （書く値はルートが DbSecretVault の seal で暗号化したもの）、
  * 行には保存したか（has_password）だけを付けて返す。変えたら db_connections の知らせ（中身なし）を出す
  */
-export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secrets: { get(key: DbSecretKey): string | null; set(key: DbSecretKey, value: string): void }) {
+export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secrets: SecretStore<DbSecretKey>) {
+  const rows = dbConnectionsTable.on(db);
+  const saved = (id: number, kind: DbSecretKind) => secrets.get(dbSecretKey(id, kind)) !== null;
+  const toConnection = (row: Row): DbConnection => ({
+    ...row,
+    // 確かめた中身の写しといまの中身が同じ間だけ確かめ済み（中身を変えたら確かめ直す）
+    prep_confirmed: row.prep !== null && row.prep_confirmed === prepConfirmKey(row.prep),
+    has_password: saved(row.id, "password"),
+    has_ai_password: saved(row.id, "ai_password"),
+    has_ssh_password: saved(row.id, "ssh_password"),
+  });
   const get = (id: number): DbConnection | undefined => {
-    const row = db.prepare(`${SELECT} WHERE c.id = ?`).get(id) as unknown as Row | undefined;
+    const row = rows.get(id);
     return row && toConnection(row);
   };
   const notify = (projectId: number) => onChange({ type: "db_connections", project_id: projectId });
-  const toRow = (body: DbConnectionPatch): Record<string, SQLInputValue | undefined> => ({
-    name: body.name,
-    engine: body.engine,
-    environment: body.environment,
-    host: body.host,
-    port: body.port,
-    database: body.database,
-    username: body.username,
-    file_path: body.file_path,
-    ssl: body.ssl === undefined ? undefined : body.ssl === null ? null : JSON.stringify(body.ssl),
-    read_only: bit(body.read_only),
-    write_check: body.write_check,
-    ai_access: body.ai_access,
-    ai_username: body.ai_username,
-    note_path: body.note_path,
-    ssh: body.ssh === undefined ? undefined : body.ssh === null ? null : JSON.stringify(body.ssh),
-    prep: body.prep === undefined ? undefined : prepText(body.prep),
-    check_on: body.check_on,
-    check_note: body.check_note,
-  });
-  const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password" | "ssh_password">) => {
-    if (body.password !== undefined) secrets.set(dbPasswordKey(id), body.password ?? "");
-    if (body.ai_password !== undefined) secrets.set(dbAiPasswordKey(id), body.ai_password ?? "");
-    if (body.ssh_password !== undefined) secrets.set(dbSshPasswordKey(id), body.ssh_password ?? "");
+  const setPasswords = (id: number, body: Pick<DbConnectionPatch, DbSecretKind>) => {
+    for (const kind of DB_SECRET_KINDS) if (body[kind] !== undefined) secrets.set(dbSecretKey(id, kind), body[kind] ?? "");
   };
   return {
     get,
-    list(projectId: number): DbConnection[] {
-      return (db.prepare(`${SELECT} WHERE c.project_id = ? ORDER BY c.position, c.id`).all(projectId) as unknown as Row[]).map(toConnection);
-    },
+    list: (projectId: number): DbConnection[] => rows.list("project_id = ?", [projectId]).map(toConnection),
     /** 作る（worktreePath: Docker タブの「DB で開く」で、ワークツリーの DB から作ったとき） */
     create(projectId: number, body: NewDbConnectionBody, worktreePath: string | null = null): DbConnection {
-      const { next } = db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM db_connections WHERE project_id = ?").get(projectId) as { next: number };
       // 書き込む前の確かめを省いたら環境の既定
-      const row = toRow({ ...body, write_check: body.write_check ?? DB_ENVIRONMENT_DEFAULTS[body.environment].write_check });
-      const { lastInsertRowid } = db
-        .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, note_path, ssh, prep, check_on, check_note, position, worktree_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next, worktreePath);
-      const id = Number(lastInsertRowid);
+      const { id } = rows.insert({ ...columnsOf({ ...body, write_check: body.write_check ?? DB_ENVIRONMENT_DEFAULTS[body.environment].write_check }), project_id: projectId, worktree_path: worktreePath });
       setPasswords(id, body);
       notify(projectId);
       return get(id)!;
     },
     /** 書いた項目だけ変える（password: undefined はそのまま・null は消す） */
     update(id: number, patch: DbConnectionPatch): DbConnection {
-      const before = get(id)!;
-      updateRow(db, "db_connections", id, toRow(patch) as Record<string, SQLInputValue>, COLUMNS);
+      const { project_id } = rows.update(id, columnsOf(patch));
       db.prepare(`UPDATE db_connections SET updated_at = ${NOW} WHERE id = ?`).run(id);
       setPasswords(id, patch);
-      notify(before.project_id);
+      notify(project_id);
       return get(id)!;
     },
     /**
-     * 保存したままのパスワード（暗号化したもの。なければ null）。つなぐときは databases/secrets.ts の DbSecretVault で開く。
+     * 保存したままのパスワード（暗号化したもの。なければ null）。つなぐときは secrets.ts の DbSecretVault で開く。
      * ここで読むのは、写すとき（暗号化したまま写す）とテストだけ
      */
-    password(id: number): string | null {
-      return secrets.get(dbPasswordKey(id));
-    },
-    /** AI 用のユーザーの保存したままのパスワード（なければ null） */
-    aiPassword(id: number): string | null {
-      return secrets.get(dbAiPasswordKey(id));
-    },
-    /** SSH の保存したままのパスワード（なければ null） */
-    sshPassword(id: number): string | null {
-      return secrets.get(dbSshPasswordKey(id));
-    },
+    storedSecret: (id: number, kind: DbSecretKind): string | null => secrets.get(dbSecretKey(id, kind)),
     /** いまの準備のコマンドを利用者が確かめた（写しを残す。中身を変えると確かめ済みでなくなる） */
     confirmPrep(id: number): DbConnection {
-      const connection = get(id)!;
-      db.prepare("UPDATE db_connections SET prep_confirmed = ? WHERE id = ?").run(connection.prep ? prepConfirmKey(connection.prep) : null, id);
-      notify(connection.project_id);
+      const { prep, project_id } = rows.get(id)!;
+      rows.update(id, { prep_confirmed: prep ? prepConfirmKey(prep) : null });
+      notify(project_id);
       return get(id)!;
     },
     /** つながった時刻を残す（一覧の並びは変えない。知らせは出さない） */
@@ -150,30 +83,29 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     },
     /** ノートの名前を変えた・動かしたとき、それを手順ノートにしている接続の note_path を付け替える（フォルダなら中のノートのものも） */
     remapNotePath(projectId: number, from: string, to: string) {
-      const rows = db
-        .prepare("SELECT id, note_path FROM db_connections WHERE project_id = ? AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/')")
-        .all(projectId, from, from, from) as { id: number; note_path: string }[];
-      if (rows.length === 0) return;
-      const stmt = db.prepare("UPDATE db_connections SET note_path = ? WHERE id = ?");
-      for (const r of rows) stmt.run(r.note_path === from ? to : `${to}${r.note_path.slice(from.length)}`, r.id);
+      const found = rows.list("project_id = ? AND (note_path = ? OR substr(note_path, 1, length(?) + 1) = ? || '/')", [projectId, from, from, from]);
+      if (found.length === 0) return;
+      for (const r of found) rows.update(r.id, { note_path: r.note_path === from ? to : `${to}${r.note_path!.slice(from.length)}` });
       notify(projectId);
     },
-    /** そのワークツリー（作業するフォルダ）の DB から作った接続（全プロジェクト） */
-    ofWorktree(worktreePath: string): DbConnection[] {
-      return (db.prepare(`${SELECT} WHERE c.worktree_path = ? ORDER BY c.project_id, c.position, c.id`).all(worktreePath) as unknown as Row[]).map(toConnection);
-    },
+    /** そのワークツリー（作業するフォルダ）の DB から作った接続（全プロジェクト。プロジェクトの順に並べる） */
+    ofWorktree: (worktreePath: string): DbConnection[] =>
+      rows
+        .list("worktree_path = ?", [worktreePath])
+        .sort((a, b) => a.project_id - b.project_id)
+        .map(toConnection),
     /** ワークツリーを消したが接続は残すとき、どのワークツリーのものかを外す（あとで同じ場所に作ったワークツリーと結び付けない） */
     clearWorktree(worktreePath: string) {
-      const projects = db.prepare("SELECT DISTINCT project_id FROM db_connections WHERE worktree_path = ?").all(worktreePath) as { project_id: number }[];
-      db.prepare("UPDATE db_connections SET worktree_path = NULL WHERE worktree_path = ?").run(worktreePath);
-      for (const p of projects) notify(p.project_id);
+      const found = rows.list("worktree_path = ?", [worktreePath]);
+      for (const r of found) rows.update(r.id, { worktree_path: null });
+      for (const projectId of new Set(found.map((r) => r.project_id))) notify(projectId);
     },
     /** 消す（パスワードの秘密の値は表のトリガーが消す） */
     delete(id: number) {
-      const connection = get(id);
-      if (!connection) return;
-      db.prepare("DELETE FROM db_connections WHERE id = ?").run(id);
-      notify(connection.project_id);
+      const row = rows.get(id);
+      if (!row) return;
+      rows.remove(id);
+      notify(row.project_id);
     },
   };
 }

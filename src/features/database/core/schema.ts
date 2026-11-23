@@ -1,6 +1,7 @@
 import { NOW } from "@/foundation/core/db/db";
 import { col, table } from "@/foundation/core/db/table";
-import type { DbPrepKind, DbQueryRanBy } from "@shared/database/types";
+import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbPrep, DbPrepKind, DbQueryRanBy, DbSsh, DbSsl, DbWriteCheck } from "@shared/database/types";
+import { dbSecretKeySql } from "./secretKeys";
 
 /**
  * DB クライアント（v1）。接続はプロジェクトごとの並び。パスワードは secrets の db_connection:<id>:password・ai_password・ssh_password に置き、
@@ -39,7 +40,7 @@ CREATE TABLE db_connections (
 ) STRICT;
 CREATE INDEX idx_db_connections_project ON db_connections(project_id, position);
 CREATE TRIGGER db_connections_drop_secrets AFTER DELETE ON db_connections BEGIN
-  DELETE FROM secrets WHERE key LIKE 'db_connection:' || OLD.id || ':%';
+  DELETE FROM secrets WHERE key LIKE ${dbSecretKeySql("OLD.id", "%")};
 END;
 CREATE TABLE db_query_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +71,46 @@ CREATE TABLE db_prep_runs (
 ) STRICT;
 CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
 `;
+
+/**
+ * 接続の列（パスワードを保存したかは秘密の値から店が添える。prep_confirmed は確かめた中身の写しの文字で、店がいまの中身と比べて真偽にする）。
+ * 並びはプロジェクトごとに 0 から。updated_at は中身を変えたときだけ店が進める（つながった時刻・確かめでは進めない）
+ */
+export const dbConnectionsTable = table(
+  "db_connections",
+  {
+    id: col.int(),
+    project_id: col.int(),
+    name: col.text(),
+    engine: col.text<DbEngine>(),
+    environment: col.text<DbEnvironment>(),
+    host: col.text().nullable(),
+    port: col.int().nullable(),
+    database: col.text().nullable(),
+    username: col.text().nullable(),
+    file_path: col.text().nullable(),
+    worktree_path: col.text().nullable(),
+    ssl: col.json<DbSsl>().nullable(),
+    ssh: col.json<DbSsh>().nullable(),
+    prep: col.json<DbPrep>().nullable(),
+    prep_confirmed: col.text().nullable(),
+    note_path: col.text().nullable(),
+    ai_access: col.text<DbAiAccess>(),
+    ai_username: col.text().nullable(),
+    read_only: col.bool(),
+    write_check: col.text<DbWriteCheck>(),
+    check_on: col.text().nullable(),
+    check_note: col.text().nullable(),
+    position: col.int(),
+    last_connected_at: col.time().nullable(),
+    created_at: col.time(),
+    updated_at: col.time(),
+  },
+  { order: "position, id", position: { column: "position", base: 0, group: "project_id" } },
+);
+
+/** ER 図の位置（主キーは接続と場所の組なので、引くのは one、書くのは店の upsert） */
+export const dbErLayoutsTable = table("db_er_layouts", { connection_id: col.int(), scope: col.text(), positions: col.json<DbErPositions>(), updated_at: col.time() });
 
 /** SQL の履歴（ran_by は user / ai。chat_id はチャットを消したら null） */
 export const dbQueryHistoryTable = table(
