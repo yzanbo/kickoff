@@ -1,13 +1,14 @@
 // コアの側の DB ワーカーの窓口: 初めて頼んだときに起動し、頼みに番号を付けて送り、答えを待つ。何もしない状態が続いたら止める。
 // ワーカーが落ちても、待っている頼みを失敗にするだけで、次の頼みで起動し直す（コアは落ちない）
 import { fork } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { errorMessage } from "@shared/foundation/errors";
 import type { DbEngine } from "@shared/database/types";
 import { DB_DIALECTS } from "@shared/database/dialect";
 import { DbWorkerError, type WorkerCancel, type WorkerEvent, type WorkerMethod, type WorkerMethods, type WorkerRequest, type WorkerResponse } from "@shared/database/workerProtocol";
 import { reportChildProcess } from "@/foundation/core/system/childProcesses";
 
-/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`。それはドライバを読むので、ここから import しない = コアの起動を遅くしない） */
+/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `testing/inProcessWorker.ts`。それはドライバを読むので、コアから import しない = コアの起動を遅くしない） */
 export interface WorkerChannel {
   send(message: WorkerRequest | WorkerCancel): void;
   /** 答えと、ワーカーからの知らせ（流したコマンドの結果） */
@@ -21,6 +22,11 @@ export interface WorkerChannel {
 export interface WorkerEntry {
   file: string;
   execArgv: string[];
+}
+
+/** 単体のコア（npm run daemon）・テストの起動のしかた（ソースの worker/main.ts を node ＋ tsx で動かす） */
+export function devWorkerEntry(): WorkerEntry {
+  return { file: fileURLToPath(new URL("../worker/main.ts", import.meta.url)), execArgv: ["--import", "tsx", "--disable-warning=ExperimentalWarning"] };
 }
 
 /** 別のプロセスで起動する（child_process.fork。Electron の実行ファイルを ELECTRON_RUN_AS_NODE で Node として動かす形は使わない。製品版は fuses で切るため） */

@@ -6,8 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
-import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client";
-import { devWorkerEntry } from "./entry";
+import { DbWorkerClient, devWorkerEntry, forkWorker, killGroup, type WorkerChannel } from "./workerClient";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import { quietShell } from "@/foundation/core/testing/quietShell";
 

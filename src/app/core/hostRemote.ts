@@ -2,7 +2,7 @@
 // Mac の通知・DB ワーカー（作るのはメイン、話すのはコア。メインが作った MessagePort で直結する）。
 // 機能の呼び出し・知らせの形は、下の declare module で土台の表（@/foundation/core/host/protocol.ts）に足す（メインも同じ形を読む）
 import { BROWSER_METHODS, type BrowserControl } from "@shared/browser/control";
-import type { WorkerChannel } from "@/features/database/core/client";
+import type { WorkerChannel } from "@/features/database/core/index";
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "@shared/database/workerProtocol";
 import type { DesktopNotify } from "@/features/notifications/core/center";
 import type { Notice } from "@/features/notifications/core/notices";

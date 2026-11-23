@@ -8,7 +8,7 @@ import type { DockerApi } from "@/features/docker/core/index";
 import type { GuardApi } from "@/features/guard/core/index";
 import { hiddenDbRuleSource } from "./guard/hiddenDb";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
-import { DbWorkerClient, type WorkerChannel } from "./client";
+import { DbWorkerClient, type WorkerChannel } from "./workerClient";
 import { DbSecretVault } from "./secrets";
 import { DatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
@@ -17,6 +17,8 @@ import { dockerDbRoutes } from "./routes/dockerDb";
 import { dbToolGroup, openSqlToolGroup } from "./tools";
 
 export type { DatabaseService } from "./service";
+/** ワーカーのつなぎ（組み立てが渡す。単体のコア・テストはソースの worker/main.ts を fork する） */
+export { devWorkerEntry, forkWorker, type WorkerChannel } from "./workerClient";
 export { createDatabaseStores } from "./db/stores";
 
 export interface DatabaseDeps {

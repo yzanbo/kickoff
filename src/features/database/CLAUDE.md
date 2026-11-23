@@ -7,7 +7,7 @@
 | ファイル | 中身 |
 |---|---|
 | `core/service.ts`・`core/secrets.ts` | 接続・パスワードの金庫 `DbSecretVault`・AI の SQL `aiQuery`（ツール `tools.ts`・CSV `aiExports.ts`・文 `aiFormat.ts`） |
-| `core/client.ts`・`worker/` | 呼び手 `DbWorkerClient`・ワーカー（`handler.ts`・`connect.ts`・SSH `tunnel.ts`）。ドライバは流し方 `DbConn` と読み方 `DbCatalog`（`postgres/`・`mysql/`・`sqlite.ts`）を `driverOf` で組む |
+| `core/workerClient.ts`・`worker/` | 呼び手 `DbWorkerClient`・ワーカー（`handler.ts`・`connect.ts`・SSH `tunnel.ts`）。ドライバは流し方 `DbConn` と読み方 `DbCatalog`（`postgres/`・`mysql/`・`sqlite.ts`）を `driverOf` で組む |
 | `ui/DatabaseClient`・`ui/dbClientContext.ts` | 殻（左に一覧、右にタブ）・操作 `useDbClient` |
 | `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbNote.ts` | 接続の登録・編集・写す・取り込む・失敗の案内・準備・手順ノート |
 | `ui/TableView`・`ui/SqlView`・`ui/DefinitionView`・`ui/er/` | テーブル・SQL・関数と列挙型のタブ・ER 図 |

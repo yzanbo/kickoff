@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
 import type { NewDbConnectionBody } from "@shared/database/api";
 import { setup } from "@/app/core/testing/testServer";
-import { DbWorkerClient } from "./client";
+import { DbWorkerClient } from "./workerClient";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import type { DbTarget } from "@shared/database/workerProtocol";
 import { DatabaseService } from "./service";

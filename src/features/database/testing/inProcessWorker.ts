@@ -1,6 +1,6 @@
 // テストで DB ワーカーを同じプロセスで動かすつなぎ。ワーカーの中身（pg・mysql2 を読む）を import するので、
-// メインプロセスが読む client.ts には置かない（起動のたびにドライバを読み込ませない）
-import type { WorkerChannel } from "@/features/database/core/client";
+// コアが読む core/workerClient.ts には置かない（起動のたびにドライバを読み込ませない）
+import type { WorkerChannel } from "@/features/database/core/index";
 import type { WorkerEvent, WorkerResponse } from "@shared/database/workerProtocol";
 import { macosShell } from "@/foundation/core/platform/macos/shell";
 import { createWorkerHandler, IDLE_SWEEP_MS } from "@/features/database/worker/handler";

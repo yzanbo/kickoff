@@ -1,5 +1,5 @@
 // API のテスト: DB クライアント（接続の登録・パスワードの扱い・写す・試す・木とテーブル・SQL のタブ・読み取り専用）
-// DB ワーカーは同じプロセスで動かす（testing/testServer.ts の setup()）。本物のプロセスでの起動は databases/client.test.ts
+// DB ワーカーは同じプロセスで動かす（testing/testServer.ts の setup()）。本物のプロセスでの起動は core/workerClient.test.ts
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

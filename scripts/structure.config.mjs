@@ -168,6 +168,8 @@ export default {
     { name: "ui-contributes-static", from: CONTRIBUTES, typeOnlyAllowed: true, dynamicAllowed: true, deny: ["**/*.tsx"], allowModules: [], message: "contributes.ts が静的に読むのは型・純粋な関数・拡張点・lazyPart だけ（部品は lazyPart(() => import(\"./X\")) で包む）" },
     // 組み立て（ここだけが全部の機能を知る）とスマホ
     { name: "app-shared", from: ["src/app/shared/**"], allow: ["src/shared/**", "src/app/shared/**"], message: "app/shared は純粋な束ねだけ" },
+    // 機能の testing/（ワーカーの中身を同じプロセスで動かす偽物など）は、テストだけが読む（コアの起動でドライバを読み込まない）
+    { name: "feature-testing-reader", from: ["src/features/*/core/**", "src/app/core/**"], tests: "exclude", deny: ["src/features/*/testing/**"], message: "機能の testing/ を読むのはテストだけ（コアから読むと、ワーカーの中身・ドライバまで読み込む）" },
     { name: "app-core", from: ["src/app/core/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/features/*/{core,testing}/**", "src/app/shared/**", "src/app/core/**"], message: "app/core はコアのプロセスのものだけを読む" },
     { name: "app-desktop", from: ["src/app/desktop/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/desktop/**"], message: "app/desktop はメインのプロセスのものだけを読む" },
     { name: "app-renderer", from: ["src/app/renderer/**"], allow: ["src/shared/**", "src/foundation/ui/**", "src/features/*/ui/**", "src/app/shared/**", "src/app/renderer/**"], message: "app/renderer は画面のものだけを読む" },

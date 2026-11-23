@@ -17,7 +17,7 @@ import type { DatabaseStores } from "./db/stores";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { appDataDir } from "@/foundation/core/system/appEnv";
 import { expandHome, isInside, realPathLoose } from "@/foundation/core/system/paths";
-import type { DbWorkerClient } from "./client";
+import type { DbWorkerClient } from "./workerClient";
 import { DbWorkerError, type DbTarget, type DbTargetCommands } from "@shared/database/workerProtocol";
 import type { DbSecretVault } from "./secrets";
 import { AI_EXPORT_KEEP_MS, aiExportFile, aiExportRoot, cleanAiExports, removeChatExports } from "./aiExports";

@@ -22,7 +22,7 @@ import type { PortsEnv } from "@/features/ports/core/index";
 import type { GitHubEnv } from "@/features/github/core/index";
 import type { RemoteImageServiceOptions } from "@/features/remoteImages/core/service";
 import type { DatabaseEnv } from "@/features/database/core/index";
-import type { WorkerChannel } from "@/features/database/core/client";
+import type { WorkerChannel } from "@/features/database/core/index";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 
 export interface CoreOptions {
