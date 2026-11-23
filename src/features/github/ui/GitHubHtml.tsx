@@ -7,33 +7,29 @@ import { githubImageSource, type GitHubBodyPlace } from "./githubLinks";
 /** いま見ている issue・PR のホスト・リポジトリ・プロジェクト（GitHubDetail の DetailBody が中身の URL から決めて渡す。既定は github.com で、画像はそのまま読む） */
 export const GitHubBodyContext = createContext<GitHubBodyPlace>({ host: GITHUB_DEFAULT_HOST, repo: null, projectId: null });
 
-/** 相対のリンク・画像を GitHub の URL に直す土台と、画像を読む先（sanitizeGitHubHtml の間だけ、その本文のものにする） */
-let relativeOrigin = githubWebOrigin(GITHUB_DEFAULT_HOST);
-let imageSource: ((url: string) => string) | null = null;
-
-// リンクは外のブラウザで開く（target=_blank はメインプロセスが既定のブラウザに渡す）。相対のものは GitHub の URL にする
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (!(node instanceof Element)) return;
-  for (const attr of ["href", "src"]) {
-    const v = node.getAttribute(attr);
-    if (v?.startsWith("/") && !v.startsWith("//")) node.setAttribute(attr, relativeOrigin + v);
-  }
-  const src = node.tagName === "IMG" ? node.getAttribute("src") : null;
-  if (src && imageSource) node.setAttribute("src", imageSource(src));
-  if (node.tagName === "A") {
-    node.setAttribute("target", "_blank");
-    node.setAttribute("rel", "noreferrer");
-  }
-  if (node.tagName === "IMG") node.setAttribute("loading", "lazy");
-});
-
 /**
  * GitHub が作った本文の HTML を無害にする（スクリプト・フォーム・埋め込み・style は落とす。GitHub の側でも無害にしてあるが、重ねて守る。
- * 相対の URL は place のホストのページに直し、リポジトリの中のファイルの画像はコアの口から読む）
+ * 相対の URL は place のホストのページに直し、リポジトリの中のファイルの画像はコアの口から読む）。
+ * DOMPurify のフックはこの呼び出しの間だけ足す（ほかの所の DOMPurify を巻き込まない）
  */
 function sanitizeGitHubHtml(html: string, place: GitHubBodyPlace = { host: GITHUB_DEFAULT_HOST, repo: null, projectId: null }): string {
-  relativeOrigin = githubWebOrigin(place.host);
-  imageSource = (url) => githubImageSource(place, url);
+  const origin = githubWebOrigin(place.host);
+  // リンクは外のブラウザで開く（target=_blank はメインプロセスが既定のブラウザに渡す）。相対のものは GitHub の URL にする
+  const hook = (node: Node) => {
+    if (!(node instanceof Element)) return;
+    for (const attr of ["href", "src"]) {
+      const v = node.getAttribute(attr);
+      if (v?.startsWith("/") && !v.startsWith("//")) node.setAttribute(attr, origin + v);
+    }
+    const src = node.tagName === "IMG" ? node.getAttribute("src") : null;
+    if (src) node.setAttribute("src", githubImageSource(place, src));
+    if (node.tagName === "A") {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noreferrer");
+    }
+    if (node.tagName === "IMG") node.setAttribute("loading", "lazy");
+  };
+  DOMPurify.addHook("afterSanitizeAttributes", hook);
   try {
     return DOMPurify.sanitize(html, {
       USE_PROFILES: { html: true },
@@ -41,8 +37,7 @@ function sanitizeGitHubHtml(html: string, place: GitHubBodyPlace = { host: GITHU
       FORBID_ATTR: ["style"],
     });
   } finally {
-    relativeOrigin = githubWebOrigin(GITHUB_DEFAULT_HOST);
-    imageSource = null;
+    DOMPurify.removeHook("afterSanitizeAttributes", hook);
   }
 }
 
