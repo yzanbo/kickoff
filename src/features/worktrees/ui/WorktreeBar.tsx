@@ -18,6 +18,7 @@ import { appAddress, removalChecks } from "./worktreeEnvText";
 import { openPrNotice, useWorktreePrLookup } from "@/features/github/ui/prNotice/prNoticeStore";
 import { addChat } from "@/features/chat/ui/store/knownChats";
 import { open } from "@/foundation/ui/navigation/open";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /**
  * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。
@@ -109,7 +110,7 @@ export function WorktreeBar({ projectId, path: worktree, onFinished }: Workplace
           <span className="pr-chip tag" data-look="outline" data-pr-state={value.state.toLowerCase()} title={value.title}>
             <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{PR_STATE_LABELS[prStateOf(value.state, value.is_draft)]}
           </span>
-          <button className="btn" data-size="sm" onClick={() => window.open(value.url)}>
+          <button className="btn" data-size="sm" onClick={() => openInDefaultBrowser(value.url)}>
             <ExternalLink size={12} aria-hidden /> PR を開く
           </button>
           {value.state === "MERGED" && (

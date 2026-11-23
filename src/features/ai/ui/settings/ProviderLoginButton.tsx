@@ -6,6 +6,7 @@ import { api } from "@/foundation/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { providersStore } from "@/features/ai/ui/stores/providers";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 type LoginState = { kind: "idle" } | { kind: "starting" } | { kind: "waiting" } | { kind: "failed"; message: string };
 
@@ -14,7 +15,7 @@ export const canBrowserLogin = (p: ProviderStatus) => p.implemented && p.install
 
 /**
  * AI のブラウザでのログイン（いまは Codex = ChatGPT でログイン）。押すとコアがログインを始め、返った URL を既定のブラウザで開く
- * （メインプロセスが window.open を既定のブラウザに渡す）。ログインの戻り先は CLI が受け、資格情報も CLI の置き場に書く（Kickoff は持たない）。
+ * （openInDefaultBrowser。メインプロセスが既定のブラウザに渡す）。ログインの戻り先は CLI が受け、資格情報も CLI の置き場に書く（Kickoff は持たない）。
  * 終わりは SSE の provider_login で受け、AI の状態を読み直す
  */
 export function ProviderLoginButton({ provider }: { provider: ProviderStatus }) {
@@ -30,7 +31,7 @@ export function ProviderLoginButton({ provider }: { provider: ProviderStatus }) 
     setState({ kind: "starting" });
     try {
       const { auth_url } = await api.startProviderLogin(provider.id);
-      window.open(auth_url, "_blank", "noopener");
+      openInDefaultBrowser(auth_url);
       setState({ kind: "waiting" });
     } catch (e) {
       setState({ kind: "failed", message: errorMessage(e) });

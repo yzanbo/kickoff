@@ -22,6 +22,7 @@ import { openNewIssue } from "./NewIssueDialog";
 import { GitHubItemRow } from "./GitHubItemRow";
 import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など。CI のタブも同じ） */
 export const DETAIL_MIN_WIDTH = 440;
@@ -79,7 +80,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}
             </a>
-            <IconButton icon={ExternalLink} iconSize={13} label="この一覧を GitHub で開く" onClick={() => window.open(githubListUrl(host, repo, filter), "_blank", "noopener")} />
+            <IconButton icon={ExternalLink} iconSize={13} label="この一覧を GitHub で開く" onClick={() => openInDefaultBrowser(githubListUrl(host, repo, filter))} />
             {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
             {!narrow && (
               <>

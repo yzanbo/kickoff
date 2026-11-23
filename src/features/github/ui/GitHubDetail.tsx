@@ -24,6 +24,7 @@ import { fixReviewComments } from "./githubHandoff";
 import { linkOf } from "./githubPrompt";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
 import { useGitHubBodyActions } from "./useGitHubBodyActions";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /** PR の中身の切り替え */
 const PR_VIEWS = ["conversation", "files", "checks"] as const;
@@ -73,7 +74,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
           {data && <GitHubHandoffMenu projectId={projectId} detail={data} />}
           <RefreshButton label="GitHub から取り直す" busy={detail.loading} onClick={detail.refresh} />
           {data && <CopyButton label="URL をコピー" text={data.item.url} />}
-          {data && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => window.open(data.item.url, "_blank", "noopener")} />}
+          {data && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => openInDefaultBrowser(data.item.url)} />}
         </div>
         {data && (
           <>

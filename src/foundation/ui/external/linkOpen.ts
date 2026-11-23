@@ -5,6 +5,7 @@ import type { AppSettings } from "@shared/foundation/contract/settings";
 import { applySettings, settingsStore } from "@/features/settings/ui/stores/settings";
 import { confirm } from "@/foundation/ui/kit/ask";
 import { open } from "@/foundation/ui/navigation/open";
+import { openInDefaultBrowser } from "./native";
 
 const TITLE = "外部リンクを開く";
 
@@ -40,5 +41,5 @@ export async function openWebLink(href: string, text: string, opts: { invert: bo
   const kickoff = (settings.link_open_in === "kickoff") !== opts.invert;
   if (kickoff && opts.projectId !== undefined) open({ kind: "browser", projectId: opts.projectId, url: href });
   // 新しいウィンドウを開こうとすると、メインプロセスが既定のブラウザで開く（app/externalLinks.ts）
-  else window.open(href, "_blank", "noopener,noreferrer");
+  else openInDefaultBrowser(href);
 }

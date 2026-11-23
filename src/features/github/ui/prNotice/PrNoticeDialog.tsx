@@ -26,6 +26,7 @@ import {
   type PrChatAction,
   type PrWorktreeAction,
 } from "./prNoticePlan";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /**
  * 確認「PR #12 がマージされました」: ワークツリー（ブランチも消す / ワークツリーだけ消す / 残す）と、
@@ -113,7 +114,7 @@ export function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNo
           {projectName(projectId)} のワークツリー「{notice.branch}」の PR です。
           {merged ? "ワークツリーを片付けて、本体を最新にできます。" : "マージされていないので、作業を失わないよう、初めはブランチを残します。"}
         </p>
-        <button type="button" className="link-button pr-notice-link" onClick={() => window.open(notice.pr.url)} title={notice.pr.url}>
+        <button type="button" className="link-button pr-notice-link" onClick={() => openInDefaultBrowser(notice.pr.url)} title={notice.pr.url}>
           <span className="pr-notice-link-title">
             #{notice.pr.number} {notice.pr.title}
           </span>

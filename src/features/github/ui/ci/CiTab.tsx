@@ -19,6 +19,7 @@ import { GITHUB_REFRESH_MS, githubRefresh } from "@/features/github/ui/githubRef
 import { CiRunDetailView } from "./CiRunDetail";
 import { CiExternalRow, CiRunRow } from "./CiRunRow";
 import { ciSelectedText, hasPending, parseCiSelected } from "./ciView";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /** 動いている実行がある間に取り直す間隔（15 秒。終われば 1 分ごとに戻す） */
 export const CI_PENDING_REFRESH_MS = 15_000;
@@ -70,7 +71,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}
             </a>
-            <IconButton icon={ExternalLink} iconSize={13} label="GitHub Actions のページを開く" onClick={() => window.open(actionsUrl, "_blank", "noopener")} />
+            <IconButton icon={ExternalLink} iconSize={13} label="GitHub Actions のページを開く" onClick={() => openInDefaultBrowser(actionsUrl)} />
             {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
             {!narrow && (
               <>

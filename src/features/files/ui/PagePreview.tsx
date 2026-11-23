@@ -1,6 +1,7 @@
 import { Markdown } from "@/foundation/ui/markdown/Markdown";
 import { HtmlFrame } from "@/foundation/ui/document/HtmlFrame";
 import { projectAssetBase, type PagePreviewKind } from "./filePreview";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /**
  * Markdown・HTML のファイルのプレビュー（ファイルタブの見出しの「プレビュー」。書きかけの中身もそのまま出す）。
@@ -29,5 +30,5 @@ export function PagePreview({ projectId, worktree, path, kind, content }: { proj
 
 /** 外のサイト（http・https・mailto）だけをブラウザで開く（ほかは何もしない） */
 function openOutside(url: string) {
-  if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
+  if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) openInDefaultBrowser(url);
 }

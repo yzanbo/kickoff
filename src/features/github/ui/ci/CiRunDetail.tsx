@@ -16,6 +16,7 @@ import { CiJobSection } from "./CiJobLog";
 import { CheckStateIcon, ciTone } from "@/features/github/ui/CheckStateIcon";
 import { CI_PENDING_REFRESH_MS } from "./CiTab";
 import { jobToOpen, runName } from "./ciView";
+import { openInDefaultBrowser } from "@/foundation/ui/external/native";
 
 /** ジョブのかかった時間（終わっていなければ空） */
 function jobDuration(job: CiJob): string | null {
@@ -88,7 +89,7 @@ export function CiRunDetailView({
           {run && run.state === "failure" && <CiHandoffMenu projectId={projectId} run={run} repo={repo} defaultBranch={defaultBranch} />}
           <RefreshButton label="GitHub から取り直す" busy={detail.loading} onClick={detail.reload} />
           {run && <CopyButton label="URL をコピー" text={run.url} />}
-          {run && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => window.open(run.url, "_blank", "noopener")} />}
+          {run && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => openInDefaultBrowser(run.url)} />}
         </div>
         {run && (
           <>

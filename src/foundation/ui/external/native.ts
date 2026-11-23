@@ -34,3 +34,11 @@ export const installedTerminals = (): Promise<ExternalTerminalId[]> | undefined 
 
 /** この Mac に入っている外部のブラウザ（Mac のアプリでなければ undefined） */
 export const installedBrowsers = (): Promise<ExternalBrowserId[]> | undefined => window.kickoff?.externalApps.browsers();
+
+/**
+ * 既定のブラウザでページを開く（確かめは出さない。アプリが作った GitHub などの URL 用。本文のリンクは linkOpen.ts の openWebLink）。
+ * 新しいウィンドウを開こうとすると、メインプロセスが http(s) のページだけを既定のブラウザで開く（foundation/desktop/app/externalLinks.ts）
+ */
+export function openInDefaultBrowser(url: string): void {
+  window.open(url, "_blank", "noopener,noreferrer");
+}

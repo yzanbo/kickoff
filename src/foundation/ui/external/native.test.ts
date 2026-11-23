@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
-import { canOpenExternal, openExternal } from "./native";
+import { canOpenExternal, openExternal, openInDefaultBrowser } from "./native";
 
 test("openExternal: 行き先の種類ごとに外のアプリの口を呼ぶ。Mac のアプリでなければ開かずに false", async () => {
   const calls: unknown[][] = [];
@@ -27,4 +27,11 @@ test("openExternal: 行き先の種類ごとに外のアプリの口を呼ぶ。
   vi.stubGlobal("window", {});
   assert.equal(canOpenExternal(), false);
   assert.equal(await openExternal({ kind: "path", path: "/a" }), false);
+});
+
+test("openInDefaultBrowser: 開き元を渡さない新しいウィンドウで開く（メインが既定のブラウザに渡す）", () => {
+  const opened: unknown[][] = [];
+  vi.stubGlobal("window", { open: (...args: unknown[]) => void opened.push(args) });
+  openInDefaultBrowser("https://github.com/o/r/pull/1");
+  assert.deepEqual(opened, [["https://github.com/o/r/pull/1", "_blank", "noopener,noreferrer"]]);
 });
