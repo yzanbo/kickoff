@@ -34,7 +34,7 @@ const create = async (s: ReturnType<typeof setup>, branch: string) => {
 };
 
 test("ワークツリーを作ると、空いている帯を割り当てて .env と上書きファイルに書く（Git の変更には出さない）", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   // 20100 の帯の中で待ち受けているものがあれば飛ばす
   s.portsFake.lsof = LSOF_HEAD + lsofLine(20105) + lsofLine(5432);
@@ -84,7 +84,7 @@ test("ワークツリーを作ると、空いている帯を割り当てて .env
 });
 
 test("消すとき: 選ばれたら組の名前で docker compose down -v を流し、帯を空ける", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   const wt = await create(s, "feat/x");
   const removed = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: wt.path, down_volumes: true });
@@ -101,7 +101,7 @@ test("消すとき: 選ばれたら組の名前で docker compose down -v を流
 });
 
 test("Git で管理している .env があれば、書かずに分けられない理由を返す", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   gitRepo({ dir: s.project.repo_path, files: { "compose.yaml": "services: {}\n", ".env": "DB_PORT=5432\n" } });
   s.dockerFake.set([{ match: "config --format json", stdout: COMPOSE_CONFIG }]);
   const wt = await create(s, "feat/x");
@@ -112,7 +112,7 @@ test("Git で管理している .env があれば、書かずに分けられな�
 });
 
 test("帯を使い切ったら、分けずに作って知らせる。docker がなければ開発サーバーだけ分けて、整えきれていない所に出す", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   const other: Project = s.store.projects.create({ name: "other", repo_path: "/tmp/other", provider: "claude" });
   for (let band = 20100; band <= 29900; band += 100) {
@@ -133,7 +133,7 @@ test("帯を使い切ったら、分けずに作って知らせる。docker が�
 });
 
 test("［AI で整える］: 覚えのないワークツリーは先に手順を流し、Git で管理していないファイルだけを書ける新しいチャットを始める", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   const wt = await create(s, "feat/old");
   // 覚えのないワークツリー（Kickoff の外で作ったものなど）にする
@@ -164,7 +164,7 @@ test("［AI で整える］: 覚えのないワークツリーは先に手順を
 });
 
 test("消すとき: drop_db_connections なら、このワークツリーの DB から作った接続も消す。選ばなければ結び付きだけ外す", async () => {
-  const s = setup();
+  const s = setup({ features: ["worktrees", "database"] });
   withRepo(s);
   const a = await create(s, "feat/a");
   const b = await create(s, "feat/b");

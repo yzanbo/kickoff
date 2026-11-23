@@ -20,7 +20,7 @@ const searchAnswer = (numbers: number[]) => ({
 });
 
 test("GitHub タブ: 連携の状態（remote がない・聞けない・使える）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github`;
   ghFake.graphql = () => ({ viewer: { login: "me" } });
   assert.deepEqual((await call("GET", `${base}/connection`)).body, { host: "github.com", repo: "o/r", account: "me", reason: null } satisfies GitHubConnection);
@@ -40,7 +40,7 @@ test("GitHub タブ: 連携の状態（remote がない・聞けない・使え�
 });
 
 test("GitHub タブ: 一覧は絞り込みを検索の文にして聞き、変わっていなければ（304）覚えたものを返す。refresh・続きは聞き直す", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github`;
   ghFake.graphql = () => searchAnswer([1, 2]);
   let etag = '"e1"';
@@ -100,7 +100,7 @@ test("GitHub タブ: 一覧は絞り込みを検索の文にして聞き、変�
 });
 
 test("GitHub タブ: issue と PR の中身（種類が違えば 404）・PR の行のスレッドとチェック・変更したファイル", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github`;
   const pr = {
     __typename: "PullRequest",
@@ -184,7 +184,7 @@ test("GitHub タブ: issue と PR の中身（種類が違えば 404）・PR の
 });
 
 test("GitHub タブ: PR のブランチのワークツリー（PR の元のブランチを聞いて作り、2 回目はあるものを返す。Git でないフォルダは 400）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const url = `/api/projects/${project.id}/github/pulls/4/worktree`;
   assert.equal((await call("POST", url)).status, 400);
 
@@ -210,7 +210,7 @@ test("GitHub タブ: PR のブランチのワークツリー（PR の元のブ�
 });
 
 test("GitHub タブの書き込み: コメント・閉じる / 開き直す・ラベル・issue の作成を REST で送る（空の本文・題名は 400）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github`;
   ghFake.send = (method, path) => (path.endsWith("/labels") ? [{ name: "bug", color: "d73a4a" }] : method === "POST" && path === "repos/o/r/issues" ? { number: 42, html_url: "https://github.com/o/r/issues/42" } : {});
   const sent = () => ghFake.calls.filter((c) => c.kind === "send").map((c) => [c.method, c.detail, c.body]);
@@ -239,7 +239,7 @@ test("GitHub タブの書き込み: コメント・閉じる / 開き直す・�
 });
 
 test("GitHub タブの書き込み: レビューの送信・スレッドへの返信と解決・マージ（GitHub が断ったら理由の文で 400）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github`;
   const review = { event: "comment", body: "", commit_id: "abc1234", comments: [{ path: "a.ts", line: 3, side: "RIGHT", body: "ここ" }] };
   assert.equal((await call("POST", `${base}/pulls/5/reviews`, review)).status, 204);
@@ -272,7 +272,7 @@ test("GitHub タブの書き込み: レビューの送信・スレッドへの�
 });
 
 test("GitHub タブ: 中身に自分にできること、PR にマージの様子・許す方式・マージできるかを返す", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   ghFake.graphql = () => ({
     repository: {
       mergeCommitAllowed: false,
@@ -348,7 +348,7 @@ test("GitHub タブ: 中身に自分にできること、PR にマージの様�
 });
 
 test("GitHub タブ: PR のチェックアウト（本体なら本体のブランチを切り替える。ワークツリーは今までどおり）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const src = gitRepo({ files: { "a.txt": "a\n" } });
   src.git("branch", "fix");
   const bare = path.join(tempDir(), "o-r.git");
@@ -364,7 +364,7 @@ test("GitHub タブ: PR のチェックアウト（本体なら本体のブラ�
 });
 
 test("GitHub タブ: 本文の画像のうち連携先のリポジトリのファイルは、gh api で取って返す（1MB を超えれば blob・ほかのリポジトリ・画像でないものは 400）", async () => {
-  const { app, call, project, ghFake } = setup();
+  const { app, call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/github/image?url=`;
   const get = (url: string) => app.request(base + encodeURIComponent(url), { headers: { authorization: `Bearer ${TOKEN}` } });
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);

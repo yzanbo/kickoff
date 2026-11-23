@@ -16,7 +16,7 @@ const list = async (ctx: Ctx) => (await ctx.call("GET", `/api/projects/${ctx.pro
 const hueOf = (worktrees: GitWorktree[], where: string) => worktrees.find((w) => w.path === where)?.hue;
 
 test("作業場所の色: 本体はプロジェクトの色、ワークツリーは互いに被らない色を覚え、ブランチを替えても・ほかを足しても・作り直しても変わらない", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees"] });
   const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const git = gitIn(repo);
   const base = tempDir();
@@ -42,7 +42,7 @@ test("作業場所の色: 本体はプロジェクトの色、ワークツリー
 
 test("HEAD の見張り: 本体・ワークツリーのブランチ切り替えと、最初のワークツリーの追加・削除を知らせる", async (t) => {
   if (!(await canWatchDirectory())) t.skip("この環境では OS のディレクトリ監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees"] });
   const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const git = gitIn(repo);
   // git はワークツリーを実際のパス（/tmp → /private/tmp）で返すので、比べるパスも実際のパスにする

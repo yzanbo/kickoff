@@ -9,7 +9,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 
 /** プロジェクトのフォルダに main と最初のコミットを作り、ブランチの操作を呼ぶ口を返す */
 function branchSetup(files: Record<string, string> = { "a.txt": "one\n" }) {
-  const ctx = setup();
+  const ctx = setup({ features: ["git"] });
   const { call, project } = ctx;
   const { dir, git } = gitRepo({ dir: project.repo_path, files });
   const base = `/api/projects/${project.id}/git`;

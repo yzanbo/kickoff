@@ -42,7 +42,7 @@ const live = async (ctx: Ctx, chatId: number) => (await ctx.call("GET", `/api/ch
 const continuations = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "user" && e.data.workplace_continuation ? [e.data.text] : []));
 
 test("予約は作業中の様子に出し、作業が終わったら新しいワークツリーへ移して続きを送る。続きは送信待ちより先", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, store, provider, runner } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
@@ -63,7 +63,7 @@ test("予約は作業中の様子に出し、作業が終わったら新しい�
 });
 
 test("同じ作業で頼み直すと最後のものだけ残す。画面から取り消すと移さず、お知らせを残す（予約がなければ 409）。AI も取り消せる", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, store, runner } = ctx;
   const chatId = await mainChat(ctx);
   const wt = ((await call("POST", `/api/projects/${ctx.project.id}/git/worktrees`, { branch: "feat/x" })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
@@ -83,7 +83,7 @@ test("同じ作業で頼み直すと最後のものだけ残す。画面から�
 });
 
 test("止めた作業では移さず、予約を消して知らせる", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, store, runner } = ctx;
   const chatId = await mainChat(ctx);
   const { tools } = await busyTurn(ctx, chatId);
@@ -96,7 +96,7 @@ test("止めた作業では移さず、予約を消して知らせる", async ()
 });
 
 test("送信待ちを止めていれば、移すが続きは送らずに送信待ちの先頭に入れる（G5）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, store, runner, provider } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
@@ -118,7 +118,7 @@ test("送信待ちを止めていれば、移すが続きは送らずに送信�
 });
 
 test("移せなければ元のまま、知らせて続きは送らない（G6）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { store, runner, provider } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);
@@ -132,7 +132,7 @@ test("移せなければ元のまま、知らせて続きは送らない（G6）
 });
 
 test("片付けの予約と重なれば先に片付ける。本体へなら移すのは片付けで済み、続きは送るが送信待ちは止めたまま（G4・J3）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, store, runner, worktreeFinisher, provider } = ctx;
   const chatId = await mainChat(ctx);
   const wt = ((await call("POST", `/api/projects/${ctx.project.id}/git/worktrees`, { branch: "feat/done" })).body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
@@ -153,7 +153,7 @@ test("片付けの予約と重なれば先に片付ける。本体へなら移�
 });
 
 test("ツールの確かめ: 持っていくのは新しいワークツリーだけ・同じ場所は断る。持っていくときだけファイルの一覧で承認を聞き、断られたら予約しない", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, project } = ctx;
   const chatId = await mainChat(ctx);
   await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/y" });
@@ -176,7 +176,7 @@ test("ツールの確かめ: 持っていくのは新しいワークツリーだ
 });
 
 test("利用者が取り消したことは AI にも伝える: 作業中で足せればその場で、足せなければ次の指示に一度だけ添える", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, provider, runner } = ctx;
   const chatId = await mainChat(ctx);
   // 足せる: いまの作業にその場で足す（次の指示には添えない）
@@ -209,7 +209,7 @@ test("利用者が取り消したことは AI にも伝える: 作業中で足�
 });
 
 test("足せなかった取り消しの知らせは、次に伝えた発言の頭にも一度だけ添える", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "worktrees"] });
   const { call, provider, runner } = ctx;
   const chatId = await mainChat(ctx);
   const { tools, release } = await busyTurn(ctx, chatId);

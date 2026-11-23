@@ -13,7 +13,7 @@ const READ_TOKEN = "r".repeat(43);
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 
 function withDevices() {
-  const ctx = setup();
+  const ctx = setup({ features: ["terminal"] });
   ctx.store.settings.update({ mobile_enabled: true });
   const full = ctx.store.devices.create("Pixel", FULL_TOKEN, "full");
   const read = ctx.store.devices.create("タブレット", READ_TOKEN, "read");

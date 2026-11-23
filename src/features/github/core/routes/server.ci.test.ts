@@ -59,7 +59,7 @@ function cloneProject(repoPath: string) {
 }
 
 test("CI: 実行の一覧と、既定のブランチの外の CI（GitHub Actions の check run は外に数えない）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   ghFake.rest = answer([rawRun(2, "main", "failure"), rawRun(1, "feat", "success")]);
   const list = (await call("GET", `/api/projects/${project.id}/ci/runs`)).body as CiRunList;
   assert.deepEqual(
@@ -78,7 +78,7 @@ test("CI: 実行の一覧と、既定のブランチの外の CI（GitHub Action
 });
 
 test("CI: 実行の中身とジョブのログ（ステップごと。動いている最中は出せない理由）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/ci/runs/2`;
   ghFake.rest = answer([rawRun(2, "main", "failure")]);
   const detail = (await call("GET", base)).body as CiRunDetail;
@@ -101,7 +101,7 @@ test("CI: 実行の中身とジョブのログ（ステップごと。動いて�
 });
 
 test("CI: 失敗したステップのログは落ちた実行だけ（色の制御文字は外す）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   ghFake.rest = answer([rawRun(2, "main", "failure"), rawRun(1, "feat", "success")]);
   ghFake.cli = (args) => {
     assert.deepEqual(args, ["run", "view", "2", "--log-failed"]);
@@ -113,7 +113,7 @@ test("CI: 失敗したステップのログは落ちた実行だけ（色の制�
 });
 
 test("CI: やり直し（失敗したジョブだけ / すべて）を REST で送る", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   const base = `/api/projects/${project.id}/ci/runs/2/rerun`;
   assert.equal((await call("POST", base, { failed: true })).status, 204);
   assert.equal((await call("POST", base, { failed: false })).status, 204);
@@ -128,7 +128,7 @@ test("CI: やり直し（失敗したジョブだけ / すべて）を REST で�
 });
 
 test("CI: 「（ブランチ名）で直す」の作業場所（既定のブランチは本体、ほかはそのブランチのワークツリーを作り、2 回目はあるものを返す）", async () => {
-  const { call, project, ghFake } = setup();
+  const { call, project, ghFake } = setup({ features: ["github"] });
   ghFake.rest = answer([rawRun(2, "main", "failure"), rawRun(3, "fix", "failure", { head_repository: { full_name: "o/r" } })]);
   // Git でないフォルダは 400
   assert.equal((await call("POST", `/api/projects/${project.id}/ci/runs/3/worktree`)).status, 400);
@@ -142,7 +142,7 @@ test("CI: 「（ブランチ名）で直す」の作業場所（既定のブラ�
 });
 
 test("CI の失敗の見張り: 作業場所のブランチと既定のブランチの最新の失敗を 1 回だけ知らせる（他人のブランチ・見張らない設定は知らせない）", async () => {
-  const { project, ghFake, prWatch, bus, store } = setup();
+  const { project, ghFake, prWatch, bus, store } = setup({ features: ["github"] });
   cloneProject(project.repo_path);
   // 本体は main。他人のブランチ someone の失敗は知らせない
   ghFake.rest = answer([rawRun(5, "main", "failure"), rawRun(4, "someone", "failure")]);

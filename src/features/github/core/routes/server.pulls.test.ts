@@ -17,7 +17,7 @@ const ghWithPr = () => fakeGh([
 
 /** GitHub の remote（取ってくる側）と、プッシュ先の手元の裸のリポジトリを持つプロジェクト */
 function prSetup() {
-  const ctx = setup();
+  const ctx = setup({ features: ["github"] });
   const { dir, git } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const bare = tempDir();
   gitIn(bare)("init", "-q", "--bare");

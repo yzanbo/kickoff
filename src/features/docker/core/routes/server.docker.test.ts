@@ -25,7 +25,7 @@ function withCompose(s: ReturnType<typeof setup>, extra: { match: string; stdout
 const list = async (s: ReturnType<typeof setup>) => (await s.call("GET", `/api/projects/${s.project.id}/docker`)).body as DockerList;
 
 test("Docker: docker が入っていない・エンジンが止まっている", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   s.dockerFake.missing = true;
   assert.equal((await list(s)).engine, "missing");
   s.dockerFake.missing = false;
@@ -36,7 +36,7 @@ test("Docker: docker が入っていない・エンジンが止まっている",
 });
 
 test("Docker: 一覧は作っていない compose・作ったサービス・札付き・ほかのプロジェクトの数", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [], [
     { id: "c1", name: "app-db-1", state: "running", project: "app", service: "db", dir: s.project.repo_path, files: path.join(s.project.repo_path, "compose.yaml"), ports: "0.0.0.0:5432->5432/tcp", hash: "h1" },
     { id: "x1", name: "other-1", state: "running", project: "other", service: "web", dir: "/somewhere/else", ports: "0.0.0.0:8080->80/tcp" },
@@ -62,7 +62,7 @@ test("Docker: 一覧は作っていない compose・作ったサービス・札�
 });
 
 test("Docker: すべて起動は作ってあるものを start（/ で）、作っていないものだけ up -d --no-deps。札付きは含めない", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [], [{ id: "c1", name: "app-db-1", state: "exited", status: "Exited (0) 1 minute ago", project: "app", service: "db", dir: s.project.repo_path, files: path.join(s.project.repo_path, "compose.yaml") }]);
   const [c] = (await list(s)).composes;
   s.dockerFake.clearCalls();
@@ -78,7 +78,7 @@ test("Docker: すべて起動は作ってあるものを start（/ で）、作�
 });
 
 test("Docker: 別の作業場所と同じ組になる起動は 409 で確かめ、confirm_shared なら流す", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [], [{ id: "o1", name: "app-db-1", state: "running", project: "app", service: "db", dir: "/elsewhere/app" }]);
   const [c] = (await list(s)).composes;
   assert.equal(c.created, false);
@@ -92,7 +92,7 @@ test("Docker: 別の作業場所と同じ組になる起動は 409 で確かめ�
 });
 
 test("Docker: 失敗は標準エラーの最後の行と流し直すコマンドを残し、［×］で消す。同じ compose の操作は 1 つずつ", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", code: 1, stderr: "pulling...\nError: image not found\n" }]);
   const [c] = (await list(s)).composes;
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
@@ -106,7 +106,7 @@ test("Docker: 失敗は標準エラーの最後の行と流し直すコマンド
 });
 
 test("Docker: 流れ続ける up -d は［中止］で止まり、失敗にしない", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", hang: true }]);
   const [c] = (await list(s)).composes;
   await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
@@ -124,7 +124,7 @@ test("Docker: 流れ続ける up -d は［中止］で止まり、失敗にし�
 });
 
 test("Docker: すべて停止は -p で / から、片付けは使い捨てを消してから down", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   const file = path.join(s.project.repo_path, "compose.yaml");
   withCompose(s, [], [
     { id: "c1", name: "app-db-1", state: "running", project: "app", service: "db", dir: s.project.repo_path, files: file },
@@ -144,7 +144,7 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
 });
 
 test("Docker: 見ていますで docker events を立てる。どこからも見られなくなったら止める", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   await s.call("POST", `/api/projects/${s.project.id}/docker/watch`);
   await until(() => s.dockerFake.calls().some((x) => x.args[0] === "events"));
   const events = s.docker.parts.watch["events"];
@@ -154,7 +154,7 @@ test("Docker: 見ていますで docker events を立てる。どこからも見
 });
 
 test("Docker: ログのさらに前を読むは until より前の 500 行を時刻の順に（標準エラーも）。ほかの compose のコンテナは 404", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   const file = path.join(s.project.repo_path, "compose.yaml");
   const id = "abcdef0123456789";
   withCompose(
@@ -176,7 +176,7 @@ test("Docker: ログのさらに前を読むは until より前の 500 行を時
 });
 
 test("Docker: ログの流れは最新の 500 行を追い、止まったら区切りを知らせる", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z hello\n", hang: true }]);
   const events: DockerLogEvent[] = [];
   let running = true;
@@ -198,7 +198,7 @@ test("Docker: ログの流れは最新の 500 行を追い、止まったら区�
 });
 
 test("Docker: ログの流れは、何も作っていない compose（コンテナ 0 個）でもつながり、あとから作られたコンテナを最新の 500 行から流し始める", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z ready\n", hang: true }]);
   const events: DockerLogEvent[] = [];
   let sources: { container: string; service: string; label: string; running: boolean; exit_code: number | null }[] = [];
@@ -220,7 +220,7 @@ test("Docker: ログの流れは、何も作っていない compose（コンテ�
 });
 
 test("Docker: ログの流れは、作り直された（同じ札の新しいコンテナ）ときも起動の区切りを入れて最新の 500 行から追う", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z hello\n", hang: true }]);
   const events: DockerLogEvent[] = [];
   let id = "aaaaaaaaaaaa";
@@ -240,7 +240,7 @@ test("Docker: ログの流れは、作り直された（同じ札の新しいコ
 });
 
 test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を取り直す間にすり抜けず 2 つ目は 409。断った・失敗したら予約を外す", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", hang: true }]);
   const [c] = (await list(s)).composes;
   const url = `/api/projects/${s.project.id}/docker/actions`;
@@ -261,7 +261,7 @@ test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を
 });
 
 test("Docker: ポートで失敗したら相手を全部残し、［相手を止めて起動］で相手を止めてから同じ起動をやり直す", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", code: 1, stderr: "Error response from daemon: Bind for 0.0.0.0:5432 failed: port is already allocated\n" }], [
     { id: "x1", name: "else-db-1", state: "running", project: "else", service: "db", dir: "/somewhere/else", ports: "0.0.0.0:5432->5432/tcp" },
     { id: "x2", name: "kickoff-dbtest-pg", state: "running", ports: "127.0.0.1:5432->5432/tcp" },
@@ -294,14 +294,14 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
 });
 
 test("Docker: 相手がいないときの［相手を止めて起動］は 400", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   withCompose(s);
   const [c] = (await list(s)).composes;
   assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key })).status, 400);
 });
 
 test("Docker: 静かなぶつかり（Docker の外のプロセスが同じポート）を lsof で見つけ、Homebrew のサービスなら止められる", async () => {
-  const s = setup();
+  const s = setup({ features: ["docker"] });
   const file = path.join(s.project.repo_path, "compose.yaml");
   withCompose(s, [], [{ id: "c1", name: "app-db-1", state: "running", project: "app", service: "db", dir: s.project.repo_path, files: file, ports: "0.0.0.0:5432->5432/tcp", hash: "h1" }]);
   s.portsFake.lsof = [

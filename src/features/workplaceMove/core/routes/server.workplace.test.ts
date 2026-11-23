@@ -23,7 +23,7 @@ const boundaryOf = (ctx: Ctx, chatId: number) => {
 };
 
 test("新しいワークツリーへ移す: いまのコミットから作り、変更を持っていく（ステージしたかも保つ・まだ Git にないファイルも）。区切りは利用者が移した印で、移した先のブランチを書く", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
   const { call, project, store } = ctx;
   const chatId = await mainChat(ctx);
   const git = gitIn(project.repo_path);
@@ -54,7 +54,7 @@ test("新しいワークツリーへ移す: いまのコミットから作り、
 });
 
 test("いまあるワークツリー・本体へ移す: 変更は持っていかず元の場所に残る。同じ場所・持っていく指定・作業中・実行環境を整えるチャットは断る", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
   const { call, project, store, runner } = ctx;
   const chatId = await mainChat(ctx);
   const list = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/x" })).body as { path: string; main: boolean }[];
@@ -86,7 +86,7 @@ test("いまあるワークツリー・本体へ移す: 変更は持っていか
 });
 
 test("会話を写せなければ移さない（G6）: 作ったワークツリーを消し、持っていった変更を元の場所に戻す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
   const { call, project, store, provider } = ctx;
   const chatId = await mainChat(ctx);
   fs.writeFileSync(path.join(project.repo_path, "a.txt"), "keep me\n");
@@ -103,7 +103,7 @@ test("会話を写せなければ移さない（G6）: 作ったワークツリ�
 });
 
 test("Git でないプロジェクトは移せない（I4）。移す前の確かめは、元の場所で動いているターミナルを知らせる（Q5）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["workplaceMove", "terminal", "worktrees"] });
   const { call, project, store } = ctx;
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed" });
   const check: WorkplaceMoveCheck = (await call("GET", `/api/chats/${chat.id}/workplace`)).body;

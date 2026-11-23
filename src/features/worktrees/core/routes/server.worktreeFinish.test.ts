@@ -32,7 +32,7 @@ const moves = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMa
 const refs = (repo: string) => execFileSync("git", ["for-each-ref", "--format=%(refname)", "refs/kickoff/"], { cwd: repo }).toString().trim();
 
 test("画面の「消す」: 失うもの（force の変更・delete_branch の取り込んでいないコミット）は控えに入れてゴミ箱に 3 日残り、戻すと同じ名前で作り直して変更も戻る", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { call, project, store } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n", "gone.txt": "x\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/d");
@@ -67,7 +67,7 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
 });
 
 test("画面の「消す」: 失うものがなければ控えを作らない。控えは 3 日たったら参照ごと消える", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { call, project, trashBin, trashClock } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/clean");
@@ -89,7 +89,7 @@ test("画面の「消す」: 失うものがなければ控えを作らない。
 });
 
 test("AI の後始末（本体のチャットから）: ローカルで取り込み済みなら控えなしでその場で消し、結果をお知らせと AI に返す文に出す", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { project, store, worktreeFinisher } = ctx;
   const { dir: repo, git } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId: wtChat, wt } = await worktreeChat(ctx, "feat/m");
@@ -111,7 +111,7 @@ test("AI の後始末（本体のチャットから）: ローカルで取り込
 });
 
 test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら取り込み済みとし、リモートのブランチも消す。取り込んでいなければ控えに入れたことをはっきり書く", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { project, store, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const remote = tempDir();
@@ -145,7 +145,7 @@ test("AI の後始末: GitHub で PR がマージ済み（squash でも）なら
 });
 
 test("AI の後始末: リモートの名前に / があっても、追いかけている先のリモートのブランチを消す（最初の / で割らない）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { project, prFake, worktreeFinisher } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const remote = tempDir();
@@ -161,7 +161,7 @@ test("AI の後始末: リモートの名前に / があっても、追いかけ
 });
 
 test("AI の後始末（ワークツリー自身のチャットから）: 予約して作業の終わりに消し、送信待ちは止めておく。ほかのワークツリーのチャットからは消せない", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["worktrees", "github"] });
   const { call, project, store, provider, runner, worktreeFinisher } = ctx;
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const { chatId, wt } = await worktreeChat(ctx, "feat/self");

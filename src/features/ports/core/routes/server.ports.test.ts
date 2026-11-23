@@ -28,7 +28,7 @@ function arrange(s: ReturnType<typeof setup>) {
 }
 
 test("GET /api/ports: プロジェクトのフォルダのものだけを、起動元・短いコマンド・帯の添え書き付きで返す（自分と祖先・自分の Helper・外のものは出さない）", async () => {
-  const s = setup();
+  const s = setup({ features: ["ports"] });
   const repo = arrange(s);
   // 本体のプロセスが、ワークツリー feat-y の帯の番号を使っている
   s.store.worktreeEnvs.put({ path: path.join(repo, "..", "wt-feat-y"), project_id: s.project.id, band: 20100, host: null, slots: [], compose_names: [], rewritten: [], issues: [], blocked: null });
@@ -53,7 +53,7 @@ test("GET /api/ports: プロジェクトのフォルダのものだけを、起�
 });
 
 test("GET /api/ports?cached=1: 最後に調べた一覧を返し、調べ直さない（まだ調べていなければ調べる）", async () => {
-  const s = setup();
+  const s = setup({ features: ["ports"] });
   arrange(s);
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
@@ -74,7 +74,7 @@ test("GET /api/ports?cached=1: 最後に調べた一覧を返し、調べ直さ�
 });
 
 test("チャットの実行が終わったら少し待って調べ、前になかった pid の数を fresh で知らせる", async () => {
-  const s = setup();
+  const s = setup({ features: ["ports"] });
   arrange(s);
   await s.call("GET", "/api/ports");
   // 実行の間に新しいサーバーが現れた
@@ -92,7 +92,7 @@ test("チャットの実行が終わったら少し待って調べ、前にな�
 });
 
 test("POST /api/ports/stop: SIGTERM を送り、残れば stopped: false（強制終了は SIGKILL）。一覧にない・コマンドが変わったものは断る", async () => {
-  const s = setup();
+  const s = setup({ features: ["ports"] });
   arrange(s);
   const command = "node /work/node_modules/.bin/vite";
   // 止まった

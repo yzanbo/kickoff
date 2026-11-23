@@ -10,7 +10,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { gitLog } from "../history";
 
 test("Git で管理していないフォルダでも、ファイルの一覧と検索は使える（.gitignore と node_modules は無視しているものに。フォルダの中に Git の印は作らない）", async () => {
-  const { call, project } = setup();
+  const { call, project } = setup({ features: ["git", "files", "worktrees"] });
   const dir = project.repo_path;
   const write = (file: string, text: string) => {
     fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
@@ -52,7 +52,7 @@ test("Git で管理していないフォルダでも、ファイルの一覧と�
 });
 
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
-  const ctx = setup();
+  const ctx = setup({ features: ["git", "files", "worktrees"] });
   const { call, project } = ctx;
   // Git で管理されていないフォルダ（ワークツリーの一覧は失敗にせず空）
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
@@ -370,7 +370,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
 });
 
 test("チャットの作業場所: 新しいワークツリーを作って、その中でエージェントを動かす。Git の操作も作業場所ごと", async () => {
-  const { call, project, store, provider } = setup();
+  const { call, project, store, provider } = setup({ features: ["git", "files", "worktrees"] });
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
 
   // 本体（指定なし）
@@ -451,7 +451,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
 });
 
 test("ブランチ名の案: やりたいことの概要から AI に 1 回だけ聞き、使える形にそろえ、いまあるブランチと同じものを除く（概要がない・案がなければ 400）", async () => {
-  const { call, project, provider } = setup();
+  const { call, project, provider } = setup({ features: ["git", "files", "worktrees"] });
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   gitIn(repo)("branch", "feature/login");
   const url = `/api/projects/${project.id}/git/branch-suggestions`;

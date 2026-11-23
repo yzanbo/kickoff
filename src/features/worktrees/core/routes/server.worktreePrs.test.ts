@@ -18,7 +18,7 @@ const merged = (number: number, branch: string, state: "MERGED" | "CLOSED" | "OP
 });
 
 test("ワークツリーの PR の知らせ: ワークツリーがなければ GitHub に聞かない。マージ済みの PR は（前に開いているのを見ていなくても）知らせる", async () => {
-  const { call, project, prFake, prWatch, bus } = setup();
+  const { call, project, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
@@ -56,7 +56,7 @@ test("ワークツリーの PR の知らせ: ワークツリーがなければ G
 });
 
 test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚えて出し直さない。ワークツリーを消したら、GitHub に聞かずに知らせと覚えが消える", async () => {
-  const { call, project, store, prFake, prWatch, bus } = setup();
+  const { call, project, store, prFake, prWatch, bus } = setup({ features: ["worktrees", "github"] });
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
   const worktrees = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "fix/y" })).body as GitWorktree[];
   const folder = worktrees.find((w) => w.branch === "fix/y")!.path;
@@ -85,7 +85,7 @@ test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚え�
 });
 
 test("プロジェクトの GitHub の連携: 設定の「GitHub」にアカウント・GitHub の remote・自動の連携先を返し、見張りをオフにすると知らせが消えて GitHub に聞かない", async () => {
-  const { call, project, prFake, prWatch } = setup();
+  const { call, project, prFake, prWatch } = setup({ features: ["worktrees", "github"] });
   const dir = project.repo_path;
   gitRepo({ dir, files: { "a.txt": "a\n" } });
   execFileSync("git", ["remote", "add", "origin", "https://github.com/me/r.git"], { cwd: dir });
