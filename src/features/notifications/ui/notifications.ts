@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
+import { VIEWING_TTL_MS, type ViewingBody } from "@shared/notifications/types";
 import { api } from "@/foundation/ui/api";
+import { viewingApi } from "./api";
 import { onServerOpen } from "@/foundation/ui/api/events";
 import { openChat } from "@/features/chat/ui";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -31,11 +32,11 @@ function viewingOf(route: Route, focused: boolean): ViewingBody {
 export function useViewingReport(route: Route) {
   const focused = useWindowFocused();
   // 窓を閉じた・読み込み直したら、見ていないことをすぐ知らせる（知らせないと、古くなるまでの間そのチャットの通知が止まる）
-  useWindowEvent("pagehide", () => api.reportLeaving());
+  useWindowEvent("pagehide", () => viewingApi.reportLeaving());
   const { chat_id: chatId, ci_project_id: ciProjectId } = viewingOf(route, focused);
   useEffect(() => {
     const body: ViewingBody = { chat_id: chatId, ci_project_id: ciProjectId };
-    const send = () => void api.reportViewing(body).catch(() => {});
+    const send = () => void viewingApi.reportViewing(body).catch(() => {});
     send();
     const off = onServerOpen(send);
     // 何も見ていないなら送り直さない（コアは古い知らせを忘れる）

@@ -3,6 +3,7 @@ import type { LoginItemState } from "@shared/foundation/ipc";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { saveSettings, useAppSettings } from "@/features/settings/ui";
 import { confirm } from "@/foundation/ui/kit/ask";
+import { loginItemState, setLoginItem as saveLoginItem } from "@/features/devices/ui/native";
 
 /** バッテリーの様子（Chromium の Battery Status API。型は lib.dom にないので、使う所だけ書く） */
 type BatteryManager = EventTarget & { charging: boolean };
@@ -38,10 +39,10 @@ export function useMobileSwitches() {
   const action = useAction<"mobile" | "login">();
 
   useEffect(() => {
-    void window.kickoff?.loginItem.get().then(setLoginItem);
+    void loginItemState().then(setLoginItem);
   }, []);
 
-  const setLogin = (open: boolean) => action.run("login", async () => setLoginItem((await window.kickoff?.loginItem.set(open)) ?? null));
+  const setLogin = (open: boolean) => action.run("login", async () => setLoginItem(await saveLoginItem(open)));
 
   const setMobile = async (on: boolean) => {
     const ok = await action.run("mobile", () => saveSettings({ mobile_enabled: on }));

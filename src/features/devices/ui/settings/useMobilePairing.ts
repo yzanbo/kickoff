@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import type { Device, DeviceAccess, PairingState } from "@shared/devices/types";
 import { pairingLink } from "@shared/devices/pairing";
-import { api } from "@/foundation/ui/api";
+import { devicesApi } from "@/features/devices/ui/api";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { useAction } from "@/foundation/ui/hooks/useAction";
 import { useQuery } from "@/foundation/ui/query";
@@ -10,18 +9,9 @@ import { confirm } from "@/foundation/ui/kit/ask";
 /** QR の画像（data: の PNG）を作る。qrcode は使うときだけ読み込む */
 const qrDataUrl = (text: string) => import("qrcode").then(({ toDataURL }) => toDataURL(text, { margin: 1, width: 360, errorCorrectionLevel: "M" }));
 
-/** QR の画像（data: の PNG） */
+/** QR の画像（data: の PNG。文が変わったら作り直し、作り終えるまでは null） */
 function useQrImage(text: string | null): string | null {
-  const [image, setImage] = useState<{ text: string; url: string } | null>(null);
-  useEffect(() => {
-    if (!text) return;
-    let alive = true;
-    void qrDataUrl(text).then((url) => alive && setImage({ text, url }));
-    return () => {
-      alive = false;
-    };
-  }, [text]);
-  return text && image?.text === text ? image.url : null;
+  return useQuery(text === null ? null : ["useMobilePairing.qr", text], () => qrDataUrl(text!)).data ?? null;
 }
 
 /**
@@ -29,8 +19,8 @@ function useQrImage(text: string | null): string | null {
  * 様子はサーバーの知らせ（pairing / devices）でその場で直す
  */
 export function useMobilePairing() {
-  const pairing = useQuery("useMobilePairing.pairing", () => api.pairingState());
-  const devices = useQuery("useMobilePairing.devices", () => api.devices());
+  const pairing = useQuery("useMobilePairing.pairing", () => devicesApi("GET /api/pairing"));
+  const devices = useQuery("useMobilePairing.devices", () => devicesApi("GET /api/devices"));
   const action = useAction<"start" | "cancel" | "approve" | "deny" | "revoke" | "access">();
   const state = pairing.data;
 
@@ -49,11 +39,11 @@ export function useMobilePairing() {
     link,
     qr,
     action,
-    start: () => action.run("start", async () => set(await api.startPairing())),
-    cancel: () => action.run("cancel", async () => set(await api.cancelPairing())),
-    approve: (id: string, access: DeviceAccess) => action.run("approve", async () => set(await api.approvePairing(id, access))),
-    setAccess: (device: Device, access: DeviceAccess) => action.run("access", () => api.setDeviceAccess(device.id, access)),
-    deny: (id: string) => action.run("deny", async () => set(await api.denyPairing(id))),
+    start: () => action.run("start", async () => set(await devicesApi("POST /api/pairing"))),
+    cancel: () => action.run("cancel", async () => set(await devicesApi("DELETE /api/pairing"))),
+    approve: (id: string, access: DeviceAccess) => action.run("approve", async () => set(await devicesApi("POST /api/pairing/requests/:requestId/approve", { params: { requestId: id }, body: { access } }))),
+    setAccess: (device: Device, access: DeviceAccess) => action.run("access", () => devicesApi("PATCH /api/devices/:deviceId", { params: { deviceId: device.id }, body: { access } })),
+    deny: (id: string) => action.run("deny", async () => set(await devicesApi("POST /api/pairing/requests/:requestId/deny", { params: { requestId: id } }))),
     revoke: async (device: Device) => {
       const ok = await confirm({
         title: `「${device.name}」を取り消しますか？`,
@@ -61,7 +51,7 @@ export function useMobilePairing() {
         confirmLabel: "取り消す",
         danger: true,
       });
-      if (ok) await action.run("revoke", () => api.revokeDevice(device.id));
+      if (ok) await action.run("revoke", () => devicesApi("DELETE /api/devices/:deviceId", { params: { deviceId: device.id } }));
     },
   };
 }

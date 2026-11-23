@@ -13,3 +13,4 @@ export { githubStore, providersStore, useGitHubStatus, useModels, useProviders }
 export { ClaudeMark } from "./ClaudeMark";
 export { accountLine, usageLevel } from "./usage/usage";
 export { UsageBar } from "./usage/UsageMeter";
+export { useConnectionRecheck } from "./settings/connectionRecheck";

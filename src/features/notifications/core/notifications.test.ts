@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { VIEWING_TTL_MS } from "@shared/devices/types";
+import { VIEWING_TTL_MS } from "@shared/notifications/types";
 import { makeChat } from "@shared/foundation/testing/factories";
 import { aiNotice, chatNotice, noticeChatName } from "./notices";
 import { ViewingRegistry } from "./viewing";

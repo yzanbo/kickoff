@@ -3,7 +3,8 @@
 import type { Approval, ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { QueueState } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import type { Device, DevicePush, ViewingBody } from "@shared/devices/types";
+import type { Device, DevicePush } from "@shared/devices/types";
+import type { ViewingBody } from "@shared/notifications/types";
 import type { ChatDetail, ChatDetailQuery } from "@shared/chat/detail";
 import type { QueueCommandsBody, SendBody, SendMessageBody, SendResult } from "@shared/chat/send";
 import type { ServerStatus } from "@shared/foundation/server";

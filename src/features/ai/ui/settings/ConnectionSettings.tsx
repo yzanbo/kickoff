@@ -1,7 +1,5 @@
-import { api } from "@/foundation/ui/api";
-import { errorText, useQuery } from "@/foundation/ui/query";
 import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/features/ai/ui/stores/providers";
-import { ServerInfoRows } from "@/features/devices/ui/ServerInfo";
+import { settingsItemsOf } from "@/features/settings/ui";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusCard } from "@/foundation/ui/kit/StatusCard";
 import { GitHubStatusCard } from "@/features/ai/ui/GitHubStatusCard";
@@ -9,9 +7,10 @@ import { PLANNED_BADGE, usePlannedProviders } from "@/features/ai/ui/provider/pl
 import { ProviderAuthSettings } from "./ProviderAuthSettings";
 import { canBrowserLogin, ProviderLoginButton } from "./ProviderLoginButton";
 import { ProviderVersion } from "./ProviderVersion";
+import { emitConnectionRecheck } from "./connectionRecheck";
 
 /**
- * 設定: Kickoff サーバー（アドレス・起動した時刻・実行中のエージェント・スマホ連携）と、AI エージェントと GitHub の CLI のログイン状態。
+ * 設定: Kickoff サーバーのカード（devices が settingsItems の「connection」に足す）と、AI エージェントと GitHub の CLI のログイン状態。
  * 下の帯の接続の札はつながらないときだけ出すので、つながっている間のサーバーの中身はここで見る
  */
 export function ConnectionSettings() {
@@ -19,7 +18,6 @@ export function ConnectionSettings() {
   const providers = useProviders();
   const github = useGitHubStatus();
   const planned = usePlannedProviders();
-  const server = useQuery("ConnectionSettings.server", () => api.status());
   return (
     <section className="section">
       <div className="section-head">
@@ -27,7 +25,7 @@ export function ConnectionSettings() {
         <button
           className="btn"
           onClick={() => {
-            server.reload();
+            emitConnectionRecheck();
             void providersStore.reload();
             void githubStore.reload();
           }}
@@ -38,19 +36,9 @@ export function ConnectionSettings() {
       <p className="muted small">AI エージェントと GitHub は、Mac にインストールされた各 CLI のログインをそのまま使います（AI は下の「AI のログインの仕方」で API キーにも切り替えられます）。</p>
       {planned.note && <p className="muted small">{planned.note}いまは CLI が入っているかだけを確かめます。</p>}
       <div className="card-grid">
-        <StatusCard
-          title="Kickoff サーバー"
-          ok={server.data ? true : server.error ? false : undefined}
-          detail={
-            server.data ? (
-              <dl className="conn-list">
-                <ServerInfoRows server={server.data} />
-              </dl>
-            ) : (
-              (errorText(server.error) ?? "確認中…")
-            )
-          }
-        />
+        {settingsItemsOf("connection").map(({ id, Component }) => (
+          <Component key={id} />
+        ))}
         {providers.loading && !providers.data ? (
           <StatusCard title="AI エージェント" ok={undefined} detail="確認中…" />
         ) : (

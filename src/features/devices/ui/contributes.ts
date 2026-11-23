@@ -1,7 +1,7 @@
-// devices が拡張点に出すもの（app/renderer/registry.ts が入れる）: アプリの設定の節・下の帯の接続の札
+// devices が拡張点に出すもの（app/renderer/registry.ts が入れる）: アプリの設定の節「スマホ連携」・「接続」のサーバーのカード・下の帯の接続の札
 import { footerItems } from "@/foundation/ui/shell/points";
-import { settingsSections } from "@/features/settings/ui";
-import { mobileSection } from "./settings/appSettings";
-import { connectionFooterItem } from "./footerItems";
+import { settingsItems, settingsSections } from "@/features/settings/ui";
+import { mobileSection, serverStatusItem } from "./settings/appSettings";
+import { connectionFooterItem } from "./footer/footerItems";
 
-export const contributes = [settingsSections.item(mobileSection), footerItems.item(connectionFooterItem)];
+export const contributes = [settingsSections.item(mobileSection), settingsItems.item(serverStatusItem), footerItems.item(connectionFooterItem)];

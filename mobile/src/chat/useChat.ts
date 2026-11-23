@@ -7,7 +7,7 @@ import type { Approval } from "@shared/chat/approvalTypes";
 import type { ChatEvent } from "@shared/chat/chatEvent";
 import type { ChatLive } from "@shared/chat/chatLive";
 import type { Chat } from "@shared/chat/types";
-import { VIEWING_TTL_MS } from "@shared/devices/types";
+import { VIEWING_TTL_MS } from "@shared/notifications/types";
 import { streamingAppendOf, streamingEffectOf, type StreamingEffect } from "@shared/chat/streamingRules";
 import { applyEventToLog, lastEventId, mergeEvents } from "../lib/timeline";
 import type { HostSession } from "../state/hostSession";

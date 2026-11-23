@@ -2,7 +2,7 @@ import { Smartphone } from "lucide-react";
 import { DEVICE_ACCESS_HELP, DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/devices/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { formatPairingCode } from "@shared/devices/pairing";
-import { api } from "@/foundation/ui/api";
+import { devicesApi } from "@/features/devices/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useTicker } from "@/foundation/ui/hooks/useTicker";
 import { formatDayTime, relativeTime } from "@/foundation/ui/lib/time";
@@ -21,7 +21,7 @@ export function MobileSettings() {
   const settings = useAppSettings().data;
   const pairing = useMobilePairing();
   const switches = useMobileSwitches();
-  const tailscale = useQuery("MobileSettings.tailscale", () => api.tailscaleStatus());
+  const tailscale = useQuery("MobileSettings.tailscale", () => devicesApi("GET /api/tailscale"));
   if (!settings) return null;
   const off = !settings.mobile_enabled;
   const saveUrl = (url: string | null) =>

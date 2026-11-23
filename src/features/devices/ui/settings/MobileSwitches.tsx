@@ -1,6 +1,7 @@
 import { BatteryWarning } from "lucide-react";
 import { CheckField } from "@/foundation/ui/kit/Field";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
+import { inDesktopApp } from "@/features/devices/ui/native";
 import type { useMobileSwitches } from "./useMobileSwitches";
 
 /** スマホからつなぐ・ログイン時に起動の 2 つのスイッチと、その説明（設定の「スマホ連携」のいちばん上） */
@@ -26,7 +27,7 @@ export function MobileSwitches({ switches }: { switches: ReturnType<typeof useMo
         help={
           loginItem?.available === false
             ? loginItem.reason
-            : !window.kickoff
+            : !inDesktopApp()
               ? "Mac のアプリの Kickoff で選べます。"
               : "オフだと、Mac を再起動したあとは Kickoff を開くまでスマホから届きません。オンにすると、ログインしたときに窓を出さずに裏で起動します。MacBook はふたを閉じると眠り、その間は届きません（電源と外部ディスプレイをつないでいるときを除く）。"
         }
