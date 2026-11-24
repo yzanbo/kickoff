@@ -5,7 +5,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ProjectFiles } from "@shared/foundation/fileTypes";
 import { workplaceBoundaries as boundariesOf, workplaceGoneText, type WorkplaceBoundary, type WorkplacePlace } from "@shared/workplaceMove/workplaceMoves";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
-import { workplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
+import { listWorkplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
 import { useKeyedStores } from "@/foundation/ui/store/useStore";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { showToast } from "@/foundation/ui/kit/toast";
@@ -54,7 +54,7 @@ const placeKey = (place: WorkplacePlace) => `${place.project_id}\n${place.worktr
 const pastFiles = createKeyedStore<string, ProjectFiles>({
   load: (key) => {
     const [projectId, worktree] = key.split("\n");
-    return workplaceFiles({ projectId: Number(projectId), worktree: worktree || undefined });
+    return listWorkplaceFiles({ projectId: Number(projectId), worktree: worktree || undefined });
   },
 });
 

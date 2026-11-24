@@ -10,7 +10,7 @@ export interface WorkplaceFilesSource {
 export const workplaceFilesSources = definePoint<WorkplaceFilesSource>("workplaceFilesSources");
 
 /** 作業場所のファイルの一覧（登録がなければ失敗を返す） */
-export async function workplaceFiles(target: GitTarget): Promise<ProjectFiles> {
+export async function listWorkplaceFiles(target: GitTarget): Promise<ProjectFiles> {
   const source = workplaceFilesSources.items()[0];
   if (!source) throw new Error("ファイルの一覧の口（workplaceFilesSources）が登録されていない");
   return source.files(target);
