@@ -4,15 +4,14 @@ import type { ProviderId } from "@shared/settings/types";
 import { fetchClaudeUsage } from "@/features/ai/core/providers/claude/usage";
 import { fetchCodexUsage } from "@/features/ai/core/providers/codex/usage";
 import { fetchCopilotUsage } from "@/features/ai/core/providers/copilot/usage";
-import { fetchCursorUsage } from "@/features/ai/core/providers/cursor/usage";
-import { fetchGeminiUsage } from "@/features/ai/core/providers/gemini/usage";
+import { usageResult } from "@/features/ai/core/providers/shared/http";
 
 export function realUsageFetchers(ghToken: () => Promise<string | null>): Record<ProviderId, () => Promise<ProviderUsage>> {
   return {
     claude: () => fetchClaudeUsage(),
     codex: fetchCodexUsage,
     copilot: () => fetchCopilotUsage(ghToken),
-    cursor: fetchCursorUsage,
-    gemini: fetchGeminiUsage,
+    cursor: async () => usageResult("cursor").unavailable("Kickoff では Cursor の使用枠を表示しません。Cursor の設定画面または Web のダッシュボードで確認してください。"),
+    gemini: async () => usageResult("gemini").unavailable("Kickoff では Gemini の使用枠を表示しません。API キーを作ったプロジェクトの Google AI Studio で確認してください。"),
   };
 }

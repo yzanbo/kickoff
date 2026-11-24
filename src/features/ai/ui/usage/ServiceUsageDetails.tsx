@@ -1,7 +1,7 @@
 import "./ServiceUsageDetails.css";
 import { providerCan, PROVIDERS } from "@shared/ai/providers";
 import { paysByCredits, usageErrorOf, type ProviderUsage } from "@shared/ai/usage";
-import { PROVIDER_LABELS, type ProviderId } from "@shared/settings/types";
+import { PROVIDER_LABELS } from "@shared/settings/types";
 import { formatClock } from "@/foundation/ui/lib/time";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { StatusDot, toneOf } from "@/foundation/ui/kit/StatusDot";
@@ -20,9 +20,6 @@ interface Props {
   /** Kickoff のチャットで使うのは今後の対応予定の AI（panel だけ） */
   planned?: boolean;
 }
-
-/** 使用状況の名前（Gemini は Gemini CLI の枠なので、AI の名前と違う） */
-const USAGE_LABELS: Record<ProviderId, string> = { ...PROVIDER_LABELS, gemini: "Gemini" };
 
 /** サービスごとの使用状況（枠・アカウント・クレジットの様子（Codex）・補足と、取得できない理由。取り直しに失敗しても直前の枠は残す） */
 export function ServiceUsageDetails({ service, variant = "popover", error, planned = false }: Props) {
@@ -59,7 +56,7 @@ function panelView(u: ProviderUsage): Pick<ProviderUsage, "status" | "plan" | "a
   if (!providerCan(u.provider, "plan_usage")) return u;
   const error = usageErrorOf(u);
   if (u.status !== "ok") {
-    const message = error ?? `${PROVIDERS[u.provider].short ?? USAGE_LABELS[u.provider]} のプランの使用枠を取得できませんでした（API キーで使っている場合は枠がありません）`;
+    const message = error ?? `${PROVIDERS[u.provider].short ?? PROVIDER_LABELS[u.provider]} のプランの使用枠を取得できませんでした（API キーで使っている場合は枠がありません）`;
     return { status: error ? "error" : "unavailable", plan: error ? u.plan : null, account: null, windows: [], notes: [], message };
   }
   return { status: "ok", plan: u.plan, account: null, windows: u.windows, notes: [], ...(error ? { message: `最新の取得に失敗: ${error}` } : {}) };
@@ -70,7 +67,7 @@ function ServicePanel({ service, planned }: { service: ProviderUsage; planned: b
   const s = panelView(service);
   // 5 時間の枠がまだ始まっていない文は、プランの使用枠の AI（Claude）だけ
   const fiveHourIdle = providerCan(service.provider, "plan_usage") ? FIVE_HOUR_IDLE : undefined;
-  const label = USAGE_LABELS[service.provider];
+  const label = PROVIDER_LABELS[service.provider];
   return (
     <div className="usage-service">
       <div className="usage-service-head">
@@ -90,7 +87,7 @@ function ServicePanel({ service, planned }: { service: ProviderUsage; planned: b
           ))}
         </div>
       )}
-      {planned && <p className="muted small">Kickoff のチャットで {label} を使えるようにするのは、今後の対応予定です（いまは使用状況を見られるだけです）。</p>}
+      {planned && <p className="muted small">Kickoff のチャットで {label} を使えるようにするのは、今後の対応予定です。</p>}
       {s.notes.length > 0 && <p className="muted small">{s.notes.join(" ・ ")}</p>}
       {s.message && (s.status === "error" ? <ErrorText message={s.message} /> : <p className="muted small">{s.message}</p>)}
     </div>

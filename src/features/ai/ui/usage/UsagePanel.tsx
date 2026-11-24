@@ -6,14 +6,14 @@ import { refreshServiceUsage, useServiceUsage } from "./serviceUsageStore";
 
 /**
  * 設定の「使用状況」: サービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）の枠。
- * 各サービスのログイン情報を読むだけなので、見られないサービスは理由と見る方法を出す。
+ * 公式の口だけを使い、見られないサービスは理由と見る方法を出す。
  * 下の帯の使用状況と同じ店を読む（どちらで「更新」しても、両方が同じ値と取得時刻になる）
  */
 export function UsagePanel() {
   const services = useServiceUsage();
   // 「更新」は押せなくして「更新中…」を出し、失敗を出す（開いている間の取り直しの失敗は店の error）
   const action = useAction<"refresh">();
-  // Kickoff のチャットでまだ使えない AI（GitHub Copilot・Cursor・Gemini）は、使用状況は見られるが今後の対応予定であることを添える
+  // Kickoff のチャットでまだ使えない AI（GitHub Copilot・Cursor・Gemini）は、今後の対応予定であることを添える
   const planned = usePlannedProviders();
 
   return (
@@ -32,7 +32,7 @@ export function UsagePanel() {
           {services.data.map((s) => (
             <ServiceUsageDetails key={s.provider} service={s} variant="panel" planned={planned.ids.has(s.provider)} />
           ))}
-          <p className="muted small">開いている間は 1 分ごとに自動で更新します。各サービスのログイン情報は読むだけで、書き換えません。</p>
+          <p className="muted small">開いている間は 1 分ごとに自動で更新します。使用枠の確認には各サービスの公式の機能を使います。</p>
         </>
       )}
     </section>

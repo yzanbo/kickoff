@@ -75,5 +75,11 @@ test("設定の Claude: 下の帯と同じ枠を出し、アカウント・補�
   assert.ok(unavailable.includes("API キーで使っている場合は枠がありません") && !unavailable.includes("Max"));
   const failed = panel({ ...claude, status: "unavailable", error: "timeout" });
   assert.ok(failed.includes('class="error small"') && failed.includes("Max"));
-  assert.ok(panel(service({ provider: "gemini", status: "unavailable", message: "ログインしていません" })).includes("<h3>Gemini</h3>"));
+});
+
+test("取得しないサービスも設定に案内を出し、枠のメーターは出さない", () => {
+  const html = panel(service({ provider: "gemini", status: "unavailable", windows: [], message: "Google AI Studio で確認してください。" }));
+  assert.match(html, /<h3>Gemini（Antigravity）<\/h3>/);
+  assert.match(html, /Google AI Studio/);
+  assert.doesNotMatch(html, /role="meter"/);
 });

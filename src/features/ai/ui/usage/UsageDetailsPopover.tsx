@@ -65,7 +65,7 @@ function GroupDetails({ group, usage, error }: { group: UsageGroup; usage: Provi
     case "service":
       return <ServiceUsageDetails service={group.service} error={error} />;
     case "pay":
-      return <p className="muted small usage-popover-foot">API キーで動かしています（使った分の支払い。プランの使用枠はありません）</p>;
+      return <p className="muted small usage-popover-foot">{group.guide ?? "API キーで動かしています（使った分の支払い。プランの使用枠はありません）"}</p>;
     case "missing":
       return group.service ? (
         <ServiceUsageDetails service={group.service} error={error} />

@@ -16,7 +16,7 @@
 - 失敗は投げずに `ProviderTurnResult` で返す（止められたら `cancelled`）。記録の `user` / `approval` / `result` はコアが作る。
 - チャットの AI は作るときに決め、途中で替えるのは providerSwitch だけ。違う AI の子チャットは会話を引き継がない。
 - AI の操作ツールは `params.tools` を各 CLI の MCP の書き方に直すだけ。記録の名前と入力の形は Claude Code にそろえる（`toolUse`）。守りはどの AI も `params.gate`。
-- API キーは `secrets` に暗号化して置き、応答・SSE・起動の引数に出さない。使用状況のログイン情報は読むだけ（更新すると CLI のログインが切れる）。
+- API キーは `secrets` に暗号化して置き、応答・SSE・起動の引数に出さない。Kickoff 自身はほかのアプリ・CLI の認証ファイル・DB・キーチェーンを読まない。使用状況とログイン状態は公式の CLI・SDK の口で取得する。取らない枠は公式の確認先を出し、認証情報を直接読む方式へ戻さない。
 
 ## 落とし穴
 - 確かめる前の AI は `KICKOFF_EXPERIMENTAL_PROVIDERS` のときだけ本物を使う（ほかは `planned.ts`）。AI を足したら適合テストの adapter（`core/testing/providerAdapters.ts`）も足す。

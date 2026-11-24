@@ -9,7 +9,6 @@ import { EFFORT_LEVELS, type EffortLevel } from "@shared/settings/types";
 import { agentEnv } from "./env";
 import type { ClaudeAuthStatus } from "./internals";
 import { subagentLogOf } from "./subagentLog";
-import { readPlanDisplayName } from "./usage";
 import { withIdleSession } from "./idleSession";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem, WriteExceptions } from "@/features/ai/core/providers/types";
 import { runCommand } from "@/foundation/core/system/exec";
@@ -47,8 +46,7 @@ export class ClaudeProvider implements AgentProvider {
     try {
       const stdout = await runCommand(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
       const info = JSON.parse(stdout) as ClaudeAuthStatus;
-      // プランは種類（Max の段階を区別しない "max"）より、アカウントの表示名（"Ultra"・"Max 20x" など）を出す
-      const plan = info.subscriptionType ? ((await readPlanDisplayName()) ?? info.subscriptionType) : undefined;
+      const plan = info.subscriptionType ?? undefined;
       return {
         ...base,
         installed: true,

@@ -34,9 +34,6 @@ export function autoCompactEnv(pct: number | null): Record<string, string> {
 /** Claude Code が会話記録を置くフォルダ（CLAUDE_CONFIG_DIR があればその中） */
 export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string => join(env[CLAUDE_ENV.configDir] || join(homedir(), ".claude"), "projects");
 
-/** Claude Code の設定ファイル（ログインしているアカウントの情報が入る。CLAUDE_CONFIG_DIR があればその中） */
-export const claudeConfigPath = (): string => join(process.env[CLAUDE_ENV.configDir] || homedir(), ".claude.json");
-
 /** 推論の深さの既定を探す設定ファイル（近い順: 作業フォルダの .claude/settings.local.json → .claude/settings.json → ~/.claude/settings.json） */
 export const claudeSettingsFiles = (cwd: string, home: string) => [
   { file: join(cwd, ".claude", "settings.local.json"), source: "local" as const },

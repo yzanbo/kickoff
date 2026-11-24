@@ -3,8 +3,7 @@ import { test } from "vitest";
 import { parseCodexUsage } from "./codex/usage";
 import { jwtClaims } from "./shared/http";
 import { parseCopilotUsage } from "./copilot/usage";
-import { parseCursorUsage } from "./cursor/usage";
-import { geminiPlan, isConsumerShutdown, parseGeminiQuota } from "./gemini/usage";
+import { realUsageFetchers } from "./usageFetchers";
 
 test("Codex: 5 時間・週の枠とクレジットを読む（枠の名前は長さから）", () => {
   const u = parseCodexUsage(
@@ -55,55 +54,15 @@ test("Copilot: プレミアムリクエストの使った数と率、無制限�
   assert.equal(parseCopilotUsage({ access_type_sku: "subscription_ended" }).message, "Copilot の契約が終わっています");
 });
 
-test("Cursor: 今月の合計・Auto・モデルを指定と、金額（セント）とオンデマンド", () => {
-  const u = parseCursorUsage(
-    {
-      billingCycleEnd: "2026-11-27T16:32:09.042Z",
-      membershipType: "pro",
-      individualUsage: {
-        plan: { used: 320, limit: 2000, totalPercentUsed: 16, autoPercentUsed: 10, apiPercentUsed: 22 },
-        onDemand: { enabled: true, used: 150, limit: 1000 },
-      },
-    },
-    "a@example.com",
-  );
-  assert.deepEqual(
-    u.windows.map((w) => [w.key, w.utilization, w.detail ?? null]),
-    [
-      ["total", 16, "$3.20 / $20.00"],
-      ["auto", 10, null],
-      ["api", 22, null],
-    ],
-  );
-  assert.deepEqual(u.notes, ["オンデマンド $1.50 / $10.00"]);
-  assert.equal(u.windows[0].resets_at, "2026-11-27T16:32:09.042Z");
-});
-
-test("Gemini: モデルの段階ごとに、いちばん残りが少ないものを使用率にする。契約の名前と、個人向けの終了", () => {
-  const u = parseGeminiQuota(
-    {
-      buckets: [
-        { modelId: "gemini-2.5-pro", remainingFraction: 0.8, resetTime: "2026-11-03T00:00:00Z" },
-        { modelId: "gemini-3-pro-preview", remainingFraction: 0.25, resetTime: "2026-11-03T01:00:00Z" },
-        { modelId: "gemini-2.5-flash", remainingFraction: 1 },
-        { modelId: "gemini-2.5-flash-lite", remainingFraction: 0.5 },
-      ],
-    },
-    "Paid",
-    null,
-  );
-  assert.deepEqual(
-    u.windows.map((w) => [w.label, w.utilization, w.resets_at]),
-    [
-      ["Pro", 75, "2026-11-03T01:00:00.000Z"],
-      ["Flash Lite", 50, null],
-      ["Flash", 0, null],
-    ],
-  );
-  assert.equal(geminiPlan({ paidTier: { name: "Gemini Code Assist Standard" }, currentTier: { id: "standard-tier" } }, false), "Gemini Code Assist Standard");
-  assert.equal(geminiPlan({ currentTier: { id: "free-tier" } }, true), "Workspace");
-  assert.equal(isConsumerShutdown({ ineligibleTiers: [{ reasonCode: "UNSUPPORTED_CLIENT" }] }), true);
-  assert.equal(isConsumerShutdown({ currentTier: { id: "standard-tier" }, ineligibleTiers: [{ reasonCode: "UNSUPPORTED_CLIENT" }] }), false);
+test("Cursor と Gemini は枠を返さず、公式の確認先を案内する", async () => {
+  const fetchers = realUsageFetchers(async () => null);
+  for (const [id, guide] of [["cursor", "ダッシュボード"], ["gemini", "Google AI Studio"]] as const) {
+    const usage = await fetchers[id]();
+    assert.equal(usage.provider, id);
+    assert.equal(usage.status, "unavailable");
+    assert.deepEqual(usage.windows, []);
+    assert.match(usage.message ?? "", new RegExp(guide));
+  }
 });
 
 test("JWT の中身を読む（壊れていれば null）", () => {

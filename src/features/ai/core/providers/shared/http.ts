@@ -69,9 +69,6 @@ export function isoFromDate(s: unknown): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 }
 
-/** 金額（セント）を "$3.20" に */
-export const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-
 export function usageWindow(key: string, label: string, utilization: number | null, resets_at: string | null, detail?: string): UsageWindow {
   return { key, label, utilization: utilization === null ? null : clampPercent(utilization), resets_at, ...(detail ? { detail } : {}) };
 }
