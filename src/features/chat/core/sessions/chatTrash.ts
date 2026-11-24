@@ -118,7 +118,8 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
   await discardUnusedSessions(deps.store, deps.providers, sessions, (file) => fs.rm(file, { recursive: true, force: true }), deps.sessionsElsewhere).catch((e: unknown) =>
     console.warn(`[trash] 会話記録を消せませんでした: ${errorMessage(e)}`),
   );
-  await deps.attachments.discard([...uploadIds].filter((id) => !deps.store.events.uploadInUse(id)));
+  const used = deps.store.events.uploadsInUse([...uploadIds]);
+  await deps.attachments.discard([...uploadIds].filter((id) => !used.has(id)));
   await deps.onPurged?.(ids).catch(() => {});
 }
 

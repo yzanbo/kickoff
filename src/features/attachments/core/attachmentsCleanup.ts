@@ -11,8 +11,10 @@ export const UNUSED_UPLOAD_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
 /** 保存してから 30 日たち、どこからも使われていない添付を消す。消した数を返す */
 export async function sweepUnusedUploads(deps: { store: Pick<ChatStoreDeps, "events">; uploads: Pick<UploadStore, "savedBefore" | "remove"> }, now = Date.now()): Promise<number> {
   let removed = 0;
-  for (const id of await deps.uploads.savedBefore(now - UNUSED_UPLOAD_KEEP_MS)) {
-    if (deps.store.events.uploadInUse(id)) continue;
+  const old = await deps.uploads.savedBefore(now - UNUSED_UPLOAD_KEEP_MS);
+  const used = deps.store.events.uploadsInUse(old);
+  for (const id of old) {
+    if (used.has(id)) continue;
     await deps.uploads.remove(id);
     removed++;
   }

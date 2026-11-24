@@ -19,5 +19,5 @@
 
 ## 落とし穴
 
-- どこからも使われない添付（`store.events.uploadInUse`）は 30 日で片付ける。添付を指す所を足したら `uploadInUse` も直す。
+- どこからも使われない添付（`store.events.uploadsInUse`）は 30 日で片付ける。添付を指す所を足したら `uploadsInUse` も直す。
 - テスト: `core/routes.test.ts`・`core/*.test.ts`・`ui/**/*.test.ts`。

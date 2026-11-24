@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { testStore } from "@/app/core/testing/testStore";
+import { makeAttachment } from "@shared/chat/testing";
 
 /** 記録を足したチャット（ほかのチャットの記録も混ぜる） */
 function seeded() {
@@ -64,4 +65,18 @@ test("latestId・exists・latestResult: 種類・メインの返答・範囲で�
   assert.equal(e.latestResult(chat.id)?.id, ids[7]);
   assert.equal(e.latestResult(chat.id, { withSession: true })?.id, ids[5]);
   assert.equal(e.latestResult(chat.id, { before: ids[5] }), null);
+});
+
+test("uploadsInUse: 候補の添付のうち、記録（発言・回答・AI の交代）か出す箱が使っているものを 1 回の読み取りで返す（ゴミ箱のチャットも数える）", () => {
+  const store = testStore();
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const [a, b, c, d] = ["aaaaaaaa", "bbbbbbbb", "cccccccc", "dddddddd"].map((h) => `${h}-0000-4000-8000-000000000000`);
+  store.events.add(chat.id, { type: "user", text: "見て", attachments: [makeAttachment(a)], message_uuid: "u1" });
+  store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex", handoff_attachments: [makeAttachment(b)] });
+  // ツールの結果の中の同じ形の文字は数えない
+  store.events.add(chat.id, { type: "tool_result", tool_use_id: "t1", content: d, is_error: false });
+  store.outbox.save(chat.id, { now: [], later: [{ id: "q1", text: "", options: {}, attachments: [makeAttachment(c)], created_at: "2026-11-22T00:00:00.000Z" }], stops: [], paused: false });
+  assert.deepEqual([...store.events.uploadsInUse([a, b, c, d])].sort(), [a, b, c]);
+  assert.deepEqual([...store.events.uploadsInUse([])], []);
 });

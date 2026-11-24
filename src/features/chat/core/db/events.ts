@@ -327,16 +327,22 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       for (const { data } of rows) for (const m of data.matchAll(UUID_PATTERN)) ids.add(m[0]);
       return ids;
     },
-    /** その添付をどれかのチャットの記録（自分の発言・質問への回答）か送信待ち・預かりが使っているか（ゴミ箱にあるチャットも数える） */
-    uploadInUse(uploadId: string): boolean {
-      return (
-        db
-          .prepare(
-            `SELECT 1 FROM chat_events WHERE type IN ('user', 'approval_resolved', 'provider_switched') AND instr(data, $id) > 0
-             UNION ALL SELECT 1 FROM chat_outbox WHERE instr(now, $id) > 0 OR instr(later, $id) > 0 LIMIT 1`,
-          )
-          .get({ id: uploadId }) !== undefined
-      );
+    /**
+     * 候補の添付のうち、どれかのチャットの記録（自分の発言・質問への回答・AI の交代）か送信待ち・預かりが使っているもの（ゴミ箱にあるチャットも数える）。
+     * 記録と出す箱を 1 回だけ読んで uuid を集める（添付ごとに全部の記録を探さない）
+     */
+    uploadsInUse(uploadIds: readonly string[]): Set<string> {
+      const used = new Set<string>();
+      if (uploadIds.length === 0) return used;
+      const wanted = new Set(uploadIds);
+      const rows = db
+        .prepare(
+          `SELECT data AS text FROM chat_events WHERE type IN ('user', 'approval_resolved', 'provider_switched')
+           UNION ALL SELECT now || later FROM chat_outbox`,
+        )
+        .all() as { text: string }[];
+      for (const { text } of rows) for (const m of text.matchAll(UUID_PATTERN)) if (wanted.has(m[0])) used.add(m[0]);
+      return used;
     },
     /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id・記録の init・result・workplace_moved・離れた AI のセッションの覚え） */
     usedSessionIds(): Set<string> {

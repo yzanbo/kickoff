@@ -157,7 +157,7 @@ test("AI 切り替え用の長文ファイルはアーカイブ・ゴミ箱で�
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "切り替え", status: "completed" });
   const file = await uploads.save({ name: "long.txt", type: "text/plain", bytes: new TextEncoder().encode("長い会話") });
   store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex", handoff_attachments: [file] });
-  assert.equal(store.events.uploadInUse(file.id), true);
+  assert.equal(store.events.uploadsInUse([file.id]).has(file.id), true);
   await api("PATCH /api/chats/:chatId", { params: { chatId: chat.id }, body: { archived: true } });
   assert.ok(await uploads.resolve(file.id));
   const removed = await api("DELETE /api/chats/:chatId", { params: { chatId: chat.id } });
