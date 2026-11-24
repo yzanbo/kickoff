@@ -10,6 +10,7 @@
 
 ## 決まり
 - 設定の値の宣言は機能ごとの `@shared/<機能>/settings.ts`（表と zod の書き忘れは型検査で落ちる）。
+- 上の機能が設定の変更に挟む処理は `SettingsApi.onUpdate`（`before` は保存前で throw すれば断る、`after` は保存後で応答の前に待つ。notes が共通のノートのフォルダで使う）。PUT /api/settings の道だけに効く（コアの中の `k.settings.update` は通らない）。
 - アプリの設定は下書きにせず、選んだらすぐ保存する（保存のボタンはない）。送るのは `saveSettings` だけ（応答を待たずに店へ入れ、失敗したら読み直して投げる）。待たずにお知らせで済ませる欄は `applySettings`。
 - テキストの欄は `CommitInput`（欄の外を押す・Enter で保存）。選ぶ欄は `ChoiceField`・`SwitchField`。キーの文字は `useCommandKeys` で表から出す。
 - API キーは保存したら欄を消し、置いたか（`has_api_key`）だけを出す。

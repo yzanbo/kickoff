@@ -11,7 +11,7 @@
 
 - プロジェクトの色を出すのは印 `ProjectMark` だけ。札の地と枠の色は `ProjectMark.css`（サイドバーの見出しは `ProjectList.css`）。色は店の `Project.hue`（部品は `useProjectHue(id)`）。
 - 見せるプロジェクトは `useVisibleProjects`（サイドバー・全プロジェクトの画面・⌘⇧A で共通）。並びは `projectOrder.ts`。
-- 見えないプロジェクト（`kind` あり）は API・店に残し、見せる一覧だけ `isListedProject` で外す（フォルダの重なりでは数える）。HTTP の口は `requireListed` で 409、店の `update` は断らない。
+- 見えないプロジェクト（`kind` あり）は API・店に残し、見せる一覧だけ `isListedProject` で外す（フォルダの重なりでは数える）。HTTP の口は `requireListed` で 409、店の `update` は断らない。持ち主の機能がフォルダを変えるときは `ProjectsApi.changeOwnedFolder`（作業中なら 409、チャットは `changeProjectFolder` と同じく `afterRepoMove` で移す）。
 - アーカイブする・戻すは必ず確かめる（`confirmArchiveProject` / `confirmRestoreProject`）。
 - 操作は右クリックの `useProjectMenu` に入れる。すべてのプロジェクトに効く設定はサイドバーの見出しに置く。
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`（付いているすべてのプロジェクトに効く）。

@@ -7,7 +7,9 @@ import type { AiApi } from "@/features/ai/core/index";
 import type { AttachmentsApi } from "@/features/attachments/core/index";
 import type { ChatApi } from "@/features/chat/core/index";
 import type { ProjectsApi } from "@/features/projects/core/index";
+import type { SettingsApi } from "@/features/settings/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
+import { createCommonNotes } from "./commonNotes";
 import { createNoteDirs } from "./noteDir";
 import { NoteService, type NoteMoved, type NoteTrashed } from "./service";
 import { createNoteAi } from "./noteAi";
@@ -28,12 +30,16 @@ export interface NotesApi {
   onMoved(fn: (e: NoteMoved) => void): void;
   /** ノートをゴミ箱へ入れたとき */
   onTrashed(fn: (e: NoteTrashed) => void): void;
+  /** 共通のノートのプロジェクトを設定に合わせる（起動したとき start で流す。テストは機能を始めないので、要るテストが呼ぶ） */
+  syncCommon(): Promise<void>;
 }
 
 export interface NotesDeps {
   trash: TrashApi;
-  /** パスの :projectId の引き当て・ノートのフォルダ名を覚える */
-  projects: Pick<ProjectsApi, "param" | "store">;
+  /** パスの :projectId の引き当て・ノートのフォルダ名を覚える・共通のノートのプロジェクトを用意して付け替える */
+  projects: Pick<ProjectsApi, "param" | "store" | "isBusy" | "changeOwnedFolder">;
+  /** 共通のノートのフォルダの設定を変える前と後 */
+  settings: SettingsApi;
   /** ノートの案を AI に聞く */
   ai: AiApi;
   /** ノートのチャット（始める・動かした / ゴミ箱へ入れたノートのチャットを付け替える・一緒に入れる）と、実行に足すもの */
@@ -50,6 +56,9 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   const publish = (e: Parameters<typeof bus.publish>[0]) => bus.publish(e);
   const dirs = createNoteDirs({ projects, notesDir: () => k.settings.get().notes_dir, defaultDir: env.defaultDir });
   const notes = new NoteService({ dirs, projects, publish, trashBin: trash });
+  // 共通のノート（見えないプロジェクト）: 起動したときに用意し、フォルダの設定を変えたら付け替える
+  const common = createCommonNotes({ projects: deps.projects, settings: () => k.settings.get(), defaultRoot: env.defaultDir });
+  deps.settings.onUpdate(common.settingsHook);
   // 動かした・ゴミ箱へ入れたノートの、ノートのチャットも付け替える・一緒に入れる（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える）
   notes.onMoved((e) => chat.noteChats.moved(e.project_id, e.from, e.to));
   notes.onTrashed((e) => chat.noteChats.trashed(e.project_id, e.path, e.trash_id));
@@ -59,15 +68,16 @@ export function createNotes(k: Kernel, deps: NotesDeps, env: { defaultDir: strin
   trash.addImportHook((item) => chat.noteChats.imported(item, dirs.dirOf));
   deps.attachments.addImageDir(dirs.dirOf);
   deps.attachments.useNoteDir(dirs.dirOf);
-  // チャットの実行に、ノートのフォルダ（なければ決めて作る）・「ノート」の節・ノートのチャットの知らせを足す
-  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, publish }));
-  const toolDeps = { store: chat.store, notes: { dirOf: dirs.dirOf, move: notes.move.bind(notes) }, publish };
+  // チャットの実行に、ノートのフォルダと共通のノートのフォルダ（なければ決めて作る）・「ノート」の節・ノートのチャットの知らせを足す
+  chat.addTurnContributor(noteTurnParts({ dirOf: dirs.ensureNoteDir, commonProject: common.project, publish }));
+  const toolDeps = { store: chat.store, notes: { dirOf: dirs.dirOf, move: notes.move.bind(notes) }, common, publish };
   const ai = createNoteAi({ notes, providers: deps.ai.providers });
   return {
     name: "notes",
-    api: { dirOf: dirs.dirOf, onMoved: (fn) => notes.onMoved(fn), onTrashed: (fn) => notes.onTrashed(fn) },
-    routes: [noteRoutes({ projectParam: deps.projects.param, chatParam: chat.chatParam, dirs, notes, ai, chat: createNoteChat({ notes, chat }), uploads: deps.attachments.uploads })],
+    api: { dirOf: dirs.dirOf, onMoved: (fn) => notes.onMoved(fn), onTrashed: (fn) => notes.onTrashed(fn), syncCommon: common.sync },
+    routes: [noteRoutes({ projectParam: deps.projects.param, chatParam: chat.chatParam, dirs, notes, common, ai, chat: createNoteChat({ notes, chat }), uploads: deps.attachments.uploads })],
     aiTools: [openNoteToolGroup(toolDeps), moveNoteToolGroup(toolDeps)],
+    start: () => void common.sync(),
     stop: () => notes.close(),
   };
 }

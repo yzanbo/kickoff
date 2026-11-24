@@ -15,7 +15,7 @@ import { chatOf, eventsOf } from "@/features/chat/core/testing";
 
 test("ノートの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, api, project, store, noteFake } = setup({ features: ["notes", "settings", "trash", "database"] });
-  assert.deepEqual((await api("GET /api/notes/defaults")).body, { default_dir: noteFake.defaultDir });
+  assert.deepEqual((await api("GET /api/notes/defaults")).body, { default_dir: noteFake.defaultDir, common_default_dir: path.join(noteFake.defaultDir, "_common"), common_project_id: null, common_unavailable: null });
   const list = (await api("GET /api/projects/:projectId/notes", { params: { projectId: project.id } })).body;
   assert.equal(list.dir, path.join(noteFake.defaultDir, project.name));
   assert.equal(list.exists, false);

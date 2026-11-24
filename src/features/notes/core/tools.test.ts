@@ -37,9 +37,17 @@ function setup() {
   fs.writeFileSync(path.join(dir, "案.md"), "# 案");
   fs.writeFileSync(path.join(dir, "済", "前の案.md"), "# 前");
   const noteChat = store.chats.create({ ...base, title: "案のノートのチャット", parent_chat_id: null, note_path: "案.md" });
+  // 共通のノート（見えないプロジェクト。本体とノートのフォルダが同じ）
+  const commonDir = tempDir();
+  const commonProject = store.projects.create({ name: "共通のノート", repo_path: commonDir, provider: "claude", kind: "common" });
+  store.projects.update(commonProject.id, { note_dir: commonDir });
+  fs.mkdirSync(path.join(commonDir, "メモ"), { recursive: true });
+  fs.writeFileSync(path.join(commonDir, "覚え書き.md"), "# 覚え書き");
+  const commonState = { available: true };
+  const common = { project: () => (commonState.available ? store.projects.get(commonProject.id)! : null), unavailable: () => (commonState.available ? null : { message: "重なっています", project_id: null }) };
   const published: BusEvent[] = [];
-  const deps = { store, notes, publish: (e: BusEvent) => published.push(e) };
-  return { ctx, root, child, grandchild, noteChat, dir, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps) };
+  const deps = { store, notes, common, publish: (e: BusEvent) => published.push(e) };
+  return { ctx, root, child, grandchild, noteChat, dir, commonDir, commonProject, commonState, published, open: openNoteToolGroup(deps), move: moveNoteToolGroup(deps) };
 }
 
 test("notePathIn: 相対・中の絶対パスはノートのフォルダからの相対パスに、外・フォルダそのもの・「.」で始まる名前は断る", () => {
@@ -94,4 +102,34 @@ test("move_note: ノートのフォルダの中で動かし、ノートのチャ
   // フォルダごと
   await moveNote({ from: "済", to: "archive/2026" });
   assert.equal(ctx.store.chats.get(noteChat.id)?.note_path, "archive/2026/案.md");
+});
+
+test("open_note: scope common か共通のノートのフォルダの中の絶対パスなら、共通のノートのプロジェクトの id で画面に頼む。使えなければ理由を添えて断る", async () => {
+  const { child, commonDir, commonProject, commonState, published, open } = setup();
+  await callIn(open, child.id, { path: "覚え書き.md", scope: "common" });
+  // scope を省いても（project でも）、共通のノートのフォルダの中の絶対パスは共通のノート
+  await callIn(open, child.id, { path: path.join(commonDir, "覚え書き.md"), scope: "project" });
+  assert.deepEqual(
+    published.map((e) => (e.type === "open_view" && e.request.kind === "note" ? [e.request.project_id, e.request.path] : null)),
+    [
+      [commonProject.id, "覚え書き.md"],
+      [commonProject.id, "覚え書き.md"],
+    ],
+  );
+  // プロジェクトのノートにない名前は、scope を省けばプロジェクトで探す
+  await assert.rejects(callIn(open, child.id, { path: "覚え書き.md" }), /見つかりません/);
+  commonState.available = false;
+  await assert.rejects(callIn(open, child.id, { path: "覚え書き.md", scope: "common" }), /共通のノートを使えないため.*重なっています/);
+});
+
+test("move_note: 共通のノートの中で動かせる。共通のノートとプロジェクトのノートの間は断る", async () => {
+  const { root, commonDir, move } = setup();
+  const moveNote = (args: Record<string, unknown>) => callIn(move, root.id, args);
+  assert.match(await moveNote({ from: "覚え書き.md", to: "メモ/覚え書き.md", scope: "common" }), /動かしました/);
+  assert.ok(fs.existsSync(path.join(commonDir, "メモ", "覚え書き.md")));
+  // from が共通のノートの絶対パスなら、相対パスの to も共通のノート
+  await moveNote({ from: path.join(commonDir, "メモ", "覚え書き.md"), to: "覚え書き.md" });
+  assert.ok(fs.existsSync(path.join(commonDir, "覚え書き.md")));
+  await assert.rejects(moveNote({ from: path.join(commonDir, "覚え書き.md"), to: "済/覚え書き.md", scope: "project" }), /間では動かせません/);
+  assert.ok(fs.existsSync(path.join(commonDir, "覚え書き.md")));
 });

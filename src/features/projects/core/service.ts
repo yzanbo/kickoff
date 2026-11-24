@@ -146,6 +146,19 @@ export async function changeProjectFolder(ctx: ProjectsCtx, project: Project, in
 }
 
 /**
+ * 見えないプロジェクトのフォルダ（本体とノートのフォルダ）を変える（持ち主の機能だけが呼ぶ。利用者の口は changeProjectFolder で、見えないものは断る）。
+ * 作業中のチャットがあれば 409。チャットは changeProjectFolder と同じく、作業場所を付け替え、区切りを置いて会話を新しいセッションに写す
+ */
+export async function changeOwnedProjectFolder(ctx: ProjectsCtx, project: Project, folders: { repo_path: string; note_dir: string | null }): Promise<Project> {
+  if (isListedProject(project)) throw new Conflict("一覧に出るプロジェクトのフォルダは、プロジェクトの設定から変えてください");
+  requireNoBusyChat(ctx, project.id, "フォルダを変えられません");
+  const moves = await worktreeMoves(project.repo_path, folders.repo_path);
+  const updated = ctx.projects.update(project.id, folders);
+  await ctx.hooks.afterRepoMove(project, moves);
+  return updated;
+}
+
+/**
  * git で管理していないプロジェクトで、git の管理を始める（main で初期化し、いまあるファイルで最初のコミットを作る。コミットがなければコミットだけ）。
  * もう管理している・ほかのリポジトリの中なら 409、作業中のチャットがあれば 409（書きかけのファイルをコミットしないため）
  */

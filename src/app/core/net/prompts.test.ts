@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
 import type { LinkOpenTarget } from "@shared/settings/types";
+import { makeProject } from "@shared/projects/testing";
 import { ScriptedProvider } from "@/features/ai/core/testing";
 import { promptRecord } from "@/features/chat/core/testing";
 import { matchRecord } from "@/foundation/core/testing/record";
@@ -12,6 +13,9 @@ import { setupCore, until } from "@/app/core/testing/testCore";
 import { visualTurnParts } from "@/features/visuals/core/tools";
 import { noteTurnParts } from "@/features/notes/core/turnParts";
 import { browserTurnParts } from "@/features/browser/core/index";
+
+/** 共通のノート（見えないプロジェクト）の id（ノートのフォルダを分けて見せる） */
+const COMMON_ID = 999;
 
 /** すぐ終わる台本 */
 const done = async () => ({ status: "completed" as const, sessionId: "s", turns: 1 });
@@ -26,7 +30,7 @@ test("AI への指示の文の記録: plain", async () => {
   const { store, runner, project } = setupCore(provider, {
     trashCommand: { path: path.join(tmp, "bin", "kickoff-trash"), dir: path.join(tmp, "trash") },
     bashSandbox: { rules: { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: ["npm run dev:*", "brew services start:*"] }, proxyPort: null, trashDir: null },
-    contributors: [visualTurnParts(), noteTurnParts({ dirOf: () => path.join(tmp, "ノート"), publish: () => {} })],
+    contributors: [visualTurnParts(), noteTurnParts({ dirOf: (p) => path.join(tmp, p.id === COMMON_ID ? "_common" : "ノート"), commonProject: () => makeProject(COMMON_ID, { kind: "common" }), publish: () => {} })],
   });
   store.projects.update(project.id, {
     description: "概要の 1 行目\n2 行目",

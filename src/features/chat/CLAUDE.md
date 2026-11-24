@@ -12,6 +12,7 @@
 - 記録は `type` で中身が決まる判別共用体。`e.type` で絞り、`data as …` と書かない（`ChatEventOf<T>`・外すのは `DistributiveOmit`）。AI が出す記録は `@shared/ai/turnEvents.ts`、コアが作る記録は `chatEvent.ts` に足す。
 - 状態は `agentStateOf`・カンバンの列は `boardColumnOf`（AI の状態だけで決まる）。画面は `chatStateOf`、文と色は `stateLooks`。場所ごとに判定を書かない。回答待ちはチャットの状態に持たない。
 - AI へ送る定型文と子から親への受け渡しの文は `prompts.ts`・`handoff.ts` に足して使う（手で組み立てない）。
+- システムプロンプトのプロジェクトの節（`core/prompt/system.ts`）は、見えないプロジェクト（共通のノート）のチャットでは「どのプロジェクトにも属さない」と作業フォルダだけを伝える。
 - 既読は、画面が一番下まで見た記録の ID を渡し、自分で見たときだけ付ける。それより新しい結果があれば消さない。印の付け外しで並び順を変えない。
 - アーカイブ・削除は `chatActions.ts` を通し、どこからでも確かめる（取り消しの通知で代えない）。名前は `useChatRename`＋`ChatTitleInput`（上限 `CHAT_TITLE_MAX`）。
 - ✕ は `closeChatWithChoice`（既定は `chat:close-action`）、Esc・タブの「閉じる」は聞かずに閉じる。

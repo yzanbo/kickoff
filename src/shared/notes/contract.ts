@@ -11,7 +11,7 @@ const device = { access: "device" } as const;
 type PathQuery = { path: string };
 
 export const notesContract = {
-  /** 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所 */
+  /** 設定の画面で、親フォルダ・共通のノートのフォルダをまだ選んでいないときに出す既定の場所と、共通のノートのプロジェクト（使えなければ理由） */
   "GET /api/notes/defaults": route<never, NoteDefaults>(device),
   /** そのフォルダをノートのフォルダにしているプロジェクト（except は自分。ほかのプロジェクトと被っていると画面で知らせる） */
   "GET /api/notes/users": route<never, NoteDirUsers, { path: string; except?: number }>(device),

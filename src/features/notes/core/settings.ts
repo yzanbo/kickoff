@@ -7,4 +7,6 @@ import { noteSettings } from "@shared/notes/settings";
 export const noteSettingSchemas = defineSettingSchemas(noteSettings, {
   // ノートの親フォルダ（null なら既定の場所）
   notes_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
+  // 共通のノートのフォルダ（null なら親フォルダの下の既定の場所）
+  common_notes_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
 });

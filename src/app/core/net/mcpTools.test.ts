@@ -93,7 +93,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
   });
   const finisher = unused<AiWorktreeFinish>("worktreeFinisher");
   const { store, runner } = core;
-  const noteTools = { store, notes: unused<Parameters<typeof openNoteToolGroup>[0]["notes"]>("notes"), publish: (e: BusEvent) => core.bus.publish(e) };
+  const noteTools = { store, notes: unused<Parameters<typeof openNoteToolGroup>[0]["notes"]>("notes"), common: { project: () => null, unavailable: () => null }, publish: (e: BusEvent) => core.bus.publish(e) };
   core.runner.provide({
     chatRemover: unused<ChatRemover>("chatRemover"),
     aiTools: () => [

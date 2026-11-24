@@ -12,6 +12,7 @@ import { implement, type Param } from "@/foundation/core/http/implement";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
 import { CONTENT_REQUIRED, hasContent, messageShape, notePathSchema } from "@/features/chat/core/index";
 import { folderPath, optionalId, repoPath } from "@/foundation/core/http/zodParts";
+import type { CommonNotes } from "@/features/notes/core/commonNotes";
 import type { NoteDirs } from "@/features/notes/core/noteDir";
 import type { NoteService } from "@/features/notes/core/service";
 import { MAX_NOTE_SOURCE_CHARS, type createNoteAi } from "@/features/notes/core/noteAi";
@@ -46,15 +47,18 @@ export interface NoteRouteDeps {
   chatParam: Param<Chat>;
   dirs: NoteDirs;
   notes: NoteService;
+  common: Pick<CommonNotes, "defaultDir" | "project" | "unavailable">;
   ai: ReturnType<typeof createNoteAi>;
   chat: ReturnType<typeof createNoteChat>;
   uploads: UploadStore;
 }
 
-export function noteRoutes({ projectParam, chatParam, dirs, notes, ai, chat, uploads }: NoteRouteDeps) {
+export function noteRoutes({ projectParam, chatParam, dirs, notes, common, ai, chat, uploads }: NoteRouteDeps) {
   return implement(notesContract, {
     context: { projectId: projectParam, "*": rawRest },
-    "GET /api/notes/defaults": { run: () => ({ default_dir: dirs.defaultDir }) },
+    "GET /api/notes/defaults": {
+      run: () => ({ default_dir: dirs.defaultDir, common_default_dir: common.defaultDir(), common_project_id: common.project()?.id ?? null, common_unavailable: common.unavailable() }),
+    },
     "GET /api/notes/users": {
       query: z.object({ path: folderPath, except: optionalId }),
       run: ({ query }) => ({ project_ids: dirs.usersOf(query.path, query.except).map((p) => p.id) }),

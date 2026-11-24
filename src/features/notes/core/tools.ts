@@ -10,6 +10,8 @@ import type { BusEvent } from "@shared/foundation/contract";
 import { noteExtensionOf } from "@shared/notes/kinds";
 import { OPEN_PLACE_LABELS } from "@shared/chat/openView";
 import { lineageOf, openPlaceInput, toolChat, type ChatStoreDeps } from "@/features/chat/core/index";
+import type { Project } from "@shared/projects/types";
+import type { CommonNotes } from "./commonNotes";
 import type { NoteDirs } from "./noteDir";
 import type { NoteService } from "./service";
 
@@ -29,37 +31,64 @@ export function notePathIn(dir: string, given: string): string {
   return rel;
 }
 
+/** ノートの欄（呼んだチャットのプロジェクトのノートか、共通のノートか） */
+const NOTE_SCOPES = ["project", "common"] as const;
+type NoteScope = (typeof NOTE_SCOPES)[number];
+
 interface NoteToolDeps {
   /** チャットの店（chat はノートより先に作る） */
   store: Pick<ChatStoreDeps, "chats" | "settings" | "projects" | "snippets">;
   notes: Pick<NoteDirs, "dirOf"> & Pick<NoteService, "move">;
+  /** 共通のノート（使えなければ project が null で、理由は unavailable） */
+  common: Pick<CommonNotes, "project" | "unavailable">;
   /** 画面に頼む（SSE） */
   publish: (event: BusEvent) => void;
 }
 
-/** 呼んだチャットのプロジェクトとノートのフォルダ */
-function noteDirFor(d: NoteToolDeps, chatId: number, verb: string) {
+/** AI が渡したパスが指すノート（持ち主のプロジェクト・ノートのフォルダ・そこからの相対パス） */
+interface NoteTarget {
+  project: Project;
+  dir: string;
+  rel: string;
+}
+
+/**
+ * パスと scope から、どの欄のノートかを決める。共通のノートのフォルダの中の絶対パスは、scope によらず共通のノート
+ * （AI がフォルダの場所で指したときに、プロジェクトのノートの外と断らないように）。scope を省けば呼んだチャットのプロジェクト
+ */
+function noteTarget(d: NoteToolDeps, chatId: number, scope: NoteScope | undefined, given: string, verb: string): NoteTarget {
   const self = toolChat(d.store.chats, chatId).self();
+  const common = d.common.project();
+  const commonDir = common ? d.notes.dirOf(common) : null;
+  const inCommon = commonDir !== null && path.isAbsolute(given.trim()) && [commonDir, realPathOrSelf(commonDir)].some((dir) => isInside(dir, given.trim()) || isInside(dir, realPathOrSelf(given.trim())));
+  if (inCommon || scope === "common") {
+    if (!common || !commonDir) throw new Error(`共通のノートを使えないため、ノートを${verb}（${d.common.unavailable()?.message ?? "共通のノートをまだ用意していません"}）`);
+    return { project: common, dir: commonDir, rel: notePathIn(commonDir, given) };
+  }
   const project = d.store.projects.get(self.project_id);
   if (!project) throw new Error(`このプロジェクトのノートのフォルダが分からないため、ノートを${verb}`);
-  return { self, project, dir: d.notes.dirOf(project) };
+  const dir = d.notes.dirOf(project);
+  return { project, dir, rel: notePathIn(dir, given) };
 }
+
+/** scope の引数（AI が読む説明つき） */
+const scopeInput = () => z.enum(NOTE_SCOPES).optional().describe("どのノートか: project（このプロジェクトのノート。省いたとき）か common（共通のノート。どのプロジェクトにも属さないノート）。共通のノートのフォルダの中の絶対パスなら、省いても共通のノート");
 
 /** ノートを開くツールの組（kickoff_chat の開く組の先頭 = order 40。開く組は持ち主ごとに分け、並びの値で前と同じ順に並べる） */
 export function openNoteToolGroup(d: NoteToolDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 40,
-    instructions: ["open_note は、このプロジェクトのノート（ノートのフォルダの .md・.html）を Kickoff の画面に開く。path はノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス。"],
+    instructions: ["open_note は、このプロジェクトのノート（ノートのフォルダの .md・.html）か、共通のノート（scope: common）を Kickoff の画面に開く。path はノートのフォルダ（共通のノートなら共通のノートのフォルダ）からの相対パスか、その中の絶対パス。"],
     open: ({ chatId }) => [
       defineAiTool({
         server: "kickoff_chat",
         name: "open_note",
-        description: "このプロジェクトのノートを Kickoff の画面（右の欄・別ウィンドウ）に開く（開くだけ）",
-        input: { path: z.string().min(1).describe("ノートのフォルダからの相対パス（「機能の仕様/図.html」）か、ノートのフォルダの中の絶対パス"), place: openPlaceInput() },
+        description: "このプロジェクトのノート・共通のノートを Kickoff の画面（右の欄・別ウィンドウ）に開く（開くだけ）",
+        input: { path: z.string().min(1).describe("ノートのフォルダからの相対パス（「機能の仕様/図.html」）か、ノートのフォルダの中の絶対パス"), scope: scopeInput(), place: openPlaceInput() },
         async run(input) {
-          const { self, project, dir } = noteDirFor(d, chatId, "開けません");
-          const rel = notePathIn(dir, input.path);
+          const self = toolChat(d.store.chats, chatId).self();
+          const { project, dir, rel } = noteTarget(d, chatId, input.scope, input.path, "開けません");
           if (!noteExtensionOf(rel)) throw new Error(`${rel} はノート（.md・.markdown・.html・.htm）ではありません`);
           const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
           if (!stat?.isFile()) throw new Error(`ノート ${rel} が見つかりません（ノートのフォルダ: ${dir}）`);
@@ -77,20 +106,26 @@ export function moveNoteToolGroup(d: NoteToolDeps): AiToolGroup {
   return {
     server: "kickoff_chat",
     order: 61,
-    instructions: ["move_note は、このプロジェクトのノート（ノートのフォルダの .md・.html とフォルダ）の名前を変える・別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。ノートの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとノートのチャットとのつながりが切れる）。"],
+    instructions: ["move_note は、このプロジェクトのノート（ノートのフォルダの .md・.html とフォルダ）か、共通のノート（scope: common）の名前を変える・同じノートのフォルダの中の別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。ノートの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとノートのチャットとのつながりが切れる）。"],
     open: ({ chatId }) => [
       defineAiTool({
         server: "kickoff_chat",
         name: "move_note",
-        description: "このプロジェクトのノート（ファイル・フォルダ）の名前を変える・移す（上書きしない）",
+        description: "このプロジェクトのノート・共通のノート（ファイル・フォルダ）の名前を変える・移す（上書きしない）",
         input: {
           from: notePath.describe("いまのノートのパス（ノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス）"),
           to: notePath.describe("新しいパス（同じ形。途中のフォルダはなければ作る）"),
+          scope: scopeInput(),
         },
         async run(input) {
-          const { project, dir } = noteDirFor(d, chatId, "動かせません");
-          const from = notePathIn(dir, input.from);
-          const to = notePathIn(dir, input.to);
+          const source = noteTarget(d, chatId, input.scope, input.from, "動かせません");
+          // to が相対パスで scope を省いたら、from と同じ欄（共通のノートの絶対パスから相対パスへ名前を変えるとき）
+          const dest = noteTarget(d, chatId, input.scope ?? (source.project.id === d.common.project()?.id ? "common" : undefined), input.to, "動かせません");
+          // いまは同じ欄の中だけ（欄をまたぐとノートのチャットも別のプロジェクトへ移すことになる）
+          if (source.project.id !== dest.project.id) throw new Error("共通のノートとプロジェクトのノートの間では動かせません。同じノートのフォルダの中で名前と場所を変えてください");
+          const { project } = source;
+          const from = source.rel;
+          const to = dest.rel;
           // ファイルの種類（Markdown / HTML）が変わらないよう、拡張子は変えさせない（フォルダは拡張子なし同士）
           if (path.extname(from).toLowerCase() !== path.extname(to).toLowerCase()) {
             throw new Error(`拡張子は変えられません（${path.extname(from) || "なし"} → ${path.extname(to) || "なし"}）。名前と場所だけを変えてください`);

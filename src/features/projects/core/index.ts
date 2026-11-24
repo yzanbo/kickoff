@@ -7,7 +7,7 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashApi } from "@/features/trash/core/index";
 import { projectRoutes } from "./routes";
-import type { NoteFolderName, ProjectHooks } from "./service";
+import { changeOwnedProjectFolder, type NoteFolderName, type ProjectHooks, type ProjectsCtx } from "./service";
 import { createProjectStore, type ProjectStore } from "./db/projects";
 
 export type { ProjectStore } from "./db/projects";
@@ -29,6 +29,10 @@ export interface ProjectsApi {
   param: Param<Project>;
   /** 作業中のチャットがあるか（chat が登録。フォルダを変える・git の管理を始める・ゴミ箱に入れるのを 409 で断る） */
   addBusyCheck(check: ProjectHooks["isBusy"]): void;
+  /** 作業中のチャットがあるか（登録された確かめのどれかが true） */
+  isBusy(projectId: number): boolean;
+  /** 見えないプロジェクトのフォルダ（本体とノートのフォルダ）を変える（持ち主の機能だけ。作業中なら 409。チャットはフォルダを変えたときと同じく移す） */
+  changeOwnedFolder(project: Project, folders: { repo_path: string; note_dir: string | null }): Promise<Project>;
   /** 設定を変えたあと（github が登録: GitHub の連携・アーカイブを変えたら PR の見張りを聞き直す） */
   afterUpdate(fn: ProjectHooks["afterUpdate"]): void;
   /** 本体のフォルダを変えたあと（workplaceMove が登録: チャットの作業場所を移す） */
@@ -58,6 +62,7 @@ export function createProjects(k: Kernel, deps: ProjectsDeps): CoreFeature<Proje
     },
   };
   const param: Param<Project> = { ...idParam((id) => store.get(id), "プロジェクトが見つかりません"), around: (project, run) => k.workplace.projectScopes.run(project, run) };
+  const ctx: ProjectsCtx = { db: k.db, settings: k.settings, projects: store, trashBin: deps.trash, hooks, noteFolderName: deps.noteFolderName };
   return {
     name: "projects",
     api: {
@@ -65,10 +70,12 @@ export function createProjects(k: Kernel, deps: ProjectsDeps): CoreFeature<Proje
       require: (id) => requireProject({ projects: store }, id),
       param,
       addBusyCheck: (check) => void busyChecks.push(check),
+      isBusy: hooks.isBusy,
+      changeOwnedFolder: (project, folders) => changeOwnedProjectFolder(ctx, project, folders),
       afterUpdate: (fn) => void updated.push(fn),
       afterRepoMove: (fn) => void repoMoved.push(fn),
       onTrashed: (fn) => void trashed.push(fn),
     },
-    routes: [projectRoutes({ db: k.db, settings: k.settings, projects: store, trashBin: deps.trash, hooks, noteFolderName: deps.noteFolderName }, param)],
+    routes: [projectRoutes(ctx, param)],
   };
 }

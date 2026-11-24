@@ -25,6 +25,20 @@ export interface NoteList {
 export interface NoteDefaults {
   /** 設定の notes_dir が null のときに使う親フォルダ（製品版と開発版で別） */
   default_dir: string;
+  /** 設定の common_notes_dir が null のときの共通のノートのフォルダ（いまの親フォルダの下の _common） */
+  common_default_dir: string;
+  /** 共通のノート（Kickoff が用意する見えないプロジェクト）の id。使えないときは null（理由は common_unavailable） */
+  common_project_id: number | null;
+  /** 共通のノートを使えない理由（使えるなら null） */
+  common_unavailable: CommonNotesUnavailable | null;
+}
+
+/** 共通のノートを使えない理由（フォルダが利用者のプロジェクトと重なった・フォルダを作れない・付け替えられない） */
+export interface CommonNotesUnavailable {
+  /** 画面に出す文 */
+  message: string;
+  /** フォルダが重なったプロジェクト（重なりでなければ null） */
+  project_id: number | null;
 }
 
 /**
