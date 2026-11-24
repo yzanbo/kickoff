@@ -261,3 +261,16 @@ test("起動した ACP の CLI の pid を onAgentSpawned で知らせる（診�
   await cursorProvider({ spawn }).run(params({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
   assert.deepEqual(pids, [321]);
 });
+
+test("作業中に伝える: 預かった発言を送る前に指示が失敗したら、届かなかったことを知らせに残す", async () => {
+  const agent = fakeAcpAgent({});
+  const rec = recorder();
+  agent.handle("session/prompt", async () => {
+    await until(() => rec.control() !== null);
+    rec.control()!.tell("これも");
+    throw new Error("落ちた");
+  });
+  const result = await cursorProvider({ spawn: agent.spawn }).run(params(), rec.cb, new AbortController().signal);
+  assert.equal(result.status, "failed");
+  assert.match(rec.events.find((e) => e.type === "notice")?.message ?? "", /作業中に足した発言を AI に届けられませんでした/);
+});

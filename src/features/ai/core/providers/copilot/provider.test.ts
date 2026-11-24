@@ -251,3 +251,26 @@ test("起こした Copilot のランタイムの pid を onAgentSpawned で知�
   await new CopilotProvider({ clientFactory: fake.factory }).run(turnParams({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
   assert.deepEqual(pids, [654]);
 });
+
+test("作業中に足した発言を送れなかったら、届かなかったことを知らせに残す", async () => {
+  const fake = fakeCopilotClient();
+  const rec = recorder();
+  const factory: typeof fake.factory = (opts) => {
+    const client = fake.factory(opts);
+    return {
+      ...client,
+      createSession: async (config) => {
+        const session = await client.createSession(config);
+        return { ...session, send: (o) => (o.mode === "immediate" ? Promise.reject(new Error("session closed")) : session.send(o)) };
+      },
+    };
+  };
+  fake.onSend = async (s) => {
+    await until(() => rec.control() !== null);
+    rec.control()!.tell("これも");
+    await until(() => rec.events.some((e) => e.type === "notice"));
+    s.idle();
+  };
+  await new CopilotProvider({ clientFactory: factory }).run(turnParams(), rec.cb, new AbortController().signal);
+  assert.match(rec.events.find((e) => e.type === "notice").message, /届けられませんでした.*session closed/);
+});

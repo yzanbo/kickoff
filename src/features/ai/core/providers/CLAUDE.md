@@ -22,4 +22,5 @@ AI ごとの CLI・SDK のつなぎ方。共通の口は `types.ts`、共有の�
 - Claude の実行の外（使用枠・モデル・ファイルを戻す）は送らないセッション `withIdleSession`。`askOnce` は空の一時フォルダで動かす。分岐は直近の区切りだけを写す。
 - Codex: 作業フォルダの信頼は毎回 `trusted` で伝える（入れ子で渡す）。断った理由は `turn/steer` で伝える。
 - Copilot: ランタイムの環境から GitHub のトークンを外す（gh で有効なアカウントで動く）。ACP: 作業中の発言・断った理由は指示が終わってから次の指示で送る。
+- `tell` は受け付けた時点で true を返す（記録も残る）。あとで断られた・送らずに終わったら `tellFailedNotice` で知らせる。
 - テスト: `contract.test.ts`・各フォルダの `*.test.ts`。

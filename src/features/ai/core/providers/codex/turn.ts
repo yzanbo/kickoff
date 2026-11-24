@@ -1,4 +1,5 @@
 import { errorMessage } from "@shared/foundation/errors";
+import { tellFailedNotice } from "@/features/ai/core/providers/shared/events";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
@@ -71,7 +72,10 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
 
   const steerNow = (text: string, uuid?: string) => {
     if (!rpc || !threadId || !turnId) return false;
-    void rpc.request("turn/steer", { threadId, input: [{ type: "text", text, text_elements: [] }], expectedTurnId: turnId, clientUserMessageId: uuid ?? null } satisfies TurnSteerParams).catch(() => {});
+    // 受け付けたあとで断られた（ターンが入れ替わった・終わった）ら、記録だけ残って届かないままにせず知らせる
+    void rpc
+      .request("turn/steer", { threadId, input: [{ type: "text", text, text_elements: [] }], expectedTurnId: turnId, clientUserMessageId: uuid ?? null } satisfies TurnSteerParams)
+      .catch((e: unknown) => cb.emit(tellFailedNotice(1, errorMessage(e))));
     return true;
   };
   // 断った理由は、ターンが分かってから伝える

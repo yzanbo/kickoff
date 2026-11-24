@@ -1,4 +1,5 @@
 import { errorMessage } from "@shared/foundation/errors";
+import { tellFailedNotice } from "@/features/ai/core/providers/shared/events";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
 import { StdioRpc, type StdioSpawn } from "@/features/ai/core/providers/stdioRpc";
 import { CLIENT_INFO } from "@/features/ai/core/providers/shared/process";
@@ -153,10 +154,13 @@ export async function runAcpTurn(deps: AcpTurnDeps, params: ProviderTurnParams, 
       prompt = [...notes, ...told].map((t) => ({ type: "text", text: t }));
     }
     if (signal.aborted) stop = "cancelled";
+    // 止めたので送らなかった預かりの発言は、届かなかったことを知らせる
+    if (tells.length > 0) cb.emit(tellFailedNotice(tells.splice(0).length, "止めました"));
     if (stop === "max_tokens" || stop === "max_turn_requests") cb.emit({ type: "notice", message: `${deps.spec.label} が上限（${stop}）で止まりました` });
     return stopResult(stop, id, state);
   } catch (e) {
     const message = closedReason ?? errorMessage(e);
+    if (tells.length > 0) cb.emit(tellFailedNotice(tells.splice(0).length));
     return { status: signal.aborted ? "cancelled" : "failed", sessionId, error: message, ...failureFlags(message) };
   } finally {
     stopper?.dispose();

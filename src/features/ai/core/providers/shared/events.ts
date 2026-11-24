@@ -54,3 +54,12 @@ export function setCompacting(state: { compacting: boolean }, cb: Pick<ProviderC
   state.compacting = active;
   cb.compacting?.(active);
 }
+
+/**
+ * 作業中に足した発言が AI に届かなかったことの知らせ（足す口は受け付けた時点で true を返し、記録にも残るので、あとから断られたら知らせで伝える）。
+ * count は届かなかった発言の数、reason は断られた理由（分からなければ省く）
+ */
+export function tellFailedNotice(count: number, reason?: string): { type: "notice"; message: string } {
+  const what = count === 1 ? "作業中に足した発言" : `作業中に足した発言 ${count} 件`;
+  return { type: "notice", message: `${what}を AI に届けられませんでした${reason ? `（${reason}）` : ""}。要るなら、もう一度送ってください` };
+}

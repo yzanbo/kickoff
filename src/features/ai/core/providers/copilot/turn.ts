@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/foundation/errors";
 import { isNetworkError } from "@shared/ai/networkErrors";
 import { createStopper, failureFlags, type Stopper } from "@/features/ai/core/providers/shared/turnLifecycle";
-import { setCompacting } from "@/features/ai/core/providers/shared/events";
+import { setCompacting, tellFailedNotice } from "@/features/ai/core/providers/shared/events";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { byokProvider, copilotSandbox, mcpServersOf, runtimeEnv, turnPrompt } from "./config";
 import { createEventState, handleEvent, type EventState } from "./events";
@@ -109,7 +109,8 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
     started = true;
     cb.control?.({
       tell: (text) => {
-        void active.send({ prompt: text, mode: "immediate" }).catch(() => {});
+        // 受け付けたあとで送れなかったら、記録だけ残って届かないままにせず知らせる
+        void active.send({ prompt: text, mode: "immediate" }).catch((e: unknown) => cb.emit(tellFailedNotice(1, errorMessage(e))));
         return true;
       },
       stopTask: async () => {},

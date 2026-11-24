@@ -249,3 +249,20 @@ test("開発用の環境変数は , 区切りの ID の集まりとして読む�
   assert.deepEqual([...experimentalProviders({})], []);
   assert.deepEqual([...experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "copilot, cursor" })], ["copilot", "cursor"]);
 });
+
+test("作業中に足した発言の turn/steer が断られたら、届かなかったことを知らせに残す（記録だけ残って AI に届かないままにしない）", async () => {
+  const server = fakeCodexServer();
+  onTurn(server, (s) => s.notify("turn/started", { threadId: "thr-1", turn: { id: "turn-1", status: "inProgress", error: null } }));
+  server.handle("turn/steer", () => {
+    throw new Error("turn already finished");
+  });
+  const rec = recorder();
+  const ac = new AbortController();
+  const running = guardedRun(new CodexProvider({ spawn: server.spawn }), params(), rec.cb, ac.signal);
+  await until(() => rec.control() !== null);
+  assert.equal(rec.control()!.tell("これも", "u-2"), true);
+  await until(() => rec.events.some((e) => e.type === "notice"));
+  assert.match(rec.events.find((e) => e.type === "notice").message, /届けられませんでした.*turn already finished/);
+  ac.abort();
+  await running;
+});
