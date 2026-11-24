@@ -129,6 +129,17 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
   assert.equal((await call("GET", "/api/projects/999/commands")).status, 404);
 });
 
+test("チャット欄の / のコマンド: ?provider= でチャットの AI のものを引く（プロジェクトの既定の AI と違うチャットでも）", async () => {
+  const { call, project, provider } = setup({ features: ["chat", "childChats", "settings", "workplaceMove"] });
+  // テストの偽物はどの AI としても同じなので、AI ごとに覚える一覧が別になることで見る
+  provider.commandList = [{ name: "a", description: "", argument_hint: "" }];
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/commands`)).body, provider.commandList);
+  const other = project.provider === "claude" ? "codex" : "claude";
+  provider.commandList = [{ name: "b", description: "", argument_hint: "" }];
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/commands?provider=${other}`)).body, [{ name: "b", description: "", argument_hint: "" }]);
+  assert.equal((await call("GET", `/api/projects/${project.id}/commands?provider=unknown`)).status, 400);
+});
+
 test("既定の推論の深さの API: 作業フォルダの Claude Code の設定から求める", async () => {
   // 環境変数で決めている環境ではそちらが先になるので、どの環境でも設定のファイルから求めるよう外す
   vi.stubEnv("CLAUDE_CODE_EFFORT_LEVEL", undefined);

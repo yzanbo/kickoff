@@ -18,6 +18,6 @@ export const providersApi = {
   /** 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める） */
   effortDefault: (projectId: number, model: string | null, worktree?: string) =>
     request<EffortDefault>("GET", workdirPath({ projectId, worktree }, "/effort-default", { model })),
-  /** チャット欄の / で出すコマンド（作業場所のプロジェクトのコマンド・スキルも含む） */
-  slashCommands: (target: GitTarget) => request<SlashCommandOption[]>("GET", workdirPath(target, "/commands")),
+  /** チャット欄の / で出すコマンド（そのチャットの AI の。作業場所のプロジェクトのコマンド・スキルも含む） */
+  slashCommands: (target: GitTarget, provider: ProviderId) => request<SlashCommandOption[]>("GET", workdirPath(target, "/commands", { provider })),
 };

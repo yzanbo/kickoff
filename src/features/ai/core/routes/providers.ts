@@ -58,14 +58,16 @@ export function providerRoutes(app: Hono, { store, providers, providerKeys, bus 
   // 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める。?model= はモデルの ID、?worktree= は作業場所。画面は Claude のチャットでだけ聞く）
   app.get("/api/projects/:id/effort-default", withWorkdir, async (c) => c.json((await providers.claude.effortDefault?.(c.req.query("model") || null, c.var.workdir)) ?? { effort: null, source: null }));
 
-  // チャット欄の / で出すコマンド（作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）
+  // チャット欄の / で出すコマンド（AI と作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）。
+  // ?provider= はチャットの AI（省けばプロジェクトの既定の AI。チャットの AI はプロジェクトの既定と違うことがある）
   const commandCache = ttlCache<string, SlashCommandOption[]>({ ms: 5 * 60_000 });
   app.get("/api/projects/:id/commands", withWorkdir, async (c) => {
     const { project, workdir: cwd } = c.var;
-    const key = `${project.provider}:${cwd}`;
+    const provider = z.enum(PROVIDER_IDS).optional().parse(c.req.query("provider") || undefined) ?? project.provider;
+    const key = `${provider}:${cwd}`;
     const cached = commandCache.get(key);
     if (cached) return c.json(cached);
-    const commands = (await providers[project.provider].commands?.(cwd)) ?? [];
+    const commands = (await providers[provider].commands?.(cwd)) ?? [];
     if (commands.length > 0) commandCache.set(key, commands);
     return c.json(commands);
   });

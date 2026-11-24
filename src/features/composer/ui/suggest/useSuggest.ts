@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
+import { useContext, useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
 import type { SlashCommandOption } from "@shared/ai/types";
 import type { GitTarget } from "@/foundation/ui/api/workdir";
 import { stepIndex } from "@/foundation/ui/kit/list/useRovingList";
@@ -7,7 +7,8 @@ import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { listWorkplaceFiles } from "@/foundation/ui/workplace/workplaceFiles";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { findTrigger, isSuggestAcceptKey, matchCommands, matchFiles } from "./suggestMatch";
-import { useFeatureBlock, providersApi } from "@/features/ai/ui";
+import { ChatProviderContext, useFeatureBlock, providersApi } from "@/features/ai/ui";
+import type { ProviderId } from "@shared/settings/types";
 
 export type SuggestItem =
   | { kind: "slash"; key: string; command: SlashCommandOption }
@@ -22,9 +23,21 @@ function targetOf(key: string): GitTarget {
   const [projectId, worktree] = key.split("\n");
   return { projectId: Number(projectId), worktree: worktree || undefined };
 }
+/** コマンドの一覧の key（AI と作業場所。コマンドは AI ごとに違う） */
+const commandsKeyOf = (provider: ProviderId, targetKey: string) => `${provider}\n${targetKey}`;
+function commandsTargetOf(key: string): { provider: ProviderId; target: GitTarget } {
+  const cut = key.indexOf("\n");
+  return { provider: key.slice(0, cut) as ProviderId, target: targetOf(key.slice(cut + 1)) };
+}
 
-// 作業場所ごとの、コマンドとファイルの一覧（チャット欄がいくつあっても、取りに行くのは作業場所ごとに 1 回。しばらくしたら取り直す）
-const commandsStore = createKeyedStore<string, SlashCommandOption[]>({ load: (key) => providersApi.slashCommands(targetOf(key)), maxAge: MAX_AGE_MS });
+// AI と作業場所ごとのコマンドと、作業場所ごとのファイルの一覧（チャット欄がいくつあっても、取りに行くのは 1 回。しばらくしたら取り直す）
+const commandsStore = createKeyedStore<string, SlashCommandOption[]>({
+  load: (key) => {
+    const { provider, target } = commandsTargetOf(key);
+    return providersApi.slashCommands(target, provider);
+  },
+  maxAge: MAX_AGE_MS,
+});
 const filesStore = createKeyedStore<string, string[]>({ load: async (key) => (await listWorkplaceFiles(targetOf(key))).files, maxAge: MAX_AGE_MS });
 
 /**
@@ -56,9 +69,10 @@ export function useSuggest({
   const targetKey = target === undefined ? "" : keyOf(target);
 
   // 候補を出すときに、はじめて一覧を取ってくる（出している間は読み込みを頼む。取れなければ候補なし）
-  // そのチャットの AI に / のコマンドがなければ取りに行かない（一覧はプロジェクトの AI のものなので、違う AI のチャットで出さない）
+  // 一覧はそのチャットの AI のもの（プロジェクトの既定の AI と違うことがある）。その AI に / のコマンドがなければ取りに行かない
+  const provider = useContext(ChatProviderContext);
   const commandsBlocked = useFeatureBlock("commands") !== null;
-  const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" && !commandsBlocked ? targetKey : undefined, { active: open });
+  const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" && !commandsBlocked ? commandsKeyOf(provider, targetKey) : undefined, { active: open });
   const filesState = useKeyedStore(filesStore, targetKey && trigger?.kind === "file" ? targetKey : undefined, { active: open });
   const commands = commandsState.data;
   const files = filesState.data;
