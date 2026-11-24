@@ -107,7 +107,7 @@ test("ターミナル: WebSocket でつなぐと画面の内容と出力が届�
 });
 
 test("ターミナル: つないだあとで見るだけに変えた端末の入力は捨て、取り消した端末の WebSocket は切る", async (t) => {
-  const { app, project, store, terminalFake, full, call } = withDevices();
+  const { app, project, store, terminalFake, full, api } = withDevices();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
   t.onTestFinished(() => stopHttpServer(server));
   const port = (server.address() as AddressInfo).port;
@@ -118,14 +118,14 @@ test("ターミナル: つないだあとで見るだけに変えた端末の入
   ws.send(JSON.stringify({ type: "input", data: "a" }));
   await until(() => shell.written.length === 1);
   // 見るだけに変えたら、開いたままでも打てない
-  await call("PATCH", `/api/devices/${full.id}`, { access: "read" });
+  await api("PATCH /api/devices/:deviceId", { params: { deviceId: full.id }, body: { access: "read" } });
   ws.send(JSON.stringify({ type: "input", data: "b" }));
   // test-rules-ignore: 捨てた入力には知らせも答えもないので、届くはずの間だけ待つ（来ないことを見る口がない）
   await new Promise((r) => setTimeout(r, 50));
   assert.deepEqual(shell.written, ["a"]);
   // 取り消したら、つながったままの WebSocket も切る
   const closed = new Promise<void>((resolve) => ws.once("close", () => resolve()));
-  await call("DELETE", `/api/devices/${full.id}`);
+  await api("DELETE /api/devices/:deviceId", { params: { deviceId: full.id } });
   await closed;
   assert.equal(store.devices.get(full.id), null);
 });

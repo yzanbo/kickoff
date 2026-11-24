@@ -196,7 +196,7 @@ test("DB の接続: プロジェクトから取り込む（案にパスワード
 });
 
 test("DB の接続: 手順ノート（ノートのフォルダからの相対パス。外を指すものは断り、ノートの名前の変更・フォルダの移動で付け替え、写すときは外す）", async () => {
-  const { call, project, store } = setup({ features: ["database"] });
+  const { call, api, project, store } = setup({ features: ["database"] });
   const base = `/api/projects/${project.id}/db-connections`;
   makeSqlite(project.repo_path);
   assert.equal((await call("POST", base, { ...sqliteBody(), note_path: "../x.md" })).status, 400);
@@ -206,10 +206,10 @@ test("DB の接続: 手順ノート（ノートのフォルダからの相対パ
   const other = (await call("POST", base, { ...sqliteBody({ name: "別" }), note_path: "DB/ローカル.md.bak" })).body as DbConnection;
   assert.equal(a.note_path, "DB/ローカル.md");
 
-  assert.equal((await call("POST", `/api/projects/${project.id}/notes`, { path: "DB/ローカル.md", content: "# x" })).status, 201);
-  assert.equal((await call("POST", `/api/projects/${project.id}/notes/move`, { from: "DB/ローカル.md", to: "DB/Docker.md" })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/notes", { params: { projectId: project.id }, body: { path: "DB/ローカル.md", content: "# x" } })).status, 201);
+  assert.equal((await api("POST /api/projects/:projectId/notes/move", { params: { projectId: project.id }, body: { from: "DB/ローカル.md", to: "DB/Docker.md" } })).status, 200);
   assert.deepEqual([a, b, other].map((c) => store.dbConnections.get(c.id)!.note_path), ["DB/Docker.md", "DB/Docker.md", "DB/ローカル.md.bak"]);
-  assert.equal((await call("POST", `/api/projects/${project.id}/notes/move`, { from: "DB", to: "接続" })).status, 200);
+  assert.equal((await api("POST /api/projects/:projectId/notes/move", { params: { projectId: project.id }, body: { from: "DB", to: "接続" } })).status, 200);
   assert.equal(store.dbConnections.get(a.id)!.note_path, "接続/Docker.md");
 
   const cleared = (await call("PATCH", `${base}/${a.id}`, { note_path: null })).body as DbConnection;
@@ -727,11 +727,11 @@ test("SQL のタブ: 読み取り専用の接続は書く文を断り、「書�
 });
 
 test("SQLite のファイルはワークツリーではその中の同じパスを開き、なければ code 付きの 404", async () => {
-  const { call, project } = setup({ features: ["database"] });
+  const { call, api, project } = setup({ features: ["database"] });
   gitRepo({ dir: project.repo_path, files: { "README.md": "x" } });
   makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
-  const wt = await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feature/db" });
+  const wt = await api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: project.id }, body: { branch: "feature/db" } });
   assert.equal(wt.status, 201, JSON.stringify(wt.body));
   const wtPath = (wt.body as { path: string; main: boolean }[]).find((w) => !w.main)!.path;
   const worktree = encodeURIComponent(wtPath);

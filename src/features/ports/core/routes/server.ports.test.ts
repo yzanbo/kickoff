@@ -34,7 +34,7 @@ test("GET /api/ports: プロジェクトのフォルダのものだけを、起�
   s.store.worktreeEnvs.put({ path: path.join(repo, "..", "wt-feat-y"), project_id: s.project.id, band: 20100, host: null, slots: [], compose_names: [], rewritten: [], issues: [], blocked: null });
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
-  const res = await s.call("GET", "/api/ports");
+  const res = await s.api("GET /api/ports");
   assert.equal(res.status, 200);
   const list = (res.body as { processes: PortProcess[] }).processes;
   assert.deepEqual(
@@ -58,25 +58,25 @@ test("GET /api/ports?cached=1: 最後に調べた一覧を返し、調べ直さ�
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
   // まだ調べていない → 調べる
-  let res = await s.call("GET", "/api/ports?cached=1");
+  let res = await s.api("GET /api/ports", { query: { cached: "1" } });
   assert.equal((res.body as { processes: PortProcess[] }).processes.length, 2);
   assert.equal(events.length, 1);
   // 新しいサーバーが現れても、覚えた一覧のまま
   s.portsFake.lsof += lsofLine(2004, 3000);
   s.portsFake.ps += "\n 2004     1    00:05 node /work/node_modules/next/dist/bin/next dev";
   s.portsFake.cwds += `p2004\nn${fs.realpathSync(s.project.repo_path)}\n`;
-  res = await s.call("GET", "/api/ports?cached=1");
+  res = await s.api("GET /api/ports", { query: { cached: "1" } });
   assert.equal((res.body as { processes: PortProcess[] }).processes.length, 2);
   assert.equal(events.length, 1);
   // 調べ直すと増える
-  res = await s.call("GET", "/api/ports");
+  res = await s.api("GET /api/ports");
   assert.equal((res.body as { processes: PortProcess[] }).processes.length, 3);
 });
 
 test("チャットの実行が終わったら少し待って調べ、前になかった pid の数を fresh で知らせる", async () => {
   const s = setup({ features: ["ports"] });
   arrange(s);
-  await s.call("GET", "/api/ports");
+  await s.api("GET /api/ports");
   // 実行の間に新しいサーバーが現れた
   s.portsFake.lsof += lsofLine(2004, 3000);
   s.portsFake.ps += "\n 2004     1    00:05 node /work/node_modules/next/dist/bin/next dev";
@@ -84,10 +84,10 @@ test("チャットの実行が終わったら少し待って調べ、前にな�
   const events: BusEvent[] = [];
   s.bus.subscribe((e) => events.push(e));
   // チャットの 1 回の実行が終わった（偽のプロバイダーはすぐ終わる）
-  await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "サーバーを立てて" });
+  await s.api("POST /api/projects/:projectId/chats", { params: { projectId: s.project.id }, body: { text: "サーバーを立てて" } });
   await until(() => events.some((e) => e.type === "ports_changed"));
   assert.deepEqual(events.find((e) => e.type === "ports_changed"), { type: "ports_changed", count: 3, fresh: 1 });
-  const list = (await s.call("GET", "/api/ports?cached=1")).body as { processes: PortProcess[] };
+  const list = (await s.api("GET /api/ports", { query: { cached: "1" } })).body as { processes: PortProcess[] };
   assert.equal(list.processes.find((p) => p.pid === 2004)?.command, "next dev");
 });
 
@@ -96,21 +96,21 @@ test("POST /api/ports/stop: SIGTERM を送り、残れば stopped: false（強�
   arrange(s);
   const command = "node /work/node_modules/.bin/vite";
   // 止まった
-  let res = await s.call("POST", "/api/ports/stop", { pid: 2001, command });
+  let res = await s.api("POST /api/ports/stop", { body: { pid: 2001, command } });
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { stopped: true });
   assert.deepEqual(s.portsFake.killed, [{ pid: 2001, signal: "SIGTERM" }]);
   // 残った → 強制終了
   s.portsFake.alive.add(2001);
-  res = await s.call("POST", "/api/ports/stop", { pid: 2001, command });
+  res = await s.api("POST /api/ports/stop", { body: { pid: 2001, command } });
   assert.deepEqual(res.body, { stopped: false });
-  res = await s.call("POST", "/api/ports/stop", { pid: 2001, command, force: true });
+  res = await s.api("POST /api/ports/stop", { body: { pid: 2001, command, force: true } });
   assert.deepEqual(s.portsFake.killed.at(-1), { pid: 2001, signal: "SIGKILL" });
   // pid が使い回されて別のコマンドになった
-  res = await s.call("POST", "/api/ports/stop", { pid: 2001, command: "node other.js" });
+  res = await s.api("POST /api/ports/stop", { body: { pid: 2001, command: "node other.js" } });
   assert.equal(res.status, 409);
   // プロジェクトの外・自分の祖先は止めさせない
-  assert.equal((await s.call("POST", "/api/ports/stop", { pid: 2003, command: "node /Applications/Raycast.app/x.js" })).status, 404);
-  assert.equal((await s.call("POST", "/api/ports/stop", { pid: 999, command: "/Applications/Kickoff.app/Contents/MacOS/Kickoff" })).status, 404);
+  assert.equal((await s.api("POST /api/ports/stop", { body: { pid: 2003, command: "node /Applications/Raycast.app/x.js" } })).status, 404);
+  assert.equal((await s.api("POST /api/ports/stop", { body: { pid: 999, command: "/Applications/Kickoff.app/Contents/MacOS/Kickoff" } })).status, 404);
   assert.equal(s.portsFake.killed.length, 3);
 });

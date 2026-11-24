@@ -22,7 +22,7 @@ function withCompose(s: ReturnType<typeof setup>, extra: { match: string; stdout
   ]);
 }
 
-const list = async (s: ReturnType<typeof setup>) => (await s.call("GET", `/api/projects/${s.project.id}/docker`)).body as DockerList;
+const list = async (s: ReturnType<typeof setup>) => (await s.api("GET /api/projects/:projectId/docker", { params: { projectId: s.project.id } })).body;
 
 test("Docker: docker が入っていない・エンジンが止まっている", async () => {
   const s = setup({ features: ["docker"] });
@@ -66,7 +66,7 @@ test("Docker: すべて起動は作ってあるものを start（/ で）、作�
   withCompose(s, [], [{ id: "c1", name: "app-db-1", state: "exited", status: "Exited (0) 1 minute ago", project: "app", service: "db", dir: s.project.repo_path, files: path.join(s.project.repo_path, "compose.yaml") }]);
   const [c] = (await list(s)).composes;
   s.dockerFake.clearCalls();
-  const res = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  const res = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
   assert.equal(res.status, 202);
   // 始めたあとの一覧を返す（画面がそのまま出す）
   assert.equal((res.body as DockerList).composes[0].key, c.key);
@@ -87,7 +87,7 @@ test("Docker: 別の作業場所と同じ組になる起動は 409 で確かめ�
   assert.equal(denied.status, 409);
   assert.equal(denied.body.code, "docker_shared_project");
   assert.equal(denied.body.error, "ほかのプロジェクト（app）の組と同じ名前（app）です。起動すると、そちらのコンテナが作り直されます");
-  const ok = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key, confirm_shared: true });
+  const ok = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key, confirm_shared: true } });
   assert.equal(ok.status, 202);
 });
 
@@ -95,12 +95,12 @@ test("Docker: 失敗は標準エラーの最後の行と流し直すコマンド
   const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", code: 1, stderr: "pulling...\nError: image not found\n" }]);
   const [c] = (await list(s)).composes;
-  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
   await until(() => !s.docker.parts.operations["running"].size);
   const failed = (await list(s)).composes[0].failure;
   assert.match(failed?.message ?? "", /image not found/);
   assert.match(failed?.command ?? "", /^docker compose -p app -f .* up -d$/);
-  const dismissed = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "dismiss", compose: c.key });
+  const dismissed = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "dismiss", compose: c.key } });
   assert.equal(dismissed.status, 204);
   assert.equal((await list(s)).composes[0].failure, null);
 });
@@ -109,14 +109,14 @@ test("Docker: 流れ続ける up -d は［中止］で止まり、失敗にし�
   const s = setup({ features: ["docker"] });
   withCompose(s, [{ match: "up -d", hang: true }]);
   const [c] = (await list(s)).composes;
-  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
   const busy = (await list(s)).composes[0].operation;
   assert.equal(busy?.action, "start_all");
   assert.equal(busy?.cancellable, true);
-  const again = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  const again = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
   assert.equal(again.status, 409);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
-  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "cancel", compose: c.key })).status, 204);
+  assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "cancel", compose: c.key } })).status, 204);
   await until(() => !s.docker.parts.operations["running"].size);
   const after = (await list(s)).composes[0];
   assert.equal(after.operation, null);
@@ -132,9 +132,9 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
   ]);
   const [c] = (await list(s)).composes;
   s.dockerFake.clearCalls();
-  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_all", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "stop_all", compose: c.key } });
   await until(() => !s.docker.parts.operations["running"].size);
-  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "down", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "down", compose: c.key } });
   await until(() => !s.docker.parts.operations["running"].size);
   const ran = s.dockerFake
     .calls()
@@ -145,7 +145,7 @@ test("Docker: すべて停止は -p で / から、片付けは使い捨てを�
 
 test("Docker: 見ていますで docker events を立てる。どこからも見られなくなったら止める", async () => {
   const s = setup({ features: ["docker"] });
-  await s.call("POST", `/api/projects/${s.project.id}/docker/watch`);
+  await s.api("POST /api/projects/:projectId/docker/watch", { params: { projectId: s.project.id } });
   await until(() => s.dockerFake.calls().some((x) => x.args[0] === "events"));
   const events = s.docker.parts.watch["events"];
   assert.equal(events.running, true);
@@ -245,19 +245,19 @@ test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を
   const [c] = (await list(s)).composes;
   const url = `/api/projects/${s.project.id}/docker/actions`;
   // 1 つ目が一覧を取り直している間（docker を何度か呼ぶ）に 2 つ目が届く
-  const both = await Promise.all([s.call("POST", url, { action: "start_all", compose: c.key }), s.call("POST", url, { action: "start_all", compose: c.key })]);
+  const both = await Promise.all([s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } }), s.call("POST", url, { action: "start_all", compose: c.key })]);
   assert.deepEqual(both.map((r) => r.status).sort(), [202, 409]);
   assert.match(both.find((r) => r.status === 409)?.body.error ?? "", /ほかの操作が動いています/);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   assert.equal(s.dockerFake.calls().filter((x) => x.args.includes("up")).length, 1, "up は 1 回だけ流れる");
-  await s.call("POST", url, { action: "cancel", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "cancel", compose: c.key } });
   await until(() => !s.docker.parts.operations["running"].size);
   // エンジンが止まっていて断った操作は予約を残さず、動いたら同じ compose の操作を受ける
   s.dockerFake.set([{ match: "version", code: 1, stderr: "Cannot connect to the Docker daemon" }]);
-  assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 400);
+  assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } })).status, 400);
   assert.equal(s.docker.parts.operations["reserved"].size, 0);
   withCompose(s, [{ match: "up -d", code: 0 }]);
-  assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 202);
+  assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } })).status, 202);
 });
 
 test("Docker: ポートで失敗したら相手を全部残し、［相手を止めて起動］で相手を止めてから同じ起動をやり直す", async () => {
@@ -267,7 +267,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
     { id: "x2", name: "kickoff-dbtest-pg", state: "running", ports: "127.0.0.1:5432->5432/tcp" },
   ]);
   const [c] = (await list(s)).composes;
-  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "start_all", compose: c.key } });
   await until(() => !s.docker.parts.operations["running"].size);
   const failure = (await list(s)).composes[0].failure;
   assert.deepEqual(
@@ -281,7 +281,7 @@ test("Docker: ポートで失敗したら相手を全部残し、［相手を止
   const containers = [{ id: "x1", name: "else-db-1", state: "running", project: "else", service: "db", dir: "/somewhere/else", ports: "0.0.0.0:5432->5432/tcp" }];
   withCompose(s, [{ match: "--force-recreate", code: 0 }, { match: "up -d", code: 1, stderr: "Bind for 0.0.0.0:5432 failed: port is already allocated\n" }], containers);
   s.dockerFake.clearCalls();
-  const res = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key });
+  const res = await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "stop_others_and_start", compose: c.key } });
   assert.equal(res.status, 202);
   await until(() => !s.docker.parts.operations["running"].size);
   const ran = s.dockerFake.calls().filter((x) => x.args[0] === "stop" || x.args.includes("up")).map((x) => x.args.join(" "));
@@ -297,7 +297,7 @@ test("Docker: 相手がいないときの［相手を止めて起動］は 400",
   const s = setup({ features: ["docker"] });
   withCompose(s);
   const [c] = (await list(s)).composes;
-  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key })).status, 400);
+  assert.equal((await s.api("POST /api/projects/:projectId/docker/actions", { params: { projectId: s.project.id }, body: { action: "stop_others_and_start", compose: c.key } })).status, 400);
 });
 
 test("Docker: 静かなぶつかり（Docker の外のプロセスが同じポート）を lsof で見つけ、Homebrew のサービスなら止められる", async () => {
@@ -312,8 +312,8 @@ test("Docker: 静かなぶつかり（Docker の外のプロセスが同じポ�
   s.portsFake.brewServices = JSON.stringify([{ name: "postgresql@16", running: true, pid: 123 }]);
   const l = await list(s);
   assert.deepEqual(l.silent, { c1: [{ port: 5432, address: "127.0.0.1:5432", process: "postgres", pid: 123, brew_service: "postgresql@16" }] });
-  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/brew-stop`, { name: "redis" })).status, 400);
-  const res = await s.call("POST", `/api/projects/${s.project.id}/docker/brew-stop`, { name: "postgresql@16" });
+  assert.equal((await s.api("POST /api/projects/:projectId/docker/brew-stop", { params: { projectId: s.project.id }, body: { name: "redis" } })).status, 400);
+  const res = await s.api("POST /api/projects/:projectId/docker/brew-stop", { params: { projectId: s.project.id }, body: { name: "postgresql@16" } });
   assert.equal(res.status, 200);
   assert.match(res.body.message, /brew services start postgresql@16/);
   assert.deepEqual(s.portsFake.brewStopped, ["postgresql@16"]);

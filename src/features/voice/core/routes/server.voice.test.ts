@@ -25,7 +25,7 @@ test("文字起こし: 音声入力がオフ・音声がないときは 400 で�
 });
 
 test("文字起こし（この Mac）: コマンド・モデルがなければ 400 で brew の案内、モデルを落とせば whisper に振り分け、言語は指定 → 設定の順", async () => {
-  const { app, call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
+  const { app, call, api, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "local", voice_model: "base", voice_language: "ja" });
@@ -39,11 +39,11 @@ test("文字起こし（この Mac）: コマンド・モデルがなければ 4
   assert.match(noModel.body.error, /モデル（base）をダウンロード/);
 
   // モデルを落とす（偽の fetch）。始めた時点で進み具合を返し、終わったら知らせる
-  const started = await call("POST", "/api/voice/models/base/download");
+  const started = await api("POST /api/voice/models/:modelId/download", { params: { modelId: "base" } });
   assert.equal(started.status, 202);
   assert.ok((started.body as VoiceStatus).local.models.find((m) => m.id === "base")?.download);
   await until(() => events.some((e) => e.type === "voice_model" && e.id === "base" && e.downloaded));
-  const status = (await call("GET", "/api/voice")).body as VoiceStatus;
+  const status = (await api("GET /api/voice")).body;
   assert.equal(status.ready, true);
   assert.equal(status.reason, null);
 
@@ -63,34 +63,34 @@ test("文字起こし（この Mac）: コマンド・モデルがなければ 4
   assert.equal((await transcribe(app, { language: "日本語" })).status, 400);
 
   // 消すと、また準備ができていない
-  const removed = (await call("DELETE", "/api/voice/models/base")).body as VoiceStatus;
+  const removed = (await api("DELETE /api/voice/models/:modelId", { params: { modelId: "base" } })).body;
   assert.equal(removed.local.models.find((m) => m.id === "base")?.downloaded, false);
   assert.equal(removed.ready, false);
   // 知らないモデルは 404
-  assert.equal((await call("POST", "/api/voice/models/huge/download")).status, 404);
+  assert.equal((await api("POST /api/voice/models/:modelId/download", { params: { modelId: "huge" } })).status, 404);
 });
 
 test("モデルのダウンロード: 失敗したら理由を残して知らせ、もう一度落とせる", async () => {
-  const { call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
+  const { api, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   voiceFake.download = async () => new Response("not found", { status: 404 });
-  await call("POST", "/api/voice/models/small/download");
+  await api("POST /api/voice/models/:modelId/download", { params: { modelId: "small" } });
   await until(() => events.some((e) => e.type === "voice_model" && Boolean(e.download?.error)));
-  const failed = ((await call("GET", "/api/voice")).body as VoiceStatus).local.models.find((m) => m.id === "small");
+  const failed = ((await api("GET /api/voice")).body).local.models.find((m) => m.id === "small");
   assert.match(failed?.download?.error ?? "", /HTTP 404/);
   assert.equal(failed?.downloaded, false);
 
   voiceFake.download = async () => new Response(new Uint8Array(10), { headers: { "content-length": "10" } });
-  await call("POST", "/api/voice/models/small/download");
+  await api("POST /api/voice/models/:modelId/download", { params: { modelId: "small" } });
   await until(() => events.some((e) => e.type === "voice_model" && e.id === "small" && e.downloaded && e.download === null));
 });
 
 test("文字起こし（macOS の音声認識）: コマンド・モデル・キーなしで振り分け、言語は指定 → 設定の順。この Mac で使えなければ 400 で理由", async () => {
-  const { app, call, voiceFake } = setup({ features: ["voice", "settings"] });
+  const { app, call, api, voiceFake } = setup({ features: ["voice", "settings"] });
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "macos", voice_language: "ja" });
   voiceFake.tools = { whisper: null, ffmpeg: null };
-  const status = (await call("GET", "/api/voice")).body as VoiceStatus;
+  const status = (await api("GET /api/voice")).body;
   assert.equal(status.ready, true);
   assert.deepEqual(status.macos, { helper: true, available: true, locale: "ja-JP", installed: true });
   const ok = await transcribe(app);
@@ -105,12 +105,12 @@ test("文字起こし（macOS の音声認識）: コマンド・モデル・キ
   const old = await transcribe(app);
   assert.equal(old.status, 400);
   assert.match(old.body.error, /macOS 26 以上/);
-  assert.equal(((await call("GET", "/api/voice")).body as VoiceStatus).ready, false);
+  assert.equal(((await api("GET /api/voice")).body).ready, false);
   assert.equal(voiceFake.calls.length, 2);
 });
 
 test("文字起こし（OpenAI）: キーがなければ 400、保存したら OpenAI に振り分ける。キーは応答・設定・配信のどこにも出さず、空で消せる", async () => {
-  const { app, call, bus, voiceFake } = setup({ features: ["voice", "settings"] });
+  const { app, call, api, bus, voiceFake } = setup({ features: ["voice", "settings"] });
   const events: string[] = [];
   bus.subscribe((e) => events.push(JSON.stringify(e)));
   await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "openai", voice_openai_model: "whisper-1", voice_openai_base_url: "https://example.test/v1" });
@@ -118,7 +118,7 @@ test("文字起こし（OpenAI）: キーがなければ 400、保存したら O
   assert.equal(noKey.status, 400);
   assert.match(noKey.body.error, /API キーがありません/);
 
-  const saved = await call("PUT", "/api/voice/openai-key", { key: "  sk-secret-123  " });
+  const saved = await api("PUT /api/voice/openai-key", { body: { key: "  sk-secret-123  " } });
   assert.deepEqual(saved.body, { saved: true });
   const ok = await transcribe(app);
   assert.equal(ok.body.text, "OpenAI の文");
@@ -126,12 +126,12 @@ test("文字起こし（OpenAI）: キーがなければ 400、保存したら O
   assert.deepEqual(voiceFake.calls[0].opts, { key: "sk-secret-123", baseUrl: "https://example.test/v1", model: "whisper-1", language: "ja" });
 
   const settings = await call("GET", "/api/settings");
-  const status = await call("GET", "/api/voice");
+  const status = await api("GET /api/voice");
   assert.equal(status.body.openai.key_saved, true);
   for (const text of [JSON.stringify(settings.body), JSON.stringify(status.body), ...events]) assert.ok(!text.includes("sk-secret"), text);
 
-  assert.deepEqual((await call("PUT", "/api/voice/openai-key", { key: "" })).body, { saved: false });
-  assert.equal((await call("GET", "/api/voice")).body.openai.key_saved, false);
+  assert.deepEqual((await api("PUT /api/voice/openai-key", { body: { key: "" } })).body, { saved: false });
+  assert.equal((await api("GET /api/voice")).body.openai.key_saved, false);
 });
 
 test("設定: 音声入力の項目を検証する（知らない方法・モデル・http(s) 以外の URL は 400）", async () => {
@@ -146,7 +146,7 @@ test("設定: 音声入力の項目を検証する（知らない方法・モデ
 });
 
 test("読み上げ（OpenAI）: 音声入力がオフ・キーがない・文が空なら 400、あれば設定の声と速さで mp3 を返す", async () => {
-  const { app, call, voiceFake } = setup({ features: ["voice", "settings"] });
+  const { app, call, api, voiceFake } = setup({ features: ["voice", "settings"] });
   const speak = async (text: string) => app.request("/api/speech", { method: "POST", headers: { ...AUTH, "content-type": "application/json" }, body: JSON.stringify({ text }) });
   const off = await speak("こんにちは");
   assert.equal(off.status, 400);
@@ -155,7 +155,7 @@ test("読み上げ（OpenAI）: 音声入力がオフ・キーがない・文が
   const noKey = await speak("こんにちは");
   assert.equal(noKey.status, 400);
   assert.match((await noKey.json()).error, /API キーがありません/);
-  await call("PUT", "/api/voice/openai-key", { key: "sk-tts" });
+  await api("PUT /api/voice/openai-key", { body: { key: "sk-tts" } });
   assert.equal((await speak("   ")).status, 400);
   assert.equal((await speak("あ".repeat(4097))).status, 400);
   const ok = await speak(" こんにちは ");

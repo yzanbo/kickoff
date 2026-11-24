@@ -3,9 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { TailscaleStatus } from "@shared/devices/tailscale";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_DISABLED } from "@shared/foundation/api/deviceRefusals";
-import type { Device, PairingClaimResult, PairingPollResult, PairingState } from "@shared/devices/types";
+import type { Device, PairingClaimResult, PairingPollResult} from "@shared/devices/types";
 import { openSse, sseType } from "@/foundation/core/testing/sse";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
@@ -41,7 +40,7 @@ test("端末: 知らないトークン・取り消した端末は 401。Tailscal
 });
 
 test("端末: 見るだけの端末は、見る口・見ているものの知らせ・既読だけ使え、送る・答える・止めるは 403 と印で断る", async () => {
-  const { app, store, project, device, call } = withDevice();
+  const { app, store, project, device, call, api } = withDevice();
   store.devices.setAccess(device.id, "read");
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
   const req = (method: string, url: string, body?: unknown) =>
@@ -65,12 +64,12 @@ test("端末: 見るだけの端末は、見る口・見ているものの知ら
   // 自分を読める（できることが分かる）。この Mac の画面からは 400
   const self = (await (await req("GET", "/api/devices/self")).json()) as Device;
   assert.equal(self.access, "read");
-  assert.equal((await call("GET", "/api/devices/self")).status, 400);
+  assert.equal((await api("GET /api/devices/self")).status, 400);
   // この Mac の画面で「使える」に戻すと、次の頼みから送れる（送る口そのものの答えは 403 以外）
-  const updated = await call("PATCH", `/api/devices/${device.id}`, { access: "full" });
+  const updated = await api("PATCH /api/devices/:deviceId", { params: { deviceId: device.id }, body: { access: "full" } });
   assert.equal((updated.body as Device).access, "full");
   assert.notEqual((await req("POST", `/api/chats/${chat.id}/messages`, {})).status, 403);
-  assert.equal((await call("PATCH", "/api/devices/999", { access: "read" })).status, 404);
+  assert.equal((await api("PATCH /api/devices/:deviceId", { params: { deviceId: 999 }, body: { access: "read" } })).status, 404);
   assert.equal((await call("PATCH", `/api/devices/${device.id}`, { access: "admin" })).status, 400);
 });
 
@@ -100,11 +99,11 @@ async function poll(app: ReturnType<typeof setup>["app"], id: string, secret: st
 }
 
 test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つなぐ」を押したら端末のトークンを 1 回だけ渡す。そのトークンで開いた口を使える", async () => {
-  const { app, call, store, bus } = mobileSetup();
+  const { app, call, api, store, bus } = mobileSetup();
   const events: string[] = [];
   bus.subscribe((e) => events.push(e.type));
   await call("PUT", "/api/settings", { mobile_url: "https://mac.example.ts.net" });
-  const started = (await call("POST", "/api/pairing")).body as PairingState;
+  const started = (await api("POST /api/pairing")).body;
   assert.match(started.code!, /^\d{6}$/);
   assert.equal(started.url, "https://mac.example.ts.net");
   assert.equal(started.host_id, store.databaseId);
@@ -115,10 +114,10 @@ test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つ�
   assert.deepEqual(await poll(app, claimed.body.request_id, claimed.body.secret), { status: "pending" });
   // 鍵が違えば何も分からない
   assert.deepEqual(await poll(app, claimed.body.request_id, "wrong"), { status: "expired" });
-  const waiting = (await call("GET", "/api/pairing")).body as PairingState;
+  const waiting = (await api("GET /api/pairing")).body;
   assert.equal(waiting.request?.name, "Pixel 8");
 
-  const approved = (await call("POST", `/api/pairing/requests/${claimed.body.request_id}/approve`, { access: "read" })).body as PairingState;
+  const approved = (await api("POST /api/pairing/requests/:requestId/approve", { params: { requestId: claimed.body.request_id }, body: { access: "read" } })).body;
   // 番号は使い終える
   assert.equal(approved.code, null);
   const result = await poll(app, claimed.body.request_id, claimed.body.secret);
@@ -129,49 +128,49 @@ test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つ�
   assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 200);
   assert.equal((await app.request("/api/settings", { headers: { authorization: `Bearer ${result.token}` } })).status, 403);
   // 一覧に出し、トークンは出さない
-  const devices = (await call("GET", "/api/devices")).body as Device[];
+  const devices = (await api("GET /api/devices")).body;
   assert.deepEqual(devices.map((d) => [d.name, d.access]), [["Pixel 8", "read"]]);
   assert.ok(!JSON.stringify(devices).includes(result.token));
   assert.ok(events.includes("pairing") && events.includes("devices"));
 
   // 取り消したら、そのトークンは使えない
-  assert.equal((await call("DELETE", `/api/devices/${result.device_id}`)).status, 204);
+  assert.equal((await api("DELETE /api/devices/:deviceId", { params: { deviceId: result.device_id } })).status, 204);
   assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 401);
-  assert.equal((await call("DELETE", `/api/devices/${result.device_id}`)).status, 404);
+  assert.equal((await api("DELETE /api/devices/:deviceId", { params: { deviceId: result.device_id } })).status, 404);
 });
 
 test("ペアリング: 番号が違う・期限切れは断り、5 回続けて間違えたら番号を捨てる。断ったら端末には denied。ペアリングの口は端末には開かない", async () => {
-  const { app, call, pairingClock } = mobileSetup();
+  const { app, api, pairingClock } = mobileSetup();
   assert.equal((await claim(app, "123456")).status, 404);
-  const { code } = (await call("POST", "/api/pairing")).body as PairingState;
+  const { code } = (await api("POST /api/pairing")).body;
   const wrong = code === "000000" ? "111111" : "000000";
   for (let i = 0; i < 4; i++) assert.equal((await claim(app, wrong)).status, 400);
   assert.equal((await claim(app, wrong)).status, 400);
   // 5 回目で捨てたので、正しい番号でも頼めない
   assert.equal((await claim(app, code!)).status, 404);
 
-  const second = (await call("POST", "/api/pairing")).body as PairingState;
+  const second = (await api("POST /api/pairing")).body;
   const req = await claim(app, second.code!.replace(/(\d{3})/, "$1-"));
   assert.equal(req.status, 201, "区切りの - は読み飛ばす");
   // 確かめを待っている間は、ほかの端末は頼めない
   assert.equal((await claim(app, second.code!, "別の端末")).status, 409);
-  await call("POST", `/api/pairing/requests/${req.body.request_id}/deny`);
+  await api("POST /api/pairing/requests/:requestId/deny", { params: { requestId: req.body.request_id } });
   assert.deepEqual(await poll(app, req.body.request_id, req.body.secret), { status: "denied" });
 
   // 期限（5 分）を過ぎたら番号は消える
   pairingClock.now += 5 * 60_000 + 1;
-  assert.equal(((await call("GET", "/api/pairing")).body as PairingState).code, null);
+  assert.equal(((await api("GET /api/pairing")).body).code, null);
   assert.equal((await claim(app, second.code!)).status, 404);
 });
 
 test("ペアリング: つないだのに結果を聞かれないまま期限を過ぎたら、作った端末を消す", async () => {
-  const { app, call, store, pairingClock } = mobileSetup();
-  const { code } = (await call("POST", "/api/pairing")).body as PairingState;
+  const { app, api, store, pairingClock } = mobileSetup();
+  const { code } = (await api("POST /api/pairing")).body;
   const req = await claim(app, code!);
-  await call("POST", `/api/pairing/requests/${req.body.request_id}/approve`);
+  await api("POST /api/pairing/requests/:requestId/approve", { params: { requestId: req.body.request_id } });
   assert.equal(store.devices.list().length, 1);
   pairingClock.now += 5 * 60_000 + 1;
-  await call("GET", "/api/pairing");
+  await api("GET /api/pairing");
   assert.equal(store.devices.list().length, 0);
 });
 
@@ -183,17 +182,17 @@ test("ペアリングと端末の一覧の口は、端末には開かない", as
 });
 
 test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先は一覧に出さない）。この Mac の画面からは 400、形が違えば 400", async () => {
-  const { app, call, store, device } = withDevice();
+  const { app, api, store, device } = withDevice();
   const put = (body: unknown) => app.request("/api/devices/self/push", { method: "PUT", headers: { ...DEVICE, "content-type": "application/json" }, body: JSON.stringify(body) });
   assert.equal((await put({ push: { kind: "expo", token: "ExponentPushToken[z]" } })).status, 204);
   assert.deepEqual(store.devices.push(device.id), { kind: "expo", token: "ExponentPushToken[z]" });
-  const listed = (await call("GET", "/api/devices")).body as Device[];
+  const listed = (await api("GET /api/devices")).body;
   assert.equal(listed[0].has_push, true);
   assert.ok(!JSON.stringify(listed).includes("ExponentPushToken"));
   assert.equal((await put({ push: { kind: "web", endpoint: "http://insecure.example", keys: { p256dh: "a", auth: "b" } } })).status, 400);
   assert.equal((await put({ push: null })).status, 204);
   assert.equal(store.devices.push(device.id), null);
-  assert.equal((await call("PUT", "/api/devices/self/push", { push: null })).status, 400);
+  assert.equal((await api("PUT /api/devices/self/push", { body: { push: null } })).status, 400);
 });
 
 test("SSE: 端末にも、続けて流した途中の返答は 1 通（つないだ文）で、そのあとの知らせより前に届く", async () => {
@@ -210,7 +209,7 @@ test("SSE: 端末にも、続けて流した途中の返答は 1 通（つない
 });
 
 test("スマホ連携がオフなら、つないだ端末からの頼みとペアリングを断る（登録は残し、オンに戻せばそのまま使える）。オフにしたら端末の SSE を切る", async () => {
-  const { app, call, store, device } = withDevice();
+  const { app, call, api, store, device } = withDevice();
   const res = await app.request("/api/projects", { headers: DEVICE });
   assert.equal(res.status, 200);
   const sse = await openSse(app, DEVICE);
@@ -219,7 +218,7 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
   const off = await app.request("/api/projects", { headers: DEVICE });
   assert.equal(off.status, 403);
   assert.equal(((await off.json()) as { code: string }).code, MOBILE_DISABLED);
-  const start = await call("POST", "/api/pairing");
+  const start = await api("POST /api/pairing");
   assert.equal(start.status, 409);
   assert.equal((start.body as { code: string }).code, MOBILE_DISABLED);
   assert.equal(store.devices.get(device.id)?.name, "Pixel 8");
@@ -228,12 +227,12 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
 });
 
 test("端末を取り消したら、その端末のつながったままの SSE をそこで切る（ほかの端末・この Mac の画面は切らない）", async () => {
-  const { app, bus, call, device, project, store } = withDevice();
+  const { app, bus, api, device, project, store } = withDevice();
   const other = store.devices.create("タブレット", "o".repeat(43));
   const mine = await openSse(app, DEVICE);
   const theirs = await openSse(app, { authorization: `Bearer ${"o".repeat(43)}` });
   const host = await openSse(app, AUTH);
-  await call("DELETE", `/api/devices/${device.id}`);
+  await api("DELETE /api/devices/:deviceId", { params: { deviceId: device.id } });
   assert.equal(await mine.next(), "end");
   // この Mac の画面には、端末の一覧が変わった知らせが届く（切れない）。ほかの端末は切れておらず、あとの知らせも届く
   assert.equal(await host.next(), "data");
@@ -243,8 +242,8 @@ test("端末を取り消したら、その端末のつながったままの SSE 
 });
 
 test("Tailscale の様子: 入っていなければ installed: false と始めるコマンド。入っていれば名前と Serve の URL。端末には開かない", async () => {
-  const { call, app, tailscaleFake } = withDevice();
-  const missing = (await call("GET", "/api/tailscale")).body as TailscaleStatus;
+  const { api, app, tailscaleFake } = withDevice();
+  const missing = (await api("GET /api/tailscale")).body;
   assert.equal(missing.installed, false);
   assert.match(missing.command, /^tailscale serve --bg --https=\d+ http:\/\/127\.0\.0\.1:\d+$/);
   // 答えを書いた小さなスクリプトを tailscale として置く（status と serve status）
@@ -253,7 +252,7 @@ test("Tailscale の様子: 入っていなければ installed: false と始め�
   const statusJson = JSON.stringify({ BackendState: "Running", Self: { DNSName: "mac.tailnet.ts.net." } });
   fs.writeFileSync(cli, `#!/bin/sh\nif [ "$1" = "serve" ]; then echo '${serveJson}'; else echo '${statusJson}'; fi\n`, { mode: 0o755 });
   tailscaleFake.cli = cli;
-  const running = (await call("GET", "/api/tailscale")).body as TailscaleStatus;
+  const running = (await api("GET /api/tailscale")).body;
   assert.equal(running.installed, true);
   assert.equal(running.running, true);
   assert.equal(running.dns_name, "mac.tailnet.ts.net");

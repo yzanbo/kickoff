@@ -2,7 +2,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderStatus } from "@shared/ai/types";
-import { PROVIDER_IDS, type ProviderId } from "@shared/settings/types";
+import { PROVIDER_IDS } from "@shared/settings/types";
 import { setup } from "@/app/core/testing/testServer";
 import { until } from "@/app/core/testing/testCore";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
@@ -59,20 +59,17 @@ test("Claude Code に渡す API キー: API キーのときだけ、子プロセ
   assert.deepEqual(claudeAuthEnv({ mode: "api_key", apiKey: "k" }), { ANTHROPIC_API_KEY: "k", CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1" });
 });
 
-/** 応答のチャットのうち、このテストが見る欄（chat の Chat の型を読まない） */
-type ChatWithAi = { id: number; provider: ProviderId };
-
 test("新しいチャット: AI を選べ（省けばプロジェクトの AI）、子チャットの既定は親と同じ。違う AI の子チャットは会話を引き継がない", async () => {
-  const { call, store, project } = setup({ features: ["ai", "chat", "settings", "childChats"] });
-  const plain = (await call("POST", `/api/projects/${project.id}/chats`, { text: "x" })).body as ChatWithAi;
+  const { call, api, store, project } = setup({ features: ["ai", "chat", "settings", "childChats"] });
+  const plain = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "x" } })).body;
   assert.equal(plain.provider, "claude");
-  const codex = (await call("POST", `/api/projects/${project.id}/chats`, { text: "y", provider: "codex" })).body as ChatWithAi;
+  const codex = (await api("POST /api/projects/:projectId/chats", { params: { projectId: project.id }, body: { text: "y", provider: "codex" } })).body;
   assert.equal(codex.provider, "codex");
   await until(() => store.chats.get(codex.id)?.status !== "running");
 
-  const child = (await call("POST", `/api/chats/${codex.id}/children`, { text: "z", inherit: false })).body as ChatWithAi;
+  const child = (await api("POST /api/chats/:chatId/children", { params: { chatId: codex.id }, body: { text: "z", inherit: false } })).body;
   assert.equal(child.provider, "codex");
-  const other = (await call("POST", `/api/chats/${codex.id}/children`, { text: "w", inherit: true, provider: "claude" })).body as ChatWithAi;
+  const other = (await api("POST /api/chats/:chatId/children", { params: { chatId: codex.id }, body: { text: "w", inherit: true, provider: "claude" } })).body;
   assert.equal(other.provider, "claude");
   await until(() => store.events.list(other.id).some((e) => e.type === "notice"));
   const notice = store.events.list(other.id).find((e) => e.type === "notice");

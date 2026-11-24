@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import type { DbConnection } from "@shared/database/types";
 import type { DockerDbTarget } from "@shared/database/types";
-import { DOCKER_DB_NO_PORT, type DockerList } from "@shared/docker/types";
+import { DOCKER_DB_NO_PORT} from "@shared/docker/types";
 import { gitRepo } from "@/foundation/core/testing/gitRepo";
 import { setup } from "@/app/core/testing/testServer";
 
@@ -16,12 +16,12 @@ async function withDbCompose(s: ReturnType<typeof setup>) {
   fs.writeFileSync(path.join(s.project.repo_path, "compose.yaml"), "services: {}\n");
   const { ports: _p, ...hidden } = pg;
   s.dockerFake.set([{ match: "config --format json", stdout: JSON.stringify({ name: "app", services: { db: pg, hidden, redis: { image: "redis:7" } } }) }]);
-  const list = (await s.call("GET", `/api/projects/${s.project.id}/docker`)).body as DockerList;
+  const list = (await s.api("GET /api/projects/:projectId/docker", { params: { projectId: s.project.id } })).body;
   return list.composes[0].key;
 }
 
 const target = async (s: ReturnType<typeof setup>, compose: string, service: string) =>
-  s.call("GET", `/api/projects/${s.project.id}/docker/db?compose=${encodeURIComponent(compose)}&service=${service}`);
+  s.api("GET /api/projects/:projectId/docker/db", { params: { projectId: s.project.id }, query: { compose: compose, service: service } });
 
 test("Docker の DB で開く: 登録していなければ取り込みの案（パスワードは返さない）、ポートを出していなければ押せない理由", async () => {
   const s = setup({ features: ["database"] });
@@ -76,9 +76,9 @@ test("Docker の DB で開く: ワークツリーの DB から作った接続は
   const s = setup({ features: ["database"] });
   gitRepo({ dir: s.project.repo_path, files: { "compose.yaml": "services: {}\n", ".gitignore": ".env\n" } });
   s.dockerFake.set([{ match: "config --format json", stdout: JSON.stringify({ name: "app", services: { db: pg } }) }]);
-  const made = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees`, { branch: "feat/x" });
+  const made = await s.api("POST /api/projects/:projectId/git/worktrees", { params: { projectId: s.project.id }, body: { branch: "feat/x" } });
   const wt = (made.body as { path: string; main: boolean }[]).find((w) => !w.main)!;
-  const list = (await s.call("GET", `/api/projects/${s.project.id}/docker`)).body as DockerList;
+  const list = (await s.api("GET /api/projects/:projectId/docker", { params: { projectId: s.project.id } })).body;
   const compose = list.composes.find((c) => c.worktree_path === wt.path);
   assert.ok(compose);
   const { candidate } = (await target(s, compose.key, "db")).body as DockerDbTarget;
