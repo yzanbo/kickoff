@@ -46,6 +46,21 @@
     gap: 2px;
   }
 
+  /*
+   * 狭い一覧（右サイドバーのノートなど）では、操作は乗せた・ピントのある見出しだけに出す
+   * （いつも出すと 3 つのボタンが幅を取り、「共通のノート」などの欄の名前が 1 文字まで詰まるため）
+   */
+
+  .note-sections {
+    container: note-sections / inline-size;
+  }
+
+  @container note-sections (width < 240px) {
+    .note-section-head:not(:hover, :focus-within) .note-section-tools:not(:has([aria-expanded="true"])) {
+      display: none;
+    }
+  }
+
   /* 欄の根へ落とすときは欄ごと（見出しと木の外側）を囲む */
 
   .note-section.drop-target,
