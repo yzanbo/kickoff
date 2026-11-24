@@ -1,7 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { manualClock } from "@/foundation/core/testing/manualClock";
-import { createStopper, STOP_GRACE_MS } from "./turnLifecycle";
+import { createStopper, failureFlags, STOP_GRACE_MS } from "./turnLifecycle";
 
 function recorder(clock = manualClock()) {
   const calls: string[] = [];
@@ -45,4 +45,13 @@ test("dispose のあとは、合図が来ても待っていても呼ばない", 
   stopper.dispose();
   await waiting.clock.advance(STOP_GRACE_MS);
   assert.deepEqual(waiting.calls, ["interrupt"]);
+});
+
+test("失敗の印: CLI が種類を知らせたら種類だけで決め、知らせないときだけ文から見分ける", () => {
+  // Codex・Copilot は種類を返す（使用枠でないと言われたら、文に「limit reached」があっても使用枠にしない）
+  assert.deepEqual(failureFlags("context limit reached", { usageLimit: false }), {});
+  assert.deepEqual(failureFlags("失敗", { usageLimit: true }), { usageLimit: { resetsAt: null } });
+  // 種類を知らせない CLI（ACP）は文から見分ける
+  assert.deepEqual(failureFlags("Claude AI usage limit reached"), { usageLimit: { resetsAt: null } });
+  assert.deepEqual(failureFlags("ECONNRESET"), { network: true });
 });

@@ -40,10 +40,11 @@ export function createStopper(
 
 /**
  * 失敗の文から、結果に添える印（使用枠の上限 usageLimit・通信の切断 network）を作る。hints は CLI が種類で知らせたもの。
- * 使用枠の上限なら通信の切断にはしない（再開の決まりが違うため）
+ * 使用枠の上限は、CLI が種類を知らせたら（true でも false でも）種類だけで決め、知らせない CLI だけ文から見分ける
+ * （文の目印は広く、ほかの失敗の「limit reached」も当たるため）。使用枠の上限なら通信の切断にはしない（再開の決まりが違うため）
  */
 export function failureFlags(message: string, hints: { usageLimit?: boolean; network?: boolean } = {}): { network?: true; usageLimit?: { resetsAt: null } } {
-  const usageLimit = Boolean(hints.usageLimit) || isUsageLimitError(message);
+  const usageLimit = hints.usageLimit ?? isUsageLimitError(message);
   const network = !usageLimit && (Boolean(hints.network) || isNetworkError(message));
   return { ...(network ? { network: true as const } : {}), ...(usageLimit ? { usageLimit: { resetsAt: null } } : {}) };
 }
